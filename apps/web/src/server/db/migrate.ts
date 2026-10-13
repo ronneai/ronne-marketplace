@@ -43,6 +43,23 @@ const executedMigrations = async (db: AnyDb): Promise<string[]> => {
 };
 
 /**
+ * Migrates an empty database to exactly `names` (099's restore: the migrations a backup was made
+ * with), which must be the first migrations of this app, in order. Throws as migrateToLatest does.
+ */
+export const migrateToExactly = async <DB>(
+  db: Kysely<DB>,
+  dialect: DatabaseDialect,
+  names: readonly string[],
+  migrations: Record<string, AppMigration> = allMigrations,
+): Promise<string[]> => {
+  const known = Object.keys(migrations);
+  if (names.some((name, i) => known[i] !== name))
+    throw new Error("Those migrations aren't the first ones this app has, in order.");
+  const subset = Object.fromEntries(names.map((name) => [name, migrations[name] as AppMigration]));
+  return migrateToLatest(db, dialect, subset);
+};
+
+/**
  * Runs every pending migration, in order, and returns the names it applied (empty when the database
  * is already up to date). Stops at the first failure; migrations before it stay applied.
  */

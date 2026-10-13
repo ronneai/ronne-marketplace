@@ -109,6 +109,28 @@ describe("a script's paths (099)", () => {
     ]);
   });
 
+  it("makes restore's archive absolute, and leaves --database-url's value alone", () => {
+    expect(
+      scriptArgs(
+        "restore",
+        ["b.tar", "--database-url", "postgres://u@h/db", "--passphrase-file", "p", "--yes"],
+        cwd,
+      ),
+    ).toEqual([
+      join(cwd, "b.tar"),
+      "--database-url",
+      "postgres://u@h/db",
+      "--passphrase-file",
+      join(cwd, "p"),
+      "--yes",
+    ]);
+    expect(scriptArgs("restore", ["--", "b.tar"], cwd)).toEqual(["--", join(cwd, "b.tar")]);
+    expect(scriptArgs("restore", ["--database-url=file:x.db", "b.tar"], cwd)).toEqual([
+      "--database-url=file:x.db",
+      join(cwd, "b.tar"),
+    ]);
+  });
+
   it("makes --passphrase-file absolute too", () => {
     expect(scriptArgs("backup", ["--encrypt", "--passphrase-file", "p.txt"], cwd)).toEqual([
       "--encrypt",

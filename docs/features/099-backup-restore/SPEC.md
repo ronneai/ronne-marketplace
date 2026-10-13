@@ -164,28 +164,52 @@ rmk-server backup --verify <archive> [--passphrase-file <file>]
 rmk-server restore <archive> [--passphrase-file <file>] [--database-url <url>] [--with-settings] [--yes]
 ```
 
-1. **Reads and verifies the whole archive first** (as `--verify`), before writing anything.
+1. **Reads and verifies the whole archive first** (as `--verify`), before writing anything; an
+   encrypted archive's passphrase is asked once, for both reads. The second read, which restores,
+   checks every entry's sha256 again (and `backup.json`'s and `manifest.json`'s bytes), and that
+   every entry and every row came again, in the format's order, so an archive changed in between
+   stops it.
 2. **Checks the app can take it:** every migration the backup applied must be one this app knows
    (else "This backup comes from a newer Ronne (<version>); install that version or newer to
    restore it"). A backup from an older Ronne restores, and the newer migrations run after.
-3. **The target database:** from `--database-url`, else the settings file, else (no settings
-   yet) the backup's own `DATABASE_URL` when `--with-settings`, else a new SQLite file in the data
-   folder. It must be **empty**: no tables, or only the migration tables with nothing applied.
+3. **The target database:** from `--database-url`, else the settings (the environment over the
+   settings file, as the server reads them), else (no settings file yet) the backup's own
+   `DATABASE_URL` when `--with-settings`, else a new SQLite file in the data folder. A relative
+   SQLite path is from the app's folder, as setup's is. Messages name the database by its kind,
+   never by its URL (which can hold a password). It must be **empty**: no tables, or only the migration tables with nothing applied.
    Otherwise: "The database isn't empty. Restore into a new database, or remove this one first",
-   and for SQLite, how to move the file aside. Nothing is changed.
-4. **The target storage** must be empty or absent. Same refusal otherwise.
+   and for SQLite, how to move the file aside. Nothing is changed: a SQLite file that's there is
+   looked at read-only first (opening it to restore would turn WAL on).
+4. **The target storage** (the settings' `STORAGE_PATH`, else the data folder's `storage/`) must be
+   empty or absent. Same refusal otherwise.
 5. **The server must be stopped:** restore takes the migration lock, as start does, so a server
    starting meanwhile waits; when a service is installed and running, restore says to stop it
-   (`rmk-server service stop`), and in Docker the runbook uses `docker compose stop web` then
-   `docker compose run --rm web pnpm run restore …`.
-6. **Restores:** migrates the empty database to exactly the backup's migrations, loads the rows
-   table by table in an order that respects foreign keys (from the schema, a helper in `db/`), in
-   batches, in one transaction where the database allows it; copies the storage files and checks
-   each sha256; then runs the newer migrations.
+   (`rmk-server service stop`): `rmk-server restore` refuses while the installed service runs. In
+   Docker the runbook uses `docker compose stop web` then `docker compose run --rm web pnpm run
+   restore …`. The lock is held on the one connection that does the whole restore. It belongs to
+   one database: on MySQL and MariaDB, Ronne names it after the database (Kysely's own name is one
+   for the whole server, so a restore would have held every other instance's migrations there). SQLite has no
+   migration lock, so restore locks the file itself (exclusive locking mode) from the emptiness
+   check to the end; a file another process holds is refused as in use.
+6. **Restores:** migrates the empty database to exactly the backup's migrations and checks that its
+   tables, columns and primary keys are the manifest's; removes the rows those migrations inserted
+   (the global workspace…), which the backup has as they were; loads the rows table by table in
+   the archive's order, refused unless it puts each table after the tables it refers to, in
+   batches, in one transaction (all three databases allow it); writes the storage files (mode 0600,
+   never over an existing file) and checks each sha256; then runs the newer migrations.
 7. **Settings:** with `--with-settings` and no settings file yet, writes the backup's settings file
    (mode 0600), replacing its `DATABASE_URL` and `STORAGE_PATH` with the targets when they differ.
-   Without it, or when a settings file exists, keeps the current one and says what differs
-   (`AUTH_SECRET` differs: everyone will need to sign in again; `PUBLIC_URL` differs).
+   With no settings file and without `--with-settings`, writes a new one pointing at the targets,
+   with a new `AUTH_SECRET` (everyone signs in again, which it says) and the backup's `PUBLIC_URL`.
+   When a settings file exists, keeps it and says what differs (`AUTH_SECRET` differs: everyone
+   will need to sign in again; `PUBLIC_URL` differs), never the values but `PUBLIC_URL`'s, and warns
+   when its `DATABASE_URL` or `STORAGE_PATH` (as the file is at the end) aren't the ones restored
+   into. A settings file that appears while the restore runs is kept, never replaced (a new one is
+   created exclusively, which fails if anything is there); one removed meanwhile is said. A timestamp that
+   isn't a real moment written exactly (February 30, 24:00) stops the restore rather than moving to
+   another day, in every kind: SQLite's timestamp columns are text, known by their `_at` names
+   (every timestamp column ends in `_at` and nothing else does, a test checks), and timestamps are
+   written as text, never as a driver's Date in the process's time zone.
 8. **Prints** what it restored and the next step (start the server). Audited after the restore as
    `instance.restored` (`{ from: { version, dialect, time }, rows, files }`), on top of the
    restored log, so the audit log shows both the history and the restore.

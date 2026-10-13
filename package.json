@@ -27,6 +27,7 @@
     "revoke-access": "pnpm --filter @ronneai/web run revoke-access",
     "rotate-secret": "pnpm --filter @ronneai/web run rotate-secret",
     "backup": "pnpm --filter @ronneai/web run backup",
+    "restore": "pnpm --filter @ronneai/web run restore",
     "reset-setup": "pnpm --filter @ronneai/web run reset-setup",
     "test:db": "pnpm --filter @ronneai/web test:db",
     "test:db:core": "pnpm --filter @ronneai/web test:db src/server/db/ /repositories/ src/server/setup/ src/server/backup/ scripts/",

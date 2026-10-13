@@ -73,6 +73,16 @@ describe("audit summaries (060)", () => {
     ).toBe(
       "Made a backup: 1284 rows in 31 tables, 412 stored files, with the settings file from the command line",
     );
+    expect(
+      line("instance.restored", {
+        via: "cli",
+        from: { version: "0.3.2", dialect: "sqlite", time: "2026-10-12T15:31:02.123Z" },
+        rows: 1284,
+        files: 412,
+      }),
+    ).toBe(
+      "Restored a backup made by Ronne 0.3.2 at 2026-10-12 15:31: 1284 rows, 412 stored files from the command line",
+    );
     expect(line("access_token.created", { name: "laptop", expiresAt: null, via: "cli" })).toBe(
       "Created token laptop (no expiry, from rmk login)",
     );

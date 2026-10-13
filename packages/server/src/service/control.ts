@@ -199,6 +199,7 @@ const SCRIPT_VERBS: Record<string, string> = {
   "revoke-access": "revoke access on it",
   "rotate-secret": "replace its secret",
   backup: "back it up",
+  restore: "restore a backup into it",
 };
 
 /**
@@ -216,11 +217,20 @@ export const scriptForService = async (
   context: InstallContext,
   script: string,
   args: string[],
+  backend?: Backend,
 ): Promise<number | undefined> => {
   if (sys.env.RONNE_DATA_DIR || sys.env.RONNE_ENV_FILE) return undefined;
   const { layout } = context;
   const state = readState(sys, layout);
   if (!state) return undefined;
+  // A restore writes the whole database: never under a running server (099).
+  if (script === "restore" && backend?.isActive(definitionsFor(context, state).app)) {
+    sys.err(
+      `rmk-server: the rmk-server service is running. Stop it first (${asAdmin(sys, "rmk-server service stop")}), restore, then start it again.
+`,
+    );
+    return 1;
+  }
   if (!sys.isRoot()) {
     sys.err(
       `rmk-server: the rmk-server service is installed here, with its data in ${layout.dataDir}. To ${SCRIPT_VERBS[script] ?? script}, run: ${asAdmin(sys, `rmk-server ${script}`)}\nFor a separate instance of your own, set RONNE_DATA_DIR first.\n`,

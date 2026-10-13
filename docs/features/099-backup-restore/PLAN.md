@@ -283,3 +283,87 @@ goes into `SPEC.md` instead.
     the last value, and the key set still matches), and a tar re-packed with standard 10 KiB
     record padding is refused (the format allows nothing after the end blocks). Restore decides
     whether to refuse duplicate keys when it reads rows.
+- **Task 6, `restore`** (`src/server/backup/restore.ts` the writing half, `run-restore.ts` the
+  command; `migrateToExactly` in `db/migrate.ts`; `scripts/restore.ts`):
+  - One connection does it all and holds Kysely's migration lock from the emptiness check to the
+    audit event: Kysely's migrator takes the same lock again on that session (PostgreSQL's advisory
+    locks and MySQL's `GET_LOCK` count per session), so migrating on it doesn't wait for itself.
+    The rows' transaction is raw `begin`/`commit` on it, like the snapshot's, because the archive is
+    read push by push: it commits when the first entry after the database arrives.
+  - Migrating an empty database runs the migrations' own inserts (the global workspace…); those
+    rows are deleted, in reverse foreign-key order, inside the transaction, and the backup's come
+    in, so the restored database is the backup's exactly.
+  - Values follow the target column's kind as the database reports it: PostgreSQL `boolean`,
+    MySQL `tinyint(1)`, SQLite `integer` (booleans are 0 and 1 there); timestamps go as text:
+    ISO to PostgreSQL, UTC text to MySQL, the ISO text as it is to SQLite (see the re-checks below).
+  - verify now hands restore the archive's table order, `backup.json`'s and `manifest.json`'s
+    sha256 (which the manifest can't list) and, when asked, settings.env's bytes, which the target
+    choice needs before anything is written.
+  - The tests compare every table, row by row, between the source and the restored database, with
+    values made comparable (booleans as 0/1, dates as ISO): from a SQLite file into this run's kind,
+    and from this run's kind into a SQLite file, so the four runs cover SQLite with each of
+    PostgreSQL, MySQL and MariaDB both ways. The backup's own `instance.backup_made` comes after its
+    snapshot, so it's the source's only extra row; `instance.restored` is the target's.
+  - `--with-settings` with no settings file restores into the backup's own `DATABASE_URL`, as the
+    spec orders: on the same machine that's the source's database, refused as not empty (the
+    script test shows it). On a new machine it's the database the backup came from, if reachable.
+  - The first passes found the second read caught changed bytes but not lost entries: it now
+    checks, before the rows commit, that every database part came again and the rows add up, and
+    at the end every entry and the stored files' count. A test swaps the archive on disk while the
+    missing-artifact question is asked, between the reads. SQLite had no lock, so a server starting
+    mid-restore could lose its rows: the connection takes SQLite's exclusive locking mode, held
+    until it closes (tried: other connections can neither read nor write meanwhile). A non-empty
+    SQLite file was changed by createDb turning WAL on before the emptiness check: it's looked at
+    read-only first (`openSqliteReadOnly` in `create-db.ts`, the only place with drivers; tests use
+    `db/testing/sqlite-files.ts`). Timestamps must read back exactly. A kept settings file that
+    names another database or storage is warned about; one that appears mid-restore is kept.
+  - The re-checks found: a SQLite target took any text as a timestamp (its columns are text), so
+    `_at` columns are checked there too (the schema's naming, guarded by a test on the servers,
+    where the types show); node-pg wrote Dates in the process's time zone and cut old offsets'
+    seconds (1850 in New York), so timestamps go to PostgreSQL as ISO text and to MySQL as UTC text;
+    `backup.json` and `manifest.json` must come again in the second read, and nothing else may take
+    their branch; the settings are read again at the end (removed or rewritten meanwhile), and a new
+    settings file is linked into place so one that appeared isn't replaced. `onLocked` lets a test
+    write from another connection once restore holds SQLite's lock: it gets SQLITE_BUSY, and the
+    test fails with the exclusive mode removed (tried).
+  - The second adversarial re-check found: the settings file's temporary-and-link creation followed
+    a leftover or symlinked temporary file and failed where there are no hard links (FAT32), so it's
+    an exclusive create (`wx`, mode 0600) of the file itself, refused if anything is there; the
+    second read now checks the format's order too (backup.json first, manifest.json last), and a
+    part for a table the schema lacks is "changed", not a crash; year 0000 is refused (valid ISO, no
+    year PostgreSQL takes). It also found MySQL and MariaDB archives moving years 0-99 a century:
+    mysql2 builds DATETIME with Date's rules, which take them as 1900-1999. `createDb` now reads
+    DATETIME itself (`readDatetime`, as UTC, year, month and day set together); every database test
+    passes with it on MySQL and MariaDB, and its test fails without it (tried).
+  - The third adversarial re-check found `readDatetime` turned zero and out-of-range dates (MariaDB
+    stores `2026-00-15` by default) into other real dates where mysql2 had left them invalid and
+    the dump refused them: it returns an invalid date unless every part reads back unchanged. It
+    also found the second read accepted parts interleaved or renumbered, which the first refuses:
+    verify now hands restore the exact sequence of parts (`partOrder`), and the second read must
+    see the same. The test of a dropped part takes either refusal, by order or by count.
+  - The fourth adversarial re-check found Kysely's MySQL migration lock is one `GET_LOCK` name for
+    the whole server: restore held it for its run, so every other database's migrations on that
+    server waited (the full MySQL suite timed out under load; in production, other instances on a
+    shared server couldn't start). `createDb` gives MySQL an adapter whose lock is named after the
+    database (`ronne-migration:` + sha1 of `database()`, under MySQL's 64 characters); server
+    starts, backups and restores of one database share it. A test holds one database's lock and
+    takes another's at once (it times out with Kysely's lock, tried). PostgreSQL's advisory locks
+    are per database already. The dump also refuses year 0000, which no restore takes.
+  - The fifth adversarial re-check found a SQLite source still backed up `_at` text no restore
+    takes (year 0000, before year 1, impossible dates): the exact-timestamp check is now one helper,
+    `parseExactTimestamp` in `db/dates.ts`, used by the dump (`encodeRow`, for `…_at` strings) and
+    by restore. The MySQL lock now fails loudly when `GET_LOCK` doesn't answer 1 (after an hour's
+    wait, it had gone on unlocked, as Kysely's own does), and hashes the name in lower case.
+  - For the release notes (owner): the MySQL/MariaDB migration lock's name changed, so during an
+    upgrade an older and a newer instance starting together on one database don't exclude each
+    other; upgrade one instance at a time, as the install guide says.
+  - The sixth adversarial re-check found a PostgreSQL date past 9999 (`+010000-…`) and a SQLite
+    `_at` blob backed up and verified though no restore takes them: the dump checks every Date with
+    `parseExactTimestamp` too, and an `_at` value must be text, a Date or NULL. A failure before
+    restore starts writing now says "Nothing was changed"; the lock's failure path has a test that
+    kills a waiting `GET_LOCK` (MariaDB answers NULL, MySQL errors), which fails without the result
+    check (tried).
+  - Waiting on Windows and real services (owner's decision, 2026-10-13): writing storage files with
+    Windows paths, and `rmk-server restore` refusing while a real service runs, can't be checked on
+    this Mac; task 6 is ticked once task 7's backup → restore runs in the Windows, macOS and Ubuntu
+    server checks on the pull request.

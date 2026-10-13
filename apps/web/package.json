@@ -17,6 +17,7 @@
     "revoke-access": "pnpm --filter @ronneai/core --silent build && tsx scripts/revoke-access.ts",
     "rotate-secret": "pnpm --filter @ronneai/core --silent build && tsx scripts/rotate-secret.ts",
     "backup": "pnpm --filter @ronneai/core --silent build && tsx scripts/backup.ts",
+    "restore": "pnpm --filter @ronneai/core --silent build && tsx scripts/restore.ts",
     "reset-setup": "tsx scripts/reset-setup.ts",
     "test:db": "pnpm --filter @ronneai/core --silent build && vitest run --project db",
     "bench:feeds": "pnpm --filter @ronneai/core --silent build && tsx scripts/feed-benchmark.ts",

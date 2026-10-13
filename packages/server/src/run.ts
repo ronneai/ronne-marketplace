@@ -107,7 +107,13 @@ export const main = async (argv: string[]): Promise<number | undefined> => {
     // With the service installed, the scripts work on its data, as its account.
     const target = serviceTarget(realSystem(), programPaths());
     if (!("error" in target)) {
-      const code = await scriptForService(realSystem(), target.context, command.script, args);
+      const code = await scriptForService(
+        realSystem(),
+        target.context,
+        command.script,
+        args,
+        target.backend,
+      );
       if (code !== undefined) return code;
     }
   }

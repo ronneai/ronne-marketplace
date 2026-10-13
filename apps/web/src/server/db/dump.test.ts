@@ -12,6 +12,39 @@ const table = (name: string, references: string[] = []): TableSchema => ({
 describe("the backup's value encoding (099)", () => {
   it("writes each kind of value as the format says", () => {
     expect(encodeValue(null, "t.c")).toBeNull();
+    // SQLite's text timestamps (`…_at`): checked as a restore checks them.
+    const timed: TableSchema = {
+      name: "t",
+      columns: [{ name: "created_at", type: "text", nullable: false }],
+      primaryKey: ["created_at"],
+      references: [],
+    };
+    expect(encodeRow({ created_at: "2026-10-12T15:31:02.123Z" }, timed)).toBe(
+      '{"created_at":"2026-10-12T15:31:02.123Z"}\n',
+    );
+    for (const bad of [
+      "0000-01-01T00:00:00.000Z",
+      "-000001-01-01T00:00:00.000Z",
+      "2026-02-30T00:00:00.000Z",
+      "yesterday",
+    ])
+      expect(() => encodeRow({ created_at: bad }, timed), bad).toThrow(
+        /isn't a timestamp a restore takes/,
+      );
+    // A blob or a number SQLite let into a timestamp column.
+    for (const bad of [Buffer.from("2026-10-13T07:04:53.834Z"), 1760000000000])
+      expect(() => encodeRow({ created_at: bad }, timed)).toThrow(
+        /isn't a timestamp a restore takes/,
+      );
+    const nullable = { ...timed, columns: [{ name: "created_at", type: "text", nullable: true }] };
+    expect(encodeRow({ created_at: null }, nullable)).toBe('{"created_at":null}\n');
+    // Year 0000: valid ISO 8601, but no restore takes it.
+    const yearZero = new Date(0);
+    yearZero.setUTCFullYear(0, 0, 1);
+    expect(() => encodeValue(yearZero, "t.c")).toThrow(/outside the years 1 to 9999/);
+    expect(() => encodeValue(new Date("+010000-01-01T00:00:00.000Z"), "t.c")).toThrow(
+      /outside the years 1 to 9999/,
+    );
     expect(encodeValue(undefined, "t.c")).toBeNull();
     expect(encodeValue("@incident/notes", "t.c")).toBe("@incident/notes");
     expect(encodeValue(true, "t.c")).toBe(true);

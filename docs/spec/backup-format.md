@@ -131,9 +131,10 @@ A reader, for each target column:
   stops the restore.
 - **Boolean column:** takes `true`, `false`, `1` or `0`; anything else stops the restore.
 - **Integer column:** takes a JSON number with no fraction, or `true`/`false` as `1`/`0`.
-- **Timestamp column** (PostgreSQL `timestamptz`, MySQL `datetime(3)`): takes the ISO string as UTC.
-  In SQLite, timestamps are text columns, and the string is stored as it is, which is the form
-  SQLite instances write already.
+- **Timestamp column** (PostgreSQL `timestamptz`, MySQL `datetime(3)`): takes the ISO string as UTC,
+  only when it reads back as exactly the same moment (no February 30, no 24:00). In SQLite,
+  timestamps are text columns (Ronne's are named `…_at`), and the string, so checked, is stored as
+  it is, which is the form SQLite instances write already.
 - **Text column:** takes a string as it is.
 - **Bytes column:** takes `{"$b64": …}` only.
 

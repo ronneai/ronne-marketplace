@@ -99,6 +99,12 @@ export const SUMMARIES: Record<AuditAction, Build> = {
   "instance.backup_made": (m) => [
     `Made a backup: ${plural(num(m.rows), "row")} in ${plural(num(m.tables), "table")}, ${plural(num(m.files), "stored file")}${m.settings === true ? ", with the settings file" : ""}${m.encrypted === true ? ", encrypted" : ""}${via(m)}`,
   ],
+  "instance.restored": (m) => {
+    const from = (m.from ?? {}) as Record<string, AuditMetadataValue>;
+    return [
+      `Restored a backup made by Ronne ${text(from.version)} at ${text(from.time).slice(0, 16).replace("T", " ")}: ${plural(num(m.rows), "row")}, ${plural(num(m.files), "stored file")}${via(m)}`,
+    ];
+  },
   "user.password_reset": (m, e) => ["Reset the password of ", who(m, e), `${ended(m)}${via(m)}`],
   "auth.signed_in": (m) => [m.remember ? "Signed in (remembered for 30 days)" : "Signed in"],
   "auth.sign_in_failed": (m) => [

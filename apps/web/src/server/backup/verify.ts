@@ -25,6 +25,15 @@ export type VerifyResult = {
   encrypted: boolean;
   /** The archive's size on disk. */
   bytes: number;
+  /** The tables with rows, in the order the archive holds them (restore loads them in it). */
+  tableOrder: string[];
+  /** Every database part's path, in the archive's order: the second read must see the same. */
+  partOrder: string[];
+  /** backup.json's and manifest.json's sha256, which the manifest can't list: restore reads them again. */
+  infoSha256: string;
+  manifestSha256: string;
+  /** settings.env's bytes, when asked for (`keepSettings`) and the archive has one. */
+  settings: Buffer | null;
 };
 
 /** The largest backup.json, and the largest manifest.json, a reader takes. */
@@ -163,6 +172,8 @@ export const verifyArchive = async (options: {
   source: AsyncIterable<Uint8Array>;
   passphrase: () => Promise<Buffer>;
   knownMigrations: readonly string[];
+  /** Keep settings.env's bytes (restore reads the backup's settings before it writes). */
+  keepSettings?: boolean;
 }): Promise<VerifyResult> => {
   // Where in the format's order the archive is: what may come next.
   let phase: "start" | "database" | "storage" | "settings" | "manifest" = "start";
@@ -175,14 +186,18 @@ export const verifyArchive = async (options: {
     phase = to;
   };
   let info: BackupInfo | null = null;
+  let infoSha256 = "";
+  let manifestSha256 = "";
   let manifest: BackupManifest | null = null;
   let entries = 0;
   const digests = new Map<string, FileDigest>();
   const tables = new Map<string, TableSeen>();
+  const partOrder: string[] = [];
   let currentTable: string | null = null;
   const storage = new Map<string, string>();
   let storageBytes = 0;
   let settingsSeen = false;
+  let settingsBytes: Buffer | null = null;
   const artifacts = new Map<string, string>();
 
   /** A database part: lines read as they come, each one JSON object. */
@@ -266,6 +281,7 @@ export const verifyArchive = async (options: {
       return {
         data: bytes.data,
         end: () => {
+          infoSha256 = createHash("sha256").update(bytes.bytes()).digest("hex");
           info = checkInfo(parseJson(bytes.bytes(), "backup.json"), options.knownMigrations);
         },
       };
@@ -284,6 +300,7 @@ export const verifyArchive = async (options: {
       if (Number(number) !== (seen as TableSeen).parts + 1)
         throw problem(`${path} is out of order: parts are numbered from 000001 with no gaps.`);
       (seen as TableSeen).parts++;
+      partOrder.push(path);
       return partSink(path, table, size);
     }
     if (path.startsWith("storage/")) {
@@ -296,7 +313,19 @@ export const verifyArchive = async (options: {
     if (path === "settings.env") {
       advance("settings", path);
       settingsSeen = true;
-      return hashSink(path, size);
+      if (!options.keepSettings) return hashSink(path, size);
+      const kept = collect(INFO_MAX, "settings.env");
+      const hashed = hashSink(path, size);
+      return {
+        data: async (chunk) => {
+          kept.data(chunk);
+          await hashed.data(chunk);
+        },
+        end: async () => {
+          settingsBytes = kept.bytes();
+          await hashed.end();
+        },
+      };
     }
     if (path === "manifest.json") {
       advance("manifest", path);
@@ -304,6 +333,7 @@ export const verifyArchive = async (options: {
       return {
         data: bytes.data,
         end: () => {
+          manifestSha256 = createHash("sha256").update(bytes.bytes()).digest("hex");
           manifest = checkManifestShape(parseJson(bytes.bytes(), "manifest.json"));
         },
       };
@@ -411,5 +441,15 @@ export const verifyArchive = async (options: {
         `A released version's artifact, ${path}, has another sha256 than its database row records.`,
       );
   }
-  return { info: done.info, manifest: m, encrypted, bytes };
+  return {
+    info: done.info,
+    manifest: m,
+    encrypted,
+    bytes,
+    tableOrder: [...tables.keys()],
+    partOrder,
+    infoSha256,
+    manifestSha256,
+    settings: settingsBytes,
+  };
 };

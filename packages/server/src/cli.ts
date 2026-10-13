@@ -13,6 +13,7 @@ export const SCRIPTS = [
   "revoke-access",
   "rotate-secret",
   "backup",
+  "restore",
 ] as const;
 export type Script = (typeof SCRIPTS)[number];
 
@@ -82,6 +83,15 @@ export const parseArgs = (argv: string[], env: Env = process.env): Command => {
 /** The flags whose value is a path, per script: the script may run in another folder. */
 const PATH_FLAGS: Partial<Record<Script, string[]>> = {
   backup: ["--out", "--passphrase-file", "--verify"],
+  restore: ["--passphrase-file"],
+};
+
+/**
+ * Per script, the flags that take a value (so it isn't read as a positional argument), when the
+ * script's positional arguments are paths too (restore's archive).
+ */
+const VALUE_FLAGS: Partial<Record<Script, string[]>> = {
+  restore: ["--passphrase-file", "--database-url"],
 };
 
 /**
@@ -91,6 +101,7 @@ const PATH_FLAGS: Partial<Record<Script, string[]>> = {
  */
 export const scriptArgs = (script: Script, args: string[], cwd: string): string[] => {
   const flags = PATH_FLAGS[script] ?? [];
+  const valueFlags = VALUE_FLAGS[script];
   // A blank value stays blank, for the script to refuse.
   const absolute = (path: string) =>
     path.trim() === "" || isAbsolute(path) ? path : resolve(cwd, path);
@@ -98,11 +109,16 @@ export const scriptArgs = (script: Script, args: string[], cwd: string): string[
   for (let i = 0; i < args.length; i++) {
     const arg = args[i] as string;
     if (arg === "--") {
-      out.push(...args.slice(i));
+      // After `--` everything is positional: restore's archive is a path even there.
+      out.push("--", ...args.slice(i + 1).map((a) => (valueFlags ? absolute(a) : a)));
       break;
     }
     const [name, inline] = arg.startsWith("--") && arg.includes("=") ? arg.split(/=(.*)/s) : [arg];
-    if (name === undefined || !flags.includes(name)) out.push(arg);
+    // A positional path (restore's archive): anything that isn't a flag or a flag's value.
+    if (valueFlags && !arg.startsWith("-")) out.push(absolute(arg));
+    else if (valueFlags?.includes(arg) && !flags.includes(arg) && i + 1 < args.length)
+      out.push(arg, args[++i] as string);
+    else if (name === undefined || !flags.includes(name)) out.push(arg);
     else if (inline !== undefined) out.push(`${name}=${absolute(inline)}`);
     // A flag where the value should be is left for the script to refuse, never taken as a folder
     // (a lone `-` is a folder's name, as the script reads it).
@@ -130,6 +146,8 @@ Usage:
                                   Make a backup archive while it runs (see rmk-server backup --help)
   rmk-server backup --verify ARCHIVE [--passphrase-file FILE]
                                   Check an archive's checksums and say what's in it
+  rmk-server restore ARCHIVE [--passphrase-file FILE] [--database-url URL] [--with-settings] [--yes]
+                                  Restore a backup into an empty database (stop the server first)
   rmk-server service …            Run it as a service, started at boot (see rmk-server service --help)
   rmk-server --version | --help
 

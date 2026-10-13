@@ -1,4 +1,5 @@
 import { type Kysely, type RawBuilder, sql } from "kysely";
+import { parseExactTimestamp } from "./dates";
 import { foreignKeyOrder, readSchema, type TableSchema } from "./introspect";
 import { readSnapshot } from "./snapshot";
 import type { DatabaseDialect } from "./url";
@@ -30,7 +31,14 @@ export const encodeValue = (value: unknown, where: string): EncodedValue => {
   if (typeof value === "string" || typeof value === "boolean") return value;
   if (value instanceof Date) {
     if (Number.isNaN(value.getTime())) throw new DumpError(`${where} holds an invalid date.`);
-    return value.toISOString();
+    // As a restore will check it: years 1 to 9999 only (0000 is no year PostgreSQL takes, and
+    // PostgreSQL's years past 9999 come out as `+010000-…`).
+    const iso = value.toISOString();
+    if (!parseExactTimestamp(iso))
+      throw new DumpError(
+        `${where} holds a date outside the years 1 to 9999, which no restore takes.`,
+      );
+    return iso;
   }
   if (value instanceof Uint8Array) return { $b64: Buffer.from(value).toString("base64") };
   if (typeof value === "number") {
@@ -48,8 +56,24 @@ export const encodeValue = (value: unknown, where: string): EncodedValue => {
 /** One row as a line of JSON, its keys in the table's column order. */
 export const encodeRow = (row: Record<string, unknown>, table: TableSchema): string => {
   const out: Record<string, EncodedValue> = {};
-  for (const column of table.columns)
-    out[column.name] = encodeValue(row[column.name], `${table.name}.${column.name}`);
+  for (const column of table.columns) {
+    const value = row[column.name];
+    const where = `${table.name}.${column.name}`;
+    // SQLite's timestamps are text (`…_at` columns): checked as a restore will check them, so no
+    // backup holds a timestamp no restore takes. A timestamp is text (SQLite), a Date (the others)
+    // or NULL: anything else (a blob, a number SQLite let in) is no timestamp either.
+    if (
+      column.name.endsWith("_at") &&
+      value !== null &&
+      value !== undefined &&
+      !(value instanceof Date) &&
+      (typeof value !== "string" || !parseExactTimestamp(value))
+    )
+      throw new DumpError(
+        `${where} holds ${typeof value === "string" ? JSON.stringify(value.slice(0, 40)) : "a value that isn't text"}, which isn't a timestamp a restore takes.`,
+      );
+    out[column.name] = encodeValue(value, where);
+  }
   return `${JSON.stringify(out)}\n`;
 };
 

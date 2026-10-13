@@ -766,3 +766,265 @@ Witnessed: 2026-10-13 00:20 EDT, by a fresh agent (blind). Commit: 38ae2169 + wo
 | 16 | Each test breaks one rule on a real archive; mutations each make a test fail | yes | confirmed | Mutations sha / missing / order / format / header / NUL → exactly one test failed each; unmutated → 7/7 |
 
 **Overall:** met: the NUL-joined key is refused (the test fails if the old comparison returns), a newer container is named before any passphrase is asked for, the damaged message no longer mentions restoring, HELP lists `[--passphrase-file FILE]`, and the Done-when tests fail when the code they cover is broken. Observations, not failures: a part line with a duplicate JSON key passes (JSON.parse keeps the last value); a tar with standard 10240-byte record padding is refused, as the spec's "nothing after the end blocks" says.
+
+## Task 6 — restore
+
+Witnessed: 2026-10-13 00:41 EDT, by a fresh agent (blind). Commit: 611afdbb + working tree (17 modified, 5 untracked). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The db tests restore into a SQLite target (from SQLite) | no | confirmed | `--project db src/server/backup scripts/backup.db.test.ts scripts/restore.db.test.ts` → 36 passed, 1 skipped (run-backup's migration wait); restore.db.test.ts's 7 pass |
+| 2 | Into PostgreSQL, MySQL and MariaDB from a SQLite archive | no | confirmed | `test:db:postgres\|mysql\|mariadb` → 36/1 each; test 1 (`restore.db.test.ts:221`) compares every table's rows, migrations, file mode 0600, the audit row |
+| 3 | PostgreSQL, MySQL and MariaDB archives into a new SQLite file | no | confirmed | `restore.db.test.ts:265` passes on the 3 server runs |
+| 4 | Server ↔ server restores work too | no | confirmed | Real scripts: SQLite (Unicode + CRLF, booleans, dates, a binary artifact) → PG → MySQL 8.4 → MariaDB 10.11 → new SQLite, each exit 0; final rows byte-identical to the source's (hex), the artifact identical (`cmp`); 3,012 rows SQLite → PG → 3,003 audit rows (3,002 + `instance.restored`) |
+| 5 | An archive from an older migration set restores, then the newer migrations run | no | confirmed | `:280` passes on 4 dialects; `migrateToLatest` → `[]` in a scratch copy fails it |
+| 6 | A non-empty target is refused, nothing changed | no | confirmed | Test `:325`; `isEmptyDatabase` always true → fails; a PG db with table `foo` → refused, exit 1, still only `foo`; a db with only an empty `ronne_migration` → accepted |
+| 7 | A newer backup is refused, nothing changed | no | confirmed | Test `:325`; adding `9999_future` to knownMigrations fails it; `format: 2` → "made by Ronne 7.1.0 in backup format 2…", exit 1 |
+| 8 | An altered archive is refused, nothing changed | no | confirmed | Test `:325` → "doesn't match its checksum… Nothing was changed", target empty, no `data`, no `.env` |
+| 9 | Step 1: the second read re-checks every entry, so an archive changed between the reads stops the restore | no | partly | Changed bytes are caught (`restore.ts:196-209`, `:316-327`); entries removed between the reads aren't: reading A without its `storage/…` entry → success, `files: 0`; without `database/audit_log/` → success, one row missing |
+| 10 | Step 3: the target's order | no | confirmed | `run-restore.ts:115-120`; scripts test; `--with-settings` into the backup's own MariaDB → refused; no flags → `ronne.db` plus a `.env` |
+| 11 | Messages name the database by its kind, never its URL | no | confirmed | The test asserts the URL is absent; every probe reads "the PostgreSQL/MySQL or MariaDB/SQLite database" |
+| 12 | Step 4: target storage empty or absent | no | confirmed | Test `:353`; `if (false)` → fails |
+| 13 | Step 5: the lock on the one connection serialises concurrent runs | no | confirmed | Two concurrent restores into one PG db: one restored, the other "isn't empty… Nothing was changed"; the same on MySQL. SQLite has no lock, as at start (bug 2) |
+| 14 | Step 5: `rmk-server restore` refuses while the service runs | no | confirmed | `control.ts` checks `isActive`; packages/server → 124 passed with the new test |
+| 15 | Step 6: tables, columns and primary keys equal the manifest's after migrating | no | confirmed | `restore.ts:145-159`; `dist_tags.primaryKey` → `["item_id"]` → refused |
+| 16 | Step 6: the migrations' rows removed, then the rows in foreign-key order, in batches, one transaction | no | confirmed | `restore.ts:161-192`, `:174-338`; removing the `delete from` fails 6 of 7 tests; 3,012 rows (~400 B each) restored |
+| 17 | Step 6: storage files mode 0600, never over a file, checked by sha256 | no | confirmed | `restore.ts:274`; the test checks 0600; `open(target, "w")` → fails |
+| 18 | Values converted per target column; bad ones stop it naming part, line, column | no | confirmed | `"email_verified":"yes"` → "…line 1, column email_verified: not a whole number"; `null` name → "…which the column doesn't allow"; `"download_count":"7"` → refused; an invalid date into SQLite stored as is (spec allows for SQLite's text) |
+| 19 | Step 7: settings written, or differences reported without values | no | confirmed | Test `:443`; the probe's `.env` mode 0600 with the targets and the backup's `PUBLIC_URL` |
+| 20 | Step 8: the summary, the next step, `instance.restored` with its summary line | no | confirmed | PG probe's audit_log; `AUDIT_ACTIONS`; 22 tests passed |
+| 21 | A failure after writing started says what it left | no | confirmed | Bad boolean, null, bad PK → "It left the SQLite database partly restored, and maybe files in the storage folder: empty both before trying again" |
+| 22 | Missing artifacts: asks, `--yes` continues, refuses without a terminal | no | confirmed | Test `:415` |
+| 23 | The same archive twice: the second refused | no | confirmed | `scripts/restore.db.test.ts`; concurrent PG and MySQL probes |
+| 24 | A newer format version refused, naming the version | no | confirmed | Claim 7 |
+| 25 | Windows paths: platform separators; `..`, absolute paths and links refused | no | can't check here | Refusals hold on both reads (`isSafeTarPath`, type `0` only, `storageKeyProblem`); the write splits keys on `/` (`restore.ts:271`); writing on Windows needs Windows |
+| 26 | Wiring: `pnpm run restore`, tsdown, `docker/pnpm`, `SCRIPTS`/HELP/`scriptArgs` | no | confirmed | `npx tsdown` → `restore.mjs`, which restored the probe archive; `sh -n docker/pnpm`; `scriptArgs` makes the archive and `--passphrase-file` absolute, leaves `--database-url`; `parseRestoreCommand` exit 2 for two archives, a blank URL, an unknown flag |
+
+**Overall:** not met: everything the Done when asks for holds on the four databases, but the second read misses entries removed between the two reads (claim 9), and Windows path handling needs a Windows run (claim 25). Low: two concurrent restores into one new SQLite file — the loser says to empty the target, which would destroy the good restore. Cosmetic: HELP's restore line lacks `--passphrase-file`; the summary counts only tables with rows.
+
+### Adversarial pass
+
+Witnessed: 2026-10-13 00:50 EDT, by a fresh agent (adversarial). Commit: 611afdbb + working tree (restore.ts, run-restore.ts, scripts/restore.ts and both restore db tests untracked; diff in cli.ts, verify.ts, migrate.ts, packages/server). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The db tests pass on all four databases | no | confirmed | `--project db …` → 36 passed, 1 skipped; `test:db:postgres` / `:mysql` / `:mariadb` → 36/1 each; packages/server → 124 |
+| 2 | A SQLite archive restores into PostgreSQL, MySQL, MariaDB and SQLite with every value the same | no | confirmed | A SQLite instance with 𝔘🚀, CRLF, U+2028, `""` next to `null`, a timestamp without milliseconds, int 2147483647, 1/0 booleans, 2,600 audit rows, 40 submission_files rows of 300 KB → restored into each kind; a row-by-row compare → "diff tables 0" each; PostgreSQL turns `…02Z` into `…02.000Z` (same instant, as the spec allows) |
+| 3 | PostgreSQL, MySQL and MariaDB archives restore into SQLite (and server↔server) | no | confirmed | 7 restores among PG, MySQL, MariaDB and SQLite → exit 0, "diff tables 0" against the original source |
+| 4 | Rows load in foreign-key order, in batches, without parameter or packet limits | no | confirmed | 2,600 rows (about 6 batches) and a 12 MB table (split at 4 MB) loaded on all four; 40 foreign keys, none to its own table |
+| 5 | Storage files written 0600, checked, odd keys and deep paths | no | confirmed | `odd/it em/…`, `odd/ünï/ç ode/deep/a/…/g/1.0.1.tgz`, `odd/x/weird+&=@,;~!$()'.tgz` → 600 everywhere, sha256 lists identical |
+| 6 | An entry's content changed between the reads stops the restore | no | confirmed | `swap.mts` during the missing-artifact question: a changed part or storage entry → "changed since the archive was verified … partly restored" |
+| 7 | An archive changed between the two reads stops the restore (SPEC step 1) | no | not met | The swapped archive drops `database/submission_files/000002.jsonl` and a storage entry, backup.json and manifest.json unchanged → `{"rows":2645,"files":1}`, "Restored …"; 27 of 40 rows and one artifact missing. No test exercises the second read |
+| 8 | An altered archive is refused, nothing changed | no | confirmed | The test passes on all four; target empty, no `data/`, no `.env` |
+| 9 | A newer backup is refused, nothing changed | no | confirmed | The test on all four |
+| 10 | A non-empty target is refused, nothing changed | no | partly | PG and MySQL: refused under the lock, nothing written. SQLite: a non-empty rollback-journal `other.db` → refused, but its md5 changed and header bytes 18–19 became `0202`: `createDb` ran `journal_mode = WAL` |
+| 11 | Non-empty storage is refused, nothing changed | no | confirmed | The test; the storage check comes before `createDb` |
+| 12 | Target choice and no passwords printed | no | confirmed | No flag, no settings → `ronne.db` made and restored; the CLI test refuses `--with-settings` into the backup's own URL; 8 bad URLs, `grep -c S3CRET` → 0 |
+| 13 | The lock makes a concurrent restore or a starting server wait (PG, MySQL, MariaDB) | no | confirmed | Two restores together on PG and MySQL → one restored, the other "isn't empty … Nothing was changed" |
+| 14 | The same on SQLite | no | not met | No lock for SQLite (and Kysely's does nothing there). `server-start.cjs` migrates and writes a row while the restore waits after its emptiness check → "Restored 2,657 rows …", exit 0, the server's row gone |
+| 15 | `rmk-server restore` refuses while the service runs | no | confirmed | control.test.ts; the check before the root check |
+| 16 | The same against real systemd, launchd, Windows services | no | can't check here | Tests mock systemd; no live service here, no Windows |
+| 17 | `rmk-server` makes the archive absolute, leaves `--database-url` alone | no | confirmed | `scriptArgs` probes; exception: `["--","b.tar"]` stays relative |
+| 18 | An older migration set restores, then the newer migrations run | no | confirmed | The test on all four |
+| 19 | Values follow "Values": anything else stops the restore | no | partly | `2026-02-30T00:00:00.000Z` → stored as 2026-03-02; `…T24:00:00.000Z` → the next day (PG and MySQL); out-of-range integers, null into NOT NULL, non-`$b64` refused |
+| 20 | Settings: 0600; new secret or the backup's; an existing file kept, differences without secrets | no | partly | 0600 and the merge hold. But an existing `.env` naming `old.db` with `--database-url file:new.db --with-settings` → only "AUTH_SECRET differs", and "Next, start the server" would open `old.db`; and a `.env` written during the restore is overwritten |
+| 21 | `instance.restored` with no secrets | no | confirmed | PG and MariaDB rows `{"via":"cli","from":{…},"rows":2657,"files":3}`, actor, target id, IP null |
+| 22 | A failure after writing says what it left | no | confirmed | int 9007199254740991 into PG/MySQL → "Out of range … partly restored, and maybe files …: empty both"; PG state matches |
+
+**Overall:** not met: the four-way and cross-kind restores, value round-trips, storage writes, server refusals and the audit event hold; not met: an archive that loses entries between the reads restores with data missing; SQLite has no lock (a server starting mid-restore loses its rows); a non-empty SQLite target is changed despite "Nothing was changed"; impossible timestamps are moved; a kept settings file isn't checked against the target, and one written mid-restore is overwritten. Minor: `restore -- b.tar` leaves the archive relative.
+
+### Re-check
+
+Witnessed: 2026-10-13 01:01 EDT, by a fresh agent (blind). Commit: 611afdbb + working tree (19 modified, 6 untracked: restore.ts, run-restore.ts, scripts/restore.ts, both restore db tests, db/testing/sqlite-files.ts). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The db tests still pass on the four databases (cross-kind both ways, older migration set, the three refusals) | yes | confirmed | `--project db …` → 40 passed, 1 skipped; `test:db:postgres` / `:mysql` / `:mariadb` → 40/1 each; packages/server → 124 |
+| 2 | Real scripts: a SQLite archive into a new PostgreSQL database; a second run refused, nothing changed | no | confirmed | 300,007 rows → "Restored 300,007 rows in 25 tables…", 300,002 audit rows (1 `instance.restored`); again → "The PostgreSQL database isn't empty… Nothing was changed." |
+| 3 | Step 1: a database part removed between the reads stops it before the rows commit | yes | confirmed | Swapped at the missing-artifact question: no `audit_log/000002` → "…went missing…", audit_log 0 rows; storage moved ahead of the database → "database/user/000001.jsonl went missing"; turning off `restore.ts:191` → the new test fails |
+| 4 | Step 1: a stored file or settings.env removed between the reads stops it | yes | confirmed | The storage case; turning off `restore.ts:357` → fails; no settings.env → "settings.env went missing…"; an extra `storage/extra.tgz` → "changed since the archive was verified"; cut or empty → "ends in the middle", 0 rows |
+| 5 | Step 1: the second read checks `backup.json`'s and `manifest.json`'s bytes, and that every entry came again | yes | partly | When they come they're compared (`restore.ts:333-345`); when missing nothing checks: without `manifest.json` → resolved `{"rows":25013,"files":1}`, `.env` written; the same without `backup.json`. No data lost |
+| 6 | Step 5: SQLite locked (exclusive) from the emptiness check to the end | yes | confirmed | `run-restore.ts:204-211`; during a real 3.9 s restore a writer got 134 SQLITE_BUSY (first write 16 ms after `instance.restored`), a read-only reader 141 BUSY |
+| 7 | A SQLite file another process holds is refused as in use, nothing written | yes | confirmed | Test `:554`. Note: removing the `locking_mode` pragma still passes it; only the probe in row 6 shows restore's own lock |
+| 8 | Two concurrent restores into one new SQLite file: the good one survives, the loser says nothing changed | no | confirmed | 2 tries → one exit 0, the other "isn't empty… Nothing was changed.", exit 1, no `.env`; winner `integrity_check` ok |
+| 9 | Step 3: a non-empty SQLite file looked at read-only first, unchanged | yes | confirmed | Test `:554` (byte-equal); the look turned off → fails |
+| 10 | HELP names `--passphrase-file`; the summary counts every table | no | confirmed | `packages/server/src/cli.ts:149`; "25 tables" |
+| 11 | `restore -- b.tar` makes the archive absolute | no | confirmed | `cli.test.ts:127`; packages/server 124 |
+| 12 | Windows paths: storage keys written with the platform's separators | no | can't check here | `restore.ts:288` `join(storageRoot, ...key.split("/"))`; refusals unchanged; waits for task 7's Windows server check in CI |
+| 13 | `rmk-server restore` refuses while a real service runs | no | can't check here | Only the mocked test runs here; needs task 7's server checks in CI |
+
+**Overall:** not met: lost data entries now stop the restore; the SQLite lock, the read-only look and the cosmetic points hold; the Done when holds on the four databases. Open: a `backup.json` or `manifest.json` missing from the second read isn't noticed (row 5, no data lost); Windows paths and real services wait for task 7's CI (rows 12–13). Test gap: no test shows restore's own SQLite lock keeping another process out.
+
+### Adversarial re-check
+
+Witnessed: 2026-10-13 01:09 EDT, by a fresh agent (adversarial). Commit: 611afdbb + working tree (19 modified, 6 untracked: restore.ts, run-restore.ts, scripts/restore.ts, both restore db tests, db/testing/sqlite-files.ts). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The db tests pass on all four databases | yes | confirmed | 40 passed, 1 skipped on SQLite and each server; packages/server 124 |
+| 2 | Cross-kind restores keep every value | yes | confirmed | Real scripts, 300,009 rows (𝔘🚀, CRLF, U+2028, `""` next to null, an escaped NUL): SQLite → PG → MySQL 8.4 → MariaDB 10.11 → new SQLite, each exit 0 in 4–11 s; the compare shows only `…00Z` → `…00.000Z` and fresh `ronne_migration` timestamps; each hop adds its `instance.restored` |
+| 3 | Entries lost, added, repeated or reordered between the reads stop the restore | yes | confirmed | Swapped during the confirm question, on all 4: a part twice, settings.env dropped, storage before database, an unlisted `zzz.txt`, a storage entry twice, cut in half → each refused |
+| 4 | backup.json and manifest.json must come again in the second read | yes | partly | Without either → `{"rows":13,"files":1}`, "Restored" on all 4; an extra `database/zzz.txt` with manifest.json's bytes is accepted. No data lost |
+| 5 | PG, MySQL, MariaDB: the lock serialises a second restore | yes | confirmed | B started 3 s after A waited and was refused "isn't empty … Nothing was changed"; PG A's rows intact |
+| 6 | SQLite: a server starting mid-restore can't write, and its rows aren't lost | yes | confirmed | A simulated server 0.5 s in waited 2.1 s, then wrote and kept its row; during an 18 s restore it failed at once with `SQLITE_BUSY` and wrote nothing. Remark: a SQLite server exits rather than wait out a long restore |
+| 7 | SQLite: a file another process holds is refused as in use | no | confirmed | "in use by another process … Nothing was changed", no `.env`. Cosmetic: two restores started together → the loser says "couldn't be opened: database is locked" (createDb's `SQLITE_BUSY` not mapped) |
+| 8 | The exclusive lock is released on every path | no | confirmed | 9 failing and succeeding restores in one process, each followed by `createDb` + `readSchema` → 328 ms in all |
+| 9 | A non-empty SQLite target is left unchanged | yes | confirmed | Main file and `-wal` md5 identical for rows only in `-wal`, a mode-444 file, a text file; `-shm` may be written (an index); a 0-byte file counts as empty |
+| 10 | An impossible timestamp stops the restore instead of moving | yes | partly | PG, MySQL, MariaDB refuse `2026-02-30`, `T24:00`, `23:59:60`, `2023-02-29`, `+00:00`, lowercase `z`, `not a date`. A SQLite target stores every one as is. PG with `TZ=America/New_York`: `1850-01-01T00:00:00.000Z` stored as `1849-12-31 23:59:58+00` (node-pg's local-time Dates); exact with `TZ=UTC` |
+| 11 | A kept settings file naming another database is warned about | yes | confirmed | The test and a probe. Cosmetic: `file:./x/../t.db` for the same file → a spurious warning; the STORAGE_PATH warning can't fire |
+| 12 | A settings file that appears mid-restore is kept, never replaced | yes | partly | Kept when it appears before `run-restore.ts:276`; the window between that check and `writeEnvFile`'s rename could replace it (inferred, not reproduced). A kept file removed meanwhile → the output still says "kept"; one rewritten to name `other.db` → no warning (the start's copy is used) |
+| 13 | `rmk-server restore -- b.tar` makes the archive absolute | no | confirmed | `scriptArgs` probes |
+| 14 | Refusals on servers change nothing | no | confirmed | A full `witness_rc_pg` → refused, no `.env` |
+| 15 | `instance.restored` recorded, no secrets in the output | yes | confirmed | 4 rows on the final SQLite; the database password in no log |
+| 16 | Storage files written once and checked | no | confirmed | Probes; mode 0600 in the tests on all 4 |
+| 17 | Real services and Windows paths | no | can't check here | No live service, no Windows; task 7's CI |
+
+**Overall:** not met: lost, added, repeated or reordered data entries stop the restore on all four; SQLite's lock keeps a starting server out and is released on every path; non-empty SQLite files stay byte-identical; cross-kind values, server refusals and the audit event hold. Missing: a SQLite target takes impossible or garbage timestamps (and PG shifts pre-1883 timestamps outside UTC); `backup.json` and `manifest.json` aren't required in the second read; settings races (a remaining window, removed and rewritten files). Minor messages.
+
+### Re-check
+
+Witnessed: 2026-10-13 01:21 EDT, by a fresh agent (blind). Commit: 611afdbb + working tree (20 modified, 6 untracked: restore.ts, run-restore.ts, scripts/restore.ts, both restore db tests, db/testing/sqlite-files.ts). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The db tests restore on each of the four databases, from each other kind, from an older migration set, and refuse a non-empty target, a newer backup and an altered archive with nothing changed | yes | confirmed | SQLite → 40 passed, 2 skipped; `test:db:postgres` / `:mysql` / `:mariadb` → 41 passed, 1 skipped each; packages/server → 124 |
+| 2 | Real scripts, cross-kind | no | confirmed | `env -i`, scratchpad data folders: SQLite setup → backup → new PG db: "Restored 7 rows in 25 tables…"; again → "isn't empty… Nothing was changed."; PG → MariaDB → new SQLite: each "Restored"; 3 `instance.restored` events at the end |
+| 3 | Step 1: the second read requires `backup.json` and `manifest.json` | yes | confirmed | `restore.ts:366`; swapped at the missing-artifact question on SQLite and PG: without either or both → "…went missing… partly restored… empty both", no `.env`, no `instance.restored`; an altered backup.json → "changed since…", rows rolled back; moving either to the end → restored |
+| 4 | Nothing else takes their branch | yes | confirmed | `restore.ts:341-342`; an extra `database/zzz.txt` with manifest.json's bytes → "changed since the archive was verified" |
+| 5 | A test covers a missing backup.json/manifest.json | yes | confirmed | `restore.db.test.ts:521-522`; reducing `:366` to `missing("")` → the test fails |
+| 6 | A test shows restore's own SQLite lock | yes | confirmed | `restore.db.test.ts:609-619` (`onLocked` → `tryWriteSqlite` → `SQLITE_BUSY`); removing the exclusive mode → fails. The other writer is a second connection in the same process |
+| 7 | A new settings file is linked into place, never replacing one that appeared | yes | confirmed | `run-restore.ts:298-310` (`linkSync`, EEXIST → kept); `linkSync` onto an existing file → `EEXIST`, content unchanged. Test gap: `rmSync(envFile); linkSync(…)` still passes (the test's file appears before the existence check) |
+| 8 | Windows paths: storage keys written with the platform's separators | no | can't check here | `restore.ts:295`; needs task 7's Windows server check in CI |
+| 9 | `rmk-server restore` refuses while a real service runs | no | can't check here | Only the mocked test here; needs task 7's server checks |
+
+**Overall:** not met: the Done when holds on the four databases, and both gaps of the 01:01 re-check are closed with tests that fail without the fixes; rows 8–9 wait for task 7's CI. Low: no test covers the settings link window. Remark: a missing backup.json or manifest.json is noticed at the end, after the rows commit (the spec's "stops it" holds; the target must be emptied). Stale note (PLAN, Values bullet: "a Date … toDbDate") — since fixed.
+
+### Adversarial re-check
+
+Witnessed: 2026-10-13 01:27 EDT, by a fresh agent (adversarial). Commit: 611afdbb + working tree (19 modified, 6 untracked: restore.ts, run-restore.ts, scripts/restore.ts, both restore db tests, db/testing/sqlite-files.ts). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The db tests pass on all four databases | yes | confirmed | SQLite 40 passed, 2 skipped; PG, MySQL, MariaDB 41/1 each; packages/server 124 |
+| 2 | Cross-kind restores keep every value (real scripts) | yes | confirmed | `env -i … TZ=America/New_York`: SQLite (40,007 rows) → PG → MariaDB → MySQL → new SQLite, all exit 0; md5 of audit_log, user, account, workspaces, workspace_members, catalogue_revision identical to the source; the artifact identical, mode 600 |
+| 3 | Timestamps exact at year boundaries and outside 1970–2038, every kind and time zone | yes | confirmed | 19 values (0001-01-01 … 9999-12-31T23:59:59.999, DST days) into each kind, read back as server text: 0 mismatches on SQLite, PG, MySQL, MariaDB under UTC, America/New_York, Africa/Monrovia (SQLite also Asia/Kathmandu); out of PG and back: 0 |
+| 4 | Timestamps survive the trip out of a MySQL/MariaDB archive | no | partly | MySQL/MariaDB → SQLite: `0001-01-01` → `2001-01-01`, `0050-06-15` → `1950-06-15`, `0099-12-31` → `1999-12-31`, `0000-01-01` → `2000-01-01`, no error: the values are right in MySQL, backup's dump (mysql2's Date parsing) moves them. Years from 0100 exact; the app can't write such years |
+| 5 | SQLite `_at` text columns checked as timestamps; the guard keeps the naming true | yes | confirmed | `2026-02-30…`, `2026-10-12 15:31:02`, `1728000000000` into SQLite → "…column created_at: not an ISO 8601 UTC timestamp"; `_at` → `text` in a scratch copy → the test fails; the guard checks both directions on the servers (it sees the latest schema only) |
+| 6 | `backup.json` and `manifest.json` must come again; nothing else takes their branch | yes | confirmed | Swapped in `onLocked` on SQLite and PG: without either → "…went missing…"; extra `database/zzz.txt`, extra `zzz` after the manifest, a renamed part → "…changed…"; twice → "…is in the archive twice"; restoring `restore.ts:366` → the swap test fails |
+| 7 | Any change to the archive between the reads stops it | no | partly | backup.json moved after manifest.json → `RESOLVED {"rows":7,"files":1}`, `.env` written (order not checked on the second read; no data lost). An unknown table's part → refused but "Cannot read properties of undefined (reading 'columns')" |
+| 8 | SQLite: restore's own lock keeps others out; the `onLocked` test guards it | yes | confirmed | Without the exclusive mode → the test fails; 3 × 3 concurrent real restores into one file: one restored each time, the others "isn't empty…" or "in use… Nothing was changed."; integrity ok |
+| 9 | The settings file is read again at the end | yes | confirmed | Rewritten → warning; removed → said, none written; appeared → kept byte-identical; a dangling symlink at `.env` → treated as appeared |
+| 10 | A new settings file is linked into place, never replacing one, with sound failure paths | yes | partly | APFS `--with-settings` → 600, targets merged. But a leftover `.env.restore-<pid>` at 0644 → `.env` 644 with AUTH_SECRET (no chmod, no `wx`); a symlink at that temporary path → its target overwritten; on FAT32 `linkSync` → ENOTSUP ("couldn't be written"), where setup's rename works |
+| 11 | SQLite URLs compared by file | yes | confirmed | `file:./x/../t.db` vs `file:<abs>/t.db` → no warning |
+| 12 | Refusals change nothing | no | confirmed | db tests on all four; real: into the restored PG → refused; byte 5000 altered → refused, 0 tables, no `.env` |
+| 13 | `instance.restored` recorded, no secrets | no | confirmed | 4 rows on the final SQLite; the password in no log; 46 related unit tests pass |
+| 14 | Real services and Windows paths | no | can't check here | Task 7's CI |
+
+**Overall:** not met: cross-kind restores, timestamps in every era and zone, the `_at` check and guard, the required JSON entries, SQLite's lock, the settings re-read and the refusals hold; open: a reordered archive restores (no data lost); the settings file's creation follows a leftover or symlinked temporary file and fails without hard links; MySQL/MariaDB archives move years 0000–0099 (backup's dump); real services and Windows wait for task 7. Minor: year 0000 into PostgreSQL fails without part, line and column.
+
+### Adversarial re-check
+
+Witnessed: 2026-10-13 01:39 EDT, by a fresh agent (adversarial). Commit: 611afdbb + working tree (21 modified, 6 untracked: restore.ts, run-restore.ts, scripts/restore.ts, both restore db tests, db/testing/sqlite-files.ts). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The db tests pass on all four; the full suites pass on MySQL and MariaDB | yes | confirmed | SQLite set → 40 passed, 2 skipped; PG set with create-db → 43/2; full `test:db:mysql` and `test:db:mariadb` alone → 108 files, 979 passed, 1 skipped each (a first run failed only from the witness's own concurrent core rebuild); packages/server 124 |
+| 2 | `readDatetime` reads every valid DATETIME exactly, leaves other types as mysql2 read them | yes | confirmed | MySQL 8.4 and MariaDB 10.11: datetime(0/3/6), years 0001, 0004-02-29, 0050, 0099, 0100, 1969, 2038, 9999, 1–6 fraction digits exact; NULL → null; `max()`, `now(3)`, `cast`, `convert_tz` → Dates; TIMESTAMP, DATE, TIME, YEAR, JSON, BIGINT, DECIMAL, tinyint, text, blob as before (DATE still through mysql2; no schema column is DATE) |
+| 3 | `readDatetime` never turns a stored value into another date | yes | not met | `0000-00-00 00:00:00` → `-000001-11-30T00:00:00.000Z`, `2026-00-15` → `2025-12-15` (mysql2 gave Invalid Date). MariaDB's default `sql_mode` accepts `2026-00-15 10:00:00` in `audit_log.created_at`: backup exits 0, `--verify` passes, restore into SQLite exits 0 with 2025-12-15. Before, backup refused both (`dump.ts:32`) |
+| 4 | MySQL/MariaDB archives keep years 0000–0099 | yes | confirmed | MariaDB `0050-06-15 12:34:56.789` → archive → SQLite exact; the chain keeps 0001, 0050, 9999, 1883 |
+| 5 | Cross-kind restores keep every value (real scripts) | yes | confirmed | `TZ=America/New_York`, 25,003 rows and a 300 KB file: SQLite → PG → MySQL → MariaDB → SQLite; md5 of user, workspaces, catalogue_revision identical; audit_log identical but the source's later `instance.backup_made`; the blob identical |
+| 6 | The second read checks the format's order; an unknown table's part is "changed" | yes | confirmed | backup.json last, settings.env before storage, manifest among the parts, `database/zzz/000001.jsonl` first or last → refused as changed or missing; unchanged order → resolved. Test gap: no test of the unknown table |
+| 7 | The second read refuses every order the first refuses | yes | partly | Parts interleaved (`audit_log/1, catalogue_revision/1, audit_log/2`) or reversed (`000003…000001`): `--verify` refuses them, but swapped between the reads both resolve (no data lost). A child table before its parent → refused, worded "FOREIGN KEY constraint failed" |
+| 8 | Year 0000 refused, with part, line and column, into PostgreSQL too | yes | confirmed | MariaDB `0000-01-01` → restore into PG → "database/audit_log/000001.jsonl, line 4, column created_at: not an ISO 8601 UTC timestamp" |
+| 9 | The settings file created exclusively, 0600, no temporary file, any file system | yes | confirmed | `run-restore.ts:302-310`; a dangling symlink → "appeared… kept", its target not created; umask 000 → `-rw-------`; a FAT32 image → written; read-only folder → EACCES |
+| 10 | SQLite: concurrent restores leave one restored, the others told nothing changed | yes | confirmed | 3 rounds of 3 → 1 each; integrity ok |
+| 11 | Real services and Windows paths | no | can't check here | Task 7's CI |
+
+**Overall:** not met: the Done when on the four databases, years 0000–0099 out of MySQL/MariaDB, cross-kind values outside UTC, the order check, the unknown-table refusal, year 0000, the exclusive settings create and SQLite's lock hold. Missing: `readDatetime` turns zero and out-of-range dates into other real dates (backup now moves `2026-00-15` to 2025-12-15 where it refused); the second read accepts parts in an order the first refuses (no data lost). Test gap: the unknown table.
+
+### Adversarial re-check
+
+Witnessed: 2026-10-13 02:25 EDT, by a fresh agent (adversarial). Commit: 611afdbb + working tree (21 modified, 6 untracked: restore.ts, run-restore.ts, scripts/restore.ts, both restore db tests, db/testing/sqlite-files.ts). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The Done when's db tests pass on all four databases | yes | confirmed | SQLite (backup set + create-db) → 43 passed, 3 skipped; PG → 44/2; full `test:db:mariadb` → 980 passed, 1 skipped; MySQL `restore.db.test.ts` alone → 13/13 |
+| 2 | The full database suites pass on MySQL and MariaDB | yes | partly | MariaDB passes. Full `test:db:mysql` failed 3 of 3 runs on this machine with 30 s timeouts in `restore.db.test.ts` (the file took 119–142 s); 7–8 sessions waited in `get_lock` at once: Kysely's MySQL lock is one name for the whole server (`mysql-adapter.js:4`), and restore holds it for its whole run (`run-restore.ts:202`) |
+| 3 | `readDatetime` never turns a stored value into another date | yes | confirmed | MariaDB (default `sql_mode`) `2026-00-15`, `2026-01-00`, `0000-00-00`, and with ALLOW_INVALID_DATES `2026-02-30`, `2026-04-31 23:59:59.999` → backup "…holds an invalid date…", exit 1; the same on MySQL with `sql_mode=''`; 18 odd strings → Invalid; NULL → null; TIMESTAMP → `next()`; the mutation → the create-db test fails |
+| 4 | Valid DATETIMEs, years 0001–0099 included, read back exactly | yes | confirmed | `0004-02-29 12:00:00.5` → `0004-02-29T12:00:00.500Z`; `0050-06-15 12:34:56.789`, `9999-12-31 23:59:59.999` exact; 4,000 fraction strings exact |
+| 5 | The second read must see exactly verify's parts, in order | yes | confirmed | 25,000 audit rows (3 parts) changed between the reads: interleaved, reversed, contents swapped between names, an extra `000004`, `zzz` first, `.JSONL` → "…changed…", 0 rows; dropped or moved → "…went missing", 0 rows; unchanged → restored |
+| 6 | A test covers moved parts and an unknown table's part | yes | confirmed | `restore.db.test.ts:719`; removing the `partOrder` comparison → it fails. The `byName` check is now redundant |
+| 7 | Cross-kind restores keep every value outside UTC | yes | confirmed | `TZ=America/New_York`: MariaDB → PG → MySQL → SQLite; 0001-01-01, 0099-12-31T23:59:59.999, 1850, a DST day, 9999-12-31T23:59:59.999 exact; metadata hex identical; `.env` 0600 |
+| 8 | Year 0000 refused, with part, line and column | yes | confirmed | MariaDB `0000-01-01` → backup exit 0, `--verify` exit 0 → restore: "…line 1, column created_at: not an ISO 8601 UTC timestamp". Remark: backup and verify accept an archive no restore takes |
+| 9 | Refusals change nothing | yes | confirmed | Into the restored PG → refused, still 7 audit rows, no `.env`; a byte changed at 3000 → "padding is damaged. Nothing was changed."; the db test on all four |
+| 10 | A change after the rows commit still stops the restore | yes | confirmed | `settings.env` dropped or `manifest.json` moved before it → refused, no `.env`; rows stay with "partly restored… empty both" (the known remark) |
+| 11 | SQLite's lock, the exclusive settings create, `instance.restored` | yes | confirmed | Their tests pass; real chain: 3 `instance.restored` rows, no secrets; `.env` `-rw-------` |
+| 12 | `packages/server` tests | no | confirmed | 124 passed |
+| 13 | Real services and Windows paths | no | can't check here | Task 7's CI |
+
+**Overall:** not met: both gaps of 01:39 are closed (invalid DATETIMEs refused by backup on MariaDB and MySQL; any part order but verify's refused, with a test). Open: the full MySQL suite times out here while restores wait on Kysely's server-wide `get_lock` — in production a restore on a shared MySQL or MariaDB server blocks other instances' migrations for its whole run; real services and Windows wait for task 7. Low: year 0000 backs up and verifies but can't be restored.
+
+### Adversarial re-check
+
+Witnessed: 2026-10-13 02:50 EDT, by a fresh agent (adversarial). Commit: 611afdbb + working tree (23 modified, 6 untracked: restore.ts, run-restore.ts, scripts/restore.ts, both restore db tests, db/testing/sqlite-files.ts). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The Done when's db tests pass on SQLite and PostgreSQL | yes | confirmed | SQLite 43 passed, 4 skipped; PG 44/3 |
+| 2 | The full database suites pass on MySQL, MariaDB and PostgreSQL | yes | confirmed | Each alone: MySQL 981 passed, 1 skipped, 162 s, no timeouts; MariaDB 981/1, 144 s; PG 979/3, 111 s |
+| 3 | On one database, the migration lock keeps the other paths out | yes | confirmed | MySQL 8.4 and MariaDB 10.11, a restore holding 4 s: a `migrateToLatest` on the same database waited (4,854 / 4,401 ms, applied 0); a second restore waited, then "isn't empty… Nothing was changed."; a backup's snapshot wait waited; 4 concurrent server starts → `[24,0,0,0]`, no errors |
+| 4 | Different databases now run independently | yes | confirmed | A restore into `rc5_r2` while `rc5_r1` was held → 929 / 400 ms; migrate B 841 / 319 ms; snapshot B 3–5 ms; PostgreSQL: another database's advisory lock in 15 ms, the same database refused |
+| 5 | Inside a restore, migrating on its own session doesn't wait for itself | yes | confirmed | Acquire twice, release once → still held; again → free, both servers; restores report `newer: []` |
+| 6 | The lock name works for unusual database names | no | confirmed | `rc5 ü-x`, a 64-character name → 56-character names, the same hash on both. Remarks: with no database selected, MySQL errors but MariaDB's `get_lock(NULL)` returns NULL silently (unreachable: `url.ts:43` requires a database); names differing only in case on case-insensitive hosts not tried |
+| 7 | Nothing still uses Kysely's server-wide lock | no | confirmed | Only `create-db.ts` makes a MySQL dialect; while the new lock is held, `is_used_lock('ea586330-…')` → null. Remark: an older Ronne's lock doesn't exclude the new one during an upgrade |
+| 8 | A test guards the per-database lock | yes | confirmed | `create-db.db.test.ts:80-114` |
+| 9 | The dump refuses timestamps before year 1 | yes | partly | Refused on MariaDB and MySQL `0000-01-01`, PG `0001-01-01 BC` and `0002-06-01 BC`. A SQLite source with `audit_log.created_at` = `0000-01-01T00:00:00.000Z` or `-000001-01-01T00:00:00.000Z` → backed up; restore then refuses ("…partly restored… empty both") |
+| 10 | The real restore script works and refuses a second time | no | confirmed | Into MariaDB → exit 0, 24 migrations, `instance.restored`, `.env` 0600; again → "isn't empty… Nothing was changed.", exit 1 |
+| 11 | `packages/server` tests | no | confirmed | 124 passed |
+| 12 | Real OS services and Windows paths | no | can't check here | Task 7's CI |
+
+**Overall:** not met: the per-database lock holds on every path and the three full suites pass. Open: a SQLite source backs up a timestamp before year 1 that restore refuses (low); real services and Windows wait for task 7. Remarks: an older Ronne isn't excluded during an upgrade; `get_lock`'s result (a timeout) is ignored, as in Kysely's adapter; case-insensitive database names not tried.
+
+### Adversarial re-check
+
+Witnessed: 2026-10-13 03:11 EDT, by a fresh agent (adversarial). Commit: 611afdbb + working tree (24 modified, 6 untracked: restore.ts, run-restore.ts, scripts/restore.ts, both restore db tests, db/testing/sqlite-files.ts). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The Done when's db tests pass on all four databases | yes | confirmed | SQLite `--project db` → 968 passed, 14 skipped; the server suites include `restore.db.test.ts`'s cross-kind, older-migration and refusal tests |
+| 2 | The full database suites pass on MySQL, MariaDB and PostgreSQL | yes | confirmed | One at a time: MySQL 981/1, 168 s; MariaDB 981/1, 122 s; PG 979/3, 124 s; no timeouts |
+| 3 | What the app writes into SQLite `_at` columns still backs up | no | confirmed | A real instance (setup, sign-in, token exchange through Better Auth): its 20 `_at` values are all `YYYY-MM-DDTHH:MM:SS.mmmZ`, backup exits 0; Better Auth 1.7.5–1.7.7 writes `toISOString` on SQLite (`factory.mjs:130`); migrations write only `toDbDate`, no `CURRENT_TIMESTAMP` |
+| 4 | The dump refuses SQLite `_at` text no restore takes, keeps what restore takes | yes | confirmed | `0000-…`, `-000001-…`, `+010000-…`, a space form, epoch ms, Feb 30, 4 fraction digits, `T24:00`, `+00:00`, a trailing LF, fullwidth digits → refused, partial archive removed; `…53Z`, `…53.8Z`, `0001-01-01…`, `9999-12-31…999Z` back up and restore unchanged; disabling the check or `startsWith("0000")` → `dump.test.ts` fails |
+| 5 | No backup holds a timestamp no restore takes | yes | partly | (a) a SQLite `_at` blob (the bytes of a valid ISO string) → backup and `--verify` exit 0, restore refuses after migrating; (b) a PostgreSQL `created_at = '10000-01-01'` → `+010000-01-01T…`, backup and verify pass, restore refuses. `infinity` refused at backup. The app writes neither (low) |
+| 6 | The MySQL/MariaDB lock throws unless `GET_LOCK` answers 1 | yes | confirmed | The real adapter with a fake connection: 1 and `"1"` take it; 0, NULL, 2, no row throw. MariaDB: `KILL QUERY` on a waiting restore's `get_lock` → NULL → exit 1, nothing written; MySQL: "Query execution was interrupted" → exit 1. Remarks: no test; the message says "held it for an hour" after a killed wait, and "If anything was written, empty it" when nothing was |
+| 7 | Cross-kind restores keep every value (real scripts) | yes | confirmed | `TZ=America/New_York`: SQLite → MariaDB → MySQL → PG → SQLite, all exit 0, `.env` 0600; md5 of user, session, account, access_tokens, workspaces, workspace_members identical; 4 `instance.restored` |
+| 8 | Refusals change nothing | yes | confirmed | Into the restored PG → "isn't empty… Nothing was changed."; a header byte or a part byte changed → checksum refusal, 0 tables, no `.env` |
+| 9 | SQLite's lock: concurrent restores | yes | confirmed | 3 rounds of 3 → 1 restored per round; integrity ok |
+| 10 | Settings: `--with-settings` and a kept file | yes | confirmed | The backup's file written 0600; a kept `.env` unchanged with its warnings |
+| 11 | `instance.restored` | yes | confirmed | `{"via":"cli","from":{…},"rows":N,"files":0}`, no secrets |
+| 12 | `packages/server` tests | no | confirmed | 124 passed |
+| 13 | Real OS services and Windows paths | no | can't check here | Task 7's CI |
+
+**Overall:** not met: invalid SQLite timestamps are refused at backup while everything the app writes backs up; the lock's failure path stops restores before writing; the four suites, cross-kind restores, refusals, SQLite's lock, settings and the audit event hold. Open: a SQLite `_at` blob or a PostgreSQL year past 9999 backs up and verifies but no restore takes it (low); real services and Windows wait for task 7. Wording: the lock-failure and "If anything was written" messages; no test of the lock's failure path.
+
+**Owner's decision (2026-10-13):** the two rows no pass can check here — writing storage files with Windows paths, and `rmk-server restore` refusing while a real service (systemd, launchd, Windows) runs — are closed by task 7's CI: its backup → restore runs in the Windows, macOS and Ubuntu server checks, which install and stop the real services. Task 6 stays unticked until those pass on the pull request and a re-check records it.
+
+### Adversarial re-check
+
+Witnessed: 2026-10-13 08:30 EDT, by a fresh agent (adversarial). Commit: 611afdbb + working tree (24 modified, 6 untracked: restore.ts, run-restore.ts, scripts/restore.ts, both restore db tests, db/testing/sqlite-files.ts). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The Done when's db tests pass on all four databases | yes | confirmed | SQLite `--project db` → 968 passed, 15 skipped; `restore.db.test.ts` (`:226` cross-kind, `:270` into SQLite, `:285` older set, `:330` refusals) in every server suite |
+| 2 | The full suites pass on PostgreSQL, MySQL and MariaDB; `packages/server` passes | yes | confirmed | One at a time: PG 979/4, MySQL 982/1, MariaDB 982/1, no timeouts; packages/server 124 |
+| 3 | A SQLite `_at` value that isn't text stops the backup | yes | confirmed | Real `pnpm run backup`: a blob → "…holds a value that isn't text, which isn't a timestamp a restore takes. The partial archive was removed"; an integer → refused |
+| 4 | Every Date outside 1–9999 stops the backup, and everything it lets through restores | yes | confirmed | PG `10000-01-01`, `275000-01-01`, `0001-01-01 BC` → refused, no archive; 29 `encodeRow` probes refused as expected; everything accepted passes `convertValue` for sqlite, postgres, mysql |
+| 5 | A lock failure stops the restore before writing, saying "Nothing was changed" | yes | confirmed | Real script, `KILL QUERY` on its waiting `get_lock`: MariaDB → "…The migration lock couldn't be taken… Nothing was changed.", MySQL → "…Query execution was interrupted. Nothing was changed."; 0 tables, no `.env` |
+| 6 | A test covers the lock's failure path | yes | confirmed | `create-db.db.test.ts:122` passes on MariaDB; with the result check removed it fails on MariaDB (on MySQL the killed wait errors, so it passes either way; CI runs MariaDB) |
+| 7 | A failure after writing started tells the user to empty the target | no | confirmed | A PG role without CREATE on `public` → "…Migration (before any migration) failed: permission denied for schema public. If anything was written, empty it before trying again.", 0 tables. Remark: nothing was written there, and the message doesn't say what was left (low) |
+| 8 | Cross-kind restores keep every value (real scripts) | yes | confirmed | `TZ=Asia/Kolkata`: SQLite → PG → MySQL 8.4 → MariaDB 10.11 → new SQLite, each exit 0; final rows' hex identical; 4 `instance.restored`; `.env` 0600 |
+| 9 | Non-empty target, newer backup, altered archive refused, nothing changed | no | confirmed | Into the restored PG → refused, 4 audit rows kept; a part's byte changed → checksum refusal, 0 tables; `9999_future` → "comes from a newer Ronne… Nothing was changed.", 0 tables |
+| 10 | An older migration set restores, then the newer migrations run | no | confirmed | `restore.db.test.ts:285` in all four suites |
+| 11 | Real OS services and Windows paths | yes | can't check here | Task 7's CI, per the owner's decision of 2026-10-13 |
+
+**Overall:** not met only for row 11, which the owner's decision closes by task 7's CI: the five gaps of 03:11 are closed (SQLite `_at` blobs and numbers and dates outside 1–9999 refused at backup; a lock failure stops before writing with "Nothing was changed"; a test kills a waiting `GET_LOCK`), with no regressions. Low remarks: a failed first migration says "If anything was written…" though nothing was; the lock-failure test guards the result check on MariaDB only.

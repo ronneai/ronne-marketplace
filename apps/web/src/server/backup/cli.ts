@@ -112,3 +112,73 @@ export const parseBackupCommand = (argv: string[]): BackupCommand => {
       : {}),
   };
 };
+
+export type RestoreCommand =
+  | {
+      mode: "restore";
+      archive: string;
+      passphraseFile?: string;
+      databaseUrl?: string;
+      withSettings: boolean;
+      yes: boolean;
+    }
+  | { mode: "help" }
+  | { mode: "error"; exitCode: 2; message: string };
+
+export const RESTORE_USAGE = `Usage: restore ARCHIVE [--passphrase-file FILE] [--database-url URL] [--with-settings] [--yes]
+
+Restores a backup into an empty database and empty storage, on any of the three database kinds,
+then runs the migrations this Ronne has since. Stop the server first. The archive is checked whole
+before anything is written.
+
+  --passphrase-file FILE  The passphrase of an encrypted archive (or RONNE_BACKUP_PASSPHRASE, or asked)
+  --database-url URL      Restore into this database rather than the settings' (or a new SQLite file)
+  --with-settings         With no settings file yet, write the backup's (with this database and
+                          storage); otherwise a new one is written, with a new AUTH_SECRET
+  --yes, -y               Don't ask (restore even when some released versions have no artifact)
+  --help, -h              Show this`;
+
+/** restore's flags (099): the archive, then options. */
+export const parseRestoreCommand = (argv: string[]): RestoreCommand => {
+  const error = (message: string) => ({ mode: "error", exitCode: 2, message }) as const;
+  let values: {
+    "passphrase-file"?: string;
+    "database-url"?: string;
+    "with-settings"?: boolean;
+    yes?: boolean;
+    help?: boolean;
+  };
+  let positionals: string[];
+  try {
+    ({ values, positionals } = parseArgs({
+      args: argv,
+      strict: true,
+      allowPositionals: true,
+      options: {
+        "passphrase-file": { type: "string" },
+        "database-url": { type: "string" },
+        "with-settings": { type: "boolean" },
+        yes: { type: "boolean", short: "y" },
+        help: { type: "boolean", short: "h" },
+      },
+    }));
+  } catch (caught) {
+    return error((caught as Error).message);
+  }
+  if (values.help) return { mode: "help" };
+  if (positionals.length !== 1 || (positionals[0] as string).trim() === "")
+    return error("Name one archive to restore.");
+  for (const flag of ["passphrase-file", "database-url"] as const)
+    if (values[flag] !== undefined && (values[flag] as string).trim() === "")
+      return error(`--${flag} needs a value.`);
+  return {
+    mode: "restore",
+    archive: positionals[0] as string,
+    ...(values["passphrase-file"] !== undefined
+      ? { passphraseFile: values["passphrase-file"] }
+      : {}),
+    ...(values["database-url"] !== undefined ? { databaseUrl: values["database-url"] } : {}),
+    withSettings: values["with-settings"] === true,
+    yes: values.yes === true,
+  };
+};
