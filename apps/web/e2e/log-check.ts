@@ -1,7 +1,9 @@
 import { existsSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, isAbsolute, join } from "node:path";
 import { parseEnv } from "node:util";
+import { createDb } from "../src/server/db/create-db";
 import type { Instance } from "./harness";
+import { SECRETS_FILE } from "./secrets";
 import {
   E2E_NEW_PASSWORD,
   E2E_PASSWORD,
@@ -25,6 +27,41 @@ const logCheck = async () => {
     const secret = existsSync(envFile) ? parseEnv(readFileSync(envFile, "utf8")).AUTH_SECRET : "";
     return [instance.env.AUTH_SECRET, secret].filter((value): value is string => Boolean(value));
   });
+  // Each instance's session tokens, the values of its session cookies, from its SQLite database.
+  const sessionTokens = (
+    await Promise.all(
+      Object.values(instances).map(async (instance) => {
+        const dir = dirname(instance.logFile);
+        const envFile = join(dir, ".env");
+        const written = existsSync(envFile)
+          ? parseEnv(readFileSync(envFile, "utf8")).DATABASE_URL
+          : "";
+        const files = [instance.env.DATABASE_URL, written].flatMap((url) => {
+          if (!url?.startsWith("file:")) return [];
+          const path = url.slice("file:".length);
+          const file = isAbsolute(path) ? path : join(dir, path);
+          return existsSync(file) ? [file] : [];
+        });
+        const tokens = await Promise.all(
+          [...new Set(files)].map(async (file) => {
+            const { db } = createDb(`file:${file}`);
+            try {
+              const rows = await db.selectFrom("session").select("token").execute();
+              return rows.map((row) => row.token);
+            } finally {
+              await db.destroy();
+            }
+          }),
+        );
+        return tokens.flat();
+      }),
+    )
+  ).flat();
+  // What the tests generated and used: user-admin's new user's password (recordSecret).
+  const recorded = Object.values(instances).flatMap((instance) => {
+    const file = join(dirname(instance.logFile), SECRETS_FILE);
+    return existsSync(file) ? readFileSync(file, "utf8").split("\n").filter(Boolean) : [];
+  });
   const secrets = [
     E2E_PASSWORD,
     E2E_SETUP_PASSWORD,
@@ -32,6 +69,8 @@ const logCheck = async () => {
     E2E_NEW_PASSWORD,
     ...Object.values(E2E_USERS),
     ...authSecrets,
+    ...sessionTokens,
+    ...recorded,
   ];
   const problems: string[] = [];
   // JSON lines across the run: a server whose tests ran in another shard may have had no request.

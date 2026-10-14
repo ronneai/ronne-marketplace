@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { recordSecret } from "./secrets";
 import { E2E_PASSWORD, E2E_USERS } from "./users";
 
 const signIn = async (page: Page, email: string, password: string) => {
@@ -41,6 +42,7 @@ test("root creates a user, who signs in with the shown password; disabling them 
   await expect(create.getByText("Shown once")).toBeVisible();
   const password = (await create.locator("code").nth(1).innerText()).trim();
   expect(password).toHaveLength(20);
+  recordSecret(JSON.parse(process.env.RONNE_E2E_INSTANCE ?? "{}").main, password);
   await create.getByRole("button", { name: "Done" }).click();
   await expect(root.getByRole("cell", { name: email, exact: true })).toBeVisible();
 

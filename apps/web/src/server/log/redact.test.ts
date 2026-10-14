@@ -565,6 +565,10 @@ describe("cleanFields", () => {
       "for [email] and [email]",
     );
     expect(redactString("x!y#z@example.xn--p1ai, <a=b@example.com>")).toBe("[email], <[email]>");
+    // Uppercase, hyphenated domains, a quoted local part, a domain running on past its last label.
+    expect(redactString("from Alice.SMITH@My-Host.Example-Mail.COM")).toBe("from [email]");
+    expect(redactString('to "ana"@example.com now')).toBe("to [email] now");
+    expect(redactString("key carol@example.com-acme")).toBe("key [email]-acme");
     for (const kept of [
       "/node_modules/.pnpm/next@16.4.0_react@19.2.0/x",
       "@team/secure-coding and @acme/infra/tool",

@@ -132,10 +132,21 @@ const hideEmails = (value: string): string => {
     let start = at;
     while (start > from && LOCAL.test(value.charAt(start - 1))) start--;
     while (start < at && value.charAt(start) === "'") start++;
+    // A quoted local part (`"ana"@example.com`): back to its opening quote, at most 64 characters.
+    if (start === at && value.charAt(at - 1) === '"') {
+      const open = value.lastIndexOf('"', at - 2);
+      if (open >= from && at - open <= 66 && !value.slice(open, at).includes("@")) start = open;
+    }
     let end = at + 1;
     while (end < value.length && DOMAIN.test(value.charAt(end))) end++;
     // The domain without a trailing dot or hyphen (an address ending a sentence).
     while (end > at + 1 && ".-".includes(value.charAt(end - 1))) end--;
+    // A last label that runs on past its letters (`example.com-acme`): the address ends with them.
+    const dot = at + 1 + value.slice(at + 1, end).lastIndexOf(".");
+    if (dot > at && !TOP_LABEL.test(value.slice(dot + 1, end))) {
+      const letters = /^[\p{L}\p{M}]*/u.exec(value.slice(dot + 1, end))?.[0] ?? "";
+      if (letters.length >= 2) end = dot + 1 + letters.length;
+    }
     const domain = value.slice(at + 1, end);
     const last = domain.slice(domain.lastIndexOf(".") + 1);
     if (start === at || !domain.includes(".") || !TOP_LABEL.test(last)) continue;
