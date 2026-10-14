@@ -140,3 +140,24 @@ Witnessed: 2026-10-14 11:36 EDT, by a fresh agent (adversarial, read-only). Comm
 | 18 | PR #183's CI at da5b7f3a green, with the Ubuntu and macOS server and service checks | no | confirmed | 40 checks pass; the 7 runs `pull_request da5b7f3a success`; da5b7f3a and e6b43434 identical trees |
 
 **Overall:** met: every WinSW hit on main is a record the *Done when* allows; nothing since changed the paths the earlier rows rest on; no Windows branch is left in the server code but the refusal; CI green. Remarks: 099's backup tests keep `win32` skips and comments about Windows disks (harmless; a later cleanup); ronne-web's product page messages and `product-facts.md` still named WinSW on Windows (fixed in a ronne-web follow-up).
+
+## Task 4 — Bundles, scripts and CI
+
+Witnessed: 2026-10-14 13:10 EDT, by a fresh agent (blind). Commit: d1d4db34. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `winsw.js` and its test, `install.ps1`, `test-install.ps1`, `test-windows-service.ps1` are gone | no | confirmed | `git ls-tree -r --name-only d1d4db34 \| grep -i "winsw\|\.ps1\|windows"` → only `clients-windows.yml` and 086/087/121 docs; `git diff --name-status e6b43434^ e6b43434` → `D` for each |
+| 2 | The named bundle, notice, pack, probe, ci-scope and install-script files have no Windows part | no | confirmed | `git grep -n -i "win32\|windows\|\.ps1\|winsw\|\.zip"` on the 13 files → 13 hits, each a "no Windows since 121" comment, the refusal job, the clients-windows scope or the release notes' WSL line; `bundle.js:29` `["linux", "darwin"]` |
+| 3 | `bundles.yml` builds four archives | no | confirmed | Matrix linux and darwin × x64 and arm64 |
+| 4 | `server-checks.yml`: no Windows install, service or disk job | no | confirmed | `os: [ubuntu-latest, macos-latest]`; the only `windows-latest` job is `refuses-windows` |
+| 5 | `install-scripts.yml`: no PowerShell job | no | confirmed | `install.sh (shfmt, dash, bash)` and the gate only |
+| 6 | `release.yml` attaches no `install.ps1` or Windows bundle | no | confirmed | `:410-411` requires exactly 4 bundles; `:447` attaches `install.sh`, the bundles, .deb/.rpm and checksums; the notes' Windows line says WSL 2 or a VM |
+| 7 | The repository tools' tests pass | no | confirmed | `packages/repo-tools` → 17 files, 162 passed. Remark: no unit test pins `PLATFORMS`; the matrix and the release's count of 4 do |
+| 8 | PR #183 ran every remaining suite green | no | confirmed | `gh pr checks 183` → 40 pass: Bundle ×4, Install and run ×4, systemd, launchd, Refuses Windows, `install.sh`, image, databases, e2e, clients-windows; head `da5b7f3a` = `e6b43434`'s tree |
+| 9 | The release dry run, from main, every job passed | no | confirmed | Run 38590526128: `workflow_dispatch`, `main`, `e6b43434`, `DRY_RUN: true`; 25 success, 2 skipped as a dry run skips them |
+| 10 | Exactly four bundles and `install.sh` only | no | confirmed | Artifacts: `bundle-{linux,darwin}-{x64,arm64}`, `install-scripts` (`install.sh` and its checksum), no Windows. Remark: the GitHub release step is skipped on a dry run, so the notes and asset list are checked from `release.yml` |
+| 11 | Each bundle job shows `release.md`'s checks | no | confirmed | Node.js 24.22.0 SHA-256 matches; "holds only Node.js, the package…"; "runs with its own Node.js, none on PATH" |
+| 12 | The dry run matches `release.md` | no | confirmed | `release.md:37-53`, from `main`; v0.3.2 already on npm, so no `npm publish --dry-run` ran |
+
+**Overall:** met: every named Windows file is gone and the rest have no Windows server part; PR #183 ran every remaining suite green; the release dry run built exactly four Linux and macOS bundles and only `install.sh`.
