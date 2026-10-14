@@ -67,7 +67,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: sameFile on NTFS
         working-directory: packages/server
-        run: pnpm exec vitest run src/service/system.test.ts
+        # Only sameFile: the file's other tests check POSIX modes, which NTFS doesn't have.
+        run: pnpm exec vitest run src/service/system.test.ts -t sameFile
       - name: Stored names tried on NTFS
         working-directory: apps/web
         run: pnpm exec vitest run src/server/backup/storage-names.test.ts
