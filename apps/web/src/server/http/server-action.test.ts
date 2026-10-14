@@ -92,22 +92,43 @@ describe("logRequestError (onRequestError)", () => {
 
 describe("every exported server action goes through serverAction (guard)", () => {
   const src = join(import.meta.dirname, "../..");
+  const self = join(import.meta.dirname, "server-action.test.ts");
   const sources = (dir: string): string[] =>
     readdirSync(dir).flatMap((name) => {
       const path = join(dir, name);
       if (statSync(path).isDirectory()) return name === "node_modules" ? [] : sources(path);
-      return /\.tsx?$/.test(name) && !/\.test\.tsx?$/.test(name) ? [path] : [];
+      return /\.(?:ts|tsx|js|jsx|mjs)$/.test(name) && path !== self ? [path] : [];
     });
-  const files = sources(src).filter((file) =>
-    /^["']use server["'];/.test(readFileSync(file, "utf8")),
-  );
+  /** The source after its leading blank lines and comments: where a file's directive would be. */
+  const afterComments = (source: string): string => {
+    let at = 0;
+    for (;;) {
+      while (at < source.length && source.charAt(at).trim() === "") at++;
+      if (source.startsWith("//", at)) {
+        const end = source.indexOf("\n", at);
+        at = end === -1 ? source.length : end + 1;
+      } else if (source.startsWith("/*", at)) {
+        const end = source.indexOf("*/", at + 2);
+        at = end === -1 ? source.length : end + 2;
+      } else return source.slice(at);
+    }
+  };
+  const DIRECTIVE = /["']use server["']/;
+  const withDirective = sources(src).filter((file) => DIRECTIVE.test(readFileSync(file, "utf8")));
 
   it("finds the action files", () => {
-    expect(files.length).toBeGreaterThanOrEqual(20);
+    expect(withDirective.length).toBeGreaterThanOrEqual(20);
   });
 
-  it.each(files.map((file) => [relative(src, file), file]))("%s", (_name, file) => {
+  it.each(withDirective.map((file) => [relative(src, file), file]))("%s", (_name, file) => {
     const source = readFileSync(file, "utf8");
+    // Server actions live in their own files: a "use server" anywhere but at a file's top would
+    // be an inline action, which this guard (and the request's ID) couldn't reach.
+    expect(/^["']use server["']/.test(afterComments(source)), "the directive opens the file").toBe(
+      true,
+    );
+    const rest = afterComments(source).replace(/^["']use server["'];?/, "");
+    expect(DIRECTIVE.test(rest), "no other use server in the file").toBe(false);
     const exports = [...source.matchAll(/^export (?!type )(.*)$/gm)].map((match) => match[1] ?? "");
     expect(exports.length).toBeGreaterThan(0);
     for (const line of exports) expect(line).toMatch(/^const \w+ = serverAction\(/);

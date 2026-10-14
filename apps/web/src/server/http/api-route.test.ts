@@ -3,6 +3,7 @@ import { join, relative } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { logger, setLoggerForTests } from "../log";
 import { apiRoute } from "./api-route";
+import { requireToken } from "./require-token";
 
 const config = vi.hoisted(() => ({ trustProxy: false }));
 vi.mock("../config", async (original) => ({
@@ -126,6 +127,22 @@ describe("apiRoute", () => {
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toBe("http://localhost/elsewhere");
     expect(response.headers.get("x-request-id")).toMatch(ULID);
+  });
+
+  it("records the token's user on the request's lines, http.request included", async () => {
+    const GET = apiRoute("/api/v1/me", async (req: Request) => {
+      const guard = await requireToken(req, {
+        ready: async () => true,
+        authenticate: async () => ({ ok: true, value: { user: { id: "01USER" } } }) as never,
+      });
+      logger.info("After the token");
+      return new Response(guard.ok ? "ok" : "no");
+    });
+    await GET(request(), {});
+    expect(lines.map((line) => [line.msg, line.userId])).toEqual([
+      ["After the token", "01USER"],
+      ["Request handled", "01USER"],
+    ]);
   });
 
   it("lets Next's own signals through, unlogged", async () => {

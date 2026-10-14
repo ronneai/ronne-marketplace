@@ -804,3 +804,26 @@ Witnessed: 2026-10-14 15:13 EDT, by a fresh agent (adversarial). Commit: 87ac385
 | 13 | No new dependency | no | confirmed | Empty diff |
 
 **Overall:** met.
+
+## Task 2 — Requests
+
+Witnessed: 2026-10-14 15:23 EDT, by a fresh agent (blind). Commit: 48d706c3. Machine: macOS 27.0.1, Node v24.0.0. Live probes ran against `next start` builds of a scratch copy.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Every `route.ts` exports only `apiRoute` methods with its own pattern, never the filled-in path | no | confirmed | 22 files; live `GET /api/v1/items/acme/secret-name` → `"route":"/api/v1/items/[scope]/[name]"`, no name in the log |
+| 2 | The route guard fails on an unwrapped route or a wrong pattern | no | confirmed | 6 mutations, each 1 failure |
+| 3 | Every exported action goes through `serverAction`; its guard fails when one doesn't | no | partly | The guard reads only files starting with `"use server";`: a comment first, or no semicolon, passes; inline `"use server"` actions aren't checked |
+| 4 | Lines from a service called by a route carry the ID | no | confirmed | Test; live probe route |
+| 5 | Lines from a service called by an action carry the proxy's ID | no | confirmed | Test; live action POST, a spoofed ID ignored |
+| 6 | `X-Request-Id` on API responses and pages | no | confirmed | Live: health, 401, auth, sign-in, 307, 404, action POSTs; 413 by test |
+| 7 | The incoming ID only with `TRUST_PROXY=true` and well formed | no | confirmed | Live: kept `abc-123.X_y`, 128×`a`; replaced 129×`a`, `a%20b`, `rmk_é`, `a;b`; with false, replaced |
+| 8 | An API error → one `http.error` and a 500 in MVP §11's shape | no | confirmed | Live: `internal_error` with the request's ID; one `http.error`; `http.request` 500 at error |
+| 9 | A page or action error → one `http.error` from `onRequestError` | no | confirmed | Live: the proxy's ID and the route's pattern; Next's own plain-text line is out of scope (SPEC.md:37) |
+| 10 | Next's control flow passes through unlogged | no | confirmed | Live `notFound()`, `redirect()`, a redirecting action → no `http.error` |
+| 11 | `http.request` fields and levels | no | confirmed | Live; tests (429 warn, 5xx error) |
+| 12 | The user id recorded once a token or session is known | no | confirmed | Live with a real token. Remark: no test fails without `setRequestUser` |
+| 13 | `instrumentation.ts`; Next accepts the wrapped exports | no | confirmed | `TURBO_FORCE=true pnpm build` → 5 tasks; `.next/server/instrumentation.js` |
+| 14 | Tests pass | no | confirmed | Unit 1496, db (SQLite) 209 |
+
+**Overall:** not met: the action guard misses files with a comment before the directive and inline actions; no test guards the user id on lines.
