@@ -24,7 +24,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* db tests on the four databases dump a seeded instance and show that a write made
   during the dump isn't in it; memory stays flat on 079's benchmark data set.
 
-- [ ] **3. `backup`.** [risky] The archive (`backup.json`, database, storage, settings, manifest),
+- [x] **3. `backup`.** [risky] The archive (`backup.json`, database, storage, settings, manifest),
   checksums, the output, the partial file removed on failure, `--out` (0700/0600, refused inside
   storage), `--no-settings`, `--keep`, the environment-only values named, `instance.backup_made`.
   Script, `pnpm run`, tsdown entry, `rmk-server`'s `SCRIPTS` and help, `scriptForService`.
@@ -41,7 +41,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   and each released version's artifact against the database rows inside it, prints the summary.
   *Done when:* tests cover a good archive, an altered file, a missing artifact and a newer format.
 
-- [ ] **6. `restore`.** [risky] Verify first; the migration check (newer backup refused); the
+- [x] **6. `restore`.** [risky] Verify first; the migration check (newer backup refused); the
   target database (`--database-url`, settings, `--with-settings`, a new SQLite file) and its
   emptiness check; empty storage; the migration lock and the running-service check; migrate to the
   backup's migrations, load in foreign-key order in batches, copy and check storage, then the newer
@@ -51,7 +51,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   PostgreSQL, MySQL, MariaDB), from an archive made by an older migration set, and refuse a
   non-empty target, a newer backup and an altered archive with nothing changed.
 
-- [ ] **7. The restore test in CI.** `server-probe.js` gains backup → restore into a new data
+- [x] **7. The restore test in CI.** `server-probe.js` gains backup → restore into a new data
   folder → start → a token made before the backup works, one revoked before it stays revoked,
   `/api/v1/me` names the same account, and a stored file comes back byte for byte (owner's
   decision, 2026-10-13: no API releases an item, creates a scope or reads the audit log, so the
