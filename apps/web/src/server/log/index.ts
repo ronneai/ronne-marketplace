@@ -18,11 +18,18 @@ let root: Logger | undefined;
 
 const rootLogger = (): Logger => {
   if (!root) {
-    const config = loadConfig();
-    const { level, invalid } = parseLogLevel(config.logLevel);
+    // Settings that can't be read (RONNE_ENV_FILE a folder) leave the environment's values: the
+    // server reports that itself; logging goes on.
+    let settings: { logLevel?: string; logFormat?: string };
+    try {
+      settings = loadConfig();
+    } catch {
+      settings = { logLevel: process.env.LOG_LEVEL, logFormat: process.env.LOG_FORMAT };
+    }
+    const { level, invalid } = parseLogLevel(settings.logLevel);
     root = createLogger({
       level,
-      format: parseLogFormat(config.logFormat),
+      format: parseLogFormat(settings.logFormat),
       colour: Boolean(process.stdout.isTTY),
     });
     if (invalid) root.event("log.level_invalid");
@@ -39,7 +46,14 @@ const lazy = (bindings: Record<string, unknown>): Logger => {
     warn: (msg, fields) => target().warn(msg, fields),
     error: (msg, fields) => target().error(msg, fields),
     event: (name, fields, level) => target().event(name, fields, level),
-    child: (more) => lazy({ ...bindings, ...more }),
+    child: (more) => {
+      try {
+        return lazy({ ...bindings, ...more });
+      } catch {
+        // Bindings that can't be read (a getter that throws): the child writes without them.
+        return lazy(bindings);
+      }
+    },
   };
 };
 

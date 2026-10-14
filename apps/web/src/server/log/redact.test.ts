@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   cleanFields,
   isSecretKey,
+  MAX_CHARS,
   MAX_DEPTH,
   MAX_ITEMS,
   MAX_STRING,
+  MAX_VALUES,
   REDACTED,
   redactString,
   UNSERIALISABLE,
@@ -66,6 +68,13 @@ describe("redactString", () => {
       expect(redactString(`postgres://u:${password}@h/d`)).toBe("postgres://u:***@h/d");
     expect(redactString("POSTGRES://U:PW@H/D")).toBe("POSTGRES://U:***@H/D");
     expect(redactString("postgres://u:pw@[::1]:5432/d")).toBe("postgres://u:***@[::1]:5432/d");
+    // `://` in the password, and an `@` in the user name (Azure's `admin@server`).
+    expect(redactString("postgres://u:XYZ://more@h/db")).toBe("postgres://u:***@h/db");
+    expect(redactString("postgres://admin@srv:S3cr3t@srv.example.com/db")).toBe(
+      "postgres://admin@srv:***@srv.example.com/db",
+    );
+    // A URL followed by an email: hidden up to the email's `@`, never less than the password.
+    expect(redactString("mysql://u:pw@h/d failed for a@b.test")).not.toContain("pw");
     expect(redactString("a mysql://u:one@h/a and postgres://v:two@k/b")).toBe(
       "a mysql://u:***@h/a and postgres://v:***@k/b",
     );
@@ -267,7 +276,7 @@ describe("cleanFields", () => {
     expect((out.big as unknown[]).at(-1)).toBe(`[${1_000_000 - MAX_ITEMS} more]`);
     expect(Object.keys(out.wide as object)).toHaveLength(MAX_ITEMS + 1);
     expect(out.bytes).toBe(`[${10 * 1024 * 1024} bytes]`);
-    expect(Object.keys(out.longKey as object)[0]).toHaveLength(200);
+    expect(Object.keys(out.longKey as object)[0]).toBe(`${"k".repeat(200)}…`);
   });
 
   it("finds a cycle at once, not by running out of depth or stack", () => {
@@ -294,5 +303,44 @@ describe("cleanFields", () => {
       },
     );
     expect(cleanFields(keysThrow, false)).toEqual({ fields: UNSERIALISABLE });
+  });
+
+  it("never leaves part of a token where a value or a key is cut", () => {
+    for (let pad = 1940; pad <= 2001; pad++) {
+      const out = JSON.stringify(cleanFields({ v: `${"x".repeat(pad)}${TOKEN}` }, false));
+      expect(out).not.toContain(TOKEN.slice(0, 10));
+    }
+    for (let pad = 150; pad <= 201; pad++) {
+      const fields = cleanFields({ [`${"k".repeat(pad)}${TOKEN}`]: 1 }, false);
+      expect(Object.keys(fields)[0]).not.toContain(TOKEN.slice(0, 8));
+    }
+    const url = cleanFields({ [`postgres://u:secretpw${"x".repeat(300)}@h`]: 1 }, false);
+    expect(Object.keys(url)[0]).not.toContain("secretpw");
+  });
+
+  it("drops the extra properties of an error inside another field", () => {
+    const inner = Object.assign(new Error("x", { cause: new Error(TOKEN) }), {
+      config: { url: "u" },
+    });
+    expect(cleanFields({ ctx: { inner } }, false)).toEqual({
+      ctx: { inner: { name: "Error", message: "x" } },
+    });
+  });
+
+  it("keeps a line small when one value is reached many ways (shared, not a cycle)", () => {
+    let node: unknown = { v: "s".repeat(2000) };
+    for (let level = 0; level < 4; level++) {
+      const shared = node;
+      node = Object.fromEntries(Array.from({ length: 100 }, (_, i) => [`k${i}`, shared]));
+    }
+    let list: unknown = "s".repeat(2000);
+    for (let level = 0; level < 4; level++) list = new Array(100).fill(list);
+    const started = performance.now();
+    const out = cleanFields({ node, list }, false);
+    expect(performance.now() - started).toBeLessThan(1000);
+    const json = JSON.stringify(out);
+    expect(json.length).toBeLessThan(MAX_CHARS * 2);
+    expect(json).toMatch(/"\[more\]":\d+|\[\d+ more\]|\[too big\]/);
+    expect(MAX_VALUES).toBeGreaterThan(0);
   });
 });

@@ -30,33 +30,33 @@ export const isSecretKey = (key: string): boolean => {
 const ACCESS_TOKEN = /rmk_[A-Za-z0-9_-]{43}/g;
 
 /**
- * Every URL password hidden as `redactDatabaseUrl` does (`scheme://user:***@host`): after a `://`,
- * a user name with no `:`, `/` or `@` in it, then a `:`, and the password runs to the last `@`
- * before the next `://`, spaces included. At worst a little more than the password is hidden. A
- * loop, not a regex, and each stretch between two `://` is read once, so a long message costs one
- * pass (docs/knowledge/codeql-regex.md). Not caught, as in `redactDatabaseUrl`: `user:pw@host`
- * with no scheme, and a password in a query string.
+ * Every URL password hidden (`scheme://user:***@host`). After a `://`, the user name runs to the
+ * first `:` or `/` (an unencoded `@` in it, as Azure's `admin@server`, stays part of it); from that
+ * `:`, the password runs to the last `@` before the next `://` that follows its first `@`, so
+ * spaces, `@` and `://` in it are hidden too. At worst a little more than the password is hidden (a
+ * port, when an `@` comes later in the message). A loop, not a regex, reading each character a
+ * bounded number of times (docs/knowledge/codeql-regex.md). Not caught: `user:pw@host` with no
+ * scheme, and a password in a query string.
  */
 const redactUrlPasswords = (value: string): string => {
+  const finalAt = value.lastIndexOf("@");
   let out = "";
   let from = 0;
   for (let at = value.indexOf("://"); at !== -1; at = value.indexOf("://", from)) {
     let end = at + 3;
-    while (end < value.length && !":/@".includes(value.charAt(end))) end++;
-    if (value.charAt(end) === ":") {
-      const next = value.indexOf("://", end);
-      const stop = next === -1 ? value.length : next;
-      let lastAt = -1;
-      for (let i = end + 1; i < stop; i++) if (value.charAt(i) === "@") lastAt = i;
-      if (lastAt !== -1) {
-        out += `${value.slice(from, end)}:***@`;
-        from = lastAt + 1;
-        continue;
-      }
+    while (end < value.length && value.charAt(end) !== ":" && value.charAt(end) !== "/") end++;
+    // No `@` after the `:`: no password, here or in any later URL.
+    if (value.charAt(end) !== ":" || finalAt < end) {
+      out += value.slice(from, end);
+      from = end;
+      if (finalAt < end) break;
+      continue;
     }
-    // No password here, and no `://` before `end`: its `:` would have stopped the scan.
-    out += value.slice(from, end);
-    from = end;
+    const firstAt = value.indexOf("@", end);
+    const next = value.indexOf("://", firstAt);
+    const lastAt = value.lastIndexOf("@", next === -1 ? value.length : next);
+    out += `${value.slice(from, end)}:***@`;
+    from = lastAt + 1;
   }
   return out + value.slice(from);
 };
@@ -92,20 +92,52 @@ export const errorFields = (error: unknown, withStack: boolean): Record<string, 
 };
 
 /** A key as a line holds it: cleaned like a value, and short. */
-const cleanKey = (key: string): string => redactString(key.length > 200 ? key.slice(0, 200) : key);
+const cleanKey = (key: string): string => {
+  // Redacted first, then cut: a cut must never leave part of a token or a password.
+  const clean = redactString(key);
+  return clean.length > MAX_KEY ? `${clean.slice(0, MAX_KEY)}…` : clean;
+};
 
-const clean = (value: unknown, seen: Set<object>, depth: number, withStack: boolean): unknown => {
-  if (value === null || typeof value === "boolean") return value;
-  if (typeof value === "number") return Number.isFinite(value) ? value : String(value);
-  if (typeof value === "string") return redactString(value);
+/**
+ * What one line may hold, however its values are shaped: a value reached many ways (shared, not a
+ * cycle) is written each time, so depth and width caps alone can multiply into millions.
+ */
+type Budget = { values: number; chars: number };
+export const MAX_VALUES = 1000;
+export const MAX_CHARS = 50_000;
+const MAX_KEY = 200;
+export const TOO_BIG = "[too big]";
+
+/** Spends one value and `chars` characters; false once the line's budget is spent. */
+const spend = (budget: Budget, chars: number): boolean => {
+  budget.values -= 1;
+  budget.chars -= chars;
+  return budget.values >= 0 && budget.chars >= 0;
+};
+
+const clean = (
+  value: unknown,
+  seen: Set<object>,
+  depth: number,
+  budget: Budget,
+  withStack: boolean,
+): unknown => {
+  if (value === null || typeof value === "boolean") return spend(budget, 0) ? value : TOO_BIG;
+  if (typeof value === "number")
+    return spend(budget, 0) ? (Number.isFinite(value) ? value : String(value)) : TOO_BIG;
   if (typeof value === "undefined" || typeof value === "function" || typeof value === "symbol")
     return undefined;
   if (typeof value === "bigint") throw new Unserialisable();
+  if (typeof value === "string" || value instanceof String) {
+    // Boxed strings whole, so redaction sees the secret they hold.
+    const text = redactString(String(value.valueOf()));
+    return spend(budget, text.length) ? text : TOO_BIG;
+  }
+  if (!spend(budget, 0)) return TOO_BIG;
   if (value instanceof Error) return errorFields(value, withStack);
   if (value instanceof Date)
     return Number.isNaN(value.getTime()) ? String(value) : value.toISOString();
-  // Boxed strings and bytes: whole, so redaction sees the secret they hold, or not at all.
-  if (value instanceof String) return redactString(value.valueOf());
+  // Bytes: never their content.
   if (ArrayBuffer.isView(value) || value instanceof ArrayBuffer)
     return `[${value.byteLength} bytes]`;
   if (seen.has(value)) throw new Unserialisable();
@@ -113,22 +145,31 @@ const clean = (value: unknown, seen: Set<object>, depth: number, withStack: bool
   seen.add(value);
   try {
     if (Array.isArray(value)) {
-      const items = value
-        .slice(0, MAX_ITEMS)
-        .map((item) => clean(item, seen, depth + 1, withStack) ?? null);
-      return value.length > MAX_ITEMS ? [...items, `[${value.length - MAX_ITEMS} more]`] : items;
+      const items: unknown[] = [];
+      for (const item of value.slice(0, MAX_ITEMS)) {
+        if (budget.values <= 0) break;
+        items.push(clean(item, seen, depth + 1, budget, withStack) ?? null);
+      }
+      return value.length > items.length
+        ? [...items, `[${value.length - items.length} more]`]
+        : items;
     }
     const out: Record<string, unknown> = {};
     const keys = Object.keys(value);
+    let written = 0;
     for (const key of keys.slice(0, MAX_ITEMS)) {
+      if (budget.values <= 0) break;
+      written++;
       const name = cleanKey(key);
+      budget.chars -= name.length;
       if (isSecretKey(key)) out[name] = REDACTED;
       else {
-        const cleaned = clean((value as Record<string, unknown>)[key], seen, depth + 1, withStack);
+        const item = (value as Record<string, unknown>)[key];
+        const cleaned = clean(item, seen, depth + 1, budget, withStack);
         if (cleaned !== undefined) out[name] = cleaned;
       }
     }
-    if (keys.length > MAX_ITEMS) out["[more]"] = keys.length - MAX_ITEMS;
+    if (keys.length > written) out["[more]"] = keys.length - written;
     return out;
   } finally {
     seen.delete(value);
@@ -148,6 +189,7 @@ export const cleanFields = (fields: unknown, withStack: boolean): Record<string,
   } catch {
     return { fields: UNSERIALISABLE };
   }
+  const budget: Budget = { values: MAX_VALUES, chars: MAX_CHARS };
   for (const key of keys.slice(0, MAX_ITEMS)) {
     const name = cleanKey(key);
     if (isSecretKey(key)) {
@@ -158,7 +200,9 @@ export const cleanFields = (fields: unknown, withStack: boolean): Record<string,
       const value = (fields as Record<string, unknown>)[key];
       // `err` is what was thrown: an Error as errorFields, anything else as its type only.
       const cleaned =
-        key === "err" ? errorFields(value, withStack) : clean(value, new Set(), 0, withStack);
+        key === "err"
+          ? errorFields(value, withStack)
+          : clean(value, new Set(), 0, budget, withStack);
       if (cleaned !== undefined) out[name] = cleaned;
     } catch {
       out[name] = UNSERIALISABLE;

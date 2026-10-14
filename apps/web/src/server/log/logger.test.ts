@@ -1,3 +1,4 @@
+import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { setRequestUser, withRequestContext } from "./context";
 import { EVENTS, LOG_LEVELS, type LogLevel } from "./events";
@@ -213,7 +214,8 @@ describe("what a line can't carry", () => {
     expect(line).not.toContain("\u001b");
     expect(line).toContain("d\\u000aERROR forged");
     expect(line).toContain("line1\\u000aFAKE");
-    expect(line).toContain("k\\u000aERROR x=1");
+    // A key that could pass for something else is quoted, JSON's escapes included.
+    expect(line).toContain('"k\\nERROR x"=1');
     expect(line).toContain("a\\u001b[2Jb");
   });
 
@@ -251,6 +253,53 @@ describe("what a line can't carry", () => {
     });
     log.warn("x");
     expect(lines[0]).toMatch(/^\d\d:\d\d:\d\d\.\d{3} WARN {2}Unloggable line\n$/);
+  });
+});
+
+describe("more of what a line can't carry", () => {
+  const TOKEN = `rmk_${"C".repeat(43)}`;
+
+  it("writes the fields in the spec's order", () => {
+    const { log, lines } = collect();
+    withRequestContext({ requestId: "R", userId: "U" }, () =>
+      log.child({ domain: "submissions" }).event("version.released", { count: 3 }),
+    );
+    expect(Object.keys(JSON.parse(lines[0] ?? ""))).toEqual([
+      "time",
+      "level",
+      "msg",
+      "domain",
+      "event",
+      "requestId",
+      "userId",
+      "count",
+    ]);
+  });
+
+  it("drops an unknown event, never throws", () => {
+    const { log, lines } = collect();
+    expect(() => log.event("nope.nope" as never)).not.toThrow();
+    expect(() => log.event("__proto__" as never)).not.toThrow();
+    expect(lines).toEqual([]);
+  });
+
+  it("cleans a context user that isn't a string", () => {
+    const { log, lines } = collect();
+    withRequestContext({ requestId: "R", userId: { password: "hunter2", t: TOKEN } as never }, () =>
+      log.info("x"),
+    );
+    expect(lines[0]).not.toContain("hunter2");
+    expect(lines[0]).not.toContain(TOKEN);
+  });
+
+  it("quotes a text key that could pass for another field, and escapes bidi marks", () => {
+    const { log, lines } = collect({ format: "text" });
+    withRequestContext({ requestId: "real" }, () =>
+      log.info("x", { "x requestId": "forged", rtl: "a\u202eb" }),
+    );
+    expect(lines[0]).toContain('"x requestId"=forged');
+    expect(lines[0]).toContain("\\u202e");
+    expect(lines[0]).not.toContain("\u202e");
   });
 });
 
@@ -345,6 +394,34 @@ describe("the shared logger", () => {
     ]);
     expect(parsed[1].domain).toBe("feeds");
     expect(lines.join("")).not.toContain("loud-secret-value");
+  });
+
+  it("makes a child of the shared logger even when its bindings can't be read", () => {
+    const lines = stdout();
+    setLoggerForTests();
+    const hostile = {
+      get domain(): string {
+        throw new Error("boom");
+      },
+    };
+    expect(() => logger.child(hostile).info("still here")).not.toThrow();
+    expect(lines.join("")).toContain("still here");
+  });
+
+  it("goes on logging when the settings file can't be read", () => {
+    vi.stubEnv("RONNE_ENV_FILE", tmpdir());
+    vi.stubEnv("LOG_FORMAT", "json");
+    const lines = stdout();
+    setLoggerForTests();
+    expect(() => logger.info("still here")).not.toThrow();
+    expect(lines.join("")).toContain("still here");
+  });
+
+  it("survives a closed stdout: its error event doesn't crash the server", () => {
+    stdout();
+    createLogger({ level: "info", format: "json" }).info("x");
+    expect(process.stdout.listenerCount("error")).toBeGreaterThan(0);
+    expect(() => process.stdout.emit("error", new Error("write EPIPE"))).not.toThrow();
   });
 
   it("reads LOG_LEVEL and LOG_FORMAT from the environment", () => {

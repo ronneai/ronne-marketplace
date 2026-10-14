@@ -124,10 +124,12 @@ The logger, not each caller, keeps secrets out:
   `cookie`, `passphrase`, `apiKey`, or ending in one of these, is written as `"[redacted]"`, at any
   depth.
 - **Values:** any string containing an access token (`rmk_` and 43 characters) has it replaced with
-  `rmk_[redacted]`; a URL with a password has it replaced as `redactDatabaseUrl` does (the
-  password runs to the last `@` before the next URL, spaces included). Keys go through the same
-  redaction, and so do the message, the request's ID and the user id. Like `redactDatabaseUrl`, it
-  doesn't catch `user:pw@host` without a scheme, or a password in a query string.
+  `rmk_[redacted]`; a URL with a password has it replaced with `***`: after `://`, the user name
+  runs to the first `:` (an `@` in it, as Azure's `admin@server`, stays), and the password from
+  there to the last `@` before the next URL, spaces, `@` and `://` included. At worst a little more
+  is hidden (a port, when an email follows). Keys go through the same redaction, and so do the
+  message, the request's ID and the user id. Not caught: `user:pw@host` without a scheme, and a
+  password in a query string.
 - **Errors:** an error's `name`, `message`, string `code` and stack go through the same value
   redaction; its other properties (a driver's `config`, `cause`) aren't written; a thrown value
   that isn't an `Error` is logged as its type only.
@@ -151,14 +153,24 @@ packages use JSON.
 - **A field that can't be serialised** (a cycle, a `BigInt`): the logger writes `"[unserialisable]"`
   for that field and never throws; logging never fails a request.
 - **A very long value** (an error message from a driver): cut to 2,000 characters with `…`, after
-  redaction, so a cut never leaves part of a token. Keys are cut to 200 characters; at most 100
-  items of an array or keys of an object are written (then `"[N more]"`), 8 levels deep (then
-  `"[too deep]"`); bytes (a `Buffer`) are written as `"[N bytes]"`, never their content.
+  redaction, so a cut never leaves part of a token; keys likewise, at 200. At most 100 items of an
+  array (then `"[N more]"`) or keys of an object (then `"[more]": N`) are written, 8 levels deep
+  (then `"[too deep]"`); bytes (a `Buffer`) are written as `"[N bytes]"`, never their content.
+- **A value reached many ways** (shared, not a cycle) is written each time, so a line also has a
+  budget: 1,000 values and 50,000 characters of strings for its fields, then `"[too big]"` or
+  `"[more]"`. Logging such a value takes milliseconds, not seconds or the process's memory.
 - **A getter that throws** marks that field `"[unserialisable]"`; the rest of the line is written.
-- **Control characters in text format** (a newline, an ANSI escape) are written as `\uXXXX`, so a
-  value can't split a line or forge another one. JSON escapes them already.
-- **stdout is closed or slow:** writes go through `process.stdout.write` without waiting; Node
-  buffers them. The logger never blocks the request.
+- **Control characters in text format** (a newline, an ANSI escape, C1 controls, U+2028/9, the
+  bidirectional marks) are escaped (`\uXXXX`, or JSON's `\n` inside a quoted value), so nothing can
+  split a line, forge another one or drive the terminal; a key with a space, `=` or `"` is quoted.
+  JSON escapes them already.
+- **stdout is closed or slow:** writes go through `process.stdout.write` without waiting. A closed
+  stdout (`EPIPE`) loses the lines and never crashes the server (the logger listens for its
+  `error` event). Node buffers writes to a pipe on macOS, but writes them synchronously on Linux
+  (Node's docs, "A note on process I/O"), so there a reader that stops reading (not journald, Docker
+  or a file) would hold the server up; that's Node's behaviour for every program, not the logger's.
+- **Settings that can't be read** (`RONNE_ENV_FILE` a folder): the logger uses the environment's
+  `LOG_LEVEL` and `LOG_FORMAT` and goes on; the server reports the settings problem itself.
 - **Better Auth's own logs:** sent through its `logger` option to ours (`domain: "identity"`),
   at the matching level; checked against Better Auth's current docs when built.
 - **`LOG_LEVEL=debug` in production:** allowed; it logs more, never secrets.

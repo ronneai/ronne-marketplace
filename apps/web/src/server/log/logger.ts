@@ -43,9 +43,17 @@ const COLOURS: Record<LogLevel, string> = {
 };
 const RESET = "\u001b[0m";
 
-/** A character that could break a text line or drive the terminal: C0, DEL, C1, U+2028/9. */
+/**
+ * A character that could break a text line, drive the terminal or reorder what it shows: C0, DEL,
+ * C1, U+2028/9, and the bidirectional formatting marks (U+200E/F, U+202A–E, U+2066–9).
+ */
 const isControl = (code: number) =>
-  code < 0x20 || (code >= 0x7f && code < 0xa0) || code === 0x2028 || code === 0x2029;
+  code < 0x20 ||
+  (code >= 0x7f && code < 0xa0) ||
+  code === 0x200e ||
+  code === 0x200f ||
+  (code >= 0x2028 && code <= 0x202e) ||
+  (code >= 0x2066 && code <= 0x2069);
 
 /** Text with every control character written as `\uXXXX`, so a line stays one line. */
 const escapeText = (text: string): string => {
@@ -77,11 +85,24 @@ const textLine = (line: Fields, colour: boolean): string => {
   const last = ["requestId", "userId"];
   const pairs = Object.entries(line).filter(([key]) => !RESERVED.includes(key));
   for (const key of last) if (line[key] !== undefined) pairs.push([key, line[key]]);
-  const rest = pairs.map(([key, value]) => `${escapeText(key)}=${textValue(value)}`).join(" ");
+  // A key is quoted like a value when it could pass for something else (`x requestId`).
+  const rest = pairs.map(([key, value]) => `${textValue(key)}=${textValue(value)}`).join(" ");
   return rest ? `${head} ${rest}` : head;
 };
 
+let stdoutWatched = false;
+
+/**
+ * Writes to stdout without waiting. A closed stdout (`EPIPE`, a reader gone) loses the lines, and
+ * never crashes the server: its `error` event is listened to once.
+ */
 const writeStdout = (line: string) => {
+  if (!stdoutWatched) {
+    stdoutWatched = true;
+    process.stdout.on("error", () => {
+      // Nowhere to write logs: they're lost, the server goes on.
+    });
+  }
   process.stdout.write(line);
 };
 
@@ -98,7 +119,12 @@ export const createLogger = (options: LoggerOptions, bindings: Fields = {}): Log
       const withStack = level === "error";
       // Each cleaned on its own: a getter that throws marks its field, not the line.
       const own = { ...cleanFields(bindings, withStack), ...cleanFields(fields, withStack) };
-      const userId = own.userId ?? context?.userId;
+      // The context's user, unless a field names one; cleaned like any value either way.
+      const userId =
+        own.userId ??
+        (context?.userId === undefined
+          ? undefined
+          : cleanFields({ userId: context.userId }, false).userId);
       const line: Fields = {
         time: now().toISOString(),
         level,
@@ -106,9 +132,7 @@ export const createLogger = (options: LoggerOptions, bindings: Fields = {}): Log
         ...(own.domain !== undefined ? { domain: own.domain } : {}),
         ...(event ? { event } : {}),
         ...(context ? { requestId: redactString(String(context.requestId)) } : {}),
-        ...(userId !== undefined
-          ? { userId: typeof userId === "string" ? redactString(userId) : userId }
-          : {}),
+        ...(userId !== undefined ? { userId } : {}),
       };
       for (const [key, value] of Object.entries(own))
         if (!RESERVED.includes(key)) line[key] = value;
@@ -129,6 +153,8 @@ export const createLogger = (options: LoggerOptions, bindings: Fields = {}): Log
     warn: (msg, fields = {}) => emit("warn", msg, fields),
     error: (msg, fields = {}) => emit("error", msg, fields),
     event: (name, fields = {}, level) => {
+      // An unknown name (only past the types) is dropped, never thrown.
+      if (!Object.hasOwn(EVENTS, name)) return;
       const spec = EVENTS[name];
       emit(level ?? spec.level, spec.msg, fields, name);
     },
