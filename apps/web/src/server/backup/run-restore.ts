@@ -38,7 +38,8 @@ const codeOf = (error: unknown) => (error as NodeJS.ErrnoException | null)?.code
 /** How to start the instance once restored, where it runs. */
 const startHint = (env: Env) => {
   const runtime = runtimeOf(env);
-  if (runtime === "docker") return "docker compose start web";
+  // Not `start`: on a new machine the container doesn't exist yet; `up -d` creates or starts it.
+  if (runtime === "docker") return "docker compose up -d";
   if (runtime === "npm")
     return env.RONNE_SERVICE === "1" ? "sudo rmk-server service start" : "rmk-server";
   return "pnpm dev, or pnpm start after pnpm build";
