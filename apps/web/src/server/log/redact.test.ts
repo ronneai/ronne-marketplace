@@ -99,10 +99,10 @@ describe("redactString", () => {
     expect(redactString("postgres://u/x:pw@h")).toBe("postgres://u/x:pw@h");
   });
 
-  it("keeps URLs without a password", () => {
+  it("keeps URLs without a password (a user@host in one reads as an email: hidden)", () => {
+    expect(redactString("ssh://git@github.com/x")).toBe("ssh://[email]/x");
     for (const text of [
       "http://localhost:3000/setup",
-      "ssh://git@github.com/x",
       "file:./data/ronne.db",
       "https://a.test/x?y=1 then https://b.test:8443/",
     ])
@@ -548,6 +548,26 @@ describe("cleanFields", () => {
     const started = performance.now();
     redactString("/srv/ronne-test-storage".repeat(50_000));
     redactString(`/srv/ronne-test-storage/${"a".repeat(100_000)}`);
+    expect(performance.now() - started).toBeLessThan(500);
+  });
+
+  it("writes every email address as [email], and nothing that only looks like one", () => {
+    expect(
+      redactString("Duplicate entry 'carol.secret@example.com' for key 'user.user_email_unique'"),
+    ).toBe("Duplicate entry '[email]' for key 'user.user_email_unique'");
+    expect(redactString("to a+b@mail.example.co.uk, c@d.io.")).toBe("to [email], [email].");
+    for (const kept of [
+      "/node_modules/.pnpm/next@16.4.0_react@19.2.0/x",
+      "@team/secure-coding and @acme/infra/tool",
+      "postgres://ronne:***@db.internal/ronne",
+      "a @ b, @@, x@, @y.com",
+    ])
+      expect(redactString(kept), kept).toBe(kept);
+    const started = performance.now();
+    redactString("@".repeat(100_000));
+    redactString(`${"a".repeat(100_000)}@`);
+    redactString(`a@${"b.".repeat(50_000)}`);
+    redactString("a@b.cd ".repeat(20_000));
     expect(performance.now() - started).toBeLessThan(500);
   });
 });

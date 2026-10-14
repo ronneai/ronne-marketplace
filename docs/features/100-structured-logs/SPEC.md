@@ -59,7 +59,9 @@ calls, no request IDs, and an unexpected error reaches only Next.js's default ou
 | `err` | on errors | `{ name, message, stack, code }`, the stack only at `error` |
 | others | — | The event's own fields, flat, camelCase, values that are numbers, booleans or short strings |
 
-**No personal data beyond the user's id:** no emails, names or IP addresses in any line. They're
+**No personal data beyond the user's id:** no emails, names or clients' IP addresses in any line
+(an email anywhere in a line, an error's message included, is written `[email]`; the server's own
+addresses, such as a database host in a driver's error, may appear: owner, 2026-10-14). They're
 in the database, under 102's retention; logs go to collectors Ronne doesn't control, kept by rules
 Ronne doesn't set. The usage report (046) logs nothing about who sent it, as the report stores
 nothing about them.
@@ -90,7 +92,8 @@ unexpected error, the database unreachable).
   failure with it.
 - **Where it comes from:** a new ULID per request. With `TRUST_PROXY=true`, an incoming
   `X-Request-Id` (at most 128 characters of `[A-Za-z0-9._-]`) is used instead, so one ID follows
-  the request through Caddy or a load balancer; anything else is ignored.
+  the request through Caddy or a load balancer; anything else is ignored. The proxy's ID is
+  written as it came: whatever the client sent through a proxy that passes it on, it chose.
 - **Errors** in the API's error body don't change shape (MVP §11); the response's `X-Request-Id`
   header is what someone quotes when they report a problem.
 
@@ -170,8 +173,11 @@ replaced methods, throwing getters, a patched prototype) are handled where it's 
 marked, a line still written), but they're out of scope: code that can build them can already
 read every secret itself.
 
-- **Next.js's own lines** (`▲ Next.js 16…`, `✓ Ready in…`) aren't JSON. They're few, written at
-  start; collectors that parse JSON treat them as text. `server.started` is the line to alert on.
+- **Next.js's own lines** (`▲ Next.js 16…`, `✓ Ready in…`) aren't JSON; collectors that parse JSON
+  treat them as text, and `server.started` is the line to alert on. Next.js also prints each
+  unexpected page or action error itself (`⨯ Error: …` and its stack), next to Ronne's `http.error`
+  line. That output is Next.js's, outside the logger and its redaction: a known limit (owner,
+  2026-10-14). Ronne's JSON line is the structured, redacted one.
 - **A line written outside a request** (start, migrations): no `requestId`.
 - **Something logged inside `after()`** (work after the response): the context is kept, so the
   line has the request's ID.

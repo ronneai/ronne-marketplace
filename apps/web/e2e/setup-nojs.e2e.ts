@@ -1,10 +1,11 @@
 import { join } from "node:path";
 import { expect, test } from "@playwright/test";
 import { headerName } from "./helpers";
+import { E2E_SETUP_PASSWORD } from "./users";
 
 // The web setup (feature 036) without JavaScript: one form, one Install, then sign-in.
 const instance = JSON.parse(process.env.RONNE_E2E_INSTANCE ?? "{}").nojs as { dir: string };
-const root = { email: "root@e2e.test", name: "Root", password: "correct horse battery" };
+const root = { email: "root@e2e.test", name: "Root", password: E2E_SETUP_PASSWORD };
 
 test("sets the instance up with one form, and lands on sign-in with the email filled in", async ({
   page,

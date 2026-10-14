@@ -4,6 +4,11 @@
  */
 export const E2E_PASSWORD = "e2e correct horse battery";
 
+/** The other passwords the tests type (the setup's root, a wrong one, a new one): never in a log line. */
+export const E2E_SETUP_PASSWORD = "correct horse battery";
+export const E2E_WRONG_PASSWORD = "not the password at all";
+export const E2E_NEW_PASSWORD = "a brand new e2e passphrase";
+
 export const E2E_USERS = {
   root: "root@e2e.test",
   wrongPassword: "wrong-password@e2e.test",

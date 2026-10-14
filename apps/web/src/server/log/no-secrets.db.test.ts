@@ -17,6 +17,7 @@ import { postDraft } from "../http/drafts-api";
 import { health } from "../http/health";
 import { requireToken } from "../http/require-token";
 import { createUploadLimiter } from "../http/upload-rate-limit";
+import { prepareStart } from "../setup/prepare-start";
 import { localStorage } from "../storage/local-storage";
 import { logger, setLoggerForTests, withRequestContext } from "./index";
 
@@ -147,7 +148,8 @@ it("writes nothing secret or personal from sign-in, tokens, the API, uploads and
   );
   expect(uploaded.status).toBe(201);
 
-  // A database that refuses the connection, its password in the URL: the driver's real error.
+  // A database that refuses the connection, its password in the URL. The health check answers 503
+  // and logs db.unavailable; a start logs the driver's real error.
   const url = `postgres://ronne:${DB_PASSWORD}@127.0.0.1:1/ronne`;
   const config: AppConfig = {
     envFile: "/nowhere/.env",
@@ -158,6 +160,17 @@ it("writes nothing secret or personal from sign-in, tokens, the API, uploads and
   };
   const healthRoute = apiRoute("/api/health", () => health(config, (value) => createDb(value)));
   expect((await healthRoute(new Request("https://r.test/api/health"), {})).status).toBe(503);
+  await expect(
+    prepareStart({
+      appDir: storageRoot,
+      dataDir: storageRoot,
+      env: { DATABASE_URL: url, AUTH_SECRET, RONNE_ENV_FILE: join(storageRoot, "none.env") },
+    }),
+  ).rejects.toThrow();
+  // A database's duplicate-key error quotes the value it refused: an email, here.
+  logger.error("Unexpected error", {
+    err: new Error(`Duplicate entry '${EMAIL}' for key 'user.user_email_unique'`),
+  });
 
   // And everything passed straight to the logger: fields, nested, in errors and in strings.
   logger.error("Everything at once", {
@@ -203,6 +216,10 @@ it("writes nothing secret or personal from sign-in, tokens, the API, uploads and
     ["the IP address", IP],
   ] as const)
     expect(written.includes(value), `${what} is in the output`).toBe(false);
+  // The driver's error was logged (with the database's own address, not a client's).
+  expect(written).toMatch(/"msg":"Migrations failed[^\n]*ECONNREFUSED/);
+  // No email of any kind, whatever its value.
+  expect(written).not.toMatch(/[\w.+-]+@[A-Za-z][\w-]*(?:\.[\w-]+)*\.[A-Za-z]{2,}\b/);
   // No token of any kind, whatever its value.
   expect(written).not.toMatch(/rmk_[A-Za-z0-9_-]{20,}/);
   // The item's name stays out too (093).

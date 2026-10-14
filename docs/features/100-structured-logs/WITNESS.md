@@ -970,3 +970,52 @@ Witnessed: 2026-10-14 16:37 EDT, by a fresh agent (blind). Commit: b538f2f8. Mac
 | 12 | No new dependency | no | confirmed | Next's bundled parser; lockfile unchanged |
 
 **Overall:** met. Remarks (deliberate, out of scope): `const { console: c } = globalThis`, `(globalThis).console`, `import { log } from "node:console"`.
+
+## Task 4 — Nothing secret, nothing personal
+
+Witnessed: 2026-10-14 16:37 EDT, by a fresh agent (blind). Commit: bd425530. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Sign-in wrong and right through the real `signIn` and Better Auth | no | confirmed | `no-secrets.db.test.ts:69-77`; lines and a session cookie |
+| 2 | The token exchange, wrong and right | no | confirmed | `auth.sign_in_failed` `via: cli`, `token.exchanged` |
+| 3 | An authenticated and a refused API call through `apiRoute` | no | confirmed | `http.request` 200 with userId; `token.rejected`, 401 |
+| 4 | A draft upload through `apiRoute` | no | confirmed | 201; `draft.uploaded` |
+| 5 | A failed database connection; the driver's error checked | no | partly | The line is `db.unavailable` with no `err`: `getSetupState` swallows the driver's error |
+| 6 | The real shared logger's stdout captured | no | confirmed | 13 JSON lines |
+| 7 | Secrets passed straight to the logger all redacted | no | confirmed | Every key, URL, note and error |
+| 8 | The test fails when a secret reaches a line | no | confirmed | 11 mutations, each fails it |
+| 9 | No line holds any email or IP address | no | partly | The test checks only its own email and IP |
+| 10 | Each e2e server's output goes to a file | no | confirmed | 513, 4 and 1 JSON lines |
+| 11 | The e2e check fails on the password, emails, the main AUTH_SECRET, tokens, `session_token`, IPv4/`::1` | no | confirmed | Each planted → fails |
+| 12 | It fails on every test password and every instance's AUTH_SECRET | no | partly | Misses the setup tests' AUTH_SECRETs, `correct horse battery`, `not the password at all`, `a brand new e2e passphrase`, IPv6 other than `::1` |
+| 13 | It fails when it read no lines | no | confirmed | Empty and missing files |
+| 14 | It passes on what the servers write normally | no | confirmed | 120 passed |
+| 15 | A real run fails when a line holds an email | no | confirmed | Exit 1, naming the line |
+| 16 | CodeQL reports nothing new on the pull request | no | can't check here | No pull request yet |
+
+**Overall:** not met: the database flow never logs the driver's error; the test checks only its own email and IP; the e2e check misses the setup's AUTH_SECRETs and other test passwords; CodeQL waits for the pull request.
+
+## Task 4 — Nothing secret, nothing personal (adversarial)
+
+Witnessed: 2026-10-14 16:37 EDT, by a fresh agent (adversarial). Commit: bd425530. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The test drives the named flows and captures stdout | no | confirmed | 1 passed |
+| 2 | It fails when a secret or personal value reaches a line | no | confirmed | 7 mutations |
+| 3 | The failed database connection's driver error goes through redaction | no | partly | Swallowed by `getSetupState`; the start's flow isn't driven |
+| 4 | Hostile but realistic requests write no secret, email or client IP | no | confirmed | Many shapes probed: none |
+| 5 | No IP address in any line | no | partly | With TRUST_PROXY, `X-Request-Id: 203.0.113.77` becomes the `requestId` |
+| 6 | No email from a real error | no | partly | MySQL's `Duplicate entry 'carol…@example.com'` would keep the email in `err` |
+| 7 | The e2e run checks the output and passes | no | confirmed | 120 passed; 513/4/1 lines |
+| 8 | The check fails the run when it finds something | no | confirmed | Exit 1 |
+| 9 | The check reads everything for the same secrets | no | partly | Misses other test passwords, setup AUTH_SECRETs, IPv6 but `::1`, non-JSON lines; a missing file passes; shutdown lines aren't read |
+| 10 | Next's own lines are few, at start | no | not met | Next prints every unexpected error raw (`⨯ Error: …`, stack) mid-run |
+| 11 | `exec … >> file` keeps servers stoppable under `sh` | no | confirmed | `dash`; SIGTERM reaches node |
+| 12 | The redirect loses nothing a developer needs | no | partly | The log paths are printed nowhere |
+| 13 | Linux CI and phone-webkit | no | can't check here | — |
+| 14 | The test on PostgreSQL, MySQL, MariaDB | no | can't check here | No servers |
+| 15 | CodeQL | no | can't check here | No pull request |
+
+**Overall:** not met. Owner's decisions (2026-10-14): Next.js's own error printing is a known limit, in the spec; "no IP" means clients' addresses (a database host in a driver's error may appear). Fixes: emails written `[email]` anywhere; the e2e check knows every test password and AUTH_SECRET, needs every log file, finds IPv6, prints the logs' paths; the test drives a start's driver error and checks any email.
