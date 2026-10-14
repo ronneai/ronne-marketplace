@@ -34,7 +34,8 @@ const rank = (level: LogLevel) => LOG_LEVELS.indexOf(level);
 
 /** A domain or a user id in the head: a string or a number, nothing bigger. */
 const isName = (value: unknown): value is string | number =>
-  typeof value === "string" || (typeof value === "number" && Number.isFinite(value));
+  (typeof value === "string" && value !== "") ||
+  (typeof value === "number" && Number.isFinite(value));
 
 /** The most a line written holds, in characters: past it, its fields become `"[too big]"`. */
 export const MAX_LINE = 131_072;
@@ -54,11 +55,11 @@ const RESET = "\u001b[0m";
  * A character that could break a text line, drive the terminal, reorder what it shows or hide in
  * it, by Unicode's own categories: controls (`Cc`: C0, DEL, C1), format characters (`Cf`: the
  * bidirectional marks, zero-width and tag characters), every default-ignorable code point (the
- * Hangul fillers, variation selectors…), the line and paragraph separators, and the blank braille
- * pattern (U+2800, which shows as a space). Tested on whole code points, so characters past U+FFFF
- * count too.
+ * Hangul fillers, variation selectors…), the line and paragraph separators, the blank braille
+ * pattern (U+2800, which shows as a space), and a lone surrogate (`Cs`) or U+FFFD, which a strict
+ * logfmt reader refuses. Tested on whole code points, so characters past U+FFFF count too.
  */
-const HIDDEN = /^[\p{Cc}\p{Cf}\p{Default_Ignorable_Code_Point}\p{Zl}\p{Zp}\u2800]$/u;
+const HIDDEN = /^[\p{Cc}\p{Cf}\p{Cs}\p{Default_Ignorable_Code_Point}\p{Zl}\p{Zp}\u2800\ufffd]$/u;
 
 /**
  * Text with every hidden character written as `\uXXXX` (each UTF-16 unit, so a character past
@@ -85,7 +86,7 @@ const escapeText = (text: string): string => {
  */
 const PLAIN = /^[\p{L}\p{N}_.:/@+,%-]+$/u;
 /** A hidden character anywhere (some are letters too, such as the Hangul fillers). */
-const ANY_HIDDEN = /[\p{Cc}\p{Cf}\p{Default_Ignorable_Code_Point}\p{Zl}\p{Zp}\u2800]/u;
+const ANY_HIDDEN = /[\p{Cc}\p{Cf}\p{Cs}\p{Default_Ignorable_Code_Point}\p{Zl}\p{Zp}\u2800\ufffd]/u;
 const isPlain = (text: string) => PLAIN.test(text) && !ANY_HIDDEN.test(text);
 
 /**
@@ -117,6 +118,9 @@ const textKey = (key: string): string => {
   let out = "";
   for (const char of key) {
     if (KEY_CHAR.test(char) && !ANY_HIDDEN.test(char)) out += char;
+    // A lone surrogate as its UTF-16 unit (`%uD800`): UTF-8 would make every one U+FFFD.
+    else if (char.length === 1 && char >= "\ud800" && char <= "\udfff")
+      out += `%u${char.charCodeAt(0).toString(16).toUpperCase()}`;
     else
       for (const byte of Buffer.from(char))
         out += `%${byte.toString(16).toUpperCase().padStart(2, "0")}`;
@@ -154,7 +158,7 @@ const textLine = (line: Fields, colour: boolean): string => {
   const last = ["requestId", "userId"];
   const pairs = Object.entries(line).filter(([key]) => !RESERVED.includes(key));
   for (const key of last) if (line[key] !== undefined) pairs.push([key, line[key]]);
-  // A key is quoted like a value when it could pass for something else (`x requestId`).
+  // Keys percent-encoded (textKey), values plain or quoted (textValue): nothing passes for a field.
   const rest = pairs.map(([key, value]) => `${textKey(key)}=${textValue(value)}`).join(" ");
   return rest ? `${head} ${rest}` : head;
 };

@@ -176,8 +176,8 @@ read every secret itself.
   keys once), and logging takes milliseconds, not seconds or the process's memory.
 - **The finished line** is at most 131,072 characters, escaping and quoting included: past it, its
   fields are written as `"fields": "[too big]"`, with the time, level, message, domain, event and
-  request kept. The head holds only names and ids: a `domain` or `userId` that isn't a string or a
-  number is left out.
+  request kept. The head holds only names and ids: a `domain` or `userId` that isn't a non-empty
+  string or a number is left out.
 - **A secret key** is told by the key's end only (its last letters, `_` and `-` left out, at most
   256 characters read), once per object per line, so a key of any length costs little. A key whose
   end is too long to read that way (a long run of `_` or `-`) counts as a secret.
@@ -185,8 +185,9 @@ read every secret itself.
 - **A Date or bytes** are read with the built-in methods (`Date.prototype.toISOString`, the
   `byteLength` getters), never the value's own, which could return a secret or something huge.
 - **A getter that throws** marks that field `"[unserialisable]"`; the rest of the line is written.
-- **Hidden characters**, by Unicode's categories (controls `Cc`, format characters `Cf`, every
-  default-ignorable code point, the line and paragraph separators, and the blank braille U+2800:
+- **Hidden characters**, by Unicode's categories (controls `Cc`, format characters `Cf`, lone
+  surrogates `Cs`, every default-ignorable code point, the line and paragraph separators, the
+  blank braille U+2800, and U+FFFD, which strict logfmt readers refuse:
   a newline, an ANSI escape, C1 controls, bidirectional marks, zero-width, tag and filler
   characters, variation selectors), checked per code point, are escaped as `\uXXXX` (or JSON's `\n` inside a
   quoted value), in text and in JSON alike, so nothing can split a line, forge another one, drive
@@ -194,8 +195,8 @@ read every secret itself.
   of letters, digits and `_ . : / @ + , % -` with nothing hidden; anything else (a space, a quote, a
   backslash, an `=`, a `#`, an object, the empty string) is a JSON string, with `'` escaped. A key is
   never quoted (strict logfmt readers refuse that): every character outside letters, digits and
-  `_ . : / @ + , -`, `%` included, is written as its UTF-8 bytes `%XX`, so two keys stay two; an empty
-  key is `%`. In the domain, event and message, every `\`, `=`, `"`, `'` and `#` is escaped. So nothing
+  `_ . : / @ + , -`, `%` included, is written as its UTF-8 bytes `%XX` (a lone surrogate as `%uXXXX`),
+  so two keys stay two; an empty key is `%`. In the domain, event and message, every `\`, `=`, `"`, `'` and `#` is escaped. So nothing
   passes for a field, a quote, an escape or a comment, to the readers text is for: a person, a logfmt
   reader, and a shell-like splitter (`shlex.split`). Text isn't safe to `eval` in a shell (`$` in a
   quoted value would expand); JSON is what tools should read.

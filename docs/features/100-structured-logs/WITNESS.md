@@ -688,3 +688,50 @@ Witnessed: 2026-10-14 13:59 EDT, by a fresh agent (adversarial). Commit: 07904fe
 | 16 | Lint and types | no | confirmed | Clean |
 
 **Overall:** not met: a field replaces the logging domain; quoted keys stop a strict logfmt reader; an empty key or value isn't pinned.
+
+## Task 1 — The logger (twelfth check)
+
+Witnessed: 2026-10-14 14:07 EDT, by a fresh agent (blind). Commit: d2929240. Machine: macOS 27.0.1, Node v24.0.0. Within the spec's scope.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Only the logger, its tests and the docs changed; no dependency | no | confirmed | `git diff 07904fe4 d2929240 --stat` |
+| 2 | Tests pass; lint and types | no | confirmed | 95 passed |
+| 3 | Keys never quoted, percent-encoded; empty key `%` | no | confirmed | 30,000 lines, 56,227 keys |
+| 4 | Keys distinct and decodable | no | confirmed | 0 mismatches |
+| 5 | A strict logfmt reader (go-logfmt port) parses every line | no | confirmed | 0 errors |
+| 6 | `shlex.split` with and without comments | no | confirmed | 0 errors |
+| 7 | A person: one bare `requestId=`/`userId=`; no `'`; no word starting `#` | no | confirmed | 0 failures |
+| 8 | Every occurrence escaped in the head | no | confirmed | 5 first-only mutants caught |
+| 9 | The logger's domain wins | no | confirmed | Probes; 3 mutants caught |
+| 10 | The request's user wins | no | confirmed | Mutant caught |
+| 11 | Tests catch each new rule | no | partly | 29 mutants, 27 caught; not: `"` allowed in `KEY_CHAR` (the line then stops a strict reader); `$` in `PLAIN` |
+| 12 | The spec states the rules | no | confirmed | SPEC.md diff |
+| 13 | The rest of the task | no | confirmed | Tests and probe |
+| 14 | `codeql-regex.md` | no | confirmed | One anchored class |
+
+**Overall:** not met: no test pins a `"` in a key being encoded. Remarks: stale comments and test titles say keys are quoted; an empty `domain` binding counts as the logger's own.
+
+## Task 1 — The logger (adversarial, thirteenth check)
+
+Witnessed: 2026-10-14 14:10 EDT, by a fresh agent (adversarial). Commit: d2929240. Machine: macOS 27.0.1, Node v24.0.0. Within the spec's scope. Strict reader: a port of go-logfmt's decoder, from memory (the real package isn't on this machine).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Tests pass; lint and types | no | confirmed | 95 |
+| 2 | No new dependency | no | confirmed | Empty diff |
+| 3 | Keys never quoted, percent-encoded | no | confirmed | `%=e %2541=2 a%20b=3` |
+| 4 | Two keys stay two | no | partly | Lone surrogates `\ud800`, `\udc00` and U+FFFD all written `%EF%BF%BD` |
+| 5 | A strict logfmt reader parses every line | no | partly | U+FFFD or a lone surrogate in a head word → "invalid key", the ids lost |
+| 6 | `shlex.split` | no | confirmed | 90,000 lines |
+| 7 | A person sees the right ids | no | confirmed | 60,000 lines |
+| 8 | The logger's domain wins | no | confirmed | Mutants caught |
+| 9 | The request's user wins | no | confirmed | Mutant caught |
+| 10 | No covered secret | no | confirmed | 0 leaks |
+| 11 | Never blocks; cap | no | confirmed | Worst 2.5 ms |
+| 12 | JSON round-trips | no | confirmed | 20,000 sets |
+| 13 | Never throws | no | confirmed | Probes |
+| 14 | Tests catch each text rule | no | partly | 48 mutants, 44 caught; not: `"` in `KEY_CHAR`, `'` in `PLAIN`, `isPlain` without the hidden check, `$` in `PLAIN` |
+| 15 | `LOG_LEVEL`/`LOG_FORMAT` | no | confirmed | Tests |
+
+**Overall:** not met: U+FFFD or a lone surrogate in the head stops a strict reader; lone-surrogate keys collide; three test gaps.

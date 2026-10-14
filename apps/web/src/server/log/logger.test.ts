@@ -220,7 +220,7 @@ describe("what a line can't carry", () => {
     expect(line).not.toContain("\u001b");
     expect(line).toContain("d\\u000aERROR forged");
     expect(line).toContain("line1\\u000aFAKE");
-    // A key that could pass for something else is quoted, JSON's escapes included.
+    // A key that could pass for something else is percent-encoded.
     expect(line).toContain("k%0AERROR%20x=1");
     expect(line).toContain("a\\u001b[2Jb");
   });
@@ -298,7 +298,7 @@ describe("more of what a line can't carry", () => {
     expect(lines[0]).not.toContain(TOKEN);
   });
 
-  it("quotes a text key that could pass for another field, and escapes bidi marks", () => {
+  it("encodes a text key that could pass for another field, and escapes bidi marks", () => {
     const { log, lines } = collect({ format: "text" });
     withRequestContext({ requestId: "real" }, () =>
       log.info("x", { "x requestId": "forged", rtl: "a\u202eb" }),
@@ -381,7 +381,7 @@ describe("more of what a line can't carry", () => {
     expect(lines[0]).toContain("café 日本 ñ ü 🙂");
   });
 
-  it("quotes keys and values holding any space, non-ASCII ones too", () => {
+  it("encodes keys and quotes values holding any space, non-ASCII ones too", () => {
     const { log, lines } = collect({ format: "text" });
     withRequestContext({ requestId: "REAL" }, () =>
       log.info("m", {
@@ -523,7 +523,29 @@ describe("more of what a line can't carry", () => {
     for (const key of keys) expect(key).toMatch(/^[^"'\s=]+$/);
   });
 
-  it("keeps the logger's domain, whatever a field says", () => {
+  it("encodes \" in keys; quotes values holding ', $ or a hidden letter", () => {
+    const { log, lines } = collect({ format: "text" });
+    log.info("m", { 'a"b': 1, v1: "x'y", v2: "a$b", v3: "\u3164" });
+    expect(lines[0]).toContain(' a%22b=1 v1="x\\u0027y" v2="a$b" v3="\\u3164"');
+  });
+
+  it("escapes U+FFFD and lone surrogates in the head, and keeps surrogate keys apart", () => {
+    const { log, lines } = collect({ format: "text" });
+    withRequestContext({ requestId: "REAL", userId: "U1" }, () => {
+      log
+        .child({ domain: "\ufffd" })
+        .info("Bad \ud800 \ufffd", JSON.parse('{"\\ud800":"a","\\udc00":"b","\\ufffd":"c"}'));
+    });
+    const line = lines[0] ?? "";
+    expect(line).not.toMatch(/[\ufffd\ud800-\udfff]/u);
+    expect(line).toContain("INFO  \\ufffd Bad \\ud800 \\ufffd ");
+    expect(line).toContain(" %uD800=a %uDC00=b %EF%BF%BD=c requestId=REAL userId=U1");
+  });
+
+  it("keeps the logger's domain, whatever a field says; an empty one counts as none", () => {
+    const empty = collect();
+    empty.log.child({ domain: "" }).info("z", { domain: "identity" });
+    expect(JSON.parse(empty.lines[0] ?? "").domain).toBe("identity");
     const { log, lines } = collect();
     log.child({ domain: "submissions" }).info("x", { domain: "identity" });
     log.info("y", { domain: "feeds" });
