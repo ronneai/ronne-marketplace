@@ -34,6 +34,8 @@ const logCheck = async () => {
     ...authSecrets,
   ];
   const problems: string[] = [];
+  // JSON lines across the run: a server whose tests ran in another shard may have had no request.
+  let total = 0;
   for (const [name, instance] of Object.entries(instances)) {
     console.log(`  ${name}'s server log: ${instance.logFile}`);
     if (!existsSync(instance.logFile)) {
@@ -58,8 +60,9 @@ const logCheck = async () => {
       ];
       if (found.length) problems.push(`${name}: ${found.join(", ")} in ${line.slice(0, 300)}`);
     }
-    if (lines === 0) problems.push(`${name}: its server wrote no JSON lines`);
+    total += lines;
   }
+  if (total === 0) problems.push("the servers wrote no JSON lines: is their output captured?");
   if (problems.length)
     throw new Error(
       `The servers' log lines hold secrets or personal data, or weren't written:\n${problems.join("\n")}`,
