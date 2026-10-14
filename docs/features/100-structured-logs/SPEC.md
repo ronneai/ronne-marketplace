@@ -170,9 +170,10 @@ packages use JSON.
   quoted, and an `=` in the domain, event or message is escaped, so nothing passes for a field.
 - **stdout is closed or slow:** writes go through `process.stdout.write` without waiting. A closed
   stdout (`EPIPE`) loses the lines and never crashes the server (the logger listens for its
-  `error` event). Node buffers writes to a pipe on macOS, but writes them synchronously on Linux
-  (Node's docs, "A note on process I/O"), so there a reader that stops reading (not journald, Docker
-  or a file) would hold the server up; that's Node's behaviour for every program, not the logger's.
+  `error` event). Node's docs ("A note on process I/O"): on Linux and macOS, writes to a pipe or
+  socket (journald, Docker, a service's log) are asynchronous, so Node buffers them in memory if the
+  reader falls behind; writes to a file or a terminal are synchronous, so a stalled disk or a slow
+  terminal holds the server up. That's Node's behaviour for every program, not the logger's.
 - **Settings that can't be read** (`RONNE_ENV_FILE` a folder): the logger uses the environment's
   `LOG_LEVEL` and `LOG_FORMAT` and goes on; the server reports the settings problem itself.
 - **Better Auth's own logs:** sent through its `logger` option to ours (`domain: "identity"`),
