@@ -185,9 +185,10 @@ read every secret itself.
 - **A Date or bytes** are read with the built-in methods (`Date.prototype.toISOString`, the
   `byteLength` getters), never the value's own, which could return a secret or something huge.
 - **A getter that throws** marks that field `"[unserialisable]"`; the rest of the line is written.
-- **Control characters** (a newline, an ANSI escape, C1 controls, U+2028/9, the bidirectional
-  marks U+061C, U+200E/F, U+202A–E, U+2066–9, and the invisible U+00AD, U+180E, U+200B–D,
-  U+2060–4, U+FEFF) are escaped as `\uXXXX` (or JSON's `\n` inside a
+- **Hidden characters**, by Unicode's categories (controls `Cc`, format characters `Cf`, every
+  default-ignorable code point, the line and paragraph separators, and the blank braille U+2800:
+  a newline, an ANSI escape, C1 controls, bidirectional marks, zero-width, tag and filler
+  characters, variation selectors), checked per code point, are escaped as `\uXXXX` (or JSON's `\n` inside a
   quoted value), in text and in JSON alike, so nothing can split a line, forge another one, drive
   the terminal or reorder what it shows. In text, a key or string value with a space, `=` or `"` is
   quoted, an object or array value (JSON) when it holds a space or `=`, and an `=` in the domain,

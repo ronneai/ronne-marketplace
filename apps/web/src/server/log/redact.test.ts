@@ -507,6 +507,10 @@ describe("cleanFields", () => {
     // Too long to read as letters: counted as a secret, more hidden, never less.
     expect(isSecretKey(`id${"_".repeat(10_000_000)}`)).toBe(true);
     expect(isSecretKey(`id${"_".repeat(20)}`)).toBe(false);
+    // The boundary: 256 characters are read. `id` and 254 `_` fit; one more doesn't.
+    expect(isSecretKey(`id${"_".repeat(254)}`)).toBe(false);
+    expect(isSecretKey(`id${"_".repeat(255)}`)).toBe(true);
+    expect(isSecretKey(`password${"_".repeat(248)}`)).toBe(true);
     const key = `a${"_".repeat(10_000_000)}`;
     const started = performance.now();
     cleanFields(

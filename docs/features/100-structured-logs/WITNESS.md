@@ -413,3 +413,63 @@ Witnessed: 2026-10-14 13:02 EDT, by a fresh agent (adversarial). Commit: 11f436d
 | 22 | Lint and types | no | confirmed | Clean |
 
 **Overall:** not met: separator runs read whole; a zero-width space lets a key pass for `requestId` in text; two test gaps. Remark: a `__proto__` field from request JSON is dropped silently.
+
+## Task 1 — The logger (seventh check)
+
+Witnessed: 2026-10-14 13:06 EDT, by a fresh agent (blind). Commit: 5564b186. Machine: macOS 27.0.1, Node v24.0.0. Judged within the spec's scope.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Levels and the filter | no | confirmed | 4/3/2/1 lines; M41 → 5 fail |
+| 2 | Invalid `LOG_LEVEL` | no | confirmed | M43 → 2, M48 → 1 fail |
+| 3 | `config.ts`; settings fallback | no | confirmed | Tests pass |
+| 4 | Events in one module | no | confirmed | Unknown or `{}` dropped |
+| 5 | `child()`; a field's domain wins | no | confirmed | M45 → 1 fails |
+| 6 | JSON and text; order | no | confirmed | M46 → 9 fail |
+| 7 | Request context | no | confirmed | 200 concurrent → 0 wrong; M44 → 9 fail |
+| 8 | Secret key spellings | no | confirmed | 37 spellings, 0 missed; 15 ordinary names, 0 false positives |
+| 9 | `isSecretKey` reads at most 256 characters | no | confirmed | 10M-`-` key × 1,000 → 4 ms; M1, M2, M4 → 1 fail each |
+| 10 | Values redacted | no | confirmed | 0 leaks; M25, M26, M31, M39, M40 caught |
+| 11 | Errors | no | confirmed | M27–M30, M42 caught |
+| 12 | Boxed strings, bytes | no | confirmed | M33 → 1 fails |
+| 13 | Cut after redaction | no | confirmed | M37 → 1, M38 → 2 fail |
+| 14 | Cycles, BigInt | no | confirmed | M34–M36 caught |
+| 15 | `__proto__` kept, pollutes nothing | no | confirmed | M7 → 2, M8 → 1 fail |
+| 16 | Invisible and control characters escaped | no | confirmed | 23 code points → 0 raw |
+| 17 | Text quoting; head `=` | no | confirmed | M15 → 1 fails |
+| 18 | Head names only | no | confirmed | M16 → 2, M17 → 1 fail |
+| 19 | Two-step cap | no | confirmed | Worst 48,097 characters; M18–M20, M47 caught |
+| 20 | Fast on request data | no | confirmed | 200k keys → 49 ms |
+| 21 | New tests catch breakage | no | partly | 48 mutations, 45 caught; not: U+180E, U+200C–D, U+2061–4 dropped |
+| 22 | Tests pass | no | confirmed | 87 |
+| 23 | `codeql-regex.md`, `codeql-logging.md` | no | confirmed | Linear |
+| 24 | No new dependency | no | confirmed | Empty diff |
+| 25 | Lint and types | no | confirmed | Clean |
+
+**Overall:** not met: three of the spec's invisible characters aren't pinned by a test. Remark: a URL in a stack is hidden to the stack's last `@` (pnpm paths hold one), as the spec allows.
+
+## Task 1 — The logger (adversarial, seventh check)
+
+Witnessed: 2026-10-14 13:12 EDT, by a fresh agent (adversarial). Commit: 5564b186. Machine: macOS 27.0.1, Node v24.0.0. Within the spec's scope.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Levels; `child()` | no | confirmed | 87 passed |
+| 2 | `isSecretKey` misses no spelling | no | confirmed | 400,000 fuzzed keys against a reference → 0 missed |
+| 3 | A key of any length costs little | no | confirmed | ≤ 2.2 µs per call; shared × 1,000 → ≤ 3.9 ms |
+| 4 | `__proto__` kept, no leak, no forged field | no | confirmed | JSON and text, nested, bindings |
+| 5 | JSON valid, one line | no | confirmed | Every probe line parses |
+| 6 | Text: nothing passes for a field (homoglyphs aside) | no | partly | Default-ignorable characters outside the list written raw: U+034F, U+3164, variation selectors, tag characters (astral: `charCodeAt(0)` sees a surrogate) |
+| 7 | Request context | no | confirmed | 300 → 0 wrong |
+| 8 | No rule-covered secret written | no | confirmed | 21 bodies × 2 formats × 2 levels; real system errors |
+| 9 | Line cap; head kept | no | confirmed | Largest 55,119 |
+| 10 | Milliseconds | no | confirmed | Worst 23.4 ms |
+| 11 | Cycles, BigInt, Dates, Buffers; no throw | no | confirmed | Probes |
+| 12 | Closed stdout | no | confirmed | Alive |
+| 13 | Invalid `LOG_LEVEL`; `config.ts` | no | confirmed | Tests |
+| 14 | Events; no dependency | no | confirmed | Empty diff |
+| 15 | *Done when* tests | no | confirmed | 87 pass |
+| 16 | Tests catch the new behaviour | no | partly | 19 mutations, 14 caught; not: `SECRET_READ` 255 or 4096, U+180E, U+200C/D, U+2061–4 |
+| 17 | Lint and types | no | confirmed | Clean |
+
+**Overall:** not met: text can be forged through default-ignorable characters outside the escaped list; the 256-character bound and four escaped characters aren't pinned by tests. Remark (the spec's limit): a secret inside free text that isn't a token or URL password, or under a key outside the list, is written.

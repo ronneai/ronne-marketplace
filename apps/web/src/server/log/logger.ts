@@ -52,29 +52,29 @@ const RESET = "\u001b[0m";
 
 /**
  * A character that could break a text line, drive the terminal, reorder what it shows or hide in
- * it: C0, DEL, C1, U+2028/9, the bidirectional marks (U+061C, U+200E/F, U+202A–E, U+2066–9) and
- * the invisible ones (U+00AD, U+180E, U+200B–D, U+2060–4, U+FEFF).
+ * it, by Unicode's own categories: controls (`Cc`: C0, DEL, C1), format characters (`Cf`: the
+ * bidirectional marks, zero-width and tag characters), every default-ignorable code point (the
+ * Hangul fillers, variation selectors…), the line and paragraph separators, and the blank braille
+ * pattern (U+2800, which shows as a space). Tested on whole code points, so characters past U+FFFF
+ * count too.
  */
-const isControl = (code: number) =>
-  code < 0x20 ||
-  (code >= 0x7f && code < 0xa0) ||
-  code === 0x00ad ||
-  code === 0x061c ||
-  code === 0x180e ||
-  (code >= 0x200b && code <= 0x200f) ||
-  (code >= 0x2028 && code <= 0x202e) ||
-  (code >= 0x2060 && code <= 0x2069) ||
-  code === 0xfeff;
+const HIDDEN = /^[\p{Cc}\p{Cf}\p{Default_Ignorable_Code_Point}\p{Zl}\p{Zp}\u2800]$/u;
 
 /**
- * Text with every control character written as `\uXXXX`, so a line stays one line. In a JSON line
- * these characters are only ever inside strings, where `\uXXXX` is the same character to a parser.
+ * Text with every hidden character written as `\uXXXX` (each UTF-16 unit, so a character past
+ * U+FFFF becomes its surrogate pair), so a line stays one line and shows what it holds. In a JSON
+ * line these characters are only ever inside strings, where the escape is the same character to a
+ * parser.
  */
 const escapeText = (text: string): string => {
   let out = "";
   for (const char of text) {
-    const code = char.charCodeAt(0);
-    out += isControl(code) ? `\\u${code.toString(16).padStart(4, "0")}` : char;
+    if (!HIDDEN.test(char)) {
+      out += char;
+      continue;
+    }
+    for (let i = 0; i < char.length; i++)
+      out += `\\u${char.charCodeAt(i).toString(16).padStart(4, "0")}`;
   }
   return out;
 };

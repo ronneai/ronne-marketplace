@@ -354,14 +354,31 @@ describe("more of what a line can't carry", () => {
     expect(lines[0]).toContain('s="a\\"b"');
   });
 
-  it("escapes invisible characters, so a key can't pass for another on screen", () => {
+  it("escapes every hidden character, past U+FFFF too, so a key can't pass for another", () => {
+    const hidden = [
+      0x00, 0x1b, 0x7f, 0x85, 0x9b, 0xad, 0x34f, 0x61c, 0x115f, 0x1160, 0x17b4, 0x180b, 0x180e,
+      0x200b, 0x200c, 0x200d, 0x200e, 0x200f, 0x2028, 0x2029, 0x202a, 0x202e, 0x2060, 0x2061,
+      0x2064, 0x2066, 0x2069, 0x206a, 0x206f, 0x2800, 0x3164, 0xfe00, 0xfe0f, 0xfeff, 0xffa0,
+      0xfff9, 0xfffb, 0x1bca0, 0x1d173, 0xe0001, 0xe0020, 0xe007f, 0xe01ef,
+    ].map((code) => String.fromCodePoint(code));
+    for (const format of ["text", "json"] as const) {
+      const { log, lines } = collect({ format });
+      withRequestContext({ requestId: "REAL" }, () =>
+        log.info(
+          `m${hidden.join("")}`,
+          Object.fromEntries(hidden.map((char, i) => [`requestId${char}`, i])),
+        ),
+      );
+      const line = lines[0] ?? "";
+      for (const char of hidden)
+        expect(line.includes(char), `${format} U+${char.codePointAt(0)?.toString(16)}`).toBe(false);
+      if (format === "json") expect(JSON.parse(line).msg).toBe(`m${hidden.join("")}`);
+      else expect(line).toContain(`requestId\\u034f=${hidden.indexOf("\u034f")}`);
+    }
+    // Ordinary text, accents and other scripts stay as they are.
     const { log, lines } = collect({ format: "text" });
-    withRequestContext({ requestId: "REAL" }, () =>
-      log.info("m", { "requestId\u200b": "forged", soft: "a\u00adb\ufeffc\u2060d" }),
-    );
-    expect(lines[0]).toContain("requestId\\u200b=forged");
-    for (const mark of ["\u200b", "\u00ad", "\ufeff", "\u2060"])
-      expect(lines[0]).not.toContain(mark);
+    log.info("café 日本 ñ ü 🙂");
+    expect(lines[0]).toContain("café 日本 ñ ü 🙂");
   });
 
   it("leaves a small domain that isn't a name out of the head", () => {
