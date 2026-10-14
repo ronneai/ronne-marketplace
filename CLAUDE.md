@@ -51,7 +51,7 @@ Use Node.js 24 (`.nvmrc`) and pnpm installed directly (`npm install --global pnp
 | `pnpm test:db` | Only the database tests (`*.db.test.ts`, the `db` Vitest project) |
 | `pnpm test:db:core` | Only the database code's own tests (`db/`, migrations, repositories, setup, backup, scripts): what the servers run on a pull request that changes no database code |
 | `pnpm test:db:up` then `pnpm test:db:postgres` / `:mysql` / `:mariadb` | Database tests against local Docker servers at the minimum versions (`-- <paths>` for some files); `pnpm test:db:down` stops them |
-| `pnpm test:install` | The install script's tests (`scripts/install/test-install.sh`) under dash and bash. `install.ps1`'s tests and lint run in CI (`install-scripts.yml`) |
+| `pnpm test:install` | The install script's tests (`scripts/install/test-install.sh`) under dash and bash |
 | `pnpm test:e2e` | Builds the web app and runs the Playwright tests (`apps/web/e2e`) against a throwaway SQLite instance. Desktop, phone (also in WebKit, for iOS Safari) and tablet projects. First run `pnpm --filter @ronneai/web exec playwright install chromium webkit`. `--shard=1/2` runs half, as CI does |
 | `pnpm witness:check` | Checks every `WITNESS.md` record and that each ticked task has a pass that met it. The pre-commit hook and CI run it on every change |
 | `pnpm docker:limits` | How many Docker Hub pulls are left: anonymously (this machine's address) and, with a token (`DOCKERHUB_TOKEN`, or typed at a hidden prompt), signed in. Tells a reached limit (429) from Docker Hub failing (5xx, no answer) |

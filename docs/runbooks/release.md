@@ -42,12 +42,13 @@ until you approve its "npm" environment.
   - [ ] *Check, pack and publish*: every check, `npm publish --dry-run` for each package not yet
         on npm;
   - [ ] *Image (amd64)* and *(arm64)*: built, run and scanned;
-  - [ ] *Bundle* × 6 (linux, darwin and win32, each x64 and arm64): the Node.js version above, its
+  - [ ] *Bundle* × 4 (linux and darwin, each x64 and arm64): the Node.js version above, its
         SHA-256 matching `SHASUMS256.txt`, "it holds only Node.js, the package and its
         dependencies…", and "runs with its own Node.js, none on PATH". Their archives are the
         run's `bundle-*` artifacts.
-  - [ ] *server-checks*, *install-scripts*, *database* and *e2e*: the server installed on Linux,
-        macOS and Windows on Node 22 and 24 and run as a service on each, both install scripts,
+  - [ ] *server-checks*, *install-scripts*, *database* and *e2e*: the server installed on Linux
+        and macOS on Node 22 and 24 and run as a service on each, refused on Windows, the install
+        script,
         every database test on PostgreSQL, MySQL and MariaDB, and the end-to-end tests. The
         GitHub release waits for them.
 
@@ -56,7 +57,7 @@ until you approve its "npm" environment.
 - [ ] `git tag vX.Y.Z` on the merged commit, then `git push origin vX.Y.Z`. Approve the "npm"
       environment.
 - [ ] The packages are on npm with provenance, the image is tagged on Docker Hub, and the GitHub
-      release has the four npm tarballs, `install.sh`, `install.ps1`, the six `rmk-server-X.Y.Z-*`
+      release has the four npm tarballs, `install.sh`, the four `rmk-server-X.Y.Z-*`
       archives, the four Linux packages (`.deb` and `.rpm`, amd64 and arm64) and `checksums.txt`. Its notes name the bundles' Node.js version and their glibc
       2.34 requirement.
 - [ ] A package's first release needs a short-lived `NPM_TOKEN` in the "npm" environment, since a

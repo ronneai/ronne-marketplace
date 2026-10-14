@@ -1,5 +1,7 @@
 # 087 — Windows installer and winget
 
+> **Withdrawn by [121](../121-no-windows-server/SPEC.md)** (owner, 2026-10-14), never built: the server runs on Linux and macOS only; on Windows, WSL 2 or a Linux VM. This spec stays as history.
+
 > Milestone: M12 · Depends on: 086, 084, 081 · Design: [MVP §5](../../MVP/MVP.md#5-installation--bootstrap) · Guide: [`docs/runbooks/install.md`](../../runbooks/install.md)
 
 ## Goal

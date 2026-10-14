@@ -149,7 +149,7 @@ The boundaries, in order of what's at stake:
 | A malicious npm release | pnpm waits 3 days before installing a release (`minimumReleaseAge: 4320`), fails on lost publishing trust (`trustPolicy: no-downgrade`), runs install scripts only from an allowlist (`strictDepBuilds`, `allowBuilds`), and refuses git and tarball sub-dependencies (`blockExoticSubdeps`) (`pnpm-workspace.yaml`) | A malicious release that stays hidden past 3 days |
 | Known vulnerabilities | `pnpm audit --audit-level high` and `pnpm licenses:check` in CI and nightly; CodeQL (`codeql.yml`); Trivy on the images (`.github/actions/build-image/action.yml`) | Time-limited exceptions such as E-7, Caddy's three Go CVEs until 2026-10-23 (`docs/policies/dependencies.md`) |
 | A swapped base image | Base images pinned by digest (`Dockerfile`: `node:24-trixie-slim@sha256:…`; Caddy in `compose.yaml`) | The optional database images in `compose.yaml` (`postgres:18`, `mysql:8.4`, the `postgres` and `mysql` profiles) are pinned by tag only |
-| A tampered package or image | npm trusted publishing with provenance; the image with BuildKit provenance and an SBOM (`.github/workflows/release.yml`) | The bundles, `.deb` and `.rpm` have checksums but no signatures; the Windows installer is unsigned until SignPath signs it (087) |
+| A tampered package or image | npm trusted publishing with provenance; the image with BuildKit provenance and an SBOM (`.github/workflows/release.yml`) | The bundles, `.deb` and `.rpm` have checksums but no signatures |
 
 ## 5. Known gaps
 
@@ -170,7 +170,7 @@ Checked on 2026-10-11.
 | Skills, commands and agents can carry harmful instructions no flag finds | Accepted: MVP §12, review is the boundary |
 | Tokens may have no expiry | Accepted: 009 (the person chooses it) |
 | Audit log can't be exported to an outside store | Accepted for now: 007 (post-MVP) |
-| Server packages and bundles unsigned; Windows installer unsigned | 087 (SignPath); MVP §14.2 |
+| Server packages and bundles unsigned | MVP §14.2 |
 | A git mirror's privacy is its repository's | Accepted: MVP §12 |
 | `rmk` installs a yanked version a lockfile pins without the warning 022's spec promises | Not planned yet: a bug against 022, for the owner to file and schedule |
 | `rmk install` doesn't install exactly `rmk.lock` for a dependency on a tag: when the tag moves (a release, a yank), it follows the tag, as 022's spec and `cli-files.md` say it shouldn't | Not planned yet: a bug against 022, for the owner to file and schedule |
