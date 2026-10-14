@@ -9,6 +9,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { HELP, parseArgs, scriptArgs } from "./cli.js";
 import { MIN_NODE, nodeTooOld } from "./node-version.js";
 import { dataDir as defaultDataDir } from "./paths.js";
+import { platformRefusal } from "./platform.js";
 import { isSetUp, serverEnv } from "./server-env.js";
 import { scriptForService } from "./service/control.js";
 import { runService, serviceTarget } from "./service/index.js";
@@ -77,6 +78,12 @@ const programPaths = () => ({
 });
 
 export const main = async (argv: string[]): Promise<number | undefined> => {
+  // Before anything is read or written (121): the server doesn't run on Windows.
+  const refusal = platformRefusal(process.platform);
+  if (refusal) {
+    process.stderr.write(`${refusal}\n`);
+    return 1;
+  }
   const command = parseArgs(argv);
   if (command.kind === "help") {
     process.stdout.write(HELP);

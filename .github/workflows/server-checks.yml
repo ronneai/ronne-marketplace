@@ -47,6 +47,41 @@ jobs:
       - name: Start, set up, sign in, revoke and rotate, stop
         run: node packages/repo-tools/src/server-probe.js rmk-server
 
+  # The server doesn't run on Windows (121): npm refuses to install it (package.json's `os`), and
+  # a copy that gets there anyway says so in one line and exits 1, before reading or writing.
+  refuses-windows:
+    name: Refuses Windows
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: server-tarball
+          path: tarball
+      - name: npm install refuses it (EBADPLATFORM)
+        shell: bash
+        run: |
+          if npm install --global --no-audit --no-fund ./tarball/*.tgz > npm.txt 2>&1; then
+            cat npm.txt; echo "npm installed rmk-server on Windows"; exit 1
+          fi
+          grep -q EBADPLATFORM npm.txt || { cat npm.txt; echo "npm failed, but not for the platform"; exit 1; }
+          echo "OK: npm refused it for the platform"
+      - name: A copy says so and exits 1
+        shell: bash
+        run: |
+          mkdir pkg && tar -xzf tarball/*.tgz -C pkg
+          set +e
+          node pkg/package/dist/bin.js start > out.txt 2>&1
+          code=$?
+          set -e
+          cat out.txt
+          [ "$code" = 1 ] || { echo "exit $code, not 1"; exit 1; }
+          grep -q "rmk-server runs on Linux and macOS. On Windows, run it in WSL 2" out.txt
+          echo "OK: refused in one line, exit 1"
+
   # The tests whose answers come from the disk itself (099), on Windows' NTFS: `sameFile` (one
   # folder by any name: short names, case, links) and restore's trial of stored names. Elsewhere
   # ci.yml's `pnpm test` runs them on Linux; macOS's APFS is checked by hand (WITNESS.md).

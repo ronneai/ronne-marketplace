@@ -49,6 +49,10 @@
   "engines": {
     "node": ">=22.12"
   },
+  "os": [
+    "darwin",
+    "linux"
+  ],
   "publishConfig": {
     "access": "public",
     "provenance": true

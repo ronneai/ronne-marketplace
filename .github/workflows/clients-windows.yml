@@ -39,8 +39,9 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: pnpm
+      # Only the clients and what they use: the server package is Linux and macOS only (its `os`).
       - if: inputs.run != 'false'
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --filter "@ronneai/rmk..." --filter "@ronneai/mcp..."
       - name: Build and test @ronneai/core, rmk and rmk-mcp
         if: inputs.run != 'false'
         run: pnpm exec turbo run build test --filter=@ronneai/core --filter=@ronneai/rmk --filter=@ronneai/mcp
