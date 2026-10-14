@@ -25,7 +25,7 @@ Lands in the next release, with 099 (owner, 2026-10-14): build it before that re
   and exit 1).
   *Done when:* that job passes; `packages:check` and `release:smoke` pass with the `os` field.
 
-- [ ] **3. The Windows service and paths go.** [risky] `service/windows.ts`, `winsw.ts`, their
+- [x] **3. The Windows service and paths go.** [risky] `service/windows.ts`, `winsw.ts`, their
   tests and golden files; the Windows layout; the `win32` branches in `control.ts`, `install.ts`,
   `args.ts`, `model.ts`, `system.ts`, `index.ts`, `paths.ts`, `run.ts`, `cli.ts`; the web app's
   Windows-only branches (`runtime.ts`, `setup/env-file.ts`, `setup/rotate-secret.ts`) and their

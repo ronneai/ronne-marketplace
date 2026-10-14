@@ -126,3 +126,17 @@ Witnessed: 2026-10-14 11:34 EDT, by a fresh agent (blind, read-only; it read the
 | 10 | The earlier passes' confirmations carry over | no | confirmed | WITNESS.md:5-109; the only unconfirmed rows for these tasks were task 5's row 20 (fixed, re-check row 10), task 3's WinSW rows (rows 1-2 here) and re-check row 13 (row 4 here) |
 
 **Overall:** met: every claim for tasks 1, 2, 3, 5 and 6 is confirmed; task 4 waits for a release dry run. Remark: the e2e harness's port can clash (a loose end, not 121's).
+
+## Task 3 — The Windows service and paths go (adversarial re-check)
+
+Witnessed: 2026-10-14 11:36 EDT, by a fresh agent (adversarial, read-only). Commit: e6b43434 (main, #183 merged; its head da5b7f3a has the same tree). Machine: macOS 27.0.1, Node v24.0.0. It continues the adversarial pass on 90426311 (rows 1–13 there, every behaviour claim confirmed).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 14 | No WinSW outside 086's, 087's and 121's docs and other features' records of the past | no | confirmed | `git grep -il winsw e6b43434` → 12 files, all in `docs/features/`; outside it → 0. Each outside 086/121 is a finished task, a PLAN note, a WITNESS pass or 086's index row. No file named winsw |
+| 15 | Nothing in 90426311..e6b43434 changes a code path rows 1–13 rest on | no | confirmed | 10 files: comments (`release.yml`, `rotate-secret.ts:54`), tests (`run-backup.db.test.ts`, `packs.test.js`) and docs. No change in `packages/server/src` or other runtime code |
+| 16 | No Windows branch left in packages/server, apps/web/src/server or the server's scripts beyond the refusal | no | confirmed | `PATHEXT`, `ProgramData`, `APPDATA`, `taskkill`, `fltmc`, `icacls`, `sc.exe`, `netsh`, `powershell`, `.ps1`, `.cmd`, `USERPROFILE`, `ComSpec` → 0; `win32` in source → only the refusal's test; no `.ps1`/`.cmd`/`.bat` files |
+| 17 | packages/server tests pass | no | confirmed | 11 files, 99 passed |
+| 18 | PR #183's CI at da5b7f3a green, with the Ubuntu and macOS server and service checks | no | confirmed | 40 checks pass; the 7 runs `pull_request da5b7f3a success`; da5b7f3a and e6b43434 identical trees |
+
+**Overall:** met: every WinSW hit on main is a record the *Done when* allows; nothing since changed the paths the earlier rows rest on; no Windows branch is left in the server code but the refusal; CI green. Remarks: 099's backup tests keep `win32` skips and comments about Windows disks (harmless; a later cleanup); ronne-web's product page messages and `product-facts.md` still named WinSW on Windows (fixed in a ronne-web follow-up).
