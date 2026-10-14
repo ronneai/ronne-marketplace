@@ -1244,3 +1244,46 @@ Witnessed: 2026-10-14 09:36 EDT, by a fresh agent (blind, read-only). Commit: 60
 **Overall:** not met: every claim of task 8's *Done when* is confirmed across the passes; 121's row and spec disagreed on 099 as a dependency (row 4); the `topics.ts` change is task 9's (row 5).
 
 **Since this pass:** 121's spec header drops 099 too (they land together), and the spec's Goal gets the owner's words and the clients' paragraph, which an earlier edit meant to add but didn't save.
+
+## Task 8 — The backup runbook (closing check)
+
+Witnessed: 2026-10-14 09:38 EDT, by a fresh agent (blind, read-only). Commit: 76891594. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | 121's index row and spec header agree on *Depends on* | no | confirmed | `README.md:246` and `121/SPEC.md:3` both "081, 082, 084, 086" |
+| 2 | The row says no migration, and the spec agrees | no | confirmed | `README.md:246`; `121/SPEC.md:21,135-136` |
+| 3 | The row says the next release, with 099 | no | confirmed | `README.md:246`; `121/SPEC.md:20,130,135`; `121/PLAN.md:10` |
+| 4 | The row's status agrees | no | confirmed | "specified"; 6 open tasks, none ticked |
+| 5 | Nothing of task 8's changed since the final check | no | confirmed | `git diff 6027c918 76891594 --name-only` → 099's WITNESS.md and 121's SPEC.md only |
+| 6 | So the final check's rows 6–14 stand | no | confirmed | They cover only files row 5 shows unchanged |
+| 7 | 121's spec doesn't contradict itself | no | confirmed | Goal, Scope, Behaviour, Edge cases and Decisions agree |
+| 8 | `pnpm witness:check` passes | no | confirmed | Exit 0 |
+
+**Overall:** met: 121's row and spec agree; nothing of task 8's changed since the final check, whose rows 6–14 stand with the earlier passes' evidence.
+
+## Task 9 — Documentation
+
+Witnessed: 2026-10-14 09:38 EDT, by a fresh agent (blind). Commit: 7557c69f (ronne-marketplace), e66fdc6 (ronne-web). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Running Ronne has `backup`, `restore` and `encryption` in en, pt and fr | no | confirmed | The section keys in all three; `types.ts:11` makes a missing id fail typecheck; the built pages have each id once |
+| 2 | Both `topics.ts` list them | no | confirmed | ronne-web `topics.ts:62`; marketplace `help/topics.ts:156-160` |
+| 3 | Upgrade says back up first, with the command and a link to Backups, in en, pt and fr | no | confirmed | The new paragraph in each; the Docker data paragraph too; built install pages link `operations#backup` |
+| 4 | The command and the archive's place per way of installing | no | confirmed | `package.json`, `docker/pnpm`, `cli.ts`, `run-backup.ts:260-261`, `Dockerfile:49` |
+| 5 | The backup facts (one snapshot, owner-only, `--keep` after success, `--encrypt`, `--verify`, `--no-settings`) | no | confirmed | `archive.ts:140-142`, `run-backup.ts:79,192,492`, `cli.ts` |
+| 6 | The schedule examples, copying out of Docker, the runbook link | no | confirmed | The runbook's own lines; `links.backupRunbook` (on `main` once this merges) |
+| 7 | What restore refuses, and that it changes nothing then | no | confirmed | `run-restore.ts:88-99,132,186,263`, `verify.ts:110`, `control.ts` |
+| 8 | Sign-ins with and without the backup's settings; tokens keep working | no | confirmed | `run-restore.ts:358-376`; `access-token.ts:40`. Remark: an existing settings file is kept even with `--with-settings` |
+| 9 | Each restore is in the audit log | no | confirmed | `run-restore.ts:271-280` |
+| 10 | Another machine; another kind of database | no | confirmed | `cli.ts`, `run-restore.ts:121-125` |
+| 11 | Encryption at rest | no | confirmed | `crypto.ts`; the bucket (110) rightly left out |
+| 12 | No Windows in the new text | no | confirmed | 0 added lines with Windows, PowerShell or `.ps1` |
+| 13 | pt and fr say what en says, naturally | no | confirmed | Read paragraph by paragraph |
+| 14 | ronne-web tests, typecheck, build | no | confirmed | 138 passed; exit 0; pages prerendered in en, pt, fr |
+| 15 | The marketplace's help tests | no | confirmed | 3 passed |
+
+**Overall:** met: the three sections and the Upgrade line in en, pt and fr, both topics files, facts matching the code and runbook, and the tests and builds pass in both repositories.
+
+**Since this pass** (ronne-web d5d5e34, abf4b2e), from its remarks, in en, pt and fr: sign-ins stay with `--with-settings` "on a machine with no settings file yet"; the restore example is labelled as a Linux service's (macOS: the folder `rmk-server service status` shows); with the bundled PostgreSQL or MySQL, Docker's "move aside" becomes "empty that database". ronne-web's typecheck and 138 tests pass after.

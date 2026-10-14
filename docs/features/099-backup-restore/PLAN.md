@@ -61,7 +61,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   the service's account, restore refused while the service runs.
   *Done when:* those workflows pass on a pull request with the change.
 
-- [ ] **8. The backup runbook.** `docs/runbooks/backup.md`: the table per way of installing,
+- [x] **8. The backup runbook.** `docs/runbooks/backup.md`: the table per way of installing,
   schedules (cron, systemd timer, launchd, a Docker host; no Windows server, 121), copies off the machine,
   restoring, moving to another machine and another database, Caddy's certificates, encryption at
   rest, PostgreSQL's vacuum note, timings from the backup benchmark on a named machine (owner's
@@ -71,7 +71,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   (`systemd-analyze verify`, `plutil -lint`, the cron lines run as cron does), and `rclone`, `aws
   s3 cp` and the bundled MySQL stay unrun examples.
 
-- [ ] **9. Documentation.** In `../ronne-web`: **Backups**, **Restoring** and **Encryption at
+- [x] **9. Documentation.** In `../ronne-web`: **Backups**, **Restoring** and **Encryption at
   rest** in Running Ronne (both `topics.ts`), and the Upgrade line, in English, Portuguese and
   French.
   *Done when:* the docs render tests pass in both repositories.
