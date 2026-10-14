@@ -1,6 +1,6 @@
 # 121 — No Windows server: WSL or a virtual machine instead
 
-> Milestone: M12 · Depends on: 081, 082, 084, 086, 099 · Withdraws: 086 (built), 087 (specified) ·
+> Milestone: M12 · Depends on: 081, 082, 084, 086 · Withdraws: 086 (built), 087 (specified) ·
 > Design: [MVP §5](../../MVP/MVP.md#5-installation--bootstrap), [§15](../../MVP/MVP.md#15-decision-log) (Easy install) ·
 > Guide: [`docs/runbooks/install.md`](../../runbooks/install.md)
 
@@ -8,14 +8,17 @@
 
 The Ronne server (`rmk-server`, the image, the install script) runs on Linux and macOS only. People
 on Windows run it in WSL 2 or a Linux virtual machine, where Linux's own install paths work
-unchanged (owner, 2026-10-14). The owner has no Windows machine to test the server on, and its
+unchanged (owner, 2026-10-14: "we don't have users installing on windows, I want the next release
+without a windows server. We should have only the rmk commands"). The owner has no Windows machine to test the server on, and its
 Windows-only parts have been the costliest to keep right. Each bug there was found through CI
 logs, one round trip at a time, and is security-sensitive (a virtual account, ACLs, an
 administrator's scripts over a folder the service can write). That cost buys a path few people
 need, now that WSL 2 runs Linux software as it is.
 
-The **clients stay on Windows**: `rmk` and `rmk-mcp` run where developers use Claude Code, Codex
-and Cursor, Windows included. This feature removes the server's Windows support only.
+The **clients stay on Windows**: `rmk` and `rmk-mcp` (the MCP server a coding tool starts on the
+developer's machine) run where developers use Claude Code, Codex and Cursor, Windows included.
+This feature removes the server's Windows support only, in the next release (the one with 099).
+Nobody installs the server on Windows (owner), so there's no migration to write.
 
 ## Scope
 

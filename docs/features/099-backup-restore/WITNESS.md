@@ -1219,3 +1219,28 @@ Witnessed: 2026-10-14 09:34 EDT, by a fresh agent (blind, read-only). Commit: da
 **Overall:** not met: task 8's documents agree on no Windows and every *Done when* claim is confirmed or covered by the owner's decisions; 121's index row contradicted its spec (row 8). Remarks: 099's acceptance criterion naming Windows server checks (met on #180) goes out of date with 121; `install.md`'s Windows parts are 121's task 5.
 
 **Since this pass:** 121's index row says the next release, with 099, and no migration; status "specified".
+
+## Task 8 — The backup runbook (final check)
+
+Witnessed: 2026-10-14 09:36 EDT, by a fresh agent (blind, read-only). Commit: 6027c918. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | 121's index row says no migration | no | confirmed | `README.md:246`; `121/SPEC.md:132-133` |
+| 2 | It says the next release, with 099 | no | confirmed | `README.md:246`; `121/SPEC.md:127,132`; `121/PLAN.md:10` |
+| 3 | Its status agrees | no | confirmed | "specified"; all six tasks open |
+| 4 | Its *Depends on* agrees with the spec | no | partly | Row "081, 082, 084, 086"; `121/SPEC.md:3` still "…, 099" |
+| 5 | Only the row and WITNESS.md changed since dab6ae65 | no | partly | Also `topics.ts` (7557c69f, task 9's) |
+| 6 | Task 8's files unchanged, so earlier confirmations stand | no | confirmed | Empty diff for the runbook, SPEC.md and PLAN.md |
+| 7 | *Done when*: the topics | no | confirmed | First pass rows 1, 2, 26-29, 31; re-check row 9; documents re-check rows 1-3, 13 |
+| 8 | `install.md` points to it | no | confirmed | `install.md:291` |
+| 9 | Each command run, written in the notes | no | confirmed | First pass rows 4-20, 24, 26, 32; its failures fixed and confirmed by the re-check's rows 1-4, 7, 8 |
+| 10 | Schedules checked, not installed | no | confirmed | Re-check rows 3-6; first pass row 20 |
+| 11 | `rclone`, `aws s3 cp`, bundled MySQL unrun by decision | no | confirmed | Documents re-check row 11 |
+| 12 | Timings from the benchmark on a named machine | no | confirmed | Re-check row 10; documents re-check row 12 |
+| 13 | The spec and task agree with the runbook | no | confirmed | Documents re-check rows 1-5 |
+| 14 | `pnpm witness:check` passes | no | confirmed | Exit 0 |
+
+**Overall:** not met: every claim of task 8's *Done when* is confirmed across the passes; 121's row and spec disagreed on 099 as a dependency (row 4); the `topics.ts` change is task 9's (row 5).
+
+**Since this pass:** 121's spec header drops 099 too (they land together), and the spec's Goal gets the owner's words and the clients' paragraph, which an earlier edit meant to add but didn't save.
