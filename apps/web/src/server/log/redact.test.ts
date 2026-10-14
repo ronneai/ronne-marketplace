@@ -612,6 +612,23 @@ describe("cleanFields", () => {
     expect(redactString("v bob@192.0.2.1 w")).toBe("v [email] w");
     expect(redactString("v ana@host.x and ana@example.c0m w")).toBe("v [email] and [email] w");
     expect(redactString("v ana@ex_ample.com w")).toBe("v [email] w");
+    // Symbols and punctuation IDNA keeps in a domain.
+    for (const address of [
+      "ana@col\u00B7legi.cat",
+      "ana@i\u2764.ws",
+      "ana@\u2603.net",
+      "bob@\u24D4xample.com",
+      "ana@shop\u2010online.com",
+    ])
+      expect(redactString(`mail ${address} now`)).toBe("mail [email] now");
+    // A quote before an address stays in the line; one in an address is hidden with it.
+    expect(redactString("x 'ana@example.com' y and o'brien@example.com")).toBe(
+      "x '[email]' y and [email]",
+    );
+    // A query or trailing punctuation after an address stays.
+    expect(redactString("mailto:ana@example.com?subject=hi! or bob@example.org!")).toBe(
+      "mailto:[email]?subject=hi! or [email]!",
+    );
     // What a line needs stays: versions and pnpm's paths.
     for (const kept of [
       "next@16.4.0",

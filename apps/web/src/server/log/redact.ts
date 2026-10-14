@@ -113,11 +113,12 @@ const hideUnder = (value: string, root: string): string => {
 // password's `***`); `'` is read, as in `o'brien@…`, then trimmed from the front (a quoted
 // address). After it, letters, digits, marks, dots and hyphens. `\p{Cs}` keeps a letter outside the BMP whole: charAt reads its two halves.
 const LOCAL = /^[^\s@"()<>[\]{},;:\\/`*]$/u;
-// A domain also reads the dots IDNA maps to `.` (`。`, `．`, `｡`) and invisible format characters
-// (a soft hyphen, a zero-width space), which IDNA drops: `bob@sub。example.com` is an address.
-// `_` too (`ex_ample.com`), though a domain holding one must start with a letter: pnpm's
-// `react-dom@19.2.0_react@19.2.0` paths aren't addresses.
-const DOMAIN = /^[\p{L}\p{N}\p{M}\p{Cs}\p{Cf}._\u3002\uFF0E\uFF61-]$/u;
+// After it, anything but spaces, another `@`, quotes and what brackets or separates an address (`/`
+// too, which ends pnpm's paths): IDNA keeps symbols and punctuation in a domain (`col·legi.cat`,
+// `i❤.ws`, `ⓔxample.com`), maps `。`, `．` and `｡` to `.`, and drops format characters (a soft
+// hyphen, a zero-width space). The last label then decides (TOP_LABEL); a domain holding `_` must
+// start with a letter: pnpm's `react-dom@19.2.0_react@19.2.0` paths aren't addresses.
+const DOMAIN = /^[^\s@"'()<>[\]{},;:\\/`*]$/u;
 const DOTS = /[.\u3002\uFF0E\uFF61]/gu;
 /** A domain as IDNA reads it: its dots as `.`, its format characters gone. */
 const asDomain = (value: string) => value.replace(DOTS, ".").replace(/\p{Cf}/gu, "");
