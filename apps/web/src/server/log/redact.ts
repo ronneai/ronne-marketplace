@@ -115,12 +115,18 @@ const hideUnder = (value: string, root: string): string => {
 const LOCAL = /^[^\s@"()<>[\]{},;:\\/`*]$/u;
 // A domain also reads the dots IDNA maps to `.` (`。`, `．`, `｡`) and invisible format characters
 // (a soft hyphen, a zero-width space), which IDNA drops: `bob@sub。example.com` is an address.
-const DOMAIN = /^[\p{L}\p{N}\p{M}\p{Cs}\p{Cf}.\u3002\uFF0E\uFF61-]$/u;
+// `_` too (`ex_ample.com`), though a domain holding one must start with a letter: pnpm's
+// `react-dom@19.2.0_react@19.2.0` paths aren't addresses.
+const DOMAIN = /^[\p{L}\p{N}\p{M}\p{Cs}\p{Cf}._\u3002\uFF0E\uFF61-]$/u;
 const DOTS = /[.\u3002\uFF0E\uFF61]/gu;
 /** A domain as IDNA reads it: its dots as `.`, its format characters gone. */
 const asDomain = (value: string) => value.replace(DOTS, ".").replace(/\p{Cf}/gu, "");
-// A domain's last label: letters in any script (`.de`, `.рф`), or its ASCII form (`xn--p1ai`).
-const TOP_LABEL = /^(?:[\p{L}\p{M}]{2,}|xn--[a-z0-9-]+)$/iu;
+// A domain's last label: letters and digits in any script with at least one letter (`.de`, `.рф`,
+// `.x`, `.c0m`), or its ASCII form (`xn--p1ai`). All digits isn't one: `next@16.4.0` is a version.
+const TOP_LABEL = /^(?:(?=[\p{L}\p{N}\p{M}]*\p{L})[\p{L}\p{N}\p{M}]+|xn--[a-z0-9-]+)$/iu;
+// A domain that is an IPv4 address (`bob@192.0.2.1`), and an address literal (`bob@[192.0.2.1]`).
+const IPV4 = /^\d{1,3}(?:\.\d{1,3}){3}$/;
+const LITERAL = /^\[(?:IPv6:)?[0-9A-Fa-f:.]{1,45}\]/;
 
 /**
  * Every email address written as `[email]` (feature 100: a line holds no email; a database's
@@ -142,6 +148,13 @@ const hideEmails = (value: string): string => {
       const open = value.lastIndexOf('"', at - 2);
       if (open >= from && at - open <= 66 && !value.slice(open, at).includes("@")) start = open;
     }
+    if (start === at) continue;
+    const literal = LITERAL.exec(value.slice(at + 1, at + 48))?.[0];
+    if (literal) {
+      out += `${value.slice(from, start)}[email]`;
+      from = at + 1 + literal.length;
+      continue;
+    }
     let end = at + 1;
     while (end < value.length && DOMAIN.test(value.charAt(end))) end++;
     // The domain without a trailing dot or hyphen (an address ending a sentence).
@@ -155,7 +168,8 @@ const hideEmails = (value: string): string => {
     }
     const domain = asDomain(value.slice(at + 1, end));
     const last = domain.slice(domain.lastIndexOf(".") + 1);
-    if (start === at || !domain.includes(".") || !TOP_LABEL.test(last)) continue;
+    const named = TOP_LABEL.test(last) && (!domain.includes("_") || /^\p{L}/u.test(domain));
+    if (!domain.includes(".") || !(named || IPV4.test(domain))) continue;
     out += `${value.slice(from, start)}[email]`;
     from = end;
   }

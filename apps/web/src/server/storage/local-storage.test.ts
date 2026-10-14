@@ -82,3 +82,12 @@ describe("localStorage and the logs (feature 100)", () => {
     },
   );
 });
+
+it("keeps a key out of its errors' messages: it names an item (feature 100)", () => {
+  // The key stays a property for code; the message, which the logs write, never holds it.
+  const key = "team/secret-skill/1.0.0.tgz";
+  for (const error of [new StorageKeyError(key), new StorageConflictError(key)]) {
+    expect(error.key).toBe(key);
+    expect(error.message).not.toContain("secret-skill");
+  }
+});

@@ -600,6 +600,27 @@ describe("cleanFields", () => {
     expect(redactString("v bob@ｅｘａｍｐｌｅ\uFF0Ecom.au w")).toBe("v [email] w");
     expect(redactString("v bob@exa\u00ADmple.com w")).toBe("v [email] w");
     expect(redactString("v ana@exa\u200Bmple.com w")).toBe("v [email] w");
+    // Each dot IDNA maps, alone, and a format character inside the last label.
+    expect(redactString("v bob@example\uFF61com w")).toBe("v [email] w");
+    expect(redactString("v bob@example\u3002com w")).toBe("v [email] w");
+    expect(redactString("v bob@example\uFF0Ecom w")).toBe("v [email] w");
+    expect(redactString("v bob@example.c\u00ADom w")).toBe("v [email] w");
+    // Every shape the app accepts: an address literal, an IPv4 domain, a one-letter or
+    // letters-and-digits last label, an underscore.
+    expect(redactString("v bob@[192.0.2.1] w")).toBe("v [email] w");
+    expect(redactString("v bob@[IPv6:2001:db8::1] w")).toBe("v [email] w");
+    expect(redactString("v bob@192.0.2.1 w")).toBe("v [email] w");
+    expect(redactString("v ana@host.x and ana@example.c0m w")).toBe("v [email] and [email] w");
+    expect(redactString("v ana@ex_ample.com w")).toBe("v [email] w");
+    // What a line needs stays: versions and pnpm's paths.
+    for (const kept of [
+      "next@16.4.0",
+      "pkg@1.0.0-beta",
+      "@types/node@22.20.5",
+      "node_modules/.pnpm/react-dom@19.2.0_react@19.2.0/node_modules/react-dom/index.js:12:5",
+      "next@16.4.0_@babel+core@7.28.4_react@19.2.0",
+    ])
+      expect(redactString(kept)).toBe(kept);
     for (const kept of [
       "/node_modules/.pnpm/next@16.4.0_react@19.2.0/x",
       "@team/secure-coding and @acme/infra/tool",
