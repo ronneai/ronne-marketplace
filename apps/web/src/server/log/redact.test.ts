@@ -487,4 +487,16 @@ describe("cleanFields", () => {
     const fields = Object.fromEntries(Array.from({ length: 150 }, (_, i) => [`k${i}`, i]));
     expect(cleanFields(fields, false)).toMatchObject({ "[more]": 50 });
   });
+
+  it("reads only the end of a key to tell a secret, once per object per line", () => {
+    expect(isSecretKey(`${"x".repeat(1_000_000)}_PASS-WORD`)).toBe(true);
+    expect(isSecretKey(`password${"x".repeat(1_000_000)}`)).toBe(false);
+    expect(isSecretKey(`api_key${"_".repeat(100)}`)).toBe(true);
+    const o = Object.fromEntries(
+      Array.from({ length: 5 }, (_, i) => [`${i}${"k".repeat(10_000_000)}`, 1]),
+    );
+    const started = performance.now();
+    cleanFields({ a: new Array(100).fill(new Array(10).fill(o)) }, false);
+    expect(performance.now() - started).toBeLessThan(500);
+  });
 });

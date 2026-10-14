@@ -366,6 +366,59 @@ describe("more of what a line can't carry", () => {
     }
   });
 
+  it("keeps the head when the fields go, and replaces the fields only past MAX_LINE", () => {
+    const { log, lines } = collect();
+    withRequestContext({ requestId: "R1", userId: "U1" }, () =>
+      log.child({ domain: "submissions" }).event("version.released", {
+        x: new Array(100).fill("\u0001".repeat(1990)),
+      }),
+    );
+    expect(JSON.parse(lines[0] ?? "")).toEqual({
+      time: "2026-10-11T14:03:22.417Z",
+      level: "info",
+      msg: "Released",
+      domain: "submissions",
+      event: "version.released",
+      requestId: "R1",
+      userId: "U1",
+      fields: "[too big]",
+    });
+    // Around the cap: each control character is written as six (`\\u0001`).
+    const sized = (count: number) => {
+      const { log, lines } = collect();
+      log.info("m", { v: new Array(count).fill("\u0001".repeat(1999)) });
+      return lines[0] ?? "";
+    };
+    const under = sized(10);
+    const over = sized(12);
+    expect(under.length).toBeGreaterThan(MAX_LINE * 0.9);
+    expect(under).not.toContain("[too big]");
+    expect(over.length).toBeLessThan(MAX_LINE);
+    expect(JSON.parse(over).fields).toBe("[too big]");
+  });
+
+  it("leaves a domain or user that isn't a name out of the head, so the cap holds", () => {
+    const { log, lines } = collect();
+    const big = new Array(100).fill("\u0001".repeat(499));
+    log.child({ domain: big }).info("m", { userId: big });
+    withRequestContext({ requestId: "R", userId: big as never }, () => log.info("m"));
+    for (const line of lines) {
+      expect(line.length).toBeLessThanOrEqual(MAX_LINE);
+      const parsed = JSON.parse(line);
+      expect(parsed).not.toHaveProperty("domain");
+      expect(parsed).not.toHaveProperty("userId");
+    }
+  });
+
+  it("writes a message or request ID over 64 KB as its length only", () => {
+    const { log, lines } = collect();
+    const huge = `${"x".repeat(70_000)}${"rmk_".padEnd(47, "Z")}`;
+    withRequestContext({ requestId: huge }, () => log.info(huge));
+    const parsed = JSON.parse(lines[0] ?? "");
+    expect(parsed.msg).toBe(`[${huge.length} characters]`);
+    expect(parsed.requestId).toBe(`[${huge.length} characters]`);
+  });
+
   it("drops an event whose name isn't a string, never throws", () => {
     const { log } = collect();
     const hostile = {

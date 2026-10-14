@@ -32,6 +32,10 @@ export type LoggerOptions = {
 
 const rank = (level: LogLevel) => LOG_LEVELS.indexOf(level);
 
+/** A domain or a user id in the head: a string or a number, nothing bigger. */
+const isName = (value: unknown): value is string | number =>
+  typeof value === "string" || (typeof value === "number" && Number.isFinite(value));
+
 /** The most a line written holds, in characters: past it, its fields become `"[too big]"`. */
 export const MAX_LINE = 131_072;
 
@@ -149,17 +153,29 @@ export const createLogger = (options: LoggerOptions, bindings: Fields = {}): Log
         time: now().toISOString(),
         level,
         msg: cleanText(String(msg)),
-        ...(own.domain !== undefined ? { domain: own.domain } : {}),
+        // The head holds only names and ids: a domain or a user that isn't one is left out.
+        ...(isName(own.domain) ? { domain: own.domain } : {}),
         ...(event ? { event } : {}),
         ...(context ? { requestId: cleanText(String(context.requestId)) } : {}),
-        ...(userId !== undefined ? { userId } : {}),
+        ...(isName(userId) ? { userId } : {}),
       };
       const head = { ...line };
       for (const [key, value] of Object.entries(own))
         if (!RESERVED.includes(key)) line[key] = value;
-      const text = format(line);
-      // Whatever the budget let through, escaping and quoting included: a line has a size.
-      write(text.length > MAX_LINE ? format({ ...head, fields: TOO_BIG }) : text);
+      // Whatever the budget let through, escaping and quoting included: a line has a size. Past
+      // it, the fields go; and if the head is still too big (a long message, ID or domain), all
+      // but the time, the level and the event.
+      const candidates = [
+        line,
+        { ...head, fields: TOO_BIG },
+        { time: head.time, level, msg: TOO_BIG, ...(event ? { event } : {}), fields: TOO_BIG },
+      ];
+      let text = "";
+      for (const candidate of candidates) {
+        text = format(candidate);
+        if (text.length <= MAX_LINE) break;
+      }
+      write(text);
     } catch {
       // Logging never fails a request: the line, as little as it can be.
       try {

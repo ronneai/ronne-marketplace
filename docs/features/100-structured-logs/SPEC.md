@@ -176,15 +176,19 @@ read every secret itself.
   keys once), and logging takes milliseconds, not seconds or the process's memory.
 - **The finished line** is at most 131,072 characters, escaping and quoting included: past it, its
   fields are written as `"fields": "[too big]"`, with the time, level, message, domain, event and
-  request kept.
+  request kept. The head holds only names and ids: a `domain` or `userId` that isn't a string or a
+  number is left out.
+- **A secret key** is told by the key's end only (its last letters, `_` and `-` left out), once per
+  object per line, so a key of any length costs little.
 - **A Date or bytes** are read with the built-in methods (`Date.prototype.toISOString`, the
   `byteLength` getters), never the value's own, which could return a secret or something huge.
 - **A getter that throws** marks that field `"[unserialisable]"`; the rest of the line is written.
 - **Control characters** (a newline, an ANSI escape, C1 controls, U+2028/9, the bidirectional
   marks U+061C, U+200E/F, U+202A–E, U+2066–9) are escaped as `\uXXXX` (or JSON's `\n` inside a
   quoted value), in text and in JSON alike, so nothing can split a line, forge another one, drive
-  the terminal or reorder what it shows. In text, a key or value with a space, `=` or `"` is
-  quoted, and an `=` in the domain, event or message is escaped, so nothing passes for a field.
+  the terminal or reorder what it shows. In text, a key or string value with a space, `=` or `"` is
+  quoted, an object or array value (JSON) when it holds a space or `=`, and an `=` in the domain,
+  event or message is escaped, so nothing passes for a field.
 - **stdout is closed or slow:** writes go through `process.stdout.write` without waiting. A closed
   stdout (`EPIPE`) loses the lines and never crashes the server (the logger listens for its
   `error` event). Node's docs ("A note on process I/O"): on Linux and macOS, writes to a pipe or

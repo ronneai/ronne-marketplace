@@ -21,9 +21,20 @@ const SECRET_KEYS = [
   "apikey",
 ] as const;
 
+/** The longest ending that can name a secret: "authorizations". */
+const SECRET_TAIL = Math.max(...SECRET_KEYS.map((secret) => secret.length)) + 1;
+
+/**
+ * Whether a key names a secret. Only its end is read (its last letters, `_` and `-` left out), so a
+ * key of any length costs little.
+ */
 export const isSecretKey = (key: string): boolean => {
-  const name = key.toLowerCase().replaceAll(/[_-]/g, "");
-  return SECRET_KEYS.some((secret) => name.endsWith(secret) || name.endsWith(`${secret}s`));
+  let tail = "";
+  for (let i = key.length - 1; i >= 0 && tail.length < SECRET_TAIL; i--) {
+    const char = key.charAt(i);
+    if (char !== "_" && char !== "-") tail = char.toLowerCase() + tail;
+  }
+  return SECRET_KEYS.some((secret) => tail.endsWith(secret) || tail.endsWith(`${secret}s`));
 };
 
 /**
@@ -81,7 +92,7 @@ export type Line = {
   values: number;
   chars: number;
   errors: Map<object, Record<string, unknown>>;
-  keys: Map<object, { first: string[]; total: number }>;
+  keys: Map<object, { first: string[]; secret: boolean[]; total: number }>;
 };
 export const MAX_VALUES = 1000;
 export const MAX_CHARS = 50_000;
@@ -127,12 +138,16 @@ const cleanKey = (line: Line, key: string, index: number): string => {
   return clean.length > MAX_KEY ? `${clean.slice(0, MAX_KEY)}…` : clean;
 };
 
-/** The first MAX_ITEMS own keys of an object and how many it has, read once per line. */
+/**
+ * The first MAX_ITEMS own keys of an object, which of them name a secret, and how many it has: read
+ * once per line, however often the object is reached.
+ */
 const keysOf = (line: Line, value: object) => {
   let keys = line.keys.get(value);
   if (!keys) {
     const all = Object.keys(value);
-    keys = { first: all.slice(0, MAX_ITEMS), total: all.length };
+    const first = all.slice(0, MAX_ITEMS);
+    keys = { first, secret: first.map(isSecretKey), total: all.length };
     line.keys.set(value, keys);
   }
   return keys;
@@ -255,13 +270,13 @@ const cleanObject = (
   markEach = false,
 ): Record<string, unknown> => {
   const out: Record<string, unknown> = {};
-  const { first, total } = keysOf(line, value);
+  const { first, secret, total } = keysOf(line, value);
   let written = 0;
-  for (const key of first) {
+  for (const [index, key] of first.entries()) {
     if (outOfBudget(line)) break;
     const name = cleanKey(line, key, written);
     written++;
-    if (isSecretKey(key)) {
+    if (secret[index]) {
       spend(line, REDACTED.length);
       out[name] = REDACTED;
       continue;

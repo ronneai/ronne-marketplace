@@ -280,3 +280,73 @@ Witnessed: 2026-10-14 12:39 EDT, by a fresh agent (adversarial). Commit: 18c3fc5
 | 27 | Lint and types | no | confirmed | Clean |
 
 **Overall:** not met: the string cache is quadratic on long equal-length strings; lines reach 170–385 KB; Dates and Buffers with replaced methods write secrets and can exhaust the heap; `event()` throws on a hostile name; seven test gaps.
+
+## Task 1 — The logger (fifth check)
+
+Witnessed: 2026-10-14 12:53 EDT, by a fresh agent (blind). Commit: 99922b6b. Machine: macOS 27.0.1, Node v24.0.0. Judged within the spec's scope (realistic inputs, owner's decision).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Line fields in the spec's order | no | confirmed | Shared logger run; test |
+| 2 | Levels and filter | no | confirmed | 78 passed; `LOG_LEVEL=warn` run |
+| 3 | Events in one module; unknown dropped | no | confirmed | M8 → 1 fails |
+| 4 | Non-string event name doesn't throw | no | confirmed | Six shapes probed |
+| 5 | Invalid `LOG_LEVEL` | no | confirmed | M24 → 2 fail |
+| 6 | `config.ts`; unreadable settings | no | confirmed | Probes |
+| 7 | `child()` | no | confirmed | Tests |
+| 8 | Text format, TTY colours | no | confirmed | Real run; colour by test |
+| 9 | Text quoting as the spec says | no | partly | An object value with `"` isn't quoted (`o={"a":1}`), as the code and test intend; the spec says it is |
+| 10 | Controls and bidi marks escaped | no | confirmed | M20 → 1 fails |
+| 11 | Request context | no | confirmed | M19 → 2, M31 → 1 fail |
+| 12 | Secret keys | no | confirmed | M17 → 1 fails |
+| 13 | Whole token runs | no | confirmed | M18 → 1 fails |
+| 14 | URL rule | no | confirmed | M9, M30 → 1 fail each |
+| 15 | Keys, msg, IDs redacted; keys cut after | no | confirmed | M16 → 1 fails |
+| 16 | Errors | no | confirmed | M21, M25 → 1, M33 → 2 fail |
+| 17 | Cycles, BigInt, getters; never throws | no | confirmed | M22 → 2, M23 → 3 fail |
+| 18 | Cuts and caps | no | confirmed | M13, M35–37 → 1 fail each |
+| 19 | One budget; `err` and keys charged | no | confirmed | M1, M10, M26, M29 → 1, M27 → 2 fail |
+| 20 | Strings charged by raw length first | no | confirmed | M2 → 1 fails |
+| 21 | Strings and keys over 64 KB not read | no | partly | `isSecretKey` reads the whole raw key on every visit: five 10 MB keys shared 1,000× → 2,004 ms |
+| 22 | The line is at most 131,072 characters | no | partly | A non-string `domain` or `userId` stays in the fallback head: 299,809 characters; the fallback isn't measured |
+| 23 | Dates and bytes through built-ins | no | confirmed | M6, M7 → 1 fail each |
+| 24 | Milliseconds on realistic inputs | no | confirmed | 100,000-object body → 30 ms; except row 21 |
+| 25 | Closed stdout | no | confirmed | M34 → 1 fails |
+| 26 | Tests catch breakage | no | partly | 38 mutations, 36 caught; not: `cleanText`'s 64 KB check, the error cache |
+| 27 | The *Done when* list | no | confirmed | Each backed by a failing mutation |
+| 28 | `codeql-regex.md`, `codeql-logging.md` | no | confirmed | Linear; no value written |
+| 29 | No new dependency | no | confirmed | Empty diff |
+| 30 | Lint and types | no | confirmed | Clean |
+
+**Overall:** not met: a non-string `domain` or `userId` takes a line past the cap; huge keys are read by the secret-key check; the spec's quoting sentence disagrees with the code; two test gaps.
+
+## Task 1 — The logger (adversarial, fifth check)
+
+Witnessed: 2026-10-14 12:53 EDT, by a fresh agent (adversarial). Commit: 99922b6b. Machine: macOS 27.0.1, Node v24.0.0. Within the spec's scope (realistic inputs).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Levels, events | no | confirmed | 5/4/2/1 lines |
+| 2 | `child()` | no | confirmed | Chained bindings |
+| 3 | JSON valid, one line | no | confirmed | 22 hostile shapes from `JSON.parse` |
+| 4 | Text: one line, no forged field | no | confirmed | 1 unquoted `requestId=`, the real one |
+| 5 | Context | no | confirmed | 300 concurrent → 0 wrong |
+| 6 | No secret written | no | confirmed | AggregateError, system errors, tokens, URLs, keys → 0 leaks |
+| 7 | Strings over 64 KB not read | no | confirmed | 10 MB shared 100×100 → 0.5 ms |
+| 8 | Keys over 64 KB not read | no | partly | `isSecretKey` runs on the raw key first, every visit |
+| 9 | Budget charged by raw length | no | confirmed | M6, M7 → 3 / 1 fail |
+| 10 | Milliseconds, never seconds | no | not met | A plain object with a 100 MB key shared 100×100 → 10,861 ms |
+| 11 | Line at most 131,072 characters | no | not met | `userId` or `domain` an array of controls → 288,177 (JSON), 336,185 (text) |
+| 12 | The replacement line keeps the head, valid JSON | no | confirmed | 172 characters, parses |
+| 13 | Top-level `err` charged | no | confirmed | M10 → 1 fails |
+| 14 | No string cache | no | confirmed | Only `errors` and `keys` maps |
+| 15 | Dates and bytes | no | confirmed | M15, M16 → 2 / 1 fail |
+| 16 | Cycles, BigInt | no | confirmed | Both formats |
+| 17 | Never throws | no | confirmed | M17 → 1 fails |
+| 18 | stdout, settings, `LOG_LEVEL` | no | confirmed | 200,000 lines; `>&-` |
+| 19 | `config.ts`, events, no dependency | no | confirmed | Empty diff |
+| 20 | Tests pass | no | confirmed | 78 |
+| 21 | Tests catch the new behaviour | no | partly | 20 mutations, 14 caught; not: the replacement's head, the cap's size, `cleanText`'s 64 KB check, a string cache |
+| 22 | Lint and types | no | confirmed | Clean |
+
+**Overall:** not met: a huge key blocks for seconds through `isSecretKey`; the replacement line can pass the cap through a non-string `domain` or `userId`; six mutations pass the tests.
