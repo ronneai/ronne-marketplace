@@ -533,3 +533,24 @@ Witnessed: 2026-10-14 13:22 EDT, by a fresh agent (adversarial). Commit: 16ff878
 | 16 | Lint and types | no | confirmed | Clean |
 
 **Overall:** not met: the code holds against every in-scope attack; no test pins quoting on a non-ASCII space.
+
+## Task 1 — The logger (adversarial, ninth check)
+
+Witnessed: 2026-10-14 13:30 EDT, by a fresh agent (adversarial). Commit: 4fedd7fb. Machine: macOS 27.0.1, Node v24.0.0. Within the spec's scope.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | 16ff8786..4fedd7fb only adds a test | no | confirmed | `git diff --stat` → `logger.test.ts`, `WITNESS.md` |
+| 2 | The new test catches string quoting narrowed to ASCII | no | confirmed | `/[ "=]/` → 1 fails |
+| 3 | It catches object quoting narrowed | no | confirmed | `/[=]/` → 1 fails |
+| 4 | Tests catch breakage of escaping, quoting and redaction | no | confirmed | 49 mutants, all caught |
+| 5 | No covered secret written | no | confirmed | Both formats → 0 leaks; `secretKey` written (outside the list, a stated limit) |
+| 6 | JSON valid, one line, no hidden character, no forged reserved field | no | confirmed | 3,000 fuzzed lines per format × 6 |
+| 7 | Text: nothing passes for a field | no | partly | The head doesn't escape `"`: a domain `x"` from request JSON gives `INFO  x" Request received note=" requestId=FORGED " requestId=REAL`; pairing quotes leaves `requestId=FORGED` bare |
+| 8 | Never blocks; line cap | no | confirmed | Worst 8.4 ms; largest 51,045 |
+| 9 | Never throws; cycles, BigInt | no | confirmed | Probes |
+| 10 | Tests pass | no | confirmed | 88 |
+| 11 | No new dependency | no | confirmed | Empty diff |
+| 12 | Lint and types | no | confirmed | Clean |
+
+**Overall:** not met: a `"` in the head shifts quote pairing in text.

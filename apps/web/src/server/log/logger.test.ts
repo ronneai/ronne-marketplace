@@ -399,6 +399,22 @@ describe("more of what a line can't carry", () => {
     expect(line).toMatch(/ requestId=REAL\n$/);
   });
 
+  it("escapes a quote in the head, so it can't change how the line's quotes pair", () => {
+    const { log, lines } = collect({ format: "text" });
+    withRequestContext({ requestId: "REAL" }, () => {
+      log.child({ domain: 'x"' }).info("Request received", { note: " requestId=FORGED " });
+      log.info('Got "', { note: " requestId=FORGED " });
+    });
+    for (const line of lines) {
+      const head = line.slice(0, line.indexOf(" note="));
+      expect(head).not.toContain('"');
+      expect(head).toContain("\\u0022");
+      // Pairing the quotes, the only bare requestId is the real one.
+      const unquoted = line.replaceAll(/"(?:[^"\\]|\\.)*"/g, '""');
+      expect(unquoted.match(/ requestId=\S+/g)).toEqual([" requestId=REAL"]);
+    }
+  });
+
   it("leaves a small domain that isn't a name out of the head", () => {
     const { log, lines } = collect();
     log.child({ domain: { a: 1 } }).info("m");

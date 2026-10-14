@@ -89,8 +89,12 @@ const textValue = (value: unknown): string => {
   return escapeText(plain ? text : JSON.stringify(text));
 };
 
-/** The line's head (domain, event, message): escaped, with `=` too, so it can't hold a field. */
-const headText = (text: string): string => escapeText(text).replaceAll("=", "\\u003d");
+/**
+ * The line's head (domain, event, message): escaped, with `=` and `"` too, so it can't hold a field
+ * or open a quote that changes how the rest of the line pairs.
+ */
+const headText = (text: string): string =>
+  escapeText(text).replaceAll("=", "\\u003d").replaceAll('"', "\\u0022");
 
 /** `time LEVEL domain event msg key=value…`, the request's ID and user last. */
 const textLine = (line: Fields, colour: boolean): string => {

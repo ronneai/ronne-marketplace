@@ -191,7 +191,7 @@ read every secret itself.
   characters, variation selectors), checked per code point, are escaped as `\uXXXX` (or JSON's `\n` inside a
   quoted value), in text and in JSON alike, so nothing can split a line, forge another one, drive
   the terminal or reorder what it shows. In text, a key or string value with a space, `=` or `"` is
-  quoted, an object or array value (JSON) when it holds a space or `=`, and an `=` in the domain,
+  quoted, an object or array value (JSON) when it holds a space or `=`, and an `=` or `"` in the domain,
   event or message is escaped, so nothing passes for a field.
 - **stdout is closed or slow:** writes go through `process.stdout.write` without waiting. A closed
   stdout (`EPIPE`) loses the lines and never crashes the server (the logger listens for its
