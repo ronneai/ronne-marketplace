@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   cleanFields,
+  hidePathsUnder,
   isSecretKey,
   MAX_CHARS,
   MAX_DEPTH,
@@ -530,5 +531,23 @@ describe("cleanFields", () => {
   it("cuts a long key to 200 characters, after redaction", () => {
     const fields = cleanFields({ [`${"k".repeat(300)}`]: 1 }, false);
     expect(Object.keys(fields)).toEqual([`${"k".repeat(200)}…`]);
+  });
+
+  it("hides paths under a storage root: a storage error never names an item", () => {
+    hidePathsUnder("/srv/ronne-test-storage/");
+    expect(
+      redactString(
+        "EACCES: permission denied, open '/srv/ronne-test-storage/team/secret-item/1.0.0.tgz'",
+      ),
+    ).toBe("EACCES: permission denied, open '/srv/ronne-test-storage/[path]'");
+    expect(
+      redactString("missing /srv/ronne-test-storage/a/b.tgz and /srv/ronne-test-storage/c.zip"),
+    ).toBe("missing /srv/ronne-test-storage/[path] and /srv/ronne-test-storage/[path]");
+    // A folder that only starts the same isn't the root.
+    expect(redactString("/srv/ronne-test-storage-other/x")).toBe("/srv/ronne-test-storage-other/x");
+    const started = performance.now();
+    redactString("/srv/ronne-test-storage".repeat(50_000));
+    redactString(`/srv/ronne-test-storage/${"a".repeat(100_000)}`);
+    expect(performance.now() - started).toBeLessThan(500);
   });
 });

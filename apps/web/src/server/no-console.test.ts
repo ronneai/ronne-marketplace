@@ -12,7 +12,13 @@ const sources = (dir: string): string[] =>
     if (statSync(path).isDirectory()) return name === "node_modules" ? [] : sources(path);
     return /\.[cm]?[jt]sx?$/.test(name) && !/\.test\.[cm]?[jt]sx?$/.test(name) ? [path] : [];
   });
-const CONSOLE = /\bconsole\s*(?:\.\s*\w+|\[)/;
+/** `console` as a value: called, indexed, destructured or passed on. Comments are left out first. */
+const CONSOLE = /(?:(?:^|[^\w$.])|(?:globalThis|global|window|self)\s*\.\s*)console\b(?!\s*:)/;
+const code = (line: string) => {
+  const comment = line.indexOf("//");
+  const text = comment === -1 ? line : line.slice(0, comment);
+  return text.trimStart().startsWith("*") ? "" : text;
+};
 
 it("finds the server's sources", () => {
   expect(sources(server).length).toBeGreaterThan(100);
@@ -23,7 +29,7 @@ it.each(sources(server).map((file) => [relative(server, file), file]))(
   (_name, file) => {
     const lines = readFileSync(file, "utf8").split("\n");
     const found = lines.flatMap((line, i) =>
-      CONSOLE.test(line) ? [`${i + 1}: ${line.trim()}`] : [],
+      CONSOLE.test(code(line)) ? [`${i + 1}: ${line.trim()}`] : [],
     );
     expect(found).toEqual([]);
   },

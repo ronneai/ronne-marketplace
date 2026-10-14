@@ -61,6 +61,8 @@ export const prepareStart = async (options: {
     else log.info("Database up to date", { dialect });
     return { mode: "ready", applied, dialect };
   } catch (error) {
+    // A line for collectors (the driver's error, its secrets redacted); start.ts prints the message.
+    log.error("Migrations failed, so the server wasn't started", { dialect, err: error });
     throw new StartError(
       `Migrations failed, so the server wasn't started: ${(error as Error).message}`,
     );

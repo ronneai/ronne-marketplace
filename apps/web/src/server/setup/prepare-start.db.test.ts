@@ -98,9 +98,16 @@ describe("prepareStart", () => {
     });
     await db.destroy();
 
+    const lines: Record<string, unknown>[] = [];
     await expect(
-      prepareStart({ appDir: dir, dataDir: dir, env: configured(), log: silent }),
+      prepareStart({ appDir: dir, dataDir: dir, env: configured(), log: collect(lines) }),
     ).rejects.toThrowError(StartError);
+    expect(lines.at(-1)).toMatchObject({
+      level: "error",
+      msg: "Migrations failed, so the server wasn't started",
+      dialect: "sqlite",
+      err: expect.objectContaining({ stack: expect.any(String) }),
+    });
   });
 
   it("refuses to start when the data folder isn't writable, and says how to fix it", async () => {

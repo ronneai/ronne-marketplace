@@ -566,6 +566,22 @@ describe("the marketplace cache (079)", () => {
     );
     expect(two).toEqual(one);
     expect(second.reads).toEqual({ catalogue: 0, storage: 0 });
+    // feed.built (feature 100): at info when built, at debug from the cache.
+    expect(logged.filter((line) => line.event === "feed.built")).toEqual([
+      expect.objectContaining({
+        level: "info",
+        tool: "claude-code",
+        plugins: 2,
+        ms: expect.any(Number),
+        bytes: one.length,
+      }),
+      expect.objectContaining({
+        level: "debug",
+        tool: "claude-code",
+        cached: true,
+        bytes: one.length,
+      }),
+    ]);
   });
 
   it("builds again after a release, and for another PUBLIC_URL", async () => {

@@ -891,3 +891,33 @@ Witnessed: 2026-10-14 15:51 EDT, by a fresh agent (blind). Commit: 2cfee292. Mac
 | 16 | No regressions | no | confirmed | 93 passed |
 
 **Overall:** met.
+
+## Task 3 — The events
+
+Witnessed: 2026-10-14 16:10 EDT, by a fresh agent (blind). Commit: c8a7c616. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Every table event named in one module, level and fields | no | confirmed | `events.ts:17-70`: 21 events, plus `log.level_invalid` |
+| 2 | `server.started` after the server loads; the scripts build | no | confirmed | `start.mjs` with a stub server → the line after `STUB SERVER LOADED`; no DATABASE_URL or PUBLIC_URL |
+| 3 | `server.migrations_applied` | no | confirmed | Built `start.mjs` → `count:24, latest:0024_scope_moves`; next run "Database up to date" |
+| 4 | `http.request`, `http.error` unchanged | no | confirmed | No diff since task 2 |
+| 5 | Sign-in and token-exchange events | no | confirmed | `log-events.db.test.ts`. Remark: the exchange's failure also has `via: "cli"` |
+| 6 | `token.exchanged`, `token.rejected` (`unknown`, `revoked`, `expired`) | no | partly | The code also writes `disabled`, not in the spec; no test asserts `expired` or `disabled` |
+| 7 | `version.released`: one per release, one per bulk release | no | confirmed | Tests: count 1; count 2 |
+| 8 | `version.yanked` once per yank | no | confirmed | Second yank writes nothing |
+| 9 | `draft.uploaded`, `draft.upload_refused` | no | confirmed | Test. Remark: only the API path logs; web-app drafts write none |
+| 10 | Upload and usage rate limits | no | confirmed | Tests |
+| 11 | `submission.checks_failed` replaces the `console.warn` | no | confirmed | Test; `err` redacted |
+| 12 | `feed.built` tested | no | partly | The line is right (probe: info, then debug from cache) but no test asserts it |
+| 13 | `feed.size_warning`, `feed.plugin_skipped`, no item names | no | confirmed | Tests |
+| 14 | `db.unavailable` at the health check and at start | no | partly | Health check: tested. At start: only `start.ts`'s plain `✗ Migrations failed …`, no JSON line |
+| 15 | Lines the table doesn't name are harmless | no | confirmed | Setup mode, "Database up to date", background build lines, Better Auth's |
+| 16 | No line holds an email, a name, an item name, a token, a password or a database URL | no | partly | An `err` carries a library's message as is: a storage EACCES wrote `…/team/secret-item/1.0.0.tgz` under `submission.checks_failed` |
+| 17 | Environment values not logged, but the stated exception | no | confirmed | `PORT` as a number; before setup `url` and `command` |
+| 18 | Better Auth's logger routed to ours, without its other arguments | no | confirmed | Its "Invalid password" line as `identity`, `source: better-auth`; test |
+| 19 | `console.*` gone from `apps/web/src/server` | no | confirmed | One hit, a comment |
+| 20 | The guard fails on a new `console.*` | no | confirmed | Catches `console.log`, `console["log"]`, `globalThis.console.log`, a new `.mts`; misses `const { log } = console`, `const c = console` |
+| 21 | Tests, lint, types | no | confirmed | Unit 958, db 784; clean |
+
+**Overall:** not met: `feed.built` untested; no `db.unavailable` at start; `token.rejected`'s `disabled` unlisted and `expired`/`disabled` untested; an `err` can carry an item's name through a storage path. Owner's decision (2026-10-14): hide paths under the storage's folder in log lines.

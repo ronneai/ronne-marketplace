@@ -106,7 +106,7 @@ At least, named in one module so the list in the Documentation can't drift:
 | `http.error` | error | `err`, `route` |
 | `auth.signed_in` / `auth.sign_in_failed` | info / warn | `userId` (success only), `reason` |
 | `auth.rate_limited` | warn | `limit` (`sign_in`, `token_exchange`) |
-| `token.exchanged` / `token.rejected` | info / warn | `userId` / `reason` (`unknown`, `revoked`, `expired`) |
+| `token.exchanged` / `token.rejected` | info / warn | `userId` / `reason` (`unknown`, `revoked`, `expired`, `disabled`) |
 | `version.released` | info | `count` (a bulk release logs one line), `userId` |
 | `version.yanked` | info | `userId` |
 | `draft.uploaded` / `draft.upload_refused` | info / warn | `files`, `bytes` / `reason` |
@@ -114,7 +114,7 @@ At least, named in one module so the list in the Documentation can't drift:
 | `submission.checks_failed` | warn | `err` (today's `console.warn` in `drafts.ts`) |
 | `feed.built` | info (debug when from cache) | `tool`, `plugins`, `ms`, `bytes` |
 | `feed.size_warning`, `feed.plugin_skipped` | warn | `tool`, `percent` / `reason` (`name_refused`, `build_failed`; never the item's name) |
-| `db.unavailable` | error | `err` (health check, start) |
+| `db.unavailable` | error | `err` (the health check; at start, a failed migration writes its own error line, with the driver's error, before the server stops) |
 
 Item, scope and workspace names aren't logged: a private workspace's names aren't visible to whoever
 reads the logs (093), and the audit log already says which item.

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { toDbDate } from "../../../db/dates";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
 import { setLoggerForTests } from "../../../log";
 import { LoginRateLimiter } from "../models/login-rate-limiter";
@@ -106,5 +107,27 @@ describe("tokens", () => {
       "revoked",
     ]);
     expect(JSON.stringify(lines)).not.toContain(made.token);
+  });
+
+  it("token.rejected for an expired token and a disabled user", async () => {
+    const result = await signIn(new Headers(), { email, password, rememberMe: false }, app);
+    if (!result.ok) throw new Error(result.error);
+    const headers = cookieHeaders(result.headers.get("set-cookie"));
+    const expiring = await createMyToken(headers, { name: "short", lifetime: "30" }, app);
+    const lasting = await createMyToken(headers, { name: "long" }, app);
+    await t.db
+      .updateTable("access_tokens")
+      .set({ expires_at: toDbDate(new Date(Date.now() - 1000), t.dialect) })
+      .where("id", "=", expiring.id)
+      .execute();
+    await t.db
+      .updateTable("user")
+      .set({ disabled_at: toDbDate(new Date(), t.dialect) })
+      .where("id", "=", userId)
+      .execute();
+    lines.length = 0;
+    await authenticateToken(expiring.token, app);
+    await authenticateToken(lasting.token, app);
+    expect(events("token.rejected").map((line) => line.reason)).toEqual(["expired", "disabled"]);
   });
 });

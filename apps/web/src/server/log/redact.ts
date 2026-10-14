@@ -71,9 +71,55 @@ const redactUrlPasswords = (value: string): string => {
   return value;
 };
 
-/** A string with every access token and URL password taken out, cut to MAX_STRING characters. */
+/**
+ * Folders whose contents' names aren't logged (feature 100, owner's decision): the storage's, whose
+ * paths are `scope/name/version.tgz`, so a storage error would name an item a private workspace
+ * hides (093). A storage adapter registers its root as it's made.
+ */
+const hiddenRoots = new Set<string>();
+
+export const hidePathsUnder = (root: string): void => {
+  // Trailing slashes off, with a loop (docs/knowledge/codeql-regex.md).
+  let end = root.length;
+  while (end > 0 && (root.charAt(end - 1) === "/" || root.charAt(end - 1) === "\\")) end--;
+  if (end > 0) hiddenRoots.add(root.slice(0, end));
+};
+
+/** A path's end: a space, a quote or what closes it in a message. */
+const PATH_END = new Set([" ", "\t", "\n", "'", '"', "`", ",", ";", ")", "]", "}"]);
+
+/** Every path under `root` written as `root/[path]`. A loop: one pass over the text. */
+const hideUnder = (value: string, root: string): string => {
+  let out = "";
+  let from = 0;
+  for (let at = value.indexOf(root); at !== -1; at = value.indexOf(root, from)) {
+    const start = at + root.length;
+    const next = value.charAt(start);
+    if (next !== "/" && next !== "\\") {
+      out += value.slice(from, start);
+      from = start;
+      continue;
+    }
+    let end = start + 1;
+    while (end < value.length && !PATH_END.has(value.charAt(end))) end++;
+    out += `${value.slice(from, start)}${next}[path]`;
+    from = end;
+  }
+  return out + value.slice(from);
+};
+
+const hidePaths = (value: string): string => {
+  let out = value;
+  for (const root of hiddenRoots) out = hideUnder(out, root);
+  return out;
+};
+
+/**
+ * A string with every access token, URL password and storage path taken out, cut to MAX_STRING
+ * characters.
+ */
 export const redactString = (value: string): string => {
-  const clean = redactUrlPasswords(value.replace(ACCESS_TOKEN, "rmk_[redacted]"));
+  const clean = hidePaths(redactUrlPasswords(value.replace(ACCESS_TOKEN, "rmk_[redacted]")));
   return clean.length > MAX_STRING ? `${clean.slice(0, MAX_STRING)}…` : clean;
 };
 
