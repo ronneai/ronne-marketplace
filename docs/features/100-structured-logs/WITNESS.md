@@ -1293,3 +1293,33 @@ Witnessed: 2026-10-14 17:53 EDT, by a fresh agent (blind). Commit: 101f9d5a (HEA
 | 21 | Marketplace help tests | no | confirmed | 3 passed |
 
 **Overall:** not met: a URL before a duplicate-key value in one message let the value through; two wordings. Fixed in the next commit (duplicate values hidden before URL passwords; a test fails with the old order) and ronne-web ("releasing many at once", "publication en bloc").
+
+## Task 6 — Documentation (seventh re-check)
+
+Witnessed: 2026-10-14 18:00 EDT, by a fresh agent (blind). Commit: 4f06f880 (ronne-web c92b77f). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Every event in the table in en, pt, fr, nothing extra | no | confirmed | `cmp.mjs`: 21 each; drift in a changed copy is caught |
+| 2 | Every field writers write is listed | no | confirmed | 29 `.event(` calls |
+| 3 | Level variants and When notes | no | confirmed | `api-route.ts:37-41`, `plugin-feed.ts:409`, `started.ts:26` |
+| 4 | `operations#logs` in both `topics.ts` | no | confirmed | Both |
+| 5 | Where the logs are | no | confirmed | `compose.yaml:50`, `layout.ts:94`, `linux.ts:110`, `args.ts:150` |
+| 6 | A clone: `pnpm start` JSON, `pnpm dev` text | no | confirmed | Next's `bin/next:54,80`; `logger.ts:261-268`; probe; `turbo.json:19` |
+| 7 | `time`, `level`, fixed `msg`, the example, Better Auth's lines | no | confirmed | Child-process probe |
+| 8 | `domain`, `requestId`, `userId`, `err` | no | confirmed | Probe |
+| 9 | LOG_LEVEL | no | confirmed | Probe: unset, `WARN`, `debug`, `bogus` |
+| 10 | Settings file, environment, Docker's `.env`, restart | no | confirmed | `RONNE_ENV_FILE` probe; `config.ts:41`; `docker compose config` with and without `--env-file` |
+| 11 | What the logger takes out, alone and combined | no | confirmed | Probe: each rule; a URL then a duplicate-key value → `'[value]'` (`redact.test.ts:565`) |
+| 12 | Ronne doesn't write secrets, emails, IPs, names | no | confirmed | 29 calls and plain server calls |
+| 13 | Next.js's own output | no | confirmed | `instrumentation.ts`; spec's known limit |
+| 14 | X-Request-Id | no | confirmed | 22 of 22 API routes; `api-route.ts:31`; `proxy.ts:22-25` |
+| 15 | TRUST_PROXY | no | confirmed | `request-id.ts:17-22` |
+| 16 | en, pt, fr the same | no | confirmed | Side by side |
+| 17 | The site's terms | no | partly | fr "Trop de rapports d'usage"; the fr site says "rapports d'utilisation" |
+| 18 | `.env.example` | no | confirmed | Lines 26-30 |
+| 19 | Install guide | no | confirmed | Lines 304-310 |
+| 20 | ronne-web tests and typecheck | no | confirmed | 138 passed; exit 0 |
+| 21 | Marketplace help tests | no | confirmed | 3 passed |
+
+**Overall:** not met: one French term. Fixed in ronne-web (next commit after c92b77f): "rapports d'utilisation".
