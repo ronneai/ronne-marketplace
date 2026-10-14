@@ -27,7 +27,7 @@ name: Release
 #    packages (085) never point at a partial release.
 #
 # Run by hand with "dry run" (from main, so the current workflow runs) to check everything, build,
-# run and scan both images, build and smoke-test the six bundles, and publish nothing.
+# run and scan both images, build and smoke-test the four bundles, and publish nothing.
 
 on:
   push:

@@ -42,7 +42,7 @@ describe("checkPack", () => {
   });
 
   it("lets the server ship the web app in app/, but never a .env or a native binary (082)", () => {
-    // THIRD_PARTY_NOTICES: written at pack time by notices.js (084). No WinSW: no Windows server (121).
+    // THIRD_PARTY_NOTICES: written at pack time by notices.js (084).
     const app = [
       "app/apps/web/server.js",
       "app/apps/web/dist-scripts/start.mjs",
@@ -65,14 +65,14 @@ describe("checkPack", () => {
         "app/apps/web/.env.local",
         "app/x/better_sqlite3.node",
         "dist/run.js.map",
-        "vendor/winsw/WinSW-x64.exe",
+        "vendor/tool/tool.exe",
       ),
     ).toEqual([
       "would ship app/apps/web/.env",
       "would ship app/apps/web/.env.local",
       "would ship app/x/better_sqlite3.node",
       "would ship dist/run.js.map",
-      "would ship vendor/winsw/WinSW-x64.exe, which isn't on the allowlist",
+      "would ship vendor/tool/tool.exe, which isn't on the allowlist",
     ]);
     expect(pack("app/apps/web/.env.example")).toEqual(["would ship app/apps/web/.env.example"]);
     expect(checkPack("server", { name: "@ronneai/marketplace", files: files(...base) })).toEqual([

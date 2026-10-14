@@ -51,7 +51,7 @@ const NEXT_ENV_FILES = [
   ".env.production.local",
 ];
 
-/** A command to run next, quoted, as typed on the host; with sudo (or as an administrator) for a service. */
+/** A command to run next, quoted, as typed on the host; with sudo for a service. */
 const followUp = (name: string, args: string, env: Env) => {
   const command = `${hostCommand(name, env)} ${args}`;
   if (runtimeOf(env) !== "npm" || env.RONNE_SERVICE !== "1") return `\`${command}\``;
