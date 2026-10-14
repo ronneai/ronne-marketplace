@@ -5,7 +5,6 @@ import { join } from "node:path";
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import {
   bundleName,
-  cmdLauncher,
   errorText,
   getRetrying,
   latestOf,
@@ -24,7 +23,6 @@ describe("the bundle's Node.js (084)", () => {
   it("names each platform's download as nodejs.org does", () => {
     expect(nodeArchive("linux", "x64", "24.21.0")).toBe("node-v24.21.0-linux-x64.tar.gz");
     expect(nodeArchive("darwin", "arm64", "24.21.0")).toBe("node-v24.21.0-darwin-arm64.tar.gz");
-    expect(nodeArchive("win32", "arm64", "24.21.0")).toBe("node-v24.21.0-win-arm64.zip");
   });
 
   it("takes the newest release of the major from index.json", () => {
@@ -73,16 +71,6 @@ describe("the launchers (084)", () => {
         /^bundle=1 \/.*rmk-server-0\.4\.0-linux-x64\/lib\/node_modules\/@ronneai\/marketplace\/dist\/bin\.js --version a b$/,
       );
     }
-  });
-
-  it("Windows: the bundled node.exe, with CRLF lines", () => {
-    const cmd = cmdLauncher();
-    expect(cmd).toContain(
-      '"%~dp0..\\node\\node.exe" "%~dp0..\\lib\\node_modules\\@ronneai\\marketplace\\dist\\bin.js" %*',
-    );
-    expect(cmd).toContain("set RONNE_BUNDLE=1");
-    expect(cmd.split("\r\n").length).toBeGreaterThan(3);
-    expect(cmd.replaceAll("\r\n", "")).not.toContain("\n");
   });
 });
 
@@ -150,27 +138,17 @@ describe("the notices (084)", () => {
 
 describe("the bundle's smoke test (084)", () => {
   it("takes every folder with a node off PATH", () => {
-    const has = new Set([
-      "/usr/local/bin/node",
-      "/opt/n/bin/node",
-      "C:\\Program Files\\nodejs\\node.exe",
-    ]);
+    const has = new Set(["/usr/local/bin/node", "/opt/n/bin/node"]);
     const exists = (path) => has.has(path);
-    expect(pathWithoutNode("/usr/local/bin:/usr/bin:/opt/n/bin:/bin", "linux", exists)).toBe(
+    expect(pathWithoutNode("/usr/local/bin:/usr/bin:/opt/n/bin:/bin", exists)).toBe(
       "/usr/bin:/bin",
     );
-    expect(
-      pathWithoutNode("C:\\Windows\\System32;C:\\Program Files\\nodejs", "win32", (p) =>
-        exists(p.replaceAll("/", "\\")),
-      ),
-    ).toBe("C:\\Windows\\System32");
   });
 
   it("knows the folder an archive unpacks to", () => {
     expect(archiveFolder("out/rmk-server-0.4.0-linux-x64.tar.gz")).toBe(
       "rmk-server-0.4.0-linux-x64",
     );
-    expect(archiveFolder("rmk-server-0.4.0-win32-arm64.zip")).toBe("rmk-server-0.4.0-win32-arm64");
   });
 });
 

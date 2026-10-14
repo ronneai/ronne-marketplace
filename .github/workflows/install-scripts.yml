@@ -1,10 +1,8 @@
 name: Install scripts
 
-# The install scripts (feature 081): install.sh parsed as POSIX sh by shfmt and its tests run under
-# dash and bash; install.ps1 linted by PSScriptAnalyzer and its tests run under Windows PowerShell
-# 5.1 and PowerShell 7 on Windows. GitHub's Windows runners can't run Linux containers, so the
-# Windows tests stop at the Docker check. install.sh's full run, on the image just built, is in the
-# image workflow (.github/actions/build-image/install-probe.sh).
+# The install script (feature 081): install.sh parsed as POSIX sh by shfmt and its tests run under
+# dash and bash (no install.ps1 since 121: on Windows, WSL 2). install.sh's full run, on the image
+# just built, is in the image workflow (.github/actions/build-image/install-probe.sh).
 #
 # A pull request runs it only when it changes the scripts (changes.yml's `install`, ci-scope.js),
 # and not while it's a draft: shfmt comes from Docker Hub. nightly.yml runs it on main every night,
@@ -68,52 +66,16 @@ jobs:
       - name: Tests under bash
         run: bash scripts/install/test-install.sh
 
-  ps1:
-    name: install.ps1 (PSScriptAnalyzer, PowerShell 5.1 and 7)
-    needs: changes
-    if: >-
-      ${{ !cancelled() && needs.changes.outputs.code != 'false'
-      && needs.changes.outputs.full != 'false' && needs.changes.outputs.install != 'false' }}
-    runs-on: windows-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - name: PSScriptAnalyzer
-        shell: pwsh
-        run: |
-          $ProgressPreference = 'SilentlyContinue'
-          Install-Module PSScriptAnalyzer -RequiredVersion 1.25.0 -Scope CurrentUser -Force
-          $settings = @{ Rules = @{ PSUseCompatibleSyntax = @{ Enable = $true; TargetVersions = @('5.1', '7.4') } } }
-          $findings = Invoke-ScriptAnalyzer -Path scripts/install -Settings $settings
-          $findings | Format-Table -AutoSize ScriptName, Severity, RuleName, Line, Message | Out-String -Width 200
-          if ($findings) { exit 1 }
-      - name: Tests under Windows PowerShell 5.1
-        shell: powershell
-        run: |
-          $PSVersionTable.PSVersion.ToString()
-          powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install/test-install.ps1
-          exit $LASTEXITCODE
-      - name: Tests under PowerShell 7
-        shell: pwsh
-        run: |
-          $PSVersionTable.PSVersion.ToString()
-          pwsh -NoProfile -File scripts/install/test-install.ps1
-          exit $LASTEXITCODE
-
-  # One check to require: it passes when both jobs passed, or when the pull request didn't need them.
+  # One check to require: it passes when the job passed, or when the pull request didn't need it.
   install-scripts:
     name: Install scripts
-    needs: [changes, sh, ps1]
+    needs: [changes, sh]
     if: ${{ always() }}
     runs-on: ubuntu-latest
     steps:
-      - name: Both scripts passed
-        # Not PS1: that's bash's prompt variable, which a non-interactive bash clears.
+      - name: The script passed
         env:
           SH_RESULT: ${{ needs.sh.result }}
-          PS1_RESULT: ${{ needs.ps1.result }}
         run: |
-          echo "install.sh: $SH_RESULT, install.ps1: $PS1_RESULT"
-          for r in "$SH_RESULT" "$PS1_RESULT"; do [ "$r" = success ] || [ "$r" = skipped ] || exit 1; done
+          echo "install.sh: $SH_RESULT"
+          [ "$SH_RESULT" = success ] || [ "$SH_RESULT" = skipped ]

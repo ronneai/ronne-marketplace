@@ -6,7 +6,8 @@ import { InPlaceWriteError, writeEnvFile } from "./env-file";
 
 // A disk that fills up while the file is rewritten in place (098): the write to an open file
 // fails, or closing it does.
-const failing = vi.hoisted(() => ({ write: true, close: false, folder: false, chmod: false }));
+// The folder can't take a new file (the service's /etc layout), so the file is rewritten in place.
+const failing = vi.hoisted(() => ({ write: true, close: false, folder: true, chmod: false }));
 vi.mock("node:fs", async (importOriginal) => {
   const fs = await importOriginal<typeof import("node:fs")>();
   const fail = (code: string) => Object.assign(new Error(`${code}: failed`), { code });
@@ -39,7 +40,7 @@ describe("writeEnvFile in place", () => {
     writeFileSync(path, "A=1\n");
     const failure = (() => {
       try {
-        writeEnvFile(path, "A=2\n", "win32");
+        writeEnvFile(path, "A=2\n");
       } catch (error) {
         return error;
       }
@@ -59,7 +60,7 @@ describe("writeEnvFile in place", () => {
     writeFileSync(path, "A=1\n");
     const failure = (() => {
       try {
-        writeEnvFile(path, "A=2\n", "win32");
+        writeEnvFile(path, "A=2\n");
       } catch (error) {
         return error as InPlaceWriteError;
       }
@@ -72,13 +73,12 @@ describe("writeEnvFile in place", () => {
   it("written in full, then setting the mode fails: complete, with the new content in place", () => {
     failing.write = false;
     failing.close = false;
-    failing.folder = true;
     failing.chmod = true;
     const path = join(dir, ".env");
     writeFileSync(path, "A=1\n");
     const failure = (() => {
       try {
-        writeEnvFile(path, "A=3\n", "linux");
+        writeEnvFile(path, "A=3\n");
       } catch (error) {
         return error as InPlaceWriteError;
       }

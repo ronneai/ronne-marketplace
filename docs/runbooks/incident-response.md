@@ -17,7 +17,6 @@ Two commands are made for incidents. Neither asks for a password; both ask befor
 |---|---|---|
 | Docker (the install script) | `docker compose exec web pnpm run revoke-access --everyone` | `docker compose exec web pnpm run rotate-secret` |
 | Linux or macOS service (the packages, `rmk-server service install`) | `sudo rmk-server revoke-access --everyone` | `sudo rmk-server rotate-secret` |
-| Windows service | `rmk-server revoke-access --everyone`, in a terminal run as administrator | `rmk-server rotate-secret`, as administrator |
 | npm, no service | `rmk-server revoke-access --everyone` | `rmk-server rotate-secret` |
 | A clone of the repository | `pnpm run revoke-access --everyone` | `pnpm run rotate-secret` |
 
@@ -117,8 +116,7 @@ didn't make.
 **How you'd know:** a copy of the settings file where it shouldn't be, or of a backup, or someone
 else had access to the server. The settings file is `/app/data/.env` on the `ronne-data` volume
 with Docker, `/etc/rmk-server/env` for a Linux service, `etc/rmk-server/env` under the Homebrew prefix (else `/usr/local`)
-on macOS, `C:\ProgramData\RonneAI\Marketplace\.env` on Windows, and `.env` in the data folder for
-npm.
+on macOS, and `.env` in the data folder for npm.
 
 Whoever has the settings file has `AUTH_SECRET`, which lets them forge sign-in cookies, and
 `DATABASE_URL`, with the database password.

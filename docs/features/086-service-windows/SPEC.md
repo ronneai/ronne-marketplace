@@ -1,5 +1,7 @@
 # 086 — Running as a service on Windows
 
+> **Withdrawn by [121](../121-no-windows-server/SPEC.md)** (owner, 2026-10-14): the server runs on Linux and macOS only; on Windows, WSL 2 or a Linux VM. The code and its CI were removed; this spec stays as history.
+
 > Milestone: M12 · Depends on: 083, 084 · Design: [MVP §5](../../MVP/MVP.md#5-installation--bootstrap) · Guide: [`docs/runbooks/install.md`](../../runbooks/install.md)
 
 ## Goal

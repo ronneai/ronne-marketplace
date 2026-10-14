@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Usage: node packages/repo-tools/src/release-install-scripts.js <version> <folder>
-// Writes install.sh and install.ps1 with the version written in, and checksums.txt, into the
+// Writes install.sh with the version written in, and checksums.txt, into the
 // folder: the GitHub release's assets (feature 081).
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";

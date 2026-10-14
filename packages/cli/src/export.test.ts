@@ -30,6 +30,9 @@ import {
   type Route,
 } from "./testing.js";
 
+// Windows keeps no POSIX modes: no executable bit, no 0600 (rmk on Windows, 121).
+const posix = process.platform !== "win32";
+
 let io: FakeIo;
 afterEach(() => io?.cleanup());
 
@@ -117,7 +120,7 @@ describe("walkItemFolder", () => {
     expect(walked.files.map((f) => [f.path, f.executable])).toEqual([
       ["SKILL.md", false],
       ["docs/guide.md", false],
-      ["scripts/run.sh", true],
+      ["scripts/run.sh", posix],
     ]);
     expect(walked.skipped).toEqual([
       { path: ".DS_Store", reason: "not_item" },
@@ -478,8 +481,10 @@ describe("planExport", () => {
     write(io.cwd, ".claude/skills/review/checklist.md", "Check it!\n");
     const edited = await fingerprint();
     expect(edited).not.toBe(first);
-    chmodSync(join(io.cwd, ".claude/skills/review/checklist.md"), 0o755);
-    expect(await fingerprint()).not.toBe(edited);
+    if (posix) {
+      chmodSync(join(io.cwd, ".claude/skills/review/checklist.md"), 0o755);
+      expect(await fingerprint()).not.toBe(edited);
+    }
     expect((await plan(api, { items: ["review"], to: "platform" })).fingerprint).not.toBe(
       await fingerprint(),
     );
@@ -554,7 +559,7 @@ describe("uploadExport", () => {
           content: expect.stringContaining('name: "@team/one"'),
           executable: false,
         },
-        { path: "run.sh", encoding: "utf8", content: "#!/bin/sh\n", executable: true },
+        { path: "run.sh", encoding: "utf8", content: "#!/bin/sh\n", executable: posix },
       ],
     });
     expect(exported).toEqual([

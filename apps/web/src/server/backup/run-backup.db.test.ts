@@ -285,8 +285,8 @@ describe("rmk-server backup (099)", () => {
     expect(existsSync(join(i.storage, "backups"))).toBe(false);
 
     // A storage folder that isn't there yet, named in another case: the same folder on macOS's
-    // and Windows' disks (by default).
-    if (process.platform === "darwin" || process.platform === "win32") {
+    // disks (by default).
+    if (process.platform === "darwin") {
       const j = await instance();
       const upper = join(j.appDir, "STORE");
       writeFileSync(
@@ -297,8 +297,7 @@ describe("rmk-server backup (099)", () => {
         /inside the storage folder/,
       );
     }
-    // As macOS's disk (APFS) compares names: Unicode forms and full case folding. NTFS upper-cases
-    // simply, so on Windows these are different folders.
+    // As macOS's disk (APFS) compares names: Unicode forms and full case folding.
     if (process.platform === "darwin") {
       const j = await instance();
       for (const [storage, out] of [
@@ -717,8 +716,15 @@ describe("rmk-server backup (099)", () => {
       const held = new Promise<void>((resolve) => {
         release = resolve;
       });
+      // Started only once the other connection holds the lock: otherwise the backup could take it
+      // first and finish at once (a race CI met).
+      let acquired: () => void = () => undefined;
+      const holding = new Promise<void>((resolve) => {
+        acquired = resolve;
+      });
       const locked = other.connection().execute(async (connection) => {
         await adapter.acquireMigrationLock(connection as Kysely<unknown>, options);
+        acquired();
         await held;
         // A migration lands before the lock is released: the snapshot must see it.
         await sql`create table backup_lock_probe (id varchar(26) primary key)`.execute(connection);
@@ -727,6 +733,7 @@ describe("rmk-server backup (099)", () => {
       cleanups.push(async () => {
         await sql`drop table if exists backup_lock_probe`.execute(i.db);
       });
+      await holding;
       let settled = false;
       const running = backup(i).finally(() => {
         settled = true;

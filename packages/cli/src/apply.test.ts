@@ -20,12 +20,16 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   applyPlan,
   emptyState,
+  hashFor,
   mustStayInside,
   planChanges,
   type State,
   type Wanted,
 } from "./apply.js";
 import { writeFileAtomic } from "./project.js";
+
+// Windows keeps no POSIX modes: no executable bit, no 0600 (rmk on Windows, 121).
+const posix = process.platform !== "win32";
 
 let root: string;
 beforeEach(() => {
@@ -265,7 +269,7 @@ describe("applying changes", () => {
     ).rejects.toMatchObject({ code: "name_clash" });
   });
 
-  it("keeps executable bits, and writes files whole", async () => {
+  it.skipIf(!posix)("keeps executable bits, and writes files whole", async () => {
     await install(emptyState(), [
       wanted({ kind: "file", path: "bin/run.sh", content: "#!/bin/sh\n", executable: true }),
     ]);
@@ -554,5 +558,20 @@ describe("paths outside the folder (security audit ITEM-1)", () => {
       /outside|leave the folder/,
     );
     expect(existsSync(join(home, "code", "victim"))).toBe(true);
+  });
+});
+
+describe("the hash rmk records for a folder (121)", () => {
+  const folder = (executable: boolean): Change => ({
+    kind: "dir",
+    path: ".claude/hooks/x",
+    files: [{ path: "run.sh", content: "#!/bin/sh\n", executable }],
+  });
+
+  it("counts the executable bit where the disk keeps it, and leaves it out on Windows", async () => {
+    expect(await hashFor(folder(true), "linux")).not.toBe(await hashFor(folder(false), "linux"));
+    expect(await hashFor(folder(true), "darwin")).not.toBe(await hashFor(folder(false), "darwin"));
+    // Windows reads every file as not executable: the hash written and the one read must agree.
+    expect(await hashFor(folder(true), "win32")).toBe(await hashFor(folder(false), "win32"));
   });
 });

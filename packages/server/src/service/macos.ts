@@ -175,10 +175,7 @@ export const macBackend = (sys: System): Backend => {
     logsHint: (definition) => `tail -f ${definition.logFile ?? "/Library/Logs/rmk-server"}`,
     caddyHint: () =>
       "Install it with Homebrew: brew install caddy (and don't start brew's own caddy service, which would take ports 80 and 443).",
-    // Their firewalls (nftables, firewalld, ufw; pf) are the owner's to configure.
     makeFolder: (path, mode) => sys.mkdir(path, mode),
-    allowInbound: () => {},
-    removeInbound: () => {},
     cantRunHint: homeFolderHint,
     portHolder: (port) => {
       const listing = sys.run("lsof", ["-nP", `-iTCP:${port}`, "-sTCP:LISTEN", "-Fpc"]).stdout;

@@ -1,4 +1,4 @@
-// The install scripts as release assets (feature 081): the version written in, and their checksums.
+// The install script as a release asset (feature 081; no install.ps1 since 121): the version written in, and their checksums.
 // Plain JavaScript with no dependencies.
 import { createHash } from "node:crypto";
 import { isVersion } from "./release.js";
@@ -6,7 +6,6 @@ import { isVersion } from "./release.js";
 /** The install scripts, as paths from the repository root, by the name they're published under. */
 export const INSTALL_SCRIPTS = {
   "install.sh": "scripts/install/install.sh",
-  "install.ps1": "scripts/install/install.ps1",
 };
 
 /** What the scripts carry in place of a version until a release writes one in. */

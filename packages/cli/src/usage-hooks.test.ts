@@ -241,6 +241,8 @@ const rmkOnPath = () => {
   mkdirSync(bin, { recursive: true });
   writeFileSync(join(bin, "rmk"), "#!/bin/sh\n");
   chmodSync(join(bin, "rmk"), 0o755);
+  // On Windows npm leaves rmk.cmd, found through PATHEXT.
+  if (process.platform === "win32") writeFileSync(join(bin, "rmk.cmd"), "@echo off\r\n");
   io.env.PATH = bin;
 };
 

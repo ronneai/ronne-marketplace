@@ -21,13 +21,13 @@ name: Release
 # 4. `server-checks`, `install-scripts`, `database` and `e2e`: the suites a pull request may skip
 #    (docs/knowledge/test-runs.md), run on what this release publishes, on a dry run too.
 # 5. `github-release`: the GitHub release, once every artefact of the version exists and every
-#    check above passed, with the npm tarballs, the install scripts (install.sh, install.ps1;
-#    feature 081) and the six bundles attached, and checksums.txt covering the scripts and the
-#    bundles. A bundle that failed on any platform stops it, so the packages (085, 087) never
-#    point at a partial release.
+#    check above passed, with the npm tarballs, the install script (install.sh; feature 081) and
+#    the four bundles (Linux and macOS; no Windows server since 121) attached, and checksums.txt
+#    covering the script and the bundles. A bundle that failed on any platform stops it, so the
+#    packages (085) never point at a partial release.
 #
 # Run by hand with "dry run" (from main, so the current workflow runs) to check everything, build,
-# run and scan both images, build and smoke-test the six bundles, and publish nothing.
+# run and scan both images, build and smoke-test the four bundles, and publish nothing.
 
 on:
   push:
@@ -348,13 +348,13 @@ jobs:
 
   # What a pull request may have skipped (docs/knowledge/test-runs.md), on what this run publishes.
   # Also on a dry run, which the checklist makes the gate before any tag (docs/runbooks/release.md).
-  # The install matrix and the services on Linux, macOS and Windows, from this run's server tarball
-  # and Windows bundle (server-checks.yml).
+  # The install matrix and the services on Linux and macOS, and Windows' refusal, from this run's
+  # server tarball (server-checks.yml).
   server-checks:
     needs: bundles
     uses: ./.github/workflows/server-checks.yml
 
-  # install.sh and install.ps1 (081).
+  # install.sh (081).
   install-scripts:
     needs: release
     uses: ./.github/workflows/install-scripts.yml
@@ -407,9 +407,9 @@ jobs:
         working-directory: release
         run: |
           sha256sum -c checksums.txt
-          count=$(ls rmk-server-*.tar.gz rmk-server-*.zip | wc -l)
-          [ "$count" -eq 6 ] || { echo "Expected 6 bundles, found $count."; exit 1; }
-          sha256sum rmk-server-*.tar.gz rmk-server-*.zip >> checksums.txt
+          count=$(ls rmk-server-*.tar.gz | wc -l)
+          [ "$count" -eq 4 ] || { echo "Expected 4 bundles, found $count."; exit 1; }
+          sha256sum rmk-server-*.tar.gz >> checksums.txt
           packages=$(ls rmk-server*.deb rmk-server*.rpm | wc -l)
           [ "$packages" -eq 4 ] || { echo "Expected 4 Linux packages (.deb and .rpm, amd64 and arm64), found $packages."; exit 1; }
           sha256sum rmk-server*.deb rmk-server*.rpm >> checksums.txt
@@ -428,9 +428,11 @@ jobs:
           tar -xzf release/rmk-server-*-linux-x64.tar.gz -C "$RUNNER_TEMP"
           NODE_VERSION=$("$RUNNER_TEMP"/rmk-server-*-linux-x64/node/bin/node --version)
           {
-            echo "**Install with Docker:** \`curl -fsSL https://www.ronne.ai/marketplace/install.sh | sh\` (macOS, Linux) or \`irm https://www.ronne.ai/marketplace/install.ps1 | iex\` (Windows); both redirect to this release's install.sh and install.ps1 below. Docker image: \`docker pull ${IMAGE#docker.io/}:$VERSION\` (linux/amd64, linux/arm64)."
+            echo "**Install with Docker:** \`curl -fsSL https://www.ronne.ai/marketplace/install.sh | sh\` (macOS, Linux); it redirects to this release's install.sh below. Docker image: \`docker pull ${IMAGE#docker.io/}:$VERSION\` (linux/amd64, linux/arm64)."
             echo
-            echo "**Without Docker or Node.js:** rmk-server with Node.js ${NODE_VERSION#v} inside, one archive per system: \`rmk-server-$VERSION-linux-x64.tar.gz\`, \`rmk-server-$VERSION-linux-arm64.tar.gz\`, \`rmk-server-$VERSION-darwin-x64.tar.gz\`, \`rmk-server-$VERSION-darwin-arm64.tar.gz\`, \`rmk-server-$VERSION-win32-x64.zip\`, \`rmk-server-$VERSION-win32-arm64.zip\`. Unpack and run \`bin/rmk-server\` (\`bin\\rmk-server.cmd\` on Windows). The Linux archives need glibc 2.34 or later (Debian 12, Ubuntu 22.04, RHEL 9 and newer: SQLite's prebuilt module needs it); elsewhere, Alpine (musl) included, use Docker. Each holds THIRD_PARTY_NOTICES."
+            echo "**On Windows:** the server runs in WSL 2 or a Linux virtual machine, with the Linux steps; \`rmk\` and \`rmk-mcp\` run on Windows itself."
+            echo
+            echo "**Without Docker or Node.js:** rmk-server with Node.js ${NODE_VERSION#v} inside, one archive per system: \`rmk-server-$VERSION-linux-x64.tar.gz\`, \`rmk-server-$VERSION-linux-arm64.tar.gz\`, \`rmk-server-$VERSION-darwin-x64.tar.gz\`, \`rmk-server-$VERSION-darwin-arm64.tar.gz\`. Unpack and run \`bin/rmk-server\`. The Linux archives need glibc 2.34 or later (Debian 12, Ubuntu 22.04, RHEL 9 and newer: SQLite's prebuilt module needs it); elsewhere, Alpine (musl) included, use Docker. Each holds THIRD_PARTY_NOTICES."
             echo
             # nFPM writes a pre-release's "-" as "~" in the packages' versions (1.0.0~rc.1).
             PACKAGE_VERSION=${VERSION/-/\~}
@@ -442,5 +444,5 @@ jobs:
           } > "$RUNNER_TEMP/notes.md"
           gh release create "$TAG" --verify-tag --generate-notes --title "$TAG" \
             --notes-file "$RUNNER_TEMP/notes.md" \
-            release/*.tgz release/install.sh release/install.ps1 release/rmk-server-*.tar.gz \
-            release/rmk-server-*.zip release/rmk-server*.deb release/rmk-server*.rpm release/checksums.txt
+            release/*.tgz release/install.sh release/rmk-server-*.tar.gz \
+            release/rmk-server*.deb release/rmk-server*.rpm release/checksums.txt

@@ -1,21 +1,31 @@
 import { describe, expect, it } from "vitest";
 import { ciScope } from "./ci-scope.js";
 
-const none = { image: false, server: false, install: false };
-const all = { image: true, server: true, install: true };
+const none = { image: false, server: false, install: false, clients: false };
+const all = { image: true, server: true, install: true, clients: true };
 
 describe("ciScope", () => {
-  it("runs none of the slow suites for app, CLI and docs changes", () => {
+  it("runs none of the slow suites for app and docs changes", () => {
     expect(
       ciScope([
         "apps/web/src/features/catalogue/Catalogue.tsx",
         "apps/web/src/server/http/registry-api.ts",
-        "packages/cli/src/search.ts",
-        "packages/mcp/src/server.ts",
         "docs/features/095-workspaces-cli-api/PLAN.md",
         "packages/repo-tools/src/witness.js",
       ]),
     ).toEqual(none);
+  });
+
+  it("runs the clients on Windows for rmk, rmk-mcp, the core under them and the build graph (121)", () => {
+    for (const file of [
+      "packages/cli/src/search.ts",
+      "packages/mcp/src/server.ts",
+      "packages/core/src/schema/ronne.schema.json",
+      ".github/workflows/clients-windows.yml",
+      "turbo.json",
+    ])
+      expect(ciScope([file]).clients, file).toBe(true);
+    expect(ciScope(["apps/web/src/server/http/registry-api.ts"]).clients).toBe(false);
   });
 
   it("runs the image for what the image adds", () => {
@@ -39,7 +49,6 @@ describe("ciScope", () => {
       "scripts/packages/test-in-containers.sh",
       "packages/repo-tools/src/bundle.js",
       "packages/repo-tools/src/server-probe.js",
-      "packages/repo-tools/src/winsw.js",
       ".github/workflows/server-checks.yml",
       ".github/workflows/bundles.yml",
       ".github/workflows/packages.yml",

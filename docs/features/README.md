@@ -228,10 +228,10 @@ Work that changes every part of the web app rather than one milestone's features
 ### M12 — Easy install
 
 Ronne installs in one command, with Docker or without it, on a laptop or on a server with a domain
-and HTTPS, on macOS, Linux and Windows (owner, 2026-10-03). The user's guide is
+and HTTPS, on macOS and Linux (owner, 2026-10-03; Windows through WSL 2 or a Linux VM since 121, 2026-10-14). The user's guide is
 [`docs/runbooks/install.md`](../runbooks/install.md), a draft for the website that each feature
 makes true. Build order: 080 → 081 (Docker path done); 082 → 083 → 084 → 085 (macOS and Linux
-without Docker); 086 → 087 (Windows without Docker).
+without Docker); 086 → 087 (Windows without Docker; both withdrawn by 121).
 
 | ID | Feature | Depends on | Status |
 |---|---|---|---|
@@ -241,9 +241,9 @@ without Docker); 086 → 087 (Windows without Docker).
 | [083](./083-service-unix/SPEC.md) | Service on Linux and macOS: `rmk-server service install \| status \| logs \| uninstall …` with systemd and launchd, a system user, `--domain` with Caddy from the same Caddyfile as 080 | 082, 080 | done |
 | [084](./084-bundles/SPEC.md) | Self-contained bundles: six archives per release (Linux, macOS, Windows × x64, arm64) with Node.js inside, smoke-tested per platform | 082 | done |
 | [085](./085-unix-packages/SPEC.md) | Homebrew tap, `.deb` and `.rpm`: `brew install ronneai/tap/rmk-server`, packages that install the service; the install script's no-Docker path on macOS and Linux | 083, 084, 081 | done (Homebrew tap: later work) |
-| [086](./086-service-windows/SPEC.md) | Service on Windows: the same `service` subcommands through WinSW, `C:\ProgramData`, a virtual account, firewall rules, Caddy for `--domain` | 083, 084 | done (the owner's Windows 11 test later) |
-| [087](./087-windows-package/SPEC.md) | Windows installer and winget: `winget install RonneAI.Marketplace`, Inno Setup installer per architecture, the install script's no-Docker path on Windows; unsigned until SignPath Foundation signs it | 086, 084, 081 | specified |
-| [121](./121-no-windows-server/SPEC.md) | No Windows server: `rmk-server` runs on Linux and macOS only (npm's `os` field and a one-line refusal), Windows people use WSL 2 or a Linux VM; the Windows service (086), bundles, `install.ps1` and their CI go; `rmk` and `rmk-mcp` stay on Windows, with a Windows CI job of their own; in the next release, with 099 (nobody installs the server on Windows: no migration) | 081, 082, 084, 086 | specified |
+| [086](./086-service-windows/SPEC.md) | Service on Windows: the same `service` subcommands through WinSW, `C:\ProgramData`, a virtual account, firewall rules, Caddy for `--domain` | 083, 084 | withdrawn (121) |
+| [087](./087-windows-package/SPEC.md) | Windows installer and winget: `winget install RonneAI.Marketplace`, Inno Setup installer per architecture, the install script's no-Docker path on Windows; unsigned until SignPath Foundation signs it | 086, 084, 081 | withdrawn (121) |
+| [121](./121-no-windows-server/SPEC.md) | No Windows server: `rmk-server` runs on Linux and macOS only (npm's `os` field and a one-line refusal), Windows people use WSL 2 or a Linux VM; the Windows service (086), bundles, `install.ps1` and their CI go; `rmk` and `rmk-mcp` stay on Windows, with a Windows CI job of their own; in the next release, with 099 (nobody installs the server on Windows: no migration) | 081, 082, 084, 086 | in progress (tasks 1–6 built; witness re-check, then the release dry run for task 4) |
 
 ### M13 — Workspaces
 

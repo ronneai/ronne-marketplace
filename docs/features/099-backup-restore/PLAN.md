@@ -495,3 +495,8 @@ goes into `SPEC.md` instead.
     can't make instead of a stack trace; cron's `PATH` line and the plist's `PATH` for npm installs
     (run, and linted); the bundled-PostgreSQL URL with the password written in; `mkdir -m 700`;
     macOS's paths. Windows removed (121, the next release).
+- **A race in a test (found on #183's CI, 2026-10-14):** "waits for a migration that's running"
+  started the backup before the other connection held the migration lock, so the backup could
+  take it first and finish at once; the test then hung on the unreleased lock. It now starts the
+  backup only once the lock is held (`run-backup.db.test.ts`); passed on PostgreSQL, MySQL and
+  MariaDB here.

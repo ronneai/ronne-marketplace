@@ -27,7 +27,9 @@ Nobody installs the server on Windows (owner), so there's no migration to write.
   `"os": ["darwin", "linux"]`, so `npm install --global` stops with npm's own EBADPLATFORM. A
   start that gets past it (`npx`, a copied folder) prints one line: "rmk-server runs on Linux and
   macOS. On Windows, run it in WSL 2 or a Linux virtual machine:
-  https://www.ronne.ai/marketplace/docs/install#windows". It exits 1.
+  https://www.ronne.ai/marketplace/docs/install#windows". It exits 1. Any other system that isn't
+  Linux or macOS (FreeBSD, say) gets the same: npm's `os` field and the refusal name the two it
+  runs on.
 - **Removed from the code:**
   - The Windows service, feature 086: `packages/server/src/service/windows.ts`, `winsw.ts`, their
     tests and golden files, and the Windows layout in `layout.ts`. Also the `win32` branches in

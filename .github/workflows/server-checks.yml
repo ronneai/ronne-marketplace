@@ -1,14 +1,14 @@
 name: Server checks
 
-# Reusable: @ronneai/marketplace and its rmk-server command (feature 082) on the systems people run
-# it on, from artifacts the caller made: "server-tarball" (the packed package) and
-# "bundle-win32-x64" (084). Each install job installs the tarball with npm, as a person would, and
+# Reusable: @ronneai/marketplace and its rmk-server command (feature 082) on the systems it runs on,
+# Linux and macOS (121), from the artifact the caller made: "server-tarball" (the packed package).
+# Each install job installs the tarball with npm, as a person would, and
 # runs packages/repo-tools/src/server-probe.js: start with an empty data folder, 503
 # setup_required, `rmk-server setup --yes` with SQLite, 200 with no restart, a token from sign-in,
 # `revoke-access` and `rotate-secret` (098), `backup --keep 1` twice and backup → restore into a new
 # data folder → start (099), and the port free after stopping it. The service jobs run `rmk-server
-# service` on systemd and launchd (083) and, from the Windows bundle, with WinSW (086), backup and
-# restore included (restore refused while the service runs). Called by server-package.yml (pull
+# service` on systemd and launchd (083), backup and restore included (restore refused while the
+# service runs); one job checks Windows refuses it (121). Called by server-package.yml (pull
 # requests that change the server, and nightly) and by release.yml, after the bundles.
 on:
   workflow_call:
@@ -22,7 +22,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest]
         # The minimum supported LTS and the target LTS (docs/policies/dependencies.md §2).
         node: [22, 24]
     runs-on: ${{ matrix.os }}
@@ -47,31 +47,40 @@ jobs:
       - name: Start, set up, sign in, revoke and rotate, stop
         run: node packages/repo-tools/src/server-probe.js rmk-server
 
-  # The tests whose answers come from the disk itself (099), on Windows' NTFS: `sameFile` (one
-  # folder by any name: short names, case, links) and restore's trial of stored names. Elsewhere
-  # ci.yml's `pnpm test` runs them on Linux; macOS's APFS is checked by hand (WITNESS.md).
-  disk-windows:
-    name: Disk tests on Windows
+  # The server doesn't run on Windows (121): npm refuses to install it (package.json's `os`), and
+  # a copy that gets there anyway says so in one line and exits 1, before reading or writing.
+  refuses-windows:
+    name: Refuses Windows
     runs-on: windows-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      # Reads the pnpm version from packageManager. Not Corepack: it can't start pnpm 12.
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version-file: .nvmrc
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - name: sameFile on NTFS
-        working-directory: packages/server
-        # Only sameFile: the file's other tests check POSIX modes, which NTFS doesn't have.
-        run: pnpm exec vitest run src/service/system.test.ts -t sameFile
-      - name: Stored names tried on NTFS
-        working-directory: apps/web
-        run: pnpm exec vitest run src/server/backup/storage-names.test.ts
+          node-version: 24
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: server-tarball
+          path: tarball
+      - name: npm install refuses it (EBADPLATFORM)
+        shell: bash
+        run: |
+          if npm install --global --no-audit --no-fund ./tarball/*.tgz > npm.txt 2>&1; then
+            cat npm.txt; echo "npm installed rmk-server on Windows"; exit 1
+          fi
+          grep -q EBADPLATFORM npm.txt || { cat npm.txt; echo "npm failed, but not for the platform"; exit 1; }
+          echo "OK: npm refused it for the platform"
+      - name: A copy says so and exits 1
+        shell: bash
+        run: |
+          mkdir pkg && tar -xzf tarball/*.tgz -C pkg
+          set +e
+          node pkg/package/dist/bin.js start > out.txt 2>&1
+          code=$?
+          set -e
+          cat out.txt
+          [ "$code" = 1 ] || { echo "exit $code, not 1"; exit 1; }
+          grep -q "rmk-server runs on Linux and macOS. On Windows, run it in WSL 2" out.txt
+          echo "OK: refused in one line, exit 1"
 
   # `rmk-server service` on a real systemd (feature 083): GitHub's Ubuntu runners boot with it and
   # give passwordless sudo. scripts/service/test-linux-service.sh installs, sets up, restarts,
@@ -149,42 +158,3 @@ jobs:
       - name: The services' logs
         if: ${{ failure() }}
         run: sudo tail -n 200 /Library/Logs/rmk-server/server.log /Library/Logs/rmk-server/proxy.log
-
-  # The service on Windows (086): WinSW and the virtual account, from the Windows bundle unzipped
-  # into Program Files. GitHub's Windows runners run elevated, as `service install` needs.
-  service-windows:
-    name: Service on Windows (WinSW)
-    runs-on: windows-2025
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-          sparse-checkout: scripts/service
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: bundle-win32-x64
-          path: bundle
-      # Caddy's own release, checked against the SHA-512 its checksums file gives (policy §3). Not
-      # put on PATH: the test first checks that --domain asks for it.
-      - name: Download Caddy 2.11.6
-        shell: pwsh
-        env:
-          CADDY_SHA512: e2626405400f15131886a6dc03883962bdc960fdcb1cdd0882f28af8821c9b370c83fdc60cb8a4deaf27008166f0e080cc7208e699dc0ce15a534ae75cf53d93
-        run: |
-          $zip = Join-Path $env:RUNNER_TEMP 'caddy.zip'
-          Invoke-WebRequest -OutFile $zip https://github.com/caddyserver/caddy/releases/download/v2.11.6/caddy_2.11.6_windows_amd64.zip
-          if ((Get-FileHash -Algorithm SHA512 $zip).Hash -ne $env:CADDY_SHA512) { throw "caddy.zip's SHA-512 isn't the release's" }
-          Expand-Archive $zip -DestinationPath (Join-Path $env:RUNNER_TEMP 'caddy')
-      - name: Install, set up, restart, a crash, the firewall, --domain, uninstall
-        shell: pwsh
-        run: ./scripts/service/test-windows-service.ps1 -Bundle (Get-ChildItem bundle/*.zip).FullName -Caddy (Join-Path $env:RUNNER_TEMP 'caddy\caddy.exe')
-      - name: The service's logs
-        if: ${{ failure() }}
-        shell: pwsh
-        run: |
-          Get-ChildItem C:\ProgramData\RonneAI\Marketplace\logs, C:\ProgramData\RonneAI\Marketplace\proxy\logs -ErrorAction SilentlyContinue |
-            ForEach-Object { "==> $($_.FullName)"; Get-Content -Tail 100 $_.FullName }
-          Get-WinEvent -LogName System -MaxEvents 30 |
-            Where-Object ProviderName -eq 'Service Control Manager' | Format-List TimeCreated, Message
-

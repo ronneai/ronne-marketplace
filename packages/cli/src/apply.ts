@@ -240,6 +240,19 @@ const arrayAt = (object: JsonObject, key: string[]): unknown[] => {
   return Array.isArray(found) ? found : [];
 };
 
+/**
+ * The hash rmk records and compares for a change on this system. Windows' disks keep no executable
+ * bit (every file reads as not executable), so there a folder's hash leaves the bits out on both
+ * sides: otherwise a folder holding a script would look edited after every install, and never
+ * update (121). Elsewhere the bits count, so a lost one is seen.
+ */
+export const hashFor = (change: Change, platform: NodeJS.Platform = process.platform) =>
+  stateHash(
+    platform === "win32" && change.kind === "dir"
+      ? { ...change, files: change.files.map((file) => ({ ...file, executable: false })) }
+      : change,
+  );
+
 const walkDir = (
   root: string,
   dir = root,
@@ -292,7 +305,7 @@ export const diskHash = async (
       return existsSync(file) ? sha256Hex(new Uint8Array(readFileSync(file))) : null;
     case "dir":
       return existsSync(file)
-        ? stateHash({
+        ? hashFor({
             kind: "dir",
             path: change.path,
             files: walkDir(file).map((f) => ({
@@ -385,7 +398,7 @@ export const planChanges = async (
   for (const w of wanted) {
     const change = w.change;
     const id = identity(change);
-    const hash = await stateHash(change);
+    const hash = await hashFor(change);
     const entry: StateEntry = {
       item: w.item,
       version: w.version,

@@ -36,6 +36,7 @@ run included), so a release is checked as fully as before.
 | Docker image (`image.yml`) | — | amd64, when its files change | both architectures | both, scanned | both |
 | Server package (`server-package.yml`: install, services, bundles, `.deb`/`.rpm`) | — | when its files change | — | ✓ | ✓ |
 | Install scripts (`install-scripts.yml`) | — | when they change | — | ✓ | ✓ |
+| `rmk` and `rmk-mcp` on Windows (`clients-windows.yml`, 121: the only Windows check, as the server runs on Linux and macOS) | — | when `core`, `cli` or `mcp` change | ✓ | ✓ | — |
 
 - **Drafts** run only the light checks (`changes.yml`'s `full`). Marking one ready for review
   (`ready_for_review`) runs the rest, and so does every push after that. Open a pull request as a

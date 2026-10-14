@@ -30,7 +30,7 @@ calls, no request IDs, and an unexpected error reaches only Next.js's default ou
 **Out** (and where it goes instead):
 - **Metrics and traces:** 101 (the logger adds trace IDs to lines when 101's tracing is on).
 - **Where logs are kept and for how long:** the platform's (Docker's logging driver, journald,
-  launchd's file, WinSW's rolling files, already set up by 005, 083 and 086). Ronne writes to
+  launchd's file, already set up by 005 and 083; no Windows server since 121). Ronne writes to
   stdout and keeps nothing.
 - **The terminal commands' output** (`setup`, `migrate`, `reset-root-password`, `backup`, …): they
   talk to a person, with ✓ and ✗, and stay as they are. Only the running server logs JSON.
@@ -152,8 +152,8 @@ packages use JSON.
 - **Better Auth's own logs:** sent through its `logger` option to ours (`domain: "identity"`),
   at the matching level; checked against Better Auth's current docs when built.
 - **`LOG_LEVEL=debug` in production:** allowed; it logs more, never secrets.
-- **The service logs** are already collected (journald, `/Library/Logs/rmk-server/server.log`,
-  WinSW's rolling files); `rmk-server service logs` shows them. JSON is what they now hold.
+- **The service logs** are already collected (journald, `/Library/Logs/rmk-server/server.log`);
+  `rmk-server service logs` shows them. JSON is what they now hold.
 
 ## Documentation
 

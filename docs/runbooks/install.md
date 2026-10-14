@@ -4,11 +4,13 @@
 > milestone M12 (features [080](../features/080-docker-https/SPEC.md)–087). Each section names the
 > feature it needs; publish a section only once that feature is released, and recheck the commands
 > then. Built so far: Docker (080, 081), npm and its service (082, 083), the bundles (084), the
-> `.deb` and `.rpm` (085), the Windows service (086). On hold: the Homebrew tap. Still to come:
-> the Windows installer and winget (087).
+> `.deb` and `.rpm` (085). On hold: the Homebrew tap. Withdrawn by
+> [121](../features/121-no-windows-server/SPEC.md): the Windows service (086), the Windows installer
+> and winget (087), and `install.ps1`.
 
-Ronne AI Marketplace installs in one command on macOS, Linux and Windows, with Docker or without it,
-on your own machine or on a server with your domain and HTTPS.
+Ronne AI Marketplace installs in one command on macOS and Linux, with Docker or without it, on your
+own machine or on a server with your domain and HTTPS. On Windows, it runs in WSL 2 or a Linux
+virtual machine ([below](#windows)).
 
 ## Choose your way to install
 
@@ -18,7 +20,7 @@ Ronne.
 | You want | You have | Use | Ronne opens at |
 | --- | --- | --- | --- |
 | Ronne on your own computer, for your projects | Docker | The install script (Docker) | `http://localhost:7650` |
-| Ronne on your own computer | No Docker | apt/dnf or winget, as a service (Homebrew on hold) | `http://localhost:7650` |
+| Ronne on your own computer | No Docker | apt/dnf, as a service (Homebrew on hold) | `http://localhost:7650` |
 | Ronne for a team, on a server with a domain | Docker | The install script, answering "server" | `https://your-domain` |
 | Ronne for a team, no Docker | Linux server | The `.deb`/`.rpm` package, as a service | `https://your-domain` |
 | To try it once, without installing a service | Node.js 22+ | `npx @ronneai/marketplace` | `http://localhost:7650` |
@@ -31,7 +33,7 @@ items into your projects) and `rmk-server` (running the marketplace).
 
 One command installs and starts Ronne, then opens it in your browser (features 080 and 081).
 
-**Before you start:** install Docker. On macOS and Windows that's
+**Before you start:** install Docker. On macOS that's
 [Docker Desktop](https://www.docker.com/products/docker-desktop/), free for personal use and small
 companies; larger companies need a Docker subscription, or can use a free alternative such as
 [Rancher Desktop](https://rancherdesktop.io/) or [Podman Desktop](https://podman-desktop.io/). On
@@ -44,15 +46,9 @@ Linux, install Docker Engine from your distribution or
 curl -fsSL https://www.ronne.ai/marketplace/install.sh | sh
 ```
 
-**Windows**, in PowerShell:
-
-```powershell
-irm https://www.ronne.ai/marketplace/install.ps1 | iex
-```
-
-Both addresses redirect to the scripts in the
+The address redirects to the script in the
 [latest release](https://github.com/ronneai/ronne-marketplace/releases/latest) on GitHub, which
-also work directly.
+also works directly.
 
 The script:
 
@@ -156,7 +152,6 @@ Your data stays in one folder, kept when you upgrade:
 | --- | --- |
 | macOS | `~/Library/Application Support/RonneAI Marketplace` |
 | Linux | `~/.local/share/rmk-server` |
-| Windows | `%LOCALAPPDATA%\RonneAI\Marketplace` |
 
 On Linux, `XDG_DATA_HOME` moves it (to `$XDG_DATA_HOME/rmk-server`). Set `RONNE_DATA_DIR` to use
 another folder, and `--port` (or `PORT`) for another port. It listens on `127.0.0.1`, this machine
@@ -167,7 +162,7 @@ section).
 ## Install as a service
 
 As a service, Ronne runs in the background, starts with your computer or server, and restarts if
-it stops. The packages below include everything Ronne needs, Node.js too (features 083–087).
+it stops. The packages below include everything Ronne needs, Node.js too (features 083–085).
 
 **macOS and Linux with Homebrew** *(on hold: the tap isn't published yet, feature 085)*:
 
@@ -189,36 +184,23 @@ The install script does this by itself when Docker isn't installed: it offers th
 it against the release's `checksums.txt`, and asks before running `sudo` (feature 085). Removing the
 package (`apt remove`, `dnf remove`) keeps the data; the packages need glibc 2.34 or later.
 
-**Windows**, in PowerShell:
-
-```powershell
-winget install RonneAI.Marketplace
-```
-
-**Installed with npm instead?** Register the service yourself (feature 083 on macOS and Linux;
-086 on Windows, in an administrator PowerShell):
+**Installed with npm instead?** Register the service yourself (feature 083):
 
 ```sh
 sudo rmk-server service install      # then open http://localhost:7650 and finish the setup
 ```
 
-The service runs under its own account (`rmk-server` on Linux, `_rmkserver` on macOS,
-`NT SERVICE\rmk-server` on Windows), which can't read a Node.js installed in your home folder (nvm,
-for example): install Node.js for the whole machine first. On Windows npm's global folder is in
-your profile too (`%APPDATA%\npm`): in the administrator's terminal, install with
-`--prefix "C:\Program Files\RonneAI\npm"` and run `"C:\Program Files\RonneAI\npm\rmk-server.cmd"
-service install` (that folder isn't on PATH); or unzip the Windows bundle
-(`rmk-server-X.Y.Z-win32-x64.zip`, Node.js inside) into `C:\Program Files\RonneAI`, rename its
-folder to `Marketplace`, and run its `bin\rmk-server.cmd service install`. On macOS, `--user` runs
+The service runs under its own account (`rmk-server` on Linux, `_rmkserver` on macOS), which
+can't read a Node.js installed in your home folder (nvm, for example): install Node.js for the
+whole machine first. On macOS, `--user` runs
 it as you instead. If `sudo rmk-server` isn't found, keep your PATH:
 `sudo env "PATH=$PATH" rmk-server service install`. macOS may show a notification about
 a new background item: that's the service.
 
 **With a domain and HTTPS**, without Docker: install Caddy 2.7 or later
 ([Caddy's own repository](https://caddyserver.com/docs/install) on Debian and Ubuntu, whose own
-`caddy` package is too old; `brew install caddy` on macOS; `winget install --id
-CaddyServer.Caddy --scope machine` on Windows, for the whole machine), stop the `caddy` service its package may have started (`sudo systemctl disable --now
-caddy`), then:
+`caddy` package is too old; `brew install caddy` on macOS), stop the `caddy` service its package
+may have started (`sudo systemctl disable --now caddy`), then:
 
 ```sh
 sudo rmk-server service install --domain ronne.example.com
@@ -226,11 +208,8 @@ sudo rmk-server service install --domain ronne.example.com
 
 The same DNS and firewall steps as in *Your own domain with HTTPS* apply. `--tls internal` uses
 Caddy's own authority instead of Let's Encrypt, and `--tls files` reads copies of your `cert.pem`
-and `key.pem` in `/etc/rmk-server-proxy/certs` on Linux, the prefix's `etc/rmk-server-proxy/certs`
-on macOS, or `C:\ProgramData\RonneAI\Marketplace\proxy\certs` on Windows (copy them again and
-restart after each renewal). On Windows install also adds firewall rules: one for the proxy's 80
-and 443, on every network, and, without a domain, one for the port with `--host 0.0.0.0`, on
-Private networks only.
+and `key.pem` in `/etc/rmk-server-proxy/certs` on Linux, or the prefix's
+`etc/rmk-server-proxy/certs` on macOS (copy them again and restart after each renewal).
 
 **Managing the service:**
 
@@ -243,17 +222,35 @@ Private networks only.
 | Remove the service (your data stays) | `sudo rmk-server service uninstall` |
 | Remove it and delete the data | `sudo rmk-server service uninstall --delete-data` |
 
-On macOS and Linux every command but `status` needs `sudo`; on Windows, a terminal opened as
-administrator, without `sudo` (`status` works in any terminal, with the details for
-administrators). (With the Homebrew tap, on hold, `brew services` would do this.)
+Every command but `status` needs `sudo`. (With the Homebrew tap, on hold, `brew services` would
+do this.)
 
 Where things are, for a service installed with npm:
 
-| | Linux | macOS | Windows |
-| --- | --- | --- | --- |
-| Data | `/var/lib/rmk-server` | `/usr/local/var/rmk-server` (Homebrew: `/opt/homebrew/var/rmk-server`) | `C:\ProgramData\RonneAI\Marketplace\data` |
-| Settings | `/etc/rmk-server/env` | the same prefix's `etc/rmk-server/env` | `…\Marketplace\.env` |
-| Logs | `journalctl -u rmk-server` | `/Library/Logs/rmk-server/server.log` | `…\Marketplace\logs\rmk-server-service.out.log` |
+| | Linux | macOS |
+| --- | --- | --- |
+| Data | `/var/lib/rmk-server` | `/usr/local/var/rmk-server` (Homebrew: `/opt/homebrew/var/rmk-server`) |
+| Settings | `/etc/rmk-server/env` | the same prefix's `etc/rmk-server/env` |
+| Logs | `journalctl -u rmk-server` | `/Library/Logs/rmk-server/server.log` |
+
+## Windows
+
+The server runs on Linux and macOS (feature [121](../features/121-no-windows-server/SPEC.md)). On
+Windows, run it in **WSL 2** or a Linux virtual machine, and follow the Linux steps there:
+
+```powershell
+wsl --install          # in PowerShell as administrator: WSL 2 with Ubuntu; restart when it asks
+```
+
+Then, in the Ubuntu terminal, use the install script (with Docker Desktop's WSL integration on, or
+Docker Engine installed in Ubuntu), the `.deb` package, or npm with `sudo rmk-server service
+install`. The service needs systemd: if `systemctl` says it isn't running, add `systemd=true`
+under `[boot]` in `/etc/wsl.conf` and run `wsl --shutdown` in PowerShell. Windows reaches a server
+in WSL at `http://localhost:7650`.
+
+`rmk` and the MCP server run on Windows itself, where your AI tools are:
+`npm install --global @ronneai/rmk @ronneai/mcp` in PowerShell. Installing `@ronneai/marketplace`
+there stops with npm's `EBADPLATFORM`, and `rmk-server` points here.
 
 ## After installing
 
@@ -279,7 +276,6 @@ doesn't need a copy of your projects or their git repositories.
 | The install script (Docker) | Run the install script again, or `docker compose pull && docker compose up -d` in the `ronne-marketplace` folder |
 | apt, dnf (the packages) | Install the new `.deb` or `.rpm` the same way; the service restarts on it |
 | apt, dnf | Install the new `.deb` or `.rpm` the same way |
-| winget | `winget upgrade RonneAI.Marketplace` |
 | npm | `npm install --global @ronneai/marketplace@latest`, then `rmk-server service restart` |
 
 Database changes are applied on start. Going back to an older version after an upgrade isn't
@@ -291,23 +287,23 @@ with the database (whichever kind), the stored files and the settings file.
 [`backup.md`](backup.md) says how to schedule it, copy it off the machine and restore it.
 
 **Uninstall:** `docker compose down` in the `ronne-marketplace` folder (add `-v` only to delete all
-data), `sudo apt remove rmk-server` or `sudo dnf remove rmk-server` (the data stays), or
-`winget uninstall RonneAI.Marketplace`. Your data folder is kept unless you delete it.
+data), or `sudo apt remove rmk-server` or `sudo dnf remove rmk-server` (the data stays). Your data
+folder is kept unless you delete it.
 
 ## Troubleshooting
 
 | You see | What to do |
 | --- | --- |
 | "Port is already allocated" or "address already in use" | Another program uses the port. Choose another: `RONNE_PORT=7660` in `.env` (Docker) or `rmk-server service install --port 7660`. For ports 80/443, see *Behind your own web server* |
-| "Cannot connect to the Docker daemon" | Start Docker Desktop (macOS, Windows), or `sudo systemctl start docker` (Linux) |
+| "Cannot connect to the Docker daemon" | Start Docker Desktop (macOS), or `sudo systemctl start docker` (Linux) |
 | The domain doesn't open, or the browser warns about the certificate | Check that the domain's DNS points at this server (`nslookup ronne.example.com`), that ports 80 and 443 are open, and read the proxy's log: `docker compose logs proxy` |
 | "Permission denied" on the data folder | Docker: `docker compose run --rm --user root web chown -R 1000:1000 /app/data`. Service: run `sudo rmk-server service install` again, which fixes the owner |
 | Forgot the root password | `docker compose exec web pnpm run reset-root-password`, or `sudo rmk-server reset-root-password` |
-| Windows: "running scripts is disabled" | Run the command in PowerShell as shown (`irm … \| iex`), which doesn't save a script file, or allow scripts for this session: `Set-ExecutionPolicy -Scope Process Bypass` |
+| "rmk-server runs on Linux and macOS" (on Windows) | Run the server in WSL 2 or a Linux VM: [Windows](#windows) |
 
 **Where the logs are:** Docker: `docker compose logs web` (and `proxy`). Service:
-`rmk-server service logs`; underneath, `journalctl -u rmk-server` on Linux,
-`/Library/Logs/rmk-server/` on macOS, and the `logs` folder inside the data folder on Windows.
+`rmk-server service logs`; underneath, `journalctl -u rmk-server` on Linux, and
+`/Library/Logs/rmk-server/` on macOS.
 
 Still stuck? [Open an issue](https://github.com/ronneai/ronne-marketplace/issues) with the output of
 `rmk-server service status` or `docker compose ps` and the last lines of the log.

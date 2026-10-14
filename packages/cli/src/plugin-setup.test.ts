@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { isAbsolute, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { run } from "./cli.js";
 import { configDir } from "./config.js";
@@ -182,8 +182,13 @@ describe("rmk plugin-setup claude-code (077)", () => {
 
 describe("the helper's command at user scope (077)", () => {
   it("is this Node.js and this rmk, by their absolute paths, so it works without either on PATH", () => {
-    const [node, bin] = thisRmk().split(" ");
+    // A path with characters sh treats specially (Windows' backslashes) comes quoted: the helper
+    // runs through sh, Git Bash's on Windows.
+    const [node, bin] = thisRmk()
+      .split(" ")
+      .map((word) => word.replace(/^'(.*)'$/, "$1"));
     expect(node).toBe(process.execPath);
-    expect(bin).toMatch(/^\/.*\/bin\.js$/);
+    expect(bin).toMatch(/[\\/]bin\.js$/);
+    expect(isAbsolute(bin ?? "")).toBe(true);
   });
 });

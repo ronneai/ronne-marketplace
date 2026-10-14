@@ -123,10 +123,7 @@ export const linuxBackend = (sys: System): Backend => {
       sys.run("journalctl", ["--unit", definition.name, "--lines", "40", "--no-pager"]).stdout,
     logsHint: (definition) => `journalctl -u ${definition.name}`,
     caddyHint: () => caddyHintFor(osFamily(sys.readFile("/etc/os-release"))),
-    // Their firewalls (nftables, firewalld, ufw; pf) are the owner's to configure.
     makeFolder: (path, mode) => sys.mkdir(path, mode),
-    allowInbound: () => {},
-    removeInbound: () => {},
     cantRunHint: homeFolderHint,
     portHolder: (port) => {
       const listing = sys.run("ss", ["-Hltnp", `sport = :${port}`]).stdout;

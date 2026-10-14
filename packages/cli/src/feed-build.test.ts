@@ -16,6 +16,9 @@ import { run } from "./cli.js";
 import { FEED_STATE } from "./feed-build.js";
 import { type FakeIo, fakeIo, identityRoutes, REGISTRY, type Route } from "./testing.js";
 
+// Windows keeps no POSIX modes: no executable bit, no 0600 (rmk on Windows, 121).
+const posix = process.platform !== "win32";
+
 let io: FakeIo;
 afterEach(() => io?.cleanup());
 const rmk = (...argv: string[]) => run(argv, io);
@@ -188,9 +191,10 @@ describe("rmk feed build (078)", () => {
     ).toEqual(["plugins/cursor/team.fmt", "plugins/cursor/team.style"]);
     expect(read("plugins/codex/team.style/skills/style/SKILL.md")).toBe("Do it.\n");
     // Executables stay executable.
-    expect(statSync(join(out(), "plugins/cursor/team.fmt/hooks/fmt/run.sh")).mode & 0o111).not.toBe(
-      0,
-    );
+    if (posix)
+      expect(
+        statSync(join(out(), "plugins/cursor/team.fmt/hooks/fmt/run.sh")).mode & 0o111,
+      ).not.toBe(0);
     expect(json(FEED_STATE)).toMatchObject({
       version: 1,
       registry: REGISTRY,

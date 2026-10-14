@@ -1,6 +1,5 @@
 // The service model (feature 083): what runs, as whom, with which folders and settings, described
-// once for every system. The renderers turn a definition into a systemd unit or a launchd plist;
-// Windows (086) adds a WinSW renderer for the same definitions.
+// once for every system. The renderers turn a definition into a systemd unit or a launchd plist.
 import {
   LAUNCHD_LABEL,
   PROXY_LAUNCHD_LABEL,
@@ -14,7 +13,7 @@ export type TlsMode = "auto" | "internal" | "files";
 export const TLS_MODES: readonly TlsMode[] = ["auto", "internal", "files"];
 
 export type ServiceDefinition = {
-  /** The systemd and Windows service name. */
+  /** The systemd service name. */
   name: string;
   /** launchd's label. */
   label: string;
@@ -36,8 +35,6 @@ export type ServiceDefinition = {
   after: string[];
   /** Where its output goes, on systems without a journal. */
   logFile?: string;
-  /** Windows: the folder of its rolling logs (WinSW names them after the service). */
-  logDir?: string;
 };
 
 export type ProxyOptions = {
@@ -99,7 +96,6 @@ export const servicePlan = (options: ServiceOptions): ServicePlan => {
     bindsLowPorts: false,
     after: [],
     ...(layout.logFile ? { logFile: layout.logFile } : {}),
-    ...(layout.logDir ? { logDir: layout.logDir } : {}),
   };
   if (!proxy) return { layout, app, settings: {} };
 
@@ -128,7 +124,6 @@ export const servicePlan = (options: ServiceOptions): ServicePlan => {
       bindsLowPorts: layout.platform === "linux",
       after: [SERVICE_NAME],
       ...(layout.proxyLogFile ? { logFile: layout.proxyLogFile } : {}),
-      ...(layout.proxyLogDir ? { logDir: layout.proxyLogDir } : {}),
       upstream: upstreamFor(host, port),
       options: proxy,
     },

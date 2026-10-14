@@ -37,13 +37,13 @@ describe("install scripts as release assets", () => {
 
   it("lists sha256 checksums in sha256sum's format, sorted by name", () => {
     const hash = (s) => createHash("sha256").update(s).digest("hex");
-    expect(checksums({ "install.sh": "b", "install.ps1": "a" })).toBe(
-      `${hash("a")}  install.ps1\n${hash("b")}  install.sh\n`,
+    expect(checksums({ "install.sh": "b", "a.txt": "a" })).toBe(
+      `${hash("a")}  a.txt\n${hash("b")}  install.sh\n`,
     );
   });
 
-  it("ends both scripts by calling their entry point, so a cut download runs nothing", () => {
+  it("ends the script by calling its entry point, so a cut download runs nothing", () => {
     expect(read(INSTALL_SCRIPTS["install.sh"]).trimEnd().split("\n").at(-1)).toBe('main "$@"');
-    expect(read(INSTALL_SCRIPTS["install.ps1"]).trimEnd().split("\n").at(-1)).toBe("Install-Ronne");
+    expect(Object.keys(INSTALL_SCRIPTS)).toEqual(["install.sh"]);
   });
 });
