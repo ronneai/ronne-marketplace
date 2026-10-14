@@ -25,9 +25,14 @@ const response = await handleAuthRequest(
   () => auth,
 );
 process.stdout.write(JSON.stringify({ status: response.status }) + "\\n");
-await cleanup();`;
+await cleanup();
+process.exit(0);`;
   const env = Object.fromEntries(
-    Object.entries(process.env).filter(([key]) => !/^(VITEST|NODE_ENV$|TEST$)/.test(key)),
+    // In-memory SQLite whatever server the suite runs on: the test is about Better Auth, and a
+    // server's connection pool would keep the child alive.
+    Object.entries(process.env).filter(
+      ([key]) => !/^(VITEST|NODE_ENV$|TEST$|TEST_DATABASE_URL$)/.test(key),
+    ),
   );
   const result = spawnSync(
     process.execPath,
@@ -36,6 +41,7 @@ await cleanup();`;
       encoding: "utf8",
       cwd: join(here, "../../../../.."),
       env: { ...env, NODE_ENV: "production" },
+      timeout: 60_000,
     },
   );
   const lines = result.stdout
