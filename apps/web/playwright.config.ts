@@ -19,8 +19,9 @@ const instances: {
 
 const server = (instance: Instance, url: string) => ({
   // The next binary directly: through `pnpm exec`, the stop signal didn't reach the server and the
-  // run never ended.
-  command: `node_modules/.bin/next start -p ${new URL(instance.baseURL).port}`,
+  // run never ended. `exec` keeps it so; its output goes to a file the end of the run reads for
+  // secrets (feature 100, e2e/log-check.ts).
+  command: `exec node_modules/.bin/next start -p ${new URL(instance.baseURL).port} >> '${instance.logFile}' 2>&1`,
   url: `${instance.baseURL}${url}`,
   env: instance.env,
   reuseExistingServer: false,
@@ -30,6 +31,7 @@ const server = (instance: Instance, url: string) => ({
 /** End-to-end tests (feature 006): a production build, fresh instances, Chromium; phones and a tablet (065). */
 export default defineConfig({
   testDir: "./e2e",
+  globalTeardown: "./e2e/log-check.ts",
   testMatch: "**/*.e2e.ts",
   fullyParallel: false,
   workers: 1,

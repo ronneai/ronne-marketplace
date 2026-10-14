@@ -21,7 +21,8 @@ const freePort = (): number => {
  * Every setting is passed as an environment variable, which takes precedence over files: Next.js
  * loads apps/web/.env on its own, and a developer's local instance must never be used by the tests.
  */
-export type Instance = { baseURL: string; env: Record<string, string> };
+/** A test server: its address, its settings, and the file its output goes to (feature 100). */
+export type Instance = { baseURL: string; env: Record<string, string>; logFile: string };
 
 export const prepareInstance = (): Instance => {
   const dir = mkdtempSync(join(tmpdir(), "ronne-e2e-"));
@@ -51,6 +52,7 @@ export const prepareInstance = (): Instance => {
   const written = parseEnv(readFileSync(envFile, "utf8"));
   return {
     baseURL,
+    logFile: join(dir, "server.log"),
     env: {
       ...base,
       AUTH_SECRET: written.AUTH_SECRET ?? "",
@@ -72,6 +74,7 @@ export const prepareBlankInstance = (): Instance & { dir: string } => {
   return {
     dir,
     baseURL: `http://localhost:${port}`,
+    logFile: join(dir, "server.log"),
     env: {
       RONNE_ENV_FILE: join(dir, ".env"),
       DATABASE_URL: "",
