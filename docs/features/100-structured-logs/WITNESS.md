@@ -1203,3 +1203,33 @@ Witnessed: 2026-10-14 17:34 EDT, by a fresh agent (blind). Commit: 17d5af7e (ron
 | 21 | Marketplace help tests | no | confirmed | 3 passed |
 
 **Overall:** not met: `msg` carried Better Auth's text (a client's Origin); Better Auth also printed its own plain-text line for each API error (its router's console logger, on at the adapter's `debug` level); a MySQL duplicate-key message could carry an item's name. Fixed in the next commit: `msg: "Better Auth"` with the text in `detail`, the adapter at `info` (a test in a production child process fails at `debug`), duplicate-key values written `[value]`; spec and ronne-web updated.
+
+## Task 6 — Documentation (fourth re-check)
+
+Witnessed: 2026-10-14 17:42 EDT, by a fresh agent (blind). Commit: 7534b9db (ronne-web bcd5464). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Every event in the table in en, pt, fr, nothing extra | no | confirmed | `cmp.mjs`: 21 each; a changed copy of `events.ts` is caught |
+| 2 | Every field writers write is listed | no | confirmed | 29 `.event(` calls; `setup`, `via`, `cached`, limits, reasons |
+| 3 | Level variants and When notes | no | confirmed | `api-route.ts:40`, `plugin-feed.ts:409`, `health.ts:15`, `bulk-release.ts:132`, `drafts-api.ts` |
+| 4 | `operations#logs` in both `topics.ts` | no | confirmed | Both |
+| 5 | Where the logs are | no | confirmed | `compose.yaml:50`, `layout.ts:94`, `linux.ts`, `args.ts` |
+| 6 | A clone: `pnpm start`, `pnpm dev` text | no | confirmed | `pnpm start --help`; development probe prints text |
+| 7 | `time`, `level`, a fixed `msg`, Better Auth's lines | no | confirmed | Child-process probe: `"msg":"Better Auth"`, `source`, `detail` |
+| 8 | `domain`, `requestId`, `userId`, `err` | no | confirmed | Context `userId` wins; stack only at error |
+| 9 | LOG_LEVEL | no | confirmed | `bogus` → one `log.level_invalid`; `WARN` → warn and error only |
+| 10 | Set in the settings file or the environment, then restart | no | partly | Docker: the site puts settings in `.env` next to `compose.yaml`, but `compose.yaml:54-59` passed only `PUBLIC_URL` and `TRUST_PROXY` to `web` (read from code; no Docker) |
+| 11 | What the logger removes | no | confirmed | Probe: secret fields, tokens, URL passwords, emails, storage paths, duplicate-key values |
+| 12 | Ronne doesn't write names, emails, IPs | no | confirmed | The 29 calls and plain logger calls |
+| 13 | Next.js's own output | no | confirmed | `base-server.js:448,1012` |
+| 14 | X-Request-Id | no | confirmed | `proxy.ts`, 22 `apiRoute` routes, `api-route.ts:32` |
+| 15 | TRUST_PROXY | no | confirmed | `request-id.ts:17-20` |
+| 16 | en, pt, fr the same | no | confirmed | Side by side |
+| 17 | The site's terms | no | partly | "a bundle" / "pacote autônomo" / "archive autonome" appear nowhere else; the install page says "a package with Node.js inside" |
+| 18 | `.env.example` | no | confirmed | Lines 26-30 |
+| 19 | Install guide | no | partly | Line 306: "Each line is JSON with … an `event` name": some lines have none; line 307 has the Docker problem of row 10 |
+| 20 | ronne-web tests and typecheck | no | confirmed | 138 passed; exit 0 |
+| 21 | Marketplace help tests | no | confirmed | 3 passed |
+
+**Overall:** not met: Docker's `.env` didn't reach the server for the log settings; "a bundle" isn't the site's term; the guide's "each line … an `event`". Fixed in the next commit (`compose.yaml` passes `LOG_LEVEL` and `LOG_FORMAT`, checked with `docker compose config`; the guide's wording) and ronne-web (Docker sentence, "a package with Node.js inside").

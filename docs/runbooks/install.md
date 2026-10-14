@@ -303,8 +303,9 @@ folder is kept unless you delete it.
 
 **Where the logs are:** Docker: `docker compose logs web` (and `proxy`). Service:
 `sudo rmk-server service logs`; underneath, `journalctl -u rmk-server` on Linux, and
-`/Library/Logs/rmk-server/` on macOS. Each line is JSON with a level and an `event` name;
-`LOG_LEVEL=debug` in the settings file (then a restart) writes more. A problem someone reports
+`/Library/Logs/rmk-server/` on macOS. Ronne's lines are JSON, each with a level and most with an
+`event` name (Next.js's own lines are plain text); `LOG_LEVEL=debug` writes more: in the settings
+file (Docker: the `.env` next to `compose.yaml`, then `docker compose up -d`), then a restart. A problem someone reports
 comes with the `X-Request-Id` of the response they got: its lines carry that `requestId`. What
 each line holds, and what it never does: [Logs](https://www.ronne.ai/marketplace/docs/operations#logs).
 

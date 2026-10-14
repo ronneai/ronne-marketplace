@@ -57,6 +57,9 @@ services:
       PUBLIC_URL: ${PUBLIC_URL:-${RONNE_DOMAIN:+https://}${RONNE_DOMAIN:-http://localhost:${RONNE_PORT:-7650}}}
       # proxy is always in front and sets X-Forwarded-For to the client's address.
       TRUST_PROXY: "true"
+      # The logs (feature 100), from .env next to this file; empty keeps the defaults (info, JSON).
+      LOG_LEVEL: ${LOG_LEVEL:-}
+      LOG_FORMAT: ${LOG_FORMAT:-}
     volumes:
       - ronne-data:/app/data
 
