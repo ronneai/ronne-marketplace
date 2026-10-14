@@ -4,7 +4,7 @@
 // and never blocks: a line that can't be written whole is written as little as it can be.
 import { currentRequest } from "./context";
 import { EVENTS, type EventName, LOG_LEVELS, type LogLevel } from "./events";
-import { cleanFields, redactString } from "./redact";
+import { cleanFields, newLine, redactString } from "./redact";
 
 export type LogFormat = "json" | "text";
 type Fields = Record<string, unknown>;
@@ -45,17 +45,21 @@ const RESET = "\u001b[0m";
 
 /**
  * A character that could break a text line, drive the terminal or reorder what it shows: C0, DEL,
- * C1, U+2028/9, and the bidirectional formatting marks (U+200E/F, U+202A–E, U+2066–9).
+ * C1, U+2028/9, and the bidirectional formatting marks (U+061C, U+200E/F, U+202A–E, U+2066–9).
  */
 const isControl = (code: number) =>
   code < 0x20 ||
   (code >= 0x7f && code < 0xa0) ||
+  code === 0x061c ||
   code === 0x200e ||
   code === 0x200f ||
   (code >= 0x2028 && code <= 0x202e) ||
   (code >= 0x2066 && code <= 0x2069);
 
-/** Text with every control character written as `\uXXXX`, so a line stays one line. */
+/**
+ * Text with every control character written as `\uXXXX`, so a line stays one line. In a JSON line
+ * these characters are only ever inside strings, where `\uXXXX` is the same character to a parser.
+ */
 const escapeText = (text: string): string => {
   let out = "";
   for (const char of text) {
@@ -65,10 +69,18 @@ const escapeText = (text: string): string => {
   return out;
 };
 
+/**
+ * A value in a text line: as it is when it can't pass for anything else, quoted (JSON) when it holds
+ * a space, an `=` or a quote, so `x requestId=forged` can't look like another field.
+ */
 const textValue = (value: unknown): string => {
-  if (typeof value !== "string") return escapeText(JSON.stringify(value) ?? String(value));
-  return /[\s"=]/.test(value) ? escapeText(JSON.stringify(value)) : escapeText(value);
+  const text = typeof value === "string" ? value : (JSON.stringify(value) ?? String(value));
+  const plain = typeof value === "string" ? !/[\s"=]/.test(text) : !/[\s=]/.test(text);
+  return escapeText(plain ? text : JSON.stringify(text));
 };
+
+/** The line's head (domain, event, message): escaped, with `=` too, so it can't hold a field. */
+const headText = (text: string): string => escapeText(text).replaceAll("=", "\\u003d");
 
 /** `time LEVEL domain event msg key=value…`, the request's ID and user last. */
 const textLine = (line: Fields, colour: boolean): string => {
@@ -76,7 +88,7 @@ const textLine = (line: Fields, colour: boolean): string => {
   const level = String(line.level).toUpperCase().padEnd(5);
   const parts = [line.domain, line.event, line.msg]
     .filter((part) => part !== undefined && part !== "")
-    .map((part) => escapeText(String(part)));
+    .map((part) => headText(String(part)));
   const head = [
     time,
     colour ? `${COLOURS[line.level as LogLevel]}${level}${RESET}` : level,
@@ -110,7 +122,7 @@ export const createLogger = (options: LoggerOptions, bindings: Fields = {}): Log
   const write = options.write ?? writeStdout;
   const now = options.now ?? (() => new Date());
   const format = (line: Fields) =>
-    `${options.format === "text" ? textLine(line, options.colour ?? false) : JSON.stringify(line)}\n`;
+    `${options.format === "text" ? textLine(line, options.colour ?? false) : escapeText(JSON.stringify(line))}\n`;
 
   const emit = (level: LogLevel, msg: unknown, fields: unknown, event?: EventName) => {
     if (rank(level) < rank(options.level)) return;
@@ -118,7 +130,12 @@ export const createLogger = (options: LoggerOptions, bindings: Fields = {}): Log
       const context = currentRequest();
       const withStack = level === "error";
       // Each cleaned on its own: a getter that throws marks its field, not the line.
-      const own = { ...cleanFields(bindings, withStack), ...cleanFields(fields, withStack) };
+      // One budget for the line: bindings and fields together.
+      const budget = newLine();
+      const own = {
+        ...cleanFields(bindings, withStack, budget),
+        ...cleanFields(fields, withStack, budget),
+      };
       // The context's user, unless a field names one; cleaned like any value either way.
       const userId =
         own.userId ??

@@ -301,6 +301,53 @@ describe("more of what a line can't carry", () => {
     expect(lines[0]).toContain("\\u202e");
     expect(lines[0]).not.toContain("\u202e");
   });
+
+  it("escapes every bidi mark, U+061C included, in text and in JSON", () => {
+    const marks = [
+      "\u061c",
+      "\u200e",
+      "\u200f",
+      "\u202a",
+      "\u202e",
+      "\u2066",
+      "\u2069",
+      "\u0085",
+      "\u009b",
+      "\u2028",
+    ];
+    for (const format of ["text", "json"] as const) {
+      const { log, lines } = collect({ format });
+      log.info(`m${marks.join("")}`, { v: marks.join(""), [`k${marks.join("")}`]: 1 });
+      for (const mark of marks)
+        expect(lines[0], `${format} ${mark.charCodeAt(0).toString(16)}`).not.toContain(mark);
+      if (format === "json") expect(JSON.parse(lines[0] ?? "").v).toBe(marks.join(""));
+    }
+  });
+
+  it("can't forge a field in text through an object value, the message or the domain", () => {
+    const { log, lines } = collect({ format: "text" });
+    withRequestContext({ requestId: "REAL" }, () =>
+      log.child({ domain: "sub requestId=FORGED" }).info("m requestId=FORGED", {
+        v: { a: " requestId=FORGED" },
+        plain: { a: 1 },
+      }),
+    );
+    const line = lines[0] ?? "";
+    // Outside quoted values, one field named requestId: the real one.
+    const unquoted = line.replaceAll(/"(?:[^"\\]|\\.)*"/g, '""');
+    expect(unquoted.match(/ requestId=/g)).toHaveLength(1);
+    expect(line).toContain('plain={"a":1}');
+    expect(line).toMatch(/ requestId=REAL\n$/);
+  });
+
+  it("gives bindings and fields one budget", () => {
+    const { log, lines } = collect();
+    const big = Object.fromEntries(
+      Array.from({ length: 100 }, (_, i) => [`k${i}`, "x".repeat(1999)]),
+    );
+    log.child({ a: big, b: big }).info("x", { c: big, d: big });
+    expect(lines[0]?.length).toBeLessThan(70_000);
+  });
 });
 
 describe("errors", () => {

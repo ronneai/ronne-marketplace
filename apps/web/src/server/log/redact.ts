@@ -26,39 +26,32 @@ export const isSecretKey = (key: string): boolean => {
   return SECRET_KEYS.some((secret) => name.endsWith(secret) || name.endsWith(`${secret}s`));
 };
 
-/** An access token (feature 009): `rmk_` and 43 base64url characters. */
-const ACCESS_TOKEN = /rmk_[A-Za-z0-9_-]{43}/g;
+/**
+ * An access token (feature 009): `rmk_` and 43 base64url characters. The whole run of such
+ * characters is taken, so a token right after another `rmk_` run can't be left half written.
+ */
+const ACCESS_TOKEN = /rmk_[A-Za-z0-9_-]{43,}/g;
 
 /**
- * Every URL password hidden (`scheme://user:***@host`). After a `://`, the user name runs to the
- * first `:` or `/` (an unencoded `@` in it, as Azure's `admin@server`, stays part of it); from that
- * `:`, the password runs to the last `@` before the next `://` that follows its first `@`, so
- * spaces, `@` and `://` in it are hidden too. At worst a little more than the password is hidden (a
- * port, when an `@` comes later in the message). A loop, not a regex, reading each character a
- * bounded number of times (docs/knowledge/codeql-regex.md). Not caught: `user:pw@host` with no
- * scheme, and a password in a query string.
+ * Every URL password hidden, by `redactDatabaseUrl`'s own rule: after a `://`, a user name up to the
+ * first `:` or `/` (an `@` in it, as Azure's `admin@server`, stays part of it); from that `:`, the
+ * password runs to the last `@` in the whole string, so no `@`, `://` or space in it can end it
+ * early. With two URLs in one message, more than the first password is hidden; never less. A loop,
+ * not a regex, reading each character a bounded number of times (docs/knowledge/codeql-regex.md).
+ * Not caught: `user:pw@host` with no scheme, and a password in a query string.
  */
 const redactUrlPasswords = (value: string): string => {
   const finalAt = value.lastIndexOf("@");
-  let out = "";
   let from = 0;
   for (let at = value.indexOf("://"); at !== -1; at = value.indexOf("://", from)) {
     let end = at + 3;
     while (end < value.length && value.charAt(end) !== ":" && value.charAt(end) !== "/") end++;
-    // No `@` after the `:`: no password, here or in any later URL.
-    if (value.charAt(end) !== ":" || finalAt < end) {
-      out += value.slice(from, end);
-      from = end;
-      if (finalAt < end) break;
-      continue;
-    }
-    const firstAt = value.indexOf("@", end);
-    const next = value.indexOf("://", firstAt);
-    const lastAt = value.lastIndexOf("@", next === -1 ? value.length : next);
-    out += `${value.slice(from, end)}:***@`;
-    from = lastAt + 1;
+    // No `@` after this point: no password here or in any later URL.
+    if (finalAt < end) break;
+    if (value.charAt(end) === ":") return `${value.slice(0, end)}:***@${value.slice(finalAt + 1)}`;
+    from = end;
   }
-  return out + value.slice(from);
+  return value;
 };
 
 /** A string with every access token and URL password taken out, cut to MAX_STRING characters. */
@@ -70,7 +63,63 @@ export const redactString = (value: string): string => {
 /** How much of a value a line holds: deeper levels, more items or more keys become a marker. */
 export const MAX_DEPTH = 8;
 export const MAX_ITEMS = 100;
+const MAX_KEY = 200;
 const TOO_DEEP = "[too deep]";
+export const TOO_BIG = "[too big]";
+
+/**
+ * One line's budget and memory. A value reached many ways (shared, not a cycle) is written each
+ * time, so caps on depth and width alone can multiply into millions: every value visited spends
+ * one of `values`, every character written spends one of `chars`, for the bindings and the fields
+ * together. The work on a string, an error or an object's keys is done once per line, however often
+ * it's reached: a 10 MB message shared a thousand times is redacted once.
+ */
+export type Line = {
+  values: number;
+  chars: number;
+  strings: Map<string, string>;
+  errors: Map<object, Record<string, unknown>>;
+  keys: Map<object, { first: string[]; total: number }>;
+};
+export const MAX_VALUES = 1000;
+export const MAX_CHARS = 50_000;
+
+export const newLine = (): Line => ({
+  values: MAX_VALUES,
+  chars: MAX_CHARS,
+  strings: new Map(),
+  errors: new Map(),
+  keys: new Map(),
+});
+
+/** `redactString`, once per string per line. */
+const redactOnce = (line: Line, value: string): string => {
+  let clean = line.strings.get(value);
+  if (clean === undefined) {
+    clean = redactString(value);
+    line.strings.set(value, clean);
+  }
+  return clean;
+};
+
+/** A key as a line holds it: redacted, then cut (a cut must never leave part of a secret). */
+const cleanKey = (line: Line, key: string): string => {
+  const clean = redactOnce(line, key);
+  const cut = clean.length > MAX_KEY ? `${clean.slice(0, MAX_KEY)}…` : clean;
+  line.chars -= cut.length;
+  return cut;
+};
+
+/** The first MAX_ITEMS own keys of an object and how many it has, read once per line. */
+const keysOf = (line: Line, value: object) => {
+  let keys = line.keys.get(value);
+  if (!keys) {
+    const all = Object.keys(value);
+    keys = { first: all.slice(0, MAX_ITEMS), total: all.length };
+    line.keys.set(value, keys);
+  }
+  return keys;
+};
 
 class Unserialisable extends Error {}
 
@@ -79,62 +128,66 @@ class Unserialisable extends Error {}
  * at `error`). A thrown value that isn't an Error is logged as its type only: it could be anything.
  * Its other properties (a driver's `config`, `cause`) aren't written: they could hold anything.
  */
-export const errorFields = (error: unknown, withStack: boolean): Record<string, unknown> => {
+export const errorFields = (
+  error: unknown,
+  withStack: boolean,
+  line: Line = newLine(),
+): Record<string, unknown> => {
   if (!(error instanceof Error)) return { type: error === null ? "null" : typeof error };
+  const known = line.errors.get(error);
+  if (known) return known;
   const code = (error as { code?: unknown }).code;
-  return {
-    name: redactString(String(error.name)),
-    message: redactString(String(error.message)),
-    ...(typeof code === "string" ? { code: redactString(code) } : {}),
+  const fields = {
+    name: redactOnce(line, String(error.name)),
+    message: redactOnce(line, String(error.message)),
+    ...(typeof code === "string" ? { code: redactOnce(line, code) } : {}),
     ...(typeof code === "number" ? { code } : {}),
-    ...(withStack && error.stack ? { stack: redactString(String(error.stack)) } : {}),
+    ...(withStack && error.stack ? { stack: redactOnce(line, String(error.stack)) } : {}),
   };
+  line.errors.set(error, fields);
+  return fields;
 };
 
-/** A key as a line holds it: cleaned like a value, and short. */
-const cleanKey = (key: string): string => {
-  // Redacted first, then cut: a cut must never leave part of a token or a password.
-  const clean = redactString(key);
-  return clean.length > MAX_KEY ? `${clean.slice(0, MAX_KEY)}…` : clean;
+/** Spends one value and `chars` characters of the line; false once it's spent. */
+const spend = (line: Line, chars: number): boolean => {
+  line.values -= 1;
+  line.chars -= chars;
+  return line.values >= 0 && line.chars >= 0;
 };
 
-/**
- * What one line may hold, however its values are shaped: a value reached many ways (shared, not a
- * cycle) is written each time, so depth and width caps alone can multiply into millions.
- */
-type Budget = { values: number; chars: number };
-export const MAX_VALUES = 1000;
-export const MAX_CHARS = 50_000;
-const MAX_KEY = 200;
-export const TOO_BIG = "[too big]";
-
-/** Spends one value and `chars` characters; false once the line's budget is spent. */
-const spend = (budget: Budget, chars: number): boolean => {
-  budget.values -= 1;
-  budget.chars -= chars;
-  return budget.values >= 0 && budget.chars >= 0;
-};
+const outOfBudget = (line: Line) => line.values <= 0 || line.chars <= 0;
 
 const clean = (
   value: unknown,
   seen: Set<object>,
   depth: number,
-  budget: Budget,
+  line: Line,
   withStack: boolean,
 ): unknown => {
-  if (value === null || typeof value === "boolean") return spend(budget, 0) ? value : TOO_BIG;
+  // Every value visited spends, `undefined` and holes too.
+  if (outOfBudget(line)) return TOO_BIG;
+  if (value === null || typeof value === "boolean") return spend(line, 0) ? value : TOO_BIG;
   if (typeof value === "number")
-    return spend(budget, 0) ? (Number.isFinite(value) ? value : String(value)) : TOO_BIG;
-  if (typeof value === "undefined" || typeof value === "function" || typeof value === "symbol")
+    return spend(line, 0) ? (Number.isFinite(value) ? value : String(value)) : TOO_BIG;
+  if (typeof value === "undefined" || typeof value === "function" || typeof value === "symbol") {
+    spend(line, 0);
     return undefined;
+  }
   if (typeof value === "bigint") throw new Unserialisable();
   if (typeof value === "string" || value instanceof String) {
     // Boxed strings whole, so redaction sees the secret they hold.
-    const text = redactString(String(value.valueOf()));
-    return spend(budget, text.length) ? text : TOO_BIG;
+    const text = redactOnce(line, String(value.valueOf()));
+    return spend(line, text.length) ? text : TOO_BIG;
   }
-  if (!spend(budget, 0)) return TOO_BIG;
-  if (value instanceof Error) return errorFields(value, withStack);
+  if (value instanceof Error) {
+    const fields = errorFields(value, withStack, line);
+    const chars = Object.values(fields).reduce<number>(
+      (sum, field) => sum + (typeof field === "string" ? field.length : 0),
+      0,
+    );
+    return spend(line, chars) ? fields : TOO_BIG;
+  }
+  if (!spend(line, 0)) return TOO_BIG;
   if (value instanceof Date)
     return Number.isNaN(value.getTime()) ? String(value) : value.toISOString();
   // Bytes: never their content.
@@ -146,30 +199,28 @@ const clean = (
   try {
     if (Array.isArray(value)) {
       const items: unknown[] = [];
-      for (const item of value.slice(0, MAX_ITEMS)) {
-        if (budget.values <= 0) break;
-        items.push(clean(item, seen, depth + 1, budget, withStack) ?? null);
-      }
+      const length = Math.min(value.length, MAX_ITEMS);
+      for (let i = 0; i < length && !outOfBudget(line); i++)
+        items.push(clean(value[i], seen, depth + 1, line, withStack) ?? null);
       return value.length > items.length
         ? [...items, `[${value.length - items.length} more]`]
         : items;
     }
     const out: Record<string, unknown> = {};
-    const keys = Object.keys(value);
+    const { first, total } = keysOf(line, value);
     let written = 0;
-    for (const key of keys.slice(0, MAX_ITEMS)) {
-      if (budget.values <= 0) break;
+    for (const key of first) {
+      if (outOfBudget(line)) break;
       written++;
-      const name = cleanKey(key);
-      budget.chars -= name.length;
+      const name = cleanKey(line, key);
       if (isSecretKey(key)) out[name] = REDACTED;
       else {
         const item = (value as Record<string, unknown>)[key];
-        const cleaned = clean(item, seen, depth + 1, budget, withStack);
+        const cleaned = clean(item, seen, depth + 1, line, withStack);
         if (cleaned !== undefined) out[name] = cleaned;
       }
     }
-    if (keys.length > written) out["[more]"] = keys.length - written;
+    if (total > written) out["[more]"] = total - written;
     return out;
   } finally {
     seen.delete(value);
@@ -178,20 +229,31 @@ const clean = (
 
 /**
  * The fields of a line as JSON can hold them: each secret key redacted at any depth, keys and
- * strings cleaned, errors as `errorFields`, sizes capped. A field that can't be written (a cycle, a
- * BigInt, a getter that throws) is UNSERIALISABLE on its own; the others are kept. Never throws.
+ * strings cleaned, errors as `errorFields`, sizes capped, the whole within the line's budget
+ * (shared with the line's other fields: pass the same `line`). A field that can't be written (a
+ * cycle, a BigInt, a getter that throws) is UNSERIALISABLE on its own; the others are kept. Never
+ * throws.
  */
-export const cleanFields = (fields: unknown, withStack: boolean): Record<string, unknown> => {
+export const cleanFields = (
+  fields: unknown,
+  withStack: boolean,
+  line: Line = newLine(),
+): Record<string, unknown> => {
   const out: Record<string, unknown> = {};
-  let keys: string[];
+  let keys: { first: string[]; total: number };
   try {
-    keys = fields !== null && typeof fields === "object" ? Object.keys(fields) : [];
+    keys =
+      fields !== null && typeof fields === "object"
+        ? keysOf(line, fields)
+        : { first: [], total: 0 };
   } catch {
     return { fields: UNSERIALISABLE };
   }
-  const budget: Budget = { values: MAX_VALUES, chars: MAX_CHARS };
-  for (const key of keys.slice(0, MAX_ITEMS)) {
-    const name = cleanKey(key);
+  let written = 0;
+  for (const key of keys.first) {
+    if (outOfBudget(line)) break;
+    written++;
+    const name = cleanKey(line, key);
     if (isSecretKey(key)) {
       out[name] = REDACTED;
       continue;
@@ -201,13 +263,13 @@ export const cleanFields = (fields: unknown, withStack: boolean): Record<string,
       // `err` is what was thrown: an Error as errorFields, anything else as its type only.
       const cleaned =
         key === "err"
-          ? errorFields(value, withStack)
-          : clean(value, new Set(), 0, budget, withStack);
+          ? errorFields(value, withStack, line)
+          : clean(value, new Set(), 0, line, withStack);
       if (cleaned !== undefined) out[name] = cleaned;
     } catch {
       out[name] = UNSERIALISABLE;
     }
   }
-  if (keys.length > MAX_ITEMS) out["[more]"] = keys.length - MAX_ITEMS;
+  if (keys.total > written) out["[more]"] = keys.total - written;
   return out;
 };

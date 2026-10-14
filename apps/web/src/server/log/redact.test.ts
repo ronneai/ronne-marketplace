@@ -7,6 +7,7 @@ import {
   MAX_ITEMS,
   MAX_STRING,
   MAX_VALUES,
+  newLine,
   REDACTED,
   redactString,
   UNSERIALISABLE,
@@ -50,6 +51,10 @@ describe("redactString", () => {
   it("takes out every access token", () => {
     expect(redactString(`Bearer ${TOKEN}`)).toBe("Bearer rmk_[redacted]");
     expect(redactString(`${TOKEN},${TOKEN}`)).toBe("rmk_[redacted],rmk_[redacted]");
+    // A token right after another `rmk_` run: the whole run goes.
+    expect(redactString(`rmk_${"a".repeat(42)}${TOKEN}`)).toBe("rmk_[redacted]");
+    expect(redactString(`rmk_${TOKEN}`)).toBe("rmk_[redacted]");
+    expect(redactString(`rmk_ab-${TOKEN}`)).toBe("rmk_[redacted]");
     // Not a token: too short.
     expect(redactString("rmk_short")).toBe("rmk_short");
   });
@@ -75,9 +80,14 @@ describe("redactString", () => {
     );
     // A URL followed by an email: hidden up to the email's `@`, never less than the password.
     expect(redactString("mysql://u:pw@h/d failed for a@b.test")).not.toContain("pw");
+    // Two URLs: from the first password to the last `@`, more than needed, never less.
     expect(redactString("a mysql://u:one@h/a and postgres://v:two@k/b")).toBe(
-      "a mysql://u:***@h/a and postgres://v:***@k/b",
+      "a mysql://u:***@k/b",
     );
+    // An `@` then a `://` inside the password.
+    expect(redactString("postgres://u:p@x://y@h/db")).toBe("postgres://u:***@h/db");
+    // A user name ends at `/`: no password there.
+    expect(redactString("postgres://u/x:pw@h")).toBe("postgres://u/x:pw@h");
   });
 
   it("keeps URLs without a password", () => {
@@ -108,6 +118,9 @@ describe("redactString", () => {
       "a://u:p@".repeat(50_000),
       `a://u:p@${"://".repeat(100_000)}`,
       "ssh://git@".repeat(50_000),
+      "rmk_".repeat(100_000),
+      `${"rmk_".repeat(50_000)}!`,
+      `rmk_${"a".repeat(42)}!`.repeat(20_000),
       `a://u:${"@".repeat(100_000)}`,
       `a://u:${" ".repeat(100_000)}`,
       "a://u:x ".repeat(50_000),
@@ -342,5 +355,59 @@ describe("cleanFields", () => {
     expect(json.length).toBeLessThan(MAX_CHARS * 2);
     expect(json).toMatch(/"\[more\]":\d+|\[\d+ more\]|\[too big\]/);
     expect(MAX_VALUES).toBeGreaterThan(0);
+  });
+
+  it("spends the line's value budget on every value, numbers and undefined included", () => {
+    const nest = (leaf: unknown, levels: number): unknown => {
+      let node = leaf;
+      for (let i = 0; i < levels; i++) node = new Array(100).fill(node);
+      return node;
+    };
+    for (const leaf of [1, undefined, null, true]) {
+      const started = performance.now();
+      const json = JSON.stringify(cleanFields({ n: nest(leaf, 4) }, false));
+      expect(performance.now() - started).toBeLessThan(500);
+      expect(json.length).toBeLessThan(MAX_VALUES * 20);
+      expect(json).toMatch(/\[too big\]|\[\d+ more\]/);
+    }
+  });
+
+  it("does the work on a shared error, string or object once per line", () => {
+    const error = new Error("y".repeat(10_000_000));
+    error.stack = "s".repeat(5000);
+    const big = "z".repeat(10_000_000);
+    const wide: Record<string, unknown> = {};
+    for (let i = 0; i < 1_000_000; i++) wide[`k${i}`] = undefined;
+    const fill = (value: unknown) => new Array(100).fill(new Array(100).fill(value));
+    for (const value of [error, big, new String(big), wide]) {
+      const started = performance.now();
+      const json = JSON.stringify(cleanFields({ a: fill(value) }, true));
+      expect(performance.now() - started).toBeLessThan(1500);
+      expect(json.length).toBeLessThan(MAX_CHARS * 2);
+    }
+  });
+
+  it("shares one budget between calls given the same line", () => {
+    const line = newLine();
+    const big = Object.fromEntries(
+      Array.from({ length: 100 }, (_, i) => [`k${i}`, "x".repeat(1999)]),
+    );
+    const json = JSON.stringify([
+      cleanFields({ a: big, b: big }, false, line),
+      cleanFields({ c: big, d: big }, false, line),
+    ]);
+    expect(json.length).toBeLessThan(MAX_CHARS + 20_000);
+  });
+
+  it('writes an object past its keys as "[more]": N, and charges key names', () => {
+    const wide = Object.fromEntries(Array.from({ length: 150 }, (_, i) => [`k${i}`, i]));
+    expect(cleanFields({ wide }, false).wide).toMatchObject({ "[more]": 50 });
+    const longKeys = Object.fromEntries(
+      Array.from({ length: 100 }, (_, i) => [`${"k".repeat(199)}${i % 10}${i}`, 1]),
+    );
+    const json = JSON.stringify(
+      cleanFields({ a: longKeys, b: longKeys, c: longKeys, d: longKeys }, false),
+    );
+    expect(json.length).toBeLessThan(MAX_CHARS + 20_000);
   });
 });

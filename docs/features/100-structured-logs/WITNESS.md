@@ -133,3 +133,79 @@ Witnessed: 2026-10-14 12:08 EDT, by a fresh agent (adversarial). Commit: 164f745
 | 26 | Lint and types | no | confirmed | Clean |
 
 **Overall:** not met: shared references block for seconds or exhaust memory; URL passwords with `://` or behind an `@` in the user name leak, and parts of long keys; the shared logger's `child()` and calls with unreadable settings throw; a closed stdout crashes the server.
+
+## Task 1 — The logger (third check)
+
+Witnessed: 2026-10-14 12:13 EDT, by a fresh agent (blind). Commit: f3598170. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Line fields; reserved fields can't be overwritten | no | confirmed | 62 passed; mutation → 1 fails |
+| 2 | JSON order matches the spec | no | confirmed | Test pins it; mutation → 1 fails |
+| 3 | Levels and the filter | no | confirmed | Mutation → 5 fail |
+| 4 | Event level; unknown event dropped | no | confirmed | Mutation → 1 fails |
+| 5 | `child()` bindings; the shared logger's `child()` never throws | no | confirmed | Mutations → 6 / 1 fail; probe |
+| 6 | Text format, colours, `LOG_FORMAT` | no | confirmed | Mutations → 3 / 1 fail |
+| 7 | Text: controls and bidi marks escaped; keys quoted | no | partly | U+061C written raw; removing U+2066–9 or U+200E/F escaping → 0 fail |
+| 8 | "JSON escapes them already" | no | partly | A JSON line holds U+2028, U+0085, U+009B and U+202E raw |
+| 9 | Request context | no | confirmed | Mutation → 2 fail |
+| 10 | Secret keys | no | confirmed | Mutations → 1 / 2 fail |
+| 11 | Tokens | no | confirmed | Mutation → 10 fail |
+| 12 | URL passwords with spaces, `@`, `://`, an `@` in the user name | no | partly | Leak: `postgres://u:p@x://y@h/db` → `postgres://u:***@x://y@h/db` |
+| 13 | Keys, message, request ID, user redacted | no | confirmed | Mutations → 2 / 1 / 1 / 2 fail |
+| 14 | Errors | no | confirmed | Mutations → 1 / 1 / 1 / 1 / 2 fail |
+| 15 | Cuts after redaction | no | confirmed | Mutations → 1 / 1 fail |
+| 16 | Caps and markers | no | confirmed | Remark: the object marker's form untested |
+| 17 | One line's budget | no | partly | Bindings and fields each get a budget: a 99,205-character line; removing the value budget → 0 fail |
+| 18 | Shared values stay small and fast | no | confirmed | 100^6 shared objects → 0 ms |
+| 19 | Cycle, BigInt | no | confirmed | Mutations → 3 / 2 fail |
+| 20 | Throwing getter | no | confirmed | Mutation → 6 fail |
+| 21 | Never throws; fallback | no | confirmed | Mutation → 2 fail |
+| 22 | Closed stdout | no | confirmed | `\| head -1` → alive; mutation → 1 fails |
+| 23 | Node writes pipes synchronously on Linux | no | can't check here | macOS buffers (2 MB in 3 ms); Node's docs not offline |
+| 24 | Unreadable settings | no | confirmed | Probe; mutation → 1 fails |
+| 25 | Invalid `LOG_LEVEL` | no | confirmed | Mutations → 2 / 1 fail |
+| 26 | Read in `config.ts` | no | confirmed | Diff |
+| 27 | Events in one module | no | confirmed | 20 plus one |
+| 28 | No new dependency | no | confirmed | Empty diff |
+| 29 | Tests catch breakage | no | confirmed | 50 mutations, 46 caught |
+| 30 | Regexes per `codeql-regex.md` | no | confirmed | Under 1 s on hostile inputs |
+| 31 | No environment value in a line | no | confirmed | Only `index.ts:27` reads it, as a level |
+| 32 | Lint and types | no | confirmed | Clean |
+
+**Overall:** not met: a password with `@` then `://` leaks its end; a line can hold twice its budget; U+061C passes in text; the spec's "JSON escapes them already" is wrong; Node's Linux pipe behaviour can't be checked here.
+
+## Task 1 — The logger (adversarial, third check)
+
+Witnessed: 2026-10-14 12:21 EDT, by a fresh agent (adversarial). Commit: f3598170. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Levels, filter, event level | no | confirmed | 7/6/4/3 lines |
+| 2 | `child()`, hostile bindings | no | confirmed | 16 of 16 hostile shapes OK |
+| 3 | JSON one object per line | no | confirmed | Remark: U+2028/9 raw (valid JSON) |
+| 4 | Text: every control range and bidi mark escaped | no | partly | All 1,112,064 code points: only U+061C raw |
+| 5 | Text: no forged field or line | no | partly | Object values, `msg` and `domain` unquoted: `v={"a":" requestId=FORGED"} requestId=REAL` |
+| 6 | Context | no | confirmed | 300 concurrent → 0 wrong; values redacted |
+| 7 | Secret keys | no | confirmed | Any spelling, nested, arrays |
+| 8 | Every token out of any string | no | partly | `rmk_` + 42 characters + token → all 43 secret characters written; `rmk_rmk_` + body → 4 |
+| 9 | URL rule | no | confirmed | 31 cases; remark: `u:p@ss://word@h` is the rule's limit |
+| 10 | URL loop linear | no | confirmed | 18 patterns × 1e5 → ≤ 13.7 ms |
+| 11 | Keys redacted before cut | no | confirmed | Mutation → 1 fails |
+| 12 | Errors | no | confirmed | Both formats |
+| 13 | Cycle, BigInt | no | confirmed | Probe |
+| 14 | Budget: milliseconds, never seconds | no | not met | Shared 10 MB Error → 8,468 ms; shared 1e6-key object of `undefined` → 24,192 ms; shared 10 MB string → 687 ms |
+| 15 | Budget: a line stays small | no | not met | Shared Error with 5,000-character fields → a 7.9 MB line; `undefined` holes → 495 KB; bindings + fields → 991 KB |
+| 16 | The budget never lets a secret through | no | confirmed | `[too big]` or dropped |
+| 17 | Shared logger: unknown event, odd `msg` | no | confirmed | Nothing written or fallback |
+| 18 | Unreadable settings | no | confirmed | Folder, `chmod 000` |
+| 19 | Closed or throwing stdout | no | confirmed | 200,000 lines `\| head -1` → survived |
+| 20 | Invalid `LOG_LEVEL` | no | confirmed | No value written |
+| 21 | `config.ts` | no | confirmed | Env beats the file |
+| 22 | Events | no | confirmed | 20 plus one |
+| 23 | No new dependency | no | confirmed | Empty diff |
+| 24 | Tests pass | no | confirmed | 62 passed |
+| 25 | Tests catch the new behaviour | no | partly | 30 mutations, 24 caught; removing the value budget → a 202 MB line, all pass |
+| 26 | Lint and types | no | confirmed | Clean |
+
+**Overall:** not met: the budget doesn't hold for Errors, big strings, many-key objects or slots that spend nothing (8–24 s, lines up to 8 MB); a token after another `rmk_` run is written; text can show a forged field through object values, `msg` or `domain`, and U+061C passes; no test covers the value budget.

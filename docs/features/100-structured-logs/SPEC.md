@@ -123,11 +123,12 @@ The logger, not each caller, keeps secrets out:
 - **Keys:** any field named (case-insensitively) `password`, `token`, `secret`, `authorization`,
   `cookie`, `passphrase`, `apiKey`, or ending in one of these, is written as `"[redacted]"`, at any
   depth.
-- **Values:** any string containing an access token (`rmk_` and 43 characters) has it replaced with
-  `rmk_[redacted]`; a URL with a password has it replaced with `***`: after `://`, the user name
-  runs to the first `:` (an `@` in it, as Azure's `admin@server`, stays), and the password from
-  there to the last `@` before the next URL, spaces, `@` and `://` included. At worst a little more
-  is hidden (a port, when an email follows). Keys go through the same redaction, and so do the
+- **Values:** any string containing an access token (`rmk_` and at least 43 characters: the
+  whole run goes) has it replaced with `rmk_[redacted]`; a URL with a password has it replaced with
+  `***`, by `redactDatabaseUrl`'s rule: after `://`, the user name runs to the first `:` or `/` (an
+  `@` in it, as Azure's `admin@server`, stays), and the password from that `:` to the last `@` in
+  the string, so no space, `@` or `://` in it can end it early. With two URLs, or an email after a
+  URL with a port, more is hidden; never less. Keys go through the same redaction, and so do the
   message, the request's ID and the user id. Not caught: `user:pw@host` without a scheme, and a
   password in a query string.
 - **Errors:** an error's `name`, `message`, string `code` and stack go through the same value
@@ -157,13 +158,16 @@ packages use JSON.
   array (then `"[N more]"`) or keys of an object (then `"[more]": N`) are written, 8 levels deep
   (then `"[too deep]"`); bytes (a `Buffer`) are written as `"[N bytes]"`, never their content.
 - **A value reached many ways** (shared, not a cycle) is written each time, so a line also has a
-  budget: 1,000 values and 50,000 characters of strings for its fields, then `"[too big]"` or
-  `"[more]"`. Logging such a value takes milliseconds, not seconds or the process's memory.
+  budget, for its bindings and fields together: 1,000 values visited (`undefined` included) and
+  50,000 characters of keys and strings, then `"[too big]"`, `"[N more]"` or `"[more]": N`. A
+  string, an error or an object's keys are worked on once per line however often they're reached,
+  so logging any value takes milliseconds, not seconds or the process's memory.
 - **A getter that throws** marks that field `"[unserialisable]"`; the rest of the line is written.
-- **Control characters in text format** (a newline, an ANSI escape, C1 controls, U+2028/9, the
-  bidirectional marks) are escaped (`\uXXXX`, or JSON's `\n` inside a quoted value), so nothing can
-  split a line, forge another one or drive the terminal; a key with a space, `=` or `"` is quoted.
-  JSON escapes them already.
+- **Control characters** (a newline, an ANSI escape, C1 controls, U+2028/9, the bidirectional
+  marks U+061C, U+200E/F, U+202A–E, U+2066–9) are escaped as `\uXXXX` (or JSON's `\n` inside a
+  quoted value), in text and in JSON alike, so nothing can split a line, forge another one, drive
+  the terminal or reorder what it shows. In text, a key or value with a space, `=` or `"` is
+  quoted, and an `=` in the domain, event or message is escaped, so nothing passes for a field.
 - **stdout is closed or slow:** writes go through `process.stdout.write` without waiting. A closed
   stdout (`EPIPE`) loses the lines and never crashes the server (the logger listens for its
   `error` event). Node buffers writes to a pipe on macOS, but writes them synchronously on Linux
