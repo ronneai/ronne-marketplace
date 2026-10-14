@@ -15,7 +15,8 @@ calls, no request IDs, and an unexpected error reaches only Next.js's default ou
 - **A logger** in `apps/web/src/server/log/`, with no new dependency: JSON lines on stdout,
   levels, child loggers per domain, and redaction.
 - **`LOG_LEVEL`** (`debug`, `info`, `warn`, `error`; `info` by default) and **`LOG_FORMAT`**
-  (`json` by default; `text` for a person reading a terminal, which `pnpm dev` sets).
+  (`json` by default; `text` for a person reading a terminal, the default under `pnpm dev`, whose
+  `next dev` sets `NODE_ENV=development`).
 - **A request ID** for every API request and server action, returned as `X-Request-Id`, on every
   line written while it's handled.
 - **One line per API request** (method, route, status, time taken).
@@ -107,7 +108,7 @@ At least, named in one module so the list in the Documentation can't drift:
 | `server.migrations_applied` | info | `count`, `latest` |
 | `http.request` | info (warn for 4xx rate limits, error for 5xx) | above |
 | `http.error` | error | `err`, `route` |
-| `auth.signed_in` / `auth.sign_in_failed` | info / warn | `userId` (success only), `reason` |
+| `auth.signed_in` / `auth.sign_in_failed` | info / warn | `userId` (success only), `reason`; `via: "cli"` when `rmk login` failed |
 | `auth.rate_limited` | warn | `limit` (`sign_in`, `token_exchange`) |
 | `token.exchanged` / `token.rejected` | info / warn | `userId` / `reason` (`unknown`, `revoked`, `expired`, `disabled`) |
 | `version.released` | info | `count` (a bulk release logs one line), `userId` |
@@ -115,7 +116,7 @@ At least, named in one module so the list in the Documentation can't drift:
 | `draft.uploaded` / `draft.upload_refused` | info / warn | `files`, `bytes` / `reason` |
 | `upload.rate_limited`, `usage.rate_limited` | warn | `limit` |
 | `submission.checks_failed` | warn | `err` (today's `console.warn` in `drafts.ts`) |
-| `feed.built` | info (debug when from cache) | `tool`, `plugins`, `ms`, `bytes` |
+| `feed.built` | info (debug when from cache) | `tool`, `plugins`, `ms`, `bytes`; from the cache `tool`, `bytes`, `cached: true` |
 | `feed.size_warning`, `feed.plugin_skipped` | warn | `tool`, `percent` / `reason` (`name_refused`, `build_failed`; never the item's name) |
 | `db.unavailable` | error | `err` (the health check; at start, a failed migration writes its own error line, with the driver's error, before the server stops) |
 

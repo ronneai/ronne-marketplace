@@ -25,6 +25,7 @@ import { logger, setLoggerForTests, withRequestContext } from "./index";
 // and nothing secret or personal in what it wrote: no password, token, cookie, AUTH_SECRET,
 // database password, email or IP address.
 const EMAIL = "carol.secret@example.com";
+const EMAIL_ACCENTED = "zoë.ånsen@bücher.de";
 const PASSWORD = "correct horse battery staple";
 const WRONG = "wrong horse battery staple";
 const DB_PASSWORD = "Db-Pa55-w0rd";
@@ -167,9 +168,12 @@ it("writes nothing secret or personal from sign-in, tokens, the API, uploads and
       env: { DATABASE_URL: url, AUTH_SECRET, RONNE_ENV_FILE: join(storageRoot, "none.env") },
     }),
   ).rejects.toThrow();
-  // A database's duplicate-key error quotes the value it refused: an email, here.
+  // A database's duplicate-key error quotes the value it refused: an email, here, in two scripts.
   logger.error("Unexpected error", {
     err: new Error(`Duplicate entry '${EMAIL}' for key 'user.user_email_unique'`),
+  });
+  logger.error("Unexpected error", {
+    err: new Error(`Duplicate entry '${EMAIL_ACCENTED}' for key 'user.user_email_unique'`),
   });
 
   // And everything passed straight to the logger: fields, nested, in errors and in strings.
@@ -213,13 +217,16 @@ it("writes nothing secret or personal from sign-in, tokens, the API, uploads and
     ["the database password", DB_PASSWORD],
     ["the email", EMAIL],
     ["the email's local part", "carol.secret"],
+    ["the accented email's local part", "ånsen"],
     ["the IP address", IP],
   ] as const)
     expect(written.includes(value), `${what} is in the output`).toBe(false);
   // The driver's error was logged (with the database's own address, not a client's).
   expect(written).toMatch(/"msg":"Migrations failed[^\n]*ECONNREFUSED/);
   // No email of any kind, whatever its value.
-  expect(written).not.toMatch(/[\w.+-]+@[A-Za-z][\w-]*(?:\.[\w-]+)*\.[A-Za-z]{2,}\b/);
+  expect(written).not.toMatch(
+    /[^\s@"'<>]+@\p{L}[\p{L}\p{N}\p{M}-]*(?:\.[\p{L}\p{N}\p{M}-]+)*\.\p{L}{2,}/u,
+  );
   // No token of any kind, whatever its value.
   expect(written).not.toMatch(/rmk_[A-Za-z0-9_-]{20,}/);
   // The item's name stays out too (093).

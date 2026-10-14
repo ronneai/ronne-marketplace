@@ -97,7 +97,7 @@ try {
   if (!started) throw new Error(`no server.started line. Log:\n${log}`);
   if (started.level !== "info" || started.port !== port || started.setup !== "required")
     throw new Error(`server.started says ${JSON.stringify(started)}`);
-  if (!version.includes(started.version))
+  if (started.version !== version.split("\n")[0].trim())
     throw new Error(`server.started's version ${started.version} isn't ${version}`);
   step(
     `its log is JSON (${parsed.length} lines), with server.started: ${started.runtime}, port ${started.port}`,

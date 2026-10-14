@@ -50,8 +50,11 @@ const logCheck = async () => {
         ...secrets.filter((secret) => line.includes(secret)),
         ...(line.match(/rmk_[A-Za-z0-9_-]{20,}/) ?? []),
         ...(line.match(/session_token/) ?? []),
-        // An email (a domain starts with a letter: `next@16.4.0` in a stack's path isn't one).
-        ...(line.match(/[\w.+-]+@[A-Za-z][\w-]*(?:\.[\w-]+)*\.[A-Za-z]{2,}\b/) ?? []),
+        // An email in any script (a domain starts with a letter: `next@16.4.0` in a stack's path
+        // isn't one).
+        ...(line.match(
+          /[^\s@"'<>]+@\p{L}[\p{L}\p{N}\p{M}-]*(?:\.[\p{L}\p{N}\p{M}-]+)*\.\p{L}{2,}/u,
+        ) ?? []),
         // A client's address: the tests' requests come from the loopback, in IPv4 or IPv6.
         ...(line.match(/\b(?:\d{1,3}\.){3}\d{1,3}\b/) ?? []),
         ...(line.match(/(?:^|[^\w:])(?:[0-9a-f]{0,4}:){2,7}[0-9a-f]{0,4}(?![\w:])/i) ?? []).filter(

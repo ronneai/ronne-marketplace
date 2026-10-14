@@ -108,14 +108,21 @@ const hideUnder = (value: string, root: string): string => {
   return out + value.slice(from);
 };
 
-const LOCAL = /^[A-Za-z0-9._%+-]$/;
-const DOMAIN = /^[A-Za-z0-9.-]$/;
+// An address's characters, in any script (the app accepts `josé@example.com`): before the `@`,
+// anything but spaces, another `@`, what brackets or separates an address, and `*` (a hidden
+// password's `***`); `'` is read, as in `o'brien@…`, then trimmed from the front (a quoted
+// address). After it, letters, digits, marks, dots and hyphens. `\p{Cs}` keeps a letter outside the BMP whole: charAt reads its two halves.
+const LOCAL = /^[^\s@"()<>[\]{},;:\\/`*]$/u;
+const DOMAIN = /^[\p{L}\p{N}\p{M}\p{Cs}.-]$/u;
+// A domain's last label: letters in any script (`.de`, `.рф`), or its ASCII form (`xn--p1ai`).
+const TOP_LABEL = /^(?:[\p{L}\p{M}]{2,}|xn--[a-z0-9-]+)$/iu;
 
 /**
  * Every email address written as `[email]` (feature 100: a line holds no email; a database's
  * duplicate-key error quotes the value it refused). A loop around each `@`, reading each character a
  * bounded number of times: the address's characters before it, and a domain after it whose last
- * label is letters (so `next@16.4.0` in a path and `@scope/name` aren't addresses).
+ * label is letters (so `next@16.4.0` in a path and `@scope/name` aren't addresses). Neither side reads
+past another `@`, so each character is read at most twice.
  */
 const hideEmails = (value: string): string => {
   let out = "";
@@ -124,13 +131,14 @@ const hideEmails = (value: string): string => {
     if (at < from) continue;
     let start = at;
     while (start > from && LOCAL.test(value.charAt(start - 1))) start--;
+    while (start < at && value.charAt(start) === "'") start++;
     let end = at + 1;
     while (end < value.length && DOMAIN.test(value.charAt(end))) end++;
     // The domain without a trailing dot or hyphen (an address ending a sentence).
     while (end > at + 1 && ".-".includes(value.charAt(end - 1))) end--;
     const domain = value.slice(at + 1, end);
     const last = domain.slice(domain.lastIndexOf(".") + 1);
-    if (start === at || !domain.includes(".") || !/^[A-Za-z]{2,}$/.test(last)) continue;
+    if (start === at || !domain.includes(".") || !TOP_LABEL.test(last)) continue;
     out += `${value.slice(from, start)}[email]`;
     from = end;
   }

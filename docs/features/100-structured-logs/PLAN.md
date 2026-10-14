@@ -39,9 +39,11 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   for the same at the end of a run.
   *Done when:* both pass, and CodeQL reports nothing new on the pull request.
 
-- [ ] **5. Where they go.** `pnpm dev` sets `LOG_FORMAT=text`; the image, the services and the
-  packages run with JSON; `rmk-server service logs` shows them; `server-probe.js` checks the first
-  server line after Next's banner parses as JSON with `event: "server.started"`.
+- [ ] **5. Where they go.** `pnpm dev` writes text (the default when `NODE_ENV` is `development`,
+  and `LOG_LEVEL` and `LOG_FORMAT` from the shell reach it); the image, the services and the
+  packages run with JSON; `rmk-server service logs` shows them; `server-probe.js` checks every
+  server line starting `{` parses as JSON, with a `server.started` line carrying this run's exact
+  version and port (Next's banner and `server.started` come in either order).
   *Done when:* the server checks and the image's smoke test pass.
 
 - [ ] **6. Documentation.** In `../ronne-web`: **Logs** in Running Ronne (both `topics.ts`), in

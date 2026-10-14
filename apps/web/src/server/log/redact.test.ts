@@ -556,6 +556,15 @@ describe("cleanFields", () => {
       redactString("Duplicate entry 'carol.secret@example.com' for key 'user.user_email_unique'"),
     ).toBe("Duplicate entry '[email]' for key 'user.user_email_unique'");
     expect(redactString("to a+b@mail.example.co.uk, c@d.io.")).toBe("to [email], [email].");
+    // In any script, as the app accepts them, and with characters an address may hold.
+    expect(redactString("Duplicate entry 'josé@example.com' for key")).toBe(
+      "Duplicate entry '[email]' for key",
+    );
+    expect(redactString("existing email: zoë.ånsen@bücher.de")).toBe("existing email: [email]");
+    expect(redactString("for o'brien@example.com and 𝒶𝒷@пример.рф")).toBe(
+      "for [email] and [email]",
+    );
+    expect(redactString("x!y#z@example.xn--p1ai, <a=b@example.com>")).toBe("[email], <[email]>");
     for (const kept of [
       "/node_modules/.pnpm/next@16.4.0_react@19.2.0/x",
       "@team/secure-coding and @acme/infra/tool",
