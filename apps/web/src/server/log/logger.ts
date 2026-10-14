@@ -2,8 +2,10 @@
 // fixed message, the request it belongs to and the event's fields, secrets redacted (redact.ts). Or,
 // with LOG_FORMAT=text (`pnpm dev`), the same for a person reading a terminal. Logging never throws
 // and never blocks: a line that can't be written whole is written as little as it can be.
+
 import { currentRequest } from "./context";
 import { EVENTS, type EventName, LOG_LEVELS, type LogLevel } from "./events";
+import { writeTo } from "./output";
 import { cleanFields, cleanText, newLine, TOO_BIG } from "./redact";
 
 export type LogFormat = "json" | "text";
@@ -163,21 +165,8 @@ const textLine = (line: Fields, colour: boolean): string => {
   return rest ? `${head} ${rest}` : head;
 };
 
-let stdoutWatched = false;
-
-/**
- * Writes to stdout without waiting. A closed stdout (`EPIPE`, a reader gone) loses the lines, and
- * never crashes the server: its `error` event is listened to once.
- */
-const writeStdout = (line: string) => {
-  if (!stdoutWatched) {
-    stdoutWatched = true;
-    process.stdout.on("error", () => {
-      // Nowhere to write logs: they're lost, the server goes on.
-    });
-  }
-  process.stdout.write(line);
-};
+/** Writes to stdout without waiting; a closed stdout loses the lines, never crashes (output.ts). */
+const writeStdout = (line: string) => writeTo(process.stdout, line);
 
 export const createLogger = (options: LoggerOptions, bindings: Fields = {}): Logger => {
   const write = options.write ?? writeStdout;

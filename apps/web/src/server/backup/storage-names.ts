@@ -6,9 +6,11 @@
 // anything, it makes every stored file, empty, at the very path the restore writes it, then
 // removes what it made, leaving the folder as it was (empty, or not there). What fails there
 // would have failed the restore after the rows were in.
+
 import { closeSync, existsSync, mkdirSync, openSync, rmdirSync, unlinkSync } from "node:fs";
 import { lstat, stat } from "node:fs/promises";
 import { basename, dirname, join, sep } from "node:path";
+import { writeTo } from "../log/output";
 
 export type StorageProblem =
   /** `b` lands on `a`, a stored file or a folder of one (one name on this disk). */
@@ -103,7 +105,8 @@ export const checkStorageNames = async (
     undo();
     const left = leftovers();
     if (left.length > 0)
-      process.stderr.write(
+      writeTo(
+        process.stderr,
         `Stopped while trying the backup's files in the storage folder: ${left.join(", ")} couldn't be removed; remove ${left.length > 1 ? "them" : "it"}.\n`,
       );
     process.exit(EXIT_ON[signal]);

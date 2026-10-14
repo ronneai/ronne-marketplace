@@ -1,3 +1,4 @@
+import { writeTo } from "../log/output";
 import type { SetupPrompts } from "./prompts";
 
 /** A value setup needs wasn't given as a flag or environment variable. Exit code 2. */
@@ -41,8 +42,8 @@ export const nonInteractivePrompts = (
   values: NonInteractiveValues,
   out: { stdout: (line: string) => void; stderr: (line: string) => void } = {
     // A command's own output, for the person running it: not the server's log lines.
-    stdout: (line) => process.stdout.write(`${line}\n`),
-    stderr: (line) => process.stderr.write(`${line}\n`),
+    stdout: (line) => writeTo(process.stdout, `${line}\n`),
+    stderr: (line) => writeTo(process.stderr, `${line}\n`),
   },
 ): SetupPrompts => {
   const answers: Record<string, string | undefined> = {
