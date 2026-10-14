@@ -921,3 +921,22 @@ Witnessed: 2026-10-14 16:10 EDT, by a fresh agent (blind). Commit: c8a7c616. Mac
 | 21 | Tests, lint, types | no | confirmed | Unit 958, db 784; clean |
 
 **Overall:** not met: `feed.built` untested; no `db.unavailable` at start; `token.rejected`'s `disabled` unlisted and `expired`/`disabled` untested; an `err` can carry an item's name through a storage path. Owner's decision (2026-10-14): hide paths under the storage's folder in log lines.
+
+## Task 3 — The events (re-check)
+
+Witnessed: 2026-10-14 16:24 EDT, by a fresh agent (blind). Commit: e690f0b1. Machine: macOS 27.0.1, Node v24.0.0. The first pass's confirmed rows carry over: c8a7c616..e690f0b1 touches only the fixes.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `feed.built` is tested | no | confirmed | Dropping `"debug"` → the test fails |
+| 2 | `token.rejected`'s `disabled` in the spec; `expired`/`disabled` tested | no | confirmed | SPEC.md:109; mapping disabled to unknown → test fails |
+| 3 | A failed migration at start writes an error line; the spec says so | no | confirmed | Built `start.mjs` with an unreachable postgres and mysql → the JSON error line with `err`, then `✗ …`, exit 1; no password in it |
+| 4 | A real storage EACCES names no item | no | confirmed | Through `submission.checks_failed`: `…/[path]`; without `hidePathsUnder` the test fails |
+| 5 | Path hiding stays linear | no | confirmed | 100k repetitions → ≤ 19 ms |
+| 6 | Only paths under a registered root; trailing slash works | no | confirmed | Siblings with the same prefix untouched; `/` registers nothing |
+| 7 | Hides nothing else a line needs | no | confirmed | Remark: an unquoted path's trailing `:` is hidden too (more, never less) |
+| 8 | Every adapter writing item files registers its root | no | confirmed | Only `localStorage`, which registers |
+| 9 | The console guard fails on `console` used as a value | no | partly | Catches destructuring, assignment, passing, `globalThis`; misses any line where a `//` comes before `console`, e.g. inside a string URL |
+| 10 | No regressions | no | confirmed | Unit 960, db 785; lint, types clean |
+
+**Overall:** not met: the guard cuts lines at a `//` inside a string.
