@@ -13,6 +13,9 @@ import {
   REGISTRY,
 } from "./testing.js";
 
+// Windows keeps no POSIX modes: no executable bit, no 0600 (rmk on Windows, 121).
+const posix = process.platform !== "win32";
+
 let io: FakeIo;
 afterEach(() => io?.cleanup());
 
@@ -65,7 +68,7 @@ describe("rmk login", () => {
       registries: { [REGISTRY]: { email: "dev@example.com", token: "rmk_secret" } },
       version: 1,
     });
-    expect(statSync(configPath(io)).mode & 0o777).toBe(0o600);
+    if (posix) expect(statSync(configPath(io)).mode & 0o777).toBe(0o600);
   });
 
   it("makes a registry named with --registry the default, and says which one it replaced", async () => {
@@ -186,11 +189,13 @@ describe("rmk whoami and logout", () => {
       stderr: expect.stringContaining("rmk login"),
     });
     await rmk("login", "--registry", REGISTRY, "--token", "rmk_test_token");
-    chmodSync(configPath(io), 0o644);
-    expect(await rmk("whoami")).toMatchObject({
-      exitCode: 1,
-      stderr: expect.stringContaining("chmod 600"),
-    });
+    if (posix) {
+      chmodSync(configPath(io), 0o644);
+      expect(await rmk("whoami")).toMatchObject({
+        exitCode: 1,
+        stderr: expect.stringContaining("chmod 600"),
+      });
+    }
   });
 
   it("revokes the token on the server and removes it locally, even when the server can't be reached", async () => {

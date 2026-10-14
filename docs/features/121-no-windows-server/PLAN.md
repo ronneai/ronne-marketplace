@@ -58,3 +58,20 @@ Lands in the next release, with 099 (owner, 2026-10-14): build it before that re
   repositories for the new anchor.
   *Done when:* the site builds; each language has the same sections; the app's links to
   `install#windows`, if any, resolve.
+
+## Notes
+
+- **Task 1, the first Windows runs (#183).** core and rmk-mcp pass on Windows once files are
+  checked out as committed (`core.autocrlf` off in `clients-windows.yml`: the runners' CRLF made
+  every golden file differ); core's tar-listing test skips there (Windows' `tar` prints names in
+  the console's code page; backups run on Linux and macOS only). rmk had 12 failures:
+  - **One real bug, fixed (owner's decision, 2026-10-14):** on Windows a folder item with an
+    executable file (a hook, a skill's script) looked edited after every install and never
+    updated: the hash rmk records counted the executable bit, which Windows' disks don't keep.
+    `hashFor` (`packages/cli/src/apply.ts`) leaves the bits out of a folder's hash on Windows, on
+    both sides; elsewhere they still count. Tested for each platform (`apply.test.ts`; the test
+    fails without the fix), and `apply.test.ts`'s install-twice test now passes on Windows.
+  - **Eleven POSIX assumptions in the tests:** file modes (the config's 0600 and its "readable by
+    others" refusal, executable bits read from disk) are checked on Linux and macOS only (`posix`
+    in each test file); the usage-hook tests' fake `rmk` gets an `rmk.cmd` on Windows, as npm
+    leaves; the plugin helper's test accepts the quoted path `sh` gets.
