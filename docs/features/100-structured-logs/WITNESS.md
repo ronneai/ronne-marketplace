@@ -866,3 +866,15 @@ Witnessed: 2026-10-14 15:38 EDT, by a fresh agent (blind). Commit: 886118e3. Mac
 | 16 | No regressions; lint and types | no | confirmed | 93 passed; clean |
 
 **Overall:** not met: escapes JSON can't read, a later directive in the prologue, and a nested `node_modules` get past the guard.
+
+## Task 2 — Requests (fourth re-check)
+
+Witnessed: 2026-10-14 15:45 EDT, by a fresh agent (blind). Commit: 51f666fe. Machine: macOS 27.0.1, Node v24.0.0. Rows other than 3 and 16 carry over. A `next build` checked which probes Next registers.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1–2, 4–15 | As the earlier passes | no | confirmed | `git diff --stat 886118e3 51f666fe` → the guard test, WITNESS.md |
+| 3 | Every exported action goes through `serverAction`; its guard fails when one doesn't | no | partly | The third re-check's five probes, 13 earlier ones and new ones fail the guard; 20 real files pass. Past it, each needing a deliberately escaped `use server`: an escaped inline directive; a comment between a prologue string and its `;`; a hashbang first; a CRLF line continuation |
+| 16 | The prologue reader can't run code; nothing regressed | no | confirmed | 23 hostile inputs and 300,000 fuzzed strings → nothing ran; 93 passed; typecheck; lint unchanged |
+
+**Overall:** not met: four escaped-directive forms get past the guard; none can be written by mistake. Owner's decision (2026-10-14): a deliberately escaped `use server` is out of scope; recorded in the guard's comment and SPEC.md.

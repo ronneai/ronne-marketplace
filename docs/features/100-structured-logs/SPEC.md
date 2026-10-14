@@ -83,7 +83,9 @@ unexpected error, the database unreachable).
   `status`, `ms`, `userId`), and sets `X-Request-Id` on the response.
 - **Server actions:** a shared wrapper the `actions.ts` files' exported actions go through, with
   the same context; no `http.request` line (a server action is one POST to the page), but every
-  line inside carries the ID.
+  line inside carries the ID. A guard test imports every file with a `use server` directive and
+  checks each export is the wrapper's; actions live in their own files, never inline. A
+  deliberately escaped directive placed to slip past it is out of scope (owner, 2026-10-14).
 - **Pages:** `proxy.ts` sets the header on the request, so `onRequestError` can log a page's
   failure with it.
 - **Where it comes from:** a new ULID per request. With `TRUST_PROXY=true`, an incoming

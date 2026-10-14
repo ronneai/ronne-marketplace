@@ -90,6 +90,10 @@ describe("logRequestError (onRequestError)", () => {
   });
 });
 
+// Catches every unwrapped action someone could write by mistake: any file shape, extension or
+// folder, a directive after comments or "use strict", escapes Next cooks. Out of scope (owner,
+// 2026-10-14): a deliberately escaped "use server" placed to slip past (inside a function, after a
+// hashbang, around a comment), and an export that differs under Vitest.
 describe("every exported server action goes through serverAction (guard)", () => {
   const app = join(import.meta.dirname, "../../..");
   const self = join(import.meta.dirname, "server-action.test.ts");
