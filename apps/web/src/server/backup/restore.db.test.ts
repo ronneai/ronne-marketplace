@@ -403,6 +403,21 @@ describe("rmk-server restore (099)", () => {
           : e,
       ),
     );
+    // A stored file twice, by names a Linux disk keeps apart and macOS's and Windows' don't (the
+    // manifest recomputed, so only the clash is wrong).
+    const clashing = await rewrite((list) => {
+      const stored = list.find((e) => e.path.startsWith("storage/"));
+      if (!stored) throw new Error("the seed stores no file");
+      const twin = { ...stored, path: stored.path.replace(/[^/]+$/, (n) => n.toUpperCase()) };
+      list.splice(list.indexOf(stored) + 1, 0, twin);
+      const manifest = list.find((e) => e.path === "manifest.json");
+      if (!manifest) throw new Error("no manifest");
+      const m = JSON.parse(new TextDecoder().decode(manifest.bytes));
+      m.files[twin.path] = { ...m.files[stored.path] };
+      m.storage = { files: m.storage.files + 1, bytes: m.storage.bytes + twin.bytes.length };
+      manifest.bytes = new TextEncoder().encode(JSON.stringify(m));
+      return list;
+    });
     for (const [path, message] of [
       [newer, /comes from a newer Ronne \(9\.0\.0\).*Nothing was changed/s],
       [altered, /doesn't match its checksum.*Nothing was changed/s],
@@ -415,6 +430,21 @@ describe("rmk-server restore (099)", () => {
       expect(existsSync(join(appDir, "data"))).toBe(false);
       expect(existsSync(join(appDir, ".env"))).toBe(false);
     }
+
+    // The clash, as this disk sees it: refused with nothing changed where case is one name
+    // (macOS, Windows), restored where it isn't (Linux). Last: it fills the target.
+    const appDir = tempDir();
+    writeFileSync(join(appDir, "case-check"), "");
+    const foldsCase = existsSync(join(appDir, "CASE-CHECK"));
+    rmSync(join(appDir, "case-check"));
+    const clash = restoreRun(clashing, { appDir, databaseUrl: target.url }).run();
+    if (foldsCase) {
+      await expect(clash).rejects.toThrow(
+        /are one name in the storage folder.*Nothing was changed/s,
+      );
+      expect(await isStillEmpty()).toBe(true);
+      expect(readdirSync(appDir)).toEqual([]);
+    } else await expect(clash).resolves.toBeDefined();
   });
 
   it("asks before restoring versions with no artifact, and refuses without a terminal or --yes", async () => {

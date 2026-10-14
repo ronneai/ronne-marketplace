@@ -38,6 +38,30 @@ const run = (script: string, args: string[], env: Record<string, string> = {}) =
   return { code: result.status, stdout: result.stdout, stderr: result.stderr };
 };
 
+/** The same, its standard output closed at once (`… | true`): the script's own exit code. */
+const runClosed = (script: string, args: string[], env: Record<string, string> = {}) => {
+  const quoted = [`scripts/${script}.ts`, ...args].map((a) => `'${a}'`).join(" ");
+  const result = spawnSync(
+    "bash",
+    ["-c", `pnpm exec tsx ${quoted} | true; exit "\${PIPESTATUS[0]}"`],
+    {
+      cwd: new URL("..", import.meta.url),
+      env: {
+        PATH: process.env.PATH,
+        HOME: process.env.HOME,
+        NODE_ENV: "test",
+        CI: "",
+        RONNE_RUNTIME: "npm",
+        RONNE_DATA_DIR: dir,
+        RONNE_ENV_FILE: join(dir, ".env"),
+        ...env,
+      },
+      encoding: "utf8",
+    },
+  );
+  return { code: result.status, stderr: result.stderr };
+};
+
 const setUp = () =>
   run("setup", ["--yes"], {
     DATABASE_URL: `file:${join(dir, "ronne.db")}`,
@@ -120,5 +144,33 @@ describe("pnpm run backup (099)", () => {
     expect(elsewhere.code, elsewhere.stderr).toBe(0);
     expect(readdirSync(join(dir, "here", "mine"))[0]).toMatch(ARCHIVE);
     expect(existsSync(join(dir, "storage", "mine"))).toBe(false);
+  });
+});
+
+describe("pnpm run backup and restore with their output closed (099)", () => {
+  it("exit with the work's own code, not a crash on the closed output", () => {
+    expect(setUp().code).toBe(0);
+    const made = runClosed("backup", []);
+    expect(made.code, made.stderr).toBe(0);
+    const [archive] = readdirSync(join(dir, "backups"));
+    expect(archive).toMatch(ARCHIVE);
+    const target = join(dir, "restored");
+    mkdirSync(target);
+    const restored = runClosed(
+      "restore",
+      [
+        join(dir, "backups", archive ?? ""),
+        "--database-url",
+        `file:${join(target, "ronne.db")}`,
+        "--yes",
+      ],
+      { RONNE_DATA_DIR: target, RONNE_ENV_FILE: join(target, ".env") },
+    );
+    expect(restored.code, restored.stderr).toBe(0);
+    expect(existsSync(join(target, "ronne.db"))).toBe(true);
+    // Its last step too, after the messages that went nowhere.
+    expect(existsSync(join(target, ".env"))).toBe(true);
+    // A failure still says so.
+    expect(runClosed("backup", ["--keep", "0"]).code).toBe(2);
   });
 });

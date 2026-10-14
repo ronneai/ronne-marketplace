@@ -1,7 +1,7 @@
 // `rmk-server service status | start | stop | restart | logs` (feature 083), and the scripts
 // (setup, migrate, reset-root-password, revoke-access, rotate-secret, backup) run for an installed
 // service.
-import { dirname, join } from "node:path";
+import { dirname, join, posix, win32 } from "node:path";
 import {
   asAdmin,
   type Backend,
@@ -203,10 +203,32 @@ const SCRIPT_VERBS: Record<string, string> = {
 };
 
 /**
+ * Whether RONNE_DATA_DIR or RONNE_ENV_FILE names the service's own data folder or settings file,
+ * as the disk sees it (`sameFile`: links, firmlinks, case, short names). A relative one is from
+ * `relativeTo`, the folder the scripts resolve it from (the web app's, not the caller's).
+ */
+const namesServiceFiles = (sys: System, layout: InstallContext["layout"], relativeTo: string) => {
+  const path = sys.platform === "win32" ? win32 : posix;
+  const names = (value: string | undefined, own: string) =>
+    value !== undefined && value !== "" && sys.sameFile(path.resolve(relativeTo, value), own);
+  return (
+    names(sys.env.RONNE_DATA_DIR, layout.dataDir) || names(sys.env.RONNE_ENV_FILE, layout.envFile)
+  );
+};
+
+const refuseWhileRunning = (sys: System) => {
+  sys.err(
+    `rmk-server: the rmk-server service is running. Stop it first (${asAdmin(sys, "rmk-server service stop")}), restore, then start it again.\n`,
+  );
+  return 1;
+};
+
+/**
  * The scripts (`setup`, `migrate`, `reset-root-password`, `revoke-access`, `rotate-secret`,
- * `backup`) on a machine with the service installed: run as its account, on its data and settings,
+ * `backup`, `restore`) on a machine with the service installed: run as its account, on its data and settings,
  * rather than on root's own folder. Undefined when they should run as usual (no service, or
- * RONNE_DATA_DIR or RONNE_ENV_FILE chosen).
+ * RONNE_DATA_DIR or RONNE_ENV_FILE chosen; a restore naming the running service's own files that
+ * way is still refused).
  *
  * service.json sits in a folder the service's account can write, so nothing in it decides what
  * runs as root or as whom: the program is the one running now, and the account is the layout's
@@ -218,19 +240,22 @@ export const scriptForService = async (
   script: string,
   args: string[],
   backend?: Backend,
+  /** The folder the scripts resolve a relative RONNE_DATA_DIR or RONNE_ENV_FILE from. */
+  relativeTo = ".",
 ): Promise<number | undefined> => {
-  if (sys.env.RONNE_DATA_DIR || sys.env.RONNE_ENV_FILE) return undefined;
   const { layout } = context;
+  // A restore writes the whole database: never under a running server (099), even when the
+  // service's own folder or settings are named through RONNE_DATA_DIR or RONNE_ENV_FILE.
+  const runningUnderRestore = (state: NonNullable<ReturnType<typeof readState>>) =>
+    script === "restore" && backend?.isActive(definitionsFor(context, state).app) === true;
+  if (sys.env.RONNE_DATA_DIR || sys.env.RONNE_ENV_FILE) {
+    if (script !== "restore" || !namesServiceFiles(sys, layout, relativeTo)) return undefined;
+    const state = readState(sys, layout);
+    return state && runningUnderRestore(state) ? refuseWhileRunning(sys) : undefined;
+  }
   const state = readState(sys, layout);
   if (!state) return undefined;
-  // A restore writes the whole database: never under a running server (099).
-  if (script === "restore" && backend?.isActive(definitionsFor(context, state).app)) {
-    sys.err(
-      `rmk-server: the rmk-server service is running. Stop it first (${asAdmin(sys, "rmk-server service stop")}), restore, then start it again.
-`,
-    );
-    return 1;
-  }
+  if (runningUnderRestore(state)) return refuseWhileRunning(sys);
   if (!sys.isRoot()) {
     sys.err(
       `rmk-server: the rmk-server service is installed here, with its data in ${layout.dataDir}. To ${SCRIPT_VERBS[script] ?? script}, run: ${asAdmin(sys, `rmk-server ${script}`)}\nFor a separate instance of your own, set RONNE_DATA_DIR first.\n`,

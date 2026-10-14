@@ -4,12 +4,13 @@
 // Exit codes: 0 restored, 1 refused or failed (the message says what was left), 2 invalid input.
 import { resolve } from "node:path";
 import * as p from "@clack/prompts";
-import { parseRestoreCommand, RESTORE_USAGE } from "../src/server/backup/cli";
+import { ignoreOutputErrors, parseRestoreCommand, RESTORE_USAGE } from "../src/server/backup/cli";
 import { PassphraseError, readPassphrase } from "../src/server/backup/passphrase";
 import { callerCwd } from "../src/server/backup/run-backup";
 import { RestoreFailedError, runRestore } from "../src/server/backup/run-restore";
 
 const appDir = resolve(import.meta.dirname, "..");
+ignoreOutputErrors();
 const command = parseRestoreCommand(process.argv.slice(2));
 
 if (command.mode === "help") {

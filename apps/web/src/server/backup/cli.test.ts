@@ -1,5 +1,6 @@
+import { EventEmitter } from "node:events";
 import { describe, expect, it } from "vitest";
-import { KEEP_MAX, parseBackupCommand } from "./cli";
+import { ignoreOutputErrors, KEEP_MAX, parseBackupCommand } from "./cli";
 
 describe("backup's flags (099)", () => {
   it("backs up with the settings by default, and reads --out, --no-settings, --keep and --yes", () => {
@@ -80,5 +81,16 @@ describe("where the command was typed (099)", () => {
     expect(callerCwd({ RONNE_CALLER_CWD: "/a", INIT_CWD: "/b" }, "/c")).toBe("/a");
     expect(callerCwd({ INIT_CWD: "/b", PWD: "/d" }, "/c")).toBe("/b");
     expect(callerCwd({ PWD: "/d" }, "/c")).toBe("/c");
+  });
+});
+
+describe("ignoreOutputErrors (099)", () => {
+  it("drops an output's errors, a closed one's or a full disk's, so they can't end the work", () => {
+    const out = new EventEmitter();
+    // Unhandled, an emitted error throws.
+    expect(() => out.emit("error", new Error("write EPIPE"))).toThrow();
+    ignoreOutputErrors([out]);
+    for (const code of ["EPIPE", "ENOSPC", "EIO"])
+      expect(() => out.emit("error", Object.assign(new Error(code), { code }))).not.toThrow();
   });
 });

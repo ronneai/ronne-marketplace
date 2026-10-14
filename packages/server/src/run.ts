@@ -113,6 +113,7 @@ export const main = async (argv: string[]): Promise<number | undefined> => {
         command.script,
         args,
         target.backend,
+        webDir,
       );
       if (code !== undefined) return code;
     }

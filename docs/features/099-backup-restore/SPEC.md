@@ -143,7 +143,9 @@ rmk-server backup --verify <archive> [--passphrase-file <file>]
   (96.0 MiB)"), and the time it took; then warnings: the settings are sensitive, settings only the
   environment has, released versions whose artifact is missing or has another sha256 than the
   database's, storage files left out. Exit 0 only when the archive is complete, 1 when it failed
-  (the partial file and the empty folders it made removed, "The backup failed: the disk is full (ENOSPC) …"), 2 for bad flags.
+  (the partial file and the empty folders it made removed, "The backup failed: the disk is full (ENOSPC) …"), 2 for bad flags. The exit code is the work's own: messages that can't be written (an
+  output closed early, `rmk-server backup | head -1`, or a full disk under a redirection) are lost,
+  not the result (restore too).
 - **While it runs:** writes keep working; the snapshot is what was committed when it started.
 - **`--verify`:** reads the archive (decrypting it), checks every entry against the manifest's
   sha256, checks that each released version's artifact is there with the sha256 the database
@@ -181,10 +183,29 @@ rmk-server restore <archive> [--passphrase-file <file>] [--database-url <url>] [
    and for SQLite, how to move the file aside. Nothing is changed: a SQLite file that's there is
    looked at read-only first (opening it to restore would turn WAL on).
 4. **The target storage** (the settings' `STORAGE_PATH`, else the data folder's `storage/`) must be
-   empty or absent. Same refusal otherwise.
+   empty or absent. Same refusal otherwise. Then every stored file is tried where it will go:
+   restore makes each one, empty, at its own path in the storage folder, then removes exactly what
+   it made (the files, the folders it made for them, and the `._name` files macOS's exFAT and FAT
+   drivers add with them, seen right after each is made), nothing else, leaving the folder as it
+   was (empty, or not there). (On exFAT, the driver itself rewrites a `._x` already beside a folder
+   `x` when any program makes `x`, and deletes it with `x`.) A
+   backup is refused, with nothing changed, when two of its stored names are one name there (they
+   differ only by case or by how their letters are encoded: a backup from a disk that tells them
+   apart, restored onto macOS's, Windows', exFAT, SMB or a casefolded folder), a file's name is a
+   folder's, or a file can't be written there at all (a name or path too long, a character the
+   disk doesn't take, no permission). Two spellings of one folder merge, as on the disk, and
+   restore. A stopping signal meanwhile (SIGINT from Ctrl-C, SIGTERM, SIGHUP, SIGQUIT from Ctrl-\)
+   removes what was made, prints what couldn't be removed, and exits (129–143). A kill it can't
+   catch (SIGKILL, a power cut) or another signal can leave empty files there, and the next
+   restore says the folder isn't empty. (In a clone, `pnpm run restore` runs through tsx, which
+   passes on SIGINT and SIGTERM only.)
 5. **The server must be stopped:** restore takes the migration lock, as start does, so a server
    starting meanwhile waits; when a service is installed and running, restore says to stop it
-   (`rmk-server service stop`): `rmk-server restore` refuses while the installed service runs. In
+   (`rmk-server service stop`): `rmk-server restore` refuses while the installed service runs,
+   also when `RONNE_DATA_DIR` or `RONNE_ENV_FILE` names the service's own data folder or settings
+   file as the disk sees it (the same device and file number: through links, macOS's firmlinks,
+   another case where the disk ignores it, Windows' short names; relative ones from the web app's
+   folder, as the scripts read them). Another instance's folder restores as usual. In
    Docker the runbook uses `docker compose stop web` then `docker compose run --rm web pnpm run
    restore …`. The lock is held on the one connection that does the whole restore. It belongs to
    one database: on MySQL and MariaDB, Ronne names it after the database (Kysely's own name is one

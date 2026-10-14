@@ -57,6 +57,12 @@ export type System = {
   exists: (path: string) => boolean;
   /** Whether the path is a symbolic link, or a file with another hard link to it. */
   isLink: (path: string) => boolean;
+  /**
+   * Whether two paths are one file or folder on the disk (its device and file number), however
+   * they're spelt: links, macOS's firmlinks, case where the disk ignores it, Windows' short names.
+   * False when either isn't there.
+   */
+  sameFile: (a: string, b: string) => boolean;
   readFile: (path: string) => string | undefined;
   /**
    * Writes a whole file, replacing it, with these permissions: through a new file made next to it
@@ -148,6 +154,14 @@ export const realSystem = (): System => ({
     return undefined;
   },
   exists: (path) => existsSync(path),
+  sameFile: (a, b) => {
+    try {
+      const [x, y] = [statSync(a, { bigint: true }), statSync(b, { bigint: true })];
+      return x.dev === y.dev && x.ino === y.ino;
+    } catch {
+      return false;
+    }
+  },
   isLink: (path) => {
     try {
       const stat = lstatSync(path);

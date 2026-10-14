@@ -204,6 +204,66 @@ describe("the scripts with the service installed (083)", () => {
     expect(sys.commands).toContain(`${NODE} ${ENTRY} restore /b.tar`);
   });
 
+  it("refuse restore while the service runs when RONNE_DATA_DIR or RONNE_ENV_FILE names its files (099)", async () => {
+    for (const [name, value] of [
+      ["RONNE_DATA_DIR", "/var/lib/rmk-server"],
+      ["RONNE_DATA_DIR", "/var/lib/rmk-server/"],
+      ["RONNE_DATA_DIR", "/var/lib/../lib/rmk-server"],
+      ["RONNE_ENV_FILE", "/etc/rmk-server/env"],
+    ] as const) {
+      const sys = await installed();
+      sys.env[name] = value;
+      expect(
+        await scriptForService(sys, context, "restore", ["/b.tar"], linuxBackend(sys)),
+        value,
+      ).toBe(1);
+      expect(sys.errors.join("")).toContain("the rmk-server service is running. Stop it first");
+      expect(sys.attached).toEqual([]);
+      // Stopped, or another script: they run as asked, on the folder named.
+      sys.answers.set("systemctl is-active --quiet rmk-server", { code: 3 });
+      expect(
+        await scriptForService(sys, context, "restore", ["/b.tar"], linuxBackend(sys)),
+      ).toBeUndefined();
+    }
+    const other = await installed();
+    other.env.RONNE_DATA_DIR = "/srv/another-instance";
+    expect(
+      await scriptForService(other, context, "restore", ["/b.tar"], linuxBackend(other)),
+    ).toBeUndefined();
+    const backup = await installed();
+    backup.env.RONNE_DATA_DIR = "/var/lib/rmk-server";
+    expect(
+      await scriptForService(backup, context, "backup", [], linuxBackend(backup)),
+    ).toBeUndefined();
+  });
+
+  it("resolve a relative RONNE_DATA_DIR from the scripts' folder, and know the folder by any name the disk gives it (099)", async () => {
+    const restore = async (env: Record<string, string>) => {
+      const sys = await installed();
+      Object.assign(sys.env, env);
+      return scriptForService(
+        sys,
+        context,
+        "restore",
+        ["/b.tar"],
+        linuxBackend(sys),
+        "/opt/app/apps/web",
+      );
+    };
+    // Relative: from the web app's folder, where the restore script resolves it, not the caller's.
+    expect(await restore({ RONNE_DATA_DIR: "../../../../var/lib/rmk-server" })).toBe(1);
+    expect(await restore({ RONNE_DATA_DIR: "var/lib/rmk-server" })).toBeUndefined();
+    // Whatever the disk says is the same folder: a link, macOS's /System/Volumes/Data firmlink,
+    // another case where the disk ignores it (the real disk's answer: system.test.ts).
+    expect(await restore({ RONNE_DATA_DIR: "/VAR/lib/RMK-server" })).toBeUndefined();
+    const linked = await installed();
+    linked.aliases.set("/srv/link-to-service", "/var/lib/rmk-server");
+    linked.env.RONNE_DATA_DIR = "/srv/link-to-service";
+    expect(
+      await scriptForService(linked, context, "restore", ["/b.tar"], linuxBackend(linked)),
+    ).toBe(1);
+  });
+
   it("trust nothing in service.json to choose the program or the account (it's the service's file)", async () => {
     const sys = await installed();
     const path = "/etc/rmk-server/service.json";

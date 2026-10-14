@@ -4,12 +4,13 @@
 // Exit codes: 0 the archive is complete, 1 failed (nothing left behind), 2 invalid input.
 import { resolve } from "node:path";
 import * as p from "@clack/prompts";
-import { BACKUP_USAGE, parseBackupCommand } from "../src/server/backup/cli";
+import { BACKUP_USAGE, ignoreOutputErrors, parseBackupCommand } from "../src/server/backup/cli";
 import { PassphraseError, readPassphrase } from "../src/server/backup/passphrase";
 import { BackupFailedError, callerCwd, runBackup } from "../src/server/backup/run-backup";
 import { runVerify, VerifyFailedError } from "../src/server/backup/run-verify";
 
 const appDir = resolve(import.meta.dirname, "..");
+ignoreOutputErrors();
 const command = parseBackupCommand(process.argv.slice(2));
 
 if (command.mode === "help") {
