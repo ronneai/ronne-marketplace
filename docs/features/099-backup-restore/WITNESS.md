@@ -1194,3 +1194,28 @@ Safety record, the same before and after: `md5 apps/web/.env` → b9eb4577b627e8
 **Overall:** not met: every command re-run holds; the spec and the task text still describe Windows for the runbook (row 12).
 
 **Since this pass:** the spec's runbook scope, table and encryption-at-rest line, and the task's first line, have no Windows (with "no Windows server, 121"); the stale "not run here" note says Windows was since removed; 121's spec and index row are on this branch.
+
+## Task 8 — The backup runbook (re-check of the documents)
+
+Witnessed: 2026-10-14 09:34 EDT, by a fresh agent (blind, read-only). Commit: dab6ae65. Machine: macOS 27.0.1, Node v24.0.0. (It notes the re-check before it reads 09:45 EDT, later than its clock: that time was mistyped.)
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The spec's runbook scope lists no Windows scheduler | no | confirmed | `SPEC.md:24-26`; `backup.md:64-200` |
+| 2 | The spec's table has no Windows row | no | confirmed | `SPEC.md:245-250`; the row removed in the diff |
+| 3 | Encryption at rest matches, without BitLocker | no | confirmed | `SPEC.md:257-260`; `backup.md:350-359` |
+| 4 | Task 8's text has no Windows | no | confirmed | `PLAN.md:64-72` |
+| 5 | Remaining Windows mentions are code or history and don't contradict the runbook | no | confirmed | SPEC:194, 207, 292, 319; PLAN's task 7 text and notes; the runbook's only mention is WSL 2 or a VM |
+| 6 | 121's SPEC.md and PLAN.md exist | no | confirmed | Both present |
+| 7 | 121 says the next release has no Windows server | no | confirmed | `121/SPEC.md:127-132`, `121/PLAN.md:10` |
+| 8 | 121's index row agrees with its spec | no | partly | `README.md:246` still described a migration from 0.3.x and "owner's open questions first" |
+| 9 | *Done when*: each command run, written in the notes | no | confirmed | The notes, and the earlier passes' rows (fixes confirmed by the re-check) |
+| 10 | Schedules checked without being installed | no | confirmed | Cron with and without `PATH`, Docker-host cron, `systemd-analyze verify`, `plutil -lint` |
+| 11 | `rclone`, `aws s3 cp`, bundled MySQL unrun by decision | no | confirmed | `backup.md:211-212`, `:308-309`; `PLAN.md:69-72` |
+| 12 | Timings from the benchmark on a named machine | no | confirmed | `PLAN.md:67-68`; the re-check's row 10 |
+| 13 | The first pass's Windows rows no longer apply | no | confirmed | No Task Scheduler, BitLocker or PowerShell in the runbook |
+| 14 | The records pass the checker | no | confirmed | `pnpm witness:check` → no errors |
+
+**Overall:** not met: task 8's documents agree on no Windows and every *Done when* claim is confirmed or covered by the owner's decisions; 121's index row contradicted its spec (row 8). Remarks: 099's acceptance criterion naming Windows server checks (met on #180) goes out of date with 121; `install.md`'s Windows parts are 121's task 5.
+
+**Since this pass:** 121's index row says the next release, with 099, and no migration; status "specified".
