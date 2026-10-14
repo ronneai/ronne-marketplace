@@ -137,7 +137,9 @@ export const checkStorageNames = async (
         const code = codeOf(error);
         const blocker = await deepestThere(path);
         const madeHere = made.includes(blocker) || blocker.startsWith(`${storageRoot}${sep}`);
-        if ((code === "EEXIST" || code === "ENOTDIR" || code === "EISDIR") && madeHere) {
+        // Windows says ENOENT where a file stands for a folder on the way (macOS and Linux: ENOTDIR).
+        const inTheWay = ["EEXIST", "ENOTDIR", "EISDIR", "ENOENT"].includes(code);
+        if (inTheWay && madeHere) {
           // The file in the way, or the folder the file landed on.
           const madeKeys = made
             .filter((m) => m.startsWith(`${storageRoot}${sep}`))

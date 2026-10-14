@@ -440,6 +440,11 @@ goes into `SPEC.md` instead.
     40 SIGINTs aimed at the end of a 20,000-file check, all exit 130 with nothing left (before:
     about one in three lost, the witness's count). No test injects a writer between the check's
     steps; the rule is in `storage-names.ts` with its reason.
+  - Windows CI (#181's new "Disk tests on Windows" job, `server-checks.yml`): `sameFile` passed on
+    NTFS, and so did the case pairs. A file and a folder of one name were refused but called
+    "can't be written (ENOENT)": Windows says ENOENT where a file stands for a folder on the way,
+    so ENOENT now counts as something in the way, which the earlier-name lookup confirms. The
+    job runs only `system.test.ts`'s sameFile test: the file's others check POSIX modes.
   - Writing the storage files inside the rows' transaction wouldn't make a failure leave nothing:
     the migrations run before it (and MySQL commits schema changes on its own), so the up-front
     check stays the way.
