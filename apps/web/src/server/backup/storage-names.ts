@@ -137,8 +137,14 @@ export const checkStorageNames = async (
         const code = codeOf(error);
         const blocker = await deepestThere(path);
         const madeHere = made.includes(blocker) || blocker.startsWith(`${storageRoot}${sep}`);
-        // Windows says ENOENT where a file stands for a folder on the way (macOS and Linux: ENOTDIR).
-        const inTheWay = ["EEXIST", "ENOTDIR", "EISDIR", "ENOENT"].includes(code);
+        // Windows says ENOENT where a file stands for a folder on the way (macOS and Linux:
+        // ENOTDIR), and also for a name too long: only the file there makes it one in the way.
+        const fileThere = await lstat(blocker).then(
+          (found) => !found.isDirectory(),
+          () => false,
+        );
+        const inTheWay =
+          ["EEXIST", "ENOTDIR", "EISDIR"].includes(code) || (code === "ENOENT" && fileThere);
         if (inTheWay && madeHere) {
           // The file in the way, or the folder the file landed on.
           const madeKeys = made
