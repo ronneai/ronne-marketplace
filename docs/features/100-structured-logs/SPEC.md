@@ -55,7 +55,7 @@ calls, no request IDs, and an unexpected error reaches only Next.js's default ou
 | `event` | for events | A stable name, `<area>.<what>` (`server.started`, `http.request`, `auth.sign_in_failed`), for searches and alerts; documented in the list below |
 | `domain` | in a domain | The domain that wrote it (`identity`, `submissions`, `feeds`, …), or `http`, `db`, `server`; a logger's own domain (its child's) can't be replaced by a field |
 | `requestId` | in a request | The request it belongs to |
-| `userId` | when known | The signed-in user's or the token owner's id, never an email or a name; in a request, always the request's user (a field can't replace it) |
+| `userId` | when known | The signed-in user's or the token owner's id, never an email or a name; in a request, the request's user once authentication knows it (a field can't replace it); before that (signing in), the line's own `userId` |
 | `err` | on errors | `{ name, message, stack, code }`, the stack only at `error` |
 | others | — | The event's own fields, flat, camelCase, values that are numbers, booleans or short strings |
 
@@ -145,6 +145,13 @@ colours when stdout is a terminal. `pnpm dev` sets it; the server, Docker, the s
 packages use JSON.
 
 ## Edge cases
+
+**Known limits of the text format** (owner, 2026-10-14: after fourteen adversarial checks, the
+text format's last edge cases are recorded here rather than chased; JSON has none of them). A
+field `domain` on a logger with no domain of its own goes into the head escaped but not encoded,
+so it can hold bare words such as `requestId` (never with an `=`); a logfmt reader that keeps the
+first value of a repeated key may then read those as empty. Look-alike letters and symbols some
+fonts draw blank are written as they are. Text is for people; tools read JSON.
 
 **What the logger is hardened against** (owner, 2026-10-14): what the server can actually be
 handed. That's request data (strings, plain JSON, however crafted), errors from drivers and

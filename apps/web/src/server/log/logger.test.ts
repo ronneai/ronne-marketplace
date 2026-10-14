@@ -542,6 +542,12 @@ describe("more of what a line can't carry", () => {
     expect(line).toContain(" %uD800=a %uDC00=b %EF%BF%BD=c requestId=REAL userId=U1");
   });
 
+  it("quotes a value holding a combining mark: only letters and digits are plain", () => {
+    const { log, lines } = collect({ format: "text" });
+    log.info("m", { v: "a\u0301", w: "á" });
+    expect(lines[0]).toContain(' v="a\u0301" w=á');
+  });
+
   it("keeps the logger's domain, whatever a field says; an empty one counts as none", () => {
     const empty = collect();
     empty.log.child({ domain: "" }).info("z", { domain: "identity" });

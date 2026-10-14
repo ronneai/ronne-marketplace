@@ -526,4 +526,9 @@ describe("cleanFields", () => {
     expect(Object.keys(out)).toEqual(["__proto__", "ok"]);
     expect(JSON.stringify(out)).toBe('{"__proto__":{"userId":"x","password":"[redacted]"},"ok":1}');
   });
+
+  it("cuts a long key to 200 characters, after redaction", () => {
+    const fields = cleanFields({ [`${"k".repeat(300)}`]: 1 }, false);
+    expect(Object.keys(fields)).toEqual([`${"k".repeat(200)}…`]);
+  });
 });

@@ -735,3 +735,50 @@ Witnessed: 2026-10-14 14:10 EDT, by a fresh agent (adversarial). Commit: d292924
 | 15 | `LOG_LEVEL`/`LOG_FORMAT` | no | confirmed | Tests |
 
 **Overall:** not met: U+FFFD or a lone surrogate in the head stops a strict reader; lone-surrogate keys collide; three test gaps.
+
+## Task 1 — The logger (thirteenth check)
+
+Witnessed: 2026-10-14 15:02 EDT, by a fresh agent (blind). Commit: 1471fd6f. Machine: macOS 27.0.1, Node v24.0.0. Within the spec's scope. Strict reader: a go-logfmt-style decoder written for the pass.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Only the logger, its tests and the docs changed; no dependency | no | confirmed | `git diff d2929240 1471fd6f --stat` |
+| 2 | Tests pass; lint and types | no | confirmed | 97 passed |
+| 3 | `Cs` and U+FFFD escaped in the head, values and JSON | no | confirmed | 100,000 fuzzed lines → 0 raw |
+| 4 | Lone-surrogate keys as `%uXXXX`, all keys distinct | no | confirmed | 0 mismatches, 0 duplicates |
+| 5 | A strict logfmt reader parses every line, ids last | no | confirmed | 100,000 lines → 0 errors |
+| 6 | `shlex.split` with and without comments | no | confirmed | 0 failures |
+| 7 | An empty domain or user counts as none | no | confirmed | Probes |
+| 8 | Tests catch each new rule | no | confirmed | 15 mutants, 13 caught; the 2 survivors are equivalent (byte-identical output) |
+| 9 | The spec states the new rules | no | confirmed | SPEC.md diff |
+| 10–14 | Levels, `child()`, formats, context; redaction; `LOG_LEVEL`; never throws; regexes | no | confirmed | Tests and probes |
+
+**Overall:** met. Remark: one test title still says "quoted keys".
+
+## Task 1 — The logger (adversarial, fourteenth check)
+
+Witnessed: 2026-10-14 15:10 EDT, by a fresh agent (adversarial). Commit: 1471fd6f. Machine: macOS 27.0.1, Node v24.0.0. Within the spec's scope. Strict reader: a line-by-line port of the real go-logfmt `decode.go`.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Tests pass; lint and types | no | confirmed | 97 passed |
+| 2 | No new dependency | no | confirmed | Empty diff |
+| 3 | Levels; `LOG_LEVEL`/`LOG_FORMAT`; invalid level | no | confirmed | Mutants caught |
+| 4 | No covered secret written | no | confirmed | 4 levels × 2 formats, every place → 0 |
+| 5 | JSON valid, round-trips | no | confirmed | 120,000 lines |
+| 6 | Never throws | no | confirmed | 18 inputs × 2 msgs × 2 formats |
+| 7 | Never blocks; line cap | no | confirmed | Worst 23.3 ms; longest 56,062 |
+| 8 | Request context | no | confirmed | 50 concurrent → 0 wrong |
+| 9 | The logger's domain wins; empty counts as none | no | confirmed | Mutants caught |
+| 10 | The request's user wins | no | confirmed | Mutant caught |
+| 11 | In a request, always the request's user | no | partly | In a request with no known user yet, a field names it; the spec's wording and the code disagree |
+| 12 | Events in one module | no | confirmed | Mutant caught |
+| 13 | Tests catch each rule | no | partly | 92 mutants, 87 caught; not: the 200-character key cut, `\p{M}` in `PLAIN` |
+| T1 | Strict logfmt reader parses every line | no | confirmed | 120,000 lines → 0 errors |
+| T2 | Keys never quoted, decode to the JSON keys, distinct | no | confirmed | 0 mismatches |
+| T3 | logfmt: no forged ids, real ones last | no | confirmed | 0 failures |
+| T4 | `shlex.split` | no | confirmed | 240,000 splits → 0 |
+| T5 | No two keys the same; the real ids not lost | no | partly | A field `domain` on a logger with no domain goes into the head unencoded: `requestId userId Released … requestId=REAL`; a reader keeping the first value reads them empty |
+| T6 | Hidden characters escaped | no | confirmed | Mutants caught |
+
+**Overall:** not met: a field `domain` can put bare words in the text head (T5); the spec's user wording disagrees with the code (11); two test gaps (13). Owner's decision (2026-10-14): this was the last hunting round; T5 is recorded in the spec as a known limit of the text format; 11 is fixed in the spec's wording (the code's rule is the intended one: `auth.signed_in` names the user before authentication has); 13 gets tests.
