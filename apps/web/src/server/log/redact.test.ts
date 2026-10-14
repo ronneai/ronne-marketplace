@@ -594,6 +594,12 @@ describe("cleanFields", () => {
     expect(redactString("from Alice.SMITH@My-Host.Example-Mail.COM")).toBe("from [email]");
     expect(redactString('to "ana"@example.com now')).toBe("to [email] now");
     expect(redactString("key carol@example.com-acme")).toBe("key [email]-acme");
+    // The dots IDNA maps to `.`, and invisible characters IDNA drops (a soft hyphen, a zero-width
+    // space).
+    expect(redactString("v bob@sub\u3002example.com w")).toBe("v [email] w");
+    expect(redactString("v bob@ｅｘａｍｐｌｅ\uFF0Ecom.au w")).toBe("v [email] w");
+    expect(redactString("v bob@exa\u00ADmple.com w")).toBe("v [email] w");
+    expect(redactString("v ana@exa\u200Bmple.com w")).toBe("v [email] w");
     for (const kept of [
       "/node_modules/.pnpm/next@16.4.0_react@19.2.0/x",
       "@team/secure-coding and @acme/infra/tool",

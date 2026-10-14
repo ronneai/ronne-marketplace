@@ -89,6 +89,12 @@ const logCheck = async () => {
         ...secrets.filter((secret) => line.includes(secret)),
         ...(line.match(/rmk_[A-Za-z0-9_-]{20,}/) ?? []),
         ...(line.match(/session_token/) ?? []),
+        // A session token by its shape (Better Auth's generateId(32)): sessions that ended during
+        // the run are gone from the database. Mixed case and a letter past `f`, so a hex hash or a
+        // ULID isn't one.
+        ...(line.match(/(?<![A-Za-z0-9])[A-Za-z0-9]{32}(?![A-Za-z0-9])/g) ?? []).filter(
+          (run) => /[a-z]/.test(run) && /[A-Z]/.test(run) && /[g-zG-Z]/.test(run),
+        ),
         // An email in any script (a domain starts with a letter: `next@16.4.0` in a stack's path
         // isn't one).
         ...(line.match(

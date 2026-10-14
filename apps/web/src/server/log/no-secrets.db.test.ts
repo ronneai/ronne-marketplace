@@ -175,6 +175,26 @@ it("writes nothing secret or personal from sign-in, tokens, the API, uploads and
   logger.error("Unexpected error", {
     err: new Error(`Duplicate entry '${EMAIL_ACCENTED}' for key 'user.user_email_unique'`),
   });
+  // An email outside a duplicate-key error, as Better Auth's sign-up message writes one, and in a
+  // field: only the email rule hides these.
+  logger.info("Better Auth", { detail: `Sign-up attempt for existing email: ${EMAIL_ACCENTED}` });
+  logger.warn("Unexpected error", { err: new Error(`No account for ${EMAIL}`), note: EMAIL });
+  // A duplicate-key error on an item's name (two releases racing on MySQL).
+  logger.error("Unexpected error", {
+    err: new Error(
+      "Duplicate entry '01K7SCOPE-secret-skill' for key 'items.items_scope_name_unique'",
+    ),
+  });
+  // A file system error under the storage folder, as Node writes one.
+  await import("node:fs/promises")
+    .then((fs) => fs.readFile(join(storageRoot, "team", "secret-skill", "9.9.9.tgz")))
+    .catch((err: unknown) => logger.error("Unexpected error", { err }));
+  // A storage error on an item's key: different bytes for a stored artifact.
+  const storage = localStorage(storageRoot);
+  await storage.put("team/secret-skill/1.0.0.tgz", new Uint8Array([1]));
+  await storage
+    .put("team/secret-skill/1.0.0.tgz", new Uint8Array([2]))
+    .catch((err: unknown) => logger.error("Unexpected error", { err }));
 
   // And everything passed straight to the logger: fields, nested, in errors and in strings.
   logger.error("Everything at once", {

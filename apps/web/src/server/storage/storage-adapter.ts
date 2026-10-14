@@ -21,17 +21,20 @@ export class StorageError extends Error {
   }
 }
 
+// The key names an item (`scope/name/version.tgz`), and a private workspace's names stay private
+// (093): it's a property for code, never in the message the logs write (feature 100).
+
 /** A key that could escape the storage root: absolute, with `..`, or otherwise malformed. */
 export class StorageKeyError extends StorageError {
   constructor(readonly key: string) {
-    super(`"${key}" isn't a valid storage key.`);
+    super("That isn't a valid storage key.");
   }
 }
 
 /** Different bytes for a key that's already stored: artifacts never change. */
 export class StorageConflictError extends StorageError {
   constructor(readonly key: string) {
-    super(`${key} is already stored with different content, and artifacts never change.`);
+    super("That artifact is already stored with different content, and artifacts never change.");
   }
 }
 

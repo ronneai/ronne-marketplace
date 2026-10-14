@@ -113,7 +113,12 @@ const hideUnder = (value: string, root: string): string => {
 // password's `***`); `'` is read, as in `o'brien@…`, then trimmed from the front (a quoted
 // address). After it, letters, digits, marks, dots and hyphens. `\p{Cs}` keeps a letter outside the BMP whole: charAt reads its two halves.
 const LOCAL = /^[^\s@"()<>[\]{},;:\\/`*]$/u;
-const DOMAIN = /^[\p{L}\p{N}\p{M}\p{Cs}.-]$/u;
+// A domain also reads the dots IDNA maps to `.` (`。`, `．`, `｡`) and invisible format characters
+// (a soft hyphen, a zero-width space), which IDNA drops: `bob@sub。example.com` is an address.
+const DOMAIN = /^[\p{L}\p{N}\p{M}\p{Cs}\p{Cf}.\u3002\uFF0E\uFF61-]$/u;
+const DOTS = /[.\u3002\uFF0E\uFF61]/gu;
+/** A domain as IDNA reads it: its dots as `.`, its format characters gone. */
+const asDomain = (value: string) => value.replace(DOTS, ".").replace(/\p{Cf}/gu, "");
 // A domain's last label: letters in any script (`.de`, `.рф`), or its ASCII form (`xn--p1ai`).
 const TOP_LABEL = /^(?:[\p{L}\p{M}]{2,}|xn--[a-z0-9-]+)$/iu;
 
@@ -140,14 +145,15 @@ const hideEmails = (value: string): string => {
     let end = at + 1;
     while (end < value.length && DOMAIN.test(value.charAt(end))) end++;
     // The domain without a trailing dot or hyphen (an address ending a sentence).
-    while (end > at + 1 && ".-".includes(value.charAt(end - 1))) end--;
+    while (end > at + 1 && ".-\u3002\uFF0E\uFF61".includes(value.charAt(end - 1))) end--;
     // A last label that runs on past its letters (`example.com-acme`): the address ends with them.
-    const dot = at + 1 + value.slice(at + 1, end).lastIndexOf(".");
-    if (dot > at && !TOP_LABEL.test(value.slice(dot + 1, end))) {
-      const letters = /^[\p{L}\p{M}]*/u.exec(value.slice(dot + 1, end))?.[0] ?? "";
-      if (letters.length >= 2) end = dot + 1 + letters.length;
+    let dot = end - 1;
+    while (dot > at && !".\u3002\uFF0E\uFF61".includes(value.charAt(dot))) dot--;
+    if (dot > at && !TOP_LABEL.test(asDomain(value.slice(dot + 1, end)))) {
+      const letters = /^[\p{L}\p{M}\p{Cf}]*/u.exec(value.slice(dot + 1, end))?.[0] ?? "";
+      if (asDomain(letters).length >= 2) end = dot + 1 + letters.length;
     }
-    const domain = value.slice(at + 1, end);
+    const domain = asDomain(value.slice(at + 1, end));
     const last = domain.slice(domain.lastIndexOf(".") + 1);
     if (start === at || !domain.includes(".") || !TOP_LABEL.test(last)) continue;
     out += `${value.slice(from, start)}[email]`;

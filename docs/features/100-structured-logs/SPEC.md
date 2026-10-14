@@ -140,7 +140,8 @@ The logger, not each caller, keeps secrets out:
 - **Storage paths** (owner, 2026-10-14): a path under the storage's folder is written as
   `<folder>/[path]` in any line, an error's message and stack included. Stored files are named
   `scope/name/version.tgz`, so a storage error would otherwise name an item a private workspace hides
-  (093). Each storage adapter registers its folder as it's made.
+  (093). Each storage adapter registers its folder as it's made. A storage error keeps its key as a
+  property for code, never in its message.
 - **Duplicate-key values:** the value MySQL and MariaDB quote in a duplicate-key error
   (`Duplicate entry '…' for key`) is written `[value]`: it can be an email or an item's name.
   PostgreSQL keeps it in the error's `detail`, which isn't written; SQLite names only the columns.
