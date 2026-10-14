@@ -89,14 +89,11 @@ const ANY_HIDDEN = /[\p{Cc}\p{Cf}\p{Default_Ignorable_Code_Point}\p{Zl}\p{Zp}\u2
 const isPlain = (text: string) => PLAIN.test(text) && !ANY_HIDDEN.test(text);
 
 /**
- * Quoted text for a key or value: a JSON string, with `'` escaped (`\u0027`, so a reader that pairs
- * single quotes finds none), and, in a key, `=` too (a reader that drops quotes then still finds the
- * key's end at the real `=`).
+ * A value that isn't plain: a JSON string, with `'` escaped (`\u0027`, so a reader that pairs
+ * single quotes finds none).
  */
-const quoted = (text: string, key: boolean): string => {
-  const json = JSON.stringify(text).replaceAll("'", "\\u0027");
-  return escapeText(key ? json.replaceAll("=", "\\u003d") : json);
-};
+const quoted = (text: string): string =>
+  escapeText(JSON.stringify(text).replaceAll("'", "\\u0027"));
 
 /**
  * A value in a text line: as it is when it's plain (PLAIN), quoted otherwise, so nothing in it can
@@ -104,10 +101,28 @@ const quoted = (text: string, key: boolean): string => {
  */
 const textValue = (value: unknown): string => {
   const text = typeof value === "string" ? value : (JSON.stringify(value) ?? String(value));
-  return isPlain(text) ? text : quoted(text, false);
+  return isPlain(text) ? text : quoted(text);
 };
 
-const textKey = (key: string): string => (isPlain(key) ? key : quoted(key, true));
+/** A key's characters that stay as they are: PLAIN's, but `%` (the escape) and anything hidden. */
+const KEY_CHAR = /^[\p{L}\p{N}_.:/@+,-]$/u;
+
+/**
+ * A key in a text line, never quoted (strict logfmt readers refuse a quoted key): every character
+ * that isn't KEY_CHAR, `%` included, as its UTF-8 bytes `%XX`, so two keys stay two keys. An empty
+ * key is a lone `%`, which no encoded key can be.
+ */
+const textKey = (key: string): string => {
+  if (key === "") return "%";
+  let out = "";
+  for (const char of key) {
+    if (KEY_CHAR.test(char) && !ANY_HIDDEN.test(char)) out += char;
+    else
+      for (const byte of Buffer.from(char))
+        out += `%${byte.toString(16).toUpperCase().padStart(2, "0")}`;
+  }
+  return out;
+};
 
 /**
  * The line's head (domain, event, message): with `\`, `=`, `"`, `'` and `#` escaped (`\uXXXX`)
@@ -174,11 +189,10 @@ export const createLogger = (options: LoggerOptions, bindings: Fields = {}): Log
       // Each cleaned on its own: a getter that throws marks its field, not the line.
       // One budget for the line: bindings and fields together.
       const budget = newLine();
-      const own = {
-        ...cleanFields(bindings, withStack, budget),
-        ...cleanFields(fields, withStack, budget),
-      };
-      // The context's user, unless a field names one; cleaned like any value either way.
+      const bound = cleanFields(bindings, withStack, budget);
+      const own = { ...bound, ...cleanFields(fields, withStack, budget) };
+      // The domain is the logger's (its child's binding); a field names one only when it has none.
+      const domain = isName(bound.domain) ? bound.domain : own.domain;
       // The request's user, as authentication found it; a field names one only outside a request's
       // known user (request data spread into the fields can't hide or replace who asked).
       const userId =
@@ -190,7 +204,7 @@ export const createLogger = (options: LoggerOptions, bindings: Fields = {}): Log
         level,
         msg: cleanText(String(msg)),
         // The head holds only names and ids: a domain or a user that isn't one is left out.
-        ...(isName(own.domain) ? { domain: own.domain } : {}),
+        ...(isName(domain) ? { domain } : {}),
         ...(event ? { event } : {}),
         ...(context ? { requestId: cleanText(String(context.requestId)) } : {}),
         ...(isName(userId) ? { userId } : {}),

@@ -643,3 +643,48 @@ Witnessed: 2026-10-14 13:49 EDT, by a fresh agent (adversarial). Commit: b51b722
 | 13 | Lint and types | no | confirmed | Clean |
 
 **Overall:** not met: a word starting with `#` hides the ids from a shell's word rules; the `'` escape is untested.
+
+## Task 1 — The logger (eleventh check)
+
+Witnessed: 2026-10-14 13:56 EDT, by a fresh agent (blind). Commit: 07904fe4. Machine: macOS 27.0.1, Node v24.0.0. Within the spec's scope.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Only `PLAIN`, `headText`, tests and the spec changed; no dependency | no | confirmed | `git diff b51b7220 07904fe4` |
+| 2 | Tests pass; lint and types | no | confirmed | 96 passed |
+| 3 | `#` never plain; escaped in the head | no | confirmed | `logger.ts:86,124` |
+| 4 | `shlex.split`, with and without comments: no forgery, ids kept, every line parses | no | confirmed | 30,000 fuzzed lines (11,104 with `#`) → 0 failures |
+| 5 | logfmt reader | no | confirmed | Same lines → 0 bad |
+| 6 | No word starts with an unquoted `#` | no | confirmed | 0 of 30,000 |
+| 7 | `'` escaped in quoted keys and values | no | confirmed | Probe |
+| 8 | Tests catch each escaping and quoting rule | no | partly | 19 mutants caught; but `.replaceAll` → `.replace` (first occurrence only) passes for each of the 6 escapes; with `#` first-only, `Item #3 or #4` hides the ids from `shlex.split(comments=True)` |
+| 9 | The request's user wins | no | confirmed | Mutant caught; fuzz |
+| 10 | The spec states the rules and readers | no | confirmed | SPEC.md diff |
+| 11–20 | Levels, `child()`, formats, context, redaction, cut, cycles, `LOG_LEVEL`, events, regexes | no | confirmed | Probes and tests |
+
+**Overall:** not met: the tests don't pin that every occurrence is escaped.
+
+## Task 1 — The logger (adversarial, twelfth check)
+
+Witnessed: 2026-10-14 13:59 EDT, by a fresh agent (adversarial). Commit: 07904fe4. Machine: macOS 27.0.1, Node v24.0.0. Within the spec's scope.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Tests pass | no | confirmed | 96 |
+| 2 | `shlex.split(comments=True)`: no forgery, ids kept, every line parses | no | confirmed | 60,000 fuzzed lines → 0 |
+| 3 | `shlex.split` (no comments): the same | no | confirmed | 0 |
+| 4 | A lenient logfmt reader | no | confirmed | 0 errors |
+| 5 | A strict logfmt reader parses every line | no | partly | A port of go-logfmt (from memory) refuses a quoted key (`"x y"=v`, `""=e`) and loses the ids after it; nothing forged |
+| 6 | A person sees one bare `requestId=` and `userId=`, at the end | no | confirmed | Every line |
+| 7 | The request's user wins | no | confirmed | 0 wrong |
+| 8 | `domain` is the domain that wrote the line | no | partly | A field `domain` replaces the child's: `child({domain:"submissions"}).info("x",{domain:"identity"})` → `identity` |
+| 9 | JSON valid, round-trips | no | confirmed | 50,000 lines |
+| 10 | No covered secret | no | confirmed | 24 lines |
+| 11 | Never throws | no | confirmed | Probes |
+| 12 | Never blocks; cap | no | confirmed | Worst 8.1 ms; longest 99,654 |
+| 13 | Tests catch each text rule | no | partly | 36 mutants, 34 caught; not: PLAIN accepting `""`, PLAIN accepting `$` |
+| 14 | `LOG_LEVEL`/`LOG_FORMAT` | no | confirmed | Tests |
+| 15 | No new dependency | no | confirmed | Empty diff |
+| 16 | Lint and types | no | confirmed | Clean |
+
+**Overall:** not met: a field replaces the logging domain; quoted keys stop a strict logfmt reader; an empty key or value isn't pinned.

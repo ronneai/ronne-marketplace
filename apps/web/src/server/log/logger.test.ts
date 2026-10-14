@@ -221,7 +221,7 @@ describe("what a line can't carry", () => {
     expect(line).toContain("d\\u000aERROR forged");
     expect(line).toContain("line1\\u000aFAKE");
     // A key that could pass for something else is quoted, JSON's escapes included.
-    expect(line).toContain('"k\\nERROR x"=1');
+    expect(line).toContain("k%0AERROR%20x=1");
     expect(line).toContain("a\\u001b[2Jb");
   });
 
@@ -303,7 +303,7 @@ describe("more of what a line can't carry", () => {
     withRequestContext({ requestId: "real" }, () =>
       log.info("x", { "x requestId": "forged", rtl: "a\u202eb" }),
     );
-    expect(lines[0]).toContain('"x requestId"=forged');
+    expect(lines[0]).toContain("x%20requestId=forged");
     expect(lines[0]).toContain("\\u202e");
     expect(lines[0]).not.toContain("\u202e");
   });
@@ -373,7 +373,7 @@ describe("more of what a line can't carry", () => {
       for (const char of hidden)
         expect(line.includes(char), `${format} U+${char.codePointAt(0)?.toString(16)}`).toBe(false);
       if (format === "json") expect(JSON.parse(line).msg).toBe(`m${hidden.join("")}`);
-      else expect(line).toContain(`"requestId\\u034f"=${hidden.indexOf("\u034f")}`);
+      else expect(line).toContain(`requestId%CD%8F=${hidden.indexOf("\u034f")}`);
     }
     // Ordinary text, accents and other scripts stay as they are.
     const { log, lines } = collect({ format: "text" });
@@ -392,8 +392,8 @@ describe("more of what a line can't carry", () => {
       }),
     );
     const line = lines[0] ?? "";
-    expect(line).toContain('"x\u00a0requestId"=FORGED');
-    expect(line).toContain('"y\u3000requestId"=FORGED');
+    expect(line).toContain("x%C2%A0requestId=FORGED");
+    expect(line).toContain("y%E3%80%80requestId=FORGED");
     expect(line).toContain('v="a\u2007requestId=FORGED"');
     expect(line).toContain('o="{\\"a b\\":1}"');
     expect(line).toMatch(/ requestId=REAL\n$/);
@@ -483,10 +483,51 @@ describe("more of what a line can't carry", () => {
     log.child({ domain: "#d" }).info("Item #3", { "x'": "a b'", "#k": "#v" });
     const line = lines[0] ?? "";
     expect(line).not.toContain("'");
-    expect(line).toContain('"x\\u0027"="a b\\u0027"');
-    expect(line).toContain('"#k"="#v"');
+    expect(line).toContain('x%27="a b\\u0027"');
+    expect(line).toContain('%23k="#v"');
     // No word of the line starts with `#`: nothing reads as a comment.
     expect(line.split(" ").some((word) => word.startsWith("#"))).toBe(false);
+  });
+
+  it("escapes every occurrence, not only the first, in the head, keys and values", () => {
+    const { log, lines } = collect({ format: "text" });
+    withRequestContext({ requestId: "REAL", userId: "U1" }, () =>
+      log.child({ domain: "#a#b" }).info(`x #1 #2 a=b=c \\ \\ ' ' " "`, {
+        "a'b'c=d=e #f #g": `v' w' #h #i`,
+      }),
+    );
+    const line = lines[0] ?? "";
+    const head = line.slice(0, line.indexOf(" a%27"));
+    for (const char of ["#", "=", "'", '"']) expect(head, char).not.toContain(char);
+    // A backslash only ever starts an escape the logger wrote.
+    expect(head).not.toMatch(/\\(?!u[0-9a-f]{4})/);
+    expect(head.match(/\\u005c/g)).toHaveLength(2);
+    expect(line).toContain("a%27b%27c%3Dd%3De%20%23f%20%23g=");
+    expect(line).not.toContain("'");
+    expect(line).toMatch(/ requestId=REAL userId=U1\n$/);
+  });
+
+  it("writes keys unquoted and distinct, an empty key as %, an empty value quoted", () => {
+    const { log, lines } = collect({ format: "text" });
+    log.info("m", { "": "e", e: "", A: 1, "%41": 2, "a b": 3, "a%20b": 4 });
+    const line = lines[0] ?? "";
+    expect(line).toContain(' %=e e="" A=1 %2541=2 a%20b=3 a%2520b=4');
+    // Every key is one plain word: a strict logfmt reader takes them all.
+    const keys = line
+      .slice(line.indexOf(" m ") + 3)
+      .replaceAll(/"(?:[^"\\]|\\.)*"/g, '""')
+      .trim()
+      .split(" ")
+      .map((pair) => pair.slice(0, pair.indexOf("=")));
+    expect(keys).toHaveLength(6);
+    for (const key of keys) expect(key).toMatch(/^[^"'\s=]+$/);
+  });
+
+  it("keeps the logger's domain, whatever a field says", () => {
+    const { log, lines } = collect();
+    log.child({ domain: "submissions" }).info("x", { domain: "identity" });
+    log.info("y", { domain: "feeds" });
+    expect(lines.map((line) => JSON.parse(line).domain)).toEqual(["submissions", "feeds"]);
   });
 
   it("writes the request's user, whatever a field says", () => {

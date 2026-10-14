@@ -53,7 +53,7 @@ calls, no request IDs, and an unexpected error reaches only Next.js's default ou
 | `level` | yes | `debug`, `info`, `warn` or `error` |
 | `msg` | yes | A short sentence for people, fixed text (no values in it) |
 | `event` | for events | A stable name, `<area>.<what>` (`server.started`, `http.request`, `auth.sign_in_failed`), for searches and alerts; documented in the list below |
-| `domain` | in a domain | The domain that wrote it (`identity`, `submissions`, `feeds`, …), or `http`, `db`, `server` |
+| `domain` | in a domain | The domain that wrote it (`identity`, `submissions`, `feeds`, …), or `http`, `db`, `server`; a logger's own domain (its child's) can't be replaced by a field |
 | `requestId` | in a request | The request it belongs to |
 | `userId` | when known | The signed-in user's or the token owner's id, never an email or a name; in a request, always the request's user (a field can't replace it) |
 | `err` | on errors | `{ name, message, stack, code }`, the stack only at `error` |
@@ -190,13 +190,15 @@ read every secret itself.
   a newline, an ANSI escape, C1 controls, bidirectional marks, zero-width, tag and filler
   characters, variation selectors), checked per code point, are escaped as `\uXXXX` (or JSON's `\n` inside a
   quoted value), in text and in JSON alike, so nothing can split a line, forge another one, drive
-  the terminal or reorder what it shows. In text, a key or value is written as it is only when it's
-  made of letters, digits and `_ . : / @ + , % -` with nothing hidden; anything else (a space, a
-  quote, a backslash, an `=`, a `#`, an object) is a JSON string, with `'` escaped, and `=` too in
-  a key. In the domain, event and message, `\`, `=`, `"`, `'` and `#` are escaped. So nothing
-  passes for a field, a quote, an escape or a comment, to the readers text is for: a person, a
-  logfmt reader, and a shell-like splitter (`shlex.split`). Text isn't safe to `eval` in a shell
-  (`$` in a quoted value would expand); JSON is what tools should read.
+  the terminal or reorder what it shows. In text, a value is written as it is only when it's made
+  of letters, digits and `_ . : / @ + , % -` with nothing hidden; anything else (a space, a quote, a
+  backslash, an `=`, a `#`, an object, the empty string) is a JSON string, with `'` escaped. A key is
+  never quoted (strict logfmt readers refuse that): every character outside letters, digits and
+  `_ . : / @ + , -`, `%` included, is written as its UTF-8 bytes `%XX`, so two keys stay two; an empty
+  key is `%`. In the domain, event and message, every `\`, `=`, `"`, `'` and `#` is escaped. So nothing
+  passes for a field, a quote, an escape or a comment, to the readers text is for: a person, a logfmt
+  reader, and a shell-like splitter (`shlex.split`). Text isn't safe to `eval` in a shell (`$` in a
+  quoted value would expand); JSON is what tools should read.
 - **stdout is closed or slow:** writes go through `process.stdout.write` without waiting. A closed
   stdout (`EPIPE`) loses the lines and never crashes the server (the logger listens for its
   `error` event). Node's docs ("A note on process I/O"): on Linux and macOS, writes to a pipe or
