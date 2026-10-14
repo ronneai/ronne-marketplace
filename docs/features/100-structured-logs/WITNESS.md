@@ -827,3 +827,16 @@ Witnessed: 2026-10-14 15:23 EDT, by a fresh agent (blind). Commit: 48d706c3. Mac
 | 14 | Tests pass | no | confirmed | Unit 1496, db (SQLite) 209 |
 
 **Overall:** not met: the action guard misses files with a comment before the directive and inline actions; no test guards the user id on lines.
+
+## Task 2 — Requests (re-check)
+
+Witnessed: 2026-10-14 15:28 EDT, by a fresh agent (blind). Commit: 37fbc142. Machine: macOS 27.0.1, Node v24.0.0. Rows other than 3 and 12 carry over from the first pass; nothing they rest on changed.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1–2, 4–11, 13 | As the first pass | no | confirmed | `git diff --stat 48d706c3 37fbc142` → tests and WITNESS.md only |
+| 3 | Every exported action goes through `serverAction`; its guard fails when one doesn't | no | partly | 20 real files pass; a comment first, no semicolon, single quotes, `export default`, `export async function`, inline, `export { hidden }`, CRLF, BOM all fail. Escaped: a second declarator (`export const ok = serverAction(…), sneaky = async …`); `.mts`, `.cts`, `.cjs` files never read; only `apps/web/src` walked |
+| 12 | The user id recorded, and tests guard it | no | confirmed | Removing `setRequestUser` from `require-token.ts` or `session.ts`, each alone → 1 test fails |
+| 14 | Tests pass; lint and types | no | confirmed | 93 passed; clean |
+
+**Overall:** not met: a multi-declarator export and `.mts`/`.cts`/`.cjs` action files get past the guard.

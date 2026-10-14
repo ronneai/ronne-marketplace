@@ -9,12 +9,22 @@ import { forwardedRequestId } from "./request-id";
  * There's no `http.request` line for an action, and its unexpected errors are logged once, by
  * `onRequestError` (instrumentation.ts), with the same ID.
  */
-export const serverAction =
-  <A extends unknown[], R>(action: (...args: A) => Promise<R>) =>
-  async (...args: A): Promise<R> => {
+export const serverAction = <A extends unknown[], R>(
+  action: (...args: A) => Promise<R>,
+): ((...args: A) => Promise<R>) => {
+  const wrapped = async (...args: A): Promise<R> => {
     const requestId = forwardedRequestId(await requestHeaders());
     return withRequestContext({ requestId }, () => action(...args));
   };
+  made.add(wrapped);
+  return wrapped;
+};
+
+/** Every function serverAction made: the guard test checks each exported action is one. */
+const made = new WeakSet<object>();
+
+export const isServerAction = (value: unknown): boolean =>
+  typeof value === "function" && made.has(value);
 
 /** The request's headers; none outside a request (an action called from a script or a test). */
 const requestHeaders = async (): Promise<{ get(name: string): string | null }> => {

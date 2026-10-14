@@ -3,7 +3,7 @@ import { join, relative } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { logger, setLoggerForTests } from "../log";
 import { logRequestError } from "./request-error";
-import { serverAction } from "./server-action";
+import { isServerAction, serverAction } from "./server-action";
 
 const incoming = vi.hoisted(() => ({ headers: new Headers() as Headers | null }));
 vi.mock("next/headers", () => ({
@@ -91,13 +91,14 @@ describe("logRequestError (onRequestError)", () => {
 });
 
 describe("every exported server action goes through serverAction (guard)", () => {
-  const src = join(import.meta.dirname, "../..");
+  const app = join(import.meta.dirname, "../../..");
   const self = join(import.meta.dirname, "server-action.test.ts");
+  const SKIP = new Set(["node_modules", ".next", "e2e", "test-results", "playwright-report"]);
   const sources = (dir: string): string[] =>
     readdirSync(dir).flatMap((name) => {
       const path = join(dir, name);
-      if (statSync(path).isDirectory()) return name === "node_modules" ? [] : sources(path);
-      return /\.(?:ts|tsx|js|jsx|mjs)$/.test(name) && path !== self ? [path] : [];
+      if (statSync(path).isDirectory()) return SKIP.has(name) ? [] : sources(path);
+      return /\.[cm]?[jt]sx?$/.test(name) && path !== self ? [path] : [];
     });
   /** The source after its leading blank lines and comments: where a file's directive would be. */
   const afterComments = (source: string): string => {
@@ -114,13 +115,13 @@ describe("every exported server action goes through serverAction (guard)", () =>
     }
   };
   const DIRECTIVE = /["']use server["']/;
-  const withDirective = sources(src).filter((file) => DIRECTIVE.test(readFileSync(file, "utf8")));
+  const withDirective = sources(app).filter((file) => DIRECTIVE.test(readFileSync(file, "utf8")));
 
   it("finds the action files", () => {
     expect(withDirective.length).toBeGreaterThanOrEqual(20);
   });
 
-  it.each(withDirective.map((file) => [relative(src, file), file]))("%s", (_name, file) => {
+  it.each(withDirective.map((file) => [relative(app, file), file]))("%s", async (_name, file) => {
     const source = readFileSync(file, "utf8");
     // Server actions live in their own files: a "use server" anywhere but at a file's top would
     // be an inline action, which this guard (and the request's ID) couldn't reach.
@@ -129,8 +130,9 @@ describe("every exported server action goes through serverAction (guard)", () =>
     );
     const rest = afterComments(source).replace(/^["']use server["'];?/, "");
     expect(DIRECTIVE.test(rest), "no other use server in the file").toBe(false);
-    const exports = [...source.matchAll(/^export (?!type )(.*)$/gm)].map((match) => match[1] ?? "");
-    expect(exports.length).toBeGreaterThan(0);
-    for (const line of exports) expect(line).toMatch(/^const \w+ = serverAction\(/);
+    // What the file really exports, however it's written: every value is a serverAction.
+    const exported = Object.entries(await import(file));
+    expect(exported.length).toBeGreaterThan(0);
+    for (const [name, value] of exported) expect(isServerAction(value), name).toBe(true);
   });
 });
