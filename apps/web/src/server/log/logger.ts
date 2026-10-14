@@ -80,21 +80,48 @@ const escapeText = (text: string): string => {
 };
 
 /**
- * A value in a text line: as it is when it can't pass for anything else, quoted (JSON) when it holds
- * a space, an `=` or a quote, so `x requestId=forged` can't look like another field.
+ * What a key or value can be written as it is: letters, digits and `_ . : / @ + , % # -`. Nothing
+ * a reader could take for a quote, an escape, a separator or an `=`.
  */
-const textValue = (value: unknown): string => {
-  const text = typeof value === "string" ? value : (JSON.stringify(value) ?? String(value));
-  const plain = typeof value === "string" ? !/[\s"=]/.test(text) : !/[\s=]/.test(text);
-  return escapeText(plain ? text : JSON.stringify(text));
+const PLAIN = /^[\p{L}\p{N}_.:/@+,%#-]+$/u;
+/** A hidden character anywhere (some are letters too, such as the Hangul fillers). */
+const ANY_HIDDEN = /[\p{Cc}\p{Cf}\p{Default_Ignorable_Code_Point}\p{Zl}\p{Zp}\u2800]/u;
+const isPlain = (text: string) => PLAIN.test(text) && !ANY_HIDDEN.test(text);
+
+/**
+ * Quoted text for a key or value: a JSON string, with `'` escaped (`\u0027`, so a reader that pairs
+ * single quotes finds none), and, in a key, `=` too (a reader that drops quotes then still finds the
+ * key's end at the real `=`).
+ */
+const quoted = (text: string, key: boolean): string => {
+  const json = JSON.stringify(text).replaceAll("'", "\\u0027");
+  return escapeText(key ? json.replaceAll("=", "\\u003d") : json);
 };
 
 /**
- * The line's head (domain, event, message): escaped, with `=` and `"` too, so it can't hold a field
- * or open a quote that changes how the rest of the line pairs.
+ * A value in a text line: as it is when it's plain (PLAIN), quoted otherwise, so nothing in it can
+ * pass for another field, a quote or an escape, to a person or to a reader that splits the line.
+ */
+const textValue = (value: unknown): string => {
+  const text = typeof value === "string" ? value : (JSON.stringify(value) ?? String(value));
+  return isPlain(text) ? text : quoted(text, false);
+};
+
+const textKey = (key: string): string => (isPlain(key) ? key : quoted(key, true));
+
+/**
+ * The line's head (domain, event, message): with `\`, `=`, `"` and `'` escaped (`\uXXXX`) before
+ * the hidden characters, so it can't hold a field, an escape or a quote that changes how the rest of
+ * the line pairs.
  */
 const headText = (text: string): string =>
-  escapeText(text).replaceAll("=", "\\u003d").replaceAll('"', "\\u0022");
+  escapeText(
+    text
+      .replaceAll("\\", "\\u005c")
+      .replaceAll("=", "\\u003d")
+      .replaceAll('"', "\\u0022")
+      .replaceAll("'", "\\u0027"),
+  );
 
 /** `time LEVEL domain event msg key=value…`, the request's ID and user last. */
 const textLine = (line: Fields, colour: boolean): string => {
@@ -112,7 +139,7 @@ const textLine = (line: Fields, colour: boolean): string => {
   const pairs = Object.entries(line).filter(([key]) => !RESERVED.includes(key));
   for (const key of last) if (line[key] !== undefined) pairs.push([key, line[key]]);
   // A key is quoted like a value when it could pass for something else (`x requestId`).
-  const rest = pairs.map(([key, value]) => `${textValue(key)}=${textValue(value)}`).join(" ");
+  const rest = pairs.map(([key, value]) => `${textKey(key)}=${textValue(value)}`).join(" ");
   return rest ? `${head} ${rest}` : head;
 };
 
@@ -151,11 +178,12 @@ export const createLogger = (options: LoggerOptions, bindings: Fields = {}): Log
         ...cleanFields(fields, withStack, budget),
       };
       // The context's user, unless a field names one; cleaned like any value either way.
+      // The request's user, as authentication found it; a field names one only outside a request's
+      // known user (request data spread into the fields can't hide or replace who asked).
       const userId =
-        own.userId ??
-        (context?.userId === undefined
-          ? undefined
-          : cleanFields({ userId: context.userId }, false).userId);
+        context?.userId === undefined
+          ? own.userId
+          : cleanFields({ userId: context.userId }, false).userId;
       const line: Fields = {
         time: now().toISOString(),
         level,

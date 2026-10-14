@@ -343,7 +343,7 @@ describe("more of what a line can't carry", () => {
     // Outside quoted values, one field named requestId: the real one.
     const unquoted = line.replaceAll(/"(?:[^"\\]|\\.)*"/g, '""');
     expect(unquoted.match(/ requestId=/g)).toHaveLength(1);
-    expect(line).toContain('plain={"a":1}');
+    expect(line).toContain('plain="{\\"a\\":1}"');
     expect(line).toMatch(/ requestId=REAL\n$/);
   });
 
@@ -373,7 +373,7 @@ describe("more of what a line can't carry", () => {
       for (const char of hidden)
         expect(line.includes(char), `${format} U+${char.codePointAt(0)?.toString(16)}`).toBe(false);
       if (format === "json") expect(JSON.parse(line).msg).toBe(`m${hidden.join("")}`);
-      else expect(line).toContain(`requestId\\u034f=${hidden.indexOf("\u034f")}`);
+      else expect(line).toContain(`"requestId\\u034f"=${hidden.indexOf("\u034f")}`);
     }
     // Ordinary text, accents and other scripts stay as they are.
     const { log, lines } = collect({ format: "text" });
@@ -413,6 +413,79 @@ describe("more of what a line can't carry", () => {
       const unquoted = line.replaceAll(/"(?:[^"\\]|\\.)*"/g, '""');
       expect(unquoted.match(/ requestId=\S+/g)).toEqual([" requestId=REAL"]);
     }
+  });
+
+  it("reads right to a shell-like reader: no forged field, the real one kept, every line parses", () => {
+    // Splits as POSIX `shlex` does: '…' literal, "…" with \ escapes, \ escaping outside quotes.
+    const split = (line: string): string[] => {
+      const tokens: string[] = [];
+      let token: string | null = null;
+      for (let i = 0; i < line.length; i++) {
+        const char = line.charAt(i);
+        if (char === " " || char === "\n") {
+          if (token !== null) tokens.push(token);
+          token = null;
+        } else if (char === "'") {
+          const end = line.indexOf("'", i + 1);
+          if (end === -1) throw new Error("No closing quotation");
+          token = (token ?? "") + line.slice(i + 1, end);
+          i = end;
+        } else if (char === '"') {
+          token = token ?? "";
+          for (i++; i < line.length && line.charAt(i) !== '"'; i++) {
+            if (line.charAt(i) === "\\" && '"\\$`'.includes(line.charAt(i + 1))) i++;
+            token += line.charAt(i);
+          }
+          if (i >= line.length) throw new Error("No closing quotation");
+        } else if (char === "\\") {
+          if (i + 1 >= line.length) throw new Error("No escaped character");
+          token = (token ?? "") + line.charAt(++i);
+        } else token = (token ?? "") + char;
+      }
+      if (token !== null) tokens.push(token);
+      return tokens;
+    };
+    const cases: Array<[string, Record<string, unknown>]> = [
+      ["backslash key", { "requestId\\": "FORGED" }],
+      ["trailing backslash", { path: "a\\" }],
+      ["single quotes", { a: "'", b: "' requestId=FORGED '", c: "'" }],
+      ["key holding =", { "requestId=FORGED": "v" }],
+      ["object holding =", { o: { "requestId=FORGED": 1 } }],
+      ["quote key", { "'": "' requestId=FORGED '" }],
+      ["no fields", {}],
+    ];
+    for (const [domain, msg] of [
+      ["d", "a\\ 'm"],
+      ["a\\", "m\\"],
+      ["x'", "m'"],
+      ['y"', 'm"'],
+      ["z=requestId=F", "m requestId=F"],
+    ]) {
+      for (const [name, fields] of cases) {
+        for (const context of [true, false]) {
+          const { log, lines } = collect({ format: "text" });
+          const write = () => log.child({ domain }).info(msg ?? "", fields);
+          if (context) withRequestContext({ requestId: "REAL", userId: "U1" }, write);
+          else write();
+          const tokens = split((lines[0] ?? "").slice(0, -1));
+          const ids = tokens.filter((token) => token.startsWith("requestId="));
+          expect(ids, `${domain} ${name} ${context}`).toEqual(context ? ["requestId=REAL"] : []);
+          if (context) expect(tokens.at(-1)).toBe("userId=U1");
+        }
+      }
+    }
+  });
+
+  it("writes the request's user, whatever a field says", () => {
+    for (const userId of ["FORGED", "", { a: 1 }]) {
+      const { log, lines } = collect();
+      withRequestContext({ requestId: "R", userId: "U1" }, () => log.info("m", { userId }));
+      expect(JSON.parse(lines[0] ?? "").userId).toBe("U1");
+    }
+    // Outside a request, a field can name the user.
+    const { log, lines } = collect();
+    log.info("m", { userId: "U2" });
+    expect(JSON.parse(lines[0] ?? "").userId).toBe("U2");
   });
 
   it("leaves a small domain that isn't a name out of the head", () => {

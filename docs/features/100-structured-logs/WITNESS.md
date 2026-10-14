@@ -554,3 +554,51 @@ Witnessed: 2026-10-14 13:30 EDT, by a fresh agent (adversarial). Commit: 4fedd7f
 | 12 | Lint and types | no | confirmed | Clean |
 
 **Overall:** not met: a `"` in the head shifts quote pairing in text.
+
+## Task 1 — The logger (ninth check)
+
+Witnessed: 2026-10-14 13:34 EDT, by a fresh agent (blind). Commit: fe722463. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Since the blind eighth pass, only `headText`, two tests and a spec sentence changed | no | confirmed | `git diff bce8f80c fe722463 --stat` |
+| 2 | The rebase touched nothing in `server/log`, `config.ts` or dependencies | no | confirmed | `d1d4db34..0bdeafde`: 3 docs files |
+| 3 | The head escapes `=` and `"` | no | confirmed | `d"=x m" requestId=FORGED …` |
+| 4 | Pairing quotes, the only bare `requestId` is the real one | no | confirmed | 20,000 fuzzed text lines → 0 forged, 0 lone quotes |
+| 5 | Tests catch the head escapes | no | confirmed | Each removed → 1 fails |
+| 6 | Non-ASCII space quoting tested | no | confirmed | `\s` → ASCII space → 1 fails |
+| 7 | The spec states the rule | no | confirmed | SPEC.md diff |
+| 8 | Levels | no | confirmed | 4/3/2/1 lines |
+| 9 | `child()` | no | confirmed | Probe |
+| 10 | JSON and text | no | confirmed | Tests |
+| 11 | Request context | no | confirmed | Survives `await` |
+| 12 | Redaction | no | confirmed | Probes; tests |
+| 13 | Long strings cut | no | confirmed | 2,000 and `…` |
+| 14 | Cycles, BigInt; no throw | no | confirmed | Probes |
+| 15 | `LOG_LEVEL`, `LOG_FORMAT` | no | confirmed | Parsing |
+| 16 | Events in one module | no | confirmed | `events.ts` |
+| 17 | No new dependency | no | confirmed | Empty diff |
+| 18 | Tests pass; lint clean | no | confirmed | 89 passed |
+
+**Overall:** met.
+
+## Task 1 — The logger (adversarial, tenth check)
+
+Witnessed: 2026-10-14 13:38 EDT, by a fresh agent (adversarial). Commit: fe722463. Machine: macOS 27.0.1, Node v24.0.0. Within the spec's scope.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Tests pass | no | confirmed | 93 with `config` |
+| 2 | The head holds no field or quote | no | confirmed | 15,000 fuzzed lines |
+| 3 | No forged field to a logfmt-style reader | no | confirmed | 14,787 lines read right |
+| 4 | Nothing reads as a bare `requestId=` to a shell-like reader; every line parses | no | not met | A key `requestId\` → `requestId\=FORGED` (shlex: `requestId=FORGED`); unquoted `'` pairs; a quoted key keeps its `=` |
+| 5 | The real `requestId` stays its own field | no | not met | A value or message ending in `\` swallows the next token; at the line's end, shlex fails |
+| 6 | JSON valid, round-trips | no | confirmed | 15,000 lines |
+| 7 | No covered secret written | no | confirmed | 122 lines, both formats |
+| 8 | Never throws | no | confirmed | Probes |
+| 9 | Never blocks; cap | no | confirmed | Worst 25.7 ms; largest 111,003 |
+| 10 | Tests catch breakage | no | partly | 39 mutants, 37 caught; object quoting on `=` unpinned |
+| 11 | No new dependency | no | confirmed | Empty diff |
+| 12 | Lint and types | no | confirmed | Clean |
+
+**Overall:** not met: to a shell-like reader, a raw `\` or `'`, or a quoted key holding `=`, forges `requestId=`, swallows the real one or stops the line parsing. Remark: a `userId` field can replace or blank the request's user.

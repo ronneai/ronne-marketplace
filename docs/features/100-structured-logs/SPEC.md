@@ -55,7 +55,7 @@ calls, no request IDs, and an unexpected error reaches only Next.js's default ou
 | `event` | for events | A stable name, `<area>.<what>` (`server.started`, `http.request`, `auth.sign_in_failed`), for searches and alerts; documented in the list below |
 | `domain` | in a domain | The domain that wrote it (`identity`, `submissions`, `feeds`, …), or `http`, `db`, `server` |
 | `requestId` | in a request | The request it belongs to |
-| `userId` | when known | The signed-in user's or the token owner's id, never an email or a name |
+| `userId` | when known | The signed-in user's or the token owner's id, never an email or a name; in a request, always the request's user (a field can't replace it) |
 | `err` | on errors | `{ name, message, stack, code }`, the stack only at `error` |
 | others | — | The event's own fields, flat, camelCase, values that are numbers, booleans or short strings |
 
@@ -190,9 +190,11 @@ read every secret itself.
   a newline, an ANSI escape, C1 controls, bidirectional marks, zero-width, tag and filler
   characters, variation selectors), checked per code point, are escaped as `\uXXXX` (or JSON's `\n` inside a
   quoted value), in text and in JSON alike, so nothing can split a line, forge another one, drive
-  the terminal or reorder what it shows. In text, a key or string value with a space, `=` or `"` is
-  quoted, an object or array value (JSON) when it holds a space or `=`, and an `=` or `"` in the domain,
-  event or message is escaped, so nothing passes for a field.
+  the terminal or reorder what it shows. In text, a key or value is written as it is only when it's
+  made of letters, digits and `_ . : / @ + , % # -` with nothing hidden; anything else (a space, a
+  quote, a backslash, an `=`, an object) is a JSON string, with `'` escaped, and `=` too in a key.
+  In the domain, event and message, `\`, `=`, `"` and `'` are escaped. So nothing passes for a
+  field, a quote or an escape, to a person or to a reader that splits the line as a shell does.
 - **stdout is closed or slow:** writes go through `process.stdout.write` without waiting. A closed
   stdout (`EPIPE`) loses the lines and never crashes the server (the logger listens for its
   `error` event). Node's docs ("A note on process I/O"): on Linux and macOS, writes to a pipe or
