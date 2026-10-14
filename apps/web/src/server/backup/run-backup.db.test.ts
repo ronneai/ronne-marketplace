@@ -285,8 +285,8 @@ describe("rmk-server backup (099)", () => {
     expect(existsSync(join(i.storage, "backups"))).toBe(false);
 
     // A storage folder that isn't there yet, named in another case: the same folder on macOS's
-    // and Windows' disks (by default).
-    if (process.platform === "darwin" || process.platform === "win32") {
+    // disks (by default).
+    if (process.platform === "darwin") {
       const j = await instance();
       const upper = join(j.appDir, "STORE");
       writeFileSync(
@@ -297,8 +297,7 @@ describe("rmk-server backup (099)", () => {
         /inside the storage folder/,
       );
     }
-    // As macOS's disk (APFS) compares names: Unicode forms and full case folding. NTFS upper-cases
-    // simply, so on Windows these are different folders.
+    // As macOS's disk (APFS) compares names: Unicode forms and full case folding.
     if (process.platform === "darwin") {
       const j = await instance();
       for (const [storage, out] of [

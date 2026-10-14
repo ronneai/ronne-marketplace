@@ -160,5 +160,4 @@ Options:
 The data (database, stored items, settings) lives in RONNE_DATA_DIR, or by default:
   macOS    ~/Library/Application Support/RonneAI Marketplace
   Linux    $XDG_DATA_HOME/rmk-server, else ~/.local/share/rmk-server
-  Windows  %LOCALAPPDATA%\\RonneAI\\Marketplace
 `;

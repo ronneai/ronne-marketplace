@@ -1,6 +1,5 @@
 // `rmk-server service …` (feature 083): picks the system's backend and runs the action.
 
-import { win32 } from "node:path";
 import { SERVICE_HELP, type ServiceCommand } from "./args.js";
 import { controlService, serviceLogs, serviceStatus } from "./control.js";
 import { type Backend, type InstallContext, installService, uninstallService } from "./install.js";
@@ -8,7 +7,6 @@ import { serviceLayout } from "./layout.js";
 import { linuxBackend } from "./linux.js";
 import { macBackend, macPrefix } from "./macos.js";
 import type { System } from "./system.js";
-import { windowsBackend } from "./windows.js";
 
 /** The backend and layout for this system, or why there's none. */
 export const serviceTarget = (
@@ -18,23 +16,8 @@ export const serviceTarget = (
 ): { backend: Backend; context: InstallContext } | { error: string } => {
   if (asUser && sys.platform !== "darwin")
     return {
-      error: `--user is for macOS; on ${sys.platform === "win32" ? "Windows" : "Linux"} the service always has its own account.`,
+      error: "--user is for macOS; on Linux the service always has its own account.",
     };
-  if (sys.platform === "win32") {
-    const layout = serviceLayout({
-      platform: "win32",
-      ...(sys.env.ProgramData ? { programData: sys.env.ProgramData } : {}),
-    });
-    // The package's WinSW: …\@ronneai\marketplace\dist\bin.js → …\vendor\winsw\.
-    const winsw = win32.join(
-      win32.dirname(program.entry),
-      "..",
-      "vendor",
-      "winsw",
-      "WinSW.NET461.exe",
-    );
-    return { backend: windowsBackend(sys, { layout, winsw }), context: { layout, ...program } };
-  }
   if (sys.platform === "linux")
     return {
       backend: linuxBackend(sys),

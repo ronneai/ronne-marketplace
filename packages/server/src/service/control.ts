@@ -1,7 +1,7 @@
 // `rmk-server service status | start | stop | restart | logs` (feature 083), and the scripts
 // (setup, migrate, reset-root-password, revoke-access, rotate-secret, backup) run for an installed
 // service.
-import { dirname, join, posix, win32 } from "node:path";
+import { dirname, join, posix } from "node:path";
 import {
   asAdmin,
   type Backend,
@@ -60,21 +60,6 @@ export const serviceStatus = async (
 ): Promise<number> => {
   const { layout } = context;
   const state = readState(sys, layout);
-  // Windows: the record is the administrators' only, so a plain terminal sees the service but not it.
-  if (!state && sys.platform === "win32" && !sys.isRoot() && sys.exists(layout.definition)) {
-    // Only the name matters to isActive, and anyone may ask Windows about a service.
-    const { app } = definitionsFor(context, {
-      node: context.node,
-      entry: context.entry,
-      port: 7650,
-      host: "127.0.0.1",
-    } as ServiceState);
-    const running = backend.isActive(app);
-    sys.out(
-      `rmk-server service: installed, ${running ? "running" : "stopped"}. Its details are for administrators: ${asAdmin(sys, "rmk-server service status")}\n`,
-    );
-    return running ? STATUS_RUNNING : STATUS_STOPPED;
-  }
   if (!state || !sys.exists(layout.definition)) return notInstalled(sys);
   const { app, proxy } = definitionsFor(context, state);
   const running = backend.isActive(app);
@@ -204,13 +189,12 @@ const SCRIPT_VERBS: Record<string, string> = {
 
 /**
  * Whether RONNE_DATA_DIR or RONNE_ENV_FILE names the service's own data folder or settings file,
- * as the disk sees it (`sameFile`: links, firmlinks, case, short names). A relative one is from
+ * as the disk sees it (`sameFile`: links, firmlinks, case). A relative one is from
  * `relativeTo`, the folder the scripts resolve it from (the web app's, not the caller's).
  */
 const namesServiceFiles = (sys: System, layout: InstallContext["layout"], relativeTo: string) => {
-  const path = sys.platform === "win32" ? win32 : posix;
   const names = (value: string | undefined, own: string) =>
-    value !== undefined && value !== "" && sys.sameFile(path.resolve(relativeTo, value), own);
+    value !== undefined && value !== "" && sys.sameFile(posix.resolve(relativeTo, value), own);
   return (
     names(sys.env.RONNE_DATA_DIR, layout.dataDir) || names(sys.env.RONNE_ENV_FILE, layout.envFile)
   );
@@ -266,32 +250,6 @@ export const scriptForService = async (
   if (refusal) {
     sys.err(`rmk-server: ${refusal}\n`);
     return 1;
-  }
-  // Windows: a virtual account can't be started from a terminal, so the script runs as the
-  // administrator running it; what it writes in the data folder inherits the folder's permissions,
-  // the service's account's included.
-  if (sys.platform === "win32") {
-    // The service's account may write the data folder, and the script runs as an administrator:
-    // a link it put there would take the administrator's writes elsewhere.
-    const links = sys.findLinks(layout.dataDir);
-    if (links.length > 0) {
-      sys.err(
-        `rmk-server: ${links.join(", ")} ${links.length > 1 ? "are links" : "is a link"} (a symbolic link, a junction, or a file with another hard link), which the data folder never holds. Look at ${links.length > 1 ? "them" : "it"} and remove ${links.length > 1 ? "them" : "it"} first.\n`,
-      );
-      return 1;
-    }
-    sys.out(`The rmk-server service's ${layout.dataDir}:\n`);
-    return sys.runAttached(context.node, [context.entry, script, ...args], {
-      cwd: layout.dataDir,
-      env: {
-        ...sys.env,
-        RONNE_DATA_DIR: layout.dataDir,
-        RONNE_ENV_FILE: layout.envFile,
-        PORT: String(state.port),
-        RONNE_SERVICE: "1",
-        ...(state.domain ? { PUBLIC_URL: `https://${state.domain}` } : {}),
-      },
-    });
   }
   // The system account; on macOS also the person running sudo, for a --user install.
   const allowed = [

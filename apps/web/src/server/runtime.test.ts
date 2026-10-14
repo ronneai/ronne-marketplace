@@ -56,11 +56,8 @@ describe("runtime (082)", () => {
 
   it("says how to restart for each runtime (098)", () => {
     expect(restartHint({ RONNE_RUNTIME: "docker" })).toBe("docker compose restart web");
-    expect(restartHint({ RONNE_RUNTIME: "npm", RONNE_SERVICE: "1" }, "linux")).toBe(
+    expect(restartHint({ RONNE_RUNTIME: "npm", RONNE_SERVICE: "1" })).toBe(
       "sudo rmk-server service restart",
-    );
-    expect(restartHint({ RONNE_RUNTIME: "npm", RONNE_SERVICE: "1" }, "win32")).toBe(
-      "rmk-server service restart, as an administrator",
     );
     expect(restartHint({ RONNE_RUNTIME: "npm" })).toBe("stop rmk-server and start it again");
     expect(restartHint({})).toContain("pnpm dev or pnpm start");

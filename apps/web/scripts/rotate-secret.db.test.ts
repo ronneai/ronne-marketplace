@@ -107,7 +107,7 @@ describe("pnpm run rotate-secret", () => {
     // Only the AUTH_SECRET line changed.
     const after = readFileSync(envPath(), "utf8");
     expect(after.replace(`AUTH_SECRET=${now}`, "")).toBe(before.replace(`AUTH_SECRET=${old}`, ""));
-    if (process.platform !== "win32") expect(statSync(envPath()).mode & 0o777).toBe(0o600);
+    expect(statSync(envPath()).mode & 0o777).toBe(0o600);
     // Neither secret is printed.
     for (const value of [old, now]) {
       expect(result.stdout).not.toContain(value);
@@ -148,7 +148,7 @@ describe("pnpm run rotate-secret", () => {
     expect(await query((db) => db.selectFrom("session").select("id").execute())).toHaveLength(1);
   }, 60_000);
 
-  it.skipIf(process.platform === "win32" || process.getuid?.() === 0)(
+  it.skipIf(process.getuid?.() === 0)(
     "a settings file it can't write: a plain message without the path, and nothing changed",
     async () => {
       expect(setUp().code).toBe(0);

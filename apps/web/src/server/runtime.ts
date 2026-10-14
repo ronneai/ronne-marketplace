@@ -49,16 +49,10 @@ export const hostCommand = (name: string, env: Env = process.env): string => {
  * the service (RONNE_SERVICE, set when rmk-server runs a script for an installed service), or the
  * process someone started.
  */
-export const restartHint = (
-  env: Env = process.env,
-  platform: NodeJS.Platform = process.platform,
-): string => {
+export const restartHint = (env: Env = process.env): string => {
   const runtime = runtimeOf(env);
   if (runtime === "docker") return "docker compose restart web";
-  if (runtime === "npm" && env.RONNE_SERVICE === "1")
-    return platform === "win32"
-      ? "rmk-server service restart, as an administrator"
-      : "sudo rmk-server service restart";
+  if (runtime === "npm" && env.RONNE_SERVICE === "1") return "sudo rmk-server service restart";
   if (runtime === "npm") return "stop rmk-server and start it again";
   return "stop the server (pnpm dev or pnpm start) and start it again";
 };

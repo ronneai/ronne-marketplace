@@ -38,12 +38,7 @@ const portFree = (port: number, host: string): Promise<boolean> =>
   });
 
 const openBrowser = (url: string): void => {
-  const [command, args] =
-    process.platform === "darwin"
-      ? ["open", [url]]
-      : process.platform === "win32"
-        ? ["cmd", ["/c", "start", "", url]]
-        : ["xdg-open", [url]];
+  const [command, args] = process.platform === "darwin" ? ["open", [url]] : ["xdg-open", [url]];
   try {
     spawn(command, args, { stdio: "ignore", detached: true })
       .on("error", () => {})

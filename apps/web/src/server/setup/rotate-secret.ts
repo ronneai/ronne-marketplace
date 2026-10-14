@@ -52,15 +52,10 @@ const NEXT_ENV_FILES = [
 ];
 
 /** A command to run next, quoted, as typed on the host; with sudo (or as an administrator) for a service. */
-const followUp = (
-  name: string,
-  args: string,
-  env: Env,
-  platform: NodeJS.Platform = process.platform,
-) => {
+const followUp = (name: string, args: string, env: Env) => {
   const command = `${hostCommand(name, env)} ${args}`;
   if (runtimeOf(env) !== "npm" || env.RONNE_SERVICE !== "1") return `\`${command}\``;
-  return platform === "win32" ? `\`${command}\` as an administrator` : `\`sudo ${command}\``;
+  return `\`sudo ${command}\``;
 };
 
 /**

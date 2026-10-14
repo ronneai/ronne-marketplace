@@ -22,11 +22,13 @@ Then open http://localhost:7650 and follow the setup in the browser. SQLite need
   makes it reachable from the network; `--port` (or `PORT`) changes the port.
 - **Data** (database, stored items, settings) lives in `RONNE_DATA_DIR`, or by default in
   `~/Library/Application Support/RonneAI Marketplace` (macOS), `$XDG_DATA_HOME/rmk-server` or
-  `~/.local/share/rmk-server` (Linux), and `%LOCALAPPDATA%\RonneAI\Marketplace` (Windows).
+  `~/.local/share/rmk-server` (Linux).
 - **Upgrading:** `npx @ronneai/marketplace@latest`, or `npm install --global @ronneai/marketplace`.
   Migrations run on start.
-- **Native modules:** `better-sqlite3` ships prebuilt binaries for macOS, Linux (glibc and musl)
-  and Windows, on x64 and arm64. On another platform npm compiles it, which needs Python, `make`
+- **Systems:** Linux and macOS. On Windows, run it in WSL 2 or a Linux virtual machine; `rmk` and
+  `rmk-mcp` run on Windows itself.
+- **Native modules:** `better-sqlite3` ships prebuilt binaries for macOS and Linux (glibc and
+  musl), on x64 and arm64. On another platform npm compiles it, which needs Python, `make`
   and a C++ compiler. MySQL, MariaDB and PostgreSQL work regardless.
 
 MIT licensed. Docker, the install script and the full guide are in the

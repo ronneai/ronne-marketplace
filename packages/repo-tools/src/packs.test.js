@@ -42,13 +42,11 @@ describe("checkPack", () => {
   });
 
   it("lets the server ship the web app in app/, but never a .env or a native binary (082)", () => {
-    // THIRD_PARTY_NOTICES: written at pack time by notices.js (084); WinSW and its licence (086).
+    // THIRD_PARTY_NOTICES: written at pack time by notices.js (084). No WinSW: no Windows server (121).
     const app = [
       "app/apps/web/server.js",
       "app/apps/web/dist-scripts/start.mjs",
       "THIRD_PARTY_NOTICES",
-      "vendor/winsw/WinSW.NET461.exe",
-      "vendor/winsw/LICENSE.txt",
     ];
     const pack = (...paths) =>
       checkPack("server", {
@@ -81,8 +79,6 @@ describe("checkPack", () => {
       "is missing app/apps/web/server.js",
       "is missing app/apps/web/dist-scripts/start.mjs",
       "is missing THIRD_PARTY_NOTICES",
-      "is missing vendor/winsw/WinSW.NET461.exe",
-      "is missing vendor/winsw/LICENSE.txt",
     ]);
   });
 

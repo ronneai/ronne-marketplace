@@ -5,7 +5,6 @@ import { existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
 import { join, sep } from "node:path";
 import { collectPackages } from "./notices.js";
 import { checkPack, PUBLISHED } from "./packs.js";
-import { sha256File, WINSW, WINSW_PATH } from "./winsw.js";
 
 /** The top of a bundle. */
 const TOP = new Set(["bin", "node", "lib", "THIRD_PARTY_NOTICES", "LICENSE"]);
@@ -67,11 +66,8 @@ const reachable = (root) => {
   return reached;
 };
 
-/**
- * Problems with an unpacked bundle at `root` (rmk-server-X.Y.Z-platform-arch/), empty when it's
- * fine. `winswSha256` is for tests, whose bundles hold a stand-in for WinSW.
- */
-export const checkBundle = (root, { winswSha256 = WINSW.sha256 } = {}) => {
+/** Problems with an unpacked bundle at `root` (rmk-server-X.Y.Z-platform-arch/), empty when it's fine. */
+export const checkBundle = (root) => {
   const problems = [];
   const all = files(root);
   for (const top of readdirSync(root))
@@ -97,11 +93,6 @@ export const checkBundle = (root, { winswSha256 = WINSW.sha256 } = {}) => {
       (problem) => `@ronneai/marketplace ${problem}`,
     ),
   );
-
-  // WinSW (086), which the Windows service runs: the release pinned in winsw.js, unchanged.
-  const winsw = join(root, PACKAGE, WINSW_PATH);
-  if (existsSync(winsw) && sha256File(winsw) !== winswSha256)
-    problems.push(`${PACKAGE}${WINSW_PATH} isn't WinSW ${WINSW.version} (its SHA-256 differs)`);
 
   // Every other package, at any depth, must be one its dependencies reach.
   const reached = reachable(root);

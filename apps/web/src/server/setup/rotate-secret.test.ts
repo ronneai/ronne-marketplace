@@ -98,9 +98,7 @@ describe("runRotateSecret (098)", () => {
     );
     expect(secret()).not.toBe(OLD);
     await expect(rotate({ RONNE_RUNTIME: "npm", RONNE_SERVICE: "1" })).rejects.toThrow(
-      process.platform === "win32"
-        ? "Run `rmk-server revoke-access --everyone --sessions-only` as an administrator."
-        : "Run `sudo rmk-server revoke-access --everyone --sessions-only`.",
+      "Run `sudo rmk-server revoke-access --everyone --sessions-only`.",
     );
     await expect(rotate({})).rejects.toThrow(
       "Run `pnpm run revoke-access --everyone --sessions-only`, then restart the server:",
@@ -141,7 +139,7 @@ describe("runRotateSecret (098)", () => {
   it("a settings file it can't read: the code, never the path", async () => {
     chmodSync(envPath, 0o000);
     try {
-      if (process.platform === "win32" || process.getuid?.() === 0) return;
+      if (process.getuid?.() === 0) return;
       const error = await rotate().catch((caught: Error) => caught);
       expect((error as Error).message).toContain("couldn't be read (EACCES)");
       expect((error as Error).message).not.toContain(dir);

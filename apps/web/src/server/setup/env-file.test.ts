@@ -170,45 +170,40 @@ describe("updateEnvFile", () => {
     }
   });
 
-  it("rewrites an existing file in place on Windows, so it keeps the service's access (086)", () => {
-    const folder = mkdtempSync(join(dir, "windows-"));
-    const path = join(folder, ".env");
-    writeFileSync(path, "CUSTOM=1\n");
-    const before = statSync(path).ino;
-    writeEnvFile(path, "CUSTOM=2\n", "win32");
-    expect(readFileSync(path, "utf8")).toBe("CUSTOM=2\n");
-    // The same file, not a new one renamed over it; and no temporary file left.
-    expect(statSync(path).ino).toBe(before);
-    expect(readdirSync(folder)).toEqual([".env"]);
-    // A new file is still written whole and renamed into place.
-    writeEnvFile(join(folder, "other.env"), "A=1\n", "win32");
-    expect(readFileSync(join(folder, "other.env"), "utf8")).toBe("A=1\n");
-  });
-
   it("never leaves its temporary file behind when the rename fails (it holds the secrets)", () => {
     const folder = mkdtempSync(join(dir, "rename-"));
     // A folder where the file should be: the temporary file is written, the rename refused.
     const path = join(folder, ".env");
     mkdirSync(join(path, "inside"), { recursive: true });
-    expect(() => writeEnvFile(path, "AUTH_SECRET=new\n", "linux")).toThrow();
+    expect(() => writeEnvFile(path, "AUTH_SECRET=new\n")).toThrow();
     expect(readdirSync(folder)).toEqual([".env"]);
   });
 
-  it("an in-place rewrite that can't even open the file throws the plain error: nothing changed", () => {
-    const folder = mkdtempSync(join(dir, "in-place-"));
-    // On Windows an existing file is rewritten in place; a folder in its place can't be opened.
-    const path = join(folder, ".env");
-    mkdirSync(path);
-    const failure = (() => {
+  // As root, a read-only folder still takes a new file.
+  it.skipIf(process.getuid?.() === 0)(
+    "an in-place rewrite that can't even open the file throws the plain error: nothing changed",
+    () => {
+      const folder = mkdtempSync(join(dir, "in-place-"));
+      // A folder that can't take a new file, so it's rewritten in place; a folder in its place
+      // can't be opened.
+      const path = join(folder, ".env");
+      mkdirSync(path);
+      chmodSync(folder, 0o555);
       try {
-        writeEnvFile(path, "A=1\n", "win32");
-      } catch (error) {
-        return error;
+        const failure = (() => {
+          try {
+            writeEnvFile(path, "A=1\n");
+          } catch (error) {
+            return error;
+          }
+        })();
+        expect(failure).not.toBeInstanceOf(InPlaceWriteError);
+        expect((failure as NodeJS.ErrnoException).code).toBe("EISDIR");
+      } finally {
+        chmodSync(folder, 0o755);
       }
-    })();
-    expect(failure).not.toBeInstanceOf(InPlaceWriteError);
-    expect((failure as NodeJS.ErrnoException).code).toBe("EISDIR");
-  });
+    },
+  );
 
   it("knows the errors of a folder it can't add a file to, read-only included", () => {
     const failure = (code: string) => Object.assign(new Error(code), { code });

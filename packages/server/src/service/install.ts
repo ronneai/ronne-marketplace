@@ -1,9 +1,9 @@
-// `rmk-server service install` and `uninstall` (feature 083), the same on every system: a backend
-// (systemd, launchd; WinSW in 086) does what differs.
-import { basename, dirname, posix, win32 } from "node:path";
+// `rmk-server service install` and `uninstall` (feature 083), the same on Linux and macOS: a
+// backend (systemd, launchd) does what differs.
+import { basename, dirname, posix } from "node:path";
 import type { InstallOptions } from "./args.js";
 import { nativeCaddyfile } from "./caddyfile.js";
-import { PROXY_NAME, type ServiceLayout } from "./layout.js";
+import type { ServiceLayout } from "./layout.js";
 import { type ServiceDefinition, type ServicePlan, servicePlan, upstreamFor } from "./model.js";
 import { settingValue, updateSettings } from "./settings.js";
 import type { System } from "./system.js";
@@ -22,10 +22,7 @@ export type Backend = {
   chown: (path: string, user: string, group: string, recursive?: boolean) => void;
   /** Gives `group` these files and folders, readable by it; owners and other modes stay. */
   shareWithGroup: (paths: string[], group: string) => void;
-  /**
-   * Makes a folder (and its missing parents) with these permissions. Windows makes Ronne's with
-   * their final permissions at once, and refuses one that's there but isn't the administrators'.
-   */
+  /** Makes a folder (and its missing parents) with these permissions. */
   makeFolder: (path: string, mode: number) => void;
   /** After folders are made: SELinux labels, where there are any. */
   labelFolders: (paths: string[]) => void;
@@ -48,13 +45,6 @@ export type Backend = {
   caddyHint: () => string;
   /** Which program holds a port, when the system can tell. */
   portHolder: (port: number) => string | undefined;
-  /**
-   * Lets these ports in through the system's firewall, as one rule named after `name` (Windows):
-   * on Private networks only, or on every network (`everywhere`, for a public HTTPS proxy).
-   */
-  allowInbound: (name: string, ports: number[], everywhere?: boolean) => void;
-  /** Removes that rule, if there is one. */
-  removeInbound: (name: string) => void;
   /** Why `user` can't run the program, and what to do (when canRun said it can't). */
   cantRunHint: (user: string, node: string, entry: string) => string;
 };
@@ -86,18 +76,15 @@ export const STATE_FILE = "service.json";
 export const MIN_CADDY = [2, 7] as const;
 const HEALTH_WAIT_MS = 90_000;
 
-/** A path in one of the layout's folders, with the system's own separator. */
-export const inLayout = (layout: ServiceLayout, ...parts: string[]): string =>
-  (layout.platform === "win32" ? win32 : posix).join(...parts);
+/** A path in one of the layout's folders. */
+export const inLayout = (_layout: ServiceLayout, ...parts: string[]): string =>
+  posix.join(...parts);
 
 export const statePath = (layout: ServiceLayout): string =>
   inLayout(layout, layout.settingsDir, STATE_FILE);
 
-/** A command that needs root, or on Windows an administrator, as people should type it. */
-export const asAdmin = (sys: System, command: string): string =>
-  sys.platform === "win32"
-    ? `${command} (in a terminal opened as administrator)`
-    : `sudo ${command}`;
+/** A command that needs root, as people should type it. */
+export const asAdmin = (_sys: System, command: string): string => `sudo ${command}`;
 
 /**
  * The settings folder is the service account's, so root never reads or writes through a link it
@@ -145,9 +132,7 @@ export const needsRoot = (sys: System, action: string): number | undefined =>
     ? undefined
     : fail(
         sys,
-        sys.platform === "win32"
-          ? `service ${action} changes Windows services, so it needs an administrator. Open a terminal as administrator (right-click PowerShell or Terminal, Run as administrator) and run: rmk-server service ${action}`
-          : `service ${action} changes system services, so it needs root. Run: sudo rmk-server service ${action}`,
+        `service ${action} changes system services, so it needs root. Run: sudo rmk-server service ${action}`,
       );
 
 /** Linux and macOS: why an account can't run the program (cantRunHint). */
@@ -244,10 +229,7 @@ export const installService = async (
         const holder = backend.portHolder(port);
         return fail(
           sys,
-          layout.platform === "win32"
-            ? // System (pid 4) is HTTP.sys, Windows' own HTTP server, which IIS and others use.
-              `--domain serves HTTPS on ports 80 and 443, and port ${port} is in use${holder ? ` by ${holder}` : ""}. System (pid 4) is Windows' own HTTP server, which IIS and some other services use: netsh http show servicestate shows which. Stop it (IIS: Stop-Service W3SVC, and Set-Service W3SVC -StartupType Disabled to keep it stopped), or keep your web server and point it at http://127.0.0.1:${options.port} instead of using --domain.`
-            : `--domain serves HTTPS on ports 80 and 443, and port ${port} is in use${holder ? ` by ${holder}` : ""}. If it's a web server you run (a system Caddy, nginx, Apache), stop it, or keep it and point it at http://127.0.0.1:${options.port} instead of using --domain. A Caddy installed from a package starts its own service: sudo systemctl disable --now caddy.`,
+          `--domain serves HTTPS on ports 80 and 443, and port ${port} is in use${holder ? ` by ${holder}` : ""}. If it's a web server you run (a system Caddy, nginx, Apache), stop it, or keep it and point it at http://127.0.0.1:${options.port} instead of using --domain. A Caddy installed from a package starts its own service: sudo systemctl disable --now caddy.`,
         );
       }
 
@@ -269,21 +251,9 @@ export const installService = async (
   };
   if (!backend.canRun(layout.user, context.node, [context.entry, "--version"]))
     return undo(backend.cantRunHint(layout.user, context.node, context.entry));
-  // Windows: Caddy from winget for one person is in their profile, which the proxy can't read.
-  if (
-    plan.proxy &&
-    caddy &&
-    layout.platform === "win32" &&
-    !backend.canRun(layout.proxyUser, caddy, ["version"])
-  )
-    return undo(
-      `the proxy's account (${layout.proxyUser}) can't run ${caddy}: it's in a user's profile, which other accounts can't read. ${backend.caddyHint()}`,
-    );
   if (plan.proxy && options.tls === "files" && layout.proxyUser !== "root") {
     // The files are there for the proxy only: its group may read them (owner and other modes
     // stay), so a key kept at 600 works, and so does one from before an uninstall.
-    // Windows: the folder made and checked (Ronne's tree) before its files are shared.
-    if (layout.platform === "win32") backend.makeFolder(layout.certsDir, 0o750);
     const certs = [
       layout.certsDir,
       inLayout(layout, layout.certsDir, "cert.pem"),
@@ -338,9 +308,7 @@ export const installService = async (
         domain: plan.proxy.options.domain,
         tls: plan.proxy.options.tls,
         ...(plan.proxy.options.email ? { email: plan.proxy.options.email } : {}),
-        // Caddy (Go) reads C:/… on Windows, and its Caddyfile may read a backslash as an escape.
-        certsDir:
-          layout.platform === "win32" ? layout.certsDir.replaceAll("\\", "/") : layout.certsDir,
+        certsDir: layout.certsDir,
         upstream: plan.proxy.upstream,
       }),
       0o644,
@@ -353,12 +321,6 @@ export const installService = async (
       backend.makeFolder(dirname(definition.logFile), 0o755);
       if (!sys.exists(definition.logFile)) sys.writeFile(definition.logFile, "", 0o644);
       backend.chown(definition.logFile, definition.user, definition.group);
-    }
-  // A log folder (Windows): WinSW writes each service's files in it, as that service's account.
-  for (const definition of [plan.app, ...(plan.proxy ? [plan.proxy] : [])])
-    if (definition.logDir) {
-      backend.makeFolder(definition.logDir, 0o750);
-      backend.chown(definition.logDir, definition.user, definition.group);
     }
   backend.labelFolders(folders);
   const state: ServiceState = {
@@ -374,8 +336,8 @@ export const installService = async (
   };
   sys.writeFile(statePath(layout), `${JSON.stringify(state, null, 2)}\n`, 0o644);
 
-  // The services. Their folder is the system's on Linux and macOS, Ronne's own on Windows.
-  const definitions = (layout.platform === "win32" ? win32 : posix).dirname(layout.definition);
+  // The services, in the system's folder for them.
+  const definitions = posix.dirname(layout.definition);
   if (!sys.exists(definitions)) backend.makeFolder(definitions, 0o755);
   sys.writeFile(layout.definition, backend.render(plan.app), 0o644);
   const appError = backend.activate(plan.app, layout.definition);
@@ -396,13 +358,6 @@ export const installService = async (
     backend.deactivate(old, layout.proxyDefinition);
     sys.remove(layout.caddyfile);
   }
-
-  // The firewall: the port, when it listens beyond this machine and nothing proxies it; the proxy's
-  // 80 and 443 on every network (a certificate authority must reach 80, people 443).
-  if (isWildcard(options.host) && !plan.proxy) backend.allowInbound(plan.app.name, [options.port]);
-  else backend.removeInbound(plan.app.name);
-  if (plan.proxy) backend.allowInbound(plan.proxy.name, [80, 443], true);
-  else backend.removeInbound(PROXY_NAME);
 
   // Wait until it answers: 503 before the setup, 200 after.
   const healthUrl = `http://${upstreamFor(options.host, options.port)}/api/health`;
@@ -496,8 +451,6 @@ export const uninstallService = async (
   if (sys.exists(layout.proxyDefinition) && plan.proxy)
     backend.deactivate(plan.proxy, layout.proxyDefinition);
   if (sys.exists(layout.definition)) backend.deactivate(plan.app, layout.definition);
-  backend.removeInbound(plan.app.name);
-  backend.removeInbound(PROXY_NAME);
   sys.remove(layout.caddyfile);
   sys.remove(statePath(layout));
   // Only the two accounts install makes: service.json sits in a folder the server's account can

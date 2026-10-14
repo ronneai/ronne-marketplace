@@ -36,7 +36,7 @@ describe("the real system's sameFile (099)", () => {
     const sys = realSystem();
     expect(sys.sameFile(link, real)).toBe(true);
     expect(sys.sameFile(join(dir, "real-data", "..", "real-data"), real)).toBe(true);
-    // macOS's and Windows' disks ignore case; Linux's don't.
+    // macOS's disks ignore case; Linux's don't.
     expect(sys.sameFile(join(dir, "REAL-DATA"), real)).toBe(process.platform !== "linux");
     expect(sys.sameFile(join(dir, "other"), real)).toBe(false);
     expect(sys.sameFile(join(dir, "nothing"), join(dir, "nothing"))).toBe(false);
