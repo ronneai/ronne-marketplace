@@ -381,6 +381,24 @@ describe("more of what a line can't carry", () => {
     expect(lines[0]).toContain("café 日本 ñ ü 🙂");
   });
 
+  it("quotes keys and values holding any space, non-ASCII ones too", () => {
+    const { log, lines } = collect({ format: "text" });
+    withRequestContext({ requestId: "REAL" }, () =>
+      log.info("m", {
+        "x\u00a0requestId": "FORGED",
+        "y\u3000requestId": "FORGED",
+        v: "a\u2007requestId=FORGED",
+        o: { "a b": 1 },
+      }),
+    );
+    const line = lines[0] ?? "";
+    expect(line).toContain('"x\u00a0requestId"=FORGED');
+    expect(line).toContain('"y\u3000requestId"=FORGED');
+    expect(line).toContain('v="a\u2007requestId=FORGED"');
+    expect(line).toContain('o="{\\"a b\\":1}"');
+    expect(line).toMatch(/ requestId=REAL\n$/);
+  });
+
   it("leaves a small domain that isn't a name out of the head", () => {
     const { log, lines } = collect();
     log.child({ domain: { a: 1 } }).info("m");

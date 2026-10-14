@@ -473,3 +473,63 @@ Witnessed: 2026-10-14 13:12 EDT, by a fresh agent (adversarial). Commit: 5564b18
 | 17 | Lint and types | no | confirmed | Clean |
 
 **Overall:** not met: text can be forged through default-ignorable characters outside the escaped list; the 256-character bound and four escaped characters aren't pinned by tests. Remark (the spec's limit): a secret inside free text that isn't a token or URL password, or under a key outside the list, is written.
+
+## Task 1 — The logger (eighth check)
+
+Witnessed: 2026-10-14 13:20 EDT, by a fresh agent (blind). Commit: 16ff8786. Machine: macOS 27.0.1, Node v24.0.0. Judged within the spec's scope.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Levels and the filter | no | confirmed | `logger.test.ts:30-59`; mutation `<` → `<=` → 7 fail |
+| 2 | Invalid `LOG_LEVEL`: one line, no value, `info` | no | confirmed | Mutations → 2 / 2 fail |
+| 3 | `config.ts`; settings fallback | no | confirmed | `config.ts:24-26,50-51`; `index.ts:23-28` |
+| 4 | Events in one module; unknown dropped | no | confirmed | `events.ts`; tests |
+| 5 | `child()`; a field's domain wins | no | confirmed | Mutations → 1 / 1 fail |
+| 6 | JSON and text; order | no | confirmed | Tests |
+| 7 | Request context | no | confirmed | 300 concurrent → 0 wrong; mutation → 9 fail |
+| 8 | Secret keys | no | confirmed | 200,000 fuzzed keys → 0 missed, 0 false positives |
+| 9 | 256-character read, both sides pinned | no | confirmed | `SECRET_READ` 255, 257, 4096 → 1 fails each; 10M key × 1,000 → 2.5 ms |
+| 10 | Values, keys, message, IDs redacted | no | confirmed | 9 mutations caught |
+| 11 | Errors | no | confirmed | 5 mutations caught |
+| 12 | Fields, nested, arrays | no | confirmed | Mutation → 2 fail |
+| 13 | Boxed strings; bytes | no | confirmed | Mutations → 1 / 3 fail |
+| 14 | Cuts and caps | no | confirmed | 4 mutations caught |
+| 15 | Cycles, BigInt | no | confirmed | Mutations → 3 / 2 fail |
+| 16 | Hidden characters escaped per code point | no | confirmed | Every code point U+0000–U+10FFFF: 4,274 hidden, 0 raw; 1,107,790 others, 0 lost; JSON round-trips |
+| 17 | Astral as surrogate pairs; valid JSON | no | confirmed | U+E0041, U+E0100, U+1D173 |
+| 18 | Text: nothing passes for `requestId` | no | confirmed | 11 keys escaped or quoted; U+0301 (visible) raw, a homoglyph |
+| 19 | Text quoting; head `=` | no | confirmed | 4 mutations caught |
+| 20 | Every escaping category pinned | no | confirmed | 11 mutations caught |
+| 21 | Head names only; line cap | no | confirmed | Worst 48,124 characters |
+| 22 | Tests pass | no | confirmed | 87 |
+| 23 | Tests catch breakage | no | confirmed | 53 non-equivalent mutations, all caught |
+| 24 | `codeql-regex.md`, `codeql-logging.md` | no | confirmed | Linear; no value written |
+| 25 | No new dependency | no | confirmed | Empty diff |
+| 26 | Lint and types | no | confirmed | Clean |
+
+**Overall:** met: every claim holds; the seventh checks' gaps are closed. Remarks: a lone surrogate (or a cut splitting an astral pair) is written raw in text, shown as U+FFFD; a visible combining mark stays raw, a homoglyph.
+
+## Task 1 — The logger (adversarial, eighth check)
+
+Witnessed: 2026-10-14 13:22 EDT, by a fresh agent (adversarial). Commit: 16ff8786. Machine: macOS 27.0.1, Node v24.0.0. Within the spec's scope.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Levels, filter, `child()`, events | no | confirmed | 91 passed (with `config`) |
+| 2 | Invalid `LOG_LEVEL`; `config.ts` | no | confirmed | Tests; tsx run |
+| 3 | JSON parses and round-trips, lone surrogates included | no | confirmed | 6,000 fuzzed lines |
+| 4 | No raw hidden character; one line each | no | confirmed | Every code point scanned |
+| 5 | Text: no field forged, homoglyphs aside | no | confirmed | 16 keys. Remark: U+1D159 and U+16FE4 raw, outside the categories, counted with homoglyphs |
+| 6 | Escaping fast | no | confirmed | 120,132-character lines → median 1–2 ms |
+| 7 | Line cap; head kept | no | confirmed | Largest 109,091 |
+| 8 | Fast on request data | no | confirmed | ≤ 24 ms |
+| 9 | No covered secret written | no | confirmed | 0 leaks across every place and both formats |
+| 10 | Cycles, BigInt, no throw; closed stdout | no | confirmed | Alive |
+| 11 | Request context | no | confirmed | 300 → 0 wrong |
+| 12 | Tests catch the escaping | no | confirmed | 16 mutants, all caught |
+| 13 | Tests catch the redaction | no | confirmed | 10 mutants, all caught |
+| 14 | Tests catch text quoting | no | partly | `/[\s"=]/` → `/[ "=]/` passes all tests; then an NBSP key shows as `x requestId=FORGED` |
+| 15 | No new dependency | no | confirmed | Empty diff |
+| 16 | Lint and types | no | confirmed | Clean |
+
+**Overall:** not met: the code holds against every in-scope attack; no test pins quoting on a non-ASCII space.
