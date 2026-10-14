@@ -63,6 +63,15 @@ describe("ciScope", () => {
     expect(ciScope(["apps/web/next.config.ts"])).toEqual({ ...none, image: true, server: true });
   });
 
+  it("runs the image and the server for backup and restore, which their smoke tests restore (099)", () => {
+    for (const file of [
+      "apps/web/src/server/backup/restore.ts",
+      "apps/web/scripts/backup.ts",
+      "apps/web/scripts/restore.ts",
+    ])
+      expect(ciScope([file]), file).toEqual({ ...none, image: true, server: true });
+  });
+
   it("runs every suite for the dependencies, the Node version and the detection itself", () => {
     for (const file of [
       "pnpm-lock.yaml",

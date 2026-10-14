@@ -5,8 +5,10 @@ name: Server checks
 # "bundle-win32-x64" (084). Each install job installs the tarball with npm, as a person would, and
 # runs packages/repo-tools/src/server-probe.js: start with an empty data folder, 503
 # setup_required, `rmk-server setup --yes` with SQLite, 200 with no restart, a token from sign-in,
-# `revoke-access` and `rotate-secret` (098), and the port free after stopping it. The service jobs run `rmk-server service` on systemd and
-# launchd (083) and, from the Windows bundle, with WinSW (086). Called by server-package.yml (pull
+# `revoke-access` and `rotate-secret` (098), `backup --keep 1` twice and backup → restore into a new
+# data folder → start (099), and the port free after stopping it. The service jobs run `rmk-server
+# service` on systemd and launchd (083) and, from the Windows bundle, with WinSW (086), backup and
+# restore included (restore refused while the service runs). Called by server-package.yml (pull
 # requests that change the server, and nightly) and by release.yml, after the bundles.
 on:
   workflow_call:

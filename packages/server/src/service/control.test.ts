@@ -187,6 +187,23 @@ describe("the scripts with the service installed (083)", () => {
     expect(sys.commands.join(" ")).not.toContain("Correct-horse");
   });
 
+  it("refuse restore while the service runs, and run it once stopped (099)", async () => {
+    const sys = await installed();
+    sys.answers.set("id -u rmk-server", { stdout: "995\n" });
+    sys.answers.set("id -g rmk-server", { stdout: "995\n" });
+    // Running (systemctl is-active answers 0 by default here).
+    expect(await scriptForService(sys, context, "restore", ["/b.tar"], linuxBackend(sys))).toBe(1);
+    expect(sys.errors.join("")).toContain("the rmk-server service is running. Stop it first");
+    expect(sys.attached).toEqual([]);
+    // Stopped.
+    sys.answers.set("systemctl is-active --quiet rmk-server", { code: 3 });
+    sys.errors.length = 0;
+    const code = await scriptForService(sys, context, "restore", ["/b.tar"], linuxBackend(sys));
+    expect(sys.errors.join(""), "no refusal").toBe("");
+    expect(code).toBe(0);
+    expect(sys.commands).toContain(`${NODE} ${ENTRY} restore /b.tar`);
+  });
+
   it("trust nothing in service.json to choose the program or the account (it's the service's file)", async () => {
     const sys = await installed();
     const path = "/etc/rmk-server/service.json";

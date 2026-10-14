@@ -6,7 +6,7 @@ import { createServer } from "node:net";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { HELP, parseArgs } from "./cli.js";
+import { HELP, parseArgs, scriptArgs } from "./cli.js";
 import { MIN_NODE, nodeTooOld } from "./node-version.js";
 import { dataDir as defaultDataDir } from "./paths.js";
 import { isSetUp, serverEnv } from "./server-env.js";
@@ -100,6 +100,9 @@ export const main = async (argv: string[]): Promise<number | undefined> => {
       `the web app isn't in this package (${webDir}). From the repository, run: pnpm --filter @ronneai/marketplace assemble`,
     );
 
+  // Paths given to a script are where the person typed them, wherever the script runs.
+  const args =
+    command.kind === "script" ? scriptArgs(command.script, command.args, process.cwd()) : [];
   if (command.kind === "script") {
     // With the service installed, the scripts work on its data, as its account.
     const target = serviceTarget(realSystem(), programPaths());
@@ -108,7 +111,8 @@ export const main = async (argv: string[]): Promise<number | undefined> => {
         realSystem(),
         target.context,
         command.script,
-        command.args,
+        args,
+        target.backend,
       );
       if (code !== undefined) return code;
     }
@@ -127,7 +131,7 @@ export const main = async (argv: string[]): Promise<number | undefined> => {
     process.argv = [
       process.argv[0] as string,
       join(webDir, "dist-scripts", `${command.script}.mjs`),
-      ...command.args,
+      ...args,
     ];
     await importScript(command.script);
     return undefined; // the script sets the exit code

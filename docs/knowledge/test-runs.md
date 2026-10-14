@@ -67,7 +67,8 @@ dry run again.
 - **ci.yml:** lint, typecheck, every unit, component and database test on SQLite, and the build:
   the tests and the build on Node 22 and 24, the rest on Node 24.
 - **database.yml:** the servers run **`pnpm test:db:core`**, the tests of the database code
-  itself (`src/server/db/`, migrations, repositories, `src/server/setup/`, `scripts/`: 33 of the
+  itself (`src/server/db/`, migrations, repositories, `src/server/setup/`, `src/server/backup/`
+  (099), `scripts/`: 33 of the
   86 files; 29 of them took 44 s on MySQL, against about 105 s for all 86 after task 10). They run **every** database test when the
   pull request changes database code: the rule is `packages/repo-tools/src/db-scope.js`, and
   `changes.yml`'s `database` output carries it. Database code is those paths, any `*.db.test.ts`,

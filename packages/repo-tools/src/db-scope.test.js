@@ -22,6 +22,7 @@ describe("databaseScope (112)", () => {
       "apps/web/src/server/db/migrations/0021_new.ts",
       "apps/web/src/server/domains/items/repositories/item-repository.ts",
       "apps/web/src/server/setup/setup.ts",
+      "apps/web/src/server/backup/cli.ts",
       "pnpm-lock.yaml",
       "apps/web/package.json",
       "apps/web/vitest.config.ts",
@@ -53,5 +54,6 @@ describe("databaseScope (112)", () => {
     expect(CORE_TESTS).toContain("src/server/db/");
     expect(CORE_TESTS).toContain("/repositories/");
     expect(CORE_TESTS).toContain("scripts/");
+    expect(CORE_TESTS).toContain("src/server/backup/");
   });
 });

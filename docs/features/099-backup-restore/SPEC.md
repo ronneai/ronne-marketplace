@@ -75,22 +75,55 @@ rmk-server backup --verify <archive> [--passphrase-file <file>]
 ```
 
 - **Where:** `--out`, or `<data folder>/backups/` by default (the volume in Docker, so it survives
-  the container; the runbook says to copy it off the volume too). The folder is created with mode
-  0700, the archive with 0600. Name: `ronne-backup-<UTC yyyymmdd-hhmmss>.tar` (`.tar.enc` when
-  encrypted).
-- **What's in it** (a tar, written as it goes, so a large instance doesn't need the memory):
-  - `manifest.json`: the format version (1), Ronne's version, the time, the database kind it came
-    from, the applied migrations (`ronne_migration`'s names, in order), each table's row count, and
-    each file's size and sha256.
-  - `database/<table>.jsonl`: one JSON object per row, in primary-key order, every table the
-    migrations made except the migration tables. Binary columns as base64 (`{"$b64": "…"}`),
-    dates as ISO 8601 UTC, so the format doesn't depend on the dialect.
+  the container; the runbook says to copy it off the volume too). A relative `--out` is from where
+  the command was typed with `rmk-server` (made absolute before the script runs, also as the
+  service's account) and in Docker (the image's `pnpm` sets `RONNE_CALLER_CWD`); in a clone, from
+  pnpm's `INIT_CWD`: where `pnpm --filter @ronneai/web run backup` was typed, but the repository's
+  root for the root's `pnpm run backup`, which starts pnpm again there (pnpm's script shell and tsx
+  reset `PWD`, so nothing else keeps the folder). The output names the full path. Inside storage
+  is judged by the disk itself: before anything is made, by the real paths of what exists; then,
+  once the database has answered, the folder is made and checked again by the real paths the disk
+  gives for both (a storage folder that this made now exists too), so no spelling the disk treats
+  as the same (case, Unicode forms) gets past it; the folders made for a refused backup are
+  removed. The folder is created with mode 0700, the archive with 0600.
+  Name: `ronne-backup-<UTC yyyymmdd-hhmmss>.tar` (`.tar.enc` when encrypted), from when the backup
+  started; one already there with that name is refused ("wait a second").
+- **Written as `<name>.partial`**, flushed to disk, then renamed: a schedule copying the folder
+  never takes a half-written archive, and `--keep` never counts one. Ctrl-C, SIGTERM or SIGHUP
+  while it's written removes the partial file (exit 130, 143, 129; through `pnpm run`, pnpm reports
+  1); a process killed outright or a
+  power cut leaves it, and since another backup may be writing one, nothing removes `.partial`
+  files but the operator (the runbook says so).
+- **Nothing is written before the settings are read and the database answers:** a settings file
+  that can't be read (a schedule run as another account), a database that can't be opened or
+  reached (a first query runs before the archive's file is made), or a SQLite file the settings
+  name that isn't there (backup never creates one) stops it with exit 1. The settings file is read
+  once, as bytes: the settings the backup runs with (environment variables over the file, an
+  empty one counting as unset, as the server reads them) and the copy in the archive come from the
+  same read, and the copy is byte for byte.
+- **What's in it** (a tar, written as it goes, so a large instance doesn't need the memory; every
+  field is in [`docs/spec/backup-format.md`](../../spec/backup-format.md)):
+  - `backup.json`, first: the format version (1), Ronne's version, the time, the database kind it
+    came from, and the applied migrations (`ronne_migration`'s names, in order), so a reader can
+    refuse a backup it can't restore before reading the rest.
+  - `database/<table>/<part>.jsonl`: one JSON object per row, in primary-key order, every table the
+    migrations made except the migration tables, in parts of up to 10,000 rows or 8 MiB (a larger
+    row is a part on its own; a tar header states its entry's size first, so each part is buffered,
+    never a whole table). Values are the same JSON for every dialect (dates as ISO 8601 UTC,
+    binary as `{"$b64": "…"}`), converted to the target column's type on restore.
+  - `manifest.json`, last: each table's columns, primary key and row count, and each entry's size
+    and sha256, which are only known once everything is written.
   - `storage/…`: every file under the storage path, as they are (artifacts, plugin zips and their
-    sidecars).
+    sidecars), read after the snapshot. Left out, and named in the output: links (never
+    followed), a storage write's temporary file (`<key>.<12 hex>.tmp`, in progress), and names
+    storage doesn't write.
   - `settings.env`: the settings file as it is (`DATABASE_URL`, `AUTH_SECRET`, `PUBLIC_URL`,
     `STORAGE_PATH`, …), unless `--no-settings`. Values set only in the environment aren't in a
     file and aren't backed up; the output says which ones were ("AUTH_SECRET comes from the
-    environment and isn't in this backup").
+    environment and isn't in this backup"): `DATABASE_URL`, `AUTH_SECRET`, `PUBLIC_URL`,
+    `STORAGE_PATH` or `TRUST_PROXY` set in the environment to a value the file doesn't have. In
+    Docker, compose sets `PUBLIC_URL` and `TRUST_PROXY`, and the output says to keep
+    `compose.yaml` and the `.env` next to it.
 - **Sensitive:** with the settings, the archive holds `AUTH_SECRET` and the database password. The
   output says so, and suggests `--encrypt` when the archive will leave the machine.
 - **Encryption (`--encrypt`):** asks for a passphrase twice, or reads it from `--passphrase-file`
@@ -101,17 +134,29 @@ rmk-server backup --verify <archive> [--passphrase-file <file>]
   (header, parameters, chunking) is written in `docs/spec/backup-format.md`. A lost passphrase
   can't be recovered; the output and the runbook say so.
 - **`--keep <n>`:** after a successful backup, removes the oldest `ronne-backup-*` archives in the
-  same folder beyond `n`. It never touches other files, and never runs if this backup failed.
-- **Output:** what it wrote, its size, the counts ("1,284 rows in 31 tables, 412 files, 96 MB"),
-  and the time it took. Exit 0 only when the archive is complete; a failed backup removes its
-  partial file.
+  same folder beyond `n` (1 to 10,000), this one counted and never removed. Only regular files
+  named exactly `ronne-backup-<yyyymmdd-hhmmss>.tar` or `.tar.enc` count, ordered by the time in
+  their name; links, folders, `.partial` files and other names are never touched. It never runs if
+  this backup failed. A file it can't remove is named, and the backup still succeeds.
+- **`--yes`** is accepted, so schedules can pass it; backup asks nothing (but the passphrase).
+- **Output:** what it wrote, its size, the counts ("1,284 rows in 31 tables, 412 stored files
+  (96.0 MiB)"), and the time it took; then warnings: the settings are sensitive, settings only the
+  environment has, released versions whose artifact is missing or has another sha256 than the
+  database's, storage files left out. Exit 0 only when the archive is complete, 1 when it failed
+  (the partial file and the empty folders it made removed, "The backup failed: the disk is full (ENOSPC) …"), 2 for bad flags.
 - **While it runs:** writes keep working; the snapshot is what was committed when it started.
 - **`--verify`:** reads the archive (decrypting it), checks every entry against the manifest's
   sha256, checks that each released version's artifact is there with the sha256 the database
   records (the integrity check the incident runbook uses, 098), and prints the manifest's summary.
-  Exit 1 with the first problem otherwise.
-- **Audited** as `instance.backup_made` (`{ tables, rows, files, bytes, encrypted, settings }`,
-  never the path's secrets or the passphrase).
+  Exit 1 with the first problem otherwise. It runs every check of the format spec's "What a reader
+  checks" but the target's tables (it has no database), needs neither the settings nor a running
+  instance, writes and audits nothing, and asks for the passphrase only when the archive turns out
+  to be encrypted (its first bytes, never its name). A relative archive path is from where the
+  command was typed, as `--out` is. It streams: memory follows the number of entries and tables,
+  not the archive's size.
+- **Audited** as `instance.backup_made` (`{ via: "cli", tables, rows, files, bytes, encrypted,
+  settings }`, never the path or the passphrase), after the archive is complete; if recording it
+  fails, the backup still succeeds and says so.
 
 ### `rmk-server restore`
 
@@ -119,28 +164,52 @@ rmk-server backup --verify <archive> [--passphrase-file <file>]
 rmk-server restore <archive> [--passphrase-file <file>] [--database-url <url>] [--with-settings] [--yes]
 ```
 
-1. **Reads and verifies the whole archive first** (as `--verify`), before writing anything.
+1. **Reads and verifies the whole archive first** (as `--verify`), before writing anything; an
+   encrypted archive's passphrase is asked once, for both reads. The second read, which restores,
+   checks every entry's sha256 again (and `backup.json`'s and `manifest.json`'s bytes), and that
+   every entry and every row came again, in the format's order, so an archive changed in between
+   stops it.
 2. **Checks the app can take it:** every migration the backup applied must be one this app knows
    (else "This backup comes from a newer Ronne (<version>); install that version or newer to
    restore it"). A backup from an older Ronne restores, and the newer migrations run after.
-3. **The target database:** from `--database-url`, else the settings file, else (no settings
-   yet) the backup's own `DATABASE_URL` when `--with-settings`, else a new SQLite file in the data
-   folder. It must be **empty**: no tables, or only the migration tables with nothing applied.
+3. **The target database:** from `--database-url`, else the settings (the environment over the
+   settings file, as the server reads them), else (no settings file yet) the backup's own
+   `DATABASE_URL` when `--with-settings`, else a new SQLite file in the data folder. A relative
+   SQLite path is from the app's folder, as setup's is. Messages name the database by its kind,
+   never by its URL (which can hold a password). It must be **empty**: no tables, or only the migration tables with nothing applied.
    Otherwise: "The database isn't empty. Restore into a new database, or remove this one first",
-   and for SQLite, how to move the file aside. Nothing is changed.
-4. **The target storage** must be empty or absent. Same refusal otherwise.
+   and for SQLite, how to move the file aside. Nothing is changed: a SQLite file that's there is
+   looked at read-only first (opening it to restore would turn WAL on).
+4. **The target storage** (the settings' `STORAGE_PATH`, else the data folder's `storage/`) must be
+   empty or absent. Same refusal otherwise.
 5. **The server must be stopped:** restore takes the migration lock, as start does, so a server
    starting meanwhile waits; when a service is installed and running, restore says to stop it
-   (`rmk-server service stop`), and in Docker the runbook uses `docker compose stop web` then
-   `docker compose run --rm web pnpm run restore …`.
-6. **Restores:** migrates the empty database to exactly the backup's migrations, loads the rows
-   table by table in an order that respects foreign keys (from the schema, a helper in `db/`), in
-   batches, in one transaction where the database allows it; copies the storage files and checks
-   each sha256; then runs the newer migrations.
+   (`rmk-server service stop`): `rmk-server restore` refuses while the installed service runs. In
+   Docker the runbook uses `docker compose stop web` then `docker compose run --rm web pnpm run
+   restore …`. The lock is held on the one connection that does the whole restore. It belongs to
+   one database: on MySQL and MariaDB, Ronne names it after the database (Kysely's own name is one
+   for the whole server, so a restore would have held every other instance's migrations there). SQLite has no
+   migration lock, so restore locks the file itself (exclusive locking mode) from the emptiness
+   check to the end; a file another process holds is refused as in use.
+6. **Restores:** migrates the empty database to exactly the backup's migrations and checks that its
+   tables, columns and primary keys are the manifest's; removes the rows those migrations inserted
+   (the global workspace…), which the backup has as they were; loads the rows table by table in
+   the archive's order, refused unless it puts each table after the tables it refers to, in
+   batches, in one transaction (all three databases allow it); writes the storage files (mode 0600,
+   never over an existing file) and checks each sha256; then runs the newer migrations.
 7. **Settings:** with `--with-settings` and no settings file yet, writes the backup's settings file
    (mode 0600), replacing its `DATABASE_URL` and `STORAGE_PATH` with the targets when they differ.
-   Without it, or when a settings file exists, keeps the current one and says what differs
-   (`AUTH_SECRET` differs: everyone will need to sign in again; `PUBLIC_URL` differs).
+   With no settings file and without `--with-settings`, writes a new one pointing at the targets,
+   with a new `AUTH_SECRET` (everyone signs in again, which it says) and the backup's `PUBLIC_URL`.
+   When a settings file exists, keeps it and says what differs (`AUTH_SECRET` differs: everyone
+   will need to sign in again; `PUBLIC_URL` differs), never the values but `PUBLIC_URL`'s, and warns
+   when its `DATABASE_URL` or `STORAGE_PATH` (as the file is at the end) aren't the ones restored
+   into. A settings file that appears while the restore runs is kept, never replaced (a new one is
+   created exclusively, which fails if anything is there); one removed meanwhile is said. A timestamp that
+   isn't a real moment written exactly (February 30, 24:00) stops the restore rather than moving to
+   another day, in every kind: SQLite's timestamp columns are text, known by their `_at` names
+   (every timestamp column ends in `_at` and nothing else does, a test checks), and timestamps are
+   written as text, never as a driver's Date in the process's time zone.
 8. **Prints** what it restored and the next step (start the server). Audited after the restore as
    `instance.restored` (`{ from: { version, dialect, time }, rows, files }`), on top of the
    restored log, so the audit log shows both the history and the restore.
@@ -189,11 +258,15 @@ MySQL; `--encrypt` for archives that leave it; and (with 110) the bucket's serve
 - **Restoring into another database kind:** SQLite → PostgreSQL, MySQL → SQLite and so on, covered
   by the database tests; values that one dialect stores differently (booleans, dates) go through
   the same helpers the repositories use.
-- **A backup taken during a migration:** not possible; backup takes the migration lock briefly to
-  read the applied migrations and starts its snapshot after.
+- **A backup taken during a migration:** not possible; backup takes the migration lock (Kysely's:
+  an advisory lock on PostgreSQL, `GET_LOCK` on MySQL and MariaDB), so it waits for a running
+  migration, starts its snapshot, and releases the lock once the snapshot is fixed. SQLite's
+  migrations run in one transaction, which the snapshot never sees half of.
 - **`--out` inside the storage path:** refused, so a backup never contains earlier backups.
 - **Restoring the same archive twice:** the second finds the database not empty and refuses.
-- **An archive from a newer format version:** refused with the version that can read it.
+- **An archive from a newer format version:** refused, naming the Ronne version that wrote it
+  (`backup.json`); an encrypted archive from a newer container version is refused as "encrypted by
+  a newer Ronne", since its header names no version.
 - **The passphrase from `RONNE_BACKUP_PASSPHRASE`:** never printed or logged; CodeQL's
   clear-text logging rule ([`codeql-logging.md`](../../knowledge/codeql-logging.md)) applies.
 - **Windows paths and file names:** storage keys use `/`; tar entries too; restore writes them

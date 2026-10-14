@@ -7,13 +7,21 @@
 import { existsSync, readFileSync } from "node:fs";
 
 /** Vitest filters (parts of a path) for the tests a pull request always runs on the servers. */
-export const CORE_TESTS = ["src/server/db/", "/repositories/", "src/server/setup/", "scripts/"];
+export const CORE_TESTS = [
+  "src/server/db/",
+  "/repositories/",
+  "src/server/setup/",
+  "src/server/backup/",
+  "scripts/",
+];
 
 /** Paths that are database code, or decide how the database tests run. */
 const DATABASE_PATHS = [
   /^apps\/web\/src\/server\/db\//,
   /\/repositories\//,
   /^apps\/web\/src\/server\/setup\//,
+  // backup and restore (099), which read and write every table.
+  /^apps\/web\/src\/server\/backup\//,
   // setup, db:migrate and reset-root-password, run against the database.
   /^apps\/web\/scripts\//,
   // A database test itself, wherever it is.

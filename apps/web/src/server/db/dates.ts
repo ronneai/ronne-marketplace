@@ -8,6 +8,21 @@ export const toDbDate = (date: Date, dialect: DatabaseDialect): Date | string =>
   return dialect === "sqlite" ? date.toISOString() : date;
 };
 
+const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z$/;
+
+/**
+ * A timestamp as the backup format writes it (099), as a Date, or null when it isn't one exactly:
+ * ISO 8601 UTC with 0-3 fraction digits that reads back as the same moment (no February 30, no
+ * 24:00), from the year 1 (0000 is ISO 8601 but no year PostgreSQL takes; the app writes none).
+ */
+export const parseExactTimestamp = (text: string): Date | null => {
+  const match = ISO.exec(text);
+  if (!match || text.startsWith("0000")) return null;
+  const date = new Date(text);
+  const exact = `${text.slice(0, 19)}.${(match[1] ?? ".").slice(1).padEnd(3, "0")}Z`;
+  return !Number.isNaN(date.getTime()) && date.toISOString() === exact ? date : null;
+};
+
 /** Reads a timestamp column from any dialect as a Date. */
 type FromDbDate = {
   (value: Date | string): Date;
