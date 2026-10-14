@@ -45,6 +45,9 @@ jobs:
   e2e:
     uses: ./.github/workflows/e2e.yml
 
+  clients-windows:
+    uses: ./.github/workflows/clients-windows.yml
+
   # Only the read-only Docker Hub token, by name: not `inherit`, which would hand over every secret.
   database:
     uses: ./.github/workflows/database.yml

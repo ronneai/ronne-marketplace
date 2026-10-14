@@ -47,6 +47,12 @@ export const SUITE_PATHS = {
     /^packages\/repo-tools\/src\/(bundle|bundle-check|bundle-smoke|package-linux|server-probe|packs|notices|winsw)\.js$/,
     /^\.github\/workflows\/(server-package|server-checks|bundles|packages)\.yml$/,
   ],
+  // The client commands on Windows (121, clients-windows.yml): rmk, rmk-mcp and the core under them.
+  clients: [
+    /^packages\/(core|cli|mcp)\//,
+    /^\.github\/workflows\/clients-windows\.yml$/,
+    /^turbo\.json$/,
+  ],
   // install.sh and install.ps1 (081).
   install: [
     /^scripts\/install\//,
@@ -66,6 +72,7 @@ export const ciScope = (files) => {
     image: touches(SUITE_PATHS.image),
     server: touches(SUITE_PATHS.server),
     install: touches(SUITE_PATHS.install),
+    clients: touches(SUITE_PATHS.clients),
   };
 };
 

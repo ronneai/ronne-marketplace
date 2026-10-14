@@ -132,6 +132,14 @@ jobs:
     with:
       run: ${{ (needs.changes.outputs.code == 'false' || needs.changes.outputs.full == 'false') && 'false' || 'true' }}
 
+  # rmk and rmk-mcp on Windows (121): only when a pull request changes them; always on main.
+  clients-windows:
+    needs: changes
+    if: ${{ !cancelled() }}
+    uses: ./.github/workflows/clients-windows.yml
+    with:
+      run: ${{ (needs.changes.outputs.code == 'false' || needs.changes.outputs.full == 'false' || needs.changes.outputs.clients == 'false') && 'false' || 'true' }}
+
   e2e-result:
     # The required check (branch protection names it): passes when both halves passed. On a
     # documentation-only or draft pull request they pass too, with their steps skipped.
