@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { setRequestUser } from "../../../log";
 import { clientIp } from "../models/client-ip";
 import { PATH_HEADER, signInUrl } from "../models/route-guard";
 import type { CurrentUser } from "../models/user";
@@ -27,7 +28,10 @@ export const getCurrentUser = async (
   headers: Headers,
   app: AppAuth | null = getAppAuthIfConfigured(),
 ): Promise<CurrentUser | null> => {
-  return app ? service.currentUser(deps(app), headers) : null;
+  const user = app ? await service.currentUser(deps(app), headers) : null;
+  // The request's lines say who's signed in (feature 100): the id, never an email or a name.
+  if (user) setRequestUser(user.id);
+  return user;
 };
 
 /** The signed-in user, or a redirect to sign-in that comes back to the requested page. */

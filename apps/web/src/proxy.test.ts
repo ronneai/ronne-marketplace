@@ -36,6 +36,27 @@ describe("proxy", () => {
     expect(proxy(req).headers.get("x-middleware-request-x-ronne-path")).toBe("/items");
   });
 
+  it("gives each request an ID, on the request and on the response, replacing the client's", () => {
+    const ULID = /^[0-9A-HJKMNP-TV-Z]{26}$/;
+    const passed = proxy(
+      new NextRequest("http://localhost:3000/items", {
+        headers: { cookie: "ronne.session_token=abc", "x-request-id": "chosen-by-client" },
+      }),
+    );
+    const id = passed.headers.get("x-request-id") ?? "";
+    expect(id).toMatch(ULID);
+    expect(passed.headers.get("x-middleware-request-x-request-id")).toBe(id);
+    // A redirect and a refused body carry one too.
+    expect(proxy(request("/account")).headers.get("x-request-id")).toMatch(ULID);
+    const big = new NextRequest("http://localhost:3000/items", {
+      method: "POST",
+      headers: { "content-length": String(100 * 1024 * 1024) },
+    });
+    const refused = proxy(big);
+    expect(refused.status).toBe(413);
+    expect(refused.headers.get("x-request-id")).toMatch(ULID);
+  });
+
   it("doesn't run on the API, Next's assets or the icons", () => {
     const [pattern] = config.matcher;
     const matches = (path: string) => new RegExp(`^${pattern}$`).test(path);

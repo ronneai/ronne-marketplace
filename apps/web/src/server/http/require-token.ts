@@ -3,6 +3,7 @@ import {
   authenticateToken,
   type TokenFailure,
 } from "../domains/identity/actions/access-tokens";
+import { setRequestUser } from "../log";
 import { getSetupState } from "../setup/state";
 import { errorResponse, setupRequiredResponse } from "./errors";
 
@@ -64,7 +65,8 @@ export const requireToken = async (
 ): Promise<TokenGuardResult> => {
   if (!(await deps.ready())) return { ok: false, response: setupRequiredResponse() };
   const result = await deps.authenticate(bearerToken(request.headers));
-  return result.ok
-    ? { ok: true, auth: result.value }
-    : { ok: false, response: tokenFailureResponse(result.failure) };
+  if (!result.ok) return { ok: false, response: tokenFailureResponse(result.failure) };
+  // The request's lines (http.request among them) say whose token it was (feature 100).
+  setRequestUser(result.value.user.id);
+  return { ok: true, auth: result.value };
 };

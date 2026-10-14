@@ -5,6 +5,7 @@ import { IdentityError } from "@/server/domains/identity/exceptions/errors";
 import { createScope, updateScopeDescription } from "@/server/domains/items/actions/scopes";
 import { ItemsError } from "@/server/domains/items/exceptions/errors";
 import { requestHeaders } from "@/server/http/request-headers";
+import { serverAction } from "@/server/http/server-action";
 import type { ScopeActionState } from "./types";
 
 const text = (form: FormData, key: string) => String(form.get(key) ?? "");
@@ -23,29 +24,27 @@ const attempt = async (work: () => Promise<string>): Promise<ScopeActionState> =
   }
 };
 
-export const createScopeFromForm = async (
-  _previous: ScopeActionState,
-  form: FormData,
-): Promise<ScopeActionState> =>
-  attempt(async () => {
-    const scope = await createScope(await requestHeaders(), {
-      name: text(form, "name"),
-      description: text(form, "description"),
-      workspaceId: text(form, "workspaceId") || undefined,
-    });
-    return scope.workspace.name === "global"
-      ? `Created @${scope.name}.`
-      : `Created @${scope.name} in ${scope.workspace.name}.`;
-  });
+export const createScopeFromForm = serverAction(
+  async (_previous: ScopeActionState, form: FormData): Promise<ScopeActionState> =>
+    attempt(async () => {
+      const scope = await createScope(await requestHeaders(), {
+        name: text(form, "name"),
+        description: text(form, "description"),
+        workspaceId: text(form, "workspaceId") || undefined,
+      });
+      return scope.workspace.name === "global"
+        ? `Created @${scope.name}.`
+        : `Created @${scope.name} in ${scope.workspace.name}.`;
+    }),
+);
 
-export const updateScopeFromForm = async (
-  _previous: ScopeActionState,
-  form: FormData,
-): Promise<ScopeActionState> =>
-  attempt(async () => {
-    await updateScopeDescription(await requestHeaders(), {
-      name: text(form, "name"),
-      description: text(form, "description"),
-    });
-    return "Description saved.";
-  });
+export const updateScopeFromForm = serverAction(
+  async (_previous: ScopeActionState, form: FormData): Promise<ScopeActionState> =>
+    attempt(async () => {
+      await updateScopeDescription(await requestHeaders(), {
+        name: text(form, "name"),
+        description: text(form, "description"),
+      });
+      return "Description saved.";
+    }),
+);
