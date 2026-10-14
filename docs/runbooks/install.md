@@ -303,7 +303,10 @@ folder is kept unless you delete it.
 
 **Where the logs are:** Docker: `docker compose logs web` (and `proxy`). Service:
 `rmk-server service logs`; underneath, `journalctl -u rmk-server` on Linux, and
-`/Library/Logs/rmk-server/` on macOS.
+`/Library/Logs/rmk-server/` on macOS. Each line is JSON with a level and an `event` name;
+`LOG_LEVEL=debug` in the settings file (then a restart) writes more. A problem someone reports
+comes with the `X-Request-Id` of the response they got: its lines carry that `requestId`. What
+each line holds, and what it never does: [Logs](https://www.ronne.ai/marketplace/docs/operations#logs).
 
 Still stuck? [Open an issue](https://github.com/ronneai/ronne-marketplace/issues) with the output of
 `rmk-server service status` or `docker compose ps` and the last lines of the log.
