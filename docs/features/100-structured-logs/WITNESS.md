@@ -1383,3 +1383,29 @@ Witnessed: 2026-10-14 18:16 EDT, by a fresh agent (blind). Commit: 99d25238 (ron
 | 21 | Marketplace help tests | no | confirmed | 3 passed; `src/server/log` 103 passed |
 
 **Overall:** met. Remarks: pt "feed de plugins" vs fr "plugin feed" (each consistent within its language); an unexpected error's own message is written after redaction, so the logger's rules are what stand between it and the line.
+
+## Task 5 — Where they go (re-check)
+
+Witnessed: 2026-10-14 18:48 EDT, by a fresh agent (blind). Commit: f650f01a. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | LOG_FORMAT unset: NODE_ENV=development writes text; production, unset or test JSON | no | confirmed | tsx probe in a scratch copy, no settings file; `logger.ts:261-269` |
+| 2 | LOG_FORMAT set wins; empty counts as unset | no | confirmed | production + `text` → text; `LOG_FORMAT=` → JSON; empty env with a file holding `text` → text (`config.ts:41`) |
+| 3 | `pnpm dev` gets text (`next dev` sets NODE_ENV=development) | no | confirmed | `next/dist/bin/next:54,80`; `apps/web/package.json:9` |
+| 4 | LOG_LEVEL and LOG_FORMAT from the shell reach `pnpm dev` | no | confirmed | `turbo.json` passThroughEnv; `--dry=json` strict mode; env printer in the copy → `PROBE warn text undefined` |
+| 5 | The image runs with JSON | no | confirmed | `Dockerfile:45` `NODE_ENV=production`; compose's empty values count as unset (not run here) |
+| 6 | `compose.yaml` passes LOG_LEVEL and LOG_FORMAT from its `.env` | no | confirmed | `docker compose -f compose.yaml config` with and without `.env` |
+| 7 | The services run with JSON | no | confirmed | `model.ts:87`; golden unit and plist; CI found `server.started` in journald and launchd's log |
+| 8 | `rmk-server start` runs with JSON | no | confirmed | `server-env.ts:15`; in the copy, `rmk-server --port 3918` → `server.started` JSON, banner text, `http.request` JSON |
+| 9 | `rmk-server service logs` reads the service's output | no | confirmed | `linux.ts:109-115`, `macos.ts:151-157`, `control.ts:169-178`; 81 tests passed |
+| 10 | The probe parses every `{` line and needs `server.started` with the port, level info, setup required | no | confirmed | Fake server: good ✓; broken line, none, text, port+1, string port, warn → ✗ |
+| 11 | The probe needs the exact version | no | confirmed | `server-probe.js:100` `!==`; `""`, `0.3`, `3.2`, `0.3.2-beta`, number, missing → ✗; two-line bundle `--version` → ✓ |
+| 12 | Banner and `server.started` in either order | no | confirmed | Fakes both ways ✓; the real probe on local `rmk-server` → every step ✓ |
+| 13 | CI: Install and run (Ubuntu, macOS, Node 22 and 24) | no | confirmed | 4× success; each `✓ its log is JSON (3 lines), with server.started: npm` |
+| 14 | CI: Service on Linux reads `server.started` from journald; Service on macOS | no | confirmed | `test-linux-service.sh:125` grep before job 116144207111's ✓ step; `test-macos-service.sh:49`, job 116144207194 |
+| 15 | The image's smoke test passes | no | confirmed | `Image (amd64)` and `Docker image (build, run, scan)` success. Remark: it doesn't check JSON in the container |
+| 16 | Script output survives a closed pipe | no | confirmed | `output.ts`; its test passes, fails without the listener; `rmk-server setup --yes \| (exec 0<&-; true)` → exit 0 |
+| 17 | The spec and plan describe what was built | no | confirmed | `SPEC.md:17-18,156-160,180-181,243-244`; `PLAN.md:42-47` |
+
+**Overall:** met.

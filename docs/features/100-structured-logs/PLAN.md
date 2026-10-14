@@ -39,7 +39,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   for the same at the end of a run.
   *Done when:* both pass, and CodeQL reports nothing new on the pull request.
 
-- [ ] **5. Where they go.** `pnpm dev` writes text (the default when `NODE_ENV` is `development`,
+- [x] **5. Where they go.** `pnpm dev` writes text (the default when `NODE_ENV` is `development`,
   and `LOG_LEVEL` and `LOG_FORMAT` from the shell reach it); the image, the services and the
   packages run with JSON; `rmk-server service logs` shows them; `server-probe.js` checks every
   server line starting `{` parses as JSON, with a `server.started` line carrying this run's exact
