@@ -49,7 +49,6 @@ describe("ciScope", () => {
       "scripts/packages/test-in-containers.sh",
       "packages/repo-tools/src/bundle.js",
       "packages/repo-tools/src/server-probe.js",
-      "packages/repo-tools/src/winsw.js",
       ".github/workflows/server-checks.yml",
       ".github/workflows/bundles.yml",
       ".github/workflows/packages.yml",

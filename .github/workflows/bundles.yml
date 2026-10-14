@@ -1,6 +1,7 @@
 name: Bundles
 
-# The self-contained rmk-server bundles (feature 084): one archive per system and processor, each
+# The self-contained rmk-server bundles (feature 084): one archive per system (Linux and macOS: no
+# Windows server since 121) and processor, each
 # with the official Node.js 24 inside. Called by server-package.yml on every pull request and by
 # release.yml, after a job that uploaded the packed @ronneai/marketplace as the "server-tarball"
 # artifact. Each archive is built on a runner of its own platform (npm installs the native modules of
@@ -25,8 +26,6 @@ jobs:
           - { platform: linux, arch: arm64, runner: ubuntu-24.04-arm }
           - { platform: darwin, arch: x64, runner: macos-15-intel }
           - { platform: darwin, arch: arm64, runner: macos-15 }
-          - { platform: win32, arch: x64, runner: windows-2025 }
-          - { platform: win32, arch: arm64, runner: windows-11-arm }
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 20
     steps:

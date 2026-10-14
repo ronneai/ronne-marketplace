@@ -83,8 +83,8 @@ jobs:
     secrets:
       DOCKERHUB_READ_TOKEN: ${{ secrets.DOCKERHUB_READ_TOKEN }}
 
-  # The install matrix and the services on Linux, macOS and Windows (server-checks.yml), once the
-  # Windows bundle exists.
+  # The install matrix and the services on Linux and macOS, and Windows' refusal (server-checks.yml),
+  # once the bundles exist.
   checks:
     needs: bundles
     uses: ./.github/workflows/server-checks.yml

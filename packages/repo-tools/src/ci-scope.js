@@ -44,7 +44,7 @@ export const SUITE_PATHS = {
     // Backup and restore (099): the probe and the service tests restore a backup.
     /^apps\/web\/src\/server\/backup\//,
     /^apps\/web\/scripts\/(backup|restore)\.ts$/,
-    /^packages\/repo-tools\/src\/(bundle|bundle-check|bundle-smoke|package-linux|server-probe|packs|notices|winsw)\.js$/,
+    /^packages\/repo-tools\/src\/(bundle|bundle-check|bundle-smoke|package-linux|server-probe|packs|notices)\.js$/,
     /^\.github\/workflows\/(server-package|server-checks|bundles|packages)\.yml$/,
   ],
   // The client commands on Windows (121, clients-windows.yml): rmk, rmk-mcp and the core under them.
@@ -53,7 +53,7 @@ export const SUITE_PATHS = {
     /^\.github\/workflows\/clients-windows\.yml$/,
     /^turbo\.json$/,
   ],
-  // install.sh and install.ps1 (081).
+  // install.sh (081).
   install: [
     /^scripts\/install\//,
     /^packages\/repo-tools\/src\/(install-scripts|release-install-scripts)\.js$/,

@@ -8,7 +8,7 @@ import { checkPack, PUBLISHED } from "./packs.js";
 
 /** The top of a bundle. */
 const TOP = new Set(["bin", "node", "lib", "THIRD_PARTY_NOTICES", "LICENSE"]);
-const LAUNCHERS = new Set(["bin/rmk-server", "bin/rmk-server.cmd"]);
+const LAUNCHERS = new Set(["bin/rmk-server"]);
 const PACKAGE = "lib/node_modules/@ronneai/marketplace/";
 
 /** Never in lib/ (Node's own folder is the official build and isn't looked into). */

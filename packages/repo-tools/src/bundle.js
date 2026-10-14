@@ -25,17 +25,15 @@ import { fileURLToPath } from "node:url";
 import { checkBundle } from "./bundle-check.js";
 import { collectPackages, RULE, section } from "./notices.js";
 
-export const PLATFORMS = ["linux", "darwin", "win32"];
+// Linux and macOS: the server doesn't run on Windows (121).
+export const PLATFORMS = ["linux", "darwin"];
 export const ARCHS = ["x64", "arm64"];
 export const NODE_MAJOR = 24;
 const DIST = "https://nodejs.org/dist";
 
-/** Node's own name for a platform in its downloads. */
-const nodePlatform = (platform) => (platform === "win32" ? "win" : platform);
-
-/** The Node.js download for a platform: a .zip on Windows, a .tar.gz elsewhere. */
+/** The Node.js download for a platform. */
 export const nodeArchive = (platform, arch, version) =>
-  `node-v${version}-${nodePlatform(platform)}-${arch}.${platform === "win32" ? "zip" : "tar.gz"}`;
+  `node-v${version}-${platform}-${arch}.tar.gz`;
 
 /** The newest release of a major from nodejs.org's index.json (newest first there). */
 export const latestOf = (index, major) => {
@@ -77,17 +75,6 @@ done
 root=$(cd "$(dirname "$self")/.." && pwd -P)
 RONNE_BUNDLE=1 exec "$root/node/bin/node" "$root/${ENTRY}" "$@"
 `;
-
-/** The launcher for Windows. */
-export const cmdLauncher = () =>
-  [
-    "@echo off",
-    "rem rmk-server, self-contained (feature 084): runs the Node.js in this bundle, not one on PATH.",
-    "setlocal",
-    "set RONNE_BUNDLE=1",
-    `"%~dp0..\\node\\node.exe" "%~dp0..\\${ENTRY.replaceAll("/", "\\")}" %*`,
-    "",
-  ].join("\r\n");
 
 /**
  * THIRD_PARTY_NOTICES: Node.js first; then the packages npm installed beside @ronneai/marketplace
@@ -156,14 +143,7 @@ export const errorText = (error) => {
 const getJson = (url) => getRetrying(url, (response) => response.json());
 const getText = (url) => getRetrying(url, (response) => response.text());
 
-/**
- * Windows' own tar (bsdtar, in System32) reads and writes zip; a GNU tar from Git for Windows
- * earlier on PATH can't, and reads C:\… as a remote host.
- */
-const tarProgram = () =>
-  process.platform === "win32"
-    ? join(process.env.SystemRoot ?? "C:\\Windows", "System32", "tar.exe")
-    : "tar";
+const tarProgram = () => "tar";
 
 const download = async (url, path) => {
   writeFileSync(
@@ -198,7 +178,6 @@ const main = async () => {
     throw new Error(
       `Build the ${options.platform}-${options.arch} bundle on that platform: npm installs the native modules of the machine it runs on (this is ${process.platform}-${process.arch}).`,
     );
-  const windows = options.platform === "win32";
   const tarball = resolve(options.tarball);
   const version = JSON.parse(
     execFileSync(tarProgram(), ["-xOzf", tarball, "package/package.json"], { encoding: "utf8" }),
@@ -224,11 +203,9 @@ const main = async () => {
     const root = join(work, name);
     mkdirSync(join(root, "bin"), { recursive: true });
     execFileSync(tarProgram(), ["-xf", join(work, archive), "-C", work]);
-    renameSync(join(work, archive.replace(/\.(zip|tar\.gz)$/, "")), join(root, "node"));
-    const node = windows ? join(root, "node", "node.exe") : join(root, "node", "bin", "node");
-    const npmCli = windows
-      ? join(root, "node", "node_modules", "npm", "bin", "npm-cli.js")
-      : join(root, "node", "lib", "node_modules", "npm", "bin", "npm-cli.js");
+    renameSync(join(work, archive.replace(/\.tar\.gz$/, "")), join(root, "node"));
+    const node = join(root, "node", "bin", "node");
+    const npmCli = join(root, "node", "lib", "node_modules", "npm", "bin", "npm-cli.js");
 
     // The package, installed by the bundled Node's npm, so its native modules match it.
     mkdirSync(join(root, "lib"));
@@ -249,11 +226,8 @@ const main = async () => {
     rmSync(join(root, "lib", "node_modules", ".bin"), { recursive: true, force: true });
 
     // The launcher, the notices and Ronne's licence.
-    if (windows) writeFileSync(join(root, "bin", "rmk-server.cmd"), cmdLauncher());
-    else {
-      writeFileSync(join(root, "bin", "rmk-server"), shLauncher());
-      chmodSync(join(root, "bin", "rmk-server"), 0o755);
-    }
+    writeFileSync(join(root, "bin", "rmk-server"), shLauncher());
+    chmodSync(join(root, "bin", "rmk-server"), 0o755);
     writeFileSync(
       join(root, "THIRD_PARTY_NOTICES"),
       notices({
@@ -277,20 +251,20 @@ const main = async () => {
     if (problems.length > 0)
       throw new Error(`the bundle holds what it shouldn't:\n  ${problems.join("\n  ")}`);
 
-    // The archive: tar.gz, or zip on Windows (its tar is bsdtar, which writes zip with -a).
+    // The archive: tar.gz.
     const out = resolve(options.out);
     mkdirSync(out, { recursive: true });
-    const file = join(out, `${name}.${windows ? "zip" : "tar.gz"}`);
+    const file = join(out, `${name}.tar.gz`);
     rmSync(file, { force: true });
     // macOS's tar would add its extended attributes (com.apple.provenance), which GNU tar warns about.
-    // And files owned by root, not by whoever built it. GNU tar (Linux) and bsdtar (macOS, Windows)
-    // spell both differently.
+    // And files owned by root, not by whoever built it. GNU tar (Linux) and bsdtar (macOS) spell
+    // both differently.
     const neutral =
       process.platform === "linux"
         ? ["--owner=0", "--group=0", "--numeric-owner"]
         : ["--uid", "0", "--gid", "0", "--uname", "root", "--gname", "root"];
     const noXattrs = process.platform === "darwin" ? ["--no-xattrs", "--no-mac-metadata"] : [];
-    const flags = [windows ? "-a" : "-z", ...neutral, ...noXattrs];
+    const flags = ["-z", ...neutral, ...noXattrs];
     execFileSync(tarProgram(), [...flags, "-cf", file, "-C", work, name], {
       env: { ...process.env, COPYFILE_DISABLE: "1" },
     });

@@ -56,7 +56,10 @@ const bundle = (extra = {}) => {
 describe("what a bundle may hold (084)", () => {
   it("passes Node.js, the package, its dependencies (this platform's only), the launcher and notices", () => {
     expect(checkBundle(bundle())).toEqual([]);
-    expect(checkBundle(bundle({ "bin/rmk-server.cmd": "@echo off" }))).toEqual([]);
+    // No Windows launcher: no Windows bundle (121).
+    expect(checkBundle(bundle({ "bin/rmk-server.cmd": "@echo off" }))).toEqual([
+      "bin/rmk-server.cmd isn't a launcher",
+    ]);
   });
 
   it("fails on a stray file, wherever it is", () => {

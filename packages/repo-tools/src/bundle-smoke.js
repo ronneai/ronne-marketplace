@@ -12,17 +12,15 @@ import { basename, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { checkBundle } from "./bundle-check.js";
 
-const windows = process.platform === "win32";
-
 /** PATH without any folder that holds a Node.js. */
-export const pathWithoutNode = (path, platform = process.platform, exists = existsSync) =>
+export const pathWithoutNode = (path, exists = existsSync) =>
   path
-    .split(platform === "win32" ? ";" : ":")
-    .filter((dir) => dir && !exists(join(dir, platform === "win32" ? "node.exe" : "node")))
-    .join(platform === "win32" ? ";" : ":");
+    .split(":")
+    .filter((dir) => dir && !exists(join(dir, "node")))
+    .join(":");
 
 /** The archive's folder name: rmk-server-X.Y.Z-platform-arch. */
-export const archiveFolder = (archive) => basename(archive).replace(/\.(tar\.gz|zip)$/, "");
+export const archiveFolder = (archive) => basename(archive).replace(/\.tar\.gz$/, "");
 
 const fail = (message) => {
   console.error(`✗ ${message}`);
@@ -33,8 +31,7 @@ const main = () => {
   const archive = process.argv[2];
   if (!archive || !existsSync(archive)) fail("Give the bundle's archive.");
   const work = mkdtempSync(join(tmpdir(), "rmk-bundle-smoke-"));
-  // On Windows a file can stay locked a moment after the server stops: retry, and never let the
-  // cleanup turn a passing run into a failure.
+  // Never let the cleanup turn a passing run into a failure.
   process.on("exit", () => {
     try {
       rmSync(work, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
@@ -42,11 +39,7 @@ const main = () => {
       console.warn(`(couldn't remove ${work}: ${error.message})`);
     }
   });
-  // Windows' own tar (bsdtar) reads zip; elsewhere tar reads the .tar.gz.
-  const tar = windows
-    ? join(process.env.SystemRoot ?? "C:\\Windows", "System32", "tar.exe")
-    : "tar";
-  execFileSync(tar, ["-xf", archive, "-C", work]);
+  execFileSync("tar", ["-xf", archive, "-C", work]);
   // One folder, named as the archive: rmk-server-X.Y.Z-platform-arch.
   const inside = readdirSync(work);
   if (inside.length !== 1 || inside[0] !== archiveFolder(archive))
@@ -59,8 +52,8 @@ const main = () => {
   console.log(
     "✓ it holds only Node.js, the package and its dependencies, the launcher and notices",
   );
-  const launcher = join(root, "bin", windows ? "rmk-server.cmd" : "rmk-server");
-  const node = join(root, "node", ...(windows ? ["node.exe"] : ["bin", "node"]));
+  const launcher = join(root, "bin", "rmk-server");
+  const node = join(root, "node", "bin", "node");
   const version = JSON.parse(
     readFileSync(
       join(root, "lib", "node_modules", "@ronneai", "marketplace", "package.json"),
@@ -72,16 +65,11 @@ const main = () => {
     fail(`${basename(archive)} holds @ronneai/marketplace ${version}, not the version in its name`);
 
   const env = { ...process.env, PATH: pathWithoutNode(process.env.PATH ?? "") };
-  const found = spawnSync(windows ? "where" : "which", ["node"], { env, encoding: "utf8" });
+  const found = spawnSync("which", ["node"], { env, encoding: "utf8" });
   if (found.status === 0) fail(`a node is still on PATH: ${found.stdout.trim()}`);
   console.log("✓ no Node.js on PATH");
 
-  const run = (args) =>
-    spawnSync(windows ? `"${launcher}" ${args.join(" ")}` : launcher, windows ? [] : args, {
-      env,
-      encoding: "utf8",
-      shell: windows,
-    });
+  const run = (args) => spawnSync(launcher, args, { env, encoding: "utf8" });
   const shown = run(["--version"]);
   const lines = (shown.stdout ?? "").trim().split(/\r?\n/);
   if (

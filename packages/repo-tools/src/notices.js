@@ -147,7 +147,6 @@ const main = () => {
       cwd: root,
       encoding: "utf8",
       maxBuffer: 64 * 1024 * 1024,
-      shell: process.platform === "win32",
     },
   );
   // pnpm's list leaves out optional dependencies (pg's pg-cloudflare) and doesn't follow
