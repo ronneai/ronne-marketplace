@@ -183,6 +183,11 @@ read every secret itself.
   unexpected page or action error itself (`⨯ Error: …` and its stack), next to Ronne's `http.error`
   line. That output is Next.js's, outside the logger and its redaction: a known limit (owner,
   2026-10-14). Ronne's JSON line is the structured, redacted one.
+- **Better Auth's own printing when the database fails:** its database adapter
+  (`@better-auth/core`, a failed fallback join) prints the driver's error and stack with
+  `console.error`, outside the `logger` option and so outside ours. Only when the database itself
+  fails mid-request; refused requests print nothing. A known limit, like Next.js's (owner,
+  2026-10-14).
 - **A line written outside a request** (start, migrations): no `requestId`.
 - **Something logged inside `after()`** (work after the response): the context is kept, so the
   line has the request's ID.
