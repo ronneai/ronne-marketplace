@@ -16,7 +16,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* unit tests cover each level, both formats, the context, every redaction rule
   (fields, nested, arrays, errors, strings), cycles and `BigInt`, and an invalid `LOG_LEVEL`.
 
-- [ ] **2. Requests.** The API wrapper in `server/http/` (request ID, context, `http.request` with
+- [x] **2. Requests.** The API wrapper in `server/http/` (request ID, context, `http.request` with
   the route pattern, `X-Request-Id`, unexpected errors as `http.error`) and every route in
   `app/api/**` through it; the server-action wrapper and every exported action through it;
   `proxy.ts` sets the ID for pages; `instrumentation.ts` with `onRequestError`.

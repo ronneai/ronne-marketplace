@@ -878,3 +878,16 @@ Witnessed: 2026-10-14 15:45 EDT, by a fresh agent (blind). Commit: 51f666fe. Mac
 | 16 | The prologue reader can't run code; nothing regressed | no | confirmed | 23 hostile inputs and 300,000 fuzzed strings → nothing ran; 93 passed; typecheck; lint unchanged |
 
 **Overall:** not met: four escaped-directive forms get past the guard; none can be written by mistake. Owner's decision (2026-10-14): a deliberately escaped `use server` is out of scope; recorded in the guard's comment and SPEC.md.
+
+## Task 2 — Requests (closing check)
+
+Witnessed: 2026-10-14 15:51 EDT, by a fresh agent (blind). Commit: 2cfee292. Machine: macOS 27.0.1, Node v24.0.0. As the owner decided, it confirmed the decision is recorded and the guard catches every action written without deliberate escapes; it didn't hunt new escaped forms. Rows other than 3 and 17 carry over.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1–2, 4–16 | As the earlier passes | no | confirmed | `git diff --stat 51f666fe 2cfee292` → a comment, SPEC.md, WITNESS.md |
+| 17 | The owner's decision is recorded in the guard's comment and SPEC.md, covering the four forms | no | confirmed | `server-action.test.ts:93-96`; `SPEC.md:86-88`. Remark: the comment's list left out the CRLF continuation (added since) |
+| 3 | Within that scope, every exported action goes through `serverAction`, and the guard fails when one doesn't | no | confirmed | One probe at a time → 1 failed each: unwrapped export, second declarator, re-export, `.mts`, `.cjs`, comment first, inline plain directive, nested `e2e/`, `"use strict"` then `"use server"`; wrapped control passes; 20 real files pass |
+| 16 | No regressions | no | confirmed | 93 passed |
+
+**Overall:** met.
