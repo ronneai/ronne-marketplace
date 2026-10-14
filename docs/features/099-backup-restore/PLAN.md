@@ -64,9 +64,12 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 - [ ] **8. The backup runbook.** `docs/runbooks/backup.md`: the table per way of installing,
   schedules (cron, systemd timer, launchd, Task Scheduler, a Docker host), copies off the machine,
   restoring, moving to another machine and another database, Caddy's certificates, encryption at
-  rest, PostgreSQL's vacuum note, timings from CI. `install.md`'s "Back up" points to it.
+  rest, PostgreSQL's vacuum note, timings from the backup benchmark on a named machine (owner's
+  decision, 2026-10-14: CI doesn't run it). `install.md`'s "Back up" points to it.
   *Done when:* each command in it was run on a test instance (Docker and npm at least), written in
-  the notes.
+  the notes; by the owner's decision (2026-10-14) schedules are checked without being installed
+  (`systemd-analyze verify`, `plutil -lint`, the cron lines run as cron does), and `rclone`, `aws
+  s3 cp` and the bundled MySQL stay unrun examples.
 
 - [ ] **9. Documentation.** In `../ronne-web`: **Backups**, **Restoring** and **Encryption at
   rest** in Running Ronne (both `topics.ts`), and the Upgrade line, in English, Portuguese and
@@ -486,3 +489,9 @@ goes into `SPEC.md` instead.
     about 17 MiB), so the runbook gives the numbers rather than "flat".
   - **Found while running it:** after a restore in Docker, the next step said `docker compose start
     web`, which fails on a new machine (no container yet); it says `docker compose up -d` now.
+  - **After the witness (2026-10-14):** the service in-place restore moves `ronne.db*` and
+    `storage` into `before-restore/` inside the data folder (the account may write there, not in
+    `/var/lib`), run in a simulated Linux service in Debian; `rmk-server` explains a data folder it
+    can't make instead of a stack trace; cron's `PATH` line and the plist's `PATH` for npm installs
+    (run, and linted); the bundled-PostgreSQL URL with the password written in; `mkdir -m 700`;
+    macOS's paths. Windows removed (121, the next release).

@@ -1122,3 +1122,49 @@ Safety record, the same before and after: `md5 apps/web/.env` → b9eb4577b627e8
 **Overall:** not met: nothing is ever left behind, but a signal in the check's last stretch or cleanup could be lost (the restore went on), the cleanup removed `._name` files another process wrote into folders it made, and the spec promised neither happens.
 
 **Since this pass** (the owner's decision: this focused pass, then the pull request; nothing further unless a real safety problem): the check lets the event loop in once more before its handlers go, so a pending signal is handled (40 SIGINTs aimed at the end of a 20,000-file check: all exit 130, nothing left; before, about a third lost), and it removes a `._name` only when it appeared as the check made `name`. The spec says both. Windows is checked by the pull request's CI.
+
+## Task 8 — The backup runbook
+
+Witnessed: 2026-10-14 09:22 EDT, by a fresh agent (blind). Commit: fac4c78d. Machine: macOS 27.0.1 (Apple M1 Max), Node v24.0.0; Docker 29.7.2 (image `ronne-web:t8` from this commit, project `-p t8witness`); a Debian container (node:24-trixie-slim) with a simulated installed Linux service.
+
+Safety record, the same before and after: `md5 apps/web/.env` → b9eb4577b627e856bf865342d88e9368; `git -C apps/web status --short --ignored .env data` → `!! .env`, `!! data/`; `grep -l t8-blind node_modules/.bin/*` → nothing. Projects, container, image and database removed.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The runbook covers every topic the task lists | yes | confirmed | `backup.md`: the table, cron, systemd, launchd, Task Scheduler, Docker host, off machine, restoring, another machine, another database, Caddy, encryption at rest, vacuum, timings |
+| 2 | The table's paths and commands match the code | no | confirmed | `layout.ts`, `run-backup.ts:260-261`, `docker/pnpm`, `package.json:29-30`, `Dockerfile:62-64` |
+| 3 | `install.md`'s "Back up" points to it | yes | confirmed | `install.md:288-291` |
+| 4 | npm `rmk-server backup` while running: the output, 0700 folder, 0600 archive | yes | confirmed | The packed 0.3.2 under `env -i` → "Wrote …", the warning; `drwx------`, `-rw-------` |
+| 5 | `--keep` removes only older archives | yes | confirmed | 3 archives, a `.partial`, `notes.txt`; `--keep 2` → "Removed 2 older archives", the others left |
+| 6 | `--encrypt` with `RONNE_BACKUP_PASSPHRASE` or `--passphrase-file` | yes | confirmed | `.tar.enc`; `--verify --passphrase-file` → complete; a wrong one → exit 1 |
+| 7 | `--verify` as the sample | yes | confirmed | Plain archive → "…is complete…", exit 0; in Docker too |
+| 8 | `--no-settings` | yes | confirmed | No `settings.env` in the tar |
+| 9 | Docker backup to `/app/data/backups/`, names TRUST_PROXY | yes | confirmed | "Wrote /app/data/backups/… ! TRUST_PROXY comes from the environment…" |
+| 10 | `docker compose cp web:/app/data/backups/. ./ronne-backups/` keeps 0600 | yes | confirmed | 3 files, `-rw-------` |
+| 11 | The Docker in-place restore | yes | confirmed | "Restored 23 rows … 4 stored files … Next, start the server: docker compose up -d."; health ok |
+| 12 | The Docker restore on another machine | yes | confirmed | Restored; health ok; `backups/` 0755 from `mkdir -p` (not 0700) |
+| 13 | Caddy's `caddy-data` save and put back | yes | confirmed | The same `instance.uuid` in both projects |
+| 14 | npm restore into PostgreSQL writes that URL | yes | confirmed | `t8w_restore` (dropped after); the server started on it |
+| 15 | The Docker bundled-PostgreSQL restore as written | yes | partly | With `RONNE_DB_PASSWORD` only in `.env`, the literal `$RONNE_DB_PASSWORD` → "client password must be a string", exit 1 |
+| 16 | npm, no service: move aside, encrypted restore, start | yes | confirmed | Restored; the second restore refused (not empty) |
+| 17 | `sudo rmk-server backup` runs as the service's account | no | confirmed | Simulated install → "…, as rmk-server: Wrote …", `backups/` the account's, 0700 |
+| 18 | The service in-place restore (`mv /var/lib/rmk-server …`) | yes | not met | → `EACCES … mkdir '/var/lib/rmk-server'` with a stack trace: the account can't make the folder in `/var/lib` |
+| 19 | The cron lines work under cron | yes | partly | npm's `rmk-server` under cron's `PATH` → `env: node: No such file or directory`, 127; the packages' launcher has its own Node |
+| 20 | The Docker-host cron lines | yes | confirmed | Both exit 0, `.tar` and `.tar.enc` |
+| 21 | The systemd units | yes | can't check here | No systemd; by reading, `ExecStart` is the package's launcher |
+| 22 | The launchd plist | yes | partly | `plutil -lint` OK; npm's `rmk-server` needs `node` on launchd's short `PATH` (row 19) |
+| 23 | Task Scheduler | no | can't check here | Needs Windows |
+| 24 | `rsync … --exclude '*.partial'` | yes | confirmed | The archives copied, not the `.partial` |
+| 25 | `rclone`, `aws s3 cp` | no | can't check here | Not installed; no remote |
+| 26 | `sqlite3 ronne.db ".backup copy.db"` | yes | confirmed | Exit 0 |
+| 27 | The service's Caddy folder paths | no | confirmed | `layout.ts`; macOS's not named |
+| 28 | Encryption at rest matches the code and spec | no | confirmed | `crypto.ts:1-5` |
+| 29 | The vacuum note matches the snapshot | no | confirmed | `db/snapshot.ts:19-20` |
+| 30 | The timings come from CI | yes | not met | Measured on an M1 Max; no benchmark in CI; reproduced here |
+| 31 | Troubleshooting messages are the code's | no | confirmed | `run-restore.ts`, `verify.ts`, `control.ts`, `run-backup.ts` |
+| 32 | After a Docker restore, `docker compose up -d` | yes | confirmed | Rows 11, 12, 15 |
+| 33 | *Done when:* each command run, written in the notes | yes | partly | Rows 15, 18, 19 fail as written; systemd, launchd, Windows, MySQL, rclone, aws not run |
+
+**Overall:** not met: backup, `--keep`, `--encrypt`, `--verify` and both Docker restores work as written; the service in-place restore fails with EACCES, the Docker bundled-PostgreSQL restore needs the password in the shell, cron and launchd need `node` on the scheduler's `PATH` for npm installs, and the timings aren't from CI.
+
+**Since this pass:** the service in-place restore moves the database and storage aside inside the data folder (which stays), and restores from `backups/` there, run in a simulated Linux service (Debian, the account, `/etc/rmk-server` as `service install` makes it): restored as the account, the stored file identical; the old form now gets "the data folder … isn't there and couldn't be made (EACCES). Make it, owned by the account that runs Ronne" instead of a stack trace (`run.ts`). The bundled-PostgreSQL URL takes the password written in (from `.env`), as run on 2026-10-14 earlier. Cron gets a `PATH` line (run: 127 without it, 0 with it) and the plist an `EnvironmentVariables` `PATH` (`plutil -lint` OK); the packages' launcher needs neither. The Docker copy-in makes `backups/` 0700. macOS's paths are named. Windows is gone from the runbook (owner's decision, 2026-10-14: no Windows server in the next release, 121).

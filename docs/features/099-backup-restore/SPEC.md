@@ -263,8 +263,8 @@ MySQL; `--encrypt` for archives that leave it; and (with 110) the bucket's serve
 ## Edge cases
 
 - **A very large instance:** the archive is streamed; the database is read in batches inside the
-  snapshot transaction; memory stays flat. The runbook gives timings measured in CI for a
-  benchmark-sized instance (079's data set).
+  snapshot transaction; memory grows slowly with the size (about 1.5 MiB held at 1,000 items, 17 MiB at 10,000). The runbook gives timings from the backup benchmark (079's
+  data set) on a named machine (owner's decision, 2026-10-14: CI doesn't run the benchmark).
 - **The snapshot transaction on MySQL** must use `START TRANSACTION WITH CONSISTENT SNAPSHOT, READ
   ONLY`; on PostgreSQL `REPEATABLE READ READ ONLY`. Long backups hold the snapshot; on PostgreSQL
   that delays vacuum, noted in the runbook.

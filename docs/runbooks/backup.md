@@ -14,8 +14,7 @@ Upgrades can't be undone (the database changes on start), so a backup is also th
 | Installed with | Back up | Where the archive goes | Also keep |
 |---|---|---|---|
 | Docker (the install script) | `docker compose exec web pnpm run backup` | the `ronne-data` volume, `/app/data/backups/` | `.env` next to `compose.yaml` (ports, domain, the bundled database's password); `./certs` if you brought certificates |
-| Linux or macOS service (the packages, `rmk-server service install`) | `sudo rmk-server backup` | the data folder's `backups/` (`/var/lib/rmk-server/backups` on Linux) | nothing: `service install` recreates the rest |
-| Windows service | `rmk-server backup`, in a terminal run as administrator | `C:\ProgramData\RonneAI\Marketplace\data\backups` | as above |
+| Linux or macOS service (the packages, `rmk-server service install`) | `sudo rmk-server backup` | the data folder's `backups/`: `/var/lib/rmk-server/backups` on Linux, the folder `rmk-server service status` shows on macOS | nothing: `service install` recreates the rest |
 | npm, no service | `rmk-server backup` | the data folder's `backups/` | — |
 | A clone of the repository | `pnpm run backup` | `apps/web/data/backups/` | — |
 
@@ -67,8 +66,10 @@ output names them. In Docker that's `TRUST_PROXY` (and `PUBLIC_URL`), which `com
 Ronne has no schedule of its own: the system's scheduler runs the command. Daily, keeping two weeks,
 is a good start. Each example writes to a log; check it, and the `backups/` folder, now and then.
 
-**Encrypted on a schedule:** keep the passphrase in a file only root (or the administrators) can
-read, and pass it in `RONNE_BACKUP_PASSPHRASE`. Not `--passphrase-file` with a service: the
+The server runs on Linux and macOS (on Windows, in WSL 2 or a Linux virtual machine, with the
+Linux steps).
+
+**Encrypted on a schedule:** keep the passphrase in a file only root can read, and pass it in `RONNE_BACKUP_PASSPHRASE`. Not `--passphrase-file` with a service: the
 backup runs as the service's account, which can't read root's file.
 
 ```sh
@@ -77,10 +78,13 @@ sudo sh -c 'umask 077; printf "%s\n" "your long passphrase" > /root/ronne-backup
 
 ### Linux or macOS, cron
 
-In root's crontab (`sudo crontab -e`), with the full path `command -v rmk-server` prints (cron's
-`PATH` is short):
+In root's crontab (`sudo crontab -e`), with the full path `command -v rmk-server` prints. Cron's
+`PATH` is short: installed with npm, `rmk-server` needs `node` on it, so set `PATH` to include
+the folder `command -v node` prints (the `.deb` and `.rpm` packages bring their own Node.js and
+don't need it):
 
 ```
+PATH=/usr/local/bin:/usr/bin:/bin
 15 3 * * * /usr/bin/rmk-server backup --keep 14 >> /var/log/rmk-server-backup.log 2>&1
 ```
 
@@ -133,7 +137,8 @@ journalctl -u rmk-server-backup.service            # what it printed
 ### macOS, launchd
 
 `/Library/LaunchDaemons/ai.ronne.rmk-server-backup.plist` (owned by root, mode 644), with the
-path `command -v rmk-server` prints:
+path `command -v rmk-server` prints, and a `PATH` with the folder `command -v node` prints
+(`/opt/homebrew/bin` with Homebrew's Node.js on Apple silicon): launchd's own is short.
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -149,6 +154,11 @@ path `command -v rmk-server` prints:
     <string>--keep</string>
     <string>14</string>
   </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+  </dict>
   <key>StartCalendarInterval</key>
   <dict>
     <key>Hour</key>
@@ -172,22 +182,6 @@ sudo launchctl kickstart system/ai.ronne.rmk-server-backup     # run it once now
 The plist is readable by everyone, so don't put the passphrase in it. Encrypted, the
 `ProgramArguments` become `/bin/sh`, `-c` and
 `RONNE_BACKUP_PASSPHRASE="$(cat /var/root/ronne-backup-passphrase)" exec /usr/local/bin/rmk-server backup --encrypt --keep 14`.
-
-### Windows, Task Scheduler
-
-In PowerShell as administrator, with the path of your `rmk-server.cmd` (the bundle's
-`C:\Program Files\RonneAI\Marketplace\bin\rmk-server.cmd`, or `C:\Program Files\RonneAI\npm\rmk-server.cmd`):
-
-```powershell
-$action = New-ScheduledTaskAction -Execute 'C:\Program Files\RonneAI\Marketplace\bin\rmk-server.cmd' -Argument 'backup --keep 14'
-$trigger = New-ScheduledTaskTrigger -Daily -At 3:15am
-Register-ScheduledTask -TaskName 'Ronne backup' -Action $action -Trigger $trigger -User 'SYSTEM' -RunLevel Highest
-Start-ScheduledTask -TaskName 'Ronne backup'          # run it once now
-```
-
-It runs as SYSTEM, which may back up the service's data. Encrypted, keep the passphrase in a file
-only administrators and SYSTEM can read and add `--encrypt --passphrase-file <file>` to the
-arguments.
 
 ### A Docker host, cron
 
@@ -265,18 +259,21 @@ docker compose up -d
 With the bundled PostgreSQL or MySQL, the database must be emptied instead of moved: restore into
 a new one (below), or drop and recreate the `ronne` database.
 
-**A service (Linux, macOS):**
+**A service (Linux; on macOS, the data folder `rmk-server service status` shows):** move the
+database and the stored files aside inside the data folder, which stays (the service's account
+may write in it, not in the folder above), with the backups:
 
 ```sh
 sudo rmk-server service stop
-sudo mv /var/lib/rmk-server /var/lib/rmk-server.before-restore
-sudo rmk-server restore /var/lib/rmk-server.before-restore/backups/ronne-backup-20261014-130541.tar --with-settings
+cd /var/lib/rmk-server
+sudo mkdir -m 700 before-restore && sudo mv ronne.db* storage before-restore/
+sudo rmk-server restore /var/lib/rmk-server/backups/ronne-backup-20261014-130541.tar
 sudo rmk-server service start
 ```
 
-`rmk-server restore` refuses while the service runs. The old `backups/` is in the moved folder now:
-copy it back when you're done. On Windows, the same with `rmk-server service stop`, a renamed
-`C:\ProgramData\RonneAI\Marketplace\data`, and `rmk-server restore` in an administrator terminal.
+`rmk-server restore` refuses while the service runs. The settings file
+(`/etc/rmk-server/env`) is kept: it's this instance's. With PostgreSQL or MySQL, the database must
+be emptied instead (below).
 
 **npm, no service:** stop `rmk-server`, move its data folder aside, `rmk-server restore <archive> --with-settings`, start it.
 
@@ -290,7 +287,7 @@ settings file if the address changes).
 throwaway container (as root, to give it to the image's `node` user):
 
 ```sh
-docker compose run --rm --no-deps --user root -v "$PWD:/from:ro" web sh -c 'mkdir -p /app/data/backups && cp /from/ronne-backup-20261014-130541.tar /app/data/backups/ && chown -R node:node /app/data/backups && chmod 600 /app/data/backups/ronne-backup-20261014-130541.tar'
+docker compose run --rm --no-deps --user root -v "$PWD:/from:ro" web sh -c 'mkdir -p -m 700 /app/data/backups && cp /from/ronne-backup-20261014-130541.tar /app/data/backups/ && chown -R node:node /app/data/backups && chmod 600 /app/data/backups/ronne-backup-20261014-130541.tar'
 docker compose run --rm --no-deps web pnpm run restore /app/data/backups/ronne-backup-20261014-130541.tar --with-settings
 docker compose up -d
 ```
@@ -309,11 +306,12 @@ sudo rmk-server restore ronne-backup-20261014-130541.tar --with-settings --datab
 ```
 
 With Docker's bundled PostgreSQL (the `postgres` profile; MySQL is the same with `mysql` and
-`mysql://ronne:PASSWORD@mysql:3306/ronne`), on a new volume:
+`mysql://ronne:PASSWORD@mysql:3306/ronne`), on a new volume, with `PASSWORD` the
+`RONNE_DB_PASSWORD` in the `.env` next to `compose.yaml`:
 
 ```sh
 docker compose --profile postgres up -d --wait postgres
-docker compose run --rm --no-deps web pnpm run restore /app/data/backups/ronne-backup-20261014-130541.tar --with-settings --database-url "postgres://ronne:$RONNE_DB_PASSWORD@postgres:5432/ronne"
+docker compose run --rm --no-deps web pnpm run restore /app/data/backups/ronne-backup-20261014-130541.tar --with-settings --database-url 'postgres://ronne:PASSWORD@postgres:5432/ronne'
 docker compose --profile postgres up -d
 ```
 
@@ -343,8 +341,8 @@ which matters if you move often):
   docker compose run --rm --no-deps -v "$PWD:/out" --entrypoint tar proxy -czf /out/caddy-data.tar.gz -C /data .
   docker compose run --rm --no-deps -v "$PWD:/in:ro" --entrypoint tar proxy -xzf /in/caddy-data.tar.gz -C /data
   ```
-- **A service:** the proxy's folder, `/var/lib/rmk-server-proxy` on Linux
-  (`C:\ProgramData\RonneAI\Marketplace\proxy\data` on Windows): `sudo tar -czf caddy-data.tar.gz -C /var/lib/rmk-server-proxy .`
+- **A service:** the proxy's folder, `/var/lib/rmk-server-proxy` on Linux (on macOS,
+  `var/rmk-server-proxy` next to the data folder): `sudo tar -czf caddy-data.tar.gz -C /var/lib/rmk-server-proxy .`
 
 Certificates you brought yourself (`RONNE_TLS=files`) are in `./certs` (Docker) or the proxy's
 `certs` folder: keep them with your other keys.
@@ -354,7 +352,7 @@ Certificates you brought yourself (`RONNE_TLS=files`) are in `./certs` (Docker) 
 Ronne doesn't encrypt its own files: the platform does it better, and a key inside the app would be
 one more secret to lose. What to use:
 - **The server's disk** for SQLite, the stored files and the backups folder: LUKS on Linux,
-  FileVault on macOS, BitLocker on Windows, or the cloud provider's encrypted volumes.
+  FileVault on macOS, or the cloud provider's encrypted volumes.
 - **The database's own** for PostgreSQL and MySQL: the managed service's encryption, or the
   server's disk as above.
 - **Archives that leave the machine:** `--encrypt` (AES-256-GCM, with a key derived from your
@@ -387,7 +385,7 @@ schedule long ones at a quiet hour.
   start it again.
 - **"… are one name in the storage folder …":** the backup was made on a disk that tells case apart
   (Linux, usually) and holds two files whose names differ only by case; this disk (macOS's,
-  Windows', exFAT) can't hold both. Restore on Linux, or onto a case-sensitive volume.
+  exFAT) can't hold both. Restore on Linux, or onto a case-sensitive volume.
 - **A lost passphrase:** an encrypted archive can't be read without it. Make a new backup.
 - **`.partial` files in `backups/`:** a backup that was killed, or one running now. Remove old ones
   by hand.
