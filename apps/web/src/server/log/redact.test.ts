@@ -559,6 +559,17 @@ describe("cleanFields", () => {
     ).toBe(
       "Duplicate entry '[value]' for key 'items.items_scope_name_unique'; Duplicate entry '[value]' for key 'y'",
     );
+    // After a URL in the same message, whose password rule runs to the last `@`.
+    expect(
+      redactString(
+        "mysql://ronne@db:3306/ronne: Duplicate entry '@acme/private-name' for key 'items_scope_name_unique'",
+      ),
+    ).toBe(
+      "mysql://ronne@db:3306/ronne: Duplicate entry '[value]' for key 'items_scope_name_unique'",
+    );
+    expect(
+      redactString("http://localhost:3000 Duplicate entry '@acme/private-name' for key 'x'"),
+    ).toBe("http://localhost:3000 Duplicate entry '[value]' for key 'x'");
     // Not a duplicate-key error: left alone.
     expect(redactString("Duplicate entry 'x' and nothing after")).toBe(
       "Duplicate entry 'x' and nothing after",

@@ -187,9 +187,11 @@ const hideDuplicateValues = (value: string): string => {
  * out, cut to MAX_STRING characters.
  */
 export const redactString = (value: string): string => {
+  // Duplicate-key values first: a URL earlier in the message hides up to its last `@`, which an
+  // item's name (`@scope/name`) in the value would otherwise move past the value's opening quote.
   const clean = hideEmails(
-    hideDuplicateValues(
-      hidePaths(redactUrlPasswords(value.replace(ACCESS_TOKEN, "rmk_[redacted]"))),
+    hidePaths(
+      redactUrlPasswords(hideDuplicateValues(value.replace(ACCESS_TOKEN, "rmk_[redacted]"))),
     ),
   );
   return clean.length > MAX_STRING ? `${clean.slice(0, MAX_STRING)}…` : clean;

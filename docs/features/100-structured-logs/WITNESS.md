@@ -1263,3 +1263,33 @@ Witnessed: 2026-10-14 17:49 EDT, by a fresh agent (blind). Commit: 101f9d5a (ron
 | 21 | Marketplace help tests | no | confirmed | 3 passed |
 
 **Overall:** not met: two French wordings. Fixed in ronne-web a8d1359 ("plugin feed"; "son logger", "ne passe pas par le logger de Ronne").
+
+## Task 6 — Documentation (sixth re-check)
+
+Witnessed: 2026-10-14 17:53 EDT, by a fresh agent (blind). Commit: 101f9d5a (HEAD ecc54ffd only adds to WITNESS.md; ronne-web a8d1359). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Every event in the table in en, pt, fr, nothing extra | no | confirmed | `cmp.mjs`: 21 each; drift in a changed copy is caught |
+| 2 | Every field writers write is listed | no | confirmed | 29 `.event(` calls; `setup`, `via`, `cached`, limits, reasons |
+| 3 | Level variants and When notes | no | confirmed | `api-route.ts`, `plugin-feed.ts:409`, `publish.ts`, `bulk-release.ts`, `access-tokens.ts`, `started.ts` |
+| 4 | `operations#logs` in both `topics.ts` | no | confirmed | Both; `docs.test.ts` |
+| 5 | Where the logs are | no | confirmed | `compose.yaml`, `linux.ts`, `layout.ts`, `args.ts` |
+| 6 | A clone: `pnpm start` JSON, `pnpm dev` text | no | confirmed | `pnpm start --help`; `turbo.json:19`; probe |
+| 7 | `time`, `level`, fixed `msg`, the example, Better Auth's lines | no | confirmed | Child-process probe; key order matches the example |
+| 8 | `domain`, `requestId`, `userId`, `err` | no | confirmed | Probe; `redact.ts` |
+| 9 | LOG_LEVEL | no | confirmed | Probe: unset, `bogus`, `WARN`, `debug` |
+| 10 | Settings file, environment, Docker's `.env`, restart | no | confirmed | `RONNE_ENV_FILE` probe; `docker compose config` with and without `--env-file` |
+| 11 | What the logger takes out, error messages included | no | partly | Each rule alone works; but `mysql://ronne@db:3306/ronne: Duplicate entry '@acme/private-name' for key …` → `…:***@acme/private-name' for key …`: the URL rule ran first, to the last `@`, consuming the value's opening |
+| 12 | Ronne doesn't write secrets, emails, IPs, names | no | confirmed | The 29 calls and plain server calls; routes are templates |
+| 13 | Next.js's own output | no | confirmed | `base-server.js:448,1012`; `instrumentation.ts`; `apiRoute` |
+| 14 | X-Request-Id | no | confirmed | `proxy.ts`; 22 of 23 routes use `apiRoute`; `api-route.ts:30-33` |
+| 15 | TRUST_PROXY | no | confirmed | `request-id.ts:17-22` |
+| 16 | en, pt, fr the same | no | confirmed | Side by side |
+| 17 | The site's terms | no | partly | en "a bulk release", fr "une publication groupée"; the site says "Releasing many at once" / "Publier en bloc" |
+| 18 | `.env.example` | no | confirmed | Lines 26-30 |
+| 19 | Install guide | no | confirmed | Lines 304-310 |
+| 20 | ronne-web tests and typecheck | no | confirmed | 138 passed; exit 0 |
+| 21 | Marketplace help tests | no | confirmed | 3 passed |
+
+**Overall:** not met: a URL before a duplicate-key value in one message let the value through; two wordings. Fixed in the next commit (duplicate values hidden before URL passwords; a test fails with the old order) and ronne-web ("releasing many at once", "publication en bloc").
