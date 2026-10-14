@@ -100,7 +100,7 @@ At least, named in one module so the list in the Documentation can't drift:
 
 | Event | Level | Fields |
 |---|---|---|
-| `server.started` | info | `version`, `dialect`, `runtime` (docker, npm, bundle, service), `port` |
+| `server.started` | info | `version`, `dialect` (or `setup: required`), `runtime` (bundle, npm, docker, node; an installed service runs npm or bundle), `port` |
 | `server.migrations_applied` | info | `count`, `latest` |
 | `http.request` | info (warn for 4xx rate limits, error for 5xx) | above |
 | `http.error` | error | `err`, `route` |
@@ -113,7 +113,7 @@ At least, named in one module so the list in the Documentation can't drift:
 | `upload.rate_limited`, `usage.rate_limited` | warn | `limit` |
 | `submission.checks_failed` | warn | `err` (today's `console.warn` in `drafts.ts`) |
 | `feed.built` | info (debug when from cache) | `tool`, `plugins`, `ms`, `bytes` |
-| `feed.size_warning`, `feed.plugin_skipped` | warn | `tool`, `percent` / `reason` (today's `deps.log`) |
+| `feed.size_warning`, `feed.plugin_skipped` | warn | `tool`, `percent` / `reason` (`name_refused`, `build_failed`; never the item's name) |
 | `db.unavailable` | error | `err` (health check, start) |
 
 Item, scope and workspace names aren't logged: a private workspace's names aren't visible to whoever
@@ -138,7 +138,9 @@ The logger, not each caller, keeps secrets out:
   that isn't an `Error` is logged as its type only.
 - **Environment values** are never logged, secret or not
   ([`codeql-logging.md`](../../knowledge/codeql-logging.md)): `server.started` logs the dialect and
-  the port, never `DATABASE_URL` or `PUBLIC_URL`.
+  the port, never `DATABASE_URL` or `PUBLIC_URL`. One exception: before setup, the start's line
+  names the address to open (`PUBLIC_URL`, or this machine on its port) and the setup command, as
+  features 080 and 082 have it; the person starting a new instance needs it, and it isn't secret.
 
 ### `LOG_FORMAT=text`
 

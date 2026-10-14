@@ -1,3 +1,4 @@
+import { logger } from "../../../log";
 import { TokenLimitError, TokenNameTakenError, TokenNotFoundError } from "../exceptions/errors";
 import {
   type AccessTokenSummary,
@@ -119,19 +120,36 @@ export type Authenticated = {
  * state and its user. Updates `last_used_at` at most once a minute. Unknown and malformed tokens get
  * the same failure, so the answer doesn't reveal whether a token existed.
  */
+const log = logger.child({ domain: "identity" });
+
+/** A token that was sent and refused (feature 100): its reason, never the token. */
+const rejected = (
+  failure: Exclude<TokenFailure, "token_missing">,
+): { ok: false; failure: TokenFailure } => {
+  const reasons = {
+    token_invalid: "unknown",
+    token_revoked: "revoked",
+    token_expired: "expired",
+    user_disabled: "disabled",
+  } as const;
+  log.event("token.rejected", { reason: reasons[failure] });
+  return { ok: false, failure };
+};
+
 export const authenticateToken = async (
   deps: TokenDeps,
   token: string | null,
 ): Promise<{ ok: true; value: Authenticated } | { ok: false; failure: TokenFailure }> => {
+  // No token isn't a rejection: anonymous reads send none.
   if (token === null) return { ok: false, failure: "token_missing" };
-  if (!isTokenFormat(token)) return { ok: false, failure: "token_invalid" };
+  if (!isTokenFormat(token)) return rejected("token_invalid");
   const found = await deps.repo.findByHash(hashToken(token));
-  if (!found) return { ok: false, failure: "token_invalid" };
+  if (!found) return rejected("token_invalid");
   const at = now(deps);
-  if (found.token.revokedAt) return { ok: false, failure: "token_revoked" };
+  if (found.token.revokedAt) return rejected("token_revoked");
   if (found.token.expiresAt && found.token.expiresAt.getTime() <= at.getTime())
-    return { ok: false, failure: "token_expired" };
-  if (found.user.disabledAt) return { ok: false, failure: "user_disabled" };
+    return rejected("token_expired");
+  if (found.user.disabledAt) return rejected("user_disabled");
 
   await deps.repo.touchLastUsed(found.token.id, at);
   const { id, email, name, role, workspaces, personal } = found.user;

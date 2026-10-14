@@ -5,6 +5,7 @@ import { unpackItem } from "@ronneai/core/pack";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { decodeJson } from "../../../db/json";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
+import { setLoggerForTests } from "../../../log";
 import { localStorage } from "../../../storage/local-storage";
 import type { StorageAdapter } from "../../../storage/storage-adapter";
 import { listAuditEvents } from "../../audit/actions/audit";
@@ -122,11 +123,22 @@ const publish = (
 describe("publishSubmission", () => {
   it("releases an approved submission as 1.0.0 on latest, stored, recorded and audited", async () => {
     const id = await approvedSkill();
+    const logged: Record<string, unknown>[] = [];
+    setLoggerForTests({
+      level: "info",
+      format: "json",
+      write: (line) => logged.push(JSON.parse(line)),
+    });
     const published = await publish(asAuthor, id, {
       choice: { kind: "stable", bump: "patch" },
       notes: "First release.",
-    });
+    }).finally(() => setLoggerForTests());
     expect(published).toMatchObject({ version: "1.0.0", tag: "latest" });
+    // One line (feature 100): how many, by whom; not the item's name.
+    expect(logged.filter((line) => line.event === "version.released")).toEqual([
+      expect.objectContaining({ domain: "submissions", count: 1, userId: expect.any(String) }),
+    ]);
+    expect(JSON.stringify(logged)).not.toContain("secure-coding");
 
     // The artifact: stored under its key, with the version in its manifest.
     const tgz = await storage.get("team/secure-coding/1.0.0.tgz");

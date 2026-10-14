@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { AppConfig } from "../config";
 import { createTestDb, type TestDb } from "../db/testing/test-db";
 import { createRoot } from "../domains/identity/actions/root-account";
+import { setLoggerForTests } from "../log";
 import { health } from "./health";
 
 let t: TestDb;
@@ -65,5 +66,25 @@ describe("health", () => {
     const body = await response.json();
     expect(body).toMatchObject({ error: { code: "database_unavailable" } });
     expect(JSON.stringify(body)).not.toContain("ECONNREFUSED");
+  });
+
+  it("writes db.unavailable when the database fails, never the database's password", async () => {
+    const lines: Record<string, unknown>[] = [];
+    setLoggerForTests({
+      level: "info",
+      format: "json",
+      write: (line) => lines.push(JSON.parse(line)),
+    });
+    try {
+      await health(config({ databaseUrl: "postgres://ronne:s3cr3tpw@127.0.0.1:1/ronne" }), () => {
+        throw new Error("connect ECONNREFUSED postgres://ronne:s3cr3tpw@127.0.0.1:1/ronne");
+      });
+    } finally {
+      setLoggerForTests();
+    }
+    expect(lines).toEqual([
+      expect.objectContaining({ level: "error", event: "db.unavailable", domain: "db" }),
+    ]);
+    expect(JSON.stringify(lines)).not.toContain("s3cr3tpw");
   });
 });

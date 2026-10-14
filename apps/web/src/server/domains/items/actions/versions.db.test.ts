@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { GLOBAL_WORKSPACE_ID } from "../../../db/migrations/0019_workspaces";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
+import { setLoggerForTests } from "../../../log";
 import { listAuditEvents } from "../../audit/actions/audit";
 import { createRoot } from "../../identity/actions/root-account";
 import { signIn } from "../../identity/actions/session";
@@ -172,7 +173,20 @@ describe("deprecate", () => {
 
 describe("yank", () => {
   it("moves latest back when the latest version is yanked, removes it when nothing is left, and keeps the reason", async () => {
+    const logged: Record<string, unknown>[] = [];
+    setLoggerForTests({
+      level: "info",
+      format: "json",
+      write: (line) => logged.push(JSON.parse(line)),
+    });
     await yank(asModerator, ref, { version: "1.1.0", reason: "Leaks a token." }, app);
+    // Yanking it again changes nothing, and writes nothing (feature 100).
+    await yank(asModerator, ref, { version: "1.1.0", reason: "Again." }, app);
+    setLoggerForTests();
+    expect(logged.filter((line) => line.event === "version.yanked")).toEqual([
+      expect.objectContaining({ domain: "items", userId: expect.any(String) }),
+    ]);
+    expect(JSON.stringify(logged)).not.toMatch(/Leaks a token|1\.1\.0/);
     expect(await tags()).toEqual({ latest: "1.0.0", next: "2.0.0-beta.1" });
     expect(await version("1.1.0")).toMatchObject({ yankReason: "Leaks a token." });
     expect((await version("1.1.0"))?.yankedAt).toBeInstanceOf(Date);

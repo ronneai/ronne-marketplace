@@ -10,6 +10,7 @@ import { kyselyItemRepository } from "../domains/items/repositories/kysely-item-
 import type { UsagePolicy } from "../domains/settings/models/usage-policy";
 import { kyselySettingsRepository } from "../domains/settings/repositories/kysely-settings-repository";
 import { UNFILTERED } from "../domains/workspaces/models/viewer";
+import { setLoggerForTests } from "../log";
 import { getUsage, postUsage, type UsageApiDeps } from "./usage-api";
 import { createUsageLimiter } from "./usage-rate-limit";
 
@@ -155,9 +156,23 @@ describe("POST /api/v1/usage", () => {
 
   it("limits each user to 60 reports in 10 minutes", async () => {
     for (let i = 0; i < 60; i += 1) expect((await post({ events: [] })).status).toBe(202);
-    const response = await post({ events: [event()] });
+    const lines: Record<string, unknown>[] = [];
+    setLoggerForTests({
+      level: "info",
+      format: "json",
+      write: (line) => lines.push(JSON.parse(line)),
+    });
+    const response = await post({ events: [event()] }).finally(() => setLoggerForTests());
     expect(response.status).toBe(429);
     expect(response.headers.get("retry-after")).toBeTruthy();
+    expect(lines).toEqual([
+      expect.objectContaining({
+        level: "warn",
+        event: "usage.rate_limited",
+        domain: "usage",
+        limit: "usage_reports",
+      }),
+    ]);
   });
 });
 

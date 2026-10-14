@@ -1,3 +1,4 @@
+import { logger } from "../../../log";
 import type { AuditMetadata } from "../../audit/models/audit-event";
 import { InvalidEmailError, InvalidPasswordError } from "../exceptions/errors";
 import { type LoginRateLimiter, loginRateLimitKeys } from "../models/login-rate-limiter";
@@ -38,6 +39,8 @@ export type SignInResult =
   | { ok: false; error: "invalid_credentials" }
   | { ok: false; error: "rate_limited"; retryAfterSeconds: number };
 
+const log = logger.child({ domain: "identity" });
+
 /** The email as typed, lowercased and cut to the column's length, for a failed attempt's event. */
 const typedEmail = (email: string) => email.trim().toLowerCase().slice(0, 255);
 
@@ -54,6 +57,9 @@ export const signIn = async (
   input: SignInInput,
 ): Promise<SignInResult> => {
   const failed = async (reason: "invalid" | "disabled" | "rate_limited") => {
+    // The log has the reason, never the email: that's in the audit log, under 102's retention.
+    if (reason === "rate_limited") log.event("auth.rate_limited", { limit: "sign_in" });
+    else log.event("auth.sign_in_failed", { reason });
     const metadata: AuditMetadata = { email: typedEmail(input.email), reason };
     await deps.repo.recordAudit(
       {
@@ -109,6 +115,7 @@ export const signIn = async (
     },
     now(deps),
   );
+  log.event("auth.signed_in", { userId: result.session.userId });
   return { ok: true, headers: result.headers };
 };
 

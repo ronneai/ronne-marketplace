@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createDb } from "../db/create-db";
 import { migrateToLatest } from "../db/migrate";
 import { migrations } from "../db/migrations";
+import { createLogger } from "../log/logger";
 import { prepareStart, StartError } from "./prepare-start";
 
 let dir: string;
@@ -16,7 +17,9 @@ afterEach(() => {
   rmSync(dir, { recursive: true, force: true });
 });
 
-const silent = () => {};
+const silent = createLogger({ level: "error", format: "json", write: () => {} });
+const collect = (lines: Record<string, unknown>[]) =>
+  createLogger({ level: "debug", format: "json", write: (line) => lines.push(JSON.parse(line)) });
 const configured = () => ({
   DATABASE_URL: `file:${join(dir, "ronne.db")}`,
   AUTH_SECRET: "s".repeat(44),
@@ -35,38 +38,56 @@ describe("prepareStart", () => {
   });
 
   it("names the address to open in setup mode: PUBLIC_URL, as compose.yaml sets it (080)", async () => {
-    const lines: string[] = [];
+    const lines: Record<string, unknown>[] = [];
     await prepareStart({
       appDir: dir,
       dataDir: dir,
       env: { RONNE_ENV_FILE: join(dir, "none.env"), PUBLIC_URL: "http://localhost:7650" },
-      log: (line) => lines.push(line),
+      log: collect(lines),
     });
-    expect(lines.join("\n")).toContain("Open http://localhost:7650 in a browser");
+    expect(lines).toEqual([
+      expect.objectContaining({
+        level: "info",
+        url: "http://localhost:7650",
+        command: "pnpm run setup",
+      }),
+    ]);
   });
 
   it("from the npm package, names its port and rmk-server's setup (082)", async () => {
-    const lines: string[] = [];
+    const lines: Record<string, unknown>[] = [];
     await prepareStart({
       appDir: dir,
       dataDir: dir,
       env: { RONNE_ENV_FILE: join(dir, "none.env"), RONNE_RUNTIME: "npm", PORT: "7650" },
-      log: (line) => lines.push(line),
+      log: collect(lines),
     });
-    expect(lines.join("\n")).toContain("Open http://localhost:7650 in a browser");
-    expect(lines.join("\n")).toContain("run `rmk-server setup`");
+    expect(lines).toEqual([
+      expect.objectContaining({ url: "http://localhost:7650", command: "rmk-server setup" }),
+    ]);
   });
 
   it("applies pending migrations when set up, and has nothing to do next time", async () => {
+    const lines: Record<string, unknown>[] = [];
     expect(
-      await prepareStart({ appDir: dir, dataDir: dir, env: configured(), log: silent }),
-    ).toEqual({
-      mode: "ready",
-      applied: Object.keys(migrations),
-    });
+      await prepareStart({ appDir: dir, dataDir: dir, env: configured(), log: collect(lines) }),
+    ).toEqual({ mode: "ready", applied: Object.keys(migrations), dialect: "sqlite" });
+    expect(lines).toContainEqual(
+      expect.objectContaining({
+        level: "info",
+        event: "server.migrations_applied",
+        count: Object.keys(migrations).length,
+        latest: Object.keys(migrations).at(-1),
+      }),
+    );
+    lines.length = 0;
     expect(
-      await prepareStart({ appDir: dir, dataDir: dir, env: configured(), log: silent }),
-    ).toEqual({ mode: "ready", applied: [] });
+      await prepareStart({ appDir: dir, dataDir: dir, env: configured(), log: collect(lines) }),
+    ).toEqual({ mode: "ready", applied: [], dialect: "sqlite" });
+    expect(lines.filter((line) => line.event === "server.migrations_applied")).toEqual([]);
+    expect(lines).toContainEqual(expect.objectContaining({ msg: "Database up to date" }));
+    // The database's address isn't in any line.
+    expect(JSON.stringify(lines)).not.toContain("ronne.db");
   });
 
   it("refuses to start on a database migrated by a newer version", async () => {

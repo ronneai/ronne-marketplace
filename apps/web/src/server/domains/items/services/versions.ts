@@ -1,4 +1,5 @@
 import { formatItemName } from "@ronneai/core";
+import { logger } from "../../../log";
 import { ForbiddenError } from "../../identity/exceptions/errors";
 import { can, canInSome, requirePermission } from "../../identity/models/permissions";
 import type { CurrentUser } from "../../identity/models/user";
@@ -171,17 +172,17 @@ export const undeprecate = (
  * its artifact stays. If `latest` pointed to it, `latest` moves to the highest stable version left,
  * or goes away when there's none (owner's recommendation, spec 016).
  */
-export const yank = (
+export const yank = async (
   deps: VersionDeps,
   actor: VersionActor,
   ref: ItemRef,
   input: { version: string; reason: string },
-) =>
-  withItem(deps, actor, ref, async ({ items, item, versions, at, audit }) => {
+): Promise<void> => {
+  const yanked = await withItem(deps, actor, ref, async ({ items, item, versions, at, audit }) => {
     const version = find(versions, ref, input.version);
     const reason = messageFrom(input.reason);
     if (!reason) throw new VersionMessageError("A yank reason");
-    if (version.yankedAt) return;
+    if (version.yankedAt) return false;
     await items.setYanked(version.id, { at, reason });
     const latest = (await items.tags(item.id)).find((t) => t.tag === "latest");
     let movedTo: string | null = null;
@@ -200,7 +201,11 @@ export const yank = (
       },
       { type: "item_version", id: version.id },
     );
+    return true;
   });
+  // Once the transaction is in; the item's name isn't logged (093), the audit log has it.
+  if (yanked) logger.child({ domain: "items" }).event("version.yanked", { userId: actor.user?.id });
+};
 
 /** Unyanks a version: resolvable again. It doesn't move any tag back. */
 export const unyank = (

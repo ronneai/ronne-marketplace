@@ -20,6 +20,7 @@ import {
 import type { Submission } from "../domains/submissions/models/submission";
 import { itemNameOf } from "../domains/submissions/models/submission";
 import { MAX_BULK } from "../domains/submissions/services/bulk-submit";
+import { logger } from "../log";
 import type { StorageAdapter } from "../storage";
 import { parseLimit, parseSearch } from "./api-query";
 import { domainErrorResponse, errorResponse, rateLimitedResponse } from "./errors";
@@ -131,6 +132,27 @@ const publicUrlOf = (deps: DraftsApiDeps): string | null => {
   return url?.replace(/\/+$/, "") || null;
 };
 
+const log = logger.child({ domain: "submissions" });
+
+/**
+ * An upload's answer, logged (feature 100): `draft.uploaded` with its size, or
+ * `draft.upload_refused` with the error's code. A missing or bad token (401) and a rate limit
+ * (429) have their own lines.
+ */
+const loggedUpload = async (response: Response): Promise<Response> => {
+  if (response.ok) {
+    const body = (await response.clone().json()) as { files: number; bytes: number };
+    log.event("draft.uploaded", { files: body.files, bytes: body.bytes });
+  } else if (response.status !== 401 && response.status !== 429) {
+    const body = (await response
+      .clone()
+      .json()
+      .catch(() => null)) as { error?: { code?: string } } | null;
+    log.event("draft.upload_refused", { reason: body?.error?.code ?? `http_${response.status}` });
+  }
+  return response;
+};
+
 /** An item's name as the API takes it, split; null when it isn't a full item name (118). */
 const splitName = (value: string) => parseItemName(value.trim());
 
@@ -154,7 +176,8 @@ const readUpload = async (request: Request, deps: DraftsApiDeps): Promise<ReadUp
   const guard = await requireToken(request, deps.guard);
   if (!guard.ok) return { ok: false, response: guard.response };
   const rate = (deps.limiter ?? uploadLimiter()).consume(guard.auth.user.id);
-  if (!rate.allowed)
+  if (!rate.allowed) {
+    log.event("upload.rate_limited", { limit: "uploads" });
     return {
       ok: false,
       response: rateLimitedResponse(
@@ -162,6 +185,7 @@ const readUpload = async (request: Request, deps: DraftsApiDeps): Promise<ReadUp
         rate.retryAfterSeconds,
       ),
     };
+  }
   const read = await readJsonObjectWithin(request, DRAFT_BODY_MAX_BYTES);
   if (!read.ok) return { ok: false, response: read.response };
   const upload = parseUpload(read.body);
@@ -212,7 +236,10 @@ const uploadedJson = (
  * and submits it in the web app. In order: the token, the rate, the body's size, its shape, then
  * the submissions domain's checks. A draft with errors is still created; they're in `issues`.
  */
-export const postDraft = async (request: Request, deps: DraftsApiDeps = {}) => {
+export const postDraft = async (request: Request, deps: DraftsApiDeps = {}) =>
+  loggedUpload(await createDraft(request, deps));
+
+const createDraft = async (request: Request, deps: DraftsApiDeps) => {
   const upload = await readUpload(request, deps);
   if (!upload.ok) return upload.response;
   try {
@@ -242,7 +269,9 @@ export const putDraft = async (
   request: Request,
   { id }: { id: string },
   deps: DraftsApiDeps = {},
-) => {
+) => loggedUpload(await replaceDraft(request, { id }, deps));
+
+const replaceDraft = async (request: Request, { id }: { id: string }, deps: DraftsApiDeps) => {
   const upload = await readUpload(request, deps);
   if (!upload.ok) return upload.response;
   try {
@@ -334,7 +363,8 @@ const readSelection = async (
   if (!guard.ok) return guard;
   if (limiter) {
     const rate = limiter.consume(guard.auth.user.id);
-    if (!rate.allowed)
+    if (!rate.allowed) {
+      log.event("upload.rate_limited", { limit: "submits" });
       return {
         ok: false,
         response: rateLimitedResponse(
@@ -342,6 +372,7 @@ const readSelection = async (
           rate.retryAfterSeconds,
         ),
       };
+    }
   }
   const read = await readJsonObjectWithin(request, MIB);
   if (!read.ok) return read;

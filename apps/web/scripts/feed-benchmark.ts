@@ -20,6 +20,7 @@ import type { CurrentUser } from "../src/server/domains/identity/models/user";
 import { kyselyCatalogueRepository } from "../src/server/domains/items/repositories/kysely-catalogue-repository";
 import { kyselyItemRepository } from "../src/server/domains/items/repositories/kysely-item-repository";
 import { UNFILTERED } from "../src/server/domains/workspaces/models/viewer";
+import { createLogger } from "../src/server/log/logger";
 import { SERVERS, seedSkills } from "./bench-seed";
 
 const { values } = parseArgs({
@@ -71,7 +72,7 @@ for (const count of counts) {
       storage,
       // The real cost: no budget, so a cold request builds every plugin.
       buildBudgetMs: Number.POSITIVE_INFINITY,
-      log: () => {},
+      log: createLogger({ level: "error", format: "json", write: () => {} }),
       feeds: kyselyFeedRepository(t.db, t.dialect),
     };
     for (const tool of tools) {

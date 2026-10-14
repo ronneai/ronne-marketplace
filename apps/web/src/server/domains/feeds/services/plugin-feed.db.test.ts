@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { toDbDate } from "../../../db/dates";
 import { GLOBAL_WORKSPACE_ID } from "../../../db/migrations/0019_workspaces";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
+import { createLogger } from "../../../log/logger";
 import { localStorage } from "../../../storage/local-storage";
 import type { StorageAdapter } from "../../../storage/storage-adapter";
 import { createRoot } from "../../identity/actions/root-account";
@@ -29,7 +30,7 @@ let t: TestDb;
 let storageRoot: string;
 let storage: StorageAdapter;
 let puts: string[];
-let logged: string[];
+let logged: Record<string, unknown>[];
 let publisher: string;
 const user: CurrentUser = {
   id: "u1",
@@ -46,7 +47,11 @@ const deps = (overrides: Partial<FeedDeps> = {}): FeedDeps => ({
   catalogue: kyselyCatalogueRepository(t.db, t.dialect, UNFILTERED),
   items: kyselyItemRepository(t.db, t.dialect, UNFILTERED),
   storage,
-  log: (message) => logged.push(message),
+  log: createLogger({
+    level: "debug",
+    format: "json",
+    write: (line) => logged.push(JSON.parse(line)),
+  }),
   ...overrides,
 });
 
@@ -319,7 +324,16 @@ describe("the Claude Code feed (077)", () => {
     await t.db.updateTable("scopes").set({ workspace_id: long }).where("id", "=", "s1").execute();
     const names = (await feedPlugins(deps(), actor, "codex")).map((p) => p.name);
     expect(names).not.toContain("style");
-    expect(logged.join("\n")).toMatch(/longer than the tool allows/);
+    expect(logged).toContainEqual(
+      expect.objectContaining({
+        event: "feed.plugin_skipped",
+        level: "warn",
+        tool: "codex",
+        reason: "name_refused",
+      }),
+    );
+    // The item's name isn't in the line (093).
+    expect(JSON.stringify(logged)).not.toContain("style");
     expect((await feedPlugins(deps(), actor, "claude-code")).map((p) => p.name)).toContain("style");
   });
 
@@ -411,8 +425,12 @@ describe("the Claude Code feed (077)", () => {
     const plugins = await feedPlugins(deps(), actor, "claude-code");
     // The reviewer depends on the style skill, whose artifact is gone.
     expect(plugins).toEqual([]);
-    expect(logged).toHaveLength(2);
-    expect(logged[0]).toMatch(/@team\/style@1\.1\.0 .*artifact is missing/);
+    const skipped = logged.filter((line) => line.event === "feed.plugin_skipped");
+    expect(skipped).toEqual([
+      expect.objectContaining({ tool: "claude-code", reason: "build_failed" }),
+      expect.objectContaining({ tool: "claude-code", reason: "build_failed" }),
+    ]);
+    expect(JSON.stringify(logged)).not.toMatch(/style|reviewer/);
     // Nothing was cached, so it's tried again once the artifact is back.
     expect(zipPuts()).toEqual([]);
   });
@@ -422,7 +440,11 @@ describe("the Claude Code feed (077)", () => {
     const clock = () => (ms += 10);
     const first = await feedPlugins(deps({ clock, buildBudgetMs: 25 }), actor, "claude-code");
     expect(first.map((p) => p.name)).toEqual(["reviewer"]);
-    expect(logged.at(-1)).toMatch(/weren't built in time/);
+    expect(logged.at(-1)).toMatchObject({
+      msg: "Plugins left to build in the background",
+      tool: "claude-code",
+      count: 1,
+    });
     const second = await feedPlugins(deps(), actor, "claude-code");
     expect(second.map((p) => p.name)).toEqual(["reviewer", "style"]);
   });
@@ -579,7 +601,9 @@ describe("the marketplace cache (079)", () => {
     expect(names(partial)).toEqual(["team.reviewer"]);
     // The background build runs at once here (no `after` outside Next.js); wait for it.
     await cache.warming("claude-code");
-    expect(logged.some((line) => /built in the background, 2 plugins/.test(line))).toBe(true);
+    expect(logged).toContainEqual(
+      expect.objectContaining({ msg: "Feed's plugins built in the background", plugins: 2 }),
+    );
     const next = cachedDeps(cache);
     const full = await marketplace(next.deps, actor, "claude-code", "https://registry.example.com");
     expect(names(full)).toEqual(["team.reviewer", "team.style"]);
@@ -696,8 +720,7 @@ describe("feed stats, warnings and the cap (079)", () => {
   });
 
   it("warns past the size threshold for Claude Code, once per revision", async () => {
-    const warnings = () =>
-      logged.filter((line) => line.includes("Claude Code reads from an address"));
+    const warnings = () => logged.filter((line) => line.event === "feed.size_warning");
     await marketplace(
       withFeeds({ feedLimits: BIG }),
       actor,
@@ -711,8 +734,12 @@ describe("feed stats, warnings and the cap (079)", () => {
       "https://r.example.com",
     );
     expect(warnings()).toHaveLength(1);
-    expect(warnings()[0]).toMatch(/^claude-code feed: its marketplace is 0\.0 MiB \(2 plugins\)/);
-    expect(warnings()[0]).toContain("the git mirror (rmk feed build) has no such limit");
+    expect(warnings()[0]).toMatchObject({
+      level: "warn",
+      msg: "Feed is near its size limit",
+      tool: "claude-code",
+      percent: expect.any(Number),
+    });
     // Codex's size isn't Claude Code's business.
     await marketplace(withFeeds({ feedLimits: BIG }), actor, "codex", "https://r.example.com");
     expect(warnings()).toHaveLength(1);
@@ -740,8 +767,8 @@ describe("feed stats, warnings and the cap (079)", () => {
       "https://r.example.com",
     );
     expect(
-      logged.filter((line) => /^cursor feed: building its marketplace took/.test(line)),
-    ).toHaveLength(1);
+      logged.filter((line) => line.msg === "Feed build is near Claude Code's 10 s wait"),
+    ).toEqual([expect.objectContaining({ level: "warn", tool: "cursor", ms: expect.any(Number) })]);
   });
 
   it("caps only Claude Code's marketplace, and the 507 names the git mirror", async () => {

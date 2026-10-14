@@ -21,6 +21,7 @@ import {
   pluginName,
 } from "@ronneai/core/plugins";
 import { installsIn, type RenderInput, supportFor } from "@ronneai/core/render";
+import { type Logger, logger } from "../../../log";
 import { type StorageAdapter, StorageConflictError } from "../../../storage";
 import { requirePermission } from "../../identity/models/permissions";
 import type { CatalogueCursor } from "../../items/models/catalogue";
@@ -40,7 +41,6 @@ import {
   FEED_LIMITS,
   type FeedLimits,
   type FeedPlugin,
-  feedWarningMessage,
   feedWarnings,
   MOVED_NOTE_DAYS,
   NO_PLUGIN,
@@ -63,13 +63,16 @@ import { type MarketplaceCache, marketplaceSlot } from "./marketplace-cache";
  * changes until the builder does, and then its key changes too. Dependencies are resolved once,
  * when the plugin is built, as a lockfile pins them.
  */
+const feedsLog = logger.child({ domain: "feeds" });
+const logOf = (deps: { log?: Logger }) => deps.log ?? feedsLog;
+
 export type FeedDeps = {
   catalogue: CatalogueRepository;
   items: ItemRepository;
   storage: StorageAdapter;
   limits?: PackageLimits;
-  /** Where a plugin that couldn't be built is reported. */
-  log?: (message: string) => void;
+  /** Where the feed's events go (feature 100): the feeds domain's logger by default. */
+  log?: Logger;
   /** Milliseconds, for the build budget. */
   clock?: () => number;
   /** How long one marketplace request may spend building plugins that aren't cached yet. */
@@ -219,11 +222,10 @@ const build = async (
   if (plugin.empty) {
     // A name the tool refuses (longer than Codex allows, say: 118's names are longer) is said
     // once, when it's found; the sidecar keeps it out after that.
+    // The reason, not the item's name (093): the tool's refusal names it.
     for (const warning of plugin.warnings)
       if (warning.code === "name_refused")
-        (deps.log ?? ((message: string) => console.warn(message)))(
-          `${TOOL_NAMES[tool]} feed: ${warning.message}`,
-        );
+        logOf(deps).event("feed.plugin_skipped", { tool, reason: "name_refused" });
     await deps.storage.put(sidecarKey(tool, ref), sidecarBytes(NO_PLUGIN));
     return null;
   }
@@ -292,7 +294,7 @@ type CollectedFeed = {
  */
 const collectFeed = async (deps: FeedDeps, tool: PluginTool): Promise<CollectedFeed> => {
   const clock = deps.clock ?? Date.now;
-  const log = deps.log ?? ((message: string) => console.warn(message));
+  const log = logOf(deps);
   const started = clock();
   const deadline = started + (deps.buildBudgetMs ?? BUILD_BUDGET_MS);
   const plugins: FeedPlugin[] = [];
@@ -321,7 +323,7 @@ const collectFeed = async (deps: FeedDeps, tool: PluginTool): Promise<CollectedF
         sha256 = (await build(deps, tool, ref, version, entry.type))?.sha256 ?? NO_PLUGIN;
       } catch (error) {
         if (!(error instanceof PluginUnavailableError)) throw error;
-        log(`${TOOL_NAMES[tool]} feed: ${error.message}`);
+        log.event("feed.plugin_skipped", { tool, reason: "build_failed" });
         failed++;
         continue;
       }
@@ -337,10 +339,7 @@ const collectFeed = async (deps: FeedDeps, tool: PluginTool): Promise<CollectedF
       sha256,
     });
   }
-  if (unbuilt)
-    log(
-      `${TOOL_NAMES[tool]} feed: ${unbuilt} plugins weren't built in time; they're being built in the background.`,
-    );
+  if (unbuilt) log.info("Plugins left to build in the background", { tool, count: unbuilt });
   return { plugins, unbuilt, failed };
 };
 
@@ -362,7 +361,7 @@ export const feedPlugins = async (
 const buildRest = (deps: FeedDeps, tool: PluginTool) => {
   const cache = deps.cache;
   if (!cache) return;
-  const log = deps.log ?? ((message: string) => console.warn(message));
+  const log = logOf(deps);
   const run = deps.background ?? ((work: () => Promise<void>) => void work());
   run(() =>
     cache.warm(marketplaceSlot(tool, deps.visibility ?? ""), async () => {
@@ -371,9 +370,9 @@ const buildRest = (deps: FeedDeps, tool: PluginTool) => {
           { ...deps, buildBudgetMs: Number.POSITIVE_INFINITY, log },
           tool,
         );
-        log(`${TOOL_NAMES[tool]} feed: built in the background, ${feed.plugins.length} plugins.`);
+        log.info("Feed's plugins built in the background", { tool, plugins: feed.plugins.length });
       } catch (error) {
-        log(`${TOOL_NAMES[tool]} feed: the background build failed: ${(error as Error).message}`);
+        log.error("Feed's background build failed", { tool, err: error });
       }
     }),
   );
@@ -406,7 +405,10 @@ export const marketplace = async (
       : `${revision.instance}\0${revision.revision}\0${PLUGIN_BUILDER_VERSION}\0${base}`;
   const slot = marketplaceSlot(tool, deps.visibility ?? "");
   const hit = key ? deps.cache?.get(slot, key) : null;
-  if (hit) return hit;
+  if (hit) {
+    logOf(deps).event("feed.built", { tool, bytes: hit.length, cached: true }, "debug");
+    return hit;
+  }
   const started = clock();
   const feed = await collectFeed(deps, tool);
   const host = new URL(base).host;
@@ -436,11 +438,22 @@ export const marketplace = async (
     };
     await deps.feeds.recordBuild(stats);
     const warnings = feedWarnings(stats, limits);
-    if (warnings.length && (await deps.feeds.markWarned(tool, revision.revision)))
-      (deps.log ?? ((message: string) => console.warn(message)))(
-        feedWarningMessage(stats, warnings, limits),
-      );
+    if (warnings.length && (await deps.feeds.markWarned(tool, revision.revision))) {
+      if (warnings.includes("size"))
+        logOf(deps).event("feed.size_warning", {
+          tool,
+          percent: Math.round((stats.sizeBytes / limits.maxBytes) * 100),
+        });
+      if (warnings.includes("time"))
+        logOf(deps).warn("Feed build is near Claude Code's 10 s wait", { tool, ms: stats.buildMs });
+    }
   }
+  logOf(deps).event("feed.built", {
+    tool,
+    plugins: feed.plugins.length,
+    ms: clock() - started,
+    bytes: file.bytes.length,
+  });
   // Only Claude Code reads its marketplace from an address, with a size limit; rmk reads the others.
   if (tool === "claude-code" && file.bytes.length > limits.maxBytes)
     throw new FeedTooLargeError(feed.plugins.length);

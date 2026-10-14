@@ -16,6 +16,7 @@ import {
 import { isScalar, parseDocument } from "yaml";
 import { isId } from "../../../db/ids";
 import type { SortDir } from "../../../db/keyset";
+import { logger } from "../../../log";
 import type { StorageAdapter } from "../../../storage";
 import type { CurrentUser } from "../../identity/models/user";
 import {
@@ -375,7 +376,8 @@ export const submitIssuesOf = async (
     try {
       return await check();
     } catch (error) {
-      console.warn(`Submit's checks failed for submission ${draft.id}:`, error);
+      // The error, not the submission's name (093); the audit log and the page say which.
+      logger.child({ domain: "submissions" }).event("submission.checks_failed", { err: error });
       failed = true;
       return [];
     }

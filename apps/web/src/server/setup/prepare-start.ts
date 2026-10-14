@@ -4,7 +4,8 @@ import { join } from "node:path";
 import { isConfigured, loadConfig } from "../config";
 import { createDb } from "../db/create-db";
 import { migrateToLatest } from "../db/migrate";
-import { redactDatabaseUrl } from "../db/url";
+import type { DatabaseDialect } from "../db/url";
+import { type Logger, logger } from "../log";
 import { defaultPublicUrl, setupCommand } from "../runtime";
 
 /** Starting the server would be wrong: the container should stop (and be restarted). */
@@ -15,7 +16,9 @@ export class StartError extends Error {
   }
 }
 
-export type StartPlan = { mode: "setup-required" } | { mode: "ready"; applied: string[] };
+export type StartPlan =
+  | { mode: "setup-required" }
+  | { mode: "ready"; applied: string[]; dialect: DatabaseDialect };
 
 /**
  * What the container does before starting the server (feature 005):
@@ -28,28 +31,35 @@ export const prepareStart = async (options: {
   appDir: string;
   dataDir: string;
   env?: Record<string, string | undefined>;
-  log?: (line: string) => void;
+  /** Where the start's lines go (feature 100): the server's logger by default. */
+  log?: Logger;
 }): Promise<StartPlan> => {
-  const log = options.log ?? ((line) => console.log(line));
+  const log = options.log ?? logger.child({ domain: "server" });
   checkWritable(options.dataDir);
 
   const env = options.env ?? process.env;
   const config = loadConfig({ appDir: options.appDir, env });
   if (!isConfigured(config)) {
-    log(
-      `Ronne AI Marketplace isn't set up yet: starting in setup mode. Open ${config.publicUrl ?? defaultPublicUrl(env)} in a browser and follow the setup, or run \`${setupCommand(env)}\`.`,
+    // The address to open is the one value from the environment a line holds (080, 082): it isn't
+    // secret, and the person starting a new instance needs it.
+    log.info(
+      "Not set up yet: starting in setup mode. Open the address in a browser, or run the setup",
+      {
+        url: config.publicUrl ?? defaultPublicUrl(env),
+        command: setupCommand(env),
+      },
     );
     return { mode: "setup-required" };
   }
 
   const { db, dialect } = createDb(config.databaseUrl, { baseDir: options.appDir });
   try {
-    log(`Checking migrations for ${redactDatabaseUrl(config.databaseUrl)} (${dialect})`);
+    log.debug("Checking migrations", { dialect });
     const applied = await migrateToLatest(db, dialect);
-    log(
-      applied.length ? `Applied migrations: ${applied.join(", ")}` : "The database is up to date.",
-    );
-    return { mode: "ready", applied };
+    if (applied.length)
+      log.event("server.migrations_applied", { count: applied.length, latest: applied.at(-1) });
+    else log.info("Database up to date", { dialect });
+    return { mode: "ready", applied, dialect };
   } catch (error) {
     throw new StartError(
       `Migrations failed, so the server wasn't started: ${(error as Error).message}`,

@@ -40,8 +40,9 @@ const SOURCES: Record<string, string> = {
 export const nonInteractivePrompts = (
   values: NonInteractiveValues,
   out: { stdout: (line: string) => void; stderr: (line: string) => void } = {
-    stdout: (line) => console.log(line),
-    stderr: (line) => console.error(line),
+    // A command's own output, for the person running it: not the server's log lines.
+    stdout: (line) => process.stdout.write(`${line}\n`),
+    stderr: (line) => process.stderr.write(`${line}\n`),
   },
 ): SetupPrompts => {
   const answers: Record<string, string | undefined> = {
