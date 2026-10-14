@@ -146,6 +146,15 @@ packages use JSON.
 
 ## Edge cases
 
+**What the logger is hardened against** (owner, 2026-10-14): what the server can actually be
+handed. That's request data (strings, plain JSON, however crafted), errors from drivers and
+libraries, and our own code's mistakes (a cycle, a big or shared value, a secret passed by
+accident). For those, no secret is written, nothing throws, and a line's work and size are bounded,
+as below. Hostile objects that only code inside the process could build (Proxies, values with
+replaced methods, throwing getters, a patched prototype) are handled where it's cheap (a field
+marked, a line still written), but they're out of scope: code that can build them can already
+read every secret itself.
+
 - **Next.js's own lines** (`▲ Next.js 16…`, `✓ Ready in…`) aren't JSON. They're few, written at
   start; collectors that parse JSON treat them as text. `server.started` is the line to alert on.
 - **A line written outside a request** (start, migrations): no `requestId`.
