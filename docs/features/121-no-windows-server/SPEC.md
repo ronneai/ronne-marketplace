@@ -49,13 +49,10 @@ and Cursor, Windows included. This feature removes the server's Windows support 
   - `release.yml` stops attaching `install.ps1` and the `win32` bundles, and its notes stop naming
     them.
   - `ci-scope.js` drops the removed paths.
-- **The clients get a Windows check of their own** (owner's question 2, below): a
+- **The clients get a Windows check of their own:** a
   `windows-latest` job in `ci.yml` that builds `@ronneai/core`, `rmk` and `rmk-mcp` and runs
   their tests. Today no CI job runs them on Windows, though `packages/cli` has Windows code
   (`config.ts`, `export.ts`, `usage-hooks.ts`).
-- **The way off a Windows server**, for anyone who installed 0.3.x's Windows bundle, the npm
-  package on Windows, or `install.ps1`'s Docker: back up with the version they have (099), install
-  in WSL 2, restore. It goes in the runbooks, the Documentation and the release notes (below).
 - **The decision log** (MVP §15, Easy install): "macOS, Linux and Windows" becomes "macOS and
   Linux; Windows through WSL 2 or a virtual machine", with the reason. 086's and 087's index rows
   become "withdrawn (121)".
@@ -84,26 +81,6 @@ and Cursor, Windows included. This feature removes the server's Windows support 
 | `winget install RonneAI.Marketplace` | Never published (087 wasn't built) |
 | WSL 2 (Ubuntu) | The Linux paths: `install.sh` with Docker, or the `.deb`, or npm with `sudo rmk-server service install` (WSL 2 runs systemd when it's on in `/etc/wsl.conf`) |
 
-### Moving a Windows server to WSL 2
-
-The runbook ([`backup.md`](../../runbooks/backup.md)) and the Documentation say, for a 0.3.x
-Windows server:
-
-1. With the version installed (as administrator): `rmk-server backup`. 0.3.x has no `backup` (it
-   arrives with 099), so first upgrade the Windows install to the last release that still has it
-   (the one before this feature's), or copy the data folder and the database as `install.md` said
-   before 099.
-2. Stop and remove the Windows service: `rmk-server service uninstall` (the data stays in
-   `C:\ProgramData\RonneAI\Marketplace`).
-3. In WSL 2, install Ronne the Linux way **without running its setup**, copy the archive from
-   `/mnt/c/ProgramData/RonneAI/Marketplace/data/backups/`, and `sudo rmk-server restore <archive>
-   --with-settings`. The backup's Windows paths in `DATABASE_URL` and `STORAGE_PATH` are replaced
-   by the targets, as on any machine.
-4. Point people at the new address (WSL 2 forwards `localhost`; from other machines, the Windows
-   firewall and `netsh interface portproxy`, or WSL's mirrored networking).
-
-This depends on releasing 099 **before** this feature (open question 1).
-
 ### What stays the same
 
 Linux and macOS: every command, path and check as today. The image, `compose.yaml` and
@@ -112,17 +89,14 @@ but the install guide doesn't present it as a path of its own.
 
 ## Edge cases
 
-- **An existing Windows service when someone installs the new version anyway** (a copied folder):
-  the new version refuses to start, so it can't touch the service; the 0.3.x
-  `rmk-server service uninstall` removes it.
-- **A backup made on Windows restored in WSL:** the archive's storage keys use `/`, and restore
-  replaces the Windows `DATABASE_URL` and `STORAGE_PATH`; 099's database tests and the Windows CI
-  of 099 (before its removal) cover the archive side. A test in this feature restores an archive
-  whose settings name Windows paths on Linux.
-- **Old release pages** keep their Windows assets (GitHub releases are immutable); the release
-  notes of the first release without them say why and link the migration.
+- **A 0.3.x Windows service someone has anyway:** the new version refuses to start on Windows, so it
+  can't touch it; 0.3.x's own `rmk-server service uninstall` removes it.
+- **Old release pages** keep their Windows assets (GitHub releases are immutable); the next
+  release's notes say the server no longer runs on Windows, and why.
 - **`rmk-server` in WSL with Node.js from Windows** (`node.exe` on `PATH` through interop): it's
   Windows' Node, so the refusal fires; the message's link says to install Node.js inside WSL.
+- **099 lands in the same release:** its runbook (`backup.md`) is written without Windows (no Task
+  Scheduler, no Windows rows), and its Windows-only CI job goes with this feature.
 
 ## Documentation
 
@@ -131,9 +105,9 @@ but the install guide doesn't present it as a path of its own.
   use WSL 2 (`wsl --install`, then the Linux steps), or a Linux virtual machine; `rmk` and the MCP
   server run on Windows itself. A new section anchor, so `topics.ts` changes in both repositories.
 - **Running Ronne** (`operations`): the "Windows service, as administrator" rows go; the Backups
-  section loses Task Scheduler and gets **Moving a Windows server to WSL 2**.
-- **Repository docs:** `install.md`, `incident-response.md` and `backup.md` lose their Windows rows
-  and sections. `release.md`'s checklist stops naming Windows checks. `README.md` drops the
+  section (099) has no Windows.
+- **Repository docs:** `install.md` and `incident-response.md` lose their Windows rows and
+  sections (`backup.md` is written without them). `release.md`'s checklist stops naming Windows checks. `README.md` drops the
   Windows service and bundle. The threat model drops "Windows installer unsigned". 086's and
   087's SPECs get a "Withdrawn by 121" line at the top.
 - **In-app helpers:** none mention Windows (checked); none change.
@@ -149,22 +123,15 @@ but the install guide doesn't present it as a path of its own.
 - `bundles.yml` makes four archives; `server-checks.yml`, `install-scripts.yml` and `release.yml`
   have no Windows server job; every remaining check passes.
 - A new `windows-latest` job runs `@ronneai/core`, `rmk` and `rmk-mcp`'s tests and passes.
-- A backup whose settings name Windows paths restores on Linux with the targets' paths (a test).
-- The Documentation (en, pt, fr), the runbooks and the README say what's above, and the migration
-  is written once and linked from the others.
+- The Documentation (en, pt, fr), the runbooks and the README say what's above.
+- The next release (with 099) has no Windows bundle, no `install.ps1` and no Windows server text in
+  its notes but the line that says it's gone.
 
-## Open questions
+## Decisions
 
-1. **Release order.** The migration needs `backup` on Windows, which only the release with 099
-   has. Recommended: release 099 (with Windows still in it) first, then this feature in the
-   release after, whose notes link the migration. The alternative, removing Windows in the same
-   release as 099, leaves 0.3.x Windows users to copy their data folder by hand.
-2. **The clients' Windows CI job.** Recommended (in scope above): one `windows-latest` job for
-   `core`, `rmk` and `rmk-mcp`, so dropping the server's Windows jobs doesn't leave Windows untested
-   for the clients developers do use there. It costs a few CI minutes per pull request that
-   changes those packages.
-3. **Deprecate first?** Recommended: no separate deprecation release. `install.ps1` was never
-   shown in the README or on the website, 087 was never built, and the Windows bundle is a week
-   old (0.3.2), so few people can be on it. The first release without Windows announces it and
-   links the migration. If you'd rather warn first, the release with 099 says "the next release
-   drops the Windows server".
+- **The next release, with 099** (owner, 2026-10-14): no deprecation release, no migration; nobody
+  installs the server on Windows.
+- **Only the client commands on Windows:** `rmk` and `rmk-mcp` (owner: "only the rmk commands";
+  `rmk-mcp` counted as one, being the coding tool's local MCP server).
+- **A Windows CI job for the clients** (recommended in the draft; part of the scope): once the
+  server's Windows jobs go, it's the only check that the commands people do run on Windows work.

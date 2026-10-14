@@ -7,8 +7,7 @@ the same change that completes it, once the [state witness](../../knowledge/stat
 it ([WITNESS.md](./WITNESS.md)). Put `[risky]` on a task's first line when it touches sign-in,
 tokens, roles, migrations, deleting data or security checks: it then needs an adversarial pass too.
 
-Start only after the owner answers the spec's open questions (release order first: 099's release
-comes before this one).
+Lands in the next release, with 099 (owner, 2026-10-14): build it before that release is cut.
 
 ## Tasks
 
@@ -46,25 +45,16 @@ comes before this one).
   scripts, image); a release dry run (`release.yml`'s checks on a branch, as `release.md` says)
   lists four bundles and `install.sh` only.
 
-- [ ] **5. Restore from a Windows backup on Linux.** A database test: an archive whose
-  `settings.env` names Windows paths (`file:C:\\ProgramData\\…\\ronne.db`,
-  `STORAGE_PATH=C:\\…\\storage`) restores on Linux with `--with-settings` and the targets' paths in
-  the settings file written. If 099's restore needs a change for it, it's made here.
-  *Done when:* the test passes on the four databases.
-
-- [ ] **6. Docs in this repository.** `install.md` (the Windows section: WSL 2 or a VM; the clients
-  on Windows), `incident-response.md`, `backup.md` (Task Scheduler and the Windows rows go; **Moving
-  a Windows server to WSL 2**, the spec's four steps), `release.md`, `README.md`, the threat model,
+- [ ] **5. Docs in this repository.** `install.md` (the Windows section: WSL 2 or a VM; the clients
+  on Windows), `incident-response.md`, `release.md`, `README.md`, the threat model,
   MVP §5 and §15's Easy install row with a decision-log entry, the index (086 and 087 "withdrawn
   (121)", 121's row), "Withdrawn by 121" atop 086's and 087's SPECs, and
-  `docs/knowledge/windows-service-sids.md` removed. The migration's commands run in WSL 2 where
-  the owner can (else written as not run here).
+  `docs/knowledge/windows-service-sids.md` removed.
   *Done when:* a search of `docs/` finds Windows only where the spec keeps it (the clients, WSL,
-  the migration, history); each changed command was run, or the notes say why not.
+  history); each changed command was run, or the notes say why not.
 
-- [ ] **7. Documentation.** In `../ronne-web`: **Installing** (the Windows sections go; a
-  **Windows** section, `install#windows`), **Running Ronne** (the Windows rows; **Moving a Windows
-  server to WSL 2** under Backups), in English, Portuguese and French; `topics.ts` in both
+- [ ] **6. Documentation.** In `../ronne-web`: **Installing** (the Windows sections go; a
+  **Windows** section, `install#windows`), **Running Ronne** (the Windows rows), in English, Portuguese and French; `topics.ts` in both
   repositories for the new anchor.
   *Done when:* the site builds; each language has the same sections; the app's links to
   `install#windows`, if any, resolve.
