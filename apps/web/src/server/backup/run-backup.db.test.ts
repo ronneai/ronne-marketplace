@@ -716,8 +716,15 @@ describe("rmk-server backup (099)", () => {
       const held = new Promise<void>((resolve) => {
         release = resolve;
       });
+      // Started only once the other connection holds the lock: otherwise the backup could take it
+      // first and finish at once (a race CI met).
+      let acquired: () => void = () => undefined;
+      const holding = new Promise<void>((resolve) => {
+        acquired = resolve;
+      });
       const locked = other.connection().execute(async (connection) => {
         await adapter.acquireMigrationLock(connection as Kysely<unknown>, options);
+        acquired();
         await held;
         // A migration lands before the lock is released: the snapshot must see it.
         await sql`create table backup_lock_probe (id varchar(26) primary key)`.execute(connection);
@@ -726,6 +733,7 @@ describe("rmk-server backup (099)", () => {
       cleanups.push(async () => {
         await sql`drop table if exists backup_lock_probe`.execute(i.db);
       });
+      await holding;
       let settled = false;
       const running = backup(i).finally(() => {
         settled = true;
