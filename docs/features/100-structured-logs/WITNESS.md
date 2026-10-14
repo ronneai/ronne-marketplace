@@ -1409,3 +1409,51 @@ Witnessed: 2026-10-14 18:48 EDT, by a fresh agent (blind). Commit: f650f01a. Mac
 | 17 | The spec and plan describe what was built | no | confirmed | `SPEC.md:17-18,156-160,180-181,243-244`; `PLAN.md:42-47` |
 
 **Overall:** met.
+
+## Task 4 — Nothing secret, nothing personal (second re-check)
+
+Witnessed: 2026-10-14 18:56 EDT, by a fresh agent (blind). Commit: f650f01a. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Sign-in through the real `signIn` and Better Auth, wrong then right; the session cookie is a secret | no | confirmed | `no-secrets.db.test.ts:72-81` passes; planting the cookie in `http.request` fails it |
+| 2 | The token exchange, wrong and right | no | confirmed | `no-secrets.db.test.ts:84-89` |
+| 3 | An authenticated and a refused API call through `apiRoute` | no | confirmed | 200 and `token.rejected`; planting `x-forwarded-for` fails it |
+| 4 | A draft upload, the item's name kept out | no | confirmed | 201, `draft.uploaded`; planting the item path fails it |
+| 5 | A failed database with a password in its URL; the start's driver error, password hidden | no | confirmed | 503, `db.unavailable`; removing `err` or planting the password fails it |
+| 6 | The real shared logger's stdout captured; every line JSON | no | confirmed | `setLoggerForTests()`; more than 10 lines parsed |
+| 7 | Every planted leak fails the test | no | confirmed | 12 mutations fail it. Remark: email hiding off alone passed (the only email was a duplicate-key value); `redact.test.ts` caught it |
+| 8 | Emails `[email]` in any script, quoted, uppercase, hyphenated, run-on, punycode, every part of a line | no | confirmed | `probe-emails.mts`, `probe-where.mts` |
+| 9 | Every address Ronne accepts is `[email]` | no | partly | `bob@sub。example.com`, `bob@ｅｘａｍｐｌｅ．com.au`, a soft hyphen in a domain written in full (no path found that writes a user's email) |
+| 10 | Better Auth: a refused request writes no plain text, Origin out of `msg` | no | confirmed | Test passes; three mutations each fail it |
+| 11 | The e2e check finds every password, the generated one, AUTH_SECRETs, session tokens, emails, tokens, IPs | no | confirmed | `probe-fakelog.mts` with three fake instances. Remarks: JSON-escaped quoted local part, uncompressed IPv6 not found (the run produces neither) |
+| 12 | Missing log file and no JSON lines fail | no | confirmed | Fake files |
+| 13 | A real run passes and prints the paths | no | confirmed | Copy: 8 passed, exit 0; 17 JSON lines, 7 sessions, recorded password |
+| 14 | A real run fails when a line holds a secret | no | confirmed | Planted password → exit 1, three passwords named |
+| 15 | Both e2e shards on f650f01a passed with the check, WebKit included | no | confirmed | Run 38649127238: 72 and 72 passed; 24 `[phone-webkit]` |
+| 16 | Database tests on postgres, mysql, mariadb pass, both files included | no | confirmed | Run 38649126390 |
+| 17 | CodeQL reports nothing new | no | confirmed | "No new alerts"; head and merge alerts 0 |
+
+**Overall:** not met: IDNA dot forms and a soft hyphen in a domain written in full. Fixed in 1f9e395d.
+
+## Task 4 — Nothing secret, nothing personal (second adversarial re-check)
+
+Witnessed: 2026-10-14 18:58 EDT, by a fresh agent (adversarial). Commit: f650f01a. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The no-secrets test covers every flow and passes | no | confirmed | `no-secrets.db.test.ts:74-171`; CI on postgres, mysql, mariadb |
+| 2 | It finds no secret or personal value | no | confirmed | Planted client IP, password under a plain key, disguised email → each fails it |
+| 3 | Each planted leak in the redaction fails the no-secrets test | no | partly | 17 mutations: green with `hideEmails`, the duplicate-key rule or the path rule off, the order reversed, quoted or run-on handling off (only `redact.test.ts` fails) |
+| 4 | `hideEmails` hides addresses in any script, quoted, partial, run-on, and keeps what a line needs | no | confirmed | `p1.mts`, `p5.mts`. Missed, none valid: `ana@localhost`, `ana@example.c0m`, RFC comments, a zero-width space in a domain |
+| 5 | Redaction stays fast | no | confirmed | 27 shapes × 100,000: 0.1–39 ms; linear |
+| 6 | `hideDuplicateValues` and its order leak nothing in any combination | no | confirmed | 4,320 strings, 0 leaks |
+| 7 | Storage paths written `<folder>/[path]` | no | confirmed | `p1.mts`. See row 3 and the storage key note |
+| 8 | URL passwords hidden | no | confirmed | `p1.mts` |
+| 9 | Better Auth's messages reach a line only as a fixed `msg`, text in `detail`, only an Error kept | no | confirmed | `ba2.mts`; three mutations fail the tests |
+| 10 | Nothing from Better Auth prints outside our logger at `info` | no | partly | With an unreadable `user` table, `@better-auth/core/dist/db/adapter/factory.mjs:392` `console.error(error)` prints a raw `SqliteError` and stack on stderr; refused-request variants print nothing |
+| 11 | The e2e check runs at the end; a clean run passes | no | confirmed | Copy: 7 passed; CI shards 72 and 72 |
+| 12 | It catches a planted session token or email | no | partly | Tokens of sessions ended during the run (sign-out, password change) not found: read from the `session` table at the end |
+| 13 | CodeQL reports nothing new | no | confirmed | 0 open on head and merge; analyses 0 results |
+
+**Overall:** not met: the no-secrets test didn't pin the email, duplicate-key or path rules; the e2e check missed ended sessions' tokens; storage errors named an item's key in their message; Better Auth's adapter prints a raw error when the database fails. Fixed in 1f9e395d (each rule now pinned: one off fails the test; token shape in the e2e check; the key out of storage messages), except the last: an owner's decision.
