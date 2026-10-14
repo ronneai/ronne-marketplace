@@ -118,7 +118,8 @@ const LOCAL = /^[^\s@"()<>[\]{},;:\\/`*]$/u;
 // `i❤.ws`, `ⓔxample.com`), maps `。`, `．` and `｡` to `.`, and drops format characters (a soft
 // hyphen, a zero-width space). The last label then decides (TOP_LABEL); a domain holding `_` must
 // start with a letter: pnpm's `react-dom@19.2.0_react@19.2.0` paths aren't addresses.
-const DOMAIN = /^[^\s@"'()<>[\]{},;:\\/`*]$/u;
+// (`\s` counts U+FEFF as a space; IDNA drops it as a format character, so it stays in.)
+const DOMAIN = /^(?:\uFEFF|[^\s@"'()<>[\]{},;:\\/`*])$/u;
 const DOTS = /[.\u3002\uFF0E\uFF61]/gu;
 /** A domain as IDNA reads it: its dots as `.`, its format characters gone. */
 const asDomain = (value: string) => value.replace(DOTS, ".").replace(/\p{Cf}/gu, "");

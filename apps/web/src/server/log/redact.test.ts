@@ -619,6 +619,7 @@ describe("cleanFields", () => {
       "ana@\u2603.net",
       "bob@\u24D4xample.com",
       "ana@shop\u2010online.com",
+      "ana@x\uFEFFy.com",
     ])
       expect(redactString(`mail ${address} now`)).toBe("mail [email] now");
     // A quote before an address stays in the line; one in an address is hidden with it.
