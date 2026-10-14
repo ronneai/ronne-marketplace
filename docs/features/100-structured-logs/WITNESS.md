@@ -602,3 +602,44 @@ Witnessed: 2026-10-14 13:38 EDT, by a fresh agent (adversarial). Commit: fe72246
 | 12 | Lint and types | no | confirmed | Clean |
 
 **Overall:** not met: to a shell-like reader, a raw `\` or `'`, or a quoted key holding `=`, forges `requestId=`, swallows the real one or stops the line parsing. Remark: a `userId` field can replace or blank the request's user.
+
+## Task 1 — The logger (tenth check)
+
+Witnessed: 2026-10-14 13:47 EDT, by a fresh agent (blind). Commit: b51b7220. Machine: macOS 27.0.1, Node v24.0.0. Within the spec's scope.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Only the logger, its tests and the docs changed; no dependency | no | confirmed | `git diff fe722463 b51b7220 --stat` |
+| 2 | Tests pass; lint and types | no | confirmed | 95 passed |
+| 3 | Plain only when safe, otherwise JSON strings | no | confirmed | `logger.ts:86-109` |
+| 4 | The head escapes `\`, `=`, `"`, `'` | no | confirmed | 20,000 fuzzed lines |
+| 5 | To `shlex.split`: no forgery, real ids kept, every line parses | no | confirmed | 20,000 lines: 0 errors, 0 forged, 0 wrong user |
+| 6 | Nothing swallows the real ids for a reader that splits as a shell does | no | partly | A word starting with `#` (`Item #3`, key `#k`, domain `#d`) is a comment to `sh -c eval` or `shlex.split(comments=True)`: the ids are gone |
+| 7 | The request's user wins | no | confirmed | Probes |
+| 8 | Tests catch each new rule | no | partly | 18 mutants, 17 caught; the `'` escape in `quoted` isn't tested |
+| 9 | The spec states the rules | no | confirmed | SPEC.md |
+| 10–19 | Levels, `child()`, formats, context, redaction, cuts, cycles, `LOG_LEVEL`, events, regexes | no | confirmed | Probes and tests |
+
+**Overall:** not met: a word starting with `#` reads as a shell comment; the `'` escape is untested.
+
+## Task 1 — The logger (adversarial, eleventh check)
+
+Witnessed: 2026-10-14 13:49 EDT, by a fresh agent (adversarial). Commit: b51b7220. Machine: macOS 27.0.1, Node v24.0.0. Within the spec's scope.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Tests pass | no | confirmed | 95 |
+| 2 | logfmt reader: no forgery, ids kept, every line parses | no | confirmed | 30,000 fuzzed lines |
+| 3 | `shlex.split`: the same | no | confirmed | 30,000 lines; hand cases |
+| 4 | A POSIX shell's word rules keep the ids | no | partly | `{"#":"x"}` → `… m #=x requestId=…`: `eval "set -- …"` drops the ids; 1,485 of 30,000 lines |
+| 5 | To a person: one bare `requestId=` and `userId=`, at the end | no | confirmed | 30,000 lines |
+| 6 | The request's user wins | no | confirmed | 3,730 lines |
+| 7 | JSON valid, round-trips | no | confirmed | 50,000 lines |
+| 8 | No covered secret written | no | confirmed | 24 lines, 4 levels, 2 formats |
+| 9 | Never throws | no | confirmed | Probes |
+| 10 | Never blocks; cap | no | confirmed | Worst 24.0 ms |
+| 11 | Tests catch each new rule | no | partly | 22 mutants, 21 caught; not the `'` escape in `quoted` |
+| 12 | No new dependency | no | confirmed | Empty diff |
+| 13 | Lint and types | no | confirmed | Clean |
+
+**Overall:** not met: a word starting with `#` hides the ids from a shell's word rules; the `'` escape is untested.

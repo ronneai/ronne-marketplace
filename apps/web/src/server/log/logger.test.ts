@@ -453,6 +453,7 @@ describe("more of what a line can't carry", () => {
       ["object holding =", { o: { "requestId=FORGED": 1 } }],
       ["quote key", { "'": "' requestId=FORGED '" }],
       ["no fields", {}],
+      ["comment key", { "#": "x", "#k": "v" }],
     ];
     for (const [domain, msg] of [
       ["d", "a\\ 'm"],
@@ -460,6 +461,7 @@ describe("more of what a line can't carry", () => {
       ["x'", "m'"],
       ['y"', 'm"'],
       ["z=requestId=F", "m requestId=F"],
+      ["#d", "Item #3 failed"],
     ]) {
       for (const [name, fields] of cases) {
         for (const context of [true, false]) {
@@ -474,6 +476,17 @@ describe("more of what a line can't carry", () => {
         }
       }
     }
+  });
+
+  it("escapes ' inside quoted keys and values, and # wherever a word could start", () => {
+    const { log, lines } = collect({ format: "text" });
+    log.child({ domain: "#d" }).info("Item #3", { "x'": "a b'", "#k": "#v" });
+    const line = lines[0] ?? "";
+    expect(line).not.toContain("'");
+    expect(line).toContain('"x\\u0027"="a b\\u0027"');
+    expect(line).toContain('"#k"="#v"');
+    // No word of the line starts with `#`: nothing reads as a comment.
+    expect(line.split(" ").some((word) => word.startsWith("#"))).toBe(false);
   });
 
   it("writes the request's user, whatever a field says", () => {

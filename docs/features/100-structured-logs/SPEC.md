@@ -191,10 +191,12 @@ read every secret itself.
   characters, variation selectors), checked per code point, are escaped as `\uXXXX` (or JSON's `\n` inside a
   quoted value), in text and in JSON alike, so nothing can split a line, forge another one, drive
   the terminal or reorder what it shows. In text, a key or value is written as it is only when it's
-  made of letters, digits and `_ . : / @ + , % # -` with nothing hidden; anything else (a space, a
-  quote, a backslash, an `=`, an object) is a JSON string, with `'` escaped, and `=` too in a key.
-  In the domain, event and message, `\`, `=`, `"` and `'` are escaped. So nothing passes for a
-  field, a quote or an escape, to a person or to a reader that splits the line as a shell does.
+  made of letters, digits and `_ . : / @ + , % -` with nothing hidden; anything else (a space, a
+  quote, a backslash, an `=`, a `#`, an object) is a JSON string, with `'` escaped, and `=` too in
+  a key. In the domain, event and message, `\`, `=`, `"`, `'` and `#` are escaped. So nothing
+  passes for a field, a quote, an escape or a comment, to the readers text is for: a person, a
+  logfmt reader, and a shell-like splitter (`shlex.split`). Text isn't safe to `eval` in a shell
+  (`$` in a quoted value would expand); JSON is what tools should read.
 - **stdout is closed or slow:** writes go through `process.stdout.write` without waiting. A closed
   stdout (`EPIPE`) loses the lines and never crashes the server (the logger listens for its
   `error` event). Node's docs ("A note on process I/O"): on Linux and macOS, writes to a pipe or

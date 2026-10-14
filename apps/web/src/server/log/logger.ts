@@ -80,10 +80,10 @@ const escapeText = (text: string): string => {
 };
 
 /**
- * What a key or value can be written as it is: letters, digits and `_ . : / @ + , % # -`. Nothing
- * a reader could take for a quote, an escape, a separator or an `=`.
+ * What a key or value can be written as it is: letters, digits and `_ . : / @ + , % -`. Nothing a
+ * reader could take for a quote, an escape, a separator, an `=` or (`#`) the start of a comment.
  */
-const PLAIN = /^[\p{L}\p{N}_.:/@+,%#-]+$/u;
+const PLAIN = /^[\p{L}\p{N}_.:/@+,%-]+$/u;
 /** A hidden character anywhere (some are letters too, such as the Hangul fillers). */
 const ANY_HIDDEN = /[\p{Cc}\p{Cf}\p{Default_Ignorable_Code_Point}\p{Zl}\p{Zp}\u2800]/u;
 const isPlain = (text: string) => PLAIN.test(text) && !ANY_HIDDEN.test(text);
@@ -110,9 +110,9 @@ const textValue = (value: unknown): string => {
 const textKey = (key: string): string => (isPlain(key) ? key : quoted(key, true));
 
 /**
- * The line's head (domain, event, message): with `\`, `=`, `"` and `'` escaped (`\uXXXX`) before
- * the hidden characters, so it can't hold a field, an escape or a quote that changes how the rest of
- * the line pairs.
+ * The line's head (domain, event, message): with `\`, `=`, `"`, `'` and `#` escaped (`\uXXXX`)
+ * before the hidden characters, so it can't hold a field, an escape, a quote that changes how the
+ * rest of the line pairs, or a comment that hides it.
  */
 const headText = (text: string): string =>
   escapeText(
@@ -120,7 +120,8 @@ const headText = (text: string): string =>
       .replaceAll("\\", "\\u005c")
       .replaceAll("=", "\\u003d")
       .replaceAll('"', "\\u0022")
-      .replaceAll("'", "\\u0027"),
+      .replaceAll("'", "\\u0027")
+      .replaceAll("#", "\\u0023"),
   );
 
 /** `time LEVEL domain event msg key=value…`, the request's ID and user last. */
