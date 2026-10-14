@@ -18,7 +18,7 @@ export const EVENTS = {
   "server.started": {
     level: "info",
     msg: "Server started",
-    fields: ["version", "dialect", "runtime", "port"],
+    fields: ["version", "dialect", "setup", "runtime", "port"],
   },
   "server.migrations_applied": {
     level: "info",

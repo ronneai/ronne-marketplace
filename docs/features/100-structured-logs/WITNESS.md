@@ -1145,3 +1145,31 @@ Witnessed: 2026-10-14 17:11 EDT, by a fresh agent (blind). Commit: 8b7d28be (ron
 | 16 | Render tests in both repositories | no | confirmed | 138 passed, typecheck clean; help tests 3 passed |
 
 **Overall:** not met: `via` and `cached` written but not documented. Fixed in 9d18035a (events.ts, spec) and ronne-web c5b5a80 (tables).
+
+## Task 6 — Documentation (second re-check)
+
+Witnessed: 2026-10-14 17:25 EDT, by a fresh agent (blind). Commit: df364e3b (ronne-web c5b5a80). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Every event in the table in en, pt, fr, levels and fields, same order, nothing extra | no | confirmed | `cmp.mjs`: 21 events, 21 rows each, no mismatches |
+| 2 | Every field each event's writers write is in the module and tables | no | not met | 29 `.event(` calls; `setup/started.ts:26` writes `setup: "required"` before setup, in neither `events.ts:25` nor the tables. `via` and `cached` now listed |
+| 3 | Level variants and When notes match the code | no | confirmed | `api-route.ts`, `plugin-feed.ts`, `access-tokens.ts`, `publish.ts`/`bulk-release.ts`, `health.ts`, `drafts.ts:380` |
+| 4 | `operations#logs` in both `topics.ts` | no | confirmed | Both, titled as on the page |
+| 5 | Where the logs are | no | confirmed | `compose.yaml`, `args.ts`, `layout.ts` |
+| 6 | A clone: `pnpm start`, `pnpm dev` | no | confirmed | `pnpm start --help` → `next start --help`; `parseLogFormat` |
+| 7 | The line's fields and order; `err` | no | confirmed | `logger.ts:196-215`, `redact.ts:288-311` |
+| 8 | LOG_LEVEL | no | confirmed | `parseLogLevel`, `log/index.ts:35` |
+| 9 | Settings file or environment, then restart | no | confirmed | `config.ts:50-51`, cached root logger |
+| 10 | What the logger removes; what Ronne doesn't write | no | confirmed | `redact.ts`, `local-storage.ts:25`, the 29 calls' fields, `better-auth-logger.ts` |
+| 11 | Next.js's own output | no | confirmed | Spec's known limit; `request-error.ts:19` |
+| 12 | X-Request-Id on page and API responses; the API's error names it | no | confirmed | 22 of 22 routes, `api-route.ts`, `proxy.ts` |
+| 13 | TRUST_PROXY and an incoming ID | no | confirmed | `request-id.ts`, `config.ts:49` |
+| 14 | en, pt, fr the same | no | confirmed | Side by side |
+| 15 | The site's existing terms | no | confirmed | "fichier de réglages", "arquivo de configurações", others used elsewhere |
+| 16 | `.env.example` | no | confirmed | Lines 26-30 |
+| 17 | Install guide | no | confirmed | Lines 304-309. Remark: `rmk-server service logs` without the `sudo` of line 220 |
+| 18 | ronne-web tests and typecheck | no | confirmed | 138 passed; typecheck exit 0 |
+| 19 | Marketplace help tests | no | confirmed | 3 passed |
+
+**Overall:** not met: `setup` on `server.started` undocumented. Fixed: `events.ts` and the guide's `sudo` in the next commit; ronne-web tables in the commit after c5b5a80.

@@ -302,7 +302,7 @@ folder is kept unless you delete it.
 | "rmk-server runs on Linux and macOS" (on Windows) | Run the server in WSL 2 or a Linux VM: [Windows](#windows) |
 
 **Where the logs are:** Docker: `docker compose logs web` (and `proxy`). Service:
-`rmk-server service logs`; underneath, `journalctl -u rmk-server` on Linux, and
+`sudo rmk-server service logs`; underneath, `journalctl -u rmk-server` on Linux, and
 `/Library/Logs/rmk-server/` on macOS. Each line is JSON with a level and an `event` name;
 `LOG_LEVEL=debug` in the settings file (then a restart) writes more. A problem someone reports
 comes with the `X-Request-Id` of the response they got: its lines carry that `requestId`. What
