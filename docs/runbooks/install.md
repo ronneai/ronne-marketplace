@@ -285,8 +285,10 @@ doesn't need a copy of your projects or their git repositories.
 Database changes are applied on start. Going back to an older version after an upgrade isn't
 supported, so back up first.
 
-**Back up** the data: with Docker, the `ronne-marketplace_ronne-data` volume; otherwise the data
-folder shown by `rmk-server service status`. With MySQL or PostgreSQL, back up that database too.
+**Back up** with one command, while Ronne runs: `docker compose exec web pnpm run backup` with
+Docker, `sudo rmk-server backup` with a service, `rmk-server backup` otherwise. It writes one archive
+with the database (whichever kind), the stored files and the settings file.
+[`backup.md`](backup.md) says how to schedule it, copy it off the machine and restore it.
 
 **Uninstall:** `docker compose down` in the `ronne-marketplace` folder (add `-v` only to delete all
 data), `sudo apt remove rmk-server` or `sudo dnf remove rmk-server` (the data stays), or

@@ -120,7 +120,16 @@ export const main = async (argv: string[]): Promise<number | undefined> => {
   }
 
   const dir = defaultDataDir(process.platform, process.env, homedir());
-  mkdirSync(dir, { recursive: true });
+  try {
+    mkdirSync(dir, { recursive: true });
+  } catch (error) {
+    // As a service's account (sudo rmk-server …), after its data folder was moved away: the
+    // account may write in the folder, not in the one above it.
+    const code = (error as NodeJS.ErrnoException).code ?? "an error";
+    return fail(
+      `the data folder ${dir} isn't there and couldn't be made (${code}). Make it, owned by the account that runs Ronne, and run this again.`,
+    );
+  }
   const host = command.kind === "start" ? command.host : undefined;
   Object.assign(
     process.env,

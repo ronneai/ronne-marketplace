@@ -243,6 +243,7 @@ without Docker); 086 → 087 (Windows without Docker).
 | [085](./085-unix-packages/SPEC.md) | Homebrew tap, `.deb` and `.rpm`: `brew install ronneai/tap/rmk-server`, packages that install the service; the install script's no-Docker path on macOS and Linux | 083, 084, 081 | done (Homebrew tap: later work) |
 | [086](./086-service-windows/SPEC.md) | Service on Windows: the same `service` subcommands through WinSW, `C:\ProgramData`, a virtual account, firewall rules, Caddy for `--domain` | 083, 084 | done (the owner's Windows 11 test later) |
 | [087](./087-windows-package/SPEC.md) | Windows installer and winget: `winget install RonneAI.Marketplace`, Inno Setup installer per architecture, the install script's no-Docker path on Windows; unsigned until SignPath Foundation signs it | 086, 084, 081 | specified |
+| [121](./121-no-windows-server/SPEC.md) | No Windows server: `rmk-server` runs on Linux and macOS only (npm's `os` field and a one-line refusal), Windows people use WSL 2 or a Linux VM; the Windows service (086), bundles, `install.ps1` and their CI go; `rmk` and `rmk-mcp` stay on Windows, with a Windows CI job of their own; in the next release, with 099 (nobody installs the server on Windows: no migration) | 081, 082, 084, 086 | specified |
 
 ### M13 — Workspaces
 
@@ -279,7 +280,7 @@ After M13. Build order: 098 → 099 → 100 → 101.
 | ID | Feature | Depends on | Status |
 |---|---|---|---|
 | [098](./098-threat-model/SPEC.md) | Threat model and incident response: the threat model (items run on developers' machines, review as the boundary, tokens, plugin feeds, export, our supply chain) and an incident runbook (yank a version, revoke tokens in bulk, rotate `AUTH_SECRET`, read the audit log, tell users); `rmk-server revoke-access` and `rotate-secret`; `SECURITY.md` links both | 007, 016, 009 | done (the yank wording's fix in ronne-web `fix/marketplace-098-yank-locks`) |
-| [099](./099-backup-restore/SPEC.md) | Backup and restore: `rmk-server backup` and `restore` (the database, storage and the settings file in one portable archive, made while running, restorable into any of the three database kinds; native dumps left to operators), the Docker volumes, encrypted backups, a backup runbook and a restore test in CI; encryption at rest is the disk's or the database's, documented | 082, 005 | in progress (tasks 1–7 done) |
+| [099](./099-backup-restore/SPEC.md) | Backup and restore: `rmk-server backup` and `restore` (the database, storage and the settings file in one portable archive, made while running, restorable into any of the three database kinds; native dumps left to operators), the Docker volumes, encrypted backups, a backup runbook and a restore test in CI; encryption at rest is the disk's or the database's, documented | 082, 005 | done |
 | [100](./100-structured-logs/SPEC.md) | Structured logs: JSON lines with a level, time and request ID, `LOG_LEVEL`, the same fields in every domain, no secrets or tokens in any line | 001 | specified |
 | [101](./101-metrics-traces/SPEC.md) | Metrics and traces: OpenTelemetry, off unless `OTEL_EXPORTER_OTLP_ENDPOINT` is set (requests, database time, sign-ins, releases, feed builds); the health endpoint reports the database and storage | 100 | specified |
 

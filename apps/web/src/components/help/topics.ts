@@ -155,6 +155,9 @@ export const TOPICS = [
     sections: [
       { id: "security", title: "Security" },
       { id: "incidents", title: "Incidents" },
+      { id: "backup", title: "Backups" },
+      { id: "restore", title: "Restoring" },
+      { id: "encryption", title: "Encryption at rest" },
     ],
   },
   {

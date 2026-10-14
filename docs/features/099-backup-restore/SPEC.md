@@ -22,7 +22,7 @@ backup is also the only undo.
 - `--keep <n>`, to remove the oldest backups in the folder after a new one.
 - The same through `pnpm run backup` / `restore` from a clone, and in Docker.
 - **A backup runbook**, `docs/runbooks/backup.md`: making backups on a schedule (cron, a systemd
-  timer, launchd, Task Scheduler, a Docker host's cron), keeping copies off the machine,
+  timer, launchd, a Docker host's cron; no Windows server, 121), keeping copies off the machine,
   restoring, moving to another machine or another database, the Docker volumes, and encryption at
   rest.
 - **A restore test in CI**: backup → restore into a fresh folder → start → the content is all
@@ -247,7 +247,6 @@ The runbook lists, for each way of installing, the one command and what else to 
 |---|---|---|
 | Docker | `docker compose exec web pnpm run backup` (archive on the `ronne-data` volume, under `backups/`); copy it out with `docker compose cp` | `.env` next to `compose.yaml` (ports, domain, the database password for the bundled PostgreSQL/MySQL); `./certs` if you brought certificates |
 | Packages, service (Linux, macOS) | `sudo rmk-server backup` (runs as the service account) | `/etc/rmk-server/service.json` is recreated by `service install` |
-| Windows service | `rmk-server backup` as administrator | as above |
 | npm, no service | `rmk-server backup` | — |
 
 The bundled PostgreSQL and MySQL of `compose.yaml` are covered by the archive like any other
@@ -256,15 +255,15 @@ database; their own volumes don't need a separate backup.
 ### Encryption at rest
 
 The runbook's **Encryption at rest** section says what Ronne leaves to the platform and how: an
-encrypted disk or volume (LUKS, FileVault, BitLocker, the cloud provider's encrypted volumes) for
+encrypted disk or volume (LUKS, FileVault, the cloud provider's encrypted volumes) for
 SQLite, storage and backups on the server; the managed database's encryption for PostgreSQL and
 MySQL; `--encrypt` for archives that leave it; and (with 110) the bucket's server-side encryption.
 
 ## Edge cases
 
 - **A very large instance:** the archive is streamed; the database is read in batches inside the
-  snapshot transaction; memory stays flat. The runbook gives timings measured in CI for a
-  benchmark-sized instance (079's data set).
+  snapshot transaction; memory grows slowly with the size (about 1.5 MiB held at 1,000 items, 17 MiB at 10,000). The runbook gives timings from the backup benchmark (079's
+  data set) on a named machine (owner's decision, 2026-10-14: CI doesn't run the benchmark).
 - **The snapshot transaction on MySQL** must use `START TRANSACTION WITH CONSISTENT SNAPSHOT, READ
   ONLY`; on PostgreSQL `REPEATABLE READ READ ONLY`. Long backups hold the snapshot; on PostgreSQL
   that delays vacuum, noted in the runbook.

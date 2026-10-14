@@ -61,14 +61,17 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   the service's account, restore refused while the service runs.
   *Done when:* those workflows pass on a pull request with the change.
 
-- [ ] **8. The backup runbook.** `docs/runbooks/backup.md`: the table per way of installing,
-  schedules (cron, systemd timer, launchd, Task Scheduler, a Docker host), copies off the machine,
+- [x] **8. The backup runbook.** `docs/runbooks/backup.md`: the table per way of installing,
+  schedules (cron, systemd timer, launchd, a Docker host; no Windows server, 121), copies off the machine,
   restoring, moving to another machine and another database, Caddy's certificates, encryption at
-  rest, PostgreSQL's vacuum note, timings from CI. `install.md`'s "Back up" points to it.
+  rest, PostgreSQL's vacuum note, timings from the backup benchmark on a named machine (owner's
+  decision, 2026-10-14: CI doesn't run it). `install.md`'s "Back up" points to it.
   *Done when:* each command in it was run on a test instance (Docker and npm at least), written in
-  the notes.
+  the notes; by the owner's decision (2026-10-14) schedules are checked without being installed
+  (`systemd-analyze verify`, `plutil -lint`, the cron lines run as cron does), and `rclone`, `aws
+  s3 cp` and the bundled MySQL stay unrun examples.
 
-- [ ] **9. Documentation.** In `../ronne-web`: **Backups**, **Restoring** and **Encryption at
+- [x] **9. Documentation.** In `../ronne-web`: **Backups**, **Restoring** and **Encryption at
   rest** in Running Ronne (both `topics.ts`), and the Upgrade line, in English, Portuguese and
   French.
   *Done when:* the docs render tests pass in both repositories.
@@ -452,3 +455,43 @@ goes into `SPEC.md` instead.
   - Left as it is: SIGHUP sent to tsx's parent alone, in a clone, orphans the backup (tsx's
     relay; a terminal hang-up signals the group, which works). No test checks that `run.ts` passes
     `webDir` (it would need the packed server).
+- **Task 8, the runbook** (`docs/runbooks/backup.md`; `install.md`'s "Back up" points to it). Every
+  command was run on 2026-10-14 against the packed `@ronneai/marketplace` (npm, installed into a
+  scratch prefix, its folders only through `RONNE_DATA_DIR`/`RONNE_ENV_FILE`) and the image built
+  from this branch (`compose.yaml` as shipped, projects `rb099`/`rb099b` on their own ports, so no
+  `ronne-marketplace` project was touched):
+  - **npm:** `rmk-server backup`; `--keep 2` (removed the oldest); `--encrypt --passphrase-file`;
+    `--encrypt` with `RONNE_BACKUP_PASSPHRASE`; `--no-settings`; `--verify` on a plain and an
+    encrypted archive; restore onto another machine (a new data folder) with `--with-settings`, in
+    place after moving the data folder aside (the second restore refused: not empty), into
+    PostgreSQL with `--database-url` (a database made on the test server, dropped after), and an
+    encrypted one with `--passphrase-file`; each restored instance started, a token made before the
+    backup worked and the stored file was identical. `rsync --ignore-existing --exclude '*.partial'`
+    of the archives and of storage; `sqlite3 ronne.db ".backup copy.db"`.
+  - **Docker:** `docker compose exec web pnpm run backup --keep 7`; `ls`; `docker compose cp` of an
+    archive and of the folder (`/.`); `--verify`; `--encrypt` with `-e RONNE_BACKUP_PASSPHRASE` from
+    the host; Caddy's `caddy-data` saved and put back with the `proxy` service's `tar`; the in-place
+    restore (stop, move aside inside the volume, `docker compose run … restore --with-settings`,
+    start); another machine on the bundled PostgreSQL (`--profile postgres up -d --wait postgres`,
+    the archive copied in as root, restore with `--database-url`, `up -d`). Token and stored file
+    checked after each.
+  - **Schedules:** the cron lines (npm, plain and encrypted; Docker host, plain and encrypted) run
+    as cron does (`env -i`, a short `PATH`); the systemd units checked with `systemd-analyze verify`
+    (and the calendar) in a Debian container; the launchd plist with `plutil -lint`.
+  - **Not run here:** commands under `sudo` with an installed service (CI's service tests run
+    `sudo rmk-server backup` as the service's account and restore's refusal while it runs, on
+    systemd, launchd and WinSW; the in-place restore under a service is the npm one plus
+    `service stop`/`start`); `launchctl bootstrap` and `systemctl enable` (they would install a
+    schedule on this machine); Windows (PowerShell's `Register-ScheduledTask`; since removed, 121); the bundled MySQL
+    (the same as PostgreSQL's, another profile); `rclone` and `aws s3 cp` (no remote here; examples).
+  - **Timings:** not from CI, which doesn't run the benchmark: `bench:backup` here (M1 Max) on SQLite
+    and PostgreSQL at 1,000 and 10,000 items (0.07–0.36 s). Memory held grows with the size (1.5 →
+    about 17 MiB), so the runbook gives the numbers rather than "flat".
+  - **Found while running it:** after a restore in Docker, the next step said `docker compose start
+    web`, which fails on a new machine (no container yet); it says `docker compose up -d` now.
+  - **After the witness (2026-10-14):** the service in-place restore moves `ronne.db*` and
+    `storage` into `before-restore/` inside the data folder (the account may write there, not in
+    `/var/lib`), run in a simulated Linux service in Debian; `rmk-server` explains a data folder it
+    can't make instead of a stack trace; cron's `PATH` line and the plist's `PATH` for npm installs
+    (run, and linted); the bundled-PostgreSQL URL with the password written in; `mkdir -m 700`;
+    macOS's paths. Windows removed (121, the next release).

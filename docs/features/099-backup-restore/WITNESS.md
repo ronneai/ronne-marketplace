@@ -1122,3 +1122,168 @@ Safety record, the same before and after: `md5 apps/web/.env` → b9eb4577b627e8
 **Overall:** not met: nothing is ever left behind, but a signal in the check's last stretch or cleanup could be lost (the restore went on), the cleanup removed `._name` files another process wrote into folders it made, and the spec promised neither happens.
 
 **Since this pass** (the owner's decision: this focused pass, then the pull request; nothing further unless a real safety problem): the check lets the event loop in once more before its handlers go, so a pending signal is handled (40 SIGINTs aimed at the end of a 20,000-file check: all exit 130, nothing left; before, about a third lost), and it removes a `._name` only when it appeared as the check made `name`. The spec says both. Windows is checked by the pull request's CI.
+
+## Task 8 — The backup runbook
+
+Witnessed: 2026-10-14 09:22 EDT, by a fresh agent (blind). Commit: fac4c78d. Machine: macOS 27.0.1 (Apple M1 Max), Node v24.0.0; Docker 29.7.2 (image `ronne-web:t8` from this commit, project `-p t8witness`); a Debian container (node:24-trixie-slim) with a simulated installed Linux service.
+
+Safety record, the same before and after: `md5 apps/web/.env` → b9eb4577b627e856bf865342d88e9368; `git -C apps/web status --short --ignored .env data` → `!! .env`, `!! data/`; `grep -l t8-blind node_modules/.bin/*` → nothing. Projects, container, image and database removed.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The runbook covers every topic the task lists | yes | confirmed | `backup.md`: the table, cron, systemd, launchd, Task Scheduler, Docker host, off machine, restoring, another machine, another database, Caddy, encryption at rest, vacuum, timings |
+| 2 | The table's paths and commands match the code | no | confirmed | `layout.ts`, `run-backup.ts:260-261`, `docker/pnpm`, `package.json:29-30`, `Dockerfile:62-64` |
+| 3 | `install.md`'s "Back up" points to it | yes | confirmed | `install.md:288-291` |
+| 4 | npm `rmk-server backup` while running: the output, 0700 folder, 0600 archive | yes | confirmed | The packed 0.3.2 under `env -i` → "Wrote …", the warning; `drwx------`, `-rw-------` |
+| 5 | `--keep` removes only older archives | yes | confirmed | 3 archives, a `.partial`, `notes.txt`; `--keep 2` → "Removed 2 older archives", the others left |
+| 6 | `--encrypt` with `RONNE_BACKUP_PASSPHRASE` or `--passphrase-file` | yes | confirmed | `.tar.enc`; `--verify --passphrase-file` → complete; a wrong one → exit 1 |
+| 7 | `--verify` as the sample | yes | confirmed | Plain archive → "…is complete…", exit 0; in Docker too |
+| 8 | `--no-settings` | yes | confirmed | No `settings.env` in the tar |
+| 9 | Docker backup to `/app/data/backups/`, names TRUST_PROXY | yes | confirmed | "Wrote /app/data/backups/… ! TRUST_PROXY comes from the environment…" |
+| 10 | `docker compose cp web:/app/data/backups/. ./ronne-backups/` keeps 0600 | yes | confirmed | 3 files, `-rw-------` |
+| 11 | The Docker in-place restore | yes | confirmed | "Restored 23 rows … 4 stored files … Next, start the server: docker compose up -d."; health ok |
+| 12 | The Docker restore on another machine | yes | confirmed | Restored; health ok; `backups/` 0755 from `mkdir -p` (not 0700) |
+| 13 | Caddy's `caddy-data` save and put back | yes | confirmed | The same `instance.uuid` in both projects |
+| 14 | npm restore into PostgreSQL writes that URL | yes | confirmed | `t8w_restore` (dropped after); the server started on it |
+| 15 | The Docker bundled-PostgreSQL restore as written | yes | partly | With `RONNE_DB_PASSWORD` only in `.env`, the literal `$RONNE_DB_PASSWORD` → "client password must be a string", exit 1 |
+| 16 | npm, no service: move aside, encrypted restore, start | yes | confirmed | Restored; the second restore refused (not empty) |
+| 17 | `sudo rmk-server backup` runs as the service's account | no | confirmed | Simulated install → "…, as rmk-server: Wrote …", `backups/` the account's, 0700 |
+| 18 | The service in-place restore (`mv /var/lib/rmk-server …`) | yes | not met | → `EACCES … mkdir '/var/lib/rmk-server'` with a stack trace: the account can't make the folder in `/var/lib` |
+| 19 | The cron lines work under cron | yes | partly | npm's `rmk-server` under cron's `PATH` → `env: node: No such file or directory`, 127; the packages' launcher has its own Node |
+| 20 | The Docker-host cron lines | yes | confirmed | Both exit 0, `.tar` and `.tar.enc` |
+| 21 | The systemd units | yes | can't check here | No systemd; by reading, `ExecStart` is the package's launcher |
+| 22 | The launchd plist | yes | partly | `plutil -lint` OK; npm's `rmk-server` needs `node` on launchd's short `PATH` (row 19) |
+| 23 | Task Scheduler | no | can't check here | Needs Windows |
+| 24 | `rsync … --exclude '*.partial'` | yes | confirmed | The archives copied, not the `.partial` |
+| 25 | `rclone`, `aws s3 cp` | no | can't check here | Not installed; no remote |
+| 26 | `sqlite3 ronne.db ".backup copy.db"` | yes | confirmed | Exit 0 |
+| 27 | The service's Caddy folder paths | no | confirmed | `layout.ts`; macOS's not named |
+| 28 | Encryption at rest matches the code and spec | no | confirmed | `crypto.ts:1-5` |
+| 29 | The vacuum note matches the snapshot | no | confirmed | `db/snapshot.ts:19-20` |
+| 30 | The timings come from CI | yes | not met | Measured on an M1 Max; no benchmark in CI; reproduced here |
+| 31 | Troubleshooting messages are the code's | no | confirmed | `run-restore.ts`, `verify.ts`, `control.ts`, `run-backup.ts` |
+| 32 | After a Docker restore, `docker compose up -d` | yes | confirmed | Rows 11, 12, 15 |
+| 33 | *Done when:* each command run, written in the notes | yes | partly | Rows 15, 18, 19 fail as written; systemd, launchd, Windows, MySQL, rclone, aws not run |
+
+**Overall:** not met: backup, `--keep`, `--encrypt`, `--verify` and both Docker restores work as written; the service in-place restore fails with EACCES, the Docker bundled-PostgreSQL restore needs the password in the shell, cron and launchd need `node` on the scheduler's `PATH` for npm installs, and the timings aren't from CI.
+
+**Since this pass:** the service in-place restore moves the database and storage aside inside the data folder (which stays), and restores from `backups/` there, run in a simulated Linux service (Debian, the account, `/etc/rmk-server` as `service install` makes it): restored as the account, the stored file identical; the old form now gets "the data folder … isn't there and couldn't be made (EACCES). Make it, owned by the account that runs Ronne" instead of a stack trace (`run.ts`). The bundled-PostgreSQL URL takes the password written in (from `.env`), as run on 2026-10-14 earlier. Cron gets a `PATH` line (run: 127 without it, 0 with it) and the plist an `EnvironmentVariables` `PATH` (`plutil -lint` OK); the packages' launcher needs neither. The Docker copy-in makes `backups/` 0700. macOS's paths are named. Windows is gone from the runbook (owner's decision, 2026-10-14: no Windows server in the next release, 121).
+
+## Task 8 — The backup runbook (re-check)
+
+Witnessed: 2026-10-14 09:45 EDT, by a fresh agent (blind). Commit: b1608cf3. Machine: macOS 27.0.1 (Apple M1 Max), Node v24.0.0 (containers: node:24-trixie-slim, debian:13). It saw the diff's "After the witness" note before its verdicts (the rest of the notes only after).
+
+Safety record, the same before and after: `md5 apps/web/.env` → b9eb4577b627e856bf865342d88e9368; `git -C apps/web status --short --ignored .env data` → `!! .env`, `!! data/`; `grep -l t8-recheck node_modules/.bin/*` → nothing. Containers ran with `--rm`; the `t8b` project `down -v`; the image removed.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The service in-place restore works on a simulated Linux service | yes | confirmed | Debian, the account, `/etc/rmk-server` and `/var/lib/rmk-server` as install makes them; setup, a 300 KiB file, backup; the runbook's `mv` and `restore` → "Restored 7 rows … 1 stored file", exit 0; the file's sha256 matches; `--verify` complete |
+| 2 | Moving the data folder away gives one line, not a stack trace | yes | confirmed | `backup` and `restore` → "rmk-server: the data folder /var/lib/rmk-server isn't there and couldn't be made (EACCES). …", exit 1 (`run.ts:123-132`) |
+| 3 | The cron lines with the `PATH` line work for npm, as cron runs them | yes | confirmed | Plain and encrypted → exit 0; "Wrote …tar" and "…tar.enc"; `--keep 2` left 2 |
+| 4 | Without the `PATH` line, 127 | yes | confirmed | "env: 'node': No such file or directory" |
+| 5 | The plist lints and its `PATH` finds node | yes | confirmed | `plutil -lint` OK (both variants); `/opt/homebrew/bin/node` found. Remark: with both Homebrew and /usr/local nodes, launchd uses Homebrew's |
+| 6 | The systemd units pass `systemd-analyze verify` | yes | confirmed | debian:13, systemd 257 → exit 0 (also with `EnvironmentFile=`); negative controls exit 1 |
+| 7 | Docker copy-in makes `backups/` 0700 node's; restore works | yes | confirmed | `drwx------ node:node`, archive 0600; restored; `/` → `/sign-in`; sha256 matches |
+| 8 | Bundled-PostgreSQL restore with the password in the URL | yes | confirmed | "into the PostgreSQL database"; `psql` shows root@example.com; sha256 matches |
+| 9 | No Windows left in the runbook | yes | confirmed | Only line 69 (WSL 2 or a VM) |
+| 10 | Timings from the benchmark on a named machine, matching | yes | confirmed | Re-run on M1 Max: SQLite 0.07/0.18 s, PostgreSQL 0.14/0.36 s, held 1.5/16.7 MiB |
+| 11 | The spec's edge case matches the decision | yes | confirmed | `SPEC.md:265-267` |
+| 12 | The spec and task match the runbook after no-Windows | no | partly | `SPEC.md:24-25` Task Scheduler, `:250` a Windows service row, `:257` BitLocker; the task's first line Task Scheduler; 121 not in `docs/features` |
+| 13 | The rest of the runbook matches the code | no | confirmed | Every quoted message and flag found; macOS paths match `layout.ts:111-125` |
+
+**Overall:** not met: every command re-run holds; the spec and the task text still describe Windows for the runbook (row 12).
+
+**Since this pass:** the spec's runbook scope, table and encryption-at-rest line, and the task's first line, have no Windows (with "no Windows server, 121"); the stale "not run here" note says Windows was since removed; 121's spec and index row are on this branch.
+
+## Task 8 — The backup runbook (re-check of the documents)
+
+Witnessed: 2026-10-14 09:34 EDT, by a fresh agent (blind, read-only). Commit: dab6ae65. Machine: macOS 27.0.1, Node v24.0.0. (It notes the re-check before it reads 09:45 EDT, later than its clock: that time was mistyped.)
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The spec's runbook scope lists no Windows scheduler | no | confirmed | `SPEC.md:24-26`; `backup.md:64-200` |
+| 2 | The spec's table has no Windows row | no | confirmed | `SPEC.md:245-250`; the row removed in the diff |
+| 3 | Encryption at rest matches, without BitLocker | no | confirmed | `SPEC.md:257-260`; `backup.md:350-359` |
+| 4 | Task 8's text has no Windows | no | confirmed | `PLAN.md:64-72` |
+| 5 | Remaining Windows mentions are code or history and don't contradict the runbook | no | confirmed | SPEC:194, 207, 292, 319; PLAN's task 7 text and notes; the runbook's only mention is WSL 2 or a VM |
+| 6 | 121's SPEC.md and PLAN.md exist | no | confirmed | Both present |
+| 7 | 121 says the next release has no Windows server | no | confirmed | `121/SPEC.md:127-132`, `121/PLAN.md:10` |
+| 8 | 121's index row agrees with its spec | no | partly | `README.md:246` still described a migration from 0.3.x and "owner's open questions first" |
+| 9 | *Done when*: each command run, written in the notes | no | confirmed | The notes, and the earlier passes' rows (fixes confirmed by the re-check) |
+| 10 | Schedules checked without being installed | no | confirmed | Cron with and without `PATH`, Docker-host cron, `systemd-analyze verify`, `plutil -lint` |
+| 11 | `rclone`, `aws s3 cp`, bundled MySQL unrun by decision | no | confirmed | `backup.md:211-212`, `:308-309`; `PLAN.md:69-72` |
+| 12 | Timings from the benchmark on a named machine | no | confirmed | `PLAN.md:67-68`; the re-check's row 10 |
+| 13 | The first pass's Windows rows no longer apply | no | confirmed | No Task Scheduler, BitLocker or PowerShell in the runbook |
+| 14 | The records pass the checker | no | confirmed | `pnpm witness:check` → no errors |
+
+**Overall:** not met: task 8's documents agree on no Windows and every *Done when* claim is confirmed or covered by the owner's decisions; 121's index row contradicted its spec (row 8). Remarks: 099's acceptance criterion naming Windows server checks (met on #180) goes out of date with 121; `install.md`'s Windows parts are 121's task 5.
+
+**Since this pass:** 121's index row says the next release, with 099, and no migration; status "specified".
+
+## Task 8 — The backup runbook (final check)
+
+Witnessed: 2026-10-14 09:36 EDT, by a fresh agent (blind, read-only). Commit: 6027c918. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | 121's index row says no migration | no | confirmed | `README.md:246`; `121/SPEC.md:132-133` |
+| 2 | It says the next release, with 099 | no | confirmed | `README.md:246`; `121/SPEC.md:127,132`; `121/PLAN.md:10` |
+| 3 | Its status agrees | no | confirmed | "specified"; all six tasks open |
+| 4 | Its *Depends on* agrees with the spec | no | partly | Row "081, 082, 084, 086"; `121/SPEC.md:3` still "…, 099" |
+| 5 | Only the row and WITNESS.md changed since dab6ae65 | no | partly | Also `topics.ts` (7557c69f, task 9's) |
+| 6 | Task 8's files unchanged, so earlier confirmations stand | no | confirmed | Empty diff for the runbook, SPEC.md and PLAN.md |
+| 7 | *Done when*: the topics | no | confirmed | First pass rows 1, 2, 26-29, 31; re-check row 9; documents re-check rows 1-3, 13 |
+| 8 | `install.md` points to it | no | confirmed | `install.md:291` |
+| 9 | Each command run, written in the notes | no | confirmed | First pass rows 4-20, 24, 26, 32; its failures fixed and confirmed by the re-check's rows 1-4, 7, 8 |
+| 10 | Schedules checked, not installed | no | confirmed | Re-check rows 3-6; first pass row 20 |
+| 11 | `rclone`, `aws s3 cp`, bundled MySQL unrun by decision | no | confirmed | Documents re-check row 11 |
+| 12 | Timings from the benchmark on a named machine | no | confirmed | Re-check row 10; documents re-check row 12 |
+| 13 | The spec and task agree with the runbook | no | confirmed | Documents re-check rows 1-5 |
+| 14 | `pnpm witness:check` passes | no | confirmed | Exit 0 |
+
+**Overall:** not met: every claim of task 8's *Done when* is confirmed across the passes; 121's row and spec disagreed on 099 as a dependency (row 4); the `topics.ts` change is task 9's (row 5).
+
+**Since this pass:** 121's spec header drops 099 too (they land together), and the spec's Goal gets the owner's words and the clients' paragraph, which an earlier edit meant to add but didn't save.
+
+## Task 8 — The backup runbook (closing check)
+
+Witnessed: 2026-10-14 09:38 EDT, by a fresh agent (blind, read-only). Commit: 76891594. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | 121's index row and spec header agree on *Depends on* | no | confirmed | `README.md:246` and `121/SPEC.md:3` both "081, 082, 084, 086" |
+| 2 | The row says no migration, and the spec agrees | no | confirmed | `README.md:246`; `121/SPEC.md:21,135-136` |
+| 3 | The row says the next release, with 099 | no | confirmed | `README.md:246`; `121/SPEC.md:20,130,135`; `121/PLAN.md:10` |
+| 4 | The row's status agrees | no | confirmed | "specified"; 6 open tasks, none ticked |
+| 5 | Nothing of task 8's changed since the final check | no | confirmed | `git diff 6027c918 76891594 --name-only` → 099's WITNESS.md and 121's SPEC.md only |
+| 6 | So the final check's rows 6–14 stand | no | confirmed | They cover only files row 5 shows unchanged |
+| 7 | 121's spec doesn't contradict itself | no | confirmed | Goal, Scope, Behaviour, Edge cases and Decisions agree |
+| 8 | `pnpm witness:check` passes | no | confirmed | Exit 0 |
+
+**Overall:** met: 121's row and spec agree; nothing of task 8's changed since the final check, whose rows 6–14 stand with the earlier passes' evidence.
+
+## Task 9 — Documentation
+
+Witnessed: 2026-10-14 09:38 EDT, by a fresh agent (blind). Commit: 7557c69f (ronne-marketplace), e66fdc6 (ronne-web). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Running Ronne has `backup`, `restore` and `encryption` in en, pt and fr | no | confirmed | The section keys in all three; `types.ts:11` makes a missing id fail typecheck; the built pages have each id once |
+| 2 | Both `topics.ts` list them | no | confirmed | ronne-web `topics.ts:62`; marketplace `help/topics.ts:156-160` |
+| 3 | Upgrade says back up first, with the command and a link to Backups, in en, pt and fr | no | confirmed | The new paragraph in each; the Docker data paragraph too; built install pages link `operations#backup` |
+| 4 | The command and the archive's place per way of installing | no | confirmed | `package.json`, `docker/pnpm`, `cli.ts`, `run-backup.ts:260-261`, `Dockerfile:49` |
+| 5 | The backup facts (one snapshot, owner-only, `--keep` after success, `--encrypt`, `--verify`, `--no-settings`) | no | confirmed | `archive.ts:140-142`, `run-backup.ts:79,192,492`, `cli.ts` |
+| 6 | The schedule examples, copying out of Docker, the runbook link | no | confirmed | The runbook's own lines; `links.backupRunbook` (on `main` once this merges) |
+| 7 | What restore refuses, and that it changes nothing then | no | confirmed | `run-restore.ts:88-99,132,186,263`, `verify.ts:110`, `control.ts` |
+| 8 | Sign-ins with and without the backup's settings; tokens keep working | no | confirmed | `run-restore.ts:358-376`; `access-token.ts:40`. Remark: an existing settings file is kept even with `--with-settings` |
+| 9 | Each restore is in the audit log | no | confirmed | `run-restore.ts:271-280` |
+| 10 | Another machine; another kind of database | no | confirmed | `cli.ts`, `run-restore.ts:121-125` |
+| 11 | Encryption at rest | no | confirmed | `crypto.ts`; the bucket (110) rightly left out |
+| 12 | No Windows in the new text | no | confirmed | 0 added lines with Windows, PowerShell or `.ps1` |
+| 13 | pt and fr say what en says, naturally | no | confirmed | Read paragraph by paragraph |
+| 14 | ronne-web tests, typecheck, build | no | confirmed | 138 passed; exit 0; pages prerendered in en, pt, fr |
+| 15 | The marketplace's help tests | no | confirmed | 3 passed |
+
+**Overall:** met: the three sections and the Upgrade line in en, pt and fr, both topics files, facts matching the code and runbook, and the tests and builds pass in both repositories.
+
+**Since this pass** (ronne-web d5d5e34, abf4b2e), from its remarks, in en, pt and fr: sign-ins stay with `--with-settings` "on a machine with no settings file yet"; the restore example is labelled as a Linux service's (macOS: the folder `rmk-server service status` shows); with the bundled PostgreSQL or MySQL, Docker's "move aside" becomes "empty that database". ronne-web's typecheck and 138 tests pass after.
