@@ -25,7 +25,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   incoming ID used only with `TRUST_PROXY=true` and when well formed, and one error line per
   unexpected error.
 
-- [ ] **3. The events.** Each domain writes the spec's events with their fields: start and
+- [x] **3. The events.** Each domain writes the spec's events with their fields: start and
   migrations (`prepare-start.ts`, `start.ts`), sign-in and token exchange, release and yank,
   drafts and their limits, usage limits, feed builds (replacing `deps.log`), submit's checks
   failing, the health check's database failure; Better Auth's `logger` option routed to ours.

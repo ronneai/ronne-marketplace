@@ -956,3 +956,17 @@ Witnessed: 2026-10-14 16:33 EDT, by a fresh agent (blind). Commit: be90986e. Mac
 | 10 | No regressions | no | confirmed | 258 passed; lint, types clean |
 
 **Overall:** not met: regex literals confuse the hand-written scanner; brace depth untested.
+
+## Task 3 — The events (third re-check)
+
+Witnessed: 2026-10-14 16:37 EDT, by a fresh agent (blind). Commit: b538f2f8. Machine: macOS 27.0.1, Node v24.0.0. The earlier passes' confirmed rows carry over: only the guard changed in task 3's code.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 9 | No `console` use is left in `src/server`, and the guard catches one wherever a careless edit puts it | no | confirmed | Babel's tokens: flagged regex literals holding quotes, backticks, `\/\/`, `\/*`; `${f({ a: 1 }, console)}`; destructuring, assigning, passing, `globalThis.console`, `console["log"]`, a `//` in a string, ternaries, `as`, `satisfies`, JSX. Not flagged: comments, strings, object keys, `x.console`. A planted case in `log/context.ts` fails with its line numbers |
+| 9a | The parser doesn't fail on or skip any real server file | no | confirmed | All 781 files under `apps/web/src` → 0 errors; decorators would fail loudly, not skip |
+| 10 | Nothing else in task 3's code changed | no | confirmed | Only the guard (the rest is task 4's commit) |
+| 11 | Tests, lint, types | no | confirmed | 258 passed; clean |
+| 12 | No new dependency | no | confirmed | Next's bundled parser; lockfile unchanged |
+
+**Overall:** met. Remarks (deliberate, out of scope): `const { console: c } = globalThis`, `(globalThis).console`, `import { log } from "node:console"`.
