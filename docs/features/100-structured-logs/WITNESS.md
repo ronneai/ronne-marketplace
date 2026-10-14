@@ -1233,3 +1233,33 @@ Witnessed: 2026-10-14 17:42 EDT, by a fresh agent (blind). Commit: 7534b9db (ron
 | 21 | Marketplace help tests | no | confirmed | 3 passed |
 
 **Overall:** not met: Docker's `.env` didn't reach the server for the log settings; "a bundle" isn't the site's term; the guide's "each line … an `event`". Fixed in the next commit (`compose.yaml` passes `LOG_LEVEL` and `LOG_FORMAT`, checked with `docker compose config`; the guide's wording) and ronne-web (Docker sentence, "a package with Node.js inside").
+
+## Task 6 — Documentation (fifth re-check)
+
+Witnessed: 2026-10-14 17:49 EDT, by a fresh agent (blind). Commit: 101f9d5a (ronne-web f078d3f). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Every event in the table in en, pt, fr, nothing extra | no | confirmed | `cmp.mjs`: 21 each; a changed copy is caught |
+| 2 | Every field writers write is listed | no | confirmed | 29 `.event(` calls |
+| 3 | Level variants and When notes | no | confirmed | `api-route.ts:37-41`, `plugin-feed.ts:409`, `health.ts:15`, `drafts.ts:380`, `drafts-api.ts` |
+| 4 | `operations#logs` in both `topics.ts` | no | confirmed | Both; `docs.test.ts:23-30` |
+| 5 | Where the logs are | no | confirmed | `compose.yaml`, `layout.ts`, `linux.ts`, `run.ts:162` |
+| 6 | A clone: `pnpm start` JSON, `pnpm dev` text | no | confirmed | `pnpm start --help`; probe; `turbo.json` passThroughEnv |
+| 7 | `time`, `level`, fixed `msg`, the example, Better Auth's lines | no | confirmed | Child-process probe |
+| 8 | `domain`, `requestId`, `userId`, `err` | no | confirmed | Probe |
+| 9 | LOG_LEVEL | no | confirmed | Probe: unset, `bogus`, `WARN` |
+| 10 | Settings file or environment, Docker's `.env`, restart | no | confirmed | `config.ts:42-51`; `docker compose -f compose.yaml config` with and without `.env` |
+| 11 | What the logger takes out | no | confirmed | Probe, storage paths included |
+| 12 | Ronne doesn't write secrets, emails, IPs, names | no | confirmed | The 29 calls and plain server calls |
+| 13 | Next.js's own output | no | confirmed | Spec's known limit; `instrumentation.ts` |
+| 14 | X-Request-Id | no | confirmed | 22 routes; `proxy.ts`; `api-route.ts:31` |
+| 15 | TRUST_PROXY | no | confirmed | `request-id.ts:17-22` |
+| 16 | en, pt, fr the same | no | partly | fr "le journal retire…", "hors du journal de Ronne": reads as if Next's text isn't in Ronne's logs |
+| 17 | The site's terms | no | partly | fr "flux" for feeds, used nowhere else; the fr site says "Plugin feeds" |
+| 18 | `.env.example` | no | confirmed | Lines 26-30 |
+| 19 | Install guide | no | confirmed | Lines 304-310 |
+| 20 | ronne-web tests and typecheck | no | confirmed | 138 passed; exit 0 |
+| 21 | Marketplace help tests | no | confirmed | 3 passed |
+
+**Overall:** not met: two French wordings. Fixed in ronne-web a8d1359 ("plugin feed"; "son logger", "ne passe pas par le logger de Ronne").
