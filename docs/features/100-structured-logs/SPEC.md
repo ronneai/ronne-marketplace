@@ -133,6 +133,10 @@ The logger, not each caller, keeps secrets out:
   URL with a port, more is hidden; never less. Keys go through the same redaction, and so do the
   message, the request's ID and the user id. Not caught: `user:pw@host` without a scheme, and a
   password in a query string.
+- **Storage paths** (owner, 2026-10-14): a path under the storage's folder is written as
+  `<folder>/[path]` in any line, an error's message and stack included. Stored files are named
+  `scope/name/version.tgz`, so a storage error would otherwise name an item a private workspace hides
+  (093). Each storage adapter registers its folder as it's made.
 - **Errors:** an error's `name`, `message`, string `code` and stack go through the same value
   redaction; its other properties (a driver's `config`, `cause`) aren't written; a thrown value
   that isn't an `Error` is logged as its type only.
