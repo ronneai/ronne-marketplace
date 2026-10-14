@@ -840,3 +840,17 @@ Witnessed: 2026-10-14 15:28 EDT, by a fresh agent (blind). Commit: 37fbc142. Mac
 | 14 | Tests pass; lint and types | no | confirmed | 93 passed; clean |
 
 **Overall:** not met: a multi-declarator export and `.mts`/`.cts`/`.cjs` action files get past the guard.
+
+## Task 2 — Requests (second re-check)
+
+Witnessed: 2026-10-14 15:33 EDT, by a fresh agent (blind). Commit: 4c0c3ad0. Machine: macOS 27.0.1, Node v24.0.0. Rows other than 3 carry over from the earlier passes.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1–2, 4–13 | As the earlier passes | no | confirmed | `git diff --stat 37fbc142 4c0c3ad0` → `server-action.ts`, its test, WITNESS.md |
+| 3 | Every exported action goes through `serverAction`; its guard fails when one doesn't | no | partly | 20 real files pass; 20 bad probes fail (second declarator, re-export, `.mts`/`.cts`/`.cjs`/`.js`/`.tsx`/`.jsx`, `bind`, `Proxy`, `Object.assign`, `export *`, …). Still past: a file under a folder named `e2e` or `test-results` at any depth (skipped by name; `next build` registers it); an escaped `"use server"` directive (Next registers it). Remark: an export that differs under Vitest only passes on purpose |
+| 14 | `isServerAction` accepts only `serverAction`'s functions | no | confirmed | Wrappers and plain functions → false; mutations caught |
+| 15 | `serverAction` behaves as before | no | confirmed | Its tests pass |
+| 16 | No regressions; lint, types and build | no | confirmed | 93 passed; `pnpm lint`; typecheck; `TURBO_FORCE=true pnpm build` → 5 successful |
+
+**Overall:** not met: nested `e2e`/`test-results` folders and escaped directives get past the guard.
