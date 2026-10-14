@@ -27,6 +27,11 @@ jobs:
       - name: The clients didn't change, nothing to check
         if: inputs.run == 'false'
         run: echo "This pull request doesn't change @ronneai/core, rmk or rmk-mcp."
+      # The runners turn core.autocrlf on: the examples and golden files would be checked out with
+      # CRLF and differ from what the renderers write. The tests compare the files as committed.
+      - name: Keep line ends as committed
+        if: inputs.run != 'false'
+        run: git config --global core.autocrlf false
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         if: inputs.run != 'false'
         with:

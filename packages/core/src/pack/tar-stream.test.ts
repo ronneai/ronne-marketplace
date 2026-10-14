@@ -83,28 +83,33 @@ describe("the streaming tar writer (099)", () => {
     }
   });
 
-  it("is read by the system's tar, long paths included", async () => {
-    const long = `storage/${"d".repeat(130)}/${"e".repeat(140)}/1.0.0.tgz`;
-    const bytes = await archive(async (tar) => {
-      await tar.addFile("backup.json", utf8("{}\n"));
-      await tar.addFile(long, utf8("artifact"));
-      await tar.addFile("storage/é/ü.txt", utf8("accents"));
-    });
-    const dir = mkdtempSync(join(tmpdir(), "ronne-tar-"));
-    try {
-      writeFileSync(join(dir, "a.tar"), bytes);
-      const listed = execFileSync("tar", ["-tf", "a.tar"], { cwd: dir, encoding: "utf8" });
-      expect(listed.split(/\r?\n/).filter(Boolean)).toEqual([
-        "backup.json",
-        long,
-        "storage/é/ü.txt",
-      ]);
-      execFileSync("tar", ["-xf", "a.tar", long], { cwd: dir });
-      expect(readFileSync(join(dir, long), "utf8")).toBe("artifact");
-    } finally {
-      rmSync(dir, { recursive: true, force: true });
-    }
-  });
+  // Windows' tar prints names in the console's code page, not UTF-8; backups are made and read on
+  // Linux and macOS (121), where tar is checked.
+  it.skipIf(process.platform === "win32")(
+    "is read by the system's tar, long paths included",
+    async () => {
+      const long = `storage/${"d".repeat(130)}/${"e".repeat(140)}/1.0.0.tgz`;
+      const bytes = await archive(async (tar) => {
+        await tar.addFile("backup.json", utf8("{}\n"));
+        await tar.addFile(long, utf8("artifact"));
+        await tar.addFile("storage/é/ü.txt", utf8("accents"));
+      });
+      const dir = mkdtempSync(join(tmpdir(), "ronne-tar-"));
+      try {
+        writeFileSync(join(dir, "a.tar"), bytes);
+        const listed = execFileSync("tar", ["-tf", "a.tar"], { cwd: dir, encoding: "utf8" });
+        expect(listed.split(/\r?\n/).filter(Boolean)).toEqual([
+          "backup.json",
+          long,
+          "storage/é/ü.txt",
+        ]);
+        execFileSync("tar", ["-xf", "a.tar", long], { cwd: dir });
+        expect(readFileSync(join(dir, long), "utf8")).toBe("artifact");
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    },
+  );
 
   it("refuses unsafe and repeated paths, wrong sizes, and anything after the end", async () => {
     await expect(
