@@ -37,7 +37,7 @@ Lands in the next release, with 099 (owner, 2026-10-14): build it before that re
   (finished features' tasks and PLAN notes, WITNESS passes, and 086's and 087's index rows,
   which say what was true then; clarified 2026-10-14).
 
-- [ ] **4. Bundles, scripts and CI.** Four bundles (`bundles.yml`, `bundle.js`,
+- [x] **4. Bundles, scripts and CI.** Four bundles (`bundles.yml`, `bundle.js`,
   `bundle-check.js`, `bundle-smoke.js`, `packs.js`, `notices.js`); `winsw.js` and its test;
   `install.ps1`, `test-install.ps1`, `install-scripts.js`'s and `release-install-scripts.js`'s
   PowerShell parts, `install-scripts.yml`'s PowerShell job; `server-checks.yml`'s Windows install
