@@ -854,3 +854,15 @@ Witnessed: 2026-10-14 15:33 EDT, by a fresh agent (blind). Commit: 4c0c3ad0. Mac
 | 16 | No regressions; lint, types and build | no | confirmed | 93 passed; `pnpm lint`; typecheck; `TURBO_FORCE=true pnpm build` → 5 successful |
 
 **Overall:** not met: nested `e2e`/`test-results` folders and escaped directives get past the guard.
+
+## Task 2 — Requests (third re-check)
+
+Witnessed: 2026-10-14 15:38 EDT, by a fresh agent (blind). Commit: 886118e3. Machine: macOS 27.0.1, Node v24.0.0. Rows other than 3 and 16 carry over. A `next build` (16.4.0, Turbopack) checked which probes Next registers as actions.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1–2, 4–15 | As the earlier passes | no | confirmed | `git diff --stat 4c0c3ad0 886118e3` → the guard test, WITNESS.md |
+| 3 | Every exported action goes through `serverAction`; its guard fails when one doesn't | no | partly | Now caught: nested `e2e`/`test-results`/`playwright-report`/`.next`, `"use\x20server"` (CRLF, BOM). Still past, each registered by `next build`: `"use\u{20}server"`, `"u\se server"`, a line continuation, `"use strict"` then an escaped directive, a `.js` in a nested `node_modules` |
+| 16 | No regressions; lint and types | no | confirmed | 93 passed; clean |
+
+**Overall:** not met: escapes JSON can't read, a later directive in the prologue, and a nested `node_modules` get past the guard.
