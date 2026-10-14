@@ -1098,3 +1098,27 @@ Safety record, the same before and after: `md5 apps/web/.env` → b9eb4577b627e8
 | 17 | The service tests back up as the service's account; restore refused while it runs | no | confirmed | PR #180 CI: Linux 115612796743, macOS 115612796683, Windows 115612796730 → the step passed (not run here) |
 
 **Overall:** met: every claim held; refusals changed nothing, the locks held on the three servers and SQLite, and no `--out` spelling got inside storage. Low remarks outside the *Done when*: (1) a closed stdout (`| head -1`) crashes `backup` and `restore` with an unhandled EPIPE after they finished, so the exit is non-zero for a complete archive (`scripts/backup.ts:26`, `scripts/restore.ts:62`); (2) SIGHUP to tsx's parent alone, in a clone, orphans the backup (tsx's relay; a terminal hang-up signals the group, which works); (3) storage keys differing only by case can't restore onto a case-insensitive disk: it fails after the rows commit with an honest "partly restored" message; (4) with `RONNE_DATA_DIR` or `RONNE_ENV_FILE` set, `scriptForService` skips the running-service refusal (`control.ts:222`); the emptiness check and the locks still stop a restore into a set-up instance.
+
+## Follow-up: the adversarial re-check's remarks (after #180)
+
+Witnessed: 2026-10-14 07:28 EDT, by a fresh agent (adversarial, focused on the last fixes, the owner's choice). Commit: 227ebda7 + the working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+Safety record, the same before and after: `md5 apps/web/.env` → b9eb4577b627e856bf865342d88e9368; `git -C apps/web status --short --ignored .env data` → `!! .env`, `!! data/`; `grep -l fu-adv7 node_modules/.bin/*` → nothing. Disk images detached and deleted; no containers started.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1a | `checkStorageNames` removes the files and folders it made, and nothing already there | no | confirmed | APFS, HFS+ and exFAT images: clash pairs, file/folder clash, NFC/NFD, merged folder spellings → nothing left; a file another process wrote into the storage folder or a made folder stayed, and `leftover` named the folders |
+| 1b | A user's `._x` beside a folder it makes stays (APFS, HFS+); on exFAT the driver changes it | no | confirmed | `._x` md5 unchanged on APFS and HFS+; on exFAT plain `/bin/mkdir x` rewrote `._x` and `/bin/rmdir x` deleted it; removing the guard fails "a ._ file already beside a folder it made stays" |
+| 1c | It never removes a file another process writes meanwhile | no | partly | A writer's `s0/._f0.tgz`, `s1/._f1.tgz` and `storage/._s0`, written after the check made `s0`/`f0.tgz`, were deleted; its other files survived |
+| 2a | A signal during the check undoes, prints what's left, and exits 130/143/129/131 | no | not met | Random-moment signals: 20 of 60 swallowed on APFS, 11 of 40 on exFAT; aimed at the cleanup, 8 of 8; on a real 20,001-file restore, SIGINT/SIGTERM during the cleanup let it finish ("Restored … 20,001 stored files", exit 0). When handled: the right codes, and an unremovable folder's message printed |
+| 2b | Nothing it made is left, at any moment (APFS, exFAT) | no | confirmed | 100 random-signal trials → `left=0`; only runs through the tsx CLI wrapper on SIGHUP/SIGQUIT left the child running, which then emptied the folder (the spec's tsx note) |
+| 2c | A test covers a signal | no | confirmed | `storage-names.test.ts` sends SIGINT, expects 130; dropping `process.on` fails it. Not the last stretch |
+| 3 | A dangling link or a file on the storage path gets the plain error; a real clash the clash message (APFS, HFS+, exFAT) | no | confirmed | "can't be written … (EEXIST)" / "(ENOTDIR)"; a case-sensitive backup's `a.tgz`/`A.tgz` → "are one name in the storage folder…" on all three, nothing left; restores on case-sensitive APFS; mutation `madeHere = true` fails the test |
+| 4 | The closed-output script test asserts the restore's `.env` | no | confirmed | `scripts/backup.db.test.ts:172`; a mutation writing `.env` only on a TTY fails it |
+| 5 | SPEC step 4 says the above and nothing untrue | no | partly | The exit-code promise (row 2a) and "nothing else" (row 1c) were untrue |
+| 6 | No regression | no | confirmed | `vitest run src/server/backup` → 63 passed, 2 skipped; `--project db src/server/backup scripts` → 69 passed, 3 skipped (×4; the first cold run in a fresh copy had 3 failures that didn't recur); `test:db:postgres -- src/server/backup` → 36 passed, 1 skipped |
+| 7 | Windows | no | can't check here | The pull request's CI |
+
+**Overall:** not met: nothing is ever left behind, but a signal in the check's last stretch or cleanup could be lost (the restore went on), the cleanup removed `._name` files another process wrote into folders it made, and the spec promised neither happens.
+
+**Since this pass** (the owner's decision: this focused pass, then the pull request; nothing further unless a real safety problem): the check lets the event loop in once more before its handlers go, so a pending signal is handled (40 SIGINTs aimed at the end of a 20,000-file check: all exit 130, nothing left; before, about a third lost), and it removes a `._name` only when it appeared as the check made `name`. The spec says both. Windows is checked by the pull request's CI.

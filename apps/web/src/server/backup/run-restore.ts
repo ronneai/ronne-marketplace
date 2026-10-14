@@ -15,6 +15,7 @@ import { generateAuthSecret, mergeEnv } from "../setup/env-file";
 import { ContainerError } from "./crypto";
 import { isEmptyDatabase, RestoreError, restoreArchive } from "./restore";
 import type { BackupLog } from "./run-backup";
+import { checkStorageNames } from "./storage-names";
 import { type VerifyResult, verifyArchive } from "./verify";
 
 type Env = Record<string, string | undefined>;
@@ -135,6 +136,34 @@ export const runRestore = async (options: {
       `The storage folder ${storageRoot} couldn't be looked at (${codeOf(error) ?? "an error"}). Nothing was changed.`,
     );
   }
+
+  // Every stored file made empty at its own path first, then removed (storage-names.ts): what the
+  // storage folder can't hold is refused before anything is written.
+  let names: Awaited<ReturnType<typeof checkStorageNames>>;
+  try {
+    names = await checkStorageNames(Object.keys(manifest.files), storageRoot);
+  } catch (error) {
+    throw new RestoreFailedError(
+      `The backup's files couldn't be tried in the storage folder ${storageRoot} (${codeOf(error) ?? "an error"}). Nothing was changed.`,
+    );
+  }
+  const leftover = names.leftover
+    ? ` Trying its files there left ${names.leftover.join(", ")}, which couldn't be removed: remove ${names.leftover.length > 1 ? "them" : "it"}.`
+    : "";
+  const problem = names.problem;
+  if (problem?.kind === "same")
+    throw new RestoreFailedError(
+      `The backup's stored ${problem.a} and ${problem.b} are one name in the storage folder ${storageRoot}: its disk doesn't tell apart what the backup's did (case, or how letters are encoded). Restore onto a disk that does, as Linux's usually do. Nothing was changed.${leftover}`,
+    );
+  if (problem?.kind === "taken")
+    throw new RestoreFailedError(
+      `The backup's stored ${problem.b} lands on another of its files in the storage folder ${storageRoot}: its disk doesn't tell apart what the backup's did (case, or how letters are encoded). Restore onto a disk that does, as Linux's usually do. Nothing was changed.${leftover}`,
+    );
+  if (problem?.kind === "unmade")
+    throw new RestoreFailedError(
+      `The backup's stored ${problem.b} can't be written in the storage folder ${storageRoot} (${problem.code}). Nothing was changed.${leftover}`,
+    );
+  if (names.leftover) log.warn(leftover.trim());
 
   if (manifest.missingArtifacts.length > 0) {
     const what = `${count(manifest.missingArtifacts.length, "released version")} ${manifest.missingArtifacts.length === 1 ? "has" : "have"} no artifact in this backup (missing from storage when it was made), so ${manifest.missingArtifacts.length === 1 ? "it" : "they"} will answer artifact_unavailable`;

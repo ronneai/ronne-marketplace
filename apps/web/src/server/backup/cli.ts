@@ -182,3 +182,14 @@ export const parseRestoreCommand = (argv: string[]): RestoreCommand => {
     yes: values.yes === true,
   };
 };
+
+/**
+ * Messages that can't be written (an output closed early, `… | head -1`, or a full disk under a
+ * redirection) are lost, not the work: without this, the write's error would end a backup or a
+ * restore part way (a restore after its data is in, before its settings file) with a crash.
+ */
+export const ignoreOutputErrors = (
+  streams: NodeJS.EventEmitter[] = [process.stdout, process.stderr],
+) => {
+  for (const stream of streams) stream.on("error", () => undefined);
+};

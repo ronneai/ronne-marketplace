@@ -18,6 +18,8 @@ export type FakeSystem = System & {
   attached: NonNullable<Parameters<System["runAttached"]>[2]>[];
   /** Paths that are symbolic links. */
   links: Set<string>;
+  /** Other names of one file or folder (a link, another case): the name each one stands for. */
+  aliases: Map<string, string>;
   /** What followFiles was given. */
   followed: string[][];
 };
@@ -45,6 +47,7 @@ export const fakeSystem = (
     statuses: [503],
     answer: "",
     links: new Set(),
+    aliases: new Map(),
     attached: [],
     followed: [],
     isRoot: () => options.root ?? true,
@@ -68,6 +71,10 @@ export const fakeSystem = (
     },
     which: (name) => (sys.files.has(`/usr/bin/${name}`) ? `/usr/bin/${name}` : undefined),
     isLink: (path) => sys.links.has(path),
+    sameFile: (a, b) => {
+      const id = (path: string) => sys.aliases.get(path) ?? path;
+      return sys.exists(id(a)) && id(a) === id(b);
+    },
     // A folder exists when it was made or holds a file, as on a disk.
     exists: (path) =>
       sys.files.has(path) ||

@@ -389,3 +389,60 @@ goes into `SPEC.md` instead.
     archive's owner and mode, then check restore is refused while the service runs and, once it's
     stopped, runs as the service as far as its own emptiness check. They need the real services:
     CI only.
+- **After the merge (#180): the adversarial re-check's low remarks** (branch `feat/099-backup-followup`):
+  - A closed output (`| head -1`) crashed `backup` and `restore` after they finished, with a failing
+    exit code; any other output error (a full disk under a redirection) did too, and a restore then
+    ended after its data was in, before its settings file. Both scripts now ignore errors writing
+    their messages (`ignoreOutputErrors` in `backup/cli.ts`). Tested on the real scripts with
+    `… | true` (`scripts/backup.db.test.ts`, which fails without either call); run here with the
+    output on a full disk image: restore exits 0 with its settings file written.
+  - `rmk-server restore` with `RONNE_DATA_DIR` or `RONNE_ENV_FILE` naming the service's own folder
+    or settings file is refused while the service runs. The paths are compared as the disk sees
+    them (`sameFile`: device and file number), so links, macOS's `/System/Volumes/Data` firmlink
+    (which `realpath` doesn't resolve), case and Windows' short names count. A relative one is
+    resolved from the web app's folder in the package (`webDir`, passed by `run.ts`), where the
+    scripts resolve it. Another instance's folder runs as before (`control.test.ts`,
+    `system.test.ts`).
+  - Restore tries every stored file at its own path in the storage folder before writing anything
+    (`backup/storage-names.ts`): it makes each, empty, where the restore will write it, then removes
+    what it made (by the names it made first: macOS's exFAT lists Å decomposed and then can't
+    remove it by that spelling; then the folders it made, and exFAT's `._` files beside them),
+    leaving the folder as it was. Two names the folder takes for one, a file where a folder must
+    go, or a file that can't be written (ENAMETOOLONG, EILSEQ, EACCES…) refuse the restore with
+    nothing changed; SIGINT, SIGTERM and SIGHUP meanwhile undo it before exiting. Owner's decision
+    (2026-10-14): ask the target disk. Four rounds got there: a per-OS rule, a wide fold picking
+    pairs to ask about, then a dry run in a folder next to the storage; each witness found what
+    they missed (APFS's ᾼ͂/ᾷ, HFS+'s ignorables, names no pair covered; then the whole path's length,
+    the storage folder's own permissions, per-folder casefolding, and a read-only parent refused
+    wrongly), all of which only the real paths answer. Run here: the witness's pairs refused on
+    APFS, HFS+ and exFAT with nothing left (exFAT keeps a/a‌b apart and restores them); a read-only
+    parent restores, a read-only storage folder is refused; a long full path restores where it
+    fits; SIGINT and SIGTERM during a 20,000-file run exit 130 and 143 with the data folder empty;
+    20,000 files take about 5 s. Tests follow the disk they run on (`storage-names.test.ts`,
+    `restore.db.test.ts`), also run with TMPDIR on a case-sensitive APFS image.
+  - The fifth round's witness found the cleanup removed more than it made: a user's `._x` beside a
+    folder it made, and a file another process wrote into the storage folder meanwhile (a sweep
+    of new entries). Now it removes exactly what it recorded making, non-recursively, and a `._`
+    file only when it wasn't there before; each step is synchronous, with a yield every 256
+    files, so a signal never finds a folder made and not yet recorded (the async version left
+    one, caught by the new signal test). SIGQUIT joined SIGINT, SIGTERM and SIGHUP, and a signal
+    prints what couldn't be removed. A dangling link or a file on the storage path now reads as
+    the error it is (`unmade`), not as a clash. On exFAT, macOS itself rewrites a `._x` when any
+    program makes a folder `x` and deletes it with `x` (checked with plain mkdir/rmdir): the
+    restore's own mkdir would do the same, so it stays. Run again on HFS+ and exFAT images: the
+    pairs refused with nothing left; SIGINT, SIGHUP, SIGQUIT exit 130, 129, 131 with the data
+    folder empty.
+  - The focused pass (owner's choice, 2026-10-14) found a signal during the check's last
+    synchronous stretch or its cleanup could be lost (the handlers came off before the event loop
+    delivered it) and the restore went on; and `._name` files another program wrote into a folder
+    the check made were removed. Now the check lets the event loop in once more before the
+    handlers go, and removes a `._name` only when it appeared as the check made `name`. Run here:
+    40 SIGINTs aimed at the end of a 20,000-file check, all exit 130 with nothing left (before:
+    about one in three lost, the witness's count). No test injects a writer between the check's
+    steps; the rule is in `storage-names.ts` with its reason.
+  - Writing the storage files inside the rows' transaction wouldn't make a failure leave nothing:
+    the migrations run before it (and MySQL commits schema changes on its own), so the up-front
+    check stays the way.
+  - Left as it is: SIGHUP sent to tsx's parent alone, in a clone, orphans the backup (tsx's
+    relay; a terminal hang-up signals the group, which works). No test checks that `run.ts` passes
+    `webDir` (it would need the packed server).
