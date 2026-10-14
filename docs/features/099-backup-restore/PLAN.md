@@ -62,7 +62,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* those workflows pass on a pull request with the change.
 
 - [ ] **8. The backup runbook.** `docs/runbooks/backup.md`: the table per way of installing,
-  schedules (cron, systemd timer, launchd, Task Scheduler, a Docker host), copies off the machine,
+  schedules (cron, systemd timer, launchd, a Docker host; no Windows server, 121), copies off the machine,
   restoring, moving to another machine and another database, Caddy's certificates, encryption at
   rest, PostgreSQL's vacuum note, timings from the backup benchmark on a named machine (owner's
   decision, 2026-10-14: CI doesn't run it). `install.md`'s "Back up" points to it.
@@ -482,7 +482,7 @@ goes into `SPEC.md` instead.
     `sudo rmk-server backup` as the service's account and restore's refusal while it runs, on
     systemd, launchd and WinSW; the in-place restore under a service is the npm one plus
     `service stop`/`start`); `launchctl bootstrap` and `systemctl enable` (they would install a
-    schedule on this machine); Windows (PowerShell's `Register-ScheduledTask`); the bundled MySQL
+    schedule on this machine); Windows (PowerShell's `Register-ScheduledTask`; since removed, 121); the bundled MySQL
     (the same as PostgreSQL's, another profile); `rclone` and `aws s3 cp` (no remote here; examples).
   - **Timings:** not from CI, which doesn't run the benchmark: `bench:backup` here (M1 Max) on SQLite
     and PostgreSQL at 1,000 and 10,000 items (0.07–0.36 s). Memory held grows with the size (1.5 →

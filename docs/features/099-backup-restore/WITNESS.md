@@ -1168,3 +1168,29 @@ Safety record, the same before and after: `md5 apps/web/.env` → b9eb4577b627e8
 **Overall:** not met: backup, `--keep`, `--encrypt`, `--verify` and both Docker restores work as written; the service in-place restore fails with EACCES, the Docker bundled-PostgreSQL restore needs the password in the shell, cron and launchd need `node` on the scheduler's `PATH` for npm installs, and the timings aren't from CI.
 
 **Since this pass:** the service in-place restore moves the database and storage aside inside the data folder (which stays), and restores from `backups/` there, run in a simulated Linux service (Debian, the account, `/etc/rmk-server` as `service install` makes it): restored as the account, the stored file identical; the old form now gets "the data folder … isn't there and couldn't be made (EACCES). Make it, owned by the account that runs Ronne" instead of a stack trace (`run.ts`). The bundled-PostgreSQL URL takes the password written in (from `.env`), as run on 2026-10-14 earlier. Cron gets a `PATH` line (run: 127 without it, 0 with it) and the plist an `EnvironmentVariables` `PATH` (`plutil -lint` OK); the packages' launcher needs neither. The Docker copy-in makes `backups/` 0700. macOS's paths are named. Windows is gone from the runbook (owner's decision, 2026-10-14: no Windows server in the next release, 121).
+
+## Task 8 — The backup runbook (re-check)
+
+Witnessed: 2026-10-14 09:45 EDT, by a fresh agent (blind). Commit: b1608cf3. Machine: macOS 27.0.1 (Apple M1 Max), Node v24.0.0 (containers: node:24-trixie-slim, debian:13). It saw the diff's "After the witness" note before its verdicts (the rest of the notes only after).
+
+Safety record, the same before and after: `md5 apps/web/.env` → b9eb4577b627e856bf865342d88e9368; `git -C apps/web status --short --ignored .env data` → `!! .env`, `!! data/`; `grep -l t8-recheck node_modules/.bin/*` → nothing. Containers ran with `--rm`; the `t8b` project `down -v`; the image removed.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The service in-place restore works on a simulated Linux service | yes | confirmed | Debian, the account, `/etc/rmk-server` and `/var/lib/rmk-server` as install makes them; setup, a 300 KiB file, backup; the runbook's `mv` and `restore` → "Restored 7 rows … 1 stored file", exit 0; the file's sha256 matches; `--verify` complete |
+| 2 | Moving the data folder away gives one line, not a stack trace | yes | confirmed | `backup` and `restore` → "rmk-server: the data folder /var/lib/rmk-server isn't there and couldn't be made (EACCES). …", exit 1 (`run.ts:123-132`) |
+| 3 | The cron lines with the `PATH` line work for npm, as cron runs them | yes | confirmed | Plain and encrypted → exit 0; "Wrote …tar" and "…tar.enc"; `--keep 2` left 2 |
+| 4 | Without the `PATH` line, 127 | yes | confirmed | "env: 'node': No such file or directory" |
+| 5 | The plist lints and its `PATH` finds node | yes | confirmed | `plutil -lint` OK (both variants); `/opt/homebrew/bin/node` found. Remark: with both Homebrew and /usr/local nodes, launchd uses Homebrew's |
+| 6 | The systemd units pass `systemd-analyze verify` | yes | confirmed | debian:13, systemd 257 → exit 0 (also with `EnvironmentFile=`); negative controls exit 1 |
+| 7 | Docker copy-in makes `backups/` 0700 node's; restore works | yes | confirmed | `drwx------ node:node`, archive 0600; restored; `/` → `/sign-in`; sha256 matches |
+| 8 | Bundled-PostgreSQL restore with the password in the URL | yes | confirmed | "into the PostgreSQL database"; `psql` shows root@example.com; sha256 matches |
+| 9 | No Windows left in the runbook | yes | confirmed | Only line 69 (WSL 2 or a VM) |
+| 10 | Timings from the benchmark on a named machine, matching | yes | confirmed | Re-run on M1 Max: SQLite 0.07/0.18 s, PostgreSQL 0.14/0.36 s, held 1.5/16.7 MiB |
+| 11 | The spec's edge case matches the decision | yes | confirmed | `SPEC.md:265-267` |
+| 12 | The spec and task match the runbook after no-Windows | no | partly | `SPEC.md:24-25` Task Scheduler, `:250` a Windows service row, `:257` BitLocker; the task's first line Task Scheduler; 121 not in `docs/features` |
+| 13 | The rest of the runbook matches the code | no | confirmed | Every quoted message and flag found; macOS paths match `layout.ts:111-125` |
+
+**Overall:** not met: every command re-run holds; the spec and the task text still describe Windows for the runbook (row 12).
+
+**Since this pass:** the spec's runbook scope, table and encryption-at-rest line, and the task's first line, have no Windows (with "no Windows server, 121"); the stale "not run here" note says Windows was since removed; 121's spec and index row are on this branch.
