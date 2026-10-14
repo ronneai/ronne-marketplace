@@ -1323,3 +1323,33 @@ Witnessed: 2026-10-14 18:00 EDT, by a fresh agent (blind). Commit: 4f06f880 (ron
 | 21 | Marketplace help tests | no | confirmed | 3 passed |
 
 **Overall:** not met: one French term. Fixed in ronne-web (next commit after c92b77f): "rapports d'utilisation".
+
+## Task 6 — Documentation (eighth re-check)
+
+Witnessed: 2026-10-14 18:06 EDT, by a fresh agent (blind). Commit: 4f06f880 (HEAD 0e065ad3 only adds to WITNESS.md; ronne-web c8817c3). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Every event in the table in en, pt, fr, nothing extra | no | confirmed | `cmp.mjs`: 21 each; drift in a changed copy is caught |
+| 2 | Every field writers write is listed | no | confirmed | 29 `.event(` calls |
+| 3 | Level variants and When notes | no | confirmed | `api-route.ts`, `plugin-feed.ts:409`, `publish.ts:609`, `bulk-release.ts`, `started.ts:26`, `access-tokens.ts` |
+| 4 | `operations#logs` in both `topics.ts` | no | confirmed | Both |
+| 5 | Where the logs are | no | confirmed | `compose.yaml:50`, `linux.ts`, `layout.ts:94`, `args.ts:150` |
+| 6 | A clone: `pnpm start` JSON, `pnpm dev` text | no | confirmed | `bin/next:54,80`; `parseLogFormat`; probe; `turbo.json:19` |
+| 7 | `time`, `level`, fixed `msg`, the example, Better Auth's lines | no | confirmed | Child-process probe; an email argument isn't written |
+| 8 | `domain`, `requestId`, `userId`, `err` | no | confirmed | Probe: context `userId` wins; stack only at error; a thrown string → `{"type":"string"}` |
+| 9 | LOG_LEVEL | no | confirmed | Probe: unset, `bogus`, `WARN`, `debug`, `error` |
+| 10 | Settings file, environment, Docker's `.env`, restart | no | confirmed | `RONNE_ENV_FILE` probe; env overrides file; `docker compose config` |
+| 11 | What the logger takes out, alone and combined | no | confirmed | Probe, every rule and combinations |
+| 12 | Ronne doesn't write secrets, emails, IPs, names | no | confirmed | 29 calls and 6 plain calls; Better Auth IP tracking off without TRUST_PROXY |
+| 13 | Next.js's own output | no | confirmed | `base-server.js:448,1012` |
+| 14 | X-Request-Id | no | confirmed | 22/22 API routes; `proxy.ts`; `api-route.ts:32` |
+| 15 | TRUST_PROXY | no | confirmed | `request-id.ts:8,17-22` |
+| 16 | en, pt, fr the same | no | confirmed | Side by side |
+| 17 | The site's terms | no | partly | pt "workspaces" (site: "espaço(s) de trabalho"), pt "entrada" for sign-in (site: "login"); fr "e-mail" (site: "courriel") |
+| 18 | `.env.example` | no | confirmed | Lines 26-30. Remark: the TRUST_PROXY comment mentions only X-Forwarded-For |
+| 19 | Install guide | no | confirmed | Lines 304-310. Remark: the Docker settings table doesn't list LOG_LEVEL and LOG_FORMAT |
+| 20 | ronne-web tests and typecheck | no | confirmed | 138 passed; exit 0 |
+| 21 | Marketplace help tests | no | confirmed | 3 passed; `src/server/log` 103 passed |
+
+**Overall:** not met: three terms. Fixed in ronne-web 6b42ed6, with a sweep of every pt and fr word in the section against the language's other pages (fr "envoi" for an upload also became "téléversement"); the remarks in the next commit here (settings table rows, TRUST_PROXY comment).

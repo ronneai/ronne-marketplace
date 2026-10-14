@@ -111,6 +111,8 @@ address without a port.
 | `RONNE_TLS` | `auto` | `auto` (Let's Encrypt), `files` (your own certificate), `internal` (a test certificate) |
 | `RONNE_ACME_EMAIL` | empty | Where the certificate authority sends expiry notices |
 | `RONNE_TRUSTED_PROXIES` | empty | Only behind your own web server: who may tell Ronne the client's address (`private_ranges`) |
+| `LOG_LEVEL` | `info` | The least serious log lines written: `debug`, `info`, `warn` or `error` |
+| `LOG_FORMAT` | `json` | `json`, or `text` for a person reading a terminal |
 
 **Your company's certificate** (a private network, or a certificate from your IT team): set
 `RONNE_TLS=files` and put `cert.pem` (with the full chain) and `key.pem` in a `certs` folder next
