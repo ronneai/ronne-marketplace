@@ -347,10 +347,33 @@ describe("more of what a line can't carry", () => {
     expect(line).toMatch(/ requestId=REAL\n$/);
   });
 
-  it("quotes a plain string value holding an =", () => {
+  it("quotes a plain string value holding an = or a quote", () => {
     const { log, lines } = collect({ format: "text" });
-    log.info("m", { e: "a=b" });
+    log.info("m", { e: "a=b", s: 'a"b' });
     expect(lines[0]).toContain('e="a=b"');
+    expect(lines[0]).toContain('s="a\\"b"');
+  });
+
+  it("escapes invisible characters, so a key can't pass for another on screen", () => {
+    const { log, lines } = collect({ format: "text" });
+    withRequestContext({ requestId: "REAL" }, () =>
+      log.info("m", { "requestId\u200b": "forged", soft: "a\u00adb\ufeffc\u2060d" }),
+    );
+    expect(lines[0]).toContain("requestId\\u200b=forged");
+    for (const mark of ["\u200b", "\u00ad", "\ufeff", "\u2060"])
+      expect(lines[0]).not.toContain(mark);
+  });
+
+  it("leaves a small domain that isn't a name out of the head", () => {
+    const { log, lines } = collect();
+    log.child({ domain: { a: 1 } }).info("m");
+    expect(JSON.parse(lines[0] ?? "")).not.toHaveProperty("domain");
+  });
+
+  it("writes a __proto__ field as a field", () => {
+    const { log, lines } = collect();
+    log.info("m", JSON.parse('{"__proto__":{"a":1}}'));
+    expect(lines[0]).toContain('"__proto__":{"a":1}');
   });
 
   it("caps the finished line: escaping and quoting can't take it past MAX_LINE", () => {

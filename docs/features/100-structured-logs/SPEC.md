@@ -178,13 +178,16 @@ read every secret itself.
   fields are written as `"fields": "[too big]"`, with the time, level, message, domain, event and
   request kept. The head holds only names and ids: a `domain` or `userId` that isn't a string or a
   number is left out.
-- **A secret key** is told by the key's end only (its last letters, `_` and `-` left out), once per
-  object per line, so a key of any length costs little.
+- **A secret key** is told by the key's end only (its last letters, `_` and `-` left out, at most
+  256 characters read), once per object per line, so a key of any length costs little. A key whose
+  end is too long to read that way (a long run of `_` or `-`) counts as a secret.
+- **A `__proto__` field** (from request JSON) is written as a field, like any other.
 - **A Date or bytes** are read with the built-in methods (`Date.prototype.toISOString`, the
   `byteLength` getters), never the value's own, which could return a secret or something huge.
 - **A getter that throws** marks that field `"[unserialisable]"`; the rest of the line is written.
 - **Control characters** (a newline, an ANSI escape, C1 controls, U+2028/9, the bidirectional
-  marks U+061C, U+200E/F, U+202A–E, U+2066–9) are escaped as `\uXXXX` (or JSON's `\n` inside a
+  marks U+061C, U+200E/F, U+202A–E, U+2066–9, and the invisible U+00AD, U+180E, U+200B–D,
+  U+2060–4, U+FEFF) are escaped as `\uXXXX` (or JSON's `\n` inside a
   quoted value), in text and in JSON alike, so nothing can split a line, forge another one, drive
   the terminal or reorder what it shows. In text, a key or string value with a space, `=` or `"` is
   quoted, an object or array value (JSON) when it holds a space or `=`, and an `=` in the domain,

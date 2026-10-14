@@ -24,16 +24,22 @@ const SECRET_KEYS = [
 /** The longest ending that can name a secret: "authorizations". */
 const SECRET_TAIL = Math.max(...SECRET_KEYS.map((secret) => secret.length)) + 1;
 
+/** At most this many characters are read from a key's end. */
+const SECRET_READ = 256;
+
 /**
- * Whether a key names a secret. Only its end is read (its last letters, `_` and `-` left out), so a
- * key of any length costs little.
+ * Whether a key names a secret. Only its end is read (its last letters, `_` and `-` left out), at
+ * most SECRET_READ characters, so a key of any length costs little. A key whose end is too long to
+ * read that way (a long run of `_` or `-`) counts as a secret: more is hidden, never less.
  */
 export const isSecretKey = (key: string): boolean => {
   let tail = "";
-  for (let i = key.length - 1; i >= 0 && tail.length < SECRET_TAIL; i--) {
+  let i = key.length - 1;
+  for (; i >= 0 && tail.length < SECRET_TAIL && key.length - i <= SECRET_READ; i--) {
     const char = key.charAt(i);
     if (char !== "_" && char !== "-") tail = char.toLowerCase() + tail;
   }
+  if (i >= 0 && tail.length < SECRET_TAIL) return true;
   return SECRET_KEYS.some((secret) => tail.endsWith(secret) || tail.endsWith(`${secret}s`));
 };
 
@@ -269,7 +275,8 @@ const cleanObject = (
   cleanValue: (item: unknown, key: string) => unknown,
   markEach = false,
 ): Record<string, unknown> => {
-  const out: Record<string, unknown> = {};
+  // No prototype: a `__proto__` key (from request JSON) is kept as a field, not taken as one.
+  const out: Record<string, unknown> = Object.create(null);
   const { first, secret, total } = keysOf(line, value);
   let written = 0;
   for (const [index, key] of first.entries()) {

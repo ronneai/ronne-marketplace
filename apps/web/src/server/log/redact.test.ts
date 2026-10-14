@@ -38,6 +38,9 @@ describe("isSecretKey", () => {
       "api_key",
       "X-Api-Key",
       "tokens",
+      "authorizations",
+      "proxy_Authorizations",
+      "passwords",
     ])
       expect(isSecretKey(key), key).toBe(true);
   });
@@ -498,5 +501,25 @@ describe("cleanFields", () => {
     const started = performance.now();
     cleanFields({ a: new Array(100).fill(new Array(10).fill(o)) }, false);
     expect(performance.now() - started).toBeLessThan(500);
+  });
+
+  it("reads at most a few hundred characters of a key's end, so separator runs cost nothing", () => {
+    // Too long to read as letters: counted as a secret, more hidden, never less.
+    expect(isSecretKey(`id${"_".repeat(10_000_000)}`)).toBe(true);
+    expect(isSecretKey(`id${"_".repeat(20)}`)).toBe(false);
+    const key = `a${"_".repeat(10_000_000)}`;
+    const started = performance.now();
+    cleanFields(
+      { a: Array.from({ length: 100 }, () => Array.from({ length: 9 }, () => ({ [key]: 1 }))) },
+      false,
+    );
+    expect(performance.now() - started).toBeLessThan(500);
+  });
+
+  it("keeps a __proto__ field from request JSON as a field", () => {
+    const fields = JSON.parse('{"__proto__":{"userId":"x","password":"p"},"ok":1}');
+    const out = cleanFields(fields, false);
+    expect(Object.keys(out)).toEqual(["__proto__", "ok"]);
+    expect(JSON.stringify(out)).toBe('{"__proto__":{"userId":"x","password":"[redacted]"},"ok":1}');
   });
 });

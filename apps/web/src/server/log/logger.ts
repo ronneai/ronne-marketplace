@@ -51,17 +51,20 @@ const COLOURS: Record<LogLevel, string> = {
 const RESET = "\u001b[0m";
 
 /**
- * A character that could break a text line, drive the terminal or reorder what it shows: C0, DEL,
- * C1, U+2028/9, and the bidirectional formatting marks (U+061C, U+200E/F, U+202A–E, U+2066–9).
+ * A character that could break a text line, drive the terminal, reorder what it shows or hide in
+ * it: C0, DEL, C1, U+2028/9, the bidirectional marks (U+061C, U+200E/F, U+202A–E, U+2066–9) and
+ * the invisible ones (U+00AD, U+180E, U+200B–D, U+2060–4, U+FEFF).
  */
 const isControl = (code: number) =>
   code < 0x20 ||
   (code >= 0x7f && code < 0xa0) ||
+  code === 0x00ad ||
   code === 0x061c ||
-  code === 0x200e ||
-  code === 0x200f ||
+  code === 0x180e ||
+  (code >= 0x200b && code <= 0x200f) ||
   (code >= 0x2028 && code <= 0x202e) ||
-  (code >= 0x2066 && code <= 0x2069);
+  (code >= 0x2060 && code <= 0x2069) ||
+  code === 0xfeff;
 
 /**
  * Text with every control character written as `\uXXXX`, so a line stays one line. In a JSON line
@@ -160,22 +163,19 @@ export const createLogger = (options: LoggerOptions, bindings: Fields = {}): Log
         ...(isName(userId) ? { userId } : {}),
       };
       const head = { ...line };
+      // defineProperty: a `__proto__` field (from request JSON) stays a field.
       for (const [key, value] of Object.entries(own))
-        if (!RESERVED.includes(key)) line[key] = value;
+        if (!RESERVED.includes(key))
+          Object.defineProperty(line, key, {
+            value,
+            enumerable: true,
+            writable: true,
+            configurable: true,
+          });
       // Whatever the budget let through, escaping and quoting included: a line has a size. Past
-      // it, the fields go; and if the head is still too big (a long message, ID or domain), all
-      // but the time, the level and the event.
-      const candidates = [
-        line,
-        { ...head, fields: TOO_BIG },
-        { time: head.time, level, msg: TOO_BIG, ...(event ? { event } : {}), fields: TOO_BIG },
-      ];
-      let text = "";
-      for (const candidate of candidates) {
-        text = format(candidate);
-        if (text.length <= MAX_LINE) break;
-      }
-      write(text);
+      // it, the fields go; the head alone is far below it (each part at most 2,001 characters).
+      const text = format(line);
+      write(text.length > MAX_LINE ? format({ ...head, fields: TOO_BIG }) : text);
     } catch {
       // Logging never fails a request: the line, as little as it can be.
       try {

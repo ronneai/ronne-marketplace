@@ -350,3 +350,66 @@ Witnessed: 2026-10-14 12:53 EDT, by a fresh agent (adversarial). Commit: 99922b6
 | 22 | Lint and types | no | confirmed | Clean |
 
 **Overall:** not met: a huge key blocks for seconds through `isSecretKey`; the replacement line can pass the cap through a non-string `domain` or `userId`; six mutations pass the tests.
+
+## Task 1 — The logger (sixth check)
+
+Witnessed: 2026-10-14 13:10 EDT, by a fresh agent (blind). Commit: 11f436db. Machine: macOS 27.0.1, Node v24.0.0. Judged within the spec's scope.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Line fields in order | no | confirmed | H3 → 2 fail |
+| 2 | Levels, filter | no | confirmed | 82 passed; D1 → 5 fail |
+| 3 | Events in one module | no | confirmed | 21 names |
+| 4 | Invalid `LOG_LEVEL` | no | confirmed | D5 → 1, D6 → 2 fail |
+| 5 | `config.ts` | no | confirmed | Fallback to the environment |
+| 6 | `child()` | no | confirmed | Test |
+| 7 | JSON and text | no | confirmed | D7 → 8 fail |
+| 8 | Request context | no | confirmed | D2 → 9 fail |
+| 9 | Secret key spellings | no | confirmed | 39 spellings, 0 missed; 10 ordinary names, 0 false positives |
+| 10 | Secret check once per object per line | no | confirmed | K6 → 1, K7 → 4 fail |
+| 11 | Only a key's end is read | no | partly | A trailing run of `_`/`-` is read whole: 900 objects sharing a 10M-underscore key → 23,455 ms |
+| 12 | Redaction rules | no | confirmed | D8, D9, R1–R4 caught |
+| 13 | Head keeps names only | no | confirmed | H2 → 1 fails; H1 survives |
+| 14 | Fallback under the cap | no | confirmed | Worst head 48,065 characters; H5, H6 → 1 fail each; the third candidate unreachable |
+| 15 | Message or ID over 64 KB | no | confirmed | C1 → 1, C2 → 2 fail |
+| 16 | Keys over 64 KB not read | no | confirmed | R5 → 2 fail |
+| 17 | Quoting sentence matches | no | confirmed | Q1, Q3 → 1 fail each |
+| 18 | Cycles, BigInt | no | confirmed | D3 → 3, D4 → 2 fail |
+| 19 | Tests pass | no | confirmed | 82 |
+| 20 | Tests catch breakage | no | partly | 34 mutants, 28 caught; not: `SECRET_TAIL` one short (`authorizations` missed), a whole-key read, a small non-name domain kept, a string with `"` unquoted |
+| 21 | `codeql-regex.md`, `codeql-logging.md` | no | confirmed | Linear; no env value written |
+| 22 | No new dependency | no | confirmed | Empty diff |
+| 23 | Lint and types | no | confirmed | Clean |
+
+**Overall:** not met: a trailing run of `_` or `-` is read whole; four mutants pass the tests.
+
+## Task 1 — The logger (adversarial, sixth check)
+
+Witnessed: 2026-10-14 13:02 EDT, by a fresh agent (adversarial). Commit: 11f436db. Machine: macOS 27.0.1, Node v24.0.0. Within the spec's scope.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Levels; `LOG_LEVEL` trimmed, any case | no | confirmed | Probe |
+| 2 | Invalid `LOG_LEVEL` | no | confirmed | One warn line |
+| 3 | `child()`; a field's domain wins | no | confirmed | Probe |
+| 4 | Events; unknown names dropped | no | confirmed | No throw |
+| 5 | Context under concurrency | no | confirmed | 300 → 0 wrong |
+| 6 | `config.ts`, settings fallback | no | confirmed | Folder probe |
+| 7 | Valid JSON, one line, both formats | no | confirmed | 52 runs |
+| 8 | No secret written | no | confirmed | Keys, tokens, URLs, errors, msg, IDs, domain → 0 leaks |
+| 9 | Every secret-key spelling caught | no | confirmed | 15 spellings true; 4 ordinary false |
+| 10 | A key of any length costs little | no | not met | Separators don't count: 500 objects sharing a 10 MB `id___…` key → 10,645 ms |
+| 11 | Head names only | no | confirmed | Object, array left out |
+| 12 | Every line ≤ 131,072 | no | confirmed | Largest 50,096 |
+| 13 | Fallback valid, head kept | no | confirmed | Parses |
+| 14 | Text: nothing passes for a field | no | partly | A key `requestId` + U+200B shows as `requestId=forged` |
+| 15 | Cycles, BigInt, no throw | no | confirmed | 52 runs, 0 throws |
+| 16 | Dates, Buffers | no | confirmed | `[7000000 bytes]` |
+| 17 | Milliseconds on request data | no | partly | 149 ms worst; the shared-key case of row 10 → seconds |
+| 18 | Closed stdout | no | confirmed | Alive |
+| 19 | No new dependency | no | confirmed | Empty diff |
+| 20 | Tests pass | no | confirmed | 82 |
+| 21 | Tests catch the new behaviour | no | partly | 12 mutations, 8 caught; not: `SECRET_TAIL` one short, the head's domain check, the per-object cache |
+| 22 | Lint and types | no | confirmed | Clean |
+
+**Overall:** not met: separator runs read whole; a zero-width space lets a key pass for `requestId` in text; two test gaps. Remark: a `__proto__` field from request JSON is dropped silently.
