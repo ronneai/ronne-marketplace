@@ -46,7 +46,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   version and port (Next's banner and `server.started` come in either order).
   *Done when:* the server checks and the image's smoke test pass.
 
-- [ ] **6. Documentation.** In `../ronne-web`: **Logs** in Running Ronne (both `topics.ts`), in
+- [x] **6. Documentation.** In `../ronne-web`: **Logs** in Running Ronne (both `topics.ts`), in
   English, Portuguese and French, with the events table from the module; here,
   `apps/web/.env.example` and the install guide's settings and Troubleshooting lines.
   *Done when:* the docs render tests pass in both repositories, and the witness finds every event

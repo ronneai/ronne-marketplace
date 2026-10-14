@@ -1353,3 +1353,33 @@ Witnessed: 2026-10-14 18:06 EDT, by a fresh agent (blind). Commit: 4f06f880 (HEA
 | 21 | Marketplace help tests | no | confirmed | 3 passed; `src/server/log` 103 passed |
 
 **Overall:** not met: three terms. Fixed in ronne-web 6b42ed6, with a sweep of every pt and fr word in the section against the language's other pages (fr "envoi" for an upload also became "téléversement"); the remarks in the next commit here (settings table rows, TRUST_PROXY comment).
+
+## Task 6 — Documentation (ninth re-check)
+
+Witnessed: 2026-10-14 18:16 EDT, by a fresh agent (blind). Commit: 99d25238 (ronne-web 6b42ed6). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Every event in `events.ts` is in the Logs table in en, pt and fr, at the module's level and with its fields, nothing extra | no | confirmed | `cmp.mjs` → module 21, en/pt/fr 21 rows each, 0 problems; dropping `percent` from a copy of the fr table → 1 problem |
+| 2 | Every field each event's writers write is in the module and the tables | no | confirmed | `git grep "\.event("` → 29 calls, each read; `http.request`'s `userId` from the context (`logger.ts:191-203`) |
+| 3 | Level variants and *When* notes match the code | no | confirmed | `api-route.ts:37-41`; `plugin-feed.ts:409`; `started.ts:26`; `publish.ts:609`, `bulk-release.ts:129-132`; `access-tokens.ts:128-133`; `token-exchange.ts:73`; `health.ts:15` |
+| 4 | `operations#logs` in both `topics.ts`, titled as on the page | no | confirmed | marketplace `topics.ts:162`; ronne-web `topics.ts:74`; en title "Logs" |
+| 5 | Where the logs are, for each way of running | no | confirmed | `compose.yaml` (no `logging:`, Docker's driver); `layout.ts:40`, `linux.ts:110,124`; `launchd.ts:37-38`, `layout.ts:94`; `args.ts:150` |
+| 6 | A clone: `pnpm start` JSON, `pnpm dev` text | no | confirmed | `pnpm start --help` → `next start`; Next's bin sets NODE_ENV; probe; `turbo.json:19` |
+| 7 | `time`, `level`, a fixed `msg`, the example's order, Better Auth's lines | no | confirmed | Child-process probe in the example's order; Better Auth → `msg:"Better Auth"`, `source`, `detail` (email `[email]`), user record dropped |
+| 8 | `domain`, `requestId`, `userId` (an id), `err` (stack only at error) | no | confirmed | Probe: context `U1` wins; warn `err` without stack, error with; thrown string → `{"type":"string"}` |
+| 9 | LOG_LEVEL: levels, default `info`, an unknown value warns once | no | confirmed | Probe: unset, `bogus`, `WARN`, `debug`, `error` |
+| 10 | Settings file or environment (Docker's `.env`, `docker compose up -d`), restart | no | confirmed | `RONNE_ENV_FILE` probe; env overrides file; `docker compose -f compose.yaml config` with and without `.env`; `config.ts:42`; cached root (`index.ts:19-36`) |
+| 11 | What the logger takes out, alone and combined, error messages included | no | confirmed | Probe of every rule, and all combined in one `err.message` → no leak |
+| 12 | Ronne doesn't write secrets, emails, clients' IPs, names | no | confirmed | 29 event calls and plain calls; `better-auth.ts:77-79` IP tracking off without TRUST_PROXY |
+| 13 | Next.js's own error output | no | confirmed | `base-server.js:448-450`, called at `:1012`, `:1892`, `:2095` |
+| 14 | X-Request-Id on page and API responses; the API's message names it | no | confirmed | 22 API routes through `apiRoute`; `proxy.ts`; probe of a 500; `proxy.test` + `api-route.test` → 37 passed |
+| 15 | TRUST_PROXY keeps the proxy's ID | no | confirmed | Probe: unset → new ULID; `true` → `proxy-id-1` in header, message and lines |
+| 16 | en, pt, fr say the same | no | confirmed | Side by side |
+| 17 | pt and fr use the site's existing terms | no | confirmed | `terms.mjs` against each language's other pages; words found nowhere else are new concepts in all three languages |
+| 18 | `.env.example`: LOG_LEVEL, LOG_FORMAT, the TRUST_PROXY note | no | confirmed | Lines 21-31 |
+| 19 | `install.md`: Docker settings table and Troubleshooting | no | confirmed | Lines 114-115 and 306-312 |
+| 20 | ronne-web render tests and typecheck | no | confirmed | 29 files, 138 passed; typecheck exit 0 |
+| 21 | Marketplace help tests | no | confirmed | 3 passed; `src/server/log` 103 passed |
+
+**Overall:** met. Remarks: pt "feed de plugins" vs fr "plugin feed" (each consistent within its language); an unexpected error's own message is written after redaction, so the logger's rules are what stand between it and the line.
