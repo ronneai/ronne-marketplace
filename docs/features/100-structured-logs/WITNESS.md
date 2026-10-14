@@ -1457,3 +1457,50 @@ Witnessed: 2026-10-14 18:58 EDT, by a fresh agent (adversarial). Commit: f650f01
 | 13 | CodeQL reports nothing new | no | confirmed | 0 open on head and merge; analyses 0 results |
 
 **Overall:** not met: the no-secrets test didn't pin the email, duplicate-key or path rules; the e2e check missed ended sessions' tokens; storage errors named an item's key in their message; Better Auth's adapter prints a raw error when the database fails. Fixed in 1f9e395d (each rule now pinned: one off fails the test; token shape in the e2e check; the key out of storage messages), except the last: an owner's decision.
+
+## Task 4 — Nothing secret, nothing personal (third re-check)
+
+Witnessed: 2026-10-14 19:24 EDT, by a fresh agent (blind). Commit: e49da9ea (ronne-web 272c3de). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The no-secrets test drives every flow and captures stdout | no | confirmed | 1 passed; `no-secrets.db.test.ts:77-170` |
+| 2 | Every line JSON; no secret, email, IP or item name | no | confirmed | `:217-253` |
+| 3 | The test fails with any one rule off, or a conflict's key back in its message | no | confirmed | `mut.py`: each exit 1. The reversed order fails only `redact.test.ts` |
+| 4 | Emails `[email]` in any script, quoted, uppercase, hyphenated, run-on, IDNA dots, invisible characters | no | confirmed | `emails.mts`, 47 forms |
+| 5 | Every address Ronne accepts is `[email]` | no | partly | `bob@[192.0.2.1]`, `ana@host.x`, `ana@example.c0m`, `ana@ex_ample.com`, `ana@例子.c` written in full (no path found that writes them) |
+| 6 | Unit tests pin each part of the email rule | no | partly | Dropping `｡` from `DOMAIN`, `。` from `DOTS`, or the `\p{Cf}` removal passes every test |
+| 7 | Storage errors keep their key out of the message | no | partly | Fixed messages, but `StorageKeyError`'s isn't pinned by a test |
+| 8 | Better Auth's lines through ours, nothing printed outside | no | confirmed | `mutba.py`: three mutations each fail the test |
+| 9 | The e2e check finds every secret, by database and by shape | no | confirmed | `fakelog.mts` |
+| 10 | Missing file, no JSON lines fail | no | confirmed | `fake2.mts` |
+| 11 | A real run passes and prints the paths | no | confirmed | Copy: 8 passed, exit 0 |
+| 12 | A planted session token fails a real run, ended sessions included | no | confirmed | 8 passed, exit 1; 4 of 10 lines matched only by shape |
+| 13 | CI on e49da9ea | no | confirmed | Shards 72 and 72 (WebKit); three database servers |
+| 14 | CodeQL reports nothing new | no | confirmed | 0 and 0; analyses 0 |
+| 15 | The docs' "Never in a line" matches the spec's limits | no | confirmed | ronne-web 272c3de, en/pt/fr |
+
+**Overall:** not met: three email sub-rules and `StorageKeyError`'s message unpinned; some accepted shapes written in full. Fixed in 82360e5c.
+
+## Task 4 — Nothing secret, nothing personal (third adversarial re-check)
+
+Witnessed: 2026-10-14 19:30 EDT, by a fresh agent (adversarial). Commit: e49da9ea. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The no-secrets test drives every flow and passes | no | confirmed | Copy and CI on three servers |
+| 2 | Any one rule off fails it | no | confirmed | `mut.mjs`: secret keys, tokens, URL passwords, paths, emails, duplicates, root registration, raw messages and stacks, the conflict's key |
+| 3 | IDNA dots and format characters hidden | no | confirmed | `emails.mts` |
+| 4 | Every address Ronne accepts is `[email]` | no | partly | `ana@col·legi.cat`, `ana@i❤.ws`, `ana@☃.net`, `bob@ⓔxample.com`, `ana@shop‐online.com` written in full; 4,283 code points `domainToASCII` accepts stop `DOMAIN` |
+| 5 | What a line needs isn't hidden | no | confirmed | 335 pnpm folder names, versions, chunk paths kept |
+| 6 | Linear on hostile shapes | no | confirmed | 21 shapes × 100,000: 0.1–52 ms; ×2 input ≈ ×2 time |
+| 7 | Every rule in one string leaks nothing | no | confirmed | 5,510 strings, 0 leaks |
+| 8 | No storage error names a key or an item | no | confirmed | Through the real logger, relative and symlinked roots |
+| 9 | Nothing else writes a name, email or secret through a realistic path | no | confirmed | Live `next start` at debug, 25 pages and 17 API calls with private names → none in any line |
+| 10 | A full Chromium run passes the check | no | confirmed | 70 passed; only ULIDs among long runs |
+| 11 | The check finds session tokens by shape, ended ones too | no | confirmed | `fakelog.mts`; hex, ULID, sha512, build and action IDs pass |
+| 12 | The check covers every other secret a run uses | no | confirmed | `log-check.ts:64-111` |
+| 13 | CI on e49da9ea green | no | confirmed | 40 checks |
+| 14 | CodeQL reports nothing new | no | confirmed | 0 and 0 |
+
+**Overall:** not met: a domain holding a symbol or punctuation IDNA keeps was written in full. Fixed in 3c16602b and 13f72f5b: a domain takes anything but delimiters; of the code points `domainToASCII` accepts, only 12 ASCII delimiters aren't recognized, a known limit (owner, 2026-10-14).
