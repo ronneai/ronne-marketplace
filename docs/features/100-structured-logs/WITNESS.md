@@ -1019,3 +1019,129 @@ Witnessed: 2026-10-14 16:37 EDT, by a fresh agent (adversarial). Commit: bd42553
 | 15 | CodeQL | no | can't check here | No pull request |
 
 **Overall:** not met. Owner's decisions (2026-10-14): Next.js's own error printing is a known limit, in the spec; "no IP" means clients' addresses (a database host in a driver's error may appear). Fixes: emails written `[email]` anywhere; the e2e check knows every test password and AUTH_SECRET, needs every log file, finds IPv6, prints the logs' paths; the test drives a start's driver error and checks any email.
+
+## Task 4 — Nothing secret, nothing personal (re-check)
+
+Witnessed: 2026-10-14 17:12 EDT, by a fresh agent (blind). Commit: a4b2a529. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The test signs in through the real `signIn` and Better Auth, wrong and right, and gets a session cookie | no | confirmed | `no-secrets.db.test.ts:69-77`; stdout has `auth.sign_in_failed` reason `invalid`, Better Auth's `Invalid password` line, `auth.signed_in` with only `userId`; the `session_token` value is checked longer than 10 characters |
+| 2 | The token exchange, wrong and right | no | confirmed | `auth.sign_in_failed` with `via: cli`, then `token.exchanged` with `userId` only |
+| 3 | An authenticated API call and a refused one, through `apiRoute` | no | confirmed | `http.request` `/api/v1/me` 200 with `userId`; `token.rejected` `unknown` then 401 |
+| 4 | A draft upload through `apiRoute` | no | confirmed | `draft.uploaded` (files 2, bytes 83), `http.request` POST `/api/v1/drafts` 201; no item name in any line |
+| 5 | A failed database with a password in its URL: health check, and a start whose real driver error is logged, redacted | no | confirmed | `db.unavailable` with 503; `Migrations failed…` with `connect ECONNREFUSED 127.0.0.1:1`, a stack, no `Db-Pa55-w0rd`; removing `err` fails the test |
+| 6 | The real shared logger's stdout is captured; every line is JSON | no | confirmed | 16 JSON lines at debug; `vitest run --project db …no-secrets.db.test.ts` → 1 passed |
+| 7 | The test fails when a secret or personal value reaches a line | no | confirmed | 12 mutations (token, URL-password, secret-key redaction off; email hiding off; stacks unredacted; IP in `token.exchanged`; `x-forwarded-for` in `http.request`; cookie in `http.request`; wrong password in `auth.sign_in_failed`; DB user:password in the start line; no driver `err`; another email with hiding off) → each fails |
+| 8 | Emails are written `[email]` anywhere in a line | no | partly | ASCII hidden; `josé@example.com` in a duplicate-key message unchanged; `zoë.ånsen@example.com` → `zoë.å[email]`; `normalizeEmail` accepts both; the test's and e2e check's patterns don't see them |
+| 9 | No client IP address in a line | no | confirmed | `203.0.113.77` as `x-forwarded-for` with `trustProxy` in no line; only the database host `127.0.0.1:1` (allowed). Remark: a client-chosen `X-Request-Id` through a trusted proxy becomes `requestId` |
+| 10 | The e2e check fails on every test password, e2e email, any email, `rmk_` tokens, `session_token` | no | confirmed | Fake logs: each fails; a clean run passes, `next@16.4.0` in a stack included |
+| 11 | It fails on each instance's AUTH_SECRET, the setup tests' too | no | confirmed | The main instance's env secret and the wizard's `.env`-only secret both found |
+| 12 | It finds IPv4 and IPv6 | no | confirmed | `127.0.0.1`, `::1`, `::ffff:127.0.0.1`, `fe80::1%lo0`, `2001:db8::5`. Remark: full-form IPv6 without `::` passes; a loopback client never has that form |
+| 13 | It needs each log file and counts JSON lines across the run | no | confirmed | Missing file fails; no JSON lines at all fails; one empty instance with lines elsewhere passes |
+| 14 | It prints the log paths | no | confirmed | CI shard logs show main's, wizard's and nojs's paths |
+| 15 | Both e2e shards on a4b2a529 passed with the check, WebKit included | no | confirmed | Run 38636766334: shard 1/2 71 passed, 1 flaky; shard 2/2 72 passed with 24 `[phone-webkit]` |
+| 16 | A closed stdout doesn't crash the process | no | confirmed | 20,000 logger lines piped to `head -c 10` → exit 0, `still alive` printed |
+| 17 | CodeQL reports nothing new | no | confirmed | CodeQL run 38636766402 success, "No new alerts"; open alerts for the PR head and merge → 0 |
+
+**Overall:** not met: email hiding misses non-ASCII addresses the app accepts. Fixed in 9d18035a.
+
+## Task 4 — Nothing secret, nothing personal (adversarial re-check)
+
+Witnessed: 2026-10-14 17:17 EDT, by a fresh agent (adversarial). Commit: a4b2a529. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Ordinary emails hidden: subdomains, plus, uppercase, quotes, `<>`, `mailto:`, parentheses, several, sentence end | no | confirmed | `probes/emails.mts`: all `[email]` |
+| 2 | Every email Ronne accepts is hidden | no | partly | `ana@münchen.de`, `josé@example.com`, `ivan@пример.рф`, `ivan@example.xn--p1ai`, `"ana"@example.com` unchanged; `first#last@…` → `first#[email]`; `o'brien@…` → `o'[email]`; `carol@example.com-acme` whole |
+| 3 | It doesn't hide text a line needs | no | confirmed | pnpm paths, `@acme/tool`, stack paths kept; over-hiding in `git@github.com:…`, a DB URL's user@host, `@acme/tool@1.2.0-beta.next` (the spec allows more, never less) |
+| 4 | It isn't slow on hostile shapes | no | confirmed | 100,000 repetitions of nine shapes → 4–29 ms; through the logger 0.2–5.5 ms a line |
+| 5 | Emails hidden wherever a line holds text, JSON and text | no | confirmed | `probes/where.mts`: `grep -c zed@` = 0 |
+| 6 | The unit tests pin the email rule | no | partly | Five mutations fail a test; `DOMAIN` without `-` and lowercase-only `LOCAL` pass every test |
+| 7 | The no-secrets test drives every flow and passes | no | confirmed | 103 passed locally; CI on postgres, mysql, mariadb, Node 24 |
+| 8 | Each planted leak fails it, through the start's real driver error too | no | confirmed | `probes/mut.mjs`: each mutation fails with the matching assertion |
+| 9 | The start's driver error is logged, redacted | no | confirmed | Deleting `prepare-start.ts:65` fails the test |
+| 10 | The e2e check finds each known secret and personal value | no | confirmed | `probes/fakelog.mts`: every password, email, AUTH_SECRET (env and `.env`), `rmk_`, `session_token`, IPv4 and IPv6 forms → FAIL |
+| 11 | The e2e check finds every secret the run uses | no | partly | A session cookie's value without its name, `session_data`, and user-admin's generated password → PASS (not found); accented/IDN emails and uncompressed IPv6 not found |
+| 12 | Missing file, no JSON lines, a shard's idle server | no | confirmed | Fails, fails, passes respectively |
+| 13 | The IPv6 pattern has few false positives | no | confirmed | Times, `node:internal/…:105:5`, ULIDs, `sha256:…`, dates not flagged |
+| 14 | A real run passes | no | confirmed | `playwright test --project=chromium e2e/auth.e2e.ts` in a copy → 7 passed, exit 0 |
+| 15 | A real run fails when a server line holds an email | no | confirmed | Mutated copy → 7 passed, exit 1, naming `wrong-password@e2e.test` and `nobody@e2e.test` |
+| 16 | The e2e shards pass in CI with the check | no | confirmed | Run 38636766334: 71 passed 1 flaky; 72 passed; no "log lines hold…" error |
+| 17 | CodeQL reports nothing new | no | confirmed | 0 open alerts on head and merge; analyses on e55caf53 0 results |
+
+**Overall:** not met: emails Ronne accepts (IDN, non-ASCII, quoted) written in full or in part; two parts of the email rule unpinned; the e2e check can't find a session cookie's value or the generated password. Fixed in 9d18035a and bdd0e2d7. Remarks (not failures): Next's banner prints the LAN address (non-JSON, outside the check); `http.error` stacks hold absolute paths.
+
+## Task 5 — Where they go
+
+Witnessed: 2026-10-14 17:11 EDT, by a fresh agent (blind). Commit: a4b2a529. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | LOG_FORMAT unset: NODE_ENV=development writes text, production or unset JSON | yes | confirmed | tsx probe: development → `INFO  server hello a=1`; production and unset → JSON; LOG_FORMAT=json under development → JSON |
+| 2 | `pnpm dev` ends up with text (`next dev` sets NODE_ENV=development) | yes | confirmed | next 16.4.0 preAction defaults NODE_ENV to development for `dev`; meets the task's intent |
+| 3 | The image runs with JSON | no | confirmed | `Dockerfile:45` `NODE_ENV=production`; `scripts/start.ts` with the image's env → JSON `server.started` runtime `docker` |
+| 4 | The services run with JSON | no | confirmed | Units set `NODE_ENV=production`; CI launchd job found `"event":"server.started"` in the log file. Linux: nothing in CI read journald for JSON |
+| 5 | The npm package runs with JSON | no | confirmed | `server-env.ts:15`; CI probe on ubuntu and macOS |
+| 6 | `rmk-server service logs` reads the service's output | no | confirmed | `linux.ts:109-115` journalctl; `macos.ts:151-157` tail -F; tests 36 passed; CI steps passed |
+| 7 | The probe checks every `{` line parses and server.started has the port | yes | confirmed | Fake server: good → ✓; broken line, no server.started, text server.started → ✗ |
+| 8 | The probe checks the run's version | yes | partly | Substring test: `"version":""` passed |
+| 9 | Server checks pass on a4b2a529 | no | confirmed | Install and run ×4, both service checks success; probe's JSON step ✓ four times |
+| 10 | Image smoke test passes | no | confirmed | `Image (amd64)` and `Docker image (build, run, scan)` success |
+| 11 | LOG_FORMAT and LOG_LEVEL from the shell reach `pnpm dev` | no | partly | Turbo's strict env mode dropped them (`LOG_FORMAT=undefined` in the task) |
+| 12 | Script output survives a closed pipe | no | confirmed | `output.test.ts` passes; fails with the listener disabled |
+| 13 | The spec's wording matches | yes | partly | `SPEC.md:18` and PLAN.md task 5 kept the old wording |
+
+**Overall:** not met: the probe's version check, the shell's settings under `pnpm dev`, the old wording; the Linux service check didn't read journald for JSON. Fixed in 9d18035a.
+
+## Task 6 — Documentation
+
+Witnessed: 2026-10-14 17:05 EDT, by a fresh agent (blind). Commit: a4b2a529 (ronne-web 18f54fe). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Every event in `events.ts` in the table in en, pt, fr, levels and fields, nothing extra | no | confirmed | `cmp.mjs`: 21 of 21 each, same order, no mismatches |
+| 2 | Level variants and reasons match the code | no | confirmed | `api-route.ts`, `plugin-feed.ts:409`, `access-tokens.ts`, `bulk-release.ts`, `health.ts` |
+| 3 | `operations#logs` in both `topics.ts` | no | confirmed | Both list it, titled "Logs" |
+| 4 | Where the logs are, Docker, services, npm/bundle | no | confirmed | `compose.yaml`, `linux.ts`, `layout.ts`, `args.ts`, `server-env.ts` |
+| 5 | A clone: `pnpm start` or `pnpm dev` | no | partly | The root had no `start` script: `ERR_PNPM_NO_SCRIPT_OR_SERVER` (also in README and install pages) |
+| 6 | The line's fields and order | no | confirmed | `logger.ts`, `redact.ts`, `publish.ts` |
+| 7 | LOG_LEVEL values, default, invalid | no | confirmed | `parseLogLevel`, `log/index.ts` |
+| 8 | LOG_FORMAT values, `pnpm dev` default, restart | no | confirmed | `parseLogFormat`, `config.ts`, cached root logger |
+| 9 | "The logger takes them out of every line" | no | partly | IPs, item names, cookie values inside messages aren't removed by the logger (Ronne doesn't write them) |
+| 10 | Next.js's own error output | no | confirmed | `instrumentation.ts`, spec's known limit |
+| 11 | Every response carries X-Request-Id; an unexpected error's message names it | no | partly | Static assets outside the proxy matcher; only the API's 500 names it |
+| 12 | TRUST_PROXY and an incoming ID | no | confirmed | `request-id.ts` |
+| 13 | en, pt, fr say the same | no | confirmed | Side by side |
+| 14 | The site's existing terms | no | partly | fr "fichier de paramètres"; the site says "fichier de réglages" |
+| 15 | `.env.example` documents both | no | confirmed | Lines 26-30 |
+| 16 | Install guide's Troubleshooting | no | confirmed | Lines 304-309 |
+| 17 | ronne-web tests and typecheck | no | confirmed | 138 passed; tsc clean |
+| 18 | The marketplace's help tests | no | confirmed | 3 passed |
+
+**Overall:** not met: the redaction overclaim, `pnpm start`, the X-Request-Id sentence, the French term. Fixed in 8b7d28be (a root `start` script) and ronne-web 3e8902a.
+
+## Task 6 — Documentation (re-check)
+
+Witnessed: 2026-10-14 17:11 EDT, by a fresh agent (blind). Commit: 8b7d28be (ronne-web 3e8902a). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Every event in the table in en, pt, fr, nothing extra | no | confirmed | `cmp.mjs`: 21 of 21 each, no mismatches |
+| 2 | Level notes match the code | no | confirmed | `api-route.ts`, `plugin-feed.ts`, `access-tokens.ts` |
+| 3 | The Fields column matches what the code writes | no | partly | `token-exchange.ts:73` writes `via`; cached `feed.built` writes `cached`, without `plugins` or `ms`; neither in the module or tables |
+| 4 | `operations#logs` in both `topics.ts` | no | confirmed | Both |
+| 5 | Where the logs are, a clone's `pnpm start` included | no | confirmed | Root `start` script → `next start --help` |
+| 6 | `pnpm dev` text, otherwise JSON | no | confirmed | `logger.ts:261-269` |
+| 7 | The line's fields | no | confirmed | `logger.ts`, `redact.ts`, `context.ts` |
+| 8 | LOG_LEVEL | no | confirmed | `logger.ts`, `log/index.ts`, `config.ts` |
+| 9 | What the logger removes; what Ronne doesn't write | no | confirmed | `redact.ts`; every emitter writes ids, counts, reasons |
+| 10 | Next.js's own error output | no | confirmed | Spec's known limit |
+| 11 | Page and API responses carry X-Request-Id; the API's error names it | no | confirmed | `proxy.ts`, all 22 API routes use `apiRoute`. Remark: Next's 404 for an unknown API path has no header |
+| 12 | TRUST_PROXY and an incoming ID | no | confirmed | `request-id.ts` |
+| 13 | en, pt, fr the same, in the site's terms | no | confirmed | "fichier de réglages", "arquivo de configurações" |
+| 14 | `.env.example` | no | confirmed | Lines 26-30 |
+| 15 | Install guide | no | confirmed | Lines 304-309 |
+| 16 | Render tests in both repositories | no | confirmed | 138 passed, typecheck clean; help tests 3 passed |
+
+**Overall:** not met: `via` and `cached` written but not documented. Fixed in 9d18035a (events.ts, spec) and ronne-web c5b5a80 (tables).
