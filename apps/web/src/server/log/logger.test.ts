@@ -152,7 +152,7 @@ describe("formats", () => {
     );
     log.warn("Watch out", { reason: "too big", ok: true });
     expect(lines).toEqual([
-      "14:03:22.417 INFO  submissions version.released Released requestId=01K7 count=3\n",
+      "14:03:22.417 INFO  submissions version.released Released count=3 requestId=01K7\n",
       '14:03:22.417 WARN  Watch out reason="too big" ok=true\n',
     ]);
   });
@@ -173,6 +173,84 @@ describe("formats", () => {
       expect(lines[0]).not.toContain("hunter2");
       expect(lines[0]).not.toContain(":pw@");
     }
+  });
+});
+
+describe("what a line can't carry", () => {
+  const TOKEN = `rmk_${"B".repeat(43)}`;
+
+  it("redacts the message itself", () => {
+    const { log, lines } = collect();
+    log.info(`Called with ${TOKEN} on postgres://u:pw@h/d`);
+    expect(lines[0]).toContain("rmk_[redacted]");
+    expect(lines[0]).not.toContain(TOKEN);
+    expect(lines[0]).not.toContain(":pw@");
+  });
+
+  it("redacts the request's ID and user from the context", () => {
+    const { log, lines } = collect();
+    withRequestContext({ requestId: TOKEN }, () => {
+      setRequestUser(`u ${TOKEN}`);
+      log.info("x");
+    });
+    expect(lines[0]).not.toContain(TOKEN);
+    expect(JSON.parse(lines[0] ?? "")).toMatchObject({
+      requestId: "rmk_[redacted]",
+      userId: "u rmk_[redacted]",
+    });
+  });
+
+  it("keeps a text line one line: control characters in the message, domain, keys and values are escaped", () => {
+    const { log, lines } = collect({ format: "text" });
+    log.child({ domain: "d\nERROR forged" }).info("line1\nFAKE 00:00 ERROR forged", {
+      "k\nERROR x": 1,
+      v: "a\u001b[2Jb",
+      w: "a\u2028b\u0085c",
+    });
+    expect(lines).toHaveLength(1);
+    const line = lines[0] ?? "";
+    expect(line.slice(0, -1)).not.toMatch(/[\n\r\u2028\u0085]/);
+    expect(line).not.toContain("\u001b");
+    expect(line).toContain("d\\u000aERROR forged");
+    expect(line).toContain("line1\\u000aFAKE");
+    expect(line).toContain("k\\u000aERROR x=1");
+    expect(line).toContain("a\\u001b[2Jb");
+  });
+
+  it("marks a field whose getter throws, and keeps the line", () => {
+    const { log, parsed } = collect();
+    log.info("x", {
+      ok: 1,
+      get boom(): unknown {
+        throw new Error("no");
+      },
+    });
+    expect(parsed()[0]).toMatchObject({ msg: "x", ok: 1, boom: "[unserialisable]" });
+  });
+
+  it("makes a child even when its bindings can't be read", () => {
+    const { log, parsed } = collect();
+    const hostile = new Proxy(
+      {},
+      {
+        ownKeys: () => {
+          throw new Error("no");
+        },
+      },
+    );
+    expect(() => log.child(hostile).info("still here")).not.toThrow();
+    expect(parsed()[0]).toMatchObject({ msg: "still here" });
+  });
+
+  it("writes the fallback line in the logger's format", () => {
+    const { log, lines } = collect({
+      format: "text",
+      now: () => {
+        throw new Error("clock");
+      },
+    });
+    log.warn("x");
+    expect(lines[0]).toMatch(/^\d\d:\d\d:\d\d\.\d{3} WARN {2}Unloggable line\n$/);
   });
 });
 

@@ -32,8 +32,8 @@ export type LoggerOptions = {
 
 const rank = (level: LogLevel) => LOG_LEVELS.indexOf(level);
 
-/** The fields every line may carry, in the order a line shows them. */
-const RESERVED = ["time", "level", "msg", "event", "domain", "requestId", "userId"];
+/** The fields every line may carry, in the order a JSON line shows them. */
+const RESERVED = ["time", "level", "msg", "domain", "event", "requestId", "userId"];
 
 const COLOURS: Record<LogLevel, string> = {
   debug: "\u001b[90m",
@@ -43,27 +43,41 @@ const COLOURS: Record<LogLevel, string> = {
 };
 const RESET = "\u001b[0m";
 
-const textValue = (value: unknown): string => {
-  if (typeof value === "string") return /[\s"=]/.test(value) ? JSON.stringify(value) : value;
-  return JSON.stringify(value) ?? String(value);
+/** A character that could break a text line or drive the terminal: C0, DEL, C1, U+2028/9. */
+const isControl = (code: number) =>
+  code < 0x20 || (code >= 0x7f && code < 0xa0) || code === 0x2028 || code === 0x2029;
+
+/** Text with every control character written as `\uXXXX`, so a line stays one line. */
+const escapeText = (text: string): string => {
+  let out = "";
+  for (const char of text) {
+    const code = char.charCodeAt(0);
+    out += isControl(code) ? `\\u${code.toString(16).padStart(4, "0")}` : char;
+  }
+  return out;
 };
 
+const textValue = (value: unknown): string => {
+  if (typeof value !== "string") return escapeText(JSON.stringify(value) ?? String(value));
+  return /[\s"=]/.test(value) ? escapeText(JSON.stringify(value)) : escapeText(value);
+};
+
+/** `time LEVEL domain event msg key=value…`, the request's ID and user last. */
 const textLine = (line: Fields, colour: boolean): string => {
   const time = String(line.time).slice(11, 23);
   const level = String(line.level).toUpperCase().padEnd(5);
+  const parts = [line.domain, line.event, line.msg]
+    .filter((part) => part !== undefined && part !== "")
+    .map((part) => escapeText(String(part)));
   const head = [
     time,
     colour ? `${COLOURS[line.level as LogLevel]}${level}${RESET}` : level,
-    line.domain,
-    line.event,
-    line.msg,
-  ]
-    .filter((part) => part !== undefined && part !== "")
-    .join(" ");
-  const rest = Object.entries(line)
-    .filter(([key]) => !["time", "level", "msg", "event", "domain"].includes(key))
-    .map(([key, value]) => `${key}=${textValue(value)}`)
-    .join(" ");
+    ...parts,
+  ].join(" ");
+  const last = ["requestId", "userId"];
+  const pairs = Object.entries(line).filter(([key]) => !RESERVED.includes(key));
+  for (const key of last) if (line[key] !== undefined) pairs.push([key, line[key]]);
+  const rest = pairs.map(([key, value]) => `${escapeText(key)}=${textValue(value)}`).join(" ");
   return rest ? `${head} ${rest}` : head;
 };
 
@@ -74,36 +88,35 @@ const writeStdout = (line: string) => {
 export const createLogger = (options: LoggerOptions, bindings: Fields = {}): Logger => {
   const write = options.write ?? writeStdout;
   const now = options.now ?? (() => new Date());
+  const format = (line: Fields) =>
+    `${options.format === "text" ? textLine(line, options.colour ?? false) : JSON.stringify(line)}\n`;
 
-  const emit = (level: LogLevel, msg: string, fields: Fields, event?: EventName) => {
+  const emit = (level: LogLevel, msg: unknown, fields: unknown, event?: EventName) => {
     if (rank(level) < rank(options.level)) return;
     try {
       const context = currentRequest();
-      const own = cleanFields({ ...bindings, ...fields }, level === "error");
+      const withStack = level === "error";
+      // Each cleaned on its own: a getter that throws marks its field, not the line.
+      const own = { ...cleanFields(bindings, withStack), ...cleanFields(fields, withStack) };
+      const userId = own.userId ?? context?.userId;
       const line: Fields = {
         time: now().toISOString(),
         level,
-        msg: redactString(msg),
-        ...(event ? { event } : {}),
+        msg: redactString(String(msg)),
         ...(own.domain !== undefined ? { domain: own.domain } : {}),
-        ...(context ? { requestId: context.requestId } : {}),
-        ...(own.userId !== undefined
-          ? { userId: own.userId }
-          : context?.userId
-            ? { userId: context.userId }
-            : {}),
+        ...(event ? { event } : {}),
+        ...(context ? { requestId: redactString(String(context.requestId)) } : {}),
+        ...(userId !== undefined
+          ? { userId: typeof userId === "string" ? redactString(userId) : userId }
+          : {}),
       };
       for (const [key, value] of Object.entries(own))
         if (!RESERVED.includes(key)) line[key] = value;
-      write(
-        `${options.format === "text" ? textLine(line, options.colour ?? false) : JSON.stringify(line)}\n`,
-      );
+      write(format(line));
     } catch {
       // Logging never fails a request: the line, as little as it can be.
       try {
-        write(
-          `${JSON.stringify({ time: new Date().toISOString(), level, msg: "Unloggable line" })}\n`,
-        );
+        write(format({ time: new Date().toISOString(), level, msg: "Unloggable line" }));
       } catch {
         // Nowhere to write: nothing more to do.
       }
@@ -119,7 +132,14 @@ export const createLogger = (options: LoggerOptions, bindings: Fields = {}): Log
       const spec = EVENTS[name];
       emit(level ?? spec.level, spec.msg, fields, name);
     },
-    child: (more) => createLogger(options, { ...bindings, ...more }),
+    child: (more) => {
+      try {
+        return createLogger(options, { ...bindings, ...more });
+      } catch {
+        // Bindings that can't be read (a getter that throws): the child writes without them.
+        return createLogger(options, bindings);
+      }
+    },
   };
 };
 

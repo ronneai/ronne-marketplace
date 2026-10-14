@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   cleanFields,
   isSecretKey,
+  MAX_DEPTH,
+  MAX_ITEMS,
   MAX_STRING,
   REDACTED,
   redactString,
@@ -59,6 +61,11 @@ describe("redactString", () => {
       "connect ECONNREFUSED mysql://root:***@127.0.0.1/x failed",
     );
     expect(redactString('"postgres://u:pw@h/d"')).toBe('"postgres://u:***@h/d"');
+    // Spaces, tabs and newlines in the password: hidden, as redactDatabaseUrl hides them.
+    for (const password of ["pa ss", "pa\tss", "pa\nss"])
+      expect(redactString(`postgres://u:${password}@h/d`)).toBe("postgres://u:***@h/d");
+    expect(redactString("POSTGRES://U:PW@H/D")).toBe("POSTGRES://U:***@H/D");
+    expect(redactString("postgres://u:pw@[::1]:5432/d")).toBe("postgres://u:***@[::1]:5432/d");
     expect(redactString("a mysql://u:one@h/a and postgres://v:two@k/b")).toBe(
       "a mysql://u:***@h/a and postgres://v:***@k/b",
     );
@@ -92,6 +99,9 @@ describe("redactString", () => {
       "a://u:p@".repeat(50_000),
       `a://u:p@${"://".repeat(100_000)}`,
       "ssh://git@".repeat(50_000),
+      `a://u:${"@".repeat(100_000)}`,
+      `a://u:${" ".repeat(100_000)}`,
+      "a://u:x ".repeat(50_000),
     ])
       redactString(text);
     expect(performance.now() - started).toBeLessThan(1000);
@@ -193,5 +203,96 @@ describe("cleanFields", () => {
       hostile: UNSERIALISABLE,
       ok: true,
     });
+  });
+
+  it("cleans keys like values: a token or a URL password used as a key is hidden", () => {
+    const fields = cleanFields(
+      { [TOKEN]: 1, nested: { "postgres://u:S3cr3t@h/db": 2 }, list: [{ [`k ${TOKEN}`]: 3 }] },
+      false,
+    );
+    const json = JSON.stringify(fields);
+    expect(json).not.toContain(TOKEN);
+    expect(json).not.toContain("S3cr3t");
+    expect(fields).toEqual({
+      "rmk_[redacted]": 1,
+      nested: { "postgres://u:***@h/db": 2 },
+      list: [{ "k rmk_[redacted]": 3 }],
+    });
+  });
+
+  it("redacts an error's name and string code too", () => {
+    const error = Object.assign(new Error("x"), { code: TOKEN });
+    error.name = `Named ${TOKEN}`;
+    expect(cleanFields({ err: error }, false)).toEqual({
+      err: { name: "Named rmk_[redacted]", message: "x", code: "rmk_[redacted]" },
+    });
+    expect(cleanFields({ err: Object.assign(new Error("y"), { code: 23505 }) }, false)).toEqual({
+      err: { name: "Error", message: "y", code: 23505 },
+    });
+  });
+
+  it("drops an error's other properties, cause included", () => {
+    const error = Object.assign(new Error("x", { cause: new Error(TOKEN) }), {
+      config: { password: "p" },
+    });
+    expect(JSON.stringify(cleanFields({ err: error }, true))).not.toContain(TOKEN);
+    expect(cleanFields({ err: error }, false)).toEqual({ err: { name: "Error", message: "x" } });
+  });
+
+  it("writes boxed strings whole, so they're redacted, and bytes as their size", () => {
+    expect(
+      cleanFields({ s: new String(TOKEN), b: Buffer.from("hunter2"), u: new Uint8Array(4) }, false),
+    ).toEqual({ s: "rmk_[redacted]", b: "[7 bytes]", u: "[4 bytes]" });
+  });
+
+  it("caps depth, items and keys, and stays fast on big values", () => {
+    let deep: Record<string, unknown> = { leaf: 1 };
+    for (let i = 0; i < 50; i++) deep = { deep };
+    const started = performance.now();
+    const out = cleanFields(
+      {
+        deep,
+        big: Array.from({ length: 1_000_000 }, (_, i) => i),
+        wide: Object.fromEntries(Array.from({ length: 1000 }, (_, i) => [`k${i}`, i])),
+        bytes: Buffer.alloc(10 * 1024 * 1024),
+        longKey: { ["k".repeat(1_000_000)]: 1 },
+      },
+      false,
+    );
+    expect(performance.now() - started).toBeLessThan(1000);
+    expect(JSON.stringify(out).length).toBeLessThan(20_000);
+    expect(JSON.stringify(out.deep)).toContain("[too deep]");
+    expect(JSON.stringify(out.deep).match(/deep/g)?.length).toBe(MAX_DEPTH + 1);
+    expect(out.big).toHaveLength(MAX_ITEMS + 1);
+    expect((out.big as unknown[]).at(-1)).toBe(`[${1_000_000 - MAX_ITEMS} more]`);
+    expect(Object.keys(out.wide as object)).toHaveLength(MAX_ITEMS + 1);
+    expect(out.bytes).toBe(`[${10 * 1024 * 1024} bytes]`);
+    expect(Object.keys(out.longKey as object)[0]).toHaveLength(200);
+  });
+
+  it("finds a cycle at once, not by running out of depth or stack", () => {
+    const cycle: Record<string, unknown> = {};
+    cycle.self = cycle;
+    // Without the cycle check, the depth cap would write "[too deep]" instead.
+    expect(cleanFields({ cycle }, false)).toEqual({ cycle: UNSERIALISABLE });
+  });
+
+  it("marks only the field whose getter throws, at the top too", () => {
+    const fields = {
+      ok: 1,
+      get boom(): unknown {
+        throw new Error("no");
+      },
+    };
+    expect(cleanFields(fields, false)).toEqual({ ok: 1, boom: UNSERIALISABLE });
+    const keysThrow = new Proxy(
+      {},
+      {
+        ownKeys: () => {
+          throw new Error("no");
+        },
+      },
+    );
+    expect(cleanFields(keysThrow, false)).toEqual({ fields: UNSERIALISABLE });
   });
 });

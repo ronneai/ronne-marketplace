@@ -124,9 +124,13 @@ The logger, not each caller, keeps secrets out:
   `cookie`, `passphrase`, `apiKey`, or ending in one of these, is written as `"[redacted]"`, at any
   depth.
 - **Values:** any string containing an access token (`rmk_` and 43 characters) has it replaced with
-  `rmk_[redacted]`; a URL with a password has it replaced as `redactDatabaseUrl` does.
-- **Errors:** an error's `message` goes through the same value redaction; a thrown value that isn't
-  an `Error` is logged as its type only.
+  `rmk_[redacted]`; a URL with a password has it replaced as `redactDatabaseUrl` does (the
+  password runs to the last `@` before the next URL, spaces included). Keys go through the same
+  redaction, and so do the message, the request's ID and the user id. Like `redactDatabaseUrl`, it
+  doesn't catch `user:pw@host` without a scheme, or a password in a query string.
+- **Errors:** an error's `name`, `message`, string `code` and stack go through the same value
+  redaction; its other properties (a driver's `config`, `cause`) aren't written; a thrown value
+  that isn't an `Error` is logged as its type only.
 - **Environment values** are never logged, secret or not
   ([`codeql-logging.md`](../../knowledge/codeql-logging.md)): `server.started` logs the dialect and
   the port, never `DATABASE_URL` or `PUBLIC_URL`.
@@ -146,7 +150,13 @@ packages use JSON.
   line has the request's ID.
 - **A field that can't be serialised** (a cycle, a `BigInt`): the logger writes `"[unserialisable]"`
   for that field and never throws; logging never fails a request.
-- **A very long value** (an error message from a driver): cut to 2,000 characters with `…`.
+- **A very long value** (an error message from a driver): cut to 2,000 characters with `…`, after
+  redaction, so a cut never leaves part of a token. Keys are cut to 200 characters; at most 100
+  items of an array or keys of an object are written (then `"[N more]"`), 8 levels deep (then
+  `"[too deep]"`); bytes (a `Buffer`) are written as `"[N bytes]"`, never their content.
+- **A getter that throws** marks that field `"[unserialisable]"`; the rest of the line is written.
+- **Control characters in text format** (a newline, an ANSI escape) are written as `\uXXXX`, so a
+  value can't split a line or forge another one. JSON escapes them already.
 - **stdout is closed or slow:** writes go through `process.stdout.write` without waiting; Node
   buffers them. The logger never blocks the request.
 - **Better Auth's own logs:** sent through its `logger` option to ours (`domain: "identity"`),
