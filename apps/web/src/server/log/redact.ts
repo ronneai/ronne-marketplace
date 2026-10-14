@@ -163,12 +163,34 @@ const hidePaths = (value: string): string => {
 };
 
 /**
- * A string with every access token, URL password and storage path taken out, cut to MAX_STRING
- * characters.
+ * The value MySQL and MariaDB quote in a duplicate-key error (`Duplicate entry '<value>' for key`),
+ * written `[value]`: it can be an email or an item's name (feature 100). PostgreSQL keeps the value
+ * in the error's `detail`, which isn't written; SQLite names only the columns. Linear: each search
+ * starts where the last one ended.
+ */
+const hideDuplicateValues = (value: string): string => {
+  const OPEN = "Duplicate entry '";
+  const CLOSE = "' for key";
+  let out = "";
+  let from = 0;
+  for (let at = value.indexOf(OPEN); at !== -1; at = value.indexOf(OPEN, from)) {
+    const close = value.indexOf(CLOSE, at + OPEN.length);
+    if (close === -1) break;
+    out += `${value.slice(from, at + OPEN.length)}[value]`;
+    from = close;
+  }
+  return out + value.slice(from);
+};
+
+/**
+ * A string with every access token, URL password, storage path, email and duplicate-key value taken
+ * out, cut to MAX_STRING characters.
  */
 export const redactString = (value: string): string => {
   const clean = hideEmails(
-    hidePaths(redactUrlPasswords(value.replace(ACCESS_TOKEN, "rmk_[redacted]"))),
+    hideDuplicateValues(
+      hidePaths(redactUrlPasswords(value.replace(ACCESS_TOKEN, "rmk_[redacted]"))),
+    ),
   );
   return clean.length > MAX_STRING ? `${clean.slice(0, MAX_STRING)}…` : clean;
 };

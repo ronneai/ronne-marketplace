@@ -1173,3 +1173,33 @@ Witnessed: 2026-10-14 17:25 EDT, by a fresh agent (blind). Commit: df364e3b (ron
 | 19 | Marketplace help tests | no | confirmed | 3 passed |
 
 **Overall:** not met: `setup` on `server.started` undocumented. Fixed: `events.ts` and the guide's `sudo` in the next commit; ronne-web tables in the commit after c5b5a80.
+
+## Task 6 — Documentation (third re-check)
+
+Witnessed: 2026-10-14 17:34 EDT, by a fresh agent (blind). Commit: 17d5af7e (ronne-web e610482). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Every event in the table in en, pt, fr, nothing extra | no | confirmed | `cmp.mjs`: 21 each, no mismatches |
+| 2 | Every field writers write is in the module and tables | no | confirmed | 29 `.event(` calls; `setup`, `via`, `cached` listed |
+| 3 | Level variants and When notes | no | confirmed | `api-route.ts:40`, `plugin-feed.ts:409`, `access-tokens.ts:135`, `bulk-release.ts:132`, `drafts-api.ts`, `health.ts`, `drafts.ts:380` |
+| 4 | `operations#logs` in both `topics.ts` | no | confirmed | Both; `docs.test.ts` checks sections |
+| 5 | Where the logs are | no | confirmed | `compose.yaml`, `layout.ts`, `linux.ts`, `cli.ts`, `postinstall.sh` |
+| 6 | A clone: `pnpm start`, `pnpm dev` | no | confirmed | `pnpm start --help`; `parseLogFormat` |
+| 7 | `msg` is a short sentence that never changes | no | partly | Production probe: a cross-site Origin to `/api/auth/get-session` writes `"msg":"Invalid origin: https://one.example"`; Better Auth's message went into `msg` (`better-auth-logger.ts:14`) |
+| 8 | `domain`, `requestId`, `userId`, `err` | no | confirmed | `logger.ts:179-200`, `redact.ts:297-311` |
+| 9 | LOG_LEVEL | no | confirmed | `logger.ts:177,252`, `log/index.ts:35` |
+| 10 | LOG_FORMAT, settings, restart | no | confirmed | `config.ts`, cached root |
+| 11 | What the logger takes out | no | confirmed | `redact.ts` |
+| 12 | Names: "Ronne doesn't write them" | no | partly | A driver's duplicate-key message (MySQL ER_DUP_ENTRY on `items_scope_name_unique`, a racing publish) would quote the item's name in `err.message`; reasoned from code, not reproduced |
+| 13 | Next.js's own output | no | confirmed | `base-server.js:448-450`; `instrumentation.ts` |
+| 14 | X-Request-Id on page and API responses | no | confirmed | 22 routes, `api-route.ts:33`, `proxy.ts` |
+| 15 | TRUST_PROXY | no | confirmed | `request-id.ts:17-22`. Remark: only ≤128 characters of `[A-Za-z0-9._-]` |
+| 16 | en, pt, fr the same | no | confirmed | Side by side |
+| 17 | The site's terms | no | confirmed | grep across pages |
+| 18 | `.env.example` | no | confirmed | Lines 26-30 |
+| 19 | Install guide | no | confirmed | Lines 304-309, with `sudo` |
+| 20 | ronne-web tests and typecheck | no | confirmed | 138 passed; exit 0 |
+| 21 | Marketplace help tests | no | confirmed | 3 passed |
+
+**Overall:** not met: `msg` carried Better Auth's text (a client's Origin); Better Auth also printed its own plain-text line for each API error (its router's console logger, on at the adapter's `debug` level); a MySQL duplicate-key message could carry an item's name. Fixed in the next commit: `msg: "Better Auth"` with the text in `detail`, the adapter at `info` (a test in a production child process fails at `debug`), duplicate-key values written `[value]`; spec and ronne-web updated.

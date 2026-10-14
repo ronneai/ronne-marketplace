@@ -551,14 +551,28 @@ describe("cleanFields", () => {
     expect(performance.now() - started).toBeLessThan(500);
   });
 
+  it("writes a duplicate-key error's value as [value]: an item's name or an email (MySQL)", () => {
+    expect(
+      redactString(
+        "Duplicate entry '01K7SCOPE-o'secret-skill' for key 'items.items_scope_name_unique'; Duplicate entry 'x' for key 'y'",
+      ),
+    ).toBe(
+      "Duplicate entry '[value]' for key 'items.items_scope_name_unique'; Duplicate entry '[value]' for key 'y'",
+    );
+    // Not a duplicate-key error: left alone.
+    expect(redactString("Duplicate entry 'x' and nothing after")).toBe(
+      "Duplicate entry 'x' and nothing after",
+    );
+  });
+
   it("writes every email address as [email], and nothing that only looks like one", () => {
     expect(
       redactString("Duplicate entry 'carol.secret@example.com' for key 'user.user_email_unique'"),
-    ).toBe("Duplicate entry '[email]' for key 'user.user_email_unique'");
+    ).toBe("Duplicate entry '[value]' for key 'user.user_email_unique'");
     expect(redactString("to a+b@mail.example.co.uk, c@d.io.")).toBe("to [email], [email].");
     // In any script, as the app accepts them, and with characters an address may hold.
     expect(redactString("Duplicate entry 'josé@example.com' for key")).toBe(
-      "Duplicate entry '[email]' for key",
+      "Duplicate entry '[value]' for key",
     );
     expect(redactString("existing email: zoë.ånsen@bücher.de")).toBe("existing email: [email]");
     expect(redactString("for o'brien@example.com and 𝒶𝒷@пример.рф")).toBe(

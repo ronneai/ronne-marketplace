@@ -141,6 +141,9 @@ The logger, not each caller, keeps secrets out:
   `<folder>/[path]` in any line, an error's message and stack included. Stored files are named
   `scope/name/version.tgz`, so a storage error would otherwise name an item a private workspace hides
   (093). Each storage adapter registers its folder as it's made.
+- **Duplicate-key values:** the value MySQL and MariaDB quote in a duplicate-key error
+  (`Duplicate entry '…' for key`) is written `[value]`: it can be an email or an item's name.
+  PostgreSQL keeps it in the error's `detail`, which isn't written; SQLite names only the columns.
 - **Errors:** an error's `name`, `message`, string `code` and stack go through the same value
   redaction; its other properties (a driver's `config`, `cause`) aren't written; a thrown value
   that isn't an `Error` is logged as its type only.
@@ -231,7 +234,11 @@ read every secret itself.
 - **Settings that can't be read** (`RONNE_ENV_FILE` a folder): the logger uses the environment's
   `LOG_LEVEL` and `LOG_FORMAT` and goes on; the server reports the settings problem itself.
 - **Better Auth's own logs:** sent through its `logger` option to ours (`domain: "identity"`),
-  at the matching level; checked against Better Auth's current docs when built.
+  at the matching level, as `msg: "Better Auth"` with `source: "better-auth"` and its text in
+  `detail` (redacted; it can hold a request's Origin). The option's level is `info`: at `debug`,
+  `warn` or `error` Better Auth's router also prints each API error through its own console, a
+  plain-text line outside ours; its debug lines are dropped. Checked against Better Auth's current
+  docs when built.
 - **`LOG_LEVEL=debug` in production:** allowed; it logs more, never secrets.
 - **The service logs** are already collected (journald, `/Library/Logs/rmk-server/server.log`);
   `rmk-server service logs` shows them. JSON is what they now hold.

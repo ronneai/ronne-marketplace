@@ -19,13 +19,15 @@ it("writes Better Auth's lines through ours, at their level, in the identity dom
   expect(lines).toEqual([
     expect.objectContaining({
       level: "warn",
-      msg: "Something odd",
+      msg: "Better Auth",
+      detail: "Something odd",
       domain: "identity",
       source: "better-auth",
     }),
     expect.objectContaining({
       level: "error",
-      msg: "Failed",
+      msg: "Better Auth",
+      detail: "Failed",
       err: expect.objectContaining({ message: "db down" }),
     }),
   ]);
