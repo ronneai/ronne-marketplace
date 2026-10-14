@@ -1,4 +1,5 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
+import { createRequire } from "node:module";
 import { join, relative } from "node:path";
 import { expect, it } from "vitest";
 
@@ -12,78 +13,42 @@ const sources = (dir: string): string[] =>
     if (statSync(path).isDirectory()) return name === "node_modules" ? [] : sources(path);
     return /\.[cm]?[jt]sx?$/.test(name) && !/\.test\.[cm]?[jt]sx?$/.test(name) ? [path] : [];
   });
-/** `console` as a value: called, indexed, destructured or passed on. */
-const CONSOLE = /(?:(?:^|[^\w$.])|(?:globalThis|global|window|self)\s*\.\s*)console\b(?!\s*:)/;
+// A real tokenizer (Babel's, as Next ships it), so strings, templates, regexes and comments are read
+// as JavaScript reads them.
+const { parse } = createRequire(import.meta.url)("next/dist/compiled/babel/parser") as {
+  parse: (
+    source: string,
+    options: object,
+  ) => {
+    tokens: { type: { label: string }; value?: unknown; loc: { start: { line: number } } }[];
+  };
+};
+const GLOBALS = new Set(["globalThis", "global", "window", "self"]);
 
 /**
- * The source with its comments and the text of its strings blanked (newlines kept, so line numbers
- * hold), and a template's `${…}` kept as code: a `//` inside a string isn't a comment, and a
- * `console` inside a string isn't a call.
+ * The lines where `console` is used as a value: called, indexed, destructured or passed on. Not an
+ * object's key (`{ console: 1 }`) or another object's property (`x.console`), but the global's
+ * (`globalThis.console`).
  */
-const codeOnly = (source: string): string => {
-  let out = "";
-  // Each open template expression's brace depth: back to its template at its closing `}`.
-  const templates: number[] = [];
-  const keepNewlines = (text: string) => text.replaceAll(/[^\n]/g, " ");
-  let at = 0;
-  const inTemplate = () => {
-    // From just after a backtick or a `}` that closes `${`: the text, to a backtick or `${`.
-    let end = at;
-    while (end < source.length && source[end] !== "`" && !source.startsWith("${", end))
-      end += source[end] === "\\" ? 2 : 1;
-    out += keepNewlines(source.slice(at, end));
-    if (source.startsWith("${", end)) {
-      templates.push(0);
-      out += "${";
-      at = end + 2;
-    } else {
-      out += "`";
-      at = end + 1;
+const consoleLines = (source: string): number[] => {
+  const { tokens } = parse(source, {
+    sourceType: "module",
+    plugins: ["typescript", "jsx"],
+    tokens: true,
+    errorRecovery: true,
+  });
+  return tokens.flatMap((token, i) => {
+    if (token.type.label !== "name" || token.value !== "console") return [];
+    const before = tokens[i - 1];
+    const after = tokens[i + 1];
+    const label = (t: typeof token | undefined) => t?.type.label;
+    if (label(after) === ":" && (label(before) === "{" || label(before) === ",")) return [];
+    if (label(before) === "." || label(before) === "?.") {
+      const owner = tokens[i - 2];
+      if (!(label(owner) === "name" && GLOBALS.has(String(owner?.value)))) return [];
     }
-  };
-  while (at < source.length) {
-    const char = source[at];
-    if (source.startsWith("//", at)) {
-      const end = source.indexOf("\n", at);
-      const stop = end === -1 ? source.length : end;
-      out += keepNewlines(source.slice(at, stop));
-      at = stop;
-    } else if (source.startsWith("/*", at)) {
-      const end = source.indexOf("*/", at + 2);
-      const stop = end === -1 ? source.length : end + 2;
-      out += keepNewlines(source.slice(at, stop));
-      at = stop;
-    } else if (char === '"' || char === "'") {
-      let end = at + 1;
-      while (end < source.length && source[end] !== char && source[end] !== "\n")
-        end += source[end] === "\\" ? 2 : 1;
-      out += `${char}${keepNewlines(source.slice(at + 1, end))}${char}`;
-      at = end + 1;
-    } else if (char === "`") {
-      out += "`";
-      at += 1;
-      inTemplate();
-    } else if (templates.length && char === "{") {
-      templates[templates.length - 1] = (templates.at(-1) ?? 0) + 1;
-      out += char;
-      at += 1;
-    } else if (templates.length && char === "}") {
-      if (templates.at(-1) === 0) {
-        templates.pop();
-        out += "}";
-        at += 1;
-        inTemplate();
-      } else {
-        templates[templates.length - 1] = (templates.at(-1) ?? 1) - 1;
-        out += char;
-        at += 1;
-      }
-    } else {
-      out += char;
-      at += 1;
-    }
-  }
-  return out;
+    return [token.loc.start.line];
+  });
 };
 
 it("finds the server's sources", () => {
@@ -95,26 +60,27 @@ it.each(sources(server).map((file) => [relative(server, file), file]))(
   (_name, file) => {
     const source = readFileSync(file, "utf8");
     const lines = source.split("\n");
-    const found = codeOnly(source)
-      .split("\n")
-      .flatMap((line, i) => (CONSOLE.test(line) ? [`${i + 1}: ${lines[i]?.trim()}`] : []));
+    const found = consoleLines(source).map((line) => `${line}: ${lines[line - 1]?.trim()}`);
     expect(found).toEqual([]);
   },
 );
 
-it("reads code, not comments or strings: a `//` in a string doesn't hide what follows", () => {
-  const found = (source: string) => CONSOLE.test(codeOnly(source));
-  expect(found('send("https://hooks.example/", console);')).toBe(true);
-  expect(found('const banner = "http://localhost:3000" + String(console.log("up"));')).toBe(true);
-  // biome-ignore lint/suspicious/noTemplateCurlyInString: source text for the scanner
-  expect(found("const t = `a ${console.log(1)} b`;")).toBe(true);
-  // biome-ignore lint/suspicious/noTemplateCurlyInString: source text for the scanner
-  expect(found("const t = `a ${ { x: 1 }.x } ${console}`;")).toBe(true);
-  expect(found("// console.log(1)")).toBe(false);
-  expect(found("/* console.log(1) */ const x = 1;")).toBe(false);
-  expect(found('const s = "console.log(1)";')).toBe(false);
-  // biome-ignore lint/suspicious/noTemplateCurlyInString: source text for the scanner
-  expect(found("const t = `console ${1}`;")).toBe(false);
-  // Line numbers hold across blanked multi-line comments and templates.
-  expect(codeOnly("/*\n\n*/\n`\n`\nx").split("\n")).toHaveLength(6);
+it("reads code as JavaScript does: strings, templates, regexes and comments", () => {
+  const lines = (source: string) => consoleLines(source);
+  expect(lines('send("https://hooks.example/", console);')).toEqual([1]);
+  expect(lines('const b = "http://localhost:3000" + String(console.log("up"));')).toEqual([1]);
+  expect(lines("const r = /[\"']/; console.log(1);")).toEqual([1]);
+  expect(lines("const r = /https?:\\/\\//; console.log(1);")).toEqual([1]);
+  expect(lines("const r = /`/;\nconsole.log(1);")).toEqual([2]);
+  expect(lines("const r = /^\\/*/;\nconsole.log(1);")).toEqual([2]);
+  // biome-ignore lint/suspicious/noTemplateCurlyInString: source text for the tokenizer
+  expect(lines("const t = `${f({ a: 1 }, console)}`;")).toEqual([1]);
+  expect(lines("const { log } = console;\nconst c = console;\nglobalThis.console.log(1);")).toEqual(
+    [1, 2, 3],
+  );
+  expect(
+    lines(
+      '// console.log(1)\n/* console */\nconst s = "console";\nconst o = { console: 1 };\nx.console;',
+    ),
+  ).toEqual([]);
 });

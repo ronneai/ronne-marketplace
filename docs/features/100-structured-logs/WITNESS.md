@@ -940,3 +940,19 @@ Witnessed: 2026-10-14 16:24 EDT, by a fresh agent (blind). Commit: e690f0b1. Mac
 | 10 | No regressions | no | confirmed | Unit 960, db 785; lint, types clean |
 
 **Overall:** not met: the guard cuts lines at a `//` inside a string.
+
+## Task 3 — The events (second re-check)
+
+Witnessed: 2026-10-14 16:33 EDT, by a fresh agent (blind). Commit: be90986e. Machine: macOS 27.0.1, Node v24.0.0. Rows 1–8 and 10 of the re-check carry over (only the guard changed).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1–8 | As the re-check | no | confirmed | `git diff --stat e690f0b1 be90986e` → the guard, WITNESS.md |
+| 9a | The re-check's two lines fail the guard | no | confirmed | Probe |
+| 9b | Strings, templates, comments and escapes read as text; `${…}` as code | no | confirmed | 28 cases |
+| 9c | The guard fails on `console` as a value on any line a careless edit could write | no | partly | A regex literal holding a quote, a backtick, `\/\/` or `\/*` before `console` hides it, sometimes over many lines |
+| 9d | No misses or false positives on the real code | no | confirmed | 35,157 inserted `console.log`s: every miss was in a comment or string |
+| 9e | The guard's test covers the scanner | no | partly | Ignoring brace depth keeps every test green |
+| 10 | No regressions | no | confirmed | 258 passed; lint, types clean |
+
+**Overall:** not met: regex literals confuse the hand-written scanner; brace depth untested.
