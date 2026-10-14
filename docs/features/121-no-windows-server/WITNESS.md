@@ -107,3 +107,22 @@ Witnessed: 2026-10-14 11:12 EDT, by a fresh agent (blind, read-only; it read the
 **Overall:** not met: every fix holds; two WinSW records of the past fall outside the *Done when*'s wording (row 6), and CI was still running (row 13).
 
 **Since this pass:** task 3's *Done when* names finished features' tasks and 086's and 087's index rows among the records of the past (what it meant: history isn't rewritten).
+
+## Tasks 1, 2, 3, 5 and 6 — final check
+
+Witnessed: 2026-10-14 11:34 EDT, by a fresh agent (blind, read-only; it read the earlier passes and PLAN.md's notes, as asked). Commit: da5b7f3a. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Task 3: every WinSW hit fits the *Done when*'s wording | yes | confirmed | `git grep -il winsw da5b7f3a` → 12 files: 086's and 121's docs; 083 PLAN.md:11 (a finished feature's ticked task); 083 PLAN.md:47,104 and 099 PLAN.md:391,483 (notes); the WITNESS passes of 083, 098, 099; README.md:244 (086's index row) |
+| 2 | The last pass's row 6 is fixed | yes | confirmed | The wording names finished features' tasks and PLAN notes, WITNESS passes, and 086's and 087's index rows |
+| 3 | PR #183's head is da5b7f3a | no | confirmed | `gh pr view 183` → da5b7f3a…, MERGED |
+| 4 | PR #183's full CI on da5b7f3a is green | no | confirmed | 40 checks pass. CI (run 38588456061) on its second attempt: the first, e2e shard 1/2 (job 115936723936) couldn't start its server ("http://localhost:39209/setup is already used"), a port clash, not 121's code |
+| 5 | Task 1: the clients' Windows job passes at da5b7f3a | no | confirmed | Jobs 115936723728 and 115939797396: success |
+| 6 | Task 2: Refuses Windows, `packages:check`, `release:smoke` | no | confirmed | Job 115938018539; Node 22/24 jobs pass |
+| 7 | Task 3: server checks on Ubuntu and macOS and every test | no | confirmed | Four install jobs, systemd and launchd, the three databases, Node 22/24 |
+| 8 | Nothing the earlier confirmations rest on changed (ff3b6071..da5b7f3a) | no | confirmed | 121 PLAN/WITNESS text, 099 PLAN note, and `run-backup.db.test.ts` (+8, test-only: the backup starts once the lock is held) |
+| 9 | `pnpm witness:check` passes | no | confirmed | Exit 0 |
+| 10 | The earlier passes' confirmations carry over | no | confirmed | WITNESS.md:5-109; the only unconfirmed rows for these tasks were task 5's row 20 (fixed, re-check row 10), task 3's WinSW rows (rows 1-2 here) and re-check row 13 (row 4 here) |
+
+**Overall:** met: every claim for tasks 1, 2, 3, 5 and 6 is confirmed; task 4 waits for a release dry run. Remark: the e2e harness's port can clash (a loose end, not 121's).

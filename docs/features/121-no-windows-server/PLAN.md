@@ -11,14 +11,14 @@ Lands in the next release, with 099 (owner, 2026-10-14): build it before that re
 
 ## Tasks
 
-- [ ] **1. The clients' Windows job.** A `windows-latest` job in `ci.yml` that installs, builds
+- [x] **1. The clients' Windows job.** A `windows-latest` job in `ci.yml` that installs, builds
   `@ronneai/core`, `@ronneai/rmk` and `@ronneai/mcp` and runs their tests (run when `ci-scope.js`
   says those packages changed, and nightly). First, so the clients keep a Windows check once the
   server's jobs go.
   *Done when:* the job passes on a pull request; any test that fails only on Windows is fixed or
   written down for the owner.
 
-- [ ] **2. `rmk-server` refuses Windows.** `"os": ["darwin", "linux"]` in
+- [x] **2. `rmk-server` refuses Windows.** `"os": ["darwin", "linux"]` in
   `packages/server/package.json`; the one-line refusal at the top of `bin`'s start, before reading
   or writing anything; a test for it (with the platform faked); a small CI job on `windows-latest`
   that installs the packed tarball (expects EBADPLATFORM) and runs `dist/bin.js` (expects the line
@@ -47,7 +47,7 @@ Lands in the next release, with 099 (owner, 2026-10-14): build it before that re
   scripts, image); a release dry run (`release.yml`'s checks on a branch, as `release.md` says)
   lists four bundles and `install.sh` only.
 
-- [ ] **5. Docs in this repository.** `install.md` (the Windows section: WSL 2 or a VM; the clients
+- [x] **5. Docs in this repository.** `install.md` (the Windows section: WSL 2 or a VM; the clients
   on Windows), `incident-response.md`, `release.md`, `README.md`, the threat model,
   MVP §5 and §15's Easy install row with a decision-log entry, the index (086 and 087 "withdrawn
   (121)", 121's row), "Withdrawn by 121" atop 086's and 087's SPECs, and
@@ -55,7 +55,7 @@ Lands in the next release, with 099 (owner, 2026-10-14): build it before that re
   *Done when:* a search of `docs/` finds Windows only where the spec keeps it (the clients, WSL,
   history); each changed command was run, or the notes say why not.
 
-- [ ] **6. Documentation.** In `../ronne-web`: **Installing** (the Windows sections go; a
+- [x] **6. Documentation.** In `../ronne-web`: **Installing** (the Windows sections go; a
   **Windows** section, `install#windows`), **Running Ronne** (the Windows rows), in English, Portuguese and French; `topics.ts` in both
   repositories for the new anchor.
   *Done when:* the site builds; each language has the same sections; the app's links to
