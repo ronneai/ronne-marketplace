@@ -83,3 +83,27 @@ Safety record, the same before and after: `md5 apps/web/.env` → b9eb4577b627e8
 | 14 | No WinSW outside 086, 087, 121's docs | no | partly | 8 files: history (083, 098, 099, the 086 index row), 100's spec, `packs.test.js` |
 
 **Overall:** not met: every behaviour claim holds, with no differences from main for Linux/macOS; the literal WinSW search finds files (row 14), fixed since in fc527969 (see the blind pass's "Since this pass").
+
+## Tasks 1, 2, 3, 5 and 6 — re-check after the fixes
+
+Witnessed: 2026-10-14 11:12 EDT, by a fresh agent (blind, read-only; it read the notes and earlier passes, as asked). Commit: ff3b6071 (ronne-web: b309914). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Nothing tasks 1, 2 and 6 rest on changed since the earlier passes | no | confirmed | `git diff 90426311 ff3b6071 --stat` → comments, packs.test.js, docs; no code in packages/server, cli, core, clients-windows.yml or server-checks.yml |
+| 2 | Task 1: the clients' Windows job passes on ff3b6071 | no | confirmed | Run 38587080754, headSha ff3b6071: passed |
+| 3 | Task 2: the refusal covers every system but Linux and macOS, as the spec says | yes | confirmed | `platform.ts:3,8-11`; SPEC.md:30-32; packages/server 99 passed |
+| 4 | Task 3: no `win32` in packages/server/src but the refusal | no | confirmed | `platform.test.ts:9` only |
+| 5 | Task 3: packs.test.js and 100's spec no longer name WinSW | yes | confirmed | The diff; repo-tools 162 passed |
+| 6 | Task 3: every WinSW hit is in 086's, 087's or 121's docs, or other features' notes or WITNESS passes | yes | partly | 12 files; all fit but 083 PLAN.md:11 (a ticked task's text) and README.md:244 (086's index row): records of the past outside the wording |
+| 7 | Task 3: the "administrator" comment gone | yes | confirmed | `rotate-secret.ts:54` |
+| 8 | `release.yml` says four bundles | yes | confirmed | `:30`; no "six bundles" |
+| 9 | Task 3: the behaviour confirmations still hold | no | confirmed | Only a comment changed in source; packages/server passes |
+| 10 | Task 5: the notes say which commands weren't run and why | yes | confirmed | PLAN.md:79-83 |
+| 11 | Task 6: the pt and fr WSL comments translated | yes | confirmed | ronne-web b309914 |
+| 12 | Task 6: the site's tests, typecheck and CI pass at b309914 | no | confirmed | 138 passed; typecheck clean; run 38585019293 success |
+| 13 | PR #183's full CI on ff3b6071 green | no | can't check here | 15 pass, 13 pending at 11:12 |
+
+**Overall:** not met: every fix holds; two WinSW records of the past fall outside the *Done when*'s wording (row 6), and CI was still running (row 13).
+
+**Since this pass:** task 3's *Done when* names finished features' tasks and 086's and 087's index rows among the records of the past (what it meant: history isn't rewritten).

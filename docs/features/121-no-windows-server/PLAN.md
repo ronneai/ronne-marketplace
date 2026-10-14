@@ -34,7 +34,8 @@ Lands in the next release, with 099 (owner, 2026-10-14): build it before that re
   *Done when:* every test passes; the server checks pass on Ubuntu and macOS (install, service on
   systemd and launchd); a search finds no `win32` in `packages/server/src` but the refusal, and no
   WinSW anywhere outside 086's, 087's and 121's docs and other features' records of the past
-  (their PLAN notes and WITNESS passes, which say what was true then; clarified 2026-10-14).
+  (finished features' tasks and PLAN notes, WITNESS passes, and 086's and 087's index rows,
+  which say what was true then; clarified 2026-10-14).
 
 - [ ] **4. Bundles, scripts and CI.** Four bundles (`bundles.yml`, `bundle.js`,
   `bundle-check.js`, `bundle-smoke.js`, `packs.js`, `notices.js`); `winsw.js` and its test;
