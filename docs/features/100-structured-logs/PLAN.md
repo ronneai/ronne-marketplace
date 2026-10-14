@@ -9,7 +9,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 ## Tasks
 
-- [ ] **1. The logger.** [risky] `apps/web/src/server/log/`: levels, `child({ domain })`, JSON and
+- [x] **1. The logger.** [risky] `apps/web/src/server/log/`: levels, `child({ domain })`, JSON and
   text formats, the request context (`AsyncLocalStorage`), redaction (keys, token and URL values,
   error messages), the length cut, never throwing; `LOG_LEVEL` and `LOG_FORMAT` in `config.ts`;
   the event names in one module. No new dependency.

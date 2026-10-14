@@ -782,3 +782,25 @@ Witnessed: 2026-10-14 15:10 EDT, by a fresh agent (adversarial). Commit: 1471fd6
 | T6 | Hidden characters escaped | no | confirmed | Mutants caught |
 
 **Overall:** not met: a field `domain` can put bare words in the text head (T5); the spec's user wording disagrees with the code (11); two test gaps (13). Owner's decision (2026-10-14): this was the last hunting round; T5 is recorded in the spec as a known limit of the text format; 11 is fixed in the spec's wording (the code's rule is the intended one: `auth.signed_in` names the user before authentication has); 13 gets tests.
+
+## Task 1 — The logger (adversarial, closing check)
+
+Witnessed: 2026-10-14 15:13 EDT, by a fresh agent (adversarial). Commit: 87ac3857. Machine: macOS 27.0.1, Node v24.0.0. As the owner decided, it confirmed the fourteenth check's findings were fixed or recorded and didn't hunt new text-format edge cases.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | T5 recorded in SPEC.md's Edge cases as a known limit of the text format | no | confirmed | SPEC.md:149, "Known limits of the text format" |
+| 2 | T5 doesn't affect JSON | no | confirmed | `{domain:"requestId userId x"}` → JSON parses with the real ids |
+| 3 | The spec's `userId` row: a field names the user only before authentication knows it | no | confirmed | SPEC.md diff |
+| 4 | `logger.ts` matches it | no | confirmed | Known user + field → known user; no user + field → field; `setRequestUser` later → the request's user |
+| 5 | A test pins the 200-character key cut | no | confirmed | Mutant → 1 fails |
+| 6 | A test pins combining marks being quoted | no | confirmed | `\p{M}` in `PLAIN` → 1 fails |
+| 7 | Tests pass | no | confirmed | 99 passed |
+| 8 | No covered secret written | no | confirmed | 480 lines, 20 hostile inputs × 4 levels × 2 formats → 0 |
+| 9 | JSON parses with the right ids | no | confirmed | Every line |
+| 10 | Nothing throws | no | confirmed | Cycle, BigInt, getters, Proxies, odd fields |
+| 11 | Under the cap, one line, no block | no | confirmed | ≤ `MAX_LINE`+1; no call over 200 ms |
+| 12 | Lint and types | no | confirmed | Clean |
+| 13 | No new dependency | no | confirmed | Empty diff |
+
+**Overall:** met.
