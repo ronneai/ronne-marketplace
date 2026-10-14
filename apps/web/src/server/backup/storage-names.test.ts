@@ -77,10 +77,10 @@ describe("stored names tried on the storage's disk (099)", () => {
     const root = join(mkdtempSync(join(dir, "near-")), "storage");
     // Longer than any disk's 255 bytes for one name (a storage key may be 512).
     const long = `acme/${"x".repeat(300)}.tgz`;
-    expect((await checkStorageNames(storage(long), root)).problem).toEqual({
+    // ENAMETOOLONG on Linux and macOS; Windows may name it otherwise.
+    expect((await checkStorageNames(storage(long), root)).problem).toMatchObject({
       kind: "unmade",
       b: `storage/${long}`,
-      code: "ENAMETOOLONG",
     });
     expect(
       (await checkStorageNames(storage("Acme/a.tgz", "acme/b.tgz"), root)).problem,
@@ -139,12 +139,16 @@ describe("stored names tried on the storage's disk (099)", () => {
     expect(readdirSync(near).sort()).toEqual(["._x"]);
   });
 
-  it("names a dangling link's error as it is, not as a clash of the backup's names", async () => {
-    const near = mkdtempSync(join(dir, "near-"));
-    symlinkSync(join(near, "gone"), join(near, "storage"));
-    const { problem } = await checkStorageNames(storage("acme/a.tgz"), join(near, "storage"));
-    expect(problem).toMatchObject({ kind: "unmade", b: "storage/acme/a.tgz" });
-  });
+  // Windows makes links differently (a file or a folder link, with privileges).
+  it.skipIf(process.platform === "win32")(
+    "names a dangling link's error as it is, not as a clash of the backup's names",
+    async () => {
+      const near = mkdtempSync(join(dir, "near-"));
+      symlinkSync(join(near, "gone"), join(near, "storage"));
+      const { problem } = await checkStorageNames(storage("acme/a.tgz"), join(near, "storage"));
+      expect(problem).toMatchObject({ kind: "unmade", b: "storage/acme/a.tgz" });
+    },
+  );
 
   it.skipIf(process.platform === "win32")(
     "removes what it made when a signal stops it, and exits with the signal's code",
