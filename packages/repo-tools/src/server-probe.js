@@ -83,6 +83,26 @@ try {
     throw new Error(`the 503 doesn't name rmk-server setup: ${health.body.error.message}`);
   step(`started on ${url}; /api/health 503 setup_required, naming rmk-server setup`);
 
+  // Its log (feature 100): Next.js's banner as text, every line of Ronne's as JSON, and among them
+  // server.started, the line to alert on, with this run's facts and no address.
+  const ours = log.split("\n").filter((line) => line.startsWith("{"));
+  const parsed = ours.map((line) => {
+    try {
+      return JSON.parse(line);
+    } catch {
+      throw new Error(`a log line isn't JSON: ${line}`);
+    }
+  });
+  const started = parsed.find((line) => line.event === "server.started");
+  if (!started) throw new Error(`no server.started line. Log:\n${log}`);
+  if (started.level !== "info" || started.port !== port || started.setup !== "required")
+    throw new Error(`server.started says ${JSON.stringify(started)}`);
+  if (!version.includes(started.version))
+    throw new Error(`server.started's version ${started.version} isn't ${version}`);
+  step(
+    `its log is JSON (${parsed.length} lines), with server.started: ${started.runtime}, port ${started.port}`,
+  );
+
   const password = "Correct-horse-42!";
   const databaseFile = join(dataDir, "ronne.db").replaceAll("\\", "/");
   runSync(["setup", "--yes"], {

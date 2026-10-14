@@ -720,10 +720,14 @@ describe("LOG_LEVEL and LOG_FORMAT", () => {
     expect(parseLogLevel("verbose")).toEqual({ level: "info", invalid: true });
   });
 
-  it("parses LOG_FORMAT, JSON unless text", () => {
+  it("parses LOG_FORMAT: text or JSON as asked; unset, text in development (pnpm dev), else JSON", () => {
     expect(parseLogFormat(undefined)).toBe("json");
     expect(parseLogFormat("Text")).toBe("text");
     expect(parseLogFormat("pretty")).toBe("json");
+    expect(parseLogFormat(undefined, "development")).toBe("text");
+    expect(parseLogFormat("", "development")).toBe("text");
+    expect(parseLogFormat("json", "development")).toBe("json");
+    expect(parseLogFormat(undefined, "production")).toBe("json");
   });
 });
 

@@ -152,8 +152,8 @@ The logger, not each caller, keeps secrets out:
 ### `LOG_FORMAT=text`
 
 For a person: `14:03:22.417 INFO  submissions version.released Released items=3 requestId=01K7…`,
-colours when stdout is a terminal. `pnpm dev` sets it; the server, Docker, the services and the
-packages use JSON.
+colours when stdout is a terminal. It's the default when `LOG_FORMAT` is unset and `NODE_ENV` is `development` (`pnpm dev`);
+the server, Docker, the services and the packages use JSON.
 
 ## Edge cases
 

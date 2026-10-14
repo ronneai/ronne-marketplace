@@ -269,5 +269,12 @@ export const parseLogLevel = (value: string | undefined): { level: LogLevel; inv
 };
 
 /** LOG_FORMAT: `text` for people, anything else JSON. */
-export const parseLogFormat = (value: string | undefined): LogFormat =>
-  value?.trim().toLowerCase() === "text" ? "text" : "json";
+export const parseLogFormat = (
+  value: string | undefined,
+  nodeEnv: string | undefined = undefined,
+): LogFormat => {
+  const format = value?.trim().toLowerCase();
+  if (format === "text" || format === "json") return format;
+  // Unset (or unknown): text for a person running `pnpm dev` (NODE_ENV=development), else JSON.
+  return nodeEnv === "development" ? "text" : "json";
+};

@@ -29,7 +29,7 @@ const rootLogger = (): Logger => {
     const { level, invalid } = parseLogLevel(settings.logLevel);
     root = createLogger({
       level,
-      format: parseLogFormat(settings.logFormat),
+      format: parseLogFormat(settings.logFormat, process.env.NODE_ENV),
       colour: Boolean(process.stdout.isTTY),
     });
     if (invalid) root.event("log.level_invalid");
