@@ -243,6 +243,7 @@ without Docker); 086 → 087 (Windows without Docker).
 | [085](./085-unix-packages/SPEC.md) | Homebrew tap, `.deb` and `.rpm`: `brew install ronneai/tap/rmk-server`, packages that install the service; the install script's no-Docker path on macOS and Linux | 083, 084, 081 | done (Homebrew tap: later work) |
 | [086](./086-service-windows/SPEC.md) | Service on Windows: the same `service` subcommands through WinSW, `C:\ProgramData`, a virtual account, firewall rules, Caddy for `--domain` | 083, 084 | done (the owner's Windows 11 test later) |
 | [087](./087-windows-package/SPEC.md) | Windows installer and winget: `winget install RonneAI.Marketplace`, Inno Setup installer per architecture, the install script's no-Docker path on Windows; unsigned until SignPath Foundation signs it | 086, 084, 081 | specified |
+| [121](./121-no-windows-server/SPEC.md) | No Windows server: `rmk-server` runs on Linux and macOS only (npm's `os` field and a one-line refusal), Windows people use WSL 2 or a Linux VM; the Windows service (086), bundles, `install.ps1` and their CI go; `rmk` and `rmk-mcp` stay on Windows, with a Windows CI job of their own; a written way from a 0.3.x Windows server to WSL 2 through backup and restore | 081, 082, 084, 086, 099 | specified (owner's open questions first) |
 
 ### M13 — Workspaces
 
