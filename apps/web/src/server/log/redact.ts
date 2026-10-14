@@ -64,20 +64,22 @@ export const redactString = (value: string): string => {
 export const MAX_DEPTH = 8;
 export const MAX_ITEMS = 100;
 const MAX_KEY = 200;
+/** A string longer than this is never read: only its length is written. */
+export const MAX_RAW = 65_536;
 const TOO_DEEP = "[too deep]";
 export const TOO_BIG = "[too big]";
 
 /**
- * One line's budget and memory. A value reached many ways (shared, not a cycle) is written each
- * time, so caps on depth and width alone can multiply into millions: every value visited spends
- * one of `values`, every character written spends one of `chars`, for the bindings and the fields
- * together. The work on a string, an error or an object's keys is done once per line, however often
- * it's reached: a 10 MB message shared a thousand times is redacted once.
+ * One line's budget. A value reached many ways (shared, not a cycle) is written each time, so caps
+ * on depth and width alone can multiply into millions: every value visited spends one of `values`,
+ * and every character of a string or key spends one of `chars` before it's read, for the bindings
+ * and the fields together. So the work of a line is bounded whatever it's given, and so is what it
+ * writes (the logger also caps the finished line, `MAX_LINE`). An error's fields and an object's
+ * keys are read once per line, by identity.
  */
 export type Line = {
   values: number;
   chars: number;
-  strings: Map<string, string>;
   errors: Map<object, Record<string, unknown>>;
   keys: Map<object, { first: string[]; total: number }>;
 };
@@ -87,27 +89,42 @@ export const MAX_CHARS = 50_000;
 export const newLine = (): Line => ({
   values: MAX_VALUES,
   chars: MAX_CHARS,
-  strings: new Map(),
   errors: new Map(),
   keys: new Map(),
 });
 
-/** `redactString`, once per string per line. */
-const redactOnce = (line: Line, value: string): string => {
-  let clean = line.strings.get(value);
-  if (clean === undefined) {
-    clean = redactString(value);
-    line.strings.set(value, clean);
-  }
-  return clean;
+/** Spends one value and `chars` characters of the line; false once it's spent. */
+const spend = (line: Line, chars: number): boolean => {
+  line.values -= 1;
+  line.chars -= chars;
+  return line.values >= 0 && line.chars >= 0;
 };
 
-/** A key as a line holds it: redacted, then cut (a cut must never leave part of a secret). */
-const cleanKey = (line: Line, key: string): string => {
-  const clean = redactOnce(line, key);
-  const cut = clean.length > MAX_KEY ? `${clean.slice(0, MAX_KEY)}…` : clean;
-  line.chars -= cut.length;
-  return cut;
+const outOfBudget = (line: Line) => line.values <= 0 || line.chars <= 0;
+
+/**
+ * A string as a line holds it: charged by its length before it's read, then redacted. Too long to
+ * read (over MAX_RAW) or past the budget, only a marker is written: never part of it, which could be
+ * part of a secret.
+ */
+const cleanString = (line: Line, value: string): string => {
+  if (value.length > MAX_RAW) {
+    spend(line, 0);
+    return `[${value.length} characters]`;
+  }
+  return spend(line, value.length) ? redactString(value) : TOO_BIG;
+};
+
+/** A message, a request ID: as `cleanString` writes a string, outside any budget. */
+export const cleanText = (value: string): string =>
+  value.length > MAX_RAW ? `[${value.length} characters]` : redactString(value);
+
+/** A key as a line holds it: like a string, then cut (after redaction: never part of a secret). */
+const cleanKey = (line: Line, key: string, index: number): string => {
+  // Too long to read: only a marker, charged as the marker.
+  const clean = key.length > MAX_RAW ? `[key ${index}]` : redactString(key);
+  line.chars -= key.length > MAX_RAW ? clean.length : key.length;
+  return clean.length > MAX_KEY ? `${clean.slice(0, MAX_KEY)}…` : clean;
 };
 
 /** The first MAX_ITEMS own keys of an object and how many it has, read once per line. */
@@ -121,12 +138,40 @@ const keysOf = (line: Line, value: object) => {
   return keys;
 };
 
+// The built-in methods, so a Date or a Buffer can't answer with its own (an override on the value
+// or a subclass could return a secret, or a string too big to hold).
+const dateTime = Date.prototype.getTime;
+const dateIso = Date.prototype.toISOString;
+const getter = (proto: object, name: string) =>
+  Object.getOwnPropertyDescriptor(proto, name)?.get as ((this: unknown) => unknown) | undefined;
+const typedBytes = getter(Object.getPrototypeOf(Uint8Array.prototype), "byteLength");
+const viewBytes = getter(DataView.prototype, "byteLength");
+const bufferBytes = getter(ArrayBuffer.prototype, "byteLength");
+
+const dateText = (value: Date): string => {
+  const time = Reflect.apply(dateTime, value, []) as number;
+  return Number.isNaN(time) ? "Invalid Date" : (Reflect.apply(dateIso, value, []) as string);
+};
+
+const bytesText = (value: ArrayBufferView | ArrayBuffer): string => {
+  const read =
+    value instanceof ArrayBuffer ? bufferBytes : value instanceof DataView ? viewBytes : typedBytes;
+  let size: unknown;
+  try {
+    size = read ? Reflect.apply(read, value, []) : undefined;
+  } catch {
+    size = undefined;
+  }
+  return Number.isSafeInteger(size) ? `[${size} bytes]` : "[bytes]";
+};
+
 class Unserialisable extends Error {}
 
 /**
  * An error as a line holds it: `{ name, message, code }`, with the stack only when asked for (lines
- * at `error`). A thrown value that isn't an Error is logged as its type only: it could be anything.
- * Its other properties (a driver's `config`, `cause`) aren't written: they could hold anything.
+ * at `error`), each string as `cleanString` writes it. A thrown value that isn't an Error is logged
+ * as its type only: it could be anything. Its other properties (a driver's `config`, `cause`) aren't
+ * written: they could hold anything.
  */
 export const errorFields = (
   error: unknown,
@@ -135,27 +180,22 @@ export const errorFields = (
 ): Record<string, unknown> => {
   if (!(error instanceof Error)) return { type: error === null ? "null" : typeof error };
   const known = line.errors.get(error);
-  if (known) return known;
+  if (known) {
+    spend(line, JSON.stringify(known).length);
+    return known;
+  }
   const code = (error as { code?: unknown }).code;
+  const stack = withStack ? error.stack : undefined;
   const fields = {
-    name: redactOnce(line, String(error.name)),
-    message: redactOnce(line, String(error.message)),
-    ...(typeof code === "string" ? { code: redactOnce(line, code) } : {}),
+    name: cleanString(line, String(error.name)),
+    message: cleanString(line, String(error.message)),
+    ...(typeof code === "string" ? { code: cleanString(line, code) } : {}),
     ...(typeof code === "number" ? { code } : {}),
-    ...(withStack && error.stack ? { stack: redactOnce(line, String(error.stack)) } : {}),
+    ...(stack ? { stack: cleanString(line, String(stack)) } : {}),
   };
   line.errors.set(error, fields);
   return fields;
 };
-
-/** Spends one value and `chars` characters of the line; false once it's spent. */
-const spend = (line: Line, chars: number): boolean => {
-  line.values -= 1;
-  line.chars -= chars;
-  return line.values >= 0 && line.chars >= 0;
-};
-
-const outOfBudget = (line: Line) => line.values <= 0 || line.chars <= 0;
 
 const clean = (
   value: unknown,
@@ -174,25 +214,14 @@ const clean = (
     return undefined;
   }
   if (typeof value === "bigint") throw new Unserialisable();
-  if (typeof value === "string" || value instanceof String) {
-    // Boxed strings whole, so redaction sees the secret they hold.
-    const text = redactOnce(line, String(value.valueOf()));
-    return spend(line, text.length) ? text : TOO_BIG;
-  }
-  if (value instanceof Error) {
-    const fields = errorFields(value, withStack, line);
-    const chars = Object.values(fields).reduce<number>(
-      (sum, field) => sum + (typeof field === "string" ? field.length : 0),
-      0,
-    );
-    return spend(line, chars) ? fields : TOO_BIG;
-  }
+  // Boxed strings whole, so redaction sees the secret they hold.
+  if (typeof value === "string") return cleanString(line, value);
+  if (value instanceof String) return cleanString(line, String.prototype.valueOf.call(value));
+  if (value instanceof Error) return errorFields(value, withStack, line);
   if (!spend(line, 0)) return TOO_BIG;
-  if (value instanceof Date)
-    return Number.isNaN(value.getTime()) ? String(value) : value.toISOString();
+  if (value instanceof Date) return dateText(value);
   // Bytes: never their content.
-  if (ArrayBuffer.isView(value) || value instanceof ArrayBuffer)
-    return `[${value.byteLength} bytes]`;
+  if (ArrayBuffer.isView(value) || value instanceof ArrayBuffer) return bytesText(value);
   if (seen.has(value)) throw new Unserialisable();
   if (depth >= MAX_DEPTH) return TOO_DEEP;
   seen.add(value);
@@ -206,25 +235,47 @@ const clean = (
         ? [...items, `[${value.length - items.length} more]`]
         : items;
     }
-    const out: Record<string, unknown> = {};
-    const { first, total } = keysOf(line, value);
-    let written = 0;
-    for (const key of first) {
-      if (outOfBudget(line)) break;
-      written++;
-      const name = cleanKey(line, key);
-      if (isSecretKey(key)) out[name] = REDACTED;
-      else {
-        const item = (value as Record<string, unknown>)[key];
-        const cleaned = clean(item, seen, depth + 1, line, withStack);
-        if (cleaned !== undefined) out[name] = cleaned;
-      }
-    }
-    if (total > written) out["[more]"] = total - written;
-    return out;
+    return cleanObject(value as Record<string, unknown>, line, (item) =>
+      clean(item, seen, depth + 1, line, withStack),
+    );
   } finally {
     seen.delete(value);
   }
+};
+
+/**
+ * An object's first keys within the line's budget, secret ones redacted, the others' values as
+ * `cleanValue` writes them; then `"[more]": N`. At the top (`markEach`), a value that can't be
+ * written is UNSERIALISABLE on its own; deeper, the whole top field is.
+ */
+const cleanObject = (
+  value: Record<string, unknown>,
+  line: Line,
+  cleanValue: (item: unknown, key: string) => unknown,
+  markEach = false,
+): Record<string, unknown> => {
+  const out: Record<string, unknown> = {};
+  const { first, total } = keysOf(line, value);
+  let written = 0;
+  for (const key of first) {
+    if (outOfBudget(line)) break;
+    const name = cleanKey(line, key, written);
+    written++;
+    if (isSecretKey(key)) {
+      spend(line, REDACTED.length);
+      out[name] = REDACTED;
+      continue;
+    }
+    try {
+      const cleaned = cleanValue(value[key], key);
+      if (cleaned !== undefined) out[name] = cleaned;
+    } catch (error) {
+      if (!markEach) throw error;
+      out[name] = UNSERIALISABLE;
+    }
+  }
+  if (total > written) out["[more]"] = total - written;
+  return out;
 };
 
 /**
@@ -239,37 +290,19 @@ export const cleanFields = (
   withStack: boolean,
   line: Line = newLine(),
 ): Record<string, unknown> => {
-  const out: Record<string, unknown> = {};
-  let keys: { first: string[]; total: number };
+  if (fields === null || typeof fields !== "object") return {};
   try {
-    keys =
-      fields !== null && typeof fields === "object"
-        ? keysOf(line, fields)
-        : { first: [], total: 0 };
+    return cleanObject(
+      fields as Record<string, unknown>,
+      line,
+      (value, key) =>
+        // `err` is what was thrown: an Error as errorFields, anything else as its type only.
+        key === "err"
+          ? errorFields(value, withStack, line)
+          : clean(value, new Set(), 0, line, withStack),
+      true,
+    );
   } catch {
     return { fields: UNSERIALISABLE };
   }
-  let written = 0;
-  for (const key of keys.first) {
-    if (outOfBudget(line)) break;
-    written++;
-    const name = cleanKey(line, key);
-    if (isSecretKey(key)) {
-      out[name] = REDACTED;
-      continue;
-    }
-    try {
-      const value = (fields as Record<string, unknown>)[key];
-      // `err` is what was thrown: an Error as errorFields, anything else as its type only.
-      const cleaned =
-        key === "err"
-          ? errorFields(value, withStack, line)
-          : clean(value, new Set(), 0, line, withStack);
-      if (cleaned !== undefined) out[name] = cleaned;
-    } catch {
-      out[name] = UNSERIALISABLE;
-    }
-  }
-  if (keys.total > written) out["[more]"] = keys.total - written;
-  return out;
 };

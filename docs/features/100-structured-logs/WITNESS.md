@@ -209,3 +209,74 @@ Witnessed: 2026-10-14 12:21 EDT, by a fresh agent (adversarial). Commit: f359817
 | 26 | Lint and types | no | confirmed | Clean |
 
 **Overall:** not met: the budget doesn't hold for Errors, big strings, many-key objects or slots that spend nothing (8–24 s, lines up to 8 MB); a token after another `rmk_` run is written; text can show a forged field through object values, `msg` or `domain`, and U+061C passes; no test covers the value budget.
+
+## Task 1 — The logger (fourth check)
+
+Witnessed: 2026-10-14 12:36 EDT, by a fresh agent (blind). Commit: 18c3fc59. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Line fields and JSON order; reserved fields kept | no | confirmed | 69 passed; mutation → 7 fail |
+| 2 | Levels and filter | no | confirmed | Mutation → 7 fail |
+| 3 | Events in one module; unknown dropped | no | confirmed | `events.ts:17-67` |
+| 4 | Invalid `LOG_LEVEL` | no | confirmed | Probes; mutation → 1 fails |
+| 5 | `config.ts`; unreadable settings | no | confirmed | Folder probe |
+| 6 | `child()` bindings, hostile too | no | confirmed | Mutation → 6 fail |
+| 7 | Text format, TTY colours | no | confirmed | Probe |
+| 8 | Text quoting; `=` escaped in the head | no | confirmed | Probe. Test gaps: row 20 |
+| 9 | Control characters and bidi marks escaped in text and JSON | no | confirmed | Every code point; 7 mutations → each 1–2 fail |
+| 10 | Context, redacted | no | confirmed | Mutations → 1 / 2 fail |
+| 11 | Secret keys | no | confirmed | Mutation → 1 fails |
+| 12 | Whole token runs | no | confirmed | Mutation `{43}` → 1 fails |
+| 13 | URL rule | no | confirmed | 17 cases. Test gap: row 20 |
+| 14 | Keys, msg, request ID, user redacted | no | confirmed | Mutations → 1 / 1 fail |
+| 15 | Errors | no | confirmed | Mutations → 1/1/5/3 fail |
+| 16 | Cuts and caps | no | confirmed | Mutations → 2 / 1 fail |
+| 17 | One budget per line | no | partly | The top-level `err` spends nothing: 57,778 characters against 50,000 |
+| 18 | Work once per line; milliseconds | no | confirmed | 162 ms on 10 MB shared 300×. Test gap: row 20 |
+| 19 | Cycle, BigInt, getters; never throws | no | confirmed | Mutations → 3 / 2 / 6 fail |
+| 20 | Tests catch breakage | no | partly | 48 mutations, 41 caught; not: URL rule after a first URL; key names not charged; string and error caches removed; `=` quoting; object values unquoted; top-level `"[more]"` |
+| 21 | Closed stdout | no | confirmed | 200,000 lines `\| head -1` → alive |
+| 22 | The stdout note matches Node's docs | no | confirmed | nodejs.org process docs: pipes asynchronous on POSIX; files and TTYs synchronous |
+| 23 | `codeql-regex.md` | no | confirmed | ≤ 17 ms on hostile inputs |
+| 24 | `codeql-logging.md` | no | confirmed | Token in `LOG_LEVEL` not written |
+| 25 | No new dependency | no | confirmed | Empty diff |
+| 26 | Lint and types | no | confirmed | Clean |
+
+**Overall:** not met: the top-level `err` skips the budget; six test gaps.
+
+## Task 1 — The logger (adversarial, fourth check)
+
+Witnessed: 2026-10-14 12:39 EDT, by a fresh agent (adversarial). Commit: 18c3fc59. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Levels, filter | no | confirmed | 6/5/3/2 lines |
+| 2 | `child()`, hostile bindings | no | confirmed | Getter, `ownKeys` Proxy, `null` |
+| 3 | JSON valid, controls escaped | no | confirmed | Every BMP code point, surrogates: 0 parse failures |
+| 4 | Text: one line, controls escaped | no | confirmed | 88 lines, 0 raw |
+| 5 | Text: no forged field; head `=` escaped | no | confirmed | Remarks: a literal `\u000a` looks like an escape; quoting untested |
+| 6 | Context | no | confirmed | 300/300 |
+| 7 | Secret keys | no | confirmed | `__proto__` dropped |
+| 8 | Whole token runs | no | confirmed | Every shape |
+| 9 | URL to the last `@` | no | confirmed | 24 cases |
+| 10 | Linear token regex and URL loop | no | confirmed | ≤ 16.9 ms |
+| 11 | Errors | no | confirmed | Stack only at `error` |
+| 12 | Every string a line holds is redacted | no | partly | A Date with its own `toISOString`, a `Date` subclass, an invalid Date's `toString`, a Buffer's `byteLength` getter → token written |
+| 13 | Caches never return a wrong result | no | confirmed | Alternating getters, changing `ownKeys` |
+| 14 | A line stays small | no | not met | 170,804 (`[redacted]` and syntax uncharged); 288,162 / 336,174 (escaping uncharged); 384,225 (`err` uncharged) |
+| 15 | Milliseconds, never seconds | no | not met | The string cache is a `Map`; V8 hashes strings over 16,383 characters by length, so equal-length strings share a bucket: 1,000 × 20 KB → 840 ms, 200 KB → 8.9 s, 1 MB → 42 s; a getter returning new 1 MB strings → 11 s |
+| 16 | Never exhausts memory | no | not met | `d.toISOString = () => "x".repeat(5e6)` × 100 → heap out of memory |
+| 17 | Cycle, BigInt | no | confirmed | Both marked |
+| 18 | Never throws | no | partly | `event({toString(){throw}})` throws (`Object.hasOwn`), only past the types |
+| 19 | Closed stdout | no | confirmed | `>&-` and `\| head -1` → alive |
+| 20 | Unreadable settings | no | confirmed | Folder, `chmod 000` |
+| 21 | Invalid `LOG_LEVEL` | no | confirmed | No value written |
+| 22 | `config.ts`, `LOG_FORMAT` | no | confirmed | Parsing |
+| 23 | Events | no | confirmed | 21 names |
+| 24 | No new dependency | no | confirmed | Empty diff |
+| 25 | Tests pass | no | confirmed | 69 |
+| 26 | Tests catch the new behaviour | no | partly | 38 mutations, 31 caught; not: key charging, objects spending, string and error caches, URL after a first URL, `=` quoting, object quoting |
+| 27 | Lint and types | no | confirmed | Clean |
+
+**Overall:** not met: the string cache is quadratic on long equal-length strings; lines reach 170–385 KB; Dates and Buffers with replaced methods write secrets and can exhaust the heap; `event()` throws on a hostile name; seven test gaps.

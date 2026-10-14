@@ -5,6 +5,7 @@ import {
   MAX_CHARS,
   MAX_DEPTH,
   MAX_ITEMS,
+  MAX_RAW,
   MAX_STRING,
   MAX_VALUES,
   newLine,
@@ -86,6 +87,10 @@ describe("redactString", () => {
     );
     // An `@` then a `://` inside the password.
     expect(redactString("postgres://u:p@x://y@h/db")).toBe("postgres://u:***@h/db");
+    // A URL with no password first: the next one's password is still found.
+    expect(redactString("a http://host/path postgres://u:secret@h b")).toBe(
+      "a http://host/path postgres://u:***@h b",
+    );
     // A user name ends at `/`: no password there.
     expect(redactString("postgres://u/x:pw@h")).toBe("postgres://u/x:pw@h");
   });
@@ -289,7 +294,8 @@ describe("cleanFields", () => {
     expect((out.big as unknown[]).at(-1)).toBe(`[${1_000_000 - MAX_ITEMS} more]`);
     expect(Object.keys(out.wide as object)).toHaveLength(MAX_ITEMS + 1);
     expect(out.bytes).toBe(`[${10 * 1024 * 1024} bytes]`);
-    expect(Object.keys(out.longKey as object)[0]).toBe(`${"k".repeat(200)}…`);
+    // Too long to read: never part of it, only a marker.
+    expect(Object.keys(out.longKey as object)[0]).toBe("[key 0]");
   });
 
   it("finds a cycle at once, not by running out of depth or stack", () => {
@@ -409,5 +415,76 @@ describe("cleanFields", () => {
       cleanFields({ a: longKeys, b: longKeys, c: longKeys, d: longKeys }, false),
     );
     expect(json.length).toBeLessThan(MAX_CHARS + 20_000);
+  });
+
+  it("charges every distinct key name to the line's budget", () => {
+    const longKeys = Object.fromEntries(
+      Array.from({ length: 100 }, (_, i) => [
+        `${String(i).padStart(3, "0")}${"k".repeat(1000)}`,
+        1,
+      ]),
+    );
+    const json = JSON.stringify(
+      cleanFields({ a: longKeys, b: longKeys, c: longKeys, d: longKeys }, false),
+    );
+    expect(json.length).toBeLessThan(MAX_CHARS + 20_000);
+  });
+
+  it("charges the top-level err to the line's budget", () => {
+    const big = "y".repeat(5000);
+    const error = Object.assign(new Error(big), { code: big, stack: big });
+    error.name = big;
+    const line = newLine();
+    cleanFields({ v: new Array(25).fill("z".repeat(1990)), err: error }, true, line);
+    expect(line.chars).toBeLessThanOrEqual(MAX_CHARS - 25 * 1990 - 4 * 5000 + 10);
+  });
+
+  it("writes a string too long to read as its length, and reads it not at all", () => {
+    const huge = `postgres://u:${"p".repeat(MAX_RAW)}@h`;
+    expect(cleanFields({ huge, key: { [huge]: 1 } }, false)).toEqual({
+      huge: `[${huge.length} characters]`,
+      key: { "[key 0]": 1 },
+    });
+  });
+
+  it("stays fast on many distinct long strings of the same length", () => {
+    const strings = Array.from(
+      { length: 1000 },
+      (_, i) => `postgres://app:${"p".repeat(20_000)}${String(i).padStart(4, "0")}@db`,
+    );
+    const started = performance.now();
+    const json = JSON.stringify(
+      cleanFields(
+        { strings: [strings.slice(0, 100), strings.slice(100, 200)], all: strings },
+        false,
+      ),
+    );
+    expect(performance.now() - started).toBeLessThan(500);
+    expect(json).not.toContain("pppppppp");
+  });
+
+  it("reads Dates and byte lengths with the built-in methods, not the value's own", () => {
+    const date = new Date(0);
+    date.toISOString = () => TOKEN;
+    class Sneaky extends Date {
+      override toISOString() {
+        return TOKEN;
+      }
+    }
+    const invalid = new Date(Number.NaN);
+    invalid.toString = () => TOKEN;
+    const bytes = Buffer.from("abc");
+    Object.defineProperty(bytes, "byteLength", { get: () => TOKEN });
+    expect(cleanFields({ date, sneaky: new Sneaky(0), invalid, bytes }, false)).toEqual({
+      date: "1970-01-01T00:00:00.000Z",
+      sneaky: "1970-01-01T00:00:00.000Z",
+      invalid: "Invalid Date",
+      bytes: "[3 bytes]",
+    });
+  });
+
+  it('writes the top level past its keys as "[more]": N', () => {
+    const fields = Object.fromEntries(Array.from({ length: 150 }, (_, i) => [`k${i}`, i]));
+    expect(cleanFields(fields, false)).toMatchObject({ "[more]": 50 });
   });
 });

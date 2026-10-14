@@ -154,14 +154,22 @@ packages use JSON.
 - **A field that can't be serialised** (a cycle, a `BigInt`): the logger writes `"[unserialisable]"`
   for that field and never throws; logging never fails a request.
 - **A very long value** (an error message from a driver): cut to 2,000 characters with `…`, after
-  redaction, so a cut never leaves part of a token; keys likewise, at 200. At most 100 items of an
+  redaction, so a cut never leaves part of a token; keys likewise, at 200. A string or key over
+  64 KB isn't read at all: it's written as `"[N characters]"` (a key as `"[key N]"`), never part of
+  it, which could be part of a secret. At most 100 items of an
   array (then `"[N more]"`) or keys of an object (then `"[more]": N`) are written, 8 levels deep
   (then `"[too deep]"`); bytes (a `Buffer`) are written as `"[N bytes]"`, never their content.
 - **A value reached many ways** (shared, not a cycle) is written each time, so a line also has a
   budget, for its bindings and fields together: 1,000 values visited (`undefined` included) and
-  50,000 characters of keys and strings, then `"[too big]"`, `"[N more]"` or `"[more]": N`. A
-  string, an error or an object's keys are worked on once per line however often they're reached,
-  so logging any value takes milliseconds, not seconds or the process's memory.
+  50,000 characters of keys and strings, each string charged by its length before it's read, then
+  `"[too big]"`, `"[N more]"` or `"[more]": N`. An error's fields and an object's keys are read once
+  per line. So the work of a line is bounded whatever it's given (besides listing an object's own
+  keys once), and logging takes milliseconds, not seconds or the process's memory.
+- **The finished line** is at most 131,072 characters, escaping and quoting included: past it, its
+  fields are written as `"fields": "[too big]"`, with the time, level, message, domain, event and
+  request kept.
+- **A Date or bytes** are read with the built-in methods (`Date.prototype.toISOString`, the
+  `byteLength` getters), never the value's own, which could return a secret or something huge.
 - **A getter that throws** marks that field `"[unserialisable]"`; the rest of the line is written.
 - **Control characters** (a newline, an ANSI escape, C1 controls, U+2028/9, the bidirectional
   marks U+061C, U+200E/F, U+202A–E, U+2066–9) are escaped as `\uXXXX` (or JSON's `\n` inside a

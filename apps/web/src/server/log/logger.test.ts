@@ -3,7 +3,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { setRequestUser, withRequestContext } from "./context";
 import { EVENTS, LOG_LEVELS, type LogLevel } from "./events";
 import { logger, setLoggerForTests } from "./index";
-import { createLogger, type LoggerOptions, parseLogFormat, parseLogLevel } from "./logger";
+import {
+  createLogger,
+  type LoggerOptions,
+  MAX_LINE,
+  parseLogFormat,
+  parseLogLevel,
+} from "./logger";
 
 const NOW = new Date("2026-10-11T14:03:22.417Z");
 
@@ -333,11 +339,41 @@ describe("more of what a line can't carry", () => {
       }),
     );
     const line = lines[0] ?? "";
+    expect(line).toContain('v="{\\"a\\":\\" requestId=FORGED\\"}"');
     // Outside quoted values, one field named requestId: the real one.
     const unquoted = line.replaceAll(/"(?:[^"\\]|\\.)*"/g, '""');
     expect(unquoted.match(/ requestId=/g)).toHaveLength(1);
     expect(line).toContain('plain={"a":1}');
     expect(line).toMatch(/ requestId=REAL\n$/);
+  });
+
+  it("quotes a plain string value holding an =", () => {
+    const { log, lines } = collect({ format: "text" });
+    log.info("m", { e: "a=b" });
+    expect(lines[0]).toContain('e="a=b"');
+  });
+
+  it("caps the finished line: escaping and quoting can't take it past MAX_LINE", () => {
+    for (const format of ["json", "text"] as const) {
+      const { log, lines } = collect({ format });
+      const error = new Error("\u0001".repeat(2000));
+      log
+        .child({ err: error })
+        .error("m", { a: new Array(30).fill("\u0001".repeat(2000)), err: error });
+      expect(lines[0]?.length).toBeLessThanOrEqual(MAX_LINE);
+      expect(lines[0]).toContain("[too big]");
+      expect(lines[0]).toContain("m");
+    }
+  });
+
+  it("drops an event whose name isn't a string, never throws", () => {
+    const { log } = collect();
+    const hostile = {
+      toString: () => {
+        throw new Error("no");
+      },
+    };
+    expect(() => log.event(hostile as never)).not.toThrow();
   });
 
   it("gives bindings and fields one budget", () => {

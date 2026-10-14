@@ -4,7 +4,7 @@
 // and never blocks: a line that can't be written whole is written as little as it can be.
 import { currentRequest } from "./context";
 import { EVENTS, type EventName, LOG_LEVELS, type LogLevel } from "./events";
-import { cleanFields, newLine, redactString } from "./redact";
+import { cleanFields, cleanText, newLine, TOO_BIG } from "./redact";
 
 export type LogFormat = "json" | "text";
 type Fields = Record<string, unknown>;
@@ -31,6 +31,9 @@ export type LoggerOptions = {
 };
 
 const rank = (level: LogLevel) => LOG_LEVELS.indexOf(level);
+
+/** The most a line written holds, in characters: past it, its fields become `"[too big]"`. */
+export const MAX_LINE = 131_072;
 
 /** The fields every line may carry, in the order a JSON line shows them. */
 const RESERVED = ["time", "level", "msg", "domain", "event", "requestId", "userId"];
@@ -145,15 +148,18 @@ export const createLogger = (options: LoggerOptions, bindings: Fields = {}): Log
       const line: Fields = {
         time: now().toISOString(),
         level,
-        msg: redactString(String(msg)),
+        msg: cleanText(String(msg)),
         ...(own.domain !== undefined ? { domain: own.domain } : {}),
         ...(event ? { event } : {}),
-        ...(context ? { requestId: redactString(String(context.requestId)) } : {}),
+        ...(context ? { requestId: cleanText(String(context.requestId)) } : {}),
         ...(userId !== undefined ? { userId } : {}),
       };
+      const head = { ...line };
       for (const [key, value] of Object.entries(own))
         if (!RESERVED.includes(key)) line[key] = value;
-      write(format(line));
+      const text = format(line);
+      // Whatever the budget let through, escaping and quoting included: a line has a size.
+      write(text.length > MAX_LINE ? format({ ...head, fields: TOO_BIG }) : text);
     } catch {
       // Logging never fails a request: the line, as little as it can be.
       try {
@@ -171,7 +177,7 @@ export const createLogger = (options: LoggerOptions, bindings: Fields = {}): Log
     error: (msg, fields = {}) => emit("error", msg, fields),
     event: (name, fields = {}, level) => {
       // An unknown name (only past the types) is dropped, never thrown.
-      if (!Object.hasOwn(EVENTS, name)) return;
+      if (typeof name !== "string" || !Object.hasOwn(EVENTS, name)) return;
       const spec = EVENTS[name];
       emit(level ?? spec.level, spec.msg, fields, name);
     },
