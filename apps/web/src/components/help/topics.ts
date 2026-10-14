@@ -24,6 +24,7 @@ export const TOPICS = [
       { id: "packages", title: "With apt or dnf" },
       { id: "node", title: "With Node.js" },
       { id: "service", title: "As a service" },
+      { id: "windows", title: "Windows" },
       { id: "setup", title: "The setup" },
       { id: "root", title: "Root accounts" },
       { id: "upgrade", title: "Upgrading" },
