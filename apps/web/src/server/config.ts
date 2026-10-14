@@ -21,6 +21,9 @@ export type AppConfig = {
   storagePath: string;
   /** Trust X-Forwarded-* headers from a reverse proxy (TRUST_PROXY=true). */
   trustProxy: boolean;
+  /** LOG_LEVEL and LOG_FORMAT as given (feature 100); log/logger.ts reads them. */
+  logLevel?: string;
+  logFormat?: string;
 };
 
 /**
@@ -44,6 +47,8 @@ export const loadConfig = (options: { appDir?: string; env?: Env } = {}): AppCon
     publicUrl: value("PUBLIC_URL"),
     storagePath: value("STORAGE_PATH") ?? defaultDataPath("storage", env),
     trustProxy: value("TRUST_PROXY") === "true",
+    logLevel: value("LOG_LEVEL"),
+    logFormat: value("LOG_FORMAT"),
   };
 };
 
