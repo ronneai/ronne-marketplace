@@ -1649,3 +1649,46 @@ Witnessed: 2026-10-14 21:22 EDT, by a fresh agent (adversarial). Commit: 50fc4f7
 | 13 | CodeQL reports nothing new | no | confirmed | 0, 0, 0 |
 
 **Overall:** not met: core's plain `Error` wrote an item's name, and failed the feed; empty names in production. The owner (2026-10-14): fix these two, record the rest as known limits, then one narrow check. Fixed in the next commit: the feed builder turns the packer's error into a domain error and leaves that plugin out (a feed test with a 240-character path); every error class names itself (a production build's run writes `ForbiddenError`); the off-by-one.
+
+## Task 4 — Nothing secret, nothing personal (closing check)
+
+Witnessed: 2026-10-14 21:56 EDT, by a fresh agent (blind). Commit: d7d38bce. Machine: macOS 27.0.1, Node v24.0.0.
+
+The owner's narrow closing check (2026-10-14): after six rounds, the last round's two real bugs fixed, the rest recorded in the spec as known limits, then one blind check of the task's *Done when* and those fixes.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The no-secrets test passes and drives every listed flow | no | confirmed | Copy: `vitest run --project db src/server/log src/server/domains/feeds` → 30 passed; `no-secrets.db.test.ts:73-160` drives sign-in wrong and right, token exchange wrong and right, `/api/v1/me` with a good and a wrong token, a draft upload (201), `/api/health` and `prepareStart` with a password in the URL; it asserts the seven events |
+| 2 | Its output holds no secret or personal value, and it catches a leak | no | confirmed | `:236-265`; a mutation writing domain messages fails it (`not to contain 'secret-skill'`) |
+| 3 | The e2e harness checks the servers' output at the end of a run, and a real run passes | no | confirmed | `globalTeardown: "./e2e/log-check.ts"`; copy: `next build`, `playwright test --project=chromium e2e/auth.e2e.ts e2e/user-admin.e2e.ts` → 8 passed, exit 0 |
+| 4 | The e2e check fails with a planted leak | no | confirmed | Planted the password in `auth.sign_in_failed` → exit 1, naming it |
+| 5 | CodeQL reports nothing new on PR #187 or main | no | confirmed | Open alerts 0 and 0; analyses for 9f7baac3 and d7d38bce: 0 results |
+| 6 | CI on #187's last head was green, and main is that tree | no | confirmed | Every check success or scope-skipped; `git diff --stat 0461b78a d7d38bce` empty |
+| 7 | A skill with a plugin path over 255 characters is left out of the feed, no 500, its name in no line | no | confirmed | `plugin-feed.ts:233-239`; the test fails with the fix reverted; a probe: `feed.plugin_skipped` `build_failed`, no name in any line; the route answers 503 for that plugin |
+| 8 | A production build's domain error lines carry the class's name; every error class names itself | no | confirmed | Real e2e on `next build`: `"err":{"name":"ForbiddenError","message":"[hidden]",…}`; `message-for-people.test.ts`; no `new.target.name` left |
+| 9 | A domain error's message never reaches a line, stack included, frame-shaped text too | no | confirmed | 27 probe lines (CRLF, tabs, several frames, U+2028, 5,000 frames, a message reassigned after construction): no leak, every stack `<Class>: [hidden]\n    at` |
+| 10 | The docs' "Never in a line" still matches the spec | no | confirmed | ronne-web 8551f1f, en/pt/fr |
+
+**Overall:** met.
+
+## Task 4 — Nothing secret, nothing personal (closing adversarial check)
+
+Witnessed: 2026-10-14 22:10 EDT, by a fresh agent (adversarial). Commit: d7d38bce (PR #187 head 0461b78a, same tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+The owner's narrow closing check (2026-10-14): one adversarial pass over the task's *Done when* and the last round's two fixes; cases the spec records as known limits not reopened.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The no-secrets test passes and drives every listed flow | no | confirmed | Copy: 30 db and 149 unit tests passed; `no-secrets.db.test.ts:73-160` |
+| 2 | It catches a planted leak | no | confirmed | 7 of 8 plants fail it (client IP twice, the email's local part, the email as "x at y", the cookie's value under a neutral key, the wrong password, the item's name). Remark: a token's body without `rmk_` passed |
+| 3 | The e2e harness checks at the end of a run; a real run passes | no | confirmed | `globalTeardown: "./e2e/log-check.ts"`; `next build`, `LOG_LEVEL=debug playwright test --project=chromium` → 70 passed; 399 lines, 0 secrets, emails, IPs or seeded names |
+| 4 | The e2e check fails with a planted leak | no | confirmed | `x-forwarded-for` in `http.request` and a raw line with the email → exit 1, naming them |
+| 5 | A plugin the packer refuses never fails the feed or names the item | no | confirmed | Probe tests for claude-code, codex and cursor: left out (with its dependents and bundles), the rest kept, no name in any line; "a path twice" can't reach the packer |
+| 6 | The same on a live server | no | confirmed | `next start` at debug with long-path items in global and a private workspace: `marketplace.json` 200 for each tool, the plugins 503, 36 `feed.plugin_skipped` without names |
+| 7 | A domain error's line carries its class's name in a production build | no | confirmed | `"err":{"name":"ForbiddenError","message":"[hidden]",…}` in e2e and live; removing a class's name fails `message-for-people.test.ts` |
+| 8 | A domain error's message never reaches a line, stack, `cause` or nested error | no | confirmed | 7 logger probes (no stack, reassigned message, `cause`, `AggregateError`, empty message, custom `prepareStackTrace`) clean; every `extends Error` in the server checked |
+| 9 | No secret, client IP, email or name on realistic paths | no | confirmed | Live server, 365 hostile requests with forwarded IPs and emails in headers: 446 JSON lines, 0 hits across 40+ needles |
+| 10 | CodeQL reports nothing new on #187 or main | no | confirmed | 0 open on main and the merge ref; analyses 0 results |
+| 11 | CI on #187's last head was green; main is that tree | no | confirmed | 24 pass, 6 scope-skipped; 7 workflows success; `git diff --stat 0461b78a d7d38bce` empty |
+
+**Overall:** met. Remarks, outside the *Done when*: neither check looks for a token's body without its `rmk_` prefix; the e2e check doesn't look for item, scope or workspace names (the unit test does); a plugin that can't be built is retried, and logged, on every feed request.
