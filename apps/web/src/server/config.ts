@@ -24,6 +24,8 @@ export type AppConfig = {
   /** LOG_LEVEL and LOG_FORMAT as given (feature 100); log/logger.ts reads them. */
   logLevel?: string;
   logFormat?: string;
+  /** Every OTEL_* setting (101), the environment's over the file's; server/telemetry reads them. */
+  otel?: Record<string, string>;
 };
 
 /**
@@ -49,6 +51,14 @@ export const loadConfig = (options: { appDir?: string; env?: Env } = {}): AppCon
     trustProxy: value("TRUST_PROXY") === "true",
     logLevel: value("LOG_LEVEL"),
     logFormat: value("LOG_FORMAT"),
+    otel: Object.fromEntries(
+      [...new Set([...Object.keys(file), ...Object.keys(env)])]
+        .filter((key) => key.startsWith("OTEL_"))
+        .flatMap((key) => {
+          const set = value(key);
+          return set ? [[key, set]] : [];
+        }),
+    ),
   };
 };
 

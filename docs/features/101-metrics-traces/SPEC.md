@@ -53,11 +53,16 @@ trace and metric exporters, the resource (`service.name`, `service.version`,
 `OTEL_SDK_DISABLED=true` turns it off even with an endpoint. The SDK's other standard variables
 (sampler, export interval, timeouts) work as OpenTelemetry documents them.
 
-**Packages:** `@opentelemetry/api`, `@opentelemetry/sdk-node`, and the OTLP/HTTP trace and metric
-exporters, Apache-2.0, at their latest stable versions when built; checked against the dependency
-policy and against Next.js's current OpenTelemetry guide (Next.js 16) before task 1. `@vercel/otel`
-is the other way Next.js documents; whichever is lighter and works in the standalone build is
-chosen, and the choice written in the plan's notes.
+**Packages:** `@vercel/otel` (MIT) with its OpenTelemetry peers (`@opentelemetry/api`, `api-logs`,
+`instrumentation`, `resources`, `sdk-logs`, `sdk-metrics`, `sdk-trace-base`) and
+`@opentelemetry/exporter-metrics-otlp-http` (Apache-2.0): the lighter of the two ways Next.js 16's
+guide documents (the plan's notes have the comparison). Traces go through `@vercel/otel`'s OTLP/HTTP
+exporter (`http/protobuf`, or `http/json` with `OTEL_EXPORTER_OTLP_PROTOCOL`), metrics through
+OpenTelemetry's. Turbopack bundles them into one server chunk, loaded only when telemetry is on.
+
+**Events (100):** `telemetry.started` (info: `traces`, `metrics`, booleans),
+`telemetry.endpoint_invalid` (warn), `telemetry.failed` (error, `err`: the SDK couldn't start; the
+server starts without it), `telemetry.export_failed` (warn, `signal`, at most once a minute).
 
 ### Traces
 

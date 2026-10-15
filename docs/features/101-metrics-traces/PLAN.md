@@ -60,5 +60,17 @@ goes into `SPEC.md` instead.
 - Task 1: a storage folder that doesn't exist yet is healthy when its parent can take it. The
   setup wizard's e2e caught it: its instance's `STORAGE_PATH` (from the environment) isn't made
   until the first artifact is stored, so "the folder must exist" answered 503 after setup.
+- Task 2, the SDK (2026-10-14). Next.js 16's guide (`node_modules/next/dist/docs/01-app/02-guides/
+  open-telemetry.md`) documents `@vercel/otel` and a manual `NodeSDK`. Measured with npm in an empty
+  folder: `@opentelemetry/sdk-node` 72 packages, 49 MB (it brings gRPC, Zipkin, Prometheus and
+  Jaeger); `@vercel/otel` with its peers and the OTLP/HTTP metric exporter 22 packages, 33 MB. All
+  MIT, Apache-2.0, BSD-3-Clause or ISC. `@vercel/otel` reads the standard variables for traces
+  (endpoint, headers, protocol, sampler, resource attributes, `OTEL_SDK_DISABLED`); the metric
+  exporter reads its own; `OTEL_METRIC_EXPORT_INTERVAL` is read in `settings.ts`. Chosen:
+  `@vercel/otel`. Turbopack bundles it all into one 352 KB server chunk (no new `node_modules` in
+  the standalone output, so `packages:check`'s allowlist is unchanged); a request's trace arrived
+  from the standalone `server.js` at a local OTLP receiver.
+- For tasks 3 and 5: Next.js's request span carries `http.target`, the path with its query, and an
+  item page's path names the item (`/items/@team/x`). A span processor must drop or rewrite it.
 - Task 1 adds the event `storage.unavailable`: the Documentation's Logs events table (100) gets
   its row in task 6, in the three languages.

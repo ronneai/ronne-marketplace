@@ -64,6 +64,26 @@ export const EVENTS = {
   },
   "db.unavailable": { level: "error", msg: "Database unavailable", fields: ["err"] },
   "storage.unavailable": { level: "error", msg: "Storage unavailable", fields: ["err"] },
+  "telemetry.started": {
+    level: "info",
+    msg: "Telemetry started",
+    fields: ["traces", "metrics"],
+  },
+  "telemetry.endpoint_invalid": {
+    level: "warn",
+    msg: "The OTLP endpoint isn't an http(s) URL: telemetry is off",
+    fields: [],
+  },
+  "telemetry.failed": {
+    level: "error",
+    msg: "Telemetry couldn't start: it is off",
+    fields: ["err"],
+  },
+  "telemetry.export_failed": {
+    level: "warn",
+    msg: "Telemetry couldn't reach the collector (at most once a minute)",
+    fields: ["signal"],
+  },
   "log.level_invalid": {
     level: "warn",
     msg: "LOG_LEVEL isn't one of debug, info, warn or error: using info",
