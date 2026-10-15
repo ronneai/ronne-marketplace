@@ -20,9 +20,9 @@ export interface StorageAdapter {
 }
 
 export class StorageError extends Error {
+  override readonly name: string = "StorageError";
   constructor(message: string) {
     super(message);
-    this.name = new.target.name;
   }
 }
 
@@ -31,6 +31,7 @@ export class StorageError extends Error {
 
 /** A key that could escape the storage root: absolute, with `..`, or otherwise malformed. */
 export class StorageKeyError extends StorageError {
+  override readonly name: string = "StorageKeyError";
   constructor(readonly key: string) {
     super("That isn't a valid storage key.");
   }
@@ -38,6 +39,7 @@ export class StorageKeyError extends StorageError {
 
 /** Different bytes for a key that's already stored: artifacts never change. */
 export class StorageConflictError extends StorageError {
+  override readonly name: string = "StorageConflictError";
   constructor(readonly key: string) {
     super("That artifact is already stored with different content, and artifacts never change.");
   }

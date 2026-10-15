@@ -1,3 +1,5 @@
+import { MESSAGE_FOR_PEOPLE } from "./message-for-people";
+
 // What the logger writes for a value (feature 100): the logger, not each caller, keeps secrets out.
 // Keys that name a secret are replaced whatever their value, at any depth; access tokens and URL
 // passwords are taken out of any string, error messages included; long strings are cut; and what
@@ -130,9 +132,11 @@ const TOP_LABEL = /^(?:(?=[\p{L}\p{N}\p{M}]*\p{L})[\p{L}\p{N}\p{M}]+|xn--[a-z0-9
 const IPV4 = /^\d{1,3}(?:\.\d{1,3}){3}$/;
 const LITERAL = /^\[(?:IPv6:)?[0-9A-Fa-f:.]{1,45}\]/;
 
-// A hostname's characters, in any script: letters, digits, marks, format characters, dots (IDNA's
-// too), `-` and `_`.
-const HOST = /^[\p{L}\p{N}\p{M}\p{Cf}._\u3002\uFF0E\uFF61-]$/u;
+// Where a domain may stop short of its run (`ana@i❤.ws?v=1.2`): at any character that isn't a letter,
+// digit, mark or format character. At most a hostname's length (253, DNS) is tried, so it stays
+// linear.
+const WORD = /^[\p{L}\p{N}\p{M}\p{Cf}]$/u;
+const MAX_DOMAIN = 253;
 
 /**
  * Where the domain after `value[at]` ends when it's an address's, reading up to `end`, or -1: no
@@ -145,7 +149,11 @@ const domainEnd = (value: string, at: number, limit: number): number => {
   let dot = end - 1;
   while (dot > at && !".\u3002\uFF0E\uFF61".includes(value.charAt(dot))) dot--;
   if (dot > at && !TOP_LABEL.test(asDomain(value.slice(dot + 1, end)))) {
-    const run = /^[\p{L}\p{N}\p{M}\p{Cf}]*/u.exec(value.slice(dot + 1, end))?.[0] ?? "";
+    // Its letters and digits, or its ASCII form (`xn--p1ai?x=1`).
+    const run =
+      /^(?:xn--[a-z0-9-]*[a-z0-9]|[\p{L}\p{N}\p{M}\p{Cf}]*)/iu.exec(
+        value.slice(dot + 1, end),
+      )?.[0] ?? "";
     if (TOP_LABEL.test(asDomain(run))) end = dot + 1 + run.length;
   }
   const domain = asDomain(value.slice(at + 1, end));
@@ -169,10 +177,19 @@ const hideEmails = (value: string): string => {
     let start = at;
     while (start > from && LOCAL.test(value.charAt(start - 1))) start--;
     while (start < at && value.charAt(start) === "'") start++;
-    // A quoted local part (`"ana"@example.com`): back to its opening quote, at most 64 characters.
+    // A quoted local part (`"ana"@example.com`, `"a@b"@example.com`): back to its opening quote,
+    // at most 64 characters away (RFC 5321's local-part limit). Else, from the quote back as an
+    // unquoted local part: `ana"@example.com` in a long quotation.
     if (start === at && value.charAt(at - 1) === '"') {
-      const open = value.lastIndexOf('"', at - 2);
-      if (open >= from && at - open <= 66 && !value.slice(open, at).includes("@")) start = open;
+      const window = Math.max(from, at - 66);
+      let open = at - 2;
+      while (open >= window && value.charAt(open) !== '"') open--;
+      if (open >= window) start = open;
+      else {
+        start = at - 1;
+        while (start > from && LOCAL.test(value.charAt(start - 1))) start--;
+        if (start === at - 1) start = at;
+      }
     }
     if (start === at) continue;
     const literal = LITERAL.exec(value.slice(at + 1, at + 48))?.[0];
@@ -183,12 +200,16 @@ const hideEmails = (value: string): string => {
     }
     let end = at + 1;
     while (end < value.length && DOMAIN.test(value.charAt(end))) end++;
-    // The whole run, else its hostname-shaped start (`example.c0m?x=1`, `192.0.2.1?x`).
+    // The whole run, else its longest start that is a domain, cut where a character isn't a letter
+    // or digit (`example.c0m?x=1`, `192.0.2.1?x`, `i❤.ws?v=1.2`, `x+y.com#v1.2`).
     let found = domainEnd(value, at, end);
     if (found === -1) {
-      let host = at + 1;
-      while (host < end && HOST.test(value.charAt(host))) host++;
-      if (host < end) found = domainEnd(value, at, host);
+      const last = Math.min(end - 1, at + 1 + MAX_DOMAIN);
+      for (let cut = at + 2; cut <= last; cut++) {
+        if (WORD.test(value.charAt(cut))) continue;
+        const shorter = domainEnd(value, at, cut);
+        if (shorter > found) found = shorter;
+      }
     }
     if (found === -1) continue;
     out += `${value.slice(from, start)}[email]`;
@@ -367,10 +388,29 @@ export const errorFields = (
     return known;
   }
   const code = (error as { code?: unknown }).code;
-  const stack = withStack ? error.stack : undefined;
+  // A message for people (a domain's error) may name an item: it, and its copy in the stack's first
+  // line, aren't written; the frames are.
+  const forPeople = (error as { [MESSAGE_FOR_PEOPLE]?: unknown })[MESSAGE_FOR_PEOPLE] === true;
+  // The stack's head is `<name>: <message>`; the message is cut off as a whole, so text in it
+  // shaped like a frame (`\n    at …`) goes with it.
+  const frames = (stack: string) => {
+    const message = String(error.message);
+    const at = message ? stack.indexOf(message) : -1;
+    const rest =
+      at === -1
+        ? stack.slice(Math.max(0, stack.indexOf("\n    at ")))
+        : stack.slice(at + message.length);
+    return `${error.name}: [hidden]${rest}`;
+  };
+  const stack =
+    withStack && error.stack && forPeople
+      ? frames(error.stack)
+      : withStack
+        ? error.stack
+        : undefined;
   const fields = {
     name: cleanString(line, String(error.name)),
-    message: cleanString(line, String(error.message)),
+    message: forPeople ? "[hidden]" : cleanString(line, String(error.message)),
     ...(typeof code === "string" ? { code: cleanString(line, code) } : {}),
     ...(typeof code === "number" ? { code } : {}),
     ...(stack ? { stack: cleanString(line, String(stack)) } : {}),

@@ -1,8 +1,12 @@
+import { MESSAGE_FOR_PEOPLE } from "../../../log/message-for-people";
 /** Errors the feeds domain raises (feature 077). */
 export class FeedsError extends Error {
+  override readonly name: string = "FeedsError";
+  // Its messages are for people and may name items: the logs write its name and code only.
+  readonly [MESSAGE_FOR_PEOPLE] = true;
+
   constructor(message: string) {
     super(message);
-    this.name = new.target.name;
   }
 }
 
@@ -11,6 +15,7 @@ export class FeedsError extends Error {
  * yanked, or it has nothing for the tool.
  */
 export class PluginNotFoundError extends FeedsError {
+  override readonly name: string = "PluginNotFoundError";
   constructor(
     readonly itemName: string,
     readonly version: string,
@@ -22,6 +27,7 @@ export class PluginNotFoundError extends FeedsError {
 
 /** The plugin couldn't be built: an artifact is missing, or its dependencies don't resolve. */
 export class PluginUnavailableError extends FeedsError {
+  override readonly name: string = "PluginUnavailableError";
   constructor(
     readonly itemName: string,
     readonly version: string,
@@ -36,6 +42,7 @@ export class PluginUnavailableError extends FeedsError {
  * Code's). The git mirror has no such limit.
  */
 export class FeedTooLargeError extends FeedsError {
+  override readonly name: string = "FeedTooLargeError";
   constructor(readonly plugins: number) {
     super(
       `This instance's Claude Code marketplace lists ${plugins} plugins, more than the 5 MiB Claude Code reads from an address. Add the instance's git mirror in Claude Code instead (rmk feed build): a marketplace in a git repository has no such limit.`,
@@ -48,6 +55,7 @@ export class FeedTooLargeError extends FeedsError {
  * aren't a member. One message for both, so it doesn't tell a private name from an unknown one.
  */
 export class FeedWorkspaceNotFoundError extends FeedsError {
+  override readonly name: string = "FeedWorkspaceNotFoundError";
   constructor(readonly workspace: string) {
     super(`There's no workspace ${workspace} you can use.`);
   }

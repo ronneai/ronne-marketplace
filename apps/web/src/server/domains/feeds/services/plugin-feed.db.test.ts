@@ -435,6 +435,21 @@ describe("the Claude Code feed (077)", () => {
     expect(zipPuts()).toEqual([]);
   });
 
+  it("leaves out a plugin whose files can't be zipped, without its name in a line (100)", async () => {
+    // A path over the zip's 255 characters: core's error names it, and the item with it.
+    const long = `${"d".repeat(140)}/${"f".repeat(96)}.md`;
+    await release("longpath", "1.0.0", skill("longpath", "A skill with a long path."), {
+      "SKILL.md": SKILL_MD("longpath"),
+      [long]: "x",
+    });
+    const plugins = await feedPlugins(deps(), actor, "claude-code");
+    expect(plugins.map((plugin) => plugin.name)).not.toContain("longpath");
+    expect(logged).toContainEqual(
+      expect.objectContaining({ event: "feed.plugin_skipped", reason: "build_failed" }),
+    );
+    expect(JSON.stringify(logged)).not.toMatch(/longpath|dddd/);
+  });
+
   it("builds only within its budget, and the next request builds the rest", async () => {
     let ms = 0;
     const clock = () => (ms += 10);

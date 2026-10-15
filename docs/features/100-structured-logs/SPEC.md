@@ -66,14 +66,17 @@ addresses, such as a database host in a driver's error, may appear: owner, 2026-
 address's domain may hold anything IDNA does (any script, symbols, its dots `。．｡`, format
 characters) and is recognized by its last label (letters and digits with a letter, or `xn--`), an
 IPv4 address or a literal (`[192.0.2.1]`); what runs on after it (`example.c0m?x=1`,
-`192.0.2.1?x`) stays. A domain holding `_` must start with a letter: pnpm's
+`192.0.2.1?x`, `i❤.ws?v=1.2`, `example.xn--p1ai?x`) stays: the domain is its longest start that
+is one. A domain holding `_` must start with a letter: pnpm's
 `react-dom@19.2.0_react@19.2.0` paths aren't addresses, so `ana@_dmarc.example.com` isn't
 recognized. Known limit (owner, 2026-10-14): an address isn't
 recognized, or only in part, when its local part or domain holds an ASCII delimiter
 (`" ' ( ) * , / : ; < > [ ] \ `` ` `` { }`) outside a quoted local part or a literal, or its last
 label holds a symbol (`example.c!om`). No mail system delivers to such an address, though
 `normalizeEmail` accepts it; reading them as addresses would hide parts of stack frames, URLs, JSON
-and paths. They're
+and paths. Also a known limit (owner, 2026-10-14, after task 4's last round): some sub-rules of the
+email rule aren't pinned by a test of their own (the witness passes list them: a few character
+classes, the windows' sizes); the behaviour holds, and a change to them may go unnoticed. They're
 in the database, under 102's retention; logs go to collectors Ronne doesn't control, kept by rules
 Ronne doesn't set. The usage report (046) logs nothing about who sent it, as the report stores
 nothing about them.
@@ -156,6 +159,15 @@ The logger, not each caller, keeps secrets out:
 - **Duplicate-key values:** the value MySQL and MariaDB quote in a duplicate-key error
   (`Duplicate entry '…' for key`) is written `[value]`: it can be an email or an item's name.
   PostgreSQL keeps it in the error's `detail`, which isn't written; SQLite names only the columns.
+- **Domain errors** (owner's rule 093, found by task 4's fifth re-check): a domain's error
+  message is written for the person using the app and may name an item, scope or workspace
+  (`The files of @team/x 1.0.0 couldn't be read`). Each domain's base error class carries a mark,
+  and the logs write such an error's name and code, `message: "[hidden]"`, and its stack's frames
+  without the message (cut off whole, frame-shaped text in it included). A test fails when a
+  domain's base class lacks the mark. Every error class names itself (`override readonly name`):
+  a production build's classes are anonymous, so `new.target.name` would be `""`.
+- **The core packer's errors** name a plugin's file paths (`skills/<name>/…`), so the feed builder
+  turns them into a domain error, and the plugin is left out of the feed, not the feed failed.
 - **Errors:** an error's `name`, `message`, string `code` and stack go through the same value
   redaction; its other properties (a driver's `config`, `cause`) aren't written; a thrown value
   that isn't an `Error` is logged as its type only.
