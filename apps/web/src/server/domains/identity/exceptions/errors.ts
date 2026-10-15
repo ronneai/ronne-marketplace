@@ -1,5 +1,9 @@
+import { MESSAGE_FOR_PEOPLE } from "../../../log/message-for-people";
 /** Errors the identity domain raises. http/ and the setup script turn them into messages. */
 export class IdentityError extends Error {
+  // Its messages are for people and may name items: the logs write its name and code only.
+  readonly [MESSAGE_FOR_PEOPLE] = true;
+
   constructor(message: string) {
     super(message);
     this.name = new.target.name;

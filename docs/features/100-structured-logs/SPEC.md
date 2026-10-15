@@ -66,7 +66,8 @@ addresses, such as a database host in a driver's error, may appear: owner, 2026-
 address's domain may hold anything IDNA does (any script, symbols, its dots `。．｡`, format
 characters) and is recognized by its last label (letters and digits with a letter, or `xn--`), an
 IPv4 address or a literal (`[192.0.2.1]`); what runs on after it (`example.c0m?x=1`,
-`192.0.2.1?x`) stays. A domain holding `_` must start with a letter: pnpm's
+`192.0.2.1?x`, `i❤.ws?v=1.2`, `example.xn--p1ai?x`) stays: the domain is its longest start that
+is one. A domain holding `_` must start with a letter: pnpm's
 `react-dom@19.2.0_react@19.2.0` paths aren't addresses, so `ana@_dmarc.example.com` isn't
 recognized. Known limit (owner, 2026-10-14): an address isn't
 recognized, or only in part, when its local part or domain holds an ASCII delimiter
@@ -156,6 +157,11 @@ The logger, not each caller, keeps secrets out:
 - **Duplicate-key values:** the value MySQL and MariaDB quote in a duplicate-key error
   (`Duplicate entry '…' for key`) is written `[value]`: it can be an email or an item's name.
   PostgreSQL keeps it in the error's `detail`, which isn't written; SQLite names only the columns.
+- **Domain errors** (owner's rule 093, found by task 4's fifth re-check): a domain's error
+  message is written for the person using the app and may name an item, scope or workspace
+  (`The files of @team/x 1.0.0 couldn't be read`). Each domain's base error class carries a mark,
+  and the logs write such an error's name and code, `message: "[hidden]"`, and its stack's frames
+  without the message. A test fails when a domain's base class lacks the mark.
 - **Errors:** an error's `name`, `message`, string `code` and stack go through the same value
   redaction; its other properties (a driver's `config`, `cause`) aren't written; a thrown value
   that isn't an `Error` is logged as its type only.

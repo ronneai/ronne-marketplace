@@ -1,5 +1,9 @@
+import { MESSAGE_FOR_PEOPLE } from "../../../log/message-for-people";
 /** Errors the feeds domain raises (feature 077). */
 export class FeedsError extends Error {
+  // Its messages are for people and may name items: the logs write its name and code only.
+  readonly [MESSAGE_FOR_PEOPLE] = true;
+
   constructor(message: string) {
     super(message);
     this.name = new.target.name;

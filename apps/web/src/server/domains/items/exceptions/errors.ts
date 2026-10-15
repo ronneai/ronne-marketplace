@@ -1,7 +1,11 @@
 import { NAME_PROBLEM_MESSAGES, type NameProblem } from "@ronneai/core";
+import { MESSAGE_FOR_PEOPLE } from "../../../log/message-for-people";
 
 /** Errors the items domain raises. Pages turn them into `ERR:` lines. */
 export class ItemsError extends Error {
+  // Its messages are for people and may name items: the logs write its name and code only.
+  readonly [MESSAGE_FOR_PEOPLE] = true;
+
   constructor(message: string) {
     super(message);
     this.name = new.target.name;
