@@ -270,3 +270,30 @@ it("keeps a URL's origin without its user name or password; cuts a path starting
     "error.type": "/…",
   });
 });
+
+it("keeps a database span's placeholders; cuts an item's reference; handles quotes", () => {
+  const sql = 'insert into "x" ("a", "b") values (?, ?) where "c" = ?;';
+  const sent = sanitizeSpan(
+    span({
+      attributes: {
+        "db.query.text": sql,
+        "next.span_name": "see \"@hushscope/hushitem\" and '/workspaces/hush/x'",
+        "next.segment": "/'hushquote",
+        "resource.name": 'GET https://hushu"ser@host/a"b/hush',
+      },
+    }),
+  );
+  expect(sent.attributes).toEqual({
+    "db.query.text": sql,
+    "next.span_name": "see \"@…\" and '/workspaces/…'",
+    "next.segment": "/…",
+    "resource.name": "GET https://host",
+  });
+});
+
+it("takes linear time on long inputs: values are capped, and no rule backtracks", () => {
+  const started = performance.now();
+  for (const text of ["a-".repeat(60_000), `${"a:".repeat(60_000)}x`, `[${"f:".repeat(60_000)}`])
+    sanitizeSpan(span({ name: text, attributes: { "next.span_name": text } }));
+  expect(performance.now() - started).toBeLessThan(500);
+});

@@ -79,9 +79,15 @@ export const run = async () => {
         "next.span_name": `GET /catalogue?q=${workspace}`,
         "next.segment": `/reviews#${workspace}`,
         "operation.name": `?a&q=${workspace}`,
+        // A URL with a user name, the account's email, and an item's reference.
+        "error.type": `http://${workspace}@localhost/x`,
+        "next.fetch.cache_status": EMAIL,
+        "next.fetch.cache_reason": "@privscope/privitem",
         "resource.name": `${IP}:4318`,
         [workspace || "privacy-ana"]: 1,
       });
+      // And a span named for an address and an email, as a library might name one.
+      tracer.startSpan(`peer ${IP}:5432 for ${EMAIL}`).end();
       try {
         return await work();
       } finally {

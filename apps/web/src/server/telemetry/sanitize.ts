@@ -59,21 +59,25 @@ const IP = /^(?:\d{1,3}(?:\.\d{1,3}){3}|[0-9a-f]*:[0-9a-f:.]*:[0-9a-f:.]*)$/i;
  * brackets, with `::`, or in full.
  */
 const ADDRESS =
-  /(?<!\w|\d\.)\d{1,3}(?:\.\d{1,3}){3}(?!\w|\.\d)|\[[0-9a-f:.]*:[0-9a-f:.]*\]|(?<![\w:])(?:[0-9a-f]{0,4}:)*[0-9a-f]{0,4}::[0-9a-f:.]*(?![\w:])|(?<![\w:])(?:[0-9a-f]{1,4}:){7}[0-9a-f]{1,4}(?![\w:])/gi;
+  /(?<!\w|\d\.)\d{1,3}(?:\.\d{1,3}){3}(?!\w|\.\d)|\[[0-9a-f:.]*:[0-9a-f:.]*\]|(?<![\w:])(?:[0-9a-f]{0,4}:){0,7}[0-9a-f]{0,4}::[0-9a-f:.]{0,45}(?![\w:])|(?<![\w:])(?:[0-9a-f]{1,4}:){7}[0-9a-f]{1,4}(?![\w:])/gi;
 const hasAddress = (value: string) => IP.test(value.trim()) || value.search(ADDRESS) >= 0;
 
 /**
  * A URL keeps only its origin, whatever its scheme or case (`HTTPS://`, `ws://`, `file://`, or
- * `//host` alone): its path and query can name an item or hold a token.
+ * `//host` alone), and not a user name or password: its path and query can name an item or hold a
+ * token. A closing quote, bracket or comma after it stays.
  */
 const originOnly = (value: string) =>
-  value.replace(/((?:\b[a-z][a-z0-9+.-]*:)?\/\/[^/\s?#"']*)[^\s"']*/gi, (whole, origin, at) =>
-    // `//host` alone only where a value or a word starts, never inside a path.
-    origin.startsWith("//") && at > 0 && !/[\s"'(=,]/.test(value[at - 1] ?? "")
-      ? whole
-      : // Without a user name or password: `//user:pw@host` → `//host`.
-        origin.replace(/^((?:[a-z][a-z0-9+.-]*:)?\/\/)[^@]*@/i, "$1"),
-  );
+  value
+    .replace(/((?:\b[a-z][a-z0-9+.-]{0,31}:)?\/\/)[^/\s?#@]*@/gi, "$1")
+    .replace(
+      /((?:\b[a-z][a-z0-9+.-]{0,31}:)?\/\/[^/\s?#"']*)([^\s]*)/gi,
+      (whole, origin, rest, at) =>
+        // `//host` alone only where a value or a word starts, never inside a path.
+        origin.startsWith("//") && at > 0 && !/[\s"'(=,]/.test(value[at - 1] ?? "")
+          ? whole
+          : origin + (/["',;]+$/.exec(rest)?.[0] ?? ""),
+    );
 
 /**
  * The app's static route segments (checked against `app/` by a test), and Better Auth's
@@ -159,19 +163,38 @@ const routeSegment = (segment: string) =>
  * and their query and fragment dropped.
  */
 const patternsOnly = (value: string) =>
-  value.replace(/(?<![\p{L}\p{N}_/])\/[^\s/"'?#][^\s"'?#]*(?:[?#][^\s"']*)?/gu, (whole) => {
+  value.replace(/(?<![\p{L}\p{N}_/])\/[^\s/?#][^\s?#]*(?:[?#]\S*)?/gu, (whole) => {
     const path = whole.replace(/[?#].*/, "");
+    // A closing quote, bracket or comma isn't the path's.
+    const end = /["',;]+$/.exec(path)?.[0] ?? "";
     // The path starts with "/": its first piece is empty.
-    const segments = path.split("/").slice(1);
+    const segments = path
+      .slice(0, path.length - end.length)
+      .split("/")
+      .slice(1);
     const kept = segments.findIndex((segment) => segment !== "" && !routeSegment(segment));
-    return kept === -1 ? path : `/${[...segments.slice(0, kept), "…"].join("/")}`;
+    return (
+      (kept === -1 ? `/${segments.join("/")}` : `/${[...segments.slice(0, kept), "…"].join("/")}`) +
+      end
+    );
   });
+
+/** An item's reference without a path (`@scope/name`): its scope and name are dropped. */
+const references = (value: string) => value.replace(/(?<![\w@])@[\w-]+\/[\w.-]+/g, "@…");
+
+/** Longer values and names are cut to this before the rules run. */
+const MAX_LENGTH = 4096;
 
 /** A query on its own, without a path (`?q=hushvault`): dropped to the end of its word. */
 const withoutQueries = (value: string) => value.replace(/\?[^\s"']+/g, "");
 
 /** URLs to their origin, then paths to the app's patterns, then any query left dropped. */
-const cut = (value: string) => withoutQueries(patternsOnly(originOnly(value)));
+const cut = (value: string, query = true) => {
+  // A value's length is capped before any rule runs: none is meant for a long input.
+  const text = value.length > MAX_LENGTH ? value.slice(0, MAX_LENGTH) : value;
+  const cleaned = references(patternsOnly(originOnly(text)));
+  return query ? withoutQueries(cleaned) : cleaned;
+};
 
 type Value = ReadableSpan["attributes"][string];
 
@@ -182,13 +205,15 @@ type Value = ReadableSpan["attributes"][string];
 const safeString = (value: string) => !hasAddress(value) && redactString(value) === value;
 
 /** A value as it's sent (URLs and paths cut), or undefined when it isn't sent. */
-const sendable = (value: Value): Value | undefined => {
+const sendable = (value: Value, key: string): Value | undefined => {
+  // The database spans' SQL has `?` placeholders, which aren't a query string.
+  const query = key !== "db.query.text";
   if (typeof value === "string") {
-    const sent = cut(value);
+    const sent = cut(value, query);
     return safeString(sent) ? sent : undefined;
   }
   if (Array.isArray(value)) {
-    const items = value.map((item) => (typeof item === "string" ? cut(item) : item));
+    const items = value.map((item) => (typeof item === "string" ? cut(item, query) : item));
     return items.every((item) => typeof item !== "string" || safeString(item))
       ? (items as Value)
       : undefined;
@@ -208,7 +233,7 @@ export const sanitizeAttributes = (attributes: ReadableSpan["attributes"]) =>
     Object.entries(attributes).flatMap(([key, value]) => {
       if (!SENT_KEYS.has(key)) return [];
       if ((key === "next.route" || key === "next.page") && fillsInPath(attributes)) return [];
-      const sent = sendable(value);
+      const sent = sendable(value, key);
       return sent === undefined ? [] : [[key, sent]];
     }),
   );
