@@ -69,7 +69,7 @@ const hasAddress = (value: string) => IP.test(value.trim()) || value.search(ADDR
  */
 const originOnly = (value: string) =>
   value
-    .replace(/((?:\b[a-z][a-z0-9+.-]{0,31}:)?\/\/)[^/\s?#@]*@/gi, "$1")
+    .replace(/((?:\b[a-z][a-z0-9+.-]{0,31}:)?\/\/)[^/\s?#]*@/gi, "$1")
     .replace(
       /((?:\b[a-z][a-z0-9+.-]{0,31}:)?\/\/[^/\s?#"']*)([^\s]*)/gi,
       (whole, origin, rest, at) =>
@@ -163,7 +163,7 @@ const routeSegment = (segment: string) =>
  * and their query and fragment dropped.
  */
 const patternsOnly = (value: string) =>
-  value.replace(/(?<![\p{L}\p{N}_/])\/[^\s/?#][^\s?#]*(?:[?#]\S*)?/gu, (whole) => {
+  value.replace(/(?<![\p{L}\p{N}_/])(?:\/{3,}|\/)[^\s/?#][^\s?#]*(?:[?#]\S*)?/gu, (whole) => {
     const path = whole.replace(/[?#].*/, "");
     // A closing quote, bracket or comma isn't the path's.
     const end = /["',;]+$/.exec(path)?.[0] ?? "";
@@ -180,7 +180,10 @@ const patternsOnly = (value: string) =>
   });
 
 /** An item's reference without a path (`@scope/name`): its scope and name are dropped. */
-const references = (value: string) => value.replace(/(?<![\w@])@[\w-]+\/[\w.-]+/g, "@…");
+const references = (value: string) => value.replace(/(?<!\w)@[\w-]+\/[\w.-]+/g, "@…");
+
+/** An array value keeps its first items only. */
+const MAX_ITEMS = 100;
 
 /** Longer values and names are cut to this before the rules run. */
 const MAX_LENGTH = 4096;
@@ -213,7 +216,9 @@ const sendable = (value: Value, key: string): Value | undefined => {
     return safeString(sent) ? sent : undefined;
   }
   if (Array.isArray(value)) {
-    const items = value.map((item) => (typeof item === "string" ? cut(item, query) : item));
+    const items = value
+      .slice(0, MAX_ITEMS)
+      .map((item) => (typeof item === "string" ? cut(item, query) : item));
     return items.every((item) => typeof item !== "string" || safeString(item))
       ? (items as Value)
       : undefined;

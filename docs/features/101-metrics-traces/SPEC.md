@@ -85,15 +85,18 @@ server starts without it), `telemetry.verbose_off` (warn: `NEXT_OTEL_VERBOSE` tu
   against `app/` by a test; Better Auth's endpoints; Next.js's own) and is cut to `…` from the first
   other one (`/workspaces/hushvault/x` → `/workspaces/…`), losing its query and fragment; a query
   without a path (`?q=…`) is dropped too. An item's reference without a path (`@scope/name`) becomes
-  `@…`. A value or name is cut to 4,096 characters before any rule runs. A database span's SQL keeps
-  its `?` placeholders. The limits: a workspace, scope or item named like a route segment; a path
-  with no leading `/` (`workspaces/x`), with a space in it, or percent- or backslash-encoded; each
-  can only come from a value a library puts in a listed key, none of which any real server does
-  today. An address in a name becomes `[address]`. An exception event keeps its type only, when it's
-  a class name; a status, its code only; a link, its context only; and no span keeps a trace state.
-  Next.js's page-render span's `next.route` (the filled-in path) is dropped, and `@vercel/otel`'s
-  fetch instrumentation is off (pinned by a test). Next.js still traces a page fetching its own
-  origin (a server action's redirect): those spans keep the origin only.
+  `@…`. A value or name is cut to 4,096 characters, and an array value to its first 100 items,
+  before any rule runs. A URL's user name and password are removed up to the last `@` before its
+  path. A database span's SQL keeps its `?` placeholders. The limits (a database span's SQL can lose
+  a PostgreSQL slice `a[1:2]`, read as an address, or a `/* … */` comment, read as a path):  a
+  workspace, scope or item named like a route segment; a path with no leading `/` (`workspaces/x`),
+  with a space in it, or percent- or backslash-encoded; each can only come from a value a library
+  puts in a listed key, none of which any real server does today. An address in a name becomes
+  `[address]`. An exception event keeps its type only, when it's a class name; a status, its code
+  only; a link, its context only; and no span keeps a trace state. Next.js's page-render span's
+  `next.route` (the filled-in path) is dropped, and `@vercel/otel`'s fetch instrumentation is off
+  (pinned by a test). Next.js still traces a page fetching its own origin (a server action's
+  redirect): those spans keep the origin only.
 - **A client's trace context isn't taken:** `traceparent`, `tracestate` and `baggage` are ignored,
   whatever `OTEL_PROPAGATORS` says, so each request is its own trace and nothing joins a caller's.
   A public client's context is its own input, and `@vercel/otel` ends a trace's open spans when its

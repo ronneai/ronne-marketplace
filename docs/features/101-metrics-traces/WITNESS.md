@@ -714,3 +714,64 @@ Witnessed: 2026-10-15 10:35 EDT, by a fresh agent (adversarial). Commit: eb9246f
 | 8 | The black-hole test passes | no | confirmed | 3 files, 13 passed |
 
 **Overall:** not met: SQL placeholders damaged by the bare-query rule; two regexes quadratic; quotes; `@scope/name`; the privacy test missing six rules. This pass's agent also killed a process that wasn't its own (another project's dev server). On `bugfix/101-final`: the bare-query rule skips `db.query.text`; every value or name is cut to 4,096 characters first and the scheme and IPv6 runs are bounded (a test: three 120 KB inputs under 500 ms); a path runs to whitespace with a closing quote left outside; userinfo is removed before the origin is found; `@scope/name` becomes `@…`; the scenario adds a user name in a URL, the email in a sent value, a reference, and a span named for an address and an email: removing the userinfo rule, the origin cut, `redactString` in values or names, the references rule, or the address in names fails it. The spec states the limits: a path with no leading `/`, with a space, or encoded; a name like a route segment.
+
+## Task 5 — Nothing personal in telemetry (final check, 4e9673b7)
+
+Witnessed: 2026-10-15 10:58 EDT, by a fresh agent (blind). Commit: 4e9673b7. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | One test drives sign-in, token exchange, a private release, a feed build and a draft upload, with tracing and metrics on | no | confirmed | `privacy-scenario.ts`: wrong and right `signIn` and `exchangePassword`, `publishSubmission`, `releaseMany`, `marketplaceAs`, `postDraft`, `/api/v1/me`; the traces, metrics and four span names asserted present |
+| 2 | It passes locally | no | confirmed | privacy, black-hole, sanitize, route-segments, start: 22 tests passed |
+| 3 | Nothing personal reaches the collector | no | confirmed | 19 values, each non-empty and absent; `http.target`, `url.full`, `url.path`, `client.address`, `user_agent.original` never present |
+| 4 | The test can fail | no | confirmed | Parameters in `db.query.text`, no allowlist, no cut, raw attributes → each fails it |
+| 5 | It passes on PostgreSQL, MySQL and MariaDB | no | confirmed | Database run 38754586769 on 4e9673b7: `privacy.db.test.ts` ✓ in each |
+| 6 | A collector that doesn't answer leaves request times unchanged | no | confirmed | `blackhole.test.ts` passed 4 times |
+| 7 | The black-hole test can fail | no | confirmed | A 10 ms wait per database span → "expected 10.28 to be less than 5.07" |
+| 8 | The sanitizer and route-segment guards hold | no | confirmed | `sanitize.test.ts`, `route-segments.test.ts` pass |
+| 9 | Metrics carry nothing personal | no | confirmed | The same search covers `/v1/metrics` |
+
+**Overall:** met.
+
+## Task 5 — Nothing personal in telemetry (adversarial final check, 4e9673b7)
+
+Witnessed: 2026-10-15 11:05 EDT, by a fresh agent (adversarial). Commit: 4e9673b7. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | One test drives the flows and inspects everything received | no | confirmed | 18 values against every trace and metric body; the dropped keys absent |
+| 2 | It passes on every database | no | confirmed | 33 tests locally; Database run 38754586769 ✓ |
+| 3 | A collector that doesn't answer leaves request times unchanged | no | confirmed | Real server p50: health 1.6 against 1.5 off; `/catalogue` 14.4 against 13.4 |
+| 4 | The earlier findings are fixed | no | confirmed | `values (?, ?)` kept on three dialects; 60 KB in 0.6 ms; 3,000-case fuzz peak 4.2 ms; `?a&q=x` dropped; `https://u:p@host/x` → `https://host` |
+| 5 | A real standalone server, signed in, sends nothing personal | no | confirmed | 632 hostile requests, JSON 148 bodies (14,718 spans), protobuf 37, UI flow 15: 0 hits; 27 span keys, all in `SENT_KEYS`; resource `service.name`, `service.version` |
+| 6 | Metrics carry only the listed attributes | no | confirmed | Route patterns, method, status, `db.*`, `tool`, `cached`, `outcome`, `check` |
+| 7 | The sanitizer does what the spec says | no | partly | ~600 forms held; a password containing `@` leaks its tail (`https://hushuser:p@ss@host/x` → `https://ss@host`); `[///hushneedle/x` and `@@hushneedle/x` kept |
+| 8 | Ordinary values aren't damaged | no | confirmed | All 51 app route patterns and SQL on three dialects unchanged; damaged only `a[1:2]` and `/* … */` |
+| 9 | The privacy test alone fails when each rule is removed | no | partly | 28 mutants: 15 caught; passes alone without the origin cut as its own rule, path cut in names, event and link attributes, status message, arrays, length cap; the whole `src/server/telemetry` suite catches all but an equivalent one |
+| 10 | Rules don't run long on an attacker's value | no | confirmed | Cap 4,096 characters; removing it fails the suite. An array's item count was unbounded (5,000 items: 2.4 s) |
+| 11 | A client's trace context isn't taken | no | confirmed | `traceparent`, `tracestate`, `baggage` with four propagators: the client's ids absent |
+| 12 | A client's `X-Request-Id` doesn't reach the collector without `TRUST_PROXY` | no | confirmed | 0 captures, 0 log lines |
+
+**Overall:** not met: a user name or password containing `@`, a `///` after a bracket, a doubled `@`, an unbounded array, and the privacy test alone missing several rules. No real server sent anything personal. On `bugfix/101-last`: userinfo is removed to the last `@` before the path; a path may begin with `///`; `@@x/y` is cut; an array keeps its first 100 items; the scenario adds a user name containing `@`, a URL with a private path in a value and in an array, and an exception whose message names the workspace; removing the last-`@` rule or the array cap fails it. The spec states the remaining limits: SQL slices and comments.
+
+## Task 1 — Health checks storage (final check, 4e9673b7)
+
+Witnessed: 2026-10-15 10:53 EDT, by a fresh agent (blind). Commit: 4e9673b7. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `check()` on the interface, the local adapter and `getStorage` | no | confirmed | `storage-adapter.ts:19`, `local-storage.ts:70`, `storage/index.ts:35`; `tsc` clean |
+| 2 | A real folder, and a missing one under a writable parent, pass | no | confirmed | Probe of `check()` and `put()` on the same path: both ok |
+| 3 | A link to nothing fails (direct, chained, under it, a loop) | no | confirmed | check and put both FAIL (`ENOTDIR`, `ELOOP`) |
+| 4 | `check()` agrees with a real `put` | no | confirmed | 27 cases; no case where one passes and the other fails |
+| 5 | `check()` writes no file | no | confirmed | `local-storage.ts:70-88` uses `stat`, `lstat`, `access` |
+| 6 | Database first (3 s), storage within 4 s | no | confirmed | `health.ts:10-14,50-74`; 18 passed; hung storage 503 at 3.9–4.5 s |
+| 7 | 503 `storage_unavailable` with `details.checks`; the 200 body carries `checks` | no | confirmed | `health.ts:73-81`; exact bodies asserted |
+| 8 | `health.db.test.ts` covers a read-only and a missing folder | no | confirmed | Lines 192 and 223; `access` → `F_OK` fails 3 |
+| 9 | Existing statuses and codes unchanged | no | confirmed | 18/18; storage not called on `setup_required` or `database_unavailable` |
+| 10 | The Dockerfile's health check passes unchanged | no | confirmed | `HEALTHCHECK --timeout=5s` above the 4 s deadline; Image run 38754586836 ✓ |
+| 11 | The e2e tests pass unchanged | no | confirmed | CI run 38754586817: shards 1/2 and 2/2 ✓ |
+| 12 | CI and the databases pass | no | confirmed | CI, Database (three servers), CodeQL ✓ |
+| 13 | The server checks (Install and run, systemd, launchd) pass | no | can't check here | Don't run on a push to main. The agent cited PR run 38752955681 (tree 5abb54ce, equal to 4e9673b7's), but its `checks`, `bundles` and `linux-packages` jobs were skipped. The nightly 38729464279 ran on b9533928. The first to cover this commit is the nightly at 06:23 UTC on 2026-10-16 |
+
+**Overall:** not met: only the server checks, for the nightly run (owner: wait, 2026-10-15).

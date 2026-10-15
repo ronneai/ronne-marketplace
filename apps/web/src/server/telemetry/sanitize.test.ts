@@ -297,3 +297,35 @@ it("takes linear time on long inputs: values are capped, and no rule backtracks"
     sanitizeSpan(span({ name: text, attributes: { "next.span_name": text } }));
   expect(performance.now() - started).toBeLessThan(500);
 });
+
+it("removes a user name and password to the last @; cuts what follows brackets and a doubled @", () => {
+  const sent = sanitizeSpan(
+    span({
+      name: "GET https://hushuser:hushp@ss@host/x",
+      attributes: {
+        "next.span_name": "https://hushuser:hushpw@a@b@host/x",
+        "next.segment": "https://hush@x.y@host/",
+        "resource.name": "[///hushneedle/x",
+        "error.type": "@@hushneedle/x",
+      },
+    }),
+  );
+  expect(sent.name).toBe("GET https://host");
+  expect(sent.attributes).toEqual({
+    "next.span_name": "https://host",
+    "next.segment": "https://host",
+    "resource.name": "[///…",
+    "error.type": "@@…",
+  });
+});
+
+it("keeps the first 100 items of an array value, and takes linear time on a long one", () => {
+  const started = performance.now();
+  const sent = sanitizeSpan(
+    span({
+      attributes: { "next.bubble": Array.from({ length: 5000 }, (_, i) => `n${i} `.repeat(100)) },
+    }),
+  );
+  expect((sent.attributes["next.bubble"] as string[]).length).toBe(100);
+  expect(performance.now() - started).toBeLessThan(500);
+});
