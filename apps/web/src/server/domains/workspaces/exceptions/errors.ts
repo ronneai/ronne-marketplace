@@ -4,22 +4,24 @@ import type { MoveImpact } from "../models/scope-move";
 
 /** Errors the workspaces domain raises (feature 090). Pages turn them into `ERR:` lines. */
 export class WorkspacesError extends Error {
+  override readonly name: string = "WorkspacesError";
   // Its messages are for people and may name items: the logs write its name and code only.
   readonly [MESSAGE_FOR_PEOPLE] = true;
 
   constructor(message: string) {
     super(message);
-    this.name = new.target.name;
   }
 }
 
 export class InvalidWorkspaceNameError extends WorkspacesError {
+  override readonly name: string = "InvalidWorkspaceNameError";
   constructor(readonly problem: NameProblem) {
     super(`That workspace name won't work. ${NAME_PROBLEM_MESSAGES[problem]}`);
   }
 }
 
 export class InvalidWorkspaceDescriptionError extends WorkspacesError {
+  override readonly name: string = "InvalidWorkspaceDescriptionError";
   constructor() {
     super("A workspace's description needs 1 to 300 characters.");
   }
@@ -27,18 +29,21 @@ export class InvalidWorkspaceDescriptionError extends WorkspacesError {
 
 /** Until private workspaces (093), every workspace is public. */
 export class InvalidWorkspaceVisibilityError extends WorkspacesError {
+  override readonly name: string = "InvalidWorkspaceVisibilityError";
   constructor() {
     super("A workspace is public or private.");
   }
 }
 
 export class WorkspaceNameTakenError extends WorkspacesError {
+  override readonly name: string = "WorkspaceNameTakenError";
   constructor(readonly workspaceName: string) {
     super(`That name is taken: the workspace ${workspaceName} already exists.`);
   }
 }
 
 export class WorkspaceNotFoundError extends WorkspacesError {
+  override readonly name: string = "WorkspaceNotFoundError";
   constructor() {
     super("That workspace doesn't exist.");
   }
@@ -46,6 +51,7 @@ export class WorkspaceNotFoundError extends WorkspacesError {
 
 /** `global` can't be edited or deleted: every instance has it, and everyone is in it. */
 export class GlobalWorkspaceError extends WorkspacesError {
+  override readonly name: string = "GlobalWorkspaceError";
   constructor() {
     super("The global workspace can't be changed or deleted.");
   }
@@ -53,6 +59,7 @@ export class GlobalWorkspaceError extends WorkspacesError {
 
 /** A workspace with scopes stays: nothing moves scopes yet. */
 export class WorkspaceNotEmptyError extends WorkspacesError {
+  override readonly name: string = "WorkspaceNotEmptyError";
   constructor(readonly scopes: number) {
     super("Move or remove its scopes first.");
   }
@@ -60,6 +67,7 @@ export class WorkspaceNotEmptyError extends WorkspacesError {
 
 /** Nobody leaves `global` (092): it's the workspace everyone but root is in. */
 export class GlobalMembershipError extends WorkspacesError {
+  override readonly name: string = "GlobalMembershipError";
   constructor() {
     super("Nobody leaves global: everyone is in it.");
   }
@@ -67,24 +75,28 @@ export class GlobalMembershipError extends WorkspacesError {
 
 /** Root works in every workspace (091), so root's memberships aren't managed. */
 export class RootMembershipError extends WorkspacesError {
+  override readonly name: string = "RootMembershipError";
   constructor() {
     super("Root works in every workspace without being a member.");
   }
 }
 
 export class MemberUserNotFoundError extends WorkspacesError {
+  override readonly name: string = "MemberUserNotFoundError";
   constructor() {
     super("That user doesn't exist.");
   }
 }
 
 export class NotAWorkspaceMemberError extends WorkspacesError {
+  override readonly name: string = "NotAWorkspaceMemberError";
   constructor(readonly workspace: string) {
     super(`They aren't a member of ${workspace}.`);
   }
 }
 
 export class InvalidMemberRoleError extends WorkspacesError {
+  override readonly name: string = "InvalidMemberRoleError";
   constructor(readonly role: string) {
     super(`"${role}" isn't a role in a workspace. Use admin, moderator or user.`);
   }
@@ -92,6 +104,7 @@ export class InvalidMemberRoleError extends WorkspacesError {
 
 /** Nobody changes or removes their own membership (092): another admin or root does. */
 export class OwnMembershipError extends WorkspacesError {
+  override readonly name: string = "OwnMembershipError";
   constructor() {
     super("You can't change or remove your own membership: another admin or root does.");
   }
@@ -102,6 +115,7 @@ export class OwnMembershipError extends WorkspacesError {
  * would stop installing for people who did nothing. They're listed.
  */
 export class WorkspaceHasOutsideDependentsError extends WorkspacesError {
+  override readonly name: string = "WorkspaceHasOutsideDependentsError";
   constructor(
     readonly workspace: string,
     readonly dependents: readonly string[],
@@ -114,6 +128,7 @@ export class WorkspaceHasOutsideDependentsError extends WorkspacesError {
 
 /** A request to join (094) that doesn't exist, or isn't the asker's to see. */
 export class AccessRequestNotFoundError extends WorkspacesError {
+  override readonly name: string = "AccessRequestNotFoundError";
   constructor() {
     super("That request doesn't exist.");
   }
@@ -121,12 +136,14 @@ export class AccessRequestNotFoundError extends WorkspacesError {
 
 /** Someone else answered or cancelled it first (094): the first decision wins. */
 export class AccessRequestAnsweredError extends WorkspacesError {
+  override readonly name: string = "AccessRequestAnsweredError";
   constructor() {
     super("Already answered.");
   }
 }
 
 export class InvalidAccessRequestTextError extends WorkspacesError {
+  override readonly name: string = "InvalidAccessRequestTextError";
   constructor(readonly field: "message" | "reason") {
     super(`A request's ${field} has at most 500 characters.`);
   }
@@ -134,6 +151,7 @@ export class InvalidAccessRequestTextError extends WorkspacesError {
 
 /** At most 10 open requests per user (094). */
 export class TooManyAccessRequestsError extends WorkspacesError {
+  override readonly name: string = "TooManyAccessRequestsError";
   constructor(readonly limit: number) {
     super(`You have ${limit} open requests already. Cancel one, or wait for an answer.`);
   }
@@ -141,6 +159,7 @@ export class TooManyAccessRequestsError extends WorkspacesError {
 
 /** A declined request can be sent again 7 days after the decline (094). */
 export class AccessRequestTooSoonError extends WorkspacesError {
+  override readonly name: string = "AccessRequestTooSoonError";
   constructor(readonly after: Date) {
     super(
       `Your last request was declined. You can ask again from ${after.toISOString().slice(0, 10)}.`,
@@ -150,6 +169,7 @@ export class AccessRequestTooSoonError extends WorkspacesError {
 
 /** Approving with a role other than user or moderator (094); admin is set from Members (092). */
 export class InvalidRequestRoleError extends WorkspacesError {
+  override readonly name: string = "InvalidRequestRoleError";
   constructor(readonly role: string) {
     super(`"${role}" can't be given by approving a request. Use user or moderator.`);
   }
@@ -160,6 +180,7 @@ export class InvalidRequestRoleError extends WorkspacesError {
  * good (118). Only when the workspace takes a name another workspace had before.
  */
 export class WorkspaceRenameAliasError extends WorkspacesError {
+  override readonly name: string = "WorkspaceRenameAliasError";
   /**
    * `names` are the ones the renamer sees; `hidden` counts the rest, items in workspaces they don't
    * see (114: someone's personal one), named to nobody.
@@ -182,6 +203,7 @@ export class WorkspaceRenameAliasError extends WorkspacesError {
  * private, as long as its owner exists.
  */
 export class PersonalWorkspaceError extends WorkspacesError {
+  override readonly name: string = "PersonalWorkspaceError";
   constructor(readonly change: "members" | "visibility" | "delete") {
     super(
       change === "members"
@@ -195,6 +217,7 @@ export class PersonalWorkspaceError extends WorkspacesError {
 
 /** A scope to move that doesn't exist, or that the asker doesn't see (115). */
 export class ScopeMoveScopeNotFoundError extends WorkspacesError {
+  override readonly name: string = "ScopeMoveScopeNotFoundError";
   constructor() {
     super("That scope doesn't exist.");
   }
@@ -202,6 +225,7 @@ export class ScopeMoveScopeNotFoundError extends WorkspacesError {
 
 /** Moving a scope to the workspace it's in already (115). */
 export class ScopeMoveSameWorkspaceError extends WorkspacesError {
+  override readonly name: string = "ScopeMoveSameWorkspaceError";
   constructor(readonly workspaceName: string) {
     super(`The scope is in ${workspaceName} already.`);
   }
@@ -209,6 +233,7 @@ export class ScopeMoveSameWorkspaceError extends WorkspacesError {
 
 /** Something refuses the move (115): the checks' result, for the dialog to list. */
 export class ScopeMoveRefusedError extends WorkspacesError {
+  override readonly name: string = "ScopeMoveRefusedError";
   constructor(readonly impact: MoveImpact) {
     super("This move would break something, listed below. Nothing moved.");
   }
@@ -216,6 +241,7 @@ export class ScopeMoveRefusedError extends WorkspacesError {
 
 /** A move already waiting for an answer for the scope (115). */
 export class ScopeMoveOpenError extends WorkspacesError {
+  override readonly name: string = "ScopeMoveOpenError";
   constructor(readonly workspaceName: string) {
     super(`A move to ${workspaceName} is waiting for an answer.`);
   }
@@ -223,12 +249,14 @@ export class ScopeMoveOpenError extends WorkspacesError {
 
 /** A move made at once by root, or to `global` by its admins, confirms with the scope's name (115). */
 export class ScopeMoveConfirmationError extends WorkspacesError {
+  override readonly name: string = "ScopeMoveConfirmationError";
   constructor(readonly scopeName: string) {
     super(`Type the scope's name, ${scopeName}, to confirm the move.`);
   }
 }
 
 export class ScopeMoveNotFoundError extends WorkspacesError {
+  override readonly name: string = "ScopeMoveNotFoundError";
   constructor() {
     super("That move request doesn't exist.");
   }
@@ -236,6 +264,7 @@ export class ScopeMoveNotFoundError extends WorkspacesError {
 
 /** Answered or cancelled already (115): the first answer counts. */
 export class ScopeMoveAnsweredError extends WorkspacesError {
+  override readonly name: string = "ScopeMoveAnsweredError";
   constructor() {
     super("Already answered.");
   }
@@ -243,6 +272,7 @@ export class ScopeMoveAnsweredError extends WorkspacesError {
 
 /** The asker is no longer root or an admin of the scope's workspace (115): the request was closed. */
 export class ScopeMoveAskerLostRoleError extends WorkspacesError {
+  override readonly name: string = "ScopeMoveAskerLostRoleError";
   constructor() {
     super(
       "Whoever asked can no longer move this scope, so the request was cancelled. Nothing moved.",
@@ -252,6 +282,7 @@ export class ScopeMoveAskerLostRoleError extends WorkspacesError {
 
 /** A move's message or a decline's reason: at most 500 characters (115). */
 export class InvalidScopeMoveTextError extends WorkspacesError {
+  override readonly name: string = "InvalidScopeMoveTextError";
   constructor(readonly field: "message" | "reason") {
     super(`A move's ${field} has at most 500 characters.`);
   }

@@ -204,8 +204,8 @@ const hideEmails = (value: string): string => {
     // or digit (`example.c0m?x=1`, `192.0.2.1?x`, `i❤.ws?v=1.2`, `x+y.com#v1.2`).
     let found = domainEnd(value, at, end);
     if (found === -1) {
-      const last = Math.min(end, at + 1 + MAX_DOMAIN);
-      for (let cut = at + 2; cut < last; cut++) {
+      const last = Math.min(end - 1, at + 1 + MAX_DOMAIN);
+      for (let cut = at + 2; cut <= last; cut++) {
         if (WORD.test(value.charAt(cut))) continue;
         const shorter = domainEnd(value, at, cut);
         if (shorter > found) found = shorter;
@@ -391,9 +391,16 @@ export const errorFields = (
   // A message for people (a domain's error) may name an item: it, and its copy in the stack's first
   // line, aren't written; the frames are.
   const forPeople = (error as { [MESSAGE_FOR_PEOPLE]?: unknown })[MESSAGE_FOR_PEOPLE] === true;
+  // The stack's head is `<name>: <message>`; the message is cut off as a whole, so text in it
+  // shaped like a frame (`\n    at …`) goes with it.
   const frames = (stack: string) => {
-    const at = stack.indexOf("\n    at ");
-    return `${error.name}: [hidden]${at === -1 ? "" : stack.slice(at)}`;
+    const message = String(error.message);
+    const at = message ? stack.indexOf(message) : -1;
+    const rest =
+      at === -1
+        ? stack.slice(Math.max(0, stack.indexOf("\n    at ")))
+        : stack.slice(at + message.length);
+    return `${error.name}: [hidden]${rest}`;
   };
   const stack =
     withStack && error.stack && forPeople

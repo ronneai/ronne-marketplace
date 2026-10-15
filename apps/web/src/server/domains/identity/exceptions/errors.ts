@@ -1,28 +1,31 @@
 import { MESSAGE_FOR_PEOPLE } from "../../../log/message-for-people";
 /** Errors the identity domain raises. http/ and the setup script turn them into messages. */
 export class IdentityError extends Error {
+  override readonly name: string = "IdentityError";
   // Its messages are for people and may name items: the logs write its name and code only.
   readonly [MESSAGE_FOR_PEOPLE] = true;
 
   constructor(message: string) {
     super(message);
-    this.name = new.target.name;
   }
 }
 
 export class InvalidEmailError extends IdentityError {
+  override readonly name: string = "InvalidEmailError";
   constructor(readonly email: string) {
     super(`"${email}" isn't a valid email address.`);
   }
 }
 
 export class InvalidNameError extends IdentityError {
+  override readonly name: string = "InvalidNameError";
   constructor() {
     super("The display name can't be empty, and has at most 255 characters.");
   }
 }
 
 export class InvalidPasswordError extends IdentityError {
+  override readonly name: string = "InvalidPasswordError";
   constructor(
     readonly reason: "too_short" | "too_long",
     limit: number,
@@ -36,12 +39,14 @@ export class InvalidPasswordError extends IdentityError {
 }
 
 export class RootAlreadyExistsError extends IdentityError {
+  override readonly name: string = "RootAlreadyExistsError";
   constructor(readonly email: string) {
     super(`A root account already exists (${email}). Setup never creates another.`);
   }
 }
 
 export class RootNotFoundError extends IdentityError {
+  override readonly name: string = "RootNotFoundError";
   constructor() {
     super("There's no root account yet. Run `pnpm run setup` to create one.");
   }
@@ -49,6 +54,7 @@ export class RootNotFoundError extends IdentityError {
 
 /** reset-root-password with several roots and no `--email` (059). */
 export class WhichRootError extends IdentityError {
+  override readonly name: string = "WhichRootError";
   constructor(readonly count: number) {
     super(`There are ${count} root accounts. Say which with --email.`);
   }
@@ -56,12 +62,14 @@ export class WhichRootError extends IdentityError {
 
 /** reset-root-password's `--email` names someone who isn't root: it never promotes (059). */
 export class NotARootError extends IdentityError {
+  override readonly name: string = "NotARootError";
   constructor(readonly email: string) {
     super(`${email} isn't a root account.`);
   }
 }
 
 export class NotConfiguredError extends IdentityError {
+  override readonly name: string = "NotConfiguredError";
   constructor() {
     super(
       "Ronne AI Marketplace isn't set up yet: there's no DATABASE_URL or AUTH_SECRET. Run `pnpm run setup`.",
@@ -70,18 +78,21 @@ export class NotConfiguredError extends IdentityError {
 }
 
 export class ForbiddenError extends IdentityError {
+  override readonly name: string = "ForbiddenError";
   constructor(readonly permission: string) {
     super(`You don't have permission to do this (${permission}).`);
   }
 }
 
 export class UserNotFoundError extends IdentityError {
+  override readonly name: string = "UserNotFoundError";
   constructor() {
     super("That user doesn't exist.");
   }
 }
 
 export class EmailTakenError extends IdentityError {
+  override readonly name: string = "EmailTakenError";
   constructor(readonly email: string) {
     super(`A user with the email ${email} already exists.`);
   }
@@ -89,6 +100,7 @@ export class EmailTakenError extends IdentityError {
 
 /** A root acting on their own row: another root changes it (feature 059). */
 export class CannotModifySelfError extends IdentityError {
+  override readonly name: string = "CannotModifySelfError";
   constructor() {
     super(
       "You can't change your own role or account here. Change your password in Account; another root can change the rest.",
@@ -98,42 +110,49 @@ export class CannotModifySelfError extends IdentityError {
 
 /** The change would leave no enabled root, and the instance unmanageable (feature 059). */
 export class LastRootError extends IdentityError {
+  override readonly name: string = "LastRootError";
   constructor() {
     super("This would leave the instance without an active root. Make someone else root first.");
   }
 }
 
 export class InvalidRoleError extends IdentityError {
+  override readonly name: string = "InvalidRoleError";
   constructor(readonly role: string) {
     super(`"${role}" isn't a role. Use user or root; moderator is a role in a workspace.`);
   }
 }
 
 export class InvalidTokenNameError extends IdentityError {
+  override readonly name: string = "InvalidTokenNameError";
   constructor() {
     super("A token name needs 1 to 100 characters.");
   }
 }
 
 export class InvalidTokenLifetimeError extends IdentityError {
+  override readonly name: string = "InvalidTokenLifetimeError";
   constructor(readonly value: string) {
     super(`"${value}" isn't a token lifetime. Use 30, 90 or 365 days, or no expiry.`);
   }
 }
 
 export class TokenLimitError extends IdentityError {
+  override readonly name: string = "TokenLimitError";
   constructor(readonly limit: number) {
     super(`You have ${limit} active tokens, the most allowed. Revoke an old token first.`);
   }
 }
 
 export class TokenNameTakenError extends IdentityError {
+  override readonly name: string = "TokenNameTakenError";
   constructor(readonly tokenName: string) {
     super(`You already have an active token named "${tokenName}".`);
   }
 }
 
 export class TokenNotFoundError extends IdentityError {
+  override readonly name: string = "TokenNotFoundError";
   constructor() {
     super("That token doesn't exist, or isn't yours.");
   }

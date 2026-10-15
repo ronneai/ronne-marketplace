@@ -8,29 +8,32 @@ import { MESSAGE_FOR_PEOPLE } from "../../../log/message-for-people";
 
 /** Errors the submissions domain raises. Pages turn them into `ERR:` lines. */
 export class SubmissionsError extends Error {
+  override readonly name: string = "SubmissionsError";
   // Its messages are for people and may name items: the logs write its name and code only.
   readonly [MESSAGE_FOR_PEOPLE] = true;
 
   constructor(message: string) {
     super(message);
-    this.name = new.target.name;
   }
 }
 
 /** Missing, or someone else's draft: both look the same, so a draft's existence isn't revealed. */
 export class SubmissionNotFoundError extends SubmissionsError {
+  override readonly name: string = "SubmissionNotFoundError";
   constructor() {
     super("That submission doesn't exist.");
   }
 }
 
 export class InvalidItemNameError extends SubmissionsError {
+  override readonly name: string = "InvalidItemNameError";
   constructor(readonly problem: NameProblem) {
     super(`That item name won't work. ${NAME_PROBLEM_MESSAGES[problem]}`);
   }
 }
 
 export class InvalidItemTypeError extends SubmissionsError {
+  override readonly name: string = "InvalidItemTypeError";
   constructor(readonly type: string) {
     super(`${type || "(empty)"} isn't an item type.`);
   }
@@ -41,6 +44,7 @@ export class InvalidItemTypeError extends SubmissionsError {
  * (093). One message for both, so it can't tell them a private scope exists.
  */
 export class DraftScopeNotFoundError extends SubmissionsError {
+  override readonly name: string = "DraftScopeNotFoundError";
   constructor(readonly scopeName: string) {
     super(
       `There's no scope @${scopeName} you can use. Root and a workspace's admins create scopes.`,
@@ -53,6 +57,7 @@ export class DraftScopeNotFoundError extends SubmissionsError {
  * still reads and withdraws their own; this is what editing, creating and submitting get.
  */
 export class NotAMemberError extends SubmissionsError {
+  override readonly name: string = "NotAMemberError";
   constructor(
     readonly workspace: string,
     /** What joining would let them do there: proposing changes, unless said. */
@@ -66,6 +71,7 @@ export class NotAMemberError extends SubmissionsError {
 
 /** Only drafts can be edited, renamed or deleted; a submitted one is frozen for review. */
 export class SubmissionNotEditableError extends SubmissionsError {
+  override readonly name: string = "SubmissionNotEditableError";
   /** The status it has, for the API's `details` (051). */
   constructor(readonly status?: string) {
     super("This submission isn't a draft any more, so it can't be changed.");
@@ -74,6 +80,7 @@ export class SubmissionNotEditableError extends SubmissionsError {
 
 /** Delete refused (057): someone other than the author has commented on it or decided it. */
 export class HasReviewHistoryError extends SubmissionsError {
+  override readonly name: string = "HasReviewHistoryError";
   constructor() {
     super("Reviewers have commented on it or decided it. Archive it instead.");
   }
@@ -86,6 +93,7 @@ const STATUS_WORDS: Record<string, string> = {
 
 /** A move MVP §4.1 doesn't allow, such as withdrawing twice. */
 export class InvalidStatusTransitionError extends SubmissionsError {
+  override readonly name: string = "InvalidStatusTransitionError";
   constructor(
     readonly from: string,
     readonly action: string,
@@ -106,6 +114,7 @@ export class InvalidStatusTransitionError extends SubmissionsError {
 
 /** Submit refused: 011's checks found errors in the saved files. */
 export class SubmissionInvalidError extends SubmissionsError {
+  override readonly name: string = "SubmissionInvalidError";
   constructor(
     readonly issues: readonly ManifestIssue[],
     /** At release (015), the first problem is named: usually a dependency not released yet (056). */
@@ -121,6 +130,7 @@ export class SubmissionInvalidError extends SubmissionsError {
 }
 
 export class ItemNameTakenError extends SubmissionsError {
+  override readonly name: string = "ItemNameTakenError";
   constructor(
     readonly itemName: string,
     readonly by: "published" | "submission" | "alias" | "taken",
@@ -144,12 +154,14 @@ export class ItemNameTakenError extends SubmissionsError {
  * depend on it. Said only to someone who sees it; to anyone else it's an unknown name.
  */
 export class DependencyNotVisibleError extends SubmissionsError {
+  override readonly name: string = "DependencyNotVisibleError";
   constructor(readonly dependency: string) {
     super(`${dependency} is in a private workspace; only its own items can depend on it.`);
   }
 }
 
 export class DependencyNotFoundError extends SubmissionsError {
+  override readonly name: string = "DependencyNotFoundError";
   constructor(readonly dependency: string) {
     super(
       `${dependency} isn't a published item or in review. Submit it first: a dependency counts once it's in review.`,
@@ -159,6 +171,7 @@ export class DependencyNotFoundError extends SubmissionsError {
 
 /** A dependency whose only submission was rejected or withdrawn (056): it won't be released. */
 export class DependencyClosedError extends SubmissionsError {
+  override readonly name: string = "DependencyClosedError";
   constructor(
     readonly dependency: string,
     readonly status: "rejected" | "withdrawn",
@@ -171,6 +184,7 @@ export class DependencyClosedError extends SubmissionsError {
 
 /** At submit (089), a dependency that's only another author's open submission. */
 export class DependencyNotPublishedError extends SubmissionsError {
+  override readonly name: string = "DependencyNotPublishedError";
   constructor(readonly dependency: string) {
     super(
       `${dependency} isn't released yet. You can depend on someone else's item once it's published.`,
@@ -180,6 +194,7 @@ export class DependencyNotPublishedError extends SubmissionsError {
 
 /** At release (056), a dependency still in review: it's released first. */
 export class DependencyUnreleasedError extends SubmissionsError {
+  override readonly name: string = "DependencyUnreleasedError";
   constructor(
     readonly dependency: string,
     readonly status: string,
@@ -189,6 +204,7 @@ export class DependencyUnreleasedError extends SubmissionsError {
 }
 
 export class DependencyRangeUnmatchedError extends SubmissionsError {
+  override readonly name: string = "DependencyRangeUnmatchedError";
   constructor(
     readonly dependency: string,
     readonly range: string,
@@ -199,12 +215,14 @@ export class DependencyRangeUnmatchedError extends SubmissionsError {
 
 /** A dependency that's the submitter's own draft (112), where the item would be submitted alone. */
 export class DependencyDraftError extends SubmissionsError {
+  override readonly name: string = "DependencyDraftError";
   constructor(readonly dependency: string) {
     super(`${dependency} is your draft: submit it with this item.`);
   }
 }
 
 export class InvalidFilePathError extends SubmissionsError {
+  override readonly name: string = "InvalidFilePathError";
   constructor(
     readonly path: string,
     problem: string,
@@ -214,12 +232,14 @@ export class InvalidFilePathError extends SubmissionsError {
 }
 
 export class InvalidFileContentError extends SubmissionsError {
+  override readonly name: string = "InvalidFileContentError";
   constructor(readonly path: string) {
     super(`${path}'s content isn't valid base64.`);
   }
 }
 
 export class ManifestRequiredError extends SubmissionsError {
+  override readonly name: string = "ManifestRequiredError";
   constructor(reason: "deleted" | "missing" = "deleted") {
     super(
       reason === "deleted"
@@ -231,6 +251,7 @@ export class ManifestRequiredError extends SubmissionsError {
 
 /** A file New item started the type with (owner, 2026-10-01): edited, never deleted or renamed. */
 export class StartingFileError extends SubmissionsError {
+  override readonly name: string = "StartingFileError";
   constructor(
     readonly path: string,
     readonly type: string,
@@ -242,6 +263,7 @@ export class StartingFileError extends SubmissionsError {
 }
 
 export class FileTooLargeError extends SubmissionsError {
+  override readonly name: string = "FileTooLargeError";
   constructor(
     readonly path: string,
     size: number,
@@ -252,6 +274,7 @@ export class FileTooLargeError extends SubmissionsError {
 }
 
 export class DraftLimitError extends SubmissionsError {
+  override readonly name: string = "DraftLimitError";
   constructor(
     readonly limit: "files" | "total",
     actual: number,
@@ -267,6 +290,7 @@ export class DraftLimitError extends SubmissionsError {
 
 /** The API's cap on drafts per author (037); the web editor has none. */
 export class DraftQuotaError extends SubmissionsError {
+  override readonly name: string = "DraftQuotaError";
   constructor(readonly limit: number) {
     super(`You already have ${limit} drafts. Submit or delete some before uploading more.`);
   }
@@ -277,6 +301,7 @@ export class DraftQuotaError extends SubmissionsError {
  * draft has: it's a different draft, so it's refused rather than turning this one into it.
  */
 export class DraftMismatchError extends SubmissionsError {
+  override readonly name: string = "DraftMismatchError";
   constructor(readonly draft: { name: string; type: string; baseVersion: string | null }) {
     super(
       `That draft is ${draft.name}, a ${draft.type}${draft.baseVersion ? ` proposed from ${draft.baseVersion}` : ""}; the upload is something else, so it would be a new draft.`,
@@ -286,6 +311,7 @@ export class DraftMismatchError extends SubmissionsError {
 
 /** A save would overwrite files that changed since they were loaded (another tab, say). */
 export class StaleFilesError extends SubmissionsError {
+  override readonly name: string = "StaleFilesError";
   constructor(readonly paths: readonly string[]) {
     super(
       `${paths.join(", ")} changed since you opened ${paths.length === 1 ? "it" : "them"}. Reload to see the changes, or save again to overwrite them.`,
@@ -295,6 +321,7 @@ export class StaleFilesError extends SubmissionsError {
 
 /** A .zip import refused before anything changed. */
 export class ZipImportError extends SubmissionsError {
+  override readonly name: string = "ZipImportError";
   constructor(reason: string) {
     super(`That .zip can't be imported: ${reason}`);
   }
@@ -302,6 +329,7 @@ export class ZipImportError extends SubmissionsError {
 
 /** A reviewer deciding on their own submission; root can approve its own through an override. */
 export class OwnSubmissionError extends SubmissionsError {
+  override readonly name: string = "OwnSubmissionError";
   constructor(canOverride: boolean) {
     super(
       canOverride
@@ -315,6 +343,7 @@ export const REVIEW_MESSAGE_MAX_LENGTH = 5000;
 
 /** A decision that needs a message without one, or any message that's too long. */
 export class ReviewMessageError extends SubmissionsError {
+  override readonly name: string = "ReviewMessageError";
   constructor(
     readonly reason: "required" | "too_long",
     what: string,
@@ -329,6 +358,7 @@ export class ReviewMessageError extends SubmissionsError {
 
 /** Approving many at once (054) takes at most `limit` submissions per request. */
 export class BulkLimitError extends SubmissionsError {
+  override readonly name: string = "BulkLimitError";
   constructor(
     readonly count: number,
     readonly limit: number,
@@ -339,6 +369,7 @@ export class BulkLimitError extends SubmissionsError {
 
 /** Comments are for submissions under review; drafts and closed ones have no conversation. */
 export class ConversationClosedError extends SubmissionsError {
+  override readonly name: string = "ConversationClosedError";
   constructor() {
     super("This submission isn't under review, so it can't take comments.");
   }
@@ -346,6 +377,7 @@ export class ConversationClosedError extends SubmissionsError {
 
 /** An override is root approving its own submission; others' are approved normally. */
 export class OverrideNotNeededError extends SubmissionsError {
+  override readonly name: string = "OverrideNotNeededError";
   constructor() {
     super("An override is only for your own submission. Approve this one instead.");
   }
@@ -353,6 +385,7 @@ export class OverrideNotNeededError extends SubmissionsError {
 
 /** The release choice gives no valid version: a bad pre-release id, or one that sorts too low. */
 export class ReleaseVersionError extends SubmissionsError {
+  override readonly name: string = "ReleaseVersionError";
   constructor() {
     super(
       "That doesn't give a new version: a pre-release id is lowercase letters and digits, starting with a letter, and has to sort after the current one.",
@@ -362,6 +395,7 @@ export class ReleaseVersionError extends SubmissionsError {
 
 /** Versions are immutable and never reused, yanked ones included (MVP §3.4). */
 export class VersionExistsError extends SubmissionsError {
+  override readonly name: string = "VersionExistsError";
   constructor(
     readonly itemName: string,
     readonly version: string,
@@ -370,11 +404,14 @@ export class VersionExistsError extends SubmissionsError {
   }
 }
 
-export class ReleaseTagError extends SubmissionsError {}
+export class ReleaseTagError extends SubmissionsError {
+  override readonly name: string = "ReleaseTagError";
+}
 
 export const RELEASE_NOTES_MAX_LENGTH = 2000;
 
 export class ReleaseNotesError extends SubmissionsError {
+  override readonly name: string = "ReleaseNotesError";
   constructor() {
     super(
       `Release notes can have at most ${RELEASE_NOTES_MAX_LENGTH.toLocaleString("en")} characters.`,
@@ -383,10 +420,13 @@ export class ReleaseNotesError extends SubmissionsError {
 }
 
 /** Packing refused the files, such as a package over 5 MB (MVP §12). */
-export class ReleasePackError extends SubmissionsError {}
+export class ReleasePackError extends SubmissionsError {
+  override readonly name: string = "ReleasePackError";
+}
 
 /** A change proposal (017) keeps its item's scope and name: a new name is a new item. */
 export class ProposalRenameError extends SubmissionsError {
+  override readonly name: string = "ProposalRenameError";
   constructor() {
     super(
       "A change proposal keeps its item's scope and name. To use another name, start a new item.",
@@ -396,6 +436,7 @@ export class ProposalRenameError extends SubmissionsError {
 
 /** Proposing a change to an item or version that isn't published. */
 export class ProposalBaseNotFoundError extends SubmissionsError {
+  override readonly name: string = "ProposalBaseNotFoundError";
   constructor(
     readonly itemName: string,
     readonly version?: string,
@@ -410,6 +451,7 @@ export class ProposalBaseNotFoundError extends SubmissionsError {
 
 /** A version's artifact couldn't be read back to start a proposal from it. */
 export class ProposalArtifactError extends SubmissionsError {
+  override readonly name: string = "ProposalArtifactError";
   constructor(
     readonly itemName: string,
     readonly version: string,
@@ -423,6 +465,7 @@ export class ProposalArtifactError extends SubmissionsError {
  * AUTHZ-2, 2026-10-05). Nothing is approved: the reviewer looks at the new revision first.
  */
 export class RevisionChangedError extends SubmissionsError {
+  override readonly name: string = "RevisionChangedError";
   constructor(
     readonly reviewed: number | null,
     readonly latest: number | null,
@@ -435,6 +478,7 @@ export class RevisionChangedError extends SubmissionsError {
 
 /** Its scope, or a dependency's, moved to another workspace while it was being released (115). */
 export class ScopeMovedError extends SubmissionsError {
+  override readonly name: string = "ScopeMovedError";
   constructor(readonly itemName: string) {
     super(
       `${itemName} moved to another workspace while it was being released. Nothing was released: release it again.`,
@@ -447,6 +491,7 @@ export class ScopeMovedError extends SubmissionsError {
  * Nothing was released; releasing again packs it under the new name.
  */
 export class WorkspaceRenamedError extends SubmissionsError {
+  override readonly name: string = "WorkspaceRenamedError";
   constructor(
     readonly from: string,
     readonly to: string,
@@ -459,6 +504,7 @@ export class WorkspaceRenamedError extends SubmissionsError {
 
 /** The item was renamed (113) while a change to it was being started: nothing was started. */
 export class ItemRenamedMeanwhileError extends SubmissionsError {
+  override readonly name: string = "ItemRenamedMeanwhileError";
   constructor(
     readonly from: string,
     readonly to: string,
@@ -469,6 +515,7 @@ export class ItemRenamedMeanwhileError extends SubmissionsError {
 
 /** A proposal whose item has a newer version (017): it has to be rebased before it's approved. */
 export class SubmissionStaleError extends SubmissionsError {
+  override readonly name: string = "SubmissionStaleError";
   constructor(
     readonly itemName: string,
     readonly baseVersion: string,
@@ -482,6 +529,7 @@ export class SubmissionStaleError extends SubmissionsError {
 
 /** A proposal (017) can't change its item's type (manifest spec §6, layer 3). */
 export class TypeChangedError extends SubmissionsError {
+  override readonly name: string = "TypeChangedError";
   constructor(
     readonly itemName: string,
     readonly from: string,
@@ -495,6 +543,7 @@ export class TypeChangedError extends SubmissionsError {
 
 /** Rebasing or resolving applies to change proposals (017) only. */
 export class NotAProposalError extends SubmissionsError {
+  override readonly name: string = "NotAProposalError";
   constructor() {
     super("Only a change proposal can be rebased: this submission is a new item.");
   }
@@ -502,6 +551,7 @@ export class NotAProposalError extends SubmissionsError {
 
 /** Rebasing a proposal that's already on the item's newest version. */
 export class ProposalCurrentError extends SubmissionsError {
+  override readonly name: string = "ProposalCurrentError";
   constructor(readonly baseVersion: string) {
     super(`Nothing to rebase: ${baseVersion} is still the newest version.`);
   }
@@ -509,6 +559,7 @@ export class ProposalCurrentError extends SubmissionsError {
 
 /** Resolving a path the last rebase didn't leave in conflict. */
 export class ConflictNotFoundError extends SubmissionsError {
+  override readonly name: string = "ConflictNotFoundError";
   constructor(readonly path: string) {
     super(`${path} has no conflict to resolve.`);
   }

@@ -1601,3 +1601,51 @@ Witnessed: 2026-10-14 20:49 EDT, by a fresh agent (adversarial). Commit: 1be0f6c
 | 14 | CodeQL reports nothing new | no | confirmed | 0, 0, 0 |
 
 **Overall:** not met: symbol domains with run-ons written in full; 22 sub-rules unpinned. Fixed on `bugfix/100-email-rule`: a longest-start fallback (any non-letter, non-digit position, at most 253 characters, kept linear), the quoted local part bounded and falling back, every listed sub-rule pinned (each mutant now fails a test; the trailing trim's and last-dot scan's `-`, `．`, `｡` are equivalent mutants, the fallback covering them).
+
+## Task 4 — Nothing secret, nothing personal (sixth re-check)
+
+Witnessed: 2026-10-14 21:35 EDT, by a fresh agent (blind). Commit: 50fc4f7a (PR #187; ronne-web 8551f1f). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The no-secrets test drives every flow and passes | no | confirmed | `no-secrets.db.test.ts:80-173`, `:227-265` |
+| 2 | Any one redaction rule off fails it | no | confirmed | `mut.py` |
+| 3 | Either storage error's key back in its message fails it | no | confirmed | Both exit 1 |
+| 4 | Removing a domain base class's mark fails a test | no | confirmed | `SubmissionsError` → no-secrets; the other 7 → the guard |
+| 5 | No domain error's message reaches a line | no | partly | `frames()` cut at the first `"\n    at "`: a message holding that text leaked its tail into `stack` (no live path found) |
+| 6 | A domain error's line keeps its name | no | partly | Production build: `"name":""` (minified anonymous subclasses, `new.target.name`) |
+| 7 | Unit tests pin each behaviour-changing part of the email rule | no | partly | 114 mutants; 10 behaviour-changing survivors (TOP_LABEL's `\p{N}`/`\p{M}`/`i`, `xn--` parts, LITERAL's window, the quote window, `MAX_DOMAIN`, the trailing trim) |
+| 8 | Every accepted address is `[email]`, outside the limit | no | partly | 402,710 accepted addresses × 8 contexts: 0 misses; a 253-character domain with a run-on missed (off by one) |
+| 9 | Nothing a line needs is hidden | no | confirmed | 313 names × 6 contexts; a real run's lines |
+| 10 | Better Auth | no | confirmed | 5 mutations each exit 1 |
+| 11 | The e2e check against fake logs | no | confirmed | `zzfake.mts` |
+| 12 | A real run passes, prints paths | no | confirmed | 8 passed |
+| 13 | A real run fails with a planted leak | no | confirmed | exit 1 |
+| 14 | e2e shards, WebKit | no | confirmed | Run 38663060603 |
+| 15 | Database tests on three servers | no | confirmed | Run 38663060639 |
+| 16 | CodeQL reports nothing new | no | confirmed | 0, 0, 0 |
+| 17 | The docs' "Never in a line" matches the spec | no | confirmed | ronne-web 8551f1f |
+
+**Overall:** not met: the stack cut, empty names in production, unpinned sub-rules, a 253-character domain. Fixed in the next commit (the message cut off whole, every class named, the off-by-one); the unpinned sub-rules a known limit (owner, 2026-10-14).
+
+## Task 4 — Nothing secret, nothing personal (sixth adversarial re-check)
+
+Witnessed: 2026-10-14 21:22 EDT, by a fresh agent (adversarial). Commit: 50fc4f7a. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The no-secrets test passes | no | confirmed | 106 passed |
+| 2 | A domain error's message is never written; the guard holds | no | confirmed | Mutants; live `submission.checks_failed` → `[hidden]` |
+| 3 | Such an error's name and code are written | no | not met | Production: `"err":{"name":"","message":"[hidden]"}` |
+| 4 | No item, scope or workspace name reaches a line | no | not met | A released skill with a 240-character file path: core's `pluginArchive` throws a plain `Error` naming `skills/<name>/…`, logged by `http.error`; the feed answers 500 for everyone |
+| 5 | Every address outside the limit is `[email]` | no | partly | 200,000 fuzzed: 0 misses; a 253-character domain with a run-on missed |
+| 6 | Nothing a line needs is hidden | no | confirmed | 313 names × 10 contexts; e2e and live logs |
+| 7 | Linear, bounded per line | no | confirmed | ×4 input → ×4 time; 78 ms a line through the logger |
+| 8 | Each new behaviour-changing sub-rule is pinned | no | partly | `MAX_DOMAIN`, the quote window, small cosmetic ones |
+| 9 | Older rules pinned | no | confirmed | 10 mutants |
+| 10 | No secret, email, IP or name in a live run at debug | no | confirmed | 92 requests, 126 lines, 0 hits |
+| 11 | A full Chromium run, no false positives | no | confirmed | 70 passed |
+| 12 | CI green on 50fc4f7a | no | confirmed | 24 success, 6 scope-skipped |
+| 13 | CodeQL reports nothing new | no | confirmed | 0, 0, 0 |
+
+**Overall:** not met: core's plain `Error` wrote an item's name, and failed the feed; empty names in production. The owner (2026-10-14): fix these two, record the rest as known limits, then one narrow check. Fixed in the next commit: the feed builder turns the packer's error into a domain error and leaves that plugin out (a feed test with a 240-character path); every error class names itself (a production build's run writes `ForbiddenError`); the off-by-one.

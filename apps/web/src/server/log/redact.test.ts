@@ -657,6 +657,8 @@ describe("cleanFields", () => {
       ["ana@example.com_1.2", "[email]_1.2"],
       ["mailto:ana@example.xn--p1ai?x=1", "mailto:[email]?x=1"],
       ["ana@example.xn--p1ai!", "[email]!"],
+      // A domain of 253 characters, a hostname's most, before a run-on.
+      [`a@${"b".repeat(249)}.com?q=1.2`, "[email]?q=1.2"],
       // `example.com。v1` is a domain itself: IDNA reads `。` as a dot.
       ["ana@example.com\u3002v1.2", "[email].2"],
     ];

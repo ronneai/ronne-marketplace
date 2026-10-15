@@ -74,7 +74,9 @@ recognized, or only in part, when its local part or domain holds an ASCII delimi
 (`" ' ( ) * , / : ; < > [ ] \ `` ` `` { }`) outside a quoted local part or a literal, or its last
 label holds a symbol (`example.c!om`). No mail system delivers to such an address, though
 `normalizeEmail` accepts it; reading them as addresses would hide parts of stack frames, URLs, JSON
-and paths. They're
+and paths. Also a known limit (owner, 2026-10-14, after task 4's last round): some sub-rules of the
+email rule aren't pinned by a test of their own (the witness passes list them: a few character
+classes, the windows' sizes); the behaviour holds, and a change to them may go unnoticed. They're
 in the database, under 102's retention; logs go to collectors Ronne doesn't control, kept by rules
 Ronne doesn't set. The usage report (046) logs nothing about who sent it, as the report stores
 nothing about them.
@@ -161,7 +163,11 @@ The logger, not each caller, keeps secrets out:
   message is written for the person using the app and may name an item, scope or workspace
   (`The files of @team/x 1.0.0 couldn't be read`). Each domain's base error class carries a mark,
   and the logs write such an error's name and code, `message: "[hidden]"`, and its stack's frames
-  without the message. A test fails when a domain's base class lacks the mark.
+  without the message (cut off whole, frame-shaped text in it included). A test fails when a
+  domain's base class lacks the mark. Every error class names itself (`override readonly name`):
+  a production build's classes are anonymous, so `new.target.name` would be `""`.
+- **The core packer's errors** name a plugin's file paths (`skills/<name>/…`), so the feed builder
+  turns them into a domain error, and the plugin is left out of the feed, not the feed failed.
 - **Errors:** an error's `name`, `message`, string `code` and stack go through the same value
   redaction; its other properties (a driver's `config`, `cause`) aren't written; a thrown value
   that isn't an `Error` is logged as its type only.
