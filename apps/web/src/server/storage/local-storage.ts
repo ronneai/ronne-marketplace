@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
-import { link, mkdir, readFile, stat, unlink, writeFile } from "node:fs/promises";
+import { constants } from "node:fs";
+import { access, link, mkdir, readFile, stat, unlink, writeFile } from "node:fs/promises";
 import { dirname, resolve, sep } from "node:path";
 import { hidePathsUnder } from "../log/redact";
 import {
@@ -62,6 +63,13 @@ export const localStorage = (root: string): StorageAdapter => {
     },
 
     get: async (key) => read(pathOf(key)),
+
+    // The folder exists, is a folder, and this process may create files in it: an access check,
+    // no file written (a full or read-only disk shows up here).
+    check: async () => {
+      if (!(await stat(base)).isDirectory()) throw new Error("The storage path isn't a folder.");
+      await access(base, constants.W_OK | constants.X_OK);
+    },
 
     exists: async (key) => (await read(pathOf(key))) !== null,
 

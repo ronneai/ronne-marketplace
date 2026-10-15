@@ -114,6 +114,8 @@ What changes:
   an attacker fingerprint the instance.
 - Each check has a 3-second limit, as the database's has today; the two together stay under the
   Dockerfile's health-check timeout.
+- A failed storage check writes `storage.unavailable` (error, with `err`; 100), as a failed
+  database writes `db.unavailable`: the reason is in the log, never in the public answer.
 - When OpenTelemetry is on, each health check also sets `ronne.health`.
 
 ## Edge cases

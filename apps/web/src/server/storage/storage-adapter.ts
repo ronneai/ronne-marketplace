@@ -12,6 +12,11 @@ export interface StorageAdapter {
   exists(key: string): Promise<boolean>;
   /** The size in bytes, or null if nothing is stored at `key`. */
   size(key: string): Promise<number | null>;
+  /**
+   * Resolves when storage can take a write, throws otherwise (101: the health endpoint). Writes
+   * nothing: local disk checks its folder exists and is writable.
+   */
+  check(): Promise<void>;
 }
 
 export class StorageError extends Error {

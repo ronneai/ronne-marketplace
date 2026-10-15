@@ -63,6 +63,7 @@ export const EVENTS = {
     fields: ["tool", "reason"],
   },
   "db.unavailable": { level: "error", msg: "Database unavailable", fields: ["err"] },
+  "storage.unavailable": { level: "error", msg: "Storage unavailable", fields: ["err"] },
   "log.level_invalid": {
     level: "warn",
     msg: "LOG_LEVEL isn't one of debug, info, warn or error: using info",

@@ -30,4 +30,5 @@ export const instanceStorage: StorageAdapter = {
   get: (key) => getStorage().get(key),
   exists: (key) => getStorage().exists(key),
   size: (key) => getStorage().size(key),
+  check: () => getStorage().check(),
 };

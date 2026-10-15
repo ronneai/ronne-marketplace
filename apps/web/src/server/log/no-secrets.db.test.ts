@@ -161,7 +161,13 @@ it("writes nothing secret or personal from sign-in, tokens, the API, uploads and
     storagePath: storageRoot,
     trustProxy: true,
   };
-  const healthRoute = apiRoute("/api/health", () => health(config, (value) => createDb(value)));
+  const healthRoute = apiRoute("/api/health", () =>
+    health(
+      config,
+      (value) => createDb(value),
+      () => localStorage(storageRoot),
+    ),
+  );
   expect((await healthRoute(new Request("https://r.test/api/health"), {})).status).toBe(503);
   await expect(
     prepareStart({
