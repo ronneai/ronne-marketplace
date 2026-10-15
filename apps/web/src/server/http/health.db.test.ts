@@ -131,12 +131,30 @@ describe("health", () => {
     body: await response.json(),
   });
 
-  it("returns 503 storage_unavailable when the storage folder is missing", async () => {
-    const gone = join(folder, "gone");
-    expect(await answer(await health(config(), db, () => localStorage(gone)))).toEqual(
-      unavailableStorage,
-    );
+  it("is ok while the storage folder doesn't exist yet, when its parent can take it", async () => {
+    // A STORAGE_PATH nothing has made yet: the first put creates it.
+    const notYet = join(folder, "not-yet", "storage");
+    expect((await health(config(), db, () => localStorage(notYet))).status).toBe(200);
   });
+
+  // Root may write anywhere, so a read-only folder only shows as one to anyone else.
+  const asRoot = process.getuid?.() === 0;
+
+  it.skipIf(asRoot)(
+    "returns 503 storage_unavailable when the storage folder is missing and can't be made",
+    async () => {
+      const readOnly = mkdtempSync(join(folder, "parent-"));
+      chmodSync(readOnly, 0o555);
+      try {
+        const gone = join(readOnly, "storage");
+        expect(await answer(await health(config(), db, () => localStorage(gone)))).toEqual(
+          unavailableStorage,
+        );
+      } finally {
+        chmodSync(readOnly, 0o755);
+      }
+    },
+  );
 
   it("returns 503 storage_unavailable when the storage path is a file", async () => {
     const file = join(folder, "a-file");
@@ -146,8 +164,7 @@ describe("health", () => {
     );
   });
 
-  // Root may write anywhere, so a read-only folder only shows as one to anyone else.
-  it.skipIf(process.getuid?.() === 0)(
+  it.skipIf(asRoot)(
     "returns 503 storage_unavailable when the storage folder is read-only",
     async () => {
       const readOnly = mkdtempSync(join(folder, "read-only-"));
@@ -182,7 +199,9 @@ describe("health", () => {
       write: (line) => lines.push(JSON.parse(line)),
     });
     try {
-      await health(config(), db, () => localStorage(join(folder, "missing-for-log")));
+      const file = join(folder, "a-file-for-log");
+      writeFileSync(file, "x");
+      await health(config(), db, () => localStorage(join(file, "storage")));
     } finally {
       setLoggerForTests();
     }

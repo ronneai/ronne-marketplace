@@ -57,5 +57,8 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
 
+- Task 1: a storage folder that doesn't exist yet is healthy when its parent can take it. The
+  setup wizard's e2e caught it: its instance's `STORAGE_PATH` (from the environment) isn't made
+  until the first artifact is stored, so "the folder must exist" answered 503 after setup.
 - Task 1 adds the event `storage.unavailable`: the Documentation's Logs events table (100) gets
   its row in task 6, in the three languages.

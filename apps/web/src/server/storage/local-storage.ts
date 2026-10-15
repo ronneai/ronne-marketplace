@@ -64,11 +64,23 @@ export const localStorage = (root: string): StorageAdapter => {
 
     get: async (key) => read(pathOf(key)),
 
-    // The folder exists, is a folder, and this process may create files in it: an access check,
-    // no file written (a full or read-only disk shows up here).
+    // The folder, or while nothing is stored yet its nearest existing parent (the first put
+    // creates it, as a STORAGE_PATH nothing has made yet), is a folder this process may create
+    // files in: an access check, no file written (a full or read-only disk shows up here).
     check: async () => {
-      if (!(await stat(base)).isDirectory()) throw new Error("The storage path isn't a folder.");
-      await access(base, constants.W_OK | constants.X_OK);
+      let folder = base;
+      for (;;) {
+        try {
+          if (!(await stat(folder)).isDirectory())
+            throw new Error("The storage path isn't a folder.");
+          break;
+        } catch (error) {
+          const parent = dirname(folder);
+          if (!missing(error) || parent === folder) throw error;
+          folder = parent;
+        }
+      }
+      await access(folder, constants.W_OK | constants.X_OK);
     },
 
     exists: async (key) => (await read(pathOf(key))) !== null,

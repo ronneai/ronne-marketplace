@@ -97,7 +97,9 @@ counted by Next.js's own spans.
 install scripts and the end-to-end tests rely on: 200 when the instance can serve, 503 otherwise.
 What changes:
 - **Storage is checked** after the database: the storage adapter gets a `check()` method; the local
-  adapter checks the storage folder exists and is writable (an access check, no file written).
+  adapter checks the storage folder is a folder it can write to (an access check, no file
+  written). A folder that doesn't exist yet counts when its nearest existing parent can take it:
+  the first artifact stored creates it, as it always has (a `STORAGE_PATH` nothing has made yet).
   110's S3 adapter will check its bucket the same way.
 - **The body says which:**
 
