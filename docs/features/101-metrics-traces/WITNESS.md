@@ -775,3 +775,62 @@ Witnessed: 2026-10-15 10:53 EDT, by a fresh agent (blind). Commit: 4e9673b7. Mac
 | 13 | The server checks (Install and run, systemd, launchd) pass | no | can't check here | Don't run on a push to main. The agent cited PR run 38752955681 (tree 5abb54ce, equal to 4e9673b7's), but its `checks`, `bundles` and `linux-packages` jobs were skipped. The nightly 38729464279 ran on b9533928. The first to cover this commit is the nightly at 06:23 UTC on 2026-10-16 |
 
 **Overall:** not met: only the server checks, for the nightly run (owner: wait, 2026-10-15).
+
+## Task 5 — Nothing personal in telemetry (final adversarial check, ae41f94b)
+
+Witnessed: 2026-10-15 12:05 EDT, by a fresh agent (adversarial). Commit: ae41f94b. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | One test drives the flows and inspects everything received | no | confirmed | `privacy-scenario.ts:116-292`; four span names, parents, `ronne.items` [1,2], 19 values absent |
+| 2 | The test passes | no | confirmed | 35 tests; privacy test on SQLite |
+| 3 | It passes on PostgreSQL, MySQL and MariaDB | no | confirmed | Database run 38762065326 on ae41f94b: ✓ in each |
+| 4 | The earlier findings are fixed | no | confirmed | `https://hushuser:p@ss@host/x` → `https://host`; `[///hushneedle/x` → `[///…`; `@@hushneedle/x` → `@@…`; 150 items → 100 |
+| 5 | A real standalone server, signed in, sends nothing personal | no | confirmed | 3,449 spans, JSON; 128 bodies, 46 needles, 0 hits (except an intended `ronne.request_id` with `TRUST_PROXY=true`); 27 keys, all in `SENT_KEYS` |
+| 6 | Protobuf, `TRUST_PROXY=false` | no | confirmed | 19 bodies, 47 needles, 0 hits |
+| 7 | Odd request targets, raw sockets | no | confirmed | 24 raw requests, 20 bodies: 0 hits |
+| 8 | Metrics carry only the listed attributes | no | confirmed | Method, route patterns, status, `db.*`, `outcome`, `tool`, `cached`, `limit`, `check` |
+| 9 | A collector that doesn't answer leaves request times unchanged | no | confirmed | Real server, 400 requests × 4 paths: p50 equal within 0.4 ms |
+| 10 | The privacy test alone fails when a rule is removed | no | partly | 34 mutants: 20 caught; 14 survive alone (array cap, length cap, page-render guard, path cut in names, exception type, event name, link attributes, status message, resource filter, `///`, `//host`, array safety) and the whole telemetry suite catches all |
+| 11 | Rules don't run long on an attacker's value | no | confirmed | 4,096-character cap; worst 13.5 ms over 30 shapes, 34 ms in 60 s of fuzz |
+| 12 | The spans' other parts hold nothing personal | no | confirmed | Events, links, status, trace state through `sanitizeSpan` |
+| 13 | A client's trace context isn't taken | no | confirmed | Six header formats, four propagators: the client's ids absent |
+| 14 | The spec's stated limits are accurate | no | partly | Not stated: an address glued to a letter, digit or underscore is kept (`ip_203.0.113.5`); a user name or password with an unencoded `/`, `?` or `#` leaves its front; bare `a@b@host/x` and a newline in a path are kept; an object value passed unchanged |
+
+**Overall:** not met, on rows 10 and 14 only (the rules' coverage by the privacy test alone, and the spec's wording); nothing personal from real traffic, and none of it triggerable by a real server today. Remarks: with `TRUST_PROXY=true` the client's `X-Request-Id` is sent as `ronne.request_id` (feature 100's design); `OPTIONS *` answers 500 (Next.js); the release itself wasn't driven over HTTP. On `bugfix/101-release`: a non-primitive value is dropped (a test); the scenario puts the workspace name at item 120 of an array, and removing the array cap fails it alone; the spec states each limit.
+
+## Task 5 — Nothing personal in telemetry (adversarial final re-check, narrow)
+
+Witnessed: 2026-10-15 12:03 EDT, by a fresh agent (adversarial). Commit: ae41f94b + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Object-valued attributes are dropped; strings, numbers, booleans, arrays still sent | no | confirmed | `sanitize.ts:226-227`; probe: `{a:"secret"}` → `{}`; `5`, `true` pass; an array's paths cut |
+| 2 | `sanitize.test.ts` covers the object drop | no | confirmed | Old `return value;` → that test fails |
+| 3 | The privacy test alone fails without the array cap, and passes unchanged | no | confirmed | `.slice(0, MAX_ITEMS)` deleted → "personal reached the collector"; the workspace is item 120 of 150 |
+| 4 | An address glued to a letter, digit or underscore is kept (stated) | no | confirmed | `ip_203.0.113.5`, `v1.2.3.4` kept; `203.0.113.5.`, `:80`, `for=`, lists, `[2001:db8::1]`, `::1` dropped |
+| 5 | A user name or password is removed up to the last `@`; an unencoded `/`, `?` or `#` ends it (stated) | no | confirmed | `https://user:p#ss@host/x` → `https://user:p`; `HTTPS://u:p@h.example/workspaces/z?x=1` → `HTTPS://h.example` |
+| 6 | A bare `a@b@host/x` and a newline in a path are kept (stated) | no | confirmed | As stated |
+| 7 | Only strings, numbers, booleans and arrays are sent | no | confirmed | A non-array object dropped. Remark: an object inside an array passed |
+| 8 | An array keeps 100 items; values and names are cut to 4,096 characters first | no | confirmed | 150 → 100; a name after position 4,096 absent |
+| 9 | SQL keeps `?`; `a[1:2]` lost; a `/* */` comment read as a path (stated) | no | confirmed | As stated |
+| 10 | URL, path, reference, address and span-level claims | no | confirmed | `ws://h/x` → `ws://h`; `@scope/name` → `@…`; exception message dropped; status code only; no trace state |
+| 11 | The telemetry suite passes | no | confirmed | 10 files, 36 tests; route-segments and black-hole ✓ |
+
+**Overall:** met. Remarks: an object inside an array passed (fixed on `bugfix/101-release`: such an array is dropped, a test); the scenario's object value was dropped by the SDK before the sanitizer saw it, so it was removed from the scenario.
+
+## Task 1 — Health checks storage (final re-check: the server checks)
+
+Witnessed: 2026-10-15 12:50 EDT, by a fresh agent (blind). Commit: ae41f94b. Machine: macOS 27.0.1 (read-only: GitHub run data and git).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A run executed (not skipped) the server checks on the head of main | no | confirmed | `gh run list --workflow nightly.yml` → run 38764596340, `workflow_dispatch`, head ae41f94b (= main), success. The push and PR runs skip them (Pack, bundles, checks, linux-packages `skipped`) |
+| 2 | "Install and run" passes on Ubuntu and macOS, Node 22 and 24 | no | confirmed | Four jobs, all success |
+| 3 | "Service on Linux (systemd)", "Service on macOS (launchd)" and "Refuses Windows" pass | no | confirmed | All success; also Pack, the four bundles and the Linux packages |
+| 4 | They exercise the health endpoint | no | confirmed | `server-probe.js:68-84,124-126,159,257`: 503 `setup_required` before setup, 200 after, after rotate-secret and after a restart; the service and package scripts wait on it too. They don't read the storage detail of the body |
+| 5 | The health and storage code in that run is main's | no | confirmed | Head ae41f94b is main's HEAD |
+| 6 | The Dockerfile's HEALTHCHECK, scripts, e2e tests and workflows are unchanged by the feature | no | confirmed | `git diff --stat 1be0f6cb ae41f94b -- Dockerfile scripts apps/web/e2e .github` → empty |
+| 7 | The e2e shards and the Image jobs succeeded | no | confirmed | Shards 1/2 and 2/2; Image (amd64), (arm64), "Docker image (build, run, scan)"; Database on three servers |
+
+**Overall:** met. The nightly was started by hand on main (owner, 2026-10-15) rather than waiting for 06:23 UTC.

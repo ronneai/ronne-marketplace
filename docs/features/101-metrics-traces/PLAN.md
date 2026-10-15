@@ -9,7 +9,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 ## Tasks
 
-- [ ] **1. Health checks storage.** `check()` on the `StorageAdapter` interface and the local
+- [x] **1. Health checks storage.** `check()` on the `StorageAdapter` interface and the local
   adapter (the folder, or while it isn't made yet its nearest existing parent, writable; a link to
   nothing fails; no file written); `/api/health` checks the database then storage within one 4 s
   deadline (the database its first 3 s), answers `storage_unavailable` with `details.checks`, and
@@ -41,7 +41,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   the identity, submissions, feeds and usage services, and the health check.
   *Done when:* tests see each instrument with exactly the listed attributes.
 
-- [ ] **5. Nothing personal in telemetry.** [risky] One test drives sign-in, token exchange, a
+- [x] **5. Nothing personal in telemetry.** [risky] One test drives sign-in, token exchange, a
   release in a private workspace, a feed build and a draft upload with tracing on, and inspects
   everything the test collector received: no parameter values, user ids, emails, IP addresses,
   tokens, or item, scope or workspace names.
