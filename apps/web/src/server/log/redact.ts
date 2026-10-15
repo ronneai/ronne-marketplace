@@ -130,6 +130,30 @@ const TOP_LABEL = /^(?:(?=[\p{L}\p{N}\p{M}]*\p{L})[\p{L}\p{N}\p{M}]+|xn--[a-z0-9
 const IPV4 = /^\d{1,3}(?:\.\d{1,3}){3}$/;
 const LITERAL = /^\[(?:IPv6:)?[0-9A-Fa-f:.]{1,45}\]/;
 
+// A hostname's characters, in any script: letters, digits, marks, format characters, dots (IDNA's
+// too), `-` and `_`.
+const HOST = /^[\p{L}\p{N}\p{M}\p{Cf}._\u3002\uFF0E\uFF61-]$/u;
+
+/**
+ * Where the domain after `value[at]` ends when it's an address's, reading up to `end`, or -1: no
+ * trailing dot or hyphen (an address ending a sentence), a last label that runs on past its letters
+ * and digits (`example.com-acme`) cut there, then a last label with a letter or an IPv4 address.
+ */
+const domainEnd = (value: string, at: number, limit: number): number => {
+  let end = limit;
+  while (end > at + 1 && ".-\u3002\uFF0E\uFF61".includes(value.charAt(end - 1))) end--;
+  let dot = end - 1;
+  while (dot > at && !".\u3002\uFF0E\uFF61".includes(value.charAt(dot))) dot--;
+  if (dot > at && !TOP_LABEL.test(asDomain(value.slice(dot + 1, end)))) {
+    const run = /^[\p{L}\p{N}\p{M}\p{Cf}]*/u.exec(value.slice(dot + 1, end))?.[0] ?? "";
+    if (TOP_LABEL.test(asDomain(run))) end = dot + 1 + run.length;
+  }
+  const domain = asDomain(value.slice(at + 1, end));
+  const last = domain.slice(domain.lastIndexOf(".") + 1);
+  const named = TOP_LABEL.test(last) && (!domain.includes("_") || /^\p{L}/u.test(domain));
+  return domain.includes(".") && (named || IPV4.test(domain)) ? end : -1;
+};
+
 /**
  * Every email address written as `[email]` (feature 100: a line holds no email; a database's
  * duplicate-key error quotes the value it refused). A loop around each `@`, reading each character a
@@ -159,21 +183,16 @@ const hideEmails = (value: string): string => {
     }
     let end = at + 1;
     while (end < value.length && DOMAIN.test(value.charAt(end))) end++;
-    // The domain without a trailing dot or hyphen (an address ending a sentence).
-    while (end > at + 1 && ".-\u3002\uFF0E\uFF61".includes(value.charAt(end - 1))) end--;
-    // A last label that runs on past its letters (`example.com-acme`): the address ends with them.
-    let dot = end - 1;
-    while (dot > at && !".\u3002\uFF0E\uFF61".includes(value.charAt(dot))) dot--;
-    if (dot > at && !TOP_LABEL.test(asDomain(value.slice(dot + 1, end)))) {
-      const letters = /^[\p{L}\p{M}\p{Cf}]*/u.exec(value.slice(dot + 1, end))?.[0] ?? "";
-      if (asDomain(letters).length >= 2) end = dot + 1 + letters.length;
+    // The whole run, else its hostname-shaped start (`example.c0m?x=1`, `192.0.2.1?x`).
+    let found = domainEnd(value, at, end);
+    if (found === -1) {
+      let host = at + 1;
+      while (host < end && HOST.test(value.charAt(host))) host++;
+      if (host < end) found = domainEnd(value, at, host);
     }
-    const domain = asDomain(value.slice(at + 1, end));
-    const last = domain.slice(domain.lastIndexOf(".") + 1);
-    const named = TOP_LABEL.test(last) && (!domain.includes("_") || /^\p{L}/u.test(domain));
-    if (!domain.includes(".") || !(named || IPV4.test(domain))) continue;
+    if (found === -1) continue;
     out += `${value.slice(from, start)}[email]`;
-    from = end;
+    from = found;
   }
   return out + value.slice(from);
 };

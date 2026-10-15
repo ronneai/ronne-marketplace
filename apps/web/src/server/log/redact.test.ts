@@ -634,6 +634,17 @@ describe("cleanFields", () => {
     expect(redactString("mail bob@example.com\u3002")).toBe("mail [email]\u3002");
     expect(redactString("key carol@example\u3002com-acme")).toBe("key [email]-acme");
     expect(redactString("key carol@example.c\u00ADom-acme")).toBe("key [email]-acme");
+    // A run-on after a digits-and-letters or one-letter label, an IPv4 address, a trailing dot.
+    expect(
+      redactString("mailto:ana@example.c0m?x=1 ana@host.x! ana@192.0.2.1?x ana@example.com.?x=1"),
+    ).toBe("mailto:[email]?x=1 [email]! [email]?x [email].?x=1");
+    // Each delimiter ends a domain: what follows it stays.
+    for (const d of [..."\"'()*,/:;<>[]\\`{}"])
+      expect(redactString(`x ana@example.com${d}tail.org y`), d).toBe(`x [email]${d}tail.org y`);
+    // Linear: another `@` ends a domain, so a hostile run doesn't read each character again.
+    const hostile = performance.now();
+    redactString("a@b".repeat(40_000));
+    expect(performance.now() - hostile).toBeLessThan(2_000);
     // What a line needs stays: versions and pnpm's paths.
     for (const kept of [
       "next@16.4.0",
@@ -642,6 +653,8 @@ describe("cleanFields", () => {
       "node_modules/.pnpm/react-dom@19.2.0_react@19.2.0/node_modules/react-dom/index.js:12:5",
       "next@16.4.0_@babel+core@7.28.4_react@19.2.0",
       "pkg@1.0.0_peer.js",
+      "foo@1.0.0_socket.io",
+      "/app/node_modules/.pnpm/@better-auth+prisma-adapter@1.7.7_@better-auth+core@1.7.7_@better-auth+utils@0.4.2_@bet_a3bcb/node_modules/x/dist/index.js:12:5",
     ])
       expect(redactString(kept)).toBe(kept);
     for (const kept of [

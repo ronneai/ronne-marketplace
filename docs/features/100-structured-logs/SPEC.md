@@ -65,7 +65,10 @@ calls, no request IDs, and an unexpected error reaches only Next.js's default ou
 addresses, such as a database host in a driver's error, may appear: owner, 2026-10-14). An
 address's domain may hold anything IDNA does (any script, symbols, its dots `。．｡`, format
 characters) and is recognized by its last label (letters and digits with a letter, or `xn--`), an
-IPv4 address or a literal (`[192.0.2.1]`). Known limit (owner, 2026-10-14): an address isn't
+IPv4 address or a literal (`[192.0.2.1]`); what runs on after it (`example.c0m?x=1`,
+`192.0.2.1?x`) stays. A domain holding `_` must start with a letter: pnpm's
+`react-dom@19.2.0_react@19.2.0` paths aren't addresses, so `ana@_dmarc.example.com` isn't
+recognized. Known limit (owner, 2026-10-14): an address isn't
 recognized, or only in part, when its local part or domain holds an ASCII delimiter
 (`" ' ( ) * , / : ; < > [ ] \ `` ` `` { }`) outside a quoted local part or a literal, or its last
 label holds a symbol (`example.c!om`). No mail system delivers to such an address, though
