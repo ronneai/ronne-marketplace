@@ -645,6 +645,49 @@ describe("cleanFields", () => {
     const hostile = performance.now();
     redactString("a@b".repeat(40_000));
     expect(performance.now() - hostile).toBeLessThan(2_000);
+    // A domain holding a symbol, followed by a run-on: the longest start that is a domain.
+    const runOns: [string, string][] = [
+      ["x ana@i\u2764.ws?v=1.2 y", "x [email]?v=1.2 y"],
+      ["ana@col\u00B7legi.cat&y=2.0", "[email]&y=2.0"],
+      ["ana@x+y.com#v1.2", "[email]#v1.2"],
+      ["ana@\u2603.net?utm_source=mail.campaign", "[email]?utm_source=mail.campaign"],
+      ["ana@\u24D4xample.com?x=_a.b", "[email]?x=_a.b"],
+      ["x ana@my-host.com?v=1.2 y", "x [email]?v=1.2 y"],
+      ["ana@example.com-1.2", "[email]-1.2"],
+      ["ana@example.com_1.2", "[email]_1.2"],
+      ["mailto:ana@example.xn--p1ai?x=1", "mailto:[email]?x=1"],
+      ["ana@example.xn--p1ai!", "[email]!"],
+      // A domain of 253 characters, a hostname's most, before a run-on.
+      [`a@${"b".repeat(249)}.com?q=1.2`, "[email]?q=1.2"],
+      // `example.com。v1` is a domain itself: IDNA reads `。` as a dot.
+      ["ana@example.com\u3002v1.2", "[email].2"],
+    ];
+    for (const [line, hidden] of runOns) expect(redactString(line), line).toBe(hidden);
+    // A space ends a domain.
+    expect(redactString("user ana@localhost failed to open config.json now")).toBe(
+      "user ana@localhost failed to open config.json now",
+    );
+    // Each delimiter ends a local part: what comes before it stays.
+    for (const d of [...'"()<>[]{},;:/\\`*'])
+      expect(redactString(`x${d}ana@example.com y`), d).toBe(`x${d}[email] y`);
+    expect(redactString('{"to":"ana@example.com"}')).toBe('{"to":"[email]"}');
+    expect(redactString("f(a,b,ana@example.com)")).toBe("f(a,b,[email])");
+    // Marks in a last label, and in a run-on one.
+    expect(
+      redactString(
+        "mail ana@\u0921\u093E\u091F\u093E\u092E\u0947\u0932.\u092D\u093E\u0930\u0924 now",
+      ),
+    ).toBe("mail [email] now");
+    expect(redactString("ana@example.\u092D\u093E\u0930\u0924-x")).toBe("[email]-x");
+    // The trailing trim and the last-dot scan read each IDNA dot and `-`.
+    for (const dot of ["-", "\uFF0E", "\uFF61", "\u3002"])
+      expect(redactString(`mail ana@example.com${dot}`), dot).toBe(`mail [email]${dot}`);
+    for (const dot of ["\uFF0E", "\uFF61"])
+      expect(redactString(`key carol@example${dot}com-acme`), dot).toBe("key [email]-acme");
+    // A quoted local part holding `@`, and one too long to be quoted: hidden from the quote back.
+    expect(redactString('x "a@b"@example.com y')).toBe("x [email] y");
+    const quotation = `say "${"x".repeat(80)} ana"@example.com`;
+    expect(redactString(quotation)).toBe(`say "${"x".repeat(80)} [email]`);
     // What a line needs stays: versions and pnpm's paths.
     for (const kept of [
       "next@16.4.0",

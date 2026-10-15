@@ -1,26 +1,33 @@
 import { NAME_PROBLEM_MESSAGES, type NameProblem } from "@ronneai/core";
+import { MESSAGE_FOR_PEOPLE } from "../../../log/message-for-people";
 
 /** Errors the items domain raises. Pages turn them into `ERR:` lines. */
 export class ItemsError extends Error {
+  override readonly name: string = "ItemsError";
+  // Its messages are for people and may name items: the logs write its name and code only.
+  readonly [MESSAGE_FOR_PEOPLE] = true;
+
   constructor(message: string) {
     super(message);
-    this.name = new.target.name;
   }
 }
 
 export class InvalidScopeNameError extends ItemsError {
+  override readonly name: string = "InvalidScopeNameError";
   constructor(readonly problem: NameProblem) {
     super(`That scope name won't work. ${NAME_PROBLEM_MESSAGES[problem]}`);
   }
 }
 
 export class InvalidScopeDescriptionError extends ItemsError {
+  override readonly name: string = "InvalidScopeDescriptionError";
   constructor() {
     super("A scope's description needs 1 to 300 characters.");
   }
 }
 
 export class ScopeNameTakenError extends ItemsError {
+  override readonly name: string = "ScopeNameTakenError";
   constructor(readonly scopeName: string) {
     super(`The scope @${scopeName} already exists.`);
   }
@@ -28,12 +35,14 @@ export class ScopeNameTakenError extends ItemsError {
 
 /** The workspace chosen for a new scope doesn't exist (feature 090). */
 export class ScopeWorkspaceNotFoundError extends ItemsError {
+  override readonly name: string = "ScopeWorkspaceNotFoundError";
   constructor() {
     super("That workspace doesn't exist.");
   }
 }
 
 export class ScopeNotFoundError extends ItemsError {
+  override readonly name: string = "ScopeNotFoundError";
   constructor() {
     super("That scope doesn't exist.");
   }
@@ -41,12 +50,14 @@ export class ScopeNotFoundError extends ItemsError {
 
 /** No published item by that name: never released, or a mistyped name. */
 export class ItemNotFoundError extends ItemsError {
+  override readonly name: string = "ItemNotFoundError";
   constructor(readonly itemName: string) {
     super(`${itemName} isn't a published item.`);
   }
 }
 
 export class VersionNotFoundError extends ItemsError {
+  override readonly name: string = "VersionNotFoundError";
   constructor(
     readonly itemName: string,
     readonly version: string,
@@ -56,9 +67,12 @@ export class VersionNotFoundError extends ItemsError {
 }
 
 /** A tag change the rules refuse (version-rules.ts), with the rule's own sentence. */
-export class TagRuleError extends ItemsError {}
+export class TagRuleError extends ItemsError {
+  override readonly name: string = "TagRuleError";
+}
 
 export class VersionMessageError extends ItemsError {
+  override readonly name: string = "VersionMessageError";
   constructor(what: string) {
     super(`${what} needs 1 to 300 characters.`);
   }
@@ -66,6 +80,7 @@ export class VersionMessageError extends ItemsError {
 
 /** A version's stored artifact is missing, or doesn't match its checksum (019). */
 export class ArtifactUnavailableError extends ItemsError {
+  override readonly name: string = "ArtifactUnavailableError";
   constructor(
     readonly itemName: string,
     readonly version: string,
@@ -81,6 +96,7 @@ export class ArtifactUnavailableError extends ItemsError {
  * it would be installable again with a dependency people outside that workspace can't get.
  */
 export class VersionDependsOnPrivateError extends ItemsError {
+  override readonly name: string = "VersionDependsOnPrivateError";
   constructor(
     readonly version: string,
     readonly dependency: string,

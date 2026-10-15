@@ -10,6 +10,7 @@ import { signIn } from "../domains/identity/actions/session";
 import type { AppAuth } from "../domains/identity/repositories/auth-instance";
 import { createTestUser, testAppAuth } from "../domains/identity/testing/test-auth";
 import { kyselyScopeRepository } from "../domains/items/repositories/kysely-scope-repository";
+import { ProposalArtifactError } from "../domains/submissions/exceptions/errors";
 import { UNFILTERED } from "../domains/workspaces/models/viewer";
 import { GLOBAL_WORKSPACE_ID } from "../domains/workspaces/models/workspace";
 import { apiRoute } from "../http/api-route";
@@ -181,6 +182,11 @@ it("writes nothing secret or personal from sign-in, tokens, the API, uploads and
   // field: only the email rule hides these.
   logger.info("Better Auth", { detail: `Sign-up attempt for existing email: ${EMAIL_ACCENTED}` });
   logger.warn("Unexpected error", { err: new Error(`No account for ${EMAIL}`), note: EMAIL });
+  // A domain's error, whose message names an item for the person reading it (a proposal's files
+  // that couldn't be read, logged as submission.checks_failed).
+  logger.event("submission.checks_failed", {
+    err: new ProposalArtifactError("@team/secret-skill", "1.0.0"),
+  });
   // A duplicate-key error on an item's name (two releases racing on MySQL).
   logger.error("Unexpected error", {
     err: new Error(

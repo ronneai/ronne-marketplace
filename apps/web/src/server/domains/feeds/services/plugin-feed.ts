@@ -229,7 +229,14 @@ const build = async (
     await deps.storage.put(sidecarKey(tool, ref), sidecarBytes(NO_PLUGIN));
     return null;
   }
-  const archive = await pluginArchive(plugin.files);
+  // A file the zip can't hold (a path over 255 characters): this plugin is left out, not the feed.
+  // Core's message names the path, and so the item: the error that's logged is a domain's (093).
+  let archive: Awaited<ReturnType<typeof pluginArchive>>;
+  try {
+    archive = await pluginArchive(plugin.files);
+  } catch {
+    throw new PluginUnavailableError(item.name, item.version, "its files can't be zipped.");
+  }
   return store(deps, tool, ref, archive.bytes);
 };
 
