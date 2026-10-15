@@ -79,14 +79,18 @@ server starts without it), `telemetry.verbose_off` (warn: `NEXT_OTEL_VERBOSE` tu
   email, a token, a URL's password, a stored path) is dropped, and so is any value holding an IP
   address (alone, with a port, in a list, after `for=`, beside a sentence's dot). A URL in any value
   or name, whatever its scheme or case (`HTTPS://`, `ws://`, `file://`, `//host`), keeps its origin
-  only, without a user name or password. A path in any value or name, wherever it starts (after a
-  space, a colon or a dot, with any first character), keeps its segments while they're the app's
-  (its static segments, dynamic segments and route groups, checked against `app/` by a test; Better
-  Auth's endpoints; Next.js's own) and is cut to `…` from the first other one
-  (`/workspaces/hushvault/x` → `/workspaces/…`), losing its query and fragment; a query without a
-  path (`?q=…`) is dropped too. A workspace, scope or item named like a route segment is the limit.
-  An address in a name becomes `[address]`. An exception event keeps its type only, when it's a
-  class name; a status, its code only; a link, its context only; and no span keeps a trace state.
+  only, without a user name or password. A path in any value or name, that starts with a `/` (after
+  a space, a colon or a dot, with any first character) and runs to the next whitespace, keeps its
+  segments while they're the app's (its static segments, dynamic segments and route groups, checked
+  against `app/` by a test; Better Auth's endpoints; Next.js's own) and is cut to `…` from the first
+  other one (`/workspaces/hushvault/x` → `/workspaces/…`), losing its query and fragment; a query
+  without a path (`?q=…`) is dropped too. An item's reference without a path (`@scope/name`) becomes
+  `@…`. A value or name is cut to 4,096 characters before any rule runs. A database span's SQL keeps
+  its `?` placeholders. The limits: a workspace, scope or item named like a route segment; a path
+  with no leading `/` (`workspaces/x`), with a space in it, or percent- or backslash-encoded; each
+  can only come from a value a library puts in a listed key, none of which any real server does
+  today. An address in a name becomes `[address]`. An exception event keeps its type only, when it's
+  a class name; a status, its code only; a link, its context only; and no span keeps a trace state.
   Next.js's page-render span's `next.route` (the filled-in path) is dropped, and `@vercel/otel`'s
   fetch instrumentation is off (pinned by a test). Next.js still traces a page fetching its own
   origin (a server action's redirect): those spans keep the origin only.

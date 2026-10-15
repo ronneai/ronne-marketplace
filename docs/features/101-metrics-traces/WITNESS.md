@@ -697,3 +697,20 @@ Witnessed: 2026-10-15 10:17 EDT, by a fresh agent (adversarial). Commit: 5fdcfa9
 | 6 | The black-hole test passes | no | confirmed | ✓ 1,538 ms |
 
 **Overall:** not met: the bare-query rule, a URL's user name, a path starting with a symbol, and the privacy test alone missing the bare-query rule; none appeared on a real server. On `bugfix/101-final`: any `?…` left after the path cut is dropped; a URL keeps `scheme://host:port` without userinfo; a path may start with any character; the scenario puts `?a&q=<workspace>` in a sent key, and dropping the rule fails it; `sanitize.test.ts` covers each.
+
+## Task 5 — Nothing personal in telemetry (adversarial re-check of the allowlist, second round)
+
+Witnessed: 2026-10-15 10:35 EDT, by a fresh agent (adversarial). Commit: eb9246f0. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Only `SENT_KEYS` are sent | no | confirmed | Guard removed → "http.target was sent"; real server, JSON and protobuf: no `http.target`, `url.*` or client address |
+| 2 | The last pass's four findings are fixed | no | confirmed | `?a&q=hush` → ``, `https://user:pw@host/hush?x#f` → `https://host`, `~/workspaces/hush` → `~/workspaces/…`, `/$hush` → `/…` |
+| 3 | The value rules hold under ~250 hostile forms | no | partly | Held: addresses in every position, schemes and cases, nested queries. Open: a quote defeats the path and userinfo rules; `@scope/name`; a path with no `/` or with a space |
+| 4 | No regex runs long on an attacker's value | no | not met | `"a-".repeat(n)`: 52 ms at 8 KB, 3.3 s at 64 KB (`originOnly`); `"a:".repeat(n)+"x"`: 3.8 s at 64 KB (`ADDRESS`). No real server puts an attacker's path in a sent key |
+| 5 | No rule damages an ordinary value | no | partly | `withoutQueries` ate SQL placeholders: `values (?, ?)` → `values ( ` |
+| 6 | The privacy test alone fails without each rule | no | partly | Passed without the userinfo removal, the URL origin cut, `redactString` in values and names, the address in a name, the render-span guard; two mutants equivalent (layered rules) |
+| 7 | A real standalone server sends nothing personal, JSON and protobuf | no | confirmed | ~55 hostile paths × 3, 11 raw request lines, `OTEL_PROPAGATORS=tracecontext,baggage,b3`: 0 hits. Limit: no signed-in session |
+| 8 | The black-hole test passes | no | confirmed | 3 files, 13 passed |
+
+**Overall:** not met: SQL placeholders damaged by the bare-query rule; two regexes quadratic; quotes; `@scope/name`; the privacy test missing six rules. This pass's agent also killed a process that wasn't its own (another project's dev server). On `bugfix/101-final`: the bare-query rule skips `db.query.text`; every value or name is cut to 4,096 characters first and the scheme and IPv6 runs are bounded (a test: three 120 KB inputs under 500 ms); a path runs to whitespace with a closing quote left outside; userinfo is removed before the origin is found; `@scope/name` becomes `@…`; the scenario adds a user name in a URL, the email in a sent value, a reference, and a span named for an address and an email: removing the userinfo rule, the origin cut, `redactString` in values or names, the references rule, or the address in names fails it. The spec states the limits: a path with no leading `/`, with a space, or encoded; a name like a route segment.
