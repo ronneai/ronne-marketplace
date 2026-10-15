@@ -47,7 +47,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* it passes, and a collector that doesn't answer leaves request times unchanged (a
   test with a black-hole endpoint).
 
-- [ ] **6. Documentation.** In `../ronne-web`: **Monitoring** in Running Ronne (both `topics.ts`)
+- [x] **6. Documentation.** In `../ronne-web`: **Monitoring** in Running Ronne (both `topics.ts`)
   and the Logs line, in English, Portuguese and French, with a Collector config example that was
   run against a real collector (written in the notes); here, `apps/web/.env.example`.
   *Done when:* the docs render tests pass in both repositories.

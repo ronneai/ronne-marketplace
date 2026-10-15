@@ -124,3 +124,83 @@ Witnessed: 2026-10-14 22:32 EDT, by a fresh agent (blind). Commit: 50a2b4f3. Mac
 | 14 | No regressions | no | confirmed | 805 + 41 + 20 tests passed |
 
 **Overall:** not met: the domain spans' nesting and attributes, and the proxy's request id, weren't tested. Fixed in the next commit: the privacy test checks each domain span's parent is its request's span and its attributes (`ronne.items`, `ronne.tool`, `ronne.feed.cached` both ways, `ronne.feed.plugins`), the scenario building the feed twice; a proxy test with a recording hook checks `ronne.request_id` is the answer's `X-Request-Id`. Each of the witness's five mutants now fails a test.
+
+## Task 1 — Health checks storage
+
+Witnessed: 2026-10-14 23:07 EDT, by a fresh agent (blind). Commit: fea1a956. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `StorageAdapter` declares `check()` | no | confirmed | `storage-adapter.ts:15-19` |
+| 2 | The local adapter's `check()` writes no file | no | confirmed | `stat` and `access` only; a probe: 0 entries after, a missing path not created |
+| 3 | A folder not made yet passes when its nearest parent can take it | no | confirmed | Probe; the test fails with two mutations |
+| 4 | A file in its place, a read-only folder, a missing folder under a read-only parent, a path under a file all fail | no | confirmed | Probe: each fails with its error |
+| 5 | Every other implementer has `check()` | no | confirmed | `instanceStorage`, `tracedStorage`; `tsc` exit 0 |
+| 6 | Database first, then storage; storage skipped when setup or the database fails | no | confirmed | `health.ts:43-68`; checking storage first fails 8 tests |
+| 7 | Each check gets a 3 s limit | no | confirmed | `withinTimeout`; two mutations fail the timeout test |
+| 8 | The two together stay under the Dockerfile's health-check timeout | no | partly | `--timeout=5s`, but 3 s + 3 s run one after the other (up to 6 s), and `getSetupState` had no limit |
+| 9 | The 200 body exactly, `no-store`, nothing else | no | confirmed | `toEqual`; an extra field fails it |
+| 10 | The 503 `storage_unavailable` body | no | confirmed | `toEqual` on four failures |
+| 11 | `setup_required` and `database_unavailable` unchanged | no | confirmed | Tests; e2e, Dockerfile, install scripts and workflows unchanged |
+| 12 | `storage.unavailable` written, no stored item path | no | confirmed | Removing the line fails the test. Remark: the test didn't assert the path is hidden |
+| 13 | `health.db.test.ts` covers read-only and missing folders, and fails when the check breaks | no | confirmed | Three mutations fail it. Remark: removing `isDirectory()` survived (an executable file in the folder's place) |
+| 14 | Database tests on three servers | no | confirmed | CI jobs on mariadb, postgres, mysql; read-only cases ran |
+| 15 | The Dockerfile's health check passes unchanged | no | confirmed | Image job: `setup_required`, then 200s |
+| 16 | The server checks pass | no | confirmed | Install and run ×4, systemd, launchd |
+| 17 | The e2e tests pass unchanged | no | confirmed | 72 and 72 |
+
+**Overall:** not met: the two 3-second limits added up past the Dockerfile's 5 seconds, and the setup state had none. Fixed on `bugfix/101-witness-fixes`: one 4-second deadline, the setup state and the database's check at most 3 seconds each, storage what's left; tests for a hung storage (answers by about 4 s), a database that never answers (`database_unavailable` within 3 s), an executable file in the folder's place, and the logged path hidden. Passes on SQLite, PostgreSQL, MySQL and MariaDB.
+
+## Task 4 — Metrics (re-check)
+
+Witnessed: 2026-10-14 23:20 EDT, by a fresh agent (blind). Commit: fea1a956. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Every instrument, kind and unit | no | confirmed | Probe: exactly 10 |
+| 2 | Exactly the listed attributes | no | confirmed | Two mutations fail the test |
+| 3 | Sign-ins once, right outcome | no | confirmed | success 2, failure 1, rate_limited 1 |
+| 4 | Token exchanges, right outcome | no | confirmed | 1 / 1 / 1 |
+| 5 | Releases, single and bulk, once | no | confirmed | 3 |
+| 6 | Feed builds and cache hits; duration for builds | no | confirmed | 2 / 2; count 2 |
+| 7 | Uploads accepted or refused; a 429 not a refusal | no | confirmed | 1 / 1 |
+| 8 | Rate limits with the four values | no | confirmed | One each |
+| 9 | Request histogram from the API wrapper, patterns only | no | confirmed | Points with literal patterns. Remark: whole milliseconds, so fast requests record 0 |
+| 10 | Query histogram, dialect and operation | no | confirmed | SQL verbs only |
+| 11 | `ronne.health` on every path | no | confirmed | Each path probed. Remark: storage keeps its last value when the database fails |
+| 12 | A test fails when any health recording is removed | no | partly | The query-failure call (`health.ts:54`) removed → every test passed |
+| 13 | No personal data, no unbounded values | no | confirmed | 19 metric bodies |
+| 14 | Off costs a function call | no | confirmed | 0 OpenTelemetry modules |
+
+**Overall:** not met: the query-failure recording unpinned. Fixed on `bugfix/101-witness-fixes`: the gauge test drives a setup state that says ready and a query that fails; without the call it fails.
+
+## Task 6 — Documentation (re-check)
+
+Witnessed: 2026-10-14 23:03 EDT, by a fresh agent (blind). Commit: fea1a956 (ronne-web 9e88973, the same tree as main 2592d8d). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `operations#monitoring` in both `topics.ts`, titled as on the page | no | confirmed | Both; 7 sections in the same order |
+| 2 | The health endpoint's statuses, codes, body; reasons in the log | no | confirmed | `health.ts:10,44-71`; tests |
+| 3 | Docker's health check, the services and the install scripts wait on it | no | confirmed | `Dockerfile:70`, `install.sh:415,417`, the server package |
+| 4 | Off unless an endpoint is set; settings file or environment; read at start | no | confirmed | `settings.ts`, `index.ts`, `config.ts`, `register()` |
+| 5 | Docker: `OTEL_*` in the `.env` next to `compose.yaml` | no | confirmed | `docker compose config`; empty counts as unset |
+| 6 | The example variables | no | confirmed | `start.ts:61`, `settings.ts:76-79` |
+| 7 | Signal endpoints, sampler, export interval | no | confirmed | `settings.ts`; `@vercel/otel`'s `buildSamplerFromEnv` |
+| 8 | The protocol sentence: traces only; metrics always JSON | no | confirmed | `settings.ts:65-68`, `start.ts:33-34`, the metric exporter's serializer; pt and fr the same |
+| 9 | `OTEL_SDK_DISABLED`; an invalid endpoint reported, off | no | confirmed | `settings.ts:57-60`, `index.ts:26` |
+| 10 | A collector down or slow never slows a request; one `export_failed` a minute | no | confirmed | `failures.ts`; two tests |
+| 11 | The collector config is valid for contrib 0.162.0 | no | confirmed | The release's manifest and components' READMEs |
+| 12 | The `docker run` line | no | confirmed | The release's Dockerfile config path; the tag exists |
+| 13 | The metrics table | no | confirmed | `real-hooks.ts`; every `limit` value maps |
+| 14 | The spans | no | confirmed | Next's names; `real-hooks.ts`; `api-route.ts` |
+| 15 | Never sent; the resource | no | confirmed | `sanitize.ts`; a probe of the resource keys |
+| 16 | The suggested alerts use real instruments | no | confirmed | `health.ts`, the instruments |
+| 17 | Logs and traces joined | no | confirmed | `logger.ts:216`; `spans.test.ts` |
+| 18 | The events table matches `events.ts` | no | confirmed | 26 rows each, same order |
+| 19 | en, pt, fr the same, in the site's terms | no | confirmed | The diffs side by side |
+| 20 | `.env.example` | no | confirmed | Commented, correct |
+| 21 | `install.md`'s new row | no | confirmed | Line 116 |
+| 22 | Render tests in both repositories | no | confirmed | 138 passed, typecheck exit 0; help 3 passed |
+
+**Overall:** met.

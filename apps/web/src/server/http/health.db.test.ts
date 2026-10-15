@@ -1,8 +1,10 @@
 import { chmodSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { Kysely, SqliteAdapter, SqliteIntrospector, SqliteQueryCompiler } from "kysely";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { AppConfig } from "../config";
+import type { Database } from "../db/schema";
 import { createTestDb, type TestDb } from "../db/testing/test-db";
 import { createRoot } from "../domains/identity/actions/root-account";
 import { setLoggerForTests } from "../log";
@@ -44,6 +46,34 @@ const config = (overrides: Partial<AppConfig> = {}): AppConfig => ({
   trustProxy: false,
   ...overrides,
 });
+
+/** A database whose every query fails (`fail`) or never answers. */
+const brokenDb = (fail: boolean) => {
+  const connection = {
+    executeQuery: () =>
+      fail ? Promise.reject(new Error("connection lost")) : new Promise<never>(() => {}),
+    streamQuery: () => {
+      throw new Error("not used");
+    },
+  };
+  return new Kysely<Database>({
+    dialect: {
+      createAdapter: () => new SqliteAdapter(),
+      createIntrospector: (k) => new SqliteIntrospector(k),
+      createQueryCompiler: () => new SqliteQueryCompiler(),
+      createDriver: () => ({
+        init: async () => {},
+        acquireConnection: async () => connection,
+        beginTransaction: async () => {},
+        commitTransaction: async () => {},
+        rollbackTransaction: async () => {},
+        releaseConnection: async () => {},
+        destroy: async () => {},
+      }),
+    },
+  });
+};
+const rejecting = () => brokenDb(true);
 
 describe("health", () => {
   it("is ok when the database answers", async () => {
@@ -163,6 +193,13 @@ describe("health", () => {
     expect(await answer(await health(config(), db, () => localStorage(file)))).toEqual(
       unavailableStorage,
     );
+    // An executable file too: writable and "searchable", still not a folder.
+    const executable = join(folder, "an-executable-file");
+    writeFileSync(executable, "x");
+    chmodSync(executable, 0o755);
+    expect(await answer(await health(config(), db, () => localStorage(executable)))).toEqual(
+      unavailableStorage,
+    );
   });
 
   it.skipIf(asRoot)(
@@ -182,11 +219,27 @@ describe("health", () => {
 
   // Real timers: the database drivers (pg, mysql2) use them too, so faked ones would stop the
   // database's own check on a server.
-  it("returns 503 storage_unavailable when storage doesn't answer within 3 seconds", async () => {
+  // One 4-second deadline for the whole check, under the Dockerfile's 5-second HEALTHCHECK timeout:
+  // storage gets what the database left, never a second full limit.
+  it("returns 503 storage_unavailable when storage doesn't answer by the deadline", async () => {
     const hanging = { ...storage(), check: () => new Promise<void>(() => {}) };
     const started = performance.now();
     expect(await answer(await health(config(), db, () => hanging))).toEqual(unavailableStorage);
-    expect(performance.now() - started).toBeGreaterThanOrEqual(2_900);
+    const took = performance.now() - started;
+    expect(took).toBeGreaterThanOrEqual(3_900);
+    expect(took).toBeLessThan(4_500);
+  }, 10_000);
+
+  it("returns 503 database_unavailable within 3 seconds when the database never answers", async () => {
+    // A database whose every query hangs: the setup state can't come in.
+    const hung = brokenDb(false);
+    const started = performance.now();
+    const response = await health(config(), () => ({ db: hung, dialect: "sqlite" }), mustNotCheck);
+    const took = performance.now() - started;
+    expect(response.status).toBe(503);
+    expect(await response.json()).toMatchObject({ error: { code: "database_unavailable" } });
+    expect(took).toBeGreaterThanOrEqual(2_900);
+    expect(took).toBeLessThan(3_500);
   }, 10_000);
 
   it("writes storage.unavailable with the error, its path under storage hidden", async () => {
@@ -206,6 +259,8 @@ describe("health", () => {
     expect(lines).toEqual([
       expect.objectContaining({ level: "error", event: "storage.unavailable", domain: "storage" }),
     ]);
+    // The storage folder's path is hidden in the error, as any path under it is.
+    expect(JSON.stringify(lines)).not.toContain("a-file-for-log/storage");
   });
 
   // ronne.health (101): each check's result, whichever way the endpoint answers.
@@ -217,6 +272,15 @@ describe("health", () => {
       const file = join(folder, "a-file-for-health");
       writeFileSync(file, "x");
       await health(config(), db, () => localStorage(join(file, "x")));
+      // The setup state says ready, then the database's own check fails (the second getDb).
+      let calls = 0;
+      await health(
+        config(),
+        () =>
+          ++calls === 1 ? { db: t.db, dialect: t.dialect } : { db: rejecting(), dialect: "sqlite" },
+        mustNotCheck,
+      );
+      expect(calls).toBe(2);
       // The setup state can't reach the database: answered before any query.
       await health(
         config({ databaseUrl: "file:/nonexistent/dir/x.db" }),
@@ -233,6 +297,7 @@ describe("health", () => {
       ["storage", true],
       ["database", true],
       ["storage", false],
+      ["database", false],
       ["database", false],
     ]);
   });

@@ -131,8 +131,9 @@ What changes:
   `setup_required` and `database_unavailable` stay as they are (storage isn't checked before the
   database answers). No version, no paths, no timings: the endpoint is public, and shouldn't help
   an attacker fingerprint the instance.
-- Each check has a 3-second limit, as the database's has today; the two together stay under the
-  Dockerfile's health-check timeout.
+- One 4-second deadline for the whole check, under the Dockerfile's 5-second health-check timeout:
+  the setup state and the database's check each get at most 3 seconds of it (a setup state that
+  doesn't come in time is a database that isn't answering), and storage gets what's left.
 - A failed storage check writes `storage.unavailable` (error, with `err`; 100), as a failed
   database writes `db.unavailable`: the reason is in the log, never in the public answer.
 - When OpenTelemetry is on, each health check also sets `ronne.health`.
