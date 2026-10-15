@@ -246,3 +246,28 @@ Witnessed: 2026-10-14 23:15 EDT, by a fresh agent (blind). Commit: fea1a956. Mac
 | 9 | A real standalone server sends nothing personal | no | confirmed | 195 bodies, 1,528 spans: every needle absent |
 
 **Overall:** not met: the test didn't exercise the sanitizer and its feed was empty; the shipped code leaked nothing. Fixed on `bugfix/101-witness-fixes`: the scenario's request spans carry Next.js's attributes (`http.target`, `url.full`, `url.path` with the workspace, scope and item names and an email, `http.client_ip`, `client.address`, the user agent); it releases skills, so the fresh feed holds 3 plugins (asserted); every searched value must be non-empty. Bypassing the sanitizer or putting plugin names on the span now fails it. Passes on SQLite, PostgreSQL, MySQL and MariaDB.
+
+## Task 2 — The SDK, off by default (second re-check)
+
+Witnessed: 2026-10-14 23:20 EDT, by a fresh agent (blind). Commit: fea1a956. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | No SDK module without an endpoint; the test catches an eager import | no | confirmed | 16 passed; two mutations fail it |
+| 2 | A built standalone server with no endpoint never loads the SDK chunk | no | confirmed | `_compile` recorder: the chunk 0 times |
+| 3 | `OTEL_SDK_DISABLED=true` keeps it off | no | confirmed | `true` and `" TRUE "`: 0 posts |
+| 4 | An invalid endpoint: one warning, the server starts | no | confirmed | Four forms |
+| 5 | A real request's trace reaches a receiver | no | confirmed | Protobuf traces with the configured header; JSON metrics |
+| 6 | Each trace once, only the allowed resource keys | no | confirmed | 81/81 unique; resource as allowed on both signals |
+| 7 | Settings from the file; environment wins; empty counts as unset | no | confirmed | As expected; all empty → off |
+| 8 | Docker's `.env` reaches the container | no | confirmed | `docker compose config` |
+| 9 | `telemetry.started` once, without the endpoint or headers | no | confirmed | One line |
+| 10 | Collector down: `export_failed` once a minute | no | confirmed | 3 lines in 135 s |
+| 11 | Down or never answering doesn't slow requests | no | confirmed | Medians 2.03 / 2.04 ms against 1.80 |
+| 12 | Lockfile, licenses, audit | no | confirmed | All pass |
+| 13 | `packages:check` passes; the packed server has the SDK | no | confirmed | 2,113 files; the chunk in `npm pack --dry-run` |
+| 14 | The bundle and `release:smoke` | no | confirmed | CI run 38673349541 |
+| 15–21 | #188's answers: need, license, health, advisories, install scripts, weight, chunk size | no | confirmed | `npm view`, osv.dev, lockfile-only installs, `npm pack` tarballs, `stat` |
+| 22 | #188: "no new `node_modules` in the standalone output" | no | partly | `@opentelemetry/api` (45 files, 192 KiB) is new in the standalone output and the packed server; the allowlist passes because it's a pattern over `app/` |
+
+**Overall:** not met: the weight answer's `node_modules` sentence, and #188's stale "not witnessed yet" lines. Fixed in #188's description and the plan's note (the new package and its size; why the allowlist passes).
