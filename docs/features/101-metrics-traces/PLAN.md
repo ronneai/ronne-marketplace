@@ -80,5 +80,13 @@ goes into `SPEC.md` instead.
   an endpoint is in the environment, so every span went out twice, once unsanitized (`http.target`
   with an item's name reached a real collector in a run against the standalone server). Telemetry
   now passes `spanProcessors` with only ours; a test checks each span arrives once, sanitized.
+- Task 6, the collector example (2026-10-14): run against the OpenTelemetry Collector contrib
+  0.162.0 (`ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib`,
+  Apache-2.0, from GitHub's registry: no Docker Hub pull) with the Documentation's
+  `otel-collector.yaml`: the standalone server, pointed at it, sent traces (in the collector's
+  debug log) and metrics; Prometheus's `:8889/metrics` served `http_server_request_duration_seconds`
+  with `http_request_method`, `http_route` and `http_response_status_code` only.
+- Task 6: `compose.yaml` passes the standard `OTEL_*` settings from its `.env`, empty when unset
+  (as `LOG_LEVEL`); an empty one counts as unset, and start drops it from the environment.
 - Task 1 adds the event `storage.unavailable`: the Documentation's Logs events table (100) gets
   its row in task 6, in the three languages.

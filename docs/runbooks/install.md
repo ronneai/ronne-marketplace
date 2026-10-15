@@ -113,6 +113,7 @@ address without a port.
 | `RONNE_TRUSTED_PROXIES` | empty | Only behind your own web server: who may tell Ronne the client's address (`private_ranges`) |
 | `LOG_LEVEL` | `info` | The least serious log lines written: `debug`, `info`, `warn` or `error` |
 | `LOG_FORMAT` | `json` | `json`, or `text` for a person reading a terminal |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | empty | Your OpenTelemetry collector's OTLP/HTTP address: metrics and traces, off while empty ([Monitoring](https://www.ronne.ai/marketplace/docs/operations#monitoring)) |
 
 **Your company's certificate** (a private network, or a certificate from your IT team): set
 `RONNE_TLS=files` and put `cert.pem` (with the full chain) and `key.pem` in a `certs` folder next

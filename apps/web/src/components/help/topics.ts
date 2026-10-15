@@ -160,6 +160,7 @@ export const TOPICS = [
       { id: "restore", title: "Restoring" },
       { id: "encryption", title: "Encryption at rest" },
       { id: "logs", title: "Logs" },
+      { id: "monitoring", title: "Monitoring" },
     ],
   },
   {

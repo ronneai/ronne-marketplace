@@ -97,6 +97,10 @@ process.exit(0);`,
         OTEL_BSP_SCHEDULE_DELAY: "100",
         OTEL_METRIC_EXPORT_INTERVAL: "200",
         OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=staging",
+        // As compose.yaml passes the unset ones: empty.
+        OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: "",
+        OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: "",
+        OTEL_TRACES_SAMPLER: "",
       },
     );
     expect(result.stdout, result.stderr).toContain("ON true");

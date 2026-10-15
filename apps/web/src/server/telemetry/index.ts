@@ -27,6 +27,9 @@ export const startTelemetryIfSet = async (env: NodeJS.ProcessEnv = process.env):
     if (settings.why === "endpoint_invalid") log.event("telemetry.endpoint_invalid");
     return;
   }
+  // An empty OTEL_* (compose.yaml passes every one, empty when unset) counts as unset, as
+  // loadConfig counts it: the SDK reads some itself, and an empty endpoint isn't one.
+  for (const key of Object.keys(env)) if (key.startsWith("OTEL_") && !env[key]) delete env[key];
   for (const [key, value] of Object.entries(otel)) env[key] ??= value;
   try {
     const { startTelemetry } = await import("./start");
