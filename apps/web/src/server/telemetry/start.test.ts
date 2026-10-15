@@ -88,11 +88,15 @@ console.log("METRICS", received.metrics.some((b) => b.includes("ronne.test")));
 console.log("SERVICE", received.traces.some((b) => b.includes("ronne-marketplace")));
 console.log("ONCE", received.traces.join("").split('"a request"').length - 1);
 console.log("RAW PATH", received.traces.some((b) => b.includes("secret-skill")));
+const sent = received.traces.join("") + received.metrics.join("");
+console.log("VERCEL", sent.includes("vercel"));
+console.log("ENVIRONMENT", received.traces.some((b) => b.includes("deployment.environment")) && received.metrics.some((b) => b.includes("deployment.environment")));
 process.exit(0);`,
       {
         OTEL_EXPORTER_OTLP_PROTOCOL: "http/json",
         OTEL_BSP_SCHEDULE_DELAY: "100",
         OTEL_METRIC_EXPORT_INTERVAL: "200",
+        OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=staging",
       },
     );
     expect(result.stdout, result.stderr).toContain("ON true");
@@ -102,6 +106,9 @@ process.exit(0);`,
     // Sent once, through our sanitizing exporter only.
     expect(result.stdout).toContain("ONCE 1");
     expect(result.stdout).toContain("RAW PATH false");
+    // The resource: no Vercel attributes on a self-hosted server; the operator's own kept.
+    expect(result.stdout).toContain("VERCEL false");
+    expect(result.stdout).toContain("ENVIRONMENT true");
     expect(result.lines.map((line) => JSON.parse(line).event)).toContain("telemetry.started");
   });
 

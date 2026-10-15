@@ -49,8 +49,12 @@ const sanitizeName = (name: string) =>
  * The span as it's sent: its attributes filtered; its events (an exception's) keeping their name
  * and the exception's type only, never its message or stack; its status without a message.
  */
-export const sanitizeSpan = (span: ReadableSpan): ReadableSpan =>
+export const sanitizeSpan = (
+  span: ReadableSpan,
+  resource: (resource: Resource) => Resource = (r) => r,
+): ReadableSpan =>
   Object.create(span, {
+    resource: { value: resource(span.resource) },
     name: { value: sanitizeName(span.name) },
     attributes: { value: sanitizeAttributes(span.attributes) },
     events: {
@@ -64,3 +68,34 @@ export const sanitizeSpan = (span: ReadableSpan): ReadableSpan =>
     },
     status: { value: { code: span.status.code } },
   });
+
+type Resource = ReadableSpan["resource"];
+
+/**
+ * The resource as it's sent: the service's name and version, the SDK's own, `deployment.*`, and
+ * what the operator sets in OTEL_RESOURCE_ATTRIBUTES. `@vercel/otel` adds Vercel's attributes
+ * (`cloud.provider="vercel"`, `vercel.*`, `node.env`) by default, wrong for a self-hosted server.
+ */
+export const resourceSanitizer = (operatorKeys: readonly string[]) => {
+  const kept = (key: string) =>
+    key.startsWith("service.") ||
+    key.startsWith("telemetry.sdk.") ||
+    key.startsWith("deployment.") ||
+    operatorKeys.includes(key);
+  return (resource: Resource): Resource => {
+    const attributes = Object.fromEntries(
+      Object.entries(resource.attributes).filter(([key]) => kept(key)),
+    );
+    return Object.create(resource, {
+      attributes: { value: attributes },
+      getRawAttributes: { value: () => Object.entries(attributes) },
+    });
+  };
+};
+
+/** The keys OTEL_RESOURCE_ATTRIBUTES names (`key=value,key2=value2`). */
+export const operatorResourceKeys = (value: string | undefined): string[] =>
+  (value ?? "")
+    .split(",")
+    .map((pair) => decodeURIComponent(pair.split("=")[0]?.trim() ?? ""))
+    .filter(Boolean);

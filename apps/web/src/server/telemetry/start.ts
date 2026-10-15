@@ -11,7 +11,7 @@ import { version } from "../../../package.json";
 import { exportFailures, watched } from "./failures";
 import { installHooks } from "./hooks";
 import { realHooks } from "./real-hooks";
-import { sanitizeSpan } from "./sanitize";
+import { operatorResourceKeys, resourceSanitizer, sanitizeSpan } from "./sanitize";
 import type { TelemetrySettings } from "./settings";
 
 /** Spans go nowhere: only metrics have an endpoint. */
@@ -33,11 +33,21 @@ export const startTelemetry = (
   const Exporter =
     traces?.protocol === "json" ? OTLPHttpJsonTraceExporter : OTLPHttpProtoTraceExporter;
   /** Spans leave sanitized (sanitize.ts): nothing personal, no item names, no secrets. */
+  const resource = resourceSanitizer(operatorResourceKeys(otel.OTEL_RESOURCE_ATTRIBUTES));
   const sanitized = (exporter: SpanExporter): SpanExporter => {
     const send = exporter.export.bind(exporter);
-    exporter.export = (spans, done) => send(spans.map(sanitizeSpan), done);
+    exporter.export = (spans, done) =>
+      send(
+        spans.map((span) => sanitizeSpan(span, resource)),
+        done,
+      );
     return exporter;
   };
+  /** Metrics leave with the same resource as spans. */
+  const metricExporter = new OTLPMetricExporter();
+  const sendMetrics = metricExporter.export.bind(metricExporter);
+  metricExporter.export = (metrics, done) =>
+    sendMetrics({ ...metrics, resource: resource(metrics.resource) }, done);
   registerOTel({
     serviceName: otel.OTEL_SERVICE_NAME ?? "ronne-marketplace",
     attributes: { "service.version": version },
@@ -55,7 +65,7 @@ export const startTelemetry = (
     metricReaders: settings.metrics
       ? [
           new PeriodicExportingMetricReader({
-            exporter: watched(new OTLPMetricExporter(), "metrics", failed),
+            exporter: watched(metricExporter, "metrics", failed),
             exportIntervalMillis: settings.metricInterval,
           }),
         ]
