@@ -71,20 +71,32 @@ server starts without it), `telemetry.verbose_off` (warn: `NEXT_OTEL_VERBOSE` tu
   attribute, `ronne.request_id`, on the API route's and the proxy's spans; with tracing on, every
   log line written inside a span carries its `traceId` and `spanId`, so a line leads to its trace.
 - **What leaves, sanitized:** every span passes one sanitizing step before export. Attributes holding
-  a path or URL (`http.target`, `http.url`, `url.*`: an item page's path names the item), a client's
-  address and a user agent are dropped, and so is any value the logger would change (an email, a
-  token, a URL's password, a stored path), and so is a value that is an IP address, any request or
-  response header attribute, and `user.*`; a URL in any value or name keeps its origin only. An
-  exception event keeps its type only, when it's a class name; a status, its code only; a link, its
-  context only; and no span keeps a trace state, which a client sets in its `tracestate` header.
-  Next.js's page-render span's `next.route` (the filled-in path) is dropped, and the fetch
-  instrumentation is off (the server makes no outgoing requests).
+  a path or URL (`http.target`, `http.url`, every `url.*`: an item page's path names the item), a
+  client's address and a user agent are dropped, and so is any value the logger would change (an
+  email, a token, a URL's password, a stored path), any value holding an IP address (alone, with a
+  port, in a list, after `for=`), any request or response header attribute, `user.*`, and any key
+  that isn't a dotted name (an email, a path). A URL in any value or name, whatever its scheme or
+  case (`HTTPS://`, `ws://`, `file://`, `//host`), keeps its origin only. A path in any value or
+  name keeps its segments while they're the app's (its static route segments, checked against
+  `app/` by a test; Better Auth's endpoints; Next.js's own; patterns like `[name]` and route
+  groups) and is cut to `…` from the first other one (`/workspaces/hushvault/x` →
+  `/workspaces/…`): a workspace, scope or item named like a route segment is the limit. An address
+  in a name becomes `[address]`. An exception event keeps its type only, when it's a class name; a
+  status, its code only; a link, its context only; and no span keeps a trace state. Next.js's
+  page-render span's `next.route` (the filled-in path) is dropped, and `@vercel/otel`'s fetch
+  instrumentation is off (pinned by a test). Next.js still traces a page fetching its own origin
+  (a server action's redirect): those spans keep the origin only.
+- **A client's trace context isn't taken:** `traceparent`, `tracestate` and `baggage` are ignored,
+  whatever `OTEL_PROPAGATORS` says, so each request is its own trace and nothing joins a caller's.
+  A public client's context is its own input, and `@vercel/otel` ends a trace's open spans when its
+  first span ends: requests sharing a client's trace would cut each other's spans short, their late
+  attributes lost (task 3's witness, 2026-10-15).
 - **`NEXT_OTEL_VERBOSE`**, Next.js's switch for more spans, puts filled-in paths with private names
   in its spans: telemetry turns it off at start and writes `telemetry.verbose_off` (owner,
   2026-10-14). `@vercel/otel`'s own processors aren't used:
   its default adds a second exporter, unsanitized, whenever an endpoint is set.
-- **Database:** one span per query, from a Kysely plugin added in `create-db.ts` when tracing is
-  on: `db.system.name` (`sqlite`, `postgresql`, `mysql`), `db.operation.name`, and the SQL text with
+- **Database:** one span per query, from Kysely's `log` option, set in `create-db.ts` when tracing
+  is on: `db.system.name` (`sqlite`, `postgresql`, `mysql`), `db.operation.name`, and the SQL text with
   its placeholders (`db.query.text`). **Never the parameters:** they hold names, emails and hashes.
 - **Storage:** `storage.put` / `storage.get` spans with the byte count (`ronne.storage.bytes`), not
   the key (keys hold item names).
@@ -140,8 +152,9 @@ What changes:
   database answers). No version, no paths, no timings: the endpoint is public, and shouldn't help
   an attacker fingerprint the instance.
 - One 4-second deadline for the whole check, under the Dockerfile's 5-second health-check timeout:
-  the setup state and the database's check each get at most 3 seconds of it (a setup state that
-  doesn't come in time is a database that isn't answering), and storage gets what's left.
+  the database has its first 3 seconds, the setup state and its check together (a setup state that
+  doesn't come in time is a database that isn't answering), and storage has until the end, at
+  least a second, so a slow database is never reported as storage failing.
 - A failed storage check writes `storage.unavailable` (error, with `err`; 100), as a failed
   database writes `db.unavailable`: the reason is in the log, never in the public answer.
 - When OpenTelemetry is on, each health check also sets `ronne.health`.
@@ -156,7 +169,7 @@ What changes:
 - **The standalone build:** the SDK packages are traced into the standalone output (or listed in
   `serverExternalPackages`) so `rmk-server`, the bundles and the image have them; the packages
   check (`packages:check`) allowlist grows with them, and the bundle size change is noted.
-- **Off means off:** no SDK import, no Kysely plugin, no extra work per query; the per-request cost
+- **Off means off:** no SDK import, no Kysely `log` option, no extra work per query; the per-request cost
   of the off state is a check of one boolean.
 - **The storage folder made read-only** (a full or remounted disk): health answers 503
   `storage_unavailable`, so Docker marks the container unhealthy and the service checks say so.
@@ -170,7 +183,7 @@ What changes:
 - **Running Ronne** (`operations`), new section **Monitoring** (`operations#monitoring`): the
   health endpoint (what 200 and 503 mean, the `checks`), turning OpenTelemetry on (the variables,
   an OpenTelemetry Collector example that also exposes Prometheus metrics), the metrics table and
-  the spans, what's never sent, suggested alerts (health failing, 5xx rate, sign-in failures,
+  the spans, what's never sent (a client's trace context isn't taken), suggested alerts (health failing, 5xx rate, sign-in failures,
   slow queries), and joining logs to traces.
 - **Running Ronne → Logs** (`operations#logs`): `traceId` and `spanId` when tracing is on.
 - **`apps/web/.env.example`:** the `OTEL_*` variables, commented.
@@ -178,7 +191,7 @@ What changes:
 
 ## Acceptance criteria
 
-- [ ] With no endpoint set, no OpenTelemetry SDK module is loaded, no Kysely plugin is added, and
+- [ ] With no endpoint set, no OpenTelemetry SDK module is loaded, no Kysely `log` option is set, and
       nothing is sent (tested).
 - [ ] With an endpoint, a test collector receives a trace per request with the database and storage
       spans under it, and the metrics in the table with only the listed attributes.

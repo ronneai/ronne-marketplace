@@ -109,3 +109,65 @@ process.exit(0);`;
   const line = lines.find((l) => l.msg === "Inside the request");
   expect(line).toMatchObject({ traceId: root.traceId, spanId: root.spanId });
 });
+
+// Two requests a client sends under one `traceparent`: a client's trace context isn't taken, so
+// each is its own trace. Taken, `@vercel/otel` ends every open span of a trace when its first
+// span ends: the first request to finish would cut the other's spans short, attributes lost.
+it("keeps requests that share a client's traceparent apart, each span ending on its own", () => {
+  const here = import.meta.dirname;
+  const script = `
+import { createServer } from "node:http";
+const bodies = [];
+const server = createServer((req, res) => { let b = ""; req.on("data", (c) => (b += c)); req.on("end", () => { if (req.url === "/v1/traces") bodies.push(JSON.parse(b)); res.writeHead(200, { "content-type": "application/json" }).end("{}"); }); });
+await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
+process.env.OTEL_EXPORTER_OTLP_ENDPOINT = "http://127.0.0.1:" + server.address().port;
+const { startTelemetryIfSet } = await import(${JSON.stringify(join(here, "index.ts"))});
+await startTelemetryIfSet();
+const { context, propagation, trace, ROOT_CONTEXT } = await import("@opentelemetry/api");
+const headers = { traceparent: "00-2af7651916cd43dd8448eb211c80319d-d7ad6b7169203331-01" };
+const tracer = trace.getTracer("test");
+// As Next.js does for each request: the context from its headers, then the request's span.
+const first = tracer.startSpan("GET /submissions", {}, propagation.extract(ROOT_CONTEXT, headers));
+const second = tracer.startSpan("GET /api/v1/feeds/[tool]/marketplace.json", {}, propagation.extract(ROOT_CONTEXT, headers));
+const build = tracer.startSpan("ronne.feed.build", {}, trace.setSpan(context.active(), second));
+first.end();
+build.setAttribute("ronne.feed.plugins", 3);
+build.end();
+second.end();
+for (let i = 0; i < 100 && bodies.length === 0; i++) await new Promise((ok) => setTimeout(ok, 100));
+await new Promise((ok) => setTimeout(ok, 500));
+const spans = bodies.flatMap((b) => b.resourceSpans.flatMap((r) => r.scopeSpans.flatMap((s) => s.spans)));
+console.log("SPANS " + JSON.stringify(spans.map((s) => ({ name: s.name, traceId: s.traceId, keys: s.attributes.map((a) => a.key) }))));
+process.exit(0);`;
+  const env = Object.fromEntries(
+    Object.entries(process.env).filter(([key]) => !key.startsWith("OTEL_") && !/^VITEST/.test(key)),
+  );
+  const result = spawnSync(
+    process.execPath,
+    ["--import", "tsx", "--input-type=module", "-e", script],
+    {
+      encoding: "utf8",
+      cwd: join(here, "../../.."),
+      env: {
+        ...env,
+        NODE_ENV: "production",
+        NEXT_RUNTIME: "nodejs",
+        RONNE_ENV_FILE: "/nonexistent/.env",
+        OTEL_EXPORTER_OTLP_PROTOCOL: "http/json",
+        OTEL_BSP_SCHEDULE_DELAY: "100",
+        OTEL_PROPAGATORS: "tracecontext,baggage",
+      },
+      timeout: 60_000,
+    },
+  );
+  const line = result.stdout.split("\n").find((l) => l.startsWith("SPANS "));
+  const spans: { name: string; traceId: string; keys: string[] }[] = JSON.parse(
+    line?.slice(6) ?? "[]",
+  );
+  expect(spans.length, result.stderr).toBe(3);
+  const build = spans.find((span) => span.name === "ronne.feed.build");
+  expect(build?.keys).toContain("ronne.feed.plugins");
+  const traces = new Set(spans.map((span) => span.traceId));
+  expect(traces.size).toBe(2);
+  expect(traces).not.toContain("2af7651916cd43dd8448eb211c80319d");
+});

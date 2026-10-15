@@ -136,3 +136,63 @@ it("keeps no trace state, no link attributes, a class-name exception type, a cle
     ["exception", {}],
   ]);
 });
+
+it("cuts URLs of any scheme or case, and private paths, in values, arrays and names", () => {
+  const sent = sanitizeSpan(
+    span({
+      name: "GET /workspaces/hushvault/items/hushscope/secret",
+      attributes: {
+        a: "HTTPS://registry.example/items/@team/secret-skill",
+        b: "ws://host.example/workspaces/hushvault/items/x",
+        c: "file:///tmp/x/@hushvault/hushscope/secret/1.0.0.tgz",
+        d: ["HTTP://h.example/items/@t/s"],
+        e: "//registry.example/items/@team/secret",
+        "next.route": "/workspaces/hushvault/items/x",
+        "http.route": "/api/v1/items/[scope]/[name]/versions/[version]/tarball",
+        "db.query.text": 'select "name" from "items" where "id" = ?',
+        "better_auth.route": "handler /sign-in/email",
+        "next.page": "/(app)/workspaces/[name]/items/[scope]/[item]/page",
+      },
+      events: [{ name: "released /items/@hushvault/secret", time: [0, 0], attributes: {} }],
+    }),
+  );
+  expect(sent.name).toBe("GET /workspaces/…");
+  expect(sent.attributes).toEqual({
+    a: "HTTPS://registry.example",
+    b: "ws://host.example",
+    c: "file://",
+    d: ["HTTP://h.example"],
+    e: "//registry.example",
+    "next.route": "/workspaces/…",
+    "http.route": "/api/v1/items/[scope]/[name]/versions/[version]/tarball",
+    "db.query.text": 'select "name" from "items" where "id" = ?',
+    "better_auth.route": "handler /sign-in/email",
+    "next.page": "/(app)/workspaces/[name]/items/[scope]/[item]/page",
+  });
+  expect(sent.events[0]?.name).toBe("released /items/…");
+});
+
+it("drops addresses inside a value, and keys that aren't names; every url.* key", () => {
+  const sent = sanitizeSpan(
+    span({
+      name: "connect 198.51.100.23:5432",
+      attributes: {
+        a: "198.51.100.23:5432",
+        b: "[2001:db8::1]:443",
+        c: "198.51.100.23, 10.0.0.1",
+        d: "for=198.51.100.23",
+        e: ["fine", "198.51.100.23:80"],
+        f: "fe80::1%en0",
+        "zelda@example.org": 1,
+        "/workspaces/hushvault/items/x": 2,
+        "http.request.headers": "cookie: a=b",
+        "url.domain": "registry.example",
+        "url.scheme": "https",
+        version: "1.2.3",
+        kept: "plain",
+      },
+    }),
+  );
+  expect(sent.name).toBe("connect [address]:5432");
+  expect(sent.attributes).toEqual({ version: "1.2.3", kept: "plain" });
+});

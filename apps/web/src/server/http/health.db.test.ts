@@ -48,10 +48,15 @@ const config = (overrides: Partial<AppConfig> = {}): AppConfig => ({
 });
 
 /** A database whose every query fails (`fail`) or never answers. */
-const brokenDb = (fail: boolean) => {
+/** A database whose every query fails (`true`), never answers (`false`), or answers after `ms`. */
+const brokenDb = (fail: boolean | number) => {
   const connection = {
     executeQuery: () =>
-      fail ? Promise.reject(new Error("connection lost")) : new Promise<never>(() => {}),
+      typeof fail === "number"
+        ? new Promise<{ rows: never[] }>((ok) => setTimeout(() => ok({ rows: [] }), fail))
+        : fail
+          ? Promise.reject(new Error("connection lost"))
+          : new Promise<never>(() => {}),
     streamQuery: () => {
       throw new Error("not used");
     },
@@ -301,4 +306,64 @@ describe("health", () => {
       ["database", false],
     ]);
   });
+
+  // The deadline's shares (101): the database (the setup state and its check together) has the
+  // first 3 seconds, storage until 4, a second at least; nothing reaches Docker's 5.
+  const ready = (ms: number) => async () => {
+    await new Promise((ok) => setTimeout(ok, ms));
+    return "ready" as const;
+  };
+  const timed = async (run: () => Promise<Response>) => {
+    const started = performance.now();
+    const response = await run();
+    return {
+      status: response.status,
+      body: await response.json(),
+      took: performance.now() - started,
+    };
+  };
+
+  it("answers database_unavailable at 3 s when the check hangs after a ready setup state", async () => {
+    const hung = brokenDb(false);
+    const result = await timed(() =>
+      health(config(), () => ({ db: hung, dialect: "sqlite" }), mustNotCheck, ready(0)),
+    );
+    expect(result.body).toMatchObject({ error: { code: "database_unavailable" } });
+    expect(result.took).toBeGreaterThanOrEqual(2_900);
+    expect(result.took).toBeLessThan(3_500);
+  }, 10_000);
+
+  it("keeps one deadline: a slow setup state, then storage hanging, answers by 4 s", async () => {
+    const hanging = { ...storage(), check: () => new Promise<void>(() => {}) };
+    const result = await timed(() => health(config(), db, () => hanging, ready(2_000)));
+    expect(result).toMatchObject(unavailableStorage);
+    expect(result.took).toBeGreaterThanOrEqual(3_900);
+    expect(result.took).toBeLessThan(4_500);
+  }, 10_000);
+
+  it("counts a database slow in both steps, past 3 s together, as not answering", async () => {
+    // 2.5 s for the setup state, 0.8 s for the check: storage would be left 0.7 s otherwise.
+    const slow = brokenDb(800);
+    const result = await timed(() =>
+      health(config(), () => ({ db: slow, dialect: "sqlite" }), mustNotCheck, ready(2_500)),
+    );
+    expect(result.body).toMatchObject({ error: { code: "database_unavailable" } });
+    expect(result.took).toBeLessThan(3_500);
+  }, 10_000);
+
+  it.skipIf(asRoot)(
+    "returns 503 storage_unavailable when the storage folder can't be entered",
+    async () => {
+      // Writable but not searchable (no x bit): a file can't be made in it.
+      const closed = mkdtempSync(join(folder, "no-x-"));
+      chmodSync(closed, 0o666);
+      try {
+        expect(await answer(await health(config(), db, () => localStorage(closed)))).toEqual(
+          unavailableStorage,
+        );
+      } finally {
+        chmodSync(closed, 0o755);
+      }
+    },
+  );
 });

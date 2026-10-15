@@ -188,7 +188,7 @@ export const run = async () => {
     return draft.id;
   };
   const single = await submitted("privitem");
-  await request("POST /release", () =>
+  await request("POST /reviews/[id]", () =>
     publishSubmission(asAna, single, { choice: { kind: "stable", bump: "minor" } }, app, storage),
   );
   // A bulk release of two more: one ronne.release for both.

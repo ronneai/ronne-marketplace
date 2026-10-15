@@ -36,7 +36,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* tests against the test collector see each span under its request, and the log lines
   carry the trace's IDs.
 
-- [ ] **4. Metrics.** The spec's instruments, recorded in 100's API wrapper, the database plugin,
+- [x] **4. Metrics.** The spec's instruments, recorded in 100's API wrapper, the database plugin,
   the identity, submissions, feeds and usage services, and the health check.
   *Done when:* tests see each instrument with exactly the listed attributes.
 
@@ -67,7 +67,7 @@ goes into `SPEC.md` instead.
   MIT, Apache-2.0, BSD-3-Clause or ISC. `@vercel/otel` reads the standard variables for traces
   (endpoint, headers, protocol, sampler, resource attributes, `OTEL_SDK_DISABLED`); the metric
   exporter reads its own; `OTEL_METRIC_EXPORT_INTERVAL` is read in `settings.ts`. Chosen:
-  `@vercel/otel`. Turbopack bundles it all into one server chunk (352 KB with task 2; 378,883 bytes with tasks 3–5). One package is new in
+  `@vercel/otel`. Turbopack bundles it all into one server chunk (357,088 bytes with task 2; 378,883 bytes with tasks 3–5). One package is new in
   the standalone output and the packed server: `@opentelemetry/api` (45 files, 192 KiB), which
   Next.js's own tracer now loads, on or off; `packages:check` passes because its allowlist is a
   pattern over `app/`. A request's trace arrived
