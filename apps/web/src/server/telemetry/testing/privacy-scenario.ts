@@ -50,8 +50,22 @@ export const run = async () => {
   await startTelemetryIfSet();
   const tracer = trace.getTracer("privacy-test");
   // Each flow as a request: under a span, as Next.js's request span would be.
+  // Each request's span carries what Next.js's request spans carry: the filled-in path (naming the
+  // workspace, scope and item, with an email in its query), the client's address and user agent.
+  // Only the sanitizer keeps them from the collector.
+  let workspace = "";
   const request = <T>(name: string, work: () => Promise<T>) =>
     tracer.startActiveSpan(name, async (span) => {
+      const path = `/workspaces/${workspace}/items/@privscope/privitem?ref=${EMAIL}`;
+      span.setAttributes({
+        "http.target": path,
+        "url.full": `https://r.example${path}`,
+        "url.path": path,
+        "http.client_ip": IP,
+        "client.address": IP,
+        "user_agent.original": "privacy-agent/1.0",
+        "http.user_agent": "privacy-agent/1.0",
+      });
       try {
         return await work();
       } finally {
@@ -112,6 +126,7 @@ export const run = async () => {
       .where("id", "=", ana.personal ?? "")
       .executeTakeFirstOrThrow()
   ).name;
+  workspace = personal;
 
   // The token exchange `rmk login` makes, wrong and right.
   await request("POST /api/v1/auth/token", () =>
@@ -129,13 +144,14 @@ export const run = async () => {
     { name: "privscope", description: "Ana's.", workspaceId: ana.personal ?? "" },
     app,
   );
-  /** A rule by Ana in her private scope, submitted (approved at once: her own workspace). */
+  /** A skill by Ana in her private scope, submitted (approved at once: her own workspace). */
   const submitted = async (name: string) => {
     const draft = await createDraft(
       asAna,
-      { scope: `@${personal}/privscope`, name, type: "rule" },
+      { scope: `@${personal}/privscope`, name, type: "skill" },
       app,
     );
+    const loadedAt = (path: string) => draft.files.find((f) => f.path === path)?.updatedAt ?? null;
     await saveDraftFiles(
       asAna,
       draft.id,
@@ -144,16 +160,16 @@ export const run = async () => {
           {
             path: "ronne.yaml",
             encoding: "utf8",
-            content: `name: "@${personal}/privscope/${name}"\ntype: rule\ndescription: A rule.\nrule:\n  body: rule.md\n  activation: always\n`,
+            content: `name: "@${personal}/privscope/${name}"\ntype: skill\ndescription: A private skill.\n`,
             executable: false,
-            loadedAt: draft.files.find((f) => f.path === "ronne.yaml")?.updatedAt ?? null,
+            loadedAt: loadedAt("ronne.yaml"),
           },
           {
-            path: "rule.md",
+            path: "SKILL.md",
             encoding: "utf8",
-            content: "Be kind.\n",
+            content: `---\nname: ${name}\ndescription: A private skill.\n---\nDo it.\n`,
             executable: false,
-            loadedAt: draft.files.find((f) => f.path === "rule.md")?.updatedAt ?? null,
+            loadedAt: loadedAt("SKILL.md"),
           },
         ],
         deletes: [],
@@ -178,7 +194,7 @@ export const run = async () => {
     ),
   );
 
-  // A feed build, by Ana, whose feed holds her private item.
+  // A feed build, by Ana, whose feed holds her private skills.
   await request("GET /api/v1/feeds/[tool]/marketplace.json", () =>
     marketplaceAs(ana, "claude-code", "https://r.example", null, app, storage),
   );

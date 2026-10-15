@@ -228,3 +228,21 @@ Witnessed: 2026-10-14 23:12 EDT, by a fresh agent (blind). Commit: fea1a956. Mac
 | 15 | No regressions | no | confirmed | 134 + 1 tests passed |
 
 **Overall:** not met: the bulk release's span and count untested. Fixed on `bugfix/101-witness-fixes`: the privacy scenario releases two more items together under `POST /reviews`, and the test expects two `ronne.release` spans (under `POST /release` and `POST /reviews`) with `ronne.items` 1 and 2; detaching the bulk span or dropping its count fails it. Passes on SQLite, PostgreSQL, MySQL and MariaDB. Remark from the pass: its first server run sent data to another witness's receiver (task 5's adversarial, port 4399), so that pass's counts may include it.
+
+## Task 5 — Nothing personal in telemetry
+
+Witnessed: 2026-10-14 23:15 EDT, by a fresh agent (blind). Commit: fea1a956. Machine: macOS 27.0.1 (arm64), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `privacy.db.test.ts` passes (SQLite) | no | confirmed | 4 of 4 runs |
+| 2 | It passes on PostgreSQL, MySQL and MariaDB in CI | no | confirmed | Database run 38673349546: ✓ in all three |
+| 3 | It drives each listed flow for real, with tracing and metrics on | no | partly | Real calls throughout; but the request spans had none of Next.js's attributes, and the released item was a rule, so the feed was empty (`ronne.feed.plugins` 0) |
+| 4 | It inspects everything the collector received | no | confirmed | Every body stored; 16 values searched |
+| 5 | It catches a planted leak in each category | no | confirmed | 10 mutations each fail it |
+| 6 | It catches a leak through Next.js's request attributes (the sanitizer bypassed) | no | not met | Bypassing the sanitizer, or keeping every attribute, passes it; a real build then sends `http.target` naming the workspace, scope, item and an email. Plugin names on `ronne.feed.build` pass too (empty feed) |
+| 7 | A collector that never answers leaves request times unchanged | no | confirmed | 4 of 4 runs; CI on Node 22 and 24 |
+| 8 | The black-hole test catches an export that blocks a request | no | confirmed | Two mutations fail it |
+| 9 | A real standalone server sends nothing personal | no | confirmed | 195 bodies, 1,528 spans: every needle absent |
+
+**Overall:** not met: the test didn't exercise the sanitizer and its feed was empty; the shipped code leaked nothing. Fixed on `bugfix/101-witness-fixes`: the scenario's request spans carry Next.js's attributes (`http.target`, `url.full`, `url.path` with the workspace, scope and item names and an email, `http.client_ip`, `client.address`, the user agent); it releases skills, so the fresh feed holds 3 plugins (asserted); every searched value must be non-empty. Bypassing the sanitizer or putting plugin names on the span now fails it. Passes on SQLite, PostgreSQL, MySQL and MariaDB.
