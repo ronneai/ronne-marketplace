@@ -42,6 +42,19 @@ console.log("LOADED", JSON.stringify(seen.filter((s) => /opentelemetry|vercel\\/
     expect(result.stdout).toContain("LOADED []");
   });
 
+  it("leaves fetch alone: no instrumentation sends the URLs the server fetches", () => {
+    const result = run(`import { createServer } from "node:http";
+const server = createServer((req, res) => res.writeHead(200, { "content-type": "application/json" }).end("{}"));
+await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
+process.env.OTEL_EXPORTER_OTLP_ENDPOINT = "http://127.0.0.1:" + server.address().port;
+const original = globalThis.fetch;
+const { startTelemetryIfSet, telemetryOn } = await import(${telemetry});
+await startTelemetryIfSet();
+console.log("ON", telemetryOn(), "FETCH", globalThis.fetch === original);
+process.exit(0);`);
+    expect(result.stdout, result.stderr).toContain("ON true FETCH true");
+  });
+
   it("turns Next.js's verbose spans off, with one warning: they name private paths", () => {
     const result = run(
       `import { createServer } from "node:http";

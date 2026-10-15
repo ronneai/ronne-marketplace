@@ -296,3 +296,182 @@ Witnessed: 2026-10-14 23:21 EDT, by a fresh agent (adversarial). Commit: fea1a95
 | 16 | The tests would catch what's found here | no | partly | With the attribute filter removed, the privacy test still passed; neither test runs Next.js or sends `tracestate` |
 
 **Overall:** not met: a client's `tracestate` exported verbatim; `NEXT_OTEL_VERBOSE` exposing filled-in paths; the sanitizer's gaps. Fixed on `bugfix/101-witness-fixes`: no span keeps a trace state; `NEXT_OTEL_VERBOSE` is turned off at start with `telemetry.verbose_off` (owner, 2026-10-14), and the page-render span's `next.route` is dropped; a URL in any value or name keeps its origin; IP values, header and `user.*` keys, link attributes and free-text exception types are dropped; event names sanitized; the fetch instrumentation off. The privacy scenario's requests inherit a client's `tracestate` holding an email; keeping the trace state, removing the attribute filter, or leaving verbose spans on each fails a test. A real standalone server with a client `tracestate` and `NEXT_OTEL_VERBOSE=1`: 78 spans, no trace state, no names or email. The Logs table and Monitoring section (ronne-web) gain `telemetry.verbose_off`.
+
+## Task 6 — Documentation (second re-check)
+
+Witnessed: 2026-10-14 23:42 EDT, by a fresh agent (blind). Commit: b9533928 (ronne-web cf48001). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `operations#monitoring` is in both `topics.ts` | no | confirmed | ronne-web `topics.ts:74`; marketplace `help/topics.ts:163` |
+| 2 | Health: 200 with `checks`; 503 `setup_required`, `database_unavailable`, `storage_unavailable` with `details.checks`; no version, path or timing; the reason in `db.unavailable` / `storage.unavailable` | no | confirmed | `health.ts:52-90` |
+| 3 | `database_unavailable` when the database doesn't answer within 3 seconds | no | confirmed | `health.ts:11-13,53-70`, `Dockerfile:69`. Remark: a slow setup state and a slow query could leave storage almost no time |
+| 4 | Off without an endpoint; OpenTelemetry loaded only with one | no | confirmed | `instrumentation.ts:7-11`, `index.ts:25-28`; 26 tests passed |
+| 5 | Settings file or environment; Docker's `.env` | no | confirmed | `config.ts:43,54-61`; `docker compose -f compose.yaml config` |
+| 6 | The variables, protocols, interval, `OTEL_SDK_DISABLED`, default service name | no | confirmed | `settings.ts:58-90`, `start.ts:48,59`, `@vercel/otel` dist |
+| 7 | `NEXT_OTEL_VERBOSE` turned off, `telemetry.verbose_off` | no | confirmed | `index.ts:36-39`; Next reads it per span; the start test passed |
+| 8 | A collector that's down never slows a request; one `export_failed` a minute | no | confirmed | `failures.ts:9-21`; black-hole, failures and start tests passed |
+| 9 | The metrics table | no | confirmed | `real-hooks.ts:23-35,96-148` |
+| 10 | The spans | no | confirmed | `real-hooks.ts:55-94`, `publish.ts:627`, `bulk-release.ts:61`, `plugin-feed.ts:403`, `drafts-api.ts:241`, `api-route.ts:24`, `proxy.ts:23` |
+| 11 | What's never sent | no | confirmed | `sanitize.ts`; sanitize tests passed. Remark: trace state isn't named |
+| 12 | The resource | no | confirmed | `sanitize.ts:133-150`. Remark: `telemetry.sdk.*` is sent and not listed |
+| 13 | Logs and traces joined | no | confirmed | `logger.ts:171,216`; `traceId` in each language |
+| 14 | The Logs events table is `events.ts` | no | confirmed | 27 events, same order, names, levels and fields in en, pt, fr |
+| 15 | The collector example; its run in the notes | yes | confirmed | The three parse to the same object; PLAN.md notes contrib 0.162.0 |
+| 16 | en, pt and fr say the same, in the site's terms | no | confirmed | Read all three |
+| 17 | `.env.example` has the `OTEL_*` variables | no | confirmed | `.env.example:33-41` |
+| 18 | `install.md` has the row | no | confirmed | `install.md:116` |
+| 19 | The render tests pass in both repositories | yes | confirmed | ronne-web 138 passed, typecheck 0; marketplace help 3 passed |
+
+**Overall:** met. On `bugfix/101-close`: the health deadline gives the database its first 3 seconds and storage at least the last one; Monitoring names the ignored trace context and `telemetry.sdk.*` (ronne-web `docs/101-close`).
+
+## Task 4 — Metrics (second re-check)
+
+Witnessed: 2026-10-14 23:43 EDT, by a fresh agent (blind). Commit: b9533928. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Each of the 10 instruments with exactly its attributes, no other | no | confirmed | `metrics.test.ts` passed; 8 mutants each fail it |
+| 2 | Kinds and units match the table | no | confirmed | Own receiver: histograms in `s`, monotonic sums, a 1/0 gauge. Remark: no test checks units |
+| 3 | Real sign-ins count once, with the right outcome | no | confirmed | failure 4, success 2, rate_limited 1 |
+| 4 | Token exchanges count once; a CLI failure isn't a sign-in failure | no | confirmed | failure 4, success 1, rate_limited 1; sign-ins unchanged |
+| 5 | Releases count versions; a bulk release isn't counted twice | no | confirmed | 3 from a single and a bulk of 2 |
+| 6 | Feed builds once each; cache hits `cached=true`, not timed | no | confirmed | 1 fresh, 2 cached, 1 duration. Remark: no test pins "not timed" |
+| 7 | Uploads accepted or refused; 429 and 401 aren't refusals | no | confirmed | accepted 1, refused 1 |
+| 8 | Rate limits carry the four `limit` values | no | confirmed | each once |
+| 9 | Request duration from the API wrapper, route patterns only | no | confirmed | 29 `apiRoute(` literals. Remark: whole milliseconds |
+| 10 | Query duration: one point per query | no | confirmed | 700 recordings, SQL verbs only |
+| 11 | `ronne.health` on every health path | no | confirmed | ok, storage failing, query failing, setup state failing, hung database. Remark: storage keeps its last value when the database fails |
+| 12 | A test fails when any health recording is removed | no | confirmed | Each of 5 removed → 1 failed |
+| 13 | No personal or unbounded attribute | no | confirmed | 55 bodies, 0 hits |
+| 14 | Off costs a function call | no | confirmed | No modules resolved; ≈5 ns per call |
+| 15 | No regressions | no | confirmed | 144 tests passed |
+
+**Overall:** met. On `bugfix/101-close`: the metrics test checks each instrument's kind and unit, and that a cache hit isn't timed (each mutant fails it).
+
+## Task 1 — Health checks storage (re-check)
+
+Witnessed: 2026-10-14 23:50 EDT, by a fresh agent (blind). Commit: b9533928. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `StorageAdapter` declares `check()` | no | confirmed | `storage-adapter.ts:15-19` |
+| 2 | Every adapter has `check()` | no | confirmed | local, `instanceStorage`, `tracedStorage`; `tsc` 0 |
+| 3 | The local `check()` writes nothing | no | confirmed | Probe: 0 entries; a missing folder not created |
+| 4 | A folder not made yet passes when its nearest parent can take it | no | confirmed | Probe; mutant M5 fails a test |
+| 5 | Read-only, under a read-only parent, a file, an executable file, under a file, without `x`: fail | no | confirmed | Probe; M3, M4, M6 fail tests |
+| 6 | Order: setup state, database, storage | no | confirmed | `health.ts:50-69`; M11 → 7 fail |
+| 7 | 200 body exactly, `no-store` | no | confirmed | M8 fails |
+| 8 | 503 `storage_unavailable` | no | confirmed | M13 → 4 fail |
+| 9 | `setup_required`, `database_unavailable` unchanged | no | confirmed | 4 tests; no diff in Dockerfile, e2e, scripts, server, workflows |
+| 10 | A hung storage answers by about 4 s | no | confirmed | 4,013 ms; M1, M12 fail |
+| 11 | A database that never answers → within 3 s | no | confirmed | 3,002 ms |
+| 12 | Nothing past Docker's 5 s | no | confirmed | Worst 4,004 ms |
+| 13 | The setup state is bounded | no | confirmed | Twice (`state.ts` has its own 3 s) |
+| 14 | `storage.unavailable`, path hidden | no | confirmed | M7 fails |
+| 15 | The test covers read-only and missing folders | no | confirmed | 13/13. Survivors: M9, M10, M14 |
+| 16 | Database tests pass on the servers | no | confirmed | Run 38676978957; main 38677516781 |
+| 17 | The e2e tests pass unchanged | no | confirmed | 72 and 72, on f9f1bd2c and b9533928 |
+| 18 | The Dockerfile's health check passes unchanged | no | confirmed | Image run 38677516771, amd64 and arm64 |
+| 19 | The server checks pass on this code | no | can't check here | They didn't run on #190 (no server files) or on main's push; last passed on fea1a956, before #190's `health.ts` |
+
+**Overall:** not met: only the server checks are left, for the nightly run (owner: wait, 2026-10-15). On `bugfix/101-close`, the survivors each fail a test now: the check's own 3 s (M9: a ready setup state, then a hung query), one deadline (M10: a 2 s setup state, then hung storage), and `X_OK` (M14: a folder without `x`); and the database's 3 seconds are shared, the setup state and its check together, so storage keeps at least a second.
+
+## Task 5 — Nothing personal in telemetry (re-check)
+
+Witnessed: 2026-10-14 23:57 EDT, by a fresh agent (blind). Commit: b9533928. Machine: macOS 27.0.1 (arm64), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The privacy and black-hole tests pass | no | confirmed | 23 passed; 4 more runs |
+| 2 | On PostgreSQL, MySQL and MariaDB in CI | no | confirmed | Run 38676978957 |
+| 3 | It drives each flow for real | no | confirmed | 17 bodies, 814 spans; `ronne.items` [1, 2]; cached [false, true]; 3 plugins |
+| 4 | Next.js's attributes and a client `tracestate` | no | confirmed | `privacy-scenario.ts:55-79` |
+| 5 | It inspects everything received | no | confirmed | 18 non-empty values absent from 890 KB |
+| 6 | It catches a planted leak per category | no | confirmed | 19 of 20 mutations fail; the fetch instrumentation on passed (no leak) |
+| 7 | The sanitizer bypassed | no | confirmed | Privacy test fails |
+| 8 | Its attribute filter removed | no | confirmed | 6 tests fail |
+| 9 | The trace state kept | no | confirmed | Privacy and sanitize tests fail |
+| 10 | Verbose spans left on | no | confirmed | Start and sanitize tests fail |
+| 11 | A collector that doesn't answer leaves request times unchanged | no | confirmed | Black-hole test; real server 1.26 against 1.38 ms |
+| 12 | A real standalone server sends nothing personal | no | confirmed | 315 bodies, 0 hits |
+| 13 | `NEXT_OTEL_VERBOSE` turned off | no | confirmed | `telemetry.verbose_off`; no render spans |
+| 14 | What leaves, sanitized | no | confirmed | `sanitize.ts:96-121`, `start.ts:56`; fetch spans keep the origin |
+
+**Overall:** met. On `bugfix/101-close`: a test pins the fetch instrumentation off, and the spec says Next.js still traces a page fetching its own origin.
+
+## Task 2 — The SDK, off by default (third re-check)
+
+Witnessed: 2026-10-15 00:00 EDT, by a fresh agent (blind). Commit: b9533928. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Next.js documents both; `@vercel/otel` lighter | no | confirmed | 21 against 71 packages; 33.4 against 49.4 MiB |
+| 2 | Current stable, allowed licenses, no install scripts | no | confirmed | `npm view`; lockfile |
+| 3 | Off imports nothing; the test catches an eager import | no | confirmed | Mutants fail |
+| 4 | A standalone server with no endpoint never loads the SDK | no | confirmed | Chunk compiled 0 times |
+| 5 | `OTEL_SDK_DISABLED` | no | confirmed | 0 posts |
+| 6 | An invalid endpoint: one warning, off, starts | no | confirmed | 5 forms |
+| 7 | A real request's trace arrives | no | confirmed | JSON and protobuf |
+| 8 | Each span once | no | confirmed | 151 unique |
+| 9 | The resource, allowed keys only | no | confirmed | Both signals |
+| 10 | Settings from the file; environment wins; empty unset | no | confirmed | Endpoint, headers, protocol, resource, interval from `RONNE_ENV_FILE`; `OTEL_SERVICE_NAME=from-env` beat the file; all empty → off |
+| 11 | Docker's `.env` | no | confirmed | `docker compose config` |
+| 12 | `telemetry.started` once, no endpoint or headers | no | confirmed | Exactly one `telemetry.started` line; neither the endpoint nor the header value in stdout |
+| 13 | `telemetry.verbose_off` | no | confirmed | Standalone with `NEXT_OTEL_VERBOSE=1`: one warn line, then `telemetry.started` |
+| 14 | `export_failed` once a minute | no | confirmed | Closed port, 125 s: lines at 03:49:40, 03:50:41, 03:51:42 |
+| 15 | Requests not slowed | no | confirmed | 300 requests each: off 1.70 ms, down 1.89, hang 1.86 (medians) |
+| 16 | Lockfile, licenses, audit | no | confirmed | 321 allowed, no vulnerabilities |
+| 17 | Standalone and packed server include the SDK; `packages:check` | no | confirmed | 2113 files allowed |
+| 18 | `release:smoke` and the bundles | no | confirmed | Main run 38677516802; bundles on #188 |
+| 19–24 | #188's six answers | no | confirmed | Need, licenses, health, advisories, install scripts, weight |
+| 25 | Plan note: "352 KB with task 2" | no | partly | a56f21b9 builds 357,088 bytes |
+
+**Overall:** not met: only the plan note's size. On `bugfix/101-close` it says 357,088 bytes.
+
+## Task 5 — Nothing personal in telemetry (adversarial re-check)
+
+Witnessed: 2026-10-15 00:00 EDT, by a fresh agent (adversarial). Commit: b9533928. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The tests pass | no | confirmed | `npx vitest run src/server/telemetry src/proxy.test.ts` → 30 passed; `--project db` privacy → 1 passed |
+| 2 | On the servers | no | confirmed | `gh run view 38677516781`: postgres, mysql, mariadb ✓ |
+| 3 | A real server through every flow, private workspace, hostile headers | no | confirmed | 180 bodies, 6,937 spans, 46 values absent |
+| 4 | Protobuf too | no | confirmed | 16 protobuf bodies: 0 of `hush`, `zelda`, `198.51`, `HushAgent`, `example` |
+| 5 | A client's trace context never reaches the collector as sent | no | confirmed | 0 trace states; the client's trace id kept as the parent |
+| 6 | `NEXT_OTEL_VERBOSE` off | no | confirmed | Started with `NEXT_OTEL_VERBOSE=1` → `telemetry.verbose_off`; no `BaseServer.renderToResponse` span |
+| 7 | Route patterns only, hostile paths too | no | confirmed | 93 `next.span_name`, 35 `http.route`, 33 `next.route`, 41 `resource.name`: patterns only; 11 hostile paths, 0 hits |
+| 8 | Better Auth's spans | no | confirmed | `better_auth.*` and `db.collection.name` keys; `exception.type` `APIError` only |
+| 9 | Placeholders only | no | confirmed | 100 distinct `db.query.text`: no quoted literal |
+| 10 | Errors send their type only | no | confirmed | Storage swapped for a file: 0 of `ENOTDIR`, the path, `hush`; `exception.type` only |
+| 11 | Events, links, status, resource | no | confirmed | Links 0; status messages 0; resource `service.name`, `service.version` |
+| 12 | Metrics' attributes | no | confirmed | 10 instruments, exactly the spec's attributes; `tool` only the served tools |
+| 13 | The sanitizer for every value, name and key | no | partly | Kept: `HTTPS://`, `ws://`, `file://`, `//host` URLs; addresses with a port, in a list, after `for=`; paths in names and values; keys never checked; `url.domain`, `url.scheme` |
+| 14 | The tests would catch what's found | no | partly | 16 of 17 mutations fail; the fetch instrumentation on passed |
+| 15 | A collector that never answers (real server) | no | confirmed | 150 requests × 4 routes: receiver, black hole and off medians within 0.2 ms |
+| 16 | The black-hole test checks it | no | confirmed | `blackhole.test.ts` passes: median within 5 ms of off, maximum under 1 s |
+
+**Overall:** not met: nothing personal from real traffic; the sanitizer's gaps and the unpinned fetch instrumentation. On `bugfix/101-close`: a URL of any scheme or case, or `//host`, keeps its origin; any value holding an address is dropped (in a name, `[address]`); a path in a value or name is cut at its first segment that isn't the app's (static segments checked against `app/` by a test, Better Auth's, Next.js's, patterns and groups); keys that aren't dotted names and every `url.*` are dropped; a test pins the fetch instrumentation off; the spec says Next.js still traces a page fetching its own origin. Each rule's mutant fails a test. A real standalone server: no span name cut on ordinary pages, nothing personal.
+
+## Task 3 — Spans (second re-check)
+
+Witnessed: 2026-10-15 00:04 EDT, by a fresh agent (blind). Commit: b9533928. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Off: nothing from OpenTelemetry | no | confirmed | Only Better Auth's semantic-conventions constants |
+| 2 | Off: no query hook, no storage wrapper | no | confirmed | Same probe → `telemetryOn() false`, `queryLog` undefined, `tracedStorage(ls) === ls` |
+| 3 | One span per query, placeholders only | no | confirmed | 1,848 spans. Remark: Kysely's `log` option, not a plugin |
+| 4 | Storage spans: bytes, never the key | no | confirmed | One lost its bytes (row 6's bug) |
+| 5 | The domain spans under their requests (real server) | no | confirmed | Single under `POST /submissions/[id]`, bulk under `POST /submissions`, builds and uploads under their API routes |
+| 6 | Their attributes (real server) | no | partly | With a page and a fresh feed build under one client `traceparent`, the build lost `ronne.feed.cached`/`plugins` (2/2) |
+| 7 | `ronne.request_id` | no | confirmed | 17/17, 213/213 |
+| 8 | Log lines' IDs | no | confirmed | 32/32 |
+| 9–12 | Tests catch detached spans, dropped attributes and IDs, added keys | no | confirmed | Each mutant fails |
+| 13 | Sanitized (real server) | no | confirmed | 4,318 spans, 0 hits. Remark: Next.js's `AppRender.fetch` to its own origin |
+| 14 | Each span once | no | confirmed | 4,318 of 4,318 unique; `spanProcessors: ["auto", …]` mutant fails the start and privacy tests |
+| 15 | Better Auth's spans | no | confirmed | `better_auth.context`, `.hook.type`, `.operation_id`, `db.collection.name`; 310 `db find…` spans parented |
+| 16 | The suites pass | no | confirmed | 30 passed |
+
+**Overall:** not met: `@vercel/otel` takes a trace's first span as its root and ends the trace's open spans when it ends, so requests sharing a client's trace cut each other's spans short. On `bugfix/101-close`: a client's trace context isn't taken (`propagators: []`, whatever `OTEL_PROPAGATORS` says), so each request is its own trace; a test sending two requests under one `traceparent` failed before (`ronne.feed.plugins` lost) and passes now. A real standalone server, a page and a fresh feed build under one `traceparent`, three rounds: every build kept its attributes, the client's trace id appeared nowhere. The spec says Kysely's `log` option.

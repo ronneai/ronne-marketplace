@@ -87,7 +87,7 @@ it("sends the collector nothing personal from the server's flows", () => {
       .map((span) => spans.find((p) => p.spanId === span.parentSpanId)?.name);
   // A single release, then a bulk one of two: each under its request.
   expect(parentsOf("ronne.release"), "ronne.release's parents").toEqual([
-    "POST /release",
+    "POST /reviews/[id]",
     "POST /reviews",
   ]);
   expect(parentsOf("ronne.draft.upload"), "ronne.draft.upload's parent").toEqual([

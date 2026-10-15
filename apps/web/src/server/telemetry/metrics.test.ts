@@ -21,6 +21,15 @@ const SPEC: Record<string, string[]> = {
   "ronne.health": ["check"],
 };
 
+// Each instrument's kind and unit: durations are histograms in seconds, counts monotonic sums.
+const KINDS: Record<string, string> = {
+  "http.server.request.duration": "histogram s",
+  "ronne.db.query.duration": "histogram s",
+  "ronne.feed.build.duration": "histogram s",
+  "ronne.health": "gauge ",
+};
+const kind = (name: string) => KINDS[name] ?? "sum ";
+
 it("records every instrument with exactly its listed attributes", () => {
   const here = import.meta.dirname;
   const from = (path: string) => JSON.stringify(join(here, path));
@@ -59,7 +68,8 @@ hooks().health("storage", false);
 for (let i = 0; i < 50 && bodies.length === 0; i++) await new Promise((ok) => setTimeout(ok, 100));
 const points = bodies.flatMap((b) => b.resourceMetrics.flatMap((r) => r.scopeMetrics.flatMap((s) => s.metrics.flatMap((m) => {
   const data = m.sum ?? m.histogram ?? m.gauge;
-  return (data?.dataPoints ?? []).map((p) => ({ name: m.name, keys: p.attributes.map((a) => a.key).sort(), attributes: Object.fromEntries(p.attributes.map((a) => [a.key, Object.values(a.value)[0]])), value: p.asInt ?? p.asDouble ?? p.count }));
+  const kind = (m.sum ? (m.sum.isMonotonic ? "sum" : "updown") : m.histogram ? "histogram" : "gauge") + " " + (m.unit ?? "");
+  return (data?.dataPoints ?? []).map((p) => ({ name: m.name, kind, keys: p.attributes.map((a) => a.key).sort(), attributes: Object.fromEntries(p.attributes.map((a) => [a.key, Object.values(a.value)[0]])), value: p.asInt ?? p.asDouble ?? p.count }));
 }))));
 console.log("POINTS " + JSON.stringify(points));
 process.exit(0);`;
@@ -87,6 +97,7 @@ process.exit(0);`;
   const line = result.stdout.split("\n").find((l) => l.startsWith("POINTS "));
   const points: {
     name: string;
+    kind: string;
     keys: string[];
     attributes: Record<string, unknown>;
     value: number;
@@ -95,7 +106,10 @@ process.exit(0);`;
   for (const [name, keys] of Object.entries(SPEC)) {
     const found = points.filter((point) => point.name === name);
     expect(found.length, `${name} recorded`).toBeGreaterThan(0);
-    for (const point of found) expect(point.keys, name).toEqual(keys);
+    for (const point of found) {
+      expect(point.keys, name).toEqual(keys);
+      expect(point.kind, name).toBe(kind(name));
+    }
   }
   // No other instrument, and the values each event should give.
   expect([...new Set(points.map((point) => point.name))].sort()).toEqual(Object.keys(SPEC).sort());
@@ -115,6 +129,8 @@ process.exit(0);`;
   expect(value("ronne.rate_limited", { limit: "usage" })).toBe(1);
   expect(value("ronne.feed.builds", { cached: true })).toBe(1);
   expect(value("ronne.feed.builds", { cached: false })).toBe(1);
+  // A cache hit is counted, never timed: one build, one duration.
+  expect(value("ronne.feed.build.duration")).toBe(1);
   expect(value("ronne.drafts.uploaded", { outcome: "refused" })).toBe(1);
   expect(value("ronne.health", { check: "storage" })).toBe(0);
   expect(value("ronne.health", { check: "database" })).toBe(1);

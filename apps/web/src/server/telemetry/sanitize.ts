@@ -11,9 +11,6 @@ import { redactString } from "../log/redact";
 const DROPPED = new Set([
   "http.target",
   "http.url",
-  "url.full",
-  "url.path",
-  "url.query",
   "http.client_ip",
   "client.address",
   "client.port",
@@ -26,14 +23,121 @@ const DROPPED = new Set([
   "enduser.id",
 ]);
 
-/** Keys never sent whatever their value: request and response headers, and the user's. */
-const DROPPED_PREFIXES = ["http.request.header.", "http.response.header.", "user.", "enduser."];
+/**
+ * Keys never sent whatever their value: every `url.*`, request and response headers, and the
+ * user's.
+ */
+const DROPPED_PREFIXES = [
+  "url.",
+  "http.request.header",
+  "http.response.header",
+  "user.",
+  "enduser.",
+];
+
+/** A key that is a name of ours: dotted words, never an email, a path or free text. */
+const KEY = /^[A-Za-z_][\w.-]{0,127}$/;
 
 /** An IPv4 or IPv6 address, whole: a client's, or a host's that maps to one. */
 const IP = /^(?:\d{1,3}(?:\.\d{1,3}){3}|[0-9a-f]*:[0-9a-f:.]*:[0-9a-f:.]*)$/i;
 
-/** A URL in a value keeps only its origin: its path and query can name an item or hold a token. */
-const originOnly = (value: string) => value.replace(/\b(https?:\/\/[^/\s?#]+)[^\s"']*/g, "$1");
+/**
+ * An address inside a longer value: IPv4 anywhere (with a port, in a list, after `for=`), IPv6 in
+ * brackets, with `::`, or in full.
+ */
+const ADDRESS =
+  /(?<![\w.])\d{1,3}(?:\.\d{1,3}){3}(?![\w.])|\[[0-9a-f:.]*:[0-9a-f:.]*\]|(?<![\w:])(?:[0-9a-f]{0,4}:)*[0-9a-f]{0,4}::[0-9a-f:.]*(?![\w:])|(?<![\w:])(?:[0-9a-f]{1,4}:){7}[0-9a-f]{1,4}(?![\w:])/gi;
+const hasAddress = (value: string) => IP.test(value.trim()) || value.search(ADDRESS) >= 0;
+
+/**
+ * A URL keeps only its origin, whatever its scheme or case (`HTTPS://`, `ws://`, `file://`, or
+ * `//host` alone): its path and query can name an item or hold a token.
+ */
+const originOnly = (value: string) =>
+  value.replace(/((?:\b[a-z][a-z0-9+.-]*:)?\/\/[^/\s?#"']*)[^\s"']*/gi, (whole, origin, at) =>
+    // `//host` alone only where a value or a word starts, never inside a path.
+    origin.startsWith("//") && at > 0 && !/[\s"'(=,]/.test(value[at - 1] ?? "") ? whole : origin,
+  );
+
+/**
+ * The app's static route segments (checked against `app/` by a test), and Better Auth's
+ * endpoints that the identity domain calls (its spans are named `handler /sign-in/email`). A path
+ * in a value or a name keeps its segments while they're these or a pattern's (`[name]`); from the
+ * first other segment (a workspace's, a scope's, an item's name) it's cut to `…`.
+ */
+export const ROUTE_SEGMENTS = new Set([
+  "account",
+  "admin",
+  "api",
+  "audit",
+  "auth",
+  "catalogue",
+  "check",
+  "current-workspace",
+  "drafts",
+  "feeds",
+  "health",
+  "items",
+  "join",
+  "marketplace.json",
+  "me",
+  "menu",
+  "new",
+  "password",
+  "plugins",
+  "requests",
+  "resolve",
+  "reviews",
+  "scopes",
+  "settings",
+  "setup",
+  "sign-in",
+  "styleguide",
+  "submissions",
+  "submit",
+  "tarball",
+  "token",
+  "tokens",
+  "usage",
+  "users",
+  "v1",
+  "versions",
+  "workspaces",
+  // Next.js's own: its assets, the not-found and error pages, the app's icons.
+  "_next",
+  "_not-found",
+  "not-found",
+  "_global-error",
+  "icon.png",
+  "icon.svg",
+  // Better Auth's: /change-password, /get-session, /sign-in/email, /sign-out, /sign-up/email.
+  "change-password",
+  "get-session",
+  "email",
+  "sign-out",
+  "sign-up",
+]);
+
+/** Next.js's file names, which its internal spans add to a route (`/(app)/reviews/page`). */
+const ROUTE_FILES = new Set(["page", "layout", "route", "default", "error", "loading", "template"]);
+
+const routeSegment = (segment: string) =>
+  ROUTE_SEGMENTS.has(segment) ||
+  ROUTE_FILES.has(segment) ||
+  // A pattern's (`[name]`, `[...all]`, `[[...slug]]`) or a route group (`(app)`).
+  /^\[{1,2}(?:\.\.\.)?[\w-]+\]{1,2}$|^\([\w-]+\)$/.test(segment);
+
+/** Paths cut at their first segment that isn't the app's (`/workspaces/hush/x` → `/workspaces/…`). */
+const patternsOnly = (value: string) =>
+  value.replace(/(?<![\w/:.])\/[\w@%.~[\]-][^\s"'?#]*/g, (path) => {
+    // The path starts with "/": its first piece is empty.
+    const segments = path.split("/").slice(1);
+    const kept = segments.findIndex((segment) => segment !== "" && !routeSegment(segment));
+    return kept === -1 ? path : `/${[...segments.slice(0, kept), "…"].join("/")}`;
+  });
+
+/** URLs to their origin, then paths to the app's patterns. */
+const cut = (value: string) => patternsOnly(originOnly(value));
 
 type Value = ReadableSpan["attributes"][string];
 
@@ -41,16 +145,16 @@ type Value = ReadableSpan["attributes"][string];
  * A string that may be sent: not an IP address, and nothing the logger would change (an email, a
  * token, a URL's password, a stored path) once a URL in it is cut to its origin.
  */
-const safeString = (value: string) => !IP.test(value.trim()) && redactString(value) === value;
+const safeString = (value: string) => !hasAddress(value) && redactString(value) === value;
 
-/** A value as it's sent (URLs cut to their origin), or undefined when it isn't sent. */
+/** A value as it's sent (URLs and paths cut), or undefined when it isn't sent. */
 const sendable = (value: Value): Value | undefined => {
   if (typeof value === "string") {
-    const cut = originOnly(value);
-    return safeString(cut) ? cut : undefined;
+    const sent = cut(value);
+    return safeString(sent) ? sent : undefined;
   }
   if (Array.isArray(value)) {
-    const items = value.map((item) => (typeof item === "string" ? originOnly(item) : item));
+    const items = value.map((item) => (typeof item === "string" ? cut(item) : item));
     return items.every((item) => typeof item !== "string" || safeString(item))
       ? (items as Value)
       : undefined;
@@ -68,15 +172,16 @@ const fillsInPath = (attributes: ReadableSpan["attributes"]) =>
 export const sanitizeAttributes = (attributes: ReadableSpan["attributes"]) =>
   Object.fromEntries(
     Object.entries(attributes).flatMap(([key, value]) => {
-      if (DROPPED.has(key) || DROPPED_PREFIXES.some((prefix) => key.startsWith(prefix))) return [];
+      if (!KEY.test(key) || DROPPED.has(key)) return [];
+      if (DROPPED_PREFIXES.some((prefix) => key.startsWith(prefix))) return [];
       if ((key === "next.route" || key === "next.page") && fillsInPath(attributes)) return [];
       const sent = sendable(value);
       return sent === undefined ? [] : [[key, sent]];
     }),
   );
 
-/** A URL in a span's or an event's name keeps only its origin; anything personal is hidden. */
-const sanitizeName = (name: string) => redactString(originOnly(name));
+/** A span's or an event's name: URLs and paths cut, addresses and anything personal hidden. */
+const sanitizeName = (name: string) => redactString(cut(name)).replace(ADDRESS, "[address]");
 
 /** An exception's type, when it's a class name (`ForbiddenError`), never free text. */
 const CLASS_NAME = /^[A-Za-z_$][\w$.]{0,99}$/;

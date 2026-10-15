@@ -9,7 +9,8 @@ import { errorResponse, setupRequiredResponse } from "./errors";
 
 /** The whole check's deadline: under the Dockerfile's HEALTHCHECK --timeout=5s. */
 const TOTAL_MS = 4_000;
-/** A database step's own limit, within the deadline; storage gets what's left. */
+/** The database's share of the deadline (the setup state and its check together); storage always
+ * keeps at least the last second. */
 const DATABASE_MS = 3_000;
 
 /** `work`, or a rejection once `ms` have passed. */
@@ -42,12 +43,14 @@ export const health = async (
   config: AppConfig,
   getDb: (url: string) => CreatedDb,
   storage: () => StorageAdapter,
+  setupState: typeof getSetupState = getSetupState,
 ): Promise<Response> => {
-  // One deadline for everything: the setup state, the database and storage, one after another.
-  const deadline = Date.now() + TOTAL_MS;
-  const left = (cap = TOTAL_MS) => Math.max(0, Math.min(cap, deadline - Date.now()));
+  // One deadline for everything, under Docker's 5 s: the database (the setup state, then its
+  // check) shares its first 3 seconds, and storage has until the end, a second at least.
+  const started = Date.now();
+  const left = (until: number) => Math.max(0, started + until - Date.now());
   // A setup state that doesn't come in time is a database that isn't answering.
-  const state = await within(getSetupState(config, { getDb }), left(DATABASE_MS)).catch(
+  const state = await within(setupState(config, { getDb }), left(DATABASE_MS)).catch(
     () => "unavailable" as const,
   );
   if (state === "not_configured" || state === "incomplete") return setupRequiredResponse();
@@ -66,7 +69,7 @@ export const health = async (
   }
   // Storage after the database: an instance whose database fails is already unavailable.
   try {
-    await within(storage().check(), left());
+    await within(storage().check(), left(TOTAL_MS));
     hooks().health("storage", true);
   } catch (error) {
     hooks().health("storage", false);

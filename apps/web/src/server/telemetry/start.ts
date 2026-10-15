@@ -51,8 +51,13 @@ export const startTelemetry = (
   registerOTel({
     serviceName: otel.OTEL_SERVICE_NAME ?? "ronne-marketplace",
     attributes: { "service.version": version },
-    // No fetch instrumentation: the server makes no outgoing requests, and its spans keep URLs.
+    // No fetch instrumentation: its spans would carry the URLs the server fetches.
     instrumentations: [],
+    // A client's trace context (`traceparent`, `tracestate`, `baggage`) isn't taken, whatever
+    // OTEL_PROPAGATORS says: each request is its own trace. A public client's context is its own
+    // input, and `@vercel/otel` ends a trace's open spans when its first span ends, so requests
+    // sharing a client's trace would cut each other's spans short.
+    propagators: [],
     // Our processor only: `@vercel/otel`'s default ("auto") adds its own OTLP exporter whenever an
     // endpoint is set, which would send every span a second time, unsanitized.
     spanProcessors: [
