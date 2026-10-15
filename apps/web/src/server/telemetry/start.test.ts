@@ -120,6 +120,8 @@ console.log("RAW PATH", received.traces.some((b) => b.includes("secret-skill")))
 const sent = received.traces.join("") + received.metrics.join("");
 console.log("VERCEL", sent.includes("vercel"));
 console.log("ENVIRONMENT", received.traces.some((b) => b.includes("deployment.environment")) && received.metrics.some((b) => b.includes("deployment.environment")));
+const keys = (bodies, field) => [...new Set(bodies.flatMap((b) => JSON.parse(b)[field].flatMap((r) => r.resource.attributes.map((a) => a.key))))].sort().join(",");
+console.log("RESOURCE", keys(received.traces, "resourceSpans"), keys(received.metrics, "resourceMetrics"));
 process.exit(0);`,
       {
         OTEL_EXPORTER_OTLP_PROTOCOL: "http/json",
@@ -142,6 +144,9 @@ process.exit(0);`,
     // The resource: no Vercel attributes on a self-hosted server; the operator's own kept.
     expect(result.stdout).toContain("VERCEL false");
     expect(result.stdout).toContain("ENVIRONMENT true");
+    // Exactly these keys, as the Documentation lists them.
+    const keys = "deployment.environment,service.name,service.version";
+    expect(result.stdout).toContain(`RESOURCE ${keys} ${keys}`);
     expect(result.lines.map((line) => JSON.parse(line).event)).toContain("telemetry.started");
   });
 

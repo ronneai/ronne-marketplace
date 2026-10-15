@@ -58,6 +58,15 @@ it("sends the collector nothing personal from the server's flows", () => {
   // The flows were traced: the release, the feed build and the upload are there.
   for (const span of ["ronne.release", "ronne.feed.build", "ronne.draft.upload", "db select"])
     expect(sent, span).toContain(span);
+  // Keys that hold a path, an address or a user agent are never sent, whatever their value.
+  for (const key of [
+    "http.target",
+    "url.full",
+    "url.path",
+    "client.address",
+    "user_agent.original",
+  ])
+    expect(sent.includes(`"${key}"`), `${key} was sent`).toBe(false);
   for (const [what, value] of Object.entries(never ?? {})) {
     expect(value, `${what} is empty: the search would prove nothing`).toBeTruthy();
     expect(sent.includes(value), `${what} reached the collector`).toBe(false);

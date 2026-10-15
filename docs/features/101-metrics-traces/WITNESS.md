@@ -475,3 +475,225 @@ Witnessed: 2026-10-15 00:04 EDT, by a fresh agent (blind). Commit: b9533928. Mac
 | 16 | The suites pass | no | confirmed | 30 passed |
 
 **Overall:** not met: `@vercel/otel` takes a trace's first span as its root and ends the trace's open spans when it ends, so requests sharing a client's trace cut each other's spans short. On `bugfix/101-close`: a client's trace context isn't taken (`propagators: []`, whatever `OTEL_PROPAGATORS` says), so each request is its own trace; a test sending two requests under one `traceparent` failed before (`ronne.feed.plugins` lost) and passes now. A real standalone server, a page and a fresh feed build under one `traceparent`, three rounds: every build kept its attributes, the client's trace id appeared nowhere. The spec says Kysely's `log` option.
+
+## Task 5 — Nothing personal in telemetry (final check)
+
+Witnessed: 2026-10-15 09:21 EDT, by a fresh agent (blind). Commit: 5fdcfa95. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The privacy test passes with tracing and metrics on (SQLite) | no | confirmed | `privacy.db.test.ts` ✓ 2603 ms; `src/server/telemetry` 10 files, 28 passed |
+| 2 | One test drives sign-in, token exchange, a release in a private workspace, a feed build and a draft upload | no | confirmed | `privacy-scenario.ts:98-242`; dump: `POST /sign-in` ×2, `POST /api/v1/auth/token` ×2, `ronne.release` ×2, `ronne.feed.build` ×2, `ronne.draft.upload` ×1; sign-in and token metrics with both outcomes |
+| 3 | It inspects everything received, traces and metrics | no | confirmed | Every body recorded (`privacy-scenario.ts:38-45`), each forbidden value checked (`privacy.db.test.ts:57-64`); sanitizer off → fails |
+| 4 | No parameter values | no | confirmed | `real-hooks.ts:62-66`; 171 query texts, only migration constants quoted; `db.query.params` added → fails |
+| 5 | No user ids, emails, IPs, tokens, item, scope or workspace names | no | confirmed | 18 values absent from 1 MB, case-insensitive; no email, IPv4 or ≥40-hex pattern; IP filter removed → fails |
+| 6 | A client's trace state isn't sent | no | confirmed | No `traceState`, links or status messages; trace state kept → fails; `propagators: []` |
+| 7 | Metrics carry only the listed attributes | no | confirmed | Dump: request duration method/route/status; query duration system/operation; feed builds tool/cached; resource `service.name`, `service.version` |
+| 8 | Passes on PostgreSQL, MySQL and MariaDB | no | confirmed | Run 38741216819 on 5fdcfa95: `privacy.db.test.ts` ✓ in each |
+| 9 | A collector that doesn't answer leaves request times unchanged | no | confirmed | `blackhole.test.ts` ✓ |
+| 10 | The black-hole test catches a request that waits on export | no | confirmed | Probe: 300 requests, median 0.10 ms, p99 ≤ 1.9 ms; awaiting `forceFlush` in `api-route.ts` → fails |
+| 11 | The route segment list matches `app/` | no | confirmed | `route-segments.test.ts` ✓ |
+
+**Overall:** met. Remarks: the privacy test's paths always carry an email, so path cutting is tested by `sanitize.test.ts` only; its request spans are made by the test, Next.js's are checked on real servers by tasks 3 and 5's adversarial passes.
+
+## Task 3 — Spans (final check)
+
+Witnessed: 2026-10-15 09:24 EDT, by a fresh agent (blind). Commit: 5fdcfa95. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A database span per query from Kysely's `log` option, only when telemetry is on | yes | confirmed | `create-db.ts:105,126,142`; off → `queryLog` undefined (`hooks.ts:29`). Remark: metrics only, spans go to the `nowhere` exporter |
+| 2 | System, operation and SQL with placeholders, never parameters | no | confirmed | Standalone: 2208 db spans, 0 literals; parameters added → privacy test fails |
+| 3 | Database spans under their request | no | confirmed | 0 orphans; `trace.deleteSpan` mutant → `spans.test.ts` fails |
+| 4 | Storage spans: bytes, never the key | no | confirmed | 9 puts, 9 gets, only `ronne.storage.bytes`; key added → fails |
+| 5 | `ronne.release` with `ronne.items`, under its request | no | confirmed | Playwright release: `{ronne.items:1}` under `POST /submissions/[id]`, `{2}` under `POST /reviews`; annotate removed → fails |
+| 6 | `ronne.feed.build` with tool, cached, plugins | no | confirmed | 1 fresh `{plugins:3}`, 11 cached; plugins dropped → fails |
+| 7 | `ronne.draft.upload` under its request | no | confirmed | 8 of 8 |
+| 8 | `ronne.request_id` on the API route's and the proxy's spans | no | confirmed | 12 of 12, 161 of 161; removed → fails. Remark: the proxy's span is its own trace |
+| 9 | Log lines carry `traceId` and `spanId` | no | confirmed | 57 of 59 (the 2 outside a request); `traceIds()` removed → fails |
+| 10 | Email-like attributes dropped, Better Auth's spans too | no | confirmed | 646 Better Auth spans, 0 hits; redact check removed → fails. Remark: in the exporter wrapper |
+| 11 | A client's trace context isn't taken; concurrent requests keep their spans and attributes | no | confirmed | 25 concurrent requests under one `traceparent` and `baggage`: client ids 0 times, 618 traces, every domain span complete |
+| 12 | The tests see each span under its request | no | confirmed | 15 files, 136 passed; `--project db` 2 passed; CI, Database, Image, CodeQL on 5fdcfa95 green |
+
+**Overall:** met.
+
+## Task 2 — The SDK, off by default (final check)
+
+Witnessed: 2026-10-15 09:17 EDT, by a fresh agent (blind). Commit: 5fdcfa95. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Next.js documents both; `@vercel/otel` chosen; versions current | yes | confirmed | `open-telemetry.md:31,36`; `npm view` latest equals `package.json:43-52` |
+| 2 | The six questions answered in #188 | yes | confirmed | `gh pr view 188`; 21 and 71 reproduced |
+| 3 | No SDK module without an endpoint, tested | yes | confirmed | 28 passed; static import mutant fails; standalone never loads the SDK chunk |
+| 4 | OTLP/HTTP traces and metrics with the resource | yes | confirmed | Standalone: 2 trace and 5 metric bodies, JSON and protobuf |
+| 5 | `OTEL_SDK_DISABLED` | yes | confirmed | 0 bodies, chunk not loaded |
+| 6 | `telemetry.started` without the endpoint | no | confirmed | `{"event":"telemetry.started","traces":true,"metrics":true}` |
+| 7 | `export_failed` rate-limited | no | confirmed | `failures.test.ts`; one line in 3 s down. Remark: one limiter for both signals |
+| 8 | A request's trace arrives | yes | confirmed | `start.test.ts`, privacy test; standalone `GET /api/health` spans |
+| 9 | Invalid endpoint warns and starts | no | confirmed | One `telemetry.endpoint_invalid`, 5 × 200 |
+| 10 | The endpoint from the settings file | no | confirmed | `RONNE_ENV_FILE` only → bodies arrive |
+| 11 | A collector down doesn't slow requests | no | confirmed | 3–8 ms against 2–6 ms off |
+| 12 | The standalone output includes the packages | yes | confirmed | Chunk 381,026 bytes; `@opentelemetry/api` 45 files, 192 KiB |
+| 13 | `packages:check` and the packed server | yes | confirmed | 2113 files allowed; tarball has the chunk |
+| 14 | The bundle includes them | yes | confirmed | Nightly 38729464279: 4 bundles; darwin-arm64 archive has the chunk |
+| 15 | `licenses:check` | yes | confirmed | 321 allowed |
+| 16 | `install --frozen-lockfile` | no | confirmed | No change; CI 38741216478 green |
+| 17 | The plan note's sizes and counts | yes | partly | Chunk 381,026 bytes, not 378,883; packages 21 and 71, not 22 and 72 |
+| 18 | The spec's packages | no | confirmed | `package.json:43-52` |
+
+**Overall:** not met: only the plan note's figures. On `bugfix/101-final`: 381,026 bytes at 5fdcfa95, each size with its commit, and 21 and 71 packages with the method.
+
+## Task 1 — Health checks storage (final check)
+
+Witnessed: 2026-10-15 09:24 EDT, by a fresh agent (blind). Commit: 5fdcfa95. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `check()` on the interface, passed through by every wrapper | no | confirmed | `storage-adapter.ts:19`, `storage/index.ts:35`, `real-hooks.ts:91` |
+| 2 | Exists, writable, enterable, no file written | no | confirmed | `local-storage.ts:70-84`; folder unchanged; `access` dropped → 3 fail; `W_OK` only → 1 fails |
+| 3 | A folder not made yet passes when its parent can take it, nothing created | yes | confirmed | Nested, Unicode and relative paths; ENOENT mutant fails |
+| 4 | Database then storage; storage never checked on the database's failures | no | confirmed | `health.ts:53-79`; storage first → 10 of 17 fail |
+| 5 | The database gets the first 3 s; storage runs until 4 s | no | confirmed | Hung database 503 by 3.5 s; hung storage by 4.5 s. Remark: the plan's task line said "each within 3 s" |
+| 6 | Unwritable storage → 503 `storage_unavailable` with `details.checks` | no | confirmed | `toEqual` on the whole body; 17 passed |
+| 7 | The 200 body and `cache-control: no-store` | no | confirmed | `health.ts:80-83` |
+| 8 | Existing statuses and codes unchanged | no | confirmed | `health.ts` at `cf1b5433^`; `errors.ts` unchanged |
+| 9 | Covers a read-only folder | no | confirmed | 555 and 666 tests; EACCES lines in CI's postgres log |
+| 10 | Covers a missing folder | no | confirmed | "doesn't exist yet" and "can't be made" |
+| 11 | `storage.unavailable` logged, path hidden | no | confirmed | Test passes; `[path]` in the log; no path in the body |
+| 12 | 503 whenever storage can't take a write | no | partly | `STORAGE_PATH` a link to nothing → `check()` ok, 200; `put` → `ENOTDIR` |
+| 13 | The Dockerfile's health check | no | confirmed | Unchanged; Image run 38741216844 green |
+| 14 | The server checks pass unchanged | no | can't check here | Not run on 5fdcfa95 (PR run 38738564558: checks skipped); nightly 38729464279 green on b9533928 |
+| 15 | The e2e tests pass unchanged | no | confirmed | CI 38741216478 shards green; locally 120 passed, the 20 failures all WebKit not installed |
+| 16 | On PostgreSQL, MySQL and MariaDB | no | confirmed | Run 38741216819 |
+
+**Overall:** not met: a `STORAGE_PATH` that's a link to nothing answers 200; the server checks haven't run on 5fdcfa95. On `bugfix/101-final`: the walk-up fails on a link to nothing, at the path or on the way (`lstat`); a test covers both and fails without it; the spec says so, and the plan's task line says one 4 s deadline. The server checks wait for the nightly run.
+
+## Task 6 — Documentation (final check)
+
+Witnessed: 2026-10-15 09:21 EDT, by a fresh agent (blind). Commit: 5fdcfa95 (ronne-web 310dcef). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | No client trace context taken, even with `OTEL_PROPAGATORS` | no | confirmed | `propagators: []`; probe with all three headers → new trace, no parent |
+| 2 | Monitoring says so in en, pt, fr | no | confirmed | `en:656-658`, `pt:666-668`, `fr:710-713` |
+| 3 | The resource attributes the docs list are sent | no | partly | Probe → only `service.name`, `service.version`; `@vercel/otel` adds no `telemetry.sdk.*`, which en, pt and fr name |
+| 4 | The database within 3 s or `database_unavailable` | no | confirmed | Probes at 3.01 s and 3.00 s; 17 passed |
+| 5 | One 4 s deadline; storage at least 1 s | no | confirmed | 503 at 4.00 s with `details.checks` |
+| 6 | The docs' health limits | no | confirmed | en 582-583, pt 591, fr 630 |
+| 7 | SPEC's Documentation section | no | confirmed | SPEC:183-187 |
+| 8 | Monitoring in both `topics.ts` | no | confirmed | ronne-web `topics.ts:74`; `help/topics.ts:163` |
+| 9 | ronne-web tests | no | confirmed | 138 passed |
+| 10 | Marketplace help tests | no | confirmed | 13 passed |
+
+**Overall:** not met: `telemetry.sdk.*` named but never sent. On `bugfix/101-final` and ronne-web `docs/101-final`: dropped from Monitoring in the three languages, from the resource sanitizer's comment and its kept keys.
+
+## Task 6 — Documentation (final re-check: the resource attributes)
+
+Witnessed: 2026-10-15 09:30 EDT, by a fresh agent (blind). Commit: 5fdcfa95 + working tree (ronne-web 310dcef + working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Without `OTEL_RESOURCE_ATTRIBUTES`, the resource is `service.name` and `service.version` only | no | confirmed | `probe.mjs` (local OTLP/HTTP JSON receiver, `startTelemetryIfSet()`) → traces and metrics: `service.name=ronne-marketplace`, `service.version=0.3.2` |
+| 2 | With it, `deployment.*` and the operator's keys, nothing else | no | confirmed | `deployment.environment.name=prod,team.name=ops,cloud.region=eu` → those three plus `service.*` on both signals |
+| 3 | English lists those keys | no | confirmed | `en/operations.tsx:658-660` |
+| 4 | Portuguese | no | confirmed | `pt/operations.tsx:669-670` |
+| 5 | French | no | confirmed | `fr/operations.tsx:713-715`; `grep telemetry.sdk` in the docs → none |
+| 6 | The sanitizer's comment and kept keys agree | no | confirmed | `sanitize.ts:229-237`: `service.*`, `deployment.*`, the operator's keys |
+| 7 | Telemetry tests pass | no | confirmed | 10 files, 28 passed. Remark: no test pins the resource's exact keys |
+| 8 | ronne-web lint | no | confirmed | `npx biome check` → 209 files, exit 0 |
+| 9 | ronne-web typecheck | no | confirmed | `npx tsc --noEmit` → exit 0 |
+| 10 | ronne-web tests | no | confirmed | 29 files, 138 passed |
+
+**Overall:** met. After it, `start.test.ts` pins the resource's exact keys on both signals (`deployment.environment`, `service.name`, `service.version`); keeping every key fails it.
+
+## Task 2 — The SDK, off by default (final re-check: the plan note's figures)
+
+Witnessed: 2026-10-15 09:31 EDT, by a fresh agent (blind). Commit: 5fdcfa95 + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The note names its method | yes | confirmed | `npm install --package-lock-only`, the root not counted |
+| 2 | `@opentelemetry/sdk-node`: 71 packages | yes | confirmed | Empty folder, `@opentelemetry/sdk-node@0.223.0` → 71 lockfile entries |
+| 3 | `@vercel/otel` with its peers and the metric exporter: 21 | yes | confirmed | Peers from `npm view @vercel/otel@2.1.3 peerDependencies` at `package.json`'s versions → 21 |
+| 4 | 357,088 bytes at a56f21b9 | yes | confirmed | a56f21b9's `apps/web/src`, forced build → the `PeriodicExportingMetricReader` chunk 357,088 B |
+| 5 | 381,026 bytes at 5fdcfa95 | yes | confirmed | 5fdcfa95's `src`, forced build → 381,026 B |
+
+**Overall:** met. Remark: the note's MB figures didn't say how they were measured; it now says on disk, with npm's unpacked sizes (34.3 and 23.9 MB) beside them.
+
+## Task 1 — Health checks storage (final re-check)
+
+Witnessed: 2026-10-15 09:31 EDT, by a fresh agent (blind). Commit: 5fdcfa95 + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | 503 whenever storage can't take a write; 200 for a folder not made yet under a writable parent and for a link to a writable folder; `check()` agrees with a real `put` | no | confirmed | Probe, `check()` then `put("a/b.tgz")` on 23 roots → 23/23 agree: links to nothing (absolute, relative, chained, under one), loops, files, read-only and unenterable folders fail; real folders, missing paths under writable parents, links to writable folders pass |
+| 2 | The test covers a link to nothing and fails without the fix | no | confirmed | 18 passed; `lstat` lines removed → 1 failed |
+| 3 | SPEC and PLAN describe the deadlines and the check | no | partly | SPEC matches; PLAN's task line still says "folder exists" and not the link to nothing |
+| 4 | The server checks pass with this change | no | can't check here | Uncommitted; last runs that ran them: nightly 38729464279 on b9533928, PR run 38673349502 on fea1a956 |
+
+**Overall:** not met: the plan's task line, and the server checks owed on the commit. After it, the task line says "the folder, or while it isn't made yet its nearest existing parent, writable; a link to nothing fails; no file written". The server checks wait for the nightly run on the merged commit.
+
+## Task 5 — Nothing personal in telemetry (adversarial final check)
+
+Witnessed: 2026-10-15 09:34 EDT, by a fresh agent (adversarial). Commit: 5fdcfa95. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | One test drives the flows and inspects everything received | no | confirmed | `privacy.db.test.ts` + `privacy-scenario.ts`: sign-in, token exchange, a private release (single and bulk), feed builds, a draft upload, `/me`; 18 values searched in every body |
+| 2 | It passes | no | confirmed | 1 passed here; run 38741216819: ✓ on postgres, mysql, mariadb |
+| 3 | The tests catch a leak | no | confirmed | 6 mutants: the suite catches all; the privacy test alone 3 (the drop list, path cut and address check only by `sanitize.test.ts`) |
+| 4 | A real standalone server sends nothing personal | no | confirmed | ~45 hostile requests, protobuf and JSON: 0 hits for names, addresses, ids, tokens, `evil.example`; span names patterns only |
+| 5 | A client's trace context isn't taken, whatever `OTEL_PROPAGATORS` says | no | confirmed | `tracecontext,baggage` and `b3,jaeger,tracecontext`; `traceparent`, `tracestate`, `baggage`, `b3`, `uber-trace-id`, `uberctx-*` → none sent |
+| 6 | `NEXT_OTEL_VERBOSE` off | no | confirmed | `telemetry.verbose_off` then `telemetry.started` |
+| 7 | Metrics' attributes; the resource `service.*` only | no | confirmed | `probes/metrics.mjs` over the capture |
+| 8 | Database spans never carry parameters | no | confirmed | `db.query.text` placeholders only; parameters added → privacy test fails |
+| 9 | The sanitizer does what the spec says | no | partly | Undotted keys kept (`hushvault`, `user_id`); a path's query kept (`GET /catalogue?q=hushvault`, `?ref=ana%40example.com`). Nothing sent today hits either |
+| 10 | A collector that doesn't answer leaves request times unchanged | no | confirmed | Black-hole test catches a 10 ms delay; real server medians 1.7/1.6 against 1.5/1.6 ms |
+| 11 | A collector that's down never stops the server; `export_failed` at most once a minute | no | confirmed | ~900 requests against a closed port: health 200, one line |
+
+**Overall:** not met: the sanitizer's key and query rules are weaker than the spec says; the privacy test alone misses three regressions. Remark: with `TRUST_PROXY`, a client's `X-Request-Id` reaches the collector as `ronne.request_id` (feature 100's design, left as it is). On `bugfix/101-final`: a key needs a dot; a path loses its query and fragment; the privacy scenario adds a path, a query, an address with a port and a bare-word key holding the workspace name, none with an email, and the old key rule, path cut, query rule and address check each fail it; `sanitize.test.ts` covers them; the spec says so.
+
+## Task 5 — Nothing personal in telemetry (adversarial re-check of the key and query rules)
+
+Witnessed: 2026-10-15 09:48 EDT, by a fresh agent (adversarial). Commit: 5fdcfa95 + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A key that isn't a dotted name is dropped; no key sent today is lost | no | confirmed | 24 keys probed; a real standalone build: 27 distinct keys, none dropped by the rule |
+| 2 | Paths lose query and fragment and are cut; URLs keep their origin; addresses dropped | no | partly | ~80 forms held; kept: a path after `:` or `.` (`route:/workspaces/hushc1?q=hushc1q`), an IPv4 address before a dot (`client 198.51.100.23. done`), a path starting with a non-ASCII letter (`/éhushstart`) |
+| 3 | The privacy test alone fails for each weakening | no | partly | Fails for the key rule, path cut, query cut, address check, whole drop list, sanitizer removed; passes with the fragment cut, `http.target` or `url.*` removed |
+| 4 | `sanitize.test.ts` covers each rule | no | confirmed | Every mutant fails it; not the forms in row 2 |
+| 5 | A real standalone server sends nothing personal | no | confirmed | JSON 5.0 MB (3,406 spans) and protobuf with `OTEL_PROPAGATORS=tracecontext,baggage,b3`: 0 hits |
+| 6 | The black-hole test passes | no | confirmed | ✓ 1,506 ms |
+
+**Overall:** not met: three forms get past the free-text rules, and the privacy test alone misses three weakenings. Remarks: a bare query, a query broken by a space, bracketed segments not the app's; `12:30:45` dropped as an address; a request for `*` answered 500. The owner chose an allowlist (2026-10-15): only the attribute keys in `SENT_KEYS` are sent (Ronne's, and Next.js's, Better Auth's and `@vercel/otel`'s that hold no path, address or name), any other dropped. On `bugfix/101-final`: that, plus a path is found after a colon or a dot and from any letter; an IPv4 address beside a sentence's dot is caught; route patterns are the app's own (`ROUTE_PATTERNS`, checked against `app/`); a bare query is dropped. The privacy scenario puts a path, a query, a fragment and an address in sent keys, and asserts the path, address and user agent keys are absent: removing the allowlist, the path cut, the query rules, the fragment cut or the address check each fails it. The spec and Monitoring (en, pt, fr) say spans carry only the listed attributes.
+
+## Task 6 — Documentation (final re-check: the listed attributes)
+
+Witnessed: 2026-10-15 10:06 EDT, by a fresh agent (blind). Commit: 5fdcfa95 + working tree (ronne-web 310dcef + working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Monitoring says spans carry only the listed attributes, as the code does | no | confirmed | `sanitize.ts` `SENT_KEYS` and its check; every key Ronne sets listed; a real export dropped `http.target`, `url.*`, addresses, user agents, a header, `user.id`, a made-up key; 0 hits |
+| 2 | "Never sent" and the resource sentence stay true | no | confirmed | Resource exactly `service.*`, `deployment.*` and the operator's keys; trace context not taken; SQL with `?`; storage bytes only |
+| 3 | The three languages say the same | no | confirmed | The same sentence in en, pt, fr; no `telemetry.sdk` |
+| 4 | SPEC's Documentation section matches | no | confirmed | `SPEC.md:185-190`, `:73-91` |
+| 5 | ronne-web lint, typecheck, tests | no | confirmed | Copy of `www`: biome clean; `next typegen && tsc --noEmit` exit 0; vitest passed |
+
+**Overall:** met. Remark: an exception event keeps `exception.type`, an event attribute, not a span's.
+
+## Task 5 — Nothing personal in telemetry (adversarial re-check of the allowlist)
+
+Witnessed: 2026-10-15 10:17 EDT, by a fresh agent (adversarial). Commit: 5fdcfa95 + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Only `SENT_KEYS` are sent; none carries what the value rules miss; no useful key lost | no | confirmed | Raw attributes kept beside the sanitized: `http.target` (228 values), `http.url`, `net.peer.name` dropped; ~50 requests plus 14 pages |
+| 2 | Value rules: origins, paths, queries, addresses | no | partly | 90 hostile forms held; kept: a bare query with a flag (`?a&q=hushamp`) or without `=`, a URL's user name (`https://hushuser@localhost:3000/x`), a path starting with a symbol (`/!hushbang/x`, `/😀…`) |
+| 3 | `route-segments.test.ts` checks `ROUTE_SEGMENTS` and `ROUTE_PATTERNS` against `app/` | no | confirmed | Removing `usage`, `marketplace.json`, `[tool]` or `(app)`, or adding a route → fails. Remark: one direction only |
+| 4 | The privacy test alone fails for each removal | no | partly | Fails for the allowlist, path cut, address check, sanitizer, fragment, path query; passes without the bare-query rule |
+| 5 | A real standalone server sends nothing personal, JSON and protobuf | no | confirmed | JSON 223 bodies, 6,898 spans; protobuf 17 trace and 41 metric bodies: 0 hits for names, addresses, tokens, ids, the client's trace ids |
+| 6 | The black-hole test passes | no | confirmed | ✓ 1,538 ms |
+
+**Overall:** not met: the bare-query rule, a URL's user name, a path starting with a symbol, and the privacy test alone missing the bare-query rule; none appeared on a real server. On `bugfix/101-final`: any `?…` left after the path cut is dropped; a URL keeps `scheme://host:port` without userinfo; a path may start with any character; the scenario puts `?a&q=<workspace>` in a sent key, and dropping the rule fails it; `sanitize.test.ts` covers each.
