@@ -1504,3 +1504,52 @@ Witnessed: 2026-10-14 19:30 EDT, by a fresh agent (adversarial). Commit: e49da9e
 | 14 | CodeQL reports nothing new | no | confirmed | 0 and 0 |
 
 **Overall:** not met: a domain holding a symbol or punctuation IDNA keeps was written in full. Fixed in 3c16602b and 13f72f5b: a domain takes anything but delimiters; of the code points `domainToASCII` accepts, only 12 ASCII delimiters aren't recognized, a known limit (owner, 2026-10-14).
+
+## Task 4 — Nothing secret, nothing personal (fourth re-check)
+
+Witnessed: 2026-10-14 19:56 EDT, by a fresh agent (blind). Commit: a93322ab (ronne-web 272c3de). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The no-secrets test drives every flow on the real logger and passes | no | confirmed | Copy: 114 passed; `no-secrets.db.test.ts:77-245` |
+| 2 | No secret, email, IP or item name | no | confirmed | `:219-253` |
+| 3 | Any single rule off fails it | no | partly | URL passwords off → green: the IPv4-domain rule hid `Db-Pa55-w0rd` before `@127.0.0.1` |
+| 4 | A storage error's key back in either message fails it | no | partly | `StorageKeyError` → green (never raised); `local-storage.test.ts` catches both |
+| 5 | Unit tests pin each part of the email rule | no | partly | 24 mutations; IDNA dots in the trailing trim and last-label scan, `\p{Cf}` in run-on letters, the `_` start-letter half survive |
+| 6 | Every accepted address is `[email]`, outside the limit | no | partly | Delimiters in a local part; `: < > [ ]` in a domain; a symbol in the last label |
+| 7 | Nothing a line needs is hidden | no | confirmed | 335 `.pnpm` names, versions, chunks, a real stack |
+| 8 | Better Auth: only our JSON, fixed `msg`, nothing at `info` | no | confirmed | Two mutations fail the tests |
+| 9 | Better Auth: only an Error among its extra arguments reaches a line | no | partly | Keeping `args` passes both tests (`"name":"Alice"`; the test checks lowercase `alice`) |
+| 10 | The e2e check finds every secret, by database and by shape | no | confirmed | 19 plants each fail it |
+| 11 | Missing file, no JSON lines fail | no | confirmed | `p-fake.mts` |
+| 12 | A real run passes and prints the paths | no | confirmed | 8 passed, exit 0 |
+| 13 | A real run fails with a planted secret | no | confirmed | 8 passed, exit 1 |
+| 14 | e2e shards pass, WebKit included | no | confirmed | 72 and 72 |
+| 15 | Database tests on three servers | no | confirmed | 111 files each |
+| 16 | CodeQL reports nothing new | no | confirmed | 0 and 0 |
+| 17 | The docs' "Never in a line" matches the spec | no | confirmed | ronne-web 272c3de |
+
+**Overall:** not met: tests didn't pin the URL-password rule, `StorageKeyError`, four email sub-rules, Better Auth's dropped arguments; some accepted shapes outside the limit. Fixed in ecf8bf2c; the owner widened the limit (2026-10-14) to delimiters anywhere in an address and symbols in the last label.
+
+## Task 4 — Nothing secret, nothing personal (fourth adversarial re-check)
+
+Witnessed: 2026-10-14 20:12 EDT, by a fresh agent (adversarial). Commit: a93322ab. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The no-secrets test drives every flow and passes | no | confirmed | Copy: 104 passed; CI on three servers |
+| 2 | Any main rule or email sub-rule off fails a test | no | confirmed | 29 mutations, each exit 1 |
+| 3 | Each part of the new domain rule is pinned | no | partly | 12 DOMAIN exclusions (`@`, `/`, `'`, `*`, `` ` ``, `:`, `;`, `{}`, `[]`, `<>`, `()`) and the `_` rule unpinned; with `@` allowed, `"a@b".repeat(40000)` takes 58 s; with `/`, 6 real pnpm frames hidden |
+| 4 | IDNA shapes hidden | no | confirmed | `miss.mts`, `local.mts` in 9 contexts |
+| 5 | Every accepted address outside the limit is `[email]` | no | partly | Local-part delimiters (limit at a93322ab covered only the domain); `ana@_dmarc.example.com`, `ana@1_x.com`; run-ons after a digit label, IPv4 or trailing dot |
+| 6 | Nothing a line needs is hidden | no | confirmed | 335 names × 6 contexts; 488 real lines |
+| 7 | Linear on hostile shapes | no | confirmed | 30 shapes: 0–143 ms, ×2 ≈ ×2 |
+| 8 | All rules in one string leak nothing | no | confirmed | 7,200 strings |
+| 9 | No storage error names a key | no | confirmed | Real logger, three kinds of root |
+| 10 | No other realistic path writes a name, email or secret | no | confirmed | Live `next start` at debug, 54 lines, 0 hits |
+| 11 | A full Chromium run passes, no false positives | no | confirmed | 70 passed; every database value searched → 0 hits |
+| 12 | The e2e check finds what the spec lists | no | confirmed | `log-check.ts:64-111`. Remark: its email pattern is narrower than the logger's (the run writes none of those) |
+| 13 | CI on a93322ab green | no | confirmed | 36 runs |
+| 14 | CodeQL reports nothing new | no | confirmed | 0 and 0 |
+
+**Overall:** not met: the domain rule's exclusions and `_` rule unpinned (one keeps it linear); run-ons after a digit label, IPv4 or trailing dot written in full. Fixed in 7f4cbc53 (each exclusion and the `_` rule pinned, a timing test, a hostname-shaped fallback); the local-part delimiters are in the owner's widened limit (ecf8bf2c); `_` domains not starting with a letter are written into the spec's rule.
