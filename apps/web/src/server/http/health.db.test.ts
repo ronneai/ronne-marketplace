@@ -1,7 +1,7 @@
 import { chmodSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { AppConfig } from "../config";
 import { createTestDb, type TestDb } from "../db/testing/test-db";
 import { createRoot } from "../domains/identity/actions/root-account";
@@ -180,17 +180,14 @@ describe("health", () => {
     },
   );
 
+  // Real timers: the database drivers (pg, mysql2) use them too, so faked ones would stop the
+  // database's own check on a server.
   it("returns 503 storage_unavailable when storage doesn't answer within 3 seconds", async () => {
-    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
-    try {
-      const hanging = { ...storage(), check: () => new Promise<void>(() => {}) };
-      const pending = health(config(), db, () => hanging);
-      await vi.advanceTimersByTimeAsync(3_000);
-      expect(await answer(await pending)).toEqual(unavailableStorage);
-    } finally {
-      vi.useRealTimers();
-    }
-  });
+    const hanging = { ...storage(), check: () => new Promise<void>(() => {}) };
+    const started = performance.now();
+    expect(await answer(await health(config(), db, () => hanging))).toEqual(unavailableStorage);
+    expect(performance.now() - started).toBeGreaterThanOrEqual(2_900);
+  }, 10_000);
 
   it("writes storage.unavailable with the error, its path under storage hidden", async () => {
     const lines: Record<string, unknown>[] = [];
