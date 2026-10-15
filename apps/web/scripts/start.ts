@@ -3,13 +3,15 @@
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { prepareStart, StartError } from "../src/server/setup/prepare-start";
+import { prepareStart, StartError, type StartPlan } from "../src/server/setup/prepare-start";
+import { logStarted } from "../src/server/setup/started";
 
 const appDir = resolve(import.meta.dirname, "..");
 const dataDir = process.env.RONNE_DATA_DIR || resolve(appDir, "data");
 
+let plan: StartPlan;
 try {
-  await prepareStart({ appDir, dataDir });
+  plan = await prepareStart({ appDir, dataDir });
 } catch (error) {
   if (!(error instanceof StartError)) throw error;
   console.error(`✗ ${error.message}`);
@@ -24,3 +26,4 @@ if (!existsSync(server)) {
   process.exit(1);
 }
 await import(pathToFileURL(server).href);
+logStarted(plan);

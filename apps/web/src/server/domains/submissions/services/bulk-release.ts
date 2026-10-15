@@ -1,3 +1,4 @@
+import { logger } from "../../../log";
 import { IdentityError } from "../../identity/exceptions/errors";
 import { SubmissionsError } from "../exceptions/errors";
 import { type PlannedRelease, planReleases, type ReleaseSettings } from "../models/release-plan";
@@ -124,5 +125,10 @@ export const releaseMany = async (
       );
     }
   }
+  const count = results.filter((result) => result.result === "published").length;
+  if (count > 0)
+    logger
+      .child({ domain: "submissions" })
+      .event("version.released", { count, userId: actor.user?.id });
   return results;
 };

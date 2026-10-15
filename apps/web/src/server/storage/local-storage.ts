@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { link, mkdir, readFile, stat, unlink, writeFile } from "node:fs/promises";
 import { dirname, resolve, sep } from "node:path";
+import { hidePathsUnder } from "../log/redact";
 import {
   type StorageAdapter,
   StorageConflictError,
@@ -20,6 +21,8 @@ const sameBytes = (a: Uint8Array, b: Uint8Array) =>
  */
 export const localStorage = (root: string): StorageAdapter => {
   const base = resolve(root);
+  // Its files are named after items: an error naming one writes `base/[path]` (feature 100).
+  hidePathsUnder(base);
   const pathOf = (key: string) => {
     if (storageKeyProblem(key)) throw new StorageKeyError(key);
     const path = resolve(base, key);

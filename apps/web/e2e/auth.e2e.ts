@@ -1,6 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { headerName } from "./helpers";
-import { E2E_NAMES, E2E_PASSWORD, E2E_USERS } from "./users";
+import { E2E_NAMES, E2E_NEW_PASSWORD, E2E_PASSWORD, E2E_USERS, E2E_WRONG_PASSWORD } from "./users";
 
 // Next.js's route announcer is also a role="alert", so match the notice by its ERR: prefix.
 const errorNotice = (page: Page) => page.getByRole("alert").filter({ hasText: "ERR:" });
@@ -60,7 +60,7 @@ test.describe("without JavaScript", () => {
 
 test("a wrong password and an unknown email get the same error", async ({ page }) => {
   await page.goto("/sign-in");
-  await signIn(page, E2E_USERS.wrongPassword, "not the password at all");
+  await signIn(page, E2E_USERS.wrongPassword, E2E_WRONG_PASSWORD);
   await expect(errorNotice(page)).toContainText("Email or password is wrong");
   // The email stays; the password doesn't.
   await expect(page.getByLabel("Email")).toHaveValue(E2E_USERS.wrongPassword);
@@ -113,9 +113,9 @@ test("changes the password: this browser stays in, others are signed out", async
     await expect(headerName(page, E2E_NAMES.changePassword)).toBeVisible();
   }
 
-  const next = "a brand new e2e passphrase";
+  const next = E2E_NEW_PASSWORD;
   await here.goto("/account/password");
-  await here.getByLabel("Current password").fill("not the password at all");
+  await here.getByLabel("Current password").fill(E2E_WRONG_PASSWORD);
   await here.getByLabel("New password", { exact: true }).fill(next);
   await here.getByLabel("Confirm new password").fill(next);
   await here.getByRole("button", { name: "Change password" }).click();

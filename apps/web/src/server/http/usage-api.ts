@@ -1,6 +1,7 @@
 import type { AppAuth } from "../domains/identity/repositories/auth-instance";
 import { recordUsageAs, usageSettingsAs } from "../domains/usage/actions/usage";
 import { InvalidUsageReportError, UsageDisabledError } from "../domains/usage/exceptions/errors";
+import { logger } from "../log";
 import { domainErrorResponse, errorResponse, rateLimitedResponse } from "./errors";
 import { readJsonObjectWithin } from "./read-json";
 import { requireToken, type TokenGuardDeps } from "./require-token";
@@ -52,11 +53,13 @@ export const postUsage = async (request: Request, deps: UsageApiDeps = {}) => {
   const guard = await requireToken(request, deps.guard);
   if (!guard.ok) return guard.response;
   const rate = (deps.limiter ?? usageLimiter()).consume(guard.auth.user.id);
-  if (!rate.allowed)
+  if (!rate.allowed) {
+    logger.child({ domain: "usage" }).event("usage.rate_limited", { limit: "usage_reports" });
     return rateLimitedResponse(
       "Too many usage reports: at most 60 in 10 minutes. Wait, then try again.",
       rate.retryAfterSeconds,
     );
+  }
   const read = await readJsonObjectWithin(request, USAGE_BODY_MAX_BYTES);
   if (!read.ok) return read.response;
   try {

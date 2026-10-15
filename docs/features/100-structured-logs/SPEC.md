@@ -15,7 +15,8 @@ calls, no request IDs, and an unexpected error reaches only Next.js's default ou
 - **A logger** in `apps/web/src/server/log/`, with no new dependency: JSON lines on stdout,
   levels, child loggers per domain, and redaction.
 - **`LOG_LEVEL`** (`debug`, `info`, `warn`, `error`; `info` by default) and **`LOG_FORMAT`**
-  (`json` by default; `text` for a person reading a terminal, which `pnpm dev` sets).
+  (`json` by default; `text` for a person reading a terminal, the default under `pnpm dev`, whose
+  `next dev` sets `NODE_ENV=development`).
 - **A request ID** for every API request and server action, returned as `X-Request-Id`, on every
   line written while it's handled.
 - **One line per API request** (method, route, status, time taken).
@@ -53,13 +54,26 @@ calls, no request IDs, and an unexpected error reaches only Next.js's default ou
 | `level` | yes | `debug`, `info`, `warn` or `error` |
 | `msg` | yes | A short sentence for people, fixed text (no values in it) |
 | `event` | for events | A stable name, `<area>.<what>` (`server.started`, `http.request`, `auth.sign_in_failed`), for searches and alerts; documented in the list below |
-| `domain` | in a domain | The domain that wrote it (`identity`, `submissions`, `feeds`, …), or `http`, `db`, `server` |
+| `domain` | in a domain | The domain that wrote it (`identity`, `submissions`, `feeds`, …), or `http`, `db`, `server`; a logger's own domain (its child's) can't be replaced by a field |
 | `requestId` | in a request | The request it belongs to |
-| `userId` | when known | The signed-in user's or the token owner's id, never an email or a name |
+| `userId` | when known | The signed-in user's or the token owner's id, never an email or a name; in a request, the request's user once authentication knows it (a field can't replace it); before that (signing in), the line's own `userId` |
 | `err` | on errors | `{ name, message, stack, code }`, the stack only at `error` |
 | others | — | The event's own fields, flat, camelCase, values that are numbers, booleans or short strings |
 
-**No personal data beyond the user's id:** no emails, names or IP addresses in any line. They're
+**No personal data beyond the user's id:** no emails, names or clients' IP addresses in any line
+(an email anywhere in a line, an error's message included, is written `[email]`; the server's own
+addresses, such as a database host in a driver's error, may appear: owner, 2026-10-14). An
+address's domain may hold anything IDNA does (any script, symbols, its dots `。．｡`, format
+characters) and is recognized by its last label (letters and digits with a letter, or `xn--`), an
+IPv4 address or a literal (`[192.0.2.1]`); what runs on after it (`example.c0m?x=1`,
+`192.0.2.1?x`) stays. A domain holding `_` must start with a letter: pnpm's
+`react-dom@19.2.0_react@19.2.0` paths aren't addresses, so `ana@_dmarc.example.com` isn't
+recognized. Known limit (owner, 2026-10-14): an address isn't
+recognized, or only in part, when its local part or domain holds an ASCII delimiter
+(`" ' ( ) * , / : ; < > [ ] \ `` ` `` { }`) outside a quoted local part or a literal, or its last
+label holds a symbol (`example.c!om`). No mail system delivers to such an address, though
+`normalizeEmail` accepts it; reading them as addresses would hide parts of stack frames, URLs, JSON
+and paths. They're
 in the database, under 102's retention; logs go to collectors Ronne doesn't control, kept by rules
 Ronne doesn't set. The usage report (046) logs nothing about who sent it, as the report stores
 nothing about them.
@@ -83,12 +97,15 @@ unexpected error, the database unreachable).
   `status`, `ms`, `userId`), and sets `X-Request-Id` on the response.
 - **Server actions:** a shared wrapper the `actions.ts` files' exported actions go through, with
   the same context; no `http.request` line (a server action is one POST to the page), but every
-  line inside carries the ID.
+  line inside carries the ID. A guard test imports every file with a `use server` directive and
+  checks each export is the wrapper's; actions live in their own files, never inline. A
+  deliberately escaped directive placed to slip past it is out of scope (owner, 2026-10-14).
 - **Pages:** `proxy.ts` sets the header on the request, so `onRequestError` can log a page's
   failure with it.
 - **Where it comes from:** a new ULID per request. With `TRUST_PROXY=true`, an incoming
   `X-Request-Id` (at most 128 characters of `[A-Za-z0-9._-]`) is used instead, so one ID follows
-  the request through Caddy or a load balancer; anything else is ignored.
+  the request through Caddy or a load balancer; anything else is ignored. The proxy's ID is
+  written as it came: whatever the client sent through a proxy that passes it on, it chose.
 - **Errors** in the API's error body don't change shape (MVP §11); the response's `X-Request-Id`
   header is what someone quotes when they report a problem.
 
@@ -98,21 +115,21 @@ At least, named in one module so the list in the Documentation can't drift:
 
 | Event | Level | Fields |
 |---|---|---|
-| `server.started` | info | `version`, `dialect`, `runtime` (docker, npm, bundle, service), `port` |
+| `server.started` | info | `version`, `dialect` (or `setup: required`), `runtime` (bundle, npm, docker, node; an installed service runs npm or bundle), `port` |
 | `server.migrations_applied` | info | `count`, `latest` |
 | `http.request` | info (warn for 4xx rate limits, error for 5xx) | above |
 | `http.error` | error | `err`, `route` |
-| `auth.signed_in` / `auth.sign_in_failed` | info / warn | `userId` (success only), `reason` |
+| `auth.signed_in` / `auth.sign_in_failed` | info / warn | `userId` (success only), `reason`; `via: "cli"` when `rmk login` failed |
 | `auth.rate_limited` | warn | `limit` (`sign_in`, `token_exchange`) |
-| `token.exchanged` / `token.rejected` | info / warn | `userId` / `reason` (`unknown`, `revoked`, `expired`) |
+| `token.exchanged` / `token.rejected` | info / warn | `userId` / `reason` (`unknown`, `revoked`, `expired`, `disabled`) |
 | `version.released` | info | `count` (a bulk release logs one line), `userId` |
 | `version.yanked` | info | `userId` |
 | `draft.uploaded` / `draft.upload_refused` | info / warn | `files`, `bytes` / `reason` |
 | `upload.rate_limited`, `usage.rate_limited` | warn | `limit` |
 | `submission.checks_failed` | warn | `err` (today's `console.warn` in `drafts.ts`) |
-| `feed.built` | info (debug when from cache) | `tool`, `plugins`, `ms`, `bytes` |
-| `feed.size_warning`, `feed.plugin_skipped` | warn | `tool`, `percent` / `reason` (today's `deps.log`) |
-| `db.unavailable` | error | `err` (health check, start) |
+| `feed.built` | info (debug when from cache) | `tool`, `plugins`, `ms`, `bytes`; from the cache `tool`, `bytes`, `cached: true` |
+| `feed.size_warning`, `feed.plugin_skipped` | warn | `tool`, `percent` / `reason` (`name_refused`, `build_failed`; never the item's name) |
+| `db.unavailable` | error | `err` (the health check; at start, a failed migration writes its own error line, with the driver's error, before the server stops) |
 
 Item, scope and workspace names aren't logged: a private workspace's names aren't visible to whoever
 reads the logs (093), and the audit log already says which item.
@@ -123,34 +140,122 @@ The logger, not each caller, keeps secrets out:
 - **Keys:** any field named (case-insensitively) `password`, `token`, `secret`, `authorization`,
   `cookie`, `passphrase`, `apiKey`, or ending in one of these, is written as `"[redacted]"`, at any
   depth.
-- **Values:** any string containing an access token (`rmk_` and 43 characters) has it replaced with
-  `rmk_[redacted]`; a URL with a password has it replaced as `redactDatabaseUrl` does.
-- **Errors:** an error's `message` goes through the same value redaction; a thrown value that isn't
-  an `Error` is logged as its type only.
+- **Values:** any string containing an access token (`rmk_` and at least 43 characters: the
+  whole run goes) has it replaced with `rmk_[redacted]`; a URL with a password has it replaced with
+  `***`, by `redactDatabaseUrl`'s rule: after `://`, the user name runs to the first `:` or `/` (an
+  `@` in it, as Azure's `admin@server`, stays), and the password from that `:` to the last `@` in
+  the string, so no space, `@` or `://` in it can end it early. With two URLs, or an email after a
+  URL with a port, more is hidden; never less. Keys go through the same redaction, and so do the
+  message, the request's ID and the user id. Not caught: `user:pw@host` without a scheme, and a
+  password in a query string.
+- **Storage paths** (owner, 2026-10-14): a path under the storage's folder is written as
+  `<folder>/[path]` in any line, an error's message and stack included. Stored files are named
+  `scope/name/version.tgz`, so a storage error would otherwise name an item a private workspace hides
+  (093). Each storage adapter registers its folder as it's made. A storage error keeps its key as a
+  property for code, never in its message.
+- **Duplicate-key values:** the value MySQL and MariaDB quote in a duplicate-key error
+  (`Duplicate entry '…' for key`) is written `[value]`: it can be an email or an item's name.
+  PostgreSQL keeps it in the error's `detail`, which isn't written; SQLite names only the columns.
+- **Errors:** an error's `name`, `message`, string `code` and stack go through the same value
+  redaction; its other properties (a driver's `config`, `cause`) aren't written; a thrown value
+  that isn't an `Error` is logged as its type only.
 - **Environment values** are never logged, secret or not
   ([`codeql-logging.md`](../../knowledge/codeql-logging.md)): `server.started` logs the dialect and
-  the port, never `DATABASE_URL` or `PUBLIC_URL`.
+  the port, never `DATABASE_URL` or `PUBLIC_URL`. One exception: before setup, the start's line
+  names the address to open (`PUBLIC_URL`, or this machine on its port) and the setup command, as
+  features 080 and 082 have it; the person starting a new instance needs it, and it isn't secret.
 
 ### `LOG_FORMAT=text`
 
 For a person: `14:03:22.417 INFO  submissions version.released Released items=3 requestId=01K7…`,
-colours when stdout is a terminal. `pnpm dev` sets it; the server, Docker, the services and the
-packages use JSON.
+colours when stdout is a terminal. It's the default when `LOG_FORMAT` is unset and `NODE_ENV` is `development` (`pnpm dev`);
+the server, Docker, the services and the packages use JSON.
 
 ## Edge cases
 
-- **Next.js's own lines** (`▲ Next.js 16…`, `✓ Ready in…`) aren't JSON. They're few, written at
-  start; collectors that parse JSON treat them as text. `server.started` is the line to alert on.
+**Known limits of the text format** (owner, 2026-10-14: after fourteen adversarial checks, the
+text format's last edge cases are recorded here rather than chased; JSON has none of them). A
+field `domain` on a logger with no domain of its own goes into the head escaped but not encoded,
+so it can hold bare words such as `requestId` (never with an `=`); a logfmt reader that keeps the
+first value of a repeated key may then read those as empty. Look-alike letters and symbols some
+fonts draw blank are written as they are. Text is for people; tools read JSON.
+
+**What the logger is hardened against** (owner, 2026-10-14): what the server can actually be
+handed. That's request data (strings, plain JSON, however crafted), errors from drivers and
+libraries, and our own code's mistakes (a cycle, a big or shared value, a secret passed by
+accident). For those, no secret is written, nothing throws, and a line's work and size are bounded,
+as below. Hostile objects that only code inside the process could build (Proxies, values with
+replaced methods, throwing getters, a patched prototype) are handled where it's cheap (a field
+marked, a line still written), but they're out of scope: code that can build them can already
+read every secret itself.
+
+- **Next.js's own lines** (`▲ Next.js 16…`, `✓ Ready in…`) aren't JSON; collectors that parse JSON
+  treat them as text, and `server.started` is the line to alert on. Next.js also prints each
+  unexpected page or action error itself (`⨯ Error: …` and its stack), next to Ronne's `http.error`
+  line. That output is Next.js's, outside the logger and its redaction: a known limit (owner,
+  2026-10-14). Ronne's JSON line is the structured, redacted one.
+- **Better Auth's own printing when the database fails:** its database adapter
+  (`@better-auth/core`, a failed fallback join) prints the driver's error and stack with
+  `console.error`, outside the `logger` option and so outside ours. Only when the database itself
+  fails mid-request; refused requests print nothing. A known limit, like Next.js's (owner,
+  2026-10-14).
 - **A line written outside a request** (start, migrations): no `requestId`.
 - **Something logged inside `after()`** (work after the response): the context is kept, so the
   line has the request's ID.
 - **A field that can't be serialised** (a cycle, a `BigInt`): the logger writes `"[unserialisable]"`
   for that field and never throws; logging never fails a request.
-- **A very long value** (an error message from a driver): cut to 2,000 characters with `…`.
-- **stdout is closed or slow:** writes go through `process.stdout.write` without waiting; Node
-  buffers them. The logger never blocks the request.
+- **A very long value** (an error message from a driver): cut to 2,000 characters with `…`, after
+  redaction, so a cut never leaves part of a token; keys likewise, at 200. A string or key over
+  64 KB isn't read at all: it's written as `"[N characters]"` (a key as `"[key N]"`), never part of
+  it, which could be part of a secret. At most 100 items of an
+  array (then `"[N more]"`) or keys of an object (then `"[more]": N`) are written, 8 levels deep
+  (then `"[too deep]"`); bytes (a `Buffer`) are written as `"[N bytes]"`, never their content.
+- **A value reached many ways** (shared, not a cycle) is written each time, so a line also has a
+  budget, for its bindings and fields together: 1,000 values visited (`undefined` included) and
+  50,000 characters of keys and strings, each string charged by its length before it's read, then
+  `"[too big]"`, `"[N more]"` or `"[more]": N`. An error's fields and an object's keys are read once
+  per line. So the work of a line is bounded whatever it's given (besides listing an object's own
+  keys once), and logging takes milliseconds, not seconds or the process's memory.
+- **The finished line** is at most 131,072 characters, escaping and quoting included: past it, its
+  fields are written as `"fields": "[too big]"`, with the time, level, message, domain, event and
+  request kept. The head holds only names and ids: a `domain` or `userId` that isn't a non-empty
+  string or a number is left out.
+- **A secret key** is told by the key's end only (its last letters, `_` and `-` left out, at most
+  256 characters read), once per object per line, so a key of any length costs little. A key whose
+  end is too long to read that way (a long run of `_` or `-`) counts as a secret.
+- **A `__proto__` field** (from request JSON) is written as a field, like any other.
+- **A Date or bytes** are read with the built-in methods (`Date.prototype.toISOString`, the
+  `byteLength` getters), never the value's own, which could return a secret or something huge.
+- **A getter that throws** marks that field `"[unserialisable]"`; the rest of the line is written.
+- **Hidden characters**, by Unicode's categories (controls `Cc`, format characters `Cf`, lone
+  surrogates `Cs`, every default-ignorable code point, the line and paragraph separators, the
+  blank braille U+2800, and U+FFFD, which strict logfmt readers refuse:
+  a newline, an ANSI escape, C1 controls, bidirectional marks, zero-width, tag and filler
+  characters, variation selectors), checked per code point, are escaped as `\uXXXX` (or JSON's `\n` inside a
+  quoted value), in text and in JSON alike, so nothing can split a line, forge another one, drive
+  the terminal or reorder what it shows. In text, a value is written as it is only when it's made
+  of letters, digits and `_ . : / @ + , % -` with nothing hidden; anything else (a space, a quote, a
+  backslash, an `=`, a `#`, an object, the empty string) is a JSON string, with `'` escaped. A key is
+  never quoted (strict logfmt readers refuse that): every character outside letters, digits and
+  `_ . : / @ + , -`, `%` included, is written as its UTF-8 bytes `%XX` (a lone surrogate as `%uXXXX`),
+  so two keys stay two; an empty key is `%`. In the domain, event and message, every `\`, `=`, `"`, `'` and `#` is escaped. So nothing
+  passes for a field, a quote, an escape or a comment, to the readers text is for: a person, a logfmt
+  reader, and a shell-like splitter (`shlex.split`). Text isn't safe to `eval` in a shell (`$` in a
+  quoted value would expand); JSON is what tools should read.
+- **stdout is closed or slow:** writes go through `process.stdout.write` without waiting. A closed
+  stdout (`EPIPE`) loses the lines and never crashes the server (the logger listens for its
+  `error` event). Node's docs ("A note on process I/O"): on Linux and macOS, writes to a pipe or
+  socket (journald, Docker, a service's log) are asynchronous, so Node buffers them in memory if the
+  reader falls behind; writes to a file or a terminal are synchronous, so a stalled disk or a slow
+  terminal holds the server up. That's Node's behaviour for every program, not the logger's.
+- **Settings that can't be read** (`RONNE_ENV_FILE` a folder): the logger uses the environment's
+  `LOG_LEVEL` and `LOG_FORMAT` and goes on; the server reports the settings problem itself.
 - **Better Auth's own logs:** sent through its `logger` option to ours (`domain: "identity"`),
-  at the matching level; checked against Better Auth's current docs when built.
+  at the matching level, as `msg: "Better Auth"` with `source: "better-auth"` and its text in
+  `detail` (redacted; it can hold a request's Origin). The option's level is `info`: at `debug`,
+  `warn` or `error` Better Auth's router also prints each API error through its own console, a
+  plain-text line outside ours; its debug lines are dropped. Checked against Better Auth's current
+  docs when built.
 - **`LOG_LEVEL=debug` in production:** allowed; it logs more, never secrets.
 - **The service logs** are already collected (journald, `/Library/Logs/rmk-server/server.log`);
   `rmk-server service logs` shows them. JSON is what they now hold.

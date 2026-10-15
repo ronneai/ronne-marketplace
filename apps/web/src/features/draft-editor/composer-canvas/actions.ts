@@ -8,40 +8,45 @@ import {
 } from "@/server/domains/submissions/actions/composer";
 import type { DependencyReport, PickerPage } from "@/server/domains/submissions/models/composer";
 import { requestHeaders } from "@/server/http/request-headers";
+import { serverAction } from "@/server/http/server-action";
 
 export type ReportsResult =
   | { ok: true; reports: Record<string, DependencyReport> }
   | { ok: false; error: string };
 
 /** What the registry says about a draft's dependencies, for the canvas's nodes (feature 031). */
-export const dependencyReportsAction = async (input: {
-  itemName: string;
-  type: ItemType;
-  dependencies: Record<string, string>;
-}): Promise<ReportsResult> => {
-  try {
-    return { ok: true, reports: await dependencyReports(await requestHeaders(), input) };
-  } catch (error) {
-    if (error instanceof IdentityError) return { ok: false, error: error.message };
-    throw error;
-  }
-};
+export const dependencyReportsAction = serverAction(
+  async (input: {
+    itemName: string;
+    type: ItemType;
+    dependencies: Record<string, string>;
+  }): Promise<ReportsResult> => {
+    try {
+      return { ok: true, reports: await dependencyReports(await requestHeaders(), input) };
+    } catch (error) {
+      if (error instanceof IdentityError) return { ok: false, error: error.message };
+      throw error;
+    }
+  },
+);
 
 export type PickerResult = ({ ok: true } & PickerPage) | { ok: false; error: string };
 
 /** The catalogue for the picker: the person's own items and published ones, of any type (031, 089, 096). */
-export const searchDependenciesAction = async (input: {
-  type: ItemType;
-  q: string;
-  only: ItemType | null;
-  cursor?: string;
-  /** The item being composed, so only what it may depend on is offered (093). */
-  itemName?: string;
-}): Promise<PickerResult> => {
-  try {
-    return { ok: true, ...(await searchDependencies(await requestHeaders(), input)) };
-  } catch (error) {
-    if (error instanceof IdentityError) return { ok: false, error: error.message };
-    throw error;
-  }
-};
+export const searchDependenciesAction = serverAction(
+  async (input: {
+    type: ItemType;
+    q: string;
+    only: ItemType | null;
+    cursor?: string;
+    /** The item being composed, so only what it may depend on is offered (093). */
+    itemName?: string;
+  }): Promise<PickerResult> => {
+    try {
+      return { ok: true, ...(await searchDependencies(await requestHeaders(), input)) };
+    } catch (error) {
+      if (error instanceof IdentityError) return { ok: false, error: error.message };
+      throw error;
+    }
+  },
+);

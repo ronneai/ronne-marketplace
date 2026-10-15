@@ -121,6 +121,8 @@ wait_for $health 200
 [ "$(systemctl show rmk-server -p NRestarts --value)" -ge 1 ] || fail "not restarted after a crash"
 timeout 5 sudo env "PATH=$PATH" rmk-server service logs >/tmp/rmk-logs.txt 2>&1 || true
 grep -q "Data folder: /var/lib/rmk-server" /tmp/rmk-logs.txt || fail "logs: $(head -c 500 /tmp/rmk-logs.txt)"
+# The journal holds Ronne's JSON lines (feature 100), server.started among them.
+grep -q '"event":"server.started"' /tmp/rmk-logs.txt || fail "no server.started in the logs"
 step "stop (status exit 3), start, restart (clean), logs; after SIGKILL systemd started it again"
 
 # A taken port stops install before it changes anything.

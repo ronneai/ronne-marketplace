@@ -14,6 +14,7 @@ import {
 } from "@/server/domains/items/actions/versions";
 import { ItemsError } from "@/server/domains/items/exceptions/errors";
 import { requestHeaders } from "@/server/http/request-headers";
+import { serverAction } from "@/server/http/server-action";
 
 export type VersionActionResult = { ok: true } | { ok: false; error: string };
 
@@ -27,37 +28,36 @@ export type VersionChange =
   | { kind: "unyank"; version: string };
 
 /** Runs one change; domain errors become the dialog's `ERR:` line. */
-export const changeVersions = async (
-  ref: ItemRef,
-  change: VersionChange,
-): Promise<VersionActionResult> => {
-  const headers = await requestHeaders();
-  try {
-    switch (change.kind) {
-      case "move_tag":
-        await moveTag(headers, ref, change);
-        break;
-      case "remove_tag":
-        await removeTag(headers, ref, change);
-        break;
-      case "deprecate":
-        await deprecate(headers, ref, change);
-        break;
-      case "undeprecate":
-        await undeprecate(headers, ref, change);
-        break;
-      case "yank":
-        await yank(headers, ref, change);
-        break;
-      case "unyank":
-        await unyank(headers, ref, change);
-        break;
+export const changeVersions = serverAction(
+  async (ref: ItemRef, change: VersionChange): Promise<VersionActionResult> => {
+    const headers = await requestHeaders();
+    try {
+      switch (change.kind) {
+        case "move_tag":
+          await moveTag(headers, ref, change);
+          break;
+        case "remove_tag":
+          await removeTag(headers, ref, change);
+          break;
+        case "deprecate":
+          await deprecate(headers, ref, change);
+          break;
+        case "undeprecate":
+          await undeprecate(headers, ref, change);
+          break;
+        case "yank":
+          await yank(headers, ref, change);
+          break;
+        case "unyank":
+          await unyank(headers, ref, change);
+          break;
+      }
+    } catch (error) {
+      if (error instanceof ItemsError || error instanceof IdentityError)
+        return { ok: false, error: error.message };
+      throw error;
     }
-  } catch (error) {
-    if (error instanceof ItemsError || error instanceof IdentityError)
-      return { ok: false, error: error.message };
-    throw error;
-  }
-  revalidatePath(`${itemPath(ref)}/versions`);
-  return { ok: true };
-};
+    revalidatePath(`${itemPath(ref)}/versions`);
+    return { ok: true };
+  },
+);

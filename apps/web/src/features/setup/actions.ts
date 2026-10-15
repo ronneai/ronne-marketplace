@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { loadConfig } from "@/server/config";
 import { clientIp } from "@/server/domains/identity/models/client-ip";
 import { requestHeaders } from "@/server/http/request-headers";
+import { serverAction } from "@/server/http/server-action";
 import {
   appContext,
   installAllWith,
@@ -24,25 +25,31 @@ const context = async () =>
     ipAddress: clientIp(await requestHeaders(), loadConfig().trustProxy),
   });
 
-export const testDatabase = async (form: FormData): Promise<TestResult> =>
-  testDatabaseWith(await context(), form);
+export const testDatabase = serverAction(
+  async (form: FormData): Promise<TestResult> => testDatabaseWith(await context(), form),
+);
 
-export const installSettings = async (form: FormData): Promise<StepOutcome> =>
-  installSettingsWith(await context(), form);
+export const installSettings = serverAction(
+  async (form: FormData): Promise<StepOutcome> => installSettingsWith(await context(), form),
+);
 
-export const installMigrations = async (): Promise<StepOutcome> =>
-  installMigrationsWith(await context());
+export const installMigrations = serverAction(
+  async (): Promise<StepOutcome> => installMigrationsWith(await context()),
+);
 
-export const installRoot = async (form: FormData): Promise<StepOutcome> =>
-  installRootWith(await context(), form);
+export const installRoot = serverAction(
+  async (form: FormData): Promise<StepOutcome> => installRootWith(await context(), form),
+);
 
 /**
  * The single-form install, for browsers without JavaScript. When it finishes, it goes to sign-in
  * with the root email filled in: the setup page would only redirect there anyway, now that the
  * instance is ready. A failure comes back to the form with the progress and the error.
  */
-export const installAll = async (previous: InstallState, form: FormData): Promise<InstallState> => {
-  const state = await installAllWith(await context(), previous, form);
-  if (state.done) redirect(`/sign-in?email=${encodeURIComponent(state.done.email)}&setup=done`);
-  return state;
-};
+export const installAll = serverAction(
+  async (previous: InstallState, form: FormData): Promise<InstallState> => {
+    const state = await installAllWith(await context(), previous, form);
+    if (state.done) redirect(`/sign-in?email=${encodeURIComponent(state.done.email)}&setup=done`);
+    return state;
+  },
+);

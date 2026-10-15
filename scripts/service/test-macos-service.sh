@@ -45,7 +45,8 @@ dscl . -read /Users/_rmkserver UserShell | grep -q /usr/bin/false || fail "_rmks
 [ "$(sudo stat -f '%Su %Lp' "$data")" = "_rmkserver 750" ] || fail "data folder owner or mode"
 [ "$(sudo stat -f '%Su %Lp' "$prefix/etc/rmk-server/env")" = "_rmkserver 600" ] || fail "settings owner or mode"
 [ -e /Library/LaunchDaemons/ai.ronne.rmk-server.plist ] || fail "no plist"
-grep -q "Ronne AI Marketplace isn't set up yet" /Library/Logs/rmk-server/server.log || fail "nothing in the log"
+# The service's log holds Ronne's JSON lines (feature 100), server.started among them.
+grep -q '"event":"server.started"' /Library/Logs/rmk-server/server.log || fail "no server.started in the log"
 step "install: a LaunchDaemon running as _rmkserver, data in $data, 503 before setup, logging"
 
 rmk-server service status | grep -q "not set up yet" || fail "status doesn't say it needs the setup"

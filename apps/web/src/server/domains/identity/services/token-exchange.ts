@@ -1,3 +1,4 @@
+import { logger } from "../../../log";
 import { TokenNameTakenError } from "../exceptions/errors";
 import { MAX_ACTIVE_TOKENS, TOKEN_NAME_MAX_LENGTH } from "../models/access-token";
 import { type LoginRateLimiter, loginRateLimitKeys } from "../models/login-rate-limiter";
@@ -58,6 +59,8 @@ const createWithFreeName = async (
   throw new TokenNameTakenError(base);
 };
 
+const log = logger.child({ domain: "identity" });
+
 export const exchangePasswordForToken = async (
   deps: ExchangeDeps,
   input: { email: unknown; password: unknown; name?: unknown },
@@ -66,6 +69,8 @@ export const exchangePasswordForToken = async (
   const at = (deps.now ?? (() => new Date()))();
   const typedEmail = typeof input.email === "string" ? input.email : "";
   const failed = async (reason: "invalid" | "disabled" | "rate_limited") => {
+    if (reason === "rate_limited") log.event("auth.rate_limited", { limit: "token_exchange" });
+    else log.event("auth.sign_in_failed", { reason, via: "cli" });
     await deps.identity.recordAudit(
       {
         actorId: null,
@@ -108,5 +113,7 @@ export const exchangePasswordForToken = async (
 
   const requested = typeof input.name === "string" ? input.name.trim() : "";
   const base = requested || tokenNameFromUserAgent(context.userAgent);
-  return { ok: true, token: await createWithFreeName(deps.tokens, found.user, context.ip, base) };
+  const token = await createWithFreeName(deps.tokens, found.user, context.ip, base);
+  log.event("token.exchanged", { userId: found.user.id });
+  return { ok: true, token };
 };

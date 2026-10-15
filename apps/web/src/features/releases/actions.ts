@@ -11,6 +11,7 @@ import {
 } from "@/server/domains/submissions/actions/publish";
 import { SubmissionsError } from "@/server/domains/submissions/exceptions/errors";
 import { requestHeaders } from "@/server/http/request-headers";
+import { serverAction } from "@/server/http/server-action";
 
 export type PrepareResult = ({ ok: true } & PreparedRelease) | { ok: false; error: string };
 export type ReleaseResult =
@@ -24,26 +25,24 @@ const failure = (error: unknown) => {
 };
 
 /** What releasing the selection would do (055): the order, the dependencies added, what can't go. */
-export const prepareReleaseAction = async (ids: string[]): Promise<PrepareResult> => {
+export const prepareReleaseAction = serverAction(async (ids: string[]): Promise<PrepareResult> => {
   try {
     return { ok: true, ...(await prepareRelease(await requestHeaders(), { ids })) };
   } catch (error) {
     return failure(error);
   }
-};
+});
 
 /** Releases the selection with one set of settings, each on its own, dependencies first (055). */
-export const releaseSelectedAction = async (
-  ids: string[],
-  settings: ReleaseSettings,
-  notes: string,
-): Promise<ReleaseResult> => {
-  try {
-    const results = await releaseMany(await requestHeaders(), { ids, settings, notes });
-    revalidatePath("/submissions");
-    revalidatePath("/reviews");
-    return { ok: true, results };
-  } catch (error) {
-    return failure(error);
-  }
-};
+export const releaseSelectedAction = serverAction(
+  async (ids: string[], settings: ReleaseSettings, notes: string): Promise<ReleaseResult> => {
+    try {
+      const results = await releaseMany(await requestHeaders(), { ids, settings, notes });
+      revalidatePath("/submissions");
+      revalidatePath("/reviews");
+      return { ok: true, results };
+    } catch (error) {
+      return failure(error);
+    }
+  },
+);

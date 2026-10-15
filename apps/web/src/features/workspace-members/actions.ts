@@ -11,6 +11,7 @@ import {
 } from "@/server/domains/workspaces/actions/workspaces";
 import { WorkspacesError } from "@/server/domains/workspaces/exceptions/errors";
 import { requestHeaders } from "@/server/http/request-headers";
+import { serverAction } from "@/server/http/server-action";
 import type { Candidate, MemberActionState } from "./types";
 
 const text = (form: FormData, key: string) => String(form.get(key) ?? "");
@@ -31,60 +32,59 @@ const attempt = async (form: FormData, work: () => Promise<string>): Promise<Mem
 };
 
 /** Add members' search: people not in the workspace yet whose email or name has the text. */
-export const findCandidates = async (
-  workspaceId: string,
-  query: string,
-): Promise<{ users: Candidate[] } | { error: string }> => {
-  try {
-    return { users: await memberCandidates(await requestHeaders(), { workspaceId, query }) };
-  } catch (error) {
-    if (error instanceof WorkspacesError || error instanceof IdentityError)
-      return { error: error.message };
-    throw error;
-  }
-};
+export const findCandidates = serverAction(
+  async (
+    workspaceId: string,
+    query: string,
+  ): Promise<{ users: Candidate[] } | { error: string }> => {
+    try {
+      return { users: await memberCandidates(await requestHeaders(), { workspaceId, query }) };
+    } catch (error) {
+      if (error instanceof WorkspacesError || error instanceof IdentityError)
+        return { error: error.message };
+      throw error;
+    }
+  },
+);
 
 const people = (n: number) => `${n} ${n === 1 ? "person" : "people"}`;
 
-export const addMembersFromForm = async (
-  _previous: MemberActionState,
-  form: FormData,
-): Promise<MemberActionState> =>
-  attempt(form, async () => {
-    const userIds = form.getAll("userId").map(String);
-    const results = await addMembers(await requestHeaders(), {
-      workspaceId: text(form, "workspaceId"),
-      userIds,
-      role: text(form, "role"),
-    });
-    const added = results.filter((r) => r.result === "added").length;
-    const already = results.length - added;
-    return already > 0
-      ? `Added ${people(added)}; ${people(already)} already in it.`
-      : `Added ${people(added)}.`;
-  });
+export const addMembersFromForm = serverAction(
+  async (_previous: MemberActionState, form: FormData): Promise<MemberActionState> =>
+    attempt(form, async () => {
+      const userIds = form.getAll("userId").map(String);
+      const results = await addMembers(await requestHeaders(), {
+        workspaceId: text(form, "workspaceId"),
+        userIds,
+        role: text(form, "role"),
+      });
+      const added = results.filter((r) => r.result === "added").length;
+      const already = results.length - added;
+      return already > 0
+        ? `Added ${people(added)}; ${people(already)} already in it.`
+        : `Added ${people(added)}.`;
+    }),
+);
 
-export const changeMemberRoleFromForm = async (
-  _previous: MemberActionState,
-  form: FormData,
-): Promise<MemberActionState> =>
-  attempt(form, async () => {
-    await changeMemberRole(await requestHeaders(), {
-      workspaceId: text(form, "workspaceId"),
-      userId: text(form, "userId"),
-      role: text(form, "role"),
-    });
-    return `Now ${text(form, "role")}.`;
-  });
+export const changeMemberRoleFromForm = serverAction(
+  async (_previous: MemberActionState, form: FormData): Promise<MemberActionState> =>
+    attempt(form, async () => {
+      await changeMemberRole(await requestHeaders(), {
+        workspaceId: text(form, "workspaceId"),
+        userId: text(form, "userId"),
+        role: text(form, "role"),
+      });
+      return `Now ${text(form, "role")}.`;
+    }),
+);
 
-export const removeMemberFromForm = async (
-  _previous: MemberActionState,
-  form: FormData,
-): Promise<MemberActionState> =>
-  attempt(form, async () => {
-    await removeMember(await requestHeaders(), {
-      workspaceId: text(form, "workspaceId"),
-      userId: text(form, "userId"),
-    });
-    return "Removed.";
-  });
+export const removeMemberFromForm = serverAction(
+  async (_previous: MemberActionState, form: FormData): Promise<MemberActionState> =>
+    attempt(form, async () => {
+      await removeMember(await requestHeaders(), {
+        workspaceId: text(form, "workspaceId"),
+        userId: text(form, "userId"),
+      });
+      return "Removed.";
+    }),
+);

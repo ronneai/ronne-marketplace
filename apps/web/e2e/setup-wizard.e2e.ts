@@ -1,10 +1,11 @@
 import { join } from "node:path";
 import { expect, test } from "@playwright/test";
 import { headerName } from "./helpers";
+import { E2E_SETUP_PASSWORD } from "./users";
 
 // The web setup (feature 036), with JavaScript: the wizard, on an instance that isn't set up yet.
 const instance = JSON.parse(process.env.RONNE_E2E_INSTANCE ?? "{}").wizard as { dir: string };
-const root = { email: "root@e2e.test", name: "Root", password: "correct horse battery" };
+const root = { email: "root@e2e.test", name: "Root", password: E2E_SETUP_PASSWORD };
 
 test("sets the instance up from the browser, then signs in", async ({ page, request }) => {
   // Until it's ready, every page ends on the setup, and the API says so.

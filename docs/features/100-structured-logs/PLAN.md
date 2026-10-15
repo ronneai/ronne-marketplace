@@ -9,14 +9,14 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 ## Tasks
 
-- [ ] **1. The logger.** [risky] `apps/web/src/server/log/`: levels, `child({ domain })`, JSON and
+- [x] **1. The logger.** [risky] `apps/web/src/server/log/`: levels, `child({ domain })`, JSON and
   text formats, the request context (`AsyncLocalStorage`), redaction (keys, token and URL values,
   error messages), the length cut, never throwing; `LOG_LEVEL` and `LOG_FORMAT` in `config.ts`;
   the event names in one module. No new dependency.
   *Done when:* unit tests cover each level, both formats, the context, every redaction rule
   (fields, nested, arrays, errors, strings), cycles and `BigInt`, and an invalid `LOG_LEVEL`.
 
-- [ ] **2. Requests.** The API wrapper in `server/http/` (request ID, context, `http.request` with
+- [x] **2. Requests.** The API wrapper in `server/http/` (request ID, context, `http.request` with
   the route pattern, `X-Request-Id`, unexpected errors as `http.error`) and every route in
   `app/api/**` through it; the server-action wrapper and every exported action through it;
   `proxy.ts` sets the ID for pages; `instrumentation.ts` with `onRequestError`.
@@ -25,7 +25,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   incoming ID used only with `TRUST_PROXY=true` and when well formed, and one error line per
   unexpected error.
 
-- [ ] **3. The events.** Each domain writes the spec's events with their fields: start and
+- [x] **3. The events.** Each domain writes the spec's events with their fields: start and
   migrations (`prepare-start.ts`, `start.ts`), sign-in and token exchange, release and yank,
   drafts and their limits, usage limits, feed builds (replacing `deps.log`), submit's checks
   failing, the health check's database failure; Better Auth's `logger` option routed to ours.
@@ -39,12 +39,14 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   for the same at the end of a run.
   *Done when:* both pass, and CodeQL reports nothing new on the pull request.
 
-- [ ] **5. Where they go.** `pnpm dev` sets `LOG_FORMAT=text`; the image, the services and the
-  packages run with JSON; `rmk-server service logs` shows them; `server-probe.js` checks the first
-  server line after Next's banner parses as JSON with `event: "server.started"`.
+- [x] **5. Where they go.** `pnpm dev` writes text (the default when `NODE_ENV` is `development`,
+  and `LOG_LEVEL` and `LOG_FORMAT` from the shell reach it); the image, the services and the
+  packages run with JSON; `rmk-server service logs` shows them; `server-probe.js` checks every
+  server line starting `{` parses as JSON, with a `server.started` line carrying this run's exact
+  version and port (Next's banner and `server.started` come in either order).
   *Done when:* the server checks and the image's smoke test pass.
 
-- [ ] **6. Documentation.** In `../ronne-web`: **Logs** in Running Ronne (both `topics.ts`), in
+- [x] **6. Documentation.** In `../ronne-web`: **Logs** in Running Ronne (both `topics.ts`), in
   English, Portuguese and French, with the events table from the module; here,
   `apps/web/.env.example` and the install guide's settings and Troubleshooting lines.
   *Done when:* the docs render tests pass in both repositories, and the witness finds every event

@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { toDbDate } from "../../../db/dates";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
+import { setLoggerForTests } from "../../../log";
 import { localStorage } from "../../../storage/local-storage";
 import type { StorageAdapter } from "../../../storage/storage-adapter";
 import { listAuditEvents } from "../../audit/actions/audit";
@@ -122,10 +123,20 @@ describe("releaseMany (055)", () => {
     ]);
     expect(prepared.candidates[0]).toMatchObject({ published: [], author: "Ada Author" });
 
-    const results = await release(asAuthor, [kit]);
+    const logged: Record<string, unknown>[] = [];
+    setLoggerForTests({
+      level: "info",
+      format: "json",
+      write: (line) => logged.push(JSON.parse(line)),
+    });
+    const results = await release(asAuthor, [kit]).finally(() => setLoggerForTests());
     expect(results.map((r) => [r.id, r.result, r.result === "published" && r.version])).toEqual([
       [github, "published", "1.0.0"],
       [kit, "published", "1.0.0"],
+    ]);
+    // A bulk release writes one line for all it released (feature 100).
+    expect(logged.filter((line) => line.event === "version.released")).toEqual([
+      expect.objectContaining({ count: 2, userId: expect.any(String) }),
     ]);
     const published = await audited("version.published");
     expect(published.map((e) => (e.metadata as { via?: string }).via)).toEqual(["bulk", "bulk"]);

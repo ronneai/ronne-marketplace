@@ -9,6 +9,7 @@ import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "../models/password";
 import type { PasswordHasher } from "../models/password-hasher";
 import { COOKIE_PREFIX } from "../models/session-cookie";
 import { argon2PasswordHasher } from "./argon2-password-hasher";
+import { betterAuthLogger } from "./better-auth-logger";
 import { kyselyIdentityRepository } from "./kysely-identity-repository";
 
 const DAY = 60 * 60 * 24;
@@ -63,6 +64,8 @@ export const createAuth = ({
     trustedOrigins: [baseURL],
     // Better Auth's telemetry is opt-in; keep it off explicitly for a self-hosted product.
     telemetry: { enabled: false },
+    // Its lines go through ours (feature 100): JSON, redacted, with the request's ID.
+    logger: betterAuthLogger,
     // On in every environment, not only production. It covers the few HTTP endpoints left.
     rateLimit: { enabled: true },
     advanced: {

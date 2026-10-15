@@ -17,6 +17,7 @@ import {
 } from "@ronneai/core";
 import { PackError, packItem } from "@ronneai/core/pack";
 import { isId } from "../../../db/ids";
+import { logger } from "../../../log";
 import type { StorageAdapter } from "../../../storage";
 import { ForbiddenError } from "../../identity/exceptions/errors";
 import { can } from "../../identity/models/permissions";
@@ -217,6 +218,8 @@ export const ownItem = async (
  * transaction. If one can't go, none does: an artifact stored for a release that then fails isn't
  * referenced, and is harmless. With one member, it's 015's release as it always was.
  */
+const log = logger.child({ domain: "submissions" });
+
 export const releaseTogether = async (
   deps: PublishDeps,
   actor: SubmissionActor,
@@ -358,7 +361,7 @@ export const releaseTogether = async (
     packed.push({ ...member, files, manifest, pack, artifactPath });
   }
 
-  return deps.store.transaction(async ({ submissions, items }) => {
+  const released = await deps.store.transaction(async ({ submissions, items }) => {
     // Locked in one order; each still approved, and still current (017).
     for (const member of [...packed].sort((a, b) => (a.submission.id < b.submission.id ? -1 : 1))) {
       await submissions.lockSubmission(member.submission.id);
@@ -602,6 +605,10 @@ export const releaseTogether = async (
     }
     return released;
   });
+  // One line per release; a bulk release writes one for all its groups (releaseMany).
+  if (input.via !== "bulk")
+    log.event("version.released", { count: released.length, userId: actor.user?.id });
+  return released;
 };
 
 /**

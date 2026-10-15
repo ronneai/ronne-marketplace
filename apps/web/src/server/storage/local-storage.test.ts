@@ -1,7 +1,8 @@
-import { mkdtemp, readdir, rm, stat } from "node:fs/promises";
+import { chmod, mkdtemp, readdir, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { createLogger } from "../log/logger";
 import { localStorage } from "./local-storage";
 import { StorageConflictError, StorageKeyError } from "./storage-adapter";
 
@@ -55,4 +56,38 @@ describe("localStorage", () => {
     for (const key of ["", "/etc/passwd", "../outside.tgz", "a/../../x", "a//b", "a/./b", "a\\b"])
       await expect(storage.put(key, bytes("x")), key).rejects.toThrow(StorageKeyError);
   });
+});
+
+describe("localStorage and the logs (feature 100)", () => {
+  it.skipIf(process.getuid?.() === 0)(
+    "a storage error logged as err names no item: its path is hidden",
+    async () => {
+      const storage = localStorage(root);
+      await storage.put("team/secret-item/1.0.0.tgz", bytes("x"));
+      await chmod(join(root, "team/secret-item/1.0.0.tgz"), 0o000);
+      const error = await storage.get("team/secret-item/1.0.0.tgz").catch((e: unknown) => e);
+      await chmod(join(root, "team/secret-item/1.0.0.tgz"), 0o644);
+      expect(error).toBeInstanceOf(Error);
+      const lines: string[] = [];
+      const log = createLogger({
+        level: "info",
+        format: "json",
+        write: (line) => lines.push(line),
+      });
+      log.error("Submit's checks failed", { err: error });
+      log.event("submission.checks_failed", { err: error });
+      expect(lines.join("")).toContain("[path]");
+      expect(lines.join("")).not.toContain("secret-item");
+      expect(lines.join("")).not.toContain("team/");
+    },
+  );
+});
+
+it("keeps a key out of its errors' messages: it names an item (feature 100)", () => {
+  // The key stays a property for code; the message, which the logs write, never holds it.
+  const key = "team/secret-skill/1.0.0.tgz";
+  for (const error of [new StorageKeyError(key), new StorageConflictError(key)]) {
+    expect(error.key).toBe(key);
+    expect(error.message).not.toContain("secret-skill");
+  }
 });

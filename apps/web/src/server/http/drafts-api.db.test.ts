@@ -21,6 +21,7 @@ import { kyselySubmissionRepository } from "../domains/submissions/repositories/
 import { UNFILTERED } from "../domains/workspaces/models/viewer";
 import { GLOBAL_WORKSPACE_ID } from "../domains/workspaces/models/workspace";
 import { kyselyWorkspaceRepository } from "../domains/workspaces/repositories/kysely-workspace-repository";
+import { setLoggerForTests } from "../log";
 import { localStorage } from "../storage/local-storage";
 import {
   checkDrafts,
@@ -49,7 +50,17 @@ const tokenFor = async (email: string) => {
   return result.token.token;
 };
 
+// The lines the API writes (feature 100).
+let logged: Record<string, unknown>[] = [];
+const logEvents = (name: string) => logged.filter((line) => line.event === name);
+
 beforeEach(async () => {
+  logged = [];
+  setLoggerForTests({
+    level: "debug",
+    format: "json",
+    write: (line) => logged.push(JSON.parse(line)),
+  });
   t = await createTestDb();
   app = testAppAuth(t);
   deps = {
@@ -87,7 +98,10 @@ beforeEach(async () => {
     if (name === "team") teamId = id;
   }
 });
-afterEach(() => t.cleanup());
+afterEach(() => {
+  setLoggerForTests();
+  return t.cleanup();
+});
 
 const get = (path: string, auth: string | null = tokens.user) =>
   new Request(`${BASE}${path}`, {
@@ -223,6 +237,11 @@ describe("POST /drafts", () => {
       ["scripts/check.sh", true],
     ]);
     expect(await counts()).toEqual({ drafts: 1, files: 3, uploads: 1 });
+    expect(logEvents("draft.uploaded")).toEqual([
+      expect.objectContaining({ domain: "submissions", files: 3, bytes: json.bytes }),
+    ]);
+    // Nothing about the item or the token in the lines.
+    expect(JSON.stringify(logged)).not.toMatch(/secure-coding|rmk_[A-Za-z0-9_-]{20}/);
   });
 
   it("gives no url without a public address", async () => {
@@ -318,6 +337,9 @@ describe("POST /drafts", () => {
       ]);
     }
     expect(await counts()).toEqual({ drafts: 0, files: 0, uploads: 0 });
+    expect(logEvents("draft.upload_refused").map((line) => line.reason)).toEqual(
+      cases.map(([, , code]) => code),
+    );
   });
 
   it("refuses a body over 28 MiB, with or without content-length", async () => {
@@ -363,6 +385,9 @@ describe("POST /drafts", () => {
     expect(response.status).toBe(429);
     expect(Number(response.headers.get("retry-after"))).toBeGreaterThan(0);
     expect((await body(response)).json.error.code).toBe("rate_limited");
+    expect(logEvents("upload.rate_limited")).toEqual([
+      expect.objectContaining({ level: "warn", limit: "uploads" }),
+    ]);
     expect((await postDraft(post(upload(), tokens.root), deps)).status).toBe(201);
   });
 
@@ -755,6 +780,9 @@ describe("POST /drafts/check and /drafts/submit (052)", () => {
     const limited = await submitDrafts(post("/drafts/submit", { ids: ["x"] }), deps);
     expect(limited.status).toBe(429);
     expect(limited.headers.get("retry-after")).toBeTruthy();
+    expect(logEvents("upload.rate_limited")).toEqual([
+      expect.objectContaining({ limit: "submits" }),
+    ]);
     // Checking isn't limited this way.
     expect((await checkDrafts(post("/drafts/check", { ids: ["x"] }), deps)).status).toBe(200);
   });

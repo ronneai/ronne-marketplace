@@ -159,6 +159,7 @@ export const TOPICS = [
       { id: "backup", title: "Backups" },
       { id: "restore", title: "Restoring" },
       { id: "encryption", title: "Encryption at rest" },
+      { id: "logs", title: "Logs" },
     ],
   },
   {
