@@ -17,7 +17,7 @@ export const TOPICS = [
     slug: "install",
     title: "Installing Ronne",
     summary:
-      "Running an instance with Docker or Node, as a service, a domain with HTTPS, the first-run setup, root, and upgrading.",
+      "Running an instance with Docker or Node, as a service, a domain with HTTPS, the first-run setup and root.",
     sections: [
       { id: "docker", title: "With Docker" },
       { id: "https", title: "A domain and HTTPS" },
@@ -27,8 +27,14 @@ export const TOPICS = [
       { id: "windows", title: "Windows" },
       { id: "setup", title: "The setup" },
       { id: "root", title: "Root accounts" },
-      { id: "upgrade", title: "Upgrading" },
     ],
+  },
+  {
+    slug: "update",
+    title: "Updating Ronne",
+    summary:
+      "Updating a running instance: the command for each way of installing it, backing up first, and what happens at start.",
+    sections: [{ id: "upgrade", title: "Updating Ronne" }],
   },
   {
     slug: "workspaces",
@@ -149,19 +155,41 @@ export const TOPICS = [
     ],
   },
   {
-    slug: "operations",
-    title: "Running Ronne",
+    slug: "security",
+    title: "Security",
     summary:
-      "For whoever runs an instance: what it defends against, and what to do when something goes wrong.",
+      "What an instance defends against, where its secrets are, and what it leaves to the disk and the database.",
     sections: [
       { id: "security", title: "Security" },
-      { id: "incidents", title: "Incidents" },
+      { id: "encryption", title: "Encryption at rest" },
+    ],
+  },
+  {
+    slug: "incidents",
+    title: "Incidents",
+    summary: "The two commands made for an incident, and what to do with them.",
+    sections: [{ id: "incidents", title: "Incidents" }],
+  },
+  {
+    slug: "backups",
+    title: "Backups",
+    summary: "Backing an instance up, and restoring it from a backup.",
+    sections: [
       { id: "backup", title: "Backups" },
       { id: "restore", title: "Restoring" },
-      { id: "encryption", title: "Encryption at rest" },
-      { id: "logs", title: "Logs" },
-      { id: "monitoring", title: "Monitoring" },
     ],
+  },
+  {
+    slug: "logs",
+    title: "Logs",
+    summary: "What the server writes, as JSON, and where to read it.",
+    sections: [{ id: "logs", title: "Logs" }],
+  },
+  {
+    slug: "monitoring",
+    title: "Monitoring",
+    summary: "The traces and metrics an instance can send to a collector.",
+    sections: [{ id: "monitoring", title: "Monitoring" }],
   },
   {
     slug: "rmk",
@@ -264,12 +292,16 @@ export type SectionOf<T extends TopicSlug> = Extract<Topic, { slug: T }>["sectio
 
 /** How the Documentation's menu groups the topics, in order (owner's request, 2026-09-28). */
 export const TOPIC_GROUPS: { label: string; topics: readonly TopicSlug[] }[] = [
-  { label: "Getting started", topics: ["overview", "install", "roles", "admin", "operations"] },
+  { label: "Getting started", topics: ["overview", "install", "update", "roles", "admin"] },
+  {
+    label: "Installing items",
+    topics: ["rmk", "plugins", "mcp", "usage", "claude-code", "codex", "cursor"],
+  },
   { label: "Organising", topics: ["workspaces", "scopes", "items"] },
   { label: "Publishing", topics: ["export", "review", "versions", "changes"] },
   {
-    label: "Installing",
-    topics: ["rmk", "plugins", "mcp", "usage", "claude-code", "codex", "cursor"],
+    label: "Running Ronne",
+    topics: ["security", "incidents", "backups", "logs", "monitoring"],
   },
 ];
 
