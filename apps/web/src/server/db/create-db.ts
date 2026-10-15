@@ -12,6 +12,7 @@ import {
 } from "kysely";
 import { createPool } from "mysql2";
 import pg from "pg";
+import { hooks } from "../telemetry/hooks";
 import type { Database } from "./schema";
 import { type DatabaseDialect, parseDatabaseUrl } from "./url";
 
@@ -99,7 +100,10 @@ export const createDb = (
       database.pragma("foreign_keys = ON");
       database.pragma("busy_timeout = 5000");
       return {
-        db: new Kysely<Database>({ dialect: new SqliteDialect({ database }) }),
+        db: new Kysely<Database>({
+          dialect: new SqliteDialect({ database }),
+          log: hooks().queryLog?.("sqlite"),
+        }),
         dialect: "sqlite",
       };
     }
@@ -118,7 +122,10 @@ export const createDb = (
           await connection.executeQuery(CompiledQuery.raw("SET time_zone = '+00:00'"));
         },
       });
-      return { db: new Kysely<Database>({ dialect }), dialect: "mysql" };
+      return {
+        db: new Kysely<Database>({ dialect, log: hooks().queryLog?.("mysql") }),
+        dialect: "mysql",
+      };
     }
     case "postgres": {
       const pool = new pg.Pool({
@@ -131,7 +138,10 @@ export const createDb = (
           await connection.executeQuery(CompiledQuery.raw("SET TIME ZONE 'UTC'"));
         },
       });
-      return { db: new Kysely<Database>({ dialect }), dialect: "postgres" };
+      return {
+        db: new Kysely<Database>({ dialect, log: hooks().queryLog?.("postgres") }),
+        dialect: "postgres",
+      };
     }
   }
 };

@@ -1,10 +1,17 @@
 // The OpenTelemetry SDK (101), imported only when an endpoint is set (index.ts).
 import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-http";
 import { PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
-import type { ReadableSpan, SpanExporter } from "@opentelemetry/sdk-trace-base";
+import {
+  BatchSpanProcessor,
+  type ReadableSpan,
+  type SpanExporter,
+} from "@opentelemetry/sdk-trace-base";
 import { OTLPHttpJsonTraceExporter, OTLPHttpProtoTraceExporter, registerOTel } from "@vercel/otel";
 import { version } from "../../../package.json";
 import { exportFailures, watched } from "./failures";
+import { installHooks } from "./hooks";
+import { realHooks } from "./real-hooks";
+import { sanitizeSpan } from "./sanitize";
 import type { TelemetrySettings } from "./settings";
 
 /** Spans go nowhere: only metrics have an endpoint. */
@@ -25,12 +32,26 @@ export const startTelemetry = (
   const { traces } = settings;
   const Exporter =
     traces?.protocol === "json" ? OTLPHttpJsonTraceExporter : OTLPHttpProtoTraceExporter;
+  /** Spans leave sanitized (sanitize.ts): nothing personal, no item names, no secrets. */
+  const sanitized = (exporter: SpanExporter): SpanExporter => {
+    const send = exporter.export.bind(exporter);
+    exporter.export = (spans, done) => send(spans.map(sanitizeSpan), done);
+    return exporter;
+  };
   registerOTel({
     serviceName: otel.OTEL_SERVICE_NAME ?? "ronne-marketplace",
     attributes: { "service.version": version },
-    traceExporter: traces
-      ? watched(new Exporter({ url: traces.url, headers: traces.headers }), "traces", failed)
-      : nowhere,
+    // Our processor only: `@vercel/otel`'s default ("auto") adds its own OTLP exporter whenever an
+    // endpoint is set, which would send every span a second time, unsanitized.
+    spanProcessors: [
+      new BatchSpanProcessor(
+        traces
+          ? sanitized(
+              watched(new Exporter({ url: traces.url, headers: traces.headers }), "traces", failed),
+            )
+          : nowhere,
+      ),
+    ],
     metricReaders: settings.metrics
       ? [
           new PeriodicExportingMetricReader({
@@ -40,4 +61,5 @@ export const startTelemetry = (
         ]
       : [],
   });
+  installHooks(realHooks());
 };

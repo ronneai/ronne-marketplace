@@ -3,6 +3,7 @@
 // with LOG_FORMAT=text (`pnpm dev`), the same for a person reading a terminal. Logging never throws
 // and never blocks: a line that can't be written whole is written as little as it can be.
 
+import { hooks } from "../telemetry/hooks";
 import { currentRequest } from "./context";
 import { EVENTS, type EventName, LOG_LEVELS, type LogLevel } from "./events";
 import { writeTo } from "./output";
@@ -43,7 +44,17 @@ const isName = (value: unknown): value is string | number =>
 export const MAX_LINE = 131_072;
 
 /** The fields every line may carry, in the order a JSON line shows them. */
-const RESERVED = ["time", "level", "msg", "domain", "event", "requestId", "userId"];
+const RESERVED = [
+  "time",
+  "level",
+  "msg",
+  "domain",
+  "event",
+  "requestId",
+  "userId",
+  "traceId",
+  "spanId",
+];
 
 const COLOURS: Record<LogLevel, string> = {
   debug: "\u001b[90m",
@@ -157,7 +168,7 @@ const textLine = (line: Fields, colour: boolean): string => {
     colour ? `${COLOURS[line.level as LogLevel]}${level}${RESET}` : level,
     ...parts,
   ].join(" ");
-  const last = ["requestId", "userId"];
+  const last = ["requestId", "userId", "traceId", "spanId"];
   const pairs = Object.entries(line).filter(([key]) => !RESERVED.includes(key));
   for (const key of last) if (line[key] !== undefined) pairs.push([key, line[key]]);
   // Keys percent-encoded (textKey), values plain or quoted (textValue): nothing passes for a field.
@@ -201,6 +212,8 @@ export const createLogger = (options: LoggerOptions, bindings: Fields = {}): Log
         ...(event ? { event } : {}),
         ...(context ? { requestId: cleanText(String(context.requestId)) } : {}),
         ...(isName(userId) ? { userId } : {}),
+        // With tracing on (101), the span the line was written in: a log line leads to its trace.
+        ...hooks().traceIds(),
       };
       const head = { ...line };
       // defineProperty: a `__proto__` field (from request JSON) stays a field.

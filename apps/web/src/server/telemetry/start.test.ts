@@ -74,7 +74,11 @@ process.env.OTEL_EXPORTER_OTLP_ENDPOINT = "http://127.0.0.1:" + server.address()
 const { startTelemetryIfSet, telemetryOn } = await import(${telemetry});
 await startTelemetryIfSet();
 const { trace, metrics } = await import("@opentelemetry/api");
-trace.getTracer("test").startActiveSpan("a request", (span) => span.end());
+trace.getTracer("test").startActiveSpan("a request", (span) => {
+  // Next.js sets the raw path on its request spans: it must never reach the collector.
+  span.setAttribute("http.target", "/items/@team/secret-skill");
+  span.end();
+});
 metrics.getMeter("test").createCounter("ronne.test").add(1);
 for (let i = 0; i < 100 && !(received.traces.length && received.metrics.length); i++)
   await new Promise((ok) => setTimeout(ok, 100));
@@ -82,6 +86,8 @@ console.log("ON", telemetryOn());
 console.log("TRACES", received.traces.some((b) => b.includes("a request")));
 console.log("METRICS", received.metrics.some((b) => b.includes("ronne.test")));
 console.log("SERVICE", received.traces.some((b) => b.includes("ronne-marketplace")));
+console.log("ONCE", received.traces.join("").split('"a request"').length - 1);
+console.log("RAW PATH", received.traces.some((b) => b.includes("secret-skill")));
 process.exit(0);`,
       {
         OTEL_EXPORTER_OTLP_PROTOCOL: "http/json",
@@ -93,6 +99,9 @@ process.exit(0);`,
     expect(result.stdout).toContain("TRACES true");
     expect(result.stdout).toContain("METRICS true");
     expect(result.stdout).toContain("SERVICE true");
+    // Sent once, through our sanitizing exporter only.
+    expect(result.stdout).toContain("ONCE 1");
+    expect(result.stdout).toContain("RAW PATH false");
     expect(result.lines.map((line) => JSON.parse(line).event)).toContain("telemetry.started");
   });
 

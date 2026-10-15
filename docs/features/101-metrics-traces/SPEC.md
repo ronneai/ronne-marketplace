@@ -67,14 +67,21 @@ server starts without it), `telemetry.export_failed` (warn, `signal`, at most on
 ### Traces
 
 - **Requests:** Next.js's spans (the route, the render, the fetches). The request ID (100) is an
-  attribute, `ronne.request_id`, so a log line leads to its trace.
+  attribute, `ronne.request_id`, on the API route's and the proxy's spans; with tracing on, every
+  log line written inside a span carries its `traceId` and `spanId`, so a line leads to its trace.
+- **What leaves, sanitized:** every span passes one sanitizing step before export. Attributes holding
+  a path or URL (`http.target`, `http.url`, `url.*`: an item page's path names the item), a client's
+  address and a user agent are dropped, and so is any value the logger would change (an email, a
+  token, a URL's password, a stored path). An exception event keeps its type only; a status, its
+  code only; a URL in a span's name, its origin only. `@vercel/otel`'s own processors aren't used:
+  its default adds a second exporter, unsanitized, whenever an endpoint is set.
 - **Database:** one span per query, from a Kysely plugin added in `create-db.ts` when tracing is
   on: `db.system.name` (`sqlite`, `postgresql`, `mysql`), `db.operation.name`, and the SQL text with
   its placeholders (`db.query.text`). **Never the parameters:** they hold names, emails and hashes.
-- **Storage:** `storage.put` / `storage.get` spans with the byte count, not the key (keys hold item
-  names).
-- **Domain spans:** `ronne.release` (with the number of items), `ronne.feed.build` (tool, plugin
-  count, from cache or not), `ronne.draft.upload`.
+- **Storage:** `storage.put` / `storage.get` spans with the byte count (`ronne.storage.bytes`), not
+  the key (keys hold item names).
+- **Domain spans:** `ronne.release` (`ronne.items`, the versions released), `ronne.feed.build`
+  (`ronne.tool`, `ronne.feed.plugins`, `ronne.feed.cached`), `ronne.draft.upload`.
 
 ### Metrics
 

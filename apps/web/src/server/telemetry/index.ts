@@ -2,14 +2,13 @@
 // OpenTelemetry SDK. With none, nothing from OpenTelemetry is imported.
 import { loadConfig } from "../config";
 import { logger } from "../log";
+import { hooks } from "./hooks";
 import { telemetrySettings } from "./settings";
 
 const log = logger.child({ domain: "telemetry" });
 
-let on = false;
-
-/** Telemetry is on in this process: spans and metrics are recorded. */
-export const telemetryOn = (): boolean => on;
+/** Telemetry is on in this process: spans and metrics are recorded (hooks are installed). */
+export const telemetryOn = (): boolean => hooks().queryLog !== undefined;
 
 /**
  * Called once from `register()` (instrumentation.ts). Settings from the file reach the SDK, which
@@ -32,7 +31,6 @@ export const startTelemetryIfSet = async (env: NodeJS.ProcessEnv = process.env):
   try {
     const { startTelemetry } = await import("./start");
     startTelemetry(settings, otel);
-    on = true;
     log.event("telemetry.started", { traces: settings.traces !== null, metrics: settings.metrics });
   } catch (error) {
     log.event("telemetry.failed", { err: error });

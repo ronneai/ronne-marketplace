@@ -72,5 +72,13 @@ goes into `SPEC.md` instead.
   from the standalone `server.js` at a local OTLP receiver.
 - For tasks 3 and 5: Next.js's request span carries `http.target`, the path with its query, and an
   item page's path names the item (`/items/@team/x`). A span processor must drop or rewrite it.
+- Task 3: the hooks live on `globalThis` (`telemetry/hooks.ts`): Next.js loads a module once per
+  bundle, and `register()` installs them once for all. Off, they do nothing and import nothing.
+  The database spans come from Kysely's `log` option (it runs in the query's async context), so
+  they sit under the request's span, back-dated by the query's duration.
+- Task 3: `@vercel/otel`'s default span processors (`"auto"`) add their own OTLP exporter whenever
+  an endpoint is in the environment, so every span went out twice, once unsanitized (`http.target`
+  with an item's name reached a real collector in a run against the standalone server). Telemetry
+  now passes `spanProcessors` with only ours; a test checks each span arrives once, sanitized.
 - Task 1 adds the event `storage.unavailable`: the Documentation's Logs events table (100) gets
   its row in task 6, in the three languages.

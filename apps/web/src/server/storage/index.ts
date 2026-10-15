@@ -1,4 +1,5 @@
 import { loadConfig } from "../config";
+import { hooks } from "../telemetry/hooks";
 import { localStorage } from "./local-storage";
 import type { StorageAdapter } from "./storage-adapter";
 
@@ -15,7 +16,8 @@ export const getStorage = (): StorageAdapter => {
   adapters.__ronneStorage ??= new Map();
   let storage = adapters.__ronneStorage.get(path);
   if (!storage) {
-    storage = localStorage(path);
+    // Its puts and gets as spans when telemetry is on (101).
+    storage = hooks().tracedStorage(localStorage(path));
     adapters.__ronneStorage.set(path, storage);
   }
   return storage;
