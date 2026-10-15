@@ -8,6 +8,7 @@ import { createRoot } from "../domains/identity/actions/root-account";
 import { setLoggerForTests } from "../log";
 import { localStorage } from "../storage/local-storage";
 import type { StorageAdapter } from "../storage/storage-adapter";
+import { hooks, installHooks } from "../telemetry/hooks";
 import { health } from "./health";
 
 let t: TestDb;
@@ -207,6 +208,35 @@ describe("health", () => {
     }
     expect(lines).toEqual([
       expect.objectContaining({ level: "error", event: "storage.unavailable", domain: "storage" }),
+    ]);
+  });
+
+  // ronne.health (101): each check's result, whichever way the endpoint answers.
+  it("sets ronne.health for each check, a database down before the query too", async () => {
+    const checks: [string, boolean][] = [];
+    installHooks({ ...hooks(), health: (check, ok) => checks.push([check, ok]) });
+    try {
+      await health(config(), db, storage);
+      const file = join(folder, "a-file-for-health");
+      writeFileSync(file, "x");
+      await health(config(), db, () => localStorage(join(file, "x")));
+      // The setup state can't reach the database: answered before any query.
+      await health(
+        config({ databaseUrl: "file:/nonexistent/dir/x.db" }),
+        () => {
+          throw new Error("down");
+        },
+        mustNotCheck,
+      );
+    } finally {
+      installHooks(undefined);
+    }
+    expect(checks).toEqual([
+      ["database", true],
+      ["storage", true],
+      ["database", true],
+      ["storage", false],
+      ["database", false],
     ]);
   });
 });

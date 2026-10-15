@@ -54,3 +54,24 @@ Witnessed: 2026-10-14 22:36 EDT, by a fresh agent (blind). Commit: 50a2b4f3 (ron
 | 17 | Render tests in both repositories | no | confirmed | 138 passed, typecheck exit 0; help tests 3 passed |
 
 **Overall:** not met: the protocol sentence. Fixed in ronne-web 9e88973 ("to send traces as JSON … metrics always go as JSON", in en, pt, fr; fr "point de terminaison de santé") and in the next commit here (the spec and `.env.example` say the same).
+
+## Task 4 — Metrics
+
+Witnessed: 2026-10-14 22:45 EDT, by a fresh agent (blind). Commit: 50a2b4f3. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The test sees each of the 10 instruments with exactly its attributes, and no other | no | confirmed | 12 passed; an added `user` attribute fails it |
+| 2 | Kinds and units match the table | no | confirmed | Own probe: three histograms in `s`, six monotonic sums, a 1/0 gauge |
+| 3 | Real sign-ins count once with the right outcome | no | confirmed | Real `signIn`: failure 4, success 2, rate_limited 1; Better Auth's own sign-in endpoint answers 404 |
+| 4 | Token exchanges count once; a CLI failure isn't a sign-in failure | no | confirmed | `exchangePassword`: failure 3, success 1, rate_limited 1; sign-ins unchanged |
+| 5 | Releases count versions; a bulk release isn't counted twice | no | confirmed | `publishSubmission` + `releaseMany` of 2 → 3 |
+| 6 | Feed builds once each; a cache hit `cached=true`, not timed | no | confirmed | Two `marketplaceAs` → false 1, true 1; one duration |
+| 7 | Uploads and rate limits with the right labels; a 429 isn't a refusal | no | confirmed | 201, 400, 429 → accepted 1, refused 1; each `limit` once |
+| 8 | `http.server.request.duration` from the API wrapper, route patterns | no | confirmed | 5 requests → 5 points; all 27 `apiRoute` patterns literals |
+| 9 | `ronne.db.query.duration` per query | no | confirmed | `create-db.ts` for all three dialects; SQLite points with the two attributes |
+| 10 | No attribute holds personal data or unbounded values | no | confirmed | `grep -F` on every metric body → 0; each value's source bounded |
+| 11 | `ronne.health` reflects the health endpoint's checks | no | partly | `getSetupState` → `unavailable` (503 `database_unavailable`) returned before any gauge call: database stayed 1. Removing every `hooks().health` call left all tests green |
+| 12 | Off: the hook does nothing, costs a call | no | confirmed | 0 OpenTelemetry modules resolved; ~4.5 ns per call |
+
+**Overall:** not met: `ronne.health` stale on the setup-state path, and no test of the health check's recording. Fixed in the next commit: the path sets the database check to 0; a health test with a recording hook drives ok, storage failing and the database unavailable, and fails without the call.

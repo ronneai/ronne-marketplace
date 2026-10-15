@@ -42,7 +42,10 @@ export const health = async (
 ): Promise<Response> => {
   const state = await getSetupState(config, { getDb });
   if (state === "not_configured" || state === "incomplete") return setupRequiredResponse();
-  if (state === "unavailable") return unavailable();
+  if (state === "unavailable") {
+    hooks().health("database", false);
+    return unavailable();
+  }
   try {
     const { db } = getDb(config.databaseUrl as string);
     await withinTimeout(sql`select 1`.execute(db));
