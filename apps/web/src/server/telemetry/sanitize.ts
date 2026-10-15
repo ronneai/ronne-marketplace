@@ -219,11 +219,14 @@ const sendable = (value: Value, key: string): Value | undefined => {
     const items = value
       .slice(0, MAX_ITEMS)
       .map((item) => (typeof item === "string" ? cut(item, query) : item));
-    return items.every((item) => typeof item !== "string" || safeString(item))
+    // Strings pass the rules; anything but a string, number or boolean drops the whole array.
+    const primitive = (item: unknown) => ["string", "number", "boolean"].includes(typeof item);
+    return items.every((item) => primitive(item) && (typeof item !== "string" || safeString(item)))
       ? (items as Value)
       : undefined;
   }
-  return value;
+  // Numbers and booleans pass; anything else (an object a library should not set) doesn't.
+  return typeof value === "number" || typeof value === "boolean" ? value : undefined;
 };
 
 /**

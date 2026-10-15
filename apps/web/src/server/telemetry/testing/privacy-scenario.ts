@@ -85,7 +85,12 @@ export const run = async () => {
         "next.fetch.cache_reason": "@privscope/privitem",
         // A URL with a private path, in a value and in an array.
         "better_auth.context": `https://r.example/workspaces/${workspace}/items?x=1`,
-        "next.bubble": [`https://r.example/workspaces/${workspace}`, `/workspaces/${workspace}`],
+        "next.bubble": [
+          `https://r.example/workspaces/${workspace}`,
+          `/workspaces/${workspace}`,
+          // Past the first 100 items, which are all that is sent.
+          ...Array.from({ length: 150 }, (_, i) => (i === 120 ? workspace : "x")),
+        ],
         "resource.name": `${IP}:4318`,
         [workspace || "privacy-ana"]: 1,
       });

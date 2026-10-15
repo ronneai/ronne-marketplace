@@ -77,17 +77,20 @@ server starts without it), `telemetry.verbose_off` (warn: `NEXT_OTEL_VERBOSE` tu
   `user.*`, and a key a library starts sending tomorrow never leave (a key worth having is added to
   the list). The values of listed keys still pass these rules: any value the logger would change (an
   email, a token, a URL's password, a stored path) is dropped, and so is any value holding an IP
-  address (alone, with a port, in a list, after `for=`, beside a sentence's dot). A URL in any value
-  or name, whatever its scheme or case (`HTTPS://`, `ws://`, `file://`, `//host`), keeps its origin
-  only, without a user name or password. A path in any value or name, that starts with a `/` (after
-  a space, a colon or a dot, with any first character) and runs to the next whitespace, keeps its
-  segments while they're the app's (its static segments, dynamic segments and route groups, checked
-  against `app/` by a test; Better Auth's endpoints; Next.js's own) and is cut to `…` from the first
-  other one (`/workspaces/hushvault/x` → `/workspaces/…`), losing its query and fragment; a query
-  without a path (`?q=…`) is dropped too. An item's reference without a path (`@scope/name`) becomes
-  `@…`. A value or name is cut to 4,096 characters, and an array value to its first 100 items,
-  before any rule runs. A URL's user name and password are removed up to the last `@` before its
-  path. A database span's SQL keeps its `?` placeholders. The limits (a database span's SQL can lose
+  address (alone, with a port, in a list, after `for=`, beside a sentence's dot; not one glued to a
+  letter, digit or underscore, as `v1.2.3.4` is a version). A URL in any value or name, whatever its
+  scheme or case (`HTTPS://`, `ws://`, `file://`, `//host`), keeps its origin only, without a user
+  name or password. A path in any value or name, that starts with a `/` (after a space, a colon or a
+  dot, with any first character) and runs to the next whitespace, keeps its segments while they're
+  the app's (its static segments, dynamic segments and route groups, checked against `app/` by a
+  test; Better Auth's endpoints; Next.js's own) and is cut to `…` from the first other one
+  (`/workspaces/hushvault/x` → `/workspaces/…`), losing its query and fragment; a query without a
+  path (`?q=…`) is dropped too. An item's reference without a path (`@scope/name`) becomes `@…`. A
+  value or name is cut to 4,096 characters, and an array value to its first 100 items, before any
+  rule runs. A URL's user name and password are removed up to the last `@` before its path (an
+  unencoded `/`, `?` or `#` in them ends it). Only strings, numbers, booleans and arrays are sent:
+  any other value is dropped. A database span's SQL keeps its `?` placeholders. The limits (a bare
+  `a@b@host/x` without a scheme and a newline inside a path are kept; a database span's SQL can lose
   a PostgreSQL slice `a[1:2]`, read as an address, or a `/* … */` comment, read as a path):  a
   workspace, scope or item named like a route segment; a path with no leading `/` (`workspaces/x`),
   with a space in it, or percent- or backslash-encoded; each can only come from a value a library

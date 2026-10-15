@@ -329,3 +329,17 @@ it("keeps the first 100 items of an array value, and takes linear time on a long
   expect((sent.attributes["next.bubble"] as string[]).length).toBe(100);
   expect(performance.now() - started).toBeLessThan(500);
 });
+
+it("drops a value that isn't a string, number, boolean or array", () => {
+  const sent = sanitizeSpan(
+    span({
+      attributes: {
+        "next.route": { a: "hush@example.com" } as never,
+        "next.fetch.idx": 3,
+        "next.rsc": true,
+        "next.bubble": ["a", { x: "hush@example.com" }, 3] as never,
+      },
+    }),
+  );
+  expect(sent.attributes).toEqual({ "next.fetch.idx": 3, "next.rsc": true });
+});
