@@ -94,9 +94,14 @@ server starts without it), `telemetry.export_failed` (warn, `signal`, at most on
 | `ronne.releases` | counter (versions released) | — |
 | `ronne.feed.builds` | counter | `tool`, `cached` |
 | `ronne.feed.build.duration` | histogram, seconds | `tool` |
-| `ronne.drafts.uploaded` | counter | `outcome` |
+| `ronne.drafts.uploaded` | counter | `outcome` (`accepted`, `refused`) |
 | `ronne.rate_limited` | counter | `limit` (`sign_in`, `upload`, `usage`, `token_exchange`) |
 | `ronne.health` | gauge, 1 or 0 | `check` (`database`, `storage`) |
+
+The counters and the request histogram come from the events the server already logs (100), at any
+`LOG_LEVEL`: one place maps each event to its instrument, so a count and its log line always agree.
+`ronne.tokens.exchanged`'s `outcome` is `success`, `failure` or `rate_limited`;
+`ronne.feed.build.duration` records builds, not cache hits.
 
 **Low cardinality, nothing personal:** no user ids, emails, IP addresses, item, scope or workspace
 names, or tokens in any attribute, metric or span. The collector may be a third party's.

@@ -18,6 +18,10 @@ export type TelemetryHooks = {
   annotate: (key: string, value: string | number | boolean) => void;
   /** The active span's trace and span IDs, for log lines. */
   traceIds: () => { traceId: string; spanId: string } | undefined;
+  /** Each event the logger writes (100), whatever LOG_LEVEL: the metrics count from them. */
+  onEvent: (name: string, fields: Record<string, unknown>) => void;
+  /** A health check's result (`ronne.health`). */
+  health: (check: "database" | "storage", ok: boolean) => void;
 };
 
 const off: TelemetryHooks = {
@@ -26,6 +30,8 @@ const off: TelemetryHooks = {
   tracedStorage: (storage) => storage,
   annotate: () => {},
   traceIds: () => undefined,
+  onEvent: () => {},
+  health: () => {},
 };
 
 // On globalThis: Next.js may load this module more than once (each bundle its own copy), and

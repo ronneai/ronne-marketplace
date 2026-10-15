@@ -4,6 +4,7 @@ import type { CreatedDb } from "../db/create-db";
 import { logger } from "../log";
 import { getSetupState } from "../setup/state";
 import type { StorageAdapter } from "../storage";
+import { hooks } from "../telemetry/hooks";
 import { errorResponse, setupRequiredResponse } from "./errors";
 
 const TIMEOUT_MS = 3_000;
@@ -45,14 +46,18 @@ export const health = async (
   try {
     const { db } = getDb(config.databaseUrl as string);
     await withinTimeout(sql`select 1`.execute(db));
+    hooks().health("database", true);
   } catch (error) {
+    hooks().health("database", false);
     // The driver's message isn't shown: this endpoint is public.
     return unavailable(error);
   }
   // Storage after the database: an instance whose database fails is already unavailable.
   try {
     await withinTimeout(storage().check());
+    hooks().health("storage", true);
   } catch (error) {
+    hooks().health("storage", false);
     logger.child({ domain: "storage" }).event("storage.unavailable", { err: error });
     return errorResponse(503, "storage_unavailable", "Storage isn't writable.", {
       checks: { database: "ok", storage: "failed" },

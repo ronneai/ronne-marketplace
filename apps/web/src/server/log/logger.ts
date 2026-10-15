@@ -248,6 +248,10 @@ export const createLogger = (options: LoggerOptions, bindings: Fields = {}): Log
       // An unknown name (only past the types) is dropped, never thrown.
       if (typeof name !== "string" || !Object.hasOwn(EVENTS, name)) return;
       const spec = EVENTS[name];
+      // The metrics count events (101), at any level; a failure there never stops a line.
+      try {
+        hooks().onEvent(name, fields);
+      } catch {}
       emit(level ?? spec.level, spec.msg, fields, name);
     },
     child: (more) => {
