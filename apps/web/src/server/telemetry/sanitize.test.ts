@@ -42,14 +42,14 @@ it("drops a value the logger would change: an email, a token, a URL's password",
     span({
       attributes: {
         "enduser.email": "ana@example.com",
-        note: `rmk_${"a".repeat(43)}`,
-        list: ["fine", "bob@example.org"],
+        "next.span_name": `rmk_${"a".repeat(43)}`,
+        "next.segment": ["fine", "bob@example.org"],
         "db.connection": "postgres://ronne:pw@db/ronne",
-        kept: "plain text",
+        "resource.name": "plain text",
       },
     }),
   );
-  expect(sent.attributes).toEqual({ kept: "plain text" });
+  expect(sent.attributes).toEqual({ "resource.name": "plain text" });
 });
 
 it("keeps an exception's type only, a status without its message, a name without its URL's path", () => {
@@ -142,57 +142,131 @@ it("cuts URLs of any scheme or case, and private paths, in values, arrays and na
     span({
       name: "GET /workspaces/hushvault/items/hushscope/secret",
       attributes: {
-        a: "HTTPS://registry.example/items/@team/secret-skill",
-        b: "ws://host.example/workspaces/hushvault/items/x",
-        c: "file:///tmp/x/@hushvault/hushscope/secret/1.0.0.tgz",
-        d: ["HTTP://h.example/items/@t/s"],
-        e: "//registry.example/items/@team/secret",
+        "next.span_name": "HTTPS://registry.example/items/@team/secret-skill",
+        "next.segment": "ws://host.example/workspaces/hushvault/items/x",
+        "resource.name": "file:///tmp/x/@hushvault/hushscope/secret/1.0.0.tgz",
+        "error.type": ["HTTP://h.example/items/@t/s"],
+        "next.fetch.cache_reason": "//registry.example/items/@team/secret",
         "next.route": "/workspaces/hushvault/items/x",
         "http.route": "/api/v1/items/[scope]/[name]/versions/[version]/tarball",
         "db.query.text": 'select "name" from "items" where "id" = ?',
-        "better_auth.route": "handler /sign-in/email",
+        "operation.name": "handler /sign-in/email",
         "next.page": "/(app)/workspaces/[name]/items/[scope]/[item]/page",
+        "next.fetch.cache_status": "GET /catalogue?q=hushvault",
+        "better_auth.context": "/reviews#hushvault",
+        "better_auth.hook.type": "/reviews?ref=ana%40example.com",
       },
       events: [{ name: "released /items/@hushvault/secret", time: [0, 0], attributes: {} }],
     }),
   );
   expect(sent.name).toBe("GET /workspaces/…");
   expect(sent.attributes).toEqual({
-    a: "HTTPS://registry.example",
-    b: "ws://host.example",
-    c: "file://",
-    d: ["HTTP://h.example"],
-    e: "//registry.example",
+    "next.span_name": "HTTPS://registry.example",
+    "next.segment": "ws://host.example",
+    "resource.name": "file://",
+    "error.type": ["HTTP://h.example"],
+    "next.fetch.cache_reason": "//registry.example",
     "next.route": "/workspaces/…",
     "http.route": "/api/v1/items/[scope]/[name]/versions/[version]/tarball",
     "db.query.text": 'select "name" from "items" where "id" = ?',
-    "better_auth.route": "handler /sign-in/email",
+    "operation.name": "handler /sign-in/email",
     "next.page": "/(app)/workspaces/[name]/items/[scope]/[item]/page",
+    "next.fetch.cache_status": "GET /catalogue",
+    "better_auth.context": "/reviews",
+    "better_auth.hook.type": "/reviews",
   });
   expect(sent.events[0]?.name).toBe("released /items/…");
 });
 
-it("drops addresses inside a value, and keys that aren't names; every url.* key", () => {
+it("drops addresses inside a value, and every key that isn't listed", () => {
   const sent = sanitizeSpan(
     span({
       name: "connect 198.51.100.23:5432",
       attributes: {
-        a: "198.51.100.23:5432",
-        b: "[2001:db8::1]:443",
-        c: "198.51.100.23, 10.0.0.1",
-        d: "for=198.51.100.23",
-        e: ["fine", "198.51.100.23:80"],
-        f: "fe80::1%en0",
+        "next.span_name": "198.51.100.23:5432",
+        "next.segment": "[2001:db8::1]:443",
+        "resource.name": "198.51.100.23, 10.0.0.1",
+        "error.type": "for=198.51.100.23",
+        "next.fetch.cache_reason": ["fine", "198.51.100.23:80"],
+        "next.fetch.cache_status": "fe80::1%en0",
         "zelda@example.org": 1,
         "/workspaces/hushvault/items/x": 2,
+        hushvault: 3,
+        user_id: "u1",
         "http.request.headers": "cookie: a=b",
         "url.domain": "registry.example",
         "url.scheme": "https",
-        version: "1.2.3",
-        kept: "plain",
+        "better_auth.context": "1.2.3",
+        "better_auth.hook.type": "plain",
       },
     }),
   );
   expect(sent.name).toBe("connect [address]:5432");
-  expect(sent.attributes).toEqual({ version: "1.2.3", kept: "plain" });
+  expect(sent.attributes).toEqual({
+    "better_auth.context": "1.2.3",
+    "better_auth.hook.type": "plain",
+  });
+});
+
+it("cuts a path after a colon or a dot, or starting with any letter; drops a bare query", () => {
+  const sent = sanitizeSpan(
+    span({
+      name: "route:/workspaces/hushvault?q=hushquery",
+      attributes: {
+        "next.span_name": "GET:/items/@hushscope/x#hushfragment",
+        "next.segment": "file./workspaces/hushdot",
+        "resource.name": "/éhushstart/x",
+        "error.type": "/workspaces/[hushbracket]/x",
+        "operation.name": "search ?a&q=hushbare&page=2 done ?hushword",
+      },
+      events: [{ name: "at ./workspaces/hushevent", time: [0, 0], attributes: {} }],
+    }),
+  );
+  expect(sent.name).toBe("route:/workspaces/…");
+  expect(sent.attributes).toEqual({
+    "next.span_name": "GET:/items/…",
+    "next.segment": "file./workspaces/…",
+    "resource.name": "/…",
+    "error.type": "/workspaces/…",
+    "operation.name": "search  done ",
+  });
+  expect(sent.events[0]?.name).toBe("at ./workspaces/…");
+});
+
+it("hides an address followed or led by a sentence's dot", () => {
+  const sent = sanitizeSpan(
+    span({
+      name: "from 198.51.100.23. done",
+      attributes: {
+        "next.span_name": "client 198.51.100.23. done",
+        "next.segment": "peer=198.51.100.23.:80",
+        "resource.name": "v1.2.3.4",
+        "error.type": "release 1.2.3",
+      },
+    }),
+  );
+  expect(sent.name).toBe("from [address]. done");
+  // A word that leads it isn't an address: a version.
+  expect(sent.attributes).toEqual({ "resource.name": "v1.2.3.4", "error.type": "release 1.2.3" });
+});
+
+it("keeps a URL's origin without its user name or password; cuts a path starting with a symbol", () => {
+  const sent = sanitizeSpan(
+    span({
+      name: "GET https://hushuser:hushpw@localhost:3000/x",
+      attributes: {
+        "next.span_name": "https://hushuser@localhost:3000/x",
+        "next.segment": "/!hushbang/x",
+        "resource.name": "/(hushparen)/x",
+        "error.type": "/😀hushemoji",
+      },
+    }),
+  );
+  expect(sent.name).toBe("GET https://localhost:3000");
+  expect(sent.attributes).toEqual({
+    "next.span_name": "https://localhost:3000",
+    "next.segment": "/…",
+    "resource.name": "/…",
+    "error.type": "/…",
+  });
 });

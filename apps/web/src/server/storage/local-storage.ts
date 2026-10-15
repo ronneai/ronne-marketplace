@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { constants } from "node:fs";
-import { access, link, mkdir, readFile, stat, unlink, writeFile } from "node:fs/promises";
+import { access, link, lstat, mkdir, readFile, stat, unlink, writeFile } from "node:fs/promises";
 import { dirname, resolve, sep } from "node:path";
 import { hidePathsUnder } from "../log/redact";
 import {
@@ -77,6 +77,9 @@ export const localStorage = (root: string): StorageAdapter => {
         } catch (error) {
           const parent = dirname(folder);
           if (!missing(error) || parent === folder) throw error;
+          // A link to nothing (a volume not mounted) exists: a put can't go through it.
+          if (await lstat(folder).catch(() => null))
+            throw new Error("The storage path is a link to nothing.");
           folder = parent;
         }
       }

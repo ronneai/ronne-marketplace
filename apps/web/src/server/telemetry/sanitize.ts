@@ -4,39 +4,52 @@ import type { ReadableSpan } from "@opentelemetry/sdk-trace-base";
 import { redactString } from "../log/redact";
 
 /**
- * Attributes never sent: a path or URL holds an item's name (`/items/@team/x`), a client's address
- * is personal, a user agent fingerprints. Next.js sets some of these on its request spans; the
- * route's pattern (`http.route`, `next.route`) stays.
+ * The only attribute keys sent: Ronne's own, and those Next.js 16, Better Auth 1.7 and
+ * `@vercel/otel` set that hold no path, address or name of their own (never `http.target`,
+ * `http.url`, `url.*`, a client's address or user agent, a header, `user.*`). Any other key is
+ * dropped, so a library that starts sending a new one can't leak through it; a key worth having
+ * is added here. The values sent still pass the rules below.
  */
-const DROPPED = new Set([
-  "http.target",
-  "http.url",
-  "http.client_ip",
-  "client.address",
-  "client.port",
-  "net.peer.ip",
-  "net.sock.peer.addr",
-  "network.peer.address",
-  "network.peer.port",
-  "http.user_agent",
-  "user_agent.original",
-  "enduser.id",
+export const SENT_KEYS = new Set([
+  // Ronne's (telemetry/real-hooks.ts, spans.ts).
+  "ronne.request_id",
+  "ronne.items",
+  "ronne.tool",
+  "ronne.feed.cached",
+  "ronne.feed.plugins",
+  "ronne.storage.bytes",
+  "db.system.name",
+  "db.operation.name",
+  "db.query.text",
+  // Next.js's.
+  "next.span_type",
+  "next.span_name",
+  "next.span_category",
+  "next.route",
+  "next.page",
+  "next.segment",
+  "next.rsc",
+  "next.bubble",
+  "next.clientComponentLoadCount",
+  "next.fetch.idx",
+  "next.fetch.cache_status",
+  "next.fetch.cache_reason",
+  "http.route",
+  "http.method",
+  "http.status_code",
+  "error.type",
+  "net.peer.port",
+  // Better Auth's.
+  "better_auth.context",
+  "better_auth.hook.type",
+  "better_auth.operation_id",
+  "db.collection.name",
+  "http.response.status_code",
+  // `@vercel/otel`'s.
+  "operation.name",
+  "resource.name",
+  "http.request.method",
 ]);
-
-/**
- * Keys never sent whatever their value: every `url.*`, request and response headers, and the
- * user's.
- */
-const DROPPED_PREFIXES = [
-  "url.",
-  "http.request.header",
-  "http.response.header",
-  "user.",
-  "enduser.",
-];
-
-/** A key that is a name of ours: dotted words, never an email, a path or free text. */
-const KEY = /^[A-Za-z_][\w.-]{0,127}$/;
 
 /** An IPv4 or IPv6 address, whole: a client's, or a host's that maps to one. */
 const IP = /^(?:\d{1,3}(?:\.\d{1,3}){3}|[0-9a-f]*:[0-9a-f:.]*:[0-9a-f:.]*)$/i;
@@ -46,7 +59,7 @@ const IP = /^(?:\d{1,3}(?:\.\d{1,3}){3}|[0-9a-f]*:[0-9a-f:.]*:[0-9a-f:.]*)$/i;
  * brackets, with `::`, or in full.
  */
 const ADDRESS =
-  /(?<![\w.])\d{1,3}(?:\.\d{1,3}){3}(?![\w.])|\[[0-9a-f:.]*:[0-9a-f:.]*\]|(?<![\w:])(?:[0-9a-f]{0,4}:)*[0-9a-f]{0,4}::[0-9a-f:.]*(?![\w:])|(?<![\w:])(?:[0-9a-f]{1,4}:){7}[0-9a-f]{1,4}(?![\w:])/gi;
+  /(?<!\w|\d\.)\d{1,3}(?:\.\d{1,3}){3}(?!\w|\.\d)|\[[0-9a-f:.]*:[0-9a-f:.]*\]|(?<![\w:])(?:[0-9a-f]{0,4}:)*[0-9a-f]{0,4}::[0-9a-f:.]*(?![\w:])|(?<![\w:])(?:[0-9a-f]{1,4}:){7}[0-9a-f]{1,4}(?![\w:])/gi;
 const hasAddress = (value: string) => IP.test(value.trim()) || value.search(ADDRESS) >= 0;
 
 /**
@@ -56,7 +69,10 @@ const hasAddress = (value: string) => IP.test(value.trim()) || value.search(ADDR
 const originOnly = (value: string) =>
   value.replace(/((?:\b[a-z][a-z0-9+.-]*:)?\/\/[^/\s?#"']*)[^\s"']*/gi, (whole, origin, at) =>
     // `//host` alone only where a value or a word starts, never inside a path.
-    origin.startsWith("//") && at > 0 && !/[\s"'(=,]/.test(value[at - 1] ?? "") ? whole : origin,
+    origin.startsWith("//") && at > 0 && !/[\s"'(=,]/.test(value[at - 1] ?? "")
+      ? whole
+      : // Without a user name or password: `//user:pw@host` → `//host`.
+        origin.replace(/^((?:[a-z][a-z0-9+.-]*:)?\/\/)[^@]*@/i, "$1"),
   );
 
 /**
@@ -121,23 +137,41 @@ export const ROUTE_SEGMENTS = new Set([
 /** Next.js's file names, which its internal spans add to a route (`/(app)/reviews/page`). */
 const ROUTE_FILES = new Set(["page", "layout", "route", "default", "error", "loading", "template"]);
 
-const routeSegment = (segment: string) =>
-  ROUTE_SEGMENTS.has(segment) ||
-  ROUTE_FILES.has(segment) ||
-  // A pattern's (`[name]`, `[...all]`, `[[...slug]]`) or a route group (`(app)`).
-  /^\[{1,2}(?:\.\.\.)?[\w-]+\]{1,2}$|^\([\w-]+\)$/.test(segment);
+/** The app's dynamic segments and route groups (checked against `app/` by the same test). */
+export const ROUTE_PATTERNS = new Set([
+  "(app)",
+  "[...all]",
+  "[file]",
+  "[id]",
+  "[item]",
+  "[name]",
+  "[scope]",
+  "[tool]",
+  "[version]",
+  "[workspace]",
+]);
 
-/** Paths cut at their first segment that isn't the app's (`/workspaces/hush/x` → `/workspaces/…`). */
+const routeSegment = (segment: string) =>
+  ROUTE_SEGMENTS.has(segment) || ROUTE_FILES.has(segment) || ROUTE_PATTERNS.has(segment);
+
+/**
+ * Paths cut at their first segment that isn't the app's (`/workspaces/hush/x` → `/workspaces/…`),
+ * and their query and fragment dropped.
+ */
 const patternsOnly = (value: string) =>
-  value.replace(/(?<![\w/:.])\/[\w@%.~[\]-][^\s"'?#]*/g, (path) => {
+  value.replace(/(?<![\p{L}\p{N}_/])\/[^\s/"'?#][^\s"'?#]*(?:[?#][^\s"']*)?/gu, (whole) => {
+    const path = whole.replace(/[?#].*/, "");
     // The path starts with "/": its first piece is empty.
     const segments = path.split("/").slice(1);
     const kept = segments.findIndex((segment) => segment !== "" && !routeSegment(segment));
     return kept === -1 ? path : `/${[...segments.slice(0, kept), "…"].join("/")}`;
   });
 
-/** URLs to their origin, then paths to the app's patterns. */
-const cut = (value: string) => patternsOnly(originOnly(value));
+/** A query on its own, without a path (`?q=hushvault`): dropped to the end of its word. */
+const withoutQueries = (value: string) => value.replace(/\?[^\s"']+/g, "");
+
+/** URLs to their origin, then paths to the app's patterns, then any query left dropped. */
+const cut = (value: string) => withoutQueries(patternsOnly(originOnly(value)));
 
 type Value = ReadableSpan["attributes"][string];
 
@@ -172,8 +206,7 @@ const fillsInPath = (attributes: ReadableSpan["attributes"]) =>
 export const sanitizeAttributes = (attributes: ReadableSpan["attributes"]) =>
   Object.fromEntries(
     Object.entries(attributes).flatMap(([key, value]) => {
-      if (!KEY.test(key) || DROPPED.has(key)) return [];
-      if (DROPPED_PREFIXES.some((prefix) => key.startsWith(prefix))) return [];
+      if (!SENT_KEYS.has(key)) return [];
       if ((key === "next.route" || key === "next.page") && fillsInPath(attributes)) return [];
       const sent = sendable(value);
       return sent === undefined ? [] : [[key, sent]];
@@ -226,16 +259,13 @@ const withoutState = (context: Context): Context => {
 };
 
 /**
- * The resource as it's sent: the service's name and version, the SDK's own, `deployment.*`, and
- * what the operator sets in OTEL_RESOURCE_ATTRIBUTES. `@vercel/otel` adds Vercel's attributes
+ * The resource as it's sent: the service's name and version, `deployment.*`, and what the
+ * operator sets in OTEL_RESOURCE_ATTRIBUTES. `@vercel/otel` adds Vercel's attributes
  * (`cloud.provider="vercel"`, `vercel.*`, `node.env`) by default, wrong for a self-hosted server.
  */
 export const resourceSanitizer = (operatorKeys: readonly string[]) => {
   const kept = (key: string) =>
-    key.startsWith("service.") ||
-    key.startsWith("telemetry.sdk.") ||
-    key.startsWith("deployment.") ||
-    operatorKeys.includes(key);
+    key.startsWith("service.") || key.startsWith("deployment.") || operatorKeys.includes(key);
   return (resource: Resource): Resource => {
     const attributes = Object.fromEntries(
       Object.entries(resource.attributes).filter(([key]) => kept(key)),

@@ -70,22 +70,26 @@ server starts without it), `telemetry.verbose_off` (warn: `NEXT_OTEL_VERBOSE` tu
 - **Requests:** Next.js's spans (the route, the render, the fetches). The request ID (100) is an
   attribute, `ronne.request_id`, on the API route's and the proxy's spans; with tracing on, every
   log line written inside a span carries its `traceId` and `spanId`, so a line leads to its trace.
-- **What leaves, sanitized:** every span passes one sanitizing step before export. Attributes holding
-  a path or URL (`http.target`, `http.url`, every `url.*`: an item page's path names the item), a
-  client's address and a user agent are dropped, and so is any value the logger would change (an
-  email, a token, a URL's password, a stored path), any value holding an IP address (alone, with a
-  port, in a list, after `for=`), any request or response header attribute, `user.*`, and any key
-  that isn't a dotted name (an email, a path). A URL in any value or name, whatever its scheme or
-  case (`HTTPS://`, `ws://`, `file://`, `//host`), keeps its origin only. A path in any value or
-  name keeps its segments while they're the app's (its static route segments, checked against
-  `app/` by a test; Better Auth's endpoints; Next.js's own; patterns like `[name]` and route
-  groups) and is cut to `…` from the first other one (`/workspaces/hushvault/x` →
-  `/workspaces/…`): a workspace, scope or item named like a route segment is the limit. An address
-  in a name becomes `[address]`. An exception event keeps its type only, when it's a class name; a
-  status, its code only; a link, its context only; and no span keeps a trace state. Next.js's
-  page-render span's `next.route` (the filled-in path) is dropped, and `@vercel/otel`'s fetch
-  instrumentation is off (pinned by a test). Next.js still traces a page fetching its own origin
-  (a server action's redirect): those spans keep the origin only.
+- **What leaves, sanitized:** every span passes one sanitizing step before export. Only listed
+  attribute keys are sent (`SENT_KEYS` in `telemetry/sanitize.ts`): Ronne's own, and those Next.js,
+  Better Auth and `@vercel/otel` set that hold no path, address or name of their own; any other key
+  is dropped, so `http.target`, `http.url`, `url.*`, a client's address, a user agent, headers,
+  `user.*`, and a key a library starts sending tomorrow never leave (a key worth having is added to
+  the list). The values of listed keys still pass these rules: any value the logger would change (an
+  email, a token, a URL's password, a stored path) is dropped, and so is any value holding an IP
+  address (alone, with a port, in a list, after `for=`, beside a sentence's dot). A URL in any value
+  or name, whatever its scheme or case (`HTTPS://`, `ws://`, `file://`, `//host`), keeps its origin
+  only, without a user name or password. A path in any value or name, wherever it starts (after a
+  space, a colon or a dot, with any first character), keeps its segments while they're the app's
+  (its static segments, dynamic segments and route groups, checked against `app/` by a test; Better
+  Auth's endpoints; Next.js's own) and is cut to `…` from the first other one
+  (`/workspaces/hushvault/x` → `/workspaces/…`), losing its query and fragment; a query without a
+  path (`?q=…`) is dropped too. A workspace, scope or item named like a route segment is the limit.
+  An address in a name becomes `[address]`. An exception event keeps its type only, when it's a
+  class name; a status, its code only; a link, its context only; and no span keeps a trace state.
+  Next.js's page-render span's `next.route` (the filled-in path) is dropped, and `@vercel/otel`'s
+  fetch instrumentation is off (pinned by a test). Next.js still traces a page fetching its own
+  origin (a server action's redirect): those spans keep the origin only.
 - **A client's trace context isn't taken:** `traceparent`, `tracestate` and `baggage` are ignored,
   whatever `OTEL_PROPAGATORS` says, so each request is its own trace and nothing joins a caller's.
   A public client's context is its own input, and `@vercel/otel` ends a trace's open spans when its
@@ -137,6 +141,7 @@ What changes:
   adapter checks the storage folder is a folder it can write to (an access check, no file
   written). A folder that doesn't exist yet counts when its nearest existing parent can take it:
   the first artifact stored creates it, as it always has (a `STORAGE_PATH` nothing has made yet).
+  A link to nothing on the way (a volume that isn't mounted) fails: a put couldn't go through it.
   110's S3 adapter will check its bucket the same way.
 - **The body says which:**
 
@@ -180,11 +185,12 @@ What changes:
 
 ## Documentation
 
-- **Running Ronne** (`operations`), new section **Monitoring** (`operations#monitoring`): the
-  health endpoint (what 200 and 503 mean, the `checks`), turning OpenTelemetry on (the variables,
-  an OpenTelemetry Collector example that also exposes Prometheus metrics), the metrics table and
-  the spans, what's never sent (a client's trace context isn't taken), suggested alerts (health failing, 5xx rate, sign-in failures,
-  slow queries), and joining logs to traces.
+- **Running Ronne** (`operations`), new section **Monitoring** (`operations#monitoring`): the health
+  endpoint (what 200 and 503 mean, the `checks`), turning OpenTelemetry on (the variables, an
+  OpenTelemetry Collector example that also exposes Prometheus metrics), the metrics table and the
+  spans, what's never sent (a client's trace context isn't taken; spans carry only the listed
+  attributes), suggested alerts (health failing, 5xx rate, sign-in failures, slow queries), and
+  joining logs to traces.
 - **Running Ronne → Logs** (`operations#logs`): `traceId` and `spanId` when tracing is on.
 - **`apps/web/.env.example`:** the `OTEL_*` variables, commented.
 - **Helpers:** none; nothing changes in the web app's pages.

@@ -10,13 +10,14 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 ## Tasks
 
 - [ ] **1. Health checks storage.** `check()` on the `StorageAdapter` interface and the local
-  adapter (folder exists, writable, no file written); `/api/health` checks the database then
-  storage, each within 3 s, answers `storage_unavailable` with `details.checks`, and adds `checks`
-  to the 200 body. Existing statuses and codes unchanged.
+  adapter (the folder, or while it isn't made yet its nearest existing parent, writable; a link to
+  nothing fails; no file written); `/api/health` checks the database then storage within one 4 s
+  deadline (the database its first 3 s), answers `storage_unavailable` with `details.checks`, and
+  adds `checks` to the 200 body. Existing statuses and codes unchanged.
   *Done when:* `health.db.test.ts` covers a read-only and a missing storage folder; the Dockerfile's
   health check, the server checks and the e2e tests pass unchanged.
 
-- [ ] **2. The SDK, off by default.** Check Next.js 16's OpenTelemetry guide and the current SDK
+- [x] **2. The SDK, off by default.** Check Next.js 16's OpenTelemetry guide and the current SDK
   versions; choose `@opentelemetry/sdk-node` or `@vercel/otel` (the lighter that works in the
   standalone build), answering the dependency policy's six questions in the pull request.
   `register()` in `instrumentation.ts` imports nothing without an endpoint; with one, starts the
@@ -28,11 +29,11 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   warns and starts; `pnpm licenses:check`, `pnpm install --frozen-lockfile` and `packages:check`
   pass.
 
-- [ ] **3. Spans.** The Kysely plugin (added only when tracing is on: system, operation, SQL with
-  placeholders, never parameters), storage spans (bytes, no key), `ronne.release`,
-  `ronne.feed.build`, `ronne.draft.upload`, `ronne.request_id` on the request span; 100's logger
-  adds `traceId` and `spanId`; a span processor drops attributes that look like emails (Better
-  Auth's spans).
+- [x] **3. Spans.** The database spans from Kysely's `log` option (added only when tracing is on:
+  system, operation, SQL with placeholders, never parameters), storage spans (bytes, no key),
+  `ronne.release`, `ronne.feed.build`, `ronne.draft.upload`, `ronne.request_id` on the request span;
+  100's logger adds `traceId` and `spanId`; a span processor drops attributes that look like emails
+  (Better Auth's spans).
   *Done when:* tests against the test collector see each span under its request, and the log lines
   carry the trace's IDs.
 
@@ -62,16 +63,18 @@ goes into `SPEC.md` instead.
   until the first artifact is stored, so "the folder must exist" answered 503 after setup.
 - Task 2, the SDK (2026-10-14). Next.js 16's guide (`node_modules/next/dist/docs/01-app/02-guides/
   open-telemetry.md`) documents `@vercel/otel` and a manual `NodeSDK`. Measured with npm in an empty
-  folder: `@opentelemetry/sdk-node` 72 packages, 49 MB (it brings gRPC, Zipkin, Prometheus and
-  Jaeger); `@vercel/otel` with its peers and the OTLP/HTTP metric exporter 22 packages, 33 MB. All
-  MIT, Apache-2.0, BSD-3-Clause or ISC. `@vercel/otel` reads the standard variables for traces
-  (endpoint, headers, protocol, sampler, resource attributes, `OTEL_SDK_DISABLED`); the metric
-  exporter reads its own; `OTEL_METRIC_EXPORT_INTERVAL` is read in `settings.ts`. Chosen:
-  `@vercel/otel`. Turbopack bundles it all into one server chunk (357,088 bytes with task 2; 378,883 bytes with tasks 3–5). One package is new in
-  the standalone output and the packed server: `@opentelemetry/api` (45 files, 192 KiB), which
-  Next.js's own tracer now loads, on or off; `packages:check` passes because its allowlist is a
-  pattern over `app/`. A request's trace arrived
-  from the standalone `server.js` at a local OTLP receiver.
+  folder (`npm install --package-lock-only`, the root not counted): `@opentelemetry/sdk-node` 71
+  packages, 49 MB installed on disk (it brings gRPC, Zipkin, Prometheus and Jaeger); `@vercel/otel`
+  with its peers and the OTLP/HTTP metric exporter 21 packages, 33 MB (34.3 and 23.9 MB unpacked, by
+  npm's `dist.unpackedSize`). All MIT, Apache-2.0, BSD-3-Clause or ISC. `@vercel/otel` reads the
+  standard variables for traces (endpoint, headers, protocol, sampler, resource attributes,
+  `OTEL_SDK_DISABLED`); the metric exporter reads its own; `OTEL_METRIC_EXPORT_INTERVAL` is read in
+  `settings.ts`. Chosen: `@vercel/otel`. Turbopack bundles it all into one server chunk (357,088
+  bytes at a56f21b9, with task 2; 381,026 bytes at 5fdcfa95; any change to the telemetry code moves
+  it). One package is new in the standalone output and the packed server: `@opentelemetry/api` (45
+  files, 192 KiB), which Next.js's own tracer now loads, on or off; `packages:check` passes because
+  its allowlist is a pattern over `app/`. A request's trace arrived from the standalone `server.js`
+  at a local OTLP receiver.
 - For tasks 3 and 5: Next.js's request span carries `http.target`, the path with its query, and an
   item page's path names the item (`/items/@team/x`). A span processor must drop or rewrite it.
 - Task 3: the hooks live on `globalThis` (`telemetry/hooks.ts`): Next.js loads a module once per

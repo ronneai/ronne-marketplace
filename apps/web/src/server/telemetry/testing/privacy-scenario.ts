@@ -73,6 +73,14 @@ export const run = async () => {
         "client.address": IP,
         "user_agent.original": "privacy-agent/1.0",
         "http.user_agent": "privacy-agent/1.0",
+        // And the same in keys that are sent, with no email to give them away: a path, a query, a
+        // fragment, an address with a port; and a key that's a name.
+        "next.route": `/workspaces/${workspace}/items/@privscope/privitem`,
+        "next.span_name": `GET /catalogue?q=${workspace}`,
+        "next.segment": `/reviews#${workspace}`,
+        "operation.name": `?a&q=${workspace}`,
+        "resource.name": `${IP}:4318`,
+        [workspace || "privacy-ana"]: 1,
       });
       try {
         return await work();

@@ -1,4 +1,4 @@
-import { chmodSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Kysely, SqliteAdapter, SqliteIntrospector, SqliteQueryCompiler } from "kysely";
@@ -171,6 +171,18 @@ describe("health", () => {
     // A STORAGE_PATH nothing has made yet: the first put creates it.
     const notYet = join(folder, "not-yet", "storage");
     expect((await health(config(), db, () => localStorage(notYet))).status).toBe(200);
+  });
+
+  it("returns 503 storage_unavailable when the storage path is a link to nothing", async () => {
+    // A volume that isn't mounted: the first put would fail through the link.
+    const link = join(folder, "unmounted");
+    symlinkSync(join(folder, "no-volume"), link);
+    expect(await answer(await health(config(), db, () => localStorage(link)))).toEqual(
+      unavailableStorage,
+    );
+    expect(
+      await answer(await health(config(), db, () => localStorage(join(link, "storage")))),
+    ).toEqual(unavailableStorage);
   });
 
   // Root may write anywhere, so a read-only folder only shows as one to anyone else.
