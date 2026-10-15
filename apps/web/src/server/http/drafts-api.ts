@@ -22,6 +22,7 @@ import { itemNameOf } from "../domains/submissions/models/submission";
 import { MAX_BULK } from "../domains/submissions/services/bulk-submit";
 import { logger } from "../log";
 import type { StorageAdapter } from "../storage";
+import { inSpan } from "../telemetry/hooks";
 import { parseLimit, parseSearch } from "./api-query";
 import { domainErrorResponse, errorResponse, rateLimitedResponse } from "./errors";
 import { MIB, readJsonObjectWithin } from "./read-json";
@@ -236,8 +237,8 @@ const uploadedJson = (
  * and submits it in the web app. In order: the token, the rate, the body's size, its shape, then
  * the submissions domain's checks. A draft with errors is still created; they're in `issues`.
  */
-export const postDraft = async (request: Request, deps: DraftsApiDeps = {}) =>
-  loggedUpload(await createDraft(request, deps));
+export const postDraft = (request: Request, deps: DraftsApiDeps = {}) =>
+  inSpan("ronne.draft.upload", {}, async () => loggedUpload(await createDraft(request, deps)));
 
 const createDraft = async (request: Request, deps: DraftsApiDeps) => {
   const upload = await readUpload(request, deps);

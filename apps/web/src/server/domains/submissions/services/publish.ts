@@ -19,6 +19,7 @@ import { PackError, packItem } from "@ronneai/core/pack";
 import { isId } from "../../../db/ids";
 import { logger } from "../../../log";
 import type { StorageAdapter } from "../../../storage";
+import { hooks, inSpan } from "../../../telemetry/hooks";
 import { ForbiddenError } from "../../identity/exceptions/errors";
 import { can } from "../../identity/models/permissions";
 import type { VersionFile } from "../../items/models/item";
@@ -606,8 +607,10 @@ export const releaseTogether = async (
     return released;
   });
   // One line per release; a bulk release writes one for all its groups (releaseMany).
-  if (input.via !== "bulk")
+  if (input.via !== "bulk") {
+    hooks().annotate("ronne.items", released.length);
     log.event("version.released", { count: released.length, userId: actor.user?.id });
+  }
   return released;
 };
 
@@ -617,7 +620,13 @@ export const releaseTogether = async (
  * member with the same kind (stable or pre-release) and its own suggested bump. `with` lists the
  * others. A dependency that can't go (not approved, or not the person's to release) refuses it.
  */
-export const publishSubmission = async (
+/** A release, as a `ronne.release` span when telemetry is on (101). */
+export const publishSubmission = (
+  ...args: Parameters<typeof publishSubmissionUntraced>
+): ReturnType<typeof publishSubmissionUntraced> =>
+  inSpan("ronne.release", {}, () => publishSubmissionUntraced(...args));
+
+const publishSubmissionUntraced = async (
   deps: PublishDeps,
   actor: SubmissionActor,
   id: string,

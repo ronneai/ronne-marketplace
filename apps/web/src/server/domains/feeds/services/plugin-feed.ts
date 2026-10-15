@@ -23,6 +23,7 @@ import {
 import { installsIn, type RenderInput, supportFor } from "@ronneai/core/render";
 import { type Logger, logger } from "../../../log";
 import { type StorageAdapter, StorageConflictError } from "../../../storage";
+import { hooks, inSpan } from "../../../telemetry/hooks";
 import { requirePermission } from "../../identity/models/permissions";
 import type { CatalogueCursor } from "../../items/models/catalogue";
 import type { Item, ItemVersion } from "../../items/models/item";
@@ -395,7 +396,13 @@ const buildRest = (deps: FeedDeps, tool: PluginTool) => {
  * until one of them changes (079). A request that runs out of build budget answers what it has, and the rest is built in the
  * background.
  */
-export const marketplace = async (
+/** The marketplace file, as a `ronne.feed.build` span when telemetry is on (101). */
+export const marketplace = (
+  ...args: Parameters<typeof marketplaceUntraced>
+): ReturnType<typeof marketplaceUntraced> =>
+  inSpan("ronne.feed.build", { "ronne.tool": args[2] }, () => marketplaceUntraced(...args));
+
+const marketplaceUntraced = async (
   deps: FeedDeps,
   actor: VersionActor,
   tool: ServedTool,
@@ -413,6 +420,7 @@ export const marketplace = async (
   const slot = marketplaceSlot(tool, deps.visibility ?? "");
   const hit = key ? deps.cache?.get(slot, key) : null;
   if (hit) {
+    hooks().annotate("ronne.feed.cached", true);
     logOf(deps).event("feed.built", { tool, bytes: hit.length, cached: true }, "debug");
     return hit;
   }
@@ -455,6 +463,8 @@ export const marketplace = async (
         logOf(deps).warn("Feed build is near Claude Code's 10 s wait", { tool, ms: stats.buildMs });
     }
   }
+  hooks().annotate("ronne.feed.cached", false);
+  hooks().annotate("ronne.feed.plugins", feed.plugins.length);
   logOf(deps).event("feed.built", {
     tool,
     plugins: feed.plugins.length,

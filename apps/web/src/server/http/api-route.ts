@@ -1,5 +1,6 @@
 import { unstable_rethrow } from "next/navigation";
 import { logger, withRequestContext } from "../log";
+import { hooks } from "../telemetry/hooks";
 import { errorResponse } from "./errors";
 import { REQUEST_ID_HEADER, requestIdFor, trustsProxy } from "./request-id";
 
@@ -19,6 +20,8 @@ export const apiRoute =
     const requestId = requestIdFor(request.headers, trustsProxy());
     const started = performance.now();
     return withRequestContext({ requestId }, async () => {
+      // The trace leads to the log lines (101): the request's ID on its span.
+      hooks().annotate("ronne.request_id", requestId);
       let response: Response;
       try {
         response = await handler(request, context);

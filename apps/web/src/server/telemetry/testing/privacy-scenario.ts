@@ -1,0 +1,244 @@
+// Task 5 of 101: the server's flows with telemetry on, everything an OTLP receiver gets printed
+// with every value that must never be in it. Run in a child process by privacy.db.test.ts: the SDK
+// registers itself globally, once.
+
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { createServer } from "node:http";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { trace } from "@opentelemetry/api";
+import { createTestDb } from "../../db/testing/test-db";
+import { marketplaceAs } from "../../domains/feeds/actions/feeds";
+import { authenticateToken, exchangePassword } from "../../domains/identity/actions/access-tokens";
+import { createRoot } from "../../domains/identity/actions/root-account";
+import { getCurrentUser, signIn } from "../../domains/identity/actions/session";
+import { adminCreateUser } from "../../domains/identity/actions/user-admin";
+import type { CurrentUser } from "../../domains/identity/models/user";
+import { cookieHeaders, testAppAuth } from "../../domains/identity/testing/test-auth";
+import { createScope } from "../../domains/items/actions/scopes";
+import { createDraft, saveDraftFiles } from "../../domains/submissions/actions/drafts";
+import { publishSubmission } from "../../domains/submissions/actions/publish";
+import { submitDraft } from "../../domains/submissions/actions/submissions";
+import { apiRoute } from "../../http/api-route";
+import { postDraft } from "../../http/drafts-api";
+import { requireToken } from "../../http/require-token";
+import { createUploadLimiter } from "../../http/upload-rate-limit";
+import { setLoggerForTests } from "../../log";
+import { localStorage } from "../../storage/local-storage";
+import { hooks } from "../hooks";
+import { startTelemetryIfSet } from "../index";
+
+const PASSWORD = "correct horse battery staple";
+const WRONG = "wrong horse battery staple";
+const IP = "198.51.100.42";
+const EMAIL = "privacy-ana@example.com";
+
+export const run = async () => {
+  const bodies: string[] = [];
+  const receiver = createServer((req, res) => {
+    let body = "";
+    req.on("data", (chunk) => (body += chunk));
+    req.on("end", () => {
+      bodies.push(`${req.url} ${body}`);
+      res.writeHead(200, { "content-type": "application/json" }).end("{}");
+    });
+  });
+  await new Promise<void>((ok) => receiver.listen(0, "127.0.0.1", ok));
+  const address = receiver.address();
+  process.env.OTEL_EXPORTER_OTLP_ENDPOINT = `http://127.0.0.1:${typeof address === "object" && address ? address.port : 0}`;
+  setLoggerForTests({ level: "error", format: "json", write: () => {} });
+  await startTelemetryIfSet();
+  const tracer = trace.getTracer("privacy-test");
+  // Each flow as a request: under a span, as Next.js's request span would be.
+  const request = <T>(name: string, work: () => Promise<T>) =>
+    tracer.startActiveSpan(name, async (span) => {
+      try {
+        return await work();
+      } finally {
+        span.end();
+      }
+    });
+  const headers = (more: Record<string, string> = {}) =>
+    new Headers({ "x-forwarded-for": IP, "user-agent": "privacy-agent/1.0", ...more });
+
+  const t = await createTestDb();
+  const app = testAppAuth(t, { trustProxy: true });
+  const storage = hooks().tracedStorage(
+    localStorage(mkdtempSync(join(tmpdir(), "ronne-privacy-"))),
+  );
+  await createRoot(t.db, t.dialect, {
+    email: "privacy-root@example.com",
+    name: "Root Person",
+    password: PASSWORD,
+  });
+
+  // Sign-in, wrong and right.
+  await request("POST /sign-in", () =>
+    signIn(
+      headers(),
+      { email: "privacy-root@example.com", password: WRONG, rememberMe: false },
+      app,
+    ),
+  );
+  const rootIn = await request("POST /sign-in", () =>
+    signIn(
+      headers(),
+      { email: "privacy-root@example.com", password: PASSWORD, rememberMe: false },
+      app,
+    ),
+  );
+  if (!rootIn.ok) throw new Error("sign-in failed");
+  const asRoot = cookieHeaders(rootIn.headers.get("set-cookie"));
+  const sessionToken =
+    /session_token=([^;.]+)/.exec(rootIn.headers.get("set-cookie") ?? "")?.[1] ?? "";
+  await adminCreateUser(
+    asRoot,
+    { email: EMAIL, name: "Ana Privacy", role: "user", password: PASSWORD },
+    app,
+  );
+  const anaIn = await signIn(
+    headers(),
+    { email: EMAIL, password: PASSWORD, rememberMe: false },
+    app,
+  );
+  if (!anaIn.ok) throw new Error("sign-in failed");
+  const asAna = cookieHeaders(anaIn.headers.get("set-cookie"));
+  const ana = (await getCurrentUser(asAna, app)) as CurrentUser;
+  const root = (await getCurrentUser(asRoot, app)) as CurrentUser;
+  const personal = (
+    await t.db
+      .selectFrom("workspaces")
+      .select("name")
+      .where("id", "=", ana.personal ?? "")
+      .executeTakeFirstOrThrow()
+  ).name;
+
+  // The token exchange `rmk login` makes, wrong and right.
+  await request("POST /api/v1/auth/token", () =>
+    exchangePassword({ email: EMAIL, password: WRONG }, headers(), app),
+  );
+  const exchanged = await request("POST /api/v1/auth/token", () =>
+    exchangePassword({ email: EMAIL, password: PASSWORD }, headers(), app),
+  );
+  if (!exchanged.ok) throw new Error("exchange failed");
+  const token = exchanged.token.token;
+
+  // A release in Ana's personal workspace: private, its names hers.
+  await createScope(
+    asAna,
+    { name: "privscope", description: "Ana's.", workspaceId: ana.personal ?? "" },
+    app,
+  );
+  const draft = await createDraft(
+    asAna,
+    { scope: `@${personal}/privscope`, name: "privitem", type: "rule" },
+    app,
+  );
+  await saveDraftFiles(
+    asAna,
+    draft.id,
+    {
+      writes: [
+        {
+          path: "ronne.yaml",
+          encoding: "utf8",
+          content: `name: "@${personal}/privscope/privitem"\ntype: rule\ndescription: A rule.\nrule:\n  body: rule.md\n  activation: always\n`,
+          executable: false,
+          loadedAt: draft.files.find((f) => f.path === "ronne.yaml")?.updatedAt ?? null,
+        },
+        {
+          path: "rule.md",
+          encoding: "utf8",
+          content: "Be kind.\n",
+          executable: false,
+          loadedAt: draft.files.find((f) => f.path === "rule.md")?.updatedAt ?? null,
+        },
+      ],
+      deletes: [],
+    },
+    app,
+  );
+  await request("POST /submissions", () => submitDraft(asAna, draft.id, app, storage));
+  await request("POST /release", () =>
+    publishSubmission(asAna, draft.id, { choice: { kind: "stable", bump: "minor" } }, app, storage),
+  );
+
+  // A feed build, by Ana, whose feed holds her private item.
+  await request("GET /api/v1/feeds/[tool]/marketplace.json", () =>
+    marketplaceAs(ana, "claude-code", "https://r.example", null, app, storage),
+  );
+  // Again: from the cache, when nothing changed.
+  await request("GET /api/v1/feeds/[tool]/marketplace.json", () =>
+    marketplaceAs(ana, "claude-code", "https://r.example", null, app, storage),
+  );
+
+  // A draft upload with her token, through apiRoute.
+  const guard = {
+    ready: async () => true,
+    authenticate: (value: string | null) => authenticateToken(value, app),
+  };
+  const drafts = apiRoute("/api/v1/drafts", (req: Request) =>
+    postDraft(req, { app, guard, limiter: createUploadLimiter(), storage, publicUrl: null }),
+  );
+  await request("POST /api/v1/drafts", () =>
+    drafts(
+      new Request("https://r.example/api/v1/drafts", {
+        method: "POST",
+        headers: headers({ "content-type": "application/json", authorization: `Bearer ${token}` }),
+        body: JSON.stringify({
+          name: `@${personal}/privscope/privupload`,
+          type: "skill",
+          files: [
+            {
+              path: "ronne.yaml",
+              encoding: "utf8",
+              content: `name: "@${personal}/privscope/privupload"\ntype: skill\ndescription: x\n`,
+            },
+            { path: "SKILL.md", encoding: "utf8", content: "---\nname: privupload\n---\nx\n" },
+          ],
+        }),
+      }),
+      {},
+    ),
+  );
+  // An authenticated API call, the token in its header.
+  const me = apiRoute("/api/v1/me", async (req: Request) => {
+    const result = await requireToken(req, guard);
+    return result.ok ? Response.json({ id: result.auth.user.id }) : result.response;
+  });
+  await request("GET /api/v1/me", () =>
+    me(
+      new Request("https://r.example/api/v1/me", {
+        headers: headers({ authorization: `Bearer ${token}` }),
+      }),
+      {},
+    ),
+  );
+
+  // Let the batch and the metric reader send.
+  for (let i = 0; i < 40 && !bodies.some((b) => b.startsWith("/v1/metrics")); i++)
+    await new Promise((ok) => setTimeout(ok, 100));
+  await new Promise((ok) => setTimeout(ok, 800));
+  const never = {
+    personal,
+    scope: "privscope",
+    item: "privitem",
+    upload: "privupload",
+    email: EMAIL,
+    rootEmail: "privacy-root@example.com",
+    anaId: ana.id,
+    rootId: root.id,
+    name: "Ana Privacy",
+    password: PASSWORD,
+    wrong: WRONG,
+    ip: IP,
+    agent: "privacy-agent",
+    token,
+    tokenBody: token.slice(4),
+    sessionToken,
+  };
+  // To a file: a large write to a pipe can be cut off by the exit below.
+  writeFileSync(process.env.PRIVACY_OUT ?? "privacy-out.json", JSON.stringify({ never, bodies }));
+  await t.cleanup();
+  process.exit(0);
+};

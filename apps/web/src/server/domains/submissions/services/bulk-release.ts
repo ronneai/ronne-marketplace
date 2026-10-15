@@ -1,4 +1,5 @@
 import { logger } from "../../../log";
+import { hooks, inSpan } from "../../../telemetry/hooks";
 import { IdentityError } from "../../identity/exceptions/errors";
 import { SubmissionsError } from "../exceptions/errors";
 import { type PlannedRelease, planReleases, type ReleaseSettings } from "../models/release-plan";
@@ -53,7 +54,13 @@ const groupsOf = (candidates: readonly ReleaseCandidate[]): ReleaseCandidate[][]
  * `not_releasable` for each of its members, with why. Each release is audited as 015's, with
  * `via: "bulk"`.
  */
-export const releaseMany = async (
+/** A bulk release, as one `ronne.release` span when telemetry is on (101). */
+export const releaseMany = (
+  ...args: Parameters<typeof releaseManyUntraced>
+): ReturnType<typeof releaseManyUntraced> =>
+  inSpan("ronne.release", {}, () => releaseManyUntraced(...args));
+
+const releaseManyUntraced = async (
   deps: PublishDeps,
   actor: SubmissionActor,
   input: { ids: readonly string[]; settings: ReleaseSettings; notes?: string },
@@ -126,6 +133,7 @@ export const releaseMany = async (
     }
   }
   const count = results.filter((result) => result.result === "published").length;
+  hooks().annotate("ronne.items", count);
   if (count > 0)
     logger
       .child({ domain: "submissions" })

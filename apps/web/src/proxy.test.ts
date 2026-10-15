@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { describe, expect, it } from "vitest";
 import { config, proxy } from "./proxy";
+import { hooks, installHooks } from "./server/telemetry/hooks";
 
 const request = (path: string, cookie?: string) =>
   new NextRequest(`http://localhost:3000${path}`, { headers: cookie ? { cookie } : {} });
@@ -71,6 +72,19 @@ describe("proxy", () => {
       "/icon.png",
     ]) {
       expect(matches(path), path).toBe(false);
+    }
+  });
+});
+
+describe("proxy and telemetry (101)", () => {
+  it("puts the request's ID on its span: the X-Request-Id the answer carries", () => {
+    const annotated: [string, unknown][] = [];
+    installHooks({ ...hooks(), annotate: (key, value) => annotated.push([key, value]) });
+    try {
+      const response = proxy(new NextRequest("http://localhost/items/@team/x"));
+      expect(annotated).toEqual([["ronne.request_id", response.headers.get("x-request-id")]]);
+    } finally {
+      installHooks(undefined);
     }
   });
 });

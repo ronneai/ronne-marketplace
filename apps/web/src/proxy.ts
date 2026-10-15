@@ -7,6 +7,7 @@ import {
 } from "@/server/domains/identity/models/route-guard";
 import { hasSessionCookie } from "@/server/domains/identity/models/session-cookie";
 import { REQUEST_ID_HEADER, requestIdFor, trustsProxy } from "@/server/http/request-id";
+import { hooks } from "@/server/telemetry/hooks";
 
 /**
  * The first, cheap check (feature 006): a page without a session cookie redirects to sign-in. It
@@ -19,6 +20,7 @@ import { REQUEST_ID_HEADER, requestIdFor, trustsProxy } from "@/server/http/requ
 export const proxy = (request: NextRequest) => {
   const { pathname, search } = request.nextUrl;
   const requestId = requestIdFor(request.headers, trustsProxy());
+  hooks().annotate("ronne.request_id", requestId);
   const answer = (response: NextResponse) => {
     response.headers.set(REQUEST_ID_HEADER, requestId);
     return response;

@@ -53,23 +53,35 @@ trace and metric exporters, the resource (`service.name`, `service.version`,
 `OTEL_SDK_DISABLED=true` turns it off even with an endpoint. The SDK's other standard variables
 (sampler, export interval, timeouts) work as OpenTelemetry documents them.
 
-**Packages:** `@opentelemetry/api`, `@opentelemetry/sdk-node`, and the OTLP/HTTP trace and metric
-exporters, Apache-2.0, at their latest stable versions when built; checked against the dependency
-policy and against Next.js's current OpenTelemetry guide (Next.js 16) before task 1. `@vercel/otel`
-is the other way Next.js documents; whichever is lighter and works in the standalone build is
-chosen, and the choice written in the plan's notes.
+**Packages:** `@vercel/otel` (MIT) with its OpenTelemetry peers (`@opentelemetry/api`, `api-logs`,
+`instrumentation`, `resources`, `sdk-logs`, `sdk-metrics`, `sdk-trace-base`) and
+`@opentelemetry/exporter-metrics-otlp-http` (Apache-2.0): the lighter of the two ways Next.js 16's
+guide documents (the plan's notes have the comparison). Traces go through `@vercel/otel`'s OTLP/HTTP
+exporter (`http/protobuf`, or `http/json` with `OTEL_EXPORTER_OTLP_PROTOCOL`), metrics through
+OpenTelemetry's, always as JSON. Turbopack bundles them into one server chunk, loaded only when telemetry is on.
+
+**Events (100):** `telemetry.started` (info: `traces`, `metrics`, booleans),
+`telemetry.endpoint_invalid` (warn), `telemetry.failed` (error, `err`: the SDK couldn't start; the
+server starts without it), `telemetry.export_failed` (warn, `signal`, at most once a minute).
 
 ### Traces
 
 - **Requests:** Next.js's spans (the route, the render, the fetches). The request ID (100) is an
-  attribute, `ronne.request_id`, so a log line leads to its trace.
+  attribute, `ronne.request_id`, on the API route's and the proxy's spans; with tracing on, every
+  log line written inside a span carries its `traceId` and `spanId`, so a line leads to its trace.
+- **What leaves, sanitized:** every span passes one sanitizing step before export. Attributes holding
+  a path or URL (`http.target`, `http.url`, `url.*`: an item page's path names the item), a client's
+  address and a user agent are dropped, and so is any value the logger would change (an email, a
+  token, a URL's password, a stored path). An exception event keeps its type only; a status, its
+  code only; a URL in a span's name, its origin only. `@vercel/otel`'s own processors aren't used:
+  its default adds a second exporter, unsanitized, whenever an endpoint is set.
 - **Database:** one span per query, from a Kysely plugin added in `create-db.ts` when tracing is
   on: `db.system.name` (`sqlite`, `postgresql`, `mysql`), `db.operation.name`, and the SQL text with
   its placeholders (`db.query.text`). **Never the parameters:** they hold names, emails and hashes.
-- **Storage:** `storage.put` / `storage.get` spans with the byte count, not the key (keys hold item
-  names).
-- **Domain spans:** `ronne.release` (with the number of items), `ronne.feed.build` (tool, plugin
-  count, from cache or not), `ronne.draft.upload`.
+- **Storage:** `storage.put` / `storage.get` spans with the byte count (`ronne.storage.bytes`), not
+  the key (keys hold item names).
+- **Domain spans:** `ronne.release` (`ronne.items`, the versions released), `ronne.feed.build`
+  (`ronne.tool`, `ronne.feed.plugins`, `ronne.feed.cached`), `ronne.draft.upload`.
 
 ### Metrics
 
@@ -82,9 +94,14 @@ chosen, and the choice written in the plan's notes.
 | `ronne.releases` | counter (versions released) | — |
 | `ronne.feed.builds` | counter | `tool`, `cached` |
 | `ronne.feed.build.duration` | histogram, seconds | `tool` |
-| `ronne.drafts.uploaded` | counter | `outcome` |
+| `ronne.drafts.uploaded` | counter | `outcome` (`accepted`, `refused`) |
 | `ronne.rate_limited` | counter | `limit` (`sign_in`, `upload`, `usage`, `token_exchange`) |
 | `ronne.health` | gauge, 1 or 0 | `check` (`database`, `storage`) |
+
+The counters and the request histogram come from the events the server already logs (100), at any
+`LOG_LEVEL`: one place maps each event to its instrument, so a count and its log line always agree.
+`ronne.tokens.exchanged`'s `outcome` is `success`, `failure` or `rate_limited`;
+`ronne.feed.build.duration` records builds, not cache hits.
 
 **Low cardinality, nothing personal:** no user ids, emails, IP addresses, item, scope or workspace
 names, or tokens in any attribute, metric or span. The collector may be a third party's.
@@ -97,7 +114,9 @@ counted by Next.js's own spans.
 install scripts and the end-to-end tests rely on: 200 when the instance can serve, 503 otherwise.
 What changes:
 - **Storage is checked** after the database: the storage adapter gets a `check()` method; the local
-  adapter checks the storage folder exists and is writable (an access check, no file written).
+  adapter checks the storage folder is a folder it can write to (an access check, no file
+  written). A folder that doesn't exist yet counts when its nearest existing parent can take it:
+  the first artifact stored creates it, as it always has (a `STORAGE_PATH` nothing has made yet).
   110's S3 adapter will check its bucket the same way.
 - **The body says which:**
 
@@ -114,6 +133,8 @@ What changes:
   an attacker fingerprint the instance.
 - Each check has a 3-second limit, as the database's has today; the two together stay under the
   Dockerfile's health-check timeout.
+- A failed storage check writes `storage.unavailable` (error, with `err`; 100), as a failed
+  database writes `db.unavailable`: the reason is in the log, never in the public answer.
 - When OpenTelemetry is on, each health check also sets `ronne.health`.
 
 ## Edge cases

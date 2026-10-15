@@ -56,3 +56,37 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+- Task 1: a storage folder that doesn't exist yet is healthy when its parent can take it. The
+  setup wizard's e2e caught it: its instance's `STORAGE_PATH` (from the environment) isn't made
+  until the first artifact is stored, so "the folder must exist" answered 503 after setup.
+- Task 2, the SDK (2026-10-14). Next.js 16's guide (`node_modules/next/dist/docs/01-app/02-guides/
+  open-telemetry.md`) documents `@vercel/otel` and a manual `NodeSDK`. Measured with npm in an empty
+  folder: `@opentelemetry/sdk-node` 72 packages, 49 MB (it brings gRPC, Zipkin, Prometheus and
+  Jaeger); `@vercel/otel` with its peers and the OTLP/HTTP metric exporter 22 packages, 33 MB. All
+  MIT, Apache-2.0, BSD-3-Clause or ISC. `@vercel/otel` reads the standard variables for traces
+  (endpoint, headers, protocol, sampler, resource attributes, `OTEL_SDK_DISABLED`); the metric
+  exporter reads its own; `OTEL_METRIC_EXPORT_INTERVAL` is read in `settings.ts`. Chosen:
+  `@vercel/otel`. Turbopack bundles it all into one server chunk (352 KB with task 2; 378,883 bytes with tasks 3–5) (no new `node_modules` in
+  the standalone output, so `packages:check`'s allowlist is unchanged); a request's trace arrived
+  from the standalone `server.js` at a local OTLP receiver.
+- For tasks 3 and 5: Next.js's request span carries `http.target`, the path with its query, and an
+  item page's path names the item (`/items/@team/x`). A span processor must drop or rewrite it.
+- Task 3: the hooks live on `globalThis` (`telemetry/hooks.ts`): Next.js loads a module once per
+  bundle, and `register()` installs them once for all. Off, they do nothing and import nothing.
+  The database spans come from Kysely's `log` option (it runs in the query's async context), so
+  they sit under the request's span, back-dated by the query's duration.
+- Task 3: `@vercel/otel`'s default span processors (`"auto"`) add their own OTLP exporter whenever
+  an endpoint is in the environment, so every span went out twice, once unsanitized (`http.target`
+  with an item's name reached a real collector in a run against the standalone server). Telemetry
+  now passes `spanProcessors` with only ours; a test checks each span arrives once, sanitized.
+- Task 6, the collector example (2026-10-14): run against the OpenTelemetry Collector contrib
+  0.162.0 (`ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib`,
+  Apache-2.0, from GitHub's registry: no Docker Hub pull) with the Documentation's
+  `otel-collector.yaml`: the standalone server, pointed at it, sent traces (in the collector's
+  debug log) and metrics; Prometheus's `:8889/metrics` served `http_server_request_duration_seconds`
+  with `http_request_method`, `http_route` and `http_response_status_code` only.
+- Task 6: `compose.yaml` passes the standard `OTEL_*` settings from its `.env`, empty when unset
+  (as `LOG_LEVEL`); an empty one counts as unset, and start drops it from the environment.
+- Task 1 adds the event `storage.unavailable`: the Documentation's Logs events table (100) gets
+  its row in task 6, in the three languages.
