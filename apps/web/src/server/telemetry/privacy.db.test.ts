@@ -83,7 +83,11 @@ it("sends the collector nothing personal from the server's flows", () => {
     spans
       .filter((span) => span.name === child)
       .map((span) => spans.find((p) => p.spanId === span.parentSpanId)?.name);
-  expect(parentsOf("ronne.release"), "ronne.release's parent").toEqual(["POST /release"]);
+  // A single release, then a bulk one of two: each under its request.
+  expect(parentsOf("ronne.release"), "ronne.release's parents").toEqual([
+    "POST /release",
+    "POST /reviews",
+  ]);
   expect(parentsOf("ronne.draft.upload"), "ronne.draft.upload's parent").toEqual([
     "POST /api/v1/drafts",
   ]);
@@ -92,11 +96,8 @@ it("sends the collector nothing personal from the server's flows", () => {
     "GET /api/v1/feeds/[tool]/marketplace.json",
   ]);
   expect(
-    attr(
-      spans.find((s) => s.name === "ronne.release"),
-      "ronne.items",
-    ),
-  ).toBe(1);
+    spans.filter((s) => s.name === "ronne.release").map((s) => attr(s, "ronne.items")),
+  ).toEqual([1, 2]);
   const builds = spans.filter((s) => s.name === "ronne.feed.build");
   expect(builds.map((s) => attr(s, "ronne.tool"))).toEqual(["claude-code", "claude-code"]);
   expect(builds.map((s) => attr(s, "ronne.feed.cached")).sort()).toEqual([false, true]);

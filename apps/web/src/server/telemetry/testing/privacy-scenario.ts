@@ -17,7 +17,7 @@ import type { CurrentUser } from "../../domains/identity/models/user";
 import { cookieHeaders, testAppAuth } from "../../domains/identity/testing/test-auth";
 import { createScope } from "../../domains/items/actions/scopes";
 import { createDraft, saveDraftFiles } from "../../domains/submissions/actions/drafts";
-import { publishSubmission } from "../../domains/submissions/actions/publish";
+import { publishSubmission, releaseMany } from "../../domains/submissions/actions/publish";
 import { submitDraft } from "../../domains/submissions/actions/submissions";
 import { apiRoute } from "../../http/api-route";
 import { postDraft } from "../../http/drafts-api";
@@ -129,38 +129,53 @@ export const run = async () => {
     { name: "privscope", description: "Ana's.", workspaceId: ana.personal ?? "" },
     app,
   );
-  const draft = await createDraft(
-    asAna,
-    { scope: `@${personal}/privscope`, name: "privitem", type: "rule" },
-    app,
-  );
-  await saveDraftFiles(
-    asAna,
-    draft.id,
-    {
-      writes: [
-        {
-          path: "ronne.yaml",
-          encoding: "utf8",
-          content: `name: "@${personal}/privscope/privitem"\ntype: rule\ndescription: A rule.\nrule:\n  body: rule.md\n  activation: always\n`,
-          executable: false,
-          loadedAt: draft.files.find((f) => f.path === "ronne.yaml")?.updatedAt ?? null,
-        },
-        {
-          path: "rule.md",
-          encoding: "utf8",
-          content: "Be kind.\n",
-          executable: false,
-          loadedAt: draft.files.find((f) => f.path === "rule.md")?.updatedAt ?? null,
-        },
-      ],
-      deletes: [],
-    },
-    app,
-  );
-  await request("POST /submissions", () => submitDraft(asAna, draft.id, app, storage));
+  /** A rule by Ana in her private scope, submitted (approved at once: her own workspace). */
+  const submitted = async (name: string) => {
+    const draft = await createDraft(
+      asAna,
+      { scope: `@${personal}/privscope`, name, type: "rule" },
+      app,
+    );
+    await saveDraftFiles(
+      asAna,
+      draft.id,
+      {
+        writes: [
+          {
+            path: "ronne.yaml",
+            encoding: "utf8",
+            content: `name: "@${personal}/privscope/${name}"\ntype: rule\ndescription: A rule.\nrule:\n  body: rule.md\n  activation: always\n`,
+            executable: false,
+            loadedAt: draft.files.find((f) => f.path === "ronne.yaml")?.updatedAt ?? null,
+          },
+          {
+            path: "rule.md",
+            encoding: "utf8",
+            content: "Be kind.\n",
+            executable: false,
+            loadedAt: draft.files.find((f) => f.path === "rule.md")?.updatedAt ?? null,
+          },
+        ],
+        deletes: [],
+      },
+      app,
+    );
+    await request("POST /submissions", () => submitDraft(asAna, draft.id, app, storage));
+    return draft.id;
+  };
+  const single = await submitted("privitem");
   await request("POST /release", () =>
-    publishSubmission(asAna, draft.id, { choice: { kind: "stable", bump: "minor" } }, app, storage),
+    publishSubmission(asAna, single, { choice: { kind: "stable", bump: "minor" } }, app, storage),
+  );
+  // A bulk release of two more: one ronne.release for both.
+  const bulk = [await submitted("privbulka"), await submitted("privbulkb")];
+  await request("POST /reviews", () =>
+    releaseMany(
+      asAna,
+      { ids: bulk, settings: { kind: "stable", bump: "suggested" } },
+      app,
+      storage,
+    ),
   );
 
   // A feed build, by Ana, whose feed holds her private item.
@@ -224,6 +239,8 @@ export const run = async () => {
     scope: "privscope",
     item: "privitem",
     upload: "privupload",
+    bulkA: "privbulka",
+    bulkB: "privbulkb",
     email: EMAIL,
     rootEmail: "privacy-root@example.com",
     anaId: ana.id,

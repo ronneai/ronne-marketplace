@@ -204,3 +204,27 @@ Witnessed: 2026-10-14 23:03 EDT, by a fresh agent (blind). Commit: fea1a956 (ron
 | 22 | Render tests in both repositories | no | confirmed | 138 passed, typecheck exit 0; help 3 passed |
 
 **Overall:** met.
+
+## Task 3 — Spans (re-check)
+
+Witnessed: 2026-10-14 23:12 EDT, by a fresh agent (blind). Commit: fea1a956. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Off: nothing from OpenTelemetry imported | no | confirmed | Resolve-hook probe: 0 modules |
+| 2 | Off: no query hook, no storage wrapper | no | confirmed | `queryLog` undefined; `tracedStorage(ls) === ls` |
+| 3 | On: a span per query under the request, placeholders only | no | confirmed | Two mutants fail; real server: 1,173 `db *` spans, all parented, only constant literals |
+| 4 | Storage spans: bytes, never the key | no | confirmed | Two mutants fail; real server: 60 spans |
+| 5 | The domain spans under their requests with their attributes (real server) | no | confirmed | Single and bulk `ronne.release`, `ronne.feed.build`, `ronne.draft.upload` each under its route |
+| 6 | `ronne.request_id` on route and proxy spans (real server) | no | confirmed | Every route span, all 105 middleware spans |
+| 7 | Log lines carry `traceId`/`spanId` | no | confirmed | 27/27 match an exported span |
+| 8 | Tests pin each domain span's nesting | no | partly | Detaching the bulk `releaseMany`'s `ronne.release` → 134/134 pass |
+| 9 | Tests pin each domain attribute | no | partly | Dropping the bulk `ronne.items` (`bulk-release.ts:136`) → 134/134 pass |
+| 10 | Tests pin the proxy's and route's request id | no | confirmed | Each mutant fails |
+| 11 | Tests pin the log's trace IDs | no | confirmed | Mutant fails |
+| 12 | Tests see each span under its request | no | partly | Not for the bulk `ronne.release` |
+| 13 | What leaves is sanitized (real server) | no | confirmed | 2,558 spans, JSON and protobuf: 0 hits for 20 needles; no events or status messages |
+| 14 | Each span leaves once | no | confirmed | 2,558 unique |
+| 15 | No regressions | no | confirmed | 134 + 1 tests passed |
+
+**Overall:** not met: the bulk release's span and count untested. Fixed on `bugfix/101-witness-fixes`: the privacy scenario releases two more items together under `POST /reviews`, and the test expects two `ronne.release` spans (under `POST /release` and `POST /reviews`) with `ronne.items` 1 and 2; detaching the bulk span or dropping its count fails it. Passes on SQLite, PostgreSQL, MySQL and MariaDB. Remark from the pass: its first server run sent data to another witness's receiver (task 5's adversarial, port 4399), so that pass's counts may include it.
