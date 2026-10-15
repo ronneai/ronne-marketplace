@@ -113,7 +113,7 @@ address without a port.
 | `RONNE_TRUSTED_PROXIES` | empty | Only behind your own web server: who may tell Ronne the client's address (`private_ranges`) |
 | `LOG_LEVEL` | `info` | The least serious log lines written: `debug`, `info`, `warn` or `error` |
 | `LOG_FORMAT` | `json` | `json`, or `text` for a person reading a terminal |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | empty | Your OpenTelemetry collector's OTLP/HTTP address: metrics and traces, off while empty ([Monitoring](https://www.ronne.ai/marketplace/docs/operations#monitoring)) |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | empty | Your OpenTelemetry collector's OTLP/HTTP address: metrics and traces, off while empty ([Monitoring](https://www.ronne.ai/marketplace/docs/monitoring#monitoring)) |
 
 **Your company's certificate** (a private network, or a certificate from your IT team): set
 `RONNE_TLS=files` and put `cert.pem` (with the full chain) and `key.pem` in a `certs` folder next
@@ -310,7 +310,7 @@ folder is kept unless you delete it.
 `event` name (Next.js's own lines are plain text); `LOG_LEVEL=debug` writes more: in the settings
 file (Docker: the `.env` next to `compose.yaml`, then `docker compose up -d`), then a restart. A problem someone reports
 comes with the `X-Request-Id` of the response they got: its lines carry that `requestId`. What
-each line holds, and what it never does: [Logs](https://www.ronne.ai/marketplace/docs/operations#logs).
+each line holds, and what it never does: [Logs](https://www.ronne.ai/marketplace/docs/logs#logs).
 
 Still stuck? [Open an issue](https://github.com/ronneai/ronne-marketplace/issues) with the output of
 `rmk-server service status` or `docker compose ps` and the last lines of the log.

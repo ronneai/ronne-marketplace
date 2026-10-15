@@ -324,7 +324,7 @@ export const HELP = {
     question: "Responding to an incident?",
     answer:
       "Filter by the person or the action and the dates to see what happened. To end everyone's sessions or tokens, or replace the secret that signs sessions, use the server's commands: revoke-access and rotate-secret.",
-    href: docsHref("operations", "incidents"),
+    href: docsHref("incidents", "incidents"),
   },
   "audit-actor": {
     question: "Who can I search for?",
