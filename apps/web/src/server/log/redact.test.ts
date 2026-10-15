@@ -630,6 +630,10 @@ describe("cleanFields", () => {
     expect(redactString("mailto:ana@example.com?subject=hi! or bob@example.org!")).toBe(
       "mailto:[email]?subject=hi! or [email]!",
     );
+    // An IDNA dot ending a sentence, or splitting a run-on last label; a format character in one.
+    expect(redactString("mail bob@example.com\u3002")).toBe("mail [email]\u3002");
+    expect(redactString("key carol@example\u3002com-acme")).toBe("key [email]-acme");
+    expect(redactString("key carol@example.c\u00ADom-acme")).toBe("key [email]-acme");
     // What a line needs stays: versions and pnpm's paths.
     for (const kept of [
       "next@16.4.0",
@@ -637,6 +641,7 @@ describe("cleanFields", () => {
       "@types/node@22.20.5",
       "node_modules/.pnpm/react-dom@19.2.0_react@19.2.0/node_modules/react-dom/index.js:12:5",
       "next@16.4.0_@babel+core@7.28.4_react@19.2.0",
+      "pkg@1.0.0_peer.js",
     ])
       expect(redactString(kept)).toBe(kept);
     for (const kept of [

@@ -40,5 +40,9 @@ it("keeps a user's record and other arguments out of the line", () => {
     { email: "alice@example.com", name: "Alice" },
     "alice@example.com",
   );
-  expect(JSON.stringify(lines)).not.toContain("alice");
+  expect(JSON.stringify(lines).toLowerCase()).not.toContain("alice");
+  // Only these keys: none of Better Auth's other arguments.
+  expect(Object.keys(lines[0] ?? {}).sort()).toEqual(
+    ["detail", "domain", "level", "msg", "source", "time"].sort(),
+  );
 });

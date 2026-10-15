@@ -28,7 +28,9 @@ const EMAIL = "carol.secret@example.com";
 const EMAIL_ACCENTED = "zoë.ånsen@bücher.de";
 const PASSWORD = "correct horse battery staple";
 const WRONG = "wrong horse battery staple";
-const DB_PASSWORD = "Db-Pa55-w0rd";
+// Ends in `)`, so the email rule can't take it for an address's local part: only the URL-password
+// rule hides it.
+const DB_PASSWORD = "Db-Pa55(w0rd)";
 const IP = "203.0.113.77";
 const AUTH_SECRET = "test-secret-test-secret-test-secret-00";
 
@@ -188,6 +190,10 @@ it("writes nothing secret or personal from sign-in, tokens, the API, uploads and
   // A file system error under the storage folder, as Node writes one.
   await import("node:fs/promises")
     .then((fs) => fs.readFile(join(storageRoot, "team", "secret-skill", "9.9.9.tgz")))
+    .catch((err: unknown) => logger.error("Unexpected error", { err }));
+  // A storage key that isn't valid, naming an item.
+  await localStorage(storageRoot)
+    .put("../team/secret-skill/1.0.0.tgz", new Uint8Array([1]))
     .catch((err: unknown) => logger.error("Unexpected error", { err }));
   // A storage error on an item's key: different bytes for a stored artifact.
   const storage = localStorage(storageRoot);

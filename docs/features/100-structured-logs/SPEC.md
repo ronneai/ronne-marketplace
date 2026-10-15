@@ -65,9 +65,12 @@ calls, no request IDs, and an unexpected error reaches only Next.js's default ou
 addresses, such as a database host in a driver's error, may appear: owner, 2026-10-14). An
 address's domain may hold anything IDNA does (any script, symbols, its dots `。．｡`, format
 characters) and is recognized by its last label (letters and digits with a letter, or `xn--`), an
-IPv4 address or a literal (`[192.0.2.1]`). Known limit (owner, 2026-10-14): a domain holding one
-of `" ' ( ) * , / ; \ `` ` `` { }` isn't recognized; no hostname can hold one, and reading them as a
-domain would hide parts of stack frames, JSON and paths. They're
+IPv4 address or a literal (`[192.0.2.1]`). Known limit (owner, 2026-10-14): an address isn't
+recognized, or only in part, when its local part or domain holds an ASCII delimiter
+(`" ' ( ) * , / : ; < > [ ] \ `` ` `` { }`) outside a quoted local part or a literal, or its last
+label holds a symbol (`example.c!om`). No mail system delivers to such an address, though
+`normalizeEmail` accepts it; reading them as addresses would hide parts of stack frames, URLs, JSON
+and paths. They're
 in the database, under 102's retention; logs go to collectors Ronne doesn't control, kept by rules
 Ronne doesn't set. The usage report (046) logs nothing about who sent it, as the report stores
 nothing about them.
