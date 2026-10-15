@@ -80,14 +80,19 @@ export const run = async () => {
         "next.segment": `/reviews#${workspace}`,
         "operation.name": `?a&q=${workspace}`,
         // A URL with a user name, the account's email, and an item's reference.
-        "error.type": `http://${workspace}@localhost/x`,
+        "error.type": `http://x@${workspace}@localhost/x`,
         "next.fetch.cache_status": EMAIL,
         "next.fetch.cache_reason": "@privscope/privitem",
+        // A URL with a private path, in a value and in an array.
+        "better_auth.context": `https://r.example/workspaces/${workspace}/items?x=1`,
+        "next.bubble": [`https://r.example/workspaces/${workspace}`, `/workspaces/${workspace}`],
         "resource.name": `${IP}:4318`,
         [workspace || "privacy-ana"]: 1,
       });
       // And a span named for an address and an email, as a library might name one.
       tracer.startSpan(`peer ${IP}:5432 for ${EMAIL}`).end();
+      // And an error whose message names the workspace, as one might.
+      span.recordException(new Error(`no such workspace ${workspace} for ${EMAIL}`));
       try {
         return await work();
       } finally {
