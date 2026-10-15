@@ -75,3 +75,52 @@ Witnessed: 2026-10-14 22:45 EDT, by a fresh agent (blind). Commit: 50a2b4f3. Mac
 | 12 | Off: the hook does nothing, costs a call | no | confirmed | 0 OpenTelemetry modules resolved; ~4.5 ns per call |
 
 **Overall:** not met: `ronne.health` stale on the setup-state path, and no test of the health check's recording. Fixed in the next commit: the path sets the database check to 0; a health test with a recording hook drives ok, storage failing and the database unavailable, and fails without the call.
+
+## Task 2 — The SDK, off by default (re-check)
+
+Witnessed: 2026-10-14 22:41 EDT, by a fresh agent (blind). Commit: 50a2b4f3. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Next.js 16's guide documents both ways; `@vercel/otel` is the lighter | no | confirmed | `open-telemetry.md:31,101`; lockfile-only installs: 71 against 21 packages |
+| 2 | Latest stable versions, allowed licenses | no | confirmed | `npm view`: only `-rc`/`-development` newer |
+| 3 | No SDK module without an endpoint; the test catches an eager import | no | confirmed | 12 passed; two mutations each fail it |
+| 4 | The built standalone server with no endpoint never loads the SDK | no | confirmed | `_compile` recorder: the SDK chunk compiled 0 times; only `@opentelemetry/api`, which Next.js's own tracer requires |
+| 5 | `OTEL_SDK_DISABLED=true` keeps it off | no | confirmed | Standalone: chunk 0 times, no telemetry line |
+| 6 | An invalid endpoint: one warning, the server starts | no | confirmed | Three invalid forms: one `telemetry.endpoint_invalid` each, no endpoint in the log |
+| 7 | A real request's trace reaches an in-process receiver | no | confirmed | Standalone: protobuf posts with the configured header, Next.js's `/api/health` spans |
+| 8 | Each trace arrives once | no | confirmed | 79 spans, 79 unique ids; JSON run 73/73 |
+| 9 | The resource: `service.*`, `telemetry.sdk.*`, `deployment.*`, the operator's keys, on spans and metrics | no | confirmed | No `cloud.*`, `vercel.*`, `node.env` |
+| 10 | Settings from the settings file reach the SDK; the environment wins | no | confirmed | `from-file`, `filestage`; `from-env` over `from-file` |
+| 11 | Docker's `.env` reaches the container; empty `OTEL_*` count as unset | no | confirmed | `docker compose config`; all 11 empty → off |
+| 12 | `telemetry.started` once, without the endpoint | no | confirmed | Once; the endpoint and header absent |
+| 13 | Collector down: `export_failed` at most once a minute; requests not slowed | no | confirmed | 3 lines in 130 s; median 2.4 ms against 2.2 ms |
+| 14 | A collector that never answers doesn't slow requests | no | confirmed | Median 2.5 ms; max 25 ms against 27 ms |
+| 15 | Lockfile, licenses, audit; no install scripts | no | confirmed | Up to date; 321; none; none |
+| 16 | The standalone output has the packages; `packages:check` passes | no | confirmed | One chunk; 2,113 files on an unchanged allowlist |
+| 17 | PR #188 answers the six questions truthfully | no | partly | The chunk is 378,883 B now, not 352 KB; 10-13's OpenTelemetry releases were `-rc` (the stable ones 10-06); package counts 21/71 without the root |
+
+**Overall:** not met: #188's dependency answers. Fixed in the PR's description (about 370 KB, 378,883 bytes with tasks 3–5; the last stable release 2026-10-06, 10-13's pre-releases; 21 and 71 packages, from `npm install --package-lock-only`'s lockfile without the root) and in the plan's note.
+
+## Task 3 — Spans
+
+Witnessed: 2026-10-14 22:32 EDT, by a fresh agent (blind). Commit: 50a2b4f3. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Off: nothing from OpenTelemetry imported; the cost a function call | yes | confirmed | `hooks.ts:27-35`; standalone with no endpoint: the SDK chunk never loaded |
+| 2 | Off: no query hook, no storage wrapper | yes | confirmed | `create-db.ts`; `storage/index.ts:20`; 0 `traceId` in the log |
+| 3 | On: a span per query under the request, back-dated | yes | confirmed | `spans.test.ts`; two mutations fail it; real server: every `db *` span under its route or Better Auth's span |
+| 4 | The query text never carries a parameter | no | confirmed | `sql.lit`/`sql.raw` only constants; 59 query texts from a real server |
+| 5 | Storage spans carry bytes, never the key | no | confirmed | `spans.test.ts`; a mutation fails 2 tests; real server |
+| 6 | The three domain spans exist, each under its request, with their attributes | no | confirmed | Real server and the privacy scenario |
+| 7 | `ronne.request_id` on the API route's and proxy's spans | no | confirmed | Real server. Remark: a page's proxy span is in its own trace (Next.js's layout) |
+| 8 | Log lines carry the span's `traceId` and `spanId` | no | confirmed | `logger.ts:215`; a mutation fails the test; real server |
+| 9 | The tests see each span under its request | no | partly | Domain spans: started detached (`ROOT_CONTEXT`), all 20 tests passed |
+| 10 | The domain spans' attributes and the proxy's request id are tested | no | partly | Removing `ronne.feed.cached`, `ronne.feed.plugins`, `ronne.items` or the proxy's annotation left every test passing |
+| 11 | What leaves is sanitized | no | confirmed | `sanitize.test.ts`; two mutations fail it; real server, 718 spans: none of 18 needles |
+| 12 | Each span leaves once | yes | confirmed | 718/718 unique; `ONCE 1`; adding `"auto"` fails it |
+| 13 | Better Auth's spans carry nothing personal and nest | no | confirmed | Only route, operation, hook, context, collection attributes |
+| 14 | No regressions | no | confirmed | 805 + 41 + 20 tests passed |
+
+**Overall:** not met: the domain spans' nesting and attributes, and the proxy's request id, weren't tested. Fixed in the next commit: the privacy test checks each domain span's parent is its request's span and its attributes (`ronne.items`, `ronne.tool`, `ronne.feed.cached` both ways, `ronne.feed.plugins`), the scenario building the feed twice; a proxy test with a recording hook checks `ronne.request_id` is the answer's `X-Request-Id`. Each of the witness's five mutants now fails a test.

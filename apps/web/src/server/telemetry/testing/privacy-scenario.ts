@@ -167,6 +167,10 @@ export const run = async () => {
   await request("GET /api/v1/feeds/[tool]/marketplace.json", () =>
     marketplaceAs(ana, "claude-code", "https://r.example", null, app, storage),
   );
+  // Again: from the cache, when nothing changed.
+  await request("GET /api/v1/feeds/[tool]/marketplace.json", () =>
+    marketplaceAs(ana, "claude-code", "https://r.example", null, app, storage),
+  );
 
   // A draft upload with her token, through apiRoute.
   const guard = {

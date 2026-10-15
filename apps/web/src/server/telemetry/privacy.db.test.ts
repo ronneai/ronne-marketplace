@@ -60,4 +60,50 @@ it("sends the collector nothing personal from the server's flows", () => {
     expect(sent, span).toContain(span);
   for (const [what, value] of Object.entries(never ?? {}))
     expect(value && sent.includes(value), `${what} reached the collector`).toBeFalsy();
+
+  // Each domain span under its request's span, with its attributes (task 3).
+  type Span = {
+    name: string;
+    spanId: string;
+    parentSpanId?: string;
+    attributes: { key: string; value: Record<string, unknown> }[];
+  };
+  const spans: Span[] = (bodies ?? [])
+    .filter((body) => body.startsWith("/v1/traces "))
+    .flatMap((body) =>
+      (
+        JSON.parse(body.slice("/v1/traces ".length)) as {
+          resourceSpans: { scopeSpans: { spans: Span[] }[] }[];
+        }
+      ).resourceSpans.flatMap((r) => r.scopeSpans.flatMap((s) => s.spans)),
+    );
+  const attr = (span: Span | undefined, key: string) =>
+    Object.values(span?.attributes.find((a) => a.key === key)?.value ?? {})[0];
+  const parentsOf = (child: string) =>
+    spans
+      .filter((span) => span.name === child)
+      .map((span) => spans.find((p) => p.spanId === span.parentSpanId)?.name);
+  expect(parentsOf("ronne.release"), "ronne.release's parent").toEqual(["POST /release"]);
+  expect(parentsOf("ronne.draft.upload"), "ronne.draft.upload's parent").toEqual([
+    "POST /api/v1/drafts",
+  ]);
+  expect(parentsOf("ronne.feed.build"), "ronne.feed.build's parents").toEqual([
+    "GET /api/v1/feeds/[tool]/marketplace.json",
+    "GET /api/v1/feeds/[tool]/marketplace.json",
+  ]);
+  expect(
+    attr(
+      spans.find((s) => s.name === "ronne.release"),
+      "ronne.items",
+    ),
+  ).toBe(1);
+  const builds = spans.filter((s) => s.name === "ronne.feed.build");
+  expect(builds.map((s) => attr(s, "ronne.tool"))).toEqual(["claude-code", "claude-code"]);
+  expect(builds.map((s) => attr(s, "ronne.feed.cached")).sort()).toEqual([false, true]);
+  expect(
+    typeof attr(
+      builds.find((s) => attr(s, "ronne.feed.cached") === false),
+      "ronne.feed.plugins",
+    ),
+  ).toBe("number");
 }, 150_000);

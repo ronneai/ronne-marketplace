@@ -67,7 +67,7 @@ goes into `SPEC.md` instead.
   MIT, Apache-2.0, BSD-3-Clause or ISC. `@vercel/otel` reads the standard variables for traces
   (endpoint, headers, protocol, sampler, resource attributes, `OTEL_SDK_DISABLED`); the metric
   exporter reads its own; `OTEL_METRIC_EXPORT_INTERVAL` is read in `settings.ts`. Chosen:
-  `@vercel/otel`. Turbopack bundles it all into one 352 KB server chunk (no new `node_modules` in
+  `@vercel/otel`. Turbopack bundles it all into one server chunk (352 KB with task 2; 378,883 bytes with tasks 3–5) (no new `node_modules` in
   the standalone output, so `packages:check`'s allowlist is unchanged); a request's trace arrived
   from the standalone `server.js` at a local OTLP receiver.
 - For tasks 3 and 5: Next.js's request span carries `http.target`, the path with its query, and an
