@@ -1,7 +1,7 @@
 # Threat model
 
-> Feature [098](../features/098-threat-model/SPEC.md) · Checked against the code on 2026-10-11 (commit
-> `149e14a9`) · What to do when something goes wrong: the
+> Feature [098](../features/098-threat-model/SPEC.md) · Checked against the code on 2026-10-15 (commit
+> `53552ddb`) · What to do when something goes wrong: the
 > [incident runbook](../runbooks/incident-response.md) · Reporting a vulnerability:
 > [`SECURITY.md`](../../SECURITY.md)
 
@@ -121,7 +121,7 @@ The boundaries, in order of what's at stake:
 |---|---|---|
 | A non-member reads a private workspace's items, scopes or submissions | Every read takes the reader; non-members get the same "not found" as an unknown name everywhere: web app, search, API, tarballs, resolve, MCP, feeds, "Used by" (093); guard tests fail on a repository read that doesn't filter (`domains/items/repositories/visibility-guard.db.test.ts`, `domains/submissions/repositories/visibility-guard.db.test.ts`) | What private doesn't do (MVP §12): it isn't encryption; root sees every workspace; a name already in someone's lockfile stays there; the audit log (root only) names private items |
 | A public item depends on a private one | Only a workspace's own items can depend on its items; turning a workspace private is refused while outside items depend on it (093) | — |
-| Logs or telemetry leak private names | Planned: no item, scope or workspace names in logs (100) or telemetry (101) | Until 100 ships, the server logs almost nothing |
+| Logs or telemetry leak private names or secrets | Logs: one redaction step in the logger hides tokens, passwords, cookies and `AUTH_SECRET`, request lines carry the route pattern and never the filled-in path, and a domain error's message is never logged (100). Telemetry is off unless `OTEL_EXPORTER_OTLP_ENDPOINT` is set; then every span passes one sanitizer that sends only listed attribute keys, drops values the logger would change, replaces an IP address, keeps a URL's origin only and a path's app-owned segments only, and a privacy test inspects everything a test collector receives (101) | The sanitizer is best-effort on free text, with limits the [spec](../features/101-metrics-traces/SPEC.md) lists (an address glued to a letter, digit or underscore is kept; a user name or password with an unencoded `/`, `?` or `#` ends early; SQL slices and comments in database text can be mangled). Traces and metrics go to the operator's own collector, which then holds what they say. With `TRUST_PROXY=true`, a client's `X-Request-Id` is logged and sent as `ronne.request_id` |
 
 ### 4.4 The server → its disk, database, settings and backups
 
@@ -129,10 +129,10 @@ The boundaries, in order of what's at stake:
 |---|---|---|
 | Someone reads the settings file | Written with mode 0600 through a temporary file (`writeEnvFile`, `apps/web/src/server/setup/env-file.ts`); `AUTH_SECRET` signs cookies and nothing else; tokens are hashes, passwords argon2 | With it, someone can sign in as anyone (forged cookies) and reach the database. The [incident runbook](../runbooks/incident-response.md): "The settings file, a backup or the server leaked" |
 | Someone reads the database or storage | Token hashes and password hashes only | Everything else is in the clear unless the disk or the database encrypts it. Accepted (MVP §15, Operations: encryption at rest is the platform's); 099 documents how |
-| Someone reads a backup | Planned: `backup --encrypt` (099) | Unencrypted backups hold the settings file |
+| Someone reads a backup | `rmk-server backup --encrypt` seals the archive with a passphrase (scrypt, AES-256-GCM in chunks), and `backup --verify` checks an archive (099) | Backups are not encrypted by default and then hold the settings file; a lost passphrase loses the backup; keeping copies off the machine is the operator's ([backup runbook](../runbooks/backup.md)) |
 | The audit log is altered | Append-only: a guard test fails on any update or delete outside migrations (`domains/audit/audit-log.guard.test.ts`) | Anyone with database write access can change it. No export to an outside store (post-MVP, 007) |
 | Personal data kept forever | — | IP addresses and expired sessions are kept until 102 sets retention; erasing a person is 103 |
-| Data lost with no way back | — | Planned: `rmk-server backup` and `restore` (099). Migrations run on start and can't go back |
+| Data lost with no way back | `rmk-server backup` and `restore`, with a restore test in CI, on all three database kinds (099) | Migrations run on start and can't go back, so a backup before an upgrade is the only undo; nothing runs backups on a schedule but the operator's |
 
 ### 4.5 The registry → developers' machines and git mirrors
 
@@ -153,7 +153,7 @@ The boundaries, in order of what's at stake:
 
 ## 5. Known gaps
 
-Checked on 2026-10-11.
+Checked on 2026-10-15.
 
 | Gap | Closed by, or accepted by |
 |---|---|
@@ -161,9 +161,7 @@ Checked on 2026-10-11.
 | No second factor at sign-in | 105, two-factor sign-in (planned, M16) |
 | Rate limits in one process's memory, reset on restart | 109, shared rate limits (planned, M17) |
 | No release signatures | MVP §14.2 (designed, post-MVP) |
-| No backups or restore | 099 (M14) |
-| No structured logs, no request IDs | 100 (M14) |
-| No monitoring beyond `/api/health` | 101 (M14) |
+| Telemetry's sanitizer is best-effort on free text (the limits in 101's spec) | Accepted: telemetry is off by default and goes only to the operator's own collector |
 | IP addresses and expired sessions kept indefinitely | 102, retention (planned, M15) |
 | A person can't be erased | 103 (planned, M15) |
 | Data at rest not encrypted by Ronne | Accepted: MVP §15, Operations (the disk's, the database's, the bucket's) |
