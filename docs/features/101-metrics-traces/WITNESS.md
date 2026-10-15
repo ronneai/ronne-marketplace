@@ -271,3 +271,28 @@ Witnessed: 2026-10-14 23:20 EDT, by a fresh agent (blind). Commit: fea1a956. Mac
 | 22 | #188: "no new `node_modules` in the standalone output" | no | partly | `@opentelemetry/api` (45 files, 192 KiB) is new in the standalone output and the packed server; the allowlist passes because it's a pattern over `app/` |
 
 **Overall:** not met: the weight answer's `node_modules` sentence, and #188's stale "not witnessed yet" lines. Fixed in #188's description and the plan's note (the new package and its size; why the allowlist passes).
+
+## Task 5 — Nothing personal in telemetry (adversarial)
+
+Witnessed: 2026-10-14 23:21 EDT, by a fresh agent (adversarial). Commit: fea1a956. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The privacy and telemetry tests pass | no | confirmed | 19 passed |
+| 2 | One test drives the listed flows and checks everything received | no | confirmed | In-process flows under hand-made request spans |
+| 3 | A real standalone server, default settings, hostile requests: nothing personal | no | confirmed | 133 bodies: only row 4's hits |
+| 4 | No request header reaches the collector as sent | no | not met | A client's `tracestate: ronne=user-rootwit@example.com` exported as every span's `traceState` |
+| 5 | Next.js's own attributes never name an item, scope or workspace | no | not met | With `NEXT_OTEL_VERBOSE=1` (Next.js's documented switch), the page-render span's `next.route` holds the filled-in path, private workspaces included |
+| 6 | The whole e2e suite with telemetry on, default settings: nothing personal | no | confirmed | 470 bodies against 969 database values: false positives only |
+| 7 | Better Auth's spans and errors carry nothing personal | no | confirmed | Operation, hook, context, collection; no status messages |
+| 8 | Database spans: placeholders, never values | no | confirmed | Only constant literals; PostgreSQL and MySQL compiled offline parameterized |
+| 9 | Events, status messages, links, span names | no | confirmed | Exception types only, no messages, no links, route patterns |
+| 10 | Metric attributes only the listed ones | no | confirmed | e2e and standalone dumps |
+| 11 | The resource carries nothing beyond the service | no | confirmed | `service.name`, `service.version` |
+| 12 | Log lines add only `traceId`/`spanId` | no | confirmed | `server.log` |
+| 13 | The default protocol (protobuf) is sanitized | no | confirmed | 0 hits in raw bodies |
+| 14 | The sanitizer drops what could be personal | no | partly | Kept: URLs in `next.span_name` and `resource.name` (fetch spans, reachable once the server fetches), IPs under other keys, header and `user.*` attributes, event names, free-text `exception.type`, link attributes, trace state |
+| 15 | A collector that doesn't answer leaves request times unchanged | no | confirmed | Real server: 5.0 against 4.2 ms medians |
+| 16 | The tests would catch what's found here | no | partly | With the attribute filter removed, the privacy test still passed; neither test runs Next.js or sends `tracestate` |
+
+**Overall:** not met: a client's `tracestate` exported verbatim; `NEXT_OTEL_VERBOSE` exposing filled-in paths; the sanitizer's gaps. Fixed on `bugfix/101-witness-fixes`: no span keeps a trace state; `NEXT_OTEL_VERBOSE` is turned off at start with `telemetry.verbose_off` (owner, 2026-10-14), and the page-render span's `next.route` is dropped; a URL in any value or name keeps its origin; IP values, header and `user.*` keys, link attributes and free-text exception types are dropped; event names sanitized; the fetch instrumentation off. The privacy scenario's requests inherit a client's `tracestate` holding an email; keeping the trace state, removing the attribute filter, or leaving verbose spans on each fails a test. A real standalone server with a client `tracestate` and `NEXT_OTEL_VERBOSE=1`: 78 spans, no trace state, no names or email. The Logs table and Monitoring section (ronne-web) gain `telemetry.verbose_off`.

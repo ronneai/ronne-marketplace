@@ -51,6 +51,8 @@ export const startTelemetry = (
   registerOTel({
     serviceName: otel.OTEL_SERVICE_NAME ?? "ronne-marketplace",
     attributes: { "service.version": version },
+    // No fetch instrumentation: the server makes no outgoing requests, and its spans keep URLs.
+    instrumentations: [],
     // Our processor only: `@vercel/otel`'s default ("auto") adds its own OTLP exporter whenever an
     // endpoint is set, which would send every span a second time, unsanitized.
     spanProcessors: [

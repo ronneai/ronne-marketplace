@@ -79,6 +79,11 @@ export const EVENTS = {
     msg: "Telemetry couldn't start: it is off",
     fields: ["err"],
   },
+  "telemetry.verbose_off": {
+    level: "warn",
+    msg: "NEXT_OTEL_VERBOSE is turned off: verbose spans would carry private names",
+    fields: [],
+  },
   "telemetry.export_failed": {
     level: "warn",
     msg: "Telemetry couldn't reach the collector (at most once a minute)",

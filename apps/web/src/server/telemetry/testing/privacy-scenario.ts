@@ -6,7 +6,7 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { trace } from "@opentelemetry/api";
+import { createTraceState, ROOT_CONTEXT, trace } from "@opentelemetry/api";
 import { createTestDb } from "../../db/testing/test-db";
 import { marketplaceAs } from "../../domains/feeds/actions/feeds";
 import { authenticateToken, exchangePassword } from "../../domains/identity/actions/access-tokens";
@@ -54,8 +54,16 @@ export const run = async () => {
   // workspace, scope and item, with an email in its query), the client's address and user agent.
   // Only the sanitizer keeps them from the collector.
   let workspace = "";
+  // And a client's `traceparent` and `tracestate`, which it can fill with anything: an email here.
+  const incoming = trace.setSpanContext(ROOT_CONTEXT, {
+    traceId: "0af7651916cd43dd8448eb211c80319d",
+    spanId: "b7ad6b7169203331",
+    traceFlags: 1,
+    isRemote: true,
+    traceState: createTraceState(`ronne=${EMAIL}`),
+  });
   const request = <T>(name: string, work: () => Promise<T>) =>
-    tracer.startActiveSpan(name, async (span) => {
+    tracer.startActiveSpan(name, {}, incoming, async (span) => {
       const path = `/workspaces/${workspace}/items/@privscope/privitem?ref=${EMAIL}`;
       span.setAttributes({
         "http.target": path,

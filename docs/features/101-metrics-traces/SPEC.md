@@ -62,7 +62,8 @@ OpenTelemetry's, always as JSON. Turbopack bundles them into one server chunk, l
 
 **Events (100):** `telemetry.started` (info: `traces`, `metrics`, booleans),
 `telemetry.endpoint_invalid` (warn), `telemetry.failed` (error, `err`: the SDK couldn't start; the
-server starts without it), `telemetry.export_failed` (warn, `signal`, at most once a minute).
+server starts without it), `telemetry.verbose_off` (warn: `NEXT_OTEL_VERBOSE` turned off),
+`telemetry.export_failed` (warn, `signal`, at most once a minute).
 
 ### Traces
 
@@ -72,8 +73,15 @@ server starts without it), `telemetry.export_failed` (warn, `signal`, at most on
 - **What leaves, sanitized:** every span passes one sanitizing step before export. Attributes holding
   a path or URL (`http.target`, `http.url`, `url.*`: an item page's path names the item), a client's
   address and a user agent are dropped, and so is any value the logger would change (an email, a
-  token, a URL's password, a stored path). An exception event keeps its type only; a status, its
-  code only; a URL in a span's name, its origin only. `@vercel/otel`'s own processors aren't used:
+  token, a URL's password, a stored path), and so is a value that is an IP address, any request or
+  response header attribute, and `user.*`; a URL in any value or name keeps its origin only. An
+  exception event keeps its type only, when it's a class name; a status, its code only; a link, its
+  context only; and no span keeps a trace state, which a client sets in its `tracestate` header.
+  Next.js's page-render span's `next.route` (the filled-in path) is dropped, and the fetch
+  instrumentation is off (the server makes no outgoing requests).
+- **`NEXT_OTEL_VERBOSE`**, Next.js's switch for more spans, puts filled-in paths with private names
+  in its spans: telemetry turns it off at start and writes `telemetry.verbose_off` (owner,
+  2026-10-14). `@vercel/otel`'s own processors aren't used:
   its default adds a second exporter, unsanitized, whenever an endpoint is set.
 - **Database:** one span per query, from a Kysely plugin added in `create-db.ts` when tracing is
   on: `db.system.name` (`sqlite`, `postgresql`, `mysql`), `db.operation.name`, and the SQL text with

@@ -31,6 +31,12 @@ export const startTelemetryIfSet = async (env: NodeJS.ProcessEnv = process.env):
   // loadConfig counts it: the SDK reads some itself, and an empty endpoint isn't one.
   for (const key of Object.keys(env)) if (key.startsWith("OTEL_") && !env[key]) delete env[key];
   for (const [key, value] of Object.entries(otel)) env[key] ??= value;
+  // Next.js's verbose spans put the filled-in path (private names) in `next.route`: off, with a
+  // warning. Next.js reads it as each span starts, so turning it off here is in time.
+  if (env.NEXT_OTEL_VERBOSE) {
+    delete env.NEXT_OTEL_VERBOSE;
+    log.event("telemetry.verbose_off");
+  }
   try {
     const { startTelemetry } = await import("./start");
     startTelemetry(settings, otel);

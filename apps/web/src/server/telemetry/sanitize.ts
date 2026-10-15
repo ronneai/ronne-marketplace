@@ -26,28 +26,66 @@ const DROPPED = new Set([
   "enduser.id",
 ]);
 
+/** Keys never sent whatever their value: request and response headers, and the user's. */
+const DROPPED_PREFIXES = ["http.request.header.", "http.response.header.", "user.", "enduser."];
+
+/** An IPv4 or IPv6 address, whole: a client's, or a host's that maps to one. */
+const IP = /^(?:\d{1,3}(?:\.\d{1,3}){3}|[0-9a-f]*:[0-9a-f:.]*:[0-9a-f:.]*)$/i;
+
+/** A URL in a value keeps only its origin: its path and query can name an item or hold a token. */
+const originOnly = (value: string) => value.replace(/\b(https?:\/\/[^/\s?#]+)[^\s"']*/g, "$1");
+
 type Value = ReadableSpan["attributes"][string];
 
-/** A value the logger would change (an email, a token, a URL's password, a stored path) isn't sent. */
-const safe = (value: Value): boolean =>
-  typeof value === "string"
-    ? redactString(value) === value
-    : Array.isArray(value)
-      ? value.every((item) => typeof item !== "string" || redactString(item) === item)
-      : true;
+/**
+ * A string that may be sent: not an IP address, and nothing the logger would change (an email, a
+ * token, a URL's password, a stored path) once a URL in it is cut to its origin.
+ */
+const safeString = (value: string) => !IP.test(value.trim()) && redactString(value) === value;
+
+/** A value as it's sent (URLs cut to their origin), or undefined when it isn't sent. */
+const sendable = (value: Value): Value | undefined => {
+  if (typeof value === "string") {
+    const cut = originOnly(value);
+    return safeString(cut) ? cut : undefined;
+  }
+  if (Array.isArray(value)) {
+    const items = value.map((item) => (typeof item === "string" ? originOnly(item) : item));
+    return items.every((item) => typeof item !== "string" || safeString(item))
+      ? (items as Value)
+      : undefined;
+  }
+  return value;
+};
+
+/**
+ * Next.js's page-render span names the filled-in path in `next.route` (with NEXT_OTEL_VERBOSE,
+ * which start turns off; this is the second guard). Its request spans use the route's pattern.
+ */
+const fillsInPath = (attributes: ReadableSpan["attributes"]) =>
+  attributes["next.span_type"] === "BaseServer.renderToResponse";
 
 export const sanitizeAttributes = (attributes: ReadableSpan["attributes"]) =>
   Object.fromEntries(
-    Object.entries(attributes).filter(([key, value]) => !DROPPED.has(key) && safe(value)),
+    Object.entries(attributes).flatMap(([key, value]) => {
+      if (DROPPED.has(key) || DROPPED_PREFIXES.some((prefix) => key.startsWith(prefix))) return [];
+      if ((key === "next.route" || key === "next.page") && fillsInPath(attributes)) return [];
+      const sent = sendable(value);
+      return sent === undefined ? [] : [[key, sent]];
+    }),
   );
 
-/** A URL in a span's name (`fetch GET https://…/items/x`) keeps only its origin. */
-const sanitizeName = (name: string) =>
-  name.replace(/\b(https?:\/\/[^/\s?#]+)[^\s]*/g, "$1").replace(/\S+@\S+/g, "[email]");
+/** A URL in a span's or an event's name keeps only its origin; anything personal is hidden. */
+const sanitizeName = (name: string) => redactString(originOnly(name));
+
+/** An exception's type, when it's a class name (`ForbiddenError`), never free text. */
+const CLASS_NAME = /^[A-Za-z_$][\w$.]{0,99}$/;
 
 /**
  * The span as it's sent: its attributes filtered; its events (an exception's) keeping their name
- * and the exception's type only, never its message or stack; its status without a message.
+ * and the exception's type (a class name) only, never its message or stack; its links without
+ * attributes; its status without a message; and no trace state, which a client sets in its
+ * `tracestate` header and could fill with anything.
  */
 export const sanitizeSpan = (
   span: ReadableSpan,
@@ -58,18 +96,29 @@ export const sanitizeSpan = (
     name: { value: sanitizeName(span.name) },
     attributes: { value: sanitizeAttributes(span.attributes) },
     events: {
-      value: span.events.map((event) => ({
-        ...event,
-        attributes:
-          event.attributes?.["exception.type"] !== undefined
-            ? { "exception.type": event.attributes["exception.type"] }
-            : {},
-      })),
+      value: span.events.map((event) => {
+        const type = event.attributes?.["exception.type"];
+        return {
+          ...event,
+          name: sanitizeName(event.name),
+          attributes:
+            typeof type === "string" && CLASS_NAME.test(type) ? { "exception.type": type } : {},
+        };
+      }),
     },
+    links: { value: span.links.map((link) => ({ context: withoutState(link.context) })) },
     status: { value: { code: span.status.code } },
+    spanContext: { value: () => withoutState(span.spanContext()) },
   });
 
 type Resource = ReadableSpan["resource"];
+type Context = ReturnType<ReadableSpan["spanContext"]>;
+
+/** A span context without its trace state. */
+const withoutState = (context: Context): Context => {
+  const { traceState: _dropped, ...rest } = context;
+  return rest;
+};
 
 /**
  * The resource as it's sent: the service's name and version, the SDK's own, `deployment.*`, and
