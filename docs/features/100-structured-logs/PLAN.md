@@ -32,7 +32,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   `console.*` in `apps/web/src/server` is gone, and a lint rule or guard test keeps it out.
   *Done when:* tests assert each event's line and fields; the guard fails on a new `console.*`.
 
-- [ ] **4. Nothing secret, nothing personal.** [risky] A test drives sign-in (right and wrong
+- [x] **4. Nothing secret, nothing personal.** [risky] A test drives sign-in (right and wrong
   password), token exchange, an authenticated API call, a draft upload and a failed database
   connection with a password in its URL, captures stdout, and finds no password, token, cookie,
   `AUTH_SECRET`, database password, email or IP address. The e2e harness checks the server's output
