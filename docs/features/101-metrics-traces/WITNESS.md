@@ -124,3 +124,175 @@ Witnessed: 2026-10-14 22:32 EDT, by a fresh agent (blind). Commit: 50a2b4f3. Mac
 | 14 | No regressions | no | confirmed | 805 + 41 + 20 tests passed |
 
 **Overall:** not met: the domain spans' nesting and attributes, and the proxy's request id, weren't tested. Fixed in the next commit: the privacy test checks each domain span's parent is its request's span and its attributes (`ronne.items`, `ronne.tool`, `ronne.feed.cached` both ways, `ronne.feed.plugins`), the scenario building the feed twice; a proxy test with a recording hook checks `ronne.request_id` is the answer's `X-Request-Id`. Each of the witness's five mutants now fails a test.
+
+## Task 1 — Health checks storage
+
+Witnessed: 2026-10-14 23:07 EDT, by a fresh agent (blind). Commit: fea1a956. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `StorageAdapter` declares `check()` | no | confirmed | `storage-adapter.ts:15-19` |
+| 2 | The local adapter's `check()` writes no file | no | confirmed | `stat` and `access` only; a probe: 0 entries after, a missing path not created |
+| 3 | A folder not made yet passes when its nearest parent can take it | no | confirmed | Probe; the test fails with two mutations |
+| 4 | A file in its place, a read-only folder, a missing folder under a read-only parent, a path under a file all fail | no | confirmed | Probe: each fails with its error |
+| 5 | Every other implementer has `check()` | no | confirmed | `instanceStorage`, `tracedStorage`; `tsc` exit 0 |
+| 6 | Database first, then storage; storage skipped when setup or the database fails | no | confirmed | `health.ts:43-68`; checking storage first fails 8 tests |
+| 7 | Each check gets a 3 s limit | no | confirmed | `withinTimeout`; two mutations fail the timeout test |
+| 8 | The two together stay under the Dockerfile's health-check timeout | no | partly | `--timeout=5s`, but 3 s + 3 s run one after the other (up to 6 s), and `getSetupState` had no limit |
+| 9 | The 200 body exactly, `no-store`, nothing else | no | confirmed | `toEqual`; an extra field fails it |
+| 10 | The 503 `storage_unavailable` body | no | confirmed | `toEqual` on four failures |
+| 11 | `setup_required` and `database_unavailable` unchanged | no | confirmed | Tests; e2e, Dockerfile, install scripts and workflows unchanged |
+| 12 | `storage.unavailable` written, no stored item path | no | confirmed | Removing the line fails the test. Remark: the test didn't assert the path is hidden |
+| 13 | `health.db.test.ts` covers read-only and missing folders, and fails when the check breaks | no | confirmed | Three mutations fail it. Remark: removing `isDirectory()` survived (an executable file in the folder's place) |
+| 14 | Database tests on three servers | no | confirmed | CI jobs on mariadb, postgres, mysql; read-only cases ran |
+| 15 | The Dockerfile's health check passes unchanged | no | confirmed | Image job: `setup_required`, then 200s |
+| 16 | The server checks pass | no | confirmed | Install and run ×4, systemd, launchd |
+| 17 | The e2e tests pass unchanged | no | confirmed | 72 and 72 |
+
+**Overall:** not met: the two 3-second limits added up past the Dockerfile's 5 seconds, and the setup state had none. Fixed on `bugfix/101-witness-fixes`: one 4-second deadline, the setup state and the database's check at most 3 seconds each, storage what's left; tests for a hung storage (answers by about 4 s), a database that never answers (`database_unavailable` within 3 s), an executable file in the folder's place, and the logged path hidden. Passes on SQLite, PostgreSQL, MySQL and MariaDB.
+
+## Task 4 — Metrics (re-check)
+
+Witnessed: 2026-10-14 23:20 EDT, by a fresh agent (blind). Commit: fea1a956. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Every instrument, kind and unit | no | confirmed | Probe: exactly 10 |
+| 2 | Exactly the listed attributes | no | confirmed | Two mutations fail the test |
+| 3 | Sign-ins once, right outcome | no | confirmed | success 2, failure 1, rate_limited 1 |
+| 4 | Token exchanges, right outcome | no | confirmed | 1 / 1 / 1 |
+| 5 | Releases, single and bulk, once | no | confirmed | 3 |
+| 6 | Feed builds and cache hits; duration for builds | no | confirmed | 2 / 2; count 2 |
+| 7 | Uploads accepted or refused; a 429 not a refusal | no | confirmed | 1 / 1 |
+| 8 | Rate limits with the four values | no | confirmed | One each |
+| 9 | Request histogram from the API wrapper, patterns only | no | confirmed | Points with literal patterns. Remark: whole milliseconds, so fast requests record 0 |
+| 10 | Query histogram, dialect and operation | no | confirmed | SQL verbs only |
+| 11 | `ronne.health` on every path | no | confirmed | Each path probed. Remark: storage keeps its last value when the database fails |
+| 12 | A test fails when any health recording is removed | no | partly | The query-failure call (`health.ts:54`) removed → every test passed |
+| 13 | No personal data, no unbounded values | no | confirmed | 19 metric bodies |
+| 14 | Off costs a function call | no | confirmed | 0 OpenTelemetry modules |
+
+**Overall:** not met: the query-failure recording unpinned. Fixed on `bugfix/101-witness-fixes`: the gauge test drives a setup state that says ready and a query that fails; without the call it fails.
+
+## Task 6 — Documentation (re-check)
+
+Witnessed: 2026-10-14 23:03 EDT, by a fresh agent (blind). Commit: fea1a956 (ronne-web 9e88973, the same tree as main 2592d8d). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `operations#monitoring` in both `topics.ts`, titled as on the page | no | confirmed | Both; 7 sections in the same order |
+| 2 | The health endpoint's statuses, codes, body; reasons in the log | no | confirmed | `health.ts:10,44-71`; tests |
+| 3 | Docker's health check, the services and the install scripts wait on it | no | confirmed | `Dockerfile:70`, `install.sh:415,417`, the server package |
+| 4 | Off unless an endpoint is set; settings file or environment; read at start | no | confirmed | `settings.ts`, `index.ts`, `config.ts`, `register()` |
+| 5 | Docker: `OTEL_*` in the `.env` next to `compose.yaml` | no | confirmed | `docker compose config`; empty counts as unset |
+| 6 | The example variables | no | confirmed | `start.ts:61`, `settings.ts:76-79` |
+| 7 | Signal endpoints, sampler, export interval | no | confirmed | `settings.ts`; `@vercel/otel`'s `buildSamplerFromEnv` |
+| 8 | The protocol sentence: traces only; metrics always JSON | no | confirmed | `settings.ts:65-68`, `start.ts:33-34`, the metric exporter's serializer; pt and fr the same |
+| 9 | `OTEL_SDK_DISABLED`; an invalid endpoint reported, off | no | confirmed | `settings.ts:57-60`, `index.ts:26` |
+| 10 | A collector down or slow never slows a request; one `export_failed` a minute | no | confirmed | `failures.ts`; two tests |
+| 11 | The collector config is valid for contrib 0.162.0 | no | confirmed | The release's manifest and components' READMEs |
+| 12 | The `docker run` line | no | confirmed | The release's Dockerfile config path; the tag exists |
+| 13 | The metrics table | no | confirmed | `real-hooks.ts`; every `limit` value maps |
+| 14 | The spans | no | confirmed | Next's names; `real-hooks.ts`; `api-route.ts` |
+| 15 | Never sent; the resource | no | confirmed | `sanitize.ts`; a probe of the resource keys |
+| 16 | The suggested alerts use real instruments | no | confirmed | `health.ts`, the instruments |
+| 17 | Logs and traces joined | no | confirmed | `logger.ts:216`; `spans.test.ts` |
+| 18 | The events table matches `events.ts` | no | confirmed | 26 rows each, same order |
+| 19 | en, pt, fr the same, in the site's terms | no | confirmed | The diffs side by side |
+| 20 | `.env.example` | no | confirmed | Commented, correct |
+| 21 | `install.md`'s new row | no | confirmed | Line 116 |
+| 22 | Render tests in both repositories | no | confirmed | 138 passed, typecheck exit 0; help 3 passed |
+
+**Overall:** met.
+
+## Task 3 — Spans (re-check)
+
+Witnessed: 2026-10-14 23:12 EDT, by a fresh agent (blind). Commit: fea1a956. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Off: nothing from OpenTelemetry imported | no | confirmed | Resolve-hook probe: 0 modules |
+| 2 | Off: no query hook, no storage wrapper | no | confirmed | `queryLog` undefined; `tracedStorage(ls) === ls` |
+| 3 | On: a span per query under the request, placeholders only | no | confirmed | Two mutants fail; real server: 1,173 `db *` spans, all parented, only constant literals |
+| 4 | Storage spans: bytes, never the key | no | confirmed | Two mutants fail; real server: 60 spans |
+| 5 | The domain spans under their requests with their attributes (real server) | no | confirmed | Single and bulk `ronne.release`, `ronne.feed.build`, `ronne.draft.upload` each under its route |
+| 6 | `ronne.request_id` on route and proxy spans (real server) | no | confirmed | Every route span, all 105 middleware spans |
+| 7 | Log lines carry `traceId`/`spanId` | no | confirmed | 27/27 match an exported span |
+| 8 | Tests pin each domain span's nesting | no | partly | Detaching the bulk `releaseMany`'s `ronne.release` → 134/134 pass |
+| 9 | Tests pin each domain attribute | no | partly | Dropping the bulk `ronne.items` (`bulk-release.ts:136`) → 134/134 pass |
+| 10 | Tests pin the proxy's and route's request id | no | confirmed | Each mutant fails |
+| 11 | Tests pin the log's trace IDs | no | confirmed | Mutant fails |
+| 12 | Tests see each span under its request | no | partly | Not for the bulk `ronne.release` |
+| 13 | What leaves is sanitized (real server) | no | confirmed | 2,558 spans, JSON and protobuf: 0 hits for 20 needles; no events or status messages |
+| 14 | Each span leaves once | no | confirmed | 2,558 unique |
+| 15 | No regressions | no | confirmed | 134 + 1 tests passed |
+
+**Overall:** not met: the bulk release's span and count untested. Fixed on `bugfix/101-witness-fixes`: the privacy scenario releases two more items together under `POST /reviews`, and the test expects two `ronne.release` spans (under `POST /release` and `POST /reviews`) with `ronne.items` 1 and 2; detaching the bulk span or dropping its count fails it. Passes on SQLite, PostgreSQL, MySQL and MariaDB. Remark from the pass: its first server run sent data to another witness's receiver (task 5's adversarial, port 4399), so that pass's counts may include it.
+
+## Task 5 — Nothing personal in telemetry
+
+Witnessed: 2026-10-14 23:15 EDT, by a fresh agent (blind). Commit: fea1a956. Machine: macOS 27.0.1 (arm64), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `privacy.db.test.ts` passes (SQLite) | no | confirmed | 4 of 4 runs |
+| 2 | It passes on PostgreSQL, MySQL and MariaDB in CI | no | confirmed | Database run 38673349546: ✓ in all three |
+| 3 | It drives each listed flow for real, with tracing and metrics on | no | partly | Real calls throughout; but the request spans had none of Next.js's attributes, and the released item was a rule, so the feed was empty (`ronne.feed.plugins` 0) |
+| 4 | It inspects everything the collector received | no | confirmed | Every body stored; 16 values searched |
+| 5 | It catches a planted leak in each category | no | confirmed | 10 mutations each fail it |
+| 6 | It catches a leak through Next.js's request attributes (the sanitizer bypassed) | no | not met | Bypassing the sanitizer, or keeping every attribute, passes it; a real build then sends `http.target` naming the workspace, scope, item and an email. Plugin names on `ronne.feed.build` pass too (empty feed) |
+| 7 | A collector that never answers leaves request times unchanged | no | confirmed | 4 of 4 runs; CI on Node 22 and 24 |
+| 8 | The black-hole test catches an export that blocks a request | no | confirmed | Two mutations fail it |
+| 9 | A real standalone server sends nothing personal | no | confirmed | 195 bodies, 1,528 spans: every needle absent |
+
+**Overall:** not met: the test didn't exercise the sanitizer and its feed was empty; the shipped code leaked nothing. Fixed on `bugfix/101-witness-fixes`: the scenario's request spans carry Next.js's attributes (`http.target`, `url.full`, `url.path` with the workspace, scope and item names and an email, `http.client_ip`, `client.address`, the user agent); it releases skills, so the fresh feed holds 3 plugins (asserted); every searched value must be non-empty. Bypassing the sanitizer or putting plugin names on the span now fails it. Passes on SQLite, PostgreSQL, MySQL and MariaDB.
+
+## Task 2 — The SDK, off by default (second re-check)
+
+Witnessed: 2026-10-14 23:20 EDT, by a fresh agent (blind). Commit: fea1a956. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | No SDK module without an endpoint; the test catches an eager import | no | confirmed | 16 passed; two mutations fail it |
+| 2 | A built standalone server with no endpoint never loads the SDK chunk | no | confirmed | `_compile` recorder: the chunk 0 times |
+| 3 | `OTEL_SDK_DISABLED=true` keeps it off | no | confirmed | `true` and `" TRUE "`: 0 posts |
+| 4 | An invalid endpoint: one warning, the server starts | no | confirmed | Four forms |
+| 5 | A real request's trace reaches a receiver | no | confirmed | Protobuf traces with the configured header; JSON metrics |
+| 6 | Each trace once, only the allowed resource keys | no | confirmed | 81/81 unique; resource as allowed on both signals |
+| 7 | Settings from the file; environment wins; empty counts as unset | no | confirmed | As expected; all empty → off |
+| 8 | Docker's `.env` reaches the container | no | confirmed | `docker compose config` |
+| 9 | `telemetry.started` once, without the endpoint or headers | no | confirmed | One line |
+| 10 | Collector down: `export_failed` once a minute | no | confirmed | 3 lines in 135 s |
+| 11 | Down or never answering doesn't slow requests | no | confirmed | Medians 2.03 / 2.04 ms against 1.80 |
+| 12 | Lockfile, licenses, audit | no | confirmed | All pass |
+| 13 | `packages:check` passes; the packed server has the SDK | no | confirmed | 2,113 files; the chunk in `npm pack --dry-run` |
+| 14 | The bundle and `release:smoke` | no | confirmed | CI run 38673349541 |
+| 15–21 | #188's answers: need, license, health, advisories, install scripts, weight, chunk size | no | confirmed | `npm view`, osv.dev, lockfile-only installs, `npm pack` tarballs, `stat` |
+| 22 | #188: "no new `node_modules` in the standalone output" | no | partly | `@opentelemetry/api` (45 files, 192 KiB) is new in the standalone output and the packed server; the allowlist passes because it's a pattern over `app/` |
+
+**Overall:** not met: the weight answer's `node_modules` sentence, and #188's stale "not witnessed yet" lines. Fixed in #188's description and the plan's note (the new package and its size; why the allowlist passes).
+
+## Task 5 — Nothing personal in telemetry (adversarial)
+
+Witnessed: 2026-10-14 23:21 EDT, by a fresh agent (adversarial). Commit: fea1a956. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The privacy and telemetry tests pass | no | confirmed | 19 passed |
+| 2 | One test drives the listed flows and checks everything received | no | confirmed | In-process flows under hand-made request spans |
+| 3 | A real standalone server, default settings, hostile requests: nothing personal | no | confirmed | 133 bodies: only row 4's hits |
+| 4 | No request header reaches the collector as sent | no | not met | A client's `tracestate: ronne=user-rootwit@example.com` exported as every span's `traceState` |
+| 5 | Next.js's own attributes never name an item, scope or workspace | no | not met | With `NEXT_OTEL_VERBOSE=1` (Next.js's documented switch), the page-render span's `next.route` holds the filled-in path, private workspaces included |
+| 6 | The whole e2e suite with telemetry on, default settings: nothing personal | no | confirmed | 470 bodies against 969 database values: false positives only |
+| 7 | Better Auth's spans and errors carry nothing personal | no | confirmed | Operation, hook, context, collection; no status messages |
+| 8 | Database spans: placeholders, never values | no | confirmed | Only constant literals; PostgreSQL and MySQL compiled offline parameterized |
+| 9 | Events, status messages, links, span names | no | confirmed | Exception types only, no messages, no links, route patterns |
+| 10 | Metric attributes only the listed ones | no | confirmed | e2e and standalone dumps |
+| 11 | The resource carries nothing beyond the service | no | confirmed | `service.name`, `service.version` |
+| 12 | Log lines add only `traceId`/`spanId` | no | confirmed | `server.log` |
+| 13 | The default protocol (protobuf) is sanitized | no | confirmed | 0 hits in raw bodies |
+| 14 | The sanitizer drops what could be personal | no | partly | Kept: URLs in `next.span_name` and `resource.name` (fetch spans, reachable once the server fetches), IPs under other keys, header and `user.*` attributes, event names, free-text `exception.type`, link attributes, trace state |
+| 15 | A collector that doesn't answer leaves request times unchanged | no | confirmed | Real server: 5.0 against 4.2 ms medians |
+| 16 | The tests would catch what's found here | no | partly | With the attribute filter removed, the privacy test still passed; neither test runs Next.js or sends `tracestate` |
+
+**Overall:** not met: a client's `tracestate` exported verbatim; `NEXT_OTEL_VERBOSE` exposing filled-in paths; the sanitizer's gaps. Fixed on `bugfix/101-witness-fixes`: no span keeps a trace state; `NEXT_OTEL_VERBOSE` is turned off at start with `telemetry.verbose_off` (owner, 2026-10-14), and the page-render span's `next.route` is dropped; a URL in any value or name keeps its origin; IP values, header and `user.*` keys, link attributes and free-text exception types are dropped; event names sanitized; the fetch instrumentation off. The privacy scenario's requests inherit a client's `tracestate` holding an email; keeping the trace state, removing the attribute filter, or leaving verbose spans on each fails a test. A real standalone server with a client `tracestate` and `NEXT_OTEL_VERBOSE=1`: 78 spans, no trace state, no names or email. The Logs table and Monitoring section (ronne-web) gain `telemetry.verbose_off`.

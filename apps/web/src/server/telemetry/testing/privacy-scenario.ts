@@ -6,7 +6,7 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { trace } from "@opentelemetry/api";
+import { createTraceState, ROOT_CONTEXT, trace } from "@opentelemetry/api";
 import { createTestDb } from "../../db/testing/test-db";
 import { marketplaceAs } from "../../domains/feeds/actions/feeds";
 import { authenticateToken, exchangePassword } from "../../domains/identity/actions/access-tokens";
@@ -17,7 +17,7 @@ import type { CurrentUser } from "../../domains/identity/models/user";
 import { cookieHeaders, testAppAuth } from "../../domains/identity/testing/test-auth";
 import { createScope } from "../../domains/items/actions/scopes";
 import { createDraft, saveDraftFiles } from "../../domains/submissions/actions/drafts";
-import { publishSubmission } from "../../domains/submissions/actions/publish";
+import { publishSubmission, releaseMany } from "../../domains/submissions/actions/publish";
 import { submitDraft } from "../../domains/submissions/actions/submissions";
 import { apiRoute } from "../../http/api-route";
 import { postDraft } from "../../http/drafts-api";
@@ -50,8 +50,30 @@ export const run = async () => {
   await startTelemetryIfSet();
   const tracer = trace.getTracer("privacy-test");
   // Each flow as a request: under a span, as Next.js's request span would be.
+  // Each request's span carries what Next.js's request spans carry: the filled-in path (naming the
+  // workspace, scope and item, with an email in its query), the client's address and user agent.
+  // Only the sanitizer keeps them from the collector.
+  let workspace = "";
+  // And a client's `traceparent` and `tracestate`, which it can fill with anything: an email here.
+  const incoming = trace.setSpanContext(ROOT_CONTEXT, {
+    traceId: "0af7651916cd43dd8448eb211c80319d",
+    spanId: "b7ad6b7169203331",
+    traceFlags: 1,
+    isRemote: true,
+    traceState: createTraceState(`ronne=${EMAIL}`),
+  });
   const request = <T>(name: string, work: () => Promise<T>) =>
-    tracer.startActiveSpan(name, async (span) => {
+    tracer.startActiveSpan(name, {}, incoming, async (span) => {
+      const path = `/workspaces/${workspace}/items/@privscope/privitem?ref=${EMAIL}`;
+      span.setAttributes({
+        "http.target": path,
+        "url.full": `https://r.example${path}`,
+        "url.path": path,
+        "http.client_ip": IP,
+        "client.address": IP,
+        "user_agent.original": "privacy-agent/1.0",
+        "http.user_agent": "privacy-agent/1.0",
+      });
       try {
         return await work();
       } finally {
@@ -112,6 +134,7 @@ export const run = async () => {
       .where("id", "=", ana.personal ?? "")
       .executeTakeFirstOrThrow()
   ).name;
+  workspace = personal;
 
   // The token exchange `rmk login` makes, wrong and right.
   await request("POST /api/v1/auth/token", () =>
@@ -129,41 +152,57 @@ export const run = async () => {
     { name: "privscope", description: "Ana's.", workspaceId: ana.personal ?? "" },
     app,
   );
-  const draft = await createDraft(
-    asAna,
-    { scope: `@${personal}/privscope`, name: "privitem", type: "rule" },
-    app,
-  );
-  await saveDraftFiles(
-    asAna,
-    draft.id,
-    {
-      writes: [
-        {
-          path: "ronne.yaml",
-          encoding: "utf8",
-          content: `name: "@${personal}/privscope/privitem"\ntype: rule\ndescription: A rule.\nrule:\n  body: rule.md\n  activation: always\n`,
-          executable: false,
-          loadedAt: draft.files.find((f) => f.path === "ronne.yaml")?.updatedAt ?? null,
-        },
-        {
-          path: "rule.md",
-          encoding: "utf8",
-          content: "Be kind.\n",
-          executable: false,
-          loadedAt: draft.files.find((f) => f.path === "rule.md")?.updatedAt ?? null,
-        },
-      ],
-      deletes: [],
-    },
-    app,
-  );
-  await request("POST /submissions", () => submitDraft(asAna, draft.id, app, storage));
+  /** A skill by Ana in her private scope, submitted (approved at once: her own workspace). */
+  const submitted = async (name: string) => {
+    const draft = await createDraft(
+      asAna,
+      { scope: `@${personal}/privscope`, name, type: "skill" },
+      app,
+    );
+    const loadedAt = (path: string) => draft.files.find((f) => f.path === path)?.updatedAt ?? null;
+    await saveDraftFiles(
+      asAna,
+      draft.id,
+      {
+        writes: [
+          {
+            path: "ronne.yaml",
+            encoding: "utf8",
+            content: `name: "@${personal}/privscope/${name}"\ntype: skill\ndescription: A private skill.\n`,
+            executable: false,
+            loadedAt: loadedAt("ronne.yaml"),
+          },
+          {
+            path: "SKILL.md",
+            encoding: "utf8",
+            content: `---\nname: ${name}\ndescription: A private skill.\n---\nDo it.\n`,
+            executable: false,
+            loadedAt: loadedAt("SKILL.md"),
+          },
+        ],
+        deletes: [],
+      },
+      app,
+    );
+    await request("POST /submissions", () => submitDraft(asAna, draft.id, app, storage));
+    return draft.id;
+  };
+  const single = await submitted("privitem");
   await request("POST /release", () =>
-    publishSubmission(asAna, draft.id, { choice: { kind: "stable", bump: "minor" } }, app, storage),
+    publishSubmission(asAna, single, { choice: { kind: "stable", bump: "minor" } }, app, storage),
+  );
+  // A bulk release of two more: one ronne.release for both.
+  const bulk = [await submitted("privbulka"), await submitted("privbulkb")];
+  await request("POST /reviews", () =>
+    releaseMany(
+      asAna,
+      { ids: bulk, settings: { kind: "stable", bump: "suggested" } },
+      app,
+      storage,
+    ),
   );
 
-  // A feed build, by Ana, whose feed holds her private item.
+  // A feed build, by Ana, whose feed holds her private skills.
   await request("GET /api/v1/feeds/[tool]/marketplace.json", () =>
     marketplaceAs(ana, "claude-code", "https://r.example", null, app, storage),
   );
@@ -224,6 +263,8 @@ export const run = async () => {
     scope: "privscope",
     item: "privitem",
     upload: "privupload",
+    bulkA: "privbulka",
+    bulkB: "privbulkb",
     email: EMAIL,
     rootEmail: "privacy-root@example.com",
     anaId: ana.id,

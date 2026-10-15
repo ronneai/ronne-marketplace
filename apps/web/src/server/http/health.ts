@@ -7,15 +7,18 @@ import type { StorageAdapter } from "../storage";
 import { hooks } from "../telemetry/hooks";
 import { errorResponse, setupRequiredResponse } from "./errors";
 
-const TIMEOUT_MS = 3_000;
+/** The whole check's deadline: under the Dockerfile's HEALTHCHECK --timeout=5s. */
+const TOTAL_MS = 4_000;
+/** A database step's own limit, within the deadline; storage gets what's left. */
+const DATABASE_MS = 3_000;
 
-/** `work`, or a rejection once TIMEOUT_MS has passed. */
-const withinTimeout = (work: Promise<unknown>) => {
+/** `work`, or a rejection once `ms` have passed. */
+const within = <T>(work: Promise<T>, ms: number): Promise<T> => {
   let timer: NodeJS.Timeout | undefined;
   return Promise.race([
     work,
-    new Promise((_, reject) => {
-      timer = setTimeout(() => reject(new Error("timed out")), TIMEOUT_MS);
+    new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error("timed out")), ms);
     }),
   ]).finally(() => clearTimeout(timer));
 };
@@ -40,7 +43,13 @@ export const health = async (
   getDb: (url: string) => CreatedDb,
   storage: () => StorageAdapter,
 ): Promise<Response> => {
-  const state = await getSetupState(config, { getDb });
+  // One deadline for everything: the setup state, the database and storage, one after another.
+  const deadline = Date.now() + TOTAL_MS;
+  const left = (cap = TOTAL_MS) => Math.max(0, Math.min(cap, deadline - Date.now()));
+  // A setup state that doesn't come in time is a database that isn't answering.
+  const state = await within(getSetupState(config, { getDb }), left(DATABASE_MS)).catch(
+    () => "unavailable" as const,
+  );
   if (state === "not_configured" || state === "incomplete") return setupRequiredResponse();
   if (state === "unavailable") {
     hooks().health("database", false);
@@ -48,7 +57,7 @@ export const health = async (
   }
   try {
     const { db } = getDb(config.databaseUrl as string);
-    await withinTimeout(sql`select 1`.execute(db));
+    await within(sql`select 1`.execute(db), left(DATABASE_MS));
     hooks().health("database", true);
   } catch (error) {
     hooks().health("database", false);
@@ -57,7 +66,7 @@ export const health = async (
   }
   // Storage after the database: an instance whose database fails is already unavailable.
   try {
-    await withinTimeout(storage().check());
+    await within(storage().check(), left());
     hooks().health("storage", true);
   } catch (error) {
     hooks().health("storage", false);

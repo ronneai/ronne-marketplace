@@ -47,7 +47,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* it passes, and a collector that doesn't answer leaves request times unchanged (a
   test with a black-hole endpoint).
 
-- [ ] **6. Documentation.** In `../ronne-web`: **Monitoring** in Running Ronne (both `topics.ts`)
+- [x] **6. Documentation.** In `../ronne-web`: **Monitoring** in Running Ronne (both `topics.ts`)
   and the Logs line, in English, Portuguese and French, with a Collector config example that was
   run against a real collector (written in the notes); here, `apps/web/.env.example`.
   *Done when:* the docs render tests pass in both repositories.
@@ -67,8 +67,10 @@ goes into `SPEC.md` instead.
   MIT, Apache-2.0, BSD-3-Clause or ISC. `@vercel/otel` reads the standard variables for traces
   (endpoint, headers, protocol, sampler, resource attributes, `OTEL_SDK_DISABLED`); the metric
   exporter reads its own; `OTEL_METRIC_EXPORT_INTERVAL` is read in `settings.ts`. Chosen:
-  `@vercel/otel`. Turbopack bundles it all into one server chunk (352 KB with task 2; 378,883 bytes with tasks 3–5) (no new `node_modules` in
-  the standalone output, so `packages:check`'s allowlist is unchanged); a request's trace arrived
+  `@vercel/otel`. Turbopack bundles it all into one server chunk (352 KB with task 2; 378,883 bytes with tasks 3–5). One package is new in
+  the standalone output and the packed server: `@opentelemetry/api` (45 files, 192 KiB), which
+  Next.js's own tracer now loads, on or off; `packages:check` passes because its allowlist is a
+  pattern over `app/`. A request's trace arrived
   from the standalone `server.js` at a local OTLP receiver.
 - For tasks 3 and 5: Next.js's request span carries `http.target`, the path with its query, and an
   item page's path names the item (`/items/@team/x`). A span processor must drop or rewrite it.

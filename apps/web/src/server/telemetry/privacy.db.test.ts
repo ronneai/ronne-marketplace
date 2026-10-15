@@ -58,8 +58,10 @@ it("sends the collector nothing personal from the server's flows", () => {
   // The flows were traced: the release, the feed build and the upload are there.
   for (const span of ["ronne.release", "ronne.feed.build", "ronne.draft.upload", "db select"])
     expect(sent, span).toContain(span);
-  for (const [what, value] of Object.entries(never ?? {}))
-    expect(value && sent.includes(value), `${what} reached the collector`).toBeFalsy();
+  for (const [what, value] of Object.entries(never ?? {})) {
+    expect(value, `${what} is empty: the search would prove nothing`).toBeTruthy();
+    expect(sent.includes(value), `${what} reached the collector`).toBe(false);
+  }
 
   // Each domain span under its request's span, with its attributes (task 3).
   type Span = {
@@ -83,7 +85,11 @@ it("sends the collector nothing personal from the server's flows", () => {
     spans
       .filter((span) => span.name === child)
       .map((span) => spans.find((p) => p.spanId === span.parentSpanId)?.name);
-  expect(parentsOf("ronne.release"), "ronne.release's parent").toEqual(["POST /release"]);
+  // A single release, then a bulk one of two: each under its request.
+  expect(parentsOf("ronne.release"), "ronne.release's parents").toEqual([
+    "POST /release",
+    "POST /reviews",
+  ]);
   expect(parentsOf("ronne.draft.upload"), "ronne.draft.upload's parent").toEqual([
     "POST /api/v1/drafts",
   ]);
@@ -92,18 +98,16 @@ it("sends the collector nothing personal from the server's flows", () => {
     "GET /api/v1/feeds/[tool]/marketplace.json",
   ]);
   expect(
-    attr(
-      spans.find((s) => s.name === "ronne.release"),
-      "ronne.items",
-    ),
-  ).toBe(1);
+    spans.filter((s) => s.name === "ronne.release").map((s) => attr(s, "ronne.items")),
+  ).toEqual([1, 2]);
   const builds = spans.filter((s) => s.name === "ronne.feed.build");
   expect(builds.map((s) => attr(s, "ronne.tool"))).toEqual(["claude-code", "claude-code"]);
   expect(builds.map((s) => attr(s, "ronne.feed.cached")).sort()).toEqual([false, true]);
+  // The fresh build holds Ana's private skills: their names were in it, and stayed out.
   expect(
-    typeof attr(
+    attr(
       builds.find((s) => attr(s, "ronne.feed.cached") === false),
       "ronne.feed.plugins",
     ),
-  ).toBe("number");
+  ).toBe(3);
 }, 150_000);

@@ -42,6 +42,22 @@ console.log("LOADED", JSON.stringify(seen.filter((s) => /opentelemetry|vercel\\/
     expect(result.stdout).toContain("LOADED []");
   });
 
+  it("turns Next.js's verbose spans off, with one warning: they name private paths", () => {
+    const result = run(
+      `import { createServer } from "node:http";
+const server = createServer((req, res) => res.writeHead(200, { "content-type": "application/json" }).end("{}"));
+await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
+process.env.OTEL_EXPORTER_OTLP_ENDPOINT = "http://127.0.0.1:" + server.address().port;
+const { startTelemetryIfSet } = await import(${telemetry});
+await startTelemetryIfSet();
+console.log("VERBOSE", JSON.stringify(process.env.NEXT_OTEL_VERBOSE ?? null));
+process.exit(0);`,
+      { NEXT_OTEL_VERBOSE: "1" },
+    );
+    expect(result.stdout, result.stderr).toContain("VERBOSE null");
+    expect(result.lines.map((line) => JSON.parse(line).event)).toContain("telemetry.verbose_off");
+  });
+
   it("warns once, stays off and starts nothing when the endpoint isn't a URL", () => {
     const result = run(
       `const { startTelemetryIfSet, telemetryOn } = await import(${telemetry});
