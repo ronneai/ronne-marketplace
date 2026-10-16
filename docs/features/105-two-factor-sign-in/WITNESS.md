@@ -736,3 +736,36 @@ Witnessed: 2026-10-16 17:27 EDT, by a fresh agent (adversarial). Commit: f75bf53
 | 17b | `next start` refuses to start with `BETTER_AUTH_SECRETS` set, saying why | yes | confirmed | build newer than both files, refusal text in the built chunks; `next start -p 3928` with the variable → the line, exit within 1 s with no request, `exit 1` in the foreground; without it still running after 8 s; the value isn't printed |
 
 **Overall:** met.
+
+## Task 8 — End-to-end
+
+Witnessed: 2026-10-16 17:50 EDT, by a fresh agent (blind). Commit: cd3a71b7 plus the uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The tests ran against an up-to-date build | yes | confirmed | `find apps/web/src -newer .next/BUILD_ID` → nothing |
+| 2 | Enrolment uses a TOTP code the test generates | yes | confirmed | `two-factor.e2e.ts` `codeOf` from the key on the page; wrong code refused, right one on, 10 codes |
+| 3 | Sign out, sign in with a code from the app | yes | confirmed | header Sign out, `/sign-in/two-factor`, `000000` refused, `codeOf(key, 1)` signs in |
+| 4 | Sign in with a backup code, used up | yes | confirmed | "Use a backup code instead", `firstCodes[0]`, then "9 backup codes left." |
+| 5 | Root requires it for reviewers through the UI | yes | confirmed | radio, Save (POST awaited), root held; later "Required for reviewers and root." |
+| 6 | A moderator is held until enrolled, then let go | yes | confirmed | seeded global moderator held, enrols, `/catalogue` stays |
+| 7 | Root resets someone's two-factor | yes | confirmed | dialog, confirmation text, button gone (target enrolled in the database) |
+| 8 | The new specs pass on desktop and phone | yes | confirmed | 3 files × chromium, phone, phone-webkit, tablet → 6 passed; phone covers enrol + code sign-in |
+| 9 | `pnpm test:e2e` passes in full | yes | confirmed | 150 passed (3.7m) |
+| 10 | The tests put the instance back | yes | confirmed | run's `ronne.db`: policy `optional`, no shared user left enrolled; phone users are their own |
+| 11 | Each user used by one test, within the sign-in limit | yes | confirmed | `twoFactor` 3×, each phone user 2×; root once (but see the note) |
+| 12 | A key step's test fails without the code | no | confirmed | reasoned from the assertions (rebuild out of budget) |
+
+**Overall:** met. Note: `two-factor-hold.e2e.ts` was a sixth file signing root@e2e.test in.
+
+### Re-check — root sign-ins (blind)
+
+Witnessed: 2026-10-16 17:46 EDT, by a fresh agent (blind). Commit: cd3a71b7 plus the uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Only the five files the note names sign root@e2e.test in | yes | confirmed | grep → audit, auth, drafts, scopes, user-admin |
+| 2 | The requirement test uses its own seeded root and cleans up | yes | confirmed | `twoFactorRoot` in `E2E_ROOTS`; `unmark` in `finally` |
+| 3 | The hold spec still passes | yes | confirmed | chromium → 2 passed; build current |
+
+**Overall:** met.

@@ -77,7 +77,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   and from an archive with no `AUTH_SECRET` included; the API test shows the same 401 `invalid_credentials` for a wrong password with and
   without two-factor (no leak).
 
-- [ ] **8. End-to-end.** Playwright: enrol with a TOTP generated in the test, sign out, sign in
+- [x] **8. End-to-end.** Playwright: enrol with a TOTP generated in the test, sign out, sign in
   with a code, with a backup code, then root requires it for reviewers and a moderator is held
   until enrolled; root resets someone. Mind the sign-in limit
   (`docs/knowledge/e2e-sign-in-limit.md`).
@@ -320,3 +320,18 @@ goes into `SPEC.md` instead.
     the unreadable-secret message says "Ask a root to reset it." as the spec does. `pnpm dev` with
     `BETTER_AUTH_SECRETS` was run in a separate git worktree (the owner's dev server was on this
     clone): it exits at start, as `next start`, the start script and the built `start.mjs` do.
+- **Task 8: end-to-end** (Claude).
+  - `two-factor.e2e.ts` signs in twice more after turning it on: a wrong code, then the app's
+    next code (the one that turned it on is refused as used), then a backup code (9 left).
+  - `two-factor-hold.e2e.ts`'s root test, one sign-in of its own root: root saves
+    "Reviewers and root" in the form and is held at once; a moderator of global (its own user, in
+    a second browser context) signs in, is held, enrols and opens the catalogue; root, marked
+    enrolled in the database, sees the requirement and resets a user's two-factor on Admin ›
+    Users (the row's button goes). Everything is put back in `finally`.
+  - `two-factor.mobile.e2e.ts`: each phone and tablet project's own user enrols by touch, signs in
+    again with a code; nothing scrolls sideways.
+  - The test waits for the policy save's POST before navigating (it raced the next page), and for
+    the page to settle after "I've saved them" before clearing cookies.
+  - The root in the requirement's test is its own seeded root (`twoFactorRoot`): task 6 had made
+    it a sixth file signing root@e2e.test in, which passed only because the run is longer than a
+    minute (the witness, after `docs/knowledge/e2e-sign-in-limit.md`).

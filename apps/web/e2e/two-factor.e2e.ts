@@ -3,14 +3,30 @@ import { totpCode } from "../src/server/domains/identity/testing/totp";
 import { headerName } from "./helpers";
 import { E2E_NAMES, E2E_PASSWORD, E2E_USERS } from "./users";
 
-// Two-factor on /account/security (105): each step the page goes through, in a real browser.
-// Turning it on and off replaces the session, and Next.js renders the page again: the steps must
-// survive that.
+// Two-factor on /account/security (105): each step the page goes through, in a real browser, and
+// signing in with it: a code from the app, then a backup code. Turning it on and off replaces the
+// session, and Next.js renders the page again: the steps must survive that. Three sign-ins of
+// this user, under the limit of five a minute (docs/knowledge/e2e-sign-in-limit.md).
 
-/** The code an authenticator app would show for the key on the page (its groups of four). */
-const codeFor = async (page: Page, step = 0) => {
-  const key = (await page.locator("code").first().innerText()).replace(/\s+/g, "");
-  return totpCode(`otpauth://totp/x?secret=${key}`, { step });
+/** The code an authenticator app would show for a key (its groups of four). */
+const codeOf = (key: string, step = 0) =>
+  totpCode(`otpauth://totp/x?secret=${key.replace(/\s+/g, "")}`, { step });
+/** The same, for the key on the page. */
+const codeFor = async (page: Page, step = 0) =>
+  codeOf(await page.locator("code").first().innerText(), step);
+
+const signOut = async (page: Page) => {
+  await headerName(page, E2E_NAMES.twoFactor).click();
+  await page.getByRole("button", { name: "Sign out" }).click();
+  await expect(page).toHaveURL(/\/sign-in$/);
+};
+
+/** The password step: two-factor is on, so it asks for the second step. */
+const passwordStep = async (page: Page) => {
+  await page.getByLabel("Email").fill(E2E_USERS.twoFactor);
+  await page.getByLabel("Password", { exact: true }).fill(E2E_PASSWORD);
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page).toHaveURL(/\/sign-in\/two-factor/);
 };
 
 test("turn two-factor on, keep the backup codes, make new ones, and turn it off", async ({
@@ -64,6 +80,25 @@ test("turn two-factor on, keep the backup codes, make new ones, and turn it off"
   await page.reload();
   await expect(page.getByText("10 backup codes left.")).toBeVisible();
   for (const code of firstCodes) await expect(page.getByText(code)).toHaveCount(0);
+
+  // Signing in now takes a second step: a code from the app (the next one: the code that turned
+  // it on is refused as used), then, another time, a backup code, which is used up.
+  await signOut(page);
+  await passwordStep(page);
+  await page.getByLabel("Code from your authenticator app").fill("000000");
+  await page.getByRole("button", { name: "Verify" }).click();
+  await expect(page.getByText("That code is wrong")).toBeVisible();
+  await page.getByLabel("Code from your authenticator app").fill(codeOf(key, 1));
+  await page.getByRole("button", { name: "Verify" }).click();
+  await expect(headerName(page, E2E_NAMES.twoFactor)).toBeVisible();
+  await signOut(page);
+  await passwordStep(page);
+  await page.getByRole("link", { name: "Use a backup code instead" }).click();
+  await page.getByLabel("Backup code").fill(firstCodes[0] ?? "");
+  await page.getByRole("button", { name: "Verify" }).click();
+  await expect(headerName(page, E2E_NAMES.twoFactor)).toBeVisible();
+  await page.goto("/account/security");
+  await expect(page.getByText("9 backup codes left.")).toBeVisible();
 
   // New backup codes: ten others, and "I've saved them" closes them and brings the form back.
   const regenerate = page.getByRole("form", { name: "New backup codes" });

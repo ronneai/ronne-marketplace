@@ -26,6 +26,15 @@ export const E2E_USERS = {
   twoFactor: "two-factor@e2e.test",
   // Held on /account/security while root requires two-factor of everyone (105).
   twoFactorHeld: "two-factor-held@e2e.test",
+  // A moderator held under "Reviewers and root" until they enrol, and one root resets (105).
+  twoFactorModerator: "two-factor-moderator@e2e.test",
+  // A root of its own for the requirement's test, so root@e2e.test isn't signed in once more.
+  twoFactorRoot: "two-factor-root@e2e.test",
+  twoFactorResettable: "two-factor-resettable@e2e.test",
+  // Each phone and tablet project enrols and signs in with a code (105).
+  phoneTwoFactor: "phone-two-factor@e2e.test",
+  phoneWebkitTwoFactor: "phone-webkit-two-factor@e2e.test",
+  tabletTwoFactor: "tablet-two-factor@e2e.test",
   notRoot: "not-root@e2e.test",
   tokens: "tokens@e2e.test",
   submitter: "submitter@e2e.test",
@@ -169,6 +178,12 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   changePassword: "Change Password Tester",
   twoFactor: "Tess Twofactor",
   twoFactorHeld: "Hal Held",
+  twoFactorModerator: "Mo Twofactor",
+  twoFactorRoot: "Ruth Twofactor",
+  twoFactorResettable: "Reese Reset",
+  phoneTwoFactor: "Phoebe Twofactor",
+  phoneWebkitTwoFactor: "Webb Twofactor",
+  tabletTwoFactor: "Tabby Twofactor",
   notRoot: "Not Root",
   tokens: "Token Tester",
   submitter: "Submitter",
@@ -282,6 +297,7 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
 /** Seeded with the moderator role; everyone else is a user. */
 export const E2E_MODERATORS: readonly (keyof typeof E2E_USERS)[] = [
   "moderator",
+  "twoFactorModerator",
   "releaser",
   "depsModerator",
   "changeModerator",
@@ -303,6 +319,7 @@ export const E2E_MODERATORS: readonly (keyof typeof E2E_USERS)[] = [
 /** Seeded as root, besides the root setup creates (more than one root since 059). */
 export const E2E_ROOTS: readonly (keyof typeof E2E_USERS)[] = [
   "privateRoot",
+  "twoFactorRoot",
   "scopeMoveRoot",
   "phoneScopeMoveRoot",
   "phoneWebkitScopeMoveRoot",
