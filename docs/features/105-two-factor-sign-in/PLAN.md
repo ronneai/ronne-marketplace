@@ -66,7 +66,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* tests cover the three policies for a user, a moderator, an admin, a personal-workspace
   admin and root; a held person on a page and on a server action; and a stale tab.
 
-- [ ] **7. Reset, the CLI scripts and the API.** [risky] Reset two-factor on Admin › Users (not on
+- [x] **7. Reset, the CLI scripts and the API.** [risky] Reset two-factor on Admin › Users (not on
   your own row); `reset-root-password` resets it; `pnpm run reset-two-factor --email` (and
   `rmk-server reset-two-factor`) resets any account's from the terminal (owner, 2026-10-16); `rotate-secret` clears secrets and reports the
   count, and so does `restore` when it ends with another `AUTH_SECRET` than the archive's (or,
@@ -294,3 +294,29 @@ goes into `SPEC.md` instead.
     pins "enrolled" for the counts and the hold (the flag on with an unconfirmed record isn't).
     The two-factor columns' schema type was `Generated<DbBoolean>`, which nests two `ColumnType`s
     so Kysely couldn't type an update: now `GeneratedDbBoolean`.
+- **Task 7: reset, the scripts and the API** (Claude).
+  - One repository operation, `resetTwoFactor` (the record, the flag, an unfinished setup's
+    `two-factor-setup:` row), used by root's reset (`user-admin` service, Admin › Users, not your
+    own row), `reset-two-factor` (`root-account` service; actor `cli`) and `reset-root-password`.
+    `clearAllTwoFactor` does every account, for `rotate-secret` (in the same transaction as the
+    sessions, so an unwritable settings file changes nothing) and a restore.
+  - The users list reads who has it on as the hold does (the flag and a confirmed record);
+    `reset-two-factor` asks about "anything to reset" (the flag or a record), as the reset returns.
+  - `reset-two-factor` is wired as `revoke-access` is: both package.json files, tsdown's
+    `dist-scripts`, `rmk-server` (`SCRIPTS`, help, the service's verbs), `docker/pnpm`.
+  - A restore decides after its settings step, from the secret the server will read (the
+    environment's, else the settings file's then); with no secret in the archive it decrypts one
+    stored secret (`twoFactorSecretsReadable`, Better Auth's `symmetricDecrypt`, in identity).
+  - `BETTER_AUTH_SECRETS` is refused in `prepareStart`, in `instrumentation.ts` (exits: checked by
+    hand with `next start`, exit 1 and nothing listening) and in `getAppAuth`.
+  - One MySQL run of the task's db tests timed out (30 s) in tests it doesn't touch (root
+    creation, revoke-access); two reruns passed 87/87, as PostgreSQL and MariaDB did.
+  - **From the witnesses.** Root's reset now acts only when two-factor is on (`twoFactorOn`: the
+    flag and a confirmed record, as the list shows it), not on a setup someone has only started
+    (the adversarial witness reset one from a stale dialog); the terminal's still clears one.
+    `rotate-secret`'s "written, but the database failed" message now says two-factor wasn't
+    turned off either, and how to recover. A test pins `getAppAuth`'s refusal. The sign-in page's
+    "Forgot?" note now says a lost authenticator is reset the same way (it wasn't in any task), and
+    the unreadable-secret message says "Ask a root to reset it." as the spec does. `pnpm dev` with
+    `BETTER_AUTH_SECRETS` was run in a separate git worktree (the owner's dev server was on this
+    clone): it exits at start, as `next start`, the start script and the built `start.mjs` do.

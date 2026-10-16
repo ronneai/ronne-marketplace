@@ -77,3 +77,11 @@ export const adminDisableImpact = async (
 ) => {
   return service.disableImpact(deps(app), await actor(headers, app), userId);
 };
+
+export const adminResetTwoFactor = async (
+  headers: Headers,
+  userId: string,
+  app: AppAuth = getAppAuth(),
+) => {
+  return service.resetTwoFactor(deps(app), await actor(headers, app), userId);
+};

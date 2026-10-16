@@ -25,6 +25,5 @@ export const TWO_FACTOR_STEP_ERRORS: Record<NonNullable<TwoFactorStepState["erro
   locked: "Too many wrong codes. Try again in 15 minutes.",
   // A disabled account: the same words as a wrong password at the first step (006).
   refused: "Email or password is wrong",
-  unreadable:
-    "Your two-factor sign-in can't be read on this server. Ask a root administrator to reset it.",
+  unreadable: "Your two-factor sign-in can't be read on this server. Ask a root to reset it.",
 };

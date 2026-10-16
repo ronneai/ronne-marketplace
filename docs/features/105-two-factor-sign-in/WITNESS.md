@@ -640,3 +640,99 @@ Witnessed: 2026-10-16 16:46 EDT, by a fresh agent (blind). Commit: 782a468c plus
 | 20 | The two-factor columns are `GeneratedDbBoolean`; typecheck clean | yes | confirmed | `schema.ts`; typecheck clean (comment named the wrong type: fixed after) |
 
 **Overall:** met.
+
+## Task 7 — Reset, the CLI scripts and the API
+
+Witnessed: 2026-10-16 17:12 EDT, by a fresh agent (blind). Commit: f75bf53d plus the uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Root's reset clears the record and the flag, ends sessions, records `user.two_factor_reset` `{via:"web", sessionsEnded}` | yes | confirmed | 12 task files on SQLite → 111 passed; mutation (`sessionsEnded = 0`) → test fails |
+| 2 | Not on your own row (UI and service); forbidden to non-root and no session; allowed on another root | yes | confirmed | `CannotModifySelfError`; mutation → test fails; `UserRowActions` hides it for `self`, shows it only when `twoFactor` |
+| 3 | For someone without two-factor, nothing changes or is recorded | yes | confirmed | db test; `resetTwoFactor` returns false |
+| 4 | `reset-root-password` resets root's two-factor, says so, notes `twoFactorReset` | yes | confirmed | mutation → service test and real-script test fail |
+| 5 | `reset-two-factor --email`: any account, asks unless `--yes`, says when none, actor `cli`, clears an unconfirmed setup | yes | confirmed | real script test: output, `actor_id: null`, second run "nothing to reset", unknown email / missing / no TTY / help |
+| 6 | `rmk-server reset-two-factor` and Docker's `pnpm` route to it | yes | confirmed | server `cli.test.ts` 12 passed; `docker/pnpm`, `tsdown.config.ts` entries (image and bundle not run) |
+| 7 | `rotate-secret` clears every record, reports and audits the count, rolls back on an unwritable file | yes | confirmed | real script → "Turned off two-factor sign-in for 1 account"; service tests incl. EACCES |
+| 8 | `restore` clears when the final secret isn't the archive's, keeps with `--with-settings`, tries a decrypt with no archived secret | yes | confirmed | `restore.db.test.ts` six cases; mutation (`return 0`) → fails |
+| 9 | Refuses to start with `BETTER_AUTH_SECRETS` (start's checks, Next.js, auth instance) | yes | confirmed | config and prepare-start tests; mutation → both fail; real `next dev` printed the line and exited 1 |
+| 10 | Token API: right password + two-factor → 401 `two_factor_required`, spec's message, no token, audited | yes | confirmed | exact body asserted; mutation → 2 tests fail; `rmk` passes the message through |
+| 11 | Wrong password: same 401 `invalid_credentials` with and without two-factor | yes | confirmed | api test compares; mutation (check before the password) → fails |
+| 12 | The database code works on PostgreSQL | yes | confirmed | 5 files, 59 passed |
+| 13 | The audit summary reads the new events | yes | confirmed | `summary.test.ts` |
+| 14 | Sign-in "Forgot?" note covers a lost authenticator | no | not met | `ForgotPassword.tsx` covers only the password |
+
+**Overall:** not met: row 14.
+
+Witnessed: 2026-10-16 17:20 EDT, by a fresh agent (adversarial). Commit: f75bf53d plus the uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Root's reset deletes the record, flag and setup row, ends sessions, records the event | yes | confirmed | 58 passed on PostgreSQL, MySQL, MariaDB; mutation → 7 of 13 fail |
+| 2 | Non-root, no session, own row, a demoted root's old form refused; another root's allowed | yes | confirmed | tests; probe P6 → `ForbiddenError`; P8 unknown id → `UserNotFoundError` |
+| 3 | The button only when on, never on your own row | yes | confirmed | `actions.test.tsx`; list reads flag AND verified record |
+| 4 | For someone with none, root's reset changes and records nothing | no | partly | probe P5: a started, unconfirmed setup → `reset:true`, event, sessions ended |
+| 5 | After a reset nothing keeps two-factor half on, an open challenge included | yes | confirmed | P4: code on a pre-reset challenge → `expired` |
+| 6 | `reset-two-factor`: any account, normalised email, actor `cli`, says none, asks, exit codes | yes | confirmed | script test on 3 servers; built `dist-scripts` probe |
+| 7 | `rmk-server` and `docker/pnpm` run it | yes | confirmed | `SCRIPTS`, `run.ts`, tsdown output, shim |
+| 8 | `reset-root-password` resets and records `twoFactorReset` | yes | confirmed | tests on 3 dialects |
+| 9 | `rotate-secret` clears, counts, audits, rolls back on EACCES | yes | confirmed | tests on 3 servers |
+| 10 | `rotate-secret` never leaves unreadable secrets unsaid | no | partly | file written then COMMIT failing: the message didn't mention two-factor |
+| 11 | Restore with/without `--with-settings`, kept file, env secret, `--database-url` | yes | confirmed | `restore.db.test.ts` on 4 kinds; probe R3b |
+| 12 | Archive without `AUTH_SECRET`: decrypt one, clear all on failure | yes | confirmed | probes R2, R2b, R3 |
+| 13 | A settings file appearing during the restore decides | no | confirmed | probe R1 from `onLocked` |
+| 14 | No message or audit row contains a secret | yes | confirmed | R1, P9, PA |
+| 15 | The start refuses `BETTER_AUTH_SECRETS`; an empty value isn't a way past | yes | confirmed | built `start.mjs` → exit 1 before migrating; empty value ignored by Better Auth too |
+| 16 | The auth instance refuses too | no | confirmed | probe; no repo test |
+| 17 | `pnpm dev` / `pnpm start` exit with it set | yes | can't check here | Turbopack refused the scratch copy; the owner's server holds the clone |
+| 18 | Token API answer, message, no token, audit reason | yes | confirmed | api test on 3 servers; mutation → 2 fail |
+| 19 | No leak: wrong password same answer; disabled + right password `invalid_credentials`; email spacing and case | yes | confirmed | api test; P2, P3 |
+| 20 | No way around through out-of-step data | no | confirmed | P1 pending setup agrees with the web sign-in; P10 flag only → `two_factor_required` |
+
+**Overall:** not met: rows 4, 10, 17.
+
+### Re-check — rows 14 to 16 (blind)
+
+Witnessed: 2026-10-16 17:24 EDT, by a fresh agent (blind). Commit: f75bf53d plus the uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 14 | The "Forgot?" note covers a lost authenticator | yes | confirmed | `ForgotPassword.tsx:53`; mutation → `sign-in.test.tsx` fails |
+| 15 | The unreadable message says "Ask a root to reset it." | yes | confirmed | `types.ts:28` |
+| 16 | Root's web reset acts only when two-factor is on | yes | confirmed | `twoFactorOn`; mutation → test fails; postgres 13 passed |
+
+**Overall:** met.
+
+### Re-check — rows 4, 10, 16, 17 (adversarial)
+
+Witnessed: 2026-10-16 17:25 EDT, by a fresh agent (adversarial). Commit: f75bf53d plus the uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4 | Root's reset changes nothing for someone whose two-factor isn't on | yes | confirmed | `probe-t7b.db.test.ts` on 4 kinds: pending setup, flag only, record only → `reset:false`, nothing touched; mutation → fails |
+| 10 | `rotate-secret`'s failure message covers two-factor and recovery | yes | confirmed | `rotate-secret.ts:168`; mutation → test fails |
+| 16 | `getAppAuth` refuses, with a repo test | yes | confirmed | `auth-instance.test.ts`; mutation → fails |
+| 17 | `pnpm dev` / `pnpm start` exit with it set | yes | can't check here | not rerun |
+
+**Overall:** not met: row 17.
+
+### Re-check — row 17 (adversarial)
+
+Witnessed: 2026-10-16 17:27 EDT, by a fresh agent (adversarial). Commit: f75bf53d plus the working tree's `instrumentation.ts` and `config.ts`, in a separate git worktree (the owner's dev server held the clone). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 17a | `next dev` refuses to start with `BETTER_AUTH_SECRETS` set, saying why | yes | confirmed | `cmp` → both files match the working tree; `next dev -p 3927` with the variable → "✗ BETTER_AUTH_SECRETS is set…", gone within 2 s with no request, `exit 1` in the foreground; without it still running after 12 s; the value isn't printed |
+| 17b | `next start` refuses the same way | yes | can't check here | the worktree can't build (`@ronneai/core` not built) |
+
+**Overall:** not met: row 17b.
+
+### Re-check — row 17b (adversarial)
+
+Witnessed: 2026-10-16 17:27 EDT, by a fresh agent (adversarial). Commit: f75bf53d plus the working tree, through the main clone's production build (BUILD_ID 17:04). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 17b | `next start` refuses to start with `BETTER_AUTH_SECRETS` set, saying why | yes | confirmed | build newer than both files, refusal text in the built chunks; `next start -p 3928` with the variable → the line, exit within 1 s with no request, `exit 1` in the foreground; without it still running after 8 s; the value isn't printed |
+
+**Overall:** met.

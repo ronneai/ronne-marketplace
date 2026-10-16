@@ -1,6 +1,6 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { LoginRateLimiter } from "../models/login-rate-limiter";
-import { dropStale } from "./auth-instance";
+import { dropStale, getAppAuth } from "./auth-instance";
 import { createAuth } from "./better-auth";
 
 const shared = globalThis as typeof globalThis & {
@@ -35,5 +35,17 @@ describe("dropStale (what a hot reload left behind)", () => {
     shared.__ronneAuth.set("key", "current");
     dropStale();
     expect(shared.__ronneAuth.get("key")).toBe("current");
+  });
+});
+
+describe("getAppAuth and BETTER_AUTH_SECRETS (105)", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("refuses to sign anything with another secret than AUTH_SECRET", () => {
+    vi.stubEnv("RONNE_ENV_FILE", "/nonexistent/ronne-test.env");
+    vi.stubEnv("DATABASE_URL", "file::memory:");
+    vi.stubEnv("AUTH_SECRET", "test-secret-test-secret-test-secret-00");
+    vi.stubEnv("BETTER_AUTH_SECRETS", "1:another-secret-another-secret-0000");
+    expect(() => getAppAuth()).toThrow(/BETTER_AUTH_SECRETS is set/);
   });
 });

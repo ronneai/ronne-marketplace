@@ -71,6 +71,7 @@ const REASONS: Record<string, string> = {
   invalid: "wrong email or password",
   disabled: "the account is disabled",
   rate_limited: "too many attempts",
+  two_factor_required: "the account uses two-factor sign-in",
 };
 const POLICIES: Record<string, string> = {
   off: "off",
@@ -111,7 +112,7 @@ export const SUMMARIES: Record<AuditAction, Build> = {
       ? ["Revoked the access of ", who(m, e), `${ended(m) || " (nothing left)"}${via(m)}`]
       : [`Revoked everyone's access${ended(m) || " (nothing left)"}${via(m)}`],
   "instance.secret_rotated": (m) => [
-    `Replaced AUTH_SECRET, so everyone signs in again${ended(m)}${via(m)}`,
+    `Replaced AUTH_SECRET, so everyone signs in again${ended(m)}${num(m.twoFactorCleared) ? `, and turned off two-factor sign-in for ${plural(num(m.twoFactorCleared), "account")}` : ""}${via(m)}`,
   ],
   "instance.backup_made": (m) => [
     `Made a backup: ${plural(num(m.rows), "row")} in ${plural(num(m.tables), "table")}, ${plural(num(m.files), "stored file")}${m.settings === true ? ", with the settings file" : ""}${m.encrypted === true ? ", encrypted" : ""}${via(m)}`,
@@ -122,7 +123,16 @@ export const SUMMARIES: Record<AuditAction, Build> = {
       `Restored a backup made by Ronne ${text(from.version)} at ${text(from.time).slice(0, 16).replace("T", " ")}: ${plural(num(m.rows), "row")}, ${plural(num(m.files), "stored file")}${via(m)}`,
     ];
   },
-  "user.password_reset": (m, e) => ["Reset the password of ", who(m, e), `${ended(m)}${via(m)}`],
+  "user.password_reset": (m, e) => [
+    "Reset the password of ",
+    who(m, e),
+    `${m.twoFactorReset === true ? " and turned off its two-factor sign-in" : ""}${ended(m)}${via(m)}`,
+  ],
+  "user.two_factor_reset": (m, e) => [
+    "Turned off the two-factor sign-in of ",
+    who(m, e),
+    `${ended(m)}${via(m)}`,
+  ],
   "auth.signed_in": (m) => [m.remember ? "Signed in (remembered for 30 days)" : "Signed in"],
   "auth.sign_in_failed": (m) => [
     "Failed sign-in for ",

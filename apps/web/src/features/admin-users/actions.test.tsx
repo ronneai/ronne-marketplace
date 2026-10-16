@@ -13,6 +13,7 @@ const admin = vi.hoisted(() => ({
   adminEnableUser: vi.fn(),
   adminResetPassword: vi.fn(),
   adminDisableImpact: vi.fn(),
+  adminResetTwoFactor: vi.fn(),
 }));
 const cache = vi.hoisted(() => ({ revalidatePath: vi.fn() }));
 vi.mock("@/server/domains/identity/actions/user-admin", () => admin);
@@ -153,6 +154,33 @@ describe("rendering", () => {
     );
     expect(disabled).toContain("Change role");
     expect(disabled).toContain(">Enable<");
+  });
+
+  it("offers Reset two-factor only when it's on, never on your own row (105)", () => {
+    const row = (twoFactor: boolean, self = false) =>
+      renderToStaticMarkup(
+        <UserRowActions
+          user={{ id: "u", email: "u@example.com", role: "user", disabled: false, twoFactor, self }}
+        />,
+      );
+    expect(row(true)).toContain("Reset two-factor");
+    expect(row(false)).not.toContain("Reset two-factor");
+    expect(row(true, true)).not.toContain("Reset two-factor");
+  });
+
+  it("resets two-factor, and says when there was none (105)", async () => {
+    admin.adminResetTwoFactor.mockResolvedValueOnce({ email: "u@example.com", reset: true });
+    expect(await actions.resetTwoFactorFromForm({}, form({ userId: "u" }))).toEqual({
+      done: "Two-factor sign-in turned off. They're signed out everywhere.",
+    });
+    expect(admin.adminResetTwoFactor).toHaveBeenCalledWith(expect.any(Headers), "u");
+    expect(cache.revalidatePath).toHaveBeenCalledWith("/admin/users");
+    admin.adminResetTwoFactor.mockResolvedValueOnce({ email: "u@example.com", reset: false });
+    expect(await actions.resetTwoFactorFromForm({}, form({ userId: "u" }))).toEqual({
+      done: "They had no two-factor sign-in: nothing changed.",
+    });
+    admin.adminResetTwoFactor.mockRejectedValueOnce(new CannotModifySelfError());
+    expect((await actions.resetTwoFactorFromForm({}, form({ userId: "u" }))).error).toBeTruthy();
   });
 
   it("warns before making someone root or removing root, and not otherwise", () => {

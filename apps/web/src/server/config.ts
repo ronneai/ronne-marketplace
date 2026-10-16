@@ -68,3 +68,13 @@ export const isConfigured = (
 ): config is AppConfig & { databaseUrl: string; authSecret: string } => {
   return Boolean(config.databaseUrl && config.authSecret);
 };
+
+/**
+ * Why the server won't start with BETTER_AUTH_SECRETS set (105), or null. Better Auth would sign
+ * sessions and encrypt two-factor secrets with it instead of AUTH_SECRET (it wins over the secret
+ * Ronne passes), and then rotate-secret, the backups and a restore would handle the wrong one.
+ */
+export const secretsConflict = (env: Env = process.env): string | null =>
+  env.BETTER_AUTH_SECRETS
+    ? "BETTER_AUTH_SECRETS is set in the environment. Ronne uses AUTH_SECRET alone, so there's one secret to back up and to replace (rotate-secret): unset BETTER_AUTH_SECRETS, then start the server again."
+    : null;

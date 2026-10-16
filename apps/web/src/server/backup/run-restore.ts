@@ -10,6 +10,7 @@ import { migrations } from "../db/migrations";
 import type { Database } from "../db/schema";
 import { parseDatabaseUrl } from "../db/url";
 import { recordAudit } from "../domains/audit/actions/audit";
+import { clearTwoFactorAfterRestore } from "../domains/identity/actions/instance-access";
 import { defaultDataPath, runtimeOf, scriptCommand } from "../runtime";
 import { generateAuthSecret, mergeEnv } from "../setup/env-file";
 import { ContainerError } from "./crypto";
@@ -67,7 +68,7 @@ export const runRestore = async (options: {
   log: BackupLog;
   /** Called once the target is locked, before it's checked; tests try to write to it there. */
   onLocked?: () => Promise<void>;
-}): Promise<{ rows: number; files: number; newer: string[] }> => {
+}): Promise<{ rows: number; files: number; newer: string[]; twoFactorCleared: number }> => {
   const { appDir, env, log } = options;
   const archive = resolve(options.callerCwd, options.archive);
   try {
@@ -407,6 +408,32 @@ export const runRestore = async (options: {
       `The data is restored, but the settings file couldn't be written (${codeOf(error) ?? (error as Error).message}). Write it by hand, or run \`${scriptCommand("setup", env)}\`.`,
     );
   }
+  // 8. Two-factor (105): its secrets were encrypted with the archive's AUTH_SECRET. The one the
+  // server will use is the environment's, or the settings file's as it is now.
+  let finalSecret: string | undefined;
+  try {
+    finalSecret = env.AUTH_SECRET || parseEnv((await readNow()) ?? "").AUTH_SECRET || undefined;
+  } catch {
+    finalSecret = undefined;
+  }
+  const after = createDb(databaseUrl, { baseDir: appDir });
+  let cleared: number;
+  try {
+    cleared = await clearTwoFactorAfterRestore(after.db, after.dialect, {
+      archived: backupSettings.AUTH_SECRET || undefined,
+      secret: finalSecret,
+    });
+    if (cleared > 0)
+      log.warn(
+        `Turned off two-factor sign-in for ${count(cleared, "account")}: its secrets were encrypted with another AUTH_SECRET than the one this server will use. They sign in with their password and set it up again.`,
+      );
+  } catch (error) {
+    throw new RestoreFailedError(
+      `The data is restored, but its two-factor sign-in couldn't be checked against this server's AUTH_SECRET (${(error as Error).message.replace(/\.$/, "")}). If people's codes are refused as unreadable, run \`${scriptCommand("reset-two-factor", env)} --email <email>\` for each.`,
+    );
+  } finally {
+    await after.db.destroy();
+  }
   log.info(`Next, start the server: ${startHint(env)}.`);
-  return result;
+  return { ...result, twoFactorCleared: cleared };
 };

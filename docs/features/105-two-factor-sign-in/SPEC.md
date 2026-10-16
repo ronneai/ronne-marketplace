@@ -129,15 +129,21 @@ behind a sign-in, and revoking is the incident tool (098).
 some workspace (moderators and admins). Personal workspaces (114) don't count: everyone owns one.
 
 **Root's reset.** *Reset two-factor* on a user's row (shown only when they have it) confirms,
-deletes the user's two-factor record, ends their sessions, and writes `user.two_factor_reset`. If a
-policy covers them they enrol again at the next sign-in. A root can reset another root's (059).
+deletes the user's two-factor record, ends their sessions, and writes `user.two_factor_reset`
+(`{ via: "web", sessionsEnded }`). If a policy covers them they enrol again at the next sign-in. A
+root can reset another root's (059). For someone who has none (a setup started and not confirmed
+included: theirs to finish), nothing changes and nothing is recorded. `reset-two-factor` writes the same event with `{ via: "cli", email, sessionsEnded }` and
+no actor, and also clears a setup started and not confirmed; `reset-root-password` notes
+`twoFactorReset: true` in its `user.password_reset` event rather than writing a second one.
 
 **Sign-in page and API texts.** The sign-in page's "Forgot?" note mentions that a lost authenticator
 is reset by a root (or, for root, `reset-root-password`). `POST /api/v1/auth/token` answers a
 two-factor account's correct password with `{ "error": { "code": "two_factor_required", "message":
 "This account uses two-factor sign-in. Create a token at <PUBLIC_URL>/account/tokens, or run rmk
-login --web." } }`. It answers only after the password is right, so it reveals nothing to someone
-without it. `rmk` prints the message.
+login --web." } }` (without `PUBLIC_URL`, "/account/tokens in the web app"). It answers only
+after the password is right and the account isn't disabled, so it reveals nothing to someone
+without it, and records `auth.sign_in_failed` with the reason `two_factor_required`. `rmk` prints
+the message.
 
 ## Edge cases
 
@@ -160,12 +166,17 @@ without it. `rmk` prints the message.
   `AUTH_SECRET` it ends with isn't the archive's, it clears every two-factor record and says how
   many people will enrol again. An archive with no `AUTH_SECRET` (made with `--no-settings`, or
   with the secret only in the environment) can't be compared, so restore tries to decrypt one
-  stored two-factor secret with the secret it ends with, and clears them all if that fails. And any secret that still fails to decrypt (an `AUTH_SECRET`
+  stored two-factor secret with the secret it ends with, and clears them all if that fails. The
+  secret it ends with is the environment's `AUTH_SECRET`, else the settings file's as it is after
+  the restore. What it clears is said, not audited (the `instance.restored` event is written
+  before the settings are). And any secret that still fails to decrypt (an `AUTH_SECRET`
   changed by hand) is answered "Your two-factor sign-in can't be read on this server. Ask a root
   to reset it." rather than a 500, and logged.
 - **`BETTER_AUTH_SECRETS` in the environment:** Better Auth would encrypt with it instead of
-  `AUTH_SECRET`. Ronne passes its secret explicitly and refuses to start while that variable is
-  set, saying why, so there is one secret to rotate and back up.
+  `AUTH_SECRET` (it wins over the secret Ronne passes). Ronne refuses to start while that variable
+  is set, saying why, so there is one secret to rotate and back up: the start's checks (Docker,
+  `rmk-server`) and Next.js's start (`pnpm dev`, `pnpm start`) both exit, and the auth instance
+  refuses too.
 - **A code used twice:** Better Auth accepts the same TOTP code again within its window (a code
   seen over someone's shoulder, or used at enrolment). Ronne refuses a code already accepted for
   that person (RFC 6238 §5.2), at sign-in and when turning off: each accepted code is recorded in

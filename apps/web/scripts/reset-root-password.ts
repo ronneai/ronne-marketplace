@@ -1,5 +1,5 @@
 // pnpm run reset-root-password: sets a new root password, ends that root's sessions, revokes its
-// access tokens and re-enables it. Interactive in a terminal; with --yes it reads
+// access tokens, turns off its two-factor sign-in (105) and re-enables it. Interactive in a terminal; with --yes it reads
 // RONNE_ROOT_PASSWORD. With several roots, --email (or RONNE_ROOT_EMAIL) says which.
 // Exit codes: 0 done, 1 failed (for example, no root yet), 2 missing or invalid input.
 import { resolve } from "node:path";

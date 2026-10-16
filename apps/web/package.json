@@ -14,6 +14,7 @@
     "db:migrate": "pnpm --filter @ronneai/core --silent build && tsx scripts/migrate.ts",
     "setup": "pnpm --filter @ronneai/core --silent build && tsx scripts/setup.ts",
     "reset-root-password": "pnpm --filter @ronneai/core --silent build && tsx scripts/reset-root-password.ts",
+    "reset-two-factor": "pnpm --filter @ronneai/core --silent build && tsx scripts/reset-two-factor.ts",
     "revoke-access": "pnpm --filter @ronneai/core --silent build && tsx scripts/revoke-access.ts",
     "rotate-secret": "pnpm --filter @ronneai/core --silent build && tsx scripts/rotate-secret.ts",
     "backup": "pnpm --filter @ronneai/core --silent build && tsx scripts/backup.ts",

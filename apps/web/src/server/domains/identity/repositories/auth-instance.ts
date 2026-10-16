@@ -1,4 +1,4 @@
-import { isConfigured, loadConfig } from "../../../config";
+import { isConfigured, loadConfig, secretsConflict } from "../../../config";
 import type { Db } from "../../../db/create-db";
 import { getAppDb } from "../../../db/instance";
 import type { DatabaseDialect } from "../../../db/url";
@@ -41,6 +41,9 @@ export const dropStale = (): void => {
 export const getAppAuth = (): AppAuth => {
   const config = loadConfig();
   if (!isConfigured(config)) throw new NotConfiguredError();
+  // Started some way that skipped the start's check (105): never sign with another secret.
+  const conflict = secretsConflict();
+  if (conflict) throw new Error(conflict);
   const baseURL = config.publicUrl ?? "http://localhost:3000";
 
   dropStale();

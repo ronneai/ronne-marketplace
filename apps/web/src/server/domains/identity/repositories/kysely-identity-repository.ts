@@ -152,6 +152,7 @@ export const kyselyIdentityRepository = (
           "user.name",
           "user.role",
           "user.disabled_at",
+          "user.two_factor_enabled",
           "account.password",
         ])
         .where("user.email", "=", email)
@@ -168,6 +169,7 @@ export const kyselyIdentityRepository = (
         },
         disabledAt: fromDbDate(row.disabled_at),
         passwordHash: row.password ?? null,
+        twoFactor: Boolean(row.two_factor_enabled),
       };
     },
 
@@ -258,10 +260,24 @@ export const kyselyIdentityRepository = (
               )
               .orderBy("workspaces.name")
               .execute();
+      // Who on the page has two-factor on, as the hold reads it (105).
+      const enrolled =
+        ids.length === 0
+          ? []
+          : await db
+              .selectFrom("user")
+              .innerJoin("two_factor", "two_factor.user_id", "user.id")
+              .select("user.id")
+              .where("user.id", "in", ids)
+              .where("user.two_factor_enabled", "=", toDbBoolean(true, dialect))
+              .where("two_factor.verified", "=", toDbBoolean(true, dialect))
+              .execute();
+      const withTwoFactor = new Set(enrolled.map((row) => row.id));
       return {
         ...page,
         rows: page.rows.map((row) => ({
           ...summary(row),
+          twoFactor: withTwoFactor.has(row.id),
           workspaces: memberships
             .filter((m) => m.user_id === row.id && isWorkspaceRole(m.role))
             .map((m) => ({ name: m.name, role: m.role }))
@@ -415,6 +431,61 @@ export const kyselyIdentityRepository = (
         .set({ disabled_at: null, updated_at: at(now) })
         .where("id", "=", userId)
         .execute();
+    },
+
+    async resetTwoFactor(userId, now) {
+      const record = await db
+        .deleteFrom("two_factor")
+        .where("user_id", "=", userId)
+        .executeTakeFirst();
+      const flag = await db
+        .updateTable("user")
+        .set({ two_factor_enabled: toDbBoolean(false, dialect), updated_at: at(now) })
+        .where("id", "=", userId)
+        .where("two_factor_enabled", "=", toDbBoolean(true, dialect))
+        .executeTakeFirst();
+      // An unfinished setup's "same browser" record (two-factor-setup:<id>).
+      await db
+        .deleteFrom("verification")
+        .where("identifier", "=", `two-factor-setup:${userId}`)
+        .execute();
+      return Number(record.numDeletedRows) > 0 || Number(flag.numUpdatedRows) > 0;
+    },
+
+    async hasTwoFactor(userId) {
+      const row = await db
+        .selectFrom("user")
+        .leftJoin("two_factor", "two_factor.user_id", "user.id")
+        .select(["user.two_factor_enabled", "two_factor.id as record"])
+        .where("user.id", "=", userId)
+        .executeTakeFirst();
+      return Boolean(row?.two_factor_enabled) || Boolean(row?.record);
+    },
+
+    async twoFactorOn(userId) {
+      const row = await db
+        .selectFrom("user")
+        .innerJoin("two_factor", "two_factor.user_id", "user.id")
+        .select("user.id")
+        .where("user.id", "=", userId)
+        .where("user.two_factor_enabled", "=", toDbBoolean(true, dialect))
+        .where("two_factor.verified", "=", toDbBoolean(true, dialect))
+        .executeTakeFirst();
+      return Boolean(row);
+    },
+
+    async clearAllTwoFactor(now) {
+      const records = await db.deleteFrom("two_factor").executeTakeFirst();
+      await db
+        .updateTable("user")
+        .set({ two_factor_enabled: toDbBoolean(false, dialect), updated_at: at(now) })
+        .where("two_factor_enabled", "=", toDbBoolean(true, dialect))
+        .execute();
+      await db
+        .deleteFrom("verification")
+        .where("identifier", "like", "two-factor-setup:%")
+        .execute();
+      return Number(records.numDeletedRows);
     },
 
     async deleteSessions(userId) {

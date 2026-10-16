@@ -8,6 +8,7 @@ import {
   adminDisableUser,
   adminEnableUser,
   adminResetPassword,
+  adminResetTwoFactor,
 } from "@/server/domains/identity/actions/user-admin";
 import { IdentityError } from "@/server/domains/identity/exceptions/errors";
 import { setUserWorkspaces, userMemberships } from "@/server/domains/workspaces/actions/workspaces";
@@ -138,6 +139,18 @@ export const resetPasswordFromForm = serverAction(
         chosenPassword(form),
       );
       return { oneTime: reset };
+    }),
+);
+
+export const resetTwoFactorFromForm = serverAction(
+  async (_previous: AdminActionState, form: FormData): Promise<AdminActionState> =>
+    attempt(async () => {
+      const { reset } = await adminResetTwoFactor(await requestHeaders(), text(form, "userId"));
+      return {
+        done: reset
+          ? "Two-factor sign-in turned off. They're signed out everywhere."
+          : "They had no two-factor sign-in: nothing changed.",
+      };
     }),
 );
 

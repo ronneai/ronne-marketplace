@@ -27,3 +27,9 @@ export const listRoots = (db: Db, dialect: DatabaseDialect) => service.listRoots
 
 export const findFirstRoot = (db: Db, dialect: DatabaseDialect) =>
   service.findFirstRoot(deps(db, dialect));
+
+export const resetTwoFactorFromCli = (db: Db, dialect: DatabaseDialect, email: string) =>
+  service.resetTwoFactorFromCli(deps(db, dialect), email);
+
+export const twoFactorOfEmail = (db: Db, dialect: DatabaseDialect, email: string) =>
+  service.twoFactorOfEmail(deps(db, dialect), email);

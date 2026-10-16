@@ -1,3 +1,4 @@
+import { loadConfig } from "../config";
 import { exchangePassword, revokeCallingToken } from "../domains/identity/actions/access-tokens";
 import { IdentityError, TokenLimitError } from "../domains/identity/exceptions/errors";
 import { type AppAuth, getAppAuth } from "../domains/identity/repositories/auth-instance";
@@ -29,6 +30,15 @@ export const postToken = async (request: Request, app: AppAuth = getAppAuth()) =
     }
     if (result.error === "rate_limited")
       return rateLimitedResponse("Too many attempts, wait a minute.", result.retryAfterSeconds);
+    if (result.error === "two_factor_required") {
+      const publicUrl = loadConfig().publicUrl;
+      const page = publicUrl ? `${publicUrl}/account/tokens` : "/account/tokens in the web app";
+      return errorResponse(
+        401,
+        "two_factor_required",
+        `This account uses two-factor sign-in. Create a token at ${page}, or run rmk login --web.`,
+      );
+    }
     return errorResponse(401, "invalid_credentials", "Email or password is wrong.");
   } catch (error) {
     if (error instanceof TokenLimitError) return errorResponse(409, "token_limit", error.message);

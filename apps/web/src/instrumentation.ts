@@ -1,11 +1,19 @@
 import type { Instrumentation } from "next";
 
 /**
- * At start (101): telemetry, only when an OTLP endpoint is set. Without one this imports nothing
+ * At start: the refusal of BETTER_AUTH_SECRETS (105), then telemetry (101), only when an OTLP
+ * endpoint is set. Without one this imports nothing
  * from OpenTelemetry, and Next.js emits no spans.
  */
 export const register = async () => {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
+  // Refuses to start with BETTER_AUTH_SECRETS set (105), however it's started (pnpm dev too).
+  const { secretsConflict } = await import("./server/config");
+  const conflict = secretsConflict();
+  if (conflict) {
+    console.error(`✗ ${conflict}`);
+    process.exit(1);
+  }
   const { startTelemetryIfSet } = await import("./server/telemetry");
   await startTelemetryIfSet();
 };

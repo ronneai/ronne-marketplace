@@ -50,6 +50,7 @@ const Users = async ({ searchParams }: { searchParams: Promise<SearchParams> }) 
             email: user.email,
             role: user.role,
             disabled: Boolean(user.disabledAt),
+            twoFactor: Boolean(user.twoFactor),
             self: user.id === me.id,
           }}
         />

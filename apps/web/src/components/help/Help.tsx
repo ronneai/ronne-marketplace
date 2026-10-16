@@ -308,6 +308,12 @@ export const HELP = {
       "Under Reviewers and root: root, and the moderators and admins of shared workspaces. Under Everyone: every account with a password. Someone it covers who hasn't set two-factor up is sent to their Account page at their next visit, and can't use anything else until they have. Nobody is signed out. Accounts that sign in through a company identity provider aren't covered.",
     href: docsHref("admin", "settings"),
   },
+  "reset-two-factor": {
+    question: "When do I reset someone's two-factor?",
+    answer:
+      "When they've lost their phone and their backup codes. They sign in with their password alone, then set two-factor up again on their Account page, at once if it's required of them. A root who lost theirs and has no other root to ask runs reset-root-password on the server, which resets it too.",
+    href: docsHref("admin", "users"),
+  },
   "usage-policy": {
     question: "What does rmk report?",
     answer:

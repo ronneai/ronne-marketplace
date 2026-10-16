@@ -22,6 +22,8 @@ describe("SignInPage", () => {
       "Forgot?",
       "Ask a root to reset your password in Users",
       "pnpm run reset-root-password",
+      // 105: a lost phone goes the same way.
+      "A lost authenticator, and its backup codes, is reset the same way",
       "Use rmk from the terminal",
       "rmk login",
       "--token &lt;token&gt;",

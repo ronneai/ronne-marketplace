@@ -224,3 +224,47 @@ export const parseRotateSecretCommand = (
     };
   return { mode: "interactive" };
 };
+
+export type ResetTwoFactorCommand =
+  | { mode: "interactive" | "non-interactive"; email: string; databaseUrl?: string }
+  | { mode: "help" }
+  | { mode: "error"; exitCode: 2; message: string };
+
+export const RESET_TWO_FACTOR_USAGE = `Usage: reset-two-factor --email EMAIL [--yes]
+
+Turns off one account's two-factor sign-in and ends its sessions, for a lost phone and lost backup
+codes. They sign in with their password alone, and set two-factor up again if it's required of
+them. Any account, root's included; recorded in the audit log.
+
+  --email EMAIL  The account
+  --yes, -y      Don't ask first (needed without a terminal)
+  --help, -h     Show this`;
+
+/** reset-two-factor's flags (105): --email <email>, --yes to skip the question. */
+export const parseResetTwoFactorCommand = (
+  argv: string[],
+  env: Env,
+  hasTerminal: boolean,
+): ResetTwoFactorCommand => {
+  const error = (message: string) => ({ mode: "error", exitCode: 2, message }) as const;
+  let values: { email?: string; yes?: boolean; help?: boolean };
+  try {
+    ({ values } = parseArgs({
+      args: argv,
+      strict: true,
+      options: {
+        email: { type: "string" },
+        yes: { type: "boolean", short: "y" },
+        help: { type: "boolean", short: "h" },
+      },
+    }));
+  } catch (caught) {
+    return error((caught as Error).message);
+  }
+  if (values.help) return { mode: "help" };
+  if (!values.email?.trim()) return error("Say whose two-factor to reset: --email <email>.");
+  const email = values.email;
+  if (values.yes) return { mode: "non-interactive", email, databaseUrl: env.DATABASE_URL };
+  if (!hasTerminal) return error("There's no terminal to ask for confirmation. Run it with --yes.");
+  return { mode: "interactive", email, databaseUrl: env.DATABASE_URL };
+};

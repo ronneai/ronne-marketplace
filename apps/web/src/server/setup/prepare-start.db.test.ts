@@ -1,4 +1,4 @@
-import { chmodSync, mkdtempSync, rmSync } from "node:fs";
+import { chmodSync, existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -27,6 +27,19 @@ const configured = () => ({
 });
 
 describe("prepareStart", () => {
+  it("refuses to start with BETTER_AUTH_SECRETS set, before anything else (105)", async () => {
+    for (const env of [configured(), { RONNE_ENV_FILE: join(dir, "none.env") }])
+      await expect(
+        prepareStart({
+          appDir: dir,
+          dataDir: dir,
+          env: { ...env, BETTER_AUTH_SECRETS: "1:another-secret-another-secret-00" },
+          log: silent,
+        }),
+      ).rejects.toThrowError(/BETTER_AUTH_SECRETS is set.*AUTH_SECRET alone/);
+    expect(existsSync(join(dir, "ronne.db"))).toBe(false);
+  });
+
   it("starts in setup mode before setup", async () => {
     const plan = await prepareStart({
       appDir: dir,

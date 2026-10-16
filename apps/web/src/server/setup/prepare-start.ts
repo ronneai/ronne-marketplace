@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { isConfigured, loadConfig } from "../config";
+import { isConfigured, loadConfig, secretsConflict } from "../config";
 import { createDb } from "../db/create-db";
 import { migrateToLatest } from "../db/migrate";
 import type { DatabaseDialect } from "../db/url";
@@ -38,6 +38,8 @@ export const prepareStart = async (options: {
   checkWritable(options.dataDir);
 
   const env = options.env ?? process.env;
+  const conflict = secretsConflict(env);
+  if (conflict) throw new StartError(conflict);
   const config = loadConfig({ appDir: options.appDir, env });
   if (!isConfigured(config)) {
     // The address to open is the one value from the environment a line holds (080, 082): it isn't
