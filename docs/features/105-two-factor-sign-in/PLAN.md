@@ -67,7 +67,8 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   admin and root; a held person on a page and on a server action; and a stale tab.
 
 - [ ] **7. Reset, the CLI scripts and the API.** [risky] Reset two-factor on Admin › Users (not on
-  your own row); `reset-root-password` resets it; `rotate-secret` clears secrets and reports the
+  your own row); `reset-root-password` resets it; `pnpm run reset-two-factor --email` (and
+  `rmk-server reset-two-factor`) resets any account's from the terminal (owner, 2026-10-16); `rotate-secret` clears secrets and reports the
   count, and so does `restore` when it ends with another `AUTH_SECRET` than the archive's (or,
   with no secret in the archive, when a stored two-factor secret won't decrypt); the
   server refuses to start with `BETTER_AUTH_SECRETS` set; `POST /api/v1/auth/token` answers

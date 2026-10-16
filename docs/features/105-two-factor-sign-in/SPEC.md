@@ -36,6 +36,10 @@ Built on Better Auth's `twoFactor` plugin, checked against its docs (2026-10-15)
   other root does it).
 - **`pnpm run reset-root-password` also resets that root's two-factor**, so the terminal remains
   the last way back in; it says so.
+- **`pnpm run reset-two-factor --email <email>`** (and `rmk-server reset-two-factor`), for any
+  account from the terminal (owner, 2026-10-16): clears its two-factor, ends its sessions, and
+  records `user.two_factor_reset` with the actor `cli`; it asks first unless `--yes`, and says
+  when the account had none.
 - **The API's password exchange stops being a way around it** (`POST /api/v1/auth/token`, 009): a
   person with two-factor who sends the right password gets 401 `two_factor_required` and no token.
   They create a token in the web app (`/account/tokens`), or use `rmk login --web` once 107 lands.
