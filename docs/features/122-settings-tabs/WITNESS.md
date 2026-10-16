@@ -70,3 +70,19 @@ Witnessed: 2026-10-15 23:08 EDT, by a fresh agent (blind). Commit: 86ef5042 plus
 | 10 | Lint and types pass | no | confirmed | `biome check` → 14 files, no fixes; `tsc --noEmit -p apps/web` → clean |
 
 **Overall:** met.
+
+## Task 5 — Phone sweep and e2e
+
+Witnessed: 2026-10-15 23:14 EDT, by a fresh agent (blind). Commit: b19e2b59 plus the working-tree diff. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The sweep's list has the three Settings tab addresses | no | confirmed | `e2e/pages.ts:137-145`; a probe over `SWEEP_PAGES` → root gets the bare address, `?tab=feeds`, `?tab=authentication`; member and moderator none |
+| 2 | The sweep's page-list unit test still passes | no | confirmed | `vitest run src/app/pages-coverage.test.ts` → 2 passed |
+| 3 | The phone sweep passes on every tab on phone, phone-webkit and tablet | no | confirmed | `pnpm test:e2e` → the three projects' `mobile-sweep … as root` passed; each `overflow.txt` lists only `/submissions/new` (expected, 072), no `/admin/settings` |
+| 4 | Root's test switches tabs, each with its own address | no | confirmed | `audit.e2e.ts:130-139` (`?tab=feeds$`, the feeds heading, no Usage form; `?tab=authentication$`, the region, `aria-current`); passed |
+| 5 | Back and forward move between tabs | no | confirmed | `audit.e2e.ts:140-147` goBack twice and goForward, URL and current tab checked; passed (after goForward only the URL is checked) |
+| 6 | Saving the usage policy keeps the Usage tab | no | confirmed | `audit.e2e.ts:98-102` waits for "Usage reporting saved.", then URL `/admin/settings$` and current "Usage"; passed |
+| 7 | "axe" is gone from the acceptance criteria of 105–108 and 122; the repo has no axe tooling | no | confirmed | `grep -rni axe docs/features/10[5-8]-*/ docs/features/122-*/` → none; `git grep -niw axe -- ':!*.md'` → 0 matches (one lockfile hash aside) |
+
+**Overall:** met.

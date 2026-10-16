@@ -95,7 +95,7 @@ else changes.
 - [ ] The plugin feeds' stats are queried only for `feeds`.
 - [ ] Anyone but root gets a 404 on every tab.
 - [ ] The workspace page uses the same `TabLinks` and its tests and e2e test still pass.
-- [ ] The page passes the phone sweep (065) and has no axe violations on any tab.
+- [ ] The page passes the phone sweep (065) on every tab.
 - [ ] The Documentation and inline helpers listed above say what the feature does now.
 
 ## Decisions

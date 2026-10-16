@@ -133,7 +133,16 @@ export const SWEEP_PAGES: readonly SweepPage[] = [
   { route: "/admin", roles: ROOT, urls: () => ["/admin"] },
   { route: "/admin/users", roles: ROOT, urls: () => ["/admin/users"] },
   { route: "/admin/audit", roles: ROOT, urls: () => ["/admin/audit"] },
-  { route: "/admin/settings", roles: ROOT, urls: () => ["/admin/settings"] },
+  // Its tabs (122): Usage at the bare address, then Plugin feeds and Authentication.
+  {
+    route: "/admin/settings",
+    roles: ROOT,
+    urls: () => [
+      "/admin/settings",
+      "/admin/settings?tab=feeds",
+      "/admin/settings?tab=authentication",
+    ],
+  },
   // Root-only in production, which the end-to-end tests run.
   { route: "/styleguide", roles: ROOT, urls: () => ["/styleguide"] },
 ];

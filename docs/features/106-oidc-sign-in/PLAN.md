@@ -53,7 +53,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   with Copy, the steps beside the form, the write-only secret, domains, groups, the version check;
   Test connection and Test sign-in (the dry run, changing nothing); Turn on needs the test.
   *Done when:* component tests pass for each state, including "can't turn on before the test" and a
-  stale form; axe and the phone sweep pass.
+  stale form; the phone sweep passes.
 
 - [ ] **7. The sign-in page and the password policy.** [risky] Provider buttons, the error
   messages, *Root only* with "Use your password (root)", the choice's preconditions and confirm, the

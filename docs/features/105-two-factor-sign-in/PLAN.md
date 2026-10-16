@@ -34,7 +34,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 - [ ] **4. `/account/security`.** The page and its client parts (password step, QR and secret,
   first code, backup codes once with Copy and Download, status, Regenerate, Turn off), linked from
   the Account menu; the phone layout.
-  *Done when:* component tests pass for each step, including "shown once"; axe passes.
+  *Done when:* component tests pass for each step, including "shown once".
 
 - [ ] **5. The second step at sign-in.** [risky] The sign-in action handles the challenge and
   redirects to `/sign-in/two-factor`; the page and its action verify a code or a backup code,

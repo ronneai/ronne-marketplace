@@ -96,6 +96,10 @@ test("root reads the audit log: setup, its own sign-in, and a settings change", 
   await expect(current).toHaveText("Settings");
   await expect(page.getByRole("radio", { name: /^Off/ })).toBeChecked();
   await choosePolicy(page, "People choose");
+  // Saving keeps the tab (122): still Usage, at the same address.
+  const settingsTabs = page.getByRole("navigation", { name: "Settings" });
+  await expect(page).toHaveURL(/\/admin\/settings$/);
+  await expect(settingsTabs.locator('[aria-current="page"]')).toHaveText("Usage");
   await page.reload();
   await expect(page.getByRole("radio", { name: /^People choose/ })).toBeChecked();
   await main.getByRole("link", { name: "Audit log" }).click();
@@ -121,15 +125,26 @@ test("root reads the audit log: setup, its own sign-in, and a settings change", 
   await page.reload();
   await expect(minimum).toHaveValue("5");
   await saveMinimum("0");
-  // The Authentication tab (122): how people sign in, read-only for now.
-  await page
-    .getByRole("navigation", { name: "Settings" })
-    .getByRole("link", { name: "Authentication" })
-    .click();
+  // The tabs (122): Plugin feeds, then Authentication (how people sign in, read-only for now);
+  // each has its own address, so back and forward move between them.
+  await settingsTabs.getByRole("link", { name: "Plugin feeds" }).click();
+  await expect(page).toHaveURL(/\/admin\/settings\?tab=feeds$/);
+  await expect(page.getByRole("heading", { name: "Plugin feeds" })).toBeVisible();
+  await expect(page.getByRole("form", { name: "Usage reporting" })).toHaveCount(0);
+  await settingsTabs.getByRole("link", { name: "Authentication" }).click();
   await expect(page).toHaveURL(/\/admin\/settings\?tab=authentication$/);
   const methods = page.getByRole("region", { name: "Sign-in methods" });
   await expect(methods).toBeVisible();
   await expect(methods.getByRole("row", { name: /Email and password\s+On/ })).toBeVisible();
+  await expect(settingsTabs.locator('[aria-current="page"]')).toHaveText("Authentication");
+  await page.goBack();
+  await expect(page).toHaveURL(/\/admin\/settings\?tab=feeds$/);
+  await expect(settingsTabs.locator('[aria-current="page"]')).toHaveText("Plugin feeds");
+  await page.goBack();
+  await expect(page).toHaveURL(/\/admin\/settings$/);
+  await expect(page.getByRole("form", { name: "Usage minimum" })).toBeVisible();
+  await page.goForward();
+  await expect(page).toHaveURL(/\/admin\/settings\?tab=feeds$/);
 
   // Local time (049): the audit log and an item page in the reader's zone, UTC on hover.
   await main.getByRole("link", { name: "Audit log" }).click();

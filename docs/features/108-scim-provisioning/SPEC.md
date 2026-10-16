@@ -165,7 +165,7 @@ change racing a sign-in, can't interleave.
 - [ ] The last enabled root can't be disabled or changed by SCIM; a root is refused.
 - [ ] The SCIM token is stored only as a hash and appears in no log or audit row.
 - [ ] Tests run on SQLite, PostgreSQL, MySQL and MariaDB (transactions and locks included).
-- [ ] The pages pass the phone sweep (065) and axe.
+- [ ] The pages pass the phone sweep (065).
 - [ ] The Documentation and inline helpers listed above say what the feature does now.
 
 ## Decisions

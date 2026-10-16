@@ -174,7 +174,7 @@ without it. `rmk` prints the message.
 - [ ] No Better Auth endpoint is added to the HTTP allowlist; the TOTP secret, backup codes and QR
   data appear in no log or audit metadata (a test inspects both).
 - [ ] The migration runs on SQLite, PostgreSQL, MySQL and MariaDB, and the schema test passes.
-- [ ] The pages pass the phone sweep (065) and axe.
+- [ ] The pages pass the phone sweep (065).
 - [ ] The Documentation and inline helpers listed above say what the feature does now.
 
 ## Decisions

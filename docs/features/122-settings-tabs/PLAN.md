@@ -31,9 +31,11 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* a component test shows the panel and the helper, and the e2e test (root opens
   `?tab=authentication`) sees it.
 
-- [ ] **5. Phone sweep and e2e.** Add the three tabs to the phone sweep and to the e2e test of
-  Settings (switch tabs, back button, save the usage policy and stay).
-  *Done when:* `pnpm test:e2e` passes the settings spec on the desktop, phone and tablet projects.
+- [x] **5. Phone sweep and e2e.** Add the three tabs to the phone sweep and to the e2e test of
+  Settings, which is root's test in `audit.e2e.ts` (switch tabs, back and forward, save the usage
+  policy and stay).
+  *Done when:* `pnpm test:e2e` passes: root's test on the desktop project, and the phone sweep,
+  which opens the three tabs' addresses, on the phone and tablet projects.
 
 - [ ] **6. Documentation.** The `admin#settings` section and the helper, in ronne-web (en, pt, fr)
   and here.
@@ -56,3 +58,6 @@ goes into `SPEC.md` instead.
   `<AuthenticationTab />`: it's async (a later panel reads its own data) and the page's tests render
   with `renderToStaticMarkup`, which can't wait for an async component. Its e2e check lives in
   root's test in `audit.e2e.ts` (the sign-in limit).
+- **Task 5: the e2e checks** (Claude). Root's tab checks are in `audit.e2e.ts` (desktop); the sweep
+  opens the three addresses on phone, phone-webkit and tablet, but doesn't check the status. "No axe
+  violations" was dropped from the M16 specs: the repository has no axe tooling.
