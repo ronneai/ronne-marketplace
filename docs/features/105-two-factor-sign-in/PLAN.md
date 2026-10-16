@@ -18,7 +18,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* the migration and schema tests pass on SQLite, and `pnpm test:db:core` on
   PostgreSQL, MySQL and MariaDB; the Notes answer the encryption question.
 
-- [ ] **2. QR code.** Pick the library through `docs/policies/dependencies.md` (licence, latest
+- [x] **2. QR code.** Pick the library through `docs/policies/dependencies.md` (licence, latest
   stable, audit, release age); a `qrSvg(uri)` helper in the identity domain that returns an SVG
   string.
   *Done when:* `pnpm licenses:check` and `pnpm audit --audit-level high` pass and a test decodes
@@ -111,3 +111,15 @@ goes into `SPEC.md` instead.
   allowlist to `/get-session` and `/ok`: adding a route there used to skip its own 404 check. The
   spec's restore edge case was wrong (restore writes a new `AUTH_SECRET` by default) and is
   rewritten, with `BETTER_AUTH_SECRETS`, code replay and double enrolment, into tasks 3, 5 and 7.
+- **Task 2: the QR code library** (Claude, the policy's six questions, for the pull request).
+  **`uqr` 0.1.3**, exact in `apps/web`. *Need:* Node has no QR encoder. *License:* MIT, no
+  dependencies (one package in the lockfile). *Health:* the unjs organisation, two maintainers,
+  about 6 million downloads a week, last release 2026-04-03. *Advisories:* none on osv.dev.
+  *Install scripts:* none. *Weight:* 79 KB unpacked, 1 package. Not `qrcode` (it brings `yargs`
+  15 and `pngjs`), not `qrcode-generator` (no release in 12 months), not `lean-qr` (one
+  maintainer). `qrSvg(uri)` (`identity/models/qr.ts`) draws error correction M with the 4-module
+  quiet zone, black on white in both themes (scanners need it), `viewBox` only so CSS sizes it.
+  The test reads the drawn modules back out of the SVG and compares them with `encode()`'s, and
+  with a golden file (`models/__golden__/qr-golden.txt`): a fixed URI's modules, decoded once by a
+  reader that doesn't use uqr (from the witness) to exactly that URI, version 7, ECC M. Comparing
+  only with `encode()` passed a uqr that encoded the wrong text.

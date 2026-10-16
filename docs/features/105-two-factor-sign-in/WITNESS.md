@@ -103,3 +103,41 @@ Witnessed: 2026-10-16 11:28 EDT, by a fresh agent (adversarial). Commit: 1df115c
 | Bb | PLAN task 7 carries it | yes | confirmed | `PLAN.md:62-63` (its Done when now names the archive with no secret) |
 
 **Overall:** met.
+
+## Task 2 — QR code
+
+Witnessed: 2026-10-16 11:31 EDT, by a fresh agent (blind). Commit: 3978cf61 plus the uncommitted diff (`apps/web/package.json`, `pnpm-lock.yaml`, `identity/models/qr.ts`, `qr.test.ts`). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `pnpm licenses:check` passes | no | confirmed | 322 packages, all allowed; `MIT uqr ['0.1.3']` |
+| 2 | `pnpm audit --audit-level high` passes | no | confirmed | "No known vulnerabilities found", exit 0 |
+| 3 | §1: the whole install tree is allowed | yes | confirmed | `uqr@0.1.3` has no dependencies; the lock adds only it |
+| 4 | §2: latest stable, pinned exactly | yes | confirmed | latest = 0.1.3; `"uqr": "0.1.3"` |
+| 5 | Older than `minimumReleaseAge` | yes | confirmed | 4320 min; released 2026-04-03 |
+| 6 | No install scripts | yes | confirmed | `npm view uqr@0.1.3 scripts` → none of pre/post/install |
+| 7 | Lockfile consistent; trust policy holds | no | confirmed | `pnpm install --frozen-lockfile --offline` passes; no version has attestations |
+| 8 | §3 health, advisories, weight | yes | confirmed | osv.dev empty; unjs, two maintainers; 6,085,278 downloads last week; 79,278 B |
+| 9 | `qrSvg(uri)` in the identity domain returns an SVG string | no | confirmed | `qr.ts:14-15` |
+| 10 | Drawn on the server, never sent to a third party | no | confirmed | uqr has no network code (only the SVG namespace URL); no caller yet (task 4) |
+| 11 | The SVG is a valid QR code that decodes back to the URI | no | confirmed | a decoder without uqr round-trips 7 URIs (up to v15, Unicode, mixed blocks); Reed-Solomon valid; ECC M |
+| 12 | Done when: a test decodes the matrix back to the URI, or compares a golden file | yes | partly | the test compares with uqr's own `encode()` only: both on `uri.slice(0, -1)` still passes |
+| 13 | Test, typecheck, lint | no | confirmed | 4 passed; clean |
+| 14 | ECC M, 4-module quiet zone | yes | confirmed | decoder: `ecc M`, `border 4` |
+| 15 | Black on white, sized by `viewBox` | yes | confirmed | no width or height on `<svg>` |
+| 16 | The notes describe the test | yes | confirmed | accurate, but short of the Done when (row 12) |
+
+**Overall:** not met: row 12.
+
+### Re-check — row 12
+
+Witnessed: 2026-10-16 11:35 EDT, by a fresh agent (blind). Commit: 3978cf61 plus the uncommitted diff (now with `__golden__/qr-golden.txt`). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 12 | A test checks the drawing against a golden file that really is a QR code of the URI | yes | confirmed | `qr.test.ts:28-31`; an SVG built from the file alone decodes (no uqr) to exactly `GOLDEN_URI`: v7, ECC M, mask 2, border 4, Reed-Solomon valid |
+| 12a | It catches a library encoding the wrong text | yes | confirmed | both calls on `uri.slice(0, -1)` → the golden test fails |
+| 12b | It catches the wrong error correction | yes | confirmed | `ecc: "L"` → fails; `border: 2` → the golden and quiet-zone tests fail |
+| 12c | The unchanged code passes; lint and typecheck clean | no | confirmed | 5 passed; no diagnostics; no type errors |
+
+**Overall:** met.
