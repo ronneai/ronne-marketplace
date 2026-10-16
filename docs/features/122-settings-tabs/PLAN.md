@@ -15,7 +15,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* component tests cover the links, the single current tab, an unknown current id and
   the coarse-pointer class; the styleguide test passes.
 
-- [ ] **2. The workspace page uses it.** Replace the inline strip with `TabLinks`; no change in
+- [x] **2. The workspace page uses it.** Replace the inline strip with `TabLinks`; no change in
   behaviour.
   *Done when:* the workspace page's tests and the existing e2e tests for its tabs pass unchanged.
 
@@ -43,3 +43,8 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+- **Task 2: the workspace page's e2e coverage** (from the witness). The "Workspace" strip is driven
+  by `user-admin.e2e.ts`; `navigation.mobile.e2e.ts`'s "tab strips show the current tab" exercises
+  the item page's strip, not this one. The phone-webkit project needs `playwright install webkit`
+  once per machine.

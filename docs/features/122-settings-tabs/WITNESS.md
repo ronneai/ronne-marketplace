@@ -18,3 +18,17 @@ Witnessed: 2026-10-15 22:36 EDT, by a fresh agent (blind). Commit: 6937575f plus
 | 8 | No lint or type findings in the files this task changes | no | confirmed | `tsc --noEmit` in apps/web → clean; `biome check src/components/ui src/features/styleguide` → one warning, in `data-table/DataTable.tsx:15` (unused `isFiltered`), a file the diff doesn't touch and which was already there |
 
 **Overall:** met.
+
+## Task 2 — The workspace page uses it
+
+Witnessed: 2026-10-15 22:48 EDT, by a fresh agent (blind). Commit: a7cf8230 plus the working-tree diff to `apps/web/src/app/(app)/workspaces/[name]/page.tsx`. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The workspace page renders its tab strip with `TabLinks` instead of the inline `ScrollStrip` + `Link` map | no | confirmed | `git diff` → `ScrollStrip`/`stripTab` imports and the inline map removed; `page.tsx:258-262` `<TabLinks label="Workspace" current={tab} tabs={…} />` |
+| 2 | The markup is the same as before (no change in behaviour) | no | confirmed | `git show HEAD:…/page.tsx` against `TabLinks.tsx:26-38`: same `ScrollStrip label="Workspace"`, same class (`cn` drops the undefined `className`), same key, href, `aria-current` and class string per `Link` |
+| 3 | The workspace page's unit tests pass, unchanged | no | confirmed | only `page.tsx` changed; `vitest run workspace` → 31 files, 319 passed, 2 skipped; `admin-workspaces.test.tsx` asserts `aria-current="page"` on the Members and Scopes tabs |
+| 4 | The existing e2e tests for its tabs pass, unchanged | no | confirmed | `pnpm test:e2e` → `next build` on the working tree, then 144 passed (3.6m), none failed or flaky; `user-admin.e2e.ts:176,218` use the "Workspace" navigation |
+| 5 | The changed file passes lint | no | confirmed | `biome check …/page.tsx` → no fixes; the `Link` import is still used (`page.tsx:208`) |
+
+**Overall:** met.

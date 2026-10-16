@@ -5,8 +5,7 @@ import { Help } from "@/components/help/Help";
 import { Badge } from "@/components/ui/Badge";
 import { parseListQuery, type SearchParams } from "@/components/ui/data-table/list-query";
 import { PageHeader } from "@/components/ui/Panel";
-import { ScrollStrip } from "@/components/ui/ScrollStrip";
-import { stripTab } from "@/components/ui/scroll-strip";
+import { TabLinks } from "@/components/ui/TabLinks";
 import { scopesQueryOf, workspaceScopesList } from "@/features/admin-scopes/list";
 import { CreateScopeDialog, EditScopeButton } from "@/features/admin-scopes/ScopeDialogs";
 import { ScopesTable } from "@/features/admin-scopes/ScopesTable";
@@ -256,18 +255,11 @@ const WorkspacePage = async ({
           />
         )}
       </div>
-      <ScrollStrip label="Workspace" className="mb-4 gap-1 border-b border-hairline">
-        {tabs.map(([id, label, href]) => (
-          <Link
-            key={id}
-            href={href}
-            aria-current={tab === id ? "page" : undefined}
-            className={`${stripTab} -mb-px border-b-2 border-transparent px-3 py-2 text-sm text-muted hover:text-fg aria-[current=page]:border-accent aria-[current=page]:text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus`}
-          >
-            {label}
-          </Link>
-        ))}
-      </ScrollStrip>
+      <TabLinks
+        label="Workspace"
+        current={tab}
+        tabs={tabs.map(([id, label, href]) => ({ id, label, href }))}
+      />
       {await content()}
     </>
   );
