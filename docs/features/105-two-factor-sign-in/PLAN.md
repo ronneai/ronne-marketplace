@@ -44,7 +44,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   test greps the log output and the audit metadata for the secret; and another browser never sees
   the pending setup.
 
-- [ ] **4. `/account/security`.** The page and its client parts (password step, QR and secret,
+- [x] **4. `/account/security`.** The page and its client parts (password step, QR and secret,
   first code, backup codes once with Copy and Download, status, Regenerate, Turn off), linked from
   the Account menu; the phone layout.
   *Done when:* component tests pass for each step, including "shown once".
@@ -180,3 +180,28 @@ goes into `SPEC.md` instead.
     witness's gap). For 111 too: across servers, `rememberSetupSession` deletes then writes, so
     two servers could leave two rows (the newest wins on read); a stolen session plus the password
     still re-shows a pending setup, by construction (the limit is what protects it).
+- **Task 4: `/account/security`** (Claude). `features/account-security/`: the page (status,
+  setup, new backup codes, turn off), its server actions, and `AccountTabs` (Password and
+  Two-factor sign-in, `TabLinks` from 122), so the Account menu's one link reaches both; the
+  Password page now has the same "Account" header and tabs. The QR code is an `<img>` of a
+  `data:` SVG (no `next/image`: nothing to optimise, and the secret mustn't reach its loader). The
+  backup codes come with the start but are only shown after the first code is right, with Copy
+  all and Download (.txt); "I've saved them" refreshes the page. `security` joined the telemetry's
+  route segments (101) and the phone sweep's pages. Inline helpers wait for task 9 (their
+  Documentation section doesn't exist yet).
+  - **From the witness** (not met): turning on or off replaces the session, and Next.js renders
+    the page again with the new status: the first version switched branches and unmounted the
+    setup, so the backup codes were never shown; and "I've saved them" after new codes kept them on
+    screen (`router.refresh` keeps a client component's state). Now one client part,
+    `TwoFactorPanel`, holds the step (off or on) and moves only when the person finishes one, with
+    a fresh form each time (`key`). Static rendering can't click, so `e2e/two-factor.e2e.ts` (its
+    own user) drives every step in a browser: set up, the same key after a reload, a wrong and a
+    right first code, the codes and "I've saved them", gone after a reload, new codes, turn off.
+  - **`pnpm dev` crashed on `/account/security`** (the owner, 2026-10-16): "deps.limiter.check is not
+    a function". The login limiter lives on `globalThis` across hot reloads, and the one in the
+    running dev server was made before task 3 added `check`; tests and builds start fresh, so
+    nothing caught it. `dropStale` (`auth-instance.ts`) now replaces a limiter of an older class and
+    forgets Better Auth instances made by an older `createAuth` (they'd lack the two-factor plugin);
+    `docs/knowledge/hot-reload-singletons.md` records it.
+  - **Second re-check:** the badge, intro, codes-left and New backup codes follow the server's status;
+    only the step being finished stays (`phase`). The e2e test checks the badge at both moments.

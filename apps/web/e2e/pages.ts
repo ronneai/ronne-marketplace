@@ -129,6 +129,7 @@ export const SWEEP_PAGES: readonly SweepPage[] = [
   // Requests to join (094): every moderator opens it, with or without requests waiting.
   { route: "/workspaces/requests", roles: REVIEWERS, urls: () => ["/workspaces/requests"] },
   { route: "/account/password", roles: EVERYONE, urls: () => ["/account/password"] },
+  { route: "/account/security", roles: EVERYONE, urls: () => ["/account/security"] },
   { route: "/account/tokens", roles: EVERYONE, urls: () => ["/account/tokens"] },
   { route: "/admin", roles: ROOT, urls: () => ["/admin"] },
   { route: "/admin/users", roles: ROOT, urls: () => ["/admin/users"] },

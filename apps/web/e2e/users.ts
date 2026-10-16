@@ -22,6 +22,8 @@ export const E2E_USERS = {
   phoneWebkitFocus: "phone-webkit-focus@e2e.test",
   tabletFocus: "tablet-focus@e2e.test",
   changePassword: "change-password@e2e.test",
+  // Turns two-factor on and off on /account/security (105).
+  twoFactor: "two-factor@e2e.test",
   notRoot: "not-root@e2e.test",
   tokens: "tokens@e2e.test",
   submitter: "submitter@e2e.test",
@@ -163,6 +165,7 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   phoneWebkitFocus: "Wendy Focus",
   tabletFocus: "Tabitha Focus",
   changePassword: "Change Password Tester",
+  twoFactor: "Tess Twofactor",
   notRoot: "Not Root",
   tokens: "Token Tester",
   submitter: "Submitter",

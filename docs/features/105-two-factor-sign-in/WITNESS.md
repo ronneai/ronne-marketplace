@@ -331,3 +331,66 @@ Witnessed: 2026-10-16 13:09 EDT, by a fresh agent (adversarial). Commit: d0a5928
 | 10 | Tests on 4 kinds, suite, typecheck, lint | no | confirmed | 50/50; 2884 passed |
 
 **Overall:** met. After this pass, only a test was added: a setup record past its day isn't honoured (it fails when the expiry check is removed; 33/33 on SQLite, PostgreSQL, MySQL and MariaDB).
+
+## Task 4 — `/account/security`
+
+Witnessed: 2026-10-16 13:43 EDT, by a fresh agent (blind). Commit: 5a1487bb plus the uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Component tests pass | no | confirmed | `vitest run src/features/account-security` → 13 passed; web suite 2899 passed |
+| 2 | Lint and typecheck clean | no | confirmed | exit 0 both |
+| 3 | Password step | no | confirmed | browser probe (Chromium, Pixel 7, iPhone 15): wrong → "The password is wrong"; right → QR and key |
+| 4 | The QR code is a server-drawn SVG, never sent to a third party | yes | confirmed | `data:image/svg+xml` from `qrSvg`; decodes 150×150 |
+| 5 | The key in groups of four | no | confirmed | a TOTP from the shown key accepted |
+| 6 | The URI's settings named | no | confirmed | "Time-based, 6 digits, every 30 seconds." |
+| 7 | Same browser, same setup; Start over offered | no | confirmed | same key after reload in 3 engines |
+| 8 | A wrong first code refused with the clock hint | no | confirmed | probe |
+| 9 | After the first code, the 10 codes with Copy all, Download, "I've saved them" | yes | not met | after a right code the page jumped to "On · 10 backup codes left": the codes were never shown (3 engines) |
+| 10 | "Shown once" | yes | partly | gone after reload, but never shown (row 9) |
+| 11 | Status, codes left, Regenerate, Turn off | no | confirmed | probe; component tests |
+| 12 | Regenerate: "I've saved them" closes the step | yes | partly | the codes stayed after "I've saved them" (`router.refresh` keeps client state) |
+| 13 | Turn off needs password and code | no | confirmed | its "is off" notice never appeared (cosmetic) |
+| 14 | SSO-only: nothing to set up | no | confirmed | component test |
+| 15 | Linked from the Account menu | yes | partly | reached through the new tabs; SPEC not updated |
+| 16 | Phone layout, in the sweep | yes | confirmed | `mobile-sweep` → 15 passed; no overflow at 360 and 320 |
+| 17 | `security` a telemetry segment | yes | confirmed | `sanitize.ts:112` |
+
+**Overall:** not met: rows 9, 12 (the steps after confirm and after new codes); no test drives them.
+
+### Re-check — after the fixes
+
+Witnessed: 2026-10-16 14:00 EDT, by a fresh agent (blind). Commit: 5a1487bb plus the uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Component and unit tests pass | yes | confirmed | 15 passed; web suite 2901 passed |
+| 2 | Lint and typecheck clean | no | not met | `pnpm lint` → a format error in `e2e/two-factor.e2e.ts` |
+| 3 | The codes after the first code, with Copy all, Download, "I've saved them" | yes | confirmed | 3 engines: 10 codes; the download has all |
+| 4 | Gone after "I've saved them" and a reload | yes | confirmed | probe |
+| 5 | Regenerate: "I've saved them" brings the form back | yes | confirmed | probe |
+| 6 | Turn off: notice, Done, then Off | yes | confirmed | probe; e2e |
+| 7 | The status shown stays true during the steps | no | partly | badge "Off" while the codes show; "On" with "0 codes left" after turning off |
+| 8 | An e2e test covers the steps and catches the regression | yes | confirmed | mutation `const on = status.enabled` fails it |
+| 9 | Same setup, codes, QR, key | no | confirmed | probe |
+| 10 | Reached through the Account tabs; SPEC says so | yes | confirmed | SPEC Scope; e2e |
+| 11 | Phone layout | no | confirmed | sweep; no overflow |
+| 12 | `pnpm dev` no longer crashes after a hot reload | yes | confirmed | reproduced with `next dev`: HEAD → 4× `deps.limiter.check is not a function`; fixed → 0, QR shown |
+
+**Overall:** not met: rows 2, 7.
+
+### Re-check — lint and the badge
+
+Witnessed: 2026-10-16 14:09 EDT, by a fresh agent (blind). Commit: 5a1487bb plus the uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Lint and typecheck clean | yes | confirmed | `pnpm lint` exit 0; typecheck exit 0 |
+| 2 | Component and unit tests pass | yes | confirmed | 15 passed; 2901 passed |
+| 3 | While the codes show: badge On, no "will also ask" intro | yes | confirmed | probe; screenshot |
+| 4 | After Turn off, before Done: Off, no codes-left, no New backup codes | yes | confirmed | probe; screenshot |
+| 5 | All steps still work end to end | no | confirmed | Chromium, phone, phone-webkit |
+| 6 | The e2e test checks both | yes | confirmed | `two-factor.e2e.ts:57,61,88-89`; passed |
+| 7 | Phone layout | no | confirmed | sweep, no overflow |
+
+**Overall:** met.

@@ -12,8 +12,8 @@ Built on Better Auth's `twoFactor` plugin, checked against its docs (2026-10-15)
 ## Scope
 
 **In:**
-- **Enrolment on `/account/security`** (a new Account page, linked from the Account menu next to
-  Password and Access tokens): turn two-factor on with the current password, scan a QR code or type
+- **Enrolment on `/account/security`** (a new Account page: Account now has two tabs, Password
+  and Two-factor sign-in, so the Account menu's one link reaches both): turn two-factor on with the current password, scan a QR code or type
   the secret, confirm with a first code, then see **10 backup codes once**. Turn it off (password
   and a code), regenerate the backup codes (password), see how many are left.
 - **The second step at sign-in:** after a correct password, a person with two-factor goes to

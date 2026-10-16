@@ -109,6 +109,7 @@ export const ROUTE_SEGMENTS = new Set([
   "resolve",
   "reviews",
   "scopes",
+  "security",
   "settings",
   "setup",
   "sign-in",
