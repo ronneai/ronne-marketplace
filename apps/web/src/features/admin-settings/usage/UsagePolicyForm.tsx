@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/Button";
 import { FieldError } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
 import type { UsagePolicy } from "@/server/domains/settings/models/usage-policy";
-import { saveUsagePolicy } from "./actions";
-import type { SettingsActionState } from "./types";
+import { saveUsagePolicy } from "../actions";
+import type { SettingsActionState } from "../types";
 
 /** The three usage policies, as root reads them (feature 046). */
 export const POLICY_CHOICES: readonly { value: UsagePolicy; label: string; hint: string }[] = [

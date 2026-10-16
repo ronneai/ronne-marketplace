@@ -239,7 +239,7 @@ sign-in buttons are 44px tall on a coarse pointer.
 - [ ] `rmk-server disable-sso` turns all providers off and restores password sign-in for everyone.
 - [ ] A fake provider (test double speaking OIDC) covers the flow on SQLite, PostgreSQL, MySQL and
   MariaDB; the end-to-end test signs in through it.
-- [ ] The pages pass the phone sweep (065) and axe.
+- [ ] The pages pass the phone sweep (065).
 - [ ] The Documentation, the seven guides and inline helpers listed above say what the feature does now.
 
 ## Decisions

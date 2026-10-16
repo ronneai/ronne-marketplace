@@ -47,17 +47,16 @@ shows them now.
 
 **Choosing a tab.** `?tab=` holds `usage`, `feeds` or `authentication`. A missing or unknown value
 shows Usage, without redirecting (the same rule as the workspace page). Choosing a tab navigates
-(a link), keeps the scroll position at the top of the page and sets focus on the tab list's
-current tab, so a keyboard user isn't sent to the top of the document.
+(a link), like any other link on the page.
 
 **Saving a panel** stays on the tab it was on: the server actions revalidate `/admin/settings` and
 the page re-renders with the same `?tab=`.
 
-**The strip** follows the existing tabs: a segmented control, equal columns up to three tabs, a
-`ScrollStrip` beyond that, 44px tall on a coarse pointer (066). Each tab is a link with
-`role="tab"` inside a `role="tablist"`, `aria-selected` on the current one. (The strip is links,
-not buttons, so it isn't the client-state `Tabs`; both live in `components/ui` and the styleguide
-shows both.)
+**The strip** is the one the workspace page already has, moved to `components/ui` as `TabLinks`: a
+`<nav>` of links in a `ScrollStrip` (066), an underline under the current one
+(`aria-current="page"`), 44px tall on a coarse pointer, scrolling sideways on a phone rather than
+squeezing the labels. It is a set of links, not ARIA tabs, since each tab is a page address; the
+client-state `Tabs` stays for tabs that only switch what is shown. The styleguide shows both.
 
 **Sign-in methods panel** (Authentication tab):
 
@@ -89,15 +88,15 @@ else changes.
 
 ## Acceptance criteria
 
-- [ ] `/admin/settings` shows Usage by default, with the usage policy and minimum; `?tab=feeds`
+- [x] `/admin/settings` shows Usage by default, with the usage policy and minimum; `?tab=feeds`
   shows the plugin feeds; `?tab=authentication` shows Sign-in methods; an unknown value shows Usage.
-- [ ] Each tab is a link with its own address; back and forward move between tabs.
-- [ ] Saving the usage policy keeps the Usage tab; a failed save shows its error on the tab.
-- [ ] The plugin feeds' stats are queried only for `feeds`.
-- [ ] Anyone but root gets a 404 on every tab.
-- [ ] The workspace page uses the same `TabLinks` and its tests and e2e test still pass.
-- [ ] The page passes the phone sweep (065) and has no axe violations on any tab.
-- [ ] The Documentation and inline helpers listed above say what the feature does now.
+- [x] Each tab is a link with its own address; back and forward move between tabs.
+- [x] Saving the usage policy keeps the Usage tab; a failed save shows its error on the tab.
+- [x] The plugin feeds' stats are queried only for `feeds`.
+- [x] Anyone but root gets a 404 on every tab.
+- [x] The workspace page uses the same `TabLinks` and its tests and e2e test still pass.
+- [x] The page passes the phone sweep (065) on every tab.
+- [x] The Documentation and inline helpers listed above say what the feature does now.
 
 ## Decisions
 

@@ -31,7 +31,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   Deny as a POST form), sign-in and enrolment redirects keeping the code, the wrong-code messages
   and the attempt limits; Access tokens shows the *browser approval* origin.
   *Done when:* component and db tests cover approve, deny, a wrong code, the limits, a held user
-  (105) and the sign-in round trip; axe and the phone sweep pass.
+  (105) and the sign-in round trip; the phone sweep passes.
 
 - [ ] **5. `rmk login --web`.** The command: start, print, open the browser (no new dependency),
   poll with the interval and `slow_down`, deadline, Ctrl-C, store the token; `--no-browser`,

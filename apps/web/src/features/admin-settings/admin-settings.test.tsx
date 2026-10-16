@@ -27,9 +27,14 @@ vi.mock("next/navigation", () => ({
 }));
 
 const actions = await import("./actions");
-const { UsagePolicyForm } = await import("./UsagePolicyForm");
-const { PluginFeedsPanel } = await import("./PluginFeedsPanel");
-const { default: AdminSettings } = await import("@/app/(app)/admin/settings/page");
+const { UsagePolicyForm } = await import("./usage/UsagePolicyForm");
+const { PluginFeedsPanel } = await import("./feeds/PluginFeedsPanel");
+const { SignInMethodsPanel } = await import("./authentication/SignInMethodsPanel");
+const { default: AdminSettingsPage } = await import("@/app/(app)/admin/settings/page");
+
+/** The page as Next.js renders it, for `?tab=` (none: the bare address). */
+const AdminSettings = (tab?: string) =>
+  AdminSettingsPage({ searchParams: Promise.resolve(tab === undefined ? {} : { tab }) });
 
 const form = (policy: string) => {
   const data = new FormData();
@@ -74,6 +79,102 @@ describe("saveUsagePolicy", () => {
     expect((await actions.saveUsagePolicy({}, form("off"))).error).toContain("permission");
     settings.setUsagePolicy.mockRejectedValueOnce(new Error("database down"));
     await expect(actions.saveUsagePolicy({}, form("off"))).rejects.toThrow("database down");
+  });
+});
+
+describe("Admin › Settings' tabs (122)", () => {
+  const root = () => session.getCurrentUser.mockResolvedValue({ id: "r", role: "root" });
+  const current = (html: string) => html.match(/aria-current="page"[^>]*>([^<]+)</)?.[1];
+
+  it("shows Usage by default and for an unknown tab, without the feeds' query", async () => {
+    root();
+    for (const tab of [undefined, "nope", "", "FEEDS"]) {
+      const html = renderToStaticMarkup(await AdminSettings(tab));
+      expect(current(html), String(tab)).toBe("Usage");
+      expect(html).toContain("Usage reporting");
+      expect(html).not.toContain(">Plugin feeds</h2>");
+    }
+    expect(feeds.pluginFeedStats).not.toHaveBeenCalled();
+  });
+
+  it("links each tab to its own address, in a labelled nav", async () => {
+    root();
+    const html = renderToStaticMarkup(await AdminSettings());
+    expect(html).toContain('aria-label="Settings"');
+    for (const href of [
+      'href="/admin/settings"',
+      'href="/admin/settings?tab=feeds"',
+      'href="/admin/settings?tab=authentication"',
+    ])
+      expect(html).toContain(href);
+  });
+
+  it("shows only the plugin feeds on Plugin feeds, without reading the usage settings", async () => {
+    root();
+    const html = renderToStaticMarkup(await AdminSettings("feeds"));
+    expect(current(html)).toBe("Plugin feeds");
+    expect(html).toContain(">Plugin feeds</h2>");
+    expect(html).not.toContain("Usage reporting");
+    expect(feeds.pluginFeedStats).toHaveBeenCalledTimes(1);
+    expect(settings.instanceSettings).not.toHaveBeenCalled();
+  });
+
+  it("shows the Authentication tab, with Sign-in methods and without the other panels", async () => {
+    root();
+    const html = renderToStaticMarkup(await AdminSettings("authentication"));
+    expect(current(html)).toBe("Authentication");
+    expect(html).toContain(">Sign-in methods</h2>");
+    expect(html).not.toContain("Usage reporting");
+    expect(html).not.toContain(">Plugin feeds</h2>");
+    expect(feeds.pluginFeedStats).not.toHaveBeenCalled();
+  });
+
+  it("is a 404 on every tab for anyone but root", async () => {
+    for (const tab of [undefined, "usage", "feeds", "authentication"]) {
+      session.getCurrentUser.mockResolvedValueOnce({ role: "user" });
+      await expect(AdminSettings(tab)).rejects.toThrow("NEXT_NOT_FOUND");
+    }
+    expect(settings.instanceSettings).not.toHaveBeenCalled();
+    expect(feeds.pluginFeedStats).not.toHaveBeenCalled();
+  });
+
+  it("keeps the tab when a panel saves: the actions revalidate the page, never redirect", async () => {
+    settings.setUsagePolicy.mockResolvedValueOnce({ changed: true });
+    settings.setUsageMinimum.mockResolvedValueOnce({ changed: true });
+    const minimum = new FormData();
+    minimum.set("usageMinimum", "5");
+    expect(await actions.saveUsagePolicy({}, form("choice"))).toEqual({
+      done: "Usage reporting saved.",
+    });
+    expect(await actions.saveUsageMinimum({}, minimum)).toEqual({ done: "Usage minimum saved." });
+    expect(cache.revalidatePath.mock.calls).toEqual([["/admin/settings"], ["/admin/settings"]]);
+  });
+});
+
+describe("Admin › Settings › Authentication › Sign-in methods (122)", () => {
+  it("lists email and password as on, with root's note and the helper", () => {
+    const html = renderToStaticMarkup(<SignInMethodsPanel />);
+    expect(html).toContain('aria-labelledby="sign-in-methods-title"');
+    expect(html).toContain(">Sign-in methods</h2>");
+    expect(html).toMatch(/Email and password<\/td><td[^>]*><span[^>]*>On<\/span>/);
+    expect(html).toContain("Root can always sign in with a password");
+    expect(html).toContain("How do people sign in?");
+    expect(html).toContain('href="https://www.ronne.ai/marketplace/docs/admin#settings"');
+  });
+
+  it("shows a method that is off as Off", () => {
+    const html = renderToStaticMarkup(
+      <SignInMethodsPanel methods={[{ name: "Passkeys", on: false, note: "Not set up." }]} />,
+    );
+    expect(html).toMatch(/Passkeys<\/td><td[^>]*><span[^>]*>Off<\/span>/);
+    expect(html).not.toContain("Email and password");
+  });
+
+  it("has nothing to change: no form or input, and only the helper's button", () => {
+    const html = renderToStaticMarkup(<SignInMethodsPanel />);
+    expect(html).not.toMatch(/<(form|input|select|textarea)\b/);
+    expect(html.match(/<button\b/g)).toHaveLength(1);
+    expect(html).toMatch(/<button[^>]*aria-haspopup="dialog"/);
   });
 });
 
@@ -137,9 +238,9 @@ describe("Admin › Settings › Plugin feeds (079)", () => {
     builtAt: new Date("2026-10-03T12:00:00Z"),
   });
 
-  it("is on the page for root, with every tool not built yet", async () => {
+  it("is on the Plugin feeds tab for root, with every tool not built yet", async () => {
     session.getCurrentUser.mockResolvedValue({ id: "r", role: "root" });
-    const html = renderToStaticMarkup(await AdminSettings());
+    const html = renderToStaticMarkup(await AdminSettings("feeds"));
     expect(html).toContain(">Plugin feeds</h2>");
     expect(html).toContain("What do these numbers mean?");
     expect(html).toContain('href="https://www.ronne.ai/marketplace/docs/plugins#large"');

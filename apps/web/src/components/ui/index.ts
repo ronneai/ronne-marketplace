@@ -14,6 +14,7 @@ export { PasswordInput } from "./PasswordInput";
 export { Popover } from "./Popover";
 export { ScrollStrip } from "./ScrollStrip";
 export { stripTab } from "./scroll-strip";
+export { TabLinks } from "./TabLinks";
 export { Table, Td, Th } from "./Table";
 export { Tabs } from "./Tabs";
 export { TypeBadge } from "./TypeBadge";

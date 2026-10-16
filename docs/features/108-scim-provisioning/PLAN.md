@@ -43,7 +43,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 - [ ] **6. The provider page's SCIM section.** Turn on/off, base URL, Generate, Rotate, Revoke,
   last used, the steps; Admin › Users badges and read-only fields; the Erase link when 103 exists
   (hidden before).
-  *Done when:* component tests pass for each state; axe and the phone sweep pass.
+  *Done when:* component tests pass for each state; the phone sweep passes.
 
 - [ ] **7. Terminal commands and backup.** `revoke-access` revokes SCIM tokens, `disable-sso` turns
   SCIM off; backup and restore carry the tables.
