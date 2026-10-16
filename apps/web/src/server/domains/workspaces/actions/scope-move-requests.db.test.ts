@@ -631,8 +631,12 @@ describe("asking to move a scope, and moving it (115)", () => {
       app,
       storage,
     );
+    // Expect the refusal before waiting for the move: the release can be refused a moment before
+    // `moving` settles, and a rejection with no handler yet fails the run (on MariaDB in CI) even
+    // though this expectation passes (docs/knowledge/unhandled-rejections.md).
+    const refused = expect(releasing).rejects.toThrow(ScopeMovedError);
     await moving;
-    await expect(releasing).rejects.toThrow(ScopeMovedError);
+    await refused;
   });
 
   it("refuses a release packed under the scope's old workspace", async () => {
