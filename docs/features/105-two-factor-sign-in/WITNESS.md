@@ -769,3 +769,34 @@ Witnessed: 2026-10-16 17:46 EDT, by a fresh agent (blind). Commit: cd3a71b7 plus
 | 3 | The hold spec still passes | yes | confirmed | chromium → 2 passed; build current |
 
 **Overall:** met.
+
+## Task 9 — Documentation
+
+Witnessed: 2026-10-16 17:58 EDT, by a fresh agent (blind). Commit: f2e4ea97 plus the working tree; ronne-web `docs/105-two-factor` at 9380b59 plus the working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The docs render tests pass in ronne-web | yes | confirmed | `pnpm test src/content/docs` → 5 passed; every topic and section per locale |
+| 2 | The helper link test passes here and catches a broken link | yes | confirmed | 37 passed; mutation `docsHref("account","two-factr")` → the link test fails |
+| 3 | New topic Your account (`account#two-factor`) after Roles, the same in both `topics.ts` | yes | confirmed | both files and group orders compared |
+| 4 | The topic covers why, enrolling, backup codes, a lost phone, root requiring it, SSO; sampled facts match the app | yes | confirmed | buttons, 5 / 10-and-15-minute limits, turn-off, reviewers wording, no-password text; nit: "New backup codes" is "Make new backup codes" |
+| 5 | Admin › Settings policy panel; Admin › Users Reset two-factor | yes | confirmed | `en/admin.tsx` against the app and tests |
+| 6 | Security and Incidents | yes | confirmed | Signing in bullet; lost authenticator with `reset-two-factor` |
+| 7 | Root accounts; `two_factor_required` on `rmk#login` | yes | confirmed | `install.tsx`, `rmk.tsx` against `api-v1.ts`, `token-exchange.ts` |
+| 8 | Backups and Logs | yes | confirmed | events and reasons match `two-factor.ts` |
+| 9 | The three helpers | yes | confirmed | `backup-codes-once`, `lost-phone` → `account#two-factor`; `two-factor-policy` → `admin#settings` |
+| 10 | pt and fr have the same sections and links as en | yes | confirmed | DocLink targets, `<Code>` and event names match; lint and typecheck clean |
+| 11 | MVP §9.5 and §14.3 notes | yes | confirmed | `git diff docs/MVP/MVP.md` |
+
+**Overall:** met. Nit: the button's name (row 4).
+
+### Re-check — the backup codes button's label (blind)
+
+Witnessed: 2026-10-16 17:59 EDT, by a fresh agent (blind). Commit: f2e4ea97 plus the working tree; ronne-web `docs/105-two-factor` at 9380b59 plus the working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | en, pt and fr bold **Make new backup codes**, the visible button | yes | confirmed | grep in the three files; no "New backup codes" left |
+| 2 | The docs render tests and lint still pass in ronne-web | yes | confirmed | 5 passed; 227 files clean |
+
+**Overall:** met.

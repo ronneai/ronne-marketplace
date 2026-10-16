@@ -208,8 +208,9 @@ the message.
 
 ## Documentation
 
-- **Your account → Two-factor sign-in** (a new section `account#two-factor`, in ronne-web en/pt/fr
-  and `apps/web/src/components/help/topics.ts` together): why, enrolling step by step, backup codes,
+- **Your account → Two-factor sign-in** (a new topic, Your account, in Getting started after Roles,
+  with one section `account#two-factor`, in ronne-web en/pt/fr and
+  `apps/web/src/components/help/topics.ts` together): why, enrolling step by step, backup codes,
   a lost phone, what happens when root requires it, and that single sign-on is covered by the
   identity provider.
 - **Administration → Settings** (`admin#settings`): the Two-factor sign-in panel and the policy's
@@ -217,7 +218,10 @@ the message.
 - **Security** (`security#security`): sign-in protections now include two-factor; **Incidents**:
   a person lost their authenticator.
 - **Root accounts** (`install#root`): `reset-root-password` also resets two-factor.
-- **API:** the `two_factor_required` code in the token exchange's page.
+- **API:** the `two_factor_required` code in the token exchange's page (`rmk#login`).
+- **Backups** (`backups#restore`): a restore under another `AUTH_SECRET` turns two-factor off.
+  **Logs** (`logs#logs`): the four `auth.two_factor_*` events, and `two_factor_required` as a
+  reason of `auth.sign_in_failed`.
 - **Helpers:** on the enrolment page, "Why can't I show the codes again?" → `account#two-factor`;
   on the policy panel, "Who must enrol?" → `admin#settings`; on the two-factor step, "Lost your
   phone?" → `account#two-factor`.

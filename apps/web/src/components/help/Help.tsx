@@ -302,6 +302,18 @@ export const HELP = {
       "Today with their email and password. Root can always sign in with a password, so a broken identity provider can't lock everyone out.",
     href: docsHref("admin", "settings"),
   },
+  "backup-codes-once": {
+    question: "Why can't I show the codes again?",
+    answer:
+      "Ronne keeps them encrypted and never shows them after this page, so nobody who later opens your account can read them. Save them now. If you lose them, make ten new ones on this page: the old ones stop working.",
+    href: docsHref("account", "two-factor"),
+  },
+  "lost-phone": {
+    question: "Lost your phone?",
+    answer:
+      "Use one of the backup codes you saved when you turned two-factor on. With none left, ask a root to reset your two-factor in Users; then sign in with your password and set it up again on the new phone.",
+    href: docsHref("account", "two-factor"),
+  },
   "two-factor-policy": {
     question: "Who must enrol?",
     answer:

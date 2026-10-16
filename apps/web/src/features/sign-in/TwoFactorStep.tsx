@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/Field";
 import { twoFactorFromForm } from "./actions";
@@ -56,6 +57,9 @@ export const TwoFactorStep = ({
       >
         {backup ? "Use a code from the app instead" : "Use a backup code instead"}
       </a>
+      <div className="justify-self-start">
+        <Help id="lost-phone" />
+      </div>
     </form>
   );
 };

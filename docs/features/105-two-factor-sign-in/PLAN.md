@@ -83,7 +83,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   (`docs/knowledge/e2e-sign-in-limit.md`).
   *Done when:* `pnpm test:e2e` passes the new spec on desktop and phone.
 
-- [ ] **9. Documentation.** The topics, sections and helpers in the spec, and the MVP §9.5 / §14.3
+- [x] **9. Documentation.** The topics, sections and helpers in the spec, and the MVP §9.5 / §14.3
   notes.
   *Done when:* the docs render tests pass in ronne-web, and the helper link test passes here.
 
@@ -335,3 +335,11 @@ goes into `SPEC.md` instead.
   - The root in the requirement's test is its own seeded root (`twoFactorRoot`): task 6 had made
     it a sixth file signing root@e2e.test in, which passed only because the run is longer than a
     minute (the witness, after `docs/knowledge/e2e-sign-in-limit.md`).
+- **Task 9: Documentation** (Claude). A new topic, Your account (`account#two-factor`), in both
+  `topics.ts` files and in ronne-web en/pt/fr (branch `docs/105-two-factor`), plus Admin (users,
+  settings, audit), Security, Incidents, Root accounts, `rmk#login`, Backups and Logs (the four
+  `auth.two_factor_*` events). Helpers `backup-codes-once` and `lost-phone`. The pt/fr terms
+  (login em duas etapas, códigos de backup, app autenticador; connexion à deux facteurs, codes de
+  secours, application d'authentification) wait for the owner before going into the glossary.
+  The docs say `rmk login --token`, not the message's `rmk login --web` (107, not built): the
+  message's wording is the owner's to keep or change.

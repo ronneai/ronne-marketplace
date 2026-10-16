@@ -2,6 +2,7 @@
 
 import { Check, Copy, Download } from "lucide-react";
 import { type ReactNode, useRef, useState } from "react";
+import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
 import { copyText, selectText } from "@/components/ui/copy";
 import { Notice } from "@/components/ui/Notice";
@@ -39,9 +40,12 @@ export const BackupCodes = ({ codes, children }: { codes: string[]; children?: R
   };
   return (
     <section aria-labelledby="backup-codes-title" className="grid gap-3">
-      <h3 id="backup-codes-title" className="text-sm font-semibold text-fg">
-        Backup codes
-      </h3>
+      <div className="flex items-center gap-2">
+        <h3 id="backup-codes-title" className="text-sm font-semibold text-fg">
+          Backup codes
+        </h3>
+        <Help id="backup-codes-once" />
+      </div>
       <Notice kind="warn" title="Save them now">
         They won&apos;t be shown again. Each one signs you in once if you lose your phone.
       </Notice>
