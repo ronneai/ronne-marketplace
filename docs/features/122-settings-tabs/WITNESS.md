@@ -32,3 +32,22 @@ Witnessed: 2026-10-15 22:48 EDT, by a fresh agent (blind). Commit: a7cf8230 plus
 | 5 | The changed file passes lint | no | confirmed | `biome check …/page.tsx` → no fixes; the `Link` import is still used (`page.tsx:208`) |
 
 **Overall:** met.
+
+## Task 3 — Settings in tabs
+
+Witnessed: 2026-10-15 22:55 EDT, by a fresh agent (blind). Commit: 14dc485a plus the working-tree and index diff (renames to `usage/` and `feeds/`, `page.tsx`, `admin-settings.test.tsx`, new `tabs.ts`). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | No `?tab=` shows Usage (policy and minimum), covered by a test | no | confirmed | `tabs.ts:14` falls back to `"usage"`; `page.tsx:34-43`; mutating the fallback to `"feeds"` in a copy failed 2 tests |
+| 2 | An unknown `?tab=` shows Usage without redirecting, covered | no | confirmed | `settingsTab` matches ids exactly; the test covers `"nope"`, `""`, `"FEEDS"` |
+| 3 | `?tab=feeds` shows only the plugin feeds, covered | no | confirmed | `page.tsx:27-32`; the test asserts the feeds heading, no "Usage reporting", no `instanceSettings` call; an unconditional `instanceSettings` call in a copy failed 2 tests |
+| 4 | `?tab=authentication` shows the tab with neither panel (empty until task 4) | no | confirmed | `page.tsx:33` returns `null`; removing it in a copy failed the test |
+| 5 | The feeds' stats query runs on `feeds` only, covered | no | confirmed | `pluginFeedStats` only in the `feeds` branch; hoisting it in a copy failed 3 tests |
+| 6 | Saving a panel keeps its tab: the actions revalidate `/admin/settings` and never redirect, covered | no | confirmed | `actions.ts` both `revalidatePath("/admin/settings")`, no redirect; the forms use `useActionState`, so the URL doesn't change; removing a revalidate in a copy failed 1 test |
+| 7 | A non-root gets a 404 on every tab with no data read, covered | no | confirmed | `page.tsx:24` `notFound()` before `?tab=`; the test covers four values and asserts neither query ran; exempting `feeds` in a copy failed 2 tests |
+| 8 | The panels moved under `features/admin-settings/` by tab | no | confirmed | `usage/UsagePolicyForm.tsx`, `usage/UsageMinimumForm.tsx`, `feeds/PluginFeedsPanel.tsx`; no old paths left in `apps/web/src` or `e2e` |
+| 9 | Tests, lint and types pass | no | confirmed | `vitest run src/features/admin-settings` → 15 passed; `biome check` → no fixes; `pnpm --filter @ronneai/web typecheck` → exit 0 |
+| 10 | The real page builds and renders (e2e, the phone sweep of `/admin/settings`) | no | confirmed | `pnpm test:e2e` → 144 passed (3.5m); the sweep visits only the bare address (the tabs' addresses are task 5) |
+
+**Overall:** met.

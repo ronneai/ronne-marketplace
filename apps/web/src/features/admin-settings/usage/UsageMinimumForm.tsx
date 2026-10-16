@@ -5,8 +5,8 @@ import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
 import { FieldError, inputClasses, Label } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
-import { saveUsageMinimum } from "./actions";
-import type { SettingsActionState } from "./types";
+import { saveUsageMinimum } from "../actions";
+import type { SettingsActionState } from "../types";
 
 /** When item pages show usage (047): from any install or run (0), or from root's minimum. */
 export const UsageMinimumForm = ({ minimum }: { minimum: number }) => {

@@ -19,7 +19,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   behaviour.
   *Done when:* the workspace page's tests and the existing e2e tests for its tabs pass unchanged.
 
-- [ ] **3. Settings in tabs.** Split `/admin/settings` into Usage, Plugin feeds and Authentication
+- [x] **3. Settings in tabs.** Split `/admin/settings` into Usage, Plugin feeds and Authentication
   by `?tab=`, falling back to Usage; load only the active tab's data; the panels' actions keep the
   tab. Move the panel components under `features/admin-settings/` by tab.
   *Done when:* tests cover the default, an unknown value, each tab's content, the feed query being
@@ -48,3 +48,7 @@ goes into `SPEC.md` instead.
   by `user-admin.e2e.ts`; `navigation.mobile.e2e.ts`'s "tab strips show the current tab" exercises
   the item page's strip, not this one. The phone-webkit project needs `playwright install webkit`
   once per machine.
+- **Task 3: the tabs** (Claude). `features/admin-settings/tabs.ts` holds the tabs and `settingsTab`
+  (Usage for anything unknown); the page reads only the shown tab's data. The panels moved to
+  `usage/` and `feeds/`; `actions.ts` and `types.ts` stay shared. No browser test yet saves on a
+  tab (task 5), and the phone sweep visits only the bare address (task 5 adds the others).
