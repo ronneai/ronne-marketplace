@@ -86,3 +86,22 @@ Witnessed: 2026-10-15 23:14 EDT, by a fresh agent (blind). Commit: b19e2b59 plus
 | 7 | "axe" is gone from the acceptance criteria of 105–108 and 122; the repo has no axe tooling | no | confirmed | `grep -rni axe docs/features/10[5-8]-*/ docs/features/122-*/` → none; `git grep -niw axe -- ':!*.md'` → 0 matches (one lockfile hash aside) |
 
 **Overall:** met.
+
+## Task 6 — Documentation
+
+Witnessed: 2026-10-15 23:22 EDT, by a fresh agent (blind). Commit: c101e293 in ronne-marketplace (the helper landed in b19e2b59), and c113359 in ronne-web plus the uncommitted diff in `www/src/content/docs/{en,pt,fr}/admin.tsx` (branch `docs/marketplace-122-settings-tabs`, since committed as 5fd70dc). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The docs tests pass in ronne-web | no | confirmed | `pnpm test src/content/docs` (www) → 5 passed (every topic and section has a title and body in en, pt and fr) |
+| 2 | ronne-web lint and typecheck pass | no | confirmed | `pnpm lint` → 224 files, no fixes; `pnpm typecheck` → exit 0 |
+| 3 | `admin#settings` (en) describes the three tabs and what each holds, in the app's order | no | confirmed | the intro and the Usage, Plugin feeds and Authentication bullets match `features/admin-settings/tabs.ts:4-8` |
+| 4 | The Authentication / Sign-in methods wording matches the app | no | confirmed | `SignInMethodsPanel.tsx:9-15` one method, on, read-only; the docs say the same |
+| 5 | The other facts are true of the app | no | confirmed | `settingsTab()` defaults to Usage; the page says each change takes effect at once and is audited; feeds is read-only |
+| 6 | pt and fr match the English | no | confirmed | same paragraph, bullets, links (`usage#policy`, `plugins#large`) and root sentence; UI labels kept in English as elsewhere |
+| 7 | fr typography follows the translation guide | no | confirmed | a space before ":", none before ";", `&apos;` |
+| 8 | The `auth-methods` helper sits on the heading and links to `admin#settings` | no | confirmed | `SignInMethodsPanel.tsx:26-29`; `Help.tsx:299-304` |
+| 9 | The helper link test passes here and covers this link | no | confirmed | `vitest run src/components/help` → 3 passed; `help.test.tsx:7-18` checks every href against `topics.ts` |
+| 10 | `topics.ts` is unchanged in both repos | no | confirmed | empty diffs in both; both already list `admin` → `settings` |
+
+**Overall:** met.

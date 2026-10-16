@@ -88,15 +88,15 @@ else changes.
 
 ## Acceptance criteria
 
-- [ ] `/admin/settings` shows Usage by default, with the usage policy and minimum; `?tab=feeds`
+- [x] `/admin/settings` shows Usage by default, with the usage policy and minimum; `?tab=feeds`
   shows the plugin feeds; `?tab=authentication` shows Sign-in methods; an unknown value shows Usage.
-- [ ] Each tab is a link with its own address; back and forward move between tabs.
-- [ ] Saving the usage policy keeps the Usage tab; a failed save shows its error on the tab.
-- [ ] The plugin feeds' stats are queried only for `feeds`.
-- [ ] Anyone but root gets a 404 on every tab.
-- [ ] The workspace page uses the same `TabLinks` and its tests and e2e test still pass.
-- [ ] The page passes the phone sweep (065) on every tab.
-- [ ] The Documentation and inline helpers listed above say what the feature does now.
+- [x] Each tab is a link with its own address; back and forward move between tabs.
+- [x] Saving the usage policy keeps the Usage tab; a failed save shows its error on the tab.
+- [x] The plugin feeds' stats are queried only for `feeds`.
+- [x] Anyone but root gets a 404 on every tab.
+- [x] The workspace page uses the same `TabLinks` and its tests and e2e test still pass.
+- [x] The page passes the phone sweep (065) on every tab.
+- [x] The Documentation and inline helpers listed above say what the feature does now.
 
 ## Decisions
 

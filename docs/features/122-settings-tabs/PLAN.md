@@ -37,7 +37,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* `pnpm test:e2e` passes: root's test on the desktop project, and the phone sweep,
   which opens the three tabs' addresses, on the phone and tablet projects.
 
-- [ ] **6. Documentation.** The `admin#settings` section and the helper, in ronne-web (en, pt, fr)
+- [x] **6. Documentation.** The `admin#settings` section and the helper, in ronne-web (en, pt, fr)
   and here.
   *Done when:* the docs render tests pass in ronne-web, and the helper link test passes here.
 
@@ -61,3 +61,8 @@ goes into `SPEC.md` instead.
 - **Task 5: the e2e checks** (Claude). Root's tab checks are in `audit.e2e.ts` (desktop); the sweep
   opens the three addresses on phone, phone-webkit and tablet, but doesn't check the status. "No axe
   violations" was dropped from the M16 specs: the repository has no axe tooling.
+- **Task 6: the Documentation** (Claude). ronne-web branch `docs/marketplace-122-settings-tabs`
+  (5fd70dc), to go live with the release: Administration › Settings describes the three tabs, with
+  Authentication as a bullet beside the other two. pt and fr by the translator's instructions; its
+  open points for the owner: "Settings" kept in English at the start of the paragraph (as "Audit
+  log" is), and "bookmark" as "favorito" / « signet » (not in the glossary yet).
