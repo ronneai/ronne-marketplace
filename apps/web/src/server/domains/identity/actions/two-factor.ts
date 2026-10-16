@@ -6,6 +6,7 @@ import { kyselyIdentityRepository } from "../repositories/kysely-identity-reposi
 import * as service from "../services/two-factor";
 
 export type {
+  CompleteTwoFactorResult,
   ConfirmTwoFactorResult,
   RegenerateBackupCodesResult,
   StartTwoFactorResult,
@@ -19,7 +20,7 @@ export type {
 const deps = ({ auth, db, dialect, limiter }: AppAuth): service.TwoFactorDeps => {
   return {
     sessions: betterAuthSessionStore(auth),
-    twoFactor: betterAuthTwoFactorStore(auth, db),
+    twoFactor: betterAuthTwoFactorStore(auth, db, dialect),
     repo: kyselyIdentityRepository(db, dialect),
     limiter,
   };
@@ -56,3 +57,10 @@ export const turnOffTwoFactor = (
   input: { password: string; code: string },
   app: AppAuth = getAppAuth(),
 ) => service.turnOffTwoFactor(deps(app), context(headers, app), input);
+
+/** The second step at sign-in (105): a code for the request's challenge. */
+export const completeTwoFactorSignIn = (
+  headers: Headers,
+  input: { code: string; method: "totp" | "backup_code" },
+  app: AppAuth = getAppAuth(),
+) => service.completeTwoFactorSignIn(deps(app), context(headers, app), input);

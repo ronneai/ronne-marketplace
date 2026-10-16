@@ -2,10 +2,22 @@
 
 import { redirect } from "next/navigation";
 import { signIn } from "@/server/domains/identity/actions/session";
+import { completeTwoFactorSignIn } from "@/server/domains/identity/actions/two-factor";
 import { safeNextPath } from "@/server/domains/identity/models/route-guard";
 import { requestHeaders } from "@/server/http/request-headers";
 import { serverAction } from "@/server/http/server-action";
-import type { SignInFormState } from "./types";
+import type { SignInFormState, TwoFactorStepState } from "./types";
+
+/** The second step's address, carrying where to go (Remember me travels in Better Auth's cookie). */
+const twoFactorPath = (next: string) =>
+  next === "/" ? "/sign-in/two-factor" : `/sign-in/two-factor?${new URLSearchParams({ next })}`;
+
+/** Back to the first step, saying why. */
+const signInAgain = (next: string, reason: "expired" | "too_many") => {
+  const query = new URLSearchParams({ reason });
+  if (next !== "/") query.set("next", next);
+  return `/sign-in?${query}`;
+};
 
 /** The sign-in form's server action. It works without JavaScript: the form posts here directly. */
 export const signInFromForm = serverAction(
@@ -17,6 +29,24 @@ export const signInFromForm = serverAction(
       rememberMe: form.get("remember") === "on",
     });
     if (!result.ok) return { error: result.error, email };
-    redirect(safeNextPath(String(form.get("next") ?? "")));
+    const next = safeNextPath(String(form.get("next") ?? ""));
+    // Two-factor on (105): the password was right; the code comes next, on its own page.
+    if (result.twoFactor) redirect(twoFactorPath(next));
+    redirect(next);
+  },
+);
+
+/** The second step's form (105): a code from the app, or a backup code. Works without JavaScript. */
+export const twoFactorFromForm = serverAction(
+  async (_previous: TwoFactorStepState, form: FormData): Promise<TwoFactorStepState> => {
+    const next = safeNextPath(String(form.get("next") ?? ""));
+    const result = await completeTwoFactorSignIn(await requestHeaders(), {
+      code: String(form.get("code") ?? ""),
+      method: form.get("method") === "backup_code" ? "backup_code" : "totp",
+    });
+    if (result.ok) redirect(next);
+    if (result.error === "expired" || result.error === "too_many")
+      redirect(signInAgain(next, result.error));
+    return { error: result.error };
   },
 );

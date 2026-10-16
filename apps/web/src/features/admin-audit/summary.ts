@@ -83,6 +83,16 @@ const expiry = (m: Meta): string => {
   return at ? `expires ${at.slice(0, 10)}` : "no expiry";
 };
 
+/** Why a second step was refused (105), as the audit log says it. */
+const TWO_FACTOR_REASONS: Record<string, string> = {
+  wrong_code: "a wrong code",
+  used: "a code already used",
+  too_many: "too many wrong codes",
+  locked: "locked for 15 minutes",
+  refused: "the account can't sign in",
+  unreadable: "the secret can't be read",
+};
+
 export const SUMMARIES: Record<AuditAction, Build> = {
   "instance.root_created": (m) => [
     "Created the first root account, ",
@@ -116,6 +126,9 @@ export const SUMMARIES: Record<AuditAction, Build> = {
   "auth.two_factor_enabled": () => ["Turned on two-factor sign-in"],
   "auth.two_factor_disabled": () => ["Turned off two-factor sign-in"],
   "auth.backup_codes_regenerated": () => ["Made new backup codes; the old ones stopped working"],
+  "auth.two_factor_failed": (m) => [
+    `A two-factor code was refused at sign-in (${TWO_FACTOR_REASONS[text(m.reason)] ?? text(m.reason)})`,
+  ],
   "user.password_changed": (m) => [
     num(m.otherSessionsEnded)
       ? `Changed their password (${plural(num(m.otherSessionsEnded), "other session")} ended)`

@@ -49,11 +49,11 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   the Account menu; the phone layout.
   *Done when:* component tests pass for each step, including "shown once".
 
-- [ ] **5. The second step at sign-in.** [risky] The sign-in action handles the challenge and
+- [x] **5. The second step at sign-in.** [risky] The sign-in action handles the challenge and
   redirects to `/sign-in/two-factor`; the page and its action verify a code or a backup code,
   create the session (Remember me and `next` kept), show the lockout message, and send an expired
   challenge back. Audit `auth.two_factor_failed`; `auth.sign_in_failed` gains no new reason. A
-  TOTP code already accepted for that person is refused (the last accepted step, kept in
+  TOTP code already accepted for that person is refused (each accepted code, kept in
   `verification`), at sign-in and in task 3's turn-off (which accepts the enrolment's code today); a secret that won't decrypt gives the "can't be read" message, not a 500.
   *Done when:* db tests cover a right code, a wrong code, the same code twice (enrolment then
   sign-in, and two sign-ins), a backup code twice, a disabled user, an expired challenge, lockout,
@@ -206,3 +206,57 @@ goes into `SPEC.md` instead.
     `docs/knowledge/hot-reload-singletons.md` records it.
   - **Second re-check:** the badge, intro, codes-left and New backup codes follow the server's status;
     only the step being finished stays (`phase`). The e2e test checks the badge at both moments.
+- **Task 5: the second step** (Claude).
+  - `SessionStore.signIn` answers `{ challenge: true }` for Better Auth's `twoFactorRedirect` (the
+    old code looked for its session and threw "Better Auth signed in but its session can't be
+    found", which the owner hit); `signIn` then returns `twoFactor: true` and the form's action
+    redirects to `/sign-in/two-factor` with `next` and `remember`.
+  - `completeTwoFactorSignIn` (service) over the store's `verifyChallenge`, which maps Better Auth's
+    refusals (`INVALID_CODE`/`INVALID_BACKUP_CODE` → wrong, `INVALID_TWO_FACTOR_COOKIE`/
+    `TOTP_NOT_ENABLED` → expired, `TOO_MANY_ATTEMPTS_REQUEST_NEW_CODE`, `ACCOUNT_TEMPORARILY_LOCKED`,
+    the disabled hook's `INVALID_EMAIL_OR_PASSWORD` → refused) and the cipher's plain
+    `Error("invalid tag")` (a secret that won't decrypt, probed) → unreadable.
+  - **Used codes:** Better Auth's `reserveVerificationValue` makes a 43-character id, longer than
+    our `verification.id` (26), so it'd fail on PostgreSQL and MySQL. `spendCode` writes our own row
+    whose id is a hash of the user and the code (26 characters): a second write is a unique
+    violation on every database. Kept two minutes (a code is valid 90 s). Checked before Better
+    Auth sees the code (`codeUsed`, by the challenge's user, read from its cookie's
+    `verification` row) so a reused code doesn't spend the challenge; spent after, atomically, and
+    a sign-in that lost the race gives its session back. Confirming spends the enrolment's code;
+    turning off checks and spends it too. (Named `spend…`: Biome reads `use…` as a React hook.)
+  - The route `two-factor` joined the telemetry segments and the phone sweep (signed out).
+  - **From the adversarial witness** (not met). `challengeUser` read the cookie without its
+    signature and either cookie name: a decoy cookie beside the real one made the audit name
+    another user, checked the wrong user's used codes and slipped out of the queue. It now reads
+    only the name Better Auth uses for this address (`createAuthCookie("two_factor")`), only one of
+    it, and checks its HMAC-SHA256 signature as better-call does. Remember me in the audit came
+    from the form: it's now read from the session Better Auth made (longer than two days), and the
+    `remember` parameter is gone from the second step. Better Auth's 409 for a backup code used in
+    two challenges at once was a 500: now a wrong code. Expired challenges are audited. The used-code
+    id is an HMAC keyed with `AUTH_SECRET` (a plain hash of 6 digits could be reversed). The spec
+    said "the last accepted step"; the code records each accepted code (RFC 6238 §5.2): the spec
+    and the plan now say that.
+  - **From the blind witness** (not met on the per-step wording, since fixed): a store-level test
+    has six servers record one code at once (one wins), and a service test whose store loses the
+    record shows the sign-in gives its session back (it passed only through the in-process queue
+    before). Junk in the code field (not six digits, or an empty or too-long backup code) never
+    reaches Better Auth and spends no attempt: it's logged, not audited, so it can't fill the audit
+    log. During a lock, a reused code says "already used" before "try again in 15 minutes": the
+    used check comes first, and both refuse.
+  - **Re-checks** (both not met, since fixed): the cookie's name is now trimmed as better-call
+    parses it, and two of that name (however spaced) are no challenge, so ours and Better Auth's
+    can never differ (a spaced duplicate split them: Better Auth checked one person, we named
+    another). A request with no valid signed challenge is logged, not audited (anyone could fill
+    the audit log); a real one that ran out is audited under its person (`challengeUser` names the
+    user of a signed cookie even when its row expired). New tests: two real challenge cookies
+    spaced several ways; the backup-code race through the store with no queue (it fails without
+    the 409 mapping on MySQL); the used-code id keyed with AUTH_SECRET. Tests pick a code that
+    can't be the enrolment's (`fresh`): "the previous period", computed after a boundary, once was.
+  - **Left as it is** (the adversarial witness's optional note): a person holding their own valid
+    challenge can resend a used code; each try is audited (`used`) and spends no attempt. It needs
+    their own password and enrolment, and the challenge lasts 10 minutes.
+  - **Boundary flakes:** two tests that need three codes from one window freeze `Date` (only `Date`,
+    as `docs/knowledge/fake-timers.md` asks) in the middle of a period (`freezeMidPeriod`); the
+    witness's clock harness found them by jumping a boundary at every clock read. My own sweep of
+    that harness at N = 100–130 was vacuous (the tests read its clock only 47 times before the
+    freeze): sweep the reads a test actually makes (`COUNT_CALLS`).

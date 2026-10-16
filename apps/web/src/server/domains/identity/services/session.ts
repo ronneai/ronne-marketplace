@@ -35,7 +35,11 @@ export const currentUser = async (
 export type SignInInput = { email: string; password: string; rememberMe: boolean };
 
 export type SignInResult =
-  | { ok: true; headers: Headers }
+  /**
+   * Signed in; or, with `twoFactor`, the password was right and the second step (105) comes next:
+   * no session yet, and nothing audited until it's done.
+   */
+  | { ok: true; headers: Headers; twoFactor?: true }
   | { ok: false; error: "invalid_credentials" }
   | { ok: false; error: "rate_limited"; retryAfterSeconds: number };
 
@@ -105,6 +109,7 @@ export const signIn = async (
     );
     return { ok: false, error: "invalid_credentials" };
   }
+  if ("challenge" in result) return { ok: true, headers: result.headers, twoFactor: true };
   await deps.repo.recordAudit(
     {
       actorId: result.session.userId,

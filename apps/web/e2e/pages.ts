@@ -38,6 +38,12 @@ const item = (name: string) => `/items/@${E2E_SCOPE}/${name}`;
 
 export const SWEEP_PAGES: readonly SweepPage[] = [
   { route: "/sign-in", roles: "signedOut", urls: () => ["/sign-in"] },
+  // The second step (105): shown with or without a challenge; without one, a code says "sign in again".
+  {
+    route: "/sign-in/two-factor",
+    roles: "signedOut",
+    urls: () => ["/sign-in/two-factor", "/sign-in/two-factor?method=backup"],
+  },
   {
     route: "/setup",
     roles: "signedOut",

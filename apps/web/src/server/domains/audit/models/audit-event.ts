@@ -19,6 +19,7 @@ export const AUDIT_ACTIONS = [
   "auth.two_factor_enabled",
   "auth.two_factor_disabled",
   "auth.backup_codes_regenerated",
+  "auth.two_factor_failed",
   "user.created",
   "user.role_changed",
   "user.disabled",

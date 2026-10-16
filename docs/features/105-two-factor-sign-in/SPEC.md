@@ -96,12 +96,20 @@ the same process and is not worth the risk; the command already ends every sessi
 **Signing in.** The password step is unchanged (006, same rate limit, same error text). For a
 person with two-factor Better Auth answers with a challenge instead of a session: the sign-in action
 redirects to `/sign-in/two-factor?next=…` and Better Auth's short-lived cookie holds the pending
-state (about 10 minutes). The page has one input (`autocomplete="one-time-code"`,
-`inputmode="numeric"`), **Verify**, and "Use a backup code instead". A right code creates the
-session (with Remember me as chosen on the first step) and goes to `next`. A pending state that
-expired sends the person back to the password step with "Start again". A used backup code is gone.
-The disabled-user rule (006) is applied before any code is asked, and again when the session is
-created.
+state (10 minutes) and Remember me. The page has one input
+(`autocomplete="one-time-code"`, `inputmode="numeric"`), **Verify**, and "Use a backup code
+instead" (a link to `?method=backup` without JavaScript). A right code creates the session (with
+Remember me as chosen on the first step), is audited as `auth.signed_in` with
+`twoFactor: "totp" | "backup_code"`, and goes to `next`. A wrong one stays on the page ("That code is
+wrong"); each refusal of a real challenge is audited as `auth.two_factor_failed` with its reason
+(a request with no valid, signed challenge, or junk in the code field, is only logged: anyone can
+send those). A challenge that ran
+out (or none, or two-factor reset meanwhile) and one voided by five wrong codes send the person back
+to the password step, saying why ("The sign-in took too long… Sign in again.", "Too many wrong codes.
+Sign in again."); ten in a row say "Try again in 15 minutes". A used backup code is gone, and a TOTP
+code already accepted is refused ("already used") without spending the challenge. The disabled-user
+rule (006) is applied when the session is created: a disabled account gets the first step's words,
+"Email or password is wrong". Nothing is audited as signed in until the second step is done.
 
 **The policy** (root, Authentication › Two-factor sign-in): three radio choices as above and Save,
 audited with the old and new value. Choosing a stricter policy says how many people it covers and
@@ -157,8 +165,12 @@ without it. `rmk` prints the message.
   set, saying why, so there is one secret to rotate and back up.
 - **A code used twice:** Better Auth accepts the same TOTP code again within its window (a code
   seen over someone's shoulder, or used at enrolment). Ronne refuses a code already accepted for
-  that person (RFC 6238 §5.2), at sign-in and when turning off, remembering the last accepted
-  30-second step in the `verification` table until the window passes; no migration needed.
+  that person (RFC 6238 §5.2), at sign-in and when turning off: each accepted code is recorded in
+  the `verification` table for two minutes (longer than its 90-second window), under an id that's
+  an HMAC of the person and the code keyed with `AUTH_SECRET`, so the code can't be read back.
+  It's checked before Better Auth sees the code, so a reused one doesn't spend the challenge, and
+  recorded atomically after, so two sign-ins with one code at once give one session. No migration
+  needed.
 - **Many tabs, double clicks:** a person's two-factor changes run one at a time, so a double click
   on Turn on, New backup codes or Turn off does it once (and records it once); a second set of
   backup codes within 30 seconds is refused ("You just made new backup codes: use those").

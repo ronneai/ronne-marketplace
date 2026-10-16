@@ -41,6 +41,11 @@ export const EVENTS = {
   },
   "auth.two_factor_enabled": { level: "info", msg: "Two-factor turned on", fields: ["userId"] },
   "auth.two_factor_disabled": { level: "info", msg: "Two-factor turned off", fields: ["userId"] },
+  "auth.two_factor_failed": {
+    level: "warn",
+    msg: "Two-factor code refused",
+    fields: ["reason"],
+  },
   "token.exchanged": { level: "info", msg: "Access token issued", fields: ["userId"] },
   "token.rejected": { level: "warn", msg: "Access token rejected", fields: ["reason"] },
   "version.released": { level: "info", msg: "Released", fields: ["count", "userId"] },

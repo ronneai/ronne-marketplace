@@ -205,6 +205,8 @@ export const confirmTwoFactor = (
     if (headers === "not_started") return { ok: false, error: "replaced" };
     if (headers === "wrong_code")
       return failed(deps, user, { ok: false, error: "wrong_code" } as const);
+    // The enrolment's code is used: it can't sign in or turn it off within its window.
+    await deps.twoFactor.spendCode(user.id, code);
     await deps.repo.recordAudit(
       {
         actorId: user.id,
@@ -265,7 +267,7 @@ export const regenerateBackupCodes = (
 
 export type TurnOffTwoFactorResult =
   | { ok: true; headers: Headers }
-  | { ok: false; error: "wrong_password" | "wrong_code" | "not_enabled" }
+  | { ok: false; error: "wrong_password" | "wrong_code" | "used" | "not_enabled" }
   | Common;
 
 /**
@@ -288,12 +290,17 @@ export const turnOffTwoFactor = (
     )
       return failed(deps, user, { ok: false, error: "wrong_password" } as const);
     const code = input.code.trim();
+    // A TOTP code already accepted (at sign-in, or when it was turned on) isn't taken again.
+    if (/^\d{6}$/.test(code) && (await deps.twoFactor.codeUsed(user.id, code)))
+      return failed(deps, user, { ok: false, error: "used" } as const);
     const right =
       code.length > 0 &&
       code.length <= 32 &&
       (await deps.twoFactor.checkCode(context.headers, code));
     if (right === "signed_out") return { ok: false, error: "not_signed_in" };
     if (!right) return failed(deps, user, { ok: false, error: "wrong_code" } as const);
+    if (right === "totp" && !(await deps.twoFactor.spendCode(user.id, code)))
+      return failed(deps, user, { ok: false, error: "used" } as const);
     const headers = await deps.twoFactor.disable(context.headers, input.password);
     if (headers === "signed_out") return { ok: false, error: "not_signed_in" };
     if (!headers) return failed(deps, user, { ok: false, error: "wrong_password" } as const);
@@ -310,3 +317,78 @@ export const turnOffTwoFactor = (
     log.event("auth.two_factor_disabled", { userId: user.id });
     return { ok: true, headers };
   });
+
+export type CompleteTwoFactorResult =
+  | { ok: true; headers: Headers }
+  | {
+      ok: false;
+      error: "wrong_code" | "used" | "expired" | "too_many" | "locked" | "refused" | "unreadable";
+    };
+
+/**
+ * The second step at sign-in (feature 105): a code from the app or a backup code, for the
+ * request's challenge (the password was right). A right one creates the session, with Remember me
+ * as chosen at the first step, and the sign-in is audited then. A TOTP code already accepted for
+ * that person (another sign-in, turning it on or off) is refused within its window, before Better
+ * Auth sees it, so the challenge stays usable. Better Auth counts the wrong ones: five void the
+ * challenge, ten in a row lock the second step for 15 minutes. Each refusal is audited.
+ */
+export const completeTwoFactorSignIn = async (
+  deps: TwoFactorDeps,
+  context: RequestContext,
+  input: { code: string; method: "totp" | "backup_code" },
+): Promise<CompleteTwoFactorResult> => {
+  const challenged = await deps.twoFactor.challengeUser(context.headers);
+  const refuse = async (
+    error: Exclude<CompleteTwoFactorResult, { ok: true }>["error"],
+  ): Promise<CompleteTwoFactorResult> => {
+    log.event("auth.two_factor_failed", { reason: error });
+    await deps.repo.recordAudit(
+      {
+        actorId: challenged,
+        action: "auth.two_factor_failed",
+        target: challenged ? { type: "user", id: challenged } : { type: "none" },
+        metadata: { method: input.method, reason: error },
+        ipAddress: context.ip,
+      },
+      now(deps),
+    );
+    return { ok: false, error };
+  };
+  // No valid, signed challenge at all: anyone can send that, so it's logged, not audited (it would
+  // let anyone fill the audit log). A real challenge that ran out is audited below.
+  if (!challenged) {
+    log.event("auth.two_factor_failed", { reason: "expired" });
+    return { ok: false, error: "expired" };
+  }
+  const totp = input.method === "totp";
+  const code = totp ? input.code.replace(/\s+/g, "") : input.code.trim();
+  // Not a code at all: it never reaches Better Auth and spends no attempt, so it's logged, not
+  // audited (an endless stream of junk would otherwise fill the audit log).
+  if (totp ? !/^\d{6}$/.test(code) : code.length === 0 || code.length > 32) {
+    log.event("auth.two_factor_failed", { reason: "wrong_code" });
+    return { ok: false, error: "wrong_code" };
+  }
+  return oneAtATime(challenged, async () => {
+    if (totp && (await deps.twoFactor.codeUsed(challenged, code))) return refuse("used");
+    const result = await deps.twoFactor.verifyChallenge(context.headers, code, input.method);
+    if (!result.ok) return refuse(result.error);
+    // Two sign-ins with one code at once: the second to record it gives its session back.
+    if (totp && !(await deps.twoFactor.spendCode(result.userId, code))) {
+      await deps.twoFactor.endSession(result.sessionId);
+      return refuse("used");
+    }
+    await deps.repo.recordAudit(
+      {
+        actorId: result.userId,
+        action: "auth.signed_in",
+        target: { type: "session", id: result.sessionId },
+        metadata: { remember: result.remember, twoFactor: input.method },
+        ipAddress: context.ip,
+      },
+      now(deps),
+    );
+    log.event("auth.signed_in", { userId: result.userId });
+    return { ok: true, headers: result.headers };
+  });
+};

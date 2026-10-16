@@ -179,7 +179,7 @@ describe("startTwoFactor", () => {
   });
 
   it("a start whose enrolment another server replaced before it answered shows nothing", async () => {
-    const store = betterAuthTwoFactorStore(app.auth, app.db);
+    const store = betterAuthTwoFactorStore(app.auth, app.db, app.dialect);
     const deps: service.TwoFactorDeps = {
       sessions: betterAuthSessionStore(app.auth),
       repo: kyselyIdentityRepository(app.db, app.dialect),
@@ -542,7 +542,12 @@ describe("regenerateBackupCodes' limit", () => {
 describe("turnOffTwoFactor", () => {
   it("needs the password and a code from the app, deletes the record, and is audited", async () => {
     const { session, started } = await enrol(await signedIn());
-    const result = await turnOffTwoFactor(session, { password, code: totpCode(started.uri) }, app);
+    // The next period's code: the enrolment's own was used to turn it on (105, task 5).
+    const result = await turnOffTwoFactor(
+      session,
+      { password, code: totpCode(started.uri, { step: 1 }) },
+      app,
+    );
     if (!result.ok) throw new Error(result.error);
     expect(await t.db.selectFrom("two_factor").select("id").execute()).toEqual([]);
     const after = withIp(cookieHeaders(result.headers.get("set-cookie")));
@@ -605,7 +610,7 @@ describe("turnOffTwoFactor", () => {
   it("a double click turns it off once, and is recorded once", async () => {
     const { session, started } = await enrol(await signedIn());
     const results = await Promise.all([
-      turnOffTwoFactor(session, { password, code: totpCode(started.uri) }, app),
+      turnOffTwoFactor(session, { password, code: totpCode(started.uri, { step: 1 }) }, app),
       turnOffTwoFactor(session, { password, code: started.backupCodes[0] ?? "" }, app),
     ]);
     expect(results.filter((r) => r.ok)).toHaveLength(1);

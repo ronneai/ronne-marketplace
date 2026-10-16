@@ -394,3 +394,173 @@ Witnessed: 2026-10-16 14:09 EDT, by a fresh agent (blind). Commit: 5a1487bb plus
 | 7 | Phone layout | no | confirmed | sweep, no overflow |
 
 **Overall:** met.
+
+## Task 5 — The second step at sign-in
+
+Witnessed: 2026-10-16 14:40 EDT, by a fresh agent (adversarial). Commit: 1b82b36d plus the uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A right password with two-factor gives a challenge, no session, nothing audited as signed in | yes | confirmed | db test on 4 kinds; P13 |
+| 2 | Redirect to `/sign-in/two-factor` keeps `next`; an off-site `next` refused at both steps | yes | confirmed | `safeNextPath` probes; mutation fails the unit test |
+| 3 | A right TOTP or backup code signs in, audited; a backup code once | yes | confirmed | db tests on 4 kinds |
+| 4 | Remember me kept | no | confirmed | db test (Max-Age) |
+| 5 | The audit's `remember` matches the session | no | not met | P10: the form's `remember=1` audited true for a browser-only session |
+| 6 | A wrong code stays, audited; the challenge still takes the right one | yes | confirmed | db test; P9 odd digits |
+| 7 | A used TOTP code refused: enrolment then sign-in, two sign-ins, in parallel | yes | confirmed | P4b on 4 kinds; mutation fails 4 tests |
+| 8 | Turn-off refuses a used code | yes | confirmed | P6 |
+| 9 | A reused code doesn't spend the challenge | yes | partly | with a decoy cookie (row 10) it does |
+| 10 | `challengeUser` (cookie read unsigned) affects only which used codes and who's audited | yes | partly | a decoy `__Secure-` cookie made the audit name another account and slipped the queue |
+| 11 | 5 per challenge, 10 in a row lock, in parallel | yes | confirmed | P3, P3b |
+| 12 | Messages and `?reason=` redirects | no | confirmed | unit test |
+| 13 | A disabled account → "Email or password is wrong", no session | yes | confirmed | db test; mutation fails it |
+| 14 | Expired, none, or reset meanwhile → expired | yes | confirmed | P5 (not audited) |
+| 15 | Undecryptable → `unreadable`, not a 500 | yes | confirmed | db test; P8 |
+| 16 | `auth.sign_in_failed` gains no reason | no | confirmed | `git diff services/session.ts` |
+| 17 | No secret, code or cookie in logs or audit; only a hash stored | yes | confirmed | P12 (the plain sha256 id was reversible by brute force) |
+| 18 | Two sign-ins with one backup code: one wins | no | partly | outside the queue the loser got Better Auth's 409 as a 500 |
+| 19 | Spec: "the last accepted step" | no | partly | the code records each accepted code |
+| 20 | The Done when's db tests | yes | confirmed | each case present |
+| 21 | Web suite | no | confirmed | 2925 passed |
+
+**Overall:** not met: rows 5, 9, 10, 18, 19.
+
+Witnessed: 2026-10-16 14:50 EDT, by a fresh agent (blind). Commit: 1b82b36d plus the uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Challenge, redirect keeping `next` | no | confirmed | db and unit tests; browser |
+| 2 | Nothing audited as signed in until the second step | no | confirmed | db test |
+| 3 | One input, one-time-code hints, Verify, backup link without JavaScript | no | confirmed | Playwright, JavaScript off |
+| 4 | A right code signs in, audited with `twoFactor` | no | confirmed | db tests; browser |
+| 5 | A wrong code: message, audited | no | confirmed | db test; browser |
+| 6 | Remember me kept | no | confirmed | db test; browser cookies |
+| 7 | `next` survives; off-site refused | no | confirmed | unit tests; browser |
+| 8 | Expired → back with the message | no | confirmed | db test; browser |
+| 9 | Five wrong → `too_many` | no | confirmed | db test; browser |
+| 10 | Ten in a row → locked | no | confirmed | db test; browser |
+| 11 | A used code refused | no | confirmed | db tests; mutation |
+| 12 | Two sign-ins, one code: one session | no | confirmed | 4 kinds |
+| 13 | A used code doesn't spend the challenge | no | confirmed | 8 × the enrolment code, then a right one → ok |
+| 14 | Turn-off refuses a used code | no | confirmed | probe on 4 kinds |
+| 15 | "The last accepted step" | no | partly | the code records each accepted code |
+| 16 | Backup code once; two at once | no | confirmed | one process only |
+| 17 | Disabled account | no | confirmed | db test |
+| 18 | Undecryptable secret | no | confirmed | db test; mutation |
+| 19 | Audit catalogue, summary, log event | no | confirmed | files |
+| 20 | Clock drift | no | confirmed | step ±1 |
+| 21 | Db tests on 4 kinds | no | confirmed | 153 / 154 |
+| 22 | Lint, typecheck, suite | no | confirmed | 2925 passed |
+
+**Overall:** not met: row 15. Also: the 409 race outside the queue; no test for the TOTP race guard; junk codes audited without limit.
+
+### Re-check — after the fixes (blind)
+
+Witnessed: 2026-10-16 14:57 EDT, by a fresh agent (blind). Commit: 1b82b36d plus the uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The Done when on 4 kinds | yes | confirmed | 159 / 160 passed |
+| 2 | `next` | yes | confirmed | browser |
+| 3 | No `remember` on step 2 | yes | confirmed | code; browser URL |
+| 4 | The spec agrees | yes | partly | SPEC still said `remember=1` |
+| 5 | Remember me audited from the session | yes | confirmed | probe on 4 kinds; mutation |
+| 6 | "Each accepted code", 2 minutes | yes | confirmed | SPEC, PLAN, code |
+| 7 | Backup race: one ok, never a 500 | yes | confirmed | probe without the queue |
+| 8 | …and a test covers it | yes | partly | the test went through the queue |
+| 9 | Six `spendCode` at once: one wins | yes | confirmed | test |
+| 10 | A losing `spendCode` gives the session back | yes | confirmed | mutation fails it |
+| 11 | Two sign-ins, one code | yes | confirmed | 4 kinds |
+| 12 | Junk logged, not audited | yes | confirmed | test |
+| 13 | Signature checked, Better Auth's name | yes | confirmed | tests; mutation |
+| 14 | `expired` audited | yes | confirmed | test |
+| 15 | Lockout messages in a browser | yes | confirmed | Playwright |
+| 16 | Lint, typecheck, suite | yes | confirmed | 2931 passed |
+
+**Overall:** not met: rows 4, 8 (and anyone could write `expired` rows with no cookie).
+
+### Re-check — after the fixes (adversarial)
+
+Witnessed: 2026-10-16 14:58 EDT, by a fresh agent (adversarial). Commit: 1b82b36d plus the uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Forged signatures → expired, no session | yes | confirmed | P1, 6 variants, 4 kinds, http and https |
+| 2 | Decoys can't change who's checked or named | yes | not met | P15: `ronne.two_factor =A; ronne.two_factor=B` — Better Auth (trimming) read A, ours read B |
+| 3 | The real challenge still works | yes | confirmed | P2 |
+| 4 | Remember me from the session | yes | confirmed | P10 |
+| 5 | Backup race without the queue | yes | partly | behaviour holds; the test didn't need the mapping |
+| 6 | "Each accepted code" | yes | confirmed | SPEC, PLAN |
+| 7 | HMAC ids | yes | confirmed | P12 (untested) |
+| 8 | `expired` audited | yes | confirmed | P1 |
+| 9 | Unauthenticated calls can't fill the audit | no | not met | P14: 200 calls → 200 rows |
+| 10 | Junk not audited | yes | confirmed | P9 |
+| 11 | Races guarded | yes | confirmed | P4b |
+| 12 | Earlier claims | no | confirmed | P3, P13, P5, P8, P6 |
+| 13 | Db tests on 4 kinds | no | partly | one boundary flake on PostgreSQL (`step: -1`) |
+| 14 | Web suite | no | confirmed | 2931 passed |
+
+**Overall:** not met: rows 2, 9 (and tests for the decoy rule, the 409 mapping, the HMAC; the step flake).
+
+### Re-check — second (blind)
+
+Witnessed: 2026-10-16 15:06 EDT, by a fresh agent (blind). Commit: 1b82b36d plus the uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The Done when on 4 kinds | yes | confirmed | 163 / 164 passed |
+| 2 | `next` | yes | confirmed | suite; earlier browser run |
+| 3 | SPEC without `remember=1`, says what's audited | yes | confirmed | SPEC "Signing in." |
+| 4 | Backup race without a queue, tested | yes | confirmed | mutation fails it on SQLite and MySQL |
+| 5 | No valid challenge: logged, not audited | yes | confirmed | test; mutation |
+| 6 | A real expired challenge audited under its person | yes | confirmed | test; mutation |
+| 7 | Cookie parsed as better-call does | yes | confirmed | test; two mutations |
+| 8 | HMAC id, tested | yes | confirmed | mutation fails it |
+| 9 | `fresh` instead of step −1 | yes | confirmed | `grep -c "step: -1"` → 0 |
+| 10 | Earlier fixes hold | yes | confirmed | 4 tests on 4 kinds |
+| 11 | Lint, typecheck, suite | yes | confirmed | 2935 passed |
+
+**Overall:** met.
+
+### Re-check — second (adversarial)
+
+Witnessed: 2026-10-16 15:09 EDT, by a fresh agent (adversarial). Commit: 1b82b36d plus the uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Parsed as better-call does: can't read different challenges | yes | confirmed | P15 spaced, tab, quoted, on 4 kinds and both schemes: `expired`, counts 0 and 0 |
+| 2 | Decoys never name the other account | yes | confirmed | P2 |
+| 3 | No valid challenge: not audited | yes | confirmed | P14: 250 calls → 0 rows |
+| 4 | A real expired challenge audited once under its person | yes | confirmed | P17 |
+| 5 | Backup race without the queue | yes | confirmed | P4; mutation fails the test |
+| 6 | HMAC id, tested | yes | confirmed | P12; mutation |
+| 7 | No test depends on a 30-second boundary | yes | partly | "refuses the code used to turn it on" sent `totpCode(uri)` as the enrolment's code |
+| 8 | SPEC | yes | confirmed | "Signing in." |
+| 9 | Earlier claims | no | confirmed | 17 probes × 8 runs |
+| 10 | Tests on 4 kinds, suite | no | confirmed | 57/57; 2935 passed |
+
+**Overall:** not met: row 7. Optional: a resent used code is audited on every try within one valid challenge (needs the person's own password).
+
+### Re-check — third, row 7 (adversarial)
+
+Witnessed: 2026-10-16 15:51 EDT, by a fresh agent (adversarial). Commit: 1b82b36d plus the uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 7a | "refuses the code used to turn it on" no longer depends on a step boundary | yes | confirmed | `clock-probe2` jumps the whole clock past a boundary at the Nth read: the old line failed at N = 60–87; the current test passes for N = 1–160 |
+| 7b | No test in the two files depends on a boundary not passing | yes | partly | forced at every read, N = 1–360: "refuses a code a second sign-in already used" fails at N = 121–126 and "keeps Remember me" at N = 116–121 (`fresh` hands out step −1, which can expire before it's checked) |
+| 7c | Both files pass on 4 kinds | yes | confirmed | 57/57 each on the real clock |
+| 7d | The resent-used-code audit note recorded and left | yes | confirmed | PLAN Notes |
+
+**Overall:** not met: row 7b.
+
+### Re-check — fourth, row 7 (adversarial, scoped)
+
+Witnessed: 2026-10-16 15:58 EDT, by a fresh agent (adversarial). Commit: 1b82b36d plus the uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 7b | No test in the two files depends on a boundary not passing | yes | confirmed | the two tests call `freezeMidPeriod()` (`:46-49`, `:154`, `:256`); they read the harness's clock only 47 times before the freeze, so a sweep past N = 47 can't fire (the implementer's 100–130 sweep was vacuous); sweeping N = 1–47 lands the boundary before the freeze → 2/2 at every N; a probe shows Better Auth reads the frozen clock (the real time's code refused, the fake time's accepted); the other tests' N = 1–360 sweep still applies |
+| 7c | Both files pass on SQLite and a server | yes | confirmed | sqlite 57/57, mysql 57/57 |
+
+**Overall:** met.

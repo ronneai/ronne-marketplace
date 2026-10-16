@@ -4,6 +4,7 @@ export type TwoFactorError =
   | "no_password"
   | "wrong_password"
   | "wrong_code"
+  | "used"
   | "rate_limited"
   | "already_on"
   | "not_enabled"
@@ -17,6 +18,7 @@ export const TWO_FACTOR_ERRORS: Record<TwoFactorError, string> = {
     "Your account has no password here: you sign in through your company, which protects the sign-in.",
   wrong_password: "The password is wrong",
   wrong_code: "That code is wrong. Check the phone's clock if it keeps failing.",
+  used: "That code was already used. Wait for the next one from the app.",
   rate_limited: "Too many attempts, wait a minute",
   already_on: "Two-factor sign-in is already on",
   not_enabled: "Two-factor sign-in is off",

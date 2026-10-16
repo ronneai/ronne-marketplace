@@ -71,7 +71,7 @@ export const TurnOffTwoFactor = ({ onDone = () => {} }: { onDone?: () => void })
       className="grid max-w-sm gap-3"
       noValidate
     >
-      {state.error && state.error !== "wrong_code" ? (
+      {state.error && state.error !== "wrong_code" && state.error !== "used" ? (
         <Notice kind="error" title={TWO_FACTOR_ERRORS[state.error]} />
       ) : null}
       <Password id="turn-off-password" />
@@ -82,7 +82,11 @@ export const TurnOffTwoFactor = ({ onDone = () => {} }: { onDone?: () => void })
         autoComplete="one-time-code"
         maxLength={32}
         required
-        error={state.error === "wrong_code" ? TWO_FACTOR_ERRORS.wrong_code : undefined}
+        error={
+          state.error === "wrong_code" || state.error === "used"
+            ? TWO_FACTOR_ERRORS[state.error]
+            : undefined
+        }
       />
       <div>
         <Button type="submit" variant="destructive" loading={pending}>
