@@ -79,12 +79,14 @@ the same process and is not worth the risk; the command already ends every sessi
 **Enrolling** (`/account/security`, any signed-in user with a password):
 1. *Turn on two-factor* asks for the current password (Better Auth requires it for credential
    accounts) and shows the QR code, the secret in groups of four for typing, and an input for the
-   first code. Nothing is active until the code is right.
+   first code. Nothing is active until the code is right. Asking again in the same browser before
+   that shows the same setup; another browser, or *Start over*, makes a new one.
 2. The QR code is an SVG drawn on the server from the `otpauth://` URI; it is never sent to a
    third party. The URI and secret are in the response of that one action only.
-3. After the first code, **10 backup codes** (`XXXXX-XXXXX`) are shown once with Copy all and
-   Download (.txt), and "I've saved them" closes the step. They can't be shown again; Regenerate
-   makes ten new ones and voids the old.
+3. After the first code, **10 backup codes** (`XXXXX-XXXXX`) are shown with Copy all and
+   Download (.txt), and "I've saved them" closes the step. Until the first code they belong to the
+   setup (the same browser sees them again with it, after the password); from the first code on
+   they can't be shown again, and Regenerate makes ten new ones and voids the old.
 4. The page then says "Two-factor is on", the codes left, Regenerate and Turn off.
 
 **Signing in.** The password step is unchanged (006, same rate limit, same error text). For a
@@ -151,16 +153,26 @@ without it. `rmk` prints the message.
   set, saying why, so there is one secret to rotate and back up.
 - **A code used twice:** Better Auth accepts the same TOTP code again within its window (a code
   seen over someone's shoulder, or used at enrolment). Ronne refuses a code already accepted for
-  that person (RFC 6238 §5.2), remembering the last accepted 30-second step in the
-  `verification` table until the window passes; no migration needed.
-- **Enrolment started twice at once** (a double click, two tabs): the unique index on
-  `two_factor.user_id` keeps one row, but several requests can still succeed, each with its own
-  QR code, because a later one rewrites the unverified row (only one code then matches it); and on
-  some databases a request fails on the index instead. So enrolment is serialised per person, and
-  before showing a QR code the action reads the row back and checks that this code is the one
-  stored. Any request that lost, either way, is answered "Enrolment was started in another tab.
-  Start again." (never the database's message, which names the user id on MySQL and MariaDB). A QR code shown
-  to the person always verifies.
+  that person (RFC 6238 §5.2), at sign-in and when turning off, remembering the last accepted
+  30-second step in the `verification` table until the window passes; no migration needed.
+- **Many tabs, double clicks:** a person's two-factor changes run one at a time, so a double click
+  on Turn on, New backup codes or Turn off does it once (and records it once); a second set of
+  backup codes within 30 seconds is refused ("You just made new backup codes: use those").
+- **The limit on wrong passwords and codes** is the sign-in one (5 a minute per email). It's
+  checked before every password or code is, so once wrong ones fill it even a right one is refused
+  until the minute passes; only wrong ones count, so a reload, a typo and the right code never
+  fill it.
+- **Enrolment started twice** before it's confirmed: in the same browser (a reload, a second tab,
+  a double click: the same session), the same setup is shown again, the same QR code and backup
+  codes, so every page shown there works. Another browser (another session), or **Start over** (a
+  link under the QR code), makes a new secret, so someone who has only the password never reads a
+  setup the person is about to confirm (owner, 2026-10-16); a page still showing the old one is
+  then answered "This setup was replaced by a newer one. Start again." when it sends a code, never
+  "wrong code". Which session started the pending setup is kept for a day in the `verification`
+  table. A person's two-factor changes run one at a time; a new setup whose secret isn't the one
+  stored when it ends (another server started one meanwhile) shows nothing ("Enrolment was
+  started in another tab. Start again."), and the database's own message (it names the user id on
+  MySQL and MariaDB) is never shown.
 - **Unsupported authenticator apps** (those that ignore the 30-second, 6-digit default): the
   enrolment page names the settings in the URI; no option to change them.
 
@@ -216,6 +228,10 @@ without it. `rmk` prints the message.
    the policy.
 5. **The token exchange refuses a two-factor account instead of asking for a code** (Claude): a
    code prompt in `rmk login` is what 107 does better, through the browser.
+6. **Starting again in the same browser shows the same setup; another browser, or Start over,
+   makes a new one** (owner, 2026-10-16, over "the newest start wins", "the first start wins" and
+   then "any session with the password sees it"): every page a person is shown in their browser
+   works, and a stolen password can't read the setup they're about to confirm.
 
 ## Open questions
 

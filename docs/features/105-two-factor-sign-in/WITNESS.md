@@ -141,3 +141,193 @@ Witnessed: 2026-10-16 11:35 EDT, by a fresh agent (blind). Commit: 3978cf61 plus
 | 12c | The unchanged code passes; lint and typecheck clean | no | confirmed | 5 passed; no diagnostics; no type errors |
 
 **Overall:** met.
+
+## Task 3 — Enrol, regenerate, turn off
+
+Witnessed: 2026-10-16 11:43 EDT, by a fresh agent (blind). Commit: d0a5928f plus the uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Services and actions for enrol, confirm, regenerate and turn off over `auth.api` | no | confirmed | `services/two-factor.ts`; the store calls `enableTwoFactor`/`verifyTOTP`/`generateBackupCodes`/`disableTwoFactor` (names differ from the plan's) |
+| 2 | Starting needs the password; a wrong one changes nothing | no | confirmed | test; a 1,000,000-character password → `wrong_password`, no hashing |
+| 3 | A wrong or junk first code changes nothing, unaudited | no | confirmed | test; full-width digits → `wrong_code` |
+| 4 | Start gives URI, SVG and 10 codes; confirm turns it on, replaces the session, audited | no | confirmed | tests |
+| 5 | Backup codes aren't returned again; status gives a count | no | confirmed | only start and regenerate return codes (the start returns them before the first code) |
+| 6 | Regenerate: password, 10 new, old void, audited | no | partly | a double click → two sets returned, only the second valid, 2 audit rows |
+| 7 | Turn off: password and a code, record deleted, audited; a wrong password keeps the backup code | no | confirmed | tests |
+| 8 | Wrong passwords and codes are limited | no | not met | max 2: after `rate_limited`, the right password and the right TOTP still succeed (`limited()` only labels failures) |
+| 9 | Refusals are `TwoFactorError`s | no | partly | none exists; refusals are result codes |
+| 10 | No secret in logs or audit, tested | no | confirmed | test; mutation adding `uri` to a log event fails it |
+| 11 | Enrolment serialised per person | no | confirmed | `oneAtATime`; untested (removing it keeps 18/18 green) |
+| 12 | The read-back before answering | no | confirmed | `holds()`; untested |
+| 13 | A lost unique-index race → `another_tab` | no | confirmed | 8 raced `begin` → `ok`/`another_tab`, 1 row, 4 kinds |
+| 14 | A start racing a confirm is answered | no | not met | `Unauthorized` thrown 38–40 of 40 on 4 kinds |
+| 15 | Confirm takes the shown URI; replaced → `replaced` | no | confirmed | tests; 100 races per kind, 0 `wrong_code` |
+| 16 | Several at once: one confirms, others told replaced | no | partly | only one `on` asserted; others got `not_signed_in` |
+| 17 | The Done when's db tests | no | confirmed | 18 tests |
+| 18 | Each change audited once | no | partly | double confirm, turn-off and regenerate audit twice |
+| 19 | SSO-only can't enrol | no | confirmed | test |
+| 20 | Turning off allowed under a policy | no | confirmed | no policy check (task 6 holds people) |
+| 21 | Audit actions registered with summaries | no | confirmed | `audit-event.ts`, `summary.ts` |
+| 22 | Tests on 4 kinds | no | confirmed | 31 / 26 passed |
+| 23 | Lint, typecheck, web suite | no | confirmed | 2868 passed |
+
+**Overall:** not met: rows 6, 8, 9, 14, 16, 18.
+
+Witnessed: 2026-10-16 11:54 EDT, by a fresh agent (adversarial). Commit: d0a5928f plus the uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Start with the right password: URI, SVG, 10 codes, nothing active | no | confirmed | 18 passed on 4 kinds |
+| 2 | Wrong password or junk code changes nothing | no | confirmed | same |
+| 3 | Confirm: on, audited, session replaced | yes | confirmed | old session `null`, new works (P4) |
+| 4 | Turn off: password and code, record deleted, audited, session replaced | yes | confirmed | P4 |
+| 5 | A wrong password never uses a backup code | yes | confirmed | `services/two-factor.ts:222` |
+| 6 | Regenerate | no | confirmed | tests |
+| 7 | The limit stops guessing | yes | not met | P1, P2: right password and right TOTP succeed after `rate_limited` |
+| 8 | Signed out, disabled, another user can't act | no | confirmed | P3 |
+| 9 | Starts serialised; one row | yes | confirmed | untested (M2) |
+| 10 | Read-back → `another_tab` | yes | confirmed | untested (M1) |
+| 11 | Unique-index race → `another_tab` | yes | confirmed | P7 |
+| 12 | `isUniqueViolation` | yes | confirmed | tests on 4 kinds |
+| 13 | Replaced → `replaced`, never `wrong_code` | yes | partly | P5: 2 of 80 races answered `wrong_code` |
+| 14 | Several at once: others told replaced | yes | partly | others `not_signed_in` |
+| 15 | A confirm racing a start in another browser leaves a consistent state | no | not met | P5, P12: "on" with the other secret stored; locked out on PG and MySQL |
+| 16 | Better Auth's refusals don't escape | no | not met | 25 of 25 `APIError: Unauthorized` |
+| 17 | A double confirm turns it on once | no | partly | 3 on, 3 audit rows, extra sessions |
+| 18 | No secret in logs or audit | no | confirmed | test; P11 |
+| 19 | Audit actions and log events | yes | confirmed | typecheck |
+| 20 | Web suite | no | confirmed | 2868 passed |
+
+**Overall:** not met: rows 7, 13, 15, 16, 17. Also: a TOTP code used to confirm also turns it off (for task 5); the Done when was weakened (for the owner).
+
+### Re-check — after the fixes
+
+Witnessed: 2026-10-16 12:03 EDT, by a fresh agent (blind). Commit: d0a5928f plus the uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The limit is consumed before every check; a right guess refused once reached | yes | confirmed | `limited()` before each check; tests for start and turn-off; probes for confirm and regenerate (untested) |
+| 2 | All four changes share the queue and re-read the session | yes | confirmed | `asSignedIn`; removing the queue fails 4 tests |
+| 3 | Double confirm once | yes | confirmed | 1 audit, 1 session |
+| 4 | Double regenerate: one set; `just_made` | yes | confirmed | test |
+| 5 | Double turn-off once | yes | confirmed | test |
+| 6 | Start racing confirm answers, one and two browsers | yes | confirmed | tests; 100 probes per kind, 0 thrown |
+| 7 | 401 → `signed_out` | yes | confirmed | untested |
+| 8 | Several at once: every answer asserted | yes | confirmed | test |
+| 9 | Read-back tested | yes | confirmed | mutation fails it |
+| 10 | Plan text | yes | confirmed | PLAN task 3 |
+| 11 | Done when | yes | confirmed | 24 tests |
+| 12 | Earlier behaviour holds | no | confirmed | same tests |
+| 13 | 4 kinds | yes | confirmed | 37 / 32 passed |
+| 14 | Lint, typecheck, suite | yes | confirmed | 2874 passed |
+
+**Overall:** met.
+
+### Re-check — after the fixes (adversarial)
+
+Witnessed: 2026-10-16 12:10 EDT, by a fresh agent (adversarial). Commit: d0a5928f plus the uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Right password refused once the limit is reached | yes | confirmed | P1 on 4 kinds |
+| 2 | Right TOTP or backup code refused at turn-off; no code used | yes | confirmed | P2 |
+| 3 | The normal flow fits the limit | yes | partly | P15: a reload and a typo fill 5 a minute; regenerate, turn off and sign-in then `rate_limited` |
+| 4 | Confirm racing a start in another browser stays consistent | yes | confirmed | P5, P12 |
+| 5 | Same browser: answers, never throws | yes | confirmed | P5 |
+| 6 | Shared queue, session re-read | yes | confirmed | queue removed → 4–5 tests fail |
+| 7 | Double confirm once | yes | confirmed | P6 |
+| 8 | Double turn-off once | yes | confirmed | test |
+| 9 | 401 → `not_signed_in` | yes | confirmed | P17; untested |
+| 10 | `just_made` | yes | confirmed | test |
+| 11 | Several at once | yes | confirmed | P13 |
+| 12 | Read-back | yes | confirmed | P14 |
+| 13 | Unique-index race | no | confirmed | P7 |
+| 14 | Happy paths, disabled users, sessions | no | confirmed | 32/32 on 4 kinds |
+| 15 | No secrets | no | confirmed | P11 |
+| 16 | Suite, typecheck, lint | no | confirmed | 2874 passed |
+
+**Overall:** not met: row 3.
+
+### Re-check — the limit, and the owner's "same setup" (blind)
+
+Witnessed: 2026-10-16 12:17 EDT, by a fresh agent (blind). Commit: d0a5928f plus the uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Starting again shows the same setup | yes | confirmed | test; mutation fails it |
+| 2 | `startOver` makes a new one; old page `replaced` | yes | confirmed | tests; 60 pages per kind, 0 `wrong_code` |
+| 3 | The limit checked before every check; a right one refused once full | yes | confirmed | tests for all four steps |
+| 4 | Only failures count; ordinary setup within the real limit | yes | confirmed | test; `check`→`consume` mutation fails 5 |
+| 5 | `check`/`record`; `consume` unchanged | yes | confirmed | `sign-in-models.test.ts` |
+| 6 | `appName` makes the URIs agree | yes | confirmed | probe |
+| 7 | One at a time; double clicks once; `just_made` | yes | confirmed | queue removed → 5 fail |
+| 8 | Races answer, never throw | yes | confirmed | tests and probes |
+| 9 | Lost setup → `another_tab` | yes | confirmed | test |
+| 10 | Confirm takes the shown URI | yes | confirmed | test |
+| 11 | Done when | yes | confirmed | 31 tests |
+| 12 | Earlier behaviour | no | confirmed | same tests |
+| 13 | 4 kinds | yes | confirmed | 53 / 39 passed |
+| 14 | Lint, typecheck, suite | yes | confirmed | 2883 passed |
+
+**Overall:** met.
+
+### Re-check — the limit, and the owner's "same setup" (adversarial)
+
+Witnessed: 2026-10-16 12:28 EDT, by a fresh agent (adversarial). Commit: d0a5928f plus the uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The re-shown setup is the stored one, same URI and codes | yes | confirmed | P20 on 4 kinds |
+| 2 | It needs the right password; never someone else's | yes | confirmed | P20, P21, P23 |
+| 3 | Start over: new setup, old page `replaced` | yes | confirmed | P20 |
+| 4 | Start over racing confirm stays consistent | yes | confirmed | P5, P12 |
+| 5 | A right guess refused once full | yes | confirmed | P1, P2 |
+| 6 | Parallel failures can't hide | no | confirmed | P23: 20 at once → 5 counted, 15 refused |
+| 7 | A right attempt doesn't reset the count | yes | confirmed | P24 |
+| 8 | Ordinary use fits | yes | confirmed | P15 |
+| 9 | Sign-out racing start → `not_signed_in` | yes | confirmed | P17 |
+| 10 | Earlier claims | no | confirmed | P6, P14, P7, P3, P4, P11 |
+| 11 | Tests on 4 kinds; suite | no | confirmed | 49/49; 2883 passed |
+
+**Overall:** met. For the owner: any session with the password could read a pending setup (P21) — the owner then chose "same browser only".
+
+### Re-check — same browser only (blind)
+
+Witnessed: 2026-10-16 13:01 EDT, by a fresh agent (blind). Commit: d0a5928f plus the uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Same session: the same setup again | yes | confirmed | tests; `if (false)` fails 3 |
+| 2 | Another session never sees it; gets its own; first page `replaced` | yes | confirmed | test; mutation fails it; probe `Bsaw-A-uri=0` on 4 kinds |
+| 3 | The starter kept in `verification` for a day, its id not its token | yes | confirmed | probe; expiry works (then untested) |
+| 4 | `startOver` | yes | confirmed | tests |
+| 5 | Backup codes re-shown only before the first code, same browser | yes | confirmed | SPEC step 3; `pending()` |
+| 6 | The limit | yes | confirmed | mutation fails 5 |
+| 7 | Queue, double clicks, races, `another_tab` | yes | confirmed | mutations and probes |
+| 8 | No secrets | yes | confirmed | test, probe |
+| 9 | Done when | yes | confirmed | 32 tests |
+| 10 | Plan text, Done when, Notes | yes | confirmed | PLAN task 3 |
+| 11 | 4 kinds | yes | confirmed | 54 / 40 passed |
+| 12 | Lint, typecheck, suite | yes | confirmed | 2884 passed |
+
+**Overall:** met.
+
+### Re-check — same browser only (adversarial)
+
+Witnessed: 2026-10-16 13:09 EDT, by a fresh agent (adversarial). Commit: d0a5928f plus the uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Another session with the password never gets the pending secret or codes | yes | confirmed | P21, P30 on 4 kinds |
+| 2 | Neither browser re-shows the other's afterwards | yes | confirmed | P30 |
+| 3 | Two tabs in one session: same setup; start over new | yes | confirmed | P30, P20 |
+| 4 | Sign-out/sign-in or a session rotation makes a new starter | yes | confirmed | P30 |
+| 5 | An expired record isn't honoured | yes | confirmed | P30 |
+| 6 | A forged value doesn't re-show; the id comes from the server | yes | confirmed | P30; `services/two-factor.ts:55-60` |
+| 7 | Races between browsers never leak or corrupt | yes | confirmed | P31, P5, P12 |
+| 8 | Tests catch the session condition removed | yes | confirmed | 1–2 fail |
+| 9 | Earlier claims | no | confirmed | P1, P2, P23, P24, P15, P6, P17, P13 |
+| 10 | Tests on 4 kinds, suite, typecheck, lint | no | confirmed | 50/50; 2884 passed |
+
+**Overall:** met. After this pass, only a test was added: a setup record past its day isn't honoured (it fails when the expiry check is removed; 33/33 on SQLite, PostgreSQL, MySQL and MariaDB).

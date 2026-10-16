@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isDeadlock, retryOnDeadlock } from "./locks";
+import { isDeadlock, isUniqueViolation, retryOnDeadlock } from "./locks";
 
 describe("retryOnDeadlock (113)", () => {
   const deadlock = (kind: "pg" | "mysql") =>
@@ -42,5 +42,21 @@ describe("retryOnDeadlock (113)", () => {
       }),
     ).rejects.toThrow("disk full");
     expect(runs).toBe(1);
+  });
+});
+
+describe("isUniqueViolation", () => {
+  it("knows each database's duplicate-key error, also wrapped as a cause", () => {
+    expect(isUniqueViolation({ code: "23505" })).toBe(true);
+    expect(isUniqueViolation({ errno: 1062, code: "ER_DUP_ENTRY" })).toBe(true);
+    expect(isUniqueViolation({ code: "SQLITE_CONSTRAINT_UNIQUE" })).toBe(true);
+    expect(isUniqueViolation(new Error("wrapped", { cause: { code: "23505" } }))).toBe(true);
+  });
+
+  it("isn't any other error", () => {
+    expect(isUniqueViolation({ code: "40P01" })).toBe(false);
+    expect(isUniqueViolation({ code: "SQLITE_CONSTRAINT_FOREIGNKEY" })).toBe(false);
+    expect(isUniqueViolation(new Error("nope"))).toBe(false);
+    expect(isUniqueViolation(null)).toBe(false);
   });
 });

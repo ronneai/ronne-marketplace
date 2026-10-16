@@ -10,6 +10,7 @@ import { type Auth, createAuth } from "../../domains/identity/repositories/bette
 import { totpCode } from "../../domains/identity/testing/totp";
 import { toDbDate } from "../dates";
 import { newId } from "../ids";
+import { isUniqueViolation } from "../locks";
 import { foreignKeys } from "../testing/foreign-keys";
 import { createTestDb, type TestDb } from "../testing/test-db";
 
@@ -137,7 +138,12 @@ describe("0025_two_factor", () => {
       lock_expires_at: null,
     });
     await t.db.insertInto("two_factor").values(row()).execute();
-    await expect(t.db.insertInto("two_factor").values(row()).execute()).rejects.toThrow();
+    const refused = await t.db
+      .insertInto("two_factor")
+      .values(row())
+      .execute()
+      .catch((error: unknown) => error);
+    expect(isUniqueViolation(refused)).toBe(true);
     expect(await t.db.selectFrom("two_factor").select("id").execute()).toHaveLength(1);
   });
 

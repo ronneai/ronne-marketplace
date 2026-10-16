@@ -55,6 +55,30 @@ describe("LoginRateLimiter", () => {
   });
 });
 
+describe("LoginRateLimiter's check and record (105)", () => {
+  it("checks without counting, and counts only what's recorded", () => {
+    const now = { t: 0 };
+    const limiter = new LoginRateLimiter({ max: 2, now: () => now.t });
+    const keys = ["email:a@b.c"];
+    for (let i = 0; i < 10; i++) expect(limiter.check(keys)).toEqual({ allowed: true });
+    limiter.record(keys);
+    expect(limiter.check(keys)).toEqual({ allowed: true });
+    limiter.record(keys);
+    expect(limiter.check(keys)).toEqual({ allowed: false, retryAfterSeconds: 60 });
+    now.t = 60_000;
+    expect(limiter.check(keys)).toEqual({ allowed: true });
+  });
+
+  it("shares its count with consume", () => {
+    const limiter = new LoginRateLimiter({ max: 2 });
+    const keys = ["email:a@b.c"];
+    limiter.record(keys);
+    expect(limiter.consume(keys)).toEqual({ allowed: true });
+    expect(limiter.check(keys).allowed).toBe(false);
+    expect(limiter.consume(keys).allowed).toBe(false);
+  });
+});
+
 describe("hasSessionCookie", () => {
   it("finds the plain and the __Secure- session cookie, and nothing else", () => {
     const jar = (...names: string[]) => ({ has: (n: string) => names.includes(n) });

@@ -25,27 +25,42 @@ export class LoginRateLimiter {
     this.#now = now;
   }
 
+  /** Counts the attempt against each key, unless one is used up: then it's refused, uncounted. */
   consume(keys: readonly string[]): RateLimitDecision {
+    const decision = this.check(keys);
+    if (decision.allowed) this.record(keys);
+    return decision;
+  }
+
+  /**
+   * Whether an attempt would be allowed, without counting it. With `record` after a failure, only
+   * failed attempts count (105's two-factor changes): normal use never fills the window, and once
+   * failures do, even a right attempt is refused.
+   */
+  check(keys: readonly string[]): RateLimitDecision {
     const now = this.#now();
     this.#prune(now);
+    const full = keys
+      .map((key) => this.#live(key, now))
+      .filter((bucket): bucket is Bucket => bucket !== null && bucket.count >= this.#max);
+    if (full.length === 0) return { allowed: true };
+    const resetsAt = Math.max(...full.map((bucket) => bucket.windowStart + this.#windowMs));
+    return { allowed: false, retryAfterSeconds: Math.ceil((resetsAt - now) / 1000) };
+  }
 
-    const live = keys.map((key) => {
-      const bucket = this.#buckets.get(key);
-      return { key, bucket: bucket && now - bucket.windowStart < this.#windowMs ? bucket : null };
-    });
-    const full = live.filter(({ bucket }) => bucket && bucket.count >= this.#max);
-    if (full.length > 0) {
-      const resetsAt = Math.max(
-        ...full.map(({ bucket }) => (bucket?.windowStart ?? now) + this.#windowMs),
-      );
-      return { allowed: false, retryAfterSeconds: Math.ceil((resetsAt - now) / 1000) };
-    }
-
-    for (const { key, bucket } of live) {
+  /** Counts one attempt against each key. */
+  record(keys: readonly string[]): void {
+    const now = this.#now();
+    for (const key of keys) {
+      const bucket = this.#live(key, now);
       if (bucket) bucket.count += 1;
       else this.#buckets.set(key, { count: 1, windowStart: now });
     }
-    return { allowed: true };
+  }
+
+  #live(key: string, now: number): Bucket | null {
+    const bucket = this.#buckets.get(key);
+    return bucket && now - bucket.windowStart < this.#windowMs ? bucket : null;
   }
 
   #prune(now: number) {

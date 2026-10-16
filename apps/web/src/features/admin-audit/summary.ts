@@ -113,6 +113,9 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     `: ${REASONS[text(m.reason)] ?? text(m.reason)}${via(m)}`,
   ],
   "auth.signed_out": () => ["Signed out"],
+  "auth.two_factor_enabled": () => ["Turned on two-factor sign-in"],
+  "auth.two_factor_disabled": () => ["Turned off two-factor sign-in"],
+  "auth.backup_codes_regenerated": () => ["Made new backup codes; the old ones stopped working"],
   "user.password_changed": (m) => [
     num(m.otherSessionsEnded)
       ? `Changed their password (${plural(num(m.otherSessionsEnded), "other session")} ended)`

@@ -62,6 +62,9 @@ export const createAuth = ({
   validateSchema = true,
 }: AuthConfig) => {
   return betterAuth({
+    // The name authenticator apps show (two-factor, 105): Better Auth uses it where it builds a
+    // TOTP URI without the plugin's issuer (getTOTPURI), so both agree.
+    appName: TWO_FACTOR_ISSUER,
     database: { db, type: dialect },
     secret,
     baseURL,
