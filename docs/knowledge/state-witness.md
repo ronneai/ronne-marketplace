@@ -39,13 +39,38 @@ reads a model's activations, which we can't, but four of its findings carry over
    **Don't** pass PLAN.md's notes, the conversation or your summary of the work.
 3. It answers with a pass in the format below. Paste it into `WITNESS.md`. Then give it the notes'
    claims for the task, and it fills *In the notes?*.
-4. Fix what it found and start a new pass (`### Re-check …` under the same task). A re-check may
-   cover only the claims that failed; the checker reads the latest pass.
+4. Fix what it found, **rerun the witness's own probes** (it leaves them in the scratchpad) to see
+   the fix hold, then start a new pass (`### Re-check …` under the same task). A re-check covers
+   only the claims that weren't `confirmed` and the claims the diff since the last pass touches;
+   say which in the request, with the diff. The checker reads the latest pass.
 5. For a `[risky]` task, also start it with `mode: adversarial`. Its pass's `Witnessed:` line says
    `adversarial`.
 6. Tick the task when the latest pass, and for a risky task the latest adversarial pass too, is met
    with every claim confirmed. Anything it couldn't check here (Windows, GitHub, a release) is
    `can't check here`, and the task stays unticked until a later pass confirms it.
+
+**Keeping passes short** (owner, 2026-10-16, after an adversarial re-check of one row took 48
+minutes, sweeping a clock jump through 360 points with a fresh test run each). The aim is the same
+findings in less time:
+
+- **Budgets.** A first blind pass about 15 minutes, a first adversarial pass about 25, a re-check
+  about 10. The request says the budget. What's left unchecked when it runs out is
+  `can't check here` with what remains, never silently skipped; the witness may run over only to
+  follow a live lead to a bug.
+- **Only the tests that matter.** The task's own test files, on SQLite and on the database servers
+  when it touches database code. The full web suite and the end-to-end run already happen on every
+  commit (the pre-commit hook) and in CI: a witness reruns them only when the task changes shared
+  code (a shared component, the logger, the database layer, the auth setup).
+- **Sample, don't sweep.** Each claim still gets a real attempt to break it, and a mutation that
+  shows its test fails without the fix. A sweep (a clock jump, a range of inputs, many concurrent
+  calls) samples the range or bisects towards a failure instead of trying every point.
+- **Reuse.** A re-check reuses the scratch copy, the probes and the harnesses of the pass before
+  (copying over only the changed files) instead of building them again.
+- **Severity.** Security and correctness findings get a full adversarial re-check of their rows. A
+  finding about a test (a flake, a missing mutation) or about wording gets a short, scoped one.
+- **Two rounds, then the owner.** If a risky task's adversarial pass is still not met after two
+  re-checks, the owner decides: another round, or the remaining finding moves to a follow-up task or
+  issue (with its own *Done when*), so this task's claims can be met.
 
 **Which tasks are risky:** sign-in, sessions, tokens and roles; migrations; deleting or anonymising
 data; anything that runs on a user's machine or with root; security checks. The spec's author marks
