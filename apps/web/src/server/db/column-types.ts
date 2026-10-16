@@ -30,7 +30,8 @@ export const columnTypes = (dialect: DatabaseDialect) => {
     longText: (): ColumnType => (dialect === "mysql" ? sql`longtext` : "text"),
     /**
      * A UTC timestamp: `timestamptz` in PostgreSQL, `datetime(3)` in MySQL, ISO-8601 text in SQLite.
-     * Never MySQL's `timestamp`, which ends in 2038.
+     * Never MySQL's `timestamp`, which ends in 2038. Name the column `…_at`, and only timestamps:
+     * restore (099) tells SQLite's text timestamps by that name (docs/knowledge/timestamp-names.md).
      */
     timestamp: (): ColumnType => {
       if (dialect === "postgres") return "timestamptz";

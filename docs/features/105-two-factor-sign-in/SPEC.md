@@ -59,15 +59,19 @@ Built on Better Auth's `twoFactor` plugin, checked against its docs (2026-10-15)
 
 **Better Auth.** `twoFactor({ issuer: "Ronne AI Marketplace" })` joins the plugins in
 `createAuth`, before `nextCookies()`; TOTP only (no `otpOptions`). Its migration adds the
-`two_factor` table (user id, secret, backup codes) and `user.two_factor_enabled`; `authSchema`
-maps their names to snake_case, and the migration test checks them (all three databases). Its
-account lockout stays on: failed codes (TOTP and backup) share one counter and lock the account's
-second step for a while with 429 `ACCOUNT_TEMPORARILY_LOCKED`; the sign-in page says "Too many
-attempts, wait a minute". The HTTP allowlist (006) does not grow: every two-factor call is a server
+`two_factor` table (user id, secret, backup codes, the failed-code count and lock) and
+`user.two_factor_enabled`; `twoFactorSchema` maps their names to snake_case, and the migration test
+checks them (all four database kinds). Its two limits stay as they are (Better Auth 1.7.7, read in
+task 1): **one sign-in challenge takes at most 5 codes**, after which it is voided (400
+`TOO_MANY_ATTEMPTS_REQUEST_NEW_CODE`) and the person enters their password again; and **10 wrong
+codes in a row** (TOTP or backup, across challenges) lock the account's second step for **15
+minutes** (429 `ACCOUNT_TEMPORARILY_LOCKED`), a right code resetting the count. The two-factor step
+then says "Too many wrong codes. Sign in again." or "Too many wrong codes. Try again in 15
+minutes." The password step keeps 006's limit (5 a minute per email). The HTTP allowlist (006) does not grow: every two-factor call is a server
 action that calls `auth.api` with the request's headers.
 
 **Secrets at rest.** Better Auth encrypts the TOTP secret and the backup codes with a key from
-`AUTH_SECRET`; task 1 confirms that in the installed version. Rotating `AUTH_SECRET` (098) then makes
+`AUTH_SECRET` (XChaCha20-Poly1305, the key the SHA-256 of the secret; confirmed in task 1). Rotating `AUTH_SECRET` (098) then makes
 every stored secret unreadable: `rmk-server rotate-secret` must either re-encrypt them or clear
 them. It clears them and says how many people will enrol again (re-encrypting needs the old key in
 the same process and is not worth the risk; the command already ends every session).
@@ -132,9 +136,31 @@ without it. `rmk` prints the message.
   removed inside the verification).
 - **Changing the password** (006) keeps two-factor and ends the other sessions, as now.
 - **Disabling a user** (008) is unaffected; enabling them keeps their two-factor.
-- **Backup restore (099) to a server with another `AUTH_SECRET`:** the stored secrets can't be
-  read. Restore already requires the same settings file (it carries `AUTH_SECRET`), so this is the
-  same instance; the restore runbook says so.
+- **Restoring a backup (099) with another `AUTH_SECRET`:** `rmk-server restore` writes a new
+  `AUTH_SECRET` unless `--with-settings` is given, and keeps a different existing one with only a
+  warning, so the stored secrets may not decrypt afterwards (Better Auth throws a bare "invalid
+  tag", a 500). Restore therefore treats two-factor as `rotate-secret` does: when the
+  `AUTH_SECRET` it ends with isn't the archive's, it clears every two-factor record and says how
+  many people will enrol again. An archive with no `AUTH_SECRET` (made with `--no-settings`, or
+  with the secret only in the environment) can't be compared, so restore tries to decrypt one
+  stored two-factor secret with the secret it ends with, and clears them all if that fails. And any secret that still fails to decrypt (an `AUTH_SECRET`
+  changed by hand) is answered "Your two-factor sign-in can't be read on this server. Ask a root
+  to reset it." rather than a 500, and logged.
+- **`BETTER_AUTH_SECRETS` in the environment:** Better Auth would encrypt with it instead of
+  `AUTH_SECRET`. Ronne passes its secret explicitly and refuses to start while that variable is
+  set, saying why, so there is one secret to rotate and back up.
+- **A code used twice:** Better Auth accepts the same TOTP code again within its window (a code
+  seen over someone's shoulder, or used at enrolment). Ronne refuses a code already accepted for
+  that person (RFC 6238 §5.2), remembering the last accepted 30-second step in the
+  `verification` table until the window passes; no migration needed.
+- **Enrolment started twice at once** (a double click, two tabs): the unique index on
+  `two_factor.user_id` keeps one row, but several requests can still succeed, each with its own
+  QR code, because a later one rewrites the unverified row (only one code then matches it); and on
+  some databases a request fails on the index instead. So enrolment is serialised per person, and
+  before showing a QR code the action reads the row back and checks that this code is the one
+  stored. Any request that lost, either way, is answered "Enrolment was started in another tab.
+  Start again." (never the database's message, which names the user id on MySQL and MariaDB). A QR code shown
+  to the person always verifies.
 - **Unsupported authenticator apps** (those that ignore the 30-second, 6-digit default): the
   enrolment page names the settings in the URI; no option to change them.
 
@@ -161,8 +187,8 @@ without it. `rmk` prints the message.
   changes nothing.
 - [ ] A backup code works once; Regenerate voids the old ones; Turn off needs the password and a
   code and removes the record.
-- [ ] The failed-code lockout answers 429 and the sign-in page shows its message; every failure is
-  audited.
+- [ ] A challenge is voided after 5 wrong codes and the account's second step locks for 15 minutes
+  after 10 in a row (429); the two-factor step shows each message; every failure is audited.
 - [ ] With "Reviewers and root", a moderator without two-factor is held on `/account/security`
   until enrolled, on pages and on server actions; an ordinary user is not held; "Everyone" holds
   them too; "Optional" holds nobody.

@@ -45,3 +45,20 @@ export const authSchema = {
     fields: { expiresAt: "expires_at", ...timestamps },
   },
 } as const;
+
+/**
+ * The two-factor plugin's names (feature 105, migration 0025_two_factor), passed as its `schema`
+ * option: Better Auth's `twoFactor` model and `twoFactorEnabled` field, in snake_case.
+ */
+export const twoFactorSchema = {
+  twoFactor: {
+    modelName: "two_factor",
+    fields: {
+      backupCodes: "backup_codes",
+      userId: "user_id",
+      failedVerificationCount: "failed_verification_count",
+      lockedUntil: "lock_expires_at",
+    },
+  },
+  user: { fields: { twoFactorEnabled: "two_factor_enabled" } },
+} as const;
