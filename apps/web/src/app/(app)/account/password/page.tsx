@@ -1,11 +1,13 @@
 import { PageHeader, Panel } from "@/components/ui/Panel";
 import { ChangePasswordForm } from "@/features/account/ChangePasswordForm";
 import { AccountTabs } from "@/features/account-security/AccountTabs";
+import { holdPage } from "../../hold";
 
 export const metadata = { title: "Password · Account · Ronne AI Marketplace" };
 
 /** The (app) layout already requires a signed-in user. */
-const ChangePasswordPage = () => {
+const ChangePasswordPage = async () => {
+  await holdPage();
   return (
     <>
       <PageHeader

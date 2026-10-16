@@ -1,6 +1,9 @@
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { withRequestContext } from "../log";
+import { requestHeaders as appRequestHeaders } from "./request-headers";
 import { forwardedRequestId } from "./request-id";
+import { SECURITY_PATH, twoFactorHold } from "./two-factor-hold";
 
 /**
  * Every exported server action goes through this (feature 100; a guard test lists them). A server
@@ -11,10 +14,21 @@ import { forwardedRequestId } from "./request-id";
  */
 export const serverAction = <A extends unknown[], R>(
   action: (...args: A) => Promise<R>,
+  options: {
+    /**
+     * Runs for someone root requires to use two-factor who hasn't set it up yet (105): only the
+     * enrolment page's actions and signing out. Every other action sends them there instead, so a
+     * tab left open before the requirement can't act.
+     */
+    whileHeld?: boolean;
+  } = {},
 ): ((...args: A) => Promise<R>) => {
   const wrapped = async (...args: A): Promise<R> => {
     const requestId = forwardedRequestId(await requestHeaders());
-    return withRequestContext({ requestId }, () => action(...args));
+    return withRequestContext({ requestId }, async () => {
+      if (!options.whileHeld && (await heldNow())) redirect(SECURITY_PATH);
+      return action(...args);
+    });
   };
   made.add(wrapped);
   return wrapped;
@@ -33,4 +47,15 @@ const requestHeaders = async (): Promise<{ get(name: string): string | null }> =
   } catch {
     return new Headers();
   }
+};
+
+/** Whether the action's caller is held for two-factor (105); never outside a request. */
+const heldNow = async (): Promise<boolean> => {
+  let request: Headers;
+  try {
+    request = await appRequestHeaders();
+  } catch {
+    return false;
+  }
+  return (await twoFactorHold(request)) !== null;
 };

@@ -8,6 +8,12 @@ export type Timestamp = ColumnType<Date | string, Date | string, Date | string>;
 
 /** A boolean column: boolean in PostgreSQL, 0/1 in MySQL and SQLite. */
 type DbBoolean = ColumnType<boolean | number, boolean | number, boolean | number>;
+/** A boolean with a default, so optional on insert (not `Generated<DbBoolean>`: it nests). */
+type GeneratedDbBoolean = ColumnType<
+  boolean | number,
+  boolean | number | undefined,
+  boolean | number
+>;
 
 /** Better Auth's user table, plus role and disabled_at (migration 0001_identity). */
 export interface UserTable {
@@ -21,7 +27,7 @@ export interface UserTable {
   role: Generated<"root" | "user">;
   disabled_at: Timestamp | null;
   /** Better Auth's two-factor flag (migration 0025_two_factor, feature 105). */
-  two_factor_enabled: Generated<DbBoolean>;
+  two_factor_enabled: GeneratedDbBoolean;
 }
 
 export interface SessionTable {
@@ -60,7 +66,7 @@ export interface TwoFactorTable {
   user_id: string;
   secret: string;
   backup_codes: string;
-  verified: Generated<DbBoolean>;
+  verified: GeneratedDbBoolean;
   failed_verification_count: Generated<number>;
   lock_expires_at: Timestamp | null;
 }

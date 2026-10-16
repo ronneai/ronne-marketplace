@@ -5,13 +5,19 @@ import { listAuditEvents } from "../../audit/actions/audit";
 import { createRoot } from "../../identity/actions/root-account";
 import { ForbiddenError } from "../../identity/exceptions/errors";
 import type { CurrentUser } from "../../identity/models/user";
-import { InvalidUsageMinimumError, InvalidUsagePolicyError } from "../exceptions/errors";
+import {
+  InvalidTwoFactorPolicyError,
+  InvalidUsageMinimumError,
+  InvalidUsagePolicyError,
+} from "../exceptions/errors";
 import { kyselySettingsRepository } from "../repositories/kysely-settings-repository";
 import {
   instanceSettings,
   type SettingsDeps,
+  setTwoFactorPolicy,
   setUsageMinimum,
   setUsagePolicy,
+  twoFactorPolicy,
   usageMinimum,
   usagePolicy,
 } from "./settings";
@@ -43,6 +49,7 @@ describe("the usage policy", () => {
       usagePolicy: "off",
       usagePolicyChangedAt: null,
       usageMinimum: 0,
+      twoFactorPolicy: "optional",
     });
   });
 
@@ -61,6 +68,7 @@ describe("the usage policy", () => {
       usagePolicy: "required",
       usagePolicyChangedAt: at,
       usageMinimum: 0,
+      twoFactorPolicy: "optional",
     });
     const { events } = await listAuditEvents(t.db, t.dialect, { group: "settings" });
     expect(
@@ -130,5 +138,52 @@ describe("instance_settings", () => {
     expect(await foreignKeys(t.db, t.dialect, ["instance_settings"])).toEqual([
       { table: "instance_settings", references: "user", onDelete: "SET NULL" },
     ]);
+  });
+});
+
+describe("the two-factor requirement (105)", () => {
+  it("is optional until root sets it; a change is audited with the old and new value", async () => {
+    expect(await twoFactorPolicy(deps)).toBe("optional");
+    expect(await setTwoFactorPolicy(deps, { user: root, ip: IP }, "reviewers")).toEqual({
+      changed: true,
+    });
+    expect(await twoFactorPolicy(deps)).toBe("reviewers");
+    expect(await setTwoFactorPolicy(deps, { user: root, ip: IP }, "reviewers")).toEqual({
+      changed: false,
+    });
+    await setTwoFactorPolicy(deps, { user: root, ip: IP }, "everyone");
+    const events = (await listAuditEvents(t.db, t.dialect, {})).events.filter(
+      (e) => e.action === "settings.two_factor_policy",
+    );
+    expect(events.map((e) => [e.actorId, e.ipAddress, e.metadata])).toEqual([
+      [root.id, IP, { from: "reviewers", to: "everyone" }],
+      [root.id, IP, { from: "optional", to: "reviewers" }],
+    ]);
+  });
+
+  it("is changed only by root, and only to a known requirement", async () => {
+    const someone: CurrentUser = {
+      id: "x",
+      email: "x@example.com",
+      name: "X",
+      role: "user",
+      workspaces: {},
+    };
+    await expect(setTwoFactorPolicy(deps, { user: someone, ip: null }, "everyone")).rejects.toThrow(
+      ForbiddenError,
+    );
+    await expect(setTwoFactorPolicy(deps, { user: null, ip: null }, "everyone")).rejects.toThrow(
+      ForbiddenError,
+    );
+    for (const value of ["required", "", null, 1, "Everyone"])
+      await expect(setTwoFactorPolicy(deps, { user: root, ip: null }, value)).rejects.toThrow(
+        InvalidTwoFactorPolicyError,
+      );
+    expect(await twoFactorPolicy(deps)).toBe("optional");
+  });
+
+  it("reads a value it doesn't know as optional", async () => {
+    await deps.repo.set("two_factor_policy", "nonsense", null, at);
+    expect(await twoFactorPolicy(deps)).toBe("optional");
   });
 });

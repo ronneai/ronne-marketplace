@@ -7,6 +7,7 @@ import { appAuditEvent, appAuditPage } from "@/server/domains/audit/actions/audi
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
 import { can } from "@/server/domains/identity/models/permissions";
 import { requestHeaders } from "@/server/http/request-headers";
+import { holdPage } from "../../hold";
 
 export const metadata = { title: "Audit log · Ronne AI Marketplace" };
 
@@ -17,6 +18,7 @@ const first = (value: string | string[] | undefined) => (Array.isArray(value) ? 
  * 007). The view (filters, sort, size, page) and the open event are all in the URL (060).
  */
 const AuditLog = async ({ searchParams }: { searchParams: Promise<SearchParams> }) => {
+  await holdPage();
   const user = await getCurrentUser(await requestHeaders());
   if (!can(user, "audit.view")) notFound();
 

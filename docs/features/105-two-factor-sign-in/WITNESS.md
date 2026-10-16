@@ -564,3 +564,79 @@ Witnessed: 2026-10-16 15:58 EDT, by a fresh agent (adversarial). Commit: 1b82b36
 | 7c | Both files pass on SQLite and a server | yes | confirmed | sqlite 57/57, mysql 57/57 |
 
 **Overall:** met.
+
+## Task 6 — The policy and enforcement
+
+Witnessed: 2026-10-16 16:16 EDT, by a fresh agent (blind). Commit: 782a468c plus the uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `twoFactorPolicy` is an instance setting, `optional` by default; an unknown stored value reads as `optional` | yes | confirmed | `models/two-factor-policy.ts`, `services/settings.ts`; settings.db.test → pass |
+| 2 | Only root changes it, to one of three values; audited `settings.two_factor_policy {from,to}`; no change, no audit | yes | confirmed | `setTwoFactorPolicy` (`settings.manage`, `InvalidTwoFactorPolicyError`, early return); db test asserts the audit row and the refusals |
+| 3 | The panel on the Authentication tab: three choices, Save, the counts | yes | confirmed | `TwoFactorPolicyForm.tsx`; admin-settings.test checks both count lines |
+| 4 | `coveredBy`: optional nobody; reviewers = root + moderators/admins of shared workspaces (not a personal one); everyone all; no password never | yes | confirmed | unit table; mutation (any non-`user` role) → 2 unit tests and the db test fail |
+| 5 | The same through `mustEnrol` on real sessions, four databases | no | confirmed | SQLite; `test:db:postgres/mysql/mariadb` → 15/15 each |
+| 6 | Counts leave out disabled and no-password accounts, root only; an unconfirmed enrolment counts as not enrolled | yes | confirmed | db test; probe (start without confirming → held, counted unenrolled) |
+| 7 | A held person on a page goes to `/account/security`; that page stays open | yes | confirmed | shell.test; mutation → fails |
+| 8 | A held person's server action (a stale tab too) doesn't run, except `whileHeld` ones | yes | confirmed | `server-action.ts`; `whileHeld` only on account-security (4), sign-in (2), `signOutFromMenu`; mutation → test fails |
+| 9 | SPEC: held server actions refuse with `TwoFactorRequiredError` | no | partly | no such class; the code redirects; SPEC.md:123 not updated |
+| 10 | The held page's notice names who the requirement covers | yes | confirmed | account-security.test → pass |
+| 11 | An SSO-only account is never held | yes | confirmed | db test |
+| 12 | Turning two-factor off while covered holds you again | no | confirmed | probe: enrol → off → held |
+| 13 | The last root: covered, no exemption; the reset is task 7 | yes | confirmed | `coveredBy`; PLAN.md task 7 |
+| 14 | Bearer tokens (`/api/v1`) are not held | yes | confirmed | proxy matcher skips `api/`; `require-token.ts` |
+
+**Overall:** not met: row 9.
+
+Witnessed: 2026-10-16 16:40 EDT, by a fresh agent (adversarial). Commit: 782a468c plus the uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The policy setting, its default, a junk value | yes | confirmed | settings.db.test on four databases → 15 passed each |
+| 2 | Only root changes it; audited; no-op unchanged; invalid refused | yes | confirmed | `permissions.ts:21`; db tests; `saveTwoFactorPolicy` not `whileHeld` |
+| 3 | Coverage for three policies × user, moderator, admin, personal admin, root | yes | confirmed | `two-factor-hold.db.test.ts:77`, four databases |
+| 4 | SSO-only, signed out, disabled, unconfirmed enrolment | yes | confirmed | tests; `findActiveUser`; live probe (verified=0, flag 0 → held) |
+| 5 | The panel's counts | yes | confirmed | live instance "43"/"119" = own SQL over the same DB |
+| 6 | A held person is sent to `/account/security` from every other page | yes | partly | hard loads held (`probe-softnav.mjs`); **client-side navigation** from `/account/security` rendered `/`, `/workspaces`, `/account/tokens` (`probe-softnav2.mjs`): the layout's check doesn't run again |
+| 7 | Held server actions refused (stale tab), except `whileHeld` | yes | confirmed | `probe-action.mjs`: Create token → redirect, 0 tokens |
+| 8 | The task's tests pass | yes | confirmed | 7 files, 75 passed |
+| 9 | No cost for signed-out; early stop under optional | yes | confirmed | `two-factor-hold.ts`; one settings read per request under optional |
+| 10 | The last root isn't locked out for good | yes | can't check here | the terminal reset is task 7 |
+
+**Overall:** not met: row 6.
+
+### Re-check — row 6 (adversarial, scoped)
+
+Witnessed: 2026-10-16 16:40 EDT, by a fresh agent (adversarial). Commit: 782a468c plus the uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6 | Held on hard loads and client-side navigation; no page reads before the hold | yes | confirmed | `probe-softnav3.mjs`: 9 links clicked from `/account/security` → all stay there; hard loads held; `probe-softnav5.mjs`: someone not held navigates normally; all 23 pages start with `await holdPage();`; `hold.test.ts` → pass |
+
+**Overall:** met.
+
+### Re-check — row 9, the counts, the per-page hold (blind)
+
+Witnessed: 2026-10-16 16:34 EDT, by a fresh agent (blind). Commit: 782a468c plus the uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 9 | SPEC "Held until enrolled" matches the code (redirects; no `TwoFactorRequiredError`) | yes | confirmed | grep → none; SPEC paragraph matches `server-action.ts` and `hold.ts` |
+| 15 | The counts read enrolled as the hold does | yes | confirmed | `kysely-identity-repository.ts:187,208`; no test pins it (mutation stays green) |
+| 16 | Every page but `/account/security` calls `holdPage()` first; a guard test enforces it | yes | confirmed | grep; mutation (removed from `admin/page.tsx`) → guard fails |
+| 17 | The task's tests pass on SQLite and a server | yes | confirmed | 8 files, 74 passed; postgres 15 passed |
+
+**Overall:** met.
+
+### Re-check — after the owner's dev crash (blind)
+
+Witnessed: 2026-10-16 16:46 EDT, by a fresh agent (blind). Commit: 782a468c plus the uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 18 | The tab reads `TWO_FACTOR_CHOICES` from a plain module; a server file imports only the component from the client form | yes | confirmed | `AuthenticationTab.tsx:9-10`; `two-factor-choices.ts` has no `"use client"` |
+| 19 | Root sees the tab with "reviewers" set, in the built app | yes | confirmed | fresh build; `two-factor-hold.e2e.ts` → 2 passed |
+| 15 | A test fails without the `verified` condition | yes | confirmed | mutation → "counts enrolled as the hold reads it" fails |
+| 20 | The two-factor columns are `GeneratedDbBoolean`; typecheck clean | yes | confirmed | `schema.ts`; typecheck clean (comment named the wrong type: fixed after) |
+
+**Overall:** met.

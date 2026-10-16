@@ -46,7 +46,7 @@ Built on Better Auth's `twoFactor` plugin, checked against its docs (2026-10-15)
 - **Audit events** (007): `auth.two_factor_enabled`, `auth.two_factor_disabled`,
   `auth.backup_codes_regenerated`, `auth.two_factor_failed`
   (`{ method: "totp" | "backup_code" }`), `user.two_factor_reset` (actor root, target the user) and
-  `instance.two_factor_policy_changed { from, to }`.
+  `settings.two_factor_policy { from, to }` (as the usage policy's change is `settings.usage_policy`).
 
 **Out** (and where it goes instead):
 - **Two-factor for single sign-on.** An identity provider sign-in (106) is not asked for a Ronne
@@ -114,13 +114,16 @@ rule (006) is applied when the session is created: a disabled account gets the f
 **The policy** (root, Authentication › Two-factor sign-in): three radio choices as above and Save,
 audited with the old and new value. Choosing a stricter policy says how many people it covers and
 how many of them have not enrolled ("12 people must enrol at their next visit"). It never signs
-anyone out. The setting lives with the other instance settings (046) as `twoFactorPolicy`.
+anyone out. The setting lives with the other instance settings (046) as `twoFactorPolicy`, read on
+every request.
 
-**Held until enrolled.** The route guard (006's layout check) sends a covered, unenrolled person to
-`/account/security` for every page except that page, sign-out, the Documentation and the API's
-health check. The page opens with a notice naming the policy. Server actions other than enrolment
-and sign-out refuse them too (`TwoFactorRequiredError`), so a stale tab can't act. Bearer tokens
-(`/api/v1`) are not held: they were made behind a sign-in, and revoking is the incident tool (098).
+**Held until enrolled.** A covered, unenrolled person sees only `/account/security`: every page of
+the app frame sends them there first (each page checks before it reads anything, as client-side
+navigation doesn't render the shared layout again), with a notice naming the requirement; the
+enrolment page, signing out and the Documentation stay open. Every server action does the same
+before it runs (it redirects to `/account/security`), except the enrolment page's, signing in and
+signing out, so a stale tab can't act. Bearer tokens (`/api/v1`) are not held: they were made
+behind a sign-in, and revoking is the incident tool (098).
 
 **Who is covered by "Reviewers and root":** root, and anyone for whom `submissions.review` holds in
 some workspace (moderators and admins). Personal workspaces (114) don't count: everyone owns one.

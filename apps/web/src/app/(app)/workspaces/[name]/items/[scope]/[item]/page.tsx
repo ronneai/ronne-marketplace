@@ -1,3 +1,4 @@
+import { holdPage } from "../../../../../hold";
 import Item from "../../../../../items/[scope]/[name]/page";
 
 export const metadata = { title: "Item · Ronne AI Marketplace" };
@@ -15,6 +16,7 @@ const WorkspaceItem = async ({
   params: Params;
   searchParams: Parameters<typeof Item>[0]["searchParams"];
 }) => {
+  await holdPage();
   const { name, scope, item } = await params;
   return Item({
     params: Promise.resolve({ workspace: name, scope, name: item }),

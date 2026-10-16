@@ -13,6 +13,8 @@ export type TwoFactorStatus = { enabled: boolean; backupCodesLeft: number };
  */
 export interface TwoFactorStore {
   status(userId: string): Promise<TwoFactorStatus>;
+  /** Whether two-factor is on, without reading the backup codes: cheap enough for every request. */
+  enabled(userId: string): Promise<boolean>;
   /** Whether the password is the user's own (their credential account's). */
   checkPassword(userId: string, password: string): Promise<boolean>;
   /**

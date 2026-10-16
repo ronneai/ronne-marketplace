@@ -23,3 +23,10 @@ export class InvalidUsageMinimumError extends SettingsError {
     super("The minimum is a whole number from 0 to 10,000; 0 shows usage as soon as there's any.");
   }
 }
+
+export class InvalidTwoFactorPolicyError extends SettingsError {
+  override readonly name: string = "InvalidTwoFactorPolicyError";
+  constructor() {
+    super("Choose optional, reviewers and root, or everyone.");
+  }
+}

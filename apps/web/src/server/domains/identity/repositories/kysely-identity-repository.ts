@@ -171,6 +171,44 @@ export const kyselyIdentityRepository = (
       };
     },
 
+    async twoFactorCoverageRows() {
+      const rows = await db
+        .selectFrom("user")
+        .leftJoin("account", (join) =>
+          join
+            .onRef("account.user_id", "=", "user.id")
+            .on("account.provider_id", "=", CREDENTIAL_PROVIDER),
+        )
+        // Enrolled as the hold reads it (the store's `enabled`): the flag and a confirmed record.
+        .leftJoin("two_factor", "two_factor.user_id", "user.id")
+        .select((eb) => [
+          "user.role",
+          "user.two_factor_enabled",
+          "two_factor.verified",
+          "account.password",
+          // A moderator or admin of a shared workspace: not their own personal one (114).
+          eb
+            .exists(
+              eb
+                .selectFrom("workspace_members")
+                .innerJoin("workspaces", "workspaces.id", "workspace_members.workspace_id")
+                .select("workspace_members.user_id")
+                .whereRef("workspace_members.user_id", "=", "user.id")
+                .where("workspace_members.role", "in", ["moderator", "admin"])
+                .where("workspaces.owner_id", "is", null),
+            )
+            .as("reviewer"),
+        ])
+        .where("user.disabled_at", "is", null)
+        .execute();
+      return rows.map((row) => ({
+        root: row.role === "root",
+        reviewer: Boolean(row.reviewer),
+        hasPassword: Boolean(row.password),
+        enrolled: Boolean(row.two_factor_enabled) && Boolean(row.verified),
+      }));
+    },
+
     async findUser(userId) {
       const row = await db
         .selectFrom("user")

@@ -138,6 +138,16 @@ export const betterAuthTwoFactorStore = (
       return { enabled: true, backupCodesLeft: backupCodes.length };
     },
 
+    async enabled(userId) {
+      const row = await db
+        .selectFrom("user")
+        .leftJoin("two_factor", "two_factor.user_id", "user.id")
+        .select(["user.two_factor_enabled", "two_factor.verified"])
+        .where("user.id", "=", userId)
+        .executeTakeFirst();
+      return Boolean(row?.two_factor_enabled) && Boolean(row?.verified);
+    },
+
     async checkPassword(userId, password) {
       const ctx = await auth.$context;
       const account = (await ctx.internalAdapter.findAccounts(userId)).find(

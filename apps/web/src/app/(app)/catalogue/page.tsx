@@ -5,6 +5,7 @@ import { hereOf } from "@/features/current-workspace/current-workspace";
 import { Showing } from "@/features/current-workspace/Showing";
 import { browseCatalogue } from "@/server/domains/items/actions/catalogue";
 import { requestHeaders } from "@/server/http/request-headers";
+import { holdPage } from "../hold";
 import { workspaceView } from "../shell";
 
 export const metadata = { title: "Catalogue · Ronne AI Marketplace" };
@@ -15,6 +16,7 @@ export const metadata = { title: "Catalogue · Ronne AI Marketplace" };
  * (090), which also offers public workspaces the reader isn't in.
  */
 const Catalogue = async ({ searchParams }: { searchParams: Promise<SearchParams> }) => {
+  await holdPage();
   const params = await searchParams;
   const view = await workspaceView("/catalogue", params);
   const query = { ...parseCatalogueQuery(params), workspace: view.workspace ?? undefined };

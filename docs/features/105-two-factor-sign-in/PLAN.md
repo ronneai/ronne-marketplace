@@ -59,7 +59,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   sign-in, and two sign-ins), a backup code twice, a disabled user, an expired challenge, lockout,
   an undecryptable secret and `next` surviving; an off-site `next` is still refused.
 
-- [ ] **6. The policy and enforcement.** [risky] `twoFactorPolicy` in the instance settings; the
+- [x] **6. The policy and enforcement.** [risky] `twoFactorPolicy` in the instance settings; the
   Two-factor sign-in panel on the Authentication tab with the counts and audit; "who is covered"
   as one function in the identity domain; the route guard and server actions hold a covered,
   unenrolled person on `/account/security`.
@@ -260,3 +260,37 @@ goes into `SPEC.md` instead.
     witness's clock harness found them by jumping a boundary at every clock read. My own sweep of
     that harness at N = 100–130 was vacuous (the tests read its clock only 47 times before the
     freeze): sweep the reads a test actually makes (`COUNT_CALLS`).
+- **Task 6: the requirement and the hold** (Claude).
+  - `two_factor_policy` in `instance_settings` (`optional`, `reviewers`, `everyone`), set by root on
+    the Authentication tab and audited as `settings.two_factor_policy` (the spec said
+    `instance.two_factor_policy_changed`; settings changes are `settings.*` here).
+  - Who's covered is `coveredBy` (identity models): reviewers means root plus moderators and admins
+    of shared workspaces (`canInSomeShared(…, "submissions.review")`: a personal workspace doesn't
+    count); an account with no password never is. `mustEnrol` adds "and two-factor isn't on",
+    read with a cheap `enabled()` (the status reads and decrypts the backup codes).
+  - The hold lives in `server/http/two-factor-hold.ts` (it reads settings and identity; settings
+    already imports identity, so not in either domain). Every page of the app frame calls
+    `holdPage()` (`app/(app)/hold.ts`, cached per request) as its first statement, and a guard test
+    fails a page that doesn't; `serverAction` does the same before any action
+    except those marked `whileHeld` (the enrolment page's, sign-out, sign-in), so a stale tab can't
+    act. It stops early: no session cookie, no instance, or `optional`, and nothing more is read.
+    Bearer-token API routes aren't held (spec).
+  - The panel shows each requirement's counts (`twoFactorCoverage`, root only, one query with an
+    `exists` for the shared-workspace reviewer); Sign-in methods lists the requirement; the held
+    person's `/account/security` says why they're there.
+  - **From the witnesses.** The first version checked in `loadShell` (the layout): client-side
+    navigation doesn't render a shared layout again, so a click from `/account/security` opened
+    Home, Workspaces or Access tokens (the adversarial witness; server actions still refused).
+    Each page now checks first. The layout's check is gone: redirecting from the layout, right
+    after the sign-in action's redirect, rendered a blank page. `e2e/two-factor-hold.e2e.ts` (its
+    own user; the requirement written to the instance's database and put back, so root isn't
+    signed in) signs in, loads a page and clicks the frame's links while held. The coverage counts
+    now read "enrolled" as the hold does (the flag and a confirmed record), and SPEC "Held until
+    enrolled" says actions redirect (it said `TwoFactorRequiredError`).
+  - **After the witnesses (the owner's dev crash).** The Authentication tab read `TWO_FACTOR_CHOICES`
+    from the `"use client"` form, so under a requirement it crashed (`.find is not a function`):
+    the list is now in `two-factor-choices.ts` (`docs/knowledge/server-client-props.md`), and the
+    hold e2e opens the tab under a requirement as root (marked enrolled in the database). A db test
+    pins "enrolled" for the counts and the hold (the flag on with an unconfirmed record isn't).
+    The two-factor columns' schema type was `Generated<DbBoolean>`, which nests two `ColumnType`s
+    so Kysely couldn't type an update: now `GeneratedDbBoolean`.

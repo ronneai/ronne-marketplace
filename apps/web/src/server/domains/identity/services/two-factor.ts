@@ -3,6 +3,12 @@ import { type LoginRateLimiter, loginRateLimitKeys } from "../models/login-rate-
 import { PASSWORD_MAX_LENGTH } from "../models/password";
 import { requirePermission } from "../models/permissions";
 import { qrSvg } from "../models/qr";
+import {
+  coverageOf,
+  coveredBy,
+  type TwoFactorCoverage,
+  type TwoFactorRequirement,
+} from "../models/two-factor-coverage";
 import type { CurrentUser } from "../models/user";
 import type { IdentityRepository } from "../repositories/identity-repository";
 import type { SessionStore } from "../repositories/session-store";
@@ -391,4 +397,32 @@ export const completeTwoFactorSignIn = async (
     log.event("auth.signed_in", { userId: result.userId });
     return { ok: true, headers: result.headers };
   });
+};
+
+/**
+ * Whether the signed-in person must enrol before using the app (105): covered by root's
+ * requirement and without two-factor on. Read on every page and server action, so it stops early:
+ * nothing to read under `optional`, and no session means no one to hold.
+ */
+export const mustEnrol = async (
+  deps: TwoFactorDeps,
+  context: RequestContext,
+  requirement: TwoFactorRequirement,
+): Promise<boolean> => {
+  if (requirement === "optional") return false;
+  const signed = await signedIn(deps, context);
+  if (!signed) return false;
+  const { user } = signed;
+  if (!coveredBy(requirement, user, await hasPassword(deps, user))) return false;
+  return !(await deps.twoFactor.enabled(user.id));
+};
+
+/** How many people each requirement covers, and how many haven't enrolled: root only. */
+export const twoFactorCoverage = async (
+  deps: TwoFactorDeps,
+  context: RequestContext,
+): Promise<TwoFactorCoverage> => {
+  const signed = await signedIn(deps, context);
+  requirePermission(signed?.user ?? null, "settings.manage");
+  return coverageOf(await deps.repo.twoFactorCoverageRows());
 };

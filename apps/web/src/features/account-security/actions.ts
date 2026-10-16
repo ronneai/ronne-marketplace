@@ -38,6 +38,7 @@ export const startFromForm = serverAction(
       },
     };
   },
+  { whileHeld: true },
 );
 
 export const confirmFromForm = serverAction(
@@ -48,6 +49,7 @@ export const confirmFromForm = serverAction(
     });
     return result.ok ? { done: true } : { error: result.error };
   },
+  { whileHeld: true },
 );
 
 export const regenerateFromForm = serverAction(
@@ -57,6 +59,7 @@ export const regenerateFromForm = serverAction(
     });
     return result.ok ? { backupCodes: result.backupCodes } : { error: result.error };
   },
+  { whileHeld: true },
 );
 
 export const turnOffFromForm = serverAction(
@@ -67,4 +70,5 @@ export const turnOffFromForm = serverAction(
     });
     return result.ok ? { done: true } : { error: result.error };
   },
+  { whileHeld: true },
 );

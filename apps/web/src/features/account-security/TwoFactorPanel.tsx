@@ -17,7 +17,19 @@ export type SecurityStatus = { enabled: boolean; backupCodesLeft: number; hasPas
  * code (or the "it's off" notice) stay until the person moves on, and only then does the page
  * follow the server's status.
  */
-export const TwoFactorPanel = ({ status }: { status: SecurityStatus }) => {
+/** Who root's requirement covers, as the held person's notice says it. */
+const REQUIRED_FOR = {
+  reviewers: "root and the moderators and admins of shared workspaces",
+  everyone: "everyone",
+} as const;
+
+export const TwoFactorPanel = ({
+  status,
+  required = null,
+}: {
+  status: SecurityStatus;
+  required?: keyof typeof REQUIRED_FOR | null;
+}) => {
   const router = useRouter();
   const [phase, setPhase] = useState<"off" | "on">(status.enabled ? "on" : "off");
   // A fresh form after each finished step: the last one's state (codes shown) doesn't come back.
@@ -32,6 +44,12 @@ export const TwoFactorPanel = ({ status }: { status: SecurityStatus }) => {
   const enabled = status.enabled;
   return (
     <div className="grid gap-4">
+      {required && phase === "off" ? (
+        <Notice kind="warn" title="Set up two-factor sign-in to continue">
+          Your administrator requires it for {REQUIRED_FOR[required]}. The rest of Ronne opens once
+          it&apos;s on.
+        </Notice>
+      ) : null}
       <Panel padding="lg">
         <section aria-labelledby="two-factor-title" className="grid gap-4">
           <div className="flex flex-wrap items-center gap-2">

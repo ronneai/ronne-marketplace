@@ -27,7 +27,11 @@ vi.mock("next/headers", () => ({
     },
   }),
 }));
-vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));
+const request = vi.hoisted(() => ({ path: "/" }));
+vi.mock("@/server/http/request-headers", () => ({
+  requestHeaders: async () => new Headers({ "x-ronne-path": request.path }),
+}));
+
 vi.mock("next/navigation", () => ({
   redirect: (to: string) => {
     throw new Error(`REDIRECT ${to}`);
@@ -52,6 +56,7 @@ beforeEach(() => {
   workspaces.myWorkspacesAs.mockResolvedValue([]);
   cookie.value = undefined;
   cookie.workspace = undefined;
+  request.path = "/";
 });
 
 // The nav counts (014, 094): each counted only for someone who can act on it.

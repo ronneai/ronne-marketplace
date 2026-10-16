@@ -1,4 +1,5 @@
 import { clientIp } from "../models/client-ip";
+import type { TwoFactorRequirement } from "../models/two-factor-coverage";
 import { type AppAuth, getAppAuth } from "../repositories/auth-instance";
 import { betterAuthSessionStore } from "../repositories/better-auth-session-store";
 import { betterAuthTwoFactorStore } from "../repositories/better-auth-two-factor-store";
@@ -64,3 +65,14 @@ export const completeTwoFactorSignIn = (
   input: { code: string; method: "totp" | "backup_code" },
   app: AppAuth = getAppAuth(),
 ) => service.completeTwoFactorSignIn(deps(app), context(headers, app), input);
+
+/** Whether the signed-in person must enrol before using the app (105), under root's requirement. */
+export const mustEnrol = (
+  headers: Headers,
+  requirement: TwoFactorRequirement,
+  app: AppAuth = getAppAuth(),
+) => service.mustEnrol(deps(app), context(headers, app), requirement);
+
+/** The coverage counts for root's Two-factor sign-in panel. */
+export const twoFactorCoverage = (headers: Headers, app: AppAuth = getAppAuth()) =>
+  service.twoFactorCoverage(deps(app), context(headers, app));

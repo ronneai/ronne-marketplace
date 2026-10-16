@@ -1,5 +1,6 @@
 import type { KeysetPage, SortDir } from "../../../db/keyset";
 import type { NewAuditEvent } from "../../audit/models/audit-event";
+import type { CoverageRow } from "../models/two-factor-coverage";
 import type { CurrentUser, Role, RootAccount, UserSummary, WorkspaceRole } from "../models/user";
 
 export type NewUserWithPassword = {
@@ -52,6 +53,11 @@ export interface IdentityRepository {
     disabledAt: Date | null;
     passwordHash: string | null;
   } | null>;
+  /**
+   * Every active account, as the two-factor coverage counts need it (105): root, a reviewer in a
+   * shared workspace (moderator or admin), has a password, has two-factor on.
+   */
+  twoFactorCoverageRows(): Promise<CoverageRow[]>;
   /** Any user, disabled or not. */
   findUser(userId: string): Promise<UserSummary | null>;
   /** Any user by their (normalised) email, disabled or not. */

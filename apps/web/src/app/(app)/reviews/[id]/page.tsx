@@ -30,6 +30,7 @@ import type { RevisionFile } from "@/server/domains/submissions/models/review";
 import { canTransition } from "@/server/domains/submissions/models/status";
 import { itemNameOf } from "@/server/domains/submissions/models/submission";
 import { requestHeaders } from "@/server/http/request-headers";
+import { holdPage } from "../../hold";
 
 export const metadata = { title: "Review · Ronne AI Marketplace" };
 
@@ -59,6 +60,7 @@ const Review = async ({
   params: Promise<{ id: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) => {
+  await holdPage();
   const request = await requestHeaders();
   if (!canInSomeShared(await getCurrentUser(request), "submissions.review")) notFound();
   const { id } = await params;

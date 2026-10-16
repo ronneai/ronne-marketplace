@@ -17,6 +17,7 @@ import {
   pageWorkspaces,
 } from "@/server/domains/workspaces/actions/workspaces";
 import { requestHeaders } from "@/server/http/request-headers";
+import { holdPage } from "../hold";
 
 export const metadata = { title: "Workspaces · Ronne AI Marketplace" };
 
@@ -28,6 +29,7 @@ export const metadata = { title: "Workspaces · Ronne AI Marketplace" };
  * layout requires a session.
  */
 const Workspaces = async ({ searchParams }: { searchParams: Promise<SearchParams> }) => {
+  await holdPage();
   const request = await requestHeaders();
   const me = await getCurrentUser(request);
   if (can(me, "workspaces.manage")) {

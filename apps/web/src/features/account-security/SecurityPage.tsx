@@ -9,13 +9,20 @@ export type { SecurityStatus } from "./TwoFactorPanel";
  * how many backup codes are left, new ones, and turning it off. No password (company sign-in
  * only): the provider protects the sign-in.
  */
-export const SecurityPage = ({ status }: { status: SecurityStatus }) => (
+export const SecurityPage = ({
+  status,
+  required = null,
+}: {
+  status: SecurityStatus;
+  /** Root's requirement holding this person here until they set it up (105), or null. */
+  required?: "reviewers" | "everyone" | null;
+}) => (
   <>
     <PageHeader
       title="Account"
       description="Your password and how you sign in. Each change is recorded in the audit log."
     />
     <AccountTabs current="security" />
-    <TwoFactorPanel status={status} />
+    <TwoFactorPanel status={status} required={required} />
   </>
 );

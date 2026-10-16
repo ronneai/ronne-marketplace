@@ -34,6 +34,7 @@ export const signInFromForm = serverAction(
     if (result.twoFactor) redirect(twoFactorPath(next));
     redirect(next);
   },
+  { whileHeld: true },
 );
 
 /** The second step's form (105): a code from the app, or a backup code. Works without JavaScript. */
@@ -49,4 +50,5 @@ export const twoFactorFromForm = serverAction(
       redirect(signInAgain(next, result.error));
     return { error: result.error };
   },
+  { whileHeld: true },
 );

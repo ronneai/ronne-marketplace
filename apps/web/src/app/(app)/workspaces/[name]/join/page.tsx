@@ -1,6 +1,7 @@
 import { JoinPage } from "@/features/workspaces/JoinPage";
 import { joinTarget } from "@/server/domains/workspaces/actions/workspaces";
 import { requestHeaders } from "@/server/http/request-headers";
+import { holdPage } from "../../../hold";
 
 export const metadata = { title: "Join a workspace · Ronne AI Marketplace" };
 
@@ -18,6 +19,7 @@ const decoded = (value: string) => {
  * looks the same as a name no workspace has, so the link confirms nothing.
  */
 const JoinWorkspace = async ({ params }: { params: Promise<{ name: string }> }) => {
+  await holdPage();
   const { name } = await params;
   const target = await joinTarget(await requestHeaders(), decoded(name));
   return <JoinPage target={target} />;

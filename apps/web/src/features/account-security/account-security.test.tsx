@@ -117,6 +117,15 @@ describe("/account/security", () => {
     );
   });
 
+  it("says why someone was sent here when root requires it of them (105)", () => {
+    const held = renderToStaticMarkup(<SecurityPage status={off} required="reviewers" />);
+    expect(held).toContain("Set up two-factor sign-in to continue");
+    expect(held).toContain("root and the moderators and admins of shared workspaces");
+    expect(renderToStaticMarkup(<SecurityPage status={off} />)).not.toContain(
+      "Set up two-factor sign-in to continue",
+    );
+  });
+
   it("company sign-in only: nothing to set up", () => {
     const html = renderToStaticMarkup(<SecurityPage status={{ ...off, hasPassword: false }} />);
     expect(html).toContain("Your company&#x27;s sign-in protects your account");
@@ -129,7 +138,7 @@ describe("/account/security", () => {
     expect(security).toContain('aria-label="Account"');
     expect(security).toMatch(/aria-current="page"[^>]*>Two-factor sign-in</);
     expect(security).toContain('href="/account/password"');
-    const password = renderToStaticMarkup(ChangePasswordPage());
+    const password = renderToStaticMarkup(await ChangePasswordPage());
     expect(password).toMatch(/aria-current="page"[^>]*>Password</);
     expect(password).toContain('href="/account/security"');
     expect(password).toContain(">Change password</h2>");

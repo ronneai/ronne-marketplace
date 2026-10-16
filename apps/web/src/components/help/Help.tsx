@@ -302,6 +302,12 @@ export const HELP = {
       "Today with their email and password. Root can always sign in with a password, so a broken identity provider can't lock everyone out.",
     href: docsHref("admin", "settings"),
   },
+  "two-factor-policy": {
+    question: "Who must enrol?",
+    answer:
+      "Under Reviewers and root: root, and the moderators and admins of shared workspaces. Under Everyone: every account with a password. Someone it covers who hasn't set two-factor up is sent to their Account page at their next visit, and can't use anything else until they have. Nobody is signed out. Accounts that sign in through a company identity provider aren't covered.",
+    href: docsHref("admin", "settings"),
+  },
   "usage-policy": {
     question: "What does rmk report?",
     answer:

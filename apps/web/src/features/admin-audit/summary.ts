@@ -83,6 +83,13 @@ const expiry = (m: Meta): string => {
   return at ? `expires ${at.slice(0, 10)}` : "no expiry";
 };
 
+/** Who must use two-factor sign-in (105), as the audit log says it. */
+const TWO_FACTOR_POLICIES_SAID: Record<string, string> = {
+  optional: "nobody (optional)",
+  reviewers: "reviewers and root",
+  everyone: "everyone",
+};
+
 /** Why a second step was refused (105), as the audit log says it. */
 const TWO_FACTOR_REASONS: Record<string, string> = {
   wrong_code: "a wrong code",
@@ -303,6 +310,11 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     m.from ? ` from ${text(m.from)} to ${text(m.to)}` : ` to ${text(m.to)}`,
   ],
   "dist_tag.removed": (m) => ["Removed ", { code: text(m.tag) }, " from ", item(m)],
+  "settings.two_factor_policy": (m) => [
+    `Changed who must use two-factor sign-in from ${TWO_FACTOR_POLICIES_SAID[text(m.from)] ?? text(m.from)} to ${
+      TWO_FACTOR_POLICIES_SAID[text(m.to)] ?? text(m.to)
+    }`,
+  ],
   "settings.usage_policy": (m) => [
     `Changed the usage policy from ${POLICIES[text(m.from)] ?? text(m.from)} to ${
       POLICIES[text(m.to)] ?? text(m.to)

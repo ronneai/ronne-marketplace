@@ -1,6 +1,7 @@
 import { ItemPageView } from "@/features/item-page/ItemPageView";
 import { type ItemParams, loadItemPage, loadUsageByVersion } from "@/features/item-page/load";
 import { VersionsTab } from "@/features/versions/VersionsTab";
+import { holdPage } from "../../../../hold";
 
 export const metadata = { title: "Versions · Ronne AI Marketplace" };
 
@@ -9,6 +10,7 @@ export const metadata = { title: "Versions · Ronne AI Marketplace" };
  * root manage tags, deprecations and yanks.
  */
 const Versions = async ({ params }: { params: ItemParams }) => {
+  await holdPage();
   const page = await loadItemPage(params, undefined, "/versions");
   return (
     <ItemPageView page={page} tab="versions">

@@ -21,6 +21,7 @@ import { latestFeedback } from "@/server/domains/submissions/models/review";
 import { canTransition, isEditable } from "@/server/domains/submissions/models/status";
 import { type Draft, itemNameOf } from "@/server/domains/submissions/models/submission";
 import { requestHeaders } from "@/server/http/request-headers";
+import { holdPage } from "../../hold";
 
 export const metadata = { title: "Draft · Ronne AI Marketplace" };
 
@@ -98,6 +99,7 @@ const toEditorDraft = (
  * draft; moderators and root also see submitted ones. Anyone else gets a 404.
  */
 const DraftPage = async ({ params }: { params: Promise<{ id: string }> }) => {
+  await holdPage();
   const { id } = await params;
   const request = await requestHeaders();
   let draft: Draft & { mine: boolean; member: boolean };

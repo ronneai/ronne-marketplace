@@ -15,6 +15,7 @@ import { canInSomeShared } from "@/server/domains/identity/models/permissions";
 import { listQueue } from "@/server/domains/submissions/actions/reviews";
 import { itemNameOf } from "@/server/domains/submissions/models/submission";
 import { requestHeaders } from "@/server/http/request-headers";
+import { holdPage } from "../hold";
 import { workspaceView } from "../shell";
 
 export const metadata = { title: "Reviews · Ronne AI Marketplace" };
@@ -25,6 +26,7 @@ const Reviews = async ({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) => {
+  await holdPage();
   const request = await requestHeaders();
   const user = await getCurrentUser(request);
   // Their own personal workspace (114) isn't reviewed: it makes nobody a reviewer.
