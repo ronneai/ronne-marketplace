@@ -121,6 +121,15 @@ test("root reads the audit log: setup, its own sign-in, and a settings change", 
   await page.reload();
   await expect(minimum).toHaveValue("5");
   await saveMinimum("0");
+  // The Authentication tab (122): how people sign in, read-only for now.
+  await page
+    .getByRole("navigation", { name: "Settings" })
+    .getByRole("link", { name: "Authentication" })
+    .click();
+  await expect(page).toHaveURL(/\/admin\/settings\?tab=authentication$/);
+  const methods = page.getByRole("region", { name: "Sign-in methods" });
+  await expect(methods).toBeVisible();
+  await expect(methods.getByRole("row", { name: /Email and password\s+On/ })).toBeVisible();
 
   // Local time (049): the audit log and an item page in the reader's zone, UTC on hover.
   await main.getByRole("link", { name: "Audit log" }).click();
@@ -145,4 +154,5 @@ test("anyone but root gets a 404", async ({ page }) => {
   const response = await page.goto("/admin/audit");
   expect(response?.status()).toBe(404);
   expect((await page.goto("/admin/settings"))?.status()).toBe(404);
+  expect((await page.goto("/admin/settings?tab=authentication"))?.status()).toBe(404);
 });

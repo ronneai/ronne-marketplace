@@ -296,6 +296,12 @@ export const HELP = {
       "Item pages show usage as soon as any install or run is reported (0). With a minimum, an item shows its usage only from that many installs plus runs in 30 days, so a handful of events doesn't look like a trend and one team's habits don't show.",
     href: docsHref("usage", "reading"),
   },
+  "auth-methods": {
+    question: "How do people sign in?",
+    answer:
+      "Today with their email and password. Root can always sign in with a password, so a broken identity provider can't lock everyone out.",
+    href: docsHref("admin", "settings"),
+  },
   "usage-policy": {
     question: "What does rmk report?",
     answer:

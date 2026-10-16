@@ -25,7 +25,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* tests cover the default, an unknown value, each tab's content, the feed query being
   skipped on other tabs, a save staying on its tab, and a non-root 404 on every tab.
 
-- [ ] **4. The Authentication tab's frame and Sign-in methods panel.** The ordered panel list in
+- [x] **4. The Authentication tab's frame and Sign-in methods panel.** The ordered panel list in
   `features/admin-settings/authentication/`, and the read-only Sign-in methods panel with its
   `auth-methods` helper.
   *Done when:* a component test shows the panel and the helper, and the e2e test (root opens
@@ -52,3 +52,7 @@ goes into `SPEC.md` instead.
   (Usage for anything unknown); the page reads only the shown tab's data. The panels moved to
   `usage/` and `feeds/`; `actions.ts` and `types.ts` stay shared. No browser test yet saves on a
   tab (task 5), and the phone sweep visits only the bare address (task 5 adds the others).
+- **Task 4: the panels** (Claude). `AuthenticationTab()` is called by the page, not rendered as
+  `<AuthenticationTab />`: it's async (a later panel reads its own data) and the page's tests render
+  with `renderToStaticMarkup`, which can't wait for an async component. Its e2e check lives in
+  root's test in `audit.e2e.ts` (the sign-in limit).

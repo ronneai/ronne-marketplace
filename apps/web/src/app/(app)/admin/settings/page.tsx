@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import type { SearchParams } from "@/components/ui/data-table/list-query";
 import { PageHeader, Panel } from "@/components/ui/Panel";
 import { TabLinks } from "@/components/ui/TabLinks";
+import { AuthenticationTab } from "@/features/admin-settings/authentication/AuthenticationTab";
 import { PluginFeedsPanel } from "@/features/admin-settings/feeds/PluginFeedsPanel";
 import { SETTINGS_TABS, settingsTab } from "@/features/admin-settings/tabs";
 import { UsageMinimumForm } from "@/features/admin-settings/usage/UsageMinimumForm";
@@ -30,7 +31,7 @@ const AdminSettings = async ({ searchParams }: { searchParams: Promise<SearchPar
           <PluginFeedsPanel rows={await pluginFeedStats(request)} />
         </Panel>
       );
-    if (tab === "authentication") return null;
+    if (tab === "authentication") return await AuthenticationTab();
     const settings = await instanceSettings(request);
     return (
       <>

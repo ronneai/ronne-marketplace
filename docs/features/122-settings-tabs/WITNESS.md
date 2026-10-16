@@ -51,3 +51,22 @@ Witnessed: 2026-10-15 22:55 EDT, by a fresh agent (blind). Commit: 14dc485a plus
 | 10 | The real page builds and renders (e2e, the phone sweep of `/admin/settings`) | no | confirmed | `pnpm test:e2e` → 144 passed (3.5m); the sweep visits only the bare address (the tabs' addresses are task 5) |
 
 **Overall:** met.
+
+## Task 4 — The Authentication tab's frame and Sign-in methods panel
+
+Witnessed: 2026-10-15 23:08 EDT, by a fresh agent (blind). Commit: 86ef5042 plus the working-tree diff (including the untracked `authentication/`). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The tab renders an ordered list of panels from `features/admin-settings/authentication/`; a later feature adds a panel, not a page | no | confirmed | `AuthenticationTab.tsx:9-11` `PANELS` (`{id, render}`), `:17-25` renders them in order, each in a `Panel`; `page.tsx` `return await AuthenticationTab();` |
+| 2 | Each panel is a server component with its own heading | no | confirmed | `SignInMethodsPanel.tsx` has no `"use client"`; `<section aria-labelledby="sign-in-methods-title">` with its `<h2>` |
+| 3 | A Method / State / Note table: Email and password, On, the spec's note | no | confirmed | `SignInMethodsPanel.tsx:9-15`, `:35-47`; the note matches SPEC.md word for word; mutating `on` to false in a copy failed a test |
+| 4 | Read-only: nothing can be changed | no | confirmed | no form, input, select or textarea; the test checks that and that the only button is the helper's |
+| 5 | The heading has the `auth-methods` helper, linking to `admin#settings` | no | confirmed | `SignInMethodsPanel.tsx:29`; `Help.tsx` `docsHref("admin", "settings")`; `topics.ts:153`; removing `<Help>` in a copy failed 2 tests |
+| 6 | The helper states how the app behaves now, not plans | no | confirmed | "Today with their email and password. Root can always sign in with a password, so a broken identity provider can't lock everyone out." (the spec's wording; no promise) |
+| 7 | A component test shows the panel and the helper | no | confirmed | `vitest run src/features/admin-settings src/components/help` → 21 passed; mutations (helper removed, tab `null`, rows dropped) each failed |
+| 8 | The e2e test (root opens `?tab=authentication`) sees the panel | no | confirmed | `pnpm test:e2e` → 144 passed (3.8m); `audit.e2e.ts:26` clicks Authentication, expects `?tab=authentication$`, finds the region and the row; no new root sign-in |
+| 9 | `?tab=authentication` is a 404 for anyone but root | no | confirmed | `audit.e2e.ts:150` passed with the new 404 assertion |
+| 10 | Lint and types pass | no | confirmed | `biome check` → 14 files, no fixes; `tsc --noEmit -p apps/web` → clean |
+
+**Overall:** met.

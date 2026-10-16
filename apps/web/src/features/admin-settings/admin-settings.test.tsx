@@ -29,6 +29,7 @@ vi.mock("next/navigation", () => ({
 const actions = await import("./actions");
 const { UsagePolicyForm } = await import("./usage/UsagePolicyForm");
 const { PluginFeedsPanel } = await import("./feeds/PluginFeedsPanel");
+const { SignInMethodsPanel } = await import("./authentication/SignInMethodsPanel");
 const { default: AdminSettingsPage } = await import("@/app/(app)/admin/settings/page");
 
 /** The page as Next.js renders it, for `?tab=` (none: the bare address). */
@@ -118,10 +119,11 @@ describe("Admin › Settings' tabs (122)", () => {
     expect(settings.instanceSettings).not.toHaveBeenCalled();
   });
 
-  it("shows the Authentication tab without the usage or feeds panels", async () => {
+  it("shows the Authentication tab, with Sign-in methods and without the other panels", async () => {
     root();
     const html = renderToStaticMarkup(await AdminSettings("authentication"));
     expect(current(html)).toBe("Authentication");
+    expect(html).toContain(">Sign-in methods</h2>");
     expect(html).not.toContain("Usage reporting");
     expect(html).not.toContain(">Plugin feeds</h2>");
     expect(feeds.pluginFeedStats).not.toHaveBeenCalled();
@@ -146,6 +148,33 @@ describe("Admin › Settings' tabs (122)", () => {
     });
     expect(await actions.saveUsageMinimum({}, minimum)).toEqual({ done: "Usage minimum saved." });
     expect(cache.revalidatePath.mock.calls).toEqual([["/admin/settings"], ["/admin/settings"]]);
+  });
+});
+
+describe("Admin › Settings › Authentication › Sign-in methods (122)", () => {
+  it("lists email and password as on, with root's note and the helper", () => {
+    const html = renderToStaticMarkup(<SignInMethodsPanel />);
+    expect(html).toContain('aria-labelledby="sign-in-methods-title"');
+    expect(html).toContain(">Sign-in methods</h2>");
+    expect(html).toMatch(/Email and password<\/td><td[^>]*><span[^>]*>On<\/span>/);
+    expect(html).toContain("Root can always sign in with a password");
+    expect(html).toContain("How do people sign in?");
+    expect(html).toContain('href="https://www.ronne.ai/marketplace/docs/admin#settings"');
+  });
+
+  it("shows a method that is off as Off", () => {
+    const html = renderToStaticMarkup(
+      <SignInMethodsPanel methods={[{ name: "Passkeys", on: false, note: "Not set up." }]} />,
+    );
+    expect(html).toMatch(/Passkeys<\/td><td[^>]*><span[^>]*>Off<\/span>/);
+    expect(html).not.toContain("Email and password");
+  });
+
+  it("has nothing to change: no form or input, and only the helper's button", () => {
+    const html = renderToStaticMarkup(<SignInMethodsPanel />);
+    expect(html).not.toMatch(/<(form|input|select|textarea)\b/);
+    expect(html.match(/<button\b/g)).toHaveLength(1);
+    expect(html).toMatch(/<button[^>]*aria-haspopup="dialog"/);
   });
 });
 
