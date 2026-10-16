@@ -301,15 +301,17 @@ audit log stays whole: an erased person becomes a pseudonym, never a gap. Build 
 
 SSO, MFA and SCIM (owner, 2026-10-06; design in [MVP §14.3](../MVP/MVP.md#143-sso--planned-as-m16)).
 Through Better Auth's plugins, checked against its current docs before each spec. Email and
-password stay, at least for root, so a broken identity provider can't lock everyone out. Build
-order: 105 → 106 → 107 → 108.
+password stay, at least for root, so a broken identity provider can't lock everyone out. Root
+manages it all on a new Authentication tab in Admin › Settings, with setup instructions for each
+provider (owner, 2026-10-15). Build order: 122 → 105 → 106 → 107 → 108.
 
 | ID | Feature | Depends on | Status |
 |---|---|---|---|
-| 105 | Two-factor sign-in: TOTP and backup codes on Account, root can require it for everyone or for roots and moderators; `reset-root-password` also resets it; audited | 006, 008, 059 | planned |
-| 106 | OIDC sign-in: root sets up identity providers in Admin › Settings; accounts linked by verified email, or created on first sign-in for chosen domains with the role `user`; IdP groups mapped to moderator and workspace roles | 006, 008, 091, 092, 105 | planned |
-| 107 | `rmk login` for SSO users: the OAuth device flow (a code and a URL, approved in the browser, a personal access token back); the MCP setup uses it too | 106, 009, 022, 027 | planned |
-| 108 | SCIM provisioning: `/api/v1/scim/v2` Users and Groups, a token per identity provider; deprovisioning disables the account and revokes its tokens and sessions; groups set workspace membership | 106, 092, 103 | planned |
+| [122](./122-settings-tabs/SPEC.md) | Settings in tabs (`?tab=`): Usage, Plugin feeds and a new Authentication tab with its Sign-in methods panel; a shared link-tab strip the workspace page uses too | 046, 079, 006 | specified |
+| [105](./105-two-factor-sign-in/SPEC.md) | Two-factor sign-in: TOTP and backup codes on Account, root can require it for everyone or for roots and moderators; `reset-root-password` also resets it; audited | 122, 006, 008, 059 | specified |
+| [106](./106-oidc-sign-in/SPEC.md) | Identity providers and OIDC sign-in: an abstract provider type (OpenID Connect first) with presets and setup instructions, set up by root on the Authentication tab; accounts linked by verified email, or created on first sign-in for chosen domains with the role `user`; IdP groups mapped to workspace roles; a password policy and `rmk-server disable-sso` so nobody is locked out | 122, 006, 008, 091, 092, 105, 114 | specified |
+| [107](./107-rmk-login-device-flow/SPEC.md) | `rmk login --web` for SSO and two-factor users: the OAuth device flow (a code and a URL, approved in the browser, a personal access token back); the MCP setup uses it too | 106, 009, 022, 027 | specified |
+| [108](./108-scim-provisioning/SPEC.md) | SCIM provisioning: `/api/v1/scim/v2` Users and Groups, a token per identity provider; deprovisioning disables the account and revokes its tokens and sessions; groups set workspace membership | 106, 092, 103 | specified |
 
 ### M17 — More than one replica
 
