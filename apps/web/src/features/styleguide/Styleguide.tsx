@@ -8,6 +8,7 @@ import {
   Notice,
   Panel,
   PasswordInput,
+  TabLinks,
   Table,
   Tabs,
   Td,
@@ -206,6 +207,15 @@ export const ThemeSample = ({ theme }: { theme: "light" | "dark" }) => {
           tabs={[
             { label: "Password", content: <p className="text-sm text-muted">First tab</p> },
             { label: "CLI", content: <p className="text-sm text-muted">Second tab</p> },
+          ]}
+        />
+        <TabLinks
+          label="Link tabs"
+          current="usage"
+          tabs={[
+            { id: "usage", label: "Usage", href: "#usage" },
+            { id: "feeds", label: "Plugin feeds", href: "#feeds" },
+            { id: "authentication", label: "Authentication", href: "#authentication" },
           ]}
         />
         <CopyableCommand command="rmk login --token rmk_…" />

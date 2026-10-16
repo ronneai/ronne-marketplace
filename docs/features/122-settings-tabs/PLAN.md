@@ -9,13 +9,11 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 ## Tasks
 
-- [ ] **1. `TabLinks` in `components/ui`.** A strip of links with `role="tablist"`/`tab`,
-  `aria-selected`, the segmented look and the equal-columns / `ScrollStrip` rule of `Tabs`; takes
-  `{ id, label, href }[]` and the current id. Read `Tabs.tsx` and the hand-rolled strip in
-  `app/(app)/workspaces/[name]/page.tsx` first, and share their styles instead of copying them.
-  Add it to the styleguide.
-  *Done when:* component tests cover selection, the equal-columns and scrolling cases and keyboard
-  focus; the styleguide test passes.
+- [x] **1. `TabLinks` in `components/ui`.** The workspace page's strip, extracted: a
+  labelled `<nav>` of links in a `ScrollStrip` with `aria-current="page"` on the current one; takes
+  `{ id, label, href }[]` and the current id. Add it to the styleguide.
+  *Done when:* component tests cover the links, the single current tab, an unknown current id and
+  the coarse-pointer class; the styleguide test passes.
 
 - [ ] **2. The workspace page uses it.** Replace the inline strip with `TabLinks`; no change in
   behaviour.
