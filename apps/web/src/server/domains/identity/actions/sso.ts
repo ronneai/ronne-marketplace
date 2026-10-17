@@ -16,6 +16,7 @@ import { decryptSecret } from "../repositories/provider-secrets";
 import { PROVIDER_TYPES } from "../repositories/provider-type-registry";
 import type { SsoSignInState } from "../repositories/sso-repository";
 import { signInWithProvider } from "../services/sso-sign-in";
+import { finishTestSignIn } from "./test-sign-in";
 
 /**
  * Signing in with an identity provider (feature 106): the start (a server action, from the
@@ -238,21 +239,35 @@ export const completeSsoSignIn = async (
   const taken = await sso.takeState(hashState(state), now);
   if (!taken || taken.state.provider !== providerId) return fail("expired");
   next = safeNextPath(taken.state.next);
-  // A *Test sign-in* changes nothing and opens no session (task 6 finishes it elsewhere).
-  if (taken.state.test) return fail("expired");
 
   const stored = await providers.find(providerId);
   if (!stored || (!stored.provider.enabled && !taken.state.test)) return fail("unavailable");
   const type = (options.types ?? PROVIDER_TYPES).get(stored.provider.type);
 
-  let identity: Awaited<ReturnType<typeof type.complete>>;
-  try {
-    identity = await type.complete(withSecret(stored.provider, stored.secretEnc, secret), {
+  const run = () =>
+    type.complete(withSecret(stored.provider, stored.secretEnc, secret), {
       url,
       redirectUri: redirectUriFor(baseURL, providerId),
       keep: taken.state.keep,
       startedAt: taken.startedAt,
     });
+
+  // A *Test sign-in* (106): shows what came back, changes nothing, opens no session.
+  if (taken.state.test) {
+    const location = await finishTestSignIn({
+      app,
+      headers,
+      providerId,
+      test: taken.state.test,
+      run,
+      next,
+    });
+    return redirect(`${baseURL}${location}`);
+  }
+
+  let identity: Awaited<ReturnType<typeof type.complete>>;
+  try {
+    identity = await run();
   } catch (error) {
     if (error instanceof ProviderSecretUnreadableError) {
       await providers.recordFailure(providerId, "secret_unreadable", now);

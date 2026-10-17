@@ -412,3 +412,54 @@ Witnessed: 2026-10-16 23:26 EDT, by a fresh agent (blind). Commit: 6c3948d3 + wo
 | 15 | Task tests and workspaces members tests pass on all four databases | no | confirmed | 25 passed on each from the scratch copy; members 13 passed each from the repo |
 
 **Overall:** met. Every row of task 5's blind and adversarial passes is now confirmed.
+
+## Task 6 — The panel and the form
+
+Witnessed: 2026-10-16 23:58 EDT, by a fresh agent (blind). Commit: 16f7ed0e + uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0. Mutations only in its scratch copy.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The task's component and db tests pass | no | confirmed | 3 files, 47 passed |
+| 2 | The db tests pass on PostgreSQL, MySQL and MariaDB | no | confirmed | 11 passed on each |
+| 3 | The panel: name, type · preset, issuer, domains, status badge, last sign-in; empty state with Add provider; root only | no | confirmed | panel tests; the 4 badges; `page.tsx` notFound; `providerPage`/`testConnection` reject a moderator |
+| 4 | Add provider opens on the 7 presets; choosing one fills the name, issuer pieces, scopes, groups claim | no | confirmed | test "opens on the presets as cards"; the fill only covered by the phone e2e |
+| 5 | The redirect URI with Copy, first in the steps beside the form | no | partly | Edit: yes. Add: the Copy holds `…/api/auth/sso/callback/<id>` literally, not the id typed |
+| 6 | The client secret is write-only | no | confirmed | test; `IdentityProvider` has `hasSecret` only |
+| 7 | The id rule; it can't change | no | confirmed | `pattern`; `RESERVED_IDS`; no id input on edit |
+| 8 | Domains, link by email, groups claim, group rows, deleted-workspace warning | no | confirmed | test; blank rows dropped |
+| 9 | A stale form says it is stale | no | confirmed | test; M2 → it fails |
+| 10 | Two roots edit at once: the first save wins | no | confirmed | `Promise.allSettled` probe → 1 fulfilled on SQLite, PostgreSQL, MySQL |
+| 11 | Test connection answers in words; a failure marks *Failing* | no | confirmed | db test on all four |
+| 12 | Test sign-in: a plain POST form in a new tab; root only; Origin checked | no | confirmed | component test; db tests (403; non-root 303 `&test=unavailable`); M4 → fails |
+| 13 | Test sign-in changes nothing | no | confirmed | db test; probe with an existing user and a mapped group: snapshots equal on SQLite, PostgreSQL, MySQL |
+| 14 | A test counts only for its root, in their browser, for its version | no | confirmed | db tests; M3, M5 → fail |
+| 15 | Turn on needs the test (UI and server), cleared by a retest edit | no | confirmed | test; M1 → fails; probe |
+| 16 | The phone sweep passes | no | can't check here | `next build` in the scratch copy fails on symlinked `node_modules`; not built in the repository |
+| 17 | Component tests cover each state | no | partly | not covered: the form after a preset is chosen, Test connection's result notice, a failed Test sign-in, the `?test=` notices, the Delete confirm |
+| 18 | The new HTTP routes are the callback and Test sign-in's start; the allowlist unchanged | no | confirmed | `find src/app/api/auth -name route.ts`; `better-auth.ts:32`; 42 passed |
+
+**Overall:** not met: the Add form's Copy gives a `<id>` placeholder, several states lack component tests, and the phone sweep couldn't be run here.
+
+### Re-check 1 (blind: rows 4, 5, 16, 17)
+
+Witnessed: 2026-10-17 00:20 EDT, by a fresh agent (blind). Commit: 16f7ed0e + uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4 | Choosing a preset card fills the form: the id starts as the preset's, a fixed issuer is filled in | no | not met | only on a fresh page load: a card click (client navigation) keeps the cards view's state (`useState` already ran with no preset). Playwright probe: click "Google Workspace" → id `""`, issuer `""`, Copy `…/callback/<id>`; after a reload, `google` and the Google issuer |
+| 5 | The redirect URI follows the id as it's typed (`<id>` only while empty) | no | confirmed | probe: `abc-1` → `…/callback/abc-1`; tests pass; M6 → fails |
+| 16 | The phone sweep passes | no | confirmed | `pnpm test:e2e -- --project=phone --project=phone-webkit --project=tablet identity-providers mobile-sweep` from the repository → 153 passed (3.9m), exit 0 |
+| 17 | Component tests cover each state | no | partly | 22 passed; M7, M8 → fail. Not covered: reaching the chosen-preset form by clicking a card (row 4) |
+
+**Overall:** not met: a preset chosen by clicking its card leaves the id and the fixed issuer empty until a reload.
+
+### Re-check 2 (blind: rows 4 and 17)
+
+Witnessed: 2026-10-17 00:13 EDT, by a fresh agent (blind). Commit: 16f7ed0e + uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4 | Choosing a preset card fills the form: the id, a fixed issuer, and the redirect URI follows | yes | confirmed | `ProviderPage.tsx:67` `key={provider?.id ?? \`new:${preset ?? ""}\`}`; after `next build`, the Playwright probe: click "Google Workspace" → id `google`, issuer `https://accounts.google.com`, `<id>` shown 0 times; typing `abc-1` → `…/callback/abc-1` (before the fix: `""`, `""`, 1) |
+| 17 | Component tests cover each state, including a preset reached by a card click | yes | confirmed | 22 passed; the card click is covered by the phone e2e (`identity-providers.mobile.e2e.ts:25-31`) → 3 passed on phone, phone-webkit, tablet; the probe saw it fail before the fix |
+
+**Overall:** met. Every row of task 6 is now confirmed (rows 1-3, 6-15, 18 in the first pass, 5 and 16 in re-check 1, 4 and 17 here).

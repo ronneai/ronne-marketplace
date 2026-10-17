@@ -50,7 +50,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* db tests cover joining and leaving a group, two mappings giving one workspace
   different roles, a hand-set membership, a deleted workspace and root.
 
-- [ ] **6. The panel and the form.** The provider list, Add/Edit with presets, the redirect URI
+- [x] **6. The panel and the form.** The provider list, Add/Edit with presets, the redirect URI
   with Copy, the steps beside the form, the write-only secret, domains, groups, the version check;
   Test connection and Test sign-in (the dry run, changing nothing); Turn on needs the test.
   *Done when:* component tests pass for each state, including "can't turn on before the test" and a
@@ -237,3 +237,27 @@ goes into `SPEC.md` instead.
 - **Mappings travel with the provider** (`ProviderInput.mappings`, replaced together, named in
   the update event), checked against personal workspaces and missing ones; a deleted workspace
   leaves the mapping with a null workspace for the form's warning (FK `SET NULL`).
+
+**Task 6, the panel and the form (2026-10-17).**
+
+- **The provider's page** is `/admin/settings?tab=authentication&provider=<id|new>`; each panel row
+  links to it, and Turn on/off and Delete live there (SPEC says so). The preset cards are links
+  (`&preset=<id>`), so choosing one works without JavaScript and the chosen form renders on the
+  server; the redirect URI is built in the browser from the id as it's typed.
+- **Test sign-in can't be a server action:** React intercepts a form whose action is a function
+  (a fetch), so `target="_blank"` never opens a tab. It is a plain form posting to
+  `POST /api/auth/sso/test/<id>` (root only; the `Origin` must be `PUBLIC_URL`'s, which stops a
+  cross-site post), which sets the state cookie and sends the tab to the provider.
+- **The test's result** is a `verification` row (`sso-test:<provider>:<root>`, an hour), read by
+  that root's page. `finishTestSignIn` (`actions/test-sign-in.ts`) is its own module because
+  `sso.ts` calls it and `identity-providers.ts` imports `sso.ts`. It finishes only in the browser
+  of the root who started it (their session at the callback), works out the decision and the group
+  plan with the same pure functions as a sign-in, writes neither, and records the passing test for
+  the version it started on (a save during the test makes it count for nothing).
+- **Component states are tested by props** (the repo's way: static rendering), so the result
+  notices, the Delete confirm and the `?test=` notices are small exported components.
+- **The phone test** (`e2e/identity-providers.mobile.e2e.ts`) walks the form, because 065's sweep
+  only opens pages as they load; a preset card's long issuer pattern made the page 1px too wide at
+  360px until it could wrap (`break-all`, `min-w-0`).
+- New route segments go in `server/telemetry/sanitize.ts`'s list (`sso`, `callback`, `test`): a
+  unit test checks every segment of `app/` is there.

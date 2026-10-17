@@ -90,9 +90,10 @@ for setting it up on the provider's side.
 
 **The panel.** Rows show the name, "OpenID Connect · Okta" (type and preset), the issuer, the
 domains, a status badge (*Off*, *Tested*, *On*, *Failing* when the last test failed or after
-three failed sign-ins in a row) and the last sign-in. Actions: Edit, Turn on / Turn off, Delete
-(confirm; accounts linked to it keep their linked rows and can still sign in with a password, if
-they have one). No providers yet: a short explanation and **Add provider**.
+three failed sign-ins in a row) and the last sign-in. Each row opens the provider's page, where it
+is edited, tested, turned on or off, and deleted (confirm; accounts linked to it keep their linked
+rows and can still sign in with a password, if they have one). No providers yet: a short
+explanation and **Add provider**.
 
 **Add / Edit provider** (a page, `/admin/settings?tab=authentication&provider=<id|new>`, so the
 steps can sit beside the form on a desktop and under it on a phone):
@@ -108,7 +109,14 @@ steps can sit beside the form on a desktop and under it on a phone):
    → role*.
 5. **Test, then turn on.** The two tests, with their results written out ("Issuer
    `https://…` answered; the keys were fetched; the response has `email_verified`; groups claim
-   found: 3 values").
+   found: 3 values"). *Test connection* is a server action; a failure marks the provider *Failing*.
+   *Test sign-in* is a plain form posting to `POST /api/auth/sso/test/<id>` in a new tab (a server
+   action is intercepted and stays in the same tab): root only, from Ronne's own pages (the
+   `Origin` must be `PUBLIC_URL`'s). It runs the sign-in for the version of the provider the page
+   showed; at the callback, only in the browser of the root who started it, it shows the claims,
+   what a sign-in would do (the decision and the group changes, worked out without writing them),
+   and records the passing test (the email verified) for that version. The result is kept an hour
+   for that root's page.
 The provider's **id** (a slug, chosen once, 3–32 characters, lowercase letters, digits and `-`,
 starting and ending with a letter or digit) is in the redirect URI and can't be changed; it can't
 be `credential` or `new` (the form's address) or collide with another provider.
@@ -180,8 +188,8 @@ right password. The change needs an enabled, tested provider and a confirm that 
 their password sign-in.
 
 **Allowlist and security.**
-- Better Auth's HTTP allowlist stays `/get-session` and `/ok`: the only new HTTP route is the
-  callback, Ronne's own, and the session endpoint is server-only. Registering a provider is only
+- Better Auth's HTTP allowlist stays `/get-session` and `/ok`: the new HTTP routes are Ronne's own
+  (the callback, and *Test sign-in*'s start), and the session endpoint is server-only. Registering a provider is only
   through Ronne's action.
 - The issuer must be `https://` (or `http://` on loopback, `localhost`, `127.0.0.1` or `[::1]`,
   for development and tests), with no credentials, query or fragment, is fetched
@@ -279,8 +287,8 @@ sign-in buttons are 44px tall on a coarse pointer.
   lowered or removed; root is never changed.
 - [ ] The client secret is encrypted at rest, never returned by any action, never in a log or an
   audit row (tests inspect all three), and `rotate-secret` re-encrypts it.
-- [ ] The callback is the only new HTTP route; Better Auth's allowlist is unchanged and the session
-  endpoint returns 404 over HTTP.
+- [ ] The new HTTP routes are the callback and *Test sign-in*'s start (root only, same origin);
+  Better Auth's allowlist is unchanged and the session endpoint returns 404 over HTTP.
 - [ ] *Root only* hides password sign-in for others, keeps it for root, can't be chosen without a
   tested enabled provider, and the token exchange answers `password_sign_in_disabled` correctly.
 - [ ] `rmk-server disable-sso` turns all providers off and restores password sign-in for everyone.

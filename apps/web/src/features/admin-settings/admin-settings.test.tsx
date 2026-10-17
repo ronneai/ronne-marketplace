@@ -23,6 +23,9 @@ const twoFactor = vi.hoisted(() => ({
   })),
 }));
 vi.mock("@/server/domains/identity/actions/two-factor", () => twoFactor);
+vi.mock("@/server/domains/identity/actions/identity-providers", () => ({
+  providerRows: async () => [],
+}));
 const cache = vi.hoisted(() => ({ revalidatePath: vi.fn() }));
 vi.mock("@/server/domains/settings/actions/settings", () => settings);
 vi.mock("@/server/domains/identity/actions/session", () => session);
