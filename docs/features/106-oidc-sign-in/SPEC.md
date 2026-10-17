@@ -340,12 +340,12 @@ sign-in buttons are 44px tall on a coarse pointer.
    anyone claim an existing account.
 7. **Single logout and provider-initiated sign-in are out** (Claude): both need more of the
    provider than most companies configure.
+8. **A new account is always a `user` in `global`** (owner, 2026-10-17): for every listed domain,
+   with no per-domain role. Higher roles come from group mappings or from root.
 
 ## Open questions
 
 - **Session length for SSO** (30 days now): should an SSO session follow the provider's, or shorter?
-- **Default role in `global` for new SSO accounts:** `user`, as the owner said; confirm for every
-  listed domain, or per domain?
 - **Which provider do we test against in CI?** A fake OIDC server in the repo's tests (planned)
   covers behaviour; a real Keycloak container could run nightly (a Docker Hub pull, see
   `docs/knowledge/docker-hub-pulls.md`).
