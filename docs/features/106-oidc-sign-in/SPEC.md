@@ -146,8 +146,9 @@ then `complete` returns the identity and Ronne decides:
    email's domain is verified in the tenant) counts instead; the preset says to turn on the
    optional `email` and `xms_edov` claims, and the test shows when they are missing. Otherwise
    `unverified_email`.
-2. **A disabled account** is refused (`disabled`), with the same message as a wrong password
-   (006's rule: it doesn't say which accounts exist).
+2. **A disabled account** is refused (`disabled`), with the same message as no account at all
+   ("You can't sign in here with that account…", 006's rule: it doesn't say which accounts
+   exist); the audit row has the real reason.
 3. **Known link** (the provider and subject): sign in.
 4. **Else, an account with this email** and *link by email* on: link, then sign in.
 5. **Else, the email's domain is on the list:** create the account (Create user's repository
@@ -181,11 +182,20 @@ byte), an existing workspace that isn't someone's personal one, and a role (user
 admin); the same group and workspace twice keeps the last.
 
 **Password policy and the sign-in page.** With *Root only*, the page shows the provider buttons
-first and, under them, a link "Use your password (root)" that opens the password form; non-root
-accounts that try the password get the usual wrong-email-or-password error. The token exchange
-(`POST /api/v1/auth/token`) answers `password_sign_in_disabled` to a non-root account that sent the
-right password. The change needs an enabled, tested provider and a confirm that says who loses
-their password sign-in.
+first and, under them, a link "Use your password (root)" (a disclosure, so it works without
+JavaScript) that opens the password form; non-root accounts that try the password get the usual
+wrong-email-or-password error (audited `password_disabled`, or `disabled`), after running the
+same password check for a reserved address no account has, so the answer takes as long as root's
+(timing doesn't tell which address is root's; about 1 ms remains, accepted by the owner). No
+account may have a `.invalid` address (RFC 2606), which keeps the reserved one free. A two-factor challenge someone other than root got before the switch can't finish
+afterwards (refused like a disabled account, before any session). The token exchange
+(`POST /api/v1/auth/token`) answers 403 `password_sign_in_disabled` to a non-root account that sent
+the right password (a wrong one gets the usual 401). The change needs an enabled, tested provider
+and a confirm that says how many people lose their password sign-in (active, with a password, not
+root). *Root only* holds only while a provider is on: with every provider off (or after
+`disable-sso`), the page shows the password form and everyone may use it again. With
+*Everyone*, the buttons sit under the password form. The Sign-in methods panel lists the password
+rule and each provider, on or off.
 
 **Allowlist and security.**
 - Better Auth's HTTP allowlist stays `/get-session` and `/ok`: the new HTTP routes are Ronne's own

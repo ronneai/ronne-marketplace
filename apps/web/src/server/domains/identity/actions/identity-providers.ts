@@ -51,6 +51,7 @@ export type ProviderRow = {
   issuer: string;
   domains: string[];
   status: ProviderStatus;
+  enabled: boolean;
   lastSignedInAt: Date | null;
   lastFailureReason: string | null;
 };
@@ -66,6 +67,7 @@ const row = (p: IdentityProvider): ProviderRow => ({
   issuer: String(p.config.issuer ?? ""),
   domains: p.domains,
   status: providerStatus(p),
+  enabled: p.enabled,
   lastSignedInAt: p.lastSignedInAt,
   lastFailureReason: p.lastFailureReason,
 });

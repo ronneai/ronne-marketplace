@@ -27,3 +27,21 @@ export const TWO_FACTOR_STEP_ERRORS: Record<NonNullable<TwoFactorStepState["erro
   refused: "Email or password is wrong",
   unreadable: "Your two-factor sign-in can't be read on this server. Ask a root to reset it.",
 };
+
+/** Why a sign-in with an identity provider came back to the sign-in page (106), as `?error=`. */
+export const SSO_ERRORS = {
+  // One answer for a disabled account and for none: it doesn't say which accounts exist (006).
+  disabled:
+    "You can't sign in here with that account. Ask root to add you, or to allow your email's domain.",
+  not_allowed:
+    "You can't sign in here with that account. Ask root to add you, or to allow your email's domain.",
+  unverified_email:
+    "Your identity provider didn't say your email is verified, so you weren't signed in. Ask your administrator.",
+  invalid_response:
+    "Your identity provider's answer couldn't be checked, so you weren't signed in. Try again.",
+  provider_error: "That provider didn't answer. Try again, or use your password.",
+  unavailable: "That way of signing in isn't on. Use another, or ask your administrator.",
+  expired: "The sign-in took too long, or was started in another browser. Try again.",
+  rate_limited: "Too many attempts, wait a minute.",
+} as const;
+export type SsoErrorCode = keyof typeof SSO_ERRORS;

@@ -26,6 +26,11 @@ vi.mock("@/server/domains/identity/actions/two-factor", () => twoFactor);
 vi.mock("@/server/domains/identity/actions/identity-providers", () => ({
   providerRows: async () => [],
 }));
+vi.mock("@/server/domains/identity/actions/password-policy", () => ({
+  hasUsableProvider: async () => false,
+  passwordUsersAffected: async () => 0,
+}));
+vi.mock("@/server/domains/identity/repositories/auth-instance", () => ({ getAppAuth: () => ({}) }));
 const cache = vi.hoisted(() => ({ revalidatePath: vi.fn() }));
 vi.mock("@/server/domains/settings/actions/settings", () => settings);
 vi.mock("@/server/domains/identity/actions/session", () => session);
@@ -41,6 +46,7 @@ const actions = await import("./actions");
 const { UsagePolicyForm } = await import("./usage/UsagePolicyForm");
 const { PluginFeedsPanel } = await import("./feeds/PluginFeedsPanel");
 const { SignInMethodsPanel } = await import("./authentication/SignInMethodsPanel");
+const { signInMethods } = await import("./authentication/AuthenticationTab");
 const { default: AdminSettingsPage } = await import("@/app/(app)/admin/settings/page");
 
 /** The page as Next.js renders it, for `?tab=` (none: the bare address). */
@@ -67,6 +73,7 @@ beforeEach(() => {
     usagePolicyChangedAt: null,
     usageMinimum: 0,
     twoFactorPolicy: "optional",
+    passwordSignInPolicy: "everyone",
   });
 });
 
@@ -345,5 +352,55 @@ describe("Admin › Settings › Authentication › Two-factor sign-in (105)", (
     expect(cache.revalidatePath).toHaveBeenCalledWith("/admin/settings");
     settings.setTwoFactorPolicy.mockRejectedValueOnce(new ForbiddenError("settings.manage"));
     expect((await actions.saveTwoFactorPolicy({}, data)).error).toBeTruthy();
+  });
+});
+
+describe("Sign-in methods with identity providers (106)", () => {
+  const provider = (
+    name: string,
+    enabled: boolean,
+    status: "on" | "off" | "failing" = enabled ? "on" : "off",
+  ) => ({
+    id: name.toLowerCase(),
+    name,
+    type: "oidc",
+    typeLabel: "OpenID Connect",
+    presetLabel: "Okta",
+    issuer: "https://idp.example",
+    domains: enabled ? ["acme.com"] : [],
+    status,
+    enabled,
+    lastSignedInAt: null,
+    lastFailureReason: null,
+  });
+
+  it("lists the password rule and each provider, on or off", () => {
+    const methods = signInMethods({
+      twoFactorPolicy: "optional",
+      passwordPolicy: "root_only",
+      providers: [provider("Acme", true), provider("Beta", false)],
+    });
+    expect(methods.map((m) => [m.name, m.on])).toEqual([
+      ["Email and password", true],
+      ["Acme (OpenID Connect)", true],
+      ["Beta (OpenID Connect)", false],
+      ["Two-factor sign-in", false],
+    ]);
+    expect(methods[0]?.note).toContain(
+      "Root only: everyone else signs in with an identity provider.",
+    );
+    expect(methods[1]?.note).toBe("Creates accounts for acme.com.");
+    expect(methods[2]?.note).toBe("Links existing accounts only.");
+    const html = renderToStaticMarkup(<SignInMethodsPanel methods={methods} />);
+    expect(html).toContain("Acme (OpenID Connect)");
+  });
+
+  it("drops the Root only note while no provider is on (everyone has their password back)", () => {
+    const methods = signInMethods({
+      twoFactorPolicy: "optional",
+      passwordPolicy: "root_only",
+      providers: [provider("Beta", false)],
+    });
+    expect(methods[0]?.note).not.toContain("Root only");
   });
 });

@@ -56,7 +56,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* component tests pass for each state, including "can't turn on before the test" and a
   stale form; the phone sweep passes.
 
-- [ ] **7. The sign-in page and the password policy.** [risky] Provider buttons, the error
+- [x] **7. The sign-in page and the password policy.** [risky] Provider buttons, the error
   messages, *Root only* with "Use your password (root)", the choice's preconditions and confirm, the
   token exchange's `password_sign_in_disabled`, and the Sign-in methods panel (122) listing it all.
   *Done when:* tests cover both policies for root and a non-root, the exchange, and refusing to
@@ -261,3 +261,28 @@ goes into `SPEC.md` instead.
   360px until it could wrap (`break-all`, `min-w-0`).
 - New route segments go in `server/telemetry/sanitize.ts`'s list (`sso`, `callback`, `test`): a
   unit test checks every segment of `app/` is there.
+
+**Task 7, the sign-in page and the password policy (2026-10-17).**
+
+- **The setting** (`password_sign_in`, settings domain) is root's choice; the **effective** policy
+  (`actions/password-policy.ts` `effectivePasswordPolicy`) is *Root only* only while a provider is
+  on, so turning every provider off gives everyone their password back without touching it.
+  Identity reads it through the settings service and repository, not its actions, which import
+  identity's session (an import cycle otherwise).
+- **Every password path reads it:** the web sign-in (refused before Better Auth, the usual
+  answer), the token exchange (403 `password_sign_in_disabled`, only after the right password, like
+  two-factor's answer), and the second step of a two-factor sign-in (a challenge someone other
+  than root got before the switch is refused; the witnesses found it finishing).
+- **Timing:** the refused web path runs Better Auth's own sign-in for a reserved address no
+  account can have (`refused@sign-in.invalid`, RFC 2606), so it does exactly the work root's
+  attempt does and the answer's time doesn't tell which address is root's. Copying the work by
+  hand (the lookups and an argon2 check) still left root 2–4 ms slower on the database servers;
+  about 1 ms remains, accepted by the owner. `normalizeEmail` refuses `.invalid` addresses
+  everywhere, so no account (made by root or a provider) can be the reserved one; a session for one
+  put in by hand is ended at once (the witnesses found root could create it).
+- **SQLite's one connection:** "is a provider usable" reads another table, so it runs before the
+  settings transaction, not inside it (inside, SQLite waited on itself and the tests timed out).
+- **One answer for a disabled account and for none** at the sign-in page (`?error=disabled` and
+  `not_allowed` say the same), as 006's rule asks; the audit row keeps the real reason.
+- Known test gap (accepted): nothing renders the policy form's Save button with *Root only* chosen
+  and the confirm unticked; `canSave` is tested and the server refuses without the confirm.

@@ -76,6 +76,8 @@ const REASONS: Record<string, string> = {
   disabled: "the account is disabled",
   rate_limited: "too many attempts",
   two_factor_required: "the account uses two-factor sign-in",
+  password_disabled: "password sign-in is root only",
+  password_sign_in_disabled: "password sign-in is root only",
 };
 const POLICIES: Record<string, string> = {
   off: "off",
@@ -87,6 +89,9 @@ const expiry = (m: Meta): string => {
   const at = text(m.expiresAt);
   return at ? `expires ${at.slice(0, 10)}` : "no expiry";
 };
+
+/** Who may sign in with a password (106), as the audit log says it. */
+const PASSWORD_SAID: Record<string, string> = { everyone: "everyone", root_only: "root only" };
 
 /** Why a sign-in with an identity provider was refused (106), as the audit log says it. */
 const SSO_REASONS: Record<string, string> = {
@@ -162,6 +167,11 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     "Turned off the identity provider ",
     { code: text(m.provider) },
     m.reason === "retest" ? " (its settings changed, so it needs a new test)" : "",
+  ],
+  "instance.password_sign_in_changed": (m) => [
+    `Changed who may sign in with a password from ${PASSWORD_SAID[text(m.from)] ?? text(m.from)} to ${
+      PASSWORD_SAID[text(m.to)] ?? text(m.to)
+    }${via(m)}`,
   ],
   "user.password_reset": (m, e) => [
     "Reset the password of ",

@@ -16,6 +16,7 @@ export const AUDIT_ACTIONS = [
   "instance.auth_provider_deleted",
   "instance.auth_provider_enabled",
   "instance.auth_provider_disabled",
+  "instance.password_sign_in_changed",
   "user.password_reset",
   "auth.signed_in",
   "auth.sign_in_failed",

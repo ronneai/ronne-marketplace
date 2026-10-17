@@ -5,6 +5,7 @@ import { kyselyIdentityRepository } from "../repositories/kysely-identity-reposi
 import { kyselyTokenRepository } from "../repositories/kysely-token-repository";
 import * as service from "../services/access-tokens";
 import { exchangePasswordForToken } from "../services/token-exchange";
+import { effectivePasswordPolicy } from "./password-policy";
 import { getCurrentUser } from "./session";
 
 export type { Authenticated, NewToken, TokenFailure } from "../services/access-tokens";
@@ -65,6 +66,7 @@ export const exchangePassword = (
       tokens: deps(app),
       hasher: argon2PasswordHasher,
       limiter: app.limiter,
+      passwordPolicy: () => effectivePasswordPolicy(app),
     },
     input,
     { ip: clientIp(headers, app.trustProxy), userAgent: headers.get("user-agent") },

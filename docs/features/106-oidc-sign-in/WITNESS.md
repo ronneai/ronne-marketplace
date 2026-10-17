@@ -463,3 +463,111 @@ Witnessed: 2026-10-17 00:13 EDT, by a fresh agent (blind). Commit: 16f7ed0e + un
 | 17 | Component tests cover each state, including a preset reached by a card click | yes | confirmed | 22 passed; the card click is covered by the phone e2e (`identity-providers.mobile.e2e.ts:25-31`) → 3 passed on phone, phone-webkit, tablet; the probe saw it fail before the fix |
 
 **Overall:** met. Every row of task 6 is now confirmed (rows 1-3, 6-15, 18 in the first pass, 5 and 16 in re-check 1, 4 and 17 here).
+
+## Task 7 — The sign-in page and the password policy
+
+Witnessed: 2026-10-17 00:24 EDT, by a fresh agent (blind). Commit: d592e5be (+ uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0. Mutations only in its scratch copy.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The task's own tests pass on SQLite | no | confirmed | 6 files, 76 passed; db: 3 files, 30 passed |
+| 2 | The same db tests pass on PostgreSQL, MySQL and MariaDB | no | confirmed | 30 passed on each |
+| 3 | *Everyone*: a non-root signs in with a password on the web and through rmk | no | confirmed | "Everyone (the default)" test; fallback `everyone` |
+| 4 | *Root only*: a non-root's right password on the web gets the same `invalid_credentials`, audited `password_disabled` | no | confirmed | test; M1, M6 → fail; probe: moderator and unknown email → the same, SQLite and PostgreSQL |
+| 5 | *Root only*: root keeps the password on the web and through rmk | no | confirmed | test; probe `"  ROOT@Acme.com "` → ok on both |
+| 6 | Token exchange: 403 for a non-root's right password, 401 for a wrong one, no token | no | confirmed | `api-v1.db.test.ts`, `password-policy.db.test.ts`; M2 → both fail; the check runs after the password matches |
+| 7 | *Root only* holds only while a provider is on | no | confirmed | M5 → test fails; U1 → UI test fails |
+| 8 | *Root only* can't be chosen without an enabled, tested provider (server and form) | no | confirmed | 3 db cases; M3 → fails; form test; U2 → fails |
+| 9 | The confirm, with the count; audited `instance.password_sign_in_changed { from, to }` | no | confirmed | test; M4 → fails; `passwordUsersAffected` tested; count text read (client state, not rendered by a test); summary probe |
+| 10 | Only root may change it; junk refused | no | confirmed | test; probe: no session → ForbiddenError, `"ROOT_ONLY"` → InvalidPasswordSignInPolicyError |
+| 11 | Sign-in page: Continue with … under the form with *Everyone*, carrying `next` | no | confirmed | sign-in test; `signInProviders` filters `enabled` |
+| 12 | *Root only*: buttons first, the form behind `<details>` "Use your password (root)" | no | confirmed | sign-in test; `app/sign-in/page.tsx:36-50` |
+| 13 | Plain provider error messages; disabled = no account; unknown codes show nothing | no | confirmed | sign-in test; U3 → fails; `Object.hasOwn` |
+| 14 | Provider buttons 44px on a coarse pointer | no | confirmed | test regex; `Button.tsx:31` |
+| 15 | The Sign-in methods panel lists the password rule and each provider | no | confirmed | probe rendering the page (root only, one provider on, one off); no repo test covers it |
+
+**Overall:** met. Remarks: no repo test of the panel listing; `Help.tsx:302` still says "Today with their email and password."; under *Root only* a refused non-root isn't hashed but root is (timing could tell root's email); a disabled non-root is audited `password_disabled`, not `disabled`.
+
+Witnessed: 2026-10-17 00:31 EDT, by a fresh agent (adversarial). Commit: d592e5be + working tree. Machine: macOS 27.0.1, Node v24.0.0. Mutations only in its scratch copy.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | *Root only*: a non-root's password refused on the web with the usual answer, audited `password_disabled`; root still signs in | no | confirmed | 8 files, 100 passed; email case and whitespace variants refused, `" ROOT@ACME.COM "` signs in; M1, M6, M9 → fail |
+| 2 | *Everyone*: both sign in, web and rmk | no | confirmed | test; timing equal (~10 ms) |
+| 3 | The exchange: 403 only for a non-root's right password; 401 for a wrong one; no token; root gets one | no | confirmed | tests; variants; disabled stays 401; M2, M8 → fail |
+| 4 | *Root only* needs an enabled, tested provider | no | confirmed | 3 cases; M3, M7, M13 → fail |
+| 5 | The confirm, with the count | no | confirmed | M4 → fails. Gap: M14 (Save without the confirm in the UI) passes the UI tests; the server still enforces it |
+| 6 | Only root may change it; crafted values refused | no | confirmed | `"ROOT_ONLY"`, `" root_only"`, `["root_only"]`, `null`, `"none"`, `1` throw; no session throws; M10 → fails |
+| 7 | *Root only* holds only while a provider is on | no | confirmed | M5 → fails; a junk stored value reads as `everyone` |
+| 8 | Root's password can't be turned off | no | confirmed | two values only; a promoted root signs in, demoted is refused; M6 → fails |
+| 9 | Under *Root only*, no other password route for a non-root | no | partly | HTTP routes 404 except the allowlist; but a two-factor challenge issued before the switch completes afterwards (`completeTwoFactorSignIn` doesn't read the policy) → `ok: true` on all four databases |
+| 10 | The policy doesn't reveal which accounts exist | no | partly | answers identical; but on the web a non-root or unknown email returns before any hashing and root's doesn't: medians (unknown / non-root / root) SQLite 0.1/0.1/11.0 ms, PostgreSQL 4.8/4.2/19.7, MySQL 5.9/5.0/21.3, MariaDB 2.6/3.5/17.1 |
+| 11 | The sign-in page; `?error=` looked up in a list; `next` carried safely | no | confirmed | 24 tests; M11, M15 → fail; odd codes and an HTML provider name escaped; `safeNextPath` cases. Gap: M12 (`in` for `Object.hasOwn`) passes every test |
+| 12 | The Sign-in methods panel lists the rule and each provider | no | confirmed | probe; no suite test renders it with providers |
+| 13 | Audit: the action and reasons, with summaries | no | confirmed | exact metadata test; summaries present |
+| 14 | SQLite: the provider check runs outside the transaction | no | confirmed | `settings.ts`; tests pass on in-memory SQLite |
+| 15 | It holds on the servers | no | confirmed | 4 files, 38 passed on each |
+
+**Overall:** not met: a two-factor challenge from before the switch finishes a non-root's password sign-in, and on the web timing shows which email is root's.
+
+### Re-check 1 (blind: row 15 and the diff)
+
+Witnessed: 2026-10-17 00:35 EDT, by a fresh agent (blind). Commit: d592e5be (+ uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 15 | The Sign-in methods panel lists the rule and each provider, and drops the *Root only* note with no provider on | no | confirmed | 5 files, 66 passed; R4, R5 → fail |
+| 16 | Under *Root only*, a non-root's pre-switch two-factor challenge can't finish; root's does | no | confirmed | `services/two-factor.ts:380-385`; test passes on all four (53 each with the two-factor and session suites); R1 → fails |
+| 17 | A refused web sign-in runs a dummy argon2 check | no | confirmed | `actions/session.ts`; R2 → fails; timing probe medians: root wrong 11.5 ms, non-root 10.0, unknown 9.8 |
+| 18 | A disabled non-root is audited `disabled` | no | confirmed | `services/session.ts:110`; R3 → fails |
+| 19 | Save needs a change, and the confirm (`canSave`) | no | confirmed | `PasswordPolicyForm.tsx:14-18`; R6 → fails |
+| 20 | Odd `?error=` codes show nothing; Help and SPEC say the new behaviour | no | confirmed | sign-in test; `Help.tsx:302`; `SPEC.md:187-189` |
+
+**Overall:** met.
+
+### Re-check 1 (adversarial: rows 5, 9, 10, 11, 12 and the diff)
+
+Witnessed: 2026-10-17 00:37 EDT, by a fresh agent (adversarial). Commit: d592e5be + working tree. Machine: macOS 27.0.1, Node v24.0.0. Mutations only in its scratch copy.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 5 | *Root only* needs the confirm, and the form won't save without it | no | confirmed | M14 (`canSave` ignores the confirm) → fails. Gap: M14b (button not using `canSave`) passes the UI tests; the server still refuses |
+| 9 | No other password route for a non-root, including a pre-switch two-factor challenge | no | confirmed | probe → `false` on all four (was `true`); `two-factor.ts:382-385`; R1 → fails; 54 passed on each |
+| 10 | The policy doesn't reveal which accounts exist, timing included | no | partly | the large gap is gone (SQLite equal); on the servers root is still 2–3.5 ms slower (31-attempt medians, MySQL 13.0/13.2/16.8): Better Auth's own lookups on root's path; two extra lookups on the refused path in the copy brought MySQL to 14.0/13.7/15.5. Low severity (5 attempts a minute) |
+| 11 | Odd `?error=` values handled safely | no | confirmed | M12 → now fails the test; 85 passed |
+| 12 | The panel lists the rule and each provider, tested | no | confirmed | P1, P2 → fail |
+
+**Overall:** not met: root's wrong-password sign-in is still 2–3.5 ms slower on the database servers under *Root only*.
+
+### Re-check 2 (adversarial: row 10, and M14b)
+
+Witnessed: 2026-10-17 00:41 EDT, by a fresh agent (adversarial). Commit: d592e5be + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 10 | Under *Root only*, nothing tells which accounts exist, timing included | yes | partly | with `findCredentialByEmail` on the refused path, 31-attempt medians (unknown / non-root / root): SQLite 10.1/9.7/11.0, PostgreSQL 13.1/13.3/15.9, MySQL 14.4/15.0/17.6, MariaDB 13.0/13.2/15.6; under *Everyone* within ~1.5 ms. Inference: the rest is Better Auth's own `signInEmail` work, which only root's attempt does. 28 passed on each database |
+| 5 | M14b: the Save button's use of `canSave` isn't tested | yes | confirmed | accepted as a known test gap: the server enforces the confirm (M4 fails its test) and `canSave` is tested (M14 fails) |
+
+**Overall:** not met: root's attempt is still 2–4 ms slower on the servers. After two re-checks the owner chose one more round (2026-10-17), with the fix the witness suggested: the refused path runs Better Auth's own sign-in for a reserved address.
+
+### Re-check 3 (adversarial: row 10, the reserved-address fix; owner-approved third round)
+
+Witnessed: 2026-10-17 12:16 EDT, by a fresh agent (adversarial). Commit: d592e5be + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 10a | A refused attempt counts once against the limit, writes one audit event, opens no session | yes | confirmed | one `limiter.consume`, before the policy check; the reserved call is server-side; probe → 0 new sessions, 1 audit; 29 passed on each database |
+| 10b | Nothing can be reached through the reserved address | yes | not met | root can create the user `refused@sign-in.invalid` (`normalizeEmail` accepts it); then under *Root only* a sign-in typed as `ana@acme.com` with that account's password → a new session for it on all four databases, unaudited |
+| 10c | Timing doesn't reveal root's address | yes | partly | 31-attempt medians (unknown / non-root / root): SQLite 10.3/10.5/10.8, PostgreSQL 14.3/14.6/15.7, MySQL 14.4/15.7/15.9, MariaDB 13.9/14.2/15.4 (re-runs alike); root 0.2–1.7 ms slower than a non-root (was 2–4) |
+
+**Overall:** not met: an account at the reserved address opens a session on every refused attempt typed with its password. The owner chose (2026-10-17): fix it, a fourth round on that fix only, and accept the ~1 ms timing residual (10c) as known (low severity: 5 attempts a minute per email, at the edge of what localhost can measure).
+
+### Re-check 4 (adversarial: row 10b; owner-approved fourth round)
+
+Witnessed: 2026-10-17 12:21 EDT, by a fresh agent (adversarial). Commit: d592e5be + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 10b | Nothing can be reached through the reserved address: no account can have it, and a refused attempt never leaves a lasting session | yes | confirmed | probe on all four: `adminCreateUser` refuses `refused@sign-in.invalid` and `"REFUSED@Sign-In.INVALID "`; a refused attempt → 0 new sessions, 1 audit. On MySQL and MariaDB an accented look-alike (`…inválid`) is found by the reserved lookup; the fallback ends its session (`sessions left 0`, the log line). A provider's first sign-in runs `normalizeEmail` and refuses it (`sso-sign-in.ts:64-68`, read). Identity, setup and http suites → 799 passed |
+
+**Overall:** met. Every row of task 7 is confirmed, but for 10c: the ~1 ms timing residual, accepted by the owner (2026-10-17). The comment at `services/session.ts:117` was corrected and `docs/knowledge/collations.md` added after this pass.

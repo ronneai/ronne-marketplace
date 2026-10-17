@@ -30,3 +30,25 @@ export class InvalidTwoFactorPolicyError extends SettingsError {
     super("Choose optional, reviewers and root, or everyone.");
   }
 }
+
+export class InvalidPasswordSignInPolicyError extends SettingsError {
+  override readonly name: string = "InvalidPasswordSignInPolicyError";
+  constructor() {
+    super("Choose everyone, or root only.");
+  }
+}
+
+/** Root only needs a provider people can sign in with instead (106). */
+export class NoUsableProviderError extends SettingsError {
+  override readonly name: string = "NoUsableProviderError";
+  constructor() {
+    super("Turn on an identity provider that has passed its Test sign-in first.");
+  }
+}
+
+export class ConfirmationNeededError extends SettingsError {
+  override readonly name: string = "ConfirmationNeededError";
+  constructor() {
+    super("Confirm that everyone but root loses their password sign-in.");
+  }
+}

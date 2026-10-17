@@ -1,10 +1,19 @@
 import { requirePermission } from "../../identity/models/permissions";
 import type { CurrentUser } from "../../identity/models/user";
 import {
+  ConfirmationNeededError,
+  InvalidPasswordSignInPolicyError,
   InvalidTwoFactorPolicyError,
   InvalidUsageMinimumError,
   InvalidUsagePolicyError,
+  NoUsableProviderError,
 } from "../exceptions/errors";
+import {
+  DEFAULT_PASSWORD_SIGN_IN_POLICY,
+  isPasswordSignInPolicy,
+  PASSWORD_SIGN_IN_POLICY_KEY,
+  type PasswordSignInPolicy,
+} from "../models/password-sign-in-policy";
 import {
   DEFAULT_TWO_FACTOR_POLICY,
   isTwoFactorPolicy,
@@ -55,6 +64,7 @@ export type InstanceSettings = {
   usagePolicyChangedAt: Date | null;
   usageMinimum: number;
   twoFactorPolicy: TwoFactorPolicy;
+  passwordSignInPolicy: PasswordSignInPolicy;
 };
 
 /** What Admin › Settings shows: root only. */
@@ -69,6 +79,7 @@ export const instanceSettings = async (
     usagePolicyChangedAt: stored?.updatedAt ?? null,
     usageMinimum: await usageMinimum(deps),
     twoFactorPolicy: await twoFactorPolicy(deps),
+    passwordSignInPolicy: await passwordSignInPolicy(deps),
   };
 };
 
@@ -150,6 +161,53 @@ export const setTwoFactorPolicy = async (
         action: "settings.two_factor_policy",
         target: { type: "instance" },
         metadata: { from, to: value },
+        ipAddress: actor.ip,
+      },
+      at,
+    );
+    return { changed: true };
+  });
+};
+
+/** Who may sign in with a password, as root set it (106); `everyone` until root sets one. */
+export const passwordSignInPolicy = async (deps: SettingsDeps): Promise<PasswordSignInPolicy> => {
+  const stored = await deps.repo.get(PASSWORD_SIGN_IN_POLICY_KEY);
+  return stored && isPasswordSignInPolicy(stored.value)
+    ? stored.value
+    : DEFAULT_PASSWORD_SIGN_IN_POLICY;
+};
+
+/**
+ * Root sets who may sign in with a password (106); audited as
+ * `instance.password_sign_in_changed`. *Root only* needs an enabled provider that has passed its
+ * test (`usableProvider`), and a confirm that everyone but root loses their password sign-in.
+ * `actorId` null: the command line (`disable-sso`), which only ever goes back to `everyone`.
+ */
+export const setPasswordSignInPolicy = async (
+  deps: SettingsDeps,
+  actor: SettingsActor | { user: null; ip: null; system: true },
+  value: unknown,
+  check: { usableProvider: () => Promise<boolean>; confirmed: boolean },
+): Promise<{ changed: boolean }> => {
+  if (!("system" in actor)) requirePermission(actor.user, "settings.manage");
+  if (!isPasswordSignInPolicy(value)) throw new InvalidPasswordSignInPolicyError();
+  const at = now(deps);
+  // Checked before the transaction: it reads other tables, which SQLite's one connection can't do
+  // inside it. A provider turned off meanwhile is harmless: Root only holds only while one is on.
+  if (value === "root_only") {
+    if (!(await check.usableProvider())) throw new NoUsableProviderError();
+    if (!check.confirmed) throw new ConfirmationNeededError();
+  }
+  return deps.repo.transaction(async (repo) => {
+    const from = await passwordSignInPolicy({ repo });
+    if (from === value) return { changed: false };
+    await repo.set(PASSWORD_SIGN_IN_POLICY_KEY, value, actor.user?.id ?? null, at);
+    await repo.recordAudit(
+      {
+        actorId: actor.user?.id ?? null,
+        action: "instance.password_sign_in_changed",
+        target: { type: "instance" },
+        metadata: { from, to: value, ...("system" in actor ? { via: "cli" } : {}) },
         ipAddress: actor.ip,
       },
       at,

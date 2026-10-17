@@ -5,6 +5,7 @@ import { betterAuthSessionStore } from "../repositories/better-auth-session-stor
 import { betterAuthTwoFactorStore } from "../repositories/better-auth-two-factor-store";
 import { kyselyIdentityRepository } from "../repositories/kysely-identity-repository";
 import * as service from "../services/two-factor";
+import { effectivePasswordPolicy } from "./password-policy";
 
 export type {
   CompleteTwoFactorResult,
@@ -18,12 +19,14 @@ export type {
  * Two-factor sign-in on your own account (feature 105), for `/account/security`'s server actions.
  * `app` defaults to the running server's instance; tests pass their own.
  */
-const deps = ({ auth, db, dialect, limiter }: AppAuth): service.TwoFactorDeps => {
+const deps = (app: AppAuth): service.TwoFactorDeps => {
+  const { auth, db, dialect, limiter } = app;
   return {
     sessions: betterAuthSessionStore(auth),
     twoFactor: betterAuthTwoFactorStore(auth, db, dialect),
     repo: kyselyIdentityRepository(db, dialect),
     limiter,
+    passwordPolicy: () => effectivePasswordPolicy(app),
   };
 };
 

@@ -299,7 +299,7 @@ export const HELP = {
   "auth-methods": {
     question: "How do people sign in?",
     answer:
-      "Today with their email and password. Root can always sign in with a password, so a broken identity provider can't lock everyone out.",
+      "With their email and password, and with your company's identity provider once root turns one on. Root can always sign in with a password, so a broken identity provider can't lock everyone out.",
     href: docsHref("admin", "settings"),
   },
   "backup-codes-once": {

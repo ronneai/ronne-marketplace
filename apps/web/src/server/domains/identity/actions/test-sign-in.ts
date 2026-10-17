@@ -1,6 +1,6 @@
 import { toDbDate } from "../../../db/dates";
 import { newId } from "../../../db/ids";
-import { decodeJson, encodeJson } from "../../../db/json";
+import { encodeJson } from "../../../db/json";
 import { GLOBAL_WORKSPACE_ID } from "../../workspaces/models/workspace";
 import { ProviderFlowError, ProviderSecretUnreadableError } from "../exceptions/errors";
 import type { VerifiedIdentity } from "../models/auth-provider-type";

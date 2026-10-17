@@ -98,6 +98,7 @@ describe("the panel", () => {
             issuer: "https://acme.okta.com",
             domains: ["acme.com"],
             status: "failing",
+            enabled: true,
             lastSignedInAt: null,
             lastFailureReason: "provider_error",
           },

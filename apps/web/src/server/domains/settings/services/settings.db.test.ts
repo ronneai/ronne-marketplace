@@ -50,6 +50,7 @@ describe("the usage policy", () => {
       usagePolicyChangedAt: null,
       usageMinimum: 0,
       twoFactorPolicy: "optional",
+      passwordSignInPolicy: "everyone",
     });
   });
 
@@ -69,6 +70,7 @@ describe("the usage policy", () => {
       usagePolicyChangedAt: at,
       usageMinimum: 0,
       twoFactorPolicy: "optional",
+      passwordSignInPolicy: "everyone",
     });
     const { events } = await listAuditEvents(t.db, t.dialect, { group: "settings" });
     expect(

@@ -39,6 +39,12 @@ export const postToken = async (request: Request, app: AppAuth = getAppAuth()) =
         `This account uses two-factor sign-in. Create a token at ${page}, or run rmk login --web.`,
       );
     }
+    if (result.error === "password_sign_in_disabled")
+      return errorResponse(
+        403,
+        "password_sign_in_disabled",
+        "Only root signs in with a password here. Sign in with your company's identity provider in the web app, and create a token there.",
+      );
     return errorResponse(401, "invalid_credentials", "Email or password is wrong.");
   } catch (error) {
     if (error instanceof TokenLimitError) return errorResponse(409, "token_limit", error.message);
