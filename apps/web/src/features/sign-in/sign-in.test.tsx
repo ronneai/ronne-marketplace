@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 // The server action module reads request headers; the form only needs a reference to it.
-vi.mock("./actions", () => ({ signInFromForm: vi.fn() }));
+vi.mock("./actions", () => ({ signInFromForm: vi.fn(), ssoFromForm: vi.fn() }));
 
 const { SignInForm } = await import("./SignInForm");
 const { hostCommand } = await import("@/server/runtime");
@@ -117,5 +117,67 @@ describe("ForgotPassword (#147)", () => {
   it("is a native <details>, so it opens without JavaScript", () => {
     const html = renderToStaticMarkup(<SignInForm resetCommand={CLONE} next="/" />);
     expect(html).toMatch(/<details[^>]*><summary[^>]*>Forgot\?<\/summary>/);
+  });
+});
+
+describe("signing in with an identity provider (106)", () => {
+  const providers = [
+    { id: "acme", name: "Acme SSO" },
+    { id: "okta", name: "Okta" },
+  ];
+
+  it("shows a Continue with button for each provider that's on, under the password form, carrying next", () => {
+    const html = renderToStaticMarkup(
+      <SignInPage resetCommand={CLONE} next="/items" providers={providers} />,
+    );
+    expect(html).toContain("Continue with Acme SSO");
+    expect(html).toContain("Continue with Okta");
+    expect(html).toContain('name="provider" value="acme"');
+    expect(html).toContain('name="next" value="/items"');
+    expect(html.indexOf(">Password<")).toBeLessThan(html.indexOf("Continue with Acme SSO"));
+    expect(html).not.toContain("Use your password (root)");
+    // 44px tall on a touch screen.
+    expect(html).toMatch(/pointer-coarse:h-11[^"]*w-full"[^>]*>Continue with Acme SSO/);
+  });
+
+  it("with Root only, puts the buttons first and the password form behind Use your password (root)", () => {
+    const html = renderToStaticMarkup(
+      <SignInPage resetCommand={CLONE} next="/" providers={providers} rootOnly />,
+    );
+    expect(html.indexOf("Continue with Acme SSO")).toBeLessThan(
+      html.indexOf("Use your password (root)"),
+    );
+    expect(html).toMatch(
+      /<details[^>]*>\s*<summary[^>]*>Use your password \(root\)<\/summary>[\s\S]*>Password</,
+    );
+    expect(html).toContain("Use your company&#x27;s sign-in");
+  });
+
+  it("shows the password form to everyone when no provider is on, whatever the policy", () => {
+    const html = renderToStaticMarkup(
+      <SignInPage resetCommand={CLONE} next="/" providers={[]} rootOnly />,
+    );
+    expect(html).not.toContain("Use your password (root)");
+    expect(html).toContain(">Password<");
+    expect(html).toContain("Use your email and password");
+  });
+
+  it("says why a provider sign-in came back, in plain words, and one answer for disabled and unknown", () => {
+    const say = (error: string) =>
+      renderToStaticMarkup(
+        <SignInPage resetCommand={CLONE} next="/" providers={providers} ssoError={error} />,
+      );
+    expect(say("provider_error")).toContain(
+      "That provider didn&#x27;t answer. Try again, or use your password.",
+    );
+    expect(say("unverified_email")).toContain("didn&#x27;t say your email is verified");
+    expect(say("expired")).toContain("took too long");
+    const disabled = say("disabled").match(/ERR:<\/span>([^<]*)/)?.[1];
+    const unknown = say("not_allowed").match(/ERR:<\/span>([^<]*)/)?.[1];
+    expect(disabled).toBeTruthy();
+    expect(disabled).toBe(unknown);
+    // Only known codes: nothing from Object's prototype either.
+    for (const odd of ["<script>", "constructor", "__proto__", "toString", "DISABLED"])
+      expect(say(odd), odd).not.toContain("ERR:");
   });
 });

@@ -11,6 +11,7 @@ import type { PasswordHasher } from "../models/password-hasher";
 import { COOKIE_PREFIX } from "../models/session-cookie";
 import { argon2PasswordHasher } from "./argon2-password-hasher";
 import { betterAuthLogger } from "./better-auth-logger";
+import { ssoSessionPlugin } from "./better-auth-sso-session";
 import { kyselyIdentityRepository } from "./kysely-identity-repository";
 
 const DAY = 60 * 60 * 24;
@@ -101,13 +102,19 @@ export const createAuth = ({
         create: {
           // Disabled users get no session. Sign-in then fails with the same 401 as a wrong password
           // (returning false would make it a 500).
-          before: async (session) => {
+          before: async (session, context) => {
             const user = await kyselyIdentityRepository(db, dialect).findActiveUser(session.userId);
             if (!user)
               throw new APIError("UNAUTHORIZED", {
                 message: "Invalid email or password",
                 code: "INVALID_EMAIL_OR_PASSWORD",
               });
+            // A session made to replace the one the request is signed in with (changing the
+            // password, turning two-factor on or off) never outlives it: a provider's 24 hours
+            // (106) or a session without "Remember me" stay what they were.
+            const current = context?.context.session?.session;
+            if (current && session.expiresAt > current.expiresAt)
+              return { data: { ...session, expiresAt: current.expiresAt } };
           },
         },
       },
@@ -124,6 +131,8 @@ export const createAuth = ({
       // key from AUTH_SECRET. No email or SMS codes (no otpOptions), and trusted devices are never
       // asked for. Every call is a server action through auth.api; its routes aren't served.
       twoFactor({ issuer: TWO_FACTOR_ISSUER, schema: twoFactorSchema }),
+      // Opens the session an identity provider's sign-in decided on (106); server-only.
+      ssoSessionPlugin(),
       // Lets server actions set the session cookie. It must stay the last plugin.
       nextCookies(),
     ],

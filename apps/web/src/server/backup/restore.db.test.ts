@@ -28,6 +28,7 @@ import {
 import { createTestDb } from "../db/testing/test-db";
 import { type DatabaseDialect, parseDatabaseUrl } from "../db/url";
 import { createRoot } from "../domains/identity/actions/root-account";
+import { decryptSecret, encryptSecret } from "../domains/identity/repositories/provider-secrets";
 import { encryptedAsTwoFactor } from "../domains/identity/testing/two-factor-secret";
 import { kyselyItemRepository } from "../domains/items/repositories/kysely-item-repository";
 import { UNFILTERED } from "../domains/workspaces/models/viewer";
@@ -610,6 +611,72 @@ ${options.settingsFile}`,
     ).toMatchObject(kept);
     // The secret itself is never printed.
     expect(fresh.said).not.toContain(key);
+  });
+
+  // Feature 106: identity providers' client secrets are sealed with the archive's AUTH_SECRET too.
+  // They're kept when the server reads them; otherwise the provider is marked to enter it again.
+  it("keeps a provider's client secret when the server reads it, and marks it to enter again when not", async () => {
+    const source = await sqliteSource();
+    await seed(source.db, "sqlite", source.dir);
+    const key = "s".repeat(43);
+    const now = new Date().toISOString();
+    await source.db
+      .insertInto("identity_providers")
+      .values({
+        id: "acme",
+        type: "oidc",
+        preset: "okta",
+        name: "Acme SSO",
+        enabled: toDbBoolean(true, "sqlite"),
+        config: "{}",
+        secret_enc: encryptSecret(key, "acme", "the-client-secret"),
+        domains: "[]",
+        groups_claim: null,
+        tested_at: now,
+        tested_by: null,
+        last_signed_in_at: null,
+        last_failure_at: null,
+        last_failure_reason: null,
+        created_by: null,
+        created_at: now,
+        updated_at: now,
+      })
+      .execute();
+    const archive = await backup(source);
+
+    const restore = async (options: { withSettings?: boolean }) => {
+      const target = await emptyTarget();
+      const run = restoreRun(archive, {
+        appDir: tempDir(),
+        databaseUrl: target.url,
+        withSettings: options.withSettings ?? false,
+        env: {},
+      });
+      await run.run();
+      const db = target.open();
+      try {
+        const row = await db
+          .selectFrom("identity_providers")
+          .select(["secret_enc", "last_failure_reason", "enabled"])
+          .executeTakeFirstOrThrow();
+        return { ...row, said: run.lines.join("\n") };
+      } finally {
+        await db.destroy();
+      }
+    };
+    const unreadable = "can't read its client secret with this server's AUTH_SECRET";
+
+    const kept = await restore({ withSettings: true });
+    expect(kept.last_failure_reason).toBeNull();
+    expect(decryptSecret(key, "acme", kept.secret_enc as string)).toBe("the-client-secret");
+    expect(kept.said).not.toContain(unreadable);
+
+    // A new AUTH_SECRET: the secret can't be read; the provider says so, and stays as it was.
+    const fresh = await restore({});
+    expect(fresh.last_failure_reason).toBe("secret_unreadable");
+    expect(Boolean(fresh.enabled)).toBe(true);
+    expect(fresh.said).toContain(unreadable);
+    expect(fresh.said).not.toContain("the-client-secret");
   });
 
   it("stops when the archive loses an entry between the verify and the restore reads", async () => {

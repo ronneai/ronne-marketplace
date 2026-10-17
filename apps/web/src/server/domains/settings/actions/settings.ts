@@ -1,3 +1,4 @@
+import { hasUsableProvider } from "../../identity/actions/password-policy";
 import { getCurrentUser } from "../../identity/actions/session";
 import { clientIp } from "../../identity/models/client-ip";
 import { type AppAuth, getAppAuth } from "../../identity/repositories/auth-instance";
@@ -45,3 +46,18 @@ export const setTwoFactorPolicy = async (
 
 /** Who must use two-factor sign-in (105), for the hold on pages and actions. */
 export const twoFactorPolicy = (app: AppAuth = getAppAuth()) => service.twoFactorPolicy(deps(app));
+
+/**
+ * Who may sign in with a password (106): *Root only* needs a tested, enabled provider and the
+ * confirm that everyone but root loses their password sign-in.
+ */
+export const setPasswordSignInPolicy = async (
+  headers: Headers,
+  value: unknown,
+  confirmed: boolean,
+  app: AppAuth = getAppAuth(),
+) =>
+  service.setPasswordSignInPolicy(deps(app), await actor(headers, app), value, {
+    usableProvider: () => hasUsableProvider(app),
+    confirmed,
+  });

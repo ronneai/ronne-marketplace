@@ -12,6 +12,8 @@ export type SessionDeps = {
   sessions: SessionStore;
   repo: IdentityRepository;
   limiter: LoginRateLimiter;
+  /** Who may sign in with a password now (106); everyone when left out. */
+  passwordPolicy?: () => Promise<"everyone" | "root_only">;
   now?: () => Date;
 };
 
@@ -45,6 +47,9 @@ export type SignInResult =
 
 const log = logger.child({ domain: "identity" });
 
+/** An address no account can have (`.invalid` is reserved, RFC 2606), for 106's timing rule. */
+const REFUSED_ADDRESS = "refused@sign-in.invalid";
+
 /** The email as typed, lowercased and cut to the column's length, for a failed attempt's event. */
 const typedEmail = (email: string) => email.trim().toLowerCase().slice(0, 255);
 
@@ -60,7 +65,7 @@ export const signIn = async (
   context: RequestContext,
   input: SignInInput,
 ): Promise<SignInResult> => {
-  const failed = async (reason: "invalid" | "disabled" | "rate_limited") => {
+  const failed = async (reason: "invalid" | "disabled" | "rate_limited" | "password_disabled") => {
     // The log has the reason, never the email: that's in the audit log, under 102's retention.
     if (reason === "rate_limited") log.event("auth.rate_limited", { limit: "sign_in" });
     else log.event("auth.sign_in_failed", { reason });
@@ -95,6 +100,32 @@ export const signIn = async (
   if (!decision.allowed) {
     await failed("rate_limited");
     return { ok: false, error: "rate_limited", retryAfterSeconds: decision.retryAfterSeconds };
+  }
+
+  // Root only (106): anyone else gets the same answer as a wrong password, even with the right one.
+  if ((await deps.passwordPolicy?.()) === "root_only") {
+    const credential = await deps.repo.findCredentialByEmail(email);
+    if (credential?.user.role !== "root") {
+      // Better Auth's own sign-in, for an address no account can have: the same lookups and hash
+      // as root's attempt, so the answer's time doesn't tell which address is root's. It can't
+      // open a session.
+      const reserved = await deps.sessions.signIn(context.headers, {
+        email: REFUSED_ADDRESS,
+        password: input.password,
+        rememberMe: false,
+      });
+      // No account may have a `.invalid` address, but MySQL and MariaDB compare emails without
+      // accents, so a look-alike (`…inválid`) or one put in by hand can be found: its session ends
+      // at once, so it's never usable.
+      if (reserved && "session" in reserved) {
+        await deps.repo.deleteSessions(reserved.session.userId);
+        log.error("A session was opened for the reserved address; it was ended", {});
+      }
+      await failed(
+        !credential ? "invalid" : credential.disabledAt ? "disabled" : "password_disabled",
+      );
+      return { ok: false, error: "invalid_credentials" };
+    }
   }
 
   const result = await deps.sessions.signIn(context.headers, {

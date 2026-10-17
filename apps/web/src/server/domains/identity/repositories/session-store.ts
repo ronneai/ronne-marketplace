@@ -17,6 +17,15 @@ export interface SessionStore {
   ): Promise<
     { headers: Headers; session: SessionRef } | { headers: Headers; challenge: true } | null
   >;
+  /**
+   * Opens a session for a user an identity provider's sign-in decided on (106). Returns the
+   * response headers (with Set-Cookie) and the session, or null when the user can't sign in
+   * (disabled meanwhile: the session hook refuses it).
+   */
+  startSession(
+    headers: Headers,
+    userId: string,
+  ): Promise<{ headers: Headers; session: SessionRef } | null>;
   /** Ends the request's session. */
   signOut(headers: Headers): Promise<void>;
   /**

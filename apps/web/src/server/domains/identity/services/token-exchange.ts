@@ -19,6 +19,8 @@ export type ExchangeDeps = {
   tokens: TokenDeps;
   hasher: PasswordHasher;
   limiter: LoginRateLimiter;
+  /** Who may sign in with a password now (106); everyone when left out. */
+  passwordPolicy?: () => Promise<"everyone" | "root_only">;
   now?: () => Date;
 };
 
@@ -27,6 +29,8 @@ export type ExchangeResult =
   | { ok: false; error: "invalid_credentials" }
   /** The password is right, but the account uses two-factor: no token from a password (105). */
   | { ok: false; error: "two_factor_required" }
+  /** The password is right, but only root may use a password here (106): sign in with the provider. */
+  | { ok: false; error: "password_sign_in_disabled" }
   | { ok: false; error: "rate_limited"; retryAfterSeconds: number };
 
 // Checked against when the email is unknown, so the response takes as long as for a real account.
@@ -72,7 +76,12 @@ export const exchangePasswordForToken = async (
   const at = (deps.now ?? (() => new Date()))();
   const typedEmail = typeof input.email === "string" ? input.email : "";
   const failed = async (
-    reason: "invalid" | "disabled" | "rate_limited" | "two_factor_required",
+    reason:
+      | "invalid"
+      | "disabled"
+      | "rate_limited"
+      | "two_factor_required"
+      | "password_sign_in_disabled",
   ) => {
     if (reason === "rate_limited") log.event("auth.rate_limited", { limit: "token_exchange" });
     else log.event("auth.sign_in_failed", { reason, via: "cli" });
@@ -115,6 +124,11 @@ export const exchangePasswordForToken = async (
   );
   if (!found?.passwordHash || !matches) return invalid("invalid");
   if (found.disabledAt) return invalid("disabled");
+  // Only after the right password, like two-factor's answer: it tells nothing without it.
+  if ((await deps.passwordPolicy?.()) === "root_only" && found.user.role !== "root") {
+    await failed("password_sign_in_disabled");
+    return { ok: false, error: "password_sign_in_disabled" };
+  }
   // Only after the right password, so it tells nothing to someone without it (105). A web sign-in
   // asks this account for a code; a password alone mustn't make a token.
   if (found.twoFactor) {

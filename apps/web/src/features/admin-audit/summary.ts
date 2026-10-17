@@ -64,6 +64,10 @@ const moving = (m: Meta): SummaryPart => ({ name: text(m.scope) || "a scope" });
 const renamedAs = (m: Meta): (string | SummaryPart)[] =>
   text(m.newName) && text(m.newName) !== text(m.scope) ? [", as ", { name: text(m.newName) }] : [];
 
+/** A membership a provider's group mapping changed (106). */
+const bySso = (m: Meta): (string | SummaryPart)[] =>
+  m.via === "sso" ? [", through the groups of ", { code: text(m.provider) }] : [];
+
 const VIA: Record<string, string> = { cli: "from the command line", api: "from rmk", web: "" };
 const via = (m: Meta) => (VIA[text(m.via)] ? ` ${VIA[text(m.via)]}` : "");
 
@@ -72,6 +76,8 @@ const REASONS: Record<string, string> = {
   disabled: "the account is disabled",
   rate_limited: "too many attempts",
   two_factor_required: "the account uses two-factor sign-in",
+  password_disabled: "password sign-in is root only",
+  password_sign_in_disabled: "password sign-in is root only",
 };
 const POLICIES: Record<string, string> = {
   off: "off",
@@ -82,6 +88,36 @@ const POLICIES: Record<string, string> = {
 const expiry = (m: Meta): string => {
   const at = text(m.expiresAt);
   return at ? `expires ${at.slice(0, 10)}` : "no expiry";
+};
+
+/** Who may sign in with a password (106), as the audit log says it. */
+const PASSWORD_SAID: Record<string, string> = { everyone: "everyone", root_only: "root only" };
+
+/** Why a sign-in with an identity provider was refused (106), as the audit log says it. */
+const SSO_REASONS: Record<string, string> = {
+  unverified_email: "the provider didn't say the email is verified",
+  not_allowed: "no account it may link or create",
+  disabled: "the account is disabled",
+  invalid_response: "the provider's answer couldn't be checked",
+  provider_error: "the provider refused or didn't answer",
+  expired: "the sign-in took too long, or was used already",
+  rate_limited: "too many attempts",
+};
+
+/** A table's own entry only (never `__proto__` or `constructor`). */
+const said = (table: Record<string, string>, key: string): string | undefined =>
+  Object.hasOwn(table, key) ? table[key] : undefined;
+
+/** Why `not_allowed`, when the row says (106, task 11). */
+const SSO_NOT_ALLOWED: Record<string, string> = {
+  domain_not_allowed: "no account, and the email's domain may not create one",
+  non_ascii_email: "the address isn't plain ASCII",
+  invalid_email: "the address isn't valid",
+  lookalike_email:
+    "the database compares it as equal to an account's address (accents, letter forms or invisible characters)",
+  link_off: "the account exists, and the provider doesn't link by email",
+  domain_not_listed: "the account exists, but its domain isn't on the provider's list",
+  linked_to_another: "the account is linked to another person at the provider",
 };
 
 /** Who must use two-factor sign-in (105), as the audit log says it. */
@@ -123,6 +159,36 @@ export const SUMMARIES: Record<AuditAction, Build> = {
       `Restored a backup made by Ronne ${text(from.version)} at ${text(from.time).slice(0, 16).replace("T", " ")}: ${plural(num(m.rows), "row")}, ${plural(num(m.files), "stored file")}${via(m)}`,
     ];
   },
+  "instance.auth_provider_created": (m) => [
+    "Added the identity provider ",
+    { code: text(m.provider) },
+  ],
+  "instance.auth_provider_updated": (m) => [
+    "Changed the identity provider ",
+    { code: text(m.provider) },
+    Array.isArray(m.changed) && m.changed.length > 0 ? `: ${m.changed.map(text).join(", ")}` : "",
+  ],
+  "instance.auth_provider_deleted": (m) => [
+    "Deleted the identity provider ",
+    { code: text(m.provider) },
+    num(m.membershipsRemoved)
+      ? `, and the ${plural(num(m.membershipsRemoved), "membership")} its groups gave`
+      : "",
+  ],
+  "instance.auth_provider_enabled": (m) => [
+    "Turned on the identity provider ",
+    { code: text(m.provider) },
+  ],
+  "instance.auth_provider_disabled": (m) => [
+    "Turned off the identity provider ",
+    { code: text(m.provider) },
+    m.reason === "retest" ? " (its settings changed, so it needs a new test)" : "",
+  ],
+  "instance.password_sign_in_changed": (m) => [
+    `Changed who may sign in with a password from ${PASSWORD_SAID[text(m.from)] ?? text(m.from)} to ${
+      PASSWORD_SAID[text(m.to)] ?? text(m.to)
+    }${via(m)}`,
+  ],
   "user.password_reset": (m, e) => [
     "Reset the password of ",
     who(m, e),
@@ -133,7 +199,20 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     who(m, e),
     `${ended(m)}${via(m)}`,
   ],
-  "auth.signed_in": (m) => [m.remember ? "Signed in (remembered for 30 days)" : "Signed in"],
+  "auth.signed_in": (m) =>
+    m.via === "sso"
+      ? ["Signed in with ", { code: text(m.provider) }]
+      : [m.remember ? "Signed in (remembered for 30 days)" : "Signed in"],
+  "auth.sso_signed_in": (m) => [
+    "Signed in with the identity provider ",
+    { code: text(m.provider) },
+  ],
+  "auth.sso_failed": (m) => [
+    "Failed sign-in with ",
+    { code: text(m.provider) },
+    ...(text(m.email) ? [" for ", { name: text(m.email) }] : []),
+    `: ${said(SSO_NOT_ALLOWED, text(m.why)) ?? said(SSO_REASONS, text(m.reason)) ?? text(m.reason)}`,
+  ],
   "auth.sign_in_failed": (m) => [
     "Failed sign-in for ",
     { name: text(m.email) || "an unknown email" },
@@ -151,7 +230,19 @@ export const SUMMARIES: Record<AuditAction, Build> = {
       ? `Changed their password (${plural(num(m.otherSessionsEnded), "other session")} ended)`
       : "Changed their password",
   ],
-  "user.created": (m) => ["Created ", { name: text(m.email) }, ` as ${text(m.role)}`],
+  "user.created": (m) => [
+    "Created ",
+    { name: text(m.email) },
+    ` as ${text(m.role)}`,
+    ...(m.via === "sso" ? [" at their first sign-in with ", { code: text(m.provider) }] : []),
+  ],
+  "user.sso_linked": (m) => [
+    "Linked ",
+    { name: text(m.email) },
+    " to the identity provider ",
+    { code: text(m.provider) },
+    " (matched by verified email)",
+  ],
   "user.role_changed": (m, e) => ["Changed ", who(m, e), ` from ${text(m.from)} to ${text(m.to)}`],
   "user.disabled": (m, e) => ["Disabled ", who(m, e), ended(m)],
   "user.enabled": (m, e) => ["Enabled ", who(m, e)],
@@ -198,6 +289,7 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     " to ",
     { name: text(m.workspace) },
     ` as ${text(m.role)}`,
+    ...bySso(m),
   ],
   "workspace.member_role_changed": (m) => [
     "Changed ",
@@ -205,12 +297,14 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     ` in `,
     { name: text(m.workspace) },
     ` from ${text(m.from)} to ${text(m.to)}`,
+    ...bySso(m),
   ],
   "workspace.member_removed": (m) => [
     "Removed ",
     { name: text(m.email) },
     " from ",
     { name: text(m.workspace) },
+    ...bySso(m),
   ],
   // Requests to join (094): the event is on the requester.
   "workspace.access_requested": (m, e) => [

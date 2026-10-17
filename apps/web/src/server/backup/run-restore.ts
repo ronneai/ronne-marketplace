@@ -10,6 +10,7 @@ import { migrations } from "../db/migrations";
 import type { Database } from "../db/schema";
 import { parseDatabaseUrl } from "../db/url";
 import { recordAudit } from "../domains/audit/actions/audit";
+import { markUnreadableProviderSecrets } from "../domains/identity/actions/disable-sso";
 import { clearTwoFactorAfterRestore } from "../domains/identity/actions/instance-access";
 import { defaultDataPath, runtimeOf, scriptCommand } from "../runtime";
 import { generateAuthSecret, mergeEnv } from "../setup/env-file";
@@ -426,6 +427,12 @@ export const runRestore = async (options: {
     if (cleared > 0)
       log.warn(
         `Turned off two-factor sign-in for ${count(cleared, "account")}: its secrets were encrypted with another AUTH_SECRET than the one this server will use. They sign in with their password and set it up again.`,
+      );
+    // The identity providers' client secrets, sealed with the archive's AUTH_SECRET too (106).
+    const providers = await markUnreadableProviderSecrets(after.db, after.dialect, finalSecret);
+    if (providers > 0)
+      log.warn(
+        `${count(providers, "identity provider")} can't read ${providers === 1 ? "its" : "their"} client secret with this server's AUTH_SECRET: enter it again in Admin › Settings › Authentication. Until then, sign-in with ${providers === 1 ? "it fails" : "them fails"}.`,
       );
   } catch (error) {
     throw new RestoreFailedError(

@@ -128,7 +128,10 @@ test("root requires it of reviewers, a moderator is held until enrolled, root re
     // The save's own request, answered, before anything else is opened.
     await Promise.all([
       page.waitForResponse((response) => response.request().method() === "POST"),
-      page.getByRole("button", { name: "Save", exact: true }).click(),
+      page
+        .getByRole("form", { name: "Two-factor sign-in" })
+        .getByRole("button", { name: "Save", exact: true })
+        .click(),
     ]);
     // Root is covered and hasn't enrolled: held from the next page on.
     await page.goto("/admin/users");

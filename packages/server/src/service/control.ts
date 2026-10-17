@@ -184,6 +184,7 @@ const SCRIPT_VERBS: Record<string, string> = {
   "revoke-access": "revoke access on it",
   "reset-two-factor": "reset two-factor sign-in on it",
   "rotate-secret": "replace its secret",
+  "disable-sso": "turn off its company sign-in",
   backup: "back it up",
   restore: "restore a backup into it",
 };

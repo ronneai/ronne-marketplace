@@ -238,6 +238,11 @@ writes or keeps the settings file.
 - Without it, and no settings file: writes a new one with a new `AUTH_SECRET`. Everyone signs in
   again; access tokens keep working.
 - A settings file that's already there is kept; restore says what differs from the backup's.
+- With another `AUTH_SECRET` than the backup's (no `--with-settings`, or a kept settings file with
+  another one), two-factor sign-in is turned off for everyone who had it, and each identity
+  provider whose client secret can't be read is marked *Failing* with "Enter the client secret
+  again" (Admin › Settings › Authentication); restore says how many of each. Sign-in with such a
+  provider fails until its secret is entered again: root can still sign in with a password.
 
 An encrypted archive asks for its passphrase (or `--passphrase-file`). A backup made while some
 stored files were missing asks before restoring without them (`--yes` restores anyway).

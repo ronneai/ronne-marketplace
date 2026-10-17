@@ -239,7 +239,7 @@ describe("rotate-secret's sessions (098)", () => {
       await endSessionsForNewSecret(t.db, t.dialect, () => {
         wrote = true;
       }),
-    ).toEqual({ sessions: 2, twoFactorCleared: 0 });
+    ).toEqual({ sessions: 2, twoFactorCleared: 0, providerSecrets: 0, unreadable: 0 });
 
     expect(wrote).toBe(true);
     expect(await signedIn(root)).toBe(false);

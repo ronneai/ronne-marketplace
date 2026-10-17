@@ -712,11 +712,14 @@ export const kyselyWorkspaceRepository = (
           user_id: userId,
           role,
           added_by: addedBy,
+          // A person's change makes the membership theirs: an identity provider's group mapping
+          // (106) no longer changes or removes it.
+          source: null,
           created_at: when,
           updated_at: when,
         },
         ["workspace_id", "user_id"],
-        ["role", "updated_at"],
+        ["role", "source", "updated_at"],
       ).execute();
     },
 

@@ -87,6 +87,68 @@ export const kyselyIdentityRepository = (
     }));
   };
 
+  /**
+   * A user, its credential account when it has a password (none for someone who signs in with a
+   * provider only, 106), its `global` row and its personal workspace, in the caller's transaction.
+   */
+  const insertUser = async (
+    user: Omit<NewUserWithPassword, "passwordHash">,
+    passwordHash: string | null,
+    now: Date,
+  ): Promise<string> => {
+    const id = newId();
+    await db
+      .insertInto("user")
+      .values({
+        id,
+        name: user.name,
+        email: user.email,
+        email_verified: toDbBoolean(false, dialect),
+        image: null,
+        created_at: at(now),
+        updated_at: at(now),
+        role: user.role,
+        disabled_at: null,
+      })
+      .execute();
+    // Same shape Better Auth writes for email and password accounts: account_id is the user id.
+    if (passwordHash !== null)
+      await db
+        .insertInto("account")
+        .values({
+          id: newId(),
+          account_id: id,
+          provider_id: CREDENTIAL_PROVIDER,
+          user_id: id,
+          access_token: null,
+          refresh_token: null,
+          id_token: null,
+          access_token_expires_at: null,
+          refresh_token_expires_at: null,
+          scope: null,
+          password: passwordHash,
+          created_at: at(now),
+          updated_at: at(now),
+        })
+        .execute();
+    // Every user is in `global` (091); a root is in every workspace without a row.
+    if (user.role !== "root")
+      await db
+        .insertInto("workspace_members")
+        .values({
+          workspace_id: GLOBAL_WORKSPACE_ID,
+          user_id: id,
+          role: user.globalRole ?? "user",
+          added_by: null,
+          created_at: at(now),
+          updated_at: at(now),
+        })
+        .execute();
+    // A personal workspace of their own (114), roots too, in the same transaction.
+    await createPersonalWorkspace(db, dialect, { id, email: user.email }, now);
+    return id;
+  };
+
   return {
     transaction: (work) =>
       readCommittedTransaction(db, dialect).execute((trx) =>
@@ -363,57 +425,29 @@ export const kyselyIdentityRepository = (
       return Number(row.n);
     },
 
-    async createUserWithPassword(user: NewUserWithPassword, now: Date) {
-      const id = newId();
-      await db
-        .insertInto("user")
-        .values({
-          id,
-          name: user.name,
-          email: user.email,
-          email_verified: toDbBoolean(false, dialect),
-          image: null,
-          created_at: at(now),
-          updated_at: at(now),
-          role: user.role,
-          disabled_at: null,
-        })
+    createUserWithPassword(user: NewUserWithPassword, now: Date) {
+      return insertUser(user, user.passwordHash, now);
+    },
+
+    createUserWithoutPassword(user, now) {
+      return insertUser(user, null, now);
+    },
+
+    async providerSecrets() {
+      const rows = await db
+        .selectFrom("identity_providers")
+        .select(["id", "secret_enc"])
+        .where("secret_enc", "is not", null)
         .execute();
-      // Same shape Better Auth writes for email and password accounts: account_id is the user id.
+      return rows.map((r) => ({ id: r.id, secretEnc: r.secret_enc as string }));
+    },
+
+    async setProviderSecret(id, secretEnc) {
       await db
-        .insertInto("account")
-        .values({
-          id: newId(),
-          account_id: id,
-          provider_id: CREDENTIAL_PROVIDER,
-          user_id: id,
-          access_token: null,
-          refresh_token: null,
-          id_token: null,
-          access_token_expires_at: null,
-          refresh_token_expires_at: null,
-          scope: null,
-          password: user.passwordHash,
-          created_at: at(now),
-          updated_at: at(now),
-        })
+        .updateTable("identity_providers")
+        .set({ secret_enc: secretEnc })
+        .where("id", "=", id)
         .execute();
-      // Every user is in `global` (091); a root is in every workspace without a row.
-      if (user.role !== "root")
-        await db
-          .insertInto("workspace_members")
-          .values({
-            workspace_id: GLOBAL_WORKSPACE_ID,
-            user_id: id,
-            role: user.globalRole ?? "user",
-            added_by: null,
-            created_at: at(now),
-            updated_at: at(now),
-          })
-          .execute();
-      // A personal workspace of their own (114), roots too, in the same transaction.
-      await createPersonalWorkspace(db, dialect, { id, email: user.email }, now);
-      return id;
     },
 
     async setPassword(userId, passwordHash, now) {

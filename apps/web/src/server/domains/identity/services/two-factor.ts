@@ -20,6 +20,8 @@ export type TwoFactorDeps = {
   twoFactor: TwoFactorStore;
   repo: IdentityRepository;
   limiter: LoginRateLimiter;
+  /** Who may sign in with a password now (106); everyone when left out. */
+  passwordPolicy?: () => Promise<"everyone" | "root_only">;
   now?: () => Date;
 };
 
@@ -374,6 +376,12 @@ export const completeTwoFactorSignIn = async (
   if (totp ? !/^\d{6}$/.test(code) : code.length === 0 || code.length > 32) {
     log.event("auth.two_factor_failed", { reason: "wrong_code" });
     return { ok: false, error: "wrong_code" };
+  }
+  // The second step of a password sign-in: under Root only (106), a challenge someone else got
+  // before the switch can't finish (refused like a disabled account, before any session).
+  if ((await deps.passwordPolicy?.()) === "root_only") {
+    const user = await deps.repo.findUser(challenged);
+    if (user?.role !== "root") return refuse("refused");
   }
   return oneAtATime(challenged, async () => {
     if (totp && (await deps.twoFactor.codeUsed(challenged, code))) return refuse("used");

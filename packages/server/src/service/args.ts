@@ -165,8 +165,8 @@ Options for install:
   --user        macOS: run as you instead of a system user
 
 With the service installed, sudo rmk-server setup, migrate, reset-root-password, revoke-access,
-reset-two-factor, rotate-secret, backup and restore work on its data and settings, as its account. Backups go in
-the data folder's backups/ unless --out says where.
+reset-two-factor, rotate-secret, disable-sso, backup and restore work on its data and settings, as
+its account. Backups go in the data folder's backups/ unless --out says where.
 
 Where things are:
   Linux   data /var/lib/rmk-server, settings /etc/rmk-server/env, logs: journalctl -u rmk-server

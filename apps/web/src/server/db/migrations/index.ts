@@ -23,6 +23,7 @@ import { workspaceInNames } from "./0022_workspace_in_names";
 import { personalWorkspaces } from "./0023_personal_workspaces";
 import { scopeMoves } from "./0024_scope_moves";
 import { twoFactor } from "./0025_two_factor";
+import { identityProviders } from "./0026_identity_providers";
 import type { AppMigration } from "./types";
 
 /**
@@ -55,4 +56,5 @@ export const migrations: Record<string, AppMigration> = {
   "0023_personal_workspaces": personalWorkspaces,
   "0024_scope_moves": scopeMoves,
   "0025_two_factor": twoFactor,
+  "0026_identity_providers": identityProviders,
 };

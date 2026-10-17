@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { IdentityError } from "@/server/domains/identity/exceptions/errors";
 import {
+  setPasswordSignInPolicy,
   setTwoFactorPolicy,
   setUsageMinimum,
   setUsagePolicy,
@@ -52,6 +53,25 @@ export const saveTwoFactorPolicy = serverAction(
       );
       revalidatePath("/admin/settings");
       return { done: changed ? "Two-factor sign-in saved." : "Nothing changed." };
+    } catch (error) {
+      if (error instanceof SettingsError || error instanceof IdentityError)
+        return { error: error.message };
+      throw error;
+    }
+  },
+);
+
+/** Saves who may sign in with a password (106), turning domain errors into the form's `ERR:` line. */
+export const savePasswordSignInPolicy = serverAction(
+  async (_previous: SettingsActionState, form: FormData): Promise<SettingsActionState> => {
+    try {
+      const { changed } = await setPasswordSignInPolicy(
+        await requestHeaders(),
+        form.get("passwordSignInPolicy"),
+        form.get("confirm") === "on",
+      );
+      revalidatePath("/admin/settings");
+      return { done: changed ? "Password sign-in saved." : "Nothing changed." };
     } catch (error) {
       if (error instanceof SettingsError || error instanceof IdentityError)
         return { error: error.message };

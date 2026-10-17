@@ -225,6 +225,53 @@ export const parseRotateSecretCommand = (
   return { mode: "interactive" };
 };
 
+export type DisableSsoCommand =
+  | { mode: "interactive" | "non-interactive"; databaseUrl?: string }
+  | { mode: "help" }
+  | { mode: "error"; exitCode: 2; message: string };
+
+export const DISABLE_SSO_USAGE = `Usage: disable-sso [--yes] [--database-url URL]
+
+Turns every identity provider off and lets everyone sign in with a password again, for when a
+provider breaks or can't be trusted. Nobody is signed out; the providers keep their settings, links
+and group memberships, to turn back on in Admin › Settings › Authentication.
+
+  --yes, -y            Don't ask first (needed without a terminal)
+  --database-url URL   The database (default: DATABASE_URL, or the settings file's)
+  --help, -h           Show this`;
+
+/** disable-sso's flags (106): --yes to skip the question, --database-url like revoke-access. */
+export const parseDisableSsoCommand = (
+  argv: string[],
+  env: Record<string, string | undefined>,
+  hasTerminal: boolean,
+): DisableSsoCommand => {
+  let values: { yes?: boolean; help?: boolean; "database-url"?: string };
+  try {
+    ({ values } = parseArgs({
+      args: argv,
+      strict: true,
+      options: {
+        yes: { type: "boolean", short: "y" },
+        help: { type: "boolean", short: "h" },
+        "database-url": { type: "string" },
+      },
+    }));
+  } catch (caught) {
+    return { mode: "error", exitCode: 2, message: (caught as Error).message };
+  }
+  if (values.help) return { mode: "help" };
+  const databaseUrl = values["database-url"] || env.DATABASE_URL || undefined;
+  if (values.yes) return { mode: "non-interactive", databaseUrl };
+  if (!hasTerminal)
+    return {
+      mode: "error",
+      exitCode: 2,
+      message: "There's no terminal to ask for confirmation. Run it with --yes.",
+    };
+  return { mode: "interactive", databaseUrl };
+};
+
 export type ResetTwoFactorCommand =
   | { mode: "interactive" | "non-interactive"; email: string; databaseUrl?: string }
   | { mode: "help" }

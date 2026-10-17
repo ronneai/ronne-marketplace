@@ -7,6 +7,7 @@ import { type AppAuth, getAppAuth, getAppAuthIfConfigured } from "../repositorie
 import { betterAuthSessionStore } from "../repositories/better-auth-session-store";
 import { kyselyIdentityRepository } from "../repositories/kysely-identity-repository";
 import * as service from "../services/session";
+import { effectivePasswordPolicy } from "./password-policy";
 
 export { PATH_HEADER } from "../models/route-guard";
 export type { ChangePasswordResult, SignInInput, SignInResult } from "../services/session";
@@ -15,11 +16,13 @@ export type { ChangePasswordResult, SignInInput, SignInResult } from "../service
  * Entry points for pages, layouts and server actions. `app` defaults to the running server's
  * instance; tests pass their own.
  */
-const deps = ({ auth, db, dialect, limiter }: AppAuth): service.SessionDeps => {
+const deps = (app: AppAuth): service.SessionDeps => {
+  const { auth, db, dialect, limiter } = app;
   return {
     sessions: betterAuthSessionStore(auth),
     repo: kyselyIdentityRepository(db, dialect),
     limiter,
+    passwordPolicy: () => effectivePasswordPolicy(app),
   };
 };
 

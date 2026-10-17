@@ -131,6 +131,42 @@ describe("POST /api/v1/auth/token", () => {
     }
   });
 
+  it("answers password_sign_in_disabled to someone else's right password under Root only (106)", async () => {
+    const now = toDbDate(new Date(), t.dialect);
+    await t.db
+      .insertInto("identity_providers")
+      .values({
+        id: "acme",
+        type: "oidc",
+        preset: "okta",
+        name: "Acme SSO",
+        enabled: toDbBoolean(true, t.dialect),
+        config: "{}",
+        secret_enc: null,
+        domains: "[]",
+        groups_claim: null,
+        tested_at: now,
+        tested_by: null,
+        last_signed_in_at: null,
+        last_failure_at: null,
+        last_failure_reason: null,
+        created_by: null,
+        created_at: now,
+        updated_at: now,
+      })
+      .execute();
+    await t.db
+      .insertInto("instance_settings")
+      .values({ key: "password_sign_in", value: "root_only", updated_by: null, updated_at: now })
+      .execute();
+    const right = await login({ email, password });
+    expect(right.status).toBe(403);
+    expect((await right.json()).error.code).toBe("password_sign_in_disabled");
+    const wrong = await login({ email, password: "wrong horse battery" });
+    expect(wrong.status).toBe(401);
+    expect(await t.db.selectFrom("access_tokens").select("id").execute()).toEqual([]);
+  });
+
   it("answers 429 once the sign-in limit is used up", async () => {
     const limited = testAppAuth(t, { limiter: new LoginRateLimiter({ max: 2 }) });
     await login({ email, password: "wrong horse battery" }, {}, limited);

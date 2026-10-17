@@ -96,11 +96,33 @@ export const revokeAccess = async (
 export const endSessionsForNewSecret = async (
   deps: InstanceAccessDeps,
   writeSecret: () => void,
-): Promise<{ sessions: number; twoFactorCleared: number }> => {
+  /**
+   * The identity providers' client secrets under the new key (106): the stored value
+   * re-encrypted, or null when the old key can't read it (it stays, and stays unreadable).
+   */
+  rekey?: (providerId: string, stored: string) => string | null,
+): Promise<{
+  sessions: number;
+  twoFactorCleared: number;
+  providerSecrets: number;
+  unreadable: number;
+}> => {
   const now = (deps.now ?? (() => new Date()))();
   return deps.repo.transaction(async (repo) => {
     const sessions = await repo.deleteAllSessions();
     const twoFactorCleared = await repo.clearAllTwoFactor(now);
+    // Re-encrypted in the same transaction as the rest: if anything fails, nothing changed.
+    let providerSecrets = 0;
+    let unreadable = 0;
+    if (rekey)
+      for (const { id, secretEnc } of await repo.providerSecrets()) {
+        const next = rekey(id, secretEnc);
+        if (next === null) unreadable++;
+        else {
+          await repo.setProviderSecret(id, next);
+          providerSecrets++;
+        }
+      }
     await repo.recordAudit(
       {
         actorId: null,
@@ -110,12 +132,13 @@ export const endSessionsForNewSecret = async (
           via: "cli",
           sessionsEnded: sessions,
           ...(twoFactorCleared > 0 ? { twoFactorCleared } : {}),
+          ...(providerSecrets > 0 ? { providerSecretsReencrypted: providerSecrets } : {}),
         },
       },
       now,
     );
     writeSecret();
-    return { sessions, twoFactorCleared };
+    return { sessions, twoFactorCleared, providerSecrets, unreadable };
   });
 };
 

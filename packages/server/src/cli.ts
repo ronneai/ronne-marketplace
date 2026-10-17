@@ -13,6 +13,7 @@ export const SCRIPTS = [
   "revoke-access",
   "reset-two-factor",
   "rotate-secret",
+  "disable-sso",
   "backup",
   "restore",
 ] as const;
@@ -145,6 +146,7 @@ Usage:
                                   Turn off an account's two-factor sign-in (a lost phone)
   rmk-server rotate-secret [--yes]
                                   Write a new AUTH_SECRET; everyone signs in again (for incidents)
+  rmk-server disable-sso [--yes]  Turn every identity provider off; everyone may use a password again
   rmk-server backup [--out DIR] [--encrypt] [--no-settings] [--keep N]
                                   Make a backup archive while it runs (see rmk-server backup --help)
   rmk-server backup --verify ARCHIVE [--passphrase-file FILE]

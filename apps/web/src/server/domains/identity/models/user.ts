@@ -58,7 +58,10 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 /** Emails are stored trimmed and lowercase, so the unique index works on every database. */
 export const normalizeEmail = (email: string): string => {
   const normalized = email.trim().toLowerCase();
-  if (normalized.length > 255 || !EMAIL.test(normalized)) throw new InvalidEmailError(email);
+  // `.invalid` is reserved (RFC 2606): no account may have such an address, so 106's timing rule
+  // can sign in to one that nobody has.
+  if (normalized.length > 255 || !EMAIL.test(normalized) || normalized.endsWith(".invalid"))
+    throw new InvalidEmailError(email);
   return normalized;
 };
 

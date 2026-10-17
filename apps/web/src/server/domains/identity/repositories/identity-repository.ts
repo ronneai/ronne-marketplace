@@ -74,6 +74,11 @@ export interface IdentityRepository {
   countActiveAccessTokens(userId: string): Promise<number>;
   /** Creates the user and its credential account together. Returns the new user's id. */
   createUserWithPassword(user: NewUserWithPassword, now: Date): Promise<string>;
+  /** The same, for someone who signs in with an identity provider only (106): no credential account. */
+  createUserWithoutPassword(
+    user: Omit<NewUserWithPassword, "passwordHash">,
+    now: Date,
+  ): Promise<string>;
   setPassword(userId: string, passwordHash: string, now: Date): Promise<void>;
   enableUser(userId: string, now: Date): Promise<void>;
   /** Whether an email belongs to an active or a disabled user, or to nobody. For audit reasons only. */
@@ -86,6 +91,9 @@ export interface IdentityRepository {
   /** Every user's sessions and not-revoked tokens, for `revoke-access --everyone` (098). */
   countAllSessions(): Promise<number>;
   countAllActiveAccessTokens(): Promise<number>;
+  /** Every identity provider's id and encrypted client secret (106), for rotate-secret. */
+  providerSecrets(): Promise<{ id: string; secretEnc: string }[]>;
+  setProviderSecret(id: string, secretEnc: string): Promise<void>;
   /** Ends every session on the instance; returns how many. */
   deleteAllSessions(): Promise<number>;
   /** Revokes every token not revoked yet, everyone's; returns how many. */

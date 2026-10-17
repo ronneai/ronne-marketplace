@@ -299,8 +299,32 @@ export const HELP = {
   "auth-methods": {
     question: "How do people sign in?",
     answer:
-      "Today with their email and password. Root can always sign in with a password, so a broken identity provider can't lock everyone out.",
-    href: docsHref("admin", "settings"),
+      "With their email and password, and with your company's identity provider once root turns one on. Root can always sign in with a password, so a broken identity provider can't lock everyone out.",
+    href: docsHref("authentication", "overview"),
+  },
+  "provider-values": {
+    question: "Where do I find these values?",
+    answer:
+      "At your identity provider, in the application you register for Ronne: the steps here say where. The Documentation has a guide for each provider, with the claims Ronne reads and the usual mistakes.",
+    href: docsHref("authentication", "providers"),
+  },
+  "redirect-uri": {
+    question: "Why this address?",
+    answer:
+      "After someone signs in, the provider sends them back to this address, and only to an address registered with it. Register it exactly as shown: it's this instance's public address and the provider's id, which is why the id can't change later.",
+    href: docsHref("authentication", "providers"),
+  },
+  "provider-groups": {
+    question: "How are groups applied?",
+    answer:
+      "At every sign-in with this provider, each mapped group the person is in gives at least its role in its workspace, and a role a group gave goes when they leave the group. Memberships set by hand, and root, are never changed.",
+    href: docsHref("authentication", "groups"),
+  },
+  "password-lockout": {
+    question: "Can root be locked out?",
+    answer:
+      "No. Root can always sign in with a password, whatever is chosen here. If a provider breaks, disable-sso on the server turns every provider off and gives everyone their password back.",
+    href: docsHref("authentication", "lockout"),
   },
   "backup-codes-once": {
     question: "Why can't I show the codes again?",
@@ -370,15 +394,23 @@ export const Help = ({
   id,
   className,
   iconOnly,
+  href,
 }: {
   id: HelpId;
   className?: string;
   /** Only the icon; the question is still read out (HelpTip). */
   iconOnly?: boolean;
+  /** A more precise section than the helper's own, made with `docsHref` (a preset's guide). */
+  href?: string;
 }): ReactNode => {
   const help = HELP[id];
   return (
-    <HelpTip question={help.question} href={help.href} className={className} iconOnly={iconOnly}>
+    <HelpTip
+      question={help.question}
+      href={href ?? help.href}
+      className={className}
+      iconOnly={iconOnly}
+    >
       <p>{help.answer}</p>
     </HelpTip>
   );
