@@ -238,3 +238,22 @@ export class ProviderSecretUnreadableError extends IdentityError {
     super("The client secret can't be read with this AUTH_SECRET. Enter the client secret again.");
   }
 }
+
+/**
+ * A sign-in with a provider that didn't go through (106): the provider refused or didn't answer
+ * (`provider_error`), or what it sent back isn't valid (`invalid_response`). `detail` is for the
+ * log (redacted), never shown.
+ */
+export class ProviderFlowError extends IdentityError {
+  override readonly name: string = "ProviderFlowError";
+  constructor(
+    readonly reason: "provider_error" | "invalid_response",
+    readonly detail: string,
+  ) {
+    super(
+      reason === "provider_error"
+        ? "That provider didn't answer. Try again, or use your password."
+        : "That provider's answer couldn't be checked, so you weren't signed in.",
+    );
+  }
+}

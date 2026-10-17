@@ -195,3 +195,45 @@ Witnessed: 2026-10-16 22:23 EDT, by a fresh agent (adversarial). Commit: 1032b11
 | 13a | The diff breaks nothing else in the task's tests or the earlier probes | no | confirmed | 4 test files on SQLite → 69 passed; servers → 23 passed each; P3, P4, P5 as in re-check 1 on all four |
 
 **Overall:** met. Every row of task 2's blind and adversarial passes is now confirmed. Remark: `disableAll` (for `disable-sso`, task 8) turns providers off without a version check; off is the safe direction.
+
+## Task 3 — The OpenID Connect type and a fake provider
+
+Witnessed: 2026-10-16 22:26 EDT, by a fresh agent (blind). Commit: 4af0fb60 (+ uncommitted: errors.ts diff, oidc-presets.ts, oidc-provider-type.ts/.test.ts, provider-type-registry.ts, fake-oidc-server.ts). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The type has fields and parse, `start`, `complete`, `test` and `instructions`, and is registered | no | confirmed | `oidc-provider-type.ts:128-300`; `provider-type-registry.ts:5`; the test file → 45 passed |
+| 2 | Discovery tests: https or loopback issuer, redirect refused, issuer mismatch refused | no | confirmed | `checkIssuer` `:32-43`; tests `:59-84`, `:317-342`; oauth4webapi `build/index.js:309` compares `href`s; `redirect: 'manual'` at :237, :961, :1170 |
+| 3 | PKCE (S256), state and nonce sent and enforced | no | confirmed | `start` `:179-198`; test `:143-163`; forged state, wrong nonce, reused code or another verifier refused (`:251`, `:216`, `:267`) |
+| 4 | A bad signature is refused, and the test fails without `validateApplicationLevelSignature` | no | confirmed | call at `:220` with the token `Response`; M1 (call removed) → 1 failed / 44 passed |
+| 5 | `exp` gets 5 minutes of leeway | no | confirmed | `:24`, `:113`; test `:227`; M3 (clockTolerance removed) → it fails |
+| 6 | Ronne checks `iat`: more than 5 minutes in the future, or from before the sign-in started minus 5 minutes, is refused | no | confirmed | `:225-231`; test `:234`; M2, M5, M6 each fail it; probe `probe-iat-anchor.mts`. Remark: M4 (lower bound from `now` instead of `startedAt`) survives the suite |
+| 7 | `sub` and email required; email_verified true or "true"; `xms_edov` only for Entra and only without email_verified | no | confirmed | `:232-242`; tests `:177-192`, `:246` |
+| 8 | Groups: a missing claim gives null; a single string and a custom claim are read | no | confirmed | `groupsFrom` `:117-123`; test `:194-209` |
+| 9 | Down, refusing or slow → `provider_error`; a bad response → `invalid_response` | no | confirmed | `flowError` `:68-84`; 10 s timeout `:92`; tests `:298`, `:308` |
+| 10 | The fake serves discovery, keys, authorize and token, with the switches | no | confirmed | `fake-oidc-server.ts:120-208`, switches `:26-53`; decodes form-encoded Basic credentials (`:166-170`) |
+| 11 | Presets are data, all seven, each issuer pattern tested | no | confirmed | `oidc-presets.ts:34-212`; tests `:362-411`; issuer formats match each vendor's |
+| 12 | Instructions start with the redirect URI, then the preset's steps; Entra's mention `email`, `xms_edov` and the overage | no | confirmed | `:291-300`; test `:413`; `oidc-presets.ts:78-84` |
+
+**Overall:** met. Findings: the `iat` lower bound's anchor isn't pinned by a test (M4); `test()` fetches `jwks_uri` without the https rule.
+
+### Re-check 1 (blind: the diff since the pass)
+
+Witnessed: 2026-10-16 22:31 EDT, by a fresh agent (blind). Commit: 4af0fb60 + the uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6 | Ronne checks `iat` itself, and a test pins the lower bound to the sign-in's start | no | confirmed | new test `oidc-provider-type.test.ts:246-259`; 46 passed; M4 → that test fails, 1 failed / 45 passed |
+| 13 | `test()` refuses a `jwks_uri` that isn't https or loopback http, before fetching it | no | confirmed | `oidc-provider-type.ts:269-273`; probe `probe-jwks-http.mts http` → `ok:false`, "isn't https"; `loop` → `ok:true`. Remark: no unit test covers it (disabling the check → 46 passed) |
+
+**Overall:** met. Finding: the keys rule has no test.
+
+### Re-check 2 (blind: row 13's test)
+
+Witnessed: 2026-10-16 22:34 EDT, by a fresh agent (blind). Commit: 4af0fb60 + the uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 13 | `test()` refuses a `jwks_uri` that isn't https or loopback http, before fetching it, and a test covers it | no | confirmed | `fake-oidc-server.ts:54,131` switch `insecureJwks`; test `oidc-provider-type.test.ts:367-371`; 46 passed; mutation (`if (!jwksUrl)` → `if (false)`) → 1 failed / 45 passed; restored (sha1 matches) |
+
+**Overall:** met. Every row of task 3 is confirmed.

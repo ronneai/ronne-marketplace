@@ -29,7 +29,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   database kinds; a test shows the stored secret is not the plain one and the logger and audit rows
   never carry it.
 
-- [ ] **3. The OpenID Connect type and a fake provider.** The type's schema, `start`, `complete`,
+- [x] **3. The OpenID Connect type and a fake provider.** The type's schema, `start`, `complete`,
   `test` and `instructions`; the presets as data; a fake OIDC server for tests (discovery, keys,
   authorize, token, with switches for unverified email, missing groups, a bad signature, a wrong
   issuer and a slow answer).
@@ -171,3 +171,24 @@ goes into `SPEC.md` instead.
   back to a hand-set `user` (audited `member_role_changed` via sso), the rest are removed.
 - `pnpm test:db:<db> -- <a> <b>` with several paths fails at the script level; pass one path per
   call.
+
+**Task 3, the OpenID Connect type (2026-10-16).**
+
+- **Errors as the spec's reasons** (`ProviderFlowError`): the provider refused (`error=` in the
+  callback, an OAuth error body), answered 5xx, timed out or couldn't be reached →
+  `provider_error`; anything it sent that doesn't check out → `invalid_response`. A 5xx arrives
+  from `oauth4webapi` as `OperationProcessingError` with the `Response` as its `cause`, so the
+  status is read there. The library's message goes in `detail`, for the log only.
+- **Discovery runs for every start, callback and test**: an edited provider needs no restart, and
+  nothing is cached between replicas (111).
+- **Entra's `xms_edov`** counts as verified only for the Entra preset and only when
+  `email_verified` is absent (a preset's `verifiedClaim`): Entra never sends `email_verified`.
+- **The fake signs with `node:crypto`** (RS256 from a generated key pair, the public key exported as
+  a JWK): `jose` is only a dependency of Better Auth, so `apps/web` can't import it under pnpm.
+- **The type is a factory** (`createOidcProviderType({ timeoutMs })`) so a test can make a slow
+  provider time out in 100 ms; the app's registry (`PROVIDER_TYPES`) uses the 10-second default.
+- **`URL.href` on both sides**: `oauth4webapi` compares the typed issuer and the document's issuer
+  after `new URL()`, so `https://accounts.google.com` and `https://accounts.google.com/` match;
+  with a path, the trailing slash matters (authentik and Auth0 keep theirs).
+- The presets' steps were written from each vendor's documentation in October 2026; the in-form
+  text is the short version, and task 10's guides carry the screenshots.

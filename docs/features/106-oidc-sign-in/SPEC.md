@@ -131,9 +131,11 @@ type for the authorization URL (with a fresh PKCE verifier, `state` and `nonce`)
 The callback `GET /api/auth/sso/callback/<id>` is a route of Ronne's own (a Next.js route beside
 Better Auth's catch-all, which stays limited to its allowlist, 006); it validates the response,
 then `complete` returns the identity and Ronne decides:
-1. **Verified email required.** `email_verified` must be `true` (Entra often omits it: the Entra
-   preset says to turn on the optional `email` and `xms_edov` claims, and the test shows when it
-   is missing). Otherwise `unverified_email`.
+1. **Verified email required.** `email_verified` must be `true` (or `"true"`). Entra never sends
+   it: for the Entra preset only, and only when `email_verified` is absent, `xms_edov: true` (the
+   email's domain is verified in the tenant) counts instead; the preset says to turn on the
+   optional `email` and `xms_edov` claims, and the test shows when they are missing. Otherwise
+   `unverified_email`.
 2. **A disabled account** is refused (`disabled`), with the same message as a wrong password
    (006's rule: it doesn't say which accounts exist).
 3. **Known link** (the provider and subject): sign in.
@@ -165,7 +167,8 @@ their password sign-in.
 - Better Auth's HTTP allowlist stays `/get-session` and `/ok`: the only new HTTP route is the
   callback, Ronne's own, and the session endpoint is server-only. Registering a provider is only
   through Ronne's action.
-- The issuer must be `https://` (or `http://localhost` for development and tests), is fetched
+- The issuer must be `https://` (or `http://` on loopback, `localhost`, `127.0.0.1` or `[::1]`,
+  for development and tests), with no credentials, query or fragment, is fetched
   without following redirects (`oauth4webapi` refuses them), and its discovery document's issuer
   must equal what root typed. Private addresses are allowed on purpose (a company's Keycloak is on
   one); only root can enter an issuer.
