@@ -37,6 +37,16 @@ set), when the settings file has lines it can't rewrite safely (it names the lin
 and, in a clone, when another file Next.js loads (`apps/web/.env`, `.env.local`, …) also sets
 `AUTH_SECRET` (remove it there). It's recorded as `instance.secret_rotated`.
 
+**`disable-sso`** (106; same forms: `docker compose exec web pnpm run disable-sso`,
+`sudo rmk-server disable-sso`, `rmk-server disable-sso`, `pnpm run disable-sso`) turns every
+identity provider off and lets everyone sign in with a password again, for when a provider breaks
+or can't be trusted. Nobody is signed out; the providers keep their settings, links and group
+memberships, to turn back on in Admin › Settings › Authentication once fixed. People who sign in
+only with a provider (no password) can't sign in until one is back on or root sets them a password
+(Admin › Users). Each provider turned off is recorded as `instance.auth_provider_disabled`, and the
+password rule as `instance.password_sign_in_changed`, both `via: cli`. `rotate-secret` re-encrypts
+the providers' client secrets with the new `AUTH_SECRET`, so they keep working.
+
 `reset-root-password` (same forms: `docker compose exec web pnpm run reset-root-password`,
 `sudo rmk-server reset-root-password`, …) sets a new password for a root account, ends its sessions,
 revokes its tokens and enables it again.
@@ -110,6 +120,24 @@ didn't make.
 **Check:** the person signs in with the new password; their old sessions and tokens are gone.
 
 **Tell users:** the person; and anyone affected by what was done in their name.
+
+### An identity provider broke, or can't be trusted
+
+**How you'd know:** people can't sign in with it (the sign-in page says the provider didn't answer,
+or its answer couldn't be checked); its panel row says *Failing*; or the provider tells you its
+keys or your app's client secret leaked.
+
+**Now:** run `disable-sso` (above). Everyone with a password signs in with it again; root always
+could. If the provider may have signed people in who shouldn't be (a compromised provider), also
+run `revoke-access` for them, or `--everyone`.
+
+**Check:** the Authentication tab shows every provider *Off* and password sign-in for *Everyone*;
+the audit log has the `via: cli` events.
+
+**Then:** fix the provider (a new client secret: Replace it on the provider's page), run *Test
+sign-in* yourself, and turn it on again. Choose *Root only* again if you had it.
+
+**Tell users:** company sign-in is off for now; sign in with your password, or ask root for one.
 
 ### The settings file, a backup or the server leaked
 

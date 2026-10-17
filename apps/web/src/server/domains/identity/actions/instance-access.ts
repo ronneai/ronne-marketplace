@@ -1,6 +1,8 @@
 import type { Db } from "../../../db/create-db";
 import type { DatabaseDialect } from "../../../db/url";
+import { ProviderSecretUnreadableError } from "../exceptions/errors";
 import { kyselyIdentityRepository } from "../repositories/kysely-identity-repository";
+import { decryptSecret, encryptSecret } from "../repositories/provider-secrets";
 import { twoFactorSecretsReadable } from "../repositories/two-factor-secrets";
 import * as service from "../services/instance-access";
 
@@ -26,7 +28,23 @@ export const endSessionsForNewSecret = (
   db: Db,
   dialect: DatabaseDialect,
   writeSecret: () => void,
-) => service.endSessionsForNewSecret(deps(db, dialect), writeSecret);
+  /** The old and new AUTH_SECRET, to re-encrypt the identity providers' client secrets (106). */
+  secrets?: { from: string; to: string },
+) =>
+  service.endSessionsForNewSecret(
+    deps(db, dialect),
+    writeSecret,
+    secrets
+      ? (id, stored) => {
+          try {
+            return encryptSecret(secrets.to, id, decryptSecret(secrets.from, id, stored));
+          } catch (error) {
+            if (error instanceof ProviderSecretUnreadableError) return null;
+            throw error;
+          }
+        }
+      : undefined,
+  );
 
 export const clearTwoFactorAfterRestore = (
   db: Db,

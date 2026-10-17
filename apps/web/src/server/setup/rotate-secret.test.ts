@@ -101,6 +101,10 @@ describe("runRotateSecret (098)", () => {
     await expect(rotate({ RONNE_RUNTIME: "docker" })).rejects.toThrow(
       "Two-factor sign-in wasn't turned off either, and its secrets can't be read with the new AUTH_SECRET: run `docker compose exec web pnpm run rotate-secret --yes` again once the database answers, or `docker compose exec web pnpm run reset-two-factor --email <email>` for each person who has it.",
     );
+    // Nor were the identity providers' client secrets re-encrypted (106).
+    await expect(rotate({ RONNE_RUNTIME: "docker" })).rejects.toThrow(
+      "The identity providers' client secrets weren't re-encrypted either: enter each one again on its provider's page.",
+    );
     await expect(rotate({ RONNE_RUNTIME: "npm", RONNE_SERVICE: "1" })).rejects.toThrow(
       "Run `sudo rmk-server revoke-access --everyone --sessions-only`.",
     );

@@ -571,3 +571,33 @@ Witnessed: 2026-10-17 12:21 EDT, by a fresh agent (adversarial). Commit: d592e5b
 | 10b | Nothing can be reached through the reserved address: no account can have it, and a refused attempt never leaves a lasting session | yes | confirmed | probe on all four: `adminCreateUser` refuses `refused@sign-in.invalid` and `"REFUSED@Sign-In.INVALID "`; a refused attempt → 0 new sessions, 1 audit. On MySQL and MariaDB an accented look-alike (`…inválid`) is found by the reserved lookup; the fallback ends its session (`sessions left 0`, the log line). A provider's first sign-in runs `normalizeEmail` and refuses it (`sso-sign-in.ts:64-68`, read). Identity, setup and http suites → 799 passed |
 
 **Overall:** met. Every row of task 7 is confirmed, but for 10c: the ~1 ms timing residual, accepted by the owner (2026-10-17). The comment at `services/session.ts:117` was corrected and `docs/knowledge/collations.md` added after this pass.
+
+## Task 8 — Terminal commands
+
+Witnessed: 2026-10-17 12:34 EDT, by a fresh agent (blind). Commit: 86af8465 + working tree. Machine: macOS 27.0.1, Node v24.0.0. Mutations only in its scratch copy.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The script tests pass for disable-sso, rotate-secret, backup and restore (real entry points, SQLite) | no | confirmed | 2 files, 11 passed |
+| 2 | `disable-sso` turns every provider off and password sign-in back to everyone, each audited `via: "cli"`, signing nobody out, keeping settings and secrets | no | confirmed | script test; a second run says "Nothing to do"; mutation (`"root_only"`) → the db and script tests fail |
+| 3 | `disable-sso` asks first; without a terminal exits 2 unless `--yes`; `--help` works | no | confirmed | script test; strict parseArgs; the "no" path read (needs a TTY) |
+| 4 | Wired into every form: pnpm run, root package.json, the Docker image, rmk-server with its service verb | no | confirmed | each file; packages/server → 99 passed incl. `parseArgs(["disable-sso","--yes"])`; gap: `service/args.ts:167-168` help doesn't list it |
+| 5 | `rotate-secret` re-encrypts the providers' secrets in the same transaction, never printing them | no | confirmed | script test; inside `repo.transaction`; mutation (no rekey) → the script test fails |
+| 6 | Round trip: rotate, backup, restore with settings → the secret still readable, not failing | no | confirmed | script test passes |
+| 7 | A restore under another AUTH_SECRET marks each unreadable provider and says so, without printing the secret | no | confirmed | `restore.db.test.ts` on SQLite and the three servers (15/15 each); mutation → fails |
+| 8 | The panel then shows *Failing* with "Enter the client secret again" | no | partly | behaviour holds (`identity-provider.ts:93-97`, `ProviderPage.tsx:59`), but removing the `secret_unreadable` clause breaks no repo test, and the notice isn't rendered by one |
+| 9 | The db code works on all three servers | no | confirmed | disable-sso 2/2, instance-access 12/12, two-factor-reset 13/13, restore 15/15 on each |
+| 10 | The restore and incident runbooks are updated | no | confirmed | `backup.md`, `incident-response.md` (the entry and the new incident) |
+
+**Overall:** not met: no test covers the *Failing* badge or the notice for `secret_unreadable`.
+
+### Re-check 1 (blind: rows 4 and 8)
+
+Witnessed: 2026-10-17 12:43 EDT, by a fresh agent (blind). Commit: 86af8465 + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4 | `disable-sso` is wired into every form, including the service help | yes | confirmed | `packages/server/src/service/args.ts:167-169`; 99 passed |
+| 8 | *Failing* with "Enter the client secret again" after a restore under another AUTH_SECRET, both tested | yes | confirmed | 52 passed; status mutation → `identity-provider.test.ts` fails ("expected 'on' to be 'failing'"); notice mutation → `providers.test.tsx` fails; `ProviderPage.tsx:68` renders `UnreadableSecretNotice` |
+
+**Overall:** met. Every row of task 8 is confirmed.

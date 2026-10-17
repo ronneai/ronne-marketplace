@@ -62,7 +62,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* tests cover both policies for root and a non-root, the exchange, and refusing to
   choose *Root only* with no tested enabled provider.
 
-- [ ] **8. Terminal commands.** `rmk-server disable-sso`; `rotate-secret` re-encrypts the provider
+- [x] **8. Terminal commands.** `rmk-server disable-sso`; `rotate-secret` re-encrypts the provider
   secrets; `backup`/`restore` carry them and the restore runbook is updated.
   *Done when:* script tests pass for each, including a round trip through rotate and restore.
 
@@ -286,3 +286,20 @@ goes into `SPEC.md` instead.
   `not_allowed` say the same), as 006's rule asks; the audit row keeps the real reason.
 - Known test gap (accepted): nothing renders the policy form's Save button with *Root only* chosen
   and the confirm unticked; `canSave` is tested and the server refuses without the confirm.
+
+**Task 8, terminal commands (2026-10-17).**
+
+- **`disable-sso`** is composed at the action layer (`actions/disable-sso.ts`): the providers off
+  in identity's repository transaction, then the password policy back to *Everyone* through the
+  settings service with a system actor (`via: "cli"`). A new script means a line in every list:
+  `apps/web/package.json`, the root `package.json`, `tsdown.config.ts` (the Docker image's
+  `dist-scripts`), `docker/pnpm`, and `packages/server` (`SCRIPTS`, the usage, `SCRIPT_VERBS`, the
+  service help).
+- **`rotate-secret`** passes the old and new `AUTH_SECRET` to `endSessionsForNewSecret`, which
+  re-encrypts each provider's secret in its transaction, before the new secret is written; one the
+  old key can't read stays as it was and is reported. If the database fails after the file is
+  written, the providers' secrets stay under the old key: the message says to enter them again.
+- **Restore** checks each provider's secret against the `AUTH_SECRET` the server will use (the same
+  rule as two-factor's) and marks the ones it can't read `secret_unreadable`, which the panel shows
+  as *Failing* at once and the page explains. Backups need nothing new: they carry
+  `identity_providers` like any table, the secrets still encrypted.

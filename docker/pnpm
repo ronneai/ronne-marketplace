@@ -19,11 +19,12 @@ case "$1" in
   revoke-access) shift; exec node dist-scripts/revoke-access.mjs "$@" ;;
   reset-two-factor) shift; exec node dist-scripts/reset-two-factor.mjs "$@" ;;
   rotate-secret) shift; exec node dist-scripts/rotate-secret.mjs "$@" ;;
+  disable-sso) shift; exec node dist-scripts/disable-sso.mjs "$@" ;;
   backup) shift; exec node dist-scripts/backup.mjs "$@" ;;
   restore) shift; exec node dist-scripts/restore.mjs "$@" ;;
   db:migrate) shift; exec node dist-scripts/migrate.mjs "$@" ;;
   *)
     # reset-setup is development-only on purpose: to start over here, remove the ronne-data volume.
-    echo "This image only supports: pnpm run setup, pnpm run reset-root-password, pnpm run revoke-access, pnpm run reset-two-factor, pnpm run rotate-secret, pnpm run backup, pnpm run restore, pnpm db:migrate" >&2
+    echo "This image only supports: pnpm run setup, pnpm run reset-root-password, pnpm run revoke-access, pnpm run reset-two-factor, pnpm run rotate-secret, pnpm run disable-sso, pnpm run backup, pnpm run restore, pnpm db:migrate" >&2
     exit 2 ;;
 esac

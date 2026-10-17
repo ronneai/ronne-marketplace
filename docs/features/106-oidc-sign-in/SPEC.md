@@ -66,7 +66,12 @@ for setting it up on the provider's side.
   turned off, `reason: "retest"`).
 - **Lockout protection:** root's password sign-in cannot be turned off, by anyone, anywhere. A
   new terminal command, `rmk-server disable-sso`, turns every provider off and sets the password
-  policy to *Everyone*, for when a provider breaks, like `revoke-access` and `rotate-secret` (098).
+  policy to *Everyone*, for when a provider breaks, like `revoke-access` and `rotate-secret` (098):
+  it asks first (`--yes` doesn't), signs nobody out, keeps the providers' settings, links and group
+  memberships, and is audited as the command line's (`via: "cli"`). `rotate-secret` re-encrypts the
+  providers' client secrets under the new `AUTH_SECRET` in the same transaction; a restore under
+  another `AUTH_SECRET` marks each provider it can't read *Failing* ("Enter the client secret
+  again").
 - **Audit events** (007): `auth.sso_signed_in { provider }`, `auth.sso_failed { provider, reason }`
   (`unverified_email`, `not_allowed`, `disabled`, `invalid_response`, `provider_error`, and
   `unavailable`, `expired`, `rate_limited` before the provider is asked),

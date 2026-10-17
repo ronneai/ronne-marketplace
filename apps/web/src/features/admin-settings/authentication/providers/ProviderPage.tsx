@@ -21,6 +21,15 @@ export const TestNotice = ({ test }: { test?: string }) =>
     <Notice kind={test === "done" ? "info" : "warn"} title={TEST_NOTICES[test]} />
   ) : null;
 
+/** The stored client secret can't be read with this AUTH_SECRET (after a restore). */
+export const UnreadableSecretNotice = ({ reason }: { reason: string | null }) =>
+  reason === "secret_unreadable" ? (
+    <Notice kind="warn" title="Enter the client secret again.">
+      This server can&apos;t read the stored one: it was saved under another AUTH_SECRET (as after a
+      restore). Replace it below, then run Test sign-in.
+    </Notice>
+  ) : null;
+
 /**
  * Admin › Settings › Authentication › a provider (106): `?provider=<id>` to edit it, `new` to
  * add one. A page rather than a dialog, so the setup steps sit beside the form on a desktop and
@@ -56,6 +65,7 @@ export const ProviderPage = async ({
         </Link>
       </div>
       <TestNotice test={test} />
+      <UnreadableSecretNotice reason={provider?.lastFailureReason ?? null} />
       <Panel padding="lg">
         <div className="grid gap-4">
           <h2 className="text-base font-semibold text-fg">

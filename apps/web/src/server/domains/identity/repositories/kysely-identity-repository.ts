@@ -433,6 +433,23 @@ export const kyselyIdentityRepository = (
       return insertUser(user, null, now);
     },
 
+    async providerSecrets() {
+      const rows = await db
+        .selectFrom("identity_providers")
+        .select(["id", "secret_enc"])
+        .where("secret_enc", "is not", null)
+        .execute();
+      return rows.map((r) => ({ id: r.id, secretEnc: r.secret_enc as string }));
+    },
+
+    async setProviderSecret(id, secretEnc) {
+      await db
+        .updateTable("identity_providers")
+        .set({ secret_enc: secretEnc })
+        .where("id", "=", id)
+        .execute();
+    },
+
     async setPassword(userId, passwordHash, now) {
       await db
         .updateTable("account")

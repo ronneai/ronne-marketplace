@@ -91,6 +91,9 @@ export interface IdentityRepository {
   /** Every user's sessions and not-revoked tokens, for `revoke-access --everyone` (098). */
   countAllSessions(): Promise<number>;
   countAllActiveAccessTokens(): Promise<number>;
+  /** Every identity provider's id and encrypted client secret (106), for rotate-secret. */
+  providerSecrets(): Promise<{ id: string; secretEnc: string }[]>;
+  setProviderSecret(id: string, secretEnc: string): Promise<void>;
   /** Ends every session on the instance; returns how many. */
   deleteAllSessions(): Promise<number>;
   /** Revokes every token not revoked yet, everyone's; returns how many. */

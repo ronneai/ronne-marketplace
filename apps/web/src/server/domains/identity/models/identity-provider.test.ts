@@ -90,6 +90,28 @@ describe("the panel's status", () => {
     expect(providerStatus({ ...base, testedAt: new Date(), enabled: true })).toBe("on");
     expect(providerStatus({ ...base, enabled: true, failures: 3 })).toBe("failing");
     expect(providerStatus({ ...base, enabled: true, failures: 2 })).toBe("on");
+    // A failed test, or a secret this AUTH_SECRET can't read (after a restore), fails at once.
+    expect(
+      providerStatus({
+        ...base,
+        enabled: true,
+        testedAt: new Date(),
+        failures: 1,
+        lastFailureReason: "test_failed",
+      }),
+    ).toBe("failing");
+    expect(
+      providerStatus({
+        ...base,
+        enabled: true,
+        testedAt: new Date(),
+        failures: 1,
+        lastFailureReason: "secret_unreadable",
+      }),
+    ).toBe("failing");
+    expect(
+      providerStatus({ ...base, enabled: true, failures: 1, lastFailureReason: "provider_error" }),
+    ).toBe("on");
   });
 });
 

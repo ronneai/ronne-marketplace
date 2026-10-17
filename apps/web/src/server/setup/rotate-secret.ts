@@ -107,7 +107,7 @@ export const runRotateSecret = async (options: {
       throw new SetupFailedError(
         `Line ${unplain} of the settings file isn't a plain KEY=value line (a multi-line or escaped value, KEY: value, a stray line break, or a value ending in a backslash). Nothing was changed: edit the file by hand, then run this again.`,
       );
-    return { text, databaseUrl };
+    return { text, databaseUrl, secret: file.AUTH_SECRET };
   };
   check();
 
@@ -120,13 +120,14 @@ export const runRotateSecret = async (options: {
     });
     if (!sure) throw new SetupFailedError("Cancelled. The secret wasn't changed.");
   }
-  const { text: existing, databaseUrl } = check();
+  const { text: existing, databaseUrl, secret: oldSecret } = check();
+  const newSecret = generateAuthSecret();
 
   // The new file is made, and read back, before anything changes: mergeEnv checks that the server
   // reads the new secret from it and every other setting as before.
   let content: string;
   try {
-    content = mergeEnv(existing, { AUTH_SECRET: generateAuthSecret() }, { replaceKept: true });
+    content = mergeEnv(existing, { AUTH_SECRET: newSecret }, { replaceKept: true });
   } catch (error) {
     if (error instanceof EnvMergeError)
       throw new SetupFailedError(
@@ -140,33 +141,41 @@ export const runRotateSecret = async (options: {
   try {
     let sessions: number;
     let twoFactorCleared: number;
+    let providerSecrets: number;
+    let unreadable: number;
     try {
-      ({ sessions, twoFactorCleared } = await endSessionsForNewSecret(db, dialect, () => {
-        try {
-          writeEnvFile(envPath, content);
-        } catch (error) {
-          // Written in full, then setting the mode failed: the new secret is in place.
-          if (error instanceof InPlaceWriteError && error.complete) {
-            written = true;
-            throw error;
-          }
-          if (error instanceof InPlaceWriteError)
+      ({ sessions, twoFactorCleared, providerSecrets, unreadable } = await endSessionsForNewSecret(
+        db,
+        dialect,
+        () => {
+          try {
+            writeEnvFile(envPath, content);
+          } catch (error) {
+            // Written in full, then setting the mode failed: the new secret is in place.
+            if (error instanceof InPlaceWriteError && error.complete) {
+              written = true;
+              throw error;
+            }
+            if (error instanceof InPlaceWriteError)
+              throw new SetupFailedError(
+                `The settings file was being rewritten in place and that failed (${error.code ?? "an error"}): it may be incomplete. Check it, and restore it from a backup if needed. The sessions weren't ended.`,
+              );
+            // The error's message names the file; only its code is shown.
+            const code = (error as NodeJS.ErrnoException).code ?? "an error";
             throw new SetupFailedError(
-              `The settings file was being rewritten in place and that failed (${error.code ?? "an error"}): it may be incomplete. Check it, and restore it from a backup if needed. The sessions weren't ended.`,
+              `The settings file couldn't be written (${code}). Nothing was changed: ${adviceFor(code)}.`,
             );
-          // The error's message names the file; only its code is shown.
-          const code = (error as NodeJS.ErrnoException).code ?? "an error";
-          throw new SetupFailedError(
-            `The settings file couldn't be written (${code}). Nothing was changed: ${adviceFor(code)}.`,
-          );
-        }
-        written = true;
-      }));
+          }
+          written = true;
+        },
+        // The identity providers' client secrets go under the new key in the same transaction.
+        { from: oldSecret, to: newSecret },
+      ));
     } catch (error) {
       // Written, then the database failed to commit: the new secret is in place, sessions aren't ended.
       if (written)
         throw new SetupFailedError(
-          `The new AUTH_SECRET was written, but ending the sessions failed. Run ${followUp("revoke-access", "--everyone --sessions-only", env)}${runtimeOf(env) === "node" ? `, then restart the server: ${restartHint(env)}` : ""}. Two-factor sign-in wasn't turned off either, and its secrets can't be read with the new AUTH_SECRET: run ${followUp("rotate-secret", "--yes", env)} again once the database answers, or ${followUp("reset-two-factor", "--email <email>", env)} for each person who has it.`,
+          `The new AUTH_SECRET was written, but ending the sessions failed. Run ${followUp("revoke-access", "--everyone --sessions-only", env)}${runtimeOf(env) === "node" ? `, then restart the server: ${restartHint(env)}` : ""}. Two-factor sign-in wasn't turned off either, and its secrets can't be read with the new AUTH_SECRET: run ${followUp("rotate-secret", "--yes", env)} again once the database answers, or ${followUp("reset-two-factor", "--email <email>", env)} for each person who has it. The identity providers' client secrets weren't re-encrypted either: enter each one again on its provider's page.`,
         );
       throw error;
     }
@@ -182,6 +191,14 @@ export const runRotateSecret = async (options: {
     if (twoFactorCleared > 0)
       prompts.log.info(
         `Turned off two-factor sign-in for ${twoFactorCleared} ${twoFactorCleared === 1 ? "account" : "accounts"}: its secrets were encrypted with the old AUTH_SECRET. They set it up again on their Account page.`,
+      );
+    if (providerSecrets > 0)
+      prompts.log.info(
+        `Re-encrypted ${providerSecrets} identity provider ${providerSecrets === 1 ? "secret" : "secrets"} with the new AUTH_SECRET: sign-in with them keeps working.`,
+      );
+    if (unreadable > 0)
+      prompts.log.warn(
+        `${unreadable} identity provider ${unreadable === 1 ? "secret was" : "secrets were"} already unreadable (an older AUTH_SECRET): enter the client secret again on the provider's page.`,
       );
     prompts.log.info("Access tokens keep working; to revoke them too, run revoke-access.");
     return { sessions, twoFactorCleared };

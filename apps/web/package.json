@@ -17,6 +17,7 @@
     "reset-two-factor": "pnpm --filter @ronneai/core --silent build && tsx scripts/reset-two-factor.ts",
     "revoke-access": "pnpm --filter @ronneai/core --silent build && tsx scripts/revoke-access.ts",
     "rotate-secret": "pnpm --filter @ronneai/core --silent build && tsx scripts/rotate-secret.ts",
+    "disable-sso": "pnpm --filter @ronneai/core --silent build && tsx scripts/disable-sso.ts",
     "backup": "pnpm --filter @ronneai/core --silent build && tsx scripts/backup.ts",
     "restore": "pnpm --filter @ronneai/core --silent build && tsx scripts/restore.ts",
     "reset-setup": "tsx scripts/reset-setup.ts",

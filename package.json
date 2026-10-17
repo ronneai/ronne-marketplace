@@ -28,6 +28,7 @@
     "reset-two-factor": "pnpm --filter @ronneai/web run reset-two-factor",
     "revoke-access": "pnpm --filter @ronneai/web run revoke-access",
     "rotate-secret": "pnpm --filter @ronneai/web run rotate-secret",
+    "disable-sso": "pnpm --filter @ronneai/web run disable-sso",
     "backup": "pnpm --filter @ronneai/web run backup",
     "restore": "pnpm --filter @ronneai/web run restore",
     "reset-setup": "pnpm --filter @ronneai/web run reset-setup",

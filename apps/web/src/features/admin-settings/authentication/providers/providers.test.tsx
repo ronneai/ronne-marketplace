@@ -39,7 +39,7 @@ const { ProviderForm, ProviderFormMessages } = await import("./ProviderForm");
 const { ProviderControls, ConnectionResult, TestResult, DeleteConfirm } = await import(
   "./ProviderControls"
 );
-const { TestNotice } = await import("./ProviderPage");
+const { TestNotice, UnreadableSecretNotice } = await import("./ProviderPage");
 
 const CALLBACK = "https://ronne.example/api/auth/sso/callback/";
 const REDIRECT = `${CALLBACK}acme`;
@@ -385,6 +385,14 @@ describe("the results", () => {
     expect(renderToStaticMarkup(<TestNotice test="rate_limited" />)).toContain("Too many attempts");
     expect(renderToStaticMarkup(<TestNotice test="something-else" />)).toBe("");
     expect(renderToStaticMarkup(<TestNotice />)).toBe("");
+  });
+
+  it("says to enter the client secret again when this AUTH_SECRET can't read it", () => {
+    expect(renderToStaticMarkup(<UnreadableSecretNotice reason="secret_unreadable" />)).toContain(
+      "Enter the client secret again.",
+    );
+    expect(renderToStaticMarkup(<UnreadableSecretNotice reason="provider_error" />)).toBe("");
+    expect(renderToStaticMarkup(<UnreadableSecretNotice reason={null} />)).toBe("");
   });
 
   it("confirms Delete, saying what it does", () => {

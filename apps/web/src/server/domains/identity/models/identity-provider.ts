@@ -89,7 +89,13 @@ export type ProviderStatus = "off" | "tested" | "on" | "failing";
 
 /** The panel's badge. */
 export const providerStatus = (p: IdentityProvider): ProviderStatus => {
-  if (p.failures >= FAILING_AFTER || p.lastFailureReason === "test_failed") return "failing";
+  // A failed test, or a secret this AUTH_SECRET can't read (after a restore), fails at once.
+  if (
+    p.failures >= FAILING_AFTER ||
+    p.lastFailureReason === "test_failed" ||
+    p.lastFailureReason === "secret_unreadable"
+  )
+    return "failing";
   if (p.enabled) return "on";
   return p.testedAt ? "tested" : "off";
 };
