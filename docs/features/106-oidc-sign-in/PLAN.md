@@ -92,6 +92,14 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* a test shows the session's expiry and that using it doesn't extend it; the
   Documentation says so.
 
+- [x] **14. Fresh keys at the callback.** [risky] Found by CI on the pull request (2026-10-17): the
+  discovery cache of task 12 also served the callback, and `oauth4webapi` keeps the provider's keys
+  on the document, so the tablet's end-to-end run checked a new fake provider's token against an
+  earlier one's key. Cache discovery for starts only; the callback and *Test connection* always
+  fetch it. The end-to-end test uses a provider id per retry.
+  *Done when:* a test signs in after the provider rotates its key under the same key id, within
+  the 10 minutes, and fails without the fix; the full end-to-end run passes.
+
 ## Notes
 
 Things learned while building that the next person should know. Anything that changes behaviour

@@ -52,6 +52,8 @@ export type FakeOidcSwitches = {
   noKeys?: boolean;
   /** Discovery names a plain-http keys address off loopback. */
   insecureJwks?: boolean;
+  /** The provider rotated its key and kept the key id: publishes and signs with the other one. */
+  rotatedKey?: boolean;
 };
 
 export type FakeOidc = {
@@ -139,7 +141,14 @@ export const startFakeOidc = async (
     if (url.pathname === "/jwks") {
       if (s.noKeys) return json({ error: "not_found" }, 404);
       return json({
-        keys: [{ ...keys.publicKey.export({ format: "jwk" }), kid, alg: "RS256", use: "sig" }],
+        keys: [
+          {
+            ...(s.rotatedKey ? other : keys).publicKey.export({ format: "jwk" }),
+            kid,
+            alg: "RS256",
+            use: "sig",
+          },
+        ],
       });
     }
     if (url.pathname === "/authorize") {
@@ -198,7 +207,7 @@ export const startFakeOidc = async (
           ...(u.groups !== undefined ? { groups: u.groups } : {}),
           ...u.claims,
         },
-        s.badSignature ? other.privateKey : keys.privateKey,
+        Boolean(s.badSignature) !== Boolean(s.rotatedKey) ? other.privateKey : keys.privateKey,
         kid,
       );
       return json({

@@ -103,8 +103,10 @@ export const createOidcProviderType = ({
   });
 
   /**
-   * Discovery documents by issuer, for sign-ins: a start then costs no request to the provider.
-   * Only good answers are kept; *Test connection* always asks again.
+   * Discovery documents by issuer, for starting a sign-in: a start then costs no request to the
+   * provider. Only good answers are kept. The callback and *Test connection* always ask again:
+   * `oauth4webapi` keeps the provider's keys on the document, so a kept one would verify ID
+   * tokens against keys the provider may have rotated.
    */
   const discovered = new Map<string, { as: oauth.AuthorizationServer; until: number }>();
 
@@ -219,7 +221,7 @@ export const createOidcProviderType = ({
     },
 
     async complete(provider, { url, redirectUri, keep, startedAt }): Promise<VerifiedIdentity> {
-      const { as, url: issuer } = await discover(provider);
+      const { as, url: issuer } = await discover(provider, { fresh: true });
       const client = clientOf(provider);
       let claims: oauth.IDToken;
       try {

@@ -247,8 +247,10 @@ rule and each provider, on or off.
   limit. When the address can't be known (no trusted proxy), the starts share one bucket for the
   instance, and the callbacks another: 300 a minute each (decision 11). A flood then holds up
   provider sign-in for a minute at worst; passwords still work. A start costs little anyway: the
-  discovery document is kept for 10 minutes (only a good one; *Test connection* always fetches it),
-  so it asks the provider nothing, and its row is deleted once expired.
+  discovery document is kept for 10 minutes for starts (only a good one), so a start asks the
+  provider nothing, and its row is deleted once expired. The callback and *Test connection* always
+  fetch it: `oauth4webapi` keeps the provider's keys on the document, so a kept one would check ID
+  tokens against keys the provider may have rotated (found in CI, 2026-10-17).
 - Everything is logged with the request's ID and the provider's id (100), never a token or a secret.
 
 **Phones and keyboards.** The cards, the steps and the mapping rows work at phone width; the
@@ -375,7 +377,8 @@ sign-in buttons are 44px tall on a coarse pointer.
     by hand is never changed.
 11. **Sign-in starts are limited and cheap without a trusted proxy too** (owner, 2026-10-17): when
     the client's address isn't known, the starts and callbacks share one bucket for the instance;
-    the discovery document is cached, and expired sign-ins in progress are deleted. (Task 12.)
+    the discovery document is cached for starts, and expired sign-ins in progress are deleted.
+    (Task 12.)
 12. **A provider's session lasts 24 hours** (owner, 2026-10-17), not 30 days: someone disabled at
     the provider loses Ronne within a day without SCIM (108); signing in again is usually one click.
     (Task 13.)

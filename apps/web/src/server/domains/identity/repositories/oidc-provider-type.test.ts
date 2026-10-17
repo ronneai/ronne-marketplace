@@ -344,34 +344,42 @@ describe("discovery", () => {
     );
   });
 
-  it("is kept for 10 minutes for sign-ins, only when good, and Test connection always asks", async () => {
+  it("is kept for 10 minutes for starts, only when good; callbacks and Test connection always ask", async () => {
     let clock = 1_000_000;
     const type = createOidcProviderType({ now: () => clock });
     const asked = () =>
       fake.requests.filter((path) => path === "/.well-known/openid-configuration").length;
     await signIn(provider(), type);
     await signIn(provider(), type);
-    // Two starts and two callbacks: one request.
-    expect(asked()).toBe(1);
+    // The first start and both callbacks ask; the second start uses the kept document.
+    expect(asked()).toBe(3);
     // A failed Test connection drops the document still kept: the next start asks again.
     fake.switches.wrongIssuer = true;
     expect((await type.test(provider())).ok).toBe(false);
     fake.switches.wrongIssuer = false;
     await type.start(provider(), { redirectUri: REDIRECT });
-    expect(asked()).toBe(3);
+    expect(asked()).toBe(5);
     clock += 600_000;
     await type.start(provider(), { redirectUri: REDIRECT });
-    expect(asked()).toBe(4);
-    await type.test(provider());
-    await type.test(provider());
     expect(asked()).toBe(6);
+    await type.test(provider());
+    await type.test(provider());
+    expect(asked()).toBe(8);
     // A bad answer isn't kept.
     clock += 600_000;
     fake.switches.wrongIssuer = true;
     await refusedWith("invalid_response", type.start(provider(), { redirectUri: REDIRECT }));
     fake.switches.wrongIssuer = false;
     await type.start(provider(), { redirectUri: REDIRECT });
-    expect(asked()).toBe(8);
+    expect(asked()).toBe(10);
+  });
+
+  it("verifies a callback against the provider's current keys, even with a kept document", async () => {
+    const type = createOidcProviderType();
+    await signIn(provider(), type);
+    // Rotated under the same key id, within the 10 minutes a start keeps the document.
+    fake.switches.rotatedKey = true;
+    expect((await signIn(provider(), type)).subject).toBe("sub-ana");
   });
 
   it("refuses an issuer that isn't https or loopback without asking it anything", async () => {

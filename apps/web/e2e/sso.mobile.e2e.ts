@@ -15,6 +15,7 @@ test("an identity provider, from the preset to disable-sso", async ({
     baseURL,
     root: mobileUser(testInfo, "ssoRoot"),
     member: mobileUser(testInfo, "ssoMember"),
-    suffix: testInfo.project.name,
+    // A retry gets its own provider: the first attempt's id is taken.
+    suffix: `${testInfo.project.name}${testInfo.retry ? `-r${testInfo.retry}` : ""}`,
   });
 });

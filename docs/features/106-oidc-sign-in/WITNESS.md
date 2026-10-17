@@ -917,3 +917,60 @@ Witnessed: 2026-10-17 18:43 EDT, by a fresh agent (adversarial). Commit: d5a7e90
 | 17 | The SPEC matches | no | confirmed | `SPEC.md:176-177` matches `better-auth-sso-session.ts:57` |
 
 **Overall:** met. Every row of task 13's blind and adversarial passes is now confirmed.
+
+## Task 14 — Fresh keys at the callback
+
+Witnessed: 2026-10-17 19:33 EDT, by a fresh agent (blind). Commit: 5885c8ce + staged diff. Machine: macOS 27 (Darwin 27.0.0), Node v24.0.0. The mutation only in its scratch copy.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The callback always fetches discovery again, so the ID token is checked against the provider's current keys | no | confirmed | `oidc-provider-type.ts:224` `discover(provider, { fresh: true })`; `fresh` skips the cache (:118); a fresh `as` makes oauth4webapi fetch the keys. 48 passed |
+| 2 | Starts still use the document kept for 10 minutes (only a good one) | no | confirmed | `:203` `discover(provider)`; the test: two sign-ins = 3 requests, +600 s asks again, a bad answer isn't kept |
+| 3 | *Test connection* always fetches discovery | no | confirmed | `:278` `fresh: true`; two tests add 2 requests |
+| 4 | A test signs in after the provider rotates its key under the same key id, within the 10 minutes | no | confirmed | "verifies a callback against the provider's current keys, even with a kept document"; `rotatedKey` publishes and signs with the other key under the same `kid` |
+| 5 | That test fails without the fix | no | confirmed | line 224 back to `discover(provider)` → 2 failed: the rotation test ("That provider's answer couldn't be checked") and the cache test |
+| 6 | Identity database tests still pass | no | confirmed | `--project db src/server/domains/identity` → 284 passed, 1 skipped |
+| 7 | The end-to-end test uses a provider id per retry | no | confirmed | suffix adds `-r${retry}`; 8 distinct ids over the projects × retry 0/1, longest 24 characters. By reading: `retries` is 1 only in CI |
+| 8 | The SPEC says discovery is kept for starts only | no | confirmed | the limiter bullet and decision 11 match :203/:224/:278 |
+| 9 | The full end-to-end run passes | no | can't check here | not run, as instructed |
+
+**Overall:** not met: rows 1–8 hold; row 9 waits for the full end-to-end run.
+
+Witnessed: 2026-10-17 19:33 EDT, by a fresh agent (adversarial). Commit: 5885c8ce + staged diff. Machine: macOS (Darwin 27), Node v24.0.0. Probes and mutations only in its scratch copy.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The callback always fetches discovery fresh, never checking an ID token with keys tied to a kept document | no | confirmed | `oidc-provider-type.ts:224`; `start` returns only `url`/`state`/`keep`; `.complete(` only from `actions/sso.ts:278` |
+| 2 | Test sign-in (through the callback) and Test connection also fetch fresh | no | confirmed | `sso.ts:274-291`; `test()` `fresh: true`; probe "Test connection then sign-in after rotation" passes |
+| 3 | A rotation under the same key id within the 10 minutes signs in, and fails without the fix | no | confirmed | 48 passed; mutation → the rotation test fails (signature check) and the cache test `expected 1 to be 3` |
+| 4 | Edge paths can't verify with keys from a kept document | no | confirmed | probe: two providers sharing an issuer, rotation between a kept start and its callback, the module-level type, rotating back: 6 pass; 4 fail on the mutated copy |
+| 5 | A start still asks the provider nothing within 10 minutes (decision 11) | no | confirmed | probe: 5 starts at +599 999 ms → 0 requests; at +600 000 ms → 1; a start right after a sign-in → 0 |
+| 6 | The fake's `rotatedKey` switch is correct alone and with `badSignature` | no | confirmed | `fake-oidc-server.ts:144-151,210`; both on → refused; `rotatedKey` alone → signed in |
+| 7 | The SPEC's explanation matches oauth4webapi's code | no | confirmed | `build/index.js:989-1095`: keys in a `WeakMap` by document, up to 300 s, refetched only at ≥ 300 s or no matching key id at ≥ 60 s |
+| 8 | Identity database tests still pass | no | confirmed | 284 passed, 1 skipped |
+| 9 | The end-to-end test uses a provider id per retry, within the sign-in limit | no | confirmed | `-r<retry>` suffix; longest id 24 characters; per attempt root signs in once, the member twice. Its caveat (Ann's email unchanged on retry) doesn't hold: `sso.ts` builds Ann's email, subject and listed domain from the same suffix |
+| 10 | The full end-to-end run passes | no | can't check here | not run, as instructed |
+
+**Overall:** not met: rows 1-9 hold under attack; row 10 isn't witnessed here.
+
+### Re-check 1 (adversarial: the end-to-end row)
+
+Witnessed: 2026-10-17 19:40 EDT, by a fresh agent (adversarial). Commit: 5885c8ce + staged diff. Machine: macOS 27.0.1 (Darwin 27.0.0), Node v24.0.0. Nothing changed in the repository; the three throwaway servers stopped with the run.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 10 | The full end-to-end run passes | no | confirmed | `pnpm test:e2e` → exit 0, 157 passed (4.3m), no failed, retried or flaky test. The four SSO runs passed: chromium `sso.e2e.ts`, phone, phone-webkit and tablet `sso.mobile.e2e.ts`. Retries are 0 locally, so the `-r1` id was checked by reading only |
+| 11 | The staged diff is the one the earlier passes checked | no | confirmed | `git diff --cached --stat` → the same 7 files, 54 insertions and 18 deletions; its sha256 the same before and after the run |
+
+**Overall:** met. Every row of task 14's blind and adversarial passes is now confirmed.
+
+### Re-check 1 (blind: the end-to-end row)
+
+Witnessed: 2026-10-17 19:45 EDT, by a fresh agent (blind). Commit: 5885c8ce + staged diff. Machine: macOS 27.0.1 (Darwin 27.0.0), Node v24.0.0. Nothing changed in the repository; the three throwaway servers stopped with the run, other servers left alone.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 9 | The full end-to-end run passes | no | confirmed | `pnpm test:e2e` → exit 0, 157 passed (4.1m), none flaky or retried; the SSO test passed in chromium, phone, phone-webkit and tablet |
+| 10 | The code under test is the staged diff on top of 5885c8ce | no | confirmed | HEAD 5885c8ce; `git diff --cached --stat` → the task's 7 files plus WITNESS.md; no unstaged change |
+
+**Overall:** met. Every row of task 14's blind pass is now confirmed.
