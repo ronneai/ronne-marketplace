@@ -135,8 +135,48 @@ export interface WorkspaceMemberTable {
   user_id: string;
   role: "admin" | "moderator" | "user";
   added_by: string | null;
+  /** Null when set by hand; the identity provider's id when a group mapping gave it (106). */
+  source: ColumnType<string | null, string | null | undefined, string | null>;
   created_at: Timestamp;
   updated_at: Timestamp;
+}
+
+/**
+ * An identity provider root set up (migration 0026_identity_providers, feature 106). `config` is
+ * the type's JSON without the client secret, which is `secret_enc` (encrypted); `domains` a JSON
+ * array of email domains that get an account on first sign-in.
+ */
+export interface IdentityProviderTable {
+  id: string;
+  type: string;
+  preset: string;
+  name: string;
+  enabled: GeneratedDbBoolean;
+  config: string;
+  secret_enc: string | null;
+  domains: string;
+  link_by_email: GeneratedDbBoolean;
+  groups_claim: string | null;
+  tested_at: Timestamp | null;
+  tested_by: string | null;
+  last_signed_in_at: Timestamp | null;
+  failures: Generated<number>;
+  last_failure_at: Timestamp | null;
+  last_failure_reason: string | null;
+  created_by: string | null;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+}
+
+/** A group in a provider's claim that gives a role in a workspace (0026, 106). */
+export interface ProviderGroupMappingTable {
+  id: string;
+  provider_id: string;
+  group_name: string;
+  /** Null once the workspace is deleted: the panel warns about it. */
+  workspace_id: string | null;
+  role: "admin" | "moderator" | "user";
+  created_at: Timestamp;
 }
 
 /**
@@ -399,6 +439,8 @@ export interface Database {
   audit_log: AuditLogTable;
   workspaces: WorkspaceTable;
   workspace_members: WorkspaceMemberTable;
+  identity_providers: IdentityProviderTable;
+  provider_group_mappings: ProviderGroupMappingTable;
   workspace_access_requests: WorkspaceAccessRequestTable;
   scope_moves: ScopeMoveTable;
   scopes: ScopeTable;

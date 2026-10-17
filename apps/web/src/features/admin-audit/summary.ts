@@ -64,6 +64,10 @@ const moving = (m: Meta): SummaryPart => ({ name: text(m.scope) || "a scope" });
 const renamedAs = (m: Meta): (string | SummaryPart)[] =>
   text(m.newName) && text(m.newName) !== text(m.scope) ? [", as ", { name: text(m.newName) }] : [];
 
+/** A membership a provider's group mapping changed (106). */
+const bySso = (m: Meta): (string | SummaryPart)[] =>
+  m.via === "sso" ? [", through the groups of ", { code: text(m.provider) }] : [];
+
 const VIA: Record<string, string> = { cli: "from the command line", api: "from rmk", web: "" };
 const via = (m: Meta) => (VIA[text(m.via)] ? ` ${VIA[text(m.via)]}` : "");
 
@@ -123,6 +127,31 @@ export const SUMMARIES: Record<AuditAction, Build> = {
       `Restored a backup made by Ronne ${text(from.version)} at ${text(from.time).slice(0, 16).replace("T", " ")}: ${plural(num(m.rows), "row")}, ${plural(num(m.files), "stored file")}${via(m)}`,
     ];
   },
+  "instance.auth_provider_created": (m) => [
+    "Added the identity provider ",
+    { code: text(m.provider) },
+  ],
+  "instance.auth_provider_updated": (m) => [
+    "Changed the identity provider ",
+    { code: text(m.provider) },
+    Array.isArray(m.changed) && m.changed.length > 0 ? `: ${m.changed.map(text).join(", ")}` : "",
+  ],
+  "instance.auth_provider_deleted": (m) => [
+    "Deleted the identity provider ",
+    { code: text(m.provider) },
+    num(m.membershipsRemoved)
+      ? `, and the ${plural(num(m.membershipsRemoved), "membership")} its groups gave`
+      : "",
+  ],
+  "instance.auth_provider_enabled": (m) => [
+    "Turned on the identity provider ",
+    { code: text(m.provider) },
+  ],
+  "instance.auth_provider_disabled": (m) => [
+    "Turned off the identity provider ",
+    { code: text(m.provider) },
+    m.reason === "retest" ? " (its settings changed, so it needs a new test)" : "",
+  ],
   "user.password_reset": (m, e) => [
     "Reset the password of ",
     who(m, e),
@@ -198,6 +227,7 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     " to ",
     { name: text(m.workspace) },
     ` as ${text(m.role)}`,
+    ...bySso(m),
   ],
   "workspace.member_role_changed": (m) => [
     "Changed ",
@@ -205,12 +235,14 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     ` in `,
     { name: text(m.workspace) },
     ` from ${text(m.from)} to ${text(m.to)}`,
+    ...bySso(m),
   ],
   "workspace.member_removed": (m) => [
     "Removed ",
     { name: text(m.email) },
     " from ",
     { name: text(m.workspace) },
+    ...bySso(m),
   ],
   // Requests to join (094): the event is on the requester.
   "workspace.access_requested": (m, e) => [

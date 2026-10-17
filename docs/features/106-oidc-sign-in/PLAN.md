@@ -19,7 +19,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* Notes name the chosen route with the evidence, and `pnpm licenses:check` and
   `pnpm audit --audit-level high` pass with it installed.
 
-- [ ] **2. Tables and the contract.** [risky] Migration: `identity_providers`,
+- [x] **2. Tables and the contract.** [risky] Migration: `identity_providers`,
   `provider_group_mappings` and `workspace_members.source` (all three dialects, `docs/spec`
   untouched); the `AuthProviderType` contract and the registry of types in the
   identity domain; the secret encryption (AES-256-GCM, key derived from `AUTH_SECRET`) with
@@ -148,3 +148,26 @@ goes into `SPEC.md` instead.
 - With `oauth4webapi` installed: `pnpm install --frozen-lockfile` up to date, `pnpm licenses:check`
   "323 packages checked. All licenses are allowed", `pnpm audit --audit-level high` "No known
   vulnerabilities found".
+
+**Task 2, tables and the contract (2026-10-16).**
+
+- **Every write that depends on a read is conditional on the row's version** (`updated_at`): save,
+  turn on/off and recording a test all update `WHERE id = ? AND updated_at = <what was read>` and
+  report whether one row changed. A read-compare-write inside a transaction isn't enough: MySQL and
+  MariaDB's REPEATABLE READ let two saves of one form both land, and an enable racing a save that
+  cleared the test left the provider on and untested (the witnesses' probes; SQLite runs one
+  transaction at a time and never shows it). Versions only go up: a write within the same
+  millisecond takes the previous `updated_at` + 1 ms.
+- **A test counts for one version**: `markProviderTested` takes the `updatedAt` the test started on,
+  so a save during a *Test sign-in* makes it count for nothing (task 6 passes it).
+- **No `zod` in `apps/web`**: a type gives `fields` and a `parse(input, previous)` that throws
+  `InvalidProviderConfigError` with a message per field; SPEC's contract table says so.
+- **Audit metadata keys can't contain `secret`** (007's check), so `instance.auth_provider_updated`
+  lists the changed fields as values: `changed: ["name", "client secret"]`.
+- **The secret's AAD is the provider id**, so a value copied onto another row doesn't decrypt; the id
+  never changes, so that's safe.
+- **Booleans go through `toDbBoolean`**: SQLite can't bind `true`.
+- **Deleting a provider never removes anyone from `global`** (092): a group-given `global` row goes
+  back to a hand-set `user` (audited `member_role_changed` via sso), the rest are removed.
+- `pnpm test:db:<db> -- <a> <b>` with several paths fails at the script level; pass one path per
+  call.

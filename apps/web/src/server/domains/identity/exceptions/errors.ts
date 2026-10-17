@@ -157,3 +157,84 @@ export class TokenNotFoundError extends IdentityError {
     super("That token doesn't exist, or isn't yours.");
   }
 }
+
+/** An identity provider id that breaks the rules (106): it is in the redirect URI, chosen once. */
+export class InvalidProviderIdError extends IdentityError {
+  override readonly name: string = "InvalidProviderIdError";
+  constructor(readonly id: string) {
+    super(
+      "A provider id has 3 to 32 lowercase letters, digits and dashes, starts and ends with a letter or digit, and isn't credential.",
+    );
+  }
+}
+
+export class ProviderIdTakenError extends IdentityError {
+  override readonly name: string = "ProviderIdTakenError";
+  constructor(readonly id: string) {
+    super(`Another provider already has the id ${id}.`);
+  }
+}
+
+export class InvalidProviderDomainsError extends IdentityError {
+  override readonly name: string = "InvalidProviderDomainsError";
+  constructor(readonly domain: string) {
+    super(
+      domain
+        ? `"${domain}" isn't an email domain. Write domains like example.com, separated by commas.`
+        : "Write email domains like example.com, separated by commas.",
+    );
+  }
+}
+
+/** What root typed for a provider is incomplete or wrong; `fields` names each field and why. */
+export class InvalidProviderConfigError extends IdentityError {
+  override readonly name: string = "InvalidProviderConfigError";
+  constructor(readonly fields: Record<string, string>) {
+    super(Object.values(fields).join(" "));
+  }
+}
+
+export class InvalidProviderNameError extends IdentityError {
+  override readonly name: string = "InvalidProviderNameError";
+  constructor() {
+    super("The display name needs 1 to 100 characters.");
+  }
+}
+
+export class UnknownProviderTypeError extends IdentityError {
+  override readonly name: string = "UnknownProviderTypeError";
+  constructor(readonly type: string) {
+    super(`"${type}" isn't a kind of identity provider Ronne knows.`);
+  }
+}
+
+export class ProviderNotFoundError extends IdentityError {
+  override readonly name: string = "ProviderNotFoundError";
+  constructor() {
+    super("That identity provider doesn't exist.");
+  }
+}
+
+/** Turning a provider on needs a passing *Test sign-in* by the root turning it on (106). */
+export class ProviderNotTestedError extends IdentityError {
+  override readonly name: string = "ProviderNotTestedError";
+  constructor() {
+    super("Run Test sign-in yourself, and pass it, before turning this provider on.");
+  }
+}
+
+/** Someone saved the provider since this form was opened (106's version check). */
+export class StaleProviderError extends IdentityError {
+  override readonly name: string = "StaleProviderError";
+  constructor(readonly updatedAt: Date) {
+    super("Someone changed this provider since you opened it. Reload to see their changes.");
+  }
+}
+
+/** The stored client secret can't be decrypted: AUTH_SECRET changed, as after a restore. */
+export class ProviderSecretUnreadableError extends IdentityError {
+  override readonly name: string = "ProviderSecretUnreadableError";
+  constructor() {
+    super("The client secret can't be read with this AUTH_SECRET. Enter the client secret again.");
+  }
+}

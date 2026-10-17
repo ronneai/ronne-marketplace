@@ -20,8 +20,8 @@ for setting it up on the provider's side.
   | Part | What it gives |
   |---|---|
   | `id`, `label` | `"oidc"`, "OpenID Connect" |
-  | config schema | Zod schema of what root types (and which fields are secret) |
-  | form fields | what the Add/Edit form renders, from the schema |
+  | `fields` | what root types and the Add/Edit form renders (and which field is the secret) |
+  | `parse(input, previous)` | checks it and splits it into the stored config and the secret (a blank secret keeps the stored one); `needsRetest(before, after)` says whether a change clears the test |
   | `start(provider, { next })` | the URL to send the browser to |
   | `complete(provider, request)` | the verified identity: `{ subject, email, emailVerified, name, groups }` |
   | `test(provider)` | discovery and key checks, and the dry-run sign-in |
@@ -60,8 +60,9 @@ for setting it up on the provider's side.
 - **Test before you trust it:** *Test connection* (discovery document, issuer matches, keys
   fetched) and *Test sign-in* (root signs in with the provider in a new tab; Ronne shows the claims
   it received, and what it would do with them, and **changes nothing**). A provider can be enabled
-  only after a passing *Test sign-in* by the root who enables it; editing the issuer, client or
-  scopes clears it.
+  only after a passing *Test sign-in* by the root who enables it; editing the issuer, client,
+  secret or scopes clears it, and turns an enabled provider off until it passes again (audited as
+  turned off, `reason: "retest"`).
 - **Lockout protection:** root's password sign-in cannot be turned off, by anyone, anywhere. A
   new terminal command, `rmk-server disable-sso`, turns every provider off and sets the password
   policy to *Everyone*, for when a provider breaks, like `revoke-access` and `rotate-secret` (098).
@@ -86,10 +87,10 @@ for setting it up on the provider's side.
 ## Behaviour
 
 **The panel.** Rows show the name, "OpenID Connect · Okta" (type and preset), the issuer, the
-domains, a status badge (*Off*, *Tested*, *On*, *Failing* if the last test or sign-in failed) and
-the last sign-in. Actions: Edit, Turn on / Turn off, Delete (confirm; accounts linked to it keep
-their linked rows and can still sign in with a password, if they have one). No providers yet:
-a short explanation and **Add provider**.
+domains, a status badge (*Off*, *Tested*, *On*, *Failing* when the last test failed or after
+three failed sign-ins in a row) and the last sign-in. Actions: Edit, Turn on / Turn off, Delete
+(confirm; accounts linked to it keep their linked rows and can still sign in with a password, if
+they have one). No providers yet: a short explanation and **Add provider**.
 
 **Add / Edit provider** (a page, `/admin/settings?tab=authentication&provider=<id|new>`, so the
 steps can sit beside the form on a desktop and under it on a phone):
@@ -106,9 +107,9 @@ steps can sit beside the form on a desktop and under it on a phone):
 5. **Test, then turn on.** The two tests, with their results written out ("Issuer
    `https://…` answered; the keys were fetched; the response has `email_verified`; groups claim
    found: 3 values").
-The provider's **id** (a slug, chosen once, 3–32 characters, lowercase letters, digits and `-`)
-is in the redirect URI and can't be changed; it can't be `credential` or collide with another
-provider.
+The provider's **id** (a slug, chosen once, 3–32 characters, lowercase letters, digits and `-`,
+starting and ending with a letter or digit) is in the redirect URI and can't be changed; it can't
+be `credential` or `new` (the form's address) or collide with another provider.
 
 **Secrets.** The client secret is encrypted before it is stored (key derived from `AUTH_SECRET`,
 AES-256-GCM, a fresh nonce per value), shown nowhere, redacted by the logger (100) and left out of
@@ -198,13 +199,16 @@ sign-in buttons are 44px tall on a coarse pointer.
   does not change.
 - **Root signs in with a provider:** allowed if linked (by email); nothing from a claim changes
   root, and groups never apply to root.
-- **Deleting a provider that has linked accounts:** its group-given memberships are removed; people
-  without a password can't sign in until root resets one (008) or adds another provider.
+- **Deleting a provider that has linked accounts:** its group-given memberships are removed (in
+  `global`, which nobody leaves, the role goes back to a hand-set `user` instead); people without a
+  password can't sign in until root resets one (008) or adds another provider.
 - **Turning off a provider:** nobody signs in with it; their links and group memberships stay.
 - **Clock skew:** 5 minutes of leeway: on `exp` and `nbf` through `oauth4webapi`'s
   `clockTolerance` (its default is 30 seconds), and on `iat` in Ronne's own check.
-- **Two roots edit one provider at once:** the later save wins, with the *updated* time shown in the
-  form; the stale form says so (a version check on save).
+- **Two roots edit one provider at once:** the first save wins; the other form is stale and says
+  so (a version check on save: the update applies only to the version the form was opened with, so
+  two saves at the same moment can't both land). A *Test sign-in* counts only for the version it
+  started on: a save during the test makes it count for nothing.
 - **Restoring a backup (099)** onto an instance with the same `AUTH_SECRET`: providers keep
   working; with another, the secrets can't be decrypted and the panel shows the provider as
   *Failing* with "Enter the client secret again".
