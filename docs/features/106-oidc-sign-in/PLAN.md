@@ -9,7 +9,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 ## Tasks
 
-- [ ] **1. Spike: the library.** [risky] Through the dependency checklist, read the installed
+- [x] **1. Spike: the library.** [risky] Through the dependency checklist, read the installed
   `@better-auth/sso` (and `genericOAuth` in `better-auth`): licence, release age, peer
   dependencies (SAML ones must not come along), its tables on the three databases, whether it
   stores the client secret in clear, how it validates the response, how it takes a provider that
@@ -20,8 +20,8 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   `pnpm audit --audit-level high` pass with it installed.
 
 - [ ] **2. Tables and the contract.** [risky] Migration: `identity_providers`,
-  `provider_group_mappings`, `workspace_members.source`, and the plugin's tables if used (all three
-  dialects, `docs/spec` untouched); the `AuthProviderType` contract and the registry of types in the
+  `provider_group_mappings` and `workspace_members.source` (all three dialects, `docs/spec`
+  untouched); the `AuthProviderType` contract and the registry of types in the
   identity domain; the secret encryption (AES-256-GCM, key derived from `AUTH_SECRET`) with
   `encryptSecret`/`decryptSecret`; the repository and the provider service (create, update,
   enable, disable, delete, with the audit events), no UI yet.
@@ -34,15 +34,16 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   authorize, token, with switches for unverified email, missing groups, a bad signature, a wrong
   issuer and a slow answer).
   *Done when:* unit tests cover discovery, the issuer rule (https or localhost, redirects refused,
-  issuer mismatch), PKCE/state/nonce, a bad signature, expiry and each preset's issuer pattern.
+  issuer mismatch), PKCE/state/nonce, a bad signature (failing without `validateApplicationLevelSignature`), expiry,
+  an `iat` in the future or from before the sign-in started, and each preset's issuer pattern.
 
 - [ ] **4. Sign-in and accounts.** [risky] The start action, the callback route added to the HTTP
   allowlist (and only it), the decision list (verified email, disabled, known link, link by email,
   create for a listed domain, refuse), the session, `auth.sso_*` and `user.*` events. The creation
   goes through the same service as Create user (personal workspace included).
   *Done when:* db tests cover every branch of the decision list, two accounts with one email, a
-  changed email at the provider, root, a disabled account, an off-site `next`, and that the other
-  plugin routes return 404.
+  changed email at the provider, root, a disabled account, an off-site `next`, a state from another
+  browser or used twice, and that the session endpoint returns 404 over HTTP.
 
 - [ ] **5. Groups.** [risky] The mapping service and its application at sign-in (add, raise, remove
   by `source`, never touch hand-set rows or root), the warning for a deleted workspace.
@@ -79,3 +80,71 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+**Task 1, the library (2026-10-16): Ronne's own flow on `oauth4webapi@3.8.8`.** Read against
+`better-auth@1.7.7`, the installed version.
+
+- **`@better-auth/sso@1.7.7`: rejected.** MIT, released 2026-09-30, peers `better-auth ^1.7.7`,
+  `@better-auth/core ^1.7.7`, `better-call 1.4.0`, `@better-auth/utils 0.4.2` and
+  `@better-fetch/fetch 1.3.2`. But:
+  - `samlify`, `@xmldom/xmldom` and `fast-xml-parser` are plain `dependencies`, and `dist/index.mjs`
+    imports them at the top (lines 3, 15–17), so the SAML code loads with OIDC only.
+  - Its `ssoProvider` table keeps `clientSecret` in clear inside the `oidcConfig` JSON
+    (`buildOIDCConfig`, around line 3420). `defaultSSO` avoids the table but is fixed at start.
+  - No `nonce` at all (`grep -c nonce` → 0); the ID token check is `jwtVerify` with `iss` and `aud`.
+  - Its `resolveUser` hook (typed at `index-sM6JWXeV.d.mts:332`; `resolveSSOUser` at
+    `index.mjs:1600-1612`, called for OIDC in `handleOIDCCallback` at `:3967` and for SAML in
+    `processSAMLResponse` at `:3013-3066`) gets the verified identity and answers `continue`,
+    `link` (a `userId`, and `profile: preserve|update`) or `reject` (a `code`) (`:1583-1588`),
+    inside a transaction (it needs the adapter's native transactions). That could carry Ronne's decision list, but it runs inside
+    the plugin's callback, so a *Test sign-in* that changes nothing and Ronne's own audit reasons
+    would still go through the plugin; `provisionUser` runs only after the user exists. It doesn't
+    outweigh the SAML libraries, the secret in clear and the missing nonce.
+  - 14 routes of its own, 10 of them not SAML (`/sign-in/sso`, `/sso/register`, `/sso/providers`,
+    `/sso/update-provider`, …), and its
+    own linking, domain verification and organisation provisioning, beside Ronne's decision list.
+- **`genericOAuth` (in `better-auth`): rejected.** No new package, and it binds the nonce. But its
+  `options.config` is read in `init` (discovery runs there), so a new or edited provider means a
+  new Better Auth instance, and its callback is core's `/callback/:id`, which creates and links
+  users by Better Auth's rules: the decision list and a dry-run *Test sign-in* would be hooks
+  fighting it.
+- **`oauth4webapi@3.8.8`: chosen.** MIT, no dependencies, published 2026-09-05 with SLSA provenance,
+  OpenID Certified, maintained by panva (also `jose`'s author; one maintainer, like `jose`, which
+  Better Auth depends on already). It is what Auth.js builds on. Every request uses
+  `redirect: 'manual'`.
+- **The throwaway sign-in** (a fake OIDC server on `node:http` + `jose`, code + PKCE + state + nonce,
+  `ClientSecretBasic`), each case's result:
+
+  | Case | Result |
+  |---|---|
+  | ok | claims `sub`, `email`, `email_verified: true`, `groups` |
+  | `email_verified: false` | accepted by the library, so Ronne's decision list refuses it |
+  | no groups claim | accepted, `groups` absent (the test must say so) |
+  | bad signature | **accepted** until `validateApplicationLevelSignature(as, response)` is called, then `OAUTH_INVALID_RESPONSE` |
+  | wrong nonce | `OAUTH_JWT_CLAIM_COMPARISON_FAILED` |
+  | expired | `OAUTH_JWT_TIMESTAMP_CHECK_FAILED` |
+  | discovery issuer ≠ typed issuer | `OAUTH_JSON_ATTRIBUTE_COMPARISON_FAILED` |
+  | discovery answers a redirect | `OAUTH_RESPONSE_IS_NOT_CONFORM` (not followed) |
+
+- **Gotchas for tasks 3–4:**
+  - The ID token signature isn't checked by default (OIDC Core 3.1.3.7). Call
+    `validateApplicationLevelSignature(as, tokenResponse)` with the token endpoint's **`Response`**
+    (the library keys the token by it), not the parsed result. Task 3's bad-signature test must fail
+    without that call.
+  - `ClientSecretBasic` form-encodes the id and secret before Base64 (RFC 6749 §2.3.1: `client-1`
+    is sent as `client%2D1`). The fake must decode them, and so do real providers.
+  - `http://localhost` needs `[allowInsecureRequests]: true` on each call; give it only for a
+    `localhost` issuer.
+  - `clockTolerance` defaults to 30 seconds and covers only `exp` and `nbf`; the spec says 5
+    minutes. `iat` is only checked to be a number (`build/index.js:1823-1827`): a token with `iat`
+    a year ahead or 30 days back passes, so Ronne checks it itself (SPEC, Allowlist and security).
+- **Opening the session.** A server-only Better Auth plugin endpoint (`metadata: { SERVER_ONLY:
+  true }`) that calls `internalAdapter.createSession` and `setSessionCookie` for the user Ronne
+  chose: the session cookie is set, `databaseHooks.session.create.before` (the disabled check) runs,
+  `getSession` reads it back, and over HTTP the endpoint is a 404 even without Ronne's allowlist
+  (200 without `SERVER_ONLY`).
+- `@better-auth/scim` (108) doesn't need `@better-auth/sso`: its dependencies are `zod` and
+  `@noble/hashes`.
+- With `oauth4webapi` installed: `pnpm install --frozen-lockfile` up to date, `pnpm licenses:check`
+  "323 packages checked. All licenses are allowed", `pnpm audit --audit-level high` "No known
+  vulnerabilities found".

@@ -29,8 +29,8 @@ for setting it up on the provider's side.
 
   Only the type knows about OIDC; the list, the sign-in page, linking, provisioning, group mapping
   and audit are written against the contract.
-- **The OpenID Connect type**, the authorization-code flow with PKCE, through Better Auth's
-  `@better-auth/sso` plugin (the fallback is in Decisions).
+- **The OpenID Connect type**, the authorization-code flow with PKCE, state and nonce, a small
+  flow of Ronne's own on `oauth4webapi` (MIT); Better Auth only opens the session (Decision 3).
 - **Presets**, which fill the form and choose the instructions: Google Workspace, Microsoft Entra
   ID, Okta, Keycloak, Authentik, Auth0, and **Other OpenID Connect**. A preset is data (a label,
   an issuer pattern with the pieces root fills in such as `{tenant}` or `{domain}`, default scopes,
@@ -113,21 +113,23 @@ provider.
 **Secrets.** The client secret is encrypted before it is stored (key derived from `AUTH_SECRET`,
 AES-256-GCM, a fresh nonce per value), shown nowhere, redacted by the logger (100) and left out of
 every audit row (which says only that it changed). `rmk-server rotate-secret` re-encrypts the
-stored secrets (it has both keys in the same run); `backup` (099) carries them encrypted. If the
-installed `@better-auth/sso` stores the secret in a table of its own in clear, task 1 records it
-and the fallback applies: Ronne's own table holds the encrypted value and gives it to the plugin
-per request.
+stored secrets (it has both keys in the same run); `backup` (099) carries them encrypted. It is
+decrypted only in memory, for the token request, and never copied into another table.
 
 **Where the data lives.** Ronne owns a table, `identity_providers` (id, type, name, preset, enabled,
 tested_at, `config` JSON without secrets, `secret_enc`, domains, link_by_email, groups claim,
 created/updated); and a `provider_group_mappings` table (provider id, group, workspace id, role).
-`@better-auth/sso`'s own `ssoProvider` rows (if it needs them) are written from Ronne's on save and
-are never the source of truth. `workspace_members` gains `source` (null, or the provider id).
+No library keeps a copy. `workspace_members` gains `source` (null, or the provider id). A sign-in
+in progress (the PKCE verifier, `state`, `nonce`, `next` and whether it is a *Test sign-in*) is a
+`verification` row keyed by the state's hash, expiring after 10 minutes and deleted on first use,
+and the state is also in a short-lived `HttpOnly`, `SameSite=Lax` cookie, so the callback only
+finishes in the browser that started it.
 
 **Signing in.** The sign-in page lists the enabled providers as buttons. A server action asks the
-type for the authorization URL and redirects. PKCE, `state` and `nonce` are the plugin's. The
-callback `GET /api/auth/sso/callback/<id>` is added to the HTTP allowlist (006) (and only that
-route); it validates the response, then `complete` returns the identity and Ronne decides:
+type for the authorization URL (with a fresh PKCE verifier, `state` and `nonce`) and redirects.
+The callback `GET /api/auth/sso/callback/<id>` is a route of Ronne's own (a Next.js route beside
+Better Auth's catch-all, which stays limited to its allowlist, 006); it validates the response,
+then `complete` returns the identity and Ronne decides:
 1. **Verified email required.** `email_verified` must be `true` (Entra often omits it: the Entra
    preset says to turn on the optional `email` and `xms_edov` claims, and the test shows when it
    is missing). Otherwise `unverified_email`.
@@ -139,7 +141,10 @@ route); it validates the response, then `complete` returns the identity and Ronn
    `user` in `global`, personal workspace, no password), link, sign in.
 6. **Else** `not_allowed`.
 Then the groups are applied (below) and the session is created like a password one (same cookie,
-`auth.signed_in`, plus `auth.sso_signed_in`). Two-factor (105) isn't asked.
+`auth.signed_in`, plus `auth.sso_signed_in`), by a server-only Better Auth endpoint
+(`SERVER_ONLY`, so it is a 404 over HTTP even without the allowlist) that takes the user Ronne
+chose; the disabled-account check on session creation (006) still runs. Two-factor (105) isn't
+asked.
 
 **Groups.** At each sign-in, for each mapped group the person is in, make sure the membership
 exists with at least the mapped role, marked `source = provider`; for each membership marked with
@@ -156,20 +161,24 @@ right password. The change needs an enabled, tested provider and a confirm that 
 their password sign-in.
 
 **Allowlist and security.**
-- Only the callback route joins `/get-session` and `/ok`; the rest of the plugin's routes (register,
-  sign-in) stay 404, and registering a provider is only through Ronne's action.
+- Better Auth's HTTP allowlist stays `/get-session` and `/ok`: the only new HTTP route is the
+  callback, Ronne's own, and the session endpoint is server-only. Registering a provider is only
+  through Ronne's action.
 - The issuer must be `https://` (or `http://localhost` for development and tests), is fetched
-  without following redirects (the plugin refuses them), and its discovery document's issuer must
-  equal what root typed. Private addresses are allowed on purpose (a company's Keycloak is on one);
-  only root can enter an issuer.
-- The `next` after sign-in is the same relative-path rule as 006 and is carried in the plugin's
-  `state`, not in the URL root registered.
-- The ID token's signature, `iss`, `aud`, `exp` and `nonce` are checked by the plugin; Ronne also
-  requires `sub`.
+  without following redirects (`oauth4webapi` refuses them), and its discovery document's issuer
+  must equal what root typed. Private addresses are allowed on purpose (a company's Keycloak is on
+  one); only root can enter an issuer.
+- The `next` after sign-in is the same relative-path rule as 006 and is kept with the sign-in in
+  progress (above), not in the URL root registered.
+- The ID token's `iss`, `aud`, `exp` and `nonce` are checked by `oauth4webapi`, and its
+  **signature** against the issuer's keys too: the library skips that by default for a token from
+  the token endpoint (OIDC Core 3.1.3.7 lets TLS stand in), so Ronne always calls
+  `validateApplicationLevelSignature`. Ronne also requires `sub`, and checks `iat` itself (the
+  library only checks that it is a number): no earlier than when the sign-in started and no later
+  than now, each with the clock leeway below.
 - Callback errors go to `/sign-in?error=<code>` with a plain message; the provider's error text is
   logged (redacted), not shown.
-- The Better Auth rate limiter covers the callback route (it is an HTTP route); the start action
-  uses Ronne's limiter per client IP when `TRUST_PROXY=true`.
+- Ronne's limiter, per client IP when `TRUST_PROXY=true`, covers the start action and the callback.
 - Everything is logged with the request's ID and the provider's id (100), never a token or a secret.
 
 **Phones and keyboards.** The cards, the steps and the mapping rows work at phone width; the
@@ -192,7 +201,8 @@ sign-in buttons are 44px tall on a coarse pointer.
 - **Deleting a provider that has linked accounts:** its group-given memberships are removed; people
   without a password can't sign in until root resets one (008) or adds another provider.
 - **Turning off a provider:** nobody signs in with it; their links and group memberships stay.
-- **Clock skew:** a few minutes of leeway on `exp` and `iat`, as the plugin does.
+- **Clock skew:** 5 minutes of leeway: on `exp` and `nbf` through `oauth4webapi`'s
+  `clockTolerance` (its default is 30 seconds), and on `iat` in Ronne's own check.
 - **Two roots edit one provider at once:** the later save wins, with the *updated* time shown in the
   form; the stale form says so (a version check on save).
 - **Restoring a backup (099)** onto an instance with the same `AUTH_SECRET`: providers keep
@@ -233,7 +243,8 @@ sign-in buttons are 44px tall on a coarse pointer.
   lowered or removed; root is never changed.
 - [ ] The client secret is encrypted at rest, never returned by any action, never in a log or an
   audit row (tests inspect all three), and `rotate-secret` re-encrypts it.
-- [ ] Only the callback route joins the HTTP allowlist; the plugin's other routes return 404.
+- [ ] The callback is the only new HTTP route; Better Auth's allowlist is unchanged and the session
+  endpoint returns 404 over HTTP.
 - [ ] *Root only* hides password sign-in for others, keeps it for root, can't be chosen without a
   tested enabled provider, and the token exchange answers `password_sign_in_disabled` correctly.
 - [ ] `rmk-server disable-sso` turns all providers off and restores password sign-in for everyone.
@@ -248,11 +259,16 @@ sign-in buttons are 44px tall on a coarse pointer.
    LDAP are a type each.
 2. **Presets are data with instructions** (owner, 2026-10-15): setup is the hard part for a company,
    so the app shows the redirect URI and the steps beside the form.
-3. **Ronne owns the provider tables; the library's tables are a copy** (Claude): the UI, the
-   encrypted secret and the group mapping are Ronne's, so they can't depend on a plugin's storage.
-   *Fallback if `@better-auth/sso` doesn't fit* (task 1 decides, and records it in Notes): Better
-   Auth's `genericOAuth` plugin built per request from Ronne's tables, or a small flow on
-   `oauth4webapi` (MIT); the type contract is the same.
+3. **Ronne owns the provider tables, and no library keeps a copy** (Claude): the UI, the
+   encrypted secret and the group mapping are Ronne's, so they can't depend on a library's storage.
+   **The flow is Ronne's own on `oauth4webapi`** (task 1, 2026-10-16; the evidence is in PLAN.md's
+   Notes). `@better-auth/sso` loads its SAML libraries (`samlify`, `@xmldom/xmldom`,
+   `fast-xml-parser`) whatever is configured, stores the client secret in clear in its own table,
+   sends no `nonce`, and serves routes of its own. `genericOAuth` fixes its providers when the
+   instance starts and runs discovery then, and its callback creates and links accounts by Better
+   Auth's rules, so the decision list and a *Test sign-in* that changes nothing would fight it.
+   `oauth4webapi` has no dependencies, is OpenID Certified, and is by the author of `jose`, which
+   Better Auth already uses. The type contract is the same either way.
 4. **Groups map to workspace roles only** (owner's list, 2026-10-06; instance roles are user and
    root, 091): never to root.
 5. **Test sign-in required before turning on, and root's password can't be switched off**
