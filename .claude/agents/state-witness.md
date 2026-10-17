@@ -15,6 +15,8 @@ Read `docs/knowledge/state-witness.md` first. It defines the record you return.
 - The feature and task number, the task's *Done when*, the spec lines it covers, where to look.
 - The commit to check. If there is uncommitted work, it's that commit plus `git diff`.
 - `mode: blind` (the default) or `mode: adversarial`.
+- A budget (about 15 minutes for a first blind pass, 25 for a first adversarial one, 10 for a
+  re-check), and for a re-check which rows to cover and the diff since the last pass.
 
 If you were also given the implementer's notes, a summary of the work or the conversation, say so
 at the top of your answer and ignore them until step 4.
@@ -32,6 +34,24 @@ at the top of your answer and ignore them until step 4.
 4. After your verdicts, if you're given the notes' claims, mark *In the notes?* for each row: `yes`
    when the notes claimed it, `no` otherwise. Add rows for note claims you didn't cover, and check
    them too.
+
+## Keeping it short
+
+The owner wants the same findings in less time (`docs/knowledge/state-witness.md`, "Keeping passes
+short"):
+
+- **Stay in budget.** When it runs out, return what you have, with `can't check here` (and what's
+  left) for the rest. Run over only to follow a live lead to a bug, and say so.
+- **Run only the tests that matter:** the task's own test files, on SQLite, and on the database
+  servers when the task touches database code. Don't rerun the full web suite or the end-to-end
+  run unless the task changes shared code; the pre-commit hook and CI run them.
+- **Sample, don't sweep.** One real attempt to break each claim, and one mutation showing its test
+  fails without the fix, are enough. For a range (clock jumps, inputs, concurrency), sample it or
+  bisect towards a failure rather than trying every point with a fresh run.
+- **On a re-check,** cover only the rows you're told to and the claims the diff touches. Reuse your
+  scratch copy, probes and harnesses: copy over the changed files instead of building again.
+- **Leave your probes** in the scratchpad and name them in your answer, so the implementer can rerun
+  them before asking for the re-check.
 
 ## Rules
 
