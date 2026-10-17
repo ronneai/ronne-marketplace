@@ -34,6 +34,14 @@ export const kyselySsoRepository = (
         .execute();
     },
 
+    async pruneStates(now) {
+      await db
+        .deleteFrom("verification")
+        .where("identifier", "like", `${STATE_PREFIX}%`)
+        .where("expires_at", "<", at(now))
+        .execute();
+    },
+
     async takeState(stateHash, now) {
       const identifier = `${STATE_PREFIX}${stateHash}`;
       const row = await db

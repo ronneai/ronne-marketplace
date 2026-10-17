@@ -138,7 +138,8 @@ tested_at, `config` JSON without secrets, `secret_enc`, domains, link_by_email, 
 created/updated); and a `provider_group_mappings` table (provider id, group, workspace id, role).
 No library keeps a copy. `workspace_members` gains `source` (null, or the provider id). A sign-in
 in progress (the PKCE verifier, `state`, `nonce`, `next` and whether it is a *Test sign-in*) is a
-`verification` row keyed by the state's hash, expiring after 10 minutes and deleted on first use,
+`verification` row keyed by the state's hash, expiring after 10 minutes and deleted on first use
+(an abandoned one is deleted once expired, by a later start, at most once a minute),
 and the state is also in a short-lived `HttpOnly`, `SameSite=Lax` cookie, so the callback only
 finishes in the browser that started it.
 
@@ -231,8 +232,11 @@ rule and each provider, on or off.
   (redacted), not shown.
 - Ronne's limiter, per client IP when `TRUST_PROXY=true`, covers the start action and the callback:
   30 a minute each (a company behind one address signs in together), apart from the password
-  limit. Without a trusted proxy the address can't be known, and there's no limit of Ronne's: an
-  attempt costs the attacker a round trip through the provider, which limits sign-ins itself.
+  limit. When the address can't be known (no trusted proxy), the starts share one bucket for the
+  instance, and the callbacks another: 300 a minute each (decision 11). A flood then holds up
+  provider sign-in for a minute at worst; passwords still work. A start costs little anyway: the
+  discovery document is kept for 10 minutes (only a good one; *Test connection* always fetches it),
+  so it asks the provider nothing, and its row is deleted once expired.
 - Everything is logged with the request's ID and the provider's id (100), never a token or a secret.
 
 **Phones and keyboards.** The cards, the steps and the mapping rows work at phone width; the

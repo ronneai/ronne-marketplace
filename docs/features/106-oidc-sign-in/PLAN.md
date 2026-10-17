@@ -81,7 +81,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   form, the *Test sign-in*'s result and the Documentation say so.
   *Done when:* tests cover a listed and an unlisted domain, root linked, and an empty list.
 
-- [ ] **12. Limit and lighten the start without a trusted proxy.** [risky] Decision 11: one bucket
+- [x] **12. Limit and lighten the start without a trusted proxy.** [risky] Decision 11: one bucket
   for the instance when the client's address is unknown (starts and callbacks), the discovery
   document cached for 10 minutes (never for *Test connection*), expired sign-ins in progress
   deleted.

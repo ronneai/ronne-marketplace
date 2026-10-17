@@ -17,6 +17,8 @@ export type SsoSignInState = {
 export interface SsoRepository {
   /** Keeps a sign-in in progress under its state's hash, until `expiresAt`. */
   saveState(stateHash: string, state: SsoSignInState, now: Date, expiresAt: Date): Promise<void>;
+  /** Deletes the sign-ins in progress that expired before `now` (abandoned at the provider). */
+  pruneStates(now: Date): Promise<void>;
   /**
    * Takes a sign-in in progress: returns it and deletes it, so it can be used once. Null when
    * there's none, it expired, or another request took it first.

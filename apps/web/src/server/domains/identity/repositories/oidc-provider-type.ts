@@ -84,26 +84,47 @@ const flowError = (error: unknown, stage: string): ProviderFlowError => {
 };
 
 /**
- * The type, with how long a request to the provider may take (10 seconds; tests make it shorter).
+ * The type, with how long a request to the provider may take (10 seconds; tests make it shorter)
+ * and how long a discovery document is kept for sign-ins (10 minutes).
  */
-export const createOidcProviderType = ({ timeoutMs = 10_000 } = {}): AuthProviderType => {
+export const createOidcProviderType = ({
+  timeoutMs = 10_000,
+  discoveryTtlMs = 600_000,
+  now = Date.now,
+}: {
+  timeoutMs?: number;
+  discoveryTtlMs?: number;
+  now?: () => number;
+} = {}): AuthProviderType => {
   /** Options for every request: a timeout, and plain http only for a loopback issuer. */
   const requestOptions = (issuer: URL) => ({
     signal: () => AbortSignal.timeout(timeoutMs),
     ...(isLoopback(issuer) ? { [oauth.allowInsecureRequests]: true } : {}),
   });
 
-  const discover = async (provider: ProviderWithSecret) => {
+  /**
+   * Discovery documents by issuer, for sign-ins: a start then costs no request to the provider.
+   * Only good answers are kept; *Test connection* always asks again.
+   */
+  const discovered = new Map<string, { as: oauth.AuthorizationServer; until: number }>();
+
+  const discover = async (provider: ProviderWithSecret, { fresh = false } = {}) => {
     const { issuer } = configOf(provider);
     const url = checkIssuer(issuer);
     if (!url)
       throw new ProviderFlowError("invalid_response", "discovery: the issuer isn't allowed");
+    const cached = fresh ? undefined : discovered.get(url.href);
+    if (cached && cached.until > now()) return { as: cached.as, url };
     try {
       const response = await oauth.discoveryRequest(url, requestOptions(url));
       // Checks that the document's issuer is exactly what root typed.
       const as = await oauth.processDiscoveryResponse(url, response);
+      // Issuers are root's few providers; expired entries go as new ones arrive.
+      for (const [key, entry] of discovered) if (entry.until <= now()) discovered.delete(key);
+      discovered.set(url.href, { as, until: now() + discoveryTtlMs });
       return { as, url };
     } catch (error) {
+      discovered.delete(url.href);
       throw flowError(error, "discovery");
     }
   };
@@ -252,7 +273,7 @@ export const createOidcProviderType = ({ timeoutMs = 10_000 } = {}): AuthProvide
     async test(provider) {
       const lines: string[] = [];
       try {
-        const { as, url } = await discover(provider);
+        const { as, url } = await discover(provider, { fresh: true });
         lines.push(
           `Issuer ${url.href} answered, and its discovery document names the same issuer.`,
         );

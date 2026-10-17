@@ -633,6 +633,93 @@ describe("providers that can't be used", () => {
     expect(location(two)).toContain("error=rate_limited");
   });
 
+  it("shares one bucket for the instance when the client's address isn't known", async () => {
+    // No trusted proxy: the forwarded address is ignored, so both "clients" are unknown.
+    const sharedLimiter = new LoginRateLimiter({ max: 2 });
+    const start = (ip: string) =>
+      startSsoSignIn(new Headers({ "x-forwarded-for": ip }), { provider: "acme" }, app, {
+        limiter,
+        sharedLimiter,
+      });
+    expect((await start("203.0.113.7")).ok).toBe(true);
+    expect((await start("203.0.113.8")).ok).toBe(true);
+    expect(await start("203.0.113.9")).toEqual({ ok: false, error: "rate_limited" });
+    // The callbacks have a bucket of their own, so a flood of starts doesn't block them.
+    const callback = () =>
+      completeSsoSignIn(
+        new Request(`${TEST_BASE_URL}/api/auth/sso/callback/acme?state=x`),
+        "acme",
+        app,
+        { limiter, sharedLimiter },
+      );
+    expect(location(await callback())).toContain("error=expired");
+    expect(location(await callback())).toContain("error=expired");
+    expect(location(await callback())).toContain("error=rate_limited");
+  });
+
+  it("keeps a known address out of the shared bucket", async () => {
+    app = testAppAuth(t, { trustProxy: true });
+    const sharedLimiter = new LoginRateLimiter({ max: 1 });
+    const headers = new Headers({ "x-forwarded-for": "203.0.113.10" });
+    for (let i = 0; i < 3; i++)
+      expect(
+        (await startSsoSignIn(headers, { provider: "acme" }, app, { limiter, sharedLimiter })).ok,
+      ).toBe(true);
+  });
+
+  it("deletes sign-ins in progress that expired, and nothing else", async () => {
+    const at = (date: Date) => toDbDate(date, t.dialect);
+    const now = new Date(Date.now() + 60 * 60_000);
+    const row = (identifier: string, expiresAt: Date) => ({
+      id: identifier,
+      identifier,
+      value: "{}",
+      expires_at: at(expiresAt),
+      created_at: at(now),
+      updated_at: at(now),
+    });
+    await t.db
+      .insertInto("verification")
+      .values([
+        row("sso-state:abandoned", new Date(now.getTime() - 1000)),
+        row("sso-state:in-progress", new Date(now.getTime() + 60_000)),
+        row("better-auth-row", new Date(now.getTime() - 1000)),
+      ])
+      .execute();
+    // An hour on: past the once-a-minute pause, whatever the tests before did.
+    const started = await startSsoSignIn(new Headers(), { provider: "acme" }, app, {
+      limiter,
+      now: () => now,
+    });
+    expect(started.ok).toBe(true);
+    const left = await t.db.selectFrom("verification").select("identifier").execute();
+    const ids = left.map((r) => r.identifier);
+    expect(ids).not.toContain("sso-state:abandoned");
+    expect(ids).toEqual(expect.arrayContaining(["sso-state:in-progress", "better-auth-row"]));
+    // The new sign-in's own row is there too.
+    expect(ids.filter((id) => id.startsWith("sso-state:"))).toHaveLength(2);
+    // At most once a minute: 59 seconds on, a newly expired row stays; a minute on, it goes.
+    const later = (ms: number) => new Date(now.getTime() + ms);
+    await t.db
+      .insertInto("verification")
+      .values(row("sso-state:abandoned-later", later(-500)))
+      .execute();
+    const rows = async () =>
+      (await t.db.selectFrom("verification").select("identifier").execute()).map(
+        (r) => r.identifier,
+      );
+    await startSsoSignIn(new Headers(), { provider: "acme" }, app, {
+      limiter,
+      now: () => later(59_000),
+    });
+    expect(await rows()).toContain("sso-state:abandoned-later");
+    await startSsoSignIn(new Headers(), { provider: "acme" }, app, {
+      limiter,
+      now: () => later(60_000),
+    });
+    expect(await rows()).not.toContain("sso-state:abandoned-later");
+  });
+
   it("opens no session for someone disabled between the decision and the session", async () => {
     const id = await createTestUser(app, {
       email: "cy@acme.com",

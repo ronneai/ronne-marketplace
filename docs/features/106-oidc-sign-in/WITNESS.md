@@ -760,3 +760,59 @@ Witnessed: 2026-10-17 17:47 EDT, by a fresh agent (adversarial). Commit: 8bdf840
 | 16 | `summary.test.ts` covers the `said` own-key guard | yes | confirmed | `__proto__`, `constructor`, `toString` as `why`, `constructor` as `reason`; mutating `said` to `table[key]` → 1 failed |
 
 **Overall:** met. Every row of task 11 is confirmed (rows 1–7 and 9 in the first pass, 8 in re-check 1, 12 and 13 here, 10–11 and 14–20 along the way). Gap, not a bug: no test asserts the lookalike sentence's words.
+
+## Task 12 — Limit and lighten the start without a trusted proxy
+
+Witnessed: 2026-10-17 18:00 EDT, by a fresh agent (blind). Commit: ccd1075d + staged diff. Machine: macOS (Darwin 27.0.0), Node v24.0.0. Mutations only in its scratch copy.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Without a trusted proxy (address unknown), all starts share one bucket for the instance, whatever `x-forwarded-for` says | no | confirmed | `sso.ts` `allowed()` uses `sso-start:unknown` on `sharedLimiter` when `ip` is null. Test "shares one bucket…": 3 starts from 3 forwarded IPs, max 2 → third `rate_limited`. Mutation M1 (no-IP always allowed) → fails |
+| 2 | Callbacks get a bucket of their own, separate from starts | no | confirmed | `sso-callback:unknown`; same test: 2 callbacks pass after the start bucket is full, the third is `rate_limited`. Mutation M2 (one key) → fails |
+| 3 | A known client address is limited per IP and never counted in the shared bucket | no | confirmed | Test "keeps a known address out of the shared bucket". Mutation M6 (always shared) → 3 tests fail |
+| 4 | In production the shared buckets are 300 a minute each, the per-IP ones 30 | no | confirmed | `appSharedLimiter()` max 300; default `windowMs = 60_000` (`login-rate-limiter.ts:20`); callers pass no options (`features/sign-in/actions.ts:65`, `api/auth/sso/callback/[id]/route.ts:14`). By reading |
+| 5 | The discovery document is cached for sign-ins | no | confirmed | `discovered` map in the singleton type; 2 sign-ins → 1 request. Mutation D1 → fails |
+| 6 | The cache expires after 10 minutes | no | confirmed | `discoveryTtlMs = 600_000`; clock +600000 → asks again. Mutation D2 → fails |
+| 7 | *Test connection* never uses the cache | no | confirmed | `discover(provider, { fresh: true })`; 2 tests → 2 requests. Mutation D3 → 2 tests fail |
+| 8 | Only a good discovery answer is kept | no | confirmed | `set` only after `processDiscoveryResponse`; wrong issuer refused, next start asks again. The comment "drops the good one" isn't backed (the good entry had expired): mutation D4 (no `delete` in `catch`) → still passes |
+| 9 | Expired sign-ins in progress are deleted by a later start; live ones and Better Auth's rows stay | no | confirmed | `pruneStates`: `identifier LIKE 'sso-state:%'` and `expires_at < now`. Mutations M3 (no call), M4 (no prefix), M5 (no expiry) → the test fails each time |
+| 10 | Pruning runs at most once a minute | no | confirmed | `abs(now - __ronneSsoPrunedAt) >= 60_000`. By reading; no test |
+| 11 | The task's tests pass on SQLite | no | confirmed | oidc-provider-type → 47 passed; `--project db src/server/domains/identity` → 280 passed, 1 skipped |
+| 12 | The pruning and limiter tests pass on PostgreSQL, MySQL and MariaDB | no | can't check here | told not to start the servers; the implementer reports 36 passed on each |
+| 13 | SPEC states decision 11 and the limiter and state details | no | confirmed | SPEC.md:141, :233–239, :364–366 |
+| 14 | The Documentation's "Too many attempts" explains the instance-wide limit (en, pt, fr) | no | confirmed | 8c4a366 `account.tsx:68` each: 30 per address, or 300 from everyone together; the password still works |
+
+**Overall:** not met: everything checked holds and each test fails without its fix; row 12 waits for a run on the servers. Test gap: nothing checks that a failed discovery drops a still-valid cached document.
+
+Witnessed: 2026-10-17 18:00 EDT, by a fresh agent (adversarial). Commit: ccd1075d + staged diff. Machine: macOS (Darwin 27), Node v24.0.0. Mutations and probes only in its scratch copy; no servers started.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The task's tests pass | no | confirmed | oidc-provider-type → 47 passed; `--project db src/server/domains/identity` → 280 passed, 1 skipped (SQLite) |
+| 2 | With the address unknown, starts share one bucket, and a spoofed header without TRUST_PROXY doesn't get out of it | no | confirmed | Probe P3: rotating `x-forwarded-for`, `x-real-ip`, `forwarded`, max 2 → ok, ok, rate_limited, rate_limited; with TRUST_PROXY, unparsable headers also land in the shared bucket. Mutation M1 → fails |
+| 3 | Callbacks have their own shared bucket | no | confirmed | `sso-callback:unknown`; mutation M2 → fails. Probe P5: a rate-limited callback leaves the state row in place |
+| 4 | A rate-limited start calls no provider and writes no row | no | confirmed | the limit check comes first; probe P4: verification rows 0 → 0 |
+| 5 | A known address stays out of the shared bucket | no | confirmed | test "keeps a known address out"; `allowed()` |
+| 6 | 300 a minute shared, 30 per IP | no | confirmed | `appSharedLimiter` 300, `appLimiter` 30, `windowMs = 60_000`; both on `globalThis` |
+| 7 | Discovery cached 10 minutes for start and callback | no | confirmed | probe Q5: +599 999 ms → 1 request, +600 000 → 2. Mutations D1, D2 → fail |
+| 8 | Test connection always fetches again | no | confirmed | `fresh: true`; mutation D3 → 2 fail |
+| 9 | Only a good document is kept; no cached document outlives an issuer change | no | confirmed | mutation D7 (keep a bad answer) → fails; probe Q2: a changed issuer is asked at once (key `url.href`) |
+| 10 | Pruning deletes expired sign-ins, never a live one | no | confirmed | probe P1: a row expiring exactly at `now` is kept. Mutations M4, M5 → fail |
+| 11 | Pruning leaves other `verification` rows alone | no | confirmed | probe P1: `sso-test:…`, `two-factor-setup:…`, `two-factor-used:…`, an email, `sso-stateX`, `sso_state:abc` survive; mutation M3 → fails. `SSO-STATE:abc` is deleted on SQLite (case-insensitive LIKE); nothing writes it |
+| 12 | Pruning at most once a minute, coping with the clock | no | confirmed | probe P2: +59 s keeps, +60 s deletes, a jump back prunes (`Math.abs`). No test: mutation M6 (`>= 0`) → still passes |
+| 13 | SPEC covers the shared bucket, the cache and pruning | no | confirmed | staged SPEC diff; decision 11 at SPEC.md:364 |
+| 14 | The Documentation explains it in en, pt, fr | no | confirmed | 8c4a366 `account.tsx` |
+
+**Overall:** met. Gaps, not blocking: no test for a failed discovery dropping a still-valid cached document (D4 passes), none for the once-a-minute pruning (M6 passes); concurrent starts with an empty cache each fetch (Q4), bounded by the buckets.
+
+### Re-check 1 (blind: row 12 and the diff)
+
+Witnessed: 2026-10-17 18:14 EDT, by a fresh agent (blind). Commit: ccd1075d + staged diff. Machine: macOS 27.0.1 (Darwin 27.0.0), Node v24.0.0. Mutations only in its scratch copy, each restored and checked with `cmp`. It started only the `ronne-test-databases` servers and stopped them with `pnpm test:db:down`.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 8 | Only a good discovery answer is kept, and a failed discovery (a failed *Test connection* included) drops a still-valid cached document | no | confirmed | new lines in "is kept for 10 minutes…": `asked()` = 3 after the failed test. Mutation (no `delete` in the `catch`) → fails "expected 2 to be 3"; `fresh: false` → 2 fail. Unmutated → 47 passed |
+| 10 | Pruning runs at most once a minute | no | confirmed | new part of "deletes sign-ins in progress that expired…": kept at +59 s, gone at +60 s. Mutations `PRUNE_EVERY_MS = 0`, `61_000`, `>=` → `>` → each 1 failed. Unmutated → 36 passed |
+| 12 | The pruning and limiter tests pass on PostgreSQL, MySQL and MariaDB | no | confirmed | `pnpm test:db:up`, `pnpm test:db:{postgres,mysql,mariadb} -- src/server/domains/identity/actions/sso.db.test.ts` → 36 passed each, 0 skipped |
+
+**Overall:** met. Every row of task 12's blind pass is now confirmed, and its adversarial pass is met.
