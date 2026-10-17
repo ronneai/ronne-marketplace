@@ -45,7 +45,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   changed email at the provider, root, a disabled account, an off-site `next`, a state from another
   browser or used twice, and that the session endpoint returns 404 over HTTP.
 
-- [ ] **5. Groups.** [risky] The mapping service and its application at sign-in (add, raise, remove
+- [x] **5. Groups.** [risky] The mapping service and its application at sign-in (add, raise, remove
   by `source`, never touch hand-set rows or root), the warning for a deleted workspace.
   *Done when:* db tests cover joining and leaving a group, two mappings giving one workspace
   different roles, a hand-set membership, a deleted workspace and root.
@@ -220,3 +220,20 @@ goes into `SPEC.md` instead.
   `zod` isn't a dependency of the app.
 - **Witnesses running side by side collided twice** in the scratchpad and on the same files; the
   rule now (docs/knowledge/state-witness.md): mutate only in a scratch copy of the repository.
+
+**Task 5, groups (2026-10-16).**
+
+- **The plan is pure** (`services/group-sync.ts` `planGroupChanges`): memberships in, changes out,
+  so it is unit-tested on its own and a *Test sign-in* can show it without writing (task 6).
+  `applyGroups` writes it in the sign-in's transaction (the provider's row locked), never for root.
+- **Who owns a membership is `workspace_members.source`.** Workspaces' `putMember`, the one write
+  behind adding, re-adding, changing a role and approving a request, now sets it to null: a
+  person's change makes a group-given row hand-set, and groups leave it alone from then on (the
+  witnesses found root's change undone at the next sign-in before).
+- **`global`'s plain `user` row** may be taken over by a mapping and goes back to a hand-set
+  `user` when the group goes (nobody leaves `global`); any other hand-set row is never changed.
+- **A missing groups claim changes nothing**; an empty list removes what the groups gave; with no
+  mappings left, what earlier ones gave still goes.
+- **Mappings travel with the provider** (`ProviderInput.mappings`, replaced together, named in
+  the update event), checked against personal workspaces and missing ones; a deleted workspace
+  leaves the mapping with a null workspace for the form's warning (FK `SET NULL`).

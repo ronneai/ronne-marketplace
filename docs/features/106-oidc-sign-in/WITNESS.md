@@ -346,3 +346,69 @@ Witnessed: 2026-10-16 23:08 EDT, by a fresh agent (adversarial). Commit: 2e94496
 | 5 | Link by email only for that account's exact verified email, never one the database's collation calls equal | yes | confirmed | `sso-sign-in.ts` refuses when `existing.email !== email`. Probe on all four: `kåte@`/`kate@`, `émile@`/`EMILE@` → MySQL and MariaDB `not_allowed`; `straße@`/`strasse@`, `æther@`/`aether@`, NFD `kåte@` → MySQL `not_allowed`, MariaDB a new account; `ıvan@`/`ivan@` → MySQL new account, MariaDB `not_allowed`; SQLite and PostgreSQL a new account every time; a stored trailing space → MariaDB `not_allowed`; an exact match in another case still links on all four. Mutation in the scratch copy: removing the check → the new test fails on MySQL; restored → passes |
 
 **Overall:** met. Every row of task 4's blind and adversarial passes is now confirmed; row 4 of the blind re-check (another provider's verified email links) stands on a SPEC change for the owner to confirm.
+
+## Task 5 — Groups
+
+Witnessed: 2026-10-16 23:19 EDT, by a fresh agent (blind). Commit: 6c3948d3 + working tree. Machine: macOS (Darwin 27.0.0), Node v24.0.0. Mutations only in its scratch copy (`scratchpad/106-t5-blind/`); the repository was never edited.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The task's tests pass on SQLite | no | confirmed | 2 files, 21 tests passed |
+| 2 | The db test passes on PostgreSQL, MySQL and MariaDB | no | confirmed | 10 passed on each |
+| 3 | Joining a mapped group adds the membership with `source` = provider; leaving removes it | no | confirmed | `planGroupChanges`; db tests; M5 (removal loop off) → 2 fail |
+| 4 | Two mappings to one workspace give the higher role, dropping when one group goes | no | confirmed | `higher()`; M3 → that test fails |
+| 5 | A hand-set membership is never raised, lowered or removed by a mapping | no | partly | rows inserted with `source` null stay untouched (M2 → test fails). But a role root changes on a group-given row (`changeMemberRole` → `putMember`) keeps `source` = provider: the next sign-in reverts it, and leaving the group deletes the row (probe, all four databases) |
+| 6 | The plain `global` `user` row can be taken over, then goes back to hand-set `user` | no | confirmed | `defaultGlobal`/`release`; db test |
+| 7 | A mapping whose workspace was deleted is skipped, and the form warns | no | confirmed | FK `SET NULL`; `listGroupMappings` warning; M4 → test fails |
+| 8 | Root is never changed by groups | no | confirmed | `!outcome.root`; `isMappedRole` rejects `root`; M1 → test fails |
+| 9 | Group changes are audited `workspace.member_*` with `via: "sso"`, in the sign-in's transaction | no | confirmed | `applyGroups` inside `repo.transaction`; M7 (`via: "web"`) → 2 fail |
+| 10 | A missing groups claim changes nothing | no | confirmed | `groupsFrom` → null, early return; M6 → test fails |
+| 11 | Mappings saved with the provider, named in the update event; the checks | no | confirmed | `checkMappings`, `sameMappings`, `replaceMappings`; tests; probes: 4-byte emoji groups intact, `Admins`/`admins` distinct on all four |
+| 12 | Deleting a provider removes its group-given memberships; turning it off leaves them | no | confirmed | `releaseSourcedMemberships` only from `deleteProvider`; 69 passed |
+
+**Overall:** not met: a role root sets by hand on a group-given membership is undone at the next sign-in.
+
+Witnessed: 2026-10-16 23:23 EDT, by a fresh agent (adversarial). Commit: 6c3948d3 + working tree. Machine: macOS 27.0.1, Node v24.0.0. Mutations and probes only in its scratch copy.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Joining a mapped group adds the membership, `source` = provider, audited with `via: "sso"` | no | confirmed | SQLite 10 passed; the 3 files 64/64 on PostgreSQL, MySQL, MariaDB; M8 → 2 fail |
+| 2 | Leaving a group removes what it gave | no | confirmed | M7 → 3 fail |
+| 3 | A provider-given membership goes when the provider no longer gives it | no | partly | P3: removing 1 of 2 mappings revokes; removing the last leaves it for good (`applyGroups` returns early on no mappings) |
+| 4 | Two mappings give the higher role, dropping when one group goes | no | partly | the code is right, but M4 (last-wins) passes both suites: the tests list user before moderator |
+| 5 | A hand-set membership is never raised or lowered by a mapping | no | partly | null-source rows alone (M1 → fails). P1/P2/P6: root's change of a group-given row (`putMember` keeps `source`) is undone at the next sign-in, or the row deleted when the group goes, in `global` too |
+| 6 | Root is never changed by a groups claim | no | confirmed | M2 → test fails; `role: "root"` refused at save |
+| 7 | A deleted workspace's mapping is skipped, the form warns | no | confirmed | M3 → test fails |
+| 8 | Nobody leaves `global`: takeover and release | no | confirmed | M6 → test fails; P6 events |
+| 9 | A missing claim, or one that isn't a list of strings, changes nothing | no | confirmed | M5 → test fails; P4 (`["Café", 5]`, `{a:"ops"}` → unchanged; `"ops"` → added; a 10,000-char group → no error) |
+| 10 | Groups compare byte for byte on every dialect | no | confirmed | P4 (case, whitespace, NFD) → no membership; P7 (workspace id by case) refused on MySQL |
+| 11 | No escalation into personal workspaces or other providers' rows | no | confirmed | db test; unit test |
+| 12 | Concurrent sign-ins of one person with changing groups stay consistent | no | confirmed | P5: 6 concurrent callbacks on SQLite, PostgreSQL, MySQL → consistent with the audit trail |
+
+**Overall:** not met: a hand edit of a group-given row is undone; removing the last mapping never revokes; no test pins the higher-role rule.
+
+### Re-check 1 (adversarial: rows 3, 4, 5 and the diff)
+
+Witnessed: 2026-10-16 23:27 EDT, by a fresh agent (adversarial). Commit: 6c3948d3 + working tree. Machine: macOS 27.0.1, Node v24.0.0. Mutations only in its scratch copy.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 3 | A provider-given membership goes when the provider no longer gives it, including after the last mapping is deleted | no | confirmed | P3 on all four: removing 1 of 2 → `{eng}`, removing all → `{global:'user'}`; M10 (the early return back) → the new test fails; a missing claim still changes nothing |
+| 4 | Two mappings give the higher role, whatever their order | no | confirmed | M4 (last wins) → the new unit test fails |
+| 5 | A hand-set membership is never changed by a mapping, including a group-given row a person has changed since | no | confirmed | `putMember` writes `source: null` on insert and update (kysely-workspace-repository.ts:715-722); P1, P2, P6 on all four keep root's role; M9 → the new db test fails; every `putMember` caller is a person's action (members.ts:263/299/381, access-requests.ts:280) |
+| D | The diff breaks nothing in the task's or Members' tests | no | confirmed | 32/32 on all four; unit 12/12 |
+
+**Overall:** met.
+
+### Re-check 1 (blind: row 5 and the diff)
+
+Witnessed: 2026-10-16 23:26 EDT, by a fresh agent (blind). Commit: 6c3948d3 + working tree. Machine: macOS (Darwin 27.0.0), Node v24.0.0. Mutations only in its scratch copy.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 5 | A hand-set membership is never changed by a mapping, including a group-given row once a person changes it | no | confirmed | `putMember` writes `source: null` (insert and update); every caller goes through it; the other inserts are new user/`global` rows (source null); probe passes on all four (13 each); M8 → the new db test fails |
+| 13 | Deleting the last mapping still removes what earlier mappings gave | no | confirmed | `applyGroups` returns early only with no mappings and no sourced rows; M9 → the new test fails |
+| 14 | Two mappings give the higher role whatever their order | no | confirmed | `group-sync.test.ts:37`; M10 → it fails |
+| 15 | Task tests and workspaces members tests pass on all four databases | no | confirmed | 25 passed on each from the scratch copy; members 13 passed each from the repo |
+
+**Overall:** met. Every row of task 5's blind and adversarial passes is now confirmed.

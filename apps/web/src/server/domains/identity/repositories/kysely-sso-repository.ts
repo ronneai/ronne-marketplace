@@ -110,6 +110,71 @@ export const kyselySsoRepository = (
 
     createUser: (user, now) => identity.createUserWithoutPassword({ ...user, role: "user" }, now),
 
+    async mappingsFor(providerId) {
+      const rows = await db
+        .selectFrom("provider_group_mappings")
+        .select(["group_name", "workspace_id", "role"])
+        .where("provider_id", "=", providerId)
+        .execute();
+      return rows.map((r) => ({ group: r.group_name, workspaceId: r.workspace_id, role: r.role }));
+    },
+
+    async membershipsOf(userId) {
+      const rows = await db
+        .selectFrom("workspace_members as m")
+        .innerJoin("workspaces as w", "w.id", "m.workspace_id")
+        .select(["m.workspace_id", "w.name", "m.role", "m.source"])
+        .where("m.user_id", "=", userId)
+        .execute();
+      return rows.map((r) => ({
+        workspaceId: r.workspace_id,
+        workspaceName: r.name,
+        role: r.role,
+        source: r.source,
+      }));
+    },
+
+    async workspaceName(workspaceId) {
+      const row = await db
+        .selectFrom("workspaces")
+        .select("name")
+        .where("id", "=", workspaceId)
+        .executeTakeFirst();
+      return row?.name ?? null;
+    },
+
+    async addMembership(userId, workspaceId, role, source, now) {
+      await db
+        .insertInto("workspace_members")
+        .values({
+          workspace_id: workspaceId,
+          user_id: userId,
+          role,
+          added_by: null,
+          source,
+          created_at: at(now),
+          updated_at: at(now),
+        })
+        .execute();
+    },
+
+    async setMembership(userId, workspaceId, role, source, now) {
+      await db
+        .updateTable("workspace_members")
+        .set({ role, source, updated_at: at(now) })
+        .where("workspace_id", "=", workspaceId)
+        .where("user_id", "=", userId)
+        .execute();
+    },
+
+    async removeMembership(userId, workspaceId) {
+      await db
+        .deleteFrom("workspace_members")
+        .where("workspace_id", "=", workspaceId)
+        .where("user_id", "=", userId)
+        .execute();
+    },
+
     // READ COMMITTED: after waiting for the provider's lock, the checks see what the sign-in
     // before committed (MySQL's REPEATABLE READ would read an older snapshot).
     transaction: (work) =>

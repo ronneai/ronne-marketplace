@@ -1,4 +1,5 @@
 import type { NewAuditEvent } from "../../audit/models/audit-event";
+import type { MappedRole } from "../models/identity-provider";
 import type { UserSummary } from "../models/user";
 
 /** A sign-in with a provider in progress, kept server-side between the start and the callback. */
@@ -35,6 +36,32 @@ export interface SsoRepository {
   findUserByEmail(email: string): Promise<UserSummary | null>;
   /** A new `user`: in `global`, with a personal workspace, no password. Returns its id. */
   createUser(user: { email: string; name: string }, now: Date): Promise<string>;
+  /** The provider's group mappings (a deleted workspace's mapping has a null workspace). */
+  mappingsFor(
+    providerId: string,
+  ): Promise<{ group: string; workspaceId: string | null; role: MappedRole }[]>;
+  /** The user's memberships, with where each came from and the workspace's name. */
+  membershipsOf(
+    userId: string,
+  ): Promise<
+    { workspaceId: string; workspaceName: string; role: MappedRole; source: string | null }[]
+  >;
+  workspaceName(workspaceId: string): Promise<string | null>;
+  addMembership(
+    userId: string,
+    workspaceId: string,
+    role: MappedRole,
+    source: string,
+    at: Date,
+  ): Promise<void>;
+  setMembership(
+    userId: string,
+    workspaceId: string,
+    role: MappedRole,
+    source: string | null,
+    at: Date,
+  ): Promise<void>;
+  removeMembership(userId: string, workspaceId: string): Promise<void>;
   transaction<T>(work: (repo: SsoRepository) => Promise<T>): Promise<T>;
   recordAudit(event: NewAuditEvent, at: Date): Promise<void>;
 }

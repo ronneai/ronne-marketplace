@@ -1,5 +1,5 @@
 import type { NewAuditEvent } from "../../audit/models/audit-event";
-import type { IdentityProvider } from "../models/identity-provider";
+import type { IdentityProvider, MappedRole } from "../models/identity-provider";
 
 /** A provider as stored, with its encrypted secret (never leaves the identity domain). */
 export type StoredProvider = { provider: IdentityProvider; secretEnc: string | null };
@@ -62,6 +62,20 @@ export interface IdentityProviderRepository {
   /** Every provider's id and encrypted secret, for `rotate-secret`. */
   secrets(): Promise<{ id: string; secretEnc: string }[]>;
   setSecret(id: string, secretEnc: string): Promise<void>;
+  /** The provider's mappings, with the workspace's name (null when it was deleted). */
+  listMappings(
+    providerId: string,
+  ): Promise<
+    { group: string; workspaceId: string | null; workspaceName: string | null; role: MappedRole }[]
+  >;
+  /** Replaces all of the provider's mappings. */
+  replaceMappings(
+    providerId: string,
+    mappings: { group: string; workspaceId: string; role: MappedRole }[],
+    at: Date,
+  ): Promise<void>;
+  /** A workspace's name and whether it's someone's personal workspace, or null. */
+  findWorkspace(workspaceId: string): Promise<{ name: string; personal: boolean } | null>;
   transaction<T>(work: (repo: IdentityProviderRepository) => Promise<T>): Promise<T>;
   recordAudit(event: NewAuditEvent, at: Date): Promise<void>;
 }

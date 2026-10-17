@@ -1,12 +1,19 @@
 import { isUniqueViolation } from "../../../db/locks";
 import {
+  InvalidGroupMappingError,
   InvalidProviderNameError,
   ProviderIdTakenError,
   ProviderNotFoundError,
   ProviderNotTestedError,
   StaleProviderError,
 } from "../exceptions/errors";
-import { checkProviderId, type IdentityProvider, parseDomains } from "../models/identity-provider";
+import {
+  checkProviderId,
+  type IdentityProvider,
+  isMappedRole,
+  type MappedRole,
+  parseDomains,
+} from "../models/identity-provider";
 import { requirePermission } from "../models/permissions";
 import type { ProviderTypeRegistry } from "../models/provider-types";
 import type { CurrentUser } from "../models/user";
@@ -41,7 +48,43 @@ export type ProviderInput = {
   domains: unknown;
   linkByEmail: unknown;
   groupsClaim: unknown;
+  /** The group mappings, all of them; left out, they stay as they are. */
+  mappings?: unknown;
 };
+
+type MappingRow = { group: string; workspaceId: string; role: MappedRole };
+
+/**
+ * Checks the form's group mappings: each a group (exactly as the provider sends it, 1–255
+ * characters), an existing workspace that isn't someone's personal one, and a role. The same
+ * group and workspace twice keeps the last.
+ */
+const checkMappings = async (
+  repo: IdentityProviderRepository,
+  value: unknown,
+): Promise<MappingRow[]> => {
+  if (!Array.isArray(value)) throw new InvalidGroupMappingError("group");
+  const rows = new Map<string, MappingRow>();
+  for (const item of value as { group?: unknown; workspaceId?: unknown; role?: unknown }[]) {
+    const group = typeof item?.group === "string" ? item.group : "";
+    if (group.trim().length === 0 || group.length > 255)
+      throw new InvalidGroupMappingError("group");
+    if (!isMappedRole(item.role)) throw new InvalidGroupMappingError("role");
+    const workspaceId = typeof item.workspaceId === "string" ? item.workspaceId : "";
+    const workspace = workspaceId ? await repo.findWorkspace(workspaceId) : null;
+    if (!workspace) throw new InvalidGroupMappingError("workspace");
+    if (workspace.personal) throw new InvalidGroupMappingError("personal");
+    rows.set(JSON.stringify([group, workspaceId]), { group, workspaceId, role: item.role });
+  }
+  return [...rows.values()];
+};
+
+const sameMappings = (
+  before: { group: string; workspaceId: string | null; role: MappedRole }[],
+  after: MappingRow[],
+) =>
+  JSON.stringify(before.map((m) => [m.group, m.workspaceId, m.role]).sort()) ===
+  JSON.stringify(after.map((m) => [m.group, m.workspaceId, m.role]).sort());
 
 const now = (deps: IdentityProviderDeps) => (deps.now ?? (() => new Date()))();
 
@@ -137,6 +180,8 @@ export const createProvider = async (
     return await deps.repo.transaction(async (repo) => {
       if (await repo.find(providerId)) throw new ProviderIdTakenError(providerId);
       await repo.insert(providerId, row, actor.user?.id ?? null, at);
+      if (input.mappings !== undefined)
+        await repo.replaceMappings(providerId, await checkMappings(repo, input.mappings), at);
       await repo.recordAudit(
         event(actor, "instance.auth_provider_created", providerId, { type: type.id }),
         at,
@@ -203,11 +248,16 @@ export const updateProvider = async (
       testedBy: retest ? null : p.testedBy,
       enabled: retest ? false : p.enabled,
     };
+    const mappings =
+      input.mappings === undefined ? null : await checkMappings(repo, input.mappings);
     const changed = changedFields(stored, row, secret !== undefined);
+    if (mappings && !sameMappings(await repo.listMappings(id), mappings))
+      changed.push("group mappings");
     if (changed.length === 0) return p;
     // Only if nobody saved since this read: a concurrent save makes this one stale.
     if (!(await repo.update(id, row, after(at, p.updatedAt), p.updatedAt)))
       throw new StaleProviderError(p.updatedAt);
+    if (mappings) await repo.replaceMappings(id, mappings, at);
     await repo.recordAudit(event(actor, "instance.auth_provider_updated", id, { changed }), at);
     if (p.enabled && !row.enabled)
       await repo.recordAudit(
@@ -339,4 +389,29 @@ export const markProviderTested = async (
     )
       throw new StaleProviderError(provider.updatedAt);
   });
+};
+
+/**
+ * The provider's group mappings, for the form; `warning` marks one whose workspace was deleted
+ * (it's skipped at sign-in until root removes or changes it).
+ */
+export const listGroupMappings = async (
+  deps: IdentityProviderDeps,
+  actor: ProviderActor,
+  id: string,
+): Promise<
+  {
+    group: string;
+    workspaceId: string | null;
+    workspaceName: string | null;
+    role: MappedRole;
+    warning: "workspace_deleted" | null;
+  }[]
+> => {
+  requirePermission(actor.user, "settings.manage");
+  await load(deps.repo, id);
+  return (await deps.repo.listMappings(id)).map((m) => ({
+    ...m,
+    warning: m.workspaceId === null ? "workspace_deleted" : null,
+  }));
 };

@@ -155,9 +155,22 @@ asked.
 **Groups.** At each sign-in, for each mapped group the person is in, make sure the membership
 exists with at least the mapped role, marked `source = provider`; for each membership marked with
 this provider whose group they left, remove it (or lower it to what another mapping still gives).
-A membership root set by hand (`source` null) is never touched by a mapping, even to lower it. A
-group mapped to a workspace that no longer exists is skipped and shown as a warning in the panel.
-Root is never changed. `global` stays (nobody is removed from it, 092).
+A membership root set by hand (`source` null) is never touched by a mapping, even to raise or lower
+it; nor is one another provider gave. One exception: the plain `user` row in `global` that every
+account has, which a mapping to `global` may take over (it is then the provider's); when the group
+goes, it goes back to a hand-set `user`, since nobody leaves `global` (092). A person's change to a
+membership a group gave (Members' change of role, adding them again) makes it hand-set: the
+provider no longer changes or removes it. Deleting a provider's last mapping still removes what
+the mappings gave, at each person's next sign-in. A group mapped to a
+workspace that no longer exists is skipped and shown as a warning in the form. Root is never
+changed. A missing groups claim changes nothing (missing isn't "in no group": Entra leaves it out
+past 200 groups). The groups are applied in the sign-in's transaction, each change audited
+(`workspace.member_added | member_role_changed | member_removed`, `via: "sso"`, the provider).
+
+**Mappings** are saved with the provider (an update event names `group mappings` when they
+changed). Each is a group exactly as the provider sends it (1–255 characters, compared byte for
+byte), an existing workspace that isn't someone's personal one, and a role (user, moderator or
+admin); the same group and workspace twice keeps the last.
 
 **Password policy and the sign-in page.** With *Root only*, the page shows the provider buttons
 first and, under them, a link "Use your password (root)" that opens the password form; non-root

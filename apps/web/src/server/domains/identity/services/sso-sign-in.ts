@@ -4,6 +4,7 @@ import type { VerifiedIdentity } from "../models/auth-provider-type";
 import { emailInDomains, type IdentityProvider } from "../models/identity-provider";
 import { normalizeEmail, normalizeName, type UserSummary } from "../models/user";
 import type { SsoRepository } from "../repositories/sso-repository";
+import { applyGroups } from "./group-sync";
 
 /**
  * Who a provider's verified identity is in Ronne (feature 106's decision list), in order:
@@ -101,54 +102,67 @@ export const signInWithProvider = async (
 ): Promise<SsoOutcome> => {
   const attempt = () =>
     repo.transaction(async (trx): Promise<SsoOutcome> => {
-      await trx.lockProvider(provider.id);
-      const plan = await planSsoSignIn(trx, provider, identity);
-      if (plan.action === "refuse")
-        return { ok: false, reason: plan.reason, userId: plan.user?.id ?? null };
-      if (plan.action === "sign_in")
-        return {
-          ok: true,
-          userId: plan.user.id,
-          email: plan.user.email,
-          root: plan.user.role === "root",
-          created: false,
-          linked: false,
-        };
-      if (plan.action === "link") {
-        await trx.linkAccount(plan.user.id, provider.id, identity.subject, context.now);
-        await trx.recordAudit(
-          {
-            actorId: plan.user.id,
-            action: "user.sso_linked",
-            target: { type: "user", id: plan.user.id },
-            metadata: { provider: provider.id, email: plan.user.email },
-            ipAddress: context.ip,
-          },
-          context.now,
-        );
-        return {
-          ok: true,
-          userId: plan.user.id,
-          email: plan.user.email,
-          root: plan.user.role === "root",
-          created: false,
-          linked: true,
-        };
-      }
-      const id = await trx.createUser({ email: plan.email, name: plan.name }, context.now);
-      await trx.linkAccount(id, provider.id, identity.subject, context.now);
+      const outcome = await decide(trx);
+      // The groups, in the same transaction; never for root (nothing from a claim changes root).
+      if (outcome.ok && !outcome.root)
+        await applyGroups(trx, {
+          providerId: provider.id,
+          user: { id: outcome.userId, email: outcome.email },
+          groups: identity.groups,
+          ip: context.ip,
+          now: context.now,
+        });
+      return outcome;
+    });
+  const decide = async (trx: SsoRepository): Promise<SsoOutcome> => {
+    await trx.lockProvider(provider.id);
+    const plan = await planSsoSignIn(trx, provider, identity);
+    if (plan.action === "refuse")
+      return { ok: false, reason: plan.reason, userId: plan.user?.id ?? null };
+    if (plan.action === "sign_in")
+      return {
+        ok: true,
+        userId: plan.user.id,
+        email: plan.user.email,
+        root: plan.user.role === "root",
+        created: false,
+        linked: false,
+      };
+    if (plan.action === "link") {
+      await trx.linkAccount(plan.user.id, provider.id, identity.subject, context.now);
       await trx.recordAudit(
         {
-          actorId: null,
-          action: "user.created",
-          target: { type: "user", id },
-          metadata: { email: plan.email, role: "user", via: "sso", provider: provider.id },
+          actorId: plan.user.id,
+          action: "user.sso_linked",
+          target: { type: "user", id: plan.user.id },
+          metadata: { provider: provider.id, email: plan.user.email },
           ipAddress: context.ip,
         },
         context.now,
       );
-      return { ok: true, userId: id, email: plan.email, root: false, created: true, linked: true };
-    });
+      return {
+        ok: true,
+        userId: plan.user.id,
+        email: plan.user.email,
+        root: plan.user.role === "root",
+        created: false,
+        linked: true,
+      };
+    }
+    const id = await trx.createUser({ email: plan.email, name: plan.name }, context.now);
+    await trx.linkAccount(id, provider.id, identity.subject, context.now);
+    await trx.recordAudit(
+      {
+        actorId: null,
+        action: "user.created",
+        target: { type: "user", id },
+        metadata: { email: plan.email, role: "user", via: "sso", provider: provider.id },
+        ipAddress: context.ip,
+      },
+      context.now,
+    );
+    return { ok: true, userId: id, email: plan.email, root: false, created: true, linked: true };
+  };
   try {
     return await attempt();
   } catch (error) {

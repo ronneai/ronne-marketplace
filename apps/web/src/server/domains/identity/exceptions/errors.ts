@@ -257,3 +257,18 @@ export class ProviderFlowError extends IdentityError {
     );
   }
 }
+
+export class InvalidGroupMappingError extends IdentityError {
+  override readonly name: string = "InvalidGroupMappingError";
+  constructor(readonly reason: "group" | "role" | "workspace" | "personal") {
+    super(
+      reason === "group"
+        ? "A group needs 1 to 255 characters, exactly as the provider sends it."
+        : reason === "role"
+          ? "A group gives the role user, moderator or admin."
+          : reason === "workspace"
+            ? "That workspace doesn't exist."
+            : "A personal workspace can't be given to a group.",
+    );
+  }
+}

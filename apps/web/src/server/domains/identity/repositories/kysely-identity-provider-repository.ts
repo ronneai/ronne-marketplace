@@ -1,5 +1,6 @@
 import type { Kysely, Selectable } from "kysely";
 import { fromDbDate, toDbBoolean, toDbDate } from "../../../db/dates";
+import { newId } from "../../../db/ids";
 import { decodeJson, encodeJson } from "../../../db/json";
 import type { Database, IdentityProviderTable } from "../../../db/schema";
 import type { DatabaseDialect } from "../../../db/url";
@@ -206,6 +207,55 @@ export const kyselyIdentityProviderRepository = (
         .set({ secret_enc: secretEnc })
         .where("id", "=", id)
         .execute();
+    },
+
+    async listMappings(providerId) {
+      const rows = await db
+        .selectFrom("provider_group_mappings as g")
+        .leftJoin("workspaces as w", "w.id", "g.workspace_id")
+        .select(["g.group_name", "g.workspace_id", "w.name", "g.role"])
+        .where("g.provider_id", "=", providerId)
+        .orderBy("g.created_at")
+        .orderBy("g.id")
+        .execute();
+      return rows.map((r) => ({
+        group: r.group_name,
+        workspaceId: r.workspace_id,
+        workspaceName: r.name ?? null,
+        role: r.role,
+      }));
+    },
+
+    async replaceMappings(providerId, mappings, now) {
+      await db
+        .deleteFrom("provider_group_mappings")
+        .where("provider_id", "=", providerId)
+        .execute();
+      if (mappings.length > 0)
+        await db
+          .insertInto("provider_group_mappings")
+          .values(
+            mappings.map((m) => ({
+              id: newId(),
+              provider_id: providerId,
+              group_name: m.group,
+              workspace_id: m.workspaceId,
+              role: m.role,
+              created_at: at(now),
+            })),
+          )
+          .execute();
+    },
+
+    async findWorkspace(workspaceId) {
+      const row = await db
+        .selectFrom("workspaces")
+        .select(["id", "name", "owner_id"])
+        .where("id", "=", workspaceId)
+        .executeTakeFirst();
+      return row && row.id === workspaceId
+        ? { name: row.name, personal: row.owner_id !== null }
+        : null;
     },
 
     transaction: (work) =>
