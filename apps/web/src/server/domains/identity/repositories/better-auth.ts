@@ -102,13 +102,19 @@ export const createAuth = ({
         create: {
           // Disabled users get no session. Sign-in then fails with the same 401 as a wrong password
           // (returning false would make it a 500).
-          before: async (session) => {
+          before: async (session, context) => {
             const user = await kyselyIdentityRepository(db, dialect).findActiveUser(session.userId);
             if (!user)
               throw new APIError("UNAUTHORIZED", {
                 message: "Invalid email or password",
                 code: "INVALID_EMAIL_OR_PASSWORD",
               });
+            // A session made to replace the one the request is signed in with (changing the
+            // password, turning two-factor on or off) never outlives it: a provider's 24 hours
+            // (106) or a session without "Remember me" stay what they were.
+            const current = context?.context.session?.session;
+            if (current && session.expiresAt > current.expiresAt)
+              return { data: { ...session, expiresAt: current.expiresAt } };
           },
         },
       },

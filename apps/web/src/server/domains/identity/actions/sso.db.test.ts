@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { toDbBoolean, toDbDate } from "../../../db/dates";
+import { fromDbDate, toDbBoolean, toDbDate } from "../../../db/dates";
 import { GLOBAL_WORKSPACE_ID } from "../../../db/migrations/0019_workspaces";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
 import { listAuditEvents } from "../../audit/actions/audit";
 import { LoginRateLimiter } from "../models/login-rate-limiter";
+import { COOKIE_PREFIX } from "../models/session-cookie";
 import type { CurrentUser } from "../models/user";
 import type { AppAuth } from "../repositories/auth-instance";
 import { HTTP_ENDPOINTS } from "../repositories/better-auth";
@@ -21,8 +22,16 @@ import {
 import { planSsoSignIn } from "../services/sso-sign-in";
 import { type FakeOidc, followAuthorize, startFakeOidc } from "../testing/fake-oidc-server";
 import { cookieHeaders, createTestUser, TEST_BASE_URL, testAppAuth } from "../testing/test-auth";
+import { totpCode } from "../testing/totp";
 import { handleAuthRequest } from "./auth-http";
+import { changePassword, signIn as passwordSignIn } from "./session";
 import { completeSsoSignIn, SSO_STATE_COOKIE, startSsoSignIn } from "./sso";
+import {
+  completeTwoFactorSignIn,
+  confirmTwoFactor,
+  startTwoFactor,
+  turnOffTwoFactor,
+} from "./two-factor";
 
 // Runs on the database in TEST_DATABASE_URL (in-memory SQLite by default; 004 runs all of them).
 let t: TestDb;
@@ -92,6 +101,23 @@ const signIn = async (
   return { started, response, back, cookie };
 };
 
+/** The browser's cookies after a response: new ones set, expired ones (`Max-Age=0`) gone. */
+const mergeCookies = (headers: Headers, response: Headers) => {
+  const jar = new Map(
+    (headers.get("cookie") ?? "")
+      .split("; ")
+      .filter(Boolean)
+      .map((c) => [c.slice(0, c.indexOf("=")), c] as const),
+  );
+  for (const set of response.getSetCookie()) {
+    const pair = set.split(";")[0]?.trim() ?? "";
+    const name = pair.slice(0, pair.indexOf("="));
+    if (/;\s*max-age=0\b/i.test(set)) jar.delete(name);
+    else jar.set(name, pair);
+  }
+  return new Headers({ cookie: [...jar.values()].join("; ") });
+};
+
 const location = (response: Response | null) => response?.headers.get("location") ?? "";
 
 const sessionUser = async (response: Response | null) => {
@@ -145,6 +171,150 @@ describe("first sign-in from a listed domain", () => {
     expect(await audit("auth.sso_signed_in")).toHaveLength(1);
     const provider = await deps.repo.find("acme");
     expect(provider?.provider.lastSignedInAt).not.toBeNull();
+  });
+
+  it("opens a session of 24 hours that ends with the browser and isn't extended (decision 12)", async () => {
+    const before = Date.now();
+    const { response } = await signIn();
+    const setCookie = response?.headers.getSetCookie() ?? [];
+    const token = setCookie.find((c) => c.startsWith(`${COOKIE_PREFIX}.session_token=`)) ?? "";
+    // A browser-session cookie: no Max-Age, no Expires; and Better Auth's "don't remember" mark.
+    expect(token).not.toBe("");
+    expect(token).not.toMatch(/max-age|expires/i);
+    expect(setCookie.some((c) => c.startsWith(`${COOKIE_PREFIX}.dont_remember=`))).toBe(true);
+    const row = await t.db
+      .selectFrom("session")
+      .select(["id", "expires_at"])
+      .executeTakeFirstOrThrow();
+    const expiresAt = fromDbDate(row.expires_at).getTime();
+    expect(expiresAt).toBeGreaterThanOrEqual(before + 24 * 3600_000 - 5_000);
+    expect(expiresAt).toBeLessThanOrEqual(Date.now() + 24 * 3600_000 + 5_000);
+    expect(await audit("auth.signed_in")).toMatchObject([{ metadata: { remember: false } }]);
+    // An hour left: a remembered session would be extended to 30 days here; this one isn't.
+    const soon = new Date(Date.now() + 3600_000);
+    await t.db
+      .updateTable("session")
+      .set({ expires_at: toDbDate(soon, t.dialect) })
+      .where("id", "=", row.id)
+      .execute();
+    expect(await sessionUser(response)).toBe("ana@acme.com");
+    const after = await t.db
+      .selectFrom("session")
+      .select("expires_at")
+      .where("id", "=", row.id)
+      .executeTakeFirstOrThrow();
+    expect(Math.abs(fromDbDate(after.expires_at).getTime() - soon.getTime())).toBeLessThan(1000);
+  });
+
+  it("keeps the 24 hours through a password change and two-factor on and off", async () => {
+    await createTestUser(app, { email: "ana@acme.com", password: "correct horse battery" });
+    const expiries = async () =>
+      (await t.db.selectFrom("session").select("expires_at").execute()).map((r) =>
+        fromDbDate(r.expires_at).getTime(),
+      );
+    /** Signs in with the provider; every session made from it may last no longer than it. */
+    const fromProvider = async () => {
+      const { response } = await signIn();
+      const limit = Math.max(...(await expiries()));
+      expect(limit).toBeLessThanOrEqual(Date.now() + 24 * 3600_000 + 5_000);
+      return {
+        headers: cookieHeaders((response?.headers.getSetCookie() ?? []).join(", ")),
+        noLater: async () => {
+          for (const at of await expiries()) expect(at).toBeLessThanOrEqual(limit);
+        },
+      };
+    };
+    // Each replaces the session (Better Auth makes the new one for 30 days by default).
+    const one = await fromProvider();
+    expect(
+      await changePassword(
+        one.headers,
+        { current: "correct horse battery", next: "another horse battery" },
+        app,
+      ),
+    ).toEqual({ ok: true });
+    await one.noLater();
+
+    const two = await fromProvider();
+    const started = await startTwoFactor(two.headers, { password: "another horse battery" }, app);
+    if (!("uri" in started)) throw new Error(`not started: ${JSON.stringify(started)}`);
+    const uri = started.uri as string;
+    const on = await confirmTwoFactor(two.headers, { code: totpCode(uri), uri }, app);
+    if (!on.ok) throw new Error(`not on: ${JSON.stringify(on)}`);
+    await two.noLater();
+    const off = await turnOffTwoFactor(
+      mergeCookies(two.headers, on.headers),
+      { password: "another horse battery", code: totpCode(uri, { step: 1 }) },
+      app,
+    );
+    expect(off.ok).toBe(true);
+    await two.noLater();
+  });
+
+  it("lets a password sign-in with Remember me, two-factor included, forget a provider's 24 hours", async () => {
+    await createTestUser(app, { email: "ana@acme.com", password: "correct horse battery" });
+    const { response } = await signIn();
+    let browser = cookieHeaders((response?.headers.getSetCookie() ?? []).join(", "));
+    expect(browser.get("cookie")).toContain(`${COOKIE_PREFIX}.dont_remember=`);
+    const started = await startTwoFactor(browser, { password: "correct horse battery" }, app);
+    if (!("uri" in started)) throw new Error(`not started: ${JSON.stringify(started)}`);
+    const uri = started.uri as string;
+    const on = await confirmTwoFactor(browser, { code: totpCode(uri), uri }, app);
+    if (!on.ok) throw new Error(`not on: ${JSON.stringify(on)}`);
+    browser = mergeCookies(browser, on.headers);
+    await t.db.deleteFrom("session").execute();
+
+    // The same browser, still carrying the provider session's mark.
+    const first = await passwordSignIn(
+      browser,
+      { email: "ana@acme.com", password: "correct horse battery", rememberMe: true },
+      app,
+    );
+    if (!first.ok || !first.twoFactor) throw new Error(`no challenge: ${JSON.stringify(first)}`);
+    browser = mergeCookies(browser, first.headers);
+    expect(browser.get("cookie")).not.toContain(`${COOKIE_PREFIX}.dont_remember=`);
+    const second = await completeTwoFactorSignIn(
+      browser,
+      { code: totpCode(uri, { step: 1 }), method: "totp" },
+      app,
+    );
+    expect(second.ok).toBe(true);
+    const [row] = await t.db.selectFrom("session").select("expires_at").execute();
+    expect(fromDbDate(row?.expires_at as string).getTime()).toBeGreaterThan(
+      Date.now() + 29 * 24 * 3600_000,
+    );
+  });
+
+  it("keeps a provider's 24 hours when a password sign-in fails in the same browser", async () => {
+    await createTestUser(app, { email: "ana@acme.com", password: "correct horse battery" });
+    const { response } = await signIn();
+    let browser = cookieHeaders((response?.headers.getSetCookie() ?? []).join(", "));
+    for (const attempt of [
+      { email: "ana@acme.com", password: "wrong wrong wrong" },
+      { email: "nobody@acme.com", password: "wrong wrong wrong" },
+    ]) {
+      const failed = await app.auth.api
+        .signInEmail({
+          body: { ...attempt, rememberMe: true },
+          headers: browser,
+          asResponse: true,
+        })
+        .catch((error: unknown) => error as Response);
+      expect(failed.status).toBe(401);
+      browser = mergeCookies(browser, failed.headers);
+    }
+    expect(browser.get("cookie")).toContain(`${COOKIE_PREFIX}.dont_remember=`);
+    // An hour left, then used: still an hour.
+    const soon = new Date(Date.now() + 3600_000);
+    await t.db
+      .updateTable("session")
+      .set({ expires_at: toDbDate(soon, t.dialect) })
+      .execute();
+    expect((await app.auth.api.getSession({ headers: browser }))?.user.email).toBe("ana@acme.com");
+    const [row] = await t.db.selectFrom("session").select("expires_at").execute();
+    expect(Math.abs(fromDbDate(row?.expires_at as string).getTime() - soon.getTime())).toBeLessThan(
+      1000,
+    );
   });
 
   it("creates nothing for an unlisted domain", async () => {

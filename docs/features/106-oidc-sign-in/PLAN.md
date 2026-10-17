@@ -87,7 +87,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   deleted.
   *Done when:* tests cover the shared bucket, a cached and an expired discovery, and the pruning.
 
-- [ ] **13. 24-hour provider sessions.** [risky] Decision 12: a session opened by a provider lasts
+- [x] **13. 24-hour provider sessions.** [risky] Decision 12: a session opened by a provider lasts
   24 hours and isn't extended.
   *Done when:* a test shows the session's expiry and that using it doesn't extend it; the
   Documentation says so.

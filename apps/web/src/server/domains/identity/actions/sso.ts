@@ -319,7 +319,7 @@ export const completeSsoSignIn = async (
       actorId: outcome.userId,
       action: "auth.signed_in",
       target: { type: "session", id: session.session.sessionId },
-      metadata: { remember: true, via: "sso", provider: providerId },
+      metadata: { remember: false, via: "sso", provider: providerId },
       ipAddress: ip,
     },
     now,

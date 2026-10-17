@@ -816,3 +816,104 @@ Witnessed: 2026-10-17 18:14 EDT, by a fresh agent (blind). Commit: ccd1075d + st
 | 12 | The pruning and limiter tests pass on PostgreSQL, MySQL and MariaDB | no | confirmed | `pnpm test:db:up`, `pnpm test:db:{postgres,mysql,mariadb} -- src/server/domains/identity/actions/sso.db.test.ts` → 36 passed each, 0 skipped |
 
 **Overall:** met. Every row of task 12's blind pass is now confirmed, and its adversarial pass is met.
+
+## Task 13 — 24-hour provider sessions
+
+Witnessed: 2026-10-17 18:18 EDT, by a fresh agent (blind). Commit: d5a7e900 + staged diff. Machine: macOS 27.0.1, Node v24.0.0. Mutations only in its scratch copy, restored and checked with `cmp`.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A provider sign-in makes a session that expires 24 hours after it opens, not 30 days | no | confirmed | `better-auth-sso-session.ts:39` `createSession(user.id, true)`; Better Auth `db/internal-adapter.mjs:271` (24 hours for `dontRememberMe`). Mutation back to `false` → the test fails (about 30 days) |
+| 2 | The cookie lasts only for the browser session and carries the signed `dont_remember` mark | no | confirmed | `setSessionCookie(ctx, { session, user }, true)`; `cookies/index.mjs:171-177`. Dropping `, true` → fails on Max-Age |
+| 3 | Using the session doesn't extend it | no | confirmed | `api/routes/session.mjs:170` returns before the refresh with `dont_remember`. Probe: without that cookie the test fails (moved about 30 days), so the assertion catches an extension and the SPEC's caveat is accurate |
+| 4 | The audit records `auth.signed_in` with `remember: false` | no | confirmed | `sso.ts:322`; asserted in the test |
+| 5 | A test shows the expiry and no extension, passing on SQLite | no | confirmed | `--project db src/server/domains/identity` → 281 passed, 1 skipped; `sso.db.test.ts:151` |
+| 6 | SPEC.md is consistent with decision 12 | no | not met | decision 12 (:373) and :170-177 say 24 hours, but the out-of-scope item at :89-90 still says "SSO sessions last as long as "Remember me" ones (30 days)" |
+| 7 | The Documentation says 24 hours, ends with the browser, in en, pt and fr | no | confirmed | ronne-web 9a06c79: `account.tsx:27-28` and `authentication.tsx:86-87` in each |
+
+**Overall:** not met: the code, the test and the Documentation hold, but SPEC.md:89-90 still says 30 days.
+
+Witnessed: 2026-10-17 18:18 EDT, by a fresh agent (adversarial). Commit: d5a7e900 + staged diff. Machine: macOS (Darwin 27), Node v24.0.0. Mutations and probes only in its scratch copy.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A provider sign-in opens a session whose stored expiry is 24 hours | no | confirmed | `createSession(user.id, true)` → `internal-adapter.mjs:271`; probe P1: 23.99 h. `--project db src/server/domains/identity` → 281 passed, 1 skipped |
+| 2 | Its cookie lasts only as long as the browser, with the signed `dont_remember` cookie | no | confirmed | probe P6 Set-Cookie: no Max-Age or Expires, plus `ronne.dont_remember`. Mutation M2 → the test fails at `:158` |
+| 3 | Using the session (HTTP get-session and Ronne's own reads) doesn't extend it | no | confirmed | probe P3: 1 h left, `GET /api/auth/get-session` → no Set-Cookie, still 1 h; P4 `getCurrentUser` → still 1 h; no cookie cache configured. Mutation M1 → fails at `:166` |
+| 4 | The 24-hour expiry is enforced on the server | no | confirmed | probe P5: `expires_at` in the past → `getSession` null, row deleted |
+| 5 | The session can't be extended past 24 hours through any path Ronne serves | no | not met | probe P1: provider session, then `changePassword` → new session 720 h (`update-user.mjs:176` `createSession(userId)`); probe P2: two-factor turned on → 720 h (`totp/index.mjs:210`); off goes the same way (`two-factor/index.mjs:229`, by reading) |
+| 6 | The SPEC's caveat is true and complete | no | partly | true: without `dont_remember`, get-session moves 1 h → 720 h; incomplete: row 5's paths need no tampering |
+| 7 | The SPEC is consistent with decision 12 | no | not met | `SPEC.md:89-90` still says 30 days |
+| 8 | The sign-in is audited as `remember: false` | no | confirmed | `sso.ts:322`; asserted |
+| 9 | Password sign-ins are unaffected: Remember me still 30 days | no | confirmed | probe P7: `Max-Age=2592000`, 720 h stored, also with a leftover `dont_remember` cookie |
+| 10 | A test shows the expiry and that use doesn't extend it | no | confirmed | `sso.db.test.ts:151-182`; M1 and M2 fail it |
+| 11 | The Documentation says so (en, pt, fr) | no | partly | "24 hours at most and ends when the browser closes" in all six files, but "loses access within a day" is false after row 5's paths |
+
+**Overall:** not met: a password change or two-factor on/off from a provider session makes a 30-day session; the SPEC is stale and its caveat incomplete; the Documentation's "within a day" is wrong. Minor: a Remember-me password sign-in doesn't clear a leftover `dont_remember` cookie, so that 30-day session isn't extended.
+
+### Re-check 1 (blind: row 6 and the diff)
+
+Witnessed: 2026-10-17 18:26 EDT, by a fresh agent (blind). Commit: d5a7e900 + staged diff. Machine: macOS (Darwin 27), Node v24.0.0. Tests and mutations only in its scratch copy, refreshed from the staged state; every restore checked with `cmp`.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6 | SPEC.md is consistent with decision 12 | no | confirmed | `SPEC.md:89-90` now says every provider's sessions last 24 hours; `grep "30 days"` finds only :174 (what Better Auth would do without the cap) and :376 ("not 30 days") |
+| 14 | A session made to replace the request's current one (password change, two-factor on or off) never outlives it | no | confirmed | `better-auth.ts:115-117`. Mutation (cap off) → the new test fails at the password change (about 29 days over); skipping it only on `verify-totp` → fails at `:236`; only on `disable` → fails at `:243` |
+| 15 | The cap doesn't shorten a new provider session opened while an older session exists | no | confirmed | By reading: `better-auth-sso-session.ts:31-41`: no session middleware, so `context.session` is unset |
+| 16 | The new test passes with the old ones (SQLite) | no | confirmed | `--project db src/server/domains/identity` → 282 passed, 1 skipped; `vitest run src/server/domains/identity` → 469 passed, 1 skipped. The servers weren't run here (afterwards the implementer ran `sso.db.test.ts` on PostgreSQL, MySQL and MariaDB: 38 passed each) |
+| 17 | The SPEC's text about the cap and its caveat is accurate | no | confirmed | `SPEC.md:173-180` matches the hook (every session); disabling is the hard cut-off (`token-exchange.ts:126`); `remember: false` at `sso.ts:322` |
+| 18 | The Documentation still matches after ronne-web 403ff45 | no | confirmed | "normally loses access within a day", and "disable their account in Ronne: that ends their sessions and tokens" (en, pt, fr) |
+
+**Overall:** met. Every row of task 13's blind pass is now confirmed.
+
+### Re-check 1 (adversarial: rows 5, 6, 7, 11 and the diff)
+
+Witnessed: 2026-10-17 18:30 EDT, by a fresh agent (adversarial). Commit: d5a7e900 + staged diff. Machine: macOS 27.0.1, Node v24.0.0. Probes and the one mutation only in its scratch copy, checked with `cmp`.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 5 | No path Ronne serves can extend the session past 24 hours | no | confirmed | P1: password change → 23.99 h (was 720 h); P2/R2: two-factor on → 24 h, off → 24 h, then get-session with 1 h left → still 1 h; R1: 1 h left, password change → 1.00 h. Only `/get-session` and `/ok` over HTTP. R6: concurrent calls don't leak context (`dispatch.mjs:196-200`). Mutation (cap off) → the new test fails |
+| 5a | The cap doesn't shorten a legitimate session | no | confirmed | R3: Remember-me, password change → 720 h; R3b: two-factor on → 720 h; R4: Remember-me sign-in while holding a provider session → 720 h; R5: two-factor step at sign-in, fresh browser → 720 h; setup and reset-root-password create no capped session |
+| 6 | The SPEC's caveat is true and complete | no | confirmed | SPEC.md:170-180; P3: token only → 1 h becomes 720 h, as stated |
+| 7 | The SPEC is consistent with decision 12 | no | confirmed | SPEC.md:89-90, :170-173 |
+| 8 | The audit records `remember: false` | no | confirmed | `sso.ts:322`; asserted |
+| 9 | A test shows the expiry and no extension through these paths | no | confirmed | 282 passed, 1 skipped; the new test fails under the row 5 mutation |
+| 10 | A Remember-me password sign-in is unaffected by a provider session earlier in the same browser | no | partly | R5b: with two-factor and a leftover `dont_remember`, step 2 → 24.00 h, browser-session cookie (`verify-two-factor.mjs:23,31`); without two-factor, 720 h but never extended |
+| 11 | The Documentation says so, and the new sentence matches the code | no | confirmed | 403ff45; `user-admin.ts:193-196` |
+
+**Overall:** not met: the leftover `dont_remember` cookie makes a later Remember-me password sign-in with two-factor a 24-hour browser session (row 10).
+
+### Re-check 2 (adversarial: row 10 and the diff)
+
+Witnessed: 2026-10-17 18:38 EDT, by a fresh agent (adversarial). Commit: d5a7e900 + staged diff. Machine: macOS (Darwin 27), Node v24.0.0. Probes and the one mutation only in its scratch copy, checked with `cmp`.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 10 | A Remember-me password sign-in is unaffected by a provider session earlier in the same browser | no | confirmed | R5b: step 1 sends `ronne.dont_remember=…; Max-Age=0`, step 2 → 720 h; X1 (no two-factor): 720 h and extended. Mutation (hook returns early) → the new test fails |
+| 10a | A sign-in without Remember me still gets its 24-hour browser session, two-factor included | no | confirmed | X2, X3, X3b → 24.00 h, browser-session cookie plus `dont_remember`, not extended |
+| 10b | A failed sign-in changes nothing, and can't make a provider session extendable | no | not met | X4: provider session with 1 h left, wrong password (`rememberMe: true`) → 401 with `dont_remember` Max-Age=0; get-session → 720.00 h. Unknown email → the same. After hooks run on errors too (`dispatch.mjs:234-245`); `nextCookies` applies it in a server action |
+| 10c | The server-side `Max-Age=0` reaches the browser from a server action | no | confirmed | By reading: `nextCookies` last (`better-auth.ts:137`), reads `responseHeaders` (`dispatch.mjs:129`), `cookies().set(…, { maxAge: 0 })` |
+| 5 | No path Ronne serves can extend the session past 24 hours | no | not met | P1, P2/R2, R1 still hold; row 10b is a new path |
+| 5a | The cap doesn't shorten a legitimate session | no | confirmed | R3, R3b, R4 → 720 h |
+| 6–9 | SPEC caveat and consistency, `remember: false`, the test | no | confirmed | 283 passed, 1 skipped; SPEC :179 doesn't say failed attempts clear it too |
+| 11 | The Documentation says so | no | confirmed | Unchanged: true once 10b is fixed |
+
+**Overall:** not met: a failed password sign-in in a browser holding a provider session clears `dont_remember`, and that session then grows to 30 days (rows 10b and 5). Two adversarial re-checks done: the owner decides (state-witness.md).
+
+### Re-check 3 (adversarial: rows 5, 10b and the diff)
+
+Witnessed: 2026-10-17 18:43 EDT, by a fresh agent (adversarial). Commit: d5a7e900 + staged diff. Machine: macOS (Darwin 27), Node v24.0.0. Probes and the one mutation only in its scratch copy, refreshed from the index and checked with `cmp`. The owner allowed this round after re-check 2.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 10b | A failed sign-in changes nothing and can't make a provider session extendable | no | confirmed | X4: wrong password and unknown email with `rememberMe: true` → 401, no Set-Cookie; `dont_remember` kept; get-session → still 1.00 h. Test at `sso.db.test.ts:288`; mutation (drop the `isAPIError` check) → fails |
+| 10d | No other refused sign-in reaches the hook | no | confirmed | Y1 disabled user → no mark cookie, still 1.00 h; Y2 Ronne's rate limit → Better Auth never called; Y3 root-only policy → `rememberMe: false` call refused, still 1.00 h |
+| 10e | Clearing the mark at a two-factor challenge never completed can't extend a provider session | no | confirmed | Y4/Y5: step 1 ends `session_token` and `session_data` in the same response (`two-factor/index.mjs:286`); get-session → null. Only replaying the token without the mark extends it: the SPEC's caveat |
+| 10 | A Remember-me password sign-in is unaffected by an earlier provider session | no | confirmed | R5b → 720 h; X1 → Max-Age=2592000, extended; R4 → 720 h |
+| 10a | A sign-in without Remember me keeps its 24-hour browser session, two-factor included | no | confirmed | X2, X3, X3b → 24.00 h, not extended |
+| 5 | No path Ronne serves can extend the session past 24 hours | no | confirmed | P1 → 23.99 h; P2/R2, R1 → 1.00 h; P3 full cookie → 1.00 h (token only → 720 h, the caveat); P5 → null; R6 no leak; 10b, 10d, 10e |
+| 5a | The cap doesn't shorten a legitimate session | no | confirmed | R3, R3b, R4, R5 → 720 h |
+| 16 | The tests pass (SQLite) | no | confirmed | `--project db src/server/domains/identity` → 310 passed, 1 skipped (with the probes); the implementer ran `sso.db.test.ts` on PostgreSQL, MySQL and MariaDB: 40 passed each |
+| 17 | The SPEC matches | no | confirmed | `SPEC.md:176-177` matches `better-auth-sso-session.ts:57` |
+
+**Overall:** met. Every row of task 13's blind and adversarial passes is now confirmed.

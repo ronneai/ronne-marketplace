@@ -86,8 +86,8 @@ for setting it up on the provider's side.
 - **SAML and LDAP.** Not built; the contract is why they can be added (MVP §14.3).
 - **Provider-initiated sign-in** (the IdP's app tile): not supported; people start at Ronne.
 - **Logout at the provider** (single logout): signing out ends the Ronne session only.
-- **A provider-specific session length.** SSO sessions last as long as "Remember me" ones (30
-  days), and end at once when the account is disabled (006).
+- **A session length per provider.** Every provider's sessions last 24 hours (decision 12), and
+  end at once when the account is disabled (006).
 - **Making someone root or setting the instance role from a claim.** Never: root is made in Admin
   › Users only.
 
@@ -167,8 +167,20 @@ then `complete` returns the identity and Ronne decides:
    write: `user` in `global`, personal workspace; no password; the name by Create user's rule),
    link, sign in.
 6. **Else** `not_allowed`.
-Then the groups are applied (below) and the session is created like a password one (same cookie,
-`auth.signed_in`, plus `auth.sso_signed_in`), by a server-only Better Auth endpoint
+Then the groups are applied (below) and the session is created like a password one without
+*Remember me* (decision 12): the same cookie, but a browser-session one, and 24 hours at most,
+never extended (Better Auth skips the refresh because of its signed `dont_remember` cookie).
+A session made to replace the one a request is signed in with (changing the password, turning
+two-factor on or off, which Better Auth would make for 30 days) never outlives it: the session
+hook caps it at the current session's expiry, for every session, a password one without *Remember
+me* included. A password sign-in with *Remember me* that works (a failed attempt changes nothing)
+clears a `dont_remember` cookie a provider's
+session left in that browser, so it lasts and is extended like any remembered one (two-factor's
+second step included, which reads that cookie). It's a safety net, not a hard cut-off: someone who deletes the `dont_remember`
+cookie on purpose gets their session extended like a remembered one, and `rmk` tokens don't
+depend on sessions. Disabling the account in Ronne, or SCIM (108), is the hard cut-off. Audited
+as `auth.signed_in` (`remember: false`), plus `auth.sso_signed_in`, by a server-only Better Auth
+endpoint
 (`SERVER_ONLY`, so it is a 404 over HTTP even without the allowlist) that takes the user Ronne
 chose; the disabled-account check on session creation (006) still runs. Two-factor (105) isn't
 asked.
