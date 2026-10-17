@@ -11,6 +11,17 @@ export const E2E_NEW_PASSWORD = "a brand new e2e passphrase";
 
 export const E2E_USERS = {
   root: "root@e2e.test",
+  // Sets up an identity provider and Root only (106): its own root, as root's sign-ins are spent.
+  ssoRoot: "sso-root@e2e.test",
+  // Refused a password under Root only (106).
+  ssoMember: "sso-member@e2e.test",
+  phoneSsoMember: "phone-sso-member@e2e.test",
+  phoneWebkitSsoMember: "phone-webkit-sso-member@e2e.test",
+  tabletSsoMember: "tablet-sso-member@e2e.test",
+  // Each device project's own root for the SSO flow: the project's root is signed in five times.
+  phoneSsoRoot: "phone-sso-root@e2e.test",
+  phoneWebkitSsoRoot: "phone-webkit-sso-root@e2e.test",
+  tabletSsoRoot: "tablet-sso-root@e2e.test",
   wrongPassword: "wrong-password@e2e.test",
   remember: "remember@e2e.test",
   signOut: "sign-out@e2e.test",
@@ -167,6 +178,14 @@ export const E2E_USERS = {
 /** The display names, which the header shows (not the email). */
 export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   root: "Root",
+  ssoRoot: "SSO Root",
+  ssoMember: "SSO Member",
+  phoneSsoMember: "Phone SSO Member",
+  phoneWebkitSsoMember: "Phone WebKit SSO Member",
+  tabletSsoMember: "Tablet SSO Member",
+  phoneSsoRoot: "Phone SSO Root",
+  phoneWebkitSsoRoot: "Phone WebKit SSO Root",
+  tabletSsoRoot: "Tablet SSO Root",
   wrongPassword: "Wrong Password",
   remember: "Remember Me",
   signOut: "Sign Out Tester",
@@ -318,6 +337,10 @@ export const E2E_MODERATORS: readonly (keyof typeof E2E_USERS)[] = [
 
 /** Seeded as root, besides the root setup creates (more than one root since 059). */
 export const E2E_ROOTS: readonly (keyof typeof E2E_USERS)[] = [
+  "ssoRoot",
+  "phoneSsoRoot",
+  "phoneWebkitSsoRoot",
+  "tabletSsoRoot",
   "privateRoot",
   "twoFactorRoot",
   "scopeMoveRoot",

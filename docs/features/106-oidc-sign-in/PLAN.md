@@ -66,7 +66,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   secrets; `backup`/`restore` carry them and the restore runbook is updated.
   *Done when:* script tests pass for each, including a round trip through rotate and restore.
 
-- [ ] **9. End-to-end.** Playwright with the fake provider: root adds a provider from a preset,
+- [x] **9. End-to-end.** Playwright with the fake provider: root adds a provider from a preset,
   tests and turns it on; a new person signs in and is created; a group grants a role; root chooses
   *Root only*; `disable-sso` restores it. Mind the sign-in limit.
   *Done when:* `pnpm test:e2e` passes the new spec on desktop and phone.
@@ -303,3 +303,18 @@ goes into `SPEC.md` instead.
   rule as two-factor's) and marks the ones it can't read `secret_unreadable`, which the panel shows
   as *Failing* at once and the page explains. Backups need nothing new: they carry
   `identity_providers` like any table, the secrets still encrypted.
+
+**Task 9, end-to-end (2026-10-17).**
+
+- **The flow is one function** (`e2e/sso.ts`), run once per project: `sso.e2e.ts` on the desktop,
+  `sso.mobile.e2e.ts` on phone, phone-webkit and tablet. Each run starts its own fake provider and
+  has its own provider id, its own new person (`ann@<project>.e2e.test`) and **its own root and
+  member**: each device project's root is already signed in five times, so the flow's would be the
+  sixth (e2e-sign-in-limit.md). A first version reused it and passed only because the sign-ins
+  happened to straddle two windows; a probe confirmed the limit holds (the sixth right sign-in in a
+  minute is refused, other pages visited between).
+- **`disable-sso` runs for real**, `scripts/disable-sso.ts --yes` with the instance's env from
+  `RONNE_E2E_INSTANCE`, and again in `finally` when the flow fails after choosing *Root only*, so
+  one failure can't hold every later test on the shared instance to root-only.
+- **The Authentication tab has two Save buttons** now (two-factor policy and password sign-in), so
+  each test scopes Save to its form (`two-factor-hold.e2e.ts` changed for it).

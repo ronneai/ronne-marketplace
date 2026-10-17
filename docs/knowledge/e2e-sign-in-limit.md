@@ -16,6 +16,11 @@ toward the same window.
   the root test of `audit.e2e.ts`, which also shows the change in the audit log. Check the 404 for
   other roles with a user a test already signs in.
 
+- **A flow run on every device project needs its own root per project** (106's SSO flow:
+  `ssoRoot`, `phoneSsoRoot`, `phoneWebkitSsoRoot`, `tabletSsoRoot`, all in `E2E_ROOTS`). Each
+  project's root (`phoneRoot`, …) is already signed in by five files. A sixth can pass by luck when
+  its sign-ins straddle two of the limiter's fixed windows, so a green run doesn't prove it fits.
+
 ## How to spot it
 
 The failing test is the last root test in the run, its error is `expect(page).not.toHaveURL(/\/sign-in/)`,

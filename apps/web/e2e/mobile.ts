@@ -14,6 +14,8 @@ const PROJECT_USERS = {
     joinAsker: "phoneJoinAsker",
     joinModerator: "phoneJoinModerator",
     twoFactor: "phoneTwoFactor",
+    ssoMember: "phoneSsoMember",
+    ssoRoot: "phoneSsoRoot",
   },
   "phone-webkit": {
     member: "phoneWebkitMember",
@@ -26,6 +28,8 @@ const PROJECT_USERS = {
     joinAsker: "phoneWebkitJoinAsker",
     joinModerator: "phoneWebkitJoinModerator",
     twoFactor: "phoneWebkitTwoFactor",
+    ssoMember: "phoneWebkitSsoMember",
+    ssoRoot: "phoneWebkitSsoRoot",
   },
   tablet: {
     member: "tabletMember",
@@ -38,6 +42,8 @@ const PROJECT_USERS = {
     joinAsker: "tabletJoinAsker",
     joinModerator: "tabletJoinModerator",
     twoFactor: "tabletTwoFactor",
+    ssoMember: "tabletSsoMember",
+    ssoRoot: "tabletSsoRoot",
   },
 } as const satisfies Record<string, Record<string, keyof typeof E2E_USERS>>;
 

@@ -601,3 +601,38 @@ Witnessed: 2026-10-17 12:43 EDT, by a fresh agent (blind). Commit: 86af8465 + wo
 | 8 | *Failing* with "Enter the client secret again" after a restore under another AUTH_SECRET, both tested | yes | confirmed | 52 passed; status mutation → `identity-provider.test.ts` fails ("expected 'on' to be 'failing'"); notice mutation → `providers.test.tsx` fails; `ProviderPage.tsx:68` renders `UnreadableSecretNotice` |
 
 **Overall:** met. Every row of task 8 is confirmed.
+
+## Task 9 — End-to-end
+
+Witnessed: 2026-10-17 13:12 EDT, by a fresh agent (blind). Commit: ce8afa00 + working tree (e2e/mobile.ts, two-factor-hold.e2e.ts, users.ts modified; sso.ts, sso.e2e.ts, sso.mobile.e2e.ts new). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `pnpm test:e2e` passes the new spec on desktop | no | confirmed | `pnpm test:e2e` → `157 passed (4.5m)`, exit 0; `✓ [chromium] › e2e/sso.e2e.ts:6:1` |
+| 2 | …and on phone (and tablet) | no | confirmed | same run → `✓ [phone]`, `✓ [phone-webkit]`, `✓ [tablet] › e2e/sso.mobile.e2e.ts:6:1`; chromium ignores `*.mobile.e2e.ts`, the device projects match only them |
+| 3 | It goes through the fake OIDC provider, not a stub | no | confirmed | `sso.ts` `startFakeOidc({…groups})`; its issuer, client id and secret typed into the form; Ann signs in with `Continue with <name>` and lands on `/catalogue` |
+| 4 | Root adds a provider from a preset | no | confirmed | Add provider → the Other OpenID Connect card → the redirect URI `/api/auth/sso/callback/<id>` shows → `provider=<id>`, "Secret saved" |
+| 5 | Turn on disabled until tested; Test connection and Test sign-in pass; the test creates nothing | no | confirmed | `Turn on` disabled; "The connection works."; popup "Your Test sign-in passed.", `Create the account ann@…`, `join <workspace> as moderator`; the users search then finds no Ann |
+| 6 | A new person signs in and is created | no | confirmed | a fresh context signs in through the provider; Admin › Users shows Ann's row |
+| 7 | A group grants a role | no | confirmed | `e2e-sso-team` → e2e-team / moderator; Ann's row has a `moderator` badge (only one workspace is mapped) |
+| 8 | Root chooses *Root only*: others are refused a password, the provider button shows | no | confirmed | Save scoped to the Password sign-in form → "Password sign-in saved."; signed out: the button shows, the member's right password gets "Email or password is wrong" |
+| 9 | `disable-sso` restores password sign-in | no | confirmed | the real `scripts/disable-sso.ts --yes` against the instance's env; output matched; then no provider button, and the member signs in |
+| 10 | The two-factor-hold change keeps that test on its own Save button | no | confirmed | scoped to `form "Two-factor sign-in"`; passed in the full run |
+| 11 | Minds the sign-in limit: own users per project | no | partly | desktop root and member are its own; the device flow reuses `phoneRoot`/`phoneWebkitRoot`/`tabletRoot`, already signed in by five files: the 6th sign-in, passing only because its timing straddled two windows |
+| 12 | A mutation shows the spec fails without the feature | no | can't check here | not done in budget |
+
+**Overall:** not met: the device flow reuses the project's root as its sixth sign-in.
+
+### Re-check 1 (blind: rows 11, 12 and a new row 13)
+
+Witnessed: 2026-10-17 13:27 EDT, by a fresh agent (blind). Commit: ce8afa00 + working tree. Machine: macOS 27.0.1, Node v24.0.0. Mutations only in its scratch copy.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `pnpm test:e2e` passes the new spec on desktop | no | confirmed | rerun → `157 passed (4.1m)`, exit 0; `✓ [chromium] › e2e/sso.e2e.ts:6:1` |
+| 2 | …and on phone (and tablet) | no | confirmed | same run → `✓ [phone]`, `✓ [phone-webkit]`, `✓ [tablet] › e2e/sso.mobile.e2e.ts:6:1` |
+| 11 | Minds the sign-in limit: own users per project | no | confirmed | `phone-sso-root@`, `phone-webkit-sso-root@`, `tablet-sso-root@` in `E2E_ROOTS`, mapped as `ssoRoot` in `mobile.ts`, used by `sso.mobile.e2e.ts`; grep: each SSO root and member is used only by the sso specs, at most twice a run |
+| 12 | Mutation: the spec fails without the feature | no | confirmed | `disableSso` mutated to print the same and roll back → `✘ … toHaveCount(expected) Expected: 0 Received: 1` (the button still there); restored (`cmp` identical) → `1 passed` |
+| 13 | A failure after choosing Root only no longer leaves it on for later tests | no | confirmed | `cleanUp` set after the save, cleared after disable-sso, `if (cleanUp) disableSso()` in `finally`; gap: set only after the message assertion (since moved before the Save click) |
+
+**Overall:** met. Every row of task 9 is confirmed.
