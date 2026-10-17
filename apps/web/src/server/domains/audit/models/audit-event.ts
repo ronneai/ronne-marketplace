@@ -16,6 +16,11 @@ export const AUDIT_ACTIONS = [
   "auth.sign_in_failed",
   "auth.signed_out",
   "user.password_changed",
+  "auth.two_factor_enabled",
+  "auth.two_factor_disabled",
+  "auth.backup_codes_regenerated",
+  "auth.two_factor_failed",
+  "user.two_factor_reset",
   "user.created",
   "user.role_changed",
   "user.disabled",
@@ -60,6 +65,7 @@ export const AUDIT_ACTIONS = [
   "dist_tag.removed",
   "settings.usage_policy",
   "settings.usage_minimum",
+  "settings.two_factor_policy",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

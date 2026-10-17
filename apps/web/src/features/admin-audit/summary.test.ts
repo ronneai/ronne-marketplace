@@ -60,6 +60,35 @@ describe("audit summaries (060)", () => {
     expect(line("instance.secret_rotated", { via: "cli", sessionsEnded: 4 })).toBe(
       "Replaced AUTH_SECRET, so everyone signs in again (4 sessions ended) from the command line",
     );
+    // 105: the two-factor it turned off, and the resets.
+    expect(
+      line("instance.secret_rotated", { via: "cli", sessionsEnded: 4, twoFactorCleared: 2 }),
+    ).toBe(
+      "Replaced AUTH_SECRET, so everyone signs in again (4 sessions ended), and turned off two-factor sign-in for 2 accounts from the command line",
+    );
+    expect(
+      line(
+        "user.two_factor_reset",
+        { via: "web", sessionsEnded: 2 },
+        { targetEmail: "alex@x.com" },
+      ),
+    ).toBe("Turned off the two-factor sign-in of alex@x.com (2 sessions ended)");
+    expect(
+      line(
+        "user.two_factor_reset",
+        { via: "cli", email: "alex@x.com", sessionsEnded: 0 },
+        { targetEmail: "alex@x.com" },
+      ),
+    ).toBe("Turned off the two-factor sign-in of alex@x.com from the command line");
+    expect(
+      line(
+        "user.password_reset",
+        { via: "cli", sessionsEnded: 1, tokensRevoked: 0, twoFactorReset: true },
+        { targetEmail: "root@x.com" },
+      ),
+    ).toBe(
+      "Reset the password of root@x.com and turned off its two-factor sign-in (1 session ended) from the command line",
+    );
     expect(
       line("instance.backup_made", {
         via: "cli",

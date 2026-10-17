@@ -40,6 +40,7 @@ import {
 } from "@/server/domains/workspaces/actions/workspaces";
 import type { ScopeMove } from "@/server/domains/workspaces/models/scope-move";
 import { requestHeaders } from "@/server/http/request-headers";
+import { holdPage } from "../../hold";
 
 export const metadata = { title: "Workspace · Ronne AI Marketplace" };
 
@@ -69,6 +70,7 @@ const WorkspacePage = async ({
   params: Promise<{ name: string }>;
   searchParams: Promise<SearchParams>;
 }) => {
+  await holdPage();
   const request = await requestHeaders();
   const me = await getCurrentUser(request);
   if (!me) notFound();

@@ -63,6 +63,10 @@ describe("/api/auth/*", () => {
       .map((endpoint) => (endpoint as { path?: string }).path)
       .filter((path): path is string => Boolean(path));
     expect(paths.length).toBeGreaterThan(20);
+    // The allowlist itself: a route added here by mistake would skip the 404 check below.
+    expect([...HTTP_ENDPOINTS].sort()).toEqual(["/get-session", "/ok"]);
+    // The two-factor plugin (105) adds its routes to auth.api; none of them is served.
+    expect(paths.filter((p) => p.startsWith("/two-factor/")).length).toBeGreaterThan(5);
     for (const path of paths.filter((p) => !HTTP_ENDPOINTS.has(p))) {
       const response = await handleAuthRequest(request(path.replace(/:\w+/g, "x")), () => auth);
       expect(response.status, path).toBe(404);

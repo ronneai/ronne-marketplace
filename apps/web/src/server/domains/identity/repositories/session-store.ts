@@ -7,12 +7,16 @@ export interface SessionStore {
   currentSession(headers: Headers): Promise<SessionRef | null>;
   /**
    * Checks the password and starts a session. Returns the response headers (with Set-Cookie) and
-   * the new session, or null when the email and password don't match an active user.
+   * the new session; or, for someone with two-factor on (105), no session yet but a challenge (its
+   * cookie in the headers) for the second step; or null when the email and password don't match
+   * an active user.
    */
   signIn(
     headers: Headers,
     credentials: { email: string; password: string; rememberMe: boolean },
-  ): Promise<{ headers: Headers; session: SessionRef } | null>;
+  ): Promise<
+    { headers: Headers; session: SessionRef } | { headers: Headers; challenge: true } | null
+  >;
   /** Ends the request's session. */
   signOut(headers: Headers): Promise<void>;
   /**

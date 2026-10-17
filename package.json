@@ -25,6 +25,7 @@
     "db:migrate": "pnpm --filter @ronneai/web db:migrate",
     "setup": "pnpm --filter @ronneai/web run setup",
     "reset-root-password": "pnpm --filter @ronneai/web run reset-root-password",
+    "reset-two-factor": "pnpm --filter @ronneai/web run reset-two-factor",
     "revoke-access": "pnpm --filter @ronneai/web run revoke-access",
     "rotate-secret": "pnpm --filter @ronneai/web run rotate-secret",
     "backup": "pnpm --filter @ronneai/web run backup",

@@ -36,3 +36,12 @@ export const usageMinimum = (app: AppAuth = getAppAuth()) => service.usageMinimu
 
 /** The usage policy, for the usage API (anyone may follow it; only root changes it). */
 export const usagePolicy = (app: AppAuth = getAppAuth()) => service.usagePolicy(deps(app));
+
+export const setTwoFactorPolicy = async (
+  headers: Headers,
+  value: unknown,
+  app: AppAuth = getAppAuth(),
+) => service.setTwoFactorPolicy(deps(app), await actor(headers, app), value);
+
+/** Who must use two-factor sign-in (105), for the hold on pages and actions. */
+export const twoFactorPolicy = (app: AppAuth = getAppAuth()) => service.twoFactorPolicy(deps(app));

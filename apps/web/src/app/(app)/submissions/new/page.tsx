@@ -8,6 +8,7 @@ import { listScopes } from "@/server/domains/items/actions/scopes";
 import { listMySubmissions } from "@/server/domains/submissions/actions/drafts";
 import { itemNameOf } from "@/server/domains/submissions/models/submission";
 import { requestHeaders } from "@/server/http/request-headers";
+import { holdPage } from "../../hold";
 import { loadShell } from "../../shell";
 
 export const metadata = { title: "New item · Ronne AI Marketplace" };
@@ -38,6 +39,7 @@ const allScopes = async (headers: Headers): Promise<ScopeOption[]> => {
 };
 
 const NewItem = async () => {
+  await holdPage();
   const headers = await requestHeaders();
   const [scopes, mine, { current }] = await Promise.all([
     allScopes(headers),

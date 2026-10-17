@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   parseResetCommand,
+  parseResetTwoFactorCommand,
   parseRevokeAccessCommand,
   parseRotateSecretCommand,
   parseSetupCommand,
@@ -163,5 +164,33 @@ describe("parseRotateSecretCommand (098)", () => {
         mode: "error",
         exitCode: 2,
       });
+  });
+});
+
+describe("parseResetTwoFactorCommand (105)", () => {
+  it("needs --email, and --yes without a terminal", () => {
+    expect(parseResetTwoFactorCommand(["--email", "a@x.com"], {}, true)).toEqual({
+      mode: "interactive",
+      email: "a@x.com",
+      databaseUrl: undefined,
+    });
+    expect(
+      parseResetTwoFactorCommand(["--email", "a@x.com", "-y"], { DATABASE_URL: "file:x" }, false),
+    ).toEqual({
+      mode: "non-interactive",
+      email: "a@x.com",
+      databaseUrl: "file:x",
+    });
+    expect(parseResetTwoFactorCommand(["--yes"], {}, true)).toMatchObject({
+      mode: "error",
+      exitCode: 2,
+    });
+    expect(parseResetTwoFactorCommand(["--email", " "], {}, true)).toMatchObject({ mode: "error" });
+    expect(parseResetTwoFactorCommand(["--email", "a@x.com"], {}, false)).toMatchObject({
+      mode: "error",
+      message: expect.stringContaining("--yes"),
+    });
+    expect(parseResetTwoFactorCommand(["--bogus"], {}, true)).toMatchObject({ mode: "error" });
+    expect(parseResetTwoFactorCommand(["-h"], {}, false)).toEqual({ mode: "help" });
   });
 });

@@ -12,6 +12,7 @@ import {
   disableUserFromForm,
   enableUserFromForm,
   resetPasswordFromForm,
+  resetTwoFactorFromForm,
 } from "./actions";
 import { OneTimePassword } from "./OneTimePassword";
 import { PasswordChoice } from "./PasswordChoice";
@@ -23,12 +24,14 @@ type RowUser = {
   email: string;
   role: Role;
   disabled: boolean;
+  /** Two-factor sign-in is on (105): only then is "Reset two-factor" offered. */
+  twoFactor?: boolean;
   /** The signed-in root's own row: read-only here (059). */
   self?: boolean;
 };
 
 const ROLES: readonly Role[] = ["user", "root"];
-type Kind = "role" | "disable" | "enable" | "reset";
+type Kind = "role" | "disable" | "enable" | "reset" | "twoFactor";
 type FormAction = (state: AdminActionState, form: FormData) => Promise<AdminActionState>;
 
 const rowButton =
@@ -39,6 +42,7 @@ const TITLES: Record<Kind, string> = {
   disable: "Disable user",
   enable: "Enable user",
   reset: "Reset password",
+  twoFactor: "Reset two-factor",
 };
 
 const ACTIONS: Record<Kind, FormAction> = {
@@ -46,6 +50,7 @@ const ACTIONS: Record<Kind, FormAction> = {
   disable: disableUserFromForm,
   enable: enableUserFromForm,
   reset: resetPasswordFromForm,
+  twoFactor: resetTwoFactorFromForm,
 };
 
 const DisableImpact = ({ userId }: { userId: string }) => {
@@ -158,6 +163,13 @@ const ActionForm = ({ kind, user, onDone }: { kind: Kind; user: RowUser; onDone:
           <PasswordChoice idPrefix={`reset-${user.id}`} />
         </>
       ) : null}
+      {kind === "twoFactor" ? (
+        <p className="text-sm text-muted">
+          For a lost phone and lost backup codes. This turns off their two-factor sign-in and signs
+          them out everywhere; they sign in with their password alone, and set it up again if it's
+          required of them. <Help id="reset-two-factor" />
+        </p>
+      ) : null}
       <FieldError id={`${kind}-${user.id}-error`}>{state.error}</FieldError>
       <DialogActions>
         <Button variant="ghost" onClick={onDone}>
@@ -172,7 +184,8 @@ const ActionForm = ({ kind, user, onDone }: { kind: Kind; user: RowUser; onDone:
 };
 
 /**
- * A row's actions: change role, reset password, disable or enable (spec 008), on every row,
+ * A row's actions: change role, reset password, reset two-factor when it's on (105), disable or
+ * enable (spec 008), on every row,
  * other roots' included, except your own: another root changes that one (059).
  */
 export const UserRowActions = ({ user }: { user: RowUser }) => {
@@ -204,6 +217,11 @@ export const UserRowActions = ({ user }: { user: RowUser }) => {
         <button type="button" className={rowButton} onClick={open("reset")}>
           Reset password
         </button>
+        {user.twoFactor ? (
+          <button type="button" className={rowButton} onClick={open("twoFactor")}>
+            Reset two-factor
+          </button>
+        ) : null}
         <button
           type="button"
           className={rowButton}

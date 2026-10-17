@@ -1,10 +1,11 @@
 import { betterAuth } from "better-auth";
 import { APIError } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
+import { twoFactor } from "better-auth/plugins/two-factor";
 import type { Db } from "../../../db/create-db";
 import { newId } from "../../../db/ids";
 import type { DatabaseDialect } from "../../../db/url";
-import { authSchema } from "../models/auth-schema";
+import { authSchema, twoFactorSchema } from "../models/auth-schema";
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "../models/password";
 import type { PasswordHasher } from "../models/password-hasher";
 import { COOKIE_PREFIX } from "../models/session-cookie";
@@ -18,6 +19,9 @@ const DAY = 60 * 60 * 24;
 export const SESSION_EXPIRES_IN = 30 * DAY;
 /** A session in use is extended at most once a day. */
 export const SESSION_UPDATE_AGE = DAY;
+
+/** The name authenticator apps show beside a Ronne code (feature 105). */
+export const TWO_FACTOR_ISSUER = "Ronne AI Marketplace";
 
 /**
  * The only Better Auth endpoints served over HTTP, at /api/auth/*. Signing in, changing the
@@ -58,6 +62,9 @@ export const createAuth = ({
   validateSchema = true,
 }: AuthConfig) => {
   return betterAuth({
+    // The name authenticator apps show (two-factor, 105): Better Auth uses it where it builds a
+    // TOTP URI without the plugin's issuer (getTOTPURI), so both agree.
+    appName: TWO_FACTOR_ISSUER,
     database: { db, type: dialect },
     secret,
     baseURL,
@@ -112,8 +119,14 @@ export const createAuth = ({
       expiresIn: SESSION_EXPIRES_IN,
       updateAge: SESSION_UPDATE_AGE,
     },
-    // Lets server actions set the session cookie. It must stay the last plugin.
-    plugins: [nextCookies()],
+    plugins: [
+      // Two-factor sign-in (feature 105): TOTP and 10 backup codes, both stored encrypted with a
+      // key from AUTH_SECRET. No email or SMS codes (no otpOptions), and trusted devices are never
+      // asked for. Every call is a server action through auth.api; its routes aren't served.
+      twoFactor({ issuer: TWO_FACTOR_ISSUER, schema: twoFactorSchema }),
+      // Lets server actions set the session cookie. It must stay the last plugin.
+      nextCookies(),
+    ],
   });
 };
 

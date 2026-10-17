@@ -3,6 +3,7 @@ import { BrandLogo } from "@/components/ui/BrandLogo";
 import { Notice } from "@/components/ui/Notice";
 import { Panel } from "@/components/ui/Panel";
 import { SignInForm } from "./SignInForm";
+import { SIGN_IN_AGAIN, type SignInAgain } from "./types";
 
 /**
  * The sign-in screen (spec 006, from the mock): the card, with the terminal guide beside it on
@@ -14,6 +15,7 @@ export const SignInPage = ({
   registry,
   email,
   setupDone = false,
+  again,
 }: {
   next: string;
   /** reset-root-password as typed for this install (`hostCommand`, #147). */
@@ -23,7 +25,10 @@ export const SignInPage = ({
   email?: string;
   /** The web setup just finished (its form without JavaScript lands here). */
   setupDone?: boolean;
+  /** Sent back from the second step (105): `?reason=`, said above the form. */
+  again?: string;
 }) => {
+  const againText = again && again in SIGN_IN_AGAIN ? SIGN_IN_AGAIN[again as SignInAgain] : null;
   return (
     <main className="mx-auto grid min-h-dvh w-full max-w-5xl content-center gap-6 px-4 py-12 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:items-start">
       <Panel padding="lg" className="grid gap-6">
@@ -41,6 +46,7 @@ export const SignInPage = ({
             Sign in with the root account you just created.
           </Notice>
         ) : null}
+        {againText ? <Notice kind="warn" title={againText} /> : null}
         <SignInForm
           next={next}
           resetCommand={resetCommand}

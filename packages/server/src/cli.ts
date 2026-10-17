@@ -11,6 +11,7 @@ export const SCRIPTS = [
   "migrate",
   "reset-root-password",
   "revoke-access",
+  "reset-two-factor",
   "rotate-secret",
   "backup",
   "restore",
@@ -140,6 +141,8 @@ Usage:
   rmk-server reset-root-password  Set a new password for root
   rmk-server revoke-access --everyone | --user EMAIL [--sessions-only | --tokens-only] [--yes]
                                   End sessions and revoke access tokens (for incidents)
+  rmk-server reset-two-factor --email EMAIL [--yes]
+                                  Turn off an account's two-factor sign-in (a lost phone)
   rmk-server rotate-secret [--yes]
                                   Write a new AUTH_SECRET; everyone signs in again (for incidents)
   rmk-server backup [--out DIR] [--encrypt] [--no-settings] [--keep N]

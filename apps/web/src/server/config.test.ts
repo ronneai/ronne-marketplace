@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
-import { envFilePath, isConfigured, loadConfig } from "./config";
+import { envFilePath, isConfigured, loadConfig, secretsConflict } from "./config";
 
 const dir = mkdtempSync(join(tmpdir(), "ronne-config-"));
 afterAll(() => rmSync(dir, { recursive: true, force: true }));
@@ -57,5 +57,16 @@ describe("loadConfig", () => {
     expect(config.databaseUrl).toBeUndefined();
     expect(config.trustProxy).toBe(false);
     expect(isConfigured(config)).toBe(false);
+  });
+});
+
+describe("secretsConflict (105)", () => {
+  it("refuses BETTER_AUTH_SECRETS, which Better Auth would use over AUTH_SECRET", () => {
+    expect(secretsConflict({ AUTH_SECRET: "x" })).toBeNull();
+    expect(secretsConflict({ BETTER_AUTH_SECRETS: "" })).toBeNull();
+    const message = secretsConflict({ BETTER_AUTH_SECRETS: "1:secret-secret-secret-secret-00" });
+    expect(message).toContain("unset BETTER_AUTH_SECRETS");
+    // The value is never repeated.
+    expect(message).not.toContain("secret-secret");
   });
 });

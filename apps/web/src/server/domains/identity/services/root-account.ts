@@ -2,6 +2,7 @@ import {
   NotARootError,
   RootAlreadyExistsError,
   RootNotFoundError,
+  UserNotFoundError,
   WhichRootError,
 } from "../exceptions/errors";
 import { validatePassword } from "../models/password";
@@ -62,7 +63,7 @@ export const resetRootPassword = async (
   deps: IdentityDeps,
   password: string,
   email?: string,
-): Promise<{ email: string }> => {
+): Promise<{ email: string; twoFactorReset: boolean }> => {
   validatePassword(password);
   const wanted = email === undefined ? undefined : normalizeEmail(email);
   const passwordHash = await deps.hasher.hash(password);
@@ -78,16 +79,24 @@ export const resetRootPassword = async (
     const sessionsEnded = await repo.deleteSessions(root.id);
     const tokensRevoked = await repo.revokeAccessTokens(root.id, now);
     if (root.disabledAt) await repo.enableUser(root.id, now);
+    // The terminal stays the last way in: a lost phone too (105).
+    const twoFactorReset = await repo.resetTwoFactor(root.id, now);
     await repo.recordAudit(
       {
         actorId: null,
         action: "user.password_reset",
         target: { type: "user", id: root.id },
-        metadata: { via: "cli", email: root.email, sessionsEnded, tokensRevoked },
+        metadata: {
+          via: "cli",
+          email: root.email,
+          sessionsEnded,
+          tokensRevoked,
+          ...(twoFactorReset ? { twoFactorReset } : {}),
+        },
       },
       now,
     );
-    return { email: root.email };
+    return { email: root.email, twoFactorReset };
   });
 };
 
@@ -98,4 +107,46 @@ export const findFirstRoot = async (deps: Pick<IdentityDeps, "repo">) => {
 /** Every root, disabled or not, oldest first: for setup and reset-root-password (059). */
 export const listRoots = async (deps: Pick<IdentityDeps, "repo">) => {
   return deps.repo.listRoots();
+};
+
+/**
+ * `reset-two-factor --email` (105): any account's two-factor off from the terminal, with its
+ * sessions ended, recorded with the actor `cli`. False when it had none (nothing recorded).
+ */
+export const resetTwoFactorFromCli = async (
+  deps: Pick<IdentityDeps, "repo" | "now">,
+  email: string,
+): Promise<{ email: string; reset: boolean; sessionsEnded: number }> => {
+  const wanted = normalizeEmail(email);
+  const now = (deps.now ?? (() => new Date()))();
+  return deps.repo.transaction(async (repo) => {
+    const user = await repo.findUserByEmail(wanted);
+    if (!user) throw new UserNotFoundError();
+    if (!(await repo.resetTwoFactor(user.id, now)))
+      return { email: user.email, reset: false, sessionsEnded: 0 };
+    const sessionsEnded = await repo.deleteSessions(user.id);
+    await repo.recordAudit(
+      {
+        actorId: null,
+        action: "user.two_factor_reset",
+        target: { type: "user", id: user.id },
+        metadata: { via: "cli", email: user.email, sessionsEnded },
+      },
+      now,
+    );
+    return { email: user.email, reset: true, sessionsEnded };
+  });
+};
+
+/**
+ * Whether the account with this email has two-factor to reset (on, or a setup started), for the
+ * command to ask first (105).
+ */
+export const twoFactorOfEmail = async (
+  deps: Pick<IdentityDeps, "repo">,
+  email: string,
+): Promise<{ email: string; enabled: boolean }> => {
+  const user = await deps.repo.findUserByEmail(normalizeEmail(email));
+  if (!user) throw new UserNotFoundError();
+  return { email: user.email, enabled: await deps.repo.hasTwoFactor(user.id) };
 };

@@ -10,11 +10,13 @@ import { adminListUsers } from "@/server/domains/identity/actions/user-admin";
 import { can } from "@/server/domains/identity/models/permissions";
 import { listWorkspaces } from "@/server/domains/workspaces/actions/workspaces";
 import { requestHeaders } from "@/server/http/request-headers";
+import { holdPage } from "../../hold";
 
 export const metadata = { title: "Users · Ronne AI Marketplace" };
 
 /** Root only (`users.view`): anyone else gets a 404. The whole view is in the URL (061). */
 const Users = async ({ searchParams }: { searchParams: Promise<SearchParams> }) => {
+  await holdPage();
   const request = await requestHeaders();
   const me = await getCurrentUser(request);
   if (!me || !can(me, "users.view")) notFound();
@@ -48,6 +50,7 @@ const Users = async ({ searchParams }: { searchParams: Promise<SearchParams> }) 
             email: user.email,
             role: user.role,
             disabled: Boolean(user.disabledAt),
+            twoFactor: Boolean(user.twoFactor),
             self: user.id === me.id,
           }}
         />

@@ -48,3 +48,21 @@ export const retryOnDeadlock = async <T>(run: () => Promise<T>): Promise<T> => {
     }
   }
 };
+
+/**
+ * Whether the database refused a write because it would break a unique index: PostgreSQL's
+ * `23505`, MySQL's and MariaDB's 1062, SQLite's `SQLITE_CONSTRAINT_UNIQUE` (or `_PRIMARYKEY`).
+ * A library may wrap the driver's error, so its `cause` is checked too.
+ */
+export const isUniqueViolation = (error: unknown, depth = 0): boolean => {
+  const e = error as { code?: unknown; errno?: unknown; cause?: unknown } | null;
+  if (!e || depth >= 4) return false;
+  return (
+    e.code === "23505" ||
+    e.errno === 1062 ||
+    e.code === "ER_DUP_ENTRY" ||
+    e.code === "SQLITE_CONSTRAINT_UNIQUE" ||
+    e.code === "SQLITE_CONSTRAINT_PRIMARYKEY" ||
+    isUniqueViolation(e.cause, depth + 1)
+  );
+};

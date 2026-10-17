@@ -616,6 +616,16 @@ moves to `components/` (UI primitives go in `components/ui`).
   `user` as Better Auth additional fields. Password hashes live in `account`, as Better Auth expects.
 - **Passwords** are hashed with argon2id, set through Better Auth's custom hash functions (its default is scrypt). Login is rate-limited: 5 attempts a minute per email, and per client IP behind a trusted proxy (006).
 - **Web sessions** use httpOnly, secure, SameSite=Lax cookies, backed by Better Auth's `session` table.
+- **Two-factor sign-in** (105) is Better Auth's `twoFactor` plugin (TOTP and ten backup codes),
+  for password sign-in only. Its `two_factor` table and `user.two_factor_enabled` come from our
+  migration `0025_two_factor`; the secrets are encrypted with a key from `AUTH_SECRET`, the only
+  secret (the server refuses to start with `BETTER_AUTH_SECRETS` set), so `rotate-secret` and a
+  restore under another secret turn everyone's two-factor off. Ronne adds what the plugin lacks:
+  a code accepted once only, the sign-in limit on the second step, and root's requirement
+  (`two_factor_policy`: optional, reviewers and root, everyone), which holds a covered person on
+  `/account/security` on every page and server action until they enrol. A password alone gets no
+  `rmk` token for a two-factor account (`two_factor_required`). Root resets someone's on Admin ›
+  Users; `reset-two-factor` and `reset-root-password` do it from the server.
 - **CLI and MCP** use personal access tokens from our own `access_tokens` table in the `identity`
   domain, not a Better Auth plugin. A token looks like `rmk_<random>`; only its sha256 hash is
   stored, with an optional expiry. Tokens are sent as `Authorization: Bearer`. A disabled user's
@@ -810,7 +820,7 @@ Design points:
 - **Emergency access.** Email/password stays available, at least for root, so a broken IdP can't lock everyone out.
 - **CLI login for SSO users.** `rmk login` can't ask SSO users for a password. It uses the **OAuth device flow** instead: it prints a code and a URL, the user approves in the browser, and the CLI receives a personal access token. The email/password prompt stays for local accounts.
 - **One place to manage it (owner, 2026-10-15).** Admin › Settings gets tabs (Usage, Plugin feeds, Authentication, [122](../features/122-settings-tabs/SPEC.md)). The Authentication tab holds the two-factor policy (105), the identity providers and the password sign-in policy (106) and SCIM (108). A provider is an instance of a *provider type* (OpenID Connect first; SAML or LDAP would be another type), set up from a preset with the redirect URI and step-by-step instructions shown beside the form, and tested before it can be turned on. Root's password sign-in can never be turned off, and `rmk-server disable-sso` is the way back from a broken provider.
-- **Two-factor is for password sign-in** (105): a single sign-on sign-in relies on the provider's own multi-factor. The CLI's device flow is `rmk login --web` (107), and `rmk login` falls back to it for accounts without a password or with two-factor.
+- **Two-factor is for password sign-in** (105, built: §9.5): a single sign-on sign-in relies on the provider's own multi-factor. The CLI's device flow is `rmk login --web` (107), and `rmk login` falls back to it for accounts without a password or with two-factor.
 
 ### 14.4 Other future topics
 

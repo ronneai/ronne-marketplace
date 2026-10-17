@@ -23,7 +23,11 @@ export const changePasswordFromForm = serverAction(
 );
 
 /** The user menu's "Sign out". */
-export const signOutFromMenu = serverAction(async () => {
-  await signOut(await requestHeaders());
-  redirect(SIGN_IN_PATH);
-});
+export const signOutFromMenu = serverAction(
+  async () => {
+    await signOut(await requestHeaders());
+    redirect(SIGN_IN_PATH);
+  },
+  // Someone held for two-factor (105) can still sign out.
+  { whileHeld: true },
+);

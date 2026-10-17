@@ -51,3 +51,11 @@ server component passes down throws, on every page that passes it:
 client nav; every page broke in the end-to-end run while unit tests passed. Keep such data as
 strings (the nav item's `pattern` is `"/workspaces/*/items"`) and build the matcher where it's used.
 
+
+## Reading a constant from a client module
+
+Not only functions: a constant such as an array of choices, exported from a `"use client"` module,
+is a client reference on the server too. 105's Authentication tab read `TWO_FACTOR_CHOICES` from
+`TwoFactorPolicyForm.tsx` and crashed with `TWO_FACTOR_CHOICES.find is not a function`, only when
+a requirement was set (the branch that read it). Put data both sides need in a plain module
+(`two-factor-choices.ts`) that the client component and the server component each import.

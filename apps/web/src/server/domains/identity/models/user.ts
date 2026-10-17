@@ -47,6 +47,8 @@ export type UserSummary = {
   createdAt: Date;
   /** Its roles per workspace (091), moderated ones first, for the users list; ignored for root. */
   workspaces?: { name: string; role: WorkspaceRole }[];
+  /** Two-factor is on (the flag and a confirmed record, 105), for the users list. */
+  twoFactor?: boolean;
 };
 
 export type RootAccount = { id: string; email: string; name: string; disabledAt: Date | null };

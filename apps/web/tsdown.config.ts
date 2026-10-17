@@ -16,6 +16,7 @@ export default defineConfig({
     migrate: "scripts/migrate.ts",
     "reset-root-password": "scripts/reset-root-password.ts",
     "revoke-access": "scripts/revoke-access.ts",
+    "reset-two-factor": "scripts/reset-two-factor.ts",
     "rotate-secret": "scripts/rotate-secret.ts",
     backup: "scripts/backup.ts",
     restore: "scripts/restore.ts",

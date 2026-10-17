@@ -30,6 +30,9 @@ import { requestHeaders } from "@/server/http/request-headers";
 export const loadShell = cache(async () => {
   const request = await requestHeaders();
   const user = await requireUser(request);
+  // The two-factor hold (105) is each page's first step (`holdPage` in hold.ts), not here: a
+  // layout isn't rendered again on client-side navigation, and redirecting from it after a server
+  // action's redirect rendered a blank page.
   const jar = await cookies();
   const theme = parseTheme(jar.get(THEME_COOKIE)?.value);
   const folded = parseFolded(jar.get(SIDEBAR_COOKIE)?.value);

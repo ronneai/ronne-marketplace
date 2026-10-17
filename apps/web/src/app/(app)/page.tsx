@@ -4,9 +4,11 @@ import { homeLists } from "@/server/domains/items/actions/catalogue";
 import { listMySubmissions } from "@/server/domains/submissions/actions/drafts";
 import { countNeedsReview } from "@/server/domains/submissions/actions/reviews";
 import { requestHeaders } from "@/server/http/request-headers";
+import { holdPage } from "./hold";
 
 /** The home page (feature 018), for everyone signed in (the (app) layout requires a session). */
 const HomePage = async () => {
+  await holdPage();
   const headers = await requestHeaders();
   const [lists, mine, needsReview] = await Promise.all([
     homeLists(headers),

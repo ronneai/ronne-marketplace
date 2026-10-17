@@ -11,7 +11,8 @@ import { createToken, type NewToken, type TokenDeps } from "./access-tokens";
 /**
  * `rmk login` (feature 009): an email and password in exchange for a 90-day token. It checks the
  * password directly, with the same hasher Better Auth uses, so no web session is created. It shares
- * the sign-in limit (006), and every failure gives the same answer.
+ * the sign-in limit (006), and every failure gives the same answer, but for an account with
+ * two-factor, which gets `two_factor_required` once the password is right (105).
  */
 export type ExchangeDeps = {
   identity: IdentityRepository;
@@ -24,6 +25,8 @@ export type ExchangeDeps = {
 export type ExchangeResult =
   | { ok: true; token: NewToken }
   | { ok: false; error: "invalid_credentials" }
+  /** The password is right, but the account uses two-factor: no token from a password (105). */
+  | { ok: false; error: "two_factor_required" }
   | { ok: false; error: "rate_limited"; retryAfterSeconds: number };
 
 // Checked against when the email is unknown, so the response takes as long as for a real account.
@@ -68,7 +71,9 @@ export const exchangePasswordForToken = async (
 ): Promise<ExchangeResult> => {
   const at = (deps.now ?? (() => new Date()))();
   const typedEmail = typeof input.email === "string" ? input.email : "";
-  const failed = async (reason: "invalid" | "disabled" | "rate_limited") => {
+  const failed = async (
+    reason: "invalid" | "disabled" | "rate_limited" | "two_factor_required",
+  ) => {
     if (reason === "rate_limited") log.event("auth.rate_limited", { limit: "token_exchange" });
     else log.event("auth.sign_in_failed", { reason, via: "cli" });
     await deps.identity.recordAudit(
@@ -110,6 +115,12 @@ export const exchangePasswordForToken = async (
   );
   if (!found?.passwordHash || !matches) return invalid("invalid");
   if (found.disabledAt) return invalid("disabled");
+  // Only after the right password, so it tells nothing to someone without it (105). A web sign-in
+  // asks this account for a code; a password alone mustn't make a token.
+  if (found.twoFactor) {
+    await failed("two_factor_required");
+    return { ok: false, error: "two_factor_required" };
+  }
 
   const requested = typeof input.name === "string" ? input.name.trim() : "";
   const base = requested || tokenNameFromUserAgent(context.userAgent);

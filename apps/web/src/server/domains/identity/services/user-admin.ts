@@ -273,6 +273,38 @@ export const resetPassword = async (
   return { email, password };
 };
 
+/**
+ * Turns the user's two-factor off, for a lost phone and lost backup codes (105), and ends their
+ * sessions. Never the actor's own (059). False when it isn't on (as the users list shows it; a
+ * setup they've only started is theirs to finish): nothing changes, nothing is recorded.
+ */
+export const resetTwoFactor = async (
+  deps: UserAdminDeps,
+  actor: Actor,
+  userId: string,
+): Promise<{ email: string; reset: boolean }> => {
+  requirePermission(actor.user, "users.manage");
+  const at = now(deps);
+  return deps.repo.transaction(async (repo) => {
+    await lockAndRecheckActor(repo, actor);
+    const target = await loadTarget(repo, actor, userId);
+    if (!(await repo.twoFactorOn(userId))) return { email: target.email, reset: false };
+    await repo.resetTwoFactor(userId, at);
+    const sessionsEnded = await repo.deleteSessions(userId);
+    await repo.recordAudit(
+      {
+        actorId: actor.user?.id ?? null,
+        action: "user.two_factor_reset",
+        target: { type: "user", id: userId },
+        metadata: { via: "web", sessionsEnded },
+        ipAddress: actor.ip,
+      },
+      at,
+    );
+    return { email: target.email, reset: true };
+  });
+};
+
 /** What the disable dialog tells root before it happens. */
 export const disableImpact = async (
   deps: UserAdminDeps,

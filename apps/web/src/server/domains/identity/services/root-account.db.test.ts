@@ -130,6 +130,7 @@ describe("resetRootPassword", () => {
 
     expect(await resetRootPassword(t.db, t.dialect, "a brand new passphrase")).toEqual({
       email: "root@example.com",
+      twoFactorReset: false,
     });
 
     expect(
@@ -186,7 +187,7 @@ describe("resetRootPassword", () => {
     ).rejects.toThrowError(NotARootError);
     expect(
       await resetRootPassword(t.db, t.dialect, "a brand new passphrase", " Second@Example.com "),
-    ).toEqual({ email: "second@example.com" });
+    ).toEqual({ email: "second@example.com", twoFactorReset: false });
     // The first root's password didn't change.
     expect((await signIn(root.password)).user.email).toBe("root@example.com");
     const resets = (await auditEvents()).filter((e) => e.action === "user.password_reset");

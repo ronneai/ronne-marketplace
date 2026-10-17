@@ -1,4 +1,4 @@
-import { isConfigured, loadConfig } from "../../../config";
+import { isConfigured, loadConfig, secretsConflict } from "../../../config";
 import type { Db } from "../../../db/create-db";
 import { getAppDb } from "../../../db/instance";
 import type { DatabaseDialect } from "../../../db/url";
@@ -18,15 +18,35 @@ export type AppAuth = {
 // is shared across settings: its counts must survive a reload too.
 const shared = globalThis as typeof globalThis & {
   __ronneAuth?: Map<string, Auth>;
+  __ronneAuthFactory?: typeof createAuth;
   __ronneLoginLimiter?: LoginRateLimiter;
+};
+
+/**
+ * Drops what a hot reload left behind from older code (105): a limiter made by an earlier version
+ * of its class (it lacked `check`, and `pnpm dev` crashed on /account/security), or Better Auth
+ * instances made by an earlier `createAuth` (they'd lack a plugin added since). Unchanged code
+ * keeps them, and production loads each module once.
+ */
+export const dropStale = (): void => {
+  if (shared.__ronneAuthFactory !== createAuth) {
+    shared.__ronneAuth = new Map();
+    shared.__ronneAuthFactory = createAuth;
+  }
+  if (!(shared.__ronneLoginLimiter instanceof LoginRateLimiter))
+    shared.__ronneLoginLimiter = new LoginRateLimiter();
 };
 
 /** The running server's Better Auth instance and login limiter, for the current settings. */
 export const getAppAuth = (): AppAuth => {
   const config = loadConfig();
   if (!isConfigured(config)) throw new NotConfiguredError();
+  // Started some way that skipped the start's check (105): never sign with another secret.
+  const conflict = secretsConflict();
+  if (conflict) throw new Error(conflict);
   const baseURL = config.publicUrl ?? "http://localhost:3000";
 
+  dropStale();
   shared.__ronneAuth ??= new Map();
   const key = JSON.stringify([config.databaseUrl, config.authSecret, baseURL, config.trustProxy]);
   const { db, dialect } = getAppDb(config.databaseUrl);
@@ -41,8 +61,9 @@ export const getAppAuth = (): AppAuth => {
     });
     shared.__ronneAuth.set(key, auth);
   }
-  shared.__ronneLoginLimiter ??= new LoginRateLimiter();
-  return { auth, db, dialect, trustProxy: config.trustProxy, limiter: shared.__ronneLoginLimiter };
+  const limiter = shared.__ronneLoginLimiter ?? new LoginRateLimiter();
+  shared.__ronneLoginLimiter = limiter;
+  return { auth, db, dialect, trustProxy: config.trustProxy, limiter };
 };
 
 /** The same, or null before setup: then there's no one to sign in, and no database to ask. */

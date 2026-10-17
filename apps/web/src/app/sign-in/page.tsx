@@ -17,6 +17,7 @@ const SignIn = async ({
     next?: string | string[];
     email?: string | string[];
     setup?: string | string[];
+    reason?: string | string[];
   }>;
 }) => {
   const params = await searchParams;
@@ -32,6 +33,7 @@ const SignIn = async ({
       registry={loadConfig().publicUrl}
       email={email}
       setupDone={one(params.setup) === "done"}
+      again={one(params.reason)}
     />
   );
 };

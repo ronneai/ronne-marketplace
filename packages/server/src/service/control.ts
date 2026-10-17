@@ -1,6 +1,6 @@
 // `rmk-server service status | start | stop | restart | logs` (feature 083), and the scripts
-// (setup, migrate, reset-root-password, revoke-access, rotate-secret, backup) run for an installed
-// service.
+// (setup, migrate, reset-root-password, revoke-access, reset-two-factor, rotate-secret, backup)
+// run for an installed service.
 import { dirname, join, posix } from "node:path";
 import {
   asAdmin,
@@ -182,6 +182,7 @@ const SCRIPT_VERBS: Record<string, string> = {
   migrate: "migrate its database",
   "reset-root-password": "reset its root password",
   "revoke-access": "revoke access on it",
+  "reset-two-factor": "reset two-factor sign-in on it",
   "rotate-secret": "replace its secret",
   backup: "back it up",
   restore: "restore a backup into it",
@@ -208,8 +209,8 @@ const refuseWhileRunning = (sys: System) => {
 };
 
 /**
- * The scripts (`setup`, `migrate`, `reset-root-password`, `revoke-access`, `rotate-secret`,
- * `backup`, `restore`) on a machine with the service installed: run as its account, on its data and settings,
+ * The scripts (`setup`, `migrate`, `reset-root-password`, `revoke-access`, `reset-two-factor`,
+ * `rotate-secret`, `backup`, `restore`) on a machine with the service installed: run as its account, on its data and settings,
  * rather than on root's own folder. Undefined when they should run as usual (no service, or
  * RONNE_DATA_DIR or RONNE_ENV_FILE chosen; a restore naming the running service's own files that
  * way is still refused).

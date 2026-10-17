@@ -14,6 +14,7 @@
     "db:migrate": "pnpm --filter @ronneai/core --silent build && tsx scripts/migrate.ts",
     "setup": "pnpm --filter @ronneai/core --silent build && tsx scripts/setup.ts",
     "reset-root-password": "pnpm --filter @ronneai/core --silent build && tsx scripts/reset-root-password.ts",
+    "reset-two-factor": "pnpm --filter @ronneai/core --silent build && tsx scripts/reset-two-factor.ts",
     "revoke-access": "pnpm --filter @ronneai/core --silent build && tsx scripts/revoke-access.ts",
     "rotate-secret": "pnpm --filter @ronneai/core --silent build && tsx scripts/rotate-secret.ts",
     "backup": "pnpm --filter @ronneai/core --silent build && tsx scripts/backup.ts",
@@ -64,6 +65,7 @@
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "ulid": "3.0.2",
+    "uqr": "0.1.3",
     "yaml": "2.9.1"
   },
   "devDependencies": {

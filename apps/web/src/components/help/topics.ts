@@ -144,6 +144,12 @@ export const TOPICS = [
     ],
   },
   {
+    slug: "account",
+    title: "Your account",
+    summary: "Your password and how you sign in, including two-factor sign-in.",
+    sections: [{ id: "two-factor", title: "Two-factor sign-in" }],
+  },
+  {
     slug: "admin",
     title: "Administration",
     summary:
@@ -292,7 +298,10 @@ export type SectionOf<T extends TopicSlug> = Extract<Topic, { slug: T }>["sectio
 
 /** How the Documentation's menu groups the topics, in order (owner's request, 2026-09-28). */
 export const TOPIC_GROUPS: { label: string; topics: readonly TopicSlug[] }[] = [
-  { label: "Getting started", topics: ["overview", "install", "update", "roles", "admin"] },
+  {
+    label: "Getting started",
+    topics: ["overview", "install", "update", "roles", "account", "admin"],
+  },
   {
     label: "Installing items",
     topics: ["rmk", "plugins", "mcp", "usage", "claude-code", "codex", "cursor"],

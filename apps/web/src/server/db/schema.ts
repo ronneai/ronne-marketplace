@@ -8,6 +8,12 @@ export type Timestamp = ColumnType<Date | string, Date | string, Date | string>;
 
 /** A boolean column: boolean in PostgreSQL, 0/1 in MySQL and SQLite. */
 type DbBoolean = ColumnType<boolean | number, boolean | number, boolean | number>;
+/** A boolean with a default, so optional on insert (not `Generated<DbBoolean>`: it nests). */
+type GeneratedDbBoolean = ColumnType<
+  boolean | number,
+  boolean | number | undefined,
+  boolean | number
+>;
 
 /** Better Auth's user table, plus role and disabled_at (migration 0001_identity). */
 export interface UserTable {
@@ -20,6 +26,8 @@ export interface UserTable {
   updated_at: Timestamp;
   role: Generated<"root" | "user">;
   disabled_at: Timestamp | null;
+  /** Better Auth's two-factor flag (migration 0025_two_factor, feature 105). */
+  two_factor_enabled: GeneratedDbBoolean;
 }
 
 export interface SessionTable {
@@ -47,6 +55,20 @@ export interface AccountTable {
   password: string | null;
   created_at: Timestamp;
   updated_at: Timestamp;
+}
+
+/**
+ * Better Auth's two-factor row (migration 0025_two_factor, feature 105): the TOTP secret and the
+ * backup codes, encrypted with a key from AUTH_SECRET; never read outside the identity domain.
+ */
+export interface TwoFactorTable {
+  id: string;
+  user_id: string;
+  secret: string;
+  backup_codes: string;
+  verified: GeneratedDbBoolean;
+  failed_verification_count: Generated<number>;
+  lock_expires_at: Timestamp | null;
 }
 
 export interface VerificationTable {
@@ -372,6 +394,7 @@ export interface Database {
   session: SessionTable;
   account: AccountTable;
   verification: VerificationTable;
+  two_factor: TwoFactorTable;
   access_tokens: AccessTokenTable;
   audit_log: AuditLogTable;
   workspaces: WorkspaceTable;

@@ -25,6 +25,10 @@ export const betterAuthSessionStore = (auth: Auth): SessionStore => {
           headers,
           returnHeaders: true,
         });
+        // Two-factor on (105): no session yet, a challenge for the second step (its cookie is in
+        // the headers).
+        if ("twoFactorRedirect" in response && response.twoFactorRedirect)
+          return { headers: responseHeaders, challenge: true as const };
         // The response carries the session token; only its id leaves this module.
         const ctx = await auth.$context;
         const found = await ctx.internalAdapter.findSession(response.token);

@@ -12,8 +12,8 @@ Built on Better Auth's `twoFactor` plugin, checked against its docs (2026-10-15)
 ## Scope
 
 **In:**
-- **Enrolment on `/account/security`** (a new Account page, linked from the Account menu next to
-  Password and Access tokens): turn two-factor on with the current password, scan a QR code or type
+- **Enrolment on `/account/security`** (a new Account page: Account now has two tabs, Password
+  and Two-factor sign-in, so the Account menu's one link reaches both): turn two-factor on with the current password, scan a QR code or type
   the secret, confirm with a first code, then see **10 backup codes once**. Turn it off (password
   and a code), regenerate the backup codes (password), see how many are left.
 - **The second step at sign-in:** after a correct password, a person with two-factor goes to
@@ -36,13 +36,17 @@ Built on Better Auth's `twoFactor` plugin, checked against its docs (2026-10-15)
   other root does it).
 - **`pnpm run reset-root-password` also resets that root's two-factor**, so the terminal remains
   the last way back in; it says so.
+- **`pnpm run reset-two-factor --email <email>`** (and `rmk-server reset-two-factor`), for any
+  account from the terminal (owner, 2026-10-16): clears its two-factor, ends its sessions, and
+  records `user.two_factor_reset` with the actor `cli`; it asks first unless `--yes`, and says
+  when the account had none.
 - **The API's password exchange stops being a way around it** (`POST /api/v1/auth/token`, 009): a
   person with two-factor who sends the right password gets 401 `two_factor_required` and no token.
   They create a token in the web app (`/account/tokens`), or use `rmk login --web` once 107 lands.
 - **Audit events** (007): `auth.two_factor_enabled`, `auth.two_factor_disabled`,
   `auth.backup_codes_regenerated`, `auth.two_factor_failed`
   (`{ method: "totp" | "backup_code" }`), `user.two_factor_reset` (actor root, target the user) and
-  `instance.two_factor_policy_changed { from, to }`.
+  `settings.two_factor_policy { from, to }` (as the usage policy's change is `settings.usage_policy`).
 
 **Out** (and where it goes instead):
 - **Two-factor for single sign-on.** An identity provider sign-in (106) is not asked for a Ronne
@@ -59,15 +63,19 @@ Built on Better Auth's `twoFactor` plugin, checked against its docs (2026-10-15)
 
 **Better Auth.** `twoFactor({ issuer: "Ronne AI Marketplace" })` joins the plugins in
 `createAuth`, before `nextCookies()`; TOTP only (no `otpOptions`). Its migration adds the
-`two_factor` table (user id, secret, backup codes) and `user.two_factor_enabled`; `authSchema`
-maps their names to snake_case, and the migration test checks them (all three databases). Its
-account lockout stays on: failed codes (TOTP and backup) share one counter and lock the account's
-second step for a while with 429 `ACCOUNT_TEMPORARILY_LOCKED`; the sign-in page says "Too many
-attempts, wait a minute". The HTTP allowlist (006) does not grow: every two-factor call is a server
+`two_factor` table (user id, secret, backup codes, the failed-code count and lock) and
+`user.two_factor_enabled`; `twoFactorSchema` maps their names to snake_case, and the migration test
+checks them (all four database kinds). Its two limits stay as they are (Better Auth 1.7.7, read in
+task 1): **one sign-in challenge takes at most 5 codes**, after which it is voided (400
+`TOO_MANY_ATTEMPTS_REQUEST_NEW_CODE`) and the person enters their password again; and **10 wrong
+codes in a row** (TOTP or backup, across challenges) lock the account's second step for **15
+minutes** (429 `ACCOUNT_TEMPORARILY_LOCKED`), a right code resetting the count. The two-factor step
+then says "Too many wrong codes. Sign in again." or "Too many wrong codes. Try again in 15
+minutes." The password step keeps 006's limit (5 a minute per email). The HTTP allowlist (006) does not grow: every two-factor call is a server
 action that calls `auth.api` with the request's headers.
 
 **Secrets at rest.** Better Auth encrypts the TOTP secret and the backup codes with a key from
-`AUTH_SECRET`; task 1 confirms that in the installed version. Rotating `AUTH_SECRET` (098) then makes
+`AUTH_SECRET` (XChaCha20-Poly1305, the key the SHA-256 of the secret; confirmed in task 1). Rotating `AUTH_SECRET` (098) then makes
 every stored secret unreadable: `rmk-server rotate-secret` must either re-encrypt them or clear
 them. It clears them and says how many people will enrol again (re-encrypting needs the old key in
 the same process and is not worth the risk; the command already ends every session).
@@ -75,48 +83,67 @@ the same process and is not worth the risk; the command already ends every sessi
 **Enrolling** (`/account/security`, any signed-in user with a password):
 1. *Turn on two-factor* asks for the current password (Better Auth requires it for credential
    accounts) and shows the QR code, the secret in groups of four for typing, and an input for the
-   first code. Nothing is active until the code is right.
+   first code. Nothing is active until the code is right. Asking again in the same browser before
+   that shows the same setup; another browser, or *Start over*, makes a new one.
 2. The QR code is an SVG drawn on the server from the `otpauth://` URI; it is never sent to a
    third party. The URI and secret are in the response of that one action only.
-3. After the first code, **10 backup codes** (`XXXXX-XXXXX`) are shown once with Copy all and
-   Download (.txt), and "I've saved them" closes the step. They can't be shown again; Regenerate
-   makes ten new ones and voids the old.
+3. After the first code, **10 backup codes** (`XXXXX-XXXXX`) are shown with Copy all and
+   Download (.txt), and "I've saved them" closes the step. Until the first code they belong to the
+   setup (the same browser sees them again with it, after the password); from the first code on
+   they can't be shown again, and Regenerate makes ten new ones and voids the old.
 4. The page then says "Two-factor is on", the codes left, Regenerate and Turn off.
 
 **Signing in.** The password step is unchanged (006, same rate limit, same error text). For a
 person with two-factor Better Auth answers with a challenge instead of a session: the sign-in action
 redirects to `/sign-in/two-factor?next=…` and Better Auth's short-lived cookie holds the pending
-state (about 10 minutes). The page has one input (`autocomplete="one-time-code"`,
-`inputmode="numeric"`), **Verify**, and "Use a backup code instead". A right code creates the
-session (with Remember me as chosen on the first step) and goes to `next`. A pending state that
-expired sends the person back to the password step with "Start again". A used backup code is gone.
-The disabled-user rule (006) is applied before any code is asked, and again when the session is
-created.
+state (10 minutes) and Remember me. The page has one input
+(`autocomplete="one-time-code"`, `inputmode="numeric"`), **Verify**, and "Use a backup code
+instead" (a link to `?method=backup` without JavaScript). A right code creates the session (with
+Remember me as chosen on the first step), is audited as `auth.signed_in` with
+`twoFactor: "totp" | "backup_code"`, and goes to `next`. A wrong one stays on the page ("That code is
+wrong"); each refusal of a real challenge is audited as `auth.two_factor_failed` with its reason
+(a request with no valid, signed challenge, or junk in the code field, is only logged: anyone can
+send those). A challenge that ran
+out (or none, or two-factor reset meanwhile) and one voided by five wrong codes send the person back
+to the password step, saying why ("The sign-in took too long… Sign in again.", "Too many wrong codes.
+Sign in again."); ten in a row say "Try again in 15 minutes". A used backup code is gone, and a TOTP
+code already accepted is refused ("already used") without spending the challenge. The disabled-user
+rule (006) is applied when the session is created: a disabled account gets the first step's words,
+"Email or password is wrong". Nothing is audited as signed in until the second step is done.
 
 **The policy** (root, Authentication › Two-factor sign-in): three radio choices as above and Save,
 audited with the old and new value. Choosing a stricter policy says how many people it covers and
 how many of them have not enrolled ("12 people must enrol at their next visit"). It never signs
-anyone out. The setting lives with the other instance settings (046) as `twoFactorPolicy`.
+anyone out. The setting lives with the other instance settings (046) as `twoFactorPolicy`, read on
+every request.
 
-**Held until enrolled.** The route guard (006's layout check) sends a covered, unenrolled person to
-`/account/security` for every page except that page, sign-out, the Documentation and the API's
-health check. The page opens with a notice naming the policy. Server actions other than enrolment
-and sign-out refuse them too (`TwoFactorRequiredError`), so a stale tab can't act. Bearer tokens
-(`/api/v1`) are not held: they were made behind a sign-in, and revoking is the incident tool (098).
+**Held until enrolled.** A covered, unenrolled person sees only `/account/security`: every page of
+the app frame sends them there first (each page checks before it reads anything, as client-side
+navigation doesn't render the shared layout again), with a notice naming the requirement; the
+enrolment page, signing out and the Documentation stay open. Every server action does the same
+before it runs (it redirects to `/account/security`), except the enrolment page's, signing in and
+signing out, so a stale tab can't act. Bearer tokens (`/api/v1`) are not held: they were made
+behind a sign-in, and revoking is the incident tool (098).
 
 **Who is covered by "Reviewers and root":** root, and anyone for whom `submissions.review` holds in
 some workspace (moderators and admins). Personal workspaces (114) don't count: everyone owns one.
 
 **Root's reset.** *Reset two-factor* on a user's row (shown only when they have it) confirms,
-deletes the user's two-factor record, ends their sessions, and writes `user.two_factor_reset`. If a
-policy covers them they enrol again at the next sign-in. A root can reset another root's (059).
+deletes the user's two-factor record, ends their sessions, and writes `user.two_factor_reset`
+(`{ via: "web", sessionsEnded }`). If a policy covers them they enrol again at the next sign-in. A
+root can reset another root's (059). For someone who has none (a setup started and not confirmed
+included: theirs to finish), nothing changes and nothing is recorded. `reset-two-factor` writes the same event with `{ via: "cli", email, sessionsEnded }` and
+no actor, and also clears a setup started and not confirmed; `reset-root-password` notes
+`twoFactorReset: true` in its `user.password_reset` event rather than writing a second one.
 
 **Sign-in page and API texts.** The sign-in page's "Forgot?" note mentions that a lost authenticator
 is reset by a root (or, for root, `reset-root-password`). `POST /api/v1/auth/token` answers a
 two-factor account's correct password with `{ "error": { "code": "two_factor_required", "message":
 "This account uses two-factor sign-in. Create a token at <PUBLIC_URL>/account/tokens, or run rmk
-login --web." } }`. It answers only after the password is right, so it reveals nothing to someone
-without it. `rmk` prints the message.
+login --web." } }` (without `PUBLIC_URL`, "/account/tokens in the web app"). It answers only
+after the password is right and the account isn't disabled, so it reveals nothing to someone
+without it, and records `auth.sign_in_failed` with the reason `two_factor_required`. `rmk` prints
+the message.
 
 ## Edge cases
 
@@ -132,16 +159,58 @@ without it. `rmk` prints the message.
   removed inside the verification).
 - **Changing the password** (006) keeps two-factor and ends the other sessions, as now.
 - **Disabling a user** (008) is unaffected; enabling them keeps their two-factor.
-- **Backup restore (099) to a server with another `AUTH_SECRET`:** the stored secrets can't be
-  read. Restore already requires the same settings file (it carries `AUTH_SECRET`), so this is the
-  same instance; the restore runbook says so.
+- **Restoring a backup (099) with another `AUTH_SECRET`:** `rmk-server restore` writes a new
+  `AUTH_SECRET` unless `--with-settings` is given, and keeps a different existing one with only a
+  warning, so the stored secrets may not decrypt afterwards (Better Auth throws a bare "invalid
+  tag", a 500). Restore therefore treats two-factor as `rotate-secret` does: when the
+  `AUTH_SECRET` it ends with isn't the archive's, it clears every two-factor record and says how
+  many people will enrol again. An archive with no `AUTH_SECRET` (made with `--no-settings`, or
+  with the secret only in the environment) can't be compared, so restore tries to decrypt one
+  stored two-factor secret with the secret it ends with, and clears them all if that fails. The
+  secret it ends with is the environment's `AUTH_SECRET`, else the settings file's as it is after
+  the restore. What it clears is said, not audited (the `instance.restored` event is written
+  before the settings are). And any secret that still fails to decrypt (an `AUTH_SECRET`
+  changed by hand) is answered "Your two-factor sign-in can't be read on this server. Ask a root
+  to reset it." rather than a 500, and logged.
+- **`BETTER_AUTH_SECRETS` in the environment:** Better Auth would encrypt with it instead of
+  `AUTH_SECRET` (it wins over the secret Ronne passes). Ronne refuses to start while that variable
+  is set, saying why, so there is one secret to rotate and back up: the start's checks (Docker,
+  `rmk-server`) and Next.js's start (`pnpm dev`, `pnpm start`) both exit, and the auth instance
+  refuses too.
+- **A code used twice:** Better Auth accepts the same TOTP code again within its window (a code
+  seen over someone's shoulder, or used at enrolment). Ronne refuses a code already accepted for
+  that person (RFC 6238 §5.2), at sign-in and when turning off: each accepted code is recorded in
+  the `verification` table for two minutes (longer than its 90-second window), under an id that's
+  an HMAC of the person and the code keyed with `AUTH_SECRET`, so the code can't be read back.
+  It's checked before Better Auth sees the code, so a reused one doesn't spend the challenge, and
+  recorded atomically after, so two sign-ins with one code at once give one session. No migration
+  needed.
+- **Many tabs, double clicks:** a person's two-factor changes run one at a time, so a double click
+  on Turn on, New backup codes or Turn off does it once (and records it once); a second set of
+  backup codes within 30 seconds is refused ("You just made new backup codes: use those").
+- **The limit on wrong passwords and codes** is the sign-in one (5 a minute per email). It's
+  checked before every password or code is, so once wrong ones fill it even a right one is refused
+  until the minute passes; only wrong ones count, so a reload, a typo and the right code never
+  fill it.
+- **Enrolment started twice** before it's confirmed: in the same browser (a reload, a second tab,
+  a double click: the same session), the same setup is shown again, the same QR code and backup
+  codes, so every page shown there works. Another browser (another session), or **Start over** (a
+  link under the QR code), makes a new secret, so someone who has only the password never reads a
+  setup the person is about to confirm (owner, 2026-10-16); a page still showing the old one is
+  then answered "This setup was replaced by a newer one. Start again." when it sends a code, never
+  "wrong code". Which session started the pending setup is kept for a day in the `verification`
+  table. A person's two-factor changes run one at a time; a new setup whose secret isn't the one
+  stored when it ends (another server started one meanwhile) shows nothing ("Enrolment was
+  started in another tab. Start again."), and the database's own message (it names the user id on
+  MySQL and MariaDB) is never shown.
 - **Unsupported authenticator apps** (those that ignore the 30-second, 6-digit default): the
   enrolment page names the settings in the URI; no option to change them.
 
 ## Documentation
 
-- **Your account → Two-factor sign-in** (a new section `account#two-factor`, in ronne-web en/pt/fr
-  and `apps/web/src/components/help/topics.ts` together): why, enrolling step by step, backup codes,
+- **Your account → Two-factor sign-in** (a new topic, Your account, in Getting started after Roles,
+  with one section `account#two-factor`, in ronne-web en/pt/fr and
+  `apps/web/src/components/help/topics.ts` together): why, enrolling step by step, backup codes,
   a lost phone, what happens when root requires it, and that single sign-on is covered by the
   identity provider.
 - **Administration → Settings** (`admin#settings`): the Two-factor sign-in panel and the policy's
@@ -149,7 +218,10 @@ without it. `rmk` prints the message.
 - **Security** (`security#security`): sign-in protections now include two-factor; **Incidents**:
   a person lost their authenticator.
 - **Root accounts** (`install#root`): `reset-root-password` also resets two-factor.
-- **API:** the `two_factor_required` code in the token exchange's page.
+- **API:** the `two_factor_required` code in the token exchange's page (`rmk#login`).
+- **Backups** (`backups#restore`): a restore under another `AUTH_SECRET` turns two-factor off.
+  **Logs** (`logs#logs`): the four `auth.two_factor_*` events, and `two_factor_required` as a
+  reason of `auth.sign_in_failed`.
 - **Helpers:** on the enrolment page, "Why can't I show the codes again?" → `account#two-factor`;
   on the policy panel, "Who must enrol?" → `admin#settings`; on the two-factor step, "Lost your
   phone?" → `account#two-factor`.
@@ -161,8 +233,8 @@ without it. `rmk` prints the message.
   changes nothing.
 - [ ] A backup code works once; Regenerate voids the old ones; Turn off needs the password and a
   code and removes the record.
-- [ ] The failed-code lockout answers 429 and the sign-in page shows its message; every failure is
-  audited.
+- [ ] A challenge is voided after 5 wrong codes and the account's second step locks for 15 minutes
+  after 10 in a row (429); the two-factor step shows each message; every failure is audited.
 - [ ] With "Reviewers and root", a moderator without two-factor is held on `/account/security`
   until enrolled, on pages and on server actions; an ordinary user is not held; "Everyone" holds
   them too; "Optional" holds nobody.
@@ -190,6 +262,10 @@ without it. `rmk` prints the message.
    the policy.
 5. **The token exchange refuses a two-factor account instead of asking for a code** (Claude): a
    code prompt in `rmk login` is what 107 does better, through the browser.
+6. **Starting again in the same browser shows the same setup; another browser, or Start over,
+   makes a new one** (owner, 2026-10-16, over "the newest start wins", "the first start wins" and
+   then "any session with the password sees it"): every page a person is shown in their browser
+   works, and a stolen password can't read the setup they're about to confirm.
 
 ## Open questions
 

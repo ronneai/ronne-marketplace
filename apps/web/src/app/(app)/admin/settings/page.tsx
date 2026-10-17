@@ -12,6 +12,7 @@ import { getCurrentUser } from "@/server/domains/identity/actions/session";
 import { can } from "@/server/domains/identity/models/permissions";
 import { instanceSettings } from "@/server/domains/settings/actions/settings";
 import { requestHeaders } from "@/server/http/request-headers";
+import { holdPage } from "../../hold";
 
 export const metadata = { title: "Settings · Admin · Ronne AI Marketplace" };
 
@@ -21,6 +22,7 @@ export const metadata = { title: "Settings · Admin · Ronne AI Marketplace" };
  * Only the tab shown reads its data.
  */
 const AdminSettings = async ({ searchParams }: { searchParams: Promise<SearchParams> }) => {
+  await holdPage();
   const request = await requestHeaders();
   if (!can(await getCurrentUser(request), "settings.manage")) notFound();
   const tab = settingsTab(await searchParams);

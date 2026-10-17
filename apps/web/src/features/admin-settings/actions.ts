@@ -2,7 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { IdentityError } from "@/server/domains/identity/exceptions/errors";
-import { setUsageMinimum, setUsagePolicy } from "@/server/domains/settings/actions/settings";
+import {
+  setTwoFactorPolicy,
+  setUsageMinimum,
+  setUsagePolicy,
+} from "@/server/domains/settings/actions/settings";
 import { SettingsError } from "@/server/domains/settings/exceptions/errors";
 import { requestHeaders } from "@/server/http/request-headers";
 import { serverAction } from "@/server/http/server-action";
@@ -30,6 +34,24 @@ export const saveUsageMinimum = serverAction(
       const { changed } = await setUsageMinimum(await requestHeaders(), form.get("usageMinimum"));
       revalidatePath("/admin/settings");
       return { done: changed ? "Usage minimum saved." : "Nothing changed." };
+    } catch (error) {
+      if (error instanceof SettingsError || error instanceof IdentityError)
+        return { error: error.message };
+      throw error;
+    }
+  },
+);
+
+/** Saves who must use two-factor sign-in (105), turning domain errors into the form's `ERR:` line. */
+export const saveTwoFactorPolicy = serverAction(
+  async (_previous: SettingsActionState, form: FormData): Promise<SettingsActionState> => {
+    try {
+      const { changed } = await setTwoFactorPolicy(
+        await requestHeaders(),
+        form.get("twoFactorPolicy"),
+      );
+      revalidatePath("/admin/settings");
+      return { done: changed ? "Two-factor sign-in saved." : "Nothing changed." };
     } catch (error) {
       if (error instanceof SettingsError || error instanceof IdentityError)
         return { error: error.message };

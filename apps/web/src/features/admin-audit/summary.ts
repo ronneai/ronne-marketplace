@@ -71,6 +71,7 @@ const REASONS: Record<string, string> = {
   invalid: "wrong email or password",
   disabled: "the account is disabled",
   rate_limited: "too many attempts",
+  two_factor_required: "the account uses two-factor sign-in",
 };
 const POLICIES: Record<string, string> = {
   off: "off",
@@ -81,6 +82,23 @@ const POLICIES: Record<string, string> = {
 const expiry = (m: Meta): string => {
   const at = text(m.expiresAt);
   return at ? `expires ${at.slice(0, 10)}` : "no expiry";
+};
+
+/** Who must use two-factor sign-in (105), as the audit log says it. */
+const TWO_FACTOR_POLICIES_SAID: Record<string, string> = {
+  optional: "nobody (optional)",
+  reviewers: "reviewers and root",
+  everyone: "everyone",
+};
+
+/** Why a second step was refused (105), as the audit log says it. */
+const TWO_FACTOR_REASONS: Record<string, string> = {
+  wrong_code: "a wrong code",
+  used: "a code already used",
+  too_many: "too many wrong codes",
+  locked: "locked for 15 minutes",
+  refused: "the account can't sign in",
+  unreadable: "the secret can't be read",
 };
 
 export const SUMMARIES: Record<AuditAction, Build> = {
@@ -94,7 +112,7 @@ export const SUMMARIES: Record<AuditAction, Build> = {
       ? ["Revoked the access of ", who(m, e), `${ended(m) || " (nothing left)"}${via(m)}`]
       : [`Revoked everyone's access${ended(m) || " (nothing left)"}${via(m)}`],
   "instance.secret_rotated": (m) => [
-    `Replaced AUTH_SECRET, so everyone signs in again${ended(m)}${via(m)}`,
+    `Replaced AUTH_SECRET, so everyone signs in again${ended(m)}${num(m.twoFactorCleared) ? `, and turned off two-factor sign-in for ${plural(num(m.twoFactorCleared), "account")}` : ""}${via(m)}`,
   ],
   "instance.backup_made": (m) => [
     `Made a backup: ${plural(num(m.rows), "row")} in ${plural(num(m.tables), "table")}, ${plural(num(m.files), "stored file")}${m.settings === true ? ", with the settings file" : ""}${m.encrypted === true ? ", encrypted" : ""}${via(m)}`,
@@ -105,7 +123,16 @@ export const SUMMARIES: Record<AuditAction, Build> = {
       `Restored a backup made by Ronne ${text(from.version)} at ${text(from.time).slice(0, 16).replace("T", " ")}: ${plural(num(m.rows), "row")}, ${plural(num(m.files), "stored file")}${via(m)}`,
     ];
   },
-  "user.password_reset": (m, e) => ["Reset the password of ", who(m, e), `${ended(m)}${via(m)}`],
+  "user.password_reset": (m, e) => [
+    "Reset the password of ",
+    who(m, e),
+    `${m.twoFactorReset === true ? " and turned off its two-factor sign-in" : ""}${ended(m)}${via(m)}`,
+  ],
+  "user.two_factor_reset": (m, e) => [
+    "Turned off the two-factor sign-in of ",
+    who(m, e),
+    `${ended(m)}${via(m)}`,
+  ],
   "auth.signed_in": (m) => [m.remember ? "Signed in (remembered for 30 days)" : "Signed in"],
   "auth.sign_in_failed": (m) => [
     "Failed sign-in for ",
@@ -113,6 +140,12 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     `: ${REASONS[text(m.reason)] ?? text(m.reason)}${via(m)}`,
   ],
   "auth.signed_out": () => ["Signed out"],
+  "auth.two_factor_enabled": () => ["Turned on two-factor sign-in"],
+  "auth.two_factor_disabled": () => ["Turned off two-factor sign-in"],
+  "auth.backup_codes_regenerated": () => ["Made new backup codes; the old ones stopped working"],
+  "auth.two_factor_failed": (m) => [
+    `A two-factor code was refused at sign-in (${TWO_FACTOR_REASONS[text(m.reason)] ?? text(m.reason)})`,
+  ],
   "user.password_changed": (m) => [
     num(m.otherSessionsEnded)
       ? `Changed their password (${plural(num(m.otherSessionsEnded), "other session")} ended)`
@@ -287,6 +320,11 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     m.from ? ` from ${text(m.from)} to ${text(m.to)}` : ` to ${text(m.to)}`,
   ],
   "dist_tag.removed": (m) => ["Removed ", { code: text(m.tag) }, " from ", item(m)],
+  "settings.two_factor_policy": (m) => [
+    `Changed who must use two-factor sign-in from ${TWO_FACTOR_POLICIES_SAID[text(m.from)] ?? text(m.from)} to ${
+      TWO_FACTOR_POLICIES_SAID[text(m.to)] ?? text(m.to)
+    }`,
+  ],
   "settings.usage_policy": (m) => [
     `Changed the usage policy from ${POLICIES[text(m.from)] ?? text(m.from)} to ${
       POLICIES[text(m.to)] ?? text(m.to)

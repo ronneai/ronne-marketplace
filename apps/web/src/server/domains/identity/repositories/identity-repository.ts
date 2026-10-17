@@ -1,5 +1,6 @@
 import type { KeysetPage, SortDir } from "../../../db/keyset";
 import type { NewAuditEvent } from "../../audit/models/audit-event";
+import type { CoverageRow } from "../models/two-factor-coverage";
 import type { CurrentUser, Role, RootAccount, UserSummary, WorkspaceRole } from "../models/user";
 
 export type NewUserWithPassword = {
@@ -51,7 +52,14 @@ export interface IdentityRepository {
     user: CurrentUser;
     disabledAt: Date | null;
     passwordHash: string | null;
+    /** Two-factor is on: what makes a web sign-in ask for a code (105). */
+    twoFactor: boolean;
   } | null>;
+  /**
+   * Every active account, as the two-factor coverage counts need it (105): root, a reviewer in a
+   * shared workspace (moderator or admin), has a password, has two-factor on.
+   */
+  twoFactorCoverageRows(): Promise<CoverageRow[]>;
   /** Any user, disabled or not. */
   findUser(userId: string): Promise<UserSummary | null>;
   /** Any user by their (normalised) email, disabled or not. */
@@ -84,6 +92,20 @@ export interface IdentityRepository {
   revokeAllAccessTokens(now: Date): Promise<number>;
   /** Cancels the user's open requests to join workspaces (094); returns how many. */
   cancelAccessRequests(userId: string, now: Date): Promise<number>;
+  /**
+   * Turns the user's two-factor off (105): deletes its record and an unfinished setup, and clears
+   * the flag. True when there was anything to reset.
+   */
+  resetTwoFactor(userId: string, now: Date): Promise<boolean>;
+  /** Whether `resetTwoFactor` would find anything: the flag on, or a record (a setup started). */
+  hasTwoFactor(userId: string): Promise<boolean>;
+  /** Whether two-factor is on as the hold and the users list read it: the flag and a confirmed record. */
+  twoFactorOn(userId: string): Promise<boolean>;
+  /**
+   * Every account's two-factor off, for a new AUTH_SECRET (rotate-secret, a restore): the stored
+   * secrets can't be decrypted any more. Returns how many accounts had a record.
+   */
+  clearAllTwoFactor(now: Date): Promise<number>;
   /** Records an audit event in this repository's transaction (feature 007). */
   recordAudit(event: NewAuditEvent, now: Date): Promise<void>;
 }

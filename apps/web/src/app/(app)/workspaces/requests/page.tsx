@@ -10,6 +10,7 @@ import {
   requestsToAnswerList,
 } from "@/server/domains/workspaces/actions/workspaces";
 import { requestHeaders } from "@/server/http/request-headers";
+import { holdPage } from "../../hold";
 
 export const metadata = { title: "Requests to join · Ronne AI Marketplace" };
 
@@ -19,6 +20,7 @@ export const metadata = { title: "Requests to join · Ronne AI Marketplace" };
  * answers nowhere gets a 404.
  */
 const WorkspaceRequests = async () => {
+  await holdPage();
   const request = await requestHeaders();
   const me = await getCurrentUser(request);
   // Nobody asks to join a personal workspace (114): owning one answers nothing.

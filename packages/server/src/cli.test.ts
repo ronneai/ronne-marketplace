@@ -67,6 +67,11 @@ describe("rmk-server's arguments (082)", () => {
       script: "revoke-access",
       args: ["--everyone", "--yes"],
     });
+    expect(parseArgs(["reset-two-factor", "--email", "a@b.c", "--yes"], {})).toMatchObject({
+      kind: "script",
+      script: "reset-two-factor",
+      args: ["--email", "a@b.c", "--yes"],
+    });
     expect(parseArgs(["rotate-secret", "--yes"], {})).toMatchObject({
       kind: "script",
       script: "rotate-secret",

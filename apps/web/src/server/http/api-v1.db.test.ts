@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { toDbDate } from "../db/dates";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { toDbBoolean, toDbDate } from "../db/dates";
 import { createTestDb, type TestDb } from "../db/testing/test-db";
 import { listAuditEvents } from "../domains/audit/actions/audit";
 import { authenticateToken } from "../domains/identity/actions/access-tokens";
@@ -97,6 +97,38 @@ describe("POST /api/v1/auth/token", () => {
       (e) => e.metadata.reason,
     );
     expect(reasons[0]).toBe("disabled");
+  });
+
+  it("answers two_factor_required to the right password of an account with two-factor (105)", async () => {
+    vi.stubEnv("PUBLIC_URL", "https://ronne.example.com");
+    try {
+      const other = await createTestUser(app, { email: "two@example.com", password });
+      await t.db
+        .updateTable("user")
+        .set({ two_factor_enabled: toDbBoolean(true, t.dialect) })
+        .where("id", "=", other)
+        .execute();
+      const right = await login({ email: "two@example.com", password });
+      expect(right.status).toBe(401);
+      expect(await right.json()).toEqual({
+        error: {
+          code: "two_factor_required",
+          message:
+            "This account uses two-factor sign-in. Create a token at https://ronne.example.com/account/tokens, or run rmk login --web.",
+        },
+      });
+      // A wrong password: the same answer as for an account without two-factor, so nothing leaks.
+      const answers = [];
+      for (const who of ["two@example.com", email]) {
+        const wrong = await login({ email: who, password: "wrong horse battery" });
+        answers.push([wrong.status, await wrong.json()]);
+      }
+      expect(answers[0]).toEqual(answers[1]);
+      expect(answers[0]?.[0]).toBe(401);
+      expect(await t.db.selectFrom("access_tokens").select("id").execute()).toEqual([]);
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it("answers 429 once the sign-in limit is used up", async () => {

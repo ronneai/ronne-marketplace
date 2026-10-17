@@ -56,7 +56,7 @@ const chooseRoot = async (
 
 /**
  * pnpm run reset-root-password: sets a new password for a root, ends its sessions, revokes its
- * access tokens and re-enables it (feature 003). With several roots, `rootEmail` or a choice says
+ * access tokens, turns off its two-factor sign-in (105) and re-enables it (feature 003). With several roots, `rootEmail` or a choice says
  * which (059). Reads DATABASE_URL from the environment or .env.
  */
 export const runResetRootPassword = async (options: {
@@ -101,10 +101,15 @@ export const runResetRootPassword = async (options: {
       if (!prompts.interactive) throw new SetupFailedError("The two passwords don't match.");
     }
 
-    const { email } = await resetRootPassword(db, dialect, password, root.email);
+    const { email, twoFactorReset } = await resetRootPassword(db, dialect, password, root.email);
     prompts.log.success(
       `Reset the password for ${email}. Its sessions were ended and its access tokens revoked.`,
     );
+    // The terminal is the last way in, a lost phone included (105).
+    if (twoFactorReset)
+      prompts.log.info(
+        "Its two-factor sign-in was turned off too: sign in with the new password, then set it up again on your Account page.",
+      );
     return { email };
   } catch (error) {
     if (error instanceof InvalidPasswordError) throw error;

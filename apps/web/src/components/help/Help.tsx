@@ -302,6 +302,30 @@ export const HELP = {
       "Today with their email and password. Root can always sign in with a password, so a broken identity provider can't lock everyone out.",
     href: docsHref("admin", "settings"),
   },
+  "backup-codes-once": {
+    question: "Why can't I show the codes again?",
+    answer:
+      "Ronne keeps them encrypted and never shows them after this page, so nobody who later opens your account can read them. Save them now. If you lose them, make ten new ones on this page: the old ones stop working.",
+    href: docsHref("account", "two-factor"),
+  },
+  "lost-phone": {
+    question: "Lost your phone?",
+    answer:
+      "Use one of the backup codes you saved when you turned two-factor on. With none left, ask a root to reset your two-factor in Users; then sign in with your password and set it up again on the new phone.",
+    href: docsHref("account", "two-factor"),
+  },
+  "two-factor-policy": {
+    question: "Who must enrol?",
+    answer:
+      "Under Reviewers and root: root, and the moderators and admins of shared workspaces. Under Everyone: every account with a password. Someone it covers who hasn't set two-factor up is sent to their Account page at their next visit, and can't use anything else until they have. Nobody is signed out. Accounts that sign in through a company identity provider aren't covered.",
+    href: docsHref("admin", "settings"),
+  },
+  "reset-two-factor": {
+    question: "When do I reset someone's two-factor?",
+    answer:
+      "When they've lost their phone and their backup codes. They sign in with their password alone, then set two-factor up again on their Account page, at once if it's required of them. A root who lost theirs and has no other root to ask runs reset-root-password on the server, which resets it too.",
+    href: docsHref("admin", "users"),
+  },
   "usage-policy": {
     question: "What does rmk report?",
     answer:

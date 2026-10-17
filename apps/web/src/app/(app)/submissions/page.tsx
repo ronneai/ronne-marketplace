@@ -29,6 +29,7 @@ import {
 } from "@/server/domains/submissions/actions/submissions";
 import { itemNameOf } from "@/server/domains/submissions/models/submission";
 import { requestHeaders } from "@/server/http/request-headers";
+import { holdPage } from "../hold";
 import { workspaceView } from "../shell";
 
 export const metadata = { title: "My submissions · Ronne AI Marketplace" };
@@ -44,6 +45,7 @@ const Submissions = async ({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) => {
+  await holdPage();
   const params = await searchParams;
   const view = await workspaceView("/submissions", params);
   const list = submissionsList(view.fixed);

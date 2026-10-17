@@ -15,7 +15,7 @@ import { createTarWriter, readTar } from "@ronneai/core/pack";
 import { type Kysely, sql } from "kysely";
 import { afterEach, describe, expect, it } from "vitest";
 import { createDb, type Db } from "../db/create-db";
-import { toDbDate } from "../db/dates";
+import { toDbBoolean, toDbDate } from "../db/dates";
 import { readSchema } from "../db/introspect";
 import { MIGRATION_TABLE, migrateToExactly, migrateToLatest } from "../db/migrate";
 import { migrations } from "../db/migrations";
@@ -28,6 +28,7 @@ import {
 import { createTestDb } from "../db/testing/test-db";
 import { type DatabaseDialect, parseDatabaseUrl } from "../db/url";
 import { createRoot } from "../domains/identity/actions/root-account";
+import { encryptedAsTwoFactor } from "../domains/identity/testing/two-factor-secret";
 import { kyselyItemRepository } from "../domains/items/repositories/kysely-item-repository";
 import { UNFILTERED } from "../domains/workspaces/models/viewer";
 import { passphraseBytes } from "./crypto";
@@ -517,6 +518,98 @@ describe("rmk-server restore (099)", () => {
     await expect(
       restoreRun(bare, { databaseUrl: (await emptyTarget()).url, withSettings: true }).run(),
     ).rejects.toThrow(/no settings file.*Nothing was changed/s);
+  });
+
+  // Feature 105: two-factor secrets are encrypted with the archive's AUTH_SECRET ("s" × 43). The
+  // restore keeps them when the server will read them, and turns two-factor off otherwise.
+  it("keeps two-factor when the server's AUTH_SECRET reads it, and turns it off when not", async () => {
+    const source = await sqliteSource();
+    await seed(source.db, "sqlite", source.dir);
+    const root = await source.db.selectFrom("user").select("id").executeTakeFirstOrThrow();
+    await source.db
+      .updateTable("user")
+      .set({ two_factor_enabled: toDbBoolean(true, "sqlite") })
+      .where("id", "=", root.id)
+      .execute();
+    const key = "s".repeat(43);
+    await source.db
+      .insertInto("two_factor")
+      .values({
+        id: "tf-1",
+        user_id: root.id,
+        secret: await encryptedAsTwoFactor(key, "JBSWY3DPEHPK3PXP"),
+        backup_codes: await encryptedAsTwoFactor(key, '["aaaaa-bbbbb"]'),
+        verified: toDbBoolean(true, "sqlite"),
+      })
+      .execute();
+    const archive = await backup(source);
+    const bare = await backup(source, { settings: false });
+
+    /** Restores into a new database; how many two-factor records it has after, and the lines. */
+    const restore = async (
+      from: string,
+      options: { settingsFile?: string; withSettings?: boolean; env?: Record<string, string> },
+    ) => {
+      const target = await emptyTarget();
+      const appDir = tempDir();
+      if (options.settingsFile !== undefined)
+        writeFileSync(
+          join(appDir, ".env"),
+          `DATABASE_URL=${target.url}
+${options.settingsFile}`,
+        );
+      const run = restoreRun(from, {
+        appDir,
+        databaseUrl: target.url,
+        withSettings: options.withSettings ?? false,
+        env: options.env ?? {},
+      });
+      const result = await run.run();
+      const db = target.open();
+      try {
+        const left = await db.selectFrom("two_factor").select("id").execute();
+        const flag = await db.selectFrom("user").select("two_factor_enabled").executeTakeFirst();
+        return {
+          left: left.length,
+          flag: Boolean(flag?.two_factor_enabled),
+          cleared: result.twoFactorCleared,
+          said: run.lines.join("\n"),
+        };
+      } finally {
+        await db.destroy();
+      }
+    };
+    const kept = { left: 1, flag: true, cleared: 0 };
+    const off = { left: 0, flag: false, cleared: 1 };
+    const turnedOff = "Turned off two-factor sign-in for 1 account";
+
+    // --with-settings and no settings file: the backup's secret, so it's kept.
+    const withSettings = await restore(archive, { withSettings: true });
+    expect(withSettings).toMatchObject(kept);
+    expect(withSettings.said).not.toContain(turnedOff);
+    // No --with-settings: a new AUTH_SECRET is written, so it's off, and said.
+    const fresh = await restore(archive, {});
+    expect(fresh).toMatchObject(off);
+    expect(fresh.said).toContain(turnedOff);
+    // A kept settings file: its secret decides.
+    expect(await restore(archive, { settingsFile: `AUTH_SECRET=${key}\n` })).toMatchObject(kept);
+    expect(
+      await restore(archive, { settingsFile: `AUTH_SECRET=${"k".repeat(43)}\n` }),
+    ).toMatchObject(off);
+    // An archive with no settings can't be compared: a stored secret is tried with the server's.
+    expect(await restore(bare, { settingsFile: `AUTH_SECRET=${key}\n` })).toMatchObject(kept);
+    expect(await restore(bare, { settingsFile: `AUTH_SECRET=${"k".repeat(43)}\n` })).toMatchObject(
+      off,
+    );
+    // The environment's AUTH_SECRET wins over the settings file's, as the server reads them.
+    expect(
+      await restore(archive, {
+        settingsFile: `AUTH_SECRET=${"k".repeat(43)}\n`,
+        env: { AUTH_SECRET: key },
+      }),
+    ).toMatchObject(kept);
+    // The secret itself is never printed.
+    expect(fresh.said).not.toContain(key);
   });
 
   it("stops when the archive loses an entry between the verify and the restore reads", async () => {

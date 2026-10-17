@@ -14,6 +14,7 @@ import { join } from "node:path";
 import { parseEnv } from "node:util";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createDb } from "../src/server/db/create-db";
+import { toDbBoolean } from "../src/server/db/dates";
 
 // Runs the real `pnpm run setup` and `pnpm run rotate-secret` entry points (098). rotate-secret runs
 // as rmk-server runs it (RONNE_RUNTIME=npm): in a clone it would also look at this checkout's own
@@ -124,6 +125,31 @@ describe("pnpm run rotate-secret", () => {
     );
     expect(events).toHaveLength(1);
     for (const value of [old, now]) expect(JSON.stringify(events)).not.toContain(value);
+  }, 60_000);
+
+  it("turns off two-factor sign-in, whose secrets the old AUTH_SECRET encrypted, and says so (105)", async () => {
+    expect(setUp().code).toBe(0);
+    await query(async (db) => {
+      const root = await db.selectFrom("user").select("id").executeTakeFirstOrThrow();
+      await db
+        .updateTable("user")
+        .set({ two_factor_enabled: toDbBoolean(true, "sqlite") })
+        .execute();
+      await db
+        .insertInto("two_factor")
+        .values({
+          id: "tf-1",
+          user_id: root.id,
+          secret: "encrypted",
+          backup_codes: "encrypted",
+          verified: toDbBoolean(true, "sqlite"),
+        })
+        .execute();
+    });
+    const result = run("rotate-secret", ["--yes"]);
+    expect(result.code, result.stderr).toBe(0);
+    expect(result.stdout).toContain("Turned off two-factor sign-in for 1 account");
+    expect(await query((db) => db.selectFrom("two_factor").select("id").execute())).toEqual([]);
   }, 60_000);
 
   it("a duplicate AUTH_SECRET line can't keep the old secret in effect", async () => {

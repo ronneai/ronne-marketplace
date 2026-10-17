@@ -89,25 +89,54 @@ export const revokeAccess = async (
  * `instance.secret_rotated`, then runs `writeSecret` before the transaction commits, so a settings
  * file that can't be written leaves the sessions as they were. Cookies signed with the old secret
  * would stop working after a restart anyway; ending the sessions now covers the server still
- * running with it. Never sees the secret itself. Returns how many sessions ended.
+ * running with it. Two-factor secrets are encrypted with a key from AUTH_SECRET, so they can't be
+ * read any more: every account's two-factor is turned off too (105), and set up again. Never sees
+ * the secret itself. Returns how many sessions ended and how many accounts' two-factor went.
  */
 export const endSessionsForNewSecret = async (
   deps: InstanceAccessDeps,
   writeSecret: () => void,
-): Promise<number> => {
+): Promise<{ sessions: number; twoFactorCleared: number }> => {
   const now = (deps.now ?? (() => new Date()))();
   return deps.repo.transaction(async (repo) => {
     const sessions = await repo.deleteAllSessions();
+    const twoFactorCleared = await repo.clearAllTwoFactor(now);
     await repo.recordAudit(
       {
         actorId: null,
         action: "instance.secret_rotated",
         target: { type: "instance", id: null },
-        metadata: { via: "cli", sessionsEnded: sessions },
+        metadata: {
+          via: "cli",
+          sessionsEnded: sessions,
+          ...(twoFactorCleared > 0 ? { twoFactorCleared } : {}),
+        },
       },
       now,
     );
     writeSecret();
-    return sessions;
+    return { sessions, twoFactorCleared };
   });
+};
+
+/**
+ * After a restore (099, 105): the stored two-factor secrets were encrypted with the archive's
+ * AUTH_SECRET. When the server will run with another one (`secret`, missing when none is set),
+ * they can't be read: every account's two-factor is turned off, and set up again. An archive with
+ * no AUTH_SECRET can't be compared, so one stored secret is tried with `secret` (`readable`).
+ * Returns how many accounts' two-factor went (0 when they're readable, or there are none).
+ */
+export const clearTwoFactorAfterRestore = async (
+  deps: InstanceAccessDeps & { readable: (secret: string) => Promise<boolean | null> },
+  secrets: { archived?: string; secret?: string },
+): Promise<number> => {
+  const { archived, secret } = secrets;
+  const unreadable = !secret
+    ? true
+    : archived
+      ? archived !== secret
+      : (await deps.readable(secret)) === false;
+  if (!unreadable) return 0;
+  const now = (deps.now ?? (() => new Date()))();
+  return deps.repo.transaction((repo) => repo.clearAllTwoFactor(now));
 };

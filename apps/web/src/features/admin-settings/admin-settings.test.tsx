@@ -11,10 +11,18 @@ const settings = vi.hoisted(() => ({
   instanceSettings: vi.fn(),
   setUsagePolicy: vi.fn(),
   setUsageMinimum: vi.fn(),
+  setTwoFactorPolicy: vi.fn(),
 }));
 const session = vi.hoisted(() => ({ getCurrentUser: vi.fn() }));
 const feeds = vi.hoisted(() => ({ pluginFeedStats: vi.fn() }));
 vi.mock("@/server/domains/feeds/actions/feeds", () => feeds);
+const twoFactor = vi.hoisted(() => ({
+  twoFactorCoverage: vi.fn(async () => ({
+    reviewers: { covered: 3, unenrolled: 1 },
+    everyone: { covered: 12, unenrolled: 12 },
+  })),
+}));
+vi.mock("@/server/domains/identity/actions/two-factor", () => twoFactor);
 const cache = vi.hoisted(() => ({ revalidatePath: vi.fn() }));
 vi.mock("@/server/domains/settings/actions/settings", () => settings);
 vi.mock("@/server/domains/identity/actions/session", () => session);
@@ -55,6 +63,7 @@ beforeEach(() => {
     usagePolicy: "off",
     usagePolicyChangedAt: null,
     usageMinimum: 0,
+    twoFactorPolicy: "optional",
   });
 });
 
@@ -285,5 +294,53 @@ describe("Admin › Settings › Plugin feeds (079)", () => {
     expect(html).toContain("add the git mirror (rmk feed build) in Claude Code");
     expect(html).toContain("Claude Code waits 10 seconds");
     expect(html.match(/text-warning-text/g)?.length).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe("Admin › Settings › Authentication › Two-factor sign-in (105)", () => {
+  it("offers the three requirements, with who each covers and who must still set it up", async () => {
+    const { TwoFactorPolicyForm } = await import("./authentication/TwoFactorPolicyForm");
+    const html = renderToStaticMarkup(
+      <TwoFactorPolicyForm
+        policy="optional"
+        coverage={{
+          reviewers: { covered: 3, unenrolled: 1 },
+          everyone: { covered: 12, unenrolled: 0 },
+        }}
+      />,
+    );
+    for (const text of ["Optional", "Reviewers and root", "Everyone", "Who must enrol?"])
+      expect(html).toContain(text);
+    expect(html).toContain("3 people; 1 person must set it up at their next visit.");
+    expect(html).toContain("12 people, all with two-factor on.");
+    expect(html).toMatch(/checked="" value="optional"/);
+    expect(html.match(/checked=""/g)).toHaveLength(1);
+  });
+
+  it("is on the Authentication tab with the requirement listed under Sign-in methods", async () => {
+    session.getCurrentUser.mockResolvedValue({ id: "r", role: "root" });
+    settings.instanceSettings.mockResolvedValueOnce({
+      usagePolicy: "off",
+      usagePolicyChangedAt: null,
+      usageMinimum: 0,
+      twoFactorPolicy: "reviewers",
+    });
+    const html = renderToStaticMarkup(await AdminSettings("authentication"));
+    expect(html).toContain('aria-label="Two-factor sign-in"');
+    expect(html).toContain("Required for reviewers and root.");
+    expect(html).toMatch(/checked="" value="reviewers"/);
+  });
+
+  it("saves the requirement, and shows a domain error", async () => {
+    const data = new FormData();
+    data.set("twoFactorPolicy", "everyone");
+    settings.setTwoFactorPolicy.mockResolvedValueOnce({ changed: true });
+    expect(await actions.saveTwoFactorPolicy({}, data)).toEqual({
+      done: "Two-factor sign-in saved.",
+    });
+    expect(settings.setTwoFactorPolicy).toHaveBeenCalledWith(expect.any(Headers), "everyone");
+    expect(cache.revalidatePath).toHaveBeenCalledWith("/admin/settings");
+    settings.setTwoFactorPolicy.mockRejectedValueOnce(new ForbiddenError("settings.manage"));
+    expect((await actions.saveTwoFactorPolicy({}, data)).error).toBeTruthy();
   });
 });

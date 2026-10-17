@@ -70,7 +70,7 @@ export const runRotateSecret = async (options: {
   env: Env;
   prompts: SetupPrompts;
   yes: boolean;
-}): Promise<{ sessions: number }> => {
+}): Promise<{ sessions: number; twoFactorCleared: number }> => {
   const { appDir, envPath, env, prompts } = options;
   if (env.AUTH_SECRET)
     throw new SetupFailedError(
@@ -114,7 +114,8 @@ export const runRotateSecret = async (options: {
   if (!options.yes) {
     const sure = await prompts.confirm({
       id: "rotate.confirm",
-      message: "Replace AUTH_SECRET? Everyone is signed out, you included.",
+      message:
+        "Replace AUTH_SECRET? Everyone is signed out, you included, and two-factor sign-in is turned off for everyone who has it.",
       initial: false,
     });
     if (!sure) throw new SetupFailedError("Cancelled. The secret wasn't changed.");
@@ -138,8 +139,9 @@ export const runRotateSecret = async (options: {
   let written = false;
   try {
     let sessions: number;
+    let twoFactorCleared: number;
     try {
-      sessions = await endSessionsForNewSecret(db, dialect, () => {
+      ({ sessions, twoFactorCleared } = await endSessionsForNewSecret(db, dialect, () => {
         try {
           writeEnvFile(envPath, content);
         } catch (error) {
@@ -159,12 +161,12 @@ export const runRotateSecret = async (options: {
           );
         }
         written = true;
-      });
+      }));
     } catch (error) {
       // Written, then the database failed to commit: the new secret is in place, sessions aren't ended.
       if (written)
         throw new SetupFailedError(
-          `The new AUTH_SECRET was written, but ending the sessions failed. Run ${followUp("revoke-access", "--everyone --sessions-only", env)}${runtimeOf(env) === "node" ? `, then restart the server: ${restartHint(env)}` : ""}.`,
+          `The new AUTH_SECRET was written, but ending the sessions failed. Run ${followUp("revoke-access", "--everyone --sessions-only", env)}${runtimeOf(env) === "node" ? `, then restart the server: ${restartHint(env)}` : ""}. Two-factor sign-in wasn't turned off either, and its secrets can't be read with the new AUTH_SECRET: run ${followUp("rotate-secret", "--yes", env)} again once the database answers, or ${followUp("reset-two-factor", "--email <email>", env)} for each person who has it.`,
         );
       throw error;
     }
@@ -176,8 +178,13 @@ export const runRotateSecret = async (options: {
     if (runtimeOf(env) === "node")
       prompts.log.info(`Restart the server so it reads the new secret: ${restartHint(env)}.`);
     else prompts.log.info("The server uses the new secret from its next request.");
+    // Their secrets were encrypted with the old AUTH_SECRET (105).
+    if (twoFactorCleared > 0)
+      prompts.log.info(
+        `Turned off two-factor sign-in for ${twoFactorCleared} ${twoFactorCleared === 1 ? "account" : "accounts"}: its secrets were encrypted with the old AUTH_SECRET. They set it up again on their Account page.`,
+      );
     prompts.log.info("Access tokens keep working; to revoke them too, run revoke-access.");
-    return { sessions };
+    return { sessions, twoFactorCleared };
   } finally {
     await db.destroy();
   }

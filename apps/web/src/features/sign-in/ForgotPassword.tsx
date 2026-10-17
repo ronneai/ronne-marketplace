@@ -50,7 +50,8 @@ const Note = ({ resetCommand, className }: { resetCommand: string; className?: s
   <p className={cn("text-left text-xs", className)}>
     Ask a root to reset your password in Users. If you&apos;re the only root, run{" "}
     <code className="font-mono break-words text-fg">{resetCommand}</code> where Ronne AI Marketplace
-    is installed.{" "}
+    is installed. A lost authenticator, and its backup codes, is reset the same way: by a root, or
+    for the only root, by that command.{" "}
     <NewTabLink
       href={docsHref("install", "root")}
       className="text-link underline-offset-2 hover:underline"
