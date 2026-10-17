@@ -1,0 +1,124 @@
+import type { Kysely } from "kysely";
+import { fromDbDate, toDbDate } from "../../../db/dates";
+import { newId } from "../../../db/ids";
+import { decodeJson, encodeJson } from "../../../db/json";
+import { forUpdate, readCommittedTransaction } from "../../../db/locks";
+import type { Database } from "../../../db/schema";
+import type { DatabaseDialect } from "../../../db/url";
+import { recordAudit } from "../../audit/actions/audit";
+import { kyselyIdentityRepository } from "./kysely-identity-repository";
+import type { SsoRepository, SsoSignInState } from "./sso-repository";
+
+/** Sign-ins in progress are `verification` rows under this prefix and the state's hash. */
+const STATE_PREFIX = "sso-state:";
+
+export const kyselySsoRepository = (
+  db: Kysely<Database>,
+  dialect: DatabaseDialect,
+): SsoRepository => {
+  const at = (date: Date) => toDbDate(date, dialect);
+  const identity = kyselyIdentityRepository(db, dialect);
+
+  return {
+    async saveState(stateHash, state, now, expiresAt) {
+      await db
+        .insertInto("verification")
+        .values({
+          id: newId(),
+          identifier: `${STATE_PREFIX}${stateHash}`,
+          value: encodeJson(state),
+          expires_at: at(expiresAt),
+          created_at: at(now),
+          updated_at: at(now),
+        })
+        .execute();
+    },
+
+    async takeState(stateHash, now) {
+      const identifier = `${STATE_PREFIX}${stateHash}`;
+      const row = await db
+        .selectFrom("verification")
+        .select(["id", "identifier", "value", "expires_at", "created_at"])
+        .where("identifier", "=", identifier)
+        .executeTakeFirst();
+      if (!row || row.identifier !== identifier) return null;
+      // Deleting it is what claims it: of two requests with one state, only one deletes the row.
+      const deleted = await db
+        .deleteFrom("verification")
+        .where("id", "=", row.id)
+        .executeTakeFirst();
+      if (Number(deleted.numDeletedRows) !== 1) return null;
+      if (fromDbDate(row.expires_at).getTime() <= now.getTime()) return null;
+      return {
+        state: decodeJson<SsoSignInState>(row.value),
+        startedAt: fromDbDate(row.created_at),
+      };
+    },
+
+    async lockProvider(providerId) {
+      await forUpdate(
+        db.selectFrom("identity_providers").select("id").where("id", "=", providerId),
+        dialect,
+      ).execute();
+    },
+
+    async findLinkedUser(providerId, subject) {
+      const rows = await db
+        .selectFrom("account")
+        .select(["user_id", "account_id", "provider_id"])
+        .where("provider_id", "=", providerId)
+        .where("account_id", "=", subject)
+        .execute();
+      // `account_id` is text: MySQL compares it without case, and a subject is case-sensitive.
+      const row = rows.find((r) => r.account_id === subject && r.provider_id === providerId);
+      return row?.user_id ?? null;
+    },
+
+    async linkedSubjects(userId, providerId) {
+      const rows = await db
+        .selectFrom("account")
+        .select(["account_id", "provider_id"])
+        .where("user_id", "=", userId)
+        .where("provider_id", "=", providerId)
+        .execute();
+      return rows.filter((r) => r.provider_id === providerId).map((r) => r.account_id);
+    },
+
+    async linkAccount(userId, providerId, subject, now) {
+      await db
+        .insertInto("account")
+        .values({
+          id: newId(),
+          account_id: subject,
+          provider_id: providerId,
+          user_id: userId,
+          access_token: null,
+          refresh_token: null,
+          id_token: null,
+          access_token_expires_at: null,
+          refresh_token_expires_at: null,
+          scope: null,
+          password: null,
+          created_at: at(now),
+          updated_at: at(now),
+        })
+        .execute();
+    },
+
+    findUser: (userId) => identity.findUser(userId),
+    findUserByEmail: (email) => identity.findUserByEmail(email),
+
+    createUser: (user, now) => identity.createUserWithoutPassword({ ...user, role: "user" }, now),
+
+    // READ COMMITTED: after waiting for the provider's lock, the checks see what the sign-in
+    // before committed (MySQL's REPEATABLE READ would read an older snapshot).
+    transaction: (work) =>
+      readCommittedTransaction(db, dialect).execute((trx) =>
+        work(kyselySsoRepository(trx, dialect)),
+      ),
+
+    async recordAudit(event, now) {
+      await recordAudit(db, dialect, event, now);
+    },
+  };
+};

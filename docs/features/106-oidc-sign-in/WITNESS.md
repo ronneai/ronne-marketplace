@@ -237,3 +237,112 @@ Witnessed: 2026-10-16 22:34 EDT, by a fresh agent (blind). Commit: 4af0fb60 + th
 | 13 | `test()` refuses a `jwks_uri` that isn't https or loopback http, before fetching it, and a test covers it | no | confirmed | `fake-oidc-server.ts:54,131` switch `insecureJwks`; test `oidc-provider-type.test.ts:367-371`; 46 passed; mutation (`if (!jwksUrl)` → `if (false)`) → 1 failed / 45 passed; restored (sha1 matches) |
 
 **Overall:** met. Every row of task 3 is confirmed.
+
+## Task 4 — Sign-in and accounts
+
+Witnessed: 2026-10-16 22:45 EDT, by a fresh agent (blind). Commit: 2e944960 + working tree (uncommitted diff and untracked sso files). Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+The pass's mutation harness collided with another witness's `scratchpad/bak` folder, so its mutations stayed in four untracked files for a few minutes; it restored each by hand (every line matching the snapshots taken before), and the implementer checked the files and the suite (22/22) afterwards.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | db tests pass on SQLite and the three servers | no | confirmed | SQLite → 22 passed; `pnpm test:db:postgres` / `:mysql` / `:mariadb -- …/sso.db.test.ts` → 22 passed each |
+| 2 | db tests cover every branch of the decision list | no | partly | mutations of the verified-email and linked-subject checks are caught; `if (linked.disabledAt)` removed survives 22/22, because the session hook refuses the disabled account later. The other branches each have a test (`:109`, `:147`, `:158`, `:195`, `:216`) |
+| 3 | Creation goes through the same service as Create user, with a personal workspace | no | partly | the same repository code (`insertUser`, with `global` and the personal workspace, test `:109`), not the Create user service: `normalizeName` and `emailTaken` are skipped; `nameFor` slices to 255 (can split a surrogate pair) |
+| 4 | A new subject with an email already linked (same provider) is refused | no | confirmed | tests `:234`, `:249`; removing the `linkedSubjects` check fails both |
+| 5 | A changed email at the provider keeps the link | no | confirmed | test `:226` |
+| 6 | "The same email in two providers by two different people" is refused | no | not met | probe P1: ana linked at `acme`; provider `beta` (same domain, link by email) sends `sub-impostor-at-beta` with `ana@acme.com` → signed in as ana, the subject linked to her. `linkedSubjects` looks at the current provider only; SPEC also says "an account can be linked to several providers" |
+| 7 | Root signs in when linked by email, and nothing changes root | no | confirmed | test `:280` |
+| 8 | A disabled account is refused, linked or matched by email | no | confirmed | test `:256` (the linked case backed by the session hook) |
+| 9 | An off-site `next` lands on `/` | no | confirmed | test `:320`; probe P4 (`/\t/evil.example`, `" //evil.example"` → `/`) |
+| 10 | Another browser's state, used twice, after 10 minutes, or another provider's callback → `expired` | no | confirmed | tests `:332`/`:342`/`:353`/`:368`; each check's removal caught; race probe R1 (same state twice at once, 5 runs) → never two sign-ins. A mutation ignoring the deleted-rows count isn't caught by the suite |
+| 11 | Sign-in in progress: a `verification` row by the state's hash, deleted on first use, plus an HttpOnly SameSite=Lax cookie | no | confirmed | `saveState`/`takeState`; test `:383` |
+| 12 | The session endpoint is server-only (404 over HTTP); the allowlist is unchanged | no | confirmed | test `:452`; mutation of `SERVER_ONLY` fails it |
+| 13 | The only new HTTP route is the callback | no | confirmed | `app/api/auth/sso/callback/[id]/route.ts`; `proxy.ts:50` skips `api/` |
+| 14 | Session like a password one; the events | no | confirmed | tests `:109`, `:195`, `:147`; actions, log events and summaries added |
+| 15 | Two-factor isn't asked | no | confirmed | probe P2 (two-factor user → signed in); no test in the suite |
+| 16 | Callback errors go to `/sign-in?error=<code>`, the provider's text not shown | no | confirmed | test `:430`, probe P5 |
+| 17 | Limiter on the start and the callback | no | partly | only the start is tested; the callback's limiter has no test |
+| 18 | Two first sign-ins at once create one account | no | confirmed | test `:288` on all four |
+
+**Overall:** not met: a second provider links a different subject to an account already linked elsewhere (row 6, for the owner: the spec contradicts itself); the linked-disabled branch and the callback limiter lack tests that fail without them; creation is the same repository function, not the Create user service.
+
+Witnessed: 2026-10-16 22:58 EDT, by a fresh agent (adversarial). Commit: 2e944960 + uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+Runs between 22:48 and 22:50 read the other pass's mutations (see the blind pass) and were discarded; every verdict comes from runs before 22:48 or at 22:53 and later.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The task's db tests pass on all four databases | no | confirmed | 22 passed each (MySQL and MariaDB before the window, PostgreSQL runs 5–7 after it) |
+| 2 | Verified email is required, before anything else | no | confirmed | `sso-sign-in.ts:39`; the test passes with an existing account and no link written |
+| 3 | A disabled account is refused, linked, by email, or disabled between decision and session | no | confirmed | `:44,57`; probe P3: `startSession` on a disabled user → `null`, 0 sessions; `sso.ts:263`. The race has no test of its own |
+| 4 | A known link signs in, subjects compared exactly, a changed email keeps the link | no | confirmed | `kysely-sso-repository.ts:73` compares in JS; tests; P8: a subject linked on `acme` doesn't sign in on `beta` |
+| 5 | Link by email only for that account's verified email, only with link-by-email on, never when the account has another subject of this provider | no | not met | probe P1: an IdP-verified `Kate@acme.com` (KELVIN SIGN) → `normalizeEmail` lowercases it to `kate@acme.com` → signed in as Kate, on all four databases |
+| 6 | Create only for a listed domain: a `user` in `global` with a personal workspace, no password | no | confirmed | the test; `role: "user"` hard-coded; shares `insertUser` with Create user (the same repository write, not the same service) |
+| 7 | Refuse otherwise | no | confirmed | `:66`; tests |
+| 8 | Root signs in only when linked by email; its role is unchanged | no | confirmed | test; P9 (a second provider links root, role stays `root`) |
+| 9 | Concurrent first sign-ins create one account (one provider, and two providers with one email) | no | confirmed | test; P7 (acme and beta at once) → 1 user, links on one user, all four |
+| 10 | An off-site `next` lands on `/` | no | confirmed | test; P12 (`/\t/evil.example`, `/a/..//evil.example`, `/sign-in?next=//evil` → `/`) |
+| 11 | The state: this browser's, once, under 10 minutes, this provider's callback | no | confirmed | tests; P11 (replayed twice at once → one `/`, one `expired`); P6 (a wrong cookie before the right one → `expired`) |
+| 12 | The session endpoint is a 404 over HTTP | no | confirmed | test; P10/P13 straight to `app.auth.handler` with path variants → 404, no Set-Cookie |
+| 13 | The events are recorded, with no token or secret | no | confirmed | asserted in tests; logs carry reason, provider and `detail` only |
+| 14 | The tests fail when the code is broken | no | partly | the other pass's mutations failed the right tests; nothing covers case-folding or the disable race |
+| 15 | The start and the callback are rate-limited | no | partly | 30/min per IP with `TRUST_PROXY`; without it `clientIp` is null and there's no limit |
+
+**Overall:** not met: link by email maps a Unicode case-folded address onto someone else's account. Also: a malformed state cookie gives a 500 (`decodeURIComponent` throws, P5); a state saved with `test` completes a real sign-in (P4, latent for task 6).
+
+### Re-check 1 (blind: rows 2, 3, 6, 10, 17 and the diff)
+
+Witnessed: 2026-10-16 22:58 EDT, by a fresh agent (blind). Commit: 2e944960 + working tree. Machine: macOS (Darwin 27.0.0), Node v24.0.0. Backups in its own folder `scratchpad/106-t4-blind/`, `cmp` after each restore.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The task's tests pass on SQLite and the three servers | no | confirmed | SQLite 62 passed (3 files); servers → 30 passed each |
+| 2 | db tests cover every branch, including a linked disabled account | no | confirmed | mutation of `if (linked.disabledAt)` → "refuses a linked account that was disabled" fails (`:283`) |
+| 3 | Creation goes through the same path as Create user; the name follows Create user's rule | no | partly | the name rule holds (mutation to a UTF-16 slice → `:324` fails); but SPEC.md:49 and :144 still say "the same service as Create user", while the code shares only the repository write |
+| 4 | A new subject of the same provider is refused; another provider's verified email links (SPEC as changed) | no | confirmed | SPEC's edge case; tests `:237`, `:252`; probe P1. Depends on the owner agreeing to the SPEC change |
+| 5 | One state replayed by two callbacks at once is taken once | no | confirmed | removing the deleted-rows check → `:402` fails; passes on all three servers |
+| 6 | The callback is limited per client IP | no | confirmed | mutation → `:548` fails |
+| 7 | Non-ASCII emails are never matched or created | no | confirmed | mutation → `:303` fails |
+| 8 | A malformed state cookie gives `expired` | no | confirmed | mutation rethrowing → `:397` fails |
+| 9 | A *Test sign-in*'s state never opens a session | no | confirmed | removing `sso.ts:242` → `:419` fails |
+
+**Overall:** not met: SPEC.md still names the Create user service (row 3).
+
+### Re-check 1 (adversarial: rows 3, 5, 14, 15 and the diff)
+
+Witnessed: 2026-10-16 23:03 EDT, by a fresh agent (adversarial). Commit: 2e944960 + uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0. Between 22:59 and 23:01 its mutations and the blind pass's overlapped on `sso.ts` and `sso-sign-in.ts`; from 23:01:31 the three source files were `cmp`-identical to the blind pass's originals before and after every run below (the implementer checked again afterwards).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The task's db tests pass on all four databases | no | confirmed | 30 passed each (23:01–23:03) |
+| 3 | A disabled account is refused, including between decision and session | no | confirmed | tests `:283`, `:568`; no test drives the callback through the null-session line |
+| 5 | Link by email only for that account's own verified email | no | not met | Kelvin sign → `not_allowed` on all four; fullwidth, zero-width, ideographic full stop, combining accent, `ACME.Kom`, whitespace, NUL, newline, `;`, trailing-dot domain → refused on all four. R7: a Ronne user `kåte@acme.com` and an IdP-verified `kate@acme.com` with a new subject → on MySQL and MariaDB signed in as `kåte@acme.com` (accent-insensitive `=` in `findUserByEmail`) |
+| 14 | The tests fail when the code is broken | no | confirmed | in `scratchpad/106-t4-adv`: removing `PLAIN_EMAIL`, rethrowing in the cookie `catch`, removing the test-state guard → each caught |
+| 15 | The start and the callback are rate-limited; the spec says what happens without `TRUST_PROXY` | no | confirmed | both tests pass; SPEC.md:189 |
+| 16 | A malformed state cookie gives `expired` | no | confirmed | R5 → `error=expired` on all four |
+| 17 | A state with `test` set never opens a session | no | confirmed | R4 → `error=expired`, no session, no user, on all four |
+| 18 | Unusual but ASCII addresses aren't taken over | no | confirmed | `KATE@ACME.COM` links `kate@acme.com` (by design); `"kate"@acme.com`, `kate%40acme.com@acme.com` create their own accounts |
+
+**Overall:** not met: on MySQL and MariaDB an ASCII email links an existing account whose address differs only by an accent.
+
+### Re-check 2 (blind: row 3)
+
+Witnessed: 2026-10-16 23:03 EDT, by a fresh agent (blind). Commit: 2e944960 + working tree. Machine: macOS (Darwin 27.0.0), Node v24.0.0. Read-only.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 3 | Creation uses Create user's repository write (user, `global` row, personal workspace, one READ COMMITTED transaction), Create user's name rule, no password, never root, and SPEC.md says so | no | confirmed | `grep "same service" SPEC.md` → nothing; SPEC.md:49-51, :144-146; `kysely-sso-repository.ts:111` → `createUserWithoutPassword({ ...user, role: "user" })` → shared `insertUser`; `passwordHash` null (test `:112`); runs in `readCommittedTransaction` (`db/locks.ts:21`); `nameFor` uses `normalizeName` |
+
+**Overall:** met. Row 4 of re-check 1 (another provider's verified email still links) stands on the SPEC change the owner is asked to confirm.
+
+### Re-check 2 (adversarial: row 5)
+
+Witnessed: 2026-10-16 23:08 EDT, by a fresh agent (adversarial). Commit: 2e944960 + uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0. Mutations only in a scratch copy of the repository.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The task's db tests pass on all four databases | yes | confirmed | 31 passed each (23:07–23:08) |
+| 5 | Link by email only for that account's exact verified email, never one the database's collation calls equal | yes | confirmed | `sso-sign-in.ts` refuses when `existing.email !== email`. Probe on all four: `kåte@`/`kate@`, `émile@`/`EMILE@` → MySQL and MariaDB `not_allowed`; `straße@`/`strasse@`, `æther@`/`aether@`, NFD `kåte@` → MySQL `not_allowed`, MariaDB a new account; `ıvan@`/`ivan@` → MySQL new account, MariaDB `not_allowed`; SQLite and PostgreSQL a new account every time; a stored trailing space → MariaDB `not_allowed`; an exact match in another case still links on all four. Mutation in the scratch copy: removing the check → the new test fails on MySQL; restored → passes |
+
+**Overall:** met. Every row of task 4's blind and adversarial passes is now confirmed; row 4 of the blind re-check (another provider's verified email links) stands on a SPEC change for the owner to confirm.

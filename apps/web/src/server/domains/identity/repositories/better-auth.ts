@@ -11,6 +11,7 @@ import type { PasswordHasher } from "../models/password-hasher";
 import { COOKIE_PREFIX } from "../models/session-cookie";
 import { argon2PasswordHasher } from "./argon2-password-hasher";
 import { betterAuthLogger } from "./better-auth-logger";
+import { ssoSessionPlugin } from "./better-auth-sso-session";
 import { kyselyIdentityRepository } from "./kysely-identity-repository";
 
 const DAY = 60 * 60 * 24;
@@ -124,6 +125,8 @@ export const createAuth = ({
       // key from AUTH_SECRET. No email or SMS codes (no otpOptions), and trusted devices are never
       // asked for. Every call is a server action through auth.api; its routes aren't served.
       twoFactor({ issuer: TWO_FACTOR_ISSUER, schema: twoFactorSchema }),
+      // Opens the session an identity provider's sign-in decided on (106); server-only.
+      ssoSessionPlugin(),
       // Lets server actions set the session cookie. It must stay the last plugin.
       nextCookies(),
     ],

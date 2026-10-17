@@ -46,8 +46,9 @@ for setting it up on the provider's side.
   - an existing account is **linked by verified email** (the provider's `email_verified` must be
     true; the link is an `account` row, `provider_id` the provider's id);
   - for the **domains root lists**, a person with no account gets one on first sign-in, as a `user`
-    in `global` with a personal workspace (114), made by the same service as Create user (008,
-    092), never root;
+    in `global` with a personal workspace (114), written by the same repository code as Create
+    user (008, 092: the user, its `global` row and its personal workspace, in one READ COMMITTED
+    transaction) with Create user's name rule, but no password, and never root;
   - everyone else is refused with a message that says to ask root.
 - **IdP groups to workspace roles:** per provider, root maps a group (a value in the groups claim)
   to a workspace and a role there (user, moderator or admin). The memberships are applied at
@@ -67,7 +68,8 @@ for setting it up on the provider's side.
   new terminal command, `rmk-server disable-sso`, turns every provider off and sets the password
   policy to *Everyone*, for when a provider breaks, like `revoke-access` and `rotate-secret` (098).
 - **Audit events** (007): `auth.sso_signed_in { provider }`, `auth.sso_failed { provider, reason }`
-  (`unverified_email`, `not_allowed`, `disabled`, `invalid_response`, `provider_error`),
+  (`unverified_email`, `not_allowed`, `disabled`, `invalid_response`, `provider_error`, and
+  `unavailable`, `expired`, `rate_limited` before the provider is asked),
   `user.created { via: "sso", provider }`, `user.sso_linked { provider }`,
   `instance.auth_provider_created | updated | deleted | enabled | disabled { provider }` and
   `instance.password_sign_in_changed { from, to }`. Group changes use `workspace.member_added |
@@ -140,8 +142,9 @@ then `complete` returns the identity and Ronne decides:
    (006's rule: it doesn't say which accounts exist).
 3. **Known link** (the provider and subject): sign in.
 4. **Else, an account with this email** and *link by email* on: link, then sign in.
-5. **Else, the email's domain is on the list:** create the account (same service as Create user,
-   `user` in `global`, personal workspace, no password), link, sign in.
+5. **Else, the email's domain is on the list:** create the account (Create user's repository
+   write: `user` in `global`, personal workspace; no password; the name by Create user's rule),
+   link, sign in.
 6. **Else** `not_allowed`.
 Then the groups are applied (below) and the session is created like a password one (same cookie,
 `auth.signed_in`, plus `auth.sso_signed_in`), by a server-only Better Auth endpoint
@@ -180,9 +183,14 @@ their password sign-in.
   `validateApplicationLevelSignature`. Ronne also requires `sub`, and checks `iat` itself (the
   library only checks that it is a number): no earlier than when the sign-in started and no later
   than now, each with the clock leeway below.
-- Callback errors go to `/sign-in?error=<code>` with a plain message; the provider's error text is
-  logged (redacted), not shown.
-- Ronne's limiter, per client IP when `TRUST_PROXY=true`, covers the start action and the callback.
+- Callback errors go to `/sign-in?error=<code>` with a plain message: the five reasons above, plus
+  `unavailable` (the provider is off or gone), `expired` (no state cookie, another browser's, used
+  already, or older than 10 minutes) and `rate_limited`. The provider's error text is logged
+  (redacted), not shown.
+- Ronne's limiter, per client IP when `TRUST_PROXY=true`, covers the start action and the callback:
+  30 a minute each (a company behind one address signs in together), apart from the password
+  limit. Without a trusted proxy the address can't be known, and there's no limit of Ronne's: an
+  attempt costs the attacker a round trip through the provider, which limits sign-ins itself.
 - Everything is logged with the request's ID and the provider's id (100), never a token or a secret.
 
 **Phones and keyboards.** The cards, the steps and the mapping rows work at phone width; the
@@ -196,8 +204,16 @@ sign-in buttons are 44px tall on a coarse pointer.
 - **Two providers with one email domain:** allowed; each person's first sign-in decides which
   provider is linked. An account can be linked to several providers.
 - **The same email in two providers by two different people** (the provider reuses addresses): the
-  linked subject, not the email, identifies a person after the first link; a new subject with an
-  already-linked email is refused (`not_allowed`) rather than linked to someone else's account.
+  linked subject, not the email, identifies a person after the first link; a new subject of the
+  same provider with an already-linked email is refused (`not_allowed`) rather than linked to
+  someone else's account. Another provider's verified email still links (an account can be linked
+  to several providers, as when a company moves from one provider to another): root trusts every
+  provider it turns on with link by email, as it trusts a password account's email.
+- **An email that isn't plain ASCII** is never matched to an account or used to create one
+  (`not_allowed`): lowercasing folds some characters into ASCII ones (the Kelvin sign `K` into
+  `k`), which would hand a provider's `Kate@…` someone else's `kate@…`. Nor is an account whose
+  stored address the database only calls equal (MySQL and MariaDB compare without accents, so
+  `kate@…` would find `kåte@…`): only the exact address links.
 - **A person changes email at the provider:** the link stays (it is by subject); the Ronne email
   does not change.
 - **Root signs in with a provider:** allowed if linked (by email); nothing from a claim changes

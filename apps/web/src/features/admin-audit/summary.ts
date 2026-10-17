@@ -88,6 +88,17 @@ const expiry = (m: Meta): string => {
   return at ? `expires ${at.slice(0, 10)}` : "no expiry";
 };
 
+/** Why a sign-in with an identity provider was refused (106), as the audit log says it. */
+const SSO_REASONS: Record<string, string> = {
+  unverified_email: "the provider didn't say the email is verified",
+  not_allowed: "no account, and the email's domain may not create one",
+  disabled: "the account is disabled",
+  invalid_response: "the provider's answer couldn't be checked",
+  provider_error: "the provider refused or didn't answer",
+  expired: "the sign-in took too long, or was used already",
+  rate_limited: "too many attempts",
+};
+
 /** Who must use two-factor sign-in (105), as the audit log says it. */
 const TWO_FACTOR_POLICIES_SAID: Record<string, string> = {
   optional: "nobody (optional)",
@@ -162,7 +173,20 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     who(m, e),
     `${ended(m)}${via(m)}`,
   ],
-  "auth.signed_in": (m) => [m.remember ? "Signed in (remembered for 30 days)" : "Signed in"],
+  "auth.signed_in": (m) =>
+    m.via === "sso"
+      ? ["Signed in with ", { code: text(m.provider) }]
+      : [m.remember ? "Signed in (remembered for 30 days)" : "Signed in"],
+  "auth.sso_signed_in": (m) => [
+    "Signed in with the identity provider ",
+    { code: text(m.provider) },
+  ],
+  "auth.sso_failed": (m) => [
+    "Failed sign-in with ",
+    { code: text(m.provider) },
+    ...(text(m.email) ? [" for ", { name: text(m.email) }] : []),
+    `: ${SSO_REASONS[text(m.reason)] ?? text(m.reason)}`,
+  ],
   "auth.sign_in_failed": (m) => [
     "Failed sign-in for ",
     { name: text(m.email) || "an unknown email" },
@@ -180,7 +204,19 @@ export const SUMMARIES: Record<AuditAction, Build> = {
       ? `Changed their password (${plural(num(m.otherSessionsEnded), "other session")} ended)`
       : "Changed their password",
   ],
-  "user.created": (m) => ["Created ", { name: text(m.email) }, ` as ${text(m.role)}`],
+  "user.created": (m) => [
+    "Created ",
+    { name: text(m.email) },
+    ` as ${text(m.role)}`,
+    ...(m.via === "sso" ? [" at their first sign-in with ", { code: text(m.provider) }] : []),
+  ],
+  "user.sso_linked": (m) => [
+    "Linked ",
+    { name: text(m.email) },
+    " to the identity provider ",
+    { code: text(m.provider) },
+    " (matched by verified email)",
+  ],
   "user.role_changed": (m, e) => ["Changed ", who(m, e), ` from ${text(m.from)} to ${text(m.to)}`],
   "user.disabled": (m, e) => ["Disabled ", who(m, e), ended(m)],
   "user.enabled": (m, e) => ["Enabled ", who(m, e)],

@@ -1,7 +1,9 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { signIn } from "@/server/domains/identity/actions/session";
+import { startSsoSignIn } from "@/server/domains/identity/actions/sso";
 import { completeTwoFactorSignIn } from "@/server/domains/identity/actions/two-factor";
 import { safeNextPath } from "@/server/domains/identity/models/route-guard";
 import { requestHeaders } from "@/server/http/request-headers";
@@ -49,6 +51,28 @@ export const twoFactorFromForm = serverAction(
     if (result.error === "expired" || result.error === "too_many")
       redirect(signInAgain(next, result.error));
     return { error: result.error };
+  },
+  { whileHeld: true },
+);
+
+/**
+ * A "Continue with <provider>" button (106): starts the sign-in and sends the browser to the
+ * provider, with the state cookie set. Works without JavaScript: the button posts here directly.
+ */
+export const ssoFromForm = serverAction(
+  async (form: FormData): Promise<void> => {
+    const next = safeNextPath(String(form.get("next") ?? ""));
+    const result = await startSsoSignIn(await requestHeaders(), {
+      provider: String(form.get("provider") ?? ""),
+      next,
+    });
+    if (!result.ok) {
+      const query = new URLSearchParams({ error: result.error });
+      if (next !== "/") query.set("next", next);
+      redirect(`/sign-in?${query}`);
+    }
+    (await cookies()).set(result.cookie.name, result.cookie.value, result.cookie.options);
+    redirect(result.url);
   },
   { whileHeld: true },
 );

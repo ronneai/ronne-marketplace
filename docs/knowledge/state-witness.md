@@ -72,6 +72,21 @@ findings in less time:
   re-checks, the owner decides: another round, or the remaining finding moves to a follow-up task or
   issue (with its own *Done when*), so this task's claims can be met.
 
+**Two witnesses at once share the scratchpad** (106, 2026-10-16): a blind and an adversarial pass
+run side by side, and both once backed files up to `scratchpad/bak`; one's restore failed, and its
+mutations sat in the repository while the other ran. Each pass keeps its backups and probes in a
+folder named for itself (`scratchpad/<feature>-t<task>-<blind|adv>/`), checks after every restore
+that the file is byte-identical to its backup (`cmp`), and checks untracked files too
+(`git status`, not only `git diff`). A pass whose runs overlapped another's mutation reruns them.
+Separate folders aren't enough when both mutate the same repository file at the same time (it
+happened again an hour later): **mutations go in a scratch copy of the repository** (rsync without
+`.git` and `node_modules`, with the `node_modules` folders symlinked), never in the repository
+itself, so a pass running alongside always reads the real code. In the copy, `pnpm test:db:*` and
+`pnpm exec` refuse to run (pnpm tries to install into the symlinked `node_modules`,
+`ERR_PNPM_UNSAFE_TASK_RUN_STATE_PATH`); run Vitest directly from the copy's `apps/web`:
+`TEST_DATABASE_URL=<url from scripts/test-db.mjs> node <repo>/node_modules/vitest/vitest.mjs run
+--project db <path>`.
+
 **Which tasks are risky:** sign-in, sessions, tokens and roles; migrations; deleting or anonymising
 data; anything that runs on a user's machine or with root; security checks. The spec's author marks
 them with `[risky]` on the task's first line in PLAN.md.

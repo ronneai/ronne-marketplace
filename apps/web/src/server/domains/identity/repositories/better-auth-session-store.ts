@@ -45,6 +45,20 @@ export const betterAuthSessionStore = (auth: Auth): SessionStore => {
       }
     },
 
+    async startSession(headers, userId) {
+      try {
+        const { headers: responseHeaders, response } = await auth.api.ronneSsoSession({
+          body: { userId },
+          headers,
+          returnHeaders: true,
+        });
+        return { headers: responseHeaders, session: { userId, sessionId: response.sessionId } };
+      } catch (error) {
+        if (isRefusal(error)) return null;
+        throw error;
+      }
+    },
+
     async signOut(headers) {
       try {
         await auth.api.signOut({ headers });

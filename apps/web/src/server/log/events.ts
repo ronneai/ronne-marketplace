@@ -34,6 +34,16 @@ export const EVENTS = {
   "auth.signed_in": { level: "info", msg: "Signed in", fields: ["userId"] },
   "auth.sign_in_failed": { level: "warn", msg: "Sign-in failed", fields: ["reason", "via"] },
   "auth.rate_limited": { level: "warn", msg: "Rate limit reached", fields: ["limit"] },
+  "auth.sso_signed_in": {
+    level: "info",
+    msg: "Signed in with an identity provider",
+    fields: ["userId", "provider"],
+  },
+  "auth.sso_failed": {
+    level: "warn",
+    msg: "Sign-in with an identity provider failed",
+    fields: ["provider", "reason", "detail"],
+  },
   "auth.two_factor_started": {
     level: "info",
     msg: "Two-factor enrolment started",

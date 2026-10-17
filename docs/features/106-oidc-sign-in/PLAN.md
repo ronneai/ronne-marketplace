@@ -37,7 +37,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   issuer mismatch), PKCE/state/nonce, a bad signature (failing without `validateApplicationLevelSignature`), expiry,
   an `iat` in the future or from before the sign-in started, and each preset's issuer pattern.
 
-- [ ] **4. Sign-in and accounts.** [risky] The start action, the callback route added to the HTTP
+- [x] **4. Sign-in and accounts.** [risky] The start action, the callback route added to the HTTP
   allowlist (and only it), the decision list (verified email, disabled, known link, link by email,
   create for a listed domain, refuse), the session, `auth.sso_*` and `user.*` events. The creation
   goes through the same service as Create user (personal workspace included).
@@ -192,3 +192,31 @@ goes into `SPEC.md` instead.
   with a path, the trailing slash matters (authentik and Auth0 keep theirs).
 - The presets' steps were written from each vendor's documentation in October 2026; the in-form
   text is the short version, and task 10's guides carry the screenshots.
+
+**Task 4, sign-in and accounts (2026-10-16).**
+
+- **The flow:** the start (`actions/sso.ts` `startSsoSignIn`, the server action `ssoFromForm`) saves
+  the sign-in in progress as a `verification` row (`sso-state:` + the state's SHA-256) and returns
+  the state cookie to set; the callback (`app/api/auth/sso/callback/[id]/route.ts` →
+  `completeSsoSignIn`) checks the cookie against `?state=`, takes the row (deleting it claims it:
+  of two requests, one deletes), has the type verify the answer, decides
+  (`services/sso-sign-in.ts`), and opens the session through the server-only
+  `ronne-sso-session` plugin endpoint. Better Auth's allowlist didn't change.
+- **The decision runs with the provider's row locked** (`SELECT … FOR UPDATE`, READ COMMITTED), so
+  two first sign-ins of one person create one account; a new email taken meanwhile through
+  another provider (the `user.email` unique index) is decided again once.
+- **Account takeovers the witnesses found, now closed:** `normalizeEmail` lowercases Unicode, so a
+  provider's `Kate@…` with the Kelvin sign folded onto `kate@…`: only plain-ASCII addresses are
+  matched or created. MySQL and MariaDB compare emails without accents, so `kate@…` found
+  `kåte@…`: a found account whose stored address isn't exactly the provider's is refused.
+  Subjects (`account.account_id`, `text`) are compared in JavaScript too, for the same reason.
+- **A *Test sign-in*'s state never opens a session** (it ends `expired` at the real callback) until
+  task 6 finishes it its own way.
+- **Its own limiter**, 30 a minute per client IP for the start and for the callback, on
+  `globalThis` like the login limiter; nothing without a trusted proxy (SPEC says why).
+- **Create user's repository write** (`insertUser`, now shared by `createUserWithPassword` and
+  `createUserWithoutPassword`), not its service: the service needs `users.manage` and a root actor.
+- Better Auth's endpoint body is a hand-written Standard Schema (better-call takes any), since
+  `zod` isn't a dependency of the app.
+- **Witnesses running side by side collided twice** in the scratchpad and on the same files; the
+  rule now (docs/knowledge/state-witness.md): mutate only in a scratch copy of the repository.
