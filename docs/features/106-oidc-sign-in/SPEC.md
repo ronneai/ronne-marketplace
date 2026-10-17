@@ -278,16 +278,20 @@ sign-in buttons are 44px tall on a coarse pointer.
   mapping groups, the password policy, `rmk-server disable-sso`.
 - **One guide per preset**, each a section of that topic: `google`, `entra`, `okta`, `keycloak`,
   `authentik`, `auth0`, `other-oidc`. Each has the same shape: what to create at the provider, the
-  redirect URI, the values to bring back, the claims, the groups, and the usual mistakes. The
-  in-form instructions are the short version, and link to these.
-- **Signing in** (the sign-in page's topic): signing in with a provider and with a password.
+  redirect URI, the values to bring back, the claims and the groups, ending with a link to the
+  usual mistakes, which are the same for every provider and live in `providers`. The in-form
+  instructions are the short version, and link to these.
+- **Signing in** (a new section `account#signing-in`, since the sign-in page has no topic of its
+  own): signing in with a provider and with a password, and what each message back means.
 - **Administration → Settings** (`admin#settings`) and **Security** (`security#security`): the
   Authentication tab, the allowlist, the secret handling. **Incidents:** a provider is broken or
   compromised (`disable-sso`, `revoke-access`).
 - **Helpers:** on Add provider, "Where do I find these values?" → the chosen preset's guide; on the
   redirect URI, "Why this address?" → `authentication#providers`; on Groups,
   "How are groups applied?" → `authentication#groups`; on the password policy,
-  "Can root be locked out?" → `authentication#lockout`.
+  "Can root be locked out?" → `authentication#lockout`. The Sign-in methods helper ("How do people
+  sign in?") moves to `authentication#overview`. Also updated: `rmk#login`
+  (`password_sign_in_disabled`) and `backups#restore` (an unreadable client secret).
 
 ## Acceptance criteria
 

@@ -146,8 +146,12 @@ export const TOPICS = [
   {
     slug: "account",
     title: "Your account",
-    summary: "Your password and how you sign in, including two-factor sign-in.",
-    sections: [{ id: "two-factor", title: "Two-factor sign-in" }],
+    summary:
+      "How you sign in, with a password or your company's identity provider, and two-factor sign-in.",
+    sections: [
+      { id: "signing-in", title: "Signing in" },
+      { id: "two-factor", title: "Two-factor sign-in" },
+    ],
   },
   {
     slug: "admin",
@@ -158,6 +162,26 @@ export const TOPICS = [
       { id: "users", title: "Users" },
       { id: "settings", title: "Settings" },
       { id: "audit", title: "Audit log" },
+    ],
+  },
+  {
+    slug: "authentication",
+    title: "Authentication",
+    summary:
+      "Signing in with your company's identity provider: setting one up, mapping groups to workspace roles, the password rule, and what to do when a provider breaks.",
+    sections: [
+      { id: "overview", title: "How it fits together" },
+      { id: "providers", title: "Adding a provider" },
+      { id: "groups", title: "Groups and workspace roles" },
+      { id: "password-policy", title: "Password sign-in" },
+      { id: "lockout", title: "Lockout and broken providers" },
+      { id: "google", title: "Google Workspace" },
+      { id: "entra", title: "Microsoft Entra ID" },
+      { id: "okta", title: "Okta" },
+      { id: "keycloak", title: "Keycloak" },
+      { id: "authentik", title: "authentik" },
+      { id: "auth0", title: "Auth0" },
+      { id: "other-oidc", title: "Other OpenID Connect" },
     ],
   },
   {
@@ -173,7 +197,7 @@ export const TOPICS = [
   {
     slug: "incidents",
     title: "Incidents",
-    summary: "The two commands made for an incident, and what to do with them.",
+    summary: "The commands made for an incident, and what to do with them.",
     sections: [{ id: "incidents", title: "Incidents" }],
   },
   {
@@ -300,7 +324,7 @@ export type SectionOf<T extends TopicSlug> = Extract<Topic, { slug: T }>["sectio
 export const TOPIC_GROUPS: { label: string; topics: readonly TopicSlug[] }[] = [
   {
     label: "Getting started",
-    topics: ["overview", "install", "update", "roles", "account", "admin"],
+    topics: ["overview", "install", "update", "roles", "account", "admin", "authentication"],
   },
   {
     label: "Installing items",

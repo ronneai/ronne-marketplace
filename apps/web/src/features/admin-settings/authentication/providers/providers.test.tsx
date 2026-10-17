@@ -35,7 +35,8 @@ vi.mock("next/navigation", () => ({
 
 const actions = await import("./actions");
 const { IdentityProvidersPanel } = await import("./IdentityProvidersPanel");
-const { ProviderForm, ProviderFormMessages } = await import("./ProviderForm");
+const { ProviderForm, ProviderFormMessages, presetGuide } = await import("./ProviderForm");
+const { DOCS_URL, topicOf } = await import("@/components/help/topics");
 const { ProviderControls, ConnectionResult, TestResult, DeleteConfirm } = await import(
   "./ProviderControls"
 );
@@ -220,6 +221,25 @@ describe("Edit provider", () => {
   it("lists the group rows, and warns about a deleted workspace", () => {
     expect(html()).toContain('value="Engineering"');
     expect(html()).toContain("A group&#x27;s workspace was deleted");
+  });
+
+  it("has the helpers: the preset's guide, the redirect URI, and how groups apply", () => {
+    expect(html()).toContain("Where do I find these values?");
+    expect(html()).toContain(`href="${DOCS_URL}/authentication#okta"`);
+    expect(html()).toContain("Why this address?");
+    expect(html()).toContain("How are groups applied?");
+  });
+});
+
+describe("the presets' guides", () => {
+  it("send each preset to its own section of the Authentication topic", () => {
+    const sections = (topicOf("authentication")?.sections ?? []).map((s) => s.id as string);
+    for (const preset of OIDC_PRESETS) {
+      const section = presetGuide(preset.id).split("#")[1] ?? "";
+      expect(section, preset.id).not.toBe("providers");
+      expect(sections, preset.id).toContain(section);
+    }
+    expect(presetGuide("unknown")).toBe(`${DOCS_URL}/authentication#providers`);
   });
 });
 

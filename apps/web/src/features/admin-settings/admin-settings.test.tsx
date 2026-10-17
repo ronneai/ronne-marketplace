@@ -178,7 +178,7 @@ describe("Admin › Settings › Authentication › Sign-in methods (122)", () =
     expect(html).toMatch(/Email and password<\/td><td[^>]*><span[^>]*>On<\/span>/);
     expect(html).toContain("Root can always sign in with a password");
     expect(html).toContain("How do people sign in?");
-    expect(html).toContain('href="https://www.ronne.ai/marketplace/docs/admin#settings"');
+    expect(html).toContain('href="https://www.ronne.ai/marketplace/docs/authentication#overview"');
   });
 
   it("shows a method that is off as Off", () => {

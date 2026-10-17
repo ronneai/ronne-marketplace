@@ -626,6 +626,14 @@ moves to `components/` (UI primitives go in `components/ui`).
   `/account/security` on every page and server action until they enrol. A password alone gets no
   `rmk` token for a two-factor account (`two_factor_required`). Root resets someone's on Admin ›
   Users; `reset-two-factor` and `reset-root-password` do it from the server.
+- **Identity providers** (106) are Ronne's own: root sets them up in Admin › Settings ›
+  Authentication from a preset, tests and turns them on. The OpenID Connect flow (authorization
+  code with PKCE, `state` and `nonce`, the ID token's signature) is Ronne's on `oauth4webapi`;
+  Better Auth only opens the session, through a server-only plugin endpoint. A sign-in matches the
+  provider's subject, then an exact verified email (linking), then a listed domain (creating a
+  `user`, never root); groups give workspace roles. `password_sign_in` (`everyone`, `root_only`)
+  holds only while a provider is on, root's password always works, and `disable-sso` turns every
+  provider off.
 - **CLI and MCP** use personal access tokens from our own `access_tokens` table in the `identity`
   domain, not a Better Auth plugin. A token looks like `rmk_<random>`; only its sha256 hash is
   stored, with an optional expiry. Tokens are sent as `Authorization: Bearer`. A disabled user's
@@ -645,11 +653,13 @@ IDs are ULIDs and timestamps are UTC (§9.4).
 |---|---|
 | `user` *(Better Auth)* | id, email (unique), name, email_verified, image, created_at, updated_at, **role** (`root`/`user`; moderator moved to `workspace_members` in 091), **disabled_at** |
 | `session` *(Better Auth)* | id, user_id, token, expires_at, ip_address, user_agent, created_at, updated_at |
-| `account` *(Better Auth)* | id, user_id, account_id, provider_id (`credential` for passwords; OIDC providers later), password (hash), created_at, updated_at |
+| `account` *(Better Auth)* | id, user_id, account_id, provider_id (`credential` for passwords; an identity provider's id for its subject, 106), password (hash), created_at, updated_at |
 | `verification` *(Better Auth)* | id, identifier, value, expires_at |
 | `access_tokens` | id, user_id, name, token_hash (unique), last_used_at, expires_at, revoked_at, created_at |
+| `identity_providers` | id (PK, chosen by root, in the redirect URI), type (`oidc`), preset, name, enabled, config (JSON, no secret), secret_enc (AES-256-GCM, key from `AUTH_SECRET`), domains (JSON), link_by_email, groups_claim, tested_at, tested_by (set null), last_signed_in_at, failures, last_failure_at, last_failure_reason, created_by, created_at, updated_at (the version for conditional updates) ([106](../features/106-oidc-sign-in/SPEC.md)) |
+| `provider_group_mappings` | id, provider_id (cascade), group_name, workspace_id (set null: skipped and warned), role (`user`/`moderator`/`admin`), created_at (106) |
 | `workspaces` | id, name (unique), description, visibility (`public`/`private`), is_global (true only on `global`, which every instance has, with a fixed id), created_by (set null), created_at, updated_at ([090](../features/090-workspaces/SPEC.md)) |
-| `workspace_members` | workspace_id + user_id (primary key; both cascade), role (`admin`/`moderator`/`user`; admin since 092), added_by (set null), created_at, updated_at. Every user but root has a `global` row; a root's rows are ignored ([091](../features/091-workspace-roles/SPEC.md)) |
+| `workspace_members` | workspace_id + user_id (primary key; both cascade), role (`admin`/`moderator`/`user`; admin since 092), added_by (set null), created_at, updated_at. Every user but root has a `global` row; a root's rows are ignored ([091](../features/091-workspace-roles/SPEC.md)). `source` is the identity provider whose group gave the row, null when set by hand (106). |
 | `workspace_access_requests` | id, workspace_id (null for a name no workspace has, so asking can't tell names apart), workspace_name, user_id (both cascade), message, status (`open`/`approved`/`declined`/`cancelled`), decided_by (set null), reason, created_at, decided_at. At most one open per user and workspace, checked by the service under the requester's row lock (MySQL has no partial indexes) ([094](../features/094-workspace-access-requests/SPEC.md)) |
 | `scopes` | id, name (unique), description, workspace_id (not null, RESTRICT: every scope is in one workspace, `global` by default, 090), created_by (set null), created_at |
 | `items` | id, scope_id, name, type, description, owner_id, download_count (counted by the tarball endpoint), listed_version_id, installable, last_published_at (the catalogue's listing, recomputed when versions or tags change, [018](../features/018-catalogue/SPEC.md)), created_at — unique (scope_id, name) |
@@ -807,6 +817,9 @@ LDAP stay later, if requested.
 Using a library instead of hand-written auth makes SSO an add-on rather than a rewrite.
 **Recommended: [Better Auth](https://www.better-auth.com/).** It supports email/password, generic OIDC
 and SAML via its SSO plugin, and has a native Kysely adapter, so it works on all three databases.
+**Built (106):** OpenID Connect, with the flow on `oauth4webapi` and Better Auth opening the
+session; its SSO plugin wasn't used (it loads SAML libraries whatever is configured, keeps the
+client secret in clear and sends no `nonce`: 106's Decision 3).
 
 | Protocol | Covers | Suggested phase |
 |---|---|---|
@@ -816,7 +829,7 @@ and SAML via its SSO plugin, and has a native Kysely adapter, so it works on all
 | SCIM | Automatic user provisioning and deprovisioning from the IdP | M16, after OIDC |
 
 Design points:
-- **Root keeps control.** Root configures the IdP and either pre-creates users, as today, or allows just-in-time creation for chosen email domains with a default role of `user`. IdP groups can optionally map to `moderator`.
+- **Root keeps control.** Root configures the IdP and either pre-creates users, as today, or allows just-in-time creation for chosen email domains with a default role of `user`. IdP groups can optionally map to a workspace role (user, moderator or admin; never root, 106).
 - **Emergency access.** Email/password stays available, at least for root, so a broken IdP can't lock everyone out.
 - **CLI login for SSO users.** `rmk login` can't ask SSO users for a password. It uses the **OAuth device flow** instead: it prints a code and a URL, the user approves in the browser, and the CLI receives a personal access token. The email/password prompt stays for local accounts.
 - **One place to manage it (owner, 2026-10-15).** Admin › Settings gets tabs (Usage, Plugin feeds, Authentication, [122](../features/122-settings-tabs/SPEC.md)). The Authentication tab holds the two-factor policy (105), the identity providers and the password sign-in policy (106) and SCIM (108). A provider is an instance of a *provider type* (OpenID Connect first; SAML or LDAP would be another type), set up from a preset with the redirect URI and step-by-step instructions shown beside the form, and tested before it can be turned on. Root's password sign-in can never be turned off, and `rmk-server disable-sso` is the way back from a broken provider.
@@ -914,7 +927,7 @@ out (owner, 2026-09-30). The design, for when it's picked up:
 | Delivery to AI tools | Canonical `ronne.yaml` → per-platform renderers via `rmk`, plus a registry MCP server | Single source of truth; works in the terminal and inside the agents |
 | Item types | All current customization types: skill, agent, rule, command, hook, mcp-server, permission-policy, output-style, statusline, lsp-server, bundle; canonical hook events | Cover everything the platforms support; degrade with warnings where a platform lacks a type |
 | Platforms | Goal: any. Tier 1 in MVP (Claude Code, Codex, Cursor); tier 2 (Copilot, Gemini/Antigravity, Devin Desktop) specified but on hold (owner, 2026-09-30: not implemented now; 028–030 keep their specs); tier 3 community | Pluggable `PlatformRenderer`; prefer cross-tool standards (Agent Skills, AGENTS.md, MCP) |
-| SSO | OIDC first via Better Auth, then SAML if requested; CLI uses the device flow. Planned as M16 after M13, with two-factor sign-in before it and SCIM after it (owner, 2026-10-06). Managed on an Authentication tab in Admin › Settings, with provider types, presets and setup instructions (owner, 2026-10-15) | One OIDC integration covers most IdPs; companies evaluating Ronne ask for SSO, MFA and deprovisioning together |
+| SSO | OIDC first via Better Auth, then SAML if requested; CLI uses the device flow. Planned as M16 after M13, with two-factor sign-in before it and SCIM after it (owner, 2026-10-06). Managed on an Authentication tab in Admin › Settings, with provider types, presets and setup instructions (owner, 2026-10-15). Built in 106 with the OIDC flow on `oauth4webapi` and Better Auth only opening the session, not its SSO plugin (2026-10-16) | One OIDC integration covers most IdPs; companies evaluating Ronne ask for SSO, MFA and deprovisioning together |
 | Out of scope for now | Import from external marketplaces, notifications. Exporting a person's own local items is no longer out: see "Export" below; S3 storage is no longer out since 2026-10-06: see "Artifacts" | Keep MVP focused |
 | Backend | Next.js monolith with a domain-first clean architecture; server actions + `/api/v1` | One deployable to self-host; the domain layer stays framework-independent |
 | DB access | Kysely; SQLite (default) / MySQL-MariaDB / PostgreSQL chosen at install | One query layer and one migration set across three dialects at runtime |

@@ -636,3 +636,41 @@ Witnessed: 2026-10-17 13:27 EDT, by a fresh agent (blind). Commit: ce8afa00 + wo
 | 13 | A failure after choosing Root only no longer leaves it on for later tests | no | confirmed | `cleanUp` set after the save, cleared after disable-sso, `if (cleanUp) disableSso()` in `finally`; gap: set only after the message assertion (since moved before the Save click) |
 
 **Overall:** met. Every row of task 9 is confirmed.
+
+## Task 10 — Documentation
+
+Witnessed: 2026-10-17 13:34 EDT, by a fresh agent (blind). Commit: a0f1762d + working tree (ronne-web: branch docs/106-oidc-sign-in, uncommitted). Machine: macOS 27.0.1, Node v24.0.0. Mutations only in its scratch copy.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The docs render tests pass in ronne-web | no | confirmed | `pnpm lint` 230 files clean; `pnpm typecheck` clean; `pnpm test` 140 passed; mutation (fr `okta` → `oktaX`) → `docs.test.ts` fails "has every topic and section in fr" |
+| 2 | Both `topics.ts` have the same slugs and section ids | no | confirmed | probe → "topics app 26 web 26 diffs 0" |
+| 3 | Every helper's link lands on a real section | no | confirmed | every href through typed `docsHref(topic, SectionOf<topic>)`; row 2; `DocsPage.tsx:52` renders each section id |
+| 4 | The helpers as the spec lists them | no | confirmed | `presetGuide` covers the 7 presets (`other` → `other-oidc`); `password-lockout`; `vitest src/components/help src/features/admin-settings` → 55 passed |
+| 5 | Each guide's redirect URI example matches `PUBLIC_URL/api/auth/sso/callback/<id>` | no | confirmed | `Redirect` in en/pt/fr, 8 uses each; `redirectUriFor` at `identity-provider.ts:105` |
+| 6 | The Authentication topic in en, pt and fr | no | confirmed | three files, registered in each `index.ts`, DocLink targets identical |
+| 7 | Facts match the code (spot checks) | no | confirmed | `planSsoSignIn`, `PROVIDER_ID`, `providerStatus`, retest, delete to user in global, Root only's checks, 30 days, the presets' claims, the UI strings |
+| 8 | Signing in explains each message back | no | partly | 6 of 8 `SSO_ERRORS`: `unavailable` and `rate_limited` missing |
+| 9 | Each guide has the spec's shape, the usual mistakes included | no | partly | only `other-oidc` has them |
+| 10 | admin, security, incidents, rmk, backups updated and true | no | confirmed | each diff against `actions/disable-sso.ts`, `docker/pnpm`, `packages/server/src/cli.ts`, `token-exchange.ts` |
+| 11 | pt and fr for every changed en section | no | confirmed | DocLink-target md5 identical across locales for all 7 topics |
+| 12 | MVP §14.3 and §15 record what was built | no | confirmed | §14.3 "Built (106)", §15 SSO row, §10 tables match migration 0026 |
+
+**Overall:** not met: two Documentation lines of the spec only partly met (rows 8 and 9).
+
+### Re-check 1 (blind: rows 8, 9 and what the diff touched)
+
+Witnessed: 2026-10-17 13:36 EDT, by a fresh agent (blind). Commit: a0f1762d + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The docs render tests pass in ronne-web | no | confirmed | lint clean, typecheck clean, 140 passed |
+| 2 | Both `topics.ts` still match | no | confirmed | probe → diffs 0 |
+| 8 | Signing in explains every message, both new ones included | no | confirmed | all 8 `SSO_ERRORS` in en/pt/fr; `unavailable` at sso.ts:130 and :244; 30 a minute per IP at sso.ts:50 and :125 |
+| 9 | Each guide links to the usual mistakes in `providers` (the updated SPEC shape) | no | confirmed | paragraph in `providers` (en:181, pt:183, fr:197); `Claims` ends with a DocLink to it, 7 uses per locale; SPEC.md describes it |
+| 10 | rmk#login no longer says a password-less account gets `password_sign_in_disabled` | no | confirmed | split sentence in en/pt/fr; `token-exchange.ts`: no hash → `invalid_credentials` |
+| 11 | pt and fr match en in structure and DocLink targets | no | confirmed | md5 identical for authentication, account, rmk |
+| 12 | MVP full stop | no | confirmed | MVP.md:662 |
+
+**Overall:** met. Every row of task 10 is confirmed.
+

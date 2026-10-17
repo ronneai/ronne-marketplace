@@ -3,6 +3,8 @@
 import { Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useActionState, useRef, useState } from "react";
+import { Help } from "@/components/help/Help";
+import { docsHref, type SectionOf } from "@/components/help/topics";
 import { Button } from "@/components/ui/Button";
 import { CopyableCommand } from "@/components/ui/CopyableCommand";
 import { FieldError, inputClasses, Label } from "@/components/ui/Field";
@@ -49,12 +51,34 @@ export const ProviderFormMessages = ({ state }: { state: ProviderFormState }) =>
     <Notice kind="error" title={state.error} />
   ) : null;
 
+/** Each preset's guide in the Documentation's Authentication topic. */
+const PRESET_GUIDES: Record<string, SectionOf<"authentication">> = {
+  google: "google",
+  entra: "entra",
+  okta: "okta",
+  keycloak: "keycloak",
+  authentik: "authentik",
+  auth0: "auth0",
+  other: "other-oidc",
+};
+
+/** The Documentation's guide for a preset; the topic's providers section for one it lacks. */
+export const presetGuide = (presetId: string): string =>
+  docsHref("authentication", PRESET_GUIDES[presetId] ?? "providers");
+
 /** The setup steps for the chosen preset, numbered, the redirect URI first with Copy. */
-export const ProviderSteps = ({ steps }: { steps: readonly InstructionStep[] }) => (
+export const ProviderSteps = ({
+  steps,
+  presetId,
+}: {
+  steps: readonly InstructionStep[];
+  presetId: string;
+}) => (
   <aside aria-labelledby="provider-steps-title" className="grid content-start gap-3">
     <h3 id="provider-steps-title" className="text-sm font-semibold text-fg">
       Set it up at the provider
     </h3>
+    <Help id="provider-values" href={presetGuide(presetId)} />
     <ol className="grid gap-3">
       {steps.map((step, i) => (
         <li key={step.title} className="grid gap-1 text-sm">
@@ -62,7 +86,12 @@ export const ProviderSteps = ({ steps }: { steps: readonly InstructionStep[] }) 
             {i + 1}. {step.title}
           </span>
           <span className="text-muted">{step.body}</span>
-          {step.copy ? <CopyableCommand command={step.copy} prompt={false} wrap /> : null}
+          {step.copy ? (
+            <>
+              <CopyableCommand command={step.copy} prompt={false} wrap />
+              <Help id="redirect-uri" />
+            </>
+          ) : null}
         </li>
       ))}
     </ol>
@@ -322,7 +351,9 @@ export const ProviderForm = ({
         </fieldset>
 
         <fieldset className="grid gap-3">
-          <legend className="mb-1 text-sm font-semibold text-fg">Groups</legend>
+          <legend className="mb-1 text-sm font-semibold text-fg">
+            Groups <Help id="provider-groups" />
+          </legend>
           <div className="grid gap-1">
             <Label htmlFor="provider-groups-claim">Groups claim</Label>
             <input
@@ -428,7 +459,10 @@ export const ProviderForm = ({
           </Button>
         </div>
       </form>
-      <ProviderSteps steps={chosenSteps.map((s) => (s.copy ? { ...s, copy: redirectUri } : s))} />
+      <ProviderSteps
+        steps={chosenSteps.map((s) => (s.copy ? { ...s, copy: redirectUri } : s))}
+        presetId={presetId}
+      />
     </div>
   );
 };

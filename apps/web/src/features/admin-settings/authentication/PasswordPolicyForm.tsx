@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
 import { FieldError } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
@@ -43,7 +44,9 @@ export const PasswordPolicyForm = ({
   return (
     <form action={action} aria-label="Password sign-in" className="grid gap-4">
       <fieldset className="grid gap-3" aria-describedby="password-policy-hint">
-        <legend className="mb-1 text-base font-semibold text-fg">Password sign-in</legend>
+        <legend className="mb-1 text-base font-semibold text-fg">
+          Password sign-in <Help id="password-lockout" />
+        </legend>
         <p id="password-policy-hint" className="text-sm text-muted">
           Who may still sign in with a password once your identity provider is on. Root always can,
           so a broken provider can&apos;t lock everyone out.

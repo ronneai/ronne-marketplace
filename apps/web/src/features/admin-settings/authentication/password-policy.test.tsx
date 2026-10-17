@@ -22,6 +22,7 @@ describe("Password sign-in (106)", () => {
     );
     expect(rootOnly(html)).not.toContain('disabled=""');
     expect(html).toContain("Root always can");
+    expect(html).toContain("Can root be locked out?");
   });
 
   it("keeps Root only selectable when it's already chosen, even with no usable provider left", () => {

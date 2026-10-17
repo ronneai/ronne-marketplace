@@ -71,7 +71,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Root only*; `disable-sso` restores it. Mind the sign-in limit.
   *Done when:* `pnpm test:e2e` passes the new spec on desktop and phone.
 
-- [ ] **10. Documentation.** The Authentication topic, the seven guides, the helpers, the signing-in
+- [x] **10. Documentation.** The Authentication topic, the seven guides, the helpers, the signing-in
   and incident pages, and MVP §14.3 / §15.
   *Done when:* the docs render tests pass in ronne-web, every helper's link lands on a real section
   here, and each guide's redirect URI example matches `PUBLIC_URL/api/auth/sso/callback/<id>`.
@@ -318,3 +318,20 @@ goes into `SPEC.md` instead.
   one failure can't hold every later test on the shared instance to root-only.
 - **The Authentication tab has two Save buttons** now (two-factor policy and password sign-in), so
   each test scopes Save to its form (`two-factor-hold.e2e.ts` changed for it).
+
+**Task 10, Documentation (2026-10-17).**
+
+- **On the website** (ronne-web, branch `docs/106-oidc-sign-in`, en/pt/fr): a new topic
+  `authentication` (how it fits together, adding a provider, groups, password sign-in, lockout,
+  and one guide per preset), a new section `account#signing-in` (the sign-in page has no topic of
+  its own: it explains every message back from a provider), and Admin › Settings, Security,
+  Incidents (`disable-sso` is the third incident command), `rmk#login` and `backups#restore`.
+- **The usual mistakes are the same for every provider**, so they live once in `providers` and
+  every guide's closing note links to them (SPEC's Documentation line says so).
+- **Helpers:** "Where do I find these values?" links to the chosen preset's guide (`presetGuide`,
+  `Help`'s new `href`), "Why this address?", "How are groups applied?", "Can root be locked
+  out?"; "How do people sign in?" moves to `authentication#overview`.
+- **The docs test doesn't catch a DocLink pointed at another real section** (the witness checked
+  parity across locales by hashing the targets). Worth a ronne-web test some day.
+- **MVP:** §9.5, §10, §14.3 and the §15 SSO row record what was built.
+
