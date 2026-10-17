@@ -40,11 +40,24 @@ const decisionText = (plan: Awaited<ReturnType<typeof planSsoSignIn>>): string =
     case "create":
       return `Create the account ${plan.email} (a user in global, with a personal workspace), then sign in.`;
     default:
+      if (plan.why) {
+        const email = plan.user?.email ?? "";
+        return {
+          domain_not_allowed:
+            "Refuse: no account matches, and the email's domain isn't one that may create one.",
+          non_ascii_email:
+            "Refuse: the email address isn't plain ASCII, and Ronne only matches and creates plain ASCII addresses.",
+          invalid_email: "Refuse: the email address isn't a valid address.",
+          lookalike_email: `Refuse: the database compares this email as equal to the account ${email} (they differ by accents, letter forms or invisible characters), so it isn't this person's.`,
+          link_off: `Refuse: the account ${email} exists, and this provider doesn't link by email.`,
+          domain_not_listed: `Refuse: the account ${email} exists, but its email's domain isn't on this provider's list, so it isn't linked.`,
+          linked_to_another: `Refuse: the account ${email} is already linked to another person at this provider.`,
+        }[plan.why];
+      }
       return {
         unverified_email: "Refuse: the provider didn't say the email is verified.",
         disabled: "Refuse: the account is disabled.",
-        not_allowed:
-          "Refuse: no account matches, and the email's domain isn't one that may create one.",
+        not_allowed: "Refuse: this person may not sign in here.",
       }[plan.reason];
   }
 };

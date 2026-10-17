@@ -143,6 +143,25 @@ describe("Test sign-in", () => {
     expect(page.canEnable).toBe(false);
   });
 
+  it("says when an existing account wouldn't be linked because its domain isn't listed", async () => {
+    await createTestUser(app, { email: "ana@gmail.com", password: PASSWORD });
+    fake.user = { ...fake.user, email: "ana@gmail.com" };
+    await testSignIn(rootHeaders);
+    const page = await providerPage(rootHeaders, "acme", app);
+    expect(page.lastTest?.decision).toBe(
+      "Refuse: the account ana@gmail.com exists, but its email's domain isn't on this provider's list, so it isn't linked.",
+    );
+  });
+
+  it("says when the address can't be used (not plain ASCII), though its domain is listed", async () => {
+    fake.user = { ...fake.user, email: "\u212Aate@acme.com" };
+    await testSignIn(rootHeaders);
+    const page = await providerPage(rootHeaders, "acme", app);
+    expect(page.lastTest?.decision).toBe(
+      "Refuse: the email address isn't plain ASCII, and Ronne only matches and creates plain ASCII addresses.",
+    );
+  });
+
   it("fails on a bad answer, marks the provider Failing, and records no test", async () => {
     fake.switches.badSignature = true;
     await testSignIn(rootHeaders);

@@ -13,7 +13,10 @@ export type IdentityProvider = {
   /** The type's settings, without the client secret. */
   config: Record<string, unknown>;
   hasSecret: boolean;
-  /** Email domains whose people get an account on first sign-in; empty means nobody is created. */
+  /**
+   * Email domains this provider signs in: a new address gets an account on first sign-in, an
+   * existing account is linked (with `linkByEmail`). Empty: only accounts already linked.
+   */
   domains: string[];
   linkByEmail: boolean;
   groupsClaim: string | null;

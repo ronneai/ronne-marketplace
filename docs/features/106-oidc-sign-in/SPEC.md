@@ -107,9 +107,10 @@ steps can sit beside the form on a desktop and under it on a phone):
    where, with its placeholders), client ID, **client secret** (write-only: after saving, "Secret
    saved", Replace; never read back), scopes (the preset's default, `openid email profile`, plus
    the groups scope when groups are mapped).
-3. **Who may sign in.** Email domains (comma-separated) that may get an account on first sign-in;
-   empty means nobody is created and only existing accounts are linked. Link existing accounts by
-   verified email: on (turning it off means only accounts already linked can sign in).
+3. **Who may sign in.** *Email domains this provider signs in* (comma-separated): a new address
+   in them gets an account on first sign-in, and an existing account with one is linked when *Link
+   existing accounts by verified email, in these domains only* is on (the default). Empty means
+   only accounts already linked can sign in; so does turning linking off, for existing accounts.
 4. **Groups.** The claim name (the preset's default, usually `groups`), and rows *group → workspace
    → role*.
 5. **Test, then turn on.** The two tests, with their results written out ("Issuer
@@ -155,7 +156,12 @@ then `complete` returns the identity and Ronne decides:
    ("You can't sign in here with that account…", 006's rule: it doesn't say which accounts
    exist); the audit row has the real reason.
 3. **Known link** (the provider and subject): sign in.
-4. **Else, an account with this email** and *link by email* on: link, then sign in.
+4. **Else, an account with this email**, *link by email* on, and the email's domain on the
+   provider's list (decision 9; root's account too): link, then sign in. Otherwise `not_allowed`.
+   Every `not_allowed` says why, in a *Test sign-in*'s result and in the audit row's `why`
+   (`domain_not_allowed`, `non_ascii_email`, `invalid_email`, `lookalike_email`, `link_off`,
+   `domain_not_listed`, `linked_to_another`);
+   the person sees one message for all of them.
 5. **Else, the email's domain is on the list:** create the account (Create user's repository
    write: `user` in `global`, personal workspace; no password; the name by Create user's rule),
    link, sign in.
@@ -242,12 +248,14 @@ sign-in buttons are 44px tall on a coarse pointer.
 - **The same email in two providers by two different people** (the provider reuses addresses): the
   linked subject, not the email, identifies a person after the first link; a new subject of the
   same provider with an already-linked email is refused (`not_allowed`) rather than linked to
-  someone else's account. Another provider's verified email still links (an account can be linked
-  to several providers, as when a company moves from one provider to another): root trusts every
-  provider it turns on with link by email, as it trusts a password account's email.
+  someone else's account. Another provider's verified email still links when the domain is on
+  that provider's list too (an account can be linked to several providers, as when a company moves
+  from one provider to another): root trusts every provider it turns on with link by email for its
+  own domains, as it trusts a password account's email.
 - **An email that isn't plain ASCII** is never matched to an account or used to create one
   (`not_allowed`): lowercasing folds some characters into ASCII ones (the Kelvin sign `K` into
-  `k`), which would hand a provider's `Kate@…` someone else's `kate@…`. Nor is an account whose
+  `k`), which would hand a provider's `Kate@…` someone else's `kate@…`. Only ASCII spaces around it
+  are trimmed; a no-break space or a byte-order mark makes it not plain ASCII. Nor is an account whose
   stored address the database only calls equal (MySQL and MariaDB compare without accents, so
   `kate@…` would find `kåte@…`): only the exact address links.
 - **A person changes email at the provider:** the link stays (it is by subject); the Ronne email

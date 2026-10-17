@@ -76,7 +76,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* the docs render tests pass in ronne-web, every helper's link lands on a real section
   here, and each guide's redirect URI example matches `PUBLIC_URL/api/auth/sso/callback/<id>`.
 
-- [ ] **11. Link by email within the provider's domains.** [risky] Decision 9: an existing
+- [x] **11. Link by email within the provider's domains.** [risky] Decision 9: an existing
   account is linked only when its email's domain is on the provider's list; root's included. The
   form, the *Test sign-in*'s result and the Documentation say so.
   *Done when:* tests cover a listed and an unlisted domain, root linked, and an empty list.

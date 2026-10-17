@@ -198,6 +198,30 @@ describe("audit summaries (060)", () => {
     ).toBe("Rebased @team/x from 1.0.0 to 1.1.0 (1 conflict)");
   });
 
+  it("says why a provider sign-in wasn't allowed, when the row says (106)", () => {
+    expect(
+      line("auth.sso_failed", {
+        provider: "acme",
+        email: "ana@gmail.com",
+        reason: "not_allowed",
+        why: "domain_not_listed",
+      }),
+    ).toBe(
+      "Failed sign-in with acme for ana@gmail.com: the account exists, but its domain isn't on the provider's list",
+    );
+    expect(line("auth.sso_failed", { provider: "acme", reason: "not_allowed" })).toBe(
+      "Failed sign-in with acme: no account it may link or create",
+    );
+    // Only the tables' own entries: never an object's built-in keys.
+    for (const key of ["__proto__", "constructor", "toString"])
+      expect(line("auth.sso_failed", { provider: "acme", reason: "not_allowed", why: key })).toBe(
+        "Failed sign-in with acme: no account it may link or create",
+      );
+    expect(line("auth.sso_failed", { provider: "acme", reason: "constructor" })).toBe(
+      "Failed sign-in with acme: constructor",
+    );
+  });
+
   it("marks names and codes for the page to style", () => {
     expect(
       summarize(event("version.published", { name: "@t/x", version: "1.0.0", tag: "latest" })),

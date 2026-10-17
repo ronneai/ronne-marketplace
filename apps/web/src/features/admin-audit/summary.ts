@@ -96,12 +96,28 @@ const PASSWORD_SAID: Record<string, string> = { everyone: "everyone", root_only:
 /** Why a sign-in with an identity provider was refused (106), as the audit log says it. */
 const SSO_REASONS: Record<string, string> = {
   unverified_email: "the provider didn't say the email is verified",
-  not_allowed: "no account, and the email's domain may not create one",
+  not_allowed: "no account it may link or create",
   disabled: "the account is disabled",
   invalid_response: "the provider's answer couldn't be checked",
   provider_error: "the provider refused or didn't answer",
   expired: "the sign-in took too long, or was used already",
   rate_limited: "too many attempts",
+};
+
+/** A table's own entry only (never `__proto__` or `constructor`). */
+const said = (table: Record<string, string>, key: string): string | undefined =>
+  Object.hasOwn(table, key) ? table[key] : undefined;
+
+/** Why `not_allowed`, when the row says (106, task 11). */
+const SSO_NOT_ALLOWED: Record<string, string> = {
+  domain_not_allowed: "no account, and the email's domain may not create one",
+  non_ascii_email: "the address isn't plain ASCII",
+  invalid_email: "the address isn't valid",
+  lookalike_email:
+    "the database compares it as equal to an account's address (accents, letter forms or invisible characters)",
+  link_off: "the account exists, and the provider doesn't link by email",
+  domain_not_listed: "the account exists, but its domain isn't on the provider's list",
+  linked_to_another: "the account is linked to another person at the provider",
 };
 
 /** Who must use two-factor sign-in (105), as the audit log says it. */
@@ -195,7 +211,7 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     "Failed sign-in with ",
     { code: text(m.provider) },
     ...(text(m.email) ? [" for ", { name: text(m.email) }] : []),
-    `: ${SSO_REASONS[text(m.reason)] ?? text(m.reason)}`,
+    `: ${said(SSO_NOT_ALLOWED, text(m.why)) ?? said(SSO_REASONS, text(m.reason)) ?? text(m.reason)}`,
   ],
   "auth.sign_in_failed": (m) => [
     "Failed sign-in for ",

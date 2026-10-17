@@ -674,3 +674,89 @@ Witnessed: 2026-10-17 13:36 EDT, by a fresh agent (blind). Commit: a0f1762d + wo
 
 **Overall:** met. Every row of task 10 is confirmed.
 
+
+## Task 11 — Link by email within the provider's domains
+
+Witnessed: 2026-10-17 16:52 EDT, by a fresh agent (adversarial). Commit: 8bdf8403 + working tree (ronne-web: branch docs/106-oidc-sign-in, 6e37f67). Machine: macOS 27.0.1, Node v24.0.0. Mutations only in its scratch copy.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | An existing account in a listed domain is linked | no | confirmed | `vitest run --project db sso.db.test.ts test-sign-in.db.test.ts` → 45 passed; "links an existing account by verified email" (ana@acme.com). Probe P1: `ANA@ACME.COM` from the provider links ana@acme.com. P7: list `example.org, Gmail.com` → ana@gmail.com links |
+| 2 | An existing account in an unlisted domain is not linked (`not_allowed`, no link, no session) | no | confirmed | `sso-sign-in.ts:89` `emailInDomains` before the link. Test asserts no `account` row, the `auth.sso_failed` reason and no `user.sso_linked`. Mutation (check removed) → 3 tests fail. Probes P2 `ana@eu.acme.com` (subdomain), P3 `acme.com.evil.io` / `evilacme.com`, P6 `" ana@gmail.com "` / `ana@gmail.com.` → all refused, no link |
+| 3 | Root's account links like any other | no | confirmed | "lets root sign in when linked by email" (root@acme.com, listed) passes. Mutation `if (existing.role === "root") return notLinked(...)` → that test fails. Probe P4: root under an unlisted list → refused, `notLinked: "domain_not_listed"`, no link |
+| 4 | An empty list links nobody by email | no | confirmed | "links nobody by email when no domain is listed" (`domains: ""`, linkByEmail on) → `not_allowed`, no `user.sso_linked`. It fails under the row 2 mutation. Probe P5: an account linked before the list was emptied still signs in by its known link, which SPEC 3 allows ("only accounts already linked") |
+| 5 | Edge case: another provider links an account only if it lists the domain too | no | confirmed | Probe P8 (`planSsoSignIn`, account already linked at acme): second provider listing `example.org` → refuse `domain_not_listed`; listing `acme.com` → link; empty list → refuse |
+| 6 | The form says so | no | confirmed | `ProviderForm.tsx:328` "Email domains this provider signs in", the hint at :339–341, the checkbox at :351 "…in these domains only". `vitest run src/features/admin-settings/authentication` → 29 passed. `e2e/sso.ts:88` uses the new label (e2e not run, as instructed). No unit test asserts the wording |
+| 7 | The Test sign-in result says which check stopped the link | no | confirmed | `test-sign-in.ts:43-48` texts for `link_off`, `domain_not_listed` and `linked_to_another`. The new test asserts the `domain_not_listed` sentence and fails under the row 2 mutation. The `link_off` and `linked_to_another` texts are untested |
+| 8 | The Documentation says so (en, pt, fr) | no | partly | 6e37f67 updates authentication (the decision list and "Who may sign in") and account (first sign-in) in all three languages. www `pnpm test` → 140 passed, `tsc` exit 0. **But** account.tsx:42-44 (en, same in pt/fr) still explains "You can't sign in here with that account" as "There's no account for your email and its domain isn't allowed, or the account is disabled". An existing account in an unlisted domain now gets that message, and it doesn't fit either explanation |
+| 9 | SPEC matches the code (form item 3, step 4, edge case) | no | confirmed | The SPEC diff matches `planSsoSignIn` and its comment at `sso-sign-in.ts:14-17`. `tsc --noEmit` in apps/web → exit 0 |
+
+**Overall:** not met: the domain rule holds and is tested for a listed domain, an unlisted one, root and an empty list (each test fails under its mutation), but the Signing in page's explanation of "You can't sign in here with that account" misses the new case.
+
+### Re-check 1 (blind: row 8 and the diff)
+
+Witnessed: 2026-10-17 16:55 EDT, by a fresh agent (blind). Commit: 8bdf8403 + working tree (ronne-web: branch docs/106-oidc-sign-in, ea97cd3). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 8 | The Documentation says so (en, pt, fr): the Signing in page explains "You can't sign in here with that account" for an existing account the provider can't link | no | confirmed | `git show ea97cd3` touches only `www/src/content/docs/{en,pt,fr}/account.tsx`. en account.tsx:42-46: no account and the domain isn't allowed; or one the provider can't link (domain not listed, linking off, linked to someone else); or disabled. Matches the three `notLinked` refusals in `sso-sign-in.ts:88-92`. pt and fr say the same. The in-app message (`sign-in/types.ts:36-37`) fits |
+| 10 | The fix leaves ronne-web building and its tests green | no | confirmed | In www, `pnpm test` → 140 passed; `pnpm exec tsc --noEmit` → exit 0; ronne-web clean at ea97cd3 |
+| 11 | Task 11's database tests still pass on SQLite (listed, unlisted, root linked, empty list) | no | confirmed | `vitest run --project db sso.db.test.ts test-sign-in.db.test.ts` → 45 passed; tests at `sso.db.test.ts:229-269` and `test-sign-in.db.test.ts:146-154` |
+
+**Overall:** met. Every row of task 11 is confirmed.
+
+### Re-check 1 (adversarial: row 8 and the diff)
+
+Witnessed: 2026-10-17 16:58 EDT, by a fresh agent (adversarial). Commit: 8bdf8403 + working tree (ronne-web: branch docs/106-oidc-sign-in, ea97cd3). Machine: macOS 27.0.1, Node v24.0.0. No mutations, and no processes started that kept running.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 8 | The Documentation says so (en, pt, fr): the Signing in page explains "You can't sign in here with that account" for an existing account the provider can't link | no | confirmed | en `account.tsx:42-46` gives "linking is off", "its domain isn't one the provider lists" and "linked to someone else at that provider", the three `notLinked` refusals at `sso-sign-in.ts:88-92`, all `not_allowed` (:84), so that message (`sign-in/types.ts:36`). pt and fr say the same three things, in the same order |
+| 10 | The fix leaves ronne-web green | no | confirmed | `git show --stat ea97cd3` → only `account.tsx` ×3; `pnpm test` in www → 140 passed; working tree clean |
+| 12 | Every case that shows that message fits the page's explanation (all 3 languages) | no | partly | Two cases older than task 11 don't: (a) a non-ASCII address in a listed domain (`sso-sign-in.ts:67`; `sso.db.test.ts:345` → `error=not_allowed`): "its domain isn't allowed" is false; (b) on MySQL/MariaDB, an address the collation calls equal to an existing one (:78-79) fits none of the explanations |
+| 13 | What task 11 changed is described truly in the other places that name `not_allowed` | no | partly | `admin-audit/summary.ts:99` says `not_allowed: "no account, and the email's domain may not create one"`, and the `auth.sso_failed` row records only `reason` (`sso.ts:216-221`), so `domain_not_listed`, `link_off` and `linked_to_another` read as "no account". The Test sign-in fallback (`test-sign-in.ts:52`) is false for 12(a) |
+
+**Overall:** not met: the three unlinked cases are explained correctly in en, pt and fr, but two older refusals don't fit the page's words, and the audit log calls an existing account "no account".
+
+### Re-check 2 (adversarial: rows 12, 13 and the diff)
+
+Witnessed: 2026-10-17 17:02 EDT, by a fresh agent (adversarial). Commit: 8bdf8403 + staged changes (ronne-web: branch docs/106-oidc-sign-in, 7ad9256). Machine: macOS 27.0.1, Node v24.0.0. Mutations only in its scratch copy; no processes left running.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 12 | Every case that shows "You can't sign in here with that account" fits the Signing in page's explanation (en, pt, fr) | no | partly | 7ad9256 adds "or your address can't be used here (Ronne only takes plain ASCII email addresses)", which fits a non-ASCII address in a listed domain (probe: Kelvin `Kate@acme.com`, `josé@acme.com` → `unusable_email`). But the MySQL/MariaDB collation twin is also `unusable_email` (`sso-sign-in.ts:93`): the provider's address is plain ASCII and the stored account is the non-ASCII one (probe with an accent-folding fake repo: `kåte@`/`kate@`, `straße@`/`strasse@`). So is a malformed ASCII address (`a@acme`, `a@acme.invalid`). The other cases fit |
+| 13 | What task 11 changed is described truly in the other places that name `not_allowed` | no | partly | The audit log is true for each unlinked case and `domain_not_allowed`; the Test sign-in names the account for each. But for `a@acme` the audit says "the address isn't plain ASCII, or isn't exactly the account's" and the Test sign-in "Ronne only matches and creates plain ASCII email addresses": neither is the real reason |
+| 14 | The audit row records `why` for every `not_allowed`, and only then | no | confirmed | `sso.ts:224`; `sso-sign-in.ts:76-81`; probe: 10 refusals, `why` on each `not_allowed`, none on `disabled`. db tests → 58 passed. Mutation (drop `why: outcome.why`, sso.ts:286) → 2 tests fail; restored, `cmp` identical |
+| 15 | The audit summary uses `why` first and falls back to `reason` | no | confirmed | `summary.ts:207`; `vitest run src/features/admin-audit` → 17 passed. Hostile `why` (`__proto__`) prints oddly, but only code writes it, and `reason` had the same lookup |
+| 16 | The Test sign-in texts match the plan for each `why` | no | confirmed | probe: each of the 5 values gives its sentence; asserted in `test-sign-in.db.test.ts:146-163` |
+| 17 | SPEC step 4 matches the code | no | confirmed | SPEC.md:159-163 and `sso-sign-in.ts:30-35, 82-104`; ronne-web `pnpm test` → 140 passed |
+
+**Overall:** not met: `unusable_email` also covers the MySQL/MariaDB collation twin and malformed ASCII addresses, where "not plain ASCII" is false. Two adversarial re-checks done: the owner decides (state-witness.md).
+
+### Re-check 3 (adversarial: rows 12, 13 and the diff)
+
+Witnessed: 2026-10-17 17:20 EDT, by a fresh agent (adversarial). Commit: 8bdf8403 + staged changes (ronne-web: branch docs/106-oidc-sign-in, e4e3828). Machine: macOS 27.0.1, Node v24.0.0. Mutations only in its scratch copy (each file restored and checked with `cmp`); no processes started that kept running.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 12 | Every case that shows "You can't sign in here with that account" fits the Signing in page's explanation (en, pt, fr) | no | partly | e4e3828 names "not plain ASCII / not a valid address / differs only by accents or letter forms". Probe over `planSsoSignIn`: `kåte@` twin and `ﬁn@` twin → `lookalike_email`; `a@acme`, `"a b"@acme.com`, `a@acme.invalid`, 300 characters → `invalid_email`; `ana@acme.com.` → `domain_not_allowed`; subdomain → `domain_not_listed`; all fit. Open, from MySQL 8.4's documented collation (no server here): a stored `ka­te@` (soft hyphen) or zero-width space twin may compare equal to `kate@`, and "accents or letter forms" would then be false |
+| 13 | What task 11 changed is described truly in the other places that name `not_allowed` (audit summary, Test sign-in) | no | partly | Each `why` has its own true sentence (`summary.ts:112-120`, `test-sign-in.ts:43-55`) for the inputs of row 12; the same invisible-character twin reads "differs only by accents or letter forms" in both |
+| 18 | The split into `non_ascii_email` / `invalid_email` / `lookalike_email` follows the input (`sso-sign-in.ts:85-99`) | no | confirmed | Probe as row 12. Mutations: drop the non-ASCII check → "not plain ASCII" fails; drop the domain check → 2 fail; `lookalike` → `invalid` → 1 fails |
+| 19 | `services/sso-sign-in.test.ts` covers every `why`, root linked and an empty list | no | confirmed | unit + admin-audit → 27 passed; db `sso.db.test.ts` + `test-sign-in.db.test.ts` → 46 passed (SQLite); rows at `sso-sign-in.test.ts:63-107`, root :113, empty list :93 |
+| 20 | `said` reads only a table's own entries; SPEC step 4 matches the code | no | confirmed | Probe: `why` = `__proto__`, `constructor`, `toString` → the fallback sentence. No test covers it (plain indexing still passes). SPEC.md:159-164 lists the 7 values in `sso-sign-in.ts:31-37`. ronne-web `pnpm test` → 140 passed |
+
+**Overall:** not met: every `not_allowed` input run fits the page, the audit log and the Test sign-in; one MySQL-only wording case (an invisible-character twin) is open. Third adversarial re-check: the owner decides. Also seen, older than task 11: `trim()` drops Unicode whitespace before the ASCII check, so `kate@acme.com` + no-break space links to `kate@acme.com`, against SPEC "never matched".
+
+### Re-check 4 (adversarial: rows 12, 13 and the diff)
+
+Witnessed: 2026-10-17 17:47 EDT, by a fresh agent (adversarial). Commit: 8bdf8403 + staged diff (ronne-web: branch docs/106-oidc-sign-in, 8a1bf43). Machine: macOS (Darwin 27.0.0), Node v24.0.0. Mutations only in its scratch copy, put back afterwards; no servers started. The owner allowed this round after re-check 3.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 12 | Every case that shows "You can't sign in here with that account" fits the Signing in page's explanation (en, pt, fr) | yes | confirmed | `account.tsx:42-52` (en, pt, fr) say the database "compares it as equal to another account's address, which differs by accents, letter forms or invisible characters". Probe (fold drops accents, NFKD forms, soft hyphen, ZWSP, ZWJ, BOM): soft-hyphen, ZWSP, ligature and disabled `kåte@` twins → `lookalike_email`, fits; NBSP and BOM → `non_ascii_email`; `.invalid`, quoted local part, 300 characters → `invalid_email`. ronne-web `pnpm test` → 140 passed |
+| 13 | Same for the audit summary and the Test sign-in texts | yes | confirmed | `summary.ts` and `test-sign-in.ts` lookalike sentences name invisible characters; probe audit lines print them; `sso.ts` passes `why` into `auth.sso_failed`. db `sso.db.test.ts` + `test-sign-in.db.test.ts` → 46 passed |
+| 14 | Only ASCII spaces are trimmed, so Unicode whitespace is never matched (SPEC "An email that isn't plain ASCII") | yes | confirmed | `sso-sign-in.ts:86`. Probe with `kate@acme.com`: trailing NBSP / U+3000 → `non_ascii_email`; `\v`, `\f`, NUL → `invalid_email`; `" \r\nKATE@acme.com\t "` → link. Mutation back to `trim()` → 2 tests fail. SPEC says exactly this |
+| 15 | `sso-sign-in.test.ts` covers each `why`, and root links like anyone | yes | confirmed | unit + admin-audit + probe → 30 passed; one case per `why`, empty list included; both mutations fail it |
+| 16 | `summary.test.ts` covers the `said` own-key guard | yes | confirmed | `__proto__`, `constructor`, `toString` as `why`, `constructor` as `reason`; mutating `said` to `table[key]` → 1 failed |
+
+**Overall:** met. Every row of task 11 is confirmed (rows 1–7 and 9 in the first pass, 8 in re-check 1, 12 and 13 here, 10–11 and 14–20 along the way). Gap, not a bug: no test asserts the lookalike sentence's words.

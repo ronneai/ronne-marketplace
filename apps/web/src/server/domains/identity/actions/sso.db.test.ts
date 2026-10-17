@@ -226,6 +226,48 @@ describe("the decision list", () => {
     expect(location(response)).toContain("error=not_allowed");
   });
 
+  it("doesn't link an account whose email's domain isn't on the provider's list", async () => {
+    // A provider for acme.com vouching for a gmail.com address can't take that account over.
+    const id = await createTestUser(app, {
+      email: "ana@gmail.com",
+      password: "correct horse battery",
+    });
+    fake.user = { ...fake.user, email: "ana@gmail.com" };
+    const { response } = await signIn();
+    expect(location(response)).toContain("error=not_allowed");
+    expect(await sessionUser(response)).toBeNull();
+    expect(
+      await t.db.selectFrom("account").select("id").where("provider_id", "=", "acme").execute(),
+    ).toEqual([]);
+    expect(await audit("auth.sso_failed")).toMatchObject([
+      { metadata: { reason: "not_allowed", why: "domain_not_listed", email: "ana@gmail.com" } },
+    ]);
+    expect(await audit("user.sso_linked")).toEqual([]);
+    expect((await userByEmail("ana@gmail.com"))?.id).toBe(id);
+  });
+
+  it("links nobody by email when no domain is listed", async () => {
+    await createTestUser(app, { email: "ana@acme.com", password: "correct horse battery" });
+    const p = (await deps.repo.find("acme"))?.provider;
+    await updateProvider(
+      deps,
+      { user: root, ip: null },
+      "acme",
+      {
+        preset: "okta",
+        name: p?.name,
+        config: p?.config ?? {},
+        domains: "",
+        linkByEmail: true,
+        groupsClaim: "groups",
+      },
+      p?.updatedAt as Date,
+    );
+    const { response } = await signIn();
+    expect(location(response)).toContain("error=not_allowed");
+    expect(await audit("user.sso_linked")).toEqual([]);
+  });
+
   it("keeps the link when the person's email changes at the provider (the Ronne email stays)", async () => {
     await signIn();
     fake.user = { ...fake.user, email: "ana.new@acme.com" };
@@ -307,6 +349,9 @@ describe("the decision list", () => {
     const kelvin = await signIn();
     expect(location(kelvin.response)).toContain("error=not_allowed");
     expect(await sessionUser(kelvin.response)).toBeNull();
+    expect(await audit("auth.sso_failed")).toMatchObject([
+      { metadata: { reason: "not_allowed", why: "non_ascii_email" } },
+    ]);
     fake.user = { ...fake.user, sub: "sub-dotted", email: "\u0130van@acme.com" };
     expect(location((await signIn()).response)).toContain("error=not_allowed");
     expect(
@@ -336,7 +381,12 @@ describe("the decision list", () => {
       .where("a.provider_id", "=", "acme")
       .execute();
     expect(links.map((l) => l.email)).not.toContain("k\u00E5te@acme.com");
-    if (t.dialect === "mysql") expect(location(response)).toContain("error=not_allowed");
+    if (t.dialect === "mysql") {
+      expect(location(response)).toContain("error=not_allowed");
+      expect(await audit("auth.sso_failed")).toMatchObject([
+        { metadata: { reason: "not_allowed", why: "lookalike_email" } },
+      ]);
+    }
   });
 
   it("gives a new account a name by Create user's rule", async () => {

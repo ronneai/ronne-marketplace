@@ -15,7 +15,7 @@ import { kyselySsoRepository } from "../repositories/kysely-sso-repository";
 import { decryptSecret } from "../repositories/provider-secrets";
 import { PROVIDER_TYPES } from "../repositories/provider-type-registry";
 import type { SsoSignInState } from "../repositories/sso-repository";
-import { signInWithProvider } from "../services/sso-sign-in";
+import { type SsoNotAllowed, signInWithProvider } from "../services/sso-sign-in";
 import { finishTestSignIn } from "./test-sign-in";
 
 /**
@@ -208,7 +208,10 @@ export const completeSsoSignIn = async (
     return response;
   };
 
-  const fail = async (reason: SsoErrorCode, extra: { email?: string; detail?: string } = {}) => {
+  const fail = async (
+    reason: SsoErrorCode,
+    extra: { email?: string; detail?: string; why?: SsoNotAllowed } = {},
+  ) => {
     log.event("auth.sso_failed", { provider: providerId, reason, detail: extra.detail });
     await sso.recordAudit(
       {
@@ -218,6 +221,7 @@ export const completeSsoSignIn = async (
         metadata: {
           provider: providerId.slice(0, 32),
           reason,
+          ...(extra.why ? { why: extra.why } : {}),
           ...(extra.email ? { email: extra.email.slice(0, 255) } : {}),
         },
         ipAddress: ip,
@@ -279,7 +283,7 @@ export const completeSsoSignIn = async (
   }
 
   const outcome = await signInWithProvider(sso, stored.provider, identity, { ip, now });
-  if (!outcome.ok) return fail(outcome.reason, { email: identity.email });
+  if (!outcome.ok) return fail(outcome.reason, { email: identity.email, why: outcome.why });
 
   const session = await betterAuthSessionStore(app.auth).startSession(headers, outcome.userId);
   // Disabled between the decision and the session: the same answer as a disabled account.

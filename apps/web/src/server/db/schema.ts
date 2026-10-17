@@ -144,7 +144,7 @@ export interface WorkspaceMemberTable {
 /**
  * An identity provider root set up (migration 0026_identity_providers, feature 106). `config` is
  * the type's JSON without the client secret, which is `secret_enc` (encrypted); `domains` a JSON
- * array of email domains that get an account on first sign-in.
+ * array of the email domains the provider signs in (created on first sign-in, or linked by email).
  */
 export interface IdentityProviderTable {
   id: string;

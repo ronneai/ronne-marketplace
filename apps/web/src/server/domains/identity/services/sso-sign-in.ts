@@ -11,19 +11,36 @@ import { applyGroups } from "./group-sync";
  * 1. the email must be verified;
  * 2. a disabled account is refused;
  * 3. a known link (this provider and subject) signs in;
- * 4. else an account with this email is linked, if the provider links by email and that account
- *    has no other subject of this provider (a new subject with a linked email is someone else);
+ * 4. else an account with this email is linked, if the provider links by email, the email's domain
+ *    is on the provider's list (a provider for `acme.com` can't claim a `gmail.com` account; root's
+ *    account is linked like any other), and that account has no other subject of this provider (a
+ *    new subject with a linked email is someone else);
  * 5. else, for a listed domain, a new `user` is created (in `global`, a personal workspace, no
  *    password, never root) and linked;
  * 6. else nobody.
  */
 export type SsoRefusal = "unverified_email" | "disabled" | "not_allowed";
 
+/**
+ * Why `not_allowed`, for a *Test sign-in*'s result and the audit log (the person sees one message
+ * for all): no account and an unlisted domain; an address Ronne can't use (not plain ASCII, not a
+ * valid address, or another account's that the database compares as equal but isn't exactly); or an
+ * existing account this provider can't link.
+ */
+export type SsoNotAllowed =
+  | "domain_not_allowed"
+  | "non_ascii_email"
+  | "invalid_email"
+  | "lookalike_email"
+  | "link_off"
+  | "domain_not_listed"
+  | "linked_to_another";
+
 export type SsoPlan =
   | { action: "sign_in"; user: UserSummary }
   | { action: "link"; user: UserSummary }
   | { action: "create"; email: string; name: string }
-  | { action: "refuse"; reason: SsoRefusal; user?: UserSummary };
+  | { action: "refuse"; reason: SsoRefusal; user?: UserSummary; why?: SsoNotAllowed };
 
 /** The name a new account gets: the provider's, by Create user's rule, else the email's local part. */
 const nameFor = (identity: VerifiedIdentity, email: string): string => {
@@ -59,35 +76,45 @@ export const planSsoSignIn = async (
     return { action: "sign_in", user: linked };
   }
 
-  if (!PLAIN_EMAIL.test(identity.email.trim())) return { action: "refuse", reason: "not_allowed" };
+  const notAllowed = (why: SsoNotAllowed, user?: UserSummary): SsoPlan => ({
+    action: "refuse",
+    reason: "not_allowed",
+    why,
+    ...(user ? { user } : {}),
+  });
+  // Only ASCII spaces are trimmed: any other character, whitespace or not, makes it not plain ASCII.
+  const raw = identity.email.replace(/^[ \t\r\n]+|[ \t\r\n]+$/g, "");
+  if ([...raw].some((c) => (c.codePointAt(0) ?? 0) > 0x7f)) return notAllowed("non_ascii_email");
+  // ASCII, but with a space or a control character inside: no address.
+  if (!PLAIN_EMAIL.test(raw)) return notAllowed("invalid_email");
   let email: string;
   try {
     email = normalizeEmail(identity.email);
   } catch (error) {
-    if (error instanceof InvalidEmailError) return { action: "refuse", reason: "not_allowed" };
+    if (error instanceof InvalidEmailError) return notAllowed("invalid_email");
     throw error;
   }
   const existing = await repo.findUserByEmail(email);
   // MySQL and MariaDB compare emails without accents (`kåte@` = `kate@`): only the exact address
   // is this person's. Another one that the database calls equal can't be linked, or created beside.
-  if (existing && existing.email !== email)
-    return { action: "refuse", reason: "not_allowed", user: existing };
+  if (existing && existing.email !== email) return notAllowed("lookalike_email", existing);
   if (existing) {
     if (existing.disabledAt) return { action: "refuse", reason: "disabled", user: existing };
-    if (!provider.linkByEmail) return { action: "refuse", reason: "not_allowed", user: existing };
+    if (!provider.linkByEmail) return notAllowed("link_off", existing);
+    if (!emailInDomains(email, provider.domains)) return notAllowed("domain_not_listed", existing);
     // Linked already to another subject of this provider: this is someone else with that address.
     if ((await repo.linkedSubjects(existing.id, provider.id)).length > 0)
-      return { action: "refuse", reason: "not_allowed", user: existing };
+      return notAllowed("linked_to_another", existing);
     return { action: "link", user: existing };
   }
   if (emailInDomains(email, provider.domains))
     return { action: "create", email, name: nameFor(identity, email) };
-  return { action: "refuse", reason: "not_allowed" };
+  return notAllowed("domain_not_allowed");
 };
 
 export type SsoOutcome =
   | { ok: true; userId: string; email: string; root: boolean; created: boolean; linked: boolean }
-  | { ok: false; reason: SsoRefusal; userId: string | null };
+  | { ok: false; reason: SsoRefusal; userId: string | null; why?: SsoNotAllowed };
 
 /**
  * Decides and writes it, one sign-in through a provider at a time (the provider's row is locked):
@@ -118,7 +145,12 @@ export const signInWithProvider = async (
     await trx.lockProvider(provider.id);
     const plan = await planSsoSignIn(trx, provider, identity);
     if (plan.action === "refuse")
-      return { ok: false, reason: plan.reason, userId: plan.user?.id ?? null };
+      return {
+        ok: false,
+        reason: plan.reason,
+        userId: plan.user?.id ?? null,
+        ...(plan.why ? { why: plan.why } : {}),
+      };
     if (plan.action === "sign_in")
       return {
         ok: true,

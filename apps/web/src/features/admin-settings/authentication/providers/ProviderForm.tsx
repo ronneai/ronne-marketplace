@@ -324,9 +324,7 @@ export const ProviderForm = ({
         <fieldset className="grid gap-3">
           <legend className="mb-1 text-sm font-semibold text-fg">Who may sign in</legend>
           <div className="grid gap-1">
-            <Label htmlFor="provider-domains">
-              Email domains that get an account on first sign-in
-            </Label>
+            <Label htmlFor="provider-domains">Email domains this provider signs in</Label>
             <input
               id="provider-domains"
               name="domains"
@@ -336,7 +334,9 @@ export const ProviderForm = ({
               aria-describedby="provider-domains-hint"
             />
             <p id="provider-domains-hint" className="text-xs text-muted">
-              Empty: nobody is created; only existing accounts are linked.
+              A new address in these domains gets an account on its first sign-in; an existing
+              account with one is linked if the box below is ticked. Empty: only accounts already
+              linked sign in.
             </p>
           </div>
           <label className="flex items-start gap-2 text-sm text-fg">
@@ -346,7 +346,7 @@ export const ProviderForm = ({
               defaultChecked={provider?.linkByEmail ?? true}
               className="mt-0.5 size-4 accent-(--accent)"
             />
-            <span>Link existing accounts by verified email</span>
+            <span>Link existing accounts by verified email, in these domains only</span>
           </label>
         </fieldset>
 
