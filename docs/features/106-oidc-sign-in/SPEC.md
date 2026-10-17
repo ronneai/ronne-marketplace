@@ -342,10 +342,18 @@ sign-in buttons are 44px tall on a coarse pointer.
    provider than most companies configure.
 8. **A new account is always a `user` in `global`** (owner, 2026-10-17): for every listed domain,
    with no per-domain role. Higher roles come from group mappings or from root.
-
-## Open questions
-
-- **Session length for SSO** (30 days now): should an SSO session follow the provider's, or shorter?
-- **Which provider do we test against in CI?** A fake OIDC server in the repo's tests (planned)
-  covers behaviour; a real Keycloak container could run nightly (a Docker Hub pull, see
-  `docs/knowledge/docker-hub-pulls.md`).
+9. **Link by email only within the provider's domains** (owner, 2026-10-17): a provider can claim
+   an existing account by its verified email only when the email's domain is on that provider's
+   list, so a provider for `acme.com` can't take over a `gmail.com` account. Root's account links
+   too: root may sign in with a provider. (Task 11.)
+10. **Group mappings may raise roles in `global`** (owner, 2026-10-17): root chooses each mapping
+    and every change is audited. A mapping takes over only the default `user` row; a role root set
+    by hand is never changed.
+11. **Sign-in starts are limited and cheap without a trusted proxy too** (owner, 2026-10-17): when
+    the client's address isn't known, the starts and callbacks share one bucket for the instance;
+    the discovery document is cached, and expired sign-ins in progress are deleted. (Task 12.)
+12. **A provider's session lasts 24 hours** (owner, 2026-10-17), not 30 days: someone disabled at
+    the provider loses Ronne within a day without SCIM (108); signing in again is usually one click.
+    (Task 13.)
+13. **CI tests against the fake provider only** (owner, 2026-10-17): a real Keycloak nightly only
+    if a real provider ever behaves differently from it.
