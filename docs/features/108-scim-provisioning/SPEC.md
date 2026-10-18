@@ -206,17 +206,21 @@ at the same moment) answers 409 `uniqueness`.
 
 ## Documentation
 
-- **Administration → Authentication** (106's topic, new sections `scim`, `scim-groups`): what SCIM
+- **Administration → Authentication** (106's topic, new sections `scim`, `scim-groups`,
+  `scim-endpoints`): what SCIM
   does and doesn't, turning it on, the token, what to check before turning it on (the Ronne emails
   of people who sign in through the provider match what it will send; groups assigned in SCIM,
   since roles the sign-in gave stay until SCIM's groups change; leavers disabled, then and
   whenever someone outside SCIM leaves; only accounts that signed in through it in the last 30 days
   are adopted), each provider's steps (Entra, with `objectId` mapped to `externalId`; Okta,
-  Authentik, Auth0; Keycloak needs a community extension and the guide says so), what deprovisioning
+  Authentik; Keycloak needs a community extension and Auth0 has no SCIM client to provision an
+  application, and the guide says so), what deprovisioning
   does, mapping groups, protections.
 - **Administration → Users** (`admin#users`): *Managed by*, *Adopted by*, *Deprovisioned by*.
 - **Incidents:** a leaver or a compromised provider (disable SCIM, revoke the token).
-- **API:** a page for the SCIM endpoints, the supported filters and PATCH shapes and the errors.
+- **API:** the section `authentication#scim-endpoints`, for the SCIM endpoints, the supported
+  filters and PATCH shapes and the errors (a section of Authentication rather than a topic of its
+  own: the Documentation has no API topic, and the people who read it are setting up SCIM there).
 - **Helpers:** on the SCIM section, "What does the provider need?" → `authentication#scim`;
   on the *Disable*/*Enable* warning for a managed account, "Why does SCIM manage this account?"
   → `authentication#scim`.

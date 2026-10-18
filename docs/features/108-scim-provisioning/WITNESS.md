@@ -898,3 +898,42 @@ Witnessed: 2026-10-18 16:31 EDT, by a fresh agent (blind). Commit: 48559c57 + wo
 | 14 | Diff since pass 1: only the check after reactivation, plus docs | no | confirmed | Pass 1's copy against `e2e/scim.ts` → only `scim.ts:182-185`; `git diff HEAD --stat` → PLAN.md, WITNESS.md; pass 1's source changes are commit 48559c57 with the same line counts |
 
 **Overall:** met: with the sessions put back, the flow now fails within seconds at the new check, and the spec passes on all four projects. With pass 1's other rows, every row is confirmed.
+
+## Task 9 — Documentation
+
+Witnessed: 2026-10-18 17:21 EDT, by a fresh agent (blind). Commit: 41d8665e + working tree (marketplace); ronne-web branch `docs/108-scim-provisioning`, uncommitted, on ff88f7a. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The docs render tests pass in ronne-web | no | confirmed | `pnpm test` → 30 files, 167 passed; `pnpm typecheck` clean |
+| 2 | The helper link test passes here | no | confirmed | `vitest run src/components/help src/features/admin-settings/authentication` → 43 passed; `help.test.tsx:7-18` fails any `HELP` href whose section isn't in `topics.ts` |
+| 3 | Authentication has `scim`, `scim-groups`, `scim-endpoints` in en, pt and fr, with the same subheading ids | yes | confirmed | Section keys and the nine `Subheading id=` identical in all three; DocLink targets identical |
+| 4 | The two topics files agree | yes | confirmed | Same ids, same order. The marketplace gains only `scim-endpoints` (the other two were there), not "the three ids" as the note says |
+| 5 | `scim` covers what the spec lists | yes | confirmed | `en/authentication.tsx:253-470`; the adoption conditions match `services/scim-users.ts` |
+| 6 | Admin › Users describes the three badges and the Disable/Enable warning | yes | confirmed | Matches `UsersPage.tsx:119-129` and `ScimManagedNotice` |
+| 7 | Incidents covers a leaver and a compromised provider | yes | confirmed | `instance-access.ts:74`, `actions/disable-sso.ts:53` |
+| 8 | Overview and lockout changes are true of the code | yes | confirmed | `disable-sso` keeps the tokens; tokens are SHA-256 hashes, so `rotate-secret` doesn't touch them |
+| 9 | Every factual claim in `scim-endpoints` is true of the code | yes | not met | Probe: `parseScimUser({userName:"a@b.com",emails:[{value:"new@b.com",primary:true}]})` keeps `a@b.com`: a PUT's `emails` is ignored; only PATCH changes the email. Also the filter line lists `displayName` without saying Groups only (Users → 400 `invalidFilter`), and the 400 list leaves out `mutability` |
+| 10 | "Deprovisioned … until root erases it" and the `scim-managed` helper describe how the app behaves | no | not met | Erase is 103, planned; no erase action exists: a fact from plans. Same in pt, fr and `Help.tsx:182` |
+| 11 | Audit: SCIM changes are logged "with the provider as the actor" | yes | partly | `actorId: null` with `via: "scim", provider`; the page shows system, "through SCIM provisioning"; only member changes name the provider |
+| 12 | The app's SCIM steps agree with the docs' provider steps | yes | partly | Entra and Okta agree; the app says "In **Mappings**", the docs "**Attribute mapping**" |
+| 13 | The helpers exist where the spec says and link to an existing section | yes | confirmed | `Help.tsx:173-184`; used in `ScimSection.tsx:151` and `UserRowActions.tsx:80` |
+| 14 | pt and fr say the same as en | yes | confirmed | Same sections and links; they repeat rows 9 and 10's claims |
+| 15 | The vendor steps match the vendors' current pages | yes | can't check here | No web access in this pass |
+
+**Overall:** not met: the sections, translations, topics and helpers are in place and the tests pass, but the docs say a PUT of `emails` changes the email, describe an Erase that doesn't exist yet, call the provider the audit actor, and the app's Entra step says "Mappings" where the docs say "Attribute mapping".
+
+### Re-check 1 (blind: rows 9–12, plus what the diff touches)
+
+Witnessed: 2026-10-18 17:23 EDT, by a fresh agent (blind). Commit: 41d8665e + working tree (marketplace); ronne-web branch `docs/108-scim-provisioning`, uncommitted. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 9 | `scim-endpoints` matches the code in en, pt and fr: only a PATCH of `emails` changes the email; `displayName` filters Groups only; `mutability` among the 400s | yes | confirmed | en/authentication.tsx:576–592; scim-user.ts:127–139 (`parseScimUser` never reads `emails`), :172–175, :168/:171, scim-group.ts:147, :175–186. Probe `put-emails.ts` → PUT keeps `a@b.com`, PATCH `emails` → `new@b.com`, Users `displayName` filter → 400 `invalidFilter`. pt and fr the same |
+| 10 | No text describes an Erase by root: not *Delete* in `scim`, not the `scim-managed` helper | yes | confirmed | en:347–353, pt:356–362, fr:386–392; `grep -i "erase\|apag\|effac" */authentication.tsx \| grep root` → nothing; Help.tsx:182 ends "A deprovisioned account stays, disabled." |
+| 11 | `admin#audit` describes the SCIM events as recorded | yes | confirmed | en/admin.tsx:166–169; scim-users.ts:49–52 and group-sync.ts:136–143 (`actorId: null`, `via`, `provider`), actions/scim.ts:103; pt and fr the same |
+| 12 | The app's Entra steps use the docs' words | yes | confirmed | `ScimSection.tsx` STEPS.entra: new configuration with Bearer authentication, *Attribute mapping*; en scim-entra the same |
+| 13 | (diff) The app's Okta steps match the docs | yes | confirmed | STEPS.okta matches en/authentication.tsx:402–426 step for step |
+| 14 | (diff) `topics.ts` gains `scim-endpoints`, matching ronne-web; tests and typecheck pass | yes | confirmed | apps/web → 68 passed; ronne-web `pnpm test` → 167 passed; `pnpm typecheck` exit 0 |
+
+**Overall:** met: the endpoints, *Delete* and helper wording, the audit wording and the app's Entra and Okta steps now match the code and the docs, in en, pt and fr. With the first pass's rows 1–8, 13 and 14 confirmed, every row the docs depend on holds; the vendor steps (row 15) were checked against the vendors' pages by the implementer (PLAN.md notes), not by the witness.

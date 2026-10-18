@@ -179,7 +179,7 @@ export const HELP = {
   "scim-managed": {
     question: "Why does SCIM manage this account?",
     answer:
-      "The identity provider creates and updates it through SCIM: its next sync sets the name, the email and whether it's enabled back to what the provider says. Change those at the provider. A deprovisioned account stays, disabled, until root erases it.",
+      "The identity provider creates and updates it through SCIM: its next sync sets the name, the email and whether it's enabled back to what the provider says. Change those at the provider. A deprovisioned account stays, disabled.",
     href: docsHref("authentication", "scim"),
   },
   "device-code": {

@@ -175,6 +175,7 @@ export const TOPICS = [
       { id: "groups", title: "Groups and workspace roles" },
       { id: "scim", title: "Provisioning with SCIM" },
       { id: "scim-groups", title: "SCIM groups and workspace roles" },
+      { id: "scim-endpoints", title: "SCIM endpoints" },
       { id: "password-policy", title: "Password sign-in" },
       { id: "lockout", title: "Lockout and broken providers" },
       { id: "google", title: "Google Workspace" },

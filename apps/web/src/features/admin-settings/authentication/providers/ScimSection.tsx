@@ -37,15 +37,15 @@ export type ScimSectionProps = {
 /** What the provider's SCIM settings need, in its own words where they differ (108). */
 const STEPS: Record<string, string[]> = {
   entra: [
-    "In Entra, open the enterprise application for Ronne, then Provisioning, and set the mode to Automatic.",
+    "In Entra, open the enterprise application for Ronne, then Provisioning, and make a new configuration with Bearer authentication.",
     "Paste the base URL above as the Tenant URL and the token as the Secret Token, then Test Connection.",
-    "In Mappings, map objectId to externalId (Entra's default, mailNickname, can be given to someone new).",
+    "In Attribute mapping, map objectId to externalId (Entra's default, mailNickname, can be given to someone new).",
     "Assign the users and groups to provision, then start provisioning.",
   ],
   okta: [
-    "In Okta, open the app for Ronne, then Provisioning, and turn on SCIM provisioning.",
-    "Set the SCIM connector base URL to the base URL above, the unique identifier to userName, and HTTP Header authentication with the token.",
-    "Turn on Create, Update and Deactivate users, and Push Groups for the groups Ronne maps.",
+    "In Okta, open the app for Ronne; on its General tab, edit App Settings and choose SCIM as Provisioning.",
+    "On the Provisioning tab, set the SCIM connector base URL to the base URL above, the unique identifier field to userName, the actions Push New Users, Push Profile Updates and Push Groups, and HTTP Header authentication with the token.",
+    "Under To App, turn on Create Users, Update User Attributes and Deactivate Users, then push the groups Ronne maps.",
   ],
 };
 

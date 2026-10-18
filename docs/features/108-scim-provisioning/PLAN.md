@@ -61,7 +61,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   gone.
   *Done when:* `pnpm test:e2e` passes the spec on desktop and phone.
 
-- [ ] **9. Documentation.** The sections, pages and helpers in the spec.
+- [x] **9. Documentation.** The sections, pages and helpers in the spec.
   *Done when:* the docs render tests pass in ronne-web, and the helper link test passes here.
 
 ## Notes
@@ -357,3 +357,32 @@ instance as it was, and its token then gets 401. The SCIM token and the password
 the log check. No new seeded users: 106's root signs in once in its own test, so one more stays
 under the per-email limit. Tests run one at a time (`workers: 1`), so 106's `disable-sso` (which
 now turns SCIM off too) never lands in the middle of this flow.
+
+**Task 9, Documentation (2026-10-18).** In ronne-web, branch `docs/108-scim-provisioning`
+(en, pt, fr):
+
+- **Authentication** gains `scim` (what it does, *Before you turn it on*, the token, what the
+  provider does to accounts, then each provider: Entra, Okta, authentik, Keycloak, Auth0, other),
+  `scim-groups` and `scim-endpoints` (the spec's API page, as a section: the Documentation has no
+  API topic). The topic's summary, the overview (SCIM cuts a leaver off at the next sync) and
+  *Lockout* (`disable-sso` turns SCIM off; `rotate-secret` doesn't touch SCIM tokens;
+  `revoke-access --everyone` revokes them) change. Both `topics.ts` files gain the three ids.
+- **Admin:** Users' badges and their Disable/Enable warning; the audit log's SCIM events.
+- **Incidents:** `revoke-access` and `disable-sso` and SCIM; a new *Someone left*; a provider
+  whose SCIM may have been misused.
+- **Vendors, checked 2026-10-18:** Entra's current page makes a provisioning *New configuration*
+  with an authentication method (Bearer: Tenant URL, Secret Token), maps `mailNickname` to users'
+  `externalId` and `objectId` to groups', and syncs about every 40 minutes; Okta turns SCIM on in
+  the OIDC app's General tab (App Settings, Provisioning: SCIM), then Provisioning › Integration
+  (HTTP Header) and To App; authentik's SCIM provider is a backchannel provider of the application;
+  Keycloak sends SCIM only through community extensions (its own outbound SCIM is a proposal,
+  keycloak#53837); Auth0 has no SCIM client for applications (its SCIM receives users; Event
+  Streams can drive your own code). The app's SCIM section had Entra's older "mode Automatic" and
+  Okta's steps loosely: both now say what those pages say.
+- **After the blind pass** (rows 9–12): `scim-endpoints` says only a PATCH of `emails` changes
+  the email (a PUT takes `userName`, as the spec's PUT row says), which filters Users and Groups
+  each take, and `mutability` among the 400s; *Delete* and the `scim-managed` helper no longer say
+  root erases the account (103 is planned); the audit sentence says the SCIM events have no actor,
+  are marked as through SCIM, and member changes name the provider; the app's Entra step says
+  *Attribute mapping*, as Entra's page and the docs do. (The marketplace's `topics.ts` gained only
+  `scim-endpoints`: `scim` and `scim-groups` came with task 6.) pt and fr follow.
