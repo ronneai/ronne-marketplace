@@ -563,3 +563,36 @@ Witnessed: 2026-10-17 22:13 EDT, by a fresh agent (adversarial). Commit: 0a99e0a
 | 11 | The feature's other docs and code carry no leftovers of voiding | no | confirmed | `PLAN.md:118` and `:160` marked superseded by task 9, a Task 9 note at `:189`; `describeDeviceGrant` without `const user`; biome clean, `tsc --noEmit -p apps/web` exit 0; 29 passed on SQLite, 19 on PostgreSQL |
 
 **Overall:** met.
+
+## Task 7 — End-to-end
+
+Witnessed: 2026-10-17 22:27 EDT, by a fresh agent (blind). Commit: 6e52b6da + working tree (apps/web/e2e). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The spec passes on desktop and phone (and phone-webkit, tablet) | no | confirmed | `npx playwright test e2e/device.e2e.ts e2e/device.mobile.e2e.ts --project chromium --project phone --project phone-webkit --project tablet` → 4 passed (1.6m) |
+| 2 | A real `rmk` process runs against the built server | no | confirmed | `device.ts:18,32-36` spawns `dist/bin.js login --web --no-browser`, its own HOME, no RMK_TOKEN; the code is read from its stderr |
+| 3 | Approve signs rmk in, and the token works | no | confirmed | "Approved" status, exit 0, `as <user>`, `rmk whoami`, "browser approval" on /account/tokens |
+| 4 | Signing in midway returns to `/device` with the code | no | partly | Password sign-in covered (`device.ts:113-117`); a provider (106) sign-in midway isn't driven |
+| 5 | Deny: rmk stops with exit 1 and says so | no | confirmed | A preload that reads `access_denied` as pending → the test times out |
+| 6 | Expiry: rmk stops and says so; the page rejects the code | no | confirmed | `expires_at` moved into the past in the database; exit 1 with "expired before it was approved"; "That code isn't valid or has expired." |
+| 7 | A two-factor account can log in with the flow | no | confirmed | Two-factor turned on in the UI, then a code approved; rmk exits 0. Gaps: the sign-in's second step isn't exercised, and "a password alone makes no token" isn't asserted |
+| 8 | Each project has its own seeded people | no | confirmed | 8 new users in `users.ts`, `mobile.ts`; seeded by `seed.ts:53` |
+
+**Overall:** not met: a provider sign-in midway back to `/device` isn't driven (4).
+
+### Re-check 1, the fixes
+
+`sso.ts`'s flow now has Ann, made by the provider and with no password, open a code's link signed out, sign in with the provider, come back to `/device?user_code=…`, approve, and `rmk whoami` shows her. The two-factor case now asserts the password exchange answers `two_factor_required`, then signs in from the code's link through the password and the second step, back to the code, and approves. Device and SSO specs on chromium, phone, phone-webkit and tablet → 8 passed.
+
+### Re-check 1 (blind: rows 4 and 7, plus what the diff touches)
+
+Witnessed: 2026-10-17 22:55 EDT, by a fresh agent (blind). Commit: 6e52b6da + working tree (apps/web/e2e). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4 | Signing in midway comes back to `/device` with the code, by password and through a provider | no | confirmed | Device and SSO specs on chromium and phone → 4 passed. `sso.ts:131-141`: a signed-out Ann (no password) opens the code's link, signs in with the provider, comes back to `/device?user_code=`, approves; rmk exits 0, `whoami` shows her. The URL wait can't pass early: `next` is encoded on the sign-in address |
+| 7 | A two-factor account signs rmk in with the browser flow, and a password alone can't | no | confirmed | `POST /api/v1/auth/token` → 401 `two_factor_required`; then the code's link → password → `/sign-in/two-factor` → TOTP → back to `/device?user_code=` → approve; rmk exits 0 |
+| 9 | `device.ts` exports `startRmk`, `whoami`, `confirm`; the SSO run uses them in its own HOME | no | confirmed | `sso.ts:10`, `:129` (`mkdtempSync`, removed in `finally`) |
+
+**Overall:** met.

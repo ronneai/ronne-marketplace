@@ -1,10 +1,13 @@
 import { execFileSync } from "node:child_process";
-import { resolve } from "node:path";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { type Browser, expect, type Page } from "@playwright/test";
 import {
   type FakeOidc,
   startFakeOidc,
 } from "../src/server/domains/identity/testing/fake-oidc-server";
+import { confirm, startRmk, whoami } from "./device";
 import type { Instance } from "./harness";
 import { E2E_PASSWORD, E2E_WORKSPACE } from "./users";
 
@@ -121,6 +124,25 @@ export const ssoFlow = async ({
     // The path itself: the sign-in page's own address (`?next=/catalogue`) ends the same way.
     await expect(ann.page).toHaveURL((url) => url.pathname === "/catalogue");
     await ann.context.close();
+
+    // Ann has no password here: she signs rmk in by approving its code, through the provider (107).
+    const rmkHome = mkdtempSync(join(tmpdir(), "rmk-e2e-sso-"));
+    try {
+      const rmk = await startRmk(rmkHome, `rmk on ${suffix}`);
+      const annAgain = await signedOut(browser, baseURL);
+      await annAgain.page.goto(`/device?user_code=${rmk.code}`);
+      await annAgain.page.getByRole("button", { name: `Continue with ${NAME}` }).click();
+      await expect(annAgain.page).toHaveURL(/\/device\?user_code=/);
+      await confirm(annAgain.page, `rmk on ${suffix}`);
+      await annAgain.page.getByRole("button", { name: "Approve" }).click();
+      await expect(annAgain.page.getByRole("status").filter({ hasText: "Approved" })).toBeVisible();
+      const done = await rmk.done;
+      expect(done.status, done.err).toBe(0);
+      expect(whoami(rmkHome)).toContain(ANN);
+      await annAgain.context.close();
+    } finally {
+      rmSync(rmkHome, { recursive: true, force: true });
+    }
     await page.goto(`/admin/users?search=${encodeURIComponent(ANN)}`);
     const annRow = page.getByRole("row", { name: new RegExp(ANN) });
     await expect(annRow).toBeVisible();

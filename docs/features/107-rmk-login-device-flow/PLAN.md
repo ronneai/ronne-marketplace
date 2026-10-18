@@ -44,7 +44,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   to run when signed out.
   *Done when:* tests cover both, with and without a token.
 
-- [ ] **7. End-to-end.** Playwright drives `/device` while a test process plays `rmk` against the
+- [x] **7. End-to-end.** Playwright drives `/device` while a test process plays `rmk` against the
   built server: approve, deny, expiry, and with a two-factor account.
   *Done when:* `pnpm test:e2e` passes the spec on desktop and phone.
 
@@ -189,3 +189,11 @@ limit, 10 an hour, and the audit bound) cancel others' pending codes, and they r
 **Task 9, no voiding (2026-10-17).** Migration 0027 lost `failed_attempts` before any release, so
 no new migration was needed. The page's limits (`limitedEntry`) are the only defence; a wrong code
 writes nothing. `auth.device_voided` left the audit catalogue, the summaries and the log events.
+
+**Task 7, end to end (2026-10-17).** `e2e/device.ts` runs a real `rmk login --web --no-browser`
+(`packages/cli/dist/bin.js`, its own `HOME`) against the built server and reads the code from its
+stderr; the expiry case moves the grant's `expires_at` into the past in the instance's database, as
+`two-factor-hold.e2e.ts` does with settings. Each project has its own two people (`device`,
+`deviceTwoFactor` and the phone, WebKit and tablet ones) for the sign-in limit. A `Notice`'s title
+reads `INFO:Approved` in the accessibility tree: match the `status` role with `hasText`, not exact
+text.
