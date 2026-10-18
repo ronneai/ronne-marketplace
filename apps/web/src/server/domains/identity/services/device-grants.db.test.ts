@@ -408,18 +408,6 @@ describe("approving", () => {
     }
   });
 
-  it("never decides a grant with 5 wrong codes counted, even when its look-up came first", async () => {
-    // The look-up said it was live; guesses still in flight were counted afterwards.
-    const grant = await start();
-    const row = await t.db.selectFrom("device_grants").select("id").executeTakeFirstOrThrow();
-    await t.db.updateTable("device_grants").set({ failed_attempts: 5 }).execute();
-    const decision = { status: "approved" as const, userId: ana.id, approverIp: null, maxWrong: 5 };
-    expect(await deps.grants.decide(row.id, decision, clock)).toBe(false);
-    await t.db.updateTable("device_grants").set({ failed_attempts: 4 }).execute();
-    expect(await deps.grants.decide(row.id, decision, clock)).toBe(true);
-    expect(await poll(grant)).toMatchObject({ ok: true });
-  });
-
   it("lets only the first of two approvals at once count", async () => {
     const grant = await start();
     const results = await Promise.all([approve(ana, grant.userCode), approve(ben, grant.userCode)]);
@@ -428,72 +416,26 @@ describe("approving", () => {
     expect(await events("auth.device_approved")).toHaveLength(1);
   });
 
-  it("voids every pending code after 5 wrong codes, but not for malformed, used or expired ones", async () => {
+  it("changes no grant for a wrong code, however many (owner, 2026-10-17)", async () => {
     const pending = await start();
-    const used = await start();
-    await denyDeviceGrant(deps, { user: ben, ip: null }, used.userCode);
-    const expiring = await start();
-    advance(300);
-    const fresh = await start();
-    const approvedFresh = await start();
-    expect(await approve(ben, approvedFresh.userCode)).toMatchObject({ ok: true });
-    advance(301);
-    // Expired by now, but its row is still kept.
-    expect(await approve(ana, expiring.userCode)).toEqual({ ok: false, error: "invalid_code" });
-    for (let i = 0; i < 3; i++) {
-      expect(await approve(ana, used.userCode)).toEqual({ ok: false, error: "invalid_code" });
-      expect(await approve(ana, "ABC")).toEqual({ ok: false, error: "invalid_code" });
-      expect(await approve(ana, "ABCD-EFG!")).toEqual({ ok: false, error: "invalid_code" });
-    }
-    const wrong = (n: number) => `${"ABCDEFGH".slice(0, 7)}${USER_CODE_ALPHABET[n]}`;
-    for (let i = 0; i < 4; i++) await describeDeviceGrant(deps, { user: ana, ip: null }, wrong(i));
+    const approved = await start();
+    await approve(ben, approved.userCode);
+    const before = await t.db.selectFrom("device_grants").selectAll().orderBy("id").execute();
+    for (let i = 0; i < 25; i++)
+      expect(
+        await describeDeviceGrant(
+          deps,
+          { user: ana, ip: null },
+          `ABCDEFG${USER_CODE_ALPHABET[i % USER_CODE_ALPHABET.length]}`,
+        ),
+      ).toEqual({ ok: false, error: "invalid_code" });
+    expect(await t.db.selectFrom("device_grants").selectAll().orderBy("id").execute()).toEqual(
+      before,
+    );
+    expect(await approve(ana, pending.userCode)).toMatchObject({ ok: true });
+    expect(await poll(approved)).toMatchObject({ ok: true });
     expect(
-      (
-        await t.db
-          .selectFrom("device_grants")
-          .select("failed_attempts")
-          .where("user_code", "=", fresh.userCode)
-          .executeTakeFirstOrThrow()
-      ).failed_attempts,
-    ).toBe(4);
-    expect(await describeDeviceGrant(deps, { user: ben, ip: null }, fresh.userCode)).toMatchObject({
-      ok: true,
-    });
-
-    await approve(ben, wrong(4));
-    expect(await approve(ben, fresh.userCode)).toEqual({ ok: false, error: "invalid_code" });
-    expect(await poll(fresh)).toEqual({ ok: false, error: "expired_token" });
-    // A code that expired before the wrong entries isn't voided, only expired.
-    expect(await poll(pending)).toEqual({ ok: false, error: "expired_token" });
-    const statuses = await t.db
-      .selectFrom("device_grants")
-      .select(["user_code", "status"])
-      .execute();
-    const [voided] = await events("auth.device_voided");
-    expect(voided).toMatchObject({ actorId: ben.id, metadata: { count: 1 } });
-    expect(Object.fromEntries(statuses.map((r) => [r.user_code, r.status]))).toEqual({
-      [pending.userCode]: "expired",
-      [used.userCode]: "denied",
-      // Past its expiry, but neither polled nor swept yet: the next start marks it.
-      [expiring.userCode]: "pending",
-      [fresh.userCode]: "voided",
-      // Decided before the wrong codes: only pending codes are voided.
-      [approvedFresh.userCode]: "approved",
-    });
-    // Only pending, unexpired grants counted the wrong codes.
-    const attempts = await t.db
-      .selectFrom("device_grants")
-      .select(["user_code", "failed_attempts"])
-      .execute();
-    expect(
-      Object.fromEntries(attempts.map((r) => [r.user_code, Number(r.failed_attempts)])),
-    ).toEqual({
-      [pending.userCode]: 0,
-      [used.userCode]: 0,
-      [expiring.userCode]: 0,
-      [fresh.userCode]: 5,
-      [approvedFresh.userCode]: 0,
-    });
-    expect(await poll(approvedFresh)).toMatchObject({ ok: true });
+      (await t.db.selectFrom("audit_log").select("action").execute()).map((r) => r.action),
+    ).not.toContain("auth.device_voided");
   });
 });

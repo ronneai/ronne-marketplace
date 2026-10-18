@@ -28,8 +28,6 @@ export interface DeviceGrantRepository {
       status: "approved" | "denied";
       userId: string;
       approverIp: string | null;
-      /** Refused once this many wrong codes were counted against it. */
-      maxWrong: number;
     },
     now: Date,
   ): Promise<boolean>;
@@ -42,11 +40,6 @@ export interface DeviceGrantRepository {
   transition(id: string, from: DeviceGrantStatus[], to: DeviceGrantStatus): Promise<boolean>;
   /** Records a poll at `now`, with the interval the next poll must wait. */
   markPolled(id: string, now: Date, intervalSeconds: number): Promise<void>;
-  /**
-   * A wrong code was entered: counts it against every grant still pending at `now`, and voids
-   * those that reach `max`. Returns how many it voided.
-   */
-  countWrongCode(now: Date, max: number): Promise<number>;
   /** Up to `limit` pending or approved grants past their expiry at `now`, oldest first. */
   listUnusedExpired(now: Date, limit: number): Promise<DeviceGrant[]>;
   /** Deletes grants that expired before `before`, except those still pending or approved. */

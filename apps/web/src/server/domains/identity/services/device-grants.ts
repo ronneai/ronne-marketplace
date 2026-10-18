@@ -5,7 +5,6 @@ import {
   DEVICE_GRANT_KEEP_MS,
   DEVICE_GRANT_TTL_SECONDS,
   DEVICE_GRANT_TYPE,
-  DEVICE_MAX_WRONG_CODES,
   DEVICE_POLL_INTERVAL_SECONDS,
   DEVICE_SLOW_DOWN_SECONDS,
   type DeviceGrant,
@@ -149,41 +148,21 @@ export type InvalidCode = { ok: false; error: "invalid_code" };
 const INVALID: InvalidCode = { ok: false, error: "invalid_code" };
 
 const isLive = (grant: DeviceGrant, at: Date) =>
-  grant.status === "pending" &&
-  grant.expiresAt.getTime() > at.getTime() &&
-  grant.failedAttempts < DEVICE_MAX_WRONG_CODES;
+  grant.status === "pending" && grant.expiresAt.getTime() > at.getTime();
 
 /**
- * Finds the pending grant a typed code names. A well-formed code that matches no grant is a wrong
- * code: it counts against every pending grant, and voids those it takes to 5 (SPEC, *Brute force*).
- * A used, expired or malformed code is refused without counting.
+ * Finds the pending grant a typed code names. A wrong code changes nothing: the page's limits
+ * (actions/device-grants.ts) are what stop guessing (owner, 2026-10-17; SPEC, *Brute force*).
  */
 const findLive = async (
   deps: DeviceGrantDeps,
-  actor: { userId: string; ip: string | null },
   typed: string,
   at: Date,
 ): Promise<DeviceGrant | null> => {
   const code = normalizeUserCode(typed);
   if (code === null) return null;
   const grant = await deps.grants.findByUserCode(code);
-  if (!grant) {
-    const voided = await deps.grants.countWrongCode(at, DEVICE_MAX_WRONG_CODES);
-    if (voided > 0) {
-      log.event("auth.device_voided", { count: voided });
-      await deps.grants.recordAudit(
-        {
-          actorId: actor.userId,
-          action: "auth.device_voided",
-          target: { type: "none" },
-          metadata: { count: voided },
-          ipAddress: actor.ip,
-        },
-        at,
-      );
-    }
-    return null;
-  }
+  if (!grant) return null;
   return isLive(grant, at) ? grant : null;
 };
 
@@ -196,8 +175,7 @@ export const describeDeviceGrant = async (
   typed: string,
 ): Promise<{ ok: true; request: GrantRequest } | InvalidCode> => {
   requirePermission(actor.user, "account.manage_own");
-  const user = actor.user as CurrentUser;
-  const grant = await findLive(deps, { userId: user.id, ip: actor.ip }, typed, now(deps));
+  const grant = await findLive(deps, typed, now(deps));
   if (!grant) return INVALID;
   const { userCode, clientId, name, requesterIp, createdAt, expiresAt } = grant;
   return { ok: true, request: { userCode, clientId, name, requesterIp, createdAt, expiresAt } };
@@ -223,15 +201,9 @@ const decide = async (
   const user = actor.user as CurrentUser;
   const at = now(deps);
   if (!(await deps.identity.findActiveUser(user.id))) return { ok: false, error: "user_disabled" };
-  const grant = await findLive(deps, { userId: user.id, ip: actor.ip }, typed, at);
+  const grant = await findLive(deps, typed, at);
   if (!grant) return INVALID;
-  // Not once 5 wrong codes were counted, even by guesses still in flight when it was looked up.
-  const decision = {
-    status,
-    userId: user.id,
-    approverIp: actor.ip,
-    maxWrong: DEVICE_MAX_WRONG_CODES,
-  };
+  const decision = { status, userId: user.id, approverIp: actor.ip };
   if (!(await deps.grants.decide(grant.id, decision, at))) return INVALID;
   await deps.grants.recordAudit(
     {
@@ -304,7 +276,7 @@ export const exchangeDeviceCode = async (
   await deps.grants.markPolled(grant.id, at, interval);
   if (tooSoon) return fail("slow_down");
 
-  if (grant.status === "voided" || grant.status === "expired") return fail("expired_token");
+  if (grant.status === "expired") return fail("expired_token");
   if (grant.expiresAt.getTime() <= at.getTime()) {
     await expire(deps, grant, at, context.ip);
     return fail("expired_token");

@@ -52,7 +52,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* the docs render tests pass in ronne-web, the helper link test passes here, and the
   CLI panel's test shows the fourth line.
 
-- [ ] **9. No voiding on wrong codes.** [risky] The owner's answer to the open question
+- [x] **9. No voiding on wrong codes.** [risky] The owner's answer to the open question
   (2026-10-17): wrong codes no longer void pending codes, since anyone signed in could cancel
   others' logins that way; the rate limits (5 a minute per address, 10 an hour per person) and 31⁸
   codes are enough. Take `failed_attempts` out of migration 0027 (not released yet) and the
@@ -115,12 +115,13 @@ service, and with the plugin not loaded no route of it exists. **Chosen: `device
 (SPEC.md *The server* and Decision 3). No dependency is added; `pnpm licenses:check` and
 `pnpm audit --audit-level high` pass as before.
 
-**Wrong codes, voided** (SPEC.md, *Brute force*): a wrong code can't be attributed to one grant,
+**Wrong codes, voided** (superseded by task 9: the owner chose no voiding, 2026-10-17; kept as
+the record of what was built first): a wrong code can't be attributed to one grant,
 so each wrong entry counts against every pending grant, and 5 void them. The cost: on a busy
 instance, five typos within ten minutes (or a person doing it on purpose, which the per-person
 limit, 10 an hour, and the audit bound) cancel others' pending codes, and they run
-`rmk login --web` again. Only a well-formed code that matches no grant counts. Owner to confirm
-(SPEC.md, Open questions). Rows stay a day past expiry, so a late poll still gets `expired_token`.
+`rmk login --web` again. Only a well-formed code that matches no grant counts. The owner then chose no voiding
+(task 9). Rows stay a day past expiry, so a late poll still gets `expired_token`.
 
 **Task 2, storage and service (2026-10-17).**
 
@@ -156,8 +157,8 @@ limit, 10 an hour, and the audit bound) cancel others' pending codes, and they r
   happen with no `await` between, and a right code gives its count back (`LoginRateLimiter.release`).
   Checking, awaiting the database, then recording let 40 concurrent entries through on PostgreSQL
   and MySQL (the adversarial witness); SQLite hid it.
-- `decide` also needs `failed_attempts < 5`, so guesses still in flight when a code was looked up
-  still stop it.
+- (Superseded by task 9.) `decide` also needed `failed_attempts < 5`, so guesses still in flight
+  stopped a code; with no voiding there's no count.
 - `holdPage` keeps the way back only for `/device` (`RETURN_AFTER_HOLD`): `hold.test.ts` needs
   `await holdPage();` first, so it reads the path from `x-ronne-path` itself.
 - A held person can't use the page's action: `deviceCodeFromForm` is a plain `serverAction`
@@ -184,3 +185,7 @@ limit, 10 an hour, and the audit bound) cancel others' pending codes, and they r
 - The signed-out messages (`connect.ts`, and `config.ts` with no registry) name `rmk login --web`;
   `rmk-mcp` shows the same text, so its tests need rmk rebuilt first (`pnpm --filter @ronneai/rmk build`).
 - A web login that fails during `mcp-setup` stops it before anything is registered.
+
+**Task 9, no voiding (2026-10-17).** Migration 0027 lost `failed_attempts` before any release, so
+no new migration was needed. The page's limits (`limitedEntry`) are the only defence; a wrong code
+writes nothing. `auth.device_voided` left the audit catalogue, the summaries and the log events.

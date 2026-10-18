@@ -517,3 +517,49 @@ Witnessed: 2026-10-17 22:04 EDT, by a fresh agent (blind). Commit: b48c5cd4 + wo
 | 8 | The changed message breaks no other test, and both packages type-check | no | confirmed | rmk 23 files, 285 passed; mcp 5 files, 53 passed; `tsc --noEmit` on both |
 
 **Overall:** met.
+
+## Task 9 — No voiding on wrong codes
+
+Witnessed: 2026-10-17 22:09 EDT, by a fresh agent (blind). Commit: 0a99e0a9 + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A wrong code changes no other grant (no voiding, no counter) | no | confirmed | `services/device-grants.ts:157-167`: no write when nothing matches; `grep -rn "failed_attempts\|failedAttempts\|countWrongCode\|maxWrong" apps/web/src` → nothing; mutation (a wrong code expires every pending grant) → 2 tests fail |
+| 2 | `failed_attempts` is gone from migration 0027, the schema, the model, the repository and the service | no | confirmed | `git diff 0a99e0a9`; the `voided` status and branch are gone too; `tsc --noEmit -p apps/web` → no errors; no tag contains 0027's commit |
+| 3 | The limits still hold on the four databases | no | confirmed | The 4 device files: 43 passed on SQLite, PostgreSQL, MySQL and MariaDB; mutation (limits 6 and 11) → 4 limit tests fail |
+| 4 | No `auth.device_voided` in the audit catalogue, its summaries or the log events | no | confirmed | Removed from `AUDIT_ACTIONS`, `SUMMARIES` (typed by `AuditAction`), `log/events.ts`; `grep` → only the test asserting it's absent; `summary.test.ts` → 5 passed; nothing in ronne-web's docs |
+| 5 | SPEC.md says the rate limits are the defence | no | confirmed | Brute force rewritten (50/31⁸ ≈ 1 in 17 billion checked); `expired_token` row "past `expires_in`"; Decision 4 added; the open question removed |
+
+**Overall:** met. Remark: `describeDeviceGrant` keeps an unused `user`.
+
+Witnessed: 2026-10-17 22:16 EDT, by a fresh agent (adversarial). Commit: 0a99e0a9 + working tree (13 files). Machine: macOS 27, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A wrong code writes to no grant row | no | confirmed | Every write in the repository is by id or the prune; probes P1 (40 concurrent wrong entries) and P5 (odd inputs, 100 000 characters) → the table unchanged on all four dialects |
+| 2 | The tests catch a wrong code changing a grant | no | confirmed | Mutants (status or `interval_seconds` changed on a miss) → tests fail |
+| 3 | The page's limits still hold on all four databases | no | confirmed | 43 passed on each; P1 → exactly 10 `invalid_code`, 30 `rate_limited`; P3 (rotating header, no proxy) and P4 (two people, one address) limited |
+| 4 | The tests catch the limits being dropped | no | confirmed | Mutant (release on `invalid_code`) → 4 tests fail |
+| 5 | No way round the limits now that voiding is gone | no | confirmed | Describe, approve and deny share the buckets; the API routes take no user code; 10×5/31⁸ = 1 in 17.06 billion |
+| 6 | No deadlock without the old ordered lock | no | confirmed | P2 (40 wrong entries, an approve, 4 polls at once) → 0 rejections on PG, MySQL and MariaDB |
+| 7 | `failed_attempts` is out of 0027, and 0027 wasn't released | no | confirmed | `git merge-base --is-ancestor b7bcc3da main` → not on main (latest tag v0.4.0) |
+| 8 | No `voided` status or dead `expired_token` path left | no | confirmed | `git grep` → only 105's two-factor hits; typecheck exit 0 |
+| 9 | No `auth.device_voided` in the catalogue, summaries or log events | no | confirmed | 142 passed in admin-audit, audit and log |
+| 10 | SPEC.md says the rate limits are the defence | no | confirmed | `SPEC.md:81-87`, `:98`, `:124`, Decision 4 at `:218-220` |
+| 11 | The feature's other docs and code carry no leftovers | no | partly | `PLAN.md:118-121` and `:159-160` describe voiding as current; `services/device-grants.ts:178` unused `user` |
+
+**Overall:** not met: leftovers in PLAN.md's Notes and an unused variable (11).
+
+### Re-check 1, the fixes
+
+Both Notes are marked as superseded by task 9, and the unused `user` is removed.
+
+### Re-check 1 (adversarial: row 11)
+
+Witnessed: 2026-10-17 22:13 EDT, by a fresh agent (adversarial). Commit: 0a99e0a9 + working tree. Machine: macOS 27, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 11 | The feature's other docs and code carry no leftovers of voiding | no | confirmed | `PLAN.md:118` and `:160` marked superseded by task 9, a Task 9 note at `:189`; `describeDeviceGrant` without `const user`; biome clean, `tsc --noEmit -p apps/web` exit 0; 29 passed on SQLite, 19 on PostgreSQL |
+
+**Overall:** met.

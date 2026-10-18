@@ -67,8 +67,6 @@ describe("0027_device_grants", () => {
     };
     expect(await twice({ userCode: "WDJBMJHT", hash: "b".repeat(64) })).toBe(true);
     expect(await twice({ userCode: "XXXXXXXX", hash: "a".repeat(64) })).toBe(true);
-    const row = await t.db.selectFrom("device_grants").selectAll().executeTakeFirstOrThrow();
-    expect(row.failed_attempts).toBe(0);
   });
 
   it("deletes a user's grants with the user", async () => {

@@ -28,8 +28,7 @@ signed in, and `rmk` receives a personal access token, the same token as before 
 - **Account › Access tokens** lists these tokens like any other, named `rmk on <host>`, and shows
   how it was made (*browser approval*).
 - **Audit events** (007): `auth.device_started` (anonymous, with the request's address),
-  `auth.device_approved`, `auth.device_denied`, `auth.device_expired`, `auth.device_voided` (the
-  person whose wrong entry voided pending codes, with the address and how many), and
+  `auth.device_approved`, `auth.device_denied`, `auth.device_expired`, and
   `access_token.created { via: "device" }` on exchange.
 
 **Out** (and where it goes instead):
@@ -82,14 +81,10 @@ page shows the name isolated (`<bdi>`) all the same.
 - **Brute force:** at most 5 wrong codes a minute per client address (when `TRUST_PROXY`) and 10 per
   person per hour, then 429. Every refused entry counts there (wrong, used, expired or malformed),
   so the limit tells nothing about which it was. An entry is counted when it arrives and taken
-  back once the code was right, so a burst of requests can't all pass. A code is refused once 5
-  wrong codes were counted against it, even one looked up just before. A code that has been tried wrongly 5 times in
-  total is voided. A wrong code can't say which code it was aimed at, so every wrong entry counts
-  against every code still pending, and at 5 they are voided (polling then answers
-  `expired_token`, and the page the "isn't valid" message). A wrong entry is a well-formed code
-  that matches no grant; a malformed one doesn't count, nor a used or expired one while its row is
-  kept (a day past expiry). Guessing is then at most 5 tries against 31⁸ codes (the 31 characters
-  left once `0 O 1 I L` are out) in each code's 10 minutes.
+  back once the code was right, so a burst of requests can't all pass. A wrong code changes no
+  grant: nothing is voided, so nobody can cancel someone else's login by typing wrong codes
+  (Decision 4). One person guessing gets 10 tries an hour against 31⁸ codes (the 31 characters
+  left once `0 O 1 I L` are out): with 5 codes waiting, about 1 in 17 billion an hour.
 
 **Polling.** `rmk` calls `POST /api/v1/auth/device/token` with
 `{ "grant_type": "urn:ietf:params:oauth:grant-type:device_code", "device_code", "client_id" }`
@@ -100,7 +95,7 @@ every `interval` seconds. Responses, as RFC 8628:
 | 400 | `authorization_pending` | not decided yet |
 | 400 | `slow_down` | polled faster than `interval` (the interval grows by 5 s) |
 | 400 | `access_denied` | the person pressed Deny |
-| 400 | `expired_token` | past `expires_in`, or voided by wrong codes (*Brute force*) |
+| 400 | `expired_token` | past `expires_in` |
 | 400 | `invalid_grant` | unknown or already used |
 | 200 | — | `{ "token": "rmk_…", "id", "name", "expiresAt" }`, a **90-day** token, **once**: the code is spent |
 
@@ -126,11 +121,11 @@ session is made.
 
 A grant row keeps: the device code's SHA-256 hash; the user code (unique among the rows kept: a
 new code that collides is drawn again); the client id; the token's name; the requester's address
-(when `TRUST_PROXY`); the status (`pending`, `approved`, `denied`, `spent`, `voided`, `expired`);
-the approver; the polling interval and the last poll; the wrong attempts; and its times. Rows are
+(when `TRUST_PROXY`); the status (`pending`, `approved`, `denied`, `spent`, `expired`);
+the approver; the polling interval and the last poll; and its times. Rows are
 deleted a day after they expire, when a new code is asked for, so a late poll still gets
 `expired_token`. `auth.device_expired` is written once per grant that ends unused (pending or
-approved; a voided one has `auth.device_voided` instead), by the conditional update that sets it
+approved), by the conditional update that sets it
 to `expired`, when it is first seen past its expiry: at a poll, or when the next code is asked for
 (which sweeps the pending and approved grants past their expiry).
 
@@ -197,7 +192,7 @@ password (105, 106), so those codes tell `rmk` which message to print without he
 - [ ] An SSO-only account (no password) and a two-factor account can log in with it; `rmk login`
   falls back to it with a clear message for both.
 - [ ] The device code is stored only as a hash, the user code is not guessable in the allowed attempts
-  (rate limits and voiding are tested), and approving is a POST form, never a GET link.
+  (the rate limits are tested), and approving is a POST form, never a GET link.
 - [ ] No web session remains after an exchange, and none of the plugin's HTTP routes is reachable
   (`/api/auth/device/*` is a 404).
 - [ ] `rmk mcp-setup` with no token offers the web login, and with one does not.
@@ -220,14 +215,11 @@ password (105, 106), so those codes tell `rmk` which message to print without he
    the session and hold the name and address, but not those. Ronne's table keeps a hash and spends
    the grant once before the token is made. The error shape and
    the audit are Ronne's either way.
+4. **No voiding on wrong codes** (owner, 2026-10-17): voiding every pending code after 5 wrong
+   entries stopped guessing, but let anyone signed in cancel others' logins. The rate limits and
+   31⁸ codes make a guess negligible (*Brute force*), so a wrong code changes nothing (task 9).
 
 ## Open questions
-
-- **Voiding on wrong codes** (task 1, for the owner): as specified, five wrong entries anywhere void
-  every pending code, so a signed-in member (10 an hour) can cancel others' codes, even one being
-  approved; it is audited and they run `rmk login --web` again. The alternative is to drop voiding
-  and rely on the rate limits and 31⁸ codes (row 11 of task 1's adversarial pass: about 5N/31⁸).
-  Built as specified until the owner decides.
 
 - **Name of the token** from the browser: `rmk on <host>` is what 009 uses. Let the approver rename
   it on the `/device` page? (Left out: the name comes from `rmk`.)

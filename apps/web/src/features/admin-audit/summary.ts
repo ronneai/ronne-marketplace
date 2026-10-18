@@ -229,9 +229,6 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     { name: text(m.name) },
     " expired before it was used",
   ],
-  "auth.device_voided": (m) => [
-    `A wrong sign-in code voided ${plural(num(m.count), "pending code")} (too many wrong codes)`,
-  ],
   "auth.sign_in_failed": (m) => [
     "Failed sign-in for ",
     { name: text(m.email) || "an unknown email" },

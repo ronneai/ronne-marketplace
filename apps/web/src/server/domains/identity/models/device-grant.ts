@@ -20,9 +20,6 @@ export const DEVICE_POLL_INTERVAL_SECONDS = 5;
 /** RFC 8628 §3.5: each `slow_down` adds 5 seconds to the interval. */
 export const DEVICE_SLOW_DOWN_SECONDS = 5;
 
-/** Wrong codes entered while a code is pending, before it's voided. */
-export const DEVICE_MAX_WRONG_CODES = 5;
-
 /** Rows are deleted this long after they expire, so a late poll still gets `expired_token`. */
 export const DEVICE_GRANT_KEEP_MS = 24 * 60 * 60 * 1000;
 
@@ -30,7 +27,7 @@ export const DEVICE_GRANT_KEEP_MS = 24 * 60 * 60 * 1000;
 export const USER_CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 export const USER_CODE_LENGTH = 8;
 
-export type DeviceGrantStatus = "pending" | "approved" | "denied" | "spent" | "voided" | "expired";
+export type DeviceGrantStatus = "pending" | "approved" | "denied" | "spent" | "expired";
 
 /** A grant as the service sees it. The device code itself is never kept, only its hash. */
 export type DeviceGrant = {
@@ -42,7 +39,6 @@ export type DeviceGrant = {
   userId: string | null;
   requesterIp: string | null;
   intervalSeconds: number;
-  failedAttempts: number;
   lastPolledAt: Date | null;
   createdAt: Date;
   expiresAt: Date;

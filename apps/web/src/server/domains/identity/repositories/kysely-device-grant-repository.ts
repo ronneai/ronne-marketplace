@@ -1,7 +1,7 @@
 import type { Kysely, Selectable } from "kysely";
 import { fromDbDate, toDbDate } from "../../../db/dates";
 import { newId } from "../../../db/ids";
-import { forUpdate, isUniqueViolation, retryOnDeadlock } from "../../../db/locks";
+import { isUniqueViolation, retryOnDeadlock } from "../../../db/locks";
 import type { Database, DeviceGrantTable } from "../../../db/schema";
 import type { DatabaseDialect } from "../../../db/url";
 import { recordAudit } from "../../audit/actions/audit";
@@ -17,7 +17,6 @@ const COLUMNS = [
   "user_id",
   "requester_ip",
   "interval_seconds",
-  "failed_attempts",
   "last_polled_at",
   "created_at",
   "expires_at",
@@ -34,7 +33,6 @@ const grant = (row: Row): DeviceGrant => ({
   userId: row.user_id,
   requesterIp: row.requester_ip,
   intervalSeconds: Number(row.interval_seconds),
-  failedAttempts: Number(row.failed_attempts),
   lastPolledAt: fromDbDate(row.last_polled_at),
   createdAt: fromDbDate(row.created_at),
   expiresAt: fromDbDate(row.expires_at),
@@ -46,8 +44,8 @@ export const kyselyDeviceGrantRepository = (
 ): DeviceGrantRepository => {
   const at = (date: Date) => toDbDate(date, dialect);
   const changed = (result: { numUpdatedRows: bigint }) => Number(result.numUpdatedRows) > 0;
-  // A wrong code's update touches every pending row while a decision or a poll updates one: MySQL
-  // and MariaDB can end that in a deadlock. Each statement stands alone, so it's simply run again.
+  // Foreign-key checks take shared locks on the user row, so updates of grants at the same moment can
+  // still meet in a deadlock on MySQL and MariaDB. Each statement stands alone: it's run again.
   const write = retryOnDeadlock;
 
   return {
@@ -113,7 +111,6 @@ export const kyselyDeviceGrantRepository = (
             .where("id", "=", id)
             .where("status", "=", "pending")
             .where("expires_at", ">", at(now))
-            .where("failed_attempts", "<", decision.maxWrong)
             .executeTakeFirst(),
         ),
       ),
@@ -152,48 +149,6 @@ export const kyselyDeviceGrantRepository = (
           .execute(),
       );
     },
-
-    // Every pending row at once: the rows are locked in id order first, so two wrong codes at the
-    // same moment wait for each other instead of locking them in two orders (a deadlock on
-    // PostgreSQL), and one statement counts and voids.
-    countWrongCode: async (now, max) =>
-      write(() =>
-        db.transaction().execute(async (trx) => {
-          const rows = await forUpdate(
-            trx
-              .selectFrom("device_grants")
-              .select("id")
-              .where("status", "=", "pending")
-              .where("expires_at", ">", at(now))
-              .orderBy("id"),
-            dialect,
-          ).execute();
-          const ids = rows.map((row) => row.id);
-          if (ids.length === 0) return 0;
-          await trx
-            .updateTable("device_grants")
-            // `status` first: MySQL and MariaDB read a column already set earlier in the same
-            // SET, PostgreSQL and SQLite the old value; this way both see the old count.
-            .set((eb) => ({
-              status: eb
-                .case()
-                .when("failed_attempts", ">=", max - 1)
-                .then("voided")
-                .else(eb.ref("status"))
-                .end(),
-              failed_attempts: eb("failed_attempts", "+", 1),
-            }))
-            .where("id", "in", ids)
-            .execute();
-          const voided = await trx
-            .selectFrom("device_grants")
-            .select((eb) => eb.fn.countAll<number | string | bigint>().as("n"))
-            .where("id", "in", ids)
-            .where("status", "=", "voided")
-            .executeTakeFirstOrThrow();
-          return Number(voided.n);
-        }),
-      ),
 
     listUnusedExpired: async (now, limit) =>
       (

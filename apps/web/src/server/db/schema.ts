@@ -106,13 +106,12 @@ export interface DeviceGrantTable {
   user_code: string;
   client_id: string;
   name: string;
-  /** `pending`, `approved`, `denied`, `spent`, `voided` or `expired`. */
+  /** `pending`, `approved`, `denied`, `spent` or `expired`. */
   status: string;
   user_id: string | null;
   requester_ip: string | null;
   approver_ip: string | null;
   interval_seconds: number;
-  failed_attempts: Generated<number>;
   last_polled_at: Timestamp | null;
   decided_at: Timestamp | null;
   created_at: Timestamp;

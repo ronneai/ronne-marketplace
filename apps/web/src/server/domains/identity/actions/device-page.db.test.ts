@@ -149,20 +149,15 @@ describe("the /device page's actions", () => {
     });
   });
 
-  it("refuses a code once 5 wrong codes were counted against it, even one looked up before", async () => {
+  it("approves the right code after 9 wrong ones: wrong codes cancel nobody's", async () => {
     const grant = await start();
     const ana = await headersFor("ana@example.com");
-    expect((await describeMyDeviceCode(ana, grant.userCode, app, options())).ok).toBe(true);
-    // As if guesses still in flight had been counted after the look-up.
-    await t.db.updateTable("device_grants").set({ failed_attempts: 5 }).execute();
-    expect(await decideMyDeviceCode(ana, grant.userCode, "approve", app, options())).toEqual({
-      ok: false,
-      error: "invalid_code",
+    for (let i = 0; i < 9; i++)
+      await describeMyDeviceCode(ana, `ABCDEFG${"23456789A"[i]}`, app, options());
+    expect(await decideMyDeviceCode(ana, grant.userCode, "approve", app, options())).toMatchObject({
+      ok: true,
     });
-    const row = await t.db.selectFrom("device_grants").select("status").executeTakeFirstOrThrow();
-    expect(row.status).toBe("pending");
   });
-
   it("lists the token as made by browser approval in Access tokens", async () => {
     const grant = await start();
     const ana = await headersFor("ana@example.com");

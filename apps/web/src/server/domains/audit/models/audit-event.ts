@@ -32,7 +32,6 @@ export const AUDIT_ACTIONS = [
   "auth.device_approved",
   "auth.device_denied",
   "auth.device_expired",
-  "auth.device_voided",
   "user.two_factor_reset",
   "user.created",
   "user.sso_linked",

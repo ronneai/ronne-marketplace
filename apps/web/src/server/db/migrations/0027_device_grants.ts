@@ -6,8 +6,8 @@ import type { AppMigration } from "./types";
  * `rmk login --web` (feature 107): the device flow of RFC 8628. A row is one code `rmk` asked for.
  * Only the device code's SHA-256 hash is kept (`device_code_hash`); the user code is kept as typed
  * on the `/device` page (8 characters, short-lived, shown to the person anyway). `status` is
- * `pending`, `approved`, `denied`, `spent` (exchanged for a token), `voided` (too many wrong codes)
- * or `expired` (seen past `expires_at`). `user_id` is who approved or denied it; `requester_ip` and
+ * `pending`, `approved`, `denied`, `spent` (exchanged for a token) or `expired` (seen past
+ * `expires_at`). `user_id` is who approved or denied it; `requester_ip` and
  * `approver_ip` are set only when the address can be trusted (TRUST_PROXY). `interval_seconds` grows
  * on `slow_down`. A row goes with its user.
  *
@@ -32,14 +32,13 @@ export const deviceGrants: AppMigration = (dialect) => ({
       .addColumn("requester_ip", t.string(45))
       .addColumn("approver_ip", t.string(45))
       .addColumn("interval_seconds", "integer", (c) => c.notNull())
-      .addColumn("failed_attempts", "integer", (c) => c.notNull().defaultTo(0))
       .addColumn("last_polled_at", t.timestamp())
       .addColumn("decided_at", t.timestamp())
       .addColumn("created_at", t.timestamp(), (c) => c.notNull())
       .addColumn("expires_at", t.timestamp(), (c) => c.notNull())
       .$call(tableDefaults(dialect))
       .execute();
-    // Wrong codes count against every pending grant, and old rows are pruned by expiry.
+    // The sweep finds unused grants past their expiry, and old rows are pruned by it.
     await db.schema
       .createIndex("device_grants_status_expires_at_idx")
       .on("device_grants")
