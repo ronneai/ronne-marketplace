@@ -956,6 +956,46 @@ describe("the account's lock", () => {
     },
   );
 
+  it.skipIf(!servers)("makes a create wait, and see the account's email change", async () => {
+    const identity = kyselyIdentityRepository(t.db, t.dialect);
+    const id = await identity.createUserWithoutPassword(
+      { email: "moving@example.com", name: "Moving", role: "user" },
+      new Date(clock.getTime() - DAY),
+    );
+    await kyselySsoRepository(t.db, t.dialect).linkAccount(id, "acme", "sub-moving", clock);
+    await recordAudit(
+      t.db,
+      t.dialect,
+      {
+        actorId: id,
+        action: "auth.sso_signed_in",
+        target: { type: "user", id },
+        metadata: { provider: "acme" },
+      },
+      clock,
+    );
+    // Root changes the address while the create for the old one waits on the row.
+    const hold = t.db.transaction().execute(async (trx) => {
+      await trx.selectFrom("user").select("id").where("id", "=", id).forUpdate().execute();
+      await trx
+        .updateTable("user")
+        .set({ email: "moved@example.com" })
+        .where("id", "=", id)
+        .execute();
+      await sleep(500);
+    });
+    await sleep(100);
+    const r = await call(
+      "POST",
+      "/Users",
+      oktaCreate({ userName: "moving@example.com", externalId: "moving" }),
+    );
+    await hold;
+    expectScimError(r, 409, "uniqueness");
+    expect(await t.db.selectFrom("scim_users").select("id").execute()).toEqual([]);
+    expect(await events("user.scim_adopted")).toEqual([]);
+  });
+
   it.skipIf(!servers)("makes a PATCH wait, and see the account become root", async () => {
     const bob = await call("POST", "/Users", oktaCreate());
     const row = await account("bob@example.com");

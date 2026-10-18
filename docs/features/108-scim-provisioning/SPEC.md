@@ -89,7 +89,7 @@ core User and Group. These three are public, as the RFC allows.
 | `GET /Users/{id}` | one; `id` is the link's own id (`scim_users`), not the account's, so a deleted one never comes back |
 | `PUT /Users/{id}` | replace the managed fields: `userName` (the email), `name`, `active`, `externalId` |
 | `PATCH /Users/{id}` | `replace` (and `add`/`remove` where it makes sense) on `active`, `userName`, `name.*`, `displayName`, `emails`, in both the path form and the value-object form Entra and Okta each send |
-| `DELETE /Users/{id}` | deprovision (disable) and end the SCIM link, which stays as a tombstone (for *Deprovisioned by*) keeping only its `externalId`; the link leaves every group of the provider, and the memberships those groups gave go (as when a group drops a member); 204. As RFC 7644 §3.6 asks, that id then gets 404 for everything (`GET`, `PATCH`, `PUT`, a repeated `DELETE`), lists and filters leave it out, and it counts in no `uniqueness` check |
+| `DELETE /Users/{id}` | deprovision (disable) and end the SCIM link, which stays as a tombstone (for *Deprovisioned by*) keeping only its `externalId`; the link leaves every group of the provider, and every membership marked as this provider's goes (its SCIM groups', and any its sign-in gave before SCIM was on), so a re-create starts in none; 204. As RFC 7644 §3.6 asks, that id then gets 404 for everything (`GET`, `PATCH`, `PUT`, a repeated `DELETE`), lists and filters leave it out, and it counts in no `uniqueness` check |
 
 A create takes `userName` as the email: only ASCII spaces around it are trimmed, a `userName` that
 isn't plain ASCII is 400 `invalidValue` (as 106 refuses it: lowercasing folds the Kelvin sign into
@@ -111,10 +111,26 @@ User with `meta` (`resourceType`, `created`, `lastModified`, `location`). Roles,
 | `POST /Groups` | create, with members (SCIM user ids) |
 | `GET`, `PUT`, `PATCH`, `DELETE /Groups/{id}` | `PATCH` `add`/`remove` on `members` (path and value forms) and `replace` on `displayName`; DELETE removes the group and the memberships it gave |
 
-Members are SCIM user ids (live links) of this provider; an unknown or deleted id is 400
-`invalidValue`. A deleted link is in no group (`DELETE /Users` takes it out), so no group lists an
-id that answers 404. After any change, the group's mapping (106) is applied to its members and only
-those memberships marked with this provider change.
+Members are SCIM user ids (live links) of this provider, sent as `[{ value }]` (or Entra's older
+`["id"]`); an unknown or deleted id is 400 `invalidValue`, and a root named as a member is left out
+and audited (`scim.request_refused { reason: "root_member" }`). A deleted link is in no group
+(`DELETE /Users` takes it out), so no group lists an id that answers 404. A `PATCH` takes `add`,
+`remove` (`members[value eq "…"]`, a value list, or no value for all) and `replace` on `members`,
+and `replace` on `displayName` and `externalId`, with a path or as a value object; a `PUT` sets the
+name, the external id and the members exactly (members left out means none).
+`excludedAttributes=members` leaves the members out of an answer, as Entra asks when it checks a
+group exists. A duplicate `externalId` on the provider is 409 `uniqueness`; two groups may share a
+name. After any change, every member whose groups changed (all of them on a rename) gets the
+provider's mappings (106) applied again from the groups they're in, through 106's own rules: only
+those memberships marked with this provider change, a hand-set one never, root never, nobody leaves
+`global`, and two mappings to one workspace give the higher role. A mapping's group matches a SCIM
+group's `displayName` or its `externalId`, byte for byte (Entra's groups claim, and so its mappings,
+often name groups by object id). While SCIM is on for a provider, its sign-in no longer applies the
+groups claim: SCIM is the one source of that provider's groups (106's rules apply again once SCIM is
+off). Turning SCIM on, or adopting an account, changes no membership: roles the provider's sign-in
+gave before stay until the provider's first group change that includes the person, which applies the
+mappings from SCIM's groups; a `DELETE` takes them away at once (owner, 2026-10-18). The
+Documentation tells admins to assign groups in SCIM, so that change comes.
 
 **Reconciling.** One user can come from the provider's SCIM and its sign-in at once; Ronne keeps
 the link (provider, `externalId`, user) in its own table. An account has at most one SCIM link,
@@ -188,7 +204,8 @@ at the same moment) answers 409 `uniqueness`.
 
 - **Administration → Authentication** (106's topic, new sections `scim`, `scim-groups`): what SCIM
   does and doesn't, turning it on, the token, what to check before turning it on (the Ronne emails
-  of people who sign in through the provider match what it will send; leavers disabled, then and
+  of people who sign in through the provider match what it will send; groups assigned in SCIM,
+  since roles the sign-in gave stay until SCIM's groups change; leavers disabled, then and
   whenever someone outside SCIM leaves; only accounts that signed in through it in the last 30 days
   are adopted), each provider's steps (Entra, with `objectId` mapped to `externalId`; Okta,
   Authentik, Auth0; Keycloak needs a community extension and the guide says so), what deprovisioning

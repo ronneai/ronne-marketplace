@@ -40,7 +40,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   `externalId` (another's never matches, and `active: false` keeps it disabled), reactivation, a
   root, the last root, and the Entra and Okta request shapes from task 1.
 
-- [ ] **5. Groups.** [risky] Groups CRUD, `PATCH` members, the mapping (106) applied to members and
+- [x] **5. Groups.** [risky] Groups CRUD, `PATCH` members, the mapping (106) applied to members and
   only `source`-marked memberships changed, unmapped groups, a root as a member.
   *Done when:* db tests cover add, remove, rename, delete, two groups giving one workspace different
   roles, hand-set memberships, another provider's token never reaching this provider's groups, a
@@ -267,3 +267,28 @@ Edge cases can't work.
   (`removeFromGroups` returns the group ids); the mapping must then drop the memberships those
   groups gave, and a re-created user starts in no group (task 5's *Done when*). The resource's
   `groups` already lists the provider's groups the user is in.
+
+**Task 5, Groups (2026-10-18).**
+
+- **Where:** `models/scim-group.ts` (body, PATCH, filter, resource, `groupNames`), the repository
+  (`scim-group-repository.ts` + Kysely), `services/scim-groups.ts`, `http/scim-groups-api.ts`, and
+  `scim-groups-api.db.test.ts` through the real guard.
+- **106's rules, not new ones:** `applyGroups` (`group-sync.ts`) now takes a narrower repository
+  (`GroupSyncRepository`, a `Pick` of `SsoRepository`) and a `via`; SCIM calls it per member whose
+  groups changed (`syncMemberships`), with the names of every provider group they're in. So the
+  higher role, `global`, hand-set rows and root behave exactly as at sign-in.
+- **Decided while building (SPEC updated):** a mapping matches a group's `displayName` or its
+  `externalId` (Entra's mappings name object ids); while SCIM is on for a provider, its sign-in
+  skips the groups claim (`SsoRepository.scimEnabled`), so the two sources can't undo each other; a
+  root named as a member is left out and audited `scim.request_refused { reason: "root_member" }`;
+  `PUT` without `members` empties the group; removing a member who isn't there is no error;
+  `excludedAttributes=members` is honoured on get and list.
+- **A user's `DELETE`** (task 4's `deleteScimUser`) now re-applies the mappings after taking the
+  user out of the provider's groups, always (in no group too), so every membership marked as the
+  provider's goes, even one its sign-in gave before SCIM was on: a re-create starts in none (the
+  adversarial pass found a user in no group kept them). `active: false` keeps them.
+- **Owner's decision (2026-10-18):** turning SCIM on or adopting an account changes no membership;
+  roles the sign-in gave stay until the provider's first group change that includes the person (no
+  gap in access while a provider pushes users before groups). A test pins it.
+- **Task 4's open item, closed:** the create checks the account's email again after locking it; an
+  address root changed meanwhile is another account's (409).

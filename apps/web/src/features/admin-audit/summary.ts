@@ -64,9 +64,13 @@ const moving = (m: Meta): SummaryPart => ({ name: text(m.scope) || "a scope" });
 const renamedAs = (m: Meta): (string | SummaryPart)[] =>
   text(m.newName) && text(m.newName) !== text(m.scope) ? [", as ", { name: text(m.newName) }] : [];
 
-/** A membership a provider's group mapping changed (106). */
+/** A membership a provider's group mapping changed: at sign-in (106) or through SCIM (108). */
 const bySso = (m: Meta): (string | SummaryPart)[] =>
-  m.via === "sso" ? [", through the groups of ", { code: text(m.provider) }] : [];
+  m.via === "sso"
+    ? [", through the groups of ", { code: text(m.provider) }]
+    : m.via === "scim"
+      ? [", through the SCIM groups of ", { code: text(m.provider) }]
+      : [];
 
 const VIA: Record<string, string> = {
   cli: "from the command line",
@@ -107,6 +111,7 @@ const SCIM_REFUSALS: Record<string, string> = {
   expired: "a token past its 24 hours after a rotation",
   scim_off: "SCIM is off for the provider",
   root: "it named a root account, which Ronne manages",
+  root_member: "a group named a root account as a member, which was left out",
 };
 
 /** Why a sign-in with an identity provider was refused (106), as the audit log says it. */

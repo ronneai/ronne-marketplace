@@ -2,6 +2,18 @@ import { GLOBAL_WORKSPACE_ID } from "../../workspaces/models/workspace";
 import type { MappedRole } from "../models/identity-provider";
 import type { SsoRepository } from "../repositories/sso-repository";
 
+/** What applying groups needs from storage: 106's sign-in and 108's SCIM share it. */
+export type GroupSyncRepository = Pick<
+  SsoRepository,
+  | "mappingsFor"
+  | "membershipsOf"
+  | "workspaceName"
+  | "addMembership"
+  | "setMembership"
+  | "removeMembership"
+  | "recordAudit"
+>;
+
 /**
  * What a sign-in's groups do to the person's memberships (feature 106), worked out without
  * touching storage, so it can be tested on its own and shown by a *Test sign-in*:
@@ -85,19 +97,21 @@ export const planGroupChanges = (input: {
 };
 
 /**
- * Applies a sign-in's groups to the person's memberships, in the sign-in's transaction, each
- * change audited like 092's member changes with `via: "sso"`. Nothing happens when the provider
- * sent no groups claim (missing isn't "in no group": Entra leaves it out past 200 groups). Root is
- * never changed (the caller doesn't call this for root).
+ * Applies a person's groups at a provider to their memberships, in the caller's transaction, each
+ * change audited like 092's member changes with `via`: `sso` for a sign-in's groups claim (106),
+ * `scim` for the provider's SCIM groups (108). Nothing happens when `groups` is null (a sign-in
+ * without a groups claim: missing isn't "in no group", Entra leaves it out past 200 groups). Root
+ * is never changed (the caller doesn't call this for root).
  */
 export const applyGroups = async (
-  repo: SsoRepository,
+  repo: GroupSyncRepository,
   input: {
     providerId: string;
     user: { id: string; email: string };
     groups: readonly string[] | null;
     ip: string | null;
     now: Date;
+    via?: "sso" | "scim";
   },
 ): Promise<GroupChange[]> => {
   if (input.groups === null) return [];
@@ -126,7 +140,7 @@ export const applyGroups = async (
           workspace: names.get(workspaceId) ?? (await repo.workspaceName(workspaceId)) ?? "",
           email: input.user.email,
           ...change,
-          via: "sso",
+          via: input.via ?? "sso",
           provider: input.providerId,
         },
         ipAddress: input.ip,

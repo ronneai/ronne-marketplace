@@ -374,15 +374,6 @@ describe("paths and methods", () => {
     expect(reached).toEqual([]);
   });
 
-  it("serves Groups as not yet there without stand-ins (task 5)", async () => {
-    const response = await handleScim(
-      new Request(`${BASE}/Groups`, { headers: { authorization: `Bearer ${token}` } }),
-      app,
-      { limiters, now: () => clock },
-    );
-    await expectScimError(response, 501);
-  });
-
   it("never writes a token to the audit log or a log line", async () => {
     vi.stubEnv("LOG_LEVEL", "debug");
     vi.stubEnv("LOG_FORMAT", "json");

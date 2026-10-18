@@ -668,3 +668,106 @@ The implementer mutated `scim-users.ts` and `kysely-scim-user-repository.ts` in 
 **Overall:** met: the create's email and tombstone paths and the PATCH lock the account and read it again; probes P, Q and T give 403 on PostgreSQL and MySQL; M19, M20 and M21 each fail a test; the tests passed 3 out of 3 on each server.
 
 Observation, not a failed row: after the lock the create reads the owner again by id but doesn't check its email again, so an email root changes while a create for the old one is in flight could still be adopted (it needs the account's own recent sign-in through the provider). Noted for a follow-up in PLAN.md.
+
+## Task 5 — Groups
+
+Witnessed: 2026-10-18 12:27 EDT, by a fresh agent (blind). Commit: 51f8b62d + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The task's tests pass on SQLite | no | confirmed | scim-groups-api, scim-api, sso-groups `.db.test.ts` → 46 passed; `summary.test.ts` → 6 passed |
+| 2 | The same pass on PostgreSQL, MySQL and MariaDB | no | confirmed | `pnpm test:db:{postgres,mysql,mariadb} -- <3 files>` → 46/46 each (a first parallel run failed, likely another witness on the servers; sequential reruns green) |
+| 3 | Adding a member gives the mapped role, marked with the provider; removing takes it away (path and value forms, string members) | yes | confirmed | `scim-groups-api.db.test.ts:341`; M7 (no sync after a group delete) → 3 tests fail |
+| 4 | A rename re-applies the mappings for every member | no | confirmed | `:500`; M6 (only changed members synced) → it fails |
+| 5 | Deleting a group removes it and the memberships it gave; its id is 404 after | no | confirmed | `:552`; `scim-groups.ts:322-329`; M7 → fails |
+| 6 | Two groups mapping one workspace give the higher role, then the remaining one's | yes | confirmed | `:414` |
+| 7 | Hand-set memberships never change; nobody leaves `global` | yes | confirmed | `:446`; `:649` (another provider's row kept) |
+| 8 | Unmapped groups grant nothing; a mapping also matches a group's `externalId` | yes | confirmed | `:251`, `:235`; M3 (`groupNames` drops externalId) → `:235` fails |
+| 9 | A root named as a member is left out and audited `root_member`; a later change never touches a root | yes | confirmed | `:480`; M4 → fails; probe: member made root, group deleted → keeps eng; `summary.ts` tested |
+| 10 | Another provider's token never reaches this provider's groups | no | confirmed | `:607`; probe: another provider's PUT → 404, nothing changed; M5 (`findGroup` unscoped) → fails |
+| 11 | A user's DELETE takes them out of every group and the memberships those gave; `active: false` keeps them | yes | confirmed | `:569`; M1 (no `syncMemberships` in `deleteScimUser`) → fails |
+| 12 | A re-created user starts in no group, and can be added again | no | confirmed | `:569`; probe: the tombstoned id as a member → 400, the new link → eng again |
+| 13 | While SCIM is on, sign-in doesn't apply the groups claim; it does again once SCIM is off | yes | confirmed | `sso-groups.db.test.ts:329`; M2 (drop the `scimEnabled` check) → fails |
+| 14 | A PUT without `members` empties the group | yes | confirmed | `:531` |
+| 15 | Removing a member who isn't there is no error | yes | confirmed | `:341` |
+| 16 | `excludedAttributes=members` is honoured on get and list | yes | confirmed | `:264` (lines 290, 293); `scim-groups-api.ts:23` |
+| 17 | The create checks the account's email again after locking it: an address root changed meanwhile → 409 | yes | partly | Holds (probe on PostgreSQL: a held row's email changed while a create for the old address waits → 409; without `scim-users.ts:152` → 201, adopted at the new address), but no repository test fails without the line (31/31) |
+
+**Overall:** not met: rows 1-16 hold on all four databases and each of 7 mutations fails its test; row 17 behaves as claimed but has no test.
+
+Witnessed: 2026-10-18 12:27 EDT, by a fresh agent (adversarial). Commit: 51f8b62d + working tree. Machine: macOS (Darwin 27), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Groups CRUD answers correctly | yes | confirmed | SQLite 46/46; with `scim-users-api.db.test.ts`, PostgreSQL, MySQL, MariaDB 77/77 each |
+| 2 | PATCH add/remove on `members` in every form, Entra's older ones too, each change applied | no | confirmed | P1: string members, `Add`/`ADD`, a single `{value}`, the URN-prefixed path, a prefixed remove filter → 200, applied; P2: `members[display eq "x"]` → 400 `invalidPath`; an escaped quote → nothing removed. M1 (removals not re-synced) → 3 fail |
+| 3 | The same member twice counts once | no | confirmed | P3: one member, one `member_added` |
+| 4 | Rename and re-id re-apply the mappings; a mapping matches `displayName` or `externalId` byte for byte | yes | confirmed | M2, M8 → their tests fail; P4: two groups matching "X" both give eng; removing the externalId drops it |
+| 5 | Delete removes the group and the memberships it gave | yes | confirmed | Passes on 4 databases |
+| 6 | Two groups mapping one workspace give the higher role | yes | confirmed | `:414` |
+| 7 | Hand-set, `global` and other providers' memberships untouched | yes | confirmed | `:446`, `:649`; `planGroupChanges` unchanged from 106 but `via` |
+| 8 | A root member is left out and audited `root_member` | yes | confirmed | M9 → fails; summary tested |
+| 9 | Root is never changed by a sync, a root promoted after joining included | yes | partly | Holds (P5 on all four), but M3 (drop the root skip in `syncMemberships`) → all 56 pass |
+| 10 | Another provider's token never reaches this provider's groups or users | no | confirmed | M5, M11 → "keeps each provider's groups to itself" fails; P7 |
+| 11 | A user's DELETE takes them out of every group and the memberships those gave; `active: false` keeps them | yes | confirmed | M7, M10 → tests fail |
+| 12 | A re-created user starts in none | no | partly | P12 on all four: Ann with eng admin `source: "acme"` (106's sign-in before SCIM), in no SCIM group: DELETE keeps it, the re-create comes back enabled with it. `deleteScimUser` re-synced only when `removeFromGroups` returned groups |
+| 13 | Sign-in skips the groups claim while SCIM is on; 106 unchanged with it off | yes | confirmed | M6 → the new test fails; `sso-groups.db.test.ts` passes on 4 |
+| 14 | Unmapped groups grant nothing | no | confirmed | `:251`; P6 |
+| 15 | Duplicate `externalId` → 409, atomic; names may repeat | no | confirmed | P4 (PATCH and PUT → 409, nothing changed); P14: 3 concurrent → `201,409,409` on 4 |
+| 16 | Filters byte for byte (MySQL/MariaDB) | no | confirmed | P15, P4: case and accents → 0 on 4 |
+| 17 | `excludedAttributes=members` on get and list | yes | confirmed | `:264`; P9 |
+| 18 | Unknown or deleted member → 400; removing an absent one is no error | yes | confirmed | P7, P10, P11 (5000 unknown → 400) |
+| 19 | PUT sets name, externalId and members exactly; none when left out | yes | confirmed | `:531`; M1 fails it |
+| 20 | Parallel PATCH adds and a racing user DELETE stay consistent | no | confirmed | P13 on 4: 200×6, 204×2, consistent memberships |
+| 21 | A mapping whose workspace was deleted is skipped | no | confirmed | P8 |
+| 22 | Audit events carry `via: "scim"` and read well | yes | confirmed | P9; "Added ann@example.com to eng as user, through the SCIM groups of acme" |
+| 23 | Writes refuse once SCIM is off (the gate in `write`) | no | partly | The guard refuses first, so the gate only matters in a race; M4 (`!provider`) → all 56 pass |
+| 24 | Tests run on all four databases | no | confirmed | Row 1; probes 15/15 each |
+| 25 | (notes) The create re-checks the email after its lock | yes | partly | M12 (line removed) → every suite passes |
+
+**Overall:** not met: CRUD, the PATCH forms, mappings, isolation, uniqueness, filters and concurrency hold on four databases, but a user deleted in no SCIM group kept the provider's sign-in memberships through a re-create (12), and rows 9, 23, 25 had no test.
+
+Fixed since: `deleteScimUser` always re-applies the mappings (in no group too), so every membership marked as the provider's goes; SPEC's DELETE row says so. Tests added: a deleted user with a pre-SCIM sign-in membership → only `global`, before and after the re-create; an account promoted to root after joining keeps its memberships through a rename and a delete; a write past the guard after SCIM is turned off → 401, nothing written; a create waiting on a held row whose email root changes → 409 (servers only) → 63 passed on PostgreSQL, MySQL and MariaDB with the users and sign-in suites.
+
+### Re-check 1 (blind: row 17, plus what the diff touches)
+
+Witnessed: 2026-10-18 12:36 EDT, by a fresh agent (blind). Commit: 51f8b62d + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The three suites pass on SQLite, PostgreSQL and MySQL | no | confirmed | SQLite → 59 passed, 4 skipped (server-only lock tests); `pnpm test:db:postgres` and `:mysql -- <3 files>` → 63/63 each |
+| 17 | The create checks the account's email again after locking it: an address root changed meanwhile → 409 | yes | confirmed | `scim-users.ts:152`; `scim-users-api.db.test.ts:959`; the line removed in a scratch copy, on PostgreSQL → that test fails (`expected 201 to be 409`) |
+| 18 | A user's DELETE always re-applies the mappings, so a pre-SCIM sign-in membership goes and a re-create starts in none | yes | confirmed | `scim-users.ts:354-355`; `scim-groups-api.db.test.ts:650`; without the call → it and `:572` fail; SPEC.md:92 and PLAN agree |
+| 19 | An account promoted to root after joining is never changed by a later rename or group delete | yes | confirmed | `:610`; without the root skip (`scim-groups.ts:50`) → it fails |
+| 20 | A write past the guard after SCIM is off → 401, nothing written | yes | confirmed | `:633`; `scim-groups.ts:71` changed to `if (!provider)` → it fails |
+
+**Overall:** met: row 17 has a server test that fails without the re-check, and the DELETE re-sync, the root rule and the 401 after SCIM is off each have a test that fails without their code.
+
+### Re-check 1 (adversarial: rows 9, 12, 23, 25, plus what the diff touches)
+
+Witnessed: 2026-10-18 12:36 EDT, by a fresh agent (adversarial). Commit: 51f8b62d + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 9 | A sync never changes a root, one promoted after joining included | yes | confirmed | P5 holds; M3 (drop the root skip, `scim-groups.ts:50`) → the new test fails |
+| 12 | A user deleted in no SCIM group loses the provider's sign-in memberships; a re-create starts in none | yes | confirmed | P12 on SQLite, PostgreSQL, MariaDB → `[global]` only; the old conditional sync put back → the new test fails |
+| 23 | A write past the guard is refused once SCIM is off | yes | confirmed | M4 (`!provider`) → "refuses a write once SCIM is off…" fails |
+| 25 | The create re-checks the email after its lock → 409 | yes | confirmed | M12 (`scim-users.ts:152` removed): PostgreSQL and MySQL → "makes a create wait, and see the account's email change" fails; SQLite skips it (servers only) |
+| 26 | Always re-syncing on DELETE never removes a hand-set membership, another provider's, or `global` | no | confirmed | P16 (hand-set eng, `beta`'s ops, global, no group) → unchanged; P16b (acme's eng) → only eng removed; all four databases |
+| 27 | Deleting a linked user promoted to root touches nothing | no | confirmed | P17 → 403, still root, enabled, memberships unchanged; all four |
+| 28 | An adopted account holds no provider memberships beyond its SCIM groups' ("SCIM is the one source", SPEC l.129) | no | partly | P18: a 106 account with eng admin `acme`, adopted (201) → keeps it until its first group change; never put in a group, it keeps it while SCIM is on. The spec doesn't say adoption reconciles; owner's call |
+| 29 | The task's suites pass on all four databases | no | confirmed | SQLite 59 passed, 4 skipped; PostgreSQL, MySQL, MariaDB → 82/82 each with the probes |
+
+**Overall:** not met: rows 9, 12, 23 and 25 hold and each new test fails without its fix, but an adopted account keeps its sign-in memberships until the provider first puts it in a group (28), which needs the owner's decision.
+
+The owner decided row 28 (2026-10-18): adoption and turning SCIM on change no membership; roles the sign-in gave stay until the provider's first group change that includes the person. SPEC's Groups paragraph and the Documentation checklist say so, and a test pins it (adopted with eng admin → kept; put in "Engineers" → eng as user) → 19 passed on all four databases.
+
+### Re-check 2 (adversarial: row 28, plus what the diff touches)
+
+Witnessed: 2026-10-18 12:45 EDT, by a fresh agent (adversarial). Commit: 51f8b62d + working tree. Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 28 | The spec says exactly what happens (adoption and turning SCIM on change no membership; sign-in roles stay until the provider's first group change that includes the person; a DELETE removes them at once), the code matches, and a test pins it on SQLite and PostgreSQL | yes | confirmed | `SPEC.md:130-133`, `:208-209`; the adoption branch (`scim-users.ts:174-192`) calls no `syncMemberships`; turning SCIM on touches no membership (grep); group writes sync only members (`scim-groups.ts:175,271,314,328`); DELETE syncs (`scim-users.ts:357`). Test `scim-groups-api.db.test.ts:652` → passes; mutation A (sync at adoption) → fails; mutation B (no sync on group create) → fails; PostgreSQL → 51 passed. No test pins "turning SCIM on changes no membership" (read in the code) |
+
+**Overall:** met: the spec describes the owner's chosen behaviour exactly, the code matches, and the test fails under both mutations.

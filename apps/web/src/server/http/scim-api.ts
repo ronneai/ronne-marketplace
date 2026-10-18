@@ -11,6 +11,7 @@ import {
   serviceProviderConfig,
 } from "./scim-discovery";
 import { scimError, scimJson, scimRateLimited, scimUnauthorized } from "./scim-format";
+import { scimGroupsHandler } from "./scim-groups-api";
 import { scimUsersHandler } from "./scim-users-api";
 
 /**
@@ -36,12 +37,9 @@ export type ScimResourceHandler = (request: Request, context: ScimContext) => Pr
 
 export type ScimResources = { Users: ScimResourceHandler; Groups: ScimResourceHandler };
 
-/** Groups land in task 5; until then, an authenticated request learns that. */
-const notYet: ScimResourceHandler = async () => scimError(501, "This resource isn't served yet.");
-
 const resourcesFor = (app: AppAuth, options: ScimOptions): ScimResources => ({
   Users: scimUsersHandler(app, options),
-  Groups: notYet,
+  Groups: scimGroupsHandler(app, options),
 });
 
 export type ScimApiOptions = ScimOptions & { resources?: ScimResources };

@@ -6,8 +6,10 @@ import { forUpdate, readCommittedTransaction } from "../../../db/locks";
 import type { Database, ScimUserTable } from "../../../db/schema";
 import type { DatabaseDialect } from "../../../db/url";
 import { recordAudit } from "../../audit/actions/audit";
+import { groupNames } from "../models/scim-group";
 import type { ScimUserLink } from "../models/scim-user";
 import { kyselyIdentityRepository } from "./kysely-identity-repository";
+import { kyselySsoRepository } from "./kysely-sso-repository";
 import type { ScimUserRepository } from "./scim-user-repository";
 
 type Row = Selectable<ScimUserTable>;
@@ -49,6 +51,21 @@ export const kyselyScimUserRepository = (
       ),
 
     identity,
+
+    groupSync: kyselySsoRepository(db, dialect),
+
+    async groupNamesOf(providerId, userId) {
+      const rows = await db
+        .selectFrom("scim_group_members as m")
+        .innerJoin("scim_groups as g", "g.id", "m.group_id")
+        .select(["g.display_name", "g.external_id"])
+        .where("g.provider_id", "=", providerId)
+        .where("m.user_id", "=", userId)
+        .execute();
+      return rows.flatMap((r) =>
+        groupNames({ displayName: r.display_name, externalId: r.external_id }),
+      );
+    },
 
     async lockProvider(providerId) {
       const row = await forUpdate(

@@ -1,6 +1,7 @@
 import type { NewAuditEvent } from "../../audit/models/audit-event";
 import type { ScimUserFilter, ScimUserLink } from "../models/scim-user";
 import type { UserSummary } from "../models/user";
+import type { GroupSyncRepository } from "../services/group-sync";
 import type { IdentityRepository } from "./identity-repository";
 
 /** A new live link, as a create writes it. */
@@ -21,6 +22,10 @@ export interface ScimUserRepository {
   transaction<T>(work: (repo: ScimUserRepository) => Promise<T>): Promise<T>;
   /** The identity repository bound to the same transaction, for the account steps the services share. */
   readonly identity: IdentityRepository;
+  /** 106's membership steps, bound to the same transaction, for a deleted user's groups. */
+  readonly groupSync: GroupSyncRepository;
+  /** Every name of every provider group the account is in, for its mappings. */
+  groupNamesOf(providerId: string, userId: string): Promise<string[]>;
   /**
    * Locks the provider's row until the transaction ends, so one SCIM write per provider runs at a
    * time. Null when there's no such provider.

@@ -11,6 +11,7 @@ import {
 } from "../models/scim-user";
 import type { UserSummary } from "../models/user";
 import type { ScimLinkPatch, ScimUserRepository } from "../repositories/scim-user-repository";
+import { syncMemberships } from "./scim-groups";
 import { disableAccount } from "./user-admin";
 
 /**
@@ -147,6 +148,8 @@ export const createScimUser = async (
     // Locked, then read again: a change root made meanwhile is the state the checks see.
     if (found) await repo.lockUser(found.id);
     const owner = found ? await repo.findUser(found.id) : null;
+    // Root may have changed the address meanwhile: then it isn't this account's any more.
+    if (owner && owner.email !== input.userName) throw emailTaken();
     if (owner?.role === "root") throw rootRefused();
 
     const tombstone = input.externalId
@@ -348,5 +351,8 @@ export const deleteScimUser = (deps: ScimUserDeps, caller: ScimCaller, id: strin
     const { link, account } = await load(repo, caller, id);
     await setActive(repo, caller, account, false, at, { deprovisioned: true });
     await repo.tombstoneLink(link.id, at);
+    // Out of the provider's groups, and so out of every membership marked as the provider's,
+    // whether its SCIM groups or its sign-in before SCIM gave it: a re-create starts in none.
     await repo.removeFromGroups(caller.providerId, link.userId);
+    await syncMemberships(repo, caller, [link.userId], at);
   });

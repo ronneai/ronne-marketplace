@@ -70,6 +70,15 @@ export const kyselySsoRepository = (
       ).execute();
     },
 
+    async scimEnabled(providerId) {
+      const row = await db
+        .selectFrom("identity_providers")
+        .select("scim_enabled_at")
+        .where("id", "=", providerId)
+        .executeTakeFirst();
+      return Boolean(row?.scim_enabled_at);
+    },
+
     async findLinkedUser(providerId, subject) {
       const rows = await db
         .selectFrom("account")

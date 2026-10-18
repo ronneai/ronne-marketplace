@@ -33,6 +33,9 @@ describe("audit summaries (060)", () => {
     expect(line("scim.request_refused", { reason: "revoked", provider: "acme" })).toBe(
       "Refused a SCIM request: a revoked token (acme)",
     );
+    expect(line("scim.request_refused", { reason: "root_member", provider: "acme" })).toBe(
+      "Refused a SCIM request: a group named a root account as a member, which was left out (acme)",
+    );
     expect(line("scim.request_refused", { reason: "missing" })).toBe(
       "Refused a SCIM request: no bearer token",
     );
