@@ -294,7 +294,7 @@ audit log stays whole: an erased person becomes a pseudonym, never a gap. Build 
 | ID | Feature | Depends on | Status |
 |---|---|---|---|
 | 102 | Retention: root sets how long IP addresses (audit log, sessions) and expired sessions are kept, 90 days by default; a scheduled purge under a database lock; the Privacy topic in the Documentation | 007, 006, 099 | planned |
-| 103 | Erase a user: root anonymises an account (email and name become `deleted-user-<id>`; sessions, accounts and tokens deleted; IPs cleared), published items and audit events kept under the pseudonym; the last root can't be erased; audited | 008, 059, 102 | planned |
+| 103 | Erase a user: root anonymises an account (email and name become `deleted-user-<id>`; sessions, accounts and tokens deleted; SCIM links (108) deleted, tombstones included, so no `externalId` links it again; IPs cleared), published items and audit events kept under the pseudonym; the last root can't be erased; audited | 008, 059, 102 | planned |
 | 104 | Your data: a person downloads what the instance holds about them (account, tokens' names, submissions, comments, audit events) as JSON, and root can do it for them | 102, 103 | planned |
 
 ### M16 — Company sign-in
@@ -311,7 +311,7 @@ provider (owner, 2026-10-15). Build order: 122 → 105 → 106 → 107 → 108.
 | [105](./105-two-factor-sign-in/SPEC.md) | Two-factor sign-in: TOTP and backup codes on Account, root can require it for everyone or for roots and moderators; `reset-root-password` also resets it; audited | 122, 006, 008, 059 | done (the Documentation in ronne-web `docs/105-two-factor`) |
 | [106](./106-oidc-sign-in/SPEC.md) | Identity providers and OIDC sign-in: an abstract provider type (OpenID Connect first) with presets and setup instructions, set up by root on the Authentication tab; accounts linked by verified email, or created on first sign-in for chosen domains with the role `user`; IdP groups mapped to workspace roles; a password policy and `rmk-server disable-sso` so nobody is locked out | 122, 006, 008, 091, 092, 105, 114 | done (the Documentation in ronne-web `docs/106-oidc-sign-in`) |
 | [107](./107-rmk-login-device-flow/SPEC.md) | `rmk login --web` for SSO and two-factor users: the OAuth device flow (a code and a URL, approved in the browser, a personal access token back); the MCP setup uses it too | 106, 009, 022, 027 | in progress |
-| [108](./108-scim-provisioning/SPEC.md) | SCIM provisioning: `/api/v1/scim/v2` Users and Groups, a token per identity provider; deprovisioning disables the account and revokes its tokens and sessions; groups set workspace membership | 106, 092, 103 | specified |
+| [108](./108-scim-provisioning/SPEC.md) | SCIM provisioning: `/api/v1/scim/v2` Users and Groups, a token per identity provider; deprovisioning disables the account and revokes its tokens and sessions; groups set workspace membership | 106, 092, 103 | in progress |
 
 ### M17 — More than one replica
 
