@@ -139,9 +139,16 @@ exchange answers `two_factor_required` and `password_sign_in_disabled` only afte
 password (105, 106), so those codes tell `rmk` which message to print without helping a guesser.
 
 **`rmk` details.**
-- No new dependency to open a browser: `open` on macOS, `xdg-open` on Linux, `start` on Windows,
+- No new dependency to open a browser: `open` on macOS, `xdg-open` on Linux, `rundll32 url.dll,FileProtocolHandler` on Windows
+  (not `cmd /c start`, whose own parsing of the arguments Node quotes is unreliable),
   through the same child-process helper `rmk` already has; a failure is ignored (the address was
   printed anyway).
+- The address, the code and "Waiting for the approval… (Ctrl-C to stop)" are printed at once on
+  stderr, so stdout stays one JSON object with `--json`. A stop (deny, expiry, Ctrl-C) exits 1 and
+  saves nothing. `slow_down` adds 5 s to the wait; a 429 waits its `Retry-After`.
+- The fallback asks "Press Enter to sign in in the browser instead (Ctrl-C to stop)" after saying
+  why (two-factor, or company sign-in only); `--yes` skips the question. Without a terminal,
+  `rmk login` names `--web` among the ways in.
 - Non-interactive use (`CI`, no TTY): `--web` prints the address and code and still waits, so a
   person on another screen can approve; `RMK_TOKEN` stays the way for CI.
 - `--registry` and the stored registry work as in 022; the token is written to

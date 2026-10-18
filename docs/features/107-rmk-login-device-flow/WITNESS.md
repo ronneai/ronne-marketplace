@@ -415,3 +415,61 @@ Witnessed: 2026-10-17 21:36 EDT, by a fresh agent (adversarial). Commit: b7bcc3d
 | 22 | The device tests pass on every database | no | confirmed | 3 device db files → 41/41 on SQLite, PG, MySQL and MariaDB; `src/features/device` → 14 passed |
 
 **Overall:** met.
+
+## Task 5 — rmk login --web
+
+Witnessed: 2026-10-17 21:39 EDT, by a fresh agent (blind). Commit: 1646ba38 + working tree (packages/cli, SPEC.md). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The rmk tests and typecheck pass | no | confirmed | `pnpm --filter @ronneai/rmk exec vitest run` → 23 files, 275 passed; typecheck exit 0 |
+| 2 | `--web` sends `{client_id:"rmk", name}`, the name defaulting to `rmk on <host>` | no | confirmed | `web-login.ts:49-52`, `cli.ts`; the tests check both bodies |
+| 3 | It prints the address, the code with its expiry, and "Waiting…" at once on stderr; stdout stays one JSON object | no | confirmed | Real process against a fake registry → the 3 lines on stderr at 263 ms; stdout one object |
+| 4 | It opens `verification_uri_complete`, but not with `--no-browser`, over SSH, or on Linux without a display | no | confirmed | Mutations M3, M9, M10 → each fails a test |
+| 5 | Opening the browser adds no dependency; a failure is ignored | no | confirmed | No change to `package.json` or the lockfile; `openUrl` catches; `openCommand` unit test for 3 platforms |
+| 6 | Polling: `interval`, `slow_down` +5 s, a 429's `Retry-After` | no | confirmed | Waits `[5000,10000,15000,60000]`; M1, M2 → fail. Remark: after a 429 the interval stays at 60 s |
+| 7 | Ctrl-C stops rmk, says so, exits 1 and saves nothing | no | partly | Real SIGINT with interval 20: "Stopped." at 1505 ms but exit at 20 407 ms: the timer keeps the event loop open. A Ctrl-C during a poll that returns the token still saves it |
+| 8 | It stops on `access_denied`, `expired_token`, `invalid_grant`, `user_disabled` and its deadline, says which, exits 1, saves nothing; `token_limit` passes the message on | no | confirmed | `it.each` and the token-limit test; real process `deny` → exit 1, no config; M4 → fails |
+| 9 | The deadline counts `expires_in` from rmk's own start | no | confirmed | Fake clock → stops after 119 polls |
+| 10 | The token is saved with mode 0600; `--registry` as before; `cli-files.md` unchanged | no | confirmed | Real process → mode 600; M8 → 6 tests fail; `git diff HEAD -- docs/spec/cli-files.md` empty |
+| 11 | Opening the browser for real on Windows (`cmd /c start`) | no | can't check here | Only the `openCommand` unit test ran; needs Windows |
+| 12 | The fallback on `two_factor_required` / `password_sign_in_disabled`, with `--yes` | no | confirmed | M7, M11 → each fails its test |
+| 13 | The `invalid_credentials` hint, and `--web` named without a terminal | no | confirmed | M6 → 2 tests fail |
+| 14 | `--web` works without a TTY | no | confirmed | "works without a terminal" → exit 0, no questions |
+
+**Overall:** not met: Ctrl-C waits for the current timer before exiting (7), and Windows wasn't checked (11). Also: a missing `interval` gives NaN waits.
+
+### Re-check 1, the fixes
+
+`Io.sleep` takes an abort signal and `waitFor` clears its timer on abort; Ctrl-C aborts it. A token that arrives after Ctrl-C isn't saved. A 429's wait applies to the next poll only. No `interval` means 5 s (RFC 8628). Tests for each.
+
+### Re-check 1 (blind: rows 6, 7, 11, plus what the diff touches)
+
+Witnessed: 2026-10-17 21:45 EDT, by a fresh agent (blind). Commit: 1646ba38 + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The rmk tests and typecheck pass | no | confirmed | 23 files, 279 passed; typecheck exit 0 |
+| 6 | `slow_down` adds 5 s and keeps it; a 429 waits once; no `interval` means 5 s | no | confirmed | Waits `[5000,10000,60000,10000]` and `[5000]`; mutations R4, R5 → each fails a test |
+| 7 | Ctrl-C stops at once, exits 1, saves nothing, even when the last poll brings the token | no | confirmed | Real process, interval 20: SIGINT at 1503 ms, "Stopped." at 1504 ms, exit 1 at 1509 ms (20 407 ms before); R3 → a test fails |
+| 7b | A test fails when the Ctrl-C fix is undone | no | partly | R1 (no `clearTimeout` in `waitFor`) and R6 (`sleep` without the signal) leave all tests green while the real probe hangs 20 s |
+| 11 | rmk opens the page on Windows | no | can't check here | Only `openCommand` is unit-tested. Lead: Node quotes the `""` title for `cmd /c start` as `"\"\""`, which cmd may misread |
+
+**Overall:** not met: no test pins the Ctrl-C fix (7b), and Windows wasn't run (11).
+
+### Re-check 2, the fixes
+
+Windows opens the page with `rundll32 url.dll,FileProtocolHandler <url>`: no shell parses the arguments. New tests: under fake timers, `waitFor` leaves no timer after an abort; every wait rmk makes gets the Ctrl-C signal (the fake `Io` records `sleepSignals`). 281 passed.
+
+### Re-check 2 (blind: rows 7b and 11, plus what the diff touches)
+
+Witnessed: 2026-10-17 21:48 EDT, by a fresh agent (blind). Commit: 1646ba38 + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The rmk tests and typecheck pass | no | confirmed | 23 files, 281 passed; typecheck exit 0 |
+| 7 | Ctrl-C still stops at once; a normal approval still saves with mode 0600 | no | confirmed | Real process: SIGINT at 1502 ms, exit 1 at 1507 ms, nothing saved; `grant` → exit 0, mode 600 |
+| 7b | A test fails when the Ctrl-C fix is undone | no | confirmed | R1 → "leaves no timer behind after Ctrl-C" fails; R6 → "gives every wait the Ctrl-C signal" fails. Remark: R7 (a signal Ctrl-C never aborts) passed; the test now also checks the recorded signal is aborted after Ctrl-C |
+| 11 | rmk opens the page on Windows with `rundll32 url.dll,FileProtocolHandler <url>`, no shell | no | can't check here | `openCommand("win32")` and its unit test; no cmd parsing is left, but nothing has run on Windows |
+
+**Overall:** not met: row 11 waits for one run of `rmk login --web` on Windows (an address with `&` opens whole).

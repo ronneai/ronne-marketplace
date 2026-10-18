@@ -23,13 +23,28 @@ export type FakeIo = Io & {
   answers: string[];
   /** Every question asked, in order. */
   questions: string[];
+  /** What rmk printed at once (`notice`), the addresses it opened, and every wait, in ms. */
+  notices: string[];
+  opened: string[];
+  slept: number[];
+  /** The signal each wait was given: rmk must pass one, so Ctrl-C can end it. */
+  sleepSignals: (AbortSignal | undefined)[];
+  /** Presses Ctrl-C: the handler rmk set with `onInterrupt` runs. */
+  interrupt(): void;
   cleanup(): void;
 };
 
 export const fakeIo = (
   routes: Record<string, Route>,
-  options: { env?: Record<string, string>; interactive?: boolean } = {},
+  options: {
+    env?: Record<string, string>;
+    interactive?: boolean;
+    /** Runs at each wait, as if the time had passed: a test moves its clock or presses Ctrl-C. */
+    onSleep?: (io: FakeIo) => void;
+  } = {},
 ): FakeIo => {
+  const onSleep = options.onSleep;
+  let interruptHandler: (() => void) | undefined;
   const home = mkdtempSync(join(tmpdir(), "rmk-home-"));
   const cwd = mkdtempSync(join(tmpdir(), "rmk-project-"));
   const io: FakeIo = {
@@ -40,6 +55,29 @@ export const fakeIo = (
     requests: [],
     answers: [],
     questions: [],
+    notices: [],
+    opened: [],
+    slept: [],
+    sleepSignals: [],
+    notice: (line) => {
+      io.notices.push(line);
+    },
+    openUrl: (url) => {
+      io.opened.push(url);
+    },
+    // No real waiting; the clock moves when the test gave one (`io.now`).
+    sleep: async (ms, signal) => {
+      io.slept.push(ms);
+      io.sleepSignals.push(signal);
+      onSleep?.(io);
+    },
+    onInterrupt: (handler) => {
+      interruptHandler = handler;
+      return () => {
+        interruptHandler = undefined;
+      };
+    },
+    interrupt: () => interruptHandler?.(),
     prompt: async (question) => {
       io.questions.push(question);
       return io.answers.shift() ?? "";

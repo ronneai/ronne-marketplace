@@ -147,3 +147,15 @@ limit, 10 an hour, and the audit bound) cancel others' pending codes, and they r
 - A held person can't use the page's action: `deviceCodeFromForm` is a plain `serverAction`
   (`held.test.ts`).
 - Names are refused with `\p{Cf}` (bidi overrides) as well as `\p{Cc}`, and shown in `<bdi>`.
+
+**Task 5, `rmk login --web` (2026-10-17).**
+
+- `rmk` buffers a command's output until it ends; the code must show while it waits, so `Io`
+  gained `notice` (stderr, at once), `openUrl`, `sleep` and `onInterrupt`, all faked in
+  `testing.ts` (`notices`, `opened`, `slept`, `interrupt()`, and `onSleep` to move a clock).
+- A wait must clear its timer on Ctrl-C (`waitFor` in io.ts): resolving the promise alone left the
+  process alive until the timer ran out (the witness saw 20 s with a 20 s interval).
+- Windows opens the page with `rundll32 url.dll,FileProtocolHandler <url>`, not `cmd /c start ""
+  <url>`: Node quotes the `""` title argument in a way cmd may misread (the witness's lead, not
+  run on Windows). `open` on macOS, `xdg-open` on Linux.
+- `cli-files.md` needs no change: `--web` writes the same `{ token, email }` (the email from `/me`).
