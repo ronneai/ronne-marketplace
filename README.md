@@ -282,6 +282,7 @@ Both are on npm, and need Node.js 22.12 or later:
 ```sh
 npm install --global @ronneai/rmk @ronneai/mcp
 rmk login --registry https://your-ronne-instance.example
+rmk login --web                    # or approve it in the browser: company sign-in, two-factor
 rmk install @scope/name
 rmk export my-skill --to @scope    # a skill from .claude/skills/, as a draft
 rmk mcp-setup                      # registers rmk-mcp with the AI tools this project uses

@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { homedir } from "node:os";
+import { homedir, hostname } from "node:os";
 import { createInterface } from "node:readline/promises";
 import { RmkError } from "./errors.js";
 
@@ -27,6 +27,8 @@ export type Io = {
    * address). A command's own output still comes at its end.
    */
   notice?: (line: string) => void;
+  /** This computer's name, for a token's default name (107). Defaults to the system's. */
+  hostname?: () => string;
   /** Opens an address in the default browser; a failure is ignored (107). */
   openUrl?: (url: string) => void;
   /** Waits, until `signal` aborts; tests skip the time. Defaults to a timer. */
@@ -131,6 +133,7 @@ export const defaultIo = (): Io => ({
   fetch: globalThis.fetch,
   interactive: Boolean(process.stdin.isTTY && process.stdout.isTTY),
   prompt: (question, options) => ask(question, options?.secret ?? false),
+  hostname: () => hostname(),
   notice: (line) => {
     process.stderr.write(`${line}\n`);
   },

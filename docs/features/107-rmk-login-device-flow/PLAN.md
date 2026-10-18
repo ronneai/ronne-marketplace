@@ -48,7 +48,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   built server: approve, deny, expiry, and with a two-factor account.
   *Done when:* `pnpm test:e2e` passes the spec on desktop and phone.
 
-- [ ] **8. Documentation.** The pages and helpers in the spec, and the sign-in page's CLI panel.
+- [x] **8. Documentation.** The pages and helpers in the spec, and the sign-in page's CLI panel.
   *Done when:* the docs render tests pass in ronne-web, the helper link test passes here, and the
   CLI panel's test shows the fourth line.
 
@@ -197,3 +197,11 @@ stderr; the expiry case moves the grant's `expires_at` into the past in the inst
 `deviceTwoFactor` and the phone, WebKit and tablet ones) for the sign-in limit. A `Notice`'s title
 reads `INFO:Approved` in the accessibility tree: match the `status` role with `hasText`, not exact
 text.
+
+**Task 8, Documentation (2026-10-17).** In ronne-web, branch `docs/107-rmk-login-device-flow`: a
+new `rmk` section `web` ("Signing in with the browser", in the app's `topics.ts` too), the device
+endpoints under *Tokens and the API*, and the account, authentication, MCP and logs pages, in en,
+pt and fr. The witness found the token's default name was "rmk on this machine" on most computers:
+shells don't export `HOSTNAME` to programs, so `defaultTokenName` (web-login.ts) falls back to
+`os.hostname()`; `rmk login` had done this since 009. In a TSX `<Example>`, write a multi-line
+command as one string with `\n`, never real line breaks (Turbopack can't parse them).

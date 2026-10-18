@@ -138,6 +138,13 @@ describe("TokensPage", () => {
     expect(html).toMatch(/rmk on laptop<span[^>]*>browser approval<\/span>/);
   });
 
+  it("shows the rmk login --web line in its CLI panel (107)", () => {
+    const html = renderToStaticMarkup(
+      <TokensPage tokens={[]} now={new Date()} registry="https://ronne.example" />,
+    );
+    expect(html).toContain("rmk login --registry https://ronne.example --web<");
+  });
+
   it("explains an empty list, and what a token is for", () => {
     const html = renderToStaticMarkup(<TokensPage tokens={[]} now={new Date()} />);
     expect(html).toContain("No tokens yet");

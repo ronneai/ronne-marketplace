@@ -16,7 +16,7 @@ import { list, platforms, withApi } from "./registry-commands.js";
 import { submitCommand } from "./submit.js";
 import { flushAfterCommand, refreshPolicy, usageNotice } from "./telemetry.js";
 import { telemetryCommand } from "./telemetry-command.js";
-import { webLogin } from "./web-login.js";
+import { defaultTokenName, webLogin } from "./web-login.js";
 import { workspacesCommand } from "./workspaces.js";
 
 /**
@@ -136,8 +136,7 @@ const login = async (io: Io, args: Args, out: ReturnType<typeof output>) => {
   checkRegistryUrl(url, args.values.insecure === true);
   let token = str(args.values.token);
   let email: string | undefined;
-  const name =
-    str(args.values.name) ?? `rmk on ${io.env.HOSTNAME || io.env.COMPUTERNAME || "this machine"}`;
+  const name = str(args.values.name) ?? defaultTokenName(io);
   const web = () =>
     webLogin(io, url, { name, openBrowser: args.values["no-browser"] !== true }).then(
       (created) => created.token,

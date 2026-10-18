@@ -1,3 +1,4 @@
+import { Help } from "@/components/help/Help";
 import { PageHeader, Panel } from "@/components/ui/Panel";
 import { DeviceFlow } from "./DeviceFlow";
 
@@ -11,8 +12,11 @@ export const DevicePage = ({ typed }: { typed: string }) => (
       title="Sign in rmk"
       description="Approve the code rmk login --web printed, and rmk gets a token that acts as you."
     />
-    <Panel padding="lg" className="max-w-2xl">
-      <DeviceFlow initial={{ step: "enter", typed }} />
-    </Panel>
+    <div className="grid max-w-2xl gap-4">
+      <Help id="device-code" />
+      <Panel padding="lg">
+        <DeviceFlow initial={{ step: "enter", typed }} />
+      </Panel>
+    </div>
   </>
 );

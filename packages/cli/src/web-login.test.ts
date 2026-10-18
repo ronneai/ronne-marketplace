@@ -4,7 +4,7 @@ import { run } from "./cli.js";
 import { configPath } from "./config.js";
 import { openCommand, waitFor } from "./io.js";
 import { type FakeIo, fakeIo, identityRoutes, REGISTRY, type RouteAnswer } from "./testing.js";
-import { canOpenBrowser } from "./web-login.js";
+import { canOpenBrowser, defaultTokenName } from "./web-login.js";
 
 const posix = process.platform !== "win32";
 const TOKEN = "rmk_from_the_browser";
@@ -242,6 +242,15 @@ describe("waiting", () => {
     const before = Date.now();
     await waitFor(10, new AbortController().signal);
     expect(Date.now() - before).toBeGreaterThanOrEqual(5);
+  });
+});
+
+describe("the token's default name", () => {
+  it("is rmk on the computer's name, from the system when the shell doesn't export it", () => {
+    io = fakeIo({});
+    expect(defaultTokenName({ ...io, env: { HOSTNAME: "laptop" } })).toBe("rmk on laptop");
+    expect(defaultTokenName({ ...io, env: {}, hostname: () => "ana-mbp" })).toBe("rmk on ana-mbp");
+    expect(defaultTokenName({ ...io, env: {}, hostname: undefined })).toBe("rmk on this machine");
   });
 });
 

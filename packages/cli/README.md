@@ -8,6 +8,7 @@ wrote in a lockfile and a state file, and never overwrites a file or setting you
 ```sh
 npm install --global @ronneai/rmk
 rmk login --registry https://your-marketplace.example
+rmk login --web     # or approve it in the browser (company sign-in, two-factor)
 rmk search review
 rmk install @platform/code-reviewer
 rmk update

@@ -170,6 +170,12 @@ export const HELP = {
       "It lets rmk and the registry's MCP server read the registry as you, and create drafts in your name: only you see them, and nothing is submitted until you do it here. It can't sign in to this website, and you can revoke it here at any time.",
     href: docsHref("rmk", "tokens"),
   },
+  "device-code": {
+    question: "What is this code?",
+    answer:
+      "rmk login --web printed it in a terminal, with this page's address. Approving it gives that terminal a token that acts as you for 90 days, so only approve a code you just asked for yourself; the token then appears under Access tokens, where you can revoke it.",
+    href: docsHref("rmk", "web"),
+  },
   contents: {
     question: "What am I looking at?",
     answer:

@@ -8,7 +8,7 @@ import type { Io } from "./io.js";
 import type { Output } from "./output.js";
 import { applyOwnEntries } from "./own-entries.js";
 import { readProjectConfig } from "./project.js";
-import { webLogin } from "./web-login.js";
+import { defaultTokenName, webLogin } from "./web-login.js";
 
 /**
  * `rmk mcp-setup [--target <ids>|all] [--scope project|user] [--remove] [--command <cmd>]`
@@ -67,8 +67,7 @@ const offerWebLogin = async (io: Io, args: Args, out: Output, project: boolean) 
     }
   }
   const name =
-    (typeof args.values.name === "string" ? args.values.name : undefined) ??
-    `rmk on ${io.env.HOSTNAME || io.env.COMPUTERNAME || "this machine"}`;
+    (typeof args.values.name === "string" ? args.values.name : undefined) ?? defaultTokenName(io);
   const created = await webLogin(io, registry.url, {
     name,
     openBrowser: args.values["no-browser"] !== true,

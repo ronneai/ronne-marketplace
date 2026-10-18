@@ -20,6 +20,13 @@ type DeviceCode = {
   interval: number;
 };
 
+/**
+ * A token's default name: `rmk on` and this computer's name. `HOSTNAME` isn't exported to programs
+ * by most shells, so the system's name comes after it (107, the witness's find).
+ */
+export const defaultTokenName = (io: Io): string =>
+  `rmk on ${io.env.HOSTNAME || io.env.COMPUTERNAME || io.hostname?.() || "this machine"}`;
+
 /** Whether rmk may open a browser here: not over SSH, and on Linux only with a display. */
 export const canOpenBrowser = (env: Io["env"], platform: NodeJS.Platform): boolean => {
   if (env.SSH_CONNECTION || env.SSH_CLIENT || env.SSH_TTY) return false;

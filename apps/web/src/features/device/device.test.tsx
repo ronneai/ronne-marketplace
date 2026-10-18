@@ -28,6 +28,12 @@ const REQUEST = {
 beforeEach(() => vi.clearAllMocks());
 
 describe("the page", () => {
+  it("explains the code, with a link to the Documentation's section", () => {
+    const html = renderToStaticMarkup(<DevicePage typed="" />);
+    expect(html).toContain("What is this code?");
+    expect(html).toContain("/marketplace/docs/rmk#web");
+  });
+
   it("asks for the code, or shows the one in the address to check", () => {
     const empty = renderToStaticMarkup(<DevicePage typed="" />);
     expect(empty).toContain('name="code"');

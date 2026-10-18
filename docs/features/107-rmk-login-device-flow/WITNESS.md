@@ -596,3 +596,72 @@ Witnessed: 2026-10-17 22:55 EDT, by a fresh agent (blind). Commit: 6e52b6da + wo
 | 9 | `device.ts` exports `startRmk`, `whoami`, `confirm`; the SSO run uses them in its own HOME | no | confirmed | `sso.ts:10`, `:129` (`mkdtempSync`, removed in `finally`) |
 
 **Overall:** met.
+
+## Task 8 — Documentation
+
+Witnessed: 2026-10-17 22:52 EDT, by a fresh agent (blind). Commit: c02e1f8e + working tree (9 files); ronne-web 2c918d9 + the uncommitted diff on `docs/107-rmk-login-device-flow` (17 files). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The docs render tests pass in ronne-web, and it type-checks | no | confirmed | `pnpm test` → 30 files, 167 passed; `pnpm typecheck` clean; `docs.test.ts:24-30` checks each topic's sections |
+| 2 | The helper link test passes, and every helper links to a section that exists | no | confirmed | 6 files, 51 passed; mutation `docsHref("rmk","webx")` → the link test fails |
+| 3 | The sign-in page's CLI panel has `rmk login --web` as its fourth line, and its test shows it | no | confirmed | `CliAuthPanel.tsx:76-80`; `sign-in.test.tsx:92-94`; removing the line → the test fails |
+| 4 | Access tokens' CLI panel has the line | no | confirmed | Same component; `account-tokens.test.tsx:141-146` passes |
+| 5 | `/device` has "What is this code?", linking to the rmk page's section | no | confirmed | `DevicePage.tsx:16`, `Help.tsx:173-178`; `device.test.tsx:31-35` |
+| 6 | The app's and the website's topics.ts agree on the rmk sections | no | confirmed | Same 13 sections in order; the app's title matches en's |
+| 7 | rmk › Signing in with the browser matches the code | no | partly | Every claim matches but one: "`rmk on` and your computer's name". `cli.ts:140` reads `HOSTNAME`/`COMPUTERNAME`, which Node doesn't get on this Mac (`undefined`), so tokens are named "rmk on this machine" |
+| 8 | rmk › Logging in: the fallback, Enter, `--yes`, the wrong-password hint | no | confirmed | `cli.ts:124-129`, `:162-175` |
+| 9 | Access tokens: browser approval and how to recognise it | no | confirmed | en `rmk.tsx` tokens and `account.tsx` |
+| 10 | Authentication: company sign-in and the CLI | no | confirmed | `password_sign_in_disabled` "goes on in the browser" matches `cli.ts` |
+| 11 | MCP: `rmk mcp-setup` offers the web login | no | confirmed | `mcp-setup.ts:54-77`; `connect.ts:39` |
+| 12 | API: the two device endpoints and their errors | no | partly | Fields, 600 and 5 right; missing `invalid_request`, `invalid_client`, `unsupported_grant_type`, the 429 `rate_limited`, `rmk-mcp` as a `client_id`, and `verification_uri_complete` |
+| 13 | pt and fr say the same as en | no | confirmed | Numbers, flags, labels and error codes the same in the `web` section and the read pages |
+| 14 | Logs: `token.exchanged` covers browser approval | no | confirmed | `services/device-grants.ts:293` |
+| 15 | READMEs mention `rmk login --web` | no | confirmed | `README.md:285`, `packages/cli/README.md:11` |
+
+**Overall:** not met: the token name on most machines (7) and the endpoints' error list (12).
+
+### Re-check 1, the fixes
+
+The default name now falls back to the system's host name (`os.hostname()`, through `Io.hostname`) after `HOSTNAME` and `COMPUTERNAME`, in `rmk login` and `rmk mcp-setup` (`defaultTokenName`, with a test). The docs' step names `--name` too, and the API paragraph lists every error, `rmk-mcp`, `verification_uri_complete` and the limits, in en, pt and fr.
+
+### Re-check 1 (blind: rows 7 and 12, plus what the diff touches)
+
+Witnessed: 2026-10-17 22:56 EDT, by a fresh agent (blind). Commit: c02e1f8e + working tree (also `packages/cli/src/{cli,io,mcp-setup,web-login}.ts`, `web-login.test.ts`); ronne-web 2c918d9 + the uncommitted diff. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 7 | The token's default name is "`rmk on` and your computer's name, or `--name`", and the section matches the code | no | confirmed | `web-login.ts:27-28`, `io.ts:136`; a real rmk against a fake registry with `HOSTNAME` unset → `rmk on gmpaixao` (the `hostname`), `HOSTNAME=from-env` → `rmk on from-env`, `--name custom` → `custom`; dropping the fallback → "the token's default name" fails |
+| 12 | The API paragraph lists the endpoints, every error, `rmk-mcp`, `verification_uri_complete` and the limits | no | partly | All checked against `device-api.ts`, `services/device-grants.ts`, `errors.ts`, `actions/device-grants.ts`, the same in en, pt and fr; but a body over 1 MiB gets 413 `body_too_large` (`read-json.ts`), not `invalid_request` |
+| 1 | The docs render tests and the type-check still pass in ronne-web | no | confirmed | 30 files, 167 passed; typecheck exit 0 |
+| 16 | The rmk suite passes with `defaultTokenName` | no | confirmed | 23 files, 286 passed |
+
+**Overall:** not met: the 413 for bodies over 1 MiB isn't in the API paragraph (12).
+
+### Re-check 2, the fix
+
+The paragraph now says "(413 `body_too_large` over 1 MiB)" in en, with the same in pt and fr ("acima de 1 MiB", « au-delà de 1 Mio »).
+
+### Re-check 2 (blind: row 12)
+
+Witnessed: 2026-10-17 22:59 EDT, by a fresh agent (blind). Commit: c02e1f8e + working tree; ronne-web 2c918d9 + the uncommitted diff. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 12 | The API paragraph lists every error, now with the 413, and pt and fr say the same | no | partly | en `rmk.tsx:456-457` and pt `:466` right; fr `:499-500` breaks the line after `<Code>body_too_large</Code>` with no `{" "}`, and a render gives `body_too_large</code>au-delà`: no space |
+| 1 | ronne-web's docs tests and type-check still pass | no | confirmed | 4 files, 21 passed; typecheck exit 0 |
+
+**Overall:** not met: no space before « au-delà » in fr (12).
+
+A third, scoped round followed: wording only, which the owner said is fine (2026-10-17).
+
+### Re-check 3 (blind: row 12)
+
+Witnessed: 2026-10-17 22:59 EDT, by a fresh agent (blind). Commit: c02e1f8e + working tree; ronne-web 2c918d9 + the uncommitted diff. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 12 | The API paragraph lists every error, the 413 included, with the same meaning and spacing in all three | no | confirmed | Each language's lines rendered with react-dom/server: en `(413 <code>body_too_large</code> over 1 MiB)`, pt `… acima de 1 MiB)`, fr `… au-delà de 1 Mio)`; every `</code>` followed by a space |
+| 1 | ronne-web's docs tests and type-check still pass | no | confirmed | 4 files, 21 passed; typecheck exit 0 |
+
+**Overall:** met.

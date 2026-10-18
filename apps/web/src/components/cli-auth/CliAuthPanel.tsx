@@ -73,6 +73,11 @@ export const CliAuthPanel = ({
           </Hint>
           <CopyableCommand command={`rmk login${at}`} wrap />
           <CopyableCommand command={`rmk login${at} --token <token>`} wrap />
+          <Hint>
+            Signed up with your company, or using two-factor sign-in? Approve it in the browser
+            instead:
+          </Hint>
+          <CopyableCommand command={`rmk login${at} --web`} wrap />
         </Step>
         <Step n={3} title="Check, then install">
           <Hint>

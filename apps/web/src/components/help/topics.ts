@@ -229,6 +229,7 @@ export const TOPICS = [
       { id: "what", title: "What rmk does" },
       { id: "getting", title: "Getting rmk" },
       { id: "login", title: "Logging in" },
+      { id: "web", title: "Signing in with the browser" },
       { id: "installing", title: "Installing" },
       { id: "updating", title: "Keeping items up to date" },
       { id: "files", title: "The files it writes" },
