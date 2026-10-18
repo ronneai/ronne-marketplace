@@ -40,6 +40,8 @@ export const AUDIT_ACTIONS = [
   "auth.device_expired",
   "user.two_factor_reset",
   "user.created",
+  "user.updated",
+  "user.scim_adopted",
   "user.sso_linked",
   "user.role_changed",
   "user.disabled",

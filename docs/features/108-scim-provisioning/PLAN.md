@@ -29,7 +29,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   the SCIM error format, `ServiceProviderConfig`, `ResourceTypes`, `Schemas`.
   *Done when:* route tests cover every refusal, the formats and the public discovery endpoints.
 
-- [ ] **4. Users.** [risky] Create, get, list with `eq` filters, replace, patch (path and value
+- [x] **4. Users.** [risky] Create, get, list with `eq` filters, replace, patch (path and value
   forms, string booleans), delete; creation through the Create user service; deprovisioning through
   the Disable user service in one transaction; root and last-root protections.
   *Done when:* db tests cover each request, the 409 cases, adoption (each of its conditions, the 30
@@ -224,3 +224,46 @@ Edge cases can't work.
   stay under `instance`.
 - **For task 9:** the Documentation's events table (Logs) and audit list need `scim.request_refused`
   and the `instance.scim_*` events.
+
+**Task 4, Users (2026-10-18).**
+
+- **Where:** `models/scim-user.ts` reads a body, a PATCH and a filter and renders the resource,
+  with no storage, so every shape Entra and Okta send is unit-tested; `scim-user-repository.ts`
+  (+ Kysely) holds the links and the account steps; `services/scim-users.ts` is the behaviour, one
+  transaction per write with the provider's row locked (`retryOnDeadlock` around it);
+  `http/scim-users-api.ts` reads the body in SCIM's terms and maps `ScimRequestError` to the SCIM
+  error. `scim-users-api.db.test.ts` drives every request through `handleScim` with real tokens.
+- **Shared with Disable user:** `disableAccount` (`user-admin.ts`) now holds the steps after the row
+  is set (keep a root, end sessions, revoke tokens, cancel requests to join); root's service and
+  SCIM both call it, so access ends the same way.
+- **Decided while building:** a create whose email is a root's is 403 at once (the edge case),
+  before any adoption check, and the refusal's event is written after the rollback so it stays;
+  `name.formatted` stands in for a missing `displayName`; `PUT` is a full replace (a `displayName`
+  not sent goes, and the account's name falls back to the given and family names, then the email);
+  a `PATCH` of `emails` in any of its forms changes the email through the primary (or first) value;
+  `remove` on `active` or `userName` is 400 `mutability`; read-only and unknown paths are ignored;
+  a filter also takes `id eq`, and a `userName` filter that isn't plain ASCII matches nothing (a
+  search isn't a write); `count` is clamped to 0…100 and `startIndex` to 1 or more. A `PATCH` that
+  changes nothing in the link still puts back an email or name root changed by hand (the
+  provider's word wins). `user.updated { via, provider, changed }` and `user.scim_adopted` joined
+  the audit catalogue; `scim.request_refused { reason: "root" }` is the root refusal.
+- **MySQL look-alikes:** `findUserByEmail` may return `kåte@` for `kate@`; the service compares the
+  stored email byte for byte and treats a mismatch as another account's (409), as 106 refuses it.
+- **From the witnesses:** the provider lock serialises one provider only, so two providers creating
+  one email at once met a unique violation on `user.email` (a 500); a unique violation inside a
+  SCIM write now answers 409 `uniqueness`, whatever raised it. A write also locks the account's row
+  (`lockUser`) after the provider's, so the state it reads is the state it writes against.
+  `startIndex=1e21` reached the database as an offset it refused (a 500 on all four): integers are
+  taken as they come and clamped (`startIndex` ≤ 2³¹−1, `count` 0…100), so a huge index means an
+  empty page, not an error.
+- **Left open (low):** after the lock, the create reads the owner again by id but doesn't check its
+  email against the `userName` again; an email root changes while a create for the old one is in
+  flight could still be adopted (it needs the account's own recent sign-in through the provider).
+  A one-line re-check of the email (409 if it changed) closes it; worth doing with task 5.
+- **Process:** while task 4's adversarial re-check 2 ran, I mutated two service files in the
+  repository itself to check the lock tests; the witness noticed, snapshotted the restored tree and
+  reran. Mutations go in a scratch copy even for the implementer's own checks.
+- **For task 5:** a `DELETE` removes the user's `scim_group_members` rows for the provider
+  (`removeFromGroups` returns the group ids); the mapping must then drop the memberships those
+  groups gave, and a re-created user starts in no group (task 5's *Done when*). The resource's
+  `groups` already lists the provider's groups the user is in.

@@ -68,7 +68,12 @@ const renamedAs = (m: Meta): (string | SummaryPart)[] =>
 const bySso = (m: Meta): (string | SummaryPart)[] =>
   m.via === "sso" ? [", through the groups of ", { code: text(m.provider) }] : [];
 
-const VIA: Record<string, string> = { cli: "from the command line", api: "from rmk", web: "" };
+const VIA: Record<string, string> = {
+  cli: "from the command line",
+  api: "from rmk",
+  web: "",
+  scim: "through SCIM provisioning",
+};
 const via = (m: Meta) => (VIA[text(m.via)] ? ` ${VIA[text(m.via)]}` : "");
 
 const REASONS: Record<string, string> = {
@@ -101,6 +106,7 @@ const SCIM_REFUSALS: Record<string, string> = {
   revoked: "a revoked token",
   expired: "a token past its 24 hours after a rotation",
   scim_off: "SCIM is off for the provider",
+  root: "it named a root account, which Ronne manages",
 };
 
 /** Why a sign-in with an identity provider was refused (106), as the audit log says it. */
@@ -216,6 +222,19 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     `Changed who may sign in with a password from ${PASSWORD_SAID[text(m.from)] ?? text(m.from)} to ${
       PASSWORD_SAID[text(m.to)] ?? text(m.to)
     }${via(m)}`,
+  ],
+  "user.updated": (m, e) => [
+    `Changed the ${Array.isArray(m.changed) && m.changed.length ? m.changed.map(text).join(" and ") : "details"} of `,
+    who(m, e),
+    `${m.relinked === true ? ", linked again," : ""} through SCIM provisioning by `,
+    { code: text(m.provider) },
+  ],
+  "user.scim_adopted": (m, e) => [
+    "Linked ",
+    who(m, e),
+    " to SCIM provisioning by ",
+    { code: text(m.provider) },
+    ", which manages it from now on",
   ],
   "user.password_reset": (m, e) => [
     "Reset the password of ",

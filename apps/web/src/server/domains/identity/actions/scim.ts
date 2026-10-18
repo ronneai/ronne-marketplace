@@ -13,7 +13,8 @@ const log = logger.child({ domain: "identity" });
  * Cookies are never read. Every refusal is answered the same way (401), whatever the reason, which
  * the audit log and the logs keep.
  */
-export type ScimCaller = { providerId: string; tokenId: string };
+/** Who is calling: the provider, its token, and the client address when it can be trusted. */
+export type ScimCaller = { providerId: string; tokenId: string; ip: string | null };
 
 export type ScimGuardResult =
   | { ok: true; caller: ScimCaller }
@@ -71,7 +72,7 @@ export const authenticateScim = async (
     const decision = limiters.token.consume([`scim-token:${check.tokenId}`]);
     if (!decision.allowed)
       return { ok: false, status: 429, retryAfterSeconds: decision.retryAfterSeconds };
-    return { ok: true, caller: { providerId: check.providerId, tokenId: check.tokenId } };
+    return { ok: true, caller: { providerId: check.providerId, tokenId: check.tokenId, ip } };
   }
 
   const decision = ip

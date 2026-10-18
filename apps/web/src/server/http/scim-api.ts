@@ -11,6 +11,7 @@ import {
   serviceProviderConfig,
 } from "./scim-discovery";
 import { scimError, scimJson, scimRateLimited, scimUnauthorized } from "./scim-format";
+import { scimUsersHandler } from "./scim-users-api";
 
 /**
  * `/api/v1/scim/v2/*` (feature 108): the SCIM server an identity provider calls. Outside the API's
@@ -35,10 +36,13 @@ export type ScimResourceHandler = (request: Request, context: ScimContext) => Pr
 
 export type ScimResources = { Users: ScimResourceHandler; Groups: ScimResourceHandler };
 
-/** Users and Groups land in tasks 4 and 5; until then, an authenticated request learns that. */
+/** Groups land in task 5; until then, an authenticated request learns that. */
 const notYet: ScimResourceHandler = async () => scimError(501, "This resource isn't served yet.");
 
-const RESOURCES: ScimResources = { Users: notYet, Groups: notYet };
+const resourcesFor = (app: AppAuth, options: ScimOptions): ScimResources => ({
+  Users: scimUsersHandler(app, options),
+  Groups: notYet,
+});
 
 export type ScimApiOptions = ScimOptions & { resources?: ScimResources };
 
@@ -110,7 +114,7 @@ export const handleScim = async (
   if (!guard.ok)
     return guard.status === 429 ? scimRateLimited(guard.retryAfterSeconds) : scimUnauthorized();
 
-  const handler = (options.resources ?? RESOURCES)[kind];
+  const handler = (options.resources ?? resourcesFor(app, options))[kind];
   return handler(request, {
     caller: guard.caller,
     method: method as ScimContext["method"],

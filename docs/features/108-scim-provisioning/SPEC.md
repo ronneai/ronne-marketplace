@@ -76,7 +76,7 @@ Cookies are ignored. An unknown path is 404 and a method a path doesn't take is 
 before any token is asked for; `Bulk` and `Me` are 501.
 
 **Discovery.** `GET /ServiceProviderConfig` says: patch supported; bulk, filter (max 100 results,
-only `eq` on `userName`, `externalId` and `displayName`), changePassword, sort and etag
+only `eq` on `userName`, `externalId`, `id` and `displayName`), changePassword, sort and etag
 unsupported; authentication scheme `oauthbearertoken`. `ResourceTypes` and `Schemas` describe the
 core User and Group. These three are public, as the RFC allows.
 
@@ -98,7 +98,7 @@ adoption, another account's email) compares that lowercased address byte for byt
 capitalised `Ann@…` finds `ann@…`. The same rule holds wherever a `userName` or email arrives: a
 `PUT` or `PATCH` of `userName` or `emails`, and the value of a `userName eq` filter (so Entra's
 `userName eq "Ann@b.com"` finds the link it made). A create also takes `name`
-(`displayName`, or `givenName` + `familyName`), `externalId`, `active` (default true) and ignores
+(`displayName`, or `name.formatted`, or `givenName` + `familyName`), `externalId`, `active` (default true) and ignores
 unknown attributes. `active: false` on create makes a disabled account. The response is the SCIM
 User with `meta` (`resourceType`, `created`, `lastModified`, `location`). Roles, passwords and
 `groups` on a User are read-only: group membership is changed through Groups.
@@ -131,9 +131,12 @@ are read-only while SCIM is on (the provider is the source), *Disable* and *Enab
 provider will overwrite the change at its next sync, and a deprovisioned account shows *Deprovisioned
 by <provider> on <date>* with **Erase** (103).
 
-**Transactions.** Every write is one database transaction, with the user
-rows locked in id order as 092's member changes do, so two requests for one user, or a group
-change racing a sign-in, can't interleave.
+**Transactions.** Every write is one database transaction with the provider's row locked (the
+lock 106's sign-in through that provider takes too) and then the account's row, so two SCIM
+requests for one user, or a change racing a sign-in through the provider, run one after the
+other; the account steps (disable, sessions, tokens) run inside it. Deadlocks the database
+resolves are retried (113), and a unique index refusing a write (another provider took the email
+at the same moment) answers 409 `uniqueness`.
 
 **Phones:** the SCIM section is a stack of the same parts as 106's panel.
 

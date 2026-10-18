@@ -537,3 +537,134 @@ Against the Next dev server already running at http://localhost:3000 (pid 51519,
 | 7 | Next sends a HEAD request to GET's handler with the method still "HEAD", and the route answers it as GET | no | confirmed | `curl -I …/ServiceProviderConfig` → 200, `application/scim+json`, no body; `curl -I …/Users` (no token) → 401 `www-authenticate: Bearer`, the same as GET; `curl -X OPTIONS …/Users` → 405 `allow: GET, HEAD, POST`; `curl -I …/Nope` → 404 `application/scim+json`. `route.ts:18` exports no HEAD, so this is Next's GET fallback carrying HEAD into `handleScim`, which maps it (`scim-api.ts:92`) |
 
 **Overall:** met: rows 1-7 all hold.
+
+## Task 4 — Users
+
+Witnessed: 2026-10-18 11:50 EDT, by a fresh agent (blind). Commit: b0b870aa + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `POST /Users` creates through the Create user service: `user` in `global`, personal workspace, no password, `user.created { via: "scim", provider }` | yes | confirmed | `scim-users-api.db.test.ts` → 24 passed; "makes an account from Entra's body" asserts each; `kysely-scim-user-repository.ts:217` → `createUserWithoutPassword` |
+| 2 | Entra's and Okta's bodies are taken (extension, `roles`, `password`, `groups` ignored); the same request twice is 409 on `userName` and on `externalId` | yes | confirmed | `.db.test.ts:164,210,217`; `scim-user.test.ts` → 15 passed |
+| 3 | `active: false` on create (`"False"` too) makes a disabled account, with `user.disabled { via, sessionsEnded, tokensRevoked }` | yes | confirmed | `.db.test.ts:232`; M5 (tokens not revoked) → 2 tests fail |
+| 4 | A non-ASCII `userName` is 400 `invalidValue` on create and PATCH | yes | confirmed | `:242`, `:602`; M3 (drop the check) → 2 tests fail; `scim-user.ts:62-73` |
+| 5 | Every match lowercases the address byte for byte | yes | confirmed | M6 (keep raw case) → 11 tests fail |
+| 6 | Another account's email is 409; a root's is 403, audited `scim.request_refused { reason: "root" }` after the rollback | yes | confirmed | `:261`; `scim-users.ts:60-76` writes the event outside the transaction |
+| 7 | Adoption only on every condition (exact email, 106 row, sign-in within 30 days, no SCIM link anywhere, enabled, not root); 106's link kept; `user.scim_adopted`; `active: false` disables | yes | confirmed | `:314,345,363,378,426`; M1 (window ignored) → "older than 30 days…" fails; `scim-users.ts:156-166` |
+| 8 | GET one; the list paged (100 max), creation then id order; `eq` on `userName` (lowercased; non-ASCII matches nothing), `externalId`, `id`; others 400 `invalidFilter` | yes | confirmed | `:440,466`; `scim-user.ts:245-273`; `scim-users.ts:208-215` |
+| 9 | Another provider's token never reaches this provider's users | yes | confirmed | `:507`; every lookup through `live(providerId)` (`kysely-scim-user-repository.ts:38-43`) |
+| 10 | PATCH's path form (Entra) and value-object form (Okta); PUT replaces every managed field | yes | confirmed | `:542,574`; unit tests `scim-user.test.ts:145,166,192,213` |
+| 11 | PUT/PATCH of `userName` or `emails[…].value` is lowercased and 409 against another account's email | yes | partly | Holds (`:602`; probe P1 with a manual account → 409 on SQLite and MySQL), but the suite's 409 comes from a same-provider link: M4 (remove `owner.id !== account.id` at `scim-users.ts:258`) → 24 passed |
+| 12 | After root's hand edits, the provider's update puts email and name back | yes | confirmed | `:633`; `scim-users.ts:283-293` |
+| 13 | A root is 403 on DELETE/PATCH/PUT and audited; the last enabled root too, staying enabled | yes | confirmed | `:649`; M7 (remove the root check) → it fails; probe P2 (Ann the only enabled root) → 403 ×3, `disabled_at` null. The suite's last-root case is only the create at `:261` |
+| 14 | Deprovisioning goes through `disableAccount` in one transaction | yes | confirmed | `:680` (a token revoked); probe P3 (a `session` row gone); `scim-users.ts:56-66,93`; `user-admin.ts:107-119` |
+| 15 | After DELETE the id is 404 everywhere, out of lists and filters, in no uniqueness check; the tombstone keeps only `externalId` | yes | confirmed | `:680`; probe P3 repeated DELETE → 404 |
+| 16 | A create with this provider's tombstone `externalId` relinks with a new id; `active: false` keeps it disabled; another `externalId` or none → 409; another provider's tombstone never matches | yes | confirmed | `:733,761,771`; M2 (tombstone lookup without the provider) → a test fails |
+| 17 | Reactivation clears `disabled_at`, writes `user.enabled`, creates no session | yes | confirmed | `:542`; probe P3 → `session` empty |
+| 18 | The db tests pass on all four databases | yes | confirmed | `pnpm test:db:postgres\|mysql\|mariadb -- <2 files>` → 43 passed each |
+| 19 | The new audit actions and summaries; types and lint hold | yes | confirmed | `audit-event.ts:43-44`; `summary.ts:71-76,109,226-238`; admin-audit → 18 passed; typecheck and lint exit 0 |
+| 20 | Transactions: every write is one transaction with the user rows locked in id order (spec) | yes | partly | The code locks the provider's row only (`kysely-scim-user-repository.ts:51-57`, `scim-users.ts:63`); SPEC.md:134-136 still says user rows in id order |
+| 21 | MySQL look-alike: `kåte@` for `kate@` is another account's, never adopted | yes | confirmed | Probe P5 on MySQL; `scim-users.ts:135` |
+
+**Overall:** not met: the other-account 409 on PUT/PATCH is pinned only through a same-provider link (row 11), and the spec's lock rule doesn't match the provider-row lock the code takes (row 20).
+
+Fixed since: a test takes a manual account's email through PATCH and PUT (409, both accounts untouched), and one disables the last enabled root through DELETE, PATCH and PUT (403, still enabled); SPEC's *Transactions* now says the provider's row is locked, the same lock 106's sign-in takes, so a change racing a sign-in runs after it.
+
+Witnessed: 2026-10-18 11:52 EDT, by a fresh agent (adversarial). Commit: b0b870aa + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Entra's and Okta's creates make a `user` in `global` with a personal workspace, no password; `active: false` (boolean or `"False"`) makes a disabled account | yes | confirmed | 24 passed on SQLite, PostgreSQL 15, MySQL 8.4, MariaDB 10.11; M12 (ignore `active: false`) → 1 fails |
+| 2 | 409 `uniqueness` on a live link's `userName`/`externalId` and on any other account's email | yes | confirmed | `:217,261`; M14 → 6 fail. Probe N: 3 concurrent identical creates on one provider → `[201, 409, 409]` on the three servers |
+| 3 | A non-ASCII `userName` is 400; `userName`/`emails` lowercased on create, PUT, PATCH and in the filter | yes | confirmed | M11 → 16 fail; M7 → 3 fail. Probe K: the Kelvin sign through PATCH `emails`, the value-object form and PUT → 400, email unchanged; in a filter → 0; `"\r\n Carl@Example.com \r\n"` → `carl@example.com` |
+| 4 | PUT/PATCH of `userName`/`emails` to another account's email is 409 | yes | partly | Holds (probe O: a plain account's email, and root's → 409 on all four), but the only test uses a same-provider link: M15 (drop `owner.id !== account.id`) → 24 passed |
+| 5 | Adoption only on every condition; `user.scim_adopted`; 106's link untouched | yes | confirmed | `:314-437`; M1, M2, M3 each kill a test. Probe J: exactly 30 days → adopted; another provider's event → 409; `sso.ts:331-332` writes the event as the lookup reads it |
+| 6 | Adoption never enables; `active: false` adopts and disables | yes | confirmed | `:363,426` on 4 databases |
+| 7 | The list: creation order, `eq` on three attributes, others 400, 100 max | yes | confirmed | Probe H: `or`, `co`, `OR 1=1 --` → 400; `%` wildcards → 0 (parameters) |
+| 8 | `startIndex`/`count` edge values never break the request | yes | partly | `startIndex=1e21` or `99999999999999999999` → **500** on all four (SQLite `datatype mismatch`, PostgreSQL bigint out of range, MySQL/MariaDB syntax error): `integer()` takes any `Number.isInteger`, unsafe ones included |
+| 9 | Another provider's token never reaches this provider's users | yes | confirmed | `:507-539` on 4 databases |
+| 10 | PATCH path and value-object forms, string booleans, `remove`; PUT a full replace | yes | confirmed | Probe E: PUT with only `userName` drops `externalId` (free again) and the name falls back to the email; probe F: hand-disabled account, PATCH `"False"` → no event, `"True"` → one `user.enabled`; probe D: 150-char names cut to 100 |
+| 11 | DELETE and `active: false` go through the shared Disable user steps in one transaction; root's service unchanged | yes | confirmed | Probe G: sessions gone; probe L: a throw after the disable rolls back `disabled_at`, the token, the tombstone and the event; M9 → 2 fail; `user-admin.db.test.ts` → 25 passed. The write locks the provider row, not the user's (the spec names user rows) |
+| 12 | After DELETE: 404 everywhere, out of lists, in no uniqueness check; the tombstone keeps only `externalId` | yes | confirmed | `:680-731`; M8 → 3 fail |
+| 13 | Relink by this provider's tombstone `externalId`, new id, `active` honoured; another provider's never; other `externalId` → 409 | yes | confirmed | `:733,761,771`; M6, M13 each kill a test |
+| 14 | Reactivation clears `disabled_at` and makes no session | yes | confirmed | Probe F; `kysely-identity-repository.ts:462-468` |
+| 15 | A root is 403, audited after rollback | yes | confirmed | `:261,649`; M4, M16 → tests fail; admin-audit 35 passed |
+| 16 | The last enabled root can't be disabled or changed, with a test | no | partly | Probe A (the SCIM account the only enabled root) → DELETE, PATCH, PUT 403, still enabled; no test in the suite |
+| 17 | Two providers racing to create one email: one 201, the other 409 | no | partly | Probe N: one 201, the other an unhandled unique violation (500: `user_email_key` / `user.email`) on the three servers; the data is right (one account) |
+| 18 | `externalId` of 1 and 255 characters (multibyte too) accepted and found; 256 is 400 | no | confirmed | Probe C on 4 databases |
+| 19 | A MySQL look-alike email is never this person's | yes | confirmed | Probe M: MySQL → 409; SQLite and PostgreSQL → a separate account |
+| 20 | The audit events name the provider with `via: "scim"` | yes | confirmed | `:164-208,314,680`; audit tests 35 passed |
+| 21 | Tests pass on all four databases; Biome clean | yes | confirmed | 24/24 each; `biome check` → nothing |
+
+**Overall:** not met: `startIndex=1e21` is a 500 everywhere (8); two providers racing for one email ends in a raw unique violation (17); the last root (16) and the PUT/PATCH 409 against a non-SCIM account's email (4) hold but had no test.
+
+Fixed since: `startIndex` is clamped to 1…2³¹−1 and `count` to 0…100, so any integer is a safe offset (a test sends `1e21`, `99999999999999999999`, `-5`, `abc`, `0x10`); a unique violation inside a SCIM write answers 409 `uniqueness` (a test races two providers for one email: `[201, 409]`, one account); a write now locks the account's row after the provider's (`lockUser`), and SPEC's *Transactions* says so; the last-root and non-SCIM-email tests were added after the blind pass.
+
+### Re-check 1 (blind: rows 11, 20, plus what the diff touches)
+
+Witnessed: 2026-10-18 12:09 EDT, by a fresh agent (blind). Commit: b0b870aa + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 11 | PUT/PATCH of `userName` or `emails[…].value` to a non-SCIM account's email is 409 `uniqueness`, lowercased, both accounts untouched, with a test | no | confirmed | `scim-users-api.db.test.ts:651`; M4 alone (drop `owner.id !== account.id`) → 28 passed: the `user.email` unique index and the 409 mapping backstop it; M4+M8 (also drop the mapping) → the test fails |
+| 20 | SPEC's *Transactions* matches the code: provider's row, then the account's, deadlocks retried, a unique violation → 409 | yes | confirmed | SPEC.md:134-139; `scim-users.ts:65,67,88,123,147,153`; `kysely-sso-repository.ts:67-68` takes the same provider lock |
+| 22 | `lockUser` is `SELECT … FOR UPDATE` on the servers and a no-op on SQLite | yes | confirmed | `kysely-scim-user-repository.ts:61-66` through `forUpdate` (`db/locks.ts:9-12`); a compile probe → `for update` on postgres, mysql, mariadb, absent on sqlite. M10 (no-op) → 28 passed: no test can see a lock, as expected |
+| 23 | Any `startIndex`/`count` is a 200; a huge index is an empty page | yes | confirmed | `:507`; `scim-users.ts:32,225-243`; M9 (no clamp) → it fails |
+| 24 | Two providers creating one email at once: `[201, 409]`, one account | yes | confirmed | `:893`; M8 on PostgreSQL → it fails (on SQLite the writers serialise) |
+| 25 | The last enabled root is 403 on DELETE, PATCH and PUT, stays enabled, with a test | no | confirmed | `:690`; M7 (drop the root check in `load()`) → it fails |
+| 26 | The users suite passes on SQLite and PostgreSQL | no | confirmed | 28 passed on each |
+| 27 | After `lockUser`, the state read is the state written against | yes | partly | True in `load()` and the tombstone path; in the create's adoption path `owner` is read at `:145`, locked at `:147`, and its pre-lock `disabledAt`, `role`, `name` drive the checks with no re-read (code reading, not raced) |
+
+**Overall:** not met: rows 11 and 20 hold and every touched claim is pinned by a test, but the create path doesn't re-read the owner after locking it (27).
+
+Fixed since: the create locks the account found by email and reads it again (`findUser`) before any check, as `load()` does; the adversarial pass's "Fixed since" wording corrected (clamped, not refused).
+
+### Re-check 1 (adversarial: rows 4, 8, 16, 17, plus what the diff touches)
+
+Witnessed: 2026-10-18 12:12 EDT, by a fresh agent (adversarial). Commit: b0b870aa + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | (row 4) PUT/PATCH of `userName` to a non-SCIM account's email is 409, both untouched, with a test | yes | confirmed | `:651`; M15 alone → 28 passed (the unique-violation catch gives the same 409); M15+M17 → it fails |
+| 2 | (row 8) `startIndex`/`count` never 500: clamped to 1…2³¹−1 and 0…100 | yes | confirmed | Probe B on all four: `1e21`, `99999999999999999999` → 200, `startIndex: 2147483647`, 0 rows; odd values → 200. M18, M18b → `:507` fails |
+| 3 | (row 16) The last enabled root can't be disabled by DELETE, PATCH or PUT, with a test | no | confirmed | `:690`; 28 passed on all four |
+| 4 | (row 17) Two providers racing for one email: `[201, 409]`, one account, not flaky | yes | confirmed | `:893`; M17 → it fails on PostgreSQL and MySQL; 3 runs each → passed every time |
+| 5 | A write locks the account's row after the provider's, so the state read is the state written against | yes | not met | `createScimUser` reads `owner` before `lockUser` and never re-reads it. Probe P (PostgreSQL, MySQL): a transaction holds X's row and promotes it to root while a create for X's email with `active: false` runs → 201, a root adopted and disabled. `load()` is right (probe Q waited 559 ms → 403). M19 (`lockUser` a no-op) → 28 passed: no test pins the lock |
+| 6 | The lock order can't deadlock with 106's sign-in or root's Disable user; `retryOnDeadlock` covers the rest | no | confirmed | By reading: sign-in and SCIM both take the provider then the user; `lockAndRecheckActor` never takes the provider row; two providers locking owner and tombstone users in opposite orders could deadlock, and `retryOnDeadlock` wraps the whole transaction |
+| 7 | The task's tests pass on all four; Biome clean | yes | confirmed | 28 passed each; `biome check` → no fixes |
+
+**Overall:** not met: the create path's account lock came after the read it should protect (5); rows 4, 8, 16 and 17 are fixed and pinned by tests.
+
+Fixed since (with the blind re-check's row 27): the create locks the account found by email and reads it again before any check; two tests (servers only: SQLite runs one writer at a time) hold the account's row, promote it to root and commit, while a create and a PATCH run: both wait and answer 403 → 30 passed on PostgreSQL, MySQL and MariaDB; with `lockUser` a no-op both fail on PostgreSQL (2 failed, restored with `cmp`).
+
+### Re-check 2 (blind: row 27, plus what the diff touches)
+
+Witnessed: 2026-10-18 12:06 EDT, by a fresh agent (blind). Commit: b0b870aa + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 27 | A SCIM write (create, PATCH) locks the account's row and reads it again before any check, so a promotion to root committed meanwhile is what the checks see (403, nothing changed) | no | confirmed | `scim-users.ts:148-149` (create), `:155-156` (tombstone), `:123-124` (`load`). Lock tests `scim-users-api.db.test.ts:893-951` → SQLite 28 passed, 2 skipped (servers only); PostgreSQL, MySQL, MariaDB → 30 passed each. On PostgreSQL in a scratch copy: `lockUser` a no-op → both fail; the create's re-read removed → "makes a create wait…" fails; `load` reading before locking → "makes a PATCH wait…" fails; restored with `cmp` |
+
+**Overall:** met: create and PATCH lock the account's row and read it again before checking the role, and the server-only tests fail when the lock or the re-read is taken out.
+
+Its note (the tombstone path's lock untested) was closed: a third lock test brings a deleted user back under a new email while the account is promoted → 403, still a tombstone, still disabled; 31 passed on PostgreSQL, MySQL and MariaDB, and removing the tombstone path's `lockUser` fails it on PostgreSQL (restored with `cmp`).
+
+### Re-check 2 (adversarial: row 5, plus what the diff touches)
+
+Witnessed: 2026-10-18 12:11 EDT, by a fresh agent (adversarial). Commit: b0b870aa + working tree (snapshot 12:09:33). Machine: macOS 27.0.1, Node v24.0.0.
+
+The implementer mutated `scim-users.ts` and `kysely-scim-user-repository.ts` in the repository itself (to check the lock tests, backups `scratchpad/svc-bak.ts` and `lock-bak.ts`) while this pass ran, against the rule that mutations go in a scratch copy. The witness snapshotted the restored tree at 12:09:33 after checking it byte for byte against those backups, and reran every result against the snapshot.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | (row 5) A create locks the account found by email, reads it again, then checks; a promotion to root committed meanwhile → 403, nothing adopted or disabled | yes | confirmed | `scim-users.ts:148-150`; probe P → `STALE postgres -> 403 role=root disabled_at=null adopted=0 disabledEvents=0`, MySQL the same |
+| 2 | (row 5) A PATCH waits for the held row and sees the new state | yes | confirmed | `load` `:122-127`; probe Q → 403, `waited=558ms` on PostgreSQL and MySQL |
+| 3 | (row 5) The tombstone path locks, then reads again before its root check | yes | confirmed | `:155-160`; probe T (deleted user, re-enabled and promoted under a held row, back by `externalId` under a new email) → 403, untouched, PostgreSQL and MySQL |
+| 4 | Tests pin the lock | yes | confirmed | M19 (`lockUser` does nothing) → the three lock tests fail on PostgreSQL and MySQL |
+| 5 | Tests pin the create's re-read | yes | confirmed | M20 (`const owner = found;`) → `:909` fails on both |
+| 6 | Tests pin the tombstone path's read-after-lock | yes | confirmed | M21 (read above the lock) → `:940` fails on both; probe T → 201, a root relinked |
+| 7 | The new tests aren't timing-flaky | yes | confirmed | The file 3 runs each on PostgreSQL and MySQL → 31 passed every time; SQLite → 28 passed, 3 skipped; a slow runner can't pass falsely (the 403 assertion) |
+
+**Overall:** met: the create's email and tombstone paths and the PATCH lock the account and read it again; probes P, Q and T give 403 on PostgreSQL and MySQL; M19, M20 and M21 each fail a test; the tests passed 3 out of 3 on each server.
+
+Observation, not a failed row: after the lock the create reads the owner again by id but doesn't check its email again, so an email root changes while a create for the old one is in flight could still be adopted (it needs the account's own recent sign-in through the provider). Noted for a follow-up in PLAN.md.

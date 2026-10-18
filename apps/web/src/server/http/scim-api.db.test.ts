@@ -374,9 +374,9 @@ describe("paths and methods", () => {
     expect(reached).toEqual([]);
   });
 
-  it("serves Users and Groups as not yet there without stand-ins (tasks 4 and 5)", async () => {
+  it("serves Groups as not yet there without stand-ins (task 5)", async () => {
     const response = await handleScim(
-      new Request(`${BASE}/Users`, { headers: { authorization: `Bearer ${token}` } }),
+      new Request(`${BASE}/Groups`, { headers: { authorization: `Bearer ${token}` } }),
       app,
       { limiters, now: () => clock },
     );

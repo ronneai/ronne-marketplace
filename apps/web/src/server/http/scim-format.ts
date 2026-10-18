@@ -1,3 +1,5 @@
+import type { ScimType } from "../domains/identity/models/scim-user";
+
 /**
  * SCIM's wire format (RFC 7644, feature 108): `application/scim+json`, never cached, and its own
  * error shape (§3.12), which identity providers parse instead of the API's (MVP §11).
@@ -15,16 +17,7 @@ export const SCIM_SCHEMAS = {
   error: "urn:ietf:params:scim:api:messages:2.0:Error",
 } as const;
 
-/** RFC 7644 §3.12's `scimType`s that Ronne answers with. */
-export type ScimType =
-  | "invalidFilter"
-  | "tooMany"
-  | "uniqueness"
-  | "mutability"
-  | "invalidSyntax"
-  | "invalidPath"
-  | "noTarget"
-  | "invalidValue";
+export type { ScimType };
 
 const HEADERS = { "content-type": SCIM_MEDIA_TYPE, "cache-control": "no-store" };
 

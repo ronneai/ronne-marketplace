@@ -145,11 +145,14 @@ export const resourceTypeDocuments = (base: string) => [
   },
 ];
 
-/** A list of resources (RFC 7644 §3.4.2), all of them on one page. */
-export const listResponse = (resources: unknown[]) => ({
+/** A list of resources (RFC 7644 §3.4.2): one page of `total`, or all of them when no page is given. */
+export const listResponse = (
+  resources: unknown[],
+  page: { total: number; startIndex: number } = { total: resources.length, startIndex: 1 },
+) => ({
   schemas: [SCIM_SCHEMAS.listResponse],
-  totalResults: resources.length,
-  startIndex: 1,
+  totalResults: page.total,
+  startIndex: page.startIndex,
   itemsPerPage: resources.length,
   Resources: resources,
 });
