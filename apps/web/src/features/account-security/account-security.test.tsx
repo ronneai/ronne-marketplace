@@ -126,6 +126,31 @@ describe("/account/security", () => {
     );
   });
 
+  it("offers the way back to /device once two-factor is on, and not before (107)", () => {
+    const on = { enabled: true, backupCodesLeft: 10, hasPassword: true };
+    const back = renderToStaticMarkup(
+      <SecurityPage status={on} required="everyone" continueTo="/device?user_code=WDJB-MJHT" />,
+    );
+    expect(back).toContain('href="/device?user_code=WDJB-MJHT"');
+    expect(back).toContain(">Continue</a>");
+    const before = renderToStaticMarkup(
+      <SecurityPage status={off} required="everyone" continueTo="/device" />,
+    );
+    expect(before).not.toContain(">Continue</a>");
+  });
+
+  it("keeps only a path on this site as the way back", async () => {
+    twoFactor.twoFactorStatus.mockResolvedValueOnce({
+      enabled: true,
+      backupCodesLeft: 10,
+      hasPassword: true,
+    });
+    const page = renderToStaticMarkup(
+      await AccountSecurityPage({ searchParams: Promise.resolve({ next: "https://evil.test/x" }) }),
+    );
+    expect(page).not.toContain("evil.test");
+  });
+
   it("company sign-in only: nothing to set up", () => {
     const html = renderToStaticMarkup(<SecurityPage status={{ ...off, hasPassword: false }} />);
     expect(html).toContain("Your company&#x27;s sign-in protects your account");
@@ -134,7 +159,9 @@ describe("/account/security", () => {
 
   it("is a tab of Account, next to Password, each with its own address", async () => {
     twoFactor.twoFactorStatus.mockResolvedValueOnce(off);
-    const security = renderToStaticMarkup(await AccountSecurityPage());
+    const security = renderToStaticMarkup(
+      await AccountSecurityPage({ searchParams: Promise.resolve({}) }),
+    );
     expect(security).toContain('aria-label="Account"');
     expect(security).toMatch(/aria-current="page"[^>]*>Two-factor sign-in</);
     expect(security).toContain('href="/account/password"');
@@ -146,7 +173,9 @@ describe("/account/security", () => {
 
   it("sends someone whose session ended to sign in", async () => {
     twoFactor.twoFactorStatus.mockResolvedValueOnce(null);
-    await expect(AccountSecurityPage()).rejects.toThrow("redirect:/sign-in");
+    await expect(AccountSecurityPage({ searchParams: Promise.resolve({}) })).rejects.toThrow(
+      "redirect:/sign-in",
+    );
   });
 });
 

@@ -103,7 +103,8 @@ describe("rmk login", () => {
     io.answers.push("dev@example.com", "wrong");
     expect(await rmk("login", "--registry", REGISTRY)).toMatchObject({
       exitCode: 1,
-      stderr: "Email or password is wrong.\n",
+      // 107: a company sign-in has no password here; the browser is the way.
+      stderr: "Email or password is wrong. Signed up with your company? Use rmk login --web.\n",
     });
     expect(existsSync(configPath(io))).toBe(false);
     io.interactive = false;

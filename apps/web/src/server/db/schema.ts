@@ -92,6 +92,30 @@ export interface AccessTokenTable {
   expires_at: Timestamp | null;
   revoked_at: Timestamp | null;
   created_at: Timestamp;
+  /** `web`, `cli` or `device` (migration 0027). Null for older tokens. */
+  created_via: string | null;
+}
+
+/**
+ * The device flow's grants (migration 0027, feature 107): one code `rmk login --web` asked for.
+ * Only the device code's hash is stored.
+ */
+export interface DeviceGrantTable {
+  id: string;
+  device_code_hash: string;
+  user_code: string;
+  client_id: string;
+  name: string;
+  /** `pending`, `approved`, `denied`, `spent` or `expired`. */
+  status: string;
+  user_id: string | null;
+  requester_ip: string | null;
+  approver_ip: string | null;
+  interval_seconds: number;
+  last_polled_at: Timestamp | null;
+  decided_at: Timestamp | null;
+  created_at: Timestamp;
+  expires_at: Timestamp;
 }
 
 /**
@@ -436,6 +460,7 @@ export interface Database {
   verification: VerificationTable;
   two_factor: TwoFactorTable;
   access_tokens: AccessTokenTable;
+  device_grants: DeviceGrantTable;
   audit_log: AuditLogTable;
   workspaces: WorkspaceTable;
   workspace_members: WorkspaceMemberTable;

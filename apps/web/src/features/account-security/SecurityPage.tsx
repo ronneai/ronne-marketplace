@@ -12,10 +12,13 @@ export type { SecurityStatus } from "./TwoFactorPanel";
 export const SecurityPage = ({
   status,
   required = null,
+  continueTo = null,
 }: {
   status: SecurityStatus;
   /** Root's requirement holding this person here until they set it up (105), or null. */
   required?: "reviewers" | "everyone" | null;
+  /** The page a held person came from, offered once two-factor is on (107), or null. */
+  continueTo?: string | null;
 }) => (
   <>
     <PageHeader
@@ -23,6 +26,6 @@ export const SecurityPage = ({
       description="Your password and how you sign in. Each change is recorded in the audit log."
     />
     <AccountTabs current="security" />
-    <TwoFactorPanel status={status} required={required} />
+    <TwoFactorPanel status={status} required={required} continueTo={continueTo} />
   </>
 );

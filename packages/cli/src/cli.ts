@@ -16,6 +16,7 @@ import { list, platforms, withApi } from "./registry-commands.js";
 import { submitCommand } from "./submit.js";
 import { flushAfterCommand, refreshPolicy, usageNotice } from "./telemetry.js";
 import { telemetryCommand } from "./telemetry-command.js";
+import { defaultTokenName, webLogin } from "./web-login.js";
 import { workspacesCommand } from "./workspaces.js";
 
 /**
@@ -24,7 +25,7 @@ import { workspacesCommand } from "./workspaces.js";
  */
 export const USAGE = `Usage: rmk <command> [options]
 
-  login [--registry <url>] [--token <token>] [--insecure]
+  login [--registry <url>] [--token <token>] [--web [--no-browser]] [--name <name>] [--insecure]
   logout
   whoami
   auth headers [--registry <url>]
@@ -58,6 +59,8 @@ const OPTIONS = {
   help: { type: "boolean", short: "h" },
   registry: { type: "string" },
   token: { type: "string" },
+  web: { type: "boolean" },
+  "no-browser": { type: "boolean" },
   insecure: { type: "boolean" },
   type: { type: "string" },
   scope: { type: "string" },
@@ -117,6 +120,14 @@ const connectScoped = (io: Io, args: Args) =>
     project: args.values.scope !== "user",
   });
 
+/** Why `rmk login` goes on in the browser after a right password (107). */
+const FALLBACK: Record<string, string> = {
+  two_factor_required:
+    "This account uses two-factor sign-in, so a password alone doesn't make a token.",
+  password_sign_in_disabled:
+    "This registry signs you in with your company's identity provider, not a password.",
+};
+
 const login = async (io: Io, args: Args, out: ReturnType<typeof output>) => {
   const config = readUserConfig(io);
   const resolved = resolveRegistry(io, config, str(args.values.registry));
@@ -125,23 +136,47 @@ const login = async (io: Io, args: Args, out: ReturnType<typeof output>) => {
   checkRegistryUrl(url, args.values.insecure === true);
   let token = str(args.values.token);
   let email: string | undefined;
+  const name = str(args.values.name) ?? defaultTokenName(io);
+  const web = () =>
+    webLogin(io, url, { name, openBrowser: args.values["no-browser"] !== true }).then(
+      (created) => created.token,
+    );
   if (token) {
     const me = await apiClient(io.fetch, url, token).me();
     email = me.email;
+  } else if (args.values.web) {
+    // No terminal is fine: someone on another screen can approve the code it prints (107).
+    token = await web();
   } else {
     if (!io.interactive)
       throw usage(
-        "No terminal to ask for a password: use `rmk login --token <token>`, or set RMK_TOKEN.",
+        "No terminal to ask for a password: use `rmk login --web`, `rmk login --token <token>`, or set RMK_TOKEN.",
       );
     email = (await io.prompt("Email: ")).trim();
     const password = await io.prompt("Password: ", { secret: true });
-    const created = await apiClient(io.fetch, url, null).login(
-      email,
-      password,
-      `rmk on ${io.env.HOSTNAME || io.env.COMPUTERNAME || "this machine"}`,
-    );
-    token = created.token;
+    try {
+      const created = await apiClient(io.fetch, url, null).login(email, password, name);
+      token = created.token;
+    } catch (error) {
+      if (!(error instanceof ApiError)) throw error;
+      if (error.code === "invalid_credentials")
+        throw new ApiError(
+          error.status,
+          error.code,
+          `${error.message} Signed up with your company? Use rmk login --web.`,
+        );
+      const why = FALLBACK[error.code];
+      if (!why) throw error;
+      // The password was right, and the registry says to use the browser (105, 106).
+      io.notice?.(why);
+      if (args.values.yes !== true)
+        await io.prompt("Press Enter to sign in in the browser instead (Ctrl-C to stop) ");
+      token = await web();
+      email = undefined;
+    }
   }
+  // The device flow doesn't say who approved: the token does.
+  email ??= (await apiClient(io.fetch, url, token).me()).email;
   config.registries[url] = { token, email };
   // The registry named with --registry becomes the default; one from the env or a project doesn't.
   const previous = config.defaultRegistry;

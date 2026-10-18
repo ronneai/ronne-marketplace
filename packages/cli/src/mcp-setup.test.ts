@@ -94,3 +94,80 @@ describe("rmk mcp-setup", () => {
     expect(setup.stdout).not.toContain("approve");
   });
 });
+
+describe("rmk mcp-setup without a token (107)", () => {
+  const CODE = {
+    device_code: "dev-code",
+    user_code: "WDJB-MJHT",
+    verification_uri: `${REGISTRY}/device`,
+    verification_uri_complete: `${REGISTRY}/device?user_code=WDJB-MJHT`,
+    expires_in: 600,
+    interval: 5,
+  };
+  const startSignedOut = async (options: { interactive?: boolean } = {}) => {
+    const { routes } = await buildRegistry();
+    io = fakeIo(
+      {
+        ...routes,
+        "POST /auth/device/code": () => ({ json: CODE }),
+        "POST /auth/device/token": () => ({
+          json: { token: "rmk_test_token", id: "t9", name: "rmk on laptop", expiresAt: null },
+        }),
+      },
+      { env: { RMK_REGISTRY: REGISTRY, HOSTNAME: "laptop" }, ...options },
+    );
+    mkdirSync(join(io.cwd, ".claude"));
+  };
+  const devicePolls = () => io.requests.filter((r) => r.path.startsWith("/api/v1/auth/device/"));
+  const saved = () =>
+    JSON.parse(readFileSync(join(io.home, ".config", "rmk", "config.json"), "utf8"));
+
+  it("offers the web login first, then registers the server", async () => {
+    await startSignedOut();
+    io.answers.push("");
+    const setup = await rmk("mcp-setup");
+    expect(setup.exitCode, setup.stderr).toBe(0);
+    expect(io.questions[0]).toContain("Sign in in the browser now? [Y/n]");
+    expect(io.notices).toContain("and enter the code  WDJB-MJHT   (it expires in 10 minutes)");
+    expect(setup.stdout).toContain(`Logged in to ${REGISTRY} as dev@example.com.`);
+    expect(setup.stdout).toContain("Registered the registry MCP server (rmk-mcp)");
+    expect(saved().registries[REGISTRY].token).toBe("rmk_test_token");
+  });
+
+  it("signs in without asking with --yes", async () => {
+    await startSignedOut();
+    expect((await rmk("mcp-setup", "--yes")).exitCode).toBe(0);
+    expect(io.questions).toEqual([]);
+    expect(devicePolls()).toHaveLength(2);
+  });
+
+  it("only says what to run when declined, or without a terminal, and registers anyway", async () => {
+    await startSignedOut();
+    io.answers.push("n");
+    const declined = await rmk("mcp-setup");
+    expect(declined.stdout).toContain("Run `rmk login --web`");
+    expect(declined.stdout).toContain("Registered the registry MCP server");
+    expect(devicePolls()).toEqual([]);
+
+    io.cleanup();
+    await startSignedOut({ interactive: false });
+    const unattended = await rmk("mcp-setup");
+    expect(unattended.exitCode).toBe(0);
+    expect(io.questions).toEqual([]);
+    expect(unattended.stdout).toContain("Run `rmk login --web`");
+    expect(devicePolls()).toEqual([]);
+  });
+
+  it("doesn't offer it with a token, or when removing", async () => {
+    await start();
+    await rmk("mcp-setup");
+    expect(io.questions).toEqual([]);
+    expect(devicePolls()).toEqual([]);
+
+    io.cleanup();
+    await startSignedOut();
+    await rmk("mcp-setup", "--remove");
+    expect(io.questions).toEqual([]);
+    expect(devicePolls()).toEqual([]);
+  });
+});

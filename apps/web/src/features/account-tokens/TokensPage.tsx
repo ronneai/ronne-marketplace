@@ -60,7 +60,12 @@ export const TokensPage = ({
               const status = tokenStatus(token, now);
               return (
                 <tr key={token.id} className={status === "active" ? undefined : "text-muted"}>
-                  <Td>{token.name}</Td>
+                  <Td>
+                    {token.name}
+                    {token.via === "device" ? (
+                      <span className="block text-xs text-muted">browser approval</span>
+                    ) : null}
+                  </Td>
                   <Td mono>{token.preview}…</Td>
                   <Td mono>
                     <LocalTime value={token.createdAt} precision="day" />

@@ -13,7 +13,7 @@ import {
 } from "../models/access-token";
 import { requirePermission } from "../models/permissions";
 import type { CurrentUser } from "../models/user";
-import type { TokenRepository } from "../repositories/token-repository";
+import type { TokenRepository, TokenVia } from "../repositories/token-repository";
 
 /**
  * Personal access tokens (feature 009). Owners create, list and revoke their own; the bearer guard
@@ -31,7 +31,7 @@ export type NewToken = { token: string; id: string; name: string; expiresAt: Dat
 export const createToken = async (
   deps: TokenDeps,
   actor: TokenActor,
-  input: { name: string; lifetime?: string | number | null; via: "web" | "cli" },
+  input: { name: string; lifetime?: string | number | null; via: TokenVia },
 ): Promise<NewToken> => {
   requirePermission(actor.user, "account.manage_own");
   const user = actor.user as CurrentUser;
@@ -52,6 +52,7 @@ export const createToken = async (
       tokenPrefix: tokenPreview(token),
       expiresAt,
       createdAt: at,
+      via: input.via,
     });
     await repo.recordAudit(
       {

@@ -9,7 +9,11 @@ export type NewTokenRow = {
   tokenPrefix: string;
   expiresAt: Date | null;
   createdAt: Date;
+  /** How it was made: the web page, `rmk login`, or a browser approval (107). */
+  via: TokenVia;
 };
+
+export type TokenVia = NonNullable<AccessTokenSummary["via"]>;
 
 /** A token found by its hash, with its owner, for the bearer guard. */
 export type TokenWithUser = {

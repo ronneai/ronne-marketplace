@@ -6,6 +6,7 @@ import { PASSWORD_MAX_LENGTH } from "../models/password";
 import type { PasswordHasher } from "../models/password-hasher";
 import { normalizeEmail } from "../models/user";
 import type { IdentityRepository } from "../repositories/identity-repository";
+import type { TokenVia } from "../repositories/token-repository";
 import { createToken, type NewToken, type TokenDeps } from "./access-tokens";
 
 /**
@@ -43,21 +44,26 @@ const timingDummy = (hasher: PasswordHasher) => {
 /** `rmk/0.1.0 (laptop)` → `rmk on laptop`; anything else → `rmk`. 022 sends this User-Agent. */
 export const tokenNameFromUserAgent = (userAgent: string | null): string => {
   const host = /^rmk\/\S+ \(([^;)]+)/.exec(userAgent ?? "")?.[1]?.trim();
-  return host ? `rmk on ${host}`.slice(0, TOKEN_NAME_MAX_LENGTH) : "rmk";
+  return host ? [...`rmk on ${host}`].slice(0, TOKEN_NAME_MAX_LENGTH).join("") : "rmk";
 };
 
-/** `rmk on laptop`, then `rmk on laptop (2)` and so on, so logging in again never fails on the name. */
-const createWithFreeName = async (
+/**
+ * `rmk on laptop`, then `rmk on laptop (2)` and so on, so logging in again never fails on the name.
+ * A 90-day token, as `rmk login` and the device flow (107) make.
+ */
+export const createWithFreeName = async (
   deps: TokenDeps,
   user: Parameters<typeof createToken>[1]["user"],
   ip: string | null,
   base: string,
+  via: TokenVia = "cli",
 ): Promise<NewToken> => {
   for (let n = 1; n <= MAX_ACTIVE_TOKENS + 1; n++) {
     const suffix = n === 1 ? "" : ` (${n})`;
-    const name = `${base.slice(0, TOKEN_NAME_MAX_LENGTH - suffix.length)}${suffix}`;
+    // Cut by code points, so a suffix never splits an emoji's surrogate pair.
+    const name = `${[...base].slice(0, TOKEN_NAME_MAX_LENGTH - suffix.length).join("")}${suffix}`;
     try {
-      return await createToken(deps, { user, ip }, { name, lifetime: 90, via: "cli" });
+      return await createToken(deps, { user, ip }, { name, lifetime: 90, via });
     } catch (error) {
       if (!(error instanceof TokenNameTakenError)) throw error;
     }

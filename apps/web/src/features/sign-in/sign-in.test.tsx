@@ -89,6 +89,9 @@ describe("SignInForm errors", () => {
     expect(html).toContain('href="https://github.com/ronneai/ronne-marketplace#the-rmk-cli"');
     expect(html).toContain("rmk login --registry https://ronne.example<");
     expect(html).toContain("rmk login --registry https://ronne.example --token &lt;token&gt;");
+    // 107: the fourth line, for company sign-in and two-factor.
+    expect(html).toContain("rmk login --registry https://ronne.example --web<");
+    expect(html).toContain("Signed up with your company, or using two-factor sign-in?");
     expect(renderToStaticMarkup(<SignInPage resetCommand={CLONE} next="/" />)).toContain(
       "rmk login --registry &lt;url&gt;<",
     );

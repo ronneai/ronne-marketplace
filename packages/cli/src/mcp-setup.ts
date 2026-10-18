@@ -1,12 +1,14 @@
 import type { Manifest } from "@ronneai/core";
-import { rmkVersion } from "./api.js";
+import { apiClient, rmkVersion } from "./api.js";
 import type { Wanted } from "./apply.js";
+import { readUserConfig, resolveRegistry, tokenFor, writeUserConfig } from "./config.js";
 import { usage } from "./errors.js";
 import { chooseTargets, MCP_SETUP_ITEM, places, scopeOf, toolNotes } from "./install.js";
 import type { Io } from "./io.js";
 import type { Output } from "./output.js";
 import { applyOwnEntries } from "./own-entries.js";
 import { readProjectConfig } from "./project.js";
+import { defaultTokenName, webLogin } from "./web-login.js";
 
 /**
  * `rmk mcp-setup [--target <ids>|all] [--scope project|user] [--remove] [--command <cmd>]`
@@ -34,6 +36,50 @@ const serverManifest = (command: string[]): Manifest =>
     },
   }) as unknown as Manifest;
 
+/**
+ * The server uses the token `rmk login` saved (107): without one, `rmk mcp-setup` offers to sign in
+ * in the browser first, as `rmk login --web` does. `--yes` signs in without asking; without a
+ * terminal it only says what to run.
+ */
+const offerWebLogin = async (io: Io, args: Args, out: Output, project: boolean) => {
+  const config = readUserConfig(io);
+  const override = typeof args.values.registry === "string" ? args.values.registry : undefined;
+  const registry = resolveRegistry(io, config, override, project);
+  if (!registry) {
+    out.say(
+      "Note: no registry yet. Run `rmk login --web --registry <url>`, and the server uses its token.",
+    );
+    return;
+  }
+  if (tokenFor(io, config, registry.url)) return;
+  const later = `Note: you're not logged in to ${registry.url}. Run \`rmk login --web\` (or \`rmk login\`) so the server has a token.`;
+  if (!io.interactive) {
+    out.say(later);
+    return;
+  }
+  if (args.values.yes !== true) {
+    const answer = await io.prompt(
+      `You're not logged in to ${registry.url}, and the server needs a token. Sign in in the browser now? [Y/n] `,
+    );
+    if (/^n/i.test(answer.trim())) {
+      out.say(later);
+      return;
+    }
+  }
+  const name =
+    (typeof args.values.name === "string" ? args.values.name : undefined) ?? defaultTokenName(io);
+  const created = await webLogin(io, registry.url, {
+    name,
+    openBrowser: args.values["no-browser"] !== true,
+  });
+  const email = (await apiClient(io.fetch, registry.url, created.token).me()).email;
+  config.registries[registry.url] = { token: created.token, email };
+  config.defaultRegistry ??= registry.url;
+  writeUserConfig(io, config);
+  out.set("loggedIn", { registry: registry.url, email });
+  out.say(`Logged in to ${registry.url} as ${email}.`);
+};
+
 export const mcpSetupCommand = async (io: Io, args: Args, out: Output) => {
   const scope = scopeOf(typeof args.values.scope === "string" ? args.values.scope : undefined);
   const remove = args.values.remove === true;
@@ -42,6 +88,7 @@ export const mcpSetupCommand = async (io: Io, args: Args, out: Output) => {
     .split(/\s+/)
     .filter(Boolean);
   if (command.length === 0) throw usage("--command needs the command that starts rmk-mcp.");
+  if (!remove) await offerWebLogin(io, args, out, scope === "project");
   const config = scope === "project" ? readProjectConfig(io.cwd) : null;
   const targets = await chooseTargets(
     io,

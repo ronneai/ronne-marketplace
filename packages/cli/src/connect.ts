@@ -35,7 +35,8 @@ export const connectRegistry = (
     );
   if (needToken && !registry.token)
     throw new RmkError(
-      `You're not logged in to ${registry.url}. Run \`rmk login\`.`,
+      // 107: with company sign-in or two-factor, the browser is the way in.
+      `You're not logged in to ${registry.url}. Run \`rmk login\`, or \`rmk login --web\` to approve it in the browser.`,
       1,
       "not_logged_in",
     );

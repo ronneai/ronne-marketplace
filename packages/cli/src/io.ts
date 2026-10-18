@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { homedir } from "node:os";
+import { homedir, hostname } from "node:os";
 import { createInterface } from "node:readline/promises";
 import { RmkError } from "./errors.js";
 
@@ -22,7 +22,33 @@ export type Io = {
   readStdin?: () => Promise<string>;
   /** Starts `rmk telemetry flush` detached, so a tool's hook never waits for the network (046). */
   sendInBackground?: () => void;
+  /**
+   * Prints a line at once, on stderr, for what a person must see while rmk waits (107's code and
+   * address). A command's own output still comes at its end.
+   */
+  notice?: (line: string) => void;
+  /** This computer's name, for a token's default name (107). Defaults to the system's. */
+  hostname?: () => string;
+  /** Opens an address in the default browser; a failure is ignored (107). */
+  openUrl?: (url: string) => void;
+  /** Waits, until `signal` aborts; tests skip the time. Defaults to a timer. */
+  sleep?: (ms: number, signal?: AbortSignal) => Promise<void>;
+  /** Calls `handler` on Ctrl-C until the returned function is called (107). */
+  onInterrupt?: (handler: () => void) => () => void;
 };
+
+/** The command a platform opens an address with, without a new dependency (107). */
+export const openCommand = (
+  platform: NodeJS.Platform,
+  url: string,
+): { command: string; args: string[] } =>
+  platform === "darwin"
+    ? { command: "open", args: [url] }
+    : platform === "win32"
+      ? // Not `cmd /c start`: cmd parses its own command line, and Node's quoting of `start`'s
+        // title argument isn't what cmd expects. The URL handler takes the address as it is.
+        { command: "rundll32", args: ["url.dll,FileProtocolHandler", url] }
+      : { command: "xdg-open", args: [url] };
 
 /** The current time, from the `Io` when it has a clock. */
 export const nowOf = (io: Io): Date => io.now?.() ?? new Date();
@@ -87,6 +113,19 @@ const ask = async (question: string, secret: boolean): Promise<string> => {
   }
 };
 
+/** A timer that an abort ends at once, clearing it, so Ctrl-C doesn't leave the process waiting. */
+export const waitFor = (ms: number, signal?: AbortSignal): Promise<void> =>
+  new Promise((resolve) => {
+    if (signal?.aborted) return resolve();
+    const done = () => {
+      clearTimeout(timer);
+      signal?.removeEventListener("abort", done);
+      resolve();
+    };
+    const timer = setTimeout(done, ms);
+    signal?.addEventListener("abort", done, { once: true });
+  });
+
 export const defaultIo = (): Io => ({
   env: process.env,
   home: homedir(),
@@ -94,6 +133,25 @@ export const defaultIo = (): Io => ({
   fetch: globalThis.fetch,
   interactive: Boolean(process.stdin.isTTY && process.stdout.isTTY),
   prompt: (question, options) => ask(question, options?.secret ?? false),
+  hostname: () => hostname(),
+  notice: (line) => {
+    process.stderr.write(`${line}\n`);
+  },
+  openUrl: (url) => {
+    const { command, args } = openCommand(process.platform, url);
+    try {
+      const child = spawn(command, args, { detached: true, stdio: "ignore" });
+      child.on("error", () => {});
+      child.unref();
+    } catch {
+      // The address was printed anyway.
+    }
+  },
+  sleep: (ms, signal) => waitFor(ms, signal),
+  onInterrupt: (handler) => {
+    process.once("SIGINT", handler);
+    return () => process.off("SIGINT", handler);
+  },
   sendInBackground: () => {
     const script = process.argv[1];
     if (!script) return;

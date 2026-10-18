@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Badge } from "@/components/ui/Badge";
+import { buttonClasses } from "@/components/ui/Button";
 import { Notice } from "@/components/ui/Notice";
 import { Panel } from "@/components/ui/Panel";
 import { RegenerateBackupCodes, TurnOffTwoFactor } from "./ManageTwoFactor";
@@ -26,9 +27,12 @@ const REQUIRED_FOR = {
 export const TwoFactorPanel = ({
   status,
   required = null,
+  continueTo = null,
 }: {
   status: SecurityStatus;
   required?: keyof typeof REQUIRED_FOR | null;
+  /** Where a held person was going (107's `/device`), offered once it's on. */
+  continueTo?: string | null;
 }) => {
   const router = useRouter();
   const [phase, setPhase] = useState<"off" | "on">(status.enabled ? "on" : "off");
@@ -48,6 +52,15 @@ export const TwoFactorPanel = ({
         <Notice kind="warn" title="Set up two-factor sign-in to continue">
           Your administrator requires it for {REQUIRED_FOR[required]}. The rest of Ronne opens once
           it&apos;s on.
+        </Notice>
+      ) : null}
+      {continueTo && phase === "on" && enabled ? (
+        <Notice kind="info" title="Two-factor sign-in is on">
+          <p>You can go back to what you were doing.</p>
+          {/* A full page load: the app frame was holding this person here until now. */}
+          <a href={continueTo} className={`${buttonClasses("primary")} mt-3`}>
+            Continue
+          </a>
         </Notice>
       ) : null}
       <Panel padding="lg">

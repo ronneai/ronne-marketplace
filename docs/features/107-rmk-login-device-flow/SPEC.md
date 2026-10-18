@@ -61,19 +61,30 @@ and enter the code  WDJB-MJHT   (it expires in 10 minutes)
 and opens `verification_uri_complete` in the default browser unless `--no-browser`, there is no
 display, or the session is over SSH (it then prints only). The `user_code` is 8 characters from an
 alphabet without look-alikes (no `0 O 1 I L`), shown as `XXXX-XXXX`; the `device_code` is 32 random
-bytes, base64url, and only its SHA-256 hash is stored.
+bytes, base64url, and only its SHA-256 hash is stored. A `name` of more than 100 characters, or with a control or
+format character (a bidi override could make it read as another name), is `invalid_request`; the
+page shows the name isolated (`<bdi>`) all the same.
 
 **Approving** (`/device`, signed-in people; 006's guard sends others to sign-in with
 `next=/device?user_code=…`):
-- With a code in the address, the page shows it for confirmation; without, an input.
+- With a code in the address, the page shows it in the input to check against the terminal;
+  without, the input is empty. **Continue** (a POST) looks the code up; opening the page, with or
+  without a code, changes nothing and counts nothing, so a link or a prefetch can't.
 - It shows **what asked**: "`rmk` on *host*" (the name), the time, and the client address when
   `TRUST_PROXY` is on, and the warning "Only approve if you just ran `rmk login --web` yourself."
-- **Approve** and **Deny** are buttons in a server-action form (never a link that changes state,
+- After Continue, **Approve** and **Deny** are buttons in a server-action form (never a link that changes state,
   `docs/knowledge/links-that-change-state.md`). Approve binds the code to the signed-in user.
 - A wrong, used or expired code says "That code isn't valid or has expired. Run `rmk login --web`
   again" and nothing about which of the three it was.
+- **Typed codes** are upper-cased and stripped of spaces and dashes, then judged: anything that
+  isn't then 8 characters of the alphabet is malformed, and only the normalised code is looked up.
 - **Brute force:** at most 5 wrong codes a minute per client address (when `TRUST_PROXY`) and 10 per
-  person per hour, then 429; a code that has been tried wrongly 5 times in total is voided.
+  person per hour, then 429. Every refused entry counts there (wrong, used, expired or malformed),
+  so the limit tells nothing about which it was. An entry is counted when it arrives and taken
+  back once the code was right, so a burst of requests can't all pass. A wrong code changes no
+  grant: nothing is voided, so nobody can cancel someone else's login by typing wrong codes
+  (Decision 4). One person guessing gets 10 tries an hour against 31⁸ codes (the 31 characters
+  left once `0 O 1 I L` are out): with 5 codes waiting, about 1 in 17 billion an hour.
 
 **Polling.** `rmk` calls `POST /api/v1/auth/device/token` with
 `{ "grant_type": "urn:ietf:params:oauth:grant-type:device_code", "device_code", "client_id" }`
@@ -88,25 +99,51 @@ every `interval` seconds. Responses, as RFC 8628:
 | 400 | `invalid_grant` | unknown or already used |
 | 200 | — | `{ "token": "rmk_…", "id", "name", "expiresAt" }`, a **90-day** token, **once**: the code is spent |
 
+Errors use the API's shape (MVP §11), `{ "error": { "code", "message" } }`, with RFC 8628's names as
+the `code`; a body that isn't JSON, a missing field or a wrong type is `invalid_request`, another
+`grant_type` is `unsupported_grant_type`, and a `client_id` other than `rmk` or `rmk-mcp` is
+`invalid_client`. Both routes are limited: 10 code requests a minute per client address and 60
+polls (when `TRUST_PROXY`), or one bucket for the instance without a trusted address (60 and 600),
+then 429 `rate_limited` with `Retry-After`. Neither reads or sets a cookie.
+
 A disabled user's approval is refused when they approve and again at exchange (`user_disabled`). The
 response carries `Cache-Control: no-store`. `rmk` stops on a deadline, on `access_denied`, on
 `expired_token` or on Ctrl-C, and says which.
 
-**The server.** Better Auth's `deviceAuthorization` plugin issues and tracks the codes; its HTTP
-routes stay off the allowlist (006) and the two `/api/v1/auth/device/*` routes are Ronne's own
-adapters (the API's error shape, MVP §11). At exchange the adapter turns the approved grant into a
-personal access token with the same service as 009, and ends the session the plugin made for the
-exchange, so no web session is left behind. If task 1 finds the plugin unfit (below), a small
-`device_codes` table does the same.
+**The server.** A small `device_grants` table of Ronne's own issues and tracks the codes (task 1
+found Better Auth's `deviceAuthorization` plugin unfit: it stores the device code in clear, keeps
+the interval fixed, binds a code to its first viewer and counts no wrong codes; Decision 3 and
+PLAN.md's Notes). The plugin isn't loaded, so none of its routes exists, and the two
+`/api/v1/auth/device/*` routes are Ronne's own (the API's error shape, MVP §11). At exchange the
+approved grant becomes a personal access token through the same service as 009, after one
+conditional update spends the grant (so it is spent once, even when the token can't be made); no
+session is made.
+
+A grant row keeps: the device code's SHA-256 hash; the user code (unique among the rows kept: a
+new code that collides is drawn again); the client id; the token's name; the requester's address
+(when `TRUST_PROXY`); the status (`pending`, `approved`, `denied`, `spent`, `expired`);
+the approver; the polling interval and the last poll; and its times. Rows are
+deleted a day after they expire, when a new code is asked for, so a late poll still gets
+`expired_token`. `auth.device_expired` is written once per grant that ends unused (pending or
+approved), by the conditional update that sets it
+to `expired`, when it is first seen past its expiry: at a poll, or when the next code is asked for
+(which sweeps the pending and approved grants past their expiry).
 
 **Existing credentials.** `rmk login` (password) and `rmk login --token` are unchanged. The token
 exchange answers `two_factor_required` and `password_sign_in_disabled` only after a right
 password (105, 106), so those codes tell `rmk` which message to print without helping a guesser.
 
 **`rmk` details.**
-- No new dependency to open a browser: `open` on macOS, `xdg-open` on Linux, `start` on Windows,
+- No new dependency to open a browser: `open` on macOS, `xdg-open` on Linux, `rundll32 url.dll,FileProtocolHandler` on Windows
+  (not `cmd /c start`, whose own parsing of the arguments Node quotes is unreliable),
   through the same child-process helper `rmk` already has; a failure is ignored (the address was
   printed anyway).
+- The address, the code and "Waiting for the approval… (Ctrl-C to stop)" are printed at once on
+  stderr, so stdout stays one JSON object with `--json`. A stop (deny, expiry, Ctrl-C) exits 1 and
+  saves nothing. `slow_down` adds 5 s to the wait; a 429 waits its `Retry-After`.
+- The fallback asks "Press Enter to sign in in the browser instead (Ctrl-C to stop)" after saying
+  why (two-factor, or company sign-in only); `--yes` skips the question. Without a terminal,
+  `rmk login` names `--web` among the ways in.
 - Non-interactive use (`CI`, no TTY): `--web` prints the address and code and still waits, so a
   person on another screen can approve; `RMK_TOKEN` stays the way for CI.
 - `--registry` and the stored registry work as in 022; the token is written to
@@ -123,7 +160,8 @@ password (105, 106), so those codes tell `rmk` which message to print without he
   them. That is the point of the flow.
 - **The approving person signs out meanwhile:** the grant stands; the code was already bound.
 - **A person with two-factor is held on enrolment (105):** `/device` redirects them to
-  `/account/security` first, and comes back to the code afterwards.
+  `/account/security?next=/device?user_code=…` first; once two-factor is on, a *Continue* button
+  there goes back to the code (only a path on this site is kept).
 - **A provider sign-in in the middle** (106): the visitor returns to `/device?user_code=…` through
   the same `next` rule as 006.
 - **The server restarts while `rmk` waits:** the codes are in the database, so polling continues.
@@ -154,8 +192,9 @@ password (105, 106), so those codes tell `rmk` which message to print without he
 - [ ] An SSO-only account (no password) and a two-factor account can log in with it; `rmk login`
   falls back to it with a clear message for both.
 - [ ] The device code is stored only as a hash, the user code is not guessable in the allowed attempts
-  (rate limits and voiding are tested), and approving is a POST form, never a GET link.
-- [ ] No web session remains after an exchange, and none of the plugin's HTTP routes is reachable.
+  (the rate limits are tested), and approving is a POST form, never a GET link.
+- [ ] No web session remains after an exchange, and none of the plugin's HTTP routes is reachable
+  (`/api/auth/device/*` is a 404).
 - [ ] `rmk mcp-setup` with no token offers the web login, and with one does not.
 - [ ] The token is audited with `via: "device"`, the approval with the requester's details.
 - [ ] Tests run on SQLite, PostgreSQL, MySQL and MariaDB; the `rmk` tests use a fake server; one
@@ -169,8 +208,16 @@ password (105, 106), so those codes tell `rmk` which message to print without he
    browser" after a right password.
 2. **The token is the same personal access token** (owner, 2026-10-06 design): everything that
    checks tokens (009, the MCP server) stays as it is.
-3. **The plugin issues codes, Ronne's routes expose them** (Claude, task 1 decides): so the error
-   shape and the audit are Ronne's.
+3. **Ronne's own `device_grants` table, not the plugin** (Claude, task 1, 2026-10-17): the plugin
+   stores the device code in clear and finds it by equality, keeps the interval fixed on
+   `slow_down`, binds a code to its first signed-in viewer (or to an anonymous `user_id` in the
+   request), and counts no wrong codes. Its exported `redeemDeviceCode` and grant fields would avoid
+   the session and hold the name and address, but not those. Ronne's table keeps a hash and spends
+   the grant once before the token is made. The error shape and
+   the audit are Ronne's either way.
+4. **No voiding on wrong codes** (owner, 2026-10-17): voiding every pending code after 5 wrong
+   entries stopped guessing, but let anyone signed in cancel others' logins. The rate limits and
+   31⁸ codes make a guess negligible (*Brute force*), so a wrong code changes nothing (task 9).
 
 ## Open questions
 

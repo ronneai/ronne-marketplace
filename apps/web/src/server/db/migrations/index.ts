@@ -24,6 +24,7 @@ import { personalWorkspaces } from "./0023_personal_workspaces";
 import { scopeMoves } from "./0024_scope_moves";
 import { twoFactor } from "./0025_two_factor";
 import { identityProviders } from "./0026_identity_providers";
+import { deviceGrants } from "./0027_device_grants";
 import type { AppMigration } from "./types";
 
 /**
@@ -57,4 +58,5 @@ export const migrations: Record<string, AppMigration> = {
   "0024_scope_moves": scopeMoves,
   "0025_two_factor": twoFactor,
   "0026_identity_providers": identityProviders,
+  "0027_device_grants": deviceGrants,
 };
