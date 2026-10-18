@@ -79,6 +79,10 @@ export interface IdentityRepository {
     user: Omit<NewUserWithPassword, "passwordHash">,
     now: Date,
   ): Promise<string>;
+  /**
+   * Sets the user's password, adding the password row when they have none (an account made by a
+   * provider's sign-in, 106, or by SCIM, 108). Locks the user first: two at once add one row.
+   */
   setPassword(userId: string, passwordHash: string, now: Date): Promise<void>;
   enableUser(userId: string, now: Date): Promise<void>;
   /** Whether an email belongs to an active or a disabled user, or to nobody. For audit reasons only. */

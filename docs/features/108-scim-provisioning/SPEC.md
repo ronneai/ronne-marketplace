@@ -197,6 +197,9 @@ at the same moment) answers 409 `uniqueness`.
 - **Backup/restore (099)** carries the token hashes; `rotate-secret` needs nothing (hashes, not
   encrypted). `revoke-access` (098) also revokes SCIM tokens, and `rmk-server disable-sso` (106)
   turns SCIM off.
+- **A password for an account SCIM made:** it has none; root's *Reset password* in Admin › Users
+  gives it one (before 108 the reset showed a password but saved nothing for an account with no
+  password, one a provider's sign-in made in 106 too; owner, 2026-10-18: fixed here).
 - **A deleted provider** (106) loses its SCIM links and tokens; accounts stay.
 - **Time:** `meta` times are UTC ISO 8601; the Users list is ordered by creation then id so
   paging is stable.

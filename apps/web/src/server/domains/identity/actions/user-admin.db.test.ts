@@ -31,6 +31,7 @@ import {
   adminResetPassword,
 } from "./user-admin";
 
+const onServer = Boolean(process.env.TEST_DATABASE_URL);
 let t: TestDb;
 let app: AppAuth;
 let rootId: string;
@@ -527,6 +528,57 @@ describe("resetPassword", () => {
       targetId: id,
       metadata: { via: "web", sessionsEnded: 1, tokensRevoked: 1 },
     });
+  });
+
+  it("gives a password to an account that has none, made by a provider's sign-in or SCIM (108)", async () => {
+    const repo = kyselyIdentityRepository(t.db, t.dialect);
+    const id = await repo.createUserWithoutPassword(
+      { email: "sso@example.com", name: "SSO only", role: "user" },
+      new Date(),
+    );
+    expect(await canSignIn("sso@example.com", "a typed passphrase")).toBe(false);
+    await adminResetPassword(asRoot, id, "a typed passphrase", app);
+    expect(await canSignIn("sso@example.com", "a typed passphrase")).toBe(true);
+    const rows = await t.db
+      .selectFrom("account")
+      .select("id")
+      .where("user_id", "=", id)
+      .where("provider_id", "=", "credential")
+      .execute();
+    expect(rows).toHaveLength(1);
+  });
+
+  // Two at once add one password row between them: the user's row is locked first. Each
+  // transaction holds on until the other has started, so only the servers run it (SQLite has one
+  // connection, and the second would wait for the first forever).
+  it.skipIf(!onServer)("two password resets at once add one password row", async () => {
+    const repo = kyselyIdentityRepository(t.db, t.dialect);
+    let started = 0;
+    const both = new Promise<void>((resolve) => {
+      const check = () => (started === 2 ? resolve() : setTimeout(check, 5));
+      check();
+    });
+    const second = await repo.createUserWithoutPassword(
+      { email: "sso2@example.com", name: "SSO two", role: "user" },
+      new Date(),
+    );
+    const race = (hash: string) =>
+      repo.transaction(async (trx) => {
+        await trx.findUser(second);
+        started += 1;
+        await both;
+        await trx.setPassword(second, hash, new Date());
+      });
+    // Both succeed: the second waits for the first, then updates the row it added.
+    const settled = await Promise.allSettled([race("hash-one"), race("hash-two")]);
+    expect(settled.map((r) => r.status)).toEqual(["fulfilled", "fulfilled"]);
+    const secondRows = await t.db
+      .selectFrom("account")
+      .select("id")
+      .where("user_id", "=", second)
+      .where("provider_id", "=", "credential")
+      .execute();
+    expect(secondRows).toHaveLength(1);
   });
 
   it("takes a typed password, resets another root, and refuses your own", async () => {
