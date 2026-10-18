@@ -842,3 +842,59 @@ Witnessed: 2026-10-18 15:44 EDT, by a fresh agent (blind). Commit: 2828f72b + wo
 | 12 | Diff: since the first pass, only `summary.ts`, `summary.test.ts` and the docs changed | no | confirmed | `cmp` of every modified or untracked file against the first pass's copy → only `summary.ts`, `summary.test.ts`, `PLAN.md`, `WITNESS.md` differ |
 
 **Overall:** met: the everyone-revoke summary counts SCIM tokens and no longer says "(nothing left)", `scim_disabled` shows `via`, and the new tests fail under each mutation. With the first pass's rows 1–9, every row is confirmed.
+
+## Task 8 — End to end
+
+### The fix it needed first: *Reset password* on an account with no password (blind)
+
+Witnessed: 2026-10-18 16:09 EDT, by a fresh agent (blind). Commit: ae996c7f + working tree (identity-repository.ts, kysely-identity-repository.ts, user-admin.db.test.ts, SPEC.md, PLAN.md). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | *Reset password* gives a passwordless account (no `credential` row) a password that signs in, on SQLite, PostgreSQL, MySQL and MariaDB | yes | confirmed | `user-admin.db.test.ts -t resetPassword` on all four → "gives a password to an account that has none…" passes; it signs in through Better Auth's `signIn` (false before, true after). Mutation: the `numUpdatedRows > 0` guard → `return` → `expected false to be true` |
+| 2 | The inserted row is the shape Better Auth signs in with | yes | confirmed | kysely-identity-repository.ts:466-482 matches `createUserWithPassword`'s insert at :117-133; probe dump on SQLite, PG, MariaDB: columns match a `createTestUser` row |
+| 3 | Exactly one credential row after the reset | yes | confirmed | The test's `rows` has length 1 on all four; probe: two resets in a row → 1 row, the second password signs in |
+| 4 | An account that already has a password gets its one row updated, not a second | no | confirmed | Probe → one row, same id as before, on all four; the old password refused, the new one signs in; the existing reset test passes everywhere |
+| 5 | Two resets at once leave one row, and the race test fails without the lock (servers) | yes | confirmed | Race test passes on PG, MySQL, MariaDB, skipped on SQLite (`it.skipIf(!onServer)`). Dropping the `forUpdate` → `expected [ …(2) ] to have a length of 1 but got 2` on all three. Both callers run `setPassword` inside `repo.transaction`. Remark: `allSettled` didn't check both transactions succeeded |
+| 6 | `reset-root-password` works for a passwordless root | no | confirmed | Probe: `createUserWithoutPassword({role:"root"})`, `resetRootPassword` → sign-in ok on all four |
+| 7 | What reads "has a password" sees the new row | no | confirmed | The readers join `account` on `provider_id = credential` (:206-209, 241-245, `hasPassword` :271); inferred from the code, the UI not rendered |
+| 8 | SPEC edge case recorded | no | confirmed | SPEC.md:200-202 |
+
+**Overall:** met: a reset now gives a passwordless account one credential row that signs in on all four dialects, an account with a password keeps its one row, and the user-row lock keeps a concurrent pair to one row.
+
+Its remark is taken: the race test now expects both transactions `fulfilled` (passes on PostgreSQL, MySQL and MariaDB).
+
+### Pass 1 (blind)
+
+Witnessed: 2026-10-18 16:27 EDT, by a fresh agent (blind). Commit: ae996c7f + working tree (scim.ts, scim.e2e.ts, scim.mobile.e2e.ts untracked; setPassword diff). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The build tested is the current code | no | confirmed | `find src -newer .next/BUILD_ID` → only `user-admin.db.test.ts` (a test); BUILD_ID 16:08:37, after kysely-identity-repository.ts at 16:05:56 |
+| 2 | The SCIM spec passes on desktop and phone (chromium, phone, phone-webkit, tablet) | yes | confirmed | `pnpm exec playwright test scim` → 4 passed (15.4s); the log check passed |
+| 3 | The whole suite still passes with the flow on the shared instance; the earlier rmk-fallback failure doesn't recur | no | confirmed | `pnpm exec playwright test` → 165 passed (6.0m); `rmk-fallback.e2e.ts:17` ✓ |
+| 4 | Entra's and Okta's request shapes get correct SCIM responses (create 201, again 409, `userName eq`, PATCH `name.givenName`, group 201, remove by `members[value eq]`, `active` "False" / `{active:true}`, DELETE 204, then 404) | yes | confirmed | `e2e/scim.ts:95-186`, each status asserted; passed in all 4 projects |
+| 5 | A created user has no password: root's *Reset password* gives one and they sign in with it | yes | confirmed | The flow signs Kai in after the reset; `user-admin.db.test.ts` → SQLite 26 passed, 1 skipped; PG, MySQL, MariaDB 27 passed each |
+| 6 | A group's member gets the mapped role and loses it when removed; the check fails if the role stayed | yes | confirmed | Probe writing the moderator row back after the remove → fails at `scim.ts:170` |
+| 7 | Deactivation revokes the `rmk_` token, and the check fails without it | yes | confirmed | The first 401 doesn't prove it (a disabled user's token is refused anyway, `access-tokens.ts:153`); the 401 after reactivation does: `revoked_at` set back to null → `Expected: 401 Received: 200` |
+| 8 | Deactivation deletes the session, and the browser check fails without it | yes | partly | The check after `active:false` passes either way (`currentUser` reads `findActiveUser`, `services/session.ts:33-34`). With the session put back, the flow fails only by the 120s timeout (the sign-in after reactivation hangs). An explicit `/catalogue` → `/sign-in` check after reactivation fails at once with the session put back and passes on the real server |
+| 9 | DELETE disables the account and signs them out; *Deprovisioned by … on* | yes | confirmed | `scim.ts:189-195`; 4 projects. Its sign-out check can't tell a deleted session from a disabled account either (row 8) |
+| 10 | The SCIM token and the password appear in no log | yes | confirmed | `recordSecret` at `scim.ts:90,136`; `e2e-secrets.txt` holds 4 `scim_` tokens; `grep -c 'scim_[A-Za-z0-9_-]\{43\}' server.log` → 0; `log-check.ts` passed |
+| 11 | The flow leaves the shared instance clean | yes | confirmed | After the full run: `scim_*` tables empty; only 106's `e2e-fake-*` providers; Kai's sessions 0, no moderator; the 4 Kais remain, disabled; all later tests passed |
+
+**Overall:** met: the flow passes on the four projects and in the full run (165/165), and each server action it covers makes it fail when simulated away; the session one only by the 120s timeout.
+
+Its suggestion is taken: after reactivation, before signing in again, the flow now opens `/catalogue` and expects the sign-in page (the check the witness ran against the sessions put back). `pnpm exec playwright test scim` → 4 passed.
+
+### Re-check 1 (blind: row 8, plus what the diff touches)
+
+Witnessed: 2026-10-18 16:31 EDT, by a fresh agent (blind). Commit: 48559c57 + working tree (scim.ts, scim.e2e.ts, scim.mobile.e2e.ts untracked; PLAN.md, WITNESS.md). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 8 | Deactivation deletes the session, and the browser check fails without it | no | confirmed | Probe from the current `scim.ts` with a switch putting Kai's session rows back after `active:false`: "sessions left after off 0", "restored 1", then ✘ (7.5s) at the new check after reactivation (`scim.ts:182-185`, "…/catalogue" instead of `/sign-in`). Probe files deleted; `git status` clean of them |
+| 12 | The SCIM spec still passes on chromium, phone, phone-webkit and tablet | no | confirmed | `pnpm exec playwright test scim` → 4 passed (15.4s) |
+| 13 | The build tested is the current code | no | confirmed | `find src ../../packages/*/src -newer .next/BUILD_ID` → nothing |
+| 14 | Diff since pass 1: only the check after reactivation, plus docs | no | confirmed | Pass 1's copy against `e2e/scim.ts` → only `scim.ts:182-185`; `git diff HEAD --stat` → PLAN.md, WITNESS.md; pass 1's source changes are commit 48559c57 with the same line counts |
+
+**Overall:** met: with the sessions put back, the flow now fails within seconds at the new check, and the spec passes on all four projects. With pass 1's other rows, every row is confirmed.

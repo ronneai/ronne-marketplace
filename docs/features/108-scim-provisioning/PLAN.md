@@ -56,7 +56,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   SCIM off; backup and restore carry the tables.
   *Done when:* script tests pass, including a restore round trip.
 
-- [ ] **8. End-to-end.** A test process plays an identity provider's SCIM client against the built
+- [x] **8. End-to-end.** A test process plays an identity provider's SCIM client against the built
   server: create, patch, group, deprovision; the browser shows the account disabled and the session
   gone.
   *Done when:* `pnpm test:e2e` passes the spec on desktop and phone.
@@ -333,3 +333,27 @@ Edge cases can't work.
 - **Audit log line** (the blind pass's row 10): the SCIM count joins the other counts in the
   parentheses ("(2 SCIM tokens revoked)"), so *nothing left* shows only when all are zero; tested
   in `summary.test.ts`, with `instance.scim_disabled`'s *from the command line*.
+
+**Found before task 8: *Reset password* on an account with no password (2026-10-18).** Accounts
+that 106's sign-in and SCIM create have no `credential` row, and `setPassword` only updated one:
+the reset ended sessions, revoked tokens and showed a password that signed nobody in (and
+`disable-sso`'s line sends root there). The owner chose to fix it within 108. `setPassword` now
+locks the user's row, updates the password, and adds the row Better Auth writes when there was
+none. Tests: the reset gives a passwordless account a working password with one row; two resets
+racing in two transactions (servers only; SQLite has one connection) add one row. Without the
+lock that race leaves two rows on PostgreSQL and MySQL.
+
+**Task 8, end to end (2026-10-18).** `e2e/scim.ts` (the flow), `scim.e2e.ts` (desktop) and
+`scim.mobile.e2e.ts` (phone, phone-webkit, tablet). 106's root of each project adds a Keycloak
+provider with a group mapping (moderator of `e2e-team`), turns SCIM on and generates a token
+from the page; the test process then plays the provider with `fetch`: create (Okta's shape) and
+the same create again (409), find by `userName eq`, patch the name (Entra's), a group with the
+person in it (Admin › Users: *Managed by* and moderator). Root resets the person's password (the
+fix above), the person signs in and makes an `rmk_` token. Then: out of the group (the role
+goes), `active` "False" (Entra's string; the next page is the sign-in, the token gets 401, the
+row says disabled), `active: true` (Okta's; enabled, the token stays revoked, a sign-in works),
+`DELETE` (204, then 404; signed out, *Deprovisioned by … on*). Deleting the provider leaves the
+instance as it was, and its token then gets 401. The SCIM token and the password are recorded for
+the log check. No new seeded users: 106's root signs in once in its own test, so one more stays
+under the per-email limit. Tests run one at a time (`workers: 1`), so 106's `disable-sso` (which
+now turns SCIM off too) never lands in the middle of this flow.
