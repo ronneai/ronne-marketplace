@@ -25,6 +25,7 @@ import { scopeMoves } from "./0024_scope_moves";
 import { twoFactor } from "./0025_two_factor";
 import { identityProviders } from "./0026_identity_providers";
 import { deviceGrants } from "./0027_device_grants";
+import { scim } from "./0028_scim";
 import type { AppMigration } from "./types";
 
 /**
@@ -59,4 +60,5 @@ export const migrations: Record<string, AppMigration> = {
   "0025_two_factor": twoFactor,
   "0026_identity_providers": identityProviders,
   "0027_device_grants": deviceGrants,
+  "0028_scim": scim,
 };

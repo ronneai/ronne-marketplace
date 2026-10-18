@@ -184,6 +184,20 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     { code: text(m.provider) },
     m.reason === "retest" ? " (its settings changed, so it needs a new test)" : "",
   ],
+  "instance.scim_enabled": (m) => ["Turned on SCIM for ", { code: text(m.provider) }],
+  "instance.scim_disabled": (m) => ["Turned off SCIM for ", { code: text(m.provider) }],
+  "instance.scim_token_created": (m) => ["Made a SCIM token for ", { code: text(m.provider) }],
+  "instance.scim_token_rotated": (m) => [
+    "Rotated the SCIM token of ",
+    { code: text(m.provider) },
+    "; the one before works for 24 more hours",
+  ],
+  "instance.scim_token_revoked": (m) => [
+    num(m.tokens) > 1
+      ? "Revoked the SCIM token, and the one before its rotation, of "
+      : "Revoked the SCIM token of ",
+    { code: text(m.provider) },
+  ],
   "instance.password_sign_in_changed": (m) => [
     `Changed who may sign in with a password from ${PASSWORD_SAID[text(m.from)] ?? text(m.from)} to ${
       PASSWORD_SAID[text(m.to)] ?? text(m.to)

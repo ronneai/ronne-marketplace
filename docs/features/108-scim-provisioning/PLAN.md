@@ -19,7 +19,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* Notes name the choice with the evidence; `pnpm licenses:check` and
   `pnpm audit --audit-level high` pass.
 
-- [ ] **2. Tables and tokens.** [risky] The migration (SCIM links, groups, memberships' `source`
+- [x] **2. Tables and tokens.** [risky] The migration (SCIM links, groups, memberships' `source`
   from 106 reused, token hashes, the 24-hour rotation overlap) for all dialects; the token service
   (`scim_` prefix, hash, show once, rotate, revoke, last used) and its audit events.
   *Done when:* db tests cover each operation, the overlap, and that no plain token is stored or logged.
@@ -166,6 +166,27 @@ tarball, not installed in the workspace; 1.7.10 is the latest, 2026-10-15).
   publish", not recorded bodies.
 - `pnpm licenses:check` → "323 packages checked. All licenses are allowed by the policy";
   `pnpm audit --audit-level high` → "No known vulnerabilities found".
+
+**Task 2, tables and tokens (2026-10-18).**
+
+- **`0028_scim`:** `identity_providers.scim_enabled_at`, and `scim_tokens`, `scim_users`,
+  `scim_groups`, `scim_group_members`. A SCIM user's `id` is its `scim_users` row's, not the
+  account's. `user_name` and `external_id` are `exactString`, so `kate@`/`kåte@` and `E-1`/`e-1` are
+  two values on MySQL too. A tombstone (`deleted_at` set) clears `user_name` and keeps
+  `external_id`: the email is held by the account itself, and the external id is the only way back
+  (task 4 deletes the tombstone and inserts a new link, with a new id, in one transaction).
+- **Tokens:** at most two work at once (the current one, and the one before a rotation for 24
+  hours); a second rotation within those hours revokes the older one at once. Every change locks
+  the provider's row (`lockProvider`), which the "two changes at once" tests prove: without the
+  lock, three creates make three tokens on PostgreSQL. `checkScimToken` answers `format`, `unknown`,
+  `revoked`, `expired` or `scim_off`; task 3's guard must answer them all the same way.
+- **Logs:** `redactString` now hides `scim_…` runs in free text, as it did `rmk_…`
+  (`log/redact.ts`), so a guard that logs a header or an error can't write a token out.
+- **For task 4:** `given_name`, `family_name` and `display_name` are `varchar(100)`. SQLite takes a
+  longer value, PostgreSQL and MySQL refuse it, so the Users service must check or cut names (to
+  Ronne's name limit) before writing. The database accepts a live link (`deleted_at` null) with no
+  `user_name`, which no uniqueness check would then catch (there are no CHECK constraints in the
+  schema): the repository must never write one, and a test must show it's refused.
 
 **For task 4, from task 1:** the 30-day check reads `auth.sso_signed_in` events, whose provider is
 inside `audit_log.metadata` (JSON text, no column or index): parse it the same way on all four

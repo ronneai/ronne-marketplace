@@ -58,6 +58,10 @@ describe("redactString", () => {
     expect(redactString(`${TOKEN},${TOKEN}`)).toBe("rmk_[redacted],rmk_[redacted]");
     // A token right after another `rmk_` run: the whole run goes.
     expect(redactString(`rmk_${"a".repeat(42)}${TOKEN}`)).toBe("rmk_[redacted]");
+    // SCIM tokens (108) the same way.
+    const scim = `scim_${"B".repeat(21)}-_${"y".repeat(20)}`;
+    expect(redactString(`Bearer ${scim}`)).toBe("Bearer scim_[redacted]");
+    expect(redactString(`scim_${"a".repeat(42)}${scim}`)).toBe("scim_[redacted]");
     expect(redactString(`rmk_${TOKEN}`)).toBe("rmk_[redacted]");
     expect(redactString(`rmk_ab-${TOKEN}`)).toBe("rmk_[redacted]");
     // Not a token: too short.

@@ -299,3 +299,78 @@ Witnessed: 2026-10-18 10:59 EDT, by a fresh agent (blind). Commit: cbbc6d6d + wo
 **Overall:** met: rows 46 and 48 hold, and the changed text agrees with the POST row, Decision 2, the Documentation checklist, 103's index row and PLAN's notes.
 
 The remark in row 53 was applied ("in the 30 days before the first create"; wording, no re-check).
+
+## Task 2 — Tables and tokens
+
+Witnessed: 2026-10-18 03:20 EDT, by a fresh agent (blind). Commit: cbbc6d6d + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Migration 0028 adds `identity_providers.scim_enabled_at` (off by default) and `scim_tokens`, `scim_users`, `scim_groups`, `scim_group_members`, with their foreign keys, and is registered | no | confirmed | `0028_scim.ts:29-153`; `migrations/index.ts` `"0028_scim": scim`; "declares its foreign keys" (7) and "leaves SCIM off" pass |
+| 2 | The migration's and the service's tests pass on SQLite, PostgreSQL, MySQL and MariaDB | no | confirmed | vitest `--project db` → 2 files, 19 passed; `pnpm test:db:postgres\|mysql\|mariadb -- <both files>` → 19 passed on each |
+| 3 | Token hashes unique; links unique per provider by account, `user_name` and `external_id`, byte for byte; null external ids don't collide; another provider may link the same account | no | confirmed | "links an account once per provider…" passes on all 4 (`ånn@`/`e-1` accepted; `exactString` at `0028_scim.ts:77-80`) |
+| 4 | Deleting a provider removes its tokens, links and groups and keeps the accounts; deleting a user removes its links and memberships | no | confirmed | The last migration test, on all 4 |
+| 5 | The tables support DELETE tombstones and SCIM ids, a tombstone counting in no `uniqueness` check | no | partly | `scim_users.id`, `deleted_at` exist (`0028_scim.ts:64,85`), but no test uses a tombstone, and `(provider_id,user_name)`/`(provider_id,external_id)` (`:86-88`) include tombstoned rows |
+| 6 | `scim_` + 32 random bytes base64url (48 characters), shown once, only its SHA-256 stored, with date and creator | no | confirmed | `models/scim-token.ts:25-30`; "only its hash is stored"; mutation M2 (store the plain token) → 7 tests fail |
+| 7 | One token per provider; create and rotate refused while SCIM is off | no | confirmed | `services/scim-tokens.ts:113-115,141-144`; the `ScimTokenExistsError`, `ScimOffError`, `NoScimTokenError` tests pass |
+| 8 | Rotation: the old token works exactly 24 hours, the new one at once; a second rotation within the 24 hours ends the earlier one, so at most two work | no | confirmed | 24h−1 ms works, 24h `expired`. M1 (no expiry), M8 (`>` → `>=`), M5 (don't revoke earlier ones) each fail a test. Probe: 3 concurrent creates → 1 succeeds; 4 concurrent rotates → exactly 2 working, 1 current, on all 4 |
+| 9 | Revoke stops every token at once, the one in its overlap too; a new one can be made after | no | confirmed | `{revoked: 2}`, both `revoked`; M4 (revoke only the current) → 2 tests fail |
+| 10 | A bad, revoked, rotated-out or other provider's token is refused; SCIM off refuses every token; on again restores the kept one | no | confirmed | `checkScimToken` (`scim-tokens.ts:209-222`); M6 (drop the scim_off check) → a test fails. Probe: a deleted provider's token → `unknown`; 43×`é`, trailing `\n`, 100k characters → `format` (all 4) |
+| 11 | `last_used_at` recorded, at most once a minute | no | confirmed | 30 s no write, 61 s write; M3 (cutoff = now) → the test fails |
+| 12 | The five `instance.scim_*` events with actor and IP, a summary each, root only | no | confirmed | `audit-event.ts`, `summary.ts`; `summary.test.ts` → 5 passed; `tsc --noEmit` → 0; `ForbiddenError` for a global admin and for no user |
+| 13 | No plain token in the database, the audit rows or a log line | no | confirmed | `audit_log` JSON has neither token nor hash; stdout/stderr captured at debug/json. M7 (token in metadata), M10 (hash in metadata) → "audits … never the token" fails; M9 (`logger.warn` with the token) → "is never in a log line" fails |
+
+**Overall:** not met: tokens, the overlap, revoke, audit and no-plaintext hold on all four databases and their tests catch the mutations, but tombstones have no test and their unique constraints count them (row 5).
+
+Witnessed: 2026-10-18 03:35 EDT, by a fresh agent (adversarial). Commit: cbbc6d6d + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Migration 0028 is registered and runs on all four dialects, with its foreign keys and cascades | no | confirmed | `migrations/index.ts:63`; `0028_scim`, `scim-tokens` and `backup/restore` db tests → SQLite 33 passed, 1 skipped; PostgreSQL, MySQL, MariaDB 34/34 each |
+| 2 | Live links unique per provider by user, `userName`, `externalId`, byte for byte; null external ids don't collide; another provider may reuse them | no | confirmed | `0028_scim.ts:86-88`, `exactString`; `ånn@`/`e-1` on MySQL 8.4 and MariaDB; an emoji `user_name` round-trips on all four |
+| 3 | The schema supports tombstones that stop counting once the service replaces them | no | confirmed | Probe: a second row next to a tombstone is refused on all 4, so the service must replace it; deleting the tombstone and inserting a new link in one transaction works on all 4. No test in the task covers tombstones |
+| 4 | Timestamp columns, and only those, end in `_at` | no | confirmed | `restore.db.test.ts` "keeps the naming restore relies on" passes on PostgreSQL, MySQL, MariaDB |
+| 5 | `scim_` + 32 random bytes base64url, returned only by create and rotate | no | confirmed | `scim-token.ts:24-25`; the test's regex; `ScimTokenSummary` has no token field |
+| 6 | Only the SHA-256 hash stored, with date and creator | no | confirmed | "only its hash is stored"; M4 (`tokenHash: token`) → 6 tests fail |
+| 7 | Rotation keeps the old token exactly 24 hours, then `expired`; the new one works at once | no | confirmed | +24h−1 ms works, +24h `expired`; M3 (`>=` in `scimTokenWorks`), M3b (`>=` in `listWorking`) each fail it; a .123 ms clock on MySQL `datetime(3)` holds on all 4 |
+| 8 | A second rotation within the overlap ends the earlier one | no | confirmed | "ends the one before at once…"; M2 (skip `repo.revoke`) → fails |
+| 9 | Revoke stops every token, the one in its overlap too, as `revoked` | no | confirmed | `{ revoked: 2 }`; M8 (revoke only the current) → 2 tests fail |
+| 10 | SCIM off refuses every token and keeps it; nothing made or rotated while off | no | confirmed | M9 (drop the `scimEnabledAt` check) → a test fails |
+| 11 | Last used recorded, at most once a minute | no | confirmed | M7 (no throttle) → the test fails |
+| 12 | A deleted provider's token no longer works | no | confirmed | Probe → `{ok:false, reason:"unknown"}` after `DELETE identity_providers`, on all 4 |
+| 13 | The five audit events in the same transaction, without the token or its hash, with summaries | no | confirmed | "audits each change…"; `summary.test.ts` → 17 passed; `tsc --noEmit -p apps/web` → 0 |
+| 14 | The plain token is in no log line | no | confirmed | A `logger.info` with the token in free text → the test fails. `log/redact.ts:52` redacts `rmk_` runs in free text but has no `scim_` pattern |
+| 15 | Only root manages SCIM; an unknown provider is refused | no | confirmed | "is root's alone, and needs a provider" |
+| 16 | Concurrent create, rotate and revoke for one provider can't interleave, and tests cover the lock on all dialects | no | partly | Behaviour holds (probe with slowed reads: 3 creates → 1 ok; 3 rotations → 1 current + 1 overlap; rotate racing revoke → 0 working; all 4). But M1 (remove `forUpdate` in `lockProvider`) on PostgreSQL leaves the task's 12 tests green |
+
+**Overall:** not met: tables, hashing, overlap, revoke, audit and logging hold and their tests catch each mutation, but no test covers the provider lock (row 16).
+
+### Re-check 1 (blind: row 5, plus what the diff touches)
+
+Witnessed: 2026-10-18 10:46 EDT, by a fresh agent (blind). Commit: cbbc6d6d + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 2 | The migration's and the service's tests pass on SQLite, PostgreSQL, MySQL and MariaDB | no | confirmed | vitest `--project db` on both files → 22 passed; `pnpm test:db:postgres\|mysql\|mariadb -- <both files>` → 22 passed on each |
+| 5 | The tables support tombstones and SCIM ids; a tombstone keeps only its `external_id`, so its email counts in no uniqueness check | yes | confirmed | `0028_scim.ts`: `user_name` nullable `exactString(255)`, "Null on a tombstone"; "lets a tombstone hold only its external id…" passes on all 4. M11 (`user_name` notNull) → it fails; M12 (drop `scim_users_provider_external_id_uq`) → it and "links an account once per provider…" fail. Probe: two tombstones with null `user_name` insert on all 4 |
+| 14 | `ScimUserTable` matches the migration | yes | confirmed | `schema.ts:228-243` = `0028_scim.ts:64-88`; the tombstone test writes `user_name: null` through typed Kysely |
+| 15 | The provider lock makes concurrent creates and rotates safe, and "two changes at once" proves it | yes | confirmed | `scim-tokens.db.test.ts:303-338`; M14 (`lockProvider` without `forUpdate`) → passes on SQLite (one writer at a time) but both tests fail on PostgreSQL; unmutated → 14 passed |
+| 16 | `redactString` hides `scim_…` runs in free text | yes | confirmed | `log/redact.ts:54-55,259-264`; `redact.test.ts` → 43 passed; M13 (drop the replace) → "takes out every access token" fails |
+
+**Overall:** met: tombstones hold only `external_id` with a test that fails without the change on all four databases, and the concurrency and redaction tests catch their mutations (the lock on a server).
+
+The tombstone test's comment claimed two tombstones never collide, which only the witness's probe showed; the comment was narrowed (wording, no re-check).
+
+### Re-check 1 (adversarial: row 16, plus what the diff touches)
+
+Witnessed: 2026-10-18 10:44 EDT, by a fresh agent (adversarial). Commit: cbbc6d6d + working tree. Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 16 | Every change locks the provider's row, and a test proves it | yes | confirmed | `run.sh base` → 22/22 on all four. `lockProvider` without `forUpdate` → both "two changes at once" tests fail on PostgreSQL, MySQL and MariaDB, twice each (`length of 1 but got 3`, `length of 2 but got 4`). Unmutated, 3 runs × 4 dialects → 22/22 each. SQLite can't tell (writes serialised) |
+| 17 | `redactString` hides a `scim_…` token in free text | yes | confirmed | Probe (300 tokens × 11 shapes through `cleanFields`, `errorFields`, `redactString`): no leak in an `authorization` header, an `x-scim` header, a field, an `Error` message and stack, glued text, JSON, a URL query, CRLF, URL-encoded, an object key. Only an uppercase `SCIM_…` passes, which `generateScimToken` never makes. The replace as a no-op → `redact.test.ts` fails |
+| 18 | The SCIM regex can't be made slow (`docs/knowledge/codeql-regex.md`) | yes | confirmed | `redact.ts:55` `/scim_[A-Za-z0-9_-]{43,}/g`, the `rmk_` shape: one class, a lower bound, nothing nested or anchored; 65,000-character adversarial inputs → 0–1 ms |
+| 19 | `user_name` nullable and cleared on a tombstone; the email is free, the external id held | yes | confirmed | `0028_scim.ts:82`; `0028_scim.db.test.ts:185` on all four; `notNull()` → it fails on SQLite and PostgreSQL |
+| 20 | Nothing accepts a null `user_name` on a live link | no | confirmed | No task 2 code writes `scim_users` (`grep -rln scim_users apps/web/src` → schema, migration, its test). The database itself accepts it (probe: two live links with null `user_name` on all four), so task 4's repository must refuse it |
+
+**Overall:** met: the lock is proven on all three servers without flakes, SCIM tokens are redacted with a fast regex, and the tombstone clears `user_name`; a live link without `user_name` is task 4's to refuse.

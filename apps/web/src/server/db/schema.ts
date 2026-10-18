@@ -190,6 +190,12 @@ export interface IdentityProviderTable {
   created_by: string | null;
   created_at: Timestamp;
   updated_at: Timestamp;
+  /** When root turned SCIM on for it (0028, 108); null while it's off. */
+  scim_enabled_at: ColumnType<
+    Date | string | null,
+    Date | string | null | undefined,
+    Date | string | null
+  >;
 }
 
 /** A group in a provider's claim that gives a role in a workspace (0026, 106). */
@@ -200,6 +206,56 @@ export interface ProviderGroupMappingTable {
   /** Null once the workspace is deleted: the panel warns about it. */
   workspace_id: string | null;
   role: "admin" | "moderator" | "user";
+  created_at: Timestamp;
+}
+
+/**
+ * A provider's SCIM bearer token (migration 0028_scim, feature 108): only its SHA-256 hash. The
+ * current one has no `expires_at`; a rotation gives the one before 24 hours.
+ */
+export interface ScimTokenTable {
+  id: string;
+  provider_id: string;
+  token_hash: string;
+  created_by: string | null;
+  created_at: Timestamp;
+  expires_at: Timestamp | null;
+  revoked_at: Timestamp | null;
+  last_used_at: Timestamp | null;
+}
+
+/** A provider's SCIM user linked to a Ronne account (0028, 108), with what it last sent. `id` is the SCIM id. */
+export interface ScimUserTable {
+  id: string;
+  provider_id: string;
+  user_id: string;
+  external_id: string | null;
+  /** The email, lowercased; null on a tombstone. */
+  user_name: string | null;
+  given_name: string | null;
+  family_name: string | null;
+  display_name: string | null;
+  active: DbBoolean;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+  /** Set by a deprovisioning DELETE: a tombstone the provider can no longer see. */
+  deleted_at: Timestamp | null;
+}
+
+/** A provider's SCIM group (0028, 108); its mappings (106) give its members workspace roles. */
+export interface ScimGroupTable {
+  id: string;
+  provider_id: string;
+  display_name: string;
+  external_id: string | null;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+}
+
+/** Who is in a SCIM group (0028, 108). */
+export interface ScimGroupMemberTable {
+  group_id: string;
+  user_id: string;
   created_at: Timestamp;
 }
 
@@ -466,6 +522,10 @@ export interface Database {
   workspace_members: WorkspaceMemberTable;
   identity_providers: IdentityProviderTable;
   provider_group_mappings: ProviderGroupMappingTable;
+  scim_tokens: ScimTokenTable;
+  scim_users: ScimUserTable;
+  scim_groups: ScimGroupTable;
+  scim_group_members: ScimGroupMemberTable;
   workspace_access_requests: WorkspaceAccessRequestTable;
   scope_moves: ScopeMoveTable;
   scopes: ScopeTable;
