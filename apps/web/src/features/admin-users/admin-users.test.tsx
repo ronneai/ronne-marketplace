@@ -142,6 +142,43 @@ describe("UsersPage (061)", () => {
     }
   });
 
+  it("shows an account's SCIM link: managed, adopted, or deprovisioned (108)", () => {
+    const scim = (state: Partial<NonNullable<UserSummary["scim"]>>) => ({
+      providerId: "acme",
+      providerName: "Acme SSO",
+      managed: true,
+      adoptedAt: null,
+      deprovisionedAt: null,
+      ...state,
+    });
+    const managed = page({ users: [user({ scim: scim({}) })] });
+    expect(managed).toContain("Managed by Acme SSO");
+    expect(managed).not.toContain("Adopted by");
+    expect(managed).not.toContain("Deprovisioned by");
+    const adopted = page({
+      users: [user({ scim: scim({ adoptedAt: new Date("2026-10-18T12:00:00Z") }) })],
+    });
+    expect(adopted).toContain("Managed by Acme SSO");
+    expect(adopted).toMatch(/Adopted by Acme SSO on(&nbsp;|\u00a0)?.*2026-10-18/);
+    const gone = page({
+      users: [
+        user({
+          disabledAt: new Date("2026-10-18T13:00:00Z"),
+          scim: scim({ managed: false, deprovisionedAt: new Date("2026-10-18T13:00:00Z") }),
+        }),
+      ],
+    });
+    expect(gone).toContain("Deprovisioned by Acme SSO on");
+    expect(gone).not.toContain("Managed by");
+    // Erase (103) isn't there yet.
+    expect(gone).not.toContain("Erase");
+    expect(page()).not.toContain("Managed by");
+    // In a cell phones show (the Status column is hidden below sm).
+    const at = managed.indexOf("Managed by Acme SSO");
+    const cell = managed.slice(managed.lastIndexOf("<td", at), at);
+    expect(cell).not.toContain("hidden sm:table-cell");
+  });
+
   it("shows active filters as chips, and says when nothing matches", () => {
     const html = page({ state: state({ q: "zzz", role: "root" }), users: [] });
     expect(html).toContain("No users match these filters.");

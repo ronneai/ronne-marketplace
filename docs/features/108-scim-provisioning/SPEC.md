@@ -142,10 +142,11 @@ Disabling goes through the same service as Disable user (008), so tokens and ses
 way, and the last-root rule is enforced there.
 
 **In Admin › Users.** A provisioned account shows a *Managed by <provider>* badge, and an adopted
-one *Adopted by <provider> on <date>* as well, so root can review each adoption. Its name and email
-are read-only while SCIM is on (the provider is the source), *Disable* and *Enable* warn that the
-provider will overwrite the change at its next sync, and a deprovisioned account shows *Deprovisioned
-by <provider> on <date>* with **Erase** (103).
+one *Adopted by <provider> on <date>* as well, so root can review each adoption. The page has no way
+to edit a name or an email, so the provider stays their only source; *Disable* and *Enable* warn
+that the provider will overwrite the change at its next sync, and a deprovisioned account shows
+*Deprovisioned by <provider> on <date>*, with **Erase** (103) beside it once 103 exists (hidden
+until then).
 
 **Transactions.** Every write is one database transaction with the provider's row locked (the
 lock 106's sign-in through that provider takes too) and then the account's row, so two SCIM
@@ -214,7 +215,8 @@ at the same moment) answers 409 `uniqueness`.
 - **Incidents:** a leaver or a compromised provider (disable SCIM, revoke the token).
 - **API:** a page for the SCIM endpoints, the supported filters and PATCH shapes and the errors.
 - **Helpers:** on the SCIM section, "What does the provider need?" → `authentication#scim`;
-  on *Managed by*, "Why can't I edit this?" → `authentication#scim`.
+  on the *Disable*/*Enable* warning for a managed account, "Why does SCIM manage this account?"
+  → `authentication#scim`.
 
 ## Acceptance criteria
 

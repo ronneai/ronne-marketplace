@@ -28,6 +28,8 @@ type RowUser = {
   twoFactor?: boolean;
   /** The signed-in root's own row: read-only here (059). */
   self?: boolean;
+  /** The provider whose SCIM manages the account (108), which its next sync can undo. */
+  managedBy?: string;
 };
 
 const ROLES: readonly Role[] = ["user", "root"];
@@ -66,6 +68,18 @@ const DisableImpact = ({ userId }: { userId: string }) => {
   }, [userId]);
   return <p className="text-sm text-muted">{impact}</p>;
 };
+
+/**
+ * Before Disable or Enable on an account a provider's SCIM manages (108): its next sync sets it
+ * back to what the provider says.
+ */
+export const ScimManagedNotice = ({ managedBy }: { managedBy?: string }) =>
+  managedBy ? (
+    <Notice kind="warn" title={`${managedBy} manages this account through SCIM.`}>
+      Its next sync sets the account back to what the provider says: change it there too.{" "}
+      <Help id="scim-managed" />
+    </Notice>
+  ) : null;
 
 /** What a role change means, said before it happens; root changes are warnings (059). */
 export const RoleChangeNotice = ({ email, from, to }: { email: string; from: Role; to: Role }) => {
@@ -121,7 +135,15 @@ const RoleChoice = ({ user }: { user: RowUser }) => {
 };
 
 /** One dialog's form. It's remounted each time the dialog opens, so no result lingers. */
-const ActionForm = ({ kind, user, onDone }: { kind: Kind; user: RowUser; onDone: () => void }) => {
+export const ActionForm = ({
+  kind,
+  user,
+  onDone,
+}: {
+  kind: Kind;
+  user: RowUser;
+  onDone: () => void;
+}) => {
   const [state, action, pending] = useActionState<AdminActionState, FormData>(ACTIONS[kind], {});
 
   if (state.oneTime || state.done)
@@ -147,6 +169,9 @@ const ActionForm = ({ kind, user, onDone }: { kind: Kind; user: RowUser; onDone:
         <Notice kind="warn" title={`${user.email} is a root.`} />
       ) : null}
       {kind === "disable" ? <DisableImpact userId={user.id} /> : null}
+      {kind === "disable" || kind === "enable" ? (
+        <ScimManagedNotice managedBy={user.managedBy} />
+      ) : null}
       {kind === "enable" ? (
         <p className="text-sm text-muted">
           They can sign in again. Their revoked access tokens stay revoked.

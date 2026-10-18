@@ -771,3 +771,43 @@ Witnessed: 2026-10-18 12:45 EDT, by a fresh agent (adversarial). Commit: 51f8b62
 | 28 | The spec says exactly what happens (adoption and turning SCIM on change no membership; sign-in roles stay until the provider's first group change that includes the person; a DELETE removes them at once), the code matches, and a test pins it on SQLite and PostgreSQL | yes | confirmed | `SPEC.md:130-133`, `:208-209`; the adoption branch (`scim-users.ts:174-192`) calls no `syncMemberships`; turning SCIM on touches no membership (grep); group writes sync only members (`scim-groups.ts:175,271,314,328`); DELETE syncs (`scim-users.ts:357`). Test `scim-groups-api.db.test.ts:652` → passes; mutation A (sync at adoption) → fails; mutation B (no sync on group create) → fails; PostgreSQL → 51 passed. No test pins "turning SCIM on changes no membership" (read in the code) |
 
 **Overall:** met: the spec describes the owner's chosen behaviour exactly, the code matches, and the test fails under both mutations.
+
+## Task 6 — The provider page's SCIM section
+
+Witnessed: 2026-10-18 13:04 EDT, by a fresh agent (blind). Commit: 530235e1 + working tree. Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Off: *Provisioning (SCIM)* Off, only *Turn on SCIM*, after a confirm | yes | confirmed | `ScimSection.tsx`; the "off" test (no base URL, no *Generate token*); the phone walk clicks the page button, then the dialog's |
+| 2 | On: the base URL `<PUBLIC_URL>/api/v1/scim/v2` with Copy | yes | confirmed | `scim-settings.ts`; db test "gives the base URL from PUBLIC_URL" (4/4 on SQLite, PostgreSQL, MySQL); the phone walk sees it |
+| 3 | *Generate token* shows the token once, only from the action's state | yes | confirmed | `scimPanel` returns no token; `NewToken` renders `state.token`; the phone walk sees it. No component test covers the state (row 12) |
+| 4 | *Rotate* and *Revoke* only with a token, *Turn off SCIM* when on, each confirmed | yes | confirmed | Counts of `>Rotate<`/`>Revoke<` (1 without a token, 2 with); the action tests; showing Revoke with no token → a test fails |
+| 5 | The token's maker, time and last use, the rotated-out one's too | yes | confirmed | Component test; db test on three dialects |
+| 6 | Entra's and Okta's own steps, generic otherwise | yes | confirmed | Tests for entra, okta, keycloak |
+| 7 | The section and its actions are root's alone | no | confirmed | db test "is root's alone" → `ForbiddenError`; 4 passed on SQLite, PostgreSQL, MySQL |
+| 8 | Admin › Users shows *Managed by*, *Adopted by … on*, *Deprovisioned by … on*, from the link and the audit log | yes | confirmed | `admin-users.test.tsx`; the db test creates, adopts and deletes through SCIM, then reads `adminListUsers` on three dialects; hiding the Deprovisioned badge → a test fails |
+| 9 | The badges show on a phone too | no | partly | They sat in the Status column (`hideOnMobile`, `DataTable.tsx:179` `hidden sm:table-cell`): below `sm` no badge at all |
+| 10 | *Disable* and *Enable* warn that the provider's next sync overwrites the change, with the helper | yes | partly | `UserRowActions.tsx:164`; but only `ScimManagedNotice` alone is tested: replacing it in the dialog with `null` → 24/24 still pass |
+| 11 | Admin › Users has no way to edit a name or an email | yes | confirmed | Only `CreateUserDialog.tsx:31-32` has those fields; no update action exists |
+| 12 | Component tests pass and cover each state | no | partly | 89 passed; the new-token state (`state.token ?` → `false ?` → 10/10 still) and the dialog's warning (row 10) untested |
+| 13 | *Erase* doesn't show until 103 exists | yes | confirmed | `README.md:297` 103 planned; no Erase rendered; tested |
+| 14 | The two helpers link to `authentication#scim`; topics gain `scim`, `scim-groups` | yes | confirmed | `Help.tsx`; tested |
+| 15 | The phone sweep passes; the SCIM section fits a phone | yes | confirmed | `playwright test` of the provider, sweep and sign-in specs → 22 passed on phone, phone-webkit, tablet; the build newer than every change |
+
+**Overall:** not met: the section, the desktop badges, the helpers and the phone sweep hold; the badges don't show on phones, and the new-token state and the dialog's warning have no component test.
+
+Its remark (an account deprovisioned by `active: false` shows *Managed by* and disabled, not *Deprovisioned by*) is as the spec says: *Deprovisioned by* follows a DELETE, which ends the link.
+
+### Re-check 1 (blind: rows 9, 10, 12, plus what the diff touches)
+
+Witnessed: 2026-10-18 13:15 EDT, by a fresh agent (blind). Commit: 530235e1 + working tree. Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 9 | The badges show on a phone too | yes | confirmed | `UsersPage.tsx:158-170`: under `RoleCell` in the Role column (no `hideOnMobile`); `admin-users.test.tsx:176-179`; badges back in the Status cell → it fails |
+| 10 | *Disable* and *Enable* warn that the provider's next sync overwrites the change, with the helper | yes | confirmed | `UserRowActions.tsx:164-166`; `actions.test.tsx:194-213` (disable and enable with `managedBy`; reset and an unmanaged disable without); the dialog's notice → `null` → 1 failed |
+| 12 | Component tests pass and cover each state | no | confirmed | 8 files, 90 passed; `scim-section.test.tsx:135-147` (`NewToken` with a token, after a rotation, empty, an error); `state.token ?` → `false ?` → 1 failed |
+| 15 | The phone sweep passes after the Users layout change | yes | confirmed | Rebuilt (`BUILD_ID` 13:09:52, after every change); `pnpm test:e2e` ran the whole suite → 161 passed (5.9m), phone, phone-webkit and tablet included; the sweep has no SCIM-managed user, so the badge cell's phone fit is shown by the `<td>` test |
+| 16 | Diff: Status column narrowed back, the exports additive, no other behaviour change | no | confirmed | The diff since the last pass: the exports, the column move and width, the tests |
+
+**Overall:** met: the badges are in a column phones show, and the dialog's warning and the new-token state have tests that fail when mutated; with the first pass's other rows, every row is confirmed.

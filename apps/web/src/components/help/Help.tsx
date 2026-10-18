@@ -170,6 +170,18 @@ export const HELP = {
       "It lets rmk and the registry's MCP server read the registry as you, and create drafts in your name: only you see them, and nothing is submitted until you do it here. It can't sign in to this website, and you can revoke it here at any time.",
     href: docsHref("rmk", "tokens"),
   },
+  "scim-provider": {
+    question: "What does the provider need?",
+    answer:
+      "The base URL and the token, as a Bearer token. It sends each person's email as userName and an id that never changes as externalId (in Entra, map objectId to it), and pushes the groups this page's mappings name. Deprovisioning disables the account; it never erases it.",
+    href: docsHref("authentication", "scim"),
+  },
+  "scim-managed": {
+    question: "Why does SCIM manage this account?",
+    answer:
+      "The identity provider creates and updates it through SCIM: its next sync sets the name, the email and whether it's enabled back to what the provider says. Change those at the provider. A deprovisioned account stays, disabled, until root erases it.",
+    href: docsHref("authentication", "scim"),
+  },
   "device-code": {
     question: "What is this code?",
     answer:

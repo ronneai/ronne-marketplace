@@ -7,7 +7,7 @@ import type { Database, ScimUserTable } from "../../../db/schema";
 import type { DatabaseDialect } from "../../../db/url";
 import { recordAudit } from "../../audit/actions/audit";
 import { groupNames } from "../models/scim-group";
-import type { ScimUserLink } from "../models/scim-user";
+import type { ScimAccountState, ScimUserLink } from "../models/scim-user";
 import { kyselyIdentityRepository } from "./kysely-identity-repository";
 import { kyselySsoRepository } from "./kysely-sso-repository";
 import type { ScimUserRepository } from "./scim-user-repository";
@@ -281,6 +281,36 @@ export const kyselyScimUserRepository = (
           return false;
         }
       });
+    },
+
+    async accountStates(userIds) {
+      const states = new Map<string, ScimAccountState>();
+      if (userIds.length === 0) return states;
+      const links = await db
+        .selectFrom("scim_users as l")
+        .innerJoin("identity_providers as p", "p.id", "l.provider_id")
+        .select(["l.user_id", "l.provider_id", "p.name", "l.deleted_at"])
+        .where("l.user_id", "in", userIds)
+        .execute();
+      // When each was adopted: the latest `user.scim_adopted` for it.
+      const adoptions = await db
+        .selectFrom("audit_log")
+        .select(["target_id", "created_at"])
+        .where("action", "=", "user.scim_adopted")
+        .where("target_type", "=", "user")
+        .where("target_id", "in", userIds)
+        .orderBy("created_at", "asc")
+        .execute();
+      const adopted = new Map(adoptions.map((a) => [a.target_id ?? "", fromDbDate(a.created_at)]));
+      for (const link of links)
+        states.set(link.user_id, {
+          providerId: link.provider_id,
+          providerName: link.name,
+          managed: link.deleted_at === null,
+          adoptedAt: adopted.get(link.user_id) ?? null,
+          deprovisionedAt: link.deleted_at === null ? null : fromDbDate(link.deleted_at),
+        });
+      return states;
     },
 
     async recordAudit(event, now) {

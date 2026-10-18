@@ -1,4 +1,5 @@
 import { InvalidEmailError, InvalidNameError } from "../exceptions/errors";
+import type { ScimAccountState } from "./scim-user";
 
 /**
  * A user's instance-wide role (`user.role`): root does everything in every workspace; anyone else
@@ -49,6 +50,8 @@ export type UserSummary = {
   workspaces?: { name: string; role: WorkspaceRole }[];
   /** Two-factor is on (the flag and a confirmed record, 105), for the users list. */
   twoFactor?: boolean;
+  /** Its SCIM link (108), for the users list's badges; absent when it has none. */
+  scim?: ScimAccountState;
 };
 
 export type RootAccount = { id: string; email: string; name: string; disabledAt: Date | null };

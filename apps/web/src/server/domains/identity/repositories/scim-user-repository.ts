@@ -1,5 +1,5 @@
 import type { NewAuditEvent } from "../../audit/models/audit-event";
-import type { ScimUserFilter, ScimUserLink } from "../models/scim-user";
+import type { ScimAccountState, ScimUserFilter, ScimUserLink } from "../models/scim-user";
 import type { UserSummary } from "../models/user";
 import type { GroupSyncRepository } from "../services/group-sync";
 import type { IdentityRepository } from "./identity-repository";
@@ -74,5 +74,7 @@ export interface ScimUserRepository {
   hasProviderAccount(userId: string, providerId: string): Promise<boolean>;
   /** Whether the account signed in through the provider at or after `since` (`auth.sso_signed_in`). */
   signedInThroughSince(userId: string, providerId: string, since: Date): Promise<boolean>;
+  /** Each of these accounts' SCIM state, when it has a link (live or deleted). */
+  accountStates(userIds: string[]): Promise<Map<string, ScimAccountState>>;
   recordAudit(event: NewAuditEvent, at: Date): Promise<void>;
 }

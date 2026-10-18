@@ -22,7 +22,9 @@ vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => ne
 
 const actions = await import("./actions");
 const { OneTimePassword } = await import("./OneTimePassword");
-const { RoleChangeNotice, UserRowActions } = await import("./UserRowActions");
+const { ActionForm, RoleChangeNotice, ScimManagedNotice, UserRowActions } = await import(
+  "./UserRowActions"
+);
 const { CreateUserDialog } = await import("./CreateUserDialog");
 
 const form = (fields: Record<string, string>) => {
@@ -181,6 +183,34 @@ describe("rendering", () => {
     });
     admin.adminResetTwoFactor.mockRejectedValueOnce(new CannotModifySelfError());
     expect((await actions.resetTwoFactorFromForm({}, form({ userId: "u" }))).error).toBeTruthy();
+  });
+
+  it("warns before disabling or enabling an account a provider's SCIM manages (108)", () => {
+    const html = renderToStaticMarkup(<ScimManagedNotice managedBy="Acme SSO" />);
+    expect(html).toContain("Acme SSO manages this account through SCIM.");
+    expect(html).toContain("Its next sync sets the account back");
+    expect(html).toContain("Why does SCIM manage this account?");
+    expect(renderToStaticMarkup(<ScimManagedNotice />)).toBe("");
+    // Inside the Disable and Enable dialogs, for a managed account only.
+    const managed = {
+      id: "u",
+      email: "u@example.com",
+      role: "user" as const,
+      disabled: false,
+      managedBy: "Acme SSO",
+    };
+    for (const kind of ["disable", "enable"] as const)
+      expect(
+        renderToStaticMarkup(<ActionForm kind={kind} user={managed} onDone={() => {}} />),
+      ).toContain("Acme SSO manages this account through SCIM.");
+    expect(
+      renderToStaticMarkup(<ActionForm kind="reset" user={managed} onDone={() => {}} />),
+    ).not.toContain("manages this account through SCIM");
+    expect(
+      renderToStaticMarkup(
+        <ActionForm kind="disable" user={{ ...managed, managedBy: undefined }} onDone={() => {}} />,
+      ),
+    ).not.toContain("manages this account through SCIM");
   });
 
   it("warns before making someone root or removing root, and not otherwise", () => {

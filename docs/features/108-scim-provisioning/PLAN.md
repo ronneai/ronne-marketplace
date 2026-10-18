@@ -47,7 +47,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   user's `DELETE` taking them out of every group (and the memberships those gave) while `active:
   false` keeps them, and a re-created user starting in none.
 
-- [ ] **6. The provider page's SCIM section.** Turn on/off, base URL, Generate, Rotate, Revoke,
+- [x] **6. The provider page's SCIM section.** Turn on/off, base URL, Generate, Rotate, Revoke,
   last used, the steps; Admin › Users badges and read-only fields; the Erase link when 103 exists
   (hidden before).
   *Done when:* component tests pass for each state; the phone sweep passes.
@@ -292,3 +292,24 @@ Edge cases can't work.
   gap in access while a provider pushes users before groups). A test pins it.
 - **Task 4's open item, closed:** the create checks the account's email again after locking it; an
   address root changed meanwhile is another account's (409).
+
+**Task 6, the provider page's SCIM section and Admin › Users (2026-10-18).**
+
+- **Section:** `providers/ScimSection.tsx` on a saved provider's page (`ProviderPage.tsx`), fed by
+  `actions/scim-settings.ts` (`scimPanel`: on since when, the base URL from PUBLIC_URL, the tokens
+  with their maker's email; never a token). Off: *Turn on SCIM*, after a confirm that says sign-in
+  stops applying the groups claim. On: the base URL to copy, the token (made when and by whom, last
+  used), *Generate token* or *Rotate* (24 hours for the one before, said in the confirm and after),
+  *Revoke* and *Turn off SCIM* with confirms, and the provider's steps (Entra's and Okta's own,
+  generic otherwise). A new token is shown once, as `CopyableCommand`, from the action's state; it
+  never reaches the page's server render.
+- **Admin › Users:** `adminListUsers` adds each row's `scim` (`ScimAccountState`, from the link and
+  the latest `user.scim_adopted`); `ScimBadges` under the role (the Status column is hidden on
+  phones, the witness found); an account disabled by `active: false` keeps *Managed by*, since its
+  link is live: *Deprovisioned by* follows a DELETE; `ScimManagedNotice` in the
+  Disable/Enable dialogs. The page has no name or email editing, so "read-only while SCIM is on"
+  needed nothing (SPEC says so). *Erase* is left out until 103.
+- **Help:** `scim-provider` and `scim-managed` link to `authentication#scim`; the app's topic list
+  has `scim` and `scim-groups` (ronne-web's `topics.ts` gets them in task 9).
+- **Phones:** 106's provider phone test now turns SCIM on and makes a token, checking nothing
+  scrolls sideways (the sweep only opens pages as they load, with no saved provider).

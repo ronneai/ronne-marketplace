@@ -287,6 +287,19 @@ export type ScimUserLink = {
   updatedAt: Date;
 };
 
+/**
+ * An account's SCIM state, for Admin › Users (108): the provider whose link it has (at most one,
+ * live or deleted), whether that link is live (*Managed by*), when it was adopted (*Adopted by*),
+ * and when a DELETE deprovisioned it (*Deprovisioned by*).
+ */
+export type ScimAccountState = {
+  providerId: string;
+  providerName: string;
+  managed: boolean;
+  adoptedAt: Date | null;
+  deprovisionedAt: Date | null;
+};
+
 /** The SCIM User resource the provider gets back (RFC 7643 §4.1). */
 export const scimUserResource = (
   link: ScimUserLink,

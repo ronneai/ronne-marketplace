@@ -11,7 +11,7 @@ const noSidewaysScroll = async (page: Page, where: string) => {
   expect(overflows(o), `${where}: ${describeOverflow(o)}`).toBe(false);
 };
 
-test("the identity provider form fits a phone: cards, fields, steps and group rows", async ({
+test("the identity provider form fits a phone: cards, fields, steps, group rows and SCIM", async ({
   page,
 }, testInfo) => {
   await signIn(page, mobileUser(testInfo, "root"));
@@ -48,7 +48,16 @@ test("the identity provider form fits a phone: cards, fields, steps and group ro
   await page.getByLabel("Workspace", { exact: true }).selectOption({ index: 1 });
   await page.getByLabel("Role", { exact: true }).selectOption("moderator");
   await noSidewaysScroll(page, "the edit form with a group row");
-  await expect(page.getByRole("button", { name: "Turn on" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Turn on", exact: true })).toBeDisabled();
+
+  // Provisioning (SCIM, 108): turn it on, make the token, and the section still fits.
+  await page.getByRole("button", { name: "Turn on SCIM" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Turn on SCIM" }).click();
+  await expect(page.getByText(/\/api\/v1\/scim\/v2$/).first()).toBeVisible();
+  await page.getByRole("button", { name: "Generate token" }).click();
+  await expect(page.getByText("Copy the token now")).toBeVisible();
+  await expect(page.getByText(/^scim_[A-Za-z0-9_-]{43}$/)).toBeVisible();
+  await noSidewaysScroll(page, "the SCIM section with a new token");
 
   // Leave the instance as it was.
   await page.getByRole("button", { name: "Delete", exact: true }).click();
