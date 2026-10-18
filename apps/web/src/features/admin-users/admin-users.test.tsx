@@ -142,6 +142,14 @@ describe("UsersPage (061)", () => {
     }
   });
 
+  it("keeps the role badges at their own width, root's too, above any SCIM badge", () => {
+    // The Role cell is a grid (role, then SCIM badges): its items must not stretch to the column.
+    const html = page({ users: [user({ role: "root" })] });
+    const at = html.indexOf(">root</span>");
+    const cell = html.slice(html.lastIndexOf("<td", at), at);
+    expect(cell).toContain("justify-items-start");
+  });
+
   it("shows an account's SCIM link: managed, adopted, or deprovisioned (108)", () => {
     const scim = (state: Partial<NonNullable<UserSummary["scim"]>>) => ({
       providerId: "acme",

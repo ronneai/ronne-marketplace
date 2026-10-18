@@ -160,7 +160,7 @@ const columns = (
     className: "w-56",
     // The SCIM badges go here, under the role, so phones show them too (the Status column doesn't).
     render: (user) => (
-      <span className="grid gap-1">
+      <span className="grid justify-items-start gap-1">
         <RoleCell
           user={user}
           editor={workspaces ? (content) => workspaces(user, content) : undefined}

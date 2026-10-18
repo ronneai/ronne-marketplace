@@ -305,7 +305,8 @@ Edge cases can't work.
   never reaches the page's server render.
 - **Admin › Users:** `adminListUsers` adds each row's `scim` (`ScimAccountState`, from the link and
   the latest `user.scim_adopted`); `ScimBadges` under the role (the Status column is hidden on
-  phones, the witness found); an account disabled by `active: false` keeps *Managed by*, since its
+  phones, the witness found; the cell is a grid with `justify-items-start`, or root's badge
+  stretches to the column, as the owner saw on 2026-10-18); an account disabled by `active: false` keeps *Managed by*, since its
   link is live: *Deprovisioned by* follows a DELETE; `ScimManagedNotice` in the
   Disable/Enable dialogs. The page has no name or email editing, so "read-only while SCIM is on"
   needed nothing (SPEC says so). *Erase* is left out until 103.
