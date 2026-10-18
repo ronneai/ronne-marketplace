@@ -62,14 +62,18 @@ and enter the code  WDJB-MJHT   (it expires in 10 minutes)
 and opens `verification_uri_complete` in the default browser unless `--no-browser`, there is no
 display, or the session is over SSH (it then prints only). The `user_code` is 8 characters from an
 alphabet without look-alikes (no `0 O 1 I L`), shown as `XXXX-XXXX`; the `device_code` is 32 random
-bytes, base64url, and only its SHA-256 hash is stored.
+bytes, base64url, and only its SHA-256 hash is stored. A `name` of more than 100 characters, or with a control or
+format character (a bidi override could make it read as another name), is `invalid_request`; the
+page shows the name isolated (`<bdi>`) all the same.
 
 **Approving** (`/device`, signed-in people; 006's guard sends others to sign-in with
 `next=/device?user_code=…`):
-- With a code in the address, the page shows it for confirmation; without, an input.
+- With a code in the address, the page shows it in the input to check against the terminal;
+  without, the input is empty. **Continue** (a POST) looks the code up; opening the page, with or
+  without a code, changes nothing and counts nothing, so a link or a prefetch can't.
 - It shows **what asked**: "`rmk` on *host*" (the name), the time, and the client address when
   `TRUST_PROXY` is on, and the warning "Only approve if you just ran `rmk login --web` yourself."
-- **Approve** and **Deny** are buttons in a server-action form (never a link that changes state,
+- After Continue, **Approve** and **Deny** are buttons in a server-action form (never a link that changes state,
   `docs/knowledge/links-that-change-state.md`). Approve binds the code to the signed-in user.
 - A wrong, used or expired code says "That code isn't valid or has expired. Run `rmk login --web`
   again" and nothing about which of the three it was.
@@ -77,7 +81,9 @@ bytes, base64url, and only its SHA-256 hash is stored.
   isn't then 8 characters of the alphabet is malformed, and only the normalised code is looked up.
 - **Brute force:** at most 5 wrong codes a minute per client address (when `TRUST_PROXY`) and 10 per
   person per hour, then 429. Every refused entry counts there (wrong, used, expired or malformed),
-  so the limit tells nothing about which it was. A code that has been tried wrongly 5 times in
+  so the limit tells nothing about which it was. An entry is counted when it arrives and taken
+  back once the code was right, so a burst of requests can't all pass. A code is refused once 5
+  wrong codes were counted against it, even one looked up just before. A code that has been tried wrongly 5 times in
   total is voided. A wrong code can't say which code it was aimed at, so every wrong entry counts
   against every code still pending, and at 5 they are voided (polling then answers
   `expired_token`, and the page the "isn't valid" message). A wrong entry is a well-formed code
@@ -152,7 +158,8 @@ password (105, 106), so those codes tell `rmk` which message to print without he
   them. That is the point of the flow.
 - **The approving person signs out meanwhile:** the grant stands; the code was already bound.
 - **A person with two-factor is held on enrolment (105):** `/device` redirects them to
-  `/account/security` first, and comes back to the code afterwards.
+  `/account/security?next=/device?user_code=…` first; once two-factor is on, a *Continue* button
+  there goes back to the code (only a path on this site is kept).
 - **A provider sign-in in the middle** (106): the visitor returns to `/device?user_code=…` through
   the same `next` rule as 006.
 - **The server restarts while `rmk` waits:** the codes are in the database, so polling continues.

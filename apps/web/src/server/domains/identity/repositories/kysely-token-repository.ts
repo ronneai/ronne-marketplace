@@ -20,6 +20,7 @@ type TokenRow = {
   last_used_at: Date | string | null;
   expires_at: Date | string | null;
   revoked_at: Date | string | null;
+  created_via: string | null;
 };
 
 const summary = (row: TokenRow): AccessTokenSummary => ({
@@ -30,6 +31,10 @@ const summary = (row: TokenRow): AccessTokenSummary => ({
   lastUsedAt: fromDbDate(row.last_used_at),
   expiresAt: fromDbDate(row.expires_at),
   revokedAt: fromDbDate(row.revoked_at),
+  via:
+    row.created_via === "web" || row.created_via === "cli" || row.created_via === "device"
+      ? row.created_via
+      : null,
 });
 
 const SUMMARY_COLUMNS = [
@@ -40,6 +45,7 @@ const SUMMARY_COLUMNS = [
   "last_used_at",
   "expires_at",
   "revoked_at",
+  "created_via",
 ] as const;
 
 export const kyselyTokenRepository = (

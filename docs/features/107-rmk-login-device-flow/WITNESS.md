@@ -289,3 +289,129 @@ Witnessed: 2026-10-17 20:55 EDT, by a fresh agent (adversarial). Commit: 8670c07
 | 14 | The formatted user code is checked as never reaching telemetry | no | confirmed | `privacy-scenario.ts:338`; the privacy test checks every `never` entry; 12/12 |
 
 **Overall:** met.
+
+## Task 4 — /device
+
+Witnessed: 2026-10-17 21:20 EDT, by a fresh agent (blind). Commit: b7bcc3da + working tree (task 4's files; the `packages/cli` changes that appeared during the pass weren't checked). Machine: macOS 27, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `/device` shows the code from `?user_code=` in the input, or an empty input; opening it changes and counts nothing | no | confirmed | `app/(app)/device/page.tsx:15-17` only holds and renders; device.test passes |
+| 2 | Continue is a POST that looks the code up and shows the name, the time, the address only when known, and the warning | no | confirmed | `DeviceFlow.tsx:41-64`; device.test passes |
+| 3 | Approve and Deny are submit buttons of one server-action form, with no link that changes state | no | confirmed | `DeviceFlow.tsx:66-72`; "is only forms" passes |
+| 4 | Approve binds the code to the signed-in user and rmk gets the token; Deny leads to `access_denied` | no | confirmed | `device-page.db.test.ts` on SQLite, PostgreSQL, MySQL and MariaDB |
+| 5 | Every wrong, used, expired or malformed code gets one message | no | confirmed | `types.ts:24`; changing the text fails the test |
+| 6 | Typed codes are normalised; a look-alike makes a code malformed | no | confirmed | Probe 3: `" xx -XXXX- xx "` of a real code → ok; `WDJB-MJH0` → `invalid_code` |
+| 7 | Page limits: 5 refused a minute per address, 10 an hour per person, right codes don't count | no | confirmed | `device-grants.ts:101-150`; db tests on four dialects; mutation (never record) → 2 failed |
+| 8 | 5 wrong codes void a pending grant: the page says invalid, polling `expired_token` | no | confirmed | Probe 4 (SQLite) |
+| 9 | Two people approve one code: the first wins | no | confirmed | Probe 1 (SQLite) |
+| 10 | The grant stands when the approver signs out | no | confirmed | Probe 2: approve, sign out, poll → ok |
+| 11 | A held user on `/device` goes to `/account/security?next=/device?user_code=…`; other pages to plain `/account/security` | no | confirmed | `hold.ts:18-22`; mutation (`back = false`) → 1 failed |
+| 12 | Once two-factor is on, Continue goes back; only a path on this site is kept | no | confirmed | `account/security/page.tsx:17-19`, `TwoFactorPanel.tsx:57-65`; tests pass |
+| 13 | A held user can't approve by calling the action directly | no | partly | `serverAction` without `whileHeld` redirects them, but adding `{ whileHeld: true }` leaves every test green |
+| 14 | Sign-in round trip keeps the code (provider sign-in too) | no | confirmed | `proxy.ts:40`; dropping `${search}` fails proxy.test |
+| 15 | A signed-out caller of the page actions is refused | no | confirmed | "refuses someone signed out" → `ForbiddenError` |
+| 16 | Access tokens shows *browser approval* for device-made tokens only | no | confirmed | `kysely-token-repository.ts:34-37,48`, `TokensPage.tsx:63-68`; mutation → 1 failed |
+| 17 | Component and db tests pass | no | confirmed | 4 files, 38 passed; db tests on four dialects |
+| 18 | The phone sweep covers `/device` and passes | no | can't check here | `e2e/pages.ts:140` lists both URLs; `next build` fails in the scratch copy (Turbopack can't resolve the symlinked `node_modules`), and building in the repository wasn't allowed |
+
+**Overall:** not met: no test pins that a held user can't approve through the action (13), and the sweep wasn't rerun (18). Remark: `user_disabled` also counts against the page limits.
+
+Witnessed: 2026-10-17 21:25 EDT, by a fresh agent (adversarial). Commit: b7bcc3da + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Opening `/device` changes and counts nothing | no | partly | Holds (`page.tsx:15-17`), but mutation M2 (the page looks the code up on GET) leaves 79 files green |
+| 2 | Approve and Deny are buttons in one POST form; no link; CSRF | no | confirmed | `DeviceFlow.tsx:38-76`; no `serverActions.allowedOrigins`, so Next's Origin check stays |
+| 3 | The page shows what asked and escapes hostile values | no | partly | HTML is escaped, but a name with U+202E is accepted (`\p{Cc}` misses `\p{Cf}`) and `rmk on ‮moc.ynapmoc-ruoy` displays as "rmk on your-company.com" |
+| 4 | Approving needs the code to have been seen | no | partly | A POST with `intent=approve` and any code approves without a look-up, and the "done" name comes from client-sent state. Low impact: only the signed-in person |
+| 5 | Approve binds the code; Deny ends it; rmk gets the token | no | confirmed | `device-page.db.test.ts` 6/6 on SQLite; identity db files on PostgreSQL and MySQL |
+| 6 | Two approvals: the first wins | no | confirmed | Probe and `services/device-grants.db.test.ts:407` |
+| 7 | One message for wrong, used, expired and malformed codes | no | confirmed | Single `invalid_code` text and `INVALID` result |
+| 8 | Typed codes are normalised | no | confirmed | Probe: lower case with spaces → ok; full-width → `invalid_code` |
+| 9 | Limits: 10 an hour per person, 5 a minute per address, on describe and approve | no | not met | 40 concurrent wrong entries → 10 `invalid_code` on SQLite but 40 on PostgreSQL and MySQL (check, await, then record); 20 concurrent wrong codes plus the right one → the right one ok with `failed_attempts` 14 and 20. Mutation M3 (refusals on Approve/Deny not recorded) → tests green |
+| 10 | Right codes don't count | no | confirmed | db test passes |
+| 11 | Signed-out visitors come back to `/device?user_code=…` | no | confirmed | `proxy.ts:39-40`, `sso.ts:185,271` |
+| 12 | A held person goes to `/account/security?next=…`; Continue once on; only site paths kept | no | confirmed | `safeNextPath` refuses `//evil.test`, `/\evil.test`, `/\t/evil.test`, `/device/..//evil.test`, `https://evil.test` |
+| 13 | A held person can't approve before enrolling | no | partly | Holds today; mutation M1 (`whileHeld: true`) → 79 files green |
+| 14 | The approver signing out leaves the grant standing | no | confirmed | Probe on PG: approve, delete every session, poll → ok |
+| 15 | Access tokens shows *browser approval* | no | partly | Works end to end on SQLite, PG and MariaDB; mutation M4 (the repository returns `via: null`) → 452 tests green |
+| 16 | Phone sweep passes for `/device` | no | can't check here | Can't build in the scratch copy; the IP cell has no wrap |
+
+**Overall:** not met: concurrent requests pass the limits on PostgreSQL and MySQL (9), bidi characters spoof the name (3), and four mutations survive (M1–M4).
+
+### Re-check 1, the fixes
+
+- The page's limits count an entry when it arrives (check and record with no await between) and take it back once the code was right (`LoginRateLimiter.release`); a disabled account isn't counted.
+- A decision needs fewer than 5 wrong codes counted (`failed_attempts < 5` in the conditional update), and a look-up finds no grant at 5.
+- Names with format characters (`\p{Cf}`) are refused at start, and the page shows names in `<bdi>`; the address wraps.
+- The "done" screen's name comes from the decided grant.
+- New tests: a burst of 40 wrong codes, refused approvals counted, a code refused at 5 counted wrong codes, `via: "device"` through `listMyTokens`, a held person's action redirected (`held.test.ts`), opening `/device` looking nothing up, a bidi name refused.
+- Phone sweep after a build: `playwright test e2e/mobile-sweep.mobile.e2e.ts --project phone --project phone-webkit --project tablet` → 15 passed.
+
+### Re-check 1 (adversarial: rows 1, 3, 4, 9, 13, 15, plus what the diff touches)
+
+Witnessed: 2026-10-17 21:29 EDT, by a fresh agent (adversarial). Commit: b7bcc3da + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Opening `/device` changes and counts nothing | no | confirmed | M2 (look up on GET) → "opening /device > looks nothing up…" fails |
+| 3 | Hostile values are escaped; no bidi spoofing | no | confirmed | U+202E, U+2067/U+2069, U+200B, U+FEFF → `invalid_request` on all four dialects; a hostile name renders as `<bdi>&lt;img…</bdi>`; M7 (`\p{Cc}` only) → a test fails |
+| 4 | The result names the grant decided | no | confirmed | `actions.ts` takes `name: result.name`. A decision without a look-up is still possible, only by the signed-in person, and now names what was decided |
+| 9 | The limits hold under concurrency and on Approve and Deny | no | confirmed | 40 concurrent malformed entries → 10 `invalid_code`, 30 `rate_limited` on all four dialects; 8 wrong codes plus the right approve at once, 2 runs × 3 servers → refused each time; M3 → "counts refused approvals and denials too" fails |
+| 13 | A held person can't use the action | no | confirmed | M1 → `held.test.ts` fails |
+| 15 | Access tokens shows *browser approval* | no | confirmed | M4 corrected (`created_via` → `null`) → "lists the token as made by browser approval" fails; the first pass's M4 changed nothing (operator precedence) |
+| 17 | After 5 wrong codes a code can't be approved, even when guesses land after its look-up | no | partly | Guard works (a 50-wrong burst from 5 accounts plus an approve, 3 runs × 3 servers → refused), but M5 (drop `failed_attempts < maxWrong` in `decide`) alone leaves the tests green: `isLive` refuses first |
+| 18 | Reserve-and-release keeps the counts honest | no | confirmed | `limitedEntry` records first, releases on ok, `user_disabled` or a throw; 40/40 on each dialect |
+
+**Overall:** not met: no test isolates the `failed_attempts` condition in `decide` (17).
+
+### Re-check 1 (blind: rows 13 and 18, plus what the diff touches)
+
+Witnessed: 2026-10-17 21:30 EDT, by a fresh agent (blind). Commit: b7bcc3da + working tree as of 21:21. Machine: macOS 27, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 13 | A held user can't look up or decide a code through the action, and a test pins it | no | confirmed | `held.test.ts`; `{ whileHeld: true }` → 1 failed |
+| 18 | The phone sweep passes with `/device` | no | can't check here | `npx next build` was refused by this session's permission classifier; the sweep didn't run |
+| 19 | Page limits count an entry before the look-up | no | confirmed | Moving the record after the work → the burst test fails on PostgreSQL (40 instead of 10); SQLite doesn't show the race |
+| 20 | `release` takes back one attempt, never below zero or into a new window | no | confirmed | `login-rate-limiter.ts:61-68` |
+| 21 | A code with 5 wrong attempts can't be approved | no | confirmed | Removing both guards → 2 tests fail |
+| 22 | Names with format characters are refused | no | confirmed | `\p{Cc}` only → 1 failed |
+| 23 | The page isolates the name, and the done message uses the decided grant's name | no | partly | Both are in the code, but removing `<bdi>` or going back to `previous.request.name` leaves the tests green |
+| 24 | The task's tests pass on SQLite and the servers | no | partly | MySQL and MariaDB 39/39; PostgreSQL 38/39: "never fails when decisions, polls and wrong codes run at once" got `deadlock detected 40P01` in 3 of about 21 runs |
+
+**Overall:** not met: the sweep didn't run (18), two fixes lack tests (23), and a PostgreSQL deadlock flake (24).
+
+### Re-check 2, the fixes
+
+- `countWrongCode` locks the pending rows in id order (`FOR UPDATE` in a transaction) and counts and voids in one statement, with `status` set before `failed_attempts` (MySQL and MariaDB read a column set earlier in the same SET). PostgreSQL then passed 8 runs in a row.
+- New tests: the repository's `decide` refuses a row with 5 wrong codes and accepts one with 4; `<bdi>` around the name on the confirm and done screens; the done screen names the decided grant over the browser's.
+- The app was rebuilt from this tree, so the sweep can run without a build: from `apps/web`, `npx playwright test e2e/mobile-sweep.mobile.e2e.ts --project phone`.
+
+### Re-check 2 (blind: rows 18, 23, 24, plus what the diff touches)
+
+Witnessed: 2026-10-17 21:40 EDT, by a fresh agent (blind). Commit: b7bcc3da + working tree as of 21:33. Machine: macOS 27, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 18 | The phone sweep passes with `/device` (empty and prefilled) | no | confirmed | From `apps/web`: `npx playwright test e2e/mobile-sweep.mobile.e2e.ts --project phone` on the build from 21:33 (after the last source change) → 5 passed, exit 0; `e2e/pages.ts:140` lists both URLs |
+| 23 | `<bdi>` and the decided grant's name, pinned by tests | no | confirmed | `previous.request.name` again → 1 failed; no `<bdi>` in the confirm step → 1 failed; `<span>` in the done step → 1 failed |
+| 24 | The db tests pass everywhere, and the concurrency test no longer deadlocks on PostgreSQL | no | confirmed | `countWrongCode` (`kysely-device-grant-repository.ts:156-196`); the concurrency test 10/10 on PostgreSQL, no `40P01`; the three db files 40/40 on SQLite, PostgreSQL, MySQL and MariaDB |
+| 25 | Voiding still voids every pending code at 5 and audits the count | no | confirmed | `services/device-grants.db.test.ts:431` on all four dialects |
+
+**Overall:** met.
+
+### Re-check 2 (adversarial: row 17, plus what the diff touches)
+
+Witnessed: 2026-10-17 21:36 EDT, by a fresh agent (adversarial). Commit: b7bcc3da + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 17 | After 5 wrong codes a code can't be approved, even when guesses land after its look-up | no | confirmed | M5 alone → "never decides a grant with 5 wrong codes counted…" fails on SQLite and PG; probe-t4b (50 wrong codes from 5 accounts plus an approve; 8 wrong plus the right approve) → refused, `voided:5` on PG, MySQL and MariaDB |
+| 19 | `countWrongCode` voids at exactly 5 on every dialect | no | confirmed | probe-t4c: after 4 → `pending:4`, the 5th → `voided:5`, one `auth.device_voided {count:1}`, on all four. M8 (`>= max`) → the voiding test fails; M9 (`failed_attempts` set first) → fails on MySQL and MariaDB, passes on PG |
+| 20 | Only pending, unexpired rows are counted; voided rows stop counting | no | confirmed | probe-t4c: approved 0, denied 0, pending 3 after 3 wrong codes; voided rows stay at 5 |
+| 21 | No deadlocks or errors under mixed load | no | confirmed | Storm (wrong codes from 5 people, 10 starts, 4 polls, 4 approves at once), 2 runs on PG, MySQL and MariaDB → 0 rejected; with 50 wrong codes on all four → 0 rejected, all grants voided |
+| 22 | The device tests pass on every database | no | confirmed | 3 device db files → 41/41 on SQLite, PG, MySQL and MariaDB; `src/features/device` → 14 passed |
+
+**Overall:** met.

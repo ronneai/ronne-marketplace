@@ -5,6 +5,7 @@ import { kyselyDeviceGrantRepository } from "../repositories/kysely-device-grant
 import { kyselyIdentityRepository } from "../repositories/kysely-identity-repository";
 import { kyselyTokenRepository } from "../repositories/kysely-token-repository";
 import * as service from "../services/device-grants";
+import { getCurrentUser } from "./session";
 
 export type { DeviceExchangeResult, StartResult } from "../services/device-grants";
 
@@ -96,4 +97,97 @@ export const verificationUri = async (app: AppAuth = getAppAuth()): Promise<stri
   const ctx = await app.auth.$context;
   const base = String(ctx.options.baseURL ?? "http://localhost:3000").replace(/\/+$/, "");
   return `${base}/device`;
+};
+
+// Codes typed on `/device`: every refused entry counts, 5 a minute per client address (when it can
+// be trusted) and 10 an hour per person, then the page says to wait. Kept apart from the API's.
+const pageShared = globalThis as typeof globalThis & {
+  __ronneDevicePageLimiters?: DevicePageLimiters;
+};
+
+export type DevicePageLimiters = { ip: LoginRateLimiter; person: LoginRateLimiter };
+
+export const createDevicePageLimiters = (now?: () => number): DevicePageLimiters => ({
+  ip: new LoginRateLimiter({ max: 5, windowMs: 60_000, now }),
+  person: new LoginRateLimiter({ max: 10, windowMs: 60 * 60_000, now }),
+});
+
+const pageLimiters = () => {
+  pageShared.__ronneDevicePageLimiters ??= createDevicePageLimiters();
+  return pageShared.__ronneDevicePageLimiters;
+};
+
+export type DevicePageOptions = { limiters?: DevicePageLimiters; now?: () => Date };
+
+export type DevicePageResult<T> = T | Limited;
+
+/**
+ * Runs one entry of a code on the page: refused while either limit is used up. Each entry is
+ * counted before the work starts (the check and the count happen together, so a burst of requests
+ * can't all pass the check), and taken back when the code was right. A refused code counts, wrong,
+ * used, expired or malformed alike; a disabled account doesn't.
+ */
+const limitedEntry = async <T extends { ok: boolean; error?: string }>(
+  actor: service.DeviceActor,
+  options: DevicePageOptions,
+  work: () => Promise<T>,
+): Promise<DevicePageResult<T>> => {
+  const limiters = options.limiters ?? pageLimiters();
+  const buckets: [LoginRateLimiter, string[]][] = [
+    [limiters.person, [`device-page:user:${actor.user?.id ?? "none"}`]],
+  ];
+  if (actor.ip) buckets.push([limiters.ip, [`device-page:ip:${actor.ip}`]]);
+  for (const [limiter, keys] of buckets) {
+    const decision = limiter.check(keys);
+    if (!decision.allowed)
+      return { ok: false, error: "rate_limited", retryAfterSeconds: decision.retryAfterSeconds };
+  }
+  for (const [limiter, keys] of buckets) limiter.record(keys);
+  const release = () => {
+    for (const [limiter, keys] of buckets) limiter.release(keys);
+  };
+  let result: T;
+  try {
+    result = await work();
+  } catch (error) {
+    release();
+    throw error;
+  }
+  if (result.ok || result.error === "user_disabled") release();
+  return result;
+};
+
+const pageActor = async (headers: Headers, app: AppAuth): Promise<service.DeviceActor> => ({
+  user: await getCurrentUser(headers, app),
+  ip: clientIp(headers, app.trustProxy),
+});
+
+/** `/device`: what asked for a typed code, for the signed-in person to confirm. */
+export const describeMyDeviceCode = async (
+  headers: Headers,
+  typed: string,
+  app: AppAuth = getAppAuth(),
+  options: DevicePageOptions = {},
+) => {
+  const actor = await pageActor(headers, app);
+  return limitedEntry(actor, options, () =>
+    service.describeDeviceGrant({ ...deviceDeps(app), now: options.now }, actor, typed),
+  );
+};
+
+/** `/device`: Approve or Deny, by the signed-in person. */
+export const decideMyDeviceCode = async (
+  headers: Headers,
+  typed: string,
+  decision: "approve" | "deny",
+  app: AppAuth = getAppAuth(),
+  options: DevicePageOptions = {},
+) => {
+  const actor = await pageActor(headers, app);
+  const deps = { ...deviceDeps(app), now: options.now };
+  return limitedEntry(actor, options, () =>
+    decision === "approve"
+      ? service.approveDeviceGrant(deps, actor, typed)
+      : service.denyDeviceGrant(deps, actor, typed),
+  );
 };

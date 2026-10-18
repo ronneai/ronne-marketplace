@@ -13,7 +13,7 @@ export type NewTokenRow = {
   via: TokenVia;
 };
 
-export type TokenVia = "web" | "cli" | "device";
+export type TokenVia = NonNullable<AccessTokenSummary["via"]>;
 
 /** A token found by its hash, with its owner, for the bearer guard. */
 export type TokenWithUser = {

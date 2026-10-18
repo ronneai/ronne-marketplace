@@ -49,8 +49,9 @@ export type StartResult =
   | { ok: true; grant: StartedGrant }
   | { ok: false; error: "invalid_client" | "invalid_request" };
 
-// A name is shown on the page and in the audit; control characters (a NUL breaks PostgreSQL) aren't.
-const CONTROL = /\p{Cc}/u;
+// A name is shown on the page and in the audit: no control characters (a NUL breaks PostgreSQL),
+// and no format characters, whose bidi overrides could make `rmk on evil` read as another name.
+const CONTROL = /[\p{Cc}\p{Cf}]/u;
 
 // A user code collides with a live one about once in 31⁸ / (live codes); a few draws are plenty.
 const MAX_USER_CODE_DRAWS = 5;
@@ -148,7 +149,9 @@ export type InvalidCode = { ok: false; error: "invalid_code" };
 const INVALID: InvalidCode = { ok: false, error: "invalid_code" };
 
 const isLive = (grant: DeviceGrant, at: Date) =>
-  grant.status === "pending" && grant.expiresAt.getTime() > at.getTime();
+  grant.status === "pending" &&
+  grant.expiresAt.getTime() > at.getTime() &&
+  grant.failedAttempts < DEVICE_MAX_WRONG_CODES;
 
 /**
  * Finds the pending grant a typed code names. A well-formed code that matches no grant is a wrong
@@ -200,7 +203,11 @@ export const describeDeviceGrant = async (
   return { ok: true, request: { userCode, clientId, name, requesterIp, createdAt, expiresAt } };
 };
 
-export type DecideResult = { ok: true } | InvalidCode | { ok: false; error: "user_disabled" };
+/** `name` is the decided grant's, for the page to say what it approved or denied. */
+export type DecideResult =
+  | { ok: true; name: string }
+  | InvalidCode
+  | { ok: false; error: "user_disabled" };
 
 /**
  * Approve binds the code to the signed-in person; deny ends it. Of two decisions at once, only the
@@ -218,8 +225,14 @@ const decide = async (
   if (!(await deps.identity.findActiveUser(user.id))) return { ok: false, error: "user_disabled" };
   const grant = await findLive(deps, { userId: user.id, ip: actor.ip }, typed, at);
   if (!grant) return INVALID;
-  if (!(await deps.grants.decide(grant.id, { status, userId: user.id, approverIp: actor.ip }, at)))
-    return INVALID;
+  // Not once 5 wrong codes were counted, even by guesses still in flight when it was looked up.
+  const decision = {
+    status,
+    userId: user.id,
+    approverIp: actor.ip,
+    maxWrong: DEVICE_MAX_WRONG_CODES,
+  };
+  if (!(await deps.grants.decide(grant.id, decision, at))) return INVALID;
   await deps.grants.recordAudit(
     {
       actorId: user.id,
@@ -235,7 +248,7 @@ const decide = async (
     },
     at,
   );
-  return { ok: true };
+  return { ok: true, name: grant.name };
 };
 
 export const approveDeviceGrant = (deps: DeviceGrantDeps, actor: DeviceActor, typed: string) =>

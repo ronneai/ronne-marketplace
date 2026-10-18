@@ -143,6 +143,10 @@ describe("startDeviceGrant", () => {
     expect(await startDeviceGrant(deps, { clientId: "rmk-mcp" }, context)).toMatchObject({
       ok: true,
     });
+    // A bidi override would make `rmk on ‮moc.live` read as another name on the page.
+    expect(
+      await startDeviceGrant(deps, { clientId: "rmk", name: "rmk on \u202emoc.ynapmoc" }, context),
+    ).toEqual({ ok: false, error: "invalid_request" });
     expect(await startDeviceGrant(deps, { clientId: "rmk", name: "a\u0000b" }, context)).toEqual({
       ok: false,
       error: "invalid_request",
@@ -205,7 +209,7 @@ describe("exchangeDeviceCode", () => {
   it("gives a working 90-day token once, after approval, and no session", async () => {
     const grant = await start();
     const sessions = await t.db.selectFrom("session").select("id").execute();
-    expect(await approve(ana, grant.userCode)).toEqual({ ok: true });
+    expect(await approve(ana, grant.userCode)).toMatchObject({ ok: true });
 
     const result = await poll(grant);
     if (!result.ok) throw new Error(result.error);
@@ -239,7 +243,7 @@ describe("exchangeDeviceCode", () => {
 
   it("answers access_denied after Deny", async () => {
     const grant = await start();
-    expect(await denyDeviceGrant(deps, { user: ana, ip: null }, grant.userCode)).toEqual({
+    expect(await denyDeviceGrant(deps, { user: ana, ip: null }, grant.userCode)).toMatchObject({
       ok: true,
     });
     expect(await poll(grant)).toEqual({ ok: false, error: "access_denied" });
@@ -303,7 +307,7 @@ describe("exchangeDeviceCode", () => {
     expect(await poll(first)).toEqual({ ok: false, error: "authorization_pending" });
 
     const second = await start();
-    expect(await approve(ben, second.userCode)).toEqual({ ok: true });
+    expect(await approve(ben, second.userCode)).toMatchObject({ ok: true });
     await disable(ben);
     expect(await poll(second)).toEqual({ ok: false, error: "user_disabled" });
     expect(await events("access_token.created")).toEqual([]);
@@ -322,7 +326,7 @@ describe("exchangeDeviceCode", () => {
         via: "web",
       });
     const grant = await start();
-    expect(await approve(ana, grant.userCode)).toEqual({ ok: true });
+    expect(await approve(ana, grant.userCode)).toMatchObject({ ok: true });
     expect(await poll(grant)).toEqual({ ok: false, error: "token_limit" });
     advance(10);
     expect(await poll(grant)).toEqual({ ok: false, error: "invalid_grant" });
@@ -379,7 +383,7 @@ describe("approving", () => {
         expiresAt: new Date(clock.getTime() + 600_000),
       },
     });
-    expect(await approve(ana, typed)).toEqual({ ok: true });
+    expect(await approve(ana, typed)).toMatchObject({ ok: true });
   });
 
   it("never fails when decisions, polls and wrong codes run at once", async () => {
@@ -404,6 +408,18 @@ describe("approving", () => {
     }
   });
 
+  it("never decides a grant with 5 wrong codes counted, even when its look-up came first", async () => {
+    // The look-up said it was live; guesses still in flight were counted afterwards.
+    const grant = await start();
+    const row = await t.db.selectFrom("device_grants").select("id").executeTakeFirstOrThrow();
+    await t.db.updateTable("device_grants").set({ failed_attempts: 5 }).execute();
+    const decision = { status: "approved" as const, userId: ana.id, approverIp: null, maxWrong: 5 };
+    expect(await deps.grants.decide(row.id, decision, clock)).toBe(false);
+    await t.db.updateTable("device_grants").set({ failed_attempts: 4 }).execute();
+    expect(await deps.grants.decide(row.id, decision, clock)).toBe(true);
+    expect(await poll(grant)).toMatchObject({ ok: true });
+  });
+
   it("lets only the first of two approvals at once count", async () => {
     const grant = await start();
     const results = await Promise.all([approve(ana, grant.userCode), approve(ben, grant.userCode)]);
@@ -420,7 +436,7 @@ describe("approving", () => {
     advance(300);
     const fresh = await start();
     const approvedFresh = await start();
-    expect(await approve(ben, approvedFresh.userCode)).toEqual({ ok: true });
+    expect(await approve(ben, approvedFresh.userCode)).toMatchObject({ ok: true });
     advance(301);
     // Expired by now, but its row is still kept.
     expect(await approve(ana, expiring.userCode)).toEqual({ ok: false, error: "invalid_code" });

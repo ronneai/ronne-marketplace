@@ -24,7 +24,13 @@ export interface DeviceGrantRepository {
    */
   decide(
     id: string,
-    decision: { status: "approved" | "denied"; userId: string; approverIp: string | null },
+    decision: {
+      status: "approved" | "denied";
+      userId: string;
+      approverIp: string | null;
+      /** Refused once this many wrong codes were counted against it. */
+      maxWrong: number;
+    },
     now: Date,
   ): Promise<boolean>;
   /**

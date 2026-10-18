@@ -30,6 +30,8 @@ export type AccessTokenSummary = {
   lastUsedAt: Date | null;
   expiresAt: Date | null;
   revokedAt: Date | null;
+  /** How it was made: the page, `rmk login`, or a browser approval (107); null before 107. */
+  via: "web" | "cli" | "device" | null;
 };
 
 export const generateToken = (): string =>

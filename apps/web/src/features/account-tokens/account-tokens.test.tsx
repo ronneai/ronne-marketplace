@@ -81,6 +81,7 @@ const token = (overrides: Partial<AccessTokenSummary>): AccessTokenSummary => ({
   id: "t1",
   name: "laptop",
   preview: "rmk_AbC1dEf2",
+  via: "web",
   createdAt: new Date("2026-09-01T00:00:00Z"),
   lastUsedAt: null,
   expiresAt: new Date("2026-12-01T00:00:00Z"),
@@ -124,6 +125,17 @@ describe("TokensPage", () => {
     expect(html).not.toContain("revoke old");
     expect(html).not.toContain("revoke gone");
     expect(html).not.toContain('href="/account/tokens"');
+  });
+
+  it("says which tokens were made by browser approval (107)", () => {
+    const html = renderToStaticMarkup(
+      <TokensPage
+        tokens={[token({ id: "a", name: "rmk on laptop", via: "device" }), token({ id: "b" })]}
+        now={new Date("2026-09-02T00:00:00Z")}
+      />,
+    );
+    expect(html.match(/browser approval/g)).toHaveLength(1);
+    expect(html).toMatch(/rmk on laptop<span[^>]*>browser approval<\/span>/);
   });
 
   it("explains an empty list, and what a token is for", () => {

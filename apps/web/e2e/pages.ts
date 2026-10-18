@@ -137,6 +137,7 @@ export const SWEEP_PAGES: readonly SweepPage[] = [
   { route: "/account/password", roles: EVERYONE, urls: () => ["/account/password"] },
   { route: "/account/security", roles: EVERYONE, urls: () => ["/account/security"] },
   { route: "/account/tokens", roles: EVERYONE, urls: () => ["/account/tokens"] },
+  { route: "/device", roles: EVERYONE, urls: () => ["/device", "/device?user_code=WDJB-MJHT"] },
   { route: "/admin", roles: ROOT, urls: () => ["/admin"] },
   { route: "/admin/users", roles: ROOT, urls: () => ["/admin/users"] },
   { route: "/admin/audit", roles: ROOT, urls: () => ["/admin/audit"] },

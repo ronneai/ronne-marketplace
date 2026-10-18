@@ -58,6 +58,15 @@ export class LoginRateLimiter {
     }
   }
 
+  /** Takes back one attempt counted with `record`, as when it turned out not to count (107). */
+  release(keys: readonly string[]): void {
+    const now = this.#now();
+    for (const key of keys) {
+      const bucket = this.#live(key, now);
+      if (bucket && bucket.count > 0) bucket.count -= 1;
+    }
+  }
+
   #live(key: string, now: number): Bucket | null {
     const bucket = this.#buckets.get(key);
     return bucket && now - bucket.windowStart < this.#windowMs ? bucket : null;

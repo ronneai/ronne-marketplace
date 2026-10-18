@@ -27,7 +27,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* route tests cover each status above, malformed bodies, an unknown `client_id`, and that
   `/api/auth/device/*` returns 404.
 
-- [ ] **4. `/device`.** [risky] The page (code input or prefilled, what-asked details, Approve and
+- [x] **4. `/device`.** [risky] The page (code input or prefilled, what-asked details, Approve and
   Deny as a POST form), sign-in and enrolment redirects keeping the code, the wrong-code messages
   and the attempt limits; Access tokens shows the *browser approval* origin.
   *Done when:* component and db tests cover approve, deny, a wrong code, the limits, a held user
@@ -131,3 +131,19 @@ limit, 10 an hour, and the audit bound) cancel others' pending codes, and they r
   routes sit untracked, stash those first: the hook tests the working tree.
 - The device flow is in the telemetry privacy scenario: the device code, the user code (with and
   without its dash) and the token never reach the collector.
+
+**Task 4, `/device` (2026-10-17).**
+
+- Opening `/device` only shows the code in an input: **Continue** is the POST that looks it up, then
+  Approve or Deny. So a GET (a link, a prefetch, `rmk` opening the page) never counts a wrong code.
+- The page's limits are in `actions/device-grants.ts` (`limitedEntry`): the check and the count
+  happen with no `await` between, and a right code gives its count back (`LoginRateLimiter.release`).
+  Checking, awaiting the database, then recording let 40 concurrent entries through on PostgreSQL
+  and MySQL (the adversarial witness); SQLite hid it.
+- `decide` also needs `failed_attempts < 5`, so guesses still in flight when a code was looked up
+  still stop it.
+- `holdPage` keeps the way back only for `/device` (`RETURN_AFTER_HOLD`): `hold.test.ts` needs
+  `await holdPage();` first, so it reads the path from `x-ronne-path` itself.
+- A held person can't use the page's action: `deviceCodeFromForm` is a plain `serverAction`
+  (`held.test.ts`).
+- Names are refused with `\p{Cf}` (bidi overrides) as well as `\p{Cc}`, and shown in `<bdi>`.
