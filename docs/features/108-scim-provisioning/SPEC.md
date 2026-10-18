@@ -65,10 +65,15 @@ request with 401.
 
 **Authentication.** The route is outside `/api/v1`'s own bearer guard (009: `rmk_` tokens, users):
 it has its guard, which accepts only `Authorization: Bearer scim_…`, finds the provider by hash,
-checks SCIM is on, and refuses everything else with the SCIM error format (RFC 7644 §3.12,
-`application/scim+json`, `status`, `scimType`, `detail`) and `WWW-Authenticate: Bearer`. A rate
-limit applies per token (600 requests a minute) and per client address for bad tokens (20 a
-minute); `Cache-Control: no-store`. Cookies are ignored.
+checks SCIM is on, and refuses everything else (no header, another scheme, an `rmk_` token, an
+unknown, revoked or rotated-out token, SCIM off) with one answer: 401 in the SCIM error format (RFC
+7644 §3.12, `application/scim+json`, `status`, `scimType`, `detail`) and `WWW-Authenticate: Bearer`;
+the audit log and the logs keep the reason (`scim.request_refused`). A rate limit applies per token
+(600 requests a minute) and to refusals per client address (20 a minute; when the address can't be
+trusted, 100 a minute for the instance); past it the answer is 429 with `Retry-After`, and refusals
+aren't audited, so a flood can't fill the audit log. `Cache-Control: no-store` on every answer.
+Cookies are ignored. An unknown path is 404 and a method a path doesn't take is 405 (with `Allow`),
+before any token is asked for; `Bulk` and `Me` are 501.
 
 **Discovery.** `GET /ServiceProviderConfig` says: patch supported; bulk, filter (max 100 results,
 only `eq` on `userName`, `externalId` and `displayName`), changePassword, sort and etag

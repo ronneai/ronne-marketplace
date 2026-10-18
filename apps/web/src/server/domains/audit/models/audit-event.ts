@@ -21,6 +21,7 @@ export const AUDIT_ACTIONS = [
   "instance.scim_token_created",
   "instance.scim_token_rotated",
   "instance.scim_token_revoked",
+  "scim.request_refused",
   "instance.password_sign_in_changed",
   "user.password_reset",
   "auth.signed_in",
@@ -100,6 +101,7 @@ export const AUDIT_ACTION_GROUPS = [
   "dist_tag",
   "settings",
   "instance",
+  "scim",
 ] as const;
 export type AuditActionGroup = (typeof AUDIT_ACTION_GROUPS)[number];
 

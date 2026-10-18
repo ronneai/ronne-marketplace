@@ -166,7 +166,11 @@ describe("the token", () => {
     });
 
     await disableScim(deps, actor(), "acme");
-    expect(await checkScimToken(deps, token)).toEqual({ ok: false, reason: "scim_off" });
+    expect(await checkScimToken(deps, token)).toEqual({
+      ok: false,
+      reason: "scim_off",
+      providerId: "acme",
+    });
     // Turned on again, the same token works: turning off kept it.
     await enableScim(deps, actor(), "acme");
     expect((await checkScimToken(deps, token)).ok).toBe(true);
@@ -205,7 +209,11 @@ describe("the token", () => {
     advance(24 * HOUR - 1);
     expect((await checkScimToken(deps, first.token)).ok).toBe(true);
     advance(1);
-    expect(await checkScimToken(deps, first.token)).toEqual({ ok: false, reason: "expired" });
+    expect(await checkScimToken(deps, first.token)).toEqual({
+      ok: false,
+      reason: "expired",
+      providerId: "acme",
+    });
     expect((await checkScimToken(deps, second.token)).ok).toBe(true);
     expect((await scimStatus(deps, actor(), "acme")).tokens.map((tk) => tk.id)).toEqual([
       second.id,
@@ -217,7 +225,11 @@ describe("the token", () => {
     const second = await rotateScimToken(deps, actor(), "acme");
     advance(HOUR);
     const third = await rotateScimToken(deps, actor(), "acme");
-    expect(await checkScimToken(deps, first.token)).toEqual({ ok: false, reason: "revoked" });
+    expect(await checkScimToken(deps, first.token)).toEqual({
+      ok: false,
+      reason: "revoked",
+      providerId: "acme",
+    });
     expect((await checkScimToken(deps, second.token)).ok).toBe(true);
     expect((await checkScimToken(deps, third.token)).ok).toBe(true);
     expect((await scimStatus(deps, actor(), "acme")).tokens).toHaveLength(2);
@@ -234,8 +246,16 @@ describe("the token", () => {
     const first = await createScimToken(deps, actor(), "acme");
     const second = await rotateScimToken(deps, actor(), "acme");
     expect(await revokeScimTokens(deps, actor(), "acme")).toEqual({ revoked: 2 });
-    expect(await checkScimToken(deps, first.token)).toEqual({ ok: false, reason: "revoked" });
-    expect(await checkScimToken(deps, second.token)).toEqual({ ok: false, reason: "revoked" });
+    expect(await checkScimToken(deps, first.token)).toEqual({
+      ok: false,
+      reason: "revoked",
+      providerId: "acme",
+    });
+    expect(await checkScimToken(deps, second.token)).toEqual({
+      ok: false,
+      reason: "revoked",
+      providerId: "acme",
+    });
     expect((await scimStatus(deps, actor(), "acme")).tokens).toEqual([]);
     expect(await revokeScimTokens(deps, actor(), "acme")).toEqual({ revoked: 0 });
     // A new one can be made after a revoke.
@@ -248,7 +268,11 @@ describe("the token", () => {
     const acme = await createScimToken(deps, actor(), "acme");
     const other = await createScimToken(deps, actor(), "other");
     await revokeScimTokens(deps, actor(), "other");
-    expect(await checkScimToken(deps, other.token)).toEqual({ ok: false, reason: "revoked" });
+    expect(await checkScimToken(deps, other.token)).toEqual({
+      ok: false,
+      reason: "revoked",
+      providerId: "other",
+    });
     expect(await checkScimToken(deps, acme.token)).toMatchObject({ ok: true, providerId: "acme" });
   });
 

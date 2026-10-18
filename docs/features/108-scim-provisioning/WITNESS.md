@@ -374,3 +374,166 @@ Witnessed: 2026-10-18 10:44 EDT, by a fresh agent (adversarial). Commit: cbbc6d6
 | 20 | Nothing accepts a null `user_name` on a live link | no | confirmed | No task 2 code writes `scim_users` (`grep -rln scim_users apps/web/src` → schema, migration, its test). The database itself accepts it (probe: two live links with null `user_name` on all four), so task 4's repository must refuse it |
 
 **Overall:** met: the lock is proven on all three servers without flakes, SCIM tokens are redacted with a fast regex, and the tombstone clears `user_name`; a live link without `user_name` is task 4's to refuse.
+
+## Task 3 — The guard and the routes' frame
+
+Witnessed: 2026-10-18 11:09 EDT, by a fresh agent (blind). Commit: ad04c062 + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `/api/v1/scim/v2/[...path]` sends GET, POST, PUT, PATCH and DELETE through `apiRoute` to one dispatcher, after the setup check | yes | confirmed | `route.ts` exports all five as `apiRoute("/api/v1/scim/v2/[...path]", …handleScim)`; `api-route.test.ts route-segments.test.ts` → 37 passed. Not run through a live Next server |
+| 2 | Discovery is public and correct (ServiceProviderConfig, ResourceTypes, Schemas, each by id, GET only) | yes | confirmed | "discovery" tests with no token and a bad one, no audit row; mutation `disc-405` → "only answers GET" fails |
+| 3 | No header, another scheme, an `rmk_` token, an unknown token and a SCIM-off provider's token get the same 401, SCIM body, `WWW-Authenticate: Bearer`, one detail | yes | confirmed | "refuses every bad token the same way"; mutations `no-challenge`, `no-scim-off` fail it |
+| 4 | A revoked token and a rotated-out one get 401; the rotated one works right after rotation | yes | confirmed | "refuses a revoked token, and a rotated one…"; mutations `no-revoked`, `no-expiry` fail it; the boundary checked at exactly +24 h |
+| 5 | Another provider's token gets 401 | no | can't check here | The guard passes `caller.providerId` on; another provider's working token meets no resource until tasks 4 and 5 |
+| 6 | `scim.request_refused { reason }` (audit and log) with the provider when the token was found | yes | confirmed | `actions/scim.ts` `refuse()`; tests expect `scim_off`/`other`, `expired` and `revoked`/`acme`; `log/events.ts`, `audit-event.ts`, `summary.ts` |
+| 7 | 600 a minute per token; 20 refusals a minute per trusted address; 100 for the instance without one; 429 with `Retry-After`; no audit past the limit | yes | confirmed | Three limit tests; mutations `no-token-limit`, `no-refusal-limit`, `no-shared-limit`, `audit-past-limit` each fail theirs |
+| 8 | Cookies are ignored | no | confirmed | `bearer()` reads only `authorization`; mutation `cookie-lets-in` → "ignores cookies" fails |
+| 9 | Unknown path 404, wrong method 405 with `Allow`, both before a token; `Bulk`/`Me` 501; `no-store` everywhere | no | confirmed | "paths and methods"; mutations `no-405`, `case-404`, `no-store` fail tests. The setup 503 and `apiRoute`'s 500 come back in the API's shape, not SCIM's |
+| 10 | No SCIM token in an audit row or a log line | yes | confirmed | "never writes a token…" at debug/JSON; mutation `token-in-audit` → it fails |
+| 11 | `scim`, `v2`, `[...path]` are route segments, and the privacy scenario sends a SCIM token and a filter email without leaking them | yes | partly | `privacy.db.test.ts` passes on SQLite and PostgreSQL; on MySQL and MariaDB `Incorrect datetime value` at `privacy-scenario.ts:317` (the provider insert's ISO string) |
+| 12 | The task's tests pass on SQLite, PostgreSQL, MySQL and MariaDB | no | partly | 30 passed on SQLite and PostgreSQL; on MySQL and MariaDB 29 passed, `privacy.db.test.ts` failed (row 11) |
+| 13 | The touched files pass lint | no | not met | `biome check …/actions/scim.ts` → "Formatter would have printed the following content" |
+
+**Overall:** not met: the guard, formats and discovery hold with tests that mutations break, but the privacy scenario fails on MySQL and MariaDB, `actions/scim.ts` isn't formatted, and the other-provider case waits for tasks 4 and 5.
+
+Fixed since: the scenario's dates go through `toDbDate` (`pnpm test:db:mysql|mariadb -- src/server/telemetry/privacy.db.test.ts` → 1 passed each); `actions/scim.ts` formatted (`pnpm lint` → no error); the setup check answers 503 in SCIM's format; the `SSO_REASONS` comment back above its constant; tasks 4's and 5's *Done when* now name another provider's token (row 5).
+
+Witnessed: 2026-10-18 11:09 EDT, by a fresh agent (adversarial). Commit: ad04c062 + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | One route sends every method to one handler through `apiRoute`, outside `/api/v1`'s bearer guard and the proxy | yes | confirmed | `route.ts:8-14` never calls `requireToken`; `proxy.ts`'s matcher skips `api/`; `api-route.test.ts` passed |
+| 2 | Only `Authorization: Bearer scim_…`, found by its hash | yes | confirmed | Probe: `bearer`/`BEARER`/extra spaces/trailing `\n` → 204; a tab, the token uppercased or twice, two headers, a 100 KB value → 401; `scim-tokens.ts:206` |
+| 3 | Every refusal is the same 401 in SCIM format with `WWW-Authenticate: Bearer` | yes | confirmed | 29/29 on all four databases; a deleted provider's token → 401 `{reason:"unknown"}`; mutations M1, M4, M6, M11 each fail the suite |
+| 4 | Cookies and the query string never authenticate | yes | confirmed | Probe: `?access_token=<good>` → 401; cookies with the token → 401 |
+| 5 | The reason is audited and logged as `scim.request_refused`, with the provider when found | yes | confirmed | The test's five refusals; `events.ts` |
+| 6 | The new audit action fits the audit log's model, and the existing suites stay green | no | not met | `audit-event.test.ts` "cover every action" fails: `scim.request_refused` is in no `AUDIT_ACTION_GROUPS` (`audit-event.ts:93-104`), so `pnpm test` is red and Admin › Audit can't filter it |
+| 7 | 600 a minute per token, then 429 with `Retry-After` | yes | confirmed | The 601st → 429, `retry-after: 60`; M7 (6000) fails it |
+| 8 | 20 refusals a minute per trusted address, 100 without one; 429 past it, not audited | yes | confirmed | Probe: 42 audit rows for 47 refusals over the limits; 30 s later still 429, `retry-after: 30`; M2, M9, M13 each fail the suite |
+| 9 | A working token and discovery aren't held up by an address's refusal limit | no | confirmed | Probe: the limited address's good token → 204, `/ServiceProviderConfig` → 200, no header → 429 |
+| 10 | `no-store` everywhere; unknown path 404, wrong method 405 with `Allow`, before a token; `Bulk`/`Me` 501 | yes | partly | Holds through `handleScim` (M5, M14 fail the suite), but `route.ts` doesn't export OPTIONS, so Next answers it itself (`auto-implement-methods.js:66-70`): 204, its own `Allow`, no body, no `no-store`, on any path (read from Next's source) |
+| 11 | Path tricks don't get past routing | no | confirmed | `/Users%2Fabc`, a bad escape, `/USERS`, `/Users%00`, `/ResourceTypes/User/x` → 404. `segmentsOf` matches `startsWith(SCIM_PATH)` with no `/` boundary (`/api/v1/scim/v2Users` → Users when called directly; Next doesn't route it here) |
+| 12 | `ServiceProviderConfig`'s values, public | yes | confirmed | `toMatchObject` on each; a bad token → 200, no refusal; RFC 7643 §5's fields (`scim-discovery.ts:12-30`); M12 fails 3 tests |
+| 13 | `ResourceTypes` and `Schemas` describe User and Group, listed and by id | yes | confirmed | The tests; the encoded Group URN → 200; the RFC 7643 §6-7 shape (`scim-discovery.ts:31-155`) |
+| 14 | No SCIM token in a log line or audit row | yes | confirmed | "never writes a token…"; M10 fails 3 tests |
+| 15 | Telemetry segments and the privacy scenario | yes | confirmed | `privacy.db.test.ts`, `no-secrets.db.test.ts` → 2 passed; removing `[...path]` fails `route-segments.test.ts`; two tries to put the token in a span attribute were stripped by the sanitiser |
+| 16 | The refusal reads well in Admin › Audit | yes | confirmed | `summary.test.ts` passes; the `SSO_REASONS` comment sat above `SCIM_REFUSALS` |
+
+**Overall:** not met: the guard, the limits, the format and discovery hold under every attempt and mutation, but `scim.request_refused` is in no audit action group (the existing suite fails), and OPTIONS gets Next's own 204.
+
+Fixed since: a `scim` group in `AUDIT_ACTION_GROUPS` (`vitest run src/server/domains/audit src/features/admin-audit src/server/http/api-route.test.ts` → 70 passed); the route exports `HEAD` and `OPTIONS` too, answered as SCIM 405s (a test); `segmentsOf` reads only `/api/v1/scim/v2` or below it (a test); the comment moved back (blind pass). Not changed: a request refused by the per-token limit still updates *last used* (the token is the provider's, and it was used).
+
+### Re-check 1 (blind: rows 5, 11, 12, 13, plus what the diff touches)
+
+Witnessed: 2026-10-18 11:16 EDT, by a fresh agent (blind). Commit: ad04c062 + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 5 | The guard passes each token on as its own provider, never another; one provider's SCIM off leaves the other's working; the 401 at another provider's resources is in tasks 4's and 5's *Done when* | no | confirmed | "passes each provider's token on as that provider, never another"; mutations `fixed-provider`, `other-as-acme` each fail it; PLAN.md tasks 4 and 5 |
+| 11 | Route segments, and the privacy scenario without leaks | yes | confirmed | `toDbDate` in `privacy-scenario.ts`; `pnpm test:db:mysql` and `:mariadb -- … privacy.db.test.ts` → passed |
+| 12 | The task's tests pass on all four databases | no | confirmed | `scim-api.db.test.ts privacy.db.test.ts` → 19 passed on SQLite, PostgreSQL, MySQL, MariaDB |
+| 13 | The touched files pass lint | no | confirmed | `pnpm lint` → 0 errors; `biome check` on 37 touched files → nothing |
+| 14 | `segmentsOf` reads only `/api/v1/scim/v2` or below | no | confirmed | "reads only paths under the base…" → 404; `no-boundary` fails it |
+| 15 | `scim.request_refused` is in a `scim` audit group | no | confirmed | `audit-event.ts:104`; audit, admin-audit, api-route and telemetry tests → 106 passed; removing `"scim"` fails "cover every action…" |
+| 16 | The route answers not-set-up as a SCIM 503 and exports HEAD and OPTIONS; tests cover it | no | partly | A probe with mocked setup → all seven exports, 503 `application/scim+json`, `no-store`; but no test imports `route.ts`, so removing either fails nothing, and the "(the route exports both)" test name says more than it checks |
+
+**Overall:** not met: rows 5, 11, 12 and 13 hold with tests mutations break, but the route-level 503 and HEAD/OPTIONS exports have no test.
+
+Fixed since: `app/api/v1/scim/v2/[...path]/route.test.ts` (2 tests: every export dispatches, and each answers a SCIM 503 before setup) → 2 passed; the dispatcher test renamed "answers HEAD and OPTIONS as SCIM 405s".
+
+### Re-check 1 (adversarial: rows 6, 10, 11, plus what the diff touches)
+
+Witnessed: 2026-10-18 11:16 EDT, by a fresh agent (adversarial). Commit: ad04c062 + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6 | `scim.request_refused` is in an audit group, and the existing suites pass | yes | confirmed | `audit-event.ts:104`; http, audit, admin-audit, api and route-segment tests → 294 passed; M18 (drop `"scim"`) fails "cover every action…" |
+| 6a | Admin › Audit's filter handles the `scim` group | no | confirmed | `list.ts:66` builds the options from `AUDIT_ACTION_GROUPS`; `groupOf` and `kysely-audit-repository.ts:73` filter by `actionsInGroup("scim")`. The `instance.scim_token_*` events stay under `instance` |
+| 6b | The refusal's summary names the reason and the provider | no | confirmed | `SCIM_REFUSALS` covers all six; no test checks the text (M20, dropping the provider → 88 passed) |
+| 10 | `no-store` everywhere; 405 with `Allow`; Next doesn't answer for the route | yes | partly | OPTIONS is now a SCIM 405, but HEAD regressed: Next used to run GET for it (`auto-implement-methods.js:39-44`); now it reaches the dispatcher and gets 405 `Allow: GET` where GET works (`scim-api.db.test.ts:321-326` asserts it). No test goes through `route.ts` (M16 → 88 passed) |
+| 10a | Exporting HEAD/OPTIONS keeps the `apiRoute` guard test green | no | confirmed | `api-route.test.ts:169`, `:187` |
+| 10b | A not-set-up instance gets a 503 in SCIM's format | yes | partly | `route.ts:10-11`; no test (M17 → 88 passed) |
+| 11 | `segmentsOf` reads only `/api/v1/scim/v2` or below | yes | confirmed | `scim-api.ts:47`; M15 fails "reads only paths under the base…" |
+| 5 | Each provider's token reaches the resources as its own provider | yes | confirmed | M19 (hard-code `"acme"`) fails it |
+| 15 | The privacy scenario and SCIM tests pass on MySQL and MariaDB | yes | confirmed | `pnpm test:db:mysql|mariadb -- …privacy.db.test.ts …scim-api.db.test.ts` → 19 passed each |
+| 3-14 | Earlier rows still hold | no | confirmed | `mutate.py` M1-M14 on the resynced copy: each fails at least one test |
+
+**Overall:** not met: rows 6 and 11 fixed and every guard mutation still caught, but HEAD is now refused where GET works, and the route file has no test.
+
+Fixed since: the route no longer exports `HEAD` (Next answers it from `GET` again) and keeps `OPTIONS`; `route.test.ts` checks the exports (HEAD absent) and the SCIM 503 before setup; the dispatcher test covers OPTIONS only; `summary.test.ts` checks the refusal's text with and without a provider (→ 44 passed with the route and api-route tests).
+
+### Re-check 2 (blind: row 16, plus what the diff touches)
+
+Witnessed: 2026-10-18 11:20 EDT, by a fresh agent (blind). Commit: ad04c062 + working tree. Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 16 | The route answers not-set-up as a SCIM 503 and exports OPTIONS, not HEAD; tests cover it | yes | confirmed | `route.test.ts api-route.test.ts summary.test.ts` → 44 passed. M1 (drop `OPTIONS`) → 2 failed; M2 (a bare 503) → 1 failed (`expected null to be 'application/scim+json'`); M3 (re-add `HEAD`) → 1 failed; `route.ts` restored |
+| 16a | With HEAD not exported, Next answers HEAD by running GET | yes | confirmed | `next/…/auto-implement-methods.js:39-44` `methods.HEAD = handlers.GET`; read, not run against a live server |
+| 16b | The dispatcher's tests still pass | yes | confirmed | `scim-api.db.test.ts` → 18 passed |
+| 16c | Admin › Audit shows the refusal reason and the provider | yes | confirmed | `summary.test.ts`: "Refused a SCIM request: a revoked token (acme)", "…: no bearer token" |
+
+**Overall:** met: `route.test.ts` checks the exports and the SCIM 503 before setup, and each route mutation fails it.
+
+### Re-check 2 (adversarial: rows 6b, 10, 10b, plus what the diff touches)
+
+Witnessed: 2026-10-18 11:20 EDT, by a fresh agent (adversarial). Commit: ad04c062 + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6b | The refusal's summary names the reason and the provider | yes | confirmed | `summary.test.ts` (revoked + acme; missing); M20 fails it; the other four texts read at `summary.ts:97-104` |
+| 10 | HEAD works wherever GET does, because Next runs GET for it | yes | not met | Next sets `methods.HEAD = handlers.GET` but passes the original request (`module.js:539`), so `request.method` is `"HEAD"` and the dispatcher refuses it (`scim-api.ts:87`, `:95-96`). Probe: `HEAD /ServiceProviderConfig` → 405 `Allow: GET` (GET → 200); `HEAD /Users` with a token → 405 |
+| 10c | OPTIONS answers a SCIM 405 with a correct `Allow`, acceptable under RFC 9110 | yes | confirmed | §9.1 requires only GET and HEAD; §15.5.6's `Allow`; probe `OPTIONS /Users` → 405 `Allow: GET, POST`, SCIM, `no-store`. `Allow` never lists HEAD, which matches only because of row 10 |
+| 10a | The route exports exactly DELETE, GET, OPTIONS, PATCH, POST, PUT, pinned by a test | yes | confirmed | `route.test.ts`; M16 (drop OPTIONS), M16b (add HEAD) fail it |
+| 10b | A not-set-up instance gets a SCIM 503, never cached, for every method | yes | confirmed | `route.test.ts`; M17 (plain 503), M17b (no setup check) fail it |
+| 11 | `segmentsOf` reads only `/api/v1/scim/v2` or below | no | confirmed | M15 fails its test |
+| 6 | `scim.request_refused` in the `scim` group | no | confirmed | M18 fails "cover every action…" |
+| 5 | Each provider's token reaches resources as its own provider | no | confirmed | M19 fails its test |
+| 12 | The task's tests pass after the resync | no | confirmed | 8 files, 91 passed on SQLite |
+
+**Overall:** not met: the route's exports, its 503 and the refusal text are tested, but HEAD is refused with 405 wherever GET works, because Next calls GET's handler with `method: "HEAD"`.
+
+Fixed since: `handleScim` treats `HEAD` as `GET` (handlers receive `method`, never `HEAD`) and lists `HEAD` in every `Allow` with `GET`; a test sends HEAD as Next does to discovery (200), Users and Groups (reached as `GET`) and without a token (401) → `scim-api.db.test.ts` 19 passed; the route test's name says only what it checks.
+
+### Re-check 3 (blind: HEAD, plus what the diff touches)
+
+Witnessed: 2026-10-18 11:26 EDT, by a fresh agent (blind). Commit: ad04c062 + working tree. Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+The owner allowed this third round, scoped to HEAD.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | HEAD is handled as GET: discovery answers 200 on HEAD with no token | no | confirmed | `scim-api.ts:92` maps HEAD to GET; test `scim-api.db.test.ts:327-331` → 200 `application/scim+json` for `/ServiceProviderConfig` and `/Schemas` |
+| 2 | HEAD on Users and Groups reaches the handler as GET | no | confirmed | `scim-api.ts:115`; `reached` = `[["Users","GET"],["Groups","GET"]]`; mutation `method: request.method` → the test fails |
+| 3 | HEAD on Users and Groups stays behind the guard | no | confirmed | The method check (`:107`) before `authenticateScim` (`:109`); HEAD `/Users` without a token → SCIM 401 |
+| 4 | Every `Allow` with GET also lists HEAD | no | confirmed | `"GET, HEAD"`, `"GET, HEAD, POST"`, `"DELETE, GET, HEAD, PATCH, PUT"` (tests `:202`, `:370`, `:373`); dropping HEAD from either fails a test |
+| 5 | The tests fail without the HEAD mapping | no | confirmed | `mutate.sh` → "answers HEAD as GET…" fails, 1 failed / 18 passed |
+| 6 | The task's tests pass on SQLite and PostgreSQL, and the route tests pass | no | confirmed | 19/19 on SQLite and `pnpm test:db:postgres`; the route tests → 43/43 with their neighbours |
+| 7 | Next sends HEAD to GET's handler with the method still "HEAD" | no | can't check here | Not run against a live Next server; `route.ts:18` exports no HEAD; the handler tests simulate the request |
+
+**Overall:** not met: rows 1-6 hold; row 7, how Next itself sends HEAD, wasn't run against a live server.
+
+### Re-check 3 (adversarial: row 10, plus what the diff touches)
+
+Witnessed: 2026-10-18 11:24 EDT, by a fresh agent (adversarial). Commit: ad04c062 + working tree. Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 10 | HEAD is answered wherever GET is (as Next sends it), stays behind the guard, and every `Allow` with GET lists HEAD | yes | confirmed | Probe `PROBE3` → HEAD `/ServiceProviderConfig` 200, `/ResourceTypes/User` 200, `/Schemas/nope` 404, `/Users` and `/Users/abc` with a token 204, handlers got `GET` every time; HEAD `/Users` without a token → 401 `Bearer`; `/Users/a/b` 404, `/Bulk` 501. `Allow`: `GET, HEAD`; `GET, HEAD, POST`; `DELETE, GET, HEAD, PATCH, PUT`. `route.ts:18` exports no HEAD. Dropping the mapping, or HEAD from `Allow`, each fails a test; 19/19 restored |
+
+**Overall:** met: HEAD behaves like GET on every path and stays guarded, every `Allow` lists HEAD next to GET, OPTIONS gets a SCIM 405 with the right `Allow`, and removing either part of the fix fails a test.
+
+The OPTIONS test doesn't assert its `Allow` header (the probe showed it right); the 405 comes before the token check, so a caller learns the methods, which is deliberate.
+
+### Re-check 4 (blind: row 7, against the running server)
+
+Witnessed: 2026-10-18 11:27 EDT, by the same fresh agent (blind), continued. Commit: ad04c062 + working tree. Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+Against the Next dev server already running at http://localhost:3000 (pid 51519, `next-server (v16.4.0)`; requests only, nothing started or stopped).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 7 | Next sends a HEAD request to GET's handler with the method still "HEAD", and the route answers it as GET | no | confirmed | `curl -I …/ServiceProviderConfig` → 200, `application/scim+json`, no body; `curl -I …/Users` (no token) → 401 `www-authenticate: Bearer`, the same as GET; `curl -X OPTIONS …/Users` → 405 `allow: GET, HEAD, POST`; `curl -I …/Nope` → 404 `application/scim+json`. `route.ts:18` exports no HEAD, so this is Next's GET fallback carrying HEAD into `handleScim`, which maps it (`scim-api.ts:92`) |
+
+**Overall:** met: rows 1-7 all hold.

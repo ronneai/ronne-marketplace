@@ -93,6 +93,16 @@ const expiry = (m: Meta): string => {
 /** Who may sign in with a password (106), as the audit log says it. */
 const PASSWORD_SAID: Record<string, string> = { everyone: "everyone", root_only: "root only" };
 
+/** Why a SCIM request was refused (108's guard). */
+const SCIM_REFUSALS: Record<string, string> = {
+  missing: "no bearer token",
+  format: "not a SCIM token",
+  unknown: "an unknown token",
+  revoked: "a revoked token",
+  expired: "a token past its 24 hours after a rotation",
+  scim_off: "SCIM is off for the provider",
+};
+
 /** Why a sign-in with an identity provider was refused (106), as the audit log says it. */
 const SSO_REASONS: Record<string, string> = {
   unverified_email: "the provider didn't say the email is verified",
@@ -197,6 +207,10 @@ export const SUMMARIES: Record<AuditAction, Build> = {
       ? "Revoked the SCIM token, and the one before its rotation, of "
       : "Revoked the SCIM token of ",
     { code: text(m.provider) },
+  ],
+  "scim.request_refused": (m) => [
+    `Refused a SCIM request: ${SCIM_REFUSALS[text(m.reason)] ?? text(m.reason)}`,
+    ...(text(m.provider) ? [" (", { code: text(m.provider) }, ")"] : []),
   ],
   "instance.password_sign_in_changed": (m) => [
     `Changed who may sign in with a password from ${PASSWORD_SAID[text(m.from)] ?? text(m.from)} to ${

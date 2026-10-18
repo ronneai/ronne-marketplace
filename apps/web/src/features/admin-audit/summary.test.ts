@@ -29,6 +29,15 @@ describe("audit summaries (060)", () => {
     }
   });
 
+  it("says why a SCIM request was refused, and whose token it was (108)", () => {
+    expect(line("scim.request_refused", { reason: "revoked", provider: "acme" })).toBe(
+      "Refused a SCIM request: a revoked token (acme)",
+    );
+    expect(line("scim.request_refused", { reason: "missing" })).toBe(
+      "Refused a SCIM request: no bearer token",
+    );
+  });
+
   it("reads as sentences from what each event records", () => {
     expect(line("auth.signed_in", { remember: true })).toBe("Signed in (remembered for 30 days)");
     expect(line("auth.sign_in_failed", { email: "alex@example.com", reason: "invalid" })).toBe(

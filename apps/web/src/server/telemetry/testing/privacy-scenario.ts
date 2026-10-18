@@ -7,6 +7,7 @@ import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createTraceState, ROOT_CONTEXT, trace } from "@opentelemetry/api";
+import { toDbDate } from "../../db/dates";
 import { createTestDb } from "../../db/testing/test-db";
 import { marketplaceAs } from "../../domains/feeds/actions/feeds";
 import { authenticateToken, exchangePassword } from "../../domains/identity/actions/access-tokens";
@@ -15,7 +16,9 @@ import { createRoot } from "../../domains/identity/actions/root-account";
 import { getCurrentUser, signIn } from "../../domains/identity/actions/session";
 import { adminCreateUser } from "../../domains/identity/actions/user-admin";
 import type { CurrentUser } from "../../domains/identity/models/user";
+import { kyselyScimTokenRepository } from "../../domains/identity/repositories/kysely-scim-token-repository";
 import { approveDeviceGrant } from "../../domains/identity/services/device-grants";
+import { createScimToken, enableScim } from "../../domains/identity/services/scim-tokens";
 import { cookieHeaders, testAppAuth } from "../../domains/identity/testing/test-auth";
 import { createScope } from "../../domains/items/actions/scopes";
 import { createDraft, saveDraftFiles } from "../../domains/submissions/actions/drafts";
@@ -25,6 +28,7 @@ import { apiRoute } from "../../http/api-route";
 import { postDeviceCode, postDeviceToken } from "../../http/device-api";
 import { postDraft } from "../../http/drafts-api";
 import { requireToken } from "../../http/require-token";
+import { handleScim } from "../../http/scim-api";
 import { createUploadLimiter } from "../../http/upload-rate-limit";
 import { setLoggerForTests } from "../../log";
 import { localStorage } from "../../storage/local-storage";
@@ -310,6 +314,43 @@ export const run = async () => {
   ).token;
   if (!deviceToken) throw new Error("device exchange failed");
 
+  // SCIM (108): an identity provider's token in its header, an email in a filter, a bad token.
+  await t.db
+    .insertInto("identity_providers")
+    .values({
+      id: "privacyidp",
+      type: "oidc",
+      preset: "okta",
+      name: "Privacy IdP",
+      config: "{}",
+      secret_enc: null,
+      domains: "[]",
+      groups_claim: null,
+      tested_at: null,
+      tested_by: null,
+      last_signed_in_at: null,
+      last_failure_at: null,
+      last_failure_reason: null,
+      created_by: null,
+      created_at: toDbDate(new Date(), t.dialect),
+      updated_at: toDbDate(new Date(), t.dialect),
+    })
+    .execute();
+  const scimTokens = { repo: kyselyScimTokenRepository(t.db, t.dialect) };
+  await enableScim(scimTokens, { user: root, ip: IP }, "privacyidp");
+  const scimToken = (await createScimToken(scimTokens, { user: root, ip: IP }, "privacyidp")).token;
+  const scimRoute = apiRoute("/api/v1/scim/v2/[...path]", (req: Request) => handleScim(req, app));
+  const scimFilter = encodeURIComponent(`userName eq "${EMAIL}"`);
+  for (const bearer of [scimToken, `scim_${"z".repeat(43)}`])
+    await request("GET /api/v1/scim/v2/Users", () =>
+      scimRoute(
+        new Request(`https://r.example/api/v1/scim/v2/Users?filter=${scimFilter}`, {
+          headers: headers({ authorization: `Bearer ${bearer}` }),
+        }),
+        {},
+      ),
+    );
+
   // Let the batch and the metric reader send.
   for (let i = 0; i < 40 && !bodies.some((b) => b.startsWith("/v1/metrics")); i++)
     await new Promise((ok) => setTimeout(ok, 100));
@@ -338,6 +379,8 @@ export const run = async () => {
     formattedUserCode: started.user_code,
     deviceToken,
     deviceTokenBody: deviceToken.slice(4),
+    scimToken,
+    scimTokenBody: scimToken.slice(5),
   };
   // To a file: a large write to a pipe can be cut off by the exit below.
   writeFileSync(process.env.PRIVACY_OUT ?? "privacy-out.json", JSON.stringify({ never, bodies }));

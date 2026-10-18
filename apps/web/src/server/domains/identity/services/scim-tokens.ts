@@ -185,9 +185,12 @@ export const revokeScimTokens = async (
   });
 };
 
+export type ScimTokenRefusal = "format" | "unknown" | "revoked" | "expired" | "scim_off";
+
 export type ScimTokenCheck =
   | { ok: true; providerId: string; tokenId: string }
-  | { ok: false; reason: "format" | "unknown" | "revoked" | "expired" | "scim_off" };
+  /** `providerId` when the token was found, so the refusal's event can say whose it was. */
+  | { ok: false; reason: ScimTokenRefusal; providerId?: string };
 
 /**
  * Who a bearer token is: the provider, if the token works and SCIM is on for it. Records when it
@@ -202,9 +205,10 @@ export const checkScimToken = async (
   const at = now(deps);
   const match = await deps.repo.findByHash(hashScimToken(token));
   if (!match) return { ok: false, reason: "unknown" };
-  if (match.revokedAt) return { ok: false, reason: "revoked" };
-  if (!scimTokenWorks(match, at)) return { ok: false, reason: "expired" };
-  if (!match.scimEnabledAt) return { ok: false, reason: "scim_off" };
+  const providerId = match.providerId;
+  if (match.revokedAt) return { ok: false, reason: "revoked", providerId };
+  if (!scimTokenWorks(match, at)) return { ok: false, reason: "expired", providerId };
+  if (!match.scimEnabledAt) return { ok: false, reason: "scim_off", providerId };
   await deps.repo.touchLastUsed(match.tokenId, at);
   return { ok: true, providerId: match.providerId, tokenId: match.tokenId };
 };

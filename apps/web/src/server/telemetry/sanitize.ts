@@ -111,6 +111,7 @@ export const ROUTE_SEGMENTS = new Set([
   "requests",
   "resolve",
   "reviews",
+  "scim",
   "scopes",
   "security",
   "settings",
@@ -128,6 +129,7 @@ export const ROUTE_SEGMENTS = new Set([
   "usage",
   "users",
   "v1",
+  "v2",
   "versions",
   "workspaces",
   // Next.js's own: its assets, the not-found and error pages, the app's icons.
@@ -152,6 +154,7 @@ const ROUTE_FILES = new Set(["page", "layout", "route", "default", "error", "loa
 export const ROUTE_PATTERNS = new Set([
   "(app)",
   "[...all]",
+  "[...path]",
   "[file]",
   "[id]",
   "[item]",

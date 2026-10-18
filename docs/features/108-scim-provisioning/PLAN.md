@@ -24,7 +24,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   (`scim_` prefix, hash, show once, rotate, revoke, last used) and its audit events.
   *Done when:* db tests cover each operation, the overlap, and that no plain token is stored or logged.
 
-- [ ] **3. The guard and the routes' frame.** [risky] `/api/v1/scim/v2` mounted over our handlers
+- [x] **3. The guard and the routes' frame.** [risky] `/api/v1/scim/v2` mounted over our handlers
   (task 1), the SCIM guard (token by hash, provider on, per-token and bad-token rate limits),
   the SCIM error format, `ServiceProviderConfig`, `ResourceTypes`, `Schemas`.
   *Done when:* route tests cover every refusal, the formats and the public discovery endpoints.
@@ -35,15 +35,17 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* db tests cover each request, the 409 cases, adoption (each of its conditions, the 30
   days included, and its event), a `userName` that isn't plain ASCII, the lowercased match on a
   create, a `PUT` or `PATCH` of `userName` or `emails` (`Ann@b.com` matched as `ann@b.com`, and 409
-  against another account's) and a `userName eq` filter, repeated delete (404), a create with this
-  provider's tombstone `externalId` (another's never matches, and `active: false` keeps it
-  disabled), reactivation, a root, the last root, and the Entra and Okta request shapes from task 1.
+  against another account's) and a `userName eq` filter, another provider's working token never
+  reaching this provider's users, repeated delete (404), a create with this provider's tombstone
+  `externalId` (another's never matches, and `active: false` keeps it disabled), reactivation, a
+  root, the last root, and the Entra and Okta request shapes from task 1.
 
 - [ ] **5. Groups.** [risky] Groups CRUD, `PATCH` members, the mapping (106) applied to members and
   only `source`-marked memberships changed, unmapped groups, a root as a member.
-  *Done when:* db tests cover add, remove, rename, delete, two groups giving one workspace
-  different roles, hand-set memberships, a user's `DELETE` taking them out of every group (and the
-  memberships those gave) while `active: false` keeps them, and a re-created user starting in none.
+  *Done when:* db tests cover add, remove, rename, delete, two groups giving one workspace different
+  roles, hand-set memberships, another provider's token never reaching this provider's groups, a
+  user's `DELETE` taking them out of every group (and the memberships those gave) while `active:
+  false` keeps them, and a re-created user starting in none.
 
 - [ ] **6. The provider page's SCIM section.** Turn on/off, base URL, Generate, Rotate, Revoke,
   last used, the steps; Admin › Users badges and read-only fields; the Erase link when 103 exists
@@ -197,3 +199,28 @@ insert-only, so no retention cuts the 30 days short.
 included (not only mark them ended: a tombstone's `external_id` would link the erased account
 again), or a provider keeps updating an erased account's id, and the changed-email remedy in SPEC's
 Edge cases can't work.
+
+**Task 3, the guard and the frame (2026-10-18).**
+
+- **One route:** `app/api/v1/scim/v2/[...path]/route.ts` sends every method to `handleScim`
+  (`server/http/scim-api.ts`), which reads the path itself (`new URL(request.url)`), so Next's
+  catch-all decoding doesn't matter. Discovery (`scim-discovery.ts`) is public; `Users` and
+  `Groups` go through `authenticateScim` (`domains/identity/actions/scim.ts`) and then to a
+  `ScimResources` handler, `{ caller, id, base }`. Until tasks 4 and 5 replace them, both answer
+  501; tests pass stand-ins through `options.resources`.
+- **Format:** `scim-format.ts` (`scimJson`, `scimError`, `scimUnauthorized`, `scimRateLimited`).
+  Every refusal is the same 401 and detail; the reason goes only to `scim.request_refused` (audit,
+  with the provider when the token was found, and a `warn` log line).
+- **Limits:** `createScimLimiters` (in memory, like 107's): 600 a minute per token, 20 refusals a
+  minute per trusted address, 100 for the instance without one. A refusal past its limit is a 429,
+  not audited.
+- **Telemetry:** `scim`, `v2` and `[...path]` are route segments; a SCIM path is cut after `v2`
+  (`/api/v1/scim/v2/…`). The privacy scenario now sends a SCIM token and an email in a filter.
+- **Methods:** the route exports `OPTIONS` as well as the five, so Next doesn't answer it with its
+  own 204; `HEAD` is left to Next, which runs `GET`'s handler and drops the body. The request still
+  says `HEAD`, so the dispatcher treats it as `GET` (handlers get `method`, never `HEAD`) and lists
+  `HEAD` in every `Allow` that has `GET`. `route.test.ts` beside the route checks the exports and the SCIM
+  503 before setup. The audit filter has a `scim` group for `scim.request_refused`; the token events
+  stay under `instance`.
+- **For task 9:** the Documentation's events table (Logs) and audit list need `scim.request_refused`
+  and the `instance.scim_*` events.
