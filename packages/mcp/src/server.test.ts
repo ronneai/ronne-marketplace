@@ -1,6 +1,6 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { type FakeIo, run } from "@ronneai/rmk/testing";
+import { type FakeIo, REGISTRY, run } from "@ronneai/rmk/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { startServer } from "./testing.js";
 
@@ -85,6 +85,15 @@ describe("the registry MCP server", () => {
     expect(outdated.text).toBe("Everything is up to date.");
   });
 
+  it("tells someone signed out of a known registry to run rmk login --web (107)", async () => {
+    const { call, io } = await start({ login: false });
+    io.env.RMK_REGISTRY = REGISTRY;
+    const result = await call("search_items", { query: "x" });
+    expect(result.isError).toBe(true);
+    expect(result.text).toContain(`You're not logged in to ${REGISTRY}.`);
+    expect(result.text).toContain("`rmk login --web`");
+  });
+
   it("says to run rmk login without a token, and never shows the token", async () => {
     const { call } = await start({ login: false });
     for (const [tool, args] of [
@@ -98,6 +107,8 @@ describe("the registry MCP server", () => {
       const result = await call(tool, args);
       expect(result.isError).toBe(true);
       expect(result.text).toMatch(/No registry: run `rmk login|Run `rmk login`/);
+      // 107: the browser is named too, for company sign-in and two-factor.
+      expect(result.text).toContain("`rmk login --web");
     }
     // Listing what's here needs no registry.
     const listed = await call("list_local_items");

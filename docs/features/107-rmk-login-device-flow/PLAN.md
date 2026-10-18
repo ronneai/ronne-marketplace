@@ -40,7 +40,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* CLI tests with a fake server cover every response, the fallback messages and the
   config file's mode; `docs/spec/cli-files.md` needs no change (the file is the same).
 
-- [ ] **6. MCP setup.** `rmk mcp-setup` without a token offers the web login; `rmk-mcp` says what
+- [x] **6. MCP setup.** `rmk mcp-setup` without a token offers the web login; `rmk-mcp` says what
   to run when signed out.
   *Done when:* tests cover both, with and without a token.
 
@@ -175,3 +175,12 @@ limit, 10 an hour, and the audit bound) cancel others' pending codes, and they r
   <url>`: Node quotes the `""` title argument in a way cmd may misread (the witness's lead, not
   run on Windows). `open` on macOS, `xdg-open` on Linux.
 - `cli-files.md` needs no change: `--web` writes the same `{ token, email }` (the email from `/me`).
+
+**Task 6, MCP setup (2026-10-17).**
+
+- `rmk mcp-setup` checks for a token with `tokenFor` (the saved one, or `RMK_TOKEN` for a chosen
+  registry) before writing anything, and offers `rmk login --web` without one; it saves the token as
+  `rmk login` does and makes the registry the default only when there's none.
+- The signed-out messages (`connect.ts`, and `config.ts` with no registry) name `rmk login --web`;
+  `rmk-mcp` shows the same text, so its tests need rmk rebuilt first (`pnpm --filter @ronneai/rmk build`).
+- A web login that fails during `mcp-setup` stops it before anything is registered.

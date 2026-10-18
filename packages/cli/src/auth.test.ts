@@ -48,7 +48,7 @@ describe("rmk auth headers (077)", () => {
     expect(result).toEqual({
       exitCode: 1,
       stdout: "",
-      stderr: `You're not logged in to ${REGISTRY}. Run \`rmk login\`.\n`,
+      stderr: `You're not logged in to ${REGISTRY}. Run \`rmk login\`, or \`rmk login --web\` to approve it in the browser.\n`,
     });
   });
 

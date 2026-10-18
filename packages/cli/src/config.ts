@@ -132,7 +132,7 @@ export const registryFor = (
   const resolved = resolveRegistry(io, config, override, project);
   if (!resolved)
     throw new RmkError(
-      "No registry: run `rmk login --registry <url>`, or set RMK_REGISTRY.",
+      "No registry: run `rmk login --registry <url>` (`rmk login --web --registry <url>` to approve it in the browser), or set RMK_REGISTRY.",
       2,
       "no_registry",
     );

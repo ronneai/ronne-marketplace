@@ -486,3 +486,34 @@ Witnessed: 2026-10-17 21:59 EDT, by a fresh agent (blind). Commit: 1c8b6c3d + wo
 | DW | Task 5's *Done when*: fake-server tests cover every response, the fallback messages and the config file's mode; `cli-files.md` unchanged | no | confirmed | Every response, fallback and the 0600 mode confirmed in the passes above, each with a mutation that fails a test; `git diff 9725d960 1c8b6c3d --stat -- docs/spec/cli-files.md packages/cli/package.json pnpm-lock.yaml` → empty |
 
 **Overall:** met.
+
+## Task 6 — MCP setup
+
+Witnessed: 2026-10-17 22:05 EDT, by a fresh agent (blind). Commit: 1c8b6c3d + working tree (packages/cli, packages/mcp, PLAN.md). Machine: macOS 27, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `rmk mcp-setup` with no token, in a terminal, asks, runs the web login, saves the token, then registers | no | confirmed | `pnpm --filter @ronneai/rmk exec vitest run` → 23 files, 285 passed; mutation (no `offerWebLogin`) → 3 tests fail |
+| 2 | `--yes` signs in without asking; `n` or no terminal only says to run `rmk login --web`, and registers anyway | no | confirmed | The "--yes" and "declined / no terminal" tests |
+| 3 | With a token, or with `--remove`, no offer | no | confirmed | Mutations (no `tokenFor` check; no `if (!remove)`) → tests fail; probe A (`RMK_TOKEN` + `RMK_REGISTRY`) → no question |
+| 4 | `rmk-mcp` tells a person signed out of a known registry to run `rmk login --web` | no | confirmed | `connect.ts:37-41`; MCP package 53 passed; the old message → the MCP test and `auth.test.ts` fail |
+| 5 | `rmk-mcp` names the web login to every signed-out person, also with no registry | no | partly | With no registry: "No registry: run `rmk login --registry <url>`, or set RMK_REGISTRY." (`config.ts:135`), no `--web`, and the test's regex accepts it |
+| 6 | Tests cover both commands, with and without a token | no | confirmed | Four 107 tests in `mcp-setup.test.ts`; the new signed-out MCP test plus the existing token tests |
+| 7 | Both packages type-check | no | confirmed | `tsc --noEmit` on rmk and mcp, no errors |
+
+**Overall:** not met: the no-registry message doesn't mention `rmk login --web` (5). Observations: a failed web login during `mcp-setup` exits without registering; `--registry` with `RMK_TOKEN` still offers the login, as `rmk-mcp` wouldn't see the flag.
+
+### Re-check 1, the fix
+
+`config.ts`'s no-registry message now names `rmk login --web --registry <url>`, and the MCP test checks every signed-out answer contains `` `rmk login --web ``.
+
+### Re-check 1 (blind: row 5, plus what the diff touches)
+
+Witnessed: 2026-10-17 22:04 EDT, by a fresh agent (blind). Commit: b48c5cd4 + working tree (packages/cli, packages/mcp; apps/web ignored). Machine: macOS 27, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 5 | `rmk-mcp` names the web login to every signed-out person, also with no registry | no | confirmed | `config.ts:135` names `rmk login --web --registry <url>`; `server.test.ts:111` requires it in every signed-out answer; the old message → "says to run rmk login without a token…" fails |
+| 8 | The changed message breaks no other test, and both packages type-check | no | confirmed | rmk 23 files, 285 passed; mcp 5 files, 53 passed; `tsc --noEmit` on both |
+
+**Overall:** met.
