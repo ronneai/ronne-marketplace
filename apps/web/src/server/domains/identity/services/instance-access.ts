@@ -15,6 +15,8 @@ export type AccessCounts = {
   email?: string;
   sessions: number;
   tokens: number;
+  /** Identity providers' SCIM tokens (108): everyone's access only, with the access tokens. */
+  scimTokens: number;
 };
 
 const findTarget = async (repo: IdentityRepository, email: string) => {
@@ -33,12 +35,14 @@ export const accessToRevoke = async (
     return {
       sessions: await repo.countAllSessions(),
       tokens: await repo.countAllActiveAccessTokens(),
+      scimTokens: await repo.countAllScimTokens((deps.now ?? (() => new Date()))()),
     };
   const user = await findTarget(repo, target.email);
   return {
     email: user.email,
     sessions: await repo.countSessions(user.id),
     tokens: await repo.countActiveAccessTokens(user.id),
+    scimTokens: 0,
   };
 };
 
@@ -65,6 +69,9 @@ export const revokeAccess = async (
       : user
         ? await repo.revokeAccessTokens(user.id, now)
         : await repo.revokeAllAccessTokens(now);
+    // Everyone's tokens include the identity providers' SCIM tokens (108): a leaked one would let
+    // a provider's impostor create accounts. Root makes new ones on each provider's page.
+    const scimTokens = kinds.tokens && !user ? await repo.revokeAllScimTokens(now) : 0;
     await repo.recordAudit(
       {
         actorId: null,
@@ -76,11 +83,14 @@ export const revokeAccess = async (
           ...(user ? { email: user.email } : {}),
           sessionsEnded: sessions,
           tokensRevoked: tokens,
+          ...(scimTokens > 0 ? { scimTokensRevoked: scimTokens } : {}),
         },
       },
       now,
     );
-    return user ? { email: user.email, sessions, tokens } : { sessions, tokens };
+    return user
+      ? { email: user.email, sessions, tokens, scimTokens }
+      : { sessions, tokens, scimTokens };
   });
 };
 

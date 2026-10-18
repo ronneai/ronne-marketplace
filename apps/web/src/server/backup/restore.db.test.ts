@@ -109,6 +109,121 @@ const seed = async (db: Db, dialect: DatabaseDialect, dir: string) => {
   });
   mkdirSync(join(dir, "storage", "incident", "notes"), { recursive: true });
   writeFileSync(join(dir, "storage", "incident", "notes", "1.0.0.tgz"), ARTIFACT);
+  await seedScim(db, dialect, rootId);
+};
+
+/**
+ * SCIM (108): a provider with SCIM on, a token rotated (its hash, an expiry, a last use), a live
+ * link and a tombstone (a null user_name), a group and a member: what a restore carries.
+ */
+const seedScim = async (db: Db, dialect: DatabaseDialect, rootId: string) => {
+  const at = toDbDate(NOW, dialect);
+  await db
+    .insertInto("identity_providers")
+    .values({
+      id: "scim-idp",
+      type: "oidc",
+      preset: "entra",
+      name: "SCIM IdP",
+      config: "{}",
+      secret_enc: null,
+      domains: "[]",
+      groups_claim: null,
+      tested_at: null,
+      tested_by: null,
+      last_signed_in_at: null,
+      last_failure_at: null,
+      last_failure_reason: null,
+      created_by: rootId,
+      created_at: at,
+      updated_at: at,
+      scim_enabled_at: at,
+    })
+    .execute();
+  for (const [id, hash, expires] of [
+    ["scim-token-1", "a".repeat(64), toDbDate(new Date(NOW.getTime() + 86_400_000), dialect)],
+    ["scim-token-2", "b".repeat(64), null],
+  ] as const)
+    await db
+      .insertInto("scim_tokens")
+      .values({
+        id,
+        provider_id: "scim-idp",
+        token_hash: hash,
+        created_by: rootId,
+        created_at: at,
+        expires_at: expires,
+        revoked_at: null,
+        last_used_at: at,
+      })
+      .execute();
+  const people: string[] = [];
+  for (const email of ["ann@example.com", "gone@example.com"]) {
+    const id = `user-${email.slice(0, 4)}`;
+    people.push(id);
+    await db
+      .insertInto("user")
+      .values({
+        id,
+        name: email,
+        email,
+        email_verified: toDbBoolean(false, dialect),
+        image: null,
+        created_at: at,
+        updated_at: at,
+        role: "user",
+        disabled_at: email.startsWith("gone") ? at : null,
+      })
+      .execute();
+  }
+  await db
+    .insertInto("scim_users")
+    .values([
+      {
+        id: "scim-link-1",
+        provider_id: "scim-idp",
+        user_id: people[0] ?? "",
+        external_id: "0a21f0f2-ann",
+        user_name: "ann@example.com",
+        given_name: "Ann",
+        family_name: "Lée",
+        display_name: "Ann Lée",
+        active: toDbBoolean(true, dialect),
+        created_at: at,
+        updated_at: at,
+        deleted_at: null,
+      },
+      {
+        id: "scim-link-2",
+        provider_id: "scim-idp",
+        user_id: people[1] ?? "",
+        external_id: "0a21f0f2-gone",
+        user_name: null,
+        given_name: null,
+        family_name: null,
+        display_name: null,
+        active: toDbBoolean(false, dialect),
+        created_at: at,
+        updated_at: at,
+        deleted_at: at,
+      },
+    ])
+    .execute();
+  await db
+    .insertInto("scim_groups")
+    .values({
+      id: "scim-group-1",
+      provider_id: "scim-idp",
+      display_name: "Ingénieurs",
+      external_id: "g-1",
+      created_at: at,
+      updated_at: at,
+    })
+    .execute();
+  await db
+    .insertInto("scim_group_members")
+    .values({ group_id: "scim-group-1", user_id: people[0] ?? "", created_at: at })
+    .execute();
 };
 
 /** A SQLite file instance, migrated (to `upTo` migrations, or all) and seeded. */
@@ -324,9 +439,9 @@ describe("rmk-server restore (099)", () => {
     expect(asked).toBe(1);
     const db = target.open();
     cleanups.push(() => db.destroy());
-    expect(await db.selectFrom("user").select("email").executeTakeFirst()).toEqual({
-      email: "root@example.com",
-    });
+    expect(
+      await db.selectFrom("user").select("email").where("role", "=", "root").executeTakeFirst(),
+    ).toEqual({ email: "root@example.com" });
   });
 
   it("refuses a non-empty database, non-empty storage, a newer backup and an altered archive, changing nothing", async () => {
@@ -658,6 +773,7 @@ ${options.settingsFile}`,
         const row = await db
           .selectFrom("identity_providers")
           .select(["secret_enc", "last_failure_reason", "enabled"])
+          .where("id", "=", "acme")
           .executeTakeFirstOrThrow();
         return { ...row, said: run.lines.join("\n") };
       } finally {

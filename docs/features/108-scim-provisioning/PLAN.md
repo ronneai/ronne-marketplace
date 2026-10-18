@@ -52,7 +52,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   (hidden before).
   *Done when:* component tests pass for each state; the phone sweep passes.
 
-- [ ] **7. Terminal commands and backup.** `revoke-access` revokes SCIM tokens, `disable-sso` turns
+- [x] **7. Terminal commands and backup.** `revoke-access` revokes SCIM tokens, `disable-sso` turns
   SCIM off; backup and restore carry the tables.
   *Done when:* script tests pass, including a restore round trip.
 
@@ -314,3 +314,22 @@ Edge cases can't work.
   has `scim` and `scim-groups` (ronne-web's `topics.ts` gets them in task 9).
 - **Phones:** 106's provider phone test now turns SCIM on and makes a token, checking nothing
   scrolls sideways (the sweep only opens pages as they load, with no saved provider).
+
+**Task 7, terminal commands and backup (2026-10-18).**
+
+- **`revoke-access --everyone`** with tokens also revokes every provider's SCIM tokens (the ones
+  that still work), counted in its question, its answer and its event (`scimTokensRevoked`), and
+  says SCIM stops until root generates new tokens. `--user` and `--sessions-only` leave them: a
+  SCIM token isn't anyone's. (`IdentityRepository.countAllScimTokens` / `revokeAllScimTokens`.)
+- **`disable-sso`** also turns SCIM off for every provider that has it (`disableAllScim`, each
+  audited `instance.scim_disabled { via: "cli" }`), a provider that's off included; the tokens stay,
+  refused while SCIM is off, as the page's *Turn off SCIM* does.
+- **Backup and restore** read the schema, so the SCIM tables needed no code: the restore tests'
+  seed now holds a provider with SCIM on, a rotated token, a live link, a tombstone (null
+  `user_name`), a group and a member, and every round trip compares every row (SQLite to each
+  server kind and back). Two old tests assumed one user and one provider and now say which row
+  they read. `rotate-secret` needs nothing: SCIM tokens are hashes, not encrypted.
+- **Script tests:** `setup/scim-commands.db.test.ts` (each command's question and lines).
+- **Audit log line** (the blind pass's row 10): the SCIM count joins the other counts in the
+  parentheses ("(2 SCIM tokens revoked)"), so *nothing left* shows only when all are zero; tested
+  in `summary.test.ts`, with `instance.scim_disabled`'s *from the command line*.

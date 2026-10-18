@@ -54,22 +54,43 @@ describe("disable-sso (106)", () => {
         updated_at: toDbDate(new Date(), t.dialect),
       })
       .execute();
+    // SCIM on for beta and gone (108): turned off too, even for a provider that's off.
+    for (const id of ["beta", "gone"])
+      await t.db
+        .updateTable("identity_providers")
+        .set({ scim_enabled_at: toDbDate(new Date(), t.dialect) })
+        .where("id", "=", id)
+        .execute();
     expect(await ssoToDisable(t.db, t.dialect)).toEqual({
       providers: ["acme", "beta"],
+      scim: ["beta", "gone"],
       policy: "root_only",
     });
 
     expect(await disableSso(t.db, t.dialect)).toEqual({
       providers: ["acme", "beta"],
+      scim: ["beta", "gone"],
       policyChanged: true,
     });
-    expect(await ssoToDisable(t.db, t.dialect)).toEqual({ providers: [], policy: "everyone" });
+    expect(await ssoToDisable(t.db, t.dialect)).toEqual({
+      providers: [],
+      scim: [],
+      policy: "everyone",
+    });
+    const scimOn = await t.db
+      .selectFrom("identity_providers")
+      .select("id")
+      .where("scim_enabled_at", "is not", null)
+      .execute();
+    expect(scimOn).toEqual([]);
     const events = (
       await listAuditEvents(t.db, t.dialect, { group: "instance", dir: "asc" })
     ).events.map((e) => [e.action, e.actorId, e.metadata]);
     expect(events).toEqual([
       ["instance.auth_provider_disabled", null, { provider: "acme", via: "cli" }],
       ["instance.auth_provider_disabled", null, { provider: "beta", via: "cli" }],
+      ["instance.scim_disabled", null, { provider: "beta", via: "cli" }],
+      ["instance.scim_disabled", null, { provider: "gone", via: "cli" }],
       [
         "instance.password_sign_in_changed",
         null,
@@ -77,7 +98,11 @@ describe("disable-sso (106)", () => {
       ],
     ]);
     // Nothing left: a second run changes nothing.
-    expect(await disableSso(t.db, t.dialect)).toEqual({ providers: [], policyChanged: false });
+    expect(await disableSso(t.db, t.dialect)).toEqual({
+      providers: [],
+      scim: [],
+      policyChanged: false,
+    });
   });
 });
 

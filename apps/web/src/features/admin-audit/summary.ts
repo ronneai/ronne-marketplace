@@ -36,6 +36,8 @@ const ended = (m: Meta): string => {
   const parts = [
     num(m.sessionsEnded) ? `${plural(num(m.sessionsEnded), "session")} ended` : "",
     num(m.tokensRevoked) ? `${plural(num(m.tokensRevoked), "token")} revoked` : "",
+    // Identity providers' SCIM tokens, with everyone's access (108).
+    num(m.scimTokensRevoked) ? `${plural(num(m.scimTokensRevoked), "SCIM token")} revoked` : "",
     // Their requests to join (094).
     num(m.requestsCancelled)
       ? `${plural(num(m.requestsCancelled), "request")} to join cancelled`
@@ -206,7 +208,7 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     m.reason === "retest" ? " (its settings changed, so it needs a new test)" : "",
   ],
   "instance.scim_enabled": (m) => ["Turned on SCIM for ", { code: text(m.provider) }],
-  "instance.scim_disabled": (m) => ["Turned off SCIM for ", { code: text(m.provider) }],
+  "instance.scim_disabled": (m) => ["Turned off SCIM for ", { code: text(m.provider) }, via(m)],
   "instance.scim_token_created": (m) => ["Made a SCIM token for ", { code: text(m.provider) }],
   "instance.scim_token_rotated": (m) => [
     "Rotated the SCIM token of ",

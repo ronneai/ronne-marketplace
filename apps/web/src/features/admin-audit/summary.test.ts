@@ -29,6 +29,41 @@ describe("audit summaries (060)", () => {
     }
   });
 
+  it("counts the SCIM tokens everyone's revoked access took, and says SCIM was turned off from the command line (108)", () => {
+    expect(
+      line("instance.access_revoked", {
+        scope: "everyone",
+        sessionsEnded: 0,
+        tokensRevoked: 0,
+        scimTokensRevoked: 2,
+        via: "cli",
+      }),
+    ).toBe("Revoked everyone's access (2 SCIM tokens revoked) from the command line");
+    expect(
+      line("instance.access_revoked", {
+        scope: "everyone",
+        sessionsEnded: 3,
+        tokensRevoked: 1,
+        scimTokensRevoked: 1,
+        via: "cli",
+      }),
+    ).toBe(
+      "Revoked everyone's access (3 sessions ended, 1 token revoked, 1 SCIM token revoked) from the command line",
+    );
+    expect(
+      line("instance.access_revoked", {
+        scope: "everyone",
+        sessionsEnded: 0,
+        tokensRevoked: 0,
+        via: "cli",
+      }),
+    ).toBe("Revoked everyone's access (nothing left) from the command line");
+    expect(line("instance.scim_disabled", { provider: "acme", via: "cli" })).toBe(
+      "Turned off SCIM for acme from the command line",
+    );
+    expect(line("instance.scim_disabled", { provider: "acme" })).toBe("Turned off SCIM for acme");
+  });
+
   it("says why a SCIM request was refused, and whose token it was (108)", () => {
     expect(line("scim.request_refused", { reason: "revoked", provider: "acme" })).toBe(
       "Refused a SCIM request: a revoked token (acme)",

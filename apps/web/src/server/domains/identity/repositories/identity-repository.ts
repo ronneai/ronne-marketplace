@@ -98,6 +98,10 @@ export interface IdentityRepository {
   deleteAllSessions(): Promise<number>;
   /** Revokes every token not revoked yet, everyone's; returns how many. */
   revokeAllAccessTokens(now: Date): Promise<number>;
+  /** Every identity provider's SCIM tokens that still work at `now` (108), for `revoke-access`. */
+  countAllScimTokens(now: Date): Promise<number>;
+  /** Revokes them all; returns how many. */
+  revokeAllScimTokens(now: Date): Promise<number>;
   /** Cancels the user's open requests to join workspaces (094); returns how many. */
   cancelAccessRequests(userId: string, now: Date): Promise<number>;
   /**

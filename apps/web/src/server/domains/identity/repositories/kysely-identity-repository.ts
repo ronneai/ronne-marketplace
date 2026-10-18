@@ -562,6 +562,26 @@ export const kyselyIdentityRepository = (
       return Number(result.numDeletedRows);
     },
 
+    async countAllScimTokens(now) {
+      const row = await db
+        .selectFrom("scim_tokens")
+        .select((eb) => eb.fn.countAll<number | string | bigint>().as("n"))
+        .where("revoked_at", "is", null)
+        .where((eb) => eb.or([eb("expires_at", "is", null), eb("expires_at", ">", at(now))]))
+        .executeTakeFirstOrThrow();
+      return Number(row.n);
+    },
+
+    async revokeAllScimTokens(now) {
+      const result = await db
+        .updateTable("scim_tokens")
+        .set({ revoked_at: at(now) })
+        .where("revoked_at", "is", null)
+        .where((eb) => eb.or([eb("expires_at", "is", null), eb("expires_at", ">", at(now))]))
+        .executeTakeFirst();
+      return Number(result.numUpdatedRows);
+    },
+
     async revokeAllAccessTokens(now) {
       const result = await db
         .updateTable("access_tokens")

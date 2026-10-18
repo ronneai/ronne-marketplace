@@ -811,3 +811,34 @@ Witnessed: 2026-10-18 13:15 EDT, by a fresh agent (blind). Commit: 530235e1 + wo
 | 16 | Diff: Status column narrowed back, the exports additive, no other behaviour change | no | confirmed | The diff since the last pass: the exports, the column move and width, the tests |
 
 **Overall:** met: the badges are in a column phones show, and the dialog's warning and the new-token state have tests that fail when mutated; with the first pass's other rows, every row is confirmed.
+
+## Task 7 — Terminal commands and backup
+
+Witnessed: 2026-10-18 15:28 EDT, by a fresh agent (blind). Commit: 2828f72b + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `revoke-access --everyone` with tokens revokes every provider's working SCIM tokens and counts them in the question, the answer and the event (`scimTokensRevoked`) | yes | confirmed | `services/instance-access.ts:74`; scim-commands test checks the question, the line and both tokens `reason: "revoked"`; instance-access test checks `scimTokensRevoked: 2`. Mutation M1 (call → `0`) → 2 tests fail |
+| 2 | `--user` and `--sessions-only` leave SCIM tokens alone | yes | confirmed | Mutations M2 (drop `!user`) and M3 (drop `kinds.tokens`) → "leaves them when only sessions are revoked, or one person's access" fails each time; sessions-only with only SCIM tokens left asks nothing |
+| 3 | Expired or already-revoked SCIM tokens aren't counted or revoked again | no | confirmed | `kysely-identity-repository.ts:565-583` filter `revoked_at is null` and `expires_at is null or > now`; the second `accessToRevoke` → `scimTokens: 0` |
+| 4 | The CLI says SCIM stops until root makes new tokens | yes | confirmed | `setup/revoke-access.ts:90-93`; asserted in scim-commands test |
+| 5 | `disable-sso` turns SCIM off for every provider that has it, one that's off included, each audited `instance.scim_disabled { provider, via: "cli" }` | yes | confirmed | `actions/disable-sso.ts:53-63`; disable-sso.db.test expects `scim: ["beta","gone"]` and the two events. Mutation M4 (`disableAllScim` → `[]`) → 2 tests fail. Inside the provider repo's transaction |
+| 6 | After `disable-sso` the SCIM tokens stay but are refused (`scim_off`); the CLI asks and says so | yes | confirmed | scim-commands test: the question, the line, `reason: "scim_off"` |
+| 7 | Backup and restore carry every SCIM table and column | yes | confirmed | The round trip compares every row of every table (`contents()` reads `readSchema`). Restore mutations M5 (null `last_used_at`), M6 (null `user_name` → "x"), M7 (skip `scim_tokens`) → the 2 round-trip tests fail each time |
+| 8 | `rotate-secret` needs nothing for SCIM | yes | confirmed | `models/scim-token.ts:28-29` plain `sha256(token)`; no `_enc` column in `0028_scim.ts`; rotate-secret re-encrypts only providers' `secret_enc` |
+| 9 | The script tests pass, including a restore round trip, on SQLite, PostgreSQL, MySQL and MariaDB | yes | confirmed | SQLite 4 files → 33 passed, 1 skipped; each file per server → scim-commands 3, restore 15, disable-sso 2, instance-access 14 passed. A first 4-file run failed on the servers without captured detail; the same 4 files rerun on postgres → 34 passed (probably shared servers, not proven) |
+| 10 | The audit log describes the new events correctly | no | partly | Probe: `{scope:"everyone", sessionsEnded:0, tokensRevoked:0, scimTokensRevoked:2, via:"cli"}` → "Revoked everyone's access (nothing left), and 2 SCIM tokens from the command line": "nothing left" contradicts it, and the clause has no verb. `scim_disabled` with `via` correct. `summary.test.ts` covers neither |
+
+**Overall:** not met: the commands, the restore round trip and the four-database runs hold, but the audit summary of an everyone-revoke that took only SCIM tokens says "(nothing left)", and no test covers the `summary.ts` change.
+
+### Re-check 1 (blind: row 10, plus what the diff touches)
+
+Witnessed: 2026-10-18 15:44 EDT, by a fresh agent (blind). Commit: 2828f72b + working tree. Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 10 | The audit log describes the new events correctly | yes | confirmed | `summary.ts:39-40`: `scimTokensRevoked` is a part of `ended()`. Probe → "Revoked everyone's access (2 SCIM tokens revoked) from the command line"; "Turned off SCIM for acme from the command line". `summary.test.ts:32-65` covers both, the mixed and nothing-left cases, `scim_disabled` with and without `via`; 7/7 pass. Mutations: SCIM part of `ended()` → `false`, `via(m)` dropped from `scim_disabled`, `|| " (nothing left)"` dropped → 1 failed each; file restored, `cmp` identical |
+| 11 | Diff: the user-scope line and the other `ended()` events still read correctly | no | confirmed | Probe: user scope "(2 sessions ended)" / "(nothing left)"; everyone sessions only "(1 session ended)"; `instance.secret_rotated` with and without counts; `user.disabled` "(1 session ended, 2 tokens revoked)". The part is added only when `scimTokensRevoked` > 0 |
+| 12 | Diff: since the first pass, only `summary.ts`, `summary.test.ts` and the docs changed | no | confirmed | `cmp` of every modified or untracked file against the first pass's copy → only `summary.ts`, `summary.test.ts`, `PLAN.md`, `WITNESS.md` differ |
+
+**Overall:** met: the everyone-revoke summary counts SCIM tokens and no longer says "(nothing left)", `scim_disabled` shows `via`, and the new tests fail under each mutation. With the first pass's rows 1–9, every row is confirmed.

@@ -1,9 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { toDbDate } from "../../../db/dates";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
 import { requireToken } from "../../../http/require-token";
 import { listAuditEvents } from "../../audit/actions/audit";
 import { UserNotFoundError } from "../exceptions/errors";
 import type { AppAuth } from "../repositories/auth-instance";
+import { kyselyScimTokenRepository } from "../repositories/kysely-scim-token-repository";
+import {
+  checkScimToken,
+  createScimToken,
+  enableScim,
+  rotateScimToken,
+} from "../services/scim-tokens";
 import { cookieHeaders, createTestUser, testAppAuth } from "../testing/test-auth";
 import { authenticateToken, createMyToken } from "./access-tokens";
 import { accessToRevoke, endSessionsForNewSecret, revokeAccess } from "./instance-access";
@@ -59,10 +67,12 @@ describe("revoke-access --everyone", () => {
     expect(await accessToRevoke(t.db, t.dialect, { kind: "everyone" })).toEqual({
       sessions: 3,
       tokens: 3,
+      scimTokens: 0,
     });
     expect(await revokeAccess(t.db, t.dialect, { kind: "everyone" }, both)).toEqual({
       sessions: 3,
       tokens: 3,
+      scimTokens: 0,
     });
 
     // The next request: no session, no token works.
@@ -102,14 +112,14 @@ describe("revoke-access --everyone", () => {
 
     expect(
       await revokeAccess(t.db, t.dialect, { kind: "everyone" }, { sessions: true, tokens: false }),
-    ).toEqual({ sessions: 1, tokens: 0 });
+    ).toEqual({ sessions: 1, tokens: 0, scimTokens: 0 });
     expect(await signedIn(ada)).toBe(false);
     expect(await tokenWorks(token)).toBe(true);
 
     const again = await sessionFor("ada@example.com");
     expect(
       await revokeAccess(t.db, t.dialect, { kind: "everyone" }, { sessions: false, tokens: true }),
-    ).toEqual({ sessions: 0, tokens: 1 });
+    ).toEqual({ sessions: 0, tokens: 1, scimTokens: 0 });
     expect(await signedIn(again)).toBe(true);
     expect(await tokenWorks(token)).toBe(false);
   });
@@ -120,10 +130,12 @@ describe("revoke-access --everyone", () => {
     expect(await accessToRevoke(t.db, t.dialect, { kind: "everyone" })).toEqual({
       sessions: 0,
       tokens: 0,
+      scimTokens: 0,
     });
     expect(await revokeAccess(t.db, t.dialect, { kind: "everyone" }, both)).toEqual({
       sessions: 0,
       tokens: 0,
+      scimTokens: 0,
     });
   });
 
@@ -138,6 +150,64 @@ describe("revoke-access --everyone", () => {
     expect((a?.sessions ?? 0) + (b?.sessions ?? 0)).toBe(3);
     expect((a?.tokens ?? 0) + (b?.tokens ?? 0)).toBe(1);
     expect(await events()).toHaveLength(2);
+  });
+});
+
+describe("revoke-access and SCIM tokens (108)", () => {
+  const scimTokens = async () => {
+    const at = toDbDate(new Date(), t.dialect);
+    await t.db
+      .insertInto("identity_providers")
+      .values({
+        id: "acme",
+        type: "oidc",
+        preset: "entra",
+        name: "Acme",
+        config: "{}",
+        secret_enc: null,
+        domains: "[]",
+        groups_claim: null,
+        tested_at: null,
+        tested_by: null,
+        last_signed_in_at: null,
+        last_failure_at: null,
+        last_failure_reason: null,
+        created_by: null,
+        created_at: at,
+        updated_at: at,
+      })
+      .execute();
+    const deps = { repo: kyselyScimTokenRepository(t.db, t.dialect) };
+    const root = await getCurrentUser(await sessionFor("root@example.com"), app);
+    await enableScim(deps, { user: root, ip: null }, "acme");
+    const first = await createScimToken(deps, { user: root, ip: null }, "acme");
+    const second = await rotateScimToken(deps, { user: root, ip: null }, "acme");
+    return { deps, tokens: [first.token, second.token] };
+  };
+
+  it("--everyone revokes every provider's SCIM tokens with the access tokens, and audits how many", async () => {
+    const { deps, tokens } = await scimTokens();
+    expect(await accessToRevoke(t.db, t.dialect, { kind: "everyone" })).toMatchObject({
+      scimTokens: 2,
+    });
+    expect(await revokeAccess(t.db, t.dialect, { kind: "everyone" }, both)).toMatchObject({
+      scimTokens: 2,
+    });
+    for (const token of tokens)
+      expect(await checkScimToken(deps, token)).toMatchObject({ ok: false, reason: "revoked" });
+    const [event] = await events();
+    expect(event?.metadata).toMatchObject({ scimTokensRevoked: 2 });
+    // Nothing left to revoke a second time.
+    expect(await accessToRevoke(t.db, t.dialect, { kind: "everyone" })).toMatchObject({
+      scimTokens: 0,
+    });
+  });
+
+  it("leaves them when only sessions are revoked, or one person's access", async () => {
+    const { deps, tokens } = await scimTokens();
+    await revokeAccess(t.db, t.dialect, { kind: "everyone" }, { sessions: true, tokens: false });
+    await revokeAccess(t.db, t.dialect, { kind: "user", email: "ada@example.com" }, both);
+    for (const token of tokens) expect((await checkScimToken(deps, token)).ok).toBe(true);
   });
 });
 
@@ -174,10 +244,10 @@ describe("revoke-access --user", () => {
 
     expect(
       await accessToRevoke(t.db, t.dialect, { kind: "user", email: " Ada@Example.com " }),
-    ).toEqual({ email: "ada@example.com", sessions: 1, tokens: 1 });
+    ).toEqual({ email: "ada@example.com", sessions: 1, tokens: 1, scimTokens: 0 });
     expect(
       await revokeAccess(t.db, t.dialect, { kind: "user", email: "ada@example.com" }, both),
-    ).toEqual({ email: "ada@example.com", sessions: 1, tokens: 1 });
+    ).toEqual({ email: "ada@example.com", sessions: 1, tokens: 1, scimTokens: 0 });
 
     expect(await signedIn(ada)).toBe(false);
     expect(await tokenWorks(adaToken)).toBe(false);
@@ -224,7 +294,7 @@ describe("revoke-access --user", () => {
     await adminDisableUser(root, adaId, app);
     expect(
       await accessToRevoke(t.db, t.dialect, { kind: "user", email: "ada@example.com" }),
-    ).toEqual({ email: "ada@example.com", sessions: 0, tokens: 0 });
+    ).toEqual({ email: "ada@example.com", sessions: 0, tokens: 0, scimTokens: 0 });
   });
 });
 

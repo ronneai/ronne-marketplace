@@ -177,6 +177,22 @@ export const kyselyIdentityProviderRepository = (
       return { removed, lowered };
     },
 
+    async disableAllScim(now) {
+      const rows = await db
+        .selectFrom("identity_providers")
+        .select("id")
+        .where("scim_enabled_at", "is not", null)
+        .orderBy("id")
+        .execute();
+      if (rows.length > 0)
+        await db
+          .updateTable("identity_providers")
+          .set({ scim_enabled_at: null, updated_at: at(now) })
+          .where("scim_enabled_at", "is not", null)
+          .execute();
+      return rows.map((r) => r.id);
+    },
+
     async disableAll(now) {
       const rows = await db
         .selectFrom("identity_providers")

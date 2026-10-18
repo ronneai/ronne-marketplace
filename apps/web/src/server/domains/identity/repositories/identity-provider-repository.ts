@@ -59,6 +59,8 @@ export interface IdentityProviderRepository {
   ): Promise<{ removed: SourcedMembership[]; lowered: SourcedMembership[] }>;
   /** Turns every provider off; returns the ids it turned off. */
   disableAll(at: Date): Promise<string[]>;
+  /** Turns SCIM off for every provider that has it on (108); returns their ids. */
+  disableAllScim(at: Date): Promise<string[]>;
   /** Every provider's id and encrypted secret, for `rotate-secret`. */
   secrets(): Promise<{ id: string; secretEnc: string }[]>;
   setSecret(id: string, secretEnc: string): Promise<void>;
