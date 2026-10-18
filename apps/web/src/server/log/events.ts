@@ -56,6 +56,11 @@ export const EVENTS = {
     msg: "Two-factor code refused",
     fields: ["reason"],
   },
+  "auth.device_voided": {
+    level: "warn",
+    msg: "Wrong device codes voided pending ones",
+    fields: ["count"],
+  },
   "token.exchanged": { level: "info", msg: "Access token issued", fields: ["userId"] },
   "token.rejected": { level: "warn", msg: "Access token rejected", fields: ["reason"] },
   "version.released": { level: "info", msg: "Released", fields: ["count", "userId"] },

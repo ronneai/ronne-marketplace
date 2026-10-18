@@ -91,6 +91,7 @@ describe("createMyToken", () => {
         tokenPrefix: "rmk_seed0000",
         expiresAt: null,
         createdAt: new Date(),
+        via: "web",
       });
     }
     await expect(createMyToken(asUser, { name: "one more" }, app)).rejects.toThrow(TokenLimitError);

@@ -84,6 +84,7 @@ export const kyselyTokenRepository = (
           expires_at: row.expiresAt ? at(row.expiresAt) : null,
           revoked_at: null,
           created_at: at(row.createdAt),
+          created_via: row.via,
         })
         .execute();
       return id;

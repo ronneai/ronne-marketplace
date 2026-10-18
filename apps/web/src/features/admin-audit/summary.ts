@@ -213,6 +213,25 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     ...(text(m.email) ? [" for ", { name: text(m.email) }] : []),
     `: ${said(SSO_NOT_ALLOWED, text(m.why)) ?? said(SSO_REASONS, text(m.reason)) ?? text(m.reason)}`,
   ],
+  "auth.device_started": (m) => [
+    "Asked for a sign-in code for ",
+    { name: text(m.name) },
+    ` (${text(m.clientId)} login --web)`,
+  ],
+  "auth.device_approved": (m) => [
+    "Approved the sign-in code for ",
+    { name: text(m.name) },
+    ...(text(m.requesterIp) ? [`, asked from ${text(m.requesterIp)}`] : []),
+  ],
+  "auth.device_denied": (m) => ["Denied the sign-in code for ", { name: text(m.name) }],
+  "auth.device_expired": (m) => [
+    "A sign-in code for ",
+    { name: text(m.name) },
+    " expired before it was used",
+  ],
+  "auth.device_voided": (m) => [
+    `A wrong sign-in code voided ${plural(num(m.count), "pending code")} (too many wrong codes)`,
+  ],
   "auth.sign_in_failed": (m) => [
     "Failed sign-in for ",
     { name: text(m.email) || "an unknown email" },
@@ -249,7 +268,7 @@ export const SUMMARIES: Record<AuditAction, Build> = {
   "access_token.created": (m) => [
     "Created token ",
     { name: text(m.name) },
-    ` (${expiry(m)}${m.via === "cli" ? ", from rmk login" : ""})`,
+    ` (${expiry(m)}${m.via === "cli" ? ", from rmk login" : m.via === "device" ? ", by browser approval" : ""})`,
   ],
   "access_token.revoked": (m) => [
     "Revoked token ",

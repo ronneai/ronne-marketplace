@@ -133,3 +133,102 @@ Witnessed: 2026-10-17 20:23 EDT, by a fresh agent (adversarial). Commit: 9725d96
 | 20 | The user code is unique among kept rows; a collision is drawn again | yes | confirmed | `SPEC.md:114-115`. Pruning runs before the new code is drawn, so "the rows kept" is the whole table; a unique index plus a retry does it on every dialect |
 
 **Overall:** met.
+
+## Task 2 — Storage and service
+
+Witnessed: 2026-10-17 20:26 EDT, by a fresh agent (blind). Commit: fefb1dcc + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+Untracked files of task 3 appeared during the pass; the witness checked only task 2's files, and compared each with its scratch copy (`cmp`) at the end.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The task's own tests pass on SQLite, PostgreSQL, MySQL and MariaDB | no | confirmed | `vitest run` on the 0027 db test, device-grants db test, device-grant.test.ts, access-tokens.db.test.ts → 4 files, 31 passed; `pnpm test:db:postgres` / `:mysql` / `:mariadb -- <0027 test> <device-grants test>` → 2 files, 17 passed on each server |
+| 2 | Migration 0027 works on every dialect: unique `device_code_hash` and `user_code`, cascade on user delete, `access_tokens.created_via` | no | confirmed | `0027_device_grants.ts:22-55`; its db test passed on all 4 dialects; probe P8 (duplicate user code) → refused |
+| 3 | The device code is 32 random bytes in base64url, and only its SHA-256 hash is stored | no | confirmed | `device-grant.ts:57-61`; probe P6 → row doesn't contain the code, hash is 64 hex. Mutation M3 (store in clear) → "stores only the device code's hash" fails |
+| 4 | The user code is 8 characters from a 31-character alphabet without `0 O 1 I L`, and a colliding code is drawn again | no | confirmed | `device-grant.ts:29,67-78` (unbiased rejection sampling); device-grant.test.ts passed. Probe P9 (first insert forced to collide) → second draw used, on sqlite/postgres/mysql. No suite test covers the redraw |
+| 5 | Typed codes are upper-cased and stripped of spaces and dashes; anything malformed doesn't count | no | confirmed | `device-grant.ts:83-86`; probe P5: NBSP and CRLF stripped, en dash refused, doubled code refused. Mutation M12 (malformed counts) → voiding test fails |
+| 6 | Every response in the polling table, `slow_down` adding 5 s, 200 with a 90-day token | no | confirmed | The matching db tests passed. Mutation M10 (no interval growth) → slow_down test fails |
+| 7 | A reused code: a spent grant answers `invalid_grant`, and a decided code can't be approved again | no | confirmed | "Reused: the code is spent" → `invalid_grant`; after Deny, approve → `invalid_code` |
+| 8 | A disabled user is refused at approval and again at exchange, and no token is made | no | confirmed | `device-grants.ts:208,294-295`; mutations M5 (no check at approval) and M4 (none at exchange) → the test fails |
+| 9 | The 51st active token: exchange answers `token_limit`, and the code is spent | no | confirmed | Test passed (next poll → `invalid_grant`). Mutation M7 (spend after making the token) → this test and the two-polls test fail |
+| 10 | Two approvals at once: the first wins, the other gets the "isn't valid" answer | no | confirmed | Conditional update `kysely-device-grant-repository.ts:102-116`; probes P2 (4 approvals at once) and P3 (approve vs deny) passed on 4 dialects. Mutation M2 (no pending guard) → the test fails |
+| 11 | The exchange is spent once, even with concurrent polls, through 009's token service (`via: "device"`) | no | confirmed | Conditional `spend`; probe P4 (3 polls at once → 1 token) on 4 dialects. Mutation M1 (no status guard) → test fails. `created_via = device` and audit `via: device` asserted |
+| 12 | Brute force voiding: every wrong well-formed code counts against every live pending grant, 5 void them, polling then answers `expired_token`; malformed, used or expired codes don't count | no | confirmed | `repository:150-165`, `device-grants.ts:157-181`; the voiding test passed on 4 dialects. Mutation M11 (void at 6) → fails |
+| 13 | Expiry: `auth.device_expired` written once per unused grant (at a poll, or by the sweep), rows pruned a day after expiry | no | confirmed | Tests passed. Mutation M9 (drop the transition guard in `expire`) isn't caught by the suite; probe P1 (poll, poll and start racing past expiry) catches it on 4 dialects |
+| 14 | Restart: the grants are in the database, so polling continues | no | confirmed | Probe P7 (exchange with a fresh repository instance) → ok on 4 dialects |
+| 15 | Audit events: started, approved, denied, expired, voided, with summaries in admin-audit | no | confirmed | `audit-event.ts`, `summary.ts`, `log/events.ts` diffs; the db tests assert each event's actor, address and metadata |
+
+**Overall:** met. Gaps in the tests: the concurrent once-only expiry (row 13) and the user-code redraw (row 4) are covered only by the witness's probes.
+
+Witnessed: 2026-10-17 20:50 EDT, by a fresh agent (adversarial). Commit: fefb1dcc + working tree (task 2's files as of 20:28, byte-identical to the scratch copy at the end; task 3's files appeared during the pass and weren't checked). Machine: macOS 27, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Migration 0027 works on all four dialects | no | confirmed | SQLite → 21 passed (3 files); `pnpm test:db:{postgres,mysql,mariadb} -- <device-grants test> <0027 test>` → 17 passed on each |
+| 2 | Only the device code's SHA-256 is stored, and it never reaches the audit log | no | confirmed | Test checks the row and `device_started`; mutation M3 (store in clear) → 1 test failed |
+| 3 | Start: 8-character code from 31 characters, 32-byte base64url device code, 600 s, 5 s, client `rmk` or `rmk-mcp` only | no | confirmed | Tests; `generateUserCode` rejects bytes ≥248, so no bias |
+| 4 | `authorization_pending` while undecided | no | confirmed | Test + P6 |
+| 5 | `slow_down` when polled too fast, and the interval grows by 5 s | no | confirmed | P6 polls at +0,1,1,9,14,15,5 s → pending then 6× slow_down, interval 35; M5 (no growth) → 1 failed |
+| 6 | `access_denied` after Deny; a denied code can't then be approved | no | confirmed | Test |
+| 7 | `expired_token` past expiry and for voided grants | no | confirmed | Test; P6 approved then polled at exactly +600 s → expired_token, no token; M11 → 1 failed |
+| 8 | `invalid_grant` for unknown, spent or wrong-client codes, and when the approver was deleted | no | confirmed | Test; P8 (delete the approver) → cascade, invalid_grant |
+| 9 | 200 gives a 90-day token through 009's service, `via: "device"`, once, with no session | no | confirmed | M14 (via cli) → 1 failed; M9 (no spend) → 3 failed; M1 (no status condition) → 1 failed; P10: 20 rounds of 2 polls plus a sweep, four dialects → exactly 20 tokens |
+| 10 | A reused code gets `invalid_grant` | no | confirmed | Test |
+| 11 | A disabled user is refused at approval and at exchange | no | confirmed | M2 → 4 failed; M10 → 1 failed |
+| 12 | 51st token: `token_limit`, and the code is spent | no | confirmed | M13 → 3 failed |
+| 13 | Two approvals at once: the first wins | no | confirmed | M7 (no `status = pending`) → 1 failed |
+| 14 | Decisions racing wrong entries don't fail | no | not met | P9 (approve racing the 5th wrong code, 80 rounds): MySQL → 2, MariaDB → 1 `Deadlock found when trying to get lock` from approve; SQLite and PG → 0. The repository doesn't use `retryOnDeadlock` |
+| 15 | Typed codes normalised; only well-formed codes looked up; MySQL case-insensitivity can't match the wrong row | no | confirmed | P7: a lower-case stored row isn't matched on any dialect |
+| 16 | Voiding counts against every pending code and voids at 5; malformed, used and kept-expired codes don't count | no | partly | P4 (12 concurrent wrong entries, 2 pending) → one `auth.device_voided`, count 2, on all four. Test gap: M8 (void approved grants too) and M4 (count on non-pending rows) → suite green |
+| 17 | `auth.device_expired` once per unused grant, at a poll or the sweep | no | not met | P1: 60 pending grants, past expiry + 1 day, one start → 50 events; the other 10 pruned unaudited (sweep limit 50, then the prune). Once-only holds (P11). Test gap: M6 (audit when the transition changed nothing) → suite green |
+| 18 | Audit events and summaries, no secret in log fields | no | confirmed | Test assertions; diffs of `audit-event.ts`, `summary.ts`, `log/events.ts` |
+| 19 | Rows deleted a day after expiry; until then a late poll gets `expired_token` | no | confirmed | Test "forgets it a day later" |
+| 20 | Start refuses a bad name | no | partly | P3: `"a\u0000b"` → PostgreSQL throws (a 500); P2: `"a"+"😀"×99` → the `(2)` name splits a surrogate pair (`createWithFreeName` cuts by UTF-16 units) |
+
+**Overall:** not met: unused grants past the sweep limit are pruned unaudited (17), approvals can deadlock on MySQL and MariaDB (14); test gaps (16, 17) and name input (20).
+
+### Re-check 1, the fixes
+
+The repository's updates now go through `retryOnDeadlock`, each statement on its own. The prune skips grants still pending or approved, so the sweep audits them first. A name with a control character is refused, and names are cut by code points. New tests: an approved grant and every row's attempt count in the voiding test, polls racing a start past expiry, 60 unused grants across two starts, the user-code redraw, a NUL in the name, and a long emoji name with `(2)`.
+
+### Re-check 1 (adversarial: rows 14, 16, 17, 20, plus what the diff touches)
+
+Witnessed: 2026-10-17 20:40 EDT, by a fresh agent (adversarial). Commit: fefb1dcc + working tree (the changed task 2 files copied into the same scratch copy). Machine: macOS 27, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 14 | Decisions racing wrong entries don't fail | no | confirmed | All 6 UPDATEs go through `retryOnDeadlock`. P9 (80 rounds), twice each on MySQL and MariaDB → 0 errors, 0 approved-but-voided (2 and 1 deadlocks before). P10 → 20 tokens; P11 → 1 expiry audit |
+| 16 | Voiding counts only against pending, unexpired grants, voids at 5; approved grants stay | no | confirmed | The voiding test checks an approved grant and every row's attempts. M4 (count every status) → fails. M8 alone changes nothing, since approved rows never gain an attempt; M4 guards it |
+| 17 | `auth.device_expired` once per grant that ends unused, none pruned unaudited | no | confirmed | P1 (60 pending, two starts a day apart) → 61 audits on all four dialects. M16 (no status filter on the prune) and M6 (audit when nothing changed) → their tests fail |
+| 20 | Start refuses a bad name; long names keep whole characters | no | confirmed | P3 `"a\u0000b"` → `invalid_request` on all four; P2 emoji name → 100 code points, no lone surrogate. M18 and M17 → their tests fail. Remark: a lone surrogate is still accepted |
+| — | The diff's other changes hold on every dialect | no | confirmed | SQLite → 18 passed; `pnpm test:db:{postgres,mysql,mariadb} -- <device-grants test> <0027 test>` → 21 passed on each |
+
+**Overall:** met.
+
+### Re-check 1 (blind: rows 4, 12, 13, plus what the diff touches)
+
+Witnessed: 2026-10-17 20:36 EDT, by a fresh agent (blind). Commit: fefb1dcc + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The task's tests pass on SQLite and the three servers | no | confirmed | SQLite → 3 files, 25 passed; `pnpm test:db:{postgres,mysql,mariadb} -- <0027 test> <device-grants test>` → 21 passed on each; `api-v1.db.test.ts` → 12 passed |
+| 4 | A colliding user code is drawn again | no | confirmed | "draws another user code when one is taken" passed; mutation R5 (throw on a collision) → it fails |
+| 12 | Wrong codes count only against live pending grants and void them at 5; an approved grant is untouched and still exchanges | no | confirmed | Extended voiding test on 4 dialects (attempts 0/0/0/5/0). Mutation R6 (void approved too) changes nothing, since approved rows are never counted |
+| 13 | `auth.device_expired` is written once, even when polls and a start race | no | confirmed | New race test passed; mutation R4 (no `transition` guard) → it fails |
+| 16 | The prune never deletes a pending or approved grant before the sweep audited it | no | confirmed | `kysely-device-grant-repository.ts:188-192`; mutation R1 (no status filter) → the test fails |
+| 17 | No deadlock on MySQL/MariaDB when wrong codes, decisions and polls run at once | no | confirmed | Probe P10 → 0 rejected, 2/2 runs each. Without the retry, MySQL 8.4 → `Deadlock found…` 3/3 runs |
+| 18 | A task test catches losing the deadlock retry | no | partly | Mutation (no retry) → `device-grants.db.test.ts` green on MySQL; only probe P10 catches it |
+| 19 | A name with control characters is refused | no | confirmed | Mutation R2 (no check) → the test fails |
+| 20 | Token names are cut by code points | no | confirmed | Mutation R3 (cut by code units) → "keeps a long name whole…" fails |
+
+**Overall:** not met: no task test catches removing the deadlock retry (row 18).
+
+### Re-check 2 (blind: row 18)
+
+Witnessed: 2026-10-17 20:41 EDT, by a fresh agent (blind). Commit: fefb1dcc + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 18 | A task test catches losing the deadlock retry | no | confirmed | `device-grants.db.test.ts:385-405` "never fails when decisions, polls and wrong codes run at once". Without the retry (`mutate.sh` against MySQL 8.4) → it fails 3 of 3 runs; with the real code, `pnpm test:db:mysql -- src/server/domains/identity/services/device-grants.db.test.ts` → 19 passed, 3 of 3 runs. It didn't deadlock on MariaDB here, so there it may not catch a missing retry |
+
+**Overall:** met.

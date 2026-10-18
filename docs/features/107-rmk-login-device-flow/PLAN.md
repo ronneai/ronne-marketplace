@@ -16,7 +16,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   user code, user id, status, expiry, name, requester address).
   *Done when:* Notes name the choice with the evidence; either way the licence and audit checks pass.
 
-- [ ] **2. Storage and service.** [risky] The migration for all dialects (if needed), and the
+- [x] **2. Storage and service.** [risky] The migration for all dialects (if needed), and the
   device-grant service: start, look up by user code, approve, deny, exchange (turning the approval
   into a token through 009's service, once), expiry, polling intervals, `slow_down`, the audit events.
   *Done when:* db tests cover every response in the table, a reused code, a disabled user, the
@@ -105,3 +105,17 @@ instance, five typos within ten minutes (or a person doing it on purpose, which 
 limit, 10 an hour, and the audit bound) cancel others' pending codes, and they run
 `rmk login --web` again. Only a well-formed code that matches no grant counts. Owner to confirm
 (SPEC.md, Open questions). Rows stay a day past expiry, so a late poll still gets `expired_token`.
+
+**Task 2, storage and service (2026-10-17).**
+
+- `0027_device_grants` adds the table and `access_tokens.created_via` (`web`, `cli`, `device`; null
+  before), which task 4 shows as *browser approval*. `createToken` now records it.
+- `createWithFreeName` (token-exchange.ts) is shared by `rmk login` and the device flow, and cuts
+  names by code points, so `(2)` never splits an emoji.
+- Every grant update is one conditional statement wrapped in `retryOnDeadlock`: a wrong code's
+  update of every pending row can deadlock with a decision on MySQL and MariaDB (the adversarial
+  witness saw 3 in 160 races).
+- The prune deletes only grants that are no longer pending or approved; the sweep (50 a start)
+  marks and audits the others first, so no grant leaves without `auth.device_expired`.
+- Test helpers: count audit rows in `audit_log` directly when there can be more than a page;
+  `listAuditEvents` is paged.
