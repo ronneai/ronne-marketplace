@@ -473,3 +473,16 @@ Witnessed: 2026-10-17 21:48 EDT, by a fresh agent (blind). Commit: 1646ba38 + wo
 | 11 | rmk opens the page on Windows with `rundll32 url.dll,FileProtocolHandler <url>`, no shell | no | can't check here | `openCommand("win32")` and its unit test; no cmd parsing is left, but nothing has run on Windows |
 
 **Overall:** not met: row 11 waits for one run of `rmk login --web` on Windows (an address with `&` opens whole).
+
+### Re-check 3 (blind: row 7b and the moved row 11)
+
+Witnessed: 2026-10-17 21:59 EDT, by a fresh agent (blind). Commit: 1c8b6c3d + working tree (PLAN.md; task 6's changes ignored). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Task 5's files are the commit's, and its tests pass | no | confirmed | `cmp` of io.ts, web-login.ts, web-login.test.ts, testing.ts, cli.ts, cli.test.ts against `git show 1c8b6c3d:…` → identical; 2 files, 55 passed |
+| 7b | A test fails when the Ctrl-C wiring is broken, including a signal Ctrl-C never aborts | no | confirmed | R7 and R6 → "gives every wait the signal that Ctrl-C aborts" fails; R1 → "leaves no timer behind after Ctrl-C" fails |
+| 11 | The real Windows run moved out of task 5, into its own task with a *Done when* | no | confirmed | `PLAN.md:65-69`: task 10, "Windows check", moved by the owner on 2026-10-17, with its *Done when*; the win32 command stays unit-tested |
+| DW | Task 5's *Done when*: fake-server tests cover every response, the fallback messages and the config file's mode; `cli-files.md` unchanged | no | confirmed | Every response, fallback and the 0600 mode confirmed in the passes above, each with a mutation that fails a test; `git diff 9725d960 1c8b6c3d --stat -- docs/spec/cli-files.md packages/cli/package.json pnpm-lock.yaml` → empty |
+
+**Overall:** met.

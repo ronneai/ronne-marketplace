@@ -33,7 +33,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* component and db tests cover approve, deny, a wrong code, the limits, a held user
   (105) and the sign-in round trip; the phone sweep passes.
 
-- [ ] **5. `rmk login --web`.** The command: start, print, open the browser (no new dependency),
+- [x] **5. `rmk login --web`.** The command: start, print, open the browser (no new dependency),
   poll with the interval and `slow_down`, deadline, Ctrl-C, store the token; `--no-browser`,
   `--name`, `--registry`; the fallback from `rmk login` on `two_factor_required` and
   `password_sign_in_disabled`, and the `invalid_credentials` hint.
@@ -51,6 +51,22 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 - [ ] **8. Documentation.** The pages and helpers in the spec, and the sign-in page's CLI panel.
   *Done when:* the docs render tests pass in ronne-web, the helper link test passes here, and the
   CLI panel's test shows the fourth line.
+
+- [ ] **9. No voiding on wrong codes.** [risky] The owner's answer to the open question
+  (2026-10-17): wrong codes no longer void pending codes, since anyone signed in could cancel
+  others' logins that way; the rate limits (5 a minute per address, 10 an hour per person) and 31⁸
+  codes are enough. Take `failed_attempts` out of migration 0027 (not released yet) and the
+  service, drop `auth.device_voided`, and update SPEC.md (Brute force, the polling table, Decisions,
+  Open questions). Built after task 6, before the end-to-end test.
+  *Done when:* no wrong code changes another grant; the limits still hold on the four databases;
+  the audit catalogue and its summaries have no `auth.device_voided`; SPEC.md says the rate limits
+  are the defence.
+
+- [ ] **10. Windows check.** Moved out of task 5 by the owner (2026-10-17): nobody had Windows to
+  run it on. On a Windows machine, run `rmk login --web` against an instance, with an address that
+  has a `&` in it if possible, and check the browser opens the whole address
+  (`rundll32 url.dll,FileProtocolHandler`, task 5).
+  *Done when:* a witness pass on Windows records it, or the owner records the run.
 
 ## Notes
 
