@@ -98,6 +98,13 @@ every `interval` seconds. Responses, as RFC 8628:
 | 400 | `invalid_grant` | unknown or already used |
 | 200 | — | `{ "token": "rmk_…", "id", "name", "expiresAt" }`, a **90-day** token, **once**: the code is spent |
 
+Errors use the API's shape (MVP §11), `{ "error": { "code", "message" } }`, with RFC 8628's names as
+the `code`; a body that isn't JSON, a missing field or a wrong type is `invalid_request`, another
+`grant_type` is `unsupported_grant_type`, and a `client_id` other than `rmk` or `rmk-mcp` is
+`invalid_client`. Both routes are limited: 10 code requests a minute per client address and 60
+polls (when `TRUST_PROXY`), or one bucket for the instance without a trusted address (60 and 600),
+then 429 `rate_limited` with `Retry-After`. Neither reads or sets a cookie.
+
 A disabled user's approval is refused when they approve and again at exchange (`user_disabled`). The
 response carries `Cache-Control: no-store`. `rmk` stops on a deadline, on `access_denied`, on
 `expired_token` or on Ctrl-C, and says which.

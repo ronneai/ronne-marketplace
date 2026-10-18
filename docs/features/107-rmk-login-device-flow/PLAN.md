@@ -22,7 +22,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* db tests cover every response in the table, a reused code, a disabled user, the
   token limit, two approvals at once, and that the stored device code is a hash.
 
-- [ ] **3. The API routes.** [risky] `POST /api/v1/auth/device/code` and `/token` in the API's error
+- [x] **3. The API routes.** [risky] `POST /api/v1/auth/device/code` and `/token` in the API's error
   shape, `no-store`, the rate limits, no cookie use; the plugin isn't loaded, so it has no routes.
   *Done when:* route tests cover each status above, malformed bodies, an unknown `client_id`, and that
   `/api/auth/device/*` returns 404.
@@ -119,3 +119,15 @@ limit, 10 an hour, and the audit bound) cancel others' pending codes, and they r
   marks and audits the others first, so no grant leaves without `auth.device_expired`.
 - Test helpers: count audit rows in `audit_log` directly when there can be more than a page;
   `listAuditEvents` is paged.
+
+**Task 3, the API routes (2026-10-17).**
+
+- `server/http/device-api.ts` adapts both routes; `actions/device-grants.ts` wires the service and
+  keeps the four limiters on `globalThis` (starts and polls, per address or one instance bucket).
+- `verification_uri` is the auth instance's `baseURL` + `/device` (PUBLIC_URL, or localhost),
+  never the request's host, so a hostile `Host` can't send people elsewhere.
+- A new route segment must be added to `ROUTE_SEGMENTS` in `telemetry/sanitize.ts` (`code` and
+  `device` here), or `route-segments.test.ts` fails. When committing a task while a later task's
+  routes sit untracked, stash those first: the hook tests the working tree.
+- The device flow is in the telemetry privacy scenario: the device code, the user code (with and
+  without its dash) and the token never reach the collector.

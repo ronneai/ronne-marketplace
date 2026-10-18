@@ -232,3 +232,60 @@ Witnessed: 2026-10-17 20:41 EDT, by a fresh agent (blind). Commit: fefb1dcc + wo
 | 18 | A task test catches losing the deadlock retry | no | confirmed | `device-grants.db.test.ts:385-405` "never fails when decisions, polls and wrong codes run at once". Without the retry (`mutate.sh` against MySQL 8.4) → it fails 3 of 3 runs; with the real code, `pnpm test:db:mysql -- src/server/domains/identity/services/device-grants.db.test.ts` → 19 passed, 3 of 3 runs. It didn't deadlock on MariaDB here, so there it may not catch a missing retry |
 
 **Overall:** met.
+
+## Task 3 — The API routes
+
+Witnessed: 2026-10-17 20:49 EDT, by a fresh agent (blind). Commit: 8670c076 + working tree (device routes, device-api.ts, actions/device-grants.ts, device-api.db.test.ts, sanitize.ts, privacy-scenario.ts, SPEC.md). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `/code` answers 200 with `device_code`, `user_code` (XXXX-XXXX), `verification_uri`, `verification_uri_complete`, `expires_in: 600`, `interval: 5` | no | confirmed | "answers RFC 8628's fields" checks the exact body; probe → the same shape, a 43-character device code, `BK78-SVP6` |
+| 2 | `/token` answers each row of the polling table, and 200 with `{token, id, name, expiresAt}` once | no | confirmed | Two tests cover every row (all 400 but the 200); the token authenticates as Ana; a second poll → `invalid_grant`. A voided grant's `expired_token` is tested only in the service (task 2) |
+| 3 | `user_disabled` at exchange, and the token limit | no | confirmed | "answers user_disabled and token_limit" passes |
+| 4 | Errors use `{error:{code,message}}` with RFC 8628's names | no | confirmed | `device-api.ts:36` → `errorResponse` (`errors.ts:31-40`); every probe body had the shape |
+| 5 | Malformed bodies → `invalid_request`; another `grant_type` → `unsupported_grant_type`; unknown `client_id` → `invalid_client`; `rmk-mcp` accepted | no | confirmed | Tests cover 10 malformed cases and check no row is written. Probe: `null` and empty bodies → 400, 5000-character name → 400, 2 MB → 413 `body_too_large`, `rmk-mcp` → 200 |
+| 6 | `Cache-Control: no-store` on every response | no | confirmed | Mutation (drop `no-store` in `json()`) → 2 tests fail; probe saw it on 400 and 429 |
+| 7 | Rate limits: starts 10/min per address, 60 shared; polls 60 per address, 600 shared; 429 with `Retry-After` | no | confirmed | Tests cover three of the four buckets; probe: the shared poll bucket's first 429 at poll 600, `retry-after: 60`. No test of the shared poll bucket |
+| 8 | Neither route reads or sets a cookie | no | confirmed | `grep cookie` → only a comment; tests send Ana's cookie: no `set-cookie`, the grant's `user_id` stays null |
+| 9 | Better Auth's device plugin isn't loaded: `/api/auth/device/*` is a 404 | no | confirmed | `HTTP_ENDPOINTS` = `{"/get-session","/ok"}`; the test checks 5 paths and no `device*` on `app.auth.api` |
+| 10 | Both route files are thin adapters (setup gate, `apiRoute`) | no | confirmed | `app/api/v1/auth/device/{code,token}/route.ts` |
+| 11 | Telemetry: the new segments are listed, and the device flow is in the privacy check | no | confirmed | Mutations: `"device"` removed → route-segments test fails; a span named with the device code → privacy test fails. Gap: `never.userCode` lacks the dash, so the formatted code isn't checked |
+| 12 | The tests pass on SQLite, PostgreSQL, MySQL and MariaDB | no | confirmed | `pnpm test:db` → 129 files, 1233 passed; `pnpm test:db:{postgres,mysql,mariadb} -- <device-api test> <privacy test>` → 10 passed each |
+
+**Overall:** met. Smaller findings: no test of the shared poll bucket; the privacy check lacks the dashed user code; the `invalid_client` message names only `rmk`.
+
+Witnessed: 2026-10-17 20:49 EDT, by a fresh agent (adversarial). Commit: 8670c076 + working tree. Machine: macOS 27, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `/code` answers the RFC 8628 fields | no | confirmed | `device-api.db.test.ts` → 9/9 on SQLite, PostgreSQL, MySQL and MariaDB |
+| 2 | `verification_uri` comes from the instance's base URL, not the request's Host | no | confirmed | Probe with `Host` and `X-Forwarded-Host: evil.example` → `http://localhost:3000/device`. Gap: building it from `request.url` still passes the tests |
+| 3 | `/token` answers each row of the polling table, plus `user_disabled` and `token_limit` | no | confirmed | Tests cover every row; started with `rmk`, polled with `rmk-mcp` → `invalid_grant` |
+| 4 | Malformed bodies → `invalid_request`, another grant type → `unsupported_grant_type`, unknown client → `invalid_client`; no row written | no | confirmed | Probe: form-encoded, `null`, `1`, `"rmk"`, `__proto__`, array or empty device code, NUL in name, 900 KB name → `invalid_request`; `RMK`, `"rmk "` → `invalid_client`; over 1 MiB → 413 |
+| 5 | Errors use `{error:{code,message}}` and echo no code or token | no | confirmed | Probe of a bad device code → the shape, no echo |
+| 6 | `no-store` on 200, 400, 413, 429 and 503 | no | confirmed | Probe headers; the mutation dropping it → 2 tests fail |
+| 7 | No cookie is read or set | no | confirmed | Probe: started and polled with Bob's cookie and a junk bearer, approved by Ana → 200, no `set-cookie`, token is Ana's |
+| 8 | Start limit: 10/min per address with TRUST_PROXY, 60 shared otherwise, spoofed headers don't help | no | confirmed | Test; mutation `max: 10→11` → the test fails |
+| 9 | Poll limit: 60/min per address with TRUST_PROXY, 600 shared otherwise | no | partly | Behaviour holds (probe: 429 at 601 without TRUST_PROXY, at 61 with it). But `clientIp(headers, true)` in `exchangeDeviceLogin` and `pollShared` 600→6000 both pass the tests |
+| 10 | Setup not ready → 503 `setup_required` on both routes | no | confirmed | Probe with `getSetupState` mocked → 503 with no-store |
+| 11 | Better Auth's device plugin isn't loaded; `/api/auth/device/*` is a 404 | no | confirmed | Mutation loading `deviceAuthorization()` → the test fails |
+| 12 | Device code, user code and token don't leak into logs, telemetry or rows | no | confirmed | Probe of stdout through `apiRoute` and the rows → none; privacy test 1/1 |
+
+**Overall:** not met: no test catches a poll limit that trusts a spoofed address or a looser shared bucket (row 9).
+
+### Re-check 1, the fixes
+
+New tests: polls without a trusted proxy share one bucket of 600 whatever `X-Forwarded-For` says; `verification_uri` stays the instance's for a request to another origin with a hostile `Host`. The privacy check also looks for the dashed user code, and `invalid_client`'s message names `rmk-mcp`.
+
+### Re-check 1 (adversarial: rows 9 and 2, plus what the diff touches)
+
+Witnessed: 2026-10-17 20:55 EDT, by a fresh agent (adversarial). Commit: 8670c076 + working tree. Machine: macOS 27, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 9 | Poll limit: 60/min per address with TRUST_PROXY, one shared 600 otherwise, and a test fails when it breaks | no | confirmed | Mutations `clientIp(headers, true)` and `pollShared` 600→6000 → "shares one polling bucket of 600…" fails (1 failed / 10 passed). Unmutated: 11/11 on SQLite, PostgreSQL, MySQL and MariaDB |
+| 2 | `verification_uri` comes from the base URL, and a test fails when it doesn't | no | confirmed | `device-api.db.test.ts:108-124`; mutations building it from `request.url` or `x-forwarded-host` → that test fails |
+| 13 | The `invalid_client` message names both clients | no | confirmed | `device-api.ts:21` |
+| 14 | The formatted user code is checked as never reaching telemetry | no | confirmed | `privacy-scenario.ts:338`; the privacy test checks every `never` entry; 12/12 |
+
+**Overall:** met.

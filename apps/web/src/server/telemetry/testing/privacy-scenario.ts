@@ -10,16 +10,19 @@ import { createTraceState, ROOT_CONTEXT, trace } from "@opentelemetry/api";
 import { createTestDb } from "../../db/testing/test-db";
 import { marketplaceAs } from "../../domains/feeds/actions/feeds";
 import { authenticateToken, exchangePassword } from "../../domains/identity/actions/access-tokens";
+import { deviceDeps } from "../../domains/identity/actions/device-grants";
 import { createRoot } from "../../domains/identity/actions/root-account";
 import { getCurrentUser, signIn } from "../../domains/identity/actions/session";
 import { adminCreateUser } from "../../domains/identity/actions/user-admin";
 import type { CurrentUser } from "../../domains/identity/models/user";
+import { approveDeviceGrant } from "../../domains/identity/services/device-grants";
 import { cookieHeaders, testAppAuth } from "../../domains/identity/testing/test-auth";
 import { createScope } from "../../domains/items/actions/scopes";
 import { createDraft, saveDraftFiles } from "../../domains/submissions/actions/drafts";
 import { publishSubmission, releaseMany } from "../../domains/submissions/actions/publish";
 import { submitDraft } from "../../domains/submissions/actions/submissions";
 import { apiRoute } from "../../http/api-route";
+import { postDeviceCode, postDeviceToken } from "../../http/device-api";
 import { postDraft } from "../../http/drafts-api";
 import { requireToken } from "../../http/require-token";
 import { createUploadLimiter } from "../../http/upload-rate-limit";
@@ -278,6 +281,35 @@ export const run = async () => {
     ),
   );
 
+  // `rmk login --web` (107): a code, approved by Ana, exchanged for a token.
+  const deviceRequest = (path: string, body: unknown) =>
+    new Request(`https://r.example${path}`, {
+      method: "POST",
+      headers: headers({ "content-type": "application/json" }),
+      body: JSON.stringify(body),
+    });
+  const codeRoute = apiRoute("/api/v1/auth/device/code", (req: Request) =>
+    postDeviceCode(req, app),
+  );
+  const started = (await (
+    await codeRoute(deviceRequest("/api/v1/auth/device/code", { client_id: "rmk" }), {})
+  ).json()) as { device_code: string; user_code: string };
+  await approveDeviceGrant(deviceDeps(app), { user: ana, ip: IP }, started.user_code);
+  const tokenRoute = apiRoute("/api/v1/auth/device/token", (req: Request) =>
+    postDeviceToken(req, app),
+  );
+  const poll = {
+    grant_type: "urn:ietf:params:oauth:grant-type:device_code",
+    device_code: started.device_code,
+    client_id: "rmk",
+  };
+  const deviceToken = (
+    (await (await tokenRoute(deviceRequest("/api/v1/auth/device/token", poll), {})).json()) as {
+      token: string;
+    }
+  ).token;
+  if (!deviceToken) throw new Error("device exchange failed");
+
   // Let the batch and the metric reader send.
   for (let i = 0; i < 40 && !bodies.some((b) => b.startsWith("/v1/metrics")); i++)
     await new Promise((ok) => setTimeout(ok, 100));
@@ -301,6 +333,11 @@ export const run = async () => {
     token,
     tokenBody: token.slice(4),
     sessionToken,
+    deviceCode: started.device_code,
+    userCode: started.user_code.replace("-", ""),
+    formattedUserCode: started.user_code,
+    deviceToken,
+    deviceTokenBody: deviceToken.slice(4),
   };
   // To a file: a large write to a pipe can be cut off by the exit below.
   writeFileSync(process.env.PRIVACY_OUT ?? "privacy-out.json", JSON.stringify({ never, bodies }));
