@@ -8,12 +8,8 @@ import type { Instrumentation } from "next";
 export const register = async () => {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
   // Refuses to start with BETTER_AUTH_SECRETS set (105), however it's started (pnpm dev too).
-  const { secretsConflict } = await import("./server/config");
-  const conflict = secretsConflict();
-  if (conflict) {
-    console.error(`✗ ${conflict}`);
-    process.exit(1);
-  }
+  const { refuseConflictingSecrets } = await import("./server/refuse-conflicts");
+  refuseConflictingSecrets();
   const { startTelemetryIfSet } = await import("./server/telemetry");
   await startTelemetryIfSet();
   const { startJobsIfOn } = await import("./server/jobs/scheduler");
