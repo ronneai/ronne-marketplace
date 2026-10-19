@@ -28,6 +28,8 @@ export interface UserTable {
   disabled_at: Timestamp | null;
   /** Better Auth's two-factor flag (migration 0025_two_factor, feature 105). */
   two_factor_enabled: GeneratedDbBoolean;
+  /** When root erased the account (migration 0030_erased_at, feature 103); never cleared. */
+  erased_at: Timestamp | null;
 }
 
 export interface SessionTable {

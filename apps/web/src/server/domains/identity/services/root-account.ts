@@ -2,15 +2,25 @@ import {
   NotARootError,
   RootAlreadyExistsError,
   RootNotFoundError,
+  UserErasedError,
   UserNotFoundError,
   WhichRootError,
 } from "../exceptions/errors";
 import { validatePassword } from "../models/password";
 import type { PasswordHasher } from "../models/password-hasher";
-import { normalizeEmail, normalizeName } from "../models/user";
+import { isErasedEmail, normalizeEmail, normalizeName } from "../models/user";
 import type { IdentityRepository } from "../repositories/identity-repository";
 
 export type IdentityDeps = { repo: IdentityRepository; hasher: PasswordHasher; now?: () => Date };
+
+/**
+ * The email a command names, normalised. An erased account's pseudonym (103) gets its own answer
+ * before the address check, which would only call it invalid: that account was erased.
+ */
+const typedEmail = (email: string): string => {
+  if (isErasedEmail(email)) throw new UserErasedError();
+  return normalizeEmail(email);
+};
 
 export type NewRoot = { email: string; name: string; password: string };
 
@@ -65,7 +75,7 @@ export const resetRootPassword = async (
   email?: string,
 ): Promise<{ email: string; twoFactorReset: boolean }> => {
   validatePassword(password);
-  const wanted = email === undefined ? undefined : normalizeEmail(email);
+  const wanted = email === undefined ? undefined : typedEmail(email);
   const passwordHash = await deps.hasher.hash(password);
   const now = (deps.now ?? (() => new Date()))();
 
@@ -117,11 +127,12 @@ export const resetTwoFactorFromCli = async (
   deps: Pick<IdentityDeps, "repo" | "now">,
   email: string,
 ): Promise<{ email: string; reset: boolean; sessionsEnded: number }> => {
-  const wanted = normalizeEmail(email);
+  const wanted = typedEmail(email);
   const now = (deps.now ?? (() => new Date()))();
   return deps.repo.transaction(async (repo) => {
     const user = await repo.findUserByEmail(wanted);
     if (!user) throw new UserNotFoundError();
+    if (user.erasedAt) throw new UserErasedError();
     if (!(await repo.resetTwoFactor(user.id, now)))
       return { email: user.email, reset: false, sessionsEnded: 0 };
     const sessionsEnded = await repo.deleteSessions(user.id);
@@ -146,7 +157,8 @@ export const twoFactorOfEmail = async (
   deps: Pick<IdentityDeps, "repo">,
   email: string,
 ): Promise<{ email: string; enabled: boolean }> => {
-  const user = await deps.repo.findUserByEmail(normalizeEmail(email));
+  const user = await deps.repo.findUserByEmail(typedEmail(email));
   if (!user) throw new UserNotFoundError();
+  if (user.erasedAt) throw new UserErasedError();
   return { email: user.email, enabled: await deps.repo.hasTwoFactor(user.id) };
 };

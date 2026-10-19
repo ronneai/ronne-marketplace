@@ -9,7 +9,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 ## Tasks
 
-- [ ] **1. The column and the rules.** [risky] The migration adding `user.erased_at` (all
+- [x] **1. The column and the rules.** [risky] The migration adding `user.erased_at` (all
   dialects); `erased_at` in the user model and summaries; every path that must refuse an erased
   account: sign-in by password, 106's link, the token exchange, enable, disable, reset password,
   reset two-factor, SCIM adopt, create and patch (108's conditions), `reset-root-password` and
@@ -51,3 +51,20 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+- **Task 1.** `erased_at` is a plain nullable timestamp (migration `0030_erased_at`), typed
+  `Timestamp | null` in the schema so inserts may leave it out (`Generated<…>` would nest the
+  column type, as `two_factor_enabled`'s comment says). The refusals: `loadTarget` in
+  `services/user-admin.ts` (every root admin change), `typedEmail` in `services/root-account.ts`
+  and `chooseRoot` in `setup/reset-root.ts` (the two commands), `findActiveUser` and
+  `countActiveRoots` and `listRoots` in the Kysely identity repository (sessions, Better Auth's
+  sign-in hook, 059's count, and `reset-root-password` without `--email`, which the adversarial
+  pass found could reach an erased row that still said root), `findCredentialByEmail`'s `erasedAt`
+  (the token exchange), the token repository's `erasedAt` (a bearer token that survived),
+  `planSsoSignIn` (106), and
+  `load`, `render`, `listScimUsers` and the adoption and tombstone conditions in
+  `services/scim-users.ts` (108). Until task 2's service exists, tests seed an erased account with
+  `testing/erased-user.ts`, which writes the row as erasing will leave it (and, for the rows no
+  erasure leaves, a real email, a root role or `disabled: false`, to show the flag alone refuses:
+  with the row also disabled, a test can't tell the two checks apart). The SCIM users API test
+  seeds one in every test.

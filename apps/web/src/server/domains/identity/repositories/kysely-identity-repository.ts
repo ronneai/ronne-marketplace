@@ -28,6 +28,7 @@ type UserRow = {
   name: string;
   role: string;
   disabled_at: Date | string | null;
+  erased_at: Date | string | null;
   created_at: Date | string;
 };
 
@@ -39,9 +40,20 @@ const summary = (row: UserRow): UserSummary => {
     // A role outside the known two is shown as a plain user: it gets no permissions either way.
     role: isRole(row.role) ? row.role : "user",
     disabledAt: fromDbDate(row.disabled_at),
+    erasedAt: fromDbDate(row.erased_at),
     createdAt: fromDbDate(row.created_at),
   };
 };
+
+const USER_COLUMNS = [
+  "id",
+  "email",
+  "name",
+  "role",
+  "disabled_at",
+  "erased_at",
+  "created_at",
+] as const;
 
 /** Better Auth's provider id for email and password accounts. */
 const CREDENTIAL_PROVIDER = "credential";
@@ -76,6 +88,8 @@ export const kyselyIdentityRepository = (
       .selectFrom("user")
       .select(["id", "email", "name", "disabled_at"])
       .where("role", "=", "root")
+      // An erased row never counts as a root, whatever its role says (103).
+      .where("erased_at", "is", null)
       .orderBy("created_at")
       .orderBy("id")
       .execute();
@@ -167,6 +181,7 @@ export const kyselyIdentityRepository = (
         .select((eb) => eb.fn.countAll<number | string | bigint>().as("n"))
         .where("role", "=", "root")
         .where("disabled_at", "is", null)
+        .where("erased_at", "is", null)
         .executeTakeFirstOrThrow();
       return Number(row.n);
     },
@@ -187,6 +202,7 @@ export const kyselyIdentityRepository = (
         .select(["id", "email", "name", "role"])
         .where("id", "=", userId)
         .where("disabled_at", "is", null)
+        .where("erased_at", "is", null)
         .executeTakeFirst();
       // A role outside the two known ones gets no access rather than a guess.
       if (!row || !isRole(row.role)) return null;
@@ -214,6 +230,7 @@ export const kyselyIdentityRepository = (
           "user.name",
           "user.role",
           "user.disabled_at",
+          "user.erased_at",
           "user.two_factor_enabled",
           "account.password",
         ])
@@ -230,6 +247,7 @@ export const kyselyIdentityRepository = (
           personal: await loadPersonal(db, row.id),
         },
         disabledAt: fromDbDate(row.disabled_at),
+        erasedAt: fromDbDate(row.erased_at),
         passwordHash: row.password ?? null,
         twoFactor: Boolean(row.two_factor_enabled),
       };
@@ -276,7 +294,7 @@ export const kyselyIdentityRepository = (
     async findUser(userId) {
       const row = await db
         .selectFrom("user")
-        .select(["id", "email", "name", "role", "disabled_at", "created_at"])
+        .select(USER_COLUMNS)
         .where("id", "=", userId)
         .executeTakeFirst();
       return row ? summary(row) : null;
@@ -285,24 +303,21 @@ export const kyselyIdentityRepository = (
     async findUserByEmail(email) {
       const row = await db
         .selectFrom("user")
-        .select(["id", "email", "name", "role", "disabled_at", "created_at"])
+        .select(USER_COLUMNS)
         .where("email", "=", email)
         .executeTakeFirst();
       return row ? summary(row) : null;
     },
 
     async pageUsers({ sort, dir, size, cursor, ...filters }) {
-      const page = await paginate(
-        filteredUsers(filters).select(["id", "email", "name", "role", "disabled_at", "created_at"]),
-        {
-          sort: { key: sort, column: USER_SORT_COLUMNS[sort], dir },
-          idColumn: "id",
-          size,
-          cursor,
-          sortValue: (row) => (sort === "created" ? row.id : row[sort]),
-          idOf: (row) => row.id,
-        },
-      );
+      const page = await paginate(filteredUsers(filters).select(USER_COLUMNS), {
+        sort: { key: sort, column: USER_SORT_COLUMNS[sort], dir },
+        idColumn: "id",
+        size,
+        cursor,
+        sortValue: (row) => (sort === "created" ? row.id : row[sort]),
+        idOf: (row) => row.id,
+      });
       // The page's memberships, by workspace name, in one query (091).
       const ids = page.rows.map((row) => row.id);
       const memberships =

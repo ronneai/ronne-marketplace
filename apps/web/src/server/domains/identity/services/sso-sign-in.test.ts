@@ -41,6 +41,7 @@ const user = (email: string, role: UserSummary["role"] = "user"): UserSummary =>
   name: email,
   role,
   disabledAt: null,
+  erasedAt: null,
   createdAt: new Date(),
 });
 

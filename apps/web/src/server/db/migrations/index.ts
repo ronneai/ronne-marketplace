@@ -27,6 +27,7 @@ import { identityProviders } from "./0026_identity_providers";
 import { deviceGrants } from "./0027_device_grants";
 import { scim } from "./0028_scim";
 import { jobs } from "./0029_jobs";
+import { erasedAt } from "./0030_erased_at";
 import type { AppMigration } from "./types";
 
 /**
@@ -63,4 +64,5 @@ export const migrations: Record<string, AppMigration> = {
   "0027_device_grants": deviceGrants,
   "0028_scim": scim,
   "0029_jobs": jobs,
+  "0030_erased_at": erasedAt,
 };

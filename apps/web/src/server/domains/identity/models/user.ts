@@ -45,6 +45,8 @@ export type UserSummary = {
   name: string;
   role: Role;
   disabledAt: Date | null;
+  /** When root erased the account (103): the row is the pseudonym, and nothing may change it. */
+  erasedAt: Date | null;
   createdAt: Date;
   /** Its roles per workspace (091), moderated ones first, for the users list; ignored for root. */
   workspaces?: { name: string; role: WorkspaceRole }[];
@@ -67,6 +69,20 @@ export const normalizeEmail = (email: string): string => {
     throw new InvalidEmailError(email);
   return normalized;
 };
+
+/**
+ * The pseudonym an erased account keeps (103): its email and name are made from the id alone, on
+ * the reserved domain `ronne.invalid` (RFC 2606), which `normalizeEmail` refuses, so nothing typed
+ * into a form can create or find such an account; only erasing writes it.
+ */
+export const ERASED_EMAIL_DOMAIN = "ronne.invalid";
+export const erasedName = (userId: string): string => `deleted-user-${userId}`;
+export const erasedEmail = (userId: string): string =>
+  `${erasedName(userId)}@${ERASED_EMAIL_DOMAIN}`;
+const ERASED_EMAIL = /^deleted-user-[^\s@]+@ronne\.invalid$/;
+/** Whether a typed address is an erased account's pseudonym, for the message it gets. */
+export const isErasedEmail = (email: string): boolean =>
+  ERASED_EMAIL.test(email.trim().toLowerCase());
 
 export const normalizeName = (name: string): string => {
   const trimmed = name.trim();

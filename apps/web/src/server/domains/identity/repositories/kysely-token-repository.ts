@@ -139,6 +139,7 @@ export const kyselyTokenRepository = (
           "user.name as user_name",
           "user.role",
           "user.disabled_at",
+          "user.erased_at",
         ])
         .where("access_tokens.token_hash", "=", tokenHash)
         .executeTakeFirst();
@@ -159,6 +160,7 @@ export const kyselyTokenRepository = (
           workspaces: await loadMemberships(db, row.user_id),
           personal: await loadPersonal(db, row.user_id),
           disabledAt: fromDbDate(row.disabled_at),
+          erasedAt: fromDbDate(row.erased_at),
         },
       };
     },

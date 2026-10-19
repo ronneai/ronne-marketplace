@@ -27,6 +27,8 @@ export type TokenWithUser = {
     /** Their personal workspace's id (114), or null. */
     personal?: string | null;
     disabledAt: Date | null;
+    /** Erased (103): refused like a disabled one; it has no tokens left either. */
+    erasedAt: Date | null;
   };
 };
 

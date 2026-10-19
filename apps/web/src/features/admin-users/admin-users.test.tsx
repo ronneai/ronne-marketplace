@@ -34,6 +34,7 @@ const user = (overrides: Partial<UserSummary> = {}): UserSummary => ({
   name: "Alex",
   role: "user",
   disabledAt: null,
+  erasedAt: null,
   createdAt: new Date("2026-09-20T10:00:00Z"),
   ...overrides,
 });

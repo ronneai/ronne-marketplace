@@ -34,23 +34,25 @@ export type UserPageQuery = UserFilters & {
 export interface IdentityRepository {
   /** Runs `work` in one database transaction, with a repository bound to it. */
   transaction<T>(work: (repo: IdentityRepository) => Promise<T>): Promise<T>;
-  /** The oldest root, disabled or not: the one setup created. Null before setup. */
+  /** The oldest root, disabled or not (never erased, 103): the one setup created. Null before setup. */
   findFirstRoot(): Promise<RootAccount | null>;
-  /** Every root, disabled or not, oldest first. */
+  /** Every root, disabled or not, oldest first; never an erased row (103). */
   listRoots(): Promise<RootAccount[]>;
-  /** Roots that aren't disabled. The instance always keeps at least one (059). */
+  /** Roots that aren't disabled or erased (103). The instance always keeps at least one (059). */
   countActiveRoots(): Promise<number>;
   /**
    * Locks every root's row and the actor's until the transaction ends, so two roots changing each
    * other at once run one after the other (059). Call it first in the transaction.
    */
   lockRoots(actorId: string): Promise<void>;
-  /** The user, or null when they don't exist or are disabled. */
+  /** The user, or null when they don't exist, are disabled or were erased (103). */
   findActiveUser(userId: string): Promise<CurrentUser | null>;
   /** A user and their password hash, for checking credentials outside a web sign-in (009). */
   findCredentialByEmail(email: string): Promise<{
     user: CurrentUser;
     disabledAt: Date | null;
+    /** Erased (103): refused like a disabled one; it has no password row either. */
+    erasedAt: Date | null;
     passwordHash: string | null;
     /** Two-factor is on: what makes a web sign-in ask for a code (105). */
     twoFactor: boolean;

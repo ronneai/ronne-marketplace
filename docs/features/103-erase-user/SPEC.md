@@ -90,10 +90,14 @@ why (059's wording).
   link is gone, and a sign-in whose email matches no account makes a new one, which is right), by
   token (none), and SCIM (108) can't adopt it (`erased_at` set is one more condition against
   adoption) or re-create it (no tombstone, no email match).
-- `adminEnableUser` refuses an erased account; `disable` and `resetPassword` and
-  `resetTwoFactor` too, each with the same message.
+- Every change root's user admin makes refuses an erased account with one message ("That account
+  was erased. It can't be changed, signed in to or provisioned again."): enable, disable, the
+  role, reset password, reset two-factor, and the disable dialog's impact.
+- SCIM (108) never reaches it: a link or tombstone that survived by hand (erasing deletes them)
+  answers 404 on `GET`, `PUT`, `PATCH` and `DELETE /Users/{id}`, is left out of `GET /Users`, and a
+  create by the tombstone's `externalId` makes a new account.
 - `rmk-server reset-root-password` and `reset-two-factor` given the pseudonym's email: refused,
-  "that account was erased".
+  "that account was erased", before the address is validated (it never is a valid one, below).
 
 ### Phones (065)
 
@@ -126,9 +130,11 @@ button.
   attempt, which the Privacy tab shows as "an erasure wasn't completed" with a Retry (the
   retention job also finishes it on its next run, since an erased account with unrewritten events
   is a state it checks). On PostgreSQL and SQLite it's one transaction.
-- **The pseudonym's email on the sign-in page:** `ronne.invalid` is a reserved domain (RFC 2606),
-  so nothing resolves it, and `normalizeEmail` accepts it, so nothing that re-reads users' emails
-  breaks.
+- **The pseudonym's email, typed anywhere:** `ronne.invalid` is a reserved domain (RFC 2606), so
+  nothing resolves it, and `normalizeEmail` refuses every `.invalid` address (106's rule), so no
+  form, SCIM body or provider can create, find or sign in to such an account: the erase service
+  writes it straight to the row, and the two commands recognise it before validating (above).
+  Nothing re-reads a stored email through `normalizeEmail`.
 - **Backups made before the erasure** hold the person's data; the backup runbook (099) says so,
   and that a restore brings it back, which is the operator's to manage within the retention.
 - **The threat model** (098): an erased account is one fewer credential; nothing weakens.

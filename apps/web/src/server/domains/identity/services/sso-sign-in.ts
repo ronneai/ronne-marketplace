@@ -9,7 +9,8 @@ import { applyGroups } from "./group-sync";
 /**
  * Who a provider's verified identity is in Ronne (feature 106's decision list), in order:
  * 1. the email must be verified;
- * 2. a disabled account is refused;
+ * 2. a disabled account is refused, and an erased one (103: its link and its email are gone, so
+ *    a sign-in with the old email makes a new account; the row refuses in case a link survived);
  * 3. a known link (this provider and subject) signs in;
  * 4. else an account with this email is linked, if the provider links by email, the email's domain
  *    is on the provider's list (a provider for `acme.com` can't claim a `gmail.com` account; root's
@@ -72,7 +73,8 @@ export const planSsoSignIn = async (
   const linkedId = await repo.findLinkedUser(provider.id, identity.subject);
   const linked = linkedId ? await repo.findUser(linkedId) : null;
   if (linked) {
-    if (linked.disabledAt) return { action: "refuse", reason: "disabled", user: linked };
+    if (linked.disabledAt || linked.erasedAt)
+      return { action: "refuse", reason: "disabled", user: linked };
     return { action: "sign_in", user: linked };
   }
 
@@ -99,7 +101,8 @@ export const planSsoSignIn = async (
   // is this person's. Another one that the database calls equal can't be linked, or created beside.
   if (existing && existing.email !== email) return notAllowed("lookalike_email", existing);
   if (existing) {
-    if (existing.disabledAt) return { action: "refuse", reason: "disabled", user: existing };
+    if (existing.disabledAt || existing.erasedAt)
+      return { action: "refuse", reason: "disabled", user: existing };
     if (!provider.linkByEmail) return notAllowed("link_off", existing);
     if (!emailInDomains(email, provider.domains)) return notAllowed("domain_not_listed", existing);
     // Linked already to another subject of this provider: this is someone else with that address.
