@@ -9,7 +9,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 ## Tasks
 
-- [ ] **1. The export service.** [risky] `identity/services/user-data-export.ts`: each section of
+- [x] **1. The export service.** [risky] `identity/services/user-data-export.ts`: each section of
   the shape from the domains' repositories (identity, workspaces, items, submissions, audit), the
   row and comment limits with `truncated`, other people's emails replaced in the audit events, the
   `user.data_exported` event with the counts, and the 10-minute limit counted in the database.
@@ -37,3 +37,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+- Task 1: the 10-minute limit is counted from the audit log, not a new table; retention keeps
+  events at least a day (102). Past the item rule, an address is scrubbed whole with the text next
+  to it (a URL holding one becomes `[other]`).
