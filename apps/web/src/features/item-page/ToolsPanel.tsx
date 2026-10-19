@@ -20,11 +20,7 @@ const LEVEL: Record<ToolSupport, { label: string; tone: BadgeTone }> = {
 };
 
 const Place = ({ place }: { place: string }) =>
-  /[./]/.test(place) ? (
-    <code className="font-mono text-[11px] text-fg">{place}</code>
-  ) : (
-    <>{place}</>
-  );
+  /[./]/.test(place) ? <code className="font-mono text-[11px] text-fg">{place}</code> : place;
 
 const line = (level: ToolSupport, tool: string, type: string, place: string): ReactNode => {
   switch (level) {

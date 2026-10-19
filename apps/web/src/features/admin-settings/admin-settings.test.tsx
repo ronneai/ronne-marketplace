@@ -12,6 +12,7 @@ const settings = vi.hoisted(() => ({
   setUsagePolicy: vi.fn(),
   setUsageMinimum: vi.fn(),
   setTwoFactorPolicy: vi.fn(),
+  setRetention: vi.fn(),
 }));
 const session = vi.hoisted(() => ({ getCurrentUser: vi.fn() }));
 const feeds = vi.hoisted(() => ({ pluginFeedStats: vi.fn() }));
@@ -47,6 +48,8 @@ const { UsagePolicyForm } = await import("./usage/UsagePolicyForm");
 const { PluginFeedsPanel } = await import("./feeds/PluginFeedsPanel");
 const { SignInMethodsPanel } = await import("./authentication/SignInMethodsPanel");
 const { signInMethods } = await import("./authentication/AuthenticationTab");
+const { RetentionForm } = await import("./privacy/RetentionForm");
+const { InvalidRetentionError } = await import("@/server/domains/settings/exceptions/errors");
 const { default: AdminSettingsPage } = await import("@/app/(app)/admin/settings/page");
 
 /** The page as Next.js renders it, for `?tab=` (none: the bare address). */
@@ -74,6 +77,7 @@ beforeEach(() => {
     usageMinimum: 0,
     twoFactorPolicy: "optional",
     passwordSignInPolicy: "everyone",
+    retention: { ipDays: 90, sessionsDays: 90 },
   });
 });
 
@@ -124,6 +128,7 @@ describe("Admin › Settings' tabs (122)", () => {
       'href="/admin/settings"',
       'href="/admin/settings?tab=feeds"',
       'href="/admin/settings?tab=authentication"',
+      'href="/admin/settings?tab=privacy"',
     ])
       expect(html).toContain(href);
   });
@@ -149,7 +154,7 @@ describe("Admin › Settings' tabs (122)", () => {
   });
 
   it("is a 404 on every tab for anyone but root", async () => {
-    for (const tab of [undefined, "usage", "feeds", "authentication"]) {
+    for (const tab of [undefined, "usage", "feeds", "authentication", "privacy"]) {
       session.getCurrentUser.mockResolvedValueOnce({ role: "user" });
       await expect(AdminSettings(tab)).rejects.toThrow("NEXT_NOT_FOUND");
     }
@@ -402,5 +407,56 @@ describe("Sign-in methods with identity providers (106)", () => {
       providers: [provider("Beta", false)],
     });
     expect(methods[0]?.note).not.toContain("Root only");
+  });
+});
+
+describe("Admin › Settings › Privacy › Retention (102)", () => {
+  it("is on the Privacy tab for root, with both numbers, their helper, and no other panel", async () => {
+    session.getCurrentUser.mockResolvedValue({ id: "r", role: "root" });
+    settings.instanceSettings.mockResolvedValueOnce({
+      usagePolicy: "off",
+      usagePolicyChangedAt: null,
+      usageMinimum: 0,
+      twoFactorPolicy: "optional",
+      passwordSignInPolicy: "everyone",
+      retention: { ipDays: 30, sessionsDays: 7 },
+    });
+    const html = renderToStaticMarkup(await AdminSettings("privacy"));
+    expect(html.match(/aria-current="page"[^>]*>([^<]+)</)?.[1]).toBe("Privacy");
+    expect(html).toContain("Retention");
+    expect(html).toMatch(/name="ipDays"[^>]*value="30"/);
+    expect(html).toMatch(/name="sessionsDays"[^>]*value="7"/);
+    expect(html).toMatch(/<input[^>]*min="1"[^>]*max="3650"[^>]*name="ipDays"/);
+    expect(html).toContain("What is purged, and when?");
+    expect(html).not.toContain("Usage reporting");
+    expect(html).not.toContain(">Sign-in methods</h2>");
+    expect(feeds.pluginFeedStats).not.toHaveBeenCalled();
+  });
+
+  it("disables Save until a number changes", () => {
+    expect(
+      renderToStaticMarkup(<RetentionForm retention={{ ipDays: 90, sessionsDays: 90 }} />),
+    ).toMatch(/<button[^>]*disabled=""[^>]*>Save/);
+  });
+
+  it("saves both numbers, keeps the tab, and shows a domain error", async () => {
+    settings.setRetention.mockResolvedValueOnce({ changed: true });
+    const data = new FormData();
+    data.set("ipDays", "30");
+    data.set("sessionsDays", "7");
+    expect(await actions.saveRetention({}, data)).toEqual({ done: "Retention saved." });
+    expect(settings.setRetention).toHaveBeenCalledWith(expect.anything(), {
+      ipDays: "30",
+      sessionsDays: "7",
+    });
+    expect(cache.revalidatePath).toHaveBeenCalledWith("/admin/settings");
+    settings.setRetention.mockResolvedValueOnce({ changed: false });
+    expect(await actions.saveRetention({}, data)).toEqual({ done: "Nothing changed." });
+    settings.setRetention.mockRejectedValueOnce(new InvalidRetentionError("ipDays"));
+    expect(await actions.saveRetention({}, data)).toEqual({
+      error: "IP addresses are kept for a whole number of days from 1 to 3,650.",
+    });
+    settings.setRetention.mockRejectedValueOnce(new ForbiddenError("settings.manage"));
+    expect((await actions.saveRetention({}, data)).error).toBeTruthy();
   });
 });

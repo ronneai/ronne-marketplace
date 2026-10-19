@@ -24,6 +24,15 @@ export class InvalidUsageMinimumError extends SettingsError {
   }
 }
 
+export class InvalidRetentionError extends SettingsError {
+  override readonly name: string = "InvalidRetentionError";
+  constructor(which: "ipDays" | "sessionsDays") {
+    super(
+      `${which === "ipDays" ? "IP addresses" : "Expired sessions"} are kept for a whole number of days from 1 to 3,650.`,
+    );
+  }
+}
+
 export class InvalidTwoFactorPolicyError extends SettingsError {
   override readonly name: string = "InvalidTwoFactorPolicyError";
   constructor() {

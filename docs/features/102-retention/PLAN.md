@@ -9,7 +9,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 ## Tasks
 
-- [ ] **1. The settings.** [risky] The retention model (`settings/models/retention-policy.ts`:
+- [x] **1. The settings.** [risky] The retention model (`settings/models/retention-policy.ts`:
   keys, defaults, range, parsing), the settings service and action (root only, audited
   `settings.retention` with old and new values), the Privacy tab on Admin › Settings (122's
   `tabs.ts`, `?tab=privacy`) with the Retention panel, its helper `retention`, and the
@@ -60,3 +60,20 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+- Task 1: both numbers are one setting to the person (one form, one Save, one `settings.retention`
+  event with `{ from: { ipDays, sessionsDays }, to: { … } }`), stored as two `instance_settings`
+  rows so each reads like the other settings do. A number is parsed as `^\d{1,20}$` then the
+  range: leading zeros are accepted because a `type="number"` field can submit `03650` (the
+  adversarial pass found `\d{1,4}` refused it), and twenty digits is a bound
+  (`docs/knowledge/codeql-regex.md`), not a widening: past four significant digits nothing is in
+  range. A sign, a decimal point, an exponent or a non-ASCII digit is refused; `1e3` as a
+  JavaScript number is `"1000"` and accepted, which only code can send.
+- Task 1: the Privacy tab reads `instanceSettings` (the whole set) as the Usage tab does; task 5
+  adds the `jobs` row's last run beside it.
+- Task 1: the `privacy` topic went into `apps/web/src/components/help/topics.ts` with this task,
+  so the helper's link is typed; the website's page comes with task 6, in ronne-web.
+- Task 1 also fixed three lint errors that weren't this task's (owner, 2026-10-18): two
+  `noUselessFragments` (`DependencyMarks.tsx`, `ToolsPanel.tsx`) and `biome.json`'s schema
+  version, which the installed Biome 2.5.15 reported while CI on `main` stayed green; why the two
+  runs differed wasn't found.

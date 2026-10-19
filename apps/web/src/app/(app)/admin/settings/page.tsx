@@ -5,6 +5,7 @@ import { TabLinks } from "@/components/ui/TabLinks";
 import { AuthenticationTab } from "@/features/admin-settings/authentication/AuthenticationTab";
 import { ProviderPage } from "@/features/admin-settings/authentication/providers/ProviderPage";
 import { PluginFeedsPanel } from "@/features/admin-settings/feeds/PluginFeedsPanel";
+import { PrivacyTab } from "@/features/admin-settings/privacy/PrivacyTab";
 import { SETTINGS_TABS, settingsTab } from "@/features/admin-settings/tabs";
 import { UsageMinimumForm } from "@/features/admin-settings/usage/UsageMinimumForm";
 import { UsagePolicyForm } from "@/features/admin-settings/usage/UsagePolicyForm";
@@ -20,7 +21,8 @@ export const metadata = { title: "Settings · Admin · Ronne AI Marketplace" };
 /**
  * Root only (`settings.manage`): anyone else gets a 404. In tabs (122), by `?tab=`: Usage (046's
  * policy and 047's minimum, the default), Plugin feeds (079's last builds) and Authentication,
- * whose identity providers each have a page (`&provider=`, 106). Only the tab shown reads its data.
+ * whose identity providers each have a page (`&provider=`, 106), and Privacy (102's retention).
+ * Only the tab shown reads its data.
  */
 const AdminSettings = async ({ searchParams }: { searchParams: Promise<SearchParams> }) => {
   await holdPage();
@@ -41,6 +43,7 @@ const AdminSettings = async ({ searchParams }: { searchParams: Promise<SearchPar
     if (tab === "authentication" && provider)
       return await ProviderPage({ id: provider, test: one(query.test), preset: one(query.preset) });
     if (tab === "authentication") return await AuthenticationTab();
+    if (tab === "privacy") return await PrivacyTab();
     const settings = await instanceSettings(request);
     return (
       <>

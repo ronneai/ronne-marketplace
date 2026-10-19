@@ -97,20 +97,18 @@ export const DependencyMarksIcon = ({
         </>
       }
     >
-      <>
-        <p className="font-semibold">
-          {tone === "error" ? "A dependency won't be released." : "It's released once these are."}
-        </p>
-        <ul className="grid gap-1.5">
-          {marks.map((mark) => (
-            <li key={mark.dependency} className="flex flex-wrap items-center gap-2">
-              <span className="font-mono">{mark.dependency}</span>
-              <DependencyStatusBadge mark={mark} />
-            </li>
-          ))}
-        </ul>
-        <Help id="waits-on" />
-      </>
+      <p className="font-semibold">
+        {tone === "error" ? "A dependency won't be released." : "It's released once these are."}
+      </p>
+      <ul className="grid gap-1.5">
+        {marks.map((mark) => (
+          <li key={mark.dependency} className="flex flex-wrap items-center gap-2">
+            <span className="font-mono">{mark.dependency}</span>
+            <DependencyStatusBadge mark={mark} />
+          </li>
+        ))}
+      </ul>
+      <Help id="waits-on" />
     </Popover>
   );
 };
