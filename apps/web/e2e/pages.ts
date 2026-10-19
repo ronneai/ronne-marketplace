@@ -149,6 +149,7 @@ export const SWEEP_PAGES: readonly SweepPage[] = [
       "/admin/settings",
       "/admin/settings?tab=feeds",
       "/admin/settings?tab=authentication",
+      "/admin/settings?tab=privacy",
       // Add provider (106): the preset cards; identity-providers.mobile.e2e.ts walks the form.
       "/admin/settings?tab=authentication&provider=new",
     ],

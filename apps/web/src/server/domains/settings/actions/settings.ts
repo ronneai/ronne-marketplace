@@ -44,6 +44,15 @@ export const setTwoFactorPolicy = async (
   app: AppAuth = getAppAuth(),
 ) => service.setTwoFactorPolicy(deps(app), await actor(headers, app), value);
 
+export const setRetention = async (
+  headers: Headers,
+  value: { ipDays: unknown; sessionsDays: unknown },
+  app: AppAuth = getAppAuth(),
+) => service.setRetention(deps(app), await actor(headers, app), value);
+
+/** How long personal data is kept (102), for the purge. */
+export const retentionPolicy = (app: AppAuth = getAppAuth()) => service.retentionPolicy(deps(app));
+
 /** Who must use two-factor sign-in (105), for the hold on pages and actions. */
 export const twoFactorPolicy = (app: AppAuth = getAppAuth()) => service.twoFactorPolicy(deps(app));
 

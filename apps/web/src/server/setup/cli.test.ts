@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  parsePurgeCommand,
   parseResetCommand,
   parseResetTwoFactorCommand,
   parseRevokeAccessCommand,
@@ -192,5 +193,31 @@ describe("parseResetTwoFactorCommand (105)", () => {
     });
     expect(parseResetTwoFactorCommand(["--bogus"], {}, true)).toMatchObject({ mode: "error" });
     expect(parseResetTwoFactorCommand(["-h"], {}, false)).toEqual({ mode: "help" });
+  });
+});
+
+describe("parsePurgeCommand (102)", () => {
+  it("runs with or without --dry-run, asks nothing, and takes the database from the flag or the environment", () => {
+    expect(parsePurgeCommand([], {})).toEqual({
+      mode: "run",
+      dryRun: false,
+      databaseUrl: undefined,
+    });
+    expect(parsePurgeCommand(["--dry-run"], { DATABASE_URL: "file:x" })).toEqual({
+      mode: "run",
+      dryRun: true,
+      databaseUrl: "file:x",
+    });
+    expect(parsePurgeCommand(["--database-url", "file:y"], { DATABASE_URL: "file:x" })).toEqual({
+      mode: "run",
+      dryRun: false,
+      databaseUrl: "file:y",
+    });
+    expect(parsePurgeCommand(["-h"], {})).toEqual({ mode: "help" });
+    for (const argv of [["--yes"], ["now"], ["--dry-run=1"], ["--database-url"]])
+      expect(parsePurgeCommand(argv, {}), argv.join(" ")).toMatchObject({
+        mode: "error",
+        exitCode: 2,
+      });
   });
 });

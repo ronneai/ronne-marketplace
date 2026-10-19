@@ -225,6 +225,12 @@ export const TOPICS = [
     sections: [{ id: "monitoring", title: "Monitoring" }],
   },
   {
+    slug: "privacy",
+    title: "Privacy",
+    summary: "What an instance keeps about people, for how long, and how it's purged.",
+    sections: [{ id: "retention", title: "Retention" }],
+  },
+  {
     slug: "rmk",
     title: "Installing with rmk",
     summary: "How items get into your AI tools, and how to keep them current.",
@@ -338,7 +344,7 @@ export const TOPIC_GROUPS: { label: string; topics: readonly TopicSlug[] }[] = [
   { label: "Publishing", topics: ["export", "review", "versions", "changes"] },
   {
     label: "Running Ronne",
-    topics: ["security", "incidents", "backups", "logs", "monitoring"],
+    topics: ["security", "incidents", "backups", "logs", "monitoring", "privacy"],
   },
 ];
 

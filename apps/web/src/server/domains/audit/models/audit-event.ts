@@ -87,6 +87,7 @@ export const AUDIT_ACTIONS = [
   "settings.usage_policy",
   "settings.usage_minimum",
   "settings.two_factor_policy",
+  "settings.retention",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

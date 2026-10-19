@@ -3,6 +3,7 @@ import type { CurrentUser } from "../../identity/models/user";
 import {
   ConfirmationNeededError,
   InvalidPasswordSignInPolicyError,
+  InvalidRetentionError,
   InvalidTwoFactorPolicyError,
   InvalidUsageMinimumError,
   InvalidUsagePolicyError,
@@ -14,6 +15,13 @@ import {
   PASSWORD_SIGN_IN_POLICY_KEY,
   type PasswordSignInPolicy,
 } from "../models/password-sign-in-policy";
+import {
+  DEFAULT_RETENTION_POLICY,
+  RETENTION_IP_DAYS_KEY,
+  RETENTION_SESSIONS_DAYS_KEY,
+  type RetentionPolicy,
+  retentionDaysFrom,
+} from "../models/retention-policy";
 import {
   DEFAULT_TWO_FACTOR_POLICY,
   isTwoFactorPolicy,
@@ -58,6 +66,20 @@ export const twoFactorPolicy = async (deps: SettingsDeps): Promise<TwoFactorPoli
   return stored && isTwoFactorPolicy(stored.value) ? stored.value : DEFAULT_TWO_FACTOR_POLICY;
 };
 
+/**
+ * How long personal data is kept (102), for the purge; 90 days each until root sets them. A stored
+ * value that isn't in the range (a hand edit) reads as the default, as the other settings do.
+ */
+export const retentionPolicy = async (deps: SettingsDeps): Promise<RetentionPolicy> => {
+  const ip = await deps.repo.get(RETENTION_IP_DAYS_KEY);
+  const sessions = await deps.repo.get(RETENTION_SESSIONS_DAYS_KEY);
+  return {
+    ipDays: (ip && retentionDaysFrom(ip.value)) ?? DEFAULT_RETENTION_POLICY.ipDays,
+    sessionsDays:
+      (sessions && retentionDaysFrom(sessions.value)) ?? DEFAULT_RETENTION_POLICY.sessionsDays,
+  };
+};
+
 export type InstanceSettings = {
   usagePolicy: UsagePolicy;
   /** When root last changed it, or null while it's the default. */
@@ -65,6 +87,7 @@ export type InstanceSettings = {
   usageMinimum: number;
   twoFactorPolicy: TwoFactorPolicy;
   passwordSignInPolicy: PasswordSignInPolicy;
+  retention: RetentionPolicy;
 };
 
 /** What Admin › Settings shows: root only. */
@@ -80,7 +103,44 @@ export const instanceSettings = async (
     usageMinimum: await usageMinimum(deps),
     twoFactorPolicy: await twoFactorPolicy(deps),
     passwordSignInPolicy: await passwordSignInPolicy(deps),
+    retention: await retentionPolicy(deps),
   };
+};
+
+/**
+ * Root sets how long personal data is kept (102): both numbers at once, each a whole number of
+ * days from 1 to 3,650, audited as `settings.retention` with the old and new values. The next
+ * purge runs by the new values; nothing is purged here.
+ */
+export const setRetention = async (
+  deps: SettingsDeps,
+  actor: SettingsActor,
+  value: { ipDays: unknown; sessionsDays: unknown },
+): Promise<{ changed: boolean }> => {
+  requirePermission(actor.user, "settings.manage");
+  const ipDays = retentionDaysFrom(value.ipDays);
+  if (ipDays === null) throw new InvalidRetentionError("ipDays");
+  const sessionsDays = retentionDaysFrom(value.sessionsDays);
+  if (sessionsDays === null) throw new InvalidRetentionError("sessionsDays");
+  const at = now(deps);
+  return deps.repo.transaction(async (repo) => {
+    const from = await retentionPolicy({ repo });
+    if (from.ipDays === ipDays && from.sessionsDays === sessionsDays) return { changed: false };
+    const by = actor.user?.id ?? null;
+    await repo.set(RETENTION_IP_DAYS_KEY, String(ipDays), by, at);
+    await repo.set(RETENTION_SESSIONS_DAYS_KEY, String(sessionsDays), by, at);
+    await repo.recordAudit(
+      {
+        actorId: by,
+        action: "settings.retention",
+        target: { type: "instance" },
+        metadata: { from: { ...from }, to: { ipDays, sessionsDays } },
+        ipAddress: actor.ip,
+      },
+      at,
+    );
+    return { changed: true };
+  });
 };
 
 /** Root sets the usage minimum; the change is audited with the old and new value. */

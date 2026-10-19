@@ -240,6 +240,22 @@ describe("audit summaries (060)", () => {
     expect(line("settings.usage_policy", { from: "off", to: "choice" })).toBe(
       "Changed the usage policy from off to people choose",
     );
+    // The retention (102): only what changed.
+    expect(
+      line("settings.retention", {
+        from: { ipDays: 90, sessionsDays: 90 },
+        to: { ipDays: 30, sessionsDays: 90 },
+      }),
+    ).toBe("Changed the retention: IP addresses from 90 to 30 days");
+    expect(
+      line("settings.retention", {
+        from: { ipDays: 90, sessionsDays: 90 },
+        to: { ipDays: 30, sessionsDays: 7 },
+      }),
+    ).toBe(
+      "Changed the retention: IP addresses from 90 to 30 days, expired sessions from 90 to 7 days",
+    );
+    expect(line("settings.retention", {})).toBe("Changed the retention: nothing");
     expect(
       line("submission.rebased", { name: "@team/x", from: "1.0.0", to: "1.1.0", conflicts: ["a"] }),
     ).toBe("Rebased @team/x from 1.0.0 to 1.1.0 (1 conflict)");

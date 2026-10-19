@@ -352,7 +352,8 @@ goes into `SPEC.md` instead.
     the whole server: restore held it for its run, so every other database's migrations on that
     server waited (the full MySQL suite timed out under load; in production, other instances on a
     shared server couldn't start). `createDb` gives MySQL an adapter whose lock is named after the
-    database (`ronne-migration:` + sha1 of `database()`, under MySQL's 64 characters); server
+    database (`ronne-migration:` + a hash of `database()`, under MySQL's 64 characters; SHA2 cut
+    to 40 since MySQL 9.6 removed SHA1, 2026-10-19); server
     starts, backups and restores of one database share it. A test holds one database's lock and
     takes another's at once (it times out with Kysely's lock, tried). PostgreSQL's advisory locks
     are per database already. The dump also refuses year 0000, which no restore takes.

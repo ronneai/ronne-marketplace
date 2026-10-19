@@ -24,8 +24,10 @@ export type Db = Kysely<Database>;
  * PostgreSQL's advisory locks already belong to one database. The name is a hash, since MySQL
  * names stop at 64 characters, of the name in lower case (hosts that ignore case could reach one
  * database by two spellings); server starts, backups and restores of one database share it.
+ * SHA2, cut to 40 characters: MySQL 9.6 removed SHA1() and MD5()
+ * (docs/knowledge/mysql-removed-functions.md).
  */
-const lockName = sql`concat('ronne-migration:', sha1(lower(database())))`;
+const lockName = sql`concat('ronne-migration:', left(sha2(lower(database()), 256), 40))`;
 class DatabaseMysqlAdapter extends MysqlAdapter {
   override async acquireMigrationLock(db: Kysely<unknown>): Promise<void> {
     // 1: taken. 0 (an hour's wait) or NULL: not taken, and going on would be going on unlocked.

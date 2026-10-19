@@ -497,6 +497,20 @@ export const SUMMARIES: Record<AuditAction, Build> = {
   "settings.usage_minimum": (m) => [
     `Changed the usage minimum from ${text(m.from)} to ${text(m.to)}`,
   ],
+  "settings.retention": (m) => {
+    // Only what changed, in days: `{ from: { ipDays, sessionsDays }, to: { … } }` (102).
+    const from = typeof m.from === "object" && m.from && !Array.isArray(m.from) ? m.from : {};
+    const to = typeof m.to === "object" && m.to && !Array.isArray(m.to) ? m.to : {};
+    const changes = (
+      [
+        ["ipDays", "IP addresses"],
+        ["sessionsDays", "expired sessions"],
+      ] as const
+    )
+      .filter(([key]) => text(from[key]) !== text(to[key]))
+      .map(([key, what]) => `${what} from ${text(from[key])} to ${text(to[key])} days`);
+    return [`Changed the retention: ${changes.join(", ") || "nothing"}`];
+  },
 };
 
 const isKnown = (action: string): action is AuditAction => Object.hasOwn(SUMMARIES, action);

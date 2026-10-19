@@ -2,8 +2,8 @@ import type { Instrumentation } from "next";
 
 /**
  * At start: the refusal of BETTER_AUTH_SECRETS (105), then telemetry (101), only when an OTLP
- * endpoint is set. Without one this imports nothing
- * from OpenTelemetry, and Next.js emits no spans.
+ * endpoint is set (without one this imports nothing from OpenTelemetry, and Next.js emits no
+ * spans), then the scheduled jobs (102), unless RONNE_JOBS turns them off.
  */
 export const register = async () => {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
@@ -16,6 +16,8 @@ export const register = async () => {
   }
   const { startTelemetryIfSet } = await import("./server/telemetry");
   await startTelemetryIfSet();
+  const { startJobsIfOn } = await import("./server/jobs/scheduler");
+  startJobsIfOn();
 };
 
 /**

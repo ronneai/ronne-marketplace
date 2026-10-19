@@ -19,6 +19,7 @@ const SPEC: Record<string, string[]> = {
   "ronne.drafts.uploaded": ["outcome"],
   "ronne.rate_limited": ["limit"],
   "ronne.health": ["check"],
+  "ronne.job.duration": ["job", "result"],
 };
 
 // Each instrument's kind and unit: durations are histograms in seconds, counts monotonic sums.
@@ -26,6 +27,7 @@ const KINDS: Record<string, string> = {
   "http.server.request.duration": "histogram s",
   "ronne.db.query.duration": "histogram s",
   "ronne.feed.build.duration": "histogram s",
+  "ronne.job.duration": "histogram s",
   "ronne.health": "gauge ",
 };
 const kind = (name: string) => KINDS[name] ?? "sum ";
@@ -59,6 +61,8 @@ log.event("usage.rate_limited", { limit: "usage_reports" });
 log.event("version.released", { count: 3, userId: "01J9USER" });
 log.event("feed.built", { tool: "claude-code", plugins: 4, ms: 250, bytes: 1000 });
 log.event("feed.built", { tool: "claude-code", bytes: 1000, cached: true }, "debug");
+log.event("job.finished", { job: "retention_purge", ms: 1500, ipsCleared: 3, emailsCleared: 0, sessionsDeleted: 1, grantsDeleted: 0 });
+log.event("job.failed", { job: "retention_purge", ms: 20, err: new Error("x") });
 log.event("draft.uploaded", { files: 2, bytes: 83 });
 log.event("draft.upload_refused", { reason: "invalid_body" });
 const { db } = createDb("file::memory:");
@@ -132,6 +136,8 @@ process.exit(0);`;
   // A cache hit is counted, never timed: one build, one duration.
   expect(value("ronne.feed.build.duration")).toBe(1);
   expect(value("ronne.drafts.uploaded", { outcome: "refused" })).toBe(1);
+  expect(value("ronne.job.duration", { result: "ok" })).toBe(1);
+  expect(value("ronne.job.duration", { result: "failed" })).toBe(1);
   expect(value("ronne.health", { check: "storage" })).toBe(0);
   expect(value("ronne.health", { check: "database" })).toBe(1);
   expect(JSON.stringify(points)).not.toContain("01J9USER");

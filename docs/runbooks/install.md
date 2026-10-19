@@ -113,6 +113,7 @@ address without a port.
 | `RONNE_TRUSTED_PROXIES` | empty | Only behind your own web server: who may tell Ronne the client's address (`private_ranges`) |
 | `LOG_LEVEL` | `info` | The least serious log lines written: `debug`, `info`, `warn` or `error` |
 | `LOG_FORMAT` | `json` | `json`, or `text` for a person reading a terminal |
+| `RONNE_JOBS` | `on` | `off` stops the server's own retention purge (every six hours); run `rmk-server purge` from cron then ([Privacy](https://www.ronne.ai/marketplace/docs/privacy#retention)) |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | empty | Your OpenTelemetry collector's OTLP/HTTP address: metrics and traces, off while empty ([Monitoring](https://www.ronne.ai/marketplace/docs/monitoring#monitoring)) |
 
 **Your company's certificate** (a private network, or a certificate from your IT team): set
@@ -288,6 +289,11 @@ supported, so back up first.
 Docker, `sudo rmk-server backup` with a service, `rmk-server backup` otherwise. It writes one archive
 with the database (whichever kind), the stored files and the settings file.
 [`backup.md`](backup.md) says how to schedule it, copy it off the machine and restore it.
+
+**Personal data** is kept only as long as root's retention says (Admin › Settings › Privacy):
+the server purges what's older every six hours on its own. `docker compose exec web pnpm run purge
+--dry-run`, `sudo rmk-server purge --dry-run` or `rmk-server purge --dry-run` shows what a run
+would clear; without `--dry-run` it runs one now.
 
 **Uninstall:** `docker compose down` in the `ronne-marketplace` folder (add `-v` only to delete all
 data), or `sudo apt remove rmk-server` or `sudo dnf remove rmk-server` (the data stays). Your data

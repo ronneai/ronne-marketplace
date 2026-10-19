@@ -6,6 +6,7 @@ import { createRoot } from "../../identity/actions/root-account";
 import { ForbiddenError } from "../../identity/exceptions/errors";
 import type { CurrentUser } from "../../identity/models/user";
 import {
+  InvalidRetentionError,
   InvalidTwoFactorPolicyError,
   InvalidUsageMinimumError,
   InvalidUsagePolicyError,
@@ -13,7 +14,9 @@ import {
 import { kyselySettingsRepository } from "../repositories/kysely-settings-repository";
 import {
   instanceSettings,
+  retentionPolicy,
   type SettingsDeps,
+  setRetention,
   setTwoFactorPolicy,
   setUsageMinimum,
   setUsagePolicy,
@@ -51,6 +54,7 @@ describe("the usage policy", () => {
       usageMinimum: 0,
       twoFactorPolicy: "optional",
       passwordSignInPolicy: "everyone",
+      retention: { ipDays: 90, sessionsDays: 90 },
     });
   });
 
@@ -71,6 +75,7 @@ describe("the usage policy", () => {
       usageMinimum: 0,
       twoFactorPolicy: "optional",
       passwordSignInPolicy: "everyone",
+      retention: { ipDays: 90, sessionsDays: 90 },
     });
     const { events } = await listAuditEvents(t.db, t.dialect, { group: "settings" });
     expect(
@@ -187,5 +192,109 @@ describe("the two-factor requirement (105)", () => {
   it("reads a value it doesn't know as optional", async () => {
     await deps.repo.set("two_factor_policy", "nonsense", null, at);
     expect(await twoFactorPolicy(deps)).toBe("optional");
+  });
+});
+
+describe("the retention (102)", () => {
+  it("is 90 days each until root sets them; a change is audited with the old and new values", async () => {
+    expect(await retentionPolicy(deps)).toEqual({ ipDays: 90, sessionsDays: 90 });
+    expect((await instanceSettings(deps, { user: root, ip: null })).retention).toEqual({
+      ipDays: 90,
+      sessionsDays: 90,
+    });
+    expect(
+      await setRetention(deps, { user: root, ip: IP }, { ipDays: "30", sessionsDays: 90 }),
+    ).toEqual({ changed: true });
+    expect(await retentionPolicy(deps)).toEqual({ ipDays: 30, sessionsDays: 90 });
+    expect(
+      await setRetention(deps, { user: root, ip: IP }, { ipDays: " 30 ", sessionsDays: "90" }),
+    ).toEqual({ changed: false });
+    await setRetention(deps, { user: root, ip: IP }, { ipDays: 30, sessionsDays: 7 });
+    const events = (await listAuditEvents(t.db, t.dialect, {})).events.filter(
+      (e) => e.action === "settings.retention",
+    );
+    expect(events.map((e) => [e.actorId, e.ipAddress, e.targetType, e.metadata])).toEqual([
+      [
+        root.id,
+        IP,
+        "instance",
+        { from: { ipDays: 30, sessionsDays: 90 }, to: { ipDays: 30, sessionsDays: 7 } },
+      ],
+      [
+        root.id,
+        IP,
+        "instance",
+        { from: { ipDays: 90, sessionsDays: 90 }, to: { ipDays: 30, sessionsDays: 90 } },
+      ],
+    ]);
+  });
+
+  it("takes whole numbers of days from 1 to 3,650, and saves nothing when one is wrong", async () => {
+    const actor = { user: root, ip: null };
+    for (const [ipDays, sessionsDays] of [
+      [1, 3650],
+      [3650, 1],
+      ["00001", "03650"],
+      ["00000000000000000002", "3650"],
+    ])
+      expect(await setRetention(deps, actor, { ipDays, sessionsDays })).toEqual({ changed: true });
+    expect(await retentionPolicy(deps)).toEqual({ ipDays: 2, sessionsDays: 3650 });
+    for (const bad of [
+      0,
+      "0000",
+      3651,
+      -1,
+      1.5,
+      "1.0",
+      "",
+      " ",
+      null,
+      undefined,
+      "30 days",
+      "1e2",
+      "+5",
+      "000000000000000000001",
+      `1${"0".repeat(100_000)}`,
+      true,
+    ])
+      await expect(setRetention(deps, actor, { ipDays: bad, sessionsDays: 10 })).rejects.toThrow(
+        InvalidRetentionError,
+      );
+    for (const bad of [0, 3651, "x"])
+      await expect(setRetention(deps, actor, { ipDays: 10, sessionsDays: bad })).rejects.toThrow(
+        /Expired sessions are kept/,
+      );
+    await expect(setRetention(deps, actor, { ipDays: 0, sessionsDays: 10 })).rejects.toThrow(
+      /IP addresses are kept/,
+    );
+    expect(await retentionPolicy(deps)).toEqual({ ipDays: 2, sessionsDays: 3650 });
+    expect(
+      (await listAuditEvents(t.db, t.dialect, {})).events.filter(
+        (e) => e.action === "settings.retention",
+      ),
+    ).toHaveLength(4);
+  });
+
+  it("is read and changed by root only", async () => {
+    const someone: CurrentUser = {
+      id: "x",
+      email: "x@example.com",
+      name: "X",
+      role: "user",
+      workspaces: {},
+    };
+    for (const user of [someone, null]) {
+      await expect(
+        setRetention(deps, { user, ip: null }, { ipDays: 10, sessionsDays: 10 }),
+      ).rejects.toThrow(ForbiddenError);
+      await expect(instanceSettings(deps, { user, ip: null })).rejects.toThrow(ForbiddenError);
+    }
+    expect(await retentionPolicy(deps)).toEqual({ ipDays: 90, sessionsDays: 90 });
+  });
+
+  it("reads a stored value outside the range as the default", async () => {
+    await deps.repo.set("retention_ip_days", "0", null, at);
+    await deps.repo.set("retention_sessions_days", "nonsense", null, at);
+    expect(await retentionPolicy(deps)).toEqual({ ipDays: 90, sessionsDays: 90 });
   });
 });

@@ -368,6 +368,12 @@ export const HELP = {
       "When they've lost their phone and their backup codes. They sign in with their password alone, then set two-factor up again on their Account page, at once if it's required of them. A root who lost theirs and has no other root to ask runs reset-root-password on the server, which resets it too.",
     href: docsHref("admin", "users"),
   },
+  retention: {
+    question: "What is purged, and when?",
+    answer:
+      "After the IP retention: the client address on audit events, sessions and rmk login approvals, and the email typed in a failed sign-in. After the sessions retention: expired sessions and finished login approvals are deleted. Audit events themselves are never deleted. A purge runs every six hours, or from rmk-server purge.",
+    href: docsHref("privacy", "retention"),
+  },
   "usage-policy": {
     question: "What does rmk report?",
     answer:

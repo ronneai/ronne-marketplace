@@ -100,7 +100,7 @@ describe("the migration lock on MySQL and MariaDB (099)", () => {
             });
             // This database: held, as another connection sees.
             const { rows } = await sql<{ held: number | null }>`
-              select is_used_lock(concat('ronne-migration:', sha1(lower(database())))) as held`.execute(
+              select is_used_lock(concat('ronne-migration:', left(sha2(lower(database()), 256), 40))) as held`.execute(
               first.db,
             );
             expect(rows[0]?.held).not.toBeNull();

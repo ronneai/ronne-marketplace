@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { IdentityError } from "@/server/domains/identity/exceptions/errors";
 import {
   setPasswordSignInPolicy,
+  setRetention,
   setTwoFactorPolicy,
   setUsageMinimum,
   setUsagePolicy,
@@ -53,6 +54,24 @@ export const saveTwoFactorPolicy = serverAction(
       );
       revalidatePath("/admin/settings");
       return { done: changed ? "Two-factor sign-in saved." : "Nothing changed." };
+    } catch (error) {
+      if (error instanceof SettingsError || error instanceof IdentityError)
+        return { error: error.message };
+      throw error;
+    }
+  },
+);
+
+/** Saves how long personal data is kept (102), turning domain errors into the form's `ERR:` line. */
+export const saveRetention = serverAction(
+  async (_previous: SettingsActionState, form: FormData): Promise<SettingsActionState> => {
+    try {
+      const { changed } = await setRetention(await requestHeaders(), {
+        ipDays: form.get("ipDays"),
+        sessionsDays: form.get("sessionsDays"),
+      });
+      revalidatePath("/admin/settings");
+      return { done: changed ? "Retention saved." : "Nothing changed." };
     } catch (error) {
       if (error instanceof SettingsError || error instanceof IdentityError)
         return { error: error.message };

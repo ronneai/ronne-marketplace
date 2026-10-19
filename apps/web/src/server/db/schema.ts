@@ -496,6 +496,15 @@ export interface PluginFeedTable {
   warned_revision: number | null;
 }
 
+/** A scheduled job's row (102): its lease while a run holds it, and its last run. */
+export interface JobTable {
+  name: string;
+  lease_holder: string | null;
+  lease_ends_at: Timestamp | null;
+  last_run_at: Timestamp | null;
+  last_result: string | null;
+}
+
 /**
  * An item's old full name (migration 0022_workspace_in_names, feature 118): one it answered to before
  * a move or a rename, canonical (`@scope/name` in `global`). Reserved: no other item takes it.
@@ -518,6 +527,7 @@ export interface Database {
   access_tokens: AccessTokenTable;
   device_grants: DeviceGrantTable;
   audit_log: AuditLogTable;
+  jobs: JobTable;
   workspaces: WorkspaceTable;
   workspace_members: WorkspaceMemberTable;
   identity_providers: IdentityProviderTable;
