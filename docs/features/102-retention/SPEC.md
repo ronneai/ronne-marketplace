@@ -165,7 +165,8 @@ run's line under it. The tab strip (122) scrolls sideways.
 - **Backups** (`backups#backup`): one sentence that a backup holds what the database held, and
   to keep it no longer than the retention.
 - **The install guide** (`docs/runbooks/install.md`): `RONNE_JOBS` in the settings table and
-  `purge` in the commands table.
+  `purge` in the "After installing" section, beside the backup command, in each way of installing
+  (the Docker image's `pnpm` stand-in, `docker/pnpm`, takes `purge` too).
 - **`apps/web/.env.example`:** `RONNE_JOBS`, commented.
 - **Helpers:** `retention` on the Retention panel's heading → `privacy#retention`.
 - **MVP §15:** the decision "Scheduled jobs run in the server, under a lease in a `jobs` table,
@@ -173,23 +174,23 @@ run's line under it. The tab strip (122) scrolls sideways.
 
 ## Acceptance criteria
 
-- [ ] Root sets both retentions on the Privacy tab, within 1–3,650 days; an invalid value is
+- [x] Root sets both retentions on the Privacy tab, within 1–3,650 days; an invalid value is
       refused; a save is audited with the old and new values; nobody else sees the tab (404).
-- [ ] A purge clears IP addresses in the audit log, sessions and device grants, the typed emails
+- [x] A purge clears IP addresses in the audit log, sessions and device grants, the typed emails
       of failed sign-ins, and deletes expired sessions and finished device grants, exactly by the
       table's rules, and nothing else: a test seeds each table with rows one second inside and
       outside each boundary, on SQLite and on the three servers.
-- [ ] A purge run twice changes nothing the second time, and a run interrupted after one batch
+- [x] A purge run twice changes nothing the second time, and a run interrupted after one batch
       leaves the rest for the next.
-- [ ] Two runs started at once (two processes against one database) do the work once: one claims
+- [x] Two runs started at once (two processes against one database) do the work once: one claims
       the lease and the other logs `job.skipped`; a lease older than 15 minutes is taken over.
-- [ ] The server runs the purge 5 minutes after start and every 6 hours; `RONNE_JOBS=off` stops it;
+- [x] The server runs the purge 5 minutes after start and every 6 hours; `RONNE_JOBS=off` stops it;
       before setup nothing runs.
-- [ ] `rmk-server purge` runs the same purge, prints the counts, honours `--dry-run`, and refuses
+- [x] `rmk-server purge` runs the same purge, prints the counts, honours `--dry-run`, and refuses
       with exit 1 when the lease is held.
-- [ ] The Privacy tab shows the last run's time and counts, or that none has run.
-- [ ] The log lines and the metric are written as the spec says; no line carries an IP or an email.
-- [ ] The Documentation and inline helpers listed above say what the feature does now.
+- [x] The Privacy tab shows the last run's time and counts, or that none has run.
+- [x] The log lines and the metric are written as the spec says; no line carries an IP or an email.
+- [x] The Documentation and inline helpers listed above say what the feature does now.
 
 ## Decisions
 

@@ -50,7 +50,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* component tests cover the three states; an e2e test sets a retention, runs
   `rmk-server purge` against the test instance and sees the counts on the tab.
 
-- [ ] **6. Documentation.** In `../ronne-web`: the **Privacy** topic with **Retention** (both
+- [x] **6. Documentation.** In `../ronne-web`: the **Privacy** topic with **Retention** (both
   `topics.ts`), the Settings tabs line, the Backups sentence, in English, Portuguese and French;
   here, the install guide (`RONNE_JOBS`, `purge`), `.env.example`, the `retention` helper, MVP §15's
   decision, and this feature's index row set to done.
@@ -152,6 +152,19 @@ goes into `SPEC.md` instead.
   `audit.e2e.ts`'s root test (root signs in once per file, `e2e-sign-in-limit.md`): it saves a
   retention, runs `scripts/purge.ts` against the instance under test (`RONNE_E2E_INSTANCE`, as
   106's `disable-sso` check does) and sees the run on the tab and the audit event.
+- Task 6: the Documentation went in `../ronne-web` on the branch `docs/marketplace-102-retention`
+  (commit there, not pushed): the Privacy topic with Retention (both `topics.ts`, in the Running
+  Ronne group), the fourth tab in Administration › Settings, the backups sentence, the `job.*`
+  rows in the Logs events table and `ronne.job.duration` in Monitoring, in English, Portuguese and
+  French; the website's `docs.test.ts` checks every locale has every topic and section. Here, the
+  install guide and `.env.example` came with task 4, the helper with task 1, and MVP §15 gained the
+  Scheduled jobs row. The website's topics differ from the app's `topics.ts` in one way that isn't
+  this feature's: Authentication is four topics there since ronne-web #56 and one here.
+- Task 6: the Docker image has no pnpm; `docker/pnpm` is a stand-in with one case per documented
+  command, and `purge` had to be added to it for `docker compose exec web pnpm run purge` to
+  work (the blind pass tried it). A new terminal command touches five registries: `SCRIPTS` in
+  `packages/server/src/cli.ts`, its `--help`, `service/control.ts`, `tsdown.config.ts`,
+  `apps/web/package.json`, and this stand-in.
 - Task 1 also fixed three lint errors that weren't this task's (owner, 2026-10-18): two
   `noUselessFragments` (`DependencyMarks.tsx`, `ToolsPanel.tsx`) and `biome.json`'s schema
   version, which the installed Biome 2.5.15 reported while CI on `main` stayed green; why the two
