@@ -16,6 +16,12 @@ export const AUDIT_ACTIONS = [
   "instance.auth_provider_deleted",
   "instance.auth_provider_enabled",
   "instance.auth_provider_disabled",
+  "instance.scim_enabled",
+  "instance.scim_disabled",
+  "instance.scim_token_created",
+  "instance.scim_token_rotated",
+  "instance.scim_token_revoked",
+  "scim.request_refused",
   "instance.password_sign_in_changed",
   "user.password_reset",
   "auth.signed_in",
@@ -34,6 +40,8 @@ export const AUDIT_ACTIONS = [
   "auth.device_expired",
   "user.two_factor_reset",
   "user.created",
+  "user.updated",
+  "user.scim_adopted",
   "user.sso_linked",
   "user.role_changed",
   "user.disabled",
@@ -95,6 +103,7 @@ export const AUDIT_ACTION_GROUPS = [
   "dist_tag",
   "settings",
   "instance",
+  "scim",
 ] as const;
 export type AuditActionGroup = (typeof AUDIT_ACTION_GROUPS)[number];
 

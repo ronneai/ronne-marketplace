@@ -451,11 +451,35 @@ export const kyselyIdentityRepository = (
     },
 
     async setPassword(userId, passwordHash, now) {
-      await db
+      await forUpdate(
+        db.selectFrom("user").select("id").where("id", "=", userId),
+        dialect,
+      ).execute();
+      const updated = await db
         .updateTable("account")
         .set({ password: passwordHash, updated_at: at(now) })
         .where("user_id", "=", userId)
         .where("provider_id", "=", CREDENTIAL_PROVIDER)
+        .executeTakeFirst();
+      if (Number(updated.numUpdatedRows) > 0) return;
+      // No password yet: the row Better Auth writes for email and password accounts.
+      await db
+        .insertInto("account")
+        .values({
+          id: newId(),
+          account_id: userId,
+          provider_id: CREDENTIAL_PROVIDER,
+          user_id: userId,
+          access_token: null,
+          refresh_token: null,
+          id_token: null,
+          access_token_expires_at: null,
+          refresh_token_expires_at: null,
+          scope: null,
+          password: passwordHash,
+          created_at: at(now),
+          updated_at: at(now),
+        })
         .execute();
     },
 
@@ -560,6 +584,26 @@ export const kyselyIdentityRepository = (
     async deleteAllSessions() {
       const result = await db.deleteFrom("session").executeTakeFirst();
       return Number(result.numDeletedRows);
+    },
+
+    async countAllScimTokens(now) {
+      const row = await db
+        .selectFrom("scim_tokens")
+        .select((eb) => eb.fn.countAll<number | string | bigint>().as("n"))
+        .where("revoked_at", "is", null)
+        .where((eb) => eb.or([eb("expires_at", "is", null), eb("expires_at", ">", at(now))]))
+        .executeTakeFirstOrThrow();
+      return Number(row.n);
+    },
+
+    async revokeAllScimTokens(now) {
+      const result = await db
+        .updateTable("scim_tokens")
+        .set({ revoked_at: at(now) })
+        .where("revoked_at", "is", null)
+        .where((eb) => eb.or([eb("expires_at", "is", null), eb("expires_at", ">", at(now))]))
+        .executeTakeFirst();
+      return Number(result.numUpdatedRows);
     },
 
     async revokeAllAccessTokens(now) {

@@ -3,10 +3,12 @@ import { notFound } from "next/navigation";
 import { Notice } from "@/components/ui/Notice";
 import { Panel } from "@/components/ui/Panel";
 import { providerPage } from "@/server/domains/identity/actions/identity-providers";
+import { scimPanel } from "@/server/domains/identity/actions/scim-settings";
 import { ProviderNotFoundError } from "@/server/domains/identity/exceptions/errors";
 import { requestHeaders } from "@/server/http/request-headers";
 import { ProviderControls } from "./ProviderControls";
 import { ProviderForm } from "./ProviderForm";
+import { ScimSection } from "./ScimSection";
 
 const TEST_NOTICES: Record<string, string> = {
   done: "Your Test sign-in finished: its result is below.",
@@ -54,6 +56,9 @@ export const ProviderPage = async ({
     throw error;
   }
   const { provider } = data;
+  // Provisioning (SCIM, 108) for a saved provider; dates go to the client as ISO strings.
+  const scim = provider ? await scimPanel(await requestHeaders(), provider.id) : null;
+  const iso = (date: Date | null) => (date ? date.toISOString() : null);
   return (
     <>
       <div>
@@ -95,6 +100,24 @@ export const ProviderPage = async ({
             canEnable={data.canEnable}
             lastTest={data.lastTest}
             workspaceNames={Object.fromEntries(data.workspaces.map((w) => [w.id, w.name]))}
+          />
+        </Panel>
+      ) : null}
+      {provider && scim ? (
+        <Panel padding="lg">
+          <ScimSection
+            id={provider.id}
+            name={provider.name}
+            preset={provider.preset}
+            enabledAt={iso(scim.enabledAt)}
+            base={scim.base}
+            tokens={scim.tokens.map((t) => ({
+              id: t.id,
+              createdAt: t.createdAt.toISOString(),
+              createdBy: t.createdBy,
+              expiresAt: iso(t.expiresAt),
+              lastUsedAt: iso(t.lastUsedAt),
+            }))}
           />
         </Panel>
       ) : null}

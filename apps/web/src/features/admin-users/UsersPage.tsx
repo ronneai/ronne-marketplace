@@ -106,6 +106,33 @@ const RoleCell = ({
   return editor ? editor(content) : content;
 };
 
+/**
+ * The account's SCIM link (108): *Managed by* while the provider's SCIM manages it, *Adopted by*
+ * when SCIM took over an account the provider already signed in to, *Deprovisioned by* after its
+ * DELETE. Erase (103) will join the deprovisioned badge once it exists.
+ */
+export const ScimBadges = ({ user }: { user: UserSummary }) => {
+  const scim = user.scim;
+  if (!scim) return null;
+  return (
+    <span className="flex flex-wrap items-center gap-1">
+      {scim.managed ? <Badge>Managed by {scim.providerName}</Badge> : null}
+      {scim.managed && scim.adoptedAt ? (
+        <Badge>
+          Adopted by {scim.providerName} on&nbsp;
+          <LocalTime value={scim.adoptedAt} precision="day" />
+        </Badge>
+      ) : null}
+      {scim.deprovisionedAt ? (
+        <Badge tone="warning">
+          Deprovisioned by {scim.providerName} on&nbsp;
+          <LocalTime value={scim.deprovisionedAt} precision="day" />
+        </Badge>
+      ) : null}
+    </span>
+  );
+};
+
 const columns = (
   actions?: (user: UserSummary) => ReactNode,
   workspaces?: (user: UserSummary, content: ReactNode) => ReactNode,
@@ -131,11 +158,15 @@ const columns = (
     id: "role",
     header: "Role",
     className: "w-56",
+    // The SCIM badges go here, under the role, so phones show them too (the Status column doesn't).
     render: (user) => (
-      <RoleCell
-        user={user}
-        editor={workspaces ? (content) => workspaces(user, content) : undefined}
-      />
+      <span className="grid justify-items-start gap-1">
+        <RoleCell
+          user={user}
+          editor={workspaces ? (content) => workspaces(user, content) : undefined}
+        />
+        <ScimBadges user={user} />
+      </span>
     ),
   },
   {

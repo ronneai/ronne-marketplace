@@ -130,8 +130,9 @@ export const signInWithProvider = async (
   const attempt = () =>
     repo.transaction(async (trx): Promise<SsoOutcome> => {
       const outcome = await decide(trx);
-      // The groups, in the same transaction; never for root (nothing from a claim changes root).
-      if (outcome.ok && !outcome.root)
+      // The groups, in the same transaction; never for root (nothing from a claim changes root),
+      // and not while SCIM is on for the provider: its groups come through SCIM then (108).
+      if (outcome.ok && !outcome.root && !(await trx.scimEnabled(provider.id)))
         await applyGroups(trx, {
           providerId: provider.id,
           user: { id: outcome.userId, email: outcome.email },

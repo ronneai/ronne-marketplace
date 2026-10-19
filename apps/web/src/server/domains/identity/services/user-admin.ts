@@ -98,6 +98,26 @@ const keepAnActiveRoot = async (repo: IdentityRepository): Promise<void> => {
   if ((await repo.countActiveRoots()) === 0) throw new LastRootError();
 };
 
+/**
+ * What disabling an account does, in the caller's transaction, after the row is set: keeps an
+ * enabled root (059), ends the sessions, revokes the tokens and cancels the requests to join (094).
+ * Returns the counts for the event. Disable user (root) and SCIM deprovisioning (108) share it, so
+ * both end access the same way.
+ */
+export const disableAccount = async (
+  repo: IdentityRepository,
+  userId: string,
+  at: Date,
+): Promise<Record<string, number>> => {
+  await repo.disableUser(userId, at);
+  await keepAnActiveRoot(repo);
+  const sessionsEnded = await repo.deleteSessions(userId);
+  const tokensRevoked = await repo.revokeAccessTokens(userId, at);
+  // Their requests to join go with them (094); the event counts them when there were any.
+  const requestsCancelled = await repo.cancelAccessRequests(userId, at);
+  return { sessionsEnded, tokensRevoked, ...(requestsCancelled > 0 ? { requestsCancelled } : {}) };
+};
+
 /** Loads the target and refuses the actor's own row: another root changes it (059). */
 const loadTarget = async (
   repo: IdentityRepository,
@@ -190,22 +210,13 @@ export const disableUser = async (
     await lockAndRecheckActor(repo, actor);
     const target = await loadTarget(repo, actor, userId);
     if (target.disabledAt) return;
-    await repo.disableUser(userId, at);
-    await keepAnActiveRoot(repo);
-    const sessionsEnded = await repo.deleteSessions(userId);
-    const tokensRevoked = await repo.revokeAccessTokens(userId, at);
-    // Their requests to join go with them (094); the event counts them when there were any.
-    const requestsCancelled = await repo.cancelAccessRequests(userId, at);
+    const ended = await disableAccount(repo, userId, at);
     await repo.recordAudit(
       {
         actorId: actor.user?.id ?? null,
         action: "user.disabled",
         target: { type: "user", id: userId },
-        metadata: {
-          sessionsEnded,
-          tokensRevoked,
-          ...(requestsCancelled > 0 ? { requestsCancelled } : {}),
-        },
+        metadata: ended,
         ipAddress: actor.ip,
       },
       at,

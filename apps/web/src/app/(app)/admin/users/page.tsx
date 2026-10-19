@@ -52,6 +52,7 @@ const Users = async ({ searchParams }: { searchParams: Promise<SearchParams> }) 
             disabled: Boolean(user.disabledAt),
             twoFactor: Boolean(user.twoFactor),
             self: user.id === me.id,
+            managedBy: user.scim?.managed ? user.scim.providerName : undefined,
           }}
         />
       )}

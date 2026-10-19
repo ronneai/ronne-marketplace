@@ -4,6 +4,7 @@ import { type AppAuth, getAppAuth } from "../repositories/auth-instance";
 import type { UserPageQuery } from "../repositories/identity-repository";
 import { kyselyIdentityRepository } from "../repositories/kysely-identity-repository";
 import * as service from "../services/user-admin";
+import { scimAccountStates } from "./scim-settings";
 import { getCurrentUser } from "./session";
 
 export type { NewUserInput, UsersPage } from "../services/user-admin";
@@ -25,7 +26,20 @@ export const adminListUsers = async (
   query: Partial<UserPageQuery>,
   app: AppAuth = getAppAuth(),
 ) => {
-  return service.listUsers(deps(app), await actor(headers, app), query);
+  const page = await service.listUsers(deps(app), await actor(headers, app), query);
+  // Each row's SCIM link (108), for the *Managed by* and *Deprovisioned by* badges.
+  const states = await scimAccountStates(
+    headers,
+    page.users.map((u) => u.id),
+    app,
+  );
+  return {
+    ...page,
+    users: page.users.map((u) => {
+      const scim = states.get(u.id);
+      return scim ? { ...u, scim } : u;
+    }),
+  };
 };
 
 export const adminCreateUser = async (

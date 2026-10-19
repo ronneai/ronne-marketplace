@@ -97,7 +97,7 @@ export const ssoFlow = async ({
     await expect(page.getByText("Secret saved")).toBeVisible();
 
     // Can't turn on before the test; Test connection, then Test sign-in in a new tab.
-    await expect(page.getByRole("button", { name: "Turn on" })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Turn on", exact: true })).toBeDisabled();
     await page.getByRole("button", { name: "Test connection" }).click();
     await expect(page.getByText("The connection works.")).toBeVisible();
     const [popup] = await Promise.all([
@@ -114,8 +114,8 @@ export const ssoFlow = async ({
     await expect(page.getByText(ANN)).toHaveCount(0);
 
     await page.goto(`/admin/settings?tab=authentication&provider=${ID}`);
-    await page.getByRole("button", { name: "Turn on" }).click();
-    await expect(page.getByRole("button", { name: "Turn off" })).toBeVisible();
+    await page.getByRole("button", { name: "Turn on", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Turn off", exact: true })).toBeVisible();
 
     // A new person signs in with it: created, and the group gives them moderator in the workspace.
     const ann = await signedOut(browser, baseURL);

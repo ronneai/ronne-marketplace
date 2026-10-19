@@ -11,13 +11,20 @@ import {
   updateProvider,
 } from "@/server/domains/identity/actions/identity-providers";
 import {
+  generateScimToken,
+  revokeScimToken,
+  rotateScimToken,
+  turnOffScim,
+  turnOnScim,
+} from "@/server/domains/identity/actions/scim-settings";
+import {
   IdentityError,
   InvalidProviderConfigError,
   StaleProviderError,
 } from "@/server/domains/identity/exceptions/errors";
 import { requestHeaders } from "@/server/http/request-headers";
 import { serverAction } from "@/server/http/server-action";
-import type { ConnectionTestState, ProviderFormState } from "./types";
+import type { ConnectionTestState, ProviderFormState, ScimActionState } from "./types";
 
 /** The provider's page in Admin › Settings › Authentication. */
 const page = (id?: string) =>
@@ -113,4 +120,47 @@ export const disableProviderFromForm = providerAction(
 export const deleteProviderFromForm = providerAction(
   (headers, id) => deleteProvider(headers, id),
   () => page(),
+);
+
+/**
+ * SCIM (108): Turn on, Turn off, Generate, Rotate and Revoke. Generate and Rotate answer with the
+ * new token, shown once; the others go back to the page.
+ */
+const scimAction = (run: (headers: Headers, id: string) => Promise<unknown>) =>
+  serverAction(async (_previous: ScimActionState, form: FormData): Promise<ScimActionState> => {
+    const id = text(form, "id");
+    try {
+      await run(await requestHeaders(), id);
+    } catch (error) {
+      if (error instanceof IdentityError) return { error: error.message };
+      throw error;
+    }
+    revalidatePath("/admin/settings");
+    redirect(page(id));
+  });
+
+export const turnOnScimFromForm = scimAction((headers, id) => turnOnScim(headers, id));
+export const turnOffScimFromForm = scimAction((headers, id) => turnOffScim(headers, id));
+export const revokeScimFromForm = scimAction((headers, id) => revokeScimToken(headers, id));
+
+export const generateScimFromForm = serverAction(
+  async (_previous: ScimActionState, form: FormData): Promise<ScimActionState> => {
+    const id = text(form, "id");
+    try {
+      if (form.get("rotate") === "yes") {
+        const rotated = await rotateScimToken(await requestHeaders(), id);
+        revalidatePath("/admin/settings");
+        return {
+          token: rotated.token,
+          previousExpiresAt: rotated.previousExpiresAt.toISOString(),
+        };
+      }
+      const made = await generateScimToken(await requestHeaders(), id);
+      revalidatePath("/admin/settings");
+      return { token: made.token };
+    } catch (error) {
+      if (error instanceof IdentityError) return { error: error.message };
+      throw error;
+    }
+  },
 );

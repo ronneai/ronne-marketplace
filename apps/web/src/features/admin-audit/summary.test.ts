@@ -29,6 +29,53 @@ describe("audit summaries (060)", () => {
     }
   });
 
+  it("counts the SCIM tokens everyone's revoked access took, and says SCIM was turned off from the command line (108)", () => {
+    expect(
+      line("instance.access_revoked", {
+        scope: "everyone",
+        sessionsEnded: 0,
+        tokensRevoked: 0,
+        scimTokensRevoked: 2,
+        via: "cli",
+      }),
+    ).toBe("Revoked everyone's access (2 SCIM tokens revoked) from the command line");
+    expect(
+      line("instance.access_revoked", {
+        scope: "everyone",
+        sessionsEnded: 3,
+        tokensRevoked: 1,
+        scimTokensRevoked: 1,
+        via: "cli",
+      }),
+    ).toBe(
+      "Revoked everyone's access (3 sessions ended, 1 token revoked, 1 SCIM token revoked) from the command line",
+    );
+    expect(
+      line("instance.access_revoked", {
+        scope: "everyone",
+        sessionsEnded: 0,
+        tokensRevoked: 0,
+        via: "cli",
+      }),
+    ).toBe("Revoked everyone's access (nothing left) from the command line");
+    expect(line("instance.scim_disabled", { provider: "acme", via: "cli" })).toBe(
+      "Turned off SCIM for acme from the command line",
+    );
+    expect(line("instance.scim_disabled", { provider: "acme" })).toBe("Turned off SCIM for acme");
+  });
+
+  it("says why a SCIM request was refused, and whose token it was (108)", () => {
+    expect(line("scim.request_refused", { reason: "revoked", provider: "acme" })).toBe(
+      "Refused a SCIM request: a revoked token (acme)",
+    );
+    expect(line("scim.request_refused", { reason: "root_member", provider: "acme" })).toBe(
+      "Refused a SCIM request: a group named a root account as a member, which was left out (acme)",
+    );
+    expect(line("scim.request_refused", { reason: "missing" })).toBe(
+      "Refused a SCIM request: no bearer token",
+    );
+  });
+
   it("reads as sentences from what each event records", () => {
     expect(line("auth.signed_in", { remember: true })).toBe("Signed in (remembered for 30 days)");
     expect(line("auth.sign_in_failed", { email: "alex@example.com", reason: "invalid" })).toBe(

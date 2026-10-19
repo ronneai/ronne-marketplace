@@ -51,6 +51,9 @@ export const isSecretKey = (key: string): boolean => {
  */
 const ACCESS_TOKEN = /rmk_[A-Za-z0-9_-]{43,}/g;
 
+/** A SCIM bearer token (feature 108): `scim_` and 43 base64url characters, the same way. */
+const SCIM_TOKEN = /scim_[A-Za-z0-9_-]{43,}/g;
+
 /**
  * Every URL password hidden, by `redactDatabaseUrl`'s own rule: after a `://`, a user name up to the
  * first `:` or `/` (an `@` in it, as Azure's `admin@server`, stays part of it); from that `:`, the
@@ -253,7 +256,11 @@ export const redactString = (value: string): string => {
   // item's name (`@scope/name`) in the value would otherwise move past the value's opening quote.
   const clean = hideEmails(
     hidePaths(
-      redactUrlPasswords(hideDuplicateValues(value.replace(ACCESS_TOKEN, "rmk_[redacted]"))),
+      redactUrlPasswords(
+        hideDuplicateValues(
+          value.replace(ACCESS_TOKEN, "rmk_[redacted]").replace(SCIM_TOKEN, "scim_[redacted]"),
+        ),
+      ),
     ),
   );
   return clean.length > MAX_STRING ? `${clean.slice(0, MAX_STRING)}…` : clean;

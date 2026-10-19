@@ -9,9 +9,10 @@ import { decryptSecret } from "../repositories/provider-secrets";
 
 /**
  * `rmk-server disable-sso` (106): for when a provider breaks or can't be trusted. Turns every
- * identity provider off and sets password sign-in back to *Everyone*, so everyone with a password
- * can sign in again; each change audited as the command line's (`via: "cli"`). Links, group
- * memberships and the providers' settings stay, to turn back on later.
+ * identity provider off, and its SCIM provisioning (108), and sets password sign-in back to
+ * *Everyone*, so everyone with a password can sign in again; each change audited as the command
+ * line's (`via: "cli"`). Links, group memberships, SCIM tokens and the providers' settings stay,
+ * to turn back on later.
  */
 export const ssoToDisable = async (db: Db, dialect: DatabaseDialect) => {
   const enabled = await db
@@ -20,16 +21,22 @@ export const ssoToDisable = async (db: Db, dialect: DatabaseDialect) => {
     .where("enabled", "=", toDbBoolean(true, dialect))
     .orderBy("id")
     .execute();
+  const scim = await db
+    .selectFrom("identity_providers")
+    .select("id")
+    .where("scim_enabled_at", "is not", null)
+    .orderBy("id")
+    .execute();
   const policy = await passwordSignInPolicy({ repo: kyselySettingsRepository(db, dialect) });
-  return { providers: enabled.map((p) => p.id), policy };
+  return { providers: enabled.map((p) => p.id), scim: scim.map((p) => p.id), policy };
 };
 
 export const disableSso = async (
   db: Db,
   dialect: DatabaseDialect,
-): Promise<{ providers: string[]; policyChanged: boolean }> => {
+): Promise<{ providers: string[]; scim: string[]; policyChanged: boolean }> => {
   const now = new Date();
-  const providers = await kyselyIdentityProviderRepository(db, dialect).transaction(
+  const { providers, scim } = await kyselyIdentityProviderRepository(db, dialect).transaction(
     async (repo) => {
       const ids = await repo.disableAll(now);
       for (const provider of ids)
@@ -42,7 +49,19 @@ export const disableSso = async (
           },
           now,
         );
-      return ids;
+      // SCIM too (108): a provider that can't be trusted mustn't create or change accounts.
+      const scimIds = await repo.disableAllScim(now);
+      for (const provider of scimIds)
+        await repo.recordAudit(
+          {
+            actorId: null,
+            action: "instance.scim_disabled",
+            target: { type: "instance" },
+            metadata: { provider, via: "cli" },
+          },
+          now,
+        );
+      return { providers: ids, scim: scimIds };
     },
   );
   const { changed } = await setPasswordSignInPolicy(
@@ -51,7 +70,7 @@ export const disableSso = async (
     "everyone",
     { usableProvider: async () => false, confirmed: true },
   );
-  return { providers, policyChanged: changed };
+  return { providers, scim, policyChanged: changed };
 };
 
 /**

@@ -79,6 +79,10 @@ export interface IdentityRepository {
     user: Omit<NewUserWithPassword, "passwordHash">,
     now: Date,
   ): Promise<string>;
+  /**
+   * Sets the user's password, adding the password row when they have none (an account made by a
+   * provider's sign-in, 106, or by SCIM, 108). Locks the user first: two at once add one row.
+   */
   setPassword(userId: string, passwordHash: string, now: Date): Promise<void>;
   enableUser(userId: string, now: Date): Promise<void>;
   /** Whether an email belongs to an active or a disabled user, or to nobody. For audit reasons only. */
@@ -98,6 +102,10 @@ export interface IdentityRepository {
   deleteAllSessions(): Promise<number>;
   /** Revokes every token not revoked yet, everyone's; returns how many. */
   revokeAllAccessTokens(now: Date): Promise<number>;
+  /** Every identity provider's SCIM tokens that still work at `now` (108), for `revoke-access`. */
+  countAllScimTokens(now: Date): Promise<number>;
+  /** Revokes them all; returns how many. */
+  revokeAllScimTokens(now: Date): Promise<number>;
   /** Cancels the user's open requests to join workspaces (094); returns how many. */
   cancelAccessRequests(userId: string, now: Date): Promise<number>;
   /**

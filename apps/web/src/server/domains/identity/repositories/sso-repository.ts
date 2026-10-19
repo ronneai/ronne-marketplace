@@ -29,6 +29,8 @@ export interface SsoRepository {
   ): Promise<{ state: SsoSignInState; startedAt: Date } | null>;
   /** Locks the provider's row, so one sign-in through it decides and writes at a time. */
   lockProvider(providerId: string): Promise<void>;
+  /** Whether SCIM is on for the provider (108): its groups are then SCIM's, not the sign-in's. */
+  scimEnabled(providerId: string): Promise<boolean>;
   /** The user linked to this provider's subject, compared exactly (MySQL's text isn't). */
   findLinkedUser(providerId: string, subject: string): Promise<string | null>;
   /** The subjects of this provider already linked to the user. */

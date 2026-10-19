@@ -36,6 +36,8 @@ const ended = (m: Meta): string => {
   const parts = [
     num(m.sessionsEnded) ? `${plural(num(m.sessionsEnded), "session")} ended` : "",
     num(m.tokensRevoked) ? `${plural(num(m.tokensRevoked), "token")} revoked` : "",
+    // Identity providers' SCIM tokens, with everyone's access (108).
+    num(m.scimTokensRevoked) ? `${plural(num(m.scimTokensRevoked), "SCIM token")} revoked` : "",
     // Their requests to join (094).
     num(m.requestsCancelled)
       ? `${plural(num(m.requestsCancelled), "request")} to join cancelled`
@@ -64,11 +66,20 @@ const moving = (m: Meta): SummaryPart => ({ name: text(m.scope) || "a scope" });
 const renamedAs = (m: Meta): (string | SummaryPart)[] =>
   text(m.newName) && text(m.newName) !== text(m.scope) ? [", as ", { name: text(m.newName) }] : [];
 
-/** A membership a provider's group mapping changed (106). */
+/** A membership a provider's group mapping changed: at sign-in (106) or through SCIM (108). */
 const bySso = (m: Meta): (string | SummaryPart)[] =>
-  m.via === "sso" ? [", through the groups of ", { code: text(m.provider) }] : [];
+  m.via === "sso"
+    ? [", through the groups of ", { code: text(m.provider) }]
+    : m.via === "scim"
+      ? [", through the SCIM groups of ", { code: text(m.provider) }]
+      : [];
 
-const VIA: Record<string, string> = { cli: "from the command line", api: "from rmk", web: "" };
+const VIA: Record<string, string> = {
+  cli: "from the command line",
+  api: "from rmk",
+  web: "",
+  scim: "through SCIM provisioning",
+};
 const via = (m: Meta) => (VIA[text(m.via)] ? ` ${VIA[text(m.via)]}` : "");
 
 const REASONS: Record<string, string> = {
@@ -92,6 +103,18 @@ const expiry = (m: Meta): string => {
 
 /** Who may sign in with a password (106), as the audit log says it. */
 const PASSWORD_SAID: Record<string, string> = { everyone: "everyone", root_only: "root only" };
+
+/** Why a SCIM request was refused (108's guard). */
+const SCIM_REFUSALS: Record<string, string> = {
+  missing: "no bearer token",
+  format: "not a SCIM token",
+  unknown: "an unknown token",
+  revoked: "a revoked token",
+  expired: "a token past its 24 hours after a rotation",
+  scim_off: "SCIM is off for the provider",
+  root: "it named a root account, which Ronne manages",
+  root_member: "a group named a root account as a member, which was left out",
+};
 
 /** Why a sign-in with an identity provider was refused (106), as the audit log says it. */
 const SSO_REASONS: Record<string, string> = {
@@ -184,10 +207,41 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     { code: text(m.provider) },
     m.reason === "retest" ? " (its settings changed, so it needs a new test)" : "",
   ],
+  "instance.scim_enabled": (m) => ["Turned on SCIM for ", { code: text(m.provider) }],
+  "instance.scim_disabled": (m) => ["Turned off SCIM for ", { code: text(m.provider) }, via(m)],
+  "instance.scim_token_created": (m) => ["Made a SCIM token for ", { code: text(m.provider) }],
+  "instance.scim_token_rotated": (m) => [
+    "Rotated the SCIM token of ",
+    { code: text(m.provider) },
+    "; the one before works for 24 more hours",
+  ],
+  "instance.scim_token_revoked": (m) => [
+    num(m.tokens) > 1
+      ? "Revoked the SCIM token, and the one before its rotation, of "
+      : "Revoked the SCIM token of ",
+    { code: text(m.provider) },
+  ],
+  "scim.request_refused": (m) => [
+    `Refused a SCIM request: ${SCIM_REFUSALS[text(m.reason)] ?? text(m.reason)}`,
+    ...(text(m.provider) ? [" (", { code: text(m.provider) }, ")"] : []),
+  ],
   "instance.password_sign_in_changed": (m) => [
     `Changed who may sign in with a password from ${PASSWORD_SAID[text(m.from)] ?? text(m.from)} to ${
       PASSWORD_SAID[text(m.to)] ?? text(m.to)
     }${via(m)}`,
+  ],
+  "user.updated": (m, e) => [
+    `Changed the ${Array.isArray(m.changed) && m.changed.length ? m.changed.map(text).join(" and ") : "details"} of `,
+    who(m, e),
+    `${m.relinked === true ? ", linked again," : ""} through SCIM provisioning by `,
+    { code: text(m.provider) },
+  ],
+  "user.scim_adopted": (m, e) => [
+    "Linked ",
+    who(m, e),
+    " to SCIM provisioning by ",
+    { code: text(m.provider) },
+    ", which manages it from now on",
   ],
   "user.password_reset": (m, e) => [
     "Reset the password of ",

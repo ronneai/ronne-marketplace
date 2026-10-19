@@ -10,6 +10,7 @@ import { LoginRateLimiter } from "../models/login-rate-limiter";
 import type { CurrentUser } from "../models/user";
 import type { AppAuth } from "../repositories/auth-instance";
 import { kyselyIdentityProviderRepository } from "../repositories/kysely-identity-provider-repository";
+import { kyselyScimTokenRepository } from "../repositories/kysely-scim-token-repository";
 import { PROVIDER_TYPES } from "../repositories/provider-type-registry";
 import {
   createProvider,
@@ -20,6 +21,7 @@ import {
   markProviderTested,
   updateProvider,
 } from "../services/identity-providers";
+import { disableScim, enableScim } from "../services/scim-tokens";
 import { type FakeOidc, followAuthorize, startFakeOidc } from "../testing/fake-oidc-server";
 import { createTestUser, testAppAuth } from "../testing/test-auth";
 import { completeSsoSignIn, SSO_STATE_COOKIE, startSsoSignIn } from "./sso";
@@ -322,6 +324,25 @@ describe("groups at sign-in", () => {
       rows.filter((r) => r.workspace_id === eng || r.workspace_id === GLOBAL_WORKSPACE_ID),
     ).toEqual([]);
     expect(await memberEvents()).toEqual([]);
+  });
+
+  it("leaves the groups to SCIM while SCIM is on for the provider (108), and applies them again once it's off", async () => {
+    await setMappings([
+      { group: "engineering", workspaceId: eng, role: "user" },
+      { group: "ops", workspaceId: ops, role: "admin" },
+    ]);
+    fake.user = { ...fake.user, groups: ["engineering"] };
+    await signIn();
+    const scim = { repo: kyselyScimTokenRepository(t.db, t.dialect) };
+    await enableScim(scim, actor(), "acme");
+    // The claim now says ops, but SCIM is the provider's source of groups: nothing changes.
+    fake.user = { ...fake.user, groups: ["ops"] };
+    // Signed in (a session cookie set), whatever the groups say.
+    expect((await signIn()).headers.get("set-cookie")).toContain("ronne.session_token=");
+    expect(await memberships("ana@acme.com")).toEqual({ global: "user", eng: "user (acme)" });
+    await disableScim(scim, actor(), "acme");
+    await signIn();
+    expect(await memberships("ana@acme.com")).toEqual({ global: "user", ops: "admin (acme)" });
   });
 
   it("changes nothing when the provider sends no groups claim (missing isn't 'in no group')", async () => {

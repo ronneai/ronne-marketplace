@@ -231,6 +231,30 @@ export class StaleProviderError extends IdentityError {
   }
 }
 
+/** A SCIM token is made only while SCIM is on for the provider (108). */
+export class ScimOffError extends IdentityError {
+  override readonly name: string = "ScimOffError";
+  constructor() {
+    super("Turn on SCIM for this provider first.");
+  }
+}
+
+/** The provider has a SCIM token already: Rotate makes a new one (108). */
+export class ScimTokenExistsError extends IdentityError {
+  override readonly name: string = "ScimTokenExistsError";
+  constructor() {
+    super("This provider has a SCIM token already. Rotate it to get a new one.");
+  }
+}
+
+/** Rotate needs a current SCIM token (108). */
+export class NoScimTokenError extends IdentityError {
+  override readonly name: string = "NoScimTokenError";
+  constructor() {
+    super("This provider has no SCIM token to rotate. Generate one.");
+  }
+}
+
 /** The stored client secret can't be decrypted: AUTH_SECRET changed, as after a restore. */
 export class ProviderSecretUnreadableError extends IdentityError {
   override readonly name: string = "ProviderSecretUnreadableError";
