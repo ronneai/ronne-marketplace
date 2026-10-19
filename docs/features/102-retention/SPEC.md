@@ -66,10 +66,12 @@ A run, at time *T*, with `ip = retention_ip_days` and `s = retention_sessions_da
 | `session.ip_address`, `session.user_agent` | set to `NULL` on sessions with `created_at < T − ip` days, live or not |
 | `session` | deleted when `expires_at < T − s` days |
 | `device_grants.requester_ip`, `approver_ip` | set to `NULL` when `created_at < T − ip` days |
-| `device_grants` | deleted when not `pending` and `created_at < T − s` days; a `pending` one past its `expires_at` is expired first (107's rule), then deleted when old enough |
+| `device_grants` | deleted when `created_at < T − s` days and the grant is finished: any status but `pending`, or a `pending` one past its `expires_at` (107's sweep would mark it expired on the next `rmk login --web`; a grant lives 10 minutes and the retention is a day or more, so nothing is left to audit) |
 
 Nothing else. In particular, no event is deleted, no user row is touched, and no access token is
 deleted (a revoked token's row is the record of the revocation; 103 deletes an erased person's).
+The audit log's insert-only guard (007) names the purge as the one file allowed to update
+`audit_log` rows, with what it may change; nothing deletes one, and no other file may update one.
 
 Each table is purged in batches of 1,000 rows (the oldest first) in their own short transactions,
 so a first run on an old instance never holds a long lock, and a run that is stopped halfway has

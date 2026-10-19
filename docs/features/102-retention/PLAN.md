@@ -18,7 +18,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   event and a non-root (404); the component test covers the panel and its errors; the phone sweep
   passes.
 
-- [ ] **2. The purge.** [risky] `server/jobs/retention-purge.ts`: each table's rule from the spec,
+- [x] **2. The purge.** [risky] `server/jobs/retention-purge.ts`: each table's rule from the spec,
   in batches of 1,000 in their own transactions, through the dialect date helpers, returning the
   counts; a `dryRun` flag that counts and changes nothing.
   *Done when:* a db test seeds each table with a row one second inside and one outside each
@@ -73,6 +73,34 @@ goes into `SPEC.md` instead.
   adds the `jobs` row's last run beside it.
 - Task 1: the `privacy` topic went into `apps/web/src/components/help/topics.ts` with this task,
   so the helper's link is typed; the website's page comes with task 6, in ronne-web.
+- Task 2: the purge takes `(db, dialect, policy, now)` and knows nothing about schedules or
+  leases (task 3's). Each rule selects the ids of its oldest 1,000 matching rows and writes by id,
+  both inside the batch's transaction: on SQLite's one connection a select outside it would wait
+  on it. The email rule is the odd one: the metadata is JSON text, so the `LIKE '%"email":%'`
+  only narrows what's read, and the rows are decoded and rewritten in code. Its pages walk a
+  keyset (`created_at`, `id`) past every row read, changed or not, because the first version
+  stopped on a page that changed nothing and the witnesses showed 1,000 look-alike rows (a nested
+  `email`) would hide a real one for ever; its dry run decodes the same pages, so it counts what a
+  run would change. The app only ever writes a flat `{ email, reason }`, so look-alikes come from a
+  restored backup or a hand edit, but the rule must not depend on that. The walk refuses a page
+  that ends on the row the last one did (an error, never a second read): with better-sqlite3 the
+  loop is synchronous between awaits, so a cursor bug would otherwise spin without ever letting a
+  test's timeout fire, which the adversarial re-check saw (4 minutes, killed by hand).
+- Task 2: 007's guard test (`audit-log.guard.test.ts`) fails on any update or delete of
+  `audit_log` outside the migrations, and the purge is the first code that must update those rows
+  (MVP §15, Personal data: the events stay, the IP and the typed email don't). The guard now has a
+  named allowlist of files that may update, with what each changes, and a test that none of them
+  deletes; 103's erase joins it. The whole-suite run caught it, not the task's own tests: a guard
+  over every file is the kind of shared check a task's test can't see.
+- Task 2: 107's own sweep already deletes finished device grants 24 hours after they expire; the
+  purge's rule (a day or more) only ever finds what that sweep would delete too, so the two agree.
+  A pending grant past `expires_at` counts as finished (SPEC's row changed with this task): nothing
+  is left to audit about a 10-minute code that is days old.
+- Task 2: the test's cutoffs are literal dates (`2026-07-20T12:00Z` for 90 days before
+  `2026-10-18T12:00Z`), never derived from `purgeCutoffs`, and every rule has a row exactly at its
+  cutoff: the first version derived them, so a cutoff an hour off would have passed, and a `<`
+  turned `<=` too. The "oldest first" assertion only bites on PostgreSQL (SQLite and MySQL happen
+  to read the index in that order); the `orderBy` is there regardless.
 - Task 1 also fixed three lint errors that weren't this task's (owner, 2026-10-18): two
   `noUselessFragments` (`DependencyMarks.tsx`, `ToolsPanel.tsx`) and `biome.json`'s schema
   version, which the installed Biome 2.5.15 reported while CI on `main` stayed green; why the two

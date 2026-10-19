@@ -45,8 +45,12 @@ table-level constraint (the 002 rule for MySQL).
 - It validates `action` against the catalogue, and `metadata` against a denylist of secret-looking
   keys (`password`, `token`, `hash`, `secret`). It throws rather than store a secret.
 - **No update or delete** exists anywhere in the code for `audit_log`. A guard test fails if the
-  repository gains one. (A root with direct database access can still change rows: this log is
-  for accountability inside the app, not tamper-proofing. Signing is post-MVP.)
+  repository gains one. One kind of exception, since 102 (MVP §15, Personal data): the files the
+  guard names may update a row's personal data (the retention purge clears an IP address and a
+  failed sign-in's typed email past root's retention; 103's erase replaces an erased person's
+  email with their pseudonym), never delete one, and the guard lists each with what it changes.
+  (A root with direct database access can still change rows: this log is for accountability
+  inside the app, not tamper-proofing. Signing is post-MVP.)
 
 **M1 event catalogue:**
 
