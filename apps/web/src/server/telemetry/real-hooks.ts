@@ -28,6 +28,7 @@ export const realHooks = (): TelemetryHooks => {
   const feedBuilds = meter.createCounter("ronne.feed.builds");
   const feedBuildDuration = meter.createHistogram("ronne.feed.build.duration", { unit: "s" });
   const draftsUploaded = meter.createCounter("ronne.drafts.uploaded");
+  const jobDuration = meter.createHistogram("ronne.job.duration", { unit: "s" });
   const rateLimited = meter.createCounter("ronne.rate_limited");
   const health = new Map<string, number>();
   meter.createObservableGauge("ronne.health").addCallback((result) => {
@@ -131,6 +132,15 @@ export const realHooks = (): TelemetryHooks => {
           return;
         case "draft.uploaded":
           draftsUploaded.add(1, { outcome: "accepted" });
+          return;
+        case "job.finished":
+          jobDuration.record(number(fields.ms) / 1000, { job: String(fields.job), result: "ok" });
+          return;
+        case "job.failed":
+          jobDuration.record(number(fields.ms) / 1000, {
+            job: String(fields.job),
+            result: "failed",
+          });
           return;
         case "draft.upload_refused":
           draftsUploaded.add(1, { outcome: "refused" });

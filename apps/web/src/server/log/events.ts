@@ -116,6 +116,14 @@ export const EVENTS = {
     msg: "Telemetry couldn't reach the collector (at most once a minute)",
     fields: ["signal"],
   },
+  "job.started": { level: "info", msg: "Job started", fields: ["job"] },
+  "job.finished": {
+    level: "info",
+    msg: "Job finished",
+    fields: ["job", "ms", "ipsCleared", "emailsCleared", "sessionsDeleted", "grantsDeleted"],
+  },
+  "job.skipped": { level: "debug", msg: "Job skipped", fields: ["job", "reason"] },
+  "job.failed": { level: "error", msg: "Job failed", fields: ["job", "ms", "err"] },
   "log.level_invalid": {
     level: "warn",
     msg: "LOG_LEVEL isn't one of debug, info, warn or error: using info",

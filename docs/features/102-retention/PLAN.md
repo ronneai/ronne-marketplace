@@ -26,7 +26,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   PostgreSQL, MySQL and MariaDB; a second run changes nothing; a run stopped after the first batch
   (a fake that throws) leaves the rest for the next; `dryRun` changes nothing and counts the same.
 
-- [ ] **3. The lease and the frame.** [risky] The `jobs` migration (all dialects) and
+- [x] **3. The lease and the frame.** [risky] The `jobs` migration (all dialects) and
   `server/jobs/lease.ts`: claim with one conditional `UPDATE`, renew per batch, release at the end,
   15-minute lease; `server/jobs/run-job.ts` wraps a job with the lease, the `job.*` log lines and
   the `ronne.job.duration` metric, and writes `last_run_at` and `last_result`.
@@ -101,6 +101,30 @@ goes into `SPEC.md` instead.
   cutoff: the first version derived them, so a cutoff an hour off would have passed, and a `<`
   turned `<=` too. The "oldest first" assertion only bites on PostgreSQL (SQLite and MySQL happen
   to read the index in that order); the `orderBy` is there regardless.
+- Task 3: the lease is three statements on one row per job (`jobs`): a conditional `UPDATE`
+  claims it when `lease_ends_at` is null or past, a renew moves the end only while the holder
+  still has it, and a release clears it and records the run only for the holder. Nothing else: no
+  advisory lock, no transaction held open, so the three dialects behave the same and a lost
+  connection costs at most the 15-minute lease. The row is made on first use with a plain insert
+  whose unique violation is ignored (two makers at once). The columns are `lease_ends_at` and
+  `lease_holder`, not the spec's first `locked_until`/`locked_by`: a timestamp column must end in
+  `_at` for restore (`docs/knowledge/timestamp-names.md`), and the backup test on the servers
+  checks it.
+- Task 3: `runJob` never throws to its caller: a failure is a `job.failed` line (with the error,
+  through 100's redaction), a `last_result` holding only the error's name (a driver's message can
+  name a host), and a `failed` result; the scheduler (task 4) goes on. A renew that finds the
+  lease gone throws `LeaseLostError` inside the work, so a run that overran its lease stops and
+  the run that took over owns the row. The metric comes from the log line, as 101's others do
+  (`onEvent` in `real-hooks.ts`), so the jobs code imports nothing from OpenTelemetry.
+- Task 3: after both passes were met, two things from their findings went in without a further
+  pass (neither changes behaviour): `JobTable` moved above `ItemAliasTable`'s comment in
+  `schema.ts`, and a test for a release that fails after the work (a Proxy whose `updateTable`
+  throws): `runJob` still resolves `failed`, the lease stays and expires. The adversarial pass's
+  remarks stand as written in `WITNESS.md`: a bare IP in an error's message isn't redacted by 100
+  (only the database host could appear here), and `runJob` spreads whatever counts a job returns
+  (the retention job fixes them to four; 111's jobs should too).
+- Task 3: the lease test needs two connections to one database; the default in-memory SQLite is
+  one connection's own, so on SQLite the test makes a file database of its own and migrates it.
 - Task 1 also fixed three lint errors that weren't this task's (owner, 2026-10-18): two
   `noUselessFragments` (`DependencyMarks.tsx`, `ToolsPanel.tsx`) and `biome.json`'s schema
   version, which the installed Biome 2.5.15 reported while CI on `main` stayed green; why the two

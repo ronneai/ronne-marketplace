@@ -84,11 +84,12 @@ changes nothing the second time.
   runtime, after setup is done; before setup, no database). The purge runs 5 minutes after start,
   then every 6 hours. `RONNE_JOBS=off` turns the in-process scheduler off, for an operator who runs
   `rmk-server purge` from cron instead (the Documentation says when to).
-- **The lock:** a `jobs` table, one row per job name (`retention_purge`), with `locked_until`,
-  `locked_by` (a random id per process), `last_run_at`, `last_result`. A run claims the row with
-  one conditional `UPDATE … WHERE name = ? AND (locked_until IS NULL OR locked_until < now)` and
-  goes on only when it changed one row; the lease is 15 minutes and is renewed every batch; the
-  run releases it at the end. The same statement works on SQLite, PostgreSQL and MySQL/MariaDB
+- **The lock:** a `jobs` table, one row per job name (`retention_purge`), with `lease_ends_at`,
+  `lease_holder` (a random id per run), `last_run_at`, `last_result` (timestamp columns end in
+  `_at`: `docs/knowledge/timestamp-names.md`). A run claims the row with one conditional
+  `UPDATE … WHERE name = ? AND (lease_ends_at IS NULL OR lease_ends_at < now)` and goes on only
+  when it changed one row; the lease is 15 minutes and is renewed every batch; the run releases
+  it at the end. The same statement works on SQLite, PostgreSQL and MySQL/MariaDB
   (no advisory locks, which SQLite doesn't have and a lost connection wouldn't release). A process
   that dies mid-run leaves a lease that expires, and the next run takes over. Two processes or two
   replicas (111) can't run it at once.
