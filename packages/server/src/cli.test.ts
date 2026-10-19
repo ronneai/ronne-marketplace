@@ -77,6 +77,11 @@ describe("rmk-server's arguments (082)", () => {
       script: "rotate-secret",
       args: ["--yes"],
     });
+    expect(parseArgs(["purge", "--dry-run"], {})).toMatchObject({
+      kind: "script",
+      script: "purge",
+      args: ["--dry-run"],
+    });
     expect(parseArgs(["disable-sso", "--yes"], {})).toMatchObject({
       kind: "script",
       script: "disable-sso",

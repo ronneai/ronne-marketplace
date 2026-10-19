@@ -315,6 +315,24 @@ describe("the retention purge (102)", () => {
     ).toHaveLength(0);
   });
 
+  it("reports the run's rows so far across the rules, not each rule's own count", async () => {
+    // 1,005 audit IPs (two batches), then one failed sign-in's email, then one expired session.
+    for (let i = 0; i < PURGE_BATCH + 5; i++) await auditEvent(second(OUTSIDE_IP, -i));
+    await auditEvent(OUTSIDE_IP, {
+      action: "auth.sign_in_failed",
+      ip: null,
+      metadata: { email: "typo@example.com", reason: "invalid" },
+    });
+    await session(OUTSIDE_IP, OUTSIDE_SESSIONS, null);
+    const seen: number[] = [];
+    await runRetentionPurge(t.db, t.dialect, POLICY, NOW, {
+      onBatch: (done) => {
+        seen.push(done);
+      },
+    });
+    expect(seen).toEqual([PURGE_BATCH, PURGE_BATCH + 5, PURGE_BATCH + 6, PURGE_BATCH + 7]);
+  });
+
   it("leaves a failed sign-in whose metadata only looks like it has an email", async () => {
     const nested = await auditEvent(OUTSIDE_IP, {
       action: "auth.sign_in_failed",
@@ -339,6 +357,7 @@ describe("the retention purge (102)", () => {
     for (let i = 0; i < PURGE_BATCH; i++)
       await auditEvent(second(OUTSIDE_IP, -10_000 - i), {
         action: "auth.sign_in_failed",
+        ip: null,
         metadata: { reason: "invalid", detail: { email: "x" } },
       });
     const real: string[] = [];
@@ -346,6 +365,7 @@ describe("the retention purge (102)", () => {
       real.push(
         await auditEvent(second(OUTSIDE_IP, -i), {
           action: "auth.sign_in_failed",
+          ip: null,
           metadata: { email: `typo${i}@example.com`, reason: "invalid" },
         }),
       );
@@ -363,7 +383,7 @@ describe("the retention purge (102)", () => {
     for (const id of real)
       expect(decodeJson((await auditRow(id)).metadata)).toEqual({ reason: "invalid" });
     // The look-alikes filled the first page (no change, no call) and the five came on the second.
-    expect(seen.filter((n) => n <= 5)).toEqual([5]);
+    expect(seen).toEqual([5]);
     expect((await runRetentionPurge(t.db, t.dialect, POLICY, NOW)).emailsCleared).toBe(0);
   });
 
@@ -382,6 +402,7 @@ describe("the retention purge (102)", () => {
       await auditEvent(OUTSIDE_IP, {
         id,
         action: "auth.sign_in_failed",
+        ip: null,
         metadata: real.has(i)
           ? { email: `typo${i}@example.com`, reason: "invalid" }
           : { reason: "invalid", detail: { email: "x" } },
@@ -398,7 +419,7 @@ describe("the retention purge (102)", () => {
     });
     expect(counts.emailsCleared).toBe(5);
     // Three on the first page (0, 500, 999), two on the second (1000, 1004).
-    expect(seen.filter((n) => n <= 5)).toEqual([3, 5]);
+    expect(seen).toEqual([3, 5]);
     for (const i of real)
       expect(decodeJson((await auditRow(ids[i] as string)).metadata)).toEqual({
         reason: "invalid",

@@ -26,6 +26,8 @@ export type AppConfig = {
   logFormat?: string;
   /** Every OTEL_* setting (101), the environment's over the file's; server/telemetry reads them. */
   otel?: Record<string, string>;
+  /** RONNE_JOBS as given (102): `off` turns the in-process scheduler off; server/jobs reads it. */
+  jobs?: string;
 };
 
 /**
@@ -51,6 +53,7 @@ export const loadConfig = (options: { appDir?: string; env?: Env } = {}): AppCon
     trustProxy: value("TRUST_PROXY") === "true",
     logLevel: value("LOG_LEVEL"),
     logFormat: value("LOG_FORMAT"),
+    jobs: value("RONNE_JOBS"),
     otel: Object.fromEntries(
       [...new Set([...Object.keys(file), ...Object.keys(env)])]
         .filter((key) => key.startsWith("OTEL_"))

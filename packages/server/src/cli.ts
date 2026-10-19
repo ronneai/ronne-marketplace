@@ -16,6 +16,7 @@ export const SCRIPTS = [
   "disable-sso",
   "backup",
   "restore",
+  "purge",
 ] as const;
 export type Script = (typeof SCRIPTS)[number];
 
@@ -147,6 +148,8 @@ Usage:
   rmk-server rotate-secret [--yes]
                                   Write a new AUTH_SECRET; everyone signs in again (for incidents)
   rmk-server disable-sso [--yes]  Turn every identity provider off; everyone may use a password again
+  rmk-server purge [--dry-run]    Clear personal data past the retention now (the server does it
+                                  every six hours on its own unless RONNE_JOBS=off)
   rmk-server backup [--out DIR] [--encrypt] [--no-settings] [--keep N]
                                   Make a backup archive while it runs (see rmk-server backup --help)
   rmk-server backup --verify ARCHIVE [--passphrase-file FILE]

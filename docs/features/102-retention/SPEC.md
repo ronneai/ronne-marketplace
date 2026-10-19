@@ -81,8 +81,9 @@ changes nothing the second time.
 ### The scheduled job
 
 - **In the server:** `register()` in `instrumentation.ts` starts the scheduler (only in the Node.js
-  runtime, after setup is done; before setup, no database). The purge runs 5 minutes after start,
-  then every 6 hours. `RONNE_JOBS=off` turns the in-process scheduler off, for an operator who runs
+  runtime). Each tick checks that setup is done and does nothing before it (no database to open),
+  so a setup finished while the server runs is picked up at the next tick. The purge runs 5
+  minutes after start, then every 6 hours. `RONNE_JOBS=off` turns the in-process scheduler off, for an operator who runs
   `rmk-server purge` from cron instead (the Documentation says when to).
 - **The lock:** a `jobs` table, one row per job name (`retention_purge`), with `lease_ends_at`,
   `lease_holder` (a random id per run), `last_run_at`, `last_result` (timestamp columns end in

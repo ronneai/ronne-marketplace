@@ -28,7 +28,10 @@ export type PurgeCounts = {
 export type PurgeOptions = {
   /** Count what a run would do and change nothing. */
   dryRun?: boolean;
-  /** Called after every batch that changed rows (the lease's renewal, a progress line). */
+  /**
+   * Called after every batch that changed rows, with the run's rows changed so far across every
+   * rule (the lease's renewal, a progress line).
+   */
   onBatch?: (done: number) => Promise<void> | void;
 };
 
@@ -303,12 +306,25 @@ export const runRetentionPurge = async (
   options: PurgeOptions = {},
 ): Promise<PurgeCounts> => {
   const cutoff = purgeCutoffs(policy, now);
-  const auditLog = await clearAuditIps(db, dialect, cutoff.ip, options);
-  const emailsCleared = await clearFailedSignInEmails(db, dialect, cutoff.ip, options);
-  const sessions = await clearSessionIps(db, dialect, cutoff.ip, options);
-  const sessionsDeleted = await deleteExpiredSessions(db, dialect, cutoff.sessions, options);
-  const deviceGrants = await clearGrantIps(db, dialect, cutoff.ip, options);
-  const grantsDeleted = await deleteFinishedGrants(db, dialect, cutoff.sessions, now, options);
+  // Each rule counts its own rows from zero; the caller hears the run's total.
+  let before = 0;
+  const rule = async (run: (o: PurgeOptions) => Promise<number>): Promise<number> => {
+    const base = before;
+    const changed = await run({
+      dryRun: options.dryRun,
+      onBatch: options.onBatch && ((done) => options.onBatch?.(base + done)),
+    });
+    before += changed;
+    return changed;
+  };
+  const auditLog = await rule((o) => clearAuditIps(db, dialect, cutoff.ip, o));
+  const emailsCleared = await rule((o) => clearFailedSignInEmails(db, dialect, cutoff.ip, o));
+  const sessions = await rule((o) => clearSessionIps(db, dialect, cutoff.ip, o));
+  const sessionsDeleted = await rule((o) => deleteExpiredSessions(db, dialect, cutoff.sessions, o));
+  const deviceGrants = await rule((o) => clearGrantIps(db, dialect, cutoff.ip, o));
+  const grantsDeleted = await rule((o) =>
+    deleteFinishedGrants(db, dialect, cutoff.sessions, now, o),
+  );
   return {
     ipsCleared: { auditLog, sessions, deviceGrants },
     emailsCleared,

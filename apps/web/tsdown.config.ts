@@ -1,7 +1,8 @@
 import { defineConfig } from "tsdown";
 
 /**
- * The setup, migrate, reset-root-password, revoke-access, rotate-secret, disable-sso, backup and restore commands, compiled to plain JS for the Docker image
+ * The setup, migrate, reset-root-password, revoke-access, rotate-secret, disable-sso, backup,
+ * restore and purge commands, compiled to plain JS for the Docker image
  * (feature 005), which has no dev dependencies and no TypeScript runner. Everything is bundled except
  * the native modules, which ship next to the Next.js standalone output. The output sits one level
  * under the app, like scripts/, so the scripts still find the app folder from their own location.
@@ -21,6 +22,7 @@ export default defineConfig({
     "disable-sso": "scripts/disable-sso.ts",
     backup: "scripts/backup.ts",
     restore: "scripts/restore.ts",
+    purge: "scripts/purge.ts",
     start: "scripts/start.ts",
   },
   outDir: "dist-scripts",

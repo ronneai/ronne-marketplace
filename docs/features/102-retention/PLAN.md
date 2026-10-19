@@ -35,7 +35,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   throws releases nothing but its lease expires; the log lines hold the counts and no IP or email;
   `pnpm test:db` passes on the servers for the migration.
 
-- [ ] **4. The scheduler and the command.** The in-process scheduler started from
+- [x] **4. The scheduler and the command.** The in-process scheduler started from
   `instrumentation.ts` (Node.js runtime, setup done, `RONNE_JOBS` not `off`): 5 minutes after start,
   then every 6 hours, never two overlapping in one process; `apps/web/scripts/purge.ts` and
   `server/setup/purge.ts` (`--dry-run`, the counts, exit codes, the progress line), `purge` in
@@ -125,6 +125,26 @@ goes into `SPEC.md` instead.
   (the retention job fixes them to four; 111's jobs should too).
 - Task 3: the lease test needs two connections to one database; the default in-memory SQLite is
   one connection's own, so on SQLite the test makes a file database of its own and migrates it.
+- Task 4: the scheduler is a chain of `setTimeout`s, not an interval: the next tick is scheduled
+  when a run ends, so one process can't have two runs at once, and the timers are `unref`'d so a
+  stopping server stops. Each tick reads the settings again (`loadConfig`), so a setup done while
+  the server runs is picked up at the next tick with no restart. `startJobsIfOn` keeps its stop
+  function on `globalThis`, as the telemetry hooks and the database pools do, because Next.js can
+  load a module once per bundle. `RONNE_JOBS` is read through `config.ts` like `LOG_LEVEL`, so the
+  settings file works too, and `compose.yaml` passes it from `.env`.
+- Task 4: `rmk-server purge` without `--dry-run` goes through `runRetentionJob`, so it takes the
+  same lease as the scheduler and a held lease is exit 1 with "Another purge is running"; a dry
+  run calls the purge directly with `dryRun`, since it changes nothing and needs no lease. The
+  retention job returns the purge's per-table counts beside the run (`RetentionRun.purge`): the
+  log line and `last_result` carry the four flattened counts, the command prints the per-table
+  ones the spec shows. The command asks nothing (no `--yes`): a purge is routine.
+- Task 4: the purge's `onBatch` carries the run's rows so far across every rule, not each rule's
+  own count: the first version reset per rule, so the command's progress line (every 10,000 rows)
+  went quiet after the first rule, which the blind pass saw with 40,000 seeded rows. The lease
+  renewal doesn't care which number it gets; the progress line does.
+- Task 4: the scheduler starts its timer chain at `register()` and each tick checks setup is
+  done, rather than waiting for setup to start the chain: a setup finished in the browser while
+  the server runs then needs no restart (the spec's wording followed the code).
 - Task 1 also fixed three lint errors that weren't this task's (owner, 2026-10-18): two
   `noUselessFragments` (`DependencyMarks.tsx`, `ToolsPanel.tsx`) and `biome.json`'s schema
   version, which the installed Biome 2.5.15 reported while CI on `main` stayed green; why the two

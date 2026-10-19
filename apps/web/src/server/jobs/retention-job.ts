@@ -15,12 +15,26 @@ export const flattenCounts = (counts: PurgeCounts): JobCounts => ({
   grantsDeleted: counts.grantsDeleted,
 });
 
-export const runRetentionJob = (deps: JobDeps): Promise<JobRun> =>
-  runJob(deps, RETENTION_JOB, async (renew) => {
+/** The run, with the purge's own counts (per table) when it ran: the command prints those. */
+export type RetentionRun = JobRun & { purge?: PurgeCounts };
+
+export const runRetentionJob = async (
+  deps: JobDeps,
+  options: { onBatch?: (done: number) => void } = {},
+): Promise<RetentionRun> => {
+  let purge: PurgeCounts | undefined;
+  const run = await runJob(deps, RETENTION_JOB, async (renew) => {
     const policy = await retentionPolicy({
       repo: kyselySettingsRepository(deps.db, deps.dialect),
     });
     const at = (deps.now ?? (() => new Date()))();
-    const counts = await runRetentionPurge(deps.db, deps.dialect, policy, at, { onBatch: renew });
-    return flattenCounts(counts);
+    purge = await runRetentionPurge(deps.db, deps.dialect, policy, at, {
+      onBatch: async (done) => {
+        await renew();
+        options.onBatch?.(done);
+      },
+    });
+    return flattenCounts(purge);
   });
+  return purge ? { ...run, purge } : run;
+};

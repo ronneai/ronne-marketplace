@@ -315,3 +315,40 @@ export const parseResetTwoFactorCommand = (
   if (!hasTerminal) return error("There's no terminal to ask for confirmation. Run it with --yes.");
   return { mode: "interactive", email, databaseUrl: env.DATABASE_URL };
 };
+
+export type PurgeCommand =
+  | { mode: "run"; dryRun: boolean; databaseUrl?: string }
+  | { mode: "help" }
+  | { mode: "error"; exitCode: 2; message: string };
+
+export const PURGE_USAGE = `Usage: purge [--dry-run] [--database-url URL]
+
+Clears personal data past root's retention (Admin › Settings › Privacy) once, now: IP addresses on
+audit events, sessions and rmk login approvals, the email typed in a failed sign-in, expired
+sessions and finished login approvals. The server runs the same purge every six hours on its own
+unless RONNE_JOBS=off; this is for cron, and for seeing what a run would do.
+
+  --dry-run            Count what a purge would clear and change nothing
+  --database-url URL   The database (default: DATABASE_URL, or the settings file's)
+  --help, -h           Show this`;
+
+/** purge's flags (102): --dry-run, --database-url like the other commands. Asks nothing. */
+export const parsePurgeCommand = (argv: string[], env: Env): PurgeCommand => {
+  let values: { "dry-run"?: boolean; help?: boolean; "database-url"?: string };
+  try {
+    ({ values } = parseArgs({
+      args: argv,
+      strict: true,
+      options: {
+        "dry-run": { type: "boolean" },
+        help: { type: "boolean", short: "h" },
+        "database-url": { type: "string" },
+      },
+    }));
+  } catch (caught) {
+    return { mode: "error", exitCode: 2, message: (caught as Error).message };
+  }
+  if (values.help) return { mode: "help" };
+  const databaseUrl = values["database-url"] || env.DATABASE_URL || undefined;
+  return { mode: "run", dryRun: values["dry-run"] === true, databaseUrl };
+};
