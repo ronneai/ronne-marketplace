@@ -44,7 +44,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   `--dry-run`, the held lease (exit 1), setup not done, and the counts' text; `packages:check` and
   `release:smoke` pass with the new script.
 
-- [ ] **5. The last run on the Privacy tab.** The tab reads `jobs` for `retention_purge` and shows
+- [x] **5. The last run on the Privacy tab.** The tab reads `jobs` for `retention_purge` and shows
   the last run's time and counts, "No run yet" (naming `RONNE_JOBS` when it's `off`), or the last
   error's name.
   *Done when:* component tests cover the three states; an e2e test sets a retention, runs
@@ -145,6 +145,13 @@ goes into `SPEC.md` instead.
 - Task 4: the scheduler starts its timer chain at `register()` and each tick checks setup is
   done, rather than waiting for setup to start the chain: a setup finished in the browser while
   the server runs then needs no restart (the spec's wording followed the code).
+- Task 5: the last run comes from the `jobs` row through a thin `server/jobs/actions.ts`
+  (`retentionJobStatus`: `jobStatus` plus whether `RONNE_JOBS` is off), read by the Privacy tab
+  alongside the settings and shown by `LastRun` under the form, in the reader's zone (`LocalTime`).
+  A failed run shows the error's name only, which is all `last_result` holds. The e2e check sits in
+  `audit.e2e.ts`'s root test (root signs in once per file, `e2e-sign-in-limit.md`): it saves a
+  retention, runs `scripts/purge.ts` against the instance under test (`RONNE_E2E_INSTANCE`, as
+  106's `disable-sso` check does) and sees the run on the tab and the audit event.
 - Task 1 also fixed three lint errors that weren't this task's (owner, 2026-10-18): two
   `noUselessFragments` (`DependencyMarks.tsx`, `ToolsPanel.tsx`) and `biome.json`'s schema
   version, which the installed Biome 2.5.15 reported while CI on `main` stayed green; why the two

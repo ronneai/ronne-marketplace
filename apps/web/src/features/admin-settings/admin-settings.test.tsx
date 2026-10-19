@@ -15,6 +15,8 @@ const settings = vi.hoisted(() => ({
   setRetention: vi.fn(),
 }));
 const session = vi.hoisted(() => ({ getCurrentUser: vi.fn() }));
+const jobs = vi.hoisted(() => ({ retentionJobStatus: vi.fn() }));
+vi.mock("@/server/jobs/actions", () => jobs);
 const feeds = vi.hoisted(() => ({ pluginFeedStats: vi.fn() }));
 vi.mock("@/server/domains/feeds/actions/feeds", () => feeds);
 const twoFactor = vi.hoisted(() => ({
@@ -49,6 +51,7 @@ const { PluginFeedsPanel } = await import("./feeds/PluginFeedsPanel");
 const { SignInMethodsPanel } = await import("./authentication/SignInMethodsPanel");
 const { signInMethods } = await import("./authentication/AuthenticationTab");
 const { RetentionForm } = await import("./privacy/RetentionForm");
+const { LastRun } = await import("./privacy/LastRun");
 const { InvalidRetentionError } = await import("@/server/domains/settings/exceptions/errors");
 const { default: AdminSettingsPage } = await import("@/app/(app)/admin/settings/page");
 
@@ -78,6 +81,12 @@ beforeEach(() => {
     twoFactorPolicy: "optional",
     passwordSignInPolicy: "everyone",
     retention: { ipDays: 90, sessionsDays: 90 },
+  });
+  jobs.retentionJobStatus.mockResolvedValue({
+    lastRunAt: null,
+    lastResult: null,
+    running: false,
+    schedulerOff: false,
   });
 });
 
@@ -431,6 +440,76 @@ describe("Admin › Settings › Privacy › Retention (102)", () => {
     expect(html).not.toContain("Usage reporting");
     expect(html).not.toContain(">Sign-in methods</h2>");
     expect(feeds.pluginFeedStats).not.toHaveBeenCalled();
+  });
+
+  it("shows the purge's last run: none yet (naming RONNE_JOBS when off), the counts, or the error's name", () => {
+    const none = renderToStaticMarkup(
+      <LastRun
+        status={{ lastRunAt: null, lastResult: null, running: false, schedulerOff: false }}
+      />,
+    );
+    expect(none).toContain("No run yet.");
+    expect(none).toContain("5 minutes after the server starts");
+    expect(none).not.toContain("RONNE_JOBS");
+    const off = renderToStaticMarkup(
+      <LastRun
+        status={{ lastRunAt: null, lastResult: null, running: false, schedulerOff: true }}
+      />,
+    );
+    expect(off).toContain("Scheduled jobs are off (RONNE_JOBS): run rmk-server purge from cron.");
+    const at = new Date("2026-10-18T12:00:00.000Z");
+    const ok = renderToStaticMarkup(
+      <LastRun
+        status={{
+          lastRunAt: at,
+          lastResult: {
+            at: at.toISOString(),
+            ms: 120,
+            status: "ok",
+            counts: { ipsCleared: 1204, emailsCleared: 37, sessionsDeleted: 312, grantsDeleted: 9 },
+          },
+          running: false,
+          schedulerOff: false,
+        }}
+      />,
+    );
+    expect(ok).toContain("cleared 1,204 IP addresses and 37 failed sign-ins&#x27; emails");
+    expect(ok).toContain("deleted 312 expired sessions and 9 finished rmk login approvals");
+    expect(ok).toMatch(/<time dateTime="2026-10-18T12:00:00.000Z"/);
+    const failed = renderToStaticMarkup(
+      <LastRun
+        status={{
+          lastRunAt: at,
+          lastResult: { at: at.toISOString(), ms: 5, status: "failed", error: "ConnectionError" },
+          running: true,
+          schedulerOff: false,
+        }}
+      />,
+    );
+    expect(failed).toContain("failed (ConnectionError)");
+    expect(failed).toContain("A run is in progress.");
+  });
+
+  it("reads the last run only on the Privacy tab, under the form", async () => {
+    session.getCurrentUser.mockResolvedValue({ id: "r", role: "root" });
+    jobs.retentionJobStatus.mockResolvedValueOnce({
+      lastRunAt: new Date("2026-10-18T12:00:00.000Z"),
+      lastResult: {
+        at: "2026-10-18T12:00:00.000Z",
+        ms: 1,
+        status: "ok",
+        counts: { ipsCleared: 2, emailsCleared: 0, sessionsDeleted: 0, grantsDeleted: 0 },
+      },
+      running: false,
+      schedulerOff: false,
+    });
+    const html = renderToStaticMarkup(await AdminSettings("privacy"));
+    expect(html).toContain("cleared 2 IP addresses");
+    expect(html.indexOf("Keep IP addresses for")).toBeLessThan(html.indexOf("Last run"));
+    jobs.retentionJobStatus.mockClear();
+    renderToStaticMarkup(await AdminSettings("authentication"));
+    renderToStaticMarkup(await AdminSettings());
+    expect(jobs.retentionJobStatus).not.toHaveBeenCalled();
   });
 
   it("disables Save until a number changes", () => {

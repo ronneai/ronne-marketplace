@@ -1,4 +1,7 @@
+import { execFileSync } from "node:child_process";
+import { resolve } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
+import type { Instance } from "./harness";
 import { E2E_PASSWORD, E2E_SCOPE, E2E_SKILL, E2E_USERS } from "./users";
 
 // A reader in São Paulo (049): pages show times there, with UTC on hover.
@@ -145,6 +148,32 @@ test("root reads the audit log: setup, its own sign-in, and a settings change", 
   await expect(page.getByRole("form", { name: "Usage minimum" })).toBeVisible();
   await page.goForward();
   await expect(page).toHaveURL(/\/admin\/settings\?tab=feeds$/);
+
+  // Privacy (102): root sets the retention, a purge run from the terminal shows as the last run.
+  await page.goto("/admin/settings?tab=privacy");
+  await expect(settingsTabs.locator('[aria-current="page"]')).toHaveText("Privacy");
+  const lastRun = page.getByTestId("retention-last-run");
+  await expect(lastRun).toContainText("No run yet.");
+  const retention = page.getByRole("form", { name: "Retention" });
+  await retention.getByLabel("Keep IP addresses for").fill("30");
+  await retention.getByRole("button", { name: "Save" }).click();
+  await expect(retention.getByText("Retention saved.")).toBeVisible();
+  const instance: { main: Instance } = JSON.parse(process.env.RONNE_E2E_INSTANCE ?? "{}");
+  const purge = execFileSync("pnpm", ["exec", "tsx", "scripts/purge.ts"], {
+    cwd: resolve(import.meta.dirname, ".."),
+    env: { ...process.env, ...instance.main.env },
+    encoding: "utf8",
+  });
+  expect(purge).toContain("IP addresses cleared: 0");
+  await page.reload();
+  await expect(lastRun).toContainText(/Last run .* cleared 0 IP addresses/);
+  await expect(lastRun.locator("time")).toHaveAttribute("title", /UTC$/);
+  await page.goto("/admin/audit");
+  await expect(
+    page
+      .getByRole("row")
+      .filter({ hasText: "Changed the retention: IP addresses from 90 to 30 days" }),
+  ).toHaveCount(1);
 
   // Local time (049): the audit log and an item page in the reader's zone, UTC on hover.
   await main.getByRole("link", { name: "Audit log" }).click();

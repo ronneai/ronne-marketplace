@@ -379,3 +379,27 @@ Witnessed: 2026-10-18 23:09 EDT, by a fresh agent (blind). Commit: ec17de34 plus
 No bugs found.
 
 Probes (rerunnable from `apps/web` with `pnpm exec tsx <path>`), in `scratchpad/102-t4-blind/`: `progress-probe.mts`, `progress-off-probe.mts`, `renew-probe.mts` (`RONNE_PROBE_ROOT` picks the tree), `jobs-off-probe.mts`. In a scratch copy, run vitest as `<copy>/node_modules/.bin/vitest run …`.
+
+## Task 5 — The last run on the Privacy tab
+
+Witnessed: 2026-10-18 23:21 EDT, by a fresh agent (blind). Commit: ea720167 + working tree (uncommitted `server/jobs/actions.ts`, `privacy/LastRun.tsx`; modified `PrivacyTab.tsx`, `admin-settings.test.tsx`, `e2e/audit.e2e.ts`). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The tab reads the `jobs` row for `retention_purge` and shows the last run's time and counts | yes | confirmed | `apps/web/src/server/jobs/actions.ts:17` → `jobStatus({db, dialect}, RETENTION_JOB)`; `run-job.ts:97-110` selects `last_run_at`, `last_result`, `lease_ends_at` by name; `PrivacyTab.tsx:13-16` loads settings and status in `Promise.all`, renders `<LastRun status>`; `LastRun.tsx:35-37` prints the four counts with `toLocaleString`. `pnpm exec vitest run src/features/admin-settings` → 4 files, 68 passed. Mutation M2 (tab without `<LastRun>`) → "reads the last run only on the Privacy tab, under the form" fails |
+| 2 | "No run yet" when none has run, naming `RONNE_JOBS` when the scheduler is off | yes | confirmed | `LastRun.tsx:15-23`: `!lastRunAt \|\| !lastResult` → "No run yet." + (off ? "Scheduled jobs are off (RONNE_JOBS): run rmk-server purge from cron." : schedule text). Off comes from `actions.ts:18` `jobsOff(loadConfig().jobs)` → `scheduler.ts:31-32` → `config.ts:56` `value("RONNE_JOBS")`. Mutation M1 (drop "(RONNE_JOBS)") → "shows the purge's last run …" fails. Remark: `retentionJobStatus` itself has no test (the component test mocks it); the chain was read, not run |
+| 3 | A failed run shows the last error's name, never its message | yes | confirmed | `LastRun.tsx:24-30` prints `lastResult.error` only; `run-job.ts:84` stores `error: err.name`. Mutation M3 (`err.message` in run-job.ts) → `run-job.db.test.ts` "logs a failure with the error, records only its name, and releases the lease" fails. Remark: the component test's `not.toContain("db.internal")` is vacuous (its input never contains it); the real guard is the db test above |
+| 4 | Component tests cover the three states (none yet / off, counts, failed) | no | confirmed | `admin-settings.test.tsx:445-493`: renders `LastRun` with none (asserts no `RONNE_JOBS`), off (asserts the RONNE_JOBS line), ok (asserts "1,204 IP addresses … 37 … 312 … 9" and `<time dateTime="2026-10-18T12:00:00.000Z"`), failed (asserts "failed (ConnectionError)", "A run is in progress."); `:495-514` the page shows it only on the Privacy tab and after the form, not on Usage/Authentication. Mutations M1 and M2 each fail exactly one of these |
+| 5 | Time in the reader's zone, UTC on hover (049) | yes | confirmed | `LastRun.tsx:27,35` use `<LocalTime value={lastRunAt}>`; `LocalTime.tsx:29-31` sets `dateTime` and `title=utcText(…)`. e2e `audit.e2e.ts:170` → `lastRun.locator("time")` `title` matches `/UTC$/`, passed |
+| 6 | e2e: root sets a retention, `rmk-server purge` runs against the test instance, the counts appear on the tab (inside the root test of `audit.e2e.ts`) | yes | confirmed | `audit.e2e.ts:152-177`: fills "Keep IP addresses for" 30, saves, `execFileSync("pnpm", ["exec","tsx","scripts/purge.ts"])` with `RONNE_E2E_INSTANCE.main.env`, expects "IP addresses cleared: 0" from the command, reloads, expects `/Last run .* cleared 0 IP addresses/` and the audit row "Changed the retention: IP addresses from 90 to 30 days". `cd apps/web && pnpm test:e2e --project=chromium audit` → 2 passed (7.4s), exit 0 |
+| 7 | Phones (065): the last run's line sits under the form in the same panel | no | confirmed | `PrivacyTab.tsx:18-21`: `<Panel><div className="grid gap-4">` with `RetentionForm` then `LastRun`, one column at every width; the component test asserts the DOM order. Phone sweep not run (budget); the layout has no breakpoint that could reorder it |
+| 8 | Acceptance 7: the Privacy tab shows the last run's time and counts, or that none has run | no | confirmed | Rows 1, 2 and 6: e2e saw "No run yet." before the purge and "Last run … cleared 0 IP addresses" after it on the real build |
+| 9 | The change passes lint and typecheck | no | confirmed | `pnpm exec biome check <5 changed files>` → "No fixes applied"; `pnpm --filter @ronneai/web typecheck` → clean |
+
+**Overall:** met: the tab reads the `jobs` row through `retentionJobStatus`, shows the three states as the spec says (error name only, times via `LocalTime`), the component tests catch each mutation, and the e2e run saw the purge's counts on the tab.
+
+Bugs found: none.
+
+Remarks for the implementer (not blocking): `admin-settings.test.tsx:492` `expect(failed).not.toContain("db.internal")` can't fail (dropped after the pass); `retentionJobStatus` has no test of its own; it's two lines over tested code.
+
+Probes in `scratchpad/102-t5-blind/`: `mutations.sh` (three mutations against the scratch copy, each restored and `cmp`-checked); `scratchpad/102-t5-blind-e2e.log`. The repository was not modified by the pass.
