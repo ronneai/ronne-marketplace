@@ -65,20 +65,25 @@ it (Edge cases), never the email or the name; its sentence (060) is *Erased dele
 ### Where it's shown afterwards
 
 Everywhere a name or email appears, the pseudonym does: Admin › Users (with an *Erased on <date>*
-badge in place of the disabled one, the row's only action *Download their data* (104) greyed out
-with "erased"), the audit log (actor and target), item pages ("published by deleted-user-…"),
-review threads, workspace member lists (they're no longer members), and the API's item and version
-bodies (`publishedBy`). Search in Admin › Users finds the pseudonym by id. No page ever says what
-the name was.
+badge in place of the SCIM badges, the status *erased*, a Status filter for erased accounts, and
+the row's only action *Download their data* (104) greyed out with "erased"), the audit log (actor
+and target), item pages (versions "by deleted-user-…"), review threads, and workspace member
+lists (they're no longer members). The API's item and version bodies name no publisher, so
+nothing changes there. Every page reads the name from the user's row when it renders; nothing
+caches it. Search in Admin › Users finds the pseudonym by id. No page ever says what the name was.
 
 ### The confirmation
 
-A dialog, from the row's menu and from the Erase link beside *Deprovisioned by* (108): the
-account's name and email, then what will be deleted and what stays under the pseudonym (the lists
-above in plain words), a reminder to download their data first when the request asked for it
-(104's link), and a field where root must type the account's email to enable **Erase**. The
-helper `erase-user` sits in the dialog. Root's own row has no Erase; the last enabled root's says
-why (059's wording).
+A dialog, from the row's actions and from the Erase link beside *Deprovisioned by* (108): the
+account's name and email, a warning that it can't be undone (disable is the way to stop someone
+without erasing), what will be deleted and what stays under the pseudonym (the lists above in
+plain words), a reminder to download their data first when the request asked for it (104's link
+once it exists), and a field where root must type the account's email (any case, spaces around it
+ignored) to enable **Erase**; the server action checks the typed email against the locked row
+too, so a stale or forged request erases nothing. The helper `erase-user` sits in the dialog.
+Root's own row has no actions at all (059), so no Erase; a root erased by another root is warned
+that the role goes with the account. The dialog says "Erased." when it's done, and the list
+refreshes when it closes (a search by the old email then finds nothing: the row is the pseudonym).
 
 ### Rules
 

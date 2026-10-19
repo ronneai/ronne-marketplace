@@ -31,7 +31,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   MySQL an interrupted rewrite (a fake that throws after one batch) is finished by the retry and by
   the job.
 
-- [ ] **3. The action and the dialog.** The server action (`users.manage`, the wrapper of 100), the
+- [x] **3. The action and the dialog.** The server action (`users.manage`, the wrapper of 100), the
   Erase row action and the link beside *Deprovisioned by* (108's test that it's absent flips), the
   dialog with the typed email, the Erased badge, the greyed download (104's place, "erased" until
   104 lands), the helper `erase-user`, the pseudonym everywhere a name is shown (audit page, item
@@ -91,4 +91,16 @@ goes into `SPEC.md` instead.
   as the record (the workspace is renamed, the draft kept). On PostgreSQL the LIKE is
   case-sensitive, so a metadata value in another case than the stored address is found only by
   the target id; every writer lowercases, so nothing real is missed.
+- **Task 3.** The typed email is checked twice: the dialog enables Erase only when it matches
+  (any case, trimmed), and `eraseUser` compares it with the locked row (`EraseConfirmationError`),
+  so the server action can't be replayed against another id. `EraseUserButton` owns its dialog and
+  is rendered twice: in the row's actions and, as a link, beside *Deprovisioned by* (the page
+  passes it through `UsersPage`'s `erase` prop, so the component test can pass its own). The
+  Status filter got `erased`; `disabled` now means disabled and not erased. The API's item and
+  version bodies name no publisher, so the spec no longer says they do. The e2e flow lives in
+  `user-admin.e2e.ts` (root's sign-ins are limited, `docs/knowledge/e2e-sign-in-limit.md`), on a
+  seeded user with a released rule and a review comment (`E2E_ERASE`, a fixed submission id so the
+  test can open its review). The erase action doesn't revalidate the list: with a search by the
+  old email, the row (and the dialog inside it) vanished before root could read "Erased.", so the
+  dialog shows the outcome and refreshes the page on Done (`router.refresh()`).
 

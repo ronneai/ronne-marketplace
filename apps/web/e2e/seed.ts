@@ -19,6 +19,7 @@ import {
   E2E_ACME,
   E2E_ACME_MEMBERS,
   E2E_DOOR,
+  E2E_ERASE,
   E2E_FALLBACK_ITEMS,
   E2E_FOCUS,
   E2E_JOIN,
@@ -668,4 +669,107 @@ await db
     created_at: toDbDate(new Date(), dialect),
   })
   .execute();
+// Erasing a user (103): the erasable user published a rule and commented on the releaser's
+// submission, so the test can see the pseudonym on the item's versions, the review and the audit.
+{
+  const erasedItemId = await release(E2E_ERASE.item, "rule", "1.0.0", {
+    "ronne.yaml": `name: "@${E2E_SCOPE}/${E2E_ERASE.item}"\ntype: rule\ndescription: A rule the erasable user published.\nrule:\n  body: rule.md\n  activation: always\n`,
+    "rule.md": "Written by someone who will be erased.\n",
+  });
+  await db
+    .updateTable("items")
+    .set({ owner_id: ids.erasable ?? "" })
+    .where("id", "=", erasedItemId)
+    .execute();
+  await db
+    .updateTable("item_versions")
+    .set({ published_by: ids.erasable ?? "" })
+    .where("item_id", "=", erasedItemId)
+    .execute();
+  const at = toDbDate(new Date(), dialect);
+  const manifest = `name: "@${E2E_SCOPE}/${E2E_ERASE.submission}"\ntype: rule\ndescription: Under review, with a comment.\nrule:\n  body: rule.md\n  activation: always\n`;
+  await db
+    .insertInto("submissions")
+    .values({
+      id: E2E_ERASE.submissionId,
+      author_id: ids.releaser ?? "",
+      scope_id: scopeId,
+      name: E2E_ERASE.submission,
+      type: "rule",
+      item_id: null,
+      base_version_id: null,
+      rebase_conflicts: null,
+      status: "submitted",
+      created_at: at,
+      updated_at: at,
+      submitted_at: at,
+    })
+    .execute();
+  const files = [
+    { path: "ronne.yaml", content: manifest },
+    { path: "rule.md", content: "A rule under review.\n" },
+  ];
+  await db
+    .insertInto("submission_files")
+    .values(
+      files.map((file) => ({
+        submission_id: E2E_ERASE.submissionId,
+        path: file.path,
+        encoding: "utf8" as const,
+        content: file.content,
+        size: file.content.length,
+        executable: 0,
+        updated_at: at,
+      })),
+    )
+    .execute();
+  const revisionId = newId();
+  await db
+    .insertInto("submission_revisions")
+    .values({
+      id: revisionId,
+      submission_id: E2E_ERASE.submissionId,
+      number: 1,
+      created_by: ids.releaser ?? "",
+      created_at: at,
+    })
+    .execute();
+  await db
+    .insertInto("submission_revision_files")
+    .values(
+      files.map((file) => ({
+        revision_id: revisionId,
+        path: file.path,
+        encoding: "utf8" as const,
+        content: file.content,
+        size: file.content.length,
+        executable: 0,
+      })),
+    )
+    .execute();
+  await db
+    .insertInto("review_events")
+    .values([
+      {
+        id: newId(),
+        submission_id: E2E_ERASE.submissionId,
+        actor_id: ids.releaser ?? "",
+        kind: "submit",
+        body: null,
+        revision: 1,
+        created_at: at,
+      },
+      {
+        id: newId(),
+        submission_id: E2E_ERASE.submissionId,
+        actor_id: ids.erasable ?? "",
+        kind: "comment",
+        body: E2E_ERASE.comment,
+        revision: null,
+        created_at: at,
+      },
+    ])
+    .execute();
+}
+
 await db.destroy();

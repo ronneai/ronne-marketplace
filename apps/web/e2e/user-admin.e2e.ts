@@ -1,6 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { recordSecret } from "./secrets";
-import { E2E_PASSWORD, E2E_USERS } from "./users";
+import { E2E_ERASE, E2E_PASSWORD, E2E_SCOPE, E2E_USERS } from "./users";
 
 const signIn = async (page: Page, email: string, password: string) => {
   await page.goto("/sign-in");
@@ -142,6 +142,73 @@ test("root creates a user, who signs in with the shown password; disabling them 
 
   await user.goto("/");
   await expect(user).toHaveURL(/\/sign-in$/);
+
+  // Root erases a user (103) who published an item and commented on a review: the dialog needs
+  // the email typed, then every page shows the pseudonym, and the old email makes a new account.
+  const erasable = E2E_USERS.erasable;
+  await root.goto(`/admin/users?q=${encodeURIComponent(erasable)}`);
+  await root
+    .getByRole("group", { name: `Actions for ${erasable}` })
+    .getByRole("button", { name: "Erase" })
+    .click();
+  const erase = root.getByRole("dialog", { name: "Erase user" });
+  await expect(erase.getByText("What goes")).toBeVisible();
+  await expect(erase.getByText("This can't be undone.")).toBeVisible();
+  await expect(erase.getByRole("button", { name: "Erase" })).toBeDisabled();
+  await erase.getByLabel("Type the account's email to confirm").fill("someone-else@e2e.test");
+  await expect(erase.getByRole("button", { name: "Erase" })).toBeDisabled();
+  await erase.getByLabel("Type the account's email to confirm").fill(` ${erasable.toUpperCase()} `);
+  await expect(erase.getByRole("button", { name: "Erase" })).toBeEnabled();
+  await erase.getByRole("button", { name: "Erase" }).click();
+  await expect(erase.getByText(/Erased\. The account is now deleted-user/)).toBeVisible();
+  await erase.getByRole("button", { name: "Done" }).click();
+  // The row is the pseudonym now: the badge, the status, and only the greyed download.
+  await root.goto("/admin/users?q=deleted-user-");
+  const erasedRow = root.getByRole("row").filter({ hasText: "Erased on" });
+  await expect(erasedRow).toHaveCount(1);
+  await expect(erasedRow).toContainText(/deleted-user-[0-9A-Z]+@ronne\.invalid/);
+  await expect(erasedRow).toContainText("erased");
+  await expect(
+    erasedRow.getByRole("button", { name: /Download the data of .*: erased/ }),
+  ).toBeDisabled();
+  await expect(erasedRow.getByRole("button", { name: "Erase", exact: true })).toHaveCount(0);
+  await expect(root.getByRole("cell", { name: erasable, exact: true })).toHaveCount(0);
+  // Its item's versions, the review's conversation and the audit log all say the pseudonym.
+  await root.goto(`/items/${E2E_SCOPE}/${E2E_ERASE.item}/versions`);
+  await expect(root.getByText(/by deleted-user-/).first()).toBeVisible();
+  await expect(root.getByText("Erasable Person")).toHaveCount(0);
+  await root.goto(`/reviews/${E2E_ERASE.submissionId}`);
+  const conversation = root.getByRole("region", { name: "Conversation" });
+  await expect(conversation).toContainText(E2E_ERASE.comment);
+  await expect(conversation).toContainText(/deleted-user-/);
+  await expect(root.getByText("Erasable Person")).toHaveCount(0);
+  await root.goto("/admin/audit?action=user.erased");
+  await expect(root.getByRole("row").filter({ hasText: /Erased deleted-user-/ })).toHaveCount(1);
+  await expect(root.getByText(erasable)).toHaveCount(0);
+  // The old email is free: root creates a new account with it, and that person signs in to an
+  // empty one, seeing the pseudonym on the item like everyone else.
+  await root.goto("/admin/users");
+  await root.getByRole("button", { name: "Create user" }).click();
+  const recreate = root.getByRole("dialog");
+  await recreate.getByLabel("Email").fill(erasable);
+  await recreate.getByLabel("Name").fill("New Erasable");
+  await recreate.getByRole("button", { name: "Create user" }).click();
+  await expect(recreate.getByText("Shown once")).toBeVisible();
+  const newPassword = (await recreate.locator("code").nth(1).innerText()).trim();
+  recordSecret(JSON.parse(process.env.RONNE_E2E_INSTANCE ?? "{}").main, newPassword);
+  await recreate.getByRole("button", { name: "Done" }).click();
+  const reborn = await browser.newPage();
+  await signIn(reborn, erasable, newPassword);
+  await expect(
+    reborn.getByRole("complementary", { name: "Sidebar" }).getByText("New Erasable").first(),
+  ).toBeVisible();
+  // Empty: nothing of the erased person's is theirs (no drafts or submissions, no comment).
+  await reborn.goto("/submissions");
+  await expect(reborn.getByText("You have no drafts yet.")).toBeVisible();
+  await expect(reborn.getByText(E2E_ERASE.submission)).toHaveCount(0);
+  await reborn.goto(`/items/${E2E_SCOPE}/${E2E_ERASE.item}/versions`);
+  await expect(reborn.getByText(/by deleted-user-/).first()).toBeVisible();
+  await reborn.close();
 
   // A workspace's admin (092), in root's test: root makes them admin of e2e-acme from their
   // Workspaces; they then run e2e-acme and nothing else.

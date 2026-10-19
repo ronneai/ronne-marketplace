@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { adminEraseUser } from "@/server/domains/identity/actions/erase-user";
 import {
   adminChangeRole,
   adminCreateUser,
@@ -152,6 +153,25 @@ export const resetTwoFactorFromForm = serverAction(
           : "They had no two-factor sign-in: nothing changed.",
       };
     }),
+);
+
+/**
+ * Erases the account (103), once root typed its email; the service checks the email too. The
+ * list isn't revalidated here: the row would go with its dialog before root reads the outcome
+ * (a search by the old email no longer finds it), so the dialog refreshes the page on Done.
+ */
+export const eraseUserFromForm = serverAction(
+  async (_previous: AdminActionState, form: FormData): Promise<AdminActionState> => {
+    try {
+      await adminEraseUser(await requestHeaders(), text(form, "userId"), text(form, "confirm"));
+      return {
+        done: "Erased. The account is now deleted-user and nothing of theirs can be read back.",
+      };
+    } catch (error) {
+      if (error instanceof IdentityError) return { error: error.message };
+      throw error;
+    }
+  },
 );
 
 /** What disabling would end, for the confirm dialog. */

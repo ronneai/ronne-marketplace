@@ -17,7 +17,8 @@ export type UserFilters = {
   /** Part of the email or name, any case. */
   search?: string;
   role?: Role;
-  status?: "active" | "disabled";
+  /** `disabled` is disabled but not erased; `erased` (103) is erased. */
+  status?: "active" | "disabled" | "erased";
 };
 
 /** `created` sorts by the id (a ULID); `email` and `name` by that column, then the id. */

@@ -78,8 +78,11 @@ export const kyselyIdentityRepository = (
         eb.or([containsInsensitive("email", search), containsInsensitive("name", search)]),
       );
     if (role) query = query.where("role", "=", role);
-    if (status === "active") query = query.where("disabled_at", "is", null);
-    if (status === "disabled") query = query.where("disabled_at", "is not", null);
+    if (status === "active")
+      query = query.where("disabled_at", "is", null).where("erased_at", "is", null);
+    if (status === "disabled")
+      query = query.where("disabled_at", "is not", null).where("erased_at", "is", null);
+    if (status === "erased") query = query.where("erased_at", "is not", null);
     return query;
   };
 

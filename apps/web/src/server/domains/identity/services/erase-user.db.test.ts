@@ -22,9 +22,10 @@ import { createMyToken } from "../actions/access-tokens";
 import { adminEraseUser, adminPendingErasures, adminRetryErasures } from "../actions/erase-user";
 import { createRoot } from "../actions/root-account";
 import { getCurrentUser, signIn } from "../actions/session";
-import { adminCreateUser } from "../actions/user-admin";
+import { adminCreateUser, adminDisableUser, adminListUsers } from "../actions/user-admin";
 import {
   CannotModifySelfError,
+  EraseConfirmationError,
   ForbiddenError,
   UserErasedError,
   UserNotFoundError,
@@ -366,7 +367,7 @@ describe("eraseUser (103)", () => {
     expect(before.some((e) => e.ipAddress === IP && e.actorId === ana.id)).toBe(true);
     expect(before.some((e) => JSON.stringify(e.metadata).includes("ana@example.com"))).toBe(true);
 
-    const result = await adminEraseUser(asRoot, ana.id, app);
+    const result = await adminEraseUser(asRoot, ana.id, "ana@example.com", app);
     expect(result).toEqual({
       sessionsEnded: 2,
       tokensDeleted: 2,
@@ -481,6 +482,20 @@ describe("eraseUser (103)", () => {
     });
     expect(JSON.stringify(erased[0]?.metadata)).not.toMatch(/ana@example|Ana Silva/);
     expect(after.filter((e) => e.actorId === ana.id)[0]?.actorEmail).toBe(erasedEmail(ana.id));
+    // The users list: the erased row under the `erased` status, never under `disabled` or `active`.
+    const listed = async (status: "active" | "disabled" | "erased") =>
+      (await adminListUsers(asRoot, { status }, app)).users.map((u) => u.id);
+    // A disabled account that isn't erased: under `disabled`, never under `erased`.
+    const benched = await adminCreateUser(
+      asRoot,
+      { email: "benched@example.com", name: "Benched", role: "user", password },
+      app,
+    );
+    await adminDisableUser(asRoot, benched.id, app);
+    expect(await listed("erased")).toEqual([ana.id]);
+    expect(await listed("disabled")).toContain(benched.id);
+    expect(await listed("disabled")).not.toContain(ana.id);
+    expect(await listed("active")).not.toContain(ana.id);
     // The old email is free at once.
     const again = await adminCreateUser(
       asRoot,
@@ -517,7 +532,7 @@ describe("eraseUser (103)", () => {
       app,
     );
     expect(await rows("submissions", "scope_id", own)).toHaveLength(1);
-    const result = await adminEraseUser(asRoot, bob.id, app);
+    const result = await adminEraseUser(asRoot, bob.id, "bob@example.com", app);
     expect(result).toMatchObject({ personalWorkspace: "deleted", draftsDeleted: 1 });
     expect(await rows("workspaces", "id", personal.id)).toEqual([]);
     expect(await rows("scopes", "workspace_id", personal.id)).toEqual([]);
@@ -552,7 +567,7 @@ describe("eraseUser (103)", () => {
         app,
       )
     ).id;
-    expect(await adminEraseUser(asRoot, bob.id, app)).toMatchObject({
+    expect(await adminEraseUser(asRoot, bob.id, "bob@example.com", app)).toMatchObject({
       personalWorkspace: "renamed",
       draftsDeleted: 0,
     });
@@ -576,15 +591,29 @@ describe("eraseUser (103)", () => {
       sessions: (await rows("session", "user_id", ana.id)).length,
     });
     const before = await snapshot();
-    await expect(adminEraseUser(asRoot, rootId, app)).rejects.toThrow(CannotModifySelfError);
-    await expect(adminEraseUser(asMod, ana.id, app)).rejects.toThrow(ForbiddenError);
-    await expect(adminEraseUser(new Headers(), ana.id, app)).rejects.toThrow(ForbiddenError);
-    await expect(adminEraseUser(asRoot, "01NOPE", app)).rejects.toThrow(UserNotFoundError);
+    await expect(adminEraseUser(asRoot, rootId, "root@example.com", app)).rejects.toThrow(
+      CannotModifySelfError,
+    );
+    await expect(adminEraseUser(asMod, ana.id, "ana@example.com", app)).rejects.toThrow(
+      ForbiddenError,
+    );
+    await expect(adminEraseUser(new Headers(), ana.id, "ana@example.com", app)).rejects.toThrow(
+      ForbiddenError,
+    );
+    await expect(adminEraseUser(asRoot, "01NOPE", "nope@example.com", app)).rejects.toThrow(
+      UserNotFoundError,
+    );
+    // The typed email must be the account's (103's dialog), checked against the locked row.
+    await expect(adminEraseUser(asRoot, ana.id, "anna@example.com", app)).rejects.toThrow(
+      EraseConfirmationError,
+    );
     expect(await snapshot()).toEqual(before);
     expect(await userRow(mod)).toMatchObject({ erased_at: null });
-    await adminEraseUser(asRoot, ana.id, app);
+    await adminEraseUser(asRoot, ana.id, "ana@example.com", app);
     const once = await snapshot();
-    await expect(adminEraseUser(asRoot, ana.id, app)).rejects.toThrow(UserErasedError);
+    await expect(adminEraseUser(asRoot, ana.id, "ana@example.com", app)).rejects.toThrow(
+      UserErasedError,
+    );
     expect(await snapshot()).toEqual(once);
   });
 
@@ -595,8 +624,10 @@ describe("eraseUser (103)", () => {
       app,
     );
     const asSecond = await signedIn("second@example.com");
-    await expect(adminEraseUser(asSecond, second.id, app)).rejects.toThrow(CannotModifySelfError);
-    await adminEraseUser(asSecond, rootId, app);
+    await expect(adminEraseUser(asSecond, second.id, "second@example.com", app)).rejects.toThrow(
+      CannotModifySelfError,
+    );
+    await adminEraseUser(asSecond, rootId, " Root@Example.com ", app);
     expect(await userRow(rootId)).toMatchObject({ role: "user", email: erasedEmail(rootId) });
     expect(await getCurrentUser(asRoot, app)).toBeNull();
     const roots = await t.db.selectFrom("user").select("id").where("role", "=", "root").execute();
@@ -617,7 +648,7 @@ describe("eraseUser (103)", () => {
         { email: odd, password: "wrong password here", rememberMe: false },
         app,
       );
-    const result = await adminEraseUser(asRoot, ana.id, app);
+    const result = await adminEraseUser(asRoot, ana.id, odd, app);
     expect(result.eventsRewritten).toBe(3);
     const after = await events();
     expect(after.some((e) => JSON.stringify(e.metadata).includes(odd))).toBe(false);
@@ -642,7 +673,7 @@ describe("eraseUser (103)", () => {
       { email: "ana@example.com.au", name: "Au", role: "user", password },
       app,
     );
-    await adminEraseUser(asRoot, ana.id, app);
+    await adminEraseUser(asRoot, ana.id, "ana@example.com", app);
     const created = (await events()).filter((e) => e.action === "user.created");
     expect(created.map((e) => e.metadata.email).sort()).toEqual(
       ["ana@example.com.au", erasedEmail(ana.id), "sub-ana@example.com"].sort(),

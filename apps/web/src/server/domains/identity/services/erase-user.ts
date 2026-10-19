@@ -4,6 +4,7 @@ import type { AuditMetadata } from "../../audit/models/audit-event";
 import { renameLockedWorkspace } from "../../workspaces/services/workspaces";
 import {
   CannotModifySelfError,
+  EraseConfirmationError,
   ForbiddenError,
   LastRootError,
   UserErasedError,
@@ -108,15 +109,19 @@ const rewrite = async (
 /**
  * Erases the account: root only (`users.manage`), never the actor's own, never the last enabled
  * root, never twice. The transaction holds the roots' rows and the actor's (059), then the
- * target's, and checks the actor is still a root and the target still erasable.
+ * target's, and checks the actor is still a root and the target still erasable. The dialog's
+ * typed email (`confirm`) must be the account's, compared with the locked row, so a request with
+ * a stale or forged id erases nothing.
  */
 export const eraseUser = async (
   deps: EraseDeps,
   actor: Actor,
   userId: string,
+  options: { confirm?: string } = {},
 ): Promise<EraseResult> => {
   requirePermission(actor.user, "users.manage");
   if (userId === actor.user?.id) throw new CannotModifySelfError();
+  const confirm = options.confirm === undefined ? undefined : options.confirm.trim().toLowerCase();
   const at = now(deps);
   const afterCommit = deps.rewriteAfterCommit ?? deps.repo.rewritesAfterCommit;
 
@@ -129,6 +134,7 @@ export const eraseUser = async (
       const target = await repo.lockUser(userId);
       if (!target) throw new UserNotFoundError();
       if (target.erasedAt) throw new UserErasedError();
+      if (confirm !== undefined && confirm !== target.email) throw new EraseConfirmationError();
 
       const pseudonym = { email: erasedEmail(userId), name: erasedName(userId) };
       await repo.anonymizeUser(userId, pseudonym, at);

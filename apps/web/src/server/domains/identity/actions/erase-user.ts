@@ -16,11 +16,13 @@ const actor = async (headers: Headers, app: AppAuth) => ({
   ip: clientIp(headers, app.trustProxy),
 });
 
+/** Erases the account whose email root typed (`confirm`) to be sure; the service checks it. */
 export const adminEraseUser = async (
   headers: Headers,
   userId: string,
+  confirm: string,
   app: AppAuth = getAppAuth(),
-) => service.eraseUser(deps(app), await actor(headers, app), userId);
+) => service.eraseUser(deps(app), await actor(headers, app), userId, { confirm });
 
 /** The erasures whose audit log rewrite isn't finished (MySQL), for the Privacy tab. */
 export const adminPendingErasures = async (headers: Headers, app: AppAuth = getAppAuth()) =>

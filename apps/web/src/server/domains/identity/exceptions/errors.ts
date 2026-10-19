@@ -99,6 +99,14 @@ export class UserErasedError extends IdentityError {
   }
 }
 
+/** Erase's confirmation (103): the typed email isn't the account's. */
+export class EraseConfirmationError extends IdentityError {
+  override readonly name: string = "EraseConfirmationError";
+  constructor() {
+    super("Type the account's email exactly as shown to erase it.");
+  }
+}
+
 export class EmailTakenError extends IdentityError {
   override readonly name: string = "EmailTakenError";
   constructor(readonly email: string) {

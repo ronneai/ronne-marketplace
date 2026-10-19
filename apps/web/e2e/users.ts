@@ -61,6 +61,8 @@ export const E2E_USERS = {
   hookAuthor: "hook-author@e2e.test",
   moderator: "moderator@e2e.test",
   releaser: "releaser@e2e.test",
+  // Root erases them (103): they published an item and commented on a review first.
+  erasable: "erasable@e2e.test",
   browser: "browser@e2e.test",
   proposer: "proposer@e2e.test",
   reader: "reader@e2e.test",
@@ -226,6 +228,7 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   hookAuthor: "Hook Author",
   moderator: "Mo Moderator",
   releaser: "Rae Releaser",
+  erasable: "Erasable Person",
   browser: "Bea Browser",
   proposer: "Pat Proposer",
   reader: "Rea Reader",
@@ -462,6 +465,17 @@ export const E2E_TWIN = { workspace: "e2e-twin", scope: "e2e-seeded", item: "twi
 
 /** An old name of the workspace's twin skill (118), as if it had been renamed: it still answers. */
 export const E2E_TWIN_OLD_NAME = "@e2e-seeded/twin-skill";
+
+/**
+ * What the erasable user (103) leaves behind: a rule they published in the seeded scope, and a
+ * submission of the releaser's (a fixed id, so the test can open its review) they commented on.
+ */
+export const E2E_ERASE = {
+  item: "erase-rule",
+  submission: "erase-review",
+  submissionId: "01K6E2EERASEREVW0000000001",
+  comment: "Looks good from here.",
+};
 
 /** An item the seed publishes with two versions (1.0.0 and 1.1.0 on latest), for the Versions page. */
 export const E2E_VERSIONED_ITEM = "versioned";

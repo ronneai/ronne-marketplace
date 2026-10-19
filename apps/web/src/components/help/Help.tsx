@@ -374,6 +374,12 @@ export const HELP = {
       "After the IP retention: the client address on audit events, sessions and rmk login approvals, and the email typed in a failed sign-in. After the sessions retention: expired sessions and finished login approvals are deleted. Audit events themselves are never deleted. A purge runs every six hours, or from rmk-server purge.",
     href: docsHref("privacy", "retention"),
   },
+  "erase-user": {
+    question: "What does erasing do?",
+    answer:
+      "The person's email, name, picture, passwords, sign-in links, two-factor, sessions, tokens, memberships and drafts go, for good. What they did stays under the pseudonym deleted-user-<id>: the items and versions they published, their submitted submissions and review comments, and the audit events, which keep making sense. The old email is free at once. To stop someone without erasing, disable them.",
+    href: docsHref("privacy", "erase"),
+  },
   "usage-policy": {
     question: "What does rmk report?",
     answer:
