@@ -164,3 +164,24 @@ Witnessed: 2026-10-19 19:40 EDT, by a fresh agent (adversarial). Commit: 926afa0
 | 10 | The UI and the e2e tests | no | confirmed | `e2e-final.log` 18 passed (your-data, user-admin, mobile sweep, composer); the earlier composer failure is gone (it passed alone before) |
 
 **Overall:** met: HEAD, other methods and cross-site navigations no longer export; the same-site and no-Fetch-Metadata residual is accepted.
+
+## Task 3 — Documentation
+
+Witnessed: 2026-10-19 19:35 EDT, by a fresh agent (blind). Commit: 0d6a7e69 plus the uncommitted README change; ronne-web branch docs/marketplace-104-your-data, uncommitted. Machine: macOS (Darwin 27.0.0), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | ronne-web topics.ts has the privacy sections retention, erase, your-data | no | confirmed | `git diff` shows the sections list at topics.ts:92 |
+| 2 | The app's topics.ts has the same section id in the same order | no | confirmed | `apps/web/src/components/help/topics.ts:234`, after retention and erase |
+| 3 | Your data exists in English, Portuguese and French with the same structure | no | confirmed | Intro, six file-content bullets, never-holds, limits and root paragraphs in each; line-by-line comparison found no drift |
+| 4 | The Account line exists in the three languages and links to privacy#your-data | no | confirmed | Each `account.tsx` has a DocLink with section your-data; the Password tab hosts the section |
+| 5 | The Users line exists in the three languages and links to privacy#your-data | no | confirmed | Each `admin.tsx` has the Download their data paragraph with the DocLink; the greyed erased row matches the component tests |
+| 6 | The facts match the code | no | confirmed | 10 minutes, 10000 rows and characters, truncated, [other], other actor's IP null, file name, session only (401, 405, 403), 404s, root's downloads counted, user.data_exported; nothing promised that isn't built |
+| 7 | Both helpers link to privacy#your-data | no | confirmed | `Help.tsx:383-394` use `docsHref(privacy, your-data)` |
+| 8 | The DocLink targets resolve | no | confirmed | account#signing-in, admin#users, privacy#erase, privacy#your-data are in topics.ts; render tests pass |
+| 9 | The ronne-web tests, typecheck and lint pass | no | confirmed | `cd ronne-web/www && pnpm test` → 169 passed; typecheck clean; `pnpm lint` no fixes |
+| 10 | The marketplace help tests pass | no | confirmed | `pnpm exec vitest run src/components/help` → 3 passed |
+| 11 | The index row for 104 is set to done | no | confirmed | `git diff docs/features/README.md`: planned to done with the ronne-web branch named |
+| 12 | `pnpm witness:check` passes | no | confirmed | `pnpm witness:check` → exit 0 |
+
+**Overall:** met: the privacy section and the Account and Users lines agree across the three languages and the code backs every fact.

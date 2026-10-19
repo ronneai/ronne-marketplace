@@ -28,7 +28,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   and the action; an e2e test downloads the file as a user and as root, parses it, and finds the
   seeded item and comment; the phone sweep passes.
 
-- [ ] **3. Documentation.** In `../ronne-web`: **Your data** in Privacy (both `topics.ts`), the
+- [x] **3. Documentation.** In `../ronne-web`: **Your data** in Privacy (both `topics.ts`), the
   Account and Users lines, in English, Portuguese and French; here, the two helpers and this
   feature's index row set to done, which ends M15.
   *Done when:* the docs render tests pass in both repositories; `pnpm witness:check` passes.
