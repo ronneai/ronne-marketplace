@@ -6,7 +6,7 @@
 
 # Node.js 24 LTS on Debian 13 (trixie), pinned by digest (docs/policies/dependencies.md §2).
 # Written in FROM directly, not through an ARG, so Dependabot can update the digest.
-FROM node:24-trixie-slim@sha256:173f125896c3b47ddf056734c7ea789d04595a6a08769a8f78e0df642781fb66 AS base
+FROM node:24-trixie-slim@sha256:7f486cabe892bff8fef04c0f7da8dba84a560be3e4e2740b7a86afc57ebec315 AS base
 ENV NEXT_TELEMETRY_DISABLED=1 \
     TURBO_TELEMETRY_DISABLED=1
 # Debian's security updates: a fix Debian publishes before the Node image is rebuilt with it still
