@@ -199,7 +199,7 @@ describe("rendering", () => {
     expect(html).toContain("ana@example.com is a root.");
     expect(html).toContain("What goes");
     expect(html).toContain("What stays, under the pseudonym");
-    expect(html).toContain("download it before erasing");
+    expect(html).toContain("give it to them first");
     expect(html).toContain("What does erasing do?");
     expect(html).toMatch(/<input[^>]*type="email"[^>]*name="confirm"/);
     // Nothing typed yet: Erase is off.

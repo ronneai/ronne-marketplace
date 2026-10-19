@@ -39,8 +39,8 @@ const STAYS = [
 ];
 
 /**
- * The erase confirmation (103): the account, what goes and what stays, a reminder to download
- * their data first, and the account's email typed to enable Erase. It's remounted each time the
+ * The erase confirmation (103): the account, what goes and what stays, a reminder to give the
+ * person what they asked for first, and the account's email typed to enable Erase. It's remounted each time the
  * dialog opens, so no result lingers.
  */
 export const EraseUserForm = ({
@@ -107,8 +107,8 @@ export const EraseUserForm = ({
         </ul>
       </div>
       <p className="text-sm text-muted">
-        If the person asked for a copy of their data, download it before erasing: nothing of theirs
-        can be read back afterwards.
+        Nothing of theirs can be read back afterwards: if the person asked for what the instance
+        holds about them, give it to them first.
       </p>
       <div className="grid gap-1.5">
         <Label htmlFor={id}>Type the account&apos;s email to confirm</Label>

@@ -30,7 +30,7 @@ end of the account and can't be undone.
 - **Erasing by SCIM:** 108 deprovisions, root erases.
 - **Deleting published versions, items or reviews:** never; they are the registry's record and
   other people depend on them (MVP §15). Yanking (030) exists for a version that must go.
-- **A download of the person's data before erasing:** 104; the confirmation reminds root.
+- **A download of the person's data before erasing:** 104; the confirmation reminds root to give the person what they asked for first.
 - **A `rmk-server erase-user` command:** not needed; erasing is a root's considered act in the
   web app, and root always has a password (106).
 
@@ -77,8 +77,8 @@ caches it. Search in Admin › Users finds the pseudonym by id. No page ever say
 A dialog, from the row's actions and from the Erase link beside *Deprovisioned by* (108): the
 account's name and email, a warning that it can't be undone (disable is the way to stop someone
 without erasing), what will be deleted and what stays under the pseudonym (the lists above in
-plain words), a reminder to download their data first when the request asked for it (104's link
-once it exists), and a field where root must type the account's email (any case, spaces around it
+plain words), a reminder to give the person what they asked for first, since nothing of theirs can be read
+back afterwards (104's download link joins it once it exists), and a field where root must type the account's email (any case, spaces around it
 ignored) to enable **Erase**; the server action checks the typed email against the locked row
 too, so a stale or forged request erases nothing. The helper `erase-user` sits in the dialog.
 Root's own row has no actions at all (059), so no Erase; a root erased by another root is warned

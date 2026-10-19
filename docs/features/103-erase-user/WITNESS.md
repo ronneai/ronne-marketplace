@@ -261,3 +261,43 @@ Witnessed: 2026-10-19 18:05 EDT, by a fresh agent (adversarial). Commit: a21d9c0
 | 14 | An e2e test erases a seeded user who published an item and commented on a review, sees the pseudonym on the item versions, the review and the audit page, and signs in with the old email into a new, empty account; the phone sweep passes | yes | confirmed | Timing (`stat`): last UI source edits `EraseUserDialog.tsx` 16:06:48, `UserRowActions.tsx`, `UsersPage.tsx`, `page.tsx` 15:34:50, `user-admin.e2e.ts` 16:08:16; later edits are tests only. `103-t3-e2e8.log` (16:08:01) `build 0`; `103-t3-e2e9.log` (16:08:27) `1 passed`, `exit-desktop 0`; `103-t3-phone2.log` (18:02:35) `5 passed`, `exit-phone 0`; `.next/BUILD_ID` 16:11:14, after all app edits. Assertions read in `user-admin.e2e.ts:146-207` cover all four parts of the claim. Not rerun by the witness (can't build in the scratch copy): the verdict rests on the logs' timing and the assertions |
 
 **Overall:** met: row 14 is confirmed from logs that post-date every UI source edit and from the e2e's assertions; with the first re-check (rows 8 and 9 confirmed) every row of the task is confirmed.
+
+## Task 4 — Documentation
+
+Witnessed: 2026-10-19 18:10 EDT, by a fresh agent (blind). Commit: e2cb2a4f (ronne-web: main d012ce5 plus 13 uncommitted files). Machine: macOS (Darwin 27), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The ronne-web docs tests, lint and typecheck pass | no | confirmed | `cd ronne-web/www && pnpm test` → 30 files, 169 tests passed; `pnpm lint` → checked 258 files, no fixes; `pnpm typecheck` → tsc clean |
+| 2 | The marketplace `help.test.tsx` passes, and `pnpm witness:check` passes | no | confirmed | `vitest run src/components/help` → 3 passed; `pnpm witness:check` → no error |
+| 3 | `privacy` has the section `erase` in both `topics.ts`, with the same ids | no | confirmed | ronne-web `topics.ts` has `sections: ["retention","erase"]`; marketplace `help/topics.ts:233` has `{id:"erase", title:"Erase an account"}`; the English title is "Erase an account" |
+| 4 | The DocLink targets exist (privacy#erase, backups#restore, scim#scim-accounts, admin#users) | no | confirmed | `topics.ts` lists `restore` under backups and `scim-accounts` under scim; the link tests pass |
+| 5 | The `erase-user` helper in `Help.tsx` links to `privacy#erase` and the dialog uses it | no | confirmed | `Help.tsx:377-382` `docsHref("privacy","erase")`; `EraseUserDialog.tsx` renders `<Help id="erase-user"/>` |
+| 6 | The README row for 103 is set to done | no | confirmed | `docs/features/README.md:297` ends with the status done |
+| 7 | "What goes" matches the code | no | confirmed | `erase-user.ts` runs `anonymizeUser`, `deleteCredentials`, sessions, tokens, device grants, SCIM rows, memberships, requests, moves, drafts, IPs and the email rewrite; `kysely-erase-repository.ts:50` sets `image: null` |
+| 8 | The personal workspace is renamed when it holds a published item or any submission, else deleted with its scopes | no | confirmed | `holdsRecord` (`kysely-erase-repository.ts:132-149`) checks items then submissions; renamed through `renameLockedWorkspace`, else `deleteEmptyWorkspace` deletes the scopes first |
+| 9 | The Erased badge, the `erased` status, the Status filter, and the Erase action (row and link beside Deprovisioned by) | no | confirmed | `UsersPage.tsx:55`, `:118-122`, `:140`, `:193` |
+| 10 | Nothing can change an erased account: no enable, no password reset, no sign-in, no provisioning | no | confirmed | `user-admin.ts:137`, `sso-sign-in.ts:76,104`, `scim-users.ts:119,127,182,257` |
+| 11 | MySQL and MariaDB: "An erasure wasn't completed" with Retry on the Privacy tab, and the purge finishes it | no | confirmed | `PendingErasures.tsx`; `finishErasures` takes `{actor}` (Retry) or `{job}` |
+| 12 | `user.erased` is audited with counts only, never the email or name | no | confirmed | `finish()` records `erasure.counts`, `eventsRewritten` and `via` |
+| 13 | The SCIM statements: unassign at the provider first, SCIM links deleted, a provider that still lists the person gets 404 and makes a new account, and 108's second-account recovery links to "erase the second" | no | confirmed | `scim.tsx` has both new links; `deleteScimRows`; `scim-users.ts:119-127` |
+| 14 | Backups: a restore brings an erased account back with its personal data | no | confirmed | `backups.tsx` restore section has the new sentence |
+| 15 | Portuguese and French say the same as the English in all four topics | no | confirmed | Compared the `git diff` of `pt/` and `fr/` with `en/` paragraph by paragraph: same structure, links and bullets; UI labels stay in English as the app shows them |
+| 16 | Every statement in the new text is true of how the app behaves now | no | partly | The privacy text said "A copy of the person's data, if they asked for one, is made before erasing", and the dialog "download it before erasing"; feature 104 isn't built, so no copy exists |
+
+**Overall:** not met: the copy-of-data sentence promised something that doesn't exist yet; everything else checked against the code holds.
+
+### Re-check 1 (blind: row 16)
+
+Witnessed: 2026-10-19 18:20 EDT, by a fresh agent (blind). Commit: e2cb2a4f plus uncommitted edits in both repositories. Machine: macOS (Darwin 27), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 16a | The English, Portuguese and French privacy pages promise no download or copy | yes | confirmed | `en/privacy.tsx:166-167`, `pt/privacy.tsx:183-184`, `fr/privacy.tsx:194-196` say nothing of the person's can be read back, and to give them what they asked for first; a case-insensitive grep for download, copy, copie, cópia, télécharg and baix finds nothing in the three files |
+| 16b | The Portuguese and French say the same as the English, including that you can't erase your own account or the last enabled root | yes | confirmed | The same three ideas in the same order in all three (`en:167`, `pt:184`, `fr:195-196`) |
+| 16c | The dialog's visible text promises no download or copy | yes | confirmed | `EraseUserDialog.tsx:110-111`: "Nothing of theirs can be read back afterwards: if the person asked for what the instance holds about them, give it to them first." |
+| 16d | The website tests still pass | yes | confirmed | `pnpm test` in `ronne-web/www` → 30 files, 169 tests passed |
+| 16e | No stale mention of a download remains in the dialog's comment or the spec | yes | confirmed | The witness found two leftovers (the component's doc comment, SPEC.md:33); both reworded afterwards and checked by the implementer with `grep -n "download" EraseUserDialog.tsx` (only the 104 placeholder button's text remains) |
+
+**Overall:** met: the user-facing text in all three languages and in the dialog promises nothing that doesn't exist, and the two stale mentions are fixed.
+

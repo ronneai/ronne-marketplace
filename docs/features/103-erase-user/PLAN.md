@@ -42,7 +42,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   review and the audit page, and signs in with the old email into a new, empty account; the phone
   sweep passes.
 
-- [ ] **4. Documentation.** In `../ronne-web`: **Erase an account** in Privacy (both `topics.ts`),
+- [x] **4. Documentation.** In `../ronne-web`: **Erase an account** in Privacy (both `topics.ts`),
   the Users, SCIM and Backups lines, in English, Portuguese and French; here, the `erase-user`
   helper and this feature's index row set to done.
   *Done when:* the docs render tests pass in both repositories; `pnpm witness:check` passes.
