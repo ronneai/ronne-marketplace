@@ -20,3 +20,12 @@ refusal:
 
 Where byte-for-byte matching must hold in the database itself (file paths, group names), use the
 `exactString` column type (`db/column-types.ts`), which is `utf8mb4_bin` on MySQL.
+
+## LIKE and its wildcards
+
+`escapeLike` (`db/search.ts`) turns `%`, `_` and `!` in a search term into `!%`, `!_` and `!!`,
+but the query must say `ESCAPE '!'` (`LIKE_ESCAPE`) for that to mean anything: Kysely's
+`where("col", "like", pattern)` has no escape clause, so an escaped `_` matches nothing. Use
+`containsInsensitive`, or a `sql` expression with `escape ${sql.lit(LIKE_ESCAPE)}` as the erasure's
+rewrite does (103; its blind witness found an address with `_` never rewritten).
+

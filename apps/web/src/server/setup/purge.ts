@@ -12,13 +12,15 @@ import { SetupFailedError } from "./run-setup";
 const n = (value: number) => value.toLocaleString("en-US");
 
 /** The counts, one line each, as the command prints them. */
-export const purgeLines = (counts: PurgeCounts): string[] => {
+export const purgeLines = (counts: PurgeCounts, erasuresFinished = 0): string[] => {
   const ips = counts.ipsCleared;
   return [
     `IP addresses cleared: ${n(ips.auditLog + ips.sessions + ips.deviceGrants)} (audit log ${n(ips.auditLog)}, sessions ${n(ips.sessions)}, device grants ${n(ips.deviceGrants)})`,
     `Failed sign-ins' emails cleared: ${n(counts.emailsCleared)}`,
     `Expired sessions deleted: ${n(counts.sessionsDeleted)}`,
     `Finished device grants deleted: ${n(counts.grantsDeleted)}`,
+    // Erasures (103) whose audit log rewrite the run finished, when there were any.
+    ...(erasuresFinished > 0 ? [`Erasures finished: ${n(erasuresFinished)}`] : []),
   ];
 };
 
@@ -72,6 +74,7 @@ export const runPurge = async (options: {
       `${options.dryRun ? "Counting what a purge would clear" : "Purging"} by the retention: IP addresses ${policy.ipDays} days, expired sessions ${policy.sessionsDays} days.`,
     );
     let counts: PurgeCounts;
+    let erasuresFinished = 0;
     if (options.dryRun) {
       counts = await runRetentionPurge(db, dialect, policy, now(), { dryRun: true });
     } else {
@@ -86,8 +89,9 @@ export const runPurge = async (options: {
         );
       if (!run.purge) throw new SetupFailedError("The purge ended without its counts.");
       counts = run.purge;
+      erasuresFinished = run.counts.erasuresFinished ?? 0;
     }
-    for (const line of purgeLines(counts)) prompts.log.success(line);
+    for (const line of purgeLines(counts, erasuresFinished)) prompts.log.success(line);
     if (options.dryRun) prompts.log.info("A dry run: nothing was changed.");
     return counts;
   } finally {

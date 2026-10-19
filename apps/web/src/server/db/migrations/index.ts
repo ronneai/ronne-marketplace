@@ -28,6 +28,7 @@ import { deviceGrants } from "./0027_device_grants";
 import { scim } from "./0028_scim";
 import { jobs } from "./0029_jobs";
 import { erasedAt } from "./0030_erased_at";
+import { userErasures } from "./0031_user_erasures";
 import type { AppMigration } from "./types";
 
 /**
@@ -65,4 +66,5 @@ export const migrations: Record<string, AppMigration> = {
   "0028_scim": scim,
   "0029_jobs": jobs,
   "0030_erased_at": erasedAt,
+  "0031_user_erasures": userErasures,
 };

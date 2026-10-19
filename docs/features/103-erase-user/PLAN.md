@@ -17,7 +17,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* db tests cover each refusal with its message and that nothing changed; the SCIM
   tests of 108 pass with an erased account seeded; `pnpm test:db` passes on the servers.
 
-- [ ] **2. The erase service.** [risky] `identity/services/erase-user.ts`: the transaction from the
+- [x] **2. The erase service.** [risky] `identity/services/erase-user.ts`: the transaction from the
   spec's table (the lock, the counts, the personal workspace rule, the SCIM rows, the drafts and
   their files, the memberships, requests and moves, the IPs), the `user.erased` event and its
   sentence; the metadata rewrite (`audit/repositories`: find by target id and by the JSON value
@@ -68,3 +68,27 @@ goes into `SPEC.md` instead.
   erasure leaves, a real email, a root role or `disabled: false`, to show the flag alone refuses:
   with the row also disabled, a test can't tell the two checks apart). The SCIM users API test
   seeds one in every test.
+- **Task 2.** The service is `identity/services/erase-user.ts` over `repositories/erase-repository.ts`
+  (Kysely in `kysely-erase-repository.ts`), which carries the identity and workspace repositories
+  bound to the same transaction, as the SCIM one does. The only updates of `audit_log` are in
+  `audit/repositories/kysely-audit-rewrite.ts` (the guard test's second allowlist entry): the IP
+  clearing by actor or target, and the email rewrite, a keyset walk over the rows a LIKE for the
+  JSON string value `"<address>"` or the target id finds, every string value equal to the address
+  (any case: MySQL's LIKE ignores it) replaced at any depth. The LIKE needs `ESCAPE '!'` in the
+  query, not only `escapeLike` on the needle: without it an address with `_` was never found (the
+  blind pass caught it; `containsInsensitive` in `db/search.ts` is the model, and `LIKE_ESCAPE` is
+  now shared). The MySQL path keeps its state in
+  `user_erasures` (migration 0031): the row's `events_rewritten` grows page by page, so an
+  interrupted attempt's count isn't lost, and `deleteErasure` returns it for the event. 113's rename
+  body moved to `renameLockedWorkspace` in the workspaces service so the personal workspace's
+  rename is the real one (aliases, open drafts rewritten, the event). Tests force the after-commit
+  path with `rewriteAfterCommit: true` and a repository whose rewrite fails after one page, so the
+  interrupted state is tested on every dialect, not only MySQL. The "last enabled root" refusal
+  is unreachable in practice (the actor is an enabled root and can't erase themself), so the check
+  after the role change is belt and braces; the test covers self, another root, and a non-root.
+  The adversarial pass found that root's own draft in a person's otherwise empty personal
+  workspace made the erase fail on the scope's foreign key: any submission left there now counts
+  as the record (the workspace is renamed, the draft kept). On PostgreSQL the LIKE is
+  case-sensitive, so a metadata value in another case than the stored address is found only by
+  the target id; every writer lowercases, so nothing real is missed.
+

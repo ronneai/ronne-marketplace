@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { adminRetryErasures } from "@/server/domains/identity/actions/erase-user";
 import { IdentityError } from "@/server/domains/identity/exceptions/errors";
 import {
   setPasswordSignInPolicy,
@@ -94,6 +95,25 @@ export const savePasswordSignInPolicy = serverAction(
     } catch (error) {
       if (error instanceof SettingsError || error instanceof IdentityError)
         return { error: error.message };
+      throw error;
+    }
+  },
+);
+
+/** Finishes the erasures whose audit log rewrite wasn't completed (103), from the Privacy tab's Retry. */
+export const retryErasures = serverAction(
+  async (_previous: SettingsActionState, _form: FormData): Promise<SettingsActionState> => {
+    try {
+      const finished = await adminRetryErasures(await requestHeaders());
+      revalidatePath("/admin/settings");
+      return {
+        done:
+          finished === 0
+            ? "Nothing was left to finish."
+            : `Finished ${finished} ${finished === 1 ? "erasure" : "erasures"}.`,
+      };
+    } catch (error) {
+      if (error instanceof IdentityError) return { error: error.message };
       throw error;
     }
   },

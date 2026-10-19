@@ -120,7 +120,15 @@ export const EVENTS = {
   "job.finished": {
     level: "info",
     msg: "Job finished",
-    fields: ["job", "ms", "ipsCleared", "emailsCleared", "sessionsDeleted", "grantsDeleted"],
+    fields: [
+      "job",
+      "ms",
+      "ipsCleared",
+      "emailsCleared",
+      "sessionsDeleted",
+      "grantsDeleted",
+      "erasuresFinished",
+    ],
   },
   "job.skipped": { level: "debug", msg: "Job skipped", fields: ["job", "reason"] },
   "job.failed": { level: "error", msg: "Job failed", fields: ["job", "ms", "err"] },

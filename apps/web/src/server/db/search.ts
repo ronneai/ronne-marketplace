@@ -2,7 +2,8 @@ import { type Expression, type SqlBool, sql } from "kysely";
 
 // `!` rather than a backslash: MySQL reads backslashes in string literals differently from
 // PostgreSQL and SQLite, so a backslash escape isn't portable.
-const ESCAPE = "!";
+export const LIKE_ESCAPE = "!";
+const ESCAPE = LIKE_ESCAPE;
 
 /** Escapes `%`, `_` and the escape character itself, so they match literally in LIKE. */
 export const escapeLike = (term: string): string => {

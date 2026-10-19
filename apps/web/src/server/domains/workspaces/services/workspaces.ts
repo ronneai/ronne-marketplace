@@ -155,6 +155,92 @@ export const updateWorkspace = async (
 };
 
 /**
+ * The rename itself, with the workspace locked and the new name checked (113): its items take the
+ * new name, every old one an alias (118), its open drafts and submissions are rewritten under it,
+ * requests for the new name join it, and `workspace.renamed` is recorded. Shared with erasing a
+ * user (103), which renames a personal workspace that holds the record.
+ */
+export const renameLockedWorkspace = async (
+  repo: WorkspaceRepository,
+  actor: WorkspaceActor,
+  workspace: Workspace,
+  to: string,
+  at: Date,
+): Promise<void> => {
+  const items = await repo.itemsIn(workspace.id);
+  const named = (workspaceName: string, item: { scope: string; name: string }) =>
+    formatItemName({ workspace: workspaceName, scope: item.scope, name: item.name });
+  const ids = new Set(items.map((item) => item.id));
+  const newNames = items.map((item) => named(to, item));
+  // A new name that's another item's old name stays that item's (118).
+  const aliases = await repo.aliasesNamed(newNames);
+  const others = aliases.filter((alias) => !ids.has(alias.itemId));
+  if (others.length > 0) {
+    // Named only when the renamer sees the item: someone's personal workspace's (114), or any
+    // private one's they're not in, is counted, never named.
+    const where = await repo.itemWorkspaces(others.map((alias) => alias.itemId));
+    const user = actor.user;
+    const seen = (itemId: string) => {
+      const w = where.get(itemId);
+      return (
+        user?.role === "root" ||
+        (w !== undefined &&
+          (w.visibility === "public" || Object.hasOwn(user?.workspaces ?? {}, w.workspaceId)))
+      );
+    };
+    const named = others.filter((a) => seen(a.itemId)).map((a) => a.name);
+    throw new WorkspaceRenameAliasError([...named].sort(), others.length - named.length);
+  }
+
+  await repo.rename(workspace.id, to, at);
+  // Drafts and submissions not released yet name the workspace's items by their old names:
+  // their own `name`, their dependencies, a skill's agent. Written under the new ones, they
+  // submit and release as before (`@acme/…` becomes `@acme-platform/…`, nothing else).
+  const renamed = (name: string) => {
+    const parts = parseItemName(name);
+    return parts && parts.workspace === workspace.name ? named(to, parts) : null;
+  };
+  const manifests = await repo.openManifestsIn(workspace.id);
+  const entries = await repo.openFiles(
+    manifests.flatMap((file) => {
+      const manifest = parseManifest(file.content).manifest;
+      if (manifest?.type !== "skill") return [];
+      const skill = (manifest.skill ?? {}) as Record<string, unknown>;
+      const { content: _, ...where } = file;
+      return [{ ...where, path: String(skill.entry ?? "SKILL.md") }];
+    }),
+  );
+  const changed = [
+    ...manifests.map((file) => ({ ...file, after: renamedManifest(file.content, renamed) })),
+    ...entries.map((file) => ({
+      ...file,
+      after: renamedFrontmatterAgent(file.content, renamed),
+    })),
+  ].flatMap(({ after, ...file }) => (after === file.content ? [] : [{ ...file, content: after }]));
+  await repo.writeFiles(changed, at);
+  // Its items' names now: old names of their own no more (a rename back); the ones they had,
+  // old names from now on.
+  await repo.setAliases(
+    items.map((item) => ({ name: named(workspace.name, item), itemId: item.id })),
+    aliases.map((alias) => alias.name),
+    "rename",
+    at,
+  );
+  // Nobody joins a personal workspace (114): requests kept for its new name stay by name.
+  const requestsJoined = workspace.ownerId
+    ? 0
+    : await repo.joinRequestsOnRename(workspace.id, to, at);
+  await audit(
+    repo,
+    actor,
+    "workspace.renamed",
+    workspace.id,
+    { from: workspace.name, to, items: items.length, requestsJoined },
+    at,
+  );
+};
+
+/**
  * Renames a workspace (113): root, or its admins; never `global`. The name follows create's rule
  * and must be free; its items take the new name, every old one an alias (118), so installs,
  * lockfiles and dependencies keep working. Open requests kept for the new name join it, as when a
@@ -186,79 +272,7 @@ export const renameWorkspace = async (
       // Taken by another workspace: the unique index decides too, when two renames race.
       if (await repo.findByName(to)) throw new WorkspaceNameTakenError(to);
 
-      const items = await repo.itemsIn(workspace.id);
-      const named = (workspaceName: string, item: { scope: string; name: string }) =>
-        formatItemName({ workspace: workspaceName, scope: item.scope, name: item.name });
-      const ids = new Set(items.map((item) => item.id));
-      const newNames = items.map((item) => named(to, item));
-      // A new name that's another item's old name stays that item's (118).
-      const aliases = await repo.aliasesNamed(newNames);
-      const others = aliases.filter((alias) => !ids.has(alias.itemId));
-      if (others.length > 0) {
-        // Named only when the renamer sees the item: someone's personal workspace's (114), or any
-        // private one's they're not in, is counted, never named.
-        const where = await repo.itemWorkspaces(others.map((alias) => alias.itemId));
-        const user = actor.user;
-        const seen = (itemId: string) => {
-          const w = where.get(itemId);
-          return (
-            user?.role === "root" ||
-            (w !== undefined &&
-              (w.visibility === "public" || Object.hasOwn(user?.workspaces ?? {}, w.workspaceId)))
-          );
-        };
-        const named = others.filter((a) => seen(a.itemId)).map((a) => a.name);
-        throw new WorkspaceRenameAliasError([...named].sort(), others.length - named.length);
-      }
-
-      await repo.rename(workspace.id, to, at);
-      // Drafts and submissions not released yet name the workspace's items by their old names:
-      // their own `name`, their dependencies, a skill's agent. Written under the new ones, they
-      // submit and release as before (`@acme/…` becomes `@acme-platform/…`, nothing else).
-      const renamed = (name: string) => {
-        const parts = parseItemName(name);
-        return parts && parts.workspace === workspace.name ? named(to, parts) : null;
-      };
-      const manifests = await repo.openManifestsIn(workspace.id);
-      const entries = await repo.openFiles(
-        manifests.flatMap((file) => {
-          const manifest = parseManifest(file.content).manifest;
-          if (manifest?.type !== "skill") return [];
-          const skill = (manifest.skill ?? {}) as Record<string, unknown>;
-          const { content: _, ...where } = file;
-          return [{ ...where, path: String(skill.entry ?? "SKILL.md") }];
-        }),
-      );
-      const changed = [
-        ...manifests.map((file) => ({ ...file, after: renamedManifest(file.content, renamed) })),
-        ...entries.map((file) => ({
-          ...file,
-          after: renamedFrontmatterAgent(file.content, renamed),
-        })),
-      ].flatMap(({ after, ...file }) =>
-        after === file.content ? [] : [{ ...file, content: after }],
-      );
-      await repo.writeFiles(changed, at);
-      // Its items' names now: old names of their own no more (a rename back); the ones they had,
-      // old names from now on.
-      await repo.setAliases(
-        items.map((item) => ({ name: named(workspace.name, item), itemId: item.id })),
-        aliases.map((alias) => alias.name),
-        "rename",
-        at,
-      );
-      // Nobody joins a personal workspace (114): requests kept for its new name stay by name.
-      const requestsJoined = workspace.ownerId
-        ? 0
-        : await repo.joinRequestsOnRename(workspace.id, to, at);
-      await audit(
-        repo,
-        actor,
-        "workspace.renamed",
-        workspace.id,
-        { from: workspace.name, to, items: items.length, requestsJoined },
-        at,
-      );
+      await renameLockedWorkspace(repo, actor, workspace, to, at);
       return { ...workspace, name: to, updatedAt: at };
     });
   } catch (error) {

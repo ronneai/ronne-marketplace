@@ -28,6 +28,8 @@ const sourceFiles = (dir: string): string[] => {
 const ALLOWED_UPDATES: Record<string, string> = {
   "src/server/jobs/retention-purge.ts":
     "clears ip_address past the IP retention, and the typed email of a failed sign-in (102)",
+  "src/server/domains/audit/repositories/kysely-audit-rewrite.ts":
+    "clears an erased person's ip_address and replaces their email in metadata with the pseudonym (103)",
 };
 
 const FORBIDDEN = [

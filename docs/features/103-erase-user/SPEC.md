@@ -48,18 +48,19 @@ for the account `<id>`:
 | `session` | deleted; `access_tokens` deleted (not only revoked: a revoked token's row names the token, which the person chose); `device_grants` of the person deleted |
 | SCIM (108): `scim_users` links, tombstones included, `scim_group_members` | deleted, so no `externalId` or `userName` ever links this account again; the provider's next create makes a new account |
 | Workspace memberships, open access requests (094), open scope moves (024) | memberships deleted (a workspace whose only admin they were is left to root, as 092 already handles); requests and moves cancelled, with no reason text |
-| The personal workspace (114) | renamed from the pseudonym by 114's rule when it holds a published item or a submitted submission; otherwise deleted with its scopes and drafts |
+| The personal workspace (114) | renamed from the pseudonym by 114's rule (`deleted-user-<id>`, lowercased, the first free name) when it holds a published item or any submission left once the person's own drafts are gone (something submitted, or another person's draft, which root may make in any scope), as any rename (113): its items take the new name and keep the old ones as aliases (118), since lockfiles and dependencies name them, and `workspace.renamed` is recorded; otherwise deleted with its scopes and drafts; the person's membership in it goes either way |
 | Drafts (`submissions` in `draft`) and their files | deleted: only their author could ever see them |
 | Submitted, approved and rejected submissions, revisions, review events (comments) | kept; the author or actor is the pseudonym |
 | Items owned, versions published, scopes and workspaces created | kept; `owner_id`, `published_by`, `created_by` keep the id, which now resolves to the pseudonym |
-| Audit events where the person is actor or target | kept; `ip_address` cleared on all of them now, not at retention's age |
+| Audit events where the person is actor or target | kept; `ip_address` cleared on all of them now, not at retention's age (`user.erased` itself, root's act, keeps root's address until the retention) |
 | Audit metadata holding the email | rewritten: every event whose `metadata` holds the erased email as a value (`user.created`, `user.updated`'s `relinked`, `auth.sign_in_failed`, SCIM's) gets the pseudonym in its place; found by the target's id and by a `LIKE` over `metadata` for the address, in batches, inside the transaction on PostgreSQL and SQLite and right after it on MySQL (Edge cases) |
 | Usage reports (046) | nothing: they hold no person |
 
 The old email is free for a new account at once. The audit event `user.erased` (target the
 user) records `{ sessionsEnded, tokensDeleted, scimLinksDeleted, draftsDeleted, eventsRewritten,
-personalWorkspace: "renamed" | "deleted" }`, never the email or the name; its sentence (060) is
-*Erased deleted-user-<id>*.
+personalWorkspace: "renamed" | "deleted" | "none" }`, plus `requestsCancelled` and
+`movesCancelled` when there were any and `via: "retry" | "job"` when a retry or the job finished
+it (Edge cases), never the email or the name; its sentence (060) is *Erased deleted-user-<id>*.
 
 ### Where it's shown afterwards
 
@@ -125,11 +126,15 @@ button.
   never a longer address containing it.
 - **MySQL and MariaDB:** rewriting many rows' JSON inside the main transaction can hold gap locks
   on `audit_log` for a long time on a big instance; there, the metadata rewrite runs in batches
-  right after the main transaction commits, and `user.erased` is written only when the rewrite is
-  done; a crash in between leaves the pseudonym in the row and the rewrite to finish on the next
-  attempt, which the Privacy tab shows as "an erasure wasn't completed" with a Retry (the
-  retention job also finishes it on its next run, since an erased account with unrewritten events
-  is a state it checks). On PostgreSQL and SQLite it's one transaction.
+  (500 rows, each its own short transaction) right after the main transaction commits, and
+  `user.erased` is written only when the rewrite is done. The state in between is a row of
+  `user_erasures` (the old address the rewrite looks for, the counts the event will record, how
+  many rows were rewritten so far), made in the main transaction and deleted when the event is
+  recorded: a crash leaves the pseudonym in the row and that row behind, which the Privacy tab
+  shows as "an erasure wasn't completed" with a Retry (root only), and the retention job finishes
+  on its next run (`erasuresFinished` in its counts). Whoever deletes the row records the event,
+  so a retry and the job can't both. On PostgreSQL and SQLite the same steps run in the one
+  transaction, so the row is never seen.
 - **The pseudonym's email, typed anywhere:** `ronne.invalid` is a reserved domain (RFC 2606), so
   nothing resolves it, and `normalizeEmail` refuses every `.invalid` address (106's rule), so no
   form, SCIM body or provider can create, find or sign in to such an account: the erase service
