@@ -96,6 +96,7 @@ export const ROUTE_SEGMENTS = new Set([
   "check",
   "code",
   "current-workspace",
+  "data",
   "device",
   "drafts",
   "feeds",

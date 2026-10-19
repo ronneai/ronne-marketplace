@@ -380,6 +380,18 @@ export const HELP = {
       "The person's email, name, picture, passwords, sign-in links, two-factor, sessions, tokens, memberships and drafts go, for good. What they did stays under the pseudonym deleted-user-<id>: the items and versions they published, their submitted submissions and review comments, and the audit events, which keep making sense. The old email is free at once. To stop someone without erasing, disable them.",
     href: docsHref("privacy", "erase"),
   },
+  "your-data": {
+    question: "What is in the file?",
+    answer:
+      "Your account (never your password hash or two-factor secret), your sessions, token names, workspaces, requests, scopes, items you published, your submissions and comments, and the audit events you took part in. Other people's emails are replaced. It isn't a backup: files and other people's data aren't in it. You can download it once every 10 minutes.",
+    href: docsHref("privacy", "your-data"),
+  },
+  "download-user-data": {
+    question: "When do I download someone's data?",
+    answer:
+      "When they asked what the instance holds about them and can't sign in to get it themselves (disabled, or two-factor lost), and before erasing them: an erased account has nothing left to give. It's the same file they would get, it counts against their one download every 10 minutes, and it's recorded in the audit log with you as who.",
+    href: docsHref("privacy", "your-data"),
+  },
   "usage-policy": {
     question: "What does rmk report?",
     answer:

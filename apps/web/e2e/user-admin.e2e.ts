@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { expect, type Page, test } from "@playwright/test";
 import { recordSecret } from "./secrets";
 import { E2E_ERASE, E2E_PASSWORD, E2E_SCOPE, E2E_USERS } from "./users";
@@ -147,6 +148,29 @@ test("root creates a user, who signs in with the shown password; disabling them 
   // the email typed, then every page shows the pseudonym, and the old email makes a new account.
   const erasable = E2E_USERS.erasable;
   await root.goto(`/admin/users?q=${encodeURIComponent(erasable)}`);
+  // First, root makes the file the person asked for (104): the item and the comment are in it,
+  // and a second one inside ten minutes is refused.
+  await root
+    .getByRole("group", { name: `Actions for ${erasable}` })
+    .getByRole("button", { name: "Download their data" })
+    .click();
+  const download = root.getByRole("dialog", { name: "Download their data" });
+  await expect(download.getByText(erasable)).toBeVisible();
+  const [file] = await Promise.all([
+    root.waitForEvent("download"),
+    download.getByRole("link", { name: "Download", exact: true }).click(),
+  ]);
+  expect(file.suggestedFilename()).toMatch(/^ronne-data-[0-9A-Z]+-\d{4}-\d{2}-\d{2}\.json$/);
+  const data = JSON.parse(await readFile(await file.path(), "utf8"));
+  expect(data.account.email).toBe(erasable);
+  expect(data.items.map((i: { name: string }) => i.name)).toContain(
+    `@${E2E_SCOPE}/${E2E_ERASE.item}`,
+  );
+  expect(data.comments.map((c: { body: string }) => c.body)).toContain(E2E_ERASE.comment);
+  expect(JSON.stringify(data)).not.toMatch(/token_hash|backup_codes/);
+  const again = await root.context().request.get(file.url());
+  expect(again.status()).toBe(429);
+  await download.getByText("Close", { exact: true }).click();
   await root
     .getByRole("group", { name: `Actions for ${erasable}` })
     .getByRole("button", { name: "Erase" })

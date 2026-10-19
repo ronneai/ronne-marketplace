@@ -231,6 +231,7 @@ export const TOPICS = [
     sections: [
       { id: "retention", title: "Retention" },
       { id: "erase", title: "Erase an account" },
+      { id: "your-data", title: "Your data" },
     ],
   },
   {

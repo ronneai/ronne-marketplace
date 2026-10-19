@@ -63,6 +63,8 @@ export const E2E_USERS = {
   releaser: "releaser@e2e.test",
   // Root erases them (103): they published an item and commented on a review first.
   erasable: "erasable@e2e.test",
+  // Downloads their own data (104): they published a rule and commented on a review.
+  dataOwner: "data-owner@e2e.test",
   browser: "browser@e2e.test",
   proposer: "proposer@e2e.test",
   reader: "reader@e2e.test",
@@ -229,6 +231,7 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   moderator: "Mo Moderator",
   releaser: "Rae Releaser",
   erasable: "Erasable Person",
+  dataOwner: "Data Owner",
   browser: "Bea Browser",
   proposer: "Pat Proposer",
   reader: "Rea Reader",
@@ -475,6 +478,12 @@ export const E2E_ERASE = {
   submission: "erase-review",
   submissionId: "01K6E2EERASEREVW0000000001",
   comment: "Looks good from here.",
+};
+
+/** What the data owner (104) published, and the comment they left on the erasable review. */
+export const E2E_DATA = {
+  item: "data-rule",
+  comment: "My own words on this review.",
 };
 
 /** An item the seed publishes with two versions (1.0.0 and 1.1.0 on latest), for the Versions page. */

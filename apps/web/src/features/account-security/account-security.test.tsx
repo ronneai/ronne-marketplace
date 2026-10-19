@@ -10,6 +10,10 @@ const twoFactor = vi.hoisted(() => ({
   twoFactorStatus: vi.fn(),
 }));
 vi.mock("@/server/domains/identity/actions/two-factor", () => twoFactor);
+const userData = vi.hoisted(() => ({
+  myLastExport: vi.fn(async (): Promise<Date | null> => null),
+}));
+vi.mock("@/server/domains/identity/actions/user-data", () => userData);
 vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn() }),
@@ -169,6 +173,17 @@ describe("/account/security", () => {
     expect(password).toMatch(/aria-current="page"[^>]*>Password</);
     expect(password).toContain('href="/account/security"');
     expect(password).toContain(">Change password</h2>");
+    // Your data (104) sits under it: a plain link to the file, and no date before a first download.
+    expect(password).toContain(">Your data</h2>");
+    expect(password).toContain('href="/account/data"');
+    expect(password).not.toContain("Last downloaded");
+  });
+
+  it("shows when the data was last downloaded (104)", async () => {
+    userData.myLastExport.mockResolvedValueOnce(new Date("2026-10-18T14:03:00Z"));
+    const password = renderToStaticMarkup(await ChangePasswordPage());
+    expect(password).toContain("Last downloaded");
+    expect(password).toContain('dateTime="2026-10-18T14:03:00.000Z"');
   });
 
   it("sends someone whose session ended to sign in", async () => {

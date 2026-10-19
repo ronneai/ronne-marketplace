@@ -18,6 +18,7 @@ import { localStorage } from "../src/server/storage/local-storage";
 import {
   E2E_ACME,
   E2E_ACME_MEMBERS,
+  E2E_DATA,
   E2E_DOOR,
   E2E_ERASE,
   E2E_FALLBACK_ITEMS,
@@ -769,6 +770,37 @@ await db
         created_at: at,
       },
     ])
+    .execute();
+}
+
+// Your data (104): the data owner published a rule and commented on the same review, so their own
+// download has an item and a comment to find.
+{
+  const dataItemId = await release(E2E_DATA.item, "rule", "1.0.0", {
+    "ronne.yaml": `name: "@${E2E_SCOPE}/${E2E_DATA.item}"\ntype: rule\ndescription: A rule the data owner published.\nrule:\n  body: rule.md\n  activation: always\n`,
+    "rule.md": "Written by someone who downloads their data.\n",
+  });
+  await db
+    .updateTable("items")
+    .set({ owner_id: ids.dataOwner ?? "" })
+    .where("id", "=", dataItemId)
+    .execute();
+  await db
+    .updateTable("item_versions")
+    .set({ published_by: ids.dataOwner ?? "" })
+    .where("item_id", "=", dataItemId)
+    .execute();
+  await db
+    .insertInto("review_events")
+    .values({
+      id: newId(),
+      submission_id: E2E_ERASE.submissionId,
+      actor_id: ids.dataOwner ?? "",
+      kind: "comment",
+      body: E2E_DATA.comment,
+      revision: null,
+      created_at: toDbDate(new Date(), dialect),
+    })
     .execute();
 }
 

@@ -99,3 +99,68 @@ Witnessed: 2026-10-19 19:30 EDT, by a fresh agent (adversarial). Commit: fbd21b2
 | 2 | Other people's emails and data don't survive in the person's file | no | confirmed | 32 forms: `@x/bob@1.2.3-foo.example.com`, `-a.co`, `-a.123.com`, `+build.com` all give `@[other]`; real references `@x/y@1.0.0-rc.1`, `-beta.2`, `-rc-1`, `+b2` kept; forms still kept end in a numeric label or contain a plus and can't be domains; P2 8 of 8 on SQLite and MySQL |
 
 **Overall:** met: no still-leaking form and no real item reference wrongly scrubbed; rows 3 to 5 were confirmed in re-check 1 and nothing touched them since.
+
+## Task 2 — The routes and the pages
+
+Witnessed: 2026-10-19 19:35 EDT, by a fresh agent (blind). Commit: 926afa04 plus the uncommitted diff (task 2). Machine: macOS (Darwin 27.0.0), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | GET /account/data sends the file as an attachment named ronne-data-<id>-<UTC date>.json, JSON utf-8, no-store | no | confirmed | `user-data-api.db.test.ts` 8 of 8; mutations dropping `cache-control` and changing to `inline` fail it |
+| 2 | Own-data refusals are tested: no session goes to sign-in, any Authorization header gives 401, a two-factor hold gives 403 and records nothing | no | confirmed | Mutating the authorization check and the hold check each fail one test; the hold test also checks the next try succeeds |
+| 3 | 429 carries the time left in Retry-After and details.retryAfter | no | confirmed | Removing the `retry-after` header fails the 429 test (590 to 600 seconds); e2e gets 429 with a positive Retry-After |
+| 4 | GET /admin/users/[id]/data is root only: a moderator, a user for someone else, an unknown id and an erased account get 404 and record nothing; root's download of a disabled account works and counts for the person | no | confirmed | Removing ForbiddenError or UserErasedError from the 404 mapping fails the matching tests; zero `user.data_exported` rows after refusals |
+| 5 | The Account section has the your-data helper, a plain Download my data link and the last download's date | no | confirmed | `YourDataSection.tsx` plain anchor; `account-security.test.tsx` asserts heading, href, no date before a first download and the dateTime after |
+| 6 | Admin Users row action Download their data has the download-user-data helper, is greyed erased for an erased account, absent on your own row; 103's dialog links the download before the email field | no | confirmed | `UserRowActions.tsx`, `DownloadDataDialog.tsx`, `EraseUserDialog.tsx`; `download-data.test.tsx` covers each incl. the order |
+| 7 | Both helpers exist and link to privacy#your-data; the topic is registered | no | confirmed | `Help.tsx` both entries use `docsHref(privacy, your-data)`; `topics.ts` has the section (ronne-web not checked, task 3) |
+| 8 | An e2e test downloads the file as a user and as root, parses it, and finds the seeded item and comment | no | partly | Both e2e tests read and passing in the implementer's log, not re-run (Playwright can't build in a copy); the log predated a later edit |
+| 9 | The phone sweep passes | no | partly | `e2e-sweep.log` 19 passed incl. `/account/password`; not re-run, log predated a later edit |
+
+**Overall:** not met: rows 8 and 9 rest on logs that predate the last edit; every route and component claim holds (7 of 8 mutations caught). Test gaps found: nosniff, a held root on the admin route.
+
+### Re-check 1 (blind: rows 8, 9, the test gaps and the diff)
+
+Witnessed: 2026-10-19 19:50 EDT, by a fresh agent (blind). Commit: 926afa04 plus the uncommitted diff. Machine: macOS (Darwin 27.0.0), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 8 | An e2e test downloads the file as a user and as root, parses it, and finds the seeded item and comment | no | confirmed | `e2e-final.log` (after a rebuild, after the last source edit): your-data and user-admin pass, root's download parsed with item and comment, repeat gives 429 |
+| 9 | The phone sweep passes | no | confirmed | `e2e-final.log`: phone, phone-webkit and tablet sweeps pass, 18 in all; `pages.ts:137` lists `/account/password` |
+| 10 | nosniff is tested | no | confirmed | Renaming the header in a scratch copy fails the attachment test |
+| 11 | Any method but GET answers 405 and a cross-site Sec-Fetch-Site gets 403 | no | confirmed | Mutating the method check or the cross-site value fails the new test that loops HEAD, POST, PUT and checks nothing is audited |
+| 12 | A two-factor-held root is refused on the admin route | no | confirmed | `user-data-api.db.test.ts` held-root test asserts 403 and zero events |
+| 13 | The telemetry segment data is pinned | no | confirmed | Removing it from `sanitize.ts` fails `route-segments.test.ts` |
+| 14 | The file name uses the account's id and /admin/users/me/data is an ordinary id | no | confirmed | `dataFileName(data.account.id, …)`; target is `string or null`; the new test gets 404 for `me` |
+
+**Overall:** met: rows 8 and 9 confirmed from the post-edit run, the test gaps covered by tests that fail under mutation, the 405 and cross-site refusals too.
+
+Witnessed: 2026-10-19 19:25 EDT, by a fresh agent (adversarial). Commit: 926afa04 plus the uncommitted diff. Machine: macOS (Darwin 27.0.0), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A bearer token gets no file, with or without a cookie | no | confirmed | 401 on any authorization header before the session is read; mutating it fails 1 of 8 tests |
+| 2 | No session, an expired session, or a disabled account's live session gets no file | no | confirmed | Probe on four databases: 303 to sign-in for each |
+| 3 | A person held on the two-factor step is refused with the real twoFactorHold | no | confirmed | Policy everyone: a plain user and root got 403 on both routes; reviewers: the plain user got 200, root 403; all four databases |
+| 4 | A moderator or user can't fetch another's file and 404, 403 and 429 don't reveal which accounts exist | no | confirmed | Non-root callers get 404 for any id before any lock or write; 429 needs a real earlier export |
+| 5 | Odd ids: no injection, no crash | no | confirmed | Spaces, `../`, NUL, a 100000-character id, emoji, CRLF all gave 404 on four databases; the file name is stripped to a safe set |
+| 6 | Headers on the file response | no | confirmed | content-type, attachment name, no-store, nosniff; the 303, 401, 403, 404 and 429 carry no-store; no CORS; 429 has Retry-After |
+| 7 | Two downloads at once: only one gets through | no | confirmed | Six parallel requests gave 200 and five 429 on all four databases |
+| 8 | HEAD, prefetch and cross-site GET can't burn the ten-minute window | no | not met | Next maps HEAD to the GET handler: a HEAD with the cookie recorded an export and the next GET was 429; a cross-site top-level GET did the same since the cookie is Lax |
+| 9 | Proxy, logging and telemetry for these paths | no | confirmed | proxy matcher covers both paths; apiRoute logs the pattern not the id; the data segment is listed |
+| 10 | The UI: links work without JavaScript, the erased row is greyed, the erase dialog links the download | no | partly | Plain anchors by reading; e2e from the log; a refusal on a plain link shows raw JSON |
+
+**Overall:** not met: a HEAD request, or a cross-site top-level GET, records an export and burns the person's window. Also found: `/admin/users/me/data` downloaded the caller's own file, the route tests depended on the clone's configuration, the file name used the URL's id.
+
+### Re-check 1 (adversarial: row 8, the findings and the diff)
+
+Witnessed: 2026-10-19 19:40 EDT, by a fresh agent (adversarial). Commit: 926afa04 plus the uncommitted diff. Machine: macOS (Darwin 27.0.0), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 8 | HEAD, prefetch and cross-site GET can't burn the ten-minute window | no | confirmed | HEAD then GET gave 405 and 200 on four databases; POST, PUT, DELETE, PATCH, OPTIONS 405 with Allow; cross-site gave 403 with zero rows, also with Mode navigate or no-cors and Dest document or image; same-site, same-origin, none and absent allowed; residual: same-site pages and browsers without Fetch Metadata are not covered |
+| F2 | /admin/users/me/data no longer downloads your own file | no | confirmed | Root asking for id me gets 404 on four databases |
+| F3 | The route db tests don't depend on the clone's configuration | no | confirmed | They pass `hold`; 8 files, 79 tests pass |
+| F5 | The file name uses the account's real id | no | confirmed | Built from `data.account.id`; a lowercase id gives 404, so there is no file to misname |
+| 10 | The UI and the e2e tests | no | confirmed | `e2e-final.log` 18 passed (your-data, user-admin, mobile sweep, composer); the earlier composer failure is gone (it passed alone before) |
+
+**Overall:** met: HEAD, other methods and cross-site navigations no longer export; the same-site and no-Fetch-Metadata residual is accepted.

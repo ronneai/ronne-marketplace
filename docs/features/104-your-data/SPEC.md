@@ -91,7 +91,7 @@ that isn't the person's, in values and keys at any depth, is replaced by `[other
 
 ### Where
 
-- **Account → Your data:** a section with one sentence, the helper `your-data`, and **Download my
+- **Account → Your data:** a section (on the Password tab: `/account/data` is the download) with one sentence, the helper `your-data`, and **Download my
   data**. It's a link to `GET /account/data`, so it works with JavaScript off. Under it, "Last
   downloaded <date>" when there was one (from the audit log).
 - **Admin › Users → Download their data** (root): in the row's menu, the same file for that
@@ -101,6 +101,9 @@ that isn't the person's, in values and keys at any depth, is replaced by `[other
 
 ### Rules
 
+- Only a plain `GET` from the app downloads: any other method (a `HEAD` too) is 405, and a request
+  the browser marks `Sec-Fetch-Site: cross-site` is 403, so another site can't use up a person's
+  window. Answers that aren't the file are JSON in the API's error shape.
 - The person's own: `GET /account/data` needs a web session; a disabled account can't sign in,
   so root does it. A session held on the two-factor step (105) can't download, and neither can a disabled account.
 - Root's: `users.manage`; the audit event records root as actor and the person as target.
