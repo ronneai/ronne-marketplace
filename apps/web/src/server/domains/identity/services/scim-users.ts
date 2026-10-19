@@ -115,7 +115,8 @@ const render = async (
   base: string,
 ) => {
   const account = await repo.findUser(link.userId);
-  if (!account) throw notFound();
+  // An erased account (103) has no links left; one that survived by hand is as gone as the rest.
+  if (!account || account.erasedAt) throw notFound();
   return scimUserResource(link, account, base, await repo.groupsOf(caller.providerId, link.userId));
 };
 
@@ -123,7 +124,7 @@ const load = async (repo: ScimUserRepository, caller: ScimCaller, id: string) =>
   const link = await repo.findLink(caller.providerId, id);
   if (link) await repo.lockUser(link.userId);
   const account = link ? await repo.findUser(link.userId) : null;
-  if (!link || !account) throw notFound();
+  if (!link || !account || account.erasedAt) throw notFound();
   if (account.role === "root") throw rootRefused();
   return { link, account };
 };
@@ -156,7 +157,9 @@ export const createScimUser = async (
       ? await repo.findTombstoneByExternalId(providerId, input.externalId)
       : null;
     if (tombstone) await repo.lockUser(tombstone.userId);
-    const returning = tombstone ? await repo.findUser(tombstone.userId) : null;
+    const back = tombstone ? await repo.findUser(tombstone.userId) : null;
+    // Erasing deletes the tombstones (103); one that survived by hand brings nobody back.
+    const returning = back && !back.erasedAt ? back : null;
     let userId: string;
     if (tombstone && returning) {
       // This provider's deleted user, back by its external id: the same account, a new link.
@@ -172,10 +175,11 @@ export const createScimUser = async (
       await setActive(repo, caller, returning, input.active, at);
       userId = returning.id;
     } else if (owner) {
-      // Adoption, on every condition: enabled, no SCIM link anywhere, the provider's own sign-in
-      // link, used within the window. Otherwise the email is simply someone's.
+      // Adoption, on every condition: enabled, not erased (103), no SCIM link anywhere, the
+      // provider's own sign-in link, used within the window. Otherwise the email is simply someone's.
       const adoptable =
         !owner.disabledAt &&
+        !owner.erasedAt &&
         !(await repo.hasAnyLink(owner.id)) &&
         (await repo.hasProviderAccount(owner.id, providerId)) &&
         (await repo.signedInThroughSince(
@@ -250,7 +254,7 @@ export const listScimUsers = async (
   const resources = [];
   for (const link of page.rows) {
     const account = await deps.repo.findUser(link.userId);
-    if (!account) continue;
+    if (!account || account.erasedAt) continue;
     resources.push(
       scimUserResource(
         link,

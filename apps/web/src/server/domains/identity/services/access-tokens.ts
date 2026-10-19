@@ -150,7 +150,8 @@ export const authenticateToken = async (
   if (found.token.revokedAt) return rejected("token_revoked");
   if (found.token.expiresAt && found.token.expiresAt.getTime() <= at.getTime())
     return rejected("token_expired");
-  if (found.user.disabledAt) return rejected("user_disabled");
+  // An erased account (103) has no tokens left; the row refuses anyway.
+  if (found.user.disabledAt || found.user.erasedAt) return rejected("user_disabled");
 
   await deps.repo.touchLastUsed(found.token.id, at);
   const { id, email, name, role, workspaces, personal } = found.user;

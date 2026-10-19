@@ -21,6 +21,7 @@ vi.mock("next/navigation", () => ({
     throw new Error("NEXT_NOT_FOUND");
   },
   usePathname: () => navigation.path,
+  useRouter: () => ({ refresh: () => {} }),
 }));
 
 const { UsersPage } = await import("./UsersPage");
@@ -34,6 +35,7 @@ const user = (overrides: Partial<UserSummary> = {}): UserSummary => ({
   name: "Alex",
   role: "user",
   disabledAt: null,
+  erasedAt: null,
   createdAt: new Date("2026-09-20T10:00:00Z"),
   ...overrides,
 });
@@ -178,13 +180,58 @@ describe("UsersPage (061)", () => {
     });
     expect(gone).toContain("Deprovisioned by Acme SSO on");
     expect(gone).not.toContain("Managed by");
-    // Erase (103) isn't there yet.
+    // The Erase link (103) sits beside the deprovisioned badge, when the page gives one.
     expect(gone).not.toContain("Erase");
+    const withErase = page({
+      users: [
+        user({
+          disabledAt: new Date("2026-10-18T13:00:00Z"),
+          scim: scim({ managed: false, deprovisionedAt: new Date("2026-10-18T13:00:00Z") }),
+        }),
+      ],
+      erase: (u) => <button type="button">Erase {u.email}</button>,
+    });
+    expect(withErase).toMatch(/Deprovisioned by Acme SSO on.*Erase alex@example.com/);
+    // Not beside a managed one: the provider still owns the account.
+    expect(
+      page({
+        users: [user({ scim: scim({}) })],
+        erase: () => <button type="button">Erase</button>,
+      }),
+    ).not.toContain(">Erase<");
     expect(page()).not.toContain("Managed by");
     // In a cell phones show (the Status column is hidden below sm).
     const at = managed.indexOf("Managed by Acme SSO");
     const cell = managed.slice(managed.lastIndexOf("<td", at), at);
     expect(cell).not.toContain("hidden sm:table-cell");
+  });
+
+  it("shows an erased account (103): the badge with the date, the status, no SCIM badge", () => {
+    const erasedAt = new Date("2026-10-19T12:00:00Z");
+    const html = page({
+      users: [
+        user({
+          email: "deleted-user-01ULID@ronne.invalid",
+          name: "deleted-user-01ULID",
+          disabledAt: erasedAt,
+          erasedAt,
+          scim: {
+            providerId: "acme",
+            providerName: "Acme SSO",
+            managed: false,
+            adoptedAt: null,
+            deprovisionedAt: erasedAt,
+          },
+        }),
+      ],
+      erase: () => <button type="button">Erase</button>,
+    });
+    expect(html).toMatch(/Erased on(&nbsp;|\u00a0)?.*2026-10-19/);
+    // The Status cell (the filter's option says "erased" too, so the cell's span is what's pinned).
+    expect(html).toMatch(/<span class="text-muted">erased<\/span>/);
+    expect(html).not.toContain("Deprovisioned by");
+    expect(html).not.toContain(">Erase<");
+    expect(html).toMatch(/<option value="erased"/);
   });
 
   it("shows active filters as chips, and says when nothing matches", () => {

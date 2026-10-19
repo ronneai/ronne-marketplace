@@ -4,6 +4,7 @@ import {
   ForbiddenError,
   InvalidRoleError,
   LastRootError,
+  UserErasedError,
   UserNotFoundError,
 } from "../exceptions/errors";
 import { generatePassword } from "../models/generated-password";
@@ -93,7 +94,10 @@ const lockAndRecheckActor = async (repo: IdentityRepository, actor: Actor): Prom
   requirePermission(await repo.findActiveUser(id), "users.manage");
 };
 
-/** The instance always keeps an enabled root; the transaction rolls back otherwise (059). */
+/**
+ * The instance always keeps an enabled root; the transaction rolls back otherwise (059). An erased
+ * row never counts, whatever its role says (103).
+ */
 const keepAnActiveRoot = async (repo: IdentityRepository): Promise<void> => {
   if ((await repo.countActiveRoots()) === 0) throw new LastRootError();
 };
@@ -118,7 +122,10 @@ export const disableAccount = async (
   return { sessionsEnded, tokensRevoked, ...(requestsCancelled > 0 ? { requestsCancelled } : {}) };
 };
 
-/** Loads the target and refuses the actor's own row: another root changes it (059). */
+/**
+ * Loads the target and refuses the actor's own row (another root changes it, 059) and an erased
+ * account (nothing changes it again: no enable, disable, role, password or two-factor, 103).
+ */
 const loadTarget = async (
   repo: IdentityRepository,
   actor: Actor,
@@ -127,6 +134,7 @@ const loadTarget = async (
   if (userId === actor.user?.id) throw new CannotModifySelfError();
   const target = await repo.findUser(userId);
   if (!target) throw new UserNotFoundError();
+  if (target.erasedAt) throw new UserErasedError();
   return target;
 };
 

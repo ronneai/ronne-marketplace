@@ -6,6 +6,8 @@ import {
   ForbiddenError,
 } from "@/server/domains/identity/exceptions/errors";
 
+const erase = vi.hoisted(() => ({ adminEraseUser: vi.fn() }));
+vi.mock("@/server/domains/identity/actions/erase-user", () => erase);
 const admin = vi.hoisted(() => ({
   adminCreateUser: vi.fn(),
   adminChangeRole: vi.fn(),
@@ -18,6 +20,7 @@ const admin = vi.hoisted(() => ({
 const cache = vi.hoisted(() => ({ revalidatePath: vi.fn() }));
 vi.mock("@/server/domains/identity/actions/user-admin", () => admin);
 vi.mock("next/cache", () => cache);
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: () => {} }) }));
 vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));
 
 const actions = await import("./actions");
@@ -26,6 +29,8 @@ const { ActionForm, RoleChangeNotice, ScimManagedNotice, UserRowActions } = awai
   "./UserRowActions"
 );
 const { CreateUserDialog } = await import("./CreateUserDialog");
+const { confirmsEmail, EraseUserForm } = await import("./EraseUserDialog");
+const { EraseConfirmationError } = await import("@/server/domains/identity/exceptions/errors");
 
 const form = (fields: Record<string, string>) => {
   const data = new FormData();
@@ -156,6 +161,112 @@ describe("rendering", () => {
     );
     expect(disabled).toContain("Change role");
     expect(disabled).toContain(">Enable<");
+  });
+
+  it("offers Erase on every other row, and only the greyed download on an erased one (103)", () => {
+    const row = (overrides: Record<string, unknown> = {}) =>
+      renderToStaticMarkup(
+        <UserRowActions
+          user={{
+            id: "u",
+            email: "u@example.com",
+            name: "U",
+            role: "user",
+            disabled: false,
+            ...overrides,
+          }}
+        />,
+      );
+    expect(row()).toMatch(/<button[^>]*>Erase<\/button>/);
+    expect(row({ self: true })).not.toContain("Erase");
+    const erased = row({ disabled: true, erased: true });
+    expect(erased).toContain("Download their data (erased)");
+    expect(erased).toMatch(/<button[^>]*disabled=""[^>]*>Download their data/);
+    for (const text of ["Change role", "Reset password", "Enable", ">Erase<"])
+      expect(erased, text).not.toContain(text);
+  });
+
+  it("the erase dialog names the account, lists what goes and stays, and needs the email typed (103)", () => {
+    const html = renderToStaticMarkup(
+      <EraseUserForm
+        user={{ id: "u", email: "ana@example.com", name: "Ana Silva", role: "root" }}
+        onDone={() => {}}
+      />,
+    );
+    expect(html).toContain("Ana Silva");
+    expect(html).toContain("ana@example.com");
+    expect(html).toContain("This can&#x27;t be undone.");
+    expect(html).toContain("ana@example.com is a root.");
+    expect(html).toContain("What goes");
+    expect(html).toContain("What stays, under the pseudonym");
+    expect(html).toContain("give it to them first");
+    expect(html).toContain("What does erasing do?");
+    expect(html).toMatch(/<input[^>]*type="email"[^>]*name="confirm"/);
+    // Nothing typed yet: Erase is off.
+    expect(html).toMatch(/<button[^>]*type="submit"[^>]*disabled=""[^>]*>Erase</);
+  });
+
+  it("the erase dialog's states: enabled once the email matches, the error line, and Done (103)", () => {
+    const user = { id: "u", email: "ana@example.com", name: "Ana", role: "user" as const };
+    expect(confirmsEmail(" ANA@Example.com ", "ana@example.com")).toBe(true);
+    expect(confirmsEmail("ana@example.com", "ana@example.com")).toBe(true);
+    expect(confirmsEmail("anna@example.com", "ana@example.com")).toBe(false);
+    expect(confirmsEmail("", "ana@example.com")).toBe(false);
+    // A look-alike (Cyrillic а) is another string.
+    expect(confirmsEmail("\u0430na@example.com", "ana@example.com")).toBe(false);
+    const enabled = renderToStaticMarkup(
+      <EraseUserForm user={user} onDone={() => {}} initialTyped=" ANA@Example.com " />,
+    );
+    expect(enabled).toMatch(/<button[^>]*type="submit"[^>]*>Erase</);
+    expect(enabled).not.toMatch(/<button[^>]*type="submit"[^>]*disabled=""/);
+    const wrong = renderToStaticMarkup(
+      <EraseUserForm user={user} onDone={() => {}} initialTyped="anna@example.com" />,
+    );
+    expect(wrong).toMatch(/<button[^>]*type="submit"[^>]*disabled=""[^>]*>Erase</);
+    const refused = renderToStaticMarkup(
+      <EraseUserForm
+        user={user}
+        onDone={() => {}}
+        initialState={{ error: "Type the account's email exactly as shown to erase it." }}
+      />,
+    );
+    expect(refused).toContain("Type the account&#x27;s email exactly as shown to erase it.");
+    expect(refused).toContain('name="confirm"');
+    const done = renderToStaticMarkup(
+      <EraseUserForm
+        user={user}
+        onDone={() => {}}
+        initialState={{ done: "Erased. The account is now deleted-user." }}
+      />,
+    );
+    expect(done).toContain("INFO:");
+    expect(done).toContain("Erased. The account is now deleted-user.");
+    expect(done).toMatch(/<button[^>]*>Done</);
+    expect(done).not.toContain('name="confirm"');
+  });
+
+  it("erases once the email is typed, and shows the refusals (103)", async () => {
+    erase.adminEraseUser.mockResolvedValueOnce({});
+    expect(
+      await actions.eraseUserFromForm({}, form({ userId: "u", confirm: "u@example.com" })),
+    ).toEqual({
+      done: "Erased. The account is now deleted-user and nothing of theirs can be read back.",
+    });
+    expect(erase.adminEraseUser).toHaveBeenCalledWith(expect.any(Headers), "u", "u@example.com");
+    // Not revalidated here: the dialog refreshes the list on Done (the row goes with it).
+    expect(cache.revalidatePath).not.toHaveBeenCalled();
+    erase.adminEraseUser.mockRejectedValueOnce(new EraseConfirmationError());
+    expect((await actions.eraseUserFromForm({}, form({ userId: "u", confirm: "x" }))).error).toBe(
+      "Type the account's email exactly as shown to erase it.",
+    );
+    erase.adminEraseUser.mockRejectedValueOnce(new ForbiddenError("users.manage"));
+    expect(
+      (await actions.eraseUserFromForm({}, form({ userId: "u", confirm: "u" }))).error,
+    ).toContain("users.manage");
+    erase.adminEraseUser.mockRejectedValueOnce(new Error("boom"));
+    await expect(
+      actions.eraseUserFromForm({}, form({ userId: "u", confirm: "u" })),
+    ).rejects.toThrow("boom");
   });
 
   it("offers Reset two-factor only when it's on, never on your own row (105)", () => {

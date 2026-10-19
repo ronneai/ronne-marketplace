@@ -14,6 +14,7 @@ import {
   resetPasswordFromForm,
   resetTwoFactorFromForm,
 } from "./actions";
+import { EraseUserButton } from "./EraseUserDialog";
 import { OneTimePassword } from "./OneTimePassword";
 import { PasswordChoice } from "./PasswordChoice";
 import type { AdminActionState } from "./types";
@@ -22,8 +23,12 @@ type Role = "root" | "user";
 type RowUser = {
   id: string;
   email: string;
+  /** For the erase dialog (103), which names the account. */
+  name?: string;
   role: Role;
   disabled: boolean;
+  /** Erased (103): the row's only action is the greyed data download (104's place). */
+  erased?: boolean;
   /** Two-factor sign-in is on (105): only then is "Reset two-factor" offered. */
   twoFactor?: boolean;
   /** The signed-in root's own row: read-only here (059). */
@@ -210,8 +215,9 @@ export const ActionForm = ({
 
 /**
  * A row's actions: change role, reset password, reset two-factor when it's on (105), disable or
- * enable (spec 008), on every row,
- * other roots' included, except your own: another root changes that one (059).
+ * enable (spec 008), erase (103), on every row,
+ * other roots' included, except your own: another root changes that one (059). An erased row
+ * keeps only the greyed download of their data (104's place), since nothing can change it again.
  */
 export const UserRowActions = ({ user }: { user: RowUser }) => {
   const [kind, setKind] = useState<Kind | null>(null);
@@ -220,6 +226,20 @@ export const UserRowActions = ({ user }: { user: RowUser }) => {
     return (
       <div className="flex justify-end">
         <Help id="own-row" iconOnly />
+      </div>
+    );
+  if (user.erased)
+    return (
+      <div className="flex justify-end">
+        <button
+          type="button"
+          className={`${rowButton} cursor-not-allowed opacity-50`}
+          disabled
+          title="This account was erased: there's nothing of theirs to download."
+          aria-label={`Download the data of ${user.email}: erased`}
+        >
+          Download their data (erased)
+        </button>
       </div>
     );
 
@@ -254,6 +274,9 @@ export const UserRowActions = ({ user }: { user: RowUser }) => {
         >
           {user.disabled ? "Enable" : "Disable"}
         </button>
+        <EraseUserButton
+          user={{ id: user.id, email: user.email, name: user.name ?? user.email, role: user.role }}
+        />
       </fieldset>
       <Dialog open={kind !== null} onClose={close} title={kind ? TITLES[kind] : ""}>
         {kind ? <ActionForm key={round} kind={kind} user={user} onDone={close} /> : null}

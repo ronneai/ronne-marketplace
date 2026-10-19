@@ -228,7 +228,10 @@ export const TOPICS = [
     slug: "privacy",
     title: "Privacy",
     summary: "What an instance keeps about people, for how long, and how it's purged.",
-    sections: [{ id: "retention", title: "Retention" }],
+    sections: [
+      { id: "retention", title: "Retention" },
+      { id: "erase", title: "Erase an account" },
+    ],
   },
   {
     slug: "rmk",

@@ -294,7 +294,7 @@ audit log stays whole: an erased person becomes a pseudonym, never a gap. Build 
 | ID | Feature | Depends on | Status |
 |---|---|---|---|
 | [102](./102-retention/SPEC.md) | Retention: root sets how long IP addresses (audit log, sessions, device grants) and expired sessions are kept, 90 days by default, on a Privacy tab of Settings; a scheduled purge in the server under a lease in a `jobs` table, and `rmk-server purge` for cron; the Privacy topic in the Documentation | 007, 006, 099 | done (the Documentation in ronne-web `docs/marketplace-102-retention`) |
-| [103](./103-erase-user/SPEC.md) | Erase a user: root anonymises an account (email and name become `deleted-user-<id>`; sessions, accounts and tokens deleted; SCIM links (108) deleted, tombstones included, so no `externalId` links it again; IPs cleared), published items and audit events kept under the pseudonym; the last root can't be erased; audited | 008, 059, 102 | planned |
+| [103](./103-erase-user/SPEC.md) | Erase a user: root anonymises an account (email and name become `deleted-user-<id>`; sessions, accounts and tokens deleted; SCIM links (108) deleted, tombstones included, so no `externalId` links it again; IPs cleared), published items and audit events kept under the pseudonym; the last root can't be erased; audited | 008, 059, 102 | done |
 | [104](./104-your-data/SPEC.md) | Your data: a person downloads what the instance holds about them (account, tokens' names, submissions, comments, audit events) as JSON, and root can do it for them | 102, 103 | planned |
 
 ### M16 — Company sign-in

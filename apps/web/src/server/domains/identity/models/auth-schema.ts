@@ -17,6 +17,7 @@ export const authSchema = {
         fieldName: "role",
       },
       disabledAt: { type: "date", required: false, input: false, fieldName: "disabled_at" },
+      erasedAt: { type: "date", required: false, input: false, fieldName: "erased_at" },
     },
   },
   session: {

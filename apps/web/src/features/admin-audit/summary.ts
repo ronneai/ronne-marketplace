@@ -3,6 +3,7 @@ import type {
   AuditEvent,
   AuditMetadataValue,
 } from "@/server/domains/audit/models/audit-event";
+import { erasedName } from "@/server/domains/identity/models/user";
 
 /**
  * One line in plain words for each audit event (feature 060), so the log reads as sentences rather
@@ -316,6 +317,8 @@ export const SUMMARIES: Record<AuditAction, Build> = {
   "user.role_changed": (m, e) => ["Changed ", who(m, e), ` from ${text(m.from)} to ${text(m.to)}`],
   "user.disabled": (m, e) => ["Disabled ", who(m, e), ended(m)],
   "user.enabled": (m, e) => ["Enabled ", who(m, e)],
+  // 103: the pseudonym from the id, never the name or the email the person had.
+  "user.erased": (_m, e) => ["Erased ", { name: e.targetId ? erasedName(e.targetId) : "a user" }],
   "access_token.created": (m) => [
     "Created token ",
     { name: text(m.name) },

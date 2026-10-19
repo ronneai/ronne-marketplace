@@ -17,6 +17,11 @@ const settings = vi.hoisted(() => ({
 const session = vi.hoisted(() => ({ getCurrentUser: vi.fn() }));
 const jobs = vi.hoisted(() => ({ retentionJobStatus: vi.fn() }));
 vi.mock("@/server/jobs/actions", () => jobs);
+const erasures = vi.hoisted(() => ({
+  adminPendingErasures: vi.fn(async (): Promise<{ userId: string; startedAt: Date }[]> => []),
+  adminRetryErasures: vi.fn(),
+}));
+vi.mock("@/server/domains/identity/actions/erase-user", () => erasures);
 const feeds = vi.hoisted(() => ({ pluginFeedStats: vi.fn() }));
 vi.mock("@/server/domains/feeds/actions/feeds", () => feeds);
 const twoFactor = vi.hoisted(() => ({
@@ -52,6 +57,7 @@ const { SignInMethodsPanel } = await import("./authentication/SignInMethodsPanel
 const { signInMethods } = await import("./authentication/AuthenticationTab");
 const { RetentionForm } = await import("./privacy/RetentionForm");
 const { LastRun } = await import("./privacy/LastRun");
+const { PendingErasures } = await import("./privacy/PendingErasures");
 const { InvalidRetentionError } = await import("@/server/domains/settings/exceptions/errors");
 const { default: AdminSettingsPage } = await import("@/app/(app)/admin/settings/page");
 
@@ -88,6 +94,7 @@ beforeEach(() => {
     running: false,
     schedulerOff: false,
   });
+  erasures.adminPendingErasures.mockResolvedValue([]);
 });
 
 describe("saveUsagePolicy", () => {
@@ -537,5 +544,63 @@ describe("Admin › Settings › Privacy › Retention (102)", () => {
     });
     settings.setRetention.mockRejectedValueOnce(new ForbiddenError("settings.manage"));
     expect((await actions.saveRetention({}, data)).error).toBeTruthy();
+  });
+});
+
+describe("Admin › Settings › Privacy › an erasure that wasn't completed (103)", () => {
+  const at = new Date("2026-10-19T12:00:00.000Z");
+
+  it("shows nothing when every erasure is complete", () => {
+    const html = renderToStaticMarkup(<PendingErasures erasures={[]} />);
+    expect(html).toBe("");
+  });
+
+  it("warns, lists when each started, and offers Retry", () => {
+    const one = renderToStaticMarkup(
+      <PendingErasures erasures={[{ userId: "u1", startedAt: at }]} />,
+    );
+    expect(one).toContain("WARN:");
+    expect(one).toContain("An erasure wasn&#x27;t completed.");
+    expect(one).toMatch(/<time dateTime="2026-10-19T12:00:00.000Z"/);
+    expect(one).toMatch(/<button[^>]*type="submit"[^>]*>Retry</);
+    expect(one).toContain("the retention purge also finishes it on its next run");
+    const two = renderToStaticMarkup(
+      <PendingErasures
+        erasures={[
+          { userId: "u1", startedAt: at },
+          { userId: "u2", startedAt: at },
+        ]}
+      />,
+    );
+    expect(two).toContain("2 erasures weren&#x27;t completed.");
+  });
+
+  it("is on the Privacy tab, read with the tab, and absent when there's none", async () => {
+    session.getCurrentUser.mockResolvedValue({ id: "r", role: "root" });
+    erasures.adminPendingErasures.mockResolvedValueOnce([{ userId: "u1", startedAt: at }]);
+    const html = renderToStaticMarkup(await AdminSettings("privacy"));
+    expect(html).toContain("An erasure wasn&#x27;t completed.");
+    expect(html.indexOf("Last run")).toBeLessThan(html.indexOf("Retry"));
+    const clean = renderToStaticMarkup(await AdminSettings("privacy"));
+    expect(clean).not.toContain("completed.");
+    erasures.adminPendingErasures.mockClear();
+    renderToStaticMarkup(await AdminSettings("authentication"));
+    expect(erasures.adminPendingErasures).not.toHaveBeenCalled();
+  });
+
+  it("Retry says how many it finished, and shows a refusal", async () => {
+    erasures.adminRetryErasures.mockResolvedValueOnce(1);
+    expect(await actions.retryErasures({}, new FormData())).toEqual({
+      done: "Finished 1 erasure.",
+    });
+    expect(cache.revalidatePath).toHaveBeenCalledWith("/admin/settings");
+    erasures.adminRetryErasures.mockResolvedValueOnce(0);
+    expect(await actions.retryErasures({}, new FormData())).toEqual({
+      done: "Nothing was left to finish.",
+    });
+    erasures.adminRetryErasures.mockRejectedValueOnce(new ForbiddenError("users.manage"));
+    expect((await actions.retryErasures({}, new FormData())).error).toContain("users.manage");
+    erasures.adminRetryErasures.mockRejectedValueOnce(new Error("boom"));
+    await expect(actions.retryErasures({}, new FormData())).rejects.toThrow("boom");
   });
 });

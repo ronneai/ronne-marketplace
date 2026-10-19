@@ -46,6 +46,7 @@ export const AUDIT_ACTIONS = [
   "user.role_changed",
   "user.disabled",
   "user.enabled",
+  "user.erased",
   "access_token.created",
   "access_token.revoked",
   "workspace.created",

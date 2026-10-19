@@ -52,6 +52,7 @@ const Filters = ({ state }: { state: UsersListState }) => (
           <option value="">Any status</option>
           <option value="active">active</option>
           <option value="disabled">disabled</option>
+          <option value="erased">erased</option>
         </select>
       </div>
       <div className="flex gap-2">
@@ -109,9 +110,18 @@ const RoleCell = ({
 /**
  * The account's SCIM link (108): *Managed by* while the provider's SCIM manages it, *Adopted by*
  * when SCIM took over an account the provider already signed in to, *Deprovisioned by* after its
- * DELETE. Erase (103) will join the deprovisioned badge once it exists.
+ * DELETE, with the Erase link (103, `erase`) beside it: deprovisioning leaves the account for root
+ * to erase. An erased account (103) shows *Erased on* instead, and nothing of SCIM's (its links
+ * are gone).
  */
-export const ScimBadges = ({ user }: { user: UserSummary }) => {
+export const ScimBadges = ({ user, erase }: { user: UserSummary; erase?: ReactNode }) => {
+  if (user.erasedAt)
+    return (
+      <Badge tone="warning">
+        Erased on&nbsp;
+        <LocalTime value={user.erasedAt} precision="day" />
+      </Badge>
+    );
   const scim = user.scim;
   if (!scim) return null;
   return (
@@ -124,10 +134,13 @@ export const ScimBadges = ({ user }: { user: UserSummary }) => {
         </Badge>
       ) : null}
       {scim.deprovisionedAt ? (
-        <Badge tone="warning">
-          Deprovisioned by {scim.providerName} on&nbsp;
-          <LocalTime value={scim.deprovisionedAt} precision="day" />
-        </Badge>
+        <>
+          <Badge tone="warning">
+            Deprovisioned by {scim.providerName} on&nbsp;
+            <LocalTime value={scim.deprovisionedAt} precision="day" />
+          </Badge>
+          {erase}
+        </>
       ) : null}
     </span>
   );
@@ -136,6 +149,7 @@ export const ScimBadges = ({ user }: { user: UserSummary }) => {
 const columns = (
   actions?: (user: UserSummary) => ReactNode,
   workspaces?: (user: UserSummary, content: ReactNode) => ReactNode,
+  erase?: (user: UserSummary) => ReactNode,
 ): Column<UserSummary, "created" | "email" | "name">[] => [
   {
     id: "email",
@@ -165,7 +179,7 @@ const columns = (
           user={user}
           editor={workspaces ? (content) => workspaces(user, content) : undefined}
         />
-        <ScimBadges user={user} />
+        <ScimBadges user={user} erase={erase?.(user)} />
       </span>
     ),
   },
@@ -176,7 +190,7 @@ const columns = (
     hideOnMobile: true,
     render: (user) => (
       <span className={user.disabledAt ? "text-muted" : undefined}>
-        {user.disabledAt ? "disabled" : "active"}
+        {user.erasedAt ? "erased" : user.disabledAt ? "disabled" : "active"}
       </span>
     ),
   },
@@ -210,6 +224,7 @@ export const UsersPage = ({
   toolbar,
   actions,
   workspaces,
+  erase,
   notice,
 }: {
   state: UsersListState;
@@ -220,6 +235,8 @@ export const UsersPage = ({
   actions?: (user: UserSummary) => ReactNode;
   /** Wraps a user's role badges in the trigger for their Workspaces dialog (092). */
   workspaces?: (user: UserSummary, content: ReactNode) => ReactNode;
+  /** The Erase link beside a *Deprovisioned by* badge (103). */
+  erase?: (user: UserSummary) => ReactNode;
   notice?: ReactNode;
 }) => (
   <>
@@ -232,7 +249,7 @@ export const UsersPage = ({
     <DataTable
       list={USERS_LIST}
       state={state}
-      columns={columns(actions, workspaces)}
+      columns={columns(actions, workspaces, erase)}
       rows={users}
       rowKey={(user) => user.id}
       page={page}

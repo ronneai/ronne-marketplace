@@ -11,9 +11,11 @@ import type { CurrentUser } from "../domains/identity/models/user";
 import type { AppAuth } from "../domains/identity/repositories/auth-instance";
 import { kyselyIdentityRepository } from "../domains/identity/repositories/kysely-identity-repository";
 import { kyselyScimTokenRepository } from "../domains/identity/repositories/kysely-scim-token-repository";
+import { kyselyScimUserRepository } from "../domains/identity/repositories/kysely-scim-user-repository";
 import { kyselySsoRepository } from "../domains/identity/repositories/kysely-sso-repository";
 import { createScimToken, enableScim } from "../domains/identity/services/scim-tokens";
 import { ADOPTION_WINDOW_MS } from "../domains/identity/services/scim-users";
+import { seedErasedUser } from "../domains/identity/testing/erased-user";
 import { testAppAuth } from "../domains/identity/testing/test-auth";
 import { handleScim } from "./scim-api";
 
@@ -25,6 +27,7 @@ let limiters: ScimLimiters;
 let clock: Date;
 let root: CurrentUser;
 let token: string;
+let erased: { id: string; email: string; name: string };
 const BASE = "http://localhost:3000/api/v1/scim/v2";
 const USER = "urn:ietf:params:scim:schemas:core:2.0:User";
 const PATCH = "urn:ietf:params:scim:api:messages:2.0:PatchOp";
@@ -75,6 +78,8 @@ beforeEach(async () => {
   root = { id: a.id, email: "root@example.com", name: "Root", role: "root", workspaces: {} };
   await insertProvider("acme");
   token = await tokenFor("acme");
+  // An erased account (103) is always there: nothing a provider does may reach or revive it.
+  erased = await seedErasedUser(t);
 });
 afterEach(() => t.cleanup());
 
@@ -853,10 +858,15 @@ describe("delete", () => {
       409,
       "uniqueness",
     );
-    // Still one account, still disabled.
+    // Still one account (plus the erased one, 103), still disabled.
     expect((await account("ann@example.com"))?.disabled_at).not.toBeNull();
     expect(
-      await t.db.selectFrom("user").select("id").where("role", "=", "user").execute(),
+      await t.db
+        .selectFrom("user")
+        .select("id")
+        .where("role", "=", "user")
+        .where("erased_at", "is", null)
+        .execute(),
     ).toHaveLength(1);
   });
 
@@ -1027,5 +1037,95 @@ describe("two providers at once", () => {
       await t.db.selectFrom("user").select("id").where("email", "=", "race@example.com").execute(),
     ).toHaveLength(1);
     expect(await t.db.selectFrom("scim_users").select("id").execute()).toHaveLength(1);
+  });
+});
+
+describe("an erased account (103)", () => {
+  const linkErased = async (externalId: string | null) =>
+    kyselyScimUserRepository(t.db, t.dialect).insertLink({
+      providerId: "acme",
+      userId: erased.id,
+      externalId,
+      userName: erased.email,
+      givenName: null,
+      familyName: null,
+      displayName: null,
+      active: false,
+      createdAt: clock,
+    });
+  const erasedRow = () =>
+    t.db.selectFrom("user").selectAll().where("id", "=", erased.id).executeTakeFirstOrThrow();
+
+  it("is out of reach through a link that survived: 404 on every request, nothing changed", async () => {
+    const id = await linkErased("ext-erased");
+    const before = await erasedRow();
+    expectScimError(await call("GET", `/Users/${id}`), 404);
+    expectScimError(
+      await call("PUT", `/Users/${id}`, oktaCreate({ userName: "back@example.com" })),
+      404,
+    );
+    expectScimError(
+      await call("PATCH", `/Users/${id}`, {
+        schemas: [PATCH],
+        Operations: [{ op: "replace", path: "active", value: true }],
+      }),
+      404,
+    );
+    expectScimError(await call("DELETE", `/Users/${id}`), 404);
+    const list = await call("GET", "/Users");
+    expect(list.status).toBe(200);
+    expect(list.json.Resources).toEqual([]);
+    expect(await erasedRow()).toEqual(before);
+    expect(await events("user.enabled")).toEqual([]);
+  });
+
+  it("is never brought back by its tombstone's external id: the create makes a new account", async () => {
+    const id = await linkErased("ext-erased");
+    await kyselyScimUserRepository(t.db, t.dialect).tombstoneLink(id, clock);
+    const before = await erasedRow();
+    const r = await call(
+      "POST",
+      "/Users",
+      oktaCreate({ userName: "back@example.com", externalId: "ext-erased" }),
+    );
+    expect(r.status).toBe(201);
+    const back = await account("back@example.com");
+    expect(back?.id).toBeDefined();
+    expect(back?.id).not.toBe(erased.id);
+    expect(await erasedRow()).toEqual(before);
+    expect(await events("user.updated")).toEqual([]);
+    expect(await events("user.created")).toMatchObject([{ target: back?.id }]);
+  });
+
+  it("is never adopted, even with the provider's own sign-in and a real email left on the row", async () => {
+    const ghost = await seedErasedUser(t, { email: "ghost@example.com", disabled: false });
+    await kyselySsoRepository(t.db, t.dialect).linkAccount(ghost.id, "acme", "sub-ghost", clock);
+    await recordAudit(
+      t.db,
+      t.dialect,
+      {
+        actorId: ghost.id,
+        action: "auth.sso_signed_in",
+        target: { type: "user", id: ghost.id },
+        metadata: { provider: "acme" },
+      },
+      new Date(clock.getTime() - DAY),
+    );
+    expectScimError(
+      await call(
+        "POST",
+        "/Users",
+        oktaCreate({ userName: "ghost@example.com", externalId: "ghost" }),
+      ),
+      409,
+      "uniqueness",
+    );
+    expect(await events("user.scim_adopted")).toEqual([]);
+    expect(await t.db.selectFrom("scim_users").select("id").execute()).toEqual([]);
+  });
+
+  it("refuses the pseudonym as a userName: no address on the reserved domain is anyone's", async () => {
+    expectScimError(await call("POST", "/Users", oktaCreate({ userName: erased.email })), 400);
+    expect(await events("user.created")).toEqual([]);
   });
 });

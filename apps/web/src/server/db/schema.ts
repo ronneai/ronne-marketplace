@@ -28,6 +28,8 @@ export interface UserTable {
   disabled_at: Timestamp | null;
   /** Better Auth's two-factor flag (migration 0025_two_factor, feature 105). */
   two_factor_enabled: GeneratedDbBoolean;
+  /** When root erased the account (migration 0030_erased_at, feature 103); never cleared. */
+  erased_at: Timestamp | null;
 }
 
 export interface SessionTable {
@@ -509,6 +511,21 @@ export interface JobTable {
  * An item's old full name (migration 0022_workspace_in_names, feature 118): one it answered to before
  * a move or a rename, canonical (`@scope/name` in `global`). Reserved: no other item takes it.
  */
+/**
+ * An erasure whose audit log rewrite isn't done (migration 0031, feature 103): the old address the
+ * rewrite looks for and the counts the `user.erased` event will record. Deleted when it's done.
+ */
+export interface UserErasureTable {
+  user_id: string;
+  email: string;
+  /** JSON: the erasure's counts so far. */
+  counts: string;
+  /** Rows of the audit log rewritten so far, by every attempt. */
+  events_rewritten: Generated<number>;
+  actor_id: string | null;
+  started_at: Timestamp;
+}
+
 export interface ItemAliasTable {
   name: string;
   item_id: string;
@@ -520,6 +537,7 @@ export interface ItemAliasTable {
 /** Kysely table types for the whole app. Each migration that adds a table adds its interface here. */
 export interface Database {
   user: UserTable;
+  user_erasures: UserErasureTable;
   session: SessionTable;
   account: AccountTable;
   verification: VerificationTable;

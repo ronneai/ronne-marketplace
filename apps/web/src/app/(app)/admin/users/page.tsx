@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { parseListQuery, type SearchParams } from "@/components/ui/data-table/list-query";
 import { CreateUserDialog } from "@/features/admin-users/CreateUserDialog";
+import { EraseUserButton } from "@/features/admin-users/EraseUserDialog";
 import { checkedUsersState, USERS_LIST, usersQueryOf } from "@/features/admin-users/list";
 import { UserRowActions } from "@/features/admin-users/UserRowActions";
 import { UsersPage } from "@/features/admin-users/UsersPage";
@@ -43,13 +44,23 @@ const Users = async ({ searchParams }: { searchParams: Promise<SearchParams> }) 
           {content}
         </UserWorkspacesButton>
       )}
+      erase={(user) =>
+        user.id === me.id || user.erasedAt ? null : (
+          <EraseUserButton
+            variant="link"
+            user={{ id: user.id, email: user.email, name: user.name, role: user.role }}
+          />
+        )
+      }
       actions={(user) => (
         <UserRowActions
           user={{
             id: user.id,
             email: user.email,
+            name: user.name,
             role: user.role,
             disabled: Boolean(user.disabledAt),
+            erased: Boolean(user.erasedAt),
             twoFactor: Boolean(user.twoFactor),
             self: user.id === me.id,
             managedBy: user.scim?.managed ? user.scim.providerName : undefined,

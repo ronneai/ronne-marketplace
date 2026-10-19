@@ -5,9 +5,10 @@ import {
   InvalidPasswordError,
   NotARootError,
   RootNotFoundError,
+  UserErasedError,
 } from "../domains/identity/exceptions/errors";
 import { validatePassword } from "../domains/identity/models/password";
-import { normalizeEmail, type RootAccount } from "../domains/identity/models/user";
+import { isErasedEmail, normalizeEmail, type RootAccount } from "../domains/identity/models/user";
 import { scriptCommand } from "../runtime";
 import { readEnvFile } from "./env-file";
 import { InvalidInputError, MissingInputError } from "./non-interactive-prompts";
@@ -24,6 +25,8 @@ const chooseRoot = async (
   prompts: SetupPrompts,
 ): Promise<RootAccount> => {
   if (email !== undefined) {
+    // An erased account's pseudonym (103): the answer is that, not "invalid email".
+    if (isErasedEmail(email)) throw new UserErasedError();
     let wanted: string;
     try {
       wanted = normalizeEmail(email);

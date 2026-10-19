@@ -129,7 +129,8 @@ export const exchangePasswordForToken = async (
     password,
   );
   if (!found?.passwordHash || !matches) return invalid("invalid");
-  if (found.disabledAt) return invalid("disabled");
+  // An erased account (103) has no password row, so it never gets here; the row says so anyway.
+  if (found.disabledAt || found.erasedAt) return invalid("disabled");
   // Only after the right password, like two-factor's answer: it tells nothing without it.
   if ((await deps.passwordPolicy?.()) === "root_only" && found.user.role !== "root") {
     await failed("password_sign_in_disabled");
