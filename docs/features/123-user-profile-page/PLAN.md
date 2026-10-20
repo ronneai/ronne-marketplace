@@ -9,7 +9,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 ## Tasks
 
-- [ ] **1. The page's data.** A read for one user for root: the account, workspaces with roles,
+- [x] **1. The page's data.** A read for one user for root: the account, workspaces with roles,
   two-factor, SCIM state, last sign-in, and the number of sessions and tokens, from the queries the list and
   `adminDisableImpact` already use; null for an unknown id; `users.view` checked.
   A **last sign-in** read for a set of user ids: the latest `auth.signed_in` per actor, in one query

@@ -52,6 +52,11 @@ export type UserSummary = {
   workspaces?: { name: string; role: WorkspaceRole }[];
   /** Two-factor is on (the flag and a confirmed record, 105), for the users list. */
   twoFactor?: boolean;
+  /**
+   * The latest web sign-in (123, from the audit log): null when none is on record, absent when it
+   * wasn't asked for, and never set for an erased account (103).
+   */
+  lastSignInAt?: Date | null;
   /** Its SCIM link (108), for the users list's badges; absent when it has none. */
   scim?: ScimAccountState;
 };

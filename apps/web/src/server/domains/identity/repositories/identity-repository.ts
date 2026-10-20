@@ -65,6 +65,16 @@ export interface IdentityRepository {
   twoFactorCoverageRows(): Promise<CoverageRow[]>;
   /** Any user, disabled or not. */
   findUser(userId: string): Promise<UserSummary | null>;
+  /**
+   * Any user, as the users list shows them (their roles per workspace and two-factor), for one
+   * user's page (123); null when there is none.
+   */
+  findUserDetail(userId: string): Promise<UserSummary | null>;
+  /**
+   * When each of these users last signed in to the web app, by id: the latest `auth.signed_in`
+   * event (123). A user with none is absent. One query for all of them.
+   */
+  lastSignIns(userIds: string[]): Promise<Map<string, Date>>;
   /** Any user by their (normalised) email, disabled or not. */
   findUserByEmail(email: string): Promise<UserSummary | null>;
   /** One page of users in the query's order (keyset, 061). */

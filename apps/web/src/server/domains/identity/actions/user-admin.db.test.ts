@@ -3,7 +3,8 @@ import { toDbDate } from "../../../db/dates";
 import { newId } from "../../../db/ids";
 import { GLOBAL_WORKSPACE_ID } from "../../../db/migrations/0019_workspaces";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
-import { listAuditEvents } from "../../audit/actions/audit";
+import { listAuditEvents, recordAudit } from "../../audit/actions/audit";
+import type { AuditMetadata } from "../../audit/models/audit-event";
 import {
   CannotModifySelfError,
   EmailTakenError,
@@ -18,6 +19,7 @@ import { argon2PasswordHasher } from "../repositories/argon2-password-hasher";
 import type { AppAuth } from "../repositories/auth-instance";
 import { kyselyIdentityRepository } from "../repositories/kysely-identity-repository";
 import * as service from "../services/user-admin";
+import { seedErasedUser } from "../testing/erased-user";
 import { cookieHeaders, createTestUser, setWorkspaceRole, testAppAuth } from "../testing/test-auth";
 import { createRoot } from "./root-account";
 import { getCurrentUser, signIn } from "./session";
@@ -27,6 +29,7 @@ import {
   adminDisableImpact,
   adminDisableUser,
   adminEnableUser,
+  adminGetUser,
   adminListUsers,
   adminResetPassword,
 } from "./user-admin";
@@ -111,6 +114,7 @@ describe("permissions", () => {
         () => adminEnableUser(headers, target, app),
         () => adminResetPassword(headers, target, undefined, app),
         () => adminDisableImpact(headers, target, app),
+        () => adminGetUser(headers, target, app),
       ]) {
         await expect(call()).rejects.toThrow(ForbiddenError);
       }
@@ -685,5 +689,122 @@ describe("listUsers", () => {
     expect(await emails({ role: "root" })).toEqual(["root@example.com"]);
     // Wildcards in the search are matched literally.
     expect(await emails({ search: "%" })).toEqual([]);
+  });
+});
+
+describe("a user's page and last sign-in (123)", () => {
+  /** A web sign-in on record, as every kind writes it (password, provider, second step). */
+  const signedIn = (userId: string, at: string, metadata: AuditMetadata = {}) =>
+    recordAudit(
+      t.db,
+      t.dialect,
+      {
+        actorId: userId,
+        action: "auth.signed_in",
+        target: { type: "session", id: newId() },
+        metadata,
+      },
+      new Date(at),
+    );
+
+  it("gives root the account, its roles, two-factor and what signing out would end", async () => {
+    const id = await createTestUser(app, {
+      email: "m@example.com",
+      name: "Mo",
+      password: rootPassword,
+      role: "moderator",
+    });
+    await addToken(id);
+    await addToken(id);
+    await headersFor("m@example.com", rootPassword);
+    const { user, sessions, tokens } = await adminGetUser(asRoot, id, app);
+    expect(user).toMatchObject({
+      id,
+      email: "m@example.com",
+      name: "Mo",
+      role: "user",
+      disabledAt: null,
+      erasedAt: null,
+      twoFactor: false,
+      workspaces: [{ name: "global", role: "moderator" }],
+    });
+    expect(sessions).toBe(1);
+    expect(tokens).toBe(2);
+  });
+
+  it("shows root's own account and a disabled one, which the list shows too", async () => {
+    expect((await adminGetUser(asRoot, rootId, app)).user.role).toBe("root");
+    const id = await createTestUser(app, { email: "u@example.com", password: rootPassword });
+    await adminDisableUser(asRoot, id, app);
+    expect((await adminGetUser(asRoot, id, app)).user.disabledAt).toBeInstanceOf(Date);
+  });
+
+  it("refuses an unknown id", async () => {
+    await expect(adminGetUser(asRoot, newId(), app)).rejects.toThrow(UserNotFoundError);
+  });
+
+  it("shows an erased account as the pseudonym, with no time and nothing to end", async () => {
+    const erased = await seedErasedUser(t);
+    await signedIn(erased.id, "2026-10-01T10:00:00Z");
+    const { user, sessions, tokens } = await adminGetUser(asRoot, erased.id, app);
+    expect(user).toMatchObject({ email: erased.email, lastSignInAt: null });
+    expect(user.erasedAt).toBeInstanceOf(Date);
+    expect([sessions, tokens]).toEqual([0, 0]);
+    const listed = (await adminListUsers(asRoot, {}, app)).users.find((u) => u.id === erased.id);
+    expect(listed?.lastSignInAt).toBeNull();
+  });
+
+  it("gives the time of the latest web sign-in, whichever way the person signed in", async () => {
+    const id = await createTestUser(app, { email: "u@example.com", password: rootPassword });
+    expect((await adminGetUser(asRoot, id, app)).user.lastSignInAt).toBeNull();
+    await signedIn(id, "2026-10-01T10:00:00Z");
+    await signedIn(id, "2026-10-03T08:30:00Z", { twoFactor: "totp" });
+    await signedIn(id, "2026-10-02T09:00:00Z");
+    expect((await adminGetUser(asRoot, id, app)).user.lastSignInAt).toEqual(
+      new Date("2026-10-03T08:30:00Z"),
+    );
+  });
+
+  it("counts a password sign-in and not other events, or other people's", async () => {
+    const id = await createTestUser(app, { email: "u@example.com", password: rootPassword });
+    const other = await createTestUser(app, { email: "o@example.com", password: rootPassword });
+    expect(await canSignIn("u@example.com", rootPassword)).toBe(true);
+    const after = await adminGetUser(asRoot, id, app);
+    expect(after.user.lastSignInAt).toBeInstanceOf(Date);
+    expect(Date.now() - (after.user.lastSignInAt?.getTime() ?? 0)).toBeLessThan(60_000);
+    // A token's use, a failed sign-in and a disable are not a person signing in.
+    await recordAudit(
+      t.db,
+      t.dialect,
+      {
+        actorId: other,
+        action: "user.disabled",
+        target: { type: "user", id: other },
+        metadata: {},
+      },
+      new Date("2026-10-05T10:00:00Z"),
+    );
+    expect((await adminGetUser(asRoot, other, app)).user.lastSignInAt).toBeNull();
+  });
+
+  it("fills every row of the list from one query, and leaves never-signed-in ones null", async () => {
+    const a = await createTestUser(app, { email: "a@example.com", password: rootPassword });
+    const b = await createTestUser(app, { email: "b@example.com", password: rootPassword });
+    await signedIn(a, "2026-10-04T10:00:00Z");
+    const listed = (await adminListUsers(asRoot, { sort: "email" }, app)).users;
+    const by = Object.fromEntries(listed.map((u) => [u.id, u.lastSignInAt ?? null]));
+    expect(by[a]).toEqual(new Date("2026-10-04T10:00:00Z"));
+    expect(by[b]).toBeNull();
+    // Root signed in to take the headers.
+    expect(by[rootId]).toBeInstanceOf(Date);
+  });
+
+  it("keeps the time through the retention purge, which clears addresses and keeps events (102)", async () => {
+    const id = await createTestUser(app, { email: "u@example.com", password: rootPassword });
+    await signedIn(id, "2020-01-01T10:00:00Z");
+    await t.db.updateTable("audit_log").set({ ip_address: null }).execute();
+    expect((await adminGetUser(asRoot, id, app)).user.lastSignInAt).toEqual(
+      new Date("2020-01-01T10:00:00Z"),
+    );
   });
 });

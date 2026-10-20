@@ -119,6 +119,10 @@ describe("the second step", () => {
   it("a right code signs in, audited with the method and Remember me", async () => {
     const { uri } = await enrolled();
     const before = await sessions();
+    // Enrolling signed in by password: start from no sign-in on record, so only the second step
+    // can give the person a last sign-in (123).
+    await t.db.deleteFrom("audit_log").where("action", "=", "auth.signed_in").execute();
+    expect((await kyselyIdentityRepository(t.db, t.dialect).lastSignIns([userId])).size).toBe(0);
     const result = await complete(await challenge(), totpCode(uri, { step: 1 }));
     if (!result.ok) throw new Error(result.error);
     expect(result.headers.get("set-cookie")).toMatch(/ronne\.session_token=/);
@@ -129,6 +133,9 @@ describe("the second step", () => {
       metadata: { remember: false, twoFactor: "totp" },
       ipAddress: "203.0.113.9",
     });
+    // The users list's Last sign-in (123) reads that event: the second step completes a sign-in.
+    const last = await kyselyIdentityRepository(t.db, t.dialect).lastSignIns([userId]);
+    expect(last.get(userId)).toBeInstanceOf(Date);
   });
 
   it("a wrong code is refused and audited, and the challenge still takes the right one", async () => {

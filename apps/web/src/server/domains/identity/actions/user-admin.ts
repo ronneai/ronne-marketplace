@@ -42,6 +42,17 @@ export const adminListUsers = async (
   };
 };
 
+/** One user for `/admin/users/<id>` (123), with their SCIM link like a row of the list. */
+export const adminGetUser = async (
+  headers: Headers,
+  userId: string,
+  app: AppAuth = getAppAuth(),
+) => {
+  const detail = await service.getUser(deps(app), await actor(headers, app), userId);
+  const scim = (await scimAccountStates(headers, [userId], app)).get(userId);
+  return { ...detail, user: scim ? { ...detail.user, scim } : detail.user };
+};
+
 export const adminCreateUser = async (
   headers: Headers,
   input: service.NewUserInput,
