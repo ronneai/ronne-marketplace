@@ -1,6 +1,13 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { cn } from "./cn";
 
+/** The look of an icon-only control, a button or a link: 32px, 44px on a coarse pointer (067). */
+export const iconControlClasses = cn(
+  "inline-flex size-8 shrink-0 items-center justify-center rounded-control text-muted pointer-coarse:size-11",
+  "hover:bg-tint hover:text-fg disabled:cursor-not-allowed disabled:opacity-60",
+  "outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus",
+);
+
 /**
  * A square, icon-only button for dense rows such as a table's actions (115): ghost, 32px (44px on
  * a coarse pointer, 067), its `label` both its accessible name and its tooltip, so a row's actions
@@ -22,12 +29,7 @@ export const IconButton = ({
     type={type}
     aria-label={label}
     title={label}
-    className={cn(
-      "inline-flex size-8 shrink-0 items-center justify-center rounded-control text-muted pointer-coarse:size-11",
-      "hover:bg-tint hover:text-fg disabled:cursor-not-allowed disabled:opacity-60",
-      "outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus",
-      className,
-    )}
+    className={cn(iconControlClasses, className)}
     {...props}
   >
     {children}

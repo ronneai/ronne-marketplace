@@ -18,6 +18,7 @@ import {
 } from ".";
 import { Checkbox } from "./Field";
 import { IconButton } from "./IconButton";
+import { IconLink } from "./IconLink";
 
 const html = (node: React.ReactElement) => renderToStaticMarkup(node);
 
@@ -53,6 +54,30 @@ describe("IconButton (115)", () => {
     expect(html).toContain('aria-label="Edit @infra"');
     expect(html).toContain('title="Edit @infra"');
     expect(html).toContain('<svg aria-hidden="true">');
+  });
+});
+
+describe("IconLink (123)", () => {
+  it("is a link named by its label, with the icon hidden, and looks like an IconButton", () => {
+    const link = renderToStaticMarkup(
+      <IconLink href="/admin/users/u1" label="Open alex@example.com">
+        <svg aria-hidden="true" />
+      </IconLink>,
+    );
+    expect(link).toContain('href="/admin/users/u1"');
+    expect(link).toContain('aria-label="Open alex@example.com"');
+    expect(link).toContain('title="Open alex@example.com"');
+    expect(link).toContain('<svg aria-hidden="true">');
+    const button = renderToStaticMarkup(
+      <IconButton label="x">
+        <svg aria-hidden="true" />
+      </IconButton>,
+    );
+    // The same 32px square, 44px on a coarse pointer.
+    for (const cls of ["size-8", "pointer-coarse:size-11", "rounded-control"]) {
+      expect(link).toContain(cls);
+      expect(button).toContain(cls);
+    }
   });
 });
 

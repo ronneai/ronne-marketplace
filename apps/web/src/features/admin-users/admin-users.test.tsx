@@ -167,16 +167,34 @@ describe("UsersPage (061)", () => {
     const href = "/admin/users/01K6BZ3W1D8J9Q2R4T6V8X0Y2Z";
     // From `sm` up the name is the link, and Open is at the end of the row.
     expect(html).toMatch(new RegExp(`<a[^>]*href="${href}"[^>]*>Alex</a>`));
-    expect(html).toMatch(
-      new RegExp(`<a[^>]*aria-label="Open alex@example\\.com"[^>]*href="${href}"[^>]*>Open</a>`),
-    );
+    // Open is an icon (123, decision 6): named for screen readers and as its tooltip, with no word.
+    const open = html.match(/<a[^>]*aria-label="Open alex@example\.com"[^>]*>.*?<\/a>/)?.[0] ?? "";
+    expect(open).toContain(`href="${href}"`);
+    expect(open).toContain('title="Open alex@example.com"');
+    expect(open).toContain("<svg");
+    expect(open).toContain('aria-hidden="true"');
+    expect(open.replace(/<svg.*<\/svg>/, "")).not.toMatch(/>Open</);
     // On a phone the name is hidden: the email is the link, covering the row (which is `relative`).
     expect(html).toMatch(
       new RegExp(
         `<a[^>]*class="[^"]*after:absolute after:inset-0 sm:hidden[^"]*"[^>]*href="${href}"[^>]*>alex@example\\.com</a>`,
       ),
     );
-    expect(html).toMatch(/<span[^>]*class="hidden sm:inline"[^>]*>alex@example\.com<\/span>/);
+    expect(html).toMatch(
+      /<span[^>]*class="hidden min-w-0 truncate sm:inline"[^>]*>alex@example\.com<\/span>/,
+    );
+  });
+
+  it("puts an icon-only copy button beside each email (123)", () => {
+    const html = page();
+    const button =
+      html.match(/<button[^>]*aria-label="Copy alex@example\.com"[^>]*>.*?<\/button>/)?.[0] ?? "";
+    expect(button).toContain('title="Copy alex@example.com"');
+    expect(button).toContain("<svg");
+    expect(button).not.toMatch(/>\s*Copy\s*</);
+    // Above the phone's row-wide link, which is the email's.
+    expect(button).toContain("z-10");
+    expect((html.match(/aria-label="Copy /g) ?? []).length).toBe(3);
   });
 
   it("keeps every cell on one line (123)", () => {

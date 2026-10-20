@@ -1,3 +1,4 @@
+import { ChevronRight } from "lucide-react";
 import Form from "next/form";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -7,9 +8,11 @@ import { type Column, DataTable, HiddenListFields } from "@/components/ui/data-t
 import { FilterChips } from "@/components/ui/data-table/FilterChips";
 import { SubmitOnChange } from "@/components/ui/data-table/SubmitOnChange";
 import { Input, Label, selectClasses } from "@/components/ui/Field";
+import { IconLink } from "@/components/ui/IconLink";
 import { LocalTime } from "@/components/ui/LocalTime";
 import { PageHeader } from "@/components/ui/Panel";
 import type { UserSummary } from "@/server/domains/identity/models/user";
+import { CopyEmailButton } from "./CopyEmailButton";
 import { USERS_LIST, type UsersListState } from "./list";
 
 const CHIP_LABELS = { q: "Search", role: "Role", status: "Status" } as const;
@@ -145,7 +148,7 @@ const columns: Column<UserSummary, "created" | "email" | "name">[] = [
     header: "Name",
     sort: "name",
     // As wide as the email, so the two read as a pair (owner, 2026-10-20).
-    className: "w-52",
+    className: "w-60",
     truncate: true,
     hideOnMobile: true,
     render: (user) => (
@@ -162,30 +165,32 @@ const columns: Column<UserSummary, "created" | "email" | "name">[] = [
     id: "email",
     header: "Email",
     sort: "email",
-    className: "w-52",
+    className: "w-60",
     mono: true,
     truncate: true,
     // On a phone the name column is hidden, so the email is the link, and it covers the whole row
     // (the row is `relative`): a tap anywhere opens the page. From `sm` up the name is the link.
     render: (user) => (
-      <>
+      <span className="flex min-w-0 items-center gap-1">
         <Link
           href={pageHref(user)}
           title={user.email}
-          className="text-link after:absolute after:inset-0 sm:hidden outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
+          data-copy-source
+          className="min-w-0 truncate text-link after:absolute after:inset-0 sm:hidden outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
         >
           {user.email}
         </Link>
-        <span title={user.email} className="hidden sm:inline">
+        <span title={user.email} data-copy-source className="hidden min-w-0 truncate sm:inline">
           {user.email}
         </span>
-      </>
+        <CopyEmailButton email={user.email} />
+      </span>
     ),
   },
   {
     id: "role",
     header: "Role",
-    className: "w-56",
+    className: "w-52",
     nowrap: true,
     // The SCIM badges go here, under the role, so phones show them too (the Status column doesn't).
     render: (user) => (
@@ -238,18 +243,15 @@ const columns: Column<UserSummary, "created" | "email" | "name">[] = [
     id: "open",
     header: "",
     srHeader: "Open",
-    className: "w-16",
+    className: "w-14",
     align: "right",
     nowrap: true,
     hideOnMobile: true,
+    // An icon, not the word: tables use icons for row links and actions (123, decision 6).
     render: (user) => (
-      <Link
-        href={pageHref(user)}
-        aria-label={`Open ${user.email}`}
-        className="touch-hit text-link hover:underline outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
-      >
-        Open
-      </Link>
+      <IconLink href={pageHref(user)} label={`Open ${user.email}`}>
+        <ChevronRight size={16} aria-hidden />
+      </IconLink>
     ),
   },
 ];

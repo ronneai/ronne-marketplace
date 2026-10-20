@@ -63,8 +63,12 @@ is gone. A **Last sign-in** column follows Status: the day and time in the perso
 with no sign-in on record and an en dash for an erased one. It is hidden on a phone, as Status and
 Created are, and shown on the page. The Role cell shows root, or the role badges with their counts (092), as plain badges with
 the hover list; the SCIM badges (108) stay under the role. **Columns,
-left to right:** Name (sortable), Email (sortable, the same width as Name), Role, Status, Last
-sign-in, Created (sortable), Open. Every cell stays on one line: Name and Email are cut with an
+left to right:** Name (sortable), Email (sortable, the same width as Name, with a copy icon beside
+it), Role, Status, Last sign-in, Created (sortable), Open (an icon). **Open is a chevron icon**, named "Open <email>" for screen readers and as its tooltip, not the
+word. **The copy icon** copies the email to the clipboard (also where the page isn't served over
+https, through `copyText`, 067): it turns into a check mark for two seconds, and where nothing can
+copy it selects the email for the person to copy by hand. It is an icon only, named "Copy <email>".
+Every cell stays on one line: Name and Email are cut with an
 ellipsis (the full text on hover), the others are wide enough for their value. On a phone Name,
 Status, Last sign-in, Created and Open are hidden, and the email is the link, covering the whole
 row: a tap anywhere opens the page.
@@ -142,6 +146,8 @@ back button returns to the list with its filters, since they are in the URL (061
 - [ ] Each row's name and its *Open* link go to `/admin/users/<id>` (on a phone, the email and the
   row); a click elsewhere on the row does nothing surprising (the Role cell no longer opens a dialog).
 - [ ] No cell of the list breaks a line, at 1280px and 1440px, and Name and Email have one width.
+- [ ] Open is an icon with the accessible name "Open <email>"; beside each email an icon-only button
+  named "Copy <email>" puts the email on the clipboard and shows a check mark for two seconds.
 - [ ] The page shows the sections above, with real data, and every action works from it and ends
   back on the page showing the new state.
 - [ ] Anyone but root gets a 404 on the page; an unknown id is a 404 for root.
@@ -168,6 +174,13 @@ back button returns to the list with its filters, since they are in the URL (061
    actor, so one grouped query over the page's rows (`max(created_at)` per `actor_id`) gives it with
    no migration, no backfill and no second place to keep the time. A column on `user` is the
    alternative if that query turns out slow.
+
+6. **Row links and row actions in tables are icons, not words** (owner, 2026-10-20): *Open* is a
+   chevron, *Copy* is the copy icon, each named for screen readers and as its tooltip
+   (`IconLink` and `IconButton` in `components/ui`; 44px on a coarse pointer). This is the rule
+   for every table in the app, not only this one: a table that still says "Open", "Edit" or
+   "Details" in words, or has a plain text link where an icon would do, changes the next time its
+   feature is touched, and no sooner. The Users list is the first.
 
 ## Open questions
 
