@@ -231,31 +231,21 @@ describe("completing a sign-in", () => {
     await refusedWith("invalid_response", signIn());
   });
 
-  it("refuses an iat in the future or from before the sign-in started, beyond five minutes", async () => {
+  it("refuses an iat in the future beyond five minutes", async () => {
     fake.switches.iatOffset = 120;
     expect((await signIn()).subject).toBe("sub-ana");
-    fake.switches.iatOffset = -120;
-    expect((await signIn()).subject).toBe("sub-ana");
-    for (const offset of [600, 365 * 86400, -400, -30 * 86400]) {
+    for (const offset of [600, 365 * 86400]) {
       fake.switches.iatOffset = offset;
-      fake.switches.expIn = 300 + Math.max(offset, 0);
+      fake.switches.expIn = 300 + offset;
       await refusedWith("invalid_response", signIn());
     }
   });
 
-  it("measures the oldest iat from when the sign-in started, not from now", async () => {
-    // Someone who took 20 minutes at the provider: a token issued 10 minutes ago is fine.
-    const p = provider();
-    const started = await oidcProviderType.start(p, { redirectUri: REDIRECT });
-    const back = await followAuthorize(started.url);
-    fake.switches.iatOffset = -600;
-    const identity = await oidcProviderType.complete(p, {
-      url: back,
-      redirectUri: REDIRECT,
-      keep: started.keep,
-      startedAt: new Date(Date.now() - 20 * 60_000),
-    });
-    expect(identity.subject).toBe("sub-ana");
+  it("accepts an iat from before the sign-in started (Entra reuses the person's session)", async () => {
+    for (const offset of [-120, -3600, -30 * 86400]) {
+      fake.switches.iatOffset = offset;
+      expect((await signIn()).subject).toBe("sub-ana");
+    }
   });
 
   it("refuses a missing email", async () => {

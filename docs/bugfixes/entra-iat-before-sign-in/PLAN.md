@@ -2,13 +2,13 @@
 
 See [SPEC.md](./SPEC.md). Work on branch `bugfix/106-entra-iat`.
 
-1. [ ] **Tests first** (`identity/repositories/oidc-provider-type.test.ts`)
+1. [x] **Tests first** (`identity/repositories/oidc-provider-type.test.ts`)
    - Replace "refuses an iat … from before the sign-in started" with two tests: an `iat` in the
      future by 600 s or 1 year is refused; an `iat` of −120 s, −1 h and −30 days is accepted.
    - Remove "measures the oldest iat from when the sign-in started, not from now".
    - Drop `startedAt` from every `complete()` call.
    - *Done when:* the new accept test fails against the current code.
-2. [ ] **The fix** (`identity/repositories/oidc-provider-type.ts`)
+2. [x] **The fix** (`identity/repositories/oidc-provider-type.ts`)
    - Keep only `iat > now + CLOCK_TOLERANCE_SECONDS`, with the message `callback: iat in the future`
      and a comment saying why the lower bound is gone.
    - *Done when:* the tests in task 1 pass.
