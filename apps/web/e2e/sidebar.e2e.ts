@@ -22,8 +22,22 @@ test("the sidebar folds and stays folded; the switcher opens a workspace", async
     "/submissions/new",
   );
 
+  // The logo's mark and the folded monogram are the same height (the SVGs differ in their margins,
+  // so this measures what is drawn).
+  const markHeight = () =>
+    aside
+      .locator("a[aria-label=Home]")
+      .first()
+      .locator("svg")
+      .evaluate((svg) => {
+        const boxes = [...svg.querySelectorAll("path")].map((path) => path.getBoundingClientRect());
+        return Math.max(...boxes.map((b) => b.bottom)) - Math.min(...boxes.map((b) => b.top));
+      });
+  const logoMark = await markHeight();
+
   // Fold: the rail names every icon, and the next page renders folded.
   await aside.getByRole("button", { name: "Fold the sidebar" }).click();
+  expect(Math.abs((await markHeight()) - logoMark)).toBeLessThan(1);
   const unfold = aside.getByRole("button", { name: "Unfold the sidebar" });
   await expect(unfold).toHaveAttribute("aria-expanded", "false");
   await expect(aside.getByText("Discover", { exact: true })).toHaveCount(0);

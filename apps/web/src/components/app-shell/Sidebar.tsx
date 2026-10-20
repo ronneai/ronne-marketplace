@@ -24,6 +24,14 @@ import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 
 const focus = "outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus";
 
+/**
+ * The monogram's size when the sidebar is folded. The brand's own SVGs differ: in the logo at 30px
+ * the mark is 18.2px tall, and a monogram at 28px was 24.8px, so the rail looked bigger than the
+ * sidebar. 20.5 makes the two marks the same height (owner, 2026-10-20; the sidebar e2e test
+ * measures it).
+ */
+const MONOGRAM_SIZE = 20.5;
+
 const link = `flex min-h-9 items-center gap-3 rounded-control text-sm text-muted hover:bg-canvas hover:text-fg aria-[current=page]:bg-tint aria-[current=page]:font-semibold aria-[current=page]:text-link ${focus}`;
 
 const menuItem = `block w-full rounded-control px-3 py-1.5 text-left text-sm text-fg hover:bg-tint ${focus}`;
@@ -129,7 +137,7 @@ export const Sidebar = ({
         <div className={`relative flex h-[30px] items-center ${folded ? "justify-center" : ""}`}>
           <Link href="/" aria-label="Home" className={`flex items-center text-fg ${focus}`}>
             {folded ? (
-              <BrandMark size={28} />
+              <BrandMark size={MONOGRAM_SIZE} />
             ) : (
               <BrandLogo height={30} className="h-[30px] w-auto" />
             )}
