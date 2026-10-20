@@ -79,7 +79,9 @@ Erase sits last and apart, as the only action that can't be undone. Each action 
 opens today and returns here with the page refreshed.
 
 **Your own page.** Root opening their own row sees the page read-only: the account and workspaces,
-with "Another root changes your account" in place of the actions (059), and the `own-row` helper.
+with a notice in place of the actions (059), "This is your own account. Another root changes your
+role, disables you or resets your password. Change your password in Account.", and the `own-row`
+helper. No action shows, the data download included, as the own row of the list offered none.
 
 **An erased account** shows its pseudonym, *Erased on*, and the greyed download (104); nothing else
 can change it (103).

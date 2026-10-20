@@ -18,7 +18,13 @@ export type SweepRole = "member" | "moderator" | "root";
  * What the sweep creates before it starts: a draft of the member's, and one in review; and the
  * member's personal workspace (114), named from their email.
  */
-export type SweepData = { draftId: string; submissionId: string; personal: string };
+export type SweepData = {
+  draftId: string;
+  submissionId: string;
+  personal: string;
+  /** The member's own id: root opens their page (123). */
+  userId: string;
+};
 
 export type SweepPage = {
   /** The route as the `app` folder spells it, without route groups: `/items/[scope]/[name]`. */
@@ -140,6 +146,8 @@ export const SWEEP_PAGES: readonly SweepPage[] = [
   { route: "/device", roles: EVERYONE, urls: () => ["/device", "/device?user_code=WDJB-MJHT"] },
   { route: "/admin", roles: ROOT, urls: () => ["/admin"] },
   { route: "/admin/users", roles: ROOT, urls: () => ["/admin/users"] },
+  // One user's page (123): the sweep's member.
+  { route: "/admin/users/[id]", roles: ROOT, urls: (data) => [`/admin/users/${data.userId}`] },
   { route: "/admin/audit", roles: ROOT, urls: () => ["/admin/audit"] },
   // Its tabs (122): Usage at the bare address, then Plugin feeds and Authentication.
   {

@@ -7,7 +7,7 @@ import * as service from "../services/user-admin";
 import { scimAccountStates } from "./scim-settings";
 import { getCurrentUser } from "./session";
 
-export type { NewUserInput, UsersPage } from "../services/user-admin";
+export type { NewUserInput, UserDetail, UsersPage } from "../services/user-admin";
 
 /**
  * Entry points for /admin/users (feature 008). Thin: they find who's asking from the request, and

@@ -191,6 +191,9 @@ describe("isCurrent", () => {
 
   it("marks each Admin page on its own pages only", () => {
     expect(isCurrent(find("Users"), "/admin/users")).toBe(true);
+    // One user's page (123) is under Users.
+    expect(isCurrent(find("Users"), "/admin/users/01K6BZ3W1D8J9Q2R4T6V8X0Y2Z")).toBe(true);
+    expect(isCurrent(find("Audit log"), "/admin/users/01K6BZ3W1D8J9Q2R4T6V8X0Y2Z")).toBe(false);
     expect(isCurrent(find("Users"), "/admin/audit")).toBe(false);
     expect(isCurrent(find("Audit log"), "/admin/audit")).toBe(true);
     expect(isCurrent(find("Settings"), "/admin/settings")).toBe(true);

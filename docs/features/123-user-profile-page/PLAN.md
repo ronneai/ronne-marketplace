@@ -19,7 +19,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   provider and two-factor events; none; the latest of several) on the test database, run on all
   three servers since it is database code.
 
-- [ ] **2. The page `/admin/users/[id]`.** Header, the sections of the spec and a back link, with the
+- [x] **2. The page `/admin/users/[id]`.** Header, the sections of the spec and a back link, with the
   Account, Sign-in and access, Workspaces, Their data and Erase sections; read-only for root's own
   and an erased account; 404 for non-root and unknown ids.
   *Done when:* component tests render each state (active, disabled, erased, own, SCIM-managed, two-factor
@@ -57,5 +57,10 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
 
+- **Task 2: the phone sweep** (found by the pre-commit test): `pages-coverage.test.ts` requires every
+  page in the sweep, so `/admin/users/[id]` went in with task 2 (`e2e/pages.ts`, the sweep's member
+  gives the id); the phone and tablet sweep passed on it. Task 6 still adds the axe run and moves
+  the e2e steps.
+- **Task 4:** `ScimManagedNotice` lives in `UserRowActions.tsx` (with `ActionForm`, `RoleChangeNotice`) and the page imports it from there: move them to a file that stays when `UserRowActions` goes.
 - The overflow is in `UsersPage.tsx` (`w-[17rem]` on the Actions column) and `UserRowActions.tsx`
   (`whitespace-nowrap` buttons in a `min-w-0` fieldset); task 4 removes both rather than widening.

@@ -49,3 +49,44 @@ Witnessed: 2026-10-20 10:02 EDT, by a fresh agent (re-check of claim 7c only, wi
 | 7c | A second-step sign-in counts as a user's last web sign-in, and a test fails if `services/two-factor.ts` stops writing `auth.signed_in` (line 398) | no | confirmed | unmutated: `two-factor-sign-in.db.test.ts` 24/24 on SQLite, PostgreSQL, MySQL and MariaDB (the other 23 tests pass too, so deleting the rows at the start hides nothing); mutation in a scratch copy (`two-factor.ts:398` changed to `auth.signed_out`, the test's old `events("auth.signed_in")` assertion removed) → the new assertion alone fails: `expected undefined to be an instance of Date` at `two-factor-sign-in.db.test.ts:132`; the test first deletes the rows `enrolled()` wrote and asserts none is on record, so only the second step can produce the Date (a first mutation, to `auth.two_factor_started`, isn't in the audit catalogue, made every test throw and proved nothing: discarded) |
 
 **Overall:** met. Row 7 now stands: 7a, 7b and 7d confirmed in Re-check 1, 7c here; every other row was confirmed in the first pass and the diff since touches only the two sign-in tests.
+
+## Task 2 — The page `/admin/users/[id]`
+
+Witnessed: 2026-10-20 10:15 EDT, by a fresh agent (blind). Commit: 9f0eb413 plus the working tree (`user-admin.ts` modified; `UserPage.tsx`, `user-page.test.tsx` and `admin/users/[id]/page.tsx` untracked). Machine: macOS (Darwin 27), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The task's tests pass | no | confirmed | `pnpm --filter @ronneai/web exec vitest run src/features/admin-users` → 5 files, 45 tests passed, 11 of them in `user-page.test.tsx` |
+| 2 | The Account section shows email, name, role, status with its date, created date, last sign-in, and the provider or SCIM badges when there is one | no | confirmed | `UserPage.tsx` Account section; tests "shows the account…", "shows two-factor, and a disabled account's date" and "shows a SCIM-managed account's provider…" pass |
+| 3 | Last sign-in: "Never" when none, an en dash when erased, and a note saying what the time counts | no | confirmed | test regexes match `Last sign-in</dt><dd…>Never<` and `…>–<`; the note "A sign-in to the web app… Not rmk or a token" is rendered, tested, and hidden for an erased account |
+| 4 | Sign-in and access shows two-factor On or Off, the session count and the token count | no | confirmed | regexes `Two-factor</dt><dd…>On<`, `Sessions</dt><dd…>2<`, `Access tokens</dt><dd…>3<` pass; Off is in the default render |
+| 5 | Workspaces: each with its role, highest first; root shows "Root: every workspace."; none shows "None." | no | confirmed | test "lists a user's workspaces highest role first…" covers order, "None." and the root text |
+| 6 | Their data: a link to `/admin/audit?actor=<email>` | no | confirmed | test asserts `href="/admin/audit?actor=sam%40example.com"`; `encodeURIComponent(user.email)` |
+| 7 | Erase this account is last, apart, and only when the account can change | no | confirmed | rendered last in its own Section, only when `changeable`; absent on erased and own pages in tests |
+| 8 | A back link to Users, and a header | no | confirmed | test asserts `href="/admin/users"`; the header shows name, email, role badge and Erased or Disabled badge |
+| 9 | Your own page is read-only: a notice with the `own-row` helper, no action slots, no erase section, no data slot | no | partly | test passes; two differences from the spec text: the notice wasn't the spec's literal "Another root changes your account", and the data slot is hidden on your own page, which the spec didn't say |
+| 10 | An erased account shows the pseudonym, "Erased on", and only the data slot | no | confirmed | test "an erased account…": "Erased on", 2026-10-10, `SLOT-DATA` present, the others absent, no "Never" |
+| 11 | The SCIM-managed notice shows at the top for an account that can change | no | confirmed | test asserts "Acme SSO manages this account through SCIM."; not for a non-managed link, none without a link, not on your own page |
+| 12 | The route is a 404 for non-root and signed-out users, checked before it reads the user | no | confirmed | `page.tsx`: `if (!me \|\| !can(me, "users.view")) notFound();` before `adminGetUser`; the test loops over null, user and a workspace admin, and `adminGetUser` is never called; `service.getUser` also checks `users.view` |
+| 13 | The route is a 404 for an unknown id; other errors are rethrown | no | confirmed | `UserNotFoundError` becomes `notFound()`; a plain Error is rethrown; test passes |
+| 14 | Mutation: the route skips `can(me,"users.view")` → the route test fails | no | confirmed | scratch copy, `if (!me) notFound();` → 1 failed |
+| 15 | Mutation: the route doesn't turn `UserNotFoundError` into `notFound()` → the route test fails | no | confirmed | scratch copy, line removed → 1 failed |
+| 16 | Mutation: `UserPage` shows the slots for an erased or own page → the page tests fail | no | confirmed | scratch copy, `changeable = true` → 2 failed; forcing the data slot on for your own page → 1 failed |
+| 17 | The sidebar's Users item stays current on `/admin/users/<id>` | no | confirmed | `nav.ts:129-134` `section: "/admin/users"`; a probe test in the scratch copy passed (current for Users, not for Audit log); nothing in the repo guarded it |
+| 18 | The page opens in a browser | no | can't check here | the app wasn't started: it needs a throwaway SQLite instance and a root login, beyond the 15-minute budget |
+
+**Overall:** not met. Row 9 is `partly` (the notice wording, and the data slot hidden on your own page) and row 18 is `can't check here`.
+
+### Re-check 1 — rows 9 and 18, and what the diff touched
+
+Witnessed: 2026-10-20 10:15 EDT, by a fresh agent (blind re-check). Commit: 9f0eb413 plus uncommitted work. Machine: macOS (Darwin 27.0.0), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 9 | Your own page is read-only: a notice with the `own-row` helper, no action slots, no erase section, no data slot, as SPEC.md now words it | no | confirmed | SPEC.md:81-84 and `UserPage.tsx:104-108` carry the same words ("This is your own account. Another root changes your role, disables you or resets your password. Change your password in Account.", then `own-row`); `changeable = !self && !erased` (`:66`), `{self ? null : <Actions>{slots.data}</Actions>}` (`:183`); the test asserts the notice on your own page and its absence on another's |
+| 18 | The page opens in a browser | no | confirmed | `pnpm --filter @ronneai/web test:e2e e2e/zz-tmp-user-page.e2e.ts --project=chromium` (a temporary spec, since removed) → 1 passed: the page text shows the back link, name, email, role badge, Account, Sign-in and access, Workspaces, Their data and Erase sections with the right values; a made-up id gives 404; the sidebar's current item is Users, and never Audit log (it appears twice, probably the sidebar and the phone menu) |
+| 18a | The desktop (1440) and phone (390) screenshots look right | no | confirmed | both read: desktop in a two-column grid with Users highlighted, nothing clipped or overlapping; phone one column, all sections, exactly 390 px wide (no horizontal overflow, inferred from the image width). No action buttons show: the slots are task 3's |
+| 19 | The page's two links have a keyboard focus outline | no | confirmed | `UserPage.tsx:86` and `:178` carry `outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus`; classes read, focus not tested in a browser |
+| 20 | Users is current on `/admin/users/<id>` and Audit log isn't, and the new assertion fails without `section` | no | confirmed | `AppShell.test.tsx:194-196`; scratch copy with `section: "/admin/users"` removed from `nav.ts` → 1 failed, 34 passed, at line 195 |
+
+**Overall:** met.
