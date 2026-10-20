@@ -62,7 +62,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   `pnpm dev`, from 104 and 105): moved beside the text, with a test that reads every source file
   for it.
 
-- [ ] **5. Links in.** The audit log's event details link to the page when the event names an account;
+- [x] **5. Links in.** The audit log's event details link to the page when the event names an account;
   the page's audit link (`/admin/audit?actor=`) works.
   *Done when:* `admin-audit` tests cover both links.
 

@@ -238,3 +238,50 @@ Witnessed: 2026-10-20 11:05 EDT, by a fresh agent (re-check of row 14c only, wit
 | 14c | `help-not-in-paragraph.test.ts` has a test of its finder on sample strings, and a test that the scanned file list includes `DownloadDataDialog.tsx`, `UserActionDialogs.tsx`, `HelpTip.tsx` and `app/(app)/admin/users/[id]/page.tsx` | no | confirmed | read: lines 25-29 test `helpersInParagraphs` on three samples (Help in a p, HelpTip in a p, Help beside a p), lines 31-40 assert the four files are in `sources(SRC)` with `SRC = ../..`; `vitest run src/components/help` → 2 files, 6 passed; mutations on a copy of the test: regex `<Helpx(Tip)?` → the finder test fails (`expected [] to deeply equal [ 2 ]`); `SRC` `".."` → the file-list test fails; `HelpTip.tsx` renamed to `HelpTipX.tsx` → it fails |
 
 **Overall:** met. The copy used for mutations sat beside the original (SRC is relative to the file) and was deleted; `git status` shows no leftover.
+
+## Task 5 — Links in
+
+Witnessed: 2026-10-20 10:58 EDT, by a fresh agent (blind). Commit: 970793d9 plus the uncommitted diff (`EventDetails.tsx`, `admin-audit.test.tsx`). Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The admin-audit tests pass and cover both links | no | confirmed | `vitest run src/features/admin-audit` → 2 files, 21 passed; the new tests "links the actor and the target to the users' own pages, and an old target by search (123)" and "filters the log by an actor's email, as the user page's link asks (123)" |
+| 2 | An event with targetType "user" and a targetId links to `/admin/users/<targetId>` labelled "Open the user" | no | confirmed | `EventDetails.tsx`: `if (event.targetId) return userHref(event.targetId)`, `OPEN_LABELS.user = "Open the user"`; the test asserts the href |
+| 3 | An event with an actorId links the actor the same way; no actor (system, cli) has no actor link | no | confirmed | the actor row renders the link only inside `event.actorId ? …`; the test with actorId null and targetType "none" asserts no "Open the user"; the browser dialog showed one actor link to `/admin/users/<root's id>` |
+| 4 | An old event with a user target but no id falls back to the list search by email; other target types are unchanged | no | confirmed | the fallback is `/admin/users?q=…`, asserted as `/admin/users?q=old%40example.com`; the diff leaves the submission, item and item_version branches alone; their tests pass |
+| 5 | The user page's link `/admin/audit?actor=<email>` really filters the log | no | confirmed | `UserPage.tsx:177` builds it; `list.ts:18` parses `actor`, `auditQueryOf` passes it on; `kysely-audit-repository.ts:74-75`: `"system"` → `actor_id is null`, else a case-insensitive part-of-email match; browser: `/admin/audit?actor=root%40e2e.test` showed the actor box, the chip "Actor: root@e2e.test" and 1 row |
+| 6 | An erased account's pseudonym email still filters the log | no | partly | read from code only: the filter joins the live `user` row's email, which erasing makes the pseudonym; not run |
+| 7 | Mutation: the target link goes back to the email search | no | confirmed | scratch copy, the `targetId` line removed → the "links the actor and the target…" test fails (1 failed, 20 passed) |
+| 8 | Mutation: the actor link is removed | no | confirmed | the same test fails |
+| 9 | Mutation: the actor link also appears when actorId is null | no | confirmed | `{event.actorId ? (` → `{true ? (` → the same test fails |
+| 10 | Browser: from a user's page the audit link filters the log | no | confirmed | a temporary spec (deleted): root's page → "Their events in the audit log" → URL `/admin/audit?actor=root%40e2e.test`, the actor box and chip, 1 row with root as actor; screenshot viewed |
+| 11 | Browser: an event's details dialog has an actor "Open the user" link that lands on the user's page | no | confirmed | the dialog link href is `/admin/users/<root's id>`; clicking it lands on root's page with the "Account" heading |
+| 12 | Browser: an event with a user target, and its "Open the user" goes to that user's page | no | can't check here | the seeded instance has no event with a user target (`action=user.` gave 2 events, each with only the actor link); the target link uses the same `userHref`; the unit test covers its href |
+
+**Overall:** not met: rows 6 and 12 not confirmed (neither a bug). Added after this pass: a database test that an erased account's pseudonym email filters the log (run on SQLite, PostgreSQL, MySQL and MariaDB), for row 6; row 12 needs a re-check that makes a user-target event in the browser.
+
+### Re-check 1 — rows 6 and 12
+
+Witnessed: 2026-10-20 11:10 EDT, by a fresh agent (blind). Commit: 970793d9 plus the uncommitted diff (`EventDetails.tsx`, `admin-audit.test.tsx`, `audit.db.test.ts`). Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6a | An erased account's pseudonym email still filters the audit log by actor, on SQLite | no | confirmed | `vitest run --project db src/server/domains/audit/actions/audit.db.test.ts` → 8 passed, including "finds an erased account's events by its pseudonym email, which its user page links (123)": the full pseudonym, the prefix `deleted-user-` and `other@` each return only the right actor id |
+| 6b | The same on PostgreSQL, MySQL and MariaDB | no | confirmed | `pnpm test:db:postgres`, `:mysql`, `:mariadb` with that file → 8 passed on each |
+| 6c | The new test fails when the actor filter stops matching the email | no | confirmed | scratch copy, `kysely-audit-repository.ts:75` `containsInsensitive("actor.email", actor)` → `"actor.id"` → 2 failed (the new test and "filters by action, group, actor email…"), 6 passed |
+| 6d | An erased account's user page still shows the audit link, carrying the pseudonym email | no | confirmed | `UserPage.tsx:170-182`: "Their data" isn't conditioned on `erased`; the href is `/admin/audit?actor=${encodeURIComponent(user.email)}`, and for an erased account `user.email` is the pseudonym; read from code, no browser run on an erased page |
+| 12 | Browser: an audit event with a user target has an "Open the user" link in its details that goes to that user's page | no | confirmed | its own temporary spec (deleted): root disables `remember@e2e.test` from its page, then `/admin/audit?action=user.disabled`, the first row's details: two "Open the user" links, Actor and Target; the target href equals the user page's pathname and clicking it lands on that page (heading "Account", "Disabled on"); screenshot viewed |
+| 13 | The Actor row's "Open the user" goes to root's page | no | confirmed | the same spec: it lands on the page headed "Root" with the "This is your own account" notice |
+| 14 | The diff's component and test changes hold (target link by id, old-event fallback, no-actor case) | no | partly | `admin-audit.test.tsx` not run in this pass (budget); the e2e run confirms the target-id and actor-id cases; the fallback and no-actor cases rest on reading the unit test |
+
+**Overall:** not met: row 14 only, the unit test file not run in this pass.
+
+### Re-check 2 — row 14
+
+Witnessed: 2026-10-20 11:05 EDT, by a fresh agent (blind). Commit: 970793d9 plus uncommitted changes. Machine: macOS (Darwin 27.0.0), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 14 | The audit event details link a user target by id to `/admin/users/<id>` labelled "Open the user"; an event with no target id falls back to the list search by email; the Actor row links to the actor's page only when there is an actor id | no | confirmed | `vitest run src/features/admin-audit` → 2 files, 21 passed; `EventDetails.tsx`: `OPEN_LABELS.user = "Open the user"`, `targetHref` returns `userHref(targetId)` with an id, else `/admin/users?q=<email>`, else null, and the Actor row's link sits inside `event.actorId ? …`; the test "links the actor and the target to the users' own pages, and an old target by search (123)" asserts the actor and target hrefs (lines 208-213), no link for `actorId: null` (215-218) and the old-event fallback (220-223); three mutations (always the email search; no fallback; the actor link with a null actorId) each fail that test |
+
+**Overall:** met. Caveat: the agent ran its mutations on `EventDetails.tsx` in the repository itself, not in a scratch copy as instructed, restoring it from a copy taken first; the file was verified identical to that copy afterwards, the diff against HEAD is unchanged (12 insertions, 2 deletions) and the 21 tests pass. It also left a stray `/tmp/ed.bak`, since deleted.

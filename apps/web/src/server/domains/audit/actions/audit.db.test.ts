@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { toDbDate } from "../../../db/dates";
 import { newId } from "../../../db/ids";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
+import { seedErasedUser } from "../../identity/testing/erased-user";
 import { SecretInAuditMetadataError } from "../exceptions/errors";
 import { countAuditEvents, findAuditEvent, listAuditEvents, recordAudit } from "./audit";
 
@@ -195,6 +196,27 @@ describe("listAuditEvents (keyset, 060)", () => {
       actorEmail: "alex@example.com",
       targetEmail: "alex@example.com",
     });
+  });
+
+  it("finds an erased account's events by its pseudonym email, which its user page links (123)", async () => {
+    const erased = await seedErasedUser(t);
+    const other = await insertUser("other@example.com");
+    for (const [actorId, at] of [
+      [erased.id, "2026-09-01T10:00:00Z"],
+      [other, "2026-09-02T10:00:00Z"],
+    ] as const)
+      await recordAudit(
+        t.db,
+        t.dialect,
+        { actorId, action: "auth.signed_in", target: { type: "session", id: newId() } },
+        new Date(at),
+      );
+    const byActor = async (actor: string) =>
+      (await listAuditEvents(t.db, t.dialect, { actor })).events.map((e) => e.actorId);
+    // The log joins the account's current email, which erasing made the pseudonym.
+    expect(await byActor(erased.email)).toEqual([erased.id]);
+    expect(await byActor("deleted-user-")).toEqual([erased.id]);
+    expect(await byActor("other@")).toEqual([other]);
   });
 
   it("finds one event by id, with the same fields", async () => {

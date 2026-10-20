@@ -180,16 +180,55 @@ describe("AuditLogPage (060)", () => {
       "2026-09-27 19:15:03 UTC",
       "Changed </span><strong",
       "alex@example.com",
-      'href="/admin/users?q=alex%40example.com"',
+      `href="/admin/users/${ULID}"`,
       "203.0.113.9",
       ">from<",
       ">moderator<",
       "Raw JSON",
-      "Open in Users",
+      "Open the user",
       "copy json",
     ]) {
       expect(html, text).toContain(text);
     }
+  });
+
+  it("links the actor and the target to the users' own pages, and an old target by search (123)", () => {
+    const actor = "01K6BZ3W1D8J9Q2R4T6V8X0Y77";
+    const target = "01K6BZ3W1D8J9Q2R4T6V8X0Y88";
+    const html = page({
+      selected: event({
+        actorId: actor,
+        targetType: "user",
+        targetId: target,
+        targetEmail: "alex@example.com",
+        action: "user.role_changed",
+        metadata: { from: "user", to: "moderator" },
+      }),
+    });
+    expect(html).toContain(`href="/admin/users/${actor}"`);
+    expect(html).toContain(`href="/admin/users/${target}"`);
+    // The dialog's markup may repeat (it is on the page twice in static markup): two accounts.
+    expect(new Set(html.match(/href="\/admin\/users\/[0-9A-Z]+"/g))).toEqual(
+      new Set([`href="/admin/users/${actor}"`, `href="/admin/users/${target}"`]),
+    );
+    // No actor (the system, the command line): nothing to open for it.
+    const system = page({
+      selected: event({ actorId: null, actorEmail: null, targetType: "none", targetId: null }),
+    });
+    expect(system).not.toContain("Open the user");
+    // An event with no target id, such as an old one: the list, searched by the email.
+    const old = page({
+      selected: event({ targetType: "user", targetId: null, targetEmail: "old@example.com" }),
+    });
+    expect(old).toContain('href="/admin/users?q=old%40example.com"');
+  });
+
+  it("filters the log by an actor's email, as the user page's link asks (123)", () => {
+    const filters = parseListQuery(AUDIT_LIST, { actor: "alex@example.com" }).filters;
+    expect(filters.actor).toBe("alex@example.com");
+    expect(
+      auditQueryOf(checkedState(parseListQuery(AUDIT_LIST, { actor: "alex@example.com" }))).actor,
+    ).toBe("alex@example.com");
   });
 
   it("says when the event in the URL doesn't exist", () => {

@@ -35,11 +35,14 @@ export const Summary = ({ parts }: { parts: SummaryPart[] }) => (
 const linkClass = "text-link underline-offset-2 hover:underline";
 
 const OPEN_LABELS: Record<string, string> = {
-  user: "Open in Users",
+  user: "Open the user",
   submission: "Open the submission",
   item: "Open the item",
   item_version: "Open the item",
 };
+
+/** A user's page (123): the account an event names, as its actor or as its target. */
+const userHref = (id: string): string => `/admin/users/${id}`;
 
 /** Where the app shows the target, when it has a page for it. */
 const targetHref = (event: AuditEvent): string | null => {
@@ -47,6 +50,8 @@ const targetHref = (event: AuditEvent): string | null => {
   const ref = parseItemName(name);
   switch (event.targetType) {
     case "user":
+      // The account's own page (123); an event with no id (an old one) finds it in the list.
+      if (event.targetId) return userHref(event.targetId);
       return event.targetEmail ? `/admin/users?q=${encodeURIComponent(event.targetEmail)}` : null;
     case "submission":
       return event.targetId ? `/submissions/${event.targetId}` : null;
@@ -98,7 +103,12 @@ export const EventDetails = ({ event }: { event: AuditEvent }) => {
         <Row term="Actor">
           {actorLabel(event)}
           {event.actorId ? (
-            <span className="block font-mono text-xs text-muted">{event.actorId}</span>
+            <>
+              <span className="block font-mono text-xs text-muted">{event.actorId}</span>
+              <Link href={userHref(event.actorId)} className={`${linkClass} block text-sm`}>
+                Open the user
+              </Link>
+            </>
           ) : null}
         </Row>
         <Row term="Action">
