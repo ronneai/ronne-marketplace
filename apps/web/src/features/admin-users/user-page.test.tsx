@@ -223,7 +223,8 @@ describe("the route", () => {
       "Erase",
     ])
       expect(html, label).toMatch(new RegExp(`<button[^>]*>${label}</button>`));
-    expect(html).not.toContain("Reset two-factor");
+    // No button for it (its dialog stays in the markup, so an open one outlives the button).
+    expect(html).not.toMatch(/<button[^>]*>Reset two-factor<\/button>/);
     expect(html).not.toMatch(/>Enable</);
   });
 

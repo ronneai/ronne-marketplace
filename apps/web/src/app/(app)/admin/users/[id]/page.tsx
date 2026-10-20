@@ -56,7 +56,7 @@ const User = async ({ params }: { params: Promise<{ id: string }> }) => {
       access: (
         <>
           <UserActionButton kind="reset" user={row} />
-          {row.twoFactor ? <UserActionButton kind="twoFactor" user={row} /> : null}
+          <UserActionButton kind="twoFactor" user={row} hidden={!row.twoFactor} />
           <UserActionButton kind={row.disabled ? "enable" : "disable"} user={row} />
         </>
       ),

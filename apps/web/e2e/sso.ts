@@ -110,8 +110,9 @@ export const ssoFlow = async ({
     await expect(popup.getByText(`join ${E2E_WORKSPACE} as moderator`)).toBeVisible();
     await popup.close();
     // The test changed nothing: no account for Ann yet.
-    await page.goto(`/admin/users?search=${encodeURIComponent(ANN)}`);
-    await expect(page.getByText(ANN)).toHaveCount(0);
+    await page.goto(`/admin/users?q=${encodeURIComponent(ANN)}`);
+    // Searched for (the list's parameter is `q`): no row, whatever page she would be on.
+    await expect(page.getByRole("row").filter({ hasText: ANN })).toHaveCount(0);
 
     await page.goto(`/admin/settings?tab=authentication&provider=${ID}`);
     await page.getByRole("button", { name: "Turn on", exact: true }).click();
@@ -143,7 +144,7 @@ export const ssoFlow = async ({
     } finally {
       rmSync(rmkHome, { recursive: true, force: true });
     }
-    await page.goto(`/admin/users?search=${encodeURIComponent(ANN)}`);
+    await page.goto(`/admin/users?q=${encodeURIComponent(ANN)}`);
     const annRow = page.getByRole("row", { name: new RegExp(ANN) });
     await expect(annRow).toBeVisible();
     await expect(annRow.getByText(/moderator/)).toBeVisible();

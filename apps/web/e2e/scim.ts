@@ -1,4 +1,5 @@
 import { type Browser, expect, type Page } from "@playwright/test";
+import { openUser } from "./helpers";
 import { recordSecret } from "./secrets";
 import { E2E_PASSWORD, E2E_WORKSPACE } from "./users";
 
@@ -123,7 +124,8 @@ export const scimFlow = async ({
   await expect(row).toContainText(/moderator/);
 
   // Kai has no password: root gives one, and Kai signs in and makes an access token.
-  await row.getByRole("button", { name: "Reset password" }).click();
+  await openUser(page, KAI);
+  await page.getByRole("button", { name: "Reset password" }).click();
   const reset = page.getByRole("dialog");
   await reset.getByRole("button", { name: "Reset password" }).click();
   await expect(reset.getByText("Shown once")).toBeVisible();

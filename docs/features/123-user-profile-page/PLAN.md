@@ -26,8 +26,8 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   on and off) and the page test checks the 404s.
 
 - [x] **3. The actions on the page.** Mount the existing dialogs (`ActionForm`, the workspaces,
-  download and erase dialogs) on the page, each returning here with the page refreshed; their
-  server actions revalidate the page as well as the list.
+  download and erase dialogs) on the page, each returning here with the page refreshed; their server actions revalidate the page as well as
+  the list.
   *Done when:* tests show each action calls its server action and the page shows the new state; the
   existing action tests pass unchanged.
 
@@ -66,10 +66,12 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   the page's audit link (`/admin/audit?actor=`) works.
   *Done when:* `admin-audit` tests cover both links.
 
-- [ ] **6. e2e and phone.** Move every e2e step that clicked a row button (`user-admin.e2e.ts`,
+- [x] **6. e2e and phone.** Move every e2e step that clicked a row button (`user-admin.e2e.ts`,
   `scim.ts`, and any other found by searching *Reset password*, *Change role*, *Disable*, *Erase* and
-  *Download their data*) to the page; add the list and one page to the phone sweep (065) and the axe
-  run.
+  *Download their data*) to the page, through the shared `openUser` and `userRow` helpers in
+  `e2e/helpers.ts` (the Users list's email cell holds a copy button now, so a row is found by its
+  *Open* link); the list and the page are in the phone sweep (065) since task 2. The marketplace has
+  no axe run (that is the website's `pnpm a11y`), so none is added.
   *Done when:* `pnpm test:e2e` passes on the desktop, phone and tablet projects.
 
 - [ ] **7. Documentation.** Administration → Users in ronne-web (en, pt, fr), the other topics that say
@@ -91,6 +93,14 @@ goes into `SPEC.md` instead.
   `UserWorkspacesButton` gained a `variant` for the page. While looking at an erased account's page
   in a browser, its *Provider* row (which repeated the *Erased on* badge) went: the spec says an
   erased account shows its pseudonym, *Erased on* and the greyed download, nothing of SCIM's.
+- **Task 6: a dialog outlives its button** (found by the e2e run). A server action that
+  revalidates refreshes the page behind its dialog, and the page's buttons follow what the action
+  changed: *Reset two-factor* is gone once it is off (the dialog, and the result it was showing,
+  went with the button), and *Disable* becomes *Enable* (the title would flip). Now
+  `UserActionButton` remembers the action it was opened for, and the two-factor button is always
+  rendered with `hidden` set when there is nothing to reset: the button hides, the dialog stays
+  until it is closed. (First tried: refresh on close and revalidate the list only; it changed
+  nothing, since any `revalidatePath` in an action refreshes the current page.)
 - **Task 4:** `ScimManagedNotice` now lives in `UserActionDialogs.tsx`, so nothing is left to move
   when `UserRowActions` goes.
 - The overflow is in `UsersPage.tsx` (`w-[17rem]` on the Actions column) and `UserRowActions.tsx`

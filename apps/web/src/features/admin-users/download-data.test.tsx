@@ -15,7 +15,7 @@ vi.mock("./actions", () => ({
 const { DownloadDataBody, dataHref } = await import("./DownloadDataDialog");
 const { EraseUserForm } = await import("./EraseUserDialog");
 const { DownloadDataButton } = await import("./DownloadDataDialog");
-const { ErasedDownloadButton } = await import("./UserPageActions");
+const { ErasedDownloadButton, UserActionButton } = await import("./UserPageActions");
 
 const ID = "01K6BZ3W1D8J9Q2R4T6V8X0Y2Z";
 const row = {
@@ -59,5 +59,24 @@ describe("Download their data (104)", () => {
       new RegExp(`<a[^>]*href="/admin/users/${ID}/data"[^>]*>Download their data</a>`),
     );
     expect(html.indexOf(`/admin/users/${ID}/data`)).toBeLessThan(html.indexOf("Type the account"));
+  });
+});
+
+describe("UserActionButton (123)", () => {
+  const user = { id: ID, email: "alex@example.com", role: "user", disabled: false } as const;
+
+  it("is a button that opens its dialog, which is in the markup as the action's own", () => {
+    const html = renderToStaticMarkup(<UserActionButton kind="twoFactor" user={user} />);
+    expect(html).toMatch(/<button[^>]*>Reset two-factor<\/button>/);
+    expect(html).toContain("<dialog");
+  });
+
+  it("can hide its button and keep the dialog, so one that is open outlives what it changed", () => {
+    const html = renderToStaticMarkup(<UserActionButton kind="twoFactor" user={user} hidden />);
+    expect(html).not.toContain('<button type="button" class="inline-flex h-9');
+    expect(html).not.toMatch(/<button[^>]*>Reset two-factor<\/button>/);
+    // The dialog, with its own title, is still there to stay open.
+    expect(html).toContain("<dialog");
+    expect(html).toContain("Reset two-factor");
   });
 });

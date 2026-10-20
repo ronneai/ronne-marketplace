@@ -3,6 +3,7 @@ import { createDb } from "../src/server/db/create-db";
 import { toDbBoolean, toDbDate } from "../src/server/db/dates";
 import { totpCode } from "../src/server/domains/identity/testing/totp";
 import type { Instance } from "./harness";
+import { openUser } from "./helpers";
 import { E2E_PASSWORD, E2E_USERS } from "./users";
 
 // Feature 105: while root requires two-factor of everyone, someone without it sees only
@@ -168,18 +169,16 @@ test("root requires it of reviewers, a moderator is held until enrolled, root re
     await page.goto("/admin/settings?tab=authentication");
     await expect(page.getByText("Required for reviewers and root.")).toBeVisible();
     await expect(page.getByRole("radio", { name: /Reviewers and root/ })).toBeChecked();
-    await page.goto(`/admin/users?q=${encodeURIComponent(E2E_USERS.twoFactorResettable)}`);
-    const actions = page.getByRole("group", {
-      name: `Actions for ${E2E_USERS.twoFactorResettable}`,
-    });
-    await actions.getByRole("button", { name: "Reset two-factor" }).click();
+    await openUser(page, E2E_USERS.twoFactorResettable);
+    await page.getByRole("button", { name: "Reset two-factor" }).click();
     const dialog = page.getByRole("dialog", { name: "Reset two-factor" });
     await dialog.getByRole("button", { name: "Reset two-factor" }).click();
     await expect(
       dialog.getByText("Two-factor sign-in turned off. They're signed out everywhere."),
     ).toBeVisible();
     await dialog.getByRole("button", { name: "Done" }).click();
-    await expect(actions.getByRole("button", { name: "Reset two-factor" })).toHaveCount(0);
+    // The page was refreshed: two-factor is off, so there is nothing to reset.
+    await expect(page.getByRole("button", { name: "Reset two-factor" })).toHaveCount(0);
   } finally {
     await setRequirement("optional");
     for (const email of [
