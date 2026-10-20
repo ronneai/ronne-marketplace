@@ -49,27 +49,29 @@ export const WorkspaceSwitcher = ({
       <summary
         aria-label={folded ? `Workspace: ${title}` : undefined}
         title={title}
-        className={`flex cursor-pointer list-none items-center rounded-control border border-hairline bg-surface text-fg hover:border-strong [&::-webkit-details-marker]:hidden ${focus} ${folded ? "size-10 justify-center" : "min-h-11 w-full justify-between gap-2 px-3 py-1.5 text-left"}`}
+        className={`flex w-full cursor-pointer list-none items-center overflow-hidden rounded-control border border-hairline bg-surface text-left text-fg transition-[padding,min-height] duration-200 hover:border-strong motion-reduce:transition-none [&::-webkit-details-marker]:hidden ${focus} ${folded ? "min-h-10 justify-center px-0 py-0" : "min-h-11 justify-between px-3 py-1.5"}`}
       >
-        {folded ? (
-          <Building2 size={18} aria-hidden />
-        ) : (
-          <>
-            <span className="grid min-w-0">
-              <span className="truncate text-sm font-semibold">
-                {chosen?.name ?? "All workspaces"}
-              </span>
-              <span className="truncate font-mono text-xs text-muted">
-                {chosen
-                  ? chosen.personal
-                    ? "Personal workspace"
-                    : "Workspace"
-                  : "Every workspace"}
-              </span>
-            </span>
-            <ChevronsUpDown size={16} aria-hidden className="shrink-0 text-muted" />
-          </>
-        )}
+        {/* One structure for both states, so folding is a morph: the icon grows in as the text and
+            the chevrons narrow away (see Sidebar). */}
+        <Building2
+          size={18}
+          aria-hidden
+          className={`shrink-0 transition-[width,opacity] duration-200 motion-reduce:transition-none ${folded ? "w-[18px]" : "w-0 opacity-0"}`}
+        />
+        <span
+          aria-hidden={folded}
+          className={`grid min-w-0 flex-1 transition-[max-width,opacity] duration-200 motion-reduce:transition-none ${folded ? "max-w-0 opacity-0" : "max-w-64"}`}
+        >
+          <span className="truncate text-sm font-semibold">{chosen?.name ?? "All workspaces"}</span>
+          <span className="truncate font-mono text-xs text-muted">
+            {chosen ? (chosen.personal ? "Personal workspace" : "Workspace") : "Every workspace"}
+          </span>
+        </span>
+        <ChevronsUpDown
+          size={16}
+          aria-hidden
+          className={`shrink-0 text-muted transition-[width,margin,opacity] duration-200 motion-reduce:transition-none ${folded ? "ml-0 w-0 opacity-0" : "ml-2 w-4"}`}
+        />
       </summary>
       <div
         className={`absolute z-40 grid grid-cols-[minmax(0,1fr)] gap-0.5 rounded-panel border border-strong bg-surface p-1 ${folded ? "top-0 left-full ml-2 w-72" : "inset-x-0 top-full mt-1"}`}

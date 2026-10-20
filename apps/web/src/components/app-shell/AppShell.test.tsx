@@ -391,6 +391,19 @@ describe("Sidebar", () => {
     expect(aside(sidebar({ folded: true }))).toContain("w-16");
   });
 
+  it("keeps the count readable when open and hides it only when folded", () => {
+    const open = sidebar();
+    // Open: Reviews' count is part of its name, "Reviews 3 waiting".
+    const reviews = /<a [^>]*href="\/reviews"[\s\S]*?<\/a>/.exec(open)?.[0] ?? "";
+    expect(reviews).toContain('sr-only"> waiting');
+    expect(reviews).not.toMatch(/<span aria-hidden="true" class="shrink-0[^"]*">\s*<span[^>]*>3/);
+    // Folded: the count's badge is hidden, and the link's own name says it.
+    const folded =
+      /<a [^>]*href="\/reviews"[\s\S]*?<\/a>/.exec(sidebar({ folded: true }))?.[0] ?? "";
+    expect(folded).toContain('aria-label="Reviews (3 waiting)"');
+    expect(folded).toMatch(/<span aria-hidden="true" class="shrink-0[^"]*opacity-0[^"]*">/);
+  });
+
   it("unfolded, offers to fold; folded, names every icon and puts a dot where a count waits", () => {
     expect(sidebar()).toContain('aria-label="Fold the sidebar"');
     expect(sidebar()).toMatch(/aria-expanded="true" aria-controls="sidebar"/);
@@ -420,7 +433,15 @@ describe("Sidebar", () => {
     expect(html).not.toContain('aria-label="Ronne"');
     expect(html).toMatch(/clip-path:inset\(0 [\d.]+px 0 0\)/);
     expect(sidebar()).toMatch(/clip-path:inset\(0 0px 0 0\)/);
-    expect(html).not.toContain("v1.2.3");
+    // The version collapses away rather than leaving: hidden from screen readers and from view.
+    expect(html).toMatch(
+      /<p aria-hidden="true"[^>]*max-h-0[^>]*opacity-0[^>]*>ronne marketplace v1\.2\.3/,
+    );
+    expect(sidebar()).not.toMatch(/<p aria-hidden="true"[^>]*>ronne marketplace v1/);
+    // The workspace switcher keeps its text, faded and hidden, and grows its icon in.
+    expect(html).toMatch(
+      /<span aria-hidden="true" class="grid min-w-0 flex-1[^"]*max-w-0 opacity-0/,
+    );
     // The dot: on Reviews, which has a count, and on no other link.
     const dot = /<span aria-hidden="true" class="[^"]*\brounded-full bg-accent\b/g;
     const reviews = /<a [^>]*aria-label="Reviews \(3 waiting\)"[\s\S]*?<\/a>/.exec(html)?.[0] ?? "";

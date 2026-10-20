@@ -3,7 +3,7 @@
 import { ChevronLeft, ChevronRight, UserRound } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useState } from "react";
 import { Badge } from "../ui/Badge";
 import { BrandLogo } from "../ui/BrandLogo";
 import { NewTabLink } from "../ui/NewTabLink";
@@ -22,9 +22,6 @@ import { sidebarCookie } from "./sidebar-cookie";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 
 const focus = "outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus";
-
-/** How long folding and unfolding take: the width's transition, in `Sidebar`'s class `duration-200`. */
-const FOLD_MS = 200;
 
 /**
  * Folding keeps the logo and wipes the wordmark away, so the mark slides to the middle of the rail
@@ -84,34 +81,15 @@ export const Sidebar = ({
   version?: string;
 }) => {
   const path = usePathname() ?? "/";
-  // `folded` is where the sidebar is going: its width, the chevron and the cookie. `railed` is what
-  // it shows: folding keeps the full content until the width has shrunk (the labels are cut off by
-  // the narrowing edge, not swapped out under it), and unfolding shows it at once, revealed by the
-  // growing edge. `moving` clips the content for the length of the transition.
+  // Everything follows `folded`, so folding is a morph (owner, 2026-10-20): the width animates, and
+  // the logo, the switcher, the items and the foot change shape in place, with no content swapped.
   const [folded, setFolded] = useState(initiallyFolded);
-  const [railed, setRailed] = useState(initiallyFolded);
-  const [moving, setMoving] = useState(false);
   const toggle = () => {
     const next = !folded;
     setFolded(next);
     // biome-ignore lint/suspicious/noDocumentCookie: one plain preference, read by the server.
     document.cookie = sidebarCookie(next);
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setRailed(next);
-      return;
-    }
-    setMoving(true);
-    if (!next) setRailed(false);
   };
-  useEffect(() => {
-    if (!moving) return;
-    const done = setTimeout(() => {
-      setRailed(folded);
-      setMoving(false);
-    }, FOLD_MS + 20);
-    return () => clearTimeout(done);
-  }, [moving, folded]);
-  const clip = moving ? "overflow-x-hidden" : "";
 
   // One structure for both states, so folding is a morph: the label and the count fade as the item
   // narrows, and the icon stays where it is (the nav's padding puts it in the rail's middle).
@@ -127,7 +105,8 @@ export const Sidebar = ({
           {item.label}
         </span>
         {count ? (
-          <span aria-hidden className={`shrink-0 ${fade}`}>
+          // Folded, the link's own name says "(3 waiting)"; open, the count is read as part of it.
+          <span aria-hidden={folded} className={`shrink-0 ${fade}`}>
             <NavCount count={count} />
           </span>
         ) : null}
@@ -168,7 +147,7 @@ export const Sidebar = ({
     <aside
       id="sidebar"
       aria-label="Sidebar"
-      className={`sticky top-0 hidden h-dvh shrink-0 flex-col border-r border-hairline bg-surface pt-safe pb-safe pl-safe lg:flex transition-[width] duration-200 ease-out motion-reduce:transition-none ${folded ? "w-16" : "w-64"} ${railed ? "items-center" : ""}`}
+      className={`sticky top-0 hidden h-dvh shrink-0 flex-col border-r border-hairline bg-surface pt-safe pb-safe pl-safe lg:flex transition-[width] duration-200 ease-out motion-reduce:transition-none ${folded ? "w-16" : "w-64"}`}
     >
       {/* The fold button is a circle on the sidebar's edge, half over the page, at the logo's height
           (owner, 2026-10-20): the row is its positioning box, so it follows the logo's height. */}
@@ -199,16 +178,14 @@ export const Sidebar = ({
         </div>
       </div>
 
-      <div
-        className={`grid shrink-0 gap-3 px-3 pt-4 ${clip} ${railed ? "justify-items-center" : ""}`}
-      >
-        <WorkspaceSwitcher workspaces={workspaces} current={current} folded={railed} />
+      <div className="grid shrink-0 gap-3 px-3 pt-4">
+        <WorkspaceSwitcher workspaces={workspaces} current={current} folded={folded} />
         {propose ? (
           <Link
             href={PROPOSE.href}
             aria-label={folded ? PROPOSE.label : undefined}
             title={folded ? PROPOSE.label : undefined}
-            className={`flex w-full items-center justify-center rounded-control bg-accent-strong text-sm font-semibold text-on-accent transition-[height] duration-200 hover:opacity-90 motion-reduce:transition-none ${focus} ${folded ? "h-10" : "h-9"}`}
+            className={`flex w-full items-center justify-center rounded-control bg-accent-strong text-sm font-semibold text-on-accent transition-[height] duration-200 hover:opacity-90 motion-reduce:transition-none overflow-hidden ${focus} ${folded ? "h-10" : "h-9"}`}
           >
             <NavIcon name="propose" size={16} />
             <span
@@ -242,54 +219,66 @@ export const Sidebar = ({
         ))}
       </nav>
 
+      {/* The foot: the theme switch is a fixed box at the right of the account row, and moves up above
+          the avatar when folded; the name fades, the account row narrows and the version collapses. */}
       <div
-        className={`grid shrink-0 gap-2 border-t border-hairline px-3 py-3 ${clip} ${railed ? "w-full justify-items-center" : ""}`}
+        className={`relative shrink-0 border-t border-hairline px-3 pb-3 transition-[padding] duration-200 motion-reduce:transition-none ${folded ? "pt-[56px]" : "pt-3"}`}
       >
-        <div className={`flex gap-2 ${railed ? "flex-col-reverse items-center" : "items-center"}`}>
-          <DismissibleDetails className="relative min-w-0 flex-1">
-            <summary
-              aria-label={railed ? `${user.name}, your account` : undefined}
-              title={user.name}
-              className={`flex cursor-pointer list-none items-center gap-2 rounded-control text-fg hover:bg-canvas [&::-webkit-details-marker]:hidden ${focus} ${railed ? "size-10 justify-center" : "min-h-10 px-1.5"}`}
+        <DismissibleDetails
+          className={`relative min-w-0 transition-[margin] duration-200 motion-reduce:transition-none ${folded ? "mr-0" : "mr-11"}`}
+        >
+          <summary
+            aria-label={folded ? `${user.name}, your account` : undefined}
+            title={user.name}
+            className={`flex min-h-10 w-full cursor-pointer list-none items-center overflow-hidden rounded-control text-fg transition-[padding] duration-200 hover:bg-canvas motion-reduce:transition-none [&::-webkit-details-marker]:hidden ${focus} ${folded ? "px-1" : "px-1.5"}`}
+          >
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-accent-strong text-on-accent">
+              <UserRound size={16} aria-hidden />
+            </span>
+            <span
+              aria-hidden={folded}
+              className={`grid min-w-0 transition-[max-width,margin,opacity] duration-200 motion-reduce:transition-none ${folded ? "ml-0 max-w-0 opacity-0" : "ml-2 max-w-48"}`}
             >
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-accent-strong text-on-accent">
-                <UserRound size={16} aria-hidden />
-              </span>
-              {railed ? null : (
-                <span className="grid min-w-0">
-                  {/* The name, not the email (owner, 2026-09-27). */}
-                  <span className="truncate text-sm font-semibold">{user.name}</span>
-                  {user.role !== "user" ? (
-                    <span>
-                      <Badge>{user.role}</Badge>
-                    </span>
-                  ) : null}
+              {/* The name, not the email (owner, 2026-09-27). */}
+              <span className="truncate text-sm font-semibold">{user.name}</span>
+              {user.role !== "user" ? (
+                <span>
+                  <Badge>{user.role}</Badge>
                 </span>
-              )}
-            </summary>
-            <div
-              className={`absolute bottom-full z-40 mb-2 grid w-56 gap-0.5 rounded-panel border border-strong bg-surface p-1 left-0`}
-            >
-              <div className="grid gap-0.5 border-b border-hairline px-3 pt-1.5 pb-2">
-                <p className="truncate text-sm font-semibold text-fg">{user.name}</p>
-                <p className="truncate font-mono text-xs text-muted">{user.email}</p>
-              </div>
-              <Link href="/account/password" className={menuItem}>
-                Account
-              </Link>
-              {signOutAction ? (
-                <form action={signOutAction} className="border-t border-hairline pt-0.5">
-                  <button type="submit" className={menuItem}>
-                    Sign out
-                  </button>
-                </form>
               ) : null}
+            </span>
+          </summary>
+          <div
+            className={`absolute bottom-full z-40 mb-2 grid w-56 gap-0.5 rounded-panel border border-strong bg-surface p-1 left-0`}
+          >
+            <div className="grid gap-0.5 border-b border-hairline px-3 pt-1.5 pb-2">
+              <p className="truncate text-sm font-semibold text-fg">{user.name}</p>
+              <p className="truncate font-mono text-xs text-muted">{user.email}</p>
             </div>
-          </DismissibleDetails>
+            <Link href="/account/password" className={menuItem}>
+              Account
+            </Link>
+            {signOutAction ? (
+              <form action={signOutAction} className="border-t border-hairline pt-0.5">
+                <button type="submit" className={menuItem}>
+                  Sign out
+                </button>
+              </form>
+            ) : null}
+          </div>
+        </DismissibleDetails>
+        <div
+          className={`absolute z-10 transition-[top,right] duration-200 motion-reduce:transition-none ${folded ? "top-3 right-4" : "top-4 right-3"}`}
+        >
           {appearance}
         </div>
-        {version && !railed ? (
-          <p className="px-1.5 font-mono text-xs text-muted">ronne marketplace v{version}</p>
+        {version ? (
+          <p
+            aria-hidden={folded}
+            className={`overflow-hidden px-1.5 font-mono text-xs whitespace-nowrap text-muted transition-[max-height,margin,opacity] duration-200 motion-reduce:transition-none ${folded ? "mt-0 max-h-0 opacity-0" : "mt-2 max-h-5"}`}
+          >
+            ronne marketplace v{version}
+          </p>
         ) : null}
       </div>
     </aside>
