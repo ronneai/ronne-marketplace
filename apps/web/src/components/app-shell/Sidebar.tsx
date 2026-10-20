@@ -1,6 +1,6 @@
 "use client";
 
-import { PanelLeftClose, PanelLeftOpen, UserRound } from "lucide-react";
+import { ChevronLeft, ChevronRight, UserRound } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { type ReactNode, useState } from "react";
@@ -123,27 +123,33 @@ export const Sidebar = ({
       aria-label="Sidebar"
       className={`sticky top-0 hidden h-dvh shrink-0 flex-col border-r border-hairline bg-surface pt-safe pb-safe pl-safe lg:flex ${folded ? "w-16 items-center" : "w-64"}`}
     >
-      <div
-        className={`flex shrink-0 gap-2 px-3 pt-4 ${folded ? "flex-col items-center" : "items-center justify-between"}`}
-      >
-        <Link href="/" aria-label="Home" className={`flex items-center text-fg ${focus}`}>
-          {folded ? <BrandMark size={28} /> : <BrandLogo height={30} className="h-[30px] w-auto" />}
-        </Link>
-        <button
-          type="button"
-          onClick={toggle}
-          aria-expanded={!folded}
-          aria-controls="sidebar"
-          aria-label={folded ? "Unfold the sidebar" : "Fold the sidebar"}
-          title={folded ? "Unfold the sidebar" : "Fold the sidebar"}
-          className={`flex size-8 items-center justify-center rounded-control text-muted hover:bg-canvas hover:text-fg ${focus}`}
-        >
-          {folded ? (
-            <PanelLeftOpen size={18} aria-hidden />
-          ) : (
-            <PanelLeftClose size={18} aria-hidden />
-          )}
-        </button>
+      {/* The fold button is a circle on the sidebar's edge, half over the page, at the logo's height
+          (owner, 2026-10-20): the row is its positioning box, so it follows the logo or monogram. */}
+      <div className="w-full shrink-0 px-3 pt-4">
+        <div className={`relative flex h-[30px] items-center ${folded ? "justify-center" : ""}`}>
+          <Link href="/" aria-label="Home" className={`flex items-center text-fg ${focus}`}>
+            {folded ? (
+              <BrandMark size={28} />
+            ) : (
+              <BrandLogo height={30} className="h-[30px] w-auto" />
+            )}
+          </Link>
+          <button
+            type="button"
+            onClick={toggle}
+            aria-expanded={!folded}
+            aria-controls="sidebar"
+            aria-label={folded ? "Unfold the sidebar" : "Fold the sidebar"}
+            title={folded ? "Unfold the sidebar" : "Fold the sidebar"}
+            className={`touch-hit absolute top-1/2 -right-3 z-40 flex size-6 -translate-y-1/2 translate-x-1/2 items-center justify-center rounded-full border border-hairline bg-surface text-muted hover:border-strong hover:text-fg ${focus}`}
+          >
+            {folded ? (
+              <ChevronRight size={14} aria-hidden />
+            ) : (
+              <ChevronLeft size={14} aria-hidden />
+            )}
+          </button>
+        </div>
       </div>
 
       <div className={`grid shrink-0 gap-3 px-3 pt-4 ${folded ? "justify-items-center" : ""}`}>

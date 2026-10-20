@@ -347,6 +347,37 @@ describe("Sidebar", () => {
     expect(sidebar({ user, items: navFor(user) })).not.toMatch(/>user</);
   });
 
+  it("has a round chevron button on the sidebar's edge, half over the page, at the logo's height", () => {
+    const button = (html: string) =>
+      html.match(/<button[^>]*aria-controls="sidebar"[^>]*>.*?<\/button>/)?.[0] ?? "";
+    const open = button(sidebar());
+    // A circle on the right edge (the row of the logo is its box), half out: not flat in the row.
+    for (const cls of [
+      "rounded-full",
+      "absolute",
+      "-right-3",
+      "translate-x-1/2",
+      "top-1/2",
+      "-translate-y-1/2",
+      "z-40",
+      "touch-hit",
+    ])
+      expect(open, cls).toContain(cls);
+    // Fold points left, unfold points right; no panel icon.
+    expect(open).toContain("lucide-chevron-left");
+    expect(open).not.toContain("lucide-panel-left");
+    const folded = button(sidebar({ folded: true }));
+    expect(folded).toContain("lucide-chevron-right");
+    expect(folded).toContain('aria-label="Unfold the sidebar"');
+    // Flat, in the design's tokens: a hairline border on the surface, never a shadow.
+    expect(open).toMatch(/border-hairline/);
+    expect(open).toMatch(/bg-surface/);
+    expect(open).not.toMatch(/shadow/);
+    // The logo and the button share one row, so the button follows the logo or the monogram.
+    const row = sidebar().match(/<div class="relative flex h-\[30px\] items-center[^"]*">/)?.[0];
+    expect(row).toBeTruthy();
+  });
+
   it("unfolded, offers to fold; folded, names every icon and puts a dot where a count waits", () => {
     expect(sidebar()).toContain('aria-label="Fold the sidebar"');
     expect(sidebar()).toMatch(/aria-expanded="true" aria-controls="sidebar"/);
