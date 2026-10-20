@@ -1,6 +1,6 @@
 # Entra sign-in refused: `iat outside the sign-in`
 
-**Belongs to:** 106 (Identity providers and OIDC sign-in). **Status:** proposed.
+**Belongs to:** 106 (Identity providers and OIDC sign-in). **Status:** fixed on the branch; the real Entra check is the owner's.
 **Branch:** `bugfix/106-entra-iat`.
 
 ## Report

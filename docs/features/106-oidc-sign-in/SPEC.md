@@ -236,8 +236,11 @@ rule and each provider, on or off.
   **signature** against the issuer's keys too: the library skips that by default for a token from
   the token endpoint (OIDC Core 3.1.3.7 lets TLS stand in), so Ronne always calls
   `validateApplicationLevelSignature`. Ronne also requires `sub`, and checks `iat` itself (the
-  library only checks that it is a number): no earlier than when the sign-in started and no later
-  than now, each with the clock leeway below.
+  library only checks that it is a number): no later than now, with the clock leeway below. There
+  is no lower bound: Entra sets `iat` to when the person authenticated, which for a browser that
+  still has its Entra session is long before the sign-in started. A token is tied to this sign-in
+  by its nonce, the single-use state and PKCE, not by its age (bugfix:
+  [`docs/bugfixes/entra-iat-before-sign-in`](../../bugfixes/entra-iat-before-sign-in/SPEC.md)).
 - Callback errors go to `/sign-in?error=<code>` with a plain message: the five reasons above, plus
   `unavailable` (the provider is off or gone), `expired` (no state cookie, another browser's, used
   already, or older than 10 minutes) and `rate_limited`. The provider's error text is logged
@@ -285,7 +288,7 @@ sign-in buttons are 44px tall on a coarse pointer.
   password can't sign in until root resets one (008) or adds another provider.
 - **Turning off a provider:** nobody signs in with it; their links and group memberships stay.
 - **Clock skew:** 5 minutes of leeway: on `exp` and `nbf` through `oauth4webapi`'s
-  `clockTolerance` (its default is 30 seconds), and on `iat` in Ronne's own check.
+  `clockTolerance` (its default is 30 seconds), and on the future side of `iat` in Ronne's own check.
 - **Two roots edit one provider at once:** the first save wins; the other form is stale and says
   so (a version check on save: the update applies only to the version the form was opened with, so
   two saves at the same moment can't both land). A *Test sign-in* counts only for the version it

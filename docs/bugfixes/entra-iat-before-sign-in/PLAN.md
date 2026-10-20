@@ -17,7 +17,7 @@ See [SPEC.md](./SPEC.md). Work on branch `bugfix/106-entra-iat`.
      `SsoRepository.takeState` (`repositories/sso-repository.ts`) and
      `kysely-sso-repository.ts` (also the `created_at` it selects).
    - *Done when:* `grep -rn startedAt` finds nothing in the sign-in code, and `pnpm typecheck` passes.
-4. [ ] **Docs:** update `docs/features/106-oidc-sign-in/SPEC.md` (the ID-token checks bullet and
+4. [x] **Docs:** update `docs/features/106-oidc-sign-in/SPEC.md` (the ID-token checks bullet and
    the *Clock skew* edge case).
    - *Done when:* neither says `iat` has a lower bound.
 5. [ ] **Checks:** `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, then commit
