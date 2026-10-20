@@ -22,27 +22,73 @@ test("the sidebar folds and stays folded; the switcher opens a workspace", async
     "/submissions/new",
   );
 
-  // The logo's mark and the folded monogram are the same height (the SVGs differ in their margins,
-  // so this measures what is drawn).
-  const markHeight = () =>
+  // The logo is one picture in both states: folding wipes its wordmark away and slides its mark to
+  // the middle of the rail (centred on x=32, the rail's middle), instead of swapping it for another.
+  const markCentre = () =>
     aside
       .locator("a[aria-label=Home]")
       .first()
       .locator("svg")
       .evaluate((svg) => {
         const boxes = [...svg.querySelectorAll("path")].map((path) => path.getBoundingClientRect());
-        return Math.max(...boxes.map((b) => b.bottom)) - Math.min(...boxes.map((b) => b.top));
+        return (Math.min(...boxes.map((b) => b.left)) + Math.max(...boxes.map((b) => b.right))) / 2;
       });
-  const logoMark = await markHeight();
 
-  // Fold: the rail names every icon, and the next page renders folded.
-  await aside.getByRole("button", { name: "Fold the sidebar" }).click();
-  expect(Math.abs((await markHeight()) - logoMark)).toBeLessThan(1);
+  // Folding and unfolding are animated: the width passes through values between the two, then the
+  // rail's content replaces the full one (and with reduced motion nothing is in between).
+  const widths = () =>
+    aside.evaluate(
+      (el) =>
+        new Promise<number[]>((resolve) => {
+          const seen: number[] = [];
+          const start = performance.now();
+          const tick = () => {
+            seen.push(Math.round(el.getBoundingClientRect().width));
+            if (performance.now() - start < 450) requestAnimationFrame(tick);
+            else resolve(seen);
+          };
+          requestAnimationFrame(tick);
+        }),
+    );
+  const fold = aside.getByRole("button", { name: "Fold the sidebar" });
+  const [folding] = await Promise.all([widths(), fold.click()]);
+  expect(
+    folding.some((w) => w > 80 && w < 240),
+    `widths ${folding}`,
+  ).toBe(true);
+  expect(folding.at(-1)).toBe(64);
+
+  // The rail names every icon, and the next page renders folded.
   const unfold = aside.getByRole("button", { name: "Unfold the sidebar" });
   await expect(unfold).toHaveAttribute("aria-expanded", "false");
-  await expect(aside.getByText("Discover", { exact: true })).toHaveCount(0);
+  await expect(aside.getByText("Discover", { exact: true })).toBeHidden();
+  await expect.poll(markCentre).toBeGreaterThan(31);
+  expect(await markCentre()).toBeLessThan(33);
+  await expect(aside.locator("a[aria-label=Home]").first().locator("svg")).toHaveCSS(
+    "clip-path",
+    /inset/,
+  );
   await expect(nav.getByRole("link", { name: "Catalogue", exact: true })).toBeVisible();
   expect((await aside.boundingBox())?.width ?? 0).toBeLessThanOrEqual(65);
+  const [unfolding] = await Promise.all([widths(), unfold.click()]);
+  expect(
+    unfolding.some((w) => w > 80 && w < 240),
+    `widths ${unfolding}`,
+  ).toBe(true);
+  expect(unfolding.at(-1)).toBe(256);
+  await expect(aside.getByText("Discover", { exact: true })).toBeVisible();
+  // Reduced motion: no animation, the content swaps at once.
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const [instant] = await Promise.all([widths(), fold.click()]);
+  expect(
+    instant.every((w) => w === 64 || w === 256),
+    `widths ${instant}`,
+  ).toBe(true);
+  await expect(unfold).toBeVisible();
+  await unfold.click();
+  await expect(fold).toBeVisible();
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await fold.click();
   await page.reload();
   await expect(unfold).toBeVisible();
   await nav.getByRole("link", { name: "Catalogue", exact: true }).click();

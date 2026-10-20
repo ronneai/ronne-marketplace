@@ -1,15 +1,27 @@
+import type { CSSProperties } from "react";
+
 /**
  * The full Ronne AI brand: the monogram and the wordmark, from the brand's SVG (feature 032). The
  * wordmark is live text in the app's own Manrope, as in the brand file. The stem and "ronne" take
  * the text colour, and the corner and "AI" the accent, so it follows the theme.
  */
-export const BrandLogo = ({ height = 32, className }: { height?: number; className?: string }) => {
+export const BrandLogo = ({
+  height = 32,
+  className,
+  style,
+}: {
+  height?: number;
+  className?: string;
+  /** For an animation on the logo, such as the sidebar wiping the wordmark away when it folds. */
+  style?: CSSProperties;
+}) => {
   return (
     <svg
       viewBox="0 0 430.91 122.5"
       width={(height * 430.91) / 122.5}
       height={height}
       className={className}
+      style={style}
       role="img"
       aria-label="Ronne AI"
     >

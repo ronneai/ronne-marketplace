@@ -3,10 +3,9 @@
 import { ChevronLeft, ChevronRight, UserRound } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { Badge } from "../ui/Badge";
 import { BrandLogo } from "../ui/BrandLogo";
-import { BrandMark } from "../ui/BrandMark";
 import { NewTabLink } from "../ui/NewTabLink";
 import { DismissibleDetails } from "./DismissibleDetails";
 import { NavCount } from "./NavCount";
@@ -24,15 +23,26 @@ import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 
 const focus = "outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus";
 
-/**
- * The monogram's size when the sidebar is folded. The brand's own SVGs differ: in the logo at 30px
- * the mark is 18.2px tall, and a monogram at 28px was 24.8px, so the rail looked bigger than the
- * sidebar. 20.5 makes the two marks the same height (owner, 2026-10-20; the sidebar e2e test
- * measures it).
- */
-const MONOGRAM_SIZE = 20.5;
+/** How long folding and unfolding take: the width's transition, in `Sidebar`'s class `duration-200`. */
+const FOLD_MS = 200;
 
-const link = `flex min-h-9 items-center gap-3 rounded-control text-sm text-muted hover:bg-canvas hover:text-fg aria-[current=page]:bg-tint aria-[current=page]:font-semibold aria-[current=page]:text-link ${focus}`;
+/**
+ * Folding keeps the logo and wipes the wordmark away, so the mark slides to the middle of the rail
+ * instead of the logo being swapped for another picture (owner, 2026-10-20). These are the logo's
+ * own numbers at 30px high (measured: it is 105.5px wide, its mark from 3.2 to 18.4px) and the
+ * rail's inner width (64px less the padding). The sidebar e2e test checks the mark is centred.
+ */
+const LOGO_W = 105.5;
+const MARK_LEFT = 3.2;
+const MARK_RIGHT = 18.4;
+const RAIL_INNER = 40;
+const LOGO_FOLDED = {
+  clipPath: `inset(0 ${LOGO_W - MARK_RIGHT - 1.5}px 0 0)`,
+  transform: `translateX(${RAIL_INNER / 2 - (MARK_LEFT + MARK_RIGHT) / 2}px)`,
+};
+const LOGO_OPEN = { clipPath: "inset(0 0px 0 0)", transform: "translateX(0px)" };
+
+const link = `flex items-center gap-3 rounded-control transition-[min-height] duration-200 motion-reduce:transition-none text-sm text-muted hover:bg-canvas hover:text-fg aria-[current=page]:bg-tint aria-[current=page]:font-semibold aria-[current=page]:text-link ${focus}`;
 
 const menuItem = `block w-full rounded-control px-3 py-1.5 text-left text-sm text-fg hover:bg-tint ${focus}`;
 
@@ -74,30 +84,59 @@ export const Sidebar = ({
   version?: string;
 }) => {
   const path = usePathname() ?? "/";
+  // `folded` is where the sidebar is going: its width, the chevron and the cookie. `railed` is what
+  // it shows: folding keeps the full content until the width has shrunk (the labels are cut off by
+  // the narrowing edge, not swapped out under it), and unfolding shows it at once, revealed by the
+  // growing edge. `moving` clips the content for the length of the transition.
   const [folded, setFolded] = useState(initiallyFolded);
+  const [railed, setRailed] = useState(initiallyFolded);
+  const [moving, setMoving] = useState(false);
   const toggle = () => {
     const next = !folded;
     setFolded(next);
     // biome-ignore lint/suspicious/noDocumentCookie: one plain preference, read by the server.
     document.cookie = sidebarCookie(next);
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setRailed(next);
+      return;
+    }
+    setMoving(true);
+    if (!next) setRailed(false);
   };
+  useEffect(() => {
+    if (!moving) return;
+    const done = setTimeout(() => {
+      setRailed(folded);
+      setMoving(false);
+    }, FOLD_MS + 20);
+    return () => clearTimeout(done);
+  }, [moving, folded]);
+  const clip = moving ? "overflow-x-hidden" : "";
 
+  // One structure for both states, so folding is a morph: the label and the count fade as the item
+  // narrows, and the icon stays where it is (the nav's padding puts it in the rail's middle).
   const entry = (item: NavItem) => {
     const count = counts[item.href] ?? 0;
     const name = count ? `${item.label} (${count} waiting)` : item.label;
-    const className = `${link} ${folded ? "relative size-10 justify-center" : "px-3"}`;
-    const body = folded ? (
+    const className = `${link} relative px-3 ${folded ? "min-h-10" : "min-h-9"}`;
+    const fade = `transition-opacity duration-200 motion-reduce:transition-none ${folded ? "opacity-0" : ""}`;
+    const body = (
       <>
         <NavIcon name={item.icon} />
+        <span aria-hidden={folded} className={`min-w-0 flex-1 truncate ${fade}`}>
+          {item.label}
+        </span>
         {count ? (
-          <span aria-hidden className="absolute top-1.5 right-1.5 size-2 rounded-full bg-accent" />
+          <span aria-hidden className={`shrink-0 ${fade}`}>
+            <NavCount count={count} />
+          </span>
         ) : null}
-      </>
-    ) : (
-      <>
-        <NavIcon name={item.icon} />
-        <span className="min-w-0 flex-1 truncate">{item.label}</span>
-        {count ? <NavCount count={count} /> : null}
+        {count ? (
+          <span
+            aria-hidden
+            className={`absolute top-1.5 right-1.5 size-2 rounded-full bg-accent transition-opacity duration-200 motion-reduce:transition-none ${folded ? "" : "opacity-0"}`}
+          />
+        ) : null}
       </>
     );
     return item.external ? (
@@ -129,18 +168,18 @@ export const Sidebar = ({
     <aside
       id="sidebar"
       aria-label="Sidebar"
-      className={`sticky top-0 hidden h-dvh shrink-0 flex-col border-r border-hairline bg-surface pt-safe pb-safe pl-safe lg:flex ${folded ? "w-16 items-center" : "w-64"}`}
+      className={`sticky top-0 hidden h-dvh shrink-0 flex-col border-r border-hairline bg-surface pt-safe pb-safe pl-safe lg:flex transition-[width] duration-200 ease-out motion-reduce:transition-none ${folded ? "w-16" : "w-64"} ${railed ? "items-center" : ""}`}
     >
       {/* The fold button is a circle on the sidebar's edge, half over the page, at the logo's height
-          (owner, 2026-10-20): the row is its positioning box, so it follows the logo or monogram. */}
+          (owner, 2026-10-20): the row is its positioning box, so it follows the logo's height. */}
       <div className="w-full shrink-0 px-3 pt-4">
-        <div className={`relative flex h-[30px] items-center ${folded ? "justify-center" : ""}`}>
+        <div className="relative flex h-[30px] items-center">
           <Link href="/" aria-label="Home" className={`flex items-center text-fg ${focus}`}>
-            {folded ? (
-              <BrandMark size={MONOGRAM_SIZE} />
-            ) : (
-              <BrandLogo height={30} className="h-[30px] w-auto" />
-            )}
+            <BrandLogo
+              height={30}
+              className="h-[30px] w-auto max-w-none transition-[clip-path,transform] duration-200 ease-out motion-reduce:transition-none"
+              style={folded ? LOGO_FOLDED : LOGO_OPEN}
+            />
           </Link>
           <button
             type="button"
@@ -160,58 +199,63 @@ export const Sidebar = ({
         </div>
       </div>
 
-      <div className={`grid shrink-0 gap-3 px-3 pt-4 ${folded ? "justify-items-center" : ""}`}>
-        <WorkspaceSwitcher workspaces={workspaces} current={current} folded={folded} />
+      <div
+        className={`grid shrink-0 gap-3 px-3 pt-4 ${clip} ${railed ? "justify-items-center" : ""}`}
+      >
+        <WorkspaceSwitcher workspaces={workspaces} current={current} folded={railed} />
         {propose ? (
           <Link
             href={PROPOSE.href}
             aria-label={folded ? PROPOSE.label : undefined}
             title={folded ? PROPOSE.label : undefined}
-            className={`flex items-center justify-center gap-2 rounded-control bg-accent-strong text-sm font-semibold text-on-accent hover:opacity-90 ${focus} ${folded ? "size-10" : "h-9 px-3.5"}`}
+            className={`flex w-full items-center justify-center rounded-control bg-accent-strong text-sm font-semibold text-on-accent transition-[height] duration-200 hover:opacity-90 motion-reduce:transition-none ${focus} ${folded ? "h-10" : "h-9"}`}
           >
-            <NavIcon name="propose" size={folded ? 18 : 16} />
-            {folded ? null : PROPOSE.label}
+            <NavIcon name="propose" size={16} />
+            <span
+              aria-hidden={folded}
+              className={`overflow-hidden whitespace-nowrap transition-[max-width,margin,opacity] duration-200 motion-reduce:transition-none ${folded ? "ml-0 max-w-0 opacity-0" : "ml-2 max-w-40"}`}
+            >
+              {PROPOSE.label}
+            </span>
           </Link>
         ) : null}
       </div>
 
       <nav
         aria-label="Main"
-        className={`mt-4 grid min-h-0 flex-1 content-start gap-4 overflow-y-auto px-3 pb-4 ${folded ? "justify-items-center" : ""}`}
+        className="mt-4 grid w-full min-h-0 flex-1 content-start gap-4 overflow-y-auto px-3 pb-4"
       >
-        {groupNav(items).map((group) =>
-          folded ? (
-            <div
-              key={group.id}
-              className="grid gap-1 border-t border-hairline pt-4 first:border-0 first:pt-0"
+        {groupNav(items).map((group) => (
+          // The group's heading folds away and a rule takes its place, both fading and sliding.
+          <div
+            key={group.id}
+            className={`grid border-t first:border-0 transition-[gap,padding,border-color] duration-200 motion-reduce:transition-none ${folded ? "gap-1 border-hairline pt-4 first:pt-0" : "gap-0.5 border-transparent pt-0"}`}
+          >
+            <p
+              aria-hidden={folded}
+              className={`overflow-hidden whitespace-nowrap px-3 font-mono text-[11px] font-semibold uppercase tracking-wide text-muted transition-[max-height,opacity,padding] duration-200 motion-reduce:transition-none ${folded ? "max-h-0 pb-0 opacity-0" : "max-h-8 pb-1"}`}
             >
-              {group.items.map(entry)}
-            </div>
-          ) : (
-            <div key={group.id} className="grid gap-0.5">
-              <p className="px-3 pb-1 font-mono text-[11px] font-semibold uppercase tracking-wide text-muted">
-                {group.label}
-              </p>
-              {group.items.map(entry)}
-            </div>
-          ),
-        )}
+              {group.label}
+            </p>
+            {group.items.map(entry)}
+          </div>
+        ))}
       </nav>
 
       <div
-        className={`grid shrink-0 gap-2 border-t border-hairline px-3 py-3 ${folded ? "w-full justify-items-center" : ""}`}
+        className={`grid shrink-0 gap-2 border-t border-hairline px-3 py-3 ${clip} ${railed ? "w-full justify-items-center" : ""}`}
       >
-        <div className={`flex gap-2 ${folded ? "flex-col-reverse items-center" : "items-center"}`}>
+        <div className={`flex gap-2 ${railed ? "flex-col-reverse items-center" : "items-center"}`}>
           <DismissibleDetails className="relative min-w-0 flex-1">
             <summary
-              aria-label={folded ? `${user.name}, your account` : undefined}
+              aria-label={railed ? `${user.name}, your account` : undefined}
               title={user.name}
-              className={`flex cursor-pointer list-none items-center gap-2 rounded-control text-fg hover:bg-canvas [&::-webkit-details-marker]:hidden ${focus} ${folded ? "size-10 justify-center" : "min-h-10 px-1.5"}`}
+              className={`flex cursor-pointer list-none items-center gap-2 rounded-control text-fg hover:bg-canvas [&::-webkit-details-marker]:hidden ${focus} ${railed ? "size-10 justify-center" : "min-h-10 px-1.5"}`}
             >
               <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-accent-strong text-on-accent">
                 <UserRound size={16} aria-hidden />
               </span>
-              {folded ? null : (
+              {railed ? null : (
                 <span className="grid min-w-0">
                   {/* The name, not the email (owner, 2026-09-27). */}
                   <span className="truncate text-sm font-semibold">{user.name}</span>
@@ -244,7 +288,7 @@ export const Sidebar = ({
           </DismissibleDetails>
           {appearance}
         </div>
-        {version && !folded ? (
+        {version && !railed ? (
           <p className="px-1.5 font-mono text-xs text-muted">ronne marketplace v{version}</p>
         ) : null}
       </div>

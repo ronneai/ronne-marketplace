@@ -303,8 +303,8 @@ describe("Sidebar", () => {
     expect(at(">Home<")).toBeLessThan(at(">Governance &amp; reviews<"));
     expect(at(">Governance &amp; reviews<")).toBeLessThan(at(">Users<"));
     expect(at(">Users<")).toBeLessThan(at(">Tools<"));
-    expect(html).toMatch(/href="\/submissions\/new"[^>]*>.*Propose item<\/a>/);
-    expect(html).toMatch(/Reviews<\/span><span[^>]*>3<span class="sr-only"> waiting/);
+    expect(html).toMatch(/href="\/submissions\/new"[^>]*>.*Propose item<\/span><\/a>/);
+    expect(html).toMatch(/Reviews<\/span><span[^>]*><span[^>]*>3<span class="sr-only"> waiting/);
     expect(html).toContain('<nav aria-label="Main"');
   });
 
@@ -378,13 +378,32 @@ describe("Sidebar", () => {
     expect(row).toBeTruthy();
   });
 
+  it("animates its width, and not for people who ask for less motion", () => {
+    const aside = (html: string) => html.match(/<aside[^>]*>/)?.[0] ?? "";
+    for (const html of [sidebar(), sidebar({ folded: true })]) {
+      expect(aside(html)).toContain("transition-[width]");
+      expect(aside(html)).toContain("duration-200");
+      expect(aside(html)).toContain("ease-out");
+      expect(aside(html)).toContain("motion-reduce:transition-none");
+    }
+    // The width is where it is going; both states render the same wide or narrow box.
+    expect(aside(sidebar())).toContain("w-64");
+    expect(aside(sidebar({ folded: true }))).toContain("w-16");
+  });
+
   it("unfolded, offers to fold; folded, names every icon and puts a dot where a count waits", () => {
     expect(sidebar()).toContain('aria-label="Fold the sidebar"');
     expect(sidebar()).toMatch(/aria-expanded="true" aria-controls="sidebar"/);
     const html = sidebar({ folded: true });
     expect(html).toContain('aria-label="Unfold the sidebar"');
     expect(html).toContain("w-16");
-    expect(html).not.toContain(">Discover<");
+    // Folding is a morph, not a swap: the group headings, labels and counts are still there, faded
+    // out and hidden from screen readers, and the names are on the links.
+    expect(html).toMatch(/<p aria-hidden="true"[^>]*max-h-0[^>]*opacity-0[^>]*>Discover<\/p>/);
+    expect(html).toMatch(
+      /<span aria-hidden="true" class="min-w-0 flex-1 truncate[^"]*opacity-0[^"]*">Catalogue<\/span>/,
+    );
+    expect(sidebar()).not.toMatch(/<p aria-hidden="true"[^>]*>Discover<\/p>/);
     for (const name of [
       "Home",
       "Catalogue",
@@ -396,7 +415,11 @@ describe("Sidebar", () => {
       "R, your account",
     ])
       expect(html, name).toContain(`aria-label="${name}"`);
-    expect(html).toContain('aria-label="Ronne"');
+    // The logo stays and its wordmark is wiped away (clipped), not swapped for the monogram.
+    expect(html).toContain('aria-label="Ronne AI"');
+    expect(html).not.toContain('aria-label="Ronne"');
+    expect(html).toMatch(/clip-path:inset\(0 [\d.]+px 0 0\)/);
+    expect(sidebar()).toMatch(/clip-path:inset\(0 0px 0 0\)/);
     expect(html).not.toContain("v1.2.3");
     // The dot: on Reviews, which has a count, and on no other link.
     const dot = /<span aria-hidden="true" class="[^"]*\brounded-full bg-accent\b/g;
