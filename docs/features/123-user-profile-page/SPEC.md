@@ -5,7 +5,7 @@
 ## Goal
 
 Root opens a user's own page from the Users list and finds there everything about the account and
-every action on it. The list goes back to being a list: who, what role, what status, and a way in.
+every action on it. The list goes back to being a list: who, what role, what status, when they last signed in, and a way in.
 Today the list carries six buttons on each row and they draw over the Status and Created columns
 (the report, 2026-10-20).
 
@@ -30,12 +30,14 @@ comment above the fieldset ("the table scrolls sideways") is no longer true: not
 **In:**
 - **A user page, `/admin/users/<id>`**, root only (`users.view`; anyone else gets a 404, as the list
   does). It shows the account and holds all the actions.
-- **The Users list loses its action buttons.** Each row keeps Email, Name, Role, Status and Created,
+- **The Users list loses its action buttons.** Each row keeps Email, Name, Role, Status and Created, and gains **Last sign-in** (owner, 2026-10-20),
   and the email becomes a link to the user's page, with an *Open* link at the end of the row so the
   way in is also visible, 44px on a coarse pointer.
 - **The same actions, in the same dialogs**, moved to the page: change role, reset password, reset
   two-factor, disable or enable, download their data, erase. The dialogs, their server actions and
   their rules (059, 103, 104, 105, 108) don't change.
+- **Last sign-in, in the list and on the page:** the time of the account's latest web sign-in, read
+  from the audit log (below); no migration.
 - **The workspaces a user is in**, with their role in each, on the page; the *Workspaces* dialog (092)
   that the role badges open moves there as a button.
 - **Where else the page is linked from:** the audit log's event details (today they link to
@@ -46,13 +48,19 @@ comment above the fieldset ("the table scrolls sideways") is no longer true: not
 - A person's own account page (`/account`), and workspace admins managing their own members
   (workspace pages, 091).
 - Bulk actions on several users.
+- Sorting or filtering the list by last sign-in (the column is shown, not sorted: the time lives in
+  the audit log, and a sort would need a join on every page; see the open questions).
+- A token's last use (the access tokens page has it, 009) and `rmk login`: not a web sign-in.
 - A list of what the person submitted or reviewed: *Download their data* has it (104), and the audit
   log is one link away.
 
 ## Behaviour
 
 **The list.** `/admin/users`: the same search, filters, sorting and paging (061). The Actions column
-is gone. The Role cell shows root, or the role badges with their counts (092), as plain badges with
+is gone. A **Last sign-in** column follows Status: the day and time in the person's own time zone
+(`LocalTime`), such as *2026-10-20 09:12*, with the full time on hover, or *Never* for an account
+with no sign-in on record and an en dash for an erased one. It is hidden on a phone, as Status and
+Created are, and shown on the page. The Role cell shows root, or the role badges with their counts (092), as plain badges with
 the hover list; the SCIM badges (108) stay under the role. The row is a link as a whole on a phone,
 where the Status and Created columns are hidden.
 
@@ -61,7 +69,7 @@ where the Status and Created columns are hidden.
 
 | Section | Shows | Actions |
 |---|---|---|
-| Account | email, name, role, status and when it changed, created date, two-factor on or off, the identity provider and SCIM state if any (108) | *Change role* |
+| Account | email, name, role, status and when it changed, created date, last sign-in, two-factor on or off, the identity provider and SCIM state if any (108) | *Change role* |
 | Sign-in and access | the number of sessions and personal access tokens | *Reset password*, *Reset two-factor* (only when it's on), *Disable* or *Enable* (the dialog still counts what it ends) |
 | Workspaces | each workspace and the role there, root's own row says "root: every workspace" | *Manage workspaces* (the dialog of 092) |
 | Their data | what *Download their data* gives, and a link to their events in the audit log (`/admin/audit?actor=<email>`) | *Download their data* |
@@ -94,13 +102,21 @@ back button returns to the list with its filters, since they are in the URL (061
 - **The user is changed while the page is open** (disabled by another root, erased): an action fails
   with the error it shows today, and the page shows the new state on refresh.
 - **The last root:** the actions that would remove it (role, disable, erase) refuse, as today.
+- **Last sign-in means a web sign-in:** an `auth.signed_in` event, written for a password, an
+  identity provider's sign-in (106) and the second step (105), and not for `rmk login --web` (107),
+  a token's use or a session that was only kept alive. An account that has only used tokens shows
+  *Never*, and the page says what the time counts.
+- **Retention** (102): the purge clears IP addresses from events and keeps the events, so the time
+  survives it. An account created before the audit log recorded sign-ins has none (*Never*).
+- **An erased account** (103) shows an en dash: its events stay under the pseudonym, and nothing
+  about when the person last signed in is shown.
 - **A user with no workspaces:** the Workspaces section says "None".
 - **JavaScript off:** the list and the page render; the actions are dialogs and need it, as today.
 
 ## Documentation
 
 - **Administration → Users** (`admin#users`): rewritten for the page: open a user from the list,
-  what the page shows, where each action is. Changed in ronne-web (en, pt, fr); no section id is
+  what the page shows, the Last sign-in column and what it counts, where each action is. Changed in ronne-web (en, pt, fr); no section id is
   added, so both `topics.ts` stay as they are.
 - **Helpers:** `own-row`, `role-root`, `reset-two-factor` and `scim-managed` keep their wording and
   move with their actions; no new helper.
@@ -112,6 +128,10 @@ back button returns to the list with its filters, since they are in the URL (061
 
 - [ ] `/admin/users` shows no action buttons, and its Status and Created columns are readable at
   1280px, 1440px and on a phone: nothing overlaps.
+- [ ] The list shows a Last sign-in time for an account that signed in with a password, with an
+  identity provider and with two-factor; *Never* for one that has not; an en dash for an erased one;
+  the same time is on the page.
+- [ ] The times of the page's rows come from one query for the rows shown, not one per row.
 - [ ] Each row's email and its *Open* link go to `/admin/users/<id>`; a click anywhere else on the
   row does nothing surprising (the Role cell no longer opens a dialog).
 - [ ] The page shows the sections above, with real data, and every action works from it and ends
@@ -135,9 +155,19 @@ back button returns to the list with its filters, since they are in the URL (061
 3. **The workspaces dialog moves to the page** (Claude): the list's role cell becomes plain badges,
    so the row has one place to go.
 4. **Erase is its own section at the end** (Claude), since it can't be undone.
+5. **Last sign-in is read from the audit log, not stored on the user** (Claude): `auth.signed_in` is
+   already written at every web sign-in, kept for ever by retention, and `audit_log` is indexed by
+   actor, so one grouped query over the page's rows (`max(created_at)` per `actor_id`) gives it with
+   no migration, no backfill and no second place to keep the time. A column on `user` is the
+   alternative if that query turns out slow.
 
 ## Open questions
 
+- Should the list sort by last sign-in (to find who never signed in, or who left)? It needs a join
+  or a stored column (decision 5), so it is left out here; the status filter could instead gain
+  *never signed in*.
+- Should a sign-in through `rmk login --web` or a token's use count as activity? Default: no, they
+  are not a person signing in to the web app.
 - Should a quick action stay on the row, such as *Disable*? The default is no: the page is one click
   away and the list stays a list.
 - Is the audit link `?actor=<email>` enough, or should the audit log also filter by account id? The

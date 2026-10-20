@@ -10,10 +10,14 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 ## Tasks
 
 - [ ] **1. The page's data.** A read for one user for root: the account, workspaces with roles,
-  two-factor, SCIM state, and the number of sessions and tokens, from the queries the list and
+  two-factor, SCIM state, last sign-in, and the number of sessions and tokens, from the queries the list and
   `adminDisableImpact` already use; null for an unknown id; `users.view` checked.
+  A **last sign-in** read for a set of user ids: the latest `auth.signed_in` per actor, in one query
+  (used by the list for its page of rows, and by the page for one).
   *Done when:* action tests cover root, a non-root (refused), an unknown id, an erased account and a
-  SCIM-managed one; a `.db.test.ts` covers the counts on all three dialects' test database.
+  SCIM-managed one; a `.db.test.ts` covers the counts and the last sign-in (password, identity
+  provider and two-factor events; none; the latest of several) on the test database, run on all
+  three servers since it is database code.
 
 - [ ] **2. The page `/admin/users/[id]`.** Header, the sections of the spec and a back link, with the
   Account, Sign-in and access, Workspaces, Their data and Erase sections; read-only for root's own
@@ -27,11 +31,12 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* tests show each action calls its server action and the page shows the new state; the
   existing action tests pass unchanged.
 
-- [ ] **4. The list without actions.** Drop the Actions column and `UserRowActions` from the list; the
-  email links to the page, add *Open*, make the role badges plain, keep the SCIM badges; the row
-  links as a whole on a phone.
-  *Done when:* the list's tests pass without action buttons and show the links; a check at 1280px and
-  1440px finds no overlapping cell (browser test).
+- [ ] **4. The list without actions, with Last sign-in.** Drop the Actions column and
+  `UserRowActions` from the list; the email links to the page, add *Open*, make the role badges
+  plain, keep the SCIM badges; add the Last sign-in column (hidden on phones; *Never*; an en dash
+  for erased), filled by the one query of task 1; the row links as a whole on a phone.
+  *Done when:* the list's tests pass without action buttons and show the links and the three Last
+  sign-in states; a check at 1280px and 1440px finds no overlapping cell (browser test).
 
 - [ ] **5. Links in.** The audit log's event details link to the page when the event names an account;
   the page's audit link (`/admin/audit?actor=`) works.
