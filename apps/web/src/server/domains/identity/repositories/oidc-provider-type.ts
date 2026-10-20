@@ -220,7 +220,7 @@ export const createOidcProviderType = ({
       return { url: url.href, state, keep: { verifier, nonce, state } };
     },
 
-    async complete(provider, { url, redirectUri, keep, startedAt }): Promise<VerifiedIdentity> {
+    async complete(provider, { url, redirectUri, keep }): Promise<VerifiedIdentity> {
       const { as, url: issuer } = await discover(provider, { fresh: true });
       const client = clientOf(provider);
       let claims: oauth.IDToken;
@@ -245,13 +245,11 @@ export const createOidcProviderType = ({
       } catch (error) {
         throw flowError(error, "callback");
       }
-      const now = Date.now() / 1000;
-      const started = startedAt.getTime() / 1000;
-      if (
-        claims.iat < started - CLOCK_TOLERANCE_SECONDS ||
-        claims.iat > now + CLOCK_TOLERANCE_SECONDS
-      )
-        throw new ProviderFlowError("invalid_response", "callback: iat outside the sign-in");
+      // Only the future is refused. How old the token may be is for the nonce, the state and PKCE
+      // to bound, not the clock: Entra sets `iat` to when the person authenticated, which for a
+      // browser that still has its Entra session is long before this sign-in started.
+      if (claims.iat > Date.now() / 1000 + CLOCK_TOLERANCE_SECONDS)
+        throw new ProviderFlowError("invalid_response", "callback: iat in the future");
       if (typeof claims.sub !== "string" || !claims.sub)
         throw new ProviderFlowError("invalid_response", "callback: no sub");
       const email = typeof claims.email === "string" ? claims.email.trim() : "";

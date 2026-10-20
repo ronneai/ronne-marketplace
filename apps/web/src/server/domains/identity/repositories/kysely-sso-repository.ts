@@ -46,7 +46,7 @@ export const kyselySsoRepository = (
       const identifier = `${STATE_PREFIX}${stateHash}`;
       const row = await db
         .selectFrom("verification")
-        .select(["id", "identifier", "value", "expires_at", "created_at"])
+        .select(["id", "identifier", "value", "expires_at"])
         .where("identifier", "=", identifier)
         .executeTakeFirst();
       if (!row || row.identifier !== identifier) return null;
@@ -57,10 +57,7 @@ export const kyselySsoRepository = (
         .executeTakeFirst();
       if (Number(deleted.numDeletedRows) !== 1) return null;
       if (fromDbDate(row.expires_at).getTime() <= now.getTime()) return null;
-      return {
-        state: decodeJson<SsoSignInState>(row.value),
-        startedAt: fromDbDate(row.created_at),
-      };
+      return { state: decodeJson<SsoSignInState>(row.value) };
     },
 
     async lockProvider(providerId) {

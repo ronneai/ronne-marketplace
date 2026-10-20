@@ -23,10 +23,7 @@ export interface SsoRepository {
    * Takes a sign-in in progress: returns it and deletes it, so it can be used once. Null when
    * there's none, it expired, or another request took it first.
    */
-  takeState(
-    stateHash: string,
-    now: Date,
-  ): Promise<{ state: SsoSignInState; startedAt: Date } | null>;
+  takeState(stateHash: string, now: Date): Promise<{ state: SsoSignInState } | null>;
   /** Locks the provider's row, so one sign-in through it decides and writes at a time. */
   lockProvider(providerId: string): Promise<void>;
   /** Whether SCIM is on for the provider (108): its groups are then SCIM's, not the sign-in's. */
