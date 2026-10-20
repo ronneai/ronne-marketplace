@@ -12,6 +12,8 @@ next-env.d.ts
 .env.*
 !.env.example
 data/
+# ...but not the web app's /data routes (104: a person's data file).
+!/apps/web/src/app/**/data/
 
 # OS
 .DS_Store
