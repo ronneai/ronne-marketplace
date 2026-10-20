@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
-import { Dialog, DialogActions } from "@/components/ui/Dialog";
+import { DialogActions } from "@/components/ui/Dialog";
 import { FieldError, Label, selectClasses } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
 import {
@@ -14,14 +14,12 @@ import {
   resetPasswordFromForm,
   resetTwoFactorFromForm,
 } from "./actions";
-import { DownloadDataButton } from "./DownloadDataDialog";
-import { EraseUserButton } from "./EraseUserDialog";
 import { OneTimePassword } from "./OneTimePassword";
 import { PasswordChoice } from "./PasswordChoice";
 import type { AdminActionState } from "./types";
 
-type Role = "root" | "user";
-type RowUser = {
+export type Role = "root" | "user";
+export type RowUser = {
   id: string;
   email: string;
   /** For the erase dialog (103), which names the account. */
@@ -39,13 +37,10 @@ type RowUser = {
 };
 
 const ROLES: readonly Role[] = ["user", "root"];
-type Kind = "role" | "disable" | "enable" | "reset" | "twoFactor";
+export type Kind = "role" | "disable" | "enable" | "reset" | "twoFactor";
 type FormAction = (state: AdminActionState, form: FormData) => Promise<AdminActionState>;
 
-const rowButton =
-  "rounded-control px-2 py-1 text-xs whitespace-nowrap text-muted hover:bg-tint hover:text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus";
-
-const TITLES: Record<Kind, string> = {
+export const TITLES: Record<Kind, string> = {
   role: "Change role",
   disable: "Disable user",
   enable: "Enable user",
@@ -195,11 +190,14 @@ export const ActionForm = ({
         </>
       ) : null}
       {kind === "twoFactor" ? (
-        <p className="text-sm text-muted">
-          For a lost phone and lost backup codes. This turns off their two-factor sign-in and signs
-          them out everywhere; they sign in with their password alone, and set it up again if it's
-          required of them. <Help id="reset-two-factor" />
-        </p>
+        <div className="grid gap-1.5">
+          <p className="text-sm text-muted">
+            For a lost phone and lost backup codes. This turns off their two-factor sign-in and
+            signs them out everywhere; they sign in with their password alone, and set it up again
+            if it's required of them.
+          </p>
+          <Help id="reset-two-factor" />
+        </div>
       ) : null}
       <FieldError id={`${kind}-${user.id}-error`}>{state.error}</FieldError>
       <DialogActions>
@@ -211,78 +209,5 @@ export const ActionForm = ({
         </Button>
       </DialogActions>
     </form>
-  );
-};
-
-/**
- * A row's actions: change role, reset password, reset two-factor when it's on (105), disable or
- * enable (spec 008), download their data (104), erase (103), on every row,
- * other roots' included, except your own: another root changes that one (059). An erased row
- * keeps only the greyed download of their data, since nothing can change it again.
- */
-export const UserRowActions = ({ user }: { user: RowUser }) => {
-  const [kind, setKind] = useState<Kind | null>(null);
-  const [round, setRound] = useState(0);
-  if (user.self)
-    return (
-      <div className="flex justify-end">
-        <Help id="own-row" iconOnly />
-      </div>
-    );
-  if (user.erased)
-    return (
-      <div className="flex justify-end">
-        <button
-          type="button"
-          className={`${rowButton} cursor-not-allowed opacity-50`}
-          disabled
-          title="This account was erased: there's nothing of theirs to download."
-          aria-label={`Download the data of ${user.email}: erased`}
-        >
-          Download their data (erased)
-        </button>
-      </div>
-    );
-
-  const open = (next: Kind) => () => setKind(next);
-  const close = () => {
-    setKind(null);
-    setRound((r) => r + 1);
-  };
-
-  return (
-    <>
-      {/* Plain buttons, not a dropdown: the table scrolls sideways, and would clip a menu. */}
-      <fieldset
-        aria-label={`Actions for ${user.email}`}
-        className="m-0 flex min-w-0 justify-end gap-1 border-0 p-0"
-      >
-        <button type="button" className={rowButton} onClick={open("role")}>
-          Change role
-        </button>
-        <button type="button" className={rowButton} onClick={open("reset")}>
-          Reset password
-        </button>
-        {user.twoFactor ? (
-          <button type="button" className={rowButton} onClick={open("twoFactor")}>
-            Reset two-factor
-          </button>
-        ) : null}
-        <button
-          type="button"
-          className={rowButton}
-          onClick={open(user.disabled ? "enable" : "disable")}
-        >
-          {user.disabled ? "Enable" : "Disable"}
-        </button>
-        <DownloadDataButton user={user} />
-        <EraseUserButton
-          user={{ id: user.id, email: user.email, name: user.name ?? user.email, role: user.role }}
-        />
-      </fieldset>
-      <Dialog open={kind !== null} onClose={close} title={kind ? TITLES[kind] : ""}>
-        {kind ? <ActionForm key={round} kind={kind} user={user} onDone={close} /> : null}
-      </Dialog>
-    </>
   );
 };

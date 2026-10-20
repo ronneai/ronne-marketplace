@@ -281,7 +281,7 @@ export const BulkApproveToolbar = ({ help }: { help?: ReactNode }) => {
           {help}
         </>
       ) : null}
-      <Dialog open={open} onClose={close} title={title} size="large">
+      <Dialog open={open} onClose={close} title={title} size="large" fixedHeight>
         {results ? (
           <>
             <ScrollingList label="What happened to each">

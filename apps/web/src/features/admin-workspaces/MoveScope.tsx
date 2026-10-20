@@ -457,7 +457,7 @@ export const MoveScopeButton = ({
       <IconButton onClick={() => setOpen(true)} label={`Move @${scope.name}`}>
         <FolderInput size={16} aria-hidden="true" />
       </IconButton>
-      <Dialog open={open} onClose={close} title={`Move @${scope.name}`} size="wide">
+      <Dialog open={open} onClose={close} title={`Move @${scope.name}`} size="large">
         {open ? <MoveForm key={round} scope={scope} workspace={workspace} onDone={close} /> : null}
       </Dialog>
     </>

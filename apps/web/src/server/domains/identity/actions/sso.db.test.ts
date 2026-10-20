@@ -10,6 +10,7 @@ import type { AppAuth } from "../repositories/auth-instance";
 import { HTTP_ENDPOINTS } from "../repositories/better-auth";
 import { betterAuthSessionStore } from "../repositories/better-auth-session-store";
 import { kyselyIdentityProviderRepository } from "../repositories/kysely-identity-provider-repository";
+import { kyselyIdentityRepository } from "../repositories/kysely-identity-repository";
 import { kyselySsoRepository } from "../repositories/kysely-sso-repository";
 import { PROVIDER_TYPES } from "../repositories/provider-type-registry";
 import {
@@ -169,6 +170,9 @@ describe("first sign-in from a listed domain", () => {
       { actorId: user?.id, metadata: { via: "sso", provider: "acme" } },
     ]);
     expect(await audit("auth.sso_signed_in")).toHaveLength(1);
+    // The users list's Last sign-in (123) reads that event: a provider's sign-in counts.
+    const last = await kyselyIdentityRepository(t.db, t.dialect).lastSignIns([user?.id as string]);
+    expect(last.get(user?.id as string)).toBeInstanceOf(Date);
     const provider = await deps.repo.find("acme");
     expect(provider?.provider.lastSignedInAt).not.toBeNull();
   });

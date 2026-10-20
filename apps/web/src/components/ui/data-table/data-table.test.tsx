@@ -16,7 +16,7 @@ type Thing = { id: string; name: string };
 const COLUMNS: Column<Thing, "time" | "name">[] = [
   { id: "name", header: "Name", sort: "name", truncate: true, render: (t) => t.name },
   { id: "id", header: "Id", mono: true, hideOnMobile: true, render: (t) => t.id },
-  { id: "open", header: "", align: "right", render: () => <a href="#x">Open</a> },
+  { id: "open", header: "", align: "right", nowrap: true, render: () => <a href="#x">Open</a> },
 ];
 
 const render = (
@@ -55,6 +55,16 @@ describe("DataTable (060)", () => {
     expect(html).toContain("hidden sm:table-cell");
     expect(html).toContain("truncate");
     expect(html).toContain("toolbar");
+  });
+
+  it("keeps a nowrap column's cells on one line, and wraps the others (123)", () => {
+    const html = render({}, things);
+    const cells = html.slice(html.indexOf("<tbody")).match(/<td[^>]*>/g) ?? [];
+    expect(cells.filter((c) => c.includes("whitespace-nowrap"))).toHaveLength(things.length);
+    // The id column neither truncates nor says nowrap: its text may wrap.
+    expect(cells.some((c) => c.includes("font-mono") && !c.includes("whitespace-nowrap"))).toBe(
+      true,
+    );
   });
 
   it("pages: disabled at both ends of a single page, links in the middle", () => {

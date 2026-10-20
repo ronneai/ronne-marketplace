@@ -4,6 +4,19 @@ import { X } from "lucide-react";
 import { type ReactNode, useEffect, useId, useRef } from "react";
 import { cn } from "./cn";
 
+/** The dialog sizes (123): one scale for the whole app, widths in rem, and the phone's screen below `sm`. */
+export const DIALOG_SIZES = {
+  /** 24rem (384px): a short confirmation, one question. */
+  small: "w-[min(24rem,calc(100vw-2rem))]",
+  /** 32rem (512px): an ordinary form. The default. */
+  medium: "w-[min(32rem,calc(100vw-2rem))]",
+  /** 40rem (640px): lists of long names, rows with two fields. */
+  large: "w-[min(40rem,calc(100vw-2rem))]",
+  /** 56rem (896px): content in two columns, such as Erase user. */
+  xlarge: "w-[min(56rem,calc(100vw-2rem))]",
+} as const;
+export type DialogSize = keyof typeof DIALOG_SIZES;
+
 /**
  * A modal dialog on the native <dialog> element: the browser traps focus, makes the page behind it
  * inert, and closes it on Esc. Flat 8px panel (design system 032).
@@ -12,10 +25,14 @@ import { cn } from "./cn";
  * the body sticks to the bottom, so a long dialog keeps its title and buttons in view (067).
  * Below `sm` every dialog fills the screen (067), padded for the notch and the home indicator.
  *
- * - `large` (054) is a fixed frame, 640px wide and up to 720px tall: its content lays itself out in
- *   a column, so a long list can scroll inside while what's above and below it stays in view.
- * - `wide` (115) is the default, 640px wide instead of 512px: for lists of long names.
- * - `side` (066) is a sheet from the right, full height: 20rem wide, the whole width on a phone.
+ * - `size` is one of `small`, `medium` (the default), `large` and `xlarge` (`DIALOG_SIZES`): 24, 32,
+ *   40 and 56rem wide. Pick the smallest that fits the content without scrolling on a laptop
+ *   screen; docs/knowledge/dialog-sizes.md says which to use for what.
+ * - `fixedHeight` (054) makes a frame of up to 45rem tall instead of fitting its content: the
+ *   content lays itself out in a column, so a long list can scroll inside while what's above and
+ *   below it stays in view. It takes any width on the scale.
+ * - `side` (066) is a sheet from the right, full height: 20rem wide, the whole width on a phone. It
+ *   is a different kind of surface, not a size on the scale.
  *
  * Its text wraps whatever surrounds the trigger (115): a dialog sits in the DOM where it's opened,
  * such as a table cell that keeps its buttons on one line, and would otherwise inherit `nowrap`.
@@ -29,10 +46,12 @@ export const Dialog = ({
   onClose,
   title,
   children,
-  size = "default",
+  size = "medium",
+  fixedHeight = false,
   closeOnBackdrop = false,
 }: {
-  size?: "default" | "wide" | "large" | "side";
+  size?: DialogSize | "side";
+  fixedHeight?: boolean;
   open: boolean;
   onClose: () => void;
   title: ReactNode;
@@ -80,11 +99,8 @@ export const Dialog = ({
           ? "m-0 ml-auto h-dvh max-h-none w-[min(20rem,100vw)] max-w-none rounded-none border-y-0 border-r-0"
           : cn(
               "m-auto max-h-[calc(100dvh-2rem)]",
-              size === "large"
-                ? "h-[min(45rem,calc(100dvh-2rem))] w-[min(40rem,calc(100vw-2rem))]"
-                : size === "wide"
-                  ? "w-[min(40rem,calc(100vw-2rem))]"
-                  : "w-[min(32rem,calc(100vw-2rem))]",
+              DIALOG_SIZES[size],
+              fixedHeight && "h-[min(45rem,calc(100dvh-2rem))]",
             ),
         // A phone: the whole screen.
         "max-sm:m-0 max-sm:h-dvh max-sm:max-h-none max-sm:w-screen max-sm:max-w-none max-sm:rounded-none max-sm:border-0",
@@ -103,10 +119,10 @@ export const Dialog = ({
           <X size={18} aria-hidden />
         </button>
       </div>
-      {size === "large" ? (
+      {fixedHeight ? (
         <div className="flex min-h-0 flex-1 flex-col">{children}</div>
       ) : (
-        <div className="min-h-0 flex-1 overflow-y-auto p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-4">
+        <div className="min-h-0 flex-1 overflow-y-auto p-4 pb-[max(1rem,env(safe-area-inset-bottom))] has-[[data-dialog-actions]]:pb-0 sm:pb-4 sm:has-[[data-dialog-actions]]:pb-0">
           {children}
         </div>
       )}
@@ -126,9 +142,14 @@ export const DialogActions = ({
   className?: string;
 }) => (
   <div
+    data-dialog-actions=""
     className={cn(
-      "sticky bottom-0 z-10 -mx-4 -mb-4 flex flex-wrap items-center justify-end gap-2 border-t border-hairline bg-surface px-4 py-3",
-      "max-sm:-mb-[max(1rem,env(safe-area-inset-bottom))] max-sm:pb-[max(0.75rem,env(safe-area-inset-bottom))]",
+      // No negative bottom margin: a sticky box that sticks out of its container is pushed back
+      // inside it, which used to lift the bar 16px into the content (123). The body drops its own
+      // bottom padding when it holds this bar (`has-[[data-dialog-actions]]:pb-0`), so the bar sits
+      // flush at the bottom; `mt-4` is the air above it, on top of the form's own gap.
+      "sticky bottom-0 z-10 -mx-4 mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-hairline bg-surface px-4 py-3",
+      "max-sm:pb-[max(0.75rem,env(safe-area-inset-bottom))]",
       className,
     )}
   >

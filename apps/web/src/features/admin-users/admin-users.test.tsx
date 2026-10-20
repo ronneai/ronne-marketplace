@@ -84,7 +84,6 @@ const page = (props: Partial<Parameters<typeof UsersPage>[0]> = {}) =>
       ]}
       page={{ next: "c2", previous: null }}
       total={{ count: 3, capped: false }}
-      actions={(u) => <span>menu for {u.email}</span>}
       {...props}
     />,
   );
@@ -123,7 +122,7 @@ describe("UsersPage (061)", () => {
     expect(page({ users: [user({ workspaces: [] })] })).toContain(">none<");
   });
 
-  it("lists users with their role, status and actions, sortable by email, name and created", () => {
+  it("lists users with their role, status, last sign-in and a way in, sortable by email, name and created", () => {
     const html = page();
     for (const text of [
       "Users",
@@ -132,7 +131,7 @@ describe("UsersPage (061)", () => {
       ">disabled<",
       ">active<",
       "2026-09-20",
-      "menu for old@example.com",
+      "Last sign-in",
       "3 users",
       'href="/admin/users?cursor=c2"',
       'href="/admin/users?sort=email"',
@@ -142,6 +141,91 @@ describe("UsersPage (061)", () => {
     ]) {
       expect(html, text).toContain(text);
     }
+    // No action buttons on a row: they are on the user's page (123).
+    for (const label of [
+      "Change role",
+      "Reset password",
+      "Disable",
+      "Erase",
+      "Download their data",
+    ])
+      expect(html, label).not.toContain(label);
+  });
+
+  it("lists the name first, then the email, and opens the user's page from each way in (123)", () => {
+    const html = page();
+    const headers = [...html.matchAll(/<th\s[^>]*>(?:<a[^>]*>)?([^<]*)/g)].map((m) => m[1]?.trim());
+    expect(headers.slice(0, 7)).toEqual([
+      "Name",
+      "Email",
+      "Role",
+      "Status",
+      "Last sign-in",
+      "Created",
+      "",
+    ]);
+    const href = "/admin/users/01K6BZ3W1D8J9Q2R4T6V8X0Y2Z";
+    // From `sm` up the name is the link, and Open is at the end of the row.
+    expect(html).toMatch(new RegExp(`<a[^>]*href="${href}"[^>]*>Alex</a>`));
+    // Open is an icon (123, decision 6): named for screen readers and as its tooltip, with no word.
+    const open = html.match(/<a[^>]*aria-label="Open alex@example\.com"[^>]*>.*?<\/a>/)?.[0] ?? "";
+    expect(open).toContain(`href="${href}"`);
+    expect(open).toContain('title="Open alex@example.com"');
+    expect(open).toContain("<svg");
+    expect(open).toContain('aria-hidden="true"');
+    expect(open.replace(/<svg.*<\/svg>/, "")).not.toMatch(/>Open</);
+    // On a phone the name is hidden: the email is the link, covering the row (which is `relative`).
+    expect(html).toMatch(
+      new RegExp(
+        `<a[^>]*class="[^"]*after:absolute after:inset-0 sm:hidden[^"]*"[^>]*href="${href}"[^>]*>alex@example\\.com</a>`,
+      ),
+    );
+    expect(html).toMatch(
+      /<span[^>]*class="hidden min-w-0 truncate sm:inline"[^>]*>alex@example\.com<\/span>/,
+    );
+  });
+
+  it("puts an icon-only copy button beside each email (123)", () => {
+    const html = page();
+    const button =
+      html.match(/<button[^>]*aria-label="Copy alex@example\.com"[^>]*>.*?<\/button>/)?.[0] ?? "";
+    expect(button).toContain('title="Copy alex@example.com"');
+    expect(button).toContain("<svg");
+    expect(button).not.toMatch(/>\s*Copy\s*</);
+    // Above the phone's row-wide link, which is the email's.
+    expect(button).toContain("z-10");
+    expect((html.match(/aria-label="Copy /g) ?? []).length).toBe(3);
+  });
+
+  it("keeps every cell on one line (123)", () => {
+    const html = page();
+    const body = html.slice(html.indexOf("<tbody"));
+    const cells = body.match(/<td[^>]*>/g) ?? [];
+    expect(cells.length).toBeGreaterThan(10);
+    // Name and email are cut with an ellipsis; the rest don't wrap.
+    for (const cell of cells) expect(cell, cell).toMatch(/\b(truncate|whitespace-nowrap)\b/);
+  });
+
+  it("shows the last web sign-in, Never when there is none, and a dash for an erased account (123)", () => {
+    const html = page({
+      users: [
+        user({ id: "01K6BZ3W1D8J9Q2R4T6V8X0Y41", lastSignInAt: new Date("2026-10-19T14:30:00Z") }),
+        user({ id: "01K6BZ3W1D8J9Q2R4T6V8X0Y42", email: "n@example.com", lastSignInAt: null }),
+        user({
+          id: "01K6BZ3W1D8J9Q2R4T6V8X0Y43",
+          email: "deleted-user-x@ronne.invalid",
+          erasedAt: new Date("2026-10-10T10:00:00Z"),
+          lastSignInAt: null,
+        }),
+      ],
+    });
+    expect(html).toContain("2026-10-19 14:30 UTC");
+    expect(html).toMatch(/<span class="text-muted">Never<\/span>/);
+    expect(html).toMatch(/<span class="text-muted">–<\/span>/);
+    // Hidden on a phone with Status and Created, and not a sortable column.
+    const header = html.slice(html.indexOf("Last sign-in") - 300, html.indexOf("Last sign-in"));
+    expect(header).toContain("hidden sm:table-cell");
+    expect(html).not.toContain('href="/admin/users?sort=lastSignIn"');
   });
 
   it("keeps the role badges at their own width, root's too, above any SCIM badge", () => {
@@ -180,25 +264,8 @@ describe("UsersPage (061)", () => {
     });
     expect(gone).toContain("Deprovisioned by Acme SSO on");
     expect(gone).not.toContain("Managed by");
-    // The Erase link (103) sits beside the deprovisioned badge, when the page gives one.
+    // The Erase link beside it is gone: erasing is on the user's page (123).
     expect(gone).not.toContain("Erase");
-    const withErase = page({
-      users: [
-        user({
-          disabledAt: new Date("2026-10-18T13:00:00Z"),
-          scim: scim({ managed: false, deprovisionedAt: new Date("2026-10-18T13:00:00Z") }),
-        }),
-      ],
-      erase: (u) => <button type="button">Erase {u.email}</button>,
-    });
-    expect(withErase).toMatch(/Deprovisioned by Acme SSO on.*Erase alex@example.com/);
-    // Not beside a managed one: the provider still owns the account.
-    expect(
-      page({
-        users: [user({ scim: scim({}) })],
-        erase: () => <button type="button">Erase</button>,
-      }),
-    ).not.toContain(">Erase<");
     expect(page()).not.toContain("Managed by");
     // In a cell phones show (the Status column is hidden below sm).
     const at = managed.indexOf("Managed by Acme SSO");
@@ -224,7 +291,6 @@ describe("UsersPage (061)", () => {
           },
         }),
       ],
-      erase: () => <button type="button">Erase</button>,
     });
     expect(html).toMatch(/Erased on(&nbsp;|\u00a0)?.*2026-10-19/);
     // The Status cell (the filter's option says "erased" too, so the cell's span is what's pinned).

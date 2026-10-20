@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { expect, type Page, test } from "@playwright/test";
-import { downloadAfter } from "./helpers";
+import { downloadAfter, openUser, userRow } from "./helpers";
 import { recordSecret } from "./secrets";
 import { E2E_ERASE, E2E_PASSWORD, E2E_SCOPE, E2E_USERS } from "./users";
 
@@ -13,9 +13,8 @@ const signIn = async (page: Page, email: string, password: string) => {
   await expect(page).not.toHaveURL(/\/sign-in/);
 };
 
-/** A user's row, by the exact email cell (one email can be part of another). */
-const rowOf = (page: Page, email: string) =>
-  page.getByRole("row").filter({ has: page.getByRole("cell", { name: email, exact: true }) });
+/** A user's row, by its Open link (one email can be part of another). */
+const rowOf = userRow;
 
 // One root sign-in for all of user admin (docs/knowledge/e2e-sign-in-limit.md), so 059's
 // promote and demote checks live in this test too.
@@ -46,7 +45,7 @@ test("root creates a user, who signs in with the shown password; disabling them 
   expect(password).toHaveLength(20);
   recordSecret(JSON.parse(process.env.RONNE_E2E_INSTANCE ?? "{}").main, password);
   await create.getByRole("button", { name: "Done" }).click();
-  await expect(root.getByRole("cell", { name: email, exact: true })).toBeVisible();
+  await expect(rowOf(root, email)).toBeVisible();
 
   // The list sorts on the server (061): by email from its header, the view kept in the URL.
   await root.getByRole("link", { name: "Email" }).click();
@@ -55,13 +54,21 @@ test("root creates a user, who signs in with the shown password; disabling them 
     "aria-sort",
     "ascending",
   );
-  await expect(root.getByRole("cell", { name: email, exact: true })).toBeVisible();
+  await expect(rowOf(root, email)).toBeVisible();
+  // The list has no actions: each row opens the user's page (123), where they are.
+  // (A row has a copy icon beside its email, which is not an action on the account.)
+  await expect(
+    root
+      .getByRole("row")
+      .getByRole("button", { name: /^(Change role|Reset|Disable|Enable|Erase|Download|Manage)/ }),
+  ).toHaveCount(0);
 
-  // Their workspaces (092): they start as a user in global (their personal workspace, 114, isn't
-  // listed); root adds one, as a user by default, makes them moderator there, then takes it away.
-  await rowOf(root, email)
-    .getByRole("button", { name: `Workspaces of ${email}: 1` })
-    .click();
+  // Their workspaces (092), from their page: they start as a user in global (their personal
+  // workspace, 114, isn't listed); root adds one, as a user by default, makes them moderator
+  // there, then takes it away.
+  await openUser(root, email);
+  await expect(root.getByRole("heading", { name: "Created By Root", exact: true })).toBeVisible();
+  await root.getByRole("button", { name: "Manage workspaces" }).click();
   const memberships = root.getByRole("dialog", { name: `Workspaces of ${email}` });
   await expect(memberships.getByLabel("Role in global")).toHaveValue("user");
   await expect(memberships.getByRole("button", { name: "Remove global" })).toHaveCount(0);
@@ -72,39 +79,37 @@ test("root creates a user, who signs in with the shown password; disabling them 
   await memberships.getByRole("button", { name: "Save" }).click();
   await expect(memberships.getByText("Saved: 1 workspace added.")).toBeVisible();
   await memberships.getByRole("button", { name: "Done" }).click();
+  // The page shows it at once, and so does the list's role cell.
+  await expect(root.getByText("e2e-acme", { exact: true })).toBeVisible();
+  await root.goto(`/admin/users?q=${encodeURIComponent(email)}`);
   await expect(rowOf(root, email)).toContainText(/moderator\s*1\s*user\s*1/);
-  await rowOf(root, email)
-    .getByRole("button", { name: `Workspaces of ${email}: 2` })
-    .click();
+  await openUser(root, email);
+  await root.getByRole("button", { name: "Manage workspaces" }).click();
   await expect(memberships.getByLabel("Role in e2e-acme")).toHaveValue("moderator");
   await memberships.getByRole("button", { name: "Remove e2e-acme" }).click();
   await memberships.getByRole("button", { name: "Save" }).click();
   await expect(memberships.getByText("Saved: 1 workspace removed.")).toBeVisible();
   await memberships.getByRole("button", { name: "Done" }).click();
+  await expect(root.getByText("e2e-acme", { exact: true })).toHaveCount(0);
+  await root.goto(`/admin/users?q=${encodeURIComponent(email)}`);
   await expect(rowOf(root, email)).not.toContainText(/moderator/);
 
   // The new user signs in with it.
   const user = await browser.newPage();
   await signIn(user, email, password);
 
-  // Root's own row is read-only; the user isn't an admin yet. Searched for: with more than a page
-  // of e2e users, root's row may not be on the first.
-  await root.goto(`/admin/users?q=${encodeURIComponent(E2E_USERS.root)}`);
-  await expect(
-    rowOf(root, E2E_USERS.root).getByRole("button", {
-      name: "Why can't I change my own account here?",
-    }),
-  ).toBeVisible();
-  await expect(root.getByRole("group", { name: `Actions for ${E2E_USERS.root}` })).toHaveCount(0);
-  await root.goto("/admin/users");
+  // Root's own page is read-only (059): it says so and offers no action; the user isn't an admin
+  // yet.
+  await openUser(root, E2E_USERS.root);
+  await expect(root.getByText("This is your own account.")).toBeVisible();
+  await expect(root.getByRole("button", { name: "Change role" })).toHaveCount(0);
+  await expect(root.getByRole("button", { name: "Erase", exact: true })).toHaveCount(0);
   expect((await user.goto("/admin/users"))?.status()).toBe(404);
 
   // Root makes them root, with a warning; it takes effect on their next request (059).
   const changeRole = async (to: "root" | "user", warning: string) => {
-    await root
-      .getByRole("group", { name: `Actions for ${email}` })
-      .getByRole("button", { name: "Change role" })
-      .click();
+    await openUser(root, email);
+    await root.getByRole("button", { name: "Change role" }).click();
     const dialog = root.getByRole("dialog");
     await dialog.getByLabel("New role").selectOption(to);
     await expect(dialog.getByText(warning)).toBeVisible();
@@ -114,32 +119,32 @@ test("root creates a user, who signs in with the shown password; disabling them 
   };
   await changeRole("root", `Make ${email} root?`);
   expect((await user.goto("/admin/users"))?.status()).toBe(200);
-  await expect(
-    rowOf(user, email).getByRole("button", { name: "Why can't I change my own account here?" }),
-  ).toBeVisible();
-  await expect(user.getByRole("group", { name: `Actions for ${email}` })).toHaveCount(0);
-  // Searched for: with more than a page of e2e users, root's row may not be on the first.
-  await user.goto(`/admin/users?q=${encodeURIComponent(E2E_USERS.root)}`);
-  await expect(
-    user
-      .getByRole("group", { name: `Actions for ${E2E_USERS.root}` })
-      .getByRole("button", { name: "Change role" }),
-  ).toBeVisible();
+  // Their own page is read-only; another root's page has the actions (059).
+  await openUser(user, email);
+  await expect(user.getByText("This is your own account.")).toBeVisible();
+  await expect(user.getByRole("button", { name: "Change role" })).toHaveCount(0);
+  await openUser(user, E2E_USERS.root);
+  await expect(user.getByRole("button", { name: "Change role" })).toBeVisible();
 
   // And removes root again: the admin area is a 404 for them on their next request.
   await changeRole("user", `Remove root from ${email}?`);
   expect((await user.goto("/admin/users"))?.status()).toBe(404);
 
   // Root disables them; their next request goes to sign-in.
-  await root
-    .getByRole("group", { name: `Actions for ${email}` })
-    .getByRole("button", { name: "Disable" })
-    .click();
+  await openUser(root, email);
+  await root.getByRole("button", { name: "Disable", exact: true }).click();
   const disable = root.getByRole("dialog");
   await expect(disable.getByText(/signs them out everywhere \(1 session\)/)).toBeVisible();
   await disable.getByRole("button", { name: "Disable user" }).click();
   await expect(disable.getByText("Disabled.")).toBeVisible();
+  // The page refreshed behind the dialog (Disable is Enable now), and the dialog stays what it was
+  // opened for: its title and its result don't flip (123).
+  await expect(root.getByRole("dialog", { name: "Disable user" })).toBeVisible();
+  await expect(root.getByRole("button", { name: "Enable", exact: true })).toBeVisible();
   await disable.getByRole("button", { name: "Done" }).click();
+  // The page shows it at once, and so does the list.
+  await expect(root.getByText("Disabled on")).toBeVisible();
+  await root.goto(`/admin/users?q=${encodeURIComponent(email)}`);
   await expect(root.getByRole("row").filter({ hasText: email })).toContainText("disabled");
 
   await user.goto("/");
@@ -148,13 +153,10 @@ test("root creates a user, who signs in with the shown password; disabling them 
   // Root erases a user (103) who published an item and commented on a review: the dialog needs
   // the email typed, then every page shows the pseudonym, and the old email makes a new account.
   const erasable = E2E_USERS.erasable;
-  await root.goto(`/admin/users?q=${encodeURIComponent(erasable)}`);
+  await openUser(root, erasable);
   // First, root makes the file the person asked for (104): the item and the comment are in it,
   // and a second one inside ten minutes is refused.
-  await root
-    .getByRole("group", { name: `Actions for ${erasable}` })
-    .getByRole("button", { name: "Download their data" })
-    .click();
+  await root.getByRole("button", { name: "Download their data" }).click();
   const download = root.getByRole("dialog", { name: "Download their data" });
   await expect(download.getByText(erasable)).toBeVisible();
   const file = await downloadAfter(root, () =>
@@ -171,10 +173,7 @@ test("root creates a user, who signs in with the shown password; disabling them 
   const again = await root.context().request.get(file.url());
   expect(again.status()).toBe(429);
   await download.getByText("Close", { exact: true }).click();
-  await root
-    .getByRole("group", { name: `Actions for ${erasable}` })
-    .getByRole("button", { name: "Erase" })
-    .click();
+  await root.getByRole("button", { name: "Erase", exact: true }).click();
   const erase = root.getByRole("dialog", { name: "Erase user" });
   await expect(erase.getByText("What goes")).toBeVisible();
   await expect(erase.getByText("This can't be undone.")).toBeVisible();
@@ -186,17 +185,22 @@ test("root creates a user, who signs in with the shown password; disabling them 
   await erase.getByRole("button", { name: "Erase" }).click();
   await expect(erase.getByText(/Erased\. The account is now deleted-user/)).toBeVisible();
   await erase.getByRole("button", { name: "Done" }).click();
-  // The row is the pseudonym now: the badge, the status, and only the greyed download.
+  // The page is the pseudonym's now: Erased on, and only the greyed download (the dialog's Done
+  // refreshed it).
+  await expect(root.getByText(/Erased on/).first()).toBeVisible();
+  await expect(
+    root.getByRole("button", { name: /Download the data of .*: erased/ }),
+  ).toBeDisabled();
+  await expect(root.getByRole("button", { name: "Erase", exact: true })).toHaveCount(0);
+  await expect(root.getByRole("button", { name: "Change role" })).toHaveCount(0);
+  // And in the list: the badge, the status, no action, and the old email nowhere.
   await root.goto("/admin/users?q=deleted-user-");
   const erasedRow = root.getByRole("row").filter({ hasText: "Erased on" });
   await expect(erasedRow).toHaveCount(1);
   await expect(erasedRow).toContainText(/deleted-user-[0-9A-Z]+@ronne\.invalid/);
   await expect(erasedRow).toContainText("erased");
-  await expect(
-    erasedRow.getByRole("button", { name: /Download the data of .*: erased/ }),
-  ).toBeDisabled();
-  await expect(erasedRow.getByRole("button", { name: "Erase", exact: true })).toHaveCount(0);
-  await expect(root.getByRole("cell", { name: erasable, exact: true })).toHaveCount(0);
+  await expect(erasedRow.getByText("–", { exact: true })).toBeVisible();
+  await expect(root.getByText(erasable, { exact: true })).toHaveCount(0);
   // Its item's versions, the review's conversation and the audit log all say the pseudonym.
   await root.goto(`/items/${E2E_SCOPE}/${E2E_ERASE.item}/versions`);
   await expect(root.getByText(/by deleted-user-/).first()).toBeVisible();
@@ -237,10 +241,8 @@ test("root creates a user, who signs in with the shown password; disabling them 
   // A workspace's admin (092), in root's test: root makes them admin of e2e-acme from their
   // Workspaces; they then run e2e-acme and nothing else.
   const adminEmail = E2E_USERS.workspaceAdmin;
-  await root.goto(`/admin/users?q=${encodeURIComponent(adminEmail)}`);
-  await rowOf(root, adminEmail)
-    .getByRole("button", { name: `Workspaces of ${adminEmail}: 1` })
-    .click();
+  await openUser(root, adminEmail);
+  await root.getByRole("button", { name: "Manage workspaces" }).click();
   const theirs = root.getByRole("dialog", { name: `Workspaces of ${adminEmail}` });
   await theirs.getByRole("button", { name: "Add workspace" }).click();
   await theirs.getByLabel("Workspace 2").selectOption({ label: "e2e-acme" });

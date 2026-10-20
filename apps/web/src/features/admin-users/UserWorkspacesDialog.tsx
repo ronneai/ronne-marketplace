@@ -68,19 +68,16 @@ const UserWorkspacesForm = ({
 
 /**
  * A user's Workspaces (092): their workspaces and roles, editable; Save applies the difference.
- * Not offered for root, who works in every workspace.
+ * The button on the user's page (123). Not offered for root, who works in every workspace.
  */
 export const UserWorkspacesButton = ({
   user,
   workspaces,
-  count,
   children,
 }: {
   user: { id: string; email: string };
   workspaces: readonly WorkspaceOption[];
-  /** How many workspaces they're in, for the button's name. */
-  count: number;
-  /** What the button shows: their role badges, in the Role cell. */
+  /** The button's label. */
   children: ReactNode;
 }) => {
   const [open, setOpen] = useState(false);
@@ -91,14 +88,9 @@ export const UserWorkspacesButton = ({
   };
   return (
     <>
-      <button
-        type="button"
-        aria-label={`Workspaces of ${user.email}: ${count}`}
-        className="touch-hit -m-1 rounded-control p-1 text-left hover:bg-tint outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
-        onClick={() => setOpen(true)}
-      >
+      <Button variant="secondary" onClick={() => setOpen(true)}>
         {children}
-      </button>
+      </Button>
       <Dialog open={open} onClose={close} title={`Workspaces of ${user.email}`}>
         {open ? (
           <UserWorkspacesForm key={round} user={user} workspaces={workspaces} onDone={close} />

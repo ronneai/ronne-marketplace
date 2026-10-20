@@ -71,6 +71,54 @@ export const kyselyIdentityRepository = (
 ): IdentityRepository => {
   const at = (date: Date) => toDbDate(date, dialect);
 
+  /**
+   * Adds what the users list shows beside the row: each user's roles per workspace (091) and
+   * whether two-factor is on (105), in two queries for all the rows. The users list and one user's
+   * page (123) share it.
+   */
+  const withRolesAndTwoFactor = async (rows: UserRow[]): Promise<UserSummary[]> => {
+    // The page's memberships, by workspace name, in one query (091).
+    const ids = rows.map((row) => row.id);
+    const memberships =
+      ids.length === 0
+        ? []
+        : await db
+            .selectFrom("workspace_members")
+            .innerJoin("workspaces", "workspaces.id", "workspace_members.workspace_id")
+            .select(["workspace_members.user_id", "workspace_members.role", "workspaces.name"])
+            .where("workspace_members.user_id", "in", ids)
+            // Not their own personal workspace (114): everyone has one, and it's no shared role.
+            .where((eb) =>
+              eb.or([
+                eb("workspaces.owner_id", "is", null),
+                eb("workspaces.owner_id", "!=", eb.ref("workspace_members.user_id")),
+              ]),
+            )
+            .orderBy("workspaces.name")
+            .execute();
+    // Who on the page has two-factor on, as the hold reads it (105).
+    const enrolled =
+      ids.length === 0
+        ? []
+        : await db
+            .selectFrom("user")
+            .innerJoin("two_factor", "two_factor.user_id", "user.id")
+            .select("user.id")
+            .where("user.id", "in", ids)
+            .where("user.two_factor_enabled", "=", toDbBoolean(true, dialect))
+            .where("two_factor.verified", "=", toDbBoolean(true, dialect))
+            .execute();
+    const withTwoFactor = new Set(enrolled.map((row) => row.id));
+    return rows.map((row) => ({
+      ...summary(row),
+      twoFactor: withTwoFactor.has(row.id),
+      workspaces: memberships
+        .filter((m) => m.user_id === row.id && isWorkspaceRole(m.role))
+        .map((m) => ({ name: m.name, role: m.role }))
+        .sort((a, b) => ROLE_ORDER[a.role] - ROLE_ORDER[b.role]),
+    }));
+  };
+
   const filteredUsers = ({ search, role, status }: UserFilters) => {
     let query = db.selectFrom("user");
     if (search)
@@ -303,6 +351,32 @@ export const kyselyIdentityRepository = (
       return row ? summary(row) : null;
     },
 
+    async findUserDetail(userId) {
+      const row = await db
+        .selectFrom("user")
+        .select(USER_COLUMNS)
+        .where("id", "=", userId)
+        .executeTakeFirst();
+      return row ? ((await withRolesAndTwoFactor([row]))[0] ?? null) : null;
+    },
+
+    async lastSignIns(userIds) {
+      const last = new Map<string, Date>();
+      if (userIds.length === 0) return last;
+      // Every web sign-in (password, identity provider, second step) writes this event, and the
+      // retention purge keeps events (102): one grouped read over the actor index.
+      const rows = await db
+        .selectFrom("audit_log")
+        .select(["actor_id", (eb) => eb.fn.max("created_at").as("last")])
+        .where("action", "=", "auth.signed_in")
+        .where("actor_id", "in", userIds)
+        .groupBy("actor_id")
+        .execute();
+      for (const row of rows)
+        if (row.actor_id && row.last) last.set(row.actor_id, fromDbDate(row.last));
+      return last;
+    },
+
     async findUserByEmail(email) {
       const row = await db
         .selectFrom("user")
@@ -321,49 +395,7 @@ export const kyselyIdentityRepository = (
         sortValue: (row) => (sort === "created" ? row.id : row[sort]),
         idOf: (row) => row.id,
       });
-      // The page's memberships, by workspace name, in one query (091).
-      const ids = page.rows.map((row) => row.id);
-      const memberships =
-        ids.length === 0
-          ? []
-          : await db
-              .selectFrom("workspace_members")
-              .innerJoin("workspaces", "workspaces.id", "workspace_members.workspace_id")
-              .select(["workspace_members.user_id", "workspace_members.role", "workspaces.name"])
-              .where("workspace_members.user_id", "in", ids)
-              // Not their own personal workspace (114): everyone has one, and it's no shared role.
-              .where((eb) =>
-                eb.or([
-                  eb("workspaces.owner_id", "is", null),
-                  eb("workspaces.owner_id", "!=", eb.ref("workspace_members.user_id")),
-                ]),
-              )
-              .orderBy("workspaces.name")
-              .execute();
-      // Who on the page has two-factor on, as the hold reads it (105).
-      const enrolled =
-        ids.length === 0
-          ? []
-          : await db
-              .selectFrom("user")
-              .innerJoin("two_factor", "two_factor.user_id", "user.id")
-              .select("user.id")
-              .where("user.id", "in", ids)
-              .where("user.two_factor_enabled", "=", toDbBoolean(true, dialect))
-              .where("two_factor.verified", "=", toDbBoolean(true, dialect))
-              .execute();
-      const withTwoFactor = new Set(enrolled.map((row) => row.id));
-      return {
-        ...page,
-        rows: page.rows.map((row) => ({
-          ...summary(row),
-          twoFactor: withTwoFactor.has(row.id),
-          workspaces: memberships
-            .filter((m) => m.user_id === row.id && isWorkspaceRole(m.role))
-            .map((m) => ({ name: m.name, role: m.role }))
-            .sort((a, b) => ROLE_ORDER[a.role] - ROLE_ORDER[b.role]),
-        })),
-      };
+      return { ...page, rows: await withRolesAndTwoFactor(page.rows) };
     },
 
     countUsers: (filters) => countCapped(db, filteredUsers(filters).select("id")),

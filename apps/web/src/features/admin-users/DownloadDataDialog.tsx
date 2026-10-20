@@ -5,9 +5,6 @@ import { Help } from "@/components/help/Help";
 import { Button, buttonClasses } from "@/components/ui/Button";
 import { Dialog, DialogActions } from "@/components/ui/Dialog";
 
-const rowButton =
-  "rounded-control px-2 py-1 text-xs whitespace-nowrap text-muted hover:bg-tint hover:text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus";
-
 /** The address of root's download of a person's data (104). */
 export const dataHref = (userId: string): string => `/admin/users/${userId}/data`;
 
@@ -21,12 +18,15 @@ type DataUser = { id: string; email: string };
 export const DownloadDataBody = ({ user, onClose }: { user: DataUser; onClose: () => void }) => (
   <div className="grid gap-4">
     <p className="font-mono text-[13px] text-fg">{user.email}</p>
-    <p className="text-sm text-muted">
-      The JSON file they would get from their Account page: their account, sessions, token names,
-      workspaces, items, submissions, comments and audit events, with other people&apos;s emails
-      replaced. It counts as their download for the next 10 minutes, and the audit log records that
-      you made it. <Help id="download-user-data" />
-    </p>
+    <div className="grid gap-1.5">
+      <p className="text-sm text-muted">
+        The JSON file they would get from their Account page: their account, sessions, token names,
+        workspaces, items, submissions, comments and audit events, with other people&apos;s emails
+        replaced. It counts as their download for the next 10 minutes, and the audit log records
+        that you made it.
+      </p>
+      <Help id="download-user-data" />
+    </div>
     <DialogActions>
       <Button variant="ghost" onClick={onClose}>
         Close
@@ -43,9 +43,9 @@ export const DownloadDataButton = ({ user }: { user: DataUser }) => {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <button type="button" className={rowButton} onClick={() => setOpen(true)}>
+      <Button variant="secondary" onClick={() => setOpen(true)}>
         Download their data
-      </button>
+      </Button>
       <Dialog open={open} onClose={() => setOpen(false)} title="Download their data">
         {open ? <DownloadDataBody user={user} onClose={() => setOpen(false)} /> : null}
       </Dialog>

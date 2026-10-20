@@ -67,7 +67,43 @@ export const listUsers = async (
     }),
     deps.repo.countUsers(filters),
   ]);
-  return { users: page.rows, next: page.next, previous: page.previous, total };
+  return {
+    users: await withLastSignIn(deps.repo, page.rows),
+    next: page.next,
+    previous: page.previous,
+    total,
+  };
+};
+
+/**
+ * Each user's last web sign-in (123), from one query for all of them. An erased account gets none:
+ * nothing about when the person last signed in is shown (103).
+ */
+const withLastSignIn = async (repo: IdentityRepository, users: UserSummary[]) => {
+  const last = await repo.lastSignIns(users.filter((u) => !u.erasedAt).map((u) => u.id));
+  return users.map((u) => ({ ...u, lastSignInAt: u.erasedAt ? null : (last.get(u.id) ?? null) }));
+};
+
+/** One user's page for root (123): the account as the list shows it, and what signing out would end. */
+export type UserDetail = { user: UserSummary; sessions: number; tokens: number };
+
+/** Any user, root's own and an erased one included: the page shows them, read-only. */
+export const getUser = async (
+  deps: UserAdminDeps,
+  actor: Actor,
+  userId: string,
+): Promise<UserDetail> => {
+  requirePermission(actor.user, "users.view");
+  const found = await deps.repo.findUserDetail(userId);
+  if (!found) throw new UserNotFoundError();
+  const [user] = await withLastSignIn(deps.repo, [found]);
+  // Sessions and tokens end with an erase (103): there is nothing to count.
+  const erased = Boolean(found.erasedAt);
+  return {
+    user: user ?? found,
+    sessions: erased ? 0 : await deps.repo.countSessions(userId),
+    tokens: erased ? 0 : await deps.repo.countActiveAccessTokens(userId),
+  };
 };
 
 /** The password root chose, or a generated one. Either way it's shown once, then only its hash exists. */

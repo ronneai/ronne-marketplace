@@ -18,7 +18,7 @@ import {
   turnOnScim,
 } from "./scim-settings";
 import { signIn } from "./session";
-import { adminListUsers } from "./user-admin";
+import { adminGetUser, adminListUsers } from "./user-admin";
 
 // Runs on the database in TEST_DATABASE_URL (in-memory SQLite by default; 004 runs all of them).
 // The provider page's SCIM section and Admin › Users' badges, as root sees them (108).
@@ -168,5 +168,16 @@ describe("Admin › Users' SCIM badges", () => {
       adoptedAt: null,
     });
     expect(by["ann@example.com"]?.deprovisionedAt).toBeInstanceOf(Date);
+
+    // One user's page (123) carries the same link as the row of the list.
+    const idOf = (email: string) => users.find((u) => u.email === email)?.id ?? "";
+    expect((await adminGetUser(asRoot, idOf("kim@example.com"), app)).user.scim).toMatchObject({
+      providerName: "Acme SSO",
+      managed: true,
+    });
+    expect((await adminGetUser(asRoot, idOf("ann@example.com"), app)).user.scim).toMatchObject({
+      managed: false,
+    });
+    expect((await adminGetUser(asRoot, idOf("root@example.com"), app)).user.scim).toBeUndefined();
   });
 });

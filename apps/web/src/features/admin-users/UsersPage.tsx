@@ -1,4 +1,6 @@
+import { ChevronRight } from "lucide-react";
 import Form from "next/form";
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { buttonClasses } from "@/components/ui/Button";
@@ -6,9 +8,11 @@ import { type Column, DataTable, HiddenListFields } from "@/components/ui/data-t
 import { FilterChips } from "@/components/ui/data-table/FilterChips";
 import { SubmitOnChange } from "@/components/ui/data-table/SubmitOnChange";
 import { Input, Label, selectClasses } from "@/components/ui/Field";
+import { IconLink } from "@/components/ui/IconLink";
 import { LocalTime } from "@/components/ui/LocalTime";
 import { PageHeader } from "@/components/ui/Panel";
 import type { UserSummary } from "@/server/domains/identity/models/user";
+import { CopyEmailButton } from "./CopyEmailButton";
 import { USERS_LIST, type UsersListState } from "./list";
 
 const CHIP_LABELS = { q: "Search", role: "Role", status: "Status" } as const;
@@ -70,25 +74,19 @@ const ROLE_RANK = ["admin", "moderator", "user"] as const;
 
 /**
  * Root, or a badge per role a user holds in their workspaces, highest first, each with how many
- * workspaces they hold it in (092, the owner's choice): "admin 1 · user 1". `editor` wraps the
- * badges in the button that opens their Workspaces dialog; hovering lists each workspace and role.
+ * workspaces they hold it in (092, the owner's choice): "admin 1 · user 1". Hovering lists each
+ * workspace and role; the user's page (123) has them in full.
  */
-const RoleCell = ({
-  user,
-  editor,
-}: {
-  user: UserSummary;
-  editor?: (content: ReactNode) => ReactNode;
-}) => {
+const RoleCell = ({ user }: { user: UserSummary }) => {
   if (user.role === "root") return <Badge tone="accent">root</Badge>;
   const all = user.workspaces ?? [];
   const counts = ROLE_RANK.flatMap((role) => {
     const n = all.filter((w) => w.role === role).length;
     return n > 0 ? [{ role, n }] : [];
   });
-  const content = (
+  return (
     <span
-      className="flex flex-wrap items-center gap-1"
+      className="flex items-center gap-1"
       title={all.map((w) => `${w.name}: ${w.role}`).join(", ") || undefined}
     >
       {counts.length > 0 ? (
@@ -104,17 +102,15 @@ const RoleCell = ({
       )}
     </span>
   );
-  return editor ? editor(content) : content;
 };
 
 /**
  * The account's SCIM link (108): *Managed by* while the provider's SCIM manages it, *Adopted by*
  * when SCIM took over an account the provider already signed in to, *Deprovisioned by* after its
- * DELETE, with the Erase link (103, `erase`) beside it: deprovisioning leaves the account for root
- * to erase. An erased account (103) shows *Erased on* instead, and nothing of SCIM's (its links
- * are gone).
+ * DELETE (the account is left for root to erase, on its page: 123). An erased account (103) shows
+ * *Erased on* instead, and nothing of SCIM's (its links are gone).
  */
-export const ScimBadges = ({ user, erase }: { user: UserSummary; erase?: ReactNode }) => {
+export const ScimBadges = ({ user }: { user: UserSummary }) => {
   if (user.erasedAt)
     return (
       <Badge tone="warning">
@@ -134,52 +130,73 @@ export const ScimBadges = ({ user, erase }: { user: UserSummary; erase?: ReactNo
         </Badge>
       ) : null}
       {scim.deprovisionedAt ? (
-        <>
-          <Badge tone="warning">
-            Deprovisioned by {scim.providerName} on&nbsp;
-            <LocalTime value={scim.deprovisionedAt} precision="day" />
-          </Badge>
-          {erase}
-        </>
+        <Badge tone="warning">
+          Deprovisioned by {scim.providerName} on&nbsp;
+          <LocalTime value={scim.deprovisionedAt} precision="day" />
+        </Badge>
       ) : null}
     </span>
   );
 };
 
-const columns = (
-  actions?: (user: UserSummary) => ReactNode,
-  workspaces?: (user: UserSummary, content: ReactNode) => ReactNode,
-  erase?: (user: UserSummary) => ReactNode,
-): Column<UserSummary, "created" | "email" | "name">[] => [
-  {
-    id: "email",
-    header: "Email",
-    sort: "email",
-    mono: true,
-    truncate: true,
-    render: (user) => <span title={user.email}>{user.email}</span>,
-  },
+/** A user's page (123), root's way to everything about the account and its actions. */
+const pageHref = (user: UserSummary): string => `/admin/users/${user.id}`;
+
+const columns: Column<UserSummary, "created" | "email" | "name">[] = [
   {
     id: "name",
     header: "Name",
     sort: "name",
-    className: "w-36",
+    // As wide as the email, so the two read as a pair (owner, 2026-10-20).
+    className: "w-60",
     truncate: true,
     hideOnMobile: true,
-    render: (user) => <span title={user.name}>{user.name}</span>,
+    render: (user) => (
+      <Link
+        href={pageHref(user)}
+        title={user.name}
+        className="text-link hover:underline outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
+      >
+        {user.name}
+      </Link>
+    ),
+  },
+  {
+    id: "email",
+    header: "Email",
+    sort: "email",
+    className: "w-60",
+    mono: true,
+    truncate: true,
+    // On a phone the name column is hidden, so the email is the link, and it covers the whole row
+    // (the row is `relative`): a tap anywhere opens the page. From `sm` up the name is the link.
+    render: (user) => (
+      <span className="flex min-w-0 items-center gap-1">
+        <Link
+          href={pageHref(user)}
+          title={user.email}
+          data-copy-source
+          className="min-w-0 truncate text-link after:absolute after:inset-0 sm:hidden outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
+        >
+          {user.email}
+        </Link>
+        <span title={user.email} data-copy-source className="hidden min-w-0 truncate sm:inline">
+          {user.email}
+        </span>
+        <CopyEmailButton email={user.email} />
+      </span>
+    ),
   },
   {
     id: "role",
     header: "Role",
-    className: "w-56",
+    className: "w-52",
+    nowrap: true,
     // The SCIM badges go here, under the role, so phones show them too (the Status column doesn't).
     render: (user) => (
       <span className="grid justify-items-start gap-1">
-        <RoleCell
-          user={user}
-          editor={workspaces ? (content) => workspaces(user, content) : undefined}
-        />
-        <ScimBadges user={user} erase={erase?.(user)} />
+        <RoleCell user={user} />
+        <ScimBadges user={user} />
       </span>
     ),
   },
@@ -187,6 +204,7 @@ const columns = (
     id: "status",
     header: "Status",
     className: "w-20",
+    nowrap: true,
     hideOnMobile: true,
     render: (user) => (
       <span className={user.disabledAt ? "text-muted" : undefined}>
@@ -195,26 +213,53 @@ const columns = (
     ),
   },
   {
+    id: "lastSignIn",
+    header: "Last sign-in",
+    className: "w-48",
+    mono: true,
+    nowrap: true,
+    hideOnMobile: true,
+    // A web sign-in (123): never for an account with none on record, a dash for an erased one.
+    render: (user) =>
+      user.erasedAt ? (
+        <span className="text-muted">–</span>
+      ) : user.lastSignInAt ? (
+        <LocalTime value={user.lastSignInAt} />
+      ) : (
+        <span className="text-muted">Never</span>
+      ),
+  },
+  {
     id: "created",
     header: "Created",
     sort: "created",
     className: "w-28",
     mono: true,
+    nowrap: true,
     hideOnMobile: true,
     render: (user) => <LocalTime value={user.createdAt} precision="day" />,
   },
   {
-    id: "actions",
+    id: "open",
     header: "",
-    className: "w-[17rem]",
+    srHeader: "Open",
+    className: "w-14",
     align: "right",
-    render: (user) => actions?.(user) ?? null,
+    nowrap: true,
+    hideOnMobile: true,
+    // An icon, not the word: tables use icons for row links and actions (123, decision 6).
+    render: (user) => (
+      <IconLink href={pageHref(user)} label={`Open ${user.email}`}>
+        <ChevronRight size={16} aria-hidden />
+      </IconLink>
+    ),
   },
 ];
 
 /**
  * /admin/users (spec 008, on the server data table since 061): who can use this instance, sorted
- * and filtered on the server. `actions` renders each row's actions and `toolbar` the create button.
+ * and filtered on the server. Each row opens the user's page (123), which holds the actions;
+ * `toolbar` renders the create button.
  */
 export const UsersPage = ({
   state,
@@ -222,9 +267,6 @@ export const UsersPage = ({
   page,
   total,
   toolbar,
-  actions,
-  workspaces,
-  erase,
   notice,
 }: {
   state: UsersListState;
@@ -232,11 +274,6 @@ export const UsersPage = ({
   page: { next: string | null; previous: string | null };
   total: { count: number; capped: boolean };
   toolbar?: ReactNode;
-  actions?: (user: UserSummary) => ReactNode;
-  /** Wraps a user's role badges in the trigger for their Workspaces dialog (092). */
-  workspaces?: (user: UserSummary, content: ReactNode) => ReactNode;
-  /** The Erase link beside a *Deprovisioned by* badge (103). */
-  erase?: (user: UserSummary) => ReactNode;
   notice?: ReactNode;
 }) => (
   <>
@@ -249,7 +286,7 @@ export const UsersPage = ({
     <DataTable
       list={USERS_LIST}
       state={state}
-      columns={columns(actions, workspaces, erase)}
+      columns={columns}
       rows={users}
       rowKey={(user) => user.id}
       page={page}

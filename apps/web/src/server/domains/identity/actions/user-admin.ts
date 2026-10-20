@@ -7,7 +7,7 @@ import * as service from "../services/user-admin";
 import { scimAccountStates } from "./scim-settings";
 import { getCurrentUser } from "./session";
 
-export type { NewUserInput, UsersPage } from "../services/user-admin";
+export type { NewUserInput, UserDetail, UsersPage } from "../services/user-admin";
 
 /**
  * Entry points for /admin/users (feature 008). Thin: they find who's asking from the request, and
@@ -40,6 +40,17 @@ export const adminListUsers = async (
       return scim ? { ...u, scim } : u;
     }),
   };
+};
+
+/** One user for `/admin/users/<id>` (123), with their SCIM link like a row of the list. */
+export const adminGetUser = async (
+  headers: Headers,
+  userId: string,
+  app: AppAuth = getAppAuth(),
+) => {
+  const detail = await service.getUser(deps(app), await actor(headers, app), userId);
+  const scim = (await scimAccountStates(headers, [userId], app)).get(userId);
+  return { ...detail, user: scim ? { ...detail.user, scim } : detail.user };
 };
 
 export const adminCreateUser = async (

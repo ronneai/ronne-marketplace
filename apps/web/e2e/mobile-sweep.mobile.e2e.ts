@@ -36,7 +36,7 @@ const results: Result[] = [];
 const targets = new Map<string, { target: SmallTarget; urls: Set<string> }>();
 /** Table columns too narrow to read, by page, role and width (`squeezedColumns`). */
 const squeezed: string[] = [];
-let data: SweepData = { draftId: "", submissionId: "", personal: "" };
+let data: SweepData = { draftId: "", submissionId: "", personal: "", userId: "" };
 
 test.describe.configure({ mode: "serial" });
 
@@ -81,8 +81,17 @@ test.beforeAll(async ({ playwright }, testInfo) => {
     data: { ids: [submissionId] },
   });
   expect(submitted.ok()).toBe(true);
+  // Their id, for root's page about them (123).
+  const me = await api.get("/api/v1/me", { headers });
+  expect(me.ok()).toBe(true);
+  const userId = (await me.json()).id as string;
   // Their personal workspace (114) is named from their email.
-  data = { draftId, submissionId, personal: mobileUser(testInfo, "member").split("@")[0] ?? "" };
+  data = {
+    draftId,
+    submissionId,
+    personal: mobileUser(testInfo, "member").split("@")[0] ?? "",
+    userId,
+  };
   await api.dispose();
 });
 

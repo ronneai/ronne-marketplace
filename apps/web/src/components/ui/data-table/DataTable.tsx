@@ -42,6 +42,8 @@ export type Column<Row, S extends string> = {
   mono?: boolean;
   /** One line, cut with an ellipsis; `title` gives the whole text. */
   truncate?: boolean;
+  /** No line breaks in the cell (123): its column is wide enough for the value, so nothing is cut. */
+  nowrap?: boolean;
   align?: "left" | "right";
   /** Hidden below the `sm` breakpoint. */
   hideOnMobile?: boolean;
@@ -320,6 +322,7 @@ export const DataTable = <Row, S extends string, F extends string>({
                           "h-10 border-b border-hairline px-3 text-fg",
                           column.mono && "font-mono text-[13px]",
                           column.truncate && "truncate",
+                          column.nowrap && "whitespace-nowrap",
                           column.align === "right" && "text-right",
                           hide(column),
                         )}
