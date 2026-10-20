@@ -279,7 +279,6 @@ export const completeSsoSignIn = async (
       url,
       redirectUri: redirectUriFor(baseURL, providerId),
       keep: taken.state.keep,
-      startedAt: taken.startedAt,
     });
 
   // A *Test sign-in* (106): shows what came back, changes nothing, opens no session.

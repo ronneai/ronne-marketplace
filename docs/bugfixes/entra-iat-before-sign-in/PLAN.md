@@ -12,7 +12,7 @@ See [SPEC.md](./SPEC.md). Work on branch `bugfix/106-entra-iat`.
    - Keep only `iat > now + CLOCK_TOLERANCE_SECONDS`, with the message `callback: iat in the future`
      and a comment saying why the lower bound is gone.
    - *Done when:* the tests in task 1 pass.
-3. [ ] **Remove `startedAt`**
+3. [x] **Remove `startedAt`**
    - From `complete()`'s signature (`models/auth-provider-type.ts`), its caller (`actions/sso.ts`),
      `SsoRepository.takeState` (`repositories/sso-repository.ts`) and
      `kysely-sso-repository.ts` (also the `created_at` it selects).

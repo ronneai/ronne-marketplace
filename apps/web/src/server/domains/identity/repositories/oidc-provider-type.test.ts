@@ -38,10 +38,9 @@ const provider = (overrides: Partial<ProviderWithSecret> = {}): ProviderWithSecr
 
 /** Start, let the fake sign the person in, and complete: the whole browser round trip. */
 const signIn = async (p = provider(), type = oidcProviderType) => {
-  const startedAt = new Date();
   const started = await type.start(p, { redirectUri: REDIRECT });
   const back = await followAuthorize(started.url);
-  return type.complete(p, { url: back, redirectUri: REDIRECT, keep: started.keep, startedAt });
+  return type.complete(p, { url: back, redirectUri: REDIRECT, keep: started.keep });
 };
 
 const refusedWith = async (
@@ -254,7 +253,6 @@ describe("completing a sign-in", () => {
   });
 
   it("refuses a callback whose state isn't the one it started with", async () => {
-    const startedAt = new Date();
     const started = await oidcProviderType.start(provider(), { redirectUri: REDIRECT });
     const back = await followAuthorize(started.url);
     back.searchParams.set("state", "forged");
@@ -264,20 +262,17 @@ describe("completing a sign-in", () => {
         url: back,
         redirectUri: REDIRECT,
         keep: started.keep,
-        startedAt,
       }),
     );
   });
 
   it("refuses a code used twice, or with another verifier", async () => {
-    const startedAt = new Date();
     const started = await oidcProviderType.start(provider(), { redirectUri: REDIRECT });
     const back = await followAuthorize(started.url);
     await oidcProviderType.complete(provider(), {
       url: back,
       redirectUri: REDIRECT,
       keep: started.keep,
-      startedAt,
     });
     await refusedWith(
       "provider_error",
@@ -285,7 +280,6 @@ describe("completing a sign-in", () => {
         url: back,
         redirectUri: REDIRECT,
         keep: started.keep,
-        startedAt,
       }),
     );
     const two = await oidcProviderType.start(provider(), { redirectUri: REDIRECT });
@@ -295,7 +289,6 @@ describe("completing a sign-in", () => {
         url: await followAuthorize(two.url),
         redirectUri: REDIRECT,
         keep: { ...two.keep, verifier: started.keep.verifier as string },
-        startedAt,
       }),
     );
   });

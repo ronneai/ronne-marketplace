@@ -69,7 +69,7 @@ export interface AuthProviderType {
   start(provider: ProviderWithSecret, options: { redirectUri: string }): Promise<StartResult>;
   complete(
     provider: ProviderWithSecret,
-    callback: { url: URL; redirectUri: string; keep: SignInState; startedAt: Date },
+    callback: { url: URL; redirectUri: string; keep: SignInState },
   ): Promise<VerifiedIdentity>;
   test(provider: ProviderWithSecret): Promise<ProviderTestResult>;
   instructions(
