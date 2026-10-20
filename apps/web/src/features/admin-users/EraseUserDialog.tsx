@@ -142,8 +142,8 @@ export const EraseUserForm = ({
 };
 
 /**
- * Opens the erase dialog: from the row's actions (`row`), or as the link beside the
- * *Deprovisioned by* badge (108, `link`). Each button owns its dialog. Closing it refreshes the
+ * Opens the erase dialog: from the row's actions (`row`), as the link beside the
+ * *Deprovisioned by* badge (108, `link`), or as the button on the user's page (123, `page`). Each button owns its dialog. Closing it refreshes the
  * list, which the action itself doesn't (the row, and the dialog in it, would go before root
  * read the outcome).
  */
@@ -152,7 +152,7 @@ export const EraseUserButton = ({
   variant = "row",
 }: {
   user: ErasableUser;
-  variant?: "row" | "link";
+  variant?: "row" | "link" | "page";
 }) => {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -164,13 +164,19 @@ export const EraseUserButton = ({
   };
   return (
     <>
-      <button
-        type="button"
-        className={variant === "link" ? linkButton : rowButton}
-        onClick={() => setOpen(true)}
-      >
-        Erase
-      </button>
+      {variant === "page" ? (
+        <Button variant="destructive" onClick={() => setOpen(true)}>
+          Erase
+        </Button>
+      ) : (
+        <button
+          type="button"
+          className={variant === "link" ? linkButton : rowButton}
+          onClick={() => setOpen(true)}
+        >
+          Erase
+        </button>
+      )}
       <Dialog open={open} onClose={close} title="Erase user">
         {open ? <EraseUserForm key={round} user={user} onDone={close} /> : null}
       </Dialog>

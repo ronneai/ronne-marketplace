@@ -25,7 +25,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* component tests render each state (active, disabled, erased, own, SCIM-managed, two-factor
   on and off) and the page test checks the 404s.
 
-- [ ] **3. The actions on the page.** Mount the existing dialogs (`ActionForm`, the workspaces,
+- [x] **3. The actions on the page.** Mount the existing dialogs (`ActionForm`, the workspaces,
   download and erase dialogs) on the page, each returning here with the page refreshed; their
   server actions revalidate the page as well as the list.
   *Done when:* tests show each action calls its server action and the page shows the new state; the
@@ -61,6 +61,13 @@ goes into `SPEC.md` instead.
   page in the sweep, so `/admin/users/[id]` went in with task 2 (`e2e/pages.ts`, the sweep's member
   gives the id); the phone and tablet sweep passed on it. Task 6 still adds the axe run and moves
   the e2e steps.
-- **Task 4:** `ScimManagedNotice` lives in `UserRowActions.tsx` (with `ActionForm`, `RoleChangeNotice`) and the page imports it from there: move them to a file that stays when `UserRowActions` goes.
+- **Task 3: moved and changed** (Claude). The dialogs' form code moved from `UserRowActions.tsx` to
+  `UserActionDialogs.tsx` unchanged (the row keeps working until task 4 deletes it); the page's
+  buttons are `UserPageActions.tsx`; `DownloadDataButton`, `EraseUserButton` and
+  `UserWorkspacesButton` gained a `variant` for the page. While looking at an erased account's page
+  in a browser, its *Provider* row (which repeated the *Erased on* badge) went: the spec says an
+  erased account shows its pseudonym, *Erased on* and the greyed download, nothing of SCIM's.
+- **Task 4:** `ScimManagedNotice` now lives in `UserActionDialogs.tsx`, so nothing is left to move
+  when `UserRowActions` goes.
 - The overflow is in `UsersPage.tsx` (`w-[17rem]` on the Actions column) and `UserRowActions.tsx`
   (`whitespace-nowrap` buttons in a `min-w-0` fieldset); task 4 removes both rather than widening.

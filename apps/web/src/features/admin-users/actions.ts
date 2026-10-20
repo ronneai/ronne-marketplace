@@ -34,6 +34,8 @@ const attempt = async (
   try {
     const result = await work();
     revalidatePath("/admin/users");
+    // One user's page (123), whichever user it is.
+    revalidatePath("/admin/users/[id]", "page");
     return result;
   } catch (error) {
     if (error instanceof IdentityError || error instanceof WorkspacesError)

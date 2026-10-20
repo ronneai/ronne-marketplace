@@ -39,13 +39,26 @@ export const DownloadDataBody = ({ user, onClose }: { user: DataUser; onClose: (
 );
 
 /** Download their data (104): for a person who asked and can't sign in, or before an erasure. */
-export const DownloadDataButton = ({ user }: { user: DataUser }) => {
+export const DownloadDataButton = ({
+  user,
+  variant = "row",
+}: {
+  user: DataUser;
+  /** `page` is the button on the user's own page (123); `row` the small one of a table row. */
+  variant?: "row" | "page";
+}) => {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <button type="button" className={rowButton} onClick={() => setOpen(true)}>
-        Download their data
-      </button>
+      {variant === "page" ? (
+        <Button variant="secondary" onClick={() => setOpen(true)}>
+          Download their data
+        </Button>
+      ) : (
+        <button type="button" className={rowButton} onClick={() => setOpen(true)}>
+          Download their data
+        </button>
+      )}
       <Dialog open={open} onClose={() => setOpen(false)} title="Download their data">
         {open ? <DownloadDataBody user={user} onClose={() => setOpen(false)} /> : null}
       </Dialog>

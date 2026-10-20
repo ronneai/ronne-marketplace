@@ -6,7 +6,7 @@ import { LocalTime } from "@/components/ui/LocalTime";
 import { Notice } from "@/components/ui/Notice";
 import { PageHeader, Panel } from "@/components/ui/Panel";
 import type { UserDetail } from "@/server/domains/identity/actions/user-admin";
-import { ScimManagedNotice } from "./UserRowActions";
+import { ScimManagedNotice } from "./UserActionDialogs";
 import { ScimBadges } from "./UsersPage";
 
 /** Where each section's actions go (123, task 3): the page lays them out, the route fills them. */
@@ -131,7 +131,7 @@ export const UserPage = ({
                 </span>
               )}
             </Fact>
-            {user.scim || erased ? (
+            {user.scim && !erased ? (
               <Fact label="Provider">
                 <ScimBadges user={user} />
               </Fact>

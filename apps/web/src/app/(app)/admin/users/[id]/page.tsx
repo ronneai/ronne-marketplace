@@ -1,9 +1,14 @@
 import { notFound } from "next/navigation";
-import { UserPage } from "@/features/admin-users/UserPage";
+import { DownloadDataButton } from "@/features/admin-users/DownloadDataDialog";
+import { EraseUserButton } from "@/features/admin-users/EraseUserDialog";
+import { UserPage, type UserPageSlots } from "@/features/admin-users/UserPage";
+import { ErasedDownloadButton, UserActionButton } from "@/features/admin-users/UserPageActions";
+import { UserWorkspacesButton } from "@/features/admin-users/UserWorkspacesDialog";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
 import { adminGetUser } from "@/server/domains/identity/actions/user-admin";
 import { UserNotFoundError } from "@/server/domains/identity/exceptions/errors";
 import { can } from "@/server/domains/identity/models/permissions";
+import { listWorkspaces } from "@/server/domains/workspaces/actions/workspaces";
 import { requestHeaders } from "@/server/http/request-headers";
 import { holdPage } from "../../../hold";
 
@@ -11,7 +16,8 @@ export const metadata = { title: "User · Ronne AI Marketplace" };
 
 /**
  * One user (feature 123), under Users: root only (`users.view`), a 404 for anyone else and for an
- * id that isn't a user's, so the page says nothing of who exists.
+ * id that isn't a user's, so the page says nothing of who exists. The actions are the list's
+ * dialogs, mounted here; your own page and an erased account's offer none (059, 103).
  */
 const User = async ({ params }: { params: Promise<{ id: string }> }) => {
   await holdPage();
@@ -24,7 +30,52 @@ const User = async ({ params }: { params: Promise<{ id: string }> }) => {
     if (error instanceof UserNotFoundError) notFound();
     throw error;
   });
-  return <UserPage detail={detail} self={detail.user.id === me.id} />;
+  const { user } = detail;
+  const self = user.id === me.id;
+
+  let slots: UserPageSlots = {};
+  if (user.erasedAt) {
+    slots = { data: <ErasedDownloadButton email={user.email} /> };
+  } else if (!self) {
+    const row = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      disabled: Boolean(user.disabledAt),
+      twoFactor: Boolean(user.twoFactor),
+      managedBy: user.scim?.managed ? user.scim.providerName : undefined,
+    };
+    // Root works in every workspace: no Workspaces dialog for root (092).
+    const workspaces =
+      user.role === "root"
+        ? []
+        : (await listWorkspaces(request)).map(({ id, name, isGlobal }) => ({ id, name, isGlobal }));
+    slots = {
+      role: <UserActionButton kind="role" user={row} />,
+      access: (
+        <>
+          <UserActionButton kind="reset" user={row} />
+          {row.twoFactor ? <UserActionButton kind="twoFactor" user={row} /> : null}
+          <UserActionButton kind={row.disabled ? "enable" : "disable"} user={row} />
+        </>
+      ),
+      workspaces:
+        user.role === "root" ? undefined : (
+          <UserWorkspacesButton
+            variant="button"
+            user={{ id: user.id, email: user.email }}
+            workspaces={workspaces}
+            count={user.workspaces?.length ?? 0}
+          >
+            Manage workspaces
+          </UserWorkspacesButton>
+        ),
+      data: <DownloadDataButton variant="page" user={{ id: user.id, email: user.email }} />,
+      erase: <EraseUserButton variant="page" user={row} />,
+    };
+  }
+  return <UserPage detail={detail} self={self} slots={slots} />;
 };
 
 export default User;

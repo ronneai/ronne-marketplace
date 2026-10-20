@@ -90,3 +90,32 @@ Witnessed: 2026-10-20 10:15 EDT, by a fresh agent (blind re-check). Commit: 9f0e
 | 20 | Users is current on `/admin/users/<id>` and Audit log isn't, and the new assertion fails without `section` | no | confirmed | `AppShell.test.tsx:194-196`; scratch copy with `section: "/admin/users"` removed from `nav.ts` → 1 failed, 34 passed, at line 195 |
 
 **Overall:** met.
+
+## Task 3 — The actions on the page
+
+Witnessed: 2026-10-20 10:35 EDT, by a fresh agent (blind). Commit: 2635af9c plus the uncommitted diff (9 modified files; untracked `UserActionDialogs.tsx` and `UserPageActions.tsx`). Machine: macOS (Darwin 27.0.0), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The existing action tests pass unchanged: only import paths changed in existing tests, plus tests added | no | confirmed | `git diff --stat -- '*.test.tsx'` → only `actions.test.tsx` (+17/-3: the import split, and one new test) and `user-page.test.tsx` (+64: a `listWorkspaces` mock, a `>Provider<` assertion, 4 route tests); `admin-users.test.tsx`, `download-data.test.tsx` and `workspaces-dialog.test.tsx` untouched |
+| 2 | The move to `UserActionDialogs.tsx` changed no dialog behaviour | no | confirmed | `diff <(git show HEAD:…/UserRowActions.tsx) UserActionDialogs.tsx` → only imports dropped, `Role`/`RowUser`/`Kind`/`TITLES` exported, `rowButton` and the `UserRowActions` component left behind; `ActionForm`, the notices and `DisableImpact` byte-identical |
+| 3 | The list's rows (`UserRowActions`) still work | no | confirmed | same logic and shared `ActionForm`; `vitest run src/features/admin-users` → 5 files, 50 tests passed |
+| 4 | Each action's server action revalidates the page as well as the list | no | confirmed | `actions.ts` adds `revalidatePath("/admin/users/[id]", "page")` in `attempt`, on success only; mutation (line removed) → "refresh one user's page as well as the list (123)" fails (1 failed, 16 passed), restored `cmp` ok |
+| 5 | Another user's page mounts every dialog: Change role, Reset password, Disable or Enable, Reset two-factor only when on, Manage workspaces, Download their data, Erase | no | confirmed | `page.tsx` slots and the route tests pass; those render buttons without opening dialogs, the browser run (8) opens them |
+| 6 | Root gets no Workspaces dialog; another root's page has the other actions | no | confirmed | `page.tsx`: `user.role === "root" ? undefined`, no `listWorkspaces` call; test passed; the root screenshot shows "Root: every workspace." and no button |
+| 7 | Your own page and an erased account's show no action (an erased one keeps the greyed download), enforced by the page and by the route | no | confirmed | mutation 1 (`else if (true)` in the route) → the route test still passed, since `UserPage`'s `changeable = !self && !erased` also gates the slots; mutation 2 (`changeable = true`, data slot ungated, `else if (true)`) → 3 tests failed; mutation 3 (`if (false)` for the erased branch) → the route test failed; all restored |
+| 8 | In a browser the page drives disable, enable, reset password, Manage workspaces, Download, change role to root and erase, showing each new state | no | confirmed | `pnpm --filter @ronneai/web test:e2e e2e/zz-tmp-user-actions.e2e.ts --project=chromium` (a temporary spec, since removed) → 1 passed (4.7s); the three screenshots show Disabled (badge, "Disabled on", Reset password and Enable), root (role root, no Manage workspaces) and erased (pseudonym, no Provider row, only a greyed "Download their data (erased)"); nothing wrong |
+| 9 | Nothing relies on the page's own checks: non-roots can't reach the page or the actions | no | confirmed | no change under `apps/web/src/server`; `user-admin.ts` has `requirePermission(…, "users.manage")` at lines 130, 190, 223, 251, 277, 306, 341, 369; `erase-user.ts:122,133,214,229` and `user-data-export.ts:56-58` the same; the route 404s a non-root (tested); no scratch call of the actions as a non-root, and the workspaces membership service's check not read |
+| 10 | The dialogs, server actions and rules are otherwise unchanged | no | partly | `DownloadDataDialog`, `EraseUserDialog` and `UserWorkspacesDialog` only gain a `variant` prop with the default unchanged; but `UserPage.tsx` also changed outside the actions: the Provider row is now `user.scim && !erased` (was `user.scim \|\| erased`), covered by a test but not part of the task |
+
+**Overall:** not met, only for row 10: a side change to the page's Provider row, which the spec's erased-account line supports and the plan's notes now explain; waits for a re-check of that row.
+
+### Re-check 1 — row 10 (the side change)
+
+Witnessed: 2026-10-20 10:20 EDT, by a fresh agent (blind, re-check of row 10 only). Commit: 2635af9c plus the uncommitted diff. Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 10 | The dialogs, server actions and rules are otherwise unchanged | yes | confirmed | SPEC.md:86 says an erased account shows "its pseudonym, Erased on, and the greyed download"; SPEC.md:72 lists "the identity provider and SCIM state if any" in Account; `erase-user.ts:148` runs `repo.deleteScimRows(userId)`, so an erased account has no SCIM state and dropping its Provider row agrees with both lines; PLAN.md:67-69 explains it; `git diff -U0` of the five files shows only the `variant` props and their branches (and a doc-comment edit in `EraseUserDialog.tsx`), the `revalidatePath` line, the import path that moved with the dialogs, and `user.scim \|\| erased` → `user.scim && !erased`; `vitest run src/features/admin-users/user-page.test.tsx` → 15 passed |
+
+**Overall:** met.

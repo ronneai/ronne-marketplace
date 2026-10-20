@@ -7,6 +7,9 @@ const session = vi.hoisted(() => ({ getCurrentUser: vi.fn(), PATH_HEADER: "x-ron
 const admin = vi.hoisted(() => ({ adminGetUser: vi.fn() }));
 vi.mock("@/server/domains/identity/actions/session", () => session);
 vi.mock("@/server/domains/identity/actions/user-admin", () => admin);
+vi.mock("@/server/domains/workspaces/actions/workspaces", () => ({
+  listWorkspaces: vi.fn(async () => [{ id: "w1", name: "global", isGlobal: true }]),
+}));
 vi.mock("@/server/http/request-headers", () => ({
   requestHeaders: async () => new Headers({ "x-ronne-path": "/admin/users/x" }),
 }));
@@ -142,6 +145,8 @@ describe("a user's page (123)", () => {
     expect(html).toContain("2026-10-10");
     expect(html).toMatch(/Last sign-in<\/dt><dd[^>]*>–</);
     expect(html).not.toContain("Never");
+    // The status says it: no Provider row repeating the badge.
+    expect(html).not.toContain(">Provider<");
     expect(html).toContain("SLOT-DATA");
     for (const slot of ["ROLE", "ACCESS", "WORKSPACES", "ERASE"])
       expect(html, slot).not.toContain(`SLOT-${slot}`);
@@ -204,6 +209,65 @@ describe("the route", () => {
     await expect(UserRoute({ params: Promise.resolve({ id: ID }) })).rejects.toThrow(
       "database is down",
     );
+  });
+
+  it("mounts the actions of the list's dialogs on another user's page", async () => {
+    session.getCurrentUser.mockResolvedValue({ id: "root-id", role: "root" });
+    const html = renderToStaticMarkup(await UserRoute({ params: Promise.resolve({ id: ID }) }));
+    for (const label of [
+      "Change role",
+      "Reset password",
+      "Disable",
+      "Manage workspaces",
+      "Download their data",
+      "Erase",
+    ])
+      expect(html, label).toMatch(new RegExp(`<button[^>]*>${label}</button>`));
+    expect(html).not.toContain("Reset two-factor");
+    expect(html).not.toMatch(/>Enable</);
+  });
+
+  it("offers Enable for a disabled account and Reset two-factor only when it's on", async () => {
+    session.getCurrentUser.mockResolvedValue({ id: "root-id", role: "root" });
+    admin.adminGetUser.mockResolvedValue(
+      detail({ disabledAt: new Date("2026-10-01T10:00:00Z"), twoFactor: true }),
+    );
+    const html = renderToStaticMarkup(await UserRoute({ params: Promise.resolve({ id: ID }) }));
+    expect(html).toMatch(/<button[^>]*>Enable<\/button>/);
+    expect(html).not.toMatch(/<button[^>]*>Disable<\/button>/);
+    expect(html).toMatch(/<button[^>]*>Reset two-factor<\/button>/);
+  });
+
+  it("gives another root the actions, but no Workspaces dialog: root works in every one", async () => {
+    session.getCurrentUser.mockResolvedValue({ id: "root-id", role: "root" });
+    admin.adminGetUser.mockResolvedValue(detail({ role: "root", workspaces: [] }));
+    const html = renderToStaticMarkup(await UserRoute({ params: Promise.resolve({ id: ID }) }));
+    expect(html).toMatch(/<button[^>]*>Change role<\/button>/);
+    expect(html).not.toContain("Manage workspaces");
+  });
+
+  it("gives your own page no action, and an erased account only the greyed download", async () => {
+    session.getCurrentUser.mockResolvedValue({ id: "root-id", role: "root" });
+    admin.adminGetUser.mockResolvedValue(detail({ id: "root-id", role: "root", workspaces: [] }));
+    const own = renderToStaticMarkup(
+      await UserRoute({ params: Promise.resolve({ id: "root-id" }) }),
+    );
+    // The helper is a button too, so name the actions.
+    for (const label of ["Change role", "Reset password", "Disable", "Download", "Erase"])
+      expect(own, label).not.toContain(`>${label}`);
+    admin.adminGetUser.mockResolvedValue(
+      detail({
+        email: "deleted-user-01K6@ronne.invalid",
+        erasedAt: new Date("2026-10-10T10:00:00Z"),
+        lastSignInAt: null,
+      }),
+    );
+    const erased = renderToStaticMarkup(await UserRoute({ params: Promise.resolve({ id: ID }) }));
+    expect(erased.match(/<button[^>]*disabled/g)).toHaveLength(1);
+    expect(erased).toContain("Download the data of deleted-user-01K6@ronne.invalid: erased");
+    expect(erased).toMatch(/<button[^>]*disabled/);
+    for (const label of ["Change role", "Reset password", "Disable", "Erase"])
+      expect(erased, label).not.toContain(`>${label}<`);
   });
 
   it("gives root the user's page, and root's own page read-only", async () => {

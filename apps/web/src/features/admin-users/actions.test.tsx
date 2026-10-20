@@ -25,9 +25,8 @@ vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => ne
 
 const actions = await import("./actions");
 const { OneTimePassword } = await import("./OneTimePassword");
-const { ActionForm, RoleChangeNotice, ScimManagedNotice, UserRowActions } = await import(
-  "./UserRowActions"
-);
+const { ActionForm, RoleChangeNotice, ScimManagedNotice } = await import("./UserActionDialogs");
+const { UserRowActions } = await import("./UserRowActions");
 const { CreateUserDialog } = await import("./CreateUserDialog");
 const { confirmsEmail, EraseUserForm } = await import("./EraseUserDialog");
 const { EraseConfirmationError } = await import("@/server/domains/identity/exceptions/errors");
@@ -116,6 +115,18 @@ describe("the row actions", () => {
     expect(
       await actions.resetPasswordFromForm({}, form({ userId: "u1", passwordMode: "generate" })),
     ).toEqual({ oneTime: { email: "u@example.com", password: "N3w" } });
+  });
+
+  it("refresh one user's page as well as the list (123)", async () => {
+    admin.adminChangeRole.mockResolvedValue(undefined);
+    await actions.changeRoleFromForm({}, form({ userId: "u1", role: "root" }));
+    expect(cache.revalidatePath).toHaveBeenCalledWith("/admin/users");
+    expect(cache.revalidatePath).toHaveBeenCalledWith("/admin/users/[id]", "page");
+    // A refused change refreshes nothing.
+    cache.revalidatePath.mockClear();
+    admin.adminChangeRole.mockRejectedValue(new CannotModifySelfError());
+    await actions.changeRoleFromForm({}, form({ userId: "u1", role: "root" }));
+    expect(cache.revalidatePath).not.toHaveBeenCalled();
   });
 
   it("report acting on your own row being refused", async () => {
