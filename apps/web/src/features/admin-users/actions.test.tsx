@@ -27,7 +27,7 @@ const actions = await import("./actions");
 const { OneTimePassword } = await import("./OneTimePassword");
 const { ActionForm, RoleChangeNotice, ScimManagedNotice } = await import("./UserActionDialogs");
 const { CreateUserDialog } = await import("./CreateUserDialog");
-const { confirmsEmail, EraseUserForm } = await import("./EraseUserDialog");
+const { confirmsEmail, EraseUserButton, EraseUserForm } = await import("./EraseUserDialog");
 const { EraseConfirmationError } = await import("@/server/domains/identity/exceptions/errors");
 
 const form = (fields: Record<string, string>) => {
@@ -149,6 +149,13 @@ describe("rendering", () => {
     expect(html).toContain("Gen3ratedPassw0rd");
   });
 
+  it("the erase dialog is extra large, wide and short (123)", () => {
+    const html = renderToStaticMarkup(
+      <EraseUserButton user={{ id: "u", email: "u@example.com", name: "U", role: "user" }} />,
+    );
+    expect(html).toContain("w-[min(56rem,");
+  });
+
   it("the erase dialog names the account, lists what goes and stays, and needs the email typed (103)", () => {
     const html = renderToStaticMarkup(
       <EraseUserForm
@@ -162,6 +169,8 @@ describe("rendering", () => {
     expect(html).toContain("ana@example.com is a root.");
     expect(html).toContain("What goes");
     expect(html).toContain("What stays, under the pseudonym");
+    // Side by side from `md` up, in an extra large dialog (123).
+    expect(html).toContain("md:grid-cols-2");
     expect(html).toContain("give it to them first");
     expect(html).toContain("What does erasing do?");
     expect(html).toMatch(/<input[^>]*type="email"[^>]*name="confirm"/);

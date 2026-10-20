@@ -50,6 +50,18 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   clipboard permission and reads the email back, and the table still has no overflowing cell at
   1280px and 1440px.
 
+- [x] **4c. Dialog sizes.** `Dialog` takes `small`, `medium` (default), `large`, `xlarge` and a
+  separate `fixedHeight`; Move scope (`wide`) becomes `large`, Bulk release and Bulk approve
+  `large` with `fixedHeight`; Erase user is `xlarge` with its two lists side by side; `DialogActions`
+  gets a top margin; `docs/knowledge/dialog-sizes.md` says which size for what.
+  *Done when:* component tests cover the four widths and the default, `fixedHeight` apart from the
+  width, the side sheet off the scale and the action bar's margin; a browser check shows Erase user
+  wide and short at 1440x900 and 1280x720 without scrolling, with air above its buttons, one
+  other dialog with the same air, and a full-screen sheet on a phone. Also: the helpers in the
+  download and reset-two-factor dialogs were inside a `<p>` (a hydration error found in
+  `pnpm dev`, from 104 and 105): moved beside the text, with a test that reads every source file
+  for it.
+
 - [ ] **5. Links in.** The audit log's event details link to the page when the event names an account;
   the page's audit link (`/admin/audit?actor=`) works.
   *Done when:* `admin-audit` tests cover both links.

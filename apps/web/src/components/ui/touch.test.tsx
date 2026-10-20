@@ -58,7 +58,7 @@ describe("tap areas on a coarse pointer", () => {
 });
 
 describe("dialogs on a phone (067)", () => {
-  const render = (size?: "default" | "large" | "side") =>
+  const render = (size?: "medium" | "large" | "side") =>
     renderToStaticMarkup(
       <Dialog open={false} onClose={() => {}} title="Create a token" size={size}>
         <p>Body</p>
@@ -78,7 +78,7 @@ describe("dialogs on a phone (067)", () => {
   it("scrolls only its body, with the actions stuck to the bottom", () => {
     const html = render();
     expect(html).toMatch(/<div class="min-h-0 flex-1 overflow-y-auto /);
-    expect(html).toMatch(/<div class="sticky bottom-0 [^"]*"><button/);
+    expect(html).toMatch(/<div data-dialog-actions="" class="sticky bottom-0 [^"]*"><button/);
   });
 
   it("has a 40px close button, 44px on touch", () => {

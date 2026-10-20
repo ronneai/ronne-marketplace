@@ -184,6 +184,16 @@ back button returns to the list with its filters, since they are in the URL (061
    "Details" in words, or has a plain text link where an icon would do, changes the next time its
    feature is touched, and no sooner. The Users list is the first.
 
+7. **Dialogs have one scale of sizes** (owner, 2026-10-20): `small` 24rem, `medium` 32rem (the
+   default), `large` 40rem and `xlarge` 56rem, `Dialog`'s `size`, for the whole app; `side` stays the
+   phone menu's sheet, and a fixed-height frame is its own `fixedHeight` prop (Bulk release and Bulk
+   approve), not a size. Erase user is `xlarge`, with *What goes* and *What stays* side by side.
+   [`docs/knowledge/dialog-sizes.md`](../../knowledge/dialog-sizes.md) says which to use for what.
+8. **The bar of a dialog's buttons has air above it** (owner, 2026-10-20): `DialogActions` has a
+   top margin, in every dialog, so the content is never against its border. The cause was the
+   bar's negative bottom margin, which a sticky box can't keep: it is gone, and the dialog's body
+   drops its bottom padding when it holds the bar.
+
 ## Open questions
 
 - Should the list sort by last sign-in (to find who never signed in, or who left)? It needs a join

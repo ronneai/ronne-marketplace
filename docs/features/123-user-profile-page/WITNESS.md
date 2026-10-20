@@ -188,3 +188,53 @@ Witnessed: 2026-10-20 10:50 EDT, by a fresh agent (blind, re-check of one claim)
 | 6c | With a working clipboard it still ends with "Copied" and the check icon | no | confirmed | the same spec, 1440, clipboard granted: status "Copied", `readText()` equals the email, one `svg.lucide-check` |
 
 **Overall:** met. Limits: chromium only; the 390 case is a narrow viewport on desktop Chromium, not the phone project.
+
+## Task 4c — Dialog sizes
+
+Witnessed: 2026-10-20 10:55 EDT, by a fresh agent (blind). Commit: 9fffb4f3 plus the uncommitted diff and two untracked files (`dialog-sizes.md`, `help-not-in-paragraph.test.ts`). Machine: macOS (Darwin 27.0.0), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `Dialog` takes `small`, `medium` (default), `large`, `xlarge`, with widths 24, 32, 40 and 56rem | no | confirmed | `Dialog.tsx` diff: `DIALOG_SIZES` with `w-[min(24rem,…)]`, 32, 40 and 56; `size = "medium"` is the default |
+| 2 | `fixedHeight` is a separate prop and works with any width | no | confirmed | `Dialog.tsx:103` adds `h-[min(45rem,calc(100dvh-2rem))]` only with `fixedHeight`, `:122` makes the column body only then; `ui.test.tsx:253-264` checks a framed and an unframed `large` |
+| 3 | The side sheet is off the scale | no | confirmed | `size?: DialogSize \| "side"` with its own branch; `MobileMenu.tsx:102` still `size="side"`; a test covers it |
+| 4 | No `size="wide"` or `size="default"` left in `apps/web/src` or `apps/web/e2e` | no | confirmed | `git grep -n 'size="wide"\|size="default"' apps/web/src apps/web/e2e` → no output |
+| 5 | Move scope is `large`, the bulk dialogs `large` + `fixedHeight`, Erase user `xlarge`; every old `size="large"` still gets the fixed frame | no | confirmed | HEAD had `size="large"` only in BulkRelease:246 and BulkApprove:284 and `size="wide"` in MoveScope:460; now MoveScope `large`, BulkRelease `large` + `fixedHeight`, BulkApprove `large fixedHeight`, Erase `xlarge` |
+| 6 | `DialogActions` has a top margin and no `-mb-4`; the body drops its bottom padding when it holds the bar | no | confirmed | `data-dialog-actions=""`, `mt-4`, no negative bottom margin; the body has `has-[[data-dialog-actions]]:pb-0` and `sm:has-[…]:pb-0`; in a real browser the body's bottom padding was `0px` |
+| 7 | Every `DialogActions` is last in its dialog body, none outside a Dialog | no | confirmed | scanned all uses (`git grep -n DialogActions apps/web/src`, the line after each close): each is followed only by the closing `</form>`, `</div>`, `</>` or `</Dialog>`; none depends on the old `-mb-4` |
+| 8 | Component tests cover the four widths and the default, `fixedHeight` apart from the width, the side sheet, and the action bar's margin | no | partly | the suite passes (74 files, 825 tests); removing `data-dialog-actions` fails 2 tests, putting `-mb-4` back fails 1; dropping `fixedHeight` from BulkApprove's Dialog fails nothing: no test guarded that the bulk dialogs keep it |
+| 9 | Browser: Erase user at 1440x900 and 1280x720 is 896px wide, its body doesn't scroll, at least 24px above the buttons | no | confirmed | a temporary spec (deleted): at both sizes width 896, body `scrollHeight` 621 = `clientHeight` 621, gap 32px, bottom padding 0px, dialog height 679.6; the screenshot shows two lists side by side and the confirm field beside the reminder |
+| 10 | One other dialog has the same air | no | confirmed | "Change role" gap 32px and "Download their data" gap 32px at both sizes |
+| 11 | On a phone Erase user is a full-screen sheet | no | confirmed | at 390x844: width 390, height 844 at (0,0); the body scrolls (957 > 787) with the bar stuck; `dialogs.mobile.e2e.ts` on the phone project passed |
+| 12 | The existing dialog browser tests still pass | no | confirmed | `test:e2e e2e/dialogs.mobile.e2e.ts e2e/move-scope.e2e.ts e2e/move-scope.mobile.e2e.ts e2e/bulk-approve.e2e.ts e2e/bulk-release.e2e.ts --project=chromium --project=phone` → 5 passed |
+| 13 | The helpers in the download and reset-two-factor dialogs are moved out of the `<p>` | no | confirmed | `DownloadDataDialog.tsx:22-28` has `<Help>` as a sibling after the `</p>` inside a `div`; a multi-line regex over every non-test `src/**/*.tsx` found no `<Help`/`<HelpTip` inside a `<p>` |
+| 14 | A test reads every source file for a helper inside a `<p>` | no | partly | `help-not-in-paragraph.test.ts` set `SRC = new URL("..", import.meta.url).pathname`, which from `src/components/help/` is `src/components/`, so it never read `src/features/` where the two dialogs live; putting `<Help>` back inside the `<p>` in `DownloadDataDialog.tsx` left it passing |
+| 15 | `docs/knowledge/dialog-sizes.md` says which size for what | no | confirmed | a table of sizes, widths and examples, with notes on `fixedHeight`, the action bar, why no negative margin, and helpers; consistent with the code |
+
+**Overall:** not met. Rows 8 and 14: no test failed if the bulk dialogs lost `fixedHeight`, and the helper test read only `src/components`. Fixed after this pass: `help-not-in-paragraph.test.ts` reads all of `src` (with a test of the finder and one that the features' dialogs are in the file list), and a new `dialog-usage.test.ts` checks the sizes named, the bulk dialogs' `fixedHeight` and Erase's `xlarge` (needs a re-check).
+
+### Re-check 1 — rows 8 and 14
+
+Witnessed: 2026-10-20 11:00 EDT, by a fresh agent (blind re-check of rows 8 and 14). Commit: 9fffb4f3 plus the uncommitted diff. Machine: macOS (Darwin 27.0.0).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 8a | Component tests cover the four widths, the default, `fixedHeight` apart from the width, the side sheet and the action bar's margin | no | confirmed | `vitest run src/components src/features` → 75 files, 830 tests passed; the `ui.test.tsx` and `touch.test.tsx` changes are in the diff (not re-read this round) |
+| 8b | A guard keeps BulkApprove and BulkRelease on `fixedHeight` and `size="large"` | no | confirmed | `dialog-usage.test.ts` "keeps the bulk dialogs in a fixed-height frame" reads each file's single `<Dialog` tag; dropping `fixedHeight` from `reviews/BulkApprove.tsx` fails it, and from `releases/BulkRelease.tsx` fails it |
+| 8c | Only scale sizes are used, and Erase user is `xlarge` | no | confirmed | `EraseUserDialog.tsx` `size="xlarge"` → `"large"` fails "only name sizes…" and "makes Erase user extra large"; `size="wide"` on the Erase `<Dialog>` fails the same two; the scale test reads every `<Dialog` tag under `src` |
+| 14a | The helper-not-in-`<p>` scan fails when a helper is put inside a `<p>` in the two named dialogs | no | confirmed | `<Help id="download-user-data" />` inside the `<p>` in `DownloadDataDialog.tsx` → "are beside the text, never inside a <p>" fails; `<Help id="reset-two-factor" />` inside the `<p>` in `UserActionDialogs.tsx` → the same |
+| 14b | The scan covers all of `src`, including `src/app` and `src/features` | no | confirmed | `SRC = new URL("../..", import.meta.url)`; a new `src/app/zz.tsx` with `<p><Help id="x" /></p>` fails with `[ 'app/zz.tsx:1' ]` |
+| 14c | The file-list test names the four files | no | can't check here | not read or broken in this round; the suite is green and the `src/app` mutation was caught |
+| 14d | Nothing else changed that this task owns | no | confirmed | `git diff --stat`: 13 files changed; untracked: the two new tests and `dialog-sizes.md`; nothing unexpected |
+
+**Overall:** not met: row 14c, the file-list test, was not checked; everything else held.
+
+### Re-check 2 — row 14c
+
+Witnessed: 2026-10-20 11:05 EDT, by a fresh agent (re-check of row 14c only, with mutations on a copy of the test). Commit: 9fffb4f3 plus uncommitted changes. Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 14c | `help-not-in-paragraph.test.ts` has a test of its finder on sample strings, and a test that the scanned file list includes `DownloadDataDialog.tsx`, `UserActionDialogs.tsx`, `HelpTip.tsx` and `app/(app)/admin/users/[id]/page.tsx` | no | confirmed | read: lines 25-29 test `helpersInParagraphs` on three samples (Help in a p, HelpTip in a p, Help beside a p), lines 31-40 assert the four files are in `sources(SRC)` with `SRC = ../..`; `vitest run src/components/help` → 2 files, 6 passed; mutations on a copy of the test: regex `<Helpx(Tip)?` → the finder test fails (`expected [] to deeply equal [ 2 ]`); `SRC` `".."` → the file-list test fails; `HelpTip.tsx` renamed to `HelpTipX.tsx` → it fails |
+
+**Overall:** met. The copy used for mutations sat beside the original (SRC is relative to the file) and was deleted; `git status` shows no leftover.

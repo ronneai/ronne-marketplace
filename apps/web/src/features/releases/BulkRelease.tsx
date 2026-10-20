@@ -244,6 +244,7 @@ export const BulkReleaseToolbar = ({
         open={open}
         onClose={close}
         size="large"
+        fixedHeight
         title={results ? "Released" : `Release ${count} ${count === 1 ? "item" : "items"}?`}
       >
         {results ? (

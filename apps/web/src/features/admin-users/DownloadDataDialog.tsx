@@ -18,12 +18,15 @@ type DataUser = { id: string; email: string };
 export const DownloadDataBody = ({ user, onClose }: { user: DataUser; onClose: () => void }) => (
   <div className="grid gap-4">
     <p className="font-mono text-[13px] text-fg">{user.email}</p>
-    <p className="text-sm text-muted">
-      The JSON file they would get from their Account page: their account, sessions, token names,
-      workspaces, items, submissions, comments and audit events, with other people&apos;s emails
-      replaced. It counts as their download for the next 10 minutes, and the audit log records that
-      you made it. <Help id="download-user-data" />
-    </p>
+    <div className="grid gap-1.5">
+      <p className="text-sm text-muted">
+        The JSON file they would get from their Account page: their account, sessions, token names,
+        workspaces, items, submissions, comments and audit events, with other people&apos;s emails
+        replaced. It counts as their download for the next 10 minutes, and the audit log records
+        that you made it.
+      </p>
+      <Help id="download-user-data" />
+    </div>
     <DialogActions>
       <Button variant="ghost" onClick={onClose}>
         Close

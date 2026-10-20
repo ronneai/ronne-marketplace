@@ -190,11 +190,14 @@ export const ActionForm = ({
         </>
       ) : null}
       {kind === "twoFactor" ? (
-        <p className="text-sm text-muted">
-          For a lost phone and lost backup codes. This turns off their two-factor sign-in and signs
-          them out everywhere; they sign in with their password alone, and set it up again if it's
-          required of them. <Help id="reset-two-factor" />
-        </p>
+        <div className="grid gap-1.5">
+          <p className="text-sm text-muted">
+            For a lost phone and lost backup codes. This turns off their two-factor sign-in and
+            signs them out everywhere; they sign in with their password alone, and set it up again
+            if it's required of them.
+          </p>
+          <Help id="reset-two-factor" />
+        </div>
       ) : null}
       <FieldError id={`${kind}-${user.id}-error`}>{state.error}</FieldError>
       <DialogActions>

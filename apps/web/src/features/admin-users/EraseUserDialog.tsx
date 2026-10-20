@@ -86,42 +86,48 @@ export const EraseUserForm = ({
           Their role goes with the account.
         </Notice>
       ) : null}
-      <div className="grid gap-1 text-sm">
-        <p className="font-semibold text-fg">What goes</p>
-        <ul className="list-disc pl-5 text-muted">
-          {GOES.map((line) => (
-            <li key={line}>{line}</li>
-          ))}
-        </ul>
+      {/* Side by side from `md` up, so the dialog is wide and short rather than narrow and tall. */}
+      <div className="grid gap-4 md:grid-cols-2 md:gap-6">
+        <div className="grid content-start gap-1 text-sm">
+          <p className="font-semibold text-fg">What goes</p>
+          <ul className="list-disc pl-5 text-muted">
+            {GOES.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        </div>
+        <div className="grid content-start gap-1 text-sm">
+          <p className="font-semibold text-fg">What stays, under the pseudonym</p>
+          <ul className="list-disc pl-5 text-muted">
+            {STAYS.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        </div>
       </div>
-      <div className="grid gap-1 text-sm">
-        <p className="font-semibold text-fg">What stays, under the pseudonym</p>
-        <ul className="list-disc pl-5 text-muted">
-          {STAYS.map((line) => (
-            <li key={line}>{line}</li>
-          ))}
-        </ul>
-      </div>
-      <p className="text-sm text-muted">
-        Nothing of theirs can be read back afterwards: if the person asked for what the instance
-        holds about them, give it to them first.{" "}
-        <a href={dataHref(user.id)} className="underline underline-offset-2 hover:text-fg">
-          Download their data
-        </a>
-        .
-      </p>
-      <div className="grid gap-1.5">
-        <Label htmlFor={id}>Type the account&apos;s email to confirm</Label>
-        <Input
-          id={id}
-          name="confirm"
-          type="email"
-          autoComplete="off"
-          spellCheck={false}
-          placeholder={user.email}
-          value={typed}
-          onChange={(event) => setTyped(event.target.value)}
-        />
+      {/* The reminder and the confirmation side by side from `md` up: shorter, so it fits a laptop. */}
+      <div className="grid gap-4 md:grid-cols-2 md:items-end md:gap-6">
+        <p className="text-sm text-muted">
+          Nothing of theirs can be read back afterwards: if the person asked for what the instance
+          holds about them, give it to them first.{" "}
+          <a href={dataHref(user.id)} className="underline underline-offset-2 hover:text-fg">
+            Download their data
+          </a>
+          .
+        </p>
+        <div className="grid gap-1.5">
+          <Label htmlFor={id}>Type the account&apos;s email to confirm</Label>
+          <Input
+            id={id}
+            name="confirm"
+            type="email"
+            autoComplete="off"
+            spellCheck={false}
+            placeholder={user.email}
+            value={typed}
+            onChange={(event) => setTyped(event.target.value)}
+          />
+        </div>
       </div>
       <FieldError id={`${id}-error`}>{state.error}</FieldError>
       <DialogActions>
@@ -155,7 +161,7 @@ export const EraseUserButton = ({ user }: { user: ErasableUser }) => {
       <Button variant="destructive" onClick={() => setOpen(true)}>
         Erase
       </Button>
-      <Dialog open={open} onClose={close} title="Erase user">
+      <Dialog open={open} onClose={close} title="Erase user" size="xlarge">
         {open ? <EraseUserForm key={round} user={user} onDone={close} /> : null}
       </Dialog>
     </>
