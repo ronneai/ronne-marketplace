@@ -62,17 +62,12 @@ const User = async ({ params }: { params: Promise<{ id: string }> }) => {
       ),
       workspaces:
         user.role === "root" ? undefined : (
-          <UserWorkspacesButton
-            variant="button"
-            user={{ id: user.id, email: user.email }}
-            workspaces={workspaces}
-            count={user.workspaces?.length ?? 0}
-          >
+          <UserWorkspacesButton user={{ id: user.id, email: user.email }} workspaces={workspaces}>
             Manage workspaces
           </UserWorkspacesButton>
         ),
-      data: <DownloadDataButton variant="page" user={{ id: user.id, email: user.email }} />,
-      erase: <EraseUserButton variant="page" user={row} />,
+      data: <DownloadDataButton user={{ id: user.id, email: user.email }} />,
+      erase: <EraseUserButton user={row} />,
     };
   }
   return <UserPage detail={detail} self={self} slots={slots} />;

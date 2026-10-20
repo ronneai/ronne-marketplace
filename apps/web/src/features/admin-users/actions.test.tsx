@@ -26,7 +26,6 @@ vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => ne
 const actions = await import("./actions");
 const { OneTimePassword } = await import("./OneTimePassword");
 const { ActionForm, RoleChangeNotice, ScimManagedNotice } = await import("./UserActionDialogs");
-const { UserRowActions } = await import("./UserRowActions");
 const { CreateUserDialog } = await import("./CreateUserDialog");
 const { confirmsEmail, EraseUserForm } = await import("./EraseUserDialog");
 const { EraseConfirmationError } = await import("@/server/domains/identity/exceptions/errors");
@@ -150,53 +149,6 @@ describe("rendering", () => {
     expect(html).toContain("Gen3ratedPassw0rd");
   });
 
-  it("your own row has no actions; every other row, roots included, has them all (059)", () => {
-    const own = renderToStaticMarkup(
-      <UserRowActions
-        user={{ id: "r", email: "root@example.com", role: "root", disabled: false, self: true }}
-      />,
-    );
-    // Only the helper's icon; its question is screen-reader text.
-    expect(own).toContain('class="sr-only">Why can&#x27;t I change my own account here?');
-    expect(own).not.toContain("Reset password");
-    const otherRoot = renderToStaticMarkup(
-      <UserRowActions
-        user={{ id: "r2", email: "r2@example.com", role: "root", disabled: false }}
-      />,
-    );
-    expect(otherRoot).toContain("Change role");
-    expect(otherRoot).toContain("Disable");
-    expect(otherRoot).toContain("Reset password");
-    const disabled = renderToStaticMarkup(
-      <UserRowActions user={{ id: "u", email: "u@example.com", role: "user", disabled: true }} />,
-    );
-    expect(disabled).toContain("Change role");
-    expect(disabled).toContain(">Enable<");
-  });
-
-  it("offers Erase on every other row, and only the greyed download on an erased one (103)", () => {
-    const row = (overrides: Record<string, unknown> = {}) =>
-      renderToStaticMarkup(
-        <UserRowActions
-          user={{
-            id: "u",
-            email: "u@example.com",
-            name: "U",
-            role: "user",
-            disabled: false,
-            ...overrides,
-          }}
-        />,
-      );
-    expect(row()).toMatch(/<button[^>]*>Erase<\/button>/);
-    expect(row({ self: true })).not.toContain("Erase");
-    const erased = row({ disabled: true, erased: true });
-    expect(erased).toContain("Download their data (erased)");
-    expect(erased).toMatch(/<button[^>]*disabled=""[^>]*>Download their data/);
-    for (const text of ["Change role", "Reset password", "Enable", ">Erase<"])
-      expect(erased, text).not.toContain(text);
-  });
-
   it("the erase dialog names the account, lists what goes and stays, and needs the email typed (103)", () => {
     const html = renderToStaticMarkup(
       <EraseUserForm
@@ -278,18 +230,6 @@ describe("rendering", () => {
     await expect(
       actions.eraseUserFromForm({}, form({ userId: "u", confirm: "u" })),
     ).rejects.toThrow("boom");
-  });
-
-  it("offers Reset two-factor only when it's on, never on your own row (105)", () => {
-    const row = (twoFactor: boolean, self = false) =>
-      renderToStaticMarkup(
-        <UserRowActions
-          user={{ id: "u", email: "u@example.com", role: "user", disabled: false, twoFactor, self }}
-        />,
-      );
-    expect(row(true)).toContain("Reset two-factor");
-    expect(row(false)).not.toContain("Reset two-factor");
-    expect(row(true, true)).not.toContain("Reset two-factor");
   });
 
   it("resets two-factor, and says when there was none (105)", async () => {

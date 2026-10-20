@@ -31,18 +31,13 @@ const form = (fields: Record<string, string>) => {
 beforeEach(() => vi.clearAllMocks());
 
 describe("a user's Workspaces (092)", () => {
-  it("opens from the user's workspace count, in their Role cell; root has none (092)", () => {
+  it("is a button on the user's page (123)", () => {
     const html = renderToStaticMarkup(
-      <UserWorkspacesButton
-        user={{ id: "u", email: "u@example.com" }}
-        workspaces={OPTIONS}
-        count={3}
-      >
-        <span>badges</span>
+      <UserWorkspacesButton user={{ id: "u", email: "u@example.com" }} workspaces={OPTIONS}>
+        Manage workspaces
       </UserWorkspacesButton>,
     );
-    expect(html).toContain('aria-label="Workspaces of u@example.com: 3"');
-    expect(html).toContain("><span>badges</span></button>");
+    expect(html).toMatch(/<button[^>]*>Manage workspaces<\/button>/);
   });
 
   it("lists global first, always there, with a role for each and Add workspace", () => {

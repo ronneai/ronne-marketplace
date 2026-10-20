@@ -14,7 +14,8 @@ vi.mock("./actions", () => ({
 
 const { DownloadDataBody, dataHref } = await import("./DownloadDataDialog");
 const { EraseUserForm } = await import("./EraseUserDialog");
-const { UserRowActions } = await import("./UserRowActions");
+const { DownloadDataButton } = await import("./DownloadDataDialog");
+const { ErasedDownloadButton } = await import("./UserPageActions");
 
 const ID = "01K6BZ3W1D8J9Q2R4T6V8X0Y2Z";
 const row = {
@@ -26,21 +27,17 @@ const row = {
 } as const;
 
 describe("Download their data (104)", () => {
-  it("is an action on every row but your own and an erased one's", () => {
-    const html = renderToStaticMarkup(<UserRowActions user={row} />);
-    expect(html).toContain(">Download their data</button>");
-    expect(html).toContain(">Erase</button>");
-    // Disabled accounts too: the person who can't sign in is who this is for.
-    expect(renderToStaticMarkup(<UserRowActions user={{ ...row, disabled: true }} />)).toContain(
-      ">Download their data</button>",
-    );
-    expect(renderToStaticMarkup(<UserRowActions user={{ ...row, self: true }} />)).not.toContain(
-      "Download their data",
-    );
+  it("is a button on the user's page (123)", () => {
+    const html = renderToStaticMarkup(<DownloadDataButton user={row} />);
+    expect(html).toMatch(/<button[^>]*>Download their data<\/button>/);
+    // The link is in the dialog, which opens on a click.
+    expect(html).not.toContain(`/admin/users/${ID}/data`);
   });
 
   it("is greyed, and says why, for an erased account", () => {
-    const html = renderToStaticMarkup(<UserRowActions user={{ ...row, erased: true }} />);
+    const html = renderToStaticMarkup(
+      <ErasedDownloadButton email="deleted-user-1@ronne.invalid" />,
+    );
     expect(html).toMatch(/<button[^>]*disabled[^>]*>Download their data \(erased\)<\/button>/);
     expect(html).toContain("This account was erased");
     expect(html).not.toContain(`/admin/users/${ID}/data`);

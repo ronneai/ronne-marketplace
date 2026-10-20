@@ -1,21 +1,20 @@
 import { notFound } from "next/navigation";
 import { parseListQuery, type SearchParams } from "@/components/ui/data-table/list-query";
 import { CreateUserDialog } from "@/features/admin-users/CreateUserDialog";
-import { EraseUserButton } from "@/features/admin-users/EraseUserDialog";
 import { checkedUsersState, USERS_LIST, usersQueryOf } from "@/features/admin-users/list";
-import { UserRowActions } from "@/features/admin-users/UserRowActions";
 import { UsersPage } from "@/features/admin-users/UsersPage";
-import { UserWorkspacesButton } from "@/features/admin-users/UserWorkspacesDialog";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
 import { adminListUsers } from "@/server/domains/identity/actions/user-admin";
 import { can } from "@/server/domains/identity/models/permissions";
-import { listWorkspaces } from "@/server/domains/workspaces/actions/workspaces";
 import { requestHeaders } from "@/server/http/request-headers";
 import { holdPage } from "../../hold";
 
 export const metadata = { title: "Users · Ronne AI Marketplace" };
 
-/** Root only (`users.view`): anyone else gets a 404. The whole view is in the URL (061). */
+/**
+ * Root only (`users.view`): anyone else gets a 404. The whole view is in the URL (061). Each row
+ * opens a user's page (123).
+ */
 const Users = async ({ searchParams }: { searchParams: Promise<SearchParams> }) => {
   await holdPage();
   const request = await requestHeaders();
@@ -23,11 +22,7 @@ const Users = async ({ searchParams }: { searchParams: Promise<SearchParams> }) 
   if (!me || !can(me, "users.view")) notFound();
 
   const state = checkedUsersState(parseListQuery(USERS_LIST, await searchParams));
-  const [{ users, next, previous, total }, workspaces] = await Promise.all([
-    adminListUsers(request, usersQueryOf(state)),
-    listWorkspaces(request),
-  ]);
-  const options = workspaces.map(({ id, name, isGlobal }) => ({ id, name, isGlobal }));
+  const { users, next, previous, total } = await adminListUsers(request, usersQueryOf(state));
   return (
     <UsersPage
       state={state}
@@ -35,38 +30,6 @@ const Users = async ({ searchParams }: { searchParams: Promise<SearchParams> }) 
       page={{ next, previous }}
       total={total}
       toolbar={<CreateUserDialog />}
-      workspaces={(user, content) => (
-        <UserWorkspacesButton
-          user={{ id: user.id, email: user.email }}
-          workspaces={options}
-          count={user.workspaces?.length ?? 0}
-        >
-          {content}
-        </UserWorkspacesButton>
-      )}
-      erase={(user) =>
-        user.id === me.id || user.erasedAt ? null : (
-          <EraseUserButton
-            variant="link"
-            user={{ id: user.id, email: user.email, name: user.name, role: user.role }}
-          />
-        )
-      }
-      actions={(user) => (
-        <UserRowActions
-          user={{
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            role: user.role,
-            disabled: Boolean(user.disabledAt),
-            erased: Boolean(user.erasedAt),
-            twoFactor: Boolean(user.twoFactor),
-            self: user.id === me.id,
-            managedBy: user.scim?.managed ? user.scim.providerName : undefined,
-          }}
-        />
-      )}
     />
   );
 };

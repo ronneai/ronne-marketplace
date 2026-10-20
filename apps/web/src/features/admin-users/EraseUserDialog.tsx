@@ -17,11 +17,6 @@ export type ErasableUser = { id: string; email: string; name: string; role: "roo
 export const confirmsEmail = (typed: string, email: string): boolean =>
   typed.trim().toLowerCase() === email;
 
-const rowButton =
-  "rounded-control px-2 py-1 text-xs whitespace-nowrap text-muted hover:bg-tint hover:text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus";
-const linkButton =
-  "text-xs underline underline-offset-2 text-muted hover:text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus";
-
 /** What goes, and what stays under the pseudonym, in plain words (103's table). */
 const GOES = [
   "Their email, name and picture: the account becomes deleted-user-<id>.",
@@ -142,18 +137,11 @@ export const EraseUserForm = ({
 };
 
 /**
- * Opens the erase dialog: from the row's actions (`row`), as the link beside the
- * *Deprovisioned by* badge (108, `link`), or as the button on the user's page (123, `page`). Each button owns its dialog. Closing it refreshes the
- * list, which the action itself doesn't (the row, and the dialog in it, would go before root
- * read the outcome).
+ * Opens the erase dialog, from the button on the user's page (123). Each button owns its dialog.
+ * Closing it refreshes the page, which the action itself doesn't (the page would turn into the
+ * erased account's before root read the outcome).
  */
-export const EraseUserButton = ({
-  user,
-  variant = "row",
-}: {
-  user: ErasableUser;
-  variant?: "row" | "link" | "page";
-}) => {
+export const EraseUserButton = ({ user }: { user: ErasableUser }) => {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [round, setRound] = useState(0);
@@ -164,19 +152,9 @@ export const EraseUserButton = ({
   };
   return (
     <>
-      {variant === "page" ? (
-        <Button variant="destructive" onClick={() => setOpen(true)}>
-          Erase
-        </Button>
-      ) : (
-        <button
-          type="button"
-          className={variant === "link" ? linkButton : rowButton}
-          onClick={() => setOpen(true)}
-        >
-          Erase
-        </button>
-      )}
+      <Button variant="destructive" onClick={() => setOpen(true)}>
+        Erase
+      </Button>
       <Dialog open={open} onClose={close} title="Erase user">
         {open ? <EraseUserForm key={round} user={user} onDone={close} /> : null}
       </Dialog>

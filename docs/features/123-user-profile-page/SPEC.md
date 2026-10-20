@@ -30,9 +30,10 @@ comment above the fieldset ("the table scrolls sideways") is no longer true: not
 **In:**
 - **A user page, `/admin/users/<id>`**, root only (`users.view`; anyone else gets a 404, as the list
   does). It shows the account and holds all the actions.
-- **The Users list loses its action buttons.** Each row keeps Email, Name, Role, Status and Created, and gains **Last sign-in** (owner, 2026-10-20),
-  and the email becomes a link to the user's page, with an *Open* link at the end of the row so the
-  way in is also visible, 44px on a coarse pointer.
+- **The Users list loses its action buttons.** Each row shows Name, Email, Role, Status, **Last
+  sign-in** and Created (owner, 2026-10-20: the name first, then the email, the two of the same
+  width, and no cell breaks a line). The name is a link to the user's page, with an *Open* link at
+  the end of the row so the way in is also visible, 44px on a coarse pointer.
 - **The same actions, in the same dialogs**, moved to the page: change role, reset password, reset
   two-factor, disable or enable, download their data, erase. The dialogs, their server actions and
   their rules (059, 103, 104, 105, 108) don't change.
@@ -61,8 +62,12 @@ is gone. A **Last sign-in** column follows Status: the day and time in the perso
 (`LocalTime`), such as *2026-10-20 09:12*, with the full time on hover, or *Never* for an account
 with no sign-in on record and an en dash for an erased one. It is hidden on a phone, as Status and
 Created are, and shown on the page. The Role cell shows root, or the role badges with their counts (092), as plain badges with
-the hover list; the SCIM badges (108) stay under the role. The row is a link as a whole on a phone,
-where the Status and Created columns are hidden.
+the hover list; the SCIM badges (108) stay under the role. **Columns,
+left to right:** Name (sortable), Email (sortable, the same width as Name), Role, Status, Last
+sign-in, Created (sortable), Open. Every cell stays on one line: Name and Email are cut with an
+ellipsis (the full text on hover), the others are wide enough for their value. On a phone Name,
+Status, Last sign-in, Created and Open are hidden, and the email is the link, covering the whole
+row: a tap anywhere opens the page.
 
 **The page.** A header with the name and the email, the role badge, and the status (*active*,
 *disabled*, or *Erased on* a date), then sections in one column (two on a wide screen):
@@ -134,8 +139,9 @@ back button returns to the list with its filters, since they are in the URL (061
   identity provider and with two-factor; *Never* for one that has not; an en dash for an erased one;
   the same time is on the page.
 - [ ] The times of the page's rows come from one query for the rows shown, not one per row.
-- [ ] Each row's email and its *Open* link go to `/admin/users/<id>`; a click anywhere else on the
-  row does nothing surprising (the Role cell no longer opens a dialog).
+- [ ] Each row's name and its *Open* link go to `/admin/users/<id>` (on a phone, the email and the
+  row); a click elsewhere on the row does nothing surprising (the Role cell no longer opens a dialog).
+- [ ] No cell of the list breaks a line, at 1280px and 1440px, and Name and Email have one width.
 - [ ] The page shows the sections above, with real data, and every action works from it and ends
   back on the page showing the new state.
 - [ ] Anyone but root gets a 404 on the page; an unknown id is a 404 for root.

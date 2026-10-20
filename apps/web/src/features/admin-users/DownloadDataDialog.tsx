@@ -5,9 +5,6 @@ import { Help } from "@/components/help/Help";
 import { Button, buttonClasses } from "@/components/ui/Button";
 import { Dialog, DialogActions } from "@/components/ui/Dialog";
 
-const rowButton =
-  "rounded-control px-2 py-1 text-xs whitespace-nowrap text-muted hover:bg-tint hover:text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus";
-
 /** The address of root's download of a person's data (104). */
 export const dataHref = (userId: string): string => `/admin/users/${userId}/data`;
 
@@ -39,26 +36,13 @@ export const DownloadDataBody = ({ user, onClose }: { user: DataUser; onClose: (
 );
 
 /** Download their data (104): for a person who asked and can't sign in, or before an erasure. */
-export const DownloadDataButton = ({
-  user,
-  variant = "row",
-}: {
-  user: DataUser;
-  /** `page` is the button on the user's own page (123); `row` the small one of a table row. */
-  variant?: "row" | "page";
-}) => {
+export const DownloadDataButton = ({ user }: { user: DataUser }) => {
   const [open, setOpen] = useState(false);
   return (
     <>
-      {variant === "page" ? (
-        <Button variant="secondary" onClick={() => setOpen(true)}>
-          Download their data
-        </Button>
-      ) : (
-        <button type="button" className={rowButton} onClick={() => setOpen(true)}>
-          Download their data
-        </button>
-      )}
+      <Button variant="secondary" onClick={() => setOpen(true)}>
+        Download their data
+      </Button>
       <Dialog open={open} onClose={() => setOpen(false)} title="Download their data">
         {open ? <DownloadDataBody user={user} onClose={() => setOpen(false)} /> : null}
       </Dialog>

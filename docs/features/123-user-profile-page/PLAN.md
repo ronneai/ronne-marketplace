@@ -31,12 +31,14 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* tests show each action calls its server action and the page shows the new state; the
   existing action tests pass unchanged.
 
-- [ ] **4. The list without actions, with Last sign-in.** Drop the Actions column and
-  `UserRowActions` from the list; the email links to the page, add *Open*, make the role badges
-  plain, keep the SCIM badges; add the Last sign-in column (hidden on phones; *Never*; an en dash
-  for erased), filled by the one query of task 1; the row links as a whole on a phone.
+- [x] **4. The list without actions, with Last sign-in.** Drop the Actions column and
+  `UserRowActions` (and the row variants of the download, erase and workspaces buttons); Name
+  first, then Email, the same width; Name links to the page, add *Open*, and on a phone the email
+  covers the row as the link; make the role badges plain, keep the SCIM badges; no cell breaks a
+  line (a `nowrap` option on the data table's columns); add the Last sign-in column (hidden on
+  phones; *Never*; an en dash for erased), filled by the one query of task 1.
   *Done when:* the list's tests pass without action buttons and show the links and the three Last
-  sign-in states; a check at 1280px and 1440px finds no overlapping cell (browser test).
+  sign-in states, the column order and that no cell wraps; a browser check at 1280px and 1440px finds no overflowing cell.
 
 - [ ] **5. Links in.** The audit log's event details link to the page when the event names an account;
   the page's audit link (`/admin/audit?actor=`) works.
