@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { expect, type Page, test } from "@playwright/test";
+import { downloadAfter } from "./helpers";
 import { recordSecret } from "./secrets";
 import { E2E_ERASE, E2E_PASSWORD, E2E_SCOPE, E2E_USERS } from "./users";
 
@@ -156,10 +157,9 @@ test("root creates a user, who signs in with the shown password; disabling them 
     .click();
   const download = root.getByRole("dialog", { name: "Download their data" });
   await expect(download.getByText(erasable)).toBeVisible();
-  const [file] = await Promise.all([
-    root.waitForEvent("download"),
+  const file = await downloadAfter(root, () =>
     download.getByRole("link", { name: "Download", exact: true }).click(),
-  ]);
+  );
   expect(file.suggestedFilename()).toMatch(/^ronne-data-[0-9A-Z]+-\d{4}-\d{2}-\d{2}\.json$/);
   const data = JSON.parse(await readFile(await file.path(), "utf8"));
   expect(data.account.email).toBe(erasable);

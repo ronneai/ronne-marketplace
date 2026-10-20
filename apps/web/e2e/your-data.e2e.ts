@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { expect, type Page, test } from "@playwright/test";
+import { downloadAfter } from "./helpers";
 import { E2E_DATA, E2E_ERASE, E2E_PASSWORD, E2E_SCOPE, E2E_USERS } from "./users";
 
 const signIn = async (page: Page, email: string) => {
@@ -20,10 +21,9 @@ test("a person downloads their data from Account, once every ten minutes, with a
   await expect(section).toBeVisible();
   await expect(section.getByText("Last downloaded")).toHaveCount(0);
 
-  const [file] = await Promise.all([
-    page.waitForEvent("download"),
+  const file = await downloadAfter(page, () =>
     section.getByRole("link", { name: "Download my data" }).click(),
-  ]);
+  );
   expect(file.suggestedFilename()).toMatch(/^ronne-data-[0-9A-Z]+-\d{4}-\d{2}-\d{2}\.json$/);
   const data = JSON.parse(await readFile(await file.path(), "utf8"));
   expect(data).toMatchObject({ version: 1, account: { email: E2E_USERS.dataOwner } });
