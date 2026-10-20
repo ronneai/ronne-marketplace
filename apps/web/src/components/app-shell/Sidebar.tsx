@@ -39,7 +39,7 @@ const LOGO_FOLDED = {
 };
 const LOGO_OPEN = { clipPath: "inset(0 0px 0 0)", transform: "translateX(0px)" };
 
-const link = `flex items-center gap-3 rounded-control transition-[min-height] duration-200 motion-reduce:transition-none text-sm text-muted hover:bg-canvas hover:text-fg aria-[current=page]:bg-tint aria-[current=page]:font-semibold aria-[current=page]:text-link ${focus}`;
+const link = `flex items-center rounded-control transition-[min-height,padding] duration-200 motion-reduce:transition-none text-sm text-muted hover:bg-canvas hover:text-fg aria-[current=page]:bg-tint aria-[current=page]:font-semibold aria-[current=page]:text-link ${focus}`;
 
 const menuItem = `block w-full rounded-control px-3 py-1.5 text-left text-sm text-fg hover:bg-tint ${focus}`;
 
@@ -96,17 +96,25 @@ export const Sidebar = ({
   const entry = (item: NavItem) => {
     const count = counts[item.href] ?? 0;
     const name = count ? `${item.label} (${count} waiting)` : item.label;
-    const className = `${link} relative px-3 ${folded ? "min-h-10" : "min-h-9"}`;
-    const fade = `transition-opacity duration-200 motion-reduce:transition-none ${folded ? "opacity-0" : ""}`;
+    // Folded, the icon is centred in the rail's 39px (the border takes one of its 64: 10.5px each
+    // side, the icon being 18px), and the
+    // label and the count have no width at all: a faded label that still took room made the nav scroll.
+    const className = `${link} relative ${folded ? "min-h-10 px-[10.5px]" : "min-h-9 px-3"}`;
     const body = (
       <>
         <NavIcon name={item.icon} />
-        <span aria-hidden={folded} className={`min-w-0 flex-1 truncate ${fade}`}>
+        <span
+          aria-hidden={folded}
+          className={`min-w-0 flex-1 truncate transition-[max-width,margin,opacity] duration-200 motion-reduce:transition-none ${folded ? "ml-0 max-w-0 opacity-0" : "ml-3 max-w-56"}`}
+        >
           {item.label}
         </span>
         {count ? (
           // Folded, the link's own name says "(3 waiting)"; open, the count is read as part of it.
-          <span aria-hidden={folded} className={`shrink-0 ${fade}`}>
+          <span
+            aria-hidden={folded}
+            className={`shrink-0 overflow-hidden transition-[max-width,opacity] duration-200 motion-reduce:transition-none ${folded ? "max-w-0 opacity-0" : "max-w-12"}`}
+          >
             <NavCount count={count} />
           </span>
         ) : null}
@@ -200,7 +208,7 @@ export const Sidebar = ({
 
       <nav
         aria-label="Main"
-        className="mt-4 grid w-full min-h-0 flex-1 content-start gap-4 overflow-y-auto px-3 pb-4"
+        className="mt-4 grid w-full min-h-0 flex-1 content-start gap-4 overflow-x-hidden overflow-y-auto px-3 pb-4"
       >
         {groupNav(items).map((group) => (
           // The group's heading folds away and a rule takes its place, both fading and sliding.

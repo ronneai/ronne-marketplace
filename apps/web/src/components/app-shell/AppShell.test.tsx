@@ -401,7 +401,7 @@ describe("Sidebar", () => {
     const folded =
       /<a [^>]*href="\/reviews"[\s\S]*?<\/a>/.exec(sidebar({ folded: true }))?.[0] ?? "";
     expect(folded).toContain('aria-label="Reviews (3 waiting)"');
-    expect(folded).toMatch(/<span aria-hidden="true" class="shrink-0[^"]*opacity-0[^"]*">/);
+    expect(folded).toMatch(/<span aria-hidden="true" class="shrink-0[^"]*max-w-0 opacity-0[^"]*">/);
   });
 
   it("unfolded, offers to fold; folded, names every icon and puts a dot where a count waits", () => {

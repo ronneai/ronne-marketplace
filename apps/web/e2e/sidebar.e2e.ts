@@ -34,6 +34,20 @@ test("the sidebar folds and stays folded; the switcher opens a workspace", async
         return (Math.min(...boxes.map((b) => b.left)) + Math.max(...boxes.map((b) => b.right))) / 2;
       });
 
+  // Neither state scrolls sideways (a faded label that still took room once made the rail scroll):
+  // the nav and the other blocks under the logo fit their width, and so does the page. (The logo's
+  // row is left out: the fold button sticks out of it on purpose, half over the page.)
+  const scrollsSideways = () =>
+    aside.evaluate((el) => {
+      const blocks = [...el.children].slice(1) as HTMLElement[];
+      return [
+        ...blocks.map((box) => box.scrollWidth - box.clientWidth),
+        document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      ];
+    });
+  const fits = (widths: number[]) => widths.every((w) => w <= 0);
+  expect(fits(await scrollsSideways())).toBe(true);
+
   // Folding and unfolding are animated: the width passes through values between the two, then the
   // rail's content replaces the full one (and with reduced motion nothing is in between).
   const widths = () =>
@@ -57,6 +71,7 @@ test("the sidebar folds and stays folded; the switcher opens a workspace", async
     `widths ${folding}`,
   ).toBe(true);
   expect(folding.at(-1)).toBe(64);
+  await expect.poll(async () => fits(await scrollsSideways())).toBe(true);
 
   // The rail names every icon, and the next page renders folded.
   const unfold = aside.getByRole("button", { name: "Unfold the sidebar" });
