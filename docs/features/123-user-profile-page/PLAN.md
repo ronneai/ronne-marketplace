@@ -40,10 +40,10 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* the list's tests pass without action buttons and show the links and the three Last
   sign-in states, the column order and that no cell wraps; a browser check at 1280px and 1440px finds no overflowing cell.
 
-- [ ] **4b. Icons in the list.** An `IconLink` beside `IconButton` (sharing its classes); *Open* becomes
+- [x] **4b. Icons in the list.** An `IconLink` beside `IconButton` (sharing its classes); *Open* becomes
   a chevron `IconLink` named "Open <email>"; a copy `IconButton` beside each email that copies it
   (check mark for two seconds; selects the email where nothing can copy); the Name and Email
-  columns widen so the longest typical email still fits beside the icon. Record the decision for
+  columns widen so an email of about 23 characters still fits beside the icon (longer ones are cut). Record the decision for
   other tables in the spec (done: decision 6).
   *Done when:* component tests cover `IconLink` and the copy button's markup; the list test shows
   both icons with their names and no word "Open" text; a browser check clicks the copy icon with

@@ -67,7 +67,9 @@ left to right:** Name (sortable), Email (sortable, the same width as Name, with 
 it), Role, Status, Last sign-in, Created (sortable), Open (an icon). **Open is a chevron icon**, named "Open <email>" for screen readers and as its tooltip, not the
 word. **The copy icon** copies the email to the clipboard (also where the page isn't served over
 https, through `copyText`, 067): it turns into a check mark for two seconds, and where nothing can
-copy it selects the email for the person to copy by hand. It is an icon only, named "Copy <email>".
+copy it selects the email for the person to copy by hand. It is an icon only, named "Copy <email>". The columns fit an email of about 23 characters beside
+the icon; a longer one is cut with an ellipsis (the full text on hover). From about 1450px wide the
+table fits its panel; narrower, it scrolls sideways inside it, never the page.
 Every cell stays on one line: Name and Email are cut with an
 ellipsis (the full text on hover), the others are wide enough for their value. On a phone Name,
 Status, Last sign-in, Created and Open are hidden, and the email is the link, covering the whole

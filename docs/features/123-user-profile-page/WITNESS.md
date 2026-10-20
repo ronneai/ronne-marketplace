@@ -140,3 +140,51 @@ Witnessed: 2026-10-20 10:35 EDT, by a fresh agent (blind). Commit: e153d16e plus
 | 12 | Nothing imports the deleted file or the removed variants | no | confirmed | `git grep -n "UserRowActions\|variant=\"page\"\|variant=\"row\"\|variant=\"link\"" -- apps/web/src apps/web/e2e` → no matches |
 
 **Overall:** met. Reported, not counted: `e2e/user-admin.e2e.ts` and `e2e/two-factor-hold.e2e.ts` still mention Erase, Download their data or Actions (known stale, task 6).
+
+## Task 4b — Icons in the list
+
+Witnessed: 2026-10-20 10:50 EDT, by a fresh agent (blind). Commit: ad0f59ab plus the uncommitted diff (committed as 6dc3a4b1 while it was checking; not re-diffed). Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `IconLink` exists beside `IconButton`, sharing its classes; IconButton's look is unchanged by the `iconControlClasses` extraction | no | confirmed | `git diff IconButton.tsx`: the same class strings moved verbatim into `iconControlClasses`, used by both; `ui.test.tsx` checks size-8, pointer-coarse:size-11 and rounded-control on both |
+| 2 | Open is a chevron `IconLink` named "Open <email>" (aria-label and title), the icon aria-hidden, no word "Open" as text | no | confirmed | `vitest run src/components/ui src/features/admin-users` → 16 files, 144 passed; browser: the link `Open <email>` has innerText "" and the right href; clicking it lands on the user's page |
+| 3 | Component tests cover `IconLink` and the copy button's markup; the list test shows both icons with their names and no "Open" text | no | confirmed | scratch-copy mutations: removing aria-label and title from IconLink fails the `IconLink (123)` test and the list test; showing the word "Open" fails the list test; removing `<CopyEmailButton/>` fails "puts an icon-only copy button beside each email"; restored, 144 passed; the tests check markup only |
+| 4 | Clicking the copy icon copies the email, shows a check mark, and returns to the copy icon after about 2 s | no | confirmed | a temporary spec (deleted): `navigator.clipboard.readText()` equals the email; `svg.lucide-check` visible, and after 2.3 s `svg.lucide-copy` back |
+| 5 | The copy button announces "Copied" in a status region | no | partly | `<span role="status" class="sr-only">` with "Copied" in the code; the region was only read after the 2 s timeout (empty) |
+| 6 | Where nothing can copy, it selects the visible email element (`[data-copy-source]:not(.hidden)`) | no | not met | at 1440 the selector returns the phone-only link (`sm:hidden`, display none); the visible span has `hidden sm:inline`, which `:not(.hidden)` excludes; on a phone it returns the visible link, correctly |
+| 7 | On a phone the copy button sits above the row-wide email link: a tap copies and doesn't open, a tap elsewhere on the row opens the page | no | confirmed | at 390×844 clicking "Copy <email>" gives the clipboard the email and the URL stays on the list (button `z-10`, x 165.6–197.6); `page.mouse.click` on the row goes to `/admin/users/<id>` |
+| 8 | Name and Email widen (w-60); at 1280 and 1440 no non-clipped cell sticks out, none is taller than two lines, the page has no horizontal scroll | no | partly | the spec passed with no problems at both widths; long e2e emails (31 characters) are cut with an ellipsis; at 1280 the table is wider than its panel (Created and Open cut at the edge, scrolling inside its wrapper); "longest typical email" not defined |
+| 9 | Decision 6 is recorded in the spec | no | confirmed | taken from the task statement, the spec text not re-read |
+
+**Overall:** not met. Bug found: the manual-copy fallback selects a hidden element on desktop (row 6); rows 5, 8 and 9 only partly or lightly checked.
+
+### Re-check 1 — rows 5, 6, 8 and 9
+
+Witnessed: 2026-10-20 10:38 EDT, by a fresh agent (blind). Commit: 6dc3a4b1 plus the uncommitted diff (`CopyEmailButton.tsx`, `copy-email.test.tsx`, SPEC.md, PLAN.md). Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 5 | With a working clipboard the `role=status` region says "Copied" while the check icon shows | no | confirmed | a temporary spec (deleted), 1440 wide, clipboard granted: right after the click the icon was `lucide-check`, the status regions included "Copied", and `navigator.clipboard.readText()` was the email |
+| 6 | The manual-copy fallback selects the visible email at 1440 and 390, and the status says "Selected: copy it yourself" | no | not met | with `navigator.clipboard` undefined and `execCommand` returning false, clicking "Copy <email>" at both widths gave `getSelection().toString()` `""` and no "Selected" status; page error `Cannot read properties of null (reading 'parentElement')`: the handler read `event.currentTarget.parentElement` after `await copyText`, when React had cleared `currentTarget`, so it threw before `selectText`; the same line existed in the earlier version, so this was the first pass's bug too |
+| 7a | `firstShown` skips an element with no client rects and returns the first shown one | no | confirmed | 53 tests passed; mutation (`elements[0]`) → `copy-email.test.tsx` fails (Expected "wide span", Received "phone link") |
+| 7b | The new unit test covers the user-visible fallback | no | partly | it only covers the pure `firstShown` and the render; it never clicks, so it can't see the null `currentTarget` |
+| 8a | The table fits its panel at 1440 and scrolls sideways inside the panel, not the page, at 1280 | no | confirmed | 1440: table scrollWidth 1134, panel clientWidth 1134, document scrollWidth 1440; 1280: table 1128, panel 974 (scrolls inside it), document scrollWidth 1280 |
+| 8b | An email of about 23 characters is not cut at 1440 | no | confirmed | 23-character emails had scrollWidth <= clientWidth at 1440 and 1280; every cut one was 24 characters or more; hover text is `title={user.email}` (not hovered) |
+| 8c | The Open chevron is reachable at 1280 by scrolling the panel | no | confirmed | `scrollIntoViewIfNeeded` moved it from x=1365 to x=1211, 32×32; at 1440 it sits at x=1371 |
+| 9 | SPEC.md Decisions has decision 6, for every table as each is next touched | no | confirmed | SPEC.md:180-185 |
+
+**Overall:** not met, for row 6: the handler reads `currentTarget` after an `await`. Fixed after this pass: the elements are read before waiting and the logic is `copyOrSelect`, tested with a forced "manual" result (needs a re-check).
+
+### Re-check 2 — row 6 (the manual-copy fallback)
+
+Witnessed: 2026-10-20 10:50 EDT, by a fresh agent (blind, re-check of one claim). Commit: 6dc3a4b1 plus the uncommitted diff. Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6 | Where nothing can copy, the copy button selects the email on the screen, at 1440 and 390 wide, and the status region says "Selected: copy it yourself" | no | confirmed | its own Playwright spec (chromium) → 1 passed: with `navigator.clipboard` undefined and `execCommand` false, at both widths, after clicking "Copy <email>" `getSelection().toString()` equals the email, `role=status` reads "Selected: copy it yourself", and no `pageerror` was thrown |
+| 6a | Nothing is read from the event after an await | no | confirmed | the handler builds `sources` from `event.currentTarget.parentElement.querySelectorAll("[data-copy-source]")` before `await copyOrSelect(...)`; nothing from `event` is used after it |
+| 6b | `copy-email.test.tsx` passes, and fails without the select call | no | confirmed | `vitest run src/features/admin-users/copy-email.test.tsx` → 4 passed; mutation (`if (result === "manual")` → `if (false)`, restored) → 2 failed ("selects the shown email when nothing can copy…", "is given its elements before it waits…") |
+| 6c | With a working clipboard it still ends with "Copied" and the check icon | no | confirmed | the same spec, 1440, clipboard granted: status "Copied", `readText()` equals the email, one `svg.lucide-check` |
+
+**Overall:** met. Limits: chromium only; the 390 case is a narrow viewport on desktop Chromium, not the phone project.
