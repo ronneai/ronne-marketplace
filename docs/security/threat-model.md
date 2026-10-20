@@ -1,7 +1,7 @@
 # Threat model
 
-> Feature [098](../features/098-threat-model/SPEC.md) · Checked against the code on 2026-10-15 (commit
-> `53552ddb`) · What to do when something goes wrong: the
+> Feature [098](../features/098-threat-model/SPEC.md) · Checked against the code on 2026-10-20 (commit
+> `85c593e5`, before 0.5.0) · What to do when something goes wrong: the
 > [incident runbook](../runbooks/incident-response.md) · Reporting a vulnerability:
 > [`SECURITY.md`](../../SECURITY.md)
 
@@ -26,10 +26,13 @@ What an instance holds:
 |---|---|---|
 | Accounts: emails, names, password hashes (argon2), roles | database (`user`, `account`) | sign-in as anyone; personal data |
 | Sessions | database (`session`), cookie signed with `AUTH_SECRET` | sign-in as their person |
-| Access tokens | database (`access_tokens`), sha256 only | `rmk`, MCP and feeds as their user |
+| Access tokens, including the ones `rmk login --web` makes (107) | database (`access_tokens`), sha256 only | `rmk`, MCP and feeds as their user |
+| Two-factor secrets and backup codes (105) | database (`two_factor`), encrypted with a key from `AUTH_SECRET` | the second step of sign-in |
+| Identity providers' client secrets (106) | database (`identity_providers.secret_enc`), AES-256-GCM with a key from `AUTH_SECRET` | sign-in through the company's provider |
+| SCIM tokens (108) | database, sha256 only | create, change and disable accounts and group memberships |
 | Items: released versions | storage (`.tgz`, immutable) and database (sha256) | run on every machine that installs them |
 | Drafts and submissions | database (`submission_files`) | not reviewed yet; may be private work |
-| The audit log, with IP addresses | database (`audit_events`) | the record of who did what |
+| The audit log, with IP addresses | database (`audit_log`) | the record of who did what; the addresses are cleared after the retention (102) |
 | Usage totals | database | aggregated, nothing about who sent them |
 | The settings file | `.env` / `/etc/rmk-server/env` / `…\Marketplace\.env` | `DATABASE_URL` (with its password) and `AUTH_SECRET` |
 | Backups (099) | wherever the operator keeps them | all of the above |
@@ -42,6 +45,8 @@ What an instance holds:
 | **A signed-in user** | read what their workspaces allow, write drafts, submit | items or workspaces they aren't allowed to see |
 | **A malicious or careless author** | submit any item, in any scope they can write to | their code on other people's machines |
 | **A moderator or workspace admin acting alone** | approve, release, yank in their workspaces | release something harmful without a second person |
+| **Someone who has a person's password, not their phone** | sign in with the first step | an account, past a leaked or guessed password |
+| **A company's identity provider, or whoever administers it (106, 108)** | sign people in as anyone in the domains root chose, and, through groups and SCIM, put them in workspace roles and disable accounts | accounts, and the right to approve |
 | **A stolen access token or session** | everything its user can | the same, from elsewhere |
 | **Someone who reads the server's disk, database or backups** | read everything at rest | secrets, sessions, private items |
 | **A compromised dependency or image** | run inside our build or our server | the server, or every instance at once |
@@ -65,11 +70,15 @@ flowchart LR
     Env["Settings file"]
   end
   Mirror["Git mirror<br/>(another host, 078)"]
+  IdP["Identity provider<br/>(OpenID Connect and SCIM, 106, 108)"]
 
   Browser -- "HTTPS (Caddy, 080) or local HTTP" --> Web
   RMK -- "Bearer token" --> Web
   AI -- "feed + rmk auth headers" --> Web
   AI -. "clones" .-> Mirror
+  Browser -- "redirect, PKCE" --> IdP
+  IdP -- "ID token to the callback" --> Web
+  IdP -- "SCIM, Bearer scim_ token" --> Web
   RMK -- "writes, sha256 checked" --> Files
   Files -- "run by" --> AI
   Web --> Review
@@ -87,6 +96,7 @@ The boundaries, in order of what's at stake:
 5. **The registry → developers' machines.** What `rmk` writes and what the AI tools then run.
 6. **The registry → a git mirror** on a host Ronne doesn't control.
 7. **Our build → every instance.** Dependencies, images, packages.
+8. **A company's identity provider → accounts and roles** (106, 108). What the provider says is believed in the domains root chose.
 
 ## 4. Threats
 
@@ -107,13 +117,17 @@ The boundaries, in order of what's at stake:
 
 | Threat | What stops it today | What's left |
 |---|---|---|
-| Guessing passwords | 5 attempts a minute per email and per IP (`apps/web/src/server/domains/identity/models/login-rate-limiter.ts:19`); the same limiter on `POST /api/v1/auth/token`; wrong password, unknown email and disabled user get the same answer (`identity/services/session.ts:45`) | The limits live in one process's memory and reset on restart (109). No second factor (105) |
+| Guessing passwords | 5 attempts a minute per email and per IP (`apps/web/src/server/domains/identity/models/login-rate-limiter.ts:19`); the same limiter on `POST /api/v1/auth/token`; wrong password, unknown email and disabled user get the same answer (`identity/services/session.ts:45`) | The limits live in one process's memory and reset on restart (109). A person adds a second step themselves; root may require it (next row) |
 | A stolen session cookie | Sessions are rows in the database, read on every request (`currentUser`, `identity/services/session.ts:26`), so Disable, Reset password, `rmk-server revoke-access` and `rmk-server rotate-secret` (098, `apps/web/src/server/domains/identity/services/instance-access.ts`) end them at the next request; no cookie cache is configured (`identity/repositories/better-auth.ts`) | A session lasts up to 30 days with "remember me". If a cookie cache is ever turned on, ending sessions must clear it |
 | A stolen access token | Only sha256 is stored (`identity/models/access-token.ts:40`); `rmk_` prefix so secret scanners can match it (`:8`); 30, 90 or 365 days, or none (`:18`); at most 50 active per user; revoked by its owner, by Disable and Reset password (`identity/services/user-admin.ts:195`, `:259`), and in bulk by `rmk-server revoke-access` (098, `revokeAccess` in `identity/services/instance-access.ts`); a disabled user's tokens stop at once (`identity/services/access-tokens.ts:134`) | A token acts as its whole user, in every workspace (116). "No expiry" is allowed (009's choice; the owner sees it when choosing) |
 | Forged session cookies | Cookies are signed with `AUTH_SECRET` (32 random bytes from setup, `setup/env-file.ts`) | Anyone who reads the settings file can sign cookies until the secret rotates: `rmk-server rotate-secret` writes a new one and ends every session (098, `apps/web/src/server/setup/rotate-secret.ts`), and a cookie signed with the old secret is refused once the server reads the new one (the next request with Docker and `rmk-server`, a restart for a clone) |
 | Traffic read on the way | HTTPS through Caddy with a domain (080, 083, 086); HTTP/1.1 only while exception E-7 lasts (`compose.yaml`, `packages/server/src/service/caddyfile.ts`) | A local install (`localhost:7650`) is plain HTTP by design; on a network, use a domain (install guide) |
 | Oversized or hostile uploads | Body limits (`proxy.ts`, 28 MiB for drafts), 5 MB packed / 20 MB unpacked / 500 files / 1 MB a file (`packages/core/src/limits.ts`), `..` and absolute paths refused (`packages/core/src/package-checks.ts:29-31`), links refused when unpacking (`packages/core/src/pack/tar.ts:107`, `apps/web/src/server/domains/submissions/models/zip.ts:124`), 30 uploads per 10 minutes and the upload API refuses a new draft once its author has 50 (037, `MAX_API_DRAFTS`; the web editor has no limit) | Upload rate limits are in memory too (109) |
 | Usage reports used to flood or track | 60 per 10 minutes, 256 KiB, added to daily totals with nothing about the sender (046) | — |
+
+| A password that leaks or is guessed is enough to sign in | Two-factor sign-in (105): a code from an authenticator app (TOTP) after the password, with backup codes; root makes it optional, required for everyone, or required for roots and moderators. One sign-in challenge takes at most 5 codes, 10 wrong codes in a row lock the second step for 15 minutes; a person who must enrol is held on `/account/security` and every server action refuses until they have; the TOTP secret and backup codes are encrypted with a key from `AUTH_SECRET`, and `rmk-server rotate-secret` clears them (people enrol again) | Bearer tokens (`/api/v1`) aren't held by it: they were made behind a sign-in, and revoking is the tool. TOTP only: no passkeys or security keys. Someone with the settings file and the database can read the secrets, as they can forge cookies |
+| Someone approves an `rmk login --web` code they didn't start | The page shows what asked (the name, the time, the address with `TRUST_PROXY`) and "Only approve if you just ran `rmk login --web` yourself"; Continue is a POST, and Approve and Deny are buttons, never links, so a prefetch changes nothing; the code is 8 characters from 31 (no look-alikes), five wrong entries a minute per address and ten per person an hour, a wrong code voids nothing; only the hash of the device code is stored, the 90-day token is handed over once, and both routes are rate limited (107) | A person who approves a code someone else started gives that someone a 90-day token as them. The requester picks the name shown (at most 100 characters, no control characters, shown isolated). The limits are in memory too (109) |
+| Someone who isn't root manages users | The user page `/admin/users/<id>` and its actions (change role, disable, reset password or two-factor, download data, erase) need root's permissions; anyone else gets a 404 with no hint the user exists; each action is audited and the destructive ones ask for a typed confirmation (123, 103) | Root can do all of it, as root must |
 
 ### 4.3 One workspace → another (private workspaces)
 
@@ -131,7 +145,8 @@ The boundaries, in order of what's at stake:
 | Someone reads the database or storage | Token hashes and password hashes only | Everything else is in the clear unless the disk or the database encrypts it. Accepted (MVP §15, Operations: encryption at rest is the platform's); 099 documents how |
 | Someone reads a backup | `rmk-server backup --encrypt` seals the archive with a passphrase (scrypt, AES-256-GCM in chunks), and `backup --verify` checks an archive (099) | Backups are not encrypted by default and then hold the settings file; a lost passphrase loses the backup; keeping copies off the machine is the operator's ([backup runbook](../runbooks/backup.md)) |
 | The audit log is altered | Append-only: a guard test fails on any update or delete outside migrations (`domains/audit/audit-log.guard.test.ts`) | Anyone with database write access can change it. No export to an outside store (post-MVP, 007) |
-| Personal data kept forever | — | IP addresses and expired sessions are kept until 102 sets retention; erasing a person is 103 |
+| Personal data kept forever | Retention (102): root sets how long IP addresses are kept (audit log, sessions, device grants) and the email typed in a failed sign-in, 90 days by default, 1 to 3,650; expired sessions and finished device approvals are deleted; the instance runs the purge every six hours under a lease, and `rmk-server purge` runs it from cron. Erasing (103): root anonymises an account (email and name become `deleted-user-<id>`; sessions, linked accounts, tokens and device approvals deleted; IP addresses cleared; the email rewritten in the audit log's metadata); the last root can't be erased | The events and what the person published stay under the pseudonym. A backup made earlier still holds what a purge or an erasure cleared: the operator's copies. Erasing can't be undone |
+| Someone gets another person's data | "Your data" (104): `GET /account/data` is the person's own and `GET /admin/users/<id>/data` is root's, both behind the web session, a cross-site request is refused (403), a session held on the two-factor step or a disabled account can't download, one download per account per 10 minutes, a list is cut at 10,000 rows, and each is audited as `user.data_exported` | The file holds the person's own audit events with their metadata as stored; root can make it for anyone |
 | Data lost with no way back | `rmk-server backup` and `restore`, with a restore test in CI, on all three database kinds (099) | Migrations run on start and can't go back, so a backup before an upgrade is the only undo; nothing runs backups on a schedule but the operator's |
 
 ### 4.5 The registry → developers' machines and git mirrors
@@ -151,19 +166,31 @@ The boundaries, in order of what's at stake:
 | A swapped base image | Base images pinned by digest (`Dockerfile`: `node:24-trixie-slim@sha256:…`; Caddy in `compose.yaml`) | The optional database images in `compose.yaml` (`postgres:18`, `mysql:8.4`, the `postgres` and `mysql` profiles) are pinned by tag only |
 | A tampered package or image | npm trusted publishing with provenance; the image with BuildKit provenance and an SBOM (`.github/workflows/release.yml`) | The bundles, `.deb` and `.rpm` have checksums but no signatures |
 
+### 4.7 A company's identity provider → accounts and roles (106, 108)
+
+| Threat | What stops it today | What's left |
+|---|---|---|
+| A forged or replayed sign-in response | Authorization code with PKCE (S256), `state` and `nonce`; the sign-in in progress is a single-use row (10 minutes) matched to an `HttpOnly`, `SameSite=Lax` cookie, so only the browser that started it can finish; the ID token's `iss`, `aud`, `exp`, `nonce` and **signature** are always checked (`validateApplicationLevelSignature`), `iat` only against the future (bugfix `entra-iat-before-sign-in`); the callback and its start are rate limited (30 a minute per address) | Trust in the provider's keys. Better Auth's HTTP allowlist doesn't grow: the callback is Ronne's own route |
+| A takeover by an address the provider doesn't verify | A new or linked account needs `email_verified` true and an address in the domains root chose; linking an existing account by email is a box root ticks, in those domains only | A provider that lets people claim an address in your domain, or a domain you don't control, signs them in as that person. Accepted: root decides which domains, and sees them on the page |
+| The server is made to call an address it shouldn't (SSRF through the issuer) | Only root can enter an issuer; it must be `https://` (or loopback), without credentials, query or fragment, is fetched without following redirects, and its discovery document's issuer must equal what root typed | Private addresses are allowed on purpose (a company's Keycloak is on one), so a stolen root can point the server inside the network |
+| The client secret leaks | Encrypted before it is stored (AES-256-GCM, a fresh nonce per value, key from `AUTH_SECRET`), shown nowhere, redacted by the logger, left out of every audit row; decrypted only in memory; `rmk-server rotate-secret` re-encrypts it and a backup carries it encrypted | Anyone with the settings file and the database can decrypt it |
+| The provider's groups hand out roles | A group mapping gives only the roles `user`, `moderator` or `admin` in a workspace root named, marked as the provider's; root is never touched and a membership set by hand never changes | Whoever controls the provider's groups controls who can approve a submission. One approval is the rule (MVP §15) |
+| A broken or hostile provider locks everyone out | Root can always sign in with a password, a provider can't be turned on before its Test sign-in passed (a Test sign-in changes nothing), and `rmk-server disable-sso` turns every provider off from the terminal and gives everyone their password back | — |
+| A leaked SCIM token | `scim_` plus 32 random bytes, only its sha256 stored, shown once; one 401 answer for every refusal, with `Bearer` only and cookies ignored; 600 requests a minute per token, 20 refusals a minute per address; rotating keeps the old token for 24 hours, Revoke and turning SCIM off stop it at once, and `rmk-server revoke-access` revokes it too; deprovisioning disables the account and revokes its tokens and sessions; SCIM never sets a role except through the mappings, never touches root, and adopts an existing account only when its address matches, it signed in through this provider in the last 30 days, it has no other SCIM link, is enabled and isn't root | Until it is revoked, the token can create accounts in the provider's domains, disable accounts, and change group memberships, so the roles the mappings give |
+
 ## 5. Known gaps
 
-Checked on 2026-10-15.
+Checked on 2026-10-20.
 
 | Gap | Closed by, or accepted by |
 |---|---|
 | A token reaches all of its user's workspaces | 116, per-workspace tokens (planned) |
-| No second factor at sign-in | 105, two-factor sign-in (planned, M16) |
+| Two-factor is TOTP only: no passkeys or security keys; bearer tokens aren't held by it | Accepted: 105 (WebAuthn later, if asked for) |
+| SAML and LDAP sign-in aren't built | Accepted: OpenID Connect is the one type (106) |
+| A backup made before a purge or an erasure keeps what they cleared | Accepted: the operator's copies ([backup runbook](../runbooks/backup.md)) |
 | Rate limits in one process's memory, reset on restart | 109, shared rate limits (planned, M17) |
 | No release signatures | MVP §14.2 (designed, post-MVP) |
 | Telemetry's sanitizer is best-effort on free text (the limits in 101's spec) | Accepted: telemetry is off by default and goes only to the operator's own collector |
-| IP addresses and expired sessions kept indefinitely | 102, retention (planned, M15) |
-| A person can't be erased | 103 (planned, M15) |
 | Data at rest not encrypted by Ronne | Accepted: MVP §15, Operations (the disk's, the database's, the bucket's) |
 | Skills, commands and agents can carry harmful instructions no flag finds | Accepted: MVP §12, review is the boundary |
 | Tokens may have no expiry | Accepted: 009 (the person chooses it) |
