@@ -312,6 +312,7 @@ provider (owner, 2026-10-15). Build order: 122 → 105 → 106 → 107 → 108.
 | [106](./106-oidc-sign-in/SPEC.md) | Identity providers and OIDC sign-in: an abstract provider type (OpenID Connect first) with presets and setup instructions, set up by root on the Authentication tab; accounts linked by verified email, or created on first sign-in for chosen domains with the role `user`; IdP groups mapped to workspace roles; a password policy and `rmk-server disable-sso` so nobody is locked out | 122, 006, 008, 091, 092, 105, 114 | done (the Documentation in ronne-web `docs/106-oidc-sign-in`) |
 | [107](./107-rmk-login-device-flow/SPEC.md) | `rmk login --web` for SSO and two-factor users: the OAuth device flow (a code and a URL, approved in the browser, a personal access token back); the MCP setup uses it too | 106, 009, 022, 027 | in progress |
 | [108](./108-scim-provisioning/SPEC.md) | SCIM provisioning: `/api/v1/scim/v2` Users and Groups, a token per identity provider; deprovisioning disables the account and revokes its tokens and sessions; groups set workspace membership | 106, 092, 103 | done (the Documentation in ronne-web `docs/108-scim-provisioning`) |
+| [123](./123-user-profile-page/SPEC.md) | A page for each user, `/admin/users/<id>` (root only), holding every action the Users list's rows carry today (role, password, two-factor, disable, download, erase) and the account's state; the list loses its buttons, which overprint the Status and Created columns | 008, 059, 092, 103, 104, 105, 108 | specified |
 
 ### M17 — More than one replica
 
