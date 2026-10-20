@@ -49,8 +49,9 @@ test("a user composes an agent from two catalogue items on the canvas, saves, re
     "https://www.ronne.ai/marketplace/docs/items#canvas",
   );
 
-  // The picker offers items of every type (096): skills, MCP servers, other agents too.
-  await expect(picker.getByText(skill, { exact: true })).toBeVisible();
+  // The picker offers items of every type (096): skills, MCP servers, other agents too. It shows
+  // a page of 12 (the seed has more than that), so what is found is searched for below.
+  await expect(picker.getByRole("listitem").first()).toBeVisible();
 
   // The first, searched for and added with its button: on the canvas with ^latest.
   await picker.getByLabel("Search the catalogue").fill("commit messages");

@@ -14,6 +14,7 @@ import {
   resetPasswordFromForm,
   resetTwoFactorFromForm,
 } from "./actions";
+import { DownloadDataButton } from "./DownloadDataDialog";
 import { EraseUserButton } from "./EraseUserDialog";
 import { OneTimePassword } from "./OneTimePassword";
 import { PasswordChoice } from "./PasswordChoice";
@@ -27,7 +28,7 @@ type RowUser = {
   name?: string;
   role: Role;
   disabled: boolean;
-  /** Erased (103): the row's only action is the greyed data download (104's place). */
+  /** Erased (103): the row's only action is the greyed data download (104). */
   erased?: boolean;
   /** Two-factor sign-in is on (105): only then is "Reset two-factor" offered. */
   twoFactor?: boolean;
@@ -215,9 +216,9 @@ export const ActionForm = ({
 
 /**
  * A row's actions: change role, reset password, reset two-factor when it's on (105), disable or
- * enable (spec 008), erase (103), on every row,
+ * enable (spec 008), download their data (104), erase (103), on every row,
  * other roots' included, except your own: another root changes that one (059). An erased row
- * keeps only the greyed download of their data (104's place), since nothing can change it again.
+ * keeps only the greyed download of their data, since nothing can change it again.
  */
 export const UserRowActions = ({ user }: { user: RowUser }) => {
   const [kind, setKind] = useState<Kind | null>(null);
@@ -274,6 +275,7 @@ export const UserRowActions = ({ user }: { user: RowUser }) => {
         >
           {user.disabled ? "Enable" : "Disable"}
         </button>
+        <DownloadDataButton user={user} />
         <EraseUserButton
           user={{ id: user.id, email: user.email, name: user.name ?? user.email, role: user.role }}
         />

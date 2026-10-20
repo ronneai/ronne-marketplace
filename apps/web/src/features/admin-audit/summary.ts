@@ -319,6 +319,11 @@ export const SUMMARIES: Record<AuditAction, Build> = {
   "user.enabled": (m, e) => ["Enabled ", who(m, e)],
   // 103: the pseudonym from the id, never the name or the email the person had.
   "user.erased": (_m, e) => ["Erased ", { name: e.targetId ? erasedName(e.targetId) : "a user" }],
+  "user.data_exported": (m, e) => [
+    "Downloaded the data of ",
+    who(m, e),
+    m.by === "root" ? " (by root)" : "",
+  ],
   "access_token.created": (m) => [
     "Created token ",
     { name: text(m.name) },

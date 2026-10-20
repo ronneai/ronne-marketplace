@@ -312,3 +312,15 @@ export class InvalidGroupMappingError extends IdentityError {
     );
   }
 }
+
+/** The person's data was downloaded less than ten minutes ago (104): `seconds` is the time left. */
+export class DataExportLimitError extends IdentityError {
+  override readonly name: string = "DataExportLimitError";
+  constructor(readonly seconds: number) {
+    super(
+      `This account's data was downloaded a moment ago. Try again in ${
+        seconds >= 60 ? `${Math.ceil(seconds / 60)} minutes` : `${seconds} seconds`
+      }.`,
+    );
+  }
+}

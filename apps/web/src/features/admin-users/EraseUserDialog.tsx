@@ -8,6 +8,7 @@ import { Dialog, DialogActions } from "@/components/ui/Dialog";
 import { FieldError, Input, Label } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
 import { eraseUserFromForm } from "./actions";
+import { dataHref } from "./DownloadDataDialog";
 import type { AdminActionState } from "./types";
 
 export type ErasableUser = { id: string; email: string; name: string; role: "root" | "user" };
@@ -108,7 +109,11 @@ export const EraseUserForm = ({
       </div>
       <p className="text-sm text-muted">
         Nothing of theirs can be read back afterwards: if the person asked for what the instance
-        holds about them, give it to them first.
+        holds about them, give it to them first.{" "}
+        <a href={dataHref(user.id)} className="underline underline-offset-2 hover:text-fg">
+          Download their data
+        </a>
+        .
       </p>
       <div className="grid gap-1.5">
         <Label htmlFor={id}>Type the account&apos;s email to confirm</Label>

@@ -54,24 +54,27 @@ session (`proxy.ts`), never a token. The shape, `version: 1`:
   "workspaces": [{ "name": "…", "role": "admin", "since": "…", "source": null }],
   "accessRequests": [{ "workspace": "…", "status": "approved", "message": "…", "createdAt": "…" }],
   "scopes": [{ "name": "@team", "workspace": "…", "createdAt": "…" }],
-  "items": [{ "name": "@team/x", "type": "skill", "owner": true,
+  "items": [{ "name": "@team/x", "workspace": "…", "type": "skill", "owner": true,
               "versions": [{ "version": "1.0.0", "publishedAt": "…", "publishedByMe": true }] }],
-  "submissions": [{ "name": "@team/x", "status": "approved", "createdAt": "…", "submittedAt": "…",
+  "submissions": [{ "name": "@team/x", "workspace": "…", "status": "approved", "createdAt": "…", "submittedAt": "…",
                     "revisions": 3, "files": ["ronne.yaml", "SKILL.md"] }],
-  "comments": [{ "submission": "@team/x", "kind": "comment", "body": "…", "createdAt": "…" }],
+  "comments": [{ "submission": "@team/x", "workspace": "…", "kind": "comment", "body": "…", "createdAt": "…" }],
   "auditEvents": [{ "at": "…", "action": "version.published", "as": "actor",
                     "target": { "type": "item_version", "id": "…" }, "ipAddress": null,
                     "metadata": { … } }]
 }
 ```
 
-Every list is ordered oldest first. Secrets never: no token hashes or values, no password hash, no
+`instance.name` is always "Ronne AI Marketplace" (the app has no instance name setting) and `url` is
+`PUBLIC_URL`. `workspace` names the workspace the scope is in, since names are unique per workspace
+(118). Every list is ordered oldest first. Secrets never: no token hashes or values, no password hash, no
 two-factor secret or backup codes, no identity-provider tokens; `prefix` is the token's shown
 prefix (009). Dates are ISO 8601 UTC. Private workspaces' names appear: they're the person's own
 memberships. `auditEvents` holds the events where the person is the actor or the target, with
 their metadata as stored (after 102's and 103's clearing; an event about another person names
-that person only by id, since metadata emails of others aren't the exporter's data: a target
-email in another person's `user.created` by this root is replaced by `[other]`).
+that person only by id, since metadata emails of others aren't the exporter's data: every address
+that isn't the person's, in values and keys at any depth, is replaced by `[other]`; and the
+`ipAddress` of an event someone else did to the person is null, since it is that other person's).
 
 ### Limits
 
@@ -82,12 +85,13 @@ email in another person's `user.created` by this root is replaced by `[other]`).
   (comments at 10,000 × 10 KB would be 100 MB: a comment's body is cut at 10,000 characters with
   `…` and `"truncated"` says `comments`).
 - **One download per account per 10 minutes**, by the account the file is about, counted in the
-  database (`jobs`-style row per user, or 109's table when it lands); the next one is 429 with
+  database from the audit log's `user.data_exported` events about it (retention keeps events at
+  least a day, 102); the next one is 429 with
   the time left. Root's downloads for others count against that person's limit too.
 
 ### Where
 
-- **Account → Your data:** a section with one sentence, the helper `your-data`, and **Download my
+- **Account → Your data:** a section (on the Password tab: `/account/data` is the download) with one sentence, the helper `your-data`, and **Download my
   data**. It's a link to `GET /account/data`, so it works with JavaScript off. Under it, "Last
   downloaded <date>" when there was one (from the audit log).
 - **Admin › Users → Download their data** (root): in the row's menu, the same file for that
@@ -97,8 +101,11 @@ email in another person's `user.created` by this root is replaced by `[other]`).
 
 ### Rules
 
+- Only a plain `GET` from the app downloads: any other method (a `HEAD` too) is 405, and a request
+  the browser marks `Sec-Fetch-Site: cross-site` is 403, so another site can't use up a person's
+  window. Answers that aren't the file are JSON in the API's error shape.
 - The person's own: `GET /account/data` needs a web session; a disabled account can't sign in,
-  so root does it. A session held on the two-factor step (105) can't download.
+  so root does it. A session held on the two-factor step (105) can't download, and neither can a disabled account.
 - Root's: `users.manage`; the audit event records root as actor and the person as target.
 - `user.data_exported`, target the user, metadata `{ by: "self" | "root", rows: { … } }` (the
   counts), never the content.

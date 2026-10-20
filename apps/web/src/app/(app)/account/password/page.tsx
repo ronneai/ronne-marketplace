@@ -1,6 +1,9 @@
 import { PageHeader, Panel } from "@/components/ui/Panel";
 import { ChangePasswordForm } from "@/features/account/ChangePasswordForm";
+import { YourDataSection } from "@/features/account/YourDataSection";
 import { AccountTabs } from "@/features/account-security/AccountTabs";
+import { myLastExport } from "@/server/domains/identity/actions/user-data";
+import { requestHeaders } from "@/server/http/request-headers";
 import { holdPage } from "../../hold";
 
 export const metadata = { title: "Password · Account · Ronne AI Marketplace" };
@@ -8,6 +11,7 @@ export const metadata = { title: "Password · Account · Ronne AI Marketplace" }
 /** The (app) layout already requires a signed-in user. */
 const ChangePasswordPage = async () => {
   await holdPage();
+  const lastDownloadedAt = await myLastExport(await requestHeaders());
   return (
     <>
       <PageHeader
@@ -27,6 +31,9 @@ const ChangePasswordPage = async () => {
           </div>
           <ChangePasswordForm />
         </section>
+      </Panel>
+      <Panel padding="lg" className="mt-6">
+        <YourDataSection lastDownloadedAt={lastDownloadedAt} />
       </Panel>
     </>
   );

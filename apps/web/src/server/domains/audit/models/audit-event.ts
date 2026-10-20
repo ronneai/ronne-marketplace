@@ -47,6 +47,7 @@ export const AUDIT_ACTIONS = [
   "user.disabled",
   "user.enabled",
   "user.erased",
+  "user.data_exported",
   "access_token.created",
   "access_token.revoked",
   "workspace.created",
