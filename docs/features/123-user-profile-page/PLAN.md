@@ -74,7 +74,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   no axe run (that is the website's `pnpm a11y`), so none is added.
   *Done when:* `pnpm test:e2e` passes on the desktop, phone and tablet projects.
 
-- [ ] **7. Documentation.** Administration → Users in ronne-web (en, pt, fr), the other topics that say
+- [x] **7. Documentation.** Administration → Users in ronne-web (en, pt, fr), the other topics that say
   "Users list" for an action, and the helpers that moved.
   *Done when:* the Documentation's render tests pass in ronne-web and the helper link test passes here.
 

@@ -133,32 +133,34 @@ back button returns to the list with its filters, since they are in the URL (061
   added, so both `topics.ts` stay as they are.
 - **Helpers:** `own-row`, `role-root`, `reset-two-factor` and `scim-managed` keep their wording and
   move with their actions; no new helper.
-- **Other topics** that say "in the Users list" for an action (Privacy: erase and download; Two-factor:
-  reset; SCIM: disable) say "on the user's page". Found by a search of the Documentation's text for
-  *Users list* and *row*.
+- **Other topics** that say "in the Users list" or "on the row" for an action (Privacy: erase and
+  download; SCIM: erase, disable, enable and reset password) say "on the user's page". Found by a
+  search of the Documentation's text for *Users list* and *row*. Two-factor's "ask a root to reset
+  your two-factor in Users" never named the list or a row, and stays true: unchanged.
 
 ## Acceptance criteria
 
-- [ ] `/admin/users` shows no action buttons, and its Status and Created columns are readable at
+- [x] `/admin/users` shows no action buttons, and its Status and Created columns are readable at
   1280px, 1440px and on a phone: nothing overlaps.
-- [ ] The list shows a Last sign-in time for an account that signed in with a password, with an
+- [x] The list shows a Last sign-in time for an account that signed in with a password, with an
   identity provider and with two-factor; *Never* for one that has not; an en dash for an erased one;
   the same time is on the page.
-- [ ] The times of the page's rows come from one query for the rows shown, not one per row.
-- [ ] Each row's name and its *Open* link go to `/admin/users/<id>` (on a phone, the email and the
+- [x] The times of the page's rows come from one query for the rows shown, not one per row.
+- [x] Each row's name and its *Open* link go to `/admin/users/<id>` (on a phone, the email and the
   row); a click elsewhere on the row does nothing surprising (the Role cell no longer opens a dialog).
-- [ ] No cell of the list breaks a line, at 1280px and 1440px, and Name and Email have one width.
-- [ ] Open is an icon with the accessible name "Open <email>"; beside each email an icon-only button
+- [x] No cell of the list breaks a line, at 1280px and 1440px, and Name and Email have one width.
+- [x] Open is an icon with the accessible name "Open <email>"; beside each email an icon-only button
   named "Copy <email>" puts the email on the clipboard and shows a check mark for two seconds.
-- [ ] The page shows the sections above, with real data, and every action works from it and ends
+- [x] The page shows the sections above, with real data, and every action works from it and ends
   back on the page showing the new state.
-- [ ] Anyone but root gets a 404 on the page; an unknown id is a 404 for root.
-- [ ] Root's own page and an erased account's page are read-only, as their rows were.
-- [ ] The audit log's event details link to the user's page when the event names an account.
-- [ ] The phone sweep (065) and the axe check cover the list and the page.
-- [ ] The e2e tests that clicked row buttons (`user-admin.e2e.ts`, `scim.ts`, and others found by
+- [x] Anyone but root gets a 404 on the page; an unknown id is a 404 for root.
+- [x] Root's own page and an erased account's page are read-only, as their rows were.
+- [x] The audit log's event details link to the user's page when the event names an account.
+- [x] The phone sweep (065) covers the list and the page (the marketplace has no axe run: that is the
+  website's `pnpm a11y`).
+- [x] The e2e tests that clicked row buttons (`user-admin.e2e.ts`, `scim.ts`, and others found by
   searching for *Reset password* and *Change role*) use the page instead.
-- [ ] The Documentation and inline helpers listed above say what the feature does now.
+- [x] The Documentation and inline helpers listed above say what the feature does now.
 
 ## Decisions
 

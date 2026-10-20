@@ -316,3 +316,48 @@ Witnessed: 2026-10-20 11:55 EDT, by a fresh agent (re-check of rows 3, 4 and 8, 
 | 8 | The Disable dialog keeping the action it was opened for after the page refreshes is guarded (`user-admin.e2e.ts:142-143`) | no | confirmed | real repo: `test:e2e e2e/user-admin.e2e.ts` → 1 passed; scratch copy built with `next build --webpack` and a `pnpm` shim, unmutated → passed; with `UserPageActions.tsx` using `TITLES[kind]` and `kind={kind}`, rebuilt → fails at `user-admin.e2e.ts:142` (`getByRole('dialog', { name: 'Disable user' })` not found) |
 
 **Overall:** met. Everything ran in a scratch copy; the repository was not edited by the witness.
+
+## Task 7 — Documentation
+
+Witnessed: 2026-10-20 12:05 EDT, by a fresh agent (blind). Commit: 95f4fa3f (marketplace) and 7af9c3f (ronne-web, branch `docs/marketplace-123-user-page`). Machine: macOS (Darwin 27.0.0), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | List columns in order: name, email, role, status, last sign-in, created (and Open); sortable by name, email, created; a row has no buttons | no | confirmed | `UsersPage.tsx:150-250`: name, email, role, status, lastSignIn, created, open (chevron); `sort` only on name, email, created; no Button in any column |
+| 2 | The name, or the chevron, opens the user's page; on a phone the email does and covers the row; the icon beside the email copies it | no | confirmed | `UsersPage.tsx:154-163` (name Link), `:228-240` (IconLink, hidden on mobile), `:174-184` (email Link `sm:hidden after:absolute after:inset-0`), `:188` (CopyEmailButton) |
+| 3 | Last sign-in counts web sign-ins only; Never when none; a dash for an erased account; rmk and token use don't count | no | confirmed | `kysely-identity-repository.ts:363-380` takes the max `created_at` of `auth.signed_in`, written only at `session.ts:147` (password), `sso.ts:319` (provider) and `two-factor.ts:398` (second step); `user-admin.ts:83-84` null for erased; `UsersPage.tsx:200-208` |
+| 4 | A long name or email ends in an ellipsis, the full text on hover | no | confirmed | `truncate: true`, `title={user.name}` / `title={user.email}` (`UsersPage.tsx:150-185`) |
+| 5 | The Role column: `root`, or a badge per workspace role, highest first, with a count, and the hover lists each | no | confirmed | `RoleCell`, `UsersPage.tsx:68-97` |
+| 6 | SCIM badges, Erased on and status `erased`, the page warns a sync sets a change back | no | confirmed | `ScimBadges` `UsersPage.tsx:104-135`; `UserPage.tsx:100-102` renders `ScimManagedNotice`; `UsersPage.tsx:196` |
+| 7 | The page's sections and where each action lives | no | confirmed | `UserPage.tsx:107-188`: five sections; slots in `[id]/page.tsx:48-62` |
+| 8 | Reset two-factor shows only with two-factor on and does what the text says | no | confirmed | `[id]/page.tsx:51` `hidden={!row.twoFactor}`; `UserActionDialogs.tsx:178-186`; `user-admin.ts:346-348` |
+| 9 | Reset password, Disable and Enable do what the text says | no | confirmed | `UserActionDialogs.tsx:147-165`; `user-admin.ts:314-315`; `DisableImpact` `:68-80`; `OneTimePassword` |
+| 10 | Manage workspaces: global always there, roles, Remove, Add workspace, Save says what changed; root has no Manage button | no | confirmed | `WorkspaceRows.tsx`; `UserWorkspacesDialog.tsx:34-41`; `[id]/page.tsx:54-58`; the page shows "Root: every workspace." (`UserPage.tsx:153`), so "Root has no Workspaces" was loose wording |
+| 11 | Their data: the audit link, Download their data, the 10-minute rule, the audit record | no | confirmed | `UserPage.tsx:171-178`; `DownloadDataDialog.tsx:21-31`; `user-data-export.ts:24-25,48` |
+| 12 | Erase ends the account once its email is typed | no | confirmed | `EraseUserDialog.tsx:16-18`, `:119-138` |
+| 13 | A dialog stays open until closed, showing what happened | no | confirmed | `UserPageActions.tsx:18-28`; `UserActionDialogs.tsx:108-122` |
+| 14 | Your own page is read-only; an erased account's page has no actions and a greyed download | no | confirmed | `UserPage.tsx:87-91, 114, 132, 157, 178, 181`; `[id]/page.tsx:36-37`; `UserPageActions.tsx:60-68` |
+| 15 | The changed sentences in privacy.tsx and scim.tsx are true | no | confirmed | `git show 7af9c3f -- en/privacy.tsx en/scim.tsx` against `UserPage.tsx` and `ScimBadges` |
+| 16 | Other topics that said "Users list" or "row" for an action were updated, including Two-factor: reset | no | partly | no "Users list" or "row" wording is left in `en/*.tsx`; `en/account.tsx:134-137` ("ask a root to reset your two-factor in Users") was unchanged and is still true, but the spec said "on the user's page" |
+| 17 | pt and fr carry the same structure and links as en in the Users section | no | confirmed | a script: the same 7 DocLink targets, 7 `<Code>` items, 21 `<strong>`, 5 `<li>` and 6 `<p>` in all three |
+| 18 | fr has no space before `;` and no `&ldquo;` / `&rdquo;` in the changed hunks | no | confirmed | `git show 7af9c3f … \| grep '^+'` → 0 matches for ` ;` in fr and for `&ldquo;`, `&rdquo;`, `&laquo;` |
+| 19 | ronne-web tests, lint and typecheck pass | no | confirmed | `pnpm test` → 30 files, 169 passed; `pnpm lint`, `pnpm typecheck` clean |
+| 20 | The marketplace's helper link test passes | no | confirmed | `vitest run src/components/help/help.test.tsx src/components/ui/HelpTip.test.tsx` → 5 passed |
+| 21 | No helper mentions a row or the list's buttons, and the answers still match | no | confirmed | `Help.tsx` own-row, reset-two-factor, download-user-data, erase-user, scim-managed, role-root: no "row", "list" or button wording; used in the page and its dialogs |
+| 22 | `topics.ts` needed no change, and the two topics.ts files agree | no | confirmed | `git show 7af9c3f --stat` has no `topics.ts`; `admin` lists users, settings, audit in both; no test compares the whole files |
+
+**Overall:** not met: row 16 only, the spec expecting "on the user's page" in Two-factor, whose sentence never named the list. Also found: "Root has no Workspaces" was loose. Fixed after this pass: the spec says Two-factor stays unchanged and why; en, pt and fr now say root has no *Manage workspaces* button (ronne-web commit `b778af2`, amended; needs a re-check).
+
+### Re-check 1 — rows 10 and 16
+
+Witnessed: 2026-10-20 11:59 EDT, by a fresh agent (blind, re-check of rows 10 and 16). Commit: 95f4fa3f plus the uncommitted SPEC.md and WITNESS.md (the marketplace); ronne-web `b778af2`. Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 10 | The Workspaces bullet says root has no **Manage workspaces** button, in en, pt and fr, and that is true against the app | no | confirmed | `grep -n "Manage workspaces" www/src/content/docs/{en,pt,fr}/admin.tsx` at `b778af2`: en 86-87 "Root has no <strong>Manage workspaces</strong> button: root works in every workspace.", pt 89 "O root não tem o botão <strong>Manage workspaces</strong>: …", fr 96 "… <strong>Manage workspaces</strong> : root travaille …"; the app: `[id]/page.tsx:49-66` hides the button when `user.role === "root"`, `UserPage.tsx:154` shows "Root: every workspace." |
+| 16a | The spec's "Other topics" bullet says Privacy and SCIM use "on the user's page", and Two-factor stays unchanged | no | confirmed | `SPEC.md:136-139` |
+| 16b | No docs wording is left that puts an action on a row or in the list, outside the Users section | no | confirmed | `grep -n -i "users list\|on the row\|on its row\|each row" www/src/content/docs/{en,pt,fr}/{admin,privacy,scim,account}.tsx` → 3 hits, all in `admin.tsx` lines 16-17 describing the list; `pt/privacy.tsx:185` says "na página do usuário" |
+| 16c | The `account.tsx` two-factor sentence is still true | no | confirmed | `en/account.tsx:134-137` "ask a root to reset your two-factor in Users", pt:137 and fr:150-153 the same; the app's user page has a "Reset two-factor" button and a Two-factor fact (`UserPage.tsx:145`) |
+| – | ronne-web tests pass | no | confirmed | `pnpm test` in `www` → 30 files, 169 passed |
+
+**Overall:** met.
