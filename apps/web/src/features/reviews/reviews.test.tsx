@@ -416,7 +416,9 @@ describe("the nav count", () => {
           appearance={null}
         />,
       );
-    expect(sidebar(3)).toMatch(/Reviews<\/span><span[^>]*>3<span class="sr-only"> waiting/);
+    expect(sidebar(3)).toMatch(
+      /Reviews<\/span><span[^>]*><span[^>]*>3<span class="sr-only"> waiting/,
+    );
     expect(sidebar(0)).not.toContain("waiting");
   });
 });

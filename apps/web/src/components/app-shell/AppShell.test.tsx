@@ -303,8 +303,8 @@ describe("Sidebar", () => {
     expect(at(">Home<")).toBeLessThan(at(">Governance &amp; reviews<"));
     expect(at(">Governance &amp; reviews<")).toBeLessThan(at(">Users<"));
     expect(at(">Users<")).toBeLessThan(at(">Tools<"));
-    expect(html).toMatch(/href="\/submissions\/new"[^>]*>.*Propose item<\/a>/);
-    expect(html).toMatch(/Reviews<\/span><span[^>]*>3<span class="sr-only"> waiting/);
+    expect(html).toMatch(/href="\/submissions\/new"[^>]*>.*Propose item<\/span><\/a>/);
+    expect(html).toMatch(/Reviews<\/span><span[^>]*><span[^>]*>3<span class="sr-only"> waiting/);
     expect(html).toContain('<nav aria-label="Main"');
   });
 
@@ -347,13 +347,76 @@ describe("Sidebar", () => {
     expect(sidebar({ user, items: navFor(user) })).not.toMatch(/>user</);
   });
 
+  it("has a round chevron button on the sidebar's edge, half over the page, at the logo's height", () => {
+    const button = (html: string) =>
+      html.match(/<button[^>]*aria-controls="sidebar"[^>]*>.*?<\/button>/)?.[0] ?? "";
+    const open = button(sidebar());
+    // A circle on the right edge (the row of the logo is its box), half out: not flat in the row.
+    for (const cls of [
+      "rounded-full",
+      "absolute",
+      "-right-3",
+      "translate-x-1/2",
+      "top-1/2",
+      "-translate-y-1/2",
+      "z-40",
+      "touch-hit",
+    ])
+      expect(open, cls).toContain(cls);
+    // Fold points left, unfold points right; no panel icon.
+    expect(open).toContain("lucide-chevron-left");
+    expect(open).not.toContain("lucide-panel-left");
+    const folded = button(sidebar({ folded: true }));
+    expect(folded).toContain("lucide-chevron-right");
+    expect(folded).toContain('aria-label="Unfold the sidebar"');
+    // Flat, in the design's tokens: a hairline border on the surface, never a shadow.
+    expect(open).toMatch(/border-hairline/);
+    expect(open).toMatch(/bg-surface/);
+    expect(open).not.toMatch(/shadow/);
+    // The logo and the button share one row, so the button follows the logo or the monogram.
+    const row = sidebar().match(/<div class="relative flex h-\[30px\] items-center[^"]*">/)?.[0];
+    expect(row).toBeTruthy();
+  });
+
+  it("animates its width, and not for people who ask for less motion", () => {
+    const aside = (html: string) => html.match(/<aside[^>]*>/)?.[0] ?? "";
+    for (const html of [sidebar(), sidebar({ folded: true })]) {
+      expect(aside(html)).toContain("transition-[width]");
+      expect(aside(html)).toContain("duration-200");
+      expect(aside(html)).toContain("ease-out");
+      expect(aside(html)).toContain("motion-reduce:transition-none");
+    }
+    // The width is where it is going; both states render the same wide or narrow box.
+    expect(aside(sidebar())).toContain("w-64");
+    expect(aside(sidebar({ folded: true }))).toContain("w-16");
+  });
+
+  it("keeps the count readable when open and hides it only when folded", () => {
+    const open = sidebar();
+    // Open: Reviews' count is part of its name, "Reviews 3 waiting".
+    const reviews = /<a [^>]*href="\/reviews"[\s\S]*?<\/a>/.exec(open)?.[0] ?? "";
+    expect(reviews).toContain('sr-only"> waiting');
+    expect(reviews).not.toMatch(/<span aria-hidden="true" class="shrink-0[^"]*">\s*<span[^>]*>3/);
+    // Folded: the count's badge is hidden, and the link's own name says it.
+    const folded =
+      /<a [^>]*href="\/reviews"[\s\S]*?<\/a>/.exec(sidebar({ folded: true }))?.[0] ?? "";
+    expect(folded).toContain('aria-label="Reviews (3 waiting)"');
+    expect(folded).toMatch(/<span aria-hidden="true" class="shrink-0[^"]*max-w-0 opacity-0[^"]*">/);
+  });
+
   it("unfolded, offers to fold; folded, names every icon and puts a dot where a count waits", () => {
     expect(sidebar()).toContain('aria-label="Fold the sidebar"');
     expect(sidebar()).toMatch(/aria-expanded="true" aria-controls="sidebar"/);
     const html = sidebar({ folded: true });
     expect(html).toContain('aria-label="Unfold the sidebar"');
     expect(html).toContain("w-16");
-    expect(html).not.toContain(">Discover<");
+    // Folding is a morph, not a swap: the group headings, labels and counts are still there, faded
+    // out and hidden from screen readers, and the names are on the links.
+    expect(html).toMatch(/<p aria-hidden="true"[^>]*max-h-0[^>]*opacity-0[^>]*>Discover<\/p>/);
+    expect(html).toMatch(
+      /<span aria-hidden="true" class="min-w-0 flex-1 truncate[^"]*opacity-0[^"]*">Catalogue<\/span>/,
+    );
+    expect(sidebar()).not.toMatch(/<p aria-hidden="true"[^>]*>Discover<\/p>/);
     for (const name of [
       "Home",
       "Catalogue",
@@ -365,8 +428,20 @@ describe("Sidebar", () => {
       "R, your account",
     ])
       expect(html, name).toContain(`aria-label="${name}"`);
-    expect(html).toContain('aria-label="Ronne"');
-    expect(html).not.toContain("v1.2.3");
+    // The logo stays and its wordmark is wiped away (clipped), not swapped for the monogram.
+    expect(html).toContain('aria-label="Ronne AI"');
+    expect(html).not.toContain('aria-label="Ronne"');
+    expect(html).toMatch(/clip-path:inset\(0 [\d.]+px 0 0\)/);
+    expect(sidebar()).toMatch(/clip-path:inset\(0 0px 0 0\)/);
+    // The version collapses away rather than leaving: hidden from screen readers and from view.
+    expect(html).toMatch(
+      /<p aria-hidden="true"[^>]*max-h-0[^>]*opacity-0[^>]*>ronne marketplace v1\.2\.3/,
+    );
+    expect(sidebar()).not.toMatch(/<p aria-hidden="true"[^>]*>ronne marketplace v1/);
+    // The workspace switcher keeps its text, faded and hidden, and grows its icon in.
+    expect(html).toMatch(
+      /<span aria-hidden="true" class="grid min-w-0 flex-1[^"]*max-w-0 opacity-0/,
+    );
     // The dot: on Reviews, which has a count, and on no other link.
     const dot = /<span aria-hidden="true" class="[^"]*\brounded-full bg-accent\b/g;
     const reviews = /<a [^>]*aria-label="Reviews \(3 waiting\)"[\s\S]*?<\/a>/.exec(html)?.[0] ?? "";
