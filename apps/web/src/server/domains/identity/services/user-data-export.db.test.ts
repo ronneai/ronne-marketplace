@@ -191,7 +191,7 @@ const seedAna = async (): Promise<Ana> => {
     .execute();
   await t.db
     .updateTable("user")
-    .set({ two_factor_enabled: toDbBoolean(true, t.dialect) })
+    .set({ two_factor_enabled: toDbBoolean(true, t.dialect), locale: "pt" })
     .where("id", "=", id)
     .execute();
   await t.db
@@ -319,6 +319,7 @@ describe("exportUserData (104)", () => {
       role: "user",
       disabledAt: null,
       twoFactorEnabled: true,
+      locale: "pt",
       scim: { provider: "Acme SSO", externalId: "ext-ana", active: true },
     });
     expect(data.account.signInMethods).toEqual([

@@ -229,7 +229,11 @@ const seedAna = async (): Promise<Seeded> => {
     .execute();
   await t.db
     .updateTable("user")
-    .set({ two_factor_enabled: toDbBoolean(true, t.dialect), image: "https://x/ana.png" })
+    .set({
+      two_factor_enabled: toDbBoolean(true, t.dialect),
+      image: "https://x/ana.png",
+      locale: "fr",
+    })
     .where("id", "=", id)
     .execute();
   await t.db
@@ -386,6 +390,7 @@ describe("eraseUser (103)", () => {
       email: erasedEmail(ana.id),
       name: erasedName(ana.id),
       image: null,
+      locale: null,
       role: "user",
     });
     expect(Boolean(user.email_verified)).toBe(false);

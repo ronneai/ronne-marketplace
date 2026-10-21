@@ -9,6 +9,7 @@ import type { Database } from "../../../db/schema";
 import { containsInsensitive } from "../../../db/search";
 import type { DatabaseDialect } from "../../../db/url";
 import { recordAudit } from "../../audit/actions/audit";
+import { isLocale, type Locale } from "../models/locale";
 import { isRole, isWorkspaceRole, type RootAccount, type UserSummary } from "../models/user";
 import type {
   IdentityRepository,
@@ -250,7 +251,7 @@ export const kyselyIdentityRepository = (
     async findActiveUser(userId) {
       const row = await db
         .selectFrom("user")
-        .select(["id", "email", "name", "role"])
+        .select(["id", "email", "name", "role", "locale"])
         .where("id", "=", userId)
         .where("disabled_at", "is", null)
         .where("erased_at", "is", null)
@@ -264,6 +265,8 @@ export const kyselyIdentityRepository = (
         role: row.role,
         workspaces: await loadMemberships(db, row.id),
         personal: await loadPersonal(db, row.id),
+        // A value the app no longer supports counts as automatic.
+        locale: isLocale(row.locale) ? row.locale : null,
       };
     },
 
@@ -407,6 +410,15 @@ export const kyselyIdentityRepository = (
         .where("email", "=", email)
         .executeTakeFirst();
       return Boolean(row);
+    },
+
+    async setLocale(userId, locale: Locale | null, now) {
+      await db
+        .updateTable("user")
+        .set({ locale, updated_at: at(now) })
+        .where("id", "=", userId)
+        .where("erased_at", "is", null)
+        .execute();
     },
 
     async setRole(userId, role, now) {

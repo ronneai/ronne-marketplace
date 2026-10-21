@@ -6,10 +6,12 @@ import type { CurrentUser } from "../models/user";
 import { type AppAuth, getAppAuth, getAppAuthIfConfigured } from "../repositories/auth-instance";
 import { betterAuthSessionStore } from "../repositories/better-auth-session-store";
 import { kyselyIdentityRepository } from "../repositories/kysely-identity-repository";
+import * as localeService from "../services/locale";
 import * as service from "../services/session";
 import { effectivePasswordPolicy } from "./password-policy";
 
 export { PATH_HEADER } from "../models/route-guard";
+export type { SetLocaleResult } from "../services/locale";
 export type { ChangePasswordResult, SignInInput, SignInResult } from "../services/session";
 
 /**
@@ -66,3 +68,7 @@ export const changePassword = (
 
 export const signOut = (headers: Headers, app: AppAuth = getAppAuth()) =>
   service.signOut(deps(app), context(headers, app));
+
+/** Saves the signed-in person's language (129): `en`, `pt`, `fr`, or null for automatic. */
+export const setLocale = (headers: Headers, value: unknown, app: AppAuth = getAppAuth()) =>
+  localeService.setLocale(deps(app), headers, value);

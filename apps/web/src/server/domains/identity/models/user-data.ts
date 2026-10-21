@@ -1,4 +1,5 @@
 import type { AuditMetadata, AuditMetadataValue } from "../../audit/models/audit-event";
+import type { Locale } from "./locale";
 
 /**
  * The file a person can download about themselves (feature 104): `version: 1`. Dates become ISO
@@ -35,6 +36,8 @@ export type UserDataAccount = {
   createdAt: Date;
   disabledAt: Date | null;
   twoFactorEnabled: boolean;
+  /** The language they chose (129); null is automatic. */
+  locale: Locale | null;
   signInMethods: UserDataSignInMethod[];
   scim: { provider: string; externalId: string | null; active: boolean } | null;
 };

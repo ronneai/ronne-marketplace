@@ -50,6 +50,7 @@ export const kyselyEraseRepository = (
           image: null,
           email_verified: toDbBoolean(false, dialect),
           two_factor_enabled: toDbBoolean(false, dialect),
+          locale: null,
           role: "user",
           erased_at: at(now),
           updated_at: at(now),

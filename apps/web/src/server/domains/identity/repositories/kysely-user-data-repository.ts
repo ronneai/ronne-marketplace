@@ -6,6 +6,7 @@ import type { Database } from "../../../db/schema";
 import type { DatabaseDialect } from "../../../db/url";
 import { recordAudit } from "../../audit/actions/audit";
 import type { AuditMetadata } from "../../audit/models/audit-event";
+import { isLocale } from "../models/locale";
 import type { UserDataItem, UserDataSignInMethod, UserDataVersion } from "../models/user-data";
 import { kyselyIdentityRepository } from "./kysely-identity-repository";
 import type { UserDataRepository } from "./user-data-repository";
@@ -76,7 +77,16 @@ export const kyselyUserDataRepository = (
     async account(userId) {
       const user = await db
         .selectFrom("user")
-        .select(["id", "name", "email", "role", "created_at", "disabled_at", "two_factor_enabled"])
+        .select([
+          "id",
+          "name",
+          "email",
+          "role",
+          "created_at",
+          "disabled_at",
+          "two_factor_enabled",
+          "locale",
+        ])
         .where("id", "=", userId)
         .executeTakeFirst();
       if (!user) return null;
@@ -114,6 +124,7 @@ export const kyselyUserDataRepository = (
         createdAt: fromDbDate(user.created_at),
         disabledAt: user.disabled_at ? fromDbDate(user.disabled_at) : null,
         twoFactorEnabled: Boolean(user.two_factor_enabled),
+        locale: isLocale(user.locale) ? user.locale : null,
         signInMethods,
         scim: scim
           ? {

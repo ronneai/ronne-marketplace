@@ -16,7 +16,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* the notes list the areas and the error codes that need keys; `pnpm licenses:check`
   and `pnpm audit --audit-level high` pass with the package added.
 
-- [ ] **2. The saved language.** [risky] Migration `user.locale` (nullable text, one migration for
+- [x] **2. The saved language.** [risky] Migration `user.locale` (nullable text, one migration for
   all three dialects), the identity repository and model (`Locale`, `isLocale`), a service and
   action `setLocale`, the value on the session user, and "Your data" (104).
   *Done when:* `*.db.test.ts` pass on SQLite and, run once, on PostgreSQL and MySQL; the migration

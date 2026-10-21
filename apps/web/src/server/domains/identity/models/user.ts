@@ -1,4 +1,5 @@
 import { InvalidEmailError, InvalidNameError } from "../exceptions/errors";
+import type { Locale } from "./locale";
 import type { ScimAccountState } from "./scim-user";
 
 /**
@@ -25,6 +26,8 @@ export type CurrentUser = {
   workspaces: Memberships;
   /** Their personal workspace's id (114), whose admin they are; null or absent when there's none. */
   personal?: string | null;
+  /** The language they chose (129); null or absent is automatic: the browser decides. */
+  locale?: Locale | null;
 };
 
 const ROLES: readonly Role[] = ["root", "user"];

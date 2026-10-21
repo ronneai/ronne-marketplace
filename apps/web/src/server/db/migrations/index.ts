@@ -29,6 +29,7 @@ import { scim } from "./0028_scim";
 import { jobs } from "./0029_jobs";
 import { erasedAt } from "./0030_erased_at";
 import { userErasures } from "./0031_user_erasures";
+import { userLocale } from "./0032_user_locale";
 import type { AppMigration } from "./types";
 
 /**
@@ -67,4 +68,5 @@ export const migrations: Record<string, AppMigration> = {
   "0029_jobs": jobs,
   "0030_erased_at": erasedAt,
   "0031_user_erasures": userErasures,
+  "0032_user_locale": userLocale,
 };

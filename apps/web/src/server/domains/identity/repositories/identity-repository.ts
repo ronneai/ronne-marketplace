@@ -1,5 +1,6 @@
 import type { KeysetPage, SortDir } from "../../../db/keyset";
 import type { NewAuditEvent } from "../../audit/models/audit-event";
+import type { Locale } from "../models/locale";
 import type { CoverageRow } from "../models/two-factor-coverage";
 import type { CurrentUser, Role, RootAccount, UserSummary, WorkspaceRole } from "../models/user";
 
@@ -82,6 +83,8 @@ export interface IdentityRepository {
   /** How many users match, up to the count cap. */
   countUsers(filters: UserFilters): Promise<{ count: number; capped: boolean }>;
   emailTaken(email: string): Promise<boolean>;
+  /** Saves the person's language (129); null is automatic. An erased account is left alone (103). */
+  setLocale(userId: string, locale: Locale | null, now: Date): Promise<void>;
   setRole(userId: string, role: Role, now: Date): Promise<void>;
   disableUser(userId: string, now: Date): Promise<void>;
   countActiveAccessTokens(userId: string): Promise<number>;
