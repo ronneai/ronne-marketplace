@@ -1,10 +1,12 @@
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import type { SearchParams } from "@/components/ui/data-table/list-query";
 import { PageHeader, Panel } from "@/components/ui/Panel";
 import { TabLinks } from "@/components/ui/TabLinks";
 import { AuthenticationTab } from "@/features/admin-settings/authentication/AuthenticationTab";
 import { ProviderPage } from "@/features/admin-settings/authentication/providers/ProviderPage";
 import { PluginFeedsPanel } from "@/features/admin-settings/feeds/PluginFeedsPanel";
+import { NoticeTab } from "@/features/admin-settings/notice/NoticeTab";
 import { PrivacyTab } from "@/features/admin-settings/privacy/PrivacyTab";
 import { SETTINGS_TABS, settingsTab } from "@/features/admin-settings/tabs";
 import { UsageMinimumForm } from "@/features/admin-settings/usage/UsageMinimumForm";
@@ -21,7 +23,8 @@ export const metadata = { title: "Settings · Admin · Ronne AI Marketplace" };
 /**
  * Root only (`settings.manage`): anyone else gets a 404. In tabs (122), by `?tab=`: Usage (046's
  * policy and 047's minimum, the default), Plugin feeds (079's last builds) and Authentication,
- * whose identity providers each have a page (`&provider=`, 106), and Privacy (102's retention).
+ * whose identity providers each have a page (`&provider=`, 106), Privacy (102's retention) and
+ * Notice (124's message for every signed-in page; the first tab moved to messages, the rest follow in 131).
  * Only the tab shown reads its data.
  */
 const AdminSettings = async ({ searchParams }: { searchParams: Promise<SearchParams> }) => {
@@ -44,6 +47,7 @@ const AdminSettings = async ({ searchParams }: { searchParams: Promise<SearchPar
       return await ProviderPage({ id: provider, test: one(query.test), preset: one(query.preset) });
     if (tab === "authentication") return await AuthenticationTab();
     if (tab === "privacy") return await PrivacyTab();
+    if (tab === "notice") return await NoticeTab();
     const settings = await instanceSettings(request);
     return (
       <>
@@ -56,13 +60,18 @@ const AdminSettings = async ({ searchParams }: { searchParams: Promise<SearchPar
       </>
     );
   };
+  // The tabs are still English, except Notice, which is written in messages from the start.
+  const noticeTab = (await getTranslations("admin.notice"))("tab");
+  const tabs = SETTINGS_TABS.map((entry) =>
+    entry.id === "notice" ? { ...entry, label: noticeTab } : entry,
+  );
   return (
     <>
       <PageHeader
         title="Settings"
         description="How this instance behaves. Each change takes effect at once and is recorded in the audit log."
       />
-      <TabLinks label="Settings" tabs={SETTINGS_TABS} current={tab} />
+      <TabLinks label="Settings" tabs={tabs} current={tab} />
       <div className="grid gap-4">{await content()}</div>
     </>
   );

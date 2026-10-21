@@ -145,6 +145,7 @@ describe("Admin › Settings' tabs (122)", () => {
       'href="/admin/settings?tab=feeds"',
       'href="/admin/settings?tab=authentication"',
       'href="/admin/settings?tab=privacy"',
+      'href="/admin/settings?tab=notice"',
     ])
       expect(html).toContain(href);
   });
@@ -170,7 +171,7 @@ describe("Admin › Settings' tabs (122)", () => {
   });
 
   it("is a 404 on every tab for anyone but root", async () => {
-    for (const tab of [undefined, "usage", "feeds", "authentication", "privacy"]) {
+    for (const tab of [undefined, "usage", "feeds", "authentication", "privacy", "notice"]) {
       session.getCurrentUser.mockResolvedValueOnce({ role: "user" });
       await expect(AdminSettings(tab)).rejects.toThrow("NEXT_NOT_FOUND");
     }

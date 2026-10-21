@@ -16,7 +16,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* unit tests cover validation and the revision; `settings.db.test.ts` covers saving,
   hiding and showing again, and the audit event holds no message text.
 
-- [ ] **2. The Notice tab.** A tab in Admin › Settings (122): fields, preview, last changed by,
+- [x] **2. The Notice tab.** A tab in Admin › Settings (122): fields, preview, last changed by,
   helper; root only.
   *Done when:* component tests cover the form, errors beside fields and the preview; a permission
   test shows non-root gets not-found.

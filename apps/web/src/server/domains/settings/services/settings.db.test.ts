@@ -66,6 +66,7 @@ describe("the usage policy", () => {
         revision: 0,
         changedAt: null,
         changedBy: null,
+        changedByName: null,
       },
     });
   });
@@ -88,7 +89,7 @@ describe("the usage policy", () => {
       twoFactorPolicy: "optional",
       passwordSignInPolicy: "everyone",
       retention: { ipDays: 90, sessionsDays: 90 },
-      notice: expect.objectContaining({ shown: false }),
+      notice: expect.objectContaining({ shown: false, changedByName: null }),
     });
     const { events } = await listAuditEvents(t.db, t.dialect, { group: "settings" });
     expect(
@@ -365,7 +366,7 @@ describe("the instance notice (124)", () => {
       link: { label: "Status", href: "https://status.example.com/" },
     });
     expect(await instanceSettings(deps, { user: root, ip: null })).toMatchObject({
-      notice: { revision: 4, shown: true },
+      notice: { revision: 4, shown: true, changedByName: "Root" },
     });
   });
 

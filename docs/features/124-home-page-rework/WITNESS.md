@@ -51,3 +51,33 @@ Witnessed: 2026-10-21 10:18 local, by a fresh agent (blind re-check). Commit: f5
 | 13 | The settings database tests also pass on PostgreSQL, MySQL and MariaDB | no | confirmed | `pnpm test:db:postgres`, `:mysql` and `:mariadb` with `-- src/server/domains/settings` → 1 file, 20 tests passed on each. |
 
 **Overall:** met. Every claim of task 1 is confirmed.
+
+## Task 2 — The Notice tab
+
+Witnessed: 2026-10-21 10:40 local, by a fresh agent (blind). Commit: 2bb650ed plus uncommitted changes (the `notice` folders in `features/admin-settings` and `features/notice`, the tab, the page, `messages/*/admin.json`, the helpers, `biome.json`, the settings repository's `nameOf`). Machine: macOS (Darwin 27), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A Notice tab in Admin › Settings, selected by `?tab=notice`, with the form and no other panel | no | confirmed | `tabs.ts`, `page.tsx` and the test "is the last tab of Settings…" pass. |
+| 2 | Root only; anyone else gets not-found and nothing is read first | no | confirmed | The guard in `page.tsx` runs before the tab is read; the tests "is a 404 for anyone but root" and the 404-on-every-tab loop pass. |
+| 3 | Message, link label and address, tone, shown, Save, and a counter in characters | no | confirmed | `NoticeForm.tsx`; the tests "starts empty and hidden" and "counts characters" pass; 228 tests passed over the touched areas. |
+| 4 | Errors beside their field, the field marked, what was typed kept | no | confirmed | The test "puts each refusal beside its field…" passes; `noticeErrorCode` is checked for all seven refusals in three languages. |
+| 5 | A preview from the typed values, with its empty and hidden states; text output only | no | confirmed | A message `<b>bold</b><img src=x onerror=alert(1)>` renders as `&lt;b&gt;…` with no `<img`. |
+| 6 | "Last changed by <name> · time" or "Not set yet."; the name works on every database | no | confirmed | The test finds "Last changed by Root" and the `dateTime`; `pnpm test:db:postgres`, `:mysql`, `:mariadb` with `-- src/server/domains/settings` → 20 passed each; SQLite 20 passed. |
+| 7 | Helpers "Who sees this?" and the Warning line, and the `admin#notice` section in `topics.ts` | no | confirmed | `Help.tsx` and `topics.ts`; both questions are in the rendered tab. The first helper's answer describes what task 3 delivers; it is checked there. |
+| 8 | Everything on the tab is in messages in English, Portuguese and French | no | confirmed | `admin.json` in three languages, parity tests, the leak test, the `biome.json` override lists the new folders. |
+| 9 | The Portuguese and French texts are sensible and follow the glossary | no | confirmed | Both files read; terms consistent. |
+| 10 | Typecheck and lint are clean | no | not met | `pnpm lint` failed on the import order in `page.tsx`. |
+
+**Overall:** not met (row 10). Fixed: `biome check --write` on `page.tsx`.
+
+### Re-check (rows 6 and 10)
+
+Witnessed: 2026-10-21 10:50 local, by a fresh agent (blind re-check). Commit: 2bb650ed plus uncommitted changes. Machine: macOS (Darwin 27), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6 | The last-changed-by name works on all three servers | no | confirmed | `pnpm test:db:postgres`, `:mysql`, `:mariadb` → 1 file, 20 passed each. |
+| 10 | Typecheck and lint are clean | no | confirmed | `pnpm lint` exit 0, 44 warnings (none in the touched files); `pnpm typecheck` 7/7. |
+
+**Overall:** met. Every claim of task 2 is confirmed.

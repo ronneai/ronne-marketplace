@@ -1,0 +1,35 @@
+{
+  "notice": {
+    "tab": "Aviso",
+    "title": "Aviso da instância",
+    "intro": "Uma mensagem curta abaixo do cabeçalho de todas as páginas para quem entrou, como uma janela de manutenção ou “esta é uma demonstração”. É um texto seu, por isso não é traduzido.",
+    "message": "Mensagem",
+    "messageHint": "Texto simples em uma linha. {used, number} de {max, number} caracteres.",
+    "linkLabel": "Texto do link (opcional)",
+    "linkHref": "Endereço do link",
+    "linkHint": "Começa com https:// ou com uma única / para uma página deste site. Um link precisa do texto e do endereço.",
+    "tone": "Tom",
+    "toneInfo": "Informação",
+    "toneWarning": "Alerta",
+    "toneHint": "Alerta é para algo que pede cuidado, como dados que serão redefinidos.",
+    "shown": "Mostrar o aviso",
+    "shownHint": "Ao desligar, o texto é mantido e você pode ligar de novo.",
+    "preview": "Pré-visualização",
+    "previewEmpty": "Escreva uma mensagem para vê-la aqui.",
+    "previewHidden": "Oculto: ninguém o vê até você mostrá-lo.",
+    "save": "Salvar",
+    "saved": "Aviso salvo.",
+    "unchanged": "Nada mudou.",
+    "lastChanged": "Alterado por último por {name}",
+    "neverChanged": "Ainda não definido.",
+    "errors": {
+      "message_empty": "Escreva a mensagem antes de mostrar o aviso.",
+      "message_too_long": "Use até {max, number} caracteres, em uma linha.",
+      "label_missing": "Adicione o texto do link.",
+      "label_too_long": "Use até {max, number} caracteres no texto do link.",
+      "address_missing": "Adicione o endereço que o texto abre.",
+      "address_invalid": "Use um endereço que comece com https:// ou com uma única /.",
+      "tone_invalid": "Escolha Informação ou Alerta."
+    }
+  }
+}

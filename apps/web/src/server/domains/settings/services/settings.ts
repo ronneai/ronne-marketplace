@@ -100,6 +100,14 @@ export const notice = async (
   return { ...read, changedAt: stored.updatedAt, changedBy: stored.updatedBy };
 };
 
+const withChangedByName = async (
+  deps: SettingsDeps,
+  current: Awaited<ReturnType<typeof notice>>,
+) => ({
+  ...current,
+  changedByName: current.changedBy ? await deps.repo.nameOf(current.changedBy) : null,
+});
+
 export type InstanceSettings = {
   usagePolicy: UsagePolicy;
   /** When root last changed it, or null while it's the default. */
@@ -108,7 +116,8 @@ export type InstanceSettings = {
   twoFactorPolicy: TwoFactorPolicy;
   passwordSignInPolicy: PasswordSignInPolicy;
   retention: RetentionPolicy;
-  notice: Awaited<ReturnType<typeof notice>>;
+  /** With the name of whoever saved it last, for the Notice tab. */
+  notice: Awaited<ReturnType<typeof notice>> & { changedByName: string | null };
 };
 
 /** What Admin › Settings shows: root only. */
@@ -125,7 +134,7 @@ export const instanceSettings = async (
     twoFactorPolicy: await twoFactorPolicy(deps),
     passwordSignInPolicy: await passwordSignInPolicy(deps),
     retention: await retentionPolicy(deps),
-    notice: await notice(deps),
+    notice: await withChangedByName(deps, await notice(deps)),
   };
 };
 

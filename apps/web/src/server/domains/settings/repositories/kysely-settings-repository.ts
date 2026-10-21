@@ -32,6 +32,15 @@ export const kyselySettingsRepository = (
     ).execute();
   },
 
+  async nameOf(userId) {
+    const row = await db
+      .selectFrom("user")
+      .select("name")
+      .where("id", "=", userId)
+      .executeTakeFirst();
+    return row?.name ?? null;
+  },
+
   transaction: (work) =>
     db.transaction().execute((trx) => work(kyselySettingsRepository(trx, dialect))),
 
