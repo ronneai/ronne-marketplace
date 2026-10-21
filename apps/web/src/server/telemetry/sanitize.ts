@@ -103,6 +103,7 @@ export const ROUTE_SEGMENTS = new Set([
   "health",
   "items",
   "join",
+  "language",
   "marketplace.json",
   "me",
   "menu",

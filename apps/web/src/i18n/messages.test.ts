@@ -6,6 +6,7 @@ vi.mock("@/server/log", () => ({ logger: { child: () => log } }));
 
 import type { Catalogue } from "./catalogue";
 import { loadMessages, type Reader } from "./messages";
+import { NAMESPACES } from "./namespaces";
 
 const files: Record<string, Catalogue> = {
   "en/common": { language: { label: "Language", automatic: "Automatic" } },
@@ -18,8 +19,9 @@ beforeEach(() => log.warn.mockReset());
 
 describe("loadMessages (129)", () => {
   it("returns the English files as they are for English", async () => {
-    // The fixture has no `shell` file: a namespace nobody wrote is empty, not an error.
-    expect(await loadMessages("en", read)).toEqual({ common: files["en/common"], shell: {} });
+    // The fixture has only `common`: a namespace nobody wrote is empty, not an error.
+    const expected = Object.fromEntries(NAMESPACES.map((n) => [n, files[`en/${n}`] ?? {}]));
+    expect(await loadMessages("en", read)).toEqual(expected);
     expect(log.warn).not.toHaveBeenCalled();
   });
 

@@ -17,8 +17,8 @@ every new screen is written with messages from the start.
   (Canadian French, owner, 2026-10-20; the privacy features follow Quebec's Law 25). Each is shown in its own name
   everywhere (English, Português, Français), so someone in the wrong language can find theirs.
 - **A language on the profile.** `user.locale` (`en`, `pt`, `fr` or empty, empty meaning
-  "automatic"), chosen on Account → **Language**: Automatic (the browser's), English, Português,
-  Français. Saving it is a server action; it takes effect on the next render, no sign-out.
+  "automatic"), chosen on Account → **Language**, a third tab beside Password and Two-factor sign-in
+  (`/account/language`): Automatic (the browser's), English, Português, Français. Saving it is a server action; it takes effect on the next render, no sign-out.
 - **How the language is chosen, on every request,** first match wins:
   1. the signed-in person's saved language;
   2. the `ronne-locale` cookie (set when they choose a language, and by the links below);

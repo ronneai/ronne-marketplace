@@ -1,4 +1,4 @@
-import { type Browser, type BrowserContext, expect, test } from "@playwright/test";
+import { type Browser, type BrowserContext, expect, type Page, test } from "@playwright/test";
 import { E2E_NAMES, E2E_PASSWORD, E2E_USERS } from "./users";
 
 /**
@@ -76,4 +76,72 @@ test("the same session in English keeps the English labels", async ({ browser, b
   await expect(sidebar.getByRole("link", { name: "Catalogue" })).toBeVisible();
   await expect(sidebar.getByText("Governance & reviews")).toBeVisible();
   await context.close();
+});
+
+test.describe("choosing a language", () => {
+  const signInAs = async (page: Page, email: string) => {
+    await page.goto("/sign-in");
+    await page.getByLabel("Email").fill(email);
+    await page.getByLabel("Password", { exact: true }).fill(E2E_PASSWORD);
+    await page.getByRole("button", { name: "Sign in" }).click();
+    await expect(page).toHaveURL(/\/$/);
+  };
+
+  test("Account › Language saves it, the screens change at once, and Automatic goes back", async ({
+    page,
+  }) => {
+    await signInAs(page, E2E_USERS.languageChooser);
+    await page.goto("/account/language");
+    await expect(page.getByRole("heading", { name: "Language", level: 2 })).toBeVisible();
+    // Every language is named in its own words.
+    const select = page.getByLabel("Language of the screens");
+    await expect(select.locator("option")).toHaveText([
+      "Automatic (the browser's language)",
+      "English",
+      "Português",
+      "Français",
+    ]);
+
+    await select.selectOption("pt");
+    await page.getByRole("button", { name: "Save" }).click();
+    // The same page, in the new language, with the confirmation.
+    await expect(page.locator("html")).toHaveAttribute("lang", "pt");
+    await expect(page.getByText("Idioma salvo")).toBeVisible();
+    const sidebar = page.getByRole("complementary", { name: "Barra lateral" });
+    await expect(sidebar.getByRole("link", { name: "Catálogo" })).toBeVisible();
+    await expect(page.getByLabel("Idioma das telas")).toHaveValue("pt");
+    expect((await page.context().cookies()).find((c) => c.name === "ronne-locale")?.value).toBe(
+      "pt",
+    );
+
+    // It is on the profile: a reload, and another page, keep it.
+    await page.goto("/account/password");
+    await expect(page.getByRole("heading", { name: "Alterar senha" })).toBeVisible();
+    await expect(page.locator("html")).toHaveAttribute("lang", "pt");
+
+    // French, then Automatic: the browser (English here) decides again.
+    await page.goto("/account/language");
+    await page.getByLabel("Idioma das telas").selectOption("fr");
+    await page.getByRole("button", { name: "Salvar" }).click();
+    await expect(page.locator("html")).toHaveAttribute("lang", "fr");
+    await expect(page.getByText("Langue enregistrée")).toBeVisible();
+    await page.getByLabel("Langue des écrans").selectOption("");
+    await page.getByRole("button", { name: "Enregistrer" }).click();
+    await expect(page.locator("html")).toHaveAttribute("lang", "en");
+    await expect(page.getByText("follow your browser's language")).toBeVisible();
+    expect((await page.context().cookies()).find((c) => c.name === "ronne-locale")).toBeUndefined();
+  });
+
+  test.describe("without JavaScript", () => {
+    test.use({ javaScriptEnabled: false });
+
+    test("the form still saves it", async ({ page }) => {
+      await signInAs(page, E2E_USERS.languageNoJs);
+      await page.goto("/account/language");
+      await page.getByLabel("Language of the screens").selectOption("fr");
+      await page.getByRole("button", { name: "Save" }).click();
+      await expect(page.locator("html")).toHaveAttribute("lang", "fr");
+      await expect(page.getByRole("complementary", { name: "Barre latérale" })).toBeVisible();
+    });
+  });
 });

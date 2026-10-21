@@ -52,5 +52,9 @@
   },
   "footer": {
     "openSource": "ronne marketplace · código aberto (MIT)"
+  },
+  "theme": {
+    "toDark": "Mudar para o tema escuro",
+    "toLight": "Mudar para o tema claro"
   }
 }

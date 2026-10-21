@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getTranslations } from "next-intl/server";
 import { createMyToken, revokeMyToken } from "@/server/domains/identity/actions/access-tokens";
 import { IdentityError } from "@/server/domains/identity/exceptions/errors";
 import { requestHeaders } from "@/server/http/request-headers";
@@ -27,7 +28,7 @@ export const createTokenFromForm = serverAction(
   async (_previous: TokenActionState, form: FormData): Promise<TokenActionState> => {
     const lifetime = text(form, "lifetime");
     if (lifetime === "none" && form.get("confirmNoExpiry") !== "on")
-      return { error: "Tick the box to confirm a token that never expires." };
+      return { error: (await getTranslations("account.tokens.create"))("mustConfirm") };
     return attempt(async () => {
       const created = await createMyToken(await requestHeaders(), {
         name: text(form, "name"),
@@ -48,6 +49,6 @@ export const revokeTokenFromForm = serverAction(
   async (_previous: TokenActionState, form: FormData): Promise<TokenActionState> =>
     attempt(async () => {
       await revokeMyToken(await requestHeaders(), text(form, "tokenId"));
-      return { done: "Revoked. It stops working on its next request." };
+      return { done: (await getTranslations("account.tokens.revoke"))("revoked") };
     }),
 );

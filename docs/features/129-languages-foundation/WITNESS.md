@@ -240,3 +240,35 @@ Witnessed: 2026-10-20 ~23:10 EDT, by a fresh agent (blind). Commit: 2af57b9c plu
 | 12e | After adding a new namespace registered in `src/i18n/namespaces.ts`, Vitest fails with `Unknown variable dynamic import` from a warm cache, and deleting the cache folders fixes it | no | confirmed | Scratch copy with real copies of the caches: warm run, 12 passed; added `messages/{en,pt,fr}/zz.json` and `"zz"` to `NAMESPACES` and `Messages` → `Error: Unknown variable dynamic import: ../../messages/en/zz.json`; deleted `node_modules/.vite*` and `node_modules/.vitest-cache` (root and `apps/web`) → 12 passed. |
 
 **Overall:** met.
+
+## Task 7 — Account and the Language select
+
+Witnessed: 2026-10-20 23:05 EDT, by a fresh agent (blind). Commit: 70e69584 plus the uncommitted working tree (`messages/*/account.json`, `app/(app)/account/language/`, `features/account/{LanguageForm,metadata,translations.test}`). Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Component tests cover the Account pages (password, your data, two-factor, access tokens, terminal panel, theme switch) in en, pt and fr | no | partly | `vitest run src/features/account src/features/account-security src/features/account-tokens src/i18n` → 106 passed; `{t("submit")}` replaced with English in `ChangePasswordForm` fails a test, but English for `tokens.description` in `TokensPage` left all tests green: about 76 pt keys were not asserted. |
+| 2 | The Account text is in messages and the lint rule covers the Account folders | no | confirmed | `biome.json` lists `features/account`, `account-security`, `account-tokens`, `theme`, `app/(app)/account`; no raw-text diagnostics; `<p>Hello raw</p>` in a scratch copy is flagged; server-action strings come from `getTranslations`; domain error messages and Help texts remain English as expected. |
+| 3 | A Language tab at `/account/language` offers Automatic, English, Português, Français | no | confirmed | `LanguageForm.tsx` renders the empty option plus `LOCALES` with `LOCALE_NAMES`; the e2e asserts the four options; `/account/language` is in `e2e/pages.ts` and `"language"` in the route segments. |
+| 4 | Save sets the saved value and the cookie `ronne-locale`; Automatic clears both | no | confirmed | `setLanguageFromForm`: `setLocale`, then `jar.set` with path `/`, httpOnly, lax, one year, or `jar.delete`, then `revalidatePath("/", "layout")`; `account.test.tsx` covers pt, Automatic, an invalid code and signed-out; deleting `jar.set` fails 3 files; the e2e confirms the cookie. |
+| 5 | An invalid code is refused | no | confirmed | `es` → `{error:"invalid"}` with no cookie and no revalidation; the identity service refuses too (`vitest --project db src/server/domains/identity` → 387 passed). |
+| 6 | It works with and without JavaScript; the select shows the saved language after saving | no | confirmed | `playwright test e2e/languages.e2e.ts e2e/languages.mobile.e2e.ts` on chromium, phone, phone-webkit, tablet → 11 passed, with the no-JavaScript test. |
+| 7 | The user page (123) shows the language read-only | no | partly | `UserPage.tsx` renders `<Fact label="Language">`, but no test covered it. |
+| 8 | The sidebar changes after Save (the Done-when e2e) | no | confirmed | The e2e saves pt and sees the `Barra lateral` sidebar with "Catálogo"; `/account/password` follows with "Alterar senha" and `lang=pt`. |
+| 9 | pt and fr wording is correct and matches the glossary and website | no | confirmed | `pt/account.json` and `fr/account.json` read in full against the website's terms (token(s), jeton(s), códigos de backup, codes de secours, dois fatores, deux facteurs); plurals and the `select` present in all three. |
+| 10 | The repo checks are green | no | confirmed | `pnpm lint` 0; `pnpm typecheck` ok; unit project 338 files, 3806 passed; the existing account e2e files pass. |
+
+**Overall:** not met (rows 1 and 7). Fixed: a guard in `features/account/translations.test.tsx` that renders 24 Account states in pt and fr and fails if any English message text stands alone in the output; user-page tests for the Language row.
+
+### Re-check (rows 1 and 7)
+
+Witnessed: 2026-10-20 23:20 EDT, by a fresh agent (blind). Commit: 70e69584 plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0), Node v24.0.0. Mutations ran in a scratch copy.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Component tests cover the Account pages in en/pt/fr, and a regression to English is caught | no | confirmed | Baseline `vitest run src/features/account src/features/admin-users` → 114 passed. English literal for `description` in `TokensPage` → the new describe fails in pt and fr naming `tokens.description`; for `security.panel.company` in `TwoFactorPanel` → both fail naming it; English "The new passwords don't match" in `ChangePasswordForm` → 3 tests fail, naming `password.errors.mismatch`. |
+| 2 | The raw-text lint rule flags a hard-coded `description="…"` attribute | no | confirmed | `biome lint` on a scratch `TokensPage.tsx` with `description="Personal tokens"` → plugin error at 35:38 (the first pass's statement was wrong: it had run only the tests). |
+| 7 | The user page shows the language read-only, and a test covers it | no | confirmed | Deleting the `Fact label="Language"` line in `UserPage.tsx` fails `user-page.test.tsx` (1 failed, 57 passed). |
+| 8 | The repo checks stay green | no | confirmed | `pnpm lint` 0; `pnpm typecheck` ok; unit project 338 files, 3808 passed. |
+
+**Overall:** met.

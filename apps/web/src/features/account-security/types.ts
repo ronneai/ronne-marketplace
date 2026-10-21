@@ -12,22 +12,6 @@ export type TwoFactorError =
   | "replaced"
   | "just_made";
 
-export const TWO_FACTOR_ERRORS: Record<TwoFactorError, string> = {
-  not_signed_in: "You were signed out. Sign in again.",
-  no_password:
-    "Your account has no password here: you sign in through your company, which protects the sign-in.",
-  wrong_password: "The password is wrong",
-  wrong_code: "That code is wrong. Check the phone's clock if it keeps failing.",
-  used: "That code was already used. Wait for the next one from the app.",
-  rate_limited: "Too many attempts, wait a minute",
-  already_on: "Two-factor sign-in is already on",
-  not_enabled: "Two-factor sign-in is off",
-  another_tab: "Enrolment was started in another tab. Start again.",
-  replaced:
-    "This setup was replaced by a newer one, in another tab or by a second click. Start again.",
-  just_made: "You just made new backup codes: use those.",
-};
-
 /** A setup on its way: what the page shows until the first code is right. */
 export type Setup = { uri: string; qrSvg: string; secret: string; backupCodes: string[] };
 

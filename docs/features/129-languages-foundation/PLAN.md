@@ -52,9 +52,10 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* `AppShell` tests pass in the three languages on desktop and phone widths; the scan
   covers `components/app-shell`.
 
-- [ ] **7. Account and the Language select.** Account's pages in messages; Language select with
-  Automatic, English, Português, Français; Save sets the saved value and the cookie, with and
-  without JavaScript; the user page (123) shows the language read-only.
+- [x] **7. Account and the Language select.** Account's pages in messages (password, your data,
+  two-factor, access tokens, the terminal panel, the theme switch); a Language tab
+  (`/account/language`) with Automatic, English, Português, Français; Save sets the saved value and
+  the cookie, with and without JavaScript; the user page (123) shows the language read-only.
   *Done when:* component tests, an action test (invalid code refused) and an end-to-end test that
   changes language and sees the sidebar change after Save.
 

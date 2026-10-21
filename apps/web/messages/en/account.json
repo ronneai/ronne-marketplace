@@ -1,0 +1,182 @@
+{
+  "header": {
+    "title": "Account",
+    "description": "Your password and how you sign in. Each change is recorded in the audit log.",
+    "languageDescription": "The language of Ronne's screens."
+  },
+  "tabs": {
+    "label": "Account",
+    "password": "Password",
+    "security": "Two-factor sign-in",
+    "language": "Language"
+  },
+  "password": {
+    "metaTitle": "Password",
+    "title": "Change password",
+    "intro": "Other browsers and devices are signed out when it changes.",
+    "current": "Current password",
+    "next": "New password",
+    "nextHint": "12 to 128 characters.",
+    "confirm": "Confirm new password",
+    "submit": "Change password",
+    "changedTitle": "Password changed",
+    "changed": "You're still signed in here; other sessions were signed out.",
+    "errors": {
+      "wrong_password": "The current password is wrong",
+      "too_short": "The new password needs at least 12 characters",
+      "too_long": "The new password can have at most 128 characters",
+      "mismatch": "The new passwords don't match",
+      "rate_limited": "Too many attempts, wait a minute"
+    }
+  },
+  "data": {
+    "title": "Your data",
+    "description": "Everything this instance holds about you in one JSON file: your account, sessions, token names, workspaces, items, submissions, comments and audit events. It isn't a backup, and other people's data isn't in it. You can download it once every 10 minutes. A list over 10,000 rows is cut, and the file says so at the top; ask root for a database export if you need more.",
+    "download": "Download my data",
+    "lastDownloaded": "Last downloaded"
+  },
+  "language": {
+    "metaTitle": "Language",
+    "title": "Language",
+    "description": "Ronne's screens come in English, Portuguese and French. This changes the screens, not what people publish: item names, descriptions and files stay as their authors wrote them, and rmk stays in English.",
+    "label": "Language of the screens",
+    "automatic": "Automatic (the browser's language)",
+    "hint": "Automatic follows your browser, and English when it asks for another language.",
+    "save": "Save",
+    "savedTitle": "Language saved",
+    "saved": "The screens now use the language you chose.",
+    "savedAutomatic": "The screens now follow your browser's language.",
+    "invalid": "Choose one of the languages in the list."
+  },
+  "security": {
+    "required": {
+      "title": "Set up two-factor sign-in to continue",
+      "body": "Your administrator requires it for {who, select, reviewers {root and the moderators and admins of shared workspaces} other {everyone}}. The rest of Ronne opens once it's on."
+    },
+    "continue": {
+      "title": "Two-factor sign-in is on",
+      "body": "You can go back to what you were doing.",
+      "button": "Continue"
+    },
+    "panel": {
+      "title": "Two-factor sign-in",
+      "on": "On",
+      "off": "Off",
+      "companyTitle": "Your company's sign-in protects your account",
+      "company": "You sign in through your company's identity provider, which asks for its own second step. There's nothing to set up here.",
+      "offIntro": "Signing in will also ask for a 6-digit code from an app on your phone, so a stolen password isn't enough.",
+      "onIntro": "Signing in with your password also asks for a code from your authenticator app, or one of your backup codes.",
+      "codesLeft": "{count, plural, one {# backup code left.} other {# backup codes left.}}",
+      "backupTitle": "Backup codes",
+      "turnOffTitle": "Turn off two-factor sign-in"
+    },
+    "setup": {
+      "password": "Your password",
+      "start": "Set up two-factor",
+      "startOver": "Start over",
+      "doneTitle": "Two-factor sign-in is on",
+      "done": "From now on, signing in with your password also asks for a code from the app.",
+      "saved": "I've saved them",
+      "step1": "Open your authenticator app (Google Authenticator, 1Password, Authy, Microsoft Authenticator…).",
+      "step2": "Scan the QR code, or type the key.",
+      "step3": "Type the 6-digit code the app shows.",
+      "qrAlt": "QR code for your authenticator app",
+      "orType": "Or type this key",
+      "keyNote": "Time-based, 6 digits, every 30 seconds.",
+      "code": "Code from the app",
+      "turnOn": "Turn on",
+      "startOverSummary": "Start over with a new key",
+      "startOverNote": "A new QR code and new backup codes; this one stops working."
+    },
+    "manage": {
+      "regenerateLabel": "New backup codes",
+      "regenerateNote": "Ten new codes, shown once. The ones you have now stop working.",
+      "regenerate": "Make new backup codes",
+      "offTitle": "Two-factor sign-in is off",
+      "off": "Signing in asks only for your password now.",
+      "done": "Done",
+      "turnOffLabel": "Turn off two-factor",
+      "code": "A code from the app, or a backup code",
+      "turnOff": "Turn off two-factor"
+    },
+    "backup": {
+      "fileTitle": "Ronne AI Marketplace: two-factor backup codes",
+      "fileAbout": "Each code works once, in place of a code from your authenticator app.",
+      "title": "Backup codes",
+      "saveTitle": "Save them now",
+      "save": "They won't be shown again. Each one signs you in once if you lose your phone.",
+      "copyAll": "Copy all",
+      "copied": "Copied",
+      "manual": "Selected: copy them",
+      "download": "Download (.txt)"
+    },
+    "errors": {
+      "not_signed_in": "You were signed out. Sign in again.",
+      "no_password": "Your account has no password here: you sign in through your company, which protects the sign-in.",
+      "wrong_password": "The password is wrong",
+      "wrong_code": "That code is wrong. Check the phone's clock if it keeps failing.",
+      "used": "That code was already used. Wait for the next one from the app.",
+      "rate_limited": "Too many attempts, wait a minute",
+      "already_on": "Two-factor sign-in is already on",
+      "not_enabled": "Two-factor sign-in is off",
+      "another_tab": "Enrolment was started in another tab. Start again.",
+      "replaced": "This setup was replaced by a newer one, in another tab or by a second click. Start again.",
+      "just_made": "You just made new backup codes: use those."
+    }
+  },
+  "tokens": {
+    "metaTitle": "Access tokens",
+    "title": "Access tokens",
+    "description": "Personal tokens for rmk and the MCP server. They act as you; they can't sign in to this website.",
+    "empty": "No tokens yet. Create one, or run <code>rmk login</code>.",
+    "name": "Name",
+    "token": "Token",
+    "created": "Created (UTC)",
+    "lastUsed": "Last used",
+    "expires": "Expires",
+    "status": "Status",
+    "actions": "Actions",
+    "viaDevice": "browser approval",
+    "never": "never",
+    "noExpiry": "no expiry",
+    "statuses": {
+      "active": "active",
+      "expired": "expired",
+      "revoked": "revoked"
+    },
+    "create": {
+      "button": "Create token",
+      "title": "Create access token",
+      "name": "Name",
+      "nameHint": "Where you'll use it, for example the machine or the CI job.",
+      "expiresAfter": "Expires after",
+      "days30": "30 days",
+      "days90": "90 days",
+      "days365": "365 days",
+      "none": "No expiry",
+      "confirm": "I understand this token works until I revoke it.",
+      "cancel": "Cancel",
+      "submit": "Create token",
+      "done": "Done",
+      "mustConfirm": "Tick the box to confirm a token that never expires."
+    },
+    "created_panel": {
+      "copyNow": "Copy it now",
+      "copyBody": "It won't be shown again. Anyone with it can act as you until it expires or you revoke it.",
+      "token": "Token: {name}",
+      "signIn": "Sign in rmk with it",
+      "expires": "Expires",
+      "never": "It never expires."
+    },
+    "revoke": {
+      "button": "Revoke",
+      "aria": "Revoke {name}",
+      "title": "Revoke access token",
+      "body": "Revoke <strong>{name}</strong>? Anything using it, such as rmk on that machine, stops working and has to sign in again.",
+      "cancel": "Cancel",
+      "submit": "Revoke token",
+      "done": "Done",
+      "revoked": "Revoked. It stops working on its next request."
+    }
+  }
+}

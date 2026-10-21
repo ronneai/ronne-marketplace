@@ -31,6 +31,7 @@ type UserRow = {
   disabled_at: Date | string | null;
   erased_at: Date | string | null;
   created_at: Date | string;
+  locale: string | null;
 };
 
 const summary = (row: UserRow): UserSummary => {
@@ -43,6 +44,8 @@ const summary = (row: UserRow): UserSummary => {
     disabledAt: fromDbDate(row.disabled_at),
     erasedAt: fromDbDate(row.erased_at),
     createdAt: fromDbDate(row.created_at),
+    // The language they chose (129); one the app no longer speaks reads as automatic.
+    locale: isLocale(row.locale) ? row.locale : null,
   };
 };
 
@@ -54,6 +57,7 @@ const USER_COLUMNS = [
   "disabled_at",
   "erased_at",
   "created_at",
+  "locale",
 ] as const;
 
 /** Better Auth's provider id for email and password accounts. */

@@ -63,5 +63,18 @@
     "admin": "admin",
     "moderator": "moderador",
     "user": "usuário"
+  },
+  "cliAuth": {
+    "title": "Use o rmk no terminal",
+    "intro": "O <mono>rmk</mono> instala itens deste registro nas suas ferramentas de programação com IA e os mantém atualizados.",
+    "step1": "Instale o rmk",
+    "step1Hint": "Pelo npm, com Node.js 22.12 ou mais recente (<readme>o README</readme> tem mais detalhes):",
+    "step2": "Entre",
+    "step2Tokens": "Com o seu e-mail e senha, ou com um token pessoal de <tokens>Tokens de acesso</tokens>.",
+    "step2Here": "Com o seu e-mail e senha, ou com um token pessoal desta página.",
+    "webHint": "Tem conta pela sua empresa, ou usa a autenticação de dois fatores? Aprove no navegador:",
+    "step3": "Confira e instale",
+    "step3Hint": "<mono>rmk whoami</mono> diz quem você é. Cada página de item mostra o seu comando de instalação; a Documentação explica o resto depois que você entrar.",
+    "globalHint": "Fora do <mono>global</mono>, o nome de um item começa pelo seu espaço de trabalho: <mono>rmk install @workspace/scope/name</mono>."
   }
 }

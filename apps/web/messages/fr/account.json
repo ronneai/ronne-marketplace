@@ -1,0 +1,182 @@
+{
+  "header": {
+    "title": "Compte",
+    "description": "Votre mot de passe et la façon dont vous vous connectez. Chaque changement est consigné dans le journal d’audit.",
+    "languageDescription": "La langue des écrans de Ronne."
+  },
+  "tabs": {
+    "label": "Compte",
+    "password": "Mot de passe",
+    "security": "Connexion à deux facteurs",
+    "language": "Langue"
+  },
+  "password": {
+    "metaTitle": "Mot de passe",
+    "title": "Changer le mot de passe",
+    "intro": "Les autres navigateurs et appareils sont déconnectés lorsqu’il change.",
+    "current": "Mot de passe actuel",
+    "next": "Nouveau mot de passe",
+    "nextHint": "De 12 à 128 caractères.",
+    "confirm": "Confirmer le nouveau mot de passe",
+    "submit": "Changer le mot de passe",
+    "changedTitle": "Mot de passe changé",
+    "changed": "Vous restez connecté ici; les autres sessions ont été fermées.",
+    "errors": {
+      "wrong_password": "Le mot de passe actuel est incorrect",
+      "too_short": "Le nouveau mot de passe doit contenir au moins 12 caractères",
+      "too_long": "Le nouveau mot de passe peut contenir au plus 128 caractères",
+      "mismatch": "Les nouveaux mots de passe ne correspondent pas",
+      "rate_limited": "Trop de tentatives, attendez une minute"
+    }
+  },
+  "data": {
+    "title": "Vos données",
+    "description": "Tout ce que cette instance conserve à votre sujet dans un seul fichier JSON : votre compte, vos sessions, les noms de vos jetons, vos espaces de travail, éléments, soumissions, commentaires et événements d’audit. Ce n’est pas une sauvegarde, et les données des autres personnes n’y figurent pas. Vous pouvez le télécharger une fois toutes les 10 minutes. Une liste de plus de 10 000 lignes est tronquée, et le fichier l’indique en haut; demandez à root une exportation de la base de données si vous en avez besoin de plus.",
+    "download": "Télécharger mes données",
+    "lastDownloaded": "Dernier téléchargement :"
+  },
+  "language": {
+    "metaTitle": "Langue",
+    "title": "Langue",
+    "description": "Les écrans de Ronne existent en anglais, en portugais et en français. Cela change les écrans, pas ce que les gens publient : les noms, descriptions et fichiers des éléments restent comme leurs auteurs les ont écrits, et rmk reste en anglais.",
+    "label": "Langue des écrans",
+    "automatic": "Automatique (la langue du navigateur)",
+    "hint": "Automatique suit votre navigateur, et l’anglais s’il demande une autre langue.",
+    "save": "Enregistrer",
+    "savedTitle": "Langue enregistrée",
+    "saved": "Les écrans utilisent maintenant la langue que vous avez choisie.",
+    "savedAutomatic": "Les écrans suivent maintenant la langue de votre navigateur.",
+    "invalid": "Choisissez l’une des langues de la liste."
+  },
+  "security": {
+    "required": {
+      "title": "Configurez la connexion à deux facteurs pour continuer",
+      "body": "Votre administrateur l’exige pour {who, select, reviewers {root ainsi que les modérateurs et administrateurs des espaces de travail partagés} other {tout le monde}}. Le reste de Ronne s’ouvre dès qu’elle est activée."
+    },
+    "continue": {
+      "title": "La connexion à deux facteurs est activée",
+      "body": "Vous pouvez retourner à ce que vous faisiez.",
+      "button": "Continuer"
+    },
+    "panel": {
+      "title": "Connexion à deux facteurs",
+      "on": "Activée",
+      "off": "Désactivée",
+      "companyTitle": "La connexion de votre entreprise protège votre compte",
+      "company": "Vous vous connectez par le fournisseur d’identité de votre entreprise, qui demande sa propre deuxième étape. Il n’y a rien à configurer ici.",
+      "offIntro": "La connexion demandera aussi un code à 6 chiffres d’une application sur votre téléphone, de sorte qu’un mot de passe volé ne suffit pas.",
+      "onIntro": "La connexion avec votre mot de passe demande aussi un code de votre application d’authentification, ou l’un de vos codes de secours.",
+      "codesLeft": "{count, plural, one {# code de secours restant.} other {# codes de secours restants.}}",
+      "backupTitle": "Codes de secours",
+      "turnOffTitle": "Désactiver la connexion à deux facteurs"
+    },
+    "setup": {
+      "password": "Votre mot de passe",
+      "start": "Configurer la connexion à deux facteurs",
+      "startOver": "Recommencer",
+      "doneTitle": "La connexion à deux facteurs est activée",
+      "done": "Désormais, la connexion avec votre mot de passe demande aussi un code de l’application.",
+      "saved": "Je les ai enregistrés",
+      "step1": "Ouvrez votre application d’authentification (Google Authenticator, 1Password, Authy, Microsoft Authenticator…).",
+      "step2": "Numérisez le code QR, ou saisissez la clé.",
+      "step3": "Saisissez le code à 6 chiffres affiché par l’application.",
+      "qrAlt": "Code QR pour votre application d’authentification",
+      "orType": "Ou saisissez cette clé",
+      "keyNote": "Basée sur l’heure, 6 chiffres, toutes les 30 secondes.",
+      "code": "Code de l’application",
+      "turnOn": "Activer",
+      "startOverSummary": "Recommencer avec une nouvelle clé",
+      "startOverNote": "Un nouveau code QR et de nouveaux codes de secours; celui-ci cesse de fonctionner."
+    },
+    "manage": {
+      "regenerateLabel": "Nouveaux codes de secours",
+      "regenerateNote": "Dix nouveaux codes, affichés une seule fois. Ceux que vous avez maintenant cessent de fonctionner.",
+      "regenerate": "Créer de nouveaux codes de secours",
+      "offTitle": "La connexion à deux facteurs est désactivée",
+      "off": "La connexion ne demande maintenant que votre mot de passe.",
+      "done": "Terminé",
+      "turnOffLabel": "Désactiver la connexion à deux facteurs",
+      "code": "Un code de l’application, ou un code de secours",
+      "turnOff": "Désactiver la connexion à deux facteurs"
+    },
+    "backup": {
+      "fileTitle": "Ronne AI Marketplace : codes de secours de la connexion à deux facteurs",
+      "fileAbout": "Chaque code ne fonctionne qu’une fois, à la place d’un code de votre application d’authentification.",
+      "title": "Codes de secours",
+      "saveTitle": "Enregistrez-les maintenant",
+      "save": "Ils ne seront plus affichés. Chacun permet de vous connecter une fois si vous perdez votre téléphone.",
+      "copyAll": "Tout copier",
+      "copied": "Copié",
+      "manual": "Sélectionné : copiez-les",
+      "download": "Télécharger (.txt)"
+    },
+    "errors": {
+      "not_signed_in": "Vous avez été déconnecté. Connectez-vous de nouveau.",
+      "no_password": "Votre compte n’a pas de mot de passe ici : vous vous connectez par votre entreprise, qui protège la connexion.",
+      "wrong_password": "Le mot de passe est incorrect",
+      "wrong_code": "Ce code est incorrect. Vérifiez l’horloge du téléphone si cela continue d’échouer.",
+      "used": "Ce code a déjà été utilisé. Attendez le suivant de l’application.",
+      "rate_limited": "Trop de tentatives, attendez une minute",
+      "already_on": "La connexion à deux facteurs est déjà activée",
+      "not_enabled": "La connexion à deux facteurs est désactivée",
+      "another_tab": "La configuration a été commencée dans un autre onglet. Recommencez.",
+      "replaced": "Cette configuration a été remplacée par une plus récente, dans un autre onglet ou par un second clic. Recommencez.",
+      "just_made": "Vous venez de créer de nouveaux codes de secours : utilisez ceux-là."
+    }
+  },
+  "tokens": {
+    "metaTitle": "Jetons d’accès",
+    "title": "Jetons d’accès",
+    "description": "Des jetons personnels pour rmk et le serveur MCP. Ils agissent en votre nom; ils ne peuvent pas ouvrir de session sur ce site.",
+    "empty": "Aucun jeton pour l’instant. Créez-en un, ou exécutez <code>rmk login</code>.",
+    "name": "Nom",
+    "token": "Jeton",
+    "created": "Créé (UTC)",
+    "lastUsed": "Dernière utilisation",
+    "expires": "Expire le",
+    "status": "État",
+    "actions": "Actions",
+    "viaDevice": "approbation dans le navigateur",
+    "never": "jamais",
+    "noExpiry": "sans expiration",
+    "statuses": {
+      "active": "actif",
+      "expired": "expiré",
+      "revoked": "révoqué"
+    },
+    "create": {
+      "button": "Créer un jeton",
+      "title": "Créer un jeton d’accès",
+      "name": "Nom",
+      "nameHint": "Où vous l’utiliserez, par exemple la machine ou la tâche d’IC.",
+      "expiresAfter": "Expire après",
+      "days30": "30 jours",
+      "days90": "90 jours",
+      "days365": "365 jours",
+      "none": "Sans expiration",
+      "confirm": "Je comprends que ce jeton fonctionne jusqu’à ce que je le révoque.",
+      "cancel": "Annuler",
+      "submit": "Créer le jeton",
+      "done": "Terminé",
+      "mustConfirm": "Cochez la case pour confirmer un jeton qui n’expire jamais."
+    },
+    "created_panel": {
+      "copyNow": "Copiez-le maintenant",
+      "copyBody": "Il ne sera plus affiché. Quiconque le possède peut agir en votre nom jusqu’à son expiration ou jusqu’à ce que vous le révoquiez.",
+      "token": "Jeton : {name}",
+      "signIn": "Connectez rmk avec ce jeton",
+      "expires": "Expire le",
+      "never": "Il n’expire jamais."
+    },
+    "revoke": {
+      "button": "Révoquer",
+      "aria": "Révoquer {name}",
+      "title": "Révoquer le jeton d’accès",
+      "body": "Révoquer <strong>{name}</strong>? Tout ce qui l’utilise, comme rmk sur cette machine, cesse de fonctionner et doit se reconnecter.",
+      "cancel": "Annuler",
+      "submit": "Révoquer le jeton",
+      "done": "Terminé",
+      "revoked": "Révoqué. Il cesse de fonctionner à sa prochaine requête."
+    }
+  }
+}

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Label, TextField } from "@/components/ui/Field";
@@ -7,16 +8,12 @@ import { Notice } from "@/components/ui/Notice";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { confirmFromForm, startFromForm } from "./actions";
 import { BackupCodes } from "./BackupCodes";
-import {
-  type ConfirmState,
-  type Setup,
-  type StartState,
-  TWO_FACTOR_ERRORS,
-  type TwoFactorError,
-} from "./types";
+import type { ConfirmState, Setup, StartState, TwoFactorError } from "./types";
 
-const Refusal = ({ error }: { error?: TwoFactorError }) =>
-  error ? <Notice kind="error" title={TWO_FACTOR_ERRORS[error]} /> : null;
+const Refusal = ({ error }: { error?: TwoFactorError }) => {
+  const t = useTranslations("account.security.errors");
+  return error ? <Notice kind="error" title={t(error)} /> : null;
+};
 
 /** The password, before a setup is shown (or to start over). */
 const PasswordStep = ({
@@ -29,26 +26,31 @@ const PasswordStep = ({
   pending: boolean;
   startOver?: boolean;
   submit: string;
-}) => (
-  <form action={action} className="grid max-w-sm gap-3" noValidate>
-    <div className="grid gap-1.5">
-      <Label htmlFor={startOver ? "start-over-password" : "setup-password"}>Your password</Label>
-      <PasswordInput
-        id={startOver ? "start-over-password" : "setup-password"}
-        name="password"
-        autoComplete="current-password"
-        required
-        maxLength={128}
-      />
-    </div>
-    {startOver ? <input type="hidden" name="startOver" value="on" /> : null}
-    <div>
-      <Button type="submit" variant={startOver ? "secondary" : "primary"} loading={pending}>
-        {submit}
-      </Button>
-    </div>
-  </form>
-);
+}) => {
+  const t = useTranslations("account.security.setup");
+  return (
+    <form action={action} className="grid max-w-sm gap-3" noValidate>
+      <div className="grid gap-1.5">
+        <Label htmlFor={startOver ? "start-over-password" : "setup-password"}>
+          {t("password")}
+        </Label>
+        <PasswordInput
+          id={startOver ? "start-over-password" : "setup-password"}
+          name="password"
+          autoComplete="current-password"
+          required
+          maxLength={128}
+        />
+      </div>
+      {startOver ? <input type="hidden" name="startOver" value="on" /> : null}
+      <div>
+        <Button type="submit" variant={startOver ? "secondary" : "primary"} loading={pending}>
+          {submit}
+        </Button>
+      </div>
+    </form>
+  );
+};
 
 /** The QR code, the secret to type, and the first code. */
 const ScanStep = ({
@@ -62,41 +64,40 @@ const ScanStep = ({
   restarting: boolean;
   onDone: () => void;
 }) => {
+  const t = useTranslations("account.security.setup");
+  const tErrors = useTranslations("account.security.errors");
   const [state, confirm, pending] = useActionState<ConfirmState, FormData>(confirmFromForm, {});
   if (state.done)
     return (
       <div className="grid gap-4">
-        <Notice kind="info" title="Two-factor sign-in is on">
-          From now on, signing in with your password also asks for a code from the app.
+        <Notice kind="info" title={t("doneTitle")}>
+          {t("done")}
         </Notice>
         <BackupCodes codes={setup.backupCodes}>
-          <Button onClick={onDone}>I&apos;ve saved them</Button>
+          <Button onClick={onDone}>{t("saved")}</Button>
         </BackupCodes>
       </div>
     );
   return (
     <div className="grid gap-5">
       <ol className="grid list-decimal gap-2 pl-5 text-sm text-fg">
-        <li>
-          Open your authenticator app (Google Authenticator, 1Password, Authy, Microsoft
-          Authenticator…).
-        </li>
-        <li>Scan the QR code, or type the key.</li>
-        <li>Type the 6-digit code the app shows.</li>
+        <li>{t("step1")}</li>
+        <li>{t("step2")}</li>
+        <li>{t("step3")}</li>
       </ol>
       <div className="flex flex-wrap items-start gap-5">
         {/* biome-ignore lint/performance/noImgElement: a data: SVG drawn on the server for this one request; next/image has nothing to optimise, and the secret must not go through its loader. */}
         <img
           src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(setup.qrSvg)}`}
-          alt="QR code for your authenticator app"
+          alt={t("qrAlt")}
           width={192}
           height={192}
           className="size-48 shrink-0 rounded-control border border-hairline [image-rendering:pixelated]"
         />
         <div className="grid min-w-0 gap-1.5">
-          <p className="text-xs font-semibold text-muted">Or type this key</p>
+          <p className="text-xs font-semibold text-muted">{t("orType")}</p>
           <code className="break-all font-mono text-[13px] text-fg">{setup.secret}</code>
-          <p className="text-xs text-muted">Time-based, 6 digits, every 30 seconds.</p>
+          <p className="text-xs text-muted">{t("keyNote")}</p>
         </div>
       </div>
       <form action={confirm} className="grid max-w-sm gap-3" noValidate>
@@ -104,28 +105,26 @@ const ScanStep = ({
         <TextField
           id="first-code"
           name="code"
-          label="Code from the app"
+          label={t("code")}
           autoComplete="one-time-code"
           inputMode="numeric"
           maxLength={7}
           required
-          error={state.error ? TWO_FACTOR_ERRORS[state.error] : undefined}
+          error={state.error ? tErrors(state.error) : undefined}
         />
         <div>
           <Button type="submit" loading={pending}>
-            Turn on
+            {t("turnOn")}
           </Button>
         </div>
       </form>
       <details className="grid gap-2">
         <summary className="w-fit cursor-pointer text-sm text-link underline-offset-2 hover:underline">
-          Start over with a new key
+          {t("startOverSummary")}
         </summary>
         <div className="grid gap-2 pt-2">
-          <p className="text-sm text-muted">
-            A new QR code and new backup codes; this one stops working.
-          </p>
-          <PasswordStep action={restart} pending={restarting} startOver submit="Start over" />
+          <p className="text-sm text-muted">{t("startOverNote")}</p>
+          <PasswordStep action={restart} pending={restarting} startOver submit={t("startOver")} />
         </div>
       </details>
     </div>
@@ -145,6 +144,7 @@ export const SetupFlow = ({
   /** "I've saved them", once it's on and the backup codes were shown. */
   onDone?: () => void;
 }) => {
+  const t = useTranslations("account.security.setup");
   const [state, start, pending] = useActionState<StartState, FormData>(startFromForm, initial);
   return (
     <div className="grid gap-4">
@@ -158,7 +158,7 @@ export const SetupFlow = ({
           onDone={onDone}
         />
       ) : (
-        <PasswordStep action={start} pending={pending} submit="Set up two-factor" />
+        <PasswordStep action={start} pending={pending} submit={t("start")} />
       )}
     </div>
   );

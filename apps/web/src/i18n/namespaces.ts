@@ -1,3 +1,4 @@
+import type account from "../../messages/en/account.json";
 import type common from "../../messages/en/common.json";
 import type shell from "../../messages/en/shell.json";
 
@@ -6,11 +7,12 @@ import type shell from "../../messages/en/shell.json";
  * app, English the source of every text. A new area adds its file in all three languages and a line
  * here; the parity test fails until they all agree.
  */
-export const NAMESPACES = ["common", "shell"] as const;
+export const NAMESPACES = ["common", "shell", "account"] as const;
 export type Namespace = (typeof NAMESPACES)[number];
 
 /** The shape of the messages, taken from the English files, so a wrong key fails the typecheck. */
 export type Messages = {
   common: typeof common;
   shell: typeof shell;
+  account: typeof account;
 };

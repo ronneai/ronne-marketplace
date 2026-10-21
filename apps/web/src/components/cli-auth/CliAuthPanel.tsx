@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import { CopyableCommand } from "@/components/ui/CopyableCommand";
 import { Panel } from "@/components/ui/Panel";
@@ -35,61 +36,50 @@ export const CliAuthPanel = ({
   /** This instance's public URL, for `--registry`. */
   registry?: string;
 }) => {
+  const t = useTranslations("common.cliAuth");
+  const mono = (chunks: ReactNode) => <span className="font-mono">{chunks}</span>;
   const at = registry ? ` --registry ${registry}` : " --registry <url>";
   return (
     <Panel padding="lg" className="grid gap-5">
       <div className="grid gap-1">
-        <h2 className="text-lg font-semibold text-fg">Use rmk from the terminal</h2>
-        <p className="text-sm text-muted">
-          <span className="font-mono">rmk</span> installs items from this registry into your AI
-          coding tools, and keeps them up to date.
-        </p>
+        <h2 className="text-lg font-semibold text-fg">{t("title")}</h2>
+        <p className="text-sm text-muted">{t.rich("intro", { mono })}</p>
       </div>
       <ol className="grid gap-5">
-        <Step n={1} title="Get rmk">
+        <Step n={1} title={t("step1")}>
           <Hint>
-            From npm, with Node.js 22.12 or later (
-            <a href={README_RMK} className="text-link underline underline-offset-2">
-              the README
-            </a>{" "}
-            has more):
+            {t.rich("step1Hint", {
+              readme: (chunks) => (
+                <a href={README_RMK} className="text-link underline underline-offset-2">
+                  {chunks}
+                </a>
+              ),
+            })}
           </Hint>
           <CopyableCommand command="npm install --global @ronneai/rmk" wrap />
         </Step>
-        <Step n={2} title="Sign in">
+        <Step n={2} title={t("step2")}>
           <Hint>
-            With your email and password, or with a personal token{" "}
-            {linkToTokens ? (
-              <>
-                from{" "}
-                <Link href="/account/tokens" className="text-link underline underline-offset-2">
-                  Access tokens
-                </Link>
-              </>
-            ) : (
-              "from this page"
-            )}
-            .
+            {linkToTokens
+              ? t.rich("step2Tokens", {
+                  tokens: (chunks) => (
+                    <Link href="/account/tokens" className="text-link underline underline-offset-2">
+                      {chunks}
+                    </Link>
+                  ),
+                })
+              : t("step2Here")}
           </Hint>
           <CopyableCommand command={`rmk login${at}`} wrap />
           <CopyableCommand command={`rmk login${at} --token <token>`} wrap />
-          <Hint>
-            Signed up with your company, or using two-factor sign-in? Approve it in the browser
-            instead:
-          </Hint>
+          <Hint>{t("webHint")}</Hint>
           <CopyableCommand command={`rmk login${at} --web`} wrap />
         </Step>
-        <Step n={3} title="Check, then install">
-          <Hint>
-            <span className="font-mono">rmk whoami</span> says who you are. Every item page shows
-            its install command; the Documentation explains the rest once you&apos;re signed in.
-          </Hint>
+        <Step n={3} title={t("step3")}>
+          <Hint>{t.rich("step3Hint", { mono })}</Hint>
           <CopyableCommand command="rmk whoami" />
           <CopyableCommand command="rmk install @scope/name" wrap />
-          <Hint>
-            Outside <span className="font-mono">global</span>, an item&apos;s name starts with its
-            workspace: <span className="font-mono">rmk install @workspace/scope/name</span>.
-          </Hint>
+          <Hint>{t.rich("globalHint", { mono })}</Hint>
         </Step>
       </ol>
     </Panel>

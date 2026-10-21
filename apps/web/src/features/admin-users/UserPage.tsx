@@ -6,6 +6,7 @@ import { LocalTime } from "@/components/ui/LocalTime";
 import { Notice } from "@/components/ui/Notice";
 import { PageHeader, Panel } from "@/components/ui/Panel";
 import type { UserDetail } from "@/server/domains/identity/actions/user-admin";
+import { LOCALE_NAMES } from "@/server/domains/identity/models/locale";
 import { ScimManagedNotice } from "./UserActionDialogs";
 import { ScimBadges } from "./UsersPage";
 
@@ -122,6 +123,7 @@ export const UserPage = ({
             <Fact label="Created">
               <LocalTime value={user.createdAt} precision="day" />
             </Fact>
+            <Fact label="Language">{user.locale ? LOCALE_NAMES[user.locale] : "Automatic"}</Fact>
             <Fact label="Last sign-in">
               {erased ? "–" : user.lastSignInAt ? <LocalTime value={user.lastSignInAt} /> : "Never"}
               {erased ? null : (

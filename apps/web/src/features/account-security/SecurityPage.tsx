@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import { PageHeader } from "@/components/ui/Panel";
 import { AccountTabs } from "./AccountTabs";
 import { type SecurityStatus, TwoFactorPanel } from "./TwoFactorPanel";
@@ -19,13 +20,13 @@ export const SecurityPage = ({
   required?: "reviewers" | "everyone" | null;
   /** The page a held person came from, offered once two-factor is on (107), or null. */
   continueTo?: string | null;
-}) => (
-  <>
-    <PageHeader
-      title="Account"
-      description="Your password and how you sign in. Each change is recorded in the audit log."
-    />
-    <AccountTabs current="security" />
-    <TwoFactorPanel status={status} required={required} continueTo={continueTo} />
-  </>
-);
+}) => {
+  const t = useTranslations("account.header");
+  return (
+    <>
+      <PageHeader title={t("title")} description={t("description")} />
+      <AccountTabs current="security" />
+      <TwoFactorPanel status={status} required={required} continueTo={continueTo} />
+    </>
+  );
+};

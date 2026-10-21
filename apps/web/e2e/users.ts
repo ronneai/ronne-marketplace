@@ -30,6 +30,10 @@ export const E2E_USERS = {
   // Reads the shell in Portuguese and French (129): a moderator, who sees the Reviews link. One per
   // device project too, signed in once and reused for the other languages.
   languages: "languages@e2e.test",
+  // Choose a language on Account › Language and Save (129): one with JavaScript, one without. Each
+  // changes its own profile, so neither can be shared.
+  languageChooser: "language-chooser@e2e.test",
+  languageNoJs: "language-no-js@e2e.test",
   phoneLanguages: "phone-languages@e2e.test",
   phoneWebkitLanguages: "phone-webkit-languages@e2e.test",
   tabletLanguages: "tablet-languages@e2e.test",
@@ -209,6 +213,8 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   remember: "Remember Me",
   signOut: "Sign Out Tester",
   sidebar: "Sid Sidebar",
+  languageChooser: "Language Chooser",
+  languageNoJs: "Language No JS",
   languages: "Languages",
   phoneLanguages: "Phone Languages",
   phoneWebkitLanguages: "Phone WebKit Languages",
