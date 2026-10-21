@@ -47,10 +47,22 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 - [x] **8. Decision log and index.** MVP §15 row "Home and the instance notice"; the features index.
   *Done when:* the rows are in.
 
-- [ ] **9. Documentation.** The sections and helpers in the spec, both `topics.ts`, in a ronne-web
+- [x] **9. Documentation.** The sections and helpers in the spec, both `topics.ts`, in a ronne-web
   branch.
   *Done when:* the docs tests pass in ronne-web, and the helper link test passes here.
 
 ## Notes
 
 Slots for 125 and 126 are built here so those features only fill them. Build after 129.
+
+### Done (2026-10-21)
+
+All nine tasks are ticked. The Documentation is on the ronne-web branch `docs/marketplace-home-notice`
+(four commits), not pushed: it goes live with the release. Changes the owner asked for during the
+build: information notices across the app are light blue (`info` tokens, a separate commit), the
+dismiss control is a ✕ icon inside the box, and links are written inline in the message as
+`[words](address)` instead of in separate fields (the model, form, banner, messages, spec and tests
+follow; nothing was released with the old fields, so there is no migration). Accepted limits: the
+other Settings tabs and the item cards are still English until the sweeps (130 to 133); the Getting
+started, favorites and pinned slots on Home are empty until 126 and 125; the Portuguese and French
+texts are first drafts for a native reader (133).

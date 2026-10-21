@@ -266,3 +266,31 @@ Witnessed: 2026-10-21 12:00 EDT, by a fresh agent (blind). Commit: 301e9395 plus
 | 13 | `pnpm witness:check` passes | no | confirmed | It failed only for the missing pass of this task; with this block added, `pnpm witness:check` passes (run by the implementer on pasting). |
 
 **Overall:** met. The index status becomes `done` after task 9.
+
+## Task 9 — Documentation
+
+Witnessed: 2026-10-21 11:50 EDT, by a fresh agent (blind). Commit: 0e027a84 (app) and the ronne-web branch `docs/marketplace-home-notice` at 6b44212, not pushed. Machine: macOS (Darwin 27.0.0), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The ronne-web branch changes only the Overview and Administration pages in three languages, `topics.ts` and the product facts | no | confirmed | `git diff --stat origin/main` → those 8 files, 208 insertions and 4 deletions. |
+| 2 | The `admin` sections in both `topics.ts` are `users, settings, notice, audit`, and `notice` exists in en, pt and fr | no | confirmed | The ronne-web diff and the app's `topics.ts`; the docs tests check this. |
+| 3 | The English Notice section is true of the app: placement and access, fields and limits, tones, show and hide, preview and "Last changed by", dismissal, translation, audit | no | partly | All matched the code except one sentence: "Anything else between brackets stays plain text" was misleading, since a malformed link is refused on save. |
+| 4 | The English Overview paragraph on Home is true (order, empty sections, empty instance) | no | confirmed | `HomeView.tsx` and `home.json`. One softer sentence, "first page after you sign in", was reworded. |
+| 5 | The Portuguese and French pages say the same and use the app's labels and the glossary and typography | no | confirmed | Labels match `messages/{pt,fr}` exactly; a space before a colon only in French. |
+| 6 | The helpers "Who sees this?" and the Warning line exist, link to `admin#notice` and are on the Notice tab; their answers are true | no | partly | Present and linked; the `notice` answer said "message, link or tone" though links are inline now. |
+| 7 | The ronne-web tests, lint and typecheck pass; the app's helper link test passes | no | confirmed | `pnpm test` → 30 files, 173 tests; lint and typecheck clean; `vitest run src/components/help` → 10 passed. |
+
+**Overall:** not met (rows 3 and 6, wording). Fixed: the website sentence now says a link with an address that isn't allowed, or more than 3 links, is refused when you save (three languages); the helper says "message or tone"; the Overview says Home is the page that opens by default after sign-in.
+
+### Re-check (rows 3 and 6)
+
+Witnessed: 2026-10-21 12:10 EDT, by a fresh agent (blind re-check). Commit: 00ec98a (the ronne-web clone) plus the app repo's uncommitted helper change. Machine: macOS (Darwin 27.0.0), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 3 | The Message bullet says a link with a disallowed address, or more than 3 links, is refused on save, and says nothing false | no | confirmed | `noticeFrom` gives `link_address` and `too_many_links`; `see [note] now`, `a [x] (y) b` and `a [a](b` give no link match and are never refused. The bullet doesn't mention the label refusals: an omission, not a falsehood. |
+| 6 | The helper answer is true | no | confirmed | `Help.tsx` says "message or tone"; `vitest run src/components/help` → 10 passed. |
+| 4 | Home is the page that opens by default after sign-in | no | confirmed | `safeNextPath` returns `/` unless the sign-in carried a same-site `next` (`route-guard.ts`), read by the implementer to settle the witness's open point. |
+
+**Overall:** met. Every claim of task 9 is confirmed.

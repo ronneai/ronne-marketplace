@@ -383,7 +383,7 @@ export const HELP = {
   notice: {
     question: "Who sees this?",
     answer:
-      "Everyone who is signed in, under the header of every page, once you show it. Each person can dismiss it; it comes back for them when you change the message, link or tone, and not when you only hide and show it. It isn't shown on the sign-in page, and it isn't translated: write it in the language your people read.",
+      "Everyone who is signed in, under the header of every page, once you show it. Each person can dismiss it; it comes back for them when you change the message or tone, and not when you only hide and show it. It isn't shown on the sign-in page, and it isn't translated: write it in the language your people read.",
     href: docsHref("admin", "notice"),
   },
   "notice-tone": {
