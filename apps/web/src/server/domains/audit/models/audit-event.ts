@@ -90,6 +90,7 @@ export const AUDIT_ACTIONS = [
   "settings.usage_minimum",
   "settings.two_factor_policy",
   "settings.retention",
+  "settings.notice",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

@@ -256,6 +256,21 @@ describe("audit summaries (060)", () => {
       "Changed the retention: IP addresses from 90 to 30 days, expired sessions from 90 to 7 days",
     );
     expect(line("settings.retention", {})).toBe("Changed the retention: nothing");
+    // The notice (124): the tone and whether it is shown; the words are never in the log.
+    expect(
+      line("settings.notice", {
+        from: { tone: "info", shown: false },
+        to: { tone: "warning", shown: true },
+        revision: 2,
+      }),
+    ).toBe("Changed the instance notice: shown, tone info to warning");
+    expect(
+      line("settings.notice", {
+        from: { tone: "info", shown: true },
+        to: { tone: "info", shown: true },
+        revision: 3,
+      }),
+    ).toBe("Changed the instance notice: its words or link");
     expect(
       line("submission.rebased", { name: "@team/x", from: "1.0.0", to: "1.1.0", conflicts: ["a"] }),
     ).toBe("Rebased @team/x from 1.0.0 to 1.1.0 (1 conflict)");

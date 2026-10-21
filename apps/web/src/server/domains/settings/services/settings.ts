@@ -2,6 +2,7 @@ import { requirePermission } from "../../identity/models/permissions";
 import type { CurrentUser } from "../../identity/models/user";
 import {
   ConfirmationNeededError,
+  InvalidNoticeError,
   InvalidPasswordSignInPolicyError,
   InvalidRetentionError,
   InvalidTwoFactorPolicyError,
@@ -9,6 +10,15 @@ import {
   InvalidUsagePolicyError,
   NoUsableProviderError,
 } from "../exceptions/errors";
+import {
+  DEFAULT_NOTICE,
+  NOTICE_KEY,
+  type Notice,
+  type NoticeInput,
+  noticeContentChanged,
+  noticeFrom,
+  noticeFromStored,
+} from "../models/notice-policy";
 import {
   DEFAULT_PASSWORD_SIGN_IN_POLICY,
   isPasswordSignInPolicy,
@@ -80,6 +90,16 @@ export const retentionPolicy = async (deps: SettingsDeps): Promise<RetentionPoli
   };
 };
 
+/** The notice and who last changed it, for the pages that show it (124); hidden until root sets one. */
+export const notice = async (
+  deps: SettingsDeps,
+): Promise<Notice & { changedAt: Date | null; changedBy: string | null }> => {
+  const stored = await deps.repo.get(NOTICE_KEY);
+  const read = stored ? noticeFromStored(stored.value) : null;
+  if (!stored || !read) return { ...DEFAULT_NOTICE, changedAt: null, changedBy: null };
+  return { ...read, changedAt: stored.updatedAt, changedBy: stored.updatedBy };
+};
+
 export type InstanceSettings = {
   usagePolicy: UsagePolicy;
   /** When root last changed it, or null while it's the default. */
@@ -88,6 +108,7 @@ export type InstanceSettings = {
   twoFactorPolicy: TwoFactorPolicy;
   passwordSignInPolicy: PasswordSignInPolicy;
   retention: RetentionPolicy;
+  notice: Awaited<ReturnType<typeof notice>>;
 };
 
 /** What Admin › Settings shows: root only. */
@@ -104,6 +125,7 @@ export const instanceSettings = async (
     twoFactorPolicy: await twoFactorPolicy(deps),
     passwordSignInPolicy: await passwordSignInPolicy(deps),
     retention: await retentionPolicy(deps),
+    notice: await notice(deps),
   };
 };
 
@@ -268,6 +290,45 @@ export const setPasswordSignInPolicy = async (
         action: "instance.password_sign_in_changed",
         target: { type: "instance" },
         metadata: { from, to: value, ...("system" in actor ? { via: "cli" } : {}) },
+        ipAddress: actor.ip,
+      },
+      at,
+    );
+    return { changed: true };
+  });
+};
+
+/**
+ * Root sets the instance notice (124). The revision rises when the message, link or tone changes,
+ * so people who dismissed the old one see the new one; showing or hiding alone keeps it. Audited as
+ * `settings.notice` with the old and new tone and whether it is shown, never the text.
+ */
+export const setNotice = async (
+  deps: SettingsDeps,
+  actor: SettingsActor,
+  input: NoticeInput,
+): Promise<{ changed: boolean }> => {
+  requirePermission(actor.user, "settings.manage");
+  const checked = noticeFrom(input);
+  if (!checked.ok) throw new InvalidNoticeError(checked.refusal.field, checked.refusal.problem);
+  const at = now(deps);
+  return deps.repo.transaction(async (repo) => {
+    const from = await notice({ repo });
+    const to = checked.notice;
+    const contentChanged = noticeContentChanged(from, to);
+    if (!contentChanged && from.shown === to.shown) return { changed: false };
+    const revision = contentChanged ? from.revision + 1 : from.revision;
+    await repo.set(NOTICE_KEY, JSON.stringify({ ...to, revision }), actor.user?.id ?? null, at);
+    await repo.recordAudit(
+      {
+        actorId: actor.user?.id ?? null,
+        action: "settings.notice",
+        target: { type: "instance" },
+        metadata: {
+          from: { tone: from.tone, shown: from.shown },
+          to: { tone: to.tone, shown: to.shown },
+          revision,
+        },
         ipAddress: actor.ip,
       },
       at,

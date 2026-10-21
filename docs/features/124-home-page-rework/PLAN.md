@@ -9,7 +9,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 ## Tasks
 
-- [ ] **1. The notice's model and settings.** `notice-policy.ts` in `domains/settings/models`
+- [x] **1. The notice's model and settings.** `notice-policy.ts` in `domains/settings/models`
   (message, link label and address, tone, shown, revision; validation: length, `https:` or `/`
   addresses only, no `javascript:`/`data:`), stored in `instance_settings`, `setNotice` and
   `notice` in the settings service, the `settings.notice` audit action (without the text).
