@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { FieldError, inputClasses, Label, selectClasses } from "@/components/ui/Field";
 import { LocalTime } from "@/components/ui/LocalTime";
 import { Notice } from "@/components/ui/Notice";
-import { NoticeBanner } from "@/features/notice/NoticeBanner";
+import { NoticePreview } from "@/features/notice/NoticePreview";
 import {
   type Notice as InstanceNotice,
   isNoticeTone,
@@ -125,7 +125,7 @@ export const NoticeForm = ({
       <section aria-label={t("preview")} className="grid gap-1.5">
         <h3 className="text-sm font-semibold text-fg">{t("preview")}</h3>
         {words ? (
-          <NoticeBanner notice={{ message: words, tone: isNoticeTone(tone) ? tone : "info" }} />
+          <NoticePreview notice={{ message: words, tone: isNoticeTone(tone) ? tone : "info" }} />
         ) : (
           <p className="text-sm text-muted">{t("previewEmpty")}</p>
         )}

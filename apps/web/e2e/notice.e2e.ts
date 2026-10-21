@@ -102,10 +102,10 @@ test.describe
         message: `${WARNING} <b>not bold</b> See the [catalogue](/catalogue).`,
         tone: "warning",
       });
-      // The preview draws the link inside the sentence while it is being edited.
-      await expect(
-        page.getByRole("region", { name: "Preview" }).getByRole("link", { name: "catalogue" }),
-      ).toBeVisible();
+      // The preview shows the link words inside the sentence while it is being edited (not a link).
+      const preview = page.getByRole("region", { name: "Preview" });
+      await expect(preview.getByText("catalogue", { exact: true })).toBeVisible();
+      await expect(preview.getByRole("link")).toHaveCount(0);
       await expect(page.getByText("Notice saved.")).toBeVisible();
       await expect(page.getByText("Last changed by Notice Root")).toBeVisible();
 

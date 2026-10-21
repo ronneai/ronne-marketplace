@@ -100,10 +100,9 @@ describe("The Notice tab (124)", () => {
     expect(html).toContain("[status page](https://status.example.com/)");
     expect(html).toContain('<option value="warning" selected="">');
     expect(html).toContain("WARN:");
-    expect(html).toMatch(
-      /See the <\/span><a href="https:\/\/status\.example\.com\/"[^>]*>status page<\/a>/,
-    );
-    expect(html).toContain('rel="noopener noreferrer"');
+    // The preview underlines the link words but draws no link: typed text never reaches an href.
+    expect(html).toMatch(/See the <\/span><span class="underline">status page<\/span>/);
+    expect(html).not.toContain('href="https://status.example.com/"');
     expect(html).toContain("Last changed by Root");
     expect(html).toContain('dateTime="2026-10-21T14:00:00.000Z"');
     expect(html).toMatch(/checked=""/);
@@ -137,7 +136,7 @@ describe("The Notice tab (124)", () => {
     expect(html).toContain("[words](address)");
   });
 
-  it("draws the links inside the sentence in the preview, with no separate link fields", () => {
+  it("draws the links inside the sentence in the preview as underlined words, with no separate link fields", () => {
     const html = view(
       "en",
       <NoticeForm
@@ -150,11 +149,10 @@ describe("The Notice tab (124)", () => {
       />,
     );
     expect(html).toMatch(
-      /Read <\/span><a [^>]*href="\/catalogue"[^>]*>this<\/a><span> or <\/span>/,
+      /Read <\/span><span class="underline">this<\/span><span> or <\/span><span class="underline">that<\/span>/,
     );
-    expect(html).toMatch(
-      /<a [^>]*href="https:\/\/a\.example\/"[^>]*target="_blank"[^>]*>that<\/a>/,
-    );
+    expect(html).not.toContain('href="/catalogue"');
+    expect(html).not.toContain('href="https://a.example/"');
     expect(html).not.toContain('name="linkLabel"');
     expect(html).not.toContain('name="linkHref"');
   });
