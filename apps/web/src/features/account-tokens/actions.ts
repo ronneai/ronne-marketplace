@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getTranslations } from "next-intl/server";
+import { errorText } from "@/i18n/errors";
 import { createMyToken, revokeMyToken } from "@/server/domains/identity/actions/access-tokens";
 import { IdentityError } from "@/server/domains/identity/exceptions/errors";
 import { requestHeaders } from "@/server/http/request-headers";
@@ -18,7 +19,7 @@ const attempt = async (
     revalidatePath("/account/tokens");
     return result;
   } catch (error) {
-    if (error instanceof IdentityError) return { error: error.message };
+    if (error instanceof IdentityError) return { error: await errorText(error) };
     throw error;
   }
 };

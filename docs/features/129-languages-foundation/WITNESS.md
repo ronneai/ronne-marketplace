@@ -339,3 +339,34 @@ Witnessed: 2026-10-20 23:55 EDT, by a fresh agent (adversarial). Commit: be1470a
 | 13b | The e2e fails when the route ignores `set` | no | confirmed | `parseLocale(null)` in the route, rebuilt: the same three tests fail. |
 
 **Overall:** met. Both mutated files restored; `cmp` identical.
+
+## Task 9 — Error codes
+
+Witnessed: 2026-10-20 23:30 EDT, by a fresh agent (blind). Commit: ebdbbc7a plus the uncommitted changes (`errors.ts`, `errors.test.ts`, `messages/*/errors.json`, `namespaces.ts`, `account-tokens/actions.ts`, `PLAN.md`, `i18n.md`). Machine: macOS (Darwin 27), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Codes the actions return have their words in their feature's messages | no | confirmed | A grep for `IdentityError` and `.message` over `features/{account,account-security,sign-in,device}` finds nothing; no migrated screen except account-tokens shows an `IdentityError` message. |
+| 2 | `errorText(error)` shows `errors.<ClassName>` with the error's fields as values, else the English message | no | confirmed | `vitest run src/i18n src/features/account-tokens` → 79 passed; a probe in fr: `SomethingNewError`, a plain `Error`, and names `toString`, `constructor`, `__proto__`, `""`, `tokenLimitError`, 100×`T` and `undefined` all return `error.message`. |
+| 3 | The access-token actions use it, and every `IdentityError` they can throw has a key | no | confirmed | The paths raise `TokenLimitError`, `TokenNameTakenError`, `TokenNotFoundError`, `ForbiddenError`, `InvalidTokenNameError`, `InvalidTokenLifetimeError`; all six are keys in en, pt, fr. |
+| 4 | There is a test per mapped error in three languages | no | confirmed | `errors.test.ts`: 6 cases × 3 languages with exact strings; returning `error.message` always fails the six; deleting a pt key fails two tests; renaming a fr placeholder fails one. |
+| 5 | An unknown error shows the English message | no | confirmed | A custom `IdentityError`, a plain `Error` and a `toString`-named error in pt/fr; removing the `CLASS_NAME` guard fails exactly that test. |
+| 6 | The ICU values match the error classes' public fields | no | confirmed | `{permission}`, `{limit}`, `{tokenName}`, `{value}` are public fields of their classes; rendered with real values in each language. |
+| 7 | The output is plain text for hostile field values | no | confirmed | `tokenName='<img src=x onerror=alert(1)> {x} \'quoted\' <b>'` in fr comes out literally inside « … ». |
+| 8 | The pt and fr wording and punctuation are right | no | confirmed | `« {x} »` with spaces, typographic `’`, glossary terms; placeholders identical across the three files. |
+| 9 | The wiring and the existing suites hold | no | confirmed | Unit project 196 files, 2403 passed; lint 0; typecheck 7/7; `e2e/access-tokens.e2e.ts` → 2 passed. |
+
+**Overall:** met. Finding: a known class with a missing or non-plain field returned the raw key `errors.<ClassName>`; fixed (below).
+
+### Re-check (finding 1: a known error with a missing or non-plain value showed the raw key)
+
+Witnessed: 2026-10-20 23:45 EDT, by a fresh agent (blind). Commit: ebdbbc7a plus the uncommitted changes. Machine: macOS (Darwin 27), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A known error missing a value it needs shows its English message, never `errors.<ClassName>` | no | confirmed | `errors.ts` ends with `text === \`errors.${error.name}\` ? error.message : text`; `vitest run src/i18n/errors.test.ts` → 10 passed. |
+| 2 | The new test fails without the fix | no | confirmed | Reverting to `return t(error.name, valuesOf(error))` fails exactly "a known error missing a value it needs shows its English message, never a key". |
+| 3 | The odd-input probe returns English messages and hostile text stays plain | no | confirmed | The odd names still give `error.message`; `limit` as an object, array, function, null or missing now gives its message instead of the key. |
+| 4 | The checks and suites hold | no | confirmed | `pnpm lint` 0; `pnpm typecheck` 7/7; unit project 196 files, 2404 passed. |
+
+**Overall:** met.

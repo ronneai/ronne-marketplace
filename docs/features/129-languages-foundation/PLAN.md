@@ -66,9 +66,13 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* an end-to-end test switches language on sign-in, signs in without a saved language
   and still sees it; one with a saved language sees that one.
 
-- [ ] **9. Error codes.** The web layer maps known error codes to `errors.<code>` with the English
-  text as the fallback; the codes found in task 1 get keys.
-  *Done when:* a test per mapped code in three languages, and an unknown code shows the English
+- [x] **9. Error codes.** Codes that actions return (`wrong_password`, `rate_limited`…) have their
+  words in their feature's messages (done as each screen moved: `account.*`, `auth.*`). Domain
+  errors that carry a message (`TokenLimitError`…) are shown by `errorText(error)`
+  (`src/i18n/errors.ts`): `errors.<ClassName>` with the error's fields as values, else the error's
+  own English message. Keys for the errors the migrated screens can show (the access-token ones);
+  every later sweep adds the errors its screens show.
+  *Done when:* a test per mapped error in three languages, and an unknown error shows the English
   message.
 
 - [ ] **10. Documentation links by language.** `docsUrl` builds the website's address in the
