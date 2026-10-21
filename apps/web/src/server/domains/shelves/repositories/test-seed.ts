@@ -61,3 +61,44 @@ export const seedItem = async (t: TestDb, name: string, workspaceId = GLOBAL_WOR
     createdAt: new Date(),
   });
 };
+
+/** A released item (one version, tagged `latest`) in an existing scope, so the catalogue lists it. */
+export const seedReleasedItem = async (
+  t: TestDb,
+  scopeName: string,
+  name: string,
+  publishedBy: string,
+) => {
+  const items = kyselyItemRepository(t.db, t.dialect, UNFILTERED);
+  const scope = await t.db
+    .selectFrom("scopes")
+    .select("id")
+    .where("name", "=", scopeName)
+    .executeTakeFirstOrThrow();
+  const itemId = await items.insertItem({
+    scopeId: scope.id,
+    name,
+    type: "skill",
+    description: `The ${name} item.`,
+    ownerId: null,
+    createdAt: new Date(),
+  });
+  const versionId = await items.insertVersion({
+    itemId,
+    version: "1.0.0",
+    manifest: { name: `@${scopeName}/${name}`, description: `The ${name} item.` },
+    readme: null,
+    files: [],
+    notes: null,
+    artifactPath: `${scopeName}/${name}/1.0.0.tgz`,
+    sha256: "0".repeat(64),
+    size: 1,
+    publishedBy,
+    publishedAt: new Date(),
+    submissionId: null,
+    dependencies: [],
+    riskFlags: [],
+  });
+  await items.setTag(itemId, "latest", versionId);
+  return { itemId, versionId };
+};

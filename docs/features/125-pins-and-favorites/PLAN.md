@@ -15,7 +15,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* `*.db.test.ts` for both repositories pass on SQLite and, run once, on PostgreSQL and
   MySQL; the migration guard test passes.
 
-- [ ] **2. Favorites service and actions.** `addFavorite`, `removeFavorite`, `listFavorites`
+- [x] **2. Favorites service and actions.** `addFavorite`, `removeFavorite`, `listFavorites`
   (visibility-filtered, newest first, 200 limit), server actions as thin adapters.
   *Done when:* tests cover visibility (a private workspace's item), the limit, idempotency and
   that one person can't read another's.

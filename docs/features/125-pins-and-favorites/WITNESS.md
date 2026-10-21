@@ -75,3 +75,35 @@ Witnessed: 2026-10-21 17:20 local, by a fresh agent (adversarial re-check). Comm
 | 12 | The shelf lock is still noticed when removed | no | confirmed | With `lockShelf` removed from add, remove and move, the pin tests failed in 9 of 9 runs (one failed only one of the two tests). |
 
 **Overall:** met.
+
+## Task 2 — Favorites service and actions
+
+Witnessed: 2026-10-21 17:25 local, by a fresh agent (blind). Commit: d2bd2524 plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `addFavorite`, `removeFavorite` and `listFavorites` exist in a service, and every call is about the signed-in user | no | confirmed | `services/favorites.ts`: each call uses `signedIn(actor).id`; no function takes another person's id. |
+| 2 | The server actions are thin adapters | no | confirmed | `actions/favorites.ts` builds the actor and the viewer-scoped dependencies and delegates in one line each. |
+| 3 | A private workspace's item: a member can favorite it, an outsider is refused as for an unknown id, a favorite hides when membership is lost and returns with it | no | confirmed | Tests pass; removing the visibility filter, the list filter or the availability check each failed 2 tests. |
+| 4 | Unreleased and yanked items are refused on add; a yanked favorite is hidden but kept and returns on un-yank | no | confirmed | Tests "refuses…" and "hides a favorite of an item with no installable version, and keeps it" pass. |
+| 5 | The 200 limit is enforced and a removal makes room | no | confirmed | "stops at the limit" fills 200 rows and expects `FavoriteLimitError` with `max` 200; raising the limit by 1000 failed it. |
+| 6 | Adding is idempotent; removing a non-favorite is false | no | confirmed | First test: added, exists, true, false. |
+| 7 | The list is newest first | no | confirmed | Changing the order to ascending failed the first test. |
+| 8 | One person cannot read or change another's list, root included; `favoritedAmong` does not leak | no | confirmed | "is one person's" passes; dropping the user filter in `remove` and a wrong user each failed tests. |
+| 9 | Signed out is refused with `ForbiddenError`, and `favoritedAmong` is empty | no | confirmed | "is refused to someone signed out" passes. |
+| 10 | Item ids in any case or padded are accepted | no | partly | `canonicalId` is applied everywhere by reading, but no test passed such an id. |
+| 11 | The tests pass on SQLite, PostgreSQL and MySQL | no | confirmed | 23 tests on SQLite; the actions file, 7 passed on PostgreSQL and on MySQL. |
+| 12 | Lint and typecheck are clean | no | confirmed | `biome check apps/web` → no errors; typecheck clean. |
+| 13 | The error classes exist and carry what people are told | no | confirmed | `ShelvesError`, `ShelfItemNotAvailableError`, `FavoriteLimitError(max)`, both asserted. |
+
+**Overall:** not met: row 10.
+
+### Re-check (row 10)
+
+Witnessed: 2026-10-21 17:35 local, by a fresh agent (blind re-check). Commit: d2bd2524 plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 10 | Item ids in any case or padded work across add, exists, list and remove, and a test covers it | no | confirmed | The new test adds a padded lower-case id, then the canonical one ("exists"), lists, removes and lists again; it passes on SQLite (24 tests), PostgreSQL and MySQL (8 each). With `canonicalId` as the identity, exactly that test failed. |
+
+**Overall:** met.
