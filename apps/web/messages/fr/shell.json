@@ -56,5 +56,8 @@
   "theme": {
     "toDark": "Passer au thème sombre",
     "toLight": "Passer au thème clair"
+  },
+  "notice": {
+    "dismiss": "Fermer"
   }
 }

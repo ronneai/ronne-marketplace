@@ -17,7 +17,7 @@ export const NoticeBanner = ({
 }) => {
   const link = notice.link;
   return (
-    <div className="flex items-start gap-3">
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-3">
       <Notice
         kind={notice.tone === "warning" ? "warn" : "info"}
         className="min-w-0 flex-1"

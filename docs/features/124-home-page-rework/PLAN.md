@@ -21,7 +21,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* component tests cover the form, errors beside fields and the preview; a permission
   test shows non-root gets not-found.
 
-- [ ] **3. Showing and dismissing.** The `Notice` shown under the header on every signed-in page
+- [x] **3. Showing and dismissing.** The `Notice` shown under the header on every signed-in page
   (the (app) layout and the phone Menu), a dismiss form and the `ronne-notice` cookie holding the
   revision, text output as text.
   *Done when:* tests cover showing, dismissing, return after a change, HTML typed as text, and the

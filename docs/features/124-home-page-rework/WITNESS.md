@@ -81,3 +81,24 @@ Witnessed: 2026-10-21 10:50 local, by a fresh agent (blind re-check). Commit: 2b
 | 10 | Typecheck and lint are clean | no | confirmed | `pnpm lint` exit 0, 44 warnings (none in the touched files); `pnpm typecheck` 7/7. |
 
 **Overall:** met. Every claim of task 2 is confirmed.
+
+## Task 3 — Showing and dismissing
+
+Witnessed: 2026-10-21 10:45 local, by a fresh agent (blind). Commit: e8cc2b8c plus uncommitted changes (`AppShell.tsx`, `(app)/layout.tsx`, `shell.json` in three languages, the new files in `features/notice/`). Machine: macOS (Darwin 27), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The notice shows under the header and above the page on every signed-in page, in normal flow | no | confirmed | `AppShell.tsx` adds the slot between `</header>` and `<main>`; the layout test checks the order header, notice, `<main`, page; `vitest run src/features/notice` → 16 passed. |
+| 2 | Coverage: the Menu page is inside the layout; sign-in and the other public routes are outside | no | confirmed | By reading: `ls src/app` → `(app)`, `sign-in`, `setup`, `api`, `language`; `(app)/menu/page.tsx` is inside. No test renders `/menu` or the sign-in page. |
+| 3 | Hidden when not shown, empty, or dismissed at this revision | no | confirmed | `visible-notice.ts` and its tests; the layout test covers hidden and dismissed with the page still drawn. |
+| 4 | It returns after a change: a higher revision, or a garbage cookie | no | confirmed | `isDismissed` needs `dismissed >= revision`; cookie "3" with revision 4 and cookie "abc" both show it; `parseRevision` refuses ten digits, signs, decimals, exponents, spaces and non-text. |
+| 5 | Dismissing keeps the revision in `ronne-notice`; a forged number can't hide a later notice | no | confirmed | The action parses `^\d{1,9}$`, sets nothing otherwise, and keeps `Math.min(revision, current)`; "999999" gives "3". Cookie: path `/`, a year, lax, httpOnly. |
+| 6 | Dismiss is a form posting the revision | no | confirmed | The markup only: `DismissibleNotice.tsx`; the test finds the form, the hidden `revision` and the button. The real no-JavaScript post can't be run here: task 7's end-to-end test covers it. |
+| 7 | The action is wrapped by `serverAction` | no | confirmed | `actions.ts` uses `serverAction(…, { whileHeld: true })`; the guard test `server-action.test.ts` passed. |
+| 8 | The text is output as text; a tag typed is shown as typed | no | confirmed | The test with `<b>`, `<script>` and `<i>` expects `&lt;…` and no raw tags. A `javascript:` address can't get here: the model refuses it when saving and when reading back (task 1). |
+| 9 | A long unbroken string wraps; the dismiss button is 44px on a phone | no | confirmed | By reading: `[overflow-wrap:anywhere]`, `min-w-0`, `flex-col sm:flex-row`; `Button` has `pointer-coarse:h-11`. No layout was rendered. |
+| 10 | Dismissing in one browser doesn't dismiss in another | no | confirmed | By reading: the only state is the cookie; nothing is stored per person. |
+| 11 | "Dismiss" exists in three languages | no | confirmed | `shell.json`: Dismiss, Dispensar, Fermer; rendered in the test; parity tests pass. |
+| 12 | Lint and typecheck are clean | no | confirmed | `biome check` on the touched folders; `pnpm lint` exit 0; typecheck clean. |
+
+**Overall:** met. Limits: the real no-JavaScript post, the 44px layout and the Menu and sign-in coverage rest on reading, and the end-to-end tests of task 7 cover them. The test replaces `serverAction` with a pass-through, so the wrapping is proven by the guard test.

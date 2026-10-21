@@ -25,6 +25,7 @@ export const AppShell = ({
   current = null,
   folded = false,
   version,
+  notice = null,
   children,
 }: {
   user: ShellUser | null;
@@ -41,6 +42,8 @@ export const AppShell = ({
   folded?: boolean;
   /** The app's version, at the sidebar's foot. */
   version?: string;
+  /** The instance notice (124), drawn under the header and above the page; null when there is none. */
+  notice?: ReactNode;
   children: ReactNode;
 }) => {
   const t = useTranslations("shell");
@@ -95,6 +98,7 @@ export const AppShell = ({
         </header>
         {/* With `viewport-fit=cover`, a phone in landscape puts the notch over the sides (065). */}
         <div className="flex flex-1 flex-col px-safe">
+          {notice ? <div className="px-4 pt-4 sm:px-6">{notice}</div> : null}
           <main className="w-full flex-1 px-4 py-8 sm:px-6">{children}</main>
         </div>
         <footer className="border-t border-hairline pb-safe px-safe">
