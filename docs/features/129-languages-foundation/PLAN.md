@@ -47,7 +47,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* component tests render each piece in the three languages; the lint rule covers
   `components/ui`.
 
-- [ ] **6. The shell.** Sidebar groups and links, the workspace switcher's labels, the Menu sheet,
+- [x] **6. The shell.** Sidebar groups and links, the workspace switcher's labels, the Menu sheet,
   the account menu, counts' accessible names; `nav.ts` holds message keys instead of labels.
   *Done when:* `AppShell` tests pass in the three languages on desktop and phone widths; the scan
   covers `components/app-shell`.
@@ -77,13 +77,14 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   Portuguese and French (the longest strings), fix overflow.
   *Done when:* the end-to-end sweep passes on every project in the three languages for these pages.
 
-- [ ] **12. Rules and decision log.** `docs/knowledge/i18n.md` (glossary, how to add a message and a
+- [ ] **12. Rules and decision log.** `docs/knowledge/i18n.md` (started in task 6: finish how to add a
   language), CLAUDE.md ("UI text goes through messages"), MVP §15 row "Languages", the features
   index.
   *Done when:* the files are changed and the knowledge note is linked from CLAUDE.md.
 
-- [ ] **13. Documentation.** The section and helper in the spec, both `topics.ts`, in a ronne-web
-  branch.
+- [ ] **13. Documentation.** The section and helper in the spec, both `topics.ts`, and the shell's
+  translated names wherever the Portuguese and French pages name a label (Catalogue, Reviews,
+  Submissions, Sign out…), in a ronne-web branch.
   *Done when:* the docs tests pass in ronne-web, and the helper link test passes here.
 
 ## Notes

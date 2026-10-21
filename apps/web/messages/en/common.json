@@ -57,5 +57,11 @@
     "retry": "Try again",
     "home": "Go to Home",
     "reference": "Reference: {digest}"
+  },
+  "roles": {
+    "root": "root",
+    "admin": "admin",
+    "moderator": "moderator",
+    "user": "user"
   }
 }

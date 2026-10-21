@@ -193,3 +193,50 @@ Witnessed: 2026-10-20 22:50 EDT, by a fresh agent (blind re-check). Commit: fbca
 Whole suite after the change: `vitest run --project unit` → 190 files, 2336 passed; `pnpm lint` → 0; `pnpm typecheck` → 0.
 
 **Overall:** met.
+
+## Task 6 — The shell
+
+Witnessed: 2026-10-20 22:45 EDT, by a fresh agent (blind). Commit: 2af57b9c plus the uncommitted working tree (git diff, untracked `shell.json` ×3 and `e2e/languages.mobile.e2e.ts`). Machine: macOS (Darwin 27.0.0), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `nav.ts` holds message keys, not labels: groups have only an `id`, items a `key`; the words are in `shell.json` | no | confirmed | `NAV_GROUPS = [{id}…]`, `NavItem.key: NavIcon`, no `label`; Sidebar and MenuList look up `t(\`nav.${item.key}\`)` and `groups.${id}`; a wrong key in a scratch copy fails `tsc` (`"sidebar.xyz"` not assignable to `NamespacedMessageKeys<Messages,"shell">`). |
+| 2 | The sidebar's groups, links, landmarks, fold button, account menu, sign out, version and "opens in a new tab" are translated | no | confirmed | en/pt/fr `shell.json` have the same keys; the "three languages" describe asserts pt and fr strings in the desktop and folded sidebar; `vitest run src/components/app-shell src/i18n src/features/reviews` → 149 passed. |
+| 3 | The workspace switcher's labels are translated, and role names come from `common.roles` | no | confirmed | No English literal left in `WorkspaceSwitcher.tsx`; `roles.*` in all three `common.json`; the role badge test passes. |
+| 4 | The Menu sheet and the `/menu` page are translated, including the page title in `generateMetadata` | no | confirmed | `menu/page.tsx` uses `getTranslations("shell.menu")`; the phone e2e passes on phone, phone-webkit and tablet. `generateMetadata` only read, not run. |
+| 5 | Counts have accessible names | no | confirmed | `NavCount` uses `t("waiting")`; folded test asserts `aria-label="Revisões (3 aguardando)"` and `"Révisions (3 en attente)"`; a literal "waiting" in `NavCount` fails a test. |
+| 6 | The AppShell tests pass in en, pt and fr on desktop and phone widths | no | confirmed | New describe covers the sidebar, folded rail, `MobileMenu` and the switcher; `--project unit` → 190 files, 2344 passed; Playwright on chromium, phone, phone-webkit, tablet → 19 passed. |
+| 7 | The lint scan covers `components/app-shell` | no | confirmed | `biome.json` override lists `components/app-shell/**`, `app/(app)/layout.tsx`, `app/(app)/menu/**`; `<Badge>Hello there</Badge>` in `Sidebar.tsx` (scratch) is flagged. |
+| 8 | Typecheck is clean and message keys are typed | no | confirmed | `pnpm typecheck` → 0; `namespaces.ts` has `shell`; the wrong-key probe fails. |
+| 9 | Guards catch regressions | no | confirmed | Scratch mutations: pt "Revisões"→"Reviews" → 3 tests fail; deleting pt `nav.audit` → parity and AppShell tests fail; "Catalogue" hard-coded in `MenuList` → 4 fail; "Fold the sidebar" hard-coded → 5 fail; `NavCount` literal → 1 fails. |
+| 10 | No user-facing English is left in the shell files that the lint rule can't see | no | confirmed | Grep of aria/title/alt/placeholder, template strings and quoted capitalised words: only the brand "/ marketplace", "· Ronne AI Marketplace" and `ronne marketplace v{version}` (in the message files). |
+| 11 | The new e2e test users follow the sign-in limit rule | no | confirmed | `languages`, `phoneLanguages`, `phoneWebkitLanguages`, `tabletLanguages` (moderators, one per project); not root. |
+| 12 | pt-BR and fr-CA wording is correct and consistent with the ronne-web docs | no | partly | Shell terms match the docs, except the pt docs say "log de auditoria" (app: "Registro de auditoria"), the fr docs a straight apostrophe, and `docs/knowledge/i18n.md`, cited as the glossary, did not exist. |
+
+**Overall:** not met (row 12). Fixed: `docs/knowledge/i18n.md` (how text is kept, checks, gotchas, typography, glossary with the audit-log term and the apostrophe convention, for the docs to follow); the Menu page's `generateMetadata` moved to `menu/metadata.ts` with a test.
+
+### Re-check (row 12 and the Menu page title)
+
+Witnessed: 2026-10-20 ~23:00 EDT, by a fresh agent (blind). Commit: 2af57b9c plus the working tree. Machine: macOS, Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence |
+|---|---|---|---|---|
+| 12a | Every glossary row matches `shell.json` and `common.json` | no | confirmed | A script read each term from the message files and compared it with the table: all match (the three group names and workspace checked individually). |
+| 12b | The typography conventions match the files | no | confirmed | fr: 9 curly ’, no straight apostrophe inside a word, no missing space before `: ; ? !`, 8 spaced; pt: no space before `: ; ? !`. |
+| 12c | `docs/knowledge/i18n.md` exists and the SPEC cites it | no | confirmed | The file exists; `SPEC.md` cites it three times; the PLAN says task 12 finishes it. |
+| 12d | The doc's claims about lint and checks are true | no | confirmed | The `biome.json` override loads the five plugins; the parity test exists and failed in the earlier mutation. |
+| 12e | The Vite-cache gotcha is true | no | can't check here | Not reproduced: an unregistered `zz.json` gave no error; it needs a registered namespace. |
+| 13 | The Menu page title works and its test passes | no | confirmed | `metadata.test.ts` → 1 passed (the word "Menu" is the same in all three languages, so the test shows the call runs in each, not the language). |
+| 14 | Lint, typecheck and the unit project are green | no | confirmed | `pnpm lint` → 0; `pnpm typecheck` → 0; `--project unit` → 191 files, 2345 passed. |
+
+**Overall:** not met (12e could not be checked).
+
+### Re-check (row 12e)
+
+Witnessed: 2026-10-20 ~23:10 EDT, by a fresh agent (blind). Commit: 2af57b9c plus the working tree. Machine: macOS, Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence |
+|---|---|---|---|---|
+| 12e | After adding a new namespace registered in `src/i18n/namespaces.ts`, Vitest fails with `Unknown variable dynamic import` from a warm cache, and deleting the cache folders fixes it | no | confirmed | Scratch copy with real copies of the caches: warm run, 12 passed; added `messages/{en,pt,fr}/zz.json` and `"zz"` to `NAMESPACES` and `Messages` → `Error: Unknown variable dynamic import: ../../messages/en/zz.json`; deleted `node_modules/.vite*` and `node_modules/.vitest-cache` (root and `apps/web`) → 12 passed. |
+
+**Overall:** met.

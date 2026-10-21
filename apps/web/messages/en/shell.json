@@ -1,0 +1,56 @@
+{
+  "groups": {
+    "discover": "Discover",
+    "governance": "Governance & reviews",
+    "tools": "Tools"
+  },
+  "nav": {
+    "home": "Home",
+    "catalogue": "Catalogue",
+    "workspaces": "Workspaces",
+    "requests": "Requests",
+    "reviews": "Reviews",
+    "submissions": "Submissions",
+    "users": "Users",
+    "audit": "Audit log",
+    "settings": "Settings",
+    "docs": "Documentation",
+    "tokens": "CLI & tokens",
+    "propose": "Propose item"
+  },
+  "sidebar": {
+    "label": "Sidebar",
+    "main": "Main",
+    "home": "Home",
+    "fold": "Fold the sidebar",
+    "unfold": "Unfold the sidebar",
+    "account": "Account",
+    "accountOf": "{name}, your account",
+    "signOut": "Sign out",
+    "version": "ronne marketplace v{version}",
+    "itemNewTab": "{label} (opens in a new tab)"
+  },
+  "menu": {
+    "title": "Menu",
+    "appearance": "Appearance"
+  },
+  "count": {
+    "waiting": "waiting",
+    "itemWaiting": "{label} ({count} waiting)"
+  },
+  "workspace": {
+    "label": "Workspace: {title}",
+    "title": "{name}{personal, select, true { (personal workspace)} other {}}",
+    "all": "All workspaces",
+    "every": "Every workspace",
+    "kind": "Workspace",
+    "personalKind": "Personal workspace",
+    "show": "Show",
+    "personal": "personal",
+    "open": "Open {name}'s page",
+    "manage": "Manage workspaces"
+  },
+  "footer": {
+    "openSource": "ronne marketplace · open source (MIT)"
+  }
+}

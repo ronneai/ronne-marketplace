@@ -57,5 +57,11 @@
     "retry": "Réessayer",
     "home": "Aller à l’accueil",
     "reference": "Référence : {digest}"
+  },
+  "roles": {
+    "root": "root",
+    "admin": "admin",
+    "moderator": "modérateur",
+    "user": "utilisateur"
   }
 }

@@ -27,6 +27,12 @@ export const E2E_USERS = {
   signOut: "sign-out@e2e.test",
   // Folds the sidebar and opens the workspace switcher (119).
   sidebar: "sidebar@e2e.test",
+  // Reads the shell in Portuguese and French (129): a moderator, who sees the Reviews link. One per
+  // device project too, signed in once and reused for the other languages.
+  languages: "languages@e2e.test",
+  phoneLanguages: "phone-languages@e2e.test",
+  phoneWebkitLanguages: "phone-webkit-languages@e2e.test",
+  tabletLanguages: "tablet-languages@e2e.test",
   // Work in one workspace (120): a moderator of e2e-focus per project.
   focusModerator: "focus-moderator@e2e.test",
   phoneFocus: "phone-focus@e2e.test",
@@ -203,6 +209,10 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   remember: "Remember Me",
   signOut: "Sign Out Tester",
   sidebar: "Sid Sidebar",
+  languages: "Languages",
+  phoneLanguages: "Phone Languages",
+  phoneWebkitLanguages: "Phone WebKit Languages",
+  tabletLanguages: "Tablet Languages",
   focusModerator: "Fay Focus",
   phoneFocus: "Phoebe Focus",
   phoneWebkitFocus: "Wendy Focus",
@@ -339,6 +349,10 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
 /** Seeded with the moderator role; everyone else is a user. */
 export const E2E_MODERATORS: readonly (keyof typeof E2E_USERS)[] = [
   "moderator",
+  "languages",
+  "phoneLanguages",
+  "phoneWebkitLanguages",
+  "tabletLanguages",
   "twoFactorModerator",
   "releaser",
   "depsModerator",

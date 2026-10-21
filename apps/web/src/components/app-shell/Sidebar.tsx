@@ -3,6 +3,7 @@
 import { ChevronLeft, ChevronRight, UserRound } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { type ReactNode, useState } from "react";
 import { Badge } from "../ui/Badge";
 import { BrandLogo } from "../ui/BrandLogo";
@@ -80,6 +81,8 @@ export const Sidebar = ({
   /** The app's version, shown at the foot. */
   version?: string;
 }) => {
+  const t = useTranslations("shell");
+  const tCommon = useTranslations("common");
   const path = usePathname() ?? "/";
   // Everything follows `folded`, so folding is a morph (owner, 2026-10-20): the width animates, and
   // the logo, the switcher, the items and the foot change shape in place, with no content swapped.
@@ -95,7 +98,8 @@ export const Sidebar = ({
   // narrows, and the icon stays where it is (the nav's padding puts it in the rail's middle).
   const entry = (item: NavItem) => {
     const count = counts[item.href] ?? 0;
-    const name = count ? `${item.label} (${count} waiting)` : item.label;
+    const label = t(`nav.${item.key}`);
+    const name = count ? t("count.itemWaiting", { label, count }) : label;
     // Folded, the icon is centred in the rail's 39px (the border takes one of its 64: 10.5px each
     // side, the icon being 18px), and the
     // label and the count have no width at all: a faded label that still took room made the nav scroll.
@@ -107,7 +111,7 @@ export const Sidebar = ({
           aria-hidden={folded}
           className={`min-w-0 flex-1 truncate transition-[max-width,margin,opacity] duration-200 motion-reduce:transition-none ${folded ? "ml-0 max-w-0 opacity-0" : "ml-3 max-w-56"}`}
         >
-          {item.label}
+          {label}
         </span>
         {count ? (
           // Folded, the link's own name says "(3 waiting)"; open, the count is read as part of it.
@@ -132,8 +136,8 @@ export const Sidebar = ({
         href={item.href}
         // Folded, the rail has no room for the new-tab mark; the name still says it.
         className={folded ? `${className} [&>svg:nth-of-type(2)]:hidden` : className}
-        aria-label={folded ? `${item.label} (opens in a new tab)` : undefined}
-        title={folded ? item.label : undefined}
+        aria-label={folded ? t("sidebar.itemNewTab", { label }) : undefined}
+        title={folded ? label : undefined}
       >
         {body}
       </NewTabLink>
@@ -154,14 +158,18 @@ export const Sidebar = ({
   return (
     <aside
       id="sidebar"
-      aria-label="Sidebar"
+      aria-label={t("sidebar.label")}
       className={`sticky top-0 hidden h-dvh shrink-0 flex-col border-r border-hairline bg-surface pt-safe pb-safe pl-safe lg:flex transition-[width] duration-200 ease-out motion-reduce:transition-none ${folded ? "w-16" : "w-64"}`}
     >
       {/* The fold button is a circle on the sidebar's edge, half over the page, at the logo's height
           (owner, 2026-10-20): the row is its positioning box, so it follows the logo's height. */}
       <div className="w-full shrink-0 px-3 pt-4">
         <div className="relative flex h-[30px] items-center">
-          <Link href="/" aria-label="Home" className={`flex items-center text-fg ${focus}`}>
+          <Link
+            href="/"
+            aria-label={t("sidebar.home")}
+            className={`flex items-center text-fg ${focus}`}
+          >
             <BrandLogo
               height={30}
               className="h-[30px] w-auto max-w-none transition-[clip-path,transform] duration-200 ease-out motion-reduce:transition-none"
@@ -173,8 +181,8 @@ export const Sidebar = ({
             onClick={toggle}
             aria-expanded={!folded}
             aria-controls="sidebar"
-            aria-label={folded ? "Unfold the sidebar" : "Fold the sidebar"}
-            title={folded ? "Unfold the sidebar" : "Fold the sidebar"}
+            aria-label={folded ? t("sidebar.unfold") : t("sidebar.fold")}
+            title={folded ? t("sidebar.unfold") : t("sidebar.fold")}
             className={`touch-hit absolute top-1/2 -right-3 z-40 flex size-6 -translate-y-1/2 translate-x-1/2 items-center justify-center rounded-full border border-hairline bg-surface text-muted hover:border-strong hover:text-fg ${focus}`}
           >
             {folded ? (
@@ -191,8 +199,8 @@ export const Sidebar = ({
         {propose ? (
           <Link
             href={PROPOSE.href}
-            aria-label={folded ? PROPOSE.label : undefined}
-            title={folded ? PROPOSE.label : undefined}
+            aria-label={folded ? t(`nav.${PROPOSE.key}`) : undefined}
+            title={folded ? t(`nav.${PROPOSE.key}`) : undefined}
             className={`flex w-full items-center justify-center rounded-control bg-accent-strong text-sm font-semibold text-on-accent transition-[height] duration-200 hover:opacity-90 motion-reduce:transition-none overflow-hidden ${focus} ${folded ? "h-10" : "h-9"}`}
           >
             <NavIcon name="propose" size={16} />
@@ -200,14 +208,14 @@ export const Sidebar = ({
               aria-hidden={folded}
               className={`overflow-hidden whitespace-nowrap transition-[max-width,margin,opacity] duration-200 motion-reduce:transition-none ${folded ? "ml-0 max-w-0 opacity-0" : "ml-2 max-w-40"}`}
             >
-              {PROPOSE.label}
+              {t(`nav.${PROPOSE.key}`)}
             </span>
           </Link>
         ) : null}
       </div>
 
       <nav
-        aria-label="Main"
+        aria-label={t("sidebar.main")}
         className="mt-4 grid w-full min-h-0 flex-1 content-start gap-4 overflow-x-hidden overflow-y-auto px-3 pb-4"
       >
         {groupNav(items).map((group) => (
@@ -220,7 +228,7 @@ export const Sidebar = ({
               aria-hidden={folded}
               className={`overflow-hidden whitespace-nowrap px-3 font-mono text-[11px] font-semibold uppercase tracking-wide text-muted transition-[max-height,opacity,padding] duration-200 motion-reduce:transition-none ${folded ? "max-h-0 pb-0 opacity-0" : "max-h-8 pb-1"}`}
             >
-              {group.label}
+              {t(`groups.${group.id}`)}
             </p>
             {group.items.map(entry)}
           </div>
@@ -236,7 +244,7 @@ export const Sidebar = ({
           className={`relative min-w-0 transition-[margin] duration-200 motion-reduce:transition-none ${folded ? "mr-0" : "mr-11"}`}
         >
           <summary
-            aria-label={folded ? `${user.name}, your account` : undefined}
+            aria-label={folded ? t("sidebar.accountOf", { name: user.name }) : undefined}
             title={user.name}
             className={`flex min-h-10 w-full cursor-pointer list-none items-center overflow-hidden rounded-control text-fg transition-[padding] duration-200 hover:bg-canvas motion-reduce:transition-none [&::-webkit-details-marker]:hidden ${focus} ${folded ? "px-1" : "px-1.5"}`}
           >
@@ -251,7 +259,7 @@ export const Sidebar = ({
               <span className="truncate text-sm font-semibold">{user.name}</span>
               {user.role !== "user" ? (
                 <span>
-                  <Badge>{user.role}</Badge>
+                  <Badge>{tCommon(`roles.${user.role}`)}</Badge>
                 </span>
               ) : null}
             </span>
@@ -264,12 +272,12 @@ export const Sidebar = ({
               <p className="truncate font-mono text-xs text-muted">{user.email}</p>
             </div>
             <Link href="/account/password" className={menuItem}>
-              Account
+              {t("sidebar.account")}
             </Link>
             {signOutAction ? (
               <form action={signOutAction} className="border-t border-hairline pt-0.5">
                 <button type="submit" className={menuItem}>
-                  Sign out
+                  {t("sidebar.signOut")}
                 </button>
               </form>
             ) : null}
@@ -285,7 +293,7 @@ export const Sidebar = ({
             aria-hidden={folded}
             className={`overflow-hidden px-1.5 font-mono text-xs whitespace-nowrap text-muted transition-[max-height,margin,opacity] duration-200 motion-reduce:transition-none ${folded ? "mt-0 max-h-0 opacity-0" : "mt-2 max-h-5"}`}
           >
-            ronne marketplace v{version}
+            {t("sidebar.version", { version })}
           </p>
         ) : null}
       </div>

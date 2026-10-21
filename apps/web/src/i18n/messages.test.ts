@@ -18,7 +18,8 @@ beforeEach(() => log.warn.mockReset());
 
 describe("loadMessages (129)", () => {
   it("returns the English files as they are for English", async () => {
-    expect(await loadMessages("en", read)).toEqual({ common: files["en/common"] });
+    // The fixture has no `shell` file: a namespace nobody wrote is empty, not an error.
+    expect(await loadMessages("en", read)).toEqual({ common: files["en/common"], shell: {} });
     expect(log.warn).not.toHaveBeenCalled();
   });
 

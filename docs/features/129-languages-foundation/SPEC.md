@@ -126,6 +126,12 @@ every new screen is written with messages from the start.
 - **Overview → Finding your way:** one sentence that the screens come in three languages, linking
   to the section.
 - **Helpers:** next to the Language select, "What changes?" → `account#language`.
+- **Interface names in the Portuguese and French pages.** They still name the screens' labels in
+  English (Catalogue, Reviews, My submissions, Sign out…), because the app was English. As each area
+  is translated, the pages take that area's new names, from the message files (the glossary in
+  `docs/knowledge/i18n.md` lists them), in the ronne-web branch of the same release; the shell's
+  names (Início/Accueil, Catálogo/Catalogue, Revisões/Révisions, Submissões/Soumissions…) are part
+  of this feature's.
 - Both `topics.ts` get the new section. The website already has the three languages, so only the
   words of the new section are written in each.
 

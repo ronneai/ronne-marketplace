@@ -1,0 +1,56 @@
+{
+  "groups": {
+    "discover": "Explorer",
+    "governance": "Gouvernance et révisions",
+    "tools": "Outils"
+  },
+  "nav": {
+    "home": "Accueil",
+    "catalogue": "Catalogue",
+    "workspaces": "Espaces de travail",
+    "requests": "Demandes",
+    "reviews": "Révisions",
+    "submissions": "Soumissions",
+    "users": "Utilisateurs",
+    "audit": "Journal d’audit",
+    "settings": "Réglages",
+    "docs": "Documentation",
+    "tokens": "CLI et jetons",
+    "propose": "Proposer un élément"
+  },
+  "sidebar": {
+    "label": "Barre latérale",
+    "main": "Principal",
+    "home": "Accueil",
+    "fold": "Réduire la barre latérale",
+    "unfold": "Agrandir la barre latérale",
+    "account": "Compte",
+    "accountOf": "{name}, votre compte",
+    "signOut": "Se déconnecter",
+    "version": "ronne marketplace v{version}",
+    "itemNewTab": "{label} (s’ouvre dans un nouvel onglet)"
+  },
+  "menu": {
+    "title": "Menu",
+    "appearance": "Apparence"
+  },
+  "count": {
+    "waiting": "en attente",
+    "itemWaiting": "{label} ({count} en attente)"
+  },
+  "workspace": {
+    "label": "Espace de travail : {title}",
+    "title": "{name}{personal, select, true { (espace de travail personnel)} other {}}",
+    "all": "Tous les espaces de travail",
+    "every": "Tous les espaces",
+    "kind": "Espace de travail",
+    "personalKind": "Espace de travail personnel",
+    "show": "Afficher",
+    "personal": "personnel",
+    "open": "Ouvrir la page de {name}",
+    "manage": "Gérer les espaces de travail"
+  },
+  "footer": {
+    "openSource": "ronne marketplace · source ouverte (MIT)"
+  }
+}

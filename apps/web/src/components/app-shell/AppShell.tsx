@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import { ThemeToggle } from "@/features/theme/ThemeToggle";
 import type { Theme } from "@/features/theme/theme";
@@ -42,6 +43,7 @@ export const AppShell = ({
   version?: string;
   children: ReactNode;
 }) => {
+  const t = useTranslations("shell");
   const items = navFor(user, navCounts);
   const propose = canPropose(user);
   return (
@@ -70,6 +72,7 @@ export const AppShell = ({
               className="flex shrink-0 items-center gap-2 text-fg outline-offset-4 focus-visible:outline-2 focus-visible:outline-focus"
             >
               <BrandLogo height={34} className="h-6 w-auto sm:h-[34px]" />
+              {/* biome-ignore lint/plugin: the product's name, the same in every language */}
               <span className="hidden font-mono text-xs text-muted sm:inline">/ marketplace</span>
             </Link>
             <div className="ml-auto flex shrink-0 items-center gap-2">
@@ -96,11 +99,12 @@ export const AppShell = ({
         </div>
         <footer className="border-t border-hairline pb-safe px-safe">
           <div className="flex flex-wrap justify-between gap-2 px-4 py-4 font-mono text-xs text-muted sm:px-6">
-            <span>ronne marketplace · open source (MIT)</span>
+            <span>{t("footer.openSource")}</span>
             <a
               href="https://github.com/ronneai/ronne-marketplace"
               className="touch-hit hover:text-fg"
             >
+              {/* biome-ignore lint/plugin: GitHub's name, the same in every language */}
               github
             </a>
           </div>
