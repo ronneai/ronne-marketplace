@@ -149,3 +149,18 @@ Witnessed: 2026-10-21 11:05 local, by a fresh agent (blind re-check). Commit: 09
 | 5 | The end-to-end test starts from a fresh instance and reaches a really empty Home | no | confirmed | `pnpm --filter @ronneai/web exec playwright test --project=wizard` → 1 passed: the blank instance, the setup, the sign-in, then the heading, the root text, the "Submit the first item" href and "Create a scope" leading to `/workspaces/global`. |
 
 **Overall:** met. Every claim of task 5 is confirmed.
+
+## Task 6 — Messages and phone
+
+Witnessed: 2026-10-21 11:10 local, by a fresh agent (blind). Commit: 40235ae9 plus uncommitted changes (`e2e/pages.ts`, `src/app/pages-coverage.test.ts`). Machine: macOS (Darwin 27.0.0), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Every user-visible string in the Notice code, the Home code and the notice slot is a message | no | confirmed | Read `features/notice`, `features/admin-settings/notice`, `features/home`, the home page, the layout and `AppShell.tsx`: every label, aria-label and hint is `t(...)`; the banner's `title` is root's own text. Three `biome-ignore lint/plugin` (an HTML tag name, the product name, GitHub's name) are justified. |
+| 2 | The `biome.json` overrides cover those folders, and the rule fires there | no | confirmed | The globs list `features/notice`, `features/home`, the page, `features/admin-settings/notice` and the layout; a throwaway file linted with the five plugins in a scratch config gave 3 errors (raw text, `title`, `aria-label`). The globs matching rests on reading `biome.json` and the clean `pnpm lint`. |
+| 3 | Parity and scan tests pass; the keys exist in three languages | no | confirmed | `vitest run src/i18n src/app/pages-coverage.test.ts src/features/notice src/features/home src/features/admin-settings/notice` → 12 files, 125 passed; `admin.json`, `home.json` and `shell.json` `notice` keys are identical across en, pt and fr. |
+| 4 | The Portuguese and French read correctly, follow the glossary and the Canadian typography | no | confirmed | Terms match `i18n.md`; a space before a colon only; plurals read correctly. |
+| 5 | The phone sweep passes on every project in three languages with the Notice tab added | no | confirmed | `playwright test mobile-sweep` → 45 passed across phone, phone-webkit and tablet; `/admin/settings` is pinned in `pages-coverage.test.ts`. |
+| 6 | Typecheck and lint are clean | no | confirmed | Typecheck ok; `pnpm lint` 44 warnings, no errors. |
+
+**Overall:** met. Remark: the other Settings tabs are still English, so listing `/admin/settings` in `MIGRATED_ROUTES` is right only for the sweep's overflow and language checks, as the code comment says.

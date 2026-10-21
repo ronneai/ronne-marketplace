@@ -36,7 +36,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   root and others, with links.
   *Done when:* component tests for both roles; the end-to-end test starts from a fresh instance.
 
-- [ ] **6. Messages and phone.** Every string in messages (129) in English, Portuguese and French;
+- [x] **6. Messages and phone.** Every string in messages (129) in English, Portuguese and French;
   the scan covers `features/home` and the Notice code; phone sweep in each language.
   *Done when:* parity and scan tests pass; the end-to-end sweep passes on every project.
 

@@ -159,6 +159,8 @@ export const SWEEP_PAGES: readonly SweepPage[] = [
       "/admin/settings?tab=feeds",
       "/admin/settings?tab=authentication",
       "/admin/settings?tab=privacy",
+      // The Notice tab (124): the first tab written in messages.
+      "/admin/settings?tab=notice",
       // Add provider (106): the preset cards; identity-providers.mobile.e2e.ts walks the form.
       "/admin/settings?tab=authentication&provider=new",
     ],
@@ -182,4 +184,7 @@ export const MIGRATED_ROUTES: ReadonlySet<string> = new Set([
   "/account/security",
   "/account/language",
   "/account/tokens",
+  // Settings (124): only the Notice tab is in messages so far; the rest follow in 131. The sweep
+  // looks for overflow and the language, so the other tabs, still English, are fine in it.
+  "/admin/settings",
 ]);
