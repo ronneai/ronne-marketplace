@@ -9,7 +9,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 ## Tasks
 
-- [ ] **1. Inventory and dependency check.** List the user-facing text by area (components,
+- [x] **1. Inventory and dependency check.** List the user-facing text by area (components,
   server-action results, error classes with variable parts) into the task's notes, and check
   `next-intl` against `docs/policies/dependencies.md` (licence, release age, no install scripts,
   audit) at the version ronne-web uses or newer.
@@ -83,3 +83,49 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 Build this before 124–128 so those are written with messages from the start. Translation drafts
 may be machine-made; 133 has them read by native speakers.
+
+### Inventory (task 1, 2026-10-21)
+
+**Dependency.** `next-intl` 4.14.9 (MIT; released 2026-10-02; the website uses 4.14.6), added to
+`apps/web` as an exact version, with its tree in the lockfile; `pnpm licenses:check` passes (345
+packages) and `pnpm audit --audit-level high` finds nothing. Two of them have install scripts,
+`@parcel/watcher` and `@swc/core`; both serve next-intl's optional message-extraction features,
+which Ronne doesn't turn on, so `allowBuilds` sets them to `false` with the reason (as for
+`esbuild`).
+
+**Where the text is.** About 200 non-test `.tsx` files (22,900 lines in `features` and
+`components`), English written straight into the JSX. By size: `app` (32 files), `components/ui`
+(28), `features/admin-settings` (16), `admin-users` (12), `draft-editor` (9, 3,000 lines), `reviews`
+(9), `item-page` (9), `components/app-shell` (8), `account-security` (6), `setup` (5), `sign-in`
+(5), `submissions` (4), `account-tokens` (4), `admin-workspaces` (3, 1,200 lines), and about 30
+smaller folders.
+
+**How errors reach the screen.** A server action returns `{ error: "<code>" }` and the component
+turns the code into English with a constant map, so translating means moving those maps to
+messages, not changing the actions. The maps are `const` definitions named `*_ERRORS` or `*_LABELS`
+(`grep -rlE "^(export )?const [A-Z_]*(ERRORS|LABELS)\b" features components app`, test files left
+out: 17 files, 19 definitions), among them `SIGN_IN_ERRORS`,
+`SSO_ERRORS`, `TWO_FACTOR_ERRORS`, `TWO_FACTOR_STEP_ERRORS`, `DEVICE_ERRORS`,
+`CHANGE_PASSWORD_ERRORS`, and the `*_LABELS` maps (roles, visibility, tabs, steps, risk flags,
+views, chips). The 38 distinct codes in action results: `rate_limited`, `wrong_password`,
+`wrong_code`, `invalid_credentials`, `not_signed_in`, `invalid_code`, `invalid_request`, `used`,
+`replaced`, `expired`, `invalid_grant`, `already_on`, `user_disabled`, `unavailable`,
+`invalid_client`, `two_factor_required`, `password_sign_in_disabled`, `not_enabled`, `mismatch`,
+`expired_token`, `authorization_pending`, `another_tab`, `unreadable`, `too_many`, `slow_down`,
+`refused`, `provider_error`, `not_found`, `no_password`, `locked`, `just_made`, `access_denied`,
+`unsupported_grant_type`, `too_short`, `too_long`, `token_limit`, `signed_out`, `server_error`.
+Some are OAuth device-flow codes meant for `rmk` and stay as they are (`authorization_pending`,
+`slow_down`, `invalid_grant`, `invalid_client`, `unsupported_grant_type`, `access_denied`,
+`expired_token`).
+
+**Domain errors.** 153 error classes (`grep -rhE "^export class \w+ extends" server/domains`) in the eight domains carry English messages made for people
+(`MESSAGE_FOR_PEOPLE`), some with variable parts (`"${email}" isn't a valid email address.`,
+`The password needs at least ${limit} characters.`). `server/http/errors.ts` turns the ones the API
+knows into `{ code, message }`; that stays English. Where the web shows one of these messages
+directly, it needs a key built from the class name or `code` plus the variable parts (task 9); where
+it shows only a code, the maps above are enough.
+
+**Dates and numbers.** 15 non-test files use `Intl` or `toLocale*`: 10 in the UI (`time-text.ts`,
+which `LocalTime` uses, `DataTable`, `ItemCard`, the versions and item-page tabs, the draft editor
+and two settings panels: task 5 and the later sweeps) and 5 on the server (the backup commands,
+`setup/purge.ts` and the submissions errors), which stay as they are.

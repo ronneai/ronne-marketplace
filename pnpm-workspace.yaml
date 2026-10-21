@@ -10,6 +10,11 @@ minimumReleaseAge: 4320
 strictDepBuilds: true
 # The only dependencies allowed to run install scripts. Justify each entry in its pull request.
 allowBuilds:
+  # next-intl's optional message-extraction features (a file watcher and an SWC plugin). Ronne
+  # doesn't turn them on, and their install scripts only fetch native binaries for them
+  # (feature 129).
+  '@parcel/watcher': false
+  '@swc/core': false
   # Native SQLite driver: downloads a prebuilt binary or compiles one (feature 002).
   better-sqlite3: true
   # tsx's compiler. Its postinstall only checks for the platform binary, which pnpm installs as an
