@@ -96,6 +96,7 @@ export const kyselyCatalogueRepository = (
       installable,
       listedNotYanked,
       ownerId,
+      favoriteOf,
       dependableFrom,
     }: CatalogueFilter,
   ) => {
@@ -154,6 +155,10 @@ export const kyselyCatalogueRepository = (
       );
     else q = q.where(inListedWorkspace(viewer, "workspaces.id"));
     if (ownerId) q = q.where("items.owner_id", "=", ownerId);
+    if (favoriteOf)
+      q = q.where("items.id", "in", (eb) =>
+        eb.selectFrom("item_favorites").select("item_id").where("user_id", "=", favoriteOf),
+      );
     if (dependableFrom !== undefined)
       q = q.where(
         isDependableFrom(dependableFrom, "workspaces.id", "workspaces.visibility", dialect),
@@ -250,6 +255,19 @@ export const kyselyCatalogueRepository = (
       }
       return (await query.execute()).map(toEntry);
     },
+
+    byIds: async (ids) =>
+      ids.length === 0
+        ? []
+        : (
+            await entries()
+              .where(
+                "items.id",
+                "in",
+                ids.map((id) => id.trim().toUpperCase()),
+              )
+              .execute()
+          ).map(toEntry),
 
     byNames: async (names) =>
       names.length === 0

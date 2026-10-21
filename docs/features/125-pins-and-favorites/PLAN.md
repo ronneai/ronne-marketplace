@@ -40,7 +40,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* component tests cover who sees which entries and the dialog's actions; a phone test
   shows full-screen dialogs behave (067).
 
-- [ ] **6. Shelves on Home, the workspace page and the catalogue.** Fill 124's slots (favorites,
+- [x] **6. Shelves on Home, the workspace page and the catalogue.** Fill 124's slots (favorites,
   Start here, Pinned in <workspace>), the workspace page's shelf, the catalogue's `?favorites=1`
   filter with paging.
   *Done when:* component tests cover empty/present, the current workspace's pins, and the filter in

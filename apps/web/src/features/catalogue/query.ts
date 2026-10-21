@@ -7,7 +7,7 @@ const first = (value: string | string[] | undefined) =>
 
 /**
  * Reads `?q=`, `?type=` (once per type, any of them), `?scope=`, `?workspace=` (090), `?tool=`,
- * `?sort=` and `?cursor=`;
+ * `?favorites=1` (125), `?sort=` and `?cursor=`;
  * the service drops anything unknown.
  */
 export const parseCatalogueQuery = (params: SearchParams): CatalogueQuery => ({
@@ -16,6 +16,7 @@ export const parseCatalogueQuery = (params: SearchParams): CatalogueQuery => ({
   scope: first(params.scope) || undefined,
   workspace: first(params.workspace) || undefined,
   tool: first(params.tool) || undefined,
+  favorites: first(params.favorites) === "1" ? "1" : undefined,
   sort: first(params.sort) || undefined,
   cursor: first(params.cursor) || undefined,
 });
@@ -26,6 +27,7 @@ type Shown = {
   scope: string | null;
   workspace: string | null;
   tool: string | null;
+  favorites: boolean;
   sort: "recent" | "installs" | "name";
 };
 
@@ -47,6 +49,7 @@ export const catalogueHref = (
   if (next.workspace) params.set("workspace", next.workspace);
   else if (keepAll) params.set("workspace", "");
   if (next.tool) params.set("tool", next.tool);
+  if (next.favorites) params.set("favorites", "1");
   if (next.sort !== "recent") params.set("sort", next.sort);
   if (changes.cursor) params.set("cursor", changes.cursor);
   const search = params.toString();

@@ -42,7 +42,15 @@ const pageOf = (overrides: Partial<CataloguePage> = {}): CataloguePage => ({
   scopes: ["team"],
   workspaces: ["acme", "global"],
   personal: "acme",
-  query: { q: "", types: [], scope: null, workspace: null, tool: null, sort: "recent" },
+  query: {
+    q: "",
+    types: [],
+    scope: null,
+    workspace: null,
+    tool: null,
+    favorites: false,
+    sort: "recent",
+  },
   ...overrides,
 });
 
@@ -54,6 +62,7 @@ const filtered = pageOf({
     scope: "team",
     workspace: "acme",
     tool: "codex",
+    favorites: false,
     sort: "installs",
   },
 });

@@ -242,3 +242,38 @@ Witnessed: 2026-10-21 18:30 local, by a fresh agent (blind re-check). Commit: e6
 | 9 | Lint and typecheck are clean | no | confirmed | `biome check apps/web` no errors; typecheck clean. |
 
 **Overall:** met.
+
+## Task 6 — Shelves on Home, the workspace page and the catalogue
+
+Witnessed: 2026-10-21 18:30 local, by a fresh agent (blind). Commit: 0b64101b plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Home shows "Your favorites" with See all to `/catalogue?favorites=1`, and nothing, not even a heading, when empty | no | confirmed | Empty and present cases in `page.test.tsx`; changing the href failed a test. |
+| 2 | Start here shows to everyone and is hidden when empty; Manage only for root | no | confirmed | Making the condition true failed the test. |
+| 3 | "Pinned in <workspace>" only when a workspace is current, with Manage only for its admin or root | no | confirmed | Admin, member and no-current cases; dropping the condition and making `can` true each failed a test. |
+| 4 | The workspace page has its own "Pinned items" shelf, hidden when empty, Manage only for admins and root | no | confirmed | Five tests in `admin-workspaces.test.tsx`; making Manage unconditional failed two. |
+| 5 | `?favorites=1` is read from the address (exactly 1), shown as a checkbox and a removable chip, counted as active, kept by search, sort and paging links | no | confirmed | Four tests in `catalogue.test.tsx`; removing the line in `catalogueHref` failed one. |
+| 6 | The filter uses the reader's own favorites and combines with search, type, scope, sort and paging | no | confirmed | Six database tests; dropping the `favoriteOf` filter failed three. |
+| 7 | Type counts reflect the favorites | no | partly | Removing `installable` from the counts call left all tests green. |
+| 8 | A favorite or pin the reader cannot see is not shown, and a favorite is the reader's alone | no | confirmed | Access-loss test; outsider and root see none of the member's; `byIds` probe in the visibility guard. |
+| 9 | A favorite with no installable version is hidden but kept; pins are shown only if available | no | partly | The catalogue filter is tested; Home's and the workspace's loaders had no test. |
+| 10 | Component tests cover empty and present, the current workspace's pins and the filter in the URL | no | confirmed | Unit run 2745 tests passed. |
+| 11 | The loaders, `entriesOf` and `workspaceNamed` are tested enough | no | partly | Tested only through mocks. |
+| 12 | The database tests for the filter pass on the four databases | no | confirmed | 12 tests on each of SQLite, PostgreSQL, MySQL and MariaDB. |
+| 13 | Lint, typecheck and messages are clean | no | confirmed | `biome check apps/web` no errors; typecheck clean. |
+
+**Overall:** not met: rows 7, 9 and 11.
+
+### Re-check (rows 7, 9, 11)
+
+Witnessed: 2026-10-21 18:50 local, by a fresh agent (blind re-check). Commit: 0b64101b plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 7 | Type counts for Favorites count only the reader's installable favorites | no | confirmed | The search, type, scope and sort test now adds a yanked favorite; dropping `installable` from the counts call failed it. |
+| 9 | Hidden or yanked favorites and unavailable pins are left out of the shelves, and un-yanking brings them back | no | confirmed | Making `listFavorites` keep unavailable items failed the Home loader test and the favorites test; making `listPins` keep them failed the yanked-pin test. |
+| 11 | The loaders, `entriesOf` and `workspaceNamed` are tested enough | no | confirmed | `load-shelves.db.test.ts` runs the real loaders: the six, newest first, skipping yanked newest, own and visible only, pin order, a private workspace's pins for members only, and `workspaceNamed`; changing the six to seven and dropping the visibility filter by name each failed tests. |
+| 13 | Unit, database, lint and type checks pass | no | confirmed | 2745 unit tests; 60 shelves tests on SQLite, PostgreSQL, MySQL and MariaDB; `biome check` no errors; typecheck clean. |
+
+**Overall:** met.

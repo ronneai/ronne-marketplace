@@ -23,7 +23,8 @@
       "worksIn": "Fonctionne dans",
       "anyTool": "N’importe quel outil",
       "clear": "Effacer les filtres",
-      "apply": "Appliquer"
+      "apply": "Appliquer",
+      "favorites": "Seulement mes favoris"
     },
     "active": {
       "label": "Filtres actifs",
@@ -33,7 +34,8 @@
       "removeWorkspace": "Retirer le filtre d’espace de travail",
       "removeScope": "Retirer le filtre de portée",
       "removeTool": "Retirer le filtre d’outil",
-      "clearAll": "Tout effacer"
+      "clearAll": "Tout effacer",
+      "removeFavorites": "Retirer le filtre des favoris"
     },
     "sort": {
       "summary": "Trier : <value></value>",

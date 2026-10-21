@@ -33,5 +33,11 @@
     "unavailable": "Not available",
     "unavailableHint": "It has no installable version now. Remove it, or leave it: it returns when it does.",
     "back": "Back"
+  },
+  "home": {
+    "favorites": "Your favorites",
+    "seeAll": "See all",
+    "pinnedIn": "Pinned in {workspace}",
+    "workspacePins": "Pinned items"
   }
 }

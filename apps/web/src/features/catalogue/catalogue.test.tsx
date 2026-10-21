@@ -48,7 +48,15 @@ const pageOf = (overrides: Partial<CataloguePage> = {}): CataloguePage => ({
   scopes: ["team", "tools"],
   workspaces: ["global"],
   personal: null,
-  query: { q: "", types: [], scope: null, workspace: null, tool: null, sort: "recent" },
+  query: {
+    q: "",
+    types: [],
+    scope: null,
+    workspace: null,
+    tool: null,
+    favorites: false,
+    sort: "recent",
+  },
   ...overrides,
 });
 
@@ -100,6 +108,7 @@ describe("the catalogue page", () => {
           scope: "team",
           workspace: null,
           tool: null,
+          favorites: false,
           sort: "name",
         },
       }),
@@ -181,7 +190,15 @@ describe("the catalogue page", () => {
     catalogue.browseCatalogue.mockResolvedValue(
       pageOf({
         entries: [],
-        query: { q: "zzz", types: [], scope: null, workspace: null, tool: null, sort: "recent" },
+        query: {
+          q: "zzz",
+          types: [],
+          scope: null,
+          workspace: null,
+          tool: null,
+          favorites: false,
+          sort: "recent",
+        },
       }),
     );
     expect(await render({ q: "zzz" })).toContain("No items match.");
@@ -216,6 +233,7 @@ describe("catalogue query helpers", () => {
       scope: null,
       workspace: null,
       tool: null,
+      favorites: false,
       sort: "recent" as const,
     };
     expect(catalogueHref(query)).toBe("/catalogue");
@@ -245,7 +263,15 @@ describe("workspaces in the catalogue (090)", () => {
   it("shows a chosen workspace as an active filter, kept by search and cleared with the rest", () => {
     const html = view({
       workspaces: ["global", "acme"],
-      query: { q: "x", types: [], scope: null, workspace: "acme", tool: null, sort: "recent" },
+      query: {
+        q: "x",
+        types: [],
+        scope: null,
+        workspace: "acme",
+        tool: null,
+        favorites: false,
+        sort: "recent",
+      },
     });
     expect(html).toContain('aria-label="Remove the workspace filter"');
     expect(html).toContain('href="/catalogue?q=x"');
@@ -256,7 +282,15 @@ describe("workspaces in the catalogue (090)", () => {
     expect(
       view({
         workspaces: ["acme"],
-        query: { q: "", types: [], scope: null, workspace: "acme", tool: null, sort: "recent" },
+        query: {
+          q: "",
+          types: [],
+          scope: null,
+          workspace: "acme",
+          tool: null,
+          favorites: false,
+          sort: "recent",
+        },
       }),
     ).toContain('id="catalogue-workspace"');
   });
@@ -270,7 +304,15 @@ describe("workspaces in the catalogue (090)", () => {
   it("keeps a chosen name that isn't a workspace as the selected option, so Apply keeps it", () => {
     const html = view({
       workspaces: ["global", "acme"],
-      query: { q: "", types: [], scope: null, workspace: "gone", tool: null, sort: "recent" },
+      query: {
+        q: "",
+        types: [],
+        scope: null,
+        workspace: "gone",
+        tool: null,
+        favorites: false,
+        sort: "recent",
+      },
     });
     expect(html).toContain('<option value="gone" selected="">gone</option>');
     expect(html).toContain('aria-label="Remove the workspace filter"');
@@ -340,7 +382,15 @@ describe("the current workspace on the catalogue (120)", () => {
     catalogue.browseCatalogue.mockResolvedValue(
       pageOf({
         workspaces: ["global", "acme"],
-        query: { q: "x", types: [], scope: null, workspace: "acme", tool: null, sort: "recent" },
+        query: {
+          q: "x",
+          types: [],
+          scope: null,
+          workspace: "acme",
+          tool: null,
+          favorites: false,
+          sort: "recent",
+        },
       }),
     );
     const html = await render({ workspace: "acme", q: "x" });
@@ -353,7 +403,15 @@ describe("the current workspace on the catalogue (120)", () => {
       pageOf({
         entries: [],
         workspaces: ["global", "acme"],
-        query: { q: "x", types: [], scope: null, workspace: "acme", tool: null, sort: "recent" },
+        query: {
+          q: "x",
+          types: [],
+          scope: null,
+          workspace: "acme",
+          tool: null,
+          favorites: false,
+          sort: "recent",
+        },
       }),
     );
     const empty = await render({ workspace: "acme", q: "x" });
@@ -388,5 +446,63 @@ describe("favorites on the catalogue (125)", () => {
     expect(shelves.favoritedAmong).toHaveBeenCalledWith(expect.any(Headers), ["i1", "i2"]);
     expect(html).toContain('aria-label="Add @team/fmt to favorites"');
     expect(html).toContain('aria-label="Remove @team/lint from favorites"');
+  });
+});
+
+describe("the Favorites filter (125)", () => {
+  it("is a checkbox in the Filters panel, off by default", async () => {
+    catalogue.browseCatalogue.mockResolvedValue(pageOf());
+    const html = await render();
+    expect(html).toContain('name="favorites"');
+    expect(html).toContain("Only my favorites");
+    expect(html).not.toMatch(/name="favorites"[^>]*checked/);
+  });
+
+  it("is read from ?favorites=1, passed on, and shown as a chip that removes it", async () => {
+    catalogue.browseCatalogue.mockResolvedValue(
+      pageOf({
+        query: {
+          q: "",
+          types: [],
+          scope: null,
+          workspace: null,
+          tool: null,
+          favorites: true,
+          sort: "recent",
+        },
+      }),
+    );
+    const html = await render({ favorites: "1" });
+    expect(catalogue.browseCatalogue).toHaveBeenCalledWith(
+      expect.any(Headers),
+      expect.objectContaining({ favorites: "1" }),
+    );
+    expect(html).toContain('aria-label="Remove the favorites filter"');
+    expect(html).toMatch(/name="favorites"[^>]*checked/);
+    // It counts as an active filter, and the search keeps it.
+    expect(html).toContain('<input type="hidden" name="favorites" value="1"/>');
+  });
+
+  it("keeps it in the links for sort and paging, and Clear leaves it", () => {
+    const query = {
+      q: "",
+      types: [],
+      scope: null,
+      workspace: null,
+      tool: null,
+      favorites: true,
+      sort: "recent" as const,
+    };
+    expect(catalogueHref(query)).toBe("/catalogue?favorites=1");
+    expect(catalogueHref(query, { sort: "name" })).toBe("/catalogue?favorites=1&sort=name");
+    expect(catalogueHref(query, { cursor: "c2" })).toBe("/catalogue?favorites=1&cursor=c2");
+    expect(catalogueHref(query, { favorites: false })).toBe("/catalogue");
+  });
+
+  it("is read from the address only when it is exactly 1", () => {
+    expect(parseCatalogueQuery({ favorites: "1" }).favorites).toBe("1");
+    expect(parseCatalogueQuery({ favorites: "0" }).favorites).toBeUndefined();
+    expect(parseCatalogueQuery({ favorites: "true" }).favorites).toBeUndefined();
+    expect(parseCatalogueQuery({}).favorites).toBeUndefined();
   });
 });

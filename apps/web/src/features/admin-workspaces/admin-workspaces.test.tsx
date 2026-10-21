@@ -52,6 +52,17 @@ const navigation = vi.hoisted(() => ({
   usePathname: () => "/workspaces",
   useRouter: () => ({ refresh: () => {} }),
 }));
+const shelves = vi.hoisted(() => ({
+  loadPinnedShelf: vi.fn(async () => ({ entries: [] as unknown[], starred: [] as string[] })),
+}));
+vi.mock("@/features/pins/load-shelves", () => shelves);
+vi.mock("@/features/favorites/actions", () => ({ toggleFavoriteFromForm: vi.fn() }));
+vi.mock("@/features/pins/actions", () => ({
+  loadShelfAction: vi.fn(),
+  moveInShelfAction: vi.fn(),
+  pinToShelfAction: vi.fn(),
+  unpinFromShelfAction: vi.fn(),
+}));
 vi.mock("@/server/domains/workspaces/actions/workspaces", () => workspaces);
 vi.mock("@/server/domains/items/actions/scopes", () => scopes);
 vi.mock("@/server/domains/identity/actions/session", () => session);
@@ -1020,5 +1031,82 @@ describe("the pages", () => {
     await expect(workspacePage("%")).rejects.toThrow("NEXT_NOT_FOUND");
     expect(workspaces.viewWorkspace).toHaveBeenLastCalledWith(expect.any(Headers), "%");
     expect(scopes.pageScopes).not.toHaveBeenCalled();
+  });
+});
+
+describe("a workspace's pinned items (125)", () => {
+  const pinned = {
+    entries: [
+      {
+        id: "i1",
+        workspace: "acme",
+        privateWorkspace: false,
+        personalWorkspace: false,
+        scope: "team",
+        name: "fmt",
+        type: "skill",
+        version: "1.0.0",
+        description: "Formats.",
+        keywords: [],
+        publishedAt: new Date("2026-09-20T10:00:00Z"),
+        lastPublishedAt: new Date("2026-09-20T10:00:00Z"),
+        risky: false,
+        deprecatedMessage: null,
+        installable: true,
+        downloadCount: 1,
+        support: { "claude-code": "native", codex: "native", cursor: "native" },
+      },
+    ],
+    starred: [] as string[],
+  };
+  const render = async (user: { id: string; role: string; workspaces: Record<string, string> }) => {
+    session.getCurrentUser.mockResolvedValueOnce(user);
+    workspaces.viewWorkspace.mockResolvedValueOnce(workspace());
+    return renderToStaticMarkup(
+      await AdminWorkspace({
+        params: Promise.resolve({ name: "acme" }),
+        searchParams: Promise.resolve({}),
+      }),
+    );
+  };
+
+  it("shows the shelf to a member, without Manage", async () => {
+    shelves.loadPinnedShelf.mockResolvedValueOnce(pinned);
+    const html = await render({ id: "m", role: "user", workspaces: { w1: "user" } });
+    expect(html).toContain(">Pinned items<");
+    expect(html).toContain("@acme/team/fmt");
+    expect(html).not.toContain('aria-label="Manage acme"');
+  });
+
+  it("gives its admin and root Manage", async () => {
+    const people: Parameters<typeof render>[0][] = [
+      { id: "a", role: "user", workspaces: { w1: "admin" } },
+      { id: "r", role: "root", workspaces: {} },
+    ];
+    for (const user of people) {
+      shelves.loadPinnedShelf.mockResolvedValueOnce(pinned);
+      expect(await render(user)).toContain('aria-label="Manage acme"');
+    }
+  });
+
+  it("a moderator is not an admin: no Manage", async () => {
+    shelves.loadPinnedShelf.mockResolvedValueOnce(pinned);
+    const html = await render({ id: "o", role: "user", workspaces: { w1: "moderator" } });
+    expect(html).toContain(">Pinned items<");
+    expect(html).not.toContain("Manage acme");
+  });
+
+  it("shows nothing, not even a heading, when nothing is pinned", async () => {
+    const html = await render({ id: "a", role: "user", workspaces: { w1: "admin" } });
+    expect(html).not.toContain("Pinned items");
+  });
+
+  it("asks for this workspace's shelf", async () => {
+    shelves.loadPinnedShelf.mockResolvedValueOnce(pinned);
+    await render({ id: "m", role: "user", workspaces: { w1: "user" } });
+    expect(shelves.loadPinnedShelf).toHaveBeenLastCalledWith(expect.any(Headers), {
+      kind: "workspace",
+      workspaceId: "w1",
+    });
   });
 });

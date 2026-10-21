@@ -67,3 +67,12 @@ export const pinTargets = async (headers: Headers, itemId: string, app: AppAuth 
   const { actor, deps } = await context(headers, app);
   return service.pinTargets(deps, actor, itemId);
 };
+
+export const workspaceNamed = async (
+  headers: Headers,
+  name: string,
+  app: AppAuth = getAppAuth(),
+) => {
+  const { actor, deps } = await context(headers, app);
+  return service.workspaceNamed(deps, actor, name);
+};

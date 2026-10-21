@@ -62,6 +62,13 @@ export const kyselyShelfItemsRepository = (
       if (which !== "all") query = query.where("id", "in", which.map(canonicalId));
       return query.orderBy("name", "asc").limit(limit).execute();
     },
+    workspaceByName: async (name) =>
+      (await db
+        .selectFrom("workspaces")
+        .select(["id", "name"])
+        .where("name", "=", name)
+        .where(inVisibleWorkspace(viewer, "workspaces.id"))
+        .executeTakeFirst()) ?? null,
     workspace: async (id) =>
       (await db
         .selectFrom("workspaces")

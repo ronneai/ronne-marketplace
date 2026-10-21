@@ -48,6 +48,16 @@ export const dependencyFacts = async (
   return service.dependencyFacts(deps(app, viewer), actor, names);
 };
 
+/** The cards for these items, in order (125's shelves on Home and a workspace's page). */
+export const entriesOf = async (
+  headers: Headers,
+  ids: readonly string[],
+  app: AppAuth = getAppAuth(),
+) => {
+  const { actor, viewer } = await context(headers, app);
+  return service.entriesOf(deps(app, viewer), actor, ids);
+};
+
 export const homeLists = async (headers: Headers, app: AppAuth = getAppAuth()) => {
   const { actor, viewer } = await context(headers, app);
   return service.homeLists(deps(app, viewer), actor);

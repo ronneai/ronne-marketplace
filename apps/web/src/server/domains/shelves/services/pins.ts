@@ -213,6 +213,16 @@ export const pinTargets = async (
   return targets;
 };
 
+/** A workspace the actor sees, by its name, for the shelf shown under it (Home, the workspace's page). */
+export const workspaceNamed = async (
+  deps: PinDeps,
+  actor: PinActor,
+  name: string,
+): Promise<{ id: string; name: string } | null> => {
+  if (!actor.user) throw new ForbiddenError("account.manage_own");
+  return deps.items.workspaceByName(name);
+};
+
 /** Whether the actor may pin to the shelf: for the item page's Pin menu. */
 export const mayManage = (actor: PinActor, shelf: Shelf): boolean =>
   shelf.kind === "instance"
