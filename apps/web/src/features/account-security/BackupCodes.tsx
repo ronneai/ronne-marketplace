@@ -1,27 +1,25 @@
 "use client";
 
 import { Check, Copy, Download } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { type ReactNode, useRef, useState } from "react";
 import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
 import { copyText, selectText } from "@/components/ui/copy";
 import { Notice } from "@/components/ui/Notice";
 
-/** The codes as a text file: one a line, with what they are for. */
-export const backupCodesFile = (codes: readonly string[]): string =>
-  [
-    "Ronne AI Marketplace: two-factor backup codes",
-    "Each code works once, in place of a code from your authenticator app.",
-    "",
-    ...codes,
-    "",
-  ].join("\n");
+/** The codes as a text file: one a line, under two lines that say what they are for. */
+export const backupCodesFile = (
+  codes: readonly string[],
+  intro: readonly [string, string],
+): string => [...intro, "", ...codes, ""].join("\n");
 
 /**
  * Ten backup codes, shown once (feature 105): Copy all, Download (.txt), and what happens next in
  * `children` ("I've saved them"). Without JavaScript the codes are still there to select.
  */
 export const BackupCodes = ({ codes, children }: { codes: string[]; children?: ReactNode }) => {
+  const t = useTranslations("account.security.backup");
   const [copied, setCopied] = useState<"idle" | "copied" | "manual">("idle");
   const list = useRef<HTMLOListElement>(null);
   const copy = async () => {
@@ -31,7 +29,9 @@ export const BackupCodes = ({ codes, children }: { codes: string[]; children?: R
     setTimeout(() => setCopied("idle"), result === "copied" ? 2000 : 6000);
   };
   const download = () => {
-    const url = URL.createObjectURL(new Blob([backupCodesFile(codes)], { type: "text/plain" }));
+    const url = URL.createObjectURL(
+      new Blob([backupCodesFile(codes, [t("fileTitle"), t("fileAbout")])], { type: "text/plain" }),
+    );
     const link = document.createElement("a");
     link.href = url;
     link.download = "ronne-backup-codes.txt";
@@ -42,16 +42,16 @@ export const BackupCodes = ({ codes, children }: { codes: string[]; children?: R
     <section aria-labelledby="backup-codes-title" className="grid gap-3">
       <div className="flex items-center gap-2">
         <h3 id="backup-codes-title" className="text-sm font-semibold text-fg">
-          Backup codes
+          {t("title")}
         </h3>
         <Help id="backup-codes-once" />
       </div>
-      <Notice kind="warn" title="Save them now">
-        They won&apos;t be shown again. Each one signs you in once if you lose your phone.
+      <Notice kind="warn" title={t("saveTitle")}>
+        {t("save")}
       </Notice>
       <ol
         ref={list}
-        aria-label="Backup codes"
+        aria-label={t("title")}
         className="grid grid-cols-2 gap-x-6 gap-y-1 rounded-control border border-hairline bg-canvas p-3 font-mono text-[13px] text-fg"
       >
         {codes.map((code) => (
@@ -61,15 +61,11 @@ export const BackupCodes = ({ codes, children }: { codes: string[]; children?: R
       <div className="flex flex-wrap items-center gap-2">
         <Button variant="secondary" onClick={copy}>
           {copied === "copied" ? <Check aria-hidden size={14} /> : <Copy aria-hidden size={14} />}
-          {copied === "copied"
-            ? "Copied"
-            : copied === "manual"
-              ? "Selected: copy them"
-              : "Copy all"}
+          {copied === "copied" ? t("copied") : copied === "manual" ? t("manual") : t("copyAll")}
         </Button>
         <Button variant="secondary" onClick={download}>
           <Download aria-hidden size={14} />
-          Download (.txt)
+          {t("download")}
         </Button>
         {children}
       </div>

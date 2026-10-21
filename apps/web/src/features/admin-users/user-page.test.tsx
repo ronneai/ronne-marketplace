@@ -84,6 +84,11 @@ describe("a user's page (123)", () => {
 
   it("says what counts as a sign-in, and shows Never when there is none", () => {
     expect(page(detail({ lastSignInAt: null }))).toMatch(/Last sign-in<\/dt><dd[^>]*>Never</);
+    // The language they chose (129), read-only: in its own name, or Automatic.
+    expect(page(detail({ locale: "pt" }))).toMatch(/Language<\/dt><dd[^>]*>Português</);
+    expect(page(detail({ locale: "fr" }))).toMatch(/Language<\/dt><dd[^>]*>Français</);
+    expect(page(detail({ locale: null }))).toMatch(/Language<\/dt><dd[^>]*>Automatic</);
+    expect(page(detail({ locale: "pt" }))).not.toMatch(/<select[^>]*name="language"/);
     const html = page(detail());
     expect(html).toContain("2026-10-19 14:30 UTC");
     expect(html).toContain("Not rmk");

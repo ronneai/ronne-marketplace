@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import { Badge } from "../ui/Badge";
 import { NewTabLink } from "../ui/NewTabLink";
@@ -53,6 +54,8 @@ export const MenuList = ({
   /** Called when a link is followed: the sheet closes. The page passes nothing. */
   onNavigate?: () => void;
 }) => {
+  const t = useTranslations("shell");
+  const tCommon = useTranslations("common");
   const path = usePathname() ?? "/";
   return (
     <>
@@ -65,21 +68,21 @@ export const MenuList = ({
             className={`flex min-h-11 items-center justify-center gap-2 rounded-control bg-accent-strong px-3.5 text-sm font-semibold text-on-accent hover:opacity-90 ${focus}`}
           >
             <NavIcon name="propose" size={16} />
-            {PROPOSE.label}
+            {t(`nav.${PROPOSE.key}`)}
           </Link>
         ) : null}
       </div>
-      <nav aria-label="Main" className="grid gap-3">
+      <nav aria-label={t("sidebar.main")} className="grid gap-3">
         {groupNav(items).map((group) => (
           <div key={group.id} className="grid gap-0.5">
             <p className="px-3 pb-1 font-mono text-[11px] font-semibold uppercase tracking-wide text-muted">
-              {group.label}
+              {t(`groups.${group.id}`)}
             </p>
             {group.items.map((item) =>
               item.external ? (
                 <NewTabLink key={item.href} href={item.href} onClick={onNavigate} className={row}>
                   <NavIcon name={item.icon} />
-                  {item.label}
+                  {t(`nav.${item.key}`)}
                 </NewTabLink>
               ) : (
                 <Link
@@ -90,7 +93,7 @@ export const MenuList = ({
                   className={row}
                 >
                   <NavIcon name={item.icon} />
-                  {item.label}
+                  {t(`nav.${item.key}`)}
                   {counts[item.href] ? <NavCount count={counts[item.href] ?? 0} /> : null}
                 </Link>
               ),
@@ -102,21 +105,21 @@ export const MenuList = ({
         <div className="grid gap-0.5 px-3 pb-2">
           <p className="flex min-w-0 items-center gap-2 text-sm font-semibold text-fg">
             <span className="truncate">{user.name}</span>
-            {user.role !== "user" ? <Badge>{user.role}</Badge> : null}
+            {user.role !== "user" ? <Badge>{tCommon(`roles.${user.role}`)}</Badge> : null}
           </p>
           <p className="truncate font-mono text-xs text-muted">{user.email}</p>
         </div>
         <Link href="/account/password" onClick={onNavigate} className={row}>
-          Account
+          {t("sidebar.account")}
         </Link>
         <div className="flex min-h-11 items-center justify-between gap-3 px-3 text-sm text-fg">
-          Appearance
+          {t("menu.appearance")}
           {appearance}
         </div>
         {signOutAction ? (
           <form action={signOutAction} className="border-t border-hairline pt-0.5">
             <button type="submit" className={row}>
-              Sign out
+              {t("sidebar.signOut")}
             </button>
           </form>
         ) : null}

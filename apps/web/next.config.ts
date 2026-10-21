@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import createNextIntlPlugin from "next-intl/plugin";
 import { DOCS_URL } from "./src/components/help/topics";
 
 const nextConfig: NextConfig = {
@@ -43,4 +44,7 @@ const nextConfig: NextConfig = {
   ],
 };
 
-export default nextConfig;
+// The language comes from the person, not the URL (feature 129): src/i18n/request.ts.
+const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
+
+export default withNextIntl(nextConfig);

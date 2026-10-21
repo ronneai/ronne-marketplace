@@ -3,6 +3,7 @@
 import { ArrowRight, ArrowUpRight, Building2, Check, ChevronsUpDown } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { chooseHref } from "@/features/current-workspace/current-workspace";
 import { DismissibleDetails } from "./DismissibleDetails";
 import type { ShellWorkspace } from "./nav";
@@ -31,13 +32,15 @@ export const WorkspaceSwitcher = ({
   current?: string | null;
   folded?: boolean;
 }) => {
+  const t = useTranslations("shell.workspace");
+  const tCommon = useTranslations("common");
   const path = usePathname() ?? "/";
   const search = useSearchParams()?.toString() ?? "";
   const here = search ? `${path}?${search}` : path;
   const chosen = workspaces.find((w) => w.name === current) ?? null;
   const title = chosen
-    ? `${chosen.name}${chosen.personal ? " (personal workspace)" : ""}`
-    : "All workspaces";
+    ? t("title", { name: chosen.name, personal: String(chosen.personal) })
+    : t("all");
   const mark = (on: boolean) =>
     on ? (
       <Check size={14} aria-hidden className="shrink-0 text-muted" />
@@ -47,7 +50,7 @@ export const WorkspaceSwitcher = ({
   return (
     <DismissibleDetails className="relative">
       <summary
-        aria-label={folded ? `Workspace: ${title}` : undefined}
+        aria-label={folded ? t("label", { title }) : undefined}
         title={title}
         className={`flex w-full cursor-pointer list-none items-center overflow-hidden rounded-control border border-hairline bg-surface text-left text-fg transition-[padding,min-height] duration-200 hover:border-strong motion-reduce:transition-none [&::-webkit-details-marker]:hidden ${focus} ${folded ? "min-h-10 justify-center px-0 py-0" : "min-h-11 justify-between px-3 py-1.5"}`}
       >
@@ -62,9 +65,9 @@ export const WorkspaceSwitcher = ({
           aria-hidden={folded}
           className={`grid min-w-0 flex-1 transition-[max-width,opacity] duration-200 motion-reduce:transition-none ${folded ? "max-w-0 opacity-0" : "max-w-64"}`}
         >
-          <span className="truncate text-sm font-semibold">{chosen?.name ?? "All workspaces"}</span>
+          <span className="truncate text-sm font-semibold">{chosen?.name ?? t("all")}</span>
           <span className="truncate font-mono text-xs text-muted">
-            {chosen ? (chosen.personal ? "Personal workspace" : "Workspace") : "Every workspace"}
+            {chosen ? (chosen.personal ? t("personalKind") : t("kind")) : t("every")}
           </span>
         </span>
         <ChevronsUpDown
@@ -76,14 +79,14 @@ export const WorkspaceSwitcher = ({
       <div
         className={`absolute z-40 grid grid-cols-[minmax(0,1fr)] gap-0.5 rounded-panel border border-strong bg-surface p-1 ${folded ? "top-0 left-full ml-2 w-72" : "inset-x-0 top-full mt-1"}`}
       >
-        <p className="px-3 pt-1.5 pb-1 font-mono text-xs uppercase text-muted">Show</p>
+        <p className="px-3 pt-1.5 pb-1 font-mono text-xs uppercase text-muted">{t("show")}</p>
         <a
           href={chooseHref(null, here)}
           aria-current={chosen ? undefined : "true"}
           className={choice}
         >
           {mark(!chosen)}
-          <span className="truncate">All workspaces</span>
+          <span className="truncate">{t("all")}</span>
         </a>
         {workspaces.map((w) => (
           <div key={w.name} className="flex min-w-0 items-center gap-0.5">
@@ -96,13 +99,13 @@ export const WorkspaceSwitcher = ({
               {mark(w.name === chosen?.name)}
               <span className="min-w-0 flex-1 truncate">{w.name}</span>
               <span className="shrink-0 font-mono text-xs font-normal text-muted">
-                {w.personal ? "personal" : w.role}
+                {w.personal ? t("personal") : tCommon(`roles.${w.role}`)}
               </span>
             </a>
             <Link
               href={`/workspaces/${encodeURIComponent(w.name)}`}
-              aria-label={`Open ${w.name}'s page`}
-              title={`Open ${w.name}'s page`}
+              aria-label={t("open", { name: w.name })}
+              title={t("open", { name: w.name })}
               className={`flex size-9 pointer-coarse:size-11 shrink-0 items-center justify-center rounded-control text-muted hover:bg-tint hover:text-fg ${focus}`}
             >
               <ArrowUpRight size={14} aria-hidden />
@@ -113,7 +116,7 @@ export const WorkspaceSwitcher = ({
           href="/workspaces"
           className={`flex min-h-9 pointer-coarse:min-h-11 w-full items-center justify-between gap-3 rounded-control border-t border-hairline px-3 text-left text-sm text-fg hover:bg-tint ${focus}`}
         >
-          Manage workspaces
+          {t("manage")}
           <ArrowRight size={14} aria-hidden className="shrink-0 text-muted" />
         </Link>
       </div>

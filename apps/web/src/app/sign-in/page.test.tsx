@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 vi.mock("@/server/config", () => ({ loadConfig: () => ({ publicUrl: "https://ronne.example" }) }));
 vi.mock("@/server/domains/identity/actions/session", () => ({ getCurrentUser: async () => null }));
 vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));
+vi.mock("@/i18n/server", () => ({ currentPath: async () => "/sign-in" }));
 vi.mock("@/features/sign-in/actions", () => ({ signInFromForm: vi.fn(), ssoFromForm: vi.fn() }));
 const app = vi.hoisted(() => ({ configured: false }));
 vi.mock("@/server/domains/identity/repositories/auth-instance", () => ({

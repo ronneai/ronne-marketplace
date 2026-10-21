@@ -1,0 +1,11 @@
+language js
+
+// Feature 129, see i18n-raw-jsx-text.grit.
+// {`Count ${n} items`}: a template with words outside its \${…} parts, written as a child.
+JsxExpressionChild(expression=JsTemplateExpression() as $s) where {
+  $s <: or {
+    r"(?s)^`[^`$]*\p{L}.*",
+    r"(?s).*\}[^`$}]*\p{L}.*"
+  },
+  register_diagnostic(span=$s, message="Text on the screen comes from the message files (feature 129): use `t(...)`, not a string written here.", severity="error")
+}

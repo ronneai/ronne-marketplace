@@ -46,7 +46,7 @@ test("a user composes an agent from two catalogue items on the canvas, saves, re
   await expect(list.getByText(/^Only dependencies in ronne\.yaml\./)).toBeVisible();
   await expect(list.getByRole("link", { name: "Learn more" })).toHaveAttribute(
     "href",
-    "https://www.ronne.ai/marketplace/docs/items#canvas",
+    "https://www.ronne.ai/en/marketplace/docs/items#canvas",
   );
 
   // The picker offers items of every type (096): skills, MCP servers, other agents too. It shows

@@ -1,7 +1,13 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const session = vi.hoisted(() => ({ changePassword: vi.fn(), signOut: vi.fn() }));
+const session = vi.hoisted(() => ({
+  changePassword: vi.fn(),
+  signOut: vi.fn(),
+  setLocale: vi.fn(),
+}));
+const jar = vi.hoisted(() => ({ set: vi.fn(), delete: vi.fn() }));
+const cache = vi.hoisted(() => ({ revalidatePath: vi.fn() }));
 const navigation = vi.hoisted(() => ({
   redirect: vi.fn((url: string) => {
     throw new Error(`redirect:${url}`);
@@ -10,8 +16,10 @@ const navigation = vi.hoisted(() => ({
 vi.mock("@/server/domains/identity/actions/session", () => session);
 vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));
 vi.mock("next/navigation", () => navigation);
+vi.mock("next/headers", () => ({ cookies: async () => jar }));
+vi.mock("next/cache", () => cache);
 
-const { changePasswordFromForm, signOutFromMenu } = await import("./actions");
+const { changePasswordFromForm, setLanguageFromForm, signOutFromMenu } = await import("./actions");
 const { ChangePasswordForm } = await import("./ChangePasswordForm");
 
 const form = (current: string, next: string, confirm = next) => {
@@ -92,5 +100,48 @@ describe("ChangePasswordForm", () => {
     const html = renderToStaticMarkup(<ChangePasswordForm initial={{ changed: true }} />);
     expect(html).toContain("Password changed");
     expect(html).toContain("other sessions were signed out");
+  });
+});
+
+describe("setLanguageFromForm (129)", () => {
+  const choose = (language: string) => {
+    const data = new FormData();
+    data.set("language", language);
+    return data;
+  };
+
+  it("saves the language on the profile and in the cookie", async () => {
+    session.setLocale.mockResolvedValueOnce({ ok: true, locale: "pt" });
+    expect(await setLanguageFromForm({}, choose("pt"))).toEqual({ saved: "pt" });
+    expect(session.setLocale).toHaveBeenCalledWith(expect.any(Headers), "pt");
+    expect(jar.set).toHaveBeenCalledWith(
+      "ronne-locale",
+      "pt",
+      expect.objectContaining({ path: "/", httpOnly: true, sameSite: "lax", maxAge: 31_536_000 }),
+    );
+    expect(jar.delete).not.toHaveBeenCalled();
+    expect(cache.revalidatePath).toHaveBeenCalledWith("/", "layout");
+  });
+
+  it("Automatic saves nothing on the profile and clears the cookie", async () => {
+    session.setLocale.mockResolvedValueOnce({ ok: true, locale: null });
+    expect(await setLanguageFromForm({}, choose(""))).toEqual({ saved: "automatic" });
+    expect(session.setLocale).toHaveBeenCalledWith(expect.any(Headers), null);
+    expect(jar.delete).toHaveBeenCalledWith("ronne-locale");
+    expect(jar.set).not.toHaveBeenCalled();
+  });
+
+  it("refuses a code that isn't a language, and leaves the cookie alone", async () => {
+    session.setLocale.mockResolvedValueOnce({ ok: false, error: "invalid_locale" });
+    expect(await setLanguageFromForm({}, choose("es"))).toEqual({ error: "invalid" });
+    expect(jar.set).not.toHaveBeenCalled();
+    expect(jar.delete).not.toHaveBeenCalled();
+    expect(cache.revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("sends someone whose session ended to sign-in", async () => {
+    session.setLocale.mockResolvedValueOnce({ ok: false, error: "not_signed_in" });
+    await expect(setLanguageFromForm({}, choose("fr"))).rejects.toThrow("redirect:/sign-in");
+    expect(jar.set).not.toHaveBeenCalled();
   });
 });

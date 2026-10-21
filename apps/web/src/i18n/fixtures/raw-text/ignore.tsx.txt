@@ -1,0 +1,12 @@
+export const Ignore = () => (
+  <div>
+    <b>Not ignored</b>
+    {/* biome-ignore lint/plugin: brand name */}
+    <b>Ronne</b>
+    <input
+      // biome-ignore lint/plugin: protocol name
+      placeholder="https://"
+      title="Not ignored either"
+    />
+  </div>
+);

@@ -1,0 +1,15 @@
+language js
+
+// Feature 129, see i18n-raw-jsx-text.grit.
+// A string with words written where the screen reads it: as a child ({"text"}, {c ? "a" : "b"},
+// {c && "text"}) or as a visible-text attribute (title={"text"}, label={c ? "a" : "b"}).
+JsStringLiteralExpression() as $s where {
+  $s <: r"(?s).*\p{L}.*",
+  or {
+    $s <: within JsxExpressionChild(expression=$s),
+    $s <: within JsxExpressionChild(expression=JsConditionalExpression(consequent=$s)),
+    $s <: within JsxExpressionChild(expression=JsConditionalExpression(alternate=$s)),
+    $s <: within JsxExpressionChild(expression=JsLogicalExpression(right=$s))
+  },
+  register_diagnostic(span=$s, message="Text on the screen comes from the message files (feature 129): use `t(...)`, not a string written here.", severity="error")
+}

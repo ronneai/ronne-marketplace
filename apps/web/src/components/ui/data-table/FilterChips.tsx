@@ -1,5 +1,6 @@
 import { X } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { type ListDefinition, type ListState, listUrl } from "./list-query";
 
 /**
@@ -21,12 +22,13 @@ export const FilterChips = <S extends string, F extends string>({
   hidden?: readonly NoInfer<F>[];
   display?: Partial<Record<F, (value: string) => string>>;
 }) => {
+  const t = useTranslations("common.table");
   const keys = (Object.keys(state.filters) as F[]).filter((key) => !hidden.includes(key));
   const active = keys.filter((key) => state.filters[key]);
   if (active.length === 0) return null;
   const cleared = Object.fromEntries(keys.map((key) => [key, ""])) as Partial<Record<F, string>>;
   return (
-    <ul aria-label="Active filters" className="flex flex-wrap items-center gap-2 text-xs">
+    <ul aria-label={t("activeFilters")} className="flex flex-wrap items-center gap-2 text-xs">
       {active.map((key) => (
         <li key={key} className="min-w-0 max-w-full">
           <Link
@@ -34,10 +36,10 @@ export const FilterChips = <S extends string, F extends string>({
               filters: { [key]: "" } as unknown as Partial<Record<F, string>>,
             })}
             scroll={false}
-            aria-label={`Remove the ${labels[key].toLowerCase()} filter`}
+            aria-label={t("removeFilter", { filter: labels[key].toLowerCase() })}
             className="inline-flex max-w-full items-center gap-1 rounded-control border border-hairline bg-surface px-2 py-1 pointer-coarse:min-h-11 pointer-coarse:px-3 text-fg hover:border-strong"
           >
-            <span className="text-muted">{labels[key]}:</span>
+            <span className="text-muted">{t("filterLabel", { label: labels[key] })}</span>
             {/* A long value, such as a 64-character name, breaks rather than widen the page (115). */}
             <span className="min-w-0 font-mono [overflow-wrap:anywhere]">
               {display[key]?.(state.filters[key]) ?? state.filters[key]}
@@ -52,7 +54,7 @@ export const FilterChips = <S extends string, F extends string>({
           scroll={false}
           className="text-link underline-offset-2 hover:underline"
         >
-          Clear
+          {t("clear")}
         </Link>
       </li>
     </ul>

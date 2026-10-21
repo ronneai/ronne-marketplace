@@ -1,10 +1,12 @@
+import { useTranslations } from "next-intl";
 import { CliAuthPanel } from "@/components/cli-auth/CliAuthPanel";
 import { BrandLogo } from "@/components/ui/BrandLogo";
 import { Notice } from "@/components/ui/Notice";
 import { Panel } from "@/components/ui/Panel";
+import { LanguageSwitch } from "@/i18n/LanguageSwitch";
 import { ProviderButtons } from "./ProviderButtons";
 import { SignInForm } from "./SignInForm";
-import { SIGN_IN_AGAIN, type SignInAgain, SSO_ERRORS } from "./types";
+import { SIGN_IN_AGAIN, SSO_ERROR_CODES } from "./types";
 
 /**
  * The sign-in screen (spec 006, from the mock): the card, with the terminal guide beside it on
@@ -20,6 +22,7 @@ export const SignInPage = ({
   providers = [],
   rootOnly = false,
   ssoError,
+  here,
 }: {
   next: string;
   /** reset-root-password as typed for this install (`hostCommand`, #147). */
@@ -37,12 +40,12 @@ export const SignInPage = ({
   rootOnly?: boolean;
   /** Back from a provider (106): `?error=`, said above the form. */
   ssoError?: string;
+  /** This page's path and query, for the language switch to come back to (129). */
+  here?: string;
 }) => {
-  const againText = again && again in SIGN_IN_AGAIN ? SIGN_IN_AGAIN[again as SignInAgain] : null;
-  const ssoText =
-    ssoError && Object.hasOwn(SSO_ERRORS, ssoError)
-      ? SSO_ERRORS[ssoError as keyof typeof SSO_ERRORS]
-      : null;
+  const t = useTranslations("auth.signIn");
+  const againCode = SIGN_IN_AGAIN.find((code) => code === again);
+  const ssoCode = SSO_ERROR_CODES.find((code) => code === ssoError);
   // Root only applies while a provider is on; with none, the password form is for everyone.
   const passwordBehindLink = rootOnly && providers.length > 0;
   const form = (
@@ -50,36 +53,39 @@ export const SignInPage = ({
   );
   return (
     <main className="mx-auto grid min-h-dvh w-full max-w-5xl content-center gap-6 px-4 py-12 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:items-start">
+      <div className="lg:col-span-2">
+        <LanguageSwitch here={here} />
+      </div>
       <Panel padding="lg" className="grid gap-6">
         <div className="grid gap-3">
           <BrandLogo height={40} className="text-fg" />
           <div className="grid gap-1">
             <h1 className="text-[22px] leading-7 font-semibold tracking-[-0.015em] text-fg">
-              Sign in to Ronne AI Marketplace
+              {t("title")}
             </h1>
             <p className="text-sm text-muted">
               {passwordBehindLink
-                ? "Use your company's sign-in"
+                ? t("subtitleRootOnly")
                 : providers.length > 0
-                  ? "Use your company's sign-in, or your email and password"
-                  : "Use your email and password"}
+                  ? t("subtitleBoth")
+                  : t("subtitlePassword")}
             </p>
           </div>
         </div>
         {setupDone ? (
-          <Notice kind="info" title="Ronne AI Marketplace is set up">
-            Sign in with the root account you just created.
+          <Notice kind="info" title={t("setupDoneTitle")}>
+            {t("setupDone")}
           </Notice>
         ) : null}
-        {againText ? <Notice kind="warn" title={againText} /> : null}
-        {ssoText ? <Notice kind="error" title={ssoText} /> : null}
+        {againCode ? <Notice kind="warn" title={t(`again.${againCode}`)} /> : null}
+        {ssoCode ? <Notice kind="error" title={t(`sso.${ssoCode}`)} /> : null}
         {passwordBehindLink ? (
           <>
             <ProviderButtons providers={providers} next={next} />
             {/* A disclosure, so it opens without JavaScript too. */}
             <details className="grid gap-4">
               <summary className="cursor-pointer text-sm text-link hover:underline">
-                Use your password (root)
+                {t("usePassword")}
               </summary>
               <div className="mt-4">{form}</div>
             </details>
@@ -89,7 +95,7 @@ export const SignInPage = ({
             {form}
             {providers.length > 0 ? (
               <>
-                <p className="text-center text-xs text-muted">or</p>
+                <p className="text-center text-xs text-muted">{t("or")}</p>
                 <ProviderButtons providers={providers} next={next} />
               </>
             ) : null}

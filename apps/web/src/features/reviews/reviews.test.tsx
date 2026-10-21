@@ -400,7 +400,7 @@ describe("the nav count", () => {
     const items = [
       {
         href: "/reviews",
-        label: "Reviews",
+        key: "reviews" as const,
         group: "governance" as const,
         icon: "reviews" as const,
       },

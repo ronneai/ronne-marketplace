@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogActions } from "@/components/ui/Dialog";
@@ -9,6 +10,7 @@ import { CreatedTokenPanel } from "./CreatedTokenPanel";
 import type { TokenActionState } from "./types";
 
 const CreateTokenForm = ({ onDone }: { onDone: () => void }) => {
+  const t = useTranslations("account.tokens.create");
   const [state, action, pending] = useActionState<TokenActionState, FormData>(
     createTokenFromForm,
     {},
@@ -19,7 +21,7 @@ const CreateTokenForm = ({ onDone }: { onDone: () => void }) => {
       <div className="grid gap-4">
         <CreatedTokenPanel value={state.created} />
         <div>
-          <Button onClick={onDone}>Done</Button>
+          <Button onClick={onDone}>{t("done")}</Button>
         </div>
       </div>
     );
@@ -28,13 +30,13 @@ const CreateTokenForm = ({ onDone }: { onDone: () => void }) => {
       <TextField
         id="token-name"
         name="name"
-        label="Name"
-        hint="Where you'll use it, for example the machine or the CI job."
+        label={t("name")}
+        hint={t("nameHint")}
         required
         maxLength={100}
       />
       <div className="grid gap-1.5">
-        <Label htmlFor="token-lifetime">Expires after</Label>
+        <Label htmlFor="token-lifetime">{t("expiresAfter")}</Label>
         <select
           id="token-lifetime"
           name="lifetime"
@@ -42,26 +44,22 @@ const CreateTokenForm = ({ onDone }: { onDone: () => void }) => {
           onChange={(event) => setLifetime(event.target.value)}
           className={selectClasses}
         >
-          <option value="30">30 days</option>
-          <option value="90">90 days</option>
-          <option value="365">365 days</option>
-          <option value="none">No expiry</option>
+          <option value="30">{t("days30")}</option>
+          <option value="90">{t("days90")}</option>
+          <option value="365">{t("days365")}</option>
+          <option value="none">{t("none")}</option>
         </select>
       </div>
       {lifetime === "none" ? (
-        <Checkbox
-          id="token-no-expiry"
-          name="confirmNoExpiry"
-          label="I understand this token works until I revoke it."
-        />
+        <Checkbox id="token-no-expiry" name="confirmNoExpiry" label={t("confirm")} />
       ) : null}
       <FieldError id="token-error">{state.error}</FieldError>
       <DialogActions>
         <Button variant="ghost" onClick={onDone}>
-          Cancel
+          {t("cancel")}
         </Button>
         <Button type="submit" loading={pending}>
-          Create token
+          {t("submit")}
         </Button>
       </DialogActions>
     </form>
@@ -70,6 +68,7 @@ const CreateTokenForm = ({ onDone }: { onDone: () => void }) => {
 
 /** "Create token" and its dialog. Each opening starts a fresh form, so a shown token never lingers. */
 export const CreateTokenDialog = () => {
+  const t = useTranslations("account.tokens.create");
   const [open, setOpen] = useState(false);
   const [round, setRound] = useState(0);
   const close = () => {
@@ -78,8 +77,8 @@ export const CreateTokenDialog = () => {
   };
   return (
     <>
-      <Button onClick={() => setOpen(true)}>Create token</Button>
-      <Dialog open={open} onClose={close} title="Create access token">
+      <Button onClick={() => setOpen(true)}>{t("button")}</Button>
+      <Dialog open={open} onClose={close} title={t("title")}>
         <CreateTokenForm key={round} onDone={close} />
       </Dialog>
     </>

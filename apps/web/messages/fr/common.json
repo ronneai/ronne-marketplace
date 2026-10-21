@@ -1,0 +1,83 @@
+{
+  "language": {
+    "label": "Langue",
+    "automatic": "Automatique"
+  },
+  "close": "Fermer",
+  "copy": {
+    "label": "copier",
+    "done": "copié",
+    "manual": "sélectionné : copiez-le vous-même"
+  },
+  "password": {
+    "show": "Afficher le mot de passe",
+    "hide": "Masquer le mot de passe"
+  },
+  "field": {
+    "error": "ERREUR :",
+    "warning": "ATTENTION :"
+  },
+  "newTab": "(s’ouvre dans un nouvel onglet)",
+  "help": {
+    "learnMore": "En savoir plus"
+  },
+  "unsaved": {
+    "title": "Quitter sans enregistrer?",
+    "message": "Vos modifications ne sont pas enregistrées. Si vous quittez maintenant, elles seront perdues.",
+    "stay": "Rester sur cette page",
+    "leave": "Quitter sans enregistrer",
+    "mark": "Modifications non enregistrées",
+    "hint": "Enregistrez avec Ctrl+S ou ⌘S."
+  },
+  "table": {
+    "pages": "Pages",
+    "firstPage": "Première page",
+    "previousPage": "Page précédente",
+    "nextPage": "Page suivante",
+    "previous": "Précédent",
+    "next": "Suivant",
+    "show": "Afficher",
+    "count": "{count, number}{capped, select, true {+} other {}} {noun}",
+    "nothingLeft": "Il ne reste rien sur cette page.",
+    "clearFilters": "Effacer les filtres",
+    "actions": "Actions",
+    "activeFilters": "Filtres actifs",
+    "clear": "Effacer",
+    "removeFilter": "Retirer le filtre {filter}",
+    "filterLabel": "{label} :"
+  },
+  "notFound": {
+    "title": "Page introuvable",
+    "message": "Il n’y a rien à cette adresse. Elle a peut-être changé, ou vous n’y avez peut-être pas accès.",
+    "home": "Aller à l’accueil"
+  },
+  "error": {
+    "title": "Une erreur s’est produite",
+    "message": "La page n’a pas pu être affichée. Réessayez; si le problème persiste, prévenez les personnes qui gèrent cette instance.",
+    "retry": "Réessayer",
+    "home": "Aller à l’accueil",
+    "reference": "Référence : {digest}"
+  },
+  "roles": {
+    "root": "root",
+    "admin": "admin",
+    "moderator": "modérateur",
+    "user": "utilisateur"
+  },
+  "cliAuth": {
+    "title": "Utilisez rmk dans le terminal",
+    "intro": "<mono>rmk</mono> installe des éléments de ce registre dans vos outils de programmation avec IA et les garde à jour.",
+    "step1": "Obtenez rmk",
+    "step1Hint": "Depuis npm, avec Node.js 22.12 ou plus récent (<readme>le README</readme> en dit plus) :",
+    "step2": "Connectez-vous",
+    "step2Tokens": "Avec votre courriel et votre mot de passe, ou avec un jeton personnel de <tokens>Jetons d’accès</tokens>.",
+    "step2Here": "Avec votre courriel et votre mot de passe, ou avec un jeton personnel de cette page.",
+    "webHint": "Inscrit par votre entreprise, ou vous utilisez la connexion à deux facteurs? Approuvez plutôt dans le navigateur :",
+    "step3": "Vérifiez, puis installez",
+    "step3Hint": "<mono>rmk whoami</mono> indique qui vous êtes. Chaque page d’élément affiche sa commande d’installation; la Documentation explique le reste une fois connecté.",
+    "globalHint": "En dehors de <mono>global</mono>, le nom d’un élément commence par son espace de travail : <mono>rmk install @workspace/scope/name</mono>."
+  },
+  "languageSwitch": {
+    "label": "Langue"
+  }
+}

@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import type {
   InputHTMLAttributes,
   LabelHTMLAttributes,
@@ -32,10 +33,11 @@ export const Label = ({ className, ...props }: LabelHTMLAttributes<HTMLLabelElem
  * gets `aria-invalid`, which gives it a red border.
  */
 export const FieldError = ({ id, children }: { id: string; children?: ReactNode }) => {
+  const t = useTranslations("common.field");
   if (!children) return null;
   return (
     <p id={id} role="alert" className="text-sm text-error-text">
-      <span className="font-mono text-xs font-semibold">ERR:</span> {children}
+      <span className="font-mono text-xs font-semibold">{t("error")}</span> {children}
     </p>
   );
 };
@@ -45,10 +47,11 @@ export const FieldError = ({ id, children }: { id: string; children?: ReactNode 
  * `data-warning`, which gives it an amber border.
  */
 export const FieldWarning = ({ id, children }: { id: string; children?: ReactNode }) => {
+  const t = useTranslations("common.field");
   if (!children) return null;
   return (
     <p id={id} className="text-sm text-warning-text">
-      <span className="font-mono text-xs font-semibold">WARN:</span> {children}
+      <span className="font-mono text-xs font-semibold">{t("warning")}</span> {children}
     </p>
   );
 };

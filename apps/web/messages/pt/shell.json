@@ -1,0 +1,60 @@
+{
+  "groups": {
+    "discover": "Descobrir",
+    "governance": "Governança e revisões",
+    "tools": "Ferramentas"
+  },
+  "nav": {
+    "home": "Início",
+    "catalogue": "Catálogo",
+    "workspaces": "Espaços de trabalho",
+    "requests": "Solicitações",
+    "reviews": "Revisões",
+    "submissions": "Submissões",
+    "users": "Usuários",
+    "audit": "Registro de auditoria",
+    "settings": "Configurações",
+    "docs": "Documentação",
+    "tokens": "CLI e tokens",
+    "propose": "Propor item"
+  },
+  "sidebar": {
+    "label": "Barra lateral",
+    "main": "Principal",
+    "home": "Início",
+    "fold": "Recolher a barra lateral",
+    "unfold": "Expandir a barra lateral",
+    "account": "Conta",
+    "accountOf": "{name}, sua conta",
+    "signOut": "Sair",
+    "version": "ronne marketplace v{version}",
+    "itemNewTab": "{label} (abre em uma nova aba)"
+  },
+  "menu": {
+    "title": "Menu",
+    "appearance": "Aparência"
+  },
+  "count": {
+    "waiting": "aguardando",
+    "itemWaiting": "{label} ({count} aguardando)"
+  },
+  "workspace": {
+    "label": "Espaço de trabalho: {title}",
+    "title": "{name}{personal, select, true { (espaço de trabalho pessoal)} other {}}",
+    "all": "Todos os espaços de trabalho",
+    "every": "Todos os espaços",
+    "kind": "Espaço de trabalho",
+    "personalKind": "Espaço de trabalho pessoal",
+    "show": "Mostrar",
+    "personal": "pessoal",
+    "open": "Abrir a página de {name}",
+    "manage": "Gerenciar espaços de trabalho"
+  },
+  "footer": {
+    "openSource": "ronne marketplace · código aberto (MIT)"
+  },
+  "theme": {
+    "toDark": "Mudar para o tema escuro",
+    "toLight": "Mudar para o tema claro"
+  }
+}

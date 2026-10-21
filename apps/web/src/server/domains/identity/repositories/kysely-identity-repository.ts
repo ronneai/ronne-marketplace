@@ -9,6 +9,7 @@ import type { Database } from "../../../db/schema";
 import { containsInsensitive } from "../../../db/search";
 import type { DatabaseDialect } from "../../../db/url";
 import { recordAudit } from "../../audit/actions/audit";
+import { isLocale, type Locale } from "../models/locale";
 import { isRole, isWorkspaceRole, type RootAccount, type UserSummary } from "../models/user";
 import type {
   IdentityRepository,
@@ -30,6 +31,7 @@ type UserRow = {
   disabled_at: Date | string | null;
   erased_at: Date | string | null;
   created_at: Date | string;
+  locale: string | null;
 };
 
 const summary = (row: UserRow): UserSummary => {
@@ -42,6 +44,8 @@ const summary = (row: UserRow): UserSummary => {
     disabledAt: fromDbDate(row.disabled_at),
     erasedAt: fromDbDate(row.erased_at),
     createdAt: fromDbDate(row.created_at),
+    // The language they chose (129); one the app no longer speaks reads as automatic.
+    locale: isLocale(row.locale) ? row.locale : null,
   };
 };
 
@@ -53,6 +57,7 @@ const USER_COLUMNS = [
   "disabled_at",
   "erased_at",
   "created_at",
+  "locale",
 ] as const;
 
 /** Better Auth's provider id for email and password accounts. */
@@ -250,7 +255,7 @@ export const kyselyIdentityRepository = (
     async findActiveUser(userId) {
       const row = await db
         .selectFrom("user")
-        .select(["id", "email", "name", "role"])
+        .select(["id", "email", "name", "role", "locale"])
         .where("id", "=", userId)
         .where("disabled_at", "is", null)
         .where("erased_at", "is", null)
@@ -264,6 +269,8 @@ export const kyselyIdentityRepository = (
         role: row.role,
         workspaces: await loadMemberships(db, row.id),
         personal: await loadPersonal(db, row.id),
+        // A value the app no longer supports counts as automatic.
+        locale: isLocale(row.locale) ? row.locale : null,
       };
     },
 
@@ -407,6 +414,15 @@ export const kyselyIdentityRepository = (
         .where("email", "=", email)
         .executeTakeFirst();
       return Boolean(row);
+    },
+
+    async setLocale(userId, locale: Locale | null, now) {
+      await db
+        .updateTable("user")
+        .set({ locale, updated_at: at(now) })
+        .where("id", "=", userId)
+        .where("erased_at", "is", null)
+        .execute();
     },
 
     async setRole(userId, role, now) {

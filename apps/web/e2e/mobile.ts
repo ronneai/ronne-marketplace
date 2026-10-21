@@ -4,6 +4,7 @@ import { E2E_PASSWORD, E2E_USERS } from "./users";
 /** The phone and tablet projects (feature 065), each with its own users. */
 const PROJECT_USERS = {
   phone: {
+    languages: "phoneLanguages",
     member: "phoneMember",
     moderator: "phoneModerator",
     root: "phoneRoot",
@@ -20,6 +21,7 @@ const PROJECT_USERS = {
     ssoRoot: "phoneSsoRoot",
   },
   "phone-webkit": {
+    languages: "phoneWebkitLanguages",
     member: "phoneWebkitMember",
     moderator: "phoneWebkitModerator",
     root: "phoneWebkitRoot",
@@ -36,6 +38,7 @@ const PROJECT_USERS = {
     ssoRoot: "phoneWebkitSsoRoot",
   },
   tablet: {
+    languages: "tabletLanguages",
     member: "tabletMember",
     moderator: "tabletModerator",
     root: "tabletRoot",

@@ -85,7 +85,7 @@ describe("RiskSummary", () => {
     const html = renderToStaticMarkup(<RiskSummary flags={flags} />);
     // No links into files; only the helper's link to the Documentation (033).
     expect(html.match(/href="[^"]*"/g)).toEqual([
-      'href="https://www.ronne.ai/marketplace/docs/review#reviewing"',
+      'href="https://www.ronne.ai/en/marketplace/docs/review#reviewing"',
     ]);
     expect(html).toContain("ronne.yaml:6");
     expect(html).toContain("Why is it flagged?");

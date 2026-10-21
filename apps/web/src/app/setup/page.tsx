@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { SetupPage } from "@/features/setup/SetupPage";
 import { DEFAULT_VALUES, type SetupPageProps } from "@/features/setup/types";
+import { LanguageSwitch } from "@/i18n/LanguageSwitch";
+import { currentPath } from "@/i18n/server";
 import { loadConfig } from "@/server/config";
 import { redactDatabaseUrl } from "@/server/db/url";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
@@ -38,7 +40,7 @@ const Setup = async () => {
       publicUrl: config.publicUrl ?? defaultPublicUrl(),
     },
   };
-  return <SetupPage page={page} />;
+  return <SetupPage page={page} languageSwitch={<LanguageSwitch here={await currentPath()} />} />;
 };
 
 export default Setup;

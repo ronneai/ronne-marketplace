@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import { cn } from "./cn";
 
 /**
@@ -5,22 +6,25 @@ import { cn } from "./cn";
  * hint on hover and the classes are props, so any editor can show it the same way.
  */
 export const DirtyMark = ({
-  label = "Unsaved changes",
-  hint = "Save with Ctrl+S or ⌘S.",
+  label,
+  hint,
   className,
 }: {
   label?: string;
   hint?: string;
   className?: string;
-}) => (
-  <span
-    title={hint}
-    className={cn(
-      "inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-warning-text",
-      className,
-    )}
-  >
-    <span aria-hidden="true">●</span>
-    <span>{label}</span>
-  </span>
-);
+}) => {
+  const t = useTranslations("common.unsaved");
+  return (
+    <span
+      title={hint ?? t("hint")}
+      className={cn(
+        "inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-warning-text",
+        className,
+      )}
+    >
+      <span aria-hidden="true">●</span>
+      <span>{label ?? t("mark")}</span>
+    </span>
+  );
+};

@@ -26,7 +26,8 @@ const actions = await import("./actions");
 const { SecurityPage } = await import("./SecurityPage");
 const { SetupFlow } = await import("./SetupFlow");
 const { BackupCodes, backupCodesFile } = await import("./BackupCodes");
-const { secretGroups, TWO_FACTOR_ERRORS } = await import("./types");
+const { secretGroups } = await import("./types");
+const en = (await import("../../../messages/en/account.json")).default;
 const { default: AccountSecurityPage } = await import("@/app/(app)/account/security/page");
 const { default: ChangePasswordPage } = await import("@/app/(app)/account/password/page");
 
@@ -221,7 +222,7 @@ describe("the setup", () => {
 
   it("says why a start was refused", () => {
     const html = renderToStaticMarkup(<SetupFlow initial={{ error: "replaced" }} />);
-    expect(html).toContain(TWO_FACTOR_ERRORS.replaced);
+    expect(html).toContain(en.security.errors.replaced);
     expect(html).toContain("Set up two-factor");
   });
 });
@@ -236,7 +237,10 @@ describe("BackupCodes", () => {
   });
 
   it("writes a text file with a line per code", () => {
-    const file = backupCodesFile(CODES);
+    const file = backupCodesFile(CODES, [
+      en.security.backup.fileTitle,
+      en.security.backup.fileAbout,
+    ]);
     expect(file.split("\n").filter((line) => CODES.includes(line))).toEqual(CODES);
     expect(file).toMatch(/^Ronne AI Marketplace: two-factor backup codes/);
   });

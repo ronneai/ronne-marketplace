@@ -380,6 +380,12 @@ export const HELP = {
       "The person's email, name, picture, passwords, sign-in links, two-factor, sessions, tokens, memberships and drafts go, for good. What they did stays under the pseudonym deleted-user-<id>: the items and versions they published, their submitted submissions and review comments, and the audit events, which keep making sense. The old email is free at once. To stop someone without erasing, disable them.",
     href: docsHref("privacy", "erase"),
   },
+  language: {
+    question: "What changes?",
+    answer:
+      "Ronne's own screens: menus, buttons, messages and the Documentation links. Not what people publish: item names, descriptions and files stay as their authors wrote them, and rmk stays in English. Automatic follows your browser's language, and English when it asks for another.",
+    href: docsHref("account", "language"),
+  },
   "your-data": {
     question: "What is in the file?",
     answer:

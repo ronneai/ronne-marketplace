@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "./Button";
 import { Dialog, DialogActions } from "./Dialog";
@@ -41,13 +42,15 @@ export const leavingHref = (
  */
 export const UnsavedChangesGuard = ({
   dirty,
-  title = "Leave without saving?",
-  message = "Your changes aren't saved. If you leave now, they're lost.",
+  title,
+  message,
 }: {
   dirty: boolean;
+  /** A caller's own words; left out, the dialog speaks the person's language. */
   title?: string;
   message?: string;
 }) => {
+  const t = useTranslations("common.unsaved");
   const router = useRouter();
   const [pending, setPending] = useState<string | null>(null);
   const leaving = useRef(false);
@@ -86,15 +89,15 @@ export const UnsavedChangesGuard = ({
   };
 
   return (
-    <Dialog open={pending !== null} onClose={() => setPending(null)} title={title}>
+    <Dialog open={pending !== null} onClose={() => setPending(null)} title={title ?? t("title")}>
       <div className="grid gap-4">
-        <p className="text-sm text-fg">{message}</p>
+        <p className="text-sm text-fg">{message ?? t("message")}</p>
         <DialogActions>
           <Button variant="secondary" onClick={() => setPending(null)}>
-            Stay on this page
+            {t("stay")}
           </Button>
           <Button variant="destructive" onClick={leave}>
-            Leave without saving
+            {t("leave")}
           </Button>
         </DialogActions>
       </div>

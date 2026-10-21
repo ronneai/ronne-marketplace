@@ -11,6 +11,34 @@
   },
   "overrides": [
     {
+      "includes": [
+        "apps/web/src/i18n/**",
+        "apps/web/src/components/ui/**",
+        "apps/web/src/components/app-shell/**",
+        "apps/web/src/features/account/**",
+        "apps/web/src/features/account-security/**",
+        "apps/web/src/features/account-tokens/**",
+        "apps/web/src/features/theme/**",
+        "apps/web/src/features/sign-in/**",
+        "apps/web/src/features/device/**",
+        "apps/web/src/app/sign-in/**",
+        "apps/web/src/app/(app)/device/**",
+        "apps/web/src/app/(app)/account/**",
+        "apps/web/src/app/(app)/layout.tsx",
+        "apps/web/src/app/(app)/menu/**",
+        "apps/web/src/app/not-found.tsx",
+        "apps/web/src/app/error.tsx",
+        "!**/*.test.tsx"
+      ],
+      "plugins": [
+        "./packages/config/biome-plugins/i18n-raw-jsx-text.grit",
+        "./packages/config/biome-plugins/i18n-raw-jsx-string.grit",
+        "./packages/config/biome-plugins/i18n-raw-jsx-template.grit",
+        "./packages/config/biome-plugins/i18n-raw-jsx-attribute.grit",
+        "./packages/config/biome-plugins/i18n-raw-jsx-attribute-expression.grit"
+      ]
+    },
+    {
       "includes": ["packages/core/**"],
       "linter": {
         "rules": {

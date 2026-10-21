@@ -1,0 +1,8 @@
+{
+  "ForbiddenError": "You don't have permission to do this ({permission}).",
+  "InvalidTokenNameError": "A token name needs 1 to 100 characters.",
+  "InvalidTokenLifetimeError": "\"{value}\" isn't a token lifetime. Use 30, 90 or 365 days, or no expiry.",
+  "TokenLimitError": "You have {limit} active tokens, the most allowed. Revoke an old token first.",
+  "TokenNameTakenError": "You already have an active token named \"{tokenName}\".",
+  "TokenNotFoundError": "That token doesn't exist, or isn't yours."
+}

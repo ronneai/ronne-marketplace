@@ -50,6 +50,8 @@ describe("getCurrentUser", () => {
       workspaces: { [GLOBAL_WORKSPACE_ID]: "moderator" },
       // Made by the test helper, not Create user: no personal workspace (114).
       personal: null,
+      // No language chosen (129): automatic.
+      locale: null,
     });
     expect(await getCurrentUser(new Headers(), app)).toBeNull();
     expect(

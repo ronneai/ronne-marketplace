@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { toDbDate } from "../../../db/dates";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
 import type { AuditAction } from "../../audit/models/audit-event";
 import type { IdentityRepository } from "./identity-repository";
@@ -126,5 +127,40 @@ describe("findUserDetail (123)", () => {
       workspaces: [{ name: "global", role: "moderator" }],
     });
     expect(await repo.findUserDetail("nobody")).toBeNull();
+  });
+});
+
+describe("setLocale (129)", () => {
+  const stored = async (id: string) =>
+    (await t.db.selectFrom("user").select("locale").where("id", "=", id).executeTakeFirstOrThrow())
+      .locale;
+
+  it("saves a language and clears it with null", async () => {
+    const id = await add("l@example.com", "user", "2026-10-01T10:00:00Z");
+    expect(await stored(id)).toBeNull();
+    await repo.setLocale(id, "pt", new Date("2026-10-02T10:00:00Z"));
+    expect(await stored(id)).toBe("pt");
+    expect((await repo.findActiveUser(id))?.locale).toBe("pt");
+    await repo.setLocale(id, null, new Date("2026-10-03T10:00:00Z"));
+    expect(await stored(id)).toBeNull();
+  });
+
+  it("changes only that user's row", async () => {
+    const a = await add("a@example.com", "user", "2026-10-01T10:00:00Z");
+    const b = await add("b@example.com", "user", "2026-10-01T11:00:00Z");
+    await repo.setLocale(a, "fr", new Date("2026-10-02T10:00:00Z"));
+    expect(await stored(a)).toBe("fr");
+    expect(await stored(b)).toBeNull();
+  });
+
+  it("leaves an erased account alone (103)", async () => {
+    const id = await add("e@example.com", "user", "2026-10-01T10:00:00Z");
+    await t.db
+      .updateTable("user")
+      .set({ erased_at: toDbDate(new Date("2026-10-02T10:00:00Z"), t.dialect) })
+      .where("id", "=", id)
+      .execute();
+    await repo.setLocale(id, "fr", new Date("2026-10-03T10:00:00Z"));
+    expect(await stored(id)).toBeNull();
   });
 });

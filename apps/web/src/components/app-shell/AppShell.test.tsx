@@ -10,10 +10,13 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/features/theme/actions", () => ({ setThemeFromForm: vi.fn() }));
 
 const { AppShell } = await import("./AppShell");
+const { inLocale } = await import("@/test/intl");
 const { Sidebar } = await import("./Sidebar");
 const { WorkspaceSwitcher } = await import("./WorkspaceSwitcher");
+const { MobileMenu } = await import("./MobileMenu");
 
-import { canPropose, groupNav, isCurrent, NAV, navFor, type ShellUser } from "./nav";
+import en from "../../../messages/en/shell.json";
+import { canPropose, groupNav, isCurrent, NAV, type NavItem, navFor, type ShellUser } from "./nav";
 import { parseFolded, sidebarCookie } from "./sidebar-cookie";
 
 const GLOBAL = "00000000000000000000000000";
@@ -25,8 +28,10 @@ const member = (workspaces: Record<string, "admin" | "moderator" | "user">): She
   role: "user",
   workspaces,
 });
+/** What the sidebar says for an item in English, from the message files (129). */
+const nameOf = (item: NavItem) => en.nav[item.key];
 const labels = (user: ShellUser | null, counts?: Record<string, number>) =>
-  navFor(user, counts).map((item) => item.label);
+  navFor(user, counts).map(nameOf);
 
 describe("navFor", () => {
   it("gives a member Discover's links, Submissions and the Tools; nothing signed out", () => {
@@ -93,7 +98,7 @@ describe("navFor", () => {
   });
 
   it("opens Documentation, the website (088), in a new tab", () => {
-    const docs = NAV.find((item) => item.label === "Documentation");
+    const docs = NAV.find((item) => nameOf(item) === "Documentation");
     expect(docs?.href).toBe("https://www.ronne.ai/marketplace/docs");
     expect(docs?.external).toBe(true);
   });
@@ -124,7 +129,7 @@ describe("Requests in the nav (094)", () => {
 describe("groupNav", () => {
   it("keeps the groups in order and leaves out an empty one", () => {
     const grouped = (user: ShellUser) =>
-      groupNav(navFor(user)).map((group) => [group.label, group.items.map((item) => item.label)]);
+      groupNav(navFor(user)).map((group) => [en.groups[group.id], group.items.map(nameOf)]);
     expect(grouped(ROOT)).toEqual([
       ["Discover", ["Home", "Catalogue", "Workspaces"]],
       ["Governance & reviews", ["Reviews", "Submissions", "Users", "Audit log", "Settings"]],
@@ -158,9 +163,9 @@ describe("the fold cookie", () => {
 });
 
 describe("isCurrent", () => {
-  const find = (label: string) => {
-    const item = navFor(ROOT).find((i) => i.label === label);
-    if (!item) throw new Error(label);
+  const find = (name: string) => {
+    const item = navFor(ROOT).find((i) => nameOf(i) === name);
+    if (!item) throw new Error(name);
     return item;
   };
 
@@ -202,9 +207,9 @@ describe("isCurrent", () => {
 
   it("marks Requests on its page, and nothing else there", () => {
     const items = navFor(ROOT, { "/workspaces/requests": 1 });
-    expect(
-      items.filter((item) => isCurrent(item, "/workspaces/requests")).map((i) => i.label),
-    ).toEqual(["Requests"]);
+    expect(items.filter((item) => isCurrent(item, "/workspaces/requests")).map(nameOf)).toEqual([
+      "Requests",
+    ]);
   });
 });
 
@@ -585,5 +590,203 @@ describe("AppShell", () => {
     it("shows no count on the Menu button when nothing waits", () => {
       expect(shell("moderator", { "/reviews": 0 })).not.toContain("waiting");
     });
+  });
+});
+
+describe("the shell in three languages (129)", () => {
+  type L = "en" | "pt" | "fr";
+  const view = (locale: L, node: React.ReactElement) =>
+    inLocale(locale, () => renderToStaticMarkup(node));
+  const expectAll = (cases: Record<L, string[]>, render: (locale: L) => string) => {
+    for (const [locale, expected] of Object.entries(cases) as [L, string[]][]) {
+      const html = render(locale);
+      for (const text of expected) expect(html, `${locale}: ${text}`).toContain(text);
+    }
+  };
+  const sidebar = (locale: L, folded = false) =>
+    view(
+      locale,
+      <Sidebar
+        user={ROOT}
+        items={navFor(ROOT, { "/reviews": 3 })}
+        counts={{ "/reviews": 3 }}
+        workspaces={[{ name: "r", role: "admin", personal: true }]}
+        propose
+        appearance={<span>THEME</span>}
+        signOutAction={async () => {}}
+        version="1.2.3"
+        folded={folded}
+      />,
+    );
+
+  it("the desktop sidebar: landmarks, groups, links, account menu and version", () => {
+    expectAll(
+      {
+        en: [
+          "Sidebar",
+          "Discover",
+          "Governance &amp; reviews",
+          "Catalogue",
+          "Propose item",
+          "Sign out",
+        ],
+        pt: [
+          'aria-label="Barra lateral"',
+          'aria-label="Principal"',
+          "Descobrir",
+          "Governança e revisões",
+          "Ferramentas",
+          "Catálogo",
+          "Espaços de trabalho",
+          "Revisões",
+          "Registro de auditoria",
+          "Configurações",
+          "Documentação",
+          "CLI e tokens",
+          "Propor item",
+          "Recolher a barra lateral",
+          "Conta",
+          "Sair",
+          "ronne marketplace v1.2.3",
+        ],
+        fr: [
+          'aria-label="Barre latérale"',
+          'aria-label="Principal"',
+          "Explorer",
+          "Gouvernance et révisions",
+          "Outils",
+          "Catalogue",
+          "Espaces de travail",
+          "Révisions",
+          "Journal d’audit",
+          "Réglages",
+          "CLI et jetons",
+          "Proposer un élément",
+          "Réduire la barre latérale",
+          "Compte",
+          "Se déconnecter",
+        ],
+      },
+      (l) => sidebar(l),
+    );
+  });
+
+  it("the Documentation link opens the website in the language", () => {
+    for (const locale of ["en", "pt", "fr"] as const)
+      expect(sidebar(locale)).toContain(`href="https://www.ronne.ai/${locale}/marketplace/docs"`);
+  });
+
+  it("the folded rail names each link, with how many are waiting", () => {
+    expectAll(
+      {
+        en: ['aria-label="Reviews (3 waiting)"', 'aria-label="Unfold the sidebar"'],
+        pt: ['aria-label="Revisões (3 aguardando)"', 'aria-label="Expandir a barra lateral"'],
+        fr: ['aria-label="Révisions (3 en attente)"', 'aria-label="Agrandir la barre latérale"'],
+      },
+      (l) => sidebar(l, true),
+    );
+    expectAll(
+      {
+        en: ['aria-label="Documentation (opens in a new tab)"'],
+        pt: ['aria-label="Documentação (abre em uma nova aba)"'],
+        fr: ['aria-label="Documentation (s’ouvre dans un nouvel onglet)"'],
+      },
+      (l) => sidebar(l, true),
+    );
+  });
+
+  it("the phone's Menu: the button, and the sheet's account part", () => {
+    const menu = (l: L) =>
+      view(
+        l,
+        <MobileMenu
+          user={ROOT}
+          items={navFor(ROOT, { "/reviews": 3 })}
+          counts={{ "/reviews": 3 }}
+          propose
+          appearance={<span>THEME</span>}
+          signOutAction={async () => {}}
+        />,
+      );
+    expectAll(
+      {
+        en: ["Menu", "Appearance", "Sign out", "Propose item", "waiting"],
+        pt: ["Menu", "Aparência", "Sair", "Propor item", "aguardando", "Revisões"],
+        fr: [
+          "Menu",
+          "Apparence",
+          "Se déconnecter",
+          "Proposer un élément",
+          "en attente",
+          "Révisions",
+        ],
+      },
+      menu,
+    );
+  });
+
+  it("the role badge and the workspace switcher", () => {
+    expect(sidebar("pt")).toContain(">root<");
+    const switcher = (l: L, current: string | null, folded = false) =>
+      view(
+        l,
+        <WorkspaceSwitcher
+          workspaces={[
+            { name: "ana", role: "admin", personal: true },
+            { name: "acme", role: "moderator", personal: false },
+          ]}
+          current={current}
+          folded={folded}
+        />,
+      );
+    expectAll(
+      {
+        en: [
+          "All workspaces",
+          ">Show<",
+          "Open acme&#x27;s page",
+          "Manage workspaces",
+          ">moderator<",
+        ],
+        pt: [
+          "Todos os espaços de trabalho",
+          ">Mostrar<",
+          "Abrir a página de acme",
+          "Gerenciar espaços de trabalho",
+          ">moderador<",
+          ">pessoal<",
+          "Todos os espaços",
+        ],
+        fr: [
+          "Tous les espaces de travail",
+          ">Afficher<",
+          "Ouvrir la page de acme",
+          "Gérer les espaces de travail",
+          ">modérateur<",
+          ">personnel<",
+        ],
+      },
+      (l) => switcher(l, null),
+    );
+    expectAll(
+      {
+        en: ['aria-label="Workspace: ana (personal workspace)"'],
+        pt: ['aria-label="Espaço de trabalho: ana (espaço de trabalho pessoal)"'],
+        fr: ['aria-label="Espace de travail : ana (espace de travail personnel)"'],
+      },
+      (l) => switcher(l, "ana", true),
+    );
+  });
+
+  it("the footer", () => {
+    const shell = (l: L) => view(l, <AppShell user={null}>x</AppShell>);
+    expectAll(
+      {
+        en: ["open source (MIT)"],
+        pt: ["código aberto (MIT)"],
+        fr: ["source ouverte (MIT)"],
+      },
+      shell,
+    );
   });
 });

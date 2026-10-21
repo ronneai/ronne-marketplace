@@ -1,0 +1,8 @@
+language js
+
+// Feature 129, see i18n-raw-jsx-text.grit.
+// Attributes people read (title, label, placeholder…) written as a string.
+JsxAttribute() as $s where {
+  $s <: r"^(?:title|label|placeholder|aria-label|alt|description|summary|heading|tooltip)=[\x22][^\x22]*\p{L}[^\x22]*[\x22]$",
+  register_diagnostic(span=$s, message="Text on the screen comes from the message files (feature 129): use `t(...)`, not a string written here.", severity="error")
+}

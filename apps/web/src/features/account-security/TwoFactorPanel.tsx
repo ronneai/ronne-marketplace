@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { buttonClasses } from "@/components/ui/Button";
@@ -18,11 +19,8 @@ export type SecurityStatus = { enabled: boolean; backupCodesLeft: number; hasPas
  * code (or the "it's off" notice) stay until the person moves on, and only then does the page
  * follow the server's status.
  */
-/** Who root's requirement covers, as the held person's notice says it. */
-const REQUIRED_FOR = {
-  reviewers: "root and the moderators and admins of shared workspaces",
-  everyone: "everyone",
-} as const;
+/** Who root's requirement covers (the notice names them: `account.security.required`). */
+type RequiredFor = "reviewers" | "everyone";
 
 export const TwoFactorPanel = ({
   status,
@@ -30,10 +28,11 @@ export const TwoFactorPanel = ({
   continueTo = null,
 }: {
   status: SecurityStatus;
-  required?: keyof typeof REQUIRED_FOR | null;
+  required?: RequiredFor | null;
   /** Where a held person was going (107's `/device`), offered once it's on. */
   continueTo?: string | null;
 }) => {
+  const t = useTranslations("account.security");
   const router = useRouter();
   const [phase, setPhase] = useState<"off" | "on">(status.enabled ? "on" : "off");
   // A fresh form after each finished step: the last one's state (codes shown) doesn't come back.
@@ -49,17 +48,16 @@ export const TwoFactorPanel = ({
   return (
     <div className="grid gap-4">
       {required && phase === "off" ? (
-        <Notice kind="warn" title="Set up two-factor sign-in to continue">
-          Your administrator requires it for {REQUIRED_FOR[required]}. The rest of Ronne opens once
-          it&apos;s on.
+        <Notice kind="warn" title={t("required.title")}>
+          {t("required.body", { who: required })}
         </Notice>
       ) : null}
       {continueTo && phase === "on" && enabled ? (
-        <Notice kind="info" title="Two-factor sign-in is on">
-          <p>You can go back to what you were doing.</p>
+        <Notice kind="info" title={t("continue.title")}>
+          <p>{t("continue.body")}</p>
           {/* A full page load: the app frame was holding this person here until now. */}
           <a href={continueTo} className={`${buttonClasses("primary")} mt-3`}>
-            Continue
+            {t("continue.button")}
           </a>
         </Notice>
       ) : null}
@@ -67,33 +65,26 @@ export const TwoFactorPanel = ({
         <section aria-labelledby="two-factor-title" className="grid gap-4">
           <div className="flex flex-wrap items-center gap-2">
             <h2 id="two-factor-title" className="text-base font-semibold text-fg">
-              Two-factor sign-in
+              {t("panel.title")}
             </h2>
-            <Badge tone={enabled ? "accent" : "muted"}>{enabled ? "On" : "Off"}</Badge>
+            <Badge tone={enabled ? "accent" : "muted"}>
+              {enabled ? t("panel.on") : t("panel.off")}
+            </Badge>
           </div>
           {!status.hasPassword ? (
-            <Notice kind="info" title="Your company's sign-in protects your account">
-              You sign in through your company&apos;s identity provider, which asks for its own
-              second step. There&apos;s nothing to set up here.
+            <Notice kind="info" title={t("panel.companyTitle")}>
+              {t("panel.company")}
             </Notice>
           ) : phase === "off" ? (
             <>
-              {enabled ? null : (
-                <p className="text-sm text-muted">
-                  Signing in will also ask for a 6-digit code from an app on your phone, so a stolen
-                  password isn&apos;t enough.
-                </p>
-              )}
+              {enabled ? null : <p className="text-sm text-muted">{t("panel.offIntro")}</p>}
               <SetupFlow key={round} onDone={() => next("on")} />
             </>
           ) : enabled ? (
             <p className="text-sm text-muted">
-              Signing in with your password also asks for a code from your authenticator app, or one
-              of your backup codes.{" "}
+              {t("panel.onIntro")}{" "}
               <span className="text-fg">
-                {status.backupCodesLeft === 1
-                  ? "1 backup code left."
-                  : `${status.backupCodesLeft} backup codes left.`}
+                {t("panel.codesLeft", { count: status.backupCodesLeft })}
               </span>
             </p>
           ) : null}
@@ -103,7 +94,7 @@ export const TwoFactorPanel = ({
         <Panel padding="lg">
           <section aria-labelledby="backup-title" className="grid gap-3">
             <h2 id="backup-title" className="text-base font-semibold text-fg">
-              Backup codes
+              {t("panel.backupTitle")}
             </h2>
             <RegenerateBackupCodes key={round} onDone={() => next("on")} />
           </section>
@@ -113,7 +104,7 @@ export const TwoFactorPanel = ({
         <Panel padding="lg">
           <section aria-labelledby="turn-off-title" className="grid gap-3">
             <h2 id="turn-off-title" className="text-base font-semibold text-fg">
-              Turn off two-factor sign-in
+              {t("panel.turnOffTitle")}
             </h2>
             <TurnOffTwoFactor key={round} onDone={() => next("off")} />
           </section>

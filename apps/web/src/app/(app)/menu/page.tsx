@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { MenuList } from "@/components/app-shell/MenuList";
 import { canPropose, navFor } from "@/components/app-shell/nav";
 import { PageHeader, Panel } from "@/components/ui/Panel";
@@ -6,7 +7,7 @@ import { ThemeToggle } from "@/features/theme/ThemeToggle";
 import { holdPage } from "../hold";
 import { loadShell } from "../shell";
 
-export const metadata = { title: "Menu · Ronne AI Marketplace" };
+export { generateMetadata } from "./metadata";
 
 /**
  * The Menu as a page (066): where the header's Menu button goes without JavaScript, so every link
@@ -15,9 +16,10 @@ export const metadata = { title: "Menu · Ronne AI Marketplace" };
 const MenuPage = async () => {
   await holdPage();
   const { user, theme, navCounts, workspaces, current } = await loadShell();
+  const t = await getTranslations("shell.menu");
   return (
     <>
-      <PageHeader title="Menu" />
+      <PageHeader title={t("title")} />
       <Panel padding="sm">
         <MenuList
           user={user}

@@ -36,7 +36,7 @@ vi.mock("next/navigation", () => ({
 const actions = await import("./actions");
 const { IdentityProvidersPanel } = await import("./IdentityProvidersPanel");
 const { ProviderForm, ProviderFormMessages, presetGuide } = await import("./ProviderForm");
-const { DOCS_URL, topicOf } = await import("@/components/help/topics");
+const { DOCS_URL, localizedDocsHref, topicOf } = await import("@/components/help/topics");
 const { ProviderControls, ConnectionResult, TestResult, DeleteConfirm } = await import(
   "./ProviderControls"
 );
@@ -225,7 +225,9 @@ describe("Edit provider", () => {
 
   it("has the helpers: the preset's guide, the redirect URI, and how groups apply", () => {
     expect(html()).toContain("Where do I find these values?");
-    expect(html()).toContain(`href="${DOCS_URL}/authentication#okta"`);
+    expect(html()).toContain(
+      `href="${localizedDocsHref(`${DOCS_URL}/authentication#okta`, "en")}"`,
+    );
     expect(html()).toContain("Why this address?");
     expect(html()).toContain("How are groups applied?");
   });

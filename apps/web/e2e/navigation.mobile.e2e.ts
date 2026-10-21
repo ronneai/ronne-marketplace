@@ -133,7 +133,7 @@ test.describe("without JavaScript", () => {
     await expect(main.getByRole("link", { name: /^Reviews/ })).toBeVisible();
     // Documentation opens the website in a new tab (088).
     const docs = main.getByRole("link", { name: /^Documentation/ });
-    await expect(docs).toHaveAttribute("href", "https://www.ronne.ai/marketplace/docs");
+    await expect(docs).toHaveAttribute("href", "https://www.ronne.ai/en/marketplace/docs");
     await expect(docs).toHaveAttribute("target", "_blank");
     // The sidebar's switcher and Propose item work without JavaScript too (119).
     await expect(main.getByRole("link", { name: "Propose item" })).toHaveAttribute(

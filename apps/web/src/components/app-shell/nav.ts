@@ -25,11 +25,7 @@ export type ShellWorkspace = {
 };
 
 /** The sidebar's groups (119), in order. */
-export const NAV_GROUPS = [
-  { id: "discover", label: "Discover" },
-  { id: "governance", label: "Governance & reviews" },
-  { id: "tools", label: "Tools" },
-] as const;
+export const NAV_GROUPS = [{ id: "discover" }, { id: "governance" }, { id: "tools" }] as const;
 
 export type NavGroup = (typeof NAV_GROUPS)[number]["id"];
 
@@ -51,7 +47,8 @@ export type NavIcon =
 /** An item shows when it needs no permission, or the user holds it (the one permission map, 008). */
 export type NavItem = {
   href: string;
-  label: string;
+  /** Its words, `shell.nav.<key>` in the message files (feature 129); also the icon's name. */
+  key: NavIcon;
   /** The sidebar's group it's under (119). */
   group: NavGroup;
   /** Its icon, the only thing shown when the sidebar is folded (119). */
@@ -79,10 +76,10 @@ export type NavItem = {
  * website in a new tab (088). Access tokens are under Tools, as CLI & tokens.
  */
 export const NAV: NavItem[] = [
-  { href: "/", label: "Home", group: "discover", icon: "home" },
+  { href: "/", key: "home", group: "discover", icon: "home" },
   {
     href: "/catalogue",
-    label: "Catalogue",
+    key: "catalogue",
     group: "discover",
     icon: "catalogue",
     section: ["/catalogue", "/items"],
@@ -92,7 +89,7 @@ export const NAV: NavItem[] = [
   // but not on Requests or a workspace's items, other items' pages.
   {
     href: "/workspaces",
-    label: "Workspaces",
+    key: "workspaces",
     group: "discover",
     icon: "workspaces",
     section: "/workspaces",
@@ -101,7 +98,7 @@ export const NAV: NavItem[] = [
   // Requests to join the workspaces they moderate (094) and scope moves (115), only while some wait.
   {
     href: "/workspaces/requests",
-    label: "Requests",
+    key: "requests",
     group: "discover",
     icon: "requests",
     permission: "access_requests.answer",
@@ -110,7 +107,7 @@ export const NAV: NavItem[] = [
   },
   {
     href: "/reviews",
-    label: "Reviews",
+    key: "reviews",
     group: "governance",
     icon: "reviews",
     permission: "submissions.review",
@@ -118,7 +115,7 @@ export const NAV: NavItem[] = [
   },
   {
     href: "/submissions",
-    label: "Submissions",
+    key: "submissions",
     group: "governance",
     icon: "submissions",
     permission: "submissions.create",
@@ -127,7 +124,7 @@ export const NAV: NavItem[] = [
   // Root's alone (115): a workspace's admins manage it from its page under Workspaces.
   {
     href: "/admin/users",
-    label: "Users",
+    key: "users",
     group: "governance",
     icon: "users",
     permission: "users.view",
@@ -135,7 +132,7 @@ export const NAV: NavItem[] = [
   },
   {
     href: "/admin/audit",
-    label: "Audit log",
+    key: "audit",
     group: "governance",
     icon: "audit",
     permission: "users.view",
@@ -143,20 +140,20 @@ export const NAV: NavItem[] = [
   },
   {
     href: "/admin/settings",
-    label: "Settings",
+    key: "settings",
     group: "governance",
     icon: "settings",
     permission: "users.view",
     section: "/admin/settings",
   },
-  { href: DOCS_URL, label: "Documentation", group: "tools", icon: "docs", external: true },
-  { href: "/account/tokens", label: "CLI & tokens", group: "tools", icon: "tokens" },
+  { href: DOCS_URL, key: "docs", group: "tools", icon: "docs", external: true },
+  { href: "/account/tokens", key: "tokens", group: "tools", icon: "tokens" },
 ];
 
 /** + Propose item, above the groups (119): a new item, for those who can submit. */
 export const PROPOSE: NavItem = {
   href: "/submissions/new",
-  label: "Propose item",
+  key: "propose",
   group: "governance",
   icon: "propose",
   permission: "submissions.create",

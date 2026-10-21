@@ -1,4 +1,5 @@
 import { InvalidEmailError, InvalidNameError } from "../exceptions/errors";
+import type { Locale } from "./locale";
 import type { ScimAccountState } from "./scim-user";
 
 /**
@@ -25,6 +26,8 @@ export type CurrentUser = {
   workspaces: Memberships;
   /** Their personal workspace's id (114), whose admin they are; null or absent when there's none. */
   personal?: string | null;
+  /** The language they chose (129); null or absent is automatic: the browser decides. */
+  locale?: Locale | null;
 };
 
 const ROLES: readonly Role[] = ["root", "user"];
@@ -48,6 +51,8 @@ export type UserSummary = {
   /** When root erased the account (103): the row is the pseudonym, and nothing may change it. */
   erasedAt: Date | null;
   createdAt: Date;
+  /** The language they chose (129); null is automatic. */
+  locale?: Locale | null;
   /** Its roles per workspace (091), moderated ones first, for the users list; ignored for root. */
   workspaces?: { name: string; role: WorkspaceRole }[];
   /** Two-factor is on (the flag and a confirmed record, 105), for the users list. */

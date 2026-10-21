@@ -1,11 +1,12 @@
 import { redirect } from "next/navigation";
+import { accountMetadata } from "@/features/account/metadata";
 import { SecurityPage } from "@/features/account-security/SecurityPage";
 import { twoFactorStatus } from "@/server/domains/identity/actions/two-factor";
 import { SIGN_IN_PATH, safeNextPath } from "@/server/domains/identity/models/route-guard";
 import { requestHeaders } from "@/server/http/request-headers";
 import { twoFactorHold } from "@/server/http/two-factor-hold";
 
-export const metadata = { title: "Two-factor sign-in · Account · Ronne AI Marketplace" };
+export const generateMetadata = accountMetadata("security");
 
 /** The (app) layout already requires a signed-in user; the status is read for this request. */
 const AccountSecurityPage = async ({

@@ -1,0 +1,83 @@
+{
+  "language": {
+    "label": "Idioma",
+    "automatic": "Automático"
+  },
+  "close": "Fechar",
+  "copy": {
+    "label": "copiar",
+    "done": "copiado",
+    "manual": "selecionado: copie você mesmo"
+  },
+  "password": {
+    "show": "Mostrar senha",
+    "hide": "Ocultar senha"
+  },
+  "field": {
+    "error": "ERRO:",
+    "warning": "AVISO:"
+  },
+  "newTab": "(abre em uma nova aba)",
+  "help": {
+    "learnMore": "Saiba mais"
+  },
+  "unsaved": {
+    "title": "Sair sem salvar?",
+    "message": "Suas alterações não foram salvas. Se você sair agora, elas serão perdidas.",
+    "stay": "Ficar nesta página",
+    "leave": "Sair sem salvar",
+    "mark": "Alterações não salvas",
+    "hint": "Salve com Ctrl+S ou ⌘S."
+  },
+  "table": {
+    "pages": "Páginas",
+    "firstPage": "Primeira página",
+    "previousPage": "Página anterior",
+    "nextPage": "Próxima página",
+    "previous": "Anterior",
+    "next": "Próxima",
+    "show": "Mostrar",
+    "count": "{count, number}{capped, select, true {+} other {}} {noun}",
+    "nothingLeft": "Não há mais nada nesta página.",
+    "clearFilters": "Limpar filtros",
+    "actions": "Ações",
+    "activeFilters": "Filtros ativos",
+    "clear": "Limpar",
+    "removeFilter": "Remover o filtro {filter}",
+    "filterLabel": "{label}:"
+  },
+  "notFound": {
+    "title": "Página não encontrada",
+    "message": "Não há nada neste endereço. Ele pode ter mudado de lugar, ou você pode não ter acesso a ele.",
+    "home": "Ir para o início"
+  },
+  "error": {
+    "title": "Algo deu errado",
+    "message": "Não foi possível mostrar a página. Tente de novo; se continuar acontecendo, avise quem administra esta instância.",
+    "retry": "Tentar de novo",
+    "home": "Ir para o início",
+    "reference": "Referência: {digest}"
+  },
+  "roles": {
+    "root": "root",
+    "admin": "admin",
+    "moderator": "moderador",
+    "user": "usuário"
+  },
+  "cliAuth": {
+    "title": "Use o rmk no terminal",
+    "intro": "O <mono>rmk</mono> instala itens deste registro nas suas ferramentas de programação com IA e os mantém atualizados.",
+    "step1": "Instale o rmk",
+    "step1Hint": "Pelo npm, com Node.js 22.12 ou mais recente (<readme>o README</readme> tem mais detalhes):",
+    "step2": "Entre",
+    "step2Tokens": "Com o seu e-mail e senha, ou com um token pessoal de <tokens>Tokens de acesso</tokens>.",
+    "step2Here": "Com o seu e-mail e senha, ou com um token pessoal desta página.",
+    "webHint": "Tem conta pela sua empresa, ou usa a autenticação de dois fatores? Aprove no navegador:",
+    "step3": "Confira e instale",
+    "step3Hint": "<mono>rmk whoami</mono> diz quem você é. Cada página de item mostra o seu comando de instalação; a Documentação explica o resto depois que você entrar.",
+    "globalHint": "Fora do <mono>global</mono>, o nome de um item começa pelo seu espaço de trabalho: <mono>rmk install @workspace/scope/name</mono>."
+  },
+  "languageSwitch": {
+    "label": "Idioma"
+  }
+}

@@ -1,7 +1,7 @@
 import { writeFileSync } from "node:fs";
 import { expect, type Page, test } from "@playwright/test";
 import { type MobileRole, mobileUser, signIn } from "./mobile";
-import { SWEEP_PAGES, type SweepData, type SweepRole } from "./pages";
+import { MIGRATED_ROUTES, SWEEP_PAGES, type SweepData, type SweepRole } from "./pages";
 import {
   describeOverflow,
   measureOverflow,
@@ -32,10 +32,6 @@ const WIDTHS = [360, 320] as const;
 const ROLES: readonly SweepRole[] = ["member", "moderator", "root"];
 
 type Result = { url: string; role: SweepRole; width: number; problem: string | null };
-const results: Result[] = [];
-const targets = new Map<string, { target: SmallTarget; urls: Set<string> }>();
-/** Table columns too narrow to read, by page, role and width (`squeezedColumns`). */
-const squeezed: string[] = [];
 let data: SweepData = { draftId: "", submissionId: "", personal: "", userId: "" };
 
 test.describe.configure({ mode: "serial" });
@@ -95,84 +91,119 @@ test.beforeAll(async ({ playwright }, testInfo) => {
   await api.dispose();
 });
 
-const check = async (page: Page, url: string, role: SweepRole) => {
-  const size = page.viewportSize() ?? { width: 412, height: 915 };
-  await page.goto(url);
-  // Controls under 44px, at the device's own width.
-  for (const target of await smallTargets(page)) {
-    const key = `${target.element} ${target.width}×${target.height}`;
-    const seen = targets.get(key) ?? { target, urls: new Set<string>() };
-    seen.urls.add(url);
-    targets.set(key, seen);
-  }
-  for (const width of [size.width, ...WIDTHS]) {
-    await page.setViewportSize({ width, height: size.height });
-    const overflow = await measureOverflow(page);
-    for (const column of await squeezedColumns(page))
-      squeezed.push(`${url} as ${role} at ${width}px: ${column}`);
-    results.push({
-      url,
-      role,
-      width,
-      problem: overflows(overflow) ? describeOverflow(overflow) : null,
-    });
-  }
-  await page.setViewportSize(size);
-};
+/**
+ * One sweep per language (feature 129): English over every page, Portuguese and French over the
+ * pages already moved to messages (`MIGRATED_ROUTES`), whose longer words are what could overflow.
+ * The shared sign-in helper types English labels, so the person signs in in English and then picks
+ * the language the way the sign-in page's links do: with the `ronne-locale` cookie.
+ */
+type Language = "en" | "pt" | "fr";
+const LANGUAGES: readonly Language[] = ["en", "pt", "fr"];
 
-test("signed out", async ({ page }) => {
-  for (const sweepPage of SWEEP_PAGES.filter((p) => p.roles === "signedOut" && !p.skip))
-    for (const url of sweepPage.urls(data, "member")) await check(page, url, "member");
-});
-
-for (const role of ROLES)
-  test(`as ${role}`, async ({ page }, testInfo) => {
-    await signIn(page, mobileUser(testInfo, role as MobileRole));
-    for (const sweepPage of SWEEP_PAGES) {
-      if (sweepPage.skip || sweepPage.roles === "signedOut" || !sweepPage.roles.includes(role))
-        continue;
-      for (const url of sweepPage.urls(data, role)) await check(page, url, role);
+const sweep = (language: Language) => {
+  const tag = language === "en" ? "" : `in ${language}: `;
+  const suffix = language === "en" ? "" : `-${language}`;
+  const pages =
+    language === "en" ? SWEEP_PAGES : SWEEP_PAGES.filter((p) => MIGRATED_ROUTES.has(p.route));
+  const speak = async (page: Page, baseURL: string | undefined) => {
+    if (language === "en") return;
+    await page
+      .context()
+      .addCookies([{ name: "ronne-locale", value: language, url: baseURL ?? "/" }]);
+  };
+  const results: Result[] = [];
+  const targets = new Map<string, { target: SmallTarget; urls: Set<string> }>();
+  /** Table columns too narrow to read, by page, role and width (`squeezedColumns`). */
+  const squeezed: string[] = [];
+  const check = async (page: Page, url: string, role: SweepRole) => {
+    const size = page.viewportSize() ?? { width: 412, height: 915 };
+    await page.goto(url);
+    // The language runs must really be in the language (the cookie sets it before sign-in, too).
+    await expect(page.locator("html"), url).toHaveAttribute("lang", language);
+    // Controls under 44px, at the device's own width.
+    for (const target of await smallTargets(page)) {
+      const key = `${target.element} ${target.width}×${target.height}`;
+      const seen = targets.get(key) ?? { target, urls: new Set<string>() };
+      seen.urls.add(url);
+      targets.set(key, seen);
     }
+    for (const width of [size.width, ...WIDTHS]) {
+      await page.setViewportSize({ width, height: size.height });
+      const overflow = await measureOverflow(page);
+      for (const column of await squeezedColumns(page))
+        squeezed.push(`${url} as ${role} at ${width}px: ${column}`);
+      results.push({
+        url,
+        role,
+        width,
+        problem: overflows(overflow) ? describeOverflow(overflow) : null,
+      });
+    }
+    await page.setViewportSize(size);
+  };
+
+  test(`${tag}signed out`, async ({ page, baseURL }) => {
+    await speak(page, baseURL);
+    for (const sweepPage of pages.filter((p) => p.roles === "signedOut" && !p.skip))
+      for (const url of sweepPage.urls(data, "member")) await check(page, url, "member");
   });
 
-test("no page scrolls sideways, except the ones listed with their fix", async ({
-  page: _,
-}, testInfo) => {
-  const project = testInfo.project.name;
-  const expected = (url: string) => {
-    const entry = EXPECTED_FAILURES[url];
-    return entry && (!entry.projects || entry.projects.includes(project)) ? entry : undefined;
-  };
-  const failing = results.filter((r) => r.problem && !expected(r.url));
-  const failingUrls = new Set(results.filter((r) => r.problem).map((r) => r.url));
-  const stale = Object.keys(EXPECTED_FAILURES).filter(
-    (url) => expected(url) && !failingUrls.has(url),
-  );
+  for (const role of ROLES)
+    test(`${tag}as ${role}`, async ({ page, baseURL }, testInfo) => {
+      await signIn(page, mobileUser(testInfo, role as MobileRole));
+      await speak(page, baseURL);
+      for (const sweepPage of pages) {
+        if (sweepPage.skip || sweepPage.roles === "signedOut" || !sweepPage.roles.includes(role))
+          continue;
+        for (const url of sweepPage.urls(data, role)) await check(page, url, role);
+      }
+      // The 404 page isn't a page.tsx, so the list doesn't have it; its text is new in three languages.
+      if (role === "member") await check(page, "/this-page-does-not-exist", role);
+    });
 
-  const report = [...targets.values()]
-    .sort((a, b) => a.target.height - b.target.height || a.target.width - b.target.width)
-    .map(
-      ({ target, urls }) =>
-        `${target.width}×${target.height}${Math.min(target.width, target.height) < 24 ? " (<24)" : ""}  ${target.element}  — ${[...urls].slice(0, 3).join(", ")}${urls.size > 3 ? ` +${urls.size - 3}` : ""}`,
-    )
-    .join("\n");
-  const overflow = results
-    .filter((r) => r.problem)
-    .map((r) => `${r.url} as ${r.role} at ${r.width}px: ${r.problem}`)
-    .join("\n");
-  // Files as well as attachments, so they can be read without the HTML report (CI uploads them).
-  for (const [name, body] of [
-    ["touch-targets.txt", report],
-    ["overflow.txt", overflow],
-  ] as const) {
-    writeFileSync(testInfo.outputPath(name), body);
-    await testInfo.attach(name, { body, contentType: "text/plain" });
-  }
+  test(`${tag}no page scrolls sideways, except the ones listed with their fix`, async ({
+    page: _,
+  }, testInfo) => {
+    const project = testInfo.project.name;
+    const expected = (url: string) => {
+      const entry = EXPECTED_FAILURES[url];
+      return entry && (!entry.projects || entry.projects.includes(project)) ? entry : undefined;
+    };
+    const failing = results.filter((r) => r.problem && !expected(r.url));
+    const failingUrls = new Set(results.filter((r) => r.problem).map((r) => r.url));
+    const sweptUrls = new Set(results.map((r) => r.url));
+    // Only a page this run swept can be stale: the language runs open the migrated pages alone.
+    const stale = Object.keys(EXPECTED_FAILURES).filter(
+      (url) => expected(url) && sweptUrls.has(url) && !failingUrls.has(url),
+    );
 
-  expect(
-    failing.map((r) => `${r.url} as ${r.role} at ${r.width}px: ${r.problem}`),
-    "pages that scroll sideways",
-  ).toEqual([]);
-  expect(stale, "EXPECTED_FAILURES entries for pages that now pass: remove them").toEqual([]);
-  expect(squeezed, "table columns squeezed too narrow to read").toEqual([]);
-});
+    const report = [...targets.values()]
+      .sort((a, b) => a.target.height - b.target.height || a.target.width - b.target.width)
+      .map(
+        ({ target, urls }) =>
+          `${target.width}×${target.height}${Math.min(target.width, target.height) < 24 ? " (<24)" : ""}  ${target.element}  — ${[...urls].slice(0, 3).join(", ")}${urls.size > 3 ? ` +${urls.size - 3}` : ""}`,
+      )
+      .join("\n");
+    const overflow = results
+      .filter((r) => r.problem)
+      .map((r) => `${r.url} as ${r.role} at ${r.width}px: ${r.problem}`)
+      .join("\n");
+    // Files as well as attachments, so they can be read without the HTML report (CI uploads them).
+    for (const [name, body] of [
+      [`touch-targets${suffix}.txt`, report],
+      [`overflow${suffix}.txt`, overflow],
+    ] as const) {
+      writeFileSync(testInfo.outputPath(name), body);
+      await testInfo.attach(name, { body, contentType: "text/plain" });
+    }
+
+    expect(
+      failing.map((r) => `${r.url} as ${r.role} at ${r.width}px: ${r.problem}`),
+      "pages that scroll sideways",
+    ).toEqual([]);
+    expect(stale, "EXPECTED_FAILURES entries for pages that now pass: remove them").toEqual([]);
+    expect(squeezed, "table columns squeezed too narrow to read").toEqual([]);
+  });
+};
+
+for (const language of LANGUAGES) sweep(language);

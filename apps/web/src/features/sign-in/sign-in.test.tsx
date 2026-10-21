@@ -113,7 +113,7 @@ describe("ForgotPassword (#147)", () => {
     expect(html).toContain(`<code class="font-mono break-words text-fg">${command}</code>`);
     // One command, never another install's.
     expect(html.match(/reset-root-password/g)).toHaveLength(1);
-    expect(html).toContain('href="https://www.ronne.ai/marketplace/docs/install#root"');
+    expect(html).toContain('href="https://www.ronne.ai/en/marketplace/docs/install#root"');
     expect(html).toContain("Root accounts");
   });
 

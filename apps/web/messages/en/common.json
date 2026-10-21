@@ -1,0 +1,83 @@
+{
+  "language": {
+    "label": "Language",
+    "automatic": "Automatic"
+  },
+  "close": "Close",
+  "copy": {
+    "label": "copy",
+    "done": "copied",
+    "manual": "selected: copy it yourself"
+  },
+  "password": {
+    "show": "Show password",
+    "hide": "Hide password"
+  },
+  "field": {
+    "error": "ERR:",
+    "warning": "WARN:"
+  },
+  "newTab": "(opens in a new tab)",
+  "help": {
+    "learnMore": "Learn more"
+  },
+  "unsaved": {
+    "title": "Leave without saving?",
+    "message": "Your changes aren't saved. If you leave now, they're lost.",
+    "stay": "Stay on this page",
+    "leave": "Leave without saving",
+    "mark": "Unsaved changes",
+    "hint": "Save with Ctrl+S or ⌘S."
+  },
+  "table": {
+    "pages": "Pages",
+    "firstPage": "First page",
+    "previousPage": "Previous page",
+    "nextPage": "Next page",
+    "previous": "Previous",
+    "next": "Next",
+    "show": "Show",
+    "count": "{count, number}{capped, select, true {+} other {}} {noun}",
+    "nothingLeft": "Nothing left on this page.",
+    "clearFilters": "Clear filters",
+    "actions": "Actions",
+    "activeFilters": "Active filters",
+    "clear": "Clear",
+    "removeFilter": "Remove the {filter} filter",
+    "filterLabel": "{label}:"
+  },
+  "notFound": {
+    "title": "Page not found",
+    "message": "There is nothing at this address. It may have moved, or you may not have access to it.",
+    "home": "Go to Home"
+  },
+  "error": {
+    "title": "Something went wrong",
+    "message": "The page could not be shown. Try again; if it keeps happening, tell the people who run this instance.",
+    "retry": "Try again",
+    "home": "Go to Home",
+    "reference": "Reference: {digest}"
+  },
+  "roles": {
+    "root": "root",
+    "admin": "admin",
+    "moderator": "moderator",
+    "user": "user"
+  },
+  "cliAuth": {
+    "title": "Use rmk from the terminal",
+    "intro": "<mono>rmk</mono> installs items from this registry into your AI coding tools, and keeps them up to date.",
+    "step1": "Get rmk",
+    "step1Hint": "From npm, with Node.js 22.12 or later (<readme>the README</readme> has more):",
+    "step2": "Sign in",
+    "step2Tokens": "With your email and password, or with a personal token from <tokens>Access tokens</tokens>.",
+    "step2Here": "With your email and password, or with a personal token from this page.",
+    "webHint": "Signed up with your company, or using two-factor sign-in? Approve it in the browser instead:",
+    "step3": "Check, then install",
+    "step3Hint": "<mono>rmk whoami</mono> says who you are. Every item page shows its install command; the Documentation explains the rest once you're signed in.",
+    "globalHint": "Outside <mono>global</mono>, an item's name starts with its workspace: <mono>rmk install @workspace/scope/name</mono>."
+  },
+  "languageSwitch": {
+    "label": "Language"
+  }
+}

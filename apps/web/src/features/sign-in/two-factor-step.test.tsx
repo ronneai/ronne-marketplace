@@ -15,7 +15,7 @@ vi.mock("next/navigation", () => ({
 const { signInFromForm, twoFactorFromForm } = await import("./actions");
 const { TwoFactorStep } = await import("./TwoFactorStep");
 const { SignInPage } = await import("./SignInPage");
-const { SIGN_IN_AGAIN, TWO_FACTOR_STEP_ERRORS } = await import("./types");
+const en = (await import("../../../messages/en/auth.json")).default;
 
 const form = (fields: Record<string, string>) => {
   const data = new FormData();
@@ -124,14 +124,14 @@ describe("TwoFactorStep", () => {
     const html = renderToStaticMarkup(
       <TwoFactorStep next="/" method="totp" initial={{ error: "locked" }} />,
     );
-    expect(html).toContain(TWO_FACTOR_STEP_ERRORS.locked);
+    expect(html).toContain(en.twoFactor.errors.locked);
   });
 });
 
 describe("SignInPage after the second step", () => {
   it("says why when sent back, and nothing for an unknown reason", () => {
     const back = renderToStaticMarkup(<SignInPage resetCommand="x" next="/" again="too_many" />);
-    expect(back).toContain(SIGN_IN_AGAIN.too_many);
+    expect(back).toContain(en.signIn.again.too_many);
     const odd = renderToStaticMarkup(<SignInPage resetCommand="x" next="/" again="<script>" />);
     expect(odd).toBe(renderToStaticMarkup(<SignInPage resetCommand="x" next="/" />));
   });

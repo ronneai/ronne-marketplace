@@ -1,0 +1,8 @@
+{
+  "ForbiddenError": "Vous n’avez pas la permission de faire cela ({permission}).",
+  "InvalidTokenNameError": "Le nom d’un jeton doit contenir de 1 à 100 caractères.",
+  "InvalidTokenLifetimeError": "« {value} » n’est pas une durée de jeton. Utilisez 30, 90 ou 365 jours, ou sans expiration.",
+  "TokenLimitError": "Vous avez {limit} jetons actifs, le maximum permis. Révoquez d’abord un ancien jeton.",
+  "TokenNameTakenError": "Vous avez déjà un jeton actif nommé « {tokenName} ».",
+  "TokenNotFoundError": "Ce jeton n’existe pas, ou ne vous appartient pas."
+}

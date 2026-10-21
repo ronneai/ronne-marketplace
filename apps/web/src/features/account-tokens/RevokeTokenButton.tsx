@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogActions } from "@/components/ui/Dialog";
@@ -13,6 +14,7 @@ import type { TokenActionState } from "./types";
  * longer rendered, so the updated row is the confirmation.
  */
 const RevokeForm = ({ id, name, onDone }: { id: string; name: string; onDone: () => void }) => {
+  const t = useTranslations("account.tokens.revoke");
   const [state, action, pending] = useActionState<TokenActionState, FormData>(
     revokeTokenFromForm,
     {},
@@ -22,7 +24,7 @@ const RevokeForm = ({ id, name, onDone }: { id: string; name: string; onDone: ()
       <div className="grid gap-4">
         <Notice kind="info" title={state.done} />
         <div>
-          <Button onClick={onDone}>Done</Button>
+          <Button onClick={onDone}>{t("done")}</Button>
         </div>
       </div>
     );
@@ -30,16 +32,18 @@ const RevokeForm = ({ id, name, onDone }: { id: string; name: string; onDone: ()
     <form action={action} className="grid gap-4">
       <input type="hidden" name="tokenId" value={id} />
       <p className="text-sm text-muted">
-        Revoke <strong className="text-fg">{name}</strong>? Anything using it, such as rmk on that
-        machine, stops working and has to sign in again.
+        {t.rich("body", {
+          name,
+          strong: (chunks) => <strong className="text-fg">{chunks}</strong>,
+        })}
       </p>
       <FieldError id={`revoke-${id}-error`}>{state.error}</FieldError>
       <DialogActions>
         <Button variant="ghost" onClick={onDone}>
-          Cancel
+          {t("cancel")}
         </Button>
         <Button type="submit" loading={pending}>
-          Revoke token
+          {t("submit")}
         </Button>
       </DialogActions>
     </form>
@@ -47,6 +51,7 @@ const RevokeForm = ({ id, name, onDone }: { id: string; name: string; onDone: ()
 };
 
 export const RevokeTokenButton = ({ id, name }: { id: string; name: string }) => {
+  const t = useTranslations("account.tokens.revoke");
   const [open, setOpen] = useState(false);
   const [round, setRound] = useState(0);
   const close = () => {
@@ -58,12 +63,12 @@ export const RevokeTokenButton = ({ id, name }: { id: string; name: string }) =>
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label={`Revoke ${name}`}
+        aria-label={t("aria", { name })}
         className="rounded-control px-2 py-1 text-xs text-muted hover:bg-tint hover:text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
       >
-        Revoke
+        {t("button")}
       </button>
-      <Dialog open={open} onClose={close} title="Revoke access token">
+      <Dialog open={open} onClose={close} title={t("title")}>
         <RevokeForm key={round} id={id} name={name} onDone={close} />
       </Dialog>
     </>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { docsHref } from "@/components/help/topics";
 import { cn } from "@/components/ui/cn";
@@ -15,6 +16,7 @@ const LINK = "text-sm text-link underline-offset-2 hover:underline";
  * native <details> that opens in place, so it works without it.
  */
 export const ForgotPassword = ({ resetCommand }: { resetCommand: string }) => {
+  const t = useTranslations("auth.signIn");
   // The popover exists only once JavaScript runs; the first client render matches the server's.
   const [enhanced, setEnhanced] = useState(false);
   useEffect(() => setEnhanced(true), []);
@@ -28,15 +30,15 @@ export const ForgotPassword = ({ resetCommand }: { resetCommand: string }) => {
             "cursor-pointer list-none outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus [&::-webkit-details-marker]:hidden",
           )}
         >
-          Forgot?
+          {t("forgot")}
         </summary>
         <Note resetCommand={resetCommand} className="mt-2 max-w-72 text-muted" />
       </details>
     );
   return (
     <Popover
-      label="Forgot your password?"
-      button="Forgot?"
+      label={t("forgotLabel")}
+      button={t("forgot")}
       buttonClassName={LINK}
       placement="bottom-end"
       maxWidth={288}
@@ -46,17 +48,20 @@ export const ForgotPassword = ({ resetCommand }: { resetCommand: string }) => {
   );
 };
 
-const Note = ({ resetCommand, className }: { resetCommand: string; className?: string }) => (
-  <p className={cn("text-left text-xs", className)}>
-    Ask a root to reset your password in Users. If you&apos;re the only root, run{" "}
-    <code className="font-mono break-words text-fg">{resetCommand}</code> where Ronne AI Marketplace
-    is installed. A lost authenticator, and its backup codes, is reset the same way: by a root, or
-    for the only root, by that command.{" "}
-    <NewTabLink
-      href={docsHref("install", "root")}
-      className="text-link underline-offset-2 hover:underline"
-    >
-      Root accounts
-    </NewTabLink>
-  </p>
-);
+const Note = ({ resetCommand, className }: { resetCommand: string; className?: string }) => {
+  const t = useTranslations("auth.signIn");
+  return (
+    <p className={cn("text-left text-xs", className)}>
+      {t.rich("forgotNote", {
+        command: resetCommand,
+        code: (chunks) => <code className="font-mono break-words text-fg">{chunks}</code>,
+      })}{" "}
+      <NewTabLink
+        href={docsHref("install", "root")}
+        className="text-link underline-offset-2 hover:underline"
+      >
+        {t("rootAccounts")}
+      </NewTabLink>
+    </p>
+  );
+};

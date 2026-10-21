@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { docsHref } from "@/components/help/topics";
+import { inLocale } from "@/test/intl";
 import { HelpTip } from "./HelpTip";
 
 describe("HelpTip", () => {
@@ -29,9 +30,29 @@ describe("HelpTip", () => {
       </HelpTip>,
     );
     const link = /<a [^>]*>Learn more[\s\S]*?<\/a>/.exec(html)?.[0] ?? "";
-    expect(link).toContain('href="https://www.ronne.ai/marketplace/docs/scopes#what"');
+    expect(link).toContain('href="https://www.ronne.ai/en/marketplace/docs/scopes#what"');
     expect(link).toContain('target="_blank" rel="noopener noreferrer"');
     expect(link).toContain('aria-hidden="true"');
     expect(link).toContain('<span class="sr-only"> (opens in a new tab)</span>');
+  });
+
+  it("says Learn more and the new-tab note in the person's language (129)", () => {
+    const link = (locale: "en" | "pt" | "fr") =>
+      inLocale(
+        locale,
+        () =>
+          /<a [^>]*>[\s\S]*?<\/a>/.exec(
+            renderToStaticMarkup(
+              <HelpTip question="Q" href={docsHref("scopes", "what")}>
+                A.
+              </HelpTip>,
+            ),
+          )?.[0] ?? "",
+      );
+    expect(link("pt")).toContain(">Saiba mais");
+    expect(link("pt")).toContain("(abre em uma nova aba)");
+    expect(link("fr")).toContain(">En savoir plus");
+    expect(link("fr")).toContain("(s’ouvre dans un nouvel onglet)");
+    expect(link("en")).toContain(">Learn more");
   });
 });

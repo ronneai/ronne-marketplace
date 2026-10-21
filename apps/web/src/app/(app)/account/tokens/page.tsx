@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { CreateTokenDialog } from "@/features/account-tokens/CreateTokenDialog";
 import { RevokeTokenButton } from "@/features/account-tokens/RevokeTokenButton";
 import { TokensPage } from "@/features/account-tokens/TokensPage";
@@ -6,7 +7,9 @@ import { listMyTokens } from "@/server/domains/identity/actions/access-tokens";
 import { requestHeaders } from "@/server/http/request-headers";
 import { holdPage } from "../../hold";
 
-export const metadata = { title: "Access tokens · Ronne AI Marketplace" };
+export const generateMetadata = async () => ({
+  title: `${(await getTranslations("account.tokens"))("metaTitle")} · Ronne AI Marketplace`,
+});
 
 /** Every signed-in user manages their own tokens; the (app) layout already requires a session. */
 const AccessTokens = async () => {

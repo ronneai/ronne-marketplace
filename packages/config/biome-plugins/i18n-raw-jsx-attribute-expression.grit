@@ -1,0 +1,14 @@
+language js
+
+// Feature 129, see i18n-raw-jsx-text.grit.
+// title={"text"}, label={c ? "a" : "b"}: a visible-text attribute written as an expression.
+JsStringLiteralExpression() as $s where {
+  $s <: r"(?s).*\p{L}.*",
+  or {
+    $s <: within JsxAttribute(initializer=JsxAttributeInitializerClause(value=JsxExpressionAttributeValue(expression=$s))) as $a,
+    $s <: within JsxAttribute(initializer=JsxAttributeInitializerClause(value=JsxExpressionAttributeValue(expression=JsConditionalExpression(consequent=$s)))) as $a,
+    $s <: within JsxAttribute(initializer=JsxAttributeInitializerClause(value=JsxExpressionAttributeValue(expression=JsConditionalExpression(alternate=$s)))) as $a
+  },
+  $a <: r"^(?:title|label|placeholder|aria-label|alt|description|summary|heading|tooltip)=.*",
+  register_diagnostic(span=$s, message="Text on the screen comes from the message files (feature 129): use `t(...)`, not a string written here.", severity="error")
+}

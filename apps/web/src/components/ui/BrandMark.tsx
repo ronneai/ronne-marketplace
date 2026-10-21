@@ -10,6 +10,7 @@ export const BrandMark = ({ size = 24, className }: { size?: number; className?:
       height={size}
       className={className}
       role="img"
+      // biome-ignore lint/plugin: the brand name, the same in every language
       aria-label="Ronne"
     >
       <path

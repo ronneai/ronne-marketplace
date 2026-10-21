@@ -39,7 +39,7 @@ test("Forgot? names this install's reset command and links to Root accounts (#14
   await expect(page.getByText("rmk-server", { exact: false })).toHaveCount(0);
   await expect(note.getByRole("link", { name: "Root accounts" })).toHaveAttribute(
     "href",
-    "https://www.ronne.ai/marketplace/docs/install#root",
+    "https://www.ronne.ai/en/marketplace/docs/install#root",
   );
   await page.keyboard.press("Escape");
   await expect(note).toHaveCount(0);

@@ -1,0 +1,182 @@
+{
+  "header": {
+    "title": "Conta",
+    "description": "Sua senha e como você entra. Cada alteração fica registrada no registro de auditoria.",
+    "languageDescription": "O idioma das telas do Ronne."
+  },
+  "tabs": {
+    "label": "Conta",
+    "password": "Senha",
+    "security": "Autenticação de dois fatores",
+    "language": "Idioma"
+  },
+  "password": {
+    "metaTitle": "Senha",
+    "title": "Alterar senha",
+    "intro": "Os outros navegadores e dispositivos são desconectados quando ela muda.",
+    "current": "Senha atual",
+    "next": "Nova senha",
+    "nextHint": "De 12 a 128 caracteres.",
+    "confirm": "Confirmar a nova senha",
+    "submit": "Alterar senha",
+    "changedTitle": "Senha alterada",
+    "changed": "Você continua conectado aqui; as outras sessões foram encerradas.",
+    "errors": {
+      "wrong_password": "A senha atual está errada",
+      "too_short": "A nova senha precisa ter pelo menos 12 caracteres",
+      "too_long": "A nova senha pode ter no máximo 128 caracteres",
+      "mismatch": "As novas senhas não são iguais",
+      "rate_limited": "Muitas tentativas, aguarde um minuto"
+    }
+  },
+  "data": {
+    "title": "Seus dados",
+    "description": "Tudo o que esta instância guarda sobre você em um único arquivo JSON: sua conta, sessões, nomes de tokens, espaços de trabalho, itens, submissões, comentários e eventos de auditoria. Não é um backup, e os dados de outras pessoas não estão nele. Você pode baixá-lo uma vez a cada 10 minutos. Uma lista com mais de 10.000 linhas é cortada, e o arquivo avisa isso no início; peça ao root uma exportação do banco de dados se precisar de mais.",
+    "download": "Baixar meus dados",
+    "lastDownloaded": "Último download em"
+  },
+  "language": {
+    "metaTitle": "Idioma",
+    "title": "Idioma",
+    "description": "As telas do Ronne estão em inglês, português e francês. Isto muda as telas, não o que as pessoas publicam: nomes, descrições e arquivos dos itens ficam como seus autores escreveram, e o rmk continua em inglês.",
+    "label": "Idioma das telas",
+    "automatic": "Automático (o idioma do navegador)",
+    "hint": "Automático segue o seu navegador, e o inglês quando ele pede outro idioma.",
+    "save": "Salvar",
+    "savedTitle": "Idioma salvo",
+    "saved": "As telas agora usam o idioma que você escolheu.",
+    "savedAutomatic": "As telas agora seguem o idioma do seu navegador.",
+    "invalid": "Escolha um dos idiomas da lista."
+  },
+  "security": {
+    "required": {
+      "title": "Configure a autenticação de dois fatores para continuar",
+      "body": "Seu administrador a exige para {who, select, reviewers {o root e os moderadores e administradores dos espaços de trabalho compartilhados} other {todas as pessoas}}. O resto do Ronne abre quando ela estiver ativa."
+    },
+    "continue": {
+      "title": "A autenticação de dois fatores está ativa",
+      "body": "Você pode voltar ao que estava fazendo.",
+      "button": "Continuar"
+    },
+    "panel": {
+      "title": "Autenticação de dois fatores",
+      "on": "Ativa",
+      "off": "Inativa",
+      "companyTitle": "O login da sua empresa protege a sua conta",
+      "company": "Você entra pelo provedor de identidade da sua empresa, que pede a própria segunda etapa. Não há nada para configurar aqui.",
+      "offIntro": "Ao entrar, também será pedido um código de 6 dígitos de um aplicativo no seu celular, então uma senha roubada não basta.",
+      "onIntro": "Ao entrar com a sua senha, também é pedido um código do seu aplicativo autenticador, ou um dos seus códigos de backup.",
+      "codesLeft": "{count, plural, one {Resta # código de backup.} other {Restam # códigos de backup.}}",
+      "backupTitle": "Códigos de backup",
+      "turnOffTitle": "Desativar a autenticação de dois fatores"
+    },
+    "setup": {
+      "password": "Sua senha",
+      "start": "Configurar a autenticação de dois fatores",
+      "startOver": "Recomeçar",
+      "doneTitle": "A autenticação de dois fatores está ativa",
+      "done": "A partir de agora, ao entrar com a sua senha também será pedido um código do aplicativo.",
+      "saved": "Já os salvei",
+      "step1": "Abra o seu aplicativo autenticador (Google Authenticator, 1Password, Authy, Microsoft Authenticator…).",
+      "step2": "Leia o código QR, ou digite a chave.",
+      "step3": "Digite o código de 6 dígitos que o aplicativo mostra.",
+      "qrAlt": "Código QR para o seu aplicativo autenticador",
+      "orType": "Ou digite esta chave",
+      "keyNote": "Baseada no tempo, 6 dígitos, a cada 30 segundos.",
+      "code": "Código do aplicativo",
+      "turnOn": "Ativar",
+      "startOverSummary": "Recomeçar com uma nova chave",
+      "startOverNote": "Um novo código QR e novos códigos de backup; este deixa de funcionar."
+    },
+    "manage": {
+      "regenerateLabel": "Novos códigos de backup",
+      "regenerateNote": "Dez códigos novos, mostrados uma só vez. Os que você tem agora deixam de funcionar.",
+      "regenerate": "Gerar novos códigos de backup",
+      "offTitle": "A autenticação de dois fatores está desativada",
+      "off": "Agora, para entrar, só é pedida a sua senha.",
+      "done": "Concluído",
+      "turnOffLabel": "Desativar a autenticação de dois fatores",
+      "code": "Um código do aplicativo, ou um código de backup",
+      "turnOff": "Desativar a autenticação de dois fatores"
+    },
+    "backup": {
+      "fileTitle": "Ronne AI Marketplace: códigos de backup da autenticação de dois fatores",
+      "fileAbout": "Cada código funciona uma vez, no lugar de um código do seu aplicativo autenticador.",
+      "title": "Códigos de backup",
+      "saveTitle": "Salve-os agora",
+      "save": "Eles não serão mostrados de novo. Cada um permite entrar uma vez se você perder o celular.",
+      "copyAll": "Copiar todos",
+      "copied": "Copiado",
+      "manual": "Selecionado: copie-os",
+      "download": "Baixar (.txt)"
+    },
+    "errors": {
+      "not_signed_in": "Você foi desconectado. Entre de novo.",
+      "no_password": "Sua conta não tem senha aqui: você entra pela sua empresa, que protege o login.",
+      "wrong_password": "A senha está errada",
+      "wrong_code": "Esse código está errado. Confira o relógio do celular se continuar falhando.",
+      "used": "Esse código já foi usado. Aguarde o próximo do aplicativo.",
+      "rate_limited": "Muitas tentativas, aguarde um minuto",
+      "already_on": "A autenticação de dois fatores já está ativa",
+      "not_enabled": "A autenticação de dois fatores está desativada",
+      "another_tab": "A configuração foi iniciada em outra aba. Comece de novo.",
+      "replaced": "Esta configuração foi substituída por uma mais nova, em outra aba ou por um segundo clique. Comece de novo.",
+      "just_made": "Você acabou de gerar novos códigos de backup: use esses."
+    }
+  },
+  "tokens": {
+    "metaTitle": "Tokens de acesso",
+    "title": "Tokens de acesso",
+    "description": "Tokens pessoais para o rmk e o servidor MCP. Eles agem como você; não conseguem entrar neste site.",
+    "empty": "Nenhum token ainda. Crie um, ou execute <code>rmk login</code>.",
+    "name": "Nome",
+    "token": "Token",
+    "created": "Criado (UTC)",
+    "lastUsed": "Último uso",
+    "expires": "Expira em",
+    "status": "Situação",
+    "actions": "Ações",
+    "viaDevice": "aprovação no navegador",
+    "never": "nunca",
+    "noExpiry": "sem expiração",
+    "statuses": {
+      "active": "ativo",
+      "expired": "expirado",
+      "revoked": "revogado"
+    },
+    "create": {
+      "button": "Criar token",
+      "title": "Criar token de acesso",
+      "name": "Nome",
+      "nameHint": "Onde você vai usá-lo, por exemplo a máquina ou o job de CI.",
+      "expiresAfter": "Expira depois de",
+      "days30": "30 dias",
+      "days90": "90 dias",
+      "days365": "365 dias",
+      "none": "Sem expiração",
+      "confirm": "Entendo que este token funciona até eu revogá-lo.",
+      "cancel": "Cancelar",
+      "submit": "Criar token",
+      "done": "Concluído",
+      "mustConfirm": "Marque a caixa para confirmar um token que nunca expira."
+    },
+    "created_panel": {
+      "copyNow": "Copie agora",
+      "copyBody": "Ele não será mostrado de novo. Quem o tiver pode agir como você até ele expirar ou você revogá-lo.",
+      "token": "Token: {name}",
+      "signIn": "Entre no rmk com ele",
+      "expires": "Expira em",
+      "never": "Ele nunca expira."
+    },
+    "revoke": {
+      "button": "Revogar",
+      "aria": "Revogar {name}",
+      "title": "Revogar token de acesso",
+      "body": "Revogar <strong>{name}</strong>? Tudo o que o usa, como o rmk naquela máquina, para de funcionar e precisa entrar de novo.",
+      "cancel": "Cancelar",
+      "submit": "Revogar token",
+      "done": "Concluído",
+      "revoked": "Revogado. Ele deixa de funcionar na próxima requisição."
+    }
+  }
+}

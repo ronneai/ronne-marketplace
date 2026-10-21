@@ -23,6 +23,7 @@ export const BrandLogo = ({
       className={className}
       style={style}
       role="img"
+      // biome-ignore lint/plugin: the brand name, the same in every language
       aria-label="Ronne AI"
     >
       <path
@@ -40,6 +41,7 @@ export const BrandLogo = ({
         fontSize="103.25"
         fontWeight={400}
       >
+        {/* biome-ignore lint/plugin: the brand name, the same in every language */}
         ronne
       </text>
       <text
@@ -48,6 +50,7 @@ export const BrandLogo = ({
         fontSize="40"
         fontWeight={600}
       >
+        {/* biome-ignore lint/plugin: the brand name, the same in every language */}
         AI
       </text>
     </svg>

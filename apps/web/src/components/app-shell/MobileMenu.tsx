@@ -3,6 +3,7 @@
 import { Menu } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Dialog } from "../ui/Dialog";
 import { MenuList } from "./MenuList";
@@ -47,6 +48,7 @@ export const MobileMenu = ({
   appearance: ReactNode;
   signOutAction?: () => Promise<void>;
 }) => {
+  const t = useTranslations("shell.menu");
   const [open, setOpen] = useState(false);
   const path = usePathname() ?? "/";
   const button = useRef<HTMLButtonElement>(null);
@@ -77,7 +79,7 @@ export const MobileMenu = ({
   const label = (
     <>
       <Menu size={18} aria-hidden />
-      Menu
+      {t("title")}
       {waiting ? <NavCount count={waiting} /> : null}
     </>
   );
@@ -99,7 +101,7 @@ export const MobileMenu = ({
           {label}
         </Link>
       )}
-      <Dialog open={open} onClose={close} title="Menu" size="side" closeOnBackdrop>
+      <Dialog open={open} onClose={close} title={t("title")} size="side" closeOnBackdrop>
         <MenuList
           user={user}
           items={items}
