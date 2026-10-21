@@ -324,3 +324,36 @@ shared lives in one process's memory or on one machine's disk. Build order: 109 
 | 109 | Shared rate limits: sign-in, draft upload and usage limits counted in the database (one table, upsert on all three dialects) instead of in memory; same limits and messages | 006, 037, 046 | planned |
 | 110 | S3-compatible storage: a `StorageAdapter` for S3 (AWS, MinIO, R2 and the like), chosen in setup or by environment; server-side encryption; tests against MinIO; a command that copies local storage into a bucket | 015, 099 | planned |
 | 111 | Replicas checked: every remaining in-memory state found and made shared or safe to repeat (the marketplace cache by catalogue revision, scheduled jobs under a lock, the per-person two-factor queue of 105); a compose example with two replicas, and an end-to-end run against it | 109, 110, 079, 102 | planned |
+
+### M18 — Home, onboarding and feedback
+
+Everyone lands on Home, so it gets an order, an instance notice root can set, shelves of pinned items
+(root's for the instance, a workspace admin's for the workspace) and each person's favorites, and a
+getting-started checklist; people can send feedback to the instance's administrators, and accounts
+root creates ask for a new password at first sign-in (owner, 2026-10-20). Written for any instance,
+a demo being one use. Build order: 129 first (M19), so these are written with messages from the
+start; then 124 → 125 → 126; 127 and 128 are independent of those.
+
+| ID | Feature | Depends on | Status |
+|---|---|---|---|
+| [124](./124-home-page-rework/SPEC.md) | Home page rework and the instance notice: the page's order with empty sections hidden, a first screen for an empty instance, type links beside the search, and a notice root sets in Admin › Settings (message, link, tone, dismissible, returns when changed) | 018, 119, 120, 122, 129 | specified |
+| [125](./125-pins-and-favorites/SPEC.md) | Pinned items and favorites: root pins for the instance (Start here), a workspace's admins pin for the workspace, anyone keeps private favorites (a star, Home shelf, catalogue filter); visibility checked at read, audited pins, in the data download and erased with the account | 018, 090, 091, 093, 120, 124, 129 | specified |
+| [126](./126-getting-started/SPEC.md) | Getting started checklist on Home: create a token, connect `rmk`, install a first item, start a draft; ticks itself from existing data, can be hidden and brought back | 009, 107, 124, 129 | specified |
+| [127](./127-send-feedback/SPEC.md) | Send feedback to this instance's administrators from the sidebar, and Admin › Feedback for root (server data table, handled, bulk, count, retention, erased with the account) | 060, 007, 103, 104, 119, 129 | specified |
+| [128](./128-change-password-first-sign-in/SPEC.md) | Change the password at first sign-in: root can require it when creating a user or resetting a password; a hold on every page and the API until it's changed | 006, 008, 105, 129 | specified |
+
+### M19 — Languages
+
+The screens speak the person's language: English (the default), Portuguese and French, chosen on
+the profile (owner, 2026-10-20). Platform labels only: item content, what people write, `rmk`, the
+MCP server and the API stay as they are. 129 builds the machinery and translates what every page
+shares; 130–133 move the rest, area by area, and stay `planned` until 129 is built, so their specs
+use what it taught. From 129 on every new screen is written with messages.
+
+| ID | Feature | Depends on | Status |
+|---|---|---|---|
+| [129](./129-languages-foundation/SPEC.md) | Languages, the foundation: `user.locale`, how the language is chosen (profile, cookie, browser, English), message files with parity and raw-text tests, the shell, Account, sign-in and shared UI in three languages | 006, 032, 049, 088, 104, 123 | specified |
+| 130 | Languages: browse. Catalogue, item page, workspaces pages, Home's helpers and the Documentation helpers' text | 129 | planned |
+| 131 | Languages: author and review. Draft editor, composer, submissions, reviews, versions, releases and their error messages | 129 | planned |
+| 132 | Languages: admin and setup. Admin pages, settings tabs, audit log labels, the setup wizard, SSO and SCIM screens; an instance default language if wanted | 129 | planned |
+| 133 | Languages: sign-off. The raw-text scan covers the whole app, native-speaker review of Portuguese and French, the phone sweep in each language, Documentation links checked | 130, 131, 132 | planned |
