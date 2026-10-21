@@ -345,6 +345,14 @@ describe("the catalogue", () => {
 });
 
 describe("the home page's lists", () => {
+  it("lists the types that have something released, in the catalogue's order, none for an empty registry (124)", async () => {
+    expect((await homeLists(asUser, app)).types).toEqual([]);
+    await release("a-rule", { type: "rule" });
+    await release("a-skill");
+    await release("another-rule", { type: "rule" });
+    expect((await homeLists(asUser, app)).types).toEqual(["skill", "rule"]);
+  });
+
   it("shows recent installable items, and most used by downloads, leaving out items with none", async () => {
     await release("one");
     const two = await release("two");

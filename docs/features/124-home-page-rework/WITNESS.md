@@ -102,3 +102,23 @@ Witnessed: 2026-10-21 10:45 local, by a fresh agent (blind). Commit: e8cc2b8c pl
 | 12 | Lint and typecheck are clean | no | confirmed | `biome check` on the touched folders; `pnpm lint` exit 0; typecheck clean. |
 
 **Overall:** met. Limits: the real no-JavaScript post, the 44px layout and the Menu and sign-in coverage rest on reading, and the end-to-end tests of task 7 cover them. The test replaces `serverAction` with a pass-through, so the wrapping is proven by the guard test.
+
+## Task 4 — Home's layout
+
+Witnessed: 2026-10-21 10:50 EDT, by a fresh agent (blind). Commit: 7bf684d9 plus uncommitted changes (`features/home/`, the home page, `messages/*/home.json`, `namespaces.ts`, `biome.json`, `homeLists` and its database test). Machine: macOS (Darwin 27.0.0), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The order is search, getting started, waiting for you, favorites, pinned, recent, most used, and a test covers it | no | confirmed | `HomeView.tsx`; `vitest run src/features/home …` → 90 passed. A mutation in a scratch copy (favorites and pinned moved below most used) made the order test fail. |
+| 2 | A section without content is absent, with no heading and no "None" | no | confirmed | Waiting, most used and the type links are conditional; the zero-counts test finds no heading, "SLOT" or "None", and recent stays. |
+| 3 | Waiting for you shows only lines above zero, each with its link and the right plural | no | confirmed | Tests for 1 review only (no "draft") and for 2, 1 and 3. |
+| 4 | The three slots draw what they are given and nothing when omitted or null | no | confirmed | `?? null`; the order test fills them; the absent test passes null and undefined. |
+| 5 | The search box stays and offers a link only for types that have released items, in the catalogue's order | no | confirmed | The test finds `type=skill` and `type=rule`, no `type=agent`; an empty registry keeps the form and has no `?type=`. |
+| 6 | `homeLists` returns `types`, the same on every database | no | confirmed | `vitest --project db catalogue.db.test.ts` on SQLite, and `pnpm test:db:postgres`, `:mysql`, `:mariadb` → 15 passed each; the new test gives `[]` when empty and `["skill","rule"]` after releases. |
+| 7 | The heading and description come from messages | no | confirmed | `page.tsx` uses `getTranslations("home")`; three `home.json` files; `namespaces.ts` registers `home`. |
+| 8 | Everything on Home is in messages in three languages; the empty-registry message is moved into messages | no | confirmed | The folders are in the `biome.json` override; `pnpm lint` → 44 warnings (unchanged), no errors; the pt and fr tests check labels and that no English leaks; the empty message passes in all three. |
+| 9 | The pt and fr texts follow the glossary, the plural forms and the Canadian French typography | no | confirmed | Terms match `i18n.md`; a space only before the colon in fr; the plural assertions pass. |
+| 10 | Typecheck, tests and lint are clean | no | confirmed | `pnpm typecheck` 7/7; lint 44 warnings, none in these files. |
+| 11 | The witness left the repository unchanged | no | confirmed | `git status --short` listed only the task's files. |
+
+**Overall:** met. Edge cases tried: all counts zero, an empty registry with no types, slots given as null or undefined. The item cards are still English (a later sweep, accepted).

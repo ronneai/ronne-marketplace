@@ -207,15 +207,25 @@ export const browseCatalogue = async (
   };
 };
 
-export type HomeLists = { recent: CatalogueEntry[]; mostUsed: CatalogueEntry[] };
+export type HomeLists = {
+  recent: CatalogueEntry[];
+  mostUsed: CatalogueEntry[];
+  /** The types with something released, for the links that open the catalogue on one (124). */
+  types: ItemType[];
+};
 
 /** The home page's lists: recently published and most used, installable items only. */
 export const homeLists = async (deps: CatalogueDeps, actor: ScopeActor): Promise<HomeLists> => {
   requirePermission(actor.user, "account.manage_own");
   const recent = await deps.catalogue.list({ sort: "recent", limit: HOME_LIST_SIZE });
+  const typeCounts = await deps.catalogue.typeCounts({});
   return {
     recent: recent.filter((entry) => entry.installable),
     mostUsed: await deps.catalogue.mostUsed(HOME_LIST_SIZE),
+    // The types that have something released, in the catalogue's order, for Home's links (124).
+    types: ITEM_TYPES.filter((type) =>
+      typeCounts.some((row) => row.type === type && row.count > 0),
+    ),
   };
 };
 

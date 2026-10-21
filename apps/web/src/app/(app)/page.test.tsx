@@ -36,7 +36,11 @@ const render = async () => renderToStaticMarkup(await HomePage());
 
 beforeEach(() => {
   vi.clearAllMocks();
-  catalogue.homeLists.mockResolvedValue({ recent: [entry("fmt"), entry("lint")], mostUsed: [] });
+  catalogue.homeLists.mockResolvedValue({
+    recent: [entry("fmt"), entry("lint")],
+    mostUsed: [],
+    types: ["skill"],
+  });
   drafts.listMySubmissions.mockResolvedValue([]);
   reviews.countNeedsReview.mockResolvedValue(0);
 });
@@ -57,6 +61,7 @@ describe("the home page", () => {
     catalogue.homeLists.mockResolvedValue({
       recent: [entry("fmt")],
       mostUsed: [entry("lint", 12), entry("fmt", 1)],
+      types: ["skill"],
     });
     const html = await render();
     expect(html).toContain("Most used");
@@ -65,7 +70,7 @@ describe("the home page", () => {
   });
 
   it("shows a user their drafts and changes requested, and nothing when there are none", async () => {
-    expect(await render()).not.toContain("For you");
+    expect(await render()).not.toContain("Waiting for you");
     drafts.listMySubmissions.mockResolvedValue([
       { status: "draft" },
       { status: "draft" },
@@ -73,7 +78,7 @@ describe("the home page", () => {
       { status: "published" },
     ]);
     const html = await render();
-    expect(html).toContain("For you");
+    expect(html).toContain("Waiting for you");
     expect(html).toContain("You have 2 drafts in progress.");
     expect(html).toContain("1 submission of yours needs changes.");
     expect(html).not.toContain("for review");
@@ -86,7 +91,7 @@ describe("the home page", () => {
   });
 
   it("explains how items arrive in an empty registry", async () => {
-    catalogue.homeLists.mockResolvedValue({ recent: [], mostUsed: [] });
+    catalogue.homeLists.mockResolvedValue({ recent: [], mostUsed: [], types: [] });
     const html = await render();
     expect(html).toContain("Nothing is published yet.");
     expect(html).toContain('href="/submissions/new"');

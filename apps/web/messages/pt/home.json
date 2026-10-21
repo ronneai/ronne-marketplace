@@ -1,0 +1,30 @@
+{
+  "title": "Ronne AI Marketplace",
+  "description": "Encontre o que foi revisado e publicado e instale com o rmk.",
+  "search": {
+    "label": "Pesquisar no catálogo",
+    "placeholder": "Nome, descrição ou palavra-chave",
+    "submit": "Pesquisar"
+  },
+  "types": {
+    "label": "Navegar por tipo"
+  },
+  "waiting": {
+    "title": "Esperando por você",
+    "drafts": "Você tem {count, plural, one {# rascunho} other {# rascunhos}} em andamento.",
+    "changes": "{count, plural, one {# submissão sua precisa} other {# submissões suas precisam}} de alterações.",
+    "review": "{count, plural, one {# submissão aguarda} other {# submissões aguardam}} revisão."
+  },
+  "recent": {
+    "title": "Publicados recentemente",
+    "seeAll": "Ver tudo"
+  },
+  "mostUsed": {
+    "title": "Mais usados"
+  },
+  "empty": {
+    "title": "Nada foi publicado ainda.",
+    "body": "Os itens chegam em três etapas: alguém submete um, um moderador revisa e aprova, e ele é lançado como uma versão. Depois, está no catálogo, pronto para instalar com o <mono>rmk</mono>.",
+    "submit": "Submeter um item"
+  }
+}

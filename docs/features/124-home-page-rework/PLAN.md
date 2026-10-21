@@ -27,7 +27,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* tests cover showing, dismissing, return after a change, HTML typed as text, and the
   no-JavaScript form.
 
-- [ ] **4. Home's layout.** `HomeView` split into sections with the empty-section rule, slots for
+- [x] **4. Home's layout.** `HomeView` split into sections with the empty-section rule, slots for
   getting started, favorites and pinned (rendering nothing for now), the new heading and
   description, search with type links.
   *Done when:* component tests cover each section present and absent, and the order.
