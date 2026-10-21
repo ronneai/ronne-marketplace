@@ -30,6 +30,7 @@ import {
   E2E_MOVE,
   E2E_NAMES,
   E2E_PASSWORD,
+  E2E_PINS,
   E2E_PROPOSAL_ITEM,
   E2E_RENAME,
   E2E_RMK_ITEMS,
@@ -488,6 +489,20 @@ const releaseSkillIn = async (
 };
 await releaseSkillIn(E2E_VAULT, "private", E2E_VAULT.members);
 await releaseSkillIn(E2E_SHELF, "public", []);
+// Pins (125): a public workspace with a skill, and each project's admin of it.
+await releaseSkillIn(E2E_PINS, "public", Object.values(E2E_PINS.admins));
+await db
+  .updateTable("workspace_members")
+  .set({ role: "admin" })
+  .where(
+    "user_id",
+    "in",
+    Object.values(E2E_PINS.admins).map((key) => ids[key] ?? ""),
+  )
+  .where("workspace_id", "in", (eb) =>
+    eb.selectFrom("workspaces").select("id").where("name", "=", E2E_PINS.workspace),
+  )
+  .execute();
 // Work in one workspace (120): two public workspaces with each project's moderator in both, and in
 // each a draft of every moderator's and a submission waiting for review.
 for (const where of [E2E_FOCUS, E2E_FOCUS.other]) {

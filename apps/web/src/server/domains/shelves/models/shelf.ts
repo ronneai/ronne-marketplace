@@ -25,6 +25,10 @@ export const INSTANCE_SHELF: Shelf = { kind: "instance" };
 export const shelfKey = (shelf: Shelf): string =>
   shelf.kind === "instance" ? "instance" : canonicalId(shelf.workspaceId);
 
+/** The shelf a key names (`shelfKey`'s inverse), for a request that carries it as text. */
+export const shelfOf = (key: string): Shelf =>
+  key === "instance" ? INSTANCE_SHELF : { kind: "workspace", workspaceId: key };
+
 export type Favorite = { itemId: string; createdAt: Date };
 
 export type Pin = {

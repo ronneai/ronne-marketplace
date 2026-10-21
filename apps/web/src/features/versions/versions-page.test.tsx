@@ -9,6 +9,7 @@ vi.mock("@/server/domains/items/actions/versions", () => versions);
 const usage = vi.hoisted(() => ({ itemUsage: vi.fn(), itemUsageByVersion: vi.fn() }));
 vi.mock("@/server/domains/usage/actions/usage", () => usage);
 vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));
+vi.mock("@/server/domains/shelves/actions/pins", () => ({ pinTargets: async () => [] }));
 vi.mock("@/server/domains/shelves/actions/favorites", () => ({
   favoritedAmong: async () => new Set<string>(),
 }));

@@ -34,7 +34,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   markup; the 44px target is the shared icon button's (067), checked by a class assertion; the
   no-JavaScript submit is proved end to end in task 9.
 
-- [ ] **5. Pin menu and Manage dialog.** The item page's Pin menu (Start here for root, each
+- [x] **5. Pin menu and Manage dialog.** The item page's Pin menu (Start here for root, each
   administered workspace), the Manage dialog on both shelves (Move up/down, Remove, count/limit,
   "Not available" rows).
   *Done when:* component tests cover who sees which entries and the dialog's actions; a phone test

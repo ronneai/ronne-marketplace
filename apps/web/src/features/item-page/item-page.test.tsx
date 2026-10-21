@@ -17,6 +17,7 @@ vi.mock("@/server/domains/usage/actions/usage", () => usage);
 vi.mock("@/server/domains/items/actions/catalogue", () => catalogue);
 vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));
 const shelves = vi.hoisted(() => ({ favoritedAmong: vi.fn() }));
+vi.mock("@/server/domains/shelves/actions/pins", () => ({ pinTargets: async () => [] }));
 vi.mock("@/server/domains/shelves/actions/favorites", () => shelves);
 vi.mock("@/features/favorites/actions", () => ({ toggleFavoriteFromForm: vi.fn() }));
 vi.mock("next/navigation", () => ({

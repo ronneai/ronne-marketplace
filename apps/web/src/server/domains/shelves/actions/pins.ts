@@ -7,7 +7,7 @@ import { kyselyPinRepository } from "../repositories/kysely-pin-repository";
 import { kyselyShelfItemsRepository } from "../repositories/kysely-shelf-items-repository";
 import * as service from "../services/pins";
 
-export type { ShelfEntry } from "../services/pins";
+export type { PinTarget, ShelfEntry } from "../services/pins";
 
 /** The pin shelves (feature 125). Thin: the service checks everything. */
 const context = async (headers: Headers, app: AppAuth) => {
@@ -61,4 +61,9 @@ export const listPins = async (
 ) => {
   const { actor, deps } = await context(headers, app);
   return service.listPins(deps, actor, shelf, include);
+};
+
+export const pinTargets = async (headers: Headers, itemId: string, app: AppAuth = getAppAuth()) => {
+  const { actor, deps } = await context(headers, app);
+  return service.pinTargets(deps, actor, itemId);
 };

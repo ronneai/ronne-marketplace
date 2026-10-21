@@ -20,7 +20,7 @@ import {
 } from "../exceptions/errors";
 import { INSTANCE_SHELF, MAX_PINS, type Shelf } from "../models/shelf";
 import { seedReleasedItem } from "../repositories/test-seed";
-import { listPins, movePin, pinItem, unpinItem } from "./pins";
+import { listPins, movePin, pinItem, pinTargets, unpinItem } from "./pins";
 
 // The pin shelves (feature 125) through the actions: who may pin, what is visible, the limits.
 let t: TestDb;
@@ -298,8 +298,13 @@ describe("visibility at read (125)", () => {
     await items.setYanked(version.id, { at: new Date(), reason: "bad" });
     expect(await order(asMember, acmeShelf, "available")).toEqual([publicItem]);
     expect(await listPins(asAdmin, acmeShelf, "all", app)).toEqual([
-      { itemId: acmeItem, position: 1, availability: "unavailable" },
-      { itemId: publicItem, position: 2, availability: "available" },
+      {
+        itemId: acmeItem,
+        name: "@acme/acme-infra/deploy",
+        position: 1,
+        availability: "unavailable",
+      },
+      { itemId: publicItem, name: "@team/base", position: 2, availability: "available" },
     ]);
     expect(await unpinItem(asAdmin, acmeShelf, acmeItem, app)).toBe(true);
     expect(await order(asAdmin, acmeShelf)).toEqual([publicItem]);
@@ -362,5 +367,50 @@ describe("the audit (125)", () => {
       PinNeedsPublicWorkspaceError,
     );
     expect(await audits()).toEqual([]);
+  });
+});
+
+describe("the Pin menu's shelves (125)", () => {
+  const names = async (headers: Headers, item: string) =>
+    (await pinTargets(headers, item, app)).map((t) => t.workspace ?? "(Start here)");
+
+  it("root: Start here and every workspace; an admin: only the workspaces they administer", async () => {
+    const root = await names(asRoot, publicItem);
+    expect(root[0]).toBe("(Start here)");
+    expect(root).toEqual(expect.arrayContaining(["acme", "beta", "global"]));
+    const admin = await names(asAdmin, publicItem);
+    expect(admin).toContain("acme");
+    expect(admin).not.toContain("beta");
+    expect(admin).not.toContain("(Start here)");
+    expect(await names(asBetaAdmin, publicItem)).toContain("beta");
+    expect(await names(asBetaAdmin, publicItem)).not.toContain("acme");
+  });
+
+  it("a moderator, a member and someone signed out get no shelf in acme", async () => {
+    for (const who of [asModerator, asMember]) {
+      expect(await names(who, publicItem)).not.toContain("acme");
+      expect(await names(who, publicItem)).not.toContain("(Start here)");
+    }
+    expect(await pinTargets(asAnon, publicItem, app)).toEqual([]);
+  });
+
+  it("says which shelves hold the item already", async () => {
+    await pinItem(asRoot, INSTANCE_SHELF, publicItem, app);
+    await pinItem(asAdmin, acmeShelf, publicItem, app);
+    const targets = await pinTargets(asRoot, publicItem, app);
+    expect(targets.find((t) => t.workspace === null)?.pinned).toBe(true);
+    expect(targets.find((t) => t.workspace === "acme")?.pinned).toBe(true);
+    expect(targets.find((t) => t.workspace === "beta")?.pinned).toBe(false);
+  });
+
+  it("Start here is blocked for an item of a private workspace", async () => {
+    const targets = await pinTargets(asRoot, acmeItem, app);
+    expect(targets.find((t) => t.workspace === null)).toMatchObject({ blocked: "private" });
+    expect((await pinTargets(asRoot, publicItem, app))[0]).toMatchObject({ blocked: null });
+  });
+
+  it("offers nothing for an item the person cannot see, or that is not released", async () => {
+    expect(await pinTargets(asBetaAdmin, acmeItem, app)).toEqual([]);
+    expect(await pinTargets(asRoot, "1".repeat(26), app)).toEqual([]);
   });
 });

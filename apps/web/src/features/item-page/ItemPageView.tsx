@@ -11,6 +11,8 @@ import { ScrollStrip } from "@/components/ui/ScrollStrip";
 import { stripTab } from "@/components/ui/scroll-strip";
 import { TypeBadge } from "@/components/ui/TypeBadge";
 import { FavoriteButton } from "@/features/favorites/FavoriteButton";
+import { PinMenu } from "@/features/pins/PinMenu";
+import type { PinTargetView } from "@/features/pins/types";
 import type { ItemPage } from "@/server/domains/items/actions/versions";
 import { ProposeButton } from "./ProposeButton";
 import { ITEM_TABS, type ItemTab, itemTabHref } from "./tabs";
@@ -26,8 +28,8 @@ export const ItemPageView = ({
   tab,
   children,
 }: {
-  /** `favorited`: whether the person has favorited the item (125); without it, no star. */
-  page: ItemPage & { favorited?: boolean };
+  /** `favorited`: whether the person has favorited the item; `pinTargets`: where they may pin it (125). Without them, no star or Pin menu. */
+  page: ItemPage & { favorited?: boolean; pinTargets?: PinTargetView[] };
   tab: ItemTab;
   children: ReactNode;
 }) => {
@@ -100,6 +102,9 @@ export const ItemPageView = ({
           {page.favorited === undefined ? null : (
             <FavoriteButton itemId={page.item.id} name={name} favorited={page.favorited} />
           )}
+          {page.pinTargets?.length ? (
+            <PinMenu itemId={page.item.id} name={name} targets={page.pinTargets} />
+          ) : null}
           <ProposeButton item={name} version={shown.version} />
         </div>
       </header>

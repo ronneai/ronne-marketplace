@@ -2,7 +2,11 @@ import { formatItemName } from "@ronneai/core";
 import type { Kysely } from "kysely";
 import type { Database } from "../../../db/schema";
 import type { Viewer } from "../../workspaces/models/viewer";
-import { inVisibleWorkspace, isVisibleItem } from "../../workspaces/repositories/visible";
+import {
+  inListedWorkspace,
+  inVisibleWorkspace,
+  isVisibleItem,
+} from "../../workspaces/repositories/visible";
 import { canonicalId } from "../models/shelf";
 import type { ShelfItemFacts, ShelfItemsRepository } from "./shelf-items-repository";
 
@@ -48,6 +52,16 @@ export const kyselyShelfItemsRepository = (
     facts,
     availability: async (itemIds) =>
       new Map([...(await facts(itemIds))].map(([id, f]) => [id, f.availability])),
+    workspaces: async (which, limit) => {
+      if (which !== "all" && which.length === 0) return [];
+      let query = db
+        .selectFrom("workspaces")
+        .select(["id", "name"])
+        .where(inVisibleWorkspace(viewer, "workspaces.id"))
+        .where(inListedWorkspace(viewer, "workspaces.id"));
+      if (which !== "all") query = query.where("id", "in", which.map(canonicalId));
+      return query.orderBy("name", "asc").limit(limit).execute();
+    },
     workspace: async (id) =>
       (await db
         .selectFrom("workspaces")

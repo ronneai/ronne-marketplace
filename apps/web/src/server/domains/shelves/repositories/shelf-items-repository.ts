@@ -26,4 +26,12 @@ export interface ShelfItemsRepository {
   facts(itemIds: readonly string[]): Promise<Map<string, ShelfItemFacts>>;
   /** A workspace the viewer sees, or null (it doesn't exist, or it is private to them). */
   workspace(id: string): Promise<{ id: string; name: string } | null>;
+  /**
+   * The workspaces the viewer sees among `ids`, or the ones their lists show (`"all"`, at most
+   * `limit`: root's, without other people's personal ones), by name.
+   */
+  workspaces(
+    which: readonly string[] | "all",
+    limit: number,
+  ): Promise<{ id: string; name: string }[]>;
 }

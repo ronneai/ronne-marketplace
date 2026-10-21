@@ -213,3 +213,32 @@ Witnessed: 2026-10-21 18:20 local, by a fresh agent (blind re-check). Commit: 6c
 | 10 | Checks are green | no | confirmed | Unit run 2715 tests passed; `biome check` no errors; typecheck clean. |
 
 **Overall:** met.
+
+## Task 5 — Pin menu and Manage dialog
+
+Witnessed: 2026-10-21 18:20 local, by a fresh agent (blind). Commit: e628e1b1 plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Unit and SQLite database tests, lint and typecheck are green | no | confirmed | Pins and item page unit tests, 48 shelves database tests, `biome check apps/web` no errors, typecheck clean. |
+| 2 | The Pin menu offers Start here only to root and each workspace only to the people who administer it | no | confirmed | `pinTargets` uses `pins.manage_global` and `workspacesWith(pins.manage)`; the database tests cover root, both admins, a moderator, a member and anonymous; giving Start here to everyone and widening `pins.manage` each failed tests. |
+| 3 | The menu is hidden when there is nowhere to pin; the entries and the blocked reason are tested | no | confirmed | `pins.test.tsx` covers the empty menu, root's rows, an admin without Start here, the disabled reason and the search field; dropping the reason failed a test. |
+| 4 | The menu is wired into the item page | no | confirmed | `load.ts` maps the targets and `ItemPageView` renders `PinMenu` only when there are some. |
+| 5 | Component tests cover the Manage dialog's actions: Move up and down, Remove, count and limit, Not available rows | no | not met | No DOM test environment; only "Loading…" was asserted. Move up not disabled at the top, the badge removed and the count blanked all survived. |
+| 6 | A phone test shows the full-screen dialog behaving: 44px targets, buttons in view | no | confirmed | The Playwright test passed on phone, WebKit and tablet: the dialog fills a phone, the heading and Done are in view, targets are 44px tall, no sideways scroll, and Pin, Manage and Remove work. |
+| 7 | A moderator and a member do not see the menu and an admin does not see Start here in the real UI | no | partly | The service and the component are covered; the end-to-end test signs in as an admin only. |
+
+**Overall:** not met: rows 5 and 7.
+
+### Re-check (rows 5, 7)
+
+Witnessed: 2026-10-21 18:30 local, by a fresh agent (blind re-check). Commit: e628e1b1 plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 5 | Component tests cover Move up and down, Remove, count and limit, and the Not available rows | no | confirmed | `ShelfList` is tested by static render; Move up enabled at the top, Move down enabled at the bottom, the badge removed and the count blanked each failed a test. The clicks run in the phone test, which pins two items, checks the disabled ends, moves up and down and removes both. |
+| 7 | Root gets Start here; admins never do; a member or moderator never gets Start here or another workspace's shelf | no | confirmed | The moderator and member test now asserts no Start here; giving Start here to everyone failed two database tests. A member or moderator sees a Pin button for their own personal workspace only (the spec's "each workspace the person administers"). |
+| 8 | The phone test passes on phone, WebKit and tablet | no | confirmed | 3 passed. |
+| 9 | Lint and typecheck are clean | no | confirmed | `biome check apps/web` no errors; typecheck clean. |
+
+**Overall:** met.

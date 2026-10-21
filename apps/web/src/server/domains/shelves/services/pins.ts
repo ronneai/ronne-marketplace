@@ -1,6 +1,6 @@
 import type { NewAuditEvent } from "../../audit/models/audit-event";
 import { ForbiddenError } from "../../identity/exceptions/errors";
-import { can, requirePermission } from "../../identity/models/permissions";
+import { can, requirePermission, workspacesWith } from "../../identity/models/permissions";
 import { WorkspaceNotFoundError } from "../../workspaces/exceptions/errors";
 import {
   PinLimitError,
@@ -129,6 +129,8 @@ export const movePin = async (
 
 export type ShelfEntry = {
   itemId: string;
+  /** Its full name. */
+  name: string;
   position: number;
   availability: "available" | "unavailable";
 };
@@ -149,12 +151,66 @@ export const listPins = async (
   else if (shelf.kind === "workspace" && !(await deps.items.workspace(shelf.workspaceId)))
     return [];
   const pins = await deps.pins.list(shelf);
-  const seen = await deps.items.availability(pins.map((pin) => pin.itemId));
+  const seen = await deps.items.facts(pins.map((pin) => pin.itemId));
   return pins.flatMap((pin) => {
-    const availability = seen.get(pin.itemId);
-    if (!availability || (include === "available" && availability !== "available")) return [];
-    return [{ itemId: pin.itemId, position: pin.position, availability }];
+    const fact = seen.get(pin.itemId);
+    if (!fact || (include === "available" && fact.availability !== "available")) return [];
+    return [
+      {
+        itemId: pin.itemId,
+        name: fact.name,
+        position: pin.position,
+        availability: fact.availability,
+      },
+    ];
   });
+};
+
+/** A shelf the person may pin this item to, and whether it is on it already. */
+export type PinTarget = {
+  shelf: Shelf;
+  /** The workspace's name; null for Start here. */
+  workspace: string | null;
+  pinned: boolean;
+  /** Why it can't be pinned there: Start here takes only items of a public workspace. */
+  blocked: "private" | null;
+};
+
+/** The most workspaces root's Pin menu lists; it is searched by name beyond that. */
+export const MAX_PIN_TARGETS = 200;
+
+/**
+ * The shelves the actor may pin the item to, for the item page's Pin menu: Start here for root,
+ * and each workspace they administer (root: any, by name). Nothing for an item they can't pin.
+ */
+export const pinTargets = async (
+  deps: PinDeps,
+  actor: PinActor,
+  itemId: string,
+): Promise<PinTarget[]> => {
+  if (!actor.user) return [];
+  const id = canonicalId(itemId);
+  const fact = (await deps.items.facts([id])).get(id);
+  if (fact?.availability !== "available") return [];
+  const on = await deps.pins.shelvesOf(id);
+  const targets: PinTarget[] = [];
+  if (can(actor.user, "pins.manage_global"))
+    targets.push({
+      shelf: { kind: "instance" },
+      workspace: null,
+      pinned: on.instance,
+      blocked: fact.workspaceVisibility === "public" ? null : "private",
+    });
+  const administered = workspacesWith(actor.user, "pins.manage");
+  const workspaces = await deps.items.workspaces(administered, MAX_PIN_TARGETS);
+  for (const workspace of workspaces)
+    targets.push({
+      shelf: { kind: "workspace", workspaceId: workspace.id },
+      workspace: workspace.name,
+      pinned: on.workspaceIds.some((wid) => canonicalId(wid) === canonicalId(workspace.id)),
+      blocked: null,
+    });
+  return targets;
 };
 
 /** Whether the actor may pin to the shelf: for the item page's Pin menu. */

@@ -12,6 +12,8 @@ import {
   VersionNotFoundError,
 } from "@/server/domains/items/exceptions/errors";
 import { favoritedAmong } from "@/server/domains/shelves/actions/favorites";
+import { pinTargets } from "@/server/domains/shelves/actions/pins";
+import { shelfKey } from "@/server/domains/shelves/models/shelf";
 import { itemUsage, itemUsageByVersion } from "@/server/domains/usage/actions/usage";
 import { requestHeaders } from "@/server/http/request-headers";
 
@@ -53,7 +55,14 @@ export const loadItemPage = async (params: ItemParams, version?: string, rest = 
   const favorited = (await favoritedAmong(await requestHeaders(), [page.item.id])).has(
     page.item.id,
   );
-  return { ...page, favorited };
+  // The shelves the person may pin it to, for the Pin menu (125).
+  const targets = (await pinTargets(await requestHeaders(), page.item.id)).map((target) => ({
+    key: shelfKey(target.shelf),
+    workspace: target.workspace,
+    pinned: target.pinned,
+    blocked: target.blocked,
+  }));
+  return { ...page, favorited, pinTargets: targets };
 };
 
 /**
