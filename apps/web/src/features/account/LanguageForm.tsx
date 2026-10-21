@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useActionState } from "react";
+import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
 import { FieldError, Label, selectClasses } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
@@ -55,6 +56,9 @@ export const LanguageForm = ({
           {t("hint")}
         </p>
         <FieldError id="language-error">{state.error ? t("invalid") : undefined}</FieldError>
+        <div>
+          <Help id="language" />
+        </div>
       </div>
       <div>
         <Button type="submit" loading={pending}>

@@ -352,7 +352,7 @@ use what it taught. From 129 on every new screen is written with messages.
 
 | ID | Feature | Depends on | Status |
 |---|---|---|---|
-| [129](./129-languages-foundation/SPEC.md) | Languages, the foundation: `user.locale`, how the language is chosen (profile, cookie, browser, English), message files with parity and raw-text tests, the shell, Account, sign-in and shared UI in three languages | 006, 032, 049, 088, 104, 123 | in progress |
+| [129](./129-languages-foundation/SPEC.md) | Languages, the foundation: `user.locale`, how the language is chosen (profile, cookie, browser, English), message files with parity and raw-text tests, the shell, Account, sign-in and shared UI in three languages | 006, 032, 049, 088, 104, 123 | done |
 | 130 | Languages: browse. Catalogue, item page, workspaces pages, Home's helpers and the Documentation helpers' text | 129 | planned |
 | 131 | Languages: author and review. Draft editor, composer, submissions, reviews, versions, releases and their error messages | 129 | planned |
 | 132 | Languages: admin and setup. Admin pages, settings tabs, audit log labels, the setup wizard, SSO and SCIM screens; an instance default language if wanted | 129 | planned |

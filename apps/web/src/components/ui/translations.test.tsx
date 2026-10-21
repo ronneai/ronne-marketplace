@@ -117,7 +117,7 @@ describe("the shared UI pieces in three languages (129)", () => {
       {
         en: ["Leave without saving?", "Stay on this page"],
         pt: ["Sair sem salvar?", "Ficar nesta página"],
-        fr: ["Quitter sans enregistrer ?", "Rester sur cette page"],
+        fr: ["Quitter sans enregistrer?", "Rester sur cette page"],
       },
       (l) => html(l, <UnsavedChangesGuard dirty />),
     );

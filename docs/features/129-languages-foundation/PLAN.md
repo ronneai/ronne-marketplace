@@ -94,9 +94,11 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   index.
   *Done when:* the files are changed and the knowledge note is linked from CLAUDE.md.
 
-- [ ] **13. Documentation.** The section and helper in the spec, both `topics.ts`, and the shell's
-  translated names wherever the Portuguese and French pages name a label (Catalogue, Reviews,
-  Submissions, Sign out…), in a ronne-web branch.
+- [x] **13. Documentation.** The section `account#language` and the Overview sentence in the three
+  languages, both `topics.ts`, the helper "What changes?" next to the Language select, the
+  Portuguese and French pages naming the labels the app now shows translated (and leaving English
+  the ones still English), the translation guide's glossary and the website's product facts, in the
+  ronne-web branch `docs/marketplace-languages`; the app side here.
   *Done when:* the docs tests pass in ronne-web, and the helper link test passes here.
 
 ## Notes
@@ -149,3 +151,13 @@ it shows only a code, the maps above are enough.
 which `LocalTime` uses, `DataTable`, `ItemCard`, the versions and item-page tabs, the draft editor
 and two settings panels: task 5 and the later sweeps) and 5 on the server (the backup commands,
 `setup/purge.ts` and the submissions errors), which stay as they are.
+
+### Done (2026-10-21)
+
+All thirteen tasks are ticked. The Documentation is on the ronne-web branch
+`docs/marketplace-languages` (commits f6e5c71, 0085ce8, 2349cd2, ed6e55a), not pushed: it goes live
+with the release, as the owner's rule says. Accepted limits: no test ties this repository's
+`components/help/topics.ts` to ronne-web's `topics.ts` (they agree by hand; a change to one needs
+the other, as CLAUDE.md says); the Portuguese and French texts are first drafts for a native reader
+to review in 133; the inline helper texts (`components/help/Help.tsx`) stay English until 132.
+

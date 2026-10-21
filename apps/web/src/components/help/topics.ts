@@ -148,10 +148,11 @@ export const TOPICS = [
     slug: "account",
     title: "Your account",
     summary:
-      "How you sign in, with a password or your company's identity provider, and two-factor sign-in.",
+      "How you sign in, with a password or your company's identity provider, two-factor sign-in, and the language of the screens.",
     sections: [
       { id: "signing-in", title: "Signing in" },
       { id: "two-factor", title: "Two-factor sign-in" },
+      { id: "language", title: "Language" },
     ],
   },
   {

@@ -22,7 +22,7 @@
     "learnMore": "En savoir plus"
   },
   "unsaved": {
-    "title": "Quitter sans enregistrer ?",
+    "title": "Quitter sans enregistrer?",
     "message": "Vos modifications ne sont pas enregistrées. Si vous quittez maintenant, elles seront perdues.",
     "stay": "Rester sur cette page",
     "leave": "Quitter sans enregistrer",
@@ -53,7 +53,7 @@
   },
   "error": {
     "title": "Une erreur s’est produite",
-    "message": "La page n’a pas pu être affichée. Réessayez ; si le problème persiste, prévenez les personnes qui gèrent cette instance.",
+    "message": "La page n’a pas pu être affichée. Réessayez; si le problème persiste, prévenez les personnes qui gèrent cette instance.",
     "retry": "Réessayer",
     "home": "Aller à l’accueil",
     "reference": "Référence : {digest}"

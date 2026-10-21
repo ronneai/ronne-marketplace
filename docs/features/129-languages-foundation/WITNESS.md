@@ -460,3 +460,48 @@ Witnessed: 2026-10-21, by a fresh agent (blind). Commit: e5c1a5d0 plus the uncom
 | 19 | Lint, typecheck and the unit project pass with the `topics.ts` change | no | confirmed | `pnpm lint` 0; typecheck 7/7; unit project 196 files, 2410 passed. |
 
 **Overall:** met.
+
+## Task 13 — Documentation
+
+Witnessed: 2026-10-21 00:55 EDT, by a fresh agent (blind). Commit: 4cfc65af plus the uncommitted marketplace changes (`help/Help.tsx`, `help/topics.ts`, `account/LanguageForm.tsx`, `PLAN.md`); ronne-web `docs/marketplace-languages` at 0085ce8. Machine: macOS (Darwin 27), Node 24. The ronne-web checks ran in a clone of the branch.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The helper link test passes in the marketplace, and lint and typecheck are clean | no | confirmed | `vitest run src/components src/features/account` → 27 files, 253 passed; root lint and typecheck clean. |
+| 2 | The `language` helper ("What changes?") links to `account#language` and sits next to the Language select | no | confirmed | `Help.tsx` adds it with `docsHref("account", "language")`, typed by `SectionOf<"account">`; `LanguageForm.tsx` renders `<Help id="language" />` in the select's field block. |
+| 3 | The app's `topics.ts` has `language` in the account topic with the new summary | no | confirmed | `{ id: "language", title: "Language" }` added; ronne-web's `topics.ts` has `account: ["signing-in","two-factor","language"]`. |
+| 4 | ronne-web docs tests, lint, typecheck and build pass; `docs.test.ts` checks the sections in every locale | no | partly | All green (30 files, 173 tests; build ok); `docs.test.ts` checks the site's own `topics.ts`; no test compares it with the app's, which agree by hand. |
+| 5 | `account#language` exists in en, pt and fr and covers the languages, the order of choice, what is and isn't translated, `rmk` staying English | no | confirmed | `en/account.tsx` (+76), `pt` and `fr` have the same structure. |
+| 6 | Every factual claim in the section matches the code | no | confirmed | Order, `pt-PT`/`pt-BR`/`fr-CA` matching, the cookie name, Save and Automatic, the language links on sign-in, its second step and the setup, `localizedDocsHref`, the translated and Planned lists. |
+| 7 | The Overview sentence with a `DocLink` to `account#language` in en, pt, fr | no | confirmed | In "Finding your way" in all three; the link test passes. |
+| 8 | The pt/fr label names changed in the diff match the app and belong to screens translated at this release | no | confirmed | About 55 changed labels over 24 files checked against `messages/{pt,fr}/{shell,auth,common}.json`: all exact; none belongs to a screen still in English. |
+| 9 | No label that should have changed was left in English | no | partly | About 25 bare mentions of the sidebar links (Users, Reviews, Catalogue, Home, Requests, Settings) were still English, and `workspaces.tsx` listed sidebar links in English. |
+| 10 | The glossary and the product facts agree with the app and say only what is built | no | confirmed | The new "Interface labels" table matches the message files (about 20 rows); product facts have Languages, Translated-at-that-release and "Not yet" rows. |
+| 11 | pt/fr quality of the new section | no | partly | The section is fully "você"/"vous"; pt prose said "login em duas etapas" (about 30 times) while the app's tab says "Autenticação de dois fatores". |
+| 12 | Nothing `docs/knowledge/i18n.md` or CLAUDE.md says is contradicted by the website | no | partly | The label pass was uneven (row 9); the app's `i18n.md` put a space before `;` while the website's guide (Canadian) does not; the curly apostrophe in the app against the straight one on the site. |
+
+**Overall:** not met (rows 4, 9, 11, 12). Row 4's limitation is accepted (see the plan's notes). Fixed: ronne-web commit 2349cd2 (the bare sidebar-link mentions, "autenticação de dois fatores" with gender agreement, 7 French lines without a space before `;`, a guide note on which mention gets the translated name); in the marketplace, French messages without a space before `?` and `;`, and `i18n.md`'s French rule aligned to the website's guide with the apostrophe difference recorded.
+
+### Re-check (rows 9, 11, 12)
+
+Witnessed: 2026-10-21 01:20 EDT, by a fresh agent (blind). Commit: 4cfc65af plus the uncommitted marketplace changes; ronne-web at 2349cd2. Machine: macOS (Darwin 27), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 9 | Sidebar-link mentions are translated, and any remaining English is a page heading, tab or breadcrumb still English in the app | no | partly | The search over pt and fr found 24 remaining occurrences each, all correct per the guide except one: in `workspaces.tsx` "My submissions" was replaced by the sidebar name in a sentence that lists pages (against the guide); and "na página Requests" was ambiguous. |
+| 11 | pt "login em duas etapas" is now "autenticação de dois fatores" with gender, number and article agreement; "segunda etapa" kept | no | confirmed | `grep duas etapas pt` → 0; about 25 changed sentences read ("a autenticação… pede", "ativá-la", "a exija", "foi ativada"); no masculine leftover. |
+| 12 | The guide and `i18n.md` agree on French punctuation; no fr app message has a space before `; ? !` | no | confirmed | Both: a space before a colon only; `grep ' [;?!]' messages/fr/*.json` → 0. |
+| — | Checks | no | confirmed | ronne-web at 2349cd2: lint clean, `tsc` 0, 173 tests, build ok; marketplace lint, typecheck, unit project 196 files, 2410 passed. |
+
+**Overall:** not met (row 9, one wrong replacement). Fixed in ronne-web commit ed6e55a.
+
+### Re-check (row 9 and the overall of the task)
+
+Witnessed: 2026-10-21 01:40 EDT, by a fresh agent (blind). Commit: 4cfc65af plus the uncommitted marketplace changes; ronne-web `docs/marketplace-languages` at ed6e55a. Machine: macOS (Darwin 27), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 9 | Sidebar-link mentions are translated, and a sentence that lists the pages an action affects uses the pages' own English headings | no | confirmed | `git diff 2349cd2..ed6e55a` changes only the guide, `pt/workspaces.tsx` and `fr/workspaces.tsx`: the filter sentence lists the English headings (Catalogue, Reviews, My submissions); "Requests to join" is the page's title in the app (`app/(app)/workspaces/requests/page.tsx`); the guide's new bullet reads consistently. |
+| — | ronne-web checks | no | confirmed | At ed6e55a: `biome check` clean, `tsc` 0, 30 files and 173 tests, build ok. |
+
+**Overall:** met. (No test ties the app's `topics.ts` to ronne-web's; they agree by hand.)
