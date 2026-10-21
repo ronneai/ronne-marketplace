@@ -1,9 +1,9 @@
 import { RENDERERS } from "@ronneai/core/render";
 import { ArrowUpDown, Check, ChevronRight, SlidersHorizontal, X } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import { ItemCard } from "@/components/catalogue/ItemCard";
-import { TYPE_INFO } from "@/components/submissions/item-types";
 import { buttonClasses } from "@/components/ui/Button";
 import { cn } from "@/components/ui/cn";
 import { Disclosure } from "@/components/ui/Disclosure";
@@ -68,6 +68,7 @@ export const CatalogueView = ({
    */
   keepAll?: boolean;
 }) => {
+  const typeText = useTranslations("types");
   const { query } = page;
   const href = (changes: Parameters<typeof catalogueHref>[1] = {}) =>
     catalogueHref(query, changes, keepAll);
@@ -146,7 +147,7 @@ export const CatalogueView = ({
                   <span className="font-normal text-muted">
                     {query.types.length === 0
                       ? `all ${total}`
-                      : query.types.map((t) => TYPE_INFO[t].label).join(", ")}
+                      : query.types.map((type) => typeText(`name.${type}`)).join(", ")}
                   </span>
                 </summary>
                 <fieldset className="mt-2 grid gap-1.5 sm:grid-cols-2">
@@ -164,7 +165,7 @@ export const CatalogueView = ({
                         aria-hidden="true"
                         className={cn("size-2 shrink-0 rounded-full", TYPE_DOT[t.type])}
                       />
-                      {TYPE_INFO[t.type].label}
+                      {typeText(`name.${t.type}`)}
                       <span className="ml-auto text-xs text-muted">{t.count}</span>
                     </label>
                   ))}
@@ -247,11 +248,11 @@ export const CatalogueView = ({
                 <ActiveFilter
                   key={type}
                   href={href({ types: query.types.filter((t) => t !== type) })}
-                  label={`Remove the ${TYPE_INFO[type].label} filter`}
+                  label={`Remove the ${typeText(`name.${type}`)} filter`}
                   className={TYPE_CLASSES[type]}
                 >
                   <span aria-hidden="true" className={cn("size-2 rounded-full", TYPE_DOT[type])} />
-                  {TYPE_INFO[type].label}
+                  {typeText(`name.${type}`)}
                 </ActiveFilter>
               ))}
               {query.workspace ? (

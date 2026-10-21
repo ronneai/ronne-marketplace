@@ -11,13 +11,15 @@ Every task that moves a folder adds it to the `overrides` entry in `biome.json` 
 
 ## Tasks
 
-- [ ] **1. Shared words.** The item types (`TYPE_INFO` labels' descriptions and groups), roles (one
-  set of messages replacing the three `ROLE_LABELS`), status badges, `TypeBadge`, `ItemCard`, the
-  data-table footer's noun and pager (a plural per language), and number and date formatting by
-  language (a small helper, no `en-US`/`en-GB` in scope). Namespaces `types`, `roles` (or in
-  `common`) as the glossary suggests; glossary rows for the new words.
-  *Done when:* component tests render `TypeBadge`, `ItemCard` and the table footer in three
-  languages with counts 0, 1 and 2; the parity test passes.
+- [x] **1. Shared words.** The item types' names, descriptions and groups (`types.json`;
+  `TYPE_INFO` keeps only the data), the role titles (`common.roleTitle`, one set replacing the three
+  `ROLE_LABELS`, used from tasks 5 and 6), `ItemCard` and `ItemPlace` (`catalogue.json`), the data
+  table's count noun (a key of `common.table.nouns`, a plural per language; callers pass the key),
+  and an English-leak test helper the later tasks reuse (`src/test/english-leak.ts`). Numbers and
+  dates come from next-intl's formatter, so no helper of ours. `TypeBadge` shows the type's id, a
+  technical identifier, and the status badges are 131's.
+  *Done when:* component tests render `ItemCard`, `ItemPlace` and the table footer in three
+  languages with counts 0, 1 and 2; the parity test passes; `components/catalogue` is in the scan.
 
 - [ ] **2. Catalogue.** `CatalogueView` (sort options with hints, filters and their chips, the
   empty states with `<mono>rmk</mono>`, the pager, "all {total}", "Personal ({workspace})"), the

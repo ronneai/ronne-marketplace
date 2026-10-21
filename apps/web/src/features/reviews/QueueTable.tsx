@@ -312,7 +312,7 @@ export const QueueTable = ({
     rowKey={(row) => row.id}
     page={page}
     total={total}
-    noun={total.count === 1 && !total.capped ? "submission" : "submissions"}
+    noun="submission"
     toolbar={
       <>
         <Filters list={list} state={state} />

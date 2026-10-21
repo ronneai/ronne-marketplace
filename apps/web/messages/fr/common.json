@@ -38,6 +38,15 @@
     "next": "Suivant",
     "show": "Afficher",
     "count": "{count, number}{capped, select, true {+} other {}} {noun}",
+    "nouns": {
+      "event": "{count, plural, one {événement} other {événements}}",
+      "item": "{count, plural, one {élément} other {éléments}}",
+      "member": "{count, plural, one {membre} other {membres}}",
+      "scope": "{count, plural, one {portée} other {portées}}",
+      "submission": "{count, plural, one {soumission} other {soumissions}}",
+      "user": "{count, plural, one {utilisateur} other {utilisateurs}}",
+      "workspace": "{count, plural, one {espace de travail} other {espaces de travail}}"
+    },
     "nothingLeft": "Il ne reste rien sur cette page.",
     "clearFilters": "Effacer les filtres",
     "actions": "Actions",
@@ -63,6 +72,12 @@
     "admin": "admin",
     "moderator": "modérateur",
     "user": "utilisateur"
+  },
+  "roleTitle": {
+    "root": "Root",
+    "admin": "Admin",
+    "moderator": "Modérateur",
+    "user": "Utilisateur"
   },
   "cliAuth": {
     "title": "Utilisez rmk dans le terminal",

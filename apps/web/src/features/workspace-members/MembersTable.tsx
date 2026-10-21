@@ -153,7 +153,7 @@ export const MembersTable = ({
     rowKey={(member) => member.userId}
     page={page}
     total={total}
-    noun={total.count === 1 && !total.capped ? "member" : "members"}
+    noun="member"
     toolbar={
       <div className="grid gap-3">
         <div>

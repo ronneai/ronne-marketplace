@@ -1,0 +1,21 @@
+{
+  "card": {
+    "risk": "⚠ risque",
+    "deprecated": "obsolète",
+    "notInstallable": "aucune version installable",
+    "noDescription": "Aucune description.",
+    "deprecatedNote": "Obsolète : {message}",
+    "published": "publié le <date></date>",
+    "worksIn": "fonctionne dans {tools}",
+    "worksInNone": "ne fonctionne dans aucun outil intégré",
+    "installs": "{count, plural, one {# installation} other {# installations}}"
+  },
+  "place": {
+    "workspace": "Espace de travail",
+    "scope": "Portée",
+    "personal": "(personnel)",
+    "personalTitle": "Seuls son propriétaire et root voient cet élément.",
+    "private": "Privé",
+    "privateTitle": "Seuls les membres de {workspace} et root voient cet élément."
+  }
+}

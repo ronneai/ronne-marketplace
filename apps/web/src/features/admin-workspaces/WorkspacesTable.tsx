@@ -186,7 +186,7 @@ export const WorkspacesTable = ({
     rowKey={(workspace) => workspace.id}
     page={page}
     total={total}
-    noun={total.count === 1 && !total.capped ? "workspace" : "workspaces"}
+    noun="workspace"
     toolbar={
       <div className="grid gap-3">
         {kinds ? <KindTabs list={list} state={state} counts={kinds} /> : null}

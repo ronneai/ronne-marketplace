@@ -1,0 +1,21 @@
+{
+  "card": {
+    "risk": "⚠ risk",
+    "deprecated": "deprecated",
+    "notInstallable": "no installable version",
+    "noDescription": "No description.",
+    "deprecatedNote": "Deprecated: {message}",
+    "published": "published <date></date>",
+    "worksIn": "works in {tools}",
+    "worksInNone": "works in no built-in tool",
+    "installs": "{count, plural, one {# install} other {# installs}}"
+  },
+  "place": {
+    "workspace": "Workspace",
+    "scope": "Scope",
+    "personal": "(personal)",
+    "personalTitle": "Only its owner and root see this item.",
+    "private": "Private",
+    "privateTitle": "Only {workspace}’s members and root see this item."
+  }
+}

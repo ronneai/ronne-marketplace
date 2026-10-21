@@ -126,7 +126,7 @@ export const ScopesTable = ({
     rowKey={(scope) => scope.id}
     page={page}
     total={total}
-    noun={total.count === 1 && !total.capped ? "scope" : "scopes"}
+    noun="scope"
     toolbar={<Search list={list} state={state} />}
     empty={{
       none: "No scopes yet.",

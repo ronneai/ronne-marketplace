@@ -1,6 +1,8 @@
 import { formatItemName, GLOBAL_WORKSPACE } from "@ronneai/core";
 import { installsIn, RENDERERS } from "@ronneai/core/render";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Fragment } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { CopyableCommand } from "@/components/ui/CopyableCommand";
 import { LocalTime } from "@/components/ui/LocalTime";
@@ -34,12 +36,23 @@ export const ItemCard = ({
   entry: CatalogueEntry;
   heading?: "h2" | "h3";
 }) => {
+  const t = useTranslations("catalogue.card");
   const name = formatItemName(entry);
   const tools = RENDERERS.filter((r) => installsIn(entry.support[r.id])).map((r) => r.name);
-  const keywords = entry.keywords.map((keyword) => `#${keyword}`);
+  // The line under the card, its parts told apart by a dot: keywords, when, where it works, installs.
   const details = [
-    tools.length ? `works in ${tools.join(", ")}` : "works in no built-in tool",
-    `${entry.downloadCount.toLocaleString("en")} install${entry.downloadCount === 1 ? "" : "s"}`,
+    ...entry.keywords.map((keyword) => ({ id: `#${keyword}`, text: <>#{keyword}</> })),
+    {
+      id: "published",
+      text: t.rich("published", {
+        date: () => <LocalTime value={entry.publishedAt} precision="day" />,
+      }),
+    },
+    {
+      id: "works-in",
+      text: tools.length ? t("worksIn", { tools: tools.join(", ") }) : t("worksInNone"),
+    },
+    { id: "installs", text: t("installs", { count: entry.downloadCount }) },
   ];
   return (
     <article className="grid grid-cols-1 gap-2 rounded-panel border border-hairline bg-surface p-4">
@@ -52,11 +65,12 @@ export const ItemCard = ({
             {name}
           </Link>
         </Heading>
+        {/* biome-ignore lint/plugin: a version number, the same in every language */}
         <span className="font-mono text-xs text-muted">v{entry.version}</span>
         <TypeBadge type={entry.type} />
-        {entry.risky ? <Badge tone="warning">⚠ risk</Badge> : null}
-        {entry.deprecatedMessage ? <Badge tone="warning">deprecated</Badge> : null}
-        {entry.installable ? null : <Badge tone="error">no installable version</Badge>}
+        {entry.risky ? <Badge tone="warning">{t("risk")}</Badge> : null}
+        {entry.deprecatedMessage ? <Badge tone="warning">{t("deprecated")}</Badge> : null}
+        {entry.installable ? null : <Badge tone="error">{t("notInstallable")}</Badge>}
       </div>
       <ItemPlace
         workspace={entry.workspace}
@@ -64,14 +78,20 @@ export const ItemCard = ({
         privateWorkspace={entry.privateWorkspace}
         personalWorkspace={entry.personalWorkspace}
       />
-      <p className="text-sm text-fg">{entry.description || "No description."}</p>
+      <p className="text-sm text-fg">{entry.description || t("noDescription")}</p>
       {entry.deprecatedMessage ? (
-        <p className="text-xs text-warning-text">Deprecated: {entry.deprecatedMessage}</p>
+        <p className="text-xs text-warning-text">
+          {t("deprecatedNote", { message: entry.deprecatedMessage })}
+        </p>
       ) : null}
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-hairline pt-2">
         <p className="font-mono text-xs text-muted">
-          {[...keywords, ""].join(" · ")}published{" "}
-          <LocalTime value={entry.publishedAt} precision="day" /> · {details.join(" · ")}
+          {details.map((part, index) => (
+            <Fragment key={part.id}>
+              {index ? " · " : null}
+              {part.text}
+            </Fragment>
+          ))}
         </p>
         {entry.installable ? (
           <div className="w-full sm:w-auto">

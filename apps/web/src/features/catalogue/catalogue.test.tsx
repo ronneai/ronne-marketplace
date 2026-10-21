@@ -284,7 +284,7 @@ describe("workspaces in the catalogue (090)", () => {
     const html = view({
       entries: [entry({ workspace: "acme", privateWorkspace: true, scope: "acme-infra" })],
     });
-    expect(html).toContain('title="Only acme&#x27;s members and root see this item."');
+    expect(html).toContain('title="Only acme’s members and root see this item."');
     expect(html).toContain("rmk install @acme/acme-infra/");
     expect(html).toMatch(
       /Workspace<\/span><a[^>]*href="\/workspaces\/acme"[^>]*>acme<\/a><span[^>]*><svg[^>]*lucide-lock[^>]*>.*?<\/svg>Private<\/span><span aria-hidden="true">·<\/span><span>Scope<\/span><span[^>]*>@acme-infra<\/span>/,

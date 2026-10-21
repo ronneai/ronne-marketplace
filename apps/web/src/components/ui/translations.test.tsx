@@ -135,7 +135,7 @@ describe("the shared UI pieces in three languages (129)", () => {
           rowKey={(t) => t.id}
           page={{ next: "c2", previous: "c0" }}
           total={{ count, capped }}
-          noun="things"
+          noun="item"
           empty={{ none: "None", filtered: "Filtered" }}
         />,
       );
@@ -148,9 +148,19 @@ describe("the shared UI pieces in three languages (129)", () => {
       (l) => render(l, 2, false),
     );
     // Numbers are written the way each language writes them, and a capped count keeps its +.
-    expect(render("en", 12345, true)).toContain("12,345+ things");
-    expect(render("pt", 12345, false)).toContain("12.345 things");
-    expect(render("fr", 12345, false)).toMatch(/12\s345 things/);
+    expect(render("en", 12345, true)).toContain("12,345+ items");
+    expect(render("pt", 12345, false)).toContain("12.345 itens");
+    expect(render("fr", 12345, false)).toMatch(/12\s345 éléments/);
+    // A noun takes the language's plural: French and Portuguese count 0 and 1 as one, English only 1.
+    expect(render("en", 1, false)).toContain("1 item<");
+    expect(render("en", 0, false)).toContain("0 items");
+    expect(render("fr", 0, false)).toContain("0 élément<");
+    expect(render("fr", 1, false)).toContain("1 élément<");
+    expect(render("fr", 2, false)).toContain("2 éléments");
+    expect(render("pt", 0, false)).toContain("0 item<");
+    expect(render("pt", 1, false)).toContain("1 item<");
+    expect(render("pt", 2, false)).toContain("2 itens");
+    expect(render("en", 2, false)).toContain("2 items");
     each(
       {
         en: ["Nothing left on this page."],
@@ -173,7 +183,7 @@ describe("the shared UI pieces in three languages (129)", () => {
           rowKey={(t: { id: string }) => t.id}
           page={{ next: null, previous: null }}
           total={{ count: 1, capped: false }}
-          noun="things"
+          noun="item"
           empty={{ none: "None", filtered: "Filtered" }}
         />,
       );

@@ -1,0 +1,33 @@
+{
+  "group": {
+    "guidance": "Orientações",
+    "runtime": "Execução e ferramentas",
+    "bundles": "Pacotes"
+  },
+  "name": {
+    "skill": "Skill",
+    "agent": "Agent",
+    "rule": "Rule",
+    "command": "Command",
+    "output-style": "Output style",
+    "hook": "Hook",
+    "mcp-server": "MCP server",
+    "permission-policy": "Permission policy",
+    "statusline": "Status line",
+    "lsp-server": "LSP server",
+    "bundle": "Bundle"
+  },
+  "description": {
+    "skill": "Instruções (SKILL.md), com scripts e arquivos opcionais, que a IA carrega quando uma tarefa precisa delas.",
+    "agent": "Um subagente com prompt, ferramentas permitidas e modelo próprios.",
+    "rule": "Orientações que valem sempre, para arquivos que combinam, quando a IA decide ou sob demanda.",
+    "command": "Um prompt reutilizável ou comando de barra, com argumentos.",
+    "output-style": "Muda a forma como o agente escreve as respostas.",
+    "hook": "Um comando que roda em um evento de uma ferramenta de IA, como tool.after ou session.start.",
+    "mcp-server": "A conexão com um servidor MCP: um programa a iniciar ou uma URL.",
+    "permission-policy": "Regras de permitir, perguntar ou negar para ferramentas e comandos de shell.",
+    "statusline": "Um script que imprime a linha de status da ferramenta de IA.",
+    "lsp-server": "Um servidor de linguagem que dá ao agente inteligência sobre o código.",
+    "bundle": "Um conjunto de itens instalados juntos, como um só."
+  }
+}

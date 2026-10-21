@@ -34,7 +34,7 @@ const render = (
       rowKey={(t) => t.id}
       page={page}
       total={total}
-      noun="things"
+      noun="item"
       toolbar={<p>toolbar</p>}
       empty={{ none: "No things yet.", filtered: "No things match these filters." }}
     />,
@@ -69,7 +69,7 @@ describe("DataTable (060)", () => {
 
   it("pages: disabled at both ends of a single page, links in the middle", () => {
     const single = render({}, things);
-    expect(single).toContain("2 things");
+    expect(single).toContain("2 items");
     expect(single.match(/aria-disabled="true"/g)).toHaveLength(3);
 
     const middle = render(
@@ -81,7 +81,7 @@ describe("DataTable (060)", () => {
         capped: true,
       },
     );
-    expect(middle).toContain("10,000+ things");
+    expect(middle).toContain("10,000+ items");
     expect(middle).toContain('href="/things?q=a&amp;cursor=c2"');
     expect(middle).toContain('href="/things?q=a&amp;cursor=c0"');
     expect(middle).toMatch(/<a aria-label="First page"[^>]*href="\/things\?q=a"/);
@@ -119,7 +119,7 @@ describe("DataTable additions (062)", () => {
         rowKey={(t) => t.id}
         page={{ next: "c2", previous: null }}
         total={{ count: 2, capped: false }}
-        noun="things"
+        noun="item"
         empty={{ none: "None.", filtered: "None match." }}
       />,
     );

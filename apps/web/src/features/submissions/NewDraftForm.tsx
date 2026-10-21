@@ -3,6 +3,7 @@
 import { ITEM_TYPES, type ItemType, NAME_PROBLEM_MESSAGES, nameProblem } from "@ronneai/core";
 import { ArrowRight, CircleCheck, FileCode, Info, Search, ShieldCheck } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Fragment, type ReactNode, useActionState, useMemo, useState } from "react";
 import { Help } from "@/components/help/Help";
 import { docsHref } from "@/components/help/topics";
@@ -82,6 +83,7 @@ export const NewDraftForm = ({
   /** The scope it starts on: the current workspace's first (120). Every scope stays choosable. */
   initialScope?: string;
 }) => {
+  const typeText = useTranslations("types");
   const [state, action, pending] = useActionState<NewDraftState, FormData>(createDraftFromForm, {});
   const [scope, setScope] = useState(
     initialScope && scopes.some((option) => option.name === initialScope)
@@ -117,7 +119,7 @@ export const NewDraftForm = ({
     (candidate) =>
       (group === null || TYPE_INFO[candidate].group === group) &&
       (candidate.includes(typeQuery) ||
-        TYPE_INFO[candidate].description.toLowerCase().includes(typeQuery) ||
+        typeText(`description.${candidate}`).toLowerCase().includes(typeQuery) ||
         TYPE_INFO[candidate].tag.includes(typeQuery)),
   );
   const starter = useMemo(() => (type ? draftTemplate(type, itemName) : []), [type, itemName]);
@@ -311,7 +313,7 @@ export const NewDraftForm = ({
                   onClick={() => setGroup(group === option.id ? null : option.id)}
                   className={filterClasses}
                 >
-                  {option.label}
+                  {typeText(`group.${option.id}`)}
                 </button>
               ))}
             </fieldset>
@@ -345,7 +347,9 @@ export const NewDraftForm = ({
                       <Badge>{info.tag}</Badge>
                       {info.highRisk ? <Badge tone="warning">⚠ risk</Badge> : null}
                     </span>
-                    <span className="text-xs text-muted">{info.description}</span>
+                    <span className="text-xs text-muted">
+                      {typeText(`description.${candidate}`)}
+                    </span>
                     {type === candidate ? (
                       <CircleCheck
                         size={18}
