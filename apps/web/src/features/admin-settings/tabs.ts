@@ -6,6 +6,7 @@ export const SETTINGS_TABS = [
   { id: "feeds", label: "Plugin feeds", href: "/admin/settings?tab=feeds" },
   { id: "authentication", label: "Authentication", href: "/admin/settings?tab=authentication" },
   { id: "privacy", label: "Privacy", href: "/admin/settings?tab=privacy" },
+  { id: "notice", label: "Notice", href: "/admin/settings?tab=notice" },
 ] as const;
 
 export type SettingsTab = (typeof SETTINGS_TABS)[number]["id"];

@@ -56,5 +56,8 @@
   "theme": {
     "toDark": "Mudar para o tema escuro",
     "toLight": "Mudar para o tema claro"
+  },
+  "notice": {
+    "dismiss": "Dispensar"
   }
 }

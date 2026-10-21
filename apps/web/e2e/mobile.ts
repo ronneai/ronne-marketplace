@@ -19,6 +19,7 @@ const PROJECT_USERS = {
     deviceTwoFactor: "phoneDeviceTwoFactor",
     ssoMember: "phoneSsoMember",
     ssoRoot: "phoneSsoRoot",
+    noticeRoot: "phoneNoticeRoot",
   },
   "phone-webkit": {
     languages: "phoneWebkitLanguages",
@@ -36,6 +37,7 @@ const PROJECT_USERS = {
     deviceTwoFactor: "phoneWebkitDeviceTwoFactor",
     ssoMember: "phoneWebkitSsoMember",
     ssoRoot: "phoneWebkitSsoRoot",
+    noticeRoot: "phoneWebkitNoticeRoot",
   },
   tablet: {
     languages: "tabletLanguages",
@@ -53,6 +55,7 @@ const PROJECT_USERS = {
     deviceTwoFactor: "tabletDeviceTwoFactor",
     ssoMember: "tabletSsoMember",
     ssoRoot: "tabletSsoRoot",
+    noticeRoot: "tabletNoticeRoot",
   },
 } as const satisfies Record<string, Record<string, keyof typeof E2E_USERS>>;
 

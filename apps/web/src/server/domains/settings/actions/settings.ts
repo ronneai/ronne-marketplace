@@ -70,3 +70,12 @@ export const setPasswordSignInPolicy = async (
     usableProvider: () => hasUsableProvider(app),
     confirmed,
   });
+
+export const setNotice = async (
+  headers: Headers,
+  input: Parameters<typeof service.setNotice>[2],
+  app: AppAuth = getAppAuth(),
+) => service.setNotice(deps(app), await actor(headers, app), input);
+
+/** The instance notice (124), for the signed-in pages. */
+export const notice = (app: AppAuth = getAppAuth()) => service.notice(deps(app));

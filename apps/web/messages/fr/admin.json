@@ -1,0 +1,31 @@
+{
+  "notice": {
+    "tab": "Avis",
+    "title": "Avis de l’instance",
+    "intro": "Un court message sous l’en-tête de chaque page pour les personnes connectées, comme une période de maintenance ou « ceci est une démo ». Écrivez un lien dans la phrase sous la forme [texte](adresse). C’est votre propre texte : il n’est pas traduit.",
+    "message": "Message",
+    "messageHint": "Texte simple sur une seule ligne. Lien avec [texte](adresse) : https:// ou une seule / pour une page de ce site, jusqu’à {links, number} liens. {used, number} caractères sur {max, number}.",
+    "tone": "Ton",
+    "toneInfo": "Information",
+    "toneWarning": "Avertissement",
+    "toneHint": "L’avertissement sert à ce qui demande de la prudence, comme des données réinitialisées.",
+    "shown": "Afficher l’avis",
+    "shownHint": "Le désactiver conserve le texte; vous pourrez le réactiver.",
+    "preview": "Aperçu",
+    "previewEmpty": "Écrivez un message pour le voir ici.",
+    "previewHidden": "Masqué : personne ne le voit tant que vous ne l’affichez pas.",
+    "save": "Enregistrer",
+    "saved": "Avis enregistré.",
+    "unchanged": "Rien n’a changé.",
+    "lastChanged": "Dernière modification par {name}",
+    "neverChanged": "Pas encore défini.",
+    "errors": {
+      "message_empty": "Écrivez le message avant d’afficher l’avis.",
+      "message_too_long": "Utilisez au plus {max, number} caractères, sur une seule ligne.",
+      "link_label": "Un lien a besoin de son texte, d’au plus {label, number} caractères : [texte](adresse).",
+      "link_address": "Utilisez une adresse qui commence par https:// ou par une seule /, sans espace : [texte](adresse).",
+      "too_many_links": "Utilisez au plus {links, number} liens dans le message.",
+      "tone_invalid": "Choisissez Information ou Avertissement."
+    }
+  }
+}

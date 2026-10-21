@@ -163,6 +163,7 @@ export const TOPICS = [
     sections: [
       { id: "users", title: "Users" },
       { id: "settings", title: "Settings" },
+      { id: "notice", title: "Notice" },
       { id: "audit", title: "Audit log" },
     ],
   },

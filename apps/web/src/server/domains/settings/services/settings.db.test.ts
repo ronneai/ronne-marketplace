@@ -6,6 +6,7 @@ import { createRoot } from "../../identity/actions/root-account";
 import { ForbiddenError } from "../../identity/exceptions/errors";
 import type { CurrentUser } from "../../identity/models/user";
 import {
+  InvalidNoticeError,
   InvalidRetentionError,
   InvalidTwoFactorPolicyError,
   InvalidUsageMinimumError,
@@ -14,8 +15,10 @@ import {
 import { kyselySettingsRepository } from "../repositories/kysely-settings-repository";
 import {
   instanceSettings,
+  notice,
   retentionPolicy,
   type SettingsDeps,
+  setNotice,
   setRetention,
   setTwoFactorPolicy,
   setUsageMinimum,
@@ -55,6 +58,15 @@ describe("the usage policy", () => {
       twoFactorPolicy: "optional",
       passwordSignInPolicy: "everyone",
       retention: { ipDays: 90, sessionsDays: 90 },
+      notice: {
+        message: "",
+        tone: "info",
+        shown: false,
+        revision: 0,
+        changedAt: null,
+        changedBy: null,
+        changedByName: null,
+      },
     });
   });
 
@@ -76,6 +88,7 @@ describe("the usage policy", () => {
       twoFactorPolicy: "optional",
       passwordSignInPolicy: "everyone",
       retention: { ipDays: 90, sessionsDays: 90 },
+      notice: expect.objectContaining({ shown: false, changedByName: null }),
     });
     const { events } = await listAuditEvents(t.db, t.dialect, { group: "settings" });
     expect(
@@ -296,5 +309,163 @@ describe("the retention (102)", () => {
     await deps.repo.set("retention_ip_days", "0", null, at);
     await deps.repo.set("retention_sessions_days", "nonsense", null, at);
     expect(await retentionPolicy(deps)).toEqual({ ipDays: 90, sessionsDays: 90 });
+  });
+});
+
+describe("the instance notice (124)", () => {
+  const form = {
+    message: "The demo's data is reset on Friday.",
+    tone: "warning",
+    shown: true,
+  };
+  const events = async () =>
+    (await listAuditEvents(t.db, t.dialect, {})).events.filter(
+      (e) => e.action === "settings.notice",
+    );
+
+  it("is hidden on a new instance, then saved, hidden and shown again, keeping the text", async () => {
+    expect(await notice(deps)).toMatchObject({ shown: false, revision: 0, message: "" });
+    expect(await setNotice(deps, { user: root, ip: IP }, form)).toEqual({ changed: true });
+    expect(await notice(deps)).toEqual({
+      message: "The demo's data is reset on Friday.",
+      tone: "warning",
+      shown: true,
+      revision: 1,
+      changedAt: at,
+      changedBy: root.id,
+    });
+    // Hiding keeps the text and the revision: someone who dismissed it needn't see it twice.
+    await setNotice(deps, { user: root, ip: IP }, { ...form, shown: false });
+    expect(await notice(deps)).toMatchObject({ shown: false, revision: 1, message: form.message });
+    await setNotice(deps, { user: root, ip: IP }, form);
+    expect(await notice(deps)).toMatchObject({ shown: true, revision: 1 });
+    // The words (links included) or the tone raise it.
+    await setNotice(deps, { user: root, ip: IP }, { ...form, message: "Maintenance at noon." });
+    await setNotice(
+      deps,
+      { user: root, ip: IP },
+      { ...form, message: "Maintenance at noon.", tone: "info" },
+    );
+    await setNotice(
+      deps,
+      { user: root, ip: IP },
+      {
+        ...form,
+        message: "Maintenance at noon, see the [status page](https://status.example.com/).",
+        tone: "info",
+      },
+    );
+    expect(await notice(deps)).toMatchObject({
+      revision: 4,
+      message: "Maintenance at noon, see the [status page](https://status.example.com/).",
+    });
+    expect(await instanceSettings(deps, { user: root, ip: null })).toMatchObject({
+      notice: { revision: 4, shown: true, changedByName: "Root" },
+    });
+  });
+
+  it("saves nothing, and audits nothing, when nothing changed", async () => {
+    await setNotice(deps, { user: root, ip: IP }, form);
+    expect(
+      await setNotice(deps, { user: root, ip: IP }, { ...form, message: `  ${form.message} ` }),
+    ).toEqual({
+      changed: false,
+    });
+    expect(await events()).toHaveLength(1);
+  });
+
+  it("audits the tone and whether it is shown, and never the text", async () => {
+    await setNotice(
+      deps,
+      { user: root, ip: IP },
+      { ...form, message: "SECRET-WORDS [SECRET-LABEL](/secret-path)" },
+    );
+    await setNotice(
+      deps,
+      { user: root, ip: IP },
+      { ...form, message: "SECRET-WORDS [SECRET-LABEL](/secret-path)", shown: false },
+    );
+    const found = await events();
+    expect(found.map((e) => [e.actorId, e.ipAddress, e.targetType, e.metadata])).toEqual([
+      [
+        root.id,
+        IP,
+        "instance",
+        {
+          from: { tone: "warning", shown: true },
+          to: { tone: "warning", shown: false },
+          revision: 1,
+        },
+      ],
+      [
+        root.id,
+        IP,
+        "instance",
+        { from: { tone: "info", shown: false }, to: { tone: "warning", shown: true }, revision: 1 },
+      ],
+    ]);
+    for (const secret of ["SECRET-WORDS", "SECRET-LABEL", "secret-path"])
+      expect(JSON.stringify(found)).not.toContain(secret);
+  });
+
+  it("refuses what the form must not hold, saving nothing", async () => {
+    const refused = async (change: Partial<typeof form>) =>
+      setNotice(deps, { user: root, ip: IP }, { ...form, ...change }).catch((e) => e);
+    expect(await refused({ message: "" })).toBeInstanceOf(InvalidNoticeError);
+    expect(await refused({ message: "x".repeat(501) })).toMatchObject({ field: "message" });
+    expect(await refused({ message: "[](/x)" })).toMatchObject({
+      field: "message",
+      problem: "link_label",
+    });
+    expect(await refused({ message: "[Go](javascript:alert)" })).toMatchObject({
+      field: "message",
+      problem: "link_address",
+    });
+    expect(await refused({ message: "[a](/1)[b](/2)[c](/3)[d](/4)" })).toMatchObject({
+      problem: "too_many_links",
+    });
+    expect(await refused({ tone: "danger" })).toMatchObject({ field: "tone" });
+    expect(await notice(deps)).toMatchObject({ revision: 0, shown: false });
+    expect(await events()).toHaveLength(0);
+  });
+
+  it("is for root alone", async () => {
+    const moderator: CurrentUser = {
+      ...root,
+      id: "00000000-0000-4000-8000-000000000009",
+      role: "user",
+    };
+    await expect(setNotice(deps, { user: moderator, ip: null }, form)).rejects.toBeInstanceOf(
+      ForbiddenError,
+    );
+    await expect(setNotice(deps, { user: null, ip: null }, form)).rejects.toBeInstanceOf(
+      ForbiddenError,
+    );
+    await expect(instanceSettings(deps, { user: moderator, ip: null })).rejects.toBeInstanceOf(
+      ForbiddenError,
+    );
+  });
+
+  it("reads a hand-edited value as hidden", async () => {
+    await deps.repo.set("notice", "{not json", null, at);
+    expect(await notice(deps)).toMatchObject({ shown: false, revision: 0 });
+    await deps.repo.set(
+      "notice",
+      JSON.stringify({
+        message: "x",
+        tone: "info",
+        shown: true,
+        revision: 2,
+        link: { label: "a", href: "javascript:x" },
+        extra: "ignored",
+      }),
+      null,
+      at,
+    );
+    // The old separate link is not read: the message is.
+    expect(await notice(deps)).toEqual(
+      expect.objectContaining({ message: "x", shown: true, revision: 2 }),
+    );
+    expect(await notice(deps)).not.toHaveProperty("link");
   });
 });

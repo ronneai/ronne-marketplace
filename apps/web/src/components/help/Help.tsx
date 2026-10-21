@@ -380,6 +380,18 @@ export const HELP = {
       "The person's email, name, picture, passwords, sign-in links, two-factor, sessions, tokens, memberships and drafts go, for good. What they did stays under the pseudonym deleted-user-<id>: the items and versions they published, their submitted submissions and review comments, and the audit events, which keep making sense. The old email is free at once. To stop someone without erasing, disable them.",
     href: docsHref("privacy", "erase"),
   },
+  notice: {
+    question: "Who sees this?",
+    answer:
+      "Everyone who is signed in, under the header of every page, once you show it. Each person can dismiss it; it comes back for them when you change the message or tone, and not when you only hide and show it. It isn't shown on the sign-in page, and it isn't translated: write it in the language your people read.",
+    href: docsHref("admin", "notice"),
+  },
+  "notice-tone": {
+    question: "Information or Warning?",
+    answer:
+      "Information is for news and context, such as “this is a demo”. Warning is for something that needs care, such as “the demo’s data is reset on Friday” or a maintenance window.",
+    href: docsHref("admin", "notice"),
+  },
   language: {
     question: "What changes?",
     answer:

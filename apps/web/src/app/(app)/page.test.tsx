@@ -9,6 +9,8 @@ vi.mock("@/server/domains/items/actions/catalogue", () => catalogue);
 vi.mock("@/server/domains/submissions/actions/drafts", () => drafts);
 vi.mock("@/server/domains/submissions/actions/reviews", () => reviews);
 vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));
+const shell = vi.hoisted(() => ({ loadShell: vi.fn() }));
+vi.mock("./shell", () => shell);
 
 const { default: HomePage } = await import("./page");
 
@@ -36,9 +38,14 @@ const render = async () => renderToStaticMarkup(await HomePage());
 
 beforeEach(() => {
   vi.clearAllMocks();
-  catalogue.homeLists.mockResolvedValue({ recent: [entry("fmt"), entry("lint")], mostUsed: [] });
+  catalogue.homeLists.mockResolvedValue({
+    recent: [entry("fmt"), entry("lint")],
+    mostUsed: [],
+    types: ["skill"],
+  });
   drafts.listMySubmissions.mockResolvedValue([]);
   reviews.countNeedsReview.mockResolvedValue(0);
+  shell.loadShell.mockResolvedValue({ user: { role: "user" } });
 });
 
 describe("the home page", () => {
@@ -57,6 +64,7 @@ describe("the home page", () => {
     catalogue.homeLists.mockResolvedValue({
       recent: [entry("fmt")],
       mostUsed: [entry("lint", 12), entry("fmt", 1)],
+      types: ["skill"],
     });
     const html = await render();
     expect(html).toContain("Most used");
@@ -65,7 +73,7 @@ describe("the home page", () => {
   });
 
   it("shows a user their drafts and changes requested, and nothing when there are none", async () => {
-    expect(await render()).not.toContain("For you");
+    expect(await render()).not.toContain("Waiting for you");
     drafts.listMySubmissions.mockResolvedValue([
       { status: "draft" },
       { status: "draft" },
@@ -73,7 +81,7 @@ describe("the home page", () => {
       { status: "published" },
     ]);
     const html = await render();
-    expect(html).toContain("For you");
+    expect(html).toContain("Waiting for you");
     expect(html).toContain("You have 2 drafts in progress.");
     expect(html).toContain("1 submission of yours needs changes.");
     expect(html).not.toContain("for review");
@@ -85,11 +93,33 @@ describe("the home page", () => {
     expect(html).toMatch(/href="\/reviews"[^>]*>3 submissions wait for review\./);
   });
 
-  it("explains how items arrive in an empty registry", async () => {
-    catalogue.homeLists.mockResolvedValue({ recent: [], mostUsed: [] });
+  it("tells everyone but root to submit an item or ask a moderator, in an empty registry", async () => {
+    catalogue.homeLists.mockResolvedValue({ recent: [], mostUsed: [], types: [] });
+    for (const role of ["user", "moderator"]) {
+      shell.loadShell.mockResolvedValue({ user: { role } });
+      const html = await render();
+      expect(html, role).toContain("Nothing is published yet.");
+      expect(html, role).toContain("Submit an item or ask a moderator.");
+      expect(html, role).toContain('href="/submissions/new"');
+      expect(html, role).not.toContain("Create a scope");
+      expect(html, role).not.toContain("Recently published");
+    }
+  });
+
+  it("points root at creating a scope and submitting the first item", async () => {
+    catalogue.homeLists.mockResolvedValue({ recent: [], mostUsed: [], types: [] });
+    shell.loadShell.mockResolvedValue({ user: { role: "root" } });
     const html = await render();
     expect(html).toContain("Nothing is published yet.");
-    expect(html).toContain('href="/submissions/new"');
-    expect(html).not.toContain("Recently published");
+    expect(html).toMatch(/href="\/workspaces\/global"[^>]*>Create a scope</);
+    expect(html).toMatch(/href="\/submissions\/new"[^>]*>Submit the first item</);
+    expect(html).not.toContain("ask a moderator");
+  });
+
+  it("shows root the lists, not the empty message, once something is released", async () => {
+    shell.loadShell.mockResolvedValue({ user: { role: "root" } });
+    const html = await render();
+    expect(html).toContain("Recently published");
+    expect(html).not.toContain("Nothing is published yet.");
   });
 });

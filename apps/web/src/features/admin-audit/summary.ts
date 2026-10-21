@@ -519,6 +519,18 @@ export const SUMMARIES: Record<AuditAction, Build> = {
       .map(([key, what]) => `${what} from ${text(from[key])} to ${text(to[key])} days`);
     return [`Changed the retention: ${changes.join(", ") || "nothing"}`];
   },
+  "settings.notice": (m) => {
+    // `{ from: { tone, shown }, to: { tone, shown }, revision }`: never the text (124).
+    const side = (v: unknown): { tone?: AuditMetadataValue; shown?: AuditMetadataValue } =>
+      typeof v === "object" && v && !Array.isArray(v) ? v : {};
+    const from = side(m.from);
+    const to = side(m.to);
+    const changes = [
+      text(from.shown) !== text(to.shown) ? (to.shown === true ? "shown" : "hidden") : null,
+      text(from.tone) !== text(to.tone) ? `tone ${text(from.tone)} to ${text(to.tone)}` : null,
+    ].filter((c) => c !== null);
+    return [`Changed the instance notice: ${changes.join(", ") || "its words or link"}`];
+  },
 };
 
 const isKnown = (action: string): action is AuditAction => Object.hasOwn(SUMMARIES, action);

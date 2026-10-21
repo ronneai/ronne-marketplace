@@ -9,48 +9,60 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 ## Tasks
 
-- [ ] **1. The notice's model and settings.** `notice-policy.ts` in `domains/settings/models`
+- [x] **1. The notice's model and settings.** `notice-policy.ts` in `domains/settings/models`
   (message, link label and address, tone, shown, revision; validation: length, `https:` or `/`
   addresses only, no `javascript:`/`data:`), stored in `instance_settings`, `setNotice` and
   `notice` in the settings service, the `settings.notice` audit action (without the text).
   *Done when:* unit tests cover validation and the revision; `settings.db.test.ts` covers saving,
   hiding and showing again, and the audit event holds no message text.
 
-- [ ] **2. The Notice tab.** A tab in Admin › Settings (122): fields, preview, last changed by,
+- [x] **2. The Notice tab.** A tab in Admin › Settings (122): fields, preview, last changed by,
   helper; root only.
   *Done when:* component tests cover the form, errors beside fields and the preview; a permission
   test shows non-root gets not-found.
 
-- [ ] **3. Showing and dismissing.** The `Notice` shown under the header on every signed-in page
+- [x] **3. Showing and dismissing.** The `Notice` shown under the header on every signed-in page
   (the (app) layout and the phone Menu), a dismiss form and the `ronne-notice` cookie holding the
   revision, text output as text.
   *Done when:* tests cover showing, dismissing, return after a change, HTML typed as text, and the
   no-JavaScript form.
 
-- [ ] **4. Home's layout.** `HomeView` split into sections with the empty-section rule, slots for
+- [x] **4. Home's layout.** `HomeView` split into sections with the empty-section rule, slots for
   getting started, favorites and pinned (rendering nothing for now), the new heading and
   description, search with type links.
   *Done when:* component tests cover each section present and absent, and the order.
 
-- [ ] **5. The empty instance.** The message for an instance with no released items, different for
+- [x] **5. The empty instance.** The message for an instance with no released items, different for
   root and others, with links.
   *Done when:* component tests for both roles; the end-to-end test starts from a fresh instance.
 
-- [ ] **6. Messages and phone.** Every string in messages (129) in English, Portuguese and French;
+- [x] **6. Messages and phone.** Every string in messages (129) in English, Portuguese and French;
   the scan covers `features/home` and the Notice code; phone sweep in each language.
   *Done when:* parity and scan tests pass; the end-to-end sweep passes on every project.
 
-- [ ] **7. End to end.** Root sets a Warning notice; a user sees it, dismisses it, root edits it
+- [x] **7. End to end.** Root sets a Warning notice; a user sees it, dismisses it, root edits it
   and it returns; Home on a new instance and on a populated one.
   *Done when:* the end-to-end tests pass on every project.
 
-- [ ] **8. Decision log and index.** MVP §15 row "Home and the instance notice"; the features index.
+- [x] **8. Decision log and index.** MVP §15 row "Home and the instance notice"; the features index.
   *Done when:* the rows are in.
 
-- [ ] **9. Documentation.** The sections and helpers in the spec, both `topics.ts`, in a ronne-web
+- [x] **9. Documentation.** The sections and helpers in the spec, both `topics.ts`, in a ronne-web
   branch.
   *Done when:* the docs tests pass in ronne-web, and the helper link test passes here.
 
 ## Notes
 
 Slots for 125 and 126 are built here so those features only fill them. Build after 129.
+
+### Done (2026-10-21)
+
+All nine tasks are ticked. The Documentation is on the ronne-web branch `docs/marketplace-home-notice`
+(four commits), not pushed: it goes live with the release. Changes the owner asked for during the
+build: information notices across the app are light blue (`info` tokens, a separate commit), the
+dismiss control is a ✕ icon inside the box, and links are written inline in the message as
+`[words](address)` instead of in separate fields (the model, form, banner, messages, spec and tests
+follow; nothing was released with the old fields, so there is no migration). Accepted limits: the
+other Settings tabs and the item cards are still English until the sweeps (130 to 133); the Getting
+started, favorites and pinned slots on Home are empty until 126 and 125; the Portuguese and French
+texts are first drafts for a native reader (133).

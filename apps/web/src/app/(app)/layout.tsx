@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import { AppShell } from "@/components/app-shell/AppShell";
 import { signOutFromMenu } from "@/features/account/actions";
+import { DismissibleNotice } from "@/features/notice/DismissibleNotice";
+import { visibleNotice } from "@/features/notice/visible-notice";
 import { version } from "../../../package.json";
 import { loadShell } from "./shell";
 
@@ -10,6 +12,7 @@ import { loadShell } from "./shell";
  */
 const AppLayout = async ({ children }: { children: ReactNode }) => {
   const { user, theme, navCounts, workspaces, folded, current } = await loadShell();
+  const notice = await visibleNotice();
   return (
     <AppShell
       user={user}
@@ -20,6 +23,7 @@ const AppLayout = async ({ children }: { children: ReactNode }) => {
       current={current}
       folded={folded}
       version={version}
+      notice={notice ? <DismissibleNotice notice={notice} /> : null}
     >
       {children}
     </AppShell>

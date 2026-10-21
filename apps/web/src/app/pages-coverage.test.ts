@@ -40,6 +40,7 @@ describe("the phone sweep's page list (feature 065)", () => {
         "/account/password",
         "/account/security",
         "/account/tokens",
+        "/admin/settings",
         "/device",
         "/menu",
         "/sign-in",

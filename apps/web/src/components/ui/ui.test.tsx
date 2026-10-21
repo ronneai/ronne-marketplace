@@ -135,14 +135,18 @@ describe("Badge, Notice, Panel, PageHeader", () => {
     expect(html(<Badge tone="error">rejected</Badge>)).toContain("bg-error-subtle text-error-text");
   });
 
-  it("prefixes notices, colours warnings amber and errors red, and uses alert only for errors", () => {
+  it("prefixes notices, colours information blue, warnings amber and errors red, and uses alert only for errors", () => {
     const error = html(<Notice kind="error" title="Nope" />);
     expect(error).toMatch(/role="alert".*ERR:/);
     expect(error).toContain("border-l-error bg-error-subtle");
     const warn = html(<Notice kind="warn" title="Careful" />);
     expect(warn).toMatch(/role="status".*WARN:/);
     expect(warn).toContain("border-l-warning bg-warning-subtle");
-    expect(html(<Notice kind="info" title="Done" />)).toContain("border-strong bg-surface");
+    // Information is light blue, built like the other two (owner, 2026-10-21).
+    const info = html(<Notice kind="info" title="Done" />);
+    expect(info).toMatch(/role="status".*INFO:/);
+    expect(info).toContain("border-l-info bg-info-subtle");
+    expect(info).toContain("text-info-text");
   });
 
   it("renders a flat panel and a page header", () => {

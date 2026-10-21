@@ -5,29 +5,32 @@ export type NoticeKind = "info" | "warn" | "error";
 const PREFIX: Record<NoticeKind, string> = { info: "INFO:", warn: "WARN:", error: "ERR:" };
 
 const FRAME: Record<NoticeKind, string> = {
-  info: "border border-strong bg-surface",
+  info: "border border-info/40 border-l-[3px] border-l-info bg-info-subtle",
   warn: "border border-warning/40 border-l-[3px] border-l-warning bg-warning-subtle",
   error: "border border-error/40 border-l-[3px] border-l-error bg-error-subtle",
 };
 const TITLE: Record<NoticeKind, string> = {
-  info: "text-fg",
+  info: "text-info-text",
   warn: "text-warning-text",
   error: "text-error-text",
 };
 
 /**
- * A notice with a mono prefix (design system 032). Information is framed by a strong hairline;
- * warnings and errors are amber and red, on a subtle fill with a bar on the left.
+ * A notice with a mono prefix (design system 032). Information is light blue (owner, 2026-10-21),
+ * warnings amber and errors red, each on a subtle fill with a bar on the left.
  */
 export const Notice = ({
   kind = "info",
   title,
   children,
+  action,
   className,
 }: {
   kind?: NoticeKind;
   title?: ReactNode;
   children?: ReactNode;
+  /** A control inside the box, at its top right: the instance notice's dismiss icon (124). */
+  action?: ReactNode;
   className?: string;
 }) => {
   return (
@@ -35,13 +38,16 @@ export const Notice = ({
       role={kind === "error" ? "alert" : "status"}
       className={cn("rounded-panel p-4 text-sm text-fg", FRAME[kind], className)}
     >
-      <p className={cn("font-semibold", TITLE[kind])}>
-        <span className="mr-2 font-mono text-xs font-semibold">{PREFIX[kind]}</span>
-        {title}
-      </p>
-      {children ? (
-        <div className={cn("mt-1", kind === "info" ? "text-muted" : "text-fg")}>{children}</div>
-      ) : null}
+      <div className="flex items-start gap-3">
+        <div className="min-w-0 flex-1">
+          <p className={cn("font-semibold", TITLE[kind])}>
+            <span className="mr-2 font-mono text-xs font-semibold">{PREFIX[kind]}</span>
+            {title}
+          </p>
+          {children ? <div className="mt-1 text-fg">{children}</div> : null}
+        </div>
+        {action}
+      </div>
     </div>
   );
 };

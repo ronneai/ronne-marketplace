@@ -8,6 +8,8 @@ export interface SettingsRepository {
   /** The stored value, or null when the setting was never changed. */
   get(key: string): Promise<StoredSetting | null>;
   set(key: string, value: string, updatedBy: string | null, at: Date): Promise<void>;
+  /** A person's name (their pseudonym once erased), or null when they no longer exist. */
+  nameOf(userId: string): Promise<string | null>;
   transaction<T>(work: (repo: SettingsRepository) => Promise<T>): Promise<T>;
   recordAudit(event: NewAuditEvent, at: Date): Promise<void>;
 }

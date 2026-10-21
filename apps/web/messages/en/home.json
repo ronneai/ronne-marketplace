@@ -1,0 +1,34 @@
+{
+  "title": "Ronne AI Marketplace",
+  "description": "Find what’s reviewed and released, and install it with rmk.",
+  "search": {
+    "label": "Search the catalogue",
+    "placeholder": "Name, description or keyword",
+    "submit": "Search"
+  },
+  "types": {
+    "label": "Browse by type"
+  },
+  "waiting": {
+    "title": "Waiting for you",
+    "drafts": "You have {count, plural, one {# draft} other {# drafts}} in progress.",
+    "changes": "{count, plural, one {# submission of yours needs} other {# submissions of yours need}} changes.",
+    "review": "{count, plural, one {# submission waits} other {# submissions wait}} for review."
+  },
+  "recent": {
+    "title": "Recently published",
+    "seeAll": "See all"
+  },
+  "mostUsed": {
+    "title": "Most used"
+  },
+  "empty": {
+    "title": "Nothing is published yet.",
+    "how": "Items arrive in three steps: someone submits one, a moderator reviews and approves it, and it’s released as a version. Then it’s in the catalogue, ready to install with <mono>rmk</mono>.",
+    "others": "Submit an item or ask a moderator.",
+    "root": "Start here: create a scope for your items, then submit the first one.",
+    "createScope": "Create a scope",
+    "submitFirst": "Submit the first item",
+    "submit": "Submit an item"
+  }
+}
