@@ -23,6 +23,7 @@
         "apps/web/src/features/device/**",
         "apps/web/src/features/notice/**",
         "apps/web/src/components/catalogue/**",
+        "apps/web/src/components/help/Help.tsx",
         "apps/web/src/features/catalogue/**",
         "apps/web/src/app/(app)/catalogue/**",
         "apps/web/src/features/item-page/ItemPageView.tsx",

@@ -58,7 +58,7 @@ Every task that moves a folder adds it to the `overrides` entry in `biome.json` 
   *Done when:* a test per class in three languages (`errors.test.ts`); an action test that an
   unknown error still shows the English message; the API's messages are unchanged (a test).
 
-- [ ] **8. The inline helpers.** The `Help` mechanism reads migrated entries from `help.json` by
+- [x] **8. The inline helpers.** The `Help` mechanism reads migrated entries from `help.json` by
   id; the fourteen entries move, in three languages; the rest stay.
   *Done when:* `help.test.tsx` renders a migrated and an unmigrated entry; a parity test covers
   `help.json`; each moved helper's link opens the website's page in the language.

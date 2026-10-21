@@ -256,3 +256,32 @@ Witnessed: 2026-10-21 15:55 EDT, by a fresh agent (adversarial final re-check). 
 | 2b | A class name that is a prototype property or malformed shows the error's own message | no | confirmed | Judged on the outcome claim: `toString`, `constructor`, `__proto__`, `hasOwnProperty`, `a.b`, an 81-character name, undefined and numeric names all returned the message, with or without the `CLASS_NAME` guard (defence in depth beside next-intl's `has`); `errors.test.ts` asserts the same. |
 
 **Overall:** met.
+
+## Task 8 — The inline helpers
+
+Witnessed: 2026-10-21 15:50 local, by a fresh agent (blind). Commit: d2c79a56 plus the uncommitted working tree. Machine: macOS (Darwin 27), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The 14 moved entries' question and answer are in `en/help.json` word for word, apart from `'` to `’`, and it has exactly those 14 ids | no | confirmed | A script parsed `git show HEAD:…/Help.tsx` and compared it with `en/help.json`: all 14 questions and answers match after the apostrophe swap; en, pt and fr each have 14 keys. |
+| 2 | Each of the 14 still has its href in `HELP`, and no other entry lost its words | no | confirmed | `git diff Help.tsx` removes `question` and `answer` only from the 14 ids and leaves their `href`; the test "are exactly the ones with their words in help.json" asserts the others keep both. |
+| 3 | Every helper still renders (any Help id a component uses is in `HELP`) | no | confirmed | `pnpm --filter @ronneai/web typecheck` clean; the "renders a helper as its question, answer and Learn more" test covers every `HELP` id. |
+| 4 | `help.test.tsx` renders a migrated and an unmigrated entry | no | confirmed | The loop renders every `HELP` id; the new block renders the 14 in en, pt and fr; `vitest run --project unit src/components src/features src/i18n` → 98 files, 1168 tests passed. |
+| 5 | A parity test covers `help.json` | no | confirmed | `namespaces.ts` adds "help"; the parity test iterates `NAMESPACES`; deleting `usage` from fr made the fr parity test and two `help.test.tsx` tests fail. |
+| 6 | Each moved helper's link opens the website's page in the person's language | no | confirmed | The test checks `localizedDocsHref(HELP[id].href, "pt"/"fr")` is the `<a href>` for all 14, plus an `href` override that stays localized; the phone sweep → 10 passed. |
+| 7 | The pt and fr translations keep the meaning and use the glossary terms | no | confirmed | All 28 read: espaço de trabalho, escopo, moderador in pt; espace de travail, portée, modérateur in fr; no meaning errors. |
+| 8 | Lint passes, with `Help.tsx` in the raw-text scan | no | confirmed | `biome check` → no errors; the diff adds the `Help.tsx` line. |
+| 9 | A broken state is caught: a question put back for a moved id, a new id without words, a missing fr entry | no | confirmed | In a scratch copy: 4 failures, 2 failures and 3 failures respectively; restored. |
+| 10 | A pt or fr answer left in English is caught | no | partly | Replacing pt `install.answer` with the English text left all 163 tests green: the leak guard and parity allow a text identical to English. |
+
+**Overall:** met on the Done-when; row 10 is a gap beyond it.
+
+### Re-check (row 10)
+
+Witnessed: 2026-10-21 16:00 local, by a fresh agent (blind re-check). Commit: d2c79a56 plus the uncommitted working tree. Machine: macOS (Darwin 27), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 10 | A pt or fr question or answer left as the English text is caught | no | confirmed | `help.test.tsx` has "none of them is left as the English text in pt or fr"; baseline `vitest run --project unit src/components/help` → 16 passed; pt `install.answer` set to English → 1 failed (that test); fr `usage.question` set to English → the same test failed; restored → 16 passed. |
+
+**Overall:** met.
