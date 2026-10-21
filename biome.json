@@ -11,6 +11,16 @@
   },
   "overrides": [
     {
+      "includes": ["apps/web/src/i18n/**"],
+      "plugins": [
+        "./packages/config/biome-plugins/i18n-raw-jsx-text.grit",
+        "./packages/config/biome-plugins/i18n-raw-jsx-string.grit",
+        "./packages/config/biome-plugins/i18n-raw-jsx-template.grit",
+        "./packages/config/biome-plugins/i18n-raw-jsx-attribute.grit",
+        "./packages/config/biome-plugins/i18n-raw-jsx-attribute-expression.grit"
+      ]
+    },
+    {
       "includes": ["packages/core/**"],
       "linter": {
         "rules": {

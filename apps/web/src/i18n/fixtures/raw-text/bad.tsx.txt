@@ -1,0 +1,11 @@
+export const Bad = ({ n, t }: { n: number; t: (key: string) => string }) => (
+  <div>
+    <p title="Hello there">Hello {n} world</p>
+    <input placeholder="Type here" aria-label="Name" />
+    {n > 1 ? "Many" : "One"}
+    {n > 1 && "Shown"}
+    {"Literal"}
+    {`Count ${n} items`}
+    <Foo label={"Braced"} title={n ? "Yes" : t("fine")} />
+  </div>
+);

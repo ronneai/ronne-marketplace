@@ -30,11 +30,14 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* unit tests cover each step, `pt-PT`, `fr-CA`, `es`, quality values, a stale cookie
   and a removed saved value.
 
-- [ ] **4. Message files and the guards.** `apps/web/messages/<locale>/<namespace>.json`, the
+- [x] **4. Message files and the guards.** `apps/web/messages/<locale>/<namespace>.json`, the
   loader that merges them, English fallback with a logged warning, the key-parity and placeholder
-  tests, and the raw-text scan with its folder list (empty to start).
-  *Done when:* the parity test fails on a key missing in `pt`, the scan fails on a sample file and
-  passes on a clean one, and a missing key renders the English text.
+  tests (ICU parsed with `@formatjs/icu-messageformat-parser`), message keys typed from the English
+  files, and the raw-text guard: five Biome plugins (a Grit rule set, because TypeScript 7 has no
+  compiler API to scan with) that run on the folders listed in `biome.json`'s `overrides` (starting
+  with `apps/web/src/i18n/**`).
+  *Done when:* the parity test fails on a key missing in `pt`, the lint rule fails on a sample file
+  and passes on a clean one, and a missing key renders the English text.
 
 - [ ] **5. Shared UI pieces.** `components/ui` text (Copy, Dialog's Close, tables' Sort and paging,
   Notice defaults, empty states), `LocalTime` and number formatting by language, the Help popover's

@@ -1,0 +1,15 @@
+export const Clean = ({ n, t, items }: { n: number; t: (key: string) => string; items: string[] }) => (
+  <div className={n > 1 ? "big thing" : "small thing"} data-x="some text">
+    <p title={t("title")}>{t("hello", { n })}</p>
+    <span>·</span>
+    <span> / </span>
+    <code>rmk login</code>
+    {n > 1 ? t("many") : t("one")}
+    {`${n}`}
+    {n}
+    <input type="search" name="q" placeholder={t("search")} />
+    {items.map((item) => (
+      <li key={item}>{item}</li>
+    ))}
+  </div>
+);

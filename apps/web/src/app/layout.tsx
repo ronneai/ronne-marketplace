@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
+import { NextIntlClientProvider } from "next-intl";
 import type { ReactNode } from "react";
 import { DatabaseUnavailable } from "@/features/setup/DatabaseUnavailable";
 import { parseTheme, THEME_COOKIE } from "@/features/theme/theme";
@@ -40,11 +41,14 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
   return (
     <html lang={locale} data-theme={theme} className={`${manrope.variable} ${plexMono.variable}`}>
       <body className="bg-canvas text-fg antialiased">
-        {state === "unavailable" ? (
-          <DatabaseUnavailable database={redactDatabaseUrl(config.databaseUrl as string)} />
-        ) : (
-          children
-        )}
+        {/* The language and its messages come from src/i18n/request.ts (feature 129). */}
+        <NextIntlClientProvider>
+          {state === "unavailable" ? (
+            <DatabaseUnavailable database={redactDatabaseUrl(config.databaseUrl as string)} />
+          ) : (
+            children
+          )}
+        </NextIntlClientProvider>
       </body>
     </html>
   );

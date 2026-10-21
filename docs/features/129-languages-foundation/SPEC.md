@@ -54,9 +54,14 @@ every new screen is written with messages from the start.
 - **"Learn more" links** open the website's Documentation in the person's language (the website
   already has English, Portuguese and French, 088).
 - **Guards, so it stays true:** a test that every key in English exists in Portuguese and French
-  and the other way round, with the same ICU placeholders; a test that scans the migrated folders
-  for text written straight into JSX or a `label`/`title`/`placeholder`/`aria-label` string, and
-  fails on it (the list of folders grows in each sweep; 133 makes it the whole app). A missing
+  and the other way round, with the same ICU placeholders; a lint rule (five Biome plugins,
+  `packages/config/biome-plugins/i18n-raw-jsx-*.grit`, which `pnpm lint`, the pre-commit hook and CI
+  run) that fails on text written straight into JSX, or into a `title`, `label`, `placeholder`,
+  `aria-label`, `alt`, `description`, `summary`, `heading` or `tooltip` attribute, in the migrated
+  folders (the list is the `overrides` entry in `biome.json`, which grows in each sweep; 133 makes
+  it the whole app). Text inside `<code>`, `<pre>` and `<kbd>`, punctuation and numbers are fine; a
+  string that is not translated text, such as a brand name or a protocol, carries
+  `biome-ignore lint/plugin: <why>`. The rule is tested on fixtures. A missing
   translation falls back to English at run time (never a raw key on screen) and fails CI.
 
 **Out** (and where it goes instead):

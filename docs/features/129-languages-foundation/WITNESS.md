@@ -120,3 +120,39 @@ Witnessed: 2026-10-20 22:30 EDT, by a fresh agent (blind re-check). Commit: b0c6
 | 10 | Lint and typecheck are clean | no | confirmed | `pnpm lint` → exit 0; `pnpm typecheck` → exit 0. |
 
 **Overall:** met.
+
+## Task 4 — Message files and the guards
+
+Witnessed: 2026-10-20 22:30 EDT, by a fresh agent (blind). Commit: 85c41871 plus the uncommitted working tree (messages/, src/i18n/*, the five i18n-raw-jsx-*.grit plugins, biome.json, request.ts, apps/web/package.json, pnpm-lock.yaml). Machine: macOS (Darwin 27), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Message files exist as `apps/web/messages/<locale>/<namespace>.json` for en, pt, fr | no | confirmed | `common.json` in each; `namespaces.ts` has `NAMESPACES = ["common"]`; `language.label` and `language.automatic` in each. |
+| 2 | The loader merges the files at request start, and `request.ts` uses it | no | confirmed | `loadMessages` merges each namespace via `mergeWithFallback`; `request.ts` returns `messages: await requestMessages(locale)`. |
+| 3 | The task's own tests pass | no | confirmed | `cd apps/web && pnpm exec vitest run src/i18n` → 6 files, 46 tests passed. |
+| 4 | The parity test fails on a key missing in `pt` | no | confirmed | Scratch copy, `pt/common.json` cut to one key → `messages.parity.test.ts` fails on "pt/common has every key of English…"; unmodified → 7 passed. |
+| 5 | Parity also fails on a key only in `fr`, a renamed or dropped placeholder, invalid ICU, a plural without `other` | no | confirmed | One mutation each in the scratch copy: all fail. |
+| 6 | A missing key renders the English text, never a raw key | no | confirmed | `messages.test.ts` "shows English for a message the language misses, and says so once" passes; with the fallback replaced by `other as string` it fails. |
+| 7 | The fallback is logged as a warning once per process and language, leaking nothing | no | confirmed | `messages.ts` logs locale, namespace, count and at most 20 key names, no message text; a `warned` Set limits it. |
+| 8 | The lint rule fails on a sample file | no | confirmed | `biome lint` on a sample under `apps/web/src/i18n/`: errors on raw JSX text, `title="Hello"`, `{"Hi there"}`, ternary strings (both branches), `{n && "Shown"}`, a template literal, `title={"Braced"}`, `aria-label={n ? "a b" : t("k")}`: 14 in all. |
+| 9 | The lint rule passes on a clean file | no | confirmed | `t("k")`, `<code>`, `<pre>`, `<kbd>`, `·`, `{n}`, `` {`${n}`} ``, className and id strings, and a `biome-ignore lint/plugin` line: no diagnostics. |
+| 10 | Existing rules still apply in the override folder | no | confirmed | `function f() {…}` in the sample was flagged by `no-function-declaration`. |
+| 11 | The guard has its folder list, and the plugins are tested on fixtures | no | confirmed | `biome.json` override `includes: ["apps/web/src/i18n/**"]` loads the 5 plugins; `raw-text.test.ts` tests the fixtures, the plugin list and that the listed folders exist. |
+| 12 | The repo is green with the change | no | confirmed | `pnpm lint` → exit 0; `pnpm typecheck` → exit 0. |
+| 13 | The dev dependency is exact and the license and audit checks pass | no | confirmed | `"@formatjs/icu-messageformat-parser": "3.5.21"`; `pnpm licenses:check` → 345 packages allowed; `pnpm audit --audit-level high` → none. |
+| 14 | The JSON files are bundled in the production build | no | can't check here | `pnpm build` was not run and nothing imported next-intl at runtime yet, so the files were not in `.next`. |
+
+**Overall:** not met (row 14 could not be checked: nothing used the messages at runtime). Fixed: `layout.tsx` now wraps the page in `<NextIntlClientProvider>`, which inherits the language and messages from `request.ts`, so the files are in the build.
+
+### Re-check (row 14 and the layout.tsx diff)
+
+Witnessed: 2026-10-20 22:40 EDT, by a fresh agent (blind). Commit: 85c41871 plus the uncommitted working tree, now with `layout.tsx` wrapping the body in `<NextIntlClientProvider>`. Machine: macOS (Darwin 27), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 14 | The JSON message files are in the production build | no | confirmed | `find apps/web/.next/server -name '*messages*'` → `chunks/ssr/apps_web_messages_{en,fr,pt}_common_json_…js`; `.next/BUILD_ID` newer than `layout.tsx`. |
+| 15 | The production server picks the language by Accept-Language, English as the fallback | no | confirmed | Own server on a free port: `curl -sL /setup`: `pt-BR` → `lang="pt"` and `Idioma`; `fr-CA` → `lang="fr"` and `Langue`; `en` → `lang="en"` and `Language`; `es` → `lang="en"` and `Language`. |
+| 16 | The `ronne-locale` cookie beats Accept-Language | no | confirmed | `Cookie: ronne-locale=fr` with `Accept-Language: pt` → `lang="fr"` and `Langue`. |
+| 17 | The diff did not break the checks | no | confirmed | `pnpm lint` → 0; `pnpm typecheck` → 0; `vitest run src/i18n` → 46 passed. |
+
+**Overall:** met.
