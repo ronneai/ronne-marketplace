@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { DOCS_URL } from "../src/components/help/topics";
+import { DOCS_URL, localizedDocsHref } from "../src/components/help/topics";
 import { E2E_PASSWORD, E2E_USERS } from "./users";
 
 test("a user opens a helper in the New item form, whose Learn more and Docs open the website in a new tab", async ({
@@ -40,14 +40,17 @@ test("a user opens a helper in the New item form, whose Learn more and Docs open
   // The Documentation is on the website (088): Learn more opens its section in a new tab. Not
   // followed here, so the tests don't need the internet.
   const learnMore = answer.getByRole("link", { name: /^Learn more/ });
-  await expect(learnMore).toHaveAttribute("href", `${DOCS_URL}/scopes#what`);
+  await expect(learnMore).toHaveAttribute(
+    "href",
+    localizedDocsHref(`${DOCS_URL}/scopes#what`, "en"),
+  );
   await expect(learnMore).toHaveAttribute("target", "_blank");
   await expect(learnMore).toHaveAccessibleName("Learn more (opens in a new tab)");
   // So does Documentation, in the sidebar (119).
   const docs = page
     .getByRole("navigation", { name: "Main" })
     .getByRole("link", { name: /^Documentation/ });
-  await expect(docs).toHaveAttribute("href", DOCS_URL);
+  await expect(docs).toHaveAttribute("href", localizedDocsHref(DOCS_URL, "en"));
   await expect(docs).toHaveAttribute("target", "_blank");
   await expect(docs).not.toHaveAttribute("aria-current", "page");
 });

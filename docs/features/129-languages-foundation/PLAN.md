@@ -83,8 +83,10 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* the helper link test passes for the three languages and every link lands on a real
   section.
 
-- [ ] **11. Phone and language sweep.** Run the phone sweep (075) for the migrated pages in
-  Portuguese and French (the longest strings), fix overflow.
+- [x] **11. Phone and language sweep.** The phone sweep (065) runs once per language: English over
+  every page as before, Portuguese and French over `MIGRATED_ROUTES` in `e2e/pages.ts` (the pages
+  moved to messages so far, which each sweep of the translation work extends) and over the 404
+  page, each asserting `<html lang>`; fix overflow.
   *Done when:* the end-to-end sweep passes on every project in the three languages for these pages.
 
 - [ ] **12. Rules and decision log.** `docs/knowledge/i18n.md` (started in task 6: finish how to add a

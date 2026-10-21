@@ -166,3 +166,20 @@ export const SWEEP_PAGES: readonly SweepPage[] = [
   // Root-only in production, which the end-to-end tests run.
   { route: "/styleguide", roles: ROOT, urls: () => ["/styleguide"] },
 ];
+
+/**
+ * The pages whose text is in the message files (feature 129): the sweep also runs them in
+ * Portuguese and French, where the words are longer. Each sweep of the translation work adds its
+ * pages; the sign-off (133) makes it every page.
+ */
+export const MIGRATED_ROUTES: ReadonlySet<string> = new Set([
+  "/sign-in",
+  "/sign-in/two-factor",
+  "/",
+  "/menu",
+  "/device",
+  "/account/password",
+  "/account/security",
+  "/account/language",
+  "/account/tokens",
+]);

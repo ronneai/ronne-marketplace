@@ -387,3 +387,36 @@ Witnessed: 2026-10-20 23:50 BRT, by a fresh agent (blind). Commit: 2bfba67d plus
 | 8 | Every section a helper or provider-guide link uses exists on the website in all three languages | no | confirmed | 81 (topic, section) pairs checked against `../ronne-web/www/src/content/docs/{en,pt,fr}`: all present except 10 `authentication#…` pairs (`scim`, `lockout`, the provider guides), which moved to `scim`, `password-sign-in` and `provider-guides` and are redirected by the website's `movedSections` with the anchor kept (client-side; read, not run in a browser). |
 
 **Overall:** met.
+
+## Task 11 — Phone and language sweep
+
+Witnessed: 2026-10-20 23:55 local, by a fresh agent (blind). Commit: 81042b44 plus the uncommitted diff (`e2e/mobile-sweep.mobile.e2e.ts`, `e2e/pages.ts`, `src/app/pages-coverage.test.ts`, `PLAN.md`). Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The sweep runs once per language (en, pt, fr), 5 tests each, on every project | no | confirmed | `playwright test e2e/mobile-sweep.mobile.e2e.ts --project=phone --project=phone-webkit --project=tablet` → 45 passed (15 per project). |
+| 2 | English still covers every page in `SWEEP_PAGES` | no | confirmed | The diff keeps `pages = language === "en" ? SWEEP_PAGES : …`; a probe counted URLs per role (signedOut 3, member 25, moderator 27, root 41); `pages.ts` differs from HEAD only by `MIGRATED_ROUTES`; English now also visits the 404 as member. |
+| 3 | pt and fr visit exactly the `MIGRATED_ROUTES` pages plus the 404 | no | confirmed | The same probe: signedOut 3, member, moderator and root 8 each; all 9 entries exist in `SWEEP_PAGES`. |
+| 4 | Each language run asserts `<html lang>` | no | confirmed | With `speak` a no-op, `in pt: signed out` fails with `Expected: "pt" Received: "en"`. |
+| 5 | `speak` sets the `ronne-locale` cookie after signing in in English | no | confirmed | `signIn(...)` then `speak` with `addCookies`. |
+| 6 | A deliberate overflow is caught in pt and fr, with page, role and width | no | confirmed | `style={{ width: 600 }}` on the Language page: `/account/language as member at 320px: page is 641px wide in a 320px viewport; sticks out: section.grid.gap-4 "Idioma…"`. |
+| 7 | The stale-expected-failures fix is needed | no | confirmed | With the original filter, `in pt:` fails with `EXPECTED_FAILURES entries for pages that now pass` for `/submissions/new`. |
+| 8 | Removing a route from `MIGRATED_ROUTES` is noticed | no | partly | `vitest run src/app` still passed: the test only checked membership and a size. |
+| 9 | `src/app` tests, lint and typecheck are green | no | confirmed | 14 files, 140 passed; lint no errors; typecheck ok. |
+| 10 | The extra sign-ins per language do not trip the sign-in limit | no | partly | The whole phone project twice: no sign-in refused, but `navigation.mobile.e2e.ts:123` failed expecting the language-neutral Documentation address, a regression from task 10's change that no test had run. |
+| 11 | Done-when: the sweep passes on every project in the three languages | no | confirmed | 45/45 on phone, phone-webkit, tablet. |
+
+**Overall:** not met (rows 8, 10). Fixed: the list is pinned in `pages-coverage.test.ts`; the e2e expectations of the Documentation address (`navigation.mobile`, `catalogue`, `auth`, `composer`, `help`) take the English-localised one; and the full browser suite, run twice (208 passed, 2 failed, then 210 passed), found that the 404 page's `<main>` nested inside the app frame's `<main>` for in-app 404s: `not-found.tsx` is now a `<section>`.
+
+### Re-check (rows 8 and 10), blind
+
+Witnessed: 2026-10-21 00:25 local, by a fresh agent (blind). Commit: 81042b44 plus the uncommitted diff. Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 8 | Dropping a route from `MIGRATED_ROUTES` is noticed | no | confirmed | Removing `/account/tokens` from `e2e/pages.ts` fails "runs the migrated pages (129) in every language…" (1 failed, 2 passed): the pinned sorted list of 9 routes. |
+| 10 | The whole mobile folder passes on every project, with no sign-in refused | no | confirmed | `playwright test --project=phone --project=phone-webkit --project=tablet` on the real tree → exit 0, `120 passed (4.2m)`, no sign-in or `toHaveURL` errors. |
+| 12 | The `<main>` in `not-found.tsx` nests inside the app frame's `<main>`, and the `<section>` fixes it | no | confirmed | Turbopack scratch build: `e2e/private-workspaces.e2e.ts` with `<main>` → `strict mode violation: locator('main') resolved to 2 elements`; with `<section>` → 3 passed; the real tree 3 passed. |
+| 13 | Unit project, typecheck and lint are green | no | confirmed | Unit project 196 files, 2410 passed; typecheck ok; lint no errors. |
+
+**Overall:** met. (A `next build --webpack` scratch build gave the opposite result on the nested-`main` check, because that build's unknown-address page has no `<main>`; the production build is Turbopack.)
