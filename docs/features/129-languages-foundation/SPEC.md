@@ -34,8 +34,11 @@ every new screen is written with messages from the start.
   never string joins.
 - **What is translated (platform labels only):** headings, buttons, field labels, placeholders,
   helper text, empty states, validation and error messages the web app shows, page titles
-  (`<title>`), `aria-label`s, and `<html lang>`. Dates, times and numbers follow the language
-  (`Intl`; 049's local time keeps its UTC on hover).
+  (`<title>`), `aria-label`s, and `<html lang>`. Numbers (counts, thousands separators) follow the
+  language (`Intl`: 12,345 in English, 12.345 in Portuguese, 12 345 in French). Timestamps keep
+  049's unambiguous numeric form, `2026-10-20 21:58 GMT-4`, in every language, with the UTC time on
+  hover: it is read as data, in the audit log and in tables, and one form is easier to compare and
+  to quote in a report than three.
 - **What is not translated, by design:**
   - **Item content:** names, descriptions, READMEs, files, manifests, keywords, version notes.
   - **What people write:** review comments, workspace and scope descriptions, the instance notice
@@ -48,8 +51,9 @@ every new screen is written with messages from the start.
 - **Which screens move in this feature:** the sidebar, the Menu sheet and the account menu (119,
   066), the workspace switcher's own labels, Account (profile, password, two-factor, Language),
   sign-in, the device page, the setup wizard's language links only (its text moves in 132), the
-  shared pieces in `components/ui` (Copy, dialogs' Close, tables' Sort and paging, Notice defaults,
-  LocalTime, empty states), the 404 and error pages, and the Help popover's frame ("Learn more",
+  shared pieces in `components/ui` (Copy, dialogs' Close, the data tables' pager, count and
+  filters, the leave-without-saving dialog and the unsaved mark, password show/hide, field errors
+  and warnings), the 404 and error pages (new: until now Next.js's own English ones), and the Help popover's frame ("Learn more",
   "Close").
 - **"Learn more" links** open the website's Documentation in the person's language (the website
   already has English, Portuguese and French, 088).
@@ -138,7 +142,7 @@ every new screen is written with messages from the start.
 - [ ] The key-parity and placeholder tests pass, and the raw-text scan passes on the migrated
       folders and fails on a deliberate sample.
 - [ ] "Learn more" links open the website in the person's language.
-- [ ] Dates and numbers follow the language; UTC on hover is unchanged.
+- [ ] Numbers follow the language; timestamps keep their numeric form and UTC on hover.
 - [ ] CLAUDE.md, the new `docs/knowledge/i18n.md` (glossary, how to add a message, how to add a
       language) and MVP §15 record the rule: UI text goes through messages.
 - [ ] The Documentation and helpers above say what the feature does now.

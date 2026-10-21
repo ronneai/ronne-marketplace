@@ -39,10 +39,12 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* the parity test fails on a key missing in `pt`, the lint rule fails on a sample file
   and passes on a clean one, and a missing key renders the English text.
 
-- [ ] **5. Shared UI pieces.** `components/ui` text (Copy, Dialog's Close, tables' Sort and paging,
-  Notice defaults, empty states), `LocalTime` and number formatting by language, the Help popover's
-  frame, the 404 and error pages. English, Portuguese and French files.
-  *Done when:* component tests render each piece in the three languages; the scan covers
+- [x] **5. Shared UI pieces.** `components/ui` text (Copy, Dialog's Close, the data tables' pager,
+  count and filters, the unsaved-changes dialog and mark, password show/hide, field errors, the
+  Help popover's frame), number formatting by language (timestamps keep their numeric form), new
+  translated 404 and error pages, a test setup that renders components in English or, with
+  `inLocale`, in another language. English, Portuguese and French files.
+  *Done when:* component tests render each piece in the three languages; the lint rule covers
   `components/ui`.
 
 - [ ] **6. The shell.** Sidebar groups and links, the workspace switcher's labels, the Menu sheet,

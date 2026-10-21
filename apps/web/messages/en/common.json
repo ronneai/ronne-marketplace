@@ -2,5 +2,60 @@
   "language": {
     "label": "Language",
     "automatic": "Automatic"
+  },
+  "close": "Close",
+  "copy": {
+    "label": "copy",
+    "done": "copied",
+    "manual": "selected: copy it yourself"
+  },
+  "password": {
+    "show": "Show password",
+    "hide": "Hide password"
+  },
+  "field": {
+    "error": "ERR:",
+    "warning": "WARN:"
+  },
+  "newTab": "(opens in a new tab)",
+  "help": {
+    "learnMore": "Learn more"
+  },
+  "unsaved": {
+    "title": "Leave without saving?",
+    "message": "Your changes aren't saved. If you leave now, they're lost.",
+    "stay": "Stay on this page",
+    "leave": "Leave without saving",
+    "mark": "Unsaved changes",
+    "hint": "Save with Ctrl+S or ⌘S."
+  },
+  "table": {
+    "pages": "Pages",
+    "firstPage": "First page",
+    "previousPage": "Previous page",
+    "nextPage": "Next page",
+    "previous": "Previous",
+    "next": "Next",
+    "show": "Show",
+    "count": "{count, number}{capped, select, true {+} other {}} {noun}",
+    "nothingLeft": "Nothing left on this page.",
+    "clearFilters": "Clear filters",
+    "actions": "Actions",
+    "activeFilters": "Active filters",
+    "clear": "Clear",
+    "removeFilter": "Remove the {filter} filter",
+    "filterLabel": "{label}:"
+  },
+  "notFound": {
+    "title": "Page not found",
+    "message": "There is nothing at this address. It may have moved, or you may not have access to it.",
+    "home": "Go to Home"
+  },
+  "error": {
+    "title": "Something went wrong",
+    "message": "The page could not be shown. Try again; if it keeps happening, tell the people who run this instance.",
+    "retry": "Try again",
+    "home": "Go to Home",
+    "reference": "Reference: {digest}"
   }
 }

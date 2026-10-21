@@ -1,5 +1,12 @@
 import { execFileSync } from "node:child_process";
-import { copyFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  copyFileSync,
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -93,10 +100,10 @@ describe("biome.json (129)", () => {
     );
   });
 
-  it("lists only folders that exist", () => {
-    for (const pattern of override?.includes ?? []) {
-      const folder = pattern.replace(/\/\*\*.*$/, "");
-      expect(() => readFileSync(repo(`${folder}/`)), folder).toThrowError(/EISDIR/);
+  it("lists only folders and files that exist", () => {
+    for (const pattern of (override?.includes ?? []).filter((p) => !p.startsWith("!"))) {
+      const path = pattern.replace(/\/\*\*.*$/, "");
+      expect(existsSync(repo(path)), path).toBe(true);
     }
   });
 });

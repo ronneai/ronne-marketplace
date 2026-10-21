@@ -1,4 +1,5 @@
 import { ExternalLink } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { ComponentProps } from "react";
 
 /**
@@ -8,14 +9,17 @@ import type { ComponentProps } from "react";
 export const NewTabLink = ({
   children,
   ...props
-}: Omit<ComponentProps<"a">, "target" | "rel"> & { href: string }) => (
-  <a {...props} target="_blank" rel="noopener noreferrer">
-    {children}
-    <ExternalLink
-      size={12}
-      aria-hidden="true"
-      className="ml-1 inline-block shrink-0 align-[-1px]"
-    />
-    <span className="sr-only"> (opens in a new tab)</span>
-  </a>
-);
+}: Omit<ComponentProps<"a">, "target" | "rel"> & { href: string }) => {
+  const t = useTranslations("common");
+  return (
+    <a {...props} target="_blank" rel="noopener noreferrer">
+      {children}
+      <ExternalLink
+        size={12}
+        aria-hidden="true"
+        className="ml-1 inline-block shrink-0 align-[-1px]"
+      />
+      <span className="sr-only"> {t("newTab")}</span>
+    </a>
+  );
+};

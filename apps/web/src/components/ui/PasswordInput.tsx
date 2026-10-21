@@ -1,12 +1,14 @@
 "use client";
 
 import { Eye, EyeOff } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { type InputHTMLAttributes, useState } from "react";
 import { cn } from "./cn";
 import { inputClasses } from "./Field";
 
 /** A password input with a show/hide button. Without JavaScript it's a plain password field. */
 export const PasswordInput = ({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) => {
+  const t = useTranslations("common.password");
   const [visible, setVisible] = useState(false);
   return (
     <div className="relative">
@@ -18,7 +20,7 @@ export const PasswordInput = ({ className, ...props }: InputHTMLAttributes<HTMLI
       <button
         type="button"
         onClick={() => setVisible((v) => !v)}
-        aria-label={visible ? "Hide password" : "Show password"}
+        aria-label={visible ? t("hide") : t("show")}
         aria-pressed={visible}
         className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-muted hover:text-fg outline-offset-[-2px] focus-visible:outline-2 focus-visible:outline-focus"
       >

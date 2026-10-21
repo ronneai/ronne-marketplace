@@ -1,6 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { type ReactNode, useEffect, useId, useRef } from "react";
 import { cn } from "./cn";
 
@@ -58,6 +59,7 @@ export const Dialog = ({
   children: ReactNode;
   closeOnBackdrop?: boolean;
 }) => {
+  const t = useTranslations("common");
   const ref = useRef<HTMLDialogElement>(null);
   // Unique per dialog: a page can hold several (the editor has its leave guard and its own).
   const titleId = useId();
@@ -113,7 +115,7 @@ export const Dialog = ({
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close"
+          aria-label={t("close")}
           className="-mr-2 inline-flex size-10 shrink-0 items-center justify-center rounded-control text-muted hover:bg-tint hover:text-fg pointer-coarse:size-11 outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
         >
           <X size={18} aria-hidden />

@@ -17,6 +17,7 @@ import {
   useRole,
 } from "@floating-ui/react";
 import { CircleHelp } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { type ReactNode, useRef, useState } from "react";
 import { cn } from "./cn";
 import { NewTabLink } from "./NewTabLink";
@@ -49,6 +50,7 @@ export const HelpTip = ({
   /** Shows only the icon, where space is tight; the question stays its accessible name. */
   iconOnly?: boolean;
 }) => {
+  const t = useTranslations("common.help");
   const [open, setOpen] = useState(false);
   const arrowRef = useRef<SVGSVGElement>(null);
   const labelId = useId();
@@ -85,7 +87,7 @@ export const HelpTip = ({
           onClick={() => setOpen(false)}
           className="justify-self-start text-link underline underline-offset-2"
         >
-          Learn more
+          {t("learnMore")}
         </NewTabLink>
       ) : null}
     </>

@@ -11,7 +11,13 @@
   },
   "overrides": [
     {
-      "includes": ["apps/web/src/i18n/**"],
+      "includes": [
+        "apps/web/src/i18n/**",
+        "apps/web/src/components/ui/**",
+        "apps/web/src/app/not-found.tsx",
+        "apps/web/src/app/error.tsx",
+        "!**/*.test.tsx"
+      ],
       "plugins": [
         "./packages/config/biome-plugins/i18n-raw-jsx-text.grit",
         "./packages/config/biome-plugins/i18n-raw-jsx-string.grit",

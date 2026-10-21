@@ -2,5 +2,60 @@
   "language": {
     "label": "Langue",
     "automatic": "Automatique"
+  },
+  "close": "Fermer",
+  "copy": {
+    "label": "copier",
+    "done": "copié",
+    "manual": "sélectionné : copiez-le vous-même"
+  },
+  "password": {
+    "show": "Afficher le mot de passe",
+    "hide": "Masquer le mot de passe"
+  },
+  "field": {
+    "error": "ERREUR :",
+    "warning": "ATTENTION :"
+  },
+  "newTab": "(s’ouvre dans un nouvel onglet)",
+  "help": {
+    "learnMore": "En savoir plus"
+  },
+  "unsaved": {
+    "title": "Quitter sans enregistrer ?",
+    "message": "Vos modifications ne sont pas enregistrées. Si vous quittez maintenant, elles seront perdues.",
+    "stay": "Rester sur cette page",
+    "leave": "Quitter sans enregistrer",
+    "mark": "Modifications non enregistrées",
+    "hint": "Enregistrez avec Ctrl+S ou ⌘S."
+  },
+  "table": {
+    "pages": "Pages",
+    "firstPage": "Première page",
+    "previousPage": "Page précédente",
+    "nextPage": "Page suivante",
+    "previous": "Précédent",
+    "next": "Suivant",
+    "show": "Afficher",
+    "count": "{count, number}{capped, select, true {+} other {}} {noun}",
+    "nothingLeft": "Il ne reste rien sur cette page.",
+    "clearFilters": "Effacer les filtres",
+    "actions": "Actions",
+    "activeFilters": "Filtres actifs",
+    "clear": "Effacer",
+    "removeFilter": "Retirer le filtre {filter}",
+    "filterLabel": "{label} :"
+  },
+  "notFound": {
+    "title": "Page introuvable",
+    "message": "Il n’y a rien à cette adresse. Elle a peut-être changé, ou vous n’y avez peut-être pas accès.",
+    "home": "Aller à l’accueil"
+  },
+  "error": {
+    "title": "Une erreur s’est produite",
+    "message": "La page n’a pas pu être affichée. Réessayez ; si le problème persiste, prévenez les personnes qui gèrent cette instance.",
+    "retry": "Réessayer",
+    "home": "Aller à l’accueil",
+    "reference": "Référence : {digest}"
   }
 }

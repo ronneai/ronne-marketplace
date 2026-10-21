@@ -43,6 +43,8 @@ export default defineConfig({
           include,
           exclude: dbInclude,
           env: { RONNE_ENV_FILE: ".env.unit-tests-have-none", DATABASE_URL: "", AUTH_SECRET: "" },
+          // next-intl's hooks read the real message files, in English unless a test says otherwise (129).
+          setupFiles: ["./src/test/intl-setup.ts"],
         },
       },
       {

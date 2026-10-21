@@ -1,6 +1,7 @@
 "use client";
 
 import { Check, Copy } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
 import { copyText, selectText } from "./copy";
 
@@ -10,11 +11,12 @@ import { copyText, selectText } from "./copy";
  */
 export const CopyableCommand = ({
   command,
-  label = "Copy",
+  label,
   prompt = true,
   wrap = false,
 }: {
   command: string;
+  /** A caller's own words for the button; left out, it says "copy" in the person's language. */
   label?: string;
   prompt?: boolean;
   /**
@@ -23,6 +25,7 @@ export const CopyableCommand = ({
    */
   wrap?: boolean;
 }) => {
+  const t = useTranslations("common.copy");
   const [state, setState] = useState<"idle" | "copied" | "manual">("idle");
   const text = useRef<HTMLElement>(null);
   const copy = async () => {
@@ -49,10 +52,10 @@ export const CopyableCommand = ({
         {state === "copied" ? <Check size={14} aria-hidden /> : <Copy size={14} aria-hidden />}
         <span aria-live="polite">
           {state === "copied"
-            ? "copied"
+            ? t("done")
             : state === "manual"
-              ? "selected: copy it yourself"
-              : label.toLowerCase()}
+              ? t("manual")
+              : (label?.toLowerCase() ?? t("label"))}
         </span>
       </button>
     </div>

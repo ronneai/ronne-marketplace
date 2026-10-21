@@ -156,3 +156,40 @@ Witnessed: 2026-10-20 22:40 EDT, by a fresh agent (blind). Commit: 85c41871 plus
 | 17 | The diff did not break the checks | no | confirmed | `pnpm lint` → 0; `pnpm typecheck` → 0; `vitest run src/i18n` → 46 passed. |
 
 **Overall:** met.
+
+## Task 5 — Shared UI pieces
+
+Witnessed: 2026-10-20 22:35 EDT, by a fresh agent (blind). Commit: fbca7886 plus the uncommitted working tree (the changed components and messages, and untracked `e2e/languages.e2e.ts`, `app/error.tsx`, `app/not-found.tsx`, `components/ui/translations.test.tsx`, `src/test/`). Machine: macOS (Darwin 27.0.0), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Component tests render each shared piece in en, pt and fr | no | confirmed | `vitest run src/components/ui src/i18n` → 19 files, 157 passed; `translations.test.tsx` covers Dialog Close, CopyableCommand, PasswordInput, FieldError and FieldWarning, NewTabLink, DirtyMark, the unsaved dialog, the DataTable pager and empty state, the sr-only "Actions" header, FilterChips, and the 404 and error pages, each in three locales. |
+| 2 | The Help popover frame ("Learn more") is translated and tested in the three languages | no | partly | `HelpTip.tsx` uses `t("learnMore")` and the messages exist, but no test asserted "Saiba mais" or "En savoir plus". |
+| 3 | The lint rule covers `components/ui`, the 404 page and the error page (not test files) | no | confirmed | The `biome.json` override lists them with `!**/*.test.tsx`; `biome lint apps/web/src/components/ui apps/web/src/app` → no raw-text diagnostics (one `noUnusedImports` warning that is also in HEAD). |
+| 4 | A raw string added to `Dialog.tsx` is flagged | no | confirmed | Scratch copy: text added after `<X/>` → "Found 1 error" at that line. |
+| 5 | Lint, typecheck and the whole unit project pass, so the global next-intl mock breaks no test | no | confirmed | `pnpm lint` → 0; `pnpm typecheck` → 0; `vitest run --project unit` → 190 files, 2335 passed. |
+| 6 | The 404 and error pages are new, translated, and render in the person's language in the real app | no | confirmed | `playwright test e2e/languages.e2e.ts --project=chromium` → 5 passed: 404 status and `<html lang>` right for en-US, pt-BR, fr-CA; es-ES falls back to English; the dialog Close reads "Fechar" for pt-BR. |
+| 7 | Numbers follow the language; counts are ICU messages | no | confirmed | `table.count` is identical in the three files; the test asserts "12,345+ things", "12.345 things" and `12\s345 things`. |
+| 8 | Timestamps keep their numeric form | no | confirmed | `time-text.ts` untouched (`YYYY-MM-DD HH:mm TZ`); `LocalTime.tsx` still sets the UTC `title`. |
+| 9 | The test setup renders in English, or in another language with `inLocale` | no | confirmed | `intl-setup.ts` mocks `next-intl` and `next-intl/server` over the real message files with the English fallback; `vitest.config.ts` lists it in the unit project's `setupFiles`. |
+| 10 | A key-parity or placeholder gap fails CI | no | confirmed | Scratch copy: `pt` `table.firstPage` renamed → the parity test and `translations.test` both fail. |
+| 11 | The tests fail if the code goes back to hard-coded English | no | confirmed | DataTable count back to `toLocaleString("en-US")` → test fails; Dialog `aria-label` back to `"Close"` → test fails. |
+| 12 | No user-facing English is left in `components/ui` that the lint rule can't see | no | partly | `FilterChips.tsx` built `{labels[key]}:` with a hard-coded colon, so French got "Nom:" instead of "Nom :". Callers still pass English `noun`, `empty`, `labels`, `header` (later tasks). |
+| 13 | Portuguese (Brazil) and French (Canada) wording and punctuation are correct | no | partly | French `error.message` said "Réessayez; si" with no space before the semicolon. |
+| 14 | The spec deviations are recorded in `SPEC.md` and `PLAN.md` | no | confirmed | Numbers follow the language, timestamps keep their numeric form, the new 404 and error pages, and the Done-when wording are in both files. |
+
+**Overall:** not met (rows 2, 12, 13). Fixed: a HelpTip test in pt and fr; the French semicolon; a `table.filterLabel` message (`{label}:`, `{label} :` in French) used by FilterChips.
+
+### Re-check (rows 2, 12, 13)
+
+Witnessed: 2026-10-20 22:50 EDT, by a fresh agent (blind re-check). Commit: fbca7886 plus the uncommitted working tree. Machine: macOS, Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 2 | The Help popover frame ("Learn more") is translated and tested in the three languages | no | confirmed | New HelpTip test renders en, pt and fr; with `{t("learnMore")}` replaced by the literal in the scratch copy it fails (1 failed, 2 passed); restored, 158 passed. |
+| 12 | No user-facing English is left in `components/ui` that the lint rule can't see | no | confirmed | `FilterChips.tsx:42` uses `t("filterLabel", { label })`; with the hard-coded colon back, the FilterChips case fails; restored, it passes. |
+| 13 | Portuguese (Brazil) and French (Canada) wording and punctuation are correct | no | confirmed | `fr` `error.message` now "Réessayez ; si…"; all three `common.json` re-read: nothing else found. |
+
+Whole suite after the change: `vitest run --project unit` → 190 files, 2336 passed; `pnpm lint` → 0; `pnpm typecheck` → 0.
+
+**Overall:** met.

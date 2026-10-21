@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import Form from "next/form";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import type { CSSProperties, ReactNode } from "react";
 import { cn } from "../cn";
 import { selectClasses } from "../Field";
@@ -139,9 +140,6 @@ export const HiddenListFields = <S extends string, F extends string>({
   </>
 );
 
-const formatCount = (total: TableTotal, noun: string) =>
-  `${total.count.toLocaleString("en-US")}${total.capped ? "+" : ""} ${noun}`;
-
 export const DataTable = <Row, S extends string, F extends string>({
   list,
   state,
@@ -176,40 +174,41 @@ export const DataTable = <Row, S extends string, F extends string>({
    */
   pinned?: readonly F[];
 }) => {
+  const t = useTranslations("common.table");
   const loose = (Object.keys(state.filters) as F[]).filter((key) => !pinned.includes(key));
   const filtered = loose.some((key) => state.filters[key]);
   const hide = (column: Column<Row, S>) => column.hideOnMobile && "hidden sm:table-cell";
   const pager = (
     <nav
-      aria-label="Pages"
+      aria-label={t("pages")}
       className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted"
     >
-      <span>{formatCount(total, noun)}</span>
+      <span>{t("count", { count: total.count, capped: String(total.capped), noun })}</span>
       <div className="flex items-center gap-1">
         <PageLink
           href={page.previous ? listUrl(list, state, { cursor: null }) : null}
-          label="First page"
+          label={t("firstPage")}
         >
           <ChevronsLeft size={16} aria-hidden="true" />
         </PageLink>
         <PageLink
           href={page.previous ? listUrl(list, state, { cursor: page.previous }) : null}
-          label="Previous page"
+          label={t("previousPage")}
         >
           <ChevronLeft size={16} aria-hidden="true" />
-          Previous
+          {t("previous")}
         </PageLink>
         <PageLink
           href={page.next ? listUrl(list, state, { cursor: page.next }) : null}
-          label="Next page"
+          label={t("nextPage")}
         >
-          Next
+          {t("next")}
           <ChevronRight size={16} aria-hidden="true" />
         </PageLink>
       </div>
       <Form action={list.path} scroll={false} className="flex items-center gap-2">
         <HiddenListFields list={list} state={state} omit={["size"]} />
-        <label htmlFor="page-size">Show</label>
+        <label htmlFor="page-size">{t("show")}</label>
         <select
           id="page-size"
           name="size"
@@ -223,7 +222,7 @@ export const DataTable = <Row, S extends string, F extends string>({
           ))}
         </select>
         <button type="submit" data-submit className={cn(pagerLink, "border border-strong")}>
-          Show
+          {t("show")}
         </button>
         <SubmitOnChange />
       </Form>
@@ -236,14 +235,14 @@ export const DataTable = <Row, S extends string, F extends string>({
         <div className="flex flex-wrap items-center gap-3 rounded-panel border border-hairline bg-surface p-4 text-sm text-muted">
           <span>
             {/* A later page emptied by changes since (062): the list itself may not be. */}
-            {state.cursor ? "Nothing left on this page." : filtered ? empty.filtered : empty.none}
+            {state.cursor ? t("nothingLeft") : filtered ? empty.filtered : empty.none}
           </span>
           {state.cursor ? (
             <Link
               href={listUrl(list, state, { cursor: null })}
               className="text-link underline-offset-2 hover:underline"
             >
-              First page
+              {t("firstPage")}
             </Link>
           ) : null}
           {filtered && !state.cursor ? (
@@ -255,7 +254,7 @@ export const DataTable = <Row, S extends string, F extends string>({
               })}
               className="text-link underline-offset-2 hover:underline"
             >
-              Clear filters
+              {t("clearFilters")}
             </Link>
           ) : null}
         </div>
@@ -301,7 +300,7 @@ export const DataTable = <Row, S extends string, F extends string>({
                         ) : column.header ? (
                           column.header
                         ) : (
-                          <span className="sr-only">{column.srHeader ?? "Actions"}</span>
+                          <span className="sr-only">{column.srHeader ?? t("actions")}</span>
                         )}
                       </th>
                     );
