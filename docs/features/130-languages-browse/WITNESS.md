@@ -324,3 +324,35 @@ Witnessed: 2026-10-21 16:30 local, by a fresh agent (blind, row 8 re-check). Com
 | 8 | The e2e project runs green (chromium and phone) on a fresh build | no | confirmed | `git status --short messages` printed nothing; `pnpm exec playwright test --project=chromium --project=phone` → "143 passed (4.2m)", no failures, flaky tests or skips, against the build of the clean tree. |
 
 **Overall:** met.
+
+## Task 10 — Documentation and records
+
+Witnessed: 2026-10-21, by a fresh agent (blind). Commit: 9c95eddb plus the docs-only working tree; ronne-web c9ccd25. Machine: Darwin 27.0.0, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `pnpm witness:check` passes | no | confirmed | `pnpm witness:check` → exit 0. |
+| 2 | The ronne-web branch builds and lints | no | confirmed | In `ronne-web/www`: `pnpm lint` → "Checked 258 files", exit 0; `pnpm build` → exit 0, route table printed. |
+| 3 | English docs are unchanged | no | confirmed | `git diff 08a148b c9ccd25 -- www/src/content/docs/en` → 0 lines; neither `topics.ts` is in the commit. |
+| 4 | Every pt replacement matches the app's message | no | confirmed | Each new pt label looked up in `pt/{item,catalogue,workspaces}.json` (and `home.json` for "Mais usados"); all exist. |
+| 5 | Every fr replacement matches the app's message | no | confirmed | The same lookup in `fr/*.json`; all exist. |
+| 6 | No replacement touched a label that is not a browse-screen label | no | confirmed | The diff touches only the 13 files of the commit; `install.tsx`, `admin.tsx` and "Create scope" are unchanged. |
+| 7 | All browse-screen labels in the pt and fr pages were converted | no | partly | `fr/usage.tsx` (five labels) and `fr/items.tsx` ("Files :") were still English, two running-text "Install" mentions were left, and the quoted not-a-member message, its link and two "Ask to join" mentions in the workspaces page were English. |
+| 8 | The glossary records the work | no | confirmed | `git diff docs/knowledge/i18n.md` adds four rows whose pt and fr names match the app's messages. |
+| 9 | Index row 130 and MVP §15's Languages row are accurate | no | confirmed | `docs/features/README.md:356` says done with the ronne-web branch; `MVP.md:989` adds 130's scope. |
+| 10 | The PLAN's Done notes say what is left | no | confirmed | They list the native review in 133, the pieces shared with Admin (131/132) and the item-type names. |
+
+**Overall:** not met: row 7.
+
+### Re-check (row 7)
+
+Witnessed: 2026-10-21, by a fresh agent (blind, re-check). Commit: 9c95eddb plus the docs-only working tree; ronne-web def43a5 (on 71622d6, e03fdce, c9ccd25). Machine: Darwin 27.0.0, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 7a | The fr usage page names the app's labels | no | confirmed | `fr/usage.tsx` lines 220–237 now read `Installations, 30 jours :`, `Exécutions, 30 jours :`, `Fonctionne dans :`, `Utilisation, 14 derniers jours :`; they match `fr/item.json`. |
+| 7b | `fr/items.tsx` "Files :" and the two running-text "Install" mentions are fixed | no | confirmed | The diff gives `Fichiers :`, "après Installer" and "depois de Instalar". |
+| 7c | No English browse-screen label remains in the pt and fr Documentation, beyond the documented 131/132 areas | no | confirmed | The quoted not-a-member message and the link now match `NotAMemberError` (propose) and `askToJoin` in the pt and fr messages; the two running-text "Ask to join" became "Pedir para entrar" and "Demander à se joindre"; `grep -rn 'Ask to join'` over pt and fr → no matches; the other English hits are admin, the install wizard and Reviews (131/132). |
+| 7d | ronne-web lint passes | no | confirmed | `pnpm lint` in `ronne-web/www` → "Checked 258 files, No fixes applied". |
+
+**Overall:** met.

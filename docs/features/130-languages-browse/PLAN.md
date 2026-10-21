@@ -68,6 +68,17 @@ Every task that moves a folder adds it to the `overrides` entry in `biome.json` 
   sees no English left; the phone sweep passes in each language.
   *Done when:* the e2e project runs green (chromium and phone) on a fresh build.
 
-- [ ] **10. Documentation and records.** The Portuguese and French pages in ronne-web name the
+- [x] **10. Documentation and records.** The Portuguese and French pages in ronne-web name the
   labels as the app does (a branch there); the glossary; the index row; the PLAN's "Done" notes.
   *Done when:* `pnpm witness:check` passes; the ronne-web branch builds.
+
+### Done (2026-10-21)
+
+All ten tasks are ticked, one commit each. The Documentation is on the ronne-web branch
+`docs/marketplace-languages-browse` (commits c9ccd25, e03fdce, 71622d6, def43a5, on top of
+`docs/notice-glossary`), not pushed: it goes live
+with the release, as the owner's rule says. Accepted limits: the pt/fr texts are first drafts for a
+native reader in 133; a few pieces shared with Admin stay English inside translated pages until 132
+(the scopes table and its dialogs, the workspace's own dialogs, the list of what a move changes, the
+dependency canvas's node text, the `<Help>` entries of other areas, 131 and 132); the item-type names
+stay as `rmk` prints them (Open question in the SPEC).

@@ -112,19 +112,19 @@ Nothing about what the screens do changes.
 
 ## Acceptance criteria
 
-- [ ] The Catalogue, the item page (all its tabs this feature covers), the Workspaces pages and
+- [x] The Catalogue, the item page (all its tabs this feature covers), the Workspaces pages and
       their members, requests and moves render in English, Portuguese and French with no English
       text left over, on desktop and on a phone.
-- [ ] The raw-text scan covers every folder listed in Scope and passes; the phone sweep runs their
+- [x] The raw-text scan covers every folder listed in Scope and passes; the phone sweep runs their
       routes in Portuguese and French.
-- [ ] Every action in scope returns a code or a translated message; the workspaces errors have a
+- [x] Every action in scope returns a code or a translated message; the workspaces errors have a
       text in all three languages (tests for each class, including 0/1/2 counts and the lists).
-- [ ] `toLocaleString`/`toLocaleDateString` in scope follow the language; no `en-US` or `en-GB`
-      left.
-- [ ] The fourteen helpers read in the person's language and their links open the website's page in
+- [x] Numbers and dates in scope follow the language; no hard-coded `en-US` is left (the chart's
+      short days keep English's day-first order, `3 Oct`, and follow the language otherwise).
+- [x] The fourteen helpers read in the person's language and their links open the website's page in
       it.
-- [ ] The key-parity and placeholder tests pass.
-- [ ] The Portuguese and French Documentation pages name the screens' labels as the app does.
+- [x] The key-parity and placeholder tests pass.
+- [x] The Portuguese and French Documentation pages name the screens' labels as the app does.
 
 ## Decisions
 
