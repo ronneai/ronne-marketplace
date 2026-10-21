@@ -65,6 +65,13 @@ const PAIRS: [string, string, number][] = [
   ["warning-text", "warning-subtle", 4.5],
   ["warning", "canvas", 3],
   ["warning", "surface", 3],
+  // Information (owner, 2026-10-21): text on the notice's fill and the page, and the bar at 3:1.
+  ["info-text", "canvas", 4.5],
+  ["info-text", "surface", 4.5],
+  ["info-text", "info-subtle", 4.5],
+  ["fg", "info-subtle", 4.5],
+  ["info", "canvas", 3],
+  ["info", "surface", 3],
   // Item type badges (054): the label on its fill.
   ...ITEM_TYPES.map((type): [string, string, number] => [
     `type-${type}`,

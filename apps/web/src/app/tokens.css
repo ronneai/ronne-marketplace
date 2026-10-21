@@ -12,6 +12,9 @@
  * has a fill and border colour, a text colour (darker in the light theme, where the fill colour is
  * under 4.5:1 on Paper), and a subtle background for notices and badges.
  *
+ * Information (owner, 2026-10-21): a light blue for information notices only, built the same way
+ * (border and bar, text, subtle fill), so INFO: reads apart from ERR: and WARN: and from the teal accent.
+ *
  * Syntax colours (044, owner's request, 2026-09-30) follow GitHub's Primer syntax palette, the one
  * people know from reading code on GitHub: grey comments, green keys, blue strings and constants.
  * Keywords are Primer's purple rather than its red, which this system keeps for errors.
@@ -73,6 +76,9 @@
   --warning: #c07d18;
   --warning-text: #9a6414;
   --warning-subtle: #fffbeb;
+  --info: #3b82c4;
+  --info-text: #1d5a99;
+  --info-subtle: #eff6ff;
   /* Item type badges (054): one hue each, never red, amber or the teal accent. */
   --type-skill: #6b21a8;
   --type-skill-subtle: #faf5ff;
@@ -149,6 +155,9 @@
   --warning: #f6ad55;
   --warning-text: #f6ad55;
   --warning-subtle: #33220f;
+  --info: #63b3ed;
+  --info-text: #63b3ed;
+  --info-subtle: #0f2437;
   /* Item type badges (054): one hue each, never red, amber or the teal accent. */
   --type-skill: #d8b4fe;
   --type-skill-subtle: #3b0764;

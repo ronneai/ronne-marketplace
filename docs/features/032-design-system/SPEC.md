@@ -37,7 +37,7 @@ compose parts; they don't restyle them.
 | Depth | **Completely flat.** No shadows, blurs, glows or gradients. Surfaces separate by tone and 1px hairlines. |
 | Radii | 6px for buttons and inputs, 8px for cards, panels and dialogs, full pill for badges. |
 | Spacing | A 4 and 8px rhythm (4, 8, 12, 16, 24). Dense, with 36px controls. |
-| Notices | **Red for errors and amber for warnings, and nowhere else** (owner's style-guide mock, 2026-09-28; it replaces "no red, yellow or green"). Both keep the mono prefix (`WARN:`, `ERR:`), so the colour is never the only signal. Information stays a framed panel. |
+| Notices | **Red for errors and amber for warnings, and nowhere else** (owner's style-guide mock, 2026-09-28; it replaces "no red, yellow or green"). **Information is a light blue** (owner, 2026-10-21; it was a framed grey panel), built like the other two: a subtle fill and a 3 px bar. All three keep the mono prefix (`INFO:`, `WARN:`, `ERR:`), so the colour is never the only signal. |
 | Accent | Teal `#18B6A4` is the one accent: primary buttons, focus rings, active states, badges. |
 
 **Palette** (the brand sheet): Ink `#0B1220`, Navy `#14213D`, Teal `#18B6A4`, Mint `#BFE9E1` and Paper `#F7F9FA`.
@@ -85,6 +85,10 @@ compose parts; they don't restyle them.
   line), error and warning notices (subtle fill, a 3 px bar), `warning` and `error` badges (risk
   flags, changes requested, rejected), the `destructive` button (delete, withdraw, leave without
   saving), and the `ERR:`/`WARN:` prefixes in issue lists.
+- **Information** (owner, 2026-10-21): `info` `#3B82C4` (dark `#63B3ED`) for the bar and border,
+  `info-text` `#1D5A99` in the light theme (the dark theme uses the fill colour for text), and an
+  `info-subtle` background (`#EFF6FF`; dark `#0F2437`). Used for information notices (`INFO:`),
+  and nothing else; `tokens.test.ts` checks its pairs.
 - **The light focus ring is Navy** (15.97:1), not the design note's teal ring (2.4–2.5:1 on white
   or Paper, which fails WCAG; owner decision, 2026-09-27).
 - Tokens live in `apps/web/src/app/tokens.css` as CSS variables under `:root` (light) and
