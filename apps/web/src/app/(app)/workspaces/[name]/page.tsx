@@ -1,6 +1,7 @@
 import { formatScopeName } from "@ronneai/core";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { Help } from "@/components/help/Help";
 import { Badge } from "@/components/ui/Badge";
 import { parseListQuery, type SearchParams } from "@/components/ui/data-table/list-query";
@@ -17,7 +18,6 @@ import {
   RenameWorkspaceButton,
   VisibilityButton,
 } from "@/features/admin-workspaces/WorkspaceDialogs";
-import { VISIBILITY_LABELS } from "@/features/admin-workspaces/WorkspacesTable";
 import {
   checkedMembersState,
   membersQueryOf,
@@ -27,6 +27,7 @@ import { MembersTable } from "@/features/workspace-members/MembersTable";
 import { RequestsTable } from "@/features/workspace-requests/RequestsTable";
 import { ScopeMovesTable } from "@/features/workspace-requests/ScopeMovesTable";
 import { NotIn } from "@/features/workspaces/WorkspacesPage";
+import { pageTitle } from "@/i18n/page-title";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
 import { can } from "@/server/domains/identity/models/permissions";
 import { pageScopes } from "@/server/domains/items/actions/scopes";
@@ -42,9 +43,10 @@ import type { ScopeMove } from "@/server/domains/workspaces/models/scope-move";
 import { requestHeaders } from "@/server/http/request-headers";
 import { holdPage } from "../../hold";
 
-export const metadata = { title: "Workspace · Ronne AI Marketplace" };
-
-const ROLE_LABELS = { Root: "Root", admin: "Admin", moderator: "Moderator", user: "User" } as const;
+export const generateMetadata = async () => {
+  const t = await getTranslations("workspaces.page");
+  return { title: pageTitle(t("workspace")) };
+};
 
 /** The name from the address; a malformed escape is left as typed, and then isn't found. */
 const decoded = (value: string) => {
@@ -74,6 +76,8 @@ const WorkspacePage = async ({
   const request = await requestHeaders();
   const me = await getCurrentUser(request);
   if (!me) notFound();
+  const t = await getTranslations("workspaces");
+  const roles = await getTranslations("common.roleTitle");
   const { name } = await params;
   const workspace = await viewWorkspace(request, decoded(name));
   if (!workspace) notFound();
@@ -86,18 +90,18 @@ const WorkspacePage = async ({
   // for root and its admins; `tab=requests`, the requests to join it (094) and the scope moves into
   // it (115), for whoever answers them. Asked for without the right, a tab shows the scopes.
   const tabs = [
-    ["scopes", "Scopes", path],
+    ["scopes", t("workspacePage.scopes"), path],
     ...(!personal && can(me, "members.manage", workspace.id)
-      ? ([["members", "Members", `${path}?tab=members`]] as const)
+      ? ([["members", t("workspacePage.members"), `${path}?tab=members`]] as const)
       : []),
     ...(!personal && can(me, "access_requests.answer", workspace.id)
-      ? ([["requests", "Requests", `${path}?tab=requests`]] as const)
+      ? ([["requests", t("workspacePage.requests"), `${path}?tab=requests`]] as const)
       : []),
   ] as const;
   const tab = tabs.some(([id]) => id === query.tab)
     ? (query.tab as "members" | "requests")
     : "scopes";
-  const role = me.role === "root" ? "Root" : me.workspaces[workspace.id];
+  const role = me.role === "root" ? "root" : me.workspaces[workspace.id];
 
   const content = async () => {
     if (tab === "requests") {
@@ -112,7 +116,7 @@ const WorkspacePage = async ({
           {moves.length > 0 ? (
             <section aria-labelledby="scope-moves" className="mb-4 grid gap-3">
               <h2 id="scope-moves" className="text-base font-semibold text-fg">
-                Scope moves
+                {t("workspacePage.scopeMoves")}
               </h2>
               <ScopeMovesTable moves={moves} />
             </section>
@@ -211,7 +215,7 @@ const WorkspacePage = async ({
           href="/workspaces"
           className="text-link hover:underline outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
         >
-          All workspaces
+          {t("workspacePage.all")}
         </Link>
       </p>
       <PageHeader
@@ -237,19 +241,22 @@ const WorkspacePage = async ({
         }
       />
       <div className="mb-6 flex flex-wrap items-center gap-2 text-sm text-muted">
-        <Badge>{personal ? "Personal" : VISIBILITY_LABELS[workspace.visibility]}</Badge>
-        {workspace.isGlobal ? (
-          <span>Every instance has it, and everyone is in it. It can't be changed or deleted.</span>
-        ) : null}
+        <Badge>
+          {personal
+            ? t("list.kind.personal")
+            : workspace.visibility === "private"
+              ? t("list.kind.private")
+              : t("list.kind.public")}
+        </Badge>
+        {workspace.isGlobal ? <span>{t("workspacePage.global")}</span> : null}
         {personal ? (
           <span>
-            {workspace.ownerId === me.id ? "Yours" : "Its owner's"} alone, always private. Its items
-            are released without review.
+            {t("workspacePage.personal", { owner: workspace.ownerId === me.id ? "you" : "other" })}
           </span>
         ) : null}
         {/* Their role there, or Ask to join where they aren't a member (094). */}
         {personal ? null : role ? (
-          <Badge tone="accent">{ROLE_LABELS[role]}</Badge>
+          <Badge tone="accent">{roles(role)}</Badge>
         ) : (
           <NotIn
             workspace={workspace.name}
@@ -258,7 +265,7 @@ const WorkspacePage = async ({
         )}
       </div>
       <TabLinks
-        label="Workspace"
+        label={t("workspacePage.tabsLabel")}
         current={tab}
         tabs={tabs.map(([id, label, href]) => ({ id, label, href }))}
       />

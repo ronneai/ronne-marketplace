@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useActionState, useState } from "react";
 import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
@@ -36,6 +37,7 @@ export const ApproveMoveForm = ({
   /** What the last Approve answered, for its tests. */
   loaded?: MoveAnswerState;
 }) => {
+  const t = useTranslations("workspaces.moves");
   const [state, action, pending] = useActionState<MoveAnswerState, FormData>(
     approveMoveFromForm,
     loaded ?? {},
@@ -48,10 +50,10 @@ export const ApproveMoveForm = ({
       <Button
         type="submit"
         loading={pending}
-        aria-label={`Approve moving ${move.scope} to ${move.to}`}
+        aria-label={t("approveAria", { scope: move.scope, to: move.to })}
         aria-describedby={state.error ? errorId : undefined}
       >
-        Approve
+        {t("approve")}
       </Button>
       <FieldError id={errorId}>{state.error}</FieldError>
       {state.refused ? <MoveChanges impact={state.refused} /> : null}
@@ -60,6 +62,7 @@ export const ApproveMoveForm = ({
 };
 
 const DeclineMoveForm = ({ move, onDone }: { move: MoveRequestRow; onDone: () => void }) => {
+  const t = useTranslations("workspaces.moves");
   const [state, action, pending] = useActionState<MoveAnswerState, FormData>(
     declineMoveFromForm,
     {},
@@ -71,11 +74,14 @@ const DeclineMoveForm = ({ move, onDone }: { move: MoveRequestRow; onDone: () =>
       <input type="hidden" name="moveId" value={move.id} />
       <input type="hidden" name="workspace" value={move.to} />
       <p className="text-sm text-muted">
-        Decline moving <span className="font-mono text-fg">{move.scope}</span> to{" "}
-        <span className="font-mono text-fg">{move.to}</span>?
+        {t.rich("declineBody", {
+          scope: move.scope,
+          to: move.to,
+          mono: (chunks) => <span className="font-mono text-fg">{chunks}</span>,
+        })}
       </p>
       <div className="grid gap-1.5">
-        <Label htmlFor={reasonId}>Reason (optional)</Label>
+        <Label htmlFor={reasonId}>{t("reason")}</Label>
         <textarea
           id={reasonId}
           name="reason"
@@ -87,16 +93,20 @@ const DeclineMoveForm = ({ move, onDone }: { move: MoveRequestRow; onDone: () =>
           className={`${inputClasses} h-auto py-2`}
         />
         <p id={`${reasonId}-hint`} className="text-xs text-muted">
-          {move.askedBy.name} sees it on the scope's row. {[...reason].length}/{REASON_MAX_LENGTH}
+          {t("reasonHint", {
+            name: move.askedBy.name,
+            used: [...reason].length,
+            max: REASON_MAX_LENGTH,
+          })}
         </p>
       </div>
       <FieldError id={`decline-move-${move.id}-error`}>{state.error}</FieldError>
       <DialogActions>
         <Button variant="ghost" onClick={onDone}>
-          Cancel
+          {t("cancel")}
         </Button>
         <Button type="submit" loading={pending}>
-          Decline
+          {t("decline")}
         </Button>
       </DialogActions>
     </form>
@@ -105,6 +115,7 @@ const DeclineMoveForm = ({ move, onDone }: { move: MoveRequestRow; onDone: () =>
 
 /** Decline, with an optional reason, in a dialog; once declined, the row is gone with it. */
 export const DeclineMoveButton = ({ move }: { move: MoveRequestRow }) => {
+  const t = useTranslations("workspaces.moves");
   const [open, setOpen] = useState(false);
   const [round, setRound] = useState(0);
   const close = () => {
@@ -116,11 +127,11 @@ export const DeclineMoveButton = ({ move }: { move: MoveRequestRow }) => {
       <Button
         variant="secondary"
         onClick={() => setOpen(true)}
-        aria-label={`Decline moving ${move.scope} to ${move.to}`}
+        aria-label={t("declineAria", { scope: move.scope, to: move.to })}
       >
-        Decline
+        {t("decline")}
       </Button>
-      <Dialog open={open} onClose={close} title="Decline move">
+      <Dialog open={open} onClose={close} title={t("declineTitle")}>
         <DeclineMoveForm key={round} move={move} onDone={close} />
       </Dialog>
     </>
@@ -140,10 +151,12 @@ export const ScopeMovesTable = ({
   moves: MoveRequestRow[];
   showTarget?: boolean;
 }) => {
+  const t = useTranslations("workspaces.moves");
+  const answer = useTranslations("workspaces.requests");
   if (moves.length === 0)
     return (
       <p className="rounded-panel border border-hairline bg-surface p-4 text-sm text-muted">
-        No moves waiting.
+        {t("none")}
       </p>
     );
   return (
@@ -152,14 +165,14 @@ export const ScopeMovesTable = ({
       <Table>
         <thead>
           <tr>
-            <Th>Scope</Th>
-            <Th>From</Th>
-            {showTarget ? <Th>To</Th> : null}
-            <Th>Its name there</Th>
-            <Th>Asked by (UTC)</Th>
-            <Th>Message</Th>
+            <Th>{t("scope")}</Th>
+            <Th>{t("from")}</Th>
+            {showTarget ? <Th>{t("to")}</Th> : null}
+            <Th>{t("newName")}</Th>
+            <Th>{t("askedBy")}</Th>
+            <Th>{t("message")}</Th>
             <Th>
-              <span className="sr-only">Answer</span>
+              <span className="sr-only">{answer("answer")}</span>
             </Th>
           </tr>
         </thead>
@@ -170,18 +183,15 @@ export const ScopeMovesTable = ({
               <tr key={m.id}>
                 <Td className="py-2">
                   <span className="block font-mono text-[13px] text-fg">{m.scope}</span>
-                  <span className="block text-xs text-muted">
-                    {m.items} {m.items === 1 ? "item" : "items"}
-                  </span>
+                  <span className="block text-xs text-muted">{t("items", { count: m.items })}</span>
                   {m.notReviewed.length > 0 ? (
                     <span className="block text-xs text-warning-text">
-                      Not reviewed: {m.notReviewed.join(", ")}. Approving reviews them.
+                      {t("notReviewed", { versions: m.notReviewed.join(", ") })}
                     </span>
                   ) : null}
                   {refused > 0 ? (
                     <span className="block text-xs text-error-text">
-                      {refused === 1 ? "1 thing refuses" : `${refused} things refuse`} it now:
-                      Approve lists them.
+                      {t("refuses", { count: refused })}
                     </span>
                   ) : null}
                 </Td>
@@ -189,7 +199,9 @@ export const ScopeMovesTable = ({
                 {showTarget ? <Td mono>{m.to}</Td> : null}
                 <Td className="py-2">
                   <span className="font-mono text-xs text-fg">{m.newName}</span>
-                  {m.renamed ? <span className="block text-xs text-muted">Renamed</span> : null}
+                  {m.renamed ? (
+                    <span className="block text-xs text-muted">{t("renamed")}</span>
+                  ) : null}
                 </Td>
                 <Td className="py-2 whitespace-nowrap">
                   <span className="block text-sm text-fg">{m.askedBy.name}</span>
@@ -197,7 +209,7 @@ export const ScopeMovesTable = ({
                   <LocalTime value={m.createdAt} />
                 </Td>
                 <Td className="max-w-80 py-2 text-sm break-words whitespace-pre-line">
-                  {m.message ?? <span className="text-muted">None</span>}
+                  {m.message ?? <span className="text-muted">{answer("noMessage")}</span>}
                 </Td>
                 <Td className="py-2">
                   <div className="flex flex-nowrap items-start gap-2">

@@ -2,6 +2,7 @@
 
 import { GitPullRequest } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
@@ -35,6 +36,7 @@ export const ProposeRefusal = ({ refused }: { refused: ProposeRefused }) => (
  * gets the server's "not a member" message under the button, with Ask to join (094).
  */
 export const ProposeButton = ({ item, version }: { item: string; version: string }) => {
+  const t = useTranslations("item.propose");
   const router = useRouter();
   const [refused, setRefused] = useState<ProposeRefused | null>(null);
   const [pending, start] = useTransition();
@@ -55,7 +57,7 @@ export const ProposeButton = ({ item, version }: { item: string; version: string
         }
       >
         <GitPullRequest size={16} aria-hidden="true" />
-        Propose a change
+        {t("button")}
       </Button>
       {refused ? <ProposeRefusal refused={refused} /> : null}
       <Help id="propose" className="max-w-xs" />

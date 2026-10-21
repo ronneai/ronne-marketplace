@@ -3,7 +3,6 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import { ItemCard } from "@/components/catalogue/ItemCard";
-import { TYPE_INFO } from "@/components/submissions/item-types";
 import { buttonClasses } from "@/components/ui/Button";
 import { Input, Label } from "@/components/ui/Field";
 import { Panel } from "@/components/ui/Panel";
@@ -77,6 +76,7 @@ export const HomeView = ({
   slots?: HomeSlots;
 }) => {
   const t = useTranslations("home");
+  const typeText = useTranslations("types");
   const waiting = [
     forYou.drafts
       ? { href: "/submissions", text: t("waiting.drafts", { count: forYou.drafts }) }
@@ -125,7 +125,7 @@ export const HomeView = ({
                       aria-hidden="true"
                       className={`size-2 shrink-0 rounded-full ${TYPE_DOT[type]}`}
                     />
-                    {TYPE_INFO[type].label}
+                    {typeText(`name.${type}`)}
                   </Link>
                 </li>
               ))}

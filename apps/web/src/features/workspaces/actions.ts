@@ -1,7 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getTranslations } from "next-intl/server";
 import { joinPath } from "@/components/workspaces/join";
+import { errorText } from "@/i18n/errors";
 import { IdentityError } from "@/server/domains/identity/exceptions/errors";
 import { cancelAccessRequest, requestAccess } from "@/server/domains/workspaces/actions/workspaces";
 import { WorkspacesError } from "@/server/domains/workspaces/exceptions/errors";
@@ -23,7 +25,7 @@ const attempt = async (
     return { done };
   } catch (error) {
     if (error instanceof WorkspacesError || error instanceof IdentityError)
-      return { error: error.message };
+      return { error: await errorText(error) };
     throw error;
   }
 };
@@ -39,7 +41,8 @@ export const requestAccessFromForm = serverAction(
         workspace: text(form, "workspace"),
         message: text(form, "message"),
       });
-      return result === "already_member" ? "You're in it already." : "Request sent.";
+      const t = await getTranslations("workspaces.results");
+      return result === "already_member" ? t("alreadyIn") : t("sent");
     }),
 );
 
@@ -47,6 +50,6 @@ export const cancelRequestFromForm = serverAction(
   async (_previous: RequestActionState, form: FormData): Promise<RequestActionState> =>
     attempt(form, async () => {
       await cancelAccessRequest(await requestHeaders(), text(form, "requestId"));
-      return "Request cancelled.";
+      return (await getTranslations("workspaces.results"))("cancelled");
     }),
 );

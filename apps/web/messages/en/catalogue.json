@@ -1,0 +1,85 @@
+{
+  "page": {
+    "title": "Catalogue",
+    "description": "Every published item: skills, agents, rules, MCP servers and more, reviewed before release."
+  },
+  "view": {
+    "search": {
+      "label": "Search",
+      "placeholder": "Name, description or keyword",
+      "submit": "Search"
+    },
+    "filters": {
+      "button": "Filters",
+      "on": "on",
+      "type": "Type",
+      "typeAll": "all {total}",
+      "typesLegend": "Types to show (none: every type)",
+      "workspace": "Workspace",
+      "allWorkspaces": "All workspaces",
+      "personal": "Personal ({workspace})",
+      "scope": "Scope",
+      "allScopes": "All scopes",
+      "worksIn": "Works in",
+      "anyTool": "Any tool",
+      "clear": "Clear filters",
+      "apply": "Apply"
+    },
+    "active": {
+      "label": "Active filters",
+      "searchChip": "Search:",
+      "removeSearch": "Remove the search",
+      "removeType": "Remove the {type} filter",
+      "removeWorkspace": "Remove the workspace filter",
+      "removeScope": "Remove the scope filter",
+      "removeTool": "Remove the tool filter",
+      "clearAll": "Clear all"
+    },
+    "sort": {
+      "summary": "Sort: <value></value>",
+      "label": "Sort",
+      "recent": {
+        "label": "Recently published",
+        "hint": "Newest releases first"
+      },
+      "installs": {
+        "label": "Most installed",
+        "hint": "Most installs with rmk first"
+      },
+      "name": {
+        "label": "Name",
+        "hint": "By scope, then name, A to Z"
+      }
+    },
+    "empty": {
+      "noMatch": "No items match. <see>See every item</see>.",
+      "title": "Nothing is published yet.",
+      "how": "Items arrive in three steps: someone submits one, a moderator reviews and approves it, and it’s released as a version. Then it’s listed here, ready to install with <mono>rmk</mono>.",
+      "submit": "Submit an item"
+    },
+    "pager": {
+      "label": "Pages",
+      "first": "First page",
+      "next": "Next page"
+    }
+  },
+  "card": {
+    "risk": "⚠ risk",
+    "deprecated": "deprecated",
+    "notInstallable": "no installable version",
+    "noDescription": "No description.",
+    "deprecatedNote": "Deprecated: {message}",
+    "published": "published <date></date>",
+    "worksIn": "works in {tools}",
+    "worksInNone": "works in no built-in tool",
+    "installs": "{count, plural, one {# install} other {# installs}}"
+  },
+  "place": {
+    "workspace": "Workspace",
+    "scope": "Scope",
+    "personal": "(personal)",
+    "personalTitle": "Only its owner and root see this item.",
+    "private": "Private",
+    "privateTitle": "Only {workspace}’s members and root see this item."
+  }
+}

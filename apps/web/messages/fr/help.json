@@ -1,0 +1,58 @@
+{
+  "workspace": {
+    "question": "Qu’est-ce qu’un espace de travail?",
+    "answer": "Le niveau au-dessus des portées : espace de travail › portée › élément. Chaque espace de travail contient des portées, et leurs éléments, pour une équipe ou un groupe. Hors de global, c’est la première partie du nom d’un élément, @espace/portée/nom. Toute instance a global."
+  },
+  "personal-workspace": {
+    "question": "Qu’est-ce que mon espace de travail personnel?",
+    "answer": "Un espace de travail à vous, privé et à vous seul : créez-y des portées et des éléments, installez-les et essayez-les, sans rien demander à personne. Ce que vous y soumettez est approuvé aussitôt, puisque vous seul et root pouvez le voir."
+  },
+  "requests-who": {
+    "question": "Qui peut répondre?",
+    "answer": "Root, dans tous les espaces de travail, et les modérateurs et admins de chaque espace de travail, dans le leur. Approuver ajoute la personne comme utilisateur; root et les admins de l’espace de travail peuvent choisir modérateur. Refuser peut donner un motif, que la personne voit; elle peut redemander 7 jours plus tard. La première réponse compte."
+  },
+  "member-roles": {
+    "question": "Que peut faire chaque rôle?",
+    "answer": "Un utilisateur propose et soumet des éléments dans l’espace de travail. Un modérateur les révise et les publie aussi. Un admin ajoute et retire aussi des membres, change leurs rôles, crée les portées de l’espace de travail et modifie sa description. Root peut tout faire dans tous les espaces de travail."
+  },
+  "move-approve": {
+    "question": "Que fait l’approbation?",
+    "answer": "Elle revérifie le déplacement et déplace la portée : ses éléments prennent les noms du nouvel espace de travail, leurs anciens noms continuent de fonctionner, et les versions non révisées deviennent révisées en votre nom. Si quelque chose casse maintenant, rien n’est déplacé et la demande reste ouverte, avec la liste."
+  },
+  "current-workspace": {
+    "question": "Qu’est-ce que cela filtre?",
+    "answer": "L’espace de travail actuel, choisi dans le sélecteur de la barre latérale : le Catalogue, les Révisions et Mes soumissions n’affichent que cet espace de travail jusqu’à ce que vous en choisissiez un autre ou Tout afficher. Cela restreint ce que vous voyez, jamais ce que vous pouvez faire, et les compteurs de la barre latérale comptent toujours tous les espaces de travail."
+  },
+  "contents": {
+    "question": "Qu’est-ce que je regarde?",
+    "answer": "Les fichiers de cette version tels que publiés : exactement ce que rmk install reçoit, vérifié avec la somme de contrôle du paquet. Aperçu les résume : comment l’installer, ce qu’elle peut faire, son fichier principal à lire et qui l’a révisée; Fichiers affiche tous les fichiers, avec leur source à un onglet de distance."
+  },
+  "install": {
+    "question": "Comment l’installer?",
+    "answer": "Copiez la commande dans un terminal, dans votre projet, après rmk login. rmk résout la version, vérifie le téléchargement, écrit les fichiers que lit votre outil d’IA et les consigne dans rmk.lock pour que vos collègues obtiennent la même chose. Avec le serveur MCP du registre configuré, vous pouvez aussi demander à votre outil d’IA de l’installer : il vous montre d’abord le plan."
+  },
+  "plugin": {
+    "question": "L’installer comme plugin Claude Code?",
+    "answer": "Exécutez ceci dans Claude Code, ou trouvez l’élément sous /plugin, une fois que rmk plugin-setup claude-code y a ajouté ce marketplace. Claude Code télécharge la version publiée comme plugin, avec ses dépendances, au moyen de votre rmk login. Installez un élément d’une seule façon, comme plugin ou avec rmk install, pas des deux."
+  },
+  "usage": {
+    "question": "D’où viennent ces chiffres?",
+    "answer": "De rmk, sur des machines qui rapportent à cette instance selon la politique d’utilisation de root : installations, retraits et exécutions de cet élément, par jour, version et outil d’IA. Le taux de réussite exige 20 exécutions dont le résultat a été signalé."
+  },
+  "support": {
+    "question": "Que signifient-ils?",
+    "answer": "Pris en charge : rmk écrit l’élément là où l’outil le lit. En partie : l’outil le prend par un contournement, et une partie est laissée de côté. Désactivé : le ronne.yaml de cette version l’écarte de cet outil. Ignoré : l’outil n’a pas de place pour ce type; rmk avertit et installe le reste."
+  },
+  "propose": {
+    "question": "Que se passe-t-il quand je propose une modification?",
+    "answer": "Vous obtenez un brouillon de cette version, avec tous ses fichiers, à modifier et à soumettre. Une fois révisé et approuvé, il est publié comme la prochaine version de l’élément."
+  },
+  "join": {
+    "question": "Comment me joindre?",
+    "answer": "Toute personne connectée lit et installe les éléments d’un espace de travail public, mais seuls ses membres proposent et soumettent. Demandez à vous joindre depuis la page Espaces de travail, ou depuis le lien d’adhésion que ses modérateurs ou admins envoient pour un espace privé; root ou ses modérateurs et admins répondent, et vous voyez la réponse là."
+  },
+  "private-item": {
+    "question": "Qui peut voir ceci?",
+    "answer": "Seulement les membres de son espace de travail, dans n’importe quel rôle, et root : l’espace de travail est privé. Pour toute autre personne, cet élément n’existe pas, ni dans le catalogue, ni dans rmk, ni dans les outils MCP, ni dans les marketplaces de plugins. Seuls les éléments du même espace de travail peuvent en dépendre."
+  }
+}

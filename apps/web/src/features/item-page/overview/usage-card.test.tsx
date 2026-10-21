@@ -1,7 +1,8 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { UsageSummary } from "@/server/domains/usage/models/usage-summary";
-import { gapLine, shortDay, UsageBody } from "./UsageCard";
+import { inLocale } from "@/test/intl";
+import { shortDay, silentTools, UsageBody } from "./UsageCard";
 
 type Shown = Extract<UsageSummary, { shown: true }>;
 
@@ -39,8 +40,11 @@ const usage = (extra: Partial<Shown> = {}): Shown => ({
   ...extra,
 });
 
-const render = (u: Shown, type: "skill" | "agent" | "hook" = "agent", tools = ["claude-code"]) =>
-  renderToStaticMarkup(<UsageBody usage={u} type={type} tools={tools} />);
+const render = (
+  u: Shown,
+  type: "skill" | "agent" | "hook" | "command" = "agent",
+  tools = ["claude-code"],
+) => renderToStaticMarkup(<UsageBody usage={u} type={type} tools={tools} />);
 
 describe("the Usage card", () => {
   it("draws 14 days of runs with the peak, a bar that names itself, and a table of the numbers", () => {
@@ -78,16 +82,16 @@ describe("the Usage card", () => {
   });
 
   it("says which tools the item installs in can't report its runs", () => {
-    expect(gapLine("skill", ["claude-code", "codex", "cursor"])).toBe(
-      "Codex and Cursor don't report skill runs; there, only installs are counted.",
+    expect(silentTools("skill", ["claude-code", "codex", "cursor"])).toEqual(["Codex", "Cursor"]);
+    expect(silentTools("command", ["codex"])).toEqual(["Codex"]);
+    expect(silentTools("agent", ["codex", "cursor"])).toEqual([]);
+    expect(render(usage(), "skill", ["claude-code", "codex", "cursor"])).toContain(
+      "Codex and Cursor don’t report skill runs; there, only installs are counted.",
     );
-    expect(gapLine("command", ["codex"])).toBe(
-      "Codex doesn't report command runs; there, only installs are counted.",
+    expect(render(usage(), "command", ["codex"])).toContain(
+      "Codex doesn’t report command runs; there, only installs are counted.",
     );
-    expect(gapLine("agent", ["codex", "cursor"])).toBeNull();
-    expect(render(usage(), "skill", ["claude-code", "cursor"])).toContain(
-      "Cursor doesn&#x27;t report skill runs",
-    );
+    expect(render(usage(), "agent", ["codex", "cursor"])).not.toContain("report agent runs");
   });
 
   it("shows installs per day, and no run breakdowns, for a type that doesn't run", () => {
@@ -115,5 +119,48 @@ describe("the Usage card", () => {
 
   it("names days in UTC", () => {
     expect(shortDay("2026-01-01")).toBe("1 Jan");
+  });
+});
+
+describe("the Usage card in Portuguese and French (130)", () => {
+  const pt = () =>
+    inLocale("pt", () => render(usage(), "skill", ["claude-code", "codex", "cursor"]));
+  const fr = () =>
+    inLocale("fr", () => render(usage(), "skill", ["claude-code", "codex", "cursor"]));
+
+  it("titles, the chart, the table and the sentence about silent tools", () => {
+    expect(pt()).toContain("Execuções por dia");
+    expect(pt()).toContain("Pico: 412 em 10 de out.");
+    expect(pt()).toContain("Por ferramenta");
+    expect(pt()).toContain("Os números por dia");
+    expect(pt()).toContain("Codex e Cursor não informam execuções de skill");
+    expect(fr()).toContain("Exécutions par jour");
+    expect(fr()).toContain("Pic : 412 le 10 oct.");
+    expect(fr()).toContain("Par outil");
+    expect(fr()).toContain("Les chiffres par jour");
+    expect(fr()).toContain("Codex et Cursor ne signalent pas les exécutions de skill");
+  });
+
+  it("each bar names its day and count in the language", () => {
+    expect(pt()).toContain('title="10 de out.: 412 execuções"');
+    expect(fr()).toContain('title="10 oct. : 412 exécutions"');
+  });
+
+  it("runs by tool use the language's plural at 0, 1 and 2", () => {
+    const rows = (count: number) => ({ byTool: [{ key: "codex", count, share: 0.5 }] });
+    const text = (locale: "pt" | "fr", count: number) =>
+      inLocale(locale, () => render(usage(rows(count)), "agent", ["claude-code"]));
+    expect(text("pt", 0)).toContain("0 execução (50%)");
+    expect(text("pt", 1)).toContain("1 execução (50%)");
+    expect(text("pt", 2)).toContain("2 execuções (50%)");
+    expect(text("fr", 0)).toContain("0 exécution (50");
+    expect(text("fr", 1)).toContain("1 exécution (50");
+    expect(text("fr", 2)).toContain("2 exécutions (50");
+  });
+
+  it("names days in the language, UTC", () => {
+    expect(shortDay("2026-10-03", "pt")).toBe("3 de out.");
+    expect(shortDay("2026-10-03", "fr")).toBe("3 oct.");
+    expect(shortDay("2026-10-03")).toBe("3 Oct");
   });
 });

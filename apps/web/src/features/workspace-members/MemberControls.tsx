@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
@@ -18,21 +19,20 @@ import type { Candidate, MemberActionState } from "./types";
 /** The workspace a member control acts in. */
 export type MembersWorkspace = { id: string; name: string };
 
-const ROLE_LABELS: Record<WorkspaceRole, string> = {
-  user: "User",
-  moderator: "Moderator",
-  admin: "Admin",
-};
+const ROLES = ["user", "moderator", "admin"] as const satisfies readonly WorkspaceRole[];
 
-const RoleOptions = () => (
-  <>
-    {(Object.keys(ROLE_LABELS) as WorkspaceRole[]).map((role) => (
-      <option key={role} value={role}>
-        {ROLE_LABELS[role]}
-      </option>
-    ))}
-  </>
-);
+const RoleOptions = () => {
+  const roles = useTranslations("common.roleTitle");
+  return (
+    <>
+      {ROLES.map((role) => (
+        <option key={role} value={role}>
+          {roles(role)}
+        </option>
+      ))}
+    </>
+  );
+};
 
 const Hidden = ({ workspace, userId }: { workspace: MembersWorkspace; userId?: string }) => (
   <>
@@ -54,6 +54,7 @@ export const MemberRoleSelect = ({
   workspace: MembersWorkspace;
   member: { userId: string; email: string; role: WorkspaceRole };
 }) => {
+  const t = useTranslations("workspaces.members");
   const [role, setRole] = useState(member.role);
   const [error, setError] = useState<string | undefined>();
   const [pending, startTransition] = useTransition();
@@ -77,7 +78,7 @@ export const MemberRoleSelect = ({
       {/* The select fills its box (`selectClasses` has `w-full`): the box sets its width. */}
       <div className="w-32">
         <select
-          aria-label={`Role of ${member.email}`}
+          aria-label={t("roleOf", { email: member.email })}
           value={role}
           disabled={pending}
           aria-describedby={error ? errorId : undefined}
@@ -100,6 +101,7 @@ export const RemoveMemberButton = ({
   workspace: MembersWorkspace;
   member: { userId: string; email: string };
 }) => {
+  const t = useTranslations("workspaces.members");
   const [open, setOpen] = useState(false);
   const [round, setRound] = useState(0);
   const close = () => {
@@ -110,13 +112,13 @@ export const RemoveMemberButton = ({
     <>
       <button
         type="button"
-        aria-label={`Remove ${member.email}`}
+        aria-label={t("removeAria", { email: member.email })}
         onClick={() => setOpen(true)}
         className="rounded-control px-2 py-1 text-xs text-muted hover:bg-tint hover:text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
       >
-        Remove
+        {t("remove")}
       </button>
-      <Dialog open={open} onClose={close} title="Remove member">
+      <Dialog open={open} onClose={close} title={t("removeTitle")}>
         {open ? (
           <RemoveForm key={round} workspace={workspace} member={member} onDone={close} />
         ) : null}
@@ -134,6 +136,7 @@ const RemoveForm = ({
   member: { userId: string; email: string };
   onDone: () => void;
 }) => {
+  const t = useTranslations("workspaces.members");
   // Once removed, the page refreshes without their row, which takes this dialog with it: the
   // row going is the confirmation.
   const [state, action, pending] = useActionState<MemberActionState, FormData>(
@@ -144,17 +147,19 @@ const RemoveForm = ({
     <form action={action} className="grid gap-4">
       <Hidden workspace={workspace} userId={member.userId} />
       <p className="text-sm">
-        Remove <span className="font-mono">{member.email}</span> from{" "}
-        <span className="font-mono">{workspace.name}</span>? They stop proposing and reviewing
-        there; what they already submitted stays.
+        {t.rich("removeBody", {
+          email: member.email,
+          workspace: workspace.name,
+          mono: (chunks) => <span className="font-mono">{chunks}</span>,
+        })}
       </p>
       <FieldError id={`remove-${member.userId}-error`}>{state.error}</FieldError>
       <DialogActions>
         <Button variant="ghost" onClick={onDone}>
-          Cancel
+          {t("cancel")}
         </Button>
         <Button type="submit" variant="destructive" loading={pending}>
-          Remove
+          {t("remove")}
         </Button>
       </DialogActions>
     </form>
@@ -163,6 +168,7 @@ const RemoveForm = ({
 
 /** Add members: search people not in the workspace yet, pick some, give them one role. */
 const AddForm = ({ workspace, onDone }: { workspace: MembersWorkspace; onDone: () => void }) => {
+  const t = useTranslations("workspaces.members");
   const [state, action, pending] = useActionState<MemberActionState, FormData>(
     addMembersFromForm,
     {},
@@ -196,7 +202,7 @@ const AddForm = ({ workspace, onDone }: { workspace: MembersWorkspace; onDone: (
       <div className="grid gap-4">
         <Notice kind="info" title={state.done} />
         <div>
-          <Button onClick={onDone}>Done</Button>
+          <Button onClick={onDone}>{t("done")}</Button>
         </div>
       </div>
     );
@@ -205,7 +211,7 @@ const AddForm = ({ workspace, onDone }: { workspace: MembersWorkspace; onDone: (
     <form action={action} className="grid gap-4">
       <Hidden workspace={workspace} />
       <div className="grid gap-1.5">
-        <Label htmlFor="member-search">Find people</Label>
+        <Label htmlFor="member-search">{t("findPeople")}</Label>
         <input
           id="member-search"
           type="search"
@@ -216,12 +222,11 @@ const AddForm = ({ workspace, onDone }: { workspace: MembersWorkspace; onDone: (
           className={inputClasses}
         />
         <p id="member-search-hint" className="text-xs text-muted">
-          By email or name. People already in {workspace.name}, root and disabled users aren't
-          listed.
+          {t("findHint", { workspace: workspace.name })}
         </p>
         {searchError ? <FieldError id="member-search-error">{searchError}</FieldError> : null}
         {choices.length > 0 ? (
-          <ul aria-label="People found" className="grid gap-1">
+          <ul aria-label={t("found")} className="grid gap-1">
             {choices.map((user) => (
               <li key={user.id} className="flex min-w-0 items-center justify-between gap-2">
                 <span className="min-w-0 truncate text-sm">
@@ -230,20 +235,20 @@ const AddForm = ({ workspace, onDone }: { workspace: MembersWorkspace; onDone: (
                 </span>
                 <Button
                   variant="secondary"
-                  aria-label={`Pick ${user.email}`}
+                  aria-label={t("pickAria", { email: user.email })}
                   onClick={() => setPicked([...picked, user])}
                 >
-                  Pick
+                  {t("pick")}
                 </Button>
               </li>
             ))}
           </ul>
         ) : query.trim() && !searchError ? (
-          <p className="text-xs text-muted">Nobody to add matches that yet.</p>
+          <p className="text-xs text-muted">{t("nobody")}</p>
         ) : null}
       </div>
       {picked.length > 0 ? (
-        <ul aria-label="To add" className="flex flex-wrap gap-2">
+        <ul aria-label={t("toAdd")} className="flex flex-wrap gap-2">
           {picked.map((user) => (
             <li
               key={user.id}
@@ -253,7 +258,7 @@ const AddForm = ({ workspace, onDone }: { workspace: MembersWorkspace; onDone: (
               <span className="min-w-0 truncate">{user.email}</span>
               <button
                 type="button"
-                aria-label={`Unpick ${user.email}`}
+                aria-label={t("unpickAria", { email: user.email })}
                 onClick={() => setPicked(picked.filter((p) => p.id !== user.id))}
                 className="rounded-sm px-1 text-muted hover:text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
               >
@@ -265,7 +270,7 @@ const AddForm = ({ workspace, onDone }: { workspace: MembersWorkspace; onDone: (
       ) : null}
       <div className="grid gap-1.5">
         <div className="flex items-center gap-2">
-          <Label htmlFor="member-role">Role</Label>
+          <Label htmlFor="member-role">{t("role")}</Label>
           <Help id="member-roles" />
         </div>
         <select id="member-role" name="role" defaultValue="user" className={selectClasses}>
@@ -275,14 +280,14 @@ const AddForm = ({ workspace, onDone }: { workspace: MembersWorkspace; onDone: (
       <FieldError id="add-members-error">{state.error}</FieldError>
       <DialogActions>
         <Button variant="ghost" onClick={onDone}>
-          Cancel
+          {t("cancel")}
         </Button>
         <Button
           type="submit"
           loading={pending}
-          disabledReason={picked.length === 0 ? "Pick someone first." : null}
+          disabledReason={picked.length === 0 ? t("pickFirst") : null}
         >
-          Add members
+          {t("addMembers")}
         </Button>
       </DialogActions>
     </form>
@@ -290,6 +295,7 @@ const AddForm = ({ workspace, onDone }: { workspace: MembersWorkspace; onDone: (
 };
 
 export const AddMembersDialog = ({ workspace }: { workspace: MembersWorkspace }) => {
+  const t = useTranslations("workspaces.members");
   const [open, setOpen] = useState(false);
   const [round, setRound] = useState(0);
   const close = () => {
@@ -298,8 +304,8 @@ export const AddMembersDialog = ({ workspace }: { workspace: MembersWorkspace })
   };
   return (
     <>
-      <Button onClick={() => setOpen(true)}>Add members</Button>
-      <Dialog open={open} onClose={close} title={`Add members to ${workspace.name}`}>
+      <Button onClick={() => setOpen(true)}>{t("addMembers")}</Button>
+      <Dialog open={open} onClose={close} title={t("addTitle", { workspace: workspace.name })}>
         {open ? <AddForm key={round} workspace={workspace} onDone={close} /> : null}
       </Dialog>
     </>

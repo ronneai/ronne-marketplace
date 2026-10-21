@@ -187,7 +187,7 @@ describe("the item page", () => {
     expect(html).toContain('href="/items/team/github"');
     expect(html).toContain('href="/items/team/github/versions"');
     expect(html).toContain('href="/items/team/github?tab=files"');
-    expect(html).not.toContain("You&#x27;re looking at");
+    expect(html).not.toContain("You’re looking at");
     // README never reads the artifact.
     expect(versions.versionContents).not.toHaveBeenCalled();
     // Anyone signed in may propose a change (017).
@@ -272,7 +272,7 @@ describe("the item page", () => {
     );
     const html = await render({ version: "1.0.0", tab: "files" });
     expect(versions.itemPage).toHaveBeenCalledWith(expect.any(Headers), expect.anything(), "1.0.0");
-    expect(html).toContain("You&#x27;re looking at 1.0.0, not latest (1.1.0).");
+    expect(html).toContain("You’re looking at 1.0.0, not latest (1.1.0).");
     expect(html).toContain("It was yanked: Breaks on Windows.");
     expect(html).toContain('href="/items/team/github?tab=files"');
     expect(html).toContain('href="/items/team/github?tab=dependencies&amp;version=1.0.0"');
@@ -291,7 +291,7 @@ describe("the item page", () => {
     );
     const html = await render({ version: "1.1.0", tab: "tools" });
     expect(html).toContain(">turned off<");
-    expect(html).toContain("This version&#x27;s ronne.yaml keeps it away from this tool.");
+    expect(html).toContain("This version’s ronne.yaml keeps it away from this tool.");
     versions.itemPage.mockResolvedValue(
       itemPageData({ item: { ...itemPageData().item, type: "output-style" } }),
     );
@@ -466,7 +466,7 @@ describe("the item page", () => {
 
     // A body file the manifest names but the version lacks.
     versions.versionContents.mockResolvedValue(FILES);
-    expect(await render()).toContain("prompt.md isn&#x27;t in this version.");
+    expect(await render()).toContain("prompt.md isn’t in this version.");
   });
 
   it("shows a permission policy's rules as a table", async () => {
@@ -498,7 +498,7 @@ describe("the item page", () => {
     );
     for (const tab of ["overview", "files"]) {
       const html = await render({ tab });
-      expect(html).toContain("This version&#x27;s files can&#x27;t be read.");
+      expect(html).toContain("This version’s files can’t be read.");
       expect(html).toContain(">@team/github</h1>");
     }
   });
@@ -559,7 +559,7 @@ describe("usage on the Overview (047)", () => {
     usage.itemUsage.mockResolvedValue(usageShown({ runsCounted: false }));
     const html = await render();
     expect(html).toContain("Not counted");
-    expect(html).toContain("Runs aren&#x27;t counted for mcp-servers");
+    expect(html).toContain("Runs aren’t counted for mcp-server items");
   });
 
   it("keeps 045's cards without usage, with a line saying why: nothing, or under root's minimum", async () => {

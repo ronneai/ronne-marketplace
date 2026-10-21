@@ -1,10 +1,17 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { englishLeaks, ownTextsShown } from "@/test/english-leak";
 import { inLocale } from "@/test/intl";
 import { HELP, Help, type HelpId } from "./Help";
 import { DOCS_URL, docsHref, localizedDocsHref, topicOf } from "./topics";
 
 /** Where a website Documentation link lands, or null when there's no such topic or section. */
+const english = (await import("../../../messages/en/help.json")).default as Record<
+  string,
+  { question: string; answer: string }
+>;
+type MovedId = string;
+
 const target = (href: string) => {
   if (!href.startsWith(DOCS_URL)) return null;
   const match = /^(?:\/([a-z-]+))?(?:#([a-z-]+))?$/.exec(href.slice(DOCS_URL.length));
@@ -33,7 +40,10 @@ describe("inline help", () => {
   it("renders a helper as its question, answer and Learn more", () => {
     for (const id of Object.keys(HELP) as HelpId[]) {
       const html = renderToStaticMarkup(<Help id={id} />);
-      expect(html).toContain(HELP[id].question.replaceAll("'", "&#x27;"));
+      const question =
+        "question" in HELP[id] ? HELP[id].question : english[id as MovedId]?.question;
+      expect(question, id).toBeTruthy();
+      expect(html).toContain(String(question).replaceAll("'", "&#x27;"));
       const link = html.match(
         new RegExp(`<a href="${localizedDocsHref(HELP[id].href, "en")}"[^>]*>`),
       )?.[0];
@@ -94,5 +104,80 @@ describe("Documentation links in the person's language (129)", () => {
       expect(html).toContain(`<a href="${localizedDocsHref(HELP["scope"].href, locale)}"`);
       expect(html).not.toContain(`<a href="${HELP["scope"].href}"`);
     }
+  });
+});
+
+describe("the helpers moved to messages (130)", () => {
+  const MOVED = [
+    "workspace",
+    "personal-workspace",
+    "requests-who",
+    "member-roles",
+    "move-approve",
+    "current-workspace",
+    "contents",
+    "install",
+    "plugin",
+    "usage",
+    "support",
+    "propose",
+    "join",
+    "private-item",
+  ] as const;
+
+  it("are exactly the ones with their words in help.json, and each has a link here", () => {
+    expect(Object.keys(english).sort()).toEqual([...MOVED].sort());
+    for (const id of MOVED) {
+      expect("question" in HELP[id], id).toBe(false);
+      expect(HELP[id].href, id).toContain(DOCS_URL);
+    }
+    // Every other helper still has its words here, so none shows a missing message.
+    for (const [id, help] of Object.entries(HELP))
+      if (!(MOVED as readonly string[]).includes(id))
+        expect("question" in help && "answer" in help, id).toBe(true);
+  });
+
+  it("read in the person's language, with the question, the answer and the language's link", async () => {
+    const pt = (await import("../../../messages/pt/help.json")).default as typeof english;
+    const fr = (await import("../../../messages/fr/help.json")).default as typeof english;
+    for (const id of MOVED) {
+      const ptHtml = inLocale("pt", () => renderToStaticMarkup(<Help id={id} />));
+      expect(ptHtml, id).toContain(pt[id]?.question.replaceAll("'", "&#x27;"));
+      expect(ptHtml, id).toContain(`<a href="${localizedDocsHref(HELP[id].href, "pt")}"`);
+      const frHtml = inLocale("fr", () => renderToStaticMarkup(<Help id={id} />));
+      expect(frHtml, id).toContain(fr[id]?.question.replaceAll("'", "&#x27;"));
+      expect(frHtml, id).toContain(`<a href="${localizedDocsHref(HELP[id].href, "fr")}"`);
+    }
+  });
+
+  for (const locale of ["pt", "fr"] as const) {
+    it(`${locale}: no English text is left in them`, async () => {
+      const html = MOVED.map((id) =>
+        inLocale(locale, () => renderToStaticMarkup(<Help id={id} />)),
+      ).join("\n");
+      expect(await englishLeaks(["help"], locale, html)).toEqual([]);
+      expect(await ownTextsShown(["help"], locale, html)).toBeGreaterThan(10);
+    });
+  }
+
+  it("none of them is left as the English text in pt or fr", async () => {
+    const pt = (await import("../../../messages/pt/help.json")).default as typeof english;
+    const fr = (await import("../../../messages/fr/help.json")).default as typeof english;
+    for (const id of MOVED)
+      for (const [locale, messages] of [
+        ["pt", pt],
+        ["fr", fr],
+      ] as const)
+        for (const part of ["question", "answer"] as const)
+          expect(messages[id]?.[part], `${locale} ${id} ${part}`).not.toBe(english[id]?.[part]);
+  });
+
+  it("a helper given a more precise section keeps it", () => {
+    const html = inLocale("fr", () =>
+      renderToStaticMarkup(<Help id="join" href={docsHref("workspaces", "visibility")} />),
+    );
+    expect(html).toContain(
+      `<a href="${localizedDocsHref(docsHref("workspaces", "visibility"), "fr")}"`,
+    );
   });
 });

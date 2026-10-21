@@ -278,7 +278,7 @@ describe("releasing in a workspace (091)", () => {
       expect.objectContaining({
         id: inBeta,
         result: "not_releasable",
-        reason: new NotAMemberError("beta", "release your items there").message,
+        reason: new NotAMemberError("beta", "release").message,
       }),
     ]);
     expect(await status(inBeta)).toBe("approved");

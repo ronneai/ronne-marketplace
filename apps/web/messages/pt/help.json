@@ -1,0 +1,58 @@
+{
+  "workspace": {
+    "question": "O que é um espaço de trabalho?",
+    "answer": "O nível acima dos escopos: espaço de trabalho › escopo › item. Cada espaço de trabalho guarda escopos, e os itens deles, de uma equipe ou grupo. Fora do global, é a primeira parte do nome de um item, @espaço/escopo/nome. Toda instância tem o global."
+  },
+  "personal-workspace": {
+    "question": "O que é o meu espaço de trabalho pessoal?",
+    "answer": "Um espaço de trabalho só seu, privado: crie escopos e itens ali, instale-os e experimente, sem pedir a ninguém. O que você submete ali é aprovado na hora, já que só você e o root o veem."
+  },
+  "requests-who": {
+    "question": "Quem pode responder?",
+    "answer": "O root, em todos os espaços de trabalho, e os moderadores e admins de cada espaço de trabalho, no deles. Aprovar adiciona a pessoa como usuário; o root e os admins do espaço de trabalho podem escolher moderador. Recusar pode dar um motivo, que a pessoa vê; ela pode pedir de novo 7 dias depois. Vale a primeira resposta."
+  },
+  "member-roles": {
+    "question": "O que cada papel pode fazer?",
+    "answer": "Um usuário propõe e submete itens no espaço de trabalho. Um moderador também os revisa e lança. Um admin também adiciona e remove membros, muda os papéis deles, cria os escopos do espaço de trabalho e edita a descrição dele. O root pode fazer tudo isso em todos os espaços de trabalho."
+  },
+  "move-approve": {
+    "question": "O que aprovar faz?",
+    "answer": "Confere a movimentação de novo e move o escopo: os itens dele passam a ter os nomes do novo espaço de trabalho, os nomes antigos continuam funcionando, e as versões não revisadas passam a revisadas em seu nome. Se algo quebrar agora, nada é movido e a solicitação continua aberta, com a lista."
+  },
+  "current-workspace": {
+    "question": "O que isto filtra?",
+    "answer": "O espaço de trabalho atual, escolhido no seletor da barra lateral: o Catálogo, as Revisões e Minhas submissões mostram só esse espaço de trabalho até você escolher outro ou Mostrar tudo. Isso limita o que você vê, nunca o que pode fazer, e os contadores da barra lateral continuam contando todos os espaços de trabalho."
+  },
+  "contents": {
+    "question": "O que estou vendo?",
+    "answer": "Os arquivos desta versão como lançada: exatamente o que o rmk install recebe, conferido com o checksum do pacote. A Visão geral resume: como instalar, o que ela pode fazer, o arquivo principal para ler e quem revisou; Arquivos mostra todos os arquivos, com o código a uma aba de distância."
+  },
+  "install": {
+    "question": "Como instalo?",
+    "answer": "Copie o comando para um terminal no seu projeto, depois do rmk login. O rmk resolve a versão, confere o download, escreve os arquivos que sua ferramenta de IA lê e os registra no rmk.lock para que colegas recebam o mesmo. Com o servidor MCP do registro configurado, você também pode pedir à sua ferramenta de IA que instale: ela mostra o plano antes."
+  },
+  "plugin": {
+    "question": "Instalar como plugin do Claude Code?",
+    "answer": "Execute isto no Claude Code, ou encontre o item em /plugin, depois que o rmk plugin-setup claude-code tiver adicionado este marketplace ali. O Claude Code baixa a versão lançada como plugin, com as dependências, usando seu rmk login. Instale um item de uma só forma, como plugin ou com o rmk install, não das duas."
+  },
+  "usage": {
+    "question": "De onde vêm estes números?",
+    "answer": "Do rmk, em máquinas que informam a esta instância sob a política de uso do root: instalações, remoções e execuções deste item, por dia, versão e ferramenta de IA. A taxa de sucesso precisa de 20 execuções com resultado informado."
+  },
+  "support": {
+    "question": "O que isto significa?",
+    "answer": "Compatível: o rmk escreve o item onde a ferramenta o lê. Em parte: a ferramenta o aceita por um contorno, e parte dele fica de fora. Desligado: o ronne.yaml desta versão o mantém longe dessa ferramenta. Ignorado: a ferramenta não tem lugar para este tipo; o rmk avisa e instala o resto."
+  },
+  "propose": {
+    "question": "O que acontece quando proponho uma alteração?",
+    "answer": "Você recebe um rascunho desta versão, com todos os arquivos, para editar e submeter. Depois de revisado e aprovado, ele é lançado como a próxima versão do item."
+  },
+  "join": {
+    "question": "Como entro?",
+    "answer": "Qualquer pessoa conectada lê e instala os itens de um espaço de trabalho público, mas só os membros propõem e submetem ali. Peça para entrar pela página Espaços de trabalho, ou pelo link de convite que os moderadores ou admins enviam para um privado; o root ou os moderadores e admins respondem, e você vê a resposta ali."
+  },
+  "private-item": {
+    "question": "Quem pode ver isto?",
+    "answer": "Só os membros do espaço de trabalho dele, em qualquer papel, e o root: o espaço de trabalho é privado. Para qualquer outra pessoa este item não existe, no catálogo, no rmk, nas ferramentas MCP e nos marketplaces de plugins. Só itens do mesmo espaço de trabalho podem depender dele."
+  }
+}

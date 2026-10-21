@@ -10,6 +10,7 @@ import {
   WorkspaceNotEmptyError,
 } from "@/server/domains/workspaces/exceptions/errors";
 import type { Workspace } from "@/server/domains/workspaces/models/workspace";
+import { inLocaleAsync } from "@/test/intl";
 
 const workspaces = vi.hoisted(() => ({
   createWorkspace: vi.fn(),
@@ -700,7 +701,7 @@ describe("the pages", () => {
     session.getCurrentUser.mockResolvedValueOnce({ id: "r", role: "root" });
     workspaces.viewWorkspace.mockResolvedValueOnce(mine);
     const asRoot = renderToStaticMarkup(await workspacePage("ana"));
-    expect(asRoot).toContain("Its owner&#x27;s alone");
+    expect(asRoot).toContain("Its owner’s alone");
     expect(asRoot).toContain("All workspaces");
     expect(asRoot).not.toContain("Make public");
     expect(asRoot).not.toContain(">Members<");
@@ -822,11 +823,60 @@ describe("the pages", () => {
     expect(renderToStaticMarkup(await workspacePage("global"))).not.toContain(">Rename<");
   });
 
+  it("the page reads in Portuguese and French: tabs, role, visibility and the notes (130)", async () => {
+    const admin = {
+      id: "a",
+      role: "user",
+      workspaces: { [workspace().id]: "admin" },
+    };
+    const render = async (locale: "pt" | "fr", params: Record<string, string> = {}) => {
+      session.getCurrentUser.mockResolvedValueOnce(admin);
+      workspaces.viewWorkspace.mockResolvedValueOnce(workspace());
+      return inLocaleAsync(locale, async () =>
+        renderToStaticMarkup(await workspacePage("acme", params)),
+      );
+    };
+    const pt = await render("pt");
+    for (const text of [
+      "Todos os espaços de trabalho",
+      ">Escopos<",
+      ">Membros<",
+      ">Solicitações<",
+      ">Admin<",
+      'aria-label="Espaço de trabalho"',
+    ])
+      expect(pt, text).toContain(text);
+    const fr = await render("fr");
+    for (const text of [
+      "Tous les espaces de travail",
+      ">Portées<",
+      ">Membres<",
+      ">Demandes<",
+      ">Admin<",
+    ])
+      expect(fr, text).toContain(text);
+    session.getCurrentUser.mockResolvedValueOnce({ role: "root" });
+    workspaces.viewWorkspace.mockResolvedValueOnce(global);
+    const globalPt = await inLocaleAsync("pt", async () =>
+      renderToStaticMarkup(await workspacePage("global")),
+    );
+    expect(globalPt).toContain("Ele não pode ser alterado nem excluído.");
+    expect(globalPt).toContain(">Root<");
+    const mine = workspace({ ownerId: "me", name: "ana" });
+    session.getCurrentUser.mockResolvedValueOnce({ id: "me", role: "user", workspaces: {} });
+    workspaces.viewWorkspace.mockResolvedValueOnce(mine);
+    const personal = await inLocaleAsync("fr", async () =>
+      renderToStaticMarkup(await workspacePage("ana")),
+    );
+    expect(personal).toContain("Le vôtre seul, toujours privé.");
+    expect(personal).toContain(">Personnel<");
+  });
+
   it("global's page has no edit or delete", async () => {
     session.getCurrentUser.mockResolvedValueOnce({ role: "root" });
     workspaces.viewWorkspace.mockResolvedValueOnce(global);
     const html = renderToStaticMarkup(await workspacePage("global"));
-    expect(html).toContain("It can&#x27;t be changed or deleted.");
+    expect(html).toContain("It can’t be changed or deleted.");
     expect(html).not.toContain(">Rename<");
     expect(html).not.toContain("Edit description");
     expect(html).not.toContain("Delete");

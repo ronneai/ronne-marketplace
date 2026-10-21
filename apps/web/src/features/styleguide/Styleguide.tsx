@@ -198,7 +198,7 @@ export const ThemeSample = ({ theme }: { theme: "light" | "dark" }) => {
           rowKey={(row) => row.name}
           page={{ next: "demo", previous: null }}
           total={{ count: 1234, capped: false }}
-          noun="items"
+          noun="item"
           empty={{ none: "No items yet.", filtered: "No items match these filters." }}
         />
       </Section>

@@ -1,0 +1,33 @@
+{
+  "group": {
+    "guidance": "Guidance",
+    "runtime": "Runtime & tools",
+    "bundles": "Bundles"
+  },
+  "name": {
+    "skill": "Skill",
+    "agent": "Agent",
+    "rule": "Rule",
+    "command": "Command",
+    "output-style": "Output style",
+    "hook": "Hook",
+    "mcp-server": "MCP server",
+    "permission-policy": "Permission policy",
+    "statusline": "Status line",
+    "lsp-server": "LSP server",
+    "bundle": "Bundle"
+  },
+  "description": {
+    "skill": "Instructions (SKILL.md), with optional scripts and files, that the AI loads when a task needs them.",
+    "agent": "A sub-agent with its own prompt, allowed tools and model.",
+    "rule": "Guidance that applies always, to matching files, when the AI decides, or on request.",
+    "command": "A reusable prompt or slash command, with arguments.",
+    "output-style": "Changes how the agent writes its answers.",
+    "hook": "A command that runs on an AI tool's event, such as tool.after or session.start.",
+    "mcp-server": "The connection to an MCP server: a program to start, or a URL.",
+    "permission-policy": "Allow, ask or deny rules for tools and shell commands.",
+    "statusline": "A script that prints the AI tool's status line.",
+    "lsp-server": "A language server that gives the agent code intelligence.",
+    "bundle": "A set of items installed together, as one."
+  }
+}

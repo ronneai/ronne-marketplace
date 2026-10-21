@@ -1,31 +1,31 @@
 {
   "notice": {
-    "tab": "Aviso",
-    "title": "Aviso da instância",
+    "tab": "Comunicado",
+    "title": "Comunicado da instância",
     "intro": "Uma mensagem curta abaixo do cabeçalho de todas as páginas para quem entrou, como uma janela de manutenção ou “esta é uma demonstração”. Escreva um link dentro da frase como [texto](endereço). É um texto seu, por isso não é traduzido.",
     "message": "Mensagem",
     "messageHint": "Texto simples em uma linha. Link com [texto](endereço): https:// ou uma única / para uma página deste site, até {links, number} links. {used, number} de {max, number} caracteres.",
     "tone": "Tom",
     "toneInfo": "Informação",
-    "toneWarning": "Alerta",
-    "toneHint": "Alerta é para algo que pede cuidado, como dados que serão redefinidos.",
-    "shown": "Mostrar o aviso",
+    "toneWarning": "Aviso",
+    "toneHint": "Aviso é para algo que pede cuidado, como dados que serão redefinidos.",
+    "shown": "Mostrar o comunicado",
     "shownHint": "Ao desligar, o texto é mantido e você pode ligar de novo.",
     "preview": "Pré-visualização",
     "previewEmpty": "Escreva uma mensagem para vê-la aqui.",
     "previewHidden": "Oculto: ninguém o vê até você mostrá-lo.",
     "save": "Salvar",
-    "saved": "Aviso salvo.",
+    "saved": "Comunicado salvo.",
     "unchanged": "Nada mudou.",
     "lastChanged": "Alterado por último por {name}",
     "neverChanged": "Ainda não definido.",
     "errors": {
-      "message_empty": "Escreva a mensagem antes de mostrar o aviso.",
+      "message_empty": "Escreva a mensagem antes de mostrar o comunicado.",
       "message_too_long": "Use até {max, number} caracteres, em uma linha.",
       "link_label": "Um link precisa do texto, com até {label, number} caracteres: [texto](endereço).",
       "link_address": "Use um endereço que comece com https:// ou com uma única /, sem espaços: [texto](endereço).",
       "too_many_links": "Use no máximo {links, number} links na mensagem.",
-      "tone_invalid": "Escolha Informação ou Alerta."
+      "tone_invalid": "Escolha Informação ou Aviso."
     }
   }
 }

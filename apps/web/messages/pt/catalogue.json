@@ -1,0 +1,85 @@
+{
+  "page": {
+    "title": "Catálogo",
+    "description": "Todos os itens publicados: skills, agents, rules, MCP servers e mais, revisados antes do lançamento."
+  },
+  "view": {
+    "search": {
+      "label": "Pesquisar",
+      "placeholder": "Nome, descrição ou palavra-chave",
+      "submit": "Pesquisar"
+    },
+    "filters": {
+      "button": "Filtros",
+      "on": "ativos",
+      "type": "Tipo",
+      "typeAll": "todos {total}",
+      "typesLegend": "Tipos a mostrar (nenhum: todos os tipos)",
+      "workspace": "Espaço de trabalho",
+      "allWorkspaces": "Todos os espaços de trabalho",
+      "personal": "Pessoal ({workspace})",
+      "scope": "Escopo",
+      "allScopes": "Todos os escopos",
+      "worksIn": "Funciona em",
+      "anyTool": "Qualquer ferramenta",
+      "clear": "Limpar filtros",
+      "apply": "Aplicar"
+    },
+    "active": {
+      "label": "Filtros ativos",
+      "searchChip": "Pesquisa:",
+      "removeSearch": "Remover a pesquisa",
+      "removeType": "Remover o filtro {type}",
+      "removeWorkspace": "Remover o filtro de espaço de trabalho",
+      "removeScope": "Remover o filtro de escopo",
+      "removeTool": "Remover o filtro de ferramenta",
+      "clearAll": "Limpar tudo"
+    },
+    "sort": {
+      "summary": "Ordenar: <value></value>",
+      "label": "Ordenar",
+      "recent": {
+        "label": "Publicados recentemente",
+        "hint": "Lançamentos mais novos primeiro"
+      },
+      "installs": {
+        "label": "Mais instalados",
+        "hint": "Mais instalações com o rmk primeiro"
+      },
+      "name": {
+        "label": "Nome",
+        "hint": "Por escopo e depois por nome, de A a Z"
+      }
+    },
+    "empty": {
+      "noMatch": "Nenhum item corresponde. <see>Ver todos os itens</see>.",
+      "title": "Nada foi publicado ainda.",
+      "how": "Os itens chegam em três etapas: alguém submete um, um moderador revisa e aprova, e ele é lançado como uma versão. Depois, aparece aqui, pronto para instalar com o <mono>rmk</mono>.",
+      "submit": "Submeter um item"
+    },
+    "pager": {
+      "label": "Páginas",
+      "first": "Primeira página",
+      "next": "Próxima página"
+    }
+  },
+  "card": {
+    "risk": "⚠ risco",
+    "deprecated": "obsoleto",
+    "notInstallable": "nenhuma versão instalável",
+    "noDescription": "Sem descrição.",
+    "deprecatedNote": "Obsoleto: {message}",
+    "published": "publicado em <date></date>",
+    "worksIn": "funciona em {tools}",
+    "worksInNone": "não funciona em nenhuma ferramenta integrada",
+    "installs": "{count, plural, one {# instalação} other {# instalações}}"
+  },
+  "place": {
+    "workspace": "Espaço de trabalho",
+    "scope": "Escopo",
+    "personal": "(pessoal)",
+    "personalTitle": "Só o dono e o root veem este item.",
+    "private": "Privado",
+    "privateTitle": "Só os membros de {workspace} e o root veem este item."
+  }
+}

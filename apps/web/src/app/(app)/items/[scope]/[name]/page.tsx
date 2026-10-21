@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { FilesBrowser } from "@/components/files/FilesBrowser";
 import { selectedFile } from "@/components/files/shown";
@@ -16,9 +17,13 @@ import { bodyPathOf } from "@/features/item-page/overview/model";
 import { OverviewTab, UnavailableFiles } from "@/features/item-page/overview/OverviewTab";
 import { ToolsPanel } from "@/features/item-page/ToolsPanel";
 import { tabFrom } from "@/features/item-page/tabs";
+import { pageTitle } from "@/i18n/page-title";
 import { holdPage } from "../../../hold";
 
-export const metadata = { title: "Item · Ronne AI Marketplace" };
+export const generateMetadata = async () => {
+  const t = await getTranslations("item.page");
+  return { title: pageTitle(t("item")) };
+};
 
 type SearchParams = Promise<{
   tab?: string | string[];

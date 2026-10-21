@@ -1,10 +1,15 @@
 import type account from "../../messages/en/account.json";
 import type admin from "../../messages/en/admin.json";
 import type auth from "../../messages/en/auth.json";
+import type catalogue from "../../messages/en/catalogue.json";
 import type common from "../../messages/en/common.json";
 import type errors from "../../messages/en/errors.json";
+import type help from "../../messages/en/help.json";
 import type home from "../../messages/en/home.json";
+import type item from "../../messages/en/item.json";
 import type shell from "../../messages/en/shell.json";
+import type types from "../../messages/en/types.json";
+import type workspaces from "../../messages/en/workspaces.json";
 
 /**
  * The message files (feature 129): `messages/<locale>/<namespace>.json`, one file per area of the
@@ -19,6 +24,11 @@ export const NAMESPACES = [
   "errors",
   "admin",
   "home",
+  "types",
+  "catalogue",
+  "item",
+  "workspaces",
+  "help",
 ] as const;
 export type Namespace = (typeof NAMESPACES)[number];
 
@@ -31,4 +41,9 @@ export type Messages = {
   errors: typeof errors;
   admin: typeof admin;
   home: typeof home;
+  types: typeof types;
+  catalogue: typeof catalogue;
+  item: typeof item;
+  workspaces: typeof workspaces;
+  help: typeof help;
 };

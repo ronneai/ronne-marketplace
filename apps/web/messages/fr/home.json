@@ -10,7 +10,7 @@
     "label": "Parcourir par type"
   },
   "waiting": {
-    "title": "En attente pour vous",
+    "title": "Ce qui vous attend",
     "drafts": "Vous avez {count, plural, one {# brouillon} other {# brouillons}} en cours.",
     "changes": "{count, plural, one {# de vos soumissions demande} other {# de vos soumissions demandent}} des modifications.",
     "review": "{count, plural, one {# soumission attend} other {# soumissions attendent}} une révision."

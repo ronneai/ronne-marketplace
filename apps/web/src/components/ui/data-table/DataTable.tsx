@@ -140,6 +140,9 @@ export const HiddenListFields = <S extends string, F extends string>({
   </>
 );
 
+/** The things a table counts; each has a plural message in `common.table.nouns`. */
+export type TableNoun = "event" | "item" | "member" | "scope" | "submission" | "user" | "workspace";
+
 export const DataTable = <Row, S extends string, F extends string>({
   list,
   state,
@@ -163,8 +166,8 @@ export const DataTable = <Row, S extends string, F extends string>({
   rowLabel?: (row: Row) => string;
   page: { next: string | null; previous: string | null };
   total: TableTotal;
-  /** The plural for the count, such as `events`. */
-  noun: string;
+  /** What the rows are, a key of `common.table.nouns` (such as `event`): the count says "12 events". */
+  noun: TableNoun;
   /** The list's filters, above the table. */
   toolbar?: ReactNode;
   empty: { none: string; filtered: string };
@@ -183,7 +186,13 @@ export const DataTable = <Row, S extends string, F extends string>({
       aria-label={t("pages")}
       className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted"
     >
-      <span>{t("count", { count: total.count, capped: String(total.capped), noun })}</span>
+      <span>
+        {t("count", {
+          count: total.count,
+          capped: String(total.capped),
+          noun: t(`nouns.${noun}`, { count: total.capped ? 2 : total.count }),
+        })}
+      </span>
       <div className="flex items-center gap-1">
         <PageLink
           href={page.previous ? listUrl(list, state, { cursor: null }) : null}

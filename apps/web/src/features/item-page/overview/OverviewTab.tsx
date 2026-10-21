@@ -2,6 +2,7 @@ import { formatBytes, formatItemName, type ItemType } from "@ronneai/core";
 import { installsIn, RENDERERS, supportOf } from "@ronneai/core/render";
 import { Ban, Check, FileText, ShieldCheck } from "lucide-react";
 import Link from "next/link";
+import { useFormatter, useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import { itemPath } from "@/components/catalogue/ItemCard";
 import type { DependencyFacts } from "@/components/dependency-canvas/types";
@@ -31,11 +32,14 @@ import {
 import { toolColor, UsageBody } from "./UsageCard";
 
 /** What an item page shows when the version's files can't be read (044). */
-export const UnavailableFiles = () => (
-  <Notice kind="error" title="This version's files can't be read.">
-    Its package is missing from the storage, or doesn't match its checksum. Tell an administrator.
-  </Notice>
-);
+export const UnavailableFiles = () => {
+  const t = useTranslations("item.overview.files");
+  return (
+    <Notice kind="error" title={t("unreadable")}>
+      {t("unreadableBody")}
+    </Notice>
+  );
+};
 
 type ItemRef = { scope: string; name: string };
 
@@ -103,11 +107,11 @@ const Stat = ({
 /** Each tool's share as one thin bar, in the tools' chart colours (the mockup's distribution). */
 const Distribution = ({ tools }: { tools: { key: string; share: number }[] }) => (
   <div aria-hidden="true" className="mt-1.5 flex h-1.5 gap-0.5 overflow-hidden rounded-full">
-    {tools.map((t) => (
+    {tools.map((entry) => (
       <div
-        key={t.key}
-        className={toolColor(t.key)}
-        style={{ width: `${Math.round(t.share * 1000) / 10}%` }}
+        key={entry.key}
+        className={toolColor(entry.key)}
+        style={{ width: `${Math.round(entry.share * 1000) / 10}%` }}
       />
     ))}
   </div>
@@ -118,15 +122,14 @@ const toolsOf = (page: ItemPage) => {
   return RENDERERS.filter((renderer) => installsIn(support[renderer.id]));
 };
 
-/** A share as a whole percentage. */
-const percent = (share: number) => `${Math.round(share * 100)}%`;
-
 const toolName = (id: string) => RENDERERS.find((renderer) => renderer.id === id)?.name ?? id;
 
 /** Where the usage cards link to: the Usage card on the Overview. */
 const USAGE_ANCHOR = "#usage";
 
 const Stats = ({ page, item, usage }: { page: ItemPage; item: ItemRef; usage: UsageSummary }) => {
+  const t = useTranslations("item.overview.stats");
+  const format = useFormatter();
   const { shown } = page;
   const version = shown.version !== page.listed ? shown.version : null;
   const tools = toolsOf(page);
@@ -134,95 +137,96 @@ const Stats = ({ page, item, usage }: { page: ItemPage; item: ItemRef; usage: Us
     (latest, v) => (!latest || v.publishedAt > latest ? v.publishedAt : latest),
     null,
   );
-  const risks = riskLabelsOf(shown.riskFlags);
+  const risks = riskLabelsOf(shown.riskFlags, useTranslations("item.overview.model"));
   const flags = shown.riskFlags.length;
-  const downloads = page.item.downloadCount.toLocaleString("en-US");
+  const downloads = page.item.downloadCount;
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {usage.shown ? (
         <>
           <Stat
-            label="Installs, 30 days"
+            label={t("installs")}
             href={USAGE_ANCHOR}
-            value={usage.installs.toLocaleString("en-US")}
-            detail={`${usage.removals.toLocaleString("en-US")} removed · ${downloads} downloads`}
+            value={format.number(usage.installs)}
+            detail={t("installsDetail", { removed: usage.removals, downloads })}
           />
           <Stat
-            label="Runs, 30 days"
+            label={t("runs")}
             href={USAGE_ANCHOR}
             value={
               usage.runsCounted ? (
-                usage.runs.toLocaleString("en-US")
+                format.number(usage.runs)
               ) : (
-                <span className="text-base">Not counted</span>
+                <span className="text-base">{t("notCounted")}</span>
               )
             }
             detail={
               !usage.runsCounted
-                ? `Runs aren't counted for ${page.item.type}s`
+                ? t("runsNotCounted", { type: page.item.type })
                 : usage.runs === 0
-                  ? "No runs reported"
-                  : `${usage.runsPerDay} a day · ${
-                      usage.successRate === null
-                        ? "success rate not reported"
-                        : `${percent(usage.successRate)} succeeded`
-                    }`
+                  ? t("noRuns")
+                  : usage.successRate === null
+                    ? t("runsDetailNoRate", { perDay: usage.runsPerDay })
+                    : t("runsDetail", { perDay: usage.runsPerDay, rate: usage.successRate })
             }
           />
         </>
       ) : (
         <>
           <Stat
-            label="Downloads"
+            label={t("downloads")}
             href={itemTabHref(item, "versions")}
-            value={downloads}
-            detail="all versions, through rmk and the API"
+            value={format.number(downloads)}
+            detail={t("downloadsDetail")}
           />
           <Stat
-            label="Versions"
+            label={t("versions")}
             href={itemTabHref(item, "versions")}
             value={page.versions.length}
             detail={
-              newest ? (
-                <>
-                  newest <LocalTime value={newest} precision="day" />
-                </>
-              ) : (
-                "none yet"
-              )
+              newest
+                ? t.rich("newest", { date: () => <LocalTime value={newest} precision="day" /> })
+                : t("noneYet")
             }
           />
         </>
       )}
       <Stat
-        label="Works in"
+        label={t("worksIn")}
         href={itemTabHref(item, "tools", version)}
-        value={
-          <>
-            {tools.length}
-            <span className="text-sm font-normal text-muted"> of {RENDERERS.length} tools</span>
-          </>
-        }
+        value={t.rich("worksInValue", {
+          count: tools.length,
+          total: RENDERERS.length,
+          small: (chunks) => <span className="text-sm font-normal text-muted">{chunks}</span>,
+        })}
         chart={usage.shown && usage.tools.length > 1 ? <Distribution tools={usage.tools} /> : null}
         detail={
           usage.shown && usage.tools.length > 0
-            ? usage.tools.map((t) => `${toolName(t.key)} ${percent(t.share)}`).join(" · ")
+            ? usage.tools
+                .map((entry) => t("toolShare", { tool: toolName(entry.key), share: entry.share }))
+                .join(" · ")
             : tools.length > 0
               ? tools.map((renderer) => renderer.name).join(" · ")
-              : "none"
+              : t("noTools")
         }
       />
       <Stat
-        label="Review"
+        label={t("review")}
         href={itemTabHref(item, "risks", version)}
-        badge={shown.approval ? <Badge tone="accent">approved</Badge> : <Badge>not reviewed</Badge>}
+        badge={
+          shown.approval ? (
+            <Badge tone="accent">{t("approved")}</Badge>
+          ) : (
+            <Badge>{t("notReviewed")}</Badge>
+          )
+        }
         value={
           <span className="flex items-center gap-2 text-base">
             <ShieldCheck size={18} aria-hidden="true" className="text-accent" />
-            {flags > 0 ? `${flags} ${flags === 1 ? "flag" : "flags"}` : "Nothing flagged"}
+            {flags > 0 ? t("flags", { count: flags }) : t("nothingFlagged")}
           </span>
         }
-        detail={risks.length > 0 ? risks.join(" · ") : "no hooks, servers, scripts or addresses"}
+        detail={risks.length > 0 ? risks.join(" · ") : t("noRisks")}
       />
     </div>
   );
@@ -241,17 +245,18 @@ const Install = ({
   name: string;
   plugin: string | null;
 }) => {
+  const t = useTranslations("item.overview.install");
   const { shown } = page;
   const tools = toolsOf(page);
   return (
-    <Card title="Install" aside={<Help id="install" />}>
+    <Card title={t("title")} aside={<Help id="install" />}>
       {page.installable ? (
         <>
           <CopyableCommand command={`rmk install ${name}`} />
           <CopyableCommand command={`rmk install ${name}@${shown.version}`} />
           {tools.length > 0 ? (
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-mono text-xs text-muted uppercase">Quick flags</span>
+              <span className="font-mono text-xs text-muted uppercase">{t("quickFlags")}</span>
               {tools.map((renderer) => (
                 <CopyChip
                   key={renderer.id}
@@ -264,9 +269,7 @@ const Install = ({
           {plugin ? (
             <div className="grid gap-2">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="font-mono text-xs text-muted uppercase">
-                  As a Claude Code plugin
-                </span>
+                <span className="font-mono text-xs text-muted uppercase">{t("plugin")}</span>
                 <Help id="plugin" />
               </div>
               <CopyableCommand command={plugin} />
@@ -274,14 +277,12 @@ const Install = ({
           ) : null}
           {shown.version === page.listed && shown.deprecatedMessage ? (
             <p className="text-xs text-warning-text">
-              This version is deprecated: {shown.deprecatedMessage}
+              {t("deprecated", { message: shown.deprecatedMessage })}
             </p>
           ) : null}
         </>
       ) : (
-        <p className="text-sm text-error-text">
-          Every version is yanked: there's nothing to install. Projects that pin one keep working.
-        </p>
+        <p className="text-sm text-error-text">{t("allYanked")}</p>
       )}
     </Card>
   );
@@ -289,15 +290,21 @@ const Install = ({
 
 /** What it can do on a machine (014's flags), beside the limits its own manifest sets. */
 const Capabilities = ({ page }: { page: ItemPage }) => {
+  const t = useTranslations("item.overview.capabilities");
+  const risks = useTranslations("item.risks");
   const { shown } = page;
-  const guardrails = guardrailsOf(shown.manifest, page.item.type);
+  const guardrails = guardrailsOf(
+    shown.manifest,
+    page.item.type,
+    useTranslations("item.overview.model"),
+  );
   return (
-    <Card title="Capabilities and guardrails">
+    <Card title={t("title")}>
       <div className="grid gap-6 sm:grid-cols-2">
         <div className="grid content-start gap-2">
           <h3 className="flex items-center gap-1.5 font-mono text-xs font-semibold text-fg uppercase">
             <Check size={14} aria-hidden="true" className="text-accent" />
-            What it can do
+            {t("canDo")}
           </h3>
           {shown.riskFlags.length > 0 ? (
             <ul className="grid gap-1.5 text-sm text-fg">
@@ -310,16 +317,13 @@ const Capabilities = ({ page }: { page: ItemPage }) => {
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-muted">
-              Nothing flagged: no hooks, MCP servers, permission rules, status lines, language
-              servers, scripts, executables or web addresses.
-            </p>
+            <p className="text-sm text-muted">{risks("none")}</p>
           )}
         </div>
         <div className="grid content-start gap-2">
           <h3 className="flex items-center gap-1.5 font-mono text-xs font-semibold text-fg uppercase">
             <Ban size={14} aria-hidden="true" className="text-muted" />
-            Guardrails
+            {t("guardrails")}
           </h3>
           {guardrails.length > 0 ? (
             <ul className="grid gap-1.5 text-sm text-fg">
@@ -330,7 +334,7 @@ const Capabilities = ({ page }: { page: ItemPage }) => {
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-muted">Its manifest sets no limits of its own.</p>
+            <p className="text-sm text-muted">{t("noGuardrails")}</p>
           )}
         </div>
       </div>
@@ -339,32 +343,35 @@ const Capabilities = ({ page }: { page: ItemPage }) => {
 };
 
 /** The main file to read, titled with its role; its source is in Files. */
-const MainDocument = ({ file, role, href }: { file: ShownFile; role: string; href: string }) => (
-  <section
-    aria-label={file.path}
-    className="min-w-0 overflow-hidden rounded-panel border border-hairline bg-surface"
-  >
-    <div className="flex flex-wrap items-center gap-2 border-b border-hairline px-4 py-2">
-      <FileText size={14} aria-hidden="true" className="text-muted" />
-      <h2 className="font-mono text-sm font-semibold break-all text-fg">{file.path}</h2>
-      <span className="min-w-0 flex-1 font-mono text-xs text-muted">{role}</span>
-      <Link href={href} className="text-xs text-muted underline underline-offset-2 hover:text-fg">
-        Open in Files
-      </Link>
-    </div>
-    {file.kind !== "text" ? (
-      <p className="p-4 text-sm text-muted">
-        {file.kind === "binary" ? "A binary file." : "Too large to show here."} Files lists it.
-      </p>
-    ) : file.text.trim() === "" ? (
-      <p className="p-4 text-sm text-muted">This file is empty.</p>
-    ) : file.markdown ? (
-      <Rendered markdown={file.markdown} />
-    ) : (
-      <Source path={file.path} text={file.text} />
-    )}
-  </section>
-);
+const MainDocument = ({ file, role, href }: { file: ShownFile; role: string; href: string }) => {
+  const t = useTranslations("item.overview.document");
+  return (
+    <section
+      aria-label={file.path}
+      className="min-w-0 overflow-hidden rounded-panel border border-hairline bg-surface"
+    >
+      <div className="flex flex-wrap items-center gap-2 border-b border-hairline px-4 py-2">
+        <FileText size={14} aria-hidden="true" className="text-muted" />
+        <h2 className="font-mono text-sm font-semibold break-all text-fg">{file.path}</h2>
+        <span className="min-w-0 flex-1 font-mono text-xs text-muted">{role}</span>
+        <Link href={href} className="text-xs text-muted underline underline-offset-2 hover:text-fg">
+          {t("openInFiles")}
+        </Link>
+      </div>
+      {file.kind !== "text" ? (
+        <p className="p-4 text-sm text-muted">
+          {file.kind === "binary" ? t("binary") : t("tooLarge")}
+        </p>
+      ) : file.text.trim() === "" ? (
+        <p className="p-4 text-sm text-muted">{t("empty")}</p>
+      ) : file.markdown ? (
+        <Rendered markdown={file.markdown} />
+      ) : (
+        <Source path={file.path} text={file.text} />
+      )}
+    </section>
+  );
+};
 
 /** The direct dependencies on the read-only canvas, with a plain list of links under it. */
 const Dependencies = ({
@@ -378,14 +385,15 @@ const Dependencies = ({
   dependencies: Record<string, string>;
   facts: Record<string, DependencyFacts>;
 }) => {
+  const t = useTranslations("item.overview.dependencies");
   const names = Object.keys(dependencies).sort();
   return (
     <section
-      aria-label="Dependencies"
+      aria-label={t("label")}
       className="overflow-hidden rounded-panel border border-hairline bg-surface"
     >
       <h2 className="border-b border-hairline px-4 py-2 text-sm font-semibold text-fg">
-        Uses {names.length} {names.length === 1 ? "item" : "items"}
+        {t("uses", { count: names.length })}
       </h2>
       <div className="h-[26rem] border-b border-hairline">
         <DependencyGraph
@@ -418,29 +426,35 @@ const Row = ({ label, children }: { label: string; children: ReactNode }) => (
 );
 
 /** The checksum `rmk` checks, and the package's size. Signatures come later (MVP §14.2). */
-const Verification = ({ page }: { page: ItemPage }) => (
-  <Card title="Package verification">
-    <p className="flex items-center gap-1.5 rounded-control border border-hairline bg-canvas px-2 py-1.5 text-xs text-fg">
-      <ShieldCheck size={14} aria-hidden="true" className="text-accent" />
-      rmk checks this checksum on every install
-    </p>
-    <div className="grid gap-1">
-      <span className="font-mono text-[11px] text-muted uppercase">sha256</span>
-      <code className="font-mono text-xs break-all text-fg">{page.shown.sha256}</code>
-    </div>
-    <Row label="Package size">{formatBytes(page.shown.size)}</Row>
-  </Card>
-);
+const Verification = ({ page }: { page: ItemPage }) => {
+  const t = useTranslations("item.overview.verification");
+  return (
+    <Card title={t("title")}>
+      <p className="flex items-center gap-1.5 rounded-control border border-hairline bg-canvas px-2 py-1.5 text-xs text-fg">
+        <ShieldCheck size={14} aria-hidden="true" className="text-accent" />
+        {t("checks")}
+      </p>
+      <div className="grid gap-1">
+        {/* biome-ignore lint/plugin: the name of the hash, the same in every language */}
+        <span className="font-mono text-[11px] text-muted uppercase">sha256</span>
+        <code className="font-mono text-xs break-all text-fg">{page.shown.sha256}</code>
+      </div>
+      <Row label={t("size")}>{formatBytes(page.shown.size)}</Row>
+    </Card>
+  );
+};
 
 /** The type block's settings, and a permission policy's rules as a table. */
 const Configuration = ({ page }: { page: ItemPage }) => {
+  const t = useTranslations("item.overview.configuration");
+  const say = useTranslations("item.overview.model");
   const { manifest } = page.shown;
   const type = page.item.type;
-  const rows = type === "permission-policy" ? [] : settingsOf(manifest, type);
+  const rows = type === "permission-policy" ? [] : settingsOf(manifest, type, say);
   const rules = type === "permission-policy" ? policyRulesOf(manifest) : [];
   if (rows.length === 0 && rules.length === 0) return null;
   return (
-    <Card title="Configuration">
+    <Card title={t("title")}>
       {rows.length > 0 ? (
         <div>
           {rows.map((row) => (
@@ -458,9 +472,9 @@ const Configuration = ({ page }: { page: ItemPage }) => {
         <Table>
           <thead>
             <tr>
-              <Th>Decision</Th>
-              <Th>Tool</Th>
-              <Th>Pattern</Th>
+              <Th>{t("decision")}</Th>
+              <Th>{t("tool")}</Th>
+              <Th>{t("pattern")}</Th>
             </tr>
           </thead>
           <tbody>
@@ -474,7 +488,7 @@ const Configuration = ({ page }: { page: ItemPage }) => {
                   </Badge>
                 </Td>
                 <Td className="font-mono text-sm">{rule.tool}</Td>
-                <Td className="font-mono text-sm break-all">{rule.pattern ?? "any"}</Td>
+                <Td className="font-mono text-sm break-all">{rule.pattern ?? t("anyPattern")}</Td>
               </tr>
             ))}
           </tbody>
@@ -488,13 +502,12 @@ const USED_BY_SHOWN = 20;
 
 /** Published items whose listed version depends on this one. */
 const UsedBy = ({ page }: { page: ItemPage }) => {
+  const t = useTranslations("item.overview.usedBy");
   if (page.usedBy.length === 0) return null;
   const more = page.usedBy.length - USED_BY_SHOWN;
   return (
-    <Card title="Used by">
-      <p className="text-xs text-muted">
-        Published items whose listed version depends on this one.
-      </p>
+    <Card title={t("title")}>
+      <p className="text-xs text-muted">{t("intro")}</p>
       <ul className="grid gap-1.5">
         {page.usedBy.slice(0, USED_BY_SHOWN).map((dependent) => (
           <li
@@ -508,12 +521,12 @@ const UsedBy = ({ page }: { page: ItemPage }) => {
               @{dependent.scope}/{dependent.name}
             </Link>
             <span className="font-mono text-[11px] text-muted">
-              {dependent.type} · asks {dependent.range}
+              {t("asks", { type: dependent.type, range: dependent.range })}
             </span>
           </li>
         ))}
       </ul>
-      {more > 0 ? <p className="text-xs text-muted">and {more} more</p> : null}
+      {more > 0 ? <p className="text-xs text-muted">{t("more", { count: more })}</p> : null}
     </Card>
   );
 };
@@ -528,10 +541,12 @@ const initials = (name: string) =>
 
 /** Who looks after it, and who approved the shown version. */
 const Maintainers = ({ page }: { page: ItemPage }) => {
-  const owner = page.ownerName ?? "a former user";
+  const t = useTranslations("item.overview.maintainers");
+  const former = useTranslations("item.meta");
+  const owner = page.ownerName ?? former("formerUser");
   const { approval } = page.shown;
   return (
-    <Card title="Maintainers and review">
+    <Card title={t("title")}>
       <div className="flex items-center gap-3">
         <span
           aria-hidden="true"
@@ -541,7 +556,7 @@ const Maintainers = ({ page }: { page: ItemPage }) => {
         </span>
         <div className="grid">
           <span className="text-sm text-fg">{owner}</span>
-          <span className="font-mono text-xs text-muted">Owner</span>
+          <span className="font-mono text-xs text-muted">{t("owner")}</span>
         </div>
       </div>
       <div className="flex items-start gap-1.5 border-t border-hairline pt-3 text-xs text-fg">
@@ -549,13 +564,15 @@ const Maintainers = ({ page }: { page: ItemPage }) => {
           <>
             <Check size={14} aria-hidden="true" className="mt-px shrink-0 text-accent" />
             <p>
-              {`Approved by ${approval.by ?? "a former user"}`}
-              {approval.override ? " (root override)" : ""}
+              {t("approvedBy", {
+                name: approval.by ?? former("formerUser"),
+                override: String(approval.override),
+              })}
               <LocalTime value={approval.at} className="block text-muted" />
             </p>
           </>
         ) : (
-          <p className="text-muted">Released without review.</p>
+          <p className="text-muted">{t("unreviewed")}</p>
         )}
       </div>
     </Card>
@@ -569,25 +586,28 @@ const IncludedFiles = ({
 }: {
   files: readonly ShownFile[];
   hrefOf: (path: string) => string;
-}) => (
-  <Card title="Included files">
-    <ul className="grid gap-1">
-      {files.map((file) => (
-        <li key={file.path} className="flex min-w-0 items-center gap-2 text-xs">
-          <FileText size={14} aria-hidden="true" className="shrink-0 text-muted" />
-          <Link
-            href={hrefOf(file.path)}
-            className="min-w-0 flex-1 font-mono break-all text-fg underline underline-offset-2"
-          >
-            {file.path}
-          </Link>
-          {file.executable ? <Badge>executable</Badge> : null}
-          <span className="shrink-0 font-mono text-muted">{formatBytes(file.size)}</span>
-        </li>
-      ))}
-    </ul>
-  </Card>
-);
+}) => {
+  const t = useTranslations("item.overview.included");
+  return (
+    <Card title={t("title")}>
+      <ul className="grid gap-1">
+        {files.map((file) => (
+          <li key={file.path} className="flex min-w-0 items-center gap-2 text-xs">
+            <FileText size={14} aria-hidden="true" className="shrink-0 text-muted" />
+            <Link
+              href={hrefOf(file.path)}
+              className="min-w-0 flex-1 font-mono break-all text-fg underline underline-offset-2"
+            >
+              {file.path}
+            </Link>
+            {file.executable ? <Badge>{t("executable")}</Badge> : null}
+            <span className="shrink-0 font-mono text-muted">{formatBytes(file.size)}</span>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+};
 
 /**
  * The Overview tab (044, laid out by 045 from the owner's mockup): what the item is, from the shown
@@ -600,17 +620,18 @@ const IncludedFiles = ({
  * Why there are no usage numbers, where usage is or was collected (047): nothing in 30 days, or
  * fewer installs and runs than root's minimum.
  */
-const NoUsage = ({ minimum }: { minimum: number | null }) => (
-  // A div, not a p: the helper is a <details>, which HTML doesn't allow inside a paragraph.
-  <div id="usage" className="flex flex-wrap items-center gap-2">
-    <p className="text-sm text-muted">
-      {minimum
-        ? `Usage appears once this item has ${minimum.toLocaleString("en-US")} reported installs or runs in 30 days.`
-        : "No installs or runs reported in the last 30 days."}
-    </p>
-    <Help id="usage" />
-  </div>
-);
+const NoUsage = ({ minimum }: { minimum: number | null }) => {
+  const t = useTranslations("item.overview.install");
+  return (
+    // A div, not a p: the helper is a <details>, which HTML doesn't allow inside a paragraph.
+    <div id="usage" className="flex flex-wrap items-center gap-2">
+      <p className="text-sm text-muted">
+        {minimum ? t("usageMinimum", { minimum }) : t("usageNone")}
+      </p>
+      <Help id="usage" />
+    </div>
+  );
+};
 
 export const OverviewTab = ({
   page,
@@ -626,6 +647,8 @@ export const OverviewTab = ({
   /** The `/plugin install` command, when the item is in the Claude Code feed (077). */
   plugin?: string | null;
 }) => {
+  const t = useTranslations("item.overview");
+  const say = useTranslations("item.overview.model");
   const item = {
     workspace: page.item.workspace,
     scope: page.item.scope.name,
@@ -645,7 +668,7 @@ export const OverviewTab = ({
         <div className="grid min-w-0 gap-4">
           <Install page={page} name={name} plugin={plugin} />
           {usage.shown ? (
-            <Card id="usage" title="Usage, last 14 days" aside={<Help id="usage" />}>
+            <Card id="usage" title={t("install.usageTitle")} aside={<Help id="usage" />}>
               <UsageBody
                 usage={usage}
                 type={type}
@@ -658,14 +681,14 @@ export const OverviewTab = ({
           <Capabilities page={page} />
           {files === null ? <UnavailableFiles /> : null}
           {files && bodyPath && !body ? (
-            <Notice kind="warn" title={`${bodyPath} isn't in this version.`}>
-              The manifest names it, but the released package doesn't have it.
+            <Notice kind="warn" title={t("document.missing", { path: bodyPath })}>
+              {t("document.missingBody")}
             </Notice>
           ) : null}
           {body ? (
             <MainDocument
               file={body}
-              role={bodyRoleOf(type) ?? "main file"}
+              role={bodyRoleOf(type, say) ?? say("role.main")}
               href={hrefOf(body.path)}
             />
           ) : null}
@@ -678,7 +701,7 @@ export const OverviewTab = ({
             />
           ) : null}
         </div>
-        <aside aria-label="About this version" className="grid min-w-0 gap-4">
+        <aside aria-label={t("about")} className="grid min-w-0 gap-4">
           <Verification page={page} />
           <Configuration page={page} />
           <UsedBy page={page} />

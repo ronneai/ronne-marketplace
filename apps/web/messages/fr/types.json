@@ -1,0 +1,33 @@
+{
+  "group": {
+    "guidance": "Directives",
+    "runtime": "Exécution et outils",
+    "bundles": "Ensembles"
+  },
+  "name": {
+    "skill": "Skill",
+    "agent": "Agent",
+    "rule": "Rule",
+    "command": "Command",
+    "output-style": "Output style",
+    "hook": "Hook",
+    "mcp-server": "MCP server",
+    "permission-policy": "Permission policy",
+    "statusline": "Status line",
+    "lsp-server": "LSP server",
+    "bundle": "Bundle"
+  },
+  "description": {
+    "skill": "Des instructions (SKILL.md), avec des scripts et des fichiers facultatifs, que l’IA charge quand une tâche en a besoin.",
+    "agent": "Un sous-agent avec son propre prompt, ses outils autorisés et son modèle.",
+    "rule": "Des consignes qui s’appliquent toujours, aux fichiers correspondants, quand l’IA le décide ou sur demande.",
+    "command": "Un prompt réutilisable ou une commande à barre oblique, avec des arguments.",
+    "output-style": "Change la façon dont l’agent rédige ses réponses.",
+    "hook": "Une commande qui s’exécute lors d’un événement d’un outil d’IA, comme tool.after ou session.start.",
+    "mcp-server": "La connexion à un serveur MCP : un programme à démarrer ou une URL.",
+    "permission-policy": "Des règles d’autorisation, de demande ou de refus pour les outils et les commandes shell.",
+    "statusline": "Un script qui affiche la ligne d’état de l’outil d’IA.",
+    "lsp-server": "Un serveur de langage qui donne à l’agent une compréhension du code.",
+    "bundle": "Un ensemble d’éléments installés ensemble, comme un seul."
+  }
+}

@@ -1,5 +1,6 @@
 "use server";
 
+import { errorText } from "@/i18n/errors";
 import { IdentityError } from "@/server/domains/identity/exceptions/errors";
 import { proposeChange } from "@/server/domains/submissions/actions/proposals";
 import { NotAMemberError, SubmissionsError } from "@/server/domains/submissions/exceptions/errors";
@@ -19,9 +20,9 @@ export const proposeChangeAction = serverAction(
       return { ok: true, id: draft.id };
     } catch (error) {
       if (error instanceof NotAMemberError)
-        return { ok: false, error: error.message, joinWorkspace: error.workspace };
+        return { ok: false, error: await errorText(error), joinWorkspace: error.workspace };
       if (error instanceof SubmissionsError || error instanceof IdentityError)
-        return { ok: false, error: error.message };
+        return { ok: false, error: await errorText(error) };
       throw error;
     }
   },

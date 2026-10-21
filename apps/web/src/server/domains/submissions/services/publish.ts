@@ -114,7 +114,7 @@ const releasable = async (deps: PublishDeps, actor: SubmissionActor, id: string)
   // Its workspace's moderators and root release any; the author their own, while a member (091).
   if (!can(actor.user, "submissions.publish", submission.workspace.id)) {
     if (!mine) throw new ForbiddenError("submissions.publish");
-    requireMember(actor, submission.workspace, "release your items there");
+    requireMember(actor, submission.workspace, "release");
   }
   transition(submission.status, "publish");
   // A proposal with a newer version released since: 017's own error, before anything else.

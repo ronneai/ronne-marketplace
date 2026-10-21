@@ -191,7 +191,7 @@ export const AuditLogPage = ({
         rowKey={(event) => event.id}
         page={page}
         total={total}
-        noun={total.count === 1 && !total.capped ? "event" : "events"}
+        noun="event"
         toolbar={<Filters state={state} />}
         empty={{
           none: "No events yet.",

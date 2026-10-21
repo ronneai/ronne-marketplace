@@ -1,8 +1,10 @@
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { Help } from "@/components/help/Help";
 import { PageHeader } from "@/components/ui/Panel";
 import { RequestsTable } from "@/features/workspace-requests/RequestsTable";
 import { ScopeMovesTable } from "@/features/workspace-requests/ScopeMovesTable";
+import { pageTitle } from "@/i18n/page-title";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
 import { canInSomeShared } from "@/server/domains/identity/models/permissions";
 import {
@@ -12,7 +14,10 @@ import {
 import { requestHeaders } from "@/server/http/request-headers";
 import { holdPage } from "../../hold";
 
-export const metadata = { title: "Requests to join · Ronne AI Marketplace" };
+export const generateMetadata = async () => {
+  const t = await getTranslations("workspaces.page");
+  return { title: pageTitle(t("requests")) };
+};
 
 /**
  * Requests to join (094): every open request the reader can answer, in every workspace where they
@@ -31,23 +36,21 @@ const WorkspaceRequests = async () => {
   ]);
   // Scope moves (115) are root's, and a shared workspace's admins' for moves into theirs.
   const answersMoves = me.role === "root" || canInSomeShared(me, "scopes.move");
+  const t = await getTranslations("workspaces");
   return (
     <>
       <PageHeader
-        title="Requests to join"
-        description="People asking to join the workspaces you moderate. Approving adds them as users."
+        title={t("requests.pageTitle")}
+        description={t("requests.pageDescription")}
         actions={<Help id="requests-who" />}
       />
       <RequestsTable requests={requests} total={total} showWorkspace />
       {answersMoves ? (
         <section aria-labelledby="scope-moves" className="mt-8 grid gap-3">
           <h2 id="scope-moves" className="text-base font-semibold text-fg">
-            Scope moves
+            {t("workspacePage.scopeMoves")}
           </h2>
-          <p className="text-sm text-muted">
-            Scopes their workspaces' admins asked to move into a workspace you run. Approving checks
-            the move again and moves it.
-          </p>
+          <p className="text-sm text-muted">{t("requests.movesIntro")}</p>
           <ScopeMovesTable moves={moves} showTarget />
         </section>
       ) : null}

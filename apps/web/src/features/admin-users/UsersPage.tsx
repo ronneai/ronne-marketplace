@@ -291,7 +291,7 @@ export const UsersPage = ({
       rowKey={(user) => user.id}
       page={page}
       total={total}
-      noun={total.count === 1 && !total.capped ? "user" : "users"}
+      noun="user"
       toolbar={<Filters state={state} />}
       empty={{ none: "No users yet.", filtered: "No users match these filters." }}
     />

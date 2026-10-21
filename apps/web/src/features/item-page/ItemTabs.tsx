@@ -1,5 +1,6 @@
 import { parseItemName, type RiskFlag } from "@ronneai/core";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { itemPath } from "@/components/catalogue/ItemCard";
 import { Markdown } from "@/components/markdown/Markdown";
 import { RiskSummary } from "@/components/risk-flags/RiskSummary";
@@ -13,29 +14,31 @@ export const ReadmeTab = ({
 }: {
   readme: string | null;
   description: string;
-}) =>
-  readme ? (
+}) => {
+  const t = useTranslations("item");
+  return readme ? (
     <Panel padding="lg">
       <Markdown source={readme} />
     </Panel>
   ) : (
     <Panel className="grid gap-1 text-sm">
-      <p className="text-fg">{description || "No description."}</p>
-      <p className="text-muted">This version has no README.</p>
+      <p className="text-fg">{description || t("noDescription")}</p>
+      <p className="text-muted">{t("readme.none")}</p>
     </Panel>
   );
+};
 
 /** Each dependency of the version, with its range, linking to its page. */
 export const DependenciesTab = ({ dependencies }: { dependencies: Record<string, string> }) => {
+  const t = useTranslations("item.dependencies");
   const entries = Object.entries(dependencies);
-  if (entries.length === 0)
-    return <Panel className="text-sm text-muted">This version has no dependencies.</Panel>;
+  if (entries.length === 0) return <Panel className="text-sm text-muted">{t("none")}</Panel>;
   return (
     <Table>
       <thead>
         <tr>
-          <Th>Item</Th>
-          <Th>Range</Th>
+          <Th>{t("item")}</Th>
+          <Th>{t("range")}</Th>
         </tr>
       </thead>
       <tbody>
@@ -61,12 +64,11 @@ export const DependenciesTab = ({ dependencies }: { dependencies: Record<string,
 };
 
 /** What the version can do on a machine (014), as the review page shows it. */
-export const RisksTab = ({ flags }: { flags: RiskFlag[] }) =>
-  flags.length === 0 ? (
-    <Panel className="text-sm text-muted">
-      Nothing flagged: no hooks, MCP servers, permission rules, status lines, language servers,
-      scripts, executables or web addresses.
-    </Panel>
+export const RisksTab = ({ flags }: { flags: RiskFlag[] }) => {
+  const t = useTranslations("item.risks");
+  return flags.length === 0 ? (
+    <Panel className="text-sm text-muted">{t("none")}</Panel>
   ) : (
     <RiskSummary flags={flags} />
   );
+};

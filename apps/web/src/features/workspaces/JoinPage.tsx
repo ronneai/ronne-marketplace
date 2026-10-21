@@ -1,16 +1,19 @@
 import Link from "next/link";
+import { useTranslations } from "next-intl";
+import type { ReactNode } from "react";
 import { Notice } from "@/components/ui/Notice";
 import { PageHeader, Panel } from "@/components/ui/Panel";
 import type { JoinTarget } from "@/server/domains/workspaces/services/access-requests";
 import { AskToJoinForm } from "./RequestControls";
 import { RequestState } from "./WorkspacesPage";
 
-const toWorkspaces = (
+/** The link to the Workspaces page, written inside the sentence that mentions it. */
+const toWorkspaces = (chunks: ReactNode) => (
   <Link
     href="/workspaces"
     className="text-link hover:underline outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
   >
-    Workspaces
+    {chunks}
   </Link>
 );
 
@@ -20,17 +23,17 @@ const toWorkspaces = (
  * name no workspace has does, so the page can't tell them apart. Members are told they're in.
  */
 export const JoinPage = ({ target }: { target: JoinTarget }) => {
-  const title = (
-    <>
-      Join <span className="font-mono">{target.name}</span>
-    </>
-  );
+  const t = useTranslations("workspaces.join");
+  const title = t.rich("title", {
+    name: target.name,
+    mono: (chunks) => <span className="font-mono">{chunks}</span>,
+  });
   if (target.kind === "member")
     return (
       <>
         <PageHeader title={title} />
-        <Notice kind="info" title="You're in this workspace already.">
-          <p className="mt-1 text-muted">Your workspaces are on the {toWorkspaces} page.</p>
+        <Notice kind="info" title={t("memberTitle")}>
+          <p className="mt-1 text-muted">{t.rich("memberBody", { link: toWorkspaces })}</p>
         </Notice>
       </>
     );
@@ -48,10 +51,7 @@ export const JoinPage = ({ target }: { target: JoinTarget }) => {
         ) : null}
         {waiting ? null : (
           <>
-            <p className="text-sm text-muted">
-              Root or the workspace's moderators answer. You'll see the answer on the {toWorkspaces}{" "}
-              page.
-            </p>
+            <p className="text-sm text-muted">{t.rich("waiting", { link: toWorkspaces })}</p>
             <AskToJoinForm workspace={target.name} />
           </>
         )}

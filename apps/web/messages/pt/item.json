@@ -1,0 +1,247 @@
+{
+  "page": {
+    "item": "Item",
+    "versions": "Versões"
+  },
+  "breadcrumb": {
+    "label": "Trilha de navegação",
+    "catalogue": "Catálogo"
+  },
+  "badge": {
+    "deprecated": "obsoleto",
+    "yanked": "retirado"
+  },
+  "noDescription": "Sem descrição.",
+  "meta": {
+    "license": "licença {license}",
+    "noLicense": "sem licença informada",
+    "by": "por {owner}",
+    "formerUser": "um ex-usuário",
+    "published": "publicado em <date></date>"
+  },
+  "notice": {
+    "title": "{kind, select, latest {Você está vendo a {version}, não a mais recente ({target}).} other {Você está vendo a {version}, não a versão listada ({target}).}}",
+    "yanked": "Ela foi retirada: {reason}. Novas instalações não a resolvem; projetos que a fixam continuam funcionando.",
+    "deprecated": "Ela está obsoleta: {message}",
+    "show": "{kind, select, latest {Mostrar a mais recente} other {Mostrar a {version}}}"
+  },
+  "tabs": {
+    "label": "Item",
+    "overview": "Visão geral",
+    "readme": "README",
+    "versions": "Versões",
+    "dependencies": "Dependências",
+    "files": "Arquivos",
+    "tools": "Funciona em",
+    "risks": "O que ele pode fazer",
+    "risksCount": "O que ele pode fazer ({count})"
+  },
+  "readme": {
+    "none": "Esta versão não tem README."
+  },
+  "dependencies": {
+    "none": "Esta versão não tem dependências.",
+    "item": "Item",
+    "range": "Intervalo"
+  },
+  "risks": {
+    "none": "Nada sinalizado: sem hooks, servidores MCP, regras de permissão, linhas de status, servidores de linguagem, scripts, executáveis ou endereços web."
+  },
+  "tools": {
+    "title": "Funciona em",
+    "level": {
+      "native": "compatível",
+      "degraded": "em parte",
+      "off": "desligado",
+      "none": "ignorado"
+    },
+    "native": "Vai para <place></place>.",
+    "nativeAsIs": "Instala como está.",
+    "degraded": "Vai para <place></place>, com parte dele de fora: a página da ferramenta diz o quê.",
+    "off": "O ronne.yaml desta versão a mantém longe desta ferramenta.",
+    "none": "{tool} não tem lugar para itens do tipo {type}, então o rmk os ignora ali com um aviso."
+  },
+  "propose": {
+    "button": "Propor uma alteração"
+  },
+  "overview": {
+    "files": {
+      "unreadable": "Os arquivos desta versão não podem ser lidos.",
+      "unreadableBody": "O pacote dela não está no armazenamento ou não confere com o checksum. Avise um administrador."
+    },
+    "stats": {
+      "installs": "Instalações, 30 dias",
+      "installsDetail": "{removed, number} removidas · {downloads, number} downloads",
+      "runs": "Execuções, 30 dias",
+      "notCounted": "Não contadas",
+      "runsNotCounted": "Execuções não são contadas para itens do tipo {type}",
+      "noRuns": "Nenhuma execução informada",
+      "runsDetail": "{perDay, number} por dia · {rate, number, percent} com sucesso",
+      "runsDetailNoRate": "{perDay, number} por dia · taxa de sucesso não informada",
+      "downloads": "Downloads",
+      "downloadsDetail": "todas as versões, pelo rmk e pela API",
+      "versions": "Versões",
+      "newest": "mais recente em <date></date>",
+      "noneYet": "nenhuma ainda",
+      "worksIn": "Funciona em",
+      "worksInValue": "{count, number}<small> de {total, number} ferramentas</small>",
+      "toolShare": "{tool} {share, number, percent}",
+      "noTools": "nenhuma",
+      "review": "Revisão",
+      "approved": "aprovado",
+      "notReviewed": "não revisado",
+      "flags": "{count, plural, one {# sinalização} other {# sinalizações}}",
+      "nothingFlagged": "Nada sinalizado",
+      "noRisks": "sem hooks, servidores, scripts ou endereços"
+    },
+    "install": {
+      "title": "Instalar",
+      "quickFlags": "Atalhos",
+      "plugin": "Como plugin do Claude Code",
+      "deprecated": "Esta versão está obsoleta: {message}",
+      "allYanked": "Todas as versões foram retiradas: não há nada para instalar. Projetos que fixam uma continuam funcionando.",
+      "usageTitle": "Uso, últimos 14 dias",
+      "usageMinimum": "O uso aparece quando este item tiver {minimum, number} instalações ou execuções informadas em 30 dias.",
+      "usageNone": "Nenhuma instalação ou execução informada nos últimos 30 dias.",
+      "copy": "Copiar {command}"
+    },
+    "capabilities": {
+      "title": "Capacidades e limites",
+      "canDo": "O que ele pode fazer",
+      "guardrails": "Limites",
+      "noGuardrails": "O manifesto dele não define limites próprios."
+    },
+    "document": {
+      "openInFiles": "Abrir em Arquivos",
+      "binary": "Um arquivo binário. Arquivos o lista.",
+      "tooLarge": "Grande demais para mostrar aqui. Arquivos o lista.",
+      "empty": "Este arquivo está vazio.",
+      "missing": "{path} não está nesta versão.",
+      "missingBody": "O manifesto o cita, mas o pacote lançado não o tem."
+    },
+    "dependencies": {
+      "label": "Dependências",
+      "uses": "{count, plural, one {Usa # item} other {Usa # itens}}",
+      "loading": "Carregando o diagrama…"
+    },
+    "verification": {
+      "title": "Verificação do pacote",
+      "checks": "o rmk confere este checksum em toda instalação",
+      "size": "Tamanho do pacote"
+    },
+    "configuration": {
+      "title": "Configuração",
+      "decision": "Decisão",
+      "tool": "Ferramenta",
+      "pattern": "Padrão",
+      "anyPattern": "qualquer"
+    },
+    "usedBy": {
+      "title": "Usado por",
+      "intro": "Itens publicados cuja versão listada depende deste.",
+      "asks": "{type} · pede {range}",
+      "more": "e mais {count, number}"
+    },
+    "maintainers": {
+      "title": "Mantenedores e revisão",
+      "owner": "Dono",
+      "approvedBy": "Aprovado por {name}{override, select, true { (decisão do root)} other {}}",
+      "unreviewed": "Lançado sem revisão."
+    },
+    "included": {
+      "title": "Arquivos incluídos",
+      "executable": "executável"
+    },
+    "about": "Sobre esta versão",
+    "model": {
+      "label": {
+        "tools": "Ferramentas",
+        "model": "Modelo",
+        "entryFile": "Arquivo de entrada",
+        "activation": "Ativação",
+        "globs": "Globs",
+        "arguments": "Argumentos",
+        "event": "Evento",
+        "matcher": "Filtro",
+        "command": "Comando",
+        "script": "Script",
+        "timeout": "Tempo limite",
+        "transport": "Transporte",
+        "url": "URL",
+        "env": "Variáveis de ambiente",
+        "headers": "Cabeçalhos",
+        "rules": "Regras",
+        "languages": "Linguagens"
+      },
+      "argument": "{name}{optional, select, true { (opcional)} other {}}{hasDescription, select, true {: {description}} other {}}",
+      "seconds": "{seconds} s",
+      "envMarks": "{name} ({marks})",
+      "required": "obrigatória",
+      "secret": "secreta",
+      "withDetail": "{name} ({detail})",
+      "risk": {
+        "hook": "Roda em um evento",
+        "mcp_server": "Inicia um servidor MCP",
+        "permission_policy": "Altera permissões",
+        "status_or_lsp": "Executa um comando",
+        "executable": "Traz arquivos executáveis",
+        "shell_script": "Traz scripts de shell",
+        "network": "Cita endereços web"
+      },
+      "role": {
+        "agent": "instrução de sistema",
+        "skill": "entrada da skill",
+        "rule": "corpo da regra",
+        "command": "modelo do comando",
+        "output-style": "estilo de saída",
+        "hook": "script do hook",
+        "statusline": "script da linha de status",
+        "main": "arquivo principal"
+      },
+      "guard": {
+        "tools": "Só estas ferramentas: {tools}.",
+        "globs": "Vale só para arquivos que combinam com {globs}.",
+        "manual": "Vale só quando alguém pede.",
+        "hookTool": "Roda só para a ferramenta `{tool}`.",
+        "blocks": "Bloqueia {what}.",
+        "asks": "Pergunta antes de {what}."
+      }
+    },
+    "usage": {
+      "trigger": {
+        "user": "Digitado por uma pessoa",
+        "model": "Escolhido pelo modelo",
+        "agent": "Usado dentro de um agente",
+        "ci": "Na CI",
+        "unknown": "Não informado"
+      },
+      "outcome": {
+        "success": "Com sucesso",
+        "error": "Terminou com erro",
+        "cancelled": "Cancelada",
+        "unknown": "Não informado"
+      },
+      "byTool": "Por ferramenta",
+      "none": "Nenhuma nestes dias.",
+      "toolRuns": "{count, plural, one {# execução} other {# execuções}} ({share, number, percent})",
+      "row": "{count, number} · <strong>{share, number, percent}</strong>",
+      "gap": "{tools} {count, plural, one {não informa} other {não informam}} execuções de {type}; nelas, só as instalações são contadas.",
+      "stopped": "Esta instância não coleta mais o uso; estes são os dias que ela guardou.",
+      "runsPerDay": "Execuções por dia",
+      "installsPerDay": "Instalações por dia",
+      "runsBar": "{day}: {count, plural, one {# execução} other {# execuções}}",
+      "installsBar": "{day}: {count, plural, one {# instalação} other {# instalações}}",
+      "peak": "Pico: {count, number} em {day}",
+      "noRunsDays": "Nenhuma execução nestes dias",
+      "noInstallsDays": "Nenhuma instalação nestes dias",
+      "perDay": "Os números por dia",
+      "day": "Dia",
+      "runsCol": "Execuções",
+      "installsCol": "Instalações",
+      "removalsCol": "Remoções",
+      "started": "O que as iniciou",
+      "ended": "Como terminaram",
+      "counted": "Contado pelo rmk em máquinas que informam a esta instância; <sent>veja o que é enviado</sent>."
+    }
+  }
+}

@@ -19,3 +19,14 @@ export const inLocale = <T>(locale: Locale, render: () => T): T => {
     (globalThis as Record<string, unknown>)[KEY] = before;
   }
 };
+
+/** Like `inLocale`, for a render that awaits (an async server component and `getTranslations`). */
+export const inLocaleAsync = async <T>(locale: Locale, render: () => Promise<T>): Promise<T> => {
+  const before = testLocale();
+  (globalThis as Record<string, unknown>)[KEY] = locale;
+  try {
+    return await render();
+  } finally {
+    (globalThis as Record<string, unknown>)[KEY] = before;
+  }
+};

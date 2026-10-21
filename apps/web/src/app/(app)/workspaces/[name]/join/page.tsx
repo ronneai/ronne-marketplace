@@ -1,9 +1,14 @@
+import { getTranslations } from "next-intl/server";
 import { JoinPage } from "@/features/workspaces/JoinPage";
+import { pageTitle } from "@/i18n/page-title";
 import { joinTarget } from "@/server/domains/workspaces/actions/workspaces";
 import { requestHeaders } from "@/server/http/request-headers";
 import { holdPage } from "../../../hold";
 
-export const metadata = { title: "Join a workspace · Ronne AI Marketplace" };
+export const generateMetadata = async () => {
+  const t = await getTranslations("workspaces.page");
+  return { title: pageTitle(t("join")) };
+};
 
 /** The name from the address; a malformed escape is left as typed. */
 const decoded = (value: string) => {

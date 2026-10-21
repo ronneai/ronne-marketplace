@@ -1,3 +1,5 @@
+import { useTranslations } from "next-intl";
+import type { ReactNode } from "react";
 import { Help } from "@/components/help/Help";
 import { chooseHref } from "./current-workspace";
 
@@ -16,31 +18,28 @@ export const Showing = ({
   /** This page's path and query, to come back to. */
   here: string;
   why?: "missing" | "not-reviewer";
-}) => (
-  <div className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
-    <span>
-      {why === "missing" ? (
-        <>
-          No workspace <strong className="font-semibold text-fg">{workspace}</strong> you can see
-        </>
-      ) : why === "not-reviewer" ? (
-        <>
-          You don&apos;t review submissions in{" "}
-          <strong className="font-semibold text-fg">{workspace}</strong>
-        </>
-      ) : (
-        <>
-          Showing <strong className="font-semibold text-fg">{workspace}</strong> only
-        </>
-      )}
-    </span>
-    <span aria-hidden>·</span>
-    <a
-      href={chooseHref(null, here)}
-      className="text-link underline underline-offset-2 outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
-    >
-      Show all
-    </a>
-    <Help id="current-workspace" />
-  </div>
-);
+}) => {
+  const t = useTranslations("workspaces.showing");
+  const name = {
+    workspace,
+    strong: (chunks: ReactNode) => <strong className="font-semibold text-fg">{chunks}</strong>,
+  };
+  return (
+    <div className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
+      <span>
+        {t.rich(
+          why === "missing" ? "missing" : why === "not-reviewer" ? "notReviewer" : "only",
+          name,
+        )}
+      </span>
+      <span aria-hidden>·</span>
+      <a
+        href={chooseHref(null, here)}
+        className="text-link underline underline-offset-2 outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
+      >
+        {t("showAll")}
+      </a>
+      <Help id="current-workspace" />
+    </div>
+  );
+};

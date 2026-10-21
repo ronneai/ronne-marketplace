@@ -1,0 +1,247 @@
+{
+  "page": {
+    "item": "Élément",
+    "versions": "Versions"
+  },
+  "breadcrumb": {
+    "label": "Fil d’Ariane",
+    "catalogue": "Catalogue"
+  },
+  "badge": {
+    "deprecated": "obsolète",
+    "yanked": "retirée"
+  },
+  "noDescription": "Aucune description.",
+  "meta": {
+    "license": "licence {license}",
+    "noLicense": "aucune licence indiquée",
+    "by": "par {owner}",
+    "formerUser": "un ancien utilisateur",
+    "published": "publié le <date></date>"
+  },
+  "notice": {
+    "title": "{kind, select, latest {Vous consultez la {version}, pas la plus récente ({target}).} other {Vous consultez la {version}, pas la version listée ({target}).}}",
+    "yanked": "Elle a été retirée : {reason}. Les nouvelles installations ne peuvent pas la résoudre; les projets qui l’épinglent continuent de fonctionner.",
+    "deprecated": "Elle est obsolète : {message}",
+    "show": "{kind, select, latest {Afficher la plus récente} other {Afficher la {version}}}"
+  },
+  "tabs": {
+    "label": "Élément",
+    "overview": "Aperçu",
+    "readme": "README",
+    "versions": "Versions",
+    "dependencies": "Dépendances",
+    "files": "Fichiers",
+    "tools": "Fonctionne dans",
+    "risks": "Ce qu’il peut faire",
+    "risksCount": "Ce qu’il peut faire ({count})"
+  },
+  "readme": {
+    "none": "Cette version n’a pas de README."
+  },
+  "dependencies": {
+    "none": "Cette version n’a aucune dépendance.",
+    "item": "Élément",
+    "range": "Plage"
+  },
+  "risks": {
+    "none": "Rien de signalé : aucun hook, serveur MCP, règle de permission, ligne d’état, serveur de langage, script, exécutable ni adresse web."
+  },
+  "tools": {
+    "title": "Fonctionne dans",
+    "level": {
+      "native": "pris en charge",
+      "degraded": "en partie",
+      "off": "désactivé",
+      "none": "ignoré"
+    },
+    "native": "Va dans <place></place>.",
+    "nativeAsIs": "S’installe tel quel.",
+    "degraded": "Va dans <place></place>, avec une partie laissée de côté : la page de l’outil dit laquelle.",
+    "off": "Le ronne.yaml de cette version la tient à l’écart de cet outil.",
+    "none": "{tool} n’a pas de place pour les éléments de type {type}; rmk les ignore donc ici, avec un avertissement."
+  },
+  "propose": {
+    "button": "Proposer une modification"
+  },
+  "overview": {
+    "files": {
+      "unreadable": "Les fichiers de cette version ne peuvent pas être lus.",
+      "unreadableBody": "Son paquet est absent du stockage ou ne correspond pas à sa somme de contrôle. Prévenez un administrateur."
+    },
+    "stats": {
+      "installs": "Installations, 30 jours",
+      "installsDetail": "{removed, number} retirées · {downloads, number} téléchargements",
+      "runs": "Exécutions, 30 jours",
+      "notCounted": "Non comptées",
+      "runsNotCounted": "Les exécutions ne sont pas comptées pour les éléments de type {type}",
+      "noRuns": "Aucune exécution signalée",
+      "runsDetail": "{perDay, number} par jour · {rate, number, percent} réussies",
+      "runsDetailNoRate": "{perDay, number} par jour · taux de réussite non signalé",
+      "downloads": "Téléchargements",
+      "downloadsDetail": "toutes les versions, par rmk et l’API",
+      "versions": "Versions",
+      "newest": "la plus récente le <date></date>",
+      "noneYet": "aucune pour l’instant",
+      "worksIn": "Fonctionne dans",
+      "worksInValue": "{count, number}<small> sur {total, number} outils</small>",
+      "toolShare": "{tool} {share, number, percent}",
+      "noTools": "aucun",
+      "review": "Révision",
+      "approved": "approuvé",
+      "notReviewed": "non révisé",
+      "flags": "{count, plural, one {# signalement} other {# signalements}}",
+      "nothingFlagged": "Rien de signalé",
+      "noRisks": "aucun hook, serveur, script ni adresse"
+    },
+    "install": {
+      "title": "Installer",
+      "quickFlags": "Raccourcis",
+      "plugin": "Comme plugin Claude Code",
+      "deprecated": "Cette version est obsolète : {message}",
+      "allYanked": "Toutes les versions sont retirées : il n’y a rien à installer. Les projets qui en épinglent une continuent de fonctionner.",
+      "usageTitle": "Utilisation, 14 derniers jours",
+      "usageMinimum": "L’utilisation s’affiche dès que cet élément compte {minimum, number} installations ou exécutions signalées en 30 jours.",
+      "usageNone": "Aucune installation ni exécution signalée au cours des 30 derniers jours.",
+      "copy": "Copier {command}"
+    },
+    "capabilities": {
+      "title": "Capacités et garde-fous",
+      "canDo": "Ce qu’il peut faire",
+      "guardrails": "Garde-fous",
+      "noGuardrails": "Son manifeste ne fixe aucune limite propre."
+    },
+    "document": {
+      "openInFiles": "Ouvrir dans Fichiers",
+      "binary": "Un fichier binaire. Fichiers le liste.",
+      "tooLarge": "Trop volumineux pour être affiché ici. Fichiers le liste.",
+      "empty": "Ce fichier est vide.",
+      "missing": "{path} n’est pas dans cette version.",
+      "missingBody": "Le manifeste le mentionne, mais le paquet publié ne le contient pas."
+    },
+    "dependencies": {
+      "label": "Dépendances",
+      "uses": "{count, plural, one {Utilise # élément} other {Utilise # éléments}}",
+      "loading": "Chargement du diagramme…"
+    },
+    "verification": {
+      "title": "Vérification du paquet",
+      "checks": "rmk vérifie cette somme de contrôle à chaque installation",
+      "size": "Taille du paquet"
+    },
+    "configuration": {
+      "title": "Configuration",
+      "decision": "Décision",
+      "tool": "Outil",
+      "pattern": "Motif",
+      "anyPattern": "tout"
+    },
+    "usedBy": {
+      "title": "Utilisé par",
+      "intro": "Éléments publiés dont la version listée dépend de celui-ci.",
+      "asks": "{type} · demande {range}",
+      "more": "et {count, number} de plus"
+    },
+    "maintainers": {
+      "title": "Responsables et révision",
+      "owner": "Propriétaire",
+      "approvedBy": "Approuvé par {name}{override, select, true { (décision de root)} other {}}",
+      "unreviewed": "Publié sans révision."
+    },
+    "included": {
+      "title": "Fichiers inclus",
+      "executable": "exécutable"
+    },
+    "about": "À propos de cette version",
+    "model": {
+      "label": {
+        "tools": "Outils",
+        "model": "Modèle",
+        "entryFile": "Fichier d’entrée",
+        "activation": "Activation",
+        "globs": "Globs",
+        "arguments": "Arguments",
+        "event": "Événement",
+        "matcher": "Filtre",
+        "command": "Commande",
+        "script": "Script",
+        "timeout": "Délai d’expiration",
+        "transport": "Transport",
+        "url": "URL",
+        "env": "Variables d’environnement",
+        "headers": "En-têtes",
+        "rules": "Règles",
+        "languages": "Langages"
+      },
+      "argument": "{name}{optional, select, true { (facultatif)} other {}}{hasDescription, select, true { : {description}} other {}}",
+      "seconds": "{seconds} s",
+      "envMarks": "{name} ({marks})",
+      "required": "obligatoire",
+      "secret": "secrète",
+      "withDetail": "{name} ({detail})",
+      "risk": {
+        "hook": "S’exécute lors d’un événement",
+        "mcp_server": "Démarre un serveur MCP",
+        "permission_policy": "Modifie les permissions",
+        "status_or_lsp": "Exécute une commande",
+        "executable": "Fournit des fichiers exécutables",
+        "shell_script": "Fournit des scripts shell",
+        "network": "Mentionne des adresses web"
+      },
+      "role": {
+        "agent": "instruction système",
+        "skill": "entrée de la skill",
+        "rule": "corps de la règle",
+        "command": "modèle de la commande",
+        "output-style": "style de sortie",
+        "hook": "script du hook",
+        "statusline": "script de la ligne d’état",
+        "main": "fichier principal"
+      },
+      "guard": {
+        "tools": "Seulement ces outils : {tools}.",
+        "globs": "S’applique seulement aux fichiers correspondant à {globs}.",
+        "manual": "S’applique seulement sur demande.",
+        "hookTool": "S’exécute seulement pour l’outil `{tool}`.",
+        "blocks": "Bloque {what}.",
+        "asks": "Demande avant {what}."
+      }
+    },
+    "usage": {
+      "trigger": {
+        "user": "Saisi par une personne",
+        "model": "Choisi par le modèle",
+        "agent": "Utilisé dans un agent",
+        "ci": "En CI",
+        "unknown": "Non signalé"
+      },
+      "outcome": {
+        "success": "Réussie",
+        "error": "Terminée en erreur",
+        "cancelled": "Annulée",
+        "unknown": "Non signalé"
+      },
+      "byTool": "Par outil",
+      "none": "Aucune au cours de ces jours.",
+      "toolRuns": "{count, plural, one {# exécution} other {# exécutions}} ({share, number, percent})",
+      "row": "{count, number} · <strong>{share, number, percent}</strong>",
+      "gap": "{tools} {count, plural, one {ne signale pas} other {ne signalent pas}} les exécutions de {type}; là, seules les installations sont comptées.",
+      "stopped": "Cette instance ne collecte plus l’utilisation; voici les jours conservés.",
+      "runsPerDay": "Exécutions par jour",
+      "installsPerDay": "Installations par jour",
+      "runsBar": "{day} : {count, plural, one {# exécution} other {# exécutions}}",
+      "installsBar": "{day} : {count, plural, one {# installation} other {# installations}}",
+      "peak": "Pic : {count, number} le {day}",
+      "noRunsDays": "Aucune exécution au cours de ces jours",
+      "noInstallsDays": "Aucune installation au cours de ces jours",
+      "perDay": "Les chiffres par jour",
+      "day": "Jour",
+      "runsCol": "Exécutions",
+      "installsCol": "Installations",
+      "removalsCol": "Retraits",
+      "started": "Ce qui les a lancées",
+      "ended": "Comment elles se sont terminées",
+      "counted": "Compté par rmk sur les machines qui rapportent à cette instance; <sent>voir ce qui est envoyé</sent>."
+    }
+  }
+}

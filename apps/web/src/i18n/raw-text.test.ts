@@ -102,7 +102,8 @@ describe("biome.json (129)", () => {
 
   it("lists only folders and files that exist", () => {
     for (const pattern of (override?.includes ?? []).filter((p) => !p.startsWith("!"))) {
-      const path = pattern.replace(/\/\*\*.*$/, "");
+      // A bracket in a Next.js route folder is escaped in the glob (`\\[name\\]`).
+      const path = pattern.replace(/\/\*\*.*$/, "").replaceAll("\\", "");
       expect(existsSync(repo(path)), path).toBe(true);
     }
   });

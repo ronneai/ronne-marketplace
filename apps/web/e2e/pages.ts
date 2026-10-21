@@ -184,6 +184,17 @@ export const MIGRATED_ROUTES: ReadonlySet<string> = new Set([
   "/account/security",
   "/account/language",
   "/account/tokens",
+  "/catalogue",
+  // The item page: its header and tabs are in messages; the Overview and Versions tabs follow.
+  "/items/[scope]/[name]",
+  "/items/[scope]/[name]/versions",
+  "/workspaces/[name]/items/[scope]/[item]",
+  "/workspaces/[name]/items/[scope]/[item]/versions",
+  // Workspaces: the list for members and the join page; the workspace page follows.
+  "/workspaces",
+  "/workspaces/[name]",
+  "/workspaces/[name]/join",
+  "/workspaces/requests",
   // Settings (124): only the Notice tab is in messages so far; the rest follow in 131. The sweep
   // looks for overflow and the language, so the other tabs, still English, are fine in it.
   "/admin/settings",

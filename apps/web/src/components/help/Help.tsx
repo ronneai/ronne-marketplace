@@ -1,11 +1,18 @@
+import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import { HelpTip } from "@/components/ui/HelpTip";
+import type { Messages } from "@/i18n/namespaces";
 import { docsHref } from "./topics";
 
 /**
  * Every inline helper (feature 033), in one place: the question, a short answer, and the
  * Documentation section it leads to. Pages use `<Help id="scope" />`, so the words stay the same
  * wherever a question comes up, and a test can check every link.
+ *
+ * The helpers of the screens moved to messages (feature 130: the browse screens' fourteen) have
+ * only their link here; their words are `help.<id>.question` and `.answer` in the three languages.
+ * The others still carry their English words, until their screens move (131, 132): a helper moves
+ * by deleting its question and answer here and adding them to `messages/<locale>/help.json`.
  */
 export const HELP = {
   scope: {
@@ -21,9 +28,6 @@ export const HELP = {
     href: docsHref("scopes", "names"),
   },
   workspace: {
-    question: "What is a workspace?",
-    answer:
-      "The level above scopes: workspace › scope › item. Each workspace holds scopes, and their items, for one team or group. Outside global it's the first part of an item's name, @workspace/scope/name. Every instance has global.",
     href: docsHref("workspaces", "what"),
   },
   "rename-workspace": {
@@ -39,21 +43,12 @@ export const HELP = {
     href: docsHref("workspaces", "global"),
   },
   "member-roles": {
-    question: "What can each role do?",
-    answer:
-      "A user proposes and submits items in the workspace. A moderator also reviews and releases them. An admin also adds and removes members, changes their roles, creates the workspace's scopes and edits its description. Root can do all of it in every workspace.",
     href: docsHref("roles", "permissions"),
   },
   "current-workspace": {
-    question: "What does this filter?",
-    answer:
-      "The current workspace, chosen in the sidebar's switcher: the Catalogue, Reviews and My submissions show only that workspace until you choose another or Show all. It narrows what you see, never what you may do, and the sidebar's counts still count every workspace.",
     href: docsHref("workspaces", "current"),
   },
   join: {
-    question: "How do I join?",
-    answer:
-      "Anyone signed in reads and installs a public workspace's items, but only its members propose and submit there. Ask to join it from the Workspaces page, or from the join link its moderators or admins send for a private one; root or its moderators and admins answer, and you see the answer there.",
     href: docsHref("workspaces", "joining"),
   },
   "move-who": {
@@ -63,15 +58,9 @@ export const HELP = {
     href: docsHref("workspaces", "moving"),
   },
   "move-approve": {
-    question: "What does approving do?",
-    answer:
-      "It checks the move again and moves the scope: its items take the new workspace's names, their old names keep working, and versions not reviewed become reviewed in your name. If something would break now, nothing moves and the request stays open, with the list.",
     href: docsHref("workspaces", "moving"),
   },
   "personal-workspace": {
-    question: "What's my personal workspace?",
-    answer:
-      "A workspace of your own, private and only yours: create scopes and items there, install them and try them out, without asking anyone. What you submit there is approved at once, since only you and root can see it.",
     href: docsHref("workspaces", "personal"),
   },
   "personal-review": {
@@ -81,9 +70,6 @@ export const HELP = {
     href: docsHref("workspaces", "personal"),
   },
   "requests-who": {
-    question: "Who can answer?",
-    answer:
-      "Root, in every workspace, and each workspace's moderators and admins, in theirs. Approve adds the person as a user; root and the workspace's admins can pick moderator instead. Decline can give a reason, which the person sees; they can ask again 7 days later. The first answer counts.",
     href: docsHref("workspaces", "joining"),
   },
   visibility: {
@@ -93,9 +79,6 @@ export const HELP = {
     href: docsHref("workspaces", "visibility"),
   },
   "private-item": {
-    question: "Who can see this?",
-    answer:
-      "Only the members of its workspace, in any role, and root: the workspace is private. To anyone else this item doesn't exist, in the catalogue, rmk, the MCP tools and the plugin marketplaces. Only items in the same workspace can depend on it.",
     href: docsHref("workspaces", "visibility"),
   },
   name: {
@@ -189,21 +172,12 @@ export const HELP = {
     href: docsHref("rmk", "web"),
   },
   contents: {
-    question: "What am I looking at?",
-    answer:
-      "This version's files as released: exactly what rmk install gets, checked against the package's checksum. Overview sums it up: how to install it, what it can do, its main file to read and who reviewed it; Files shows every file, with its source a tab away.",
     href: docsHref("items", "contents"),
   },
   install: {
-    question: "How do I install it?",
-    answer:
-      "Copy the command into a terminal in your project, after rmk login. rmk resolves the version, checks the download, writes the files your AI tool reads, and records them in rmk.lock so teammates get the same. With the registry MCP server set up, you can also ask your AI tool to install it: it shows you the plan first.",
     href: docsHref("rmk", "installing"),
   },
   plugin: {
-    question: "Install as a Claude Code plugin?",
-    answer:
-      "Run this in Claude Code, or find the item under /plugin, once rmk plugin-setup claude-code has added this marketplace there. Claude Code downloads the released version as a plugin, with its dependencies, using your rmk login. Install an item one way, as a plugin or with rmk install, not both.",
     href: docsHref("plugins", "claude-code"),
   },
   "plugin-feeds": {
@@ -213,15 +187,9 @@ export const HELP = {
     href: docsHref("plugins", "large"),
   },
   support: {
-    question: "What do these mean?",
-    answer:
-      "Supported: rmk writes the item where the tool reads it. Partly: the tool takes it through a workaround, and some of it is left out. Turned off: this version's ronne.yaml keeps it away from that tool. Skipped: the tool has no place for this type; rmk warns and installs the rest.",
     href: docsHref("items", "types"),
   },
   propose: {
-    question: "What happens when I propose a change?",
-    answer:
-      "You get a draft of this version, with all its files, to edit and submit. Once reviewed and approved, it's released as the item's next version.",
     href: docsHref("changes", "propose"),
   },
   export: {
@@ -303,9 +271,6 @@ export const HELP = {
     href: docsHref("review", "checks"),
   },
   usage: {
-    question: "Where do these numbers come from?",
-    answer:
-      "From rmk, on machines that report to this instance under root's usage policy: installs, removals and runs of this item, by day, version and AI tool. The success rate needs 20 runs whose outcome was reported.",
     href: docsHref("usage", "reading"),
   },
   "usage-minimum": {
@@ -446,9 +411,11 @@ export const HELP = {
       "Part of an email, in any case. system finds events with no one signed in, such as the setup and the command line.",
     href: docsHref("admin", "audit"),
   },
-} as const satisfies Record<string, { question: string; answer: string; href: string }>;
+} as const satisfies Record<string, { question?: string; answer?: string; href: string }>;
 
 export type HelpId = keyof typeof HELP;
+/** The helpers whose words are messages. */
+type MovedId = keyof Messages["help"];
 
 export const Help = ({
   id,
@@ -463,15 +430,15 @@ export const Help = ({
   /** A more precise section than the helper's own, made with `docsHref` (a preset's guide). */
   href?: string;
 }): ReactNode => {
-  const help = HELP[id];
+  const t = useTranslations("help");
+  const help: { question?: string; answer?: string; href: string } = HELP[id];
+  // A helper with its words here is English until it moves; one without them is a message.
+  const moved = id as MovedId;
+  const question = help.question ?? t(`${moved}.question`);
+  const answer = help.answer ?? t(`${moved}.answer`);
   return (
-    <HelpTip
-      question={help.question}
-      href={href ?? help.href}
-      className={className}
-      iconOnly={iconOnly}
-    >
-      <p>{help.answer}</p>
+    <HelpTip question={question} href={href ?? help.href} className={className} iconOnly={iconOnly}>
+      <p>{answer}</p>
     </HelpTip>
   );
 };

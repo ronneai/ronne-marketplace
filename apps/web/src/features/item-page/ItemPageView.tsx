@@ -1,6 +1,7 @@
 import { formatItemName } from "@ronneai/core";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { useTranslations } from "next-intl";
+import { Fragment, type ReactNode } from "react";
 import { ItemPlace } from "@/components/catalogue/ItemPlace";
 import { Help } from "@/components/help/Help";
 import { Badge } from "@/components/ui/Badge";
@@ -11,7 +12,7 @@ import { stripTab } from "@/components/ui/scroll-strip";
 import { TypeBadge } from "@/components/ui/TypeBadge";
 import type { ItemPage } from "@/server/domains/items/actions/versions";
 import { ProposeButton } from "./ProposeButton";
-import { ITEM_TABS, type ItemTab, itemTabHref, TAB_LABELS } from "./tabs";
+import { ITEM_TABS, type ItemTab, itemTabHref } from "./tabs";
 
 const text = (value: unknown) => (typeof value === "string" && value ? value : null);
 
@@ -28,6 +29,7 @@ export const ItemPageView = ({
   tab: ItemTab;
   children: ReactNode;
 }) => {
+  const t = useTranslations("item");
   const ref = { workspace: page.item.workspace, scope: page.item.scope.name, name: page.item.name };
   const name = formatItemName(ref);
   const { shown } = page;
@@ -37,11 +39,25 @@ export const ItemPageView = ({
     : [];
   const license = text(shown.manifest.license);
   const description = text(shown.manifest.description) ?? page.item.description;
+  // The line under the name: license, keywords, owner, when; told apart by a dot.
+  const meta = [
+    { id: "license", text: license ? t("meta.license", { license }) : t("meta.noLicense") },
+    ...keywords.map((keyword) => ({ id: `#${keyword}`, text: <>#{keyword}</> })),
+    {
+      id: "by",
+      text: t("meta.by", { owner: page.ownerName ?? t("meta.formerUser") }),
+    },
+    {
+      id: "published",
+      text: t.rich("meta.published", { date: () => <LocalTime value={shown.publishedAt} /> }),
+    },
+  ];
+  const kind = page.latest ? "latest" : "listed";
   return (
     <div className="grid grid-cols-1 gap-6">
-      <nav aria-label="Breadcrumb" className="font-mono text-xs text-muted">
+      <nav aria-label={t("breadcrumb.label")} className="font-mono text-xs text-muted">
         <Link href="/catalogue" className="hover:text-fg hover:underline">
-          Catalogue
+          {t("breadcrumb.catalogue")}
         </Link>{" "}
         / <span className="text-fg">{name}</span>
       </nav>
@@ -50,6 +66,7 @@ export const ItemPageView = ({
         <div className="grid min-w-0 gap-2">
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="font-mono text-xl font-semibold break-all text-fg">{name}</h1>
+            {/* biome-ignore lint/plugin: a version number, the same in every language */}
             <span className="font-mono text-sm text-muted">v{shown.version}</span>
             <TypeBadge type={page.item.type} />
             {page.item.privateWorkspace ? <Help id="private-item" iconOnly /> : null}
@@ -58,8 +75,8 @@ export const ItemPageView = ({
                 {tag}
               </Badge>
             ))}
-            {shown.deprecatedMessage ? <Badge tone="warning">deprecated</Badge> : null}
-            {shown.yankedAt ? <Badge tone="error">yanked</Badge> : null}
+            {shown.deprecatedMessage ? <Badge tone="warning">{t("badge.deprecated")}</Badge> : null}
+            {shown.yankedAt ? <Badge tone="error">{t("badge.yanked")}</Badge> : null}
           </div>
           <ItemPlace
             workspace={page.item.workspace}
@@ -67,14 +84,14 @@ export const ItemPageView = ({
             privateWorkspace={page.item.privateWorkspace}
             personalWorkspace={page.item.personalWorkspace}
           />
-          <p className="text-sm text-fg">{description || "No description."}</p>
+          <p className="text-sm text-fg">{description || t("noDescription")}</p>
           <p className="font-mono text-xs text-muted">
-            {[
-              license ? `license ${license}` : "no license given",
-              ...keywords.map((k) => `#${k}`),
-              `by ${page.ownerName ?? "a former user"}`,
-            ].join(" · ")}{" "}
-            · published <LocalTime value={shown.publishedAt} />
+            {meta.map((part, index) => (
+              <Fragment key={part.id}>
+                {index ? " · " : null}
+                {part.text}
+              </Fragment>
+            ))}
           </p>
         </div>
         <ProposeButton item={name} version={shown.version} />
@@ -83,36 +100,41 @@ export const ItemPageView = ({
       {other ? (
         <Notice
           kind={shown.yankedAt ? "error" : shown.deprecatedMessage ? "warn" : "info"}
-          title={`You're looking at ${shown.version}, not ${page.latest ? `latest (${page.latest})` : `the listed version (${page.listed})`}.`}
+          title={t("notice.title", {
+            kind,
+            version: shown.version,
+            target: page.latest ?? page.listed,
+          })}
         >
           {shown.yankedAt
-            ? `It was yanked: ${shown.yankReason}. New installs can't resolve it; projects that pin it keep working.`
+            ? t("notice.yanked", { reason: shown.yankReason ?? "" })
             : shown.deprecatedMessage
-              ? `It's deprecated: ${shown.deprecatedMessage}`
+              ? t("notice.deprecated", { message: shown.deprecatedMessage })
               : null}{" "}
           <Link
             href={itemTabHref(ref, tab === "versions" ? "overview" : tab)}
             className="underline underline-offset-2"
           >
-            Show {page.latest ? "latest" : page.listed}
+            {t("notice.show", { kind, version: page.listed })}
           </Link>
         </Notice>
       ) : null}
 
-      <ScrollStrip label="Item" className="gap-1 border-b border-hairline">
-        {ITEM_TABS.map((t) => (
+      <ScrollStrip label={t("tabs.label")} className="gap-1 border-b border-hairline">
+        {ITEM_TABS.map((id) => (
           <Link
-            key={t}
-            href={itemTabHref(ref, t, other ? shown.version : null)}
-            aria-current={t === tab ? "page" : undefined}
+            key={id}
+            href={itemTabHref(ref, id, other ? shown.version : null)}
+            aria-current={id === tab ? "page" : undefined}
             className={`${stripTab} -mb-px border-b-2 border-transparent px-3 py-2 text-sm text-muted hover:text-fg aria-[current=page]:border-accent-strong aria-[current=page]:font-semibold aria-[current=page]:text-fg`}
           >
-            {TAB_LABELS[t]}
-            {t === "risks" && shown.riskFlags.length ? ` (${shown.riskFlags.length})` : ""}
+            {id === "risks" && shown.riskFlags.length
+              ? t("tabs.risksCount", { count: shown.riskFlags.length })
+              : t(`tabs.${id}`)}
           </Link>
         ))}
       </ScrollStrip>
-      <section aria-label={TAB_LABELS[tab]}>{children}</section>
+      <section aria-label={t(`tabs.${tab}`)}>{children}</section>
     </div>
   );
 };

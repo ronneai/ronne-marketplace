@@ -1,7 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getTranslations } from "next-intl/server";
 import { workspacePath } from "@/features/admin-workspaces/list";
+import { errorText } from "@/i18n/errors";
 import { IdentityError } from "@/server/domains/identity/exceptions/errors";
 import {
   addMembers,
@@ -26,7 +28,7 @@ const attempt = async (form: FormData, work: () => Promise<string>): Promise<Mem
     return { done };
   } catch (error) {
     if (error instanceof WorkspacesError || error instanceof IdentityError)
-      return { error: error.message };
+      return { error: await errorText(error) };
     throw error;
   }
 };
@@ -41,13 +43,11 @@ export const findCandidates = serverAction(
       return { users: await memberCandidates(await requestHeaders(), { workspaceId, query }) };
     } catch (error) {
       if (error instanceof WorkspacesError || error instanceof IdentityError)
-        return { error: error.message };
+        return { error: await errorText(error) };
       throw error;
     }
   },
 );
-
-const people = (n: number) => `${n} ${n === 1 ? "person" : "people"}`;
 
 export const addMembersFromForm = serverAction(
   async (_previous: MemberActionState, form: FormData): Promise<MemberActionState> =>
@@ -60,9 +60,8 @@ export const addMembersFromForm = serverAction(
       });
       const added = results.filter((r) => r.result === "added").length;
       const already = results.length - added;
-      return already > 0
-        ? `Added ${people(added)}; ${people(already)} already in it.`
-        : `Added ${people(added)}.`;
+      const t = await getTranslations("workspaces.results");
+      return already > 0 ? t("addedAlready", { added, already }) : t("added", { added });
     }),
 );
 
@@ -74,7 +73,13 @@ export const changeMemberRoleFromForm = serverAction(
         userId: text(form, "userId"),
         role: text(form, "role"),
       });
-      return `Now ${text(form, "role")}.`;
+      const role = text(form, "role");
+      const roles = await getTranslations("common.roles");
+      // The role was accepted by the service, so it is one of the three; anything else is shown as typed.
+      const known = role === "admin" || role === "moderator" || role === "user";
+      return (await getTranslations("workspaces.results"))("now", {
+        role: known ? roles(role) : role,
+      });
     }),
 );
 
@@ -85,6 +90,6 @@ export const removeMemberFromForm = serverAction(
         workspaceId: text(form, "workspaceId"),
         userId: text(form, "userId"),
       });
-      return "Removed.";
+      return (await getTranslations("workspaces.results"))("removed");
     }),
 );
