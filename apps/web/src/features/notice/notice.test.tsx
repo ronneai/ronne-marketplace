@@ -144,7 +144,7 @@ describe("The notice on the page (124)", () => {
     const out = html(current());
     expect(out).toContain("Maintenance tonight at 22:00.");
     expect(out).toContain("INFO:");
-    expect(out).toMatch(/<form[^>]*>.*name="revision" value="3".*Dismiss<\/button>/);
+    expect(out).toMatch(/<form[^>]*>.*name="revision" value="3".*aria-label="Dismiss"/);
     expect(html(current({ tone: "warning" }))).toContain("WARN:");
   });
 
@@ -172,6 +172,28 @@ describe("The notice on the page (124)", () => {
     expect(out).toContain("&lt;i&gt;x&lt;/i&gt;");
   });
 
+  it("puts the dismiss inside the box, as an icon with a name and no button styling", () => {
+    const out = html(current());
+    // One box: the form sits inside the notice's frame, after its words, not beside it.
+    expect(out.match(/role="status"/g)).toHaveLength(1);
+    expect(out.indexOf("<form")).toBeGreaterThan(out.indexOf("Maintenance tonight"));
+    expect(out.indexOf("<form")).toBeLessThan(out.lastIndexOf("</div>"));
+    expect(out).toMatch(/<button[^>]*aria-label="Dismiss"[^>]*><svg[^>]*aria-hidden="true"/);
+    expect(out).not.toContain("Dismiss</button>");
+    expect(out).not.toContain("border-strong");
+    expect(out).toContain("touch-hit");
+    expect(out).toContain("focus-visible:outline-2 focus-visible:outline-focus");
+  });
+
+  it("draws no dismiss icon when there is no action (the Notice tab's preview)", () => {
+    const out = renderToStaticMarkup(
+      <NoticeBanner notice={{ message: "Preview", link: null, tone: "info" }} />,
+    );
+    expect(out).toContain("Preview");
+    expect(out).not.toContain("<button");
+    expect(out).not.toContain("<form");
+  });
+
   it("lets a long unbroken string wrap instead of stretching the page", () => {
     const out = renderToStaticMarkup(
       <NoticeBanner notice={{ message: "a".repeat(500), link: null, tone: "info" }} />,
@@ -180,10 +202,10 @@ describe("The notice on the page (124)", () => {
     expect(out).toContain("min-w-0");
   });
 
-  it("says Dismiss in Portuguese and French", () => {
+  it("names the dismiss icon in Portuguese and French", () => {
     const node = <DismissibleNotice notice={current()} />;
-    expect(inLocale("pt", () => renderToStaticMarkup(node))).toContain("Dispensar</button>");
-    expect(inLocale("fr", () => renderToStaticMarkup(node))).toContain("Fermer</button>");
+    expect(inLocale("pt", () => renderToStaticMarkup(node))).toContain('aria-label="Dispensar"');
+    expect(inLocale("fr", () => renderToStaticMarkup(node))).toContain('aria-label="Fermer"');
   });
 });
 

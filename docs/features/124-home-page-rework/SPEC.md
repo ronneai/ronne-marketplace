@@ -41,7 +41,7 @@ checklist, favorites, pinned items), and root gets a way to tell everyone someth
     care, such as "the demo's data is reset on Friday").
   - **Shown:** on or off.
   - **Shown on every signed-in page,** under the header (and on the Menu sheet's phone layout),
-    above the page, not floating. Each person can **dismiss** it; it comes back when root changes
+    above the page, not floating. Each person can **dismiss** it, with a small ✕ icon inside the box (owner, 2026-10-21: not a button beside it); it comes back when root changes
     the message, link or tone (a revision number, kept in the dismiss cookie `ronne-notice`), so a
     new notice isn't missed by someone who closed the old one.
   - Root sees a **preview** while editing, and a line saying who changed it last.
@@ -65,9 +65,9 @@ checklist, favorites, pinned items), and root gets a way to tell everyone someth
   turned on again.
 - **Validation:** an empty message can't be shown; a link needs its label and a valid address
   (`https:` or a path starting with `/`); anything else is refused with a message beside the field.
-- **Without JavaScript** the notice shows, and the dismiss button is a form that sets the cookie
+- **Without JavaScript** the notice shows, and the dismiss icon is a form button that sets the cookie
   and returns to the same page.
-- **Phone:** the notice wraps, its dismiss button is a 44px target, and Home's sections stack
+- **Phone:** the notice wraps, its dismiss icon is a 44px target, and Home's sections stack
   (065, 071).
 
 ## Edge cases

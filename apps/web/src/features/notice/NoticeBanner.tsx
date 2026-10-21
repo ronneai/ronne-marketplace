@@ -6,7 +6,7 @@ import type { Notice as InstanceNotice } from "@/server/domains/settings/models/
 /**
  * The instance notice (feature 124) as people read it: root's words, always output as text (React
  * escapes them; a `<b>` shows as typed), and an optional link. Information is the quiet frame,
- * Warning the amber one. `action` is a place for the dismiss button.
+ * Warning the amber one. `action` is a control inside the box, at its top right: the dismiss icon.
  */
 export const NoticeBanner = ({
   notice,
@@ -17,32 +17,29 @@ export const NoticeBanner = ({
 }) => {
   const link = notice.link;
   return (
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-3">
-      <Notice
-        kind={notice.tone === "warning" ? "warn" : "info"}
-        className="min-w-0 flex-1"
-        title={<span className="[overflow-wrap:anywhere]">{notice.message}</span>}
-      >
-        {link ? (
-          <p>
-            {link.href.startsWith("/") ? (
-              <Link href={link.href} className="underline [overflow-wrap:anywhere]">
-                {link.label}
-              </Link>
-            ) : (
-              <a
-                href={link.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline [overflow-wrap:anywhere]"
-              >
-                {link.label}
-              </a>
-            )}
-          </p>
-        ) : null}
-      </Notice>
-      {action}
-    </div>
+    <Notice
+      kind={notice.tone === "warning" ? "warn" : "info"}
+      action={action}
+      title={<span className="[overflow-wrap:anywhere]">{notice.message}</span>}
+    >
+      {link ? (
+        <p>
+          {link.href.startsWith("/") ? (
+            <Link href={link.href} className="underline [overflow-wrap:anywhere]">
+              {link.label}
+            </Link>
+          ) : (
+            <a
+              href={link.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline [overflow-wrap:anywhere]"
+            >
+              {link.label}
+            </a>
+          )}
+        </p>
+      ) : null}
+    </Notice>
   );
 };
