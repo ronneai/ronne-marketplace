@@ -199,7 +199,9 @@ describe("Admin › Settings › Authentication › Sign-in methods (122)", () =
     expect(html).toMatch(/Email and password<\/td><td[^>]*><span[^>]*>On<\/span>/);
     expect(html).toContain("Root can always sign in with a password");
     expect(html).toContain("How do people sign in?");
-    expect(html).toContain('href="https://www.ronne.ai/marketplace/docs/authentication#overview"');
+    expect(html).toContain(
+      'href="https://www.ronne.ai/en/marketplace/docs/authentication#overview"',
+    );
   });
 
   it("shows a method that is off as Off", () => {
@@ -283,7 +285,7 @@ describe("Admin › Settings › Plugin feeds (079)", () => {
     const html = renderToStaticMarkup(await AdminSettings("feeds"));
     expect(html).toContain(">Plugin feeds</h2>");
     expect(html).toContain("What do these numbers mean?");
-    expect(html).toContain('href="https://www.ronne.ai/marketplace/docs/plugins#large"');
+    expect(html).toContain('href="https://www.ronne.ai/en/marketplace/docs/plugins#large"');
     expect(html.match(/Not built yet/g)).toHaveLength(3);
     expect(html).not.toContain('role="status"');
   });

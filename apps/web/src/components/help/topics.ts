@@ -354,8 +354,27 @@ export const TOPIC_GROUPS: { label: string; topics: readonly TopicSlug[] }[] = [
 
 export const topicOf = (slug: string): Topic | undefined => TOPICS.find((t) => t.slug === slug);
 
-/** The Documentation on the website (088). With no language in it, each visitor gets their own. */
-export const DOCS_URL = "https://www.ronne.ai/marketplace/docs";
+/** The website's address, which the Documentation is under. */
+const SITE = "https://www.ronne.ai";
+
+/**
+ * The Documentation on the website (088), as links are written: with no language in it. Each link
+ * is shown in the person's language by `localizedDocsHref`, where it is drawn.
+ */
+export const DOCS_URL = `${SITE}/marketplace/docs`;
+
+/**
+ * A Documentation address in a language (feature 129): the website keeps each language under its
+ * own prefix (`/pt/marketplace/docs/…`), and sends an address without one to the browser's. A
+ * link that isn't the Documentation (or only starts like it) is left as it is.
+ */
+export const localizedDocsHref = (href: string, locale: "en" | "pt" | "fr"): string => {
+  const rest = href.slice(DOCS_URL.length);
+  const isDocs =
+    href.startsWith(DOCS_URL) &&
+    (rest === "" || rest[0] === "/" || rest[0] === "#" || rest[0] === "?");
+  return isDocs ? `${SITE}/${locale}/marketplace/docs${rest}` : href;
+};
 
 /** A topic's page on the website, or one of its sections. The overview is the Documentation itself. */
 export const docsHref = <T extends TopicSlug>(topic: T, section?: SectionOf<T>) =>

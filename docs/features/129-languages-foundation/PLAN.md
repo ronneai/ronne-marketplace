@@ -75,8 +75,11 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* a test per mapped error in three languages, and an unknown error shows the English
   message.
 
-- [ ] **10. Documentation links by language.** `docsUrl` builds the website's address in the
-  person's language (task: confirm the website's path pattern for `pt` and `fr`).
+- [x] **10. Documentation links by language.** The website keeps each language under a prefix
+  (`https://www.ronne.ai/pt/marketplace/docs/…`, confirmed: `/en`, `/pt`, `/fr` answer 200, and the
+  address without one redirects by browser). Links stay written without a language (`docsHref`, as
+  data); `localizedDocsHref(href, locale)` adds the person's, and `NewTabLink`, which draws every
+  Documentation link (Learn more, the sidebar's Documentation, the install note), applies it.
   *Done when:* the helper link test passes for the three languages and every link lands on a real
   section.
 

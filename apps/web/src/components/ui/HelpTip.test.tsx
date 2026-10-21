@@ -30,7 +30,7 @@ describe("HelpTip", () => {
       </HelpTip>,
     );
     const link = /<a [^>]*>Learn more[\s\S]*?<\/a>/.exec(html)?.[0] ?? "";
-    expect(link).toContain('href="https://www.ronne.ai/marketplace/docs/scopes#what"');
+    expect(link).toContain('href="https://www.ronne.ai/en/marketplace/docs/scopes#what"');
     expect(link).toContain('target="_blank" rel="noopener noreferrer"');
     expect(link).toContain('aria-hidden="true"');
     expect(link).toContain('<span class="sr-only"> (opens in a new tab)</span>');

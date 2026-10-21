@@ -671,6 +671,11 @@ describe("the shell in three languages (129)", () => {
     );
   });
 
+  it("the Documentation link opens the website in the language", () => {
+    for (const locale of ["en", "pt", "fr"] as const)
+      expect(sidebar(locale)).toContain(`href="https://www.ronne.ai/${locale}/marketplace/docs"`);
+  });
+
   it("the folded rail names each link, with how many are waiting", () => {
     expectAll(
       {

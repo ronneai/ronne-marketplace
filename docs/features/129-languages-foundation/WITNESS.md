@@ -370,3 +370,20 @@ Witnessed: 2026-10-20 23:45 EDT, by a fresh agent (blind). Commit: ebdbbc7a plus
 | 4 | The checks and suites hold | no | confirmed | `pnpm lint` 0; `pnpm typecheck` 7/7; unit project 196 files, 2404 passed. |
 
 **Overall:** met.
+
+## Task 10 — Documentation links by language
+
+Witnessed: 2026-10-20 23:50 BRT, by a fresh agent (blind). Commit: 2bfba67d plus the uncommitted working tree (16 changed files). Machine: macOS (Darwin), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `localizedDocsHref(href, locale)` adds `/en`, `/pt` or `/fr` after the site address and keeps the topic, `#section` and `?query` | no | confirmed | Probe with `pt`: `docs?x` → `pt/…docs?x`; `docs#a` → `pt/…docs#a`; `docs/` → `pt/…/docs/`; `help.test.tsx` asserts `pt/docs/scopes#names`. |
+| 2 | Anything that isn't the Documentation, or only starts like it, is left unchanged | no | confirmed | Unchanged: `https://www.ronne.ai@evil.test/…`, `http://…`, uppercase host, `""`, `docsx`, `docs-evil`, `www.ronne.ai.evil.test`, `evil.test/https://www.ronne.ai/…`; `docs/..` is prefixed but stays on ronne.ai. |
+| 3 | `NewTabLink` applies the localisation using the person's locale | no | confirmed | `useLocale()` and `href={localizedDocsHref(props.href, locale)}` after `{...props}`; using `props.href` fails 19 tests in 13 files. |
+| 4 | Every Documentation link in the app goes through `NewTabLink` | no | confirmed | `HelpTip`/`Help.tsx` (70+ helpers, `ProviderForm`'s override), `ToolsPanel`, `UsageCard`, `NewDraftForm`, `ForgotPassword`, the sidebar and the Menu; no plain `<a>` to the Documentation in `src`; `next.config.ts`'s redirects for the old `/docs*` addresses stay language-neutral (the website redirects by browser). |
+| 5 | The helper link test passes for the three languages, and the sidebar's Documentation link is localised | no | confirmed | The new describe: every helper × en/pt/fr resolves to a topic section; the sidebar test in en/pt/fr; `src/components src/features` → 891 passed; unit project 342 files, 3846 passed; lint 0; typecheck 7/7. |
+| 6 | The tests fail without the fix | no | confirmed | `NewTabLink` skipping the localisation → 19 fail; the locale ignored → 3 fail; a lookalike host prefixed → 1 fails. |
+| 7 | The website answers 200 for every topic in all three languages | no | confirmed | `curl` on `https://www.ronne.ai/{en,pt,fr}/marketplace/docs[/<slug>]` for all 27 topic slugs → 81 of 81 return 200. |
+| 8 | Every section a helper or provider-guide link uses exists on the website in all three languages | no | confirmed | 81 (topic, section) pairs checked against `../ronne-web/www/src/content/docs/{en,pt,fr}`: all present except 10 `authentication#…` pairs (`scim`, `lockout`, the provider guides), which moved to `scim`, `password-sign-in` and `provider-guides` and are redirected by the website's `movedSections` with the anchor kept (client-side; read, not run in a browser). |
+
+**Overall:** met.
