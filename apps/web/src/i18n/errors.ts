@@ -6,9 +6,18 @@ const CLASS_NAME = /^[A-Z][A-Za-z0-9]{0,79}$/;
 /** The values an error carries that its message may use: `limit`, `tokenName`, `permission`… */
 const valuesOf = (error: Error): Record<string, string | number | boolean> => {
   const values: Record<string, string | number | boolean> = {};
-  for (const [key, value] of Object.entries(error))
+  for (const [key, value] of Object.entries(error)) {
     if (typeof value === "string" || typeof value === "number" || typeof value === "boolean")
       values[key] = value;
+    // A list of names is its items joined by commas, and `<key>Count` is how many there are.
+    else if (Array.isArray(value) && value.every((entry) => typeof entry === "string")) {
+      values[key] = value.join(", ");
+      values[`${key}Count`] = value.length;
+    }
+    // A date is the day, as the English messages write it (`2026-10-16`).
+    else if (value instanceof Date && !Number.isNaN(value.getTime()))
+      values[key] = value.toISOString().slice(0, 10);
+  }
   return values;
 };
 

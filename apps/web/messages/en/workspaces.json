@@ -137,5 +137,17 @@
     "reason": "Reason (optional)",
     "reasonHint": "{name} sees it on the scope’s row. {used, number}/{max, number}",
     "cancel": "Cancel"
+  },
+  "results": {
+    "sent": "Request sent.",
+    "alreadyIn": "You're in it already.",
+    "cancelled": "Request cancelled.",
+    "added": "Added {added, plural, one {# person} other {# people}}.",
+    "addedAlready": "Added {added, plural, one {# person} other {# people}}; {already, plural, one {# person} other {# people}} already in it.",
+    "now": "Now {role}.",
+    "removed": "Removed.",
+    "approved": "Approved: they're in {workspace} as {role}.",
+    "declined": "Declined.",
+    "moved": "Moved to {workspace}."
   }
 }

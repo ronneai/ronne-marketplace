@@ -195,3 +195,64 @@ Witnessed: 2026-10-21 16:00 EDT, by a fresh agent (blind re-check). Commit: 015b
 | 9 | The tests catch raw English in `ScopeMovesTable` | no | confirmed | The same mutation → `vitest run --project unit src/features/workspace-requests` → 1 failed, 16 passed (the pt and fr `>Renomeado<` / `>Renommé<` expectations), and the test passes on the unmutated tree; restored, `cmp` identical. |
 
 **Overall:** met.
+
+## Task 7 — What the actions say
+
+Witnessed: 2026-10-21 15:35 EDT, by a fresh agent (blind). Commit: d0da2ca9 plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A test per error class, in three languages | no | confirmed | `workspace-errors.test.ts` has 49 `it.each` cases over every class with a key in `errors.json`: English equals `error.message`, pt and fr differ, no `{}` or `errors.` is left, the values appear; `errors.test.ts` checks the key sets are equal and each key is a real class in the identity, workspaces or submissions domain. |
+| 2 | English from `errorText` equals the old `error.message`, word for word | no | confirmed | The `it.each` asserts `expect(english).toBe(error.message)` for all 49 cases, including every `NotAMemberError` doing value and both `ProposalBaseNotFoundError` forms; only fields were added (`doing`, `versioned`, `max`, `total`). |
+| 3 | An unknown error still shows its English message | no | confirmed | `errors.test.ts` "an error nobody translated…" and "a known error missing a value…"; `errors.ts` falls back to `error.message`. |
+| 4 | A non-domain error still throws from the actions | no | confirmed | `action-texts.test.ts` rejects with "boom" through `requestAccessFromForm`; the `attempt` helpers rethrow. |
+| 5 | The API's messages are unchanged | no | confirmed | No change under `src/server/http`; `http/errors.ts` still uses `error.message` and the explicit fields; a test compares the full `NotAMemberError(…"release")` sentence. |
+| 6 | No caller of `NotAMemberError` or `requireMember` passes a free-text sentence | no | confirmed | Grep of the non-test callers: nothing, `"release"` (`publish.ts:117`, `release-group.ts:59`) or `"comment"` (`reviews.ts:216`); `membership.ts` types the argument `Doing`. |
+| 7 | Success lines come from `getTranslations`; pt and fr ICU strings are well formed | no | confirmed | `results.*` has the same 10 keys in three languages; `vitest run --project unit src/i18n src/features` → 73 files, 949 tests passed, parity included. |
+| 8 | A list is its items joined plus `<field>Count`; a date is its day | no | confirmed | `errors.ts` joins a string array with ", " and adds `<key>Count`; a `Date` becomes `toISOString().slice(0,10)`; tests see "@a/x, @b/y" and "2026-10-16". |
+| 9 | The db tests that use `requireMember` pass on SQLite | no | confirmed | `vitest run --project db src/server/domains/submissions` → 26 files, 274 tests passed (no database servers). |
+| 10 | Lint and typecheck are clean | no | confirmed | `biome check` on the changed files → no errors; `pnpm --filter @ronneai/web typecheck` → exit 0. |
+| 11 | The tests fail when the code is broken | no | confirmed | In a scratch copy: renaming a pt placeholder failed 1 test; deleting a class's fr text failed 3; letting the list check accept a non-string failed 3; an unknown `doing` failed the `NotAMemberError` case. |
+
+**Overall:** met.
+
+### Adversarial pass
+
+Witnessed: 2026-10-21 15:40 EDT, by a fresh agent (adversarial). Commit: d0da2ca9 plus the uncommitted working tree. Machine: macOS (Darwin 27), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Every browse-screen domain error shows the person's language via `errorText` with the right values, never a raw key, a blank or an exception; an unknown error shows its English message | no | confirmed | About 23 classes × 13 hostile strings (`{`, `}`, `'{x}'`, `a''b`, `<b>x</b>`, `#`, a plural fragment, `\{`, `$&`, empty, 100000 characters) × en/pt/fr: no throw, no blank, no key, the value always appeared; English equal to `e.message`; hand-built errors with missing, wrong-typed or hostile fields fell back to the English message. |
+| 2 | `errorText` turns a `string[]` into "a, b" plus `<field>Count` and a `Date` into `YYYY-MM-DD` | no | confirmed | An empty array, a non-string array, an invalid date and `new Date(8.64e15)` all fell back to the message with no `RangeError`; dropping the Date branch fails 2 tests, dropping `Count` fails 6. |
+| 2b | A class name that is a prototype property or malformed shows the error's own message | no | partly | The outcome held for `toString`, `constructor`, `__proto__`, `hasOwnProperty`, `a.b`, 81-character names, with or without the `CLASS_NAME` guard (next-intl's `has` rejects them); no test depended on the guard. |
+| 3 | `NotAMemberError(workspace, doing)` takes only the three values, no caller passes a sentence, and the English message is byte-identical | no | confirmed | 11 `requireMember(` callers pass nothing, "release" or "comment"; old and new messages compared for default, release, comment, both `ProposalBaseNotFoundError` forms, `InvalidWorkspaceNameError` and `WorkspaceRenameAliasError`: identical. |
+| 4 | The API's messages and codes are unchanged | no | confirmed | `server/http/errors.ts` is not in the diff and does not serialise the new fields. |
+| 5 | Success lines built from form input cannot throw or inject | no | confirmed | Roles and names such as `x{y}`, `__proto__`, `constructor`, `toString`, `'{a}'`, `<b>#</b>` and 200000 characters, in the three languages, through the real actions: the input appeared verbatim as a value and nothing threw; role words are translated only on an exact match. |
+| 6 | Nothing new puts untrusted text into a message format string, and nothing leaks beyond the English | no | confirmed | Every call is `t(key, {values})` with a fixed key; the key is the guarded class name; the new fields are constants or counts. |
+| 7 | Non-domain errors are rethrown by the actions | no | partly | Turning `throw error;` into a return in `workspace-requests/actions.ts` left all 804 tests green: no test covered that file's rethrow. |
+| 8 | `NotAMemberError` with an unknown `doing` | no | partly | `new NotAMemberError("acme", "x y")` gave "to undefined." in the English and API message. |
+
+**Overall:** not met: the test gaps in rows 2b and 7, and row 8.
+
+### Adversarial re-check (rows 7, 2b, 3b)
+
+Witnessed: 2026-10-21 15:50 EDT, by a fresh agent (adversarial re-check). Commit: d0da2ca9 plus the uncommitted working tree. Machine: macOS (Darwin 27), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 7 | Non-domain errors are rethrown by `workspace-requests/actions.ts`, and a test covers it | no | confirmed | Replacing every `throw error;` there with a return makes `action-texts.test.ts > the answer actions > rethrow what is not the domain's, for every answer` fail (1 failed, 29 passed). |
+| 2b | The `CLASS_NAME` guard is covered by a test | no | partly | The new assertions pass with and without the guard (next-intl's `has` rejects those names): they document the outcome only. |
+| 3b | `NotAMemberError` with an unknown `doing` falls back to "propose changes" | no | partly | Fixed for plain unknown strings; `"__proto__"` gave "to [object Object]." because `DOING[doing] ?? …` lets prototype properties through. |
+
+**Overall:** not met: row 3b (a prototype-property `doing`).
+
+### Adversarial re-check (rows 3b, 2b)
+
+Witnessed: 2026-10-21 15:55 EDT, by a fresh agent (adversarial final re-check). Commit: d0da2ca9 plus the uncommitted working tree. Machine: macOS (Darwin 27), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 3b | `NotAMemberError` with an unknown or prototype-property `doing` says "propose changes", and a test guards it | no | confirmed | `errors.ts:75` uses `Object.hasOwn(DOING, doing) ? DOING[doing] : DOING.propose`; `"x y"`, `"__proto__"`, `"constructor"` and `"toString"` each gave "…to propose changes."; reverting to `DOING[doing] ?? DOING.propose` fails `workspace-errors.test.ts > the API's message is untouched` (1 failed, 144 passed); the real code passes 145 of 145. |
+| 2b | A class name that is a prototype property or malformed shows the error's own message | no | confirmed | Judged on the outcome claim: `toString`, `constructor`, `__proto__`, `hasOwnProperty`, `a.b`, an 81-character name, undefined and numeric names all returned the message, with or without the `CLASS_NAME` guard (defence in depth beside next-intl's `has`); `errors.test.ts` asserts the same. |
+
+**Overall:** met.

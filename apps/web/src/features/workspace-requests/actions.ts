@@ -1,7 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getTranslations } from "next-intl/server";
 import { workspacePath } from "@/features/admin-workspaces/list";
+import { errorText } from "@/i18n/errors";
 import { IdentityError } from "@/server/domains/identity/exceptions/errors";
 import {
   approveAccessRequest,
@@ -31,7 +33,7 @@ const attempt = async (form: FormData, work: () => Promise<string>): Promise<Ans
     return { done };
   } catch (error) {
     if (error instanceof WorkspacesError || error instanceof IdentityError)
-      return { error: error.message };
+      return { error: await errorText(error) };
     throw error;
   }
 };
@@ -44,7 +46,11 @@ export const approveRequestFromForm = serverAction(
         requestId: text(form, "requestId"),
         role,
       });
-      return `Approved: they're in ${text(form, "workspace")} as ${role}.`;
+      const roles = await getTranslations("common.roles");
+      return (await getTranslations("workspaces.results"))("approved", {
+        workspace: text(form, "workspace"),
+        role: role === "moderator" || role === "user" ? roles(role) : role,
+      });
     }),
 );
 
@@ -55,7 +61,7 @@ export const declineRequestFromForm = serverAction(
         requestId: text(form, "requestId"),
         reason: text(form, "reason"),
       });
-      return "Declined.";
+      return (await getTranslations("workspaces.results"))("declined");
     }),
 );
 
@@ -72,11 +78,15 @@ export const approveMoveFromForm = serverAction(
       // as its message.
       if (error instanceof ScopeMoveRefusedError) return { refused: error.impact };
       if (error instanceof WorkspacesError || error instanceof IdentityError)
-        return { error: error.message };
+        return { error: await errorText(error) };
       throw error;
     }
     revalidatePath("/", "layout");
-    return { done: `Moved to ${text(form, "workspace")}.` };
+    return {
+      done: (await getTranslations("workspaces.results"))("moved", {
+        workspace: text(form, "workspace"),
+      }),
+    };
   },
 );
 
@@ -88,6 +98,6 @@ export const declineMoveFromForm = serverAction(
         moveId: text(form, "moveId"),
         reason: text(form, "reason"),
       });
-      return "Declined.";
+      return (await getTranslations("workspaces.results"))("declined");
     }),
 );

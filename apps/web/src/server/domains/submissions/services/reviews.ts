@@ -213,7 +213,7 @@ export const comment = async (
     if (!mine && !can(actor.user, "submissions.review", submission.workspace.id))
       throw new SubmissionNotFoundError();
     if (mine && !can(actor.user, "submissions.review", submission.workspace.id))
-      requireMember(actor, submission.workspace, "comment there");
+      requireMember(actor, submission.workspace, "comment");
     if (!OPEN_STATUSES.includes(submission.status)) throw new ConversationClosedError();
     return repo.addEvent({
       submissionId: submission.id,

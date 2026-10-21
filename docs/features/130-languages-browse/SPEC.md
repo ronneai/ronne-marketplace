@@ -133,6 +133,15 @@ Nothing about what the screens do changes.
   one; a helper left English beside a translated screen is the same state as before 129.
 - **Type names stay as `rmk` prints them** (the glossary rule from 129): descriptions and groups
   are translated. See Open questions.
+- **The actions say their own words** (2026-10-21): a success line comes from `getTranslations` in
+  the action (it runs in the request's language), and an error from `errorText` (129), so the
+  components show `state.error` and `state.done` as they come and the API keeps its English. The
+  errors carry what their sentences need as fields: a list becomes its items joined by commas plus
+  `<field>Count`, a date its day. Four classes gained a field for that (`NotAMemberError.doing`,
+  now one of `propose`, `release`, `comment` instead of a free sentence;
+  `ProposalBaseNotFoundError.versioned`; `InvalidWorkspaceNameError.max`;
+  `WorkspaceRenameAliasError.total`); their English
+  messages are unchanged.
 
 ## Open questions
 
@@ -140,5 +149,3 @@ Nothing about what the screens do changes.
   translated label beside them in the Catalogue's filters (the 129 spec allows "where a label
   exists")? The first is simpler and matches `rmk` and the API; the second reads better in
   Portuguese and French.
-- **Success messages.** Return a code and let the component map it (like sign-in), or return text
-  from `getTranslations` in the action? The plan assumes codes, as 129 did for the account.

@@ -1,4 +1,4 @@
-import { NAME_PROBLEM_MESSAGES, type NameProblem } from "@ronneai/core";
+import { NAME_MAX_LENGTH, NAME_PROBLEM_MESSAGES, type NameProblem } from "@ronneai/core";
 import { MESSAGE_FOR_PEOPLE } from "../../../log/message-for-people";
 import type { MoveImpact } from "../models/scope-move";
 
@@ -15,6 +15,8 @@ export class WorkspacesError extends Error {
 
 export class InvalidWorkspaceNameError extends WorkspacesError {
   override readonly name: string = "InvalidWorkspaceNameError";
+  /** The longest name, for the `too_long` problem's sentence in the web app's languages. */
+  readonly max: number = NAME_MAX_LENGTH;
   constructor(readonly problem: NameProblem) {
     super(`That workspace name won't work. ${NAME_PROBLEM_MESSAGES[problem]}`);
   }
@@ -185,6 +187,8 @@ export class WorkspaceRenameAliasError extends WorkspacesError {
    * `names` are the ones the renamer sees; `hidden` counts the rest, items in workspaces they don't
    * see (114: someone's personal one), named to nobody.
    */
+  /** All the names, those listed and those hidden: the plural of the sentence. */
+  readonly total: number;
   constructor(
     readonly names: readonly string[],
     readonly hidden = 0,
@@ -195,6 +199,7 @@ export class WorkspaceRenameAliasError extends WorkspacesError {
     super(
       `Other items had ${all === 1 ? "this name" : "these names"} before, and keep ${all === 1 ? "it" : "them"}${listed}. Choose another name for the workspace.`,
     );
+    this.total = all;
   }
 }
 

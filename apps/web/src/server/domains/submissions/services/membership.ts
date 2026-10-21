@@ -1,7 +1,7 @@
 import { ForbiddenError } from "../../identity/exceptions/errors";
 import { can } from "../../identity/models/permissions";
 import type { CurrentUser } from "../../identity/models/user";
-import { NotAMemberError } from "../exceptions/errors";
+import { type Doing, NotAMemberError } from "../exceptions/errors";
 
 /**
  * Who may write where (091). Reading your own drafts and submissions, and withdrawing them, needs
@@ -19,7 +19,7 @@ export const requireSignedIn = (actor: { user: CurrentUser | null }): CurrentUse
 export const requireMember = (
   actor: { user: CurrentUser | null },
   workspace: { id: string; name: string },
-  doing?: string,
+  doing?: Doing,
 ): CurrentUser => {
   const user = requireSignedIn(actor);
   if (!can(user, "submissions.create", workspace.id))

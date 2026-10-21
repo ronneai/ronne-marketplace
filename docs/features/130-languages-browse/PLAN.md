@@ -51,7 +51,7 @@ Every task that moves a folder adds it to the `overrides` entry in `biome.json` 
   the workspace page's tabs.
   *Done when:* three-language tests; the shared table footer noun is correct for 0, 1 and 2.
 
-- [ ] **7. What the actions say.** [risky] The success lines and errors of the four action files in
+- [x] **7. What the actions say.** [risky] The success lines and errors of the four action files in
   scope as codes or `errorText`; `errors.json` gets the workspaces domain's classes (about 30) and
   the identity and submissions errors these screens can raise, in all three languages, with the
   lists and plurals of `WorkspaceHasOutsideDependentsError` and `WorkspaceRenameAliasError`.

@@ -56,7 +56,7 @@ const releaseRefusal = (actor: SubmissionActor, submission: Submission): string 
   if (submission.authorId === actor.user?.id)
     return can(actor.user, "submissions.create", submission.workspace.id)
       ? null
-      : new NotAMemberError(submission.workspace.name, "release your items there").message;
+      : new NotAMemberError(submission.workspace.name, "release").message;
   return "Only its author, a moderator or root releases it.";
 };
 

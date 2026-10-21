@@ -56,15 +56,23 @@ export class DraftScopeNotFoundError extends SubmissionsError {
  * Drafts, proposals and submits need membership of the scope's workspace (091). A removed member
  * still reads and withdraws their own; this is what editing, creating and submitting get.
  */
+/** What joining would let someone do (the web app says each in the person's language). */
+const DOING = {
+  propose: "propose changes",
+  release: "release your items there",
+  comment: "comment there",
+} as const;
+export type Doing = keyof typeof DOING;
+
 export class NotAMemberError extends SubmissionsError {
   override readonly name: string = "NotAMemberError";
   constructor(
     readonly workspace: string,
     /** What joining would let them do there: proposing changes, unless said. */
-    doing = "propose changes",
+    readonly doing: Doing = "propose",
   ) {
     super(
-      `You aren't a member of the ${workspace} workspace. Ask to join ${workspace} to ${doing}.`,
+      `You aren't a member of the ${workspace} workspace. Ask to join ${workspace} to ${Object.hasOwn(DOING, doing) ? DOING[doing] : DOING.propose}.`,
     );
   }
 }
@@ -437,6 +445,8 @@ export class ProposalRenameError extends SubmissionsError {
 /** Proposing a change to an item or version that isn't published. */
 export class ProposalBaseNotFoundError extends SubmissionsError {
   override readonly name: string = "ProposalBaseNotFoundError";
+  /** Whether a version was asked for, for the web app's two sentences. */
+  readonly versioned: boolean;
   constructor(
     readonly itemName: string,
     readonly version?: string,
@@ -446,6 +456,7 @@ export class ProposalBaseNotFoundError extends SubmissionsError {
         ? `${itemName} has no version ${version} to propose a change to.`
         : `${itemName} isn't a published item.`,
     );
+    this.versioned = version !== undefined && version !== "";
   }
 }
 

@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import * as identityErrors from "@/server/domains/identity/exceptions/errors";
+import * as submissionsErrors from "@/server/domains/submissions/exceptions/errors";
+import * as workspacesErrors from "@/server/domains/workspaces/exceptions/errors";
 import { inLocale } from "@/test/intl";
 import { errorText } from "./errors";
 
@@ -95,6 +97,8 @@ describe("domain errors in three languages (129)", () => {
     expect(await text("pt", new Error("plain"))).toBe("plain");
     const odd = Object.assign(new Error("odd"), { name: "toString" });
     expect(await text("fr", odd)).toBe("odd");
+    for (const name of ["constructor", "__proto__", "hasOwnProperty", "A.b", "X".repeat(81)])
+      expect(await text("pt", Object.assign(new Error("m"), { name })), name).toBe("m");
   });
 
   it("a known error missing a value it needs shows its English message, never a key", async () => {
@@ -111,10 +115,18 @@ describe("domain errors in three languages (129)", () => {
     }
   });
 
-  it("every key is a real error class of the identity domain, with the same keys in each language", () => {
+  it("every key is a real error class of a domain, with the same keys in each language", () => {
     expect(Object.keys(pt).sort()).toEqual(Object.keys(en).sort());
     expect(Object.keys(fr).sort()).toEqual(Object.keys(en).sort());
+    const domains: Record<string, unknown>[] = [
+      identityErrors,
+      workspacesErrors,
+      submissionsErrors,
+    ];
     for (const key of Object.keys(en))
-      expect(typeof (identityErrors as Record<string, unknown>)[key], key).toBe("function");
+      expect(
+        domains.some((domain) => typeof domain[key] === "function"),
+        key,
+      ).toBe(true);
   });
 });

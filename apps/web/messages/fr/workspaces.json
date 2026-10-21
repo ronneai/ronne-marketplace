@@ -137,5 +137,17 @@
     "reason": "Motif (facultatif)",
     "reasonHint": "{name} le voit sur la ligne de la portée. {used, number}/{max, number}",
     "cancel": "Annuler"
+  },
+  "results": {
+    "sent": "Demande envoyée.",
+    "alreadyIn": "Vous en faites déjà partie.",
+    "cancelled": "Demande annulée.",
+    "added": "{added, plural, one {# personne ajoutée} other {# personnes ajoutées}}.",
+    "addedAlready": "{added, plural, one {# personne ajoutée} other {# personnes ajoutées}}; {already, plural, one {# personne en faisait déjà partie} other {# personnes en faisaient déjà partie}}.",
+    "now": "Maintenant {role}.",
+    "removed": "Retiré.",
+    "approved": "Approuvé : la personne est dans {workspace} comme {role}.",
+    "declined": "Refusé.",
+    "moved": "Déplacé vers {workspace}."
   }
 }

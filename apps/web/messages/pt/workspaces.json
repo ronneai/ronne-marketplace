@@ -137,5 +137,17 @@
     "reason": "Motivo (opcional)",
     "reasonHint": "{name} vê isso na linha do escopo. {used, number}/{max, number}",
     "cancel": "Cancelar"
+  },
+  "results": {
+    "sent": "Solicitação enviada.",
+    "alreadyIn": "Você já está nele.",
+    "cancelled": "Solicitação cancelada.",
+    "added": "{added, plural, one {# pessoa adicionada} other {# pessoas adicionadas}}.",
+    "addedAlready": "{added, plural, one {# pessoa adicionada} other {# pessoas adicionadas}}; {already, plural, one {# pessoa já estava nele} other {# pessoas já estavam nele}}.",
+    "now": "Agora {role}.",
+    "removed": "Removido.",
+    "approved": "Aprovado: a pessoa está em {workspace} como {role}.",
+    "declined": "Recusado.",
+    "moved": "Movido para {workspace}."
   }
 }
