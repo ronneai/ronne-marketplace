@@ -122,3 +122,30 @@ Witnessed: 2026-10-21 10:50 EDT, by a fresh agent (blind). Commit: 7bf684d9 plus
 | 11 | The witness left the repository unchanged | no | confirmed | `git status --short` listed only the task's files. |
 
 **Overall:** met. Edge cases tried: all counts zero, an empty registry with no types, slots given as null or undefined. The item cards are still English (a later sweep, accepted).
+
+## Task 5 — The empty instance
+
+Witnessed: 2026-10-21 11:00 local, by a fresh agent (blind). Commit: 09d0ccd1 plus uncommitted changes (`HomeView.tsx`, the page and its tests, `home.json` in three languages, `setup-wizard.e2e.ts`, `SPEC.md`, the glossary row in `i18n.md`). Machine: macOS (Darwin 27), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | With nothing released, a non-root person sees "Nothing is published yet." and "Submit an item or ask a moderator.", a link to New item and no scope link | no | confirmed | `HomeView.tsx`; `page.test.tsx` loops over user and moderator; `vitest run "src/app/(app)/page.test.tsx" src/features/home` → 15 passed. |
+| 2 | Root sees "Create a scope" (to the global workspace's page) and "Submit the first item", not the moderator text | no | confirmed | `page.tsx` passes `isRoot` from `loadShell()`; the page test asserts both hrefs and labels; the view test runs the root case in three languages. |
+| 3 | Root with a released item sees the lists, not the empty panel | no | confirmed | The page test "shows root the lists…"; the condition is `lists.recent.length === 0`. |
+| 4 | Component tests exist for both roles | no | confirmed | `page.test.tsx` (page level) and `home.test.tsx` (view level, three languages). |
+| 5 | The end-to-end test starts from a fresh instance and reaches a really empty Home | no | partly | By reading only in the first pass. |
+| 6 | Every word is a message in three languages with the same keys | no | confirmed | `empty.*` in all three files; lint 44 warnings, no errors. |
+| 7 | The Portuguese and French texts follow the glossary and the Canadian typography | no | confirmed | "escopo", "portée", a space before the colon in French only; the glossary row was added. |
+| 8 | Typecheck passes | no | confirmed | `pnpm typecheck` exit 0. |
+
+**Overall:** not met (row 5 only by reading). The spec's root line was corrected: Admin › Scopes went in 115, so it links to the global workspace's page.
+
+### Re-check (row 5)
+
+Witnessed: 2026-10-21 11:05 local, by a fresh agent (blind re-check). Commit: 09d0ccd1 plus uncommitted changes. Machine: macOS, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 5 | The end-to-end test starts from a fresh instance and reaches a really empty Home | no | confirmed | `pnpm --filter @ronneai/web exec playwright test --project=wizard` → 1 passed: the blank instance, the setup, the sign-in, then the heading, the root text, the "Submit the first item" href and "Create a scope" leading to `/workspaces/global`. |
+
+**Overall:** met. Every claim of task 5 is confirmed.

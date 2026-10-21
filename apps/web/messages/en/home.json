@@ -24,7 +24,11 @@
   },
   "empty": {
     "title": "Nothing is published yet.",
-    "body": "Items arrive in three steps: someone submits one, a moderator reviews and approves it, and it’s released as a version. Then it’s in the catalogue, ready to install with <mono>rmk</mono>.",
+    "how": "Items arrive in three steps: someone submits one, a moderator reviews and approves it, and it’s released as a version. Then it’s in the catalogue, ready to install with <mono>rmk</mono>.",
+    "others": "Submit an item or ask a moderator.",
+    "root": "Start here: create a scope for your items, then submit the first one.",
+    "createScope": "Create a scope",
+    "submitFirst": "Submit the first item",
     "submit": "Submit an item"
   }
 }

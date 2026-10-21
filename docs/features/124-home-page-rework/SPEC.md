@@ -29,7 +29,7 @@ checklist, favorites, pinned items), and root gets a way to tell everyone someth
   3, 5 and 6 are empty slots that render nothing until their features land.
 - **A real first screen for a new instance.** When the catalogue has no released item yet, Home says
   so and points to what to do next, by role: root → "Create a scope and submit the first item"
-  (links to Admin › Scopes and New item); others → "Nothing is published yet. Submit an item or ask
+  (links to the global workspace's page, where scopes are created since 115, and to New item); others → "Nothing is published yet. Submit an item or ask
   a moderator." This replaces two empty lists.
 - **Search first.** The search box stays prominent; it also offers the catalogue's type filter as
   links ("Skills · Agents · Rules …", from the types that have released items) so a visitor can

@@ -32,7 +32,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   description, search with type links.
   *Done when:* component tests cover each section present and absent, and the order.
 
-- [ ] **5. The empty instance.** The message for an instance with no released items, different for
+- [x] **5. The empty instance.** The message for an instance with no released items, different for
   root and others, with links.
   *Done when:* component tests for both roles; the end-to-end test starts from a fresh instance.
 

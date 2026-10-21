@@ -24,7 +24,11 @@
   },
   "empty": {
     "title": "Nada foi publicado ainda.",
-    "body": "Os itens chegam em três etapas: alguém submete um, um moderador revisa e aprova, e ele é lançado como uma versão. Depois, está no catálogo, pronto para instalar com o <mono>rmk</mono>.",
+    "how": "Os itens chegam em três etapas: alguém submete um, um moderador revisa e aprova, e ele é lançado como uma versão. Depois, está no catálogo, pronto para instalar com o <mono>rmk</mono>.",
+    "others": "Submeta um item ou peça a um moderador.",
+    "root": "Comece por aqui: crie um escopo para seus itens e depois submeta o primeiro.",
+    "createScope": "Criar um escopo",
+    "submitFirst": "Submeter o primeiro item",
     "submit": "Submeter um item"
   }
 }

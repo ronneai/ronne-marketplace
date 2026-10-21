@@ -24,7 +24,11 @@
   },
   "empty": {
     "title": "Rien n’est encore publié.",
-    "body": "Les éléments arrivent en trois étapes : quelqu’un en soumet un, un modérateur le révise et l’approuve, puis il est publié comme version. Il est alors au catalogue, prêt à installer avec <mono>rmk</mono>.",
+    "how": "Les éléments arrivent en trois étapes : quelqu’un en soumet un, un modérateur le révise et l’approuve, puis il est publié comme version. Il est alors au catalogue, prêt à installer avec <mono>rmk</mono>.",
+    "others": "Soumettez un élément ou demandez à un modérateur.",
+    "root": "Commencez ici : créez une portée pour vos éléments, puis soumettez le premier.",
+    "createScope": "Créer une portée",
+    "submitFirst": "Soumettre le premier élément",
     "submit": "Soumettre un élément"
   }
 }

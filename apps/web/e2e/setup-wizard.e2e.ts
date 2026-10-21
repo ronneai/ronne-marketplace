@@ -59,6 +59,17 @@ test("sets the instance up from the browser, then signs in", async ({ page, requ
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(headerName(page, root.name)).toBeVisible();
 
+  // A new instance has nothing released: Home says so and points root at a scope first (124).
+  await expect(page.getByRole("heading", { name: "Nothing is published yet." })).toBeVisible();
+  await expect(page.getByText("Start here: create a scope for your items")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Submit the first item" })).toHaveAttribute(
+    "href",
+    "/submissions/new",
+  );
+  await page.getByRole("link", { name: "Create a scope" }).click();
+  await expect(page).toHaveURL(/\/workspaces\/global$/);
+  await page.goto("/");
+
   // Ready: the setup only redirects, the API answers, and the audit log has the one root event.
   await page.goto("/setup");
   await expect(page).toHaveURL(/\/$/);

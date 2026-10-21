@@ -9,6 +9,7 @@ import { Input, Label } from "@/components/ui/Field";
 import { Panel } from "@/components/ui/Panel";
 import { TYPE_DOT } from "@/components/ui/TypeBadge";
 import type { HomeLists } from "@/server/domains/items/actions/catalogue";
+import { GLOBAL_WORKSPACE_NAME } from "@/server/domains/workspaces/models/workspace";
 
 /** What waits for the viewer: their own work in progress and, for reviewers, the queue. */
 export type ForYou = { drafts: number; changesRequested: number; needsReview: number };
@@ -66,10 +67,13 @@ const ItemList = ({ entries }: { entries: HomeLists["recent"] }) => (
 export const HomeView = ({
   lists,
   forYou,
+  isRoot = false,
   slots = {},
 }: {
   lists: HomeLists;
   forYou: ForYou;
+  /** Root is pointed at creating a scope first, when nothing is released (124). */
+  isRoot?: boolean;
   slots?: HomeSlots;
 }) => {
   const t = useTranslations("home");
@@ -156,17 +160,32 @@ export const HomeView = ({
       {slots.pinned ?? null}
 
       {lists.recent.length === 0 ? (
-        <Panel className="grid gap-2 text-sm">
+        <Panel className="grid gap-3 text-sm">
           <h2 className="font-semibold text-fg">{t("empty.title")}</h2>
+          <p className="text-fg">{isRoot ? t("empty.root") : t("empty.others")}</p>
           <p className="text-muted">
-            {t.rich("empty.body", {
+            {t.rich("empty.how", {
               mono: (chunks) => <code className="font-mono">{chunks}</code>,
             })}
           </p>
-          <p>
-            <Link href="/submissions/new" className={buttonClasses("secondary")}>
-              {t("empty.submit")}
-            </Link>
+          <p className="flex flex-wrap gap-2">
+            {isRoot ? (
+              <>
+                <Link
+                  href={`/workspaces/${GLOBAL_WORKSPACE_NAME}`}
+                  className={buttonClasses("primary")}
+                >
+                  {t("empty.createScope")}
+                </Link>
+                <Link href="/submissions/new" className={buttonClasses("secondary")}>
+                  {t("empty.submitFirst")}
+                </Link>
+              </>
+            ) : (
+              <Link href="/submissions/new" className={buttonClasses("secondary")}>
+                {t("empty.submit")}
+              </Link>
+            )}
           </p>
         </Panel>
       ) : (

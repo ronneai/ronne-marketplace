@@ -148,19 +148,25 @@ describe("Home in three languages (124)", () => {
     expect(fr).toContain("Vous avez 1 brouillon en cours.");
   });
 
-  it("explains an empty registry in each language, with rmk in mono", () => {
+  it("explains an empty registry in each language, with rmk in mono, differently for root", () => {
     for (const [locale, words] of [
       ["en", english],
       ["pt", portuguese],
       ["fr", french],
     ] as const) {
-      const html = view(
-        <HomeView lists={{ recent: [], mostUsed: [], types: [] }} forYou={none} />,
-        locale,
-      );
-      expect(html).toContain(words.empty.title);
-      expect(html).toContain(words.empty.submit);
-      expect(html).toContain('<code class="font-mono">rmk</code>');
+      const empty = { recent: [], mostUsed: [], types: [] };
+      const others = view(<HomeView lists={empty} forYou={none} />, locale);
+      expect(others).toContain(words.empty.title);
+      expect(others).toContain(words.empty.others.replace(/&/g, "&amp;"));
+      expect(others).toContain(words.empty.submit);
+      expect(others).toContain('<code class="font-mono">rmk</code>');
+      expect(others).not.toContain(words.empty.createScope);
+      const root = view(<HomeView lists={empty} forYou={none} isRoot />, locale);
+      expect(root).toContain(words.empty.root);
+      expect(root).toContain(words.empty.createScope);
+      expect(root).toContain(words.empty.submitFirst);
+      expect(root).toContain('href="/workspaces/global"');
+      expect(root).not.toContain(words.empty.others);
     }
   });
 });
