@@ -1,0 +1,67 @@
+{
+  "page": {
+    "item": "Élément",
+    "versions": "Versions"
+  },
+  "breadcrumb": {
+    "label": "Fil d’Ariane",
+    "catalogue": "Catalogue"
+  },
+  "badge": {
+    "deprecated": "obsolète",
+    "yanked": "retirée"
+  },
+  "noDescription": "Aucune description.",
+  "meta": {
+    "license": "licence {license}",
+    "noLicense": "aucune licence indiquée",
+    "by": "par {owner}",
+    "formerUser": "un ancien utilisateur",
+    "published": "publié le <date></date>"
+  },
+  "notice": {
+    "title": "{kind, select, latest {Vous consultez la {version}, pas la plus récente ({target}).} other {Vous consultez la {version}, pas la version listée ({target}).}}",
+    "yanked": "Elle a été retirée : {reason}. Les nouvelles installations ne peuvent pas la résoudre; les projets qui l’épinglent continuent de fonctionner.",
+    "deprecated": "Elle est obsolète : {message}",
+    "show": "{kind, select, latest {Afficher la plus récente} other {Afficher la {version}}}"
+  },
+  "tabs": {
+    "label": "Élément",
+    "overview": "Aperçu",
+    "readme": "README",
+    "versions": "Versions",
+    "dependencies": "Dépendances",
+    "files": "Fichiers",
+    "tools": "Fonctionne dans",
+    "risks": "Ce qu’il peut faire",
+    "risksCount": "Ce qu’il peut faire ({count})"
+  },
+  "readme": {
+    "none": "Cette version n’a pas de README."
+  },
+  "dependencies": {
+    "none": "Cette version n’a aucune dépendance.",
+    "item": "Élément",
+    "range": "Plage"
+  },
+  "risks": {
+    "none": "Rien de signalé : aucun hook, serveur MCP, règle de permission, ligne d’état, serveur de langage, script, exécutable ni adresse web."
+  },
+  "tools": {
+    "title": "Fonctionne dans",
+    "level": {
+      "native": "pris en charge",
+      "degraded": "en partie",
+      "off": "désactivé",
+      "none": "ignoré"
+    },
+    "native": "Va dans <place></place>.",
+    "nativeAsIs": "S’installe tel quel.",
+    "degraded": "Va dans <place></place>, avec une partie laissée de côté : la page de l’outil dit laquelle.",
+    "off": "Le ronne.yaml de cette version la tient à l’écart de cet outil.",
+    "none": "{tool} n’a pas de place pour les éléments de type {type}; rmk les ignore donc ici, avec un avertissement."
+  },
+  "propose": {
+    "button": "Proposer une modification"
+  }
+}

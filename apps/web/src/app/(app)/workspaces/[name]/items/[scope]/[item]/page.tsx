@@ -1,7 +1,12 @@
+import { getTranslations } from "next-intl/server";
+import { pageTitle } from "@/i18n/page-title";
 import { holdPage } from "../../../../../hold";
 import Item from "../../../../../items/[scope]/[name]/page";
 
-export const metadata = { title: "Item · Ronne AI Marketplace" };
+export const generateMetadata = async () => {
+  const t = await getTranslations("item.page");
+  return { title: pageTitle(t("item")) };
+};
 
 type Params = Promise<{ name: string; scope: string; item: string }>;
 

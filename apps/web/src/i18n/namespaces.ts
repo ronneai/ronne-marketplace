@@ -5,6 +5,7 @@ import type catalogue from "../../messages/en/catalogue.json";
 import type common from "../../messages/en/common.json";
 import type errors from "../../messages/en/errors.json";
 import type home from "../../messages/en/home.json";
+import type item from "../../messages/en/item.json";
 import type shell from "../../messages/en/shell.json";
 import type types from "../../messages/en/types.json";
 
@@ -23,6 +24,7 @@ export const NAMESPACES = [
   "home",
   "types",
   "catalogue",
+  "item",
 ] as const;
 export type Namespace = (typeof NAMESPACES)[number];
 
@@ -37,4 +39,5 @@ export type Messages = {
   home: typeof home;
   types: typeof types;
   catalogue: typeof catalogue;
+  item: typeof item;
 };

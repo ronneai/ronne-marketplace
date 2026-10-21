@@ -27,7 +27,7 @@ Every task that moves a folder adds it to the `overrides` entry in `biome.json` 
   *Done when:* a three-language test with the English-leak guard; the folder is in the scan; the
   route is in `MIGRATED_ROUTES`.
 
-- [ ] **3. Item page: header, tabs, Tools and Propose.** `ItemPageView` (the meta line, the version
+- [x] **3. Item page: header, tabs, Tools and Propose.** `ItemPageView` (the meta line, the version
   notice as whole sentences), `tabs.ts` and `ItemTabs` (risk count), `ToolsPanel`, `ProposeButton`,
   `load.ts`, and the item routes' titles (`items/[scope]/[name]`, versions, workspace item
   routes).

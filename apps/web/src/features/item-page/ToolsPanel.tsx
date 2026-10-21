@@ -1,5 +1,5 @@
 import { RENDERERS, supportOf, type ToolSupport } from "@ronneai/core/render";
-import type { ReactNode } from "react";
+import { useTranslations } from "next-intl";
 import { Help } from "@/components/help/Help";
 import { docsHref } from "@/components/help/topics";
 import { placeFor, TOOL_PAGES } from "@/components/tools/tool-paths";
@@ -12,36 +12,39 @@ import { Panel } from "@/components/ui/Panel";
  * per built-in renderer, its level from the renderer's `supports()` and the version's own
  * `targets`, and what that means here. The same answer `rmk` acts on.
  */
-const LEVEL: Record<ToolSupport, { label: string; tone: BadgeTone }> = {
-  native: { label: "supported", tone: "accent" },
-  degraded: { label: "partly", tone: "warning" },
-  off: { label: "turned off", tone: "muted" },
-  none: { label: "skipped", tone: "muted" },
+const TONE: Record<ToolSupport, BadgeTone> = {
+  native: "accent",
+  degraded: "warning",
+  off: "muted",
+  none: "muted",
 };
 
 const Place = ({ place }: { place: string }) =>
   /[./]/.test(place) ? <code className="font-mono text-[11px] text-fg">{place}</code> : place;
 
-const line = (level: ToolSupport, tool: string, type: string, place: string): ReactNode => {
+/** What a level means for one tool, in a sentence (the tool's file or folder inside it). */
+const Line = ({
+  level,
+  tool,
+  type,
+  place,
+}: {
+  level: ToolSupport;
+  tool: string;
+  type: string;
+  place: string;
+}) => {
+  const t = useTranslations("item.tools");
+  const where = { place: () => <Place place={place} /> };
   switch (level) {
     case "native":
-      return place ? (
-        <>
-          Goes to <Place place={place} />.
-        </>
-      ) : (
-        "Installs as it is."
-      );
+      return place ? t.rich("native", where) : t("nativeAsIs");
     case "degraded":
-      return (
-        <>
-          Goes to <Place place={place} />, with some of it left out: the tool&apos;s page says what.
-        </>
-      );
+      return t.rich("degraded", where);
     case "off":
-      return "This version's ronne.yaml keeps it away from this tool.";
+      return t("off");
     default:
-      return `${tool} has no place for ${type} items, so rmk skips it there with a warning.`;
+      return t("none", { tool, type });
   }
 };
 
@@ -55,11 +58,12 @@ export const ToolsPanel = ({
   type: string;
   manifest: Record<string, unknown>;
 }) => {
+  const t = useTranslations("item.tools");
   const support = supportOf(manifest, type);
   return (
     <Panel className="grid gap-2">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold text-fg">Works in</h2>
+        <h2 className="text-sm font-semibold text-fg">{t("title")}</h2>
         <Help id="support" />
       </div>
       <ul className="grid divide-y divide-hairline">
@@ -82,10 +86,15 @@ export const ToolsPanel = ({
                 <span className="text-sm font-semibold text-fg">{renderer.name}</span>
               )}
               <span>
-                <Badge tone={LEVEL[level].tone}>{LEVEL[level].label}</Badge>
+                <Badge tone={TONE[level]}>{t(`level.${level}`)}</Badge>
               </span>
               <span className="col-span-2 min-w-0 break-words text-xs text-muted sm:col-span-1">
-                {line(level, renderer.name, type, placeFor(renderer.id, type, name))}
+                <Line
+                  level={level}
+                  tool={renderer.name}
+                  type={type}
+                  place={placeFor(renderer.id, type, name)}
+                />
               </span>
             </li>
           );

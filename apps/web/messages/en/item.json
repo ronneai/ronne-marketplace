@@ -1,0 +1,67 @@
+{
+  "page": {
+    "item": "Item",
+    "versions": "Versions"
+  },
+  "breadcrumb": {
+    "label": "Breadcrumb",
+    "catalogue": "Catalogue"
+  },
+  "badge": {
+    "deprecated": "deprecated",
+    "yanked": "yanked"
+  },
+  "noDescription": "No description.",
+  "meta": {
+    "license": "license {license}",
+    "noLicense": "no license given",
+    "by": "by {owner}",
+    "formerUser": "a former user",
+    "published": "published <date></date>"
+  },
+  "notice": {
+    "title": "{kind, select, latest {You’re looking at {version}, not latest ({target}).} other {You’re looking at {version}, not the listed version ({target}).}}",
+    "yanked": "It was yanked: {reason}. New installs can’t resolve it; projects that pin it keep working.",
+    "deprecated": "It’s deprecated: {message}",
+    "show": "{kind, select, latest {Show latest} other {Show {version}}}"
+  },
+  "tabs": {
+    "label": "Item",
+    "overview": "Overview",
+    "readme": "README",
+    "versions": "Versions",
+    "dependencies": "Dependencies",
+    "files": "Files",
+    "tools": "Works in",
+    "risks": "What it can do",
+    "risksCount": "What it can do ({count})"
+  },
+  "readme": {
+    "none": "This version has no README."
+  },
+  "dependencies": {
+    "none": "This version has no dependencies.",
+    "item": "Item",
+    "range": "Range"
+  },
+  "risks": {
+    "none": "Nothing flagged: no hooks, MCP servers, permission rules, status lines, language servers, scripts, executables or web addresses."
+  },
+  "tools": {
+    "title": "Works in",
+    "level": {
+      "native": "supported",
+      "degraded": "partly",
+      "off": "turned off",
+      "none": "skipped"
+    },
+    "native": "Goes to <place></place>.",
+    "nativeAsIs": "Installs as it is.",
+    "degraded": "Goes to <place></place>, with some of it left out: the tool’s page says what.",
+    "off": "This version’s ronne.yaml keeps it away from this tool.",
+    "none": "{tool} has no place for {type} items, so rmk skips it there with a warning."
+  },
+  "propose": {
+    "button": "Propose a change"
+  }
+}

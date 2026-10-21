@@ -78,3 +78,34 @@ Witnessed: 2026-10-21 14:58 EDT, by a fresh agent (blind re-check). Commit: 0bb0
 | 9 | pt and fr pages do not break layouts (the phone sweep, signed out and as member, moderator and root) | no | confirmed | `pnpm exec playwright test mobile-sweep --project=phone -g "in (pt|fr)"` from apps/web → `10 passed (10.8s)`; `mobile-sweep.mobile.e2e.ts` filters `SWEEP_PAGES` to `MIGRATED_ROUTES` for non-English runs, and `/catalogue` is in it; each run asserts `html[lang]` and measures overflow. |
 
 **Overall:** met.
+
+## Task 3 — Item page: header, tabs, Tools and Propose
+
+Witnessed: 2026-10-21 14:58 local, by a fresh agent (blind). Commit: 46e18f69 plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Header, breadcrumb, badges, meta line, tabs with risk count, Tools panel and Propose button come from `item` messages in en/pt/fr, no raw JSX text | no | confirmed | `git diff` of ItemPageView, ItemTabs, ToolsPanel and ProposeButton shows `t(...)` throughout; `biome.json` lists the four files and `app/(app)/items/**`; `biome check` → 0 errors. |
+| 2 | A three-language test covers each component | no | confirmed | `translations.test.tsx` covers header, tabs and Propose, the Tools tab, a placeholder-like owner and an English-leak check for pt and fr; all pass. |
+| 3 | Notice variant: latest vs listed target, in each language | no | partly | The listed target was asserted in pt only. |
+| 4 | Notice variant: yanked, deprecated, neither, in each language | no | partly | Yanked asserted in pt and fr; deprecated-only and neither were not asserted. |
+| 5 | English unchanged apart from the typographic apostrophe; whole ICU sentences | no | confirmed | `git diff` against `en/item.json`: every notice string matches; `select` and placeholders instead of joins; rich tags for `<place>` and `<date>`. |
+| 6 | Stored placeholder-looking values are shown as typed | no | confirmed | Owner `{owner} <b>x</b>` renders `por {owner} &lt;b&gt;x&lt;/b&gt;`. |
+| 7 | The four item routes have translated page titles | no | partly | Read only the diffstat and the helper; no title assertion existed. |
+| 8 | The four item routes are in `MIGRATED_ROUTES` and the pinned list | no | confirmed | Both diffs add the four routes; `pages-coverage.test.ts` passes. |
+| 9 | The phone sweep still passes in pt and fr | no | confirmed | `pnpm exec playwright test mobile-sweep --project=phone -g "in (pt\|fr)"` → 10 passed (16.6s), on a build of this tree. |
+| 10 | The tests fail when the code regresses | no | confirmed | pt `tabs.tools` and the Tools title set to English → 3 failed; restored, `cmp` identical. |
+
+**Overall:** not met: rows 3, 4 and 7.
+
+### Re-check (rows 3, 4, 7)
+
+Witnessed: 2026-10-21 15:05 local, by a fresh agent (blind re-check). Commit: 46e18f69 plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 3 | Notice variant: latest vs listed target, in each language | no | confirmed | The new test asserts en "not the listed version (1.1.0).", "Show 1.1.0"; pt "não a versão listada (1.1.0)", "Mostrar a 1.1.0"; fr "pas la version listée (1.1.0)", "Afficher la 1.1.0"; they match the `select` branches in `messages/{en,pt,fr}/item.json`. |
+| 4 | Notice variant: yanked, deprecated, neither, in each language | no | confirmed | A deprecated-only version asserts pt "Ela está obsoleta: …", fr "Elle est obsolète : …" and the absence of the yanked sentence; the English matches HEAD apart from the apostrophe; the neither case asserts the title and the link and no state sentence in all three. Mutation: the deprecated notice call replaced by "" → the deprecated test failed. |
+| 7 | Page titles for the four item routes, in each language | no | confirmed | The title test calls the four `generateMetadata` in en, pt and fr (Item/Item/Élément, Versions/Versões/Versions). Mutation: fr `item.page.item` set to "Item" → the title test failed. Files restored, `cmp` identical. |
+
+**Overall:** met.

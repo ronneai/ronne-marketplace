@@ -4,6 +4,7 @@ import { CatalogueView } from "@/features/catalogue/CatalogueView";
 import { parseCatalogueQuery, type SearchParams } from "@/features/catalogue/query";
 import { hereOf } from "@/features/current-workspace/current-workspace";
 import { Showing } from "@/features/current-workspace/Showing";
+import { pageTitle } from "@/i18n/page-title";
 import { browseCatalogue } from "@/server/domains/items/actions/catalogue";
 import { requestHeaders } from "@/server/http/request-headers";
 import { holdPage } from "../hold";
@@ -11,7 +12,7 @@ import { workspaceView } from "../shell";
 
 export const generateMetadata = async () => {
   const t = await getTranslations("catalogue.page");
-  return { title: `${t("title")} · Ronne AI Marketplace` };
+  return { title: pageTitle(t("title")) };
 };
 
 /**

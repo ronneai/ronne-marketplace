@@ -187,7 +187,7 @@ describe("the item page", () => {
     expect(html).toContain('href="/items/team/github"');
     expect(html).toContain('href="/items/team/github/versions"');
     expect(html).toContain('href="/items/team/github?tab=files"');
-    expect(html).not.toContain("You&#x27;re looking at");
+    expect(html).not.toContain("You’re looking at");
     // README never reads the artifact.
     expect(versions.versionContents).not.toHaveBeenCalled();
     // Anyone signed in may propose a change (017).
@@ -272,7 +272,7 @@ describe("the item page", () => {
     );
     const html = await render({ version: "1.0.0", tab: "files" });
     expect(versions.itemPage).toHaveBeenCalledWith(expect.any(Headers), expect.anything(), "1.0.0");
-    expect(html).toContain("You&#x27;re looking at 1.0.0, not latest (1.1.0).");
+    expect(html).toContain("You’re looking at 1.0.0, not latest (1.1.0).");
     expect(html).toContain("It was yanked: Breaks on Windows.");
     expect(html).toContain('href="/items/team/github?tab=files"');
     expect(html).toContain('href="/items/team/github?tab=dependencies&amp;version=1.0.0"');
@@ -291,7 +291,7 @@ describe("the item page", () => {
     );
     const html = await render({ version: "1.1.0", tab: "tools" });
     expect(html).toContain(">turned off<");
-    expect(html).toContain("This version&#x27;s ronne.yaml keeps it away from this tool.");
+    expect(html).toContain("This version’s ronne.yaml keeps it away from this tool.");
     versions.itemPage.mockResolvedValue(
       itemPageData({ item: { ...itemPageData().item, type: "output-style" } }),
     );

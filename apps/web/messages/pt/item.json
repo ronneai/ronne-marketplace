@@ -1,0 +1,67 @@
+{
+  "page": {
+    "item": "Item",
+    "versions": "Versões"
+  },
+  "breadcrumb": {
+    "label": "Trilha de navegação",
+    "catalogue": "Catálogo"
+  },
+  "badge": {
+    "deprecated": "obsoleto",
+    "yanked": "retirado"
+  },
+  "noDescription": "Sem descrição.",
+  "meta": {
+    "license": "licença {license}",
+    "noLicense": "sem licença informada",
+    "by": "por {owner}",
+    "formerUser": "um ex-usuário",
+    "published": "publicado em <date></date>"
+  },
+  "notice": {
+    "title": "{kind, select, latest {Você está vendo a {version}, não a mais recente ({target}).} other {Você está vendo a {version}, não a versão listada ({target}).}}",
+    "yanked": "Ela foi retirada: {reason}. Novas instalações não a resolvem; projetos que a fixam continuam funcionando.",
+    "deprecated": "Ela está obsoleta: {message}",
+    "show": "{kind, select, latest {Mostrar a mais recente} other {Mostrar a {version}}}"
+  },
+  "tabs": {
+    "label": "Item",
+    "overview": "Visão geral",
+    "readme": "README",
+    "versions": "Versões",
+    "dependencies": "Dependências",
+    "files": "Arquivos",
+    "tools": "Funciona em",
+    "risks": "O que ele pode fazer",
+    "risksCount": "O que ele pode fazer ({count})"
+  },
+  "readme": {
+    "none": "Esta versão não tem README."
+  },
+  "dependencies": {
+    "none": "Esta versão não tem dependências.",
+    "item": "Item",
+    "range": "Intervalo"
+  },
+  "risks": {
+    "none": "Nada sinalizado: sem hooks, servidores MCP, regras de permissão, linhas de status, servidores de linguagem, scripts, executáveis ou endereços web."
+  },
+  "tools": {
+    "title": "Funciona em",
+    "level": {
+      "native": "compatível",
+      "degraded": "em parte",
+      "off": "desligado",
+      "none": "ignorado"
+    },
+    "native": "Vai para <place></place>.",
+    "nativeAsIs": "Instala como está.",
+    "degraded": "Vai para <place></place>, com parte dele de fora: a página da ferramenta diz o quê.",
+    "off": "O ronne.yaml desta versão a mantém longe desta ferramenta.",
+    "none": "{tool} não tem lugar para itens do tipo {type}, então o rmk os ignora ali com um aviso."
+  },
+  "propose": {
+    "button": "Propor uma alteração"
+  }
+}
