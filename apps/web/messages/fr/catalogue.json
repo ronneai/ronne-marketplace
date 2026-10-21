@@ -1,4 +1,68 @@
 {
+  "page": {
+    "title": "Catalogue",
+    "description": "Tous les éléments publiés : skills, agents, rules, MCP servers et plus, révisés avant leur publication."
+  },
+  "view": {
+    "search": {
+      "label": "Rechercher",
+      "placeholder": "Nom, description ou mot-clé",
+      "submit": "Rechercher"
+    },
+    "filters": {
+      "button": "Filtres",
+      "on": "actifs",
+      "type": "Type",
+      "typeAll": "tous {total}",
+      "typesLegend": "Types à afficher (aucun : tous les types)",
+      "workspace": "Espace de travail",
+      "allWorkspaces": "Tous les espaces de travail",
+      "personal": "Personnel ({workspace})",
+      "scope": "Portée",
+      "allScopes": "Toutes les portées",
+      "worksIn": "Fonctionne dans",
+      "anyTool": "N’importe quel outil",
+      "clear": "Effacer les filtres",
+      "apply": "Appliquer"
+    },
+    "active": {
+      "label": "Filtres actifs",
+      "searchChip": "Recherche :",
+      "removeSearch": "Retirer la recherche",
+      "removeType": "Retirer le filtre {type}",
+      "removeWorkspace": "Retirer le filtre d’espace de travail",
+      "removeScope": "Retirer le filtre de portée",
+      "removeTool": "Retirer le filtre d’outil",
+      "clearAll": "Tout effacer"
+    },
+    "sort": {
+      "summary": "Trier : <value></value>",
+      "label": "Trier",
+      "recent": {
+        "label": "Publiés récemment",
+        "hint": "Dernières versions en premier"
+      },
+      "installs": {
+        "label": "Les plus installés",
+        "hint": "Le plus d’installations avec rmk en premier"
+      },
+      "name": {
+        "label": "Nom",
+        "hint": "Par portée, puis par nom, de A à Z"
+      }
+    },
+    "empty": {
+      "noMatch": "Aucun élément ne correspond. <see>Voir tous les éléments</see>.",
+      "title": "Rien n’est encore publié.",
+      "how": "Les éléments arrivent en trois étapes : quelqu’un en soumet un, un modérateur le révise et l’approuve, puis il est publié comme version. Il est alors listé ici, prêt à installer avec <mono>rmk</mono>.",
+      "submit": "Soumettre un élément"
+    },
+    "pager": {
+      "label": "Pages",
+      "first": "Première page",
+      "next": "Page suivante"
+    }
+  },
   "card": {
     "risk": "⚠ risque",
     "deprecated": "obsolète",

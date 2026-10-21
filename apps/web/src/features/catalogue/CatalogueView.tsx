@@ -43,12 +43,8 @@ const ActiveFilter = ({
 const typeOption =
   "flex min-h-9 pointer-coarse:min-h-11 cursor-pointer items-center gap-2 rounded-control border border-hairline px-3 text-sm text-fg hover:border-strong has-checked:border-accent has-checked:bg-tint has-checked:font-semibold";
 
-/** The sorts, each with what it puts first (owner, 2026-10-02). */
-const SORTS = [
-  { id: "recent", label: "Recently published", hint: "Newest releases first" },
-  { id: "installs", label: "Most installed", hint: "Most installs with rmk first" },
-  { id: "name", label: "Name", hint: "By scope, then name, A to Z" },
-] as const;
+/** The sorts, each with what it puts first (owner, 2026-10-02); their words are `catalogue.view.sort.<id>`. */
+const SORTS = ["recent", "installs", "name"] as const;
 
 /**
  * The catalogue (feature 018): search; a Filters button (type with counts, workspace (090), scope,
@@ -69,10 +65,11 @@ export const CatalogueView = ({
   keepAll?: boolean;
 }) => {
   const typeText = useTranslations("types");
+  const t = useTranslations("catalogue.view");
   const { query } = page;
   const href = (changes: Parameters<typeof catalogueHref>[1] = {}) =>
     catalogueHref(query, changes, keepAll);
-  const total = page.typeCounts.reduce((sum, t) => sum + t.count, 0);
+  const total = page.typeCounts.reduce((sum, entry) => sum + entry.count, 0);
   const filtered = Boolean(
     query.q || query.types.length || query.scope || query.workspace || query.tool,
   );
@@ -86,17 +83,17 @@ export const CatalogueView = ({
       ? [...page.workspaces, query.workspace]
       : page.workspaces;
   const none = { types: [], scope: null, workspace: null, tool: null };
-  const sort = SORTS.find((x) => x.id === query.sort) ?? SORTS[0];
+  const sort = SORTS.find((id) => id === query.sort) ?? SORTS[0];
   return (
     <div className="grid grid-cols-1 gap-5">
       <form method="get" action="/catalogue" className="flex flex-wrap items-end gap-2">
         <div className="grid min-w-0 flex-1 basis-60 gap-1.5">
-          <Label htmlFor="catalogue-search">Search</Label>
+          <Label htmlFor="catalogue-search">{t("search.label")}</Label>
           <Input
             id="catalogue-search"
             name="q"
             type="search"
-            placeholder="Name, description or keyword"
+            placeholder={t("search.placeholder")}
             maxLength={100}
             defaultValue={query.q}
           />
@@ -111,7 +108,7 @@ export const CatalogueView = ({
         {query.tool ? <input type="hidden" name="tool" value={query.tool} /> : null}
         {query.sort !== "recent" ? <input type="hidden" name="sort" value={query.sort} /> : null}
         <button type="submit" className={buttonClasses("secondary")}>
-          Search
+          {t("search.submit")}
         </button>
       </form>
 
@@ -121,11 +118,11 @@ export const CatalogueView = ({
             summary={
               <>
                 <SlidersHorizontal size={16} aria-hidden="true" />
-                Filters
+                {t("filters.button")}
                 {activeCount ? (
                   <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-accent-strong px-1.5 text-[11px] text-on-accent">
                     {activeCount}
-                    <span className="sr-only"> on</span>
+                    <span className="sr-only"> {t("filters.on")}</span>
                   </span>
                 ) : null}
               </>
@@ -143,30 +140,33 @@ export const CatalogueView = ({
                     aria-hidden="true"
                     className="transition-none group-open/types:rotate-90"
                   />
-                  Type
+                  {t("filters.type")}
                   <span className="font-normal text-muted">
                     {query.types.length === 0
-                      ? `all ${total}`
+                      ? t("filters.typeAll", { total })
                       : query.types.map((type) => typeText(`name.${type}`)).join(", ")}
                   </span>
                 </summary>
                 <fieldset className="mt-2 grid gap-1.5 sm:grid-cols-2">
-                  <legend className="sr-only">Types to show (none: every type)</legend>
-                  {page.typeCounts.map((t) => (
-                    <label key={t.type} className={cn(typeOption, t.count === 0 && "text-muted")}>
+                  <legend className="sr-only">{t("filters.typesLegend")}</legend>
+                  {page.typeCounts.map((entry) => (
+                    <label
+                      key={entry.type}
+                      className={cn(typeOption, entry.count === 0 && "text-muted")}
+                    >
                       <input
                         type="checkbox"
                         name="type"
-                        value={t.type}
-                        defaultChecked={query.types.includes(t.type)}
+                        value={entry.type}
+                        defaultChecked={query.types.includes(entry.type)}
                         className="size-4 shrink-0 rounded-sm border border-strong accent-(--accent) outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
                       />
                       <span
                         aria-hidden="true"
-                        className={cn("size-2 shrink-0 rounded-full", TYPE_DOT[t.type])}
+                        className={cn("size-2 shrink-0 rounded-full", TYPE_DOT[entry.type])}
                       />
-                      {typeText(`name.${t.type}`)}
-                      <span className="ml-auto text-xs text-muted">{t.count}</span>
+                      {typeText(`name.${entry.type}`)}
+                      <span className="ml-auto text-xs text-muted">{entry.count}</span>
                     </label>
                   ))}
                 </fieldset>
@@ -174,17 +174,19 @@ export const CatalogueView = ({
               <div className="grid gap-3 sm:grid-cols-2">
                 {workspaceFilter ? (
                   <div className="grid min-w-0 gap-1.5">
-                    <Label htmlFor="catalogue-workspace">Workspace</Label>
+                    <Label htmlFor="catalogue-workspace">{t("filters.workspace")}</Label>
                     <select
                       id="catalogue-workspace"
                       name="workspace"
                       defaultValue={query.workspace ?? ""}
                       className={cn(inputClasses, "min-w-0")}
                     >
-                      <option value="">All workspaces</option>
+                      <option value="">{t("filters.allWorkspaces")}</option>
                       {workspaceOptions.map((workspace) => (
                         <option key={workspace} value={workspace}>
-                          {workspace === page.personal ? `Personal (${workspace})` : workspace}
+                          {workspace === page.personal
+                            ? t("filters.personal", { workspace })
+                            : workspace}
                         </option>
                       ))}
                     </select>
@@ -193,14 +195,14 @@ export const CatalogueView = ({
                   <input type="hidden" name="workspace" value="" />
                 ) : null}
                 <div className="grid min-w-0 gap-1.5">
-                  <Label htmlFor="catalogue-scope">Scope</Label>
+                  <Label htmlFor="catalogue-scope">{t("filters.scope")}</Label>
                   <select
                     id="catalogue-scope"
                     name="scope"
                     defaultValue={query.scope ?? ""}
                     className={cn(inputClasses, "min-w-0")}
                   >
-                    <option value="">All scopes</option>
+                    <option value="">{t("filters.allScopes")}</option>
                     {page.scopes.map((scope) => (
                       <option key={scope} value={scope}>
                         @{scope}
@@ -209,14 +211,14 @@ export const CatalogueView = ({
                   </select>
                 </div>
                 <div className="grid min-w-0 gap-1.5">
-                  <Label htmlFor="catalogue-tool">Works in</Label>
+                  <Label htmlFor="catalogue-tool">{t("filters.worksIn")}</Label>
                   <select
                     id="catalogue-tool"
                     name="tool"
                     defaultValue={query.tool ?? ""}
                     className={cn(inputClasses, "min-w-0")}
                   >
-                    <option value="">Any tool</option>
+                    <option value="">{t("filters.anyTool")}</option>
                     {RENDERERS.map((renderer) => (
                       <option key={renderer.id} value={renderer.id}>
                         {renderer.name}
@@ -228,27 +230,27 @@ export const CatalogueView = ({
               <div className="flex flex-wrap items-center justify-end gap-2 border-t border-hairline pt-3">
                 {activeCount ? (
                   <Link href={href(none)} className={buttonClasses("ghost")}>
-                    Clear filters
+                    {t("filters.clear")}
                   </Link>
                 ) : null}
                 <button type="submit" className={buttonClasses("primary")}>
-                  Apply
+                  {t("filters.apply")}
                 </button>
               </div>
             </form>
           </Disclosure>
           {filtered ? (
-            <ul aria-label="Active filters" className="flex flex-wrap items-center gap-1.5">
+            <ul aria-label={t("active.label")} className="flex flex-wrap items-center gap-1.5">
               {query.q ? (
-                <ActiveFilter href={href({ q: "" })} label="Remove the search">
-                  <span className="font-normal text-muted">Search:</span> {query.q}
+                <ActiveFilter href={href({ q: "" })} label={t("active.removeSearch")}>
+                  <span className="font-normal text-muted">{t("active.searchChip")}</span> {query.q}
                 </ActiveFilter>
               ) : null}
               {query.types.map((type) => (
                 <ActiveFilter
                   key={type}
-                  href={href({ types: query.types.filter((t) => t !== type) })}
-                  label={`Remove the ${typeText(`name.${type}`)} filter`}
+                  href={href({ types: query.types.filter((other) => other !== type) })}
+                  label={t("active.removeType", { type: typeText(`name.${type}`) })}
                   className={TYPE_CLASSES[type]}
                 >
                   <span aria-hidden="true" className={cn("size-2 rounded-full", TYPE_DOT[type])} />
@@ -256,18 +258,20 @@ export const CatalogueView = ({
                 </ActiveFilter>
               ))}
               {query.workspace ? (
-                <ActiveFilter href={href({ workspace: null })} label="Remove the workspace filter">
-                  <span className="font-normal text-muted">Workspace</span> {query.workspace}
+                <ActiveFilter href={href({ workspace: null })} label={t("active.removeWorkspace")}>
+                  <span className="font-normal text-muted">{t("filters.workspace")}</span>{" "}
+                  {query.workspace}
                 </ActiveFilter>
               ) : null}
               {query.scope ? (
-                <ActiveFilter href={href({ scope: null })} label="Remove the scope filter">
-                  <span className="font-normal text-muted">Scope</span> @{query.scope}
+                <ActiveFilter href={href({ scope: null })} label={t("active.removeScope")}>
+                  <span className="font-normal text-muted">{t("filters.scope")}</span> @
+                  {query.scope}
                 </ActiveFilter>
               ) : null}
               {query.tool ? (
-                <ActiveFilter href={href({ tool: null })} label="Remove the tool filter">
-                  <span className="font-normal text-muted">Works in</span>{" "}
+                <ActiveFilter href={href({ tool: null })} label={t("active.removeTool")}>
+                  <span className="font-normal text-muted">{t("filters.worksIn")}</span>{" "}
                   {RENDERERS.find((r) => r.id === query.tool)?.name ?? query.tool}
                 </ActiveFilter>
               ) : null}
@@ -276,7 +280,7 @@ export const CatalogueView = ({
                   href={href({ q: "", ...none })}
                   className="touch-hit text-xs font-semibold text-link underline-offset-2 hover:underline"
                 >
-                  Clear all
+                  {t("active.clearAll")}
                 </Link>
               </li>
             </ul>
@@ -289,27 +293,29 @@ export const CatalogueView = ({
             <>
               <ArrowUpDown size={16} aria-hidden="true" />
               <span>
-                Sort: <span className="font-normal">{sort.label}</span>
+                {t.rich("sort.summary", {
+                  value: () => <span className="font-normal">{t(`sort.${sort}.label`)}</span>,
+                })}
               </span>
             </>
           }
         >
-          <nav aria-label="Sort" className="grid gap-0.5">
+          <nav aria-label={t("sort.label")} className="grid gap-0.5">
             {SORTS.map((option) => (
               <Link
-                key={option.id}
-                href={href({ sort: option.id })}
-                aria-current={query.sort === option.id ? "page" : undefined}
+                key={option}
+                href={href({ sort: option })}
+                aria-current={query.sort === option ? "page" : undefined}
                 className="grid grid-cols-[1rem_1fr] items-start gap-x-2 rounded-control px-3 py-2 pointer-coarse:py-3 text-sm text-fg hover:bg-tint aria-[current=page]:bg-tint"
               >
                 <span className="pt-0.5">
-                  {query.sort === option.id ? <Check size={14} aria-hidden="true" /> : null}
+                  {query.sort === option ? <Check size={14} aria-hidden="true" /> : null}
                 </span>
                 <span className="grid">
-                  <span className={query.sort === option.id ? "font-semibold" : undefined}>
-                    {option.label}
+                  <span className={query.sort === option ? "font-semibold" : undefined}>
+                    {t(`sort.${option}.label`)}
                   </span>
-                  <span className="text-xs text-muted">{option.hint}</span>
+                  <span className="text-xs text-muted">{t(`sort.${option}.hint`)}</span>
                 </span>
               </Link>
             ))}
@@ -320,23 +326,25 @@ export const CatalogueView = ({
       {page.entries.length === 0 ? (
         filtered || paged ? (
           <p className="rounded-panel border border-hairline bg-surface p-4 text-sm text-muted">
-            No items match.{" "}
-            <Link href={href({ q: "", ...none })} className="underline underline-offset-2">
-              See every item
-            </Link>
-            .
+            {t.rich("empty.noMatch", {
+              see: (chunks) => (
+                <Link href={href({ q: "", ...none })} className="underline underline-offset-2">
+                  {chunks}
+                </Link>
+              ),
+            })}
           </p>
         ) : (
           <div className="grid gap-2 rounded-panel border border-hairline bg-surface p-4 text-sm">
-            <p className="font-semibold text-fg">Nothing is published yet.</p>
+            <p className="font-semibold text-fg">{t("empty.title")}</p>
             <p className="text-muted">
-              Items arrive in three steps: someone submits one, a moderator reviews and approves it,
-              and it's released as a version. Then it's listed here, ready to install with{" "}
-              <code className="font-mono">rmk</code>.
+              {t.rich("empty.how", {
+                mono: (chunks) => <code className="font-mono">{chunks}</code>,
+              })}
             </p>
             <p>
               <Link href="/submissions/new" className={buttonClasses("secondary")}>
-                Submit an item
+                {t("empty.submit")}
               </Link>
             </p>
           </div>
@@ -352,17 +360,17 @@ export const CatalogueView = ({
       )}
 
       {page.nextCursor || paged ? (
-        <nav aria-label="Pages" className="flex flex-wrap justify-between gap-2">
+        <nav aria-label={t("pager.label")} className="flex flex-wrap justify-between gap-2">
           {paged ? (
             <Link href={href()} className={buttonClasses("ghost")}>
-              First page
+              {t("pager.first")}
             </Link>
           ) : (
             <span />
           )}
           {page.nextCursor ? (
             <Link href={href({ cursor: page.nextCursor })} className={buttonClasses("secondary")}>
-              Next page
+              {t("pager.next")}
             </Link>
           ) : null}
         </nav>

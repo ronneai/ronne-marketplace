@@ -23,6 +23,8 @@
         "apps/web/src/features/device/**",
         "apps/web/src/features/notice/**",
         "apps/web/src/components/catalogue/**",
+        "apps/web/src/features/catalogue/**",
+        "apps/web/src/app/(app)/catalogue/**",
         "apps/web/src/features/home/**",
         "apps/web/src/app/(app)/page.tsx",
         "apps/web/src/features/admin-settings/notice/**",

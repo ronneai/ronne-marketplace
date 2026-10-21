@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { PageHeader } from "@/components/ui/Panel";
 import { CatalogueView } from "@/features/catalogue/CatalogueView";
 import { parseCatalogueQuery, type SearchParams } from "@/features/catalogue/query";
@@ -8,7 +9,10 @@ import { requestHeaders } from "@/server/http/request-headers";
 import { holdPage } from "../hold";
 import { workspaceView } from "../shell";
 
-export const metadata = { title: "Catalogue · Ronne AI Marketplace" };
+export const generateMetadata = async () => {
+  const t = await getTranslations("catalogue.page");
+  return { title: `${t("title")} · Ronne AI Marketplace` };
+};
 
 /**
  * Every published item (feature 018), for everyone signed in (the (app) layout requires a session).
@@ -21,12 +25,10 @@ const Catalogue = async ({ searchParams }: { searchParams: Promise<SearchParams>
   const view = await workspaceView("/catalogue", params);
   const query = { ...parseCatalogueQuery(params), workspace: view.workspace ?? undefined };
   const page = await browseCatalogue(await requestHeaders(), query);
+  const t = await getTranslations("catalogue.page");
   return (
     <>
-      <PageHeader
-        title="Catalogue"
-        description="Every published item: skills, agents, rules, MCP servers and more, reviewed before release."
-      />
+      <PageHeader title={t("title")} description={t("description")} />
       {view.workspace ? (
         <Showing
           workspace={view.workspace}

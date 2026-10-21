@@ -184,6 +184,7 @@ export const MIGRATED_ROUTES: ReadonlySet<string> = new Set([
   "/account/security",
   "/account/language",
   "/account/tokens",
+  "/catalogue",
   // Settings (124): only the Notice tab is in messages so far; the rest follow in 131. The sweep
   // looks for overflow and the language, so the other tabs, still English, are fine in it.
   "/admin/settings",

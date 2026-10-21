@@ -21,7 +21,7 @@ Every task that moves a folder adds it to the `overrides` entry in `biome.json` 
   *Done when:* component tests render `ItemCard`, `ItemPlace` and the table footer in three
   languages with counts 0, 1 and 2; the parity test passes; `components/catalogue` is in the scan.
 
-- [ ] **2. Catalogue.** `CatalogueView` (sort options with hints, filters and their chips, the
+- [x] **2. Catalogue.** `CatalogueView` (sort options with hints, filters and their chips, the
   empty states with `<mono>rmk</mono>`, the pager, "all {total}", "Personal ({workspace})"), the
   page title.
   *Done when:* a three-language test with the English-leak guard; the folder is in the scan; the

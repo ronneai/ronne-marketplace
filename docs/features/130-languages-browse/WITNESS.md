@@ -50,3 +50,31 @@ Witnessed: 2026-10-21 14:41 local, by a fresh agent (blind re-check). Commit: 74
 | 11 | Both test files pass | no | confirmed | `vitest run --project unit` on the two files → 2 files, 22 tests passed. |
 
 **Overall:** met.
+
+## Task 2 — Catalogue
+
+Witnessed: 2026-10-21 14:50 EDT, by a fresh agent (blind). Commit: 0bb06b77 plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A three-language test covers the Catalogue (search, filters, sort in en, pt, fr) | no | confirmed | `translations.test.tsx` has a case per locale; `vitest run src/features/catalogue src/app src/i18n` → 24 files, 264 tests passed. |
+| 2 | The test has an English-leak guard for pt and fr over the main, filtered, no-match and empty states | no | confirmed | `englishLeaks(["catalogue","types"], locale, html)` expected `[]` and `ownTextsShown` > 15. Mutating pt "Mais instalados" and "Pesquisar" to English → 2 tests failed; `t("pager.next")` replaced by the literal "Next page" → 3 tests failed and biome flagged the raw text; files restored, `cmp` clean. |
+| 3 | Search, sort, filters and chips, empty states, pager and page title are messages in en, pt and fr | no | confirmed | `messages/{en,pt,fr}/catalogue.json` have `page.*` and `view.*`; `CatalogueView.tsx` and `catalogue/page.tsx` use `t(...)` and `generateMetadata`. |
+| 4 | English reads the same as before, except the typographic apostrophe | no | confirmed | `git diff` of `CatalogueView.tsx` against HEAD: every old string is in `en/catalogue.json` word for word; only `it's` → `it’s` (twice). |
+| 5 | Text built from pieces is whole sentences; links and `<code>` use rich tags | no | confirmed | `sort.summary`, `empty.noMatch` and `empty.how` are `t.rich` with `<value>`, `<see>`, `<mono>`; asserted in the test for pt and fr. |
+| 6 | Type names stay as rmk prints them; a search text that looks like a placeholder is shown as typed | no | confirmed | The test asserts `Remover o filtro Hook`; `{total} <b>x</b>` renders as `{total}` with no `<b>`. |
+| 7 | The folders are in the raw-text scan | no | confirmed | `biome.json` adds `features/catalogue/**` and `app/(app)/catalogue/**` beside `components/catalogue/**`; `biome check` on them → clean; the literal-string mutation was flagged. |
+| 8 | `/catalogue` is in `MIGRATED_ROUTES` and the pinned list | no | confirmed | `e2e/pages.ts` and `pages-coverage.test.ts` each +1; `src/app` tests passed. |
+| 9 | pt and fr pages do not break layouts | no | can't check here | The first pass did not run the phone sweep within its budget. |
+
+**Overall:** not met: row 9 waits for the phone sweep.
+
+### Re-check (row 9)
+
+Witnessed: 2026-10-21 14:58 EDT, by a fresh agent (blind re-check). Commit: 0bb06b77 plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 9 | pt and fr pages do not break layouts (the phone sweep, signed out and as member, moderator and root) | no | confirmed | `pnpm exec playwright test mobile-sweep --project=phone -g "in (pt|fr)"` from apps/web → `10 passed (10.8s)`; `mobile-sweep.mobile.e2e.ts` filters `SWEEP_PAGES` to `MIGRATED_ROUTES` for non-English runs, and `/catalogue` is in it; each run asserts `html[lang]` and measures overflow. |
+
+**Overall:** met.
