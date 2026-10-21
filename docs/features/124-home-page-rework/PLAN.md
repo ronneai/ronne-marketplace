@@ -44,7 +44,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   and it returns; Home on a new instance and on a populated one.
   *Done when:* the end-to-end tests pass on every project.
 
-- [ ] **8. Decision log and index.** MVP §15 row "Home and the instance notice"; the features index.
+- [x] **8. Decision log and index.** MVP §15 row "Home and the instance notice"; the features index.
   *Done when:* the rows are in.
 
 - [ ] **9. Documentation.** The sections and helpers in the spec, both `topics.ts`, in a ronne-web

@@ -244,3 +244,25 @@ Witnessed: 2026-10-21 11:45 EDT, by a fresh agent (blind re-check). Commit: 273c
 | 11 | The notice tests fail if the revision rule breaks | no | confirmed | The mutation run was the implementer's; the witness confirmed `notice-cookie.ts` is unmodified (`git diff` empty) and that the failed assertion (test 4) is exactly the revision rule, with test 3 covering the dismissal itself. |
 
 **Overall:** met. Every claim of task 7 is confirmed.
+
+## Task 8 — Decision log and index
+
+Witnessed: 2026-10-21 12:00 EDT, by a fresh agent (blind). Commit: 301e9395 plus uncommitted changes (`docs/MVP/MVP.md`, `docs/features/README.md`, `PLAN.md`). Machine: macOS (Darwin 27.0.0), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | MVP §15 has a new row "Home and the instance notice" right after "Languages" | no | confirmed | `git diff docs/MVP/MVP.md` → one added line, after the Languages row and before Personal data. |
+| 2 | Home's section order and the empty-section rule match the row | no | confirmed | `HomeView.tsx`: search, the type links (only with types), getting started, waiting (only if non-empty), favorites, pinned, recent, most used (only if non-empty). |
+| 3 | Empty instance: root to the global workspace's page and New item; others to submit or ask a moderator | no | confirmed | `HomeView.tsx` links; the wording is in `empty.others`. |
+| 4 | The limits: 500 characters, one line, up to 3 inline links, words 1 to 60 characters, `https://` or a single-`/` path, no HTML | no | confirmed | `notice-policy.ts` constants, the control-character check, `isNoticeHref` and the link pattern. |
+| 5 | Information is light blue, Warning amber | no | confirmed | `Notice.tsx` and `tokens.css` (`--info` and its dark values). |
+| 6 | Stored as `instance_settings.notice`, audited as `settings.notice` without the text | no | confirmed | `setNotice` records only tone, shown and revision; the action is in `audit-event.ts`. |
+| 7 | The revision rises on message or tone, not on show or hide | no | confirmed | `settings.ts`: `revision = contentChanged ? from.revision + 1 : from.revision`. |
+| 8 | Shown on every signed-in page, not on the sign-in page | no | confirmed | `visibleNotice` is called only in the `(app)` layout. |
+| 9 | Dismissed with a ✕ icon inside the box, per browser, in `ronne-notice` as the revision | no | confirmed | `notice-cookie.ts`; the `action` slot inside `Notice.tsx`. |
+| 10 | It is root's own text and is not translated | no | confirmed | The model's header comment; the banner reads the stored message. |
+| 11 | The table still renders and no other row changed | no | confirmed | One line added, none removed; five columns, as its neighbours. |
+| 12 | The features index row 124 reflects inline links and the icon, status `in progress` | no | confirmed | `git diff docs/features/README.md`: only that row changed. |
+| 13 | `pnpm witness:check` passes | no | confirmed | It failed only for the missing pass of this task; with this block added, `pnpm witness:check` passes (run by the implementer on pasting). |
+
+**Overall:** met. The index status becomes `done` after task 9.
