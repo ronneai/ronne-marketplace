@@ -43,8 +43,9 @@ come back to".
 ## Behaviour
 
 - **Two tables,** not one: `item_favorites` (`user_id`, `item_id`, `created_at`, primary key on
-  both) and `item_pins` (`id`, `workspace_id` null for the global shelf, `item_id`, `position`,
-  `created_by`, `created_at`, unique on `workspace_id` + `item_id`). They differ in who writes, who
+  both) and `item_pins` (`id`, `workspace_id` null for the global shelf, `shelf`, `item_id`, `position`,
+  `created_by`, `created_at`, unique on `shelf` + `item_id`). A unique key can't hold a null, so
+  `shelf` is the same shelf as a plain key: the workspace's id, or `instance`. They differ in who writes, who
   reads and whether order matters, and favorites must be erasable per person. Items are referenced
   by id, so renames and aliases (113, 118) never break a pin.
 - **Who may do what.**

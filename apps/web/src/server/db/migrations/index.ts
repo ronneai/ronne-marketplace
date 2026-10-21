@@ -30,6 +30,7 @@ import { jobs } from "./0029_jobs";
 import { erasedAt } from "./0030_erased_at";
 import { userErasures } from "./0031_user_erasures";
 import { userLocale } from "./0032_user_locale";
+import { pinsAndFavorites } from "./0033_pins_and_favorites";
 import type { AppMigration } from "./types";
 
 /**
@@ -69,4 +70,5 @@ export const migrations: Record<string, AppMigration> = {
   "0030_erased_at": erasedAt,
   "0031_user_erasures": userErasures,
   "0032_user_locale": userLocale,
+  "0033_pins_and_favorites": pinsAndFavorites,
 };

@@ -9,7 +9,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 ## Tasks
 
-- [ ] **1. Tables and repositories.** [risky] Migration `item_favorites` and `item_pins` (keys,
+- [x] **1. Tables and repositories.** [risky] Migration `item_favorites` and `item_pins` (keys,
   unique constraints, cascade on item delete), Kysely repositories behind interfaces, the models
   (limits, `Position`).
   *Done when:* `*.db.test.ts` for both repositories pass on SQLite and, run once, on PostgreSQL and
