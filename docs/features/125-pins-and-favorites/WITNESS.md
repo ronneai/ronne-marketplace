@@ -344,3 +344,39 @@ Witnessed: 2026-10-21 19:10 local, by a fresh agent (adversarial re-check). Comm
 | 8 | Suites and static checks are green | no | confirmed | 232 database tests on each of the four databases; `biome check` and typecheck clean. |
 
 **Overall:** met.
+
+## Task 8 — Messages and phone
+
+Witnessed: 2026-10-21 19:25 local, by a fresh agent (blind). Commit: 65cc969a plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The new messages exist in English, Portuguese and French with the same keys and ICU placeholders | no | confirmed | `shelves.json` in the three languages, the new `errors.json` and `catalogue.json` keys, `shelves` in `namespaces.ts`; the unit run, parity test included, passed. |
+| 2 | The parity test fails when a pt key is removed or an fr placeholder is broken | no | confirmed | Both mutations failed it. |
+| 3 | The raw-text scan covers the new code | no | confirmed | `features/favorites/**` and `features/pins/**` are on the list; a literal `Done` in `PinMenu.tsx` failed biome. |
+| 4 | The new UI has no written-in English | no | confirmed | The Make-private notice and the star use messages; the cards and shelves carry no text. |
+| 5 | The pt and fr texts are sensible and match the glossary | no | confirmed | All three files and the error keys read; the glossary rows match. |
+| 6 | The new tests pass | no | confirmed | 218 files, 2757 unit tests passed. |
+| 7 | The leak guard catches an English text left in a component, a pt or fr text left equal to English | no | partly | A hardcoded English string in `ManageShelf` failed it; a pt value set to English was caught only by specific tests. |
+| 8 | `shelves-errors.test.ts` checks the error texts in three languages | no | confirmed | English is the message word for word; the full-shelf sentences and a hostile name are asserted. |
+| 9 | Typecheck is clean | no | confirmed | `pnpm --filter @ronneai/web typecheck` no errors. |
+| 10 | The sweep passes on phone | no | confirmed | 16 passed. |
+| 11 | The sweep passes on phone-webkit and tablet | no | confirmed | 32 passed. |
+| 12 | `languages-browse.e2e.ts` shows the star and the Pin menu in pt and fr with no English | no | confirmed | 6 passed. |
+| 13 | The sweep covers each language and the pages with the new UI, with data that shows it | no | partly | The seed pinned and favorited nothing, so the shelves were not rendered in any sweep. |
+
+**Overall:** not met: rows 7 and 13.
+
+### Re-check (rows 7, 13)
+
+Witnessed: 2026-10-21 20:05 local, by a fresh agent (blind re-check). Commit: 65cc969a plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 7a | `translations.test.tsx` sees the Pin dialog's texts | no | confirmed | The closed dialog's children are in the markup; a hardcoded English `pin.intro` failed it in both languages. |
+| 7b | `shelves-untranslated.test.ts` catches a pt or fr value equal to English | no | confirmed | Three pt values set to English failed it one at a time. |
+| 13a | pt and fr sweep the Pin and Manage menus on a phone and a tablet | no | confirmed | The French test passes: 17 on phone, 34 on WebKit and tablet. |
+| 13b | The phone run renders Home's shelves, a workspace's pinned items and the favorites filter, and the test fails when a shelf is missing | no | confirmed | Replacing Home's favorites section with null failed "Home and a workspace's page show their shelves" on the Your favorites region; restored, 3 passed; the sweep passes. |
+| 14 | Unit tests, biome and typecheck pass | no | confirmed | 2757 unit tests; `biome check` no errors; typecheck clean. |
+
+**Overall:** met.

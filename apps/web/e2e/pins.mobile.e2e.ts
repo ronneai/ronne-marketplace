@@ -1,6 +1,6 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import { mobileUser, signIn } from "./mobile";
-import { E2E_DOOR, E2E_PINS } from "./users";
+import { E2E_DOOR, E2E_PINS, E2E_SKILL } from "./users";
 
 const FULL = `@${E2E_PINS.workspace}/${E2E_PINS.scope}/${E2E_PINS.item}`;
 const DOOR_FULL = `@${E2E_DOOR.workspace}/${E2E_DOOR.scope}/${E2E_DOOR.item}`;
@@ -98,4 +98,71 @@ test("the Pin menu and Manage fit the screen and work by touch", async ({ page }
   await expect(row.getByText("Pinned", { exact: true })).toBeHidden();
   await dialog.getByRole("button", { name: "Done" }).click();
   await expect(dialog).toBeHidden();
+});
+
+/**
+ * The same Pin menu in French on a phone and a tablet: it fills the screen, nothing sticks out, and
+ * its words are French. The shared sign-in types English labels, so the person signs in in English
+ * and picks French with the `ronne-locale` cookie, as the sign-in page's links do.
+ */
+test("the Pin menu in French fits the screen", async ({ page, baseURL }, testInfo) => {
+  await signIn(page, mobileUser(testInfo, "pinsAdmin"));
+  await page.context().addCookies([{ name: "ronne-locale", value: "fr", url: baseURL ?? "/" }]);
+  await page.goto(ITEM);
+  await expect(page.locator("html")).toHaveAttribute("lang", "fr");
+  await page.getByRole("button", { name: "Épingler", exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByRole("heading", { name: `Épingler ${FULL}` })).toBeVisible();
+  await expect(
+    dialog.getByRole("button", { name: `Épingler ${FULL} dans ${E2E_PINS.workspace}` }),
+  ).toBeVisible();
+  await expect(dialog.getByRole("button", { name: `Gérer ${E2E_PINS.workspace}` })).toBeVisible();
+  await onScreen(page, dialog.getByRole("button", { name: "Terminé" }));
+  await tall(dialog.getByRole("button", { name: "Terminé" }));
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+    "no sideways scroll",
+  ).toBe(true);
+  await dialog.getByRole("button", { name: `Gérer ${E2E_PINS.workspace}` }).click();
+  await expect(dialog.getByText("sur 12 épinglés")).toBeVisible();
+  await expect(dialog.getByText("Rien n’est encore épinglé ici.")).toBeVisible();
+  await onScreen(page, dialog.getByRole("button", { name: "Retour" }));
+  await dialog.getByRole("button", { name: "Retour" }).click();
+  await dialog.getByRole("button", { name: "Terminé" }).click();
+  await expect(dialog).toBeHidden();
+});
+
+/**
+ * The shelves themselves (125), which the phone sweep only measures: Home shows Start here and the
+ * person's favorites, and a workspace's page its pinned items, each with its item's card, on a
+ * phone and a tablet. (Only the phone users are seeded with a favorite; the shelves' pins are the
+ * seed's.)
+ */
+test("Home and a workspace's page show their shelves", async ({ page }, testInfo) => {
+  await signIn(page, mobileUser(testInfo, "pinsAdmin"));
+  await page.goto("/");
+  const start = page.getByRole("region", { name: "Start here" });
+  await expect(start).toBeVisible();
+  await expect(start.getByRole("link", { name: FULL })).toBeVisible();
+  const favorites = page.getByRole("region", { name: "Your favorites" });
+  await expect(favorites.getByRole("link", { name: new RegExp(E2E_SKILL) })).toBeVisible();
+  await expect(favorites.getByRole("link", { name: "See all" })).toHaveAttribute(
+    "href",
+    "/catalogue?favorites=1",
+  );
+  // Not their shelf to manage: Start here is root's.
+  await expect(start.getByRole("button", { name: "Manage Start here" })).toHaveCount(0);
+
+  await page.goto(`/workspaces/${E2E_DOOR.workspace}`);
+  const pinned = page.getByRole("region", { name: "Pinned items" });
+  await expect(pinned.getByRole("link", { name: DOOR_FULL })).toBeVisible();
+  await expect(pinned.getByRole("button", { name: /^Manage / })).toHaveCount(0);
+
+  await page.goto("/catalogue?favorites=1");
+  await expect(page.getByRole("link", { name: new RegExp(E2E_SKILL) }).first()).toBeVisible();
+  await expect(page.getByRole("article")).toHaveCount(1);
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+    "no sideways scroll",
+  ).toBe(true);
 });

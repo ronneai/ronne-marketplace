@@ -819,4 +819,51 @@ await db
     .execute();
 }
 
+// Shelves for the phone sweep (125): an item on Start here and one on a workspace's shelf, so Home
+// and the workspace's page show them, and the phone users' favorite (so Your favorites shows).
+{
+  const at = toDbDate(new Date(), dialect);
+  const itemNamed = async (workspace: string, name: string) =>
+    await db
+      .selectFrom("items")
+      .innerJoin("scopes", "scopes.id", "items.scope_id")
+      .innerJoin("workspaces", "workspaces.id", "scopes.workspace_id")
+      .select(["items.id as id", "workspaces.id as workspace_id"])
+      .where("workspaces.name", "=", workspace)
+      .where("items.name", "=", name)
+      .executeTakeFirstOrThrow();
+  const startHere = await itemNamed(E2E_PINS.workspace, E2E_PINS.item);
+  const door = await itemNamed(E2E_DOOR.workspace, E2E_DOOR.item);
+  await db
+    .insertInto("item_pins")
+    .values([
+      {
+        id: newId(),
+        workspace_id: null,
+        shelf: "instance",
+        item_id: startHere.id,
+        position: 1,
+        created_by: null,
+        created_at: at,
+      },
+      {
+        id: newId(),
+        workspace_id: door.workspace_id,
+        shelf: door.workspace_id,
+        item_id: door.id,
+        position: 1,
+        created_by: null,
+        created_at: at,
+      },
+    ])
+    .execute();
+  const sweepers = (Object.keys(E2E_USERS) as (keyof typeof E2E_USERS)[]).filter((key) =>
+    /^(phone|phoneWebkit|tablet)(Member|Moderator|Root|PinsAdmin)$/.test(key),
+  );
+  await db
+    .insertInto("item_favorites")
+    .values(sweepers.map((key) => ({ user_id: ids[key] ?? "", item_id: skillId, created_at: at })))
+    .execute();
+}
+
 await db.destroy();

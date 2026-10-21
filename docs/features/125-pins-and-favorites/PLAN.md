@@ -51,7 +51,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   workspace turns private (093).
   *Done when:* the data-export, erase and private-workspace tests are extended and pass.
 
-- [ ] **8. Messages and phone.** Everything in messages (129) in three languages; the scan covers
+- [x] **8. Messages and phone.** Everything in messages (129) in three languages; the scan covers
   the new code; phone sweep.
   *Done when:* parity and scan pass; the sweep passes on every project in each language.
 

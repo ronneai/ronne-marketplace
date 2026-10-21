@@ -98,7 +98,7 @@ export const ItemPageView = ({
             ))}
           </p>
         </div>
-        <div className="flex items-start gap-2">
+        <div className="flex flex-wrap items-start gap-2">
           {page.favorited === undefined ? null : (
             <FavoriteButton itemId={page.item.id} name={name} favorited={page.favorited} />
           )}

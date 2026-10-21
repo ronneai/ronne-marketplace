@@ -45,6 +45,10 @@ type Words = {
   allWorkspaces: string;
   scopes: string;
   joined: string;
+  /** The star on a card or an item page (125), and the Pin menu button. */
+  star: RegExp;
+  pin: string;
+  pinDone: string;
 };
 
 const LANGUAGES: Words[] = [
@@ -65,6 +69,9 @@ const LANGUAGES: Words[] = [
     allWorkspaces: "Todos os espaços de trabalho",
     scopes: "Escopos",
     joined: "Você já está neste espaço de trabalho.",
+    star: /^Adicionar .+ aos favoritos$/,
+    pin: "Fixar",
+    pinDone: "Concluído",
   },
   {
     locale: "fr-CA",
@@ -83,6 +90,9 @@ const LANGUAGES: Words[] = [
     allWorkspaces: "Tous les espaces de travail",
     scopes: "Portées",
     joined: "Vous êtes déjà dans cet espace de travail.",
+    star: /^Ajouter .+ aux favoris$/,
+    pin: "Épingler",
+    pinDone: "Terminé",
   },
 ];
 
@@ -97,7 +107,16 @@ const flat = (value: unknown, prefix = ""): Record<string, string> =>
           flat(child, prefix ? `${prefix}.${key}` : key),
         ),
       );
-const NAMESPACES = ["catalogue", "item", "workspaces", "types", "common", "shell", "help"];
+const NAMESPACES = [
+  "catalogue",
+  "item",
+  "workspaces",
+  "types",
+  "common",
+  "shell",
+  "help",
+  "shelves",
+];
 const loadAll = (locale: string) => {
   const all: Record<string, string> = {};
   for (const namespace of NAMESPACES)
@@ -160,6 +179,7 @@ for (const words of LANGUAGES) {
       const card = page.getByRole("article").filter({ hasText: E2E_SKILL }).first();
       await expect(card).toBeVisible();
       await expect(card.getByText(words.installs)).toBeVisible();
+      await expect(card.getByRole("button", { name: words.star })).toBeVisible();
       await noEnglish(page, words.lang);
       await context.close();
     });
@@ -177,6 +197,13 @@ for (const words of LANGUAGES) {
       await expect(page.getByRole("link", { name: words.dependencies, exact: true })).toBeVisible();
       await expect(page.getByRole("region", { name: words.install, exact: true })).toBeVisible();
       await expect(page.getByRole("button", { name: words.propose })).toBeVisible();
+      await expect(page.getByRole("button", { name: words.star })).toBeVisible();
+      // The Pin menu (125): everyone administers their own personal workspace, so it is there.
+      await page.getByRole("button", { name: words.pin, exact: true }).click();
+      const menu = page.getByRole("dialog");
+      await expect(menu.getByRole("button", { name: words.pinDone })).toBeVisible();
+      await noEnglish(page, words.lang);
+      await menu.getByRole("button", { name: words.pinDone }).click();
       // The usage card names the peak's day in the language, with the count.
       const usage = page.getByRole("region", { name: words.usage });
       const peakDay = new Date(Date.now() - 3 * 86_400_000).toLocaleDateString(words.lang, {

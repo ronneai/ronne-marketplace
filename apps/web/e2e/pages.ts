@@ -118,11 +118,13 @@ export const SWEEP_PAGES: readonly SweepPage[] = [
     // their role there shows, and the member their own.
     urls: ({ personal }, role) =>
       role === "member"
-        ? ["/workspaces/global", `/workspaces/${personal}`]
+        ? ["/workspaces/global", `/workspaces/${personal}`, `/workspaces/${E2E_DOOR.workspace}`]
         : role === "moderator"
           ? ["/workspaces/global", "/workspaces/global?tab=requests"]
           : [
               "/workspaces/global",
+              // With a pinned item on its shelf (125), and Manage for root.
+              `/workspaces/${E2E_DOOR.workspace}`,
               "/workspaces/global?tab=members",
               `/workspaces/${E2E_WORKSPACE}?tab=requests`,
               `/workspaces/${E2E_WORKSPACE}`,
