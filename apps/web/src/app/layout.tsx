@@ -5,6 +5,7 @@ import { connection } from "next/server";
 import type { ReactNode } from "react";
 import { DatabaseUnavailable } from "@/features/setup/DatabaseUnavailable";
 import { parseTheme, THEME_COOKIE } from "@/features/theme/theme";
+import { requestLocale } from "@/i18n/server";
 import { loadConfig } from "@/server/config";
 import { redactDatabaseUrl } from "@/server/db/url";
 import { PATH_HEADER, SETUP_PATH } from "@/server/domains/identity/models/route-guard";
@@ -35,8 +36,9 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
   }
   // Rendered on the server from the cookie, so the page never flashes the wrong theme.
   const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
+  const locale = await requestLocale();
   return (
-    <html lang="en" data-theme={theme} className={`${manrope.variable} ${plexMono.variable}`}>
+    <html lang={locale} data-theme={theme} className={`${manrope.variable} ${plexMono.variable}`}>
       <body className="bg-canvas text-fg antialiased">
         {state === "unavailable" ? (
           <DatabaseUnavailable database={redactDatabaseUrl(config.databaseUrl as string)} />

@@ -22,9 +22,11 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* `*.db.test.ts` pass on SQLite and, run once, on PostgreSQL and MySQL; the migration
   guard test passes; the data download contains the value.
 
-- [ ] **3. Choosing the language.** `resolveLocale` (saved → `ronne-locale` cookie →
-  `Accept-Language` → `en`), the cookie's flags and validation, the `next-intl` request config
-  without URL prefixes, `<html lang>` in the root layout.
+- [x] **3. Choosing the language.** `chooseLocale` (the pure choice: saved → `ronne-locale` cookie →
+  `Accept-Language` → `en`) and `requestLocale` (once per request, reading the session, the cookie
+  and the header), the cookie's name, flags and validation (setting it is tasks 7 and 8, where a
+  language is chosen), the `next-intl` request config without URL prefixes, `<html lang>` in the
+  root layout.
   *Done when:* unit tests cover each step, `pt-PT`, `fr-CA`, `es`, quality values, a stale cookie
   and a removed saved value.
 

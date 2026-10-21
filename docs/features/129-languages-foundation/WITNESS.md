@@ -87,3 +87,36 @@ Witnessed: 2026-10-20 22:25 EDT, by a fresh agent (adversarial). Commit: 6e556d7
 | 5 | The tests really fail without the code | no | confirmed | All five mutations now fail a test, the erased-row one included: unmutated 9/9, mutated 1 failed and 8 passed, restored 9/9 (SQLite); PostgreSQL 9/9. `pnpm typecheck` → 7 of 7; `pnpm lint` → no errors. |
 
 **Overall:** met.
+
+## Task 3 — Choosing the language
+
+Witnessed: 2026-10-20 22:15 EDT, by a fresh agent (blind). Commit: b0c6f2a8 plus the uncommitted diff (`next.config.ts`, `layout.tsx`, untracked `apps/web/src/i18n/`). Machine: macOS (Darwin 27.0.0), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence |
+|---|---|---|---|---|
+| 1 | The order is saved → cookie → Accept-Language → `en`, first match wins | no | confirmed | `chooseLocale` uses `??` in that order; `server.test.ts` (mocked session) has saved `pt` beating cookie `fr` and browser `en`. Mutations in a scratch copy: saved and cookie swapped fails 2 tests; cookie step removed fails 4; the default changed to `fr` fails 3. |
+| 2 | Unit tests cover each step | no | confirmed | `pnpm exec vitest run src/i18n` → 2 files, 16 tests passed; one `chooseLocale` case per step, and `server.test.ts` through `requestLocale`. |
+| 3 | `pt-PT` → `pt`, `fr-CA` → `fr`, `es` → English | no | confirmed | `matchAcceptLanguage("pt-PT")` → `pt`, `"fr-CA"` → `fr`, `"es"` → null, `chooseLocale({acceptLanguage:"es"})` → `en`; removing the primary-subtag step breaks the tests. |
+| 4 | Quality values are respected | no | partly | Sorting by weight is tested (with the sort removed, 1 test fails). Removing the `q=0` skip left all 16 tests green: a lone `fr;q=0` was never tested. |
+| 5 | A stale cookie and a removed saved value are skipped | no | confirmed | `{saved:"de", cookie:"fr"}` → `fr`; `parseLocale` replaced with a cast fails 2 tests; live: `Cookie: ronne-locale=de` with `Accept-Language: pt` gives `lang="pt"`. |
+| 6 | The cookie is `ronne-locale`, httpOnly, SameSite=lax, path `/`, one year, validated | no | partly | A test pins all four values; validation is `parseLocale` on every request. Nothing in this change sets the cookie yet (belongs to tasks 7 and 8). |
+| 7 | `next-intl` request config without URL prefixes | no | confirmed | `request.ts` is `getRequestConfig` returning `{locale: await requestLocale(), messages: {}}`; `next.config.ts` wraps the config with `createNextIntlPlugin`; no middleware or `[locale]` segment. |
+| 8 | `<html lang>` in the root layout follows the chosen language | no | confirmed | Production build on a free port with a missing env file: `curl -L /setup`: no header → `en`; `pt-PT,en;q=0.5` → `pt`; `fr-CA` → `fr`; `es` → `en`; `ronne-locale=fr` with `Accept-Language: pt` → `fr`; cookies `de` and `<x>` ignored; a 5000-character header → `en`. |
+| 9 | `requestLocale` still answers when the session can't be read | no | confirmed | `server.ts` wraps `getCurrentUser` in try/catch; the test passes and the live server (no database) answers. |
+| 10 | Lint and typecheck are clean | no | confirmed | `pnpm lint` → exit 0; `pnpm typecheck` → exit 0. |
+| 11 | Naming: `chooseLocale` and `requestLocale` instead of the plan's `resolveLocale` | no | partly | Same behaviour; the plan text still said `resolveLocale`. |
+
+**Overall:** not met (row 4: no test failed without the `q=0` skip; row 6: the setter belongs to later tasks; row 11: the plan's names). Fixed: two assertions in `locale.test.ts` (a lone `fr;q=0` is null), and the plan's task 3 text now names `chooseLocale` and `requestLocale` and says setting the cookie is tasks 7 and 8.
+
+### Re-check (rows 4, 6, 11)
+
+Witnessed: 2026-10-20 22:30 EDT, by a fresh agent (blind re-check). Commit: b0c6f2a8 plus the uncommitted diff. Machine: macOS (Darwin 27.0.0), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence |
+|---|---|---|---|---|
+| 4 | Quality values are respected, including `q=0` meaning "not acceptable" | no | confirmed | With `weight === 0 \|\|` removed in the scratch copy, `vitest run src/i18n` → 1 failed, 15 passed (`expected 'fr' to be null`); restored → 16 of 16. |
+| 6 | The cookie's name, flags and validation (it is not set here) | no | confirmed | The plan's task 3 text now scopes setting the cookie to tasks 7 and 8; flags and validation unchanged. |
+| 11 | Naming matches between the plan and the code | no | confirmed | The plan names `chooseLocale` and `requestLocale`, as `locale.ts` and `server.ts` do; no `resolveLocale` is left. |
+| 10 | Lint and typecheck are clean | no | confirmed | `pnpm lint` → exit 0; `pnpm typecheck` → exit 0. |
+
+**Overall:** met.
