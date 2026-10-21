@@ -55,7 +55,9 @@ describe("favorites", () => {
   });
 
   it("two favorites at once cannot pass the limit", async () => {
-    const items = await Promise.all(["a", "b", "c", "d"].map((n) => seedItem(t, n)));
+    // One after the other: concurrent seeding deadlocks on MySQL (the catalogue revision row).
+    const items = [];
+    for (const n of ["a", "b", "c", "d"]) items.push(await seedItem(t, n));
     const outcomes = await Promise.all(items.map((id, i) => repo.add(uma, id, at(i), 2)));
     expect(outcomes.filter((o) => o === "added")).toHaveLength(2);
     expect(await repo.count(uma)).toBe(2);

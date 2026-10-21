@@ -20,7 +20,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* tests cover visibility (a private workspace's item), the limit, idempotency and
   that one person can't read another's.
 
-- [ ] **3. Pins service and actions.** [risky] `pinItem`, `unpinItem`, `movePin`, `listPins`
+- [x] **3. Pins service and actions.** [risky] `pinItem`, `unpinItem`, `movePin`, `listPins`
   (global or a workspace; visibility-filtered at read), permissions in `permissions.ts` (root;
   workspace admins), global pins limited to public workspaces' items, limit 12, audit events
   `pin.added`/`removed`/`reordered` and the new `pin` audit group.

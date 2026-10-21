@@ -1,3 +1,4 @@
+import type { NewAuditEvent } from "../../audit/models/audit-event";
 import type { MoveOutcome, Pin, PinOutcome, Shelf } from "../models/shelf";
 
 /**
@@ -8,20 +9,33 @@ import type { MoveOutcome, Pin, PinOutcome, Shelf } from "../models/shelf";
 export interface PinRepository {
   /**
    * Pins an item last on the shelf: "exists" if it's there (nothing changes), "full" at the limit.
-   * Two pins at once can't pass the limit: the shelf is locked while one is added.
+   * Two pins at once can't pass the limit: the shelf is locked while one is added. `audit` is
+   * recorded in the same transaction, only when the pin was added.
    */
   add(
     shelf: Shelf,
     itemId: string,
-    by: string,
-    at: Date,
-    limit: number,
-    id?: string,
+    options: { by: string; at: Date; limit: number; audit?: NewAuditEvent; id?: string },
   ): Promise<PinOutcome>;
-  /** Unpins an item and closes the gap in the positions; false when it wasn't there. */
-  remove(shelf: Shelf, itemId: string): Promise<boolean>;
-  /** Swaps an item with its neighbour; "edge" when there is none that way. */
-  move(shelf: Shelf, itemId: string, direction: "up" | "down"): Promise<MoveOutcome>;
+  /**
+   * Unpins an item and closes the gap in the positions; false when it wasn't there. `audit` is
+   * recorded with it, only when something was removed.
+   */
+  remove(
+    shelf: Shelf,
+    itemId: string,
+    audit?: { event: NewAuditEvent; at: Date },
+  ): Promise<boolean>;
+  /**
+   * Swaps an item with its neighbour; "edge" when there is none that way. `audit` is recorded with
+   * it, only when it moved.
+   */
+  move(
+    shelf: Shelf,
+    itemId: string,
+    direction: "up" | "down",
+    audit?: { event: NewAuditEvent; at: Date },
+  ): Promise<MoveOutcome>;
   /** The shelf in order. */
   list(shelf: Shelf): Promise<Pin[]>;
   count(shelf: Shelf): Promise<number>;

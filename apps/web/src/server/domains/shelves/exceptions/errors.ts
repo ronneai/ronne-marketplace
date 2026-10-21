@@ -24,3 +24,26 @@ export class FavoriteLimitError extends ShelvesError {
     super(`You have ${max} favorites, the most allowed. Remove one first.`);
   }
 }
+
+/** A shelf is full. `workspace` is the workspace's name, or null for the instance's "Start here". */
+export class PinLimitError extends ShelvesError {
+  override readonly name: string = "PinLimitError";
+  constructor(
+    readonly workspace: string | null,
+    readonly max: number,
+  ) {
+    super(
+      workspace === null
+        ? `Start here has ${max} items; remove one first.`
+        : `The pins of ${workspace} have ${max} items; remove one first.`,
+    );
+  }
+}
+
+/** Only items in a public workspace can go on the instance's shelf: everyone sees it. */
+export class PinNeedsPublicWorkspaceError extends ShelvesError {
+  override readonly name: string = "PinNeedsPublicWorkspaceError";
+  constructor() {
+    super("Only items in a public workspace can be pinned to Start here.");
+  }
+}

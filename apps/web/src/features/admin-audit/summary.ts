@@ -62,6 +62,12 @@ const scope = (m: Meta): SummaryPart => {
 
 const workspace = (m: Meta): SummaryPart => ({ name: text(m.name) || "a workspace" });
 
+/** The shelf a pin is on (125): a workspace's, named in `workspace`, or the instance's. */
+const pinShelf = (m: Meta, preposition: string): (string | SummaryPart)[] =>
+  text(m.workspace)
+    ? [` ${preposition} workspace `, { name: text(m.workspace) }]
+    : [` ${preposition} Start here`];
+
 /** A moved scope by its full name before the move (115), and its full name after, if renamed. */
 const moving = (m: Meta): SummaryPart => ({ name: text(m.scope) || "a scope" });
 const renamedAs = (m: Meta): (string | SummaryPart)[] =>
@@ -492,6 +498,15 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     m.from ? ` from ${text(m.from)} to ${text(m.to)}` : ` to ${text(m.to)}`,
   ],
   "dist_tag.removed": (m) => ["Removed ", { code: text(m.tag) }, " from ", item(m)],
+  // 125: a pin names the item and its shelf, the instance's "Start here" or a workspace's.
+  "pin.added": (m) => ["Pinned ", item(m), ...pinShelf(m, "to")],
+  "pin.removed": (m) => ["Unpinned ", item(m), ...pinShelf(m, "from")],
+  "pin.reordered": (m) => [
+    "Moved ",
+    item(m),
+    text(m.direction) === "up" ? " up" : " down",
+    ...pinShelf(m, "in"),
+  ],
   "settings.two_factor_policy": (m) => [
     `Changed who must use two-factor sign-in from ${TWO_FACTOR_POLICIES_SAID[text(m.from)] ?? text(m.from)} to ${
       TWO_FACTOR_POLICIES_SAID[text(m.to)] ?? text(m.to)

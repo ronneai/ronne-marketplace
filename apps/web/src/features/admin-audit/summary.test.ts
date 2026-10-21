@@ -168,6 +168,21 @@ describe("audit summaries (060)", () => {
     expect(
       line("dist_tag.moved", { name: "@team/reviewer", tag: "beta", from: "1.2.0", to: "1.3.0" }),
     ).toBe("Moved beta of @team/reviewer from 1.2.0 to 1.3.0");
+    expect(line("pin.added", { name: "@team/base", itemId: "x" })).toBe(
+      "Pinned @team/base to Start here",
+    );
+    expect(line("pin.added", { name: "@team/base", workspace: "acme" })).toBe(
+      "Pinned @team/base to workspace acme",
+    );
+    expect(line("pin.removed", { name: "@team/base", workspace: "acme" })).toBe(
+      "Unpinned @team/base from workspace acme",
+    );
+    expect(line("pin.reordered", { name: "@team/base", direction: "up" })).toBe(
+      "Moved @team/base up in Start here",
+    );
+    expect(
+      line("pin.reordered", { name: "@team/base", direction: "down", workspace: "acme" }),
+    ).toBe("Moved @team/base down in workspace acme");
     expect(line("workspace.created", { name: "acme", description: "Acme's teams." })).toBe(
       "Created workspace acme",
     );

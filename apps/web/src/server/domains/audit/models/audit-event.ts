@@ -91,6 +91,9 @@ export const AUDIT_ACTIONS = [
   "settings.two_factor_policy",
   "settings.retention",
   "settings.notice",
+  "pin.added",
+  "pin.removed",
+  "pin.reordered",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
@@ -105,6 +108,7 @@ export const AUDIT_ACTION_GROUPS = [
   "submission",
   "version",
   "dist_tag",
+  "pin",
   "settings",
   "instance",
   "scim",

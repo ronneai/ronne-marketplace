@@ -107,3 +107,77 @@ Witnessed: 2026-10-21 17:35 local, by a fresh agent (blind re-check). Commit: d2
 | 10 | Item ids in any case or padded work across add, exists, list and remove, and a test covers it | no | confirmed | The new test adds a padded lower-case id, then the canonical one ("exists"), lists, removes and lists again; it passes on SQLite (24 tests), PostgreSQL and MySQL (8 each). With `canonicalId` as the identity, exactly that test failed. |
 
 **Overall:** met.
+
+## Task 3 — Pins service and actions
+
+Witnessed: 2026-10-21 17:50 local, by a fresh agent (blind). Commit: 037daf04 plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Only root pins, unpins or reorders on Start here; admins, moderators, members, outsiders and anonymous users are refused | no | confirmed | `pins.manage_global: ["root"]`, checked first in the service; the test loops over six roles; removing the check made it fail. |
+| 2 | On a workspace shelf only its admins and root; a moderator, a member, another workspace's admin and anonymous are refused | no | confirmed | `pins.manage: ["admin"]`; removing the check failed 4 tests; adding moderator to the role list failed 2. |
+| 3 | A refusal reveals nothing: a missing workspace gives the same Forbidden as an existing one | no | confirmed | The permission check runs before the workspace lookup; the moderator gets `ForbiddenError`, root gets `WorkspaceNotFoundError`. |
+| 4 | Start here takes only items of a public workspace | no | confirmed | `PinNeedsPublicWorkspaceError`; dropping the check failed 2 tests. |
+| 5 | Only released items can be pinned; an item the pinner cannot see counts as unavailable | no | confirmed | A draft-only item, a nonexistent id and another workspace's private item are all refused as not available. |
+| 6 | The limit is 12 per shelf, each shelf counted apart, the error names the shelf, and a removal makes room | no | confirmed | 12 on Start here and 12 on acme, then `PinLimitError` for each; a limit of 999 made the test fail. |
+| 7 | Pinning twice is a no-op with no audit row | no | confirmed | "pinning twice is a no-op" → `["pin.added"]` only. |
+| 8 | New pins go last, move up and down swap neighbours, edge and missing answer so, and positions stay dense | no | confirmed | "new pins go last" asserts the order after each step and positions `[1, 2]`. |
+| 9 | `listPins` is filtered by what the viewer can see, on the server | no | confirmed | An outsider sees `[betaItem]` where root sees both; replacing the filter with "everything" failed 2 tests. |
+| 10 | A pin in a private workspace is invisible to a non-member | no | confirmed | Member sees both pins; outsider and beta's admin see none; losing and regaining membership hides and shows them; a yanked-only pin is "not available" in Manage and removable. |
+| 11 | Reading needs a signed-in user and the Manage list needs the permission | no | confirmed | Member → Forbidden for "all"; anonymous → Forbidden. |
+| 12 | `pin.added`, `pin.removed` and `pin.reordered` are written with the right target and metadata, and nothing for a no-op or a refusal | no | confirmed | The sequence, targets and metadata are asserted; removing the audit from add or move failed tests. |
+| 13 | The audit row is in the same transaction as the change | no | partly | `recordAudit(trx, …)` in all three methods, but no test showed the pin and the audit rolling back together. |
+| 14 | The `pin` audit group exists and every action has a summary | no | confirmed | `ACTION_OPTIONS` builds from the groups; `summary.test.ts` requires one summary per action. |
+| 15 | The permissions test lists the new permissions | no | confirmed | `permissions.test.ts` adds `pins.manage` and `pins.manage_global`. |
+| 16 | It works on all four databases | no | confirmed | 40 tests passed on SQLite, PostgreSQL, MySQL and MariaDB. |
+| 17 | Lint and types are clean | no | confirmed | `biome check apps/web` → no errors; typecheck clean. |
+
+**Overall:** not met: row 13.
+
+### Re-check (row 13 and the changes)
+
+Witnessed: 2026-10-21 18:05 local, by a fresh agent (blind re-check). Commit: 037daf04 plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 13 | The audit is in the same transaction as the change, and a test covers it | no | confirmed | "an audit the log refuses undoes the pin, the removal and the move" passes; writing the audit outside the transaction with its failure swallowed made it fail. A plain swap of the handle that still throws is not told apart (a throw rolls back anyway). |
+| a | The suites pass on the four databases | no | confirmed | 43 tests passed on each. |
+| b | Unpin and move answer an item the actor cannot see like an unknown one | no | confirmed | Removing both guards failed "an item the admin cannot see answers as an unknown one does". |
+| c | `summary.test.ts` has the pin wording | no | confirmed | Lines for Pinned, Unpinned and Moved up and down are asserted. |
+| d | Tests for ids in another case or padded exist | no | confirmed | `pins.db.test.ts` has the padded lower-case workspace id test. |
+| e | Lint and types are clean | no | confirmed | `biome check apps/web` → no errors; typecheck clean. |
+
+**Overall:** met.
+
+### Adversarial pass
+
+Witnessed: 2026-10-21 17:50 local, by a fresh agent (adversarial). Commit: 037daf04 plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Service and thin actions over viewer-scoped dependencies | no | confirmed | `services/pins.ts` and `actions/pins.ts` read; each action is the context plus one call. |
+| 2 | Permissions are root-only for Start here and admin-or-root per workspace, refused on the server | no | confirmed | Probes with every role; an acme admin on beta's shelf and anonymous get `ForbiddenError`. |
+| 3 | An unknown workspace id is Forbidden for non-root and not found for root; `instance` is not the global shelf | no | confirmed | A ghost id and the id `instance` probed for an admin and for root. |
+| 4 | Workspace ids in another case or padded work the same, audited under the canonical id | no | partly | A probe worked, but no test failed with `canonicalId` dropped. |
+| 5 | Global pins only for public workspaces; workspace shelves take what the pinner sees | no | confirmed | Dropping the check failed two tests; the check is an exact comparison. |
+| 6 | The limit holds under concurrency across both shelves | no | confirmed | 16 concurrent pins on each shelf: 24 added, 8 refused, 12 on each shelf. |
+| 7 | Audit is in the same transaction and only when the change happened | no | partly | By reading; no test showed the rollback together. |
+| 8 | Visibility is filtered at read, including an instance pin whose workspace turned private | no | confirmed | The outsider's list is empty and root's is not; the Manage list needs the permission. |
+| 9 | A pin's existence reveals nothing to someone who cannot see the item | no | partly | Pin answered uniformly, but unpin gave true against false and move gave "edge" against "missing" for an unseen pinned item. |
+| 10 | Suites pass on the four databases; lint and types are clean | no | confirmed | 40 tests on each; `biome check` and typecheck clean. |
+
+**Overall:** not met: rows 4, 7 and 9.
+
+### Adversarial re-check (rows 4, 7, 9)
+
+Witnessed: 2026-10-21 17:55 local, by a fresh agent (adversarial re-check). Commit: 037daf04 plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4 | A padded or lower-case workspace id is the same shelf, audited under the canonical id, with a test | yes | confirmed | With `canonicalId` dropped from `requireManage`, exactly that test failed (1 failed, 28 passed). |
+| 7 | An audit the log refuses undoes the pin, the removal and the move, with a test | yes | confirmed | Writing the audit outside the transaction (failure swallowed) failed the test on PostgreSQL; the test shows the rollback, not the handle. |
+| 9 | Unpin and move answer an unseen item like an unknown id, with a test | yes | confirmed | Removing the two early returns failed "an item the admin cannot see answers as an unknown one does" (1 failed, 28 passed). |
+| 10 | A hidden pin still counts toward the 12 and its shelf's admin cannot remove it | yes | confirmed | Accepted as a design edge: only root can pin what the admins cannot see; recorded in the spec's edge cases. |
+| 11 | Shelves tests on the four databases, lint and types | yes | confirmed | 43 passed on each; biome and typecheck clean. |
+
+**Overall:** met.

@@ -48,11 +48,10 @@ beforeEach(async () => {
   }));
   const memberId = await createTestUser(app, { email: "m@example.com", password });
   await createTestUser(app, { email: "o@example.com", password });
-  [asRoot, asMember, asOutsider] = await Promise.all([
-    signedIn("root@example.com"),
-    signedIn("m@example.com"),
-    signedIn("o@example.com"),
-  ]);
+  // One after the other: concurrent sign-ins deadlock on MySQL (the audit log).
+  asRoot = await signedIn("root@example.com");
+  asMember = await signedIn("m@example.com");
+  asOutsider = await signedIn("o@example.com");
   asAnon = new Headers();
   const acme = await kyselyWorkspaceRepository(t.db, t.dialect).insert({
     name: "acme",

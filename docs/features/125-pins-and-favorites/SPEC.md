@@ -83,6 +83,9 @@ come back to".
 - A person who loses access to a private workspace loses sight of its pins and favorites at once.
 - Two admins reordering at the same time: the last save wins; positions stay unique and dense.
 - Favorites and pins of a yanked-only item are hidden, not deleted, so un-yanking brings them back.
+- Root may pin an item that a workspace's admins can't see onto that workspace's shelf. They never see
+  it; it still counts toward the 12, and only root can remove it. Unpinning or moving such an item
+  answers as it would an unknown one.
 
 ## Documentation
 

@@ -21,12 +21,14 @@ beforeEach(async () => {
   repo = kyselyPinRepository(t.db, t.dialect);
   by = await seedUser(t);
   acme = { kind: "workspace", workspaceId: await seedWorkspace(t, "acme") };
-  items = await Promise.all(names.map((n) => seedItem(t, n)));
+  // One after the other: concurrent seeding deadlocks on MySQL (the catalogue revision row).
+  items = [];
+  for (const n of names) items.push(await seedItem(t, n));
 });
 afterEach(() => t.cleanup());
 
 const pin = (shelf: Shelf, i: number, limit = 12) =>
-  repo.add(shelf, items[i] as string, by, now, limit);
+  repo.add(shelf, items[i] as string, { by, at: now, limit });
 
 describe("pins", () => {
   it("puts new pins last, once", async () => {
@@ -128,9 +130,41 @@ describe("pins", () => {
 
   it("takes ids in any case, as MySQL would match them", async () => {
     const lower = (items[0] as string).toLowerCase();
-    expect(await repo.add(INSTANCE_SHELF, lower, by, now, 12)).toBe("added");
-    expect(await repo.add(INSTANCE_SHELF, items[0] as string, by, now, 12)).toBe("exists");
+    expect(await repo.add(INSTANCE_SHELF, lower, { by, at: now, limit: 12 })).toBe("added");
+    expect(await repo.add(INSTANCE_SHELF, items[0] as string, { by, at: now, limit: 12 })).toBe(
+      "exists",
+    );
     expect(await repo.shelvesOf(lower)).toEqual({ instance: true, workspaceIds: [] });
     expect(await repo.remove(INSTANCE_SHELF, lower)).toBe(true);
+  });
+
+  // An audit event the log refuses (a secret in its metadata) makes the whole step roll back.
+  const bad = (action: "pin.added" | "pin.removed" | "pin.reordered") => ({
+    actorId: null,
+    action,
+    target: { type: "instance" as const },
+    metadata: { password: "x" },
+  });
+
+  it("an audit the log refuses undoes the pin, the removal and the move", async () => {
+    await expect(
+      repo.add(INSTANCE_SHELF, items[0] as string, {
+        by,
+        at: now,
+        limit: 12,
+        audit: bad("pin.added"),
+      }),
+    ).rejects.toThrow();
+    expect(await repo.count(INSTANCE_SHELF)).toBe(0);
+    await pin(INSTANCE_SHELF, 0);
+    await pin(INSTANCE_SHELF, 1);
+    await expect(
+      repo.remove(INSTANCE_SHELF, items[0] as string, { event: bad("pin.removed"), at: now }),
+    ).rejects.toThrow();
+    await expect(
+      repo.move(INSTANCE_SHELF, items[1] as string, "up", { event: bad("pin.reordered"), at: now }),
+    ).rejects.toThrow();
+    expect(await order(INSTANCE_SHELF)).toEqual(["a", "b"]);
+    expect((await repo.list(INSTANCE_SHELF)).map((p) => p.position)).toEqual([1, 2]);
   });
 });

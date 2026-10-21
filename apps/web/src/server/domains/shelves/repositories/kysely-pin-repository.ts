@@ -5,6 +5,7 @@ import { forUpdate, readCommittedTransaction } from "../../../db/locks";
 import { GLOBAL_WORKSPACE_ID } from "../../../db/migrations/0019_workspaces";
 import type { Database } from "../../../db/schema";
 import type { DatabaseDialect } from "../../../db/url";
+import { recordAudit } from "../../audit/actions/audit";
 import { canonicalId, type Pin, type Shelf, shelfKey } from "../models/shelf";
 import type { PinRepository } from "./pin-repository";
 
@@ -57,7 +58,7 @@ const renumber = async (trx: Db, pins: Pin[]) => {
 };
 
 export const kyselyPinRepository = (db: Db, dialect: DatabaseDialect): PinRepository => ({
-  add: (shelf, rawItemId, by, at, limit, id = newId()) =>
+  add: (shelf, rawItemId, { by, at, limit, audit, id = newId() }) =>
     readCommittedTransaction(db, dialect).execute(async (trx) => {
       const itemId = canonicalId(rawItemId);
       await lockShelf(trx, dialect, shelf);
@@ -78,10 +79,11 @@ export const kyselyPinRepository = (db: Db, dialect: DatabaseDialect): PinReposi
           created_at: toDbDate(at, dialect),
         })
         .execute();
+      if (audit) await recordAudit(trx, dialect, audit, at);
       return "added" as const;
     }),
 
-  remove: (shelf, rawItemId) =>
+  remove: (shelf, rawItemId, audit) =>
     readCommittedTransaction(db, dialect).execute(async (trx) => {
       const itemId = canonicalId(rawItemId);
       await lockShelf(trx, dialect, shelf);
@@ -96,10 +98,11 @@ export const kyselyPinRepository = (db: Db, dialect: DatabaseDialect): PinReposi
         trx,
         pins.filter((pin) => pin.itemId !== itemId),
       );
+      if (audit) await recordAudit(trx, dialect, audit.event, audit.at);
       return true;
     }),
 
-  move: (shelf, rawItemId, direction) =>
+  move: (shelf, rawItemId, direction, audit) =>
     readCommittedTransaction(db, dialect).execute(async (trx) => {
       const itemId = canonicalId(rawItemId);
       await lockShelf(trx, dialect, shelf);
@@ -111,6 +114,7 @@ export const kyselyPinRepository = (db: Db, dialect: DatabaseDialect): PinReposi
       const swapped = [...pins];
       [swapped[index], swapped[other]] = [swapped[other] as Pin, swapped[index] as Pin];
       await renumber(trx, swapped);
+      if (audit) await recordAudit(trx, dialect, audit.event, audit.at);
       return "moved" as const;
     }),
 
