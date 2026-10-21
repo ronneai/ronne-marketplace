@@ -1,0 +1,52 @@
+{
+  "page": {
+    "list": "Espaces de travail",
+    "join": "Se joindre à un espace de travail"
+  },
+  "list": {
+    "description": "Les espaces de travail regroupent des portées et leurs éléments. Vous proposez et révisez dans ceux où vous êtes.",
+    "rootDescription": "Un espace de travail contient des portées, et leurs éléments, pour une équipe ou un groupe. Les noms d’éléments ne l’incluent pas. Toute instance a global.",
+    "workspace": "Espace de travail",
+    "visibility": "Visibilité",
+    "you": "Vous",
+    "kind": {
+      "personal": "Personnel",
+      "everyone": "Tout le monde",
+      "private": "Privé",
+      "public": "Public"
+    },
+    "yours": "Le vôtre",
+    "otherTitle": "Vos autres demandes",
+    "otherIntro": "Faites depuis un lien d’adhésion. Vous verrez un espace de travail ici une fois que vous en serez membre.",
+    "name": "Nom",
+    "request": "Demande"
+  },
+  "request": {
+    "requested": "Demandé le <date></date>",
+    "declined": "Refusée le <date></date>",
+    "declinedAgain": "Refusée le <date></date>; redemandez à partir du <again></again>",
+    "reason": "« {reason} »"
+  },
+  "controls": {
+    "message": "Message (facultatif)",
+    "hint": "Qui vous êtes et pourquoi vous aimeriez vous joindre, pour la personne qui répondra. {used, number}/{max, number}",
+    "cancel": "Annuler",
+    "ask": "Demander à se joindre",
+    "askAria": "Demander à se joindre à {workspace}",
+    "cancelRequest": "Annuler",
+    "cancelAria": "Annuler votre demande pour se joindre à {workspace}"
+  },
+  "join": {
+    "title": "Se joindre à <mono>{name}</mono>",
+    "memberTitle": "Vous êtes déjà dans cet espace de travail.",
+    "memberBody": "Vos espaces de travail sont sur la page <link>Espaces de travail</link>.",
+    "waiting": "Root ou les modérateurs de l’espace de travail répondent. Vous verrez la réponse sur la page <link>Espaces de travail</link>."
+  },
+  "askToJoin": "Demander à se joindre à {workspace}",
+  "showing": {
+    "missing": "Aucun espace de travail <strong>{workspace}</strong> que vous puissiez voir",
+    "notReviewer": "Vous ne révisez pas les soumissions dans <strong>{workspace}</strong>",
+    "only": "Affichage de <strong>{workspace}</strong> seulement",
+    "showAll": "Tout afficher"
+  }
+}

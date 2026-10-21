@@ -147,3 +147,20 @@ Witnessed: 2026-10-21 15:25 local, by a fresh agent (blind re-check). Commit: 8d
 | 14 | A raw English string in JSX is caught, by the lint rule | no | confirmed | On the stated basis that lint guards raw JSX (pre-commit and CI) and the leak test guards wrong-language messages: the biome plugin reported the raw `By tool`. Mutation: fr "Pic : " set to "Peak : " → the usage-card test failed; restored, `cmp` matched. `vitest run --project unit src/features/item-page src/i18n` → 159 passed; `biome check` clean. |
 
 **Overall:** met.
+
+## Task 5 — Workspaces: list, join and the current-workspace line
+
+Witnessed: 2026-10-21 15:15 local, by a fresh agent (blind). Commit: e965e78b plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The Workspaces list, request controls, join page, Showing line, AskToJoinLink and page titles read in en, pt and fr | no | confirmed | `workspaces.json` exists in the three languages with the same keys; `vitest run --project unit src/features/workspaces/translations.test.tsx` → 10 passed. |
+| 2 | Dates inside sentences are placed by a message, not appended by code | no | confirmed | `WorkspacesPage.tsx` passes `t.rich("requested"/"declined"/"declinedAgain", {date, again})` and the messages hold `<date></date>` and `<again></again>`; the pt and fr tests match the date inside the sentence. Mutation: pt `"<date></date> Solicitado"` → the dates test failed; restored, `cmp` clean. |
+| 3 | A pt message left in English is caught | no | confirmed | pt `"Requested on <date>"` with `src/i18n` → 1 failed, 98 passed; restored, `cmp` clean. |
+| 4 | The touched folders are in the raw-text lint scan | no | confirmed | `biome.json` lists features/workspaces, features/current-workspace, components/workspaces, the workspaces `page.tsx` and `\[name\]/join/**`; `biome check` on the touched paths → no fixes, no errors; a raw `Name` in `WorkspacesPage.tsx` → "Found 1 error"; `raw-text.test.ts` passed including "lists only folders and files that exist". |
+| 5 | `/workspaces` and `/workspaces/[name]/join` are in `MIGRATED_ROUTES` and the pinned list | no | confirmed | Both diffs add both routes; the unit run over features/workspaces, current-workspace, components, app and i18n → 50 files, 485 tests passed. |
+| 6 | The phone sweep passes in pt and fr | no | confirmed | `pnpm exec playwright test mobile-sweep --project=phone -g "in (pt\|fr)"` → 10 passed (19s), on a build of this tree. |
+| 7 | The old English strings survive word for word apart from the apostrophe glyph and the role names | no | confirmed | Diff against HEAD and the en JSON: every string matches, including "Declined on … ; ask again from …" and "Cancel your request to join {workspace}". |
+| 8 | Roles come from one set of messages; the local `ROLE_LABELS` is removed | no | confirmed | `WorkspacesPage.tsx` uses `roles(w.role)`; the `ROLE_LABELS` block is deleted. |
+
+**Overall:** met.

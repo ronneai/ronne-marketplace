@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogActions } from "@/components/ui/Dialog";
@@ -21,6 +22,7 @@ export const AskToJoinForm = ({
   workspace: string;
   onCancel?: () => void;
 }) => {
+  const t = useTranslations("workspaces.controls");
   const [state, action, pending] = useActionState<RequestActionState, FormData>(
     requestAccessFromForm,
     {},
@@ -31,7 +33,7 @@ export const AskToJoinForm = ({
     <form action={action} className="grid gap-4">
       <input type="hidden" name="workspace" value={workspace} />
       <div className="grid gap-1.5">
-        <Label htmlFor={messageId}>Message (optional)</Label>
+        <Label htmlFor={messageId}>{t("message")}</Label>
         <textarea
           id={messageId}
           name="message"
@@ -43,19 +45,18 @@ export const AskToJoinForm = ({
           className={`${inputClasses} h-auto py-2`}
         />
         <p id={`${messageId}-hint`} className="text-xs text-muted">
-          Who you are and why you'd like to join, for whoever answers. {[...message].length}/
-          {MESSAGE_MAX_LENGTH}
+          {t("hint", { used: [...message].length, max: MESSAGE_MAX_LENGTH })}
         </p>
       </div>
       <FieldError id={`join-${workspace}-error`}>{state.error}</FieldError>
       <DialogActions>
         {onCancel ? (
           <Button variant="ghost" onClick={onCancel}>
-            Cancel
+            {t("cancel")}
           </Button>
         ) : null}
         <Button type="submit" loading={pending}>
-          Ask to join
+          {t("ask")}
         </Button>
       </DialogActions>
     </form>
@@ -64,6 +65,7 @@ export const AskToJoinForm = ({
 
 /** Ask to join, from a row of the Workspaces page. */
 export const AskToJoinButton = ({ workspace }: { workspace: string }) => {
+  const t = useTranslations("workspaces.controls");
   const [open, setOpen] = useState(false);
   const [round, setRound] = useState(0);
   const close = () => {
@@ -75,11 +77,11 @@ export const AskToJoinButton = ({ workspace }: { workspace: string }) => {
       <Button
         variant="secondary"
         onClick={() => setOpen(true)}
-        aria-label={`Ask to join ${workspace}`}
+        aria-label={t("askAria", { workspace })}
       >
-        Ask to join
+        {t("ask")}
       </Button>
-      <Dialog open={open} onClose={close} title={`Ask to join ${workspace}`}>
+      <Dialog open={open} onClose={close} title={t("askAria", { workspace })}>
         <AskToJoinForm key={round} workspace={workspace} onCancel={close} />
       </Dialog>
     </>
@@ -94,6 +96,7 @@ export const CancelRequestButton = ({
   requestId: string;
   workspace: string;
 }) => {
+  const t = useTranslations("workspaces.controls");
   const [state, action, pending] = useActionState<RequestActionState, FormData>(
     cancelRequestFromForm,
     {},
@@ -105,10 +108,10 @@ export const CancelRequestButton = ({
       <button
         type="submit"
         disabled={pending}
-        aria-label={`Cancel your request to join ${workspace}`}
+        aria-label={t("cancelAria", { workspace })}
         className="touch-hit rounded-control px-2 py-1 text-xs text-muted hover:bg-tint hover:text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
       >
-        Cancel
+        {t("cancelRequest")}
       </button>
       <FieldError id={`cancel-${requestId}-error`}>{state.error}</FieldError>
     </form>

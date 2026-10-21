@@ -41,7 +41,7 @@ Every task that moves a folder adds it to the `overrides` entry in `biome.json` 
   the folder (`shortDay` keeps English's day-first order as `en-GB`, and follows the language
   otherwise); the chart's bar `title`s are messages.
 
-- [ ] **5. Workspaces: list, join and the current-workspace line.** `WorkspacesPage`,
+- [x] **5. Workspaces: list, join and the current-workspace line.** `WorkspacesPage`,
   `RequestControls`, `JoinPage`, `Showing` (the three variants), the pages under
   `app/(app)/workspaces` that are not the members and requests tabs.
   *Done when:* three-language tests; dates inside sentences read in the language's word order.

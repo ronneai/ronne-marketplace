@@ -1,0 +1,52 @@
+{
+  "page": {
+    "list": "Workspaces",
+    "join": "Join a workspace"
+  },
+  "list": {
+    "description": "Workspaces group scopes and their items. You propose and review in the ones you’re in.",
+    "rootDescription": "A workspace holds scopes, and their items, for one team or group. Item names don’t include it. Every instance has global.",
+    "workspace": "Workspace",
+    "visibility": "Visibility",
+    "you": "You",
+    "kind": {
+      "personal": "Personal",
+      "everyone": "Everyone",
+      "private": "Private",
+      "public": "Public"
+    },
+    "yours": "Yours",
+    "otherTitle": "Your other requests",
+    "otherIntro": "Asked from a join link. You see a workspace here once you’re in it.",
+    "name": "Name",
+    "request": "Request"
+  },
+  "request": {
+    "requested": "Requested <date></date>",
+    "declined": "Declined on <date></date>",
+    "declinedAgain": "Declined on <date></date>; ask again from <again></again>",
+    "reason": "“{reason}”"
+  },
+  "controls": {
+    "message": "Message (optional)",
+    "hint": "Who you are and why you’d like to join, for whoever answers. {used, number}/{max, number}",
+    "cancel": "Cancel",
+    "ask": "Ask to join",
+    "askAria": "Ask to join {workspace}",
+    "cancelRequest": "Cancel",
+    "cancelAria": "Cancel your request to join {workspace}"
+  },
+  "join": {
+    "title": "Join <mono>{name}</mono>",
+    "memberTitle": "You’re in this workspace already.",
+    "memberBody": "Your workspaces are on the <link>Workspaces</link> page.",
+    "waiting": "Root or the workspace’s moderators answer. You’ll see the answer on the <link>Workspaces</link> page."
+  },
+  "askToJoin": "Ask to join {workspace}",
+  "showing": {
+    "missing": "No workspace <strong>{workspace}</strong> you can see",
+    "notReviewer": "You don’t review submissions in <strong>{workspace}</strong>",
+    "only": "Showing <strong>{workspace}</strong> only",
+    "showAll": "Show all"
+  }
+}

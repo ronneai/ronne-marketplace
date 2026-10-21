@@ -8,6 +8,7 @@ import type home from "../../messages/en/home.json";
 import type item from "../../messages/en/item.json";
 import type shell from "../../messages/en/shell.json";
 import type types from "../../messages/en/types.json";
+import type workspaces from "../../messages/en/workspaces.json";
 
 /**
  * The message files (feature 129): `messages/<locale>/<namespace>.json`, one file per area of the
@@ -25,6 +26,7 @@ export const NAMESPACES = [
   "types",
   "catalogue",
   "item",
+  "workspaces",
 ] as const;
 export type Namespace = (typeof NAMESPACES)[number];
 
@@ -40,4 +42,5 @@ export type Messages = {
   types: typeof types;
   catalogue: typeof catalogue;
   item: typeof item;
+  workspaces: typeof workspaces;
 };

@@ -1,0 +1,52 @@
+{
+  "page": {
+    "list": "Espaços de trabalho",
+    "join": "Entrar em um espaço de trabalho"
+  },
+  "list": {
+    "description": "Espaços de trabalho agrupam escopos e seus itens. Você propõe e revisa naqueles em que está.",
+    "rootDescription": "Um espaço de trabalho guarda escopos, e os itens deles, de uma equipe ou grupo. Os nomes dos itens não o incluem. Toda instância tem o global.",
+    "workspace": "Espaço de trabalho",
+    "visibility": "Visibilidade",
+    "you": "Você",
+    "kind": {
+      "personal": "Pessoal",
+      "everyone": "Todos",
+      "private": "Privado",
+      "public": "Público"
+    },
+    "yours": "Seu",
+    "otherTitle": "Suas outras solicitações",
+    "otherIntro": "Feitas a partir de um link de entrada. Você vê um espaço de trabalho aqui quando entrar nele.",
+    "name": "Nome",
+    "request": "Solicitação"
+  },
+  "request": {
+    "requested": "Solicitado em <date></date>",
+    "declined": "Recusado em <date></date>",
+    "declinedAgain": "Recusado em <date></date>; peça de novo a partir de <again></again>",
+    "reason": "“{reason}”"
+  },
+  "controls": {
+    "message": "Mensagem (opcional)",
+    "hint": "Quem você é e por que gostaria de entrar, para quem responder. {used, number}/{max, number}",
+    "cancel": "Cancelar",
+    "ask": "Pedir para entrar",
+    "askAria": "Pedir para entrar em {workspace}",
+    "cancelRequest": "Cancelar",
+    "cancelAria": "Cancelar sua solicitação para entrar em {workspace}"
+  },
+  "join": {
+    "title": "Entrar em <mono>{name}</mono>",
+    "memberTitle": "Você já está neste espaço de trabalho.",
+    "memberBody": "Seus espaços de trabalho estão na página <link>Espaços de trabalho</link>.",
+    "waiting": "O root ou os moderadores do espaço de trabalho respondem. Você verá a resposta na página <link>Espaços de trabalho</link>."
+  },
+  "askToJoin": "Pedir para entrar em {workspace}",
+  "showing": {
+    "missing": "Nenhum espaço de trabalho <strong>{workspace}</strong> que você possa ver",
+    "notReviewer": "Você não revisa submissões em <strong>{workspace}</strong>",
+    "only": "Mostrando só <strong>{workspace}</strong>",
+    "showAll": "Mostrar tudo"
+  }
+}

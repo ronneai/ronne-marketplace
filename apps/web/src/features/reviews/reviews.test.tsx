@@ -248,7 +248,7 @@ describe("the queue", () => {
     const html = renderToStaticMarkup(
       await ReviewsPage({ searchParams: Promise.resolve({ workspace: "acme" }) }),
     );
-    expect(html).toMatch(/You don&#x27;t review submissions in <strong[^>]*>acme<\/strong>/);
+    expect(html).toMatch(/You don’t review submissions in <strong[^>]*>acme<\/strong>/);
     expect(html).toContain("Show all");
   });
 
