@@ -12,14 +12,15 @@ export const isNoticeTone = (value: unknown): value is NoticeTone =>
 export const NOTICE_MESSAGE_MAX = 500;
 export const NOTICE_LINK_LABEL_MAX = 60;
 export const NOTICE_LINK_HREF_MAX = 2000;
+/** Links one message may hold: it is one short line. */
+export const NOTICE_LINKS_MAX = 3;
 
 export type Notice = {
+  /** Root's words, with links written inline as `[label](address)`. */
   message: string;
-  /** Both or neither: a label with the address it opens. */
-  link: { label: string; href: string } | null;
   tone: NoticeTone;
   shown: boolean;
-  /** Raised when the message, link or tone changes; the dismiss cookie holds the one dismissed. */
+  /** Raised when the message or tone changes; the dismiss cookie holds the one dismissed. */
   revision: number;
 };
 
@@ -28,7 +29,6 @@ export const NOTICE_KEY = "notice";
 
 export const DEFAULT_NOTICE: Notice = {
   message: "",
-  link: null,
   tone: "info",
   shown: false,
   revision: 0,
@@ -37,14 +37,18 @@ export const DEFAULT_NOTICE: Notice = {
 /** What root types in the form. */
 export type NoticeInput = {
   message: unknown;
-  linkLabel: unknown;
-  linkHref: unknown;
   tone: unknown;
   shown: unknown;
 };
 
-export type NoticeField = "message" | "linkLabel" | "linkHref" | "tone";
-export type NoticeProblem = "empty" | "too_long" | "link_incomplete" | "link_address" | "tone";
+export type NoticeField = "message" | "tone";
+export type NoticeProblem =
+  | "empty"
+  | "too_long"
+  | "link_label"
+  | "link_address"
+  | "too_many_links"
+  | "tone";
 
 /** A refusal: which field, and why. The page shows a message beside the field. */
 export type NoticeRefusal = { field: NoticeField; problem: NoticeProblem };
@@ -82,13 +86,58 @@ export const isNoticeHref = (href: string): boolean => {
   }
 };
 
+/** A link written inline: `[label](address)`. Anything else with brackets stays plain text. */
+const LINK = /\[([^[\]]{0,500})\]\(([^()]{0,2000})\)/g;
+
+/** A piece of the message: plain words, or a link with its label and address. */
+export type NoticePart = { text: string } | { label: string; href: string };
+
+/**
+ * The message as the pieces to draw (124): plain text and links, in order. A link counts only with
+ * a label of 1 to 60 characters, an address `isNoticeHref` allows, and while there are fewer than
+ * `NOTICE_LINKS_MAX` before it; any other `[x](y)` is drawn as the words it is. The pieces are
+ * output as text and `<a>` elements by the caller, never as HTML.
+ */
+export const noticeParts = (message: string): NoticePart[] => {
+  const parts: NoticePart[] = [];
+  let last = 0;
+  let links = 0;
+  const plain = (text: string) => {
+    if (text === "") return;
+    const before = parts.at(-1);
+    if (before && "text" in before) before.text += text;
+    else parts.push({ text });
+  };
+  for (const match of message.matchAll(LINK)) {
+    const label = (match[1] ?? "").trim();
+    const href = match[2] ?? "";
+    plain(message.slice(last, match.index));
+    last = match.index + match[0].length;
+    if (
+      links < NOTICE_LINKS_MAX &&
+      label !== "" &&
+      lengthOf(label) <= NOTICE_LINK_LABEL_MAX &&
+      isNoticeHref(href)
+    ) {
+      parts.push({ label, href });
+      links += 1;
+    } else plain(match[0]);
+  }
+  plain(message.slice(last));
+  return parts;
+};
+
+/** The words without the link syntax (`[label](address)` becomes `label`), for counting what is seen. */
+export const noticePlainText = (message: string): string =>
+  noticeParts(message)
+    .map((part) => ("text" in part ? part.text : part.label))
+    .join("");
+
 /** The checked form input as a notice without its revision, or the first thing wrong with it. */
 export const noticeFrom = (
   input: NoticeInput,
 ): { ok: true; notice: Omit<Notice, "revision"> } | { ok: false; refusal: NoticeRefusal } => {
   const message = textOf(input.message);
-  const label = textOf(input.linkLabel);
-  const href = textOf(input.linkHref);
   const shown = input.shown === true || input.shown === "true" || input.shown === "on";
   if (!isNoticeTone(input.tone)) return { ok: false, refusal: { field: "tone", problem: "tone" } };
   if (CONTROL.test(message) || lengthOf(message) > NOTICE_MESSAGE_MAX)
@@ -96,24 +145,22 @@ export const noticeFrom = (
   // An empty message can be saved (the text is kept for later) but can't be shown.
   if (shown && message === "")
     return { ok: false, refusal: { field: "message", problem: "empty" } };
-  if (label === "" && href === "")
-    return { ok: true, notice: { message, link: null, tone: input.tone, shown } };
-  if (label === "")
-    return { ok: false, refusal: { field: "linkLabel", problem: "link_incomplete" } };
-  if (CONTROL.test(label) || lengthOf(label) > NOTICE_LINK_LABEL_MAX)
-    return { ok: false, refusal: { field: "linkLabel", problem: "too_long" } };
-  if (href === "") return { ok: false, refusal: { field: "linkHref", problem: "link_incomplete" } };
-  if (!isNoticeHref(href))
-    return { ok: false, refusal: { field: "linkHref", problem: "link_address" } };
-  return { ok: true, notice: { message, link: { label, href }, tone: input.tone, shown } };
+  const links = [...message.matchAll(LINK)];
+  for (const match of links) {
+    const label = (match[1] ?? "").trim();
+    if (label === "" || lengthOf(label) > NOTICE_LINK_LABEL_MAX)
+      return { ok: false, refusal: { field: "message", problem: "link_label" } };
+    if (!isNoticeHref(match[2] ?? ""))
+      return { ok: false, refusal: { field: "message", problem: "link_address" } };
+  }
+  if (links.length > NOTICE_LINKS_MAX)
+    return { ok: false, refusal: { field: "message", problem: "too_many_links" } };
+  return { ok: true, notice: { message, tone: input.tone, shown } };
 };
 
-const sameLink = (a: Notice["link"], b: Notice["link"]) =>
-  a === b || (a !== null && b !== null && a.label === b.label && a.href === b.href);
-
-/** Whether the words, link or tone differ: what makes people who dismissed it see it again. */
+/** Whether the words or tone differ: what makes people who dismissed it see it again. */
 export const noticeContentChanged = (from: Notice, to: Omit<Notice, "revision">): boolean =>
-  from.message !== to.message || from.tone !== to.tone || !sameLink(from.link, to.link);
+  from.message !== to.message || from.tone !== to.tone;
 
 /** A stored notice read back, or null when it isn't one (a hand edit): the caller uses the default. */
 export const noticeFromStored = (value: string): Notice | null => {
@@ -125,15 +172,7 @@ export const noticeFromStored = (value: string): Notice | null => {
       return null;
     if (typeof r.revision !== "number" || !Number.isInteger(r.revision) || r.revision < 0)
       return null;
-    const link = r.link as Record<string, unknown> | null | undefined;
-    const valid =
-      link &&
-      typeof link.label === "string" &&
-      typeof link.href === "string" &&
-      isNoticeHref(link.href)
-        ? { label: link.label, href: link.href }
-        : null;
-    return { message: r.message, link: valid, tone: r.tone, shown: r.shown, revision: r.revision };
+    return { message: r.message, tone: r.tone, shown: r.shown, revision: r.revision };
   } catch {
     return null;
   }

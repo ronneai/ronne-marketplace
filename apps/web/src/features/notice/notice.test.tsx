@@ -37,7 +37,6 @@ const { default: AppLayout } = await import("@/app/(app)/layout");
 
 const current = (change: Partial<Notice> = {}): Notice => ({
   message: "Maintenance tonight at 22:00.",
-  link: null,
   tone: "info",
   shown: true,
   revision: 3,
@@ -148,23 +147,31 @@ describe("The notice on the page (124)", () => {
     expect(html(current({ tone: "warning" }))).toContain("WARN:");
   });
 
-  it("shows the link: a path on this site opens in place, an https address in a new tab", () => {
-    const own = html(current({ link: { label: "Status", href: "/catalogue" } }));
-    expect(own).toMatch(/<a [^>]*href="\/catalogue"/);
+  it("draws a link inside the sentence: a path on this site opens in place, an https address in a new tab", () => {
+    const own = html(current({ message: "See the [status page](/catalogue) now." }));
+    expect(own).toMatch(
+      /See the <\/span><a [^>]*href="\/catalogue"[^>]*>status page<\/a><span> now\.<\/span>/,
+    );
     expect(own).not.toContain("_blank");
-    const away = html(current({ link: { label: "Status", href: "https://status.example.com/" } }));
+    const away = html(current({ message: "Read [more](https://status.example.com/)." }));
     expect(away).toContain('href="https://status.example.com/"');
     expect(away).toContain('target="_blank"');
     expect(away).toContain('rel="noopener noreferrer"');
+    expect(away).toContain("underline");
+  });
+
+  it("draws several links in the order written, and a bad one as the words typed", () => {
+    const out = html(
+      current({ message: "[a](/1), [b](https://b.example/) and [c](javascript:x) and [d](/4)" }),
+    );
+    expect(out.indexOf(">a</a>")).toBeLessThan(out.indexOf(">b</a>"));
+    expect(out.indexOf(">b</a>")).toBeLessThan(out.indexOf(">d</a>"));
+    expect(out).toContain("[c](javascript:x)");
+    expect(out).not.toMatch(/href="javascript/);
   });
 
   it("outputs everything as text: a tag typed is shown as typed", () => {
-    const out = html(
-      current({
-        message: "<b>bold</b> <script>alert(1)</script>",
-        link: { label: "<i>x</i>", href: "/a" },
-      }),
-    );
+    const out = html(current({ message: "<b>bold</b> <script>alert(1)</script> [<i>x</i>](/a)" }));
     expect(out).not.toContain("<b>");
     expect(out).not.toContain("<script>alert");
     expect(out).not.toContain("<i>");
@@ -187,7 +194,7 @@ describe("The notice on the page (124)", () => {
 
   it("draws no dismiss icon when there is no action (the Notice tab's preview)", () => {
     const out = renderToStaticMarkup(
-      <NoticeBanner notice={{ message: "Preview", link: null, tone: "info" }} />,
+      <NoticeBanner notice={{ message: "Preview", tone: "info" }} />,
     );
     expect(out).toContain("Preview");
     expect(out).not.toContain("<button");
@@ -196,7 +203,7 @@ describe("The notice on the page (124)", () => {
 
   it("lets a long unbroken string wrap instead of stretching the page", () => {
     const out = renderToStaticMarkup(
-      <NoticeBanner notice={{ message: "a".repeat(500), link: null, tone: "info" }} />,
+      <NoticeBanner notice={{ message: "a".repeat(500), tone: "info" }} />,
     );
     expect(out).toContain("[overflow-wrap:anywhere]");
     expect(out).toContain("min-w-0");

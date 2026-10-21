@@ -65,10 +65,10 @@ export class ConfirmationNeededError extends SettingsError {
 
 const NOTICE_WORDS: Record<NoticeProblem, string> = {
   empty: "Write the message before showing the notice.",
-  too_long:
-    "Use up to 500 characters on one line for the message, and up to 60 for the link's label.",
-  link_incomplete: "A link needs both its label and its address.",
+  too_long: "Use up to 500 characters on one line for the message.",
+  link_label: "A link needs its words, up to 60 characters: [words](address).",
   link_address: "The address starts with https:// or, for a page on this site, with a single /.",
+  too_many_links: "Use at most 3 links in the message.",
   tone: "Choose information or warning.",
 };
 

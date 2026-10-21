@@ -68,6 +68,15 @@ export const E2E_USERS = {
   phoneWebkitDeviceTwoFactor: "phone-webkit-device-two-factor@e2e.test",
   tabletDevice: "tablet-device@e2e.test",
   tabletDeviceTwoFactor: "tablet-device-two-factor@e2e.test",
+  // The instance notice (124): a root who sets it and a member who sees and dismisses it, and a
+  // root per phone and tablet project, who sets it and reads it on the device.
+  // Reads Home on a populated instance (124).
+  homeMember: "home-member@e2e.test",
+  noticeRoot: "notice-root@e2e.test",
+  noticeMember: "notice-member@e2e.test",
+  phoneNoticeRoot: "phone-notice-root@e2e.test",
+  phoneWebkitNoticeRoot: "phone-webkit-notice-root@e2e.test",
+  tabletNoticeRoot: "tablet-notice-root@e2e.test",
   notRoot: "not-root@e2e.test",
   tokens: "tokens@e2e.test",
   submitter: "submitter@e2e.test",
@@ -245,6 +254,12 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   phoneWebkitDeviceTwoFactor: "Webkit Dev Twofactor",
   tabletDevice: "Tablet Dev",
   tabletDeviceTwoFactor: "Tablet Dev Twofactor",
+  homeMember: "Home Member",
+  noticeRoot: "Notice Root",
+  noticeMember: "Notice Member",
+  phoneNoticeRoot: "Phone Notice Root",
+  phoneWebkitNoticeRoot: "Phone WebKit Notice Root",
+  tabletNoticeRoot: "Tablet Notice Root",
   notRoot: "Not Root",
   tokens: "Token Tester",
   submitter: "Submitter",
@@ -398,6 +413,10 @@ export const E2E_ROOTS: readonly (keyof typeof E2E_USERS)[] = [
   "phoneRoot",
   "phoneWebkitRoot",
   "tabletRoot",
+  "noticeRoot",
+  "phoneNoticeRoot",
+  "phoneWebkitNoticeRoot",
+  "tabletNoticeRoot",
 ];
 
 /**

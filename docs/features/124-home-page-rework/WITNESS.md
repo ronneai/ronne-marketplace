@@ -52,6 +52,23 @@ Witnessed: 2026-10-21 10:18 local, by a fresh agent (blind re-check). Commit: f5
 
 **Overall:** met. Every claim of task 1 is confirmed.
 
+### Re-check (owner changes: links written inline in the message)
+
+Witnessed: 2026-10-21 11:36 EDT, by a fresh agent (blind re-check). Commit: 273ce18c plus uncommitted changes. Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The notice is message, tone, shown and revision; the separate link fields are replaced by inline `[words](address)`; an old stored `link` is ignored | no | confirmed | `notice-policy.ts`; a stored value with the old `link` reads back as the message only. |
+| 2 | The message is plain text up to 500 characters, in characters, with no line breaks or bidi overrides | no | confirmed | 500 emoji and a ZWJ emoji pass; 501, a line break, U+2028 and U+202E are refused; 72 copies of `[a](/b)` (504 characters) are refused. |
+| 3 | A link's words are 1 to 60 characters | no | confirmed | 60 passes; 61 and `[](/a)` give `link_label`. |
+| 4 | An address is `https://` (no credentials, no spaces) or a single-`/` path; `javascript:` and `data:` are never a link | no | confirmed | A probe refuses or leaves as text `javascript:` in any case, `data:`, `vbscript:`, `http://`, `//evil.com`, a backslash path, credentials, spaces, U+200B, U+202E, NUL, tabs and newlines. |
+| 5 | At most 3 links; anything else with brackets stays as typed | no | confirmed | 4 links give `too_many_links`; drawn, only 3 become links; `[a](https://a.com/(x))` and `[a [b](/x)` draw as text and one link. |
+| 6 | A stored message is re-checked when drawn, and the pattern is not slow | no | confirmed | A stored 180,000-character value draws only 3 links; a 500-character worst case takes 0.00 ms, 100,000 `[` 0.32 ms. |
+| 7 | The revision rises on message or tone, not on shown; audit, root only and the three servers | no | confirmed | `settings.db.test.ts` → 20 passed on SQLite, PostgreSQL, MySQL and MariaDB. |
+| 8 | Unit and database tests and typecheck pass | no | confirmed | 101 notice and settings tests; unit project 2522 passed; typecheck 7/7. |
+
+**Overall:** met. Observations: `https:///x` parses to host `x` and is accepted (harmless); a hand-edited stored message over 500 characters is drawn in full (only reachable by editing the database, and fast).
+
 ## Task 2 — The Notice tab
 
 Witnessed: 2026-10-21 10:40 local, by a fresh agent (blind). Commit: 2bb650ed plus uncommitted changes (the `notice` folders in `features/admin-settings` and `features/notice`, the tab, the page, `messages/*/admin.json`, the helpers, `biome.json`, the settings repository's `nameOf`). Machine: macOS (Darwin 27), Node v24.
@@ -82,6 +99,21 @@ Witnessed: 2026-10-21 10:50 local, by a fresh agent (blind re-check). Commit: 2b
 
 **Overall:** met. Every claim of task 2 is confirmed.
 
+### Re-check (owner changes: links written inline in the message)
+
+Witnessed: 2026-10-21 11:36 EDT, by a fresh agent (blind re-check). Commit: 273ce18c plus uncommitted changes. Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The Notice tab is root only and selected by `?tab=notice` | no | confirmed | Unit tests; the end-to-end test "only root has the tab" gets a 404 for the member. |
+| 2 | The form has the message, tone, shown, Save and a counter, and no separate link fields | no | confirmed | The end-to-end form fills only Message, Tone and Show the notice; `NoticeForm.tsx` has no link inputs. |
+| 3 | Errors appear beside the field, the field is marked, and what was typed is kept | no | confirmed | Six codes mapped from the model; the end-to-end test shows the address message beside the field with `aria-invalid="true"` and nothing saved. |
+| 4 | The preview is drawn from what is typed, as text, with the inline link inside the sentence | no | confirmed | The end-to-end test finds the region "Preview" holding the link while editing. |
+| 5 | "Last changed by", the helpers and everything in messages in three languages | no | confirmed | "Last changed by Notice Root" is found; the parity tests pass. |
+| 6 | Typecheck and lint are clean | no | confirmed | Typecheck 7/7; `pnpm lint` 44 warnings, none in these files. |
+
+**Overall:** met.
+
 ## Task 3 — Showing and dismissing
 
 Witnessed: 2026-10-21 10:45 local, by a fresh agent (blind). Commit: e8cc2b8c plus uncommitted changes (`AppShell.tsx`, `(app)/layout.tsx`, `shell.json` in three languages, the new files in `features/notice/`). Machine: macOS (Darwin 27), Node 24.
@@ -102,6 +134,23 @@ Witnessed: 2026-10-21 10:45 local, by a fresh agent (blind). Commit: e8cc2b8c pl
 | 12 | Lint and typecheck are clean | no | confirmed | `biome check` on the touched folders; `pnpm lint` exit 0; typecheck clean. |
 
 **Overall:** met. Limits: the real no-JavaScript post, the 44px layout and the Menu and sign-in coverage rest on reading, and the end-to-end tests of task 7 cover them. The test replaces `serverAction` with a pass-through, so the wrapping is proven by the guard test.
+
+### Re-check (owner changes: dismiss icon inside the box, links inline, information in blue)
+
+Witnessed: 2026-10-21 11:36 EDT, by a fresh agent (blind re-check). Commit: 273ce18c plus uncommitted changes. Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The notice is under the header on every signed-in page, not on public pages | no | confirmed | The end-to-end tests check `/`, `/catalogue` and `/account/password`; the sign-in page has none; on a phone it sits above the h1. |
+| 2 | Hidden when not shown, empty or dismissed at that revision; it returns after a change | no | confirmed | End-to-end tests 3 and 4 and the unit tests. |
+| 3 | Dismiss is a form that works without JavaScript | no | confirmed | The end-to-end test posts the form with JavaScript off: the URL stays, the banner is gone, also after a reload. |
+| 4 | Dismiss is an icon inside the alert box, named "Dismiss", with a 44px tap area and a focus style | no | confirmed | `DismissibleNotice.tsx`; the desktop test clicks it by name inside the banner; the phone test's `smallTargets` filtered to "Dismiss" is empty on phone, phone-webkit and tablet. |
+| 5 | Text is output as text; `javascript:` can't become a link | no | confirmed | `NoticeBanner.tsx` draws spans, `Link` and `<a rel="noopener noreferrer">` only; `<b>` is shown as typed in the end-to-end test. |
+| 6 | A long unbroken string wraps | no | confirmed | The phone test with a 240-character word finds no overflow, in English and Portuguese. |
+| 7 | A forged cookie can't hide a later notice; another browser is not affected | no | confirmed | `Math.min` in the action and `isDismissed` unchanged; the other browser still sees it. |
+| 8 | "Dismiss" in three languages; information is light blue | no | confirmed | The Portuguese test clicks "Dispensar"; `Notice` maps information to the blue style (checked by tests and tokens, not by eye). |
+
+**Overall:** met.
 
 ## Task 4 — Home's layout
 
@@ -164,3 +213,34 @@ Witnessed: 2026-10-21 11:10 local, by a fresh agent (blind). Commit: 40235ae9 pl
 | 6 | Typecheck and lint are clean | no | confirmed | Typecheck ok; `pnpm lint` 44 warnings, no errors. |
 
 **Overall:** met. Remark: the other Settings tabs are still English, so listing `/admin/settings` in `MIGRATED_ROUTES` is right only for the sweep's overflow and language checks, as the code comment says.
+
+## Task 7 — End to end
+
+Witnessed: 2026-10-21 11:36 EDT, by a fresh agent (blind). Commit: 273ce18c plus uncommitted changes (`notice.e2e.ts`, `notice.mobile.e2e.ts`, `home.e2e.ts`, the new end-to-end users). Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The end-to-end tests pass on every project | no | confirmed | `playwright test notice` → 10 passed: 7 on chromium, one each on phone, phone-webkit and tablet. |
+| 2 | Root sets a Warning notice and a member sees it on every page, as text, with an inline link | no | confirmed | `WARN:` on `/`, `/catalogue` and `/account/password`; `<b>not bold</b>` shown as typed; the link has its `href`; the sign-in page shows nothing. |
+| 3 | The member dismisses it; it stays gone in that browser and not in another | no | confirmed | Click on the icon by name inside the box; gone on `/` and `/catalogue`; a second context of the same person still sees it. |
+| 4 | Root edits it and it returns in the browser that dismissed it | no | confirmed | The same browser sees `INFO:` and the old text is gone. |
+| 5 | Dismiss works without JavaScript | no | confirmed | A context with JavaScript off posts the form; the URL stays `/catalogue`, the banner is gone, also after a reload. |
+| 6 | Hiding keeps the text and removes it for everyone; only root has the tab; a bad link is refused beside the field | no | confirmed | Text kept and Show unchecked; a fresh member context sees nothing; the member gets a 404; `aria-invalid` is true and nothing is saved. |
+| 7 | The tests hide the notice again at the end | no | confirmed | `afterAll` on desktop and `finally` on phones; each phone project has its own root. |
+| 8 | The phone and tablet test covers a long notice, the dismiss icon and the language | no | confirmed | No overflow with a 240-character word; the notice is above the h1; `smallTargets` filtered to "Dismiss" is empty; in Portuguese the icon is "Dispensar". |
+| 9 | Home on a new instance | no | confirmed | `setup-wizard.e2e.ts` (task 5): the heading, the root text and both links. |
+| 10 | Home on a populated instance | no | partly | No end-to-end test of its own at first. |
+| 11 | The tests fail if the feature breaks | no | partly | By reading only at first. |
+
+**Overall:** not met (rows 10 and 11). Fixed: `home.e2e.ts` added; the implementer ran a mutation (`isDismissed` returning true for any cookie), rebuilt, and the test "comes back in the browser that dismissed the old one" failed while the dismissal test passed; the file was restored.
+
+### Re-check (rows 10 and 11)
+
+Witnessed: 2026-10-21 11:45 EDT, by a fresh agent (blind re-check). Commit: 273ce18c plus uncommitted changes. Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 10 | Home on a populated instance has an end-to-end test | no | confirmed | `playwright test home.e2e notice` → 11 passed; `home.e2e.ts` checks the heading, no empty message, search then type links then Recently published by position, the Skill link to `/catalogue?type=skill`, no `type=bundle` link, and the search going to the catalogue. |
+| 11 | The notice tests fail if the revision rule breaks | no | confirmed | The mutation run was the implementer's; the witness confirmed `notice-cookie.ts` is unmodified (`git diff` empty) and that the failed assertion (test 4) is exactly the revision rule, with test 3 covering the dismissal itself. |
+
+**Overall:** met. Every claim of task 7 is confirmed.

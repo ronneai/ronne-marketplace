@@ -2,12 +2,9 @@
   "notice": {
     "tab": "Notice",
     "title": "Instance notice",
-    "intro": "One short message under the header of every signed-in page, such as a maintenance window or “this is a demo”. It is your own text, so it isn’t translated.",
+    "intro": "One short message under the header of every signed-in page, such as a maintenance window or “this is a demo”. Write a link inside the sentence as [words](address). It is your own text, so it isn’t translated.",
     "message": "Message",
-    "messageHint": "Plain text on one line. {used, number} of {max, number} characters.",
-    "linkLabel": "Link label (optional)",
-    "linkHref": "Link address",
-    "linkHint": "Starts with https://, or a single / for a page on this site. A link needs both its label and its address.",
+    "messageHint": "Plain text on one line. Link with [words](address): https:// or a single / for a page on this site, up to {links, number} links. {used, number} of {max, number} characters.",
     "tone": "Tone",
     "toneInfo": "Information",
     "toneWarning": "Warning",
@@ -25,10 +22,9 @@
     "errors": {
       "message_empty": "Write the message before showing the notice.",
       "message_too_long": "Use up to {max, number} characters, on one line.",
-      "label_missing": "Add the label for the link.",
-      "label_too_long": "Use up to {max, number} characters for the label.",
-      "address_missing": "Add the address the label opens.",
-      "address_invalid": "Use an address that starts with https:// or a single /.",
+      "link_label": "A link needs its words, up to {label, number} characters: [words](address).",
+      "link_address": "Use an address that starts with https:// or a single /, with no spaces: [words](address).",
+      "too_many_links": "Use at most {links, number} links in the message.",
       "tone_invalid": "Choose Information or Warning."
     }
   }

@@ -60,7 +60,6 @@ describe("the usage policy", () => {
       retention: { ipDays: 90, sessionsDays: 90 },
       notice: {
         message: "",
-        link: null,
         tone: "info",
         shown: false,
         revision: 0,
@@ -316,8 +315,6 @@ describe("the retention (102)", () => {
 describe("the instance notice (124)", () => {
   const form = {
     message: "The demo's data is reset on Friday.",
-    linkLabel: "",
-    linkHref: "",
     tone: "warning",
     shown: true,
   };
@@ -331,7 +328,6 @@ describe("the instance notice (124)", () => {
     expect(await setNotice(deps, { user: root, ip: IP }, form)).toEqual({ changed: true });
     expect(await notice(deps)).toEqual({
       message: "The demo's data is reset on Friday.",
-      link: null,
       tone: "warning",
       shown: true,
       revision: 1,
@@ -343,7 +339,7 @@ describe("the instance notice (124)", () => {
     expect(await notice(deps)).toMatchObject({ shown: false, revision: 1, message: form.message });
     await setNotice(deps, { user: root, ip: IP }, form);
     expect(await notice(deps)).toMatchObject({ shown: true, revision: 1 });
-    // The words, the link or the tone raise it.
+    // The words (links included) or the tone raise it.
     await setNotice(deps, { user: root, ip: IP }, { ...form, message: "Maintenance at noon." });
     await setNotice(
       deps,
@@ -355,15 +351,13 @@ describe("the instance notice (124)", () => {
       { user: root, ip: IP },
       {
         ...form,
-        message: "Maintenance at noon.",
+        message: "Maintenance at noon, see the [status page](https://status.example.com/).",
         tone: "info",
-        linkLabel: "Status",
-        linkHref: "https://status.example.com/",
       },
     );
     expect(await notice(deps)).toMatchObject({
       revision: 4,
-      link: { label: "Status", href: "https://status.example.com/" },
+      message: "Maintenance at noon, see the [status page](https://status.example.com/).",
     });
     expect(await instanceSettings(deps, { user: root, ip: null })).toMatchObject({
       notice: { revision: 4, shown: true, changedByName: "Root" },
@@ -384,12 +378,12 @@ describe("the instance notice (124)", () => {
     await setNotice(
       deps,
       { user: root, ip: IP },
-      { ...form, message: "SECRET-WORDS", linkLabel: "L", linkHref: "/x" },
+      { ...form, message: "SECRET-WORDS [SECRET-LABEL](/secret-path)" },
     );
     await setNotice(
       deps,
       { user: root, ip: IP },
-      { ...form, message: "SECRET-WORDS", linkLabel: "L", linkHref: "/x", shown: false },
+      { ...form, message: "SECRET-WORDS [SECRET-LABEL](/secret-path)", shown: false },
     );
     const found = await events();
     expect(found.map((e) => [e.actorId, e.ipAddress, e.targetType, e.metadata])).toEqual([
@@ -410,7 +404,8 @@ describe("the instance notice (124)", () => {
         { from: { tone: "info", shown: false }, to: { tone: "warning", shown: true }, revision: 1 },
       ],
     ]);
-    expect(JSON.stringify(found)).not.toContain("SECRET-WORDS");
+    for (const secret of ["SECRET-WORDS", "SECRET-LABEL", "secret-path"])
+      expect(JSON.stringify(found)).not.toContain(secret);
   });
 
   it("refuses what the form must not hold, saving nothing", async () => {
@@ -418,16 +413,16 @@ describe("the instance notice (124)", () => {
       setNotice(deps, { user: root, ip: IP }, { ...form, ...change }).catch((e) => e);
     expect(await refused({ message: "" })).toBeInstanceOf(InvalidNoticeError);
     expect(await refused({ message: "x".repeat(501) })).toMatchObject({ field: "message" });
-    expect(await refused({ linkLabel: "Go" })).toMatchObject({
-      field: "linkHref",
-      problem: "link_incomplete",
+    expect(await refused({ message: "[](/x)" })).toMatchObject({
+      field: "message",
+      problem: "link_label",
     });
-    expect(await refused({ linkHref: "/x" })).toMatchObject({
-      field: "linkLabel",
-      problem: "link_incomplete",
+    expect(await refused({ message: "[Go](javascript:alert)" })).toMatchObject({
+      field: "message",
+      problem: "link_address",
     });
-    expect(await refused({ linkLabel: "Go", linkHref: "javascript:alert(1)" })).toMatchObject({
-      field: "linkHref",
+    expect(await refused({ message: "[a](/1)[b](/2)[c](/3)[d](/4)" })).toMatchObject({
+      problem: "too_many_links",
     });
     expect(await refused({ tone: "danger" })).toMatchObject({ field: "tone" });
     expect(await notice(deps)).toMatchObject({ revision: 0, shown: false });
@@ -462,10 +457,15 @@ describe("the instance notice (124)", () => {
         shown: true,
         revision: 2,
         link: { label: "a", href: "javascript:x" },
+        extra: "ignored",
       }),
       null,
       at,
     );
-    expect(await notice(deps)).toMatchObject({ shown: true, link: null, revision: 2 });
+    // The old separate link is not read: the message is.
+    expect(await notice(deps)).toEqual(
+      expect.objectContaining({ message: "x", shown: true, revision: 2 }),
+    );
+    expect(await notice(deps)).not.toHaveProperty("link");
   });
 });

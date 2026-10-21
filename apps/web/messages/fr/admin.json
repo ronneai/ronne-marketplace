@@ -2,12 +2,9 @@
   "notice": {
     "tab": "Avis",
     "title": "Avis de l’instance",
-    "intro": "Un court message sous l’en-tête de chaque page pour les personnes connectées, comme une période de maintenance ou « ceci est une démo ». C’est votre propre texte : il n’est pas traduit.",
+    "intro": "Un court message sous l’en-tête de chaque page pour les personnes connectées, comme une période de maintenance ou « ceci est une démo ». Écrivez un lien dans la phrase sous la forme [texte](adresse). C’est votre propre texte : il n’est pas traduit.",
     "message": "Message",
-    "messageHint": "Texte simple sur une seule ligne. {used, number} caractères sur {max, number}.",
-    "linkLabel": "Libellé du lien (facultatif)",
-    "linkHref": "Adresse du lien",
-    "linkHint": "Commence par https:// ou par une seule / pour une page de ce site. Un lien a besoin de son libellé et de son adresse.",
+    "messageHint": "Texte simple sur une seule ligne. Lien avec [texte](adresse) : https:// ou une seule / pour une page de ce site, jusqu’à {links, number} liens. {used, number} caractères sur {max, number}.",
     "tone": "Ton",
     "toneInfo": "Information",
     "toneWarning": "Avertissement",
@@ -25,10 +22,9 @@
     "errors": {
       "message_empty": "Écrivez le message avant d’afficher l’avis.",
       "message_too_long": "Utilisez au plus {max, number} caractères, sur une seule ligne.",
-      "label_missing": "Ajoutez le libellé du lien.",
-      "label_too_long": "Utilisez au plus {max, number} caractères pour le libellé.",
-      "address_missing": "Ajoutez l’adresse qu’ouvre le libellé.",
-      "address_invalid": "Utilisez une adresse qui commence par https:// ou par une seule /.",
+      "link_label": "Un lien a besoin de son texte, d’au plus {label, number} caractères : [texte](adresse).",
+      "link_address": "Utilisez une adresse qui commence par https:// ou par une seule /, sans espace : [texte](adresse).",
+      "too_many_links": "Utilisez au plus {links, number} liens dans le message.",
       "tone_invalid": "Choisissez Information ou Avertissement."
     }
   }

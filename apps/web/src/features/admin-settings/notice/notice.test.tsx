@@ -42,10 +42,10 @@ const french = (await import("../../../../messages/fr/admin.json")).default.noti
 type L = "en" | "pt" | "fr";
 const view = (locale: L, node: ReactElement) => inLocale(locale, () => renderToStaticMarkup(node));
 
-const hidden = { message: "", link: null, tone: "info", shown: false } as const;
+const hidden = { message: "", tone: "info", shown: false } as const;
 const shown = {
-  message: "The demo's data is reset on Friday.",
-  link: { label: "Status", href: "https://status.example.com/" },
+  message:
+    "The demo's data is reset on Friday. See the [status page](https://status.example.com/).",
   tone: "warning",
   shown: true,
 } as const;
@@ -79,7 +79,7 @@ describe("The Notice tab (124)", () => {
 
   it("starts empty and hidden: every field, the helpers, 'Not set yet.' and no preview", async () => {
     const html = renderToStaticMarkup(await NoticeTab());
-    for (const label of [english.message, english.linkLabel, english.linkHref, english.tone])
+    for (const label of [english.message, english.tone])
       expect(html).toContain(`>${label}</label>`);
     expect(html).toContain(english.shown);
     expect(html).toContain(english.neverChanged);
@@ -96,10 +96,13 @@ describe("The Notice tab (124)", () => {
     });
     const html = renderToStaticMarkup(await NoticeTab());
     expect(html).toContain("The demo&#x27;s data is reset on Friday.");
-    expect(html).toContain('value="https://status.example.com/"');
+    // The field holds the message as typed; the preview draws the link inside the sentence.
+    expect(html).toContain("[status page](https://status.example.com/)");
     expect(html).toContain('<option value="warning" selected="">');
     expect(html).toContain("WARN:");
-    expect(html).toContain('<a href="https://status.example.com/"');
+    expect(html).toMatch(
+      /See the <\/span><a href="https:\/\/status\.example\.com\/"[^>]*>status page<\/a>/,
+    );
     expect(html).toContain('rel="noopener noreferrer"');
     expect(html).toContain("Last changed by Root");
     expect(html).toContain('dateTime="2026-10-21T14:00:00.000Z"');
@@ -128,26 +131,59 @@ describe("The Notice tab (124)", () => {
     expect(html).toContain("&lt;b&gt;bold&lt;/b&gt;");
   });
 
-  it("counts characters, not bytes, beside the message", () => {
+  it("counts characters, not bytes, beside the message, and says how to write a link", () => {
     const html = view("en", <NoticeForm notice={{ ...hidden, message: "😀😀" }} changed={null} />);
     expect(html).toContain("2 of 500 characters");
+    expect(html).toContain("[words](address)");
+  });
+
+  it("draws the links inside the sentence in the preview, with no separate link fields", () => {
+    const html = view(
+      "en",
+      <NoticeForm
+        notice={{
+          ...hidden,
+          message: "Read [this](/catalogue) or [that](https://a.example/).",
+          shown: true,
+        }}
+        changed={null}
+      />,
+    );
+    expect(html).toMatch(
+      /Read <\/span><a [^>]*href="\/catalogue"[^>]*>this<\/a><span> or <\/span>/,
+    );
+    expect(html).toMatch(
+      /<a [^>]*href="https:\/\/a\.example\/"[^>]*target="_blank"[^>]*>that<\/a>/,
+    );
+    expect(html).not.toContain('name="linkLabel"');
+    expect(html).not.toContain('name="linkHref"');
   });
 
   it("puts each refusal beside its field, marks the field, and keeps what was typed", () => {
     const html = view(
       "en",
       <NoticeForm
-        notice={{ ...hidden, message: "x", link: { label: "L", href: "javascript:alert(1)" } }}
+        notice={{ ...hidden, message: "x [Go](javascript:alert)" }}
         changed={null}
-        initial={{ errors: { linkHref: "address_invalid", message: "message_too_long" } }}
+        initial={{ errors: { message: "link_address", tone: "tone_invalid" } }}
       />,
     );
-    expect(html).toContain(english.errors.address_invalid);
-    expect(html).toContain(english.errors.message_too_long.replace("{max, number}", "500"));
-    expect(html).toMatch(/id="notice-link-href"[^>]*aria-invalid="true"/);
+    expect(html).toContain(english.errors.link_address);
+    expect(html).toContain(english.errors.tone_invalid);
     expect(html).toMatch(/id="notice-message"[^>]*aria-invalid="true"/);
-    expect(html).not.toMatch(/id="notice-tone"[^>]*aria-invalid="true"/);
-    expect(html).toContain('value="javascript:alert(1)"');
+    expect(html).toMatch(/id="notice-tone"[^>]*aria-invalid="true"/);
+    expect(html).toContain("x [Go](javascript:alert)");
+  });
+
+  it("fills in the numbers of the errors that have them", () => {
+    const refused = (code: "message_too_long" | "link_label" | "too_many_links") =>
+      view(
+        "en",
+        <NoticeForm notice={hidden} changed={null} initial={{ errors: { message: code } }} />,
+      );
+    expect(refused("message_too_long")).toContain("Use up to 500 characters, on one line.");
+    expect(refused("link_label")).toContain("up to 60 characters: [words](address).");
+    expect(refused("too_many_links")).toContain("Use at most 3 links in the message.");
   });
 
   it("says saved, or nothing changed", () => {
@@ -175,8 +211,6 @@ describe("The Notice tab in three languages (124)", () => {
       for (const text of [
         words.title,
         words.message,
-        words.linkLabel,
-        words.linkHref,
         words.tone,
         words.toneInfo,
         words.toneWarning,
@@ -188,13 +222,7 @@ describe("The Notice tab in three languages (124)", () => {
         words.lastChanged.replace("{name}", "Root"),
       ])
         expect(html, `${locale}: ${text}`).toContain(text);
-      for (const text of [
-        english.linkLabel,
-        english.shown,
-        english.preview,
-        english.save,
-        english.saved,
-      ])
+      for (const text of [english.shown, english.preview, english.save, english.saved])
         expect(html, `${locale} leaks: ${text}`).not.toContain(`>${text}<`);
     }
   });
@@ -206,15 +234,13 @@ describe("saveNotice", () => {
     for (const [key, value] of Object.entries(values)) data.set(key, value);
     return data;
   };
-  const typed = { message: "Hi", linkLabel: "", linkHref: "", tone: "info", shown: "on" };
+  const typed = { message: "Hi", tone: "info", shown: "on" };
 
   it("passes the typed values on, and revalidates every page", async () => {
     settings.setNotice.mockResolvedValueOnce({ changed: true });
     expect(await saveNotice({}, form(typed))).toEqual({ done: "saved" });
     expect(settings.setNotice).toHaveBeenCalledWith(expect.any(Headers), {
       message: "Hi",
-      linkLabel: "",
-      linkHref: "",
       tone: "info",
       shown: "on",
     });
@@ -230,8 +256,8 @@ describe("saveNotice", () => {
   });
 
   it("answers a refusal with a code beside its field, and revalidates nothing", async () => {
-    settings.setNotice.mockRejectedValueOnce(new InvalidNoticeError("linkHref", "link_address"));
-    expect(await saveNotice({}, form(typed))).toEqual({ errors: { linkHref: "address_invalid" } });
+    settings.setNotice.mockRejectedValueOnce(new InvalidNoticeError("message", "link_address"));
+    expect(await saveNotice({}, form(typed))).toEqual({ errors: { message: "link_address" } });
     expect(cache.revalidatePath).not.toHaveBeenCalled();
   });
 
@@ -244,20 +270,14 @@ describe("saveNotice", () => {
 });
 
 describe("noticeErrorCode", () => {
-  const base: NoticeInput = {
-    message: "Hi",
-    linkLabel: "",
-    linkHref: "",
-    tone: "info",
-    shown: true,
-  };
+  const base: NoticeInput = { message: "Hi", tone: "info", shown: true };
   const cases: [Partial<NoticeInput>, NoticeField, string][] = [
     [{ message: "" }, "message", "message_empty"],
     [{ message: "x".repeat(501) }, "message", "message_too_long"],
-    [{ linkHref: "/x" }, "linkLabel", "label_missing"],
-    [{ linkLabel: "x".repeat(61), linkHref: "/x" }, "linkLabel", "label_too_long"],
-    [{ linkLabel: "Go" }, "linkHref", "address_missing"],
-    [{ linkLabel: "Go", linkHref: "javascript:1" }, "linkHref", "address_invalid"],
+    [{ message: "[](/x)" }, "message", "link_label"],
+    [{ message: `[${"x".repeat(61)}](/x)` }, "message", "link_label"],
+    [{ message: "[Go](javascript:1)" }, "message", "link_address"],
+    [{ message: "[a](/1)[b](/2)[c](/3)[d](/4)" }, "message", "too_many_links"],
     [{ tone: "danger" }, "tone", "tone_invalid"],
   ];
 

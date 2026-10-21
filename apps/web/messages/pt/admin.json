@@ -2,12 +2,9 @@
   "notice": {
     "tab": "Aviso",
     "title": "Aviso da instância",
-    "intro": "Uma mensagem curta abaixo do cabeçalho de todas as páginas para quem entrou, como uma janela de manutenção ou “esta é uma demonstração”. É um texto seu, por isso não é traduzido.",
+    "intro": "Uma mensagem curta abaixo do cabeçalho de todas as páginas para quem entrou, como uma janela de manutenção ou “esta é uma demonstração”. Escreva um link dentro da frase como [texto](endereço). É um texto seu, por isso não é traduzido.",
     "message": "Mensagem",
-    "messageHint": "Texto simples em uma linha. {used, number} de {max, number} caracteres.",
-    "linkLabel": "Texto do link (opcional)",
-    "linkHref": "Endereço do link",
-    "linkHint": "Começa com https:// ou com uma única / para uma página deste site. Um link precisa do texto e do endereço.",
+    "messageHint": "Texto simples em uma linha. Link com [texto](endereço): https:// ou uma única / para uma página deste site, até {links, number} links. {used, number} de {max, number} caracteres.",
     "tone": "Tom",
     "toneInfo": "Informação",
     "toneWarning": "Alerta",
@@ -25,10 +22,9 @@
     "errors": {
       "message_empty": "Escreva a mensagem antes de mostrar o aviso.",
       "message_too_long": "Use até {max, number} caracteres, em uma linha.",
-      "label_missing": "Adicione o texto do link.",
-      "label_too_long": "Use até {max, number} caracteres no texto do link.",
-      "address_missing": "Adicione o endereço que o texto abre.",
-      "address_invalid": "Use um endereço que comece com https:// ou com uma única /.",
+      "link_label": "Um link precisa do texto, com até {label, number} caracteres: [texto](endereço).",
+      "link_address": "Use um endereço que comece com https:// ou com uma única /, sem espaços: [texto](endereço).",
+      "too_many_links": "Use no máximo {links, number} links na mensagem.",
       "tone_invalid": "Escolha Informação ou Alerta."
     }
   }

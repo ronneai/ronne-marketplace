@@ -4,16 +4,19 @@ import type { NoticeField, NoticeProblem } from "@/server/domains/settings/model
 export type NoticeErrorCode =
   | "message_empty"
   | "message_too_long"
-  | "label_missing"
-  | "label_too_long"
-  | "address_missing"
-  | "address_invalid"
+  | "link_label"
+  | "link_address"
+  | "too_many_links"
   | "tone_invalid";
 
 const CODES: Record<NoticeField, Partial<Record<NoticeProblem, NoticeErrorCode>>> = {
-  message: { empty: "message_empty", too_long: "message_too_long" },
-  linkLabel: { link_incomplete: "label_missing", too_long: "label_too_long" },
-  linkHref: { link_incomplete: "address_missing", link_address: "address_invalid" },
+  message: {
+    empty: "message_empty",
+    too_long: "message_too_long",
+    link_label: "link_label",
+    link_address: "link_address",
+    too_many_links: "too_many_links",
+  },
   tone: { tone: "tone_invalid" },
 };
 

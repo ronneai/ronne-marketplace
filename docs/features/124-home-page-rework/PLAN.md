@@ -40,7 +40,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   the scan covers `features/home` and the Notice code; phone sweep in each language.
   *Done when:* parity and scan tests pass; the end-to-end sweep passes on every project.
 
-- [ ] **7. End to end.** Root sets a Warning notice; a user sees it, dismisses it, root edits it
+- [x] **7. End to end.** Root sets a Warning notice; a user sees it, dismisses it, root edits it
   and it returns; Home on a new instance and on a populated one.
   *Done when:* the end-to-end tests pass on every project.
 

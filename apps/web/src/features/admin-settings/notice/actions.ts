@@ -16,8 +16,6 @@ export const saveNotice = serverAction(
     try {
       const { changed } = await setNotice(await requestHeaders(), {
         message: form.get("message"),
-        linkLabel: form.get("linkLabel"),
-        linkHref: form.get("linkHref"),
         tone: form.get("tone"),
         shown: form.get("shown"),
       });

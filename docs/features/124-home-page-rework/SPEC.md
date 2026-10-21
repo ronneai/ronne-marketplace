@@ -35,14 +35,16 @@ checklist, favorites, pinned items), and root gets a way to tell everyone someth
   links ("Skills · Agents · Rules …", from the types that have released items) so a visitor can
   browse without typing.
 - **The instance notice.** Root sets it in Admin › Settings, a new **Notice** tab (122's tabs):
-  - **Message:** plain text, up to 500 characters, no HTML or Markdown.
-  - **Link** (optional): a label (up to 60 characters) and an `https://` or relative address.
+  - **Message:** plain text on one line, up to 500 characters, no HTML. **Links are written inside
+    the sentence** as `[words](address)` (owner, 2026-10-21; there is no separate link field): the
+    words up to 60 characters, the address `https://…` or a path starting with a single `/`, up to
+    3 links. Only that exact shape becomes a link; any other brackets stay as typed.
   - **Tone:** Information (teal, the single accent) or Warning (amber, for something that needs
     care, such as "the demo's data is reset on Friday").
   - **Shown:** on or off.
   - **Shown on every signed-in page,** under the header (and on the Menu sheet's phone layout),
     above the page, not floating. Each person can **dismiss** it, with a small ✕ icon inside the box (owner, 2026-10-21: not a button beside it); it comes back when root changes
-    the message, link or tone (a revision number, kept in the dismiss cookie `ronne-notice`), so a
+    the message (links included) or tone (a revision number, kept in the dismiss cookie `ronne-notice`), so a
     new notice isn't missed by someone who closed the old one.
   - Root sees a **preview** while editing, and a line saying who changed it last.
   - The text is root's own words: it is **not translated** (129). Root can write it in any
@@ -63,8 +65,10 @@ checklist, favorites, pinned items), and root gets a way to tell everyone someth
 - **Saving the notice** is an audited settings change (`settings.notice`, with the old and new tone
   and "shown", not the text) and raises the revision. Turning it off keeps the text, so it can be
   turned on again.
-- **Validation:** an empty message can't be shown; a link needs its label and a valid address
-  (`https:` or a path starting with `/`); anything else is refused with a message beside the field.
+- **Validation:** an empty message can't be shown; each `[words](address)` needs its words and a
+  valid address (`https:` or a path starting with a single `/`, no spaces or credentials), and there
+  can be at most 3; anything else is refused with a message beside the message field. A stored
+  message is checked again when drawn, so a link that would be refused is drawn as the words typed.
 - **Without JavaScript** the notice shows, and the dismiss icon is a form button that sets the cookie
   and returns to the same page.
 - **Phone:** the notice wraps, its dismiss icon is a 44px target, and Home's sections stack
@@ -80,7 +84,8 @@ checklist, favorites, pinned items), and root gets a way to tell everyone someth
 - An erased or disabled root as "last changed by" shows their pseudonym (103) or name as the audit
   log does.
 - A notice with a link to an unknown relative path is allowed (the link is root's responsibility);
-  `javascript:` and `data:` addresses are refused.
+  `javascript:` and `data:` addresses are refused. An address with a parenthesis in it isn't the
+  shape of a link and is drawn as typed.
 
 ## Documentation
 
