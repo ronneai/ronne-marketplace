@@ -285,3 +285,42 @@ Witnessed: 2026-10-21 16:00 local, by a fresh agent (blind re-check). Commit: d2
 | 10 | A pt or fr question or answer left as the English text is caught | no | confirmed | `help.test.tsx` has "none of them is left as the English text in pt or fr"; baseline `vitest run --project unit src/components/help` → 16 passed; pt `install.answer` set to English → 1 failed (that test); fr `usage.question` set to English → the same test failed; restored → 16 passed. |
 
 **Overall:** met.
+
+## Task 9 — End to end
+
+Witnessed: 2026-10-21 15:55 local, by a fresh agent (blind). Commit: bd6d39c5 plus the uncommitted tree. Machine: macOS (Darwin 27.0.0), Playwright 1.64.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The browse routes are in `MIGRATED_ROUTES` | no | confirmed | `e2e/pages.ts:187-197` lists `/catalogue`, the four item routes, `/workspaces`, `/workspaces/[name]`, `/workspaces/[name]/join` and `/workspaces/requests`; each has a `SWEEP_PAGES` entry. |
+| 2 | The same routes are in the pinned list in `pages-coverage.test.ts` | no | confirmed | `vitest run src/app/pages-coverage.test.ts` → 3 passed. |
+| 3 | An end-to-end test opens the Catalogue, an item and a workspace in Portuguese and French and sees no English left | no | partly | `playwright test languages-browse --project=chromium` → 6 passed, with positive checks; but "no English left" was a list of five words matched exactly, so a leak of any other label would pass. |
+| 4 | The test covers the three screens as the spec says | no | confirmed | The Catalogue test checks a card and its install count; the item test the tabs, Install, Propose, the usage card with its peak and the helper; the workspaces test `/workspaces` and `/workspaces/global`. |
+| 5 | The phone sweep runs these routes in pt and fr for each role | no | confirmed | `playwright test mobile-sweep --project=phone -g "in (pt\|fr)"` → 10 passed (signed out, member, moderator, root, no-sideways-scroll, per language); roles come from `pages.ts`. |
+| 6 | The new user `browseLanguages` and its name exist | no | confirmed | `users.ts` adds the email and `E2E_NAMES.browseLanguages`; it signs in once in `beforeAll`. |
+| 7 | The test fails when a pt message goes back to English | no | can't check here | The mutation could not run in a scratch copy (the harness needs a real `node_modules`). |
+| 8 | The e2e project runs green (chromium and phone) on a fresh build | no | partly | Only a sample was run. |
+
+**Overall:** not met: rows 3, 7 and 8.
+
+### Re-check (rows 3, 7, 8)
+
+Witnessed: 2026-10-21 16:20 local, by a fresh agent (blind, observation re-check). Commit: bd6d39c5 plus the uncommitted tree. Machine: macOS (Darwin 27.0.0), Playwright 1.64.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 3 | An end-to-end test opens the Catalogue, an item and a workspace in Portuguese and French and sees no English left | no | confirmed | `noEnglish` now opens every `<details>`, takes the English message texts of 4+ characters with no placeholder or tag that differ in the language, drops a text the language also writes for another message, and fails when the text stands as a whole line of `body.innerText`, on the Catalogue, the item page, `/workspaces`, `/workspaces/global` and its join page. Limits stated: a pt message edited to be identical to English is not caught (left for the native review, 133); a leak inside a longer line is not caught. |
+| 7 | The test fails when a pt message goes back to English | no | confirmed | With `view.sort.name.label` deleted from `messages/pt/catalogue.json` (the only change in `git diff`) and a fresh `next build`, `playwright test languages-browse --project=chromium -g "in pt.*Catalogue"` failed with "English left on /catalogue?q=security" naming `catalogue.view.sort.name.label` (inside the closed Sort panel). |
+| 8 | The e2e project runs green (chromium and phone) on a fresh build | no | can't check here | Only the mutated Catalogue test ran in this pass. |
+
+**Overall:** not met: row 8 waits for the full run.
+
+### Re-check (row 8)
+
+Witnessed: 2026-10-21 16:30 local, by a fresh agent (blind, row 8 re-check). Commit: bd6d39c5 plus the uncommitted tree. Machine: macOS (Darwin 27.0.0), Playwright 1.64.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 8 | The e2e project runs green (chromium and phone) on a fresh build | no | confirmed | `git status --short messages` printed nothing; `pnpm exec playwright test --project=chromium --project=phone` → "143 passed (4.2m)", no failures, flaky tests or skips, against the build of the clean tree. |
+
+**Overall:** met.

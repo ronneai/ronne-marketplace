@@ -63,7 +63,7 @@ Every task that moves a folder adds it to the `overrides` entry in `biome.json` 
   *Done when:* `help.test.tsx` renders a migrated and an unmigrated entry; a parity test covers
   `help.json`; each moved helper's link opens the website's page in the language.
 
-- [ ] **9. End to end.** `MIGRATED_ROUTES` and the pinned list gain the browse routes; an
+- [x] **9. End to end.** `MIGRATED_ROUTES` and the pinned list gain the browse routes; an
   end-to-end test that opens the Catalogue, an item and a workspace in Portuguese and in French and
   sees no English left; the phone sweep passes in each language.
   *Done when:* the e2e project runs green (chromium and phone) on a fresh build.
