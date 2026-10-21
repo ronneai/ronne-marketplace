@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import { LocalTime } from "@/components/ui/LocalTime";
 import { Table, Td, Th } from "@/components/ui/Table";
 import { ApproveForm, DeclineButton } from "./AnswerControls";
@@ -17,10 +18,11 @@ export const RequestsTable = ({
   total: number;
   showWorkspace?: boolean;
 }) => {
+  const t = useTranslations("workspaces.requests");
   if (requests.length === 0)
     return (
       <p className="rounded-panel border border-hairline bg-surface p-4 text-sm text-muted">
-        No requests waiting.
+        {t("none")}
       </p>
     );
   return (
@@ -28,12 +30,12 @@ export const RequestsTable = ({
       <Table>
         <thead>
           <tr>
-            <Th>Who</Th>
-            {showWorkspace ? <Th>Workspace</Th> : null}
-            <Th>Asked (UTC)</Th>
-            <Th>Message</Th>
+            <Th>{t("who")}</Th>
+            {showWorkspace ? <Th>{t("workspace")}</Th> : null}
+            <Th>{t("asked")}</Th>
+            <Th>{t("message")}</Th>
             <Th>
-              <span className="sr-only">Answer</span>
+              <span className="sr-only">{t("answer")}</span>
             </Th>
           </tr>
         </thead>
@@ -49,7 +51,7 @@ export const RequestsTable = ({
                 <LocalTime value={r.createdAt} />
               </Td>
               <Td className="max-w-80 py-2 text-sm break-words whitespace-pre-line">
-                {r.message ?? <span className="text-muted">None</span>}
+                {r.message ?? <span className="text-muted">{t("noMessage")}</span>}
               </Td>
               <Td className="py-2">
                 {/* The role, Approve and Decline on one line; on a phone the table scrolls. */}
@@ -63,9 +65,7 @@ export const RequestsTable = ({
         </tbody>
       </Table>
       {total > requests.length ? (
-        <p className="text-xs text-muted">
-          The {requests.length} oldest of {total}. Answer these to see the rest.
-        </p>
+        <p className="text-xs text-muted">{t("more", { shown: requests.length, total })}</p>
       ) : null}
     </div>
   );

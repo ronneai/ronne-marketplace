@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogActions } from "@/components/ui/Dialog";
@@ -15,6 +16,8 @@ const REASON_MAX_LENGTH = 500;
  * refusal (someone answered first) shows under the button.
  */
 export const ApproveForm = ({ request }: { request: RequestRow }) => {
+  const t = useTranslations("workspaces.requests");
+  const roles = useTranslations("common.roleTitle");
   const [state, action, pending] = useActionState<AnswerState, FormData>(
     approveRequestFromForm,
     {},
@@ -31,21 +34,21 @@ export const ApproveForm = ({ request }: { request: RequestRow }) => {
             <select
               name="role"
               defaultValue="user"
-              aria-label={`Role for ${request.email}`}
+              aria-label={t("roleFor", { email: request.email })}
               className={selectClasses}
             >
-              <option value="user">User</option>
-              <option value="moderator">Moderator</option>
+              <option value="user">{roles("user")}</option>
+              <option value="moderator">{roles("moderator")}</option>
             </select>
           </div>
         ) : null}
         <Button
           type="submit"
           loading={pending}
-          aria-label={`Approve ${request.email}`}
+          aria-label={t("approveAria", { email: request.email })}
           aria-describedby={state.error ? errorId : undefined}
         >
-          Approve
+          {t("approve")}
         </Button>
       </div>
       <FieldError id={errorId}>{state.error}</FieldError>
@@ -54,6 +57,7 @@ export const ApproveForm = ({ request }: { request: RequestRow }) => {
 };
 
 const DeclineForm = ({ request, onDone }: { request: RequestRow; onDone: () => void }) => {
+  const t = useTranslations("workspaces.requests");
   const [state, action, pending] = useActionState<AnswerState, FormData>(
     declineRequestFromForm,
     {},
@@ -65,12 +69,15 @@ const DeclineForm = ({ request, onDone }: { request: RequestRow; onDone: () => v
       <input type="hidden" name="requestId" value={request.id} />
       <input type="hidden" name="workspace" value={request.workspace} />
       <p className="text-sm text-muted">
-        Decline <strong className="text-fg">{request.email}</strong> joining{" "}
-        <span className="font-mono text-fg">{request.workspace}</span>? They can ask again in 7
-        days.
+        {t.rich("declineBody", {
+          email: request.email,
+          workspace: request.workspace,
+          strong: (chunks) => <strong className="text-fg">{chunks}</strong>,
+          mono: (chunks) => <span className="font-mono text-fg">{chunks}</span>,
+        })}
       </p>
       <div className="grid gap-1.5">
-        <Label htmlFor={reasonId}>Reason (optional)</Label>
+        <Label htmlFor={reasonId}>{t("reason")}</Label>
         <textarea
           id={reasonId}
           name="reason"
@@ -82,16 +89,16 @@ const DeclineForm = ({ request, onDone }: { request: RequestRow; onDone: () => v
           className={`${inputClasses} h-auto py-2`}
         />
         <p id={`${reasonId}-hint`} className="text-xs text-muted">
-          They see it on their Workspaces page. {[...reason].length}/{REASON_MAX_LENGTH}
+          {t("reasonHint", { used: [...reason].length, max: REASON_MAX_LENGTH })}
         </p>
       </div>
       <FieldError id={`decline-${request.id}-error`}>{state.error}</FieldError>
       <DialogActions>
         <Button variant="ghost" onClick={onDone}>
-          Cancel
+          {t("cancel")}
         </Button>
         <Button type="submit" loading={pending}>
-          Decline
+          {t("decline")}
         </Button>
       </DialogActions>
     </form>
@@ -100,6 +107,7 @@ const DeclineForm = ({ request, onDone }: { request: RequestRow; onDone: () => v
 
 /** Decline, with an optional reason, in a dialog; once declined, the row is gone with it. */
 export const DeclineButton = ({ request }: { request: RequestRow }) => {
+  const t = useTranslations("workspaces.requests");
   const [open, setOpen] = useState(false);
   const [round, setRound] = useState(0);
   const close = () => {
@@ -111,11 +119,11 @@ export const DeclineButton = ({ request }: { request: RequestRow }) => {
       <Button
         variant="secondary"
         onClick={() => setOpen(true)}
-        aria-label={`Decline ${request.email}`}
+        aria-label={t("declineAria", { email: request.email })}
       >
-        Decline
+        {t("decline")}
       </Button>
-      <Dialog open={open} onClose={close} title="Decline request">
+      <Dialog open={open} onClose={close} title={t("declineTitle")}>
         <DeclineForm key={round} request={request} onDone={close} />
       </Dialog>
     </>

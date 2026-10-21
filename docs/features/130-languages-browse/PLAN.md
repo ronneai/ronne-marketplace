@@ -46,7 +46,7 @@ Every task that moves a folder adds it to the `overrides` entry in `biome.json` 
   `app/(app)/workspaces` that are not the members and requests tabs.
   *Done when:* three-language tests; dates inside sentences read in the language's word order.
 
-- [ ] **6. Workspaces: members, requests and moves.** `MembersTable`, `MemberControls`,
+- [x] **6. Workspaces: members, requests and moves.** `MembersTable`, `MemberControls`,
   `RequestsTable`, `AnswerControls`, `ScopeMovesTable` (aria-labels as messages, the impact list),
   the workspace page's tabs.
   *Done when:* three-language tests; the shared table footer noun is correct for 0, 1 and 2.

@@ -25,9 +25,12 @@ const flat = (value: string | Tree, prefix = ""): Record<string, string> =>
 const escapeHtml = (text: string) =>
   text.replaceAll("&", "&amp;").replaceAll("'", "&#x27;").replaceAll('"', "&quot;");
 
+/** The attributes that carry words a person reads (a `value="moderator"` is an identifier). */
+const WORDS = /(?:aria-label|title|placeholder|alt|label)="/;
+
 const standsAlone = (html: string, text: string) =>
   html.includes(`>${text}<`) ||
-  html.includes(`"${text}"`) ||
+  new RegExp(`${WORDS.source}${text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`).test(html) ||
   html.includes(`>${text} `) ||
   html.includes(` ${text}<`);
 

@@ -150,7 +150,7 @@ Witnessed: 2026-10-21 15:25 local, by a fresh agent (blind re-check). Commit: 8d
 
 ## Task 5 — Workspaces: list, join and the current-workspace line
 
-Witnessed: 2026-10-21 15:15 local, by a fresh agent (blind). Commit: e965e78b plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0), Node 24.
+Witnessed: 2026-10-21 15:15 local, by a fresh agent (blind). Commit: 95d2f294 plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0), Node 24.
 
 | # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
 |---|---|---|---|---|
@@ -162,5 +162,36 @@ Witnessed: 2026-10-21 15:15 local, by a fresh agent (blind). Commit: e965e78b pl
 | 6 | The phone sweep passes in pt and fr | no | confirmed | `pnpm exec playwright test mobile-sweep --project=phone -g "in (pt\|fr)"` → 10 passed (19s), on a build of this tree. |
 | 7 | The old English strings survive word for word apart from the apostrophe glyph and the role names | no | confirmed | Diff against HEAD and the en JSON: every string matches, including "Declined on … ; ask again from …" and "Cancel your request to join {workspace}". |
 | 8 | Roles come from one set of messages; the local `ROLE_LABELS` is removed | no | confirmed | `WorkspacesPage.tsx` uses `roles(w.role)`; the `ROLE_LABELS` block is deleted. |
+
+**Overall:** met.
+
+## Task 6 — Workspaces: members, requests and moves
+
+Witnessed: 2026-10-21 15:40 EDT, by a fresh agent (blind). Commit: 015b75dc plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | There are three-language tests for the Members and Requests/Moves tabs, and they pass | no | not met | `vitest run --project unit src/features src/components src/app src/i18n` → 1 failed, 1247 passed: `workspace-requests/translations.test.tsx` expected "Déplacements" from `ScopeMovesTable`, which renders no heading (it is the page's). |
+| 2 | The Members table footer noun is right for 0, 1 and 2 in pt and fr | no | confirmed | `workspace-members/translations.test.tsx:91-97` asserts "0 membro<", "1 membro<", "2 membros" and "0 membre<", "1 membre<", "2 membres"; removing pt's `one` form in a scratch copy made it fail. |
+| 3 | The workspace page's tabs, role, visibility and notes are in messages | no | confirmed | The diff of `workspaces/[name]/page.tsx` uses `t(...)` for the tabs, the tab bar label, "All workspaces", "Scope moves", the badges and both notes; the role badge uses `common.roleTitle`; the title is `generateMetadata`; `biome check` → no errors. |
+| 4 | English is unchanged apart from the documented changes | no | confirmed | Every `HEAD` string survives word for word in `en/workspaces.json`, apart from the apostrophe glyph, role names from `common.roleTitle`/`common.roles` and ICU plurals with the same text; a parity script found no missing keys or placeholder mismatches. |
+| 5 | `/workspaces/[name]` and `/workspaces/requests` are in `MIGRATED_ROUTES` and the pinned list | no | confirmed | Both diffs add both routes; `pages-coverage.test.ts` is in the passing `src/app` run. |
+| 6 | The touched folders are in the raw-text lint scan | no | partly | `biome.json` lists the four paths and raw `Filter` and `Renamed` in a scratch copy reported errors; the rule's identity was not read. |
+| 7 | The tests catch a pt message left in English | no | confirmed | pt `members.none` set to English in a scratch copy → the members test failed; restored, `diff -r` clean. |
+| 8 | The tests catch raw English in `MembersTable` | no | confirmed | `{t("filter")}` replaced by `Filter` in a scratch copy → "the filters, the columns and the count with its noun" failed. |
+| 9 | The tests catch raw English in `ScopeMovesTable` | no | partly | The test that would show it was already failing on the unmutated tree (row 1). |
+| 10 | The phone sweep passes in pt and fr | no | confirmed | `pnpm exec playwright test mobile-sweep --project=phone -g "in (pt\|fr)"` → 10 passed. |
+
+**Overall:** not met: the scope-moves test (row 1), and rows 6 and 9 with it.
+
+### Re-check (rows 1, 6, 9)
+
+Witnessed: 2026-10-21 16:00 EDT, by a fresh agent (blind re-check). Commit: 015b75dc plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The three-language tests for Members, Requests and Moves pass | no | confirmed | `vitest run --project unit src/features src/components src/app src/i18n` → 110 files, 1248 tests passed, 0 failed. |
+| 6 | The touched folders are in the raw-text lint scan | no | confirmed | A raw `Renamed` in `ScopeMovesTable.tsx` in a scratch copy → `biome check` printed "Text on the screen comes from the message files (feature 129): use `t(...)`, not a string written here." (the i18n raw-text plugin), "Found 2 errors"; `biome.json` lists the four paths. |
+| 9 | The tests catch raw English in `ScopeMovesTable` | no | confirmed | The same mutation → `vitest run --project unit src/features/workspace-requests` → 1 failed, 16 passed (the pt and fr `>Renomeado<` / `>Renommé<` expectations), and the test passes on the unmutated tree; restored, `cmp` identical. |
 
 **Overall:** met.

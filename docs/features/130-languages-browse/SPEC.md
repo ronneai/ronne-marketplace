@@ -51,6 +51,10 @@ Nothing about what the screens do changes.
   errors: 131. (The Versions page title and the item page's own Versions tab label move here.)
 - The dependency canvas's node text (`components/dependency-canvas`), shared with the composer:
   131. Only the Overview's "Loading the canvas…" moves here.
+- The pieces a workspace's page shares with Admin › Workspaces: the scopes table and its dialogs
+  (create, edit, move a scope), the workspace's own dialogs (edit, rename, visibility, delete) and
+  the list of what a move changes (`MoveChanges`, shown when Approve refuses a move). They are
+  translated with the admin sweep, 132; until then they read in English inside a translated page.
 - Admin pages, Admin › Workspaces (the rename and move screens an administrator uses), settings,
   setup, SSO and SCIM: 132.
 - The remaining `Help` entries: 131 and 132.
