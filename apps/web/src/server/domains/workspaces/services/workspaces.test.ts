@@ -53,6 +53,8 @@ const racingRepo = (): WorkspaceRepository => {
     setVisibility: async () => {},
     lockWorkspace: async () => {},
     outsideDependents: async () => [],
+    startHerePinsOf: async () => [],
+    removeStartHerePinsOf: async () => 0,
     openSubmissionsOutside: async () => [],
     scopeNames: async () => [],
     memberPage: async () => ({ rows: [], next: null, previous: null }),

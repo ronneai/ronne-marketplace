@@ -99,6 +99,7 @@ export const exportUserData = async (
       const workspaces = list("workspaces", await repo.workspaces(userId, ask));
       const accessRequests = list("accessRequests", await repo.accessRequests(userId, ask));
       const scopes = list("scopes", await repo.scopes(userId, ask));
+      const favorites = list("favorites", await repo.favorites(userId, ask));
       const found = await repo.items(userId, ask);
       const items = [];
       if (found.versions > max) truncated.push("items");
@@ -136,6 +137,7 @@ export const exportUserData = async (
         workspaces,
         accessRequests,
         scopes,
+        favorites,
         items,
         submissions,
         comments,
@@ -148,6 +150,7 @@ export const exportUserData = async (
         workspaces: workspaces.length,
         accessRequests: accessRequests.length,
         scopes: scopes.length,
+        favorites: favorites.length,
         items: items.length,
         submissions: submissions.length,
         comments: comments.length,

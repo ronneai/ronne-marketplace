@@ -483,6 +483,28 @@ describe("the dialogs", () => {
     expect(clear).not.toMatch(/<button[^>]*disabled=""[^>]*>[^<]*Make private/);
   });
 
+  it("Make private says which items come off Start here, only when there are any (125)", () => {
+    const render = (startHere?: string[]) =>
+      renderToStaticMarkup(
+        <VisibilityForm
+          name="acme"
+          to="private"
+          onDone={() => {}}
+          loaded={{ dependents: [], openDependents: [], startHere }}
+        />,
+      );
+    const two = render(["@acme/team/fmt", "@acme/team/lint"]);
+    expect(two).toContain("2 items are pinned to Start here");
+    expect(two).toContain("They come off when you make this workspace private.");
+    expect(two).toContain(">@acme/team/fmt<");
+    expect(two).toContain(">@acme/team/lint<");
+    // A notice, not a block: it can still be made private.
+    expect(two).not.toMatch(/<button[^>]*disabled=""[^>]*>[^<]*Make private/);
+    expect(render(["@acme/team/fmt"])).toContain("1 item is pinned to Start here");
+    expect(render([])).not.toContain("Start here");
+    expect(render(undefined)).not.toContain("Start here");
+  });
+
   it("New workspace asks public or private, public chosen (093)", () => {
     const html = renderToStaticMarkup(<CreateWorkspaceForm onDone={() => {}} />);
     const radio = (value: string) =>

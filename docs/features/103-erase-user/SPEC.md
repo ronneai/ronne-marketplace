@@ -50,6 +50,7 @@ for the account `<id>`:
 | Workspace memberships, open access requests (094), open scope moves (024) | memberships deleted (a workspace whose only admin they were is left to root, as 092 already handles); requests and moves cancelled, with no reason text |
 | The personal workspace (114) | renamed from the pseudonym by 114's rule (`deleted-user-<id>`, lowercased, the first free name) when it holds a published item or any submission left once the person's own drafts are gone (something submitted, or another person's draft, which root may make in any scope), as any rename (113): its items take the new name and keep the old ones as aliases (118), since lockfiles and dependencies name them, and `workspace.renamed` is recorded; otherwise deleted with its scopes and drafts; the person's membership in it goes either way |
 | Drafts (`submissions` in `draft`) and their files | deleted: only their author could ever see them |
+| Favorites (125) | deleted: only their owner ever saw them. Pins they made stay, their `created_by` the pseudonym's row |
 | Submitted, approved and rejected submissions, revisions, review events (comments) | kept; the author or actor is the pseudonym |
 | Items owned, versions published, scopes and workspaces created | kept; `owner_id`, `published_by`, `created_by` keep the id, which now resolves to the pseudonym |
 | Audit events where the person is actor or target | kept; `ip_address` cleared on all of them now, not at retention's age (`user.erased` itself, root's act, keeps root's address until the retention) |
@@ -58,8 +59,8 @@ for the account `<id>`:
 
 The old email is free for a new account at once. The audit event `user.erased` (target the
 user) records `{ sessionsEnded, tokensDeleted, scimLinksDeleted, draftsDeleted, eventsRewritten,
-personalWorkspace: "renamed" | "deleted" | "none" }`, plus `requestsCancelled` and
-`movesCancelled` when there were any and `via: "retry" | "job"` when a retry or the job finished
+personalWorkspace: "renamed" | "deleted" | "none" }`, plus `requestsCancelled`,
+`movesCancelled` and `favoritesDeleted` (125) when there were any, and `via: "retry" | "job"` when a retry or the job finished
 it (Edge cases), never the email or the name; its sentence (060) is *Erased deleted-user-<id>*.
 
 ### Where it's shown afterwards

@@ -1,6 +1,7 @@
 "use client";
 
 import { NAME_PROBLEM_MESSAGES, nameProblem, normalizeWorkspaceName } from "@ronneai/core";
+import { useTranslations } from "next-intl";
 import { useActionState, useEffect, useState } from "react";
 import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
@@ -194,6 +195,7 @@ export const VisibilityForm = ({
   /** What Make private meets, when it's already known (its test); else it's read on open. */
   loaded?: VisibilityImpactResult;
 }) => {
+  const t = useTranslations("shelves.visibility");
   const [state, action, pending] = useActionState<WorkspaceActionState, FormData>(
     setVisibilityFromForm,
     {},
@@ -239,6 +241,17 @@ export const VisibilityForm = ({
               <p>They'd stop installing. Release them without it first.</p>
               <ul className="mt-1 list-disc pl-5 font-mono text-[13px]">
                 {impact.dependents.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </Notice>
+          ) : null}
+          {/* Start here is for everyone, so Make private takes the workspace's items off it (125). */}
+          {impact.startHere?.length ? (
+            <Notice kind="info" title={t("startHereTitle", { count: impact.startHere.length })}>
+              <p>{t("startHereBody", { count: impact.startHere.length })}</p>
+              <ul className="mt-1 list-disc pl-5 font-mono text-[13px]">
+                {impact.startHere.map((item) => (
                   <li key={item}>{item}</li>
                 ))}
               </ul>

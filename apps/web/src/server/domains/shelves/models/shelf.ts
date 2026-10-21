@@ -41,5 +41,5 @@ export type Pin = {
 };
 
 export type FavoriteOutcome = "added" | "exists" | "full";
-export type PinOutcome = "added" | "exists" | "full";
+export type PinOutcome = "added" | "exists" | "full" | "private";
 export type MoveOutcome = "moved" | "edge" | "missing";

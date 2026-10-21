@@ -266,6 +266,7 @@ describe("a workspace's visibility (093)", () => {
     expect(await visibilityImpact(asRoot, "acme", app)).toEqual({
       dependents: [],
       openDependents: ["@team/waiting"],
+      startHere: [],
     });
     // A warning only: it's allowed, and the submission will fail at release.
     await setWorkspaceVisibility(asRoot, { name: "acme", visibility: "private" }, app);

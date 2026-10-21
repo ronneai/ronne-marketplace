@@ -58,10 +58,27 @@ const renumber = async (trx: Db, pins: Pin[]) => {
 };
 
 export const kyselyPinRepository = (db: Db, dialect: DatabaseDialect): PinRepository => ({
-  add: (shelf, rawItemId, { by, at, limit, audit, id = newId() }) =>
+  add: (shelf, rawItemId, { by, at, limit, audit, id = newId(), requirePublicWorkspace }) =>
     readCommittedTransaction(db, dialect).execute(async (trx) => {
       const itemId = canonicalId(rawItemId);
       await lockShelf(trx, dialect, shelf);
+      if (requirePublicWorkspace) {
+        // The item's workspace, locked as Make private locks it, then read again: one of the two
+        // goes first, and a pin that goes second sees the workspace private and is refused.
+        const where = await trx
+          .selectFrom("items")
+          .innerJoin("scopes", "scopes.id", "items.scope_id")
+          .select("scopes.workspace_id as workspace_id")
+          .where("items.id", "=", itemId)
+          .executeTakeFirst();
+        if (where) {
+          const workspace = await forUpdate(
+            trx.selectFrom("workspaces").select("visibility").where("id", "=", where.workspace_id),
+            dialect,
+          ).executeTakeFirst();
+          if (workspace?.visibility !== "public") return "private" as const;
+        }
+      }
       const pins = await ordered(trx, shelf);
       if (pins.some((pin) => pin.itemId === itemId)) return "exists" as const;
       if (pins.length >= limit) return "full" as const;

@@ -39,5 +39,9 @@
     "seeAll": "See all",
     "pinnedIn": "Pinned in {workspace}",
     "workspacePins": "Pinned items"
+  },
+  "visibility": {
+    "startHereTitle": "{count, plural, one {# item is pinned to Start here} other {# items are pinned to Start here}}",
+    "startHereBody": "Everyone sees Start here, so a private workspace's items can't be on it. {count, plural, one {It comes} other {They come}} off when you make this workspace private."
   }
 }

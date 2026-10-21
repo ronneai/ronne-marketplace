@@ -85,7 +85,9 @@ export const pinItem = async (
     at,
     limit: MAX_PINS,
     audit: eventOf(actor, "pin.added", where, { itemId: id, name: fact.name }),
+    requirePublicWorkspace: shelf.kind === "instance",
   });
+  if (outcome === "private") throw new PinNeedsPublicWorkspaceError();
   if (outcome === "full") throw new PinLimitError(where.workspace, MAX_PINS);
   return outcome;
 };

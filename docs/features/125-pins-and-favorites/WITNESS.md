@@ -277,3 +277,70 @@ Witnessed: 2026-10-21 18:50 local, by a fresh agent (blind re-check). Commit: 0b
 | 13 | Unit, database, lint and type checks pass | no | confirmed | 2745 unit tests; 60 shelves tests on SQLite, PostgreSQL, MySQL and MariaDB; `biome check` no errors; typecheck clean. |
 
 **Overall:** met.
+
+## Task 7 — Privacy
+
+Witnessed: 2026-10-21 18:50 local, by a fresh agent (blind). Commit: 1320ddc0 plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The data download lists the person's favorites by full name, including ones they can no longer see | no | confirmed | The test has the member leave acme and still get both; it passes on the four databases. |
+| 2 | The data file never contains anyone else's favorites | no | confirmed | The query filters on the person; passing another id failed 2 tests. |
+| 3 | Erasing deletes the person's favorites, counts them, leaves other people's, and records the count | no | confirmed | `favoritesDeleted: 2` in the result and the `user.erased` metadata; a person with none has no key; skipping the delete failed the test. |
+| 4 | A pin made by an erased user stays, its `created_by` pointing at the pseudonymised row | no | confirmed | The row keeps the id, its email is the pseudonym, no trace of the address, and the pin still lists. |
+| 5 | Deleting an item deletes its pins and favorites | no | confirmed | The foreign keys cascade; the test removes one item and only the other's rows remain. |
+| 6 | Making a workspace private takes only its items off Start here, keeps the others in order, and leaves positions that take a new pin | no | confirmed | Only `@team/*` pins left; the next pin gives positions 1, 2, 3; another shelf is untouched; removing the unpinning failed 3 tests. |
+| 7 | The unpinning is audited: a `pin.removed` per pin and `startHerePinsRemoved` on `workspace.updated` | no | confirmed | Names, reason, actor and count asserted. |
+| 8 | The step is atomic: a failing audit undoes the unpinning and the visibility change | no | partly | The code runs in one transaction, but no committed test failed an audit. |
+| 9 | Making it public again does not restore the pins; a workspace with no pins changes and audits nothing | no | confirmed | Tested. |
+| 10 | The dialog says beforehand which items come off Start here, and only when there are any | no | partly | `visibilityImpact` is tested; the notice itself was not rendered by any test. |
+| 11 | The touched tests pass | no | confirmed | 1010 database tests on SQLite, 43 on each server for the four named files, 2745 unit tests. |
+| 12 | The docs for the data file and the erase counts are current | no | partly | The 104 spec had no `favorites` section and the 103 spec no `favoritesDeleted`. |
+
+**Overall:** not met: rows 8, 10 and 12.
+
+### Re-check (rows 8, 10, 12 and the race)
+
+Witnessed: 2026-10-21 19:15 local, by a fresh agent (blind re-check). Commit: 1320ddc0 plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 8 | Making a workspace private is one step: a failing audit puts the pins back and leaves the workspace public | no | confirmed | The test passes on the four databases; doing the unpinning outside the transaction failed it on PostgreSQL. |
+| 10 | The dialog says which items come off Start here, and only when there are any | no | confirmed | The component test renders 2, 1, none and undefined; showing the notice for an empty list failed it. |
+| 12 | The docs match the code | no | confirmed | The 104 spec has the `favorites` section; the 103 spec the `favoritesDeleted` count and a table row. |
+| 14 | A pin racing Make private cannot leave a private item on Start here | no | confirmed | `pinItem` locks the item's workspace and reads its visibility again; the deterministic and the six-round racing tests pass on the three servers; turning the guard off failed the racing test. |
+| 15 | The other checks pass | no | confirmed | `biome check apps/web` no errors; typecheck clean; 2746 unit tests. |
+
+**Overall:** met.
+
+### Adversarial pass
+
+Witnessed: 2026-10-21 19:00 local, by a fresh agent (adversarial). Commit: 1320ddc0 plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The download lists the person's favorites and never anyone else's | no | confirmed | Passing another id failed 2 tests; the suites pass on the four databases. |
+| 2 | Erasing deletes the favorites inside the main transaction, counts them and leaves others' | no | confirmed | The call runs before the after-commit rewrite; ids are compared exactly on MySQL; replacing the call with zero failed the test. |
+| 3 | A pin by an erased user stays, `created_by` pointing at the pseudonymised row | no | confirmed | No screen or audit field shows who pinned. |
+| 4 | Deleting an item deletes its pins and favorites | no | confirmed | The cascade is tested. |
+| 5 | Making a workspace private takes its items off Start here in one step, audited | no | confirmed | One transaction under the workspace lock; dropping the call failed 3 tests. |
+| 6 | The impact names the items, in three languages | no | confirmed | `visibilityImpact` returns the names; the messages exist in the three languages. |
+| 7 | No private item can be left on Start here by a pin racing Make private | no | partly | A probe of 12 rounds left a private workspace's item on Start here in 2 of 12 runs on PostgreSQL and 6 of 12 on MySQL and MariaDB. |
+| 8 | Positions stay dense and the unpin has no side effects | no | confirmed | `add`, `remove` and `move` renumber. |
+
+**Overall:** not met: row 7.
+
+### Adversarial re-check (row 7, bugs 1–2)
+
+Witnessed: 2026-10-21 19:10 local, by a fresh agent (adversarial re-check). Commit: 1320ddc0 plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 7 | No private workspace's item can be left on Start here by a pin racing Make private | no | confirmed | 25 rounds on each of PostgreSQL, MySQL and MariaDB left no pin and showed no deadlock. |
+| 7a | The two lock orders cannot deadlock | no | confirmed | The pin takes the global row then the workspace row; Make private takes the workspace row and never the global one. |
+| 7b | `add` is the only way an item reaches Start here | no | confirmed | The only insert into `item_pins` is in `add`. |
+| 7c | A pin whose item is later moved into a private workspace is hidden at read | no | confirmed | An outsider sees none and a member sees it. |
+| 7d | The new tests catch the fix being removed | no | confirmed | Deleting the visibility check failed the deterministic test. |
+| 8 | Suites and static checks are green | no | confirmed | 232 database tests on each of the four databases; `biome check` and typecheck clean. |
+
+**Overall:** met.

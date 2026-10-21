@@ -54,6 +54,7 @@ session (`proxy.ts`), never a token. The shape, `version: 1`:
   "workspaces": [{ "name": "…", "role": "admin", "since": "…", "source": null }],
   "accessRequests": [{ "workspace": "…", "status": "approved", "message": "…", "createdAt": "…" }],
   "scopes": [{ "name": "@team", "workspace": "…", "createdAt": "…" }],
+  "favorites": [{ "item": "@team/x", "addedAt": "…" }],
   "items": [{ "name": "@team/x", "workspace": "…", "type": "skill", "owner": true,
               "versions": [{ "version": "1.0.0", "publishedAt": "…", "publishedByMe": true }] }],
   "submissions": [{ "name": "@team/x", "workspace": "…", "status": "approved", "createdAt": "…", "submittedAt": "…",

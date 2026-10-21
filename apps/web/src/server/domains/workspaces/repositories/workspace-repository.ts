@@ -64,6 +64,10 @@ export interface WorkspaceRepository {
   lockWorkspace(id: string): Promise<void>;
   /** Sets its visibility (093) and raises the catalogue revision, so plugin feeds rebuild. */
   setVisibility(id: string, visibility: WorkspaceVisibility, updatedAt: Date): Promise<void>;
+  /** The workspace's items pinned to the instance's Start here (125), in order, by full name. */
+  startHerePinsOf(workspaceId: string): Promise<{ itemId: string; name: string }[]>;
+  /** Unpins them all from Start here (125): turning the workspace private. Returns how many. */
+  removeStartHerePinsOf(workspaceId: string): Promise<number>;
   /**
    * The released items outside the workspace with a version that isn't yanked and depends on an
    * item in it (093), as `@scope/name`, by name: turning it private is refused while there are any,

@@ -46,7 +46,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* component tests cover empty/present, the current workspace's pins, and the filter in
   the URL; `*.db.test.ts` for the catalogue filter pass on the servers.
 
-- [ ] **7. Privacy.** Favorites in the data download (104), deleted on erase (103), pins'
+- [x] **7. Privacy.** Favorites in the data download (104), deleted on erase (103), pins'
   `created_by` pseudonymised, pins and favorites deleted with the item, global pins removed when a
   workspace turns private (093).
   *Done when:* the data-export, erase and private-workspace tests are extended and pass.

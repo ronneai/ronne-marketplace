@@ -39,5 +39,9 @@
     "seeAll": "Ver todos",
     "pinnedIn": "Fixados em {workspace}",
     "workspacePins": "Itens fixados"
+  },
+  "visibility": {
+    "startHereTitle": "{count, plural, one {# item está fixado em Comece por aqui} other {# itens estão fixados em Comece por aqui}}",
+    "startHereBody": "Todos veem Comece por aqui, então itens de um espaço de trabalho privado não podem ficar nele. {count, plural, one {Ele sai} other {Eles saem}} quando você tornar este espaço de trabalho privado."
   }
 }

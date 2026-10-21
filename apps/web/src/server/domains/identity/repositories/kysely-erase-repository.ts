@@ -93,6 +93,12 @@ export const kyselyEraseRepository = (
       );
     },
 
+    async deleteFavorites(userId) {
+      return count(
+        await db.deleteFrom("item_favorites").where("user_id", "=", userId).executeTakeFirst(),
+      );
+    },
+
     async deleteMemberships(userId) {
       return count(
         await db.deleteFrom("workspace_members").where("user_id", "=", userId).executeTakeFirst(),
