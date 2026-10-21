@@ -24,8 +24,10 @@ every new screen is written with messages from the start.
   2. the `ronne-locale` cookie (set when they choose a language, and by the links below);
   3. the browser's `Accept-Language`, the best match among the three;
   4. English.
-- **Before sign-in:** the sign-in, setup and device pages use steps 2–4, and carry a small
-  language switch (links, working without JavaScript) that sets the cookie.
+- **Before sign-in:** the sign-in page, its second step and the setup use steps 2–4, and carry a
+  small language switch (plain links to a public `/language` route, working without JavaScript)
+  that sets the cookie and comes back to the page. The device page needs a session, so it follows
+  the person's language like any other and has no switch.
 - **The machinery:** `next-intl` (MIT; the ronne-web site already uses it, so the format and the
   tooling are the same), without language prefixes in the URL: a person's language is theirs, not a
   page's, and links stay the same for everyone. Message files are

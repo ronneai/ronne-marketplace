@@ -1,6 +1,7 @@
 import { cookies, headers } from "next/headers";
 import { cache } from "react";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
+import { PATH_HEADER, safeBackPath } from "@/server/domains/identity/models/route-guard";
 import { requestHeaders } from "@/server/http/request-headers";
 import { chooseLocale, LOCALE_COOKIE, type Locale } from "./locale";
 
@@ -22,3 +23,8 @@ export const requestLocale = cache(async (): Promise<Locale> => {
     acceptLanguage: (await headers()).get("accept-language"),
   });
 });
+
+/** The page being rendered (path and query), for the language switch to come back to. */
+export const currentPath = async (): Promise<string> => {
+  return safeBackPath((await headers()).get(PATH_HEADER));
+};

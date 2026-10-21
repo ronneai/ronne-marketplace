@@ -1,11 +1,15 @@
 import { expect, test } from "@playwright/test";
 import { mobileUser, signIn } from "./mobile";
 
-/** Feature 129 on a phone and a tablet: the Menu, and the sheet it opens, follow the browser's language. */
-test.use({ locale: "fr-CA" });
-
-test("the Menu button and its sheet are in French", async ({ page }, testInfo) => {
+/**
+ * Feature 129 on a phone and a tablet: the Menu, and the sheet it opens, follow the language. The
+ * shared sign-in helper types the English labels, so the person signs in in English and then picks
+ * French the way the sign-in page's links do: with the `ronne-locale` cookie.
+ */
+test("the Menu button and its sheet are in French", async ({ page, baseURL }, testInfo) => {
   await signIn(page, mobileUser(testInfo, "languages"));
+  await page.context().addCookies([{ name: "ronne-locale", value: "fr", url: baseURL ?? "/" }]);
+  await page.reload();
   await expect(page.locator("html")).toHaveAttribute("lang", "fr");
 
   await page.getByRole("button", { name: /^Menu/ }).click();

@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { BrandLogo } from "@/components/ui/BrandLogo";
 import { Notice } from "@/components/ui/Notice";
@@ -12,10 +13,18 @@ import type { SetupPageProps } from "./types";
  * wizard's install finishes, the sentence that says the instance isn't set up and the warning go
  * (#148): the instance is no longer open to whoever reaches the page.
  */
-export const SetupPage = ({ page }: { page: SetupPageProps }) => {
+export const SetupPage = ({
+  page,
+  languageSwitch,
+}: {
+  page: SetupPageProps;
+  /** The language links (feature 129), rendered by the server page: the rest of this page moves in 132. */
+  languageSwitch?: ReactNode;
+}) => {
   const [done, setDone] = useState(false);
   return (
     <main className="mx-auto flex min-h-dvh max-w-2xl flex-col justify-center gap-4 px-4 py-12">
+      {languageSwitch}
       <Panel padding="lg" className="grid gap-6">
         <div className="grid gap-3">
           <BrandLogo height={40} className="text-fg" />

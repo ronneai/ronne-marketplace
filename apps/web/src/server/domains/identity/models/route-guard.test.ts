@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bodyTooLarge, isPublicPath, safeNextPath, signInUrl } from "./route-guard";
+import { bodyTooLarge, isPublicPath, safeBackPath, safeNextPath, signInUrl } from "./route-guard";
 
 describe("safeNextPath", () => {
   it("keeps paths on this site, with their query and hash", () => {
@@ -82,5 +82,40 @@ describe("bodyTooLarge", () => {
       bodyTooLarge({ method: "GET", pathname: "/", contentLength: 50 * MB, hasSession: false }),
     ).toBe(false);
     expect(post("/sign-in", null, false)).toBe(false);
+  });
+});
+
+describe("the language route (129)", () => {
+  it("is a public path, and never somewhere sign-in comes back to", () => {
+    expect(isPublicPath("/language")).toBe(true);
+    expect(isPublicPath("/language/anything")).toBe(true);
+    expect(isPublicPath("/languages")).toBe(false);
+    expect(safeNextPath("/language?set=pt")).toBe("/");
+  });
+
+  it("safeBackPath keeps any path on this site, public pages included", () => {
+    expect(safeBackPath("/sign-in?next=%2Fitems&email=a%40b.test")).toBe(
+      "/sign-in?next=%2Fitems&email=a%40b.test",
+    );
+    expect(safeBackPath("/setup")).toBe("/setup");
+    expect(safeBackPath("/account/language#top")).toBe("/account/language#top");
+    expect(safeBackPath("/")).toBe("/");
+  });
+
+  it("safeBackPath never loops through the language route, or leaves the site", () => {
+    for (const value of [
+      "/language?set=pt&next=%2Fsign-in",
+      "/language",
+      "//evil.test",
+      "https://evil.test",
+      "/\\evil.test",
+      "/a/..//evil.test",
+      "/%2e%2e//evil.test",
+      "javascript:alert(1)",
+      "",
+      null,
+      undefined,
+    ])
+      expect(safeBackPath(value as string)).toBe("/");
   });
 });

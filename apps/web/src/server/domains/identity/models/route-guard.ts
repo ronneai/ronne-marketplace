@@ -9,6 +9,8 @@ export const PATH_HEADER = "x-ronne-path";
 export const SIGN_IN_PATH = "/sign-in";
 /** The web setup (feature 036): the only page until the instance is ready. */
 export const SETUP_PATH = "/setup";
+/** Where the language switch's links go (feature 129): sets the cookie and comes back. */
+export const LANGUAGE_PATH = "/language";
 
 const under = (pathname: string, base: string) =>
   pathname === base || pathname.startsWith(`${base}/`);
@@ -18,30 +20,50 @@ const under = (pathname: string, base: string) =>
  * `/api/*` answers with its own status codes instead of redirecting.
  */
 export const isPublicPath = (pathname: string): boolean => {
-  return under(pathname, SIGN_IN_PATH) || under(pathname, SETUP_PATH);
+  return (
+    under(pathname, SIGN_IN_PATH) || under(pathname, SETUP_PATH) || under(pathname, LANGUAGE_PATH)
+  );
 };
 
 const ORIGIN = "http://ronne.invalid";
 
 /**
- * `next` from the query, if it's a path on this site; otherwise `/`. It must start with a single
- * `/`, so `//evil.test`, `https://evil.test` and `/\evil.test` can't send anyone off-site, and it
- * never points back at sign-in.
+ * A path on this site, parsed, or null. It must start with a single `/`, so `//evil.test`,
+ * `https://evil.test` and `/\evil.test` can't send anyone off-site.
  */
-export const safeNextPath = (value: string | null | undefined): string => {
-  if (!value?.startsWith("/") || value.startsWith("//") || value.includes("\\")) return "/";
+const sameSite = (value: string | null | undefined): URL | null => {
+  if (!value?.startsWith("/") || value.startsWith("//") || value.includes("\\")) return null;
   let url: URL;
   try {
     url = new URL(value, ORIGIN);
   } catch {
-    return "/";
+    return null;
   }
   // The URL parser drops tabs and newlines, so "/\t/evil.test" becomes "//evil.test": check again.
   // It also resolves dot-segments, so "/a/..//evil.test" (and "/%2e%2e//evil.test") comes out as
   // the path "//evil.test", which a browser reads as another site: refuse a path that starts so.
-  if (url.origin !== ORIGIN || url.pathname.startsWith("//") || isPublicPath(url.pathname))
-    return "/";
-  return `${url.pathname}${url.search}${url.hash}`;
+  if (url.origin !== ORIGIN || url.pathname.startsWith("//")) return null;
+  return url;
+};
+
+const pathOf = (url: URL) => `${url.pathname}${url.search}${url.hash}`;
+
+/**
+ * `next` from the query, if it's a path on this site; otherwise `/`. It never points at a public
+ * page (sign-in, setup, the language route): coming back from sign-in to sign-in makes no sense.
+ */
+export const safeNextPath = (value: string | null | undefined): string => {
+  const url = sameSite(value);
+  return !url || isPublicPath(url.pathname) ? "/" : pathOf(url);
+};
+
+/**
+ * Where the language switch comes back to (feature 129): any path on this site, the public pages
+ * included, since the switch lives on them; never the language route itself, which would loop.
+ */
+export const safeBackPath = (value: string | null | undefined): string => {
+  const url = sameSite(value);
+  return !url || under(url.pathname, LANGUAGE_PATH) ? "/" : pathOf(url);
 };
 
 /** The sign-in URL that comes back to `path` afterwards. */

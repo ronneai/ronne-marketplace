@@ -272,3 +272,70 @@ Witnessed: 2026-10-20 23:20 EDT, by a fresh agent (blind). Commit: 70e69584 plus
 | 8 | The repo checks stay green | no | confirmed | `pnpm lint` 0; `pnpm typecheck` ok; unit project 338 files, 3808 passed. |
 
 **Overall:** met.
+
+## Task 8 — Signed-out pages
+
+Witnessed: 2026-10-20 23:25 EDT, by a fresh agent (blind). Commit: be1470ae plus the uncommitted working tree (`messages/*/auth.json`, `app/language/`, `i18n/{LanguageSwitch,language-switch.test}`, `features/sign-in/translations.test.tsx`, the e2e changes). Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Done-when, first half: an e2e switches language on sign-in, signs in with no saved language, and still sees it | no | confirmed | `playwright test e2e/languages.e2e.ts --project=chromium` → 11 passed; the test clicks "Français", checks the heading, a wrong password refused in French, signs in, then `html lang=fr` and the French sidebar; the next test does the links with JavaScript off. |
+| 2 | Done-when, second half: with a saved language, that language shows | no | confirmed | The test saves pt, picks French on sign-in, and after sign-in has `html lang=pt`; swapping saved and cookie in `locale.ts` fails 2 tests. |
+| 3 | Sign-in, its second step and the device page read from messages, codes kept | no | confirmed | `auth.json` has 68 keys with identical sets in en/pt/fr; `SignInFormState`, `SSO_ERROR_CODES`, `SIGN_IN_AGAIN`, `TwoFactorStepState` are codes mapping to `auth.*`; English left only in comments and the `XXXX-XXXX` placeholder. |
+| 4 | A public `/language` route sets the cookie only for en, pt or fr, validated, with a 303 | no | confirmed | `route.test.ts` passes for `es`, `PT`, `pt-BR`, empty, `<script>`, `__proto__`; a cookie set from the raw value fails the test. |
+| 5 | `/language` is public | no | confirmed | `isPublicPath` includes `LANGUAGE_PATH`; removing it fails `route-guard.test.ts`. |
+| 6 | `safeBackPath` keeps any path on the site except `/language` itself | no | confirmed | `//evil.test`, `https://`, `/\`, dot-segments, `javascript:`, empty, null: all back to `/`; letting `//evil.test` through fails 2 tests. |
+| 7 | The `safeNextPath` refactor keeps its behaviour | no | confirmed | Old (`git show HEAD:…`) against new on 45 tricky inputs, `safeNextPath` and `signInUrl`: zero differences. |
+| 8 | A `LanguageSwitch` of plain links is on sign-in, its second step and the setup, and works without JavaScript | no | confirmed | `<a href="/language?set=…&next=…">`, not Next's `Link`; used in `SignInPage`, the two-factor page and the setup page; the no-JavaScript e2e passes. |
+| 9 | The device page has no switch and follows the person's language | no | confirmed | `DevicePage` uses `useTranslations("auth.device")` and no switch; its unit test and `device.e2e.ts` pass. |
+| 10 | Cookie, saved-language and browser precedence | no | confirmed | `locale.ts` order and validation; the row 2 mutation breaks saved-over-cookie. |
+| 11 | A literal English label in `SignInForm` fails a unit test | no | partly | The submit button and the password label were caught, but a literal `Email` label left all 8 tests green. |
+| 12 | The existing flows still pass | no | confirmed | `auth`, `device`, `two-factor`, `sso`, `setup-wizard`, `setup-nojs` on chromium, wizard, wizard-nojs → 12 passed; `languages.mobile` on phone, phone-webkit, tablet → 3 passed. |
+| 13 | Lint, typecheck and unit tests are green | no | confirmed | `pnpm lint` 0; `pnpm typecheck` 0; unit project 341 files, 3828 passed. |
+| 14 | pt-BR and fr-CA wording in `auth.json` | no | confirmed | Read in full against the glossary: accents, ’, `?` and `:` spacing consistent. |
+
+**Overall:** not met (row 11). Fixed: the sign-in test now asserts the pt and fr email and password labels.
+
+### Re-check (row 11)
+
+Witnessed: 2026-10-20 23:40 EDT, by a fresh agent (blind). Commit: be1470ae plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 11 | A literal English label in `SignInForm` fails a unit test (email, password and submit) | no | confirmed | `{t("email")}` → `Email` fails 1 test; `{t("password")}` → `Password` fails 3; restored, 8/8 pass; lint and typecheck 0. |
+
+**Overall:** met.
+
+### Adversarial pass
+
+Witnessed: 2026-10-20 23:30 EDT, by a fresh agent (adversarial). Commit: be1470ae plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0), Node v24.0.0. Mutations ran in a scratch copy; the real server was `next start` from the real build on a private port.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `GET /language` sets `ronne-locale` only for exactly `en`, `pt`, `fr` | no | confirmed | 15 `set` values × 49 `next` values: the cookie only for `pt`, `fr`, `en`; `ｐｔ`, `PT`, `pt\n`, `pt%00`, `__proto__`, `constructor`, 100 KB set none; `set=pt&set=fr` took `pt`. |
+| 2 | The redirect is a 303, always on this site, never header-injected | no | confirmed | `//evil.test`, `/%5cevil.test`, `/%2f/evil.test`, `/a/..//evil.test`, `https:evil.test`, double-encoded: all `Location: /`; CR/LF stripped, one `set-cookie`; 735 combinations: none to another origin. |
+| 3 | It never loops back to `/language` | no | confirmed | `/language`, `/language/`, `?set=fr`, `/x/../language`, `/%6canguage`, `/language%2f` → `Location: /`. |
+| 4 | Cookie flags: httpOnly, SameSite=lax, Path=/, one year | no | confirmed | curl: `ronne-locale=pt; Path=/; Max-Age=31536000; HttpOnly; SameSite=lax`; weakening any flag fails 2 tests. |
+| 5 | Reachable with no session and before setup; sets only the cookie | no | confirmed | On the unconfigured instance `/language?set=fr&next=/setup` → 303 with the cookie, then `/setup` renders `<html lang="fr">`; no body; `POST` → 405. |
+| 6 | `safeNextPath` behaves as before | no | confirmed | 49 inputs against the old file: the only differences are the `/language` family, now `/`, as intended. |
+| 7 | `isPublicPath("/language")` opens nothing else | no | confirmed | `/languages`, `/language-x`, `/LANGUAGE`, `/Language`, `/a/language` are not public; on the real server `/Language` → 307 to sign-in. |
+| 8 | A signed-in person's saved language wins whatever the cookie says | no | partly | The code and `locale.test.ts` said so; the e2e was read, not run. |
+| 9 | A forged cookie never reaches `<html lang>` or a message lookup | no | confirmed | `<script>`, `__proto__`, 7000 `p`, `pt; ronne-locale=fr` → `lang` en, en, en, fr; a cast instead of `parseLocale` fails 3 tests. |
+| 10 | Sign-in pages render only translated text for known codes, nothing for unknown values | no | confirmed | `?error=__proto__`, `constructor`, `reason=toString`, HTML in values → 0 alerts, no raw value in the text; `.find` on arrays, no prototype lookups. |
+| 11 | The `LanguageSwitch` `next` can't carry a dangerous value; links are plain `<a>` | no | confirmed | `x-ronne-path: //evil.test` gave `next=%2Fsign-in`; no prefetch attributes. |
+| 12 | The unit tests fail without the code | no | confirmed | Without `LANGUAGE_PATH` in `isPublicPath`: 1; without the language check in `safeBackPath`: 3; the cookie set unconditionally or unvalidated: caught; a 307 instead of 303: 2; the `//` check removed: 2. The two redundant defences in `sameSite` cannot be caught. |
+| 13 | The e2e tests fail without the code | no | can't check here | The e2e was read, not run, within the budget. |
+
+**Overall:** not met (rows 8 and 13: e2e not run). No bug found.
+
+### Re-check (rows 8 and 13), adversarial
+
+Witnessed: 2026-10-20 23:55 EDT, by a fresh agent (adversarial). Commit: be1470ae plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 8 | A saved language wins whatever the cookie says; a visitor's choice is kept after sign-in; the links work without JavaScript | no | confirmed | `playwright test e2e/languages.e2e.ts --project=chromium` on the real tree → 11 passed, including the three sign-in language tests. |
+| 13a | The e2e fails when `isPublicPath` no longer includes `LANGUAGE_PATH` | no | confirmed | Scratch build with the mutation: 8 passed, 3 failed (the sign-in link tests: Français landed on `/sign-in?next=%2Flanguage…` with `lang="en"`). |
+| 13b | The e2e fails when the route ignores `set` | no | confirmed | `parseLocale(null)` in the route, rebuilt: the same three tests fail. |
+
+**Overall:** met. Both mutated files restored; `cmp` identical.

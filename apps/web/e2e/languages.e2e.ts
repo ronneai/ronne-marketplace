@@ -145,3 +145,85 @@ test.describe("choosing a language", () => {
     });
   });
 });
+
+test.describe("the language links on the sign-in page", () => {
+  test("a visitor picks a language before signing in, and keeps it after", async ({ page }) => {
+    await page.goto("/sign-in");
+    await expect(
+      page.getByRole("heading", { name: "Sign in to Ronne AI Marketplace" }),
+    ).toBeVisible();
+    const links = page.getByRole("navigation", { name: "Language" });
+    await expect(links.getByRole("link")).toHaveText(["English", "Português", "Français"]);
+    await expect(links.getByRole("link", { name: "English" })).toHaveAttribute(
+      "aria-current",
+      "true",
+    );
+
+    await links.getByRole("link", { name: "Français" }).click();
+    await expect(page).toHaveURL(/\/sign-in$/);
+    await expect(page.locator("html")).toHaveAttribute("lang", "fr");
+    await expect(
+      page.getByRole("heading", { name: "Connexion à Ronne AI Marketplace" }),
+    ).toBeVisible();
+    // A wrong password is refused in French.
+    await page.getByLabel("Courriel").fill(E2E_USERS.languageSwitcher);
+    await page.getByLabel("Mot de passe", { exact: true }).fill("not the password at all");
+    await page.getByRole("button", { name: "Se connecter" }).click();
+    await expect(page.getByText("Le courriel ou le mot de passe est incorrect")).toBeVisible();
+
+    // Signing in: no language is saved yet, so the cookie's still decides.
+    await page.getByLabel("Mot de passe", { exact: true }).fill(E2E_PASSWORD);
+    await page.getByRole("button", { name: "Se connecter" }).click();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByRole("complementary", { name: "Barre latérale" })).toBeVisible();
+    await expect(page.locator("html")).toHaveAttribute("lang", "fr");
+  });
+
+  test("a saved language wins over the links on the page", async ({ page }) => {
+    await page.goto("/sign-in");
+    await page.getByLabel("Email").fill(E2E_USERS.languageSaved);
+    await page.getByLabel("Password", { exact: true }).fill(E2E_PASSWORD);
+    await page.getByRole("button", { name: "Sign in" }).click();
+    await expect(page).toHaveURL(/\/$/);
+    await page.goto("/account/language");
+    await page.getByLabel("Language of the screens").selectOption("pt");
+    await page.getByRole("button", { name: "Save" }).click();
+    await expect(page.getByText("Idioma salvo")).toBeVisible();
+
+    // Signed out, the sign-in page follows the cookie the Save left: Portuguese.
+    const sidebar = page.getByRole("complementary", { name: "Barra lateral" });
+    await sidebar.locator("summary", { hasText: E2E_NAMES.languageSaved }).click();
+    await sidebar.getByRole("button", { name: "Sair" }).click();
+    await expect(page).toHaveURL(/\/sign-in/);
+    await expect(
+      page.getByRole("heading", { name: "Entrar no Ronne AI Marketplace" }),
+    ).toBeVisible();
+
+    // Pick French on the page, then sign in: the profile's Portuguese beats the cookie's French.
+    await page
+      .getByRole("navigation", { name: "Idioma" })
+      .getByRole("link", { name: "Français" })
+      .click();
+    await expect(
+      page.getByRole("heading", { name: "Connexion à Ronne AI Marketplace" }),
+    ).toBeVisible();
+    await page.getByLabel("Courriel").fill(E2E_USERS.languageSaved);
+    await page.getByLabel("Mot de passe", { exact: true }).fill(E2E_PASSWORD);
+    await page.getByRole("button", { name: "Se connecter" }).click();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.locator("html")).toHaveAttribute("lang", "pt");
+    await expect(page.getByRole("complementary", { name: "Barra lateral" })).toBeVisible();
+  });
+
+  test.describe("without JavaScript", () => {
+    test.use({ javaScriptEnabled: false });
+
+    test("the links still change the language", async ({ page }) => {
+      await page.goto("/sign-in?next=%2Fitems");
+      await page.getByRole("link", { name: "Português" }).click();
+      await expect(page).toHaveURL(/\/sign-in\?next=%2Fitems$/);
+      await expect(page.locator("html")).toHaveAttribute("lang", "pt");
+      await expect(page.getByRole("button", { name: "Entrar" })).toBeVisible();
+    });
+  });
+});

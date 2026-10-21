@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { SignInPage } from "@/features/sign-in/SignInPage";
+import { currentPath } from "@/i18n/server";
 import { loadConfig } from "@/server/config";
 import {
   effectivePasswordPolicy,
@@ -11,7 +13,9 @@ import { getAppAuthIfConfigured } from "@/server/domains/identity/repositories/a
 import { requestHeaders } from "@/server/http/request-headers";
 import { hostCommand } from "@/server/runtime";
 
-export const metadata = { title: "Sign in · Ronne AI Marketplace" };
+export const generateMetadata = async () => ({
+  title: `${(await getTranslations("auth.signIn"))("metaTitle")} · Ronne AI Marketplace`,
+});
 
 const one = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
 
@@ -48,6 +52,7 @@ const SignIn = async ({
       providers={providers}
       rootOnly={policy === "root_only"}
       ssoError={one(params.error)}
+      here={await currentPath()}
     />
   );
 };

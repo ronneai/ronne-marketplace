@@ -1,7 +1,10 @@
+import { getTranslations } from "next-intl/server";
 import { DevicePage } from "@/features/device/DevicePage";
 import { holdPage } from "../hold";
 
-export const metadata = { title: "Sign in rmk · Ronne AI Marketplace" };
+export const generateMetadata = async () => ({
+  title: `${(await getTranslations("auth.device"))("metaTitle")} · Ronne AI Marketplace`,
+});
 
 /**
  * `/device` (feature 107): approve the code `rmk login --web` printed. The (app) layout already

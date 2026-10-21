@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import { buttonClasses } from "@/components/ui/Button";
 import { ssoFromForm } from "./actions";
 
@@ -11,16 +12,19 @@ export const ProviderButtons = ({
 }: {
   providers: readonly { id: string; name: string }[];
   next: string;
-}) => (
-  <div className="grid gap-2">
-    {providers.map((provider) => (
-      <form key={provider.id} action={ssoFromForm}>
-        <input type="hidden" name="provider" value={provider.id} />
-        <input type="hidden" name="next" value={next} />
-        <button type="submit" className={`${buttonClasses("secondary")} w-full`}>
-          Continue with {provider.name}
-        </button>
-      </form>
-    ))}
-  </div>
-);
+}) => {
+  const t = useTranslations("auth.signIn");
+  return (
+    <div className="grid gap-2">
+      {providers.map((provider) => (
+        <form key={provider.id} action={ssoFromForm}>
+          <input type="hidden" name="provider" value={provider.id} />
+          <input type="hidden" name="next" value={next} />
+          <button type="submit" className={`${buttonClasses("secondary")} w-full`}>
+            {t("continueWith", { provider: provider.name })}
+          </button>
+        </form>
+      ))}
+    </div>
+  );
+};

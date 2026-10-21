@@ -59,8 +59,10 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* component tests, an action test (invalid code refused) and an end-to-end test that
   changes language and sees the sidebar change after Save.
 
-- [ ] **8. Signed-out pages.** Sign-in, device page and the setup wizard's language links (cookie
-  only, links without JavaScript); error messages from sign-in in messages (codes kept).
+- [x] **8. Signed-out pages.** [risky] Sign-in, its second step and the device page in messages (codes
+  kept: the maps become keys); a public `/language` route (a `safeBackPath` that keeps any path on
+  the site except itself) and a `LanguageSwitch` of plain links on sign-in, its second step and the
+  setup (the setup's own text moves in 132).
   *Done when:* an end-to-end test switches language on sign-in, signs in without a saved language
   and still sees it; one with a saved language sees that one.
 

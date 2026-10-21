@@ -34,6 +34,9 @@ export const E2E_USERS = {
   // changes its own profile, so neither can be shared.
   languageChooser: "language-chooser@e2e.test",
   languageNoJs: "language-no-js@e2e.test",
+  // The language links on sign-in (129): one without a saved language, one with.
+  languageSwitcher: "language-switcher@e2e.test",
+  languageSaved: "language-saved@e2e.test",
   phoneLanguages: "phone-languages@e2e.test",
   phoneWebkitLanguages: "phone-webkit-languages@e2e.test",
   tabletLanguages: "tablet-languages@e2e.test",
@@ -215,6 +218,8 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   sidebar: "Sid Sidebar",
   languageChooser: "Language Chooser",
   languageNoJs: "Language No JS",
+  languageSwitcher: "Language Switcher",
+  languageSaved: "Language Saved",
   languages: "Languages",
   phoneLanguages: "Phone Languages",
   phoneWebkitLanguages: "Phone WebKit Languages",

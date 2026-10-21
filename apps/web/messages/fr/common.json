@@ -76,5 +76,8 @@
     "step3": "Vérifiez, puis installez",
     "step3Hint": "<mono>rmk whoami</mono> indique qui vous êtes. Chaque page d’élément affiche sa commande d’installation; la Documentation explique le reste une fois connecté.",
     "globalHint": "En dehors de <mono>global</mono>, le nom d’un élément commence par son espace de travail : <mono>rmk install @workspace/scope/name</mono>."
+  },
+  "languageSwitch": {
+    "label": "Langue"
   }
 }
