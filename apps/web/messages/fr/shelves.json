@@ -1,0 +1,6 @@
+{
+  "favorite": {
+    "add": "Ajouter {name} aux favoris",
+    "remove": "Retirer {name} des favoris"
+  }
+}

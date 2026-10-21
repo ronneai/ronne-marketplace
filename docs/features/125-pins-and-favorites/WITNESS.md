@@ -181,3 +181,35 @@ Witnessed: 2026-10-21 17:55 local, by a fresh agent (adversarial re-check). Comm
 | 11 | Shelves tests on the four databases, lint and types | yes | confirmed | 43 passed on each; biome and typecheck clean. |
 
 **Overall:** met.
+
+## Task 4 — The star
+
+Witnessed: 2026-10-21 18:10 local, by a fresh agent (blind). Commit: 6c318bbb plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A `FavoriteButton` exists and is used on `ItemCard` and in the item page header | no | confirmed | `features/favorites/FavoriteButton.tsx`; `ItemCard.tsx` renders it when `favorited` is given; `ItemPageView.tsx` renders it next to Propose. |
+| 2 | Catalogue, Home and the item page ask which items are favorites and pass the state down | no | confirmed | New page tests assert the call arguments and the Add and Remove labels; removing `favorited=` in `CatalogueView` and the `favorited` in `load.ts` each failed a test. |
+| 3 | `aria-pressed`, the filled star and the hidden value match the state | no | confirmed | `favorite-button.test.tsx` covers both states; deleting `aria-pressed` failed 2 tests and flipping on and off failed 2. |
+| 4 | The label carries the item's name, in English, Portuguese and French | no | confirmed | `aria-label` and `title` asserted in three languages; `shelves` registered in `namespaces.ts`; the parity tests pass. |
+| 5 | The target is 44px on a touch screen | no | confirmed | `IconButton` is `size-8 pointer-coarse:size-11`; the test asserts the class and renaming it failed the test. |
+| 6 | The star is a form with a server action, hidden inputs and a submit button | no | confirmed | Markup asserted; swapping the form for a div failed 2 tests; the same pattern as `SetupForm`, which the `wizard-nojs` project submits with JavaScript off. |
+| 7 | The no-JavaScript submit toggles a favorite end to end | no | can't check here | Not run in this pass; task 9 proves it end to end. |
+| 8 | The touch test (067) includes it | no | partly | `touch-rules.test.ts` only checks text fields; the only 44px check is a class assertion. |
+| 9 | A refusal (the limit, an unavailable item) shows under the star as translated text | no | confirmed | `actions.ts` returns `errorText`; the three languages have the messages; no test rendered the error under the star. |
+| 10 | Checks are green | no | confirmed | Unit run 2714 tests passed; `biome check` no errors; typecheck clean. |
+
+**Overall:** not met: rows 7, 8 and 9.
+
+### Re-check (rows 7, 8, 9)
+
+Witnessed: 2026-10-21 18:20 local, by a fresh agent (blind re-check). Commit: 6c318bbb plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 7 | The no-JavaScript submit is proved end to end in task 9, so this task needs only the form markup | no | confirmed | Task 4's Done when no longer asks for the end-to-end submit; the markup test passes; task 9 covers favoriting end to end and now names the case with JavaScript off. |
+| 8 | The 44px target is the shared icon button's (067), checked by a class assertion | no | confirmed | `IconButton` has `pointer-coarse:size-11`; the test asserts it. |
+| 9 | Why a click was refused is shown under the star, and a test renders it | no | confirmed | `favorite-button-error.test.tsx` asserts the alert and the text; removing the paragraph made it fail. |
+| 10 | Checks are green | no | confirmed | Unit run 2715 tests passed; `biome check` no errors; typecheck clean. |
+
+**Overall:** met.

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/Badge";
 import { CopyableCommand } from "@/components/ui/CopyableCommand";
 import { LocalTime } from "@/components/ui/LocalTime";
 import { TypeBadge } from "@/components/ui/TypeBadge";
+import { FavoriteButton } from "@/features/favorites/FavoriteButton";
 import type { CatalogueEntry } from "@/server/domains/items/actions/catalogue";
 import { ItemPlace } from "./ItemPlace";
 
@@ -32,9 +33,12 @@ export const itemPath = (item: { workspace?: string | null; scope: string; name:
 export const ItemCard = ({
   entry,
   heading: Heading = "h2",
+  favorited,
 }: {
   entry: CatalogueEntry;
   heading?: "h2" | "h3";
+  /** Whether the person has favorited it (125); without it the card has no star. */
+  favorited?: boolean;
 }) => {
   const t = useTranslations("catalogue.card");
   const name = formatItemName(entry);
@@ -71,6 +75,11 @@ export const ItemCard = ({
         {entry.risky ? <Badge tone="warning">{t("risk")}</Badge> : null}
         {entry.deprecatedMessage ? <Badge tone="warning">{t("deprecated")}</Badge> : null}
         {entry.installable ? null : <Badge tone="error">{t("notInstallable")}</Badge>}
+        {favorited === undefined ? null : (
+          <span className="ml-auto">
+            <FavoriteButton itemId={entry.id} name={name} favorited={favorited} />
+          </span>
+        )}
       </div>
       <ItemPlace
         workspace={entry.workspace}

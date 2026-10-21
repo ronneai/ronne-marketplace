@@ -7,6 +7,9 @@ import { catalogueHref, parseCatalogueQuery } from "./query";
 const catalogue = vi.hoisted(() => ({ browseCatalogue: vi.fn() }));
 vi.mock("@/server/domains/items/actions/catalogue", () => catalogue);
 vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));
+const shelves = vi.hoisted(() => ({ favoritedAmong: vi.fn() }));
+vi.mock("@/server/domains/shelves/actions/favorites", () => shelves);
+vi.mock("@/features/favorites/actions", () => ({ toggleFavoriteFromForm: vi.fn() }));
 // The current workspace (120): `shell.current` per test, the real rule for what's shown.
 const shell = vi.hoisted(() => ({ current: null as string | null }));
 vi.mock("@/app/(app)/shell", async () => {
@@ -54,6 +57,7 @@ const render = async (params: Record<string, string> = {}) =>
 
 beforeEach(() => {
   vi.clearAllMocks();
+  shelves.favoritedAmong.mockResolvedValue(new Set());
   shell.current = null;
   catalogue.browseCatalogue.mockResolvedValue(pageOf());
 });
@@ -371,5 +375,18 @@ describe("the current workspace on the catalogue (120)", () => {
     // Without a current workspace, all is the plain catalogue, as before.
     shell.current = null;
     expect(await render({})).toContain('href="/catalogue?sort=name"');
+  });
+});
+
+describe("favorites on the catalogue (125)", () => {
+  it("asks which of the page's items are favorites, and fills the stars", async () => {
+    catalogue.browseCatalogue.mockResolvedValue(
+      pageOf({ entries: [entry({ id: "i1" }), entry({ id: "i2", name: "lint" })] }),
+    );
+    shelves.favoritedAmong.mockResolvedValue(new Set(["i2"]));
+    const html = await render();
+    expect(shelves.favoritedAmong).toHaveBeenCalledWith(expect.any(Headers), ["i1", "i2"]);
+    expect(html).toContain('aria-label="Add @team/fmt to favorites"');
+    expect(html).toContain('aria-label="Remove @team/lint from favorites"');
   });
 });

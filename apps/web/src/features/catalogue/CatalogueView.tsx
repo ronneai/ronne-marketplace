@@ -55,9 +55,12 @@ export const CatalogueView = ({
   page,
   paged,
   keepAll = false,
+  favorites,
 }: {
   page: CataloguePage;
   paged: boolean;
+  /** The ids of the items on the page the person has favorited (125); without it, no stars. */
+  favorites?: readonly string[];
   /**
    * A current workspace is set (120): a link meaning every workspace (a cleared workspace filter,
    * Clear all) writes an explicit empty `?workspace=`, or the page would redirect back to it.
@@ -353,7 +356,7 @@ export const CatalogueView = ({
         <ul className="grid grid-cols-1 gap-3">
           {page.entries.map((entry) => (
             <li key={entry.id}>
-              <ItemCard entry={entry} />
+              <ItemCard entry={entry} favorited={favorites?.includes(entry.id)} />
             </li>
           ))}
         </ul>

@@ -41,5 +41,9 @@
   "SubmissionNotFoundError": "Essa submissão não existe.",
   "ProposalBaseNotFoundError": "{versioned, select, true {{itemName} não tem a versão {version} para propor uma alteração.} other {{itemName} não é um item publicado.}}",
   "ProposalArtifactError": "Os arquivos de {itemName} {version} não puderam ser lidos. Peça ao root para verificar o armazenamento.",
-  "ItemRenamedMeanwhileError": "{from} foi renomeado para {to} nesse meio-tempo. Nada foi iniciado: proponha a alteração de novo."
+  "ItemRenamedMeanwhileError": "{from} foi renomeado para {to} nesse meio-tempo. Nada foi iniciado: proponha a alteração de novo.",
+  "ShelfItemNotAvailableError": "Esse item não está disponível.",
+  "FavoriteLimitError": "Você tem {max} favoritos, o máximo permitido. Remova um antes.",
+  "PinLimitError": "{shelf, select, instance {Comece por aqui já tem {max} itens. Remova um antes.} other {Os itens fixados de {workspaceName} já são {max}. Remova um antes.}}",
+  "PinNeedsPublicWorkspaceError": "Só itens de um espaço de trabalho público podem ser fixados em Comece por aqui."
 }

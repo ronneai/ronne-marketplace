@@ -9,6 +9,9 @@ vi.mock("@/server/domains/items/actions/catalogue", () => catalogue);
 vi.mock("@/server/domains/submissions/actions/drafts", () => drafts);
 vi.mock("@/server/domains/submissions/actions/reviews", () => reviews);
 vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));
+const shelves = vi.hoisted(() => ({ favoritedAmong: vi.fn() }));
+vi.mock("@/server/domains/shelves/actions/favorites", () => shelves);
+vi.mock("@/features/favorites/actions", () => ({ toggleFavoriteFromForm: vi.fn() }));
 const shell = vi.hoisted(() => ({ loadShell: vi.fn() }));
 vi.mock("./shell", () => shell);
 
@@ -38,6 +41,7 @@ const render = async () => renderToStaticMarkup(await HomePage());
 
 beforeEach(() => {
   vi.clearAllMocks();
+  shelves.favoritedAmong.mockResolvedValue(new Set());
   catalogue.homeLists.mockResolvedValue({
     recent: [entry("fmt"), entry("lint")],
     mostUsed: [],
@@ -121,5 +125,15 @@ describe("the home page", () => {
     const html = await render();
     expect(html).toContain("Recently published");
     expect(html).not.toContain("Nothing is published yet.");
+  });
+});
+
+describe("favorites on Home (125)", () => {
+  it("fills the stars of the listed items the person has favorited", async () => {
+    shelves.favoritedAmong.mockResolvedValue(new Set(["lint"]));
+    const html = await render();
+    expect(shelves.favoritedAmong).toHaveBeenCalledWith(expect.any(Headers), ["fmt", "lint"]);
+    expect(html).toContain('aria-label="Add @team/fmt to favorites"');
+    expect(html).toContain('aria-label="Remove @team/lint from favorites"');
   });
 });

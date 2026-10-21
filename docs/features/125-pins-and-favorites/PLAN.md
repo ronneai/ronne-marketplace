@@ -28,10 +28,11 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   public-only rule, reordering, and the audit rows; a private-workspace test shows a pin is
   invisible to a non-member.
 
-- [ ] **4. The star.** A `FavoriteButton` in `components/catalogue` used on `ItemCard` and the item
-  page header, `aria-pressed`, 44px touch target, a form without JavaScript.
-  *Done when:* component tests cover both states, the label and the no-JavaScript form; the touch
-  test (067) includes it.
+- [x] **4. The star.** A `FavoriteButton` (in `features/favorites`, with the form action) used on
+  `ItemCard` and the item page header, `aria-pressed`, 44px touch target, a form without JavaScript.
+  *Done when:* component tests cover both states, the label, why it was refused, and the form
+  markup; the 44px target is the shared icon button's (067), checked by a class assertion; the
+  no-JavaScript submit is proved end to end in task 9.
 
 - [ ] **5. Pin menu and Manage dialog.** The item page's Pin menu (Start here for root, each
   administered workspace), the Manage dialog on both shelves (Move up/down, Remove, count/limit,
@@ -54,7 +55,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   the new code; phone sweep.
   *Done when:* parity and scan pass; the sweep passes on every project in each language.
 
-- [ ] **9. End to end.** A user favorites and filters; root pins and reorders; an admin pins to a
+- [ ] **9. End to end.** A user favorites (also with JavaScript off, where the star is a plain form) and filters; root pins and reorders; an admin pins to a
   workspace and a member sees it as current workspace; a non-member of a private workspace sees
   none.
   *Done when:* the end-to-end tests pass on every project.

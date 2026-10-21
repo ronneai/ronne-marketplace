@@ -11,6 +11,7 @@ import {
   ItemNotFoundError,
   VersionNotFoundError,
 } from "@/server/domains/items/exceptions/errors";
+import { favoritedAmong } from "@/server/domains/shelves/actions/favorites";
 import { itemUsage, itemUsageByVersion } from "@/server/domains/usage/actions/usage";
 import { requestHeaders } from "@/server/http/request-headers";
 
@@ -48,7 +49,11 @@ export const loadItemPage = async (params: ItemParams, version?: string, rest = 
     redirect(
       `${itemPath({ workspace: page.item.workspace, scope: page.item.scope.name, name: page.item.name })}${rest}${version ? `?version=${encodeURIComponent(version)}` : ""}`,
     );
-  return page;
+  // Whether the person has favorited it (125), for the star in the header.
+  const favorited = (await favoritedAmong(await requestHeaders(), [page.item.id])).has(
+    page.item.id,
+  );
+  return { ...page, favorited };
 };
 
 /**

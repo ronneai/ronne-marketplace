@@ -9,6 +9,9 @@ vi.mock("@/server/domains/items/actions/versions", () => versions);
 const usage = vi.hoisted(() => ({ itemUsage: vi.fn(), itemUsageByVersion: vi.fn() }));
 vi.mock("@/server/domains/usage/actions/usage", () => usage);
 vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));
+vi.mock("@/server/domains/shelves/actions/favorites", () => ({
+  favoritedAmong: async () => new Set<string>(),
+}));
 vi.mock("./actions", () => ({ changeVersions: vi.fn() }));
 vi.mock("next/navigation", () => ({
   notFound: () => {

@@ -25,9 +25,14 @@ export class FavoriteLimitError extends ShelvesError {
   }
 }
 
-/** A shelf is full. `workspace` is the workspace's name, or null for the instance's "Start here". */
+/**
+ * A shelf is full. `workspace` is the workspace's name, or null for the instance's "Start here";
+ * `shelf` and `workspaceName` say the same in plain fields, which a translated message can use.
+ */
 export class PinLimitError extends ShelvesError {
   override readonly name: string = "PinLimitError";
+  readonly shelf: "instance" | "workspace";
+  readonly workspaceName: string;
   constructor(
     readonly workspace: string | null,
     readonly max: number,
@@ -37,6 +42,8 @@ export class PinLimitError extends ShelvesError {
         ? `Start here has ${max} items; remove one first.`
         : `The pins of ${workspace} have ${max} items; remove one first.`,
     );
+    this.shelf = workspace === null ? "instance" : "workspace";
+    this.workspaceName = workspace ?? "";
   }
 }
 

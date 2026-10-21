@@ -2,6 +2,7 @@ import { getTranslations } from "next-intl/server";
 import { PageHeader } from "@/components/ui/Panel";
 import { HomeView } from "@/features/home/HomeView";
 import { homeLists } from "@/server/domains/items/actions/catalogue";
+import { favoritedAmong } from "@/server/domains/shelves/actions/favorites";
 import { listMySubmissions } from "@/server/domains/submissions/actions/drafts";
 import { countNeedsReview } from "@/server/domains/submissions/actions/reviews";
 import { requestHeaders } from "@/server/http/request-headers";
@@ -19,11 +20,18 @@ const HomePage = async () => {
     listMySubmissions(headers),
     countNeedsReview(headers),
   ]);
+  const favorites = [
+    ...(await favoritedAmong(
+      headers,
+      [...lists.recent, ...lists.mostUsed].map((entry) => entry.id),
+    )),
+  ];
   return (
     <>
       <PageHeader title={t("title")} description={t("description")} />
       <HomeView
         lists={lists}
+        favorites={favorites}
         isRoot={user.role === "root"}
         forYou={{
           drafts: mine.filter((s) => s.status === "draft").length,

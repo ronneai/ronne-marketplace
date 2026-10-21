@@ -45,12 +45,18 @@ const Section = ({
   </section>
 );
 
-const ItemList = ({ entries }: { entries: HomeLists["recent"] }) => (
+const ItemList = ({
+  entries,
+  favorites,
+}: {
+  entries: HomeLists["recent"];
+  favorites?: readonly string[];
+}) => (
   <ul className="grid grid-cols-1 gap-3">
     {entries.map((entry) => (
       <li key={entry.id}>
         {/* biome-ignore lint/plugin: an HTML tag name, not text a person reads */}
-        <ItemCard entry={entry} heading="h3" />
+        <ItemCard entry={entry} heading="h3" favorited={favorites?.includes(entry.id)} />
       </li>
     ))}
   </ul>
@@ -68,8 +74,11 @@ export const HomeView = ({
   forYou,
   isRoot = false,
   slots = {},
+  favorites,
 }: {
   lists: HomeLists;
+  /** The ids of the listed items the person has favorited (125); without it, no stars. */
+  favorites?: readonly string[];
   forYou: ForYou;
   /** Root is pointed at creating a scope first, when nothing is released (124). */
   isRoot?: boolean;
@@ -198,13 +207,13 @@ export const HomeView = ({
             </Link>
           }
         >
-          <ItemList entries={lists.recent} />
+          <ItemList entries={lists.recent} favorites={favorites} />
         </Section>
       )}
 
       {lists.mostUsed.length ? (
         <Section id="most-used" title={t("mostUsed.title")}>
-          <ItemList entries={lists.mostUsed} />
+          <ItemList entries={lists.mostUsed} favorites={favorites} />
         </Section>
       ) : null}
     </div>
