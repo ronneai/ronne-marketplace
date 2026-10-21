@@ -89,7 +89,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   page, each asserting `<html lang>`; fix overflow.
   *Done when:* the end-to-end sweep passes on every project in the three languages for these pages.
 
-- [ ] **12. Rules and decision log.** `docs/knowledge/i18n.md` (started in task 6: finish how to add a
+- [x] **12. Rules and decision log.** `docs/knowledge/i18n.md` (started in task 6: finish how to add a
   language), CLAUDE.md ("UI text goes through messages"), MVP §15 row "Languages", the features
   index.
   *Done when:* the files are changed and the knowledge note is linked from CLAUDE.md.

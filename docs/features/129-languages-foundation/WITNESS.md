@@ -420,3 +420,43 @@ Witnessed: 2026-10-21 00:25 local, by a fresh agent (blind). Commit: 81042b44 pl
 | 13 | Unit project, typecheck and lint are green | no | confirmed | Unit project 196 files, 2410 passed; typecheck ok; lint no errors. |
 
 **Overall:** met. (A `next build --webpack` scratch build gave the opposite result on the nested-`main` check, because that build's unknown-address page has no `<main>`; the production build is Turbopack.)
+
+## Task 12 — Rules and decision log
+
+Witnessed: 2026-10-21, by a fresh agent (blind). Commit: e5c1a5d0 plus the uncommitted diff (`CLAUDE.md`, `docs/MVP/MVP.md`, `docs/knowledge/i18n.md`, `docs/features/README.md`, `PLAN.md`). Machine: macOS (Darwin 27), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | CLAUDE.md has the bullet "Screen text goes through messages (feature 129 …)" and links `docs/knowledge/i18n.md` | no | confirmed | `git diff CLAUDE.md`: the bullet is added to Fixed decisions after the arrow-functions bullet; the linked file exists. |
+| 2 | Its claim: message files at `apps/web/messages/<locale>/<namespace>.json`, `useTranslations`/`getTranslations` | no | confirmed | `apps/web/messages` has `en fr pt`; `messages/en` holds account, auth, common, errors and shell. |
+| 3 | The `i18n-raw-jsx-*.grit` plugins exist and fail lint on raw text in the folders already moved over | no | confirmed | Five plugin files; the `biome.json` override lists the folders; a probe file under `features/account/` in a scratch copy → 2 errors "Text on the screen comes from the message files (feature 129)"; the same file under `features/catalogue/` → none. |
+| 4 | Tests check every language has every key with the same ICU placeholders | no | confirmed | `src/i18n/messages.parity.test.ts` uses `LOCALES`; `i18n.md` describes keys, placeholders and valid ICU. |
+| 5 | "An old screen moves in the sweep (130–133)" | no | confirmed | The M19 milestone lists 130–133 as planned sweeps. |
+| 6 | MVP.md has a "Languages" row in the §15 decision log, placed with the other rows | no | confirmed | One row added between "Documentation" and "Personal data". |
+| 7 | MVP row: order profile → cookie → browser → English | no | confirmed | `chooseLocale` in `src/i18n/locale.ts`; migration `0032_user_locale.ts`; the `account/language` page. |
+| 8 | MVP row: the sign-in links and the Language form set the cookie | no | partly | The code was not traced. |
+| 9 | MVP row: next-intl, a missing message shows English and CI fails on it, parity with ICU placeholders | no | confirmed | `messages.ts` logs once and shows English; `messages.parity.test.ts` is the CI check. |
+| 10 | MVP row: `errors.<ClassName>` is used when it exists, and the error keeps its code and English message | no | confirmed | `src/i18n/errors.ts` looks up the class name and falls back to `error.message`; `errors.json` in the three languages. |
+| 11 | MVP row: the Documentation links carry the language | no | confirmed | `localizedDocsHref` builds `${SITE}/${locale}/marketplace/docs…`; `help.test.tsx` asserts it. |
+| 12 | MVP row: timestamps keep their numeric form, numbers follow the language | no | partly | The timestamp formatter was not traced. |
+| 13 | `i18n.md`: sections and cited paths | no | confirmed | All sections present; every cited file, test and `MIGRATED_ROUTES` exists; no missing relative links. |
+| 14 | `i18n.md` gotchas: the Vite cache advice | no | confirmed | The cache folders exist as the doc says. |
+| 15 | `i18n.md`: the steps for adding a language are complete and correct | no | partly | They left out the e2e `CASES`, the literal union in `localizedDocsHref`, and the website's other locale lists (`ogLocales`, its messages). |
+| 16 | `i18n.md` glossary rows match the message files | no | confirmed | Compared with `shell.json` and `common.json` in pt and fr: all rows match. |
+| 17 | `features/README.md`: 129 is "in progress", and the M19 text is consistent | no | confirmed | `git diff`: "specified" → "in progress". |
+| 18 | `pnpm witness:check` passes and the links resolve | no | confirmed | Exit 0; a relative-link scan found none missing. |
+
+**Overall:** not met (rows 8, 12, 15). Fixed: the MVP row names `setLanguageFromForm` and the public `/language` route for the cookie, and `time-text.ts` (049) for the timestamps; `localizedDocsHref` takes the `Locale` type; the "A language" step lists the website's edits and the e2e places.
+
+### Re-check (rows 8, 12, 15)
+
+Witnessed: 2026-10-21, by a fresh agent (blind). Commit: e5c1a5d0 plus the uncommitted diff. Machine: macOS (Darwin 27), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 8 | The Language form and the public `/language` route set the `ronne-locale` cookie | no | confirmed | `setLanguageFromForm` → `jar.set(LOCALE_COOKIE, …)` or `jar.delete`; the route's GET → `cookies.set(LOCALE_COOKIE, locale, …)` after `parseLocale`, then a 303 to `safeBackPath(next)`; the saved language still wins. |
+| 12 | Timestamps keep one numeric form in every language, and numbers follow the language | no | confirmed | `time-text.ts`: `utcText` from `toISOString()`, `localText` always `Intl.DateTimeFormat("en-US", …)`, no locale parameter; `table.count` is `{count, number}…`. |
+| 15 | The steps for adding a language are complete and name the right places | no | confirmed | The step covers `messages/<code>/`, `LOCALES`/`LOCALE_NAMES`, the typed `localizedDocsHref`, the website, and the e2e `CASES`, language and sweep `LANGUAGES`; the website's real edits are `routing.ts`, `www/messages/<code>.json`, `src/content/docs/<code>/` and the `ogLocales` map in `lib/metadata.ts` (its switcher and sitemap follow `routing.locales`). |
+| 19 | Lint, typecheck and the unit project pass with the `topics.ts` change | no | confirmed | `pnpm lint` 0; typecheck 7/7; unit project 196 files, 2410 passed. |
+
+**Overall:** met.

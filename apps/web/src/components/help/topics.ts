@@ -1,3 +1,4 @@
+import type { Locale } from "@/server/domains/identity/models/locale";
 /**
  * The Documentation's topics and their sections (feature 033). The Documentation is on the website
  * since 088 (`../ronne-web`, which has the same topics and section ids); inline helpers link into
@@ -368,7 +369,7 @@ export const DOCS_URL = `${SITE}/marketplace/docs`;
  * own prefix (`/pt/marketplace/docs/…`), and sends an address without one to the browser's. A
  * link that isn't the Documentation (or only starts like it) is left as it is.
  */
-export const localizedDocsHref = (href: string, locale: "en" | "pt" | "fr"): string => {
+export const localizedDocsHref = (href: string, locale: Locale): string => {
   const rest = href.slice(DOCS_URL.length);
   const isDocs =
     href.startsWith(DOCS_URL) &&

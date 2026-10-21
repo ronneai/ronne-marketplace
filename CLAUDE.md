@@ -119,6 +119,16 @@ Pull requests are squash-merged, so the PR title becomes the commit on `main`. C
   (`const Page = async () => …; export default Page;`). No `function` declarations or expressions.
   The Biome plugin `packages/config/biome-plugins/no-function-declaration.grit` fails lint on them.
   Overloads use a call-signature type and a cast (see `fromDbDate` in `db/dates.ts`).
+- **Screen text goes through messages (feature 129, owner, 2026-10-20).** The web app speaks English
+  (the source), Brazilian Portuguese and Canadian French, chosen per person. Every word a person reads
+  on a screen (labels, buttons, errors, `aria-label`s, page titles) is a message in
+  `apps/web/messages/<locale>/<namespace>.json`, never a string written in the component: `useTranslations`
+  (or `getTranslations` in an async server component), with a key in all three languages. A lint rule
+  (the `i18n-raw-jsx-*.grit` Biome plugins) fails on raw text in the folders already moved over, and
+  tests check every language has every key, with the same ICU placeholders. A new screen is written this
+  way from the start; an old one moves in the sweep (130–133). Item content, what people write, `rmk`, the
+  MCP server and the API stay as authored. Read [`docs/knowledge/i18n.md`](docs/knowledge/i18n.md)
+  (glossary, errors, tests, adding a language) before writing screen text.
 - **Frontend is feature-first.**
   - Each feature has one folder with its component, `hooks.ts`, `types.ts`, tests and sub-components.
   - Shared UI primitives (buttons, tables, modals, tabs, inputs) live in `components/ui`.
