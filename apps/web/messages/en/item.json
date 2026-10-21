@@ -63,5 +63,185 @@
   },
   "propose": {
     "button": "Propose a change"
+  },
+  "overview": {
+    "files": {
+      "unreadable": "This version’s files can’t be read.",
+      "unreadableBody": "Its package is missing from the storage, or doesn’t match its checksum. Tell an administrator."
+    },
+    "stats": {
+      "installs": "Installs, 30 days",
+      "installsDetail": "{removed, number} removed · {downloads, number} downloads",
+      "runs": "Runs, 30 days",
+      "notCounted": "Not counted",
+      "runsNotCounted": "Runs aren’t counted for {type} items",
+      "noRuns": "No runs reported",
+      "runsDetail": "{perDay, number} a day · {rate, number, percent} succeeded",
+      "runsDetailNoRate": "{perDay, number} a day · success rate not reported",
+      "downloads": "Downloads",
+      "downloadsDetail": "all versions, through rmk and the API",
+      "versions": "Versions",
+      "newest": "newest <date></date>",
+      "noneYet": "none yet",
+      "worksIn": "Works in",
+      "worksInValue": "{count, number}<small> of {total, number} tools</small>",
+      "toolShare": "{tool} {share, number, percent}",
+      "noTools": "none",
+      "review": "Review",
+      "approved": "approved",
+      "notReviewed": "not reviewed",
+      "flags": "{count, plural, one {# flag} other {# flags}}",
+      "nothingFlagged": "Nothing flagged",
+      "noRisks": "no hooks, servers, scripts or addresses"
+    },
+    "install": {
+      "title": "Install",
+      "quickFlags": "Quick flags",
+      "plugin": "As a Claude Code plugin",
+      "deprecated": "This version is deprecated: {message}",
+      "allYanked": "Every version is yanked: there’s nothing to install. Projects that pin one keep working.",
+      "usageTitle": "Usage, last 14 days",
+      "usageMinimum": "Usage appears once this item has {minimum, number} reported installs or runs in 30 days.",
+      "usageNone": "No installs or runs reported in the last 30 days.",
+      "copy": "Copy {command}"
+    },
+    "capabilities": {
+      "title": "Capabilities and guardrails",
+      "canDo": "What it can do",
+      "guardrails": "Guardrails",
+      "noGuardrails": "Its manifest sets no limits of its own."
+    },
+    "document": {
+      "openInFiles": "Open in Files",
+      "binary": "A binary file. Files lists it.",
+      "tooLarge": "Too large to show here. Files lists it.",
+      "empty": "This file is empty.",
+      "missing": "{path} isn’t in this version.",
+      "missingBody": "The manifest names it, but the released package doesn’t have it."
+    },
+    "dependencies": {
+      "label": "Dependencies",
+      "uses": "{count, plural, one {Uses # item} other {Uses # items}}",
+      "loading": "Loading the canvas…"
+    },
+    "verification": {
+      "title": "Package verification",
+      "checks": "rmk checks this checksum on every install",
+      "size": "Package size"
+    },
+    "configuration": {
+      "title": "Configuration",
+      "decision": "Decision",
+      "tool": "Tool",
+      "pattern": "Pattern",
+      "anyPattern": "any"
+    },
+    "usedBy": {
+      "title": "Used by",
+      "intro": "Published items whose listed version depends on this one.",
+      "asks": "{type} · asks {range}",
+      "more": "and {count, number} more"
+    },
+    "maintainers": {
+      "title": "Maintainers and review",
+      "owner": "Owner",
+      "approvedBy": "Approved by {name}{override, select, true { (root override)} other {}}",
+      "unreviewed": "Released without review."
+    },
+    "included": {
+      "title": "Included files",
+      "executable": "executable"
+    },
+    "about": "About this version",
+    "model": {
+      "label": {
+        "tools": "Tools",
+        "model": "Model",
+        "entryFile": "Entry file",
+        "activation": "Activation",
+        "globs": "Globs",
+        "arguments": "Arguments",
+        "event": "Event",
+        "matcher": "Matcher",
+        "command": "Command",
+        "script": "Script",
+        "timeout": "Timeout",
+        "transport": "Transport",
+        "url": "URL",
+        "env": "Environment variables",
+        "headers": "Headers",
+        "rules": "Rules",
+        "languages": "Languages"
+      },
+      "argument": "{name}{optional, select, true { (optional)} other {}}{hasDescription, select, true {: {description}} other {}}",
+      "seconds": "{seconds} s",
+      "envMarks": "{name} ({marks})",
+      "required": "required",
+      "secret": "secret",
+      "withDetail": "{name} ({detail})",
+      "risk": {
+        "hook": "Runs on an event",
+        "mcp_server": "Starts an MCP server",
+        "permission_policy": "Changes permissions",
+        "status_or_lsp": "Runs a command",
+        "executable": "Ships executable files",
+        "shell_script": "Ships shell scripts",
+        "network": "Mentions web addresses"
+      },
+      "role": {
+        "agent": "system instruction",
+        "skill": "skill entry",
+        "rule": "rule body",
+        "command": "command template",
+        "output-style": "output style",
+        "hook": "hook script",
+        "statusline": "status line script",
+        "main": "main file"
+      },
+      "guard": {
+        "tools": "Only these tools: {tools}.",
+        "globs": "Applies only to files matching {globs}.",
+        "manual": "Applies only when someone asks for it.",
+        "hookTool": "Runs only for the `{tool}` tool.",
+        "blocks": "Blocks {what}.",
+        "asks": "Asks before {what}."
+      }
+    },
+    "usage": {
+      "trigger": {
+        "user": "Typed by a person",
+        "model": "Chosen by the model",
+        "agent": "Used inside an agent",
+        "ci": "In CI",
+        "unknown": "Not reported"
+      },
+      "outcome": {
+        "success": "Succeeded",
+        "error": "Ended in an error",
+        "cancelled": "Cancelled",
+        "unknown": "Not reported"
+      },
+      "byTool": "By tool",
+      "none": "None in these days.",
+      "toolRuns": "{count, plural, one {# run} other {# runs}} ({share, number, percent})",
+      "row": "{count, number} · <strong>{share, number, percent}</strong>",
+      "gap": "{tools} {count, plural, one {doesn’t} other {don’t}} report {type} runs; there, only installs are counted.",
+      "stopped": "This instance no longer collects usage; these are the days it kept.",
+      "runsPerDay": "Runs per day",
+      "installsPerDay": "Installs per day",
+      "runsBar": "{day}: {count, plural, one {# run} other {# runs}}",
+      "installsBar": "{day}: {count, plural, one {# install} other {# installs}}",
+      "peak": "Peak: {count, number} on {day}",
+      "noRunsDays": "No runs in these days",
+      "noInstallsDays": "No installs in these days",
+      "perDay": "The numbers per day",
+      "day": "Day",
+      "runsCol": "Runs",
+      "installsCol": "Installs",
+      "removalsCol": "Removals",
+      "started": "What started them",
+      "ended": "How they ended",
+      "counted": "Counted by rmk on machines that report to this instance; <sent>see what’s sent</sent>."
+    }
   }
 }

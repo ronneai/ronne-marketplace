@@ -1,4 +1,12 @@
 import type { ItemType, RiskFlagKind } from "@ronneai/core";
+import type { useTranslations } from "next-intl";
+
+/**
+ * The words of this file, as a translator for `item.overview.model` (feature 130): the functions
+ * below take it and return text in the person's language, so a component passes its own
+ * `useTranslations("item.overview.model")` and a test passes one for the language it checks.
+ */
+export type Say = ReturnType<typeof useTranslations<"item.overview.model">>;
 
 /** One labelled row of an item's settings on its Overview (044): each value shows on its own line. */
 export type SettingRow = { label: string; values: string[] };
@@ -65,24 +73,32 @@ const one = (value: unknown): string[] => {
  * MCP servers list their environment variables' and headers' names only, and the full ronne.yaml
  * is one click away in Files.
  */
-export const settingsOf = (manifest: Manifest, type: ItemType): SettingRow[] => {
+export const settingsOf = (manifest: Manifest, type: ItemType, say: Say): SettingRow[] => {
   const block = blockOf(manifest, type);
   switch (type) {
     case "agent":
-      return rows(["Tools", texts(block.tools)], ["Model", one(block.model)]);
+      return rows([say("label.tools"), texts(block.tools)], [say("label.model"), one(block.model)]);
     case "skill":
-      return rows(["Entry file", [bodyPathOf(manifest, type) ?? "SKILL.md"]]);
+      return rows([say("label.entryFile"), [bodyPathOf(manifest, type) ?? "SKILL.md"]]);
     case "rule":
-      return rows(["Activation", one(block.activation)], ["Globs", texts(block.globs)]);
+      return rows(
+        [say("label.activation"), one(block.activation)],
+        [say("label.globs"), texts(block.globs)],
+      );
     case "command":
       return rows([
-        "Arguments",
+        say("label.arguments"),
         list(block.args).flatMap((arg) => {
           const name = text(arg.name);
           if (!name) return [];
           const description = text(arg.description);
           return [
-            `${name}${arg.required === true ? "" : " (optional)"}${description ? `: ${description}` : ""}`,
+            say("argument", {
+              name,
+              optional: String(arg.required !== true),
+              hasDescription: String(Boolean(description)),
+              description: description ?? "",
+            }),
           ];
         }),
       ]);
@@ -94,38 +110,38 @@ export const settingsOf = (manifest: Manifest, type: ItemType): SettingRow[] => 
       });
       const timeout = text(block.timeout);
       return rows(
-        ["Event", one(block.event)],
-        ["Matcher", matcher],
-        ["Command", one(run.command)],
-        ["Script", one(run.script)],
-        ["Timeout", timeout ? [`${timeout} s`] : []],
+        [say("label.event"), one(block.event)],
+        [say("label.matcher"), matcher],
+        [say("label.command"), one(run.command)],
+        [say("label.script"), one(run.script)],
+        [say("label.timeout"), timeout ? [`${timeout} s`] : []],
       );
     }
     case "statusline":
-      return rows(["Script", one(block.script)]);
+      return rows([say("label.script"), one(block.script)]);
     case "mcp-server":
       return rows(
-        ["Transport", one(block.transport)],
-        ["Command", one(block.command)],
-        ["Arguments", texts(block.args)],
-        ["URL", one(block.url)],
+        [say("label.transport"), one(block.transport)],
+        [say("label.command"), one(block.command)],
+        [say("label.arguments"), texts(block.args)],
+        [say("label.url"), one(block.url)],
         [
-          "Environment variables",
+          say("label.env"),
           list(block.env).flatMap((env) => {
             const name = text(env.name);
             if (!name) return [];
             const marks = [
-              env.required === true ? "required" : null,
-              env.secret === true ? "secret" : null,
+              env.required === true ? say("required") : null,
+              env.secret === true ? say("secret") : null,
             ].filter((mark) => mark !== null);
-            return [marks.length > 0 ? `${name} (${marks.join(", ")})` : name];
+            return [marks.length > 0 ? say("envMarks", { name, marks: marks.join(", ") }) : name];
           }),
         ],
-        ["Headers", Object.keys(record(block.headers))],
+        [say("label.headers"), Object.keys(record(block.headers))],
       );
     case "permission-policy":
       return rows([
-        "Rules",
+        say("label.rules"),
         list(block.rules).flatMap((rule) => {
           const decision = text(rule.decision);
           const tool = text(rule.tool);
@@ -136,15 +152,19 @@ export const settingsOf = (manifest: Manifest, type: ItemType): SettingRow[] => 
       ]);
     case "lsp-server":
       return rows(
-        ["Command", one(block.command)],
-        ["Arguments", texts(block.args)],
+        [say("label.command"), one(block.command)],
+        [say("label.arguments"), texts(block.args)],
         [
-          "Languages",
+          say("label.languages"),
           list(block.languages).flatMap((language) => {
             const id = text(language.id);
             if (!id) return [];
             const extensions = texts(language.extensions);
-            return [extensions.length > 0 ? `${id} (${extensions.join(", ")})` : id];
+            return [
+              extensions.length > 0
+                ? say("withDetail", { name: id, detail: extensions.join(", ") })
+                : id,
+            ];
           }),
         ],
       );
@@ -164,65 +184,58 @@ export const policyRulesOf = (manifest: Manifest): PolicyRule[] =>
     return decision && tool ? [{ decision, tool, pattern: text(rule.pattern) }] : [];
   });
 
-const RISK_LABELS: Record<RiskFlagKind, string> = {
-  hook: "Runs on an event",
-  mcp_server: "Starts an MCP server",
-  permission_policy: "Changes permissions",
-  status_or_lsp: "Runs a command",
-  executable: "Ships executable files",
-  shell_script: "Ships shell scripts",
-  network: "Mentions web addresses",
-};
-
 /** What the risk flags (014) say, once per kind, in the order they first appear. */
-export const riskLabelsOf = (flags: readonly { kind: RiskFlagKind }[]): string[] => [
-  ...new Set(flags.map((flag) => RISK_LABELS[flag.kind])),
+export const riskLabelsOf = (flags: readonly { kind: RiskFlagKind }[], say: Say): string[] => [
+  ...new Set(flags.map((flag) => say(`risk.${flag.kind}`))),
 ];
 
-const BODY_ROLES: Partial<Record<ItemType, string>> = {
-  agent: "system instruction",
-  skill: "skill entry",
-  rule: "rule body",
-  command: "command template",
-  "output-style": "output style",
-  hook: "hook script",
-  statusline: "status line script",
-};
+const BODY_ROLES = [
+  "agent",
+  "skill",
+  "rule",
+  "command",
+  "output-style",
+  "hook",
+  "statusline",
+] as const satisfies readonly ItemType[];
 
 /** What the main file is for, as the Overview's card names it (045). */
-export const bodyRoleOf = (type: ItemType): string | null => BODY_ROLES[type] ?? null;
+export const bodyRoleOf = (type: ItemType, say: Say): string | null => {
+  const role = BODY_ROLES.find((candidate) => candidate === type);
+  return role ? say(`role.${role}`) : null;
+};
 
 /**
  * The limits an item's own manifest sets (045), as sentences with `code` in backticks: an agent's
  * tool list, a rule's activation, a hook's matcher, a permission policy's `deny` and `ask` rules.
  */
-export const guardrailsOf = (manifest: Manifest, type: ItemType): string[] => {
+export const guardrailsOf = (manifest: Manifest, type: ItemType, say: Say): string[] => {
   const block = blockOf(manifest, type);
   switch (type) {
     case "agent": {
       const tools = texts(block.tools);
       return tools.length > 0
-        ? [`Only these tools: ${tools.map((tool) => `\`${tool}\``).join(", ")}.`]
+        ? [say("guard.tools", { tools: tools.map((tool) => `\`${tool}\``).join(", ") })]
         : [];
     }
     case "rule": {
       const globs = texts(block.globs);
       if (block.activation === "glob" && globs.length > 0)
-        return [`Applies only to files matching ${globs.map((g) => `\`${g}\``).join(", ")}.`];
-      if (block.activation === "manual") return ["Applies only when someone asks for it."];
+        return [say("guard.globs", { globs: globs.map((g) => `\`${g}\``).join(", ") })];
+      if (block.activation === "manual") return [say("guard.manual")];
       return [];
     }
     case "hook": {
       const tool = text(record(block.matcher).tool);
-      return tool ? [`Runs only for the \`${tool}\` tool.`] : [];
+      return tool ? [say("guard.hookTool", { tool })] : [];
     }
     case "permission-policy":
       return policyRulesOf(manifest).flatMap((rule) => {
         const what = `\`${rule.tool}${rule.pattern ? ` ${rule.pattern}` : ""}\``;
         return rule.decision === "deny"
-          ? [`Blocks ${what}.`]
+          ? [say("guard.blocks", { what })]
           : rule.decision === "ask"
-            ? [`Asks before ${what}.`]
+            ? [say("guard.asks", { what })]
             : [];
       });
     default:

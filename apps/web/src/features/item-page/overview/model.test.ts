@@ -1,8 +1,10 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ItemType } from "@ronneai/core";
+import { useTranslations } from "next-intl";
 import { describe, expect, it } from "vitest";
 import { parse } from "yaml";
+import { inLocale } from "@/test/intl";
 import {
   bodyPathOf,
   bodyRoleOf,
@@ -12,6 +14,10 @@ import {
   settingsOf,
 } from "./model";
 
+// The real English messages, as the Overview reads them (the test setup stands in for next-intl).
+// biome-ignore lint/correctness/useHookAtTopLevel: the setup's stand-in is a plain translator.
+const say = useTranslations("item.overview.model");
+
 /** The sample items, one per type: 044's table is checked against them. */
 const EXAMPLES = join(import.meta.dirname, "../../../../../../examples/items");
 const example = (folder: string) => {
@@ -20,7 +26,7 @@ const example = (folder: string) => {
 };
 const overview = (folder: string) => {
   const { manifest, type } = example(folder);
-  return { body: bodyPathOf(manifest, type), settings: settingsOf(manifest, type) };
+  return { body: bodyPathOf(manifest, type), settings: settingsOf(manifest, type, say) };
 };
 
 describe("an item's Overview (044)", () => {
@@ -80,7 +86,7 @@ describe("an item's Overview (044)", () => {
     });
     const scripted = { hook: { event: "session.start", run: { script: "start.sh" } } };
     expect(bodyPathOf(scripted, "hook")).toBe("start.sh");
-    expect(settingsOf(scripted, "hook")).toEqual([
+    expect(settingsOf(scripted, "hook", say)).toEqual([
       { label: "Event", values: ["session.start"] },
       { label: "Script", values: ["start.sh"] },
     ]);
@@ -140,10 +146,10 @@ describe("an item's Overview (044)", () => {
   });
 
   it("leaves out what a manifest doesn't set, and ignores values of the wrong shape", () => {
-    expect(settingsOf({ agent: { tools: "read", model: 3 } }, "agent")).toEqual([
+    expect(settingsOf({ agent: { tools: "read", model: 3 } }, "agent", say)).toEqual([
       { label: "Model", values: ["3"] },
     ]);
-    expect(settingsOf({}, "mcp-server")).toEqual([]);
+    expect(settingsOf({}, "mcp-server", say)).toEqual([]);
     expect(bodyPathOf({ agent: [] }, "agent")).toBeNull();
   });
 });
@@ -161,11 +167,10 @@ describe("the Overview's summary (044)", () => {
   });
 
   it("says what the risk flags are about, once per kind", () => {
-    expect(riskLabelsOf([{ kind: "network" }, { kind: "hook" }, { kind: "network" }])).toEqual([
-      "Mentions web addresses",
-      "Runs on an event",
-    ]);
-    expect(riskLabelsOf([])).toEqual([]);
+    expect(riskLabelsOf([{ kind: "network" }, { kind: "hook" }, { kind: "network" }], say)).toEqual(
+      ["Mentions web addresses", "Runs on an event"],
+    );
+    expect(riskLabelsOf([], say)).toEqual([]);
   });
 });
 
@@ -173,7 +178,7 @@ describe("the dashboard's guardrails and roles (045)", () => {
   it("reads the limits each type's manifest sets", () => {
     const of = (folder: string) => {
       const { manifest, type } = example(folder);
-      return guardrailsOf(manifest, type);
+      return guardrailsOf(manifest, type, say);
     };
     expect(of("code-reviewer")).toEqual([
       "Only these tools: `read`, `grep`, `glob`, `shell`, `mcp:github-mcp`.",
@@ -187,14 +192,45 @@ describe("the dashboard's guardrails and roles (045)", () => {
     ]);
     for (const folder of ["secure-coding", "github-mcp", "starter-kit", "concise"])
       expect(of(folder)).toEqual([]);
-    expect(guardrailsOf({ rule: { activation: "manual" } }, "rule")).toEqual([
+    expect(guardrailsOf({ rule: { activation: "manual" } }, "rule", say)).toEqual([
       "Applies only when someone asks for it.",
     ]);
   });
 
   it("names the main file's role", () => {
-    expect(bodyRoleOf("agent")).toBe("system instruction");
-    expect(bodyRoleOf("skill")).toBe("skill entry");
-    expect(bodyRoleOf("mcp-server")).toBeNull();
+    expect(bodyRoleOf("agent", say)).toBe("system instruction");
+    expect(bodyRoleOf("skill", say)).toBe("skill entry");
+    expect(bodyRoleOf("mcp-server", say)).toBeNull();
+  });
+});
+
+describe("an item's Overview in Portuguese and French (130)", () => {
+  const sayIn = (locale: "pt" | "fr") =>
+    inLocale(locale, () => useTranslations("item.overview.model"));
+  it("labels the agent's rows and its guardrail in the language", () => {
+    const { manifest, type } = example("code-reviewer");
+    expect(settingsOf(manifest, type, sayIn("pt")).map((row) => row.label)).toEqual([
+      "Ferramentas",
+      "Modelo",
+    ]);
+    expect(settingsOf(manifest, type, sayIn("fr")).map((row) => row.label)).toEqual([
+      "Outils",
+      "Modèle",
+    ]);
+    expect(guardrailsOf(manifest, type, sayIn("pt"))[0]).toMatch(/^Só estas ferramentas: `read`/);
+    expect(guardrailsOf(manifest, type, sayIn("fr"))[0]).toMatch(/^Seulement ces outils : `read`/);
+    expect(bodyRoleOf(type, sayIn("pt"))).toBe("instrução de sistema");
+    expect(bodyRoleOf(type, sayIn("fr"))).toBe("instruction système");
+    expect(bodyRoleOf("mcp-server", sayIn("fr"))).toBeNull();
+  });
+
+  it("a permission policy's guardrails say blocks and asks in the language", () => {
+    const { manifest, type } = example("safe-git");
+    expect(
+      guardrailsOf(manifest, type, sayIn("pt")).some((line) => line.startsWith("Bloqueia ")),
+    ).toBe(true);
+    expect(
+      guardrailsOf(manifest, type, sayIn("fr")).some((line) => line.startsWith("Bloque ")),
+    ).toBe(true);
   });
 });

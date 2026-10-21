@@ -109,3 +109,41 @@ Witnessed: 2026-10-21 15:05 local, by a fresh agent (blind re-check). Commit: 46
 | 7 | Page titles for the four item routes, in each language | no | confirmed | The title test calls the four `generateMetadata` in en, pt and fr (Item/Item/Élément, Versions/Versões/Versions). Mutation: fr `item.page.item` set to "Item" → the title test failed. Files restored, `cmp` identical. |
 
 **Overall:** met.
+
+## Task 4 — Item page: Overview
+
+Witnessed: 2026-10-21 15:15 local, by a fresh agent (blind). Commit: 8d337a97 plus the uncommitted working tree. Machine: macOS (Darwin), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The task's unit tests pass | no | confirmed | `vitest run --project unit src/features/item-page src/i18n` → 14 files, 153 tests passed, after clearing the Vite caches. |
+| 2 | Lint is clean and `overview/**` is in the raw-text scan | no | confirmed | `biome check` on item-page, messages and `biome.json` → 52 files, no errors; the `biome.json` diff adds the folder. |
+| 3 | The model tests run in three languages | no | partly | `translations.test.tsx` checked the model with pt and fr translators, but `model.test.ts` itself ran only in English. |
+| 4 | The usage-card tests run in three languages | no | partly | `usage-card.test.tsx` had no locale; the pt and fr checks lived in the page-level test. |
+| 5 | No hard-coded en-US is left in item-page | no | confirmed | `grep -rn en-US apps/web/src/features/item-page` → no output. |
+| 6 | `shortDay` keeps en-GB order for English and follows the language otherwise | no | confirmed | `UsageCard.tsx:42-43` uses `locale === "en" ? "en-GB" : locale`; the test expects "1 Jan". |
+| 7 | The chart's bar titles are messages | no | confirmed | `UsageCard.tsx` uses `t(runs ? "runsBar" : "installsBar", …)`; ICU plurals in en, pt and fr. |
+| 8 | Every previous English string survives word for word, apart from the documented changes | no | confirmed | Diffed the removed lines of OverviewTab, UsageCard and model.ts against `en/item.json`; changes are the apostrophe, "mcp-server items", the plural messages and the argument `select`. |
+| 9 | Number formats follow the language | no | confirmed | Messages use `{n, number}` and `{rate, number, percent}`; tests expect pt "13,7 por dia · 94% com sucesso" and fr "13,7 par jour · 94 % réussies". |
+| 10 | Plurals use ICU for 0, 1, 2 | no | partly | pt and fr have `plural` messages; the 0 and 2 forms had no assertion. |
+| 11 | Nothing English is left in model.ts | no | confirmed | The diff replaces every label, risk, role and guard string by `say(...)`; a literal grep found none; swapping one `say("guard.manual")` for raw English made a test fail. |
+| 12 | Placeholder-like stored values render as typed | no | confirmed | A deprecation message "Use {count} <b>now</b>." renders escaped, as typed, in pt. |
+| 13 | A pt/fr English leak is caught | no | confirmed | pt "Execuções por dia" set to "Runs per day" → 1 test failed; restored, `cmp` matched. |
+| 14 | A raw English string in UsageCard is caught | no | partly | Replacing `{t("byTool")}` with `By tool` made biome report 1 error, while the unit tests stayed green. |
+| 15 | The mobile sweep passes in pt and fr | no | confirmed | `playwright test mobile-sweep --project=phone -g "in (pt\|fr)"` → 10 passed. |
+| 16 | The dependency canvas's node text is out of this task | no | confirmed | `DependencyGraph.tsx` changes by 10 lines (the loading text only). |
+
+**Overall:** not met: rows 3, 4, 10 and 14.
+
+### Re-check (rows 3, 4, 10, 14)
+
+Witnessed: 2026-10-21 15:25 local, by a fresh agent (blind re-check). Commit: 8d337a97 plus the uncommitted working tree. Machine: macOS (Darwin), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 3 | The model tests run in three languages | no | confirmed | `model.test.ts` now has a pt and fr block: agent row labels, guardrail text, body role and the permission policy's "Bloqueia"/"Bloque" lines. |
+| 4 | The usage-card tests run in three languages | no | confirmed | `usage-card.test.tsx` now has a pt and fr block on `UsageBody`: titles, peak line, table, silent-tools sentence, bar titles and `shortDay` in pt, fr and en. |
+| 10 | The run plurals use the language's rules at 0, 1 and 2 | no | confirmed | `usage-card.test.tsx` expects "0 execução", "1 execução", "2 execuções" in pt and "0 exécution", "1 exécution", "2 exécutions" in fr, right for CLDR (0 and 1 are `one` in both). |
+| 14 | A raw English string in JSX is caught, by the lint rule | no | confirmed | On the stated basis that lint guards raw JSX (pre-commit and CI) and the leak test guards wrong-language messages: the biome plugin reported the raw `By tool`. Mutation: fr "Pic : " set to "Peak : " → the usage-card test failed; restored, `cmp` matched. `vitest run --project unit src/features/item-page src/i18n` → 159 passed; `biome check` clean. |
+
+**Overall:** met.

@@ -34,11 +34,12 @@ Every task that moves a folder adds it to the `overrides` entry in `biome.json` 
   *Done when:* a three-language test per component; the version notice's four variants are tested
   in each language; the routes are in `MIGRATED_ROUTES`.
 
-- [ ] **4. Item page: Overview.** `OverviewTab`, `overview/model.ts` (the per-type rows and
+- [x] **4. Item page: Overview.** `OverviewTab`, `overview/model.ts` (the per-type rows and
   sentences), `UsageCard` (plurals, the list of silent tools, dates, numbers), `CopyChip`,
   `DependencyGraph`.
-  *Done when:* the model and usage-card tests run in three languages; no `en-US`/`en-GB` left in
-  the folder; the chart's bar `title`s are messages.
+  *Done when:* the model and usage-card tests run in three languages; no hard-coded `en-US` left in
+  the folder (`shortDay` keeps English's day-first order as `en-GB`, and follows the language
+  otherwise); the chart's bar `title`s are messages.
 
 - [ ] **5. Workspaces: list, join and the current-workspace line.** `WorkspacesPage`,
   `RequestControls`, `JoinPage`, `Showing` (the three variants), the pages under

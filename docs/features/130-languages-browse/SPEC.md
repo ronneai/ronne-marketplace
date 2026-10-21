@@ -49,6 +49,8 @@ Nothing about what the screens do changes.
 **Out** (and where it goes instead):
 - The draft editor, composer, submissions, reviews, the Versions tab's release actions and their
   errors: 131. (The Versions page title and the item page's own Versions tab label move here.)
+- The dependency canvas's node text (`components/dependency-canvas`), shared with the composer:
+  131. Only the Overview's "Loading the canvas…" moves here.
 - Admin pages, Admin › Workspaces (the rename and move screens an administrator uses), settings,
   setup, SSO and SCIM: 132.
 - The remaining `Help` entries: 131 and 132.
@@ -74,6 +76,10 @@ Nothing about what the screens do changes.
 - **Errors.** A known error shows its translation; an error with no translation shows the English
   message (never a blank). `ScopeMoveRefusedError` keeps returning its impact object; the labels of
   the impact list are messages.
+- **English changes that come with whole sentences** (all small): "Runs aren’t counted for
+  mcp-server items" (it was "mcp-servers", the type name with an "s" added in code), "1 run" where it
+  said "1 runs" in the by-tool list, and "A, B and C" lists follow the language's list format. The
+  chart's short days keep English's day-first order ("3 Oct").
 - **Roles are one vocabulary.** root, admin, moderator, user: the glossary rows apply everywhere
   they are shown, from one set of messages.
 

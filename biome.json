@@ -29,6 +29,7 @@
         "apps/web/src/features/item-page/ItemTabs.tsx",
         "apps/web/src/features/item-page/ProposeButton.tsx",
         "apps/web/src/features/item-page/ToolsPanel.tsx",
+        "apps/web/src/features/item-page/overview/**",
         "apps/web/src/app/(app)/items/**",
         "apps/web/src/features/home/**",
         "apps/web/src/app/(app)/page.tsx",
