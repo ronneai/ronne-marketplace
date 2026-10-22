@@ -196,6 +196,10 @@ const seedAna = async (): Promise<Seeded> => {
   );
   await createMyToken(asAna, { name: "laptop" }, app);
   await createMyToken(asAna, { name: "desk" }, app);
+  await t.db
+    .insertInto("user_onboarding")
+    .values({ user_id: id, hidden_at: at(), updated_at: at() })
+    .execute();
   for (const name of ["phone", "tablet"])
     await t.db
       .insertInto("device_grants")
@@ -404,6 +408,7 @@ describe("eraseUser (103)", () => {
       ["two_factor", "user_id"],
       ["access_tokens", "user_id"],
       ["device_grants", "user_id"],
+      ["user_onboarding", "user_id"],
       ["scim_users", "user_id"],
       ["scim_group_members", "user_id"],
       ["workspace_members", "user_id"],

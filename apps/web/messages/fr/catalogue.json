@@ -63,6 +63,11 @@
       "label": "Pages",
       "first": "Première page",
       "next": "Page suivante"
+    },
+    "layout": {
+      "label": "Affichage",
+      "grid": "En grille",
+      "list": "En liste"
     }
   },
   "card": {
@@ -74,7 +79,9 @@
     "published": "publié le <date></date>",
     "worksIn": "fonctionne dans {tools}",
     "worksInNone": "ne fonctionne dans aucun outil intégré",
-    "installs": "{count, plural, one {# installation} other {# installations}}"
+    "installs": "{count, plural, one {# installation} other {# installations}}",
+    "publishedLabel": "Publié le",
+    "copyInstall": "Copier la commande d’installation de {name}"
   },
   "place": {
     "workspace": "Espace de travail",

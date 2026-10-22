@@ -1,8 +1,17 @@
 import { RENDERERS } from "@ronneai/core/render";
-import { ArrowUpDown, Check, ChevronRight, SlidersHorizontal, X } from "lucide-react";
+import {
+  ArrowUpDown,
+  Check,
+  ChevronRight,
+  LayoutGrid,
+  List,
+  SlidersHorizontal,
+  X,
+} from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
+import { CardGrid } from "@/components/catalogue/CardGrid";
 import { ItemCard } from "@/components/catalogue/ItemCard";
 import { buttonClasses } from "@/components/ui/Button";
 import { cn } from "@/components/ui/cn";
@@ -10,7 +19,7 @@ import { Disclosure } from "@/components/ui/Disclosure";
 import { Input, inputClasses, Label } from "@/components/ui/Field";
 import { TYPE_CLASSES, TYPE_DOT } from "@/components/ui/TypeBadge";
 import type { CataloguePage } from "@/server/domains/items/actions/catalogue";
-import { catalogueHref } from "./query";
+import { type CatalogueLayout, catalogueHref } from "./query";
 
 /** An active filter, shown next to the Filters button: a link that removes it. */
 const ActiveFilter = ({
@@ -56,6 +65,7 @@ export const CatalogueView = ({
   paged,
   keepAll = false,
   favorites,
+  layout = "grid",
 }: {
   page: CataloguePage;
   paged: boolean;
@@ -66,12 +76,14 @@ export const CatalogueView = ({
    * Clear all) writes an explicit empty `?workspace=`, or the page would redirect back to it.
    */
   keepAll?: boolean;
+  /** Compact cards in a grid (the default) or full cards in a list (`?view=list`). */
+  layout?: CatalogueLayout;
 }) => {
   const typeText = useTranslations("types");
   const t = useTranslations("catalogue.view");
   const { query } = page;
   const href = (changes: Parameters<typeof catalogueHref>[1] = {}) =>
-    catalogueHref(query, changes, keepAll);
+    catalogueHref({ ...query, layout }, changes, keepAll);
   const total = page.typeCounts.reduce((sum, entry) => sum + entry.count, 0);
   const filtered = Boolean(
     query.q ||
@@ -117,6 +129,7 @@ export const CatalogueView = ({
         {query.tool ? <input type="hidden" name="tool" value={query.tool} /> : null}
         {query.favorites ? <input type="hidden" name="favorites" value="1" /> : null}
         {query.sort !== "recent" ? <input type="hidden" name="sort" value={query.sort} /> : null}
+        {layout === "list" ? <input type="hidden" name="view" value="list" /> : null}
         <button type="submit" className={buttonClasses("secondary")}>
           {t("search.submit")}
         </button>
@@ -143,6 +156,7 @@ export const CatalogueView = ({
               {query.sort !== "recent" ? (
                 <input type="hidden" name="sort" value={query.sort} />
               ) : null}
+              {layout === "list" ? <input type="hidden" name="view" value="list" /> : null}
               <details open={query.types.length > 0} className="group/types">
                 <summary className="flex min-h-9 pointer-coarse:min-h-11 cursor-pointer list-none items-center gap-2 rounded-control text-sm font-semibold text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus [&::-webkit-details-marker]:hidden">
                   <ChevronRight
@@ -311,41 +325,65 @@ export const CatalogueView = ({
             </ul>
           ) : null}
         </div>
-        <Disclosure
-          align="right"
-          panelClassName="w-72 p-1"
-          summary={
-            <>
-              <ArrowUpDown size={16} aria-hidden="true" />
-              <span>
-                {t.rich("sort.summary", {
-                  value: () => <span className="font-normal">{t(`sort.${sort}.label`)}</span>,
-                })}
-              </span>
-            </>
-          }
-        >
-          <nav aria-label={t("sort.label")} className="grid gap-0.5">
-            {SORTS.map((option) => (
+        <div className="flex items-center gap-2">
+          <nav
+            aria-label={t("layout.label")}
+            className="inline-flex overflow-hidden rounded-control border border-strong bg-surface"
+          >
+            {(
+              [
+                ["grid", LayoutGrid],
+                ["list", List],
+              ] as const
+            ).map(([option, Icon]) => (
               <Link
                 key={option}
-                href={href({ sort: option })}
-                aria-current={query.sort === option ? "page" : undefined}
-                className="grid grid-cols-[1rem_1fr] items-start gap-x-2 rounded-control px-3 py-2 pointer-coarse:py-3 text-sm text-fg hover:bg-tint aria-[current=page]:bg-tint"
+                href={href({ layout: option })}
+                aria-label={t(`layout.${option}`)}
+                title={t(`layout.${option}`)}
+                aria-current={layout === option ? "page" : undefined}
+                className="touch-hit inline-flex h-9 w-9 items-center justify-center text-muted hover:bg-tint hover:text-fg aria-[current=page]:bg-tint aria-[current=page]:text-fg pointer-coarse:h-11 pointer-coarse:w-11 outline-offset-[-2px] focus-visible:outline-2 focus-visible:outline-focus"
               >
-                <span className="pt-0.5">
-                  {query.sort === option ? <Check size={14} aria-hidden="true" /> : null}
-                </span>
-                <span className="grid">
-                  <span className={query.sort === option ? "font-semibold" : undefined}>
-                    {t(`sort.${option}.label`)}
-                  </span>
-                  <span className="text-xs text-muted">{t(`sort.${option}.hint`)}</span>
-                </span>
+                <Icon size={16} aria-hidden="true" />
               </Link>
             ))}
           </nav>
-        </Disclosure>
+          <Disclosure
+            align="right"
+            panelClassName="w-72 p-1"
+            summary={
+              <>
+                <ArrowUpDown size={16} aria-hidden="true" />
+                <span>
+                  {t.rich("sort.summary", {
+                    value: () => <span className="font-normal">{t(`sort.${sort}.label`)}</span>,
+                  })}
+                </span>
+              </>
+            }
+          >
+            <nav aria-label={t("sort.label")} className="grid gap-0.5">
+              {SORTS.map((option) => (
+                <Link
+                  key={option}
+                  href={href({ sort: option })}
+                  aria-current={query.sort === option ? "page" : undefined}
+                  className="grid grid-cols-[1rem_1fr] items-start gap-x-2 rounded-control px-3 py-2 pointer-coarse:py-3 text-sm text-fg hover:bg-tint aria-[current=page]:bg-tint"
+                >
+                  <span className="pt-0.5">
+                    {query.sort === option ? <Check size={14} aria-hidden="true" /> : null}
+                  </span>
+                  <span className="grid">
+                    <span className={query.sort === option ? "font-semibold" : undefined}>
+                      {t(`sort.${option}.label`)}
+                    </span>
+                    <span className="text-xs text-muted">{t(`sort.${option}.hint`)}</span>
+                  </span>
+                </Link>
+              ))}
+            </nav>
+          </Disclosure>
+        </div>
       </div>
 
       {page.entries.length === 0 ? (
@@ -374,7 +412,7 @@ export const CatalogueView = ({
             </p>
           </div>
         )
-      ) : (
+      ) : layout === "list" ? (
         <ul className="grid grid-cols-1 gap-3">
           {page.entries.map((entry) => (
             <li key={entry.id}>
@@ -382,6 +420,14 @@ export const CatalogueView = ({
             </li>
           ))}
         </ul>
+      ) : (
+        <CardGrid>
+          {page.entries.map((entry) => (
+            <li key={entry.id}>
+              <ItemCard entry={entry} favorited={favorites?.includes(entry.id)} compact />
+            </li>
+          ))}
+        </CardGrid>
       )}
 
       {page.nextCursor || paged ? (

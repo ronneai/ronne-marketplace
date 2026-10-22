@@ -12,6 +12,7 @@ export const TOPICS = [
     sections: [
       { id: "what", title: "What Ronne AI Marketplace is" },
       { id: "path", title: "The path of an item" },
+      { id: "getting-started", title: "Getting started on Home" },
     ],
   },
   {

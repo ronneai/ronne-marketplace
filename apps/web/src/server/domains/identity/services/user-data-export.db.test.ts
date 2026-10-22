@@ -161,6 +161,10 @@ const seedAna = async (): Promise<Ana> => {
   const token = await createMyToken(headers, { name: "laptop" }, app);
   await createMyToken(headers, { name: "desk" }, app);
   await t.db
+    .insertInto("user_onboarding")
+    .values({ user_id: id, hidden_at: at(), updated_at: at() })
+    .execute();
+  await t.db
     .insertInto("device_grants")
     .values({
       id: newId(),
@@ -332,6 +336,11 @@ describe("exportUserData (104)", () => {
     expect(data.accessTokens[0]).toMatchObject({
       prefix: expect.stringMatching(/^rmk_/),
       revokedAt: null,
+    });
+    expect(data.onboarding).toEqual({
+      hiddenAt: expect.any(Date),
+      installConfirmedAt: null,
+      completedSeenAt: null,
     });
     expect(data.deviceGrants).toEqual([
       {

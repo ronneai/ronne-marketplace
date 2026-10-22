@@ -54,6 +54,18 @@ export const E2E_USERS = {
   shelvesVault: "shelves-vault@e2e.test",
   shelvesOutsider: "shelves-outsider@e2e.test",
   shelvesRoot: "shelves-root@e2e.test",
+  // Getting started (126): hides the checklist on Home and brings it back from Account.
+  starterAccount: "starter-account@e2e.test",
+  // Reads Home's checklist on a phone and a tablet (126): one fresh user per device project.
+  // The whole walk-through of the checklist (126): a fresh user per project, one without JavaScript.
+  starterFlow: "starter-flow@e2e.test",
+  starterNoJs: "starter-no-js@e2e.test",
+  phoneStarterFlow: "phone-starter-flow@e2e.test",
+  phoneWebkitStarterFlow: "phone-webkit-starter-flow@e2e.test",
+  tabletStarterFlow: "tablet-starter-flow@e2e.test",
+  phoneStarter: "phone-starter@e2e.test",
+  phoneWebkitStarter: "phone-webkit-starter@e2e.test",
+  tabletStarter: "tablet-starter@e2e.test",
   favoriter: "favoriter@e2e.test",
   favoriterNoJs: "favoriter-no-js@e2e.test",
   // Pin items for a workspace (125): an admin of e2e-pins per project.
@@ -88,6 +100,12 @@ export const E2E_USERS = {
   // root per phone and tablet project, who sets it and reads it on the device.
   // Reads Home on a populated instance (124).
   homeMember: "home-member@e2e.test",
+  // Copies a card's install command from Home (126): its own, as homeMember's sign-ins are spent.
+  homeCopier: "home-copier@e2e.test",
+  homeCards: "home-cards@e2e.test",
+  // Switches the Catalogue between the grid and the list (126).
+  catalogueView: "catalogue-view@e2e.test",
+  catalogueViewNoJs: "catalogue-view-no-js@e2e.test",
   noticeRoot: "notice-root@e2e.test",
   noticeMember: "notice-member@e2e.test",
   phoneNoticeRoot: "phone-notice-root@e2e.test",
@@ -259,6 +277,15 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   shelvesVault: "Vera Vault",
   shelvesOutsider: "Otto Outsider",
   shelvesRoot: "Rhea Shelf",
+  starterAccount: "Alma Account",
+  starterFlow: "Flora Flow",
+  starterNoJs: "Nils NoScript",
+  phoneStarterFlow: "Phoebe Flow",
+  phoneWebkitStarterFlow: "Wendy Flow",
+  tabletStarterFlow: "Tabitha Flow",
+  phoneStarter: "Phoebe Starter",
+  phoneWebkitStarter: "Wendy Starter",
+  tabletStarter: "Tabitha Starter",
   favoriter: "Faye Favorite",
   favoriterNoJs: "Nolan NoScript",
   pinsAdmin: "Pia Pinner",
@@ -283,6 +310,10 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   tabletDevice: "Tablet Dev",
   tabletDeviceTwoFactor: "Tablet Dev Twofactor",
   homeMember: "Home Member",
+  homeCopier: "Home Copier",
+  homeCards: "Home Cards",
+  catalogueView: "Catalogue View",
+  catalogueViewNoJs: "Catalogue View No JS",
   noticeRoot: "Notice Root",
   noticeMember: "Notice Member",
   phoneNoticeRoot: "Phone Notice Root",

@@ -30,5 +30,55 @@
     "createScope": "Criar um escopo",
     "submitFirst": "Submeter o primeiro item",
     "submit": "Submeter um item"
+  },
+  "gettingStarted": {
+    "title": "Primeiros passos",
+    "progress": "{done} de {total} concluídos",
+    "hide": "Ocultar",
+    "hideLabel": "Ocultar Primeiros passos",
+    "done": "Concluído",
+    "todo": "Ainda não concluído",
+    "optional": "Opcional",
+    "steps": {
+      "token": {
+        "title": "Crie um token de acesso",
+        "text": "Um token permite que o rmk aja como você. Você o cria uma vez e pode revogá-lo quando quiser.",
+        "action": "Abrir CLI e tokens"
+      },
+      "connect": {
+        "title": "Conecte o rmk",
+        "text": "Instale o rmk e entre neste registro pelo terminal.",
+        "install": "Instale o rmk:",
+        "web": "Entre pelo navegador:",
+        "token": "Ou com o token que você criou:"
+      },
+      "install": {
+        "title": "Instale o seu primeiro item",
+        "text": "Escolha um item no catálogo. Cada página de item mostra o seu comando de instalação.",
+        "browse": "Explorar o catálogo",
+        "confirm": "Já instalei um"
+      },
+      "draft": {
+        "title": "Comece um rascunho",
+        "text": "Tem uma skill, regra ou agente seu? Envie aqui como rascunho para compartilhar.",
+        "new": "Propor item",
+        "export": "Exportar das suas ferramentas"
+      }
+    },
+    "setUp": {
+      "title": "Tudo pronto",
+      "text": "O rmk está conectado e você instalou um item. Isto some na sua próxima visita; você pode trazê-lo de volta em Conta quando quiser.",
+      "docs": "Ler a Documentação",
+      "new": "Propor item"
+    },
+    "noScope": {
+      "text": "Este registro ainda não tem escopo. Crie um para que as pessoas possam enviar itens.",
+      "action": "Abrir o espaço de trabalho global"
+    },
+    "next": "Próximo: {step}",
+    "seeAll": "Ver todos os passos",
+    "showCommands": "Mostrar os comandos",
+    "ring": "{done}/{total}",
+    "dialogHint": "Quatro passos curtos, marcados à medida que você avança."
   }
 }

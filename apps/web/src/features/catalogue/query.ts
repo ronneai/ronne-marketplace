@@ -2,12 +2,19 @@ import type { CatalogueQuery } from "@/server/domains/items/actions/catalogue";
 
 export type SearchParams = Record<string, string | string[] | undefined>;
 
+/** How the items are laid out (owner, 2026-10-21): compact cards in a grid, or full-width cards in a list. */
+export type CatalogueLayout = "grid" | "list";
+
+/** `?view=list` is the list; anything else, or nothing, is the grid. */
+export const parseLayout = (params: SearchParams): CatalogueLayout =>
+  first(params.view) === "list" ? "list" : "grid";
+
 const first = (value: string | string[] | undefined) =>
   (Array.isArray(value) ? value[0] : value) ?? "";
 
 /**
  * Reads `?q=`, `?type=` (once per type, any of them), `?scope=`, `?workspace=` (090), `?tool=`,
- * `?favorites=1` (125), `?sort=` and `?cursor=`;
+ * `?favorites=1` (125), `?sort=`, `?view=list` (the layout, read by `parseLayout`) and `?cursor=`;
  * the service drops anything unknown.
  */
 export const parseCatalogueQuery = (params: SearchParams): CatalogueQuery => ({
@@ -29,6 +36,7 @@ type Shown = {
   tool: string | null;
   favorites: boolean;
   sort: "recent" | "installs" | "name";
+  layout?: CatalogueLayout;
 };
 
 /**
@@ -51,6 +59,7 @@ export const catalogueHref = (
   if (next.tool) params.set("tool", next.tool);
   if (next.favorites) params.set("favorites", "1");
   if (next.sort !== "recent") params.set("sort", next.sort);
+  if (next.layout === "list") params.set("view", "list");
   if (changes.cursor) params.set("cursor", changes.cursor);
   const search = params.toString();
   return search ? `/catalogue?${search}` : "/catalogue";

@@ -1,10 +1,14 @@
 import { getTranslations } from "next-intl/server";
 import { PageHeader } from "@/components/ui/Panel";
+import { GettingStartedPanel } from "@/features/getting-started/GettingStartedPanel";
 import { HomeView } from "@/features/home/HomeView";
 import { loadFavoritesShelf, loadPinnedShelf } from "@/features/pins/load-shelves";
 import { FavoritesShelf, PinnedShelf } from "@/features/pins/ShelfSections";
+import { loadConfig } from "@/server/config";
 import { can } from "@/server/domains/identity/models/permissions";
 import { homeLists } from "@/server/domains/items/actions/catalogue";
+import { pageScopes } from "@/server/domains/items/actions/scopes";
+import { gettingStarted, markSetUpSeen } from "@/server/domains/onboarding/actions/getting-started";
 import { favoritedAmong } from "@/server/domains/shelves/actions/favorites";
 import { workspaceNamed } from "@/server/domains/shelves/actions/pins";
 import { INSTANCE_SHELF, shelfKey } from "@/server/domains/shelves/models/shelf";
@@ -36,6 +40,14 @@ const HomePage = async () => {
     ? { kind: "workspace" as const, workspaceId: currentWorkspace.id }
     : null;
   const workspacePins = workspaceShelf ? await loadPinnedShelf(headers, workspaceShelf) : null;
+  // Getting started (126). "You're set up" is shown once: seeing it here marks it, so it is gone
+  // from the next visit. Root also hears when the instance has no scope yet.
+  const started = await gettingStarted(headers);
+  if (started.panel === "setUp") await markSetUpSeen(headers);
+  const noScope =
+    started.panel === "steps" && user.role === "root"
+      ? (await pageScopes(headers, { size: 1 })).total.count === 0
+      : false;
   const favorites = [
     ...(await favoritedAmong(
       headers,
@@ -49,6 +61,13 @@ const HomePage = async () => {
         lists={lists}
         favorites={favorites}
         slots={{
+          gettingStarted: (
+            <GettingStartedPanel
+              state={started}
+              registry={loadConfig().publicUrl}
+              noScope={noScope}
+            />
+          ),
           favorites: <FavoritesShelf entries={favorited.entries} starred={favorited.starred} />,
           pinned: (
             <>

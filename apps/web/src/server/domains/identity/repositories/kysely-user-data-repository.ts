@@ -280,6 +280,20 @@ export const kyselyUserDataRepository = (
       }));
     },
 
+    async onboarding(userId) {
+      const row = await db
+        .selectFrom("user_onboarding")
+        .select(["hidden_at", "install_confirmed_at", "completed_seen_at"])
+        .where("user_id", "=", userId)
+        .executeTakeFirst();
+      if (!row) return null;
+      return {
+        hiddenAt: row.hidden_at ? fromDbDate(row.hidden_at) : null,
+        installConfirmedAt: row.install_confirmed_at ? fromDbDate(row.install_confirmed_at) : null,
+        completedSeenAt: row.completed_seen_at ? fromDbDate(row.completed_seen_at) : null,
+      };
+    },
+
     async items(userId, limit) {
       // One row per version the person published, or of an item they own (a version's author may
       // be someone else): the versions are what's bounded, items are their groups.

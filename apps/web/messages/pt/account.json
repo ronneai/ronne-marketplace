@@ -178,5 +178,10 @@
       "done": "Concluído",
       "revoked": "Revogado. Ele deixa de funcionar na próxima requisição."
     }
+  },
+  "gettingStarted": {
+    "title": "Primeiros passos",
+    "description": "Traga de volta a lista de Primeiros passos no Início. Ela continua de onde você está: o que você já fez continua marcado.",
+    "show": "Mostrar Primeiros passos de novo"
   }
 }

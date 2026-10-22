@@ -25,6 +25,16 @@ vi.mock("@/features/pins/actions", () => ({
   pinToShelfAction: vi.fn(),
   unpinFromShelfAction: vi.fn(),
 }));
+const started = vi.hoisted(() => ({ gettingStarted: vi.fn(), markSetUpSeen: vi.fn() }));
+vi.mock("@/server/domains/onboarding/actions/getting-started", () => started);
+vi.mock("@/features/getting-started/actions", () => ({
+  confirmInstallFromForm: vi.fn(),
+  hideGettingStartedFromForm: vi.fn(),
+  showGettingStartedFromForm: vi.fn(),
+}));
+const scopes = vi.hoisted(() => ({ pageScopes: vi.fn() }));
+vi.mock("@/server/domains/items/actions/scopes", () => scopes);
+vi.mock("@/server/config", () => ({ loadConfig: () => ({ publicUrl: "https://market.example" }) }));
 const shell = vi.hoisted(() => ({ loadShell: vi.fn() }));
 vi.mock("./shell", () => shell);
 
@@ -50,6 +60,15 @@ const entry = (name: string, downloadCount = 0): CatalogueEntry => ({
   support: { "claude-code": "native", codex: "native", cursor: "native" },
 });
 
+const panel = (shown: "steps" | "setUp" | null, extra: Record<string, boolean> = {}) => ({
+  done: { token: false, connect: false, install: false, draft: false, ...extra },
+  count: Object.values(extra).filter(Boolean).length,
+  current: "token",
+  complete: false,
+  hidden: false,
+  panel: shown,
+});
+
 const render = async () => renderToStaticMarkup(await HomePage());
 
 beforeEach(() => {
@@ -66,6 +85,9 @@ beforeEach(() => {
   drafts.listMySubmissions.mockResolvedValue([]);
   reviews.countNeedsReview.mockResolvedValue(0);
   shell.loadShell.mockResolvedValue({ user: { role: "user" } });
+  started.gettingStarted.mockResolvedValue(panel(null));
+  started.markSetUpSeen.mockResolvedValue(true);
+  scopes.pageScopes.mockResolvedValue({ total: { count: 1, capped: false } });
 });
 
 describe("the home page", () => {
@@ -210,5 +232,48 @@ describe("the shelves on Home (125)", () => {
   it("asks for no workspace's pins while there is no current workspace", async () => {
     await render();
     expect(pins.workspaceNamed).not.toHaveBeenCalled();
+  });
+});
+
+describe("Getting started on Home (126)", () => {
+  it("shows nothing when the person has hidden it or is done", async () => {
+    const html = await render();
+    expect(html).not.toContain("Getting started");
+    expect(html).not.toContain("You’re set up");
+    expect(started.markSetUpSeen).not.toHaveBeenCalled();
+  });
+
+  it("shows the steps with the instance's address and the progress, and marks nothing seen", async () => {
+    started.gettingStarted.mockResolvedValue(panel("steps", { token: true }));
+    const html = await render();
+    expect(html).toContain(">Getting started<");
+    expect(html).toContain("1 of 4 done");
+    expect(html).toContain("rmk login --registry https://market.example --web");
+    expect(started.markSetUpSeen).not.toHaveBeenCalled();
+  });
+
+  it("shows 'You’re set up' and marks it seen, so the next visit is without it", async () => {
+    started.gettingStarted.mockResolvedValue(panel("setUp", { token: true, connect: true }));
+    const html = await render();
+    expect(html).toContain(">You’re set up<");
+    expect(started.markSetUpSeen).toHaveBeenCalledTimes(1);
+    expect(started.markSetUpSeen).toHaveBeenCalledWith(expect.any(Headers));
+  });
+
+  it("tells root when the instance has no scope yet, and only root", async () => {
+    started.gettingStarted.mockResolvedValue(panel("steps"));
+    scopes.pageScopes.mockResolvedValue({ total: { count: 0, capped: false } });
+    shell.loadShell.mockResolvedValue({ user: { role: "root" } });
+    expect(await render()).toContain("This registry has no scope yet.");
+    scopes.pageScopes.mockClear();
+    shell.loadShell.mockResolvedValue({ user: { role: "user" } });
+    expect(await render()).not.toContain("no scope yet");
+    expect(scopes.pageScopes).not.toHaveBeenCalled();
+  });
+
+  it("doesn't tell root once there is a scope", async () => {
+    started.gettingStarted.mockResolvedValue(panel("steps"));
+    shell.loadShell.mockResolvedValue({ user: { role: "root" } });
+    expect(await render()).not.toContain("no scope yet");
   });
 });

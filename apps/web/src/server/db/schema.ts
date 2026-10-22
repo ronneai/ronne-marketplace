@@ -528,6 +528,18 @@ export interface UserErasureTable {
   started_at: Timestamp;
 }
 
+/**
+ * The Getting started checklist's state (migration 0034, feature 126): one row per person, theirs
+ * alone. A null column is "not yet"; no row at all is every column null.
+ */
+export interface UserOnboardingTable {
+  user_id: string;
+  hidden_at: Timestamp | null;
+  install_confirmed_at: Timestamp | null;
+  completed_seen_at: Timestamp | null;
+  updated_at: Timestamp;
+}
+
 /** A person's favorite item (migration 0033, feature 125). Theirs alone. */
 export interface ItemFavoriteTable {
   user_id: string;
@@ -589,6 +601,7 @@ export interface Database {
   items: ItemTable;
   item_aliases: ItemAliasTable;
   item_favorites: ItemFavoriteTable;
+  user_onboarding: UserOnboardingTable;
   item_pins: ItemPinTable;
   item_versions: ItemVersionTable;
   dist_tags: DistTagTable;

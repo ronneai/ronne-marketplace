@@ -46,6 +46,7 @@
         "apps/web/src/features/admin-settings/notice/**",
         "apps/web/src/features/favorites/**",
         "apps/web/src/features/pins/**",
+        "apps/web/src/features/getting-started/**",
         "apps/web/src/app/sign-in/**",
         "apps/web/src/app/(app)/device/**",
         "apps/web/src/app/(app)/account/**",

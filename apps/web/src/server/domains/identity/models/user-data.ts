@@ -84,6 +84,13 @@ export type UserDataAccessRequest = {
 /** An item the person favorited (125), by its full name now, whether or not it shows today. */
 export type UserDataFavorite = { item: string; addedAt: Date };
 
+/** The Getting started checklist's state (126); null when they never touched it. */
+export type UserDataOnboarding = {
+  hiddenAt: Date | null;
+  installConfirmedAt: Date | null;
+  completedSeenAt: Date | null;
+} | null;
+
 export type UserDataScope = { name: string; workspace: string; createdAt: Date };
 
 export type UserDataVersion = { version: string; publishedAt: Date; publishedByMe: boolean };
@@ -137,6 +144,7 @@ export type UserData = {
   accessRequests: UserDataAccessRequest[];
   scopes: UserDataScope[];
   favorites: UserDataFavorite[];
+  onboarding: UserDataOnboarding;
   items: UserDataItem[];
   submissions: UserDataSubmission[];
   comments: UserDataComment[];

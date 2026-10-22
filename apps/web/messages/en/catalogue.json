@@ -63,6 +63,11 @@
       "label": "Pages",
       "first": "First page",
       "next": "Next page"
+    },
+    "layout": {
+      "label": "View",
+      "grid": "Grid view",
+      "list": "List view"
     }
   },
   "card": {
@@ -74,7 +79,9 @@
     "published": "published <date></date>",
     "worksIn": "works in {tools}",
     "worksInNone": "works in no built-in tool",
-    "installs": "{count, plural, one {# install} other {# installs}}"
+    "installs": "{count, plural, one {# install} other {# installs}}",
+    "publishedLabel": "Published",
+    "copyInstall": "Copy the install command for {name}"
   },
   "place": {
     "workspace": "Workspace",

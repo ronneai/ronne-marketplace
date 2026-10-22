@@ -30,5 +30,55 @@
     "createScope": "Create a scope",
     "submitFirst": "Submit the first item",
     "submit": "Submit an item"
+  },
+  "gettingStarted": {
+    "title": "Getting started",
+    "progress": "{done} of {total} done",
+    "hide": "Hide",
+    "hideLabel": "Hide Getting started",
+    "done": "Done",
+    "todo": "Not done yet",
+    "optional": "Optional",
+    "steps": {
+      "token": {
+        "title": "Create an access token",
+        "text": "A token lets rmk act as you. You make it once and can revoke it any time.",
+        "action": "Open CLI & tokens"
+      },
+      "connect": {
+        "title": "Connect rmk",
+        "text": "Install rmk, then sign in to this registry from your terminal.",
+        "install": "Install rmk:",
+        "web": "Sign in with your browser:",
+        "token": "Or with the token you made:"
+      },
+      "install": {
+        "title": "Install your first item",
+        "text": "Pick an item in the catalogue. Every item page shows its install command.",
+        "browse": "Browse the catalogue",
+        "confirm": "I’ve installed one"
+      },
+      "draft": {
+        "title": "Start a draft",
+        "text": "Have a skill, rule or agent of your own? Send it here as a draft to share it.",
+        "new": "Propose item",
+        "export": "Export from your tools"
+      }
+    },
+    "setUp": {
+      "title": "You’re set up",
+      "text": "rmk is connected and you’ve installed an item. This goes away on your next visit; bring it back from Account any time.",
+      "docs": "Read the Documentation",
+      "new": "Propose item"
+    },
+    "noScope": {
+      "text": "This registry has no scope yet. Create one so people can submit items.",
+      "action": "Open the global workspace"
+    },
+    "next": "Next: {step}",
+    "seeAll": "See all steps",
+    "showCommands": "Show the commands",
+    "ring": "{done}/{total}",
+    "dialogHint": "Four short steps, ticked as you go."
   }
 }

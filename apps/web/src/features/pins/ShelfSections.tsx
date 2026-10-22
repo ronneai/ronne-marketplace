@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
+import { CardGrid } from "@/components/catalogue/CardGrid";
 import { ItemCard } from "@/components/catalogue/ItemCard";
 import type { CatalogueEntry } from "@/server/domains/items/actions/catalogue";
 import { ManageButton } from "./ManageButton";
@@ -35,14 +36,14 @@ const Cards = ({
   entries: readonly CatalogueEntry[];
   starred: readonly string[];
 }) => (
-  <ul className="grid grid-cols-1 gap-3">
+  <CardGrid>
     {entries.map((entry) => (
       <li key={entry.id}>
         {/* biome-ignore lint/plugin: an HTML tag name, not text a person reads */}
-        <ItemCard entry={entry} heading="h3" favorited={starred.includes(entry.id)} />
+        <ItemCard entry={entry} heading="h3" favorited={starred.includes(entry.id)} compact />
       </li>
     ))}
-  </ul>
+  </CardGrid>
 );
 
 /**

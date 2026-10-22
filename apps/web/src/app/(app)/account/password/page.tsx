@@ -4,6 +4,7 @@ import { ChangePasswordForm } from "@/features/account/ChangePasswordForm";
 import { accountMetadata } from "@/features/account/metadata";
 import { YourDataSection } from "@/features/account/YourDataSection";
 import { AccountTabs } from "@/features/account-security/AccountTabs";
+import { ShowAgainSection } from "@/features/getting-started/ShowAgainSection";
 import { myLastExport } from "@/server/domains/identity/actions/user-data";
 import { requestHeaders } from "@/server/http/request-headers";
 import { holdPage } from "../../hold";
@@ -32,6 +33,9 @@ const ChangePasswordPage = async () => {
       </Panel>
       <Panel padding="lg" className="mt-6">
         <YourDataSection lastDownloadedAt={lastDownloadedAt} />
+      </Panel>
+      <Panel padding="lg" className="mt-6">
+        <ShowAgainSection />
       </Panel>
     </>
   );

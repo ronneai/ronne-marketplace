@@ -44,6 +44,8 @@ export interface EraseRepository {
   deleteDeviceGrants(userId: string): Promise<number>;
   /** The person's favorites (125): theirs alone, so they go with them. Returns how many. */
   deleteFavorites(userId: string): Promise<number>;
+  /** The person's Getting started state (126): theirs alone, so it goes with them. */
+  deleteOnboarding(userId: string): Promise<void>;
   /** Live links and tombstones (108), and the provider groups' memberships. Returns the links. */
   deleteScimRows(userId: string): Promise<number>;
   /** Every workspace membership, the personal one's included. Returns how many. */

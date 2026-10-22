@@ -107,3 +107,12 @@ It didn't flag `a-~` (the small letters, then `{|}~`). Split a flagged range so 
 symbols, only digits or only letters: `[(-/0-9:-@A-Z[-_]` matches the same characters as `[(-_]`.
 When you split one, check the two classes match the same characters (a loop over `0`–`0xFFFF`
 testing both), and look on the next CodeQL run that the comments are gone.
+
+## `.replace("<", "&lt;")` with a string replaces only the first one (126)
+
+`js/incomplete-sanitization` ("Incomplete string escaping or encoding", severity high) fails the
+CodeQL check on a `.replace("<", …)` or `.replace(">", …)` whose pattern is a string: it replaces
+the first match only. It flagged a test that escaped `<token>` to compare it with rendered markup
+(two alerts per line, one for each call). A test needs no escaping function: write the expected text
+out, `--token &lt;token&gt;`, and check the plain line separately. In code that really escapes, use
+`replaceAll` or a regular expression with the `g` flag.

@@ -4,16 +4,18 @@ import { cn } from "./cn";
 /** A flat raised surface: 8px radius, 1px hairline, no shadow (design system 032). */
 export const Panel = ({
   padding = "md",
+  tone = "plain",
   className,
   ...props
-}: HTMLAttributes<HTMLDivElement> & { padding?: "sm" | "md" | "lg" }) => {
+}: HTMLAttributes<HTMLDivElement> & {
+  padding?: "sm" | "md" | "lg";
+  /** `teal` is the light teal of the inline helpers' panel (deep teal in the dark theme), for a welcome. */
+  tone?: "plain" | "teal";
+}) => {
   const pad = { sm: "p-3", md: "p-4", lg: "p-6" }[padding];
-  return (
-    <div
-      className={cn("rounded-panel border border-hairline bg-surface", pad, className)}
-      {...props}
-    />
-  );
+  const colours =
+    tone === "teal" ? "border-popover-border bg-popover" : "border-hairline bg-surface";
+  return <div className={cn("rounded-panel border", colours, pad, className)} {...props} />;
 };
 
 export const PageHeader = ({
