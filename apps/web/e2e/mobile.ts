@@ -22,6 +22,7 @@ const PROJECT_USERS = {
     noticeRoot: "phoneNoticeRoot",
     pinsAdmin: "phonePinsAdmin",
     starter: "phoneStarter",
+    starterFlow: "phoneStarterFlow",
   },
   "phone-webkit": {
     languages: "phoneWebkitLanguages",
@@ -42,6 +43,7 @@ const PROJECT_USERS = {
     noticeRoot: "phoneWebkitNoticeRoot",
     pinsAdmin: "phoneWebkitPinsAdmin",
     starter: "phoneWebkitStarter",
+    starterFlow: "phoneWebkitStarterFlow",
   },
   tablet: {
     languages: "tabletLanguages",
@@ -62,6 +64,7 @@ const PROJECT_USERS = {
     noticeRoot: "tabletNoticeRoot",
     pinsAdmin: "tabletPinsAdmin",
     starter: "tabletStarter",
+    starterFlow: "tabletStarterFlow",
   },
 } as const satisfies Record<string, Record<string, keyof typeof E2E_USERS>>;
 

@@ -36,7 +36,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   sweep.
   *Done when:* parity and scan pass; the sweep passes on every project.
 
-- [ ] **7. End to end.** A fresh user sees 0 of 4; creates a token (1 ticked); runs `rmk` through
+- [x] **7. End to end.** A fresh user sees 0 of 4; creates a token (1 ticked); runs `rmk` through
   the fake CLI step or a direct API call with the token (2 ticked); confirms an install (3 ticked,
   "You're set up"); next visit it is gone; Show again from Account.
   *Done when:* the end-to-end tests pass on every project.

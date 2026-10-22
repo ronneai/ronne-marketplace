@@ -57,6 +57,12 @@ export const E2E_USERS = {
   // Getting started (126): hides the checklist on Home and brings it back from Account.
   starterAccount: "starter-account@e2e.test",
   // Reads Home's checklist on a phone and a tablet (126): one fresh user per device project.
+  // The whole walk-through of the checklist (126): a fresh user per project, one without JavaScript.
+  starterFlow: "starter-flow@e2e.test",
+  starterNoJs: "starter-no-js@e2e.test",
+  phoneStarterFlow: "phone-starter-flow@e2e.test",
+  phoneWebkitStarterFlow: "phone-webkit-starter-flow@e2e.test",
+  tabletStarterFlow: "tablet-starter-flow@e2e.test",
   phoneStarter: "phone-starter@e2e.test",
   phoneWebkitStarter: "phone-webkit-starter@e2e.test",
   tabletStarter: "tablet-starter@e2e.test",
@@ -266,6 +272,11 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   shelvesOutsider: "Otto Outsider",
   shelvesRoot: "Rhea Shelf",
   starterAccount: "Alma Account",
+  starterFlow: "Flora Flow",
+  starterNoJs: "Nils NoScript",
+  phoneStarterFlow: "Phoebe Flow",
+  phoneWebkitStarterFlow: "Wendy Flow",
+  tabletStarterFlow: "Tabitha Flow",
   phoneStarter: "Phoebe Starter",
   phoneWebkitStarter: "Wendy Starter",
   tabletStarter: "Tabitha Starter",

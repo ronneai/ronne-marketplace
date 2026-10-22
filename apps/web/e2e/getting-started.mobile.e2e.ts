@@ -1,4 +1,5 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
+import { walkThrough } from "./getting-started";
 import { mobileUser, signIn } from "./mobile";
 import { measureOverflow, smallTargets } from "./sweep";
 
@@ -62,4 +63,10 @@ test("the checklist fits, wraps its commands and has touch-sized actions", async
       `${name} is touch-sized`,
     ).toEqual([]);
   expect(await checklist.getByRole("button", { name: /^copy$/i }).count()).toBeGreaterThan(0);
+});
+
+/** The same walk-through as on a desktop, by touch: every step works at this device's size. */
+test("a new person walks through the checklist by touch", async ({ page, request }, testInfo) => {
+  await signIn(page, mobileUser(testInfo, "starterFlow"));
+  await walkThrough(page, request);
 });

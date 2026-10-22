@@ -159,3 +159,33 @@ Witnessed: 2026-10-21 23:20 local, by a fresh agent (blind re-check). Commit: 78
 | 7 | The phone spec fails when a command line runs off the screen (the `wrap` prop alone is redundant below `sm` by design) | no | confirmed | The `min-w-[600px]` mutation failed phone and tablet with 646 against 412 and 320. |
 
 **Overall:** met.
+
+## Task 7 — End to end
+
+Witnessed: 2026-10-21 23:10 local, by a fresh agent (blind). Commit: 213dbd49 plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The end-to-end tests pass on every project | no | confirmed | `next build`, then `playwright test e2e/getting-started.e2e.ts e2e/getting-started.mobile.e2e.ts --project chromium --project phone --project phone-webkit --project tablet` → 9 passed. |
+| 2 | A fresh user sees "0 of 4" with the first step current, and the sign-in lines carry the instance's address | no | confirmed | `getting-started.ts` asserts it; passes on the walk-through projects. |
+| 3 | Creating a token ticks step 1, and no token is on Home | no | confirmed | The real value is read from the dialog; "1 of 4 done" and `main` `not.toContainText(token)`. |
+| 4 | Using the token against the API ticks step 2 | no | confirmed | A bearer-only `GET /api/v1/me` → 200; making step 2 never tick failed the walk-through at "2 of 4 done" (scratch copy). |
+| 5 | "I've installed one" shows "You're set up" once; the next visit has neither | no | confirmed | Removing `markSetUpSeen` (scratch copy) failed the walk-through at the heading check. |
+| 6 | Show again from Account ends on Home with "You're set up" | no | confirmed | Green on all walk-through projects. |
+| 7 | Hide stays hidden, and Show again restores "0 of 4" | no | confirmed | Passed on chromium. |
+| 8 | Hide, "I've installed one" and Show again work without JavaScript | no | partly | The no-JS test's last check passed even when "set up" was never marked seen. |
+| 9 | The phone and tablet layout | no | confirmed | `getting-started.mobile.e2e.ts` passed on three projects. |
+| 10 | Retries: the walk-through is not re-runnable on the same instance | no | confirmed | A retry stops at "0 of 4"; judged acceptable. |
+
+**Overall:** not met: row 8.
+
+### Re-check (rows 8 and 10)
+
+Witnessed: 2026-10-21 23:25 local, by a fresh agent (blind re-check). Commit: 213dbd49 plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 8 | Without JavaScript, and the set-up panel is gone on the next visit | no | confirmed | The test now also asserts the "You’re set up" heading is absent; with `markSetUpSeen` removed (scratch copy) it failed at that line; unmutated in the repo → 3 passed. |
+| 10 | The retry limit is documented | no | confirmed | The comment is in `getting-started.ts`. |
+
+**Overall:** met.
