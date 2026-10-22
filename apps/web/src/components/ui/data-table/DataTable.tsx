@@ -141,7 +141,15 @@ export const HiddenListFields = <S extends string, F extends string>({
 );
 
 /** The things a table counts; each has a plural message in `common.table.nouns`. */
-export type TableNoun = "event" | "item" | "member" | "scope" | "submission" | "user" | "workspace";
+export type TableNoun =
+  | "event"
+  | "item"
+  | "member"
+  | "message"
+  | "scope"
+  | "submission"
+  | "user"
+  | "workspace";
 
 export const DataTable = <Row, S extends string, F extends string>({
   list,

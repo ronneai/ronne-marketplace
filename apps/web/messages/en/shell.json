@@ -17,7 +17,8 @@
     "docs": "Documentation",
     "tokens": "CLI & tokens",
     "propose": "Propose item",
-    "feedback": "Send feedback"
+    "feedback": "Send feedback",
+    "inbox": "Feedback"
   },
   "sidebar": {
     "label": "Sidebar",

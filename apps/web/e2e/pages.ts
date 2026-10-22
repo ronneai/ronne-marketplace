@@ -153,6 +153,7 @@ export const SWEEP_PAGES: readonly SweepPage[] = [
   // One user's page (123): the sweep's member.
   { route: "/admin/users/[id]", roles: ROOT, urls: (data) => [`/admin/users/${data.userId}`] },
   { route: "/admin/audit", roles: ROOT, urls: () => ["/admin/audit"] },
+  { route: "/admin/feedback", roles: ROOT, urls: () => ["/admin/feedback"] },
   // Its tabs (122): Usage at the bare address, then Plugin feeds and Authentication.
   {
     route: "/admin/settings",
@@ -202,4 +203,5 @@ export const MIGRATED_ROUTES: ReadonlySet<string> = new Set([
   // Settings (124): only the Notice tab is in messages so far; the rest follow in 131. The sweep
   // looks for overflow and the language, so the other tabs, still English, are fine in it.
   "/admin/settings",
+  "/admin/feedback",
 ]);

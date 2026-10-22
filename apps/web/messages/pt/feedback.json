@@ -25,5 +25,65 @@
     "message_required": "Escreva uma mensagem.",
     "message_too_long": "A mensagem tem mais de {max, number} caracteres. Reduza o texto.",
     "rate_limited": "Você pode enviar {limit, number} mensagens por hora. Tente novamente mais tarde."
+  },
+  "admin": {
+    "title": "Feedback",
+    "description": "O que as pessoas enviaram em Enviar feedback, das mais recentes às mais antigas. Só o root vê.",
+    "filters": {
+      "search": "Pesquisar",
+      "searchPlaceholder": "Mensagem, nome ou e-mail",
+      "anyKind": "Qualquer tipo",
+      "anyStatus": "Qualquer estado",
+      "apply": "Filtrar"
+    },
+    "columns": {
+      "select": "Selecionar",
+      "from": "De",
+      "kind": "Tipo",
+      "message": "Mensagem",
+      "page": "Página",
+      "version": "Versão",
+      "status": "Estado",
+      "sent": "Enviada",
+      "open": "Abrir"
+    },
+    "status": {
+      "new": "Nova",
+      "handled": "Tratada"
+    },
+    "empty": {
+      "none": "Ninguém enviou feedback ainda.",
+      "filtered": "Nenhum feedback corresponde a estes filtros."
+    },
+    "select": "Selecionar a mensagem de {name}",
+    "open": "Abrir a mensagem de {name}",
+    "bulk": {
+      "label": "Ações nas mensagens selecionadas",
+      "selected": "{count, plural, =0 {Nenhuma selecionada} one {# selecionada} other {# selecionadas}}",
+      "markHandled": "Marcar como tratada",
+      "delete": "Excluir",
+      "selectAll": "Selecionar tudo nesta página",
+      "clear": "Limpar seleção"
+    },
+    "done": {
+      "handled": "{count, plural, =0 {Nada a marcar: já estavam tratadas.} one {# mensagem marcada como tratada.} other {# mensagens marcadas como tratadas.}}",
+      "deleted": "{count, plural, =0 {Nada foi excluído.} one {# mensagem excluída.} other {# mensagens excluídas.}}"
+    },
+    "errors": {
+      "forbidden": "Só o root pode fazer isso.",
+      "too_many": "Selecione no máximo {max, number} mensagens."
+    },
+    "delete": {
+      "title": "{count, plural, one {Excluir esta mensagem?} other {Excluir # mensagens?}}",
+      "body": "Isso não pode ser desfeito. As pessoas que enviaram não são avisadas.",
+      "cancel": "Cancelar",
+      "confirm": "Excluir"
+    },
+    "detail": {
+      "title": "Feedback de {name}",
+      "from": "De",
+      "sent": "Enviada",
+      "noPage": "Não incluída"
+    }
   }
 }

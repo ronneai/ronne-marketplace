@@ -41,6 +41,7 @@ describe("the phone sweep's page list (feature 065)", () => {
         "/account/security",
         "/account/tokens",
         "/admin/settings",
+        "/admin/feedback",
         "/workspaces",
         "/workspaces/[name]",
         "/workspaces/[name]/join",

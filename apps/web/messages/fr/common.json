@@ -42,6 +42,7 @@
       "event": "{count, plural, one {événement} other {événements}}",
       "item": "{count, plural, one {élément} other {éléments}}",
       "member": "{count, plural, one {membre} other {membres}}",
+      "message": "{count, plural, one {message} other {messages}}",
       "scope": "{count, plural, one {portée} other {portées}}",
       "submission": "{count, plural, one {soumission} other {soumissions}}",
       "user": "{count, plural, one {utilisateur} other {utilisateurs}}",

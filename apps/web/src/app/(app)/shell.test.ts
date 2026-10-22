@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const session = vi.hoisted(() => ({ requireUser: vi.fn() }));
 const reviews = vi.hoisted(() => ({ countNeedsReview: vi.fn() }));
+const feedback = vi.hoisted(() => ({ countNewFeedback: vi.fn() }));
 const workspaces = vi.hoisted(() => ({
   requestsToAnswer: vi.fn(),
   countMovesToAnswer: vi.fn(),
@@ -13,6 +14,7 @@ const cookie = vi.hoisted(() => ({
 }));
 vi.mock("@/server/domains/identity/actions/session", () => session);
 vi.mock("@/server/domains/submissions/actions/reviews", () => reviews);
+vi.mock("@/server/domains/feedback/actions/feedback", () => feedback);
 vi.mock("@/server/domains/workspaces/actions/workspaces", () => workspaces);
 vi.mock("next/headers", () => ({
   cookies: async () => ({
@@ -66,12 +68,22 @@ describe("loadShell's nav counts", () => {
     expect((await loadShell()).navCounts).toEqual({
       "/reviews": 4,
       "/workspaces/requests": 2,
+      "/admin/feedback": 0,
     });
   });
 
   it("counts them for root too, with the scope moves waiting (115)", async () => {
     session.requireUser.mockResolvedValue(user({}, "root"));
     expect((await loadShell()).navCounts["/workspaces/requests"]).toBe(5);
+  });
+
+  it("counts the new feedback for root only (127)", async () => {
+    feedback.countNewFeedback.mockResolvedValue(3);
+    session.requireUser.mockResolvedValue(user({}, "root"));
+    expect((await loadShell()).navCounts["/admin/feedback"]).toBe(3);
+    session.requireUser.mockResolvedValue(user({ global: "user", acme: "admin" }));
+    expect((await loadShell()).navCounts["/admin/feedback"]).toBe(0);
+    expect(feedback.countNewFeedback).toHaveBeenCalledTimes(1);
   });
 
   it("adds the scope moves for a shared workspace's admin, not for a moderator (115)", async () => {
@@ -84,8 +96,13 @@ describe("loadShell's nav counts", () => {
 
   it("counts nothing, and asks nothing, for someone who answers nowhere", async () => {
     session.requireUser.mockResolvedValue(user({ global: "user" }));
-    expect((await loadShell()).navCounts).toEqual({ "/reviews": 0, "/workspaces/requests": 0 });
+    expect((await loadShell()).navCounts).toEqual({
+      "/reviews": 0,
+      "/workspaces/requests": 0,
+      "/admin/feedback": 0,
+    });
     expect(workspaces.requestsToAnswer).not.toHaveBeenCalled();
+    expect(feedback.countNewFeedback).not.toHaveBeenCalled();
     expect(reviews.countNeedsReview).not.toHaveBeenCalled();
   });
 });

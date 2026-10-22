@@ -26,7 +26,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* component tests cover validation messages, the page path option and the
   confirmation; held people are redirected first (the `holdPage` guard test lists the page).
 
-- [ ] **4. Admin › Feedback.** A server data table (060) with sort, filters (kind, status), search,
+- [x] **4. Admin › Feedback.** A server data table (060) with sort, filters (kind, status), search,
   paging in the URL, detail dialog, bulk handled and delete; the sidebar count for root.
   *Done when:* component tests and `*.db.test.ts` for the query pass; non-root gets not-found.
 

@@ -126,3 +126,36 @@ Witnessed: 2026-10-22 09:45 local, by a fresh agent (blind, re-check). Commit: 3
 | 6 | The dialog is full-screen below `sm`, and a test covers it | yes | confirmed | `feedback.test.tsx` "the dialog on a small screen" expects `max-sm:h-dvh`, `max-sm:w-screen`, `max-sm:rounded-none`; stripping the `max-sm:` classes from the shared `Dialog.tsx` in a scratch copy made it fail. Checked from the class names, not a render at 375px (the sidebar, where the dialog opens, shows from `lg`; phones use the page). |
 
 **Overall:** met.
+
+## Task 4 — Admin › Feedback
+
+Witnessed: 2026-10-22 09:50 local, by a fresh agent (blind). Commit: 45062be0 plus the uncommitted diff and untracked files. Machine: macOS (Darwin 27.0.0), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Component tests for the inbox, the page, the shell, the nav and pages-coverage pass | no | confirmed | 8 files, 93 tests passed. |
+| 2 | The `*.db.test.ts` for the query pass on SQLite | no | confirmed | 14 files, 194 tests passed, including paging, filters, search, `%` and `_`, sort, cursors, count of new, mark and delete only the rows asked for. |
+| 3 | The same db tests pass on PostgreSQL, MySQL and MariaDB | no | confirmed | `pnpm test:db:postgres`, `:mysql`, `:mariadb` → 2 files, 18 tests each. |
+| 4 | A non-root user gets not-found | no | confirmed | `page.tsx` calls `notFound()` unless `can(me, "feedback.manage")`; the page test; in a browser a signed-in user got HTTP 404. |
+| 5 | A server data table with sender, kind, message, page, version, status and time; sort by time or kind; kind and status filters; search; paging, all in the URL | no | confirmed | `list.ts`, `FeedbackInbox.tsx`; tests for reading the URL, dropping unknown values and the sort headers; in a browser `?status=new` listed exactly the new row. |
+| 6 | Each row opens a detail dialog | no | confirmed | Browser: Open showed From, Kind, Sent, Page, Version, Status, the message, Delete and Mark handled. |
+| 7 | The message is plain text, never HTML | no | confirmed | Sent `First <b>bold</b> msg`; table and dialog showed the literal text, `table b` count 0. |
+| 8 | Bulk Mark handled applies to the selected rows only | no | confirmed | Browser: 3 messages, 2 selected and marked; the third stayed New. |
+| 9 | Delete asks first and deletes only the selected rows | no | partly | The confirm click and the refresh were not seen end to end. |
+| 10 | A count of new feedback beside Admin › Feedback in the sidebar, for root | no | confirmed | `shell.ts` and its test; browser: the link read "Feedback 3", then "Feedback 1" after marking two. |
+| 11 | The nav entry appears for root only | no | confirmed | `nav.ts` permission `feedback.manage`; `AppShell.test.tsx`. |
+| 12 | Everything on screen is in messages in three languages | no | confirmed | Parity tests pass; no raw JSX strings found. |
+| 13 | Typecheck and lint are clean on the touched folders | no | not met | `AppShell.test.tsx` failed the formatter. |
+
+**Overall:** not met: rows 9 and 13.
+
+### Re-check (rows 9 and 13)
+
+Witnessed: 2026-10-22 10:05 local, by a fresh agent (blind re-check). Commit: 45062be0 plus the uncommitted diff. Machine: macOS (Darwin 27.0.0), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 9 | Delete asks first, Cancel leaves the rows, confirming deletes only the selected rows; Mark handled changes only the selected rows and lowers the sidebar count | yes | confirmed | `playwright test e2e/feedback.e2e.ts --project chromium` → 3 passed. In a scratch copy: the Delete confirm not calling `deleteFeedbackAction` made it fail at "1 message deleted."; Mark handled sending every id on the page made it fail at "2 messages marked handled.". |
+| 13 | Lint is clean on the touched folders | yes | confirmed | `pnpm lint` → 44 warnings, no errors; none on this task's files. |
+
+**Overall:** met.

@@ -89,3 +89,67 @@ test("the page sends feedback without JavaScript and keeps what was typed when r
   await expect(page).toHaveURL(/\/$/);
   await context.close();
 });
+
+test("root reads the inbox, marks two of three handled, and deletes one after asking", async ({
+  page,
+}) => {
+  await signIn(page, E2E_USERS.feedbackRoot);
+  const tag = `inbox-${Date.now()}`;
+  const send = async (message: string) => {
+    await page.goto("/feedback");
+    await page.getByLabel("Problem").check();
+    await page.getByLabel("Message").fill(message);
+    await page.getByRole("button", { name: "Send feedback" }).click();
+    await expect(page.getByText("Thanks, your feedback was sent")).toBeVisible();
+  };
+  for (const n of [1, 2, 3]) await send(`${tag} message ${n} <b>bold</b>`);
+
+  await page.goto(`/admin/feedback?q=${tag}`);
+  const rows = page.getByRole("row", { name: /Feedback Root/ });
+  await expect(rows).toHaveCount(3);
+  // Plain text: the tags are shown, not obeyed.
+  await expect(page.locator("tbody b")).toHaveCount(0);
+  await expect(page.getByText(`${tag} message 1 <b>bold</b>`)).toBeVisible();
+
+  // The sidebar's Feedback link says how many are new, and it includes these three.
+  const countLink = page.getByRole("link", { name: /^Feedback\s*\d+/ });
+  const waiting = async () =>
+    Number(/(\d+)/.exec((await countLink.textContent()) ?? "")?.[1] ?? "0");
+  const before = await waiting();
+  expect(before).toBeGreaterThanOrEqual(3);
+
+  const checks = page.getByRole("checkbox", { name: "Select the message from Feedback Root" });
+  await checks.nth(0).check();
+  await checks.nth(1).check();
+  await expect(page.getByText("2 selected")).toBeVisible();
+  await page.getByRole("button", { name: "Mark handled" }).click();
+  await expect(page.getByText("2 messages marked handled.")).toBeVisible();
+  await expect(
+    page.getByRole("row", { name: /Feedback Root/ }).filter({ hasText: "Handled" }),
+  ).toHaveCount(2);
+  await expect(
+    page.getByRole("row", { name: /Feedback Root/ }).filter({ hasText: "New" }),
+  ).toHaveCount(1);
+  await expect.poll(waiting).toBe(before - 2);
+
+  // Delete asks first: Cancel leaves everything.
+  await page
+    .getByRole("checkbox", { name: "Select the message from Feedback Root" })
+    .nth(2)
+    .check();
+  await page.getByRole("button", { name: "Delete" }).click();
+  const confirm = page.getByRole("dialog", { name: "Delete this message?" });
+  await expect(confirm).toBeVisible();
+  await confirm.getByRole("button", { name: "Cancel" }).click();
+  await expect(rows).toHaveCount(3);
+  await page.getByRole("button", { name: "Delete" }).click();
+  await confirm.getByRole("button", { name: "Delete" }).click();
+  await expect(page.getByText("1 message deleted.")).toBeVisible();
+  await expect(rows).toHaveCount(2);
+
+  // A row opens its whole message, with Mark handled for a new one.
+  await page.getByRole("button", { name: "Open the message from Feedback Root" }).first().click();
+  const detail = page.getByRole("dialog", { name: "Feedback from Feedback Root" });
+  await expect(detail.getByText(`${tag} message`)).toBeVisible();
+  await expect(detail.getByText("feedback-root@e2e.test", { exact: false })).toBeVisible();
+});

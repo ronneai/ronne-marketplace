@@ -82,6 +82,7 @@ describe("navFor", () => {
       "Users",
       "Audit log",
       "Settings",
+      "Feedback",
       "Documentation",
       "CLI & tokens",
       "Send feedback",
@@ -136,7 +137,10 @@ describe("groupNav", () => {
       groupNav(navFor(user)).map((group) => [en.groups[group.id], group.items.map(nameOf)]);
     expect(grouped(ROOT)).toEqual([
       ["Discover", ["Home", "Catalogue", "Workspaces"]],
-      ["Governance & reviews", ["Reviews", "Submissions", "Users", "Audit log", "Settings"]],
+      [
+        "Governance & reviews",
+        ["Reviews", "Submissions", "Users", "Audit log", "Settings", "Feedback"],
+      ],
       ["Tools", ["Documentation", "CLI & tokens", "Send feedback"]],
     ]);
     expect(grouped({ name: "N", email: "n@example.com", role: "user" })).toEqual([

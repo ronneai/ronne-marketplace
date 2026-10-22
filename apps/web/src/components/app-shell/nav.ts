@@ -43,6 +43,7 @@ export type NavIcon =
   | "docs"
   | "tokens"
   | "feedback"
+  | "inbox"
   | "propose";
 
 /** An item shows when it needs no permission, or the user holds it (the one permission map, 008). */
@@ -146,6 +147,15 @@ export const NAV: NavItem[] = [
     icon: "settings",
     permission: "users.view",
     section: "/admin/settings",
+  },
+  // What people sent (127), root's alone, with how many are new beside it like Reviews.
+  {
+    href: "/admin/feedback",
+    key: "inbox",
+    group: "governance",
+    icon: "inbox",
+    permission: "feedback.manage",
+    section: "/admin/feedback",
   },
   { href: DOCS_URL, key: "docs", group: "tools", icon: "docs", external: true },
   { href: "/account/tokens", key: "tokens", group: "tools", icon: "tokens" },

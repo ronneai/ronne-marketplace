@@ -17,7 +17,8 @@
     "docs": "Documentação",
     "tokens": "CLI e tokens",
     "propose": "Propor item",
-    "feedback": "Enviar feedback"
+    "feedback": "Enviar feedback",
+    "inbox": "Feedback"
   },
   "sidebar": {
     "label": "Barra lateral",

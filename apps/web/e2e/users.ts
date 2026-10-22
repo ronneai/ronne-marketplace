@@ -109,6 +109,8 @@ export const E2E_USERS = {
   // Send feedback (127): from the sidebar dialog, and from the page without JavaScript.
   feedbackSender: "feedback-sender@e2e.test",
   feedbackNoJs: "feedback-no-js@e2e.test",
+  // Reads the inbox in Admin (127): a root of its own, who also sends three messages first.
+  feedbackRoot: "feedback-root@e2e.test",
   noticeRoot: "notice-root@e2e.test",
   noticeMember: "notice-member@e2e.test",
   phoneNoticeRoot: "phone-notice-root@e2e.test",
@@ -319,6 +321,7 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   catalogueViewNoJs: "Catalogue View No JS",
   feedbackSender: "Feedback Sender",
   feedbackNoJs: "Feedback No JS",
+  feedbackRoot: "Feedback Root",
   noticeRoot: "Notice Root",
   noticeMember: "Notice Member",
   phoneNoticeRoot: "Phone Notice Root",
@@ -479,6 +482,7 @@ export const E2E_ROOTS: readonly (keyof typeof E2E_USERS)[] = [
   "phoneWebkitRoot",
   "tabletRoot",
   "noticeRoot",
+  "feedbackRoot",
   "phoneNoticeRoot",
   "phoneWebkitNoticeRoot",
   "tabletNoticeRoot",

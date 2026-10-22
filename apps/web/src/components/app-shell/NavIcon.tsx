@@ -2,6 +2,7 @@ import {
   BookOpen,
   Boxes,
   House,
+  Inbox,
   LayoutGrid,
   type LucideIcon,
   MessageSquareCheck,
@@ -29,6 +30,7 @@ const ICONS: Record<Name, LucideIcon> = {
   docs: BookOpen,
   tokens: SquareTerminal,
   feedback: MessageSquarePlus,
+  inbox: Inbox,
   propose: Plus,
 };
 
