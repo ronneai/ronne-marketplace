@@ -46,16 +46,18 @@ export const PasswordChoice = ({ idPrefix }: { idPrefix: string }) => {
         </div>
       ) : null}
       <div className="grid gap-1">
-        <label className="flex items-center gap-2 text-sm text-fg">
-          <input
-            type="checkbox"
-            name="requireChange"
-            defaultChecked
-            className="size-4 accent-(--accent)"
-          />
-          {t("checkbox")}
+        <div className="flex items-center gap-2 pointer-coarse:min-h-11">
+          <label className="flex min-w-0 items-center gap-2 text-sm text-fg">
+            <input
+              type="checkbox"
+              name="requireChange"
+              defaultChecked
+              className="size-4 shrink-0 pointer-coarse:size-5 accent-(--accent)"
+            />
+            {t("checkbox")}
+          </label>
           <Help id="password-change" />
-        </label>
+        </div>
         <p className="text-xs text-muted">{t("checkboxHint")}</p>
       </div>
     </fieldset>

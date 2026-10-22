@@ -278,3 +278,77 @@ Witnessed: 2026-10-22 13:55 local, by a fresh agent (blind, re-check). Commit: 1
 | 10 | The upfront permission test fails without the early exit | no | confirmed | In-memory mutation → exactly that test. |
 
 **Overall:** met.
+
+
+## Task 6 — Messages and phone
+
+Witnessed: 2026-10-22 14:10 local, by a fresh agent (blind). Commit: 965d0232 plus the uncommitted working tree. Machine: macOS (Darwin 27), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The held page's text is messages in en, pt and fr | no | confirmed | `account.password.required.*`, `errors.same_password` in all three. |
+| 2 | Root's controls (checkbox, hint, row, titles, bodies, results) are messages | no | confirmed | 12 `admin.passwordChange` keys in all three. |
+| 3 | The helper `password-change` has its words in the three languages | no | confirmed | `help.json`. |
+| 4 | `NoPasswordError` has a message in three languages, and the admin dialogs use `errorText` | no | confirmed | `errors.json`, `errors.test.ts`. |
+| 5 | Parity and scan tests pass | no | confirmed | 166 tests. |
+| 6 | Lint, with the raw-text rule, passes | no | confirmed | `pnpm lint` exit 0. |
+| 7 | No new raw English string in the feature's components | no | partly | The audit-log lines are English, as the rest of that file. |
+| 8 | The pt and fr texts read correctly | no | confirmed | Read; typographic apostrophes, no space before "?". |
+| 9 | The phone sweep passes on every project | no | confirmed | 16 passed on phone, phone-webkit and tablet. |
+| 10 | The held page is measured on a phone | no | partly | English only. |
+
+**Overall:** not met: rows 7 and 10.
+
+### Adversarial pass
+
+Witnessed: 2026-10-22 14:10 local, by a fresh agent (adversarial). Commit: 965d0232 plus the uncommitted working tree. Machine: macOS (Darwin 27), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Parity catches a missing key or a changed placeholder in pt or fr | no | confirmed | Three mutations, each fails. |
+| 2 | In pt and fr the held page, the dialogs, the row and the helper show no English or raw key | no | partly | The action results were tested in English only. |
+| 3 | Every new string is a message | no | partly | The audit lines and the API texts stay English. |
+| 4 | API and audit text stay English by design | no | confirmed | `docs/knowledge/i18n.md`. |
+| 5 | The pt and fr wording follows the glossary | no | confirmed | Read. |
+| 6 | Lint and the error tests pass | no | confirmed | Mutation: the key removed → 2 tests fail. |
+| 7 | The checkbox row fits and is a touch target | no | partly | 16px target, and the helper inside the label. |
+
+**Overall:** not met: rows 2, 3 and 7.
+
+### Re-check (blind rows 7 and 10)
+
+Witnessed: 2026-10-22 14:15 local, by a fresh agent (blind, re-check). Commit: 965d0232 plus the uncommitted working tree. Machine: macOS (Darwin 27), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 7 | Only the audit-log lines and the API message stay English, consistent with the rest of the app and stated in the SPEC | no | confirmed | `admin-audit` is not in the lint override list; its summaries are English literals; SPEC Behaviour says so. |
+| 10 | The held page has no overflow and the right title in fr and pt on phone, phone-webkit and tablet | no | confirmed | `must-change.mobile.e2e.ts` and the sweep → 16 passed on each project. |
+
+**Overall:** met.
+
+### Re-check (adversarial rows 2, 3 and 7)
+
+Witnessed: 2026-10-22 14:12 local, by a fresh agent (adversarial re-check). Commit: 965d0232 plus the uncommitted working tree. Machine: macOS (Darwin 27), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The label holds only the input and its text, with the helper beside it | no | confirmed | A French render matched. |
+| 2 | The row is a touch target on coarse pointers and the input does not shrink | no | confirmed | Same pattern as the `Checkbox` in `Field.tsx`. |
+| 3 | The action results follow the request language | no | confirmed | pt and fr test; a wrong key in the pt file fails it. |
+| 4 | Audit lines and API text stay English by design, and the SPEC says so | no | confirmed | `i18n.md`, SPEC Behaviour. |
+| 5 | The long French label fits at phone width | no | can't check here | No browser in that pass (checked in the next one). |
+
+**Overall:** not met: row 5.
+
+### Re-check (adversarial rows 5, the e2e)
+
+Witnessed: 2026-10-22 14:30 local, by a fresh agent (adversarial re-check). Commit: 965d0232 plus the uncommitted working tree. Machine: macOS (Darwin 27), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The Create user dialog's password box fits and is a touch target in English and French (`password-change-root.mobile.e2e.ts`) | no | confirmed | 1 passed on each device project; measured rows 44px at 393, 412 and 768 wide, 60px when the French text wraps. |
+| 2 | The test catches a row without `pointer-coarse:min-h-11`, on all three projects | no | confirmed | Mutated build: fails on each with the row at 40 or 20px. |
+| 3 | The test catches a label that cannot shrink, at phone widths; a label wider than the tablet fails there too | no | confirmed | `w-[420px] shrink-0` fails on phone and phone-webkit and passes on tablet (it fits); `w-[900px] shrink-0` fails on all three. |
+| 4 | The unmutated code passes everywhere | no | confirmed | Rebuilt copy → 1 passed on each. |
+
+**Overall:** met.

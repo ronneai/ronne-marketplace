@@ -52,7 +52,9 @@ the first time the person signs in, so only the person knows their password.
   anyone else's, and only the app's form clears the flag.
 - **The user page** (123) shows "Must change password at next sign-in" with a way for root to
   clear or set the flag without changing the password.
-- **Messages** are in the person's language (129), including the page's explanation.
+- **Messages** are in the person's language (129), including the page's explanation. The audit log's lines for the new events
+  are English like the rest of the log, and the API's `password_change_required` message is English
+  as the API is.
 
 ## Edge cases
 

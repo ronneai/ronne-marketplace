@@ -45,5 +45,6 @@
   "ShelfItemNotAvailableError": "Esse item não está disponível.",
   "FavoriteLimitError": "Você tem {max} favoritos, o máximo permitido. Remova um antes.",
   "PinLimitError": "{shelf, select, instance {Comece por aqui já tem {max} itens. Remova um antes.} other {Os itens fixados de {workspaceName} já são {max}. Remova um antes.}}",
-  "PinNeedsPublicWorkspaceError": "Só itens de um espaço de trabalho público podem ser fixados em Comece por aqui."
+  "PinNeedsPublicWorkspaceError": "Só itens de um espaço de trabalho público podem ser fixados em Comece por aqui.",
+  "NoPasswordError": "Esta conta não tem senha (ela entra por um provedor), então não há senha para trocar."
 }

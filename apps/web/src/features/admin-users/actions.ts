@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getTranslations } from "next-intl/server";
+import { errorText } from "@/i18n/errors";
 import { adminEraseUser } from "@/server/domains/identity/actions/erase-user";
 import {
   adminChangeRole,
@@ -41,7 +42,7 @@ const attempt = async (
     return result;
   } catch (error) {
     if (error instanceof IdentityError || error instanceof WorkspacesError)
-      return { error: error.message };
+      return { error: await errorText(error) };
     throw error;
   }
 };

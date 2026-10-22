@@ -118,6 +118,12 @@ export const E2E_USERS = {
   phoneFeedback: "phone-feedback@e2e.test",
   phoneWebkitFeedback: "phone-webkit-feedback@e2e.test",
   tabletFeedback: "tablet-feedback@e2e.test",
+  // Root asked each to choose a new password (128): the seed sets the request, and the test is held
+  // on the change page. One per device project.
+  mustChange: "must-change@e2e.test",
+  phoneMustChange: "phone-must-change@e2e.test",
+  phoneWebkitMustChange: "phone-webkit-must-change@e2e.test",
+  tabletMustChange: "tablet-must-change@e2e.test",
   noticeRoot: "notice-root@e2e.test",
   noticeMember: "notice-member@e2e.test",
   phoneNoticeRoot: "phone-notice-root@e2e.test",
@@ -334,6 +340,10 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   phoneFeedback: "Phone Feedback",
   phoneWebkitFeedback: "Phone Webkit Feedback",
   tabletFeedback: "Tablet Feedback",
+  mustChange: "Must Change",
+  phoneMustChange: "Phone Must Change",
+  phoneWebkitMustChange: "Phone Webkit Must Change",
+  tabletMustChange: "Tablet Must Change",
   noticeRoot: "Notice Root",
   noticeMember: "Notice Member",
   phoneNoticeRoot: "Phone Notice Root",
@@ -450,6 +460,14 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   tabletScopeMoveAdmin: "Tablet Move Admin",
   tabletScopeMoveRoot: "Tablet Move Root",
 };
+
+/** Seeded with root's request to choose a new password (128): held on the change page at sign-in. */
+export const E2E_MUST_CHANGE: readonly (keyof typeof E2E_USERS)[] = [
+  "mustChange",
+  "phoneMustChange",
+  "phoneWebkitMustChange",
+  "tabletMustChange",
+];
 
 /** Seeded with the moderator role; everyone else is a user. */
 export const E2E_MODERATORS: readonly (keyof typeof E2E_USERS)[] = [

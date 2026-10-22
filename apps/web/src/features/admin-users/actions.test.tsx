@@ -4,7 +4,9 @@ import {
   CannotModifySelfError,
   EmailTakenError,
   ForbiddenError,
+  NoPasswordError,
 } from "@/server/domains/identity/exceptions/errors";
+import { inLocaleAsync } from "@/test/intl";
 
 const erase = vi.hoisted(() => ({ adminEraseUser: vi.fn() }));
 vi.mock("@/server/domains/identity/actions/erase-user", () => erase);
@@ -162,6 +164,18 @@ describe("the row actions", () => {
     expect(
       (await actions.setPasswordChangeFromForm({}, form({ userId: "u1", required: "true" }))).done,
     ).toBe("Nothing changed.");
+  });
+
+  it("say what changed, and why an account can't be asked, in the language of the request (128)", async () => {
+    admin.adminSetPasswordChange.mockResolvedValue({ email: "u@example.com", changed: true });
+    const ask = () =>
+      actions.setPasswordChangeFromForm({}, form({ userId: "u1", required: "true" }));
+    expect((await inLocaleAsync("pt", ask)).done).toContain("escolher uma nova senha");
+    expect((await inLocaleAsync("fr", ask)).done).toContain("choisir un nouveau mot de passe");
+    admin.adminSetPasswordChange.mockRejectedValueOnce(new NoPasswordError());
+    expect((await inLocaleAsync("pt", ask)).error).toContain("não tem senha");
+    admin.adminSetPasswordChange.mockRejectedValueOnce(new NoPasswordError());
+    expect((await inLocaleAsync("fr", ask)).error).toContain("n’a pas de mot de passe");
   });
 
   it("refresh one user's page as well as the list (123)", async () => {

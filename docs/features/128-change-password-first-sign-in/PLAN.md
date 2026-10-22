@@ -36,7 +36,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* component tests cover the checkbox default, its absence on own account and the user
   page row.
 
-- [ ] **6. Messages and phone.** Everything in messages (129) in three languages; scan; phone
+- [x] **6. Messages and phone.** Everything in messages (129) in three languages; scan; phone
   sweep.
   *Done when:* parity and scan pass; the sweep passes on every project.
 
