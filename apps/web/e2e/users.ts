@@ -47,6 +47,15 @@ export const E2E_USERS = {
   phoneFocus: "phone-focus@e2e.test",
   phoneWebkitFocus: "phone-webkit-focus@e2e.test",
   tabletFocus: "tablet-focus@e2e.test",
+  // Shelves on a desktop browser (125): a workspace's admin and members, root, and two people
+  // who star items, one with JavaScript and one without.
+  shelvesAdmin: "shelves-admin@e2e.test",
+  shelvesMember: "shelves-member@e2e.test",
+  shelvesVault: "shelves-vault@e2e.test",
+  shelvesOutsider: "shelves-outsider@e2e.test",
+  shelvesRoot: "shelves-root@e2e.test",
+  favoriter: "favoriter@e2e.test",
+  favoriterNoJs: "favoriter-no-js@e2e.test",
   // Pin items for a workspace (125): an admin of e2e-pins per project.
   pinsAdmin: "pins-admin@e2e.test",
   phonePinsAdmin: "phone-pins-admin@e2e.test",
@@ -245,6 +254,13 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   phoneFocus: "Phoebe Focus",
   phoneWebkitFocus: "Wendy Focus",
   tabletFocus: "Tabitha Focus",
+  shelvesAdmin: "Sheldon Shelf",
+  shelvesMember: "Shelley Member",
+  shelvesVault: "Vera Vault",
+  shelvesOutsider: "Otto Outsider",
+  shelvesRoot: "Rhea Shelf",
+  favoriter: "Faye Favorite",
+  favoriterNoJs: "Nolan NoScript",
   pinsAdmin: "Pia Pinner",
   phonePinsAdmin: "Phoebe Pinner",
   phoneWebkitPinsAdmin: "Wendy Pinner",
@@ -412,6 +428,7 @@ export const E2E_MODERATORS: readonly (keyof typeof E2E_USERS)[] = [
 
 /** Seeded as root, besides the root setup creates (more than one root since 059). */
 export const E2E_ROOTS: readonly (keyof typeof E2E_USERS)[] = [
+  "shelvesRoot",
   "ssoRoot",
   "phoneSsoRoot",
   "phoneWebkitSsoRoot",
@@ -471,6 +488,7 @@ export const E2E_VAULT = {
   item: "vault-deploy",
   members: [
     "privateMember",
+    "shelvesVault",
     "phonePrivateMember",
     "phoneWebkitPrivateMember",
     "tabletPrivateMember",
@@ -531,6 +549,24 @@ export const E2E_PINS = {
   scope: string;
   item: string;
   admins: Record<string, keyof typeof E2E_USERS>;
+};
+
+/**
+ * Shelves on a desktop browser (125): a public workspace with a released skill, `shelf-notes`' twin
+ * `shelf-item`, its admin, and two members, one of whom is also in the private vault.
+ */
+export const E2E_SHELVES = {
+  workspace: "e2e-shelves",
+  scope: "e2e-shelves-tools",
+  item: "shelf-item",
+  admin: "shelvesAdmin",
+  members: ["shelvesMember", "shelvesVault"],
+} as const satisfies {
+  workspace: string;
+  scope: string;
+  item: string;
+  admin: keyof typeof E2E_USERS;
+  members: readonly (keyof typeof E2E_USERS)[];
 };
 
 /** A public workspace with a released skill, which `privateRoot` makes private and public again. */

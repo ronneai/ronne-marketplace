@@ -37,6 +37,7 @@ import {
   E2E_ROOTS,
   E2E_SCOPE,
   E2E_SHELF,
+  E2E_SHELVES,
   E2E_SKILL,
   E2E_TWIN,
   E2E_TWIN_OLD_NAME,
@@ -489,6 +490,16 @@ const releaseSkillIn = async (
 };
 await releaseSkillIn(E2E_VAULT, "private", E2E_VAULT.members);
 await releaseSkillIn(E2E_SHELF, "public", []);
+// Shelves on a desktop browser (125): a public workspace, its admin and two members.
+await releaseSkillIn(E2E_SHELVES, "public", [E2E_SHELVES.admin, ...E2E_SHELVES.members]);
+await db
+  .updateTable("workspace_members")
+  .set({ role: "admin" })
+  .where("user_id", "=", ids[E2E_SHELVES.admin] ?? "")
+  .where("workspace_id", "in", (eb) =>
+    eb.selectFrom("workspaces").select("id").where("name", "=", E2E_SHELVES.workspace),
+  )
+  .execute();
 // Pins (125): a public workspace with a skill, and each project's admin of it.
 await releaseSkillIn(E2E_PINS, "public", Object.values(E2E_PINS.admins));
 await db

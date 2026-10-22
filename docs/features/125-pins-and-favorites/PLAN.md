@@ -55,7 +55,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   the new code; phone sweep.
   *Done when:* parity and scan pass; the sweep passes on every project in each language.
 
-- [ ] **9. End to end.** A user favorites (also with JavaScript off, where the star is a plain form) and filters; root pins and reorders; an admin pins to a
+- [x] **9. End to end.** A user favorites (also with JavaScript off, where the star is a plain form) and filters; root pins and reorders; an admin pins to a
   workspace and a member sees it as current workspace; a non-member of a private workspace sees
   none.
   *Done when:* the end-to-end tests pass on every project.

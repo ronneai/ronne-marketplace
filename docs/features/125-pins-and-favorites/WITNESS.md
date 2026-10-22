@@ -380,3 +380,34 @@ Witnessed: 2026-10-21 20:05 local, by a fresh agent (blind re-check). Commit: 65
 | 14 | Unit tests, biome and typecheck pass | no | confirmed | 2757 unit tests; `biome check` no errors; typecheck clean. |
 
 **Overall:** met.
+
+## Task 9 — End to end
+
+Witnessed: 2026-10-21 20:30 local, by a fresh agent (blind). Commit: 212504ae plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A user favorites from a card and the item page, Home shows it, the Favorites filter works with search, and only the owner sees it, root included | no | confirmed | The desktop spec really clicks the star and asserts the shelf, See all, the filter with and without a search, and that the outsider and root see none; turning the filter off failed both favorites tests. |
+| 2 | The star works with JavaScript off, as a plain form, and the state persists | no | confirmed | A context with JavaScript disabled adds, sees the pressed state, sees the Home shelf after a navigation, and removes; replacing the form action failed it. |
+| 3 | Root pins to Start here and reorders it, the order survives a reload, members see it without Manage and have no Start here in their Pin menu | no | confirmed | Real clicks; the order is asserted after `reload()`; root unpins at the end. |
+| 4 | An admin pins to a workspace shelf and reorders; a member sees the shelf on the workspace page and, as their current workspace, on Home | no | confirmed | The current workspace is chosen through the sidebar switcher; the outsider has no such region; disabling the Home block failed the test. |
+| 5 | A pin of a private item on a public shelf is hidden from a non-member and shown to a vault member; Start here is refused for a private item | no | confirmed | The Start here button is disabled for the vault item; the plain member sees exactly the two public items and no trace of it. |
+| 6 | The phone and tablet tests cover the Pin dialog, Manage, ordering by touch, French and the shelves on Home and the workspace page | no | confirmed | 9 passed on phone, WebKit and tablet. |
+| 7 | The end-to-end tests pass on every project | no | confirmed | 108 passed on the desktop project and 132 on phone, WebKit and tablet together. |
+| 8 | The tests leave the shared instance as found, with no parallel-run hazard | no | partly | Cleanups were inline at the end of each test, so a mid-test failure left pins or a favorite behind. |
+
+**Overall:** not met: row 8.
+
+### Re-check (row 8)
+
+Witnessed: 2026-10-21 20:50 local, by a fresh agent (blind re-check). Commit: 212504ae plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 8a | The file-level `afterAll` leaves the instance as found: no favorites for the two who star, Start here with only the seed's item, the workspace shelf empty | no | confirmed | Read; the spec passed twice (6 each) and the whole desktop project passed (108), so the next files see no leftovers. |
+| 8b | The `afterAll` cannot loop forever | no | confirmed | Each pass removes one entry or breaks; a stuck removal ends in a thrown timeout. |
+| 8c | The `afterAll` cannot mask a real failure | no | confirmed | Its own failure is reported on its own and it acts after the tests ran. |
+| 8d | The admin's reorder is asserted after a reload | no | confirmed | A `reload()` follows the Move click and the order is asserted. |
+| 8e | No parallel-run hazard | no | confirmed | One worker and no parallel files; the spec uses its own workspace and users; Start here is shared only with the seed's item, which the cleanup keeps. |
+
+**Overall:** met.
