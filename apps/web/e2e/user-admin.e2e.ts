@@ -154,6 +154,9 @@ test("root creates a user, who signs in with the shown password; disabling them 
   // the email typed, then every page shows the pseudonym, and the old email makes a new account.
   const erasable = E2E_USERS.erasable;
   await openUser(root, erasable);
+  // Other tests erase accounts too (127's), so this one follows its own by id.
+  const erasableId = new URL(root.url()).pathname.split("/").pop() ?? "";
+  expect(erasableId).toHaveLength(26);
   // First, root makes the file the person asked for (104): the item and the comment are in it,
   // and a second one inside ten minutes is refused.
   await root.getByRole("button", { name: "Download their data" }).click();
@@ -194,7 +197,7 @@ test("root creates a user, who signs in with the shown password; disabling them 
   await expect(root.getByRole("button", { name: "Erase", exact: true })).toHaveCount(0);
   await expect(root.getByRole("button", { name: "Change role" })).toHaveCount(0);
   // And in the list: the badge, the status, no action, and the old email nowhere.
-  await root.goto("/admin/users?q=deleted-user-");
+  await root.goto(`/admin/users?q=deleted-user-${erasableId}`);
   const erasedRow = root.getByRole("row").filter({ hasText: "Erased on" });
   await expect(erasedRow).toHaveCount(1);
   await expect(erasedRow).toContainText(/deleted-user-[0-9A-Z]+@ronne\.invalid/);
@@ -211,7 +214,9 @@ test("root creates a user, who signs in with the shown password; disabling them 
   await expect(conversation).toContainText(/deleted-user-/);
   await expect(root.getByText("Erasable Person")).toHaveCount(0);
   await root.goto("/admin/audit?action=user.erased");
-  await expect(root.getByRole("row").filter({ hasText: /Erased deleted-user-/ })).toHaveCount(1);
+  await expect(
+    root.getByRole("row").filter({ hasText: new RegExp(`Erased deleted-user-${erasableId}`, "i") }),
+  ).toHaveCount(1);
   await expect(root.getByText(erasable)).toHaveCount(0);
   // The old email is free: root creates a new account with it, and that person signs in to an
   // empty one, seeing the pseudonym on the item like everyone else.

@@ -168,3 +168,58 @@ test("root reads the inbox, marks two of four handled, and deletes one after ask
   await expect(detail.getByText(tag, { exact: false })).toBeVisible();
   await expect(detail.getByText("feedback-root@e2e.test", { exact: false })).toBeVisible();
 });
+
+test("the tenth message of the hour goes through and the eleventh is refused", async ({ page }) => {
+  await signIn(page, E2E_USERS.feedbackLimit);
+  const send = async (message: string) => {
+    await page.goto("/feedback");
+    await page.getByLabel("Idea").check();
+    await page.getByLabel("Message").fill(message);
+    await page.getByRole("button", { name: "Send feedback" }).click();
+  };
+  for (let n = 1; n <= 10; n++) {
+    await send(`limit ${n}`);
+    await expect(page.getByText("Thanks, your feedback was sent")).toBeVisible();
+  }
+  await send("limit 11");
+  await expect(page.getByText("You can send 10 messages an hour. Try again later.")).toBeVisible();
+  // What they typed is kept, so nothing is lost.
+  await expect(page.getByLabel("Message")).toHaveValue("limit 11");
+});
+
+test("erasing an account deletes the feedback it sent", async ({ browser, baseURL }) => {
+  const sender = await browser.newContext({ baseURL });
+  const senderPage = await sender.newPage();
+  await signIn(senderPage, E2E_USERS.feedbackErasable);
+  const tag = `erasable-${Date.now()}`;
+  await senderPage.goto("/feedback");
+  await senderPage.getByLabel("Problem").check();
+  await senderPage.getByLabel("Message").fill(`${tag} please forget me`);
+  await senderPage.getByRole("button", { name: "Send feedback" }).click();
+  await expect(senderPage.getByText("Thanks, your feedback was sent")).toBeVisible();
+  await sender.close();
+
+  const rootContext = await browser.newContext({ baseURL });
+  const root = await rootContext.newPage();
+  await signIn(root, E2E_USERS.feedbackRoot);
+  await root.goto(`/admin/feedback?q=${tag}`);
+  await expect(root.getByText(`${tag} please forget me`)).toBeVisible();
+
+  await root.goto(`/admin/users?q=${E2E_USERS.feedbackErasable}`);
+  await root
+    .getByRole("row")
+    .filter({ hasText: E2E_USERS.feedbackErasable })
+    .getByRole("link")
+    .first()
+    .click();
+  await root.getByRole("button", { name: "Erase", exact: true }).click();
+  const erase = root.getByRole("dialog", { name: "Erase user" });
+  await erase.getByLabel("Type the account's email to confirm").fill(E2E_USERS.feedbackErasable);
+  await erase.getByRole("button", { name: "Erase" }).click();
+  await expect(erase.getByText(/Erased\. The account is now deleted-user/)).toBeVisible();
+
+  await root.goto(`/admin/feedback?q=${tag}`);
+  await expect(root.getByText("No feedback matches these filters.")).toBeVisible();
+  await expect(root.locator("table").getByText(tag)).toHaveCount(0);
+  await rootContext.close();
+});

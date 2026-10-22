@@ -271,3 +271,20 @@ Witnessed: 2026-10-22 11:05 local, by a fresh agent (blind). Commit: 2091e822 pl
 | 8b | With the field focused the buttons stay on screen | yes | confirmed | As before. |
 
 **Overall:** met.
+
+## Task 7 — End to end
+
+Witnessed: 2026-10-22 11:30 local, by a fresh agent (blind). Commit: 5a60d5fe plus the uncommitted diff (`e2e/feedback.e2e.ts`, `e2e/user-admin.e2e.ts`, `e2e/users.ts`). Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The desktop feedback tests pass: dialog, no-JavaScript page, root's inbox with count, bulk handled, delete confirm, detail, the hourly limit, erase | no | confirmed | `next build`, then `playwright test e2e/feedback.e2e.ts e2e/user-admin.e2e.ts --project chromium` → 6 passed. |
+| 2 | Phone, phone-webkit and tablet pass `feedback.mobile` and `mobile-sweep` | no | confirmed | `playwright test e2e/feedback.mobile.e2e.ts e2e/mobile-sweep.mobile.e2e.ts --project <p>` → 16 passed on each. |
+| 3 | The new users and the erased account broke no other chromium test | no | confirmed | `playwright test --project chromium` → 124 passed, 0 failed. |
+| 4 | The limit test fails if the limit is wrong | no | confirmed | `FEEDBACK_PER_HOUR = 11`, rebuilt → the limit test failed. |
+| 5 | The erase test fails if the feedback delete is removed | no | confirmed | `deleteFeedback` made to delete nothing, rebuilt → the erase test failed. |
+| 6 | Mutation hygiene | no | confirmed | Both files restored from backups, `cmp` identical, `git status` showed only the three e2e files, rebuilt. |
+
+Not run in full: the whole phone, phone-webkit and tablet suites (only the two feedback files).
+
+**Overall:** met.

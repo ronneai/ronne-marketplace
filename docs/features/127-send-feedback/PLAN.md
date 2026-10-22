@@ -38,7 +38,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   sweep (dialog with the keyboard open, 072).
   *Done when:* parity and scan pass; the sweep passes on every project.
 
-- [ ] **7. End to end.** A user sends feedback; root sees the count, opens it, marks it handled;
+- [x] **7. End to end.** A user sends feedback; root sees the count, opens it, marks it handled;
   rate limit reached; erase removes it.
   *Done when:* the end-to-end tests pass on every project.
 
