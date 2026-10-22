@@ -79,19 +79,19 @@ the first time the person signs in, so only the person knows their password.
 
 ## Acceptance criteria
 
-- [ ] Create user and Reset password set the flag by default; unchecking is possible and audited;
+- [x] Create user and Reset password set the flag by default; unchecking is possible and audited;
       root's own reset doesn't offer it.
-- [ ] A flagged account is redirected from every app page to the change-password page; a guard test
+- [x] A flagged account is redirected from every app page to the change-password page; a guard test
       fails when a page forgets the hold.
-- [ ] The API answers `password_change_required` for a flagged account's token, except `GET
+- [x] The API answers `password_change_required` for a flagged account's token, except `GET
       /api/v1/me`.
-- [ ] Changing the password clears the flag, ends other sessions, refuses the temporary password
+- [x] Changing the password clears the flag, ends other sessions, refuses the temporary password
       and returns to the page asked for (and keeps `/device`'s code).
-- [ ] The two-factor hold follows the password hold; neither blocks sign-out.
-- [ ] SSO, SCIM and the setup's root are never flagged.
-- [ ] Migration runs on all three database kinds; everything is in messages (129) in three
+- [x] The two-factor hold follows the password hold; neither blocks sign-out.
+- [x] SSO, SCIM and the setup's root are never flagged.
+- [x] Migration runs on all three database kinds; everything is in messages (129) in three
       languages; the phone sweep passes.
-- [ ] The Documentation and helpers above say what the feature does now.
+- [x] The Documentation and helpers above say what the feature does now.
 
 ## Decisions
 

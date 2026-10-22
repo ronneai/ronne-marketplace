@@ -429,3 +429,31 @@ Witnessed: 2026-10-22 15:25 local, by a fresh agent (blind, re-check). Commit: a
 | – | The row still has 4 pipes and no other sentence is wrong | no | confirmed | Pipe count; read against the messages and code. |
 
 **Overall:** met.
+
+
+## Task 9 — Documentation
+
+Witnessed: 2026-10-22 15:10 local, by a fresh agent (blind). Commit: f16bd6ee (ronne-marketplace); the ronne-web docs branch `docs/128-password-change`. Machine: macOS (Darwin 27), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The docs tests pass in ronne-web | no | confirmed | `pnpm lint`, `pnpm typecheck`, `pnpm test` → 183 passed. |
+| 2 | The helper link test passes here | no | confirmed | `vitest run src/components/help` → 16 passed; `password-change` is listed and links `admin#users`. |
+| 3 | Admin, Account and Password sign-in changed in en, pt and fr | no | confirmed | `git show --stat` → the 9 files. |
+| 4 | The statements are true of the code (the box default, 20 or 12 to 128 characters, shown once, audited, the page's title, the labels, `rmk whoami`, the data download, sessions, two-factor second, sign-out and language, accounts with no password) | no | confirmed | Read against the code and the messages. |
+| 5 | The links point at existing sections and no `topics.ts` changed | no | confirmed | `topics.ts` in both repositories list the same sections. |
+| 6 | The pt and fr read naturally and follow the translation guide | no | partly | One pt link text, "Fazer login", differed from the target's title "Entrar". |
+
+**Overall:** not met: row 6.
+
+### Re-check (rows 6, the link texts)
+
+Witnessed: 2026-10-22 15:15 local, by a fresh agent (blind, re-check). Commit: bdb3740 (ronne-web, `docs/128-password-change`). Machine: macOS (Darwin 27), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The commit adds six links (`account#signing-in` in Admin, `admin#users` in Password sign-in), each in three languages | no | confirmed | `git show HEAD`. |
+| 2 | English, Portuguese and French link texts equal the target titles ("Signing in"/"Users", "Entrar"/"Usuários", "Connexion"/"Utilisateurs") | no | confirmed | The titles in each language's `account.tsx` and `admin.tsx`. |
+| 3 | Lint, typecheck and tests pass in ronne-web | no | confirmed | 183 passed. |
+
+**Overall:** met.

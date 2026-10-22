@@ -48,7 +48,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 - [x] **8. Decision log and index.** MVP §15 row "Password change at first sign-in".
   *Done when:* the row is in.
 
-- [ ] **9. Documentation.** The sections and helpers in the spec, in a ronne-web branch.
+- [x] **9. Documentation.** The sections and helpers in the spec, in a ronne-web branch.
   *Done when:* the docs tests pass in ronne-web, and the helper link test passes here.
 
 ## Notes
