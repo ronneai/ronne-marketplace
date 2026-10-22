@@ -507,6 +507,9 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     text(m.direction) === "up" ? " up" : " down",
     ...pinShelf(m, "in"),
   ],
+  // 127: ids only, never the text of a message.
+  "feedback.handled": () => ["Marked a feedback message handled"],
+  "feedback.deleted": () => ["Deleted a feedback message"],
   "settings.two_factor_policy": (m) => [
     `Changed who must use two-factor sign-in from ${TWO_FACTOR_POLICIES_SAID[text(m.from)] ?? text(m.from)} to ${
       TWO_FACTOR_POLICIES_SAID[text(m.to)] ?? text(m.to)

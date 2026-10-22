@@ -76,6 +76,7 @@ describe("permissions (091)", () => {
         "access_requests.answer",
         "account.manage_own",
         "audit.view",
+        "feedback.manage",
         "members.manage",
         "pins.manage",
         "pins.manage_global",

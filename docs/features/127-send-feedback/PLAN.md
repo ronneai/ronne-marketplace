@@ -15,7 +15,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* unit tests cover validation and path sanitising; `*.db.test.ts` pass on SQLite and,
   run once, on the other servers; the migration guard test passes.
 
-- [ ] **2. Service and actions.** `sendFeedback` (rate limit 10/hour via the existing limiter),
+- [x] **2. Service and actions.** `sendFeedback` (rate limit 10/hour via the existing limiter),
   `listFeedback`, `markHandled` (bulk), `deleteFeedback`, `countNewFeedback`; root-only checks;
   `feedback.handled` and `feedback.deleted` audit actions and the `feedback` audit group.
   *Done when:* tests cover the limit, a non-root refused on the server, bulk acting only on the

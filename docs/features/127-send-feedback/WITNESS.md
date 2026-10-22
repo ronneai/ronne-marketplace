@@ -71,3 +71,20 @@ Witnessed: 2026-10-22 09:20 local, by a fresh agent (adversarial, re-check). Com
 | 6 | `pnpm typecheck` and `biome check` pass | yes | confirmed | Both clean. |
 
 **Overall:** met. Rows 9 (erase delete, task 5) of the first pass stays task 5's. Noted, not blocking: a message of only U+3164, U+180E or U+034F counts as non-empty.
+
+## Task 2 — Service and actions
+
+Witnessed: 2026-10-22 09:30 local, by a fresh agent (blind). Commit: cd1ecf19 plus the uncommitted diff and untracked `feedback/actions` and `feedback/services`. Machine: macOS (Darwin 27.0.0).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `sendFeedback` is limited to 10 per person per hour through the existing limiter, and the tests cover the limit | no | confirmed | The test checks 10 pass, the 11th is refused, another user is unaffected, a refused form doesn't use up the limit, and the limit resets; disabling the limiter in a scratch copy made it fail. |
+| 2 | Only root can read or act on feedback, checked on the server (list, count, find, countNew, mark handled, delete) | no | confirmed | "is root's alone" calls all six as a user and signed out → `ForbiddenError`, nothing changed or audited; removing the check from `deleteFeedback` made it fail. |
+| 3 | A signed-in user can send, a signed-out person is refused, and sending isn't audited | no | confirmed | The "sending" tests pass; `audits()` is empty after a send. |
+| 4 | Bulk mark and delete act only on the selected ids (duplicates and bad ids ignored, over 100 refused) | no | confirmed | Three sent, two marked (with a duplicate and a bad id), the third stays `new`; removing the `id in (done)` restriction made the test fail. |
+| 5 | `feedback.handled` and `feedback.deleted` rows exist, one per affected id, target type `feedback`, no message text | no | confirmed | Tests assert the rows and that the serialized events don't contain the message; removing the delete audit made the test fail. |
+| 6 | The audit catalogue has the two actions, the `feedback` group and target type, and the summaries render them | no | confirmed | `audit-event.ts`, `summary.ts` and their tests pass. |
+| 7 | `countNewFeedback` returns the count of new messages for root | no | confirmed | Expected 2 after two sends and 1 after marking two of three. |
+| 8 | The tests pass on the supported databases | no | confirmed | SQLite: 8 files, 69 tests; `pnpm test:db:postgres`, `:mysql`, `:mariadb` → 1 file, 9 tests each. |
+
+**Overall:** met.
