@@ -113,9 +113,10 @@ helpers' panel (deep teal in the dark theme), the `--popover` pair of tokens.
 The item cards on Home, on its shelves (125) and on the Catalogue are one **compact card** in a
 **grid**: as many columns as fit with a card never narrower than 17rem, and **never more than five
 to a row**, so one to a row on a phone and four or five on a wide screen. The columns change on
-their own as the window is resized and the cards share the room, so a card is between 17 and about
-23rem wide and keeps about the same shape, never a taller one just before a column drops off (the
-owner saw that with fixed breakpoints). The card has:
+their own as the window is resized and the cards share the room, so a card is 17rem or wider (it
+grows when the row is capped at five) and keeps about the same shape, never a narrow, tall one just
+before a column drops off (the owner saw that with fixed breakpoints). The column count follows the
+room the list has, which a test checks at thirteen window widths. The card has:
 
 - the name, in at most two lines (the whole of it on hover), broken at `-` and `/` first; the
   full name already says the workspace and the scope, so the **Workspace/Scope line is left out**,

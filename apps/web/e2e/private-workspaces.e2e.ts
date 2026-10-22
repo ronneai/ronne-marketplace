@@ -47,7 +47,8 @@ test("a member sees a private workspace's item with its lock; an outsider gets a
   const member = await signedIn(browser, E2E_USERS.privateMember);
   await member.goto(`/catalogue?q=${E2E_VAULT.item}`);
   const card = member.getByRole("article").filter({ hasText: VAULT_ITEM });
-  await expect(card).toContainText(lockLabel(E2E_VAULT.workspace));
+  // A compact card has no Workspace line (126): the name names it, and a lock says it is private.
+  await expect(card).toContainText("Private");
   await expect(card.locator("svg.lucide-lock")).toBeVisible();
   await expect(member.locator("#catalogue-workspace option")).toContainText([E2E_VAULT.workspace]);
   await member.goto(vaultPage);

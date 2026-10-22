@@ -71,8 +71,16 @@ const nothing = pageOf({ entries: [] });
 
 describe("the Catalogue in three languages", () => {
   const cases: Record<Locale, string[]> = {
-    en: ["Filters", "Recently published", "Apply", "Search"],
-    pt: ["Filtros", "Publicados recentemente", "Aplicar", "Pesquisar", "Espaço de trabalho"],
+    en: ["Filters", "Recently published", "Apply", "Search", "Grid view", "List view"],
+    pt: [
+      "Filtros",
+      "Publicados recentemente",
+      "Aplicar",
+      "Pesquisar",
+      "Espaço de trabalho",
+      "Em grade",
+      "Em lista",
+    ],
     fr: ["Filtres", "Publiés récemment", "Appliquer", "Rechercher", "Espace de travail"],
   };
   for (const locale of ["en", "pt", "fr"] as const) {

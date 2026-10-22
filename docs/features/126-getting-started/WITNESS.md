@@ -221,3 +221,36 @@ Witnessed: 2026-10-21 00:20 local, by a fresh agent (blind re-check). Commit: a3
 | 11 | The ring's arc is at least 3:1 on the teal in both themes, and the banner looks right at 0/4 and 2/4 | no | confirmed | `stroke-chart`: 4.61 light, 5.94 dark (before 2.97); screenshots of both themes at 0/4 and 2/4 read. |
 
 **Overall:** met.
+
+## Task 9 — Compact cards and the Catalogue's view
+
+Witnessed: 2026-10-22 00:25 local, by a fresh agent (blind). Commit: 09732746 plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The unit suite, lint and typecheck are green | no | confirmed | `vitest run src` → 371 files, 4350 passed; `pnpm lint` exit 0; typecheck clean. |
+| 2 | Home, shelves and Catalogue use one compact card in an auto-fill grid with a 17rem minimum and a five-column cap | no | confirmed | `CardGrid.tsx`; `home.e2e.ts` → 5 cards at 1920 and 2560, 4 at 1600, 1 at 390. |
+| 3 | The date is at the right of the version's row; no Workspace/Scope line, a cue for private or personal workspaces stays | no | confirmed | Moving the date to the footer, and showing the place line again, each failed tests; the private-workspace e2e passes on four projects. |
+| 4 | The description is cut at two lines with an ellipsis; a long name takes two lines | no | confirmed | The browser test measures line height, client and scroll height; removing `line-clamp-2` failed the unit test. |
+| 5 | The copy is an icon only, copies the command, and is absent when the item isn't installable | no | confirmed | Unit tests, and an e2e that reads the clipboard. |
+| 6 | The grid is never narrower than 17rem, never more than five, and a row's cards are the same height | no | partly | The resize test could not fail when the grid was replaced by fixed breakpoints. |
+| 7 | The Catalogue has Grid view and List view; `?view=list` shows the earlier full cards | no | confirmed | `catalogue-view.e2e.ts` passes; screenshots show the place line, the tools and the command box in the list. |
+| 8 | The view rides along search, filters, sort and pager; the toggle is accessible; no JavaScript needed | no | confirmed | `aria-label`, `title`, `aria-current`; the page ignoring `view` and Sort dropping it each failed tests; the no-JavaScript test passes. |
+| 9 | The messages exist in en, pt and fr | no | confirmed | The parity and translation tests pass. |
+| 10 | The resize test catches a regression to fixed breakpoints | no | partly | The breakpoint mutation passed the resize test. |
+| 11 | Phone, phone-webkit and tablet pass, and the sweep | no | confirmed | 12 passed; the sweep 45 passed. |
+| 12 | The desktop end-to-end files for this task pass | no | confirmed | `playwright test e2e/home … --project chromium` → 20 passed. |
+| 13 | The screenshots look right | no | confirmed | Home at 1420, 1180 and 1920, and the Catalogue in grid and list, read. |
+
+**Overall:** not met: rows 6 and 10.
+
+### Re-check (rows 6 and 10)
+
+Witnessed: 2026-10-22 00:50 local, by a fresh agent (blind re-check). Commit: 09732746 plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6 | The grid is never narrower than 17rem, never more than five, and a row's cards are the same height, at every window width | no | confirmed | Unmutated 7 passed; a 14rem minimum failed 3 tests ("narrowest card at 1000px, expected >=270, received 229"); a real six-column cap failed the resize and "stop at five" tests; each restored with `cmp`. |
+| 10 | The resize test catches a regression to fixed breakpoints | no | confirmed | `grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4` now fails "cards in a row at 900px, list 852px wide, expected 3, received 2". |
+
+**Overall:** met.

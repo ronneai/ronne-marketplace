@@ -100,6 +100,12 @@ export const E2E_USERS = {
   // root per phone and tablet project, who sets it and reads it on the device.
   // Reads Home on a populated instance (124).
   homeMember: "home-member@e2e.test",
+  // Copies a card's install command from Home (126): its own, as homeMember's sign-ins are spent.
+  homeCopier: "home-copier@e2e.test",
+  homeCards: "home-cards@e2e.test",
+  // Switches the Catalogue between the grid and the list (126).
+  catalogueView: "catalogue-view@e2e.test",
+  catalogueViewNoJs: "catalogue-view-no-js@e2e.test",
   noticeRoot: "notice-root@e2e.test",
   noticeMember: "notice-member@e2e.test",
   phoneNoticeRoot: "phone-notice-root@e2e.test",
@@ -304,6 +310,10 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   tabletDevice: "Tablet Dev",
   tabletDeviceTwoFactor: "Tablet Dev Twofactor",
   homeMember: "Home Member",
+  homeCopier: "Home Copier",
+  homeCards: "Home Cards",
+  catalogueView: "Catalogue View",
+  catalogueViewNoJs: "Catalogue View No JS",
   noticeRoot: "Notice Root",
   noticeMember: "Notice Member",
   phoneNoticeRoot: "Phone Notice Root",

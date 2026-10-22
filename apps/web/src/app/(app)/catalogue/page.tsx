@@ -1,7 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { PageHeader } from "@/components/ui/Panel";
 import { CatalogueView } from "@/features/catalogue/CatalogueView";
-import { parseCatalogueQuery, type SearchParams } from "@/features/catalogue/query";
+import { parseCatalogueQuery, parseLayout, type SearchParams } from "@/features/catalogue/query";
 import { hereOf } from "@/features/current-workspace/current-workspace";
 import { Showing } from "@/features/current-workspace/Showing";
 import { pageTitle } from "@/i18n/page-title";
@@ -51,6 +51,7 @@ const Catalogue = async ({ searchParams }: { searchParams: Promise<SearchParams>
         paged={Boolean(query.cursor)}
         keepAll={view.keepAll}
         favorites={favorites}
+        layout={parseLayout(params)}
       />
     </>
   );

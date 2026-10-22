@@ -46,7 +46,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* component and end-to-end tests cover the banner for each next step, its colour, the
   dialog, the no-JavaScript buttons and the phone; the phone sweep passes on every project.
 
-- [ ] **9. Compact cards and the Catalogue's view** (owner, 2026-10-21). The item cards on Home, its
+- [x] **9. Compact cards and the Catalogue's view** (owner, 2026-10-21). The item cards on Home, its
   shelves and the Catalogue become a compact card in a grid of at most five to a row, with the date
   on the version's row, two lines of description, no workspace and scope line, and a copy icon; the
   Catalogue gets Grid view and List view.

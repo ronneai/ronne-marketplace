@@ -71,7 +71,7 @@ beforeEach(() => {
 });
 
 describe("the catalogue page", () => {
-  it("passes the query on, and lists each item with its version, type, keywords and install command", async () => {
+  it("passes the query on, and lists each item with its version, type, date and install command", async () => {
     const html = await render({ q: "fmt", type: "hook", cursor: "c" });
     expect(catalogue.browseCatalogue).toHaveBeenCalledWith(expect.any(Headers), {
       q: "fmt",
@@ -85,14 +85,14 @@ describe("the catalogue page", () => {
     expect(html).toContain(">@team/fmt<");
     expect(html).toContain("v1.2.0");
     expect(html).toContain(">hook<");
-    // The date is a <time>, in UTC on the server (049).
-    expect(html).toMatch(
-      /#format · #lint · published(?:<!-- -->)? <time[^>]*>2026-09-20<\/time> · (?:<!-- -->)?works in Claude Code, Codex, Cursor/,
-    );
-    expect(html).toContain("rmk install @team/fmt");
-    expect(html).toMatch(
-      /published(?:<!-- -->)? <time[^>]*>2026-09-20<\/time> · (?:<!-- -->)?works in Claude Code, Codex, Cursor/,
-    );
+    // The date is a <time>, in UTC on the server (049), on the version's row at the card's right.
+    expect(html).toMatch(/v1\.2\.0[\s\S]*<time[^>]*>2026-09-20<\/time>/);
+    // The cards are the compact ones (Home's, 126): the keywords and the tools are on the item's page,
+    // and the install command is behind a copy icon.
+    expect(html).not.toContain("#format");
+    expect(html).not.toContain("works in");
+    expect(html).toContain('aria-label="Copy the install command for @team/fmt"');
+    expect(html).toContain('title="rmk install @team/fmt"');
     expect(html).toContain('<option value="cursor">Cursor</option>');
     expect(html).not.toContain("⚠ risk");
     // Every card shows how often it's been downloaded (owner, 2026-10-02).
@@ -178,8 +178,7 @@ describe("the catalogue page", () => {
     expect(html).toContain("Deprecated: Use @team/fmt2.");
     expect(html).toContain("no installable version");
     expect(html).not.toContain("rmk install @team/gone");
-    expect(html).toMatch(/works in Claude Code · \d+ installs?</);
-    expect(html).toContain("works in no built-in tool");
+    expect(html).toMatch(/\d+ installs?</);
   });
 
   it("explains how items arrive when nothing is published, and says when nothing matches", async () => {
@@ -326,19 +325,19 @@ describe("workspaces in the catalogue (090)", () => {
     expect(view()).not.toContain('<span aria-hidden="true"> · </span>');
   });
 
-  it("says each item's workspace, linked, and scope; a private one with a lock (093, 115)", () => {
+  it("says each item's workspace in its full name; a private one has a lock, a personal one says so (093, 115)", () => {
     const html = view({
       entries: [entry({ workspace: "acme", privateWorkspace: true, scope: "acme-infra" })],
     });
     expect(html).toContain('title="Only acme’s members and root see this item."');
     expect(html).toContain("rmk install @acme/acme-infra/");
-    expect(html).toMatch(
-      /Workspace<\/span><a[^>]*href="\/workspaces\/acme"[^>]*>acme<\/a><span[^>]*><svg[^>]*lucide-lock[^>]*>.*?<\/svg>Private<\/span><span aria-hidden="true">·<\/span><span>Scope<\/span><span[^>]*>@acme-infra<\/span>/,
-    );
-    // Global too: its full name doesn't say it, the line does.
+    expect(html).toMatch(/<svg[^>]*lucide-lock[^>]*>.*?<\/svg>Private<\/span>/);
+    // The card has no Workspace and Scope line: the full name says them (126, owner).
+    expect(html).not.toMatch(/Workspace<\/span><a/);
+    // Global too: its full name is the scope's and the name's, and there is no lock.
     const global = view();
-    expect(global).toMatch(/Workspace<\/span><a[^>]*href="\/workspaces\/global"[^>]*>global<\/a>/);
     expect(global).not.toContain("lucide-lock");
+    expect(global).not.toContain("/workspaces/global");
     // A personal workspace says so, without a lock.
     const personal = view({
       entries: [entry({ workspace: "ana", privateWorkspace: true, personalWorkspace: true })],
@@ -504,5 +503,62 @@ describe("the Favorites filter (125)", () => {
     expect(parseCatalogueQuery({ favorites: "0" }).favorites).toBeUndefined();
     expect(parseCatalogueQuery({ favorites: "true" }).favorites).toBeUndefined();
     expect(parseCatalogueQuery({}).favorites).toBeUndefined();
+  });
+});
+
+/** The opening tag of the link with this accessible name, whatever order its attributes come in. */
+const anchor = (html: string, label: string) =>
+  html.match(new RegExp(`<a [^>]*aria-label="${label}"[^>]*>`))?.[0] ?? "";
+
+describe("the grid and the list (126, owner)", () => {
+  it("is the grid by default: compact cards, with the grid button current", async () => {
+    const html = await render();
+    expect(html).toContain("line-clamp-2");
+    expect(html).toContain("grid-cols-[repeat(auto-fill");
+    expect(html).not.toContain("works in");
+    expect(anchor(html, "List view")).toContain('href="/catalogue?view=list"');
+    expect(anchor(html, "List view")).not.toContain("aria-current");
+    expect(anchor(html, "Grid view")).toContain('aria-current="page"');
+  });
+
+  it("is a list with ?view=list: the full cards, one to a row, with the list button current", async () => {
+    const html = await render({ view: "list" });
+    expect(html).not.toContain("line-clamp-2");
+    expect(html).not.toContain("grid-cols-[repeat(auto-fill");
+    // The full card: keywords, the tools, the install command and the place line.
+    expect(html).toContain("#format");
+    expect(html).toContain("works in Claude Code, Codex, Cursor");
+    expect(html).toMatch(/<code[^>]*>[\s\S]*rmk install @team\/fmt/);
+    expect(html).toMatch(/Workspace<\/span><a/);
+    expect(anchor(html, "List view")).toContain('aria-current="page"');
+    expect(anchor(html, "Grid view")).toContain('href="/catalogue"');
+    expect(anchor(html, "Grid view")).not.toContain("aria-current");
+  });
+
+  it("anything but list is the grid", async () => {
+    expect(await render({ view: "table" })).toContain("line-clamp-2");
+  });
+
+  it("keeps the list through sorting, the pager, and a new search or filter", async () => {
+    catalogue.browseCatalogue.mockResolvedValue(pageOf({ nextCursor: "c2" }));
+    const html = await render({ view: "list" });
+    expect(html).toContain('href="/catalogue?sort=installs&amp;view=list"');
+    expect(html).toContain('href="/catalogue?view=list&amp;cursor=c2"');
+    // The search and the Filters forms are GET forms: the view rides along.
+    expect(html.match(/<input type="hidden" name="view" value="list"\/>/g)).toHaveLength(2);
+    const grid = await render();
+    expect(grid).not.toContain('name="view"');
+    expect(grid).not.toContain("view=list&amp;cursor");
+  });
+
+  it("writes the layout into links, and leaves the grid out", () => {
+    const query = pageOf().query;
+    expect(catalogueHref({ ...query, layout: "list" }, { sort: "name" })).toBe(
+      "/catalogue?sort=name&view=list",
+    );
+    expect(catalogueHref({ ...query, layout: "grid" }, { sort: "name" })).toBe(
+      "/catalogue?sort=name",
+    );
+    expect(catalogueHref(query, { layout: "list" })).toBe("/catalogue?view=list");
   });
 });
