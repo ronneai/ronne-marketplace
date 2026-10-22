@@ -45,7 +45,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   password then two-factor.
   *Done when:* the end-to-end tests pass on every project.
 
-- [ ] **8. Decision log and index.** MVP §15 row "Password change at first sign-in".
+- [x] **8. Decision log and index.** MVP §15 row "Password change at first sign-in".
   *Done when:* the row is in.
 
 - [ ] **9. Documentation.** The sections and helpers in the spec, in a ronne-web branch.

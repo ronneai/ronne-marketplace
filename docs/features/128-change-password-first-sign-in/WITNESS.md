@@ -401,3 +401,31 @@ Witnessed: 2026-10-22 15:10 local, by a fresh agent (adversarial re-check). Comm
 | 10 | `password-change.e2e.ts` passes on chromium | no | confirmed | 3 passed. |
 
 **Overall:** met.
+
+
+## Task 8 — Decision log and index
+
+Witnessed: 2026-10-22 15:20 local, by a fresh agent (blind). Commit: a9a8bfb9 plus the uncommitted working tree. Machine: macOS (Darwin 27).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The row "Password change at first sign-in" is in the §15 decision log, in the table's format | no | confirmed | One added line between the Feedback and Personal data rows; 4 pipes on it and its neighbours. |
+| 2 | The checkbox default, the unchecking audited, the column and its clearing, the hold on pages and the data download, the API 403 but for `/me`, password before two-factor, "must differ", other sessions ended, the audit event | no | confirmed | Read against `PasswordChoice.tsx`, `user-admin.ts`, `session.ts`, `hold.ts`, `user-data-api.ts`, `require-token.ts`, `api-v1.ts`. |
+| 3 | The user page's Ask and Stop buttons are named as in the app | no | partly | The row said "Stop asking"; the label is "Stop asking for a new password". |
+| 4 | Every server action is held but the ones listed | no | partly | The closing of a notice was left out. |
+| 5 | Accounts with no password, the setup's root and `reset-root-password` are never asked | no | confirmed | `setPasswordChangeRequired` refuses a person with no password; the other two never set the flag. |
+| 6 | Nothing else in MVP.md is made false | no | confirmed | The Auth, Admin, sign-in and permission rows are still true. |
+
+**Overall:** not met: rows 3 and 4 (wording only).
+
+### Re-check (rows 3 and 4)
+
+Witnessed: 2026-10-22 15:25 local, by a fresh agent (blind, re-check). Commit: a9a8bfb9 plus the uncommitted working tree. Machine: macOS (Darwin 27).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 3 | The row names the button "Stop asking for a new password", the real label | no | confirmed | `MVP.md` and `admin.json` `clearTitle`. |
+| 4 | The actions open during the hold in the row are the seven the code marks (sign-in covers the password, two-factor and provider forms) | no | confirmed | `grep whilePasswordHeld`; `server-action.test.ts` pins the list. |
+| – | The row still has 4 pipes and no other sentence is wrong | no | confirmed | Pipe count; read against the messages and code. |
+
+**Overall:** met.
