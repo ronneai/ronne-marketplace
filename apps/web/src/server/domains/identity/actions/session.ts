@@ -39,6 +39,10 @@ export const getCurrentUser = async (
   return user;
 };
 
+/** Whether the signed-in person must replace the password root chose before anything else (128). */
+export const passwordChangeRequired = (headers: Headers, app: AppAuth = getAppAuth()) =>
+  service.passwordChangeRequired(deps(app), headers);
+
 /** The signed-in user, or a redirect to sign-in that comes back to the requested page. */
 export const requireUser = async (headers: Headers, app?: AppAuth): Promise<CurrentUser> => {
   const user = await getCurrentUser(headers, app);

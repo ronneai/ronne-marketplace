@@ -22,7 +22,7 @@ import * as service from "../services/user-admin";
 import { seedErasedUser } from "../testing/erased-user";
 import { cookieHeaders, createTestUser, setWorkspaceRole, testAppAuth } from "../testing/test-auth";
 import { createRoot } from "./root-account";
-import { getCurrentUser, signIn } from "./session";
+import { getCurrentUser, passwordChangeRequired, signIn } from "./session";
 import {
   adminChangeRole,
   adminCreateUser,
@@ -700,6 +700,24 @@ describe("asking for a new password at first sign-in (128)", () => {
     const deps = { repo: kyselyIdentityRepository(t.db, t.dialect), hasher: argon2PasswordHasher };
     await service.resetPassword(deps, { user: root, ip: null }, id);
     expect(await flagged(id)).toBeInstanceOf(Date);
+  });
+
+  it("is what holds the person's own requests: true for a flagged session, false for others and for nobody", async () => {
+    const created = await adminCreateUser(
+      asRoot,
+      { email: "new@example.com", name: "New", role: "user", password: "a typed passphrase" },
+      app,
+    );
+    const theirs = await headersFor("new@example.com", "a typed passphrase");
+    expect(await passwordChangeRequired(theirs, app)).toBe(true);
+    expect(await passwordChangeRequired(asRoot, app)).toBe(false);
+    expect(await passwordChangeRequired(new Headers(), app)).toBe(false);
+    await kyselyIdentityRepository(t.db, t.dialect).setPasswordChangeRequired(
+      created.id,
+      false,
+      new Date(),
+    );
+    expect(await passwordChangeRequired(theirs, app)).toBe(false);
   });
 
   it("keeps the flag when the account is disabled and enabled again", async () => {

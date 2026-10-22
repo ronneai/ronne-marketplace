@@ -4,6 +4,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // it up, except the ones marked `whileHeld` (the enrolment page's, signing out).
 const hold = vi.hoisted(() => ({ requirement: null as null | "reviewers" | "everyone" }));
 const scope = vi.hoisted(() => ({ inRequest: true }));
+const password = vi.hoisted(() => ({ held: false }));
+vi.mock("./password-change-hold", () => ({
+  PASSWORD_PATH: "/account/password",
+  passwordChangeHold: vi.fn(async () => password.held),
+}));
 vi.mock("./two-factor-hold", () => ({
   SECURITY_PATH: "/account/security",
   twoFactorHold: vi.fn(async () => hold.requirement),
@@ -28,6 +33,7 @@ const { serverAction } = await import("./server-action");
 
 beforeEach(() => {
   hold.requirement = null;
+  password.held = false;
   scope.inRequest = true;
 });
 
@@ -52,5 +58,29 @@ describe("serverAction and the two-factor hold (105)", () => {
     hold.requirement = "everyone";
     scope.inRequest = false;
     expect(await serverAction(async () => "ran")()).toBe("ran");
+  });
+
+  it("sends someone who must change their password to the change page, unless the action is whilePasswordHeld (128)", async () => {
+    password.held = true;
+    const ran = vi.fn(async () => "done");
+    await expect(serverAction(ran)()).rejects.toThrow("REDIRECT /account/password");
+    // whileHeld is for two-factor only: the enrolment page's actions wait for the new password.
+    await expect(serverAction(ran, { whileHeld: true })()).rejects.toThrow(
+      "REDIRECT /account/password",
+    );
+    expect(ran).not.toHaveBeenCalled();
+    expect(await serverAction(ran, { whilePasswordHeld: true })()).toBe("done");
+  });
+
+  it("puts the password first: a person held for both reaches only the password actions (128)", async () => {
+    password.held = true;
+    hold.requirement = "everyone";
+    const ran = vi.fn(async () => "done");
+    await expect(serverAction(ran, { whileHeld: true })()).rejects.toThrow(
+      "REDIRECT /account/password",
+    );
+    expect(await serverAction(ran, { whilePasswordHeld: true })()).toBe("done");
+    password.held = false;
+    await expect(serverAction(ran)()).rejects.toThrow("REDIRECT /account/security");
   });
 });

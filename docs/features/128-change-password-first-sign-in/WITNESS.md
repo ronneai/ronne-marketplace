@@ -56,3 +56,64 @@ Witnessed: 2026-10-22 12:50 local, by a fresh agent (adversarial re-check). Comm
 
 **Overall:** met (row 4 narrowed to what the test checks; only wording changed after the pass).
 
+
+## Task 2 — The hold
+
+Witnessed: 2026-10-22 12:55 local, by a fresh agent (blind). Commit: 55e7bfc7 plus the uncommitted working tree. Machine: macOS (Darwin 27), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `passwordChangeHold(headers)` sits next to `twoFactorHold`, reads the flag from the session's user, stops early without a session cookie or an instance | no | confirmed | `password-change-hold.ts`; the db test on the session passes on four databases. |
+| 2 | `holdPage` checks the password first, before two-factor | no | confirmed | Mutation (`if (false && …)`) → 2 hold tests fail. |
+| 3 | Only the change page is open; other pages redirect to it with `next` kept, `/device` and its code too | no | confirmed | Tests for `/catalogue?q=a`, `/device?user_code=…`, no path, and the change page; `safeNextPath` leaves no open redirect or loop. |
+| 4 | The guard test covers every page and fails on one without `holdPage` | no | confirmed | `holdPage` removed from `catalogue/page.tsx` in a scratch copy → the guard test fails; 31 pages. |
+| 5 | The security page, exempt from `holdPage`, does the password hold itself | no | partly | Behaviour right; no test (since added). |
+| 6 | Server actions respect the hold; the password hold wins over `whileHeld`; a stale tab cannot act | no | confirmed | 2 new tests in `two-factor-hold-actions.test.ts`. |
+| 7 | Allowed while held: the change page, sign-out, the language switch | no | partly | Sign-in actions and notice dismissal are also allowed (needed, harmless); the other marks untested. |
+| 8 | The data download respects the hold | no | partly | 403 `password_change_required`; no test (since added). |
+
+**Overall:** not met: rows 5 and 8 (no tests).
+
+### Adversarial pass
+
+Witnessed: 2026-10-22 12:58 local, by a fresh agent (adversarial). Commit: 55e7bfc7 plus the uncommitted working tree. Machine: macOS (Darwin 27), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Every page in `(app)` redirects a flagged person, keeping `next` | no | confirmed | Every page calls `holdPage`; `x-ronne-path` is overwritten by the proxy. |
+| 2 | `next` is no open redirect or loop | no | confirmed | `//evil`, `\`, dot segments and encoded variants fall back to `/` or reach the real page once. |
+| 3 | The security page redirects too | no | confirmed | Removing the line fails a test (after the added test). |
+| 4 | Actions are refused except the allowed ones | no | confirmed | `whilePasswordHeld` on exactly the seven; every `use server` export is wrapped. |
+| 5 | The data download refuses | no | confirmed | Removing the check fails a test (after the added test). |
+| 6 | The password hold is before two-factor everywhere | no | confirmed | Tests on pages and actions. |
+| 7 | Each removed check fails a test | no | partly | 4 of 5; the session-cookie pre-check was untested. |
+| 8 | Cookie names cannot bypass the pre-check | no | confirmed | Both names contain `session_token`; no cookie cache. |
+| 9 | Everything else reachable by a flagged session is held or harmless | no | partly | Not held: `/current-workspace`, `/api/auth/*` (the same as the two-factor hold), `/api/v1/*` (task 3). |
+
+**Overall:** not met: rows 7 and 9 (a test; the spec to say what is not held).
+
+### Re-check (adversarial rows 7 and 9, and the blind rows 5 and 8)
+
+Witnessed: 2026-10-22 13:10 local, by a fresh agent (adversarial re-check). Commit: 55e7bfc7 plus the uncommitted working tree. Machine: macOS (Darwin 27), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The cookie pre-check, the no-instance return and the flag wiring are tested | no | confirmed | Three mutations of `password-change-hold.ts` → each fails `password-change-hold.test.ts`. |
+| 2 | The security page redirect is tested | no | confirmed | Line deleted → the source-order test fails (a structural check, not a rendered page). |
+| 3 | The data route check is tested | no | confirmed | Check removed → the 128 test fails (`two_factor_required` instead). |
+| 4 | SPEC says what is not held (`/api/auth/*`, `/current-workspace`) and it is true | no | confirmed | `/current-workspace` only sets a cookie after `requireUser`; `/api/auth` is a plain handler. |
+
+**Overall:** met.
+
+
+### Re-check (blind rows 5, 7 and 8)
+
+Witnessed: 2026-10-22 13:10 local, by a fresh agent (blind, re-check). Commit: 55e7bfc7 plus the uncommitted working tree. Machine: macOS (Darwin 27), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 5 | The security page, exempt from `holdPage`, redirects a person who must change their password, before the two-factor logic | no | confirmed | Redirect line deleted in a scratch copy → `hold.test.ts` "keeps the security page…" fails. |
+| 7 | The actions open to such a person are exactly the change, sign-out, the language form, the three sign-in actions and the notice; every other action is wrapped without the mark | no | confirmed | `grep` → 7 uses; adding the mark to another action, or removing it from `dismissNotice` → the new `server-action.test.ts` test fails; 30 action files use `serverAction(`. |
+| 8 | The data download refuses with 403 `password_change_required` | no | confirmed | `user-data-api.db.test.ts` passes; check disabled in a scratch copy → it fails. |
+
+**Overall:** met.

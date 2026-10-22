@@ -552,6 +552,15 @@ export const kyselyIdentityRepository = (
         .execute();
     },
 
+    async passwordChangeRequired(userId) {
+      const row = await db
+        .selectFrom("user")
+        .select("password_change_required_at")
+        .where("id", "=", userId)
+        .executeTakeFirst();
+      return Boolean(row?.password_change_required_at);
+    },
+
     async setPasswordChangeRequired(userId, required, now) {
       await db
         .updateTable("user")

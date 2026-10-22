@@ -34,6 +34,18 @@ export const currentUser = async (
   return session ? deps.repo.findActiveUser(session.userId) : null;
 };
 
+/**
+ * Whether the request's signed-in person must replace their password first (128). Read on every
+ * page and server action, so it reads only the session and one column.
+ */
+export const passwordChangeRequired = async (
+  deps: SessionDeps,
+  headers: Headers,
+): Promise<boolean> => {
+  const session = await deps.sessions.currentSession(headers);
+  return session ? deps.repo.passwordChangeRequired(session.userId) : false;
+};
+
 export type SignInInput = { email: string; password: string; rememberMe: boolean };
 
 export type SignInResult =

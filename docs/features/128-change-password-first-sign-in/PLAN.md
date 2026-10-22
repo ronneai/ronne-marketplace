@@ -15,7 +15,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* `user-admin.db.test.ts` covers set on create and reset, unchecked, own reset, SSO
   and SCIM accounts never flagged; the migration guard test passes; run once on the other servers.
 
-- [ ] **2. The hold.** [risky] A `passwordChangeHold` next to `twoFactorHold`, called by `holdPage`
+- [x] **2. The hold.** [risky] A `passwordChangeHold` next to `twoFactorHold`, called by `holdPage`
   first (before two-factor), allowing only the change page, sign-out and the language switch; the
   redirect keeps `next` for `/device`; the guard test (`hold.test.ts`) covers every page.
   *Done when:* tests cover the redirect from several pages, the allowed pages, the order against

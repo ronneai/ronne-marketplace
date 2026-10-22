@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { withRequestContext } from "../log";
+import { PASSWORD_PATH, passwordChangeHold } from "./password-change-hold";
 import { requestHeaders as appRequestHeaders } from "./request-headers";
 import { forwardedRequestId } from "./request-id";
 import { SECURITY_PATH, twoFactorHold } from "./two-factor-hold";
@@ -21,12 +22,20 @@ export const serverAction = <A extends unknown[], R>(
      * tab left open before the requirement can't act.
      */
     whileHeld?: boolean;
+    /**
+     * Runs for someone who must replace their password first (128): the change itself, signing in
+     * and out, the language and the notice. Every other action sends them to the change page.
+     */
+    whilePasswordHeld?: boolean;
   } = {},
 ): ((...args: A) => Promise<R>) => {
   const wrapped = async (...args: A): Promise<R> => {
     const requestId = forwardedRequestId(await requestHeaders());
     return withRequestContext({ requestId }, async () => {
-      if (!options.whileHeld && (await heldNow())) redirect(SECURITY_PATH);
+      const held = await heldNow();
+      if (held === "password") {
+        if (!options.whilePasswordHeld) redirect(PASSWORD_PATH);
+      } else if (held === "two_factor" && !options.whileHeld) redirect(SECURITY_PATH);
       return action(...args);
     });
   };
@@ -49,13 +58,17 @@ const requestHeaders = async (): Promise<{ get(name: string): string | null }> =
   }
 };
 
-/** Whether the action's caller is held for two-factor (105); never outside a request. */
-const heldNow = async (): Promise<boolean> => {
+/**
+ * Why the action's caller is held: the password change comes first (128), then two-factor (105).
+ * Never held outside a request.
+ */
+const heldNow = async (): Promise<"password" | "two_factor" | null> => {
   let request: Headers;
   try {
     request = await appRequestHeaders();
   } catch {
-    return false;
+    return null;
   }
-  return (await twoFactorHold(request)) !== null;
+  if (await passwordChangeHold(request)) return "password";
+  return (await twoFactorHold(request)) !== null ? "two_factor" : null;
 };

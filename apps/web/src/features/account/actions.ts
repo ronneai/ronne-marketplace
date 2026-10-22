@@ -23,6 +23,8 @@ export const changePasswordFromForm = serverAction(
     if (result.error === "not_signed_in") redirect(SIGN_IN_PATH);
     return { error: result.error };
   },
+  // Replacing the password is what a held person (128) is here to do.
+  { whilePasswordHeld: true },
 );
 
 /** The user menu's "Sign out". */
@@ -32,7 +34,7 @@ export const signOutFromMenu = serverAction(
     redirect(SIGN_IN_PATH);
   },
   // Someone held for two-factor (105) can still sign out.
-  { whileHeld: true },
+  { whileHeld: true, whilePasswordHeld: true },
 );
 
 /**
@@ -54,4 +56,6 @@ export const setLanguageFromForm = serverAction(
     revalidatePath("/", "layout");
     return { saved: result.locale ?? "automatic" };
   },
+  // The language switch is open to someone who must replace their password first (128).
+  { whilePasswordHeld: true },
 );

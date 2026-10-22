@@ -43,6 +43,10 @@ the first time the person signs in, so only the person knows their password.
   returns to the code page (`next` is kept, as the two-factor hold does).
 - **Root resets their own password** from the Users list: not flagged (they just chose it), the
   checkbox is hidden for one's own account.
+- **What the hold does not cover**, as with the two-factor hold (105): Better Auth's own endpoints
+  (`/api/auth/*`, which the app's forms call and where the password is changed) and the
+  `/current-workspace` redirect, which only sets a cookie. Neither shows or changes anything of
+  anyone else's, and only the app's form clears the flag.
 - **The user page** (123) shows "Must change password at next sign-in" with a way for root to
   clear or set the flag without changing the password.
 - **Messages** are in the person's language (129), including the page's explanation.
