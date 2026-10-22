@@ -15,10 +15,10 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   and erase tests are extended.
 
 - [ ] **2. Reading the steps.** A service `gettingStarted(userId)` returning each step's state from
-  tokens (not revoked; used; device grant approved), usage `install` events and submissions, plus
+  tokens (not revoked; used; device grant approved), the confirm button and submissions, plus
   the panel's visibility (`hidden`, `completed_seen_at`).
   *Done when:* unit and database tests cover every row of the detection table, a revoked token, an
-  existing complete account (panel not shown) and telemetry off.
+  existing complete account (panel not shown) and that a usage `install` total ticks nothing.
 
 - [ ] **3. Actions.** Hide, confirm installed, show again, mark "You're set up" seen; thin server
   actions.
