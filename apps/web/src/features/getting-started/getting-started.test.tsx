@@ -112,8 +112,11 @@ describe("Getting started: the commands", () => {
     const commands = rmkCommands(REGISTRY);
     for (const line of [commands.install, commands.loginWeb])
       for (const html of [cli, home]) expect(html).toContain(line);
-    expect(cli).toContain(commands.loginToken.replace("<", "&lt;").replace(">", "&gt;"));
-    expect(home).toContain(commands.loginToken.replace("<", "&lt;").replace(">", "&gt;"));
+    // The same line, as the markup writes the angle brackets of `<token>`.
+    const escaped = `rmk login --registry ${REGISTRY} --token &lt;token&gt;`;
+    expect(commands.loginToken).toBe(`rmk login --registry ${REGISTRY} --token <token>`);
+    expect(cli).toContain(escaped);
+    expect(home).toContain(escaped);
   });
 
   it("start with the npm install line only while the person has no token", () => {
