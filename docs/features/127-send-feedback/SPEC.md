@@ -19,8 +19,8 @@ administrators, which suits a team, a company or a demo; it is not sent anywhere
     could hold a link's secrets.
   - The app version is added automatically; nothing else (no screenshots, no browser data beyond
     the version, no files).
-  - After sending: "Thanks, your feedback was sent to this instance's administrators", and the
-    dialog closes.
+  - After sending, the dialog shows "Thanks, your feedback was sent to this instance's
+    administrators" with a Done button that closes it (the page links back to Home).
 - **Admin › Feedback** (root only): a server data table (060) with the sender, kind, message,
   page, version and time; sorted by time, filtered by kind and status, searched by text; paged.
   Each row opens a detail dialog. Status: **New**, **Handled**; root marks one or several (bulk)
@@ -53,7 +53,9 @@ administrators, which suits a team, a company or a demo; it is not sent anywhere
   feedback; erasing a user (103) **deletes** their feedback rows (the message is not kept under a
   pseudonym); root can delete any row; and the Privacy tab's retention (102) gets a new setting,
   **Handled feedback kept for** (days, default 365), purged by the existing scheduled job.
-- **No JavaScript:** the dialog opens at `/feedback` as a normal page with the same form.
+- **No JavaScript:** the dialog opens at `/feedback` as a normal page with the same form; the link
+  carries the page they were on as `?from=<path>` (a path only, anything else is dropped). A refused
+  form comes back with what was typed.
 - **Phone:** the Send feedback entry is in the Menu sheet; the form is full-screen with the
   keyboard-safe bottom bar (072).
 

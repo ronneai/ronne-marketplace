@@ -42,6 +42,7 @@ export type NavIcon =
   | "settings"
   | "docs"
   | "tokens"
+  | "feedback"
   | "propose";
 
 /** An item shows when it needs no permission, or the user holds it (the one permission map, 008). */
@@ -148,6 +149,8 @@ export const NAV: NavItem[] = [
   },
   { href: DOCS_URL, key: "docs", group: "tools", icon: "docs", external: true },
   { href: "/account/tokens", key: "tokens", group: "tools", icon: "tokens" },
+  // Anyone signed in (127): a dialog in the sidebar, the /feedback page on a phone and without JS.
+  { href: "/feedback", key: "feedback", group: "tools", icon: "feedback", section: "/feedback" },
 ];
 
 /** + Propose item, above the groups (119): a new item, for those who can submit. */

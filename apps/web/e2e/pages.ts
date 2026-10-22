@@ -88,6 +88,7 @@ export const SWEEP_PAGES: readonly SweepPage[] = [
     ],
   },
   { route: "/menu", roles: EVERYONE, urls: () => ["/menu"] },
+  { route: "/feedback", roles: EVERYONE, urls: () => ["/feedback", "/feedback?from=%2Fcatalogue"] },
   { route: "/submissions", roles: EVERYONE, urls: () => ["/submissions"] },
   { route: "/submissions/new", roles: EVERYONE, urls: () => ["/submissions/new"] },
   {
@@ -181,6 +182,7 @@ export const MIGRATED_ROUTES: ReadonlySet<string> = new Set([
   "/sign-in/two-factor",
   "/",
   "/menu",
+  "/feedback",
   "/device",
   "/account/password",
   "/account/security",

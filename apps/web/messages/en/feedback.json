@@ -1,0 +1,29 @@
+{
+  "title": "Send feedback",
+  "intro": "Tell the people who run this instance what is wrong, missing or good. They read it in Admin; it isn’t sent anywhere else.",
+  "kind": {
+    "legend": "What kind of feedback is it?",
+    "problem": "Problem",
+    "idea": "Idea",
+    "question": "Question",
+    "praise": "Praise"
+  },
+  "message": {
+    "label": "Message",
+    "count": "{count, number}/{max, number} characters"
+  },
+  "page": {
+    "include": "Include the page I’m on"
+  },
+  "submit": "Send feedback",
+  "cancel": "Cancel",
+  "done": "Done",
+  "backHome": "Back to Home",
+  "thanks": "Thanks, your feedback was sent to this instance’s administrators.",
+  "errors": {
+    "kind_required": "Choose what kind of feedback this is.",
+    "message_required": "Write a message.",
+    "message_too_long": "That message is longer than {max, number} characters. Shorten it.",
+    "rate_limited": "You can send {limit, number} messages an hour. Try again later."
+  }
+}

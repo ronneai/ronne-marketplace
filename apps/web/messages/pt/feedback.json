@@ -1,0 +1,29 @@
+{
+  "title": "Enviar feedback",
+  "intro": "Conte a quem administra esta instância o que está errado, o que falta ou o que está bom. Eles leem em Admin; nada é enviado para outro lugar.",
+  "kind": {
+    "legend": "Que tipo de feedback é este?",
+    "problem": "Problema",
+    "idea": "Ideia",
+    "question": "Dúvida",
+    "praise": "Elogio"
+  },
+  "message": {
+    "label": "Mensagem",
+    "count": "{count, number}/{max, number} caracteres"
+  },
+  "page": {
+    "include": "Incluir a página em que estou"
+  },
+  "submit": "Enviar feedback",
+  "cancel": "Cancelar",
+  "done": "Concluir",
+  "backHome": "Voltar ao Início",
+  "thanks": "Obrigado, seu feedback foi enviado aos administradores desta instância.",
+  "errors": {
+    "kind_required": "Escolha o tipo de feedback.",
+    "message_required": "Escreva uma mensagem.",
+    "message_too_long": "A mensagem tem mais de {max, number} caracteres. Reduza o texto.",
+    "rate_limited": "Você pode enviar {limit, number} mensagens por hora. Tente novamente mais tarde."
+  }
+}

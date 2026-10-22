@@ -43,6 +43,7 @@ describe("navFor", () => {
       "Submissions",
       "Documentation",
       "CLI & tokens",
+      "Send feedback",
     ]);
     // In no workspace at all (not reachable while everyone is in global): nothing to submit to.
     expect(labels({ name: "N", email: "n@example.com", role: "user" })).toEqual([
@@ -51,6 +52,7 @@ describe("navFor", () => {
       "Workspaces",
       "Documentation",
       "CLI & tokens",
+      "Send feedback",
     ]);
   });
 
@@ -63,6 +65,7 @@ describe("navFor", () => {
       "Submissions",
       "Documentation",
       "CLI & tokens",
+      "Send feedback",
     ];
     expect(labels(member({ [GLOBAL]: "moderator" }))).toEqual(reviewer);
     expect(labels(member({ [GLOBAL]: "user", acme: "moderator" }))).toEqual(reviewer);
@@ -81,6 +84,7 @@ describe("navFor", () => {
       "Settings",
       "Documentation",
       "CLI & tokens",
+      "Send feedback",
     ]);
     expect(navFor(ROOT).map((item) => item.href)).toEqual(
       expect.arrayContaining(["/admin/users", "/admin/audit", "/admin/settings"]),
@@ -133,11 +137,11 @@ describe("groupNav", () => {
     expect(grouped(ROOT)).toEqual([
       ["Discover", ["Home", "Catalogue", "Workspaces"]],
       ["Governance & reviews", ["Reviews", "Submissions", "Users", "Audit log", "Settings"]],
-      ["Tools", ["Documentation", "CLI & tokens"]],
+      ["Tools", ["Documentation", "CLI & tokens", "Send feedback"]],
     ]);
     expect(grouped({ name: "N", email: "n@example.com", role: "user" })).toEqual([
       ["Discover", ["Home", "Catalogue", "Workspaces"]],
-      ["Tools", ["Documentation", "CLI & tokens"]],
+      ["Tools", ["Documentation", "CLI & tokens", "Send feedback"]],
     ]);
   });
 });
@@ -561,6 +565,7 @@ describe("AppShell", () => {
         "Submissions",
         "Documentation",
         "CLI & tokens",
+        "Send feedback",
         "Account",
       ]);
       expect(sheet(html)).toContain(">Discover<");

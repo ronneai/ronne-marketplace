@@ -1,0 +1,29 @@
+{
+  "title": "Envoyer des commentaires",
+  "intro": "Dites aux personnes qui gèrent cette instance ce qui ne va pas, ce qui manque ou ce qui va bien. Elles le lisent dans Admin; rien n’est envoyé ailleurs.",
+  "kind": {
+    "legend": "De quel type de commentaire s’agit-il?",
+    "problem": "Problème",
+    "idea": "Idée",
+    "question": "Question",
+    "praise": "Félicitations"
+  },
+  "message": {
+    "label": "Message",
+    "count": "{count, number}/{max, number} caractères"
+  },
+  "page": {
+    "include": "Inclure la page où je me trouve"
+  },
+  "submit": "Envoyer les commentaires",
+  "cancel": "Annuler",
+  "done": "Terminé",
+  "backHome": "Retour à l’accueil",
+  "thanks": "Merci, vos commentaires ont été envoyés aux administrateurs de cette instance.",
+  "errors": {
+    "kind_required": "Choisissez le type de commentaire.",
+    "message_required": "Écrivez un message.",
+    "message_too_long": "Ce message dépasse {max, number} caractères. Raccourcissez-le.",
+    "rate_limited": "Vous pouvez envoyer {limit, number} messages par heure. Réessayez plus tard."
+  }
+}

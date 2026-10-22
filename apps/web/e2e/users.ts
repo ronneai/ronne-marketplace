@@ -106,6 +106,9 @@ export const E2E_USERS = {
   // Switches the Catalogue between the grid and the list (126).
   catalogueView: "catalogue-view@e2e.test",
   catalogueViewNoJs: "catalogue-view-no-js@e2e.test",
+  // Send feedback (127): from the sidebar dialog, and from the page without JavaScript.
+  feedbackSender: "feedback-sender@e2e.test",
+  feedbackNoJs: "feedback-no-js@e2e.test",
   noticeRoot: "notice-root@e2e.test",
   noticeMember: "notice-member@e2e.test",
   phoneNoticeRoot: "phone-notice-root@e2e.test",
@@ -314,6 +317,8 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   homeCards: "Home Cards",
   catalogueView: "Catalogue View",
   catalogueViewNoJs: "Catalogue View No JS",
+  feedbackSender: "Feedback Sender",
+  feedbackNoJs: "Feedback No JS",
   noticeRoot: "Notice Root",
   noticeMember: "Notice Member",
   phoneNoticeRoot: "Phone Notice Root",

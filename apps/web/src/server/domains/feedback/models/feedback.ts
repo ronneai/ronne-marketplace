@@ -42,7 +42,7 @@ const INVISIBLE = /[\u200B-\u200F\u2060\u2061-\u2064\uFEFF\u00AD]/g;
 
 /**
  * The first part of every page a signed-in person can be on (`/` and these). A test keeps it equal
- * to the folders of `app/(app)` that hold a page, and `feedback` is this feature's own.
+ * to the folders of `app/(app)` that hold a page.
  */
 export const PAGE_ROOTS = [
   "account",

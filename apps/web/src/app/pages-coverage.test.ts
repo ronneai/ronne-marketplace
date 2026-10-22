@@ -52,6 +52,7 @@ describe("the phone sweep's page list (feature 065)", () => {
         "/workspaces/[name]/items/[scope]/[item]/versions",
         "/device",
         "/menu",
+        "/feedback",
         "/sign-in",
         "/sign-in/two-factor",
       ].sort(),

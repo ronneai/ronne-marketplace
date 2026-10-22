@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
+import { feedbackHref } from "@/features/feedback/href";
 import { Badge } from "../ui/Badge";
 import { NewTabLink } from "../ui/NewTabLink";
 import { NavCount } from "./NavCount";
@@ -87,7 +88,7 @@ export const MenuList = ({
               ) : (
                 <Link
                   key={item.href}
-                  href={item.href}
+                  href={item.key === "feedback" ? feedbackHref(path) : item.href}
                   onClick={onNavigate}
                   aria-current={isCurrent(item, path) ? "page" : undefined}
                   className={row}

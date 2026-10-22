@@ -21,7 +21,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* tests cover the limit, a non-root refused on the server, bulk acting only on the
   selected ids, and audit rows without message text.
 
-- [ ] **3. The dialog and the page.** Sidebar and Menu entry, the dialog (full-screen below `sm`),
+- [x] **3. The dialog and the page.** Sidebar and Menu entry, the dialog (full-screen below `sm`),
   the `/feedback` page for no-JavaScript, the confirmation.
   *Done when:* component tests cover validation messages, the page path option and the
   confirmation; held people are redirected first (the `holdPage` guard test lists the page).

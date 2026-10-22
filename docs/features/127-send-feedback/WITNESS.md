@@ -88,3 +88,41 @@ Witnessed: 2026-10-22 09:30 local, by a fresh agent (blind). Commit: cd1ecf19 pl
 | 8 | The tests pass on the supported databases | no | confirmed | SQLite: 8 files, 69 tests; `pnpm test:db:postgres`, `:mysql`, `:mariadb` → 1 file, 9 tests each. |
 
 **Overall:** met.
+
+## Task 3 — The dialog and the page
+
+Witnessed: 2026-10-22 09:35 local, by a fresh agent (blind). Commit: 30d8958a plus the uncommitted diff and untracked files. Machine: macOS (Darwin 27.0.0).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Component tests cover the validation messages (kind required, message required or only spaces, over 4,000 refused beside the field) | no | confirmed | `feedback.test.tsx` "says what is wrong beside the field" checks the three texts, `feedback-kind-error` and `aria-invalid`; the rate-limit case too. |
+| 2 | Component tests cover the page path option (checked by default, path only, absent with no page) | no | confirmed | `feedback.test.tsx` (default checked, no option without a page, restored state), `feedbackHref` drops the query, `page.test.tsx` reduces `from` to a path. |
+| 3 | Component tests cover the confirmation: thanks, Done in the dialog, a link home on the page | no | confirmed | `feedback.test.tsx` and `FeedbackForm.tsx`. |
+| 4 | Held people are redirected first, and the guard test lists the page | no | confirmed | `page.tsx` calls `await holdPage()` first; `hold.test.ts` scans every `page.tsx` and passed with feedback included; `pages-coverage.test.ts` and `e2e/pages.ts` list `/feedback`. |
+| 5 | Sidebar and Menu entry in the Tools group, for everyone signed in | no | confirmed | `nav.ts`; `AppShell.test.tsx` lists "Send feedback" last in Tools for user, moderator and root, and in the Menu sheet. |
+| 6 | The sidebar opens the dialog; the Menu and no-JavaScript link goes to `/feedback?from=<path>`; the dialog is full-screen below `sm` | no | partly | No test covered clicking the sidebar link, sending, or focus returning. |
+| 7 | The `/feedback` page is a plain form post that works without JavaScript | no | confirmed | `feedback.test.tsx` "is a plain form post". |
+| 8 | Everything on screen is a message in three languages | no | confirmed | `feedback.json` ×3, `translations.test.tsx` and the i18n parity tests pass; `biome.json` scan folders added. |
+| 9 | Checks on the touched areas pass | no | confirmed | 19 files, 237 tests passed; `tsc --noEmit` clean. |
+
+**Overall:** not met: row 6.
+
+### Re-check (row 6)
+
+Witnessed: 2026-10-22 09:40 local, by a fresh agent (blind, re-check). Commit: 30d8958a plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6 | The sidebar link opens the dialog (opening, validation, sending, Done/Cancel, focus return) and the no-JavaScript page works, covered by an e2e test; the Menu link goes to `/feedback?from=<path>`; the hold guard test fails if the page loses its guard | yes | confirmed | `next build` then `playwright test e2e/feedback.e2e.ts --project chromium` → 2 passed. Removing the sidebar `onClick` in a scratch copy made test 1 fail at the dialog lookup. A 375×700 probe: the Menu link's href is `/feedback?from=%2Fcatalogue`, it lands on the page. Removing `await holdPage()` made `hold.test.ts` fail with `feedback/page.tsx` missing. |
+
+**Overall:** met for the sidebar click, sending, focus return, the no-JavaScript page, the Menu link and the hold guard.
+
+### Re-check (row 6, full screen)
+
+Witnessed: 2026-10-22 09:45 local, by a fresh agent (blind, re-check). Commit: 30d8958a plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6 | The dialog is full-screen below `sm`, and a test covers it | yes | confirmed | `feedback.test.tsx` "the dialog on a small screen" expects `max-sm:h-dvh`, `max-sm:w-screen`, `max-sm:rounded-none`; stripping the `max-sm:` classes from the shared `Dialog.tsx` in a scratch copy made it fail. Checked from the class names, not a render at 375px (the sidebar, where the dialog opens, shows from `lg`; phones use the page). |
+
+**Overall:** met.

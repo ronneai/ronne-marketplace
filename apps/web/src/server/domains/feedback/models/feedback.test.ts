@@ -46,11 +46,11 @@ describe("PAGE_ROOTS", () => {
       return statSync(path).isDirectory() ? hasPage(path) : name === "page.tsx";
     });
 
-  it("is the folders of the signed-in app that hold a page, and feedback", () => {
+  it("is the folders of the signed-in app that hold a page", () => {
     const folders = readdirSync(appDir).filter(
       (name) => statSync(join(appDir, name)).isDirectory() && hasPage(join(appDir, name)),
     );
-    expect([...PAGE_ROOTS].sort()).toEqual([...folders, "feedback"].sort());
+    expect([...PAGE_ROOTS].sort()).toEqual([...folders].sort());
   });
 
   it("drops a path whose first part is no page, and keeps one that is", () => {
