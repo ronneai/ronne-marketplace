@@ -16,6 +16,7 @@ const admin = vi.hoisted(() => ({
   adminResetPassword: vi.fn(),
   adminDisableImpact: vi.fn(),
   adminResetTwoFactor: vi.fn(),
+  adminSetPasswordChange: vi.fn(),
 }));
 const cache = vi.hoisted(() => ({ revalidatePath: vi.fn() }));
 vi.mock("@/server/domains/identity/actions/user-admin", () => admin);
@@ -26,7 +27,7 @@ vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => ne
 const actions = await import("./actions");
 const { OneTimePassword } = await import("./OneTimePassword");
 const { ActionForm, RoleChangeNotice, ScimManagedNotice } = await import("./UserActionDialogs");
-const { CreateUserDialog } = await import("./CreateUserDialog");
+const { CreateUserDialog, CreateUserForm } = await import("./CreateUserDialog");
 const { confirmsEmail, EraseUserButton, EraseUserForm } = await import("./EraseUserDialog");
 const { EraseConfirmationError } = await import("@/server/domains/identity/exceptions/errors");
 
@@ -60,9 +61,20 @@ describe("createUserFromForm", () => {
       name: "A",
       role: "user",
       password: undefined,
+      // The box is part of the form: absent means unchecked (128).
+      requireChange: false,
     });
     expect(state).toEqual({ oneTime: { email: "a@example.com", password: "Gen3rated" } });
     expect(cache.revalidatePath).toHaveBeenCalledWith("/admin/users");
+  });
+
+  it("asks for a new password at first sign-in when the box is checked (128)", async () => {
+    admin.adminCreateUser.mockResolvedValue({ id: "x", email: "a@example.com", password: "G" });
+    await actions.createUserFromForm(
+      {},
+      form({ email: "a@example.com", name: "A", role: "user", requireChange: "on" }),
+    );
+    expect(admin.adminCreateUser.mock.calls[0]?.[1]).toMatchObject({ requireChange: true });
   });
 
   it("passes a typed password on", async () => {
@@ -114,6 +126,42 @@ describe("the row actions", () => {
     expect(
       await actions.resetPasswordFromForm({}, form({ userId: "u1", passwordMode: "generate" })),
     ).toEqual({ oneTime: { email: "u@example.com", password: "N3w" } });
+  });
+
+  it("reset passes the box on, and the ask and stop actions say what changed (128)", async () => {
+    admin.adminResetPassword.mockResolvedValue({ email: "u@example.com", password: "N3w" });
+    await actions.resetPasswordFromForm(
+      {},
+      form({ userId: "u1", passwordMode: "generate", requireChange: "on" }),
+    );
+    expect(admin.adminResetPassword).toHaveBeenLastCalledWith(
+      expect.any(Headers),
+      "u1",
+      undefined,
+      undefined,
+      true,
+    );
+    await actions.resetPasswordFromForm({}, form({ userId: "u1", passwordMode: "generate" }));
+    expect(admin.adminResetPassword).toHaveBeenLastCalledWith(
+      expect.any(Headers),
+      "u1",
+      undefined,
+      undefined,
+      false,
+    );
+    admin.adminSetPasswordChange.mockResolvedValue({ email: "u@example.com", changed: true });
+    expect(
+      (await actions.setPasswordChangeFromForm({}, form({ userId: "u1", required: "true" }))).done,
+    ).toContain("will be asked to choose a new password");
+    expect(admin.adminSetPasswordChange).toHaveBeenLastCalledWith(expect.any(Headers), "u1", true);
+    expect(
+      (await actions.setPasswordChangeFromForm({}, form({ userId: "u1", required: "false" }))).done,
+    ).toContain("no longer be asked");
+    expect(admin.adminSetPasswordChange).toHaveBeenLastCalledWith(expect.any(Headers), "u1", false);
+    admin.adminSetPasswordChange.mockResolvedValue({ email: "u@example.com", changed: false });
+    expect(
+      (await actions.setPasswordChangeFromForm({}, form({ userId: "u1", required: "true" }))).done,
+    ).toBe("Nothing changed.");
   });
 
   it("refresh one user's page as well as the list (123)", async () => {
@@ -291,6 +339,30 @@ describe("rendering", () => {
     expect(html("user", "root")).toContain("WARN:");
     expect(html("root", "user")).toContain("Remove root from alex@example.com?");
     expect(html("user", "user")).not.toContain("WARN:");
+  });
+
+  it("offers the box, checked, when creating and resetting; the ask and stop dialogs carry their value (128)", () => {
+    const box = 'name="requireChange"';
+    // The dialog is closed until opened, so the open form is rendered itself.
+    expect(renderToStaticMarkup(<CreateUserDialog />)).toContain("Create user");
+    const create = renderToStaticMarkup(<CreateUserForm onDone={() => {}} />);
+    expect(create).toMatch(/<input[^>]*name="requireChange"[^>]*checked/);
+    expect(create).toContain("Ask them to choose a new password when they sign in");
+    const user = { id: "u", email: "u@example.com", role: "user" as const, disabled: false };
+    const reset = renderToStaticMarkup(<ActionForm kind="reset" user={user} onDone={() => {}} />);
+    expect(reset).toContain(box);
+    expect(reset).toMatch(/<input[^>]*name="requireChange"[^>]*checked/);
+    expect(reset).toContain("Ask them to choose a new password when they sign in");
+    expect(reset).toContain("Why ask?");
+    const ask = renderToStaticMarkup(<ActionForm kind="askChange" user={user} onDone={() => {}} />);
+    expect(ask).toContain('name="required" value="true"');
+    expect(ask).toContain("Ask for a new password");
+    expect(ask).not.toContain(box);
+    const clear = renderToStaticMarkup(
+      <ActionForm kind="clearChange" user={user} onDone={() => {}} />,
+    );
+    expect(clear).toContain('name="required" value="false"');
+    expect(clear).toContain("Stop asking for a new password");
   });
 
   it("the create button renders", () => {

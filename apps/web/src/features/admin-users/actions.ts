@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getTranslations } from "next-intl/server";
 import { adminEraseUser } from "@/server/domains/identity/actions/erase-user";
 import {
   adminChangeRole,
@@ -10,6 +11,7 @@ import {
   adminEnableUser,
   adminResetPassword,
   adminResetTwoFactor,
+  adminSetPasswordChange,
 } from "@/server/domains/identity/actions/user-admin";
 import { IdentityError } from "@/server/domains/identity/exceptions/errors";
 import { setUserWorkspaces, userMemberships } from "@/server/domains/workspaces/actions/workspaces";
@@ -104,6 +106,7 @@ export const createUserFromForm = serverAction(
         name: text(form, "name"),
         role: text(form, "role"),
         password: chosenPassword(form),
+        requireChange: form.get("requireChange") === "on",
       });
       return { oneTime: { email: created.email, password: created.password } };
     }),
@@ -140,8 +143,25 @@ export const resetPasswordFromForm = serverAction(
         await requestHeaders(),
         text(form, "userId"),
         chosenPassword(form),
+        undefined,
+        form.get("requireChange") === "on",
       );
       return { oneTime: reset };
+    }),
+);
+
+/** Asks for a new password at the next sign-in, or stops asking, without changing it (128). */
+export const setPasswordChangeFromForm = serverAction(
+  async (_previous: AdminActionState, form: FormData): Promise<AdminActionState> =>
+    attempt(async () => {
+      const required = text(form, "required") === "true";
+      const { changed } = await adminSetPasswordChange(
+        await requestHeaders(),
+        text(form, "userId"),
+        required,
+      );
+      const t = await getTranslations("admin.passwordChange");
+      return { done: changed ? t(required ? "askedDone" : "clearedDone") : t("unchanged") };
     }),
 );
 

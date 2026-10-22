@@ -70,5 +70,9 @@
   "feedback-who": {
     "question": "Qui lit ceci?",
     "answer": "Seulement les personnes qui gèrent cette instance : root le lit dans Admin › Commentaires, avec votre nom et votre courriel pour pouvoir répondre. Rien n’est envoyé ailleurs, vous ne voyez pas d’historique de ce que vous avez envoyé, et le message est supprimé si votre compte est effacé."
+  },
+  "password-change": {
+    "question": "Pourquoi le demander?",
+    "answer": "Le mot de passe que root crée ou réinitialise est connu de root et a été communiqué à la personne. En demander un nouveau à la première connexion fait que seule la personne le connaît. D’ici là, elle ne voit que la page où elle le choisit, et ses jetons d’accès sont refusés. Désactivez-le pour un compte de test partagé. Les comptes qui se connectent par un fournisseur n’ont pas de mot de passe à remplacer."
   }
 }

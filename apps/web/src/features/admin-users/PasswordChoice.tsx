@@ -1,12 +1,15 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { Help } from "@/components/help/Help";
 import { Label } from "@/components/ui/Field";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 
 /** Generate a password (the default) or type one (12–128 characters). */
 export const PasswordChoice = ({ idPrefix }: { idPrefix: string }) => {
   const [mode, setMode] = useState<"generate" | "type">("generate");
+  const t = useTranslations("admin.passwordChange");
   return (
     <fieldset className="grid gap-2">
       <legend className="mb-1.5 text-sm font-semibold text-fg">Password</legend>
@@ -42,6 +45,19 @@ export const PasswordChoice = ({ idPrefix }: { idPrefix: string }) => {
           <p className="text-xs text-muted">12 to 128 characters.</p>
         </div>
       ) : null}
+      <div className="grid gap-1">
+        <label className="flex items-center gap-2 text-sm text-fg">
+          <input
+            type="checkbox"
+            name="requireChange"
+            defaultChecked
+            className="size-4 accent-(--accent)"
+          />
+          {t("checkbox")}
+          <Help id="password-change" />
+        </label>
+        <p className="text-xs text-muted">{t("checkboxHint")}</p>
+      </div>
     </fieldset>
   );
 };

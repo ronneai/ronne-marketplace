@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import { Help } from "@/components/help/Help";
 import { Badge } from "@/components/ui/Badge";
@@ -63,6 +64,7 @@ export const UserPage = ({
   self: boolean;
   slots?: UserPageSlots;
 }) => {
+  const t = useTranslations("admin.passwordChange");
   const erased = Boolean(user.erasedAt);
   const changeable = !self && !erased;
   const status = user.erasedAt ? (
@@ -145,6 +147,11 @@ export const UserPage = ({
         <Section id="user-access" title="Sign-in and access">
           <Facts>
             <Fact label="Two-factor">{user.twoFactor ? "On" : "Off"}</Fact>
+            {erased ? null : (
+              <Fact label={t("fact")}>
+                {user.passwordChangeRequiredAt ? t("factAsked") : t("factNotAsked")}
+              </Fact>
+            )}
             <Fact label="Sessions">{sessions}</Fact>
             <Fact label="Access tokens">{tokens}</Fact>
           </Facts>

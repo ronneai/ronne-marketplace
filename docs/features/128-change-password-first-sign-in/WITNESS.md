@@ -196,3 +196,85 @@ Witnessed: 2026-10-22 13:35 local, by a fresh agent (blind, re-check). Commit: 5
 | 7 | Once the password is changed, a person also required to use two-factor is no longer held on the change page and is held for enrolment next | no | confirmed | db test: a real change, then `{password: false, enrol: true}`; `holdPage` ordering test; mutations (flag never cleared, two-factor first) → each fails a test; 48 passed on each server. |
 
 **Overall:** met.
+
+
+## Task 5 — Root's controls
+
+Witnessed: 2026-10-22 13:45 local, by a fresh agent (blind). Commit: 104dab94 plus the uncommitted working tree. Machine: macOS (Darwin 27), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Reset password offers the checkbox, checked by default | no | confirmed | Mutation (default off) → the component test and the action test fail. |
+| 2 | Create user offers the same checkbox, checked by default | no | partly | Through the shared `PasswordChoice`, but no test rendered the open form. |
+| 3 | Unchecked is passed on and audited (`changeRequired` in `user.created` and `user.password_reset`) | no | confirmed | Action tests with and without the box; `summary.test.ts`. |
+| 4 | No-JS form posting | no | partly | Not run; the dialogs need JavaScript to open. |
+| 5 | The user page has a "New password" row with a button to set or clear it | no | confirmed | `user-page.test.tsx`. |
+| 6 | The ask and stop dialogs carry the right value and say what changed | no | confirmed | `actions.test.tsx`. |
+| 7 | Absence on one's own account | no | partly | By construction; only the Ask button was asserted. |
+| 8 | The service refuses the own row | no | confirmed | `CannotModifySelfError` in the db test. |
+| 9 | An account with no password is refused with a message | no | confirmed | `NoPasswordError` db test. |
+| 10 | Set and clear leave the password, sessions and tokens; audited; a repeat records nothing | no | confirmed | db test on four databases. |
+| 11 | Only root can do it | no | confirmed | `ForbiddenError` for a plain user. |
+| 12 | Messages in en, pt, fr; the helper link target exists | no | confirmed | i18n tests → 165 passed; `docsHref("admin", "users")`. |
+
+**Overall:** not met: rows 2, 4 and 7.
+
+### Adversarial pass
+
+Witnessed: 2026-10-22 13:50 local, by a fresh agent (adversarial). Commit: 104dab94 plus the uncommitted working tree. Machine: macOS (Darwin 27), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The service sets or clears the flag, refuses a non-root, and audits `user.password_change_requested` | no | confirmed | Probe on four databases; a signed-out caller, a user, a moderator, a disabled root and a demoted root are refused. |
+| 2 | Permission is enforced by the entry check and by the lock recheck, each with a test | no | partly | Dropping either alone failed no test. |
+| 3 | The checkbox is on by default; unchecked means off | no | confirmed | Mutation → a test fails; tampered values count as unchecked. |
+| 4 | Programmatic callers get the right default | no | confirmed | Service defaults to asking; SCIM and SSO never flag. |
+| 5 | Ask and stop dialogs, and their values | no | confirmed | Tests. |
+| 6 | An account that cannot clear the flag is refused (no password, erased, own row, unknown) | no | confirmed | Probes; mutations fail tests. |
+| 7 | No self-lockout from flagging | no | partly | Read in code, not driven. |
+| 8 | Audit: listed, summarised, no secret | no | confirmed | `AUDIT_ACTIONS`, `summary.test.ts`. |
+| 9 | "Already so" returns `changed: false` with no audit | no | confirmed | Mutations fail 2 tests. |
+| 10 | Concurrent toggles stay consistent | no | confirmed | Four at once on four databases. |
+| 11 | i18n parity; no markup hazard | no | confirmed | 165 tests. |
+
+**Overall:** not met: rows 2 and 7.
+
+### Re-check (adversarial rows 2 and 7)
+
+Witnessed: 2026-10-22 13:50 local, by a fresh agent (adversarial re-check). Commit: 104dab94 plus the uncommitted working tree. Machine: macOS (Darwin), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 2a | Dropping `lockAndRecheckActor` alone fails a test | no | confirmed | The demoted-or-disabled test fails. |
+| 2b | Dropping `requirePermission` alone fails a test | no | partly | The mutant was equivalent without a test of the early exit (a test was added after this pass). |
+| 2c | Dropping both fails the permission tests | no | confirmed | 3 tests fail. |
+| 2d | The new tests pass on every dialect | no | confirmed | 51 passed on each server. |
+| 7 | A flagged person, also required to use two-factor, can always reach `/account/password` | no | confirmed | `holdPage` returns on the change page before two-factor; `hold.test.ts`; the db test after the change. |
+
+**Overall:** met, except row 2b (see the next re-check).
+
+### Re-check (adversarial row 2b)
+
+Witnessed: 2026-10-22 13:55 local, by a fresh agent (adversarial re-check, one row). Commit: 104dab94 plus the uncommitted working tree. Machine: macOS (Darwin), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | "refuses a caller who isn't root before opening a transaction" passes | no | confirmed | 51 passed on SQLite, 52 on each other server. |
+| 2 | It fails when the upfront `requirePermission` is dropped | no | confirmed | Scratch mutation → exactly that test fails. |
+| 3 | Dropping only `lockAndRecheckActor` fails the demoted-or-disabled test and not this one, so each guard has its own test | no | confirmed | Scratch mutation. |
+
+**Overall:** met.
+
+### Re-check (blind rows 2, 4 and 7)
+
+Witnessed: 2026-10-22 13:55 local, by a fresh agent (blind, re-check). Commit: 104dab94 plus the uncommitted working tree. Machine: macOS (Darwin), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 2 | Create user offers the checkbox, checked by default (the open `CreateUserForm` is rendered) | no | confirmed | Removing `PasswordChoice` from the form, or `defaultChecked`, fails the test. |
+| 4 | The dialogs need JavaScript to open, so the claim is the FormData shape: absent box is false, `on` is true | no | confirmed | Action tests cover create and reset both ways. |
+| 7 | Root's own page has no Reset password, no Ask or Stop, no checkbox | no | confirmed | Mutating the `changeable` guard fails 2 tests; the service refuses the own row. |
+| 9 | The user-admin db test passes on all servers | no | confirmed | 52 on each server, 51 on SQLite. |
+| 10 | The upfront permission test fails without the early exit | no | confirmed | In-memory mutation → exactly that test. |
+
+**Overall:** met.

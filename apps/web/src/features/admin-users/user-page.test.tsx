@@ -233,6 +233,31 @@ describe("the route", () => {
     expect(html).not.toMatch(/>Enable</);
   });
 
+  it("says whether a new password is asked for, with the button to ask or to stop (128)", async () => {
+    session.getCurrentUser.mockResolvedValue({ id: "root-id", role: "root" });
+    const route = async () =>
+      renderToStaticMarkup(await UserRoute({ params: Promise.resolve({ id: ID }) }));
+    let html = await route();
+    expect(html).toContain("New password");
+    expect(html).toContain("Not asked");
+    expect(html).toMatch(/<button[^>]*>Ask for a new password<\/button>/);
+    expect(html).not.toMatch(/<button[^>]*>Stop asking for a new password<\/button>/);
+    admin.adminGetUser.mockResolvedValue(
+      detail({ passwordChangeRequiredAt: new Date("2026-10-20T10:00:00Z") }),
+    );
+    html = await route();
+    expect(html).toContain("Asked at their next sign-in");
+    expect(html).toMatch(/<button[^>]*>Stop asking for a new password<\/button>/);
+    // Your own page and an erased account's offer no way to change it: no reset, no box.
+    const own = page(detail(), true);
+    expect(own).not.toMatch(/Ask for a new password<\/button>/);
+    expect(own).not.toContain("Reset password");
+    expect(own).not.toContain("requireChange");
+    expect(page(detail({ erasedAt: new Date("2026-10-01T10:00:00Z") }))).not.toContain(
+      "New password",
+    );
+  });
+
   it("offers Enable for a disabled account and Reset two-factor only when it's on", async () => {
     session.getCurrentUser.mockResolvedValue({ id: "root-id", role: "root" });
     admin.adminGetUser.mockResolvedValue(

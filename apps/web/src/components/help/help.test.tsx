@@ -127,6 +127,7 @@ describe("the helpers moved to messages (130)", () => {
     "pins",
     "install-tick",
     "feedback-who",
+    "password-change",
   ] as const;
 
   it("are exactly the ones with their words in help.json, and each has a link here", () => {

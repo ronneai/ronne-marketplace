@@ -31,7 +31,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* action tests and a component test cover each; an end-to-end test signs in with a
   temporary password and changes it.
 
-- [ ] **5. Root's controls.** The checkbox on Create user and Reset password; the user page's (123)
+- [x] **5. Root's controls.** The checkbox on Create user and Reset password; the user page's (123)
   "must change" row with set/clear.
   *Done when:* component tests cover the checkbox default, its absence on own account and the user
   page row.

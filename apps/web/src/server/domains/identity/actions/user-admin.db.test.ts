@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { toDbDate } from "../../../db/dates";
 import { newId } from "../../../db/ids";
 import { GLOBAL_WORKSPACE_ID } from "../../../db/migrations/0019_workspaces";
@@ -12,6 +12,7 @@ import {
   InvalidPasswordError,
   InvalidRoleError,
   LastRootError,
+  NoPasswordError,
   UserNotFoundError,
 } from "../exceptions/errors";
 import { GENERATED_PASSWORD_LENGTH } from "../models/generated-password";
@@ -33,6 +34,7 @@ import {
   adminGetUser,
   adminListUsers,
   adminResetPassword,
+  adminSetPasswordChange,
 } from "./user-admin";
 
 const onServer = Boolean(process.env.TEST_DATABASE_URL);
@@ -114,6 +116,7 @@ describe("permissions", () => {
         () => adminDisableUser(headers, target, app),
         () => adminEnableUser(headers, target, app),
         () => adminResetPassword(headers, target, undefined, app),
+        () => adminSetPasswordChange(headers, target, true, app),
         () => adminDisableImpact(headers, target, app),
         () => adminGetUser(headers, target, app),
       ]) {
@@ -490,6 +493,54 @@ describe("roots acting at once (059)", () => {
     expect(await events("user.role_changed")).toEqual([]);
   });
 
+  it("a root demoted or disabled after the request began can't ask for a new password either (128)", async () => {
+    const root = await getCurrentUser(asRoot, app);
+    const target = await createTestUser(app, { email: "u@example.com", password: rootPassword });
+    await createTestUser(app, { email: "r2@example.com", password: rootPassword, role: "root" });
+    const repo = kyselyIdentityRepository(t.db, t.dialect);
+    const ask = () =>
+      service.setPasswordChangeRequired(
+        { repo, hasher: noHasher },
+        { user: root, ip: null },
+        target,
+        true,
+      );
+    await t.db.updateTable("user").set({ role: "user" }).where("id", "=", rootId).execute();
+    await expect(ask()).rejects.toThrow(ForbiddenError);
+    await t.db
+      .updateTable("user")
+      .set({ role: "root", disabled_at: toDbDate(new Date(), t.dialect) })
+      .where("id", "=", rootId)
+      .execute();
+    await expect(ask()).rejects.toThrow(ForbiddenError);
+    expect(await events("user.password_change_requested")).toEqual([]);
+    expect(
+      (await kyselyIdentityRepository(t.db, t.dialect).findUser(target))?.passwordChangeRequiredAt,
+    ).toBeNull();
+  });
+
+  it("refuses a caller who isn't root before opening a transaction (128)", async () => {
+    const target = await createTestUser(app, { email: "u@example.com", password: rootPassword });
+    const real = kyselyIdentityRepository(t.db, t.dialect);
+    const opened = vi.fn();
+    const repo = {
+      ...real,
+      transaction: <T>(work: (repo: typeof real) => Promise<T>) => {
+        opened();
+        return real.transaction(work);
+      },
+    };
+    const user = await getCurrentUser(await headersFor("u@example.com", rootPassword), app);
+    for (const actor of [
+      { user, ip: null },
+      { user: null, ip: null },
+    ])
+      await expect(
+        service.setPasswordChangeRequired({ repo, hasher: noHasher }, actor, target, true),
+      ).rejects.toThrow(ForbiddenError);
+    expect(opened).not.toHaveBeenCalled();
+  });
+
   it("never leaves the instance without an active root", async () => {
     // Reachable only through a race or bad data: the repository reports no root left.
     const other = await createTestUser(app, {
@@ -719,6 +770,56 @@ describe("asking for a new password at first sign-in (128)", () => {
       new Date(),
     );
     expect(await passwordChangeRequired(theirs, app)).toBe(false);
+  });
+
+  describe("root setting or clearing the request on its own (128)", () => {
+    it("sets and clears it without touching the password, sessions or tokens, and audits each change", async () => {
+      const id = await createTestUser(app, { email: "u@example.com", password: rootPassword });
+      const theirs = await headersFor("u@example.com", rootPassword);
+      await addToken(id);
+
+      expect(await adminSetPasswordChange(asRoot, id, true, app)).toEqual({
+        email: "u@example.com",
+        changed: true,
+      });
+      expect(await flagged(id)).toBeInstanceOf(Date);
+      expect(await getCurrentUser(theirs, app)).not.toBeNull();
+      expect(await activeTokens(id)).toBe(1);
+      expect(await canSignIn("u@example.com", rootPassword)).toBe(true);
+
+      // Already so: nothing changes and nothing is recorded.
+      expect((await adminSetPasswordChange(asRoot, id, true, app)).changed).toBe(false);
+      expect((await adminSetPasswordChange(asRoot, id, false, app)).changed).toBe(true);
+      expect(await flagged(id)).toBeNull();
+      expect((await adminSetPasswordChange(asRoot, id, false, app)).changed).toBe(false);
+      const recorded = await events("user.password_change_requested");
+      expect(recorded.map((e) => e.metadata)).toEqual([
+        { via: "web", changeRequired: false },
+        { via: "web", changeRequired: true },
+      ]);
+    });
+
+    it("refuses an account with no password, root's own row, an unknown user and anyone but root", async () => {
+      const repo = kyselyIdentityRepository(t.db, t.dialect);
+      const sso = await repo.createUserWithoutPassword(
+        { email: "sso@example.com", name: "SSO", role: "user" },
+        new Date(),
+      );
+      await expect(adminSetPasswordChange(asRoot, sso, true, app)).rejects.toThrow(NoPasswordError);
+      expect(await flagged(sso)).toBeNull();
+      // Stopping the request on such an account is harmless.
+      expect((await adminSetPasswordChange(asRoot, sso, false, app)).changed).toBe(false);
+      await expect(adminSetPasswordChange(asRoot, rootId, true, app)).rejects.toThrow(
+        CannotModifySelfError,
+      );
+      await expect(adminSetPasswordChange(asRoot, "1".repeat(26), true, app)).rejects.toThrow(
+        UserNotFoundError,
+      );
+      const id = await createTestUser(app, { email: "u@example.com", password: rootPassword });
+      const asUser = await headersFor("u@example.com", rootPassword);
+      await expect(adminSetPasswordChange(asUser, id, true, app)).rejects.toThrow(ForbiddenError);
+      expect(await flagged(id)).toBeNull();
+    });
   });
 
   describe("changing the temporary password", () => {

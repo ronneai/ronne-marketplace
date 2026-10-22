@@ -44,6 +44,7 @@ const User = async ({ params }: { params: Promise<{ id: string }> }) => {
       role: user.role,
       disabled: Boolean(user.disabledAt),
       twoFactor: Boolean(user.twoFactor),
+      passwordChange: Boolean(user.passwordChangeRequiredAt),
       managedBy: user.scim?.managed ? user.scim.providerName : undefined,
     };
     // Root works in every workspace: no Workspaces dialog for root (092).
@@ -56,6 +57,7 @@ const User = async ({ params }: { params: Promise<{ id: string }> }) => {
       access: (
         <>
           <UserActionButton kind="reset" user={row} />
+          <UserActionButton kind={row.passwordChange ? "clearChange" : "askChange"} user={row} />
           <UserActionButton kind="twoFactor" user={row} hidden={!row.twoFactor} />
           <UserActionButton kind={row.disabled ? "enable" : "disable"} user={row} />
         </>

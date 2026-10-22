@@ -70,5 +70,9 @@
   "feedback-who": {
     "question": "Who reads this?",
     "answer": "Only the people who run this instance: root reads it in Admin › Feedback, with your name and email so they can write back. It isn’t sent anywhere else, you don’t get a history of what you sent, and it is deleted if your account is erased."
+  },
+  "password-change": {
+    "question": "Why ask?",
+    "answer": "A password root creates or resets is known to root, and was shared with the person. Asking for a new one at the first sign-in means that only the person knows it. Until they do, they see only the page where they choose it, and their access tokens are refused. Turn it off for a shared test account. Accounts that sign in with a provider have no password to replace."
   }
 }

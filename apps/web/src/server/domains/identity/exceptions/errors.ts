@@ -107,6 +107,16 @@ export class EraseConfirmationError extends IdentityError {
   }
 }
 
+/** Asking for a new password of an account that has none, as one made by a provider's sign-in (128). */
+export class NoPasswordError extends IdentityError {
+  override readonly name: string = "NoPasswordError";
+  constructor() {
+    super(
+      "That account has no password (it signs in with a provider), so there is none to replace.",
+    );
+  }
+}
+
 export class EmailTakenError extends IdentityError {
   override readonly name: string = "EmailTakenError";
   constructor(readonly email: string) {

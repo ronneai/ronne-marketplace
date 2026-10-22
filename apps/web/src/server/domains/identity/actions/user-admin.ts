@@ -102,6 +102,15 @@ export const adminResetPassword = async (
   );
 };
 
+export const adminSetPasswordChange = async (
+  headers: Headers,
+  userId: string,
+  required: boolean,
+  app: AppAuth = getAppAuth(),
+) => {
+  return service.setPasswordChangeRequired(deps(app), await actor(headers, app), userId, required);
+};
+
 export const adminDisableImpact = async (
   headers: Headers,
   userId: string,

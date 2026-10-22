@@ -27,5 +27,19 @@
       "too_many_links": "Use no máximo {links, number} links na mensagem.",
       "tone_invalid": "Escolha Informação ou Aviso."
     }
+  },
+  "passwordChange": {
+    "checkbox": "Pedir que escolham uma nova senha ao entrar",
+    "checkboxHint": "Só a pessoa vai conhecê-la. As contas que entram por um provedor não são afetadas.",
+    "fact": "Nova senha",
+    "factAsked": "Pedida no próximo acesso",
+    "factNotAsked": "Não pedida",
+    "askTitle": "Pedir uma nova senha",
+    "clearTitle": "Deixar de pedir uma nova senha",
+    "askBody": "No próximo acesso, a pessoa precisa escolher a própria senha antes de qualquer outra coisa. A senha, as sessões e os tokens continuam como estão.",
+    "clearBody": "A pessoa não será mais convidada a escolher uma nova senha. A senha, as sessões e os tokens continuam como estão.",
+    "askedDone": "A pessoa será convidada a escolher uma nova senha no próximo acesso.",
+    "clearedDone": "A pessoa não será mais convidada a escolher uma nova senha.",
+    "unchanged": "Nada mudou."
   }
 }

@@ -253,7 +253,14 @@ export const SUMMARIES: Record<AuditAction, Build> = {
   "user.password_reset": (m, e) => [
     "Reset the password of ",
     who(m, e),
-    `${m.twoFactorReset === true ? " and turned off its two-factor sign-in" : ""}${ended(m)}${via(m)}`,
+    `${m.twoFactorReset === true ? " and turned off its two-factor sign-in" : ""}${m.changeRequired === true ? ", asking for a new one at their next sign-in" : ""}${ended(m)}${via(m)}`,
+  ],
+  "user.password_change_requested": (m, e) => [
+    m.changeRequired === false
+      ? "Stopped asking for a new password at the next sign-in of "
+      : "Asked for a new password at the next sign-in of ",
+    who(m, e),
+    via(m),
   ],
   "user.two_factor_reset": (m, e) => [
     "Turned off the two-factor sign-in of ",
@@ -303,14 +310,12 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     `A two-factor code was refused at sign-in (${TWO_FACTOR_REASONS[text(m.reason)] ?? text(m.reason)})`,
   ],
   "user.password_changed": (m) => [
-    num(m.otherSessionsEnded)
-      ? `Changed their password (${plural(num(m.otherSessionsEnded), "other session")} ended)`
-      : "Changed their password",
+    `${m.required === true ? "Chose their own password, as root asked" : "Changed their password"}${num(m.otherSessionsEnded) ? ` (${plural(num(m.otherSessionsEnded), "other session")} ended)` : ""}`,
   ],
   "user.created": (m) => [
     "Created ",
     { name: text(m.email) },
-    ` as ${text(m.role)}`,
+    ` as ${text(m.role)}${m.changeRequired === true ? ", asking for a new password at their first sign-in" : ""}`,
     ...(m.via === "sso" ? [" at their first sign-in with ", { code: text(m.provider) }] : []),
   ],
   "user.sso_linked": (m) => [
