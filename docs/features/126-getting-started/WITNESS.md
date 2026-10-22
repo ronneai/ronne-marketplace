@@ -34,3 +34,22 @@ Witnessed: 2026-10-21 22:35 local, by a fresh agent (blind re-check). Commit: bb
 | 7 | The data-export and erase tests are extended | yes | confirmed | `erase-user.db.test.ts` and `user-data-export.db.test.ts` now seed a `user_onboarding` row; the erase list has `user_onboarding`, the export asserts `data.onboarding`. SQLite and PostgreSQL → 20 of 20 passed. Removing `deleteOnboarding` failed the existing erase test; removing `onboarding,` from the export failed the existing export test; both restored, `cmp` matched. |
 
 **Overall:** met.
+
+## Task 2 — Reading the steps
+
+Witnessed: 2026-10-21 22:25 local, by a fresh agent (blind). Commit: 8fe52798 plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The service returns each step's state and the panel's visibility (`hidden`, `completed_seen_at`); signed out is refused | no | confirmed | `services/getting-started.ts` reads the facts and the state, and `gettingStartedOf` returns `done`, `count`, `current`, `complete`, `hidden`, `panel`; a test covers `ForbiddenError`. |
+| 2 | Step 1 is a token that isn't revoked, the person's own | no | confirmed | The tests (revoked, a second one that isn't, `rmk login --web`, someone else's) pass; removing the revoked filter in a scratch copy failed 2 tests. |
+| 3 | Step 2 is a used token (even revoked since) or an approved or spent device grant, not pending, denied or expired; the person's own | no | confirmed | The tests cover each grant status and someone else's data; dropping the grant branch failed the grant test. |
+| 4 | Step 3 is the person's word only; a usage `install` total ticks nothing | no | confirmed | A `usage_daily` row with `event: install`, `count: 9`, plus a used token → `install` false; `confirmInstall` ticks it for that person only. |
+| 5 | Step 4 is a draft or a submission in any status, the person's own | no | confirmed | Another person's draft leaves it false; a rejected one still counts. |
+| 6 | "N of 4", the first undone step, step 4 doesn't block completion, a draft alone doesn't complete | no | confirmed | `models/getting-started.test.ts` covers 0, 1, 2, 3 and 4 done. |
+| 7 | "You're set up" once, then null; an account with only a token sees step 1 ticked | no | confirmed | "a long-time account with everything done": `setUp`, then null; "only a token": `steps`, count 1. |
+| 8 | Hiding wins, finished or not; showing again brings back what is true | no | confirmed | The unit test "hiding wins" and the db test "hides, and shows again". |
+| 9 | Tests pass on SQLite and the three servers | no | confirmed | SQLite → 4 files, 33 tests; `pnpm test:db:postgres`, `:mysql`, `:mariadb` → 15 of 15 each. |
+| 10 | SPEC.md's "Existing accounts" wording matches the behaviour | no | confirmed | The diff says a long-time user sees "2 of 4" until they confirm or hide, then "You're set up" once. |
+
+**Overall:** met.

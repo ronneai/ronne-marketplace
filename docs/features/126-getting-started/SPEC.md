@@ -31,9 +31,11 @@ ticking itself as they go, and goes away when they are done or don't want it.
 - **Done:** when steps 1–3 are done, the panel shows "You're set up" with links (Documentation,
   New item) once, then disappears on the next visit.
 - **Hide it:** a Hide button on the panel; on Account, a **Show getting started again** button.
-- **Existing accounts:** the panel works out its state from what already exists, so a long-time
-  user with a token and installs never sees it, and one who has only a token sees it with step 1
-  ticked.
+- **Existing accounts:** the panel works out its state from what already exists. One who has only
+  a token sees it with step 1 ticked. Steps 1, 2 and 4 are read from tokens, grants and
+  submissions, but an install can't be seen (see step 3), so a long-time user sees "2 of 4" until
+  they press "I've installed one" or Hide; with all three done they see "You're set up" once and
+  never again.
 
 **Out** (and where it goes instead):
 - A tour or tooltips over the interface; videos.
@@ -88,7 +90,7 @@ ticking itself as they go, and goes away when they are done or don't want it.
       from Account.
 - [ ] The commands shown are the tokens page's, with the instance address; no token value is on
       Home.
-- [ ] An existing account with everything done never sees the panel.
+- [ ] An existing account with everything done sees "You're set up" once and then never sees the panel.
 - [ ] Hide, confirm and show again work without JavaScript.
 - [ ] Everything is in messages (129) in three languages; phone sweep passes.
 - [ ] `user_onboarding` is in "Your data" (104) and deleted on erase (103).
