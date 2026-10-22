@@ -2,10 +2,9 @@
 
 > Milestone: M8 · Depends on: 011, 022, 045 · Design: [MVP §4.3](../../MVP/MVP.md#43-install--update) · Contracts: [`docs/spec/manifest.md`](../../spec/manifest.md), [`docs/spec/cli-files.md`](../../spec/cli-files.md)
 
-> **On hold** since 2026-09-30 (owner): stopped during task 1. The started work (the schema field,
-> its checks and tests) is kept in the local git stash "048 task 1 WIP", made on the branch
-> `feat/048-runtime-requirements` (`git stash pop` there). Before work starts again, re-check this
-> spec against what was built since.
+> **Dropped** on 2026-10-22 (owner): it won't be implemented. It was on hold since 2026-09-30, and
+> the started work (the schema field and its checks) was never merged; its branch and stash are
+> removed. The folder stays as the record of the idea.
 
 ## Goal
 
