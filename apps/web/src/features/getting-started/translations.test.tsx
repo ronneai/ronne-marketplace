@@ -37,6 +37,9 @@ describe("the checklist in Portuguese and French", () => {
       'aria-label="Ocultar Primeiros passos"',
       ">Já instalei um<",
       ">Opcional<",
+      "Próximo: Instale o seu primeiro item",
+      ">Ver todos os passos<",
+      ">2/4<",
       ">Concluído<",
       "Este registro ainda não tem escopo.",
     ])
@@ -48,6 +51,8 @@ describe("the checklist in Portuguese and French", () => {
       'aria-label="Masquer Pour commencer"',
       ">J’en ai installé un<",
       ">Facultative<",
+      "Ensuite : Installez votre premier élément",
+      ">Voir toutes les étapes<",
       ">Terminée<",
       "Ce registre n’a pas encore de portée.",
     ])
@@ -76,4 +81,17 @@ describe("no English left behind (126)", () => {
       expect(await ownTextsShown(["home", "account"], locale, html)).toBeGreaterThan(10);
     });
   }
+});
+
+describe("the banner's other next steps, in each language", () => {
+  it("says Show the commands while the next step is connecting rmk", () => {
+    const connect = gettingStartedOf(
+      { hasToken: true, connected: false, hasSubmission: false },
+      NO_ONBOARDING,
+    );
+    expect(view("pt", <GettingStartedPanel state={connect} />)).toContain(">Mostrar os comandos<");
+    expect(view("fr", <GettingStartedPanel state={connect} />)).toContain(
+      ">Afficher les commandes<",
+    );
+  });
 });

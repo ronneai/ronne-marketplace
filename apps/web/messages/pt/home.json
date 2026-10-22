@@ -74,6 +74,11 @@
     "noScope": {
       "text": "Este registro ainda não tem escopo. Crie um para que as pessoas possam enviar itens.",
       "action": "Abrir o espaço de trabalho global"
-    }
+    },
+    "next": "Próximo: {step}",
+    "seeAll": "Ver todos os passos",
+    "showCommands": "Mostrar os comandos",
+    "ring": "{done}/{total}",
+    "dialogHint": "Quatro passos curtos, marcados à medida que você avança."
   }
 }

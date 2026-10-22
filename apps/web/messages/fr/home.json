@@ -74,6 +74,11 @@
     "noScope": {
       "text": "Ce registre n’a pas encore de portée. Créez-en une pour que les gens puissent soumettre des éléments.",
       "action": "Ouvrir l’espace de travail global"
-    }
+    },
+    "next": "Ensuite : {step}",
+    "seeAll": "Voir toutes les étapes",
+    "showCommands": "Afficher les commandes",
+    "ring": "{done}/{total}",
+    "dialogHint": "Quatre courtes étapes, cochées au fur et à mesure."
   }
 }

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { checklist, createToken, step, useToken, walkThrough } from "./getting-started";
+import { checklist, createToken, progress, useToken, walkThrough } from "./getting-started";
 import { E2E_PASSWORD, E2E_USERS } from "./users";
 
 /**
@@ -17,7 +17,14 @@ const signIn = async (page: import("@playwright/test").Page, email: string) => {
 test("a hidden checklist comes back from Account, on Home", async ({ page }) => {
   await signIn(page, E2E_USERS.starterAccount);
   await expect(checklist(page)).toBeVisible();
-  await expect(checklist(page).getByText("0 of 4 done")).toBeVisible();
+  await expect(progress(page)).toContainText("0 of 4 done");
+  // The banner is teal, the inline helpers' panel colour (owner, 2026-10-21), not the plain white.
+  const colours = await checklist(page).evaluate((el) => {
+    const panel = el.firstElementChild as HTMLElement;
+    return { banner: getComputedStyle(panel).backgroundColor, white: "rgb(255, 255, 255)" };
+  });
+  expect(colours.banner).toBe("rgb(232, 247, 244)");
+  expect(colours.banner).not.toBe(colours.white);
 
   await page.getByRole("button", { name: "Hide Getting started" }).click();
   await expect(checklist(page)).toHaveCount(0);
@@ -31,7 +38,7 @@ test("a hidden checklist comes back from Account, on Home", async ({ page }) => 
   // The button ends on Home, where the checklist is back as the person left it.
   await expect(page).toHaveURL(/\/$/);
   await expect(checklist(page)).toBeVisible();
-  await expect(checklist(page).getByText("0 of 4 done")).toBeVisible();
+  await expect(progress(page)).toContainText("0 of 4 done");
 });
 
 test("a new person walks through the checklist to 'You’re set up' and back", async ({
@@ -63,15 +70,15 @@ test("Hide, 'I’ve installed one' and Show again work without JavaScript", asyn
   });
   const page = await context.newPage();
   await page.goto("/");
-  await expect(checklist(page).getByText("2 of 4 done")).toBeVisible();
+  await expect(progress(page)).toContainText("2 of 4 done");
   // Hide, then bring it back from Account: both are plain forms.
   await page.getByRole("button", { name: "Hide Getting started" }).click();
   await expect(checklist(page)).toHaveCount(0);
   await page.goto("/account/password");
   await page.getByRole("button", { name: "Show getting started again" }).click();
-  await expect(checklist(page).getByText("2 of 4 done")).toBeVisible();
-  await expect(step(page, "Install your first item")).toHaveAttribute("aria-current", "step");
-  await page.getByRole("button", { name: "I’ve installed one" }).click();
+  await expect(progress(page)).toContainText("2 of 4 done");
+  await expect(checklist(page)).toContainText("Next: Install your first item");
+  await checklist(page).getByRole("button", { name: "I’ve installed one" }).click();
   await expect(page.getByRole("heading", { name: "You’re set up" })).toBeVisible();
   // Seen once, without JavaScript too: the next visit has neither the steps nor "You’re set up".
   await page.goto("/");

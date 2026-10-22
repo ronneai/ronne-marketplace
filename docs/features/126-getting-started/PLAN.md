@@ -41,7 +41,20 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   "You're set up"); next visit it is gone; Show again from Account.
   *Done when:* the end-to-end tests pass on every project.
 
-- [ ] **8. Documentation.** The sections and helpers in the spec, in a ronne-web branch.
+- [x] **8. Banner and steps dialog** (owner, 2026-10-21). Getting started becomes a slim teal banner
+  (progress ring, the next step and its one button, Hide) and a dialog with the four steps.
+  *Done when:* component and end-to-end tests cover the banner for each next step, its colour, the
+  dialog, the no-JavaScript buttons and the phone; the phone sweep passes on every project.
+
+- [ ] **9. Compact cards and the Catalogue's view** (owner, 2026-10-21). The item cards on Home, its
+  shelves and the Catalogue become a compact card in a grid of at most five to a row, with the date
+  on the version's row, two lines of description, no workspace and scope line, and a copy icon; the
+  Catalogue gets Grid view and List view.
+  *Done when:* tests cover the card, the grid at every window width (never narrower than 17rem,
+  never more than five, the same height), the two-line ellipsis measured in a browser, the copy
+  icon, and the view switch with and without JavaScript; the phone sweep passes on every project.
+
+- [ ] **10. Documentation.** The sections and helpers in the spec, in a ronne-web branch.
   *Done when:* the docs tests pass in ronne-web, and the helper link test passes here.
 
 ## Notes

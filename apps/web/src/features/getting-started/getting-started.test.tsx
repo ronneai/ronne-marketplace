@@ -158,3 +158,61 @@ describe("Getting started: the buttons are forms", () => {
     expect(panel(state())).not.toContain("no scope yet");
   });
 });
+
+/** What is outside the dialog: the banner itself, the part that works without JavaScript. */
+const banner = (html: string) => html.replace(/<dialog[\s\S]*?<\/dialog>/, "");
+
+describe("Getting started: the banner (126)", () => {
+  it("shows the progress ring, the title with the count, and the next step", () => {
+    const html = banner(panel(state({ hasToken: true })));
+    expect(html).toContain(">1/4<");
+    expect(html).toContain("1 of 4 done");
+    expect(html).toContain("Next: Connect rmk");
+    expect(html).toContain('aria-label="Hide Getting started"');
+  });
+
+  it("offers the next step's button: a token, the commands, the catalogue and the install", () => {
+    const token = banner(panel(state()));
+    expect(token).toContain("Next: Create an access token");
+    expect(token).toMatch(/href="\/account\/tokens"[^>]*>Open CLI &amp; tokens</);
+    expect(token).toContain(">See all steps<");
+
+    const connect = banner(panel(state({ hasToken: true })));
+    expect(connect).toContain(">Show the commands<");
+    expect(connect).not.toContain(">See all steps<");
+
+    const install = banner(panel(state({ hasToken: true, connected: true })));
+    expect(install).toContain("Next: Install your first item");
+    expect(install).toMatch(/href="\/catalogue"[^>]*>Browse the catalogue</);
+    expect(install).toContain(">I’ve installed one<");
+  });
+
+  it("keeps the commands and the full list inside the dialog, not on the page", () => {
+    const html = panel(state());
+    expect(banner(html)).not.toContain("rmk login");
+    expect(html.match(/<dialog[\s\S]*?<\/dialog>/)?.[0]).toContain("rmk login");
+    expect(steps(html)).toHaveLength(4);
+  });
+
+  it("has its own Hide and the install button as plain forms, outside the dialog", () => {
+    const html = banner(panel(state({ hasToken: true, connected: true })));
+    expect(html.match(/<form/g)).toHaveLength(2);
+    for (const form of html.match(/<form[\s\S]*?<\/form>/g) ?? [])
+      expect(form).toContain('type="submit"');
+  });
+
+  it("is one slim row: no list of steps on the page itself", () => {
+    expect(steps(banner(panel(state())))).toEqual([]);
+  });
+});
+
+describe("Getting started: the banner's colour (126, owner)", () => {
+  it("is the teal of the inline helpers' panel, in both states, and not the plain surface", () => {
+    for (const html of [panel(state()), panel(state({ hasToken: true, connected: true }, true))]) {
+      const first = html.slice(0, html.indexOf(">", html.indexOf("<div")));
+      expect(first).toContain("bg-popover");
+      expect(first).toContain("border-popover-border");
+      expect(first).not.toContain("bg-surface");
+    }
+  });
+});

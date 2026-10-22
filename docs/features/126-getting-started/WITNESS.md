@@ -189,3 +189,35 @@ Witnessed: 2026-10-21 23:25 local, by a fresh agent (blind re-check). Commit: 21
 | 10 | The retry limit is documented | no | confirmed | The comment is in `getting-started.ts`. |
 
 **Overall:** met.
+
+## Task 8 — Banner and steps dialog
+
+Witnessed: 2026-10-21 23:55 local, by a fresh agent (blind). Commit: a3ab6550 plus the uncommitted working tree (Plan task 9's changes ignored). Machine: macOS (Darwin 27.0.0), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Component tests for the task's files pass | no | confirmed | `vitest run src/features/getting-started src/components/ui "src/app/(app)/page.test.tsx" src/i18n` → 30 files, 325 tests passed. |
+| 2 | Lint, typecheck and the build are clean | no | confirmed | `pnpm lint` → 0 errors; `tsc --noEmit` clean; `next build` completed. |
+| 3 | Getting started is a slim banner (ring, next step and its one button, Hide) plus a dialog with the four steps | no | confirmed | `GettingStartedPanel.tsx`; a screenshot shows one row of about 75px; the four steps are inside `StepsDialog`. |
+| 4 | Component tests cover the banner for each next step | no | confirmed | Removing the install form failed 2 tests; restored, `cmp` identical. |
+| 5 | A test covers the banner's colour (the `--popover` pair) | no | confirmed | `tone="teal"` rendering the surface failed `panel.test.tsx` and `getting-started.test.tsx`; `e2e/getting-started.e2e.ts` asserts `rgb(232, 247, 244)` in the browser. |
+| 6 | A test covers the dialog: the steps are in it, not on the page | no | confirmed | Rendering the steps on the page failed 3 tests; restored. |
+| 7 | The end-to-end tests pass on chromium, phone, phone-webkit and tablet | no | confirmed | `playwright test e2e/getting-started.e2e.ts e2e/getting-started.mobile.e2e.ts --project …` → 12 passed. |
+| 8 | Hide, "I've installed one" and Show again work without JavaScript | no | confirmed | The `javaScriptEnabled: false` test passed; the dialog needs JavaScript, as the spec says. |
+| 9 | The phone: the banner fits at the device width and 320px, is slim, and its buttons are 44px | no | confirmed | `getting-started.mobile.e2e.ts` passed on three projects; `IconButton` has `pointer-coarse:size-11`. |
+| 10 | The phone sweep passes on every project | no | confirmed | `playwright test e2e/mobile-sweep.mobile.e2e.ts --project phone --project phone-webkit --project tablet` → 45 passed. |
+| 11 | The banner is legible in the light and dark themes | no | partly | Fine by screenshots, but the ring's arc (`accent-strong` on the teal) was 2.97:1 in the dark theme. |
+| 12 | `tokens.test.ts` covers `--popover` with `--fg` and `--muted` | no | not met | No `popover` pair was in it. |
+
+**Overall:** not met: rows 11 and 12.
+
+### Re-check (rows 11 and 12)
+
+Witnessed: 2026-10-21 00:20 local, by a fresh agent (blind re-check). Commit: a3ab6550 plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 12 | `tokens.test.ts` checks `--popover` with `--fg`, `--muted`, `--link` (4.5) and `--chart` (3) in both themes, and fails if a pair breaks | no | confirmed | The four pairs run under both themes; `vitest run src/app/tokens.test.ts` → 111 passed; changing `--popover` in either theme failed 4 tests; restored, `cmp` identical. |
+| 11 | The ring's arc is at least 3:1 on the teal in both themes, and the banner looks right at 0/4 and 2/4 | no | confirmed | `stroke-chart`: 4.61 light, 5.94 dark (before 2.97); screenshots of both themes at 0/4 and 2/4 read. |
+
+**Overall:** met.

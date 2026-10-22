@@ -74,6 +74,11 @@
     "noScope": {
       "text": "This registry has no scope yet. Create one so people can submit items.",
       "action": "Open the global workspace"
-    }
+    },
+    "next": "Next: {step}",
+    "seeAll": "See all steps",
+    "showCommands": "Show the commands",
+    "ring": "{done}/{total}",
+    "dialogHint": "Four short steps, ticked as you go."
   }
 }

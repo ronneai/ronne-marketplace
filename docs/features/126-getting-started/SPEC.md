@@ -11,8 +11,12 @@ ticking itself as they go, and goes away when they are done or don't want it.
 ## Scope
 
 **In:**
-- **A Getting started panel** on Home (section 3 of 124), for any signed-in person who hasn't
-  finished or hidden it. Four steps:
+- **A Getting started banner** on Home (section 3 of 124), for any signed-in person who hasn't
+  finished or hidden it: one slim row with a progress ring, "Getting started · 2 of 4 done", the
+  next step ("Next: Install your first item") with its one button, **See all steps** (or **Show the
+  commands**, while the next step is connecting rmk) and a Hide icon. The four steps, their commands
+  and their buttons are in the dialog those open (owner, 2026-10-21: the full list on the page was
+  too heavy). Four steps:
 
   | # | Step | Done when | How it's detected |
   |---|---|---|---|
@@ -21,7 +25,7 @@ ticking itself as they go, and goes away when they are done or don't want it.
   | 3 | **Install your first item** | they say so | a button "I've installed one" (`install_confirmed_at`) |
   | 4 | **Start a draft** (optional) | they have a draft or any submission | `submissions` (012) |
 
-  Each step has one sentence and one action: step 1 → CLI & tokens; step 2 → the install and login
+  In the dialog each step has one sentence and one action: step 1 → CLI & tokens; step 2 → the install and login
   commands for this instance (the same ready-made lines the tokens page shows, with the instance's
   address, including `rmk login --registry <address> --web`) and a copy button; step 3 → the
   catalogue, and for the install, the command on any item page; step 4 → New item and the
@@ -55,9 +59,11 @@ ticking itself as they go, and goes away when they are done or don't want it.
 - **The commands** come from the same function as the tokens page (so the address and the flags
   never differ), and show the `npm install --global @ronneai/rmk` line before them when the person
   has no token yet. Nothing secret is on Home: a token is never shown here.
-- **No JavaScript:** Hide, "I've installed one" and Show again are forms; copy buttons need
-  JavaScript, and the commands stay selectable text.
-- **Phone:** the panel is a stacked list with 44px actions; commands wrap (071).
+- **No JavaScript:** Hide, "I've installed one" (the banner's button while the next step is the
+  install) and Show again are forms, and the banner's links work; the steps dialog and the copy
+  buttons need JavaScript, and the commands stay selectable text.
+- **Phone:** the banner wraps onto a few lines with 44px actions; the steps dialog fills the screen
+  (067) as a stacked list, and its commands wrap (071).
 - **Disabled and held people:** the panel shows only where Home does (the two-factor and
   password-change holds redirect first).
 
@@ -95,6 +101,39 @@ ticking itself as they go, and goes away when they are done or don't want it.
 - [ ] Everything is in messages (129) in three languages; phone sweep passes.
 - [ ] `user_onboarding` is in "Your data" (104) and deleted on erase (103).
 - [ ] The Documentation and helpers above say what the feature does now.
+- [ ] Home shows Getting started as a slim teal banner with a steps dialog, and the item cards on
+      Home, its shelves and the Catalogue are compact cards in a grid of up to five to a row that
+      keeps its shape while the window is resized; the Catalogue also has a list view.
+
+## Home's cards (owner, 2026-10-21)
+
+Done in the same change, since Home was being reworked. The banner is the light teal of the inline
+helpers' panel (deep teal in the dark theme), the `--popover` pair of tokens.
+
+The item cards on Home, on its shelves (125) and on the Catalogue are one **compact card** in a
+**grid**: as many columns as fit with a card never narrower than 17rem, and **never more than five
+to a row**, so one to a row on a phone and four or five on a wide screen. The columns change on
+their own as the window is resized and the cards share the room, so a card is between 17 and about
+23rem wide and keeps about the same shape, never a taller one just before a column drops off (the
+owner saw that with fixed breakpoints). The card has:
+
+- the name, in at most two lines (the whole of it on hover), broken at `-` and `/` first; the
+  full name already says the workspace and the scope, so the **Workspace/Scope line is left out**,
+  except a small cue for a private workspace (a lock and "Private") or a personal one;
+- the version, the type and any badges, with the **date at the right of the same row**, no word
+  beside it (the word is there for screen readers);
+- a description cut at **two lines with an ellipsis**, with room kept for two;
+- in the footer, the installs and a **copy icon** (its words for screen readers, the command as its
+  tooltip) instead of a box with the command in it.
+
+The keywords and the AI tools an item works in are left to the item's page.
+
+### Grid or list on the Catalogue
+
+The Catalogue has two links beside Sort, **Grid view** and **List view**: `?view=list` shows the
+earlier full-width cards (keywords, tools, the place line and the install command), one to a row;
+the grid is the default and leaves the parameter out. It is a link, so it works without JavaScript,
+the choice is in the address, and it rides along searching, filtering, sorting and paging.
 
 ## Open questions
 

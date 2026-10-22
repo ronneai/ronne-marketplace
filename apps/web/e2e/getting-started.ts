@@ -1,11 +1,28 @@
-import { type APIRequestContext, expect, type Page } from "@playwright/test";
+import { type APIRequestContext, expect, type Locator, type Page } from "@playwright/test";
 
-/** Home's Getting started checklist (126). */
+/** Home's Getting started banner (126). */
 export const checklist = (page: Page) => page.getByRole("region", { name: "Getting started" });
 
-/** A step's list item, by its title. */
-export const step = (page: Page, title: string) =>
-  checklist(page).getByRole("listitem").filter({ hasText: title });
+/** The banner's title line, which carries the count: "Getting started · 2 of 4 done". */
+export const progress = (page: Page) =>
+  checklist(page).getByRole("heading", { level: 2, name: /^Getting started/ });
+
+/** The steps dialog, opened with the button named `opener`; give it back to read and to close. */
+export const openSteps = async (page: Page, opener: string): Promise<Locator> => {
+  await checklist(page).getByRole("button", { name: opener }).click();
+  const dialog = page.getByRole("dialog", { name: "Getting started" });
+  await expect(dialog).toBeVisible();
+  return dialog;
+};
+
+/** A step's list item in the open dialog, by its title. */
+export const step = (dialog: Locator, title: string) =>
+  dialog.getByRole("listitem").filter({ hasText: title });
+
+export const closeSteps = async (dialog: Locator) => {
+  await dialog.getByRole("button", { name: "Close" }).click();
+  await expect(dialog).toBeHidden();
+};
 
 /** Makes a token through the Create token dialog and gives its value, which is shown once. */
 export const createToken = async (page: Page, name: string): Promise<string> => {
@@ -30,37 +47,47 @@ export const useToken = async (request: APIRequestContext, token: string) => {
 /**
  * The whole walk-through for a person who is signed in and has done nothing: 0 of 4; a token (1);
  * rmk used (2, and the sign-in lines are the instance's own); "I've installed one" ends on
- * "You're set up"; the next visit has no checklist; Account brings it back as "You're set up".
+ * "You're set up"; the next visit has no banner; Account brings it back as "You're set up".
  * It changes the person's state for good, so each attempt needs a fresh user: after a failed first
  * attempt a retry stops at "0 of 4", and the first attempt's trace is the one to read.
  */
 export const walkThrough = async (page: Page, request: APIRequestContext) => {
   await page.goto("/");
   await expect(checklist(page)).toBeVisible();
-  await expect(checklist(page).getByText("0 of 4 done")).toBeVisible();
-  await expect(step(page, "Create an access token")).toHaveAttribute("aria-current", "step");
-  // The sign-in lines carry this instance's own address, and no token is on the page.
+  await expect(progress(page)).toContainText("0 of 4 done");
+  await expect(checklist(page)).toContainText("Next: Create an access token");
+  // The commands are not on the page itself, only in the steps dialog, with this instance's address.
+  await expect(page.locator("main code:visible", { hasText: "rmk login" })).toHaveCount(0);
   const origin = new URL(page.url()).origin;
-  await expect(checklist(page).getByText(`rmk login --registry ${origin} --web`)).toBeVisible();
+  let steps = await openSteps(page, "See all steps");
+  await expect(steps.getByText(`rmk login --registry ${origin} --web`)).toBeVisible();
+  await expect(step(steps, "Create an access token")).toHaveAttribute("aria-current", "step");
+  await closeSteps(steps);
 
   const token = await createToken(page, "getting started");
   await page.goto("/");
-  await expect(checklist(page).getByText("1 of 4 done")).toBeVisible();
-  await expect(
-    step(page, "Create an access token").getByText("Done", { exact: true }),
-  ).toBeVisible();
-  await expect(step(page, "Connect rmk")).toHaveAttribute("aria-current", "step");
+  await expect(progress(page)).toContainText("1 of 4 done");
+  await expect(checklist(page)).toContainText("Next: Connect rmk");
   await expect(page.locator("main")).not.toContainText(token);
+  steps = await openSteps(page, "Show the commands");
+  await expect(
+    step(steps, "Create an access token").getByText("Done", { exact: true }),
+  ).toBeAttached();
+  await expect(step(steps, "Connect rmk")).toHaveAttribute("aria-current", "step");
   // The npm line is for people with no token yet.
-  await expect(checklist(page).getByText("npm install --global @ronneai/rmk")).toHaveCount(0);
+  await expect(steps.getByText("npm install --global @ronneai/rmk")).toHaveCount(0);
+  await expect(steps).not.toContainText(token);
+  await closeSteps(steps);
 
   await useToken(request, token);
   await page.goto("/");
-  await expect(checklist(page).getByText("2 of 4 done")).toBeVisible();
-  await expect(step(page, "Connect rmk").getByText("Done", { exact: true })).toBeVisible();
-  await expect(step(page, "Install your first item")).toHaveAttribute("aria-current", "step");
+  await expect(progress(page)).toContainText("2 of 4 done");
+  await expect(checklist(page)).toContainText("Next: Install your first item");
+  steps = await openSteps(page, "See all steps");
+  await expect(step(steps, "Connect rmk").getByText("Done", { exact: true })).toBeAttached();
+  await closeSteps(steps);
 
-  await page.getByRole("button", { name: "I’ve installed one" }).click();
+  await checklist(page).getByRole("button", { name: "I’ve installed one" }).click();
   await expect(page.getByRole("region", { name: "You’re set up" })).toBeVisible();
 
   // Seen once: the next visit has nothing.

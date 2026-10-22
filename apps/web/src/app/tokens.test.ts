@@ -37,6 +37,12 @@ const PAIRS: [string, string, number][] = [
   ["link", "surface", 4.5],
   // The header's current item: link-coloured text on the tint (feature 009's navigation fix).
   ["link", "tint", 4.5],
+  // The Getting started banner (126) and the inline helpers' panels: text, the link and the
+  // progress ring's arc on the teal panel, in both themes.
+  ["fg", "popover", 4.5],
+  ["muted", "popover", 4.5],
+  ["link", "popover", 4.5],
+  ["chart", "popover", 3],
   // Inline code: text on its grey chip.
   ["fg", "inline-code", 4.5],
   ["focus", "canvas", 3],
