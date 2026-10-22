@@ -51,6 +51,7 @@ for the account `<id>`:
 | The personal workspace (114) | renamed from the pseudonym by 114's rule (`deleted-user-<id>`, lowercased, the first free name) when it holds a published item or any submission left once the person's own drafts are gone (something submitted, or another person's draft, which root may make in any scope), as any rename (113): its items take the new name and keep the old ones as aliases (118), since lockfiles and dependencies name them, and `workspace.renamed` is recorded; otherwise deleted with its scopes and drafts; the person's membership in it goes either way |
 | Drafts (`submissions` in `draft`) and their files | deleted: only their author could ever see them |
 | Getting started state (126), `user_onboarding` | deleted: only their owner ever saw it |
+| Feedback they sent (127), `feedback` | deleted: the message is not kept under a pseudonym |
 | Favorites (125) | deleted: only their owner ever saw them. Pins they made stay, their `created_by` the pseudonym's row |
 | Submitted, approved and rejected submissions, revisions, review events (comments) | kept; the author or actor is the pseudonym |
 | Items owned, versions published, scopes and workspaces created | kept; `owner_id`, `published_by`, `created_by` keep the id, which now resolves to the pseudonym |

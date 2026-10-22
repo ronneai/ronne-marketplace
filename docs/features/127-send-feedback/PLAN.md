@@ -9,7 +9,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 ## Tasks
 
-- [ ] **1. Table, model and repository.** [risky] Migration `feedback`, the model (kinds, status,
+- [x] **1. Table, model and repository.** [risky] Migration `feedback`, the model (kinds, status,
   limits, page-path sanitising that drops the query), repository behind an interface, cascade
   rules for user delete.
   *Done when:* unit tests cover validation and path sanitising; `*.db.test.ts` pass on SQLite and,
