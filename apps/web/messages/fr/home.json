@@ -67,7 +67,7 @@
     },
     "setUp": {
       "title": "Tout est prêt",
-      "text": "rmk est connecté et vous avez installé un élément. Ceci disparaîtra à votre prochaine visite; ramenez-le depuis Compte en tout temps.",
+      "text": "rmk est connecté et vous avez installé un élément. Ceci disparaîtra à votre prochaine visite; vous pouvez le ramener depuis Compte en tout temps.",
       "docs": "Lire la Documentation",
       "new": "Proposer un élément"
     },

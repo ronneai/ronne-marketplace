@@ -131,3 +131,31 @@ Witnessed: 2026-10-21 23:00 local, by a fresh agent (blind re-check). Commit: 4d
 | 6 | Hid, then finished everything, then Show again shows "You're set up": the rule, the service and the page | no | confirmed | The rule test "hiding wins…" checks hidden and setUp states, and fails when `hidden` stops winning (restored, `cmp` identical); the db test fails without `onboarding.show`; `page.test.tsx` "shows 'You’re set up' and marks it seen" passes. |
 
 **Overall:** met.
+
+## Task 6 — Messages and phone
+
+Witnessed: 2026-10-21 23:10 local, by a fresh agent (blind). Commit: 78407398 plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Message parity and the new translations test pass | no | confirmed | `vitest run src/i18n src/features/getting-started` → 15 files, 186 tests passed; `translations.test.tsx` runs `englishLeaks` and `ownTextsShown` over the panel and Account's section. |
+| 2 | The raw-text scan covers `features/getting-started` and passes | no | confirmed | `biome.json:49`; `pnpm lint` exit 0; a raw English string put in `GettingStartedPanel.tsx` made lint exit 1; restored, `cmp` identical. |
+| 3 | Every word is a message in three languages | no | confirmed | `home.json` and `account.json` `gettingStarted` read in en, pt and fr: same keys; the scan passes. Wording notes (capitalisation of "Primeiros passos", the French button, two pronouns) were applied. |
+| 4 | The phone spec passes on phone, phone-webkit and tablet | no | confirmed | After `next build`: `playwright test e2e/getting-started.mobile.e2e.ts --project phone --project phone-webkit --project tablet` → 3 passed. |
+| 5 | The existing phone sweep passes on every project | no | confirmed | `playwright test e2e/mobile-sweep.mobile.e2e.ts --project phone --project phone-webkit --project tablet` → 45 passed (2.0m), pt and fr included. |
+| 6 | The spec notices a button below 44px | no | confirmed | A button given `h-5` failed "I’ve installed one is touch-sized" on phone and tablet; restored. |
+| 7 | The spec notices a command that doesn't wrap or overflows | no | partly | A `min-w-[600px]` wrapper failed "the page doesn't scroll sideways" (646 against 412 and 320), but removing the `wrap` prop alone was not caught: `CopyableCommand` already wraps below `sm`. |
+| 8 | The restored state is clean | no | confirmed | `cmp` identical after each mutation; a final build and the spec on three projects → 3 passed. |
+
+**Overall:** not met: row 7.
+
+### Re-check (rows 3 and 7)
+
+Witnessed: 2026-10-21 23:20 local, by a fresh agent (blind re-check). Commit: 78407398 plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 3 | Every word is a message in three languages, the reworded texts fit the glossary and typography | no | confirmed | The reworded pt and fr texts re-read; `vitest run src/i18n src/features/getting-started` → 186 passed. |
+| 7 | The phone spec fails when a command line runs off the screen (the `wrap` prop alone is redundant below `sm` by design) | no | confirmed | The `min-w-[600px]` mutation failed phone and tablet with 646 against 412 and 320. |
+
+**Overall:** met.

@@ -67,7 +67,7 @@
     },
     "setUp": {
       "title": "Tudo pronto",
-      "text": "O rmk está conectado e você instalou um item. Isto some na sua próxima visita; traga de volta em Conta quando quiser.",
+      "text": "O rmk está conectado e você instalou um item. Isto some na sua próxima visita; você pode trazê-lo de volta em Conta quando quiser.",
       "docs": "Ler a Documentação",
       "new": "Propor item"
     },

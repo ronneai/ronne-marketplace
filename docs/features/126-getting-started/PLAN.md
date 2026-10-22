@@ -32,7 +32,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 - [x] **5. Account's "Show getting started again".**
   *Done when:* a component test and an end-to-end step.
 
-- [ ] **6. Messages and phone.** Everything in messages (129) in three languages; scan; phone
+- [x] **6. Messages and phone.** Everything in messages (129) in three languages; scan; phone
   sweep.
   *Done when:* parity and scan pass; the sweep passes on every project.
 

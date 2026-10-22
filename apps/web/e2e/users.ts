@@ -56,6 +56,10 @@ export const E2E_USERS = {
   shelvesRoot: "shelves-root@e2e.test",
   // Getting started (126): hides the checklist on Home and brings it back from Account.
   starterAccount: "starter-account@e2e.test",
+  // Reads Home's checklist on a phone and a tablet (126): one fresh user per device project.
+  phoneStarter: "phone-starter@e2e.test",
+  phoneWebkitStarter: "phone-webkit-starter@e2e.test",
+  tabletStarter: "tablet-starter@e2e.test",
   favoriter: "favoriter@e2e.test",
   favoriterNoJs: "favoriter-no-js@e2e.test",
   // Pin items for a workspace (125): an admin of e2e-pins per project.
@@ -262,6 +266,9 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   shelvesOutsider: "Otto Outsider",
   shelvesRoot: "Rhea Shelf",
   starterAccount: "Alma Account",
+  phoneStarter: "Phoebe Starter",
+  phoneWebkitStarter: "Wendy Starter",
+  tabletStarter: "Tabitha Starter",
   favoriter: "Faye Favorite",
   favoriterNoJs: "Nolan NoScript",
   pinsAdmin: "Pia Pinner",

@@ -20,10 +20,10 @@ describe("Account's Show getting started again (126)", () => {
 
   it("speaks Portuguese and French", () => {
     expect(inLocale("pt", () => renderToStaticMarkup(<ShowAgainSection />))).toContain(
-      ">Mostrar os primeiros passos de novo<",
+      ">Mostrar Primeiros passos de novo<",
     );
     expect(inLocale("fr", () => renderToStaticMarkup(<ShowAgainSection />))).toContain(
-      ">Afficher Pour commencer de nouveau<",
+      ">Afficher de nouveau la liste Pour commencer<",
     );
   });
 });
