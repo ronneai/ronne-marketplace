@@ -42,7 +42,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   rate limit reached; erase removes it.
   *Done when:* the end-to-end tests pass on every project.
 
-- [ ] **8. Decision log and index.** MVP §15 row "Feedback" (to the instance's admins, plain text,
+- [x] **8. Decision log and index.** MVP §15 row "Feedback" (to the instance's admins, plain text,
   deleted on erase, retention).
   *Done when:* the row is in.
 

@@ -288,3 +288,39 @@ Witnessed: 2026-10-22 11:30 local, by a fresh agent (blind). Commit: 5a60d5fe pl
 Not run in full: the whole phone, phone-webkit and tablet suites (only the two feedback files).
 
 **Overall:** met.
+
+## Task 8 — Decision log and index
+
+Witnessed: 2026-10-22 12:00 local, by a fresh agent (blind). Commit: ff5d2d1e plus the uncommitted diff to `docs/MVP/MVP.md` and `docs/features/127-send-feedback/PLAN.md`. Machine: macOS (Darwin).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The `Feedback` row is in §15 after "Getting started checklist", with the same column count as its neighbours | no | confirmed | `git diff docs/MVP/MVP.md` → added at line 999; `awk -F'|'` gives NF=5 for lines 998 and 999. |
+| 2 | Kinds: Problem, Idea, Question, Praise | no | confirmed | `FEEDBACK_KINDS` in `models/feedback.ts`. |
+| 3 | 4,000 characters, plain text | no | confirmed | `FEEDBACK_MESSAGE_MAX = 4000`, counted in characters, refused rather than cut. |
+| 4 | The page is the path only, only a page of the app; `/feedback?from=<path>` | no | confirmed | `pagePathOf`, `href.ts`, `page.tsx`. |
+| 5 | The sidebar's Tools group opens a dialog; a page on a phone and without JavaScript | no | confirmed | `nav.ts`, `Sidebar.tsx`, `MenuList.tsx`, `FeedbackForm`. Read, not run. |
+| 6 | Root reads it in Admin › Feedback: search, filters, detail, bulk actions, the count of new | no | confirmed | `nav.ts`, `list.ts`, `FeedbackInbox.tsx`, `shell.ts`. |
+| 7 | Table `feedback` with sender, kind, message, page, version and status | no | confirmed | Migration `0035_feedback.ts`. |
+| 8 | 10 an hour per person, in memory | no | confirmed | `FEEDBACK_PER_HOUR`, `feedback-limiter.ts`. |
+| 9 | Audited per row with the id only; sending isn't audited | no | confirmed | `eventOf` and `recordAudit` once per id; the send path has no audit call. |
+| 10 | In the data download | no | confirmed | `kysely-user-data-repository.ts`, `user-data-export.ts`. |
+| 11 | Deleted on erase, not pseudonymised | no | confirmed | `deleteFrom("feedback").where("user_id", …)` in the erase repository. |
+| 12 | Retention `retention_feedback_days`, 365, from when handled, never new | no | confirmed | `retention-policy.ts`, `retention-purge.ts`. |
+| 13 | Matrix rows: send for everyone; read, handle, delete for root | no | confirmed | `permissions.ts`; six columns like the neighbours. |
+| 14 | Links resolve | no | confirmed | `SPEC.md` exists; the relative path matches the neighbours. |
+| 15 | The index and nothing else in MVP.md contradict the row | no | partly | `docs/features/README.md` still said "specified". |
+| 16 | `pnpm witness:check` passes | no | partly | It failed only for the missing record of this task. |
+
+**Overall:** not met: rows 15 and 16.
+
+### Re-check (rows 15 and 16)
+
+Witnessed: 2026-10-22 12:10 local, by a fresh agent (blind). Commit: ff5d2d1e plus the uncommitted diff to `docs/MVP/MVP.md`, `PLAN.md` and `docs/features/README.md`. Machine: macOS (Darwin).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 15 | The index agrees with the MVP row and the PLAN, and nothing else in MVP.md contradicts the row | yes | confirmed | `README.md:342` shows 127 "in progress"; PLAN has tasks 1–8 ticked and 9 open; `MVP.md` has only the three added lines; no other mention contradicts. |
+| 16 | `pnpm witness:check` fails only because this task's record is missing | yes | confirmed | The one failure was `task 8 is ticked but WITNESS.md has no pass for it`: the expected state before the record is pasted. |
+
+**Overall:** met.
