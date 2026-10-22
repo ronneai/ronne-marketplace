@@ -1,0 +1,47 @@
+{
+  "favorite": {
+    "add": "Ajouter {name} aux favoris",
+    "remove": "Retirer {name} des favoris"
+  },
+  "shelf": {
+    "instance": "Commencez ici"
+  },
+  "pin": {
+    "button": "Épingler",
+    "title": "Épingler {name}",
+    "intro": "Choisissez où cet élément s’affiche en premier. Les éléments épinglés apparaissent sur l’accueil.",
+    "search": "Trouver un espace de travail",
+    "noMatch": "Aucun espace de travail ne correspond.",
+    "pinned": "Épinglé",
+    "pin": "Épingler",
+    "unpin": "Désépingler",
+    "pinLabel": "Épingler {name} dans {shelf}",
+    "unpinLabel": "Retirer l’épingle de {name} de {shelf}",
+    "manage": "Gérer",
+    "manageLabel": "Gérer {shelf}",
+    "blockedPrivate": "Seuls les éléments d’un espace de travail public peuvent être épinglés dans Commencez ici.",
+    "done": "Terminé"
+  },
+  "manage": {
+    "title": "Gérer {shelf}",
+    "count": "{count} sur {max} épinglés",
+    "empty": "Rien n’est encore épinglé ici.",
+    "loading": "Chargement…",
+    "up": "Monter {name}",
+    "down": "Descendre {name}",
+    "remove": "Retirer {name}",
+    "unavailable": "Non disponible",
+    "unavailableHint": "Il n’a pas de version installable pour le moment. Retirez-le ou laissez-le : il revient quand il en aura une.",
+    "back": "Retour"
+  },
+  "home": {
+    "favorites": "Vos favoris",
+    "seeAll": "Tout voir",
+    "pinnedIn": "Épinglés dans {workspace}",
+    "workspacePins": "Éléments épinglés"
+  },
+  "visibility": {
+    "startHereTitle": "{count, plural, one {# élément est épinglé dans Commencez ici} other {# éléments sont épinglés dans Commencez ici}}",
+    "startHereBody": "Tout le monde voit Commencez ici, donc les éléments d’un espace de travail privé ne peuvent pas y figurer. {count, plural, one {Il en est retiré} other {Ils en sont retirés}} quand vous rendez cet espace de travail privé."
+  }
+}

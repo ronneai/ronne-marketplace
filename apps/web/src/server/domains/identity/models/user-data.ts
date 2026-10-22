@@ -21,6 +21,7 @@ export type UserDataSection =
   | "workspaces"
   | "accessRequests"
   | "scopes"
+  | "favorites"
   | "items"
   | "submissions"
   | "comments"
@@ -80,6 +81,9 @@ export type UserDataAccessRequest = {
   createdAt: Date;
 };
 
+/** An item the person favorited (125), by its full name now, whether or not it shows today. */
+export type UserDataFavorite = { item: string; addedAt: Date };
+
 export type UserDataScope = { name: string; workspace: string; createdAt: Date };
 
 export type UserDataVersion = { version: string; publishedAt: Date; publishedByMe: boolean };
@@ -132,6 +136,7 @@ export type UserData = {
   workspaces: UserDataWorkspace[];
   accessRequests: UserDataAccessRequest[];
   scopes: UserDataScope[];
+  favorites: UserDataFavorite[];
   items: UserDataItem[];
   submissions: UserDataSubmission[];
   comments: UserDataComment[];

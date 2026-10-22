@@ -32,6 +32,8 @@ export type CatalogueQuery = {
   workspace?: string;
   /** A renderer id (026). */
   tool?: string;
+  /** Only the reader's favorites (125): `1` or true; ignored for anyone not signed in. */
+  favorites?: string | boolean;
   sort?: string;
   cursor?: string;
 };
@@ -58,6 +60,8 @@ export type CataloguePage = {
     scope: string | null;
     workspace: string | null;
     tool: string | null;
+    /** Only the reader's favorites (125). */
+    favorites: boolean;
     sort: CatalogueSort;
   };
 };
@@ -127,6 +131,8 @@ export const searchCatalogue = async (
     scope?: string | null;
     workspace?: string | null;
     tool?: string | null;
+    /** Only items this user has favorited (125): set for the catalogue page, not the API. */
+    favoriteOf?: string | null;
     sort?: CatalogueSort;
     cursor?: string;
     limit?: number;
@@ -146,6 +152,7 @@ export const searchCatalogue = async (
     workspace: query.workspace ?? undefined,
     tool: query.tool ?? undefined,
     dependableFrom: query.dependableFrom,
+    favoriteOf: query.favoriteOf ?? undefined,
     sort,
     after: decodeCursor(query.cursor, sort),
     limit: limit + 1,
@@ -172,12 +179,17 @@ export const browseCatalogue = async (
   const tool = query.tool && rendererById(query.tool) ? query.tool : null;
   const sort: CatalogueSort =
     query.sort === "name" || query.sort === "installs" ? query.sort : "recent";
+  // The reader's own favorites (125); a favorite of an item with no installable version is hidden.
+  const favorites = (query.favorites === true || query.favorites === "1") && Boolean(actor.user);
+  const favoriteOf = favorites ? (actor.user?.id ?? null) : null;
   const { entries, nextCursor } = await searchCatalogue(deps, actor, {
     q,
     types: types.length > 0 ? types : undefined,
     scope,
     workspace,
     tool,
+    favoriteOf,
+    installable: favorites ? true : undefined,
     sort,
     cursor: query.cursor,
   });
@@ -188,6 +200,8 @@ export const browseCatalogue = async (
         scope: scope ?? undefined,
         workspace: workspace ?? undefined,
         tool: tool ?? undefined,
+        favoriteOf: favoriteOf ?? undefined,
+        installable: favorites ? true : undefined,
       })
     ).map((row) => [row.type, row.count]),
   );
@@ -203,8 +217,29 @@ export const browseCatalogue = async (
         personal: workspaces.find((w) => w.personal)?.name ?? null,
       };
     })()),
-    query: { q, types, scope, workspace, tool, sort },
+    query: { q, types, scope, workspace, tool, favorites, sort },
   };
+};
+
+/**
+ * The catalogue's cards for these items (125's shelves), in the order given: the ones the reader
+ * sees and that are installable. An id they can't see, or that doesn't exist, is simply missing.
+ */
+export const entriesOf = async (
+  deps: CatalogueDeps,
+  actor: ScopeActor,
+  ids: readonly string[],
+): Promise<CatalogueEntry[]> => {
+  requirePermission(actor.user, "account.manage_own");
+  const found = new Map(
+    (await deps.catalogue.byIds(ids))
+      .filter((entry) => entry.installable)
+      .map((entry) => [entry.id, entry]),
+  );
+  return ids.flatMap((id) => {
+    const entry = found.get(id);
+    return entry ? [entry] : [];
+  });
 };
 
 export type HomeLists = {

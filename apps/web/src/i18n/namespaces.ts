@@ -8,6 +8,7 @@ import type help from "../../messages/en/help.json";
 import type home from "../../messages/en/home.json";
 import type item from "../../messages/en/item.json";
 import type shell from "../../messages/en/shell.json";
+import type shelves from "../../messages/en/shelves.json";
 import type types from "../../messages/en/types.json";
 import type workspaces from "../../messages/en/workspaces.json";
 
@@ -29,6 +30,7 @@ export const NAMESPACES = [
   "item",
   "workspaces",
   "help",
+  "shelves",
 ] as const;
 export type Namespace = (typeof NAMESPACES)[number];
 
@@ -46,4 +48,5 @@ export type Messages = {
   item: typeof item;
   workspaces: typeof workspaces;
   help: typeof help;
+  shelves: typeof shelves;
 };

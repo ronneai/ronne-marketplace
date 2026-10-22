@@ -6,6 +6,7 @@ import { hereOf } from "@/features/current-workspace/current-workspace";
 import { Showing } from "@/features/current-workspace/Showing";
 import { pageTitle } from "@/i18n/page-title";
 import { browseCatalogue } from "@/server/domains/items/actions/catalogue";
+import { favoritedAmong } from "@/server/domains/shelves/actions/favorites";
 import { requestHeaders } from "@/server/http/request-headers";
 import { holdPage } from "../hold";
 import { workspaceView } from "../shell";
@@ -25,7 +26,14 @@ const Catalogue = async ({ searchParams }: { searchParams: Promise<SearchParams>
   const params = await searchParams;
   const view = await workspaceView("/catalogue", params);
   const query = { ...parseCatalogueQuery(params), workspace: view.workspace ?? undefined };
-  const page = await browseCatalogue(await requestHeaders(), query);
+  const headers = await requestHeaders();
+  const page = await browseCatalogue(headers, query);
+  const favorites = [
+    ...(await favoritedAmong(
+      headers,
+      page.entries.map((entry) => entry.id),
+    )),
+  ];
   const t = await getTranslations("catalogue.page");
   return (
     <>
@@ -38,7 +46,12 @@ const Catalogue = async ({ searchParams }: { searchParams: Promise<SearchParams>
           why={page.workspaces.includes(view.workspace) ? undefined : "missing"}
         />
       ) : null}
-      <CatalogueView page={page} paged={Boolean(query.cursor)} keepAll={view.keepAll} />
+      <CatalogueView
+        page={page}
+        paged={Boolean(query.cursor)}
+        keepAll={view.keepAll}
+        favorites={favorites}
+      />
     </>
   );
 };

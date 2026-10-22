@@ -55,9 +55,12 @@ export const CatalogueView = ({
   page,
   paged,
   keepAll = false,
+  favorites,
 }: {
   page: CataloguePage;
   paged: boolean;
+  /** The ids of the items on the page the person has favorited (125); without it, no stars. */
+  favorites?: readonly string[];
   /**
    * A current workspace is set (120): a link meaning every workspace (a cleared workspace filter,
    * Clear all) writes an explicit empty `?workspace=`, or the page would redirect back to it.
@@ -71,10 +74,16 @@ export const CatalogueView = ({
     catalogueHref(query, changes, keepAll);
   const total = page.typeCounts.reduce((sum, entry) => sum + entry.count, 0);
   const filtered = Boolean(
-    query.q || query.types.length || query.scope || query.workspace || query.tool,
+    query.q ||
+      query.types.length ||
+      query.scope ||
+      query.workspace ||
+      query.tool ||
+      query.favorites,
   );
   const activeCount =
-    query.types.length + [query.scope, query.workspace, query.tool].filter(Boolean).length;
+    query.types.length +
+    [query.scope, query.workspace, query.tool, query.favorites].filter(Boolean).length;
   // Only worth a choice once there's more than `global` (090), or one is chosen. A chosen name
   // that isn't a workspace stays an option, so Apply keeps it, as its active filter says.
   const workspaceFilter = page.workspaces.length > 1 || query.workspace !== null;
@@ -82,7 +91,7 @@ export const CatalogueView = ({
     query.workspace && !page.workspaces.includes(query.workspace)
       ? [...page.workspaces, query.workspace]
       : page.workspaces;
-  const none = { types: [], scope: null, workspace: null, tool: null };
+  const none = { types: [], scope: null, workspace: null, tool: null, favorites: false };
   const sort = SORTS.find((id) => id === query.sort) ?? SORTS[0];
   return (
     <div className="grid grid-cols-1 gap-5">
@@ -106,6 +115,7 @@ export const CatalogueView = ({
           <input type="hidden" name="workspace" value={query.workspace ?? ""} />
         ) : null}
         {query.tool ? <input type="hidden" name="tool" value={query.tool} /> : null}
+        {query.favorites ? <input type="hidden" name="favorites" value="1" /> : null}
         {query.sort !== "recent" ? <input type="hidden" name="sort" value={query.sort} /> : null}
         <button type="submit" className={buttonClasses("secondary")}>
           {t("search.submit")}
@@ -171,6 +181,16 @@ export const CatalogueView = ({
                   ))}
                 </fieldset>
               </details>
+              <label className={typeOption}>
+                <input
+                  type="checkbox"
+                  name="favorites"
+                  value="1"
+                  defaultChecked={query.favorites}
+                  className="size-4 shrink-0 rounded-sm border border-strong accent-(--accent) outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
+                />
+                {t("filters.favorites")}
+              </label>
               <div className="grid gap-3 sm:grid-cols-2">
                 {workspaceFilter ? (
                   <div className="grid min-w-0 gap-1.5">
@@ -269,6 +289,11 @@ export const CatalogueView = ({
                   {query.scope}
                 </ActiveFilter>
               ) : null}
+              {query.favorites ? (
+                <ActiveFilter href={href({ favorites: false })} label={t("active.removeFavorites")}>
+                  {t("filters.favorites")}
+                </ActiveFilter>
+              ) : null}
               {query.tool ? (
                 <ActiveFilter href={href({ tool: null })} label={t("active.removeTool")}>
                   <span className="font-normal text-muted">{t("filters.worksIn")}</span>{" "}
@@ -353,7 +378,7 @@ export const CatalogueView = ({
         <ul className="grid grid-cols-1 gap-3">
           {page.entries.map((entry) => (
             <li key={entry.id}>
-              <ItemCard entry={entry} />
+              <ItemCard entry={entry} favorited={favorites?.includes(entry.id)} />
             </li>
           ))}
         </ul>

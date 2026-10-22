@@ -23,7 +23,8 @@
       "worksIn": "Works in",
       "anyTool": "Any tool",
       "clear": "Clear filters",
-      "apply": "Apply"
+      "apply": "Apply",
+      "favorites": "Only my favorites"
     },
     "active": {
       "label": "Active filters",
@@ -33,7 +34,8 @@
       "removeWorkspace": "Remove the workspace filter",
       "removeScope": "Remove the scope filter",
       "removeTool": "Remove the tool filter",
-      "clearAll": "Clear all"
+      "clearAll": "Clear all",
+      "removeFavorites": "Remove the favorites filter"
     },
     "sort": {
       "summary": "Sort: <value></value>",

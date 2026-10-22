@@ -43,8 +43,9 @@ come back to".
 ## Behaviour
 
 - **Two tables,** not one: `item_favorites` (`user_id`, `item_id`, `created_at`, primary key on
-  both) and `item_pins` (`id`, `workspace_id` null for the global shelf, `item_id`, `position`,
-  `created_by`, `created_at`, unique on `workspace_id` + `item_id`). They differ in who writes, who
+  both) and `item_pins` (`id`, `workspace_id` null for the global shelf, `shelf`, `item_id`, `position`,
+  `created_by`, `created_at`, unique on `shelf` + `item_id`). A unique key can't hold a null, so
+  `shelf` is the same shelf as a plain key: the workspace's id, or `instance`. They differ in who writes, who
   reads and whether order matters, and favorites must be erasable per person. Items are referenced
   by id, so renames and aliases (113, 118) never break a pin.
 - **Who may do what.**
@@ -82,6 +83,9 @@ come back to".
 - A person who loses access to a private workspace loses sight of its pins and favorites at once.
 - Two admins reordering at the same time: the last save wins; positions stay unique and dense.
 - Favorites and pins of a yanked-only item are hidden, not deleted, so un-yanking brings them back.
+- Root may pin an item that a workspace's admins can't see onto that workspace's shelf. They never see
+  it; it still counts toward the 12, and only root can remove it. Unpinning or moving such an item
+  answers as it would an unknown one.
 
 ## Documentation
 
@@ -99,20 +103,20 @@ come back to".
 
 ## Acceptance criteria
 
-- [ ] The star toggles a favorite on cards and item pages, with and without JavaScript, and only
+- [x] The star toggles a favorite on cards and item pages, with and without JavaScript, and only
       its owner sees it; the 200 limit is enforced.
-- [ ] Root pins globally (public workspaces' items only); admins pin for their workspace; others
+- [x] Root pins globally (public workspaces' items only); admins pin for their workspace; others
       are refused on the server, not only hidden in the UI.
-- [ ] Shelves honour visibility: a viewer who can't see an item never gets its pin or favorite;
+- [x] Shelves honour visibility: a viewer who can't see an item never gets its pin or favorite;
       a test covers a private workspace.
-- [ ] Order: new pins go last; Move up/down work and persist; limits (12) enforced.
-- [ ] Home shows favorites and pins in the slots of 124; the catalogue's Favorites filter works
+- [x] Order: new pins go last; Move up/down work and persist; limits (12) enforced.
+- [x] Home shows favorites and pins in the slots of 124; the catalogue's Favorites filter works
       with search, filters and paging.
-- [ ] Pin changes are audited and listed in the audit filter; favorites are in "Your data" and are
+- [x] Pin changes are audited and listed in the audit filter; favorites are in "Your data" and are
       deleted on erase.
-- [ ] Migrations run on all three database kinds; everything is in messages (129) in three
+- [x] Migrations run on all three database kinds; everything is in messages (129) in three
       languages; the phone sweep passes.
-- [ ] The Documentation and helpers above say what the feature does now.
+- [x] The Documentation and helpers above say what the feature does now.
 
 ## Decisions
 

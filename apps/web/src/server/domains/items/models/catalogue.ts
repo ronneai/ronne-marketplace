@@ -61,6 +61,8 @@ export type CatalogueFilter = {
   listedNotYanked?: boolean;
   /** Only items this user first published (089: your own, whatever their rank). */
   ownerId?: string;
+  /** Only items this user has favorited (125). */
+  favoriteOf?: string;
   /**
    * Only items an item in this workspace may depend on (093): its own and public workspaces'.
    * Null for an item whose workspace isn't known yet: public ones only.

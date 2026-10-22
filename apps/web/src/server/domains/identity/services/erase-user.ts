@@ -41,6 +41,7 @@ export type EraseCounts = {
   personalWorkspace: "renamed" | "deleted" | "none";
   requestsCancelled?: number;
   movesCancelled?: number;
+  favoritesDeleted?: number;
 };
 
 export type EraseResult = EraseCounts & { eventsRewritten: number };
@@ -147,6 +148,7 @@ export const eraseUser = async (
       await repo.deleteDeviceGrants(userId);
       const scimLinksDeleted = await repo.deleteScimRows(userId);
       await repo.deleteMemberships(userId);
+      const favoritesDeleted = await repo.deleteFavorites(userId);
       const requestsCancelled = await repo.identity.cancelAccessRequests(userId, at);
       const movesCancelled = await repo.cancelScopeMoves(userId, at);
       const draftsDeleted = await repo.deleteDrafts(userId);
@@ -179,6 +181,7 @@ export const eraseUser = async (
         personalWorkspace,
         ...(requestsCancelled > 0 ? { requestsCancelled } : {}),
         ...(movesCancelled > 0 ? { movesCancelled } : {}),
+        ...(favoritesDeleted > 0 ? { favoritesDeleted } : {}),
       };
       const row: PendingErasure = {
         userId,

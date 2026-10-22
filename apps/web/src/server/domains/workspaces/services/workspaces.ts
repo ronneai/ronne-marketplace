@@ -303,7 +303,12 @@ export const renameImpact = async (
  * its items, which refuse it, and the open submissions outside it that do, which would fail at
  * release. Both by name. Nothing for a workspace that's private already.
  */
-export type VisibilityImpact = { dependents: string[]; openDependents: string[] };
+export type VisibilityImpact = {
+  dependents: string[];
+  openDependents: string[];
+  /** Its items pinned to Start here (125), which Make private takes off it. */
+  startHere: string[];
+};
 
 const impactOf = async (
   repo: WorkspaceRepository,
@@ -322,6 +327,7 @@ const impactOf = async (
   return {
     dependents: (await repo.outsideDependents(workspace.id)).map((d) => d.name),
     openDependents,
+    startHere: (await repo.startHerePinsOf(workspace.id)).map((pin) => pin.name),
   };
 };
 
@@ -334,7 +340,8 @@ export const visibilityImpact = async (
   requirePermission(actor.user, "workspaces.manage");
   const workspace = await changeable(deps.repo, name);
   if (workspace.ownerId) throw new PersonalWorkspaceError("visibility");
-  if (workspace.visibility === "private") return { dependents: [], openDependents: [] };
+  if (workspace.visibility === "private")
+    return { dependents: [], openDependents: [], startHere: [] };
   return impactOf(deps.repo, workspace);
 };
 
@@ -364,15 +371,35 @@ export const setWorkspaceVisibility = async (
       if (dependents.length > 0)
         throw new WorkspaceHasOutsideDependentsError(workspace.name, dependents);
     }
+    // Start here is shown to everyone, so a private workspace's items can't be on it (125): they
+    // come off in this same step, each audited.
+    const unpinned = to === "private" ? await repo.startHerePinsOf(workspace.id) : [];
+    if (unpinned.length > 0) await repo.removeStartHerePinsOf(workspace.id);
     await repo.setVisibility(workspace.id, to, at);
     await audit(
       repo,
       actor,
       "workspace.updated",
       workspace.id,
-      { name: workspace.name, visibility: to, from: workspace.visibility },
+      {
+        name: workspace.name,
+        visibility: to,
+        from: workspace.visibility,
+        ...(unpinned.length > 0 ? { startHerePinsRemoved: unpinned.length } : {}),
+      },
       at,
     );
+    for (const pin of unpinned)
+      await repo.recordAudit(
+        {
+          actorId: actor.user?.id ?? null,
+          action: "pin.removed",
+          target: { type: "instance" },
+          metadata: { itemId: pin.itemId, name: pin.name, reason: "workspace_private" },
+          ipAddress: actor.ip,
+        },
+        at,
+      );
   });
 };
 

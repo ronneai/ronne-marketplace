@@ -474,6 +474,45 @@ export const kyselyWorkspaceRepository = (
       await bumpCatalogueRevision(db);
     },
 
+    startHerePinsOf: async (workspaceId) =>
+      (
+        await db
+          .selectFrom("item_pins")
+          .innerJoin("items", "items.id", "item_pins.item_id")
+          .innerJoin("scopes", "scopes.id", "items.scope_id")
+          .innerJoin("workspaces", "workspaces.id", "scopes.workspace_id")
+          .select([
+            "items.id as item_id",
+            "items.name",
+            "scopes.name as scope",
+            "workspaces.name as workspace",
+          ])
+          .where("item_pins.shelf", "=", "instance")
+          .where("scopes.workspace_id", "=", workspaceId)
+          .orderBy("item_pins.position")
+          .execute()
+      ).map((row) => ({
+        itemId: row.item_id,
+        name: formatItemName({ workspace: row.workspace, scope: row.scope, name: row.name }),
+      })),
+
+    removeStartHerePinsOf: async (workspaceId) =>
+      Number(
+        (
+          await db
+            .deleteFrom("item_pins")
+            .where("shelf", "=", "instance")
+            .where("item_id", "in", (eb) =>
+              eb
+                .selectFrom("items")
+                .innerJoin("scopes", "scopes.id", "items.scope_id")
+                .select("items.id")
+                .where("scopes.workspace_id", "=", workspaceId),
+            )
+            .executeTakeFirst()
+        ).numDeletedRows,
+      ),
+
     outsideDependents: async (workspaceId, scopeId) =>
       (
         await db

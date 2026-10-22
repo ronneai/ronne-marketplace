@@ -167,6 +167,7 @@ const CATALOGUE_READS: Record<keyof CatalogueRepository, Probe<CatalogueReposito
   list: async (repo) => has(await repo.list({ sort: "name", limit: 50 })),
   byNames: async (repo) =>
     has(await repo.byNames([{ workspace: "acme", scope: "acme-infra", name: "deploy" }])),
+  byIds: async (repo) => has(await repo.byIds([ids.publicItem, ids.privateItem])),
   typeCounts: async (repo) =>
     // Three skills in all, two of them public.
     ((await repo.typeCounts({})).find((c) => c.type === "skill")?.count ?? 0) === 3,

@@ -51,6 +51,7 @@ export const TOPICS = [
       { id: "joining", title: "Joining a workspace" },
       { id: "managing", title: "Creating and managing them" },
       { id: "moving", title: "Moving a scope" },
+      { id: "pins", title: "Pinned items" },
     ],
   },
   {
@@ -164,6 +165,7 @@ export const TOPICS = [
       { id: "users", title: "Users" },
       { id: "settings", title: "Settings" },
       { id: "notice", title: "Notice" },
+      { id: "pins", title: "Start here" },
       { id: "audit", title: "Audit log" },
     ],
   },

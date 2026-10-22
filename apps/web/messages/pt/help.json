@@ -54,5 +54,13 @@
   "private-item": {
     "question": "Quem pode ver isto?",
     "answer": "Só os membros do espaço de trabalho dele, em qualquer papel, e o root: o espaço de trabalho é privado. Para qualquer outra pessoa este item não existe, no catálogo, no rmk, nas ferramentas MCP e nos marketplaces de plugins. Só itens do mesmo espaço de trabalho podem depender dele."
+  },
+  "favorites": {
+    "question": "O que são favoritos?",
+    "answer": "Sua própria lista de itens aos quais voltar: clique na estrela de um item, e de novo para tirá-lo. Só você a vê, o root inclusive, e cabem até 200. O Início mostra os seis últimos, e o filtro Favoritos do Catálogo lista todos."
+  },
+  "pins": {
+    "question": "Quem vê estes itens fixados?",
+    "answer": "Todo mundo que pode ver o item, nesta prateleira. A prateleira de um espaço de trabalho fica na página dele e no Início enquanto ele é o seu espaço de trabalho atual; Comece por aqui fica no Início de todo mundo. Só os admins da prateleira (o root, no caso de Comece por aqui) a alteram. Um item que ninguém pode instalar por enquanto sai da prateleira e fica aqui como Indisponível."
   }
 }

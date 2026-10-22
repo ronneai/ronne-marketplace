@@ -7,6 +7,7 @@ import type {
   UserDataAuditEvent,
   UserDataComment,
   UserDataDeviceGrant,
+  UserDataFavorite,
   UserDataItem,
   UserDataScope,
   UserDataSession,
@@ -35,6 +36,8 @@ export interface UserDataRepository {
   workspaces(userId: string, limit: number): Promise<UserDataWorkspace[]>;
   accessRequests(userId: string, limit: number): Promise<UserDataAccessRequest[]>;
   scopes(userId: string, limit: number): Promise<UserDataScope[]>;
+  /** The person's favorites, oldest first (125). */
+  favorites(userId: string, limit: number): Promise<UserDataFavorite[]>;
   /** Items the person owns or published a version of; `limit` counts versions. */
   items(userId: string, limit: number): Promise<{ items: UserDataItem[]; versions: number }>;
   submissions(userId: string, limit: number): Promise<UserDataSubmission[]>;

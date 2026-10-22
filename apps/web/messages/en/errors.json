@@ -41,5 +41,9 @@
   "SubmissionNotFoundError": "That submission doesn't exist.",
   "ProposalBaseNotFoundError": "{versioned, select, true {{itemName} has no version {version} to propose a change to.} other {{itemName} isn't a published item.}}",
   "ProposalArtifactError": "The files of {itemName} {version} couldn't be read. Ask root to check the storage.",
-  "ItemRenamedMeanwhileError": "{from} was renamed to {to} meanwhile. Nothing was started: propose the change again."
+  "ItemRenamedMeanwhileError": "{from} was renamed to {to} meanwhile. Nothing was started: propose the change again.",
+  "ShelfItemNotAvailableError": "That item isn't available.",
+  "FavoriteLimitError": "You have {max} favorites, the most allowed. Remove one first.",
+  "PinLimitError": "{shelf, select, instance {Start here has {max} items; remove one first.} other {The pins of {workspaceName} have {max} items; remove one first.}}",
+  "PinNeedsPublicWorkspaceError": "Only items in a public workspace can be pinned to Start here."
 }

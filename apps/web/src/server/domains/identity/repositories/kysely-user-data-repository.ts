@@ -1,3 +1,4 @@
+import { formatItemName } from "@ronneai/core";
 import type { Kysely } from "kysely";
 import { fromDbDate, toDbDate } from "../../../db/dates";
 import { decodeJson } from "../../../db/json";
@@ -253,6 +254,29 @@ export const kyselyUserDataRepository = (
         name: `@${row.name}`,
         workspace: row.workspace,
         createdAt: fromDbDate(row.at),
+      }));
+    },
+
+    async favorites(userId, limit) {
+      const rows = await db
+        .selectFrom("item_favorites")
+        .innerJoin("items", "items.id", "item_favorites.item_id")
+        .innerJoin("scopes", "scopes.id", "items.scope_id")
+        .innerJoin("workspaces", "workspaces.id", "scopes.workspace_id")
+        .select([
+          "items.name as name",
+          "scopes.name as scope",
+          "workspaces.name as workspace",
+          "item_favorites.created_at as at",
+        ])
+        .where("item_favorites.user_id", "=", userId)
+        .orderBy("item_favorites.created_at")
+        .orderBy("item_favorites.item_id")
+        .limit(limit)
+        .execute();
+      return rows.map((row) => ({
+        item: formatItemName({ workspace: row.workspace, scope: row.scope, name: row.name }),
+        addedAt: fromDbDate(row.at),
       }));
     },
 

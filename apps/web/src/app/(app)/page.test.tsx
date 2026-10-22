@@ -9,6 +9,22 @@ vi.mock("@/server/domains/items/actions/catalogue", () => catalogue);
 vi.mock("@/server/domains/submissions/actions/drafts", () => drafts);
 vi.mock("@/server/domains/submissions/actions/reviews", () => reviews);
 vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));
+const shelves = vi.hoisted(() => ({ favoritedAmong: vi.fn() }));
+vi.mock("@/server/domains/shelves/actions/favorites", () => shelves);
+vi.mock("@/features/favorites/actions", () => ({ toggleFavoriteFromForm: vi.fn() }));
+const loaded = vi.hoisted(() => ({
+  loadFavoritesShelf: vi.fn(),
+  loadPinnedShelf: vi.fn(),
+}));
+vi.mock("@/features/pins/load-shelves", () => loaded);
+const pins = vi.hoisted(() => ({ workspaceNamed: vi.fn() }));
+vi.mock("@/server/domains/shelves/actions/pins", () => pins);
+vi.mock("@/features/pins/actions", () => ({
+  loadShelfAction: vi.fn(),
+  moveInShelfAction: vi.fn(),
+  pinToShelfAction: vi.fn(),
+  unpinFromShelfAction: vi.fn(),
+}));
 const shell = vi.hoisted(() => ({ loadShell: vi.fn() }));
 vi.mock("./shell", () => shell);
 
@@ -38,6 +54,10 @@ const render = async () => renderToStaticMarkup(await HomePage());
 
 beforeEach(() => {
   vi.clearAllMocks();
+  shelves.favoritedAmong.mockResolvedValue(new Set());
+  loaded.loadFavoritesShelf.mockResolvedValue({ entries: [], starred: [] });
+  loaded.loadPinnedShelf.mockResolvedValue({ entries: [], starred: [] });
+  pins.workspaceNamed.mockResolvedValue(null);
   catalogue.homeLists.mockResolvedValue({
     recent: [entry("fmt"), entry("lint")],
     mostUsed: [],
@@ -121,5 +141,74 @@ describe("the home page", () => {
     const html = await render();
     expect(html).toContain("Recently published");
     expect(html).not.toContain("Nothing is published yet.");
+  });
+});
+
+describe("favorites on Home (125)", () => {
+  it("fills the stars of the listed items the person has favorited", async () => {
+    shelves.favoritedAmong.mockResolvedValue(new Set(["lint"]));
+    const html = await render();
+    expect(shelves.favoritedAmong).toHaveBeenCalledWith(expect.any(Headers), ["fmt", "lint"]);
+    expect(html).toContain('aria-label="Add @team/fmt to favorites"');
+    expect(html).toContain('aria-label="Remove @team/lint from favorites"');
+  });
+});
+
+describe("the shelves on Home (125)", () => {
+  it("shows nothing for favorites and pins that are not there", async () => {
+    const html = await render();
+    expect(html).not.toContain("Your favorites");
+    expect(html).not.toContain("Start here");
+    expect(html).not.toContain("Pinned in");
+  });
+
+  it("shows the favorites with See all into the catalogue's Favorites filter", async () => {
+    loaded.loadFavoritesShelf.mockResolvedValue({ entries: [entry("fav")], starred: ["fav"] });
+    const html = await render();
+    expect(html).toContain(">Your favorites<");
+    expect(html).toContain('href="/catalogue?favorites=1"');
+    expect(html).toContain('aria-label="Remove @team/fav from favorites"');
+  });
+
+  it("shows Start here to everyone, and Manage only to root", async () => {
+    loaded.loadPinnedShelf.mockResolvedValue({ entries: [entry("first")], starred: [] });
+    const user = await render();
+    expect(user).toContain(">Start here<");
+    expect(user).toContain("@team/first");
+    expect(user).not.toContain('aria-label="Manage Start here"');
+    shell.loadShell.mockResolvedValue({ user: { role: "root" } });
+    expect(await render()).toContain('aria-label="Manage Start here"');
+  });
+
+  it("shows the current workspace's pins under its name, with Manage for its admin", async () => {
+    pins.workspaceNamed.mockResolvedValue({ id: "W1", name: "acme" });
+    loaded.loadPinnedShelf.mockImplementation(async (_headers: Headers, shelf: { kind: string }) =>
+      shelf.kind === "workspace"
+        ? { entries: [entry("ours")], starred: [] }
+        : { entries: [], starred: [] },
+    );
+    shell.loadShell.mockResolvedValue({
+      user: { role: "user", workspaces: { W1: "admin" } },
+      current: "acme",
+    });
+    const admin = await render();
+    expect(admin).toContain(">Pinned in acme<");
+    expect(admin).toContain("@team/ours");
+    expect(admin).toContain('aria-label="Manage acme"');
+    expect(pins.workspaceNamed).toHaveBeenCalledWith(expect.any(Headers), "acme");
+    expect(loaded.loadPinnedShelf).toHaveBeenCalledWith(expect.any(Headers), {
+      kind: "workspace",
+      workspaceId: "W1",
+    });
+    shell.loadShell.mockResolvedValue({
+      user: { role: "user", workspaces: { W1: "user" } },
+      current: "acme",
+    });
+    expect(await render()).not.toContain('aria-label="Manage acme"');
+  });
+
+  it("asks for no workspace's pins while there is no current workspace", async () => {
+    await render();
+    expect(pins.workspaceNamed).not.toHaveBeenCalled();
   });
 });

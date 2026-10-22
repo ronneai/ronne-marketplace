@@ -5,7 +5,7 @@ export type WorkspaceActionState = { error?: string; done?: string };
 
 /** What Make private would meet (093), or why it couldn't be read. */
 export type VisibilityImpactResult =
-  | { dependents: string[]; openDependents: string[] }
+  | { dependents: string[]; openDependents: string[]; startHere?: string[] }
   | { error: string };
 
 /** How many items a rename gives the new name (113), or why it couldn't be read. */

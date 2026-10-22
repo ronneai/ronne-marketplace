@@ -19,6 +19,8 @@ export const INSTANCE_PERMISSIONS = {
   "submissions.override": ["root"],
   /** Instance settings, such as the usage policy (feature 046). */
   "settings.manage": ["root"],
+  /** Pin items to the instance's "Start here" shelf on Home (feature 125). */
+  "pins.manage_global": ["root"],
 } as const satisfies Record<string, readonly Role[]>;
 
 /**
@@ -48,6 +50,8 @@ export const WORKSPACE_PERMISSIONS = {
   "workspace.rename": ["admin"],
   /** Move the workspace's scopes to another workspace, or ask to (115). */
   "scopes.move": ["admin"],
+  /** Pin items to the workspace's shelf and order them (feature 125). */
+  "pins.manage": ["admin"],
 } as const satisfies Record<string, readonly WorkspaceRole[]>;
 
 export type InstancePermission = keyof typeof INSTANCE_PERMISSIONS;

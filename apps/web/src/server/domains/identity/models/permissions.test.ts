@@ -77,6 +77,8 @@ describe("permissions (091)", () => {
         "account.manage_own",
         "audit.view",
         "members.manage",
+        "pins.manage",
+        "pins.manage_global",
         "scopes.create",
         "scopes.manage",
         "scopes.move",

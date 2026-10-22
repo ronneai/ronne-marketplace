@@ -528,6 +528,28 @@ export interface UserErasureTable {
   started_at: Timestamp;
 }
 
+/** A person's favorite item (migration 0033, feature 125). Theirs alone. */
+export interface ItemFavoriteTable {
+  user_id: string;
+  item_id: string;
+  created_at: Timestamp;
+}
+
+/**
+ * An item on a shelf (0033, 125): `workspace_id` null is the instance's "Start here" shelf. `shelf`
+ * is that shelf as a key (the workspace's id, or `instance`), since a unique key can't hold a null.
+ */
+export interface ItemPinTable {
+  id: string;
+  workspace_id: string | null;
+  shelf: string;
+  item_id: string;
+  /** 1, 2, 3… on a shelf; the repository keeps it dense. */
+  position: number;
+  created_by: string | null;
+  created_at: Timestamp;
+}
+
 export interface ItemAliasTable {
   name: string;
   item_id: string;
@@ -566,6 +588,8 @@ export interface Database {
   review_events: ReviewEventTable;
   items: ItemTable;
   item_aliases: ItemAliasTable;
+  item_favorites: ItemFavoriteTable;
+  item_pins: ItemPinTable;
   item_versions: ItemVersionTable;
   dist_tags: DistTagTable;
   version_dependencies: VersionDependencyTable;

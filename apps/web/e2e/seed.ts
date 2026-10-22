@@ -30,12 +30,14 @@ import {
   E2E_MOVE,
   E2E_NAMES,
   E2E_PASSWORD,
+  E2E_PINS,
   E2E_PROPOSAL_ITEM,
   E2E_RENAME,
   E2E_RMK_ITEMS,
   E2E_ROOTS,
   E2E_SCOPE,
   E2E_SHELF,
+  E2E_SHELVES,
   E2E_SKILL,
   E2E_TWIN,
   E2E_TWIN_OLD_NAME,
@@ -488,6 +490,30 @@ const releaseSkillIn = async (
 };
 await releaseSkillIn(E2E_VAULT, "private", E2E_VAULT.members);
 await releaseSkillIn(E2E_SHELF, "public", []);
+// Shelves on a desktop browser (125): a public workspace, its admin and two members.
+await releaseSkillIn(E2E_SHELVES, "public", [E2E_SHELVES.admin, ...E2E_SHELVES.members]);
+await db
+  .updateTable("workspace_members")
+  .set({ role: "admin" })
+  .where("user_id", "=", ids[E2E_SHELVES.admin] ?? "")
+  .where("workspace_id", "in", (eb) =>
+    eb.selectFrom("workspaces").select("id").where("name", "=", E2E_SHELVES.workspace),
+  )
+  .execute();
+// Pins (125): a public workspace with a skill, and each project's admin of it.
+await releaseSkillIn(E2E_PINS, "public", Object.values(E2E_PINS.admins));
+await db
+  .updateTable("workspace_members")
+  .set({ role: "admin" })
+  .where(
+    "user_id",
+    "in",
+    Object.values(E2E_PINS.admins).map((key) => ids[key] ?? ""),
+  )
+  .where("workspace_id", "in", (eb) =>
+    eb.selectFrom("workspaces").select("id").where("name", "=", E2E_PINS.workspace),
+  )
+  .execute();
 // Work in one workspace (120): two public workspaces with each project's moderator in both, and in
 // each a draft of every moderator's and a submission waiting for review.
 for (const where of [E2E_FOCUS, E2E_FOCUS.other]) {
@@ -801,6 +827,53 @@ await db
       revision: null,
       created_at: toDbDate(new Date(), dialect),
     })
+    .execute();
+}
+
+// Shelves for the phone sweep (125): an item on Start here and one on a workspace's shelf, so Home
+// and the workspace's page show them, and the phone users' favorite (so Your favorites shows).
+{
+  const at = toDbDate(new Date(), dialect);
+  const itemNamed = async (workspace: string, name: string) =>
+    await db
+      .selectFrom("items")
+      .innerJoin("scopes", "scopes.id", "items.scope_id")
+      .innerJoin("workspaces", "workspaces.id", "scopes.workspace_id")
+      .select(["items.id as id", "workspaces.id as workspace_id"])
+      .where("workspaces.name", "=", workspace)
+      .where("items.name", "=", name)
+      .executeTakeFirstOrThrow();
+  const startHere = await itemNamed(E2E_PINS.workspace, E2E_PINS.item);
+  const door = await itemNamed(E2E_DOOR.workspace, E2E_DOOR.item);
+  await db
+    .insertInto("item_pins")
+    .values([
+      {
+        id: newId(),
+        workspace_id: null,
+        shelf: "instance",
+        item_id: startHere.id,
+        position: 1,
+        created_by: null,
+        created_at: at,
+      },
+      {
+        id: newId(),
+        workspace_id: door.workspace_id,
+        shelf: door.workspace_id,
+        item_id: door.id,
+        position: 1,
+        created_by: null,
+        created_at: at,
+      },
+    ])
+    .execute();
+  const sweepers = (Object.keys(E2E_USERS) as (keyof typeof E2E_USERS)[]).filter((key) =>
+    /^(phone|phoneWebkit|tablet)(Member|Moderator|Root|PinsAdmin)$/.test(key),
+  );
+  await db
+    .insertInto("item_favorites")
+    .values(sweepers.map((key) => ({ user_id: ids[key] ?? "", item_id: skillId, created_at: at })))
     .execute();
 }
 

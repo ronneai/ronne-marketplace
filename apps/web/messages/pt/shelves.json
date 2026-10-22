@@ -1,0 +1,47 @@
+{
+  "favorite": {
+    "add": "Adicionar {name} aos favoritos",
+    "remove": "Remover {name} dos favoritos"
+  },
+  "shelf": {
+    "instance": "Comece por aqui"
+  },
+  "pin": {
+    "button": "Fixar",
+    "title": "Fixar {name}",
+    "intro": "Escolha onde este item aparece primeiro. Os itens fixados aparecem no Início.",
+    "search": "Encontrar um espaço de trabalho",
+    "noMatch": "Nenhum espaço de trabalho corresponde.",
+    "pinned": "Fixado",
+    "pin": "Fixar",
+    "unpin": "Desafixar",
+    "pinLabel": "Fixar {name} em {shelf}",
+    "unpinLabel": "Remover a fixação de {name} de {shelf}",
+    "manage": "Gerenciar",
+    "manageLabel": "Gerenciar {shelf}",
+    "blockedPrivate": "Só itens de um espaço de trabalho público podem ser fixados em Comece por aqui.",
+    "done": "Concluído"
+  },
+  "manage": {
+    "title": "Gerenciar {shelf}",
+    "count": "{count} de {max} fixados",
+    "empty": "Nada fixado aqui ainda.",
+    "loading": "Carregando…",
+    "up": "Mover {name} para cima",
+    "down": "Mover {name} para baixo",
+    "remove": "Remover {name}",
+    "unavailable": "Indisponível",
+    "unavailableHint": "Ele não tem uma versão instalável agora. Remova-o ou deixe-o: ele volta quando tiver.",
+    "back": "Voltar"
+  },
+  "home": {
+    "favorites": "Seus favoritos",
+    "seeAll": "Ver todos",
+    "pinnedIn": "Fixados em {workspace}",
+    "workspacePins": "Itens fixados"
+  },
+  "visibility": {
+    "startHereTitle": "{count, plural, one {# item está fixado em Comece por aqui} other {# itens estão fixados em Comece por aqui}}",
+    "startHereBody": "Todos veem Comece por aqui, então itens de um espaço de trabalho privado não podem ficar nele. {count, plural, one {Ele sai} other {Eles saem}} quando você tornar este espaço de trabalho privado."
+  }
+}

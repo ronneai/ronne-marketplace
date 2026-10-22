@@ -18,6 +18,8 @@ import {
   RenameWorkspaceButton,
   VisibilityButton,
 } from "@/features/admin-workspaces/WorkspaceDialogs";
+import { loadPinnedShelf } from "@/features/pins/load-shelves";
+import { PinnedShelf } from "@/features/pins/ShelfSections";
 import {
   checkedMembersState,
   membersQueryOf,
@@ -31,6 +33,7 @@ import { pageTitle } from "@/i18n/page-title";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
 import { can } from "@/server/domains/identity/models/permissions";
 import { pageScopes } from "@/server/domains/items/actions/scopes";
+import { shelfKey } from "@/server/domains/shelves/models/shelf";
 import {
   movesToAnswer,
   ownRequests,
@@ -78,6 +81,7 @@ const WorkspacePage = async ({
   if (!me) notFound();
   const t = await getTranslations("workspaces");
   const roles = await getTranslations("common.roleTitle");
+  const shelves = await getTranslations("shelves");
   const { name } = await params;
   const workspace = await viewWorkspace(request, decoded(name));
   if (!workspace) notFound();
@@ -264,6 +268,28 @@ const WorkspacePage = async ({
           />
         )}
       </div>
+      {/* Its pinned items (125), for whoever sees the workspace; Manage for its admins and root. */}
+      {
+        await (async () => {
+          const shelf = { kind: "workspace" as const, workspaceId: workspace.id };
+          const pinned = await loadPinnedShelf(request, shelf);
+          return (
+            <div className="mb-6 empty:hidden">
+              <PinnedShelf
+                id="workspace-pins"
+                title={shelves("home.workspacePins")}
+                entries={pinned.entries}
+                starred={pinned.starred}
+                manage={
+                  can(me, "pins.manage", workspace.id)
+                    ? { key: shelfKey(shelf), label: workspace.name }
+                    : undefined
+                }
+              />
+            </div>
+          );
+        })()
+      }
       <TabLinks
         label={t("workspacePage.tabsLabel")}
         current={tab}

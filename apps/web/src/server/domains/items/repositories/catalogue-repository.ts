@@ -15,6 +15,8 @@ export interface CatalogueRepository {
   /** The listed items with these names, in no particular order (031's canvas). */
   /** By their names now (118): workspace (`global` when left out), scope and name. */
   byNames(names: readonly ItemRef[]): Promise<CatalogueEntry[]>;
+  /** The listed items with these ids (125's shelves), in no particular order. */
+  byIds(ids: readonly string[]): Promise<CatalogueEntry[]>;
   /** How many listed items of each type match the search and scope (the type filter is ignored). */
   typeCounts(filter: Omit<CatalogueFilter, "type">): Promise<{ type: string; count: number }[]>;
   /** The scopes that hold listed items, by name. */

@@ -16,6 +16,10 @@ const usage = vi.hoisted(() => ({ itemUsage: vi.fn() }));
 vi.mock("@/server/domains/usage/actions/usage", () => usage);
 vi.mock("@/server/domains/items/actions/catalogue", () => catalogue);
 vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));
+const shelves = vi.hoisted(() => ({ favoritedAmong: vi.fn() }));
+vi.mock("@/server/domains/shelves/actions/pins", () => ({ pinTargets: async () => [] }));
+vi.mock("@/server/domains/shelves/actions/favorites", () => shelves);
+vi.mock("@/features/favorites/actions", () => ({ toggleFavoriteFromForm: vi.fn() }));
 vi.mock("next/navigation", () => ({
   notFound: () => {
     throw new Error("NEXT_NOT_FOUND");
@@ -59,6 +63,7 @@ const FILES: ContentFile[] = [
 
 beforeEach(() => {
   vi.clearAllMocks();
+  shelves.favoritedAmong.mockResolvedValue(new Set());
   versions.itemPage.mockResolvedValue(itemPageData());
   versions.versionContents.mockResolvedValue(FILES);
   catalogue.dependencyFacts.mockResolvedValue({});
@@ -182,7 +187,9 @@ describe("the item page", () => {
     expect(html).not.toContain("rmk install @team/github");
     expect(html).toContain("<h2>GitHub</h2>");
     expect(html).toContain("&#60;script&#62;alert(1)&#60;/script&#62;");
-    expect(html).not.toContain("<script>");
+    // None from the README; the only script is React's own, which replays a form (the star) sent
+    // before the page was ready.
+    expect(html).not.toMatch(/<script>(?!addEventListener\("submit")/);
     expect(html).toMatch(/aria-current="page"[^>]*>README</);
     expect(html).toContain('href="/items/team/github"');
     expect(html).toContain('href="/items/team/github/versions"');
@@ -665,5 +672,16 @@ describe("the Install panel's Claude Code plugin (077)", () => {
     } finally {
       vi.unstubAllEnvs();
     }
+  });
+});
+
+describe("the star in the header (125)", () => {
+  it("shows whether the person has favorited the item", async () => {
+    expect(await render()).toContain('aria-label="Add @team/github to favorites"');
+    shelves.favoritedAmong.mockResolvedValue(new Set(["i1"]));
+    const html = await render();
+    expect(shelves.favoritedAmong).toHaveBeenCalledWith(expect.any(Headers), ["i1"]);
+    expect(html).toContain('aria-label="Remove @team/github from favorites"');
+    expect(html).toContain('aria-pressed="true"');
   });
 });

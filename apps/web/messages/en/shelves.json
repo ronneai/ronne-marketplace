@@ -1,0 +1,47 @@
+{
+  "favorite": {
+    "add": "Add {name} to favorites",
+    "remove": "Remove {name} from favorites"
+  },
+  "shelf": {
+    "instance": "Start here"
+  },
+  "pin": {
+    "button": "Pin",
+    "title": "Pin {name}",
+    "intro": "Choose where this item is shown first. Pinned items appear on Home.",
+    "search": "Find a workspace",
+    "noMatch": "No workspace matches.",
+    "pinned": "Pinned",
+    "pin": "Pin",
+    "unpin": "Unpin",
+    "pinLabel": "Pin {name} to {shelf}",
+    "unpinLabel": "Remove the pin of {name} from {shelf}",
+    "manage": "Manage",
+    "manageLabel": "Manage {shelf}",
+    "blockedPrivate": "Only items in a public workspace can be pinned to Start here.",
+    "done": "Done"
+  },
+  "manage": {
+    "title": "Manage {shelf}",
+    "count": "{count} of {max} pinned",
+    "empty": "Nothing is pinned here yet.",
+    "loading": "Loading…",
+    "up": "Move {name} up",
+    "down": "Move {name} down",
+    "remove": "Remove {name}",
+    "unavailable": "Not available",
+    "unavailableHint": "It has no installable version now. Remove it, or leave it: it returns when it does.",
+    "back": "Back"
+  },
+  "home": {
+    "favorites": "Your favorites",
+    "seeAll": "See all",
+    "pinnedIn": "Pinned in {workspace}",
+    "workspacePins": "Pinned items"
+  },
+  "visibility": {
+    "startHereTitle": "{count, plural, one {# item is pinned to Start here} other {# items are pinned to Start here}}",
+    "startHereBody": "Everyone sees Start here, so a private workspace's items can't be on it. {count, plural, one {It comes} other {They come}} off when you make this workspace private."
+  }
+}
