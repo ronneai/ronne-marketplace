@@ -106,6 +106,18 @@ export const E2E_USERS = {
   // Switches the Catalogue between the grid and the list (126).
   catalogueView: "catalogue-view@e2e.test",
   catalogueViewNoJs: "catalogue-view-no-js@e2e.test",
+  // Send feedback (127): from the sidebar dialog, and from the page without JavaScript.
+  feedbackSender: "feedback-sender@e2e.test",
+  feedbackNoJs: "feedback-no-js@e2e.test",
+  // Reads the inbox in Admin (127): a root of its own, who also sends three messages first.
+  feedbackRoot: "feedback-root@e2e.test",
+  // Reaches the hourly limit (127), and an account root erases after it sent feedback.
+  feedbackLimit: "feedback-limit@e2e.test",
+  feedbackErasable: "feedback-erasable@e2e.test",
+  // Sends feedback from the Menu on a phone and a tablet (127): one per device project.
+  phoneFeedback: "phone-feedback@e2e.test",
+  phoneWebkitFeedback: "phone-webkit-feedback@e2e.test",
+  tabletFeedback: "tablet-feedback@e2e.test",
   noticeRoot: "notice-root@e2e.test",
   noticeMember: "notice-member@e2e.test",
   phoneNoticeRoot: "phone-notice-root@e2e.test",
@@ -314,6 +326,14 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   homeCards: "Home Cards",
   catalogueView: "Catalogue View",
   catalogueViewNoJs: "Catalogue View No JS",
+  feedbackSender: "Feedback Sender",
+  feedbackNoJs: "Feedback No JS",
+  feedbackRoot: "Feedback Root",
+  feedbackLimit: "Feedback Limit",
+  feedbackErasable: "Feedback Erasable",
+  phoneFeedback: "Phone Feedback",
+  phoneWebkitFeedback: "Phone Webkit Feedback",
+  tabletFeedback: "Tablet Feedback",
   noticeRoot: "Notice Root",
   noticeMember: "Notice Member",
   phoneNoticeRoot: "Phone Notice Root",
@@ -474,6 +494,7 @@ export const E2E_ROOTS: readonly (keyof typeof E2E_USERS)[] = [
   "phoneWebkitRoot",
   "tabletRoot",
   "noticeRoot",
+  "feedbackRoot",
   "phoneNoticeRoot",
   "phoneWebkitNoticeRoot",
   "tabletNoticeRoot",

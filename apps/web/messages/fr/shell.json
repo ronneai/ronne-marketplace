@@ -16,7 +16,9 @@
     "settings": "Réglages",
     "docs": "Documentation",
     "tokens": "CLI et jetons",
-    "propose": "Proposer un élément"
+    "propose": "Proposer un élément",
+    "feedback": "Envoyer des commentaires",
+    "inbox": "Commentaires"
   },
   "sidebar": {
     "label": "Barre latérale",

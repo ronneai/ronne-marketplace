@@ -86,7 +86,7 @@ beforeEach(() => {
     usageMinimum: 0,
     twoFactorPolicy: "optional",
     passwordSignInPolicy: "everyone",
-    retention: { ipDays: 90, sessionsDays: 90 },
+    retention: { ipDays: 90, sessionsDays: 90, feedbackDays: 365 },
   });
   jobs.retentionJobStatus.mockResolvedValue({
     lastRunAt: null,
@@ -438,13 +438,15 @@ describe("Admin › Settings › Privacy › Retention (102)", () => {
       usageMinimum: 0,
       twoFactorPolicy: "optional",
       passwordSignInPolicy: "everyone",
-      retention: { ipDays: 30, sessionsDays: 7 },
+      retention: { ipDays: 30, sessionsDays: 7, feedbackDays: 400 },
     });
     const html = renderToStaticMarkup(await AdminSettings("privacy"));
     expect(html.match(/aria-current="page"[^>]*>([^<]+)</)?.[1]).toBe("Privacy");
     expect(html).toContain("Retention");
     expect(html).toMatch(/name="ipDays"[^>]*value="30"/);
     expect(html).toMatch(/name="sessionsDays"[^>]*value="7"/);
+    expect(html).toMatch(/name="feedbackDays"[^>]*value="400"/);
+    expect(html).toContain("Keep handled feedback for");
     expect(html).toMatch(/<input[^>]*min="1"[^>]*max="3650"[^>]*name="ipDays"/);
     expect(html).toContain("What is purged, and when?");
     expect(html).not.toContain("Usage reporting");
@@ -476,7 +478,13 @@ describe("Admin › Settings › Privacy › Retention (102)", () => {
             at: at.toISOString(),
             ms: 120,
             status: "ok",
-            counts: { ipsCleared: 1204, emailsCleared: 37, sessionsDeleted: 312, grantsDeleted: 9 },
+            counts: {
+              ipsCleared: 1204,
+              emailsCleared: 37,
+              sessionsDeleted: 312,
+              grantsDeleted: 9,
+              feedbackDeleted: 6,
+            },
           },
           running: false,
           schedulerOff: false,
@@ -484,7 +492,9 @@ describe("Admin › Settings › Privacy › Retention (102)", () => {
       />,
     );
     expect(ok).toContain("cleared 1,204 IP addresses and 37 failed sign-ins&#x27; emails");
-    expect(ok).toContain("deleted 312 expired sessions and 9 finished rmk login approvals");
+    expect(ok).toContain(
+      "deleted 312 expired sessions, 9 finished rmk login approvals and 6 handled feedback messages",
+    );
     expect(ok).toMatch(/<time dateTime="2026-10-18T12:00:00.000Z"/);
     const failed = renderToStaticMarkup(
       <LastRun
@@ -508,7 +518,13 @@ describe("Admin › Settings › Privacy › Retention (102)", () => {
         at: "2026-10-18T12:00:00.000Z",
         ms: 1,
         status: "ok",
-        counts: { ipsCleared: 2, emailsCleared: 0, sessionsDeleted: 0, grantsDeleted: 0 },
+        counts: {
+          ipsCleared: 2,
+          emailsCleared: 0,
+          sessionsDeleted: 0,
+          grantsDeleted: 0,
+          feedbackDeleted: 0,
+        },
       },
       running: false,
       schedulerOff: false,
@@ -524,7 +540,9 @@ describe("Admin › Settings › Privacy › Retention (102)", () => {
 
   it("disables Save until a number changes", () => {
     expect(
-      renderToStaticMarkup(<RetentionForm retention={{ ipDays: 90, sessionsDays: 90 }} />),
+      renderToStaticMarkup(
+        <RetentionForm retention={{ ipDays: 90, sessionsDays: 90, feedbackDays: 365 }} />,
+      ),
     ).toMatch(/<button[^>]*disabled=""[^>]*>Save/);
   });
 
@@ -533,10 +551,12 @@ describe("Admin › Settings › Privacy › Retention (102)", () => {
     const data = new FormData();
     data.set("ipDays", "30");
     data.set("sessionsDays", "7");
+    data.set("feedbackDays", "100");
     expect(await actions.saveRetention({}, data)).toEqual({ done: "Retention saved." });
     expect(settings.setRetention).toHaveBeenCalledWith(expect.anything(), {
       ipDays: "30",
       sessionsDays: "7",
+      feedbackDays: "100",
     });
     expect(cache.revalidatePath).toHaveBeenCalledWith("/admin/settings");
     settings.setRetention.mockResolvedValueOnce({ changed: false });

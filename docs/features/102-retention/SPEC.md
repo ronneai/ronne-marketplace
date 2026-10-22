@@ -49,15 +49,16 @@ one panel, **Retention**:
 |---|---|---|---|
 | Keep IP addresses for | `retention_ip_days` | 90 | 1–3,650 |
 | Keep expired sessions for | `retention_sessions_days` | 90 | 1–3,650 |
+| Keep handled feedback for (127) | `retention_feedback_days` | 365 | 1–3,650 |
 
 Each has a short line under it saying what it covers (below). Saving audits
-`settings.retention` with `{ ipDays, sessionsDays }` and the previous values. A value outside the
+`settings.retention` with `{ ipDays, sessionsDays, feedbackDays }` and the previous values. A value outside the
 range, or not a whole number, is refused with the field's error; nothing is saved. The panel's
 heading carries the helper `retention`.
 
 ### What is purged, and when
 
-A run, at time *T*, with `ip = retention_ip_days` and `s = retention_sessions_days`:
+A run, at time *T*, with `ip = retention_ip_days`, `s = retention_sessions_days` and `f = retention_feedback_days`:
 
 | Where | Rule |
 |---|---|
@@ -66,6 +67,7 @@ A run, at time *T*, with `ip = retention_ip_days` and `s = retention_sessions_da
 | `session.ip_address`, `session.user_agent` | set to `NULL` on sessions with `created_at < T − ip` days, live or not |
 | `session` | deleted when `expires_at < T − s` days |
 | `device_grants.requester_ip`, `approver_ip` | set to `NULL` when `created_at < T − ip` days |
+| `feedback` (127) | deleted when `status = 'handled'` and `handled_at < T − f` days: counted from when root handled it, not from when it was sent; feedback still new is never purged |
 | `device_grants` | deleted when `created_at < T − s` days and the grant is finished: any status but `pending`, or a `pending` one past its `expires_at` (107's sweep would mark it expired on the next `rmk login --web`; a grant lives 10 minutes and the retention is a day or more, so nothing is left to audit) |
 
 Nothing else. In particular, no event is deleted, no user row is touched, and no access token is
@@ -114,6 +116,7 @@ each table's count:
 ✓ Failed sign-ins' emails cleared: 37
 ✓ Expired sessions deleted: 312
 ✓ Finished device grants deleted: 9
+✓ Handled feedback deleted: 6
 ```
 
 `--dry-run` prints the counts and changes nothing. Exit codes: 0 done (or nothing to do), 1 the

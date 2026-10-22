@@ -13,14 +13,16 @@ administrators, which suits a team, a company or a demo; it is not sent anywhere
 **In:**
 - **Send feedback** in the sidebar's Tools group (and the Menu sheet): a dialog (full-screen below
   `sm`, 067) with:
-  - **Kind:** Problem, Idea, Question, Praise (required).
+  - **Kind:** Problem, Idea, Question, Praise (required), as four tiles with an icon each (a bug,
+    a lightbulb, a question mark, a heart; owner, 2026-10-22) rather than outlined radio buttons; the
+    message's placeholder follows the kind, and the character counter shows only from 3,500.
   - **Message:** up to 4,000 characters (required).
   - **Include the page I'm on** (checked by default): the path only, never the query string, which
     could hold a link's secrets.
   - The app version is added automatically; nothing else (no screenshots, no browser data beyond
     the version, no files).
-  - After sending: "Thanks, your feedback was sent to this instance's administrators", and the
-    dialog closes.
+  - After sending, the dialog shows "Thanks, your feedback was sent to this instance's
+    administrators" with a Done button that closes it (the page links back to Home).
 - **Admin › Feedback** (root only): a server data table (060) with the sender, kind, message,
   page, version and time; sorted by time, filtered by kind and status, searched by text; paged.
   Each row opens a detail dialog. Status: **New**, **Handled**; root marks one or several (bulk)
@@ -52,10 +54,15 @@ administrators, which suits a team, a company or a demo; it is not sent anywhere
 - **Privacy.** A message can contain personal data, so: "Your data" (104) includes the person's
   feedback; erasing a user (103) **deletes** their feedback rows (the message is not kept under a
   pseudonym); root can delete any row; and the Privacy tab's retention (102) gets a new setting,
-  **Handled feedback kept for** (days, default 365), purged by the existing scheduled job.
-- **No JavaScript:** the dialog opens at `/feedback` as a normal page with the same form.
-- **Phone:** the Send feedback entry is in the Menu sheet; the form is full-screen with the
-  keyboard-safe bottom bar (072).
+  **Keep handled feedback for** (days, default 365), purged by the existing scheduled job.
+- **No JavaScript:** the dialog opens at `/feedback` as a normal page with the same form; the link
+  carries the page they were on as `?from=<path>` (a path only, anything else is dropped). A refused
+  form comes back with what was typed.
+- **Phone:** the Send feedback entry is in the Menu sheet and opens `/feedback`, the same form as a
+  page that fills the screen, its buttons in the sticky bottom bar (072) so they stay in view with a
+  field focused. (The sidebar and its dialog show from `lg`; on a phone the dialog never opens.) A
+  real on-screen keyboard is checked by hand on a device: Playwright's emulation doesn't shrink the
+  visual viewport.
 
 ## Edge cases
 
@@ -80,20 +87,21 @@ administrators, which suits a team, a company or a demo; it is not sent anywhere
 
 ## Acceptance criteria
 
-- [ ] Any signed-in person sends feedback from the dialog (and the no-JavaScript page); input is
+- [x] Any signed-in person sends feedback from the dialog (and the no-JavaScript page); input is
       validated, limits are enforced and the query string is never stored.
-- [ ] Root's Admin › Feedback lists, searches, filters, pages, marks handled (bulk) and deletes;
+- [x] Root's Admin › Feedback lists, searches, filters, pages, marks handled (bulk) and deletes;
       non-root gets not-found.
-- [ ] The sidebar count of new feedback shows for root only.
-- [ ] Marking handled and deleting are audited without message text.
-- [ ] "Your data" includes the person's feedback; erase deletes it; handled feedback older than
+- [x] The sidebar count of new feedback shows for root only.
+- [x] Marking handled and deleting are audited without message text.
+- [x] "Your data" includes the person's feedback; erase deletes it; handled feedback older than
       the retention is purged by the job.
-- [ ] Everything is in messages (129) in three languages; phone sweep passes.
-- [ ] Migration runs on all three database kinds.
-- [ ] The Documentation and helpers above say what the feature does now.
+- [x] Everything is in messages (129) in three languages; phone sweep passes.
+- [x] Migration runs on all three database kinds.
+- [x] The Documentation and helpers above say what the feature does now.
 
-## Open questions
+## Decisions (made while building)
 
-- **Retention default** of 365 days for handled feedback: right, or shorter?
-- **Should new feedback also appear as a count in the user's Home** for root ("3 new feedback")?
-  It would belong in "Waiting for you" (124).
+- **Retention default** stays 365 days for handled feedback, counted from when it was handled; root
+  changes it on the Privacy tab.
+- **No count on Home** for root: the count of new feedback is beside Admin › Feedback in the
+  sidebar, as Reviews has its own. "Waiting for you" (124) is the person's own work.

@@ -507,6 +507,9 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     text(m.direction) === "up" ? " up" : " down",
     ...pinShelf(m, "in"),
   ],
+  // 127: ids only, never the text of a message.
+  "feedback.handled": () => ["Marked a feedback message handled"],
+  "feedback.deleted": () => ["Deleted a feedback message"],
   "settings.two_factor_policy": (m) => [
     `Changed who must use two-factor sign-in from ${TWO_FACTOR_POLICIES_SAID[text(m.from)] ?? text(m.from)} to ${
       TWO_FACTOR_POLICIES_SAID[text(m.to)] ?? text(m.to)
@@ -521,13 +524,14 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     `Changed the usage minimum from ${text(m.from)} to ${text(m.to)}`,
   ],
   "settings.retention": (m) => {
-    // Only what changed, in days: `{ from: { ipDays, sessionsDays }, to: { … } }` (102).
+    // Only what changed, in days: `{ from: { ipDays, sessionsDays, feedbackDays }, to: { … } }` (102, 127).
     const from = typeof m.from === "object" && m.from && !Array.isArray(m.from) ? m.from : {};
     const to = typeof m.to === "object" && m.to && !Array.isArray(m.to) ? m.to : {};
     const changes = (
       [
         ["ipDays", "IP addresses"],
         ["sessionsDays", "expired sessions"],
+        ["feedbackDays", "handled feedback"],
       ] as const
     )
       .filter(([key]) => text(from[key]) !== text(to[key]))

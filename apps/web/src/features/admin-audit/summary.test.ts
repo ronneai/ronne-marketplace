@@ -168,6 +168,8 @@ describe("audit summaries (060)", () => {
     expect(
       line("dist_tag.moved", { name: "@team/reviewer", tag: "beta", from: "1.2.0", to: "1.3.0" }),
     ).toBe("Moved beta of @team/reviewer from 1.2.0 to 1.3.0");
+    expect(line("feedback.handled", {})).toBe("Marked a feedback message handled");
+    expect(line("feedback.deleted", {})).toBe("Deleted a feedback message");
     expect(line("pin.added", { name: "@team/base", itemId: "x" })).toBe(
       "Pinned @team/base to Start here",
     );

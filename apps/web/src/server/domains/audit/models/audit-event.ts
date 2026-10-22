@@ -94,6 +94,8 @@ export const AUDIT_ACTIONS = [
   "pin.added",
   "pin.removed",
   "pin.reordered",
+  "feedback.handled",
+  "feedback.deleted",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
@@ -109,6 +111,7 @@ export const AUDIT_ACTION_GROUPS = [
   "version",
   "dist_tag",
   "pin",
+  "feedback",
   "settings",
   "instance",
   "scim",
@@ -128,6 +131,7 @@ export type AuditTargetType =
   | "submission"
   | "item"
   | "item_version"
+  | "feedback"
   | "instance"
   | "none";
 

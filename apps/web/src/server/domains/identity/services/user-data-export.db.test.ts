@@ -165,6 +165,18 @@ const seedAna = async (): Promise<Ana> => {
     .values({ user_id: id, hidden_at: at(), updated_at: at() })
     .execute();
   await t.db
+    .insertInto("feedback")
+    .values({
+      id: newId(),
+      user_id: id,
+      kind: "problem",
+      message: "The <b>button</b> is broken",
+      page: "/catalogue",
+      version: "1.2.3",
+      created_at: at(),
+    })
+    .execute();
+  await t.db
     .insertInto("device_grants")
     .values({
       id: newId(),
@@ -337,6 +349,17 @@ describe("exportUserData (104)", () => {
       prefix: expect.stringMatching(/^rmk_/),
       revokedAt: null,
     });
+    expect(data.feedback).toEqual([
+      {
+        kind: "problem",
+        message: "The <b>button</b> is broken",
+        page: "/catalogue",
+        version: "1.2.3",
+        status: "new",
+        sentAt: expect.any(Date),
+        handledAt: null,
+      },
+    ]);
     expect(data.onboarding).toEqual({
       hiddenAt: expect.any(Date),
       installConfirmedAt: null,
@@ -549,6 +572,26 @@ describe("exportUserData (104)", () => {
     ).toHaveLength(1);
     const events = (await listAuditEvents(t.db, t.dialect, { size: 100 })).events;
     expect(events.filter((e) => e.action === "user.data_exported")).toHaveLength(1);
+  });
+
+  it("cuts the feedback list past the limit too, oldest kept, and says so (127)", async () => {
+    const ana = await seedAna();
+    for (const message of ["first", "second", "third"])
+      await t.db
+        .insertInto("feedback")
+        .values({
+          id: newId(),
+          user_id: ana.id,
+          kind: "idea",
+          message,
+          version: "1.0.0",
+          created_at: at(new Date()),
+        })
+        .execute();
+    const { data } = await exportAs(ana.headers, ana.id, { maxRows: 2 });
+    // Ana already has the message the seed gave her; the oldest two are kept.
+    expect(data.feedback.map((f) => f.message)).toEqual(["The <b>button</b> is broken", "first"]);
+    expect(data.truncated).toContain("feedback");
   });
 
   it("cuts a list past the limit, oldest kept, and a long comment, and says so", async () => {

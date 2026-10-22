@@ -23,6 +23,7 @@ const PROJECT_USERS = {
     pinsAdmin: "phonePinsAdmin",
     starter: "phoneStarter",
     starterFlow: "phoneStarterFlow",
+    feedback: "phoneFeedback",
   },
   "phone-webkit": {
     languages: "phoneWebkitLanguages",
@@ -44,6 +45,7 @@ const PROJECT_USERS = {
     pinsAdmin: "phoneWebkitPinsAdmin",
     starter: "phoneWebkitStarter",
     starterFlow: "phoneWebkitStarterFlow",
+    feedback: "phoneWebkitFeedback",
   },
   tablet: {
     languages: "tabletLanguages",
@@ -65,6 +67,7 @@ const PROJECT_USERS = {
     pinsAdmin: "tabletPinsAdmin",
     starter: "tabletStarter",
     starterFlow: "tabletStarterFlow",
+    feedback: "tabletFeedback",
   },
 } as const satisfies Record<string, Record<string, keyof typeof E2E_USERS>>;
 

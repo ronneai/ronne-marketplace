@@ -99,6 +99,7 @@ export const ROUTE_SEGMENTS = new Set([
   "data",
   "device",
   "drafts",
+  "feedback",
   "feeds",
   "health",
   "items",

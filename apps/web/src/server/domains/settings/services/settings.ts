@@ -27,6 +27,7 @@ import {
 } from "../models/password-sign-in-policy";
 import {
   DEFAULT_RETENTION_POLICY,
+  RETENTION_FEEDBACK_DAYS_KEY,
   RETENTION_IP_DAYS_KEY,
   RETENTION_SESSIONS_DAYS_KEY,
   type RetentionPolicy,
@@ -83,10 +84,13 @@ export const twoFactorPolicy = async (deps: SettingsDeps): Promise<TwoFactorPoli
 export const retentionPolicy = async (deps: SettingsDeps): Promise<RetentionPolicy> => {
   const ip = await deps.repo.get(RETENTION_IP_DAYS_KEY);
   const sessions = await deps.repo.get(RETENTION_SESSIONS_DAYS_KEY);
+  const feedback = await deps.repo.get(RETENTION_FEEDBACK_DAYS_KEY);
   return {
     ipDays: (ip && retentionDaysFrom(ip.value)) ?? DEFAULT_RETENTION_POLICY.ipDays,
     sessionsDays:
       (sessions && retentionDaysFrom(sessions.value)) ?? DEFAULT_RETENTION_POLICY.sessionsDays,
+    feedbackDays:
+      (feedback && retentionDaysFrom(feedback.value)) ?? DEFAULT_RETENTION_POLICY.feedbackDays,
   };
 };
 
@@ -139,33 +143,44 @@ export const instanceSettings = async (
 };
 
 /**
- * Root sets how long personal data is kept (102): both numbers at once, each a whole number of
+ * Root sets how long personal data is kept (102): the numbers at once, each a whole number of
  * days from 1 to 3,650, audited as `settings.retention` with the old and new values. The next
- * purge runs by the new values; nothing is purged here.
+ * purge runs by the new values; nothing is purged here. `feedbackDays` (127), when left out,
+ * stays as it is.
  */
 export const setRetention = async (
   deps: SettingsDeps,
   actor: SettingsActor,
-  value: { ipDays: unknown; sessionsDays: unknown },
+  value: { ipDays: unknown; sessionsDays: unknown; feedbackDays?: unknown },
 ): Promise<{ changed: boolean }> => {
   requirePermission(actor.user, "settings.manage");
   const ipDays = retentionDaysFrom(value.ipDays);
   if (ipDays === null) throw new InvalidRetentionError("ipDays");
   const sessionsDays = retentionDaysFrom(value.sessionsDays);
   if (sessionsDays === null) throw new InvalidRetentionError("sessionsDays");
+  const askedFeedbackDays =
+    value.feedbackDays === undefined ? undefined : retentionDaysFrom(value.feedbackDays);
+  if (askedFeedbackDays === null) throw new InvalidRetentionError("feedbackDays");
   const at = now(deps);
   return deps.repo.transaction(async (repo) => {
     const from = await retentionPolicy({ repo });
-    if (from.ipDays === ipDays && from.sessionsDays === sessionsDays) return { changed: false };
+    const feedbackDays = askedFeedbackDays ?? from.feedbackDays;
+    if (
+      from.ipDays === ipDays &&
+      from.sessionsDays === sessionsDays &&
+      from.feedbackDays === feedbackDays
+    )
+      return { changed: false };
     const by = actor.user?.id ?? null;
     await repo.set(RETENTION_IP_DAYS_KEY, String(ipDays), by, at);
     await repo.set(RETENTION_SESSIONS_DAYS_KEY, String(sessionsDays), by, at);
+    await repo.set(RETENTION_FEEDBACK_DAYS_KEY, String(feedbackDays), by, at);
     await repo.recordAudit(
       {
         actorId: by,
         action: "settings.retention",
         target: { type: "instance" },
-        metadata: { from: { ...from }, to: { ipDays, sessionsDays } },
+        metadata: { from: { ...from }, to: { ipDays, sessionsDays, feedbackDays } },
         ipAddress: actor.ip,
       },
       at,

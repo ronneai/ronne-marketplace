@@ -21,6 +21,8 @@ export const INSTANCE_PERMISSIONS = {
   "settings.manage": ["root"],
   /** Pin items to the instance's "Start here" shelf on Home (feature 125). */
   "pins.manage_global": ["root"],
+  /** Read the feedback people send, mark it handled and delete it (feature 127). Sending is `account.manage_own`. */
+  "feedback.manage": ["root"],
 } as const satisfies Record<string, readonly Role[]>;
 
 /**

@@ -99,6 +99,12 @@ export const kyselyEraseRepository = (
       );
     },
 
+    async deleteFeedback(userId) {
+      return count(
+        await db.deleteFrom("feedback").where("user_id", "=", userId).executeTakeFirst(),
+      );
+    },
+
     async deleteOnboarding(userId) {
       await db.deleteFrom("user_onboarding").where("user_id", "=", userId).execute();
     },

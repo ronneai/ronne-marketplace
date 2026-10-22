@@ -167,6 +167,7 @@ export const TOPICS = [
       { id: "settings", title: "Settings" },
       { id: "notice", title: "Notice" },
       { id: "pins", title: "Start here" },
+      { id: "feedback", title: "Feedback" },
       { id: "audit", title: "Audit log" },
     ],
   },

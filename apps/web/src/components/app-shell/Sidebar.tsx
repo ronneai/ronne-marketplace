@@ -5,6 +5,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { type ReactNode, useState } from "react";
+import { FeedbackDialog } from "@/features/feedback/FeedbackDialog";
+import { feedbackHref } from "@/features/feedback/href";
+import { pagePathOf } from "@/server/domains/feedback/models/feedback";
 import { Badge } from "../ui/Badge";
 import { BrandLogo } from "../ui/BrandLogo";
 import { NewTabLink } from "../ui/NewTabLink";
@@ -87,6 +90,16 @@ export const Sidebar = ({
   // Everything follows `folded`, so folding is a morph (owner, 2026-10-20): the width animates, and
   // the logo, the switcher, the items and the foot change shape in place, with no content swapped.
   const [folded, setFolded] = useState(initiallyFolded);
+  // Send feedback (127) opens a dialog here; without JavaScript, and on a phone, it is a page.
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const closeFeedback = () => {
+    setFeedbackOpen(false);
+    // The dialog is only in the page while open, so focus goes back to the link by hand.
+    window.setTimeout(
+      () => document.querySelector<HTMLElement>("[data-feedback-link]")?.focus(),
+      0,
+    );
+  };
   const toggle = () => {
     const next = !folded;
     setFolded(next);
@@ -144,7 +157,16 @@ export const Sidebar = ({
     ) : (
       <Link
         key={item.href}
-        href={item.href}
+        href={item.key === "feedback" ? feedbackHref(path) : item.href}
+        data-feedback-link={item.key === "feedback" ? "" : undefined}
+        onClick={
+          item.key === "feedback"
+            ? (event) => {
+                event.preventDefault();
+                setFeedbackOpen(true);
+              }
+            : undefined
+        }
         aria-current={isCurrent(item, path) ? "page" : undefined}
         aria-label={folded ? name : undefined}
         title={folded ? name : undefined}
@@ -297,6 +319,9 @@ export const Sidebar = ({
           </p>
         ) : null}
       </div>
+      {feedbackOpen ? (
+        <FeedbackDialog open onClose={closeFeedback} page={pagePathOf(path)} />
+      ) : null}
     </aside>
   );
 };

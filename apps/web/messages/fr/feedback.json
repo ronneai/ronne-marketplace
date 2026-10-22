@@ -1,0 +1,97 @@
+{
+  "title": "Envoyer des commentaires",
+  "intro": "Dites aux personnes qui gèrent cette instance ce qui ne va pas, ce qui manque ou ce qui va bien. Elles le lisent dans Admin.",
+  "kind": {
+    "legend": "De quel type de commentaire s’agit-il?",
+    "problem": "Problème",
+    "idea": "Idée",
+    "question": "Question",
+    "praise": "Félicitations"
+  },
+  "message": {
+    "label": "Message",
+    "count": "{count, number}/{max, number} caractères",
+    "placeholder": {
+      "none": "Que souhaitez-vous nous dire?",
+      "problem": "Qu’est-ce qui n’a pas fonctionné? À quoi vous attendiez-vous?",
+      "idea": "Que souhaiteriez-vous voir?",
+      "question": "Que souhaitez-vous savoir?",
+      "praise": "Qu’est-ce qui fonctionne bien pour vous?"
+    }
+  },
+  "page": {
+    "include": "Inclure la page où je me trouve"
+  },
+  "submit": "Envoyer les commentaires",
+  "cancel": "Annuler",
+  "done": "Terminé",
+  "backHome": "Retour à l’accueil",
+  "thanks": "Merci, vos commentaires ont été envoyés aux administrateurs de cette instance.",
+  "errors": {
+    "kind_required": "Choisissez le type de commentaire.",
+    "message_required": "Écrivez un message.",
+    "message_too_long": "Ce message dépasse {max, number} caractères. Raccourcissez-le.",
+    "rate_limited": "Vous pouvez envoyer {limit, number} messages par heure. Réessayez plus tard."
+  },
+  "admin": {
+    "title": "Commentaires",
+    "description": "Ce que les gens ont envoyé avec Envoyer des commentaires, du plus récent au plus ancien. Seul le root les voit.",
+    "filters": {
+      "search": "Rechercher",
+      "searchPlaceholder": "Message, nom ou courriel",
+      "anyKind": "Tous les types",
+      "anyStatus": "Tous les statuts",
+      "apply": "Filtrer"
+    },
+    "columns": {
+      "select": "Sélectionner",
+      "from": "De",
+      "kind": "Type",
+      "message": "Message",
+      "page": "Page",
+      "version": "Version",
+      "status": "Statut",
+      "sent": "Envoyé",
+      "open": "Ouvrir"
+    },
+    "status": {
+      "new": "Nouveau",
+      "handled": "Traité"
+    },
+    "empty": {
+      "none": "Personne n’a encore envoyé de commentaires.",
+      "filtered": "Aucun commentaire ne correspond à ces filtres."
+    },
+    "select": "Sélectionner le message de {name}",
+    "open": "Ouvrir le message de {name}",
+    "bulk": {
+      "label": "Actions sur les messages sélectionnés",
+      "selected": "{count, plural, =0 {Aucun sélectionné} one {# sélectionné} other {# sélectionnés}}",
+      "markHandled": "Marquer comme traité",
+      "delete": "Supprimer",
+      "selectAll": "Tout sélectionner sur cette page",
+      "clear": "Effacer la sélection"
+    },
+    "done": {
+      "handled": "{count, plural, =0 {Rien à marquer : ils étaient déjà traités.} one {# message marqué comme traité.} other {# messages marqués comme traités.}}",
+      "deleted": "{count, plural, =0 {Rien n’a été supprimé.} one {# message supprimé.} other {# messages supprimés.}}"
+    },
+    "errors": {
+      "forbidden": "Seul le root peut faire cela.",
+      "too_many": "Sélectionnez au plus {max, number} messages."
+    },
+    "delete": {
+      "title": "{count, plural, one {Supprimer ce message?} other {Supprimer # messages?}}",
+      "body": "Cette action est irréversible. Les expéditeurs n’en sont pas informés.",
+      "cancel": "Annuler",
+      "confirm": "Supprimer"
+    },
+    "detail": {
+      "title": "Commentaires de {name}",
+      "from": "De",
+      "sent": "Envoyé",
+      "noPage": "Non incluse"
+    }
+  },
+  "where": "Où cela va-t-il?"
+}

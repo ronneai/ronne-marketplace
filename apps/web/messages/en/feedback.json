@@ -1,0 +1,97 @@
+{
+  "title": "Send feedback",
+  "intro": "Tell the people who run this instance what’s wrong, missing or good. They read it in Admin.",
+  "kind": {
+    "legend": "What kind of feedback is it?",
+    "problem": "Problem",
+    "idea": "Idea",
+    "question": "Question",
+    "praise": "Praise"
+  },
+  "message": {
+    "label": "Message",
+    "count": "{count, number}/{max, number} characters",
+    "placeholder": {
+      "none": "What would you like to tell us?",
+      "problem": "What went wrong? What did you expect?",
+      "idea": "What would you like to see?",
+      "question": "What would you like to know?",
+      "praise": "What works well for you?"
+    }
+  },
+  "page": {
+    "include": "Include the page I’m on"
+  },
+  "submit": "Send feedback",
+  "cancel": "Cancel",
+  "done": "Done",
+  "backHome": "Back to Home",
+  "thanks": "Thanks, your feedback was sent to this instance’s administrators.",
+  "errors": {
+    "kind_required": "Choose what kind of feedback this is.",
+    "message_required": "Write a message.",
+    "message_too_long": "That message is longer than {max, number} characters. Shorten it.",
+    "rate_limited": "You can send {limit, number} messages an hour. Try again later."
+  },
+  "admin": {
+    "title": "Feedback",
+    "description": "What people sent from Send feedback, newest first. Only root sees it.",
+    "filters": {
+      "search": "Search",
+      "searchPlaceholder": "Message, name or email",
+      "anyKind": "Any kind",
+      "anyStatus": "Any status",
+      "apply": "Filter"
+    },
+    "columns": {
+      "select": "Select",
+      "from": "From",
+      "kind": "Kind",
+      "message": "Message",
+      "page": "Page",
+      "version": "Version",
+      "status": "Status",
+      "sent": "Sent",
+      "open": "Open"
+    },
+    "status": {
+      "new": "New",
+      "handled": "Handled"
+    },
+    "empty": {
+      "none": "Nobody has sent feedback yet.",
+      "filtered": "No feedback matches these filters."
+    },
+    "select": "Select the message from {name}",
+    "open": "Open the message from {name}",
+    "bulk": {
+      "label": "Actions on the selected messages",
+      "selected": "{count, plural, =0 {None selected} one {# selected} other {# selected}}",
+      "markHandled": "Mark handled",
+      "delete": "Delete",
+      "selectAll": "Select all on this page",
+      "clear": "Clear selection"
+    },
+    "done": {
+      "handled": "{count, plural, =0 {Nothing to mark: they were already handled.} one {# message marked handled.} other {# messages marked handled.}}",
+      "deleted": "{count, plural, =0 {Nothing was deleted.} one {# message deleted.} other {# messages deleted.}}"
+    },
+    "errors": {
+      "forbidden": "Only root can do this.",
+      "too_many": "Select at most {max, number} messages."
+    },
+    "delete": {
+      "title": "{count, plural, one {Delete this message?} other {Delete # messages?}}",
+      "body": "This can’t be undone. The senders aren’t told.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "detail": {
+      "title": "Feedback from {name}",
+      "from": "From",
+      "sent": "Sent",
+      "noPage": "Not included"
+    }
+  },
+  "where": "Where does it go?"
+}

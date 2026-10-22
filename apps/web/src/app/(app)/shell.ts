@@ -10,8 +10,9 @@ import {
   withWorkspace,
 } from "@/features/current-workspace/current-workspace";
 import { parseTheme, THEME_COOKIE } from "@/features/theme/theme";
+import { countNewFeedback } from "@/server/domains/feedback/actions/feedback";
 import { requireUser } from "@/server/domains/identity/actions/session";
-import { canInSomeShared } from "@/server/domains/identity/models/permissions";
+import { can, canInSomeShared } from "@/server/domains/identity/models/permissions";
 import { countNeedsReview } from "@/server/domains/submissions/actions/reviews";
 import {
   countMovesToAnswer,
@@ -41,6 +42,8 @@ export const loadShell = cache(async () => {
   const needsReview = canInSomeShared(user, "submissions.review")
     ? await countNeedsReview(request)
     : 0;
+  // Root sees how many messages in Feedback are new (127), next to Feedback in Admin.
+  const newFeedback = can(user, "feedback.manage") ? await countNewFeedback(request) : 0;
   // Root and moderators see how many requests to join wait for them next to Requests (094).
   // And the scope moves waiting for them (115): root's, and a shared workspace's admins'.
   const toAnswer = canInSomeShared(user, "access_requests.answer")
@@ -60,7 +63,11 @@ export const loadShell = cache(async () => {
     folded,
     workspaces,
     current: currentFrom(jar.get(WORKSPACE_COOKIE)?.value, workspaces),
-    navCounts: { "/reviews": needsReview, "/workspaces/requests": toAnswer },
+    navCounts: {
+      "/reviews": needsReview,
+      "/workspaces/requests": toAnswer,
+      "/admin/feedback": newFeedback,
+    },
   };
 });
 

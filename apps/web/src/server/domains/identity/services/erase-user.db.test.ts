@@ -200,6 +200,18 @@ const seedAna = async (): Promise<Seeded> => {
     .insertInto("user_onboarding")
     .values({ user_id: id, hidden_at: at(), updated_at: at() })
     .execute();
+  await t.db
+    .insertInto("feedback")
+    .values({
+      id: newId(),
+      user_id: id,
+      kind: "problem",
+      message: "The <b>button</b> is broken",
+      page: "/catalogue",
+      version: "1.2.3",
+      created_at: at(),
+    })
+    .execute();
   for (const name of ["phone", "tablet"])
     await t.db
       .insertInto("device_grants")
@@ -385,6 +397,7 @@ describe("eraseUser (103)", () => {
       personalWorkspace: "renamed",
       requestsCancelled: 2,
       movesCancelled: 1,
+      feedbackDeleted: 1,
     });
     expect(result.eventsRewritten).toBeGreaterThanOrEqual(2);
 
@@ -409,6 +422,7 @@ describe("eraseUser (103)", () => {
       ["access_tokens", "user_id"],
       ["device_grants", "user_id"],
       ["user_onboarding", "user_id"],
+      ["feedback", "user_id"],
       ["scim_users", "user_id"],
       ["scim_group_members", "user_id"],
       ["workspace_members", "user_id"],
@@ -488,6 +502,7 @@ describe("eraseUser (103)", () => {
         personalWorkspace: "renamed",
         requestsCancelled: 2,
         movesCancelled: 1,
+        feedbackDeleted: 1,
       },
     });
     expect(JSON.stringify(erased[0]?.metadata)).not.toMatch(/ana@example|Ana Silva/);

@@ -2,19 +2,21 @@ import { describe, expect, it } from "vitest";
 import { PROGRESS_EVERY, progressLines, purgeLines } from "./purge";
 
 describe("rmk-server purge's output (102)", () => {
-  it("prints the four count lines in the spec's format", () => {
+  it("prints the count lines in the spec's format", () => {
     expect(
       purgeLines({
         ipsCleared: { auditLog: 1180, sessions: 20, deviceGrants: 4 },
         emailsCleared: 37,
         sessionsDeleted: 312,
         grantsDeleted: 9,
+        feedbackDeleted: 6,
       }),
     ).toEqual([
       "IP addresses cleared: 1,204 (audit log 1,180, sessions 20, device grants 4)",
       "Failed sign-ins' emails cleared: 37",
       "Expired sessions deleted: 312",
       "Finished device grants deleted: 9",
+      "Handled feedback deleted: 6",
     ]);
   });
 

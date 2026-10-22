@@ -19,6 +19,7 @@ export const purgeLines = (counts: PurgeCounts, erasuresFinished = 0): string[] 
     `Failed sign-ins' emails cleared: ${n(counts.emailsCleared)}`,
     `Expired sessions deleted: ${n(counts.sessionsDeleted)}`,
     `Finished device grants deleted: ${n(counts.grantsDeleted)}`,
+    `Handled feedback deleted: ${n(counts.feedbackDeleted)}`,
     // Erasures (103) whose audit log rewrite the run finished, when there were any.
     ...(erasuresFinished > 0 ? [`Erasures finished: ${n(erasuresFinished)}`] : []),
   ];
@@ -71,7 +72,7 @@ export const runPurge = async (options: {
   try {
     const policy = await retentionPolicy({ repo: kyselySettingsRepository(db, dialect) });
     prompts.log.step(
-      `${options.dryRun ? "Counting what a purge would clear" : "Purging"} by the retention: IP addresses ${policy.ipDays} days, expired sessions ${policy.sessionsDays} days.`,
+      `${options.dryRun ? "Counting what a purge would clear" : "Purging"} by the retention: IP addresses ${policy.ipDays} days, expired sessions ${policy.sessionsDays} days, handled feedback ${policy.feedbackDays} days.`,
     );
     let counts: PurgeCounts;
     let erasuresFinished = 0;

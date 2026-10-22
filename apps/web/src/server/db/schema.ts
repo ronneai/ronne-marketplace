@@ -540,6 +540,25 @@ export interface UserOnboardingTable {
   updated_at: Timestamp;
 }
 
+/**
+ * Feedback from a signed-in person to the instance's administrators (migration 0035, feature 127).
+ * `message` is plain text; `page` is the path they were on, never a query; `version` is the app's.
+ */
+export interface FeedbackTable {
+  id: string;
+  user_id: string;
+  /** `problem`, `idea`, `question` or `praise`. */
+  kind: string;
+  message: string;
+  page: string | null;
+  version: string;
+  /** `new` or `handled`. */
+  status: Generated<string>;
+  handled_by: string | null;
+  handled_at: Timestamp | null;
+  created_at: Timestamp;
+}
+
 /** A person's favorite item (migration 0033, feature 125). Theirs alone. */
 export interface ItemFavoriteTable {
   user_id: string;
@@ -602,6 +621,7 @@ export interface Database {
   item_aliases: ItemAliasTable;
   item_favorites: ItemFavoriteTable;
   user_onboarding: UserOnboardingTable;
+  feedback: FeedbackTable;
   item_pins: ItemPinTable;
   item_versions: ItemVersionTable;
   dist_tags: DistTagTable;

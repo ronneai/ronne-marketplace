@@ -16,7 +16,9 @@
     "settings": "Configurações",
     "docs": "Documentação",
     "tokens": "CLI e tokens",
-    "propose": "Propor item"
+    "propose": "Propor item",
+    "feedback": "Enviar feedback",
+    "inbox": "Feedback"
   },
   "sidebar": {
     "label": "Barra lateral",
