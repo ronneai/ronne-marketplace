@@ -34,7 +34,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   for handled feedback on the Privacy tab (102) and the purge in the existing job.
   *Done when:* the data-export, erase and purge tests are extended and pass.
 
-- [ ] **6. Messages and phone.** Everything in messages (129) in three languages; scan; phone
+- [x] **6. Messages and phone.** Everything in messages (129) in three languages; scan; phone
   sweep (dialog with the keyboard open, 072).
   *Done when:* parity and scan pass; the sweep passes on every project.
 
@@ -54,3 +54,5 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 Independent of 124–126; needs 129's messages. Message text never goes to logs or audit events
 (`codeql-logging.md`).
+
+**For the owner, by hand (not a task's claim):** with a real on-screen keyboard on a phone (iOS Safari and Android Chrome), open `/feedback`, focus the message field and check the Send feedback bar stays above the keyboard. Playwright's emulation can't shrink the visual viewport, so the end-to-end test only shows the bar is on screen with the field focused.

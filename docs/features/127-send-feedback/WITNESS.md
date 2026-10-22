@@ -227,3 +227,47 @@ Witnessed: 2026-10-22 10:20 local, by a fresh agent (adversarial). Commit: 64397
 | 3e | Typecheck and Biome are clean | yes | confirmed | `typecheck` 7 of 7; `lint` no errors. |
 
 **Overall:** met.
+
+## Task 6 — Messages and phone
+
+Witnessed: 2026-10-22 10:20 local, by a fresh agent (blind). Commit: 2091e822 plus the uncommitted diff and untracked files. Machine: macOS (Darwin 27.0.0), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Parity: pt and fr have every key of en (feedback, shell, common) with the same placeholders | no | confirmed | 16 files, 196 tests passed; deleting `title` from pt and fr in a scratch copy failed the two parity tests. |
+| 2 | Pt and fr messages are not left as English | no | confirmed | `feedback-untranslated.test.ts` passes, with an allowlist of shared words. |
+| 3 | The raw-text lint rule covers the feedback folders | no | confirmed | `biome.json` lists the four folders; a raw `<span>` in each in a scratch copy failed lint at each. |
+| 4 | The form's JSX has no text that is not a message | no | confirmed | Read `FeedbackForm.tsx`, `FeedbackDialog.tsx`, the page. |
+| 5 | The message is the sender's own words, shown as written | no | partly | Only the form was read; the inbox's rendering was not. |
+| 6 | The phone sweep passes on every project | no | confirmed | After one build: phone 15, phone-webkit 15, tablet 15 passed (three languages); `pages.ts` lists `/feedback` and `/admin/feedback`. |
+| 7 | Send feedback is in the Menu sheet and opens the form on a phone | no | confirmed | `feedback.mobile.e2e.ts` passed on phone, phone-webkit and tablet. |
+| 8 | With the message field focused the form's buttons stay on screen | no | partly | Emulated only; a real keyboard can't be shown here. |
+| 9 | The desktop dialog and page flows still work | no | confirmed | `feedback.e2e.ts` → 3 passed. |
+
+**Overall:** not met: rows 5 and 8.
+
+### Re-check (rows 5 and 8)
+
+Witnessed: 2026-10-22 10:35 local, by a fresh agent (blind). Commit: 2091e822 plus the uncommitted diff. Machine: macOS (Darwin 27.0.0), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 5a | The inbox table cell shows the message as written | yes | confirmed | "shows a message as it was written" and "never as HTML" pass (12 tests); `{row.message}` is a text child. |
+| 5b | The detail dialog shows the whole message with its line breaks | yes | partly | The code keeps them; nothing ran it. |
+| 8a | The spec's Phone line matches the code | yes | confirmed | `SPEC.md` against `Sidebar.tsx` and `Dialog.tsx`. |
+| 8b | With the field focused the buttons stay on screen | yes | confirmed | `feedback.mobile.e2e.ts` on three projects. |
+| 8c | A real on-screen keyboard keeps the bar in reach | yes | can't check here | Emulation does not shrink the visual viewport; moved to PLAN's notes as a check by hand. |
+
+**Overall:** not met: 5b; 8c moved out of the task.
+
+### Re-check (row 5b)
+
+Witnessed: 2026-10-22 11:05 local, by a fresh agent (blind). Commit: 2091e822 plus the uncommitted diff. Machine: macOS (Darwin 27.0.0), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 5b | The detail dialog shows the whole message as written (line break, other-language text), and the test fails without the fix | yes | confirmed | Removing `whitespace-pre-wrap` from `InboxSelection.tsx`, rebuilding and running "marks two of four handled…" failed at `toHaveCSS("white-space","pre-wrap")` (received "normal"); restored (`cmp` identical), rebuilt, 3 passed; `git status` unchanged. |
+| 8a | The spec's Phone line matches the code | yes | confirmed | As before. |
+| 8b | With the field focused the buttons stay on screen | yes | confirmed | As before. |
+
+**Overall:** met.

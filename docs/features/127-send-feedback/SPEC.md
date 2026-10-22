@@ -58,8 +58,11 @@ administrators, which suits a team, a company or a demo; it is not sent anywhere
 - **No JavaScript:** the dialog opens at `/feedback` as a normal page with the same form; the link
   carries the page they were on as `?from=<path>` (a path only, anything else is dropped). A refused
   form comes back with what was typed.
-- **Phone:** the Send feedback entry is in the Menu sheet; the form is full-screen with the
-  keyboard-safe bottom bar (072).
+- **Phone:** the Send feedback entry is in the Menu sheet and opens `/feedback`, the same form as a
+  page that fills the screen, its buttons in the sticky bottom bar (072) so they stay in view with a
+  field focused. (The sidebar and its dialog show from `lg`; on a phone the dialog never opens.) A
+  real on-screen keyboard is checked by hand on a device: Playwright's emulation doesn't shrink the
+  visual viewport.
 
 ## Edge cases
 

@@ -111,6 +111,10 @@ export const E2E_USERS = {
   feedbackNoJs: "feedback-no-js@e2e.test",
   // Reads the inbox in Admin (127): a root of its own, who also sends three messages first.
   feedbackRoot: "feedback-root@e2e.test",
+  // Sends feedback from the Menu on a phone and a tablet (127): one per device project.
+  phoneFeedback: "phone-feedback@e2e.test",
+  phoneWebkitFeedback: "phone-webkit-feedback@e2e.test",
+  tabletFeedback: "tablet-feedback@e2e.test",
   noticeRoot: "notice-root@e2e.test",
   noticeMember: "notice-member@e2e.test",
   phoneNoticeRoot: "phone-notice-root@e2e.test",
@@ -322,6 +326,9 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   feedbackSender: "Feedback Sender",
   feedbackNoJs: "Feedback No JS",
   feedbackRoot: "Feedback Root",
+  phoneFeedback: "Phone Feedback",
+  phoneWebkitFeedback: "Phone Webkit Feedback",
+  tabletFeedback: "Tablet Feedback",
   noticeRoot: "Notice Root",
   noticeMember: "Notice Member",
   phoneNoticeRoot: "Phone Notice Root",

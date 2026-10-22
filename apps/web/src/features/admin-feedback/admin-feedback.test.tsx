@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { parseListQuery } from "@/components/ui/data-table/list-query";
 import type { FeedbackEntry } from "@/server/domains/feedback/models/feedback";
+import { englishLeaks, ownTextsShown } from "@/test/english-leak";
 import { inLocale } from "@/test/intl";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
@@ -96,6 +97,15 @@ describe("Admin › Feedback (127)", () => {
     expect(html).toContain("&lt;img src=x");
   });
 
+  it("shows a message as it was written: line breaks and any language kept", () => {
+    const message = "Olá, dúvida:\nonde fica o botão? 日本語 😀  two  spaces";
+    const html = view([entry("A1", { message })]);
+    // The cell is one line cut short; its whole text is the title, as written.
+    expect(html).toContain(`title="${message}"`);
+    expect(html).toContain("日本語 😀");
+    expect(html).not.toMatch(/<br/);
+  });
+
   it("has the bulk bar with nothing selected, and the filters", () => {
     const html = view([entry("A1")]);
     expect(html).toContain("None selected");
@@ -152,4 +162,18 @@ describe("Admin › Feedback in Portuguese and French", () => {
     ])
       expect(fr, text).toContain(text);
   });
+});
+
+describe("no English left behind in the inbox (127)", () => {
+  for (const locale of ["pt", "fr"] as const) {
+    it(`${locale}: none of the English texts appears`, async () => {
+      const html = [
+        view([entry("A1"), entry("A2", { status: "handled", page: null })], {}, locale),
+        view([], {}, locale),
+        view([], { kind: "idea" }, locale),
+      ].join("\n");
+      expect(await englishLeaks(["feedback"], locale, html)).toEqual([]);
+      expect(await ownTextsShown(["feedback"], locale, html)).toBeGreaterThan(5);
+    });
+  }
 });
