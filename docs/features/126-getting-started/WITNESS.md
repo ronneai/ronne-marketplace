@@ -53,3 +53,20 @@ Witnessed: 2026-10-21 22:25 local, by a fresh agent (blind). Commit: 8fe52798 pl
 | 10 | SPEC.md's "Existing accounts" wording matches the behaviour | no | confirmed | The diff says a long-time user sees "2 of 4" until they confirm or hide, then "You're set up" once. |
 
 **Overall:** met.
+
+## Task 3 — Actions
+
+Witnessed: 2026-10-21 22:25 local, by a fresh agent (blind). Commit: 1008254b plus the uncommitted working tree. Machine: macOS (Darwin), SQLite only.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Hide hides the panel for the signed-in person only | no | confirmed | `hideGettingStarted` calls `onboarding.hide(signedIn(actor).id, …)`; "hides, and shows again, for the person alone" passes. |
+| 2 | Confirm installed ticks step 3, keeps the first time, changes no one else | no | confirmed | "confirms an install…": two calls, the first time kept, uma true and ben false. |
+| 3 | Show again clears hidden and seen, keeps the confirmed install, and a finished person gets "You're set up" | no | confirmed | "shows 'You're set up' again…" gives `setUp`; `show` sets only `hidden_at` and `completed_seen_at` to null (the repository test covers the install staying). |
+| 4 | `markSetUpSeen` marks only while the panel is "setUp", and the panel is gone next visit | no | confirmed | Removing the `state.panel !== "setUp"` guard made "marks 'You're set up' seen only when it is being shown" fail; restored. |
+| 5 | One person can't change another's; signed out is refused | no | confirmed | No action takes a person's id; `actions.test.ts` asserts one `Headers` argument; "refuses every one of them when nobody is signed in" leaves `user_onboarding` empty. |
+| 6 | The form actions are plain forms, refresh the pages, and let a refusal through | no | confirmed | Three `serverAction`-wrapped `(): Promise<void>` actions; `actions.test.ts` covers each and the refusal. |
+| 7 | The `serverAction` guard test passes with the new file | no | confirmed | `vitest run src/server/http/server-action.test.ts …` → 58 passed. |
+| 8 | Action tests cover each action and cross-person isolation | no | confirmed | Rows 1–5. |
+
+**Overall:** met.

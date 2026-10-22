@@ -20,7 +20,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* unit and database tests cover every row of the detection table, a revoked token, an
   existing complete account (panel not shown) and that a usage `install` total ticks nothing.
 
-- [ ] **3. Actions.** Hide, confirm installed, show again, mark "You're set up" seen; thin server
+- [x] **3. Actions.** Hide, confirm installed, show again, mark "You're set up" seen; thin server
   actions.
   *Done when:* action tests cover each, and that one person can't change another's.
 

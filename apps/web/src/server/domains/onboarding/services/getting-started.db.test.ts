@@ -12,7 +12,13 @@ import { seedItem } from "../../shelves/repositories/test-seed";
 import { createDraft } from "../../submissions/actions/drafts";
 import { kyselyOnboardingRepository } from "../repositories/kysely-onboarding-repository";
 import { kyselyProgressRepository } from "../repositories/kysely-progress-repository";
-import { gettingStarted } from "./getting-started";
+import {
+  confirmInstall,
+  gettingStarted,
+  hideGettingStarted,
+  markSetUpSeen,
+  showGettingStarted,
+} from "./getting-started";
 
 // Every row of the spec's detection table (feature 126), against real tables.
 let t: TestDb;
@@ -202,5 +208,60 @@ describe("the panel", () => {
 
   it("refuses someone not signed in", async () => {
     await expect(gettingStarted(deps(), { user: null, ip: null })).rejects.toThrow();
+  });
+});
+
+describe("hide, confirm, show again and 'You're set up' seen", () => {
+  const act = async (who: { headers: Headers }) => ({
+    user: await getCurrentUser(who.headers, app),
+    ip: null,
+  });
+
+  it("hides, and shows again, for the person alone", async () => {
+    await hideGettingStarted(deps(), await act(uma));
+    expect((await of(uma)).panel).toBeNull();
+    expect((await of(ben)).panel).toBe("steps");
+    await showGettingStarted(deps(), await act(uma));
+    expect((await of(uma)).panel).toBe("steps");
+  });
+
+  it("confirms an install, for the person alone, and keeps the first time", async () => {
+    const first = new Date("2026-10-21T10:00:00Z");
+    await confirmInstall({ ...deps(), now: () => first }, await act(uma));
+    await confirmInstall(
+      { ...deps(), now: () => new Date("2026-10-22T10:00:00Z") },
+      await act(uma),
+    );
+    expect((await of(uma)).done.install).toBe(true);
+    expect((await of(ben)).done.install).toBe(false);
+    expect((await deps().onboarding.get(uma.id)).installConfirmedAt).toEqual(first);
+  });
+
+  it("marks 'You're set up' seen only when it is being shown", async () => {
+    expect(await markSetUpSeen(deps(), await act(uma))).toBe(false);
+    expect((await deps().onboarding.get(uma.id)).completedSeenAt).toBeNull();
+    await createMyToken(uma.headers, { name: "laptop" }, app);
+    await useTokens(uma.id);
+    await confirmInstall(deps(), await act(uma));
+    expect(await markSetUpSeen(deps(), await act(uma))).toBe(true);
+    expect((await of(uma)).panel).toBeNull();
+    expect((await of(ben)).panel).toBe("steps");
+  });
+
+  it("shows 'You're set up' again when a finished person asks for it", async () => {
+    await createMyToken(uma.headers, { name: "laptop" }, app);
+    await useTokens(uma.id);
+    await confirmInstall(deps(), await act(uma));
+    await markSetUpSeen(deps(), await act(uma));
+    await hideGettingStarted(deps(), await act(uma));
+    await showGettingStarted(deps(), await act(uma));
+    expect((await of(uma)).panel).toBe("setUp");
+  });
+
+  it("refuses every one of them when nobody is signed in, changing nothing", async () => {
+    const nobody = { user: null, ip: null };
+    for (const run of [hideGettingStarted, confirmInstall, showGettingStarted, markSetUpSeen])
+      await expect(run(deps(), nobody)).rejects.toThrow();
+    expect(await t.db.selectFrom("user_onboarding").selectAll().execute()).toEqual([]);
   });
 });
