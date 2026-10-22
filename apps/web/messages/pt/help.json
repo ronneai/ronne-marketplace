@@ -66,5 +66,9 @@
   "install-tick": {
     "question": "Por que isto não é marcado sozinho?",
     "answer": "O registro não sabe quem instalou o quê: ele não guarda qual pessoa fez uma instalação, de propósito. Por isso você avisa uma vez, com o botão. Os outros passos são marcados sozinhos."
+  },
+  "feedback-who": {
+    "question": "Quem lê isto?",
+    "answer": "Só quem administra esta instância: o root lê em Admin › Feedback, com o seu nome e e-mail para poder responder. Não é enviado a nenhum outro lugar, você não vê um histórico do que enviou, e a mensagem é excluída se a sua conta for apagada."
   }
 }

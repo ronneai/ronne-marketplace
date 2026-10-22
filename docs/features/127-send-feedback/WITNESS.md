@@ -324,3 +324,22 @@ Witnessed: 2026-10-22 12:10 local, by a fresh agent (blind). Commit: ff5d2d1e pl
 | 16 | `pnpm witness:check` fails only because this task's record is missing | yes | confirmed | The one failure was `task 8 is ticked but WITNESS.md has no pass for it`: the expected state before the record is pasted. |
 
 **Overall:** met.
+
+## Task 9 — Documentation
+
+Witnessed: 2026-10-22 10:45 local, by a fresh agent (blind). Commit: 836c905c plus the uncommitted diff here; ronne-web `da43469` on `docs/marketplace-feedback`. Machine: macOS (Darwin 27), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The docs tests pass in ronne-web | no | confirmed | `pnpm exec vitest run src/content/docs` → 9 passed; `biome check` clean. |
+| 2 | The helper link test passes here and covers the new helper | no | confirmed | `src/components src/features/feedback src/i18n` → 43 files, 417 tests passed; removing the `feedback` section from `topics.ts` in a scratch copy failed 2 help tests. |
+| 3 | `admin#feedback` is a section id in both `topics.ts` files | no | confirmed | `topics.ts:170` here, `topics.ts:64` in ronne-web; `Help.tsx` maps `feedback-who` to it. |
+| 4 | The helper shows in the form | no | confirmed | `FeedbackForm.tsx` renders it; the test checks the rendered text and the localized link; `help.json` has the key in three languages. |
+| 5 | The retention field has a one-line helper | no | confirmed | The `feedbackDays` field's hint in `RetentionForm.tsx`; the retention helper's answer names the feedback retention. |
+| 6 | Overview (en, pt, fr) says what Send feedback is, who receives it, 4,000 characters, 10 an hour, no history, a page without JavaScript and on a phone | no | confirmed | Constants and `Sidebar.tsx` read; the three languages match. |
+| 7 | The Admin Feedback section's facts match the app | no | confirmed | Sorts, sizes, filters, columns, the count, the buttons, the audit actions and the id-only target checked against the code and messages. |
+| 8 | Privacy (en) has the new retention row and bullet, and the download and erase passages mention feedback | no | confirmed | The diff and the code (365 days, new never purged, erase delete, the export). |
+| 9 | pt and fr say the same as en, with the app's own labels | no | confirmed | Compared with `messages/{pt,fr}/{feedback,shell}.json`. |
+| 10 | The docs hold only facts about how the app behaves | no | confirmed | Every number and behaviour sampled is in the code. |
+
+**Overall:** met.

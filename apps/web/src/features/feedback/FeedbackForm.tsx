@@ -4,6 +4,7 @@ import { Bug, CircleHelp, Heart, Lightbulb, type LucideIcon } from "lucide-react
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useActionState, useState } from "react";
+import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
 import { DialogActions } from "@/components/ui/Dialog";
 import { FieldError, inputClasses, Label } from "@/components/ui/Field";
@@ -72,6 +73,9 @@ export const FeedbackForm = ({
     state.error === "message_required" || state.error === "message_too_long" ? error : undefined;
   return (
     <form action={action} className="grid gap-4" noValidate>
+      <div className="flex items-center gap-2 text-sm text-muted">
+        {t("where")} <Help id="feedback-who" />
+      </div>
       {state.error === "rate_limited" ? <Notice kind="error" title={error} /> : null}
       <fieldset
         className="grid min-w-0 gap-2 border-0 p-0"

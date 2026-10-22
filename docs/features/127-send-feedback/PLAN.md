@@ -46,7 +46,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   deleted on erase, retention).
   *Done when:* the row is in.
 
-- [ ] **9. Documentation.** The sections and helpers in the spec, both `topics.ts`, in a ronne-web
+- [x] **9. Documentation.** The sections and helpers in the spec, both `topics.ts`, in a ronne-web
   branch.
   *Done when:* the docs tests pass in ronne-web, and the helper link test passes here.
 

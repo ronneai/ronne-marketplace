@@ -66,5 +66,9 @@
   "install-tick": {
     "question": "Pourquoi ceci ne se coche-t-il pas tout seul?",
     "answer": "Le registre ne sait pas qui a installé quoi : il ne garde pas la trace de la personne qui a fait une installation, volontairement. Vous le lui dites donc une fois, avec le bouton. Les autres étapes se cochent d’elles-mêmes."
+  },
+  "feedback-who": {
+    "question": "Qui lit ceci?",
+    "answer": "Seulement les personnes qui gèrent cette instance : root le lit dans Admin › Commentaires, avec votre nom et votre courriel pour pouvoir répondre. Rien n’est envoyé ailleurs, vous ne voyez pas d’historique de ce que vous avez envoyé, et le message est supprimé si votre compte est effacé."
   }
 }

@@ -47,6 +47,13 @@ describe("the Send feedback form (127)", () => {
     expect(over).toMatch(/id="feedback-message-count" class="text-xs text-error-text"/);
   });
 
+  it("says who reads it, with the helper that links to Admin › Feedback", () => {
+    const html = form();
+    expect(html).toContain("Where does it go?");
+    expect(html).toContain("Who reads this?");
+    expect(html).toContain("https://www.ronne.ai/en/marketplace/docs/admin#feedback");
+  });
+
   it("offers no page option when there is no page to name", () => {
     const html = form(null);
     expect(html).not.toContain("includePage");

@@ -87,20 +87,21 @@ administrators, which suits a team, a company or a demo; it is not sent anywhere
 
 ## Acceptance criteria
 
-- [ ] Any signed-in person sends feedback from the dialog (and the no-JavaScript page); input is
+- [x] Any signed-in person sends feedback from the dialog (and the no-JavaScript page); input is
       validated, limits are enforced and the query string is never stored.
-- [ ] Root's Admin › Feedback lists, searches, filters, pages, marks handled (bulk) and deletes;
+- [x] Root's Admin › Feedback lists, searches, filters, pages, marks handled (bulk) and deletes;
       non-root gets not-found.
-- [ ] The sidebar count of new feedback shows for root only.
-- [ ] Marking handled and deleting are audited without message text.
-- [ ] "Your data" includes the person's feedback; erase deletes it; handled feedback older than
+- [x] The sidebar count of new feedback shows for root only.
+- [x] Marking handled and deleting are audited without message text.
+- [x] "Your data" includes the person's feedback; erase deletes it; handled feedback older than
       the retention is purged by the job.
-- [ ] Everything is in messages (129) in three languages; phone sweep passes.
-- [ ] Migration runs on all three database kinds.
-- [ ] The Documentation and helpers above say what the feature does now.
+- [x] Everything is in messages (129) in three languages; phone sweep passes.
+- [x] Migration runs on all three database kinds.
+- [x] The Documentation and helpers above say what the feature does now.
 
-## Open questions
+## Decisions (made while building)
 
-- **Retention default** of 365 days for handled feedback: right, or shorter?
-- **Should new feedback also appear as a count in the user's Home** for root ("3 new feedback")?
-  It would belong in "Waiting for you" (124).
+- **Retention default** stays 365 days for handled feedback, counted from when it was handled; root
+  changes it on the Privacy tab.
+- **No count on Home** for root: the count of new feedback is beside Admin › Feedback in the
+  sidebar, as Reviews has its own. "Waiting for you" (124) is the person's own work.

@@ -66,5 +66,9 @@
   "install-tick": {
     "question": "Why isn’t this ticked by itself?",
     "answer": "The registry can’t tell who installed what: it keeps no record of which person ran an install, on purpose. So you tell it once, with the button. The other steps tick by themselves."
+  },
+  "feedback-who": {
+    "question": "Who reads this?",
+    "answer": "Only the people who run this instance: root reads it in Admin › Feedback, with your name and email so they can write back. It isn’t sent anywhere else, you don’t get a history of what you sent, and it is deleted if your account is erased."
   }
 }
