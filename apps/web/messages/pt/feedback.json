@@ -1,6 +1,6 @@
 {
   "title": "Enviar feedback",
-  "intro": "Conte a quem administra esta instância o que está errado, o que falta ou o que está bom. Eles leem em Admin; nada é enviado para outro lugar.",
+  "intro": "Conte a quem administra esta instância o que está errado, o que falta ou o que está bom. Eles leem em Admin.",
   "kind": {
     "legend": "Que tipo de feedback é este?",
     "problem": "Problema",
@@ -10,7 +10,14 @@
   },
   "message": {
     "label": "Mensagem",
-    "count": "{count, number}/{max, number} caracteres"
+    "count": "{count, number}/{max, number} caracteres",
+    "placeholder": {
+      "none": "O que você quer nos contar?",
+      "problem": "O que deu errado? O que você esperava?",
+      "idea": "O que você gostaria de ver?",
+      "question": "O que você gostaria de saber?",
+      "praise": "O que funciona bem para você?"
+    }
   },
   "page": {
     "include": "Incluir a página em que estou"

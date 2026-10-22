@@ -19,11 +19,32 @@ describe("the Send feedback form (127)", () => {
     for (const kind of ["Problem", "Idea", "Question", "Praise"]) expect(html).toContain(kind);
     expect(html).toContain('name="kind"');
     expect(html).toContain("<textarea");
-    expect(html).toContain("0/4,000 characters");
+    // The counter stays out of the way until the message nears the limit.
+    expect(html).not.toContain("characters");
+    expect(html).toContain('placeholder="What would you like to tell us?"');
+    for (const icon of [
+      "lucide-bug",
+      "lucide-lightbulb",
+      "lucide-circle-question-mark",
+      "lucide-heart",
+    ])
+      expect(html, icon).toContain(icon);
+    expect(html).toMatch(/<input[^>]*type="radio"[^>]*class="absolute inset-0/);
     expect(html).toMatch(/<input[^>]*type="checkbox"[^>]*name="includePage"[^>]*checked/);
     expect(html).toContain("Include the page I’m on");
     expect(html).toContain('<input type="hidden" name="page" value="/catalogue"/>');
+    expect(html).toContain("Include the page I’m on");
+    expect(html).toContain(">/catalogue<");
     expect(html).toContain(">Send feedback<");
+  });
+
+  it("shows the counter from 3,500 characters, in red past the limit", () => {
+    const near = form("/", { kind: "idea", message: "a".repeat(3600) });
+    expect(near).toContain("3,600/4,000 characters");
+    expect(near).toContain('aria-describedby="feedback-message-count"');
+    expect(near).toContain("text-muted");
+    const over = form("/", { error: "message_too_long", kind: "idea", message: "a".repeat(4100) });
+    expect(over).toMatch(/id="feedback-message-count" class="text-xs text-error-text"/);
   });
 
   it("offers no page option when there is no page to name", () => {
@@ -42,7 +63,7 @@ describe("the Send feedback form (127)", () => {
     expect(html).toMatch(/<input[^>]*checked=""[^>]*value="idea"/);
     expect(html).toContain("Dark &lt;b&gt;mode&lt;/b&gt;");
     expect(html).not.toMatch(/name="includePage"[^>]*checked/);
-    expect(html).toContain("16/4,000 characters");
+    expect(html).toContain('placeholder="What would you like to see?"');
   });
 
   it("says what is wrong beside the field", () => {

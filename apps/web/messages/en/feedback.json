@@ -1,6 +1,6 @@
 {
   "title": "Send feedback",
-  "intro": "Tell the people who run this instance what is wrong, missing or good. They read it in Admin; it isn’t sent anywhere else.",
+  "intro": "Tell the people who run this instance what’s wrong, missing or good. They read it in Admin.",
   "kind": {
     "legend": "What kind of feedback is it?",
     "problem": "Problem",
@@ -10,7 +10,14 @@
   },
   "message": {
     "label": "Message",
-    "count": "{count, number}/{max, number} characters"
+    "count": "{count, number}/{max, number} characters",
+    "placeholder": {
+      "none": "What would you like to tell us?",
+      "problem": "What went wrong? What did you expect?",
+      "idea": "What would you like to see?",
+      "question": "What would you like to know?",
+      "praise": "What works well for you?"
+    }
   },
   "page": {
     "include": "Include the page I’m on"

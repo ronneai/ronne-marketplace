@@ -19,25 +19,31 @@ describe("Send feedback in Portuguese and French", () => {
   it("says the kinds, the fields and the buttons in each language", () => {
     const pt = form("pt");
     for (const text of [
-      ">Problema<",
-      ">Ideia<",
-      ">Dúvida<",
-      ">Elogio<",
+      "Problema",
+      "Ideia",
+      "Dúvida",
+      "Elogio",
       "Que tipo de feedback é este?",
       ">Mensagem<",
-      "0/4.000 caracteres",
+      'placeholder="O que você quer nos contar?"',
       "Incluir a página em que estou",
       ">Enviar feedback<",
       ">Cancelar<",
     ])
       expect(pt, text).toContain(text);
     const fr = form("fr");
-    expect(fr).toMatch(/0\/4\W000 caractères/);
+    expect(fr).toContain('placeholder="Que souhaitez-vous nous dire?"');
+    expect(form("fr", { kind: "idea", message: "a".repeat(3600) })).toMatch(
+      /3\W600\/4\W000 caractères/,
+    );
+    expect(form("pt", { kind: "idea", message: "a".repeat(3600) })).toContain(
+      "3.600/4.000 caracteres",
+    );
     for (const text of [
-      ">Problème<",
-      ">Idée<",
-      ">Question<",
-      ">Félicitations<",
+      "Problème",
+      "Idée",
+      "Question",
+      "Félicitations",
       "De quel type de commentaire s’agit-il?",
       "Inclure la page où je me trouve",
       ">Envoyer les commentaires<",

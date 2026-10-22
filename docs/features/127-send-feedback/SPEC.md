@@ -13,7 +13,9 @@ administrators, which suits a team, a company or a demo; it is not sent anywhere
 **In:**
 - **Send feedback** in the sidebar's Tools group (and the Menu sheet): a dialog (full-screen below
   `sm`, 067) with:
-  - **Kind:** Problem, Idea, Question, Praise (required).
+  - **Kind:** Problem, Idea, Question, Praise (required), as four tiles with an icon each (a bug,
+    a lightbulb, a question mark, a heart; owner, 2026-10-22) rather than outlined radio buttons; the
+    message's placeholder follows the kind, and the character counter shows only from 3,500.
   - **Message:** up to 4,000 characters (required).
   - **Include the page I'm on** (checked by default): the path only, never the query string, which
     could hold a link's secrets.

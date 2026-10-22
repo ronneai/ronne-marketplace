@@ -1,6 +1,6 @@
 {
   "title": "Envoyer des commentaires",
-  "intro": "Dites aux personnes qui gèrent cette instance ce qui ne va pas, ce qui manque ou ce qui va bien. Elles le lisent dans Admin; rien n’est envoyé ailleurs.",
+  "intro": "Dites aux personnes qui gèrent cette instance ce qui ne va pas, ce qui manque ou ce qui va bien. Elles le lisent dans Admin.",
   "kind": {
     "legend": "De quel type de commentaire s’agit-il?",
     "problem": "Problème",
@@ -10,7 +10,14 @@
   },
   "message": {
     "label": "Message",
-    "count": "{count, number}/{max, number} caractères"
+    "count": "{count, number}/{max, number} caractères",
+    "placeholder": {
+      "none": "Que souhaitez-vous nous dire?",
+      "problem": "Qu’est-ce qui n’a pas fonctionné? À quoi vous attendiez-vous?",
+      "idea": "Que souhaiteriez-vous voir?",
+      "question": "Que souhaitez-vous savoir?",
+      "praise": "Qu’est-ce qui fonctionne bien pour vous?"
+    }
   },
   "page": {
     "include": "Inclure la page où je me trouve"

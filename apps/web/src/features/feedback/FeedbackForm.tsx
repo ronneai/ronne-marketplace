@@ -1,5 +1,6 @@
 "use client";
 
+import { Bug, CircleHelp, Heart, Lightbulb, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useActionState, useState } from "react";
@@ -14,6 +15,17 @@ import {
 } from "@/server/domains/feedback/models/feedback";
 import { sendFeedbackFromForm } from "./actions";
 import type { FeedbackFormState } from "./types";
+
+/** The kinds' icons: what a tile shows above its word. */
+const KIND_ICONS: Record<(typeof FEEDBACK_KINDS)[number], LucideIcon> = {
+  problem: Bug,
+  idea: Lightbulb,
+  question: CircleHelp,
+  praise: Heart,
+};
+
+/** The counter shows only when the message nears the limit: before that it is noise. */
+const COUNT_FROM = 3500;
 
 /**
  * The Send feedback form (feature 127), in the sidebar's dialog and on `/feedback`, which is what
@@ -34,6 +46,7 @@ export const FeedbackForm = ({
   const t = useTranslations("feedback");
   const [state, action, pending] = useActionState(sendFeedbackFromForm, initial);
   const [length, setLength] = useState([...(initial.message ?? "")].length);
+  const [kind, setKind] = useState<string>(initial.kind ?? "");
 
   if (state.done)
     return (
@@ -65,22 +78,31 @@ export const FeedbackForm = ({
         aria-describedby={kindError ? "feedback-kind-error" : undefined}
       >
         <legend className="mb-1.5 text-sm font-semibold text-fg">{t("kind.legend")}</legend>
-        <div className="flex flex-wrap gap-2">
-          {FEEDBACK_KINDS.map((kind) => (
-            <label
-              key={kind}
-              className="flex min-h-9 cursor-pointer items-center gap-2 rounded-control border border-strong px-3 text-sm text-fg has-[:checked]:border-fg has-[:checked]:bg-tint has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-focus pointer-coarse:min-h-11"
-            >
-              <input
-                type="radio"
-                name="kind"
-                value={kind}
-                defaultChecked={state.kind === kind}
-                className="accent-[var(--color-accent)]"
-              />
-              {t(`kind.${kind}`)}
-            </label>
-          ))}
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {FEEDBACK_KINDS.map((option) => {
+            const Icon = KIND_ICONS[option];
+            return (
+              <label
+                key={option}
+                className="group relative flex cursor-pointer flex-col items-center gap-1.5 rounded-control border border-hairline px-2 py-3 text-sm text-fg hover:border-strong has-[:checked]:border-accent has-[:checked]:bg-tint has-[:checked]:font-semibold has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-focus pointer-coarse:min-h-14"
+              >
+                <input
+                  type="radio"
+                  name="kind"
+                  value={option}
+                  defaultChecked={state.kind === option}
+                  onChange={() => setKind(option)}
+                  className="absolute inset-0 size-full cursor-pointer opacity-0"
+                />
+                <Icon
+                  size={20}
+                  aria-hidden
+                  className="text-muted group-has-[:checked]:text-accent"
+                />
+                {t(`kind.${option}`)}
+              </label>
+            );
+          })}
         </div>
         <FieldError id="feedback-kind-error">{kindError}</FieldError>
       </fieldset>
@@ -89,35 +111,45 @@ export const FeedbackForm = ({
         <textarea
           id="feedback-message"
           name="message"
-          rows={7}
+          rows={5}
+          placeholder={t(`message.placeholder.${kind || "none"}` as "message.placeholder.none")}
           defaultValue={state.message ?? ""}
           onChange={(event) => setLength([...event.target.value].length)}
           aria-invalid={messageError ? true : undefined}
-          aria-describedby={`feedback-message-count${messageError ? " feedback-message-error" : ""}`}
+          aria-describedby={
+            [
+              length >= COUNT_FROM ? "feedback-message-count" : "",
+              messageError ? "feedback-message-error" : "",
+            ]
+              .filter(Boolean)
+              .join(" ") || undefined
+          }
           className={`${inputClasses} h-auto py-2`}
         />
-        <p
-          id="feedback-message-count"
-          className={`text-xs ${length > FEEDBACK_MESSAGE_MAX ? "text-error-text" : "text-muted"}`}
-        >
-          {t("message.count", { count: length, max: FEEDBACK_MESSAGE_MAX })}
-        </p>
+        {length >= COUNT_FROM ? (
+          <p
+            id="feedback-message-count"
+            className={`text-xs ${length > FEEDBACK_MESSAGE_MAX ? "text-error-text" : "text-muted"}`}
+          >
+            {t("message.count", { count: length, max: FEEDBACK_MESSAGE_MAX })}
+          </p>
+        ) : null}
         <FieldError id="feedback-message-error">{messageError}</FieldError>
       </div>
       {page ? (
-        <div className="grid gap-1">
-          <label className="flex items-start gap-2 text-sm text-fg">
-            <input
-              type="checkbox"
-              name="includePage"
-              defaultChecked={state.includePage ?? true}
-              className="mt-0.5 accent-[var(--color-accent)]"
-            />
-            <span>{t("page.include")}</span>
-          </label>
+        <label className="flex items-start gap-2 text-sm text-fg">
+          <input
+            type="checkbox"
+            name="includePage"
+            defaultChecked={state.includePage ?? true}
+            className="mt-0.5 accent-[var(--color-accent)]"
+          />
+          <span className="min-w-0">
+            {t("page.include")}{" "}
+            <span className="font-mono text-xs break-all text-muted">{page}</span>
+          </span>
           <input type="hidden" name="page" value={page} />
-          <p className="pl-6 font-mono text-xs break-all text-muted">{page}</p>
-        </div>
+        </label>
       ) : null}
       <DialogActions>
         {onDone ? (
