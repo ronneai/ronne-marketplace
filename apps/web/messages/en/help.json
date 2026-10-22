@@ -54,5 +54,13 @@
   "private-item": {
     "question": "Who can see this?",
     "answer": "Only the members of its workspace, in any role, and root: the workspace is private. To anyone else this item doesn’t exist, in the catalogue, rmk, the MCP tools and the plugin marketplaces. Only items in the same workspace can depend on it."
+  },
+  "favorites": {
+    "question": "What are favorites?",
+    "answer": "Your own list of items to come back to: click the star on an item, and again to remove it. Only you see it, root included, and you can keep up to 200. Home shows the latest six, and the Catalogue’s Favorites filter lists them all."
+  },
+  "pins": {
+    "question": "Who sees these pins?",
+    "answer": "Everyone who can see the item, on this shelf. A workspace’s shelf is on its page and on Home while it is your current workspace; Start here is on everyone’s Home. Only the shelf’s admins (root, for Start here) change it. An item nobody can install for now drops off the shelf and stays here as Not available."
   }
 }

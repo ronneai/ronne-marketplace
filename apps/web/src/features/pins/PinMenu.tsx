@@ -4,6 +4,7 @@ import { Pin } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
+import { Help } from "@/components/help/Help";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogActions } from "@/components/ui/Dialog";
@@ -76,6 +77,7 @@ export const PinMenu = ({
       >
         {managing ? (
           <div className="grid gap-4">
+            <Help id="pins" />
             <ManageShelf shelfKey={managing.key} />
             <DialogActions>
               <Button variant="secondary" onClick={() => setManaging(null)}>
@@ -86,6 +88,7 @@ export const PinMenu = ({
         ) : (
           <div className="grid gap-4">
             <p className="text-sm text-muted">{t("pin.intro")}</p>
+            <Help id="pins" />
             {error ? (
               <p role="alert" className="text-sm text-error-text">
                 {error}

@@ -46,7 +46,9 @@ describe("the Pin menu (125)", () => {
 
   it("an admin sees only their workspaces: nothing says Start here", () => {
     const html = menu("en", [{ key: "W1", workspace: "acme", pinned: false, blocked: null }]);
-    expect(html).not.toContain("Start here");
+    // No Start here row (the helper's own answer names it, so look for the row's label).
+    expect(html).not.toContain(">Start here<");
+    expect(html).not.toContain("to Start here");
     expect(html).toContain(">acme<");
   });
 

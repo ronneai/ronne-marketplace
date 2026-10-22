@@ -54,5 +54,13 @@
   "private-item": {
     "question": "Qui peut voir ceci?",
     "answer": "Seulement les membres de son espace de travail, dans n’importe quel rôle, et root : l’espace de travail est privé. Pour toute autre personne, cet élément n’existe pas, ni dans le catalogue, ni dans rmk, ni dans les outils MCP, ni dans les marketplaces de plugins. Seuls les éléments du même espace de travail peuvent en dépendre."
+  },
+  "favorites": {
+    "question": "Que sont les favoris?",
+    "answer": "Votre propre liste d’éléments à retrouver : cliquez sur l’étoile d’un élément, et de nouveau pour le retirer. Vous seul la voyez, root compris, et elle peut en contenir 200. L’accueil montre les six derniers, et le filtre Favoris du Catalogue les liste tous."
+  },
+  "pins": {
+    "question": "Qui voit ces éléments épinglés?",
+    "answer": "Tous ceux qui peuvent voir l’élément, sur cette étagère. L’étagère d’un espace de travail est sur sa page et sur l’accueil tant qu’il est votre espace de travail courant; Commencez ici est sur l’accueil de tout le monde. Seuls les admins de l’étagère (root, pour Commencez ici) la modifient. Un élément que personne ne peut installer pour le moment quitte l’étagère et reste ici comme Non disponible."
   }
 }

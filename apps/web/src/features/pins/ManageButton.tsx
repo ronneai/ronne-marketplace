@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogActions } from "@/components/ui/Dialog";
 import { ManageShelf } from "./ManageShelf";
@@ -28,7 +29,10 @@ export const ManageButton = ({ shelfKey, label }: { shelfKey: string; label: str
         size="large"
         title={t("manage.title", { shelf: label })}
       >
-        {open ? <ManageShelf shelfKey={shelfKey} /> : null}
+        <div className="grid gap-3">
+          <Help id="pins" />
+          {open ? <ManageShelf shelfKey={shelfKey} /> : null}
+        </div>
         <DialogActions>
           <Button onClick={() => setOpen(false)}>{t("pin.done")}</Button>
         </DialogActions>

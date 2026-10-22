@@ -446,3 +446,34 @@ Witnessed: 2026-10-21 21:10 local, by a fresh agent (blind re-check). Commit: e1
 | 14 | `pnpm witness:check` passes | no | confirmed | It reports only the missing pass for this task, which this record supplies. |
 
 **Overall:** met.
+
+## Task 11 — Documentation
+
+Witnessed: 2026-10-21 20:20 local, by a fresh agent (blind). Commit: 23c07d9f plus the uncommitted working tree; ronne-web branch `docs/marketplace-pins-favorites` (worktree, commit ea4c3d7 on origin/main 51719fe). Machine: macOS (Darwin 27.0.0), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The docs tests pass in ronne-web | no | confirmed | vitest 183 tests, `biome check` and `next typegen && tsc --noEmit` clean. |
+| 2 | The helper link test passes here | no | confirmed | The help tests, the full unit run (2757 tests), biome and typecheck. |
+| 3 | Both topics.ts have the new sections, in the same order | no | confirmed | `workspaces … moving, pins` and `admin … notice, pins, audit` in both; the docs test passes in the three languages. |
+| 4 | English, Portuguese and French all got every addition with the same structure | no | confirmed | Removing `pins` from `topics.ts` failed 3 tests; deleting the pt section failed 1. |
+| 5 | The new links and helpers point at real sections | no | confirmed | A wrong `section` is rejected by `tsc`; the app's help test checks every helper's link. |
+| 6 | The helpers are where the spec says: the star and Manage | no | confirmed | `Help id="favorites"` beside the star; `Help id="pins"` in both Manage views; the messages exist in three languages. |
+| 7 | The limits and shelf rules in the text match the code | no | confirmed | 200, 12, six on Home, root-only Start here, admins-only Manage, Not available. |
+| 8 | The audit names, erasure and data download match the code | no | confirmed | `pin.added`, `pin.removed`, `pin.reordered`; erase deletes favorites and keeps pins; the file lists favorites. |
+| 9 | The text reads right in Brazilian Portuguese and Canadian French and follows the glossary | no | partly | Two sentences read awkwardly (pt and fr privacy) and one in fr admin. |
+| 10 | The Catalogue filter is described as the app names it | no | partly | The docs said "Favorites"; the app's label is "Only my favorites". |
+
+**Overall:** not met: rows 9 and 10 (wording only).
+
+### Re-check (rows 9, 10)
+
+Witnessed: 2026-10-21 20:40 local, by a fresh agent (blind re-check). Commit: 1d9b386 in the ronne-web worktree, on top of ea4c3d7, plus the marketplace working tree. Machine: macOS (Darwin 27.0.0), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 9 | The new text reads naturally in Brazilian Portuguese and Canadian French and follows the glossary | no | confirmed | The three sentences are reworded and read naturally with the glossary terms. |
+| 10 | The Catalogue filter is named as the app shows it, with `?favorites=1` | no | confirmed | "Only my favorites", "Só meus favoritos" and "Seulement mes favoris" match `catalogue.json`. |
+| 11 | The tests and checks pass on these commits | no | confirmed | ronne-web 183 tests, biome and typecheck clean; marketplace 2757 unit tests. |
+
+**Overall:** met.

@@ -103,20 +103,20 @@ come back to".
 
 ## Acceptance criteria
 
-- [ ] The star toggles a favorite on cards and item pages, with and without JavaScript, and only
+- [x] The star toggles a favorite on cards and item pages, with and without JavaScript, and only
       its owner sees it; the 200 limit is enforced.
-- [ ] Root pins globally (public workspaces' items only); admins pin for their workspace; others
+- [x] Root pins globally (public workspaces' items only); admins pin for their workspace; others
       are refused on the server, not only hidden in the UI.
-- [ ] Shelves honour visibility: a viewer who can't see an item never gets its pin or favorite;
+- [x] Shelves honour visibility: a viewer who can't see an item never gets its pin or favorite;
       a test covers a private workspace.
-- [ ] Order: new pins go last; Move up/down work and persist; limits (12) enforced.
-- [ ] Home shows favorites and pins in the slots of 124; the catalogue's Favorites filter works
+- [x] Order: new pins go last; Move up/down work and persist; limits (12) enforced.
+- [x] Home shows favorites and pins in the slots of 124; the catalogue's Favorites filter works
       with search, filters and paging.
-- [ ] Pin changes are audited and listed in the audit filter; favorites are in "Your data" and are
+- [x] Pin changes are audited and listed in the audit filter; favorites are in "Your data" and are
       deleted on erase.
-- [ ] Migrations run on all three database kinds; everything is in messages (129) in three
+- [x] Migrations run on all three database kinds; everything is in messages (129) in three
       languages; the phone sweep passes.
-- [ ] The Documentation and helpers above say what the feature does now.
+- [x] The Documentation and helpers above say what the feature does now.
 
 ## Decisions
 

@@ -64,7 +64,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   visibility at read).
   *Done when:* the row is in.
 
-- [ ] **11. Documentation.** The sections and helpers in the spec, both `topics.ts`, in a ronne-web
+- [x] **11. Documentation.** The sections and helpers in the spec, both `topics.ts`, in a ronne-web
   branch.
   *Done when:* the docs tests pass in ronne-web, and the helper link test passes here.
 

@@ -100,7 +100,10 @@ export const ItemPageView = ({
         </div>
         <div className="flex flex-wrap items-start gap-2">
           {page.favorited === undefined ? null : (
-            <FavoriteButton itemId={page.item.id} name={name} favorited={page.favorited} />
+            <>
+              <FavoriteButton itemId={page.item.id} name={name} favorited={page.favorited} />
+              <Help id="favorites" iconOnly />
+            </>
           )}
           {page.pinTargets?.length ? (
             <PinMenu itemId={page.item.id} name={name} targets={page.pinTargets} />
