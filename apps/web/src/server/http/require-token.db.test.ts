@@ -115,6 +115,24 @@ describe("requireToken", () => {
     });
   });
 
+  it("refuses a flagged account's token unless the route allows it (128)", async () => {
+    const { token } = await createMyToken(session, { name: "laptop" }, app);
+    await t.db
+      .updateTable("user")
+      .set({ password_change_required_at: toDbDate(new Date(), t.dialect) })
+      .where("id", "=", userId)
+      .execute();
+    expect(await failure({ authorization: `Bearer ${token}` })).toMatchObject({
+      status: 403,
+      code: "password_change_required",
+    });
+    const request = new Request("http://localhost:3000/api/v1/me", {
+      headers: { authorization: `Bearer ${token}` },
+    });
+    const allowed = await requireToken(request, guard, { allowPasswordChange: true });
+    expect(allowed.ok && allowed.auth.passwordChangeRequired).toBe(true);
+  });
+
   it("ignores cookies: a signed-in browser with no bearer gets token_missing", async () => {
     expect(await failure({ cookie: session.get("cookie") ?? "" })).toMatchObject({
       code: "token_missing",

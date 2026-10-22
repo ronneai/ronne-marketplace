@@ -29,6 +29,8 @@ export type TokenWithUser = {
     disabledAt: Date | null;
     /** Erased (103): refused like a disabled one; it has no tokens left either. */
     erasedAt: Date | null;
+    /** The password root chose must be replaced first (128): the guard refuses all but `/me`. */
+    passwordChangeRequired?: boolean;
   };
 };
 

@@ -140,6 +140,7 @@ export const kyselyTokenRepository = (
           "user.role",
           "user.disabled_at",
           "user.erased_at",
+          "user.password_change_required_at",
         ])
         .where("access_tokens.token_hash", "=", tokenHash)
         .executeTakeFirst();
@@ -161,6 +162,7 @@ export const kyselyTokenRepository = (
           personal: await loadPersonal(db, row.user_id),
           disabledAt: fromDbDate(row.disabled_at),
           erasedAt: fromDbDate(row.erased_at),
+          passwordChangeRequired: Boolean(row.password_change_required_at),
         },
       };
     },

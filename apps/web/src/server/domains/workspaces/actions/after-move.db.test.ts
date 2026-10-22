@@ -178,7 +178,8 @@ beforeEach(async () => {
   for (const name of ["member", "outsider", "ana"] as const) {
     await adminCreateUser(
       as.root,
-      { email: `${name}@example.com`, name, role: "user", password },
+      // They use the API with a token at once: nothing asks them to choose a password first (128).
+      { email: `${name}@example.com`, name, role: "user", password, requireChange: false },
       app,
     );
     as[name] = await signedIn(`${name}@example.com`);

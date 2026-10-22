@@ -59,14 +59,29 @@ const appDeps: TokenGuardDeps = {
   authenticate: (token) => authenticateToken(token),
 };
 
+/**
+ * `allowPasswordChange` is for `GET /api/v1/me` alone (128): a token of an account that must still
+ * replace its password gets 403 `password_change_required` everywhere else, and `/me` lets `rmk`
+ * tell the person what to do.
+ */
 export const requireToken = async (
   request: Request,
   deps: TokenGuardDeps = appDeps,
+  options: { allowPasswordChange?: boolean } = {},
 ): Promise<TokenGuardResult> => {
   if (!(await deps.ready())) return { ok: false, response: setupRequiredResponse() };
   const result = await deps.authenticate(bearerToken(request.headers));
   if (!result.ok) return { ok: false, response: tokenFailureResponse(result.failure) };
   // The request's lines (http.request among them) say whose token it was (feature 100).
   setRequestUser(result.value.user.id);
+  if (result.value.passwordChangeRequired && !options.allowPasswordChange)
+    return {
+      ok: false,
+      response: errorResponse(
+        403,
+        "password_change_required",
+        "Choose your own password in the web app first: sign in there and you are taken to it.",
+      ),
+    };
   return { ok: true, auth: result.value };
 };

@@ -23,7 +23,10 @@ the first time the person signs in, so only the person knows their password.
 - **Same on the API.** A token belonging to a held account answers `403` with the error code
   `password_change_required` on everything but `GET /api/v1/me` (so `rmk` can tell the person what
   to do); tokens are created only through the web app, which is held, so this covers a token that
-  existed when root reset the password (reset also revokes tokens, 008, so the case is rare).
+  existed when root reset the password (reset also revokes tokens, 008, so the case is rare). A
+  held token cannot sign out of `rmk` either (`DELETE /api/v1/auth/token` is refused too); the token
+  is useless meanwhile and can be revoked in the web app. `POST /api/v1/auth/token` (email and
+  password) still hands out a token, which is held in the same way.
 - **Setting the new password** uses the existing form and rules (password policy, length), must
   differ from the temporary one, clears the flag, ends the account's other sessions, and returns to
   the page they asked for. It is audited as `user.password_changed` with `required: true`.

@@ -21,7 +21,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* tests cover the redirect from several pages, the allowed pages, the order against
   two-factor, and the guard test fails on a page without the hold.
 
-- [ ] **3. The API.** [risky] The bearer guard answers `403 password_change_required` for a flagged
+- [x] **3. The API.** [risky] The bearer guard answers `403 password_change_required` for a flagged
   account's token, except `GET /api/v1/me`.
   *Done when:* API tests cover a flagged token on several endpoints and on `/me`.
 

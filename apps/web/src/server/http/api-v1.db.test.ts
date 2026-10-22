@@ -7,8 +7,12 @@ import { LoginRateLimiter } from "../domains/identity/models/login-rate-limiter"
 import type { AppAuth } from "../domains/identity/repositories/auth-instance";
 import { tokenNameFromUserAgent } from "../domains/identity/services/token-exchange";
 import { createTestUser, testAppAuth } from "../domains/identity/testing/test-auth";
-import { deleteToken, getMe, postToken } from "./api-v1";
+import { deleteToken, getMe, getWorkspaces, postToken } from "./api-v1";
+import { getScopes } from "./drafts-api";
+import { getMarketplace } from "./feeds-api";
+import { listItems } from "./registry-api";
 import type { TokenGuardDeps } from "./require-token";
+import { getUsage } from "./usage-api";
 
 let t: TestDb;
 let app: AppAuth;
@@ -257,5 +261,65 @@ describe("tokenNameFromUserAgent", () => {
     expect(tokenNameFromUserAgent("rmk/0.1.0 (laptop; darwin arm64)")).toBe("rmk on laptop");
     expect(tokenNameFromUserAgent("curl/8.0")).toBe("rmk");
     expect(tokenNameFromUserAgent(null)).toBe("rmk");
+  });
+});
+
+describe("an account that must change its password (128)", () => {
+  const flag = (on: boolean) =>
+    t.db
+      .updateTable("user")
+      .set({ password_change_required_at: on ? toDbDate(new Date(), t.dialect) : null })
+      .where("id", "=", userId)
+      .execute();
+  const tokenOf = async () =>
+    ((await (await login({ email, password, name: "cli" })).json()) as { token: string }).token;
+
+  it("answers 403 password_change_required everywhere but GET /me, and works again once it is changed", async () => {
+    const token = await tokenOf();
+    await flag(true);
+
+    const me = await getMe(withToken(token), guard, app);
+    expect(me.status).toBe(200);
+    expect(await me.json()).toMatchObject({ id: userId, email });
+
+    const workspaces = await getWorkspaces(withToken(token, "GET", "/workspaces"), guard, app);
+    expect(workspaces.status).toBe(403);
+    expect(await code(workspaces)).toBe("password_change_required");
+    expect(workspaces.headers.get("cache-control")).toBe("no-store");
+    const removed = await deleteToken(withToken(token, "DELETE", "/auth/token"), app, guard);
+    expect(removed.status).toBe(403);
+    expect(await code(removed)).toBe("password_change_required");
+
+    await flag(false);
+    expect((await getWorkspaces(withToken(token, "GET", "/workspaces"), guard, app)).status).toBe(
+      200,
+    );
+  });
+
+  it("is refused by the registry, drafts, feeds and usage routes too", async () => {
+    const token = await tokenOf();
+    await flag(true);
+    const refused = [
+      await listItems(withToken(token, "GET", "/items"), { guard }),
+      await getScopes(withToken(token, "GET", "/scopes"), { guard }),
+      await getUsage(withToken(token, "GET", "/usage"), { guard }),
+      await getMarketplace(
+        withToken(token, "GET", "/feeds/claude-code/marketplace.json"),
+        { tool: "claude-code" },
+        { guard },
+      ),
+    ];
+    expect(refused.map((r) => r.status)).toEqual([403, 403, 403, 403]);
+    expect(await Promise.all(refused.map(code))).toEqual(Array(4).fill("password_change_required"));
+  });
+
+  it("does not hide a bad token behind it", async () => {
+    await flag(true);
+    const response = await getWorkspaces(
+      withToken(`rmk_${"x".repeat(43)}`, "GET", "/workspaces"),
+      guard,
+      app,
+    );
+    expect(response.status).toBe(401);
   });
 });

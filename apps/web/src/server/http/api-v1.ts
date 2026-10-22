@@ -67,7 +67,8 @@ export const deleteToken = async (request: Request, app?: AppAuth, guardDeps?: T
  * workspaces they're a member of and their role in each (095).
  */
 export const getMe = async (request: Request, guardDeps?: TokenGuardDeps, app?: AppAuth) => {
-  const guard = await requireToken(request, guardDeps);
+  // The one route a held token still reaches (128), so `rmk whoami` works while it waits.
+  const guard = await requireToken(request, guardDeps, { allowPasswordChange: true });
   if (!guard.ok) return guard.response;
   const { user, token } = guard.auth;
   const workspaces = await myWorkspacesAs(user, app ?? getAppAuth());

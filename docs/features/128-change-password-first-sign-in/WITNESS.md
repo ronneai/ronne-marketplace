@@ -117,3 +117,33 @@ Witnessed: 2026-10-22 13:10 local, by a fresh agent (blind, re-check). Commit: 5
 | 8 | The data download refuses with 403 `password_change_required` | no | confirmed | `user-data-api.db.test.ts` passes; check disabled in a scratch copy → it fails. |
 
 **Overall:** met.
+
+
+## Task 3 — The API
+
+Witnessed: 2026-10-22 13:25 local, by a fresh agent (blind). Commit: 8986e0e9 plus the uncommitted working tree. Machine: macOS (Darwin 27), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The bearer guard answers 403 `password_change_required` for a flagged account's token unless the route allows it; the 401 checks come first | no | confirmed | `require-token.ts`; guard replaced by `false && …` in a scratch copy → 3 tests fail. |
+| 2 | `GET /api/v1/me` is the only route that gets through | no | confirmed | One `allowPasswordChange` caller (`getMe`); getMe set back → 2 fail; option added to `getWorkspaces` → 2 fail. |
+| 3 | The flag is read through the token lookup; `Authenticated.passwordChangeRequired` is a required boolean | no | confirmed | `kysely-token-repository.ts`, `access-tokens.ts`; column not read → 3 fail; `tsc` clean. |
+| 4 | API tests cover a flagged token on several endpoints and on `/me` | no | confirmed | `/me` 200; `/workspaces`, `DELETE /auth/token`, registry items, drafts scopes, usage and the feed 403 with the code; a bad token stays 401; clearing restores. |
+| 5 | A test keeps `allowPasswordChange` in `getMe` alone | no | confirmed | `password-change-guard.test.ts` fails under the getMe and workspaces mutations. |
+| 6 | The tests pass on SQLite, PostgreSQL, MySQL and MariaDB | no | confirmed | 3 db files, 32 tests on each server. |
+
+**Overall:** met.
+
+### Adversarial pass
+
+Witnessed: 2026-10-22 13:25 local, by a fresh agent (adversarial re-check). Commit: 8986e0e9 plus the uncommitted working tree. Machine: macOS (Darwin), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The ten `requireToken` sites with no flagged-token test cannot be reached unguarded: the guard is default-deny and only `getMe` passes the exemption | no | confirmed | 17 call sites, one with the option; no other code calls `authenticateToken` apart from a test harness. |
+| 2 | The guard test fails if another route opens the exemption | no | confirmed | Option added to `getTarball`, `postDraft`, `postUsage` and `getPluginZip` one at a time → each fails the test. A different spelling (`!0`) passed the first version; the test now matches `allowPasswordChange\s*:`. |
+| 3 | An `authenticate` that omits the field is a compile error | no | confirmed | A probe typed as `TokenGuardDeps` → TS2322. |
+| 4 | A held token over HTTP: 403 on the routes tested, `/me` 200, restored once cleared, a bad token not hidden | no | confirmed | `api-v1.db.test.ts`; 26 tests on SQLite, 22 on each other server. |
+| 5 | SPEC says `DELETE /auth/token` is refused and `POST /auth/token` still hands out a held token | no | confirmed | The SPEC text; the DELETE test. |
+
+**Overall:** met.
