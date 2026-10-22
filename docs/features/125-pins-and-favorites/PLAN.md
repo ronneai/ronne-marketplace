@@ -60,7 +60,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   none.
   *Done when:* the end-to-end tests pass on every project.
 
-- [ ] **10. Decision log and index.** MVP §15 row "Pins and favorites" (two tables, who may pin,
+- [x] **10. Decision log and index.** MVP §15 row "Pins and favorites" (two tables, who may pin,
   visibility at read).
   *Done when:* the row is in.
 

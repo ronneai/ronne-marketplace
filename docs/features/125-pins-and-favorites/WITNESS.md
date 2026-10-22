@@ -411,3 +411,38 @@ Witnessed: 2026-10-21 20:50 local, by a fresh agent (blind re-check). Commit: 21
 | 8e | No parallel-run hazard | no | confirmed | One worker and no parallel files; the spec uses its own workspace and users; Start here is shared only with the seed's item, which the cleanup keeps. |
 
 **Overall:** met.
+
+## Task 10 — Decision log and index
+
+Witnessed: 2026-10-21 21:00 local, by a fresh agent (blind). Commit: e14fa44a plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The row "Pins and favorites" is in MVP §15, in the format of its neighbours | no | confirmed | One new line after "Home and the instance notice", with topic, decision and why. |
+| 2 | The tables, columns, keys and cascades the row names match the migration | no | confirmed | `0033_pins_and_favorites.ts` has them, including the unique key on shelf and item. |
+| 3 | The limits are 200 favorites and 12 pins per shelf | no | confirmed | `MAX_FAVORITES` and `MAX_PINS` in `shelf.ts`. |
+| 4 | `position` is dense and kept by the repository | no | partly | The migration's comment says so; the repository tests were not run. |
+| 5 | The permissions are root-only for Start here and a workspace's admins and root for a shelf, checked on the server first | no | confirmed | `permissions.ts` and `requireManage`. |
+| 6 | Only released, installable items can be pinned or favorited; only a public workspace's items can go on Start here | no | confirmed | The service errors and the repository guard. |
+| 7 | Turning a workspace private takes its items off Start here in the same step, audited, with the dialog saying so first | no | confirmed | `setWorkspaceVisibility` and the dialog messages. |
+| 8 | Visibility is applied at read; a no-longer-installable item drops out, a pin stays in Manage as Not available | no | confirmed | `listPins` and the favorites service. |
+| 9 | The audit actions and the `pin` group; favorites are not audited | no | confirmed | `audit-event.ts`. |
+| 10 | Where it is shown, and the star as a form without JavaScript | no | confirmed | Home, the workspace page, `?favorites=1`, `FavoriteButton`. |
+| 11 | Favorites are erased with the account and are in the data download | no | confirmed | `deleteFavorites` and the export's `favorites`. |
+| 12 | No other doc omits or contradicts the row | no | partly | The §10 data model table had no `item_favorites` or `item_pins` rows. |
+| 13 | The features index line for 125 is accurate for now | no | confirmed | It still says specified until the Documentation lands. |
+| 14 | `pnpm witness:check` passes | no | partly | It failed only because this pass was not recorded yet. |
+
+**Overall:** not met: rows 4, 12 and 14.
+
+### Re-check (rows 4, 12, 14)
+
+Witnessed: 2026-10-21 21:10 local, by a fresh agent (blind re-check). Commit: e14fa44a plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4 | `position` is dense and kept by the repository | no | confirmed | The three repository tests (gap closing, after a cascade, under concurrent changes) pass: 17 tests on SQLite. |
+| 12 | Nothing else in the docs omits or contradicts the row; both tables are in the §10 data model | no | confirmed | `MVP.md` lines 668 and 669 match migration 0033; the diff is documentation only. |
+| 14 | `pnpm witness:check` passes | no | confirmed | It reports only the missing pass for this task, which this record supplies. |
+
+**Overall:** met.
