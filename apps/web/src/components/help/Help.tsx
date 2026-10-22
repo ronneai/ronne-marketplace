@@ -351,7 +351,7 @@ export const HELP = {
   "erase-user": {
     question: "What does erasing do?",
     answer:
-      "The person's email, name, picture, passwords, sign-in links, two-factor, sessions, tokens, memberships, favorites and drafts go, for good. What they did stays under the pseudonym deleted-user-<id>: the items and versions they published, their submitted submissions and review comments, and the audit events, which keep making sense. The old email is free at once. To stop someone without erasing, disable them.",
+      "The person's email, name, picture, passwords, sign-in links, two-factor, sessions, tokens, memberships, favorites, Getting started choices and drafts go, for good. What they did stays under the pseudonym deleted-user-<id>: the items and versions they published, their submitted submissions and review comments, and the audit events, which keep making sense. The old email is free at once. To stop someone without erasing, disable them.",
     href: docsHref("privacy", "erase"),
   },
   notice: {
@@ -375,7 +375,7 @@ export const HELP = {
   "your-data": {
     question: "What is in the file?",
     answer:
-      "Your account (never your password hash or two-factor secret), your sessions, token names, workspaces, requests, scopes, your favorites, items you published, your submissions and comments, and the audit events you took part in. Other people's emails are replaced. It isn't a backup: files and other people's data aren't in it. You can download it once every 10 minutes.",
+      "Your account (never your password hash or two-factor secret), your sessions, token names, workspaces, requests, scopes, your favorites, your Getting started choices, items you published, your submissions and comments, and the audit events you took part in. Other people's emails are replaced. It isn't a backup: files and other people's data aren't in it. You can download it once every 10 minutes.",
     href: docsHref("privacy", "your-data"),
   },
   "download-user-data": {

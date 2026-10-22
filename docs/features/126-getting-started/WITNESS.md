@@ -254,3 +254,33 @@ Witnessed: 2026-10-22 00:50 local, by a fresh agent (blind re-check). Commit: 09
 | 10 | The resize test catches a regression to fixed breakpoints | no | confirmed | `grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4` now fails "cards in a row at 900px, list 852px wide, expected 3, received 2". |
 
 **Overall:** met.
+
+## Task 10 — Documentation
+
+Witnessed: 2026-10-22 00:20 local, by a fresh agent (blind). Commit: c1981a04 plus the uncommitted working tree (marketplace docs and helpers; the website's branch `docs/marketplace-getting-started`). Machine: macOS (Darwin 27.0.0).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The docs tests pass in ronne-web | no | confirmed | `pnpm lint`, `pnpm typecheck`, `pnpm test` in `www` → 183 tests passed. |
+| 2 | The helper link test passes here | no | confirmed | `vitest run src/components/help src/i18n` → 176 passed. |
+| 3 | The `getting-started` section exists in both `topics.ts` files with the same id | no | confirmed | `topics.ts:15` here; the website's overview lists it, and en, pt and fr have the key. |
+| 4 | The Overview section (English) is true to the app | no | partly | "its one button" was wrong while the next step is the install (two buttons), and "The ✕ hides it" followed the "You're set up" sentence, which has no ✕. |
+| 5 | The Home order paragraph is true | no | confirmed | `HomeView.tsx` puts the slot after the search and before Waiting for you, only while the panel applies. |
+| 6 | The cards paragraph is true | no | confirmed | `CardGrid.tsx`, `ItemCard.tsx` (compact), `query.ts`, `CatalogueView.tsx`. |
+| 7 | Account: the Password tab has Show getting started again | no | confirmed | `password/page.tsx` renders `ShowAgainSection`. |
+| 8 | Privacy: Your data includes the state and erase deletes it | no | confirmed | `user-data.ts` `onboarding`; `deleteOnboarding`. |
+| 9 | pt and fr are faithful and use the app's labels | no | confirmed | Every label compared with the pt and fr messages. |
+| 10 | The in-app helper sentences are accurate | no | confirmed | `Help.tsx` erase and Your data. |
+| 11 | Both `topics.ts` change together | no | confirmed | One line in each. |
+
+**Overall:** not met: row 4.
+
+### Re-check (row 4)
+
+Witnessed: 2026-10-22 00:30 local, by a fresh agent (blind re-check). Commit: c1981a04 plus the working tree. Machine: macOS (Darwin 27.0.0).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4 | Every sentence of the Overview section is true, including the button count and the ✕ | no | confirmed | The install step has two buttons in the banner and the text says so in en, pt and fr with the app's labels; the ✕ sentence is scoped to the steps banner; lint, typecheck and 183 tests pass; the worktree has only `www/src/content/docs/**` changes. |
+
+**Overall:** met.

@@ -54,7 +54,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   never more than five, the same height), the two-line ellipsis measured in a browser, the copy
   icon, and the view switch with and without JavaScript; the phone sweep passes on every project.
 
-- [ ] **10. Documentation.** The sections and helpers in the spec, in a ronne-web branch.
+- [x] **10. Documentation.** The sections and helpers in the spec, in a ronne-web branch.
   *Done when:* the docs tests pass in ronne-web, and the helper link test passes here.
 
 ## Notes
