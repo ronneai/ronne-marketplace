@@ -147,3 +147,52 @@ Witnessed: 2026-10-22 13:25 local, by a fresh agent (adversarial re-check). Comm
 | 5 | SPEC says `DELETE /auth/token` is refused and `POST /auth/token` still hands out a held token | no | confirmed | The SPEC text; the DELETE test. |
 
 **Overall:** met.
+
+
+## Task 4 — Changing the password
+
+Witnessed: 2026-10-22 13:35 local, by a fresh agent (blind). Commit: 5b12ff35 plus the uncommitted working tree. Machine: macOS (Darwin 27), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A held person sees the explanation on the change page, with only the form | no | confirmed | Account-security page test; the e2e sees "Choose your own password to continue". |
+| 2 | The temporary password is refused as the new one, with no state change | no | confirmed | Refusal before the limiter and Better Auth; db test keeps the flag, no event, old password still works. |
+| 3 | The flag is cleared only after Better Auth accepted the change | no | confirmed | Order in `session.ts`; "leaves the flag when the current password is wrong". |
+| 4 | Other sessions end, this browser keeps one | no | confirmed | db test: other session null, one session row left, new password works. |
+| 5 | Audit `user.password_changed` with `required: true`; an ordinary change has no `required` | no | confirmed | db tests. |
+| 6 | The person returns to `next`; an off-site `returnTo` cannot redirect | no | confirmed | Component test; `sameSite`; the e2e lands on `/catalogue`. |
+| 7 | A person also required to use two-factor lands on the two-factor page after the change | no | partly | Read in code; no test went from the change to enrolment. |
+| 8 | Action and component tests cover each behaviour | no | confirmed | 156 tests on SQLite; 47 on each other server. |
+| 9 | An end-to-end test signs in with a temporary password and changes it | no | confirmed | `user-admin.e2e.ts` on chromium → 1 passed, twice over (also a recreated user). |
+| 10 | Messages in en, pt, fr, with matching keys | no | confirmed | i18n and messages tests → 165 passed. |
+
+**Overall:** not met: row 7.
+
+### Adversarial pass
+
+Witnessed: 2026-10-22 13:31 local, by a fresh agent (adversarial). Commit: 5b12ff35 plus the uncommitted working tree. Machine: macOS (Darwin), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The flag is cleared only after Better Auth accepted the new password | no | confirmed | Mutation (clear before the call) → a test fails. |
+| 2 | The temporary password is refused as the new one | no | confirmed | Exact equality only, by design; mutation (refusal off) → a test fails. |
+| 3 | Success clears the flag, ends other sessions, keeps this one, audits `required: true` | no | confirmed | db test; mutation (audit key changed) → fails. |
+| 4 | `returnTo` is no open redirect or loop | no | confirmed | 25 hostile inputs through `safeNextPath`; mutation (raw value) → a test fails. |
+| 5 | A person who is not flagged posting `returnTo` only sees "changed" | no | confirmed | `required: false` → no redirect. |
+| 6 | Better Auth's own change-password endpoint does not clear the flag; acceptable | no | confirmed | By code; SPEC says what is not held. |
+| 7 | The flagged page shows nothing of other panels | no | confirmed | By code; page test. |
+| 8 | Audit metadata holds no secret; `required` only when flagged | no | confirmed | db tests. |
+| 9 | Messages in step across the three languages | no | confirmed | 165 tests. |
+| 10 | Tests pass on SQLite and the three servers | no | confirmed | 57 on each server. |
+
+**Overall:** met. A database failure between the password change and the flag clearing leaves the person held to change it once more; the SPEC says so.
+
+### Re-check (blind row 7)
+
+Witnessed: 2026-10-22 13:35 local, by a fresh agent (blind, re-check). Commit: 5b12ff35 plus the uncommitted working tree. Machine: macOS (Darwin), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 7 | Once the password is changed, a person also required to use two-factor is no longer held on the change page and is held for enrolment next | no | confirmed | db test: a real change, then `{password: false, enrol: true}`; `holdPage` ordering test; mutations (flag never cleared, two-factor first) → each fails a test; 48 passed on each server. |
+
+**Overall:** met.

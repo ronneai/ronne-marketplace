@@ -238,7 +238,7 @@ describe("first sign-in from a listed domain", () => {
         { current: "correct horse battery", next: "another horse battery" },
         app,
       ),
-    ).toEqual({ ok: true });
+    ).toEqual({ ok: true, required: false });
     await one.noLater();
 
     const two = await fromProvider();

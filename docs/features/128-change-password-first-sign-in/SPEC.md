@@ -59,6 +59,8 @@ the first time the person signs in, so only the person knows their password.
 - A person who signs in on two devices: both are held until one changes it; the change ends the
   other sessions, so the second signs in again with the new password.
 - Choosing the same password as the temporary one is refused with a message.
+- The password is changed first, then the flag is cleared with the audit event in one transaction:
+  if the database fails between the two, the person stays held and changes it once more.
 - Root disables the account while it is flagged: the flag stays and applies when re-enabled.
 - Two-factor "reset" by root (105) doesn't touch the flag.
 - Erasing the account (103) removes the account, so the flag goes with it.

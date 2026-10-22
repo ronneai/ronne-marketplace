@@ -41,7 +41,7 @@ describe("changePasswordFromForm", () => {
   });
 
   it("passes the passwords on and reports the result", async () => {
-    session.changePassword.mockResolvedValueOnce({ ok: true });
+    session.changePassword.mockResolvedValueOnce({ ok: true, required: false });
     expect(await changePasswordFromForm({}, form("old one", "a new passphrase"))).toEqual({
       changed: true,
     });
@@ -53,6 +53,25 @@ describe("changePasswordFromForm", () => {
     session.changePassword.mockResolvedValueOnce({ ok: false, error: "wrong_password" });
     expect(await changePasswordFromForm({}, form("bad", "a new passphrase"))).toEqual({
       error: "wrong_password",
+    });
+  });
+
+  it("after root's request (128), goes back to the page they were held from, and never off-site", async () => {
+    session.changePassword.mockResolvedValue({ ok: true, required: true });
+    const data = form("temporary one", "a new passphrase");
+    data.set("returnTo", "/items?q=a");
+    await expect(changePasswordFromForm({}, data)).rejects.toThrow("redirect:/items?q=a");
+    data.set("returnTo", "https://evil.test/");
+    await expect(changePasswordFromForm({}, data)).rejects.toThrow("redirect:/");
+    data.delete("returnTo");
+    await expect(changePasswordFromForm({}, data)).rejects.toThrow("redirect:/");
+    session.changePassword.mockReset();
+  });
+
+  it("answers the temporary password chosen again as an error on the new field", async () => {
+    session.changePassword.mockResolvedValueOnce({ ok: false, error: "same_password" });
+    expect(await changePasswordFromForm({}, form("same passphrase", "same passphrase"))).toEqual({
+      error: "same_password",
     });
   });
 
@@ -79,6 +98,16 @@ describe("ChangePasswordForm", () => {
     expect(html).toMatch(/autocomplete="current-password"/i);
     expect(html.match(/autocomplete="new-password"/gi)).toHaveLength(2);
     expect(html).not.toContain("ERR:");
+  });
+
+  it("keeps where they were going when root asked for the change (128)", () => {
+    expect(renderToStaticMarkup(<ChangePasswordForm returnTo="/items" />)).toContain(
+      'name="returnTo" value="/items"',
+    );
+    expect(renderToStaticMarkup(<ChangePasswordForm />)).not.toContain("returnTo");
+    const same = renderToStaticMarkup(<ChangePasswordForm initial={{ error: "same_password" }} />);
+    expect(same).toContain('id="next-error"');
+    expect(same).toContain("must be different");
   });
 
   it("puts each error next to its field", () => {

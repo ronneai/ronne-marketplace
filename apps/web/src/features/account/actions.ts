@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { LOCALE_COOKIE, localeCookieOptions } from "@/i18n/locale";
 import { changePassword, setLocale, signOut } from "@/server/domains/identity/actions/session";
-import { SIGN_IN_PATH } from "@/server/domains/identity/models/route-guard";
+import { SIGN_IN_PATH, safeNextPath } from "@/server/domains/identity/models/route-guard";
 import { requestHeaders } from "@/server/http/request-headers";
 import { serverAction } from "@/server/http/server-action";
 import type { ChangePasswordFormState, LanguageFormState } from "./types";
@@ -19,7 +19,11 @@ export const changePasswordFromForm = serverAction(
       current: String(form.get("current") ?? ""),
       next,
     });
-    if (result.ok) return { changed: true };
+    if (result.ok) {
+      // Root asked for this change (128): back to the page they were held from.
+      if (result.required) redirect(safeNextPath(String(form.get("returnTo") ?? "")));
+      return { changed: true };
+    }
     if (result.error === "not_signed_in") redirect(SIGN_IN_PATH);
     return { error: result.error };
   },

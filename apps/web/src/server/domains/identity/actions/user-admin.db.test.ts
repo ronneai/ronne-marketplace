@@ -22,7 +22,8 @@ import * as service from "../services/user-admin";
 import { seedErasedUser } from "../testing/erased-user";
 import { cookieHeaders, createTestUser, setWorkspaceRole, testAppAuth } from "../testing/test-auth";
 import { createRoot } from "./root-account";
-import { getCurrentUser, passwordChangeRequired, signIn } from "./session";
+import { changePassword, getCurrentUser, passwordChangeRequired, signIn } from "./session";
+import { mustEnrol } from "./two-factor";
 import {
   adminChangeRole,
   adminCreateUser,
@@ -718,6 +719,88 @@ describe("asking for a new password at first sign-in (128)", () => {
       new Date(),
     );
     expect(await passwordChangeRequired(theirs, app)).toBe(false);
+  });
+
+  describe("changing the temporary password", () => {
+    const temporary = "a temporary passphrase";
+    const chosen = "my very own passphrase";
+    const setUp = async () => {
+      const created = await adminCreateUser(
+        asRoot,
+        { email: "new@example.com", name: "New", role: "user", password: temporary },
+        app,
+      );
+      const here = await headersFor("new@example.com", temporary);
+      const elsewhere = await headersFor("new@example.com", temporary);
+      return { id: created.id, here, elsewhere };
+    };
+
+    it("refuses the temporary password again, and keeps the flag", async () => {
+      const { id, here } = await setUp();
+      expect(await changePassword(here, { current: temporary, next: temporary }, app)).toEqual({
+        ok: false,
+        error: "same_password",
+      });
+      expect(await flagged(id)).toBeInstanceOf(Date);
+      expect(await events("user.password_changed")).toEqual([]);
+      expect(await canSignIn("new@example.com", temporary)).toBe(true);
+    });
+
+    it("clears the flag, ends the other sessions, keeps this one and audits it as required", async () => {
+      const { id, here, elsewhere } = await setUp();
+      expect(await changePassword(here, { current: temporary, next: chosen }, app)).toEqual({
+        ok: true,
+        required: true,
+      });
+      expect(await flagged(id)).toBeNull();
+      // Better Auth ends every session and starts one for this browser: one is left.
+      expect(await getCurrentUser(elsewhere, app)).toBeNull();
+      expect(
+        await t.db.selectFrom("session").select("id").where("user_id", "=", id).execute(),
+      ).toHaveLength(1);
+      expect(await canSignIn("new@example.com", chosen)).toBe(true);
+      expect(await canSignIn("new@example.com", temporary)).toBe(false);
+      const [event] = await events("user.password_changed");
+      expect(event).toMatchObject({
+        actorId: id,
+        metadata: { otherSessionsEnded: 1, required: true },
+      });
+    });
+
+    it("hands a person root also requires two-factor of over to enrolment, once the password is changed", async () => {
+      const { id, here } = await setUp();
+      const held = async (headers: Headers) => ({
+        password: await passwordChangeRequired(headers, app),
+        enrol: await mustEnrol(headers, "everyone", app),
+      });
+      expect(await held(here)).toEqual({ password: true, enrol: true });
+      await changePassword(here, { current: temporary, next: chosen }, app);
+      // The browser's new session (Better Auth starts one for it): sign in to read it as they would.
+      const after = await headersFor("new@example.com", chosen);
+      expect(await flagged(id)).toBeNull();
+      expect(await held(after)).toEqual({ password: false, enrol: true });
+    });
+
+    it("leaves the flag when the current password is wrong", async () => {
+      const { id, here } = await setUp();
+      expect(await changePassword(here, { current: "not it at all", next: chosen }, app)).toEqual({
+        ok: false,
+        error: "wrong_password",
+      });
+      expect(await flagged(id)).toBeInstanceOf(Date);
+    });
+
+    it("an ordinary change is not audited as required, and may repeat nothing special", async () => {
+      const id = await createTestUser(app, { email: "o@example.com", password: rootPassword });
+      const here = await headersFor("o@example.com", rootPassword);
+      expect(await changePassword(here, { current: rootPassword, next: chosen }, app)).toEqual({
+        ok: true,
+        required: false,
+      });
+      const [event] = await events("user.password_changed");
+      expect(event?.targetId).toBe(id);
+      expect(event?.metadata).not.toHaveProperty("required");
+    });
   });
 
   it("keeps the flag when the account is disabled and enabled again", async () => {

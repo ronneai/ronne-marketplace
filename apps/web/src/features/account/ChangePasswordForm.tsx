@@ -17,12 +17,20 @@ const FIELDS = [
 ] as const;
 
 /** Current, new and confirm. Nothing is kept after a submit: these are all passwords. */
-export const ChangePasswordForm = ({ initial = {} }: { initial?: ChangePasswordFormState }) => {
+export const ChangePasswordForm = ({
+  initial = {},
+  returnTo,
+}: {
+  initial?: ChangePasswordFormState;
+  /** Where to go once root's request to change the password is done (128); absent otherwise. */
+  returnTo?: string;
+}) => {
   const t = useTranslations("account.password");
   const [state, action, pending] = useActionState(changePasswordFromForm, initial);
   const errorField = state.error ? ERROR_FIELD[state.error] : null;
   return (
     <form action={action} className="grid max-w-sm gap-4" noValidate>
+      {returnTo !== undefined ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
       {state.changed ? (
         <Notice kind="info" title={t("changedTitle")}>
           {t("changed")}

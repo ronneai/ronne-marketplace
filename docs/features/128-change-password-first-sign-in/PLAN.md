@@ -25,7 +25,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   account's token, except `GET /api/v1/me`.
   *Done when:* API tests cover a flagged token on several endpoints and on `/me`.
 
-- [ ] **4. Changing the password.** The explanation on the change page when held; refuses the
+- [x] **4. Changing the password.** The explanation on the change page when held; refuses the
   temporary password; clears the flag; ends other sessions; returns to `next`; audits
   `user.password_changed` with `required: true`.
   *Done when:* action tests and a component test cover each; an end-to-end test signs in with a
