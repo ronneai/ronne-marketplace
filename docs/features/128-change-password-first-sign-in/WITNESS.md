@@ -352,3 +352,52 @@ Witnessed: 2026-10-22 14:30 local, by a fresh agent (adversarial re-check). Comm
 | 4 | The unmutated code passes everywhere | no | confirmed | Rebuilt copy → 1 passed on each. |
 
 **Overall:** met.
+
+
+## Task 7 — End to end
+
+Witnessed: 2026-10-22 14:45 local, by a fresh agent (blind). Commit: 6f151d16 plus the uncommitted working tree. Machine: macOS (Darwin 27), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Root creates a user with the box on; the user is held, changes the password and lands on the page asked for (Home when none) | no | confirmed | `user-admin.e2e.ts` on chromium → passed; `must-change.mobile.e2e.ts` ends at `/` on phone, phone-webkit and tablet. |
+| 2 | The device flow after a change: the code survives the hold and the rmk login is approved | no | confirmed | `password-change.e2e.ts` test 1 → passed; the API gave 201, 200 on `/me`, 403 on `/workspaces`, then 200 once changed. |
+| 3 | With two-factor required, the order is password then two-factor | no | confirmed | Test 2 → passed; the policy is put back in a `finally`. |
+| 4 | Root asks and stops asking from the user page, and an account created with the box unchecked is not held | no | confirmed | Test 3 → passed. |
+| 5 | The tests pass on every project | no | confirmed | The full suite: 275 passed and 4 failed (the SCIM e2e on each project, since a reset now asks for a new password); `scim.ts` unchecks the box and the SCIM e2e passes on all four. |
+| 6 | The seed users are used by one test each, and secrets are recorded for the log scan | no | confirmed | `grep`; the suite's log scan passed. |
+| 7 | No other e2e signs in as an admin-created or admin-reset user | no | confirmed | `grep` over `e2e/`. |
+
+**Overall:** met.
+
+### Adversarial pass
+
+Witnessed: 2026-10-22 14:57 local, by a fresh agent (adversarial). Commit: 6f151d16 plus the uncommitted working tree. Machine: macOS (Darwin 27), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The password hold not redirecting fails the tests | no | confirmed | Scratch build → 3 desktop tests, `user-admin` and the phone test fail. |
+| 2 | Dropping `next` from the redirect fails the tests | no | confirmed | The desktop tests fail (the phone test does not assert `next`). |
+| 3 | `changePassword` not clearing the flag fails the tests | no | confirmed | Tests 1 and 2, `user-admin` and the phone test fail. |
+| 4 | The password hold checked after two-factor fails the tests | no | confirmed | Test 2 fails with a redirect loop. |
+| 5 | `requireToken` not refusing a held token fails the test | no | confirmed | Test 1 fails at the 403. |
+| 6 | The SCIM change is needed | no | confirmed | Without the uncheck the SCIM e2e fails. |
+| 7 | A failure of the two-factor test leaves the policy on | no | partly | Restored in a `finally`; no reset at the start. |
+| 8 | The users are not shared with other tests | no | confirmed | `grep`. |
+| 9 | The assertions are not vacuous | no | partly | The audit check for the unchecked account matched either wording. |
+| 10 | Creation always asking for a change is caught by the unchecked-account test | no | confirmed | Scratch mutation → test 3 fails. |
+| 11 | The Create user box not checked by default is caught | no | confirmed | Mutation → the phone test fails. |
+
+**Overall:** met, with rows 7 and 9 `partly` (see the re-check).
+
+### Re-check (adversarial rows 7 and 9)
+
+Witnessed: 2026-10-22 15:10 local, by a fresh agent (adversarial re-check). Commit: 6f151d16 plus the uncommitted working tree. Machine: macOS (Darwin 27), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 7 | The two-factor test starts from a known policy and restores it | no | confirmed | `setRequirement("optional")` first, then `"everyone"`, and `"optional"` in a `finally`; the helper deletes the row and inserts a fresh one. |
+| 9 | The "left alone" audit check is not vacuous | no | confirmed | The audit line is one element; a probe with the box checked shows "…as user, asking for a new password at their first sign-in", so the negated assertion fails there. |
+| 10 | `password-change.e2e.ts` passes on chromium | no | confirmed | 3 passed. |
+
+**Overall:** met.

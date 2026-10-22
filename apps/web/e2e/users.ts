@@ -121,6 +121,11 @@ export const E2E_USERS = {
   // Root asked each to choose a new password (128): the seed sets the request, and the test is held
   // on the change page. One per device project.
   mustChange: "must-change@e2e.test",
+  // Also required to use two-factor (128): the password comes first, then two-factor.
+  mustChangeTwoFactor: "must-change-two-factor@e2e.test",
+  // Root's own, who asks for and stops asking for a new password of mustChangeAsk (128).
+  mustChangeRoot: "must-change-root@e2e.test",
+  mustChangeAsk: "must-change-ask@e2e.test",
   phoneMustChange: "phone-must-change@e2e.test",
   phoneWebkitMustChange: "phone-webkit-must-change@e2e.test",
   tabletMustChange: "tablet-must-change@e2e.test",
@@ -341,6 +346,9 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   phoneWebkitFeedback: "Phone Webkit Feedback",
   tabletFeedback: "Tablet Feedback",
   mustChange: "Must Change",
+  mustChangeTwoFactor: "Must Change Two Factor",
+  mustChangeRoot: "Must Change Root",
+  mustChangeAsk: "Must Change Ask",
   phoneMustChange: "Phone Must Change",
   phoneWebkitMustChange: "Phone Webkit Must Change",
   tabletMustChange: "Tablet Must Change",
@@ -464,6 +472,7 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
 /** Seeded with root's request to choose a new password (128): held on the change page at sign-in. */
 export const E2E_MUST_CHANGE: readonly (keyof typeof E2E_USERS)[] = [
   "mustChange",
+  "mustChangeTwoFactor",
   "phoneMustChange",
   "phoneWebkitMustChange",
   "tabletMustChange",
@@ -513,6 +522,7 @@ export const E2E_ROOTS: readonly (keyof typeof E2E_USERS)[] = [
   "tabletRoot",
   "noticeRoot",
   "feedbackRoot",
+  "mustChangeRoot",
   "phoneNoticeRoot",
   "phoneWebkitNoticeRoot",
   "tabletNoticeRoot",

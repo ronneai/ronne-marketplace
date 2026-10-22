@@ -40,7 +40,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   sweep.
   *Done when:* parity and scan pass; the sweep passes on every project.
 
-- [ ] **7. End to end.** Root creates a user (checkbox on); the user signs in, is held, changes the
+- [x] **7. End to end.** Root creates a user (checkbox on); the user signs in, is held, changes the
   password, lands on Home; the device flow after a change; with two-factor required the order is
   password then two-factor.
   *Done when:* the end-to-end tests pass on every project.

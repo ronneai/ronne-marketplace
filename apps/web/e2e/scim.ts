@@ -127,6 +127,10 @@ export const scimFlow = async ({
   await openUser(page, KAI);
   await page.getByRole("button", { name: "Reset password" }).click();
   const reset = page.getByRole("dialog");
+  // This test is about SCIM, not the first-sign-in change of password (128): Kai goes straight in.
+  await reset
+    .getByRole("checkbox", { name: "Ask them to choose a new password when they sign in" })
+    .uncheck();
   await reset.getByRole("button", { name: "Reset password" }).click();
   await expect(reset.getByText("Shown once")).toBeVisible();
   const password = (await reset.locator("code").nth(1).innerText()).trim();
