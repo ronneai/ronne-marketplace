@@ -100,6 +100,7 @@ export const exportUserData = async (
       const accessRequests = list("accessRequests", await repo.accessRequests(userId, ask));
       const scopes = list("scopes", await repo.scopes(userId, ask));
       const favorites = list("favorites", await repo.favorites(userId, ask));
+      const onboarding = await repo.onboarding(userId);
       const found = await repo.items(userId, ask);
       const items = [];
       if (found.versions > max) truncated.push("items");
@@ -138,6 +139,7 @@ export const exportUserData = async (
         accessRequests,
         scopes,
         favorites,
+        onboarding,
         items,
         submissions,
         comments,

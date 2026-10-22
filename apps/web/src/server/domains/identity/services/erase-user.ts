@@ -149,6 +149,7 @@ export const eraseUser = async (
       const scimLinksDeleted = await repo.deleteScimRows(userId);
       await repo.deleteMemberships(userId);
       const favoritesDeleted = await repo.deleteFavorites(userId);
+      await repo.deleteOnboarding(userId);
       const requestsCancelled = await repo.identity.cancelAccessRequests(userId, at);
       const movesCancelled = await repo.cancelScopeMoves(userId, at);
       const draftsDeleted = await repo.deleteDrafts(userId);

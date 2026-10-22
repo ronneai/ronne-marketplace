@@ -9,7 +9,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 ## Tasks
 
-- [ ] **1. The state table.** Migration `user_onboarding`, repository and model (defaults when no
+- [x] **1. The state table.** Migration `user_onboarding`, repository and model (defaults when no
   row), cascade on user delete, included in "Your data" (104) and removed on erase (103).
   *Done when:* `*.db.test.ts` pass on SQLite and, run once, on the other servers; the data-export
   and erase tests are extended.
