@@ -30,7 +30,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   paging in the URL, detail dialog, bulk handled and delete; the sidebar count for root.
   *Done when:* component tests and `*.db.test.ts` for the query pass; non-root gets not-found.
 
-- [ ] **5. Privacy.** Feedback in "Your data" (104); deleted on erase (103); the retention setting
+- [x] **5. Privacy.** Feedback in "Your data" (104); deleted on erase (103); the retention setting
   for handled feedback on the Privacy tab (102) and the purge in the existing job.
   *Done when:* the data-export, erase and purge tests are extended and pass.
 

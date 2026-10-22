@@ -34,7 +34,8 @@ export const LastRun = ({ status }: { status: RetentionJobView }) => {
       <>
         Last run <LocalTime value={lastRunAt} />: cleared {n(c.ipsCleared)} IP addresses and{" "}
         {n(c.emailsCleared)} failed sign-ins&apos; emails; deleted {n(c.sessionsDeleted)} expired
-        sessions and {n(c.grantsDeleted)} finished rmk login approvals.
+        sessions, {n(c.grantsDeleted)} finished rmk login approvals and {n(c.feedbackDeleted)}{" "}
+        handled feedback messages.
       </>
     );
   }

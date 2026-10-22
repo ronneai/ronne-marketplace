@@ -32,6 +32,12 @@ const FIELDS: readonly {
     label: "Keep expired sessions for",
     hint: "A session that has expired, and a finished rmk login approval. Older ones are deleted.",
   },
+  {
+    name: "feedbackDays",
+    id: "retention-feedback",
+    label: "Keep handled feedback for",
+    hint: "Feedback people sent from Send feedback that you marked handled, counted from then. Older ones are deleted. New feedback is kept until you handle or delete it.",
+  },
 ];
 
 /**
@@ -43,6 +49,7 @@ export const RetentionForm = ({ retention }: { retention: RetentionPolicy }) => 
   const [typed, setTyped] = useState<Record<keyof RetentionPolicy, string>>({
     ipDays: String(retention.ipDays),
     sessionsDays: String(retention.sessionsDays),
+    feedbackDays: String(retention.feedbackDays),
   });
   const unchanged = FIELDS.every(
     (field) => typed[field.name].trim() === String(retention[field.name]),

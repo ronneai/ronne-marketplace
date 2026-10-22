@@ -8,6 +8,7 @@ import type {
   UserDataComment,
   UserDataDeviceGrant,
   UserDataFavorite,
+  UserDataFeedback,
   UserDataItem,
   UserDataOnboarding,
   UserDataScope,
@@ -39,6 +40,8 @@ export interface UserDataRepository {
   scopes(userId: string, limit: number): Promise<UserDataScope[]>;
   /** The person's favorites, oldest first (125). */
   favorites(userId: string, limit: number): Promise<UserDataFavorite[]>;
+  /** What they sent with Send feedback, oldest first (127). */
+  feedback(userId: string, limit: number): Promise<UserDataFeedback[]>;
   /** What they did with the Getting started panel (126); null when they never did anything. */
   onboarding(userId: string): Promise<UserDataOnboarding>;
   /** Items the person owns or published a version of; `limit` counts versions. */

@@ -46,6 +46,11 @@ export interface EraseRepository {
   deleteFavorites(userId: string): Promise<number>;
   /** The person's Getting started state (126): theirs alone, so it goes with them. */
   deleteOnboarding(userId: string): Promise<void>;
+  /**
+   * What they sent with Send feedback (127): the message is theirs, personal data, so it is
+   * deleted, not kept under the pseudonym. Returns how many.
+   */
+  deleteFeedback(userId: string): Promise<number>;
   /** Live links and tombstones (108), and the provider groups' memberships. Returns the links. */
   deleteScimRows(userId: string): Promise<number>;
   /** Every workspace membership, the personal one's included. Returns how many. */

@@ -70,6 +70,7 @@ export const saveRetention = serverAction(
       const { changed } = await setRetention(await requestHeaders(), {
         ipDays: form.get("ipDays"),
         sessionsDays: form.get("sessionsDays"),
+        feedbackDays: form.get("feedbackDays"),
       });
       revalidatePath("/admin/settings");
       return { done: changed ? "Retention saved." : "Nothing changed." };

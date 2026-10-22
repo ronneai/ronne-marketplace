@@ -54,7 +54,7 @@ administrators, which suits a team, a company or a demo; it is not sent anywhere
 - **Privacy.** A message can contain personal data, so: "Your data" (104) includes the person's
   feedback; erasing a user (103) **deletes** their feedback rows (the message is not kept under a
   pseudonym); root can delete any row; and the Privacy tab's retention (102) gets a new setting,
-  **Handled feedback kept for** (days, default 365), purged by the existing scheduled job.
+  **Keep handled feedback for** (days, default 365), purged by the existing scheduled job.
 - **No JavaScript:** the dialog opens at `/feedback` as a normal page with the same form; the link
   carries the page they were on as `?from=<path>` (a path only, anything else is dropped). A refused
   form comes back with what was typed.

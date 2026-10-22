@@ -159,3 +159,71 @@ Witnessed: 2026-10-22 10:05 local, by a fresh agent (blind re-check). Commit: 45
 | 13 | Lint is clean on the touched folders | yes | confirmed | `pnpm lint` → 44 warnings, no errors; none on this task's files. |
 
 **Overall:** met.
+
+## Task 5 — Privacy
+
+Witnessed: 2026-10-22 10:10 local, by a fresh agent (blind). Commit: 64397b24 plus the uncommitted diff and the untracked `privacy.db.test.ts`. Machine: macOS (Darwin 27), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | "Your data" (104) includes the person's feedback, as written, with status and dates | no | confirmed | `UserDataFeedback`, the repository's `feedback()` and the export section; `feedback/privacy` → 5 passed (exact shape, empty list, text stays text in JSON). |
+| 2 | The export holds only that person's feedback | no | confirmed | Dropping the `user_id` filter in a scratch copy made "is theirs alone" fail. |
+| 3 | Erasing deletes their feedback rows, keeps no message text under a pseudonym, and leaves others' | no | confirmed | `deleteFeedback` in the erase repository and service; replacing the delete with a select made 2 tests fail. |
+| 4 | The erase audit carries counts only, never message text | no | confirmed | `user.erased` metadata has `feedbackDeleted: 2`; neither message appears in `audit_log`. |
+| 5 | Erasing the handler keeps the message | no | confirmed | "keeps a message root handled…" passes. |
+| 6 | Retention gets `feedbackDays`, default 365, validated, audited, kept when omitted | no | confirmed | `settings.db.test.ts` (21 passed): default, "30", invalid values rejected, a stored 99999 reading as 365, audit `from`/`to`. |
+| 7 | The job purges handled feedback by `handled_at` and never new feedback | no | confirmed | `retention-purge.db.test.ts` → 12 passed: cutoff edge, handled recently after sending long ago kept, new kept, dry run, changed policy, batching. |
+| 8 | The Privacy form, last-run line, audit summary and CLI output show the setting and count | no | confirmed | `RetentionForm.tsx`, `LastRun.tsx`, `summary.ts`, `purge.ts`; 118 unit tests passed. |
+| 9 | The same on PostgreSQL, MySQL and MariaDB | no | confirmed | Five db files on each → all passed. |
+| 10 | Typecheck and lint clean on the touched code | no | confirmed | `typecheck` clean; `biome check` 0 errors. |
+| 11 | Root can delete any feedback row | no | partly | Task 4's action; not tested in this task's files. |
+| 12 | The Privacy tab setting is labelled as the spec says | no | partly | The label said "Keep handled feedback for", the spec "Handled feedback kept for". |
+
+**Overall:** not met: rows 11 and 12.
+
+### Re-check (rows 11 and 12)
+
+Witnessed: 2026-10-22 10:25 local, by a fresh agent (blind). Commit: 64397b24 plus the uncommitted diff. Machine: macOS (Darwin 27), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 11 | Root can delete any feedback row, and only root can | yes | confirmed | `feedback/actions` and `feedback/privacy` db tests → 14 passed: "is root's alone" (member and signed-out refused, row stays, nothing audited), "deletes only the selected messages and audits each without its text". The e2e path was read, not run. |
+| 12 | The Privacy tab label and the SPEC agree | yes | confirmed | `SPEC.md:57` and `RetentionForm.tsx:38` both say "Keep handled feedback for". |
+| 13 | The filler assertion in `privacy.db.test.ts` is gone | yes | confirmed | No `newId` left. |
+| 14 | The handler-erase test asserts the pointer | yes | confirmed | It reads `handled_by` after erasing the handler and expects it to hold (the erased user's row stays). |
+
+**Overall:** met.
+
+### Adversarial pass
+
+Witnessed: 2026-10-22 10:05 local, by a fresh agent (adversarial). Commit: 64397b24 plus the uncommitted diff and the untracked `privacy.db.test.ts`. Machine: macOS (Darwin 27), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The task's own tests pass on SQLite, PostgreSQL, MySQL and MariaDB | no | confirmed | 58 passed on SQLite; 66 on each other server. |
+| 2 | The purge deletes only `status='handled'` rows with `handled_at` before the cutoff, by handling time | no | confirmed | A probe on three databases with 1 and 3650 days and rows at cutoff −1 ms, exactly, +1 ms: only the −1 ms row went; new feedback of 2020 kept; a handled row with null `handled_at` kept; mutations `<=` and `created_at` failed tests. |
+| 3 | The `status='handled'` filter is covered by a test | no | partly | Removing the condition left the tests green. |
+| 4 | Batches, dry run and the audit log | no | confirmed | `onBatch` `[PURGE_BATCH, PURGE_BATCH+3]`; dry run changes nothing; the audit log is identical before and after. |
+| 5 | Erase deletes all of the person's feedback and no one else's; no message text in `user.erased` or the audit log | no | confirmed | Mutations (no delete, no `user_id` filter) failed 2 tests each; no logger call in the feedback domain. |
+| 6 | A message root handled stays when the handler is erased | no | confirmed | The FK is SET NULL; the test passes. |
+| 7 | An erased message cannot come back after a retention rerun | no | confirmed | Rows are hard-deleted; a second purge returned `feedbackDeleted: 0`. |
+| 8 | The export holds exactly the person's feedback, as text, with `truncated` listing `feedback` | no | confirmed | A probe with `maxRows: 1` kept the oldest and listed `feedback`; the existing truncation test did not cover it. |
+| 9 | Retention validation, audit, omitted value, out-of-range read, root only | no | confirmed | `settings.db.test.ts` on four databases. |
+| 10 | An old audit event without `feedbackDays` still renders | no | confirmed | A probe event → "Changed the retention: IP addresses from 90 to 30 days". |
+| 11 | The audit-log insert-only guard still passes | no | confirmed | 13 files, 229 passed. |
+
+**Overall:** not met: row 3.
+
+### Re-check (row 3)
+
+Witnessed: 2026-10-22 10:20 local, by a fresh agent (adversarial). Commit: 64397b24 plus the uncommitted diff. Machine: macOS (Darwin 27), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 3 | The purge's `status='handled'` filter is covered by a test | yes | confirmed | Removing the condition in a scratch copy made "keeps a message that is not handled, even with an old handled_at" fail. |
+| 3b | The feedback export truncation is covered by a test | yes | confirmed | Replacing `list("feedback", …)` with a plain slice made "cuts the feedback list past the limit too" fail. |
+| 3c | The real tree's tests pass on every database | yes | confirmed | 57 passed on SQLite, PostgreSQL, MySQL and MariaDB. |
+| 3d | The handler-pointer test checks something | yes | confirmed | It sets `handled_at` with `handled_by` and reads the pointer after the erase; it holds because the erased user's row stays. |
+| 3e | Typecheck and Biome are clean | yes | confirmed | `typecheck` 7 of 7; `lint` no errors. |
+
+**Overall:** met.

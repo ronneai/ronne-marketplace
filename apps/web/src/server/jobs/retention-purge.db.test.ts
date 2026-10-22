@@ -8,10 +8,11 @@ import { PURGE_BATCH, purgeCutoffs, runRetentionPurge } from "./retention-purge"
 // Runs on the database in TEST_DATABASE_URL (in-memory SQLite by default; 004 runs all of them).
 let t: TestDb;
 const NOW = new Date("2026-10-18T12:00:00.000Z");
-const POLICY = { ipDays: 90, sessionsDays: 30 };
+const POLICY = { ipDays: 90, sessionsDays: 30, feedbackDays: 365 };
 // Written out, not derived from `purgeCutoffs`, so a cutoff that drifts from T − days would show.
 const IP_CUTOFF = new Date("2026-07-20T12:00:00.000Z");
 const SESSIONS_CUTOFF = new Date("2026-09-18T12:00:00.000Z");
+const FEEDBACK_CUTOFF = new Date("2025-10-18T12:00:00.000Z");
 const second = (date: Date, n: number) => new Date(date.getTime() + n * 1000);
 /** One second inside the retention (kept) and one second past it (purged). */
 const INSIDE_IP = second(IP_CUTOFF, 1);
@@ -135,7 +136,11 @@ const grantRow = (id: string) =>
 
 describe("the retention purge (102)", () => {
   it("counts the cutoffs from the moment of the run", () => {
-    expect(purgeCutoffs(POLICY, NOW)).toEqual({ ip: IP_CUTOFF, sessions: SESSIONS_CUTOFF });
+    expect(purgeCutoffs(POLICY, NOW)).toEqual({
+      ip: IP_CUTOFF,
+      sessions: SESSIONS_CUTOFF,
+      feedback: FEEDBACK_CUTOFF,
+    });
   });
 
   it("clears and deletes exactly what is past each boundary, and nothing else", async () => {
@@ -191,6 +196,7 @@ describe("the retention purge (102)", () => {
       emailsCleared: 1,
       sessionsDeleted: 1,
       grantsDeleted: 2,
+      feedbackDeleted: 0,
     });
     expect((await auditRow(oldEvent)).ip_address).toBeNull();
     expect((await auditRow(newEvent)).ip_address).toBe("203.0.113.7");
@@ -247,6 +253,7 @@ describe("the retention purge (102)", () => {
       emailsCleared: 0,
       sessionsDeleted: 0,
       grantsDeleted: 0,
+      feedbackDeleted: 0,
     });
   });
 
@@ -270,6 +277,7 @@ describe("the retention purge (102)", () => {
       emailsCleared: 1,
       sessionsDeleted: 1,
       grantsDeleted: 1,
+      feedbackDeleted: 0,
     });
     expect((await auditRow(event)).ip_address).toBe("203.0.113.7");
     expect(decodeJson((await auditRow(failed)).metadata)).toHaveProperty("email");
@@ -425,5 +433,86 @@ describe("the retention purge (102)", () => {
         reason: "invalid",
       });
     expect((await runRetentionPurge(t.db, t.dialect, POLICY, NOW)).emailsCleared).toBe(0);
+  });
+});
+
+describe("handled feedback (127)", () => {
+  const feedback = async (
+    status: "new" | "handled",
+    handledAt: Date | null,
+    sentAt: Date = new Date("2024-01-01T00:00:00Z"),
+  ) => {
+    const id = newId();
+    await t.db
+      .insertInto("feedback")
+      .values({
+        id,
+        user_id: userId,
+        kind: "idea",
+        message: "m",
+        version: "1.0.0",
+        status,
+        handled_by: status === "handled" ? userId : null,
+        handled_at: handledAt ? at(handledAt) : null,
+        created_at: at(sentAt),
+      })
+      .execute();
+    return id;
+  };
+  const left = async () =>
+    (await t.db.selectFrom("feedback").select("id").orderBy("id").execute()).map((r) => r.id);
+
+  it("deletes only feedback handled before the feedback retention, by when it was handled", async () => {
+    const old = await feedback("handled", second(FEEDBACK_CUTOFF, -1));
+    const edge = await feedback("handled", FEEDBACK_CUTOFF);
+    const inside = await feedback("handled", second(FEEDBACK_CUTOFF, 1));
+    // Sent long ago, handled recently: kept. And new feedback is kept however old.
+    const sentOldHandledNow = await feedback("handled", NOW);
+    const stillNew = await feedback("new", null);
+    expect(
+      (await runRetentionPurge(t.db, t.dialect, POLICY, NOW, { dryRun: true })).feedbackDeleted,
+    ).toBe(1);
+    expect(await left()).toHaveLength(5);
+    const counts = await runRetentionPurge(t.db, t.dialect, POLICY, NOW);
+    expect(counts.feedbackDeleted).toBe(1);
+    expect(await left()).toEqual([edge, inside, sentOldHandledNow, stillNew].sort());
+    expect(old).toBeTruthy();
+    expect((await runRetentionPurge(t.db, t.dialect, POLICY, NOW)).feedbackDeleted).toBe(0);
+  });
+
+  it("keeps a message that is not handled, even with an old handled_at", async () => {
+    const odd = await feedback("new", second(FEEDBACK_CUTOFF, -1));
+    expect((await runRetentionPurge(t.db, t.dialect, POLICY, NOW)).feedbackDeleted).toBe(0);
+    expect(await left()).toEqual([odd]);
+  });
+
+  it("follows root's number of days", async () => {
+    const handled = await feedback("handled", new Date("2026-10-10T12:00:00Z"));
+    await runRetentionPurge(t.db, t.dialect, POLICY, NOW);
+    expect(await left()).toEqual([handled]);
+    const counts = await runRetentionPurge(t.db, t.dialect, { ...POLICY, feedbackDays: 7 }, NOW);
+    expect(counts.feedbackDeleted).toBe(1);
+    expect(await left()).toEqual([]);
+  });
+
+  it("deletes more than a batch, in batches", async () => {
+    for (let i = 0; i < PURGE_BATCH + 3; i++)
+      await feedback("handled", second(FEEDBACK_CUTOFF, -10));
+    const seen: number[] = [];
+    const counts = await runRetentionPurge(t.db, t.dialect, POLICY, NOW, {
+      onBatch: (done) => {
+        seen.push(done);
+      },
+    });
+    expect(counts.feedbackDeleted).toBe(PURGE_BATCH + 3);
+    expect(seen).toEqual([PURGE_BATCH, PURGE_BATCH + 3]);
+    expect(await left()).toEqual([]);
+  });
+
+  it("leaves the audit log alone", async () => {
+    await feedback("handled", second(FEEDBACK_CUTOFF, -1));
+    const before = await t.db.selectFrom("audit_log").select("id").execute();
+    await runRetentionPurge(t.db, t.dialect, POLICY, NOW);
+    expect(await t.db.selectFrom("audit_log").select("id").execute()).toEqual(before);
   });
 });

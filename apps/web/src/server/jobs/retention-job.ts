@@ -18,6 +18,7 @@ export const flattenCounts = (counts: PurgeCounts, erasuresFinished = 0): JobCou
   emailsCleared: counts.emailsCleared,
   sessionsDeleted: counts.sessionsDeleted,
   grantsDeleted: counts.grantsDeleted,
+  feedbackDeleted: counts.feedbackDeleted,
   erasuresFinished,
 });
 

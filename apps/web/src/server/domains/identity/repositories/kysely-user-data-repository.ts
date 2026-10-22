@@ -280,6 +280,25 @@ export const kyselyUserDataRepository = (
       }));
     },
 
+    async feedback(userId, limit) {
+      const rows = await db
+        .selectFrom("feedback")
+        .select(["kind", "message", "page", "version", "status", "created_at", "handled_at", "id"])
+        .where("user_id", "=", userId)
+        .orderBy("id")
+        .limit(limit)
+        .execute();
+      return rows.map((row) => ({
+        kind: row.kind,
+        message: row.message,
+        page: row.page,
+        version: row.version,
+        status: row.status,
+        sentAt: fromDbDate(row.created_at),
+        handledAt: row.handled_at ? fromDbDate(row.handled_at) : null,
+      }));
+    },
+
     async onboarding(userId) {
       const row = await db
         .selectFrom("user_onboarding")

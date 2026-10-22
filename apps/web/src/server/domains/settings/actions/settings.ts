@@ -46,7 +46,7 @@ export const setTwoFactorPolicy = async (
 
 export const setRetention = async (
   headers: Headers,
-  value: { ipDays: unknown; sessionsDays: unknown },
+  value: { ipDays: unknown; sessionsDays: unknown; feedbackDays?: unknown },
   app: AppAuth = getAppAuth(),
 ) => service.setRetention(deps(app), await actor(headers, app), value);
 

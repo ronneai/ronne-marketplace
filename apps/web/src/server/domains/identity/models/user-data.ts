@@ -22,6 +22,7 @@ export type UserDataSection =
   | "accessRequests"
   | "scopes"
   | "favorites"
+  | "feedback"
   | "items"
   | "submissions"
   | "comments"
@@ -84,6 +85,21 @@ export type UserDataAccessRequest = {
 /** An item the person favorited (125), by its full name now, whether or not it shows today. */
 export type UserDataFavorite = { item: string; addedAt: Date };
 
+/**
+ * A message the person sent with Send feedback (127), as written: plain text. Whether root marked
+ * it handled, and when, is theirs to know too.
+ */
+export type UserDataFeedback = {
+  kind: string;
+  message: string;
+  /** The path of the page they were on, when they included it. */
+  page: string | null;
+  version: string;
+  status: string;
+  sentAt: Date;
+  handledAt: Date | null;
+};
+
 /** The Getting started checklist's state (126); null when they never touched it. */
 export type UserDataOnboarding = {
   hiddenAt: Date | null;
@@ -144,6 +160,7 @@ export type UserData = {
   accessRequests: UserDataAccessRequest[];
   scopes: UserDataScope[];
   favorites: UserDataFavorite[];
+  feedback: UserDataFeedback[];
   onboarding: UserDataOnboarding;
   items: UserDataItem[];
   submissions: UserDataSubmission[];

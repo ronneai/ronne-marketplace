@@ -27,10 +27,13 @@ export class InvalidUsageMinimumError extends SettingsError {
 
 export class InvalidRetentionError extends SettingsError {
   override readonly name: string = "InvalidRetentionError";
-  constructor(which: "ipDays" | "sessionsDays") {
-    super(
-      `${which === "ipDays" ? "IP addresses" : "Expired sessions"} are kept for a whole number of days from 1 to 3,650.`,
-    );
+  constructor(which: "ipDays" | "sessionsDays" | "feedbackDays") {
+    const what = {
+      ipDays: "IP addresses",
+      sessionsDays: "Expired sessions",
+      feedbackDays: "Handled feedback",
+    }[which];
+    super(`${what} are kept for a whole number of days from 1 to 3,650.`);
   }
 }
 
