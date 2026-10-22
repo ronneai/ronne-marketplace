@@ -100,6 +100,8 @@ export interface IdentityRepository {
    * provider's sign-in, 106, or by SCIM, 108). Locks the user first: two at once add one row.
    */
   setPassword(userId: string, passwordHash: string, now: Date): Promise<void>;
+  /** Asks (or stops asking) for the user's password to be replaced at their next sign-in (128). */
+  setPasswordChangeRequired(userId: string, required: boolean, now: Date): Promise<void>;
   enableUser(userId: string, now: Date): Promise<void>;
   /** Whether an email belongs to an active or a disabled user, or to nobody. For audit reasons only. */
   userStatusByEmail(email: string): Promise<"active" | "disabled" | null>;

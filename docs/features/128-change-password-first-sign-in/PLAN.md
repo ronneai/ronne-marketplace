@@ -9,7 +9,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 ## Tasks
 
-- [ ] **1. The flag.** [risky] Migration `user.password_change_required_at` (nullable), the
+- [x] **1. The flag.** [risky] Migration `user.password_change_required_at` (nullable), the
   identity repository and model, `createUser` and `resetPassword` take `requireChange` (default
   true; false for one's own account and for SSO/SCIM paths), the audit metadata.
   *Done when:* `user-admin.db.test.ts` covers set on create and reset, unchecked, own reset, SSO

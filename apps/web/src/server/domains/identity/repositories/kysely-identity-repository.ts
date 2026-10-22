@@ -32,6 +32,7 @@ type UserRow = {
   erased_at: Date | string | null;
   created_at: Date | string;
   locale: string | null;
+  password_change_required_at: Date | string | null;
 };
 
 const summary = (row: UserRow): UserSummary => {
@@ -46,6 +47,7 @@ const summary = (row: UserRow): UserSummary => {
     createdAt: fromDbDate(row.created_at),
     // The language they chose (129); one the app no longer speaks reads as automatic.
     locale: isLocale(row.locale) ? row.locale : null,
+    passwordChangeRequiredAt: fromDbDate(row.password_change_required_at),
   };
 };
 
@@ -58,6 +60,7 @@ const USER_COLUMNS = [
   "erased_at",
   "created_at",
   "locale",
+  "password_change_required_at",
 ] as const;
 
 /** Better Auth's provider id for email and password accounts. */
@@ -546,6 +549,17 @@ export const kyselyIdentityRepository = (
           created_at: at(now),
           updated_at: at(now),
         })
+        .execute();
+    },
+
+    async setPasswordChangeRequired(userId, required, now) {
+      await db
+        .updateTable("user")
+        .set({
+          password_change_required_at: required ? at(now) : null,
+          updated_at: at(now),
+        })
+        .where("id", "=", userId)
         .execute();
     },
 

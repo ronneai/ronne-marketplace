@@ -603,6 +603,118 @@ describe("resetPassword", () => {
   });
 });
 
+describe("asking for a new password at first sign-in (128)", () => {
+  const flagged = async (id: string) =>
+    (await kyselyIdentityRepository(t.db, t.dialect).findUser(id))?.passwordChangeRequiredAt;
+
+  it("flags a new account by default, and says so in the audit event", async () => {
+    const created = await adminCreateUser(
+      asRoot,
+      { email: "new@example.com", name: "New", role: "user" },
+      app,
+    );
+    expect(await flagged(created.id)).toBeInstanceOf(Date);
+    const [event] = await events("user.created");
+    expect(event?.metadata).toMatchObject({ changeRequired: true });
+  });
+
+  it("leaves a new account alone when root unchecks it, and audits that", async () => {
+    const created = await adminCreateUser(
+      asRoot,
+      { email: "shared@example.com", name: "Shared", role: "user", requireChange: false },
+      app,
+    );
+    expect(await flagged(created.id)).toBeNull();
+    const [event] = await events("user.created");
+    expect(event?.metadata).toMatchObject({ changeRequired: false });
+  });
+
+  it("flags a reset by default, and an unchecked reset clears an earlier request", async () => {
+    const id = await createTestUser(app, { email: "u@example.com", password: rootPassword });
+    expect(await flagged(id)).toBeNull();
+    await adminResetPassword(asRoot, id, undefined, app);
+    expect(await flagged(id)).toBeInstanceOf(Date);
+    await adminResetPassword(asRoot, id, undefined, app, false);
+    expect(await flagged(id)).toBeNull();
+    const resets = await events("user.password_reset");
+    expect(resets.map((e) => e.metadata?.changeRequired).sort()).toEqual([false, true]);
+  });
+
+  it("never flags root's own row, an account made by a provider's sign-in or by SCIM, or an account made through Better Auth", async () => {
+    const repo = kyselyIdentityRepository(t.db, t.dialect);
+    await expect(adminResetPassword(asRoot, rootId, undefined, app)).rejects.toThrow(
+      CannotModifySelfError,
+    );
+    expect(await flagged(rootId)).toBeNull();
+    const sso = await repo.createUserWithoutPassword(
+      { email: "sso@example.com", name: "SSO", role: "user" },
+      new Date(),
+    );
+    expect(await flagged(sso)).toBeNull();
+    const plain = await createTestUser(app, { email: "p@example.com", password: rootPassword });
+    expect(await flagged(plain)).toBeNull();
+  });
+
+  const failingAuditDeps = () => {
+    const real = kyselyIdentityRepository(t.db, t.dialect);
+    const repo = {
+      ...real,
+      transaction: <T>(work: (repo: typeof real) => Promise<T>) =>
+        real.transaction((inner) =>
+          work({
+            ...inner,
+            recordAudit: async () => {
+              throw new Error("audit write failed");
+            },
+          }),
+        ),
+    };
+    return { repo, hasher: { hash: async () => "hash", verify: async () => false } };
+  };
+
+  it("a failed audit write leaves no new account behind, and a reset leaves the flag as it was", async () => {
+    const root = await getCurrentUser(asRoot, app);
+    const actor = { user: root, ip: null };
+    await expect(
+      service.createUser(failingAuditDeps(), actor, {
+        email: "gone@example.com",
+        name: "Gone",
+        role: "user",
+        password: "a typed passphrase",
+      }),
+    ).rejects.toThrow("audit write failed");
+    expect(
+      await kyselyIdentityRepository(t.db, t.dialect).findUserByEmail("gone@example.com"),
+    ).toBeNull();
+
+    const id = await createTestUser(app, { email: "u@example.com", password: rootPassword });
+    await expect(
+      service.resetPassword(failingAuditDeps(), actor, id, "a typed passphrase"),
+    ).rejects.toThrow("audit write failed");
+    expect(await flagged(id)).toBeNull();
+  });
+
+  it("asks by default when the service is called without the choice", async () => {
+    const root = await getCurrentUser(asRoot, app);
+    const id = await createTestUser(app, { email: "u@example.com", password: rootPassword });
+    const deps = { repo: kyselyIdentityRepository(t.db, t.dialect), hasher: argon2PasswordHasher };
+    await service.resetPassword(deps, { user: root, ip: null }, id);
+    expect(await flagged(id)).toBeInstanceOf(Date);
+  });
+
+  it("keeps the flag when the account is disabled and enabled again", async () => {
+    const created = await adminCreateUser(
+      asRoot,
+      { email: "new@example.com", name: "New", role: "user" },
+      app,
+    );
+    await adminDisableUser(asRoot, created.id, app);
+    expect(await flagged(created.id)).toBeInstanceOf(Date);
+    await adminEnableUser(asRoot, created.id, app);
+    expect(await flagged(created.id)).toBeInstanceOf(Date);
+  });
+});
+
 describe("listUsers sorting (061)", () => {
   it("sorts by email, name and created, both ways, with ties broken by id across pages", async () => {
     const repo = kyselyIdentityRepository(t.db, t.dialect);

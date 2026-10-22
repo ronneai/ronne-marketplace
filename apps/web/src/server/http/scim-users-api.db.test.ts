@@ -143,7 +143,7 @@ const oktaCreate = (overrides: Json = {}) => ({
 const account = (email: string) =>
   t.db
     .selectFrom("user")
-    .select(["id", "email", "name", "role", "disabled_at"])
+    .select(["id", "email", "name", "role", "disabled_at", "password_change_required_at"])
     .where("email", "=", email)
     .executeTakeFirst();
 
@@ -183,6 +183,8 @@ describe("create", () => {
     });
     const ann = await account("ann@example.com");
     expect(ann).toMatchObject({ name: "Ann Lee", role: "user", disabled_at: null });
+    // No password was chosen by anyone, so none is asked to be replaced (128).
+    expect(ann?.password_change_required_at).toBeNull();
     // The SCIM id is the link's, not the account's.
     expect(r.json.id).not.toBe(ann?.id);
     const memberships = await t.db

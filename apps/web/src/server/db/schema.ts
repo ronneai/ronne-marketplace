@@ -32,6 +32,8 @@ export interface UserTable {
   erased_at: Timestamp | null;
   /** The language the person chose, `en`, `pt` or `fr` (migration 0032_user_locale, feature 129); null is automatic. */
   locale: string | null;
+  /** When the person must replace the password root chose (migration 0036_password_change_required, feature 128); null asks nothing. */
+  password_change_required_at: Timestamp | null;
 }
 
 export interface SessionTable {

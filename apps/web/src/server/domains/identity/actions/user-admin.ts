@@ -91,8 +91,15 @@ export const adminResetPassword = async (
   userId: string,
   password?: string,
   app: AppAuth = getAppAuth(),
+  requireChange = true,
 ) => {
-  return service.resetPassword(deps(app), await actor(headers, app), userId, password);
+  return service.resetPassword(
+    deps(app),
+    await actor(headers, app),
+    userId,
+    password,
+    requireChange,
+  );
 };
 
 export const adminDisableImpact = async (

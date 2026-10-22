@@ -180,6 +180,8 @@ export type NewUserInput = {
   role: string;
   /** Leave out to generate one. */
   password?: string;
+  /** Ask the person to choose their own password at first sign-in (128); on unless false. */
+  requireChange?: boolean;
 };
 
 export const createUser = async (
@@ -193,18 +195,20 @@ export const createUser = async (
   const role = checkRole(input.role);
   const password = choosePassword(input.password);
   const passwordHash = await deps.hasher.hash(password);
+  const requireChange = input.requireChange !== false;
   const at = now(deps);
 
   const id = await deps.repo.transaction(async (repo) => {
     await lockAndRecheckActor(repo, actor);
     if (await repo.emailTaken(email)) throw new EmailTakenError(email);
     const created = await repo.createUserWithPassword({ email, name, role, passwordHash }, at);
+    if (requireChange) await repo.setPasswordChangeRequired(created, true, at);
     await repo.recordAudit(
       {
         actorId: actor.user?.id ?? null,
         action: "user.created",
         target: { type: "user", id: created },
-        metadata: { email, role },
+        metadata: { email, role, changeRequired: requireChange },
         ipAddress: actor.ip,
       },
       at,
@@ -302,6 +306,7 @@ export const resetPassword = async (
   actor: Actor,
   userId: string,
   typed?: string,
+  requireChange = true,
 ): Promise<{ email: string; password: string }> => {
   requirePermission(actor.user, "users.manage");
   const password = choosePassword(typed);
@@ -311,6 +316,8 @@ export const resetPassword = async (
     await lockAndRecheckActor(repo, actor);
     const target = await loadTarget(repo, actor, userId);
     await repo.setPassword(userId, passwordHash, at);
+    // Always set or cleared: a reset without the box replaces an earlier request (128).
+    await repo.setPasswordChangeRequired(userId, requireChange, at);
     const sessionsEnded = await repo.deleteSessions(userId);
     const tokensRevoked = await repo.revokeAccessTokens(userId, at);
     await repo.recordAudit(
@@ -318,7 +325,7 @@ export const resetPassword = async (
         actorId: actor.user?.id ?? null,
         action: "user.password_reset",
         target: { type: "user", id: userId },
-        metadata: { via: "web", sessionsEnded, tokensRevoked },
+        metadata: { via: "web", sessionsEnded, tokensRevoked, changeRequired: requireChange },
         ipAddress: actor.ip,
       },
       at,
