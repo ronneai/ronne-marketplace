@@ -62,5 +62,9 @@
   "pins": {
     "question": "Who sees these pins?",
     "answer": "Everyone who can see the item, on this shelf. A workspace’s shelf is on its page and on Home while it is your current workspace; Start here is on everyone’s Home. Only the shelf’s admins (root, for Start here) change it. An item nobody can install for now drops off the shelf and stays here as Not available."
+  },
+  "install-tick": {
+    "question": "Why isn’t this ticked by itself?",
+    "answer": "The registry can’t tell who installed what: it keeps no record of which person ran an install, on purpose. So you tell it once, with the button. The other steps tick by themselves."
   }
 }

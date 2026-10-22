@@ -24,7 +24,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   actions.
   *Done when:* action tests cover each, and that one person can't change another's.
 
-- [ ] **4. The panel.** Steps with their actions, progress, the commands from the tokens page's
+- [x] **4. The panel.** Steps with their actions, progress, the commands from the tokens page's
   function (shared, not copied), copy buttons, the "You're set up" state; fills 124's slot.
   *Done when:* component tests cover each progress state, the commands with the instance address,
   no token value anywhere, and the no-JavaScript forms.

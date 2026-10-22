@@ -62,5 +62,9 @@
   "pins": {
     "question": "Qui voit ces éléments épinglés?",
     "answer": "Tous ceux qui peuvent voir l’élément, sur cette étagère. L’étagère d’un espace de travail est sur sa page et sur l’accueil tant qu’il est votre espace de travail courant; Commencez ici est sur l’accueil de tout le monde. Seuls les admins de l’étagère (root, pour Commencez ici) la modifient. Un élément que personne ne peut installer pour le moment quitte l’étagère et reste ici comme Non disponible."
+  },
+  "install-tick": {
+    "question": "Pourquoi ceci ne se coche-t-il pas tout seul?",
+    "answer": "Le registre ne sait pas qui a installé quoi : il ne garde pas la trace de la personne qui a fait une installation, volontairement. Vous le lui dites donc une fois, avec le bouton. Les autres étapes se cochent d’elles-mêmes."
   }
 }

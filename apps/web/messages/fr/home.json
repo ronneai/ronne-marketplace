@@ -30,5 +30,50 @@
     "createScope": "Créer une portée",
     "submitFirst": "Soumettre le premier élément",
     "submit": "Soumettre un élément"
+  },
+  "gettingStarted": {
+    "title": "Pour commencer",
+    "progress": "{done} sur {total} terminées",
+    "hide": "Masquer",
+    "hideLabel": "Masquer Pour commencer",
+    "done": "Terminée",
+    "todo": "Pas encore terminée",
+    "optional": "Facultative",
+    "steps": {
+      "token": {
+        "title": "Créez un jeton d’accès",
+        "text": "Un jeton permet à rmk d’agir en votre nom. Vous le créez une fois et pouvez le révoquer en tout temps.",
+        "action": "Ouvrir CLI et jetons"
+      },
+      "connect": {
+        "title": "Connectez rmk",
+        "text": "Installez rmk, puis connectez-vous à ce registre depuis votre terminal.",
+        "install": "Installez rmk :",
+        "web": "Connectez-vous avec votre navigateur :",
+        "token": "Ou avec le jeton que vous avez créé :"
+      },
+      "install": {
+        "title": "Installez votre premier élément",
+        "text": "Choisissez un élément dans le catalogue. Chaque page d’élément affiche sa commande d’installation.",
+        "browse": "Parcourir le catalogue",
+        "confirm": "J’en ai installé un"
+      },
+      "draft": {
+        "title": "Commencez un brouillon",
+        "text": "Vous avez une skill, une règle ou un agent à vous? Envoyez-le ici en brouillon pour le partager.",
+        "new": "Proposer un élément",
+        "export": "Exporter depuis vos outils"
+      }
+    },
+    "setUp": {
+      "title": "Tout est prêt",
+      "text": "rmk est connecté et vous avez installé un élément. Ceci disparaîtra à votre prochaine visite; ramenez-le depuis Compte en tout temps.",
+      "docs": "Lire la Documentation",
+      "new": "Proposer un élément"
+    },
+    "noScope": {
+      "text": "Ce registre n’a pas encore de portée. Créez-en une pour que les gens puissent soumettre des éléments.",
+      "action": "Créer une portée"
+    }
   }
 }

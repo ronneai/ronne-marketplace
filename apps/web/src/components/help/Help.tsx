@@ -87,6 +87,9 @@ export const HELP = {
   pins: {
     href: docsHref("workspaces", "pins"),
   },
+  "install-tick": {
+    href: docsHref("overview", "getting-started"),
+  },
   name: {
     question: "How should I name it?",
     answer:

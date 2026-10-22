@@ -3,6 +3,7 @@ import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import { CopyableCommand } from "@/components/ui/CopyableCommand";
 import { Panel } from "@/components/ui/Panel";
+import { rmkCommands } from "./commands";
 
 const README_RMK = "https://github.com/ronneai/ronne-marketplace#the-rmk-cli";
 
@@ -38,7 +39,7 @@ export const CliAuthPanel = ({
 }) => {
   const t = useTranslations("common.cliAuth");
   const mono = (chunks: ReactNode) => <span className="font-mono">{chunks}</span>;
-  const at = registry ? ` --registry ${registry}` : " --registry <url>";
+  const commands = rmkCommands(registry);
   return (
     <Panel padding="lg" className="grid gap-5">
       <div className="grid gap-1">
@@ -56,7 +57,7 @@ export const CliAuthPanel = ({
               ),
             })}
           </Hint>
-          <CopyableCommand command="npm install --global @ronneai/rmk" wrap />
+          <CopyableCommand command={commands.install} wrap />
         </Step>
         <Step n={2} title={t("step2")}>
           <Hint>
@@ -70,15 +71,15 @@ export const CliAuthPanel = ({
                 })
               : t("step2Here")}
           </Hint>
-          <CopyableCommand command={`rmk login${at}`} wrap />
-          <CopyableCommand command={`rmk login${at} --token <token>`} wrap />
+          <CopyableCommand command={commands.login} wrap />
+          <CopyableCommand command={commands.loginToken} wrap />
           <Hint>{t("webHint")}</Hint>
-          <CopyableCommand command={`rmk login${at} --web`} wrap />
+          <CopyableCommand command={commands.loginWeb} wrap />
         </Step>
         <Step n={3} title={t("step3")}>
           <Hint>{t.rich("step3Hint", { mono })}</Hint>
-          <CopyableCommand command="rmk whoami" />
-          <CopyableCommand command="rmk install @scope/name" wrap />
+          <CopyableCommand command={commands.whoami} />
+          <CopyableCommand command={commands.installItem} wrap />
           <Hint>{t.rich("globalHint", { mono })}</Hint>
         </Step>
       </ol>

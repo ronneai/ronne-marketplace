@@ -70,3 +70,37 @@ Witnessed: 2026-10-21 22:25 local, by a fresh agent (blind). Commit: 1008254b pl
 | 8 | Action tests cover each action and cross-person isolation | no | confirmed | Rows 1–5. |
 
 **Overall:** met.
+
+## Task 4 — The panel
+
+Witnessed: 2026-10-21 22:35 local, by a fresh agent (blind). Commit: 41044c6e plus the uncommitted working tree. Machine: macOS (Darwin), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Four steps, each with one sentence and one action | no | confirmed | `GettingStartedPanel.tsx` has four `StepRow`s linking `/account/tokens`, `/catalogue`, `/submissions/new` and the export docs; "links the steps to where they happen" passes. |
+| 2 | "N of 4 done", ticked steps, first undone highlighted, step 4 optional | no | confirmed | Tests for 0, 1, 2 and 3 of 4 and "all done" check `aria-current="step"` and the Done / Not done yet text; 53 tests passed. |
+| 3 | Commands carry the instance address, including `--web`, each with a copy button | no | confirmed | `rmk login --registry https://market.example --web` and the `--token <token>` line via `CopyableCommand`; `<url>` with no address; Home passes `loadConfig().publicUrl`. |
+| 4 | Commands are shared with the tokens page | no | confirmed | `commands.ts` `rmkCommands`; `CliAuthPanel.tsx` builds every line from it; a test finds the same lines in both. |
+| 5 | The npm install line only while the person has no token | no | confirmed | `state.done.token ? null : install`; the test passes. |
+| 6 | No token value anywhere | no | confirmed | Only the `<token>` placeholder; a test checks for no `rmk_…` string; the component takes no token. |
+| 7 | Hide and "I've installed one" are forms | no | confirmed | `<form action={…FromForm}>` with `type="submit"`; 2 forms undone, 1 once said. |
+| 8 | "You're set up": links, no steps, no forms | no | confirmed | The test passes; the link text is "Propose item", the app's own label. |
+| 9 | Hidden or already seen draws nothing | no | confirmed | Tests for `hiddenAt` and `completedSeenAt` get "". |
+| 10 | Home marks "set up" seen only when it shows it | no | confirmed | Making the call unconditional failed 2 page tests; restored. |
+| 11 | Root with no scope sees one extra line; others don't | no | confirmed | Tests for root with 0 and with a scope, and a user (no `pageScopes` call). |
+| 12 | The panel fills 124's slot | no | confirmed | `HomeView.tsx` slot `gettingStarted`, filled by `page.tsx`. |
+| 13 | Messages in en, pt and fr; the lint scan covers the folder | no | confirmed | Same `gettingStarted` keys in all three; `biome.json` scan folder; `pnpm lint` exits 0. |
+| 14 | Typecheck passes | no | confirmed | `pnpm --filter @ronneai/web typecheck` → no errors. |
+| 15 | The `install-tick` helper and the Overview section | no | partly | Not checked: the pt and fr help text. |
+
+**Overall:** not met: row 15.
+
+### Re-check (row 15)
+
+Witnessed: 2026-10-21 22:40 local, by a fresh agent (blind re-check). Commit: 41044c6e plus the uncommitted working tree. Machine: macOS (Darwin), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 15 | The helper has its words in en, pt and fr, links to a section that exists in `topics.ts`, and the helper and parity tests pass | no | confirmed | `install-tick` in all three `help.json`; `Help.tsx` links `docsHref("overview","getting-started")`; `topics.ts` has the section; `vitest run src/i18n src/components/help` → 13 files, 176 tests passed. |
+
+**Overall:** met. (The website's section is task 8 and the phone layout tasks 6–7.)
