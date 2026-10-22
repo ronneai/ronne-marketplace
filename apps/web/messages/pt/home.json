@@ -73,7 +73,7 @@
     },
     "noScope": {
       "text": "Este registro ainda não tem escopo. Crie um para que as pessoas possam enviar itens.",
-      "action": "Criar um escopo"
+      "action": "Abrir o espaço de trabalho global"
     }
   }
 }

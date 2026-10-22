@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import {
   confirmInstall,
   hideGettingStarted,
@@ -26,7 +27,9 @@ export const confirmInstallFromForm = serverAction(async (): Promise<void> => {
   refreshed();
 });
 
+/** Account's button: ends on Home, where the checklist is back (the form works without JavaScript). */
 export const showGettingStartedFromForm = serverAction(async (): Promise<void> => {
   await showGettingStarted(await requestHeaders());
   refreshed();
+  redirect("/");
 });

@@ -104,3 +104,30 @@ Witnessed: 2026-10-21 22:40 local, by a fresh agent (blind re-check). Commit: 41
 | 15 | The helper has its words in en, pt and fr, links to a section that exists in `topics.ts`, and the helper and parity tests pass | no | confirmed | `install-tick` in all three `help.json`; `Help.tsx` links `docsHref("overview","getting-started")`; `topics.ts` has the section; `vitest run src/i18n src/components/help` → 13 files, 176 tests passed. |
 
 **Overall:** met. (The website's section is task 8 and the phone layout tasks 6–7.)
+
+## Task 5 — Account's "Show getting started again"
+
+Witnessed: 2026-10-21 22:50 local, by a fresh agent (blind). Commit: 4df526c0 plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A component test covers the section: title, button, one form with a submit button, pt and fr text | no | confirmed | `vitest run src/features/getting-started src/i18n` → 14 files, 182 tests passed; `show-again.test.tsx`. |
+| 2 | The action test: show again acts for the request's person, refreshes and ends on Home; hide and confirm don't redirect | no | confirmed | `actions.test.ts` "show again ends on Home…" → `redirect("/")` once. |
+| 3 | The end-to-end step: hide on Home, hidden next visit, Show again on Account ends on Home with "0 of 4 done" | no | confirmed | `next build`, then `playwright test e2e/getting-started.e2e.ts e2e/setup-wizard.e2e.ts --project chromium --project wizard` → 2 passed. |
+| 4 | The unit and e2e tests fail when Show again doesn't clear hidden | no | confirmed | Replacing `deps.onboarding.show(...)` failed 2 db tests; after a rebuild the e2e failed at `checklist toBeVisible`; restored, `cmp` identical. |
+| 5 | The button works without JavaScript | no | confirmed | A throwaway probe with `javaScriptEnabled: false` hid the checklist, clicked the button and expected `/` with the checklist; 1 passed; the probe was moved out of `e2e`. |
+| 6 | A person who hid it and finished everything sees "You're set up" after Show again | no | partly | Only the service-level db test covered it. |
+| 7 | Lint and typecheck are clean | no | confirmed | `pnpm lint` → no errors; typecheck → no errors. |
+| 8 | Messages in en, pt and fr, and the `home.json` rename holds | no | confirmed | The i18n tests pass; `home.noScope.action` is "Open the global workspace". |
+
+**Overall:** not met: row 6.
+
+### Re-check (row 6)
+
+Witnessed: 2026-10-21 23:00 local, by a fresh agent (blind re-check). Commit: 4df526c0 plus the uncommitted working tree. Machine: macOS (Darwin 27.0.0), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6 | Hid, then finished everything, then Show again shows "You're set up": the rule, the service and the page | no | confirmed | The rule test "hiding wins…" checks hidden and setUp states, and fails when `hidden` stops winning (restored, `cmp` identical); the db test fails without `onboarding.show`; `page.test.tsx` "shows 'You’re set up' and marks it seen" passes. |
+
+**Overall:** met.

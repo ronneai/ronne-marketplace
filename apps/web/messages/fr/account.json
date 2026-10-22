@@ -178,5 +178,10 @@
       "done": "Terminé",
       "revoked": "Révoqué. Il cesse de fonctionner à sa prochaine requête."
     }
+  },
+  "gettingStarted": {
+    "title": "Pour commencer",
+    "description": "Faites revenir la liste Pour commencer sur l’accueil. Elle reprend là où vous en êtes : ce que vous avez fait reste coché.",
+    "show": "Afficher Pour commencer de nouveau"
   }
 }

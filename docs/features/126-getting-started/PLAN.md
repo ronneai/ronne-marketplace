@@ -29,7 +29,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* component tests cover each progress state, the commands with the instance address,
   no token value anywhere, and the no-JavaScript forms.
 
-- [ ] **5. Account's "Show getting started again".**
+- [x] **5. Account's "Show getting started again".**
   *Done when:* a component test and an end-to-end step.
 
 - [ ] **6. Messages and phone.** Everything in messages (129) in three languages; scan; phone

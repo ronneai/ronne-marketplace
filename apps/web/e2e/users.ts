@@ -54,6 +54,8 @@ export const E2E_USERS = {
   shelvesVault: "shelves-vault@e2e.test",
   shelvesOutsider: "shelves-outsider@e2e.test",
   shelvesRoot: "shelves-root@e2e.test",
+  // Getting started (126): hides the checklist on Home and brings it back from Account.
+  starterAccount: "starter-account@e2e.test",
   favoriter: "favoriter@e2e.test",
   favoriterNoJs: "favoriter-no-js@e2e.test",
   // Pin items for a workspace (125): an admin of e2e-pins per project.
@@ -259,6 +261,7 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   shelvesVault: "Vera Vault",
   shelvesOutsider: "Otto Outsider",
   shelvesRoot: "Rhea Shelf",
+  starterAccount: "Alma Account",
   favoriter: "Faye Favorite",
   favoriterNoJs: "Nolan NoScript",
   pinsAdmin: "Pia Pinner",

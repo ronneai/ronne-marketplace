@@ -6,8 +6,10 @@ const actions = vi.hoisted(() => ({
   showGettingStarted: vi.fn(),
 }));
 const cache = vi.hoisted(() => ({ revalidatePath: vi.fn() }));
+const navigation = vi.hoisted(() => ({ redirect: vi.fn() }));
 vi.mock("@/server/domains/onboarding/actions/getting-started", () => actions);
 vi.mock("next/cache", () => cache);
+vi.mock("next/navigation", () => navigation);
 vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));
 
 const { confirmInstallFromForm, hideGettingStartedFromForm, showGettingStartedFromForm } =
@@ -36,5 +38,13 @@ describe("the Getting started form actions (126)", () => {
     actions.hideGettingStarted.mockRejectedValueOnce(new Error("signed out"));
     await expect(hideGettingStartedFromForm()).rejects.toThrow("signed out");
     expect(cache.revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("show again ends on Home, where the checklist is back; the other two stay where they are", async () => {
+    await showGettingStartedFromForm();
+    expect(navigation.redirect).toHaveBeenCalledWith("/");
+    await hideGettingStartedFromForm();
+    await confirmInstallFromForm();
+    expect(navigation.redirect).toHaveBeenCalledTimes(1);
   });
 });

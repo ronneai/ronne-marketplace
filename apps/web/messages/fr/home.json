@@ -73,7 +73,7 @@
     },
     "noScope": {
       "text": "Ce registre n’a pas encore de portée. Créez-en une pour que les gens puissent soumettre des éléments.",
-      "action": "Créer une portée"
+      "action": "Ouvrir l’espace de travail global"
     }
   }
 }

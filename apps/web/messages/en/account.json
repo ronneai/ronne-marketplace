@@ -178,5 +178,10 @@
       "done": "Done",
       "revoked": "Revoked. It stops working on its next request."
     }
+  },
+  "gettingStarted": {
+    "title": "Getting started",
+    "description": "Bring the Getting started checklist back on Home. It picks up where you are: what you’ve done stays ticked.",
+    "show": "Show getting started again"
   }
 }
