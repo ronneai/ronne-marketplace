@@ -315,10 +315,11 @@ export const ApproveForm = ({
         <p className="flex items-start gap-2 text-sm text-muted">
           <Info size={16} aria-hidden className="mt-0.5 shrink-0 text-accent-strong" />
           <span>
-            <strong className="font-semibold text-fg">
-              {t("summary", { count: going.length })}
-            </strong>
-            {overrides > 0 ? t("overrides", { count: overrides }) : "."}
+            {t.rich("summary", {
+              count: going.length,
+              overrides,
+              strong: (chunks) => <strong className="font-semibold text-fg">{chunks}</strong>,
+            })}
           </span>
         </p>
         <div className="grid gap-1.5">

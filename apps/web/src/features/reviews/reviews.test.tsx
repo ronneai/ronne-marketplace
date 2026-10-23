@@ -625,6 +625,70 @@ describe("the review queue in three languages (131)", () => {
     expect(form("fr", ["a"])).toContain("Une note pour chaque approbation");
   });
 
+  it("counts the selection and words the summary as one sentence, with 0, 1 and 2", () => {
+    const rows = (n: number, overrides: number) =>
+      Array.from({ length: n }, (_, i) => ({
+        name: `@t/${i}`,
+        type: "hook",
+        author: "Ada",
+        revision: 1,
+        riskKinds: [],
+        id: `r${i}`,
+        override: i < overrides,
+      }));
+    const at = (l: L, n: number, overrides: number) => {
+      const all = rows(n, overrides);
+      return html(
+        l,
+        <ApproveForm
+          listed={all.length > 0 ? all : rows(1, 0)}
+          included={new Set(all.map((r) => r.id))}
+          filter=""
+          text=""
+          error={null}
+          approving={false}
+          onFilter={() => {}}
+          onShown={() => {}}
+          onToggle={() => {}}
+          onText={() => {}}
+          onCancel={() => {}}
+          onSubmit={() => {}}
+        />,
+      );
+    };
+    const selected = (l: L, n: number) => at(l, n, 0).match(/\/>(\d+ [^<]+)<\/label>/)?.[1];
+    expect([0, 1, 2].map((n) => selected("en", n))).toEqual([
+      "0 selected",
+      "1 selected",
+      "2 selected",
+    ]);
+    expect([0, 1, 2].map((n) => selected("pt", n))).toEqual([
+      "0 selecionada",
+      "1 selecionada",
+      "2 selecionadas",
+    ]);
+    expect([0, 1, 2].map((n) => selected("fr", n))).toEqual([
+      "0 sélectionnée",
+      "1 sélectionnée",
+      "2 sélectionnées",
+    ]);
+    const summary = (l: L, n: number, o: number) =>
+      at(l, n, o).match(/<strong class="font-semibold text-fg">[^<]*<\/strong>[^<]*/)?.[0];
+    expect(summary("en", 2, 0)).toBe(
+      '<strong class="font-semibold text-fg">2 submissions selected</strong>.',
+    );
+    expect(summary("pt", 1, 0)).toBe(
+      '<strong class="font-semibold text-fg">1 submissão selecionada</strong>.',
+    );
+    expect(summary("pt", 2, 1)).toContain("</strong>: uma é sua, aprovada como exceção");
+    expect(summary("pt", 2, 2)).toContain("</strong>: 2 são suas, aprovadas como exceções");
+    expect(summary("fr", 1, 1)).toContain("1 soumission sélectionnée</strong> : une est la vôtre");
+    expect(summary("fr", 2, 2)).toContain(
+      "</strong> : 2 sont les vôtres, approuvées par dérogation",
+    );
+    expect(summary("en", 2, 2)).toContain("</strong>: 2 are your own, approved as overrides");
+  });
+
   it("words what approving did to each", () => {
     const results = (l: L) =>
       html(
@@ -661,7 +725,7 @@ describe("the review queue in three languages (131)", () => {
         />,
       );
     expect(results("pt")).toContain(">Aprovada:<");
-    expect(results("pt")).toContain(">Aprovada (override):<");
+    expect(results("pt")).toContain(">Aprovada (exceção):<");
     expect(results("pt")).toContain(">Não aprovada:<");
     expect(results("fr")).toContain(">révision 2<");
   });
