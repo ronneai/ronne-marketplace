@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { Help } from "@/components/help/Help";
 import { buttonClasses } from "@/components/ui/Button";
 import { parseListQuery } from "@/components/ui/data-table/list-query";
@@ -17,6 +18,7 @@ import {
   StatusFilters,
   SubmissionsTable,
 } from "@/features/submissions/SubmissionsTable";
+import { pageTitle } from "@/i18n/page-title";
 import {
   countMySubmissionsByStatus,
   pageMySubmissions,
@@ -32,7 +34,10 @@ import { requestHeaders } from "@/server/http/request-headers";
 import { holdPage } from "../hold";
 import { workspaceView } from "../shell";
 
-export const metadata = { title: "My submissions · Ronne AI Marketplace" };
+export const generateMetadata = async () => {
+  const t = await getTranslations("author.submissions");
+  return { title: pageTitle(t("pageTitle")) };
+};
 
 /**
  * Every signed-in user sees their own drafts and submissions (012), filtered by status (013), and
@@ -46,6 +51,7 @@ const Submissions = async ({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) => {
   await holdPage();
+  const t = await getTranslations("author.submissions");
   const params = await searchParams;
   const view = await workspaceView("/submissions", params);
   const list = submissionsList(view.fixed);
@@ -88,12 +94,12 @@ const Submissions = async ({
   return (
     <>
       <PageHeader
-        title="My submissions"
-        description="Your drafts and submissions. A draft is private until you submit it for review."
+        title={t("title")}
+        description={t("description")}
         actions={
           hasAny ? (
             <Link href="/submissions/new" className={buttonClasses("primary")}>
-              New item
+              {t("newItem")}
             </Link>
           ) : null
         }

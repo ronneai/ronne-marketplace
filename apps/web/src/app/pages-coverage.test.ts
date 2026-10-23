@@ -58,6 +58,7 @@ describe("the phone sweep's page list (feature 065)", () => {
         "/sign-in/two-factor",
         "/submissions/new",
         "/submissions/[id]",
+        "/submissions",
       ].sort(),
     );
   });

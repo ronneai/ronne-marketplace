@@ -200,7 +200,8 @@ export const MIGRATED_ROUTES: ReadonlySet<string> = new Set([
   "/workspaces/[name]",
   "/workspaces/[name]/join",
   "/workspaces/requests",
-  // Authoring and review (131): Propose item and the editor; submissions and reviews follow.
+  // Authoring and review (131): Propose item, the editor and My submissions; reviews follow.
+  "/submissions",
   "/submissions/new",
   "/submissions/[id]",
   // Settings (124): only the Notice tab is in messages so far; the rest follow in 132. The sweep

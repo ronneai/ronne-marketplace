@@ -1,6 +1,7 @@
 import { ITEM_TYPES } from "@ronneai/core";
 import Form from "next/form";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import { DependencyMarksIcon } from "@/components/submissions/DependencyMarks";
 import { ProposalBadges } from "@/components/submissions/ProposalBadges";
@@ -19,7 +20,6 @@ import {
   canTransition,
   SUBMISSION_STATUSES,
   type SubmissionStatus,
-  statusLabel,
 } from "@/server/domains/submissions/models/status";
 import { itemNameOf, type Submission } from "@/server/domains/submissions/models/submission";
 import { WithdrawButton } from "../draft-editor/SubmitDialogs";
@@ -58,6 +58,7 @@ export const StatusFilters = ({
   /** The list, with the workspace it keeps (120). */
   list?: SubmissionsList;
 }) => {
+  const t = useTranslations("author");
   const status = state.filters.status;
   const shown = FILTER_ORDER.filter((s) => (counts[s] ?? 0) > 0);
   if (shown.length < 2 && !status && !counts.withdrawn) return null;
@@ -65,13 +66,13 @@ export const StatusFilters = ({
     .filter(([s]) => s !== "withdrawn")
     .reduce((sum, [, n]) => sum + (n ?? 0), 0);
   return (
-    <nav aria-label="Filter by status" className="flex flex-wrap gap-2 pb-4">
+    <nav aria-label={t("submissions.filterLabel")} className="flex flex-wrap gap-2 pb-4">
       <Link
         href={statusHref(list, state, "")}
         aria-current={status === "" ? "page" : undefined}
         className={chipClasses}
       >
-        All ({all})
+        {t("submissions.all", { count: all })}
       </Link>
       {shown.map((s) => (
         <Link
@@ -80,7 +81,7 @@ export const StatusFilters = ({
           aria-current={status === s ? "page" : undefined}
           className={chipClasses}
         >
-          {statusLabel(s)} ({counts[s]})
+          {t("submissions.statusCount", { status: t(`status.${s}`), count: counts[s] ?? 0 })}
         </Link>
       ))}
     </nav>
@@ -100,81 +101,90 @@ export const shortened = (text: string, length = FEEDBACK_LENGTH): string => {
 };
 
 /** Under a row sent back or rejected (058): who, and their message, in full on hover. */
-const FeedbackLine = ({ feedback }: { feedback?: RowFeedback }) =>
-  feedback ? (
+const FeedbackLine = ({ feedback }: { feedback?: RowFeedback }) => {
+  const t = useTranslations("author.submissions");
+  return feedback ? (
     <p className="mt-1 max-w-prose text-xs text-muted" title={feedback.body ?? undefined}>
       <span className="font-semibold">
-        {feedback.kind === "reject" ? "Rejected" : "Changes requested"} by {feedback.by}
-        {feedback.body ? ": " : "."}
+        {t(feedback.body ? "feedbackWithBody" : "feedback", {
+          kind: feedback.kind,
+          by: feedback.by,
+        })}
+        {feedback.body ? " " : null}
       </span>
       {feedback.body ? shortened(feedback.body) : null}
     </p>
   ) : null;
+};
 
 /** The search and type filter (063): one GET form that submits on change, and chips. */
-const Filters = ({ list, state }: { list: SubmissionsList; state: SubmissionsListState }) => (
-  <div className="grid gap-2">
-    <Form
-      action={list.path}
-      scroll={false}
-      className="grid gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto] sm:items-end"
-    >
-      <HiddenListFields list={list} state={state} omit={["q", "type"]} />
-      <div className="grid gap-1.5">
-        <Label htmlFor="submissions-search">Search</Label>
-        <Input
-          id="submissions-search"
-          name="q"
-          type="search"
-          placeholder="Item name"
-          maxLength={100}
-          defaultValue={state.filters.q}
-        />
-      </div>
-      <div className="grid gap-1.5">
-        <Label htmlFor="submissions-type">Type</Label>
-        <select
-          id="submissions-type"
-          name="type"
-          defaultValue={state.filters.type}
-          className={selectClasses}
-        >
-          <option value="">Any type</option>
-          {ITEM_TYPES.map((type) => (
-            <option key={type} value={type}>
-              {type}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="flex gap-2">
-        <button type="submit" data-submit className={buttonClasses("secondary")}>
-          Filter
-        </button>
-        <SubmitOnChange />
-      </div>
-    </Form>
-    <FilterChips
-      list={list}
-      state={state}
-      labels={{ status: "Status", q: "Search", type: "Type" }}
-      hidden={["status"]}
-    />
-  </div>
-);
+const Filters = ({ list, state }: { list: SubmissionsList; state: SubmissionsListState }) => {
+  const t = useTranslations("author.submissions");
+  return (
+    <div className="grid gap-2">
+      <Form
+        action={list.path}
+        scroll={false}
+        className="grid gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto] sm:items-end"
+      >
+        <HiddenListFields list={list} state={state} omit={["q", "type"]} />
+        <div className="grid gap-1.5">
+          <Label htmlFor="submissions-search">{t("search")}</Label>
+          <Input
+            id="submissions-search"
+            name="q"
+            type="search"
+            placeholder={t("searchPlaceholder")}
+            maxLength={100}
+            defaultValue={state.filters.q}
+          />
+        </div>
+        <div className="grid gap-1.5">
+          <Label htmlFor="submissions-type">{t("type")}</Label>
+          <select
+            id="submissions-type"
+            name="type"
+            defaultValue={state.filters.type}
+            className={selectClasses}
+          >
+            <option value="">{t("anyType")}</option>
+            {ITEM_TYPES.map((type) => (
+              <option key={type} value={type}>
+                {type}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex gap-2">
+          <button type="submit" data-submit className={buttonClasses("secondary")}>
+            {t("filter")}
+          </button>
+          <SubmitOnChange />
+        </div>
+      </Form>
+      <FilterChips
+        list={list}
+        state={state}
+        labels={{ status: t("status"), q: t("search"), type: t("type") }}
+        hidden={["status"]}
+      />
+    </div>
+  );
+};
 
 /** "You have no drafts yet.", for someone with no submissions at all. */
-export const NoSubmissions = () => (
-  <Panel padding="lg" className="grid justify-items-start gap-3">
-    <p className="text-sm text-fg">You have no drafts yet.</p>
-    <p className="text-sm text-muted">
-      A draft is a new item you're writing. Only you can see it until you submit it for review.
-    </p>
-    <Link href="/submissions/new" className={buttonClasses("primary")}>
-      New item
-    </Link>
-  </Panel>
-);
+export const NoSubmissions = () => {
+  const t = useTranslations("author.submissions");
+  return (
+    <Panel padding="lg" className="grid justify-items-start gap-3">
+      <p className="text-sm text-fg">{t("noDraftsTitle")}</p>
+      <p className="text-sm text-muted">{t("noDrafts")}</p>
+      <Link href="/submissions/new" className={buttonClasses("primary")}>
+        {t("newItem")}
+      </Link>
+    </Panel>
+  );
+};
 
 type Row = Submission & { stale?: string | null };
 
@@ -221,6 +231,7 @@ export const SubmissionsTable = ({
   /** The latest reviewer message on rows sent back or rejected (058), by id. */
   feedback?: Readonly<Record<string, RowFeedback>>;
 }) => {
+  const t = useTranslations("author.submissions");
   const selecting = errors !== undefined || Object.keys(releasable ?? {}).length > 0;
   // Archived rows get Restore and Delete (057); the others, Withdraw until released (058).
   const withActions = submissions.some(
@@ -232,7 +243,7 @@ export const SubmissionsTable = ({
           {
             id: "select",
             header: "",
-            srHeader: "Select",
+            srHeader: t("select"),
             className: "w-10",
             render: (row: Row) =>
               errors?.[row.id] !== undefined ? (
@@ -245,7 +256,7 @@ export const SubmissionsTable = ({
       : []),
     {
       id: "item",
-      header: "Item",
+      header: t("item"),
       sort: "name",
       render: (row) => (
         <>
@@ -269,14 +280,14 @@ export const SubmissionsTable = ({
     },
     {
       id: "type",
-      header: "Type",
+      header: t("type"),
       className: "w-24",
       hideOnMobile: true,
       render: (row) => <TypeBadge type={row.type} />,
     },
     {
       id: "status",
-      header: "Status",
+      header: t("status"),
       className: "w-44",
       render: (row) => (
         <span className="flex items-center gap-2 whitespace-nowrap">
@@ -290,7 +301,7 @@ export const SubmissionsTable = ({
     },
     {
       id: "updated",
-      header: "Last change",
+      header: t("lastChange"),
       sort: "updated",
       className: "w-48",
       mono: true,
@@ -336,11 +347,8 @@ export const SubmissionsTable = ({
         </>
       }
       empty={{
-        none:
-          state.filters.status === "withdrawn"
-            ? "Nothing archived."
-            : "Nothing here: try another status.",
-        filtered: "No submissions match these filters.",
+        none: t(state.filters.status === "withdrawn" ? "nothingArchived" : "nothingHere"),
+        filtered: t("noMatch"),
       }}
       pinned={["status"]}
     />
