@@ -170,6 +170,17 @@ Witnessed: 2026-10-22 22:41 EDT, by a fresh agent (blind). Commit: 159a9fed. Mac
 
 **Overall:** not met: the README's native-modules sentence.
 
+### Re-check 2 (blind): row 7, and install.md's table
+
+Witnessed: 2026-10-22 22:44 EDT, by a fresh agent (blind). Commit: d886e61e. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 7 | `packages/server/README.md`'s native-modules sentence matches better-sqlite3 13.0.3 | no | confirmed | `prebuilds/` → darwin, linux, linuxmusl, win32, each `-x64` and `-arm64`; `gypfile: false`, no install scripts; `lib/binding.js:5-6,41-50` uses a prebuild only for those, else `build/{Debug,Release}`, which only a manual build makes |
+| 8 | `install.md`'s summary table gives the Node.js minimum the code enforces | no | confirmed | `node-version.ts:2` 22.12.0; `install.md:27` "Node.js 22.12+"; only 22.12 in install.md and the server README |
+
+**Overall:** met: the native-modules sentence matches the installed package, and every Node.js minimum in the two docs is 22.12.
+
 ## Task 4 — The website
 
 Witnessed: 2026-10-22 22:39 EDT, by a fresh agent (blind). Commit: 9699b32 (ronne-web; marketplace 5ebc96d8). Machine: macOS 27.0.1, Node v24.0.0.

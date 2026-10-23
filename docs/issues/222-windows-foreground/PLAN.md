@@ -17,7 +17,7 @@ the same change that completes it.
   and 24); `server-probe.js` gets back its Windows branches and checks the `service` refusal
   there; the Refuses Windows job goes; `release.yml`'s comments and notes follow. *Done when:* the
   pull request's Install and run jobs pass on Windows (a run on GitHub; the owner pushes).
-- [ ] **3. Repository docs.** `install.md`, `backup.md`, `release.md`, `README.md`,
+- [x] **3. Repository docs.** `install.md`, `backup.md`, `release.md`, `README.md`,
   `packages/server/README.md`, MVP §15 (Easy install), the features index (121's row), 121's SPEC
   header, and this issue's row in `docs/issues/README.md`. *Done when:* none of them says the
   server refuses Windows, each says what the spec's Documentation lists.
