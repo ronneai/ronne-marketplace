@@ -32,6 +32,8 @@ export const E2E_USERS = {
   languages: "languages@e2e.test",
   // 130: reads the Catalogue, an item and the Workspaces pages in Portuguese and French.
   browseLanguages: "browse-languages@e2e.test",
+  // 131: writes, submits and reviews in Portuguese and French: a moderator, for the review queue.
+  authorLanguages: "author-languages@e2e.test",
   // Choose a language on Account › Language and Save (129): one with JavaScript, one without. Each
   // changes its own profile, so neither can be shared.
   languageChooser: "language-chooser@e2e.test",
@@ -288,6 +290,7 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   languageSaved: "Language Saved",
   languages: "Languages",
   browseLanguages: "Browse Languages",
+  authorLanguages: "Author Languages",
   phoneLanguages: "Phone Languages",
   phoneWebkitLanguages: "Phone WebKit Languages",
   tabletLanguages: "Tablet Languages",
@@ -482,6 +485,7 @@ export const E2E_MUST_CHANGE: readonly (keyof typeof E2E_USERS)[] = [
 export const E2E_MODERATORS: readonly (keyof typeof E2E_USERS)[] = [
   "moderator",
   "languages",
+  "authorLanguages",
   "phoneLanguages",
   "phoneWebkitLanguages",
   "tabletLanguages",
