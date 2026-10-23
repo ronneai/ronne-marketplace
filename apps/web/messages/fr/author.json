@@ -123,7 +123,10 @@
     "show": "Afficher sur le canevas",
     "needsYaml": "Le canevas a besoin d’un YAML valide.",
     "yamlError": "ronne.yaml contient une erreur YAML. Corrigez-la dans la vue YAML; les problèmes ci-dessous indiquent où.",
-    "openYaml": "Ouvrir le YAML"
+    "openYaml": "Ouvrir le YAML",
+    "edge": "{item} dépend de {dependency}",
+    "roleNode": "nœud",
+    "roleEdge": "lien"
   },
   "catalogue": {
     "results": "Résultats du catalogue",

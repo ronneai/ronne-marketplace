@@ -28,21 +28,28 @@ export const FIT = { padding: 0.08, maxZoom: 1 } as const;
 /** What React Flow keeps about a node that the manifest and the layout don't say. */
 type Held = Pick<FlowNode, "selected" | "dragging" | "measured"> & { position?: Position };
 
-/** A node as a screen reader names it: "@team/fmt, this skill", "@team/git, mcp-server, range ^1.0.0". */
-type Describe = (node: ComposerNode) => string;
+/**
+ * A node as a screen reader names it ("@team/fmt, this skill", "@team/git, mcp-server, range
+ * ^1.0.0"), and the role word it reads with it ("node").
+ */
+type Describe = ((node: ComposerNode) => string) & { role: string };
 
 export const useDescribe = (): Describe => {
   const t = useTranslations("author.canvas");
   // The same function while the language is, so the nodes aren't rebuilt on every render.
   return useMemo<Describe>(
-    () => (node) =>
-      node.type === "item"
-        ? t("itemNode", { name: node.data.name, type: node.data.type })
-        : t("dependencyNode", {
-            name: node.data.name,
-            type: node.data.facts?.type ?? t("dependencyWord"),
-            range: node.data.range || t("emptyRange"),
-          }),
+    () =>
+      Object.assign(
+        (node: ComposerNode) =>
+          node.type === "item"
+            ? t("itemNode", { name: node.data.name, type: node.data.type })
+            : t("dependencyNode", {
+                name: node.data.name,
+                type: node.data.facts?.type ?? t("dependencyWord"),
+                range: node.data.range || t("emptyRange"),
+              }),
+        { role: t("roleNode") },
+      ),
     [t],
   );
 };
@@ -75,6 +82,28 @@ export const useAriaLabels = (readOnly: boolean) => {
   );
 };
 
+/**
+ * The edges as React Flow draws them: straight, not selectable, each read as a sentence ("@team/a
+ * depends on @team/git") with its role word, instead of React Flow's English "Edge from item to
+ * dependency:@team/git" (131).
+ */
+export const toFlowEdges = (
+  edges: readonly ComposerEdge[],
+  nodes: readonly ComposerNode[],
+  words: { label: (item: string, dependency: string) => string; role: string },
+) => {
+  const nameOf = (id: string) => nodes.find((node) => node.id === id)?.data.name ?? id;
+  return edges.map((edge) => ({
+    ...edge,
+    type: "straight",
+    selectable: false,
+    focusable: false,
+    deletable: false,
+    ariaLabel: words.label(nameOf(edge.source), nameOf(edge.target)),
+    domAttributes: { "aria-roledescription": words.role },
+  }));
+};
+
 /** The model's nodes with what React Flow holds: a node follows the pointer only while dragged. */
 const withHeld = (
   nodes: readonly ComposerNode[],
@@ -88,6 +117,8 @@ const withHeld = (
       ...rest,
       position: position ?? node.position,
       ariaLabel: describe(node),
+      // React Flow's own word for the role is English; ours follows the language (131).
+      domAttributes: { "aria-roledescription": describe.role },
       // The draft's node stays in the centre.
       ...(node.type === "item" ? { draggable: false } : {}),
     } as FlowNode;
@@ -197,14 +228,11 @@ export const ComposerCanvas = ({
     .join(" ");
   const flowEdges = useMemo(
     () =>
-      edges.map((edge) => ({
-        ...edge,
-        type: "straight",
-        selectable: false,
-        focusable: false,
-        deletable: false,
-      })),
-    [edges],
+      toFlowEdges(edges, modelNodes, {
+        label: (item, dependency) => t("edge", { item, dependency }),
+        role: t("roleEdge"),
+      }),
+    [edges, modelNodes, t],
   );
 
   const onNodesChange = useCallback(

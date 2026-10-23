@@ -123,7 +123,10 @@
     "show": "Show on the canvas",
     "needsYaml": "The canvas needs valid YAML.",
     "yamlError": "ronne.yaml has a YAML error. Fix it in the YAML view; the problems below say where.",
-    "openYaml": "Open the YAML"
+    "openYaml": "Open the YAML",
+    "edge": "{item} depends on {dependency}",
+    "roleNode": "node",
+    "roleEdge": "edge"
   },
   "catalogue": {
     "results": "Catalogue results",

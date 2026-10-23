@@ -1,8 +1,10 @@
+import { useTranslations } from "next-intl";
 import type { ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import {
   ComposerCanvas,
+  toFlowEdges,
   useAriaLabels,
   useDescribe,
 } from "@/components/dependency-canvas/ComposerCanvas";
@@ -161,6 +163,24 @@ describe("the canvas in three languages", () => {
     expect(tone && describe("en")(tone)).toBe("@team/tone, dependency, range empty");
     expect(tone && describe("fr")(tone)).toBe("@team/tone, dépendance, plage vide");
     expect(odd && describe("pt")(odd)).toBe("@team/{x}, mcp-server, intervalo 1.0.0");
+  });
+
+  it("reads each edge as a sentence, and each node and edge with its role in the language", () => {
+    const edges = (l: Locale) => {
+      const t = grab(l, () => useTranslations("author.canvas"));
+      return toFlowEdges(graph.edges, graph.nodes, {
+        label: (item, dependency) => t("edge", { item, dependency }),
+        role: t("roleEdge"),
+      });
+    };
+    expect(edges("en").map((e) => e.ariaLabel)).toContain("@team/reviewer depends on @team/git");
+    expect(edges("pt").map((e) => e.ariaLabel)).toContain("@team/reviewer depende de @team/{x}");
+    expect(edges("fr")[0]?.domAttributes).toEqual({ "aria-roledescription": "lien" });
+    expect(edges("fr").some((e) => /Edge from/.test(e.ariaLabel))).toBe(false);
+    expect(grab("pt", useDescribe).role).toBe("nó");
+    // The nodes carry it: React Flow's own "node" is replaced.
+    expect(canvas("fr")).toContain('aria-roledescription="nœud"');
+    expect(canvas("fr")).not.toContain('aria-roledescription="node"');
   });
 
   it("tells screen readers how to move a node, and where it went", () => {

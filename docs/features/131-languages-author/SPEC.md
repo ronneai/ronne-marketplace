@@ -80,9 +80,12 @@ in Portuguese and French beside English. Nothing about what the screens do chang
   counts, severities and "line {n}" are messages). They keep their `backticked` names as code. So
   do the registry's own checks reported the same way (013's dependency checks on the canvas and in
   the Problems list), which the API returns as issues too.
-- **React Flow's screen-reader texts** (how to select and move a node, where it moved) are
-  messages; React Flow takes them once the page loads, so the server's first markup has its English
-  defaults until then.
+- **React Flow's screen-reader texts** (how to select and move a node, where it moved, each
+  node's and edge's role word, and each edge's label) are messages; React Flow takes the how-to
+  texts once the page loads, so the server's first markup has its English defaults until then. An
+  edge reads as a sentence, "@team/a depends on @team/git", in English too (it was React Flow's
+  "Edge from item to dependency:@team/git"). One label stays English: the attribution link's
+  "React Flow attribution", which the library fixes and only a paid plan can hide.
 - **Errors.** A known error shows its translation; an error with no translation shows the English
   message (never a blank). The API's messages are unchanged.
 
