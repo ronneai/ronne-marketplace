@@ -471,3 +471,66 @@ Witnessed: 2026-10-23 16:40 EDT, by a fresh agent (blind). Commit: 0bb7ab63. Mac
 | 7 | Chromium and phone green on a fresh build | no | confirmed | Fresh build, then `playwright test --project chromium --project phone` → 183 passed, no retries |
 
 **Overall:** met.
+
+## Task 13 — Documentation and records
+
+Witnessed: 2026-10-23 16:32 EDT, by a fresh agent (blind). Commit: 592c86ca (ronne-web d899d89). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `pnpm witness:check` passes | no | confirmed | exit 0 |
+| 2 | The ronne-web branch builds | no | confirmed | Scratch copy: lint, typecheck, 183 tests, build pass |
+| 3 | The pt and fr pages name the labels as the app does | no | partly | "Release fica desativado" (button "Lançar # itens"); "Incremento" (field "Bump"); "pré-release" ("Pré-lançamento"); "faixa" (node "intervalo") |
+| 4 | English pages unchanged | no | partly | `en/review.tsx` shows withdrawn as "archived" (right by the app), but the SPEC said English is unchanged |
+| 5 | No new topic, so neither `topics.ts` changes | no | confirmed | `git diff --stat` |
+| 6 | The glossary has the words | no | confirmed | `i18n.md:139-151` |
+| 7 | The index row | no | confirmed | `README.md:357` done |
+| 8 | The Done notes | no | confirmed | PLAN "Done (2026-10-23)" |
+| 9 | The site's guide agrees with the glossary | no | partly | Guide: "faixa de versões"; no bump rule |
+
+**Overall:** not met: rows 3, 4, 9.
+
+### Re-check (rows 3, 4, 9)
+
+Witnessed: 2026-10-23 16:38 EDT, by a fresh agent (blind). Commit: 9291f46f (ronne-web d96e15f). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 3 | The pt and fr pages name the app's labels | no | partly | 157 texts match; the reject dialog's checkbox named "pedir mudanças nelas" / « demander des changements » (app: "Solicitar alterações nelas também" / « Leur demander aussi des modifications ») |
+| 4 | English changes only as the SPEC states, each matching the app | no | confirmed | Exactly the 3 changes listed |
+| 9 | The guide agrees with the glossary and the app | no | not met | Old rows for pre-release, deprecate/yank, stale, request changes, Canvas, rebase, release, sent back |
+| 10 | Checks pass | no | confirmed | ronne-web lint, typecheck, 183 tests, build; `witness:check` |
+
+**Overall:** not met: rows 3, 9.
+
+### Re-check (rows 3, 9)
+
+A third round: only wording was left.
+
+Witnessed: 2026-10-23 16:42 EDT, by a fresh agent (blind). Commit: e011f3ec (ronne-web 53a03e8). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 3 | The pt and fr pages name the app's labels | no | confirmed | 288 texts; the checkbox now matches `review.dependents.sendBack`; only `rmk` output left in English |
+| 9 | The guide agrees with the glossary and the app; the edited pages follow it | no | partly | French "pour changements" / "Demander des changements" left; guide row 82 (pt release) against its own line 217 |
+| — | Checks pass | no | confirmed | ronne-web lint, typecheck, 183 tests, build; `witness:check` |
+
+**Overall:** not met: row 9.
+
+### Re-check (row 9)
+
+A fourth round, with the owner's approval (2026-10-23).
+
+Witnessed: 2026-10-23 16:50 EDT, by a fresh agent (blind). Commit: fad17746 (ronne-web fea5c25). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 9a | The guide agrees with the glossary and the app | no | partly | "proposta de mudança" / « proposition de changement » and French « revue » in the guide and prose, where the app says alteração / modification and « révision » |
+| 9b | No guide row contradicts another | no | not met | Rows saying "Ask to join", "Requests to join" and "Scope moves" stay English, though translated |
+| 9c | The edited pages use the app's labels | no | partly | `workspaces.tsx`: New item, the Workspace filter, Submit / Submit for review, "Approved by you…", "Released without review.", Show all |
+| 9d | Kept English prose words leave labels as the app's | no | confirmed | pt "Lançar selecionados", "Lançar 2 itens" |
+| 9e | The SPEC describes the branch | no | partly | `fr/overview.tsx` and `StatusBadge`'s `label` not named |
+| 9f | ronne-web checks | no | confirmed | lint, typecheck, 183 tests, build |
+| 9g | `witness:check` | no | confirmed | exit 0 |
+
+**Overall:** not met. Fixed after this round: 9b, 9c and 9e (ronne-web cfabd17, 2f42df9; this repository's SPEC). 9a is in the Done notes as a choice for 133's native reader.
