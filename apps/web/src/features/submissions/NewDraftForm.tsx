@@ -102,6 +102,12 @@ export const NameHint = ({ problem }: { problem: NameProblem | null }) => {
   );
 };
 
+/** The type filter matches nothing: say so, and how to see them all. */
+export const NoTypeMatch = () => {
+  const t = useTranslations("author.newDraft");
+  return <p className="text-sm text-muted">{t("noType", { count: ITEM_TYPES.length })}</p>;
+};
+
 /** A draft of the same name already exists: a note, not a stop. */
 export const RepeatNote = ({ itemName }: { itemName: string }) => {
   const t = useTranslations("author.newDraft");
@@ -439,9 +445,7 @@ export const NewDraftForm = ({
                 );
               })}
             </div>
-            {shownTypes.length === 0 ? (
-              <p className="text-sm text-muted">{t("noType", { count: ITEM_TYPES.length })}</p>
-            ) : null}
+            {shownTypes.length === 0 ? <NoTypeMatch /> : null}
           </fieldset>
         </Section>
       </div>

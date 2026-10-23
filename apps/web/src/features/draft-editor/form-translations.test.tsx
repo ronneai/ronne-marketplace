@@ -11,9 +11,8 @@ vi.mock("@/features/submissions/actions", () => ({ createDraftFromForm: vi.fn() 
 vi.mock("./dependency-picker/actions", () => ({ findDependenciesAction: vi.fn() }));
 vi.mock("./actions", () => ({}));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
-const { NewDraftForm, NameHint, RepeatNote, StarterFiles, useTypesMatching } = await import(
-  "@/features/submissions/NewDraftForm"
-);
+const { NewDraftForm, NameHint, NoTypeMatch, RepeatNote, StarterFiles, useTypesMatching } =
+  await import("@/features/submissions/NewDraftForm");
 const { ManifestForm } = await import("./ManifestForm");
 const { ViewSwitch } = await import("./DraftEditor");
 
@@ -142,6 +141,18 @@ describe("the new-draft form's states in three languages", () => {
     expect(view("fr", <RepeatNote itemName="@p/a" />)).toContain(">NOTE :<");
   });
 
+  it("says when no type matches the filter", () => {
+    expect(view("en", <NoTypeMatch />)).toContain(
+      "No type matches. Clear the filter to see all 11.",
+    );
+    expect(view("pt", <NoTypeMatch />)).toContain(
+      "Nenhum tipo corresponde. Limpe o filtro para ver todos os 11.",
+    );
+    expect(view("fr", <NoTypeMatch />)).toContain(
+      "Aucun type ne correspond. Effacez le filtre pour voir les 11.",
+    );
+  });
+
   it("searches a type's tag as it reads in the language, and its group", () => {
     const match = (l: Locale, search: string, group: "runtime" | null = null) =>
       grab(l, useTypesMatching)(search, group);
@@ -169,6 +180,7 @@ describe("the new-draft form's states in three languages", () => {
           view(locale, <NameHint problem={p} />),
         ),
         view(locale, <RepeatNote itemName="@p/a" />),
+        view(locale, <NoTypeMatch />),
       ].join("\n");
       expect(await englishLeaks(["author", "common", "types"], locale, html)).toEqual([]);
       expect(await ownTextsShown(["author", "common"], locale, html)).toBeGreaterThan(8);
