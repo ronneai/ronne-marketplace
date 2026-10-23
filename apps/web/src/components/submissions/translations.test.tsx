@@ -9,6 +9,7 @@ import {
 } from "@/server/domains/submissions/models/status";
 import { englishLeaks, ownTextsShown } from "@/test/english-leak";
 import { inLocale } from "@/test/intl";
+import { textOf } from "@/test/text";
 import {
   DependencyMarksIcon,
   DependencyMarksNotice,
@@ -22,7 +23,7 @@ const view = (locale: Locale, node: ReactElement) =>
   inLocale(locale, () => renderToStaticMarkup(node));
 
 const badge = (locale: Locale, status: SubmissionStatus) =>
-  view(locale, <StatusBadge status={status} />).replace(/<[^>]+>/g, "");
+  textOf(view(locale, <StatusBadge status={status} />));
 
 const waits = (status: Extract<DependencyMark, { kind: "waits" }>["status"]): DependencyMark => ({
   kind: "waits",
@@ -107,10 +108,7 @@ describe("dependency marks in three languages", () => {
     const statuses = ["submitted", "changes_requested", "approved", "not_submitted"] as const;
     for (const l of ["en", "pt", "fr"] as const)
       statuses.forEach((status, i) => {
-        const text = view(l, <DependencyStatusBadge mark={waits(status)} />).replace(
-          /<[^>]+>/g,
-          "",
-        );
+        const text = textOf(view(l, <DependencyStatusBadge mark={waits(status)} />));
         expect(text, `${l} ${status}`).toBe(words[l][i]);
       });
   });

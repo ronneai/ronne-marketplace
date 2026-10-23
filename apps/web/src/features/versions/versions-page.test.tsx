@@ -5,6 +5,7 @@ import type { ItemPage } from "@/server/domains/items/actions/versions";
 import { ItemNotFoundError } from "@/server/domains/items/exceptions/errors";
 import { englishLeaks } from "@/test/english-leak";
 import { inLocale, inLocaleAsync } from "@/test/intl";
+import { textOf } from "@/test/text";
 
 const versions = vi.hoisted(() => ({ itemPage: vi.fn() }));
 vi.mock("@/server/domains/items/actions/versions", () => versions);
@@ -122,7 +123,7 @@ describe("reachLine", () => {
     const { Reach } = await import("./VersionControls");
     const { renderToStaticMarkup } = await import("react-dom/server");
     const reachLine = (reach: { runs: number; installs: number }) =>
-      renderToStaticMarkup(<Reach reach={reach} />).replace(/<[^>]+>/g, "");
+      textOf(renderToStaticMarkup(<Reach reach={reach} />));
     expect(reachLine({ runs: 1240, installs: 1 })).toBe(
       "Reported in the last 30 days: 1,240 runs, 1 install.",
     );
@@ -183,7 +184,7 @@ describe("the Versions tab in three languages (131)", () => {
   it("words each version dialog, with the reach in plurals", async () => {
     const { Reach, TagControls, VersionControls } = await import("./VersionControls");
     const reach = (l: L, runs: number, installs: number) =>
-      html(l, <Reach reach={{ runs, installs }} />).replace(/<[^>]+>/g, "");
+      textOf(html(l, <Reach reach={{ runs, installs }} />));
     expect(reach("en", 1240, 1)).toBe("Reported in the last 30 days: 1,240 runs, 1 install.");
     expect(reach("pt", 0, 1)).toBe("Relatado nos últimos 30 dias: 0 execução, 1 instalação.");
     expect(reach("pt", 2, 2)).toBe("Relatado nos últimos 30 dias: 2 execuções, 2 instalações.");
