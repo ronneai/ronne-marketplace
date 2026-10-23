@@ -563,3 +563,16 @@ Witnessed: 2026-10-23 17:04 EDT, by a fresh agent (blind). Commit: c0ee047e (ron
 | R | ronne-web lint, typecheck, test | no | confirmed | 280 files; tsc exit 0; 183 passed |
 
 **Overall:** not met: rows 9b, 9c. Fixed in ronne-web 6a4bec7 (English too: "Yours"); `grep "página Workspaces\|page Workspaces\|>Manage<"` on the pt and fr pages is then empty.
+
+### Re-check (rows 9b, 9c)
+
+Witnessed: 2026-10-23 17:06 EDT, by a fresh agent (blind). Commit: f7253303 (ronne-web 6a4bec7). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 9b | No guide row contradicts another or the app | no | not met | Guide line 70 says the Workspaces page's labels stay English; the members' list translates them (`WorkspacesPage.tsx:95-128`) |
+| 9c | The edited pages quote the app's labels; every English change is in the SPEC | no | confirmed | Probes list only screens the app keeps English; the 4 English pages' changes are in the SPEC |
+| W | `witness:check` | no | confirmed | exit 0 |
+| R | ronne-web lint, typecheck, test | no | confirmed | 280 files; tsc exit 0; 183 passed |
+
+**Overall:** not met: row 9b. Fixed in ronne-web 892ace4; every other "stays in English" rule of the guide was checked against the app (the SCIM labels are hardcoded English in `UsersPage.tsx` and `ScimSection.tsx`).
