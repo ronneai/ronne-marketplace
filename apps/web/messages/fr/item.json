@@ -152,7 +152,7 @@
     "maintainers": {
       "title": "Responsables et révision",
       "owner": "Propriétaire",
-      "approvedBy": "Approuvé par {name}{override, select, true { (décision de root)} other {}}",
+      "approvedBy": "Approuvé par {name}{override, select, true { (dérogation de root)} other {}}",
       "unreviewed": "Publié sans révision."
     },
     "included": {

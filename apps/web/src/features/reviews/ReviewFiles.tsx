@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { FilesBrowser } from "@/components/files/FilesBrowser";
 import { FileChanges } from "@/components/files/FileViews";
 import type { ShownFile } from "@/components/files/types";
@@ -21,12 +22,14 @@ export const ReviewAllFiles = ({
   files: readonly ShownFile[];
   selected: string;
   line?: number;
-}) =>
-  files.length === 0 ? (
-    <p className="text-sm text-muted">No files.</p>
+}) => {
+  const t = useTranslations("author.review");
+  return files.length === 0 ? (
+    <p className="text-sm text-muted">{t("noFiles")}</p>
   ) : (
-    <FilesBrowser files={files} selected={selected} line={line} label="Files of this revision" />
+    <FilesBrowser files={files} selected={selected} line={line} label={t("filesOfRevision")} />
   );
+};
 
 type ChangedFile = { path: string; size: number; executable: boolean; change: FileChange };
 
@@ -43,6 +46,8 @@ export const ReviewChanges = ({
   selected?: string;
   emptyText: string;
 }) => {
+  const t = useTranslations("author.review");
+  const status = useTranslations("author.diff.status");
   if (changes.length === 0) return <p className="text-sm text-muted">{emptyText}</p>;
   const files: ChangedFile[] = changes.map((change) => ({
     path: change.path,
@@ -57,10 +62,10 @@ export const ReviewChanges = ({
     <FilesBrowser
       files={files}
       selected={initial}
-      label="Changed files"
+      label={t("changedFiles")}
       after={(file) => (
         <Badge tone={STATUS_TONE[file.change.status]} className="mr-1 shrink-0">
-          {file.change.status}
+          {status(file.change.status)}
         </Badge>
       )}
       render={(file) => <FileChanges changes={[file.change]} since={null} />}

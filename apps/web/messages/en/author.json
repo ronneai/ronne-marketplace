@@ -525,5 +525,140 @@
       "cancel": "Cancel",
       "submit": "{count, plural, one {Approve # submission} other {Approve # submissions}}"
     }
+  },
+  "review": {
+    "pageTitle": "Review",
+    "breadcrumb": "Reviews",
+    "by": "by <author>{name}</author>",
+    "byYou": "by <author>{name}</author> (you)",
+    "revision": "revision {number, number, ::group-off}",
+    "submitted": "submitted <date></date>",
+    "viewVersions": "View versions",
+    "ownSubmission": "This is your own submission: another moderator or root reviews it.",
+    "ownOverride": "This is your own submission: another moderator or root reviews it. As root, you can approve it yourself as an override, recorded as one.",
+    "staleTitle": "{stale} has been released since this proposal started.",
+    "stale": "It changes {version}, so approving it now would undo what {stale} changed. The author rebases it onto {stale} first.",
+    "files": "Files",
+    "filesView": "Files view",
+    "changesTo": "Changes to {version}",
+    "changesSince": "Changes since revision {number, number, ::group-off}",
+    "allFiles": "All files",
+    "noChangesSince": "No changes since revision {number, number, ::group-off}.",
+    "checks": "Checks on revision {number}",
+    "noRevision": "–",
+    "filesOfRevision": "Files of this revision",
+    "noFiles": "No files.",
+    "changedFiles": "Changed files",
+    "manifestFields": "Manifest fields",
+    "manifestHeading": "ronne.yaml fields",
+    "field": "Field",
+    "inVersion": "In {version}",
+    "proposed": "Proposed",
+    "notSet": "(not set)",
+    "removed": "(removed)",
+    "noChangesTo": "No changes to {version}.",
+    "unreadable": "The files of {version} couldn't be read, so the changes to it can't be shown. Ask root to check the storage.",
+    "conversation": "Conversation",
+    "comment": "Comment",
+    "said": {
+      "submit": "submitted revision {revision, number, ::group-off}",
+      "resubmit": "resubmitted it as revision {revision, number, ::group-off}",
+      "comment": "commented",
+      "request_changes": "requested changes",
+      "approve": "approved it",
+      "reject": "rejected it",
+      "override": "approved their own submission, as root (override)",
+      "self_approve": "submitted it in their personal workspace, so it was approved without review",
+      "withdraw": "archived it",
+      "restore": "restored it as a draft",
+      "publish": "released it as {version}",
+      "publishNone": "released it as a new version",
+      "rebase": "rebased it onto {version}",
+      "rebaseNone": "rebased it onto a newer version"
+    },
+    "decision": {
+      "approve": {
+        "button": "Approve",
+        "title": "Approve this submission?",
+        "hint": "Optional. Once approved, the author or a moderator can release it."
+      },
+      "request_changes": {
+        "button": "Request changes",
+        "title": "Request changes",
+        "hint": "Required. Say what to change; the author edits and resubmits."
+      },
+      "reject": {
+        "button": "Reject",
+        "title": "Reject this submission?",
+        "hint": "Required. Rejecting is final: the author has to start a new draft."
+      },
+      "override": {
+        "button": "Approve (override)",
+        "title": "Approve your own submission?",
+        "hint": "Optional. As root, you can approve your own submission; it's marked as an override in the conversation and the audit log."
+      },
+      "message": "Message",
+      "cancel": "Cancel",
+      "rowLabel": "{decision}: {name}",
+      "rejectedSkipped": "Rejected. Not sent back:",
+      "statusRejected": "Rejected {name}.",
+      "statusRequested": "Requested changes on {name}."
+    },
+    "dependents": {
+      "legend": "{count, plural, one {1 submission depends on this} other {# submissions depend on this}}",
+      "line": "({status}, by {author})",
+      "lineRefused": "({status}, by {author}): {reason}",
+      "sendBack": "Request changes on them too",
+      "theirMessage": "Their message",
+      "stay": "They stay as they are, marked blocked.",
+      "message": "{name} was rejected: remove it from dependencies, or depend on another item.",
+      "thisItem": "This item"
+    },
+    "publish": {
+      "button": "Publish",
+      "blockedLabel": "Publish: {reason}",
+      "title": "Publish {item}",
+      "done": "Published {item} {version} as {tag}.",
+      "doneWith": "Published {item} {version} as {tag}, with {others}.",
+      "viewVersions": "View versions",
+      "doneButton": "Done",
+      "release": "Release",
+      "stable": "Stable",
+      "prerelease": "Pre-release, such as a beta for early testers",
+      "preId": "Pre-release id",
+      "change": "Change",
+      "bump": {
+        "patch": "Patch: fixes, nothing new",
+        "minor": "Minor: new, and compatible",
+        "major": "Major: breaks something for installs"
+      },
+      "tag": "Tag",
+      "tagHint": "Installing without a version uses latest. Pre-releases go to next by default.",
+      "notes": "Release notes (optional)",
+      "preview": "Publishes <mono>{item}</mono> <strong>{version}</strong> as <mono>{tag}</mono>. Versions never change once published.",
+      "badPre": "That doesn't give a new version: a pre-release id is lowercase letters and digits, starting with a letter.",
+      "stuck": "{name} gets no version from that: it can't be released with it this way.",
+      "cancel": "Cancel",
+      "submit": "Publish {version}",
+      "withOne": "Released with it:",
+      "withMany": "Released with these {count, number}:",
+      "withLabel": "Released with it",
+      "suggested": "Suggested: <strong>{bump, select, major {major} minor {minor} other {patch}}</strong>, because {reasons}."
+    },
+    "tagProblem": {
+      "format": "A tag is 1 to 32 lowercase letters, digits and hyphens, starting with a letter.",
+      "range": "{tag} reads as a version range, so it can't be a tag.",
+      "latest_prerelease": "latest can only point to a stable version, not a pre-release."
+    },
+    "reason": {
+      "blockLost": "the {type} block no longer has {names}",
+      "depLost": "it no longer depends on {names}",
+      "fileRemoved": "{names}, which the manifest names, is removed",
+      "fileNew": "{names} is new",
+      "depNew": "it now depends on {names}",
+      "keywordNew": "keyword {names} is new",
+      "blockGained": "the {type} block gains {names}",
+      "nothing": "nothing is added or removed"
+    }
   }
 }

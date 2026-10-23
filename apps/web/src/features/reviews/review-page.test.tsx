@@ -4,6 +4,8 @@ import type { ReviewView } from "@/server/domains/submissions/actions/reviews";
 import { SubmissionNotFoundError } from "@/server/domains/submissions/exceptions/errors";
 import { diffRevisions } from "@/server/domains/submissions/models/diff";
 import type { ReviewEvent } from "@/server/domains/submissions/models/review";
+import { englishLeaks } from "@/test/english-leak";
+import { inLocale, inLocaleAsync } from "@/test/intl";
 
 const reviews = vi.hoisted(() => ({ getReview: vi.fn() }));
 const session = vi.hoisted(() => ({ getCurrentUser: vi.fn() }));
@@ -30,12 +32,18 @@ const { RiskSummary } = await import("@/components/risk-flags/RiskSummary");
 const { FileChanges } = await import("@/components/files/FileViews");
 const { ReviewAllFiles, ReviewChanges } = await import("./ReviewFiles");
 const { Conversation } = await import("./Conversation");
-const { DecisionBar, DecisionDialog, DependentsChoice, dependentsMessage, RowDecisions } =
-  await import("./DecisionBar");
-const { default: ReviewPage } = await import("@/app/(app)/reviews/[id]/page");
-const { BumpSuggestion, groupBlockedBy, groupVersions, ReleaseGroupList } = await import(
-  "./PublishDialog"
+const { DecisionBar, DecisionDialog, DependentsChoice, RowDecisions } = await import(
+  "./DecisionBar"
 );
+const { default: ReviewPage } = await import("@/app/(app)/reviews/[id]/page");
+const {
+  BumpSuggestion,
+  groupBlockedBy,
+  groupVersions,
+  PublishDialog,
+  ReleaseGroupList,
+  useTagWords,
+} = await import("./PublishDialog");
 
 const text = (path: string, content: string) => ({
   path,
@@ -542,7 +550,7 @@ describe("a change proposal's review", () => {
     changes: diffRevisions([text("README.md", "Old.")], [text("README.md", "New.")]),
     unreleased: [] as string[],
     manifest: [{ field: "description", before: "Old.", after: "New." }],
-    suggested: { bump: "patch" as const, reasons: ["nothing is added or removed"] },
+    suggested: { bump: "patch" as const, reasons: [{ kind: "nothing" as const, names: [] }] },
     ...overrides,
   });
   const renderWith = async (
@@ -590,7 +598,13 @@ describe("a change proposal's review", () => {
   it("explains the suggested bump", () => {
     const html = renderToStaticMarkup(
       <BumpSuggestion
-        suggested={{ bump: "minor", reasons: ["`a.md` is new", "keyword `x` is new"] }}
+        suggested={{
+          bump: "minor",
+          reasons: [
+            { kind: "fileNew", names: ["a.md"] },
+            { kind: "keywordNew", names: ["x"] },
+          ],
+        }}
       />,
     );
     expect(html).toMatch(/Suggested: <span[^>]*>minor<\/span>, because/);
@@ -620,7 +634,7 @@ describe("rejecting a dependency (056)", () => {
         ]}
         sendBack
         onSendBack={() => undefined}
-        text={dependentsMessage("@team/style")}
+        text="@team/style was rejected: remove it from dependencies, or depend on another item."
         onText={() => undefined}
       />,
     );
@@ -664,9 +678,304 @@ describe("rejecting a dependency (056)", () => {
     ];
     const group = groupVersions(rc, "prerelease", "beta");
     expect(group).toEqual([{ name: "@team/x", version: null }]);
-    expect(groupBlockedBy(group)).toBe(
-      "@team/x gets no version from that: it can't be released with it this way.",
-    );
+    // The first that gets no version; the dialog words it.
+    expect(groupBlockedBy(group)).toBe("@team/x");
     expect(groupBlockedBy(groupVersions(rc, "stable", ""))).toBeNull();
   });
+});
+
+describe("a review's page in three languages (131)", () => {
+  type L = "en" | "pt" | "fr";
+  const html = (l: L, node: Parameters<typeof renderToStaticMarkup>[0]) =>
+    inLocale(l, () => renderToStaticMarkup(node)).replace(/<!-- -->/g, "");
+  const withoutHelp = (text: string) =>
+    text
+      .replace(/<button[^>]*aria-haspopup="dialog"[^>]*>.*?<\/button>/g, "")
+      .replace(/<noscript>.*?<\/noscript>/g, "");
+  const page = async (
+    l: L,
+    data: Partial<ReviewView> = {},
+    search: Record<string, string> = {},
+  ) => {
+    reviews.getReview.mockResolvedValue(view(data));
+    return inLocaleAsync(l, async () =>
+      renderToStaticMarkup(
+        await ReviewPage({
+          params: Promise.resolve({ id: "01J0000000000000000000000A" }),
+          searchParams: Promise.resolve(search),
+        }),
+      ),
+    );
+  };
+  beforeEach(() => {
+    vi.clearAllMocks();
+    session.getCurrentUser.mockResolvedValue({
+      id: "m",
+      email: "m@x.test",
+      name: "M",
+      role: "user",
+      workspaces: { global: "moderator" },
+    });
+  });
+
+  it("words the header, the views, the checks and the decisions", async () => {
+    const pt = await page("pt");
+    expect(pt).toContain('aria-label="Trilha de navegação"');
+    expect(pt).toContain(">Revisões<");
+    expect(pt).toContain('por <span class="text-fg">Ada Author</span>');
+    expect(pt).toContain(">revisão 2<");
+    expect(pt).toContain("submetida <time");
+    expect(pt).toContain(">Alterações desde a revisão 1<");
+    expect(pt).toContain(">Todos os arquivos<");
+    expect(pt).toContain(">Verificações da revisão 2<");
+    expect(pt).toContain(">Aprovar<");
+    expect(pt).toContain(">Solicitar alterações<");
+    expect(pt).toContain(">Conversa<");
+    const fr = await page("fr", {
+      mine: true,
+      can: { decide: false, override: true, comment: true, publish: false, sendBack: false },
+    });
+    expect(fr).toContain("(vous)");
+    expect(fr).toContain("En tant que root, vous pouvez l’approuver vous-même par dérogation");
+    const { generateMetadata } = await import("@/app/(app)/reviews/[id]/page");
+    expect(await inLocaleAsync("fr", () => generateMetadata())).toEqual({
+      title: "Révision · Ronne AI Marketplace",
+    });
+  });
+
+  it("words a stale proposal's notice and its changes", async () => {
+    const stale = {
+      baseVersion: "1.0.0",
+      stale: "1.1.0",
+      changes: null,
+      unreleased: [] as string[],
+      manifest: [{ field: "description", before: null, after: "New." }],
+      suggested: null,
+    };
+    const pt = await page("pt", { proposal: stale as never });
+    expect(pt).toContain("A 1.1.0 foi lançada depois que esta proposta começou.");
+    expect(pt).toContain(">Alterações da 1.0.0<");
+    expect(pt).toContain(">Campos do ronne.yaml<");
+    expect(pt).toContain(">(não definido)<");
+    expect(pt).toContain("Não foi possível ler os arquivos da 1.0.0");
+  });
+
+  it("words each event of the conversation", () => {
+    const kinds = [
+      ["submit", 2, null],
+      ["resubmit", 3, null],
+      ["comment", 3, "Hi."],
+      ["request_changes", 3, "Fix."],
+      ["approve", 3, null],
+      ["reject", 3, "No."],
+      ["override", 3, null],
+      ["self_approve", 1, null],
+      ["withdraw", 3, null],
+      ["restore", 3, null],
+      ["publish", 3, "1.2.0"],
+      ["publish", 3, null],
+      ["rebase", 3, "1.3.0"],
+      ["rebase", 3, null],
+    ] as const;
+    const events = kinds.map(([kind, revision, body], i) =>
+      event({ id: `e${i}`, kind, revision, body } as never),
+    );
+    const convo = (l: L) =>
+      html(l, <Conversation id="s" events={events} canComment versionsHref="/v" />);
+    const en = convo("en");
+    expect(en).toContain("submitted revision 2");
+    expect(en).toContain("released it as 1.2.0");
+    expect(en).toContain("rebased it onto a newer version");
+    const pt = convo("pt");
+    expect(pt).toContain("submeteu a revisão 2");
+    expect(pt).toContain("ressubmeteu como revisão 3");
+    expect(pt).toContain("aprovou a própria submissão, como root (exceção)");
+    expect(pt).toContain("lançou como 1.2.0");
+    expect(pt).toContain("lançou como uma nova versão");
+    expect(pt).toContain(">Comentar<");
+    const fr = convo("fr");
+    expect(fr).toContain("a fait un rebase sur la 1.3.0");
+    expect(fr).toContain("l’a archivée");
+  });
+
+  it("words the decision dialogs and the dependents' choice, with 1 and 2", () => {
+    const dialog = (l: L, decision: "approve" | "request_changes" | "reject" | "override") =>
+      html(l, <DecisionDialog id="s" name="@t/{x}" decision={decision} onClose={() => {}} />);
+    expect(dialog("pt", "approve")).toContain("Aprovar esta submissão?");
+    expect(dialog("pt", "request_changes")).toContain("Obrigatório. Diga o que alterar");
+    expect(dialog("fr", "reject")).toContain("Rejeter cette soumission?");
+    expect(dialog("fr", "override")).toContain(">Approuver (dérogation)<");
+    const dep = (status: "submitted" | "changes_requested", ok: boolean) => ({
+      id: status,
+      name: `@t/${status}`,
+      status,
+      authorName: "Ana",
+      sendBack: ok ? { ok: true as const } : { ok: false as const, reason: "Gone." },
+    });
+    const choice = (l: L, n: number) =>
+      html(
+        l,
+        <DependentsChoice
+          dependents={
+            [dep("submitted", true), dep("changes_requested", false)].slice(0, n) as never
+          }
+          sendBack
+          onSendBack={() => {}}
+          text="x"
+          onText={() => {}}
+        />,
+      );
+    expect(choice("en", 1)).toContain("1 submission depends on this");
+    expect(choice("pt", 1)).toContain("1 submissão depende desta");
+    expect(choice("pt", 2)).toContain("2 submissões dependem desta");
+    expect(choice("pt", 2)).toContain("(alterações solicitadas, por Ana): Gone.");
+    expect(choice("fr", 1)).toContain("1 soumission en dépend");
+    expect(choice("fr", 2)).toContain("(soumis, par Ana)");
+    expect(choice("fr", 2)).toContain("Leur demander aussi des modifications");
+    const prefilled = html(
+      "pt",
+      <DecisionDialog
+        id="s"
+        name="@t/{x}"
+        decision="reject"
+        dependents={[dep("submitted", true)] as never}
+        onClose={() => {}}
+      />,
+    );
+    expect(prefilled).toContain("@t/{x} foi rejeitado: remova-o das dependências");
+    const rows = (l: L) =>
+      html(
+        l,
+        <RowDecisions
+          id="s"
+          name="@t/a"
+          decisions={[
+            { decision: "request_changes", allowed: true },
+            { decision: "reject", allowed: true },
+          ]}
+        />,
+      );
+    expect(rows("pt")).toContain('aria-label="Rejeitar: @t/a"');
+    expect(rows("fr")).toContain('aria-label="Demander des modifications : @t/a"');
+  });
+
+  it("words the publish dialog, its suggestion, group and tag problems", () => {
+    const dialog = (l: L, props: Partial<Parameters<typeof PublishDialog>[0]> = {}) =>
+      html(
+        l,
+        <PublishDialog
+          id="s"
+          itemName="@t/a"
+          published={["1.0.0"]}
+          versionsHref="/v"
+          defaultOpen
+          {...props}
+        />,
+      );
+    const pt = dialog("pt", {
+      suggested: {
+        bump: "minor",
+        reasons: [
+          { kind: "fileNew", names: ["a.md"] },
+          { kind: "blockGained", names: ["x"], type: "hook" },
+        ],
+      },
+    });
+    expect(pt).toContain("Publicar @t/a");
+    expect(pt).toContain(">Estável<");
+    expect(pt).toContain("Minor: novidades, compatível");
+    expect(pt).toContain("porque `a.md` é novo; o bloco hook ganha `x`.");
+    expect(pt).toContain('Publica <span class="font-mono">@t/a</span>');
+    expect(pt).toContain(">Publicar 1.1.0<");
+    const fr = dialog("fr", {
+      goesWith: [{ name: "@t/b", published: [], suggested: null }],
+      suggested: { bump: "major", reasons: [{ kind: "depLost", names: ["@t/c"] }] },
+    });
+    expect(fr).toContain("Suggéré : <span");
+    expect(fr).toContain("parce que il ne dépend plus de `@t/c`.");
+    expect(fr).toContain("Publié avec :");
+    expect(fr).toContain(">Étiquette<");
+    const two = dialog("en", {
+      goesWith: [
+        { name: "@t/b", published: [], suggested: null },
+        { name: "@t/c", published: [], suggested: null },
+      ],
+    });
+    expect(two).toContain("Released with these 2:");
+    expect(
+      html(
+        "pt",
+        <ReleaseGroupList
+          members={[
+            { name: "@t/b", version: "1.0.0" },
+            { name: "@t/c", version: null },
+          ]}
+        />,
+      ),
+    ).toContain("Lançados junto, estes 2:");
+    const reasons = (l: L, kind: string, type?: string) =>
+      html(
+        l,
+        <BumpSuggestion
+          suggested={{ bump: "patch", reasons: [{ kind: kind as never, names: ["n"], type }] }}
+        />,
+      );
+    expect(reasons("en", "nothing")).toContain("because nothing is added or removed.");
+    expect(reasons("pt", "fileRemoved")).toContain("`n`, citado no manifesto, foi removido");
+    expect(reasons("fr", "keywordNew")).toContain("le mot-clé `n` est nouveau");
+    expect(reasons("fr", "blockLost", "agent")).toContain("le bloc agent n’a plus `n`");
+  });
+
+  it("words each tag problem", () => {
+    const words = (l: L) => {
+      let value: ReturnType<typeof useTagWords> | undefined;
+      const Grab = () => {
+        value = useTagWords();
+        return null;
+      };
+      html(l, <Grab />);
+      return value as ReturnType<typeof useTagWords>;
+    };
+    expect(words("en")("Beta!", "1.0.0")).toBe(
+      "A tag is 1 to 32 lowercase letters, digits and hyphens, starting with a letter.",
+    );
+    expect(words("pt")("x", "1.0.0")).toBe(
+      "x parece um intervalo de versões, então não pode ser uma tag.",
+    );
+    expect(words("fr")("latest", "1.0.0-beta.1")).toBe(
+      "latest ne peut pointer que vers une version stable, pas vers une préversion.",
+    );
+    expect(words("fr")("Beta!", "1.0.0")).toBe(
+      "Une étiquette fait de 1 à 32 lettres minuscules, chiffres et traits d’union, et commence par une lettre.",
+    );
+    expect(words("pt")("stable", "1.0.0")).toBeNull();
+  });
+
+  for (const locale of ["pt", "fr"] as const) {
+    it(`${locale}: no English left on a review's page and its dialogs`, async () => {
+      const all = withoutHelp(
+        [
+          await page(locale),
+          await page(locale, {
+            mine: true,
+            can: { decide: false, override: true, comment: true, publish: false, sendBack: false },
+          }),
+          html(locale, <DecisionDialog id="s" name="@t/a" decision="reject" onClose={() => {}} />),
+          html(
+            locale,
+            <PublishDialog
+              id="s"
+              itemName="@t/a"
+              published={["1.0.0"]}
+              versionsHref="/v"
+              defaultOpen
+              suggested={{ bump: "minor", reasons: [{ kind: "fileNew", names: ["a.md"] }] }}
+              goesWith={[{ name: "@t/b", published: [], suggested: null }]}
+            />,
+          ),
+        ].join("\n"),
+      );
+      expect(await englishLeaks(["author", "common"], locale, all)).toEqual([]);
+    });
+  }
 });

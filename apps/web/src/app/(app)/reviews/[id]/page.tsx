@@ -1,6 +1,7 @@
 import { History } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { selectedFile, showFiles } from "@/components/files/shown";
 import { Help } from "@/components/help/Help";
 import { RiskSummary } from "@/components/risk-flags/RiskSummary";
@@ -20,6 +21,7 @@ import { PublishDialog } from "@/features/reviews/PublishDialog";
 import { ReviewAllFiles, ReviewChanges } from "@/features/reviews/ReviewFiles";
 import { releaseGroupFor } from "@/features/reviews/release-group";
 import { versionsPath } from "@/features/versions/links";
+import { pageTitle } from "@/i18n/page-title";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
 import { canInSomeShared } from "@/server/domains/identity/models/permissions";
 import { getReview, type ReviewView } from "@/server/domains/submissions/actions/reviews";
@@ -32,7 +34,10 @@ import { itemNameOf } from "@/server/domains/submissions/models/submission";
 import { requestHeaders } from "@/server/http/request-headers";
 import { holdPage } from "../../hold";
 
-export const metadata = { title: "Review · Ronne AI Marketplace" };
+export const generateMetadata = async () => {
+  const t = await getTranslations("author.review");
+  return { title: pageTitle(t("pageTitle")) };
+};
 
 const viewTab =
   "rounded-control px-3 py-1.5 text-sm text-muted hover:text-fg aria-[current=page]:bg-tint aria-[current=page]:font-semibold aria-[current=page]:text-fg";
@@ -61,6 +66,8 @@ const Review = async ({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) => {
   await holdPage();
+  const t = await getTranslations("author.review");
+  const crumbs = await getTranslations("item.breadcrumb");
   const request = await requestHeaders();
   if (!canInSomeShared(await getCurrentUser(request), "submissions.review")) notFound();
   const { id } = await params;
@@ -99,9 +106,9 @@ const Review = async ({
 
   return (
     <div className="grid gap-6">
-      <nav aria-label="Breadcrumb" className="font-mono text-xs text-muted">
+      <nav aria-label={crumbs("label")} className="font-mono text-xs text-muted">
         <Link href="/reviews" className="hover:text-fg hover:underline">
-          Reviews
+          {t("breadcrumb")}
         </Link>{" "}
         / <span className="text-fg">{itemNameOf(submission)}</span>
       </nav>
@@ -113,13 +120,20 @@ const Review = async ({
             <StatusBadge status={submission.status} />
             <ProposalBadges proposal={submission.proposal} stale={proposal?.stale} />
             <span>
-              by <span className="text-fg">{submission.authorName}</span>
-              {review.mine ? " (you)" : ""}
+              {t.rich(review.mine ? "byYou" : "by", {
+                name: submission.authorName,
+                author: (chunks) => <span className="text-fg">{chunks}</span>,
+              })}
             </span>
-            {current ? <span className="font-mono text-xs">revision {current.number}</span> : null}
+            {current ? (
+              <span className="font-mono text-xs">{t("revision", { number: current.number })}</span>
+            ) : null}
             {submission.submittedAt ? (
               <span className="font-mono text-xs">
-                submitted <LocalTime value={submission.submittedAt} />
+                {t.rich("submitted", {
+                  date: () =>
+                    submission.submittedAt ? <LocalTime value={submission.submittedAt} /> : null,
+                })}
               </span>
             ) : null}
           </p>
@@ -128,7 +142,7 @@ const Review = async ({
           {review.published.length > 0 ? (
             <Link href={versionsPath(submission)} className={buttonClasses("secondary")}>
               <History size={16} aria-hidden="true" />
-              View versions
+              {t("viewVersions")}
             </Link>
           ) : null}
           {/* The author can pull it back from here too, until it's released (058). */}
@@ -158,20 +172,13 @@ const Review = async ({
       {decisions.length > 0 ? <Help id="decisions" /> : null}
       {review.mine && submission.status === "submitted" ? (
         <p className="text-sm text-muted">
-          This is your own submission: another moderator or root reviews it.
-          {review.can.override
-            ? " As root, you can approve it yourself as an override, recorded as one."
-            : ""}
+          {t(review.can.override ? "ownOverride" : "ownSubmission")}
         </p>
       ) : null}
 
       {proposal?.stale ? (
-        <Notice
-          kind="warn"
-          title={`${proposal.stale} has been released since this proposal started.`}
-        >
-          It changes {proposal.baseVersion}, so approving it now would undo what {proposal.stale}{" "}
-          changed. The author rebases it onto {proposal.stale} first.
+        <Notice kind="warn" title={t("staleTitle", { stale: proposal.stale })}>
+          {t("stale", { version: proposal.baseVersion, stale: proposal.stale })}
         </Notice>
       ) : null}
 
@@ -183,16 +190,16 @@ const Review = async ({
         <section aria-labelledby="files" className="grid gap-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 id="files" className="text-lg font-semibold text-fg">
-              Files
+              {t("files")}
             </h2>
-            <nav aria-label="Files view" className="flex flex-wrap gap-1">
+            <nav aria-label={t("filesView")} className="flex flex-wrap gap-1">
               {proposal ? (
                 <Link
                   href={viewHref("base")}
                   aria-current={view === "base" ? "page" : undefined}
                   className={viewTab}
                 >
-                  Changes to {proposal.baseVersion}
+                  {t("changesTo", { version: proposal.baseVersion })}
                 </Link>
               ) : null}
               {previous !== null ? (
@@ -201,7 +208,7 @@ const Review = async ({
                   aria-current={view === "changes" ? "page" : undefined}
                   className={viewTab}
                 >
-                  Changes since revision {previous}
+                  {t("changesSince", { number: previous })}
                 </Link>
               ) : null}
               <Link
@@ -209,7 +216,7 @@ const Review = async ({
                 aria-current={view === "all" ? "page" : undefined}
                 className={viewTab}
               >
-                All files
+                {t("allFiles")}
               </Link>
             </nav>
           </div>
@@ -219,7 +226,7 @@ const Review = async ({
             <ReviewChanges
               changes={review.changes}
               selected={fileParam}
-              emptyText={`No changes since revision ${previous}.`}
+              emptyText={t("noChangesSince", { number: previous ?? 0 })}
             />
           ) : (
             <ReviewAllFiles
@@ -236,7 +243,7 @@ const Review = async ({
         className="grid gap-2 rounded-panel border border-hairline bg-surface p-4"
       >
         <h2 id="checks" className="text-sm font-semibold text-fg">
-          Checks on revision {current?.number ?? "–"}
+          {t("checks", { number: current?.number ?? t("noRevision") })}
         </h2>
         <IssueList issues={review.issues} />
       </section>

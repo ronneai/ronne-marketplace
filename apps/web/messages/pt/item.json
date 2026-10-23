@@ -152,7 +152,7 @@
     "maintainers": {
       "title": "Mantenedores e revisão",
       "owner": "Dono",
-      "approvedBy": "Aprovado por {name}{override, select, true { (decisão do root)} other {}}",
+      "approvedBy": "Aprovado por {name}{override, select, true { (exceção do root)} other {}}",
       "unreviewed": "Lançado sem revisão."
     },
     "included": {

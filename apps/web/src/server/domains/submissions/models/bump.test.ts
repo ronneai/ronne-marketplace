@@ -21,7 +21,7 @@ describe("suggestBump", () => {
     const hook = { event: "PostToolUse", run: { script: "hooks/fmt.sh" } };
     expect(suggestBump(base, change({ hook }))).toEqual({
       bump: "major",
-      reasons: ["the hook block no longer has `timeout`"],
+      reasons: [{ kind: "blockLost", names: ["timeout"], type: "hook" }],
     });
   });
 
@@ -33,13 +33,13 @@ describe("suggestBump", () => {
     const result = suggestBump(base, change({}, ["README.md", "ronne.yaml"]));
     expect(result).toEqual({
       bump: "major",
-      reasons: ["`hooks/fmt.sh`, which the manifest names, is removed"],
+      reasons: [{ kind: "fileRemoved", names: ["hooks/fmt.sh"] }],
     });
   });
 
   it("suggests minor for an added file, dependency, keyword or type-block field", () => {
     expect(suggestBump(base, change({}, [...base.paths, "docs/usage.md"])).reasons).toEqual([
-      "`docs/usage.md` is new",
+      { kind: "fileNew", names: ["docs/usage.md"] },
     ]);
     expect(
       suggestBump(base, change({ dependencies: { "@team/lint": "^1.0.0", "@team/git": "^2.0.0" } }))
@@ -55,7 +55,7 @@ describe("suggestBump", () => {
   it("suggests patch for anything else, such as a changed description or file", () => {
     expect(suggestBump(base, change({ description: "Formats better." }))).toEqual({
       bump: "patch",
-      reasons: ["nothing is added or removed"],
+      reasons: [{ kind: "nothing", names: [] }],
     });
     // Removing a file the manifest doesn't name, or a keyword, isn't breaking.
     expect(suggestBump(base, change({ keywords: [] }, ["hooks/fmt.sh", "ronne.yaml"])).bump).toBe(

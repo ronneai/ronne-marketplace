@@ -525,5 +525,140 @@
       "cancel": "Annuler",
       "submit": "{count, plural, one {Approuver # soumission} other {Approuver # soumissions}}"
     }
+  },
+  "review": {
+    "pageTitle": "Révision",
+    "breadcrumb": "Révisions",
+    "by": "par <author>{name}</author>",
+    "byYou": "par <author>{name}</author> (vous)",
+    "revision": "révision {number, number, ::group-off}",
+    "submitted": "soumise <date></date>",
+    "viewVersions": "Voir les versions",
+    "ownSubmission": "C’est votre propre soumission : un autre modérateur ou root la révise.",
+    "ownOverride": "C’est votre propre soumission : un autre modérateur ou root la révise. En tant que root, vous pouvez l’approuver vous-même par dérogation, enregistrée comme telle.",
+    "staleTitle": "La {stale} a été publiée depuis le début de cette proposition.",
+    "stale": "Elle modifie la {version}, donc l’approuver maintenant annulerait ce que la {stale} a changé. L’auteur fait d’abord un rebase sur la {stale}.",
+    "files": "Fichiers",
+    "filesView": "Vue des fichiers",
+    "changesTo": "Modifications de la {version}",
+    "changesSince": "Modifications depuis la révision {number, number, ::group-off}",
+    "allFiles": "Tous les fichiers",
+    "noChangesSince": "Aucune modification depuis la révision {number, number, ::group-off}.",
+    "checks": "Vérifications de la révision {number}",
+    "noRevision": "–",
+    "filesOfRevision": "Fichiers de cette révision",
+    "noFiles": "Aucun fichier.",
+    "changedFiles": "Fichiers modifiés",
+    "manifestFields": "Champs du manifeste",
+    "manifestHeading": "Champs de ronne.yaml",
+    "field": "Champ",
+    "inVersion": "Dans la {version}",
+    "proposed": "Proposé",
+    "notSet": "(non défini)",
+    "removed": "(retiré)",
+    "noChangesTo": "Aucune modification de la {version}.",
+    "unreadable": "Les fichiers de la {version} n’ont pas pu être lus, donc les modifications ne peuvent pas être montrées. Demandez à root de vérifier le stockage.",
+    "conversation": "Conversation",
+    "comment": "Commenter",
+    "said": {
+      "submit": "a soumis la révision {revision, number, ::group-off}",
+      "resubmit": "l’a soumise de nouveau comme révision {revision, number, ::group-off}",
+      "comment": "a commenté",
+      "request_changes": "a demandé des modifications",
+      "approve": "l’a approuvée",
+      "reject": "l’a rejetée",
+      "override": "a approuvé sa propre soumission, en tant que root (dérogation)",
+      "self_approve": "l’a soumise dans son espace de travail personnel, donc elle a été approuvée sans révision",
+      "withdraw": "l’a archivée",
+      "restore": "l’a restaurée comme brouillon",
+      "publish": "l’a publiée comme {version}",
+      "publishNone": "l’a publiée comme nouvelle version",
+      "rebase": "a fait un rebase sur la {version}",
+      "rebaseNone": "a fait un rebase sur une version plus récente"
+    },
+    "decision": {
+      "approve": {
+        "button": "Approuver",
+        "title": "Approuver cette soumission?",
+        "hint": "Facultatif. Une fois approuvée, l’auteur ou un modérateur peut la publier."
+      },
+      "request_changes": {
+        "button": "Demander des modifications",
+        "title": "Demander des modifications",
+        "hint": "Obligatoire. Dites quoi modifier; l’auteur modifie et soumet de nouveau."
+      },
+      "reject": {
+        "button": "Rejeter",
+        "title": "Rejeter cette soumission?",
+        "hint": "Obligatoire. Un rejet est définitif : l’auteur doit commencer un nouveau brouillon."
+      },
+      "override": {
+        "button": "Approuver (dérogation)",
+        "title": "Approuver votre propre soumission?",
+        "hint": "Facultatif. En tant que root, vous pouvez approuver votre propre soumission; elle est marquée comme dérogation dans la conversation et le journal d’audit."
+      },
+      "message": "Message",
+      "cancel": "Annuler",
+      "rowLabel": "{decision} : {name}",
+      "rejectedSkipped": "Rejetée. Non renvoyées :",
+      "statusRejected": "{name} rejetée.",
+      "statusRequested": "Modifications demandées pour {name}."
+    },
+    "dependents": {
+      "legend": "{count, plural, one {1 soumission en dépend} other {# soumissions en dépendent}}",
+      "line": "({status}, par {author})",
+      "lineRefused": "({status}, par {author}) : {reason}",
+      "sendBack": "Leur demander aussi des modifications",
+      "theirMessage": "Leur message",
+      "stay": "Elles restent telles quelles, marquées bloquées.",
+      "message": "{name} a été rejeté : retirez-le des dépendances, ou dépendez d’un autre élément.",
+      "thisItem": "Cet élément"
+    },
+    "publish": {
+      "button": "Publier",
+      "blockedLabel": "Publier : {reason}",
+      "title": "Publier {item}",
+      "done": "{item} {version} publié comme {tag}.",
+      "doneWith": "{item} {version} publié comme {tag}, avec {others}.",
+      "viewVersions": "Voir les versions",
+      "doneButton": "Terminé",
+      "release": "Publication",
+      "stable": "Stable",
+      "prerelease": "Préversion, comme une bêta pour les premiers testeurs",
+      "preId": "Identifiant de préversion",
+      "change": "Changement",
+      "bump": {
+        "patch": "Patch : correctifs, rien de nouveau",
+        "minor": "Minor : du nouveau, compatible",
+        "major": "Major : casse quelque chose pour les installations"
+      },
+      "tag": "Étiquette",
+      "tagHint": "Installer sans version utilise latest. Les préversions vont dans next par défaut.",
+      "notes": "Notes de version (facultatif)",
+      "preview": "Publie <mono>{item}</mono> <strong>{version}</strong> comme <mono>{tag}</mono>. Les versions ne changent jamais une fois publiées.",
+      "badPre": "Cela ne donne pas de nouvelle version : un identifiant de préversion contient des lettres minuscules et des chiffres, et commence par une lettre.",
+      "stuck": "{name} n’obtient pas de version ainsi : il ne peut pas être publié avec de cette façon.",
+      "cancel": "Annuler",
+      "submit": "Publier {version}",
+      "withOne": "Publié avec :",
+      "withMany": "Publiés avec, ces {count, number} :",
+      "withLabel": "Publiés avec",
+      "suggested": "Suggéré : <strong>{bump, select, major {major} minor {minor} other {patch}}</strong>, parce que {reasons}."
+    },
+    "tagProblem": {
+      "format": "Une étiquette fait de 1 à 32 lettres minuscules, chiffres et traits d’union, et commence par une lettre.",
+      "range": "{tag} se lit comme une plage de versions, donc ce ne peut pas être une étiquette.",
+      "latest_prerelease": "latest ne peut pointer que vers une version stable, pas vers une préversion."
+    },
+    "reason": {
+      "blockLost": "le bloc {type} n’a plus {names}",
+      "depLost": "il ne dépend plus de {names}",
+      "fileRemoved": "{names}, nommé dans le manifeste, est retiré",
+      "fileNew": "{names} est nouveau",
+      "depNew": "il dépend maintenant de {names}",
+      "keywordNew": "le mot-clé {names} est nouveau",
+      "blockGained": "le bloc {type} gagne {names}",
+      "nothing": "rien n’est ajouté ni retiré"
+    }
   }
 }

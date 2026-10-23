@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useActionState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/Button";
 import { FieldError, inputClasses, Label } from "@/components/ui/Field";
@@ -12,13 +13,14 @@ export const CommentForm = ({ id }: { id: string }) => {
     commentFromForm.bind(null, id),
     {},
   );
+  const t = useTranslations("author.review");
   const form = useRef<HTMLFormElement>(null);
   useEffect(() => {
     if (state.done) form.current?.reset();
   }, [state]);
   return (
     <form ref={form} action={action} className="grid gap-2">
-      <Label htmlFor="comment-body">Comment</Label>
+      <Label htmlFor="comment-body">{t("comment")}</Label>
       <textarea
         id="comment-body"
         name="body"
@@ -31,7 +33,7 @@ export const CommentForm = ({ id }: { id: string }) => {
       <FieldError id="comment-error">{state.error}</FieldError>
       <div>
         <Button type="submit" variant="secondary" loading={pending}>
-          Comment
+          {t("comment")}
         </Button>
       </div>
     </form>

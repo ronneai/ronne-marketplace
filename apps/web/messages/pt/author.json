@@ -525,5 +525,140 @@
       "cancel": "Cancelar",
       "submit": "{count, plural, one {Aprovar # submissão} other {Aprovar # submissões}}"
     }
+  },
+  "review": {
+    "pageTitle": "Revisão",
+    "breadcrumb": "Revisões",
+    "by": "por <author>{name}</author>",
+    "byYou": "por <author>{name}</author> (você)",
+    "revision": "revisão {number, number, ::group-off}",
+    "submitted": "submetida <date></date>",
+    "viewVersions": "Ver versões",
+    "ownSubmission": "Esta é a sua própria submissão: outro moderador ou o root a revisa.",
+    "ownOverride": "Esta é a sua própria submissão: outro moderador ou o root a revisa. Como root, você pode aprová-la por conta própria como exceção, registrada como tal.",
+    "staleTitle": "A {stale} foi lançada depois que esta proposta começou.",
+    "stale": "Ela altera a {version}, então aprová-la agora desfaria o que a {stale} mudou. O autor faz o rebase sobre a {stale} primeiro.",
+    "files": "Arquivos",
+    "filesView": "Visão dos arquivos",
+    "changesTo": "Alterações da {version}",
+    "changesSince": "Alterações desde a revisão {number, number, ::group-off}",
+    "allFiles": "Todos os arquivos",
+    "noChangesSince": "Nenhuma alteração desde a revisão {number, number, ::group-off}.",
+    "checks": "Verificações da revisão {number}",
+    "noRevision": "–",
+    "filesOfRevision": "Arquivos desta revisão",
+    "noFiles": "Nenhum arquivo.",
+    "changedFiles": "Arquivos alterados",
+    "manifestFields": "Campos do manifesto",
+    "manifestHeading": "Campos do ronne.yaml",
+    "field": "Campo",
+    "inVersion": "Na {version}",
+    "proposed": "Proposto",
+    "notSet": "(não definido)",
+    "removed": "(removido)",
+    "noChangesTo": "Nenhuma alteração na {version}.",
+    "unreadable": "Não foi possível ler os arquivos da {version}, então as alterações não podem ser mostradas. Peça ao root para verificar o armazenamento.",
+    "conversation": "Conversa",
+    "comment": "Comentar",
+    "said": {
+      "submit": "submeteu a revisão {revision, number, ::group-off}",
+      "resubmit": "ressubmeteu como revisão {revision, number, ::group-off}",
+      "comment": "comentou",
+      "request_changes": "solicitou alterações",
+      "approve": "aprovou",
+      "reject": "rejeitou",
+      "override": "aprovou a própria submissão, como root (exceção)",
+      "self_approve": "submeteu no espaço de trabalho pessoal, então foi aprovada sem revisão",
+      "withdraw": "arquivou",
+      "restore": "restaurou como rascunho",
+      "publish": "lançou como {version}",
+      "publishNone": "lançou como uma nova versão",
+      "rebase": "fez o rebase sobre a {version}",
+      "rebaseNone": "fez o rebase sobre uma versão mais nova"
+    },
+    "decision": {
+      "approve": {
+        "button": "Aprovar",
+        "title": "Aprovar esta submissão?",
+        "hint": "Opcional. Depois de aprovada, o autor ou um moderador pode lançá-la."
+      },
+      "request_changes": {
+        "button": "Solicitar alterações",
+        "title": "Solicitar alterações",
+        "hint": "Obrigatório. Diga o que alterar; o autor edita e ressubmete."
+      },
+      "reject": {
+        "button": "Rejeitar",
+        "title": "Rejeitar esta submissão?",
+        "hint": "Obrigatório. Rejeitar é definitivo: o autor precisa começar um novo rascunho."
+      },
+      "override": {
+        "button": "Aprovar (exceção)",
+        "title": "Aprovar a sua própria submissão?",
+        "hint": "Opcional. Como root, você pode aprovar a sua própria submissão; ela fica marcada como exceção na conversa e no registro de auditoria."
+      },
+      "message": "Mensagem",
+      "cancel": "Cancelar",
+      "rowLabel": "{decision}: {name}",
+      "rejectedSkipped": "Rejeitada. Não devolvidas:",
+      "statusRejected": "{name} rejeitada.",
+      "statusRequested": "Alterações solicitadas em {name}."
+    },
+    "dependents": {
+      "legend": "{count, plural, one {1 submissão depende desta} other {# submissões dependem desta}}",
+      "line": "({status}, por {author})",
+      "lineRefused": "({status}, por {author}): {reason}",
+      "sendBack": "Solicitar alterações nelas também",
+      "theirMessage": "A mensagem delas",
+      "stay": "Elas ficam como estão, marcadas como bloqueadas.",
+      "message": "{name} foi rejeitado: remova-o das dependências, ou dependa de outro item.",
+      "thisItem": "Este item"
+    },
+    "publish": {
+      "button": "Publicar",
+      "blockedLabel": "Publicar: {reason}",
+      "title": "Publicar {item}",
+      "done": "{item} {version} publicado como {tag}.",
+      "doneWith": "{item} {version} publicado como {tag}, com {others}.",
+      "viewVersions": "Ver versões",
+      "doneButton": "Concluir",
+      "release": "Lançamento",
+      "stable": "Estável",
+      "prerelease": "Pré-lançamento, como um beta para quem testa cedo",
+      "preId": "Id do pré-lançamento",
+      "change": "Alteração",
+      "bump": {
+        "patch": "Patch: correções, nada novo",
+        "minor": "Minor: novidades, compatível",
+        "major": "Major: quebra algo nas instalações"
+      },
+      "tag": "Tag",
+      "tagHint": "Instalar sem versão usa latest. Pré-lançamentos vão para next por padrão.",
+      "notes": "Notas de lançamento (opcional)",
+      "preview": "Publica <mono>{item}</mono> <strong>{version}</strong> como <mono>{tag}</mono>. As versões nunca mudam depois de publicadas.",
+      "badPre": "Isso não gera uma nova versão: um id de pré-lançamento tem letras minúsculas e dígitos, começando com uma letra.",
+      "stuck": "{name} não recebe versão assim: não pode ser lançado junto dessa forma.",
+      "cancel": "Cancelar",
+      "submit": "Publicar {version}",
+      "withOne": "Lançado junto:",
+      "withMany": "Lançados junto, estes {count, number}:",
+      "withLabel": "Lançados junto",
+      "suggested": "Sugerido: <strong>{bump, select, major {major} minor {minor} other {patch}}</strong>, porque {reasons}."
+    },
+    "tagProblem": {
+      "format": "Uma tag tem de 1 a 32 letras minúsculas, dígitos e hifens, começando com uma letra.",
+      "range": "{tag} parece um intervalo de versões, então não pode ser uma tag.",
+      "latest_prerelease": "latest só pode apontar para uma versão estável, não para um pré-lançamento."
+    },
+    "reason": {
+      "blockLost": "o bloco {type} não tem mais {names}",
+      "depLost": "ele não depende mais de {names}",
+      "fileRemoved": "{names}, citado no manifesto, foi removido",
+      "fileNew": "{names} é novo",
+      "depNew": "ele agora depende de {names}",
+      "keywordNew": "a palavra-chave {names} é nova",
+      "blockGained": "o bloco {type} ganha {names}",
+      "nothing": "nada foi adicionado ou removido"
+    }
   }
 }

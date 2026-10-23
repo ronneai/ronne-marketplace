@@ -64,13 +64,26 @@ export const defaultTag = (version: string): string => (prerelease(version) ? "n
  * up to 32 characters, and can't read as a version range (`1`, `x` and `v1` do), so installing
  * `@a/b@<tag>` is never ambiguous. `latest` can only point to a stable version.
  */
-export const tagProblem = (tag: string, version: string): string | null => {
-  if (!/^[a-z][a-z0-9-]{0,31}$/.test(tag))
-    return "A tag is 1 to 32 lowercase letters, digits and hyphens, starting with a letter.";
-  if (validRange(tag) !== null) return `${tag} reads as a version range, so it can't be a tag.`;
-  if (tag === "latest" && prerelease(version))
-    return "latest can only point to a stable version, not a pre-release.";
+/** Why a tag can't point to a version, as a code a screen can word (131). */
+export type TagProblem = "format" | "range" | "latest_prerelease";
+
+export const tagProblemOf = (tag: string, version: string): TagProblem | null => {
+  if (!/^[a-z][a-z0-9-]{0,31}$/.test(tag)) return "format";
+  if (validRange(tag) !== null) return "range";
+  if (tag === "latest" && prerelease(version)) return "latest_prerelease";
   return null;
+};
+
+/** Why a tag can't point to a version, in words (as `rmk` and the API say it), or null. */
+export const tagProblem = (tag: string, version: string): string | null => {
+  const problem = tagProblemOf(tag, version);
+  return problem === "format"
+    ? "A tag is 1 to 32 lowercase letters, digits and hyphens, starting with a letter."
+    : problem === "range"
+      ? `${tag} reads as a version range, so it can't be a tag.`
+      : problem === "latest_prerelease"
+        ? "latest can only point to a stable version, not a pre-release."
+        : null;
 };
 
 /** The most `||` alternatives `bothRanges` builds: its cost is the product of both ranges'. */

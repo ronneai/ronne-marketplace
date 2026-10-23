@@ -1,6 +1,6 @@
 import { satisfies } from "semver";
 import { describe, expect, it } from "vitest";
-import { bothRanges } from "./versions.js";
+import { bothRanges, tagProblem, tagProblemOf } from "./versions.js";
 
 describe("bothRanges (118)", () => {
   it("needs both ranges, whatever their form, in either order", () => {
@@ -33,5 +33,21 @@ describe("bothRanges (118)", () => {
     const short = Array.from({ length: 64 }, (_, i) => `<1.0.${i + 1}`).join(" || ");
     expect(bothRanges(long, short)).toBeNull();
     expect(bothRanges("^1.0.0", short)).not.toBeNull();
+  });
+});
+
+describe("tagProblemOf (131)", () => {
+  it("gives each tag problem as a code, and tagProblem keeps its English", () => {
+    expect(tagProblemOf("Beta!", "1.0.0")).toBe("format");
+    expect(tagProblemOf("x", "1.0.0")).toBe("range");
+    expect(tagProblemOf("latest", "1.0.0-beta.1")).toBe("latest_prerelease");
+    expect(tagProblemOf("latest", "1.0.0")).toBeNull();
+    expect(tagProblem("Beta!", "1.0.0")).toBe(
+      "A tag is 1 to 32 lowercase letters, digits and hyphens, starting with a letter.",
+    );
+    expect(tagProblem("x", "1.0.0")).toBe("x reads as a version range, so it can't be a tag.");
+    expect(tagProblem("latest", "1.0.0-beta.1")).toBe(
+      "latest can only point to a stable version, not a pre-release.",
+    );
   });
 });

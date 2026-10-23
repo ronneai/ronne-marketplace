@@ -79,5 +79,7 @@ export {
   PRERELEASE_ID,
   type ReleaseChoice,
   supersededBy,
+  type TagProblem,
   tagProblem,
+  tagProblemOf,
 } from "./versions.js";

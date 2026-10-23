@@ -60,6 +60,7 @@ describe("the phone sweep's page list (feature 065)", () => {
         "/submissions/[id]",
         "/submissions",
         "/reviews",
+        "/reviews/[id]",
       ].sort(),
     );
   });
