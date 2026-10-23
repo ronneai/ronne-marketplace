@@ -176,6 +176,22 @@ Witnessed: 2026-10-22 23:38 EDT, by a fresh agent (blind). Commit: 48273fa4. Mac
 
 **Overall:** met: the run on this branch's code passed Install and run on Windows with Node 22 and 24, with the probe's Windows checks in the logs.
 
+### Re-check 3 (blind): the probe without a shell (CodeQL)
+
+Witnessed: 2026-10-23 00:09 EDT, by a fresh agent (blind). Commit: ced4fcf2. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | On Windows the probe runs the installed package with Node and no shell | no | confirmed | `server-probe.js:40-49`: `windowsEntry()` finds `rmk-server.cmd` on PATH with `node_modules/@ronneai/marketplace/dist/bin.js` beside it (the package's `bin`), else throws; `execFileSync`/`spawn(process.execPath, [entry, ...args])`. No `execSync` import, no `shell: true`; `taskkill` with separate arguments |
+| 2 | Linux and macOS paths are unchanged | no | confirmed | `server-probe.js:48`: `[command, []]` off Windows; ubuntu and macos Install and run jobs pass in run 39897712952 |
+| 3 | PR #230's Server package run on ced4fcf2 passed Install and run on windows-latest, Node 22 and 24 | no | confirmed | `gh run view 39897712952` → headSha `ced4fcf2…` (= PR head), both Windows jobs and all 17 jobs success |
+| 4 | The Windows log shows the probe's steps, Windows checks included | no | confirmed | Both jobs: `--version: 0.5.0 (Node 24.22.1 / 22.23.4, win32 x64)`, start 503, "Windows: the terminal-only note at start; service status refused, exit 1", setup, sign-in, revoke-access, rotate-secret, backup, the STORAGE refusal, the port freed, restore |
+| 5 | PR #230 has no open code-scanning alert | no | confirmed | `code-scanning/alerts?ref=refs/pull/230/merge&state=open` → 0; alert 22 (`js/shell-command-injection-from-environment`) fixed |
+| 6 | `docs/knowledge/codeql-shell.md` says what the code does | no | confirmed | Matches `server-probe.js:40-49` |
+| 7 | The SPEC's CI line says what the code does | no | confirmed | `SPEC.md:56-58` matches `server-probe.js:48-50,72-76` |
+
+**Overall:** met: the probe runs the installed package with Node and no shell, the Windows jobs pass with every step, and the CodeQL alert is fixed.
+
 ## Task 3 — Repository docs
 
 Witnessed: 2026-10-22 22:39 EDT, by a fresh agent (blind). Commit: 5ebc96d8. Machine: macOS 27.0.1, Node v24.0.0.
