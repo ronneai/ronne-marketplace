@@ -88,7 +88,7 @@ Every task that moves a folder adds it to the `overrides` entry in `biome.json` 
 
 All thirteen tasks are ticked, each with its witness passes in `WITNESS.md` (tasks 4, 5, 8 and 9
 took a third round, with the owner's approval). The Documentation is on the ronne-web branch
-`feat/131-languages-author` (commits 287f55e, d899d89, d96e15f, 53a03e8), not pushed: it goes live with the release,
+`feat/131-languages-author` (commits 287f55e, d899d89, d96e15f, 53a03e8, fea5c25), not pushed: it goes live with the release,
 as the owner's rule says. Accepted limits:
 
 - The pt and fr texts are first drafts for a native reader in 133, who also decides whether
