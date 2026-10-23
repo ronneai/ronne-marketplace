@@ -59,7 +59,7 @@
     "nativeAsIs": "S’installe tel quel.",
     "bundle": "Installe ses éléments un par un.",
     "degraded": "Va dans <place></place>, avec une partie laissée de côté : la page de l’outil dit laquelle.",
-    "off": "Le ronne.yaml de cette version la tient à l’écart de cet outil.",
+    "off": "Le ronne.yaml de cette version tient l’élément à l’écart de cet outil.",
     "none": "{tool} n’a pas de place pour les éléments de type {type}; rmk les ignore donc ici, avec un avertissement.",
     "place": {
       "path": "<code>{path}</code>",
