@@ -161,3 +161,35 @@ describe("every exported server action goes through serverAction (guard)", () =>
     for (const [name, value] of exported) expect(isServerAction(value), name).toBe(true);
   });
 });
+
+describe("the actions open to someone who must change their password (128)", () => {
+  it("are exactly the change itself, signing in and out, the language and the notice", async () => {
+    const { readdirSync, readFileSync, statSync } = await import("node:fs");
+    const { join, relative } = await import("node:path");
+    const root = new URL("../../", import.meta.url).pathname;
+    const files = (dir: string): string[] =>
+      readdirSync(dir).flatMap((name) => {
+        const path = join(dir, name);
+        if (statSync(path).isDirectory()) return files(path);
+        return /actions\.ts$/.test(name) ? [path] : [];
+      });
+    const open = files(root).flatMap((file) => {
+      const source = readFileSync(file, "utf8");
+      // Each `export const x = serverAction(` block up to the next export.
+      return source
+        .split(/^export const /m)
+        .slice(1)
+        .filter((block) => block.includes("whilePasswordHeld: true"))
+        .map((block) => `${relative(root, file)}:${/^\w+/.exec(block)?.[0]}`);
+    });
+    expect(open.sort()).toEqual([
+      "features/account/actions.ts:changePasswordFromForm",
+      "features/account/actions.ts:setLanguageFromForm",
+      "features/account/actions.ts:signOutFromMenu",
+      "features/notice/actions.ts:dismissNotice",
+      "features/sign-in/actions.ts:signInFromForm",
+      "features/sign-in/actions.ts:ssoFromForm",
+      "features/sign-in/actions.ts:twoFactorFromForm",
+    ]);
+  });
+});

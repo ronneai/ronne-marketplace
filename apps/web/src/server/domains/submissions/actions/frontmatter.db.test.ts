@@ -222,7 +222,11 @@ describe("a skill's agent in its frontmatter (097)", () => {
     const user = await getCurrentUser(asAuthor, app);
     if (!user) throw new Error("not signed in");
     const { draft, rewritten } = await createDraftFromFilesAs(
-      { user, token: { id: "tok", name: "laptop", expiresAt: null } },
+      {
+        user,
+        token: { id: "tok", name: "laptop", expiresAt: null },
+        passwordChangeRequired: false,
+      },
       new Headers(),
       {
         scope: "team",

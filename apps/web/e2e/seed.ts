@@ -28,6 +28,7 @@ import {
   E2E_LONG_SCOPE,
   E2E_MODERATORS,
   E2E_MOVE,
+  E2E_MUST_CHANGE,
   E2E_NAMES,
   E2E_PASSWORD,
   E2E_PINS,
@@ -67,6 +68,11 @@ for (const [key, email] of Object.entries(E2E_USERS) as [keyof typeof E2E_USERS,
     },
     new Date(),
   );
+}
+// Root asked these people to choose their own password (128).
+for (const key of E2E_MUST_CHANGE) {
+  const id = ids[key];
+  if (id) await repo.setPasswordChangeRequired(id, true, new Date());
 }
 const scopeId = await kyselyScopeRepository(db, dialect, UNFILTERED).insert({
   name: E2E_SCOPE,

@@ -17,6 +17,7 @@ const {
   TokenLimitError,
   TokenNameTakenError,
   TokenNotFoundError,
+  NoPasswordError,
 } = identityErrors;
 
 type L = "en" | "pt" | "fr";
@@ -70,6 +71,14 @@ describe("domain errors in three languages (129)", () => {
         en: "That token doesn't exist, or isn't yours.",
         pt: "Esse token não existe, ou não é seu.",
         fr: "Ce jeton n’existe pas, ou ne vous appartient pas.",
+      },
+    ],
+    [
+      new NoPasswordError(),
+      {
+        en: "That account has no password (it signs in with a provider), so there is none to replace.",
+        pt: "Esta conta não tem senha (ela entra por um provedor), então não há senha para trocar.",
+        fr: "Ce compte n’a pas de mot de passe (il se connecte par un fournisseur); il n’y a donc rien à remplacer.",
       },
     ],
   ];

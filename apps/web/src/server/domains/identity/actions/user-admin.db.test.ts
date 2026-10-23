@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { toDbDate } from "../../../db/dates";
 import { newId } from "../../../db/ids";
 import { GLOBAL_WORKSPACE_ID } from "../../../db/migrations/0019_workspaces";
@@ -12,6 +12,7 @@ import {
   InvalidPasswordError,
   InvalidRoleError,
   LastRootError,
+  NoPasswordError,
   UserNotFoundError,
 } from "../exceptions/errors";
 import { GENERATED_PASSWORD_LENGTH } from "../models/generated-password";
@@ -22,7 +23,8 @@ import * as service from "../services/user-admin";
 import { seedErasedUser } from "../testing/erased-user";
 import { cookieHeaders, createTestUser, setWorkspaceRole, testAppAuth } from "../testing/test-auth";
 import { createRoot } from "./root-account";
-import { getCurrentUser, signIn } from "./session";
+import { changePassword, getCurrentUser, passwordChangeRequired, signIn } from "./session";
+import { mustEnrol } from "./two-factor";
 import {
   adminChangeRole,
   adminCreateUser,
@@ -32,6 +34,7 @@ import {
   adminGetUser,
   adminListUsers,
   adminResetPassword,
+  adminSetPasswordChange,
 } from "./user-admin";
 
 const onServer = Boolean(process.env.TEST_DATABASE_URL);
@@ -113,6 +116,7 @@ describe("permissions", () => {
         () => adminDisableUser(headers, target, app),
         () => adminEnableUser(headers, target, app),
         () => adminResetPassword(headers, target, undefined, app),
+        () => adminSetPasswordChange(headers, target, true, app),
         () => adminDisableImpact(headers, target, app),
         () => adminGetUser(headers, target, app),
       ]) {
@@ -489,6 +493,54 @@ describe("roots acting at once (059)", () => {
     expect(await events("user.role_changed")).toEqual([]);
   });
 
+  it("a root demoted or disabled after the request began can't ask for a new password either (128)", async () => {
+    const root = await getCurrentUser(asRoot, app);
+    const target = await createTestUser(app, { email: "u@example.com", password: rootPassword });
+    await createTestUser(app, { email: "r2@example.com", password: rootPassword, role: "root" });
+    const repo = kyselyIdentityRepository(t.db, t.dialect);
+    const ask = () =>
+      service.setPasswordChangeRequired(
+        { repo, hasher: noHasher },
+        { user: root, ip: null },
+        target,
+        true,
+      );
+    await t.db.updateTable("user").set({ role: "user" }).where("id", "=", rootId).execute();
+    await expect(ask()).rejects.toThrow(ForbiddenError);
+    await t.db
+      .updateTable("user")
+      .set({ role: "root", disabled_at: toDbDate(new Date(), t.dialect) })
+      .where("id", "=", rootId)
+      .execute();
+    await expect(ask()).rejects.toThrow(ForbiddenError);
+    expect(await events("user.password_change_requested")).toEqual([]);
+    expect(
+      (await kyselyIdentityRepository(t.db, t.dialect).findUser(target))?.passwordChangeRequiredAt,
+    ).toBeNull();
+  });
+
+  it("refuses a caller who isn't root before opening a transaction (128)", async () => {
+    const target = await createTestUser(app, { email: "u@example.com", password: rootPassword });
+    const real = kyselyIdentityRepository(t.db, t.dialect);
+    const opened = vi.fn();
+    const repo = {
+      ...real,
+      transaction: <T>(work: (repo: typeof real) => Promise<T>) => {
+        opened();
+        return real.transaction(work);
+      },
+    };
+    const user = await getCurrentUser(await headersFor("u@example.com", rootPassword), app);
+    for (const actor of [
+      { user, ip: null },
+      { user: null, ip: null },
+    ])
+      await expect(
+        service.setPasswordChangeRequired({ repo, hasher: noHasher }, actor, target, true),
+      ).rejects.toThrow(ForbiddenError);
+    expect(opened).not.toHaveBeenCalled();
+  });
+
   it("never leaves the instance without an active root", async () => {
     // Reachable only through a race or bad data: the repository reports no root left.
     const other = await createTestUser(app, {
@@ -600,6 +652,268 @@ describe("resetPassword", () => {
       CannotModifySelfError,
     );
     expect(await canSignIn("root@example.com", rootPassword)).toBe(true);
+  });
+});
+
+describe("asking for a new password at first sign-in (128)", () => {
+  const flagged = async (id: string) =>
+    (await kyselyIdentityRepository(t.db, t.dialect).findUser(id))?.passwordChangeRequiredAt;
+
+  it("flags a new account by default, and says so in the audit event", async () => {
+    const created = await adminCreateUser(
+      asRoot,
+      { email: "new@example.com", name: "New", role: "user" },
+      app,
+    );
+    expect(await flagged(created.id)).toBeInstanceOf(Date);
+    const [event] = await events("user.created");
+    expect(event?.metadata).toMatchObject({ changeRequired: true });
+  });
+
+  it("leaves a new account alone when root unchecks it, and audits that", async () => {
+    const created = await adminCreateUser(
+      asRoot,
+      { email: "shared@example.com", name: "Shared", role: "user", requireChange: false },
+      app,
+    );
+    expect(await flagged(created.id)).toBeNull();
+    const [event] = await events("user.created");
+    expect(event?.metadata).toMatchObject({ changeRequired: false });
+  });
+
+  it("flags a reset by default, and an unchecked reset clears an earlier request", async () => {
+    const id = await createTestUser(app, { email: "u@example.com", password: rootPassword });
+    expect(await flagged(id)).toBeNull();
+    await adminResetPassword(asRoot, id, undefined, app);
+    expect(await flagged(id)).toBeInstanceOf(Date);
+    await adminResetPassword(asRoot, id, undefined, app, false);
+    expect(await flagged(id)).toBeNull();
+    const resets = await events("user.password_reset");
+    expect(resets.map((e) => e.metadata?.changeRequired).sort()).toEqual([false, true]);
+  });
+
+  it("never flags root's own row, an account made by a provider's sign-in or by SCIM, or an account made through Better Auth", async () => {
+    const repo = kyselyIdentityRepository(t.db, t.dialect);
+    await expect(adminResetPassword(asRoot, rootId, undefined, app)).rejects.toThrow(
+      CannotModifySelfError,
+    );
+    expect(await flagged(rootId)).toBeNull();
+    const sso = await repo.createUserWithoutPassword(
+      { email: "sso@example.com", name: "SSO", role: "user" },
+      new Date(),
+    );
+    expect(await flagged(sso)).toBeNull();
+    const plain = await createTestUser(app, { email: "p@example.com", password: rootPassword });
+    expect(await flagged(plain)).toBeNull();
+  });
+
+  const failingAuditDeps = () => {
+    const real = kyselyIdentityRepository(t.db, t.dialect);
+    const repo = {
+      ...real,
+      transaction: <T>(work: (repo: typeof real) => Promise<T>) =>
+        real.transaction((inner) =>
+          work({
+            ...inner,
+            recordAudit: async () => {
+              throw new Error("audit write failed");
+            },
+          }),
+        ),
+    };
+    return { repo, hasher: { hash: async () => "hash", verify: async () => false } };
+  };
+
+  it("a failed audit write leaves no new account behind, and a reset leaves the flag as it was", async () => {
+    const root = await getCurrentUser(asRoot, app);
+    const actor = { user: root, ip: null };
+    await expect(
+      service.createUser(failingAuditDeps(), actor, {
+        email: "gone@example.com",
+        name: "Gone",
+        role: "user",
+        password: "a typed passphrase",
+      }),
+    ).rejects.toThrow("audit write failed");
+    expect(
+      await kyselyIdentityRepository(t.db, t.dialect).findUserByEmail("gone@example.com"),
+    ).toBeNull();
+
+    const id = await createTestUser(app, { email: "u@example.com", password: rootPassword });
+    await expect(
+      service.resetPassword(failingAuditDeps(), actor, id, "a typed passphrase"),
+    ).rejects.toThrow("audit write failed");
+    expect(await flagged(id)).toBeNull();
+  });
+
+  it("asks by default when the service is called without the choice", async () => {
+    const root = await getCurrentUser(asRoot, app);
+    const id = await createTestUser(app, { email: "u@example.com", password: rootPassword });
+    const deps = { repo: kyselyIdentityRepository(t.db, t.dialect), hasher: argon2PasswordHasher };
+    await service.resetPassword(deps, { user: root, ip: null }, id);
+    expect(await flagged(id)).toBeInstanceOf(Date);
+  });
+
+  it("is what holds the person's own requests: true for a flagged session, false for others and for nobody", async () => {
+    const created = await adminCreateUser(
+      asRoot,
+      { email: "new@example.com", name: "New", role: "user", password: "a typed passphrase" },
+      app,
+    );
+    const theirs = await headersFor("new@example.com", "a typed passphrase");
+    expect(await passwordChangeRequired(theirs, app)).toBe(true);
+    expect(await passwordChangeRequired(asRoot, app)).toBe(false);
+    expect(await passwordChangeRequired(new Headers(), app)).toBe(false);
+    await kyselyIdentityRepository(t.db, t.dialect).setPasswordChangeRequired(
+      created.id,
+      false,
+      new Date(),
+    );
+    expect(await passwordChangeRequired(theirs, app)).toBe(false);
+  });
+
+  describe("root setting or clearing the request on its own (128)", () => {
+    it("sets and clears it without touching the password, sessions or tokens, and audits each change", async () => {
+      const id = await createTestUser(app, { email: "u@example.com", password: rootPassword });
+      const theirs = await headersFor("u@example.com", rootPassword);
+      await addToken(id);
+
+      expect(await adminSetPasswordChange(asRoot, id, true, app)).toEqual({
+        email: "u@example.com",
+        changed: true,
+      });
+      expect(await flagged(id)).toBeInstanceOf(Date);
+      expect(await getCurrentUser(theirs, app)).not.toBeNull();
+      expect(await activeTokens(id)).toBe(1);
+      expect(await canSignIn("u@example.com", rootPassword)).toBe(true);
+
+      // Already so: nothing changes and nothing is recorded.
+      expect((await adminSetPasswordChange(asRoot, id, true, app)).changed).toBe(false);
+      expect((await adminSetPasswordChange(asRoot, id, false, app)).changed).toBe(true);
+      expect(await flagged(id)).toBeNull();
+      expect((await adminSetPasswordChange(asRoot, id, false, app)).changed).toBe(false);
+      const recorded = await events("user.password_change_requested");
+      expect(recorded.map((e) => e.metadata)).toEqual([
+        { via: "web", changeRequired: false },
+        { via: "web", changeRequired: true },
+      ]);
+    });
+
+    it("refuses an account with no password, root's own row, an unknown user and anyone but root", async () => {
+      const repo = kyselyIdentityRepository(t.db, t.dialect);
+      const sso = await repo.createUserWithoutPassword(
+        { email: "sso@example.com", name: "SSO", role: "user" },
+        new Date(),
+      );
+      await expect(adminSetPasswordChange(asRoot, sso, true, app)).rejects.toThrow(NoPasswordError);
+      expect(await flagged(sso)).toBeNull();
+      // Stopping the request on such an account is harmless.
+      expect((await adminSetPasswordChange(asRoot, sso, false, app)).changed).toBe(false);
+      await expect(adminSetPasswordChange(asRoot, rootId, true, app)).rejects.toThrow(
+        CannotModifySelfError,
+      );
+      await expect(adminSetPasswordChange(asRoot, "1".repeat(26), true, app)).rejects.toThrow(
+        UserNotFoundError,
+      );
+      const id = await createTestUser(app, { email: "u@example.com", password: rootPassword });
+      const asUser = await headersFor("u@example.com", rootPassword);
+      await expect(adminSetPasswordChange(asUser, id, true, app)).rejects.toThrow(ForbiddenError);
+      expect(await flagged(id)).toBeNull();
+    });
+  });
+
+  describe("changing the temporary password", () => {
+    const temporary = "a temporary passphrase";
+    const chosen = "my very own passphrase";
+    const setUp = async () => {
+      const created = await adminCreateUser(
+        asRoot,
+        { email: "new@example.com", name: "New", role: "user", password: temporary },
+        app,
+      );
+      const here = await headersFor("new@example.com", temporary);
+      const elsewhere = await headersFor("new@example.com", temporary);
+      return { id: created.id, here, elsewhere };
+    };
+
+    it("refuses the temporary password again, and keeps the flag", async () => {
+      const { id, here } = await setUp();
+      expect(await changePassword(here, { current: temporary, next: temporary }, app)).toEqual({
+        ok: false,
+        error: "same_password",
+      });
+      expect(await flagged(id)).toBeInstanceOf(Date);
+      expect(await events("user.password_changed")).toEqual([]);
+      expect(await canSignIn("new@example.com", temporary)).toBe(true);
+    });
+
+    it("clears the flag, ends the other sessions, keeps this one and audits it as required", async () => {
+      const { id, here, elsewhere } = await setUp();
+      expect(await changePassword(here, { current: temporary, next: chosen }, app)).toEqual({
+        ok: true,
+        required: true,
+      });
+      expect(await flagged(id)).toBeNull();
+      // Better Auth ends every session and starts one for this browser: one is left.
+      expect(await getCurrentUser(elsewhere, app)).toBeNull();
+      expect(
+        await t.db.selectFrom("session").select("id").where("user_id", "=", id).execute(),
+      ).toHaveLength(1);
+      expect(await canSignIn("new@example.com", chosen)).toBe(true);
+      expect(await canSignIn("new@example.com", temporary)).toBe(false);
+      const [event] = await events("user.password_changed");
+      expect(event).toMatchObject({
+        actorId: id,
+        metadata: { otherSessionsEnded: 1, required: true },
+      });
+    });
+
+    it("hands a person root also requires two-factor of over to enrolment, once the password is changed", async () => {
+      const { id, here } = await setUp();
+      const held = async (headers: Headers) => ({
+        password: await passwordChangeRequired(headers, app),
+        enrol: await mustEnrol(headers, "everyone", app),
+      });
+      expect(await held(here)).toEqual({ password: true, enrol: true });
+      await changePassword(here, { current: temporary, next: chosen }, app);
+      // The browser's new session (Better Auth starts one for it): sign in to read it as they would.
+      const after = await headersFor("new@example.com", chosen);
+      expect(await flagged(id)).toBeNull();
+      expect(await held(after)).toEqual({ password: false, enrol: true });
+    });
+
+    it("leaves the flag when the current password is wrong", async () => {
+      const { id, here } = await setUp();
+      expect(await changePassword(here, { current: "not it at all", next: chosen }, app)).toEqual({
+        ok: false,
+        error: "wrong_password",
+      });
+      expect(await flagged(id)).toBeInstanceOf(Date);
+    });
+
+    it("an ordinary change is not audited as required, and may repeat nothing special", async () => {
+      const id = await createTestUser(app, { email: "o@example.com", password: rootPassword });
+      const here = await headersFor("o@example.com", rootPassword);
+      expect(await changePassword(here, { current: rootPassword, next: chosen }, app)).toEqual({
+        ok: true,
+        required: false,
+      });
+      const [event] = await events("user.password_changed");
+      expect(event?.targetId).toBe(id);
+      expect(event?.metadata).not.toHaveProperty("required");
+    });
+  });
+
+  it("keeps the flag when the account is disabled and enabled again", async () => {
+    const created = await adminCreateUser(
+      asRoot,
+      { email: "new@example.com", name: "New", role: "user" },
+      app,
+    );
+    await adminDisableUser(asRoot, created.id, app);
+    expect(await flagged(created.id)).toBeInstanceOf(Date);
+    await adminEnableUser(asRoot, created.id, app);
+    expect(await flagged(created.id)).toBeInstanceOf(Date);
   });
 });
 

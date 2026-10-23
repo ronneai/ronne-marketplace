@@ -9,6 +9,7 @@ import {
 import { signInUrl } from "../domains/identity/models/route-guard";
 import { type AppAuth, getAppAuth } from "../domains/identity/repositories/auth-instance";
 import { errorResponse } from "./errors";
+import { changeRequiredResponse, passwordChangeHold } from "./password-change-hold";
 import { twoFactorHold } from "./two-factor-hold";
 
 /** What the route handlers of `GET /account/data` and `GET /admin/users/<id>/data` share (104). */
@@ -16,6 +17,8 @@ export type UserDataRouteDeps = {
   app?: AppAuth;
   /** The two-factor hold on the request's person, for tests; the default reads the policy. */
   hold?: (headers: Headers) => Promise<unknown>;
+  /** The password-change hold (128), for tests; the default reads the account's flag. */
+  passwordHold?: (headers: Headers) => Promise<boolean>;
 };
 
 /** `ronne-data-<id>-<date>.json`: the id is ours (a ULID) and the date is UTC, so both are safe. */
@@ -61,6 +64,8 @@ export const userDataResponse = async (
       status: 303,
       headers: { location: signInUrl(new URL(request.url).pathname), "cache-control": "no-store" },
     });
+  if (await (deps.passwordHold ?? passwordChangeHold)(request.headers))
+    return changeRequiredResponse("Choose your own password first (Account › Password).");
   if (await (deps.hold ?? twoFactorHold)(request.headers))
     return errorResponse(
       403,

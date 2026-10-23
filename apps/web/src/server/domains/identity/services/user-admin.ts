@@ -4,6 +4,7 @@ import {
   ForbiddenError,
   InvalidRoleError,
   LastRootError,
+  NoPasswordError,
   UserErasedError,
   UserNotFoundError,
 } from "../exceptions/errors";
@@ -180,6 +181,8 @@ export type NewUserInput = {
   role: string;
   /** Leave out to generate one. */
   password?: string;
+  /** Ask the person to choose their own password at first sign-in (128); on unless false. */
+  requireChange?: boolean;
 };
 
 export const createUser = async (
@@ -193,18 +196,20 @@ export const createUser = async (
   const role = checkRole(input.role);
   const password = choosePassword(input.password);
   const passwordHash = await deps.hasher.hash(password);
+  const requireChange = input.requireChange !== false;
   const at = now(deps);
 
   const id = await deps.repo.transaction(async (repo) => {
     await lockAndRecheckActor(repo, actor);
     if (await repo.emailTaken(email)) throw new EmailTakenError(email);
     const created = await repo.createUserWithPassword({ email, name, role, passwordHash }, at);
+    if (requireChange) await repo.setPasswordChangeRequired(created, true, at);
     await repo.recordAudit(
       {
         actorId: actor.user?.id ?? null,
         action: "user.created",
         target: { type: "user", id: created },
-        metadata: { email, role },
+        metadata: { email, role, changeRequired: requireChange },
         ipAddress: actor.ip,
       },
       at,
@@ -302,6 +307,7 @@ export const resetPassword = async (
   actor: Actor,
   userId: string,
   typed?: string,
+  requireChange = true,
 ): Promise<{ email: string; password: string }> => {
   requirePermission(actor.user, "users.manage");
   const password = choosePassword(typed);
@@ -311,6 +317,8 @@ export const resetPassword = async (
     await lockAndRecheckActor(repo, actor);
     const target = await loadTarget(repo, actor, userId);
     await repo.setPassword(userId, passwordHash, at);
+    // Always set or cleared: a reset without the box replaces an earlier request (128).
+    await repo.setPasswordChangeRequired(userId, requireChange, at);
     const sessionsEnded = await repo.deleteSessions(userId);
     const tokensRevoked = await repo.revokeAccessTokens(userId, at);
     await repo.recordAudit(
@@ -318,7 +326,7 @@ export const resetPassword = async (
         actorId: actor.user?.id ?? null,
         action: "user.password_reset",
         target: { type: "user", id: userId },
-        metadata: { via: "web", sessionsEnded, tokensRevoked },
+        metadata: { via: "web", sessionsEnded, tokensRevoked, changeRequired: requireChange },
         ipAddress: actor.ip,
       },
       at,
@@ -326,6 +334,41 @@ export const resetPassword = async (
     return target.email;
   });
   return { email, password };
+};
+
+/**
+ * Asks (or stops asking) for the user to choose a new password at their next sign-in, without
+ * changing the password (128). Their sessions and tokens stay. An account with no password has
+ * none to replace. False when it was already so: nothing changes, nothing is recorded.
+ */
+export const setPasswordChangeRequired = async (
+  deps: UserAdminDeps,
+  actor: Actor,
+  userId: string,
+  required: boolean,
+): Promise<{ email: string; changed: boolean }> => {
+  requirePermission(actor.user, "users.manage");
+  const at = now(deps);
+  return deps.repo.transaction(async (repo) => {
+    await lockAndRecheckActor(repo, actor);
+    const target = await loadTarget(repo, actor, userId);
+    if (required && !(await repo.findCredentialByEmail(target.email))?.passwordHash)
+      throw new NoPasswordError();
+    if (Boolean(target.passwordChangeRequiredAt) === required)
+      return { email: target.email, changed: false };
+    await repo.setPasswordChangeRequired(userId, required, at);
+    await repo.recordAudit(
+      {
+        actorId: actor.user?.id ?? null,
+        action: "user.password_change_requested",
+        target: { type: "user", id: userId },
+        metadata: { via: "web", changeRequired: required },
+        ipAddress: actor.ip,
+      },
+      at,
+    );
+    return { email: target.email, changed: true };
+  });
 };
 
 /**

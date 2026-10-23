@@ -121,6 +121,24 @@ describe("GET /account/data (104)", () => {
   });
 });
 
+describe("a person who must change their password (128)", () => {
+  it("is refused with password_change_required, before two-factor, and nothing is recorded", async () => {
+    const held = await userDataResponse(get("/account/data", asAna), null, {
+      app,
+      hold: async () => "everyone",
+      passwordHold: async () => true,
+    });
+    expect(held.status).toBe(403);
+    expect((await held.json()).error.code).toBe("password_change_required");
+    const free = await userDataResponse(get("/account/data", asAna), null, {
+      app,
+      hold: async () => null,
+      passwordHold: async () => false,
+    });
+    expect(free.status).toBe(200);
+  });
+});
+
 describe("what is not a person's own click (104)", () => {
   const exported = () =>
     t.db.selectFrom("audit_log").select("id").where("action", "=", "user.data_exported").execute();

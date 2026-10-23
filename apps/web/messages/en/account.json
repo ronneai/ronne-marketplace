@@ -21,11 +21,16 @@
     "submit": "Change password",
     "changedTitle": "Password changed",
     "changed": "You're still signed in here; other sessions were signed out.",
+    "required": {
+      "title": "Choose your own password to continue",
+      "body": "An administrator set the password you signed in with. Replace it with one only you know; the rest of Ronne opens once you have. Use the password you signed in with as the current one."
+    },
     "errors": {
       "wrong_password": "The current password is wrong",
       "too_short": "The new password needs at least 12 characters",
       "too_long": "The new password can have at most 128 characters",
       "mismatch": "The new passwords don't match",
+      "same_password": "The new password must be different from the one you signed in with",
       "rate_limited": "Too many attempts, wait a minute"
     }
   },

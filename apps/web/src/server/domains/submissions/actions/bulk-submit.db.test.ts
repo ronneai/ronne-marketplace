@@ -169,7 +169,11 @@ describe("checkManyDrafts and submitManyDrafts (052)", () => {
     const user = await getCurrentUser(asAuthor, app);
     if (!user) throw new Error("not signed in");
     await submitManyDraftsAs(
-      { user, token: { id: "tok-1", name: "laptop", expiresAt: null } },
+      {
+        user,
+        token: { id: "tok-1", name: "laptop", expiresAt: null },
+        passwordChangeRequired: false,
+      },
       new Headers(),
       { ids: [ready.id] },
       app,

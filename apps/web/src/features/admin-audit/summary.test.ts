@@ -107,6 +107,41 @@ describe("audit summaries (060)", () => {
     expect(line("instance.secret_rotated", { via: "cli", sessionsEnded: 4 })).toBe(
       "Replaced AUTH_SECRET, so everyone signs in again (4 sessions ended) from the command line",
     );
+    // 128: asking for a new password at first sign-in, and the person doing it.
+    expect(
+      line(
+        "user.created",
+        { email: "a@x.com", role: "user", changeRequired: true },
+        { targetEmail: "a@x.com" },
+      ),
+    ).toBe("Created a@x.com as user, asking for a new password at their first sign-in");
+    expect(
+      line(
+        "user.password_reset",
+        { via: "web", sessionsEnded: 1, changeRequired: true },
+        { targetEmail: "a@x.com" },
+      ),
+    ).toBe(
+      "Reset the password of a@x.com, asking for a new one at their next sign-in (1 session ended)",
+    );
+    expect(
+      line(
+        "user.password_change_requested",
+        { via: "web", changeRequired: true },
+        { targetEmail: "a@x.com" },
+      ),
+    ).toBe("Asked for a new password at the next sign-in of a@x.com");
+    expect(
+      line(
+        "user.password_change_requested",
+        { via: "web", changeRequired: false },
+        { targetEmail: "a@x.com" },
+      ),
+    ).toBe("Stopped asking for a new password at the next sign-in of a@x.com");
+    expect(line("user.password_changed", { otherSessionsEnded: 2, required: true })).toBe(
+      "Chose their own password, as root asked (2 other sessions ended)",
+    );
+    expect(line("user.password_changed", { otherSessionsEnded: 0 })).toBe("Changed their password");
     // 105: the two-factor it turned off, and the resets.
     expect(
       line("instance.secret_rotated", { via: "cli", sessionsEnded: 4, twoFactorCleared: 2 }),

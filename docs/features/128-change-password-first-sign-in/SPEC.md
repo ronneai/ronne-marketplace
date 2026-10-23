@@ -23,7 +23,10 @@ the first time the person signs in, so only the person knows their password.
 - **Same on the API.** A token belonging to a held account answers `403` with the error code
   `password_change_required` on everything but `GET /api/v1/me` (so `rmk` can tell the person what
   to do); tokens are created only through the web app, which is held, so this covers a token that
-  existed when root reset the password (reset also revokes tokens, 008, so the case is rare).
+  existed when root reset the password (reset also revokes tokens, 008, so the case is rare). A
+  held token cannot sign out of `rmk` either (`DELETE /api/v1/auth/token` is refused too); the token
+  is useless meanwhile and can be revoked in the web app. `POST /api/v1/auth/token` (email and
+  password) still hands out a token, which is held in the same way.
 - **Setting the new password** uses the existing form and rules (password policy, length), must
   differ from the temporary one, clears the flag, ends the account's other sessions, and returns to
   the page they asked for. It is audited as `user.password_changed` with `required: true`.
@@ -43,15 +46,23 @@ the first time the person signs in, so only the person knows their password.
   returns to the code page (`next` is kept, as the two-factor hold does).
 - **Root resets their own password** from the Users list: not flagged (they just chose it), the
   checkbox is hidden for one's own account.
+- **What the hold does not cover**, as with the two-factor hold (105): Better Auth's own endpoints
+  (`/api/auth/*`, which the app's forms call and where the password is changed) and the
+  `/current-workspace` redirect, which only sets a cookie. Neither shows or changes anything of
+  anyone else's, and only the app's form clears the flag.
 - **The user page** (123) shows "Must change password at next sign-in" with a way for root to
   clear or set the flag without changing the password.
-- **Messages** are in the person's language (129), including the page's explanation.
+- **Messages** are in the person's language (129), including the page's explanation. The audit log's lines for the new events
+  are English like the rest of the log, and the API's `password_change_required` message is English
+  as the API is.
 
 ## Edge cases
 
 - A person who signs in on two devices: both are held until one changes it; the change ends the
   other sessions, so the second signs in again with the new password.
 - Choosing the same password as the temporary one is refused with a message.
+- The password is changed first, then the flag is cleared with the audit event in one transaction:
+  if the database fails between the two, the person stays held and changes it once more.
 - Root disables the account while it is flagged: the flag stays and applies when re-enabled.
 - Two-factor "reset" by root (105) doesn't touch the flag.
 - Erasing the account (103) removes the account, so the flag goes with it.
@@ -68,19 +79,19 @@ the first time the person signs in, so only the person knows their password.
 
 ## Acceptance criteria
 
-- [ ] Create user and Reset password set the flag by default; unchecking is possible and audited;
+- [x] Create user and Reset password set the flag by default; unchecking is possible and audited;
       root's own reset doesn't offer it.
-- [ ] A flagged account is redirected from every app page to the change-password page; a guard test
+- [x] A flagged account is redirected from every app page to the change-password page; a guard test
       fails when a page forgets the hold.
-- [ ] The API answers `password_change_required` for a flagged account's token, except `GET
+- [x] The API answers `password_change_required` for a flagged account's token, except `GET
       /api/v1/me`.
-- [ ] Changing the password clears the flag, ends other sessions, refuses the temporary password
+- [x] Changing the password clears the flag, ends other sessions, refuses the temporary password
       and returns to the page asked for (and keeps `/device`'s code).
-- [ ] The two-factor hold follows the password hold; neither blocks sign-out.
-- [ ] SSO, SCIM and the setup's root are never flagged.
-- [ ] Migration runs on all three database kinds; everything is in messages (129) in three
+- [x] The two-factor hold follows the password hold; neither blocks sign-out.
+- [x] SSO, SCIM and the setup's root are never flagged.
+- [x] Migration runs on all three database kinds; everything is in messages (129) in three
       languages; the phone sweep passes.
-- [ ] The Documentation and helpers above say what the feature does now.
+- [x] The Documentation and helpers above say what the feature does now.
 
 ## Decisions
 

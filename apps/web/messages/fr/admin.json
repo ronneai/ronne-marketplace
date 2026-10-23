@@ -27,5 +27,19 @@
       "too_many_links": "Utilisez au plus {links, number} liens dans le message.",
       "tone_invalid": "Choisissez Information ou Attention."
     }
+  },
+  "passwordChange": {
+    "checkbox": "Leur demander de choisir un nouveau mot de passe à la connexion",
+    "checkboxHint": "Seule la personne le connaîtra. Les comptes qui se connectent par un fournisseur ne sont pas touchés.",
+    "fact": "Nouveau mot de passe",
+    "factAsked": "Demandé à la prochaine connexion",
+    "factNotAsked": "Non demandé",
+    "askTitle": "Demander un nouveau mot de passe",
+    "clearTitle": "Ne plus demander de nouveau mot de passe",
+    "askBody": "À sa prochaine connexion, la personne doit choisir son propre mot de passe avant toute autre chose. Son mot de passe, ses sessions et ses jetons restent tels quels.",
+    "clearBody": "La personne ne devra plus choisir un nouveau mot de passe. Son mot de passe, ses sessions et ses jetons restent tels quels.",
+    "askedDone": "La personne devra choisir un nouveau mot de passe à sa prochaine connexion.",
+    "clearedDone": "La personne n’aura plus à choisir un nouveau mot de passe.",
+    "unchanged": "Rien n’a changé."
   }
 }

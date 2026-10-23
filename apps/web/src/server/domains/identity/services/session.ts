@@ -34,6 +34,18 @@ export const currentUser = async (
   return session ? deps.repo.findActiveUser(session.userId) : null;
 };
 
+/**
+ * Whether the request's signed-in person must replace their password first (128). Read on every
+ * page and server action, so it reads only the session and one column.
+ */
+export const passwordChangeRequired = async (
+  deps: SessionDeps,
+  headers: Headers,
+): Promise<boolean> => {
+  const session = await deps.sessions.currentSession(headers);
+  return session ? deps.repo.passwordChangeRequired(session.userId) : false;
+};
+
 export type SignInInput = { email: string; password: string; rememberMe: boolean };
 
 export type SignInResult =
@@ -156,14 +168,19 @@ export const signIn = async (
 };
 
 export type ChangePasswordResult =
-  | { ok: true }
-  | { ok: false; error: "not_signed_in" | "wrong_password" | "too_short" | "too_long" }
+  /** `required`: root had asked for this change (128), so the person is no longer held. */
+  | { ok: true; required: boolean }
+  | {
+      ok: false;
+      error: "not_signed_in" | "wrong_password" | "too_short" | "too_long" | "same_password";
+    }
   | { ok: false; error: "rate_limited"; retryAfterSeconds: number };
 
 /**
  * Changes the signed-in user's password. It needs the current one, applies the 003 length rules,
  * keeps this session and ends the others. Wrong current passwords count against the same limit as
- * sign-in, so a stolen session can't be used to guess the password.
+ * sign-in, so a stolen session can't be used to guess the password. When root asked for the change
+ * (128), the new password must differ from the temporary one, and the request to change it ends.
  */
 export const changePassword = async (
   deps: SessionDeps,
@@ -182,6 +199,9 @@ export const changePassword = async (
   if (input.current.length === 0 || [...input.current].length > PASSWORD_MAX_LENGTH)
     return { ok: false, error: "wrong_password" };
 
+  const required = await deps.repo.passwordChangeRequired(user.id);
+  if (required && input.next === input.current) return { ok: false, error: "same_password" };
+
   const decision = deps.limiter.consume(loginRateLimitKeys(user.email, null));
   if (!decision.allowed)
     return { ok: false, error: "rate_limited", retryAfterSeconds: decision.retryAfterSeconds };
@@ -189,18 +209,25 @@ export const changePassword = async (
   const before = await deps.repo.countSessions(user.id);
   const changed = await deps.sessions.changePassword(context.headers, input.current, input.next);
   if (!changed) return { ok: false, error: "wrong_password" };
-  await deps.repo.recordAudit(
-    {
-      actorId: user.id,
-      action: "user.password_changed",
-      target: { type: "user", id: user.id },
-      // Every session but this one.
-      metadata: { otherSessionsEnded: Math.max(0, before - 1) },
-      ipAddress: context.ip,
-    },
-    now(deps),
-  );
-  return { ok: true };
+  const at = now(deps);
+  await deps.repo.transaction(async (repo) => {
+    if (required) await repo.setPasswordChangeRequired(user.id, false, at);
+    await repo.recordAudit(
+      {
+        actorId: user.id,
+        action: "user.password_changed",
+        target: { type: "user", id: user.id },
+        // Every session but this one; `required` when root had asked for the change (128).
+        metadata: {
+          otherSessionsEnded: Math.max(0, before - 1),
+          ...(required ? { required } : {}),
+        },
+        ipAddress: context.ip,
+      },
+      at,
+    );
+  });
+  return { ok: true, required };
 };
 
 /** Ends the request's session, and records it. Without a session, there's nothing to do. */

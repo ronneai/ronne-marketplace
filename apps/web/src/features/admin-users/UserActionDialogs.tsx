@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useActionState, useEffect, useState } from "react";
 import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
@@ -13,6 +14,7 @@ import {
   enableUserFromForm,
   resetPasswordFromForm,
   resetTwoFactorFromForm,
+  setPasswordChangeFromForm,
 } from "./actions";
 import { OneTimePassword } from "./OneTimePassword";
 import { PasswordChoice } from "./PasswordChoice";
@@ -30,6 +32,8 @@ export type RowUser = {
   erased?: boolean;
   /** Two-factor sign-in is on (105): only then is "Reset two-factor" offered. */
   twoFactor?: boolean;
+  /** Asked to choose a new password at the next sign-in (128). */
+  passwordChange?: boolean;
   /** The signed-in root's own row: read-only here (059). */
   self?: boolean;
   /** The provider whose SCIM manages the account (108), which its next sync can undo. */
@@ -37,15 +41,22 @@ export type RowUser = {
 };
 
 const ROLES: readonly Role[] = ["user", "root"];
-export type Kind = "role" | "disable" | "enable" | "reset" | "twoFactor";
+type TitledKind = "role" | "disable" | "enable" | "reset" | "twoFactor";
+export type Kind = TitledKind | "askChange" | "clearChange";
 type FormAction = (state: AdminActionState, form: FormData) => Promise<AdminActionState>;
 
-export const TITLES: Record<Kind, string> = {
+const TITLES: Record<TitledKind, string> = {
   role: "Change role",
   disable: "Disable user",
   enable: "Enable user",
   reset: "Reset password",
   twoFactor: "Reset two-factor",
+};
+
+/** Every dialog's title; the password-change ones are messages (128). */
+export const useTitles = (): Record<Kind, string> => {
+  const t = useTranslations("admin.passwordChange");
+  return { ...TITLES, askChange: t("askTitle"), clearChange: t("clearTitle") };
 };
 
 const ACTIONS: Record<Kind, FormAction> = {
@@ -54,6 +65,8 @@ const ACTIONS: Record<Kind, FormAction> = {
   enable: enableUserFromForm,
   reset: resetPasswordFromForm,
   twoFactor: resetTwoFactorFromForm,
+  askChange: setPasswordChangeFromForm,
+  clearChange: setPasswordChangeFromForm,
 };
 
 const DisableImpact = ({ userId }: { userId: string }) => {
@@ -146,6 +159,8 @@ export const ActionForm = ({
   onDone: () => void;
 }) => {
   const [state, action, pending] = useActionState<AdminActionState, FormData>(ACTIONS[kind], {});
+  const titles = useTitles();
+  const t = useTranslations("admin.passwordChange");
 
   if (state.oneTime || state.done)
     return (
@@ -189,6 +204,12 @@ export const ActionForm = ({
           <PasswordChoice idPrefix={`reset-${user.id}`} />
         </>
       ) : null}
+      {kind === "askChange" || kind === "clearChange" ? (
+        <>
+          <input type="hidden" name="required" value={kind === "askChange" ? "true" : "false"} />
+          <p className="text-sm text-muted">{t(kind === "askChange" ? "askBody" : "clearBody")}</p>
+        </>
+      ) : null}
       {kind === "twoFactor" ? (
         <div className="grid gap-1.5">
           <p className="text-sm text-muted">
@@ -205,7 +226,7 @@ export const ActionForm = ({
           Cancel
         </Button>
         <Button type="submit" loading={pending}>
-          {TITLES[kind]}
+          {titles[kind]}
         </Button>
       </DialogActions>
     </form>

@@ -45,5 +45,6 @@
   "ShelfItemNotAvailableError": "Cet élément n’est pas disponible.",
   "FavoriteLimitError": "Vous avez {max} favoris, le maximum permis. Retirez-en un d’abord.",
   "PinLimitError": "{shelf, select, instance {Commencez ici compte déjà {max} éléments. Retirez-en un d’abord.} other {Les éléments épinglés de {workspaceName} sont déjà {max}. Retirez-en un d’abord.}}",
-  "PinNeedsPublicWorkspaceError": "Seuls les éléments d’un espace de travail public peuvent être épinglés dans Commencez ici."
+  "PinNeedsPublicWorkspaceError": "Seuls les éléments d’un espace de travail public peuvent être épinglés dans Commencez ici.",
+  "NoPasswordError": "Ce compte n’a pas de mot de passe (il se connecte par un fournisseur); il n’y a donc rien à remplacer."
 }

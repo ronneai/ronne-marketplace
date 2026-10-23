@@ -133,7 +133,7 @@ describe("changePassword", () => {
     const elsewhere = await signedIn();
     expect(
       await changePassword(here, { current: password, next: "a brand new passphrase" }, app),
-    ).toEqual({ ok: true });
+    ).toEqual({ ok: true, required: false });
 
     expect(await getCurrentUser(elsewhere, app)).toBeNull();
     // Better Auth ends every session and starts a new one for this browser; in the app, nextCookies

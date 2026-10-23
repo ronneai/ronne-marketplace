@@ -24,6 +24,7 @@ export const AUDIT_ACTIONS = [
   "scim.request_refused",
   "instance.password_sign_in_changed",
   "user.password_reset",
+  "user.password_change_requested",
   "auth.signed_in",
   "auth.sign_in_failed",
   "auth.signed_out",

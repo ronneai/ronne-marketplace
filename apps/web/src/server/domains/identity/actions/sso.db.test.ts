@@ -144,6 +144,8 @@ describe("first sign-in from a listed domain", () => {
 
     const user = await userByEmail("ana@acme.com");
     expect(user).toMatchObject({ name: "Ana Acme", role: "user", disabled_at: null });
+    // A provider's account has no password of root's choosing to replace (128).
+    expect(user?.password_change_required_at).toBeNull();
     const accounts = await t.db
       .selectFrom("account")
       .select(["provider_id", "account_id", "password"])
@@ -236,7 +238,7 @@ describe("first sign-in from a listed domain", () => {
         { current: "correct horse battery", next: "another horse battery" },
         app,
       ),
-    ).toEqual({ ok: true });
+    ).toEqual({ ok: true, required: false });
     await one.noLater();
 
     const two = await fromProvider();

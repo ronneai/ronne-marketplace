@@ -13,6 +13,33 @@ const signIn = async (page: Page, email: string, password: string) => {
   await expect(page).not.toHaveURL(/\/sign-in/);
 };
 
+/**
+ * A person root created is held on the change-password page (128) until they choose their own
+ * password: the temporary one is refused as the new one, and the new one takes them to Home.
+ * Returns the password they chose.
+ */
+const chooseOwnPassword = async (page: Page, temporary: string) => {
+  await expect(page).toHaveURL(/\/account\/password/);
+  await expect(page.getByText("Choose your own password to continue")).toBeVisible();
+  // Held: any other page comes back here, keeping where they were going.
+  await page.goto("/catalogue");
+  await expect(page).toHaveURL(/\/account\/password\?next=%2Fcatalogue/);
+  const fill = async (current: string, next: string) => {
+    await page.getByLabel("Current password", { exact: true }).fill(current);
+    await page.getByLabel("New password", { exact: true }).fill(next);
+    await page.getByLabel("Confirm new password", { exact: true }).fill(next);
+    await page.getByRole("button", { name: "Change password" }).click();
+  };
+  await fill(temporary, temporary);
+  await expect(page.getByText("must be different from the one you signed in with")).toBeVisible();
+  const chosen = `${temporary}-chosen`;
+  recordSecret(JSON.parse(process.env.RONNE_E2E_INSTANCE ?? "{}").main, chosen);
+  await fill(temporary, chosen);
+  // Back at the page they asked for, and free to use the app.
+  await expect(page).toHaveURL(/\/catalogue/);
+  return chosen;
+};
+
 /** A user's row, by its Open link (one email can be part of another). */
 const rowOf = userRow;
 
@@ -97,6 +124,7 @@ test("root creates a user, who signs in with the shown password; disabling them 
   // The new user signs in with it.
   const user = await browser.newPage();
   await signIn(user, email, password);
+  await chooseOwnPassword(user, password);
 
   // Root's own page is read-only (059): it says so and offers no action; the user isn't an admin
   // yet.
@@ -232,6 +260,7 @@ test("root creates a user, who signs in with the shown password; disabling them 
   await recreate.getByRole("button", { name: "Done" }).click();
   const reborn = await browser.newPage();
   await signIn(reborn, erasable, newPassword);
+  await chooseOwnPassword(reborn, newPassword);
   await expect(
     reborn.getByRole("complementary", { name: "Sidebar" }).getByText("New Erasable").first(),
   ).toBeVisible();

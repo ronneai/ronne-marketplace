@@ -11,7 +11,7 @@ import { OneTimePassword } from "./OneTimePassword";
 import { PasswordChoice } from "./PasswordChoice";
 import type { AdminActionState } from "./types";
 
-const CreateUserForm = ({ onDone }: { onDone: () => void }) => {
+export const CreateUserForm = ({ onDone }: { onDone: () => void }) => {
   const [state, action, pending] = useActionState<AdminActionState, FormData>(
     createUserFromForm,
     {},

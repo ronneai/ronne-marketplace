@@ -149,6 +149,7 @@ describe("authenticateToken", () => {
           personal: null,
         },
         token: { id: created.id, name: "cli", expiresAt: created.expiresAt },
+        passwordChangeRequired: false,
       },
     });
   });

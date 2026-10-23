@@ -14,6 +14,8 @@ const userData = vi.hoisted(() => ({
   myLastExport: vi.fn(async (): Promise<Date | null> => null),
 }));
 vi.mock("@/server/domains/identity/actions/user-data", () => userData);
+const session = vi.hoisted(() => ({ passwordChangeRequired: vi.fn(async () => false) }));
+vi.mock("@/server/domains/identity/actions/session", () => session);
 vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn() }),
@@ -170,7 +172,9 @@ describe("/account/security", () => {
     expect(security).toContain('aria-label="Account"');
     expect(security).toMatch(/aria-current="page"[^>]*>Two-factor sign-in</);
     expect(security).toContain('href="/account/password"');
-    const password = renderToStaticMarkup(await ChangePasswordPage());
+    const password = renderToStaticMarkup(
+      await ChangePasswordPage({ searchParams: Promise.resolve({}) }),
+    );
     expect(password).toMatch(/aria-current="page"[^>]*>Password</);
     expect(password).toContain('href="/account/security"');
     expect(password).toContain(">Change password</h2>");
@@ -180,9 +184,29 @@ describe("/account/security", () => {
     expect(password).not.toContain("Last downloaded");
   });
 
+  it("says why, shows only the form and keeps where they were going, for someone who must change it (128)", async () => {
+    session.passwordChangeRequired.mockResolvedValueOnce(true);
+    const html = renderToStaticMarkup(
+      await ChangePasswordPage({ searchParams: Promise.resolve({ next: "/items?q=a" }) }),
+    );
+    expect(html).toContain("Choose your own password to continue");
+    expect(html).toContain('name="returnTo" value="/items?q=a"');
+    expect(html).not.toContain('aria-label="Account"');
+    expect(html).not.toContain(">Your data</h2>");
+    // A next that isn't a page of this site is dropped.
+    session.passwordChangeRequired.mockResolvedValueOnce(true);
+    const off = renderToStaticMarkup(
+      await ChangePasswordPage({ searchParams: Promise.resolve({ next: "//evil.test" }) }),
+    );
+    expect(off).toContain('name="returnTo" value="/"');
+    expect(off).not.toContain("evil.test");
+  });
+
   it("shows when the data was last downloaded (104)", async () => {
     userData.myLastExport.mockResolvedValueOnce(new Date("2026-10-18T14:03:00Z"));
-    const password = renderToStaticMarkup(await ChangePasswordPage());
+    const password = renderToStaticMarkup(
+      await ChangePasswordPage({ searchParams: Promise.resolve({}) }),
+    );
     expect(password).toContain("Last downloaded");
     expect(password).toContain('dateTime="2026-10-18T14:03:00.000Z"');
   });

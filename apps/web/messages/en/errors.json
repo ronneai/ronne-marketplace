@@ -45,5 +45,6 @@
   "ShelfItemNotAvailableError": "That item isn't available.",
   "FavoriteLimitError": "You have {max} favorites, the most allowed. Remove one first.",
   "PinLimitError": "{shelf, select, instance {Start here has {max} items; remove one first.} other {The pins of {workspaceName} have {max} items; remove one first.}}",
-  "PinNeedsPublicWorkspaceError": "Only items in a public workspace can be pinned to Start here."
+  "PinNeedsPublicWorkspaceError": "Only items in a public workspace can be pinned to Start here.",
+  "NoPasswordError": "That account has no password (it signs in with a provider), so there is none to replace."
 }

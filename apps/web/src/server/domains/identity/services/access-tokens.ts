@@ -114,6 +114,8 @@ export type TokenFailure =
 export type Authenticated = {
   user: CurrentUser;
   token: { id: string; name: string; expiresAt: Date | null };
+  /** The password root chose must be replaced first (128): the API refuses all but `/me`. */
+  passwordChangeRequired: boolean;
 };
 
 /**
@@ -160,6 +162,7 @@ export const authenticateToken = async (
     value: {
       user: { id, email, name, role, workspaces, personal },
       token: { id: found.token.id, name: found.token.name, expiresAt: found.token.expiresAt },
+      passwordChangeRequired: Boolean(found.user.passwordChangeRequired),
     },
   };
 };

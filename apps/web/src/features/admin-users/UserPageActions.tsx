@@ -3,15 +3,15 @@
 import { type ReactNode, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
-import { ActionForm, type Kind, type RowUser, TITLES } from "./UserActionDialogs";
+import { ActionForm, type Kind, type RowUser, useTitles } from "./UserActionDialogs";
 
-const LABELS: Record<Kind, string> = {
+const LABELS = {
   role: "Change role",
   reset: "Reset password",
   twoFactor: "Reset two-factor",
   disable: "Disable",
   enable: "Enable",
-};
+} as const;
 
 /**
  * One of a user's actions, as a button on their page (123) that opens the dialog it opens from the
@@ -36,6 +36,7 @@ export const UserActionButton = ({
   hidden?: boolean;
   children?: ReactNode;
 }) => {
+  const titles = useTitles();
   const [opened, setOpened] = useState<Kind | null>(null);
   const [round, setRound] = useState(0);
   const close = () => {
@@ -46,10 +47,10 @@ export const UserActionButton = ({
     <>
       {hidden ? null : (
         <Button variant="secondary" onClick={() => setOpened(kind)}>
-          {children ?? LABELS[kind]}
+          {children ?? (kind in LABELS ? LABELS[kind as keyof typeof LABELS] : titles[kind])}
         </Button>
       )}
-      <Dialog open={opened !== null} onClose={close} title={TITLES[opened ?? kind]}>
+      <Dialog open={opened !== null} onClose={close} title={titles[opened ?? kind]}>
         {opened ? <ActionForm key={round} kind={opened} user={user} onDone={close} /> : null}
       </Dialog>
     </>

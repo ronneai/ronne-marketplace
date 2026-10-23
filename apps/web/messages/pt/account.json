@@ -21,11 +21,16 @@
     "submit": "Alterar senha",
     "changedTitle": "Senha alterada",
     "changed": "Você continua conectado aqui; as outras sessões foram encerradas.",
+    "required": {
+      "title": "Escolha sua própria senha para continuar",
+      "body": "Um administrador definiu a senha com que você entrou. Troque-a por uma que só você conheça; o resto do Ronne abre depois disso. Use a senha com que você entrou como senha atual."
+    },
     "errors": {
       "wrong_password": "A senha atual está errada",
       "too_short": "A nova senha precisa ter pelo menos 12 caracteres",
       "too_long": "A nova senha pode ter no máximo 128 caracteres",
       "mismatch": "As novas senhas não são iguais",
+      "same_password": "A nova senha precisa ser diferente da que você usou para entrar",
       "rate_limited": "Muitas tentativas, aguarde um minuto"
     }
   },

@@ -3,6 +3,7 @@ export type ChangePasswordError =
   | "too_short"
   | "too_long"
   | "mismatch"
+  | "same_password"
   | "rate_limited";
 
 export type ChangePasswordFormState = { error?: ChangePasswordError; changed?: boolean };
@@ -13,6 +14,7 @@ export const ERROR_FIELD: Record<ChangePasswordError, "current" | "next" | "conf
   too_short: "next",
   too_long: "next",
   mismatch: "confirm",
+  same_password: "next",
   rate_limited: null,
 };
 

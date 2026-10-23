@@ -471,7 +471,11 @@ describe("createDraftFromFilesAs", () => {
       const user = await getCurrentUser(headers, app);
       if (!user) throw new Error("not signed in");
       const { draft } = await createDraftFromFilesAs(
-        { user, token: { id: `tok-${email}`, name: "laptop", expiresAt: null } },
+        {
+          user,
+          token: { id: `tok-${email}`, name: "laptop", expiresAt: null },
+          passwordChangeRequired: false,
+        },
         new Headers({ "x-forwarded-for": "198.51.100.4" }),
         { scope: "team", name: "from-api", type: "rule", files },
         proxied,

@@ -27,5 +27,19 @@
       "too_many_links": "Use at most {links, number} links in the message.",
       "tone_invalid": "Choose Information or Warning."
     }
+  },
+  "passwordChange": {
+    "checkbox": "Ask them to choose a new password when they sign in",
+    "checkboxHint": "Only they will know it. Accounts that sign in with a provider aren’t affected.",
+    "fact": "New password",
+    "factAsked": "Asked at their next sign-in",
+    "factNotAsked": "Not asked",
+    "askTitle": "Ask for a new password",
+    "clearTitle": "Stop asking for a new password",
+    "askBody": "At their next sign-in they must choose their own password before anything else. Their password, sessions and tokens stay as they are.",
+    "clearBody": "They will no longer be asked to choose a new password. Their password, sessions and tokens stay as they are.",
+    "askedDone": "They will be asked to choose a new password at their next sign-in.",
+    "clearedDone": "They will no longer be asked to choose a new password.",
+    "unchanged": "Nothing changed."
   }
 }

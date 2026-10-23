@@ -399,6 +399,9 @@ export const HELP = {
       "Everything an admin can, in every workspace, plus manage users, create and delete workspaces, change the instance's settings, read the audit log and approve their own submissions. There can be several roots, and each can change any other root's role or account, but not their own.",
     href: docsHref("roles", "roles"),
   },
+  "password-change": {
+    href: docsHref("admin", "users"),
+  },
   "own-row": {
     question: "Why can't I change my own account here?",
     answer:

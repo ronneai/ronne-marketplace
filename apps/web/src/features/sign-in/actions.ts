@@ -36,7 +36,7 @@ export const signInFromForm = serverAction(
     if (result.twoFactor) redirect(twoFactorPath(next));
     redirect(next);
   },
-  { whileHeld: true },
+  { whileHeld: true, whilePasswordHeld: true },
 );
 
 /** The second step's form (105): a code from the app, or a backup code. Works without JavaScript. */
@@ -52,7 +52,7 @@ export const twoFactorFromForm = serverAction(
       redirect(signInAgain(next, result.error));
     return { error: result.error };
   },
-  { whileHeld: true },
+  { whileHeld: true, whilePasswordHeld: true },
 );
 
 /**
@@ -74,5 +74,5 @@ export const ssoFromForm = serverAction(
     (await cookies()).set(result.cookie.name, result.cookie.value, result.cookie.options);
     redirect(result.url);
   },
-  { whileHeld: true },
+  { whileHeld: true, whilePasswordHeld: true },
 );
