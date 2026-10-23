@@ -13,18 +13,25 @@ describe("rmk-server service on Windows (#222)", () => {
   it("refuses every action in one line, and points at WSL 2 or Linux", async () => {
     for (const command of [
       { kind: "service", action: "install", options: defaults },
-      { kind: "service", action: "uninstall", deleteData: false },
+      { kind: "service", action: "install", options: { ...defaults, user: true } },
+      { kind: "service", action: "uninstall", deleteData: true },
       { kind: "service", action: "status" },
+      { kind: "service", action: "start" },
+      { kind: "service", action: "stop" },
       { kind: "service", action: "restart" },
+      { kind: "service", action: "logs" },
     ] as const) {
       const sys = fakeSystem({ platform: "win32" });
+      sys.files.set("C:\\ProgramData\\RonneAI\\Marketplace\\.env", { content: "", mode: 0o600 });
       expect(await runService(sys, command, program)).toBe(1);
       expect(sys.errors).toEqual([
         "rmk-server: service isn't available on Windows. Run rmk-server start in a terminal, or run Ronne in WSL 2 or Linux to start it at boot: https://www.ronne.ai/marketplace/docs/install#windows\n",
       ]);
-      // Nothing was run, read or written.
+      // Nothing was run, made or removed.
       expect(sys.commands).toEqual([]);
-      expect(sys.files.size).toBe(0);
+      expect(sys.dirs.size).toBe(0);
+      expect([...sys.files.keys()]).toEqual(["C:\\ProgramData\\RonneAI\\Marketplace\\.env"]);
+      expect(sys.output).toEqual([]);
     }
   });
 

@@ -9,7 +9,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { HELP, parseArgs, scriptArgs } from "./cli.js";
 import { MIN_NODE, nodeTooOld } from "./node-version.js";
 import { dataDir as defaultDataDir } from "./paths.js";
-import { platformRefusal, WINDOWS_NOTE } from "./platform.js";
+import { browserCommand, platformRefusal, startLines } from "./platform.js";
 import { isSetUp, serverEnv } from "./server-env.js";
 import { scriptForService } from "./service/control.js";
 import { runService, serviceTarget } from "./service/index.js";
@@ -38,13 +38,7 @@ const portFree = (port: number, host: string): Promise<boolean> =>
   });
 
 const openBrowser = (url: string): void => {
-  // On Windows, start's first argument is the window's title, so it gets an empty one.
-  const [command, args] =
-    process.platform === "darwin"
-      ? ["open", [url]]
-      : process.platform === "win32"
-        ? ["cmd", ["/c", "start", "", url]]
-        : ["xdg-open", [url]];
+  const [command, args] = browserCommand(process.platform, url, process.env);
   try {
     spawn(command, args, { stdio: "ignore", detached: true })
       .on("error", () => {})
@@ -161,8 +155,7 @@ export const main = async (argv: string[]): Promise<number | undefined> => {
     );
   const envFile = process.env.RONNE_ENV_FILE as string;
   const firstStart = !isSetUp(existsSync(envFile) ? readFileSync(envFile, "utf8") : undefined);
-  process.stdout.write(`Data folder: ${dir}\n`);
-  if (process.platform === "win32") process.stdout.write(`${WINDOWS_NOTE}\n`);
+  process.stdout.write(startLines(process.platform, dir));
   if (command.open && firstStart && process.stdout.isTTY)
     openWhenReady(`http://localhost:${command.port}`);
   // start.mjs checks the folder, applies pending migrations and starts Next.js's server here.

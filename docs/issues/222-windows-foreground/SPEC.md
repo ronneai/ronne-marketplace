@@ -43,11 +43,13 @@ setup. For a server that starts at boot, Windows still uses WSL 2 or a Linux vir
 - **One line at start on Windows**, after "Data folder: …": "On Windows, rmk-server runs in this
   terminal only (no service). To run it at boot, use WSL 2 or Linux:
   https://www.ronne.ai/marketplace/docs/install#windows".
-- **The first start opens the browser on Windows** too (`cmd /c start "" <url>`, as 082 did; the
-  address is always `http://localhost:<port>`, nothing a person types).
-- **`rmk-server service …` on Windows refuses**, in one line, exit 1: "rmk-server service isn't
-  available on Windows. Run rmk-server start in a terminal, or run Ronne in WSL 2 or Linux to start
-  it at boot: https://www.ronne.ai/marketplace/docs/install#windows". `service --help` still
+- **The first start opens the browser on Windows** too (`cmd /c start "" <url>`, as 082 did, but
+  with `%SystemRoot%\System32\cmd.exe` by its full path, so a `cmd.exe` in the current folder is
+  never the one run; the address is always `http://localhost:<port>`, nothing a person types).
+- **`rmk-server service …` on Windows refuses**, in one line, exit 1, before running, reading or
+  writing anything: "rmk-server: service isn't available on Windows. Run rmk-server start in a
+  terminal, or run Ronne in WSL 2 or Linux to start it at boot:
+  https://www.ronne.ai/marketplace/docs/install#windows". `service --help` still
   prints. The scripts don't look for a service there (none can exist) and run on the data folder.
 - **CI:** `server-checks.yml` adds `windows-latest` (Node 22 and 24) to the install matrix, which
   runs `server-probe.js` there: start, setup, sign-in, `revoke-access`, `rotate-secret`, backup and
