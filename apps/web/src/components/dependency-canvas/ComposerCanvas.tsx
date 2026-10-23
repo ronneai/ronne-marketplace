@@ -13,6 +13,7 @@ import {
   useReactFlow,
 } from "@xyflow/react";
 import { Maximize, ZoomIn, ZoomOut } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { type KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DRAG_TYPE, readDragged } from "./drag";
 import { type FlowNode, nodeTypes } from "./nodes";
@@ -27,13 +28,59 @@ export const FIT = { padding: 0.08, maxZoom: 1 } as const;
 /** What React Flow keeps about a node that the manifest and the layout don't say. */
 type Held = Pick<FlowNode, "selected" | "dragging" | "measured"> & { position?: Position };
 
-const describe = (node: ComposerNode) =>
-  node.type === "item"
-    ? `${node.data.name}, this ${node.data.type}`
-    : `${node.data.name}, ${node.data.facts?.type ?? "dependency"}, range ${node.data.range || "empty"}`;
+/** A node as a screen reader names it: "@team/fmt, this skill", "@team/git, mcp-server, range ^1.0.0". */
+type Describe = (node: ComposerNode) => string;
+
+export const useDescribe = (): Describe => {
+  const t = useTranslations("author.canvas");
+  // The same function while the language is, so the nodes aren't rebuilt on every render.
+  return useMemo<Describe>(
+    () => (node) =>
+      node.type === "item"
+        ? t("itemNode", { name: node.data.name, type: node.data.type })
+        : t("dependencyNode", {
+            name: node.data.name,
+            type: node.data.facts?.type ?? t("dependencyWord"),
+            range: node.data.range || t("emptyRange"),
+          }),
+    [t],
+  );
+};
+
+/**
+ * What React Flow says to screen readers, in the person's language (131): how to select and move
+ * a node, and where it moved. Its other defaults name controls this canvas doesn't use. React Flow
+ * takes these in an effect, so the server's markup has its English defaults until the page loads.
+ */
+export const useAriaLabels = (readOnly: boolean) => {
+  const t = useTranslations("author.canvas");
+  return useMemo(
+    () => ({
+      "node.a11yDescription.default": t(readOnly ? "nodeHelpReadOnly" : "nodeHelp"),
+      "node.a11yDescription.keyboardDisabled": t("nodeHelpReadOnly"),
+      "node.a11yDescription.ariaLiveMessage": ({
+        direction,
+        x,
+        y,
+      }: {
+        direction: string;
+        x: number;
+        y: number;
+      }) => t("moved", { direction, x, y }),
+      "edge.a11yDescription.default": t("edgeHelp"),
+      "minimap.ariaLabel": t("minimap"),
+      "handle.ariaLabel": t("handle"),
+    }),
+    [t, readOnly],
+  );
+};
 
 /** The model's nodes with what React Flow holds: a node follows the pointer only while dragged. */
-const withHeld = (nodes: readonly ComposerNode[], held: ReadonlyMap<string, Held>): FlowNode[] =>
+const withHeld = (
+  nodes: readonly ComposerNode[],
+  held: ReadonlyMap<string, Held>,
+  describe: Describe,
+): FlowNode[] =>
   nodes.map((node) => {
     const { position, ...rest } = held.get(node.id) ?? {};
     return {
@@ -50,12 +97,13 @@ const controlClasses =
   "inline-flex size-8 items-center justify-center rounded-control border border-strong bg-surface text-fg hover:border-accent outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus";
 
 const Controls = () => {
+  const t = useTranslations("author.canvas");
   const flow = useReactFlow();
   return (
     <Panel position="bottom-left" className="flex gap-1">
       <button
         type="button"
-        aria-label="Zoom in"
+        aria-label={t("zoomIn")}
         className={controlClasses}
         onClick={() => void flow.zoomIn()}
       >
@@ -63,7 +111,7 @@ const Controls = () => {
       </button>
       <button
         type="button"
-        aria-label="Zoom out"
+        aria-label={t("zoomOut")}
         className={controlClasses}
         onClick={() => void flow.zoomOut()}
       >
@@ -71,7 +119,7 @@ const Controls = () => {
       </button>
       <button
         type="button"
-        aria-label="Fit to view"
+        aria-label={t("fit")}
         className={controlClasses}
         onClick={() => void flow.fitView(FIT)}
       >
@@ -122,10 +170,13 @@ export const ComposerCanvas = ({
   /** A picker result dropped on the canvas, and where: its node's centre. */
   onDropEntry?: (entry: PickerEntry, at: Position) => void;
 }) => {
+  const t = useTranslations("author.canvas");
+  const describe = useDescribe();
+  const ariaLabels = useAriaLabels(readOnly);
   const [held, setHeld] = useState<ReadonlyMap<string, Held>>(new Map());
   const latest = useRef(modelNodes);
   latest.current = modelNodes;
-  const nodes = useMemo(() => withHeld(modelNodes, held), [modelNodes, held]);
+  const nodes = useMemo(() => withHeld(modelNodes, held, describe), [modelNodes, held, describe]);
 
   // Fitting ends a moment after the last answer, for its sizes to be measured, or as soon as the
   // author pans or zooms.
@@ -170,7 +221,7 @@ export const ComposerCanvas = ({
       setHeld(
         (current) =>
           new Map(
-            applyNodeChanges(changes, withHeld(latest.current, current)).map((node) => [
+            applyNodeChanges(changes, withHeld(latest.current, current, describe)).map((node) => [
               node.id,
               {
                 selected: node.selected,
@@ -183,7 +234,7 @@ export const ComposerCanvas = ({
       );
       if (Object.keys(moved).length > 0) onMove(moved);
     },
-    [onMove],
+    [onMove, describe],
   );
 
   /** Delete or Backspace removes the selected dependencies, but only with the focus on the canvas. */
@@ -232,17 +283,13 @@ export const ComposerCanvas = ({
       fitViewOptions={FIT}
       minZoom={0.2}
       maxZoom={1.5}
-      ariaLabelConfig={{
-        "node.a11yDescription.default": readOnly
-          ? "Press enter or space to select a node."
-          : "Press enter or space to select a node. You can then move it with the arrow keys, and remove it with delete. Press escape to cancel.",
-      }}
+      ariaLabelConfig={ariaLabels}
     >
       <Background gap={24} />
       <Controls />
       <FitWhile fitting={fitting} sizes={sizes} />
       {modelNodes.length > MINIMAP_FROM ? (
-        <MiniMap pannable zoomable ariaLabel="Mini-map of the canvas" />
+        <MiniMap pannable zoomable ariaLabel={t("minimap")} />
       ) : null}
     </ReactFlow>
   );

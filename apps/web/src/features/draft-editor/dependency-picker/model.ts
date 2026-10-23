@@ -20,39 +20,36 @@ const VERSION = new RegExp(
 );
 
 /**
- * What a range accepts, in words (#143): `^1.2.3` "1.2.3 or later 1.x", `^0.2.3` "0.2.3 or later
- * 0.2.x", `^0.0.3` "only 0.0.3", `1.2.3` "exactly 1.2.3". Null for anything else, such as a tilde
- * or a caret on a pre-release, which the picker never writes.
+ * What a range accepts (#143), as data the screens word: `^1.2.3` "1.2.3 or later 1.x" (`major`),
+ * `^0.2.3` "0.2.3 or later 0.2.x" (`minor`), `^0.0.3` "only 0.0.3" (`only`), `1.2.3` "exactly
+ * 1.2.3" (`exactly`). Null for anything else, such as a tilde or a caret on a pre-release, which
+ * the picker never writes. Words: `usePickerWords` (131).
  */
-export const acceptsText = (range: string): string | null => {
+export type Accepts =
+  | { kind: "exactly"; version: string }
+  | { kind: "major"; version: string; major: string }
+  | { kind: "minor"; version: string; minor: string }
+  | { kind: "only"; version: string }
+  /** An unreleased item's `^1.0.0` and `1.0.0`: its first release, or a later 1.x / exactly. */
+  | { kind: "first" }
+  | { kind: "firstExactly" };
+
+export const acceptsOf = (range: string): Accepts | null => {
   const caret = range.startsWith("^");
   const match = VERSION.exec(caret ? range.slice(1) : range);
   if (!match) return null;
   const version = caret ? range.slice(1) : range;
-  if (!caret) return `exactly ${version}`;
-  const [, major, minor, , pre] = match;
+  if (!caret) return { kind: "exactly", version };
+  const [, major = "", minor = "", , pre] = match;
   if (pre) return null;
-  if (major !== "0") return `${version} or later ${major}.x`;
-  if (minor !== "0") return `${version} or later 0.${minor}.x`;
-  return `only ${version}`;
+  if (major !== "0") return { kind: "major", version, major };
+  if (minor !== "0") return { kind: "minor", version, minor };
+  return { kind: "only", version };
 };
 
-export type VersionChoice = {
-  /** The range, then what it accepts: the text the list shows. */
-  label: string;
-  /** What choosing it writes to ronne.yaml. */
-  range: string;
-  /** What the range accepts, in words. */
-  accepts: string;
-};
-export type VersionGroup = { label: "Compatible" | "Exactly"; choices: VersionChoice[] };
-
-/** A row: the exact range it writes, then what that accepts. */
-const choice = (range: string, accepts: string): VersionChoice => ({
-  label: `${range} · ${accepts}`,
-  range,
-  accepts,
-});
+/** One row of a version list: the range it writes, what that accepts, and whether it's `latest`'s. */
+export type VersionChoice = { range: string; accepts: Accepts; latest: boolean };
+export type VersionGroup = { id: "compatible" | "exactly"; choices: VersionChoice[] };
 
 /**
  * What a row's version list offers (#143), in two groups. **Compatible**: the caret range of each
@@ -63,41 +60,37 @@ const choice = (range: string, accepts: string): VersionChoice => ({
 export const versionChoices = (option: DependencyOption): VersionGroup[] => {
   if (!option.latest)
     return [
-      { label: "Compatible", choices: [choice("^1.0.0", "its first release, or a later 1.x")] },
-      { label: "Exactly", choices: [choice("1.0.0", "exactly its first release")] },
+      {
+        id: "compatible",
+        choices: [{ range: "^1.0.0", accepts: { kind: "first" }, latest: false }],
+      },
+      {
+        id: "exactly",
+        choices: [{ range: "1.0.0", accepts: { kind: "firstExactly" }, latest: false }],
+      },
     ];
   const latest = rangeFor(option);
   const carets = [latest, ...option.versions.map((version) => `^${version}`)].filter(
-    (range, i, all) => range.startsWith("^") && acceptsText(range) && all.indexOf(range) === i,
+    (range, i, all) => range.startsWith("^") && acceptsOf(range) && all.indexOf(range) === i,
   );
   const groups: VersionGroup[] = [
     {
-      label: "Compatible",
-      choices: carets.map((range) =>
-        choice(range, `${acceptsText(range)}${range === latest ? ", latest" : ""}`),
-      ),
+      id: "compatible",
+      choices: carets.flatMap((range) => {
+        const accepts = acceptsOf(range);
+        return accepts ? [{ range, accepts, latest: range === latest }] : [];
+      }),
     },
     {
-      label: "Exactly",
-      choices: option.versions.map((version) => choice(version, `exactly ${version}`)),
+      id: "exactly",
+      choices: option.versions.map((version) => ({
+        range: version,
+        accepts: { kind: "exactly", version },
+        latest: false,
+      })),
     },
   ];
   return groups.filter((group) => group.choices.length > 0);
-};
-
-/** How an option's status reads in the list. */
-export const statusText = (option: DependencyOption): string => {
-  const status =
-    option.status === "published"
-      ? `published ${option.latest ?? ""}`.trim()
-      : option.status === "submitted"
-        ? "in review"
-        : option.status === "changes_requested"
-          ? "back with its author"
-          : option.status === "approved"
-            ? "pending release"
-            : option.status;
-  return option.mine ? `${status}, yours` : status;
 };
 
 /** The dependencies map from a manifest value: only string ranges, in order. */

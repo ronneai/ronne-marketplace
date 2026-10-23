@@ -46,7 +46,8 @@ import { startingFiles } from "@/server/domains/submissions/models/templates";
 import { saveDraftAction } from "./actions";
 import { addDependency, hasCanvas } from "./composer-canvas/model";
 import { findDependenciesAction } from "./dependency-picker/actions";
-import { dependencyRows, rangeFor, statusText } from "./dependency-picker/model";
+import { dependencyRows, rangeFor } from "./dependency-picker/model";
+import { usePickerWords } from "./dependency-picker/words";
 import { DeleteFileDialog, DraftSettingsDialog, ImportZipDialog, PathDialog } from "./FileDialogs";
 import {
   changesOf,
@@ -345,6 +346,10 @@ export const DraftEditor = ({
   const manifestNow = useRef(manifestText);
   manifestNow.current = manifestText;
   const offered = useRef(new Map<string, DependencyOption>());
+  // Read when the list opens: the words follow the language without rebuilding the mentions.
+  const words = usePickerWords();
+  const wordsNow = useRef(words);
+  wordsNow.current = words;
   const mentions = useMemo<Mentions | null>(
     () =>
       readOnly || !mayHaveDependencies(draft.type)
@@ -361,7 +366,7 @@ export const DraftEditor = ({
               for (const option of result.options) offered.current.set(option.name, option);
               return result.options.map((option) => ({
                 name: option.name,
-                detail: `${option.type} · ${statusText(option)}`,
+                detail: `${option.type} · ${wordsNow.current.statusText(option)}`,
               }));
             },
             pick: (name) => {

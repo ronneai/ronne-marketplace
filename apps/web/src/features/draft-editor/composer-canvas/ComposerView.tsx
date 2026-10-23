@@ -2,6 +2,7 @@
 
 import type { ItemType, ManifestIssue } from "@ronneai/core";
 import { ReactFlowProvider, useReactFlow } from "@xyflow/react";
+import { useTranslations } from "next-intl";
 import { useCallback, useMemo, useState } from "react";
 import { ComposerCanvas, FIT } from "@/components/dependency-canvas/ComposerCanvas";
 import { ComposerContext } from "@/components/dependency-canvas/context";
@@ -41,6 +42,7 @@ const Composer = ({
   onChange,
   dependencies,
 }: Omit<Props, "onShowYaml"> & { dependencies: Record<string, string> }) => {
+  const t = useTranslations("author.canvas");
   const flow = useReactFlow();
   const layout = useMemo(() => readLayout(layoutText), [layoutText]);
   const { reports, failed } = useDependencyReports(itemName, type, dependencies);
@@ -77,7 +79,7 @@ const Composer = ({
   return (
     <ComposerContext value={actions}>
       <div className="grid h-full grid-rows-[minmax(14rem,1fr)_auto]">
-        <section aria-label="Canvas" className="min-h-0 min-w-0">
+        <section aria-label={t("canvas")} className="min-h-0 min-w-0">
           <ComposerCanvas
             nodes={nodes}
             edges={edges}
@@ -123,18 +125,17 @@ const Composer = ({
  * `.ronne/layout.json`. While the YAML doesn't parse, it shows nothing to edit.
  */
 export const ComposerView = ({ onShowYaml, ...props }: Props) => {
+  const t = useTranslations("author.canvas");
   const dependencies = useMemo(() => readDependencies(props.manifest), [props.manifest]);
   if (!dependencies)
     return (
       <div className="h-full bg-surface">
-        <Notice kind="info" title="The canvas needs valid YAML.">
+        <Notice kind="info" title={t("needsYaml")}>
           <div className="grid gap-3">
-            <p>
-              ronne.yaml has a YAML error. Fix it in the YAML view; the problems below say where.
-            </p>
+            <p>{t("yamlError")}</p>
             <div>
               <Button variant="secondary" onClick={onShowYaml}>
-                Open the YAML
+                {t("openYaml")}
               </Button>
             </div>
           </div>

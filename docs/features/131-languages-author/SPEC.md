@@ -77,7 +77,12 @@ in Portuguese and French beside English. Nothing about what the screens do chang
 - **Bump names** (major, minor, patch) are translated as words where a sentence uses them, with
   the semver term beside them where the screen teaches it (the glossary has them).
 - **Core's messages** show as they come, in English, inside the translated list (its heading,
-  counts, severities and "line {n}" are messages). They keep their `backticked` names as code.
+  counts, severities and "line {n}" are messages). They keep their `backticked` names as code. So
+  do the registry's own checks reported the same way (013's dependency checks on the canvas and in
+  the Problems list), which the API returns as issues too.
+- **React Flow's screen-reader texts** (how to select and move a node, where it moved) are
+  messages; React Flow takes them once the page loads, so the server's first markup has its English
+  defaults until then.
 - **Errors.** A known error shows its translation; an error with no translation shows the English
   message (never a blank). The API's messages are unchanged.
 

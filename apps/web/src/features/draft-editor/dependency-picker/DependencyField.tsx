@@ -2,6 +2,7 @@
 
 import type { ItemType } from "@ronneai/core";
 import { X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState } from "react";
 import { DependencyStatusBadge } from "@/components/submissions/DependencyMarks";
 import { Badge } from "@/components/ui/Badge";
@@ -10,7 +11,8 @@ import { TypeBadge } from "@/components/ui/TypeBadge";
 import type { DependencyOption } from "@/server/domains/submissions/actions/composer";
 import type { DependencyMark } from "@/server/domains/submissions/actions/submissions";
 import { findDependenciesAction } from "./actions";
-import { acceptsText, dependencyRows, rangeFor, statusText, versionChoices } from "./model";
+import { dependencyRows, rangeFor } from "./model";
+import { usePickerWords } from "./words";
 
 /** The mark a dependency picked here gets, from what the list said of it: none once published. */
 const markOfOption = (option: DependencyOption): DependencyMark | undefined =>
@@ -61,13 +63,16 @@ export const useDependencyOptions = (
 };
 
 /** One option as the list shows it: name, type and status. */
-export const OptionLine = ({ option }: { option: DependencyOption }) => (
-  <span className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-    <span className="truncate font-mono text-sm text-fg">{option.name}</span>
-    <TypeBadge type={option.type} />
-    <span className="text-xs text-muted">{statusText(option)}</span>
-  </span>
-);
+export const OptionLine = ({ option }: { option: DependencyOption }) => {
+  const words = usePickerWords();
+  return (
+    <span className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+      <span className="truncate font-mono text-sm text-fg">{option.name}</span>
+      <TypeBadge type={option.type} />
+      <span className="text-xs text-muted">{words.statusText(option)}</span>
+    </span>
+  );
+};
 
 /**
  * A row's range: the versions when the item was picked here, otherwise a range to type. The
@@ -85,15 +90,17 @@ export const RangeInput = ({
   option: DependencyOption | undefined;
   onChange: (range: string) => void;
 }) => {
+  const t = useTranslations("author");
+  const words = usePickerWords();
   // Typed ranges are written when the field is left, so half a range never reaches the checks.
   const [typed, setTyped] = useState(range);
   useEffect(() => setTyped(range), [range]);
   if (option) {
-    const groups = versionChoices(option);
+    const groups = words.versionChoices(option);
     const known = groups.some((group) => group.choices.some((choice) => choice.range === range));
     return (
       <Select
-        aria-label={`Version of ${name}`}
+        aria-label={t("picker.versionOf", { name })}
         value={range}
         onChange={(event) => onChange(event.target.value)}
         className="h-8 font-mono text-xs"
@@ -113,7 +120,7 @@ export const RangeInput = ({
   }
   return (
     <input
-      aria-label={`Range of ${name}`}
+      aria-label={t("canvas.rangeOf", { name })}
       value={typed}
       onChange={(event) => setTyped(event.target.value)}
       onBlur={() => typed !== range && onChange(typed)}
@@ -133,7 +140,7 @@ export const RangeInput = ({
  * the read-only form), in the list's words (#143). Nothing for a range it has no words for.
  */
 const RangeWords = ({ range }: { range: string }) => {
-  const accepts = acceptsText(range);
+  const accepts = usePickerWords().acceptsText(range);
   if (!accepts) return null;
   return (
     <p className="text-xs text-muted">
@@ -161,6 +168,7 @@ export const DependencyField = ({
   itemName: string;
   onChange: (dependencies: Record<string, string>) => void;
 }) => {
+  const t = useTranslations("author");
   const rows = dependencyRows(value);
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -194,8 +202,8 @@ export const DependencyField = ({
           aria-controls={listId}
           aria-autocomplete="list"
           aria-activedescendant={open && options[active] ? `${listId}-${active}` : undefined}
-          aria-label="Add a dependency"
-          placeholder="Add a dependency: type part of its name"
+          aria-label={t("picker.add")}
+          placeholder={t("picker.placeholder")}
           value={query}
           onChange={(event) => {
             setQuery(event.target.value);
@@ -225,13 +233,13 @@ export const DependencyField = ({
           <div
             id={listId}
             role="listbox"
-            aria-label="Items to depend on"
+            aria-label={t("picker.list")}
             className="absolute right-0 left-0 z-20 mt-1 max-h-72 overflow-y-auto rounded-control border border-strong bg-surface py-1"
           >
             {error ? (
               <p className="px-3 py-2 text-sm text-error-text">{error}</p>
             ) : options.length === 0 ? (
-              <p className="px-3 py-2 text-sm text-muted">No item matches.</p>
+              <p className="px-3 py-2 text-sm text-muted">{t("picker.noMatch")}</p>
             ) : (
               options.map((option, i) => (
                 <div
@@ -248,7 +256,7 @@ export const DependencyField = ({
                   className="flex cursor-pointer items-center gap-2 px-3 py-1.5 aria-selected:bg-tint"
                 >
                   <OptionLine option={option} />
-                  {option.status === "draft" ? <Badge>draft</Badge> : null}
+                  {option.status === "draft" ? <Badge>{t("status.draft")}</Badge> : null}
                 </div>
               ))
             )}
@@ -278,7 +286,7 @@ export const DependencyField = ({
                   </div>
                   <button
                     type="button"
-                    aria-label={`Remove ${name}`}
+                    aria-label={t("canvas.remove", { name })}
                     onClick={() => write(rows.filter(([n]) => n !== name))}
                     className="text-muted hover:text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
                   >
@@ -287,9 +295,7 @@ export const DependencyField = ({
                 </div>
                 {option ? null : <RangeWords range={range} />}
                 {option?.status === "draft" ? (
-                  <p className="text-xs text-muted">
-                    A draft: it&apos;s submitted with this item when you submit it.
-                  </p>
+                  <p className="text-xs text-muted">{t("picker.draftNote")}</p>
                 ) : null}
               </li>
             );
