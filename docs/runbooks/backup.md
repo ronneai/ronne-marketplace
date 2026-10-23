@@ -66,8 +66,9 @@ output names them. In Docker that's `TRUST_PROXY` (and `PUBLIC_URL`), which `com
 Ronne has no schedule of its own: the system's scheduler runs the command. Daily, keeping two weeks,
 is a good start. Each example writes to a log; check it, and the `backups/` folder, now and then.
 
-The server runs on Linux and macOS (on Windows, in WSL 2 or a Linux virtual machine, with the
-Linux steps).
+The examples are for Linux and macOS. On Windows, the server runs in a terminal only (no service),
+so schedule backups in WSL 2 or a Linux virtual machine, with the Linux steps; `rmk-server backup`
+by hand works on Windows too.
 
 **Encrypted on a schedule:** keep the passphrase in a file only root can read, and pass it in `RONNE_BACKUP_PASSPHRASE`. Not `--passphrase-file` with a service: the
 backup runs as the service's account, which can't read root's file.

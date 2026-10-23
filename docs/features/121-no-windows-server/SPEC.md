@@ -4,6 +4,10 @@
 > Design: [MVP §5](../../MVP/MVP.md#5-installation--bootstrap), [§15](../../MVP/MVP.md#15-decision-log) (Easy install) ·
 > Guide: [`docs/runbooks/install.md`](../../runbooks/install.md)
 
+> **Partly reversed by [#222](../../issues/222-windows-foreground/SPEC.md)** (owner, 2026-10-22):
+> `rmk-server` runs on Windows again, in a terminal, without a service, on 0.3.2's data folder. The
+> service, `install.ps1`, winget and the Windows bundles stay withdrawn.
+
 ## Goal
 
 The Ronne server (`rmk-server`, the image, the install script) runs on Linux and macOS only. People

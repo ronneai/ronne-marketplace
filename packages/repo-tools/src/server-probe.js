@@ -5,12 +5,12 @@
 // SQLite, expects 200 with no restart and a token from sign-in, then runs the incident commands
 // (098): `revoke-access --everyone --yes` makes that token answer 401, and `rotate-secret --yes`
 // writes a new secret the server uses at once; `backup --keep 1` (099), twice, leaves one archive,
-// and on macOS `backup --out` into storage spelled in capitals is refused; then backup →
+// and on macOS and Windows `backup --out` into storage spelled in capitals is refused; then backup →
 // restore into a new data folder → start: a token still works, a revoked one stays revoked, the
 // account and a stored file come back the same.
-// Then it stops it and checks the port is free. Used
-// by the server-package workflow on Ubuntu and macOS (no Windows server since 121).
-import { execFileSync, spawn } from "node:child_process";
+// Then it stops it and checks the port is free. On Windows, the start's terminal-only note and the
+// `service` refusal (#222). Used by the server-package workflow on Ubuntu, macOS and Windows.
+import { execFileSync, execSync, spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
@@ -21,9 +21,15 @@ import { parseEnv } from "node:util";
 const command = process.argv[2] ?? "rmk-server";
 const work = mkdtempSync(join(tmpdir(), "rmk-server-probe-"));
 const dataDir = join(work, "data");
+const windows = process.platform === "win32";
 const options = (env, dir = dataDir) => ({ env: { ...process.env, ...env, RONNE_DATA_DIR: dir } });
-const runSync = (args, opts) => execFileSync(command, args, opts);
-const start = (args, opts) => spawn(command, args, opts);
+// npm installs a .cmd on Windows, which only a shell can start. The shell gets one command line:
+// passing arguments separately with `shell: true` is deprecated (DEP0190).
+const line = (args) => [`"${command}"`, ...args].join(" ");
+const runSync = (args, opts) =>
+  windows ? execSync(line(args), opts) : execFileSync(command, args, opts);
+const start = (args, opts) =>
+  windows ? spawn(line(args), { ...opts, shell: true }) : spawn(command, args, opts);
 
 const freePort = () =>
   new Promise((resolve) => {
@@ -43,8 +49,16 @@ const portFree = (port) =>
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/** Stops the server. */
-const stop = (child) => child.kill("SIGTERM");
+/** Stops the server and everything it started: on Windows the shell's whole tree. */
+const stop = (child) => {
+  if (windows) {
+    try {
+      execFileSync("taskkill", ["/pid", String(child.pid), "/T", "/F"], { stdio: "ignore" });
+    } catch {
+      // already gone
+    }
+  } else child.kill("SIGTERM");
+};
 
 const step = (message) => console.log(`✓ ${message}`);
 
@@ -82,6 +96,25 @@ try {
   if (!health.body.error.message.includes("rmk-server setup"))
     throw new Error(`the 503 doesn't name rmk-server setup: ${health.body.error.message}`);
   step(`started on ${url}; /api/health 503 setup_required, naming rmk-server setup`);
+
+  // On Windows it runs in a terminal only (#222): the start says so, and `service` refuses before
+  // doing anything.
+  if (windows) {
+    if (!log.includes("On Windows, rmk-server runs in this terminal only (no service)."))
+      throw new Error(
+        `the start on Windows doesn't say it runs in the terminal only. Log:\n${log}`,
+      );
+    let refused = "";
+    try {
+      runSync(["service", "status"], { ...options({}), encoding: "utf8", stdio: "pipe" });
+    } catch (error) {
+      refused = `${error.stdout ?? ""}${error.stderr ?? ""}`;
+      if (error.status !== 1) throw new Error(`service status exited ${error.status}, not 1`);
+    }
+    if (!refused.includes("rmk-server: service isn't available on Windows."))
+      throw new Error(`service status wasn't refused: ${refused || "it succeeded"}`);
+    step("Windows: the terminal-only note at start; service status refused, exit 1");
+  }
 
   // Its log (feature 100): Next.js's banner as text, every line of Ronne's as JSON, and among them
   // server.started, the line to alert on, with this run's facts and no address.
@@ -172,9 +205,9 @@ try {
     throw new Error(`after two backups with --keep 1, backups/ holds ${archives.join(", ")}`);
   step("backup --keep 1, twice: one archive in the data folder's backups/");
 
-  // macOS's disks ignore case: storage spelled in capitals is still storage, and the backup
-  // refuses to go inside it (on Linux it's another folder). Nothing is left behind.
-  if (process.platform === "darwin") {
+  // macOS's and Windows' disks ignore case: storage spelled in capitals is still storage, and the
+  // backup refuses to go inside it (on Linux it's another folder). Nothing is left behind.
+  if (windows || process.platform === "darwin") {
     const inside = join(dataDir, "STORAGE", "b");
     let refused = "";
     try {
