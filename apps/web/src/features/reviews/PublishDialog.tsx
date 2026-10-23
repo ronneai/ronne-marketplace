@@ -155,9 +155,12 @@ export const PublishDialog = ({
   blocked = null,
   goesWith = [],
   defaultOpen = false,
+  defaultKind = "stable",
 }: {
   /** Opened at once, without its button being pressed. */
   defaultOpen?: boolean;
+  /** The kind of release it starts on: stable unless asked. */
+  defaultKind?: "stable" | "prerelease";
   /** Its approved dependencies not released yet (112): released with it. */
   goesWith?: ReleaseMember[];
   /** Why it can't be released yet (056): a dependency not released, or blocked. */
@@ -174,7 +177,7 @@ export const PublishDialog = ({
   const t = useTranslations("author.review");
   const router = useRouter();
   const [open, setOpen] = useState(defaultOpen);
-  const [kind, setKind] = useState<"stable" | "prerelease">("stable");
+  const [kind, setKind] = useState<"stable" | "prerelease">(defaultKind);
   const [preId, setPreId] = useState("beta");
   const [bump, setBump] = useState<Bump>(suggested?.bump ?? "minor");
   const [tag, setTag] = useState("");

@@ -840,7 +840,8 @@ describe("a review's page in three languages (131)", () => {
       for (const decision of ["approve", "request_changes", "reject", "override"] as const) {
         const [title, hint, button] = words[l][decision];
         const text = dialog(l, decision);
-        expect(text, `${l} ${decision} title`).toContain(title);
+        // The title as the dialog's heading, not anywhere (it can match the button).
+        expect(text.match(/<h2 [^>]*>([^<]*)<\/h2>/)?.[1], `${l} ${decision} title`).toBe(title);
         expect(text, `${l} ${decision} hint`).toContain(hint);
         expect(text, `${l} ${decision} button`).toContain(button);
       }
@@ -1004,6 +1005,31 @@ describe("a review's page in three languages (131)", () => {
     expect(notice("fr", 1)).toContain("@t/{a} 1.1.0 publié comme latest, avec @t/b 1.0.0.");
     expect(notice("fr", 3)).toContain("avec @t/b 1.0.0, @t/c 2.0.0 et @t/d 3.0.0.");
     expect(notice("fr", 0)).toContain("sha256 abc");
+    expect(notice("fr", 0)).toContain("@t/{a} 1.1.0 publié comme latest.");
+  });
+
+  it("says when one that goes along gets no version", () => {
+    const stuck = (l: L) =>
+      html(
+        l,
+        <PublishDialog
+          id="s"
+          itemName="@t/a"
+          published={["1.0.0"]}
+          versionsHref="/v"
+          defaultOpen
+          defaultKind="prerelease"
+          goesWith={[{ name: "@t/x", published: ["1.0.0", "1.1.0-rc.1"], suggested: null }]}
+        />,
+      );
+    // A beta of the next minor would sort before @t/x's 1.1.0-rc.1: no version for it.
+    expect(stuck("en")).toContain("@t/x gets no version from that");
+    expect(stuck("fr")).toContain(
+      "@t/x n’obtient pas de version ainsi : il ne peut pas être publié en même temps de cette façon.",
+    );
+    expect(stuck("pt")).toContain(
+      "@t/x não recebe versão assim: não pode ser lançado junto dessa forma.",
+    );
   });
 
   it("words each tag problem", () => {
