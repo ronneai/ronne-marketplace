@@ -7,8 +7,13 @@ badge's or line's text from `renderToStaticMarkup`.
 
 ## What to do
 
-Don't write the regex in a test. Use `textOf` from `apps/web/src/test/text.ts`: it drops the tags,
-then every `<` left over, so nothing that looks like a tag can survive and CodeQL is satisfied.
+Don't write the regex in a test. Use `textOf` from `apps/web/src/test/text.ts`: it splits on `<`
+and keeps what follows each tag's `>`, so no `<` survives.
+
+## What did not help
+
+A second replace after the first (`.replace(/<[^>]*>/g, "").replace(/</g, "")`): CodeQL flagged the
+helper itself (#231, alert 36). It doesn't credit a later pass; leave `replace` out entirely.
 
 ```ts
 import { textOf } from "@/test/text";
