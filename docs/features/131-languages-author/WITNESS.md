@@ -550,3 +550,16 @@ Witnessed: 2026-10-23 16:59 EDT, by a fresh agent (blind). Commit: d3d12c8a (ron
 | R | ronne-web lint, typecheck, test | no | confirmed | 280 files; tsc exit 0; 183 passed (build not run in the copy) |
 
 **Overall:** not met: rows 9b, 9c. Fixed in ronne-web 3f2095a; the round's probes (`strong-labels.mjs`, `english-labels.mjs`) then list only screens the app keeps English.
+
+### Re-check (rows 9b, 9c)
+
+Witnessed: 2026-10-23 17:04 EDT, by a fresh agent (blind). Commit: c0ee047e (ronne-web 3f2095a). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 9b | No guide row contradicts another or the app | no | not met | Guide line 210 lists "the Workspaces page" among headings still English; the app heads it Espaços de trabalho / Espaces de travail |
+| 9c | The edited pages quote the app's labels | no | partly | Earlier fixes match the app; "página Workspaces" / « page Workspaces » left; "with **Manage**" names a label the list no longer shows ("Yours") |
+| W | `witness:check` | no | confirmed | exit 0 |
+| R | ronne-web lint, typecheck, test | no | confirmed | 280 files; tsc exit 0; 183 passed |
+
+**Overall:** not met: rows 9b, 9c. Fixed in ronne-web 6a4bec7 (English too: "Yours"); `grep "página Workspaces\|page Workspaces\|>Manage<"` on the pt and fr pages is then empty.
