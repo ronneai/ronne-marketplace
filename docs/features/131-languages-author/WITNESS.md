@@ -218,3 +218,33 @@ Witnessed: 2026-10-23 11:25 EDT, by a fresh agent (blind). Commit: eb813672. Mac
 | 12 | "Saved at" shows the reader's zone in en, pt and fr; its test fails when that's undone, on a UTC machine too | no | confirmed | The test mocks `resolvedOptions` to `Pacific/Kiritimati`; passes on the committed code with TZ unset, UTC and America/Toronto; the line removed, set to "UTC" or "Asia/Tokyo" → 1 failed under UTC and Toronto each time. The four path-dialog words are each checked in pt and fr |
 
 **Overall:** met.
+
+## Task 6 — My submissions
+
+Witnessed: 2026-10-23 11:30 EDT, by a fresh agent (blind). Commit: 1180273a. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The task's tests pass, with three-language tests of the filters, table, row feedback, empty states, `ArchivedActions`, `BulkSubmit` and the page | no | confirmed | 5 files, 110 passed; `submissions.test.tsx` "My submissions in three languages (131)" with `englishLeaks` for pt and fr |
+| 2 | The status filters use `author.status`; `statusLabel` is gone from the screen | no | confirmed | `t("submissions.statusCount", { status: t(\`status.${s}\`) … })`; mutation → 6 tests fail |
+| 3 | No visible change in English | no | confirmed | Old and new English compared in the diff; counts now use `{count, number}` (1,000+ grouped) |
+| 4 | Whole sentences with ICU plural and `select` | no | confirmed | `fixFirst`, `fixFirstTitle`, `submitCount` plurals; `feedback` with `select` |
+| 5 | Data shown as typed | no | confirmed | `{count}`, `{by}`, `{body} <b>` shown verbatim in pt and fr |
+| 6 | Counts of 1 and 2 follow each language's plural rule | no | confirmed | Tests assert issues and drafts at 1 and 2 |
+| 7 | The table footer's noun is right for 0, 1 and 2 in three languages | no | partly | Behaviour right; no test: `noun="item"` left every test green |
+| 8 | The route is in `MIGRATED_ROUTES` and the pinned list | no | confirmed | `e2e/pages.ts`, `pages-coverage.test.ts` |
+| 9 | The folders are in the raw-text scan, lint clean | no | confirmed | `biome.json`; a raw `Delete` → lint error |
+| 10 | pt/fr typography and glossary | no | confirmed | fr space before colons, curly apostrophes; pt none |
+| 11 | Server `reasons` and `<Help>` stay as they are | no | confirmed | Out of scope (tasks 10, 11) |
+
+**Overall:** not met: row 7.
+
+### Re-check (row 7)
+
+Witnessed: 2026-10-23 11:34 EDT, by a fresh agent (blind). Commit: 4cb300a1. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 7 | The footer's noun is right for 0, 1 and 2 in en, pt and fr, and a test asserts it | no | confirmed | The new test checks all nine cells; `noun="item"`, en without `one`, pt `other` singular, fr `one` plural → each fails it; 40 passed |
+
+**Overall:** met.

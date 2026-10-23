@@ -42,7 +42,7 @@ Every task that moves a folder adds it to the `overrides` entry in `biome.json` 
   *Done when:* three-language tests of each dialog and the submit preview with 0, 1 and 2
   drafts; the route is in `MIGRATED_ROUTES`.
 
-- [ ] **6. My submissions.** `SubmissionsTable`, its filters, `ArchivedActions`, `BulkSubmit`,
+- [x] **6. My submissions.** `SubmissionsTable`, its filters, `ArchivedActions`, `BulkSubmit`,
   `app/(app)/submissions/page.tsx`.
   *Done when:* three-language tests; the table footer's noun is right for 0, 1 and 2; the route
   is in `MIGRATED_ROUTES`.
