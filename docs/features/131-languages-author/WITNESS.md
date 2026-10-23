@@ -428,3 +428,30 @@ Witnessed: 2026-10-23 16:03 EDT, by a fresh agent (adversarial). Commit: e74e59c
 | 10 | Neighbours: API mapping, the SPEC's exception, the web tests | no | confirmed | `why` never serialized; English changed only as SPEC.md states; 4806 passed |
 
 **Overall:** met.
+
+## Task 11 — The inline helpers
+
+Witnessed: 2026-10-23 16:08 EDT, by a fresh agent (blind). Commit: ff03c167. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The 27 entries keep only their `href` in `HELP` | no | confirmed | `git show ff03c167 -- Help.tsx`: 27 question/answer pairs deleted, hrefs unchanged |
+| 2 | `en/help.json` has the 27 with the English unchanged | no | confirmed | `compare-en.mjs` against `Help.tsx` at ff03c167~1 → 27 compared, 0 differences |
+| 3 | pt and fr have all 27, same keys and placeholders | no | confirmed | Parity test passes; deleting pt `ready` fails it and 2 help tests |
+| 4 | `help.test.tsx` covers the 27 | no | confirmed | MOVED lists them; fr `risk.answer` set to English fails "none of them is left as the English text" |
+| 5 | Each link opens the website in the language | no | confirmed | `/pt/` and `/fr/` hrefs asserted for all 27; breaking the localising fails 4 tests; the sections exist in ronne-web |
+| 6 | The screens' tests pass | no | confirmed | 24 files, 404 passed |
+| 7 | French typography | no | confirmed | No space before `;?!`, a space before every `:`, no straight apostrophes |
+| 8 | Button and label names match the screens and the glossary | no | partly | `deprecate-yank` said "Tornar obsoleta"/"Rendre obsolète" (button and glossary: "Marcar como obsoleta"/"Marquer comme obsolète"); bump helpers said "incremento"/"incrément" beside the "Bump" field |
+
+**Overall:** not met: row 8.
+
+### Re-check (row 8)
+
+Witnessed: 2026-10-23 16:13 EDT, by a fresh agent (blind). Commit: 0472d64f. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 8 | Button and label names in the pt and fr helpers match the screens' labels and the glossary | no | confirmed | Node comparison of all 27 against `author.json` and the glossary (with the new "bump" row); no "incremento", "incrément", "Tornar obsolet", "Rendre obsol" left; 353 tests passed |
+
+**Overall:** met.
