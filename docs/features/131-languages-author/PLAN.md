@@ -25,7 +25,7 @@ Every task that moves a folder adds it to the `overrides` entry in `biome.json` 
   *Done when:* three-language tests; a test that a core message stays as given inside the
   translated list; the folders are in the scan; `?tab=files` reads in the language.
 
-- [ ] **3. The dependency canvas.** `components/dependency-canvas` (node text, controls, legends)
+- [x] **3. The dependency canvas.** `components/dependency-canvas` (node text, controls, legends)
   and the composer canvas and dependency picker in `features/draft-editor`.
   *Done when:* three-language tests; the Overview's canvas (130) has no English left.
 

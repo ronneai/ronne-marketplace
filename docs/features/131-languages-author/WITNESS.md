@@ -70,3 +70,49 @@ Witnessed: 2026-10-23 10:10 EDT, by a fresh agent (blind). Commit: 978e5187. Mac
 | 13 | SPEC.md records the English bundle line change, and no other English on the Works in tab changed | no | confirmed | `SPEC.md` "No visible change in English" names it; `git diff c3d98242~1 HEAD` on `en/item.json`, `ToolsPanel.tsx`, `tool-paths.ts` → the native, degraded, off and none strings unchanged; every old place gives the same words, only which words are in code changed, as recorded |
 
 **Overall:** met.
+
+## Task 3 — The dependency canvas
+
+Witnessed: 2026-10-23 10:22 EDT, by a fresh agent (blind). Commit: 98f2cb62. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The canvas nodes' text and controls are messages in en/pt/fr | no | confirmed | `nodes.tsx`, `ComposerCanvas.tsx` use `author.canvas` / `common.field`; probe → pt "intervalo", "funciona em Claude Code", "não publicado", "Aumentar o zoom"; fr "plage", "non publié", "Zoom avant" |
+| 2 | The composer's dependency list, the YAML notice and the catalogue picker are in three languages | no | confirmed | `npx vitest run src/features/draft-editor/composer-canvas src/features/draft-editor/dependency-picker src/features/item-page/overview src/i18n` → 20 files, 279 passed; probe → pt "Resultados do catálogo", "v1.0.0, seu"; fr "Ajouter @t/{n}" |
+| 3 | The picker's model is structured data and `words.ts` words it | no | confirmed | `acceptsOf` returns `{kind,…}`; probe → pt "^2.0.0 · a 2.0.0 ou uma 2.x posterior, a mais recente", group "Exata"; `^1.0.0-beta` → null as before |
+| 4 | The `@` mention detail uses the translated status | no | confirmed | `DraftEditor.tsx` `detail: ${option.type} · ${wordsNow.current.statusText(option)}`; `statusText` tested in three languages |
+| 5 | The three-language tests fail without the change | no | confirmed | Mutations (`t("notPublished")` → literal; "yours" dropped) → 5 failed; restored, `cmp` identical |
+| 6 | The three folders are in the raw-text scan | no | confirmed | `biome.json` lists them; planted literals → `plugin` errors |
+| 7 | No visible change in English | no | confirmed | `composer.test.tsx` unchanged and passing; `dependency-picker.test` keeps its English expectations through `usePickerWords`; probe en strings equal the old ones |
+| 8 | Core's and the registry's checks show as they come | no | confirmed | `translations.test.tsx` → pt ">ERRO:<", the message's code and English text |
+| 9 | React Flow's screen-reader texts are messages, with English defaults in the first server markup | no | confirmed | `useAriaLabels` → fr live message; probe x=12345 ungrouped; SSR how-to shows React Flow's defaults, as the spec allows |
+| 10 | Versions, ranges and names are data | no | confirmed | probe → "v{v}", "publié en {v}, à vous", "@team/{x}, mcp-server, intervalo 1.0.0" |
+| 11 | Counts follow the plural rule | no | confirmed | The only count in scope is a bare number in `dependenciesCount` |
+| 12 | The Overview's canvas (130) has no English left | no | partly | Edges keep React Flow's `aria-label` "Edge from item to dependency:@team/git"; `aria-roledescription` "node"/"edge"; "React Flow attribution" fixed by the library and not in SPEC.md; the server render draws no edges, so the test can't see them |
+
+**Overall:** not met: row 12.
+
+### Re-check (row 12)
+
+Witnessed: 2026-10-23 10:26 EDT, by a fresh agent (blind). Commit: 4ff5e281. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 12a | Each edge's label is a sentence in the person's language | no | confirmed | `toFlowEdges` sets `ariaLabel` from `t("edge")`; React Flow reads it before its fallback; probe → en "@team/reviewer depends on @team/git", pt "… depende de …", fr "… dépend de @team/{x}" |
+| 12b | Nodes and edges carry a translated role word | no | confirmed | `domAttributes` spread after React Flow's own; probe → pt "nó"/"ligação", fr "nœud"/"lien"; only "React Flow attribution" left |
+| 12c | SPEC.md names what can't be changed | no | confirmed | SPEC.md Behaviour names "React Flow attribution" and the how-to texts' first markup |
+| 12d | SPEC.md records the English change to the edge label | no | confirmed | SPEC.md: "An edge reads as a sentence … (it was React Flow's 'Edge from item to dependency:@team/git')" |
+| 12e | Tests cover edge labels and roles and fail when the fix is undone | no | partly | `toFlowEdges` mutations fail the test, but undoing the call site in `ComposerCanvas.tsx` (English label, `role: "edge"`) failed none |
+| 12f | The rest of task 3's tests pass | no | confirmed | 8 files, 111 passed |
+
+**Overall:** not met: row 12e.
+
+### Re-check (row 12e)
+
+Witnessed: 2026-10-23 10:29 EDT, by a fresh agent (blind). Commit: 5918d0e9. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 12e | A test covers what ComposerCanvas hands React Flow (edge labels, edge role, node role) in en, pt and fr, and each mutation fails it | no | confirmed | `flow-labels.test.tsx` records `ReactFlow`'s props and renders the real `ComposerCanvas`. English label at the call site → 2 failed; `role: "edge"` → 1 failed; `{ role: "node" }` → 1 failed; edge `domAttributes` dropped → 2 failed; node `domAttributes` dropped → 2 failed; restored, `cmp` identical. Canvas, composer, picker and item-page tests → 12 files, 156 passed |
+
+**Overall:** met.
