@@ -74,7 +74,7 @@ Every task that moves a folder adds it to the `overrides` entry in `biome.json` 
   *Done when:* `help.test.tsx` and the parity test cover them; each moved helper's link opens the
   website's page in the language.
 
-- [ ] **12. End to end.** `MIGRATED_ROUTES` and the pinned list have the five routes (and the
+- [x] **12. End to end.** `MIGRATED_ROUTES` and the pinned list have the five routes (and the
   Settings comment there says 132, not 131); an end-to-end test that opens a draft, the
   submissions list, a review and an item's Versions tab in Portuguese and in French and sees no
   English left (core's messages and data aside); the phone sweep passes in each language.

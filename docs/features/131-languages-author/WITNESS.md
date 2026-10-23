@@ -455,3 +455,19 @@ Witnessed: 2026-10-23 16:13 EDT, by a fresh agent (blind). Commit: 0472d64f. Mac
 | 8 | Button and label names in the pt and fr helpers match the screens' labels and the glossary | no | confirmed | Node comparison of all 27 against `author.json` and the glossary (with the new "bump" row); no "incremento", "incrément", "Tornar obsolet", "Rendre obsol" left; 353 tests passed |
 
 **Overall:** met.
+
+## Task 12 — End to end
+
+Witnessed: 2026-10-23 16:40 EDT, by a fresh agent (blind). Commit: 0bb7ab63. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `MIGRATED_ROUTES` has the five routes | no | confirmed | `e2e/pages.ts:205-209`; all five also in `SWEEP_PAGES` |
+| 2 | The pinned list has them | no | confirmed | `pages-coverage.test.ts:59-63` in an exact `toEqual`; 3 passed |
+| 3 | The Settings comment says 132 | no | confirmed | `pages.ts:210`; `git log -L` shows dbf37325 changed it from 131 |
+| 4 | An e2e test opens a draft, the list, a review and Versions in pt and fr | no | confirmed | `e2e/languages-author.e2e.ts`; 6 passed |
+| 5 | It finds English left (core's messages and data aside) | no | confirmed | Probe: the English page judged as pt → leaks; the pt page → none; a planted "My submissions" → caught |
+| 6 | The phone sweep passes in each language | no | confirmed | en, pt, fr sweeps passed; `/submissions/new` keeps its earlier allowance (072) |
+| 7 | Chromium and phone green on a fresh build | no | confirmed | Fresh build, then `playwright test --project chromium --project phone` → 183 passed, no retries |
+
+**Overall:** met.
