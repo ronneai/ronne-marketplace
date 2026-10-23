@@ -168,6 +168,22 @@ describe("the Versions tab in three languages (131)", () => {
     expect(fr).toContain("2 Ko");
   });
 
+  it("writes the 30-day counts as the language does", async () => {
+    versions.itemPage.mockResolvedValue(pageData());
+    usage.itemUsageByVersion.mockResolvedValue({ "1.1.0": { runs: 1240, installs: 12345 } });
+    const counts = async (l: L) =>
+      inLocaleAsync(l, async () =>
+        renderToStaticMarkup(
+          await Page({ params: Promise.resolve({ scope: "team", name: "github" }) }),
+        ),
+      );
+    expect(await counts("en")).toContain(">1,240<");
+    expect(await counts("pt")).toContain(">1.240<");
+    expect(await counts("pt")).toContain(">12.345<");
+    expect(await counts("fr")).toContain(">1\u202f240<");
+    usage.itemUsageByVersion.mockResolvedValue(null);
+  });
+
   it("words each version dialog, with the reach in plurals", async () => {
     const { Reach, TagControls, VersionControls } = await import("./VersionControls");
     const reach = (l: L, runs: number, installs: number) =>

@@ -11,8 +11,10 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 const {
   BulkReleaseProvider,
   BulkReleaseToolbar,
+  ReleaseFooter,
   ReleasePreview,
   ReleaseResults,
+  ReleaseTitle,
   ReleaseSelectCell,
   SettingsForm,
 } = await import("./BulkRelease");
@@ -143,6 +145,70 @@ describe("releasing many at once in three languages", () => {
     expect(toolbar("fr", "Tout sélectionner")).toContain("Tout sélectionner (2)");
   });
 
+  it("words the dialog's title and button at 0, 1 and 2, and why releasing is off", () => {
+    const title = (l: Locale, count: number) =>
+      view(l, <ReleaseTitle count={count} done={false} />);
+    const button = (l: Locale, count: number) =>
+      view(
+        l,
+        <ReleaseFooter
+          count={count}
+          blocked={false}
+          error={null}
+          releasing={false}
+          onCancel={() => {}}
+          onRelease={() => {}}
+        />,
+      ).match(/<\/svg>([^<]+)<\/button>/)?.[1];
+    const cases: Record<Locale, [string[], string[]]> = {
+      en: [
+        ["Release 0 items?", "Release 1 item?", "Release 2 items?"],
+        ["Release 0 items", "Release 1 item", "Release 2 items"],
+      ],
+      pt: [
+        ["Lançar 0 item?", "Lançar 1 item?", "Lançar 2 itens?"],
+        ["Lançar 0 item", "Lançar 1 item", "Lançar 2 itens"],
+      ],
+      fr: [
+        ["Publier 0 élément?", "Publier 1 élément?", "Publier 2 éléments?"],
+        ["Publier 0 élément", "Publier 1 élément", "Publier 2 éléments"],
+      ],
+    };
+    for (const [l, [titles, buttons]] of Object.entries(cases) as [
+      Locale,
+      [string[], string[]],
+    ][]) {
+      expect(
+        [0, 1, 2].map((n) => title(l, n)),
+        l,
+      ).toEqual(titles);
+      expect(
+        [0, 1, 2].map((n) => button(l, n)),
+        l,
+      ).toEqual(buttons);
+    }
+    expect(view("pt", <ReleaseTitle count={2} done />)).toBe("Lançados");
+    expect(view("fr", <ReleaseTitle count={2} done />)).toBe("Publiés");
+    const foot = (l: Locale, count: number, blocked: boolean) =>
+      view(
+        l,
+        <ReleaseFooter
+          count={count}
+          blocked={blocked}
+          error={null}
+          releasing={false}
+          onCancel={() => {}}
+          onRelease={() => {}}
+        />,
+      );
+    expect(foot("pt", 0, false)).toContain('title="Nada aqui pode ser lançado."');
+    expect(foot("fr", 2, true)).toContain(
+      'title="Modifiez les réglages : certaines versions ou étiquettes ne fonctionnent pas."',
+    );
+    expect(foot("pt", 2, false)).toContain("O que está ligado por uma dependência é lançado junto");
+    expect(foot("fr", 2, false)).toContain(">Annuler<");
+  });
+
   for (const locale of ["pt", "fr"] as const) {
     it(`${locale}: no English left in the release dialog's parts`, async () => {
       const all = withoutHelp(
@@ -179,6 +245,30 @@ describe("releasing many at once in three languages", () => {
             <BulkReleaseProvider releasable={{ a: "@t/a" }}>
               <BulkReleaseToolbar />
             </BulkReleaseProvider>,
+          ),
+          view(locale, <ReleaseTitle count={2} done={false} />),
+          view(locale, <ReleaseTitle count={2} done />),
+          view(
+            locale,
+            <ReleaseFooter
+              count={0}
+              blocked={false}
+              error={null}
+              releasing={false}
+              onCancel={() => {}}
+              onRelease={() => {}}
+            />,
+          ),
+          view(
+            locale,
+            <ReleaseFooter
+              count={2}
+              blocked
+              error={null}
+              releasing={false}
+              onCancel={() => {}}
+              onRelease={() => {}}
+            />,
           ),
         ].join("\n"),
       );

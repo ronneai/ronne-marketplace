@@ -280,6 +280,51 @@ export const ReleasePreview = ({
   );
 };
 
+/** The release dialog's title: how many it releases, or that they're released. */
+export const ReleaseTitle = ({ count, done }: { count: number; done: boolean }) => {
+  const t = useTranslations("author.release");
+  return <>{done ? t("doneTitle") : t("title", { count })}</>;
+};
+
+/** The release dialog's foot: what releasing together means, the error, and the buttons. */
+export const ReleaseFooter = ({
+  count,
+  blocked,
+  error,
+  releasing,
+  onCancel,
+  onRelease,
+}: {
+  count: number;
+  /** Some versions or tags don't work with the settings. */
+  blocked: boolean;
+  error: string | null;
+  releasing: boolean;
+  onCancel: () => void;
+  onRelease: () => void;
+}) => {
+  const t = useTranslations("author.release");
+  return (
+    <div className="grid shrink-0 gap-3 border-t border-hairline px-4 py-4">
+      <p className="text-sm text-muted">{t("together")}</p>
+      <FieldError id="release-error">{error}</FieldError>
+      <div className="flex flex-wrap justify-end gap-2">
+        <Button variant="secondary" onClick={onCancel}>
+          {t("cancel")}
+        </Button>
+        <Button
+          loading={releasing}
+          disabledReason={count === 0 ? t("nothing") : blocked ? t("fixSettings") : null}
+          onClick={onRelease}
+        >
+          <Rocket size={16} aria-hidden="true" />
+          {t("submit", { count })}
+        </Button>
+      </div>
+    </div>
+  );
+};
+
 /** Select all and Release selected, above the list; only when something can be released. */
 export const BulkReleaseToolbar = ({
   help,
@@ -351,7 +396,7 @@ export const BulkReleaseToolbar = ({
         onClose={close}
         size="large"
         fixedHeight
-        title={results ? t("doneTitle") : t("title", { count })}
+        title={<ReleaseTitle count={count} done={results !== null} />}
       >
         {results ? (
           <>
@@ -383,38 +428,29 @@ export const BulkReleaseToolbar = ({
                 loading={loading || (!prepared && !error)}
               />
             </section>
-            <div className="grid shrink-0 gap-3 border-t border-hairline px-4 py-4">
-              <p className="text-sm text-muted">{t("together")}</p>
-              <FieldError id="release-error">{error}</FieldError>
-              <div className="flex flex-wrap justify-end gap-2">
-                <Button variant="secondary" onClick={close}>
-                  {t("cancel")}
-                </Button>
-                <Button
-                  loading={releasing}
-                  disabledReason={count === 0 ? t("nothing") : blocked ? t("fixSettings") : null}
-                  onClick={() =>
-                    startReleasing(async () => {
-                      const result = await releaseSelectedAction(
-                        prepared?.candidates.map((c) => c.id) ?? [],
-                        settings,
-                        notes,
-                      );
-                      if (!result.ok) return setError(result.error);
-                      // What couldn't go from the start, then each one sent.
-                      const refused = prepared?.refused ?? [];
-                      setResults([
-                        ...refused,
-                        ...result.results.filter((r) => !refused.some((x) => x.id === r.id)),
-                      ]);
-                    })
-                  }
-                >
-                  <Rocket size={16} aria-hidden="true" />
-                  {t("submit", { count })}
-                </Button>
-              </div>
-            </div>
+            <ReleaseFooter
+              count={count}
+              blocked={blocked}
+              error={error}
+              releasing={releasing}
+              onCancel={close}
+              onRelease={() =>
+                startReleasing(async () => {
+                  const result = await releaseSelectedAction(
+                    prepared?.candidates.map((c) => c.id) ?? [],
+                    settings,
+                    notes,
+                  );
+                  if (!result.ok) return setError(result.error);
+                  // What couldn't go from the start, then each one sent.
+                  const refused = prepared?.refused ?? [];
+                  setResults([
+                    ...refused,
+                    ...result.results.filter((r) => !refused.some((x) => x.id === r.id)),
+                  ]);
+                })
+              }
+            />
           </>
         )}
       </Dialog>
