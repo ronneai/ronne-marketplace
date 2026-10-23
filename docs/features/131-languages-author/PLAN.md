@@ -18,7 +18,7 @@ Every task that moves a folder adds it to the `overrides` entry in `biome.json` 
   *Done when:* three-language tests of the badges and marks, with the English-leak guard; the
   parity test passes.
 
-- [ ] **2. Files, code and checks.** `components/files` (the Files tab and viewer),
+- [x] **2. Files, code and checks.** `components/files` (the Files tab and viewer),
   `components/code` (the file tree's and editor's labels), `components/validation` (the issues
   popover and list: heading, counts, severities; core's messages shown as they come),
   `components/risk-flags`, `components/tools`, `components/markdown`.
