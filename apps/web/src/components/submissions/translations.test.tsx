@@ -98,6 +98,23 @@ describe("dependency marks in three languages", () => {
     expect(html("fr")).toContain('aria-label="Attend @t/a (en attente de publication)"');
   });
 
+  it("words each waiting status for its badge", () => {
+    const words: Record<Locale, string[]> = {
+      en: ["in review", "back with its author", "pending release", "not submitted"],
+      pt: ["em revisão", "de volta com o autor", "aguardando lançamento", "não submetido"],
+      fr: ["en révision", "de retour chez son auteur", "en attente de publication", "non soumis"],
+    };
+    const statuses = ["submitted", "changes_requested", "approved", "not_submitted"] as const;
+    for (const l of ["en", "pt", "fr"] as const)
+      statuses.forEach((status, i) => {
+        const text = view(l, <DependencyStatusBadge mark={waits(status)} />).replace(
+          /<[^>]+>/g,
+          "",
+        );
+        expect(text, `${l} ${status}`).toBe(words[l][i]);
+      });
+  });
+
   it("words a blocked dependency, directly and through another", () => {
     const text = (l: Locale, mark: DependencyMark) =>
       view(l, <DependencyStatusBadge mark={mark} />);

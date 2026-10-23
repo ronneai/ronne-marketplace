@@ -11,7 +11,7 @@ Every task that moves a folder adds it to the `overrides` entry in `biome.json` 
 
 ## Tasks
 
-- [ ] **1. Shared words.** The statuses as messages (`author.status`, used by `StatusBadge`;
+- [x] **1. Shared words.** The statuses as messages (`author.status`, used by `StatusBadge`;
   the submissions filters take them in task 6, and the services' sentences that use `statusLabel`
   go with the actions in task 10), `ProposalBadges`, `DependencyMarks`, a new `author` namespace
   (its three files and `namespaces.ts`). `components/submissions` joins the scan.
