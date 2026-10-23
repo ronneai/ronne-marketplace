@@ -1,8 +1,9 @@
 import { RENDERERS, supportOf, type ToolSupport } from "@ronneai/core/render";
 import { useTranslations } from "next-intl";
+import type { ReactNode } from "react";
 import { Help } from "@/components/help/Help";
 import { docsHref } from "@/components/help/topics";
-import { placeFor, TOOL_PAGES } from "@/components/tools/tool-paths";
+import { placeFor, TOOL_PAGES, type ToolPlace } from "@/components/tools/tool-paths";
 import { Badge, type BadgeTone } from "@/components/ui/Badge";
 import { NewTabLink } from "@/components/ui/NewTabLink";
 import { Panel } from "@/components/ui/Panel";
@@ -19,8 +20,16 @@ const TONE: Record<ToolSupport, BadgeTone> = {
   none: "muted",
 };
 
-const Place = ({ place }: { place: string }) =>
-  /[./]/.test(place) ? <code className="font-mono text-[11px] text-fg">{place}</code> : place;
+/** A place in words, its paths and keys as code: "hooks in .claude/settings.json". */
+const Place = ({ place }: { place: ToolPlace }) => {
+  const t = useTranslations("item.tools.place");
+  const code = (chunks: ReactNode) => (
+    <code className="font-mono text-[11px] text-fg">{chunks}</code>
+  );
+  return place.kind === "key"
+    ? t.rich("key", { key: place.key, path: place.path, code })
+    : t.rich(place.kind, { path: place.path, code });
+};
 
 /** What a level means for one tool, in a sentence (the tool's file or folder inside it). */
 const Line = ({
@@ -32,15 +41,15 @@ const Line = ({
   level: ToolSupport;
   tool: string;
   type: string;
-  place: string;
+  place: ToolPlace | null;
 }) => {
   const t = useTranslations("item.tools");
-  const where = { place: () => <Place place={place} /> };
+  const where = { place: () => (place ? <Place place={place} /> : null) };
   switch (level) {
     case "native":
-      return place ? t.rich("native", where) : t("nativeAsIs");
+      return type === "bundle" ? t("bundle") : place ? t.rich("native", where) : t("nativeAsIs");
     case "degraded":
-      return t.rich("degraded", where);
+      return place ? t.rich("degraded", where) : t("nativeAsIs");
     case "off":
       return t("off");
     default:

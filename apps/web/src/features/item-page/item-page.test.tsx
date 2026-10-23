@@ -219,8 +219,12 @@ describe("the item page", () => {
           `<a href="https://www\\.ronne\\.ai/en/marketplace/docs/${id}"[^>]*target="_blank"[^>]*>${tool}<svg`,
         ),
       );
-    expect(tools).toContain("mcpServers in .mcp.json</code>.");
-    expect(tools).toContain("mcp_servers in .codex/config.toml</code>.");
+    expect(tools).toContain(
+      `mcpServers</code> in <code class="font-mono text-[11px] text-fg">.mcp.json</code>.`,
+    );
+    expect(tools).toContain(
+      `mcp_servers</code> in <code class="font-mono text-[11px] text-fg">.codex/config.toml</code>.`,
+    );
   });
 
   it("names a workspace other than global in the header, once: in the full name (090, 118)", async () => {

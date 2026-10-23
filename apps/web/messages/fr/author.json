@@ -61,11 +61,11 @@
     "binaryNow": "Un fichier binaire, maintenant de {size}.",
     "tooLarge": "Trop volumineux pour comparer ici : voyez-le sous Tous les fichiers.",
     "noChanges": "Aucune modification.",
-    "noChangesSince": "Aucune modification depuis la révision {since, number}.",
+    "noChangesSince": "Aucune modification depuis la révision {since, number, ::group-off}.",
     "lineAdded": "Ajoutée :",
     "lineRemoved": "Supprimée :",
     "layout": "La disposition du canevas (<path></path>) a aussi changé. Elle n’est pas publiée, donc elle ne fait pas partie de cette comparaison.",
-    "ronne": "<paths></paths> a aussi changé. Les fichiers de .ronne/ ne sont pas publiés, donc ils ne font pas partie de cette comparaison."
+    "ronne": "{count, plural, one {<paths></paths> a aussi changé.} other {<paths></paths> ont aussi changé.}} Les fichiers de .ronne/ ne sont pas publiés, donc ils ne font pas partie de cette comparaison."
   },
   "issues": {
     "ok": "OK :",
@@ -80,7 +80,7 @@
     "summary": "Problèmes : {count}"
   },
   "risk": {
-    "heading": "Ce qu’il peut faire ({count, number})",
+    "heading": "Ce qu’il peut faire ({count, number, ::group-off})",
     "widens": "ÉLARGIT :",
     "note": "Ils sont déduits des fichiers; l’auteur ne peut ni les définir ni les masquer."
   }

@@ -1,74 +1,64 @@
 import type { TopicSlug } from "@/components/help/topics";
 
 /**
- * Where each type goes in each AI tool, as the Documentation says it (features 023–025, each
- * checked against the tool's docs when its renderer was built): the tool pages list them in full,
- * and the types list shows the first part.
+ * Where a type goes in a tool, in short (features 023–025, each checked against the tool's docs
+ * when its renderer was built; the Documentation's tool pages have the full story). Only the place
+ * itself, as data: a path, or a key in a file, a section of a file or a local plugin; the words
+ * around it are messages (`item.tools.place`, 131). `<name>` stands for the item's name.
  */
+export type ToolPlace =
+  | { kind: "path"; path: string }
+  | { kind: "key"; key: string; path: string }
+  | { kind: "section"; path: string }
+  | { kind: "plugin"; path: string };
 
-/** Where each type goes in Claude Code (renderer 023, checked against its docs on 2026-09-28). */
-export const CLAUDE_CODE_PATHS: [string, string][] = [
-  ["skill", ".claude/skills/<name>/"],
-  ["agent", ".claude/agents/<name>.md"],
-  ["rule", ".claude/rules/<name>.md, or a skill when the AI decides or you ask"],
-  ["command", ".claude/skills/<name>/, run as /<name>"],
-  ["hook", "hooks in .claude/settings.json; a script under .claude/hooks/<name>/"],
-  ["mcp-server", "mcpServers in .mcp.json (your home folder: ~/.claude.json)"],
-  ["permission-policy", "permissions in .claude/settings.json"],
-  ["output-style", ".claude/output-styles/<name>.md"],
-  [
-    "statusline",
-    "statusLine in .claude/settings.json; the script under .claude/statusline/<name>/",
-  ],
-  ["lsp-server", "a local plugin under .claude/rmk-plugins/<name>/"],
-  ["bundle", "nothing of its own: its items are installed one by one"],
-];
+const path = (p: string): ToolPlace => ({ kind: "path", path: p });
+const key = (k: string, p: string): ToolPlace => ({ kind: "key", key: k, path: p });
 
-/** Where each type goes in Codex (renderer 024, checked against its docs on 2026-09-28). */
-export const CODEX_PATHS: [string, string][] = [
-  ["skill", ".agents/skills/<name>/ (your home folder: ~/.agents/skills/)"],
-  ["agent", ".codex/agents/<name>.toml"],
-  [
-    "rule",
-    "a section in AGENTS.md (your home folder: ~/.codex/AGENTS.md), or a skill when the AI decides or you ask",
-  ],
-  ["command", ".agents/skills/<name>/, run as /<name>"],
-  ["hook", "hooks in .codex/hooks.json; a script under .codex/hooks/<name>/"],
-  ["mcp-server", "mcp_servers in .codex/config.toml"],
-  ["permission-policy", ".codex/rules/<name>.rules, for shell commands only"],
-  ["output-style", "not supported: skipped with a warning"],
-  ["statusline", "not supported: skipped with a warning"],
-  ["lsp-server", "not supported: skipped with a warning"],
-  ["bundle", "nothing of its own: its items are installed one by one"],
-];
-
-/** Where each type goes in Cursor (renderer 025, checked against its docs on 2026-09-29). */
-export const CURSOR_PATHS: [string, string][] = [
-  ["skill", ".agents/skills/<name>/ (your home folder: ~/.agents/skills/)"],
-  ["agent", ".cursor/agents/<name>.md"],
-  ["rule", ".cursor/rules/<name>.mdc (projects only: Cursor keeps your own rules in its settings)"],
-  ["command", ".agents/skills/<name>/, run as /<name>"],
-  ["hook", "hooks in .cursor/hooks.json; a script under .cursor/hooks/<name>/"],
-  ["mcp-server", "mcpServers in .cursor/mcp.json"],
-  [
-    "permission-policy",
-    "permissions in .cursor/cli.json (home: ~/.cursor/cli-config.json), for the CLI",
-  ],
-  ["output-style", "not supported: skipped with a warning"],
-  ["statusline", "not supported: skipped with a warning"],
-  ["lsp-server", "not supported: skipped with a warning"],
-  ["bundle", "nothing of its own: its items are installed one by one"],
-];
-
-/** Each tool's list, by renderer id. */
-export const TOOL_PATHS: Record<string, [string, string][]> = {
-  "claude-code": CLAUDE_CODE_PATHS,
-  codex: CODEX_PATHS,
-  cursor: CURSOR_PATHS,
+/** Claude Code (renderer 023, checked against its docs on 2026-09-28). */
+const CLAUDE_CODE: Record<string, ToolPlace> = {
+  skill: path(".claude/skills/<name>/"),
+  agent: path(".claude/agents/<name>.md"),
+  rule: path(".claude/rules/<name>.md"),
+  command: path(".claude/skills/<name>/"),
+  hook: key("hooks", ".claude/settings.json"),
+  "mcp-server": key("mcpServers", ".mcp.json"),
+  "permission-policy": key("permissions", ".claude/settings.json"),
+  "output-style": path(".claude/output-styles/<name>.md"),
+  statusline: key("statusLine", ".claude/settings.json"),
+  "lsp-server": { kind: "plugin", path: ".claude/rmk-plugins/<name>/" },
 };
 
-/** The place itself, without the notes after it: up to the first comma, parenthesis or semicolon. */
-export const shortPlace = (where: string): string => where.split(/[,(;]/)[0]?.trim() ?? where;
+/** Codex (renderer 024, checked against its docs on 2026-09-28). Output styles, status lines and
+ * language servers aren't supported there. */
+const CODEX: Record<string, ToolPlace> = {
+  skill: path(".agents/skills/<name>/"),
+  agent: path(".codex/agents/<name>.toml"),
+  rule: { kind: "section", path: "AGENTS.md" },
+  command: path(".agents/skills/<name>/"),
+  hook: key("hooks", ".codex/hooks.json"),
+  "mcp-server": key("mcp_servers", ".codex/config.toml"),
+  "permission-policy": path(".codex/rules/<name>.rules"),
+};
+
+/** Cursor (renderer 025, checked against its docs on 2026-09-29). As Codex, no output styles,
+ * status lines or language servers. */
+const CURSOR: Record<string, ToolPlace> = {
+  skill: path(".agents/skills/<name>/"),
+  agent: path(".cursor/agents/<name>.md"),
+  rule: path(".cursor/rules/<name>.mdc"),
+  command: path(".agents/skills/<name>/"),
+  hook: key("hooks", ".cursor/hooks.json"),
+  "mcp-server": key("mcpServers", ".cursor/mcp.json"),
+  "permission-policy": key("permissions", ".cursor/cli.json"),
+};
+
+/** Each tool's places, by renderer id. */
+export const TOOL_PLACES: Record<string, Record<string, ToolPlace>> = {
+  "claude-code": CLAUDE_CODE,
+  codex: CODEX,
+  cursor: CURSOR,
+};
 
 /** Each tool's page in the Documentation, by renderer id. */
 export const TOOL_PAGES: Record<string, TopicSlug> = {
@@ -78,12 +68,12 @@ export const TOOL_PAGES: Record<string, TopicSlug> = {
 };
 
 /**
- * Where a type goes in a tool, in short: "installs its items" for a bundle, "" if unknown. With an
- * item's name, `<name>` becomes it, as the renderers name the files.
+ * Where a type goes in a tool, or null: a bundle has no place of its own (its items are installed
+ * one by one), and a type a tool doesn't support has none there. With an item's name, `<name>`
+ * becomes it, as the renderers name the files.
  */
-export const placeFor = (toolId: string, type: string, name?: string): string => {
-  if (type === "bundle") return "installs its items";
-  const where = TOOL_PATHS[toolId]?.find(([t]) => t === type)?.[1];
-  const place = where ? shortPlace(where) : "";
-  return name ? place.replaceAll("<name>", name) : place;
+export const placeFor = (toolId: string, type: string, name?: string): ToolPlace | null => {
+  const place = TOOL_PLACES[toolId]?.[type];
+  if (!place || !name) return place ?? null;
+  return { ...place, path: place.path.replaceAll("<name>", name) };
 };

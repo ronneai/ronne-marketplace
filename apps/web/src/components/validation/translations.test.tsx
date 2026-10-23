@@ -124,6 +124,9 @@ describe("the risk summary in three languages", () => {
     );
     for (const l of ["en", "pt", "fr"] as const)
       expect(html(l)).toContain('Runs <code class="font-mono text-[0.85em]">./check.sh</code>');
+    // A count of flags is shown as a plain number, as before.
+    const many = view("en", <RiskSummary flags={Array.from({ length: 1500 }, () => flag)} />);
+    expect(many).toContain("What it can do (1500)");
   });
 
   for (const locale of ["pt", "fr"] as const) {

@@ -61,11 +61,11 @@
     "binaryNow": "Um arquivo binário, agora com {size}.",
     "tooLarge": "Grande demais para comparar aqui: veja em Todos os arquivos.",
     "noChanges": "Nenhuma alteração.",
-    "noChangesSince": "Nenhuma alteração desde a revisão {since, number}.",
+    "noChangesSince": "Nenhuma alteração desde a revisão {since, number, ::group-off}.",
     "lineAdded": "Adicionada:",
     "lineRemoved": "Removida:",
     "layout": "O layout do canvas (<path></path>) também mudou. Ele não é lançado, então não faz parte desta comparação.",
-    "ronne": "<paths></paths> também mudou. Os arquivos em .ronne/ não são lançados, então não fazem parte desta comparação."
+    "ronne": "{count, plural, one {<paths></paths> também mudou.} other {<paths></paths> também mudaram.}} Os arquivos em .ronne/ não são lançados, então não fazem parte desta comparação."
   },
   "issues": {
     "ok": "OK:",
@@ -80,7 +80,7 @@
     "summary": "Problemas: {count}"
   },
   "risk": {
-    "heading": "O que ele pode fazer ({count, number})",
+    "heading": "O que ele pode fazer ({count, number, ::group-off})",
     "widens": "AMPLIA:",
     "note": "Eles são deduzidos dos arquivos; o autor não pode defini-los nem ocultá-los."
   }

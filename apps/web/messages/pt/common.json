@@ -98,6 +98,7 @@
   },
   "bytes": {
     "kb": "{size, number, ::group-off} KB",
-    "mb": "{size, number, ::group-off} MB"
+    "mb": "{size, number, ::group-off} MB",
+    "mbTenth": "{size, number, ::.0 group-off} MB"
   }
 }

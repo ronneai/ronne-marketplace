@@ -61,11 +61,11 @@
     "binaryNow": "A binary file, now {size}.",
     "tooLarge": "Too large to diff here: see it under All files.",
     "noChanges": "No changes.",
-    "noChangesSince": "No changes since revision {since, number}.",
+    "noChangesSince": "No changes since revision {since, number, ::group-off}.",
     "lineAdded": "Added:",
     "lineRemoved": "Removed:",
     "layout": "The canvas layout (<path></path>) changed too. It isn't released, so it isn't part of this diff.",
-    "ronne": "<paths></paths> changed too. Files in .ronne/ aren't released, so they aren't part of this diff."
+    "ronne": "{count, plural, one {<paths></paths> changed too.} other {<paths></paths> changed too.}} Files in .ronne/ aren't released, so they aren't part of this diff."
   },
   "issues": {
     "ok": "OK:",
@@ -80,7 +80,7 @@
     "summary": "Problems: {count}"
   },
   "risk": {
-    "heading": "What it can do ({count, number})",
+    "heading": "What it can do ({count, number, ::group-off})",
     "widens": "WIDENS:",
     "note": "These are worked out from the files; the author can't set or hide them."
   }

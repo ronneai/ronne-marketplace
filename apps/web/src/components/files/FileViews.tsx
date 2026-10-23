@@ -32,7 +32,7 @@ const Unreleased = ({ paths }: { paths: readonly string[] }) => {
     <p className="text-sm text-muted">
       {layoutOnly
         ? t.rich("layout", { path: () => named })
-        : t.rich("ronne", { paths: () => named })}
+        : t.rich("ronne", { count: paths.length, paths: () => named })}
     </p>
   );
 };

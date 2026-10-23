@@ -57,9 +57,16 @@
     },
     "native": "Vai para <place></place>.",
     "nativeAsIs": "Instala como está.",
+    "bundle": "Instala seus itens um por um.",
     "degraded": "Vai para <place></place>, com parte dele de fora: a página da ferramenta diz o quê.",
     "off": "O ronne.yaml desta versão a mantém longe desta ferramenta.",
-    "none": "{tool} não tem lugar para itens do tipo {type}, então o rmk os ignora ali com um aviso."
+    "none": "{tool} não tem lugar para itens do tipo {type}, então o rmk os ignora ali com um aviso.",
+    "place": {
+      "path": "<code>{path}</code>",
+      "key": "<code>{key}</code> em <code>{path}</code>",
+      "section": "uma seção de <code>{path}</code>",
+      "plugin": "um plugin local em <code>{path}</code>"
+    }
   },
   "propose": {
     "button": "Propor uma alteração"

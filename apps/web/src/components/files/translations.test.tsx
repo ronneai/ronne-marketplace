@@ -1,9 +1,11 @@
 import { EditorView } from "@codemirror/view";
+import { formatBytes } from "@ronneai/core";
 import type { ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { stateFor } from "@/components/code/CodeEditor";
 import { FileTree } from "@/components/code/FileTree";
+import { useBytes } from "@/i18n/bytes";
 import type { Locale } from "@/server/domains/identity/models/locale";
 import type { ContentFile } from "@/server/domains/items/models/contents";
 import type { FileChange } from "@/server/domains/submissions/models/diff";
@@ -122,6 +124,37 @@ describe("a file in three languages", () => {
   });
 });
 
+describe("sizes in three languages, rounded as core's formatBytes", () => {
+  const Size = ({ bytes }: { bytes: number }) => <>{useBytes()(bytes)}</>;
+  const size = (l: Locale, bytes: number) => view(l, <Size bytes={bytes} />);
+  const MB = 1024 * 1024;
+  it("matches formatBytes in English, number for number", () => {
+    for (const bytes of [
+      0,
+      1,
+      1023,
+      1024,
+      1025,
+      999 * 1024,
+      1000 * 1024,
+      MB - 1,
+      MB,
+      MB + 1,
+      1.5 * MB,
+      5000 * MB,
+    ])
+      expect(size("en", bytes), String(bytes)).toBe(formatBytes(bytes));
+    expect(size("en", MB + 1)).toBe("1.0 MB");
+  });
+  it("writes the number and the unit in the language", () => {
+    expect(size("pt", MB + 1)).toBe("1,0 MB");
+    expect(size("pt", 1.5 * MB)).toBe("1,5 MB");
+    expect(size("fr", 1.5 * MB)).toBe("1,5 Mo");
+    expect(size("fr", MB)).toBe("1 Mo");
+    expect(size("fr", 1000 * 1024)).toBe("1000 Ko");
+  });
+});
+
 describe("what changed, in three languages", () => {
   it("names each change and its lines", () => {
     const html = (l: Locale) => view(l, <FileChanges changes={changes} since={2} />);
@@ -145,6 +178,9 @@ describe("what changed, in three languages", () => {
       "No changes since revision 2.",
     );
     expect(view("en", <FileChanges changes={[]} since={null} />)).toContain("No changes.");
+    // A revision is a number, not an amount: no digit grouping, as before.
+    expect(view("en", <FileChanges changes={[]} since={1234} />)).toContain("revision 1234.");
+    expect(view("fr", <FileChanges changes={[]} since={1234} />)).toContain("révision 1234.");
     expect(view("pt", <FileChanges changes={[]} since={2} />)).toContain(
       "Nenhuma alteração desde a revisão 2.",
     );
@@ -169,8 +205,13 @@ describe("what changed, in three languages", () => {
         />,
       );
     expect(two("en")).toContain(".ronne/{x}.md</code></span> changed too. Files in .ronne/");
-    expect(two("pt")).toContain(".ronne/{x}.md</code></span> também mudou.");
-    expect(two("fr")).toContain(".ronne/{x}.md</code></span> a aussi changé.");
+    expect(two("pt")).toContain(".ronne/{x}.md</code></span> também mudaram.");
+    expect(two("fr")).toContain(".ronne/{x}.md</code></span> ont aussi changé.");
+    const one = (l: Locale) =>
+      view(l, <FileChanges changes={[]} unreleased={[".ronne/notes.md"]} since={null} />);
+    expect(one("en")).toContain(".ronne/notes.md</code></span> changed too.");
+    expect(one("pt")).toContain(".ronne/notes.md</code></span> também mudou.");
+    expect(one("fr")).toContain(".ronne/notes.md</code></span> a aussi changé.");
   });
 
   for (const locale of ["pt", "fr"] as const) {

@@ -9,7 +9,10 @@ const MB = 1024 * 1024;
 export const useBytes = () => {
   const t = useTranslations("common.bytes");
   return (bytes: number): string =>
-    bytes >= MB
-      ? t("mb", { size: Number((bytes / MB).toFixed(bytes % MB ? 1 : 0)) })
-      : t("kb", { size: Math.ceil(bytes / 1024) });
+    bytes < MB
+      ? t("kb", { size: Math.ceil(bytes / 1024) })
+      : bytes % MB
+        ? // One decimal, even when it rounds to .0, as core's has it ("1.0 MB").
+          t("mbTenth", { size: Number((bytes / MB).toFixed(1)) })
+        : t("mb", { size: bytes / MB });
 };
