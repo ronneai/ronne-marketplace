@@ -34,5 +34,54 @@
     "releasedOnce": "It's released once these are.",
     "canRelease": "It can be released once its dependencies are.",
     "blockedHint": "Remove it from dependencies, or depend on another item, then submit again."
+  },
+  "files": {
+    "browser": "Files of this version",
+    "tree": "Files",
+    "executableIcon": "Executable",
+    "unsaved": "(unsaved)",
+    "executable": "executable",
+    "empty": "This file is empty.",
+    "frontmatter": "Frontmatter",
+    "nothingAfter": "Nothing after the frontmatter.",
+    "binary": "A binary file, not shown here.",
+    "tooLarge": "Too large to show here ({size}). <mono>rmk install</mono> gets it as released.",
+    "rendered": "Rendered",
+    "source": "Source",
+    "contentsOf": "Contents of {path}"
+  },
+  "diff": {
+    "status": {
+      "added": "added",
+      "removed": "removed",
+      "changed": "changed"
+    },
+    "executableChanged": "executable changed",
+    "binary": "A binary file.",
+    "binaryNow": "A binary file, now {size}.",
+    "tooLarge": "Too large to diff here: see it under All files.",
+    "noChanges": "No changes.",
+    "noChangesSince": "No changes since revision {since, number}.",
+    "lineAdded": "Added:",
+    "lineRemoved": "Removed:",
+    "layout": "The canvas layout (<path></path>) changed too. It isn't released, so it isn't part of this diff.",
+    "ronne": "<paths></paths> changed too. Files in .ronne/ aren't released, so they aren't part of this diff."
+  },
+  "issues": {
+    "ok": "OK:",
+    "none": "No problems found.",
+    "list": "Problems",
+    "rename": "Use the new name",
+    "errors": "{count, plural, one {# error} other {# errors}}",
+    "warnings": "{count, plural, one {# warning} other {# warnings}}",
+    "both": "{errors}, {warnings}",
+    "noProblems": "No problems",
+    "show": "Show problems: {count}",
+    "summary": "Problems: {count}"
+  },
+  "risk": {
+    "heading": "What it can do ({count, number})",
+    "widens": "WIDENS:",
+    "note": "These are worked out from the files; the author can't set or hide them."
   }
 }

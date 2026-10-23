@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { type ReactNode, useState } from "react";
 import { FileTree, type TreeFile } from "@/components/code/FileTree";
 import { FileContent } from "./FileContent";
@@ -15,7 +16,7 @@ export const FilesBrowser = <F extends TreeFile = ShownFile>({
   files,
   selected: initial,
   line,
-  label = "Files of this version",
+  label,
   after,
   render,
 }: {
@@ -23,12 +24,14 @@ export const FilesBrowser = <F extends TreeFile = ShownFile>({
   selected: string;
   /** The line to open the initially selected file at. */
   line?: number;
+  /** The tree's name for screen readers; "Files of this version" by default. */
   label?: string;
   /** Shown after a file's name in the tree, such as whether it was added or changed. */
   after?: (file: F) => ReactNode;
   /** How a file is shown; a released file's contents by default. */
   render?: (file: F, line: number | undefined) => ReactNode;
 }) => {
+  const t = useTranslations("author.files");
   const [selected, setSelected] = useState(initial);
   const router = useRouter();
   const pathname = usePathname();
@@ -45,7 +48,7 @@ export const FilesBrowser = <F extends TreeFile = ShownFile>({
   return (
     <div className="grid gap-4 md:grid-cols-[minmax(12rem,16rem)_minmax(0,1fr)] md:items-start">
       <nav
-        aria-label={label}
+        aria-label={label ?? t("browser")}
         className="rounded-panel border border-hairline bg-surface p-2 md:sticky md:top-4"
       >
         <FileTree files={files} selected={selected} onSelect={select} after={after} />

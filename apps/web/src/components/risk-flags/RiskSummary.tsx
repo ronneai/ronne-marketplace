@@ -1,13 +1,14 @@
 import type { RiskFlag } from "@ronneai/core";
 import { ShieldAlert } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Help } from "@/components/help/Help";
 import { CodeText } from "@/components/validation/IssueList";
 
 /**
  * What the item can do on a developer's machine (MVP §12, feature 014), at the top of the review
  * page and the author's view: each risk flag with a link to its file and line. Flags describe; the
- * reviewer decides.
+ * reviewer decides. The flags' sentences are core's, in English as `rmk` prints them (131).
  */
 export const RiskSummary = ({
   flags,
@@ -17,6 +18,7 @@ export const RiskSummary = ({
   /** The review page, whose All files view the flags link into; without it, no links. */
   base?: string;
 }) => {
+  const t = useTranslations("author.risk");
   if (flags.length === 0) return null;
   return (
     <section
@@ -25,7 +27,7 @@ export const RiskSummary = ({
     >
       <h2 id="risk-summary" className="flex items-center gap-2 font-semibold text-warning-text">
         <ShieldAlert size={16} aria-hidden="true" />
-        What it can do ({flags.length})
+        {t("heading", { count: flags.length })}
       </h2>
       <ul className="grid gap-1.5">
         {flags.map((flag, i) => (
@@ -33,7 +35,9 @@ export const RiskSummary = ({
           // biome-ignore lint/suspicious/noArrayIndexKey: see above.
           <li key={i} className="flex flex-wrap items-baseline gap-x-2 text-fg">
             {flag.widening ? (
-              <span className="font-mono text-xs font-semibold text-warning-text">WIDENS:</span>
+              <span className="font-mono text-xs font-semibold text-warning-text">
+                {t("widens")}
+              </span>
             ) : null}
             <span>
               <CodeText text={flag.message} />
@@ -56,9 +60,7 @@ export const RiskSummary = ({
           </li>
         ))}
       </ul>
-      <p className="text-xs text-muted">
-        These are worked out from the files; the author can't set or hide them.
-      </p>
+      <p className="text-xs text-muted">{t("note")}</p>
       <Help id="risk" />
     </section>
   );

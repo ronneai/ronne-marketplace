@@ -4,7 +4,11 @@ import { describe, expect, it } from "vitest";
 import { Button } from "@/components/ui/Button";
 import { DirtyMark } from "@/components/ui/DirtyMark";
 import { IssueList } from "./IssueList";
-import { FileIssues, IssuesPanel, IssuesSummary, issueCount, issuesTone } from "./IssuesPopover";
+import { FileIssues, IssuesPanel, IssuesSummary, issuesTone, useIssueCount } from "./IssuesPopover";
+
+/** The count as a screen words it. */
+const Count = ({ issues }: { issues: ManifestIssue[] }) => <>{useIssueCount()(issues)}</>;
+const issueCount = (issues: ManifestIssue[]) => renderToStaticMarkup(<Count issues={issues} />);
 
 const error: ManifestIssue = { severity: "error", code: "x", message: "Broken.", file: "a.md" };
 const warning: ManifestIssue = { severity: "warning", code: "y", message: "Odd.", file: "a.md" };

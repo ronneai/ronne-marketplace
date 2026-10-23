@@ -1,4 +1,4 @@
-import { formatBytes, formatItemName, type ItemType } from "@ronneai/core";
+import { formatItemName, type ItemType } from "@ronneai/core";
 import { installsIn, RENDERERS, supportOf } from "@ronneai/core/render";
 import { Ban, Check, FileText, ShieldCheck } from "lucide-react";
 import Link from "next/link";
@@ -15,6 +15,7 @@ import { LocalTime } from "@/components/ui/LocalTime";
 import { Notice } from "@/components/ui/Notice";
 import { Table, Td, Th } from "@/components/ui/Table";
 import { CodeText } from "@/components/validation/IssueList";
+import { useBytes } from "@/i18n/bytes";
 import type { ItemPage } from "@/server/domains/items/actions/versions";
 import type { UsageSummary } from "@/server/domains/usage/models/usage-summary";
 import { fileHref, itemTabHref } from "../tabs";
@@ -428,6 +429,7 @@ const Row = ({ label, children }: { label: string; children: ReactNode }) => (
 /** The checksum `rmk` checks, and the package's size. Signatures come later (MVP §14.2). */
 const Verification = ({ page }: { page: ItemPage }) => {
   const t = useTranslations("item.overview.verification");
+  const bytes = useBytes();
   return (
     <Card title={t("title")}>
       <p className="flex items-center gap-1.5 rounded-control border border-hairline bg-canvas px-2 py-1.5 text-xs text-fg">
@@ -439,7 +441,7 @@ const Verification = ({ page }: { page: ItemPage }) => {
         <span className="font-mono text-[11px] text-muted uppercase">sha256</span>
         <code className="font-mono text-xs break-all text-fg">{page.shown.sha256}</code>
       </div>
-      <Row label={t("size")}>{formatBytes(page.shown.size)}</Row>
+      <Row label={t("size")}>{bytes(page.shown.size)}</Row>
     </Card>
   );
 };
@@ -588,6 +590,7 @@ const IncludedFiles = ({
   hrefOf: (path: string) => string;
 }) => {
   const t = useTranslations("item.overview.included");
+  const bytes = useBytes();
   return (
     <Card title={t("title")}>
       <ul className="grid gap-1">
@@ -601,7 +604,7 @@ const IncludedFiles = ({
               {file.path}
             </Link>
             {file.executable ? <Badge>{t("executable")}</Badge> : null}
-            <span className="shrink-0 font-mono text-muted">{formatBytes(file.size)}</span>
+            <span className="shrink-0 font-mono text-muted">{bytes(file.size)}</span>
           </li>
         ))}
       </ul>

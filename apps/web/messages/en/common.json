@@ -95,5 +95,9 @@
   },
   "languageSwitch": {
     "label": "Language"
+  },
+  "bytes": {
+    "kb": "{size, number, ::group-off} KB",
+    "mb": "{size, number, ::group-off} MB"
   }
 }

@@ -34,5 +34,54 @@
     "releasedOnce": "Il est publié une fois celles-ci publiées.",
     "canRelease": "Il peut être publié une fois ses dépendances publiées.",
     "blockedHint": "Retirez-la des dépendances, ou dépendez d’un autre élément, puis soumettez de nouveau."
+  },
+  "files": {
+    "browser": "Fichiers de cette version",
+    "tree": "Fichiers",
+    "executableIcon": "Exécutable",
+    "unsaved": "(non enregistré)",
+    "executable": "exécutable",
+    "empty": "Ce fichier est vide.",
+    "frontmatter": "Frontmatter",
+    "nothingAfter": "Rien après le frontmatter.",
+    "binary": "Un fichier binaire, non affiché ici.",
+    "tooLarge": "Trop volumineux pour l’afficher ici ({size}). <mono>rmk install</mono> l’obtient tel que publié.",
+    "rendered": "Rendu",
+    "source": "Source",
+    "contentsOf": "Contenu de {path}"
+  },
+  "diff": {
+    "status": {
+      "added": "ajouté",
+      "removed": "supprimé",
+      "changed": "modifié"
+    },
+    "executableChanged": "exécutable modifié",
+    "binary": "Un fichier binaire.",
+    "binaryNow": "Un fichier binaire, maintenant de {size}.",
+    "tooLarge": "Trop volumineux pour comparer ici : voyez-le sous Tous les fichiers.",
+    "noChanges": "Aucune modification.",
+    "noChangesSince": "Aucune modification depuis la révision {since, number}.",
+    "lineAdded": "Ajoutée :",
+    "lineRemoved": "Supprimée :",
+    "layout": "La disposition du canevas (<path></path>) a aussi changé. Elle n’est pas publiée, donc elle ne fait pas partie de cette comparaison.",
+    "ronne": "<paths></paths> a aussi changé. Les fichiers de .ronne/ ne sont pas publiés, donc ils ne font pas partie de cette comparaison."
+  },
+  "issues": {
+    "ok": "OK :",
+    "none": "Aucun problème trouvé.",
+    "list": "Problèmes",
+    "rename": "Utiliser le nouveau nom",
+    "errors": "{count, plural, one {# erreur} other {# erreurs}}",
+    "warnings": "{count, plural, one {# avertissement} other {# avertissements}}",
+    "both": "{errors}, {warnings}",
+    "noProblems": "Aucun problème",
+    "show": "Afficher les problèmes : {count}",
+    "summary": "Problèmes : {count}"
+  },
+  "risk": {
+    "heading": "Ce qu’il peut faire ({count, number})",
+    "widens": "ÉLARGIT :",
+    "note": "Ils sont déduits des fichiers; l’auteur ne peut ni les définir ni les masquer."
   }
 }

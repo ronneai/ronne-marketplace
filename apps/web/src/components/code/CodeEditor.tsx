@@ -18,6 +18,7 @@ import {
   lineNumbers,
 } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
+import { useTranslations } from "next-intl";
 import { useEffect, useRef } from "react";
 import { languageFor } from "./languages";
 import { type Mentions, mentionExtension } from "./mentions";
@@ -93,12 +94,14 @@ const yamlValues = HighlightStyle.define([{ tag: tags.content, color: "var(--syn
 /** Markdown files, where `@` mentions an item to depend on (056). */
 const isMarkdown = (path: string) => /\.(md|mdx|markdown)$/i.test(path);
 
-const stateFor = (
+/** A file's editor state; `label` names its contents for screen readers ("Contents of a.md"). */
+export const stateFor = (
   path: string,
   doc: string,
   onChange: (content: string) => void,
   readOnly: boolean,
   mentions: { current: Mentions | null },
+  label: string,
 ) =>
   EditorState.create({
     doc,
@@ -118,7 +121,7 @@ const stateFor = (
       EditorView.lineWrapping,
       languageFor(path, doc),
       theme,
-      EditorView.contentAttributes.of({ "aria-label": `Contents of ${path}` }),
+      EditorView.contentAttributes.of({ "aria-label": label }),
       ...(isMarkdown(path) && !readOnly ? [mentionExtension(mentions)] : []),
       EditorView.updateListener.of((update) => {
         if (update.docChanged) onChange(update.state.doc.toString());
@@ -157,6 +160,9 @@ export const CodeEditor = ({
   // Read when the list opens, so a file's cached state keeps working as the draft changes.
   const mentioning = useRef(mentions);
   mentioning.current = mentions;
+  const t = useTranslations("author.files");
+  const words = useRef(t);
+  words.current = t;
 
   useEffect(() => {
     if (!host.current) return;
@@ -188,6 +194,7 @@ export const CodeEditor = ({
           (content) => change.current(path, content),
           locked.current,
           mentioning,
+          words.current("contentsOf", { path }),
         ),
     );
     return () => {
