@@ -122,7 +122,9 @@ in Portuguese and French beside English. Nothing about what the screens do chang
 
 - **Items (proposing and the editor), Export, Review, Versions, Changes** (`items.tsx`,
   `export.tsx`, `review.tsx`, `versions.tsx`, `changes.tsx` in ronne-web): the Portuguese and French pages take the new names of the labels they mention, from the
-  message files; English is unchanged. No new topic or section, so neither `topics.ts` changes.
+  message files. English changes only where it named a label unlike the app: the archived status,
+  the Rebase button ("Rebase onto 1.1.0") and bulk release's button ("Release 2 items"). The
+  workspaces page's pt and fr name the pages and buttons these screens now translate. No new topic or section, so neither `topics.ts` changes.
 - **Helpers:** the 27 entries above are now in three languages; no new helper.
 - `docs/knowledge/i18n.md`: the glossary gains the words these screens add (draft, submit,
   withdraw, request changes, approve, reject, release, bump, deprecate, yank, tag, dependency,

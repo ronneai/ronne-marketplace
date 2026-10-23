@@ -88,7 +88,7 @@ Every task that moves a folder adds it to the `overrides` entry in `biome.json` 
 
 All thirteen tasks are ticked, each with its witness passes in `WITNESS.md` (tasks 4, 5, 8 and 9
 took a third round, with the owner's approval). The Documentation is on the ronne-web branch
-`feat/131-languages-author` (commits 287f55e, d899d89), not pushed: it goes live with the release,
+`feat/131-languages-author` (commits 287f55e, d899d89, d96e15f), not pushed: it goes live with the release,
 as the owner's rule says. Accepted limits:
 
 - The pt and fr texts are first drafts for a native reader in 133, who also decides whether
@@ -100,8 +100,5 @@ as the owner's rule says. Accepted limits:
   (Behaviour).
 - `InvalidStatusTransitionError`'s English changed for reject, request changes and override (a fix
   of "rejectd", "request changesd", "overrided"); the API says the new words too.
-- Two Documentation sentences name a button the app words differently in every language ("Rebase",
-  the button being "Rebase onto {version}"; "Release stays off", the dialog's button being "Release
-  # items"); left for the English page's next edit.
 - The phone sweep's allowance for `/submissions/new` (072) is from before this feature and stays.
 
