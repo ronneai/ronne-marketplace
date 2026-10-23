@@ -22,7 +22,7 @@ name: Release
 #    (docs/knowledge/test-runs.md), run on what this release publishes, on a dry run too.
 # 5. `github-release`: the GitHub release, once every artefact of the version exists and every
 #    check above passed, with the npm tarballs, the install script (install.sh; feature 081) and
-#    the four bundles (Linux and macOS; no Windows server since 121) attached, and checksums.txt
+#    the four bundles (Linux and macOS; no Windows bundle since 121) attached, and checksums.txt
 #    covering the script and the bundles. A bundle that failed on any platform stops it, so the
 #    packages (085) never point at a partial release.
 #

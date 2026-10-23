@@ -243,7 +243,7 @@ Where things are, for a service installed with npm:
 On Windows, Ronne runs two ways.
 
 **In a terminal, on Windows itself** (best-effort; [#222](../issues/222-windows-foreground/SPEC.md)).
-With Node.js 22 or later, in PowerShell:
+With Node.js 22.12 or later, in PowerShell:
 
 ```powershell
 npx @ronneai/marketplace

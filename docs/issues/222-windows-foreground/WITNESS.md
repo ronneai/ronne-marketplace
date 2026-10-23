@@ -80,3 +80,84 @@ Witnessed: 2026-10-22 22:34 EDT, by a fresh agent (adversarial). Commit: 4fe845c
 | W | `start` and the refusal on a real Windows machine | no | can't check here | `server-checks.yml` on `windows-latest` |
 
 **Overall:** not met: no test covers `run.ts`'s call sites or a read before the refusal; the run on Windows can't be checked here.
+
+### Re-check 2 (blind): row 11b, and the diff
+
+Witnessed: 2026-10-22 22:39 EDT, by a fresh agent (blind). Commit: 60252ed3. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 11b | A test sees `run.ts`'s call sites of `startLines` and `browserCommand` | no | confirmed | `mutations-recheck2.sh` M5b (the old `Data folder:` line) and M6c (the old open/xdg-open choice) → `run.test.ts` fails |
+| 11c | The test sees that `run.ts` passes `process.env` (so SystemRoot) to `browserCommand` | no | not met | M6d, `browserCommand(process.platform, url, {})` → still passes: the test's `SystemRoot` is `C:\Windows`, the fallback |
+| 12 | `run.test.ts` runs the real `main()` as win32: the data folder, `WINDOWS_NOTE`, and `cmd.exe /c start "" <url>` | no | confirmed | `run.test.ts:59-75`; output and spawn asserted exactly; passes |
+| 13 | `browserCommand` ignores a relative or empty SystemRoot | no | confirmed | `platform.ts:35-39` (`win32.isAbsolute`); M10 (any non-empty) → `platform.test.ts` fails |
+| 14 | The fake system records reads, and the refusal reads nothing | no | confirmed | `fake-system.ts` pushes to `reads`; `index.test.ts:32`; M11 (`sys.exists`/`sys.readFile` before the refusal) → fails |
+| 15 | `run.test.ts` never imports the real start script, assembled or not | no | confirmed | Passes with `app` assembled and with it moved aside; M12 (no `node:url` mock) → "process.exit unexpectedly called", so the mock is what keeps it out; no stray `C:\…` folders; `git status` clean |
+| 16 | `pnpm --filter @ronneai/marketplace test` passes | no | confirmed | 13 files, 107 tests passed |
+| 17 | It really starts on Windows | no | can't check here | Task 2's CI on `windows-latest` |
+
+**Overall:** not met: no test sees `run.ts` pass `process.env` to `browserCommand` (row 11c).
+
+### Re-check 2 (adversarial): rows 13, M1, 12's hardening, and the diff
+
+Witnessed: 2026-10-22 22:45 EDT, by a fresh agent (adversarial). Commit: 60252ed3. Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 13 | `run.ts` call-site mutations fail a test | no | confirmed | `mutate2.sh` (baseline 103/103): `spawn("cmd", …)`, only `Data folder:`, `startLines("linux", dir)`, `browserCommand("linux", …)` → each fails `run.test.ts` |
+| M1 | A read before the refusal fails `service/index.test.ts` | no | confirmed | `sys.readFile`, `sys.exists` or `sys.isLink` before `serviceTarget` → each fails at `expect(sys.reads).toEqual([])` |
+| 12h | `browserCommand` falls back to `C:\Windows` for a relative or empty SystemRoot | no | confirmed | Reverting the `isAbsolute` check → `platform.test.ts` fails; `C:Windows` and `"  "` fall back; `\Windows` and UNC roots are absolute, never a current-folder lookup |
+| N1 | `run.test.ts` imports no start script, starts no server, writes nothing outside the scratch area | no | confirmed | Rejects with `/not-there\.mjs/`; `git status` empty; `find -newer` → nothing new; no `C:*`; `fetch` stubbed |
+| N2 | The fake-system change weakens no other service test | no | confirmed | Only `sys.reads.push(path)` added; `reads` used only at `index.test.ts:32`; service suite 87/87 |
+| W | `rmk-server` starts and opens the browser on a real Windows machine | no | can't check here | The Windows CI job (`server-checks.yml`) |
+
+**Overall:** not met: every row checkable here is confirmed; only the real Windows run is left. Remark: the fixed port 47123 could clash with something on the machine.
+
+**Since these passes** (uncommitted when they ran, in the next commit): `run.test.ts` sets `SystemRoot` to `D:\WINNT` and expects `D:\WINNT\System32\cmd.exe` (row 11c; M6d then fails the test, run in the adversarial scratch copy), and takes a free port instead of 47123. That's the third round of fixes for task 1: whether it gets a third re-check is the owner's call (state-witness.md, "Two rounds, then the owner").
+
+## Task 2 — Windows in CI
+
+Witnessed: 2026-10-22 22:39 EDT, by a fresh agent (blind). Commit: 5ebc96d8. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `server-checks.yml`'s install matrix runs on `windows-latest` with Node 22 and 24, and runs `server-probe.js` there | no | confirmed | `server-checks.yml:27`; the probe step runs on every matrix entry; the npm install step is `shell: bash` |
+| 2 | The probe gets back its 0.3.2-era Windows branches | no | confirmed | `diff old-probe.js server-probe.js` (old from `git show e6b43434^:…`) → `line()`/`execSync`/`shell: true`, `taskkill /T /F`, the STORAGE check for Windows, back unchanged |
+| 3 | On Windows the probe checks the start's note and the `service` refusal (exit 1) | no | confirmed | `server-probe.js:100-117` matches `WINDOWS_NOTE` and the refusal with status 1; `node --check` OK. Not run: no Windows here |
+| 4 | The Refuses Windows job is gone | no | confirmed | `git diff 22d56946 5ebc96d8 -- .github/`; `grep -rn "refuses-windows\|Refuses Windows"` → none |
+| 5 | `release.yml`'s comments and notes follow | no | partly | Notes (`:433`), `:351`, `server-package.yml:86`, `clients-windows.yml:3-5` updated; `release.yml:25` and `bundles.yml:4` still said "no Windows server since 121" |
+| 6 | The pull request's Install and run jobs pass on Windows, Node 22 and 24 | no | can't check here | Needs the GitHub run after the owner pushes |
+
+**Overall:** not met: the GitHub Windows run doesn't exist yet, and `release.yml:25` still said "no Windows server".
+
+## Task 3 — Repository docs
+
+Witnessed: 2026-10-22 22:39 EDT, by a fresh agent (blind). Commit: 5ebc96d8. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | None of the listed docs says the server refuses Windows | no | confirmed | grep across the 9 files → only 121's historical SPEC body and row, and `install.md:328`'s new EBADPLATFORM row |
+| 2 | `install.md`'s Windows section covers both ways, `wsl --install -d Ubuntu`, the 0.3.x service removal, and drops the EBADPLATFORM sentence | no | confirmed | `install.md:241-273` |
+| 3 | `install.md`'s troubleshooting rows match the code | no | confirmed | `:327` = `service/index.ts:21`; `:328`: `git show v0.4.0/v0.5.0:packages/server/package.json` → `os` darwin/linux; v0.3.2 → none |
+| 4 | The facts in `install.md`'s Windows section match the code | no | partly | Data folder = 0.3.2's; 0.3.2 had `service uninstall`. But `:246` said "Node.js 22 or later"; `MIN_NODE` is 22.12.0 |
+| 5 | `backup.md`'s systems line | no | confirmed | `backup.md:69-71` |
+| 6 | `release.md`'s checklist | no | confirmed | `release.md:49-51` |
+| 7 | `README.md` and `packages/server/README.md` | no | confirmed | `README.md:231-234`; `packages/server/README.md:25,28-29`. Couldn't check the claim of a Windows arm64 prebuild for better-sqlite3 (no network) |
+| 8 | MVP §15 Easy install and its reason | no | confirmed | `MVP.md:968` |
+| 9 | Features index 121 row, 121's SPEC header, this issue's row | no | confirmed | `docs/features/README.md:231,246`; `121-no-windows-server/SPEC.md:7-9`; `docs/issues/README.md:28` |
+
+**Overall:** not met: `install.md`'s Windows section gave the wrong Node.js minimum.
+
+## Task 4 — The website
+
+Witnessed: 2026-10-22 22:39 EDT, by a fresh agent (blind). Commit: 9699b32 (ronne-web; marketplace 5ebc96d8). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | ronne-web's checks pass on the branch | no | confirmed | Scratch copy: `biome check` clean; typecheck exit 0; `vitest run` 31 files, 183 passed; `next build` exit 0, 174 pages |
+| 2 | The Windows section has both ways and the spec's content; EBADPLATFORM gone | no | confirmed | `en/install.tsx:401-424`; no EBADPLATFORM in en/pt/fr; the Data bullet adds `%LOCALAPPDATA%\RonneAI\Marketplace` in all three |
+| 3 | en, pt and fr say the same | no | confirmed | The three diffs read side by side: same ways, sentences and order |
+| 4 | `operations` and `backups` checked | no | confirmed | Only `install.tsx` mentions Windows; `backups.tsx:16-17` rows stay true; `topics.ts` unchanged |
+| 5 | The facts match how the code behaves | no | partly | Data folder, refusal, upgrade in place hold; "Node.js 22 or later" in en `:401`, pt `:411`, fr `:427`, where the code needs 22.12 |
+
+**Overall:** not met: all three Windows sections gave Node.js 22 where the code needs 22.12.

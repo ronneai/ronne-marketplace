@@ -27,9 +27,9 @@ Then open http://localhost:7650 and follow the setup in the browser. SQLite need
   Migrations run on start.
 - **Systems:** Linux and macOS, with `rmk-server service`. Windows in a terminal only, with no
   service (best-effort); to run it at boot there, use WSL 2 or a Linux virtual machine.
-- **Native modules:** `better-sqlite3` ships prebuilt binaries for macOS, Linux (glibc and
-  musl) and Windows, on x64 and arm64. On another platform npm compiles it, which needs Python, `make`
-  and a C++ compiler. MySQL, MariaDB and PostgreSQL work regardless.
+- **Native modules:** `better-sqlite3` ships prebuilt binaries for macOS and Linux (glibc and
+  musl), on x64 and arm64, and for Windows x64. On another platform npm compiles it, which needs
+  Python, `make` (on Windows, Visual Studio's build tools) and a C++ compiler. MySQL, MariaDB and PostgreSQL work regardless.
 
 MIT licensed. Docker, the install script and the full guide are in the
 [repository](https://github.com/ronneai/ronne-marketplace#readme).

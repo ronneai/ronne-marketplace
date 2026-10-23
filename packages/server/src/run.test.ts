@@ -1,5 +1,6 @@
 // A start on Windows through the real main() (#222): what it prints and how it opens the browser.
 // Node's own modules are stubbed where Windows paths would reach this machine's disk.
+import { createServer } from "node:net";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { WINDOWS_NOTE } from "./platform.js";
 
@@ -42,7 +43,8 @@ beforeEach(() => {
   Object.defineProperty(process.stdout, "isTTY", { value: true, configurable: true });
   for (const name of ["RONNE_DATA_DIR", "RONNE_ENV_FILE", "PORT", "HOST"]) delete process.env[name];
   process.env.LOCALAPPDATA = "C:\\Users\\ana\\AppData\\Local";
-  process.env.SystemRoot = "C:\\Windows";
+  // Not the default, so the test sees that main() passes the environment on.
+  process.env.SystemRoot = "D:\\WINNT";
   printed = [];
   spawned.length = 0;
   vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
@@ -62,15 +64,21 @@ afterEach(() => {
 
 describe("rmk-server start on Windows (#222)", () => {
   it("prints the data folder and the note, and opens the browser with cmd.exe by its path", async () => {
+    const port = await new Promise<number>((resolve) => {
+      const probe = createServer().listen(0, "127.0.0.1", () => {
+        const { port } = probe.address() as { port: number };
+        probe.close(() => resolve(port));
+      });
+    });
     // start.mjs isn't imported: everything before it has run.
-    await expect(main(["--port", "47123"])).rejects.toThrow(/not-there\.mjs/);
+    await expect(main(["--port", String(port)])).rejects.toThrow(/not-there\.mjs/);
     expect(printed.join("")).toBe(
       `Data folder: C:\\Users\\ana\\AppData\\Local\\RonneAI\\Marketplace\n${WINDOWS_NOTE}\n`,
     );
     // The browser opens once the server answers, half a second on.
     await vi.waitFor(() => expect(spawned.length).toBe(1), { timeout: 3000 });
     expect(spawned).toEqual([
-      ["C:\\Windows\\System32\\cmd.exe", ["/c", "start", "", "http://localhost:47123"]],
+      ["D:\\WINNT\\System32\\cmd.exe", ["/c", "start", "", `http://localhost:${port}`]],
     ]);
   });
 });
