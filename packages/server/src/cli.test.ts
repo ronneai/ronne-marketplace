@@ -178,5 +178,8 @@ describe("a script's paths (099)", () => {
 
   it("lists backup in the help", () => {
     expect(HELP).toContain("rmk-server backup [--out DIR] [--encrypt] [--no-settings] [--keep N]");
+    expect(HELP).toContain(
+      "Windows  %LOCALAPPDATA%\\RonneAI\\Marketplace (in a terminal only; no service)",
+    );
   });
 });
