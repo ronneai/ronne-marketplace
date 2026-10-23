@@ -24,7 +24,7 @@ Ronne.
 | Ronne on your own computer | No Docker | apt/dnf, as a service (Homebrew on hold) | `http://localhost:7650` |
 | Ronne for a team, on a server with a domain | Docker | The install script, answering "server" | `https://your-domain` |
 | Ronne for a team, no Docker | Linux server | The `.deb`/`.rpm` package, as a service | `https://your-domain` |
-| To try it once, without installing a service | Node.js 22+ | `npx @ronneai/marketplace` | `http://localhost:7650` |
+| To try it once, without installing a service | Node.js 22.12+ | `npx @ronneai/marketplace` | `http://localhost:7650` |
 
 Every way keeps your data (the database, stored items and settings) in one folder or volume, and
 runs database upgrades by itself when you upgrade Ronne. Ronne's commands are `rmk` (installing

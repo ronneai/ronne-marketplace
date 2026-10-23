@@ -130,6 +130,17 @@ Witnessed: 2026-10-22 22:39 EDT, by a fresh agent (blind). Commit: 5ebc96d8. Mac
 
 **Overall:** not met: the GitHub Windows run doesn't exist yet, and `release.yml:25` still said "no Windows server".
 
+### Re-check (blind): row 5
+
+Witnessed: 2026-10-22 22:41 EDT, by a fresh agent (blind). Commit: 159a9fed. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 5 | `release.yml`'s comments and `bundles.yml:4` no longer say there's no Windows server | no | confirmed | `git diff 5ebc96d8 159a9fed -- .github` → `release.yml:25` "no Windows bundle since 121"; `bundles.yml:4` "Windows bundle since 121; on Windows, rmk-server runs from npm in a terminal, #222"; `grep -ni windows` → nothing else says so |
+| 6 | The Windows job passes on GitHub | no | can't check here | Needs a GitHub Actions run |
+
+**Overall:** not met: row 6 waits for the GitHub run after the owner pushes; everything else holds.
+
 ## Task 3 — Repository docs
 
 Witnessed: 2026-10-22 22:39 EDT, by a fresh agent (blind). Commit: 5ebc96d8. Machine: macOS 27.0.1, Node v24.0.0.
@@ -148,6 +159,17 @@ Witnessed: 2026-10-22 22:39 EDT, by a fresh agent (blind). Commit: 5ebc96d8. Mac
 
 **Overall:** not met: `install.md`'s Windows section gave the wrong Node.js minimum.
 
+### Re-check (blind): row 4, and the README's native modules
+
+Witnessed: 2026-10-22 22:41 EDT, by a fresh agent (blind). Commit: 159a9fed. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4 | `install.md`'s Windows section gives the Node.js minimum the code enforces | no | confirmed | `node-version.ts:2` `MIN_NODE = "22.12.0"`, `package.json:49` `>=22.12`; `install.md:246` "Node.js 22.12 or later", `:138` agrees. `install.md:27`'s table still said "Node.js 22+" (outside the section, loose) |
+| 7 | `packages/server/README.md`'s better-sqlite3 sentence can be backed up | no | not met | better-sqlite3 13.0.3 ships `prebuilds/win32-arm64.node` (an Aarch64 Windows DLL; `lib/binding.js:5-6` loads win32 x64 and arm64), so "Windows x64" understates it; and `"gypfile": false` with no install script means npm never compiles it, so "On another platform npm compiles it" is false (it was before #222 too) |
+
+**Overall:** not met: the README's native-modules sentence.
+
 ## Task 4 — The website
 
 Witnessed: 2026-10-22 22:39 EDT, by a fresh agent (blind). Commit: 9699b32 (ronne-web; marketplace 5ebc96d8). Machine: macOS 27.0.1, Node v24.0.0.
@@ -161,3 +183,14 @@ Witnessed: 2026-10-22 22:39 EDT, by a fresh agent (blind). Commit: 9699b32 (ronn
 | 5 | The facts match how the code behaves | no | partly | Data folder, refusal, upgrade in place hold; "Node.js 22 or later" in en `:401`, pt `:411`, fr `:427`, where the code needs 22.12 |
 
 **Overall:** not met: all three Windows sections gave Node.js 22 where the code needs 22.12.
+
+### Re-check (blind): row 5, and the checks
+
+Witnessed: 2026-10-22 22:41 EDT, by a fresh agent (blind). Commit: d81a8cb. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 5 | en, pt and fr `install.tsx` give Node.js 22.12 and say the same | no | confirmed | `git diff 9699b32 d81a8cb` → one line each: `en:401`, `pt:411-412`, `fr:427` "22.12"; the npx sections (`en:255`, `pt:262`, `fr:273`) agree; `MIN_NODE` is 22.12.0 |
+| 6 | ronne-web's checks pass on d81a8cb | no | confirmed | Scratch copy: `pnpm lint` clean; `next typegen` + `tsc --noEmit` exit 0; `pnpm test` 31 files, 183 passed; `pnpm build` exit 0 |
+
+**Overall:** met: the three languages give Node.js 22.12, matching the code, and ronne-web's checks pass.

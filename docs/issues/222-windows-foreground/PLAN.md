@@ -21,10 +21,14 @@ the same change that completes it.
   `packages/server/README.md`, MVP §15 (Easy install), the features index (121's row), 121's SPEC
   header, and this issue's row in `docs/issues/README.md`. *Done when:* none of them says the
   server refuses Windows, each says what the spec's Documentation lists.
-- [ ] **4. The website.** ronne-web, branch `bugfix/marketplace-222-windows`: the `install`
+- [x] **4. The website.** ronne-web, branch `bugfix/marketplace-222-windows`: the `install`
   page's Windows section in en, pt and fr, and `operations` and `backups` checked. *Done when:*
   ronne-web's own checks pass on the branch and the three languages say the same.
 - [ ] **5. The release.** The owner's: the next release ships it, the issue's status becomes
   "fixed in x.y.z", and the issue is closed by hand. *Done when:* released.
 
 ## Notes
+
+- **Task 4:** ronne-web branch `bugfix/marketplace-222-windows` (9699b32, d81a8cb), made in a
+  worktree so the owner's uncommitted work in `../ronne-web` stays as it was. pt and fr were written
+  without ronne-web's `translator` agent (not available in this session); worth a proofread.
