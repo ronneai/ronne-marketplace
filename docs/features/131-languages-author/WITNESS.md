@@ -248,3 +248,35 @@ Witnessed: 2026-10-23 11:34 EDT, by a fresh agent (blind). Commit: 4cb300a1. Mac
 | 7 | The footer's noun is right for 0, 1 and 2 in en, pt and fr, and a test asserts it | no | confirmed | The new test checks all nine cells; `noun="item"`, en without `one`, pt `other` singular, fr `one` plural → each fails it; 40 passed |
 
 **Overall:** met.
+
+## Task 7 — Reviews: the queue
+
+Witnessed: 2026-10-23 11:45 EDT, by a fresh agent (blind). Commit: c50bf82b. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The queue, the batch review, its results and the page's title and header are messages in `author.queue` | no | confirmed | `QueueTable.tsx`, `BulkApprove.tsx`, `reviews/page.tsx` use only `t(...)`; the three `queue` blocks have the same keys |
+| 2 | Three-language tests exist and fail without the translations | no | confirmed | 31 passed; pt `empty.waiting` in English, pt `approve.title` without plural → each fails |
+| 3 | `/reviews` is in `MIGRATED_ROUTES` | no | confirmed | `e2e/pages.ts`, `pages-coverage.test.ts`; removing it fails |
+| 4 | The five files are in the raw-text scan | no | confirmed | `biome.json`; a raw `Deselect all` → plugin error |
+| 5 | No visible change in English | no | confirmed | `QueueTabs` and `QueueTable` rendered at HEAD and HEAD~1 → identical (57,134 bytes) |
+| 6 | Statuses are one set of messages | no | confirmed | `StatusBadge`; tab labels from `queue.tabs` |
+| 7 | Whole sentences | no | partly | The batch summary is `summary` in `<strong>` plus an `overrides` fragment or a raw "." joined in code |
+| 8 | Names inside sentences are data | no | confirmed | `@t/{x}` shown as typed |
+| 9 | Counts of 0, 1 and 2 follow each language's plural rule | no | not met | `approve.selected` has no plural: pt "1 selecionadas", fr "1 sélectionnées", "0 sélectionnées" |
+| 10 | Types and risk kinds stay as codes | no | confirmed | `ITEM_TYPES`, `TypeBadge`, `⚠ {kind}` |
+| 11 | pt/fr typography and glossary | no | confirmed | Remark: pt kept the English "override" |
+
+**Overall:** not met: rows 7 and 9.
+
+### Re-check (rows 7, 9)
+
+Witnessed: 2026-10-23 11:46 EDT, by a fresh agent (blind). Commit: e720e574. Machine: macOS (Darwin 27), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 7 | The summary is one message per language, English unchanged, tested at 0, 1 and 2 overrides | no | confirmed | One `t.rich("summary", { count, overrides, strong })`; English words identical; pt `=0 {.}` → `=0 {}` fails 2 tests; 229 passed |
+| 9 | "N selected" follows each language's plural rule at 0, 1 and 2, and a test fails when undone | no | confirmed | pt and fr plurals; set back to `{count, number} …` → 1 test fails in each |
+| 10 | Root's override is "exceção" / "dérogation", and the glossary records it | no | confirmed | `author.json`; `i18n.md` glossary row; the test expects ">Aprovada (exceção):<" |
+
+**Overall:** met.
