@@ -9,7 +9,7 @@ import {
 import { signInUrl } from "../domains/identity/models/route-guard";
 import { type AppAuth, getAppAuth } from "../domains/identity/repositories/auth-instance";
 import { errorResponse } from "./errors";
-import { passwordChangeHold } from "./password-change-hold";
+import { changeRequiredResponse, passwordChangeHold } from "./password-change-hold";
 import { twoFactorHold } from "./two-factor-hold";
 
 /** What the route handlers of `GET /account/data` and `GET /admin/users/<id>/data` share (104). */
@@ -65,11 +65,7 @@ export const userDataResponse = async (
       headers: { location: signInUrl(new URL(request.url).pathname), "cache-control": "no-store" },
     });
   if (await (deps.passwordHold ?? passwordChangeHold)(request.headers))
-    return errorResponse(
-      403,
-      "password_change_required",
-      "Choose your own password first (Account › Password).",
-    );
+    return changeRequiredResponse("Choose your own password first (Account › Password).");
   if (await (deps.hold ?? twoFactorHold)(request.headers))
     return errorResponse(
       403,

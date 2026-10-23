@@ -6,6 +6,7 @@ import {
 import { setRequestUser } from "../log";
 import { getSetupState } from "../setup/state";
 import { errorResponse, setupRequiredResponse } from "./errors";
+import { changeRequiredResponse } from "./password-change-hold";
 
 const MESSAGES: Record<TokenFailure, string> = {
   token_missing: "Send an access token in the Authorization header: `Bearer rmk_…`.",
@@ -77,9 +78,7 @@ export const requireToken = async (
   if (result.value.passwordChangeRequired && !options.allowPasswordChange)
     return {
       ok: false,
-      response: errorResponse(
-        403,
-        "password_change_required",
+      response: changeRequiredResponse(
         "Choose your own password in the web app first: sign in there and you are taken to it.",
       ),
     };

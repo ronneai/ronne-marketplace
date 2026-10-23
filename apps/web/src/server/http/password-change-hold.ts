@@ -1,5 +1,6 @@
 import { passwordChangeRequired } from "../domains/identity/actions/session";
 import { getAppAuthIfConfigured } from "../domains/identity/repositories/auth-instance";
+import { errorResponse } from "./errors";
 
 /** Where a person who must replace the password root chose is held until they have (128). */
 export const PASSWORD_PATH = "/account/password";
@@ -15,3 +16,7 @@ export const passwordChangeHold = async (headers: Headers): Promise<boolean> => 
   if (!app) return false;
   return passwordChangeRequired(headers, app);
 };
+
+/** The API's refusal while the hold is on: 403 `password_change_required`, with what to do about it. */
+export const changeRequiredResponse = (message: string) =>
+  errorResponse(403, "password_change_required", message);
