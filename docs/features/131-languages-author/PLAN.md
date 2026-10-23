@@ -64,7 +64,7 @@ Every task that moves a folder adds it to the `overrides` entry in `biome.json` 
 
 - [ ] **10. What the actions say.** [risky] The success lines and errors of the action files in
   scope (`draft-editor`, `submissions`, `reviews`, `versions`, `releases`, `item-page`) as codes
-  or `errorText`; `errors.json` gets the submissions domain's 44 classes and the six items classes
+  or `errorText`; `errors.json` gets the submissions domain's classes (48; `ReleasePackError` stays English) and the six items classes
   the spec lists, in all three languages, with their lists and plurals.
   *Done when:* a test per class in three languages (`errors.test.ts`); an action test that an
   unknown error still shows the English message; the API's messages are unchanged (a test).

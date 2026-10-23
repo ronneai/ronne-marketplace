@@ -52,7 +52,7 @@ export const whyEnglish = (why: Why): string => {
     case "yours":
       return "Yours: edit or withdraw it.";
     case "cannot_send_back":
-      return `It's ${why.status.replace("_", " ")}.`;
+      return `It's ${statusLabel(why.status)}.`;
     case "not_approved":
       return `It's ${statusLabel(why.status)}, not approved.`;
     case "not_releaser":

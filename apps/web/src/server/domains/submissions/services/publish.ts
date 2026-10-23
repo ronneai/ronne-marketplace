@@ -650,6 +650,7 @@ const publishSubmissionUntraced = async (
         },
       ],
       "release",
+      refusal.why,
     );
   if (candidates.length > MAX_BULK_RELEASE)
     throw new BulkLimitError(candidates.length, MAX_BULK_RELEASE);

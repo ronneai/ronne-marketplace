@@ -768,7 +768,7 @@
     "own_decide": "Your own submission: another moderator or root decides.",
     "not_reviewer": "Only reviewers send submissions back.",
     "yours": "Yours: edit or withdraw it.",
-    "cannot_send_back": "It's {status, select, changes_requested {changes requested} other {{status}}}.",
+    "cannot_send_back": "It's {status, select, changes_requested {changes requested} withdrawn {archived} other {{status}}}.",
     "not_approved": "It's {status, select, changes_requested {changes requested} withdrawn {archived} other {{status}}}, not approved.",
     "not_releaser": "Only its author, a moderator or root releases it.",
     "released_since": "Rebase needed: {newer} has been released since it was approved.",

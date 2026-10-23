@@ -8,6 +8,7 @@ import {
   type TagProblem,
 } from "@ronneai/core";
 import { MESSAGE_FOR_PEOPLE } from "../../../log/message-for-people";
+import type { Why } from "../models/why";
 
 /** Errors the submissions domain raises. Pages turn them into `ERR:` lines. */
 export class SubmissionsError extends Error {
@@ -120,6 +121,12 @@ export class InvalidStatusTransitionError extends SubmissionsError {
           withdraw: "withdrawn",
           restore: "restored",
           publish: "published",
+          request_changes: "sent back for changes",
+          approve: "approved",
+          reject: "rejected",
+          override: "approved as an override",
+          rebase: "rebased",
+          delete: "deleted",
         }[action] ?? `${action.replace("_", " ")}d`
       }.`,
     );
@@ -137,6 +144,8 @@ export class SubmissionInvalidError extends SubmissionsError {
     readonly issues: readonly ManifestIssue[],
     /** At release (015), the first problem is named: usually a dependency not released yet (056). */
     readonly when: "submit" | "release" = "submit",
+    /** At release, the release group's refusal as a code, for the web app's sentence (131). */
+    readonly why?: Why,
   ) {
     const errors = issues.filter((issue) => issue.severity === "error");
     super(

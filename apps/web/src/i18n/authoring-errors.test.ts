@@ -29,6 +29,14 @@ const CASES: [Error, string[]][] = [
   [new s.InvalidStatusTransitionError("withdrawn", "withdraw"), []],
   [new s.InvalidStatusTransitionError("changes_requested", "approve"), []],
   [new s.InvalidStatusTransitionError("published", "publish"), []],
+  [new s.InvalidStatusTransitionError("approved", "reject"), []],
+  [new s.InvalidStatusTransitionError("rejected", "request_changes"), []],
+  [new s.InvalidStatusTransitionError("approved", "override"), []],
+  [new s.InvalidStatusTransitionError("approved", "approve"), []],
+  [new s.InvalidStatusTransitionError("draft", "rebase"), []],
+  [new s.InvalidStatusTransitionError("draft", "resubmit"), []],
+  [new s.InvalidStatusTransitionError("draft", "restore"), []],
+  [new s.InvalidStatusTransitionError("approved", "delete"), []],
   [new s.SubmissionInvalidError([error]), ["1"]],
   [new s.SubmissionInvalidError([error, error]), ["2"]],
   [new s.SubmissionInvalidError([error], "release"), ["`name` is required."]],
@@ -42,8 +50,7 @@ const CASES: [Error, string[]][] = [
   [new s.DependencyClosedError("@a/x", "rejected"), ["@a/x"]],
   [new s.DependencyClosedError("@a/x", "withdrawn"), ["@a/x"]],
   [new s.DependencyNotPublishedError("@a/x"), ["@a/x"]],
-  [new s.DependencyUnreleasedError("@a/x", "submitted"), ["@a/x"]],
-  [new s.DependencyUnreleasedError("@a/x", "approved"), ["@a/x"]],
+  [new s.DependencyUnreleasedError("@a/x", "in review"), ["@a/x", "in review"]],
   [new s.DependencyRangeUnmatchedError("@a/x", "^2.0.0"), ["@a/x", "^2.0.0"]],
   [new s.DependencyDraftError("@a/x"), ["@a/x"]],
   [new s.InvalidFilePathError("../x", "outside"), ["../x"]],
@@ -264,8 +271,8 @@ describe("authoring and review errors in three languages (131)", () => {
     expect(await text("pt", new s.InvalidStatusTransitionError("withdrawn", "withdraw"))).toBe(
       "Uma submissão arquivada não pode ser retirada.",
     );
-    expect(await text("fr", new s.DependencyUnreleasedError("@a/x", "approved"))).toBe(
-      "@a/x n’est pas encore publié (il est approuvé). Publiez-le d’abord.",
+    expect(await text("fr", new s.InvalidStatusTransitionError("approved", "reject"))).toBe(
+      "Une soumission approuvée ne peut pas être rejetée.",
     );
   });
 
@@ -281,6 +288,19 @@ describe("authoring and review errors in three languages (131)", () => {
         "The path a.md appears twice in one save.",
       ],
       [new s.InvalidItemTypeError(""), "(empty) isn't an item type."],
+      // 131 put right the three that read "rejectd", "request changesd" and "overrided".
+      [
+        new s.InvalidStatusTransitionError("approved", "reject"),
+        "A submission that's approved can't be rejected.",
+      ],
+      [
+        new s.InvalidStatusTransitionError("rejected", "request_changes"),
+        "A submission that's rejected can't be sent back for changes.",
+      ],
+      [
+        new s.InvalidStatusTransitionError("approved", "override"),
+        "A submission that's approved can't be approved as an override.",
+      ],
       [
         new s.SubmissionInvalidError([error, error], "release"),
         "It can't be released yet: `name` is required. (and 1 more)",

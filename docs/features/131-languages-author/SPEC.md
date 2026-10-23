@@ -41,12 +41,15 @@ in Portuguese and French beside English. Nothing about what the screens do chang
   `ArtifactUnavailableError`), in all three languages, with their lists and plurals. An error
   whose sentence was built from English pieces carries them as codes instead (a path problem, a
   .zip refusal, a tag rule, what needs a message), and its English message stays word for word,
-  which is what the API and `rmk` show.
+  which is what the API and `rmk` show. One exception, a fix: `InvalidStatusTransitionError`
+  read "can't be rejectd", "request changesd" and "overrided"; it now says "rejected", "sent
+  back for changes" and "approved as an override", in the API too.
 - **Why it can't go.** The reasons the services give for a submission that can't be approved,
   decided on, sent back or released (the queue's checkbox, the disabled decisions, the
   dependents, bulk approve, the Release button and bulk release) carry a code, `why`, beside the
   English `reason`; the screens word the code. A domain error inside one is worded on the server
-  before it reaches the browser. None of these reaches the API.
+  before it reaches the browser. None of these reaches the API. The Release button's refusal and
+  Submit selected's "not a member" line are worded the same way.
 - **Inline helpers.** The 27 `Help` entries these screens show move to `help.json`: `scope`,
   `item-name`, `name`, `type`, `manifest`, `canvas`, `submit-together`, `submit-many`, `risk`,
   `decisions`, `bump`, `tag`, `deprecate-yank`, `export`, `approve-many`, `withdraw`, `archived`,

@@ -15,7 +15,10 @@ import {
   type ReviewDecision,
   rejectWithDependents,
 } from "@/server/domains/submissions/actions/reviews";
-import { SubmissionsError } from "@/server/domains/submissions/exceptions/errors";
+import {
+  SubmissionInvalidError,
+  SubmissionsError,
+} from "@/server/domains/submissions/exceptions/errors";
 import { itemNameOf } from "@/server/domains/submissions/models/submission";
 import { requestHeaders } from "@/server/http/request-headers";
 import { serverAction } from "@/server/http/server-action";
@@ -27,6 +30,13 @@ const isRevision = (value: unknown): value is number | null =>
 
 /** A domain error in the person's language (131); anything else is thrown on. */
 const message = async (error: unknown): Promise<string> => {
+  // The Release button's refusal (056): its reason worded, read on after "It can't be released yet:".
+  if (error instanceof SubmissionInvalidError && error.why) {
+    const first = (await whyText(error.why)).replace(/^(It|Ela|Elle) /, (word) =>
+      word.toLowerCase(),
+    );
+    return errorText(Object.assign(new SubmissionInvalidError([], "release"), { first, more: 0 }));
+  }
   if (error instanceof SubmissionsError || error instanceof IdentityError) return errorText(error);
   throw error;
 };

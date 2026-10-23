@@ -308,12 +308,14 @@ describe("a draft in a workspace they aren't in (091, 094)", () => {
         id: away.id,
         name: "@acme/platform/away-one",
         result: "not_a_member",
-        reasons: ["You aren't a member."],
+        reasons: [
+          "You aren't a member of the acme workspace. Ask to join acme to propose changes.",
+        ],
         joinWorkspace: "acme",
       },
     ]);
     const html = renderToStaticMarkup(<BulkResults results={results} />);
-    expect(html).toContain("You aren&#x27;t a member.");
+    expect(html).toContain("You aren&#x27;t a member of the acme workspace.");
     expect(html).toMatch(/<a [^>]*href="\/workspaces\/acme\/join"[^>]*>Ask to join acme<\/a>/);
   });
 });
