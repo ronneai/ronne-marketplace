@@ -21,7 +21,7 @@ export const startLines = (platform: NodeJS.Platform, dataDir: string): string =
 
 /**
  * The command that opens `url` in the browser. On Windows, Windows' own cmd.exe by its full path
- * (a bare "cmd" may be looked up in the current folder first), and start's first argument is the
+ * (a bare "cmd", or one under a relative SystemRoot, may be looked up in the current folder first), and start's first argument is the
  * window's title, so it gets an empty one.
  */
 export const browserCommand = (
@@ -32,7 +32,11 @@ export const browserCommand = (
   if (platform === "darwin") return ["open", [url]];
   if (platform === "win32")
     return [
-      win32.join(env.SystemRoot || "C:\\Windows", "System32", "cmd.exe"),
+      win32.join(
+        env.SystemRoot && win32.isAbsolute(env.SystemRoot) ? env.SystemRoot : "C:\\Windows",
+        "System32",
+        "cmd.exe",
+      ),
       ["/c", "start", "", url],
     ];
   return ["xdg-open", [url]];

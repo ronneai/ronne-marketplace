@@ -27,8 +27,9 @@ describe("rmk-server service on Windows (#222)", () => {
       expect(sys.errors).toEqual([
         "rmk-server: service isn't available on Windows. Run rmk-server start in a terminal, or run Ronne in WSL 2 or Linux to start it at boot: https://www.ronne.ai/marketplace/docs/install#windows\n",
       ]);
-      // Nothing was run, made or removed.
+      // Nothing was run, read, made or removed.
       expect(sys.commands).toEqual([]);
+      expect(sys.reads).toEqual([]);
       expect(sys.dirs.size).toBe(0);
       expect([...sys.files.keys()]).toEqual(["C:\\ProgramData\\RonneAI\\Marketplace\\.env"]);
       expect(sys.output).toEqual([]);

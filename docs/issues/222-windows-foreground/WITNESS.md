@@ -50,3 +50,33 @@ Witnessed: 2026-10-22 22:40 EDT, by a fresh agent (adversarial). Commit: 380e527
 | 15 | On real Windows: `npx` or a global install starts, serves 0.3.2's data, opens a browser, runs the scripts | no | can't check here | Needs Windows (task 2's CI) |
 
 **Overall:** not met: `run.ts`'s Windows note and opener have no test, and rows 12 and 15 need Windows. Minor: `index.test.ts` covered 4 of the actions and didn't see `mkdir`.
+
+### Re-check (blind): rows 9 and 11, and the diff
+
+Witnessed: 2026-10-22 22:35 EDT, by a fresh agent (blind). Commit: 4fe845ca. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 9 | The `service` refusal on Windows matches SPEC.md word for word | no | confirmed | `service/index.ts:21` plus the `rmk-server: ` prefix (`:72`) and `WINDOWS_HELP` (`platform.ts:7`) = SPEC.md lines 49–52; `index.test.ts` asserts the line for 8 actions; M9 (a "." added) → fails |
+| 9b | The refusal comes before anything is run, read or written | no | confirmed | `runService` (`index.ts:69–74`) refuses before any backend call; the test checks no commands, dirs, file changes or output. `programPaths()` before it reads only the package's own `bin.js` and `package.json` |
+| 11 | Done when: the tests cover each Behaviour row that runs without Windows, and the package's tests pass | no | confirmed | 12 files, 106 passed. `mutations-recheck.sh`: M5a (no note in `startLines`), M6a (bare `"cmd"`), M6b (`xdg-open`) → each fails `platform.test.ts` |
+| 11b | `run.ts`'s call sites use `startLines` and `browserCommand`, and a test sees it | no | partly | `run.ts:41,158` call them, but M5b (print only `Data folder:`) and M6c (darwin/else `xdg-open`) → baseline failures only |
+| 12 | The browser on Windows opens through `%SystemRoot%\System32\cmd.exe` by its full path, with `/c start "" <url>` | no | confirmed | `browserCommand`; `platform.test.ts` covers `SystemRoot=D:\WINNT`, unset, darwin, linux; M6a and M6b fail it |
+| 13 | README's Windows data folder matches `paths.ts` | no | confirmed | `packages/server/README.md`; `paths.ts:13–14` |
+| 14 | A real start and `service` refusal on Windows | no | can't check here | Task 2's CI on `windows-latest` |
+
+**Overall:** not met: the `run.ts` call sites have no test (row 11b), and the run on Windows is task 2's CI.
+
+### Re-check (adversarial): rows 9, 12, 13 and the minor finding
+
+Witnessed: 2026-10-22 22:34 EDT, by a fresh agent (adversarial). Commit: 4fe845ca. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 9 | The refusal matches SPEC.md word for word | no | confirmed | The SPEC.md quote and the test's string compared in the shell → `SAME`; 8 tests pass |
+| 12 | The opener runs `%SystemRoot%\System32\cmd.exe` by its full path, never one from the current folder | no | confirmed | `platform.ts:27-38`, spawned with no shell. `probe-222.test.ts` with SystemRoot unset, `""`, `D:\WINNT`, `C:\Windows\`, `C:\a b&calc` → a single absolute path each. A relative `SystemRoot` (`.\x`) gives a relative path: needs someone who controls the environment; optional hardening. Bare `"cmd"` or no fallback → 3 tests fail |
+| 13 | The note and `cmd /c start "" <url>` are tested, including `run.ts`'s call sites | no | partly | Mutations in `platform.ts` are caught (3 failed each). At `run.ts` they survive: a bare `cmd` at `:41`; only `Data folder:` at `:158`; `startLines("linux", dir)`. No test imports `run.ts` |
+| M1 | `service/index.test.ts` covers every action and sees reads, `mkdir` and removals | no | partly | All 8 actions; a removed `.env` or a `mkdir` before the refusal → caught; `sys.readFile`/`sys.exists` before it → survives: the fake doesn't record reads (`fake-system.ts:75,79`) |
+| W | `start` and the refusal on a real Windows machine | no | can't check here | `server-checks.yml` on `windows-latest` |
+
+**Overall:** not met: no test covers `run.ts`'s call sites or a read before the refusal; the run on Windows can't be checked here.

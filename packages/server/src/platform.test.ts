@@ -40,6 +40,10 @@ describe("the systems rmk-server runs on (121, #222)", () => {
       "D:\\WINNT\\System32\\cmd.exe",
       ["/c", "start", "", url],
     ]);
+    for (const SystemRoot of ["", ".\\x", "x"])
+      expect(browserCommand("win32", url, { SystemRoot })[0]).toBe(
+        "C:\\Windows\\System32\\cmd.exe",
+      );
     expect(browserCommand("win32", url, {})).toEqual([
       "C:\\Windows\\System32\\cmd.exe",
       ["/c", "start", "", url],
