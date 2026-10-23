@@ -4,6 +4,7 @@ import { highestMatching } from "@ronneai/core";
 import { Rocket } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { createContext, type ReactNode, useContext, useState, useTransition } from "react";
 import { Help } from "@/components/help/Help";
 import { Badge } from "@/components/ui/Badge";
@@ -17,7 +18,10 @@ import type {
   ReleasedSubmission,
   ReleaseSettings,
 } from "@/server/domains/submissions/actions/publish";
-import { planReleases } from "@/server/domains/submissions/models/release-plan";
+import {
+  type PlannedRelease,
+  planReleases,
+} from "@/server/domains/submissions/models/release-plan";
 import { prepareReleaseAction, releaseSelectedAction } from "./actions";
 
 /**
@@ -70,11 +74,12 @@ export const BulkReleaseProvider = ({
 
 /** An approved row's checkbox. */
 export const ReleaseSelectCell = ({ id, name }: { id: string; name: string }) => {
+  const t = useTranslations("author.release");
   const { selected, toggle } = useSelection();
   return (
     <input
       type="checkbox"
-      aria-label={`Select ${name} to release`}
+      aria-label={t("selectOne", { name })}
       checked={selected.has(id)}
       onChange={() => toggle(id)}
       className="size-4 rounded-sm border border-strong accent-(--accent) outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
@@ -85,7 +90,7 @@ export const ReleaseSelectCell = ({ id, name }: { id: string; name: string }) =>
 const DEFAULT_SETTINGS: ReleaseSettings = { kind: "stable", bump: "suggested", tag: "" };
 
 /** The settings, once for all: stable or pre-release, the bump, the tag, the notes. */
-const SettingsForm = ({
+export const SettingsForm = ({
   settings,
   onChange,
   notes,
@@ -95,98 +100,196 @@ const SettingsForm = ({
   onChange: (settings: ReleaseSettings) => void;
   notes: string;
   onNotes: (notes: string) => void;
-}) => (
-  <div className="grid gap-3 sm:grid-cols-2">
-    <fieldset className="grid gap-1.5">
-      <legend className="text-xs font-semibold">Release as</legend>
-      <div className="flex flex-wrap items-center gap-3 text-sm">
-        {(["stable", "prerelease"] as const).map((kind) => (
-          <label key={kind} className="flex items-center gap-1.5">
+}) => {
+  const t = useTranslations("author.release");
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      <fieldset className="grid gap-1.5">
+        <legend className="text-xs font-semibold">{t("releaseAs")}</legend>
+        <div className="flex flex-wrap items-center gap-3 text-sm">
+          {(["stable", "prerelease"] as const).map((kind) => (
+            <label key={kind} className="flex items-center gap-1.5">
+              <input
+                type="radio"
+                name="release-kind"
+                checked={settings.kind === kind}
+                onChange={() => onChange({ ...settings, kind, id: settings.id ?? "beta" })}
+                className="size-4 accent-(--accent)"
+              />
+              {t(kind)}
+            </label>
+          ))}
+          {settings.kind === "prerelease" ? (
             <input
-              type="radio"
-              name="release-kind"
-              checked={settings.kind === kind}
-              onChange={() => onChange({ ...settings, kind, id: settings.id ?? "beta" })}
-              className="size-4 accent-(--accent)"
+              aria-label={t("preId")}
+              value={settings.id ?? ""}
+              onChange={(event) => onChange({ ...settings, id: event.target.value })}
+              className={cn(inputClasses, "h-8 w-24 font-mono text-xs")}
             />
-            {kind === "stable" ? "Stable" : "Pre-release"}
-          </label>
-        ))}
-        {settings.kind === "prerelease" ? (
-          <input
-            aria-label="Pre-release id"
-            value={settings.id ?? ""}
-            onChange={(event) => onChange({ ...settings, id: event.target.value })}
-            className={cn(inputClasses, "h-8 w-24 font-mono text-xs")}
-          />
-        ) : null}
+          ) : null}
+        </div>
+      </fieldset>
+      <div className="grid gap-1.5">
+        <Label htmlFor="release-bump">{t("bump")}</Label>
+        <Select
+          id="release-bump"
+          value={settings.bump}
+          onChange={(event) =>
+            onChange({ ...settings, bump: event.target.value as ReleaseSettings["bump"] })
+          }
+          className="h-8 text-sm"
+        >
+          <option value="suggested">{t("suggested")}</option>
+          <option value="patch">{t("patch")}</option>
+          <option value="minor">{t("minor")}</option>
+          <option value="major">{t("major")}</option>
+        </Select>
+        <Help id="which-bump" />
       </div>
-    </fieldset>
-    <div className="grid gap-1.5">
-      <Label htmlFor="release-bump">Bump, for items with versions</Label>
-      <Select
-        id="release-bump"
-        value={settings.bump}
-        onChange={(event) =>
-          onChange({ ...settings, bump: event.target.value as ReleaseSettings["bump"] })
-        }
-        className="h-8 text-sm"
-      >
-        <option value="suggested">Suggested for each</option>
-        <option value="patch">Patch for all</option>
-        <option value="minor">Minor for all</option>
-        <option value="major">Major for all</option>
-      </Select>
-      <Help id="which-bump" />
+      <div className="grid gap-1.5">
+        <Label htmlFor="release-tag">{t("tag")}</Label>
+        <input
+          id="release-tag"
+          value={settings.tag ?? ""}
+          placeholder={t("tagPlaceholder")}
+          onChange={(event) => onChange({ ...settings, tag: event.target.value })}
+          className={cn(inputClasses, "h-8 font-mono text-xs")}
+        />
+      </div>
+      <div className="grid gap-1.5">
+        <Label htmlFor="release-notes">
+          {t("notes")} <span className="font-normal text-muted">{t("optional")}</span>
+        </Label>
+        <textarea
+          id="release-notes"
+          rows={1}
+          maxLength={2000}
+          value={notes}
+          placeholder={t("notesPlaceholder")}
+          onChange={(event) => onNotes(event.target.value)}
+          className={cn(inputClasses, "h-auto resize-none py-1.5 text-sm")}
+        />
+      </div>
     </div>
-    <div className="grid gap-1.5">
-      <Label htmlFor="release-tag">Tag</Label>
-      <input
-        id="release-tag"
-        value={settings.tag ?? ""}
-        placeholder="latest, or next for a pre-release"
-        onChange={(event) => onChange({ ...settings, tag: event.target.value })}
-        className={cn(inputClasses, "h-8 font-mono text-xs")}
-      />
-    </div>
-    <div className="grid gap-1.5">
-      <Label htmlFor="release-notes">
-        Release notes <span className="font-normal text-muted">(optional)</span>
-      </Label>
-      <textarea
-        id="release-notes"
-        rows={1}
-        maxLength={2000}
-        value={notes}
-        placeholder="Stored on every version"
-        onChange={(event) => onNotes(event.target.value)}
-        className={cn(inputClasses, "h-auto resize-none py-1.5 text-sm")}
-      />
-    </div>
-  </div>
-);
+  );
+};
 
 /** How a candidate's version came about: a first release, or the bump from its newest version. */
-const originOf = (candidate: ReleaseCandidate, bump: string | null, suggested: boolean) =>
-  candidate.published.length === 0
-    ? "first release"
-    : `after ${highestMatching(candidate.published, ">=0.0.0-0") ?? candidate.published[0]} · ${bump}${suggested ? " (suggested)" : ""}`;
+const useOrigin = () => {
+  const t = useTranslations("author.release");
+  return (candidate: ReleaseCandidate, bump: string | null, suggested: boolean) =>
+    candidate.published.length === 0
+      ? t("first")
+      : t(suggested ? "afterSuggested" : "after", {
+          version:
+            highestMatching(candidate.published, ">=0.0.0-0") ?? candidate.published[0] ?? "",
+          bump: bump ?? "",
+        });
+};
 
-const RESULT_TEXT: Record<ReleasedSubmission["result"], string> = {
-  published: "Published",
-  not_found: "Not released",
-  not_releasable: "Not released",
-  skipped: "Skipped",
+/** A plan's problem in the person's language: its code worded, as the server's English says it. */
+const usePlanProblem = () => {
+  const release = useTranslations("author.release.problem");
+  const tag = useTranslations("author.review.tagProblem");
+  return (plan: Extract<PlannedRelease, { ok: false }>) =>
+    plan.code === "no_version" ? release("no_version") : tag(plan.code, { tag: plan.tag ?? "" });
+};
+
+/** What happened to each, after releasing (055). */
+export const ReleaseResults = ({ results }: { results: ReleasedSubmission[] }) => {
+  const t = useTranslations("author.release");
+  return (
+    <ul className="text-sm">
+      {results.map((r) => (
+        <li key={r.id} className="border-b border-hairline py-2.5 last:border-b-0">
+          <span className="mr-2 font-mono text-xs font-semibold">{t(`result.${r.result}`)}</span>
+          <Link href={`/submissions/${r.id}`} className="font-mono text-link hover:underline">
+            {r.name ?? r.id}
+          </Link>
+          {r.result === "published" ? (
+            <span className="ml-2 font-mono text-xs text-muted">
+              {t("publishedAs", { version: r.version, tag: r.tag, sha: r.sha256.slice(0, 12) })}
+            </span>
+          ) : "reason" in r ? (
+            <p className="mt-1 text-muted">{r.reason}</p>
+          ) : null}
+        </li>
+      ))}
+    </ul>
+  );
+};
+
+/** What would be released, in order, each with its version and tag or why it can't go (055, 056). */
+export const ReleasePreview = ({
+  candidates,
+  refused,
+  plans,
+  loading,
+}: {
+  candidates: ReleaseCandidate[];
+  refused: ReleasedSubmission[];
+  plans: PlannedRelease[];
+  loading: boolean;
+}) => {
+  const t = useTranslations("author.release");
+  const originOf = useOrigin();
+  const problemOf = usePlanProblem();
+  return loading ? (
+    <p className="py-6 text-center text-sm text-muted">{t("working")}</p>
+  ) : (
+    <ul className="text-sm">
+      {candidates.map((candidate) => {
+        const plan = plans.find((p) => p.id === candidate.id);
+        return (
+          <li
+            key={candidate.id}
+            className="grid gap-1 border-b border-hairline py-2.5 last:border-b-0"
+          >
+            <span className="flex flex-wrap items-center justify-between gap-2">
+              <span className="font-mono text-[13px] font-semibold">{candidate.name}</span>
+              <TypeBadge type={candidate.type} />
+            </span>
+            <span className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted">
+              <span>
+                {candidate.author}
+                {plan?.ok ? ` · ${originOf(candidate, plan.bump, plan.suggested)}` : ""}
+              </span>
+              {plan?.ok ? (
+                <span className="font-mono text-fg">
+                  {t("as", { version: plan.version, tag: plan.tag })}
+                </span>
+              ) : (
+                <span className="text-error-text">{plan ? problemOf(plan) : null}</span>
+              )}
+            </span>
+            {candidate.includedFor ? (
+              <span>
+                <Badge>{t("includedFor", { names: candidate.includedFor.join(", ") })}</Badge>
+              </span>
+            ) : null}
+          </li>
+        );
+      })}
+      {refused.map((r) => (
+        <li key={r.id} className="grid gap-1 border-b border-hairline py-2.5 last:border-b-0">
+          <span className="font-mono text-[13px] font-semibold">{r.name ?? r.id}</span>
+          <span className="text-xs text-error-text">{"reason" in r ? r.reason : t("unknown")}</span>
+        </li>
+      ))}
+    </ul>
+  );
 };
 
 /** Select all and Release selected, above the list; only when something can be released. */
 export const BulkReleaseToolbar = ({
   help,
-  selectAllLabel = "Select all approved",
+  selectAllLabel,
 }: {
   help?: ReactNode;
+  /** "Select all approved" by default. */
   selectAllLabel?: string;
 }) => {
+  const t = useTranslations("author.release");
   const router = useRouter();
   const { releasable, selected, selectAll, clear } = useSelection();
   const [open, setOpen] = useState(false);
@@ -218,7 +321,10 @@ export const BulkReleaseToolbar = ({
       {releasable.size > 0 ? (
         <>
           <Button variant="secondary" onClick={selectAll}>
-            {selectAllLabel} ({releasable.size})
+            {t("selectAllCount", {
+              label: selectAllLabel ?? t("selectAll"),
+              count: releasable.size,
+            })}
           </Button>
           <Button
             disabled={chosen.length === 0}
@@ -235,7 +341,7 @@ export const BulkReleaseToolbar = ({
             }}
           >
             <Rocket size={16} aria-hidden="true" />
-            Release selected ({chosen.length})
+            {t("releaseSelected", { count: chosen.length })}
           </Button>
           {help}
         </>
@@ -245,39 +351,15 @@ export const BulkReleaseToolbar = ({
         onClose={close}
         size="large"
         fixedHeight
-        title={results ? "Released" : `Release ${count} ${count === 1 ? "item" : "items"}?`}
+        title={results ? t("doneTitle") : t("title", { count })}
       >
         {results ? (
           <>
-            <section
-              aria-label="What happened to each"
-              className="min-h-0 flex-1 overflow-y-auto px-4 py-2"
-            >
-              <ul className="text-sm">
-                {results.map((r) => (
-                  <li key={r.id} className="border-b border-hairline py-2.5 last:border-b-0">
-                    <span className="mr-2 font-mono text-xs font-semibold">
-                      {RESULT_TEXT[r.result]}:
-                    </span>
-                    <Link
-                      href={`/submissions/${r.id}`}
-                      className="font-mono text-link hover:underline"
-                    >
-                      {r.name ?? r.id}
-                    </Link>
-                    {r.result === "published" ? (
-                      <span className="ml-2 font-mono text-xs text-muted">
-                        {r.version} as {r.tag} · sha256 {r.sha256.slice(0, 12)}…
-                      </span>
-                    ) : "reason" in r ? (
-                      <p className="mt-1 text-muted">{r.reason}</p>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
+            <section aria-label={t("results")} className="min-h-0 flex-1 overflow-y-auto px-4 py-2">
+              <ReleaseResults results={results} />
             </section>
             <div className="flex shrink-0 justify-end border-t border-hairline px-4 py-4">
-              <Button onClick={close}>Done</Button>
+              <Button onClick={close}>{t("done")}</Button>
             </div>
           </>
         ) : (
@@ -291,80 +373,26 @@ export const BulkReleaseToolbar = ({
               />
             </div>
             <section
-              aria-label="What would be released"
+              aria-label={t("wouldRelease")}
               className="min-h-0 flex-1 overflow-y-auto px-4 py-1"
             >
-              {loading || (!prepared && !error) ? (
-                <p className="py-6 text-center text-sm text-muted">Working out the order…</p>
-              ) : (
-                <ul className="text-sm">
-                  {prepared?.candidates.map((candidate) => {
-                    const plan = plans.find((p) => p.id === candidate.id);
-                    return (
-                      <li
-                        key={candidate.id}
-                        className="grid gap-1 border-b border-hairline py-2.5 last:border-b-0"
-                      >
-                        <span className="flex flex-wrap items-center justify-between gap-2">
-                          <span className="font-mono text-[13px] font-semibold">
-                            {candidate.name}
-                          </span>
-                          <TypeBadge type={candidate.type} />
-                        </span>
-                        <span className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted">
-                          <span>
-                            {candidate.author}
-                            {plan?.ok ? ` · ${originOf(candidate, plan.bump, plan.suggested)}` : ""}
-                          </span>
-                          {plan?.ok ? (
-                            <span className="font-mono text-fg">
-                              {plan.version} as {plan.tag}
-                            </span>
-                          ) : (
-                            <span className="text-error-text">{plan?.problem}</span>
-                          )}
-                        </span>
-                        {candidate.includedFor ? (
-                          <span>
-                            <Badge>included for {candidate.includedFor.join(", ")}</Badge>
-                          </span>
-                        ) : null}
-                      </li>
-                    );
-                  })}
-                  {prepared?.refused.map((r) => (
-                    <li
-                      key={r.id}
-                      className="grid gap-1 border-b border-hairline py-2.5 last:border-b-0"
-                    >
-                      <span className="font-mono text-[13px] font-semibold">{r.name ?? r.id}</span>
-                      <span className="text-xs text-error-text">
-                        {"reason" in r ? r.reason : "It doesn't exist, or you can't see it."}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
+              <ReleasePreview
+                candidates={prepared?.candidates ?? []}
+                refused={prepared?.refused ?? []}
+                plans={plans}
+                loading={loading || (!prepared && !error)}
+              />
             </section>
             <div className="grid shrink-0 gap-3 border-t border-hairline px-4 py-4">
-              <p className="text-sm text-muted">
-                What's joined by a dependency is released together, all or none; a group that fails
-                stops only itself. Versions never change once published.
-              </p>
+              <p className="text-sm text-muted">{t("together")}</p>
               <FieldError id="release-error">{error}</FieldError>
               <div className="flex flex-wrap justify-end gap-2">
                 <Button variant="secondary" onClick={close}>
-                  Cancel
+                  {t("cancel")}
                 </Button>
                 <Button
                   loading={releasing}
-                  disabledReason={
-                    count === 0
-                      ? "Nothing here can be released."
-                      : blocked
-                        ? "Change the settings: some versions or tags don't work."
-                        : null
-                  }
+                  disabledReason={count === 0 ? t("nothing") : blocked ? t("fixSettings") : null}
                   onClick={() =>
                     startReleasing(async () => {
                       const result = await releaseSelectedAction(
@@ -383,7 +411,7 @@ export const BulkReleaseToolbar = ({
                   }
                 >
                   <Rocket size={16} aria-hidden="true" />
-                  Release {count} {count === 1 ? "item" : "items"}
+                  {t("submit", { count })}
                 </Button>
               </div>
             </div>

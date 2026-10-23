@@ -1,4 +1,12 @@
-import { type Bump, defaultTag, nextVersion, type ReleaseChoice, tagProblem } from "@ronneai/core";
+import {
+  type Bump,
+  defaultTag,
+  nextVersion,
+  type ReleaseChoice,
+  type TagProblem,
+  tagProblem,
+  tagProblemOf,
+} from "@ronneai/core";
 
 /**
  * Releasing many at once (feature 055): one set of settings, applied to each submission. Plain
@@ -39,7 +47,16 @@ export type PlannedRelease =
       /** Whether the bump is the proposal's suggestion. */
       suggested: boolean;
     }
-  | { id: string; name: string; ok: false; problem: string };
+  | {
+      id: string;
+      name: string;
+      ok: false;
+      /** In English, as the server and the API say it. */
+      problem: string;
+      /** The same as a code a screen words (131): no version from the settings, or the tag's. */
+      code: "no_version" | TagProblem;
+      tag?: string;
+    };
 
 /** The bump when "suggested" is chosen but there's no suggestion: the publish dialog's default. */
 const FALLBACK_BUMP: Bump = "minor";
@@ -65,10 +82,12 @@ export const planReleases = (
         ok: false,
         problem:
           "That doesn't give a new version: a pre-release id is lowercase letters and digits, starting with a letter.",
+        code: "no_version",
       };
     const tag = settings.tag?.trim() || defaultTag(version);
+    const code = tagProblemOf(tag, version);
     const problem = tagProblem(tag, version);
-    if (problem) return { id: target.id, name: target.name, ok: false, problem };
+    if (code && problem) return { id: target.id, name: target.name, ok: false, problem, code, tag };
     return {
       id: target.id,
       name: target.name,

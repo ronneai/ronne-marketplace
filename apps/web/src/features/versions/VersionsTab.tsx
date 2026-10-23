@@ -1,11 +1,12 @@
-import { formatBytes } from "@ronneai/core";
 import Link from "next/link";
+import { useFormatter, useTranslations } from "next-intl";
 import { itemPath } from "@/components/catalogue/ItemCard";
 import { Help } from "@/components/help/Help";
 import { Badge } from "@/components/ui/Badge";
 import { LocalTime } from "@/components/ui/LocalTime";
 import { Panel } from "@/components/ui/Panel";
 import { Table, Td, Th } from "@/components/ui/Table";
+import { useBytes } from "@/i18n/bytes";
 import type { VersionsPage as Page } from "@/server/domains/items/actions/versions";
 import { TagControls, VersionControls, type VersionReach } from "./VersionControls";
 
@@ -14,8 +15,6 @@ import { TagControls, VersionControls, type VersionReach } from "./VersionContro
  * with when and by whom it was published, its size and sha256, and any deprecation or yank. Each
  * version links to the item page showing it. Moderators and root get the actions.
  */
-const count = (n: number | undefined) => (n ? n.toLocaleString("en-US") : "–");
-
 export const VersionsTab = ({
   page,
   usage = null,
@@ -24,6 +23,10 @@ export const VersionsTab = ({
   /** Runs and installs per version over 30 days, when the item has enough usage to show (047). */
   usage?: Record<string, VersionReach> | null;
 }) => {
+  const t = useTranslations("author.versions");
+  const format = useFormatter();
+  const bytes = useBytes();
+  const count = (n: number | undefined) => (n ? format.number(n) : "–");
   const itemRef = {
     workspace: page.item.workspace,
     scope: page.item.scope.name,
@@ -34,10 +37,7 @@ export const VersionsTab = ({
   const hasLatest = page.tags.some((tag) => tag.tag === "latest");
   return (
     <div className="grid gap-6">
-      <p className="text-sm text-muted">
-        Versions never change once published. Tags point installs at them; deprecating warns, and
-        yanking stops new installs.
-      </p>
+      <p className="text-sm text-muted">{t("intro")}</p>
       <div className="flex flex-wrap gap-x-6 gap-y-2">
         <Help id="tag" />
         <Help id="deprecate-yank" />
@@ -45,16 +45,14 @@ export const VersionsTab = ({
 
       <Panel className="grid gap-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-sm font-semibold text-fg">Tags</h2>
+          <h2 className="text-sm font-semibold text-fg">{t("tags")}</h2>
           {page.canManage ? <TagControls itemRef={itemRef} tag="" versions={choices} /> : null}
         </div>
         {!hasLatest && page.versions.length > 0 ? (
-          <p className="text-sm text-warning-text">
-            No latest: this item has no installable stable version.
-          </p>
+          <p className="text-sm text-warning-text">{t("noLatest")}</p>
         ) : null}
         {page.tags.length === 0 ? (
-          <p className="text-sm text-muted">No tags: nothing installs without a version.</p>
+          <p className="text-sm text-muted">{t("noTags")}</p>
         ) : (
           <ul className="grid gap-1">
             {page.tags.map((tag) => (
@@ -63,7 +61,7 @@ export const VersionsTab = ({
                   <span className="font-mono text-sm text-fg">
                     {tag.tag} → {tag.version}
                   </span>
-                  {yanked.has(tag.version) ? <Badge tone="error">yanked</Badge> : null}
+                  {yanked.has(tag.version) ? <Badge tone="error">{t("yanked")}</Badge> : null}
                 </span>
                 {page.canManage ? (
                   <TagControls
@@ -82,17 +80,18 @@ export const VersionsTab = ({
       <Table>
         <thead>
           <tr>
-            <Th>Version</Th>
-            <Th>Published</Th>
-            <Th>Size</Th>
+            <Th>{t("version")}</Th>
+            <Th>{t("published")}</Th>
+            <Th>{t("size")}</Th>
+            {/* biome-ignore lint/plugin: the hash's name, the same in every language */}
             <Th>sha256</Th>
             {usage ? (
               <>
-                <Th>Runs, 30 days</Th>
-                <Th>Installs, 30 days</Th>
+                <Th>{t("runs")}</Th>
+                <Th>{t("installs")}</Th>
               </>
             ) : null}
-            {page.canManage ? <Th>Actions</Th> : null}
+            {page.canManage ? <Th>{t("actions")}</Th> : null}
           </tr>
         </thead>
         <tbody>
@@ -112,15 +111,18 @@ export const VersionsTab = ({
                         {tag}
                       </Badge>
                     ))}
-                    {v.deprecatedMessage ? <Badge tone="warning">deprecated</Badge> : null}
-                    {v.yankedAt ? <Badge tone="error">yanked</Badge> : null}
+                    {v.deprecatedMessage ? <Badge tone="warning">{t("deprecated")}</Badge> : null}
+                    {v.yankedAt ? <Badge tone="error">{t("yanked")}</Badge> : null}
                   </span>
                   {v.deprecatedMessage ? (
                     <span className="text-xs text-warning-text">{v.deprecatedMessage}</span>
                   ) : null}
                   {v.yankedAt ? (
                     <span className="text-xs text-error-text">
-                      Yanked <LocalTime value={v.yankedAt} />: {v.yankReason}
+                      {t.rich("yankedAt", {
+                        reason: v.yankReason ?? "",
+                        date: () => (v.yankedAt ? <LocalTime value={v.yankedAt} /> : null),
+                      })}
                     </span>
                   ) : null}
                 </div>
@@ -128,9 +130,9 @@ export const VersionsTab = ({
               <Td className="text-xs text-muted">
                 <LocalTime value={v.publishedAt} className="font-mono" />
                 <br />
-                by {v.publishedByName ?? "a former user"}
+                {v.publishedByName ? t("by", { name: v.publishedByName }) : t("formerUser")}
               </Td>
-              <Td className="font-mono text-xs">{formatBytes(v.size)}</Td>
+              <Td className="font-mono text-xs">{bytes(v.size)}</Td>
               <Td className="font-mono text-xs" title={v.sha256}>
                 {v.sha256.slice(0, 12)}…
               </Td>
@@ -157,7 +159,7 @@ export const VersionsTab = ({
       </Table>
       <p className="text-xs text-muted">
         <Link href="/reviews?tab=decided" className="underline underline-offset-2">
-          Releases come from approved submissions.
+          {t("fromReviews")}
         </Link>
       </p>
     </div>
