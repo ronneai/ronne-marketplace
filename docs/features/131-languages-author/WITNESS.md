@@ -534,3 +534,19 @@ Witnessed: 2026-10-23 16:50 EDT, by a fresh agent (blind). Commit: fad17746 (ron
 | 9g | `witness:check` | no | confirmed | exit 0 |
 
 **Overall:** not met. Fixed after this round: 9b, 9c and 9e (ronne-web cfabd17, 2f42df9; this repository's SPEC). 9a is in the Done notes as a choice for 133's native reader.
+
+### Re-check (rows 9b, 9c, 9e)
+
+On the owner's decision (2026-10-23): the prose choices « revue » and "proposta de mudança" moved to 133 (Done notes), and the fixed rows are checked again.
+
+Witnessed: 2026-10-23 16:59 EDT, by a fresh agent (blind). Commit: d3d12c8a (ronne-web 2f42df9). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 9b | No guide row contradicts another or the app | no | not met | Guide line 211 still says the page is headed "Requests to join" (app: Solicitações para entrar / Demandes pour se joindre) |
+| 9c | The edited pages quote the app's labels | no | not met | `workspaces.tsx`: the catalogue's Workspace filter, "Personal" on the Workspaces list, "Already answered." |
+| 9e | The SPEC describes the branch | no | confirmed | All 28 changed files named |
+| W | `witness:check` | no | confirmed | exit 0 |
+| R | ronne-web lint, typecheck, test | no | confirmed | 280 files; tsc exit 0; 183 passed (build not run in the copy) |
+
+**Overall:** not met: rows 9b, 9c. Fixed in ronne-web 3f2095a; the round's probes (`strong-labels.mjs`, `english-labels.mjs`) then list only screens the app keeps English.
