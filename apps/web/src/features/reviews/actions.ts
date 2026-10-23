@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getTranslations } from "next-intl/server";
 import { errorText } from "@/i18n/errors";
+import { whyText } from "@/i18n/why-server";
 import { IdentityError } from "@/server/domains/identity/exceptions/errors";
 import { type PublishInput, publishSubmission } from "@/server/domains/submissions/actions/publish";
 import {
@@ -90,8 +91,17 @@ export const rejectAction = serverAction(
         ...(via ? { via } : {}),
       });
       for (const d of result.dependents) if (d.result === "sent_back") refresh(d.id);
-      skipped = result.dependents.flatMap((d) =>
-        d.result === "skipped" ? [{ name: d.name, reason: d.reason ?? "" }] : [],
+      skipped = await Promise.all(
+        result.dependents.flatMap((d) =>
+          d.result === "skipped"
+            ? [
+                (async () => ({
+                  name: d.name,
+                  reason: d.why ? await whyText(d.why) : (d.reason ?? ""),
+                }))(),
+              ]
+            : [],
+        ),
       );
     } catch (error) {
       return { error: await message(error) };
@@ -136,15 +146,21 @@ export const approveSelectedAction = serverAction(
     for (const r of approved) if (r.result === "approved") refresh(r.id);
     const t = await getTranslations("author.actions");
     return {
-      results: approved.map((r) => ({
-        id: r.id,
-        name: "submission" in r ? itemNameOf(r.submission) : r.id,
-        result: r.result,
-        override: r.result === "approved" && r.override,
-        revision: r.result === "approved" ? r.revision : null,
-        reason:
-          r.result === "not_approvable" ? r.reason : r.result === "not_found" ? t("gone") : null,
-      })),
+      results: await Promise.all(
+        approved.map(async (r) => ({
+          id: r.id,
+          name: "submission" in r ? itemNameOf(r.submission) : r.id,
+          result: r.result,
+          override: r.result === "approved" && r.override,
+          revision: r.result === "approved" ? r.revision : null,
+          reason:
+            r.result === "not_approvable"
+              ? await whyText(r.why)
+              : r.result === "not_found"
+                ? t("gone")
+                : null,
+        })),
+      ),
     };
   },
 );

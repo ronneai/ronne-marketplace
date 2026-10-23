@@ -40,7 +40,6 @@ import type {
   WithdrawResult,
 } from "./types";
 
-/** Domain and permission errors become a message; anything else is a real failure. */
 /** A domain error in the person's language (131); anything else is thrown on. */
 const message = async (error: unknown): Promise<string> => {
   if (error instanceof SubmissionsError || error instanceof IdentityError) return errorText(error);
@@ -87,7 +86,7 @@ export const saveDraftAction = serverAction(
       };
     } catch (error) {
       if (error instanceof StaleFilesError)
-        return { ok: false, error: error.message, stale: [...error.paths] };
+        return { ok: false, error: await errorText(error), stale: [...error.paths] };
       return { ok: false, error: await message(error) };
     }
   },
@@ -159,7 +158,7 @@ export const submitDraftAction = serverAction(async (id: string): Promise<Submit
     return { ok: true, issues, sent: sent.map(itemNameOf) };
   } catch (error) {
     if (error instanceof SubmissionInvalidError)
-      return { ok: false, error: error.message, issues: [...error.issues] };
+      return { ok: false, error: await errorText(error), issues: [...error.issues] };
     return { ok: false, error: await message(error), issues: [] };
   }
 });

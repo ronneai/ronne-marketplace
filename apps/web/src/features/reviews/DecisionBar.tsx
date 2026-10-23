@@ -7,6 +7,7 @@ import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogActions } from "@/components/ui/Dialog";
 import { FieldError, inputClasses, Label } from "@/components/ui/Field";
+import { useWhy } from "@/i18n/why";
 import type { Dependent, ReviewDecision } from "@/server/domains/submissions/actions/reviews";
 import type { DecisionOption } from "@/server/domains/submissions/services/decisions";
 import { decideAction, dependentsAction, rejectAction } from "./actions";
@@ -42,6 +43,7 @@ export const DependentsChoice = ({
 }) => {
   const t = useTranslations("author.review.dependents");
   const status = useTranslations("author.status");
+  const why = useWhy();
   return (
     <fieldset className="grid gap-2 rounded-control border border-hairline p-3">
       <legend className="px-1 text-sm font-semibold">
@@ -58,7 +60,7 @@ export const DependentsChoice = ({
                 : t("lineRefused", {
                     status: status(d.status),
                     author: d.authorName,
-                    reason: d.sendBack.reason,
+                    reason: why(d.sendBack.why),
                   })}
             </span>
           </li>
@@ -238,6 +240,7 @@ export const DecisionBar = ({
   dependents?: Dependent[];
 }) => {
   const t = useTranslations("author.review.decision");
+  const why = useWhy();
   const [open, setOpen] = useState<ReviewDecision | null>(null);
   if (decisions.length === 0) return null;
   return (
@@ -247,7 +250,7 @@ export const DecisionBar = ({
           <Button
             key={option.decision}
             variant={COPY[option.decision].variant}
-            disabledReason={option.allowed ? null : option.reason}
+            disabledReason={option.allowed ? null : why(option.why)}
             onClick={() => setOpen(option.decision)}
           >
             {t(`${option.decision}.button`)}
@@ -285,6 +288,7 @@ export const RowDecisions = ({
   decisions: readonly DecisionOption[];
 }) => {
   const t = useTranslations("author.review.decision");
+  const why = useWhy();
   const [open, setOpen] = useState<{ decision: ReviewDecision; dependents: Dependent[] } | null>(
     null,
   );
@@ -301,7 +305,7 @@ export const RowDecisions = ({
             key={option.decision}
             variant={option.decision === "reject" ? "text-destructive" : "text"}
             aria-label={t("rowLabel", { decision: t(`${option.decision}.button`), name })}
-            disabledReason={option.allowed ? null : option.reason}
+            disabledReason={option.allowed ? null : why(option.why)}
             loading={pending && option.decision === "reject"}
             onClick={() => {
               setError(null);

@@ -16,6 +16,7 @@ import { LocalTime } from "@/components/ui/LocalTime";
 import { ScrollStrip } from "@/components/ui/ScrollStrip";
 import { stripTab } from "@/components/ui/scroll-strip";
 import { TypeBadge } from "@/components/ui/TypeBadge";
+import { useWhy } from "@/i18n/why";
 import type { QueueRow, QueueTab } from "@/server/domains/submissions/actions/reviews";
 import { itemNameOf } from "@/server/domains/submissions/models/submission";
 import { ReleaseSelectCell } from "../releases/BulkRelease";
@@ -158,6 +159,7 @@ const timeOf = (tab: QueueTab, row: QueueRow): Date =>
 const columns = (
   tab: QueueTab,
   t: ReturnType<typeof useTranslations<"author.queue">>,
+  why: ReturnType<typeof useWhy>,
 ): Column<QueueRow, "time" | "name">[] => [
   ...(tab === "release"
     ? [
@@ -181,7 +183,7 @@ const columns = (
             <ApproveSelectCell
               id={row.id}
               name={itemNameOf(row)}
-              reason={row.approvable.approvable ? null : row.approvable.reason}
+              reason={row.approvable.approvable ? null : why(row.approvable.why)}
             />
           ),
         },
@@ -304,7 +306,7 @@ export const QueueTable = ({
     <DataTable
       list={list}
       state={state}
-      columns={columns(tab, t)}
+      columns={columns(tab, t, useWhy())}
       rows={rows}
       rowKey={(row) => row.id}
       page={page}

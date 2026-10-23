@@ -759,5 +759,28 @@
     "gone": "Ela não existe mais, ou você não pode vê-la.",
     "notYours": "Não é mais um dos seus rascunhos.",
     "notDraft": "Não é mais um rascunho."
+  },
+  "why": {
+    "not_moderator": "Você não modera {workspace}",
+    "status": "Está {status, select, draft {em rascunho} submitted {submetida} changes_requested {com alterações solicitadas} approved {aprovada} rejected {rejeitada} withdrawn {arquivada} published {publicada} other {{status}}}",
+    "stale": "Precisa de rebase: a {newer} foi lançada",
+    "own": "Sua própria submissão",
+    "own_decide": "Sua própria submissão: outro moderador ou o root decide.",
+    "not_reviewer": "Só revisores devolvem submissões.",
+    "yours": "É sua: edite-a ou retire-a.",
+    "cannot_send_back": "Está {status, select, draft {em rascunho} submitted {submetida} changes_requested {com alterações solicitadas} approved {aprovada} rejected {rejeitada} withdrawn {arquivada} published {publicada} other {{status}}}.",
+    "not_approved": "Está {status, select, draft {em rascunho} submitted {submetida} changes_requested {com alterações solicitadas} approved {aprovada} rejected {rejeitada} withdrawn {arquivada} published {publicada} other {{status}}}, não aprovada.",
+    "not_releaser": "Só o autor, um moderador ou o root a lança.",
+    "released_since": "Precisa de rebase: a {newer} foi lançada depois que ela foi aprovada.",
+    "twin": "Outra alteração de {name} está neste lote: lance-as uma de cada vez.",
+    "waits_on": "Ela espera por {dependency}, que está {status, select, draft {em rascunho} submitted {submetido} changes_requested {com alterações solicitadas} approved {aprovado} rejected {rejeitado} withdrawn {arquivado} published {publicado} other {{status}}}.",
+    "waits_on_stopped": "Ela espera por {dependency}, que não está a caminho de um lançamento.",
+    "waits_on_missing": "Ela espera por {dependency}, que não foi encontrado.",
+    "dependency_blocked": "{dependency} não pode ser lançado com ela: {why}",
+    "too_many": "Ela vai junto com outras {others}, mais de {most} de uma vez: lance algumas delas primeiro.",
+    "unplanned": "Não foi possível planejá-la.",
+    "goes_with": "Ela vai junto com {name}, que não pode ir: {why}",
+    "together": "{why} (lançadas juntas com {names}: nenhuma foi.)",
+    "store_failed": "Não foi possível armazená-la ou registrá-la: {detail}"
   }
 }

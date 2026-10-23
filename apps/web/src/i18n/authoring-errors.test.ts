@@ -268,4 +268,41 @@ describe("authoring and review errors in three languages (131)", () => {
       "@a/x n’est pas encore publié (il est approuvé). Publiez-le d’abord.",
     );
   });
+
+  it("the API's messages are the English they always were", () => {
+    const exact: [Error, string][] = [
+      [
+        new s.InvalidFilePathError("../x", "outside"),
+        'The path ../x goes outside the item with "..".',
+      ],
+      [new s.InvalidFilePathError("", "empty"), "The path (empty) is empty."],
+      [
+        new s.InvalidFilePathError("a.md", { twice: "save" }),
+        "The path a.md appears twice in one save.",
+      ],
+      [new s.InvalidItemTypeError(""), "(empty) isn't an item type."],
+      [
+        new s.SubmissionInvalidError([error, error], "release"),
+        "It can't be released yet: `name` is required. (and 1 more)",
+      ],
+      [new s.SubmissionInvalidError([], "release"), "It can't be released yet: its checks fail."],
+      [
+        new s.ReviewMessageError("required", "Sending its dependents back"),
+        "Sending its dependents back needs a message, so the author knows what to do.",
+      ],
+      [
+        new s.DraftMismatchError({ name: "@a/x", type: "skill", baseVersion: "1.0.0" }),
+        "That draft is @a/x, a skill proposed from 1.0.0; the upload is something else, so it would be a new draft.",
+      ],
+      [
+        new s.ZipImportError("it has no files.", { code: "empty" }),
+        "That .zip can't be imported: it has no files.",
+      ],
+      [new i.VersionMessageError("deprecate"), "A deprecation message needs 1 to 300 characters."],
+      [new i.VersionMessageError("yank"), "A yank reason needs 1 to 300 characters."],
+    ];
+    for (const [thrown, message] of exact) expect(thrown.message).toBe(message);
+    expect(new s.RevisionChangedError(null, 3).message).toContain("you reviewed revision –,");
+    for (const [thrown] of CASES) expect(thrown.message).not.toMatch(/errors\.|undefined/);
+  });
 });

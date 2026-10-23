@@ -183,10 +183,10 @@ describe("the queue", () => {
     const html = needs([
       row({
         mine: true,
-        approvable: { approvable: false, reason: "Your own submission" },
+        approvable: { approvable: false, reason: "Your own submission", why: { code: "own" } },
         decisions: [
-          { decision: "request_changes", allowed: false, reason },
-          { decision: "reject", allowed: false, reason },
+          { decision: "request_changes", allowed: false, reason, why: { code: "own_decide" } },
+          { decision: "reject", allowed: false, reason, why: { code: "own_decide" } },
         ],
       }),
     ]);
@@ -279,7 +279,7 @@ describe("approving several at once (054)", () => {
     id: "01J0000000000000000000000B",
     name: "mine",
     mine: true,
-    approvable: { approvable: false, reason: "Your own submission" },
+    approvable: { approvable: false, reason: "Your own submission", why: { code: "own" } },
   });
 
   it("lets only approvable rows be selected, with the reason on the others", () => {
@@ -331,7 +331,13 @@ describe("approving several at once (054)", () => {
     const submission = { workspace: { name: "global" }, scope: { name: "team" }, name: "fmt" };
     reviews.approveMany.mockResolvedValue([
       { id: "a", result: "approved", submission, override: true, revision: 2 },
-      { id: "b", result: "not_approvable", submission, reason: "It's withdrawn." },
+      {
+        id: "b",
+        result: "not_approvable",
+        submission,
+        reason: "It's archived",
+        why: { code: "status", status: "withdrawn" },
+      },
       { id: "c", result: "not_found" },
     ]);
     const items = ["a", "b", "c"].map((id) => ({ id, revision: 2 }));
@@ -351,7 +357,7 @@ describe("approving several at once (054)", () => {
           result: "not_approvable",
           override: false,
           revision: null,
-          reason: "It's withdrawn.",
+          reason: "It's archived",
         },
         {
           id: "c",

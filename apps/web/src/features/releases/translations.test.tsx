@@ -52,7 +52,13 @@ const preview = (locale: Locale, kind: "stable" | "prerelease", tag = "") =>
     <ReleasePreview
       candidates={candidates}
       refused={[
-        { id: "x", name: "@t/x", result: "not_releasable", reason: "Not yours." },
+        {
+          id: "x",
+          name: "@t/x",
+          result: "not_releasable",
+          reason: "Not yours.",
+          why: { code: "text", text: "Not yours." },
+        },
         { id: "y", name: null, result: "not_found" },
       ]}
       plans={planReleases(candidates, settingsOf(kind, tag))}
@@ -118,7 +124,13 @@ describe("releasing many at once in three languages", () => {
               tag: "latest",
               sha256: "abcdef0123456789",
             },
-            { id: "b", name: "@t/b", result: "skipped", reason: "Its group failed." },
+            {
+              id: "b",
+              name: "@t/b",
+              result: "skipped",
+              reason: "Its group failed.",
+              why: { code: "text", text: "Its group failed." },
+            },
             { id: "c", name: null, result: "not_found" },
           ]}
         />,

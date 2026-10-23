@@ -21,6 +21,7 @@ import {
   transition,
 } from "../models/status";
 import { itemNameOf, type Submission } from "../models/submission";
+import { type Why, whyEnglish } from "../models/why";
 import type { SubmissionRepository } from "../repositories/submission-repository";
 import { dependenciesOf, marksFor } from "./dependency-marks";
 import { requireMember, requireSignedIn } from "./membership";
@@ -233,8 +234,11 @@ export type Dependent = {
   status: SubmissionStatus;
   authorName: string;
   /** Whether this reviewer can request changes on it; why not otherwise. */
-  sendBack: { ok: true } | { ok: false; reason: string };
+  sendBack: { ok: true } | { ok: false; reason: string; why: Why };
 };
+
+/** Why a dependent can't be sent back: the English sentence and its code (131). */
+const cannotSendBack = (why: Why) => ({ ok: false as const, reason: whyEnglish(why), why });
 
 /** How many open submissions a page looks through for dependents: the queue's own limit. */
 const DEPENDENTS_SCAN = 500;
@@ -287,12 +291,12 @@ export const dependentsOf = async (
         status: other.status,
         authorName: other.authorName,
         sendBack: !reviewer
-          ? { ok: false, reason: "Only reviewers send submissions back." }
+          ? cannotSendBack({ code: "not_reviewer" })
           : mine
-            ? { ok: false, reason: "Yours: edit or withdraw it." }
+            ? cannotSendBack({ code: "yours" })
             : canTransition(other.status, "request_changes")
-              ? { ok: true }
-              : { ok: false, reason: `It's ${other.status.replace("_", " ")}.` },
+              ? { ok: true as const }
+              : cannotSendBack({ code: "cannot_send_back", status: other.status }),
       };
     });
 
@@ -312,6 +316,8 @@ export type SentBack = {
   name: string;
   result: "sent_back" | "skipped";
   reason?: string;
+  /** With `skipped`: the reason as a code (131). */
+  why?: Why;
 };
 
 /**
@@ -342,6 +348,7 @@ export const rejectWithDependents = async (
         name: dependent.name,
         result: "skipped",
         reason: dependent.sendBack.reason,
+        why: dependent.sendBack.why,
       });
       continue;
     }
@@ -359,6 +366,7 @@ export const rejectWithDependents = async (
         name: dependent.name,
         result: "skipped",
         reason: error.message,
+        why: { code: "error", error },
       });
     }
   }

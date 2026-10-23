@@ -34,10 +34,19 @@ in Portuguese and French beside English. Nothing about what the screens do chang
   and `tabs.ts` where they still hold text): the Versions tab, its change dialog (tag, deprecate,
   yank), bulk release.
 - **What the actions say.** The success lines and errors of the action files above, as codes or
-  `errorText` (129). `errors.json` gets the submissions domain's classes (44, the base class
-  aside) and the items domain's that these screens can raise (`ItemNotFoundError`,
+  `errorText` (129). `errors.json` gets the submissions domain's classes (all but the base class
+  and `ReleasePackError`, which carries core's packing message and stays English like core's
+  others) and the items domain's that these screens can raise (`ItemNotFoundError`,
   `VersionNotFoundError`, `TagRuleError`, `VersionMessageError`, `VersionDependsOnPrivateError`,
-  `ArtifactUnavailableError`), in all three languages, with their lists and plurals.
+  `ArtifactUnavailableError`), in all three languages, with their lists and plurals. An error
+  whose sentence was built from English pieces carries them as codes instead (a path problem, a
+  .zip refusal, a tag rule, what needs a message), and its English message stays word for word,
+  which is what the API and `rmk` show.
+- **Why it can't go.** The reasons the services give for a submission that can't be approved,
+  decided on, sent back or released (the queue's checkbox, the disabled decisions, the
+  dependents, bulk approve, the Release button and bulk release) carry a code, `why`, beside the
+  English `reason`; the screens word the code. A domain error inside one is worded on the server
+  before it reaches the browser. None of these reaches the API.
 - **Inline helpers.** The 27 `Help` entries these screens show move to `help.json`: `scope`,
   `item-name`, `name`, `type`, `manifest`, `canvas`, `submit-together`, `submit-many`, `risk`,
   `decisions`, `bump`, `tag`, `deprecate-yank`, `export`, `approve-many`, `withdraw`, `archived`,

@@ -239,6 +239,7 @@ describe("DecisionBar", () => {
             decision: "reject",
             allowed: false,
             reason: "Your own submission: another moderator or root decides.",
+            why: { code: "own_decide" },
           },
           { decision: "override", allowed: true },
         ]}
@@ -275,7 +276,7 @@ describe("a queue row's decisions (058)", () => {
       <RowDecisions
         id="s"
         name="@team/fmt"
-        decisions={[{ decision: "reject", allowed: false, reason }]}
+        decisions={[{ decision: "reject", allowed: false, reason, why: { code: "own_decide" } }]}
       />,
     );
     expect(html).toMatch(
@@ -350,7 +351,7 @@ const view = (overrides: Partial<ReviewView> = {}): ReviewView => ({
 
 const OWN = "Your own submission: another moderator or root decides.";
 const own = (decision: "approve" | "request_changes" | "reject") =>
-  ({ decision, allowed: false, reason: OWN }) as const;
+  ({ decision, allowed: false, reason: OWN, why: { code: "own_decide" } }) as const;
 
 describe("the review page", () => {
   beforeEach(() => {
@@ -630,7 +631,7 @@ describe("rejecting a dependency (056)", () => {
             name: "@team/mods",
             status: "submitted",
             authorName: "Mo",
-            sendBack: { ok: false, reason: "Yours: edit or withdraw it." },
+            sendBack: { ok: false, reason: "Yours: edit or withdraw it.", why: { code: "yours" } },
           },
         ]}
         sendBack
@@ -851,7 +852,13 @@ describe("a review's page in three languages (131)", () => {
       name: `@t/${status}`,
       status,
       authorName: "Ana",
-      sendBack: ok ? { ok: true as const } : { ok: false as const, reason: "Gone." },
+      sendBack: ok
+        ? { ok: true as const }
+        : {
+            ok: false as const,
+            reason: "Yours: edit or withdraw it.",
+            why: { code: "yours" as const },
+          },
     });
     const choice = (l: L, n: number) =>
       html(
@@ -873,7 +880,11 @@ describe("a review's page in three languages (131)", () => {
     expect(choice("en", 1)).toContain("1 submission depends on this");
     expect(choice("pt", 1)).toContain("1 submissão depende desta");
     expect(choice("pt", 2)).toContain("2 submissões dependem desta");
-    expect(choice("pt", 2)).toContain("(alterações solicitadas, por Ana): Gone.");
+    expect(choice("pt", 2)).toContain(
+      "(alterações solicitadas, por Ana): É sua: edite-a ou retire-a.",
+    );
+    expect(choice("fr", 2)).toContain("C’est la vôtre : modifiez-la ou retirez-la.");
+    expect(choice("en", 2)).toContain("Yours: edit or withdraw it.");
     expect(choice("fr", 1)).toContain("1 soumission en dépend");
     expect(choice("fr", 2)).toContain("(soumis, par Ana)");
     expect(choice("fr", 2)).toContain("Leur demander aussi des modifications");

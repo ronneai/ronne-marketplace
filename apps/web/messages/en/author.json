@@ -759,5 +759,28 @@
     "gone": "It no longer exists, or you can't see it.",
     "notYours": "It's no longer one of your drafts.",
     "notDraft": "It isn't a draft any more."
+  },
+  "why": {
+    "not_moderator": "Not a moderator in {workspace}",
+    "status": "It's {status, select, changes_requested {changes requested} withdrawn {archived} other {{status}}}",
+    "stale": "Rebase needed: {newer} is out",
+    "own": "Your own submission",
+    "own_decide": "Your own submission: another moderator or root decides.",
+    "not_reviewer": "Only reviewers send submissions back.",
+    "yours": "Yours: edit or withdraw it.",
+    "cannot_send_back": "It's {status, select, changes_requested {changes requested} other {{status}}}.",
+    "not_approved": "It's {status, select, changes_requested {changes requested} withdrawn {archived} other {{status}}}, not approved.",
+    "not_releaser": "Only its author, a moderator or root releases it.",
+    "released_since": "Rebase needed: {newer} has been released since it was approved.",
+    "twin": "Another change to {name} is in this batch: release them one at a time.",
+    "waits_on": "It waits on {dependency}, which is {status, select, changes_requested {changes requested} withdrawn {archived} other {{status}}}.",
+    "waits_on_stopped": "It waits on {dependency}, which isn't on its way to a release.",
+    "waits_on_missing": "It waits on {dependency}, which couldn't be found.",
+    "dependency_blocked": "{dependency} can't be released with it: {why}",
+    "too_many": "It goes with {others} others, more than {most} at once: release some of them first.",
+    "unplanned": "It couldn't be planned.",
+    "goes_with": "It goes with {name}, which can't go: {why}",
+    "together": "{why} (released together with {names}: none went.)",
+    "store_failed": "It couldn't be stored or recorded: {detail}"
   }
 }

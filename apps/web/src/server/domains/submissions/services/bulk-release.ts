@@ -3,6 +3,7 @@ import { hooks, inSpan } from "../../../telemetry/hooks";
 import { IdentityError } from "../../identity/exceptions/errors";
 import { SubmissionsError } from "../exceptions/errors";
 import { type PlannedRelease, planReleases, type ReleaseSettings } from "../models/release-plan";
+import { type Why, whyEnglish } from "../models/why";
 import { type PublishDeps, releaseTogether } from "./publish";
 import {
   MAX_BULK_RELEASE,
@@ -71,33 +72,33 @@ const releaseManyUntraced = async (
   );
   const results: ReleasedSubmission[] = [...refused];
   for (const group of groupsOf(candidates)) {
-    const refuse = (reasonFor: (candidate: ReleaseCandidate) => string) => {
-      for (const candidate of group)
+    const refuse = (whyFor: (candidate: ReleaseCandidate) => Why) => {
+      for (const candidate of group) {
+        const why = whyFor(candidate);
         results.push({
           id: candidate.id,
           name: candidate.name,
           result: "not_releasable",
-          reason: reasonFor(candidate),
+          reason: whyEnglish(why),
+          why,
         });
+      }
     };
     const names = (except: ReleaseCandidate) =>
-      group
-        .filter((c) => c !== except)
-        .map((c) => c.name)
-        .join(", ");
+      group.filter((c) => c !== except).map((c) => c.name);
     if (group.length > MAX_BULK_RELEASE) {
-      refuse(
-        () =>
-          `It goes with ${group.length - 1} others, more than ${MAX_BULK_RELEASE - 1} at once: release some of them first.`,
-      );
+      refuse(() => ({ code: "too_many", others: group.length - 1, most: MAX_BULK_RELEASE - 1 }));
       continue;
     }
     const unplanned = group.find((c) => !plans.get(c.id)?.ok);
     if (unplanned) {
       const plan = plans.get(unplanned.id);
-      const problem = plan && !plan.ok ? plan.problem : "It couldn't be planned.";
+      const problem: Why =
+        plan && !plan.ok
+          ? { code: "plan", problem: plan.problem, plan: plan.code, tag: plan.tag ?? "" }
+          : { code: "plan", problem: "It couldn't be planned.", plan: "unplanned", tag: "" };
       refuse((c) =>
-        c === unplanned ? problem : `It goes with ${unplanned.name}, which can't go: ${problem}`,
+        c === unplanned ? problem : { code: "goes_with", name: unplanned.name, why: problem },
       );
       continue;
     }
@@ -123,12 +124,15 @@ const releaseManyUntraced = async (
           sha256: member.sha256,
         });
     } catch (error) {
-      const reason =
+      const reason: Why =
         error instanceof SubmissionsError || error instanceof IdentityError
-          ? error.message
-          : `It couldn't be stored or recorded: ${error instanceof Error ? error.message : String(error)}`;
+          ? { code: "error", error }
+          : {
+              code: "store_failed",
+              detail: error instanceof Error ? error.message : String(error),
+            };
       refuse((c) =>
-        group.length === 1 ? reason : `${reason} (released together with ${names(c)}: none went.)`,
+        group.length === 1 ? reason : { code: "together", names: names(c), why: reason },
       );
     }
   }

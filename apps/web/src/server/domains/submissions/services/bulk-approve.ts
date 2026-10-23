@@ -9,8 +9,9 @@ import {
   SubmissionNotFoundError,
   SubmissionStaleError,
 } from "../exceptions/errors";
-import { type SubmissionStatus, statusLabel } from "../models/status";
+import type { SubmissionStatus } from "../models/status";
 import type { Submission } from "../models/submission";
+import { type Why, whyEnglish } from "../models/why";
 import { MAX_BULK } from "./bulk-submit";
 import { decide, messageFrom } from "./reviews";
 import type { SubmissionActor, SubmissionDeps } from "./submissions";
@@ -27,10 +28,14 @@ export const MAX_BULK_APPROVE = MAX_BULK;
 /** Whether this reviewer can approve a submission now, as an override when it's root's own. */
 export type Approvability =
   | { approvable: true; override: boolean }
-  | { approvable: false; reason: string };
+  | { approvable: false; reason: string; why: Why };
+
+/** A refusal: the English sentence and its code (131). */
+const notApprovable = (why: Why) => ({ approvable: false as const, reason: whyEnglish(why), why });
 
 /** Why a reviewer skips a submission outside the workspaces they moderate (091). */
-export const notAModeratorIn = (workspace: string) => `Not a moderator in ${workspace}`;
+export const notAModeratorIn = (workspace: string) =>
+  whyEnglish({ code: "not_moderator", workspace });
 
 /**
  * What the queue and approving many agree on: in a workspace the reviewer moderates (091),
@@ -46,14 +51,12 @@ export const approvability = (
   },
 ): Approvability => {
   if (!can(actor.user, "submissions.review", submission.workspace.id))
-    return { approvable: false, reason: notAModeratorIn(submission.workspace.name) };
+    return notApprovable({ code: "not_moderator", workspace: submission.workspace.name });
   if (submission.status !== "submitted")
-    return { approvable: false, reason: `It's ${statusLabel(submission.status)}` };
-  if (submission.stale)
-    return { approvable: false, reason: `Rebase needed: ${submission.stale} is out` };
+    return notApprovable({ code: "status", status: submission.status });
+  if (submission.stale) return notApprovable({ code: "stale", newer: submission.stale });
   const mine = submission.authorId === actor.user?.id;
-  if (mine && !can(actor.user, "submissions.override"))
-    return { approvable: false, reason: "Your own submission" };
+  if (mine && !can(actor.user, "submissions.override")) return notApprovable({ code: "own" });
   return { approvable: true, override: mine };
 };
 
@@ -66,7 +69,7 @@ export type ApprovedSubmission =
       revision: number | null;
     }
   | { id: string; result: "not_found" }
-  | { id: string; result: "not_approvable"; submission: Submission; reason: string };
+  | { id: string; result: "not_approvable"; submission: Submission; reason: string; why: Why };
 
 /**
  * Approves each submission, in the order given. The checks run inside each decision, so one decided
@@ -105,6 +108,7 @@ export const approveMany = async (
         result: "not_approvable",
         submission: before,
         reason: notAModeratorIn(before.workspace.name),
+        why: { code: "not_moderator", workspace: before.workspace.name },
       });
       continue;
     }
@@ -126,7 +130,13 @@ export const approveMany = async (
         error instanceof SubmissionStaleError ||
         error instanceof RevisionChangedError
       )
-        results.push({ id, result: "not_approvable", submission: before, reason: error.message });
+        results.push({
+          id,
+          result: "not_approvable",
+          submission: before,
+          reason: error.message,
+          why: { code: "error", error },
+        });
       else throw error;
     }
   }

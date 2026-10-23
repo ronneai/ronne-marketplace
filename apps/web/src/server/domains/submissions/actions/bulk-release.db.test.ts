@@ -174,6 +174,7 @@ describe("releaseMany (055)", () => {
         name: "@team/kit",
         result: "not_releasable",
         reason: "It waits on @team/github, which is submitted.",
+        why: { code: "waits_on", dependency: "@team/github", status: "submitted" },
       },
     ]);
 
