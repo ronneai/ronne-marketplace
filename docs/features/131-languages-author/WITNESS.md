@@ -116,3 +116,53 @@ Witnessed: 2026-10-23 10:29 EDT, by a fresh agent (blind). Commit: 5918d0e9. Mac
 | 12e | A test covers what ComposerCanvas hands React Flow (edge labels, edge role, node role) in en, pt and fr, and each mutation fails it | no | confirmed | `flow-labels.test.tsx` records `ReactFlow`'s props and renders the real `ComposerCanvas`. English label at the call site → 2 failed; `role: "edge"` → 1 failed; `{ role: "node" }` → 1 failed; edge `domAttributes` dropped → 2 failed; node `domAttributes` dropped → 2 failed; restored, `cmp` identical. Canvas, composer, picker and item-page tests → 12 files, 156 passed |
 
 **Overall:** met.
+
+## Task 4 — The draft editor: form and YAML
+
+Witnessed: 2026-10-23 10:44 EDT, by a fresh agent (blind). Commit: dbf37325. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The task's tests pass | no | confirmed | form-translations, submissions, issues, manifest-form, manifest-validation, pages-coverage, messages.parity → 7 files, 119 passed |
+| 2 | Three-language tests of the new-draft form | no | partly | Only the form's first state and the no-scopes notice are rendered; English put back in the side panel, the repeat note or the name hint, or the tag search dropped, keeps the tests green |
+| 3 | Three-language tests of the manifest form with each item type's fields | no | confirmed | Every `ITEM_TYPES` form rendered in pt and fr with `englishLeaks`; mutations fail it |
+| 4 | The route is in `MIGRATED_ROUTES` and the pinned list | no | confirmed | `e2e/pages.ts` and `pages-coverage.test.ts`; removing it fails the coverage test |
+| 5 | The type picker's tags are messages, shown and searched in the language | no | confirmed | `types.tag.*` in three languages; probe: pt "ciclo" finds `hook` |
+| 6 | No visible change in English | no | confirmed | 27 states rendered at HEAD and at HEAD~1's sources in English → identical |
+| 7 | Name problems keyed by a code are UI text, English as core's | no | confirmed | `common.nameProblem` matches `packages/core/src/names.ts` |
+| 8 | ronne.yaml keys, types and file paths stay as written | no | confirmed | pt `>description<`, `>license<`; keys carry `biome-ignore` with a reason |
+| 9 | Data inside a sentence is shown as typed | no | confirmed | `{x}.md (manquant)`, header value `{x}` kept |
+| 10 | `issues.ts`'s AS_OF_SAVE notice is a message | no | confirmed | `asOfSave` boolean; `DraftEditor.tsx` → `formText("asOfSave")` |
+| 11 | The YAML view is in the language | no | partly | The editor's Form/YAML/Canvas switch and its legend "ronne.yaml view" are English |
+| 12 | The moved folders are in the raw-text scan | no | confirmed | `biome.json`; planted literals → `plugin` errors |
+| 13 | `features/manifest-validation` and `app/(app)/submissions/new` are moved | no | confirmed | `submissions.test.tsx` "New item in three languages" with `englishLeaks` → [] |
+| 14 | pt/fr typography and glossary | no | partly | `ManifestForm.tsx` joins the map field's aria-label in code: fr "headers 1: Nom" |
+| 15 | Plurals follow each language | no | confirmed | `typesCount` is an ICU plural |
+
+**Overall:** not met: rows 2, 11, 14.
+
+### Re-check (rows 2, 11, 14)
+
+Witnessed: 2026-10-23 10:50 EDT, by a fresh agent (blind). Commit: 1d57584a. Machine: macOS 27.0.1, Node 24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 2 | pt/fr tests cover the form's other states, and English put back fails a test | no | partly | `StarterFiles`, `NameHint`, `RepeatNote`, `useTypesMatching` tested; ten mutations each fail 1–5 tests. Not covered: "no type matches" (`t("noType")`), English there keeps 379 tests green |
+| 11 | The switch and its legend read in the language, and are tested | no | confirmed | `ViewSwitch`: pt "Formulário"/"Visão do ronne.yaml", fr "Formulaire"/"Canevas"/"Vue de ronne.yaml"; mutations fail |
+| 14 | The map field's aria-label is one message with the language's typography | no | confirmed | `t("mapPart")`; fr "{field} {n} : {part}"; tests assert pt and fr; mutations fail |
+| 15 | No visible change in English for these pieces | no | confirmed | The pieces moved unchanged; en adds `views`, `viewsLegend`, `mapPart` equal to the old text |
+| 16 | The task's tests pass | no | confirmed | 24 files, 379 passed |
+
+**Overall:** not met: row 2.
+
+### Re-check (row 2)
+
+A third round, with the owner's approval (2026-10-23).
+
+Witnessed: 2026-10-23 10:55 EDT, by a fresh agent (blind). Commit: da5a9aa3. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 2 | The "no type matches" line is rendered by a test in en, pt and fr, the form uses that piece, and English put back fails a test | no | confirmed | `NoTypeMatch` exported and rendered by the form; the test checks the sentence in en/pt/fr. English in the component, the pt message or the fr message → 1 failed each; restored, `cmp` identical. 24 files, 380 passed |
+
+**Overall:** met.

@@ -29,7 +29,7 @@ Every task that moves a folder adds it to the `overrides` entry in `biome.json` 
   and the composer canvas and dependency picker in `features/draft-editor`.
   *Done when:* three-language tests; the Overview's canvas (130) has no English left.
 
-- [ ] **4. The draft editor: form and YAML.** `NewDraftForm`, `ManifestForm` and
+- [x] **4. The draft editor: form and YAML.** `NewDraftForm`, `ManifestForm` and
   `manifest-fields.ts` (labels, hints, placeholders), the type picker's tags (`TYPE_INFO.tag`,
   shown and searched in `NewDraftForm`), the YAML view, `issues.ts`'s notices
   (`AS_OF_SAVE`), `features/manifest-validation`, `app/(app)/submissions/new`.
