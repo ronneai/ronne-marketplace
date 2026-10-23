@@ -8,6 +8,7 @@ describe("StatusBadge", () => {
       renderToStaticMarkup(<StatusBadge status={status} />);
     expect(html("submitted")).toContain("bg-accent-strong");
     expect(html("changes_requested")).toMatch(/text-warning-text[^>]*>changes requested</);
+    expect(html("withdrawn")).toContain(">archived<");
     expect(html("rejected")).toContain("text-error-text");
     expect(html("draft")).toContain("bg-tint");
     expect(html("withdrawn")).toContain("bg-tint");

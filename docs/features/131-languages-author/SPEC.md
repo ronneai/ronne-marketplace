@@ -116,7 +116,7 @@ in Portuguese and French beside English. Nothing about what the screens do chang
 
 ## Decisions
 
-- **Core's messages stay English** (Claude, proposed 2026-10-23): `ManifestIssue.message`, the
+- **Core's messages stay English** (owner, 2026-10-23, taking Claude's proposal): `ManifestIssue.message`, the
   risk flags and the renderers' warnings come from `@ronneai/core`, which `rmk` and the API share;
   translating them would mean a code-to-message table for about 40 codes plus the JSON schema's
   messages, kept beside core's. The frame around them is translated. 133 can revisit it with the
@@ -127,5 +127,4 @@ in Portuguese and French beside English. Nothing about what the screens do chang
 
 ## Open questions
 
-- **Core's messages:** keep them English (proposed above), or translate them by code in this
-  feature?
+None.

@@ -1,12 +1,20 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { DependencyMark } from "@/server/domains/submissions/actions/submissions";
-import {
-  DependencyMarksIcon,
-  DependencyStatusBadge,
-  markStatus,
-  markText,
-} from "./DependencyMarks";
+import { DependencyMarksIcon, DependencyStatusBadge, useMarkWords } from "./DependencyMarks";
+
+/** A mark's words as the screens get them: its sentence, and its status for the badge. */
+const Words = ({ mark }: { mark: DependencyMark }) => {
+  const words = useMarkWords();
+  return (
+    <>
+      {words.text(mark)}|{words.status(mark)}
+    </>
+  );
+};
+const markWords = (mark: DependencyMark) => renderToStaticMarkup(<Words mark={mark} />).split("|");
+const markText = (mark: DependencyMark) => markWords(mark)[0];
+const markStatus = (mark: DependencyMark) => markWords(mark)[1];
 
 describe("dependency marks in a list (owner, 2026-10-01)", () => {
   it("shows one amber icon with the count while dependencies are pending", () => {

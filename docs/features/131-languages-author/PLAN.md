@@ -11,9 +11,10 @@ Every task that moves a folder adds it to the `overrides` entry in `biome.json` 
 
 ## Tasks
 
-- [ ] **1. Shared words.** The statuses (`statusLabel` becomes a set of messages, used by
-  `StatusBadge`, the filters and sentences), `ProposalBadges`, `DependencyMarks`, a new `author`
-  namespace (its three files and `namespaces.ts`). `components/submissions` joins the scan.
+- [ ] **1. Shared words.** The statuses as messages (`author.status`, used by `StatusBadge`;
+  the submissions filters take them in task 6, and the services' sentences that use `statusLabel`
+  go with the actions in task 10), `ProposalBadges`, `DependencyMarks`, a new `author` namespace
+  (its three files and `namespaces.ts`). `components/submissions` joins the scan.
   *Done when:* three-language tests of the badges and marks, with the English-leak guard; the
   parity test passes.
 
@@ -29,7 +30,8 @@ Every task that moves a folder adds it to the `overrides` entry in `biome.json` 
   *Done when:* three-language tests; the Overview's canvas (130) has no English left.
 
 - [ ] **4. The draft editor: form and YAML.** `NewDraftForm`, `ManifestForm` and
-  `manifest-fields.ts` (labels, hints, placeholders), the YAML view, `issues.ts`'s notices
+  `manifest-fields.ts` (labels, hints, placeholders), the type picker's tags (`TYPE_INFO.tag`,
+  shown and searched in `NewDraftForm`), the YAML view, `issues.ts`'s notices
   (`AS_OF_SAVE`), `features/manifest-validation`, `app/(app)/submissions/new`.
   *Done when:* three-language tests of the new-draft form and the manifest form with each item
   type's fields; the route is in `MIGRATED_ROUTES`.

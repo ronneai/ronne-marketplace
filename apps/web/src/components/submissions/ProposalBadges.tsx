@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/Badge";
 import type { Proposal } from "@/server/domains/submissions/models/submission";
 
@@ -11,14 +12,16 @@ export const ProposalBadges = ({
 }: {
   proposal: Proposal | null;
   stale?: string | null;
-}) =>
-  proposal ? (
+}) => {
+  const t = useTranslations("author.proposal");
+  return proposal ? (
     <>
-      <Badge>change to {proposal.baseVersion}</Badge>
+      <Badge>{t("changeTo", { version: proposal.baseVersion })}</Badge>
       {stale ? (
-        <Badge tone="warning" title={`${stale} has been released since: rebase first.`}>
-          stale
+        <Badge tone="warning" title={t("staleTitle", { version: stale })}>
+          {t("stale")}
         </Badge>
       ) : null}
     </>
   ) : null;
+};

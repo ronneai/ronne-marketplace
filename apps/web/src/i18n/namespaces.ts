@@ -1,6 +1,7 @@
 import type account from "../../messages/en/account.json";
 import type admin from "../../messages/en/admin.json";
 import type auth from "../../messages/en/auth.json";
+import type author from "../../messages/en/author.json";
 import type catalogue from "../../messages/en/catalogue.json";
 import type common from "../../messages/en/common.json";
 import type errors from "../../messages/en/errors.json";
@@ -33,6 +34,7 @@ export const NAMESPACES = [
   "help",
   "shelves",
   "feedback",
+  "author",
 ] as const;
 export type Namespace = (typeof NAMESPACES)[number];
 
@@ -52,4 +54,5 @@ export type Messages = {
   help: typeof help;
   shelves: typeof shelves;
   feedback: typeof feedback;
+  author: typeof author;
 };

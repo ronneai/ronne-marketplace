@@ -1,0 +1,38 @@
+{
+  "status": {
+    "draft": "draft",
+    "submitted": "submitted",
+    "changes_requested": "changes requested",
+    "approved": "approved",
+    "rejected": "rejected",
+    "withdrawn": "archived",
+    "published": "published"
+  },
+  "proposal": {
+    "changeTo": "change to {version}",
+    "stale": "stale",
+    "staleTitle": "{version} has been released since: rebase first."
+  },
+  "marks": {
+    "waits": {
+      "submitted": "in review",
+      "changes_requested": "back with its author",
+      "approved": "pending release",
+      "not_submitted": "not submitted"
+    },
+    "closed": {
+      "rejected": "rejected",
+      "withdrawn": "archived"
+    },
+    "waitsOn": "Waits on {dependency} ({status})",
+    "blocked": "{status, select, rejected {Blocked: {dependency} was rejected} other {Blocked: {dependency} was archived}}",
+    "blockedThrough": "{status, select, rejected {Blocked: {dependency} waits on {through}, which was rejected} other {Blocked: {dependency} waits on {through}, which was archived}}",
+    "throughStatus": "{status, select, rejected {{through} rejected} other {{through} archived}}",
+    "pending": "{count, plural, one {# dependency not released yet} other {# dependencies not released yet}}",
+    "problem": "{count, plural, one {# dependency with a problem} other {# dependencies with a problem}}",
+    "wontRelease": "A dependency won't be released.",
+    "releasedOnce": "It's released once these are.",
+    "canRelease": "It can be released once its dependencies are.",
+    "blockedHint": "Remove it from dependencies, or depend on another item, then submit again."
+  }
+}

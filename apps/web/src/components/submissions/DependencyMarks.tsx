@@ -1,4 +1,5 @@
 import { CircleX, Link2, TriangleAlert } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Help } from "@/components/help/Help";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/components/ui/cn";
@@ -7,35 +8,33 @@ import { Popover } from "@/components/ui/Popover";
 import { TONES } from "@/components/ui/tones";
 import type { DependencyMark } from "@/server/domains/submissions/actions/submissions";
 
-const WAITS: Record<Extract<DependencyMark, { kind: "waits" }>["status"], string> = {
-  submitted: "in review",
-  changes_requested: "back with its author",
-  // Approved, waiting for its release (owner, 2026-10-01).
-  approved: "pending release",
-  not_submitted: "not submitted",
+/**
+ * One mark in words (056, in the person's language since 131): its sentence ("Waits on
+ * @team/github (in review)", "Blocked: @team/github was rejected"), and its own status in a word or
+ * two, for a badge beside its name. Approved reads "pending release" (owner, 2026-10-01); a
+ * withdrawn dependency "archived" (057).
+ */
+export const useMarkWords = () => {
+  const t = useTranslations("author.marks");
+  return {
+    text: (mark: DependencyMark): string =>
+      mark.kind === "waits"
+        ? t("waitsOn", { dependency: mark.dependency, status: t(`waits.${mark.status}`) })
+        : mark.through.length === 0
+          ? t("blocked", { dependency: mark.dependency, status: mark.status })
+          : t("blockedThrough", {
+              dependency: mark.dependency,
+              through: mark.through.at(-1) ?? "",
+              status: mark.status,
+            }),
+    status: (mark: DependencyMark): string =>
+      mark.kind === "waits"
+        ? t(`waits.${mark.status}`)
+        : mark.through.length === 0
+          ? t(`closed.${mark.status}`)
+          : t("throughStatus", { through: mark.through.at(-1) ?? "", status: mark.status }),
+  };
 };
-
-/** How a closed dependency reads: a withdrawn one is "archived" since 057. */
-const CLOSED: Record<Extract<DependencyMark, { kind: "blocked" }>["status"], string> = {
-  rejected: "rejected",
-  withdrawn: "archived",
-};
-
-/** One mark in words (056): "Waits on @team/github (in review)", "Blocked: @team/github was rejected". */
-export const markText = (mark: DependencyMark): string =>
-  mark.kind === "waits"
-    ? `Waits on ${mark.dependency} (${WAITS[mark.status]})`
-    : mark.through.length === 0
-      ? `Blocked: ${mark.dependency} was ${CLOSED[mark.status]}`
-      : `Blocked: ${mark.dependency} waits on ${mark.through.at(-1)}, which was ${CLOSED[mark.status]}`;
-
-/** A dependency's own status in a word or two, for a badge beside its name. */
-export const markStatus = (mark: DependencyMark): string =>
-  mark.kind === "waits"
-    ? WAITS[mark.status]
-    : mark.through.length === 0
-      ? CLOSED[mark.status]
-      : `${mark.through.at(-1)} ${CLOSED[mark.status]}`;
 
 /**
  * Beside a dependency's name (owner, 2026-10-01): an amber badge while it isn't released yet ("in
@@ -49,17 +48,18 @@ export const DependencyStatusBadge = ({
   mark: DependencyMark;
   className?: string;
 }) => {
+  const words = useMarkWords();
   const blocked = mark.kind === "blocked";
   const Icon = blocked ? CircleX : TriangleAlert;
   return (
     <Badge
       tone={blocked ? "error" : "warning"}
-      title={markText(mark)}
-      aria-label={markText(mark)}
+      title={words.text(mark)}
+      aria-label={words.text(mark)}
       className={cn("gap-1", className)}
     >
       <Icon size={11} aria-hidden="true" />
-      {markStatus(mark)}
+      {words.status(mark)}
     </Badge>
   );
 };
@@ -76,10 +76,11 @@ export const DependencyMarksIcon = ({
   marks?: readonly DependencyMark[];
   className?: string;
 }) => {
+  const t = useTranslations("author.marks");
   if (!marks || marks.length === 0) return null;
   const tone = marks.some((mark) => mark.kind === "blocked") ? "error" : "warning";
   const count = marks.length;
-  const label = `${count} ${count === 1 ? "dependency" : "dependencies"} ${tone === "error" ? "with a problem" : "not released yet"}`;
+  const label = t(tone === "error" ? "problem" : "pending", { count });
   return (
     <Popover
       label={label}
@@ -97,9 +98,7 @@ export const DependencyMarksIcon = ({
         </>
       }
     >
-      <p className="font-semibold">
-        {tone === "error" ? "A dependency won't be released." : "It's released once these are."}
-      </p>
+      <p className="font-semibold">{t(tone === "error" ? "wontRelease" : "releasedOnce")}</p>
       <ul className="grid gap-1.5">
         {marks.map((mark) => (
           <li key={mark.dependency} className="flex flex-wrap items-center gap-2">
@@ -118,27 +117,18 @@ export const DependencyMarksIcon = ({
  * waits. Says what that means for releasing.
  */
 export const DependencyMarksNotice = ({ marks }: { marks?: readonly DependencyMark[] }) => {
+  const t = useTranslations("author.marks");
+  const words = useMarkWords();
   if (!marks || marks.length === 0) return null;
   const blocked = marks.some((mark) => mark.kind === "blocked");
   return (
-    <Notice
-      kind={blocked ? "warn" : "info"}
-      title={
-        blocked
-          ? "A dependency won't be released."
-          : "It can be released once its dependencies are."
-      }
-    >
+    <Notice kind={blocked ? "warn" : "info"} title={t(blocked ? "wontRelease" : "canRelease")}>
       <ul className="mt-1 grid gap-0.5">
         {marks.map((mark) => (
-          <li key={mark.dependency}>{markText(mark)}</li>
+          <li key={mark.dependency}>{words.text(mark)}</li>
         ))}
       </ul>
-      {blocked ? (
-        <p className="mt-2 text-muted">
-          Remove it from dependencies, or depend on another item, then submit again.
-        </p>
-      ) : null}
+      {blocked ? <p className="mt-2 text-muted">{t("blockedHint")}</p> : null}
       <div className="mt-2">
         <Help id="waits-on" />
       </div>

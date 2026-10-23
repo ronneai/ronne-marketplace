@@ -1,0 +1,38 @@
+{
+  "status": {
+    "draft": "rascunho",
+    "submitted": "submetido",
+    "changes_requested": "alterações solicitadas",
+    "approved": "aprovado",
+    "rejected": "rejeitado",
+    "withdrawn": "arquivado",
+    "published": "publicado"
+  },
+  "proposal": {
+    "changeTo": "alteração da {version}",
+    "stale": "desatualizado",
+    "staleTitle": "A {version} foi lançada depois: faça o rebase primeiro."
+  },
+  "marks": {
+    "waits": {
+      "submitted": "em revisão",
+      "changes_requested": "de volta com o autor",
+      "approved": "aguardando lançamento",
+      "not_submitted": "não submetido"
+    },
+    "closed": {
+      "rejected": "rejeitado",
+      "withdrawn": "arquivado"
+    },
+    "waitsOn": "Aguarda {dependency} ({status})",
+    "blocked": "{status, select, rejected {Bloqueado: {dependency} foi rejeitado} other {Bloqueado: {dependency} foi arquivado}}",
+    "blockedThrough": "{status, select, rejected {Bloqueado: {dependency} aguarda {through}, que foi rejeitado} other {Bloqueado: {dependency} aguarda {through}, que foi arquivado}}",
+    "throughStatus": "{status, select, rejected {{through} rejeitado} other {{through} arquivado}}",
+    "pending": "{count, plural, one {# dependência ainda não lançada} other {# dependências ainda não lançadas}}",
+    "problem": "{count, plural, one {# dependência com problema} other {# dependências com problema}}",
+    "wontRelease": "Uma dependência não será lançada.",
+    "releasedOnce": "Ele é lançado quando estas forem.",
+    "canRelease": "Ele pode ser lançado quando suas dependências forem.",
+    "blockedHint": "Remova-a das dependências, ou dependa de outro item, e submeta de novo."
+  }
+}
