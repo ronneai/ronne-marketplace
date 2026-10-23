@@ -83,3 +83,25 @@ Every task that moves a folder adds it to the `overrides` entry in `biome.json` 
 - [ ] **13. Documentation and records.** The Portuguese and French pages in ronne-web name the
   labels as the app does (a branch there); the glossary; the index row; the PLAN's "Done" notes.
   *Done when:* `pnpm witness:check` passes; the ronne-web branch builds.
+
+### Done (2026-10-23)
+
+All thirteen tasks are ticked, each with its witness passes in `WITNESS.md` (tasks 4, 5, 8 and 9
+took a third round, with the owner's approval). The Documentation is on the ronne-web branch
+`feat/131-languages-author` (commits 287f55e, d899d89), not pushed: it goes live with the release,
+as the owner's rule says. Accepted limits:
+
+- The pt and fr texts are first drafts for a native reader in 133, who also decides whether
+  withdraw and yank keep sharing "retirar" / "retirer" (Decisions).
+- Core's messages stay English inside translated pages (owner's decision): `ManifestIssue`
+  messages, risk flags, renderers' warnings, the registry checks, and `ReleasePackError`, which
+  carries core's packing message.
+- React Flow's first server markup is English until its labels are applied in the browser
+  (Behaviour).
+- `InvalidStatusTransitionError`'s English changed for reject, request changes and override (a fix
+  of "rejectd", "request changesd", "overrided"); the API says the new words too.
+- Two Documentation sentences name a button the app words differently in every language ("Rebase",
+  the button being "Rebase onto {version}"; "Release stays off", the dialog's button being "Release
+  # items"); left for the English page's next edit.
+- The phone sweep's allowance for `/submissions/new` (072) is from before this feature and stays.
+

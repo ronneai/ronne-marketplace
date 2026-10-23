@@ -130,18 +130,19 @@ in Portuguese and French beside English. Nothing about what the screens do chang
 
 ## Acceptance criteria
 
-- [ ] Propose item, the draft editor (form, YAML, files, canvas), My submissions, Reviews and a
+- [x] Propose item, the draft editor (form, YAML, files, canvas), My submissions, Reviews and a
       review's page, the item page's Files and Versions tabs, and the bulk dialogs render in
       English, Portuguese and French with no English text left over (core's messages and data
       aside), on desktop and on a phone.
-- [ ] The raw-text scan covers every folder listed in Scope and passes; the phone sweep runs their
+- [x] The raw-text scan covers every folder listed in Scope and passes; the phone sweep runs their
       routes in Portuguese and French.
-- [ ] Every action in scope returns a code or a translated message; the submissions errors and the
+- [x] Every action in scope returns a code or a translated message; the submissions errors and the
       items errors listed have a text in all three languages (a test for each class, with 0/1/2
-      counts and lists where they have them); the API's messages are unchanged.
-- [ ] The 27 helpers read in the person's language and their links open the website's page in it.
-- [ ] The key-parity and placeholder tests pass.
-- [ ] The Portuguese and French Documentation pages name these screens' labels as the app does.
+      counts and lists where they have them); the API's messages are unchanged, but for the
+      `InvalidStatusTransitionError` fix stated in Scope.
+- [x] The 27 helpers read in the person's language and their links open the website's page in it.
+- [x] The key-parity and placeholder tests pass.
+- [x] The Portuguese and French Documentation pages name these screens' labels as the app does.
 
 ## Decisions
 
