@@ -124,8 +124,8 @@
     "answer": "Um nome que aponta para uma versão. latest é o que as instalações recebem por padrão, e só aponta para versões estáveis; os pré-lançamentos vão para next."
   },
   "deprecate-yank": {
-    "question": "Tornar obsoleta ou retirar?",
-    "answer": "Tornar obsoleta avisa: a versão continua instalável e mostra a sua mensagem. Retirar impede novas instalações, para uma versão quebrada ou insegura; os projetos que a fixam continuam funcionando."
+    "question": "Marcar como obsoleta ou retirar?",
+    "answer": "Marcar como obsoleta avisa: a versão continua instalável e mostra a sua mensagem. Retirar impede novas instalações, para uma versão quebrada ou insegura; os projetos que a fixam continuam funcionando."
   },
   "export": {
     "question": "Já escreveu na sua ferramenta de IA?",
@@ -156,12 +156,12 @@
     "answer": "Compatível escreve um intervalo, como ^1.4.0: as instalações recebem a 1.x mais nova a partir da 1.4.0, então as correções da dependência chegam sem um novo lançamento deste item. Exata escreve uma versão, como 1.4.0, que as instalações mantêm depois de lançamentos mais novos: escolha-a quando uma versão posterior puder quebrar este item. Abaixo de 1.0 um intervalo é mais estreito: ^0.2.3 aceita a 0.2.3 ou uma 0.2.x posterior, nunca a 0.3."
   },
   "which-bump": {
-    "question": "Qual incremento?",
-    "answer": "Sugerido para cada um dá a cada proposta de alteração o incremento que as alterações dela sugerem; ou escolha patch, minor ou major para todas. Itens novos são lançados como 1.0.0, seja qual for a escolha."
+    "question": "Qual bump?",
+    "answer": "Sugerido para cada um dá a cada proposta de alteração o bump que as alterações dela sugerem; ou escolha patch, minor ou major para todas. Itens novos são lançados como 1.0.0, seja qual for a escolha."
   },
   "release-many": {
     "question": "Lançar vários de uma vez?",
-    "answer": "Marque os aprovados, ou Selecionar todos os aprovados (as linhas desta página), e depois Lançar selecionados: escolha estável ou pré-lançamento, o incremento e a tag uma vez só, e veja todas as versões antes de qualquer coisa sair. O que está ligado por uma dependência é lançado junto, todos ou nenhum, e os aprovados de que eles precisam são adicionados."
+    "answer": "Marque os aprovados, ou Selecionar todos os aprovados (as linhas desta página), e depois Lançar selecionados: escolha estável ou pré-lançamento, o bump e a tag uma vez só, e veja todas as versões antes de qualquer coisa sair. O que está ligado por uma dependência é lançado junto, todos ou nenhum, e os aprovados de que eles precisam são adicionados."
   },
   "waits-on": {
     "question": "Pelo que isto aguarda?",

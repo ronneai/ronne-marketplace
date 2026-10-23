@@ -124,8 +124,8 @@
     "answer": "Un nom qui pointe vers une version. latest est ce que les installations reçoivent par défaut, et ne pointe que vers des versions stables; les préversions vont vers next."
   },
   "deprecate-yank": {
-    "question": "Rendre obsolète ou retirer?",
-    "answer": "Rendre obsolète avertit : la version reste installable et affiche votre message. Retirer empêche les nouvelles installations, pour une version cassée ou dangereuse; les projets qui l’épinglent continuent de fonctionner."
+    "question": "Marquer comme obsolète ou retirer?",
+    "answer": "Marquer comme obsolète avertit : la version reste installable et affiche votre message. Retirer empêche les nouvelles installations, pour une version cassée ou dangereuse; les projets qui l’épinglent continuent de fonctionner."
   },
   "export": {
     "question": "Déjà écrit dans votre outil d’IA?",
@@ -156,12 +156,12 @@
     "answer": "Compatible écrit une plage, comme ^1.4.0 : les installations reçoivent la 1.x la plus récente à partir de la 1.4.0, donc les correctifs de la dépendance arrivent sans nouvelle publication de cet élément. Exacte écrit une version, comme 1.4.0, que les installations gardent après des publications plus récentes : choisissez-la quand une version ultérieure pourrait casser cet élément. Sous 1.0, une plage est plus étroite : ^0.2.3 accepte la 0.2.3 ou une 0.2.x ultérieure, jamais la 0.3."
   },
   "which-bump": {
-    "question": "Quel incrément?",
-    "answer": "Suggéré pour chacun donne à chaque proposition de modification l’incrément que ses modifications suggèrent; ou choisissez patch, minor ou major pour toutes. Les nouveaux éléments sont publiés en 1.0.0, quel que soit votre choix."
+    "question": "Quel bump?",
+    "answer": "Suggéré pour chacun donne à chaque proposition de modification le bump que ses modifications suggèrent; ou choisissez patch, minor ou major pour toutes. Les nouveaux éléments sont publiés en 1.0.0, quel que soit votre choix."
   },
   "release-many": {
     "question": "En publier plusieurs à la fois?",
-    "answer": "Cochez des approuvés, ou Tout sélectionner (approuvés) (les lignes de cette page), puis Publier la sélection : choisissez stable ou préversion, l’incrément et l’étiquette une seule fois, et voyez chaque version avant que rien ne parte. Ce qui est lié par une dépendance est publié ensemble, tout ou rien, et les approuvés dont ils ont besoin sont ajoutés."
+    "answer": "Cochez des approuvés, ou Tout sélectionner (approuvés) (les lignes de cette page), puis Publier la sélection : choisissez stable ou préversion, le bump et l’étiquette une seule fois, et voyez chaque version avant que rien ne parte. Ce qui est lié par une dépendance est publié ensemble, tout ou rien, et les approuvés dont ils ont besoin sont ajoutés."
   },
   "waits-on": {
     "question": "Qu’attend-il?",
