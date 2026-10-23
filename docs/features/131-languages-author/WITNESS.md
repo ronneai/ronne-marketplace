@@ -166,3 +166,55 @@ Witnessed: 2026-10-23 10:55 EDT, by a fresh agent (blind). Commit: da5a9aa3. Mac
 | 2 | The "no type matches" line is rendered by a test in en, pt and fr, the form uses that piece, and English put back fails a test | no | confirmed | `NoTypeMatch` exported and rendered by the form; the test checks the sentence in en/pt/fr. English in the component, the pt message or the fr message → 1 failed each; restored, `cmp` identical. 24 files, 380 passed |
 
 **Overall:** met.
+
+## Task 5 — The draft editor: files, proposals and submit
+
+Witnessed: 2026-10-23 11:10 EDT, by a fresh agent (blind). Commit: 2ed70039. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The task's own tests and the page-list test pass | no | confirmed | `npx vitest run src/features/draft-editor/ src/app/pages-coverage.test.ts` → 14 files, 195 passed; i18n 57 passed; core `package-checks` 31 passed |
+| 2 | `DraftEditor` speaks pt and fr, with no English left | no | confirmed | `editor-translations.test.tsx` checks each notice in pt/fr; the leak test covers 6 states; a pt message set to English fails it |
+| 3 | Each `FileDialogs` dialog has three-language tests | no | partly | Delete, zip import and settings tested; add and rename only with a title the test passes in; their real words and the upload's `tooBig` untested |
+| 4 | `ProposalBar` in three languages | no | confirmed | fresh, stale, submitted vs draft, conflicts covered |
+| 5 | `SubmitDialogs` in three languages | no | confirmed | submit, group, outcome, withdraw, delete archived, restore; a mutation fails the label test |
+| 6 | Submit preview with 0, 1 and 2 drafts tested in each language | no | partly | Behaviour right; tests miss fr 0/1, pt 2 and the group heading at 1 |
+| 7 | Withdraw dependents 0/1/2 follow plurals | no | confirmed | en 1, pt 1 and 2, fr 0 and 2 |
+| 8 | `/submissions/[id]` page in messages | no | confirmed | `generateMetadata`, `approvedTitle`, `approvedText`; the raw-text override covers it |
+| 9 | The route is in `MIGRATED_ROUTES` | no | confirmed | removing it fails `pages-coverage.test.ts` |
+| 10 | Core's `pathProblemOf` beside `pathProblem`, English unchanged | no | confirmed | `package-checks.test.ts` unchanged and passing |
+| 11 | Path problems worded by code in the UI | no | confirmed | `PathIssue` data; "words each path problem" in pt/fr/en |
+| 12 | No visible change in English | no | partly | "Saved at" moved from the browser's `toLocaleTimeString()` to the provider's zone, the server's: a Toronto reader on a UTC server sees 3:10 PM instead of 11:10 AM |
+| 13 | Lists of names follow each language's list format | no | confirmed | `format.list` conjunction; en "@t/agent, @t/skill, and @t/x" |
+| 14 | Placeholder-looking data shown as typed | no | confirmed | probe in all three languages |
+| 15 | Core's messages show in English inside the list | no | confirmed | `IssueList` renders them as they come |
+| 16 | Withdraw flags review history instead of comparing English | no | confirmed | `reviewHistory: true`; `actions.test.ts` |
+| 17 | Lint passes on the folder | no | partly | an unused `type ReactNode` import in `DraftEditor.tsx` |
+
+**Overall:** not met: rows 3, 6, 12, 17.
+
+### Re-check (rows 3, 6, 12, 17)
+
+Witnessed: 2026-10-23 11:25 EDT, by a fresh agent (blind). Commit: d7466f27. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 3 | The new file, new folder and rename dialogs and the too-large message are tested in three languages | no | confirmed | `NewPathDialog`, `RenamePathDialog`, `useTooBig` tested; each word written in English in the code fails 1–3 tests |
+| 6 | Submit's label at 0, 1, 2 and the group heading at 1, 2 in each language | no | confirmed | mutations fail their test |
+| 12 | "Saved at" uses the reader's zone, and a test fails when that's undone | no | partly | The code is right (`timeZone` from the browser); the test passed with the line removed, as tests run in one zone |
+| 17 | No unused import | no | confirmed | `biome check` reports nothing |
+| 18 | The task's tests pass, and the editor uses the tested pieces | no | confirmed | 14 files, 247 passed |
+
+**Overall:** not met: row 12.
+
+### Re-check (row 12)
+
+A third round, with the owner's approval (2026-10-23).
+
+Witnessed: 2026-10-23 11:25 EDT, by a fresh agent (blind). Commit: eb813672. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 12 | "Saved at" shows the reader's zone in en, pt and fr; its test fails when that's undone, on a UTC machine too | no | confirmed | The test mocks `resolvedOptions` to `Pacific/Kiritimati`; passes on the committed code with TZ unset, UTC and America/Toronto; the line removed, set to "UTC" or "Asia/Tokyo" → 1 failed under UTC and Toronto each time. The four path-dialog words are each checked in pt and fr |
+
+**Overall:** met.

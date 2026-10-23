@@ -36,7 +36,7 @@ Every task that moves a folder adds it to the `overrides` entry in `biome.json` 
   *Done when:* three-language tests of the new-draft form and the manifest form with each item
   type's fields; the route is in `MIGRATED_ROUTES`.
 
-- [ ] **5. The draft editor: files, proposals and submit.** `DraftEditor`, `FileDialogs`
+- [x] **5. The draft editor: files, proposals and submit.** `DraftEditor`, `FileDialogs`
   (add, rename, delete, upload, zip import), `ProposalBar`, `SubmitDialogs` and
   `submit-preview.ts` (whole sentences with plurals), `app/(app)/submissions/[id]`.
   *Done when:* three-language tests of each dialog and the submit preview with 0, 1 and 2
