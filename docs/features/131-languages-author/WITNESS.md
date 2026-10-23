@@ -378,3 +378,53 @@ Witnessed: 2026-10-23 15:19 EDT, by a fresh agent (blind). Commit: 89064c7f. Mac
 | 3 | Any `author` message set to its English value in pt or fr fails a test; the allowlist is per language and names only identical messages | no | confirmed | `author-untranslated.test.ts`: the four cases and 11 more across the namespace each fail; translating an allowlisted entry fails the allowlist check; 193 tests pass |
 
 **Overall:** met.
+
+## Task 10 — What the actions say
+
+Witnessed: 2026-10-23 15:44 EDT, by a fresh agent (blind). Commit: d7f1a351. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `errors.json` has every submissions class but the base and `ReleasePackError`, and the six items classes, in en, pt, fr | no | confirmed | Node probe: 48 submissions classes (the plan said 44), all in the three files; `ReleasePackError` absent as the spec says |
+| 2 | A test per class, in three languages, with variants, lists and plurals | no | confirmed | `src/i18n` 457 passed; deleting pt `TagRuleError` → 4 failed |
+| 3 | The action files give errors through `errorText` and their own lines through messages | no | confirmed | grep of the in-scope `actions.ts`; `author.actions.*` in three languages |
+| 4 | An untranslated error still shows its English | no | confirmed | `ReleasePackError` in fr → English; mutating the fallback fails it |
+| 5 | Sentences built from English pieces carry codes; English word for word | no | confirmed | Message strings unchanged in the diff; core's `pathProblem`/`tagProblem` built from the `…Of` codes |
+| 6 | The API's messages are unchanged (a test) | no | confirmed | 11 exact strings; mutating `VersionMessageError` fails it; no API route uses the `why` services |
+| 7 | Reasons carry a `why` code; the screens word it; English matches | no | confirmed | `whyEnglish` matches each removed string; `why.test.tsx` |
+| 8 | A domain error inside a reason is worded on the server | no | confirmed | `shownWhy`; every `code:"error"` reaches the browser through `whyText` or `shown()` |
+
+**Overall:** met.
+
+Witnessed: 2026-10-23 15:50 EDT, by a fresh agent (adversarial). Commit: d7f1a351. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Every class but the base and `ReleasePackError`, plus the six items classes, in three languages | no | confirmed | Node script over the classes and the three files |
+| 2 | A test per class in three languages | no | confirmed | Mutations of pt `TagRuleError` and the English path message fail |
+| 3 | Values kept, no raw keys, plurals by language | no | confirmed | ~100 errors × 3 languages probe |
+| 4 | English `errorText` equals the message | no | partly | `InvalidStatusTransitionError` reject, request_changes, override: the message read "rejectd", "request changesd", "overrided" |
+| 5 | The API's and `rmk`'s messages unchanged | no | confirmed | `http/errors.ts` maps explicit fields; strings unchanged |
+| 6 | No English of an action's own | no | partly | `submitSelectedAction`'s `not_a_member` reason was `NotAMemberError`'s English |
+| 7 | Unknown error → English; others thrown on | no | confirmed | Probe with a new subclass |
+| 8 | Reasons carry `why` beside unchanged English | no | confirmed | Every code × 7 statuses |
+| 9 | The screens word the code, the Release button included | no | partly | `publish.ts` flattened the refusal into English inside the pt/fr sentence |
+| 10 | No Error reaches a client component | no | confirmed | Each `code:"error"` worded on the server |
+| 11 | No `why` reaches the API | no | confirmed | grep of `src/app/api`, `src/server/http` |
+| 12 | Core's messages stay English | no | confirmed | `issues` unchanged under pt |
+| 13 | The task's tests pass | no | confirmed | 12 files, 296 passed |
+
+**Overall:** not met: rows 4, 6, 9.
+
+### Re-check (rows 4, 6, 9)
+
+Witnessed: 2026-10-23 16:03 EDT, by a fresh agent (adversarial). Commit: e74e59ca. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4 | English `errorText` equals the message for `InvalidStatusTransitionError` with every action that reaches it | no | confirmed | 8 statuses × 12 actions probe; only an unreachable made-up action differs; removing `reject` fails `authoring-errors.test.ts` |
+| 6 | Submit selected's "not a member" reads in the person's language | no | confirmed | `action-words.test.ts`; reverting fails it |
+| 9 | The Release button's refusal reads in the person's language | no | confirmed | 27 `Why` variants through `publishAction`; removing the branch fails 2 tests |
+| 10 | Neighbours: API mapping, the SPEC's exception, the web tests | no | confirmed | `why` never serialized; English changed only as SPEC.md states; 4806 passed |
+
+**Overall:** met.
