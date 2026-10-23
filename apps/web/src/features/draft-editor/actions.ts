@@ -21,6 +21,7 @@ import {
   withdrawSubmission,
 } from "@/server/domains/submissions/actions/submissions";
 import {
+  HasReviewHistoryError,
   StaleFilesError,
   SubmissionInvalidError,
   SubmissionsError,
@@ -29,7 +30,13 @@ import { itemNameOf } from "@/server/domains/submissions/models/submission";
 import { requestHeaders } from "@/server/http/request-headers";
 import { serverAction } from "@/server/http/server-action";
 import { toPreview } from "./submit-preview";
-import type { ActionResult, SaveResult, SubmitPreview, SubmitResult } from "./types";
+import type {
+  ActionResult,
+  SaveResult,
+  SubmitPreview,
+  SubmitResult,
+  WithdrawResult,
+} from "./types";
 
 /** Domain and permission errors become a message; anything else is a real failure. */
 const message = (error: unknown): string => {
@@ -156,11 +163,13 @@ export const submitDraftAction = serverAction(async (id: string): Promise<Submit
 
 /** Withdraws: archives it, or deletes it for good and goes to My submissions (057). */
 export const withdrawAction = serverAction(
-  async (id: string, mode: "archive" | "delete" = "archive"): Promise<ActionResult> => {
+  async (id: string, mode: "archive" | "delete" = "archive"): Promise<WithdrawResult> => {
     try {
       await withdrawSubmission(await requestHeaders(), id, undefined, mode);
     } catch (error) {
-      return { ok: false, error: message(error) };
+      return error instanceof HasReviewHistoryError
+        ? { ok: false, error: message(error), reviewHistory: true }
+        : { ok: false, error: message(error) };
     }
     revalidatePath("/submissions");
     if (mode === "delete") redirect("/submissions");

@@ -44,7 +44,14 @@ export {
   typedNameParts,
 } from "./names.js";
 export { dependenciesFirst } from "./order.js";
-export { checkPackage, pathProblem, secretLike } from "./package-checks.js";
+export {
+  checkPackage,
+  PATH_MAX,
+  type PathProblem,
+  pathProblem,
+  pathProblemOf,
+  secretLike,
+} from "./package-checks.js";
 export type { PackageFile } from "./package-file.js";
 export {
   REQUESTED,

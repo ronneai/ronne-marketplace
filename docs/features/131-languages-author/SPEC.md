@@ -86,6 +86,11 @@ in Portuguese and French beside English. Nothing about what the screens do chang
   edge reads as a sentence, "@team/a depends on @team/git", in English too (it was React Flow's
   "Edge from item to dependency:@team/git"). One label stays English: the attribution link's
   "React Flow attribution", which the library fixes and only a paid plan can hide.
+- **Problems with a code are UI text.** Where core gives a code a screen can word, the screen
+  words it: a name's problem (`nameProblem`), a file path's (`pathProblemOf`, added for this
+  feature beside `pathProblem`, whose English `rmk` and the API keep).
+- **Lists of names** ("Needed by @a, @b and @c", "with @a and @b") follow the language's list
+  format, as 130's did: English writes three or more with a comma before "and".
 - **Errors.** A known error shows its translation; an error with no translation shows the English
   message (never a blank). The API's messages are unchanged.
 

@@ -200,8 +200,9 @@ export const MIGRATED_ROUTES: ReadonlySet<string> = new Set([
   "/workspaces/[name]",
   "/workspaces/[name]/join",
   "/workspaces/requests",
-  // Authoring and review (131): Propose item; the editor, submissions and reviews follow.
+  // Authoring and review (131): Propose item and the editor; submissions and reviews follow.
   "/submissions/new",
+  "/submissions/[id]",
   // Settings (124): only the Notice tab is in messages so far; the rest follow in 132. The sweep
   // looks for overflow and the language, so the other tabs, still English, are fine in it.
   "/admin/settings",

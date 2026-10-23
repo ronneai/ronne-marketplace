@@ -1,11 +1,31 @@
 "use client";
 
+import { PATH_MAX } from "@ronneai/core";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogActions } from "@/components/ui/Dialog";
 import { FieldError, inputClasses, Label } from "@/components/ui/Field";
 import { deleteDraftAction, importZipAction, renameDraftAction } from "./actions";
+import type { PathIssue } from "./files";
+
+/** A path's problem in the person's language (131), or null. */
+export const usePathWords = () => {
+  const t = useTranslations("author.editor.path");
+  return (issue: PathIssue | null): string | null => {
+    if (!issue) return null;
+    switch (issue.kind) {
+      case "path":
+        return t(issue.problem, { max: PATH_MAX });
+      case "exists":
+      case "folder":
+        return t(issue.kind, { path: issue.path });
+      default:
+        return t(issue.kind);
+    }
+  };
+};
 
 /** New file, new folder and rename: one path, checked as it's typed. */
 export const PathDialog = ({
@@ -27,6 +47,7 @@ export const PathDialog = ({
   onDone: (path: string) => void;
   onClose: () => void;
 }) => {
+  const t = useTranslations("author.editor");
   const [path, setPath] = useState(initial);
   const [touched, setTouched] = useState(false);
   const error = touched ? problem(path.trim()) : null;
@@ -63,7 +84,7 @@ export const PathDialog = ({
         <FieldError id="file-path-error">{error}</FieldError>
         <DialogActions>
           <Button variant="ghost" onClick={onClose}>
-            Cancel
+            {t("cancel")}
           </Button>
           <Button type="submit">{confirm}</Button>
         </DialogActions>
@@ -80,25 +101,29 @@ export const DeleteFileDialog = ({
   path: string;
   onDone: () => void;
   onClose: () => void;
-}) => (
-  <Dialog open onClose={onClose} title="Delete file">
-    <div className="grid gap-4">
-      <p className="text-sm text-fg">
-        Delete <span className="font-mono">{path}</span>? It's removed from the draft when you save.
-      </p>
-      <DialogActions>
-        <Button variant="ghost" onClick={onClose}>
-          Cancel
-        </Button>
-        <Button variant="destructive" onClick={onDone}>
-          Delete
-        </Button>
-      </DialogActions>
-    </div>
-  </Dialog>
-);
-
-const UNSAVED = "Save or undo your changes first: this replaces what the editor holds.";
+}) => {
+  const t = useTranslations("author.editor");
+  return (
+    <Dialog open onClose={onClose} title={t("deleteFileTitle")}>
+      <div className="grid gap-4">
+        <p className="text-sm text-fg">
+          {t.rich("deleteFile", {
+            path,
+            mono: (chunks) => <span className="font-mono">{chunks}</span>,
+          })}
+        </p>
+        <DialogActions>
+          <Button variant="ghost" onClick={onClose}>
+            {t("cancel")}
+          </Button>
+          <Button variant="destructive" onClick={onDone}>
+            {t("delete")}
+          </Button>
+        </DialogActions>
+      </div>
+    </Dialog>
+  );
+};
 
 /** Imports a .zip on the server, then reloads the draft. */
 export const ImportZipDialog = ({
@@ -110,17 +135,18 @@ export const ImportZipDialog = ({
   dirty: boolean;
   onClose: () => void;
 }) => {
+  const t = useTranslations("author.editor");
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   return (
-    <Dialog open onClose={onClose} title="Import a .zip">
+    <Dialog open onClose={onClose} title={t("importTitle")}>
       {dirty ? (
         <div className="grid gap-4">
-          <p className="text-sm text-fg">{UNSAVED}</p>
+          <p className="text-sm text-fg">{t("unsaved")}</p>
           <DialogActions>
             <Button variant="ghost" onClick={onClose}>
-              Close
+              {t("close")}
             </Button>
           </DialogActions>
         </div>
@@ -137,7 +163,7 @@ export const ImportZipDialog = ({
           }
         >
           <div className="grid gap-1.5">
-            <Label htmlFor="zip-file">Archive</Label>
+            <Label htmlFor="zip-file">{t("archive")}</Label>
             <input
               id="zip-file"
               name="archive"
@@ -146,13 +172,10 @@ export const ImportZipDialog = ({
               required
               className="text-sm text-fg file:mr-3 file:rounded-control file:border file:border-hairline file:bg-tint file:px-3 file:py-1.5 file:text-sm file:text-fg"
             />
-            <p className="text-xs text-muted">
-              A single top folder is unwrapped. Links, paths outside the item and files over the
-              limits are refused, and then nothing changes.
-            </p>
+            <p className="text-xs text-muted">{t("importHint")}</p>
           </div>
           <fieldset className="grid gap-2">
-            <legend className="pb-1 text-sm font-semibold text-fg">Existing files</legend>
+            <legend className="pb-1 text-sm font-semibold text-fg">{t("existing")}</legend>
             <label className="flex items-start gap-2 text-sm text-fg">
               <input
                 type="radio"
@@ -161,9 +184,7 @@ export const ImportZipDialog = ({
                 defaultChecked
                 className="mt-0.5 size-4 accent-(--accent)"
               />
-              <span>
-                Merge: the archive's files replace the draft's with the same path; the rest stay.
-              </span>
+              <span>{t("merge")}</span>
             </label>
             <label className="flex items-start gap-2 text-sm text-fg">
               <input
@@ -172,16 +193,16 @@ export const ImportZipDialog = ({
                 value="replace"
                 className="mt-0.5 size-4 accent-(--accent)"
               />
-              <span>Replace: only the archive's files are left. It must have a ronne.yaml.</span>
+              <span>{t("replaceAll")}</span>
             </label>
           </fieldset>
           <FieldError id="zip-error">{error}</FieldError>
           <DialogActions>
             <Button variant="ghost" onClick={onClose}>
-              Cancel
+              {t("cancel")}
             </Button>
             <Button type="submit" loading={pending}>
-              Import
+              {t("import")}
             </Button>
           </DialogActions>
         </form>
@@ -207,20 +228,20 @@ export const DraftSettingsDialog = ({
   proposal?: boolean;
   onClose: () => void;
 }) => {
+  const t = useTranslations("author.editor");
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [pending, start] = useTransition();
   return (
-    <Dialog open onClose={onClose} title="Draft settings">
+    <Dialog open onClose={onClose} title={t("settingsTitle")}>
       <div className="grid gap-6">
         {proposal ? (
           <p className="text-sm text-fg">
-            A change proposal keeps its item&apos;s scope and name:{" "}
-            <span className="font-mono">
-              @{scope}/{name}
-            </span>
-            . To use another name, start a new item.
+            {t.rich("proposalName", {
+              name: `@${scope}/${name}`,
+              mono: (chunks) => <span className="font-mono">{chunks}</span>,
+            })}
           </p>
         ) : null}
         <form
@@ -237,7 +258,7 @@ export const DraftSettingsDialog = ({
         >
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-1.5">
-              <Label htmlFor="draft-scope">Scope</Label>
+              <Label htmlFor="draft-scope">{t("scope")}</Label>
               <input
                 id="draft-scope"
                 name="scope"
@@ -247,7 +268,7 @@ export const DraftSettingsDialog = ({
               />
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="draft-name">Name</Label>
+              <Label htmlFor="draft-name">{t("name")}</Label>
               <input
                 id="draft-name"
                 name="name"
@@ -259,27 +280,25 @@ export const DraftSettingsDialog = ({
             </div>
           </div>
           <p className="text-xs text-muted">
-            The type can't change. <span className="font-mono">name</span> in ronne.yaml follows the
-            new name.
+            {t.rich("renameNote", {
+              mono: (chunks) => <span className="font-mono">{chunks}</span>,
+            })}
           </p>
-          {dirty ? <p className="text-xs text-fg">{UNSAVED}</p> : null}
+          {dirty ? <p className="text-xs text-fg">{t("unsaved")}</p> : null}
           <FieldError id="rename-error">{error}</FieldError>
           <div className="flex justify-end">
             <Button type="submit" variant="secondary" loading={pending} disabled={dirty}>
-              Rename
+              {t("rename")}
             </Button>
           </div>
         </form>
         <div className="grid gap-3 border-t border-hairline pt-4">
-          <p className="text-sm text-fg">
-            Deleting removes the draft and its files for good. It was never submitted, so there's no
-            history to keep.
-          </p>
+          <p className="text-sm text-fg">{t("deleteNote")}</p>
           <div className="flex justify-end gap-2">
             {confirmDelete ? (
               <>
                 <Button variant="ghost" onClick={() => setConfirmDelete(false)}>
-                  Keep it
+                  {t("keep")}
                 </Button>
                 <Button
                   variant="destructive"
@@ -291,12 +310,12 @@ export const DraftSettingsDialog = ({
                     })
                   }
                 >
-                  Delete for good
+                  {t("deleteForGood")}
                 </Button>
               </>
             ) : (
               <Button variant="ghost" onClick={() => setConfirmDelete(true)}>
-                Delete draft
+                {t("deleteDraft")}
               </Button>
             )}
           </div>

@@ -3,6 +3,7 @@
 import { GitMerge } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { FileChanges } from "@/components/files/FileViews";
 import { Button } from "@/components/ui/Button";
@@ -27,6 +28,7 @@ export const ProposalBar = ({
   status: string;
   dirty: boolean;
 }) => {
+  const t = useTranslations("author.editor.proposal");
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -44,29 +46,20 @@ export const ProposalBar = ({
         kind={proposal.stale ? "warn" : "info"}
         title={
           proposal.stale
-            ? `${proposal.stale} has been released since this proposal started.`
-            : `A change to ${proposal.itemName} ${proposal.baseVersion}.`
+            ? t("staleTitle", { stale: proposal.stale })
+            : t("title", { item: proposal.itemName, version: proposal.baseVersion })
         }
       >
         <div className="grid gap-2">
           <p>
-            {proposal.stale ? (
-              <>
-                It changes {proposal.baseVersion}. Rebasing brings in what {proposal.stale} changed:
-                files you didn't touch take {proposal.stale}&apos;s, and files you both changed stay
-                yours, listed below to compare.
-                {status === "submitted" || status === "approved"
-                  ? " It goes back to changes requested, to be reviewed again."
-                  : ""}
-              </>
-            ) : (
-              <>
-                Its scope, name and type are the item&apos;s. Releasing it publishes the item&apos;s
-                next version.
-              </>
-            )}{" "}
+            {proposal.stale
+              ? t(status === "submitted" || status === "approved" ? "staleReview" : "stale", {
+                  version: proposal.baseVersion,
+                  stale: proposal.stale,
+                })
+              : t("fresh")}{" "}
             <Link href={proposal.baseHref} className="underline underline-offset-2">
-              See {proposal.baseVersion}
+              {t("see", { version: proposal.baseVersion })}
             </Link>
           </p>
           {proposal.stale && proposal.canRebase ? (
@@ -78,9 +71,9 @@ export const ProposalBar = ({
                 onClick={() => run(() => rebaseAction(draftId))}
               >
                 <GitMerge size={16} aria-hidden="true" />
-                Rebase onto {proposal.stale}
+                {t("rebase", { stale: proposal.stale })}
               </Button>
-              {dirty ? <span className="text-xs">Save your changes first.</span> : null}
+              {dirty ? <span className="text-xs">{t("saveFirst")}</span> : null}
             </div>
           ) : null}
         </div>
@@ -92,32 +85,25 @@ export const ProposalBar = ({
           className="grid gap-2 rounded-panel border border-warning/40 bg-warning-subtle p-4 text-sm"
         >
           <h2 id="conflicts" className="font-semibold text-warning-text">
-            Conflicts ({proposal.conflicts.length})
+            {t("conflicts", { count: proposal.conflicts.length })}
           </h2>
-          <p className="text-fg">
-            You and {proposal.baseVersion} both changed these files. They kept your version: compare
-            it with {proposal.baseVersion}&apos;s, fix it in the editor, save, then mark it
-            resolved. Submitting waits until none is left.
-          </p>
+          <p className="text-fg">{t("conflictsText", { version: proposal.baseVersion })}</p>
           <ul className="grid gap-2">
             {proposal.conflicts.map((conflict) => (
               <li key={conflict.path} className="rounded-control border border-hairline bg-surface">
                 <details>
                   <summary className="flex cursor-pointer flex-wrap items-center justify-between gap-2 px-3 py-2">
                     <span className="font-mono text-sm text-fg">{conflict.path}</span>
-                    <span className="text-xs text-muted">Compare with {proposal.baseVersion}</span>
+                    <span className="text-xs text-muted">
+                      {t("compare", { version: proposal.baseVersion })}
+                    </span>
                   </summary>
                   <div className="border-t border-hairline p-3">
                     {conflict.change ? (
-                      <FileChanges
-                        changes={[conflict.change]}
-                        since={null}
-                        emptyText="It's the same as the base version now."
-                      />
+                      <FileChanges changes={[conflict.change]} since={null} emptyText={t("same")} />
                     ) : (
                       <p className="text-sm text-muted">
-                        {proposal.baseVersion}&apos;s files couldn&apos;t be read, so there&apos;s
-                        nothing to compare with.
+                        {t("unreadable", { version: proposal.baseVersion })}
                       </p>
                     )}
                   </div>
@@ -130,7 +116,7 @@ export const ProposalBar = ({
                       disabled={dirty}
                       onClick={() => run(() => resolveConflictAction(draftId, conflict.path))}
                     >
-                      Mark resolved
+                      {t("resolve")}
                     </Button>
                   </div>
                 ) : null}
