@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getTranslations } from "next-intl/server";
+import { errorText } from "@/i18n/errors";
 import { IdentityError } from "@/server/domains/identity/exceptions/errors";
 import { type PublishInput, publishSubmission } from "@/server/domains/submissions/actions/publish";
 import {
@@ -22,8 +24,9 @@ import type { ApproveManyState, PublishResult, ReviewActionState } from "./types
 const isRevision = (value: unknown): value is number | null =>
   value === null || (Number.isInteger(value) && (value as number) >= 1);
 
-const message = (error: unknown): string => {
-  if (error instanceof SubmissionsError || error instanceof IdentityError) return error.message;
+/** A domain error in the person's language (131); anything else is thrown on. */
+const message = async (error: unknown): Promise<string> => {
+  if (error instanceof SubmissionsError || error instanceof IdentityError) return errorText(error);
   throw error;
 };
 
@@ -52,7 +55,7 @@ export const decideAction = serverAction(
       (decision === "approve" || decision === "override") &&
       (revision === undefined || !isRevision(revision))
     )
-      return { error: "Reload the page: it doesn't say which revision you reviewed." };
+      return { error: (await getTranslations("author.actions"))("reloadRevision") };
     try {
       await decide(await requestHeaders(), id, {
         decision,
@@ -61,7 +64,7 @@ export const decideAction = serverAction(
         ...(revision !== undefined ? { revision } : {}),
       });
     } catch (error) {
-      return { error: message(error) };
+      return { error: await message(error) };
     }
     refresh(id);
     return { done: true };
@@ -91,7 +94,7 @@ export const rejectAction = serverAction(
         d.result === "skipped" ? [{ name: d.name, reason: d.reason ?? "" }] : [],
       );
     } catch (error) {
-      return { error: message(error) };
+      return { error: await message(error) };
     }
     refresh(id);
     return { done: true, skipped };
@@ -107,7 +110,7 @@ export const dependentsAction = serverAction(
     try {
       return { dependents: await listDependents(await requestHeaders(), id) };
     } catch (error) {
-      return { error: message(error) };
+      return { error: await message(error) };
     }
   },
 );
@@ -123,14 +126,15 @@ export const approveSelectedAction = serverAction(
       !Array.isArray(items) ||
       !items.every((item) => typeof item?.id === "string" && isRevision(item.revision))
     )
-      return { error: "Reload the page: it doesn't say which revision each one is at." };
+      return { error: (await getTranslations("author.actions"))("reloadRevisions") };
     let approved: Awaited<ReturnType<typeof approveMany>>;
     try {
       approved = await approveMany(await requestHeaders(), { items, message: text });
     } catch (error) {
-      return { error: message(error) };
+      return { error: await message(error) };
     }
     for (const r of approved) if (r.result === "approved") refresh(r.id);
+    const t = await getTranslations("author.actions");
     return {
       results: approved.map((r) => ({
         id: r.id,
@@ -139,11 +143,7 @@ export const approveSelectedAction = serverAction(
         override: r.result === "approved" && r.override,
         revision: r.result === "approved" ? r.revision : null,
         reason:
-          r.result === "not_approvable"
-            ? r.reason
-            : r.result === "not_found"
-              ? "It no longer exists, or you can't see it."
-              : null,
+          r.result === "not_approvable" ? r.reason : r.result === "not_found" ? t("gone") : null,
       })),
     };
   },
@@ -155,7 +155,7 @@ export const commentFromForm = serverAction(
     try {
       await comment(await requestHeaders(), id, { body: String(form.get("body") ?? "") });
     } catch (error) {
-      return { error: message(error) };
+      return { error: await message(error) };
     }
     refresh(id);
     return { done: true };
@@ -179,7 +179,7 @@ export const publishAction = serverAction(
         with: published.with.map((member) => ({ name: member.name, version: member.version })),
       };
     } catch (error) {
-      return { ok: false, error: message(error) };
+      return { ok: false, error: await message(error) };
     }
   },
 );

@@ -11,12 +11,7 @@ import {
   VersionNotFoundError,
 } from "../exceptions/errors";
 import type { Item, ItemRef, ItemVersion } from "../models/item";
-import {
-  latestAfterYank,
-  messageFrom,
-  moveTagProblem,
-  removeTagProblem,
-} from "../models/version-rules";
+import { latestAfterYank, messageFrom, moveTagRule, removeTagRule } from "../models/version-rules";
 import type { ItemRepository } from "../repositories/item-repository";
 
 /**
@@ -101,8 +96,8 @@ export const moveTag = (
     const target = find(versions, ref, input.version);
     const tags = await items.tags(item.id);
     const current = tags.find((t) => t.tag === tag);
-    const problem = moveTagProblem(tag, rulesView(target), tags.length, !current);
-    if (problem) throw new TagRuleError(problem);
+    const rule = moveTagRule(tag, rulesView(target), tags.length, !current);
+    if (rule) throw new TagRuleError(rule);
     if (current?.versionId === target.id) return;
     await items.setTag(item.id, tag, target.id);
     await audit("dist_tag.moved", {
@@ -120,8 +115,8 @@ export const removeTag = (
   input: { tag: string },
 ) =>
   withItem(deps, actor, ref, async ({ items, item, versions, audit }) => {
-    const problem = removeTagProblem(input.tag);
-    if (problem) throw new TagRuleError(problem);
+    const rule = removeTagRule(input.tag);
+    if (rule) throw new TagRuleError(rule);
     const current = (await items.tags(item.id)).find((t) => t.tag === input.tag);
     if (!current) return;
     await items.removeTag(item.id, input.tag);
@@ -141,7 +136,7 @@ export const deprecate = (
   withItem(deps, actor, ref, async ({ items, versions, audit }) => {
     const version = find(versions, ref, input.version);
     const message = messageFrom(input.message);
-    if (!message) throw new VersionMessageError("A deprecation message");
+    if (!message) throw new VersionMessageError("deprecate");
     await items.setDeprecated(version.id, message);
     await audit(
       "version.deprecated",
@@ -181,7 +176,7 @@ export const yank = async (
   const yanked = await withItem(deps, actor, ref, async ({ items, item, versions, at, audit }) => {
     const version = find(versions, ref, input.version);
     const reason = messageFrom(input.reason);
-    if (!reason) throw new VersionMessageError("A yank reason");
+    if (!reason) throw new VersionMessageError("yank");
     if (version.yankedAt) return false;
     await items.setYanked(version.id, { at, reason });
     const latest = (await items.tags(item.id)).find((t) => t.tag === "latest");

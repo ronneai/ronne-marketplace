@@ -751,5 +751,13 @@
       "no_version": "Cela ne donne pas de nouvelle version : un identifiant de préversion contient des lettres minuscules et des chiffres, et commence par une lettre."
     },
     "tagPlaceholder": "latest, ou next pour une préversion"
+  },
+  "actions": {
+    "chooseZip": "Choisissez un fichier .zip à importer.",
+    "reloadRevision": "Rechargez la page : elle ne dit pas quelle révision vous avez révisée.",
+    "reloadRevisions": "Rechargez la page : elle ne dit pas à quelle révision chacune en est.",
+    "gone": "Elle n’existe plus, ou vous ne pouvez pas la voir.",
+    "notYours": "Ce n’est plus un de vos brouillons.",
+    "notDraft": "Ce n’est plus un brouillon."
   }
 }

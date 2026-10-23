@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
+import { errorText } from "@/i18n/errors";
 import { IdentityError } from "@/server/domains/identity/exceptions/errors";
 import {
   deleteDraft,
@@ -39,8 +41,9 @@ import type {
 } from "./types";
 
 /** Domain and permission errors become a message; anything else is a real failure. */
-const message = (error: unknown): string => {
-  if (error instanceof SubmissionsError || error instanceof IdentityError) return error.message;
+/** A domain error in the person's language (131); anything else is thrown on. */
+const message = async (error: unknown): Promise<string> => {
+  if (error instanceof SubmissionsError || error instanceof IdentityError) return errorText(error);
   throw error;
 };
 
@@ -85,7 +88,7 @@ export const saveDraftAction = serverAction(
     } catch (error) {
       if (error instanceof StaleFilesError)
         return { ok: false, error: error.message, stale: [...error.paths] };
-      return { ok: false, error: message(error) };
+      return { ok: false, error: await message(error) };
     }
   },
 );
@@ -95,14 +98,14 @@ export const importZipAction = serverAction(
   async (id: string, form: FormData): Promise<ActionResult> => {
     const archive = form.get("archive");
     if (!(archive instanceof File) || archive.size === 0)
-      return { ok: false, error: "Choose a .zip file to import." };
+      return { ok: false, error: (await getTranslations("author.actions"))("chooseZip") };
     try {
       await importZip(await requestHeaders(), id, {
         archive: new Uint8Array(await archive.arrayBuffer()),
         mode: form.get("mode") === "replace" ? "replace" : "merge",
       });
     } catch (error) {
-      return { ok: false, error: message(error) };
+      return { ok: false, error: await message(error) };
     }
     revalidatePath(`/submissions/${id}`);
     revalidatePath("/submissions");
@@ -118,7 +121,7 @@ export const renameDraftAction = serverAction(
         name: String(form.get("name") ?? ""),
       });
     } catch (error) {
-      return { ok: false, error: message(error) };
+      return { ok: false, error: await message(error) };
     }
     revalidatePath(`/submissions/${id}`);
     revalidatePath("/submissions");
@@ -130,7 +133,7 @@ export const deleteDraftAction = serverAction(async (id: string): Promise<Action
   try {
     await deleteDraft(await requestHeaders(), id);
   } catch (error) {
-    return { ok: false, error: message(error) };
+    return { ok: false, error: await message(error) };
   }
   revalidatePath("/submissions");
   redirect("/submissions");
@@ -141,7 +144,7 @@ export const checkSubmissionAction = serverAction(async (id: string): Promise<Su
   try {
     return toPreview(id, await checkSubmitGroup(await requestHeaders(), id));
   } catch (error) {
-    return { ok: false, error: message(error), issues: [] };
+    return { ok: false, error: await message(error), issues: [] };
   }
 });
 
@@ -157,7 +160,7 @@ export const submitDraftAction = serverAction(async (id: string): Promise<Submit
   } catch (error) {
     if (error instanceof SubmissionInvalidError)
       return { ok: false, error: error.message, issues: [...error.issues] };
-    return { ok: false, error: message(error), issues: [] };
+    return { ok: false, error: await message(error), issues: [] };
   }
 });
 
@@ -168,8 +171,8 @@ export const withdrawAction = serverAction(
       await withdrawSubmission(await requestHeaders(), id, undefined, mode);
     } catch (error) {
       return error instanceof HasReviewHistoryError
-        ? { ok: false, error: message(error), reviewHistory: true }
-        : { ok: false, error: message(error) };
+        ? { ok: false, error: await message(error), reviewHistory: true }
+        : { ok: false, error: await message(error) };
     }
     revalidatePath("/submissions");
     if (mode === "delete") redirect("/submissions");
@@ -191,7 +194,7 @@ export const withdrawInfoAction = serverAction(
         dependents: await countDependents(headers, id),
       };
     } catch (error) {
-      return { error: message(error) };
+      return { error: await message(error) };
     }
   },
 );
@@ -201,7 +204,7 @@ export const deleteSubmissionAction = serverAction(async (id: string): Promise<A
   try {
     await deleteSubmission(await requestHeaders(), id);
   } catch (error) {
-    return { ok: false, error: message(error) };
+    return { ok: false, error: await message(error) };
   }
   revalidatePath("/submissions");
   return { ok: true };
@@ -212,7 +215,7 @@ export const restoreAction = serverAction(async (id: string): Promise<ActionResu
   try {
     await restoreSubmission(await requestHeaders(), id);
   } catch (error) {
-    return { ok: false, error: message(error) };
+    return { ok: false, error: await message(error) };
   }
   revalidatePath(`/submissions/${id}`);
   revalidatePath("/submissions");
@@ -224,7 +227,7 @@ export const rebaseAction = serverAction(async (id: string): Promise<ActionResul
   try {
     await rebaseProposal(await requestHeaders(), id);
   } catch (error) {
-    return { ok: false, error: message(error) };
+    return { ok: false, error: await message(error) };
   }
   revalidatePath(`/submissions/${id}`);
   revalidatePath("/submissions");
@@ -237,7 +240,7 @@ export const resolveConflictAction = serverAction(
     try {
       await resolveConflict(await requestHeaders(), id, path);
     } catch (error) {
-      return { ok: false, error: message(error) };
+      return { ok: false, error: await message(error) };
     }
     revalidatePath(`/submissions/${id}`);
     return { ok: true };

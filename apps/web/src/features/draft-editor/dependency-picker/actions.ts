@@ -1,6 +1,7 @@
 "use server";
 
 import type { ItemType } from "@ronneai/core";
+import { errorText } from "@/i18n/errors";
 import { IdentityError } from "@/server/domains/identity/exceptions/errors";
 import {
   type DependencyOption,
@@ -22,7 +23,7 @@ export const findDependenciesAction = serverAction(
     try {
       return { ok: true, options: await findDependencies(await requestHeaders(), input) };
     } catch (error) {
-      if (error instanceof IdentityError) return { ok: false, error: error.message };
+      if (error instanceof IdentityError) return { ok: false, error: await errorText(error) };
       throw error;
     }
   },

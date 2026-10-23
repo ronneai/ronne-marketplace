@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { itemPath } from "@/components/catalogue/ItemCard";
+import { errorText } from "@/i18n/errors";
 import { IdentityError } from "@/server/domains/identity/exceptions/errors";
 import {
   deprecate,
@@ -54,7 +55,7 @@ export const changeVersions = serverAction(
       }
     } catch (error) {
       if (error instanceof ItemsError || error instanceof IdentityError)
-        return { ok: false, error: error.message };
+        return { ok: false, error: await errorText(error) };
       throw error;
     }
     revalidatePath(`${itemPath(ref)}/versions`);

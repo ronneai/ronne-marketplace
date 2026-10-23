@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
+import { errorText } from "@/i18n/errors";
 import { IdentityError } from "@/server/domains/identity/exceptions/errors";
 import { createDraft } from "@/server/domains/submissions/actions/drafts";
 import { submitManyDrafts } from "@/server/domains/submissions/actions/submissions";
@@ -25,7 +27,7 @@ export const createDraftFromForm = serverAction(
       }));
     } catch (error) {
       if (error instanceof SubmissionsError || error instanceof IdentityError)
-        return { error: error.message };
+        return { error: await errorText(error) };
       throw error;
     }
     revalidatePath("/submissions");
@@ -40,6 +42,7 @@ export const createDraftFromForm = serverAction(
 export const submitSelectedAction = serverAction(async (ids: string[]): Promise<BulkResult[]> => {
   const { results } = await submitManyDrafts(await requestHeaders(), { ids });
   revalidatePath("/submissions");
+  const t = await getTranslations("author.actions");
   return results.map((r) => ({
     id: r.id,
     name: "submission" in r ? itemNameOf(r.submission) : r.id,
@@ -48,9 +51,9 @@ export const submitSelectedAction = serverAction(async (ids: string[]): Promise<
       r.result === "not_ready" || r.result === "not_a_member"
         ? r.issues.filter((i) => i.severity === "error").map((i) => i.message)
         : r.result === "not_found"
-          ? ["It's no longer one of your drafts."]
+          ? [t("notYours")]
           : r.result === "not_submittable"
-            ? ["It isn't a draft any more."]
+            ? [t("notDraft")]
             : [],
     ...(r.result === "not_a_member" ? { joinWorkspace: r.submission.workspace.name } : {}),
   }));

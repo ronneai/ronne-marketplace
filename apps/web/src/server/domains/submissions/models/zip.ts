@@ -1,4 +1,4 @@
-import { formatBytes, type PackageLimits, pathProblem } from "@ronneai/core";
+import { formatBytes, type PackageLimits, pathProblem, pathProblemOf } from "@ronneai/core";
 import { inflateSync } from "fflate";
 import { ZipImportError } from "../exceptions/errors";
 
@@ -47,26 +47,27 @@ const centralDirectory = (zip: Uint8Array): Entry[] => {
       end = i;
       break;
     }
-  if (end === -1) throw new ZipImportError("it isn't a .zip file.");
+  if (end === -1) throw new ZipImportError("it isn't a .zip file.", { code: "not_zip" });
   const count = view.getUint16(end + 10, true);
   let offset = view.getUint32(end + 16, true);
   if (count === 0xffff || offset === 0xffffffff)
     throw new ZipImportError(
       "it uses ZIP64, which is only needed for archives far over the limits.",
+      { code: "zip64" },
     );
 
   const entries: Entry[] = [];
   const decoder = new TextDecoder();
   for (let i = 0; i < count; i++) {
     if (offset + 46 > zip.length || view.getUint32(offset, true) !== CENTRAL)
-      throw new ZipImportError("its file list is damaged.");
+      throw new ZipImportError("its file list is damaged.", { code: "damaged_list" });
     const madeBy = view.getUint16(offset + 4, true) >> 8;
     const flags = view.getUint16(offset + 8, true);
     const nameLength = view.getUint16(offset + 28, true);
     const extraLength = view.getUint16(offset + 30, true);
     const commentLength = view.getUint16(offset + 32, true);
     const external = view.getUint32(offset + 38, true);
-    if (flags & 1) throw new ZipImportError("it's encrypted.");
+    if (flags & 1) throw new ZipImportError("it's encrypted.", { code: "encrypted" });
     entries.push({
       name: decoder.decode(zip.subarray(offset + 46, offset + 46 + nameLength)),
       method: view.getUint16(offset + 10, true),
@@ -86,7 +87,7 @@ const inflate = (zip: Uint8Array, entry: Entry): Uint8Array => {
   const view = new DataView(zip.buffer, zip.byteOffset, zip.byteLength);
   const at = entry.localOffset;
   if (at + 30 > zip.length || view.getUint32(at, true) !== LOCAL)
-    throw new ZipImportError(`${entry.name} is damaged.`);
+    throw new ZipImportError(`${entry.name} is damaged.`, { code: "damaged", entry: entry.name });
   const start = at + 30 + view.getUint16(at + 26, true) + view.getUint16(at + 28, true);
   const data = zip.subarray(start, start + entry.compressedSize);
   let bytes: Uint8Array;
@@ -97,11 +98,15 @@ const inflate = (zip: Uint8Array, entry: Entry): Uint8Array => {
       // check below then catches it.
       bytes = inflateSync(data, { out: new Uint8Array(entry.size) });
     } catch {
-      throw new ZipImportError(`${entry.name} is damaged.`);
+      throw new ZipImportError(`${entry.name} is damaged.`, { code: "damaged", entry: entry.name });
     }
-  else throw new ZipImportError(`${entry.name} uses a compression method other than deflate.`);
+  else
+    throw new ZipImportError(`${entry.name} uses a compression method other than deflate.`, {
+      code: "method",
+      entry: entry.name,
+    });
   if (bytes.length !== entry.size || crc32(bytes) !== entry.crc)
-    throw new ZipImportError(`${entry.name} is damaged.`);
+    throw new ZipImportError(`${entry.name} is damaged.`, { code: "damaged", entry: entry.name });
   return bytes;
 };
 
@@ -113,7 +118,10 @@ const inflate = (zip: Uint8Array, entry: Entry): Uint8Array => {
  */
 export const readZip = (zip: Uint8Array, limits: PackageLimits): ZipFile[] => {
   if (zip.length > limits.maxTotalBytes)
-    throw new ZipImportError(`it's over ${formatBytes(limits.maxTotalBytes)}.`);
+    throw new ZipImportError(`it's over ${formatBytes(limits.maxTotalBytes)}.`, {
+      code: "too_big",
+      maxText: formatBytes(limits.maxTotalBytes),
+    });
   const entries = centralDirectory(zip).filter((entry) => !isJunk(entry.name));
 
   const files: Entry[] = [];
@@ -121,25 +129,49 @@ export const readZip = (zip: Uint8Array, limits: PackageLimits): ZipFile[] => {
     const type = entry.mode === null ? 0 : entry.mode & S_IFMT;
     if (entry.name.endsWith("/") || type === S_IFDIR) continue;
     if (type !== 0 && type !== S_IFREG)
-      throw new ZipImportError(`${entry.name} is a link or special file, not a regular file.`);
+      throw new ZipImportError(`${entry.name} is a link or special file, not a regular file.`, {
+        code: "link",
+        entry: entry.name,
+      });
     const problem = pathProblem(entry.name);
-    if (problem) throw new ZipImportError(`the path ${entry.name} ${problem}.`);
+    const pathCode = pathProblemOf(entry.name);
+    if (problem && pathCode)
+      throw new ZipImportError(`the path ${entry.name} ${problem}.`, {
+        code: "bad_path",
+        entry: entry.name,
+        pathCode,
+      });
     files.push(entry);
   }
-  if (files.length === 0) throw new ZipImportError("it has no files.");
+  if (files.length === 0) throw new ZipImportError("it has no files.", { code: "empty" });
   if (files.length > limits.maxFiles)
-    throw new ZipImportError(`it has ${files.length} files; the limit is ${limits.maxFiles}.`);
+    throw new ZipImportError(`it has ${files.length} files; the limit is ${limits.maxFiles}.`, {
+      code: "too_many",
+      count: files.length,
+      max: limits.maxFiles,
+    });
   let total = 0;
   for (const entry of files) {
     if (entry.size > limits.maxFileBytes)
       throw new ZipImportError(
         `${entry.name} is ${formatBytes(entry.size)}; a file can be at most ${formatBytes(limits.maxFileBytes)}.`,
+        {
+          code: "file_too_big",
+          entry: entry.name,
+          sizeText: formatBytes(entry.size),
+          maxText: formatBytes(limits.maxFileBytes),
+        },
       );
     total += entry.size;
   }
   if (total > limits.maxTotalBytes)
     throw new ZipImportError(
       `its files add up to ${formatBytes(total)}; the limit is ${formatBytes(limits.maxTotalBytes)}.`,
+      {
+        code: "total_too_big",
+        sizeText: formatBytes(total),
+        maxText: formatBytes(limits.maxTotalBytes),
+      },
     );
 
   const top = files[0]?.name.split("/")[0];
@@ -147,7 +179,8 @@ export const readZip = (zip: Uint8Array, limits: PackageLimits): ZipFile[] => {
   const seen = new Set<string>();
   return files.map((entry) => {
     const path = unwrap ? entry.name.slice(`${top}/`.length) : entry.name;
-    if (seen.has(path)) throw new ZipImportError(`it has ${path} twice.`);
+    if (seen.has(path))
+      throw new ZipImportError(`it has ${path} twice.`, { code: "twice", entry: path });
     seen.add(path);
     return {
       path,

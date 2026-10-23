@@ -751,5 +751,13 @@
       "no_version": "That doesn't give a new version: a pre-release id is lowercase letters and digits, starting with a letter."
     },
     "tagPlaceholder": "latest, or next for a pre-release"
+  },
+  "actions": {
+    "chooseZip": "Choose a .zip file to import.",
+    "reloadRevision": "Reload the page: it doesn't say which revision you reviewed.",
+    "reloadRevisions": "Reload the page: it doesn't say which revision each one is at.",
+    "gone": "It no longer exists, or you can't see it.",
+    "notYours": "It's no longer one of your drafts.",
+    "notDraft": "It isn't a draft any more."
   }
 }

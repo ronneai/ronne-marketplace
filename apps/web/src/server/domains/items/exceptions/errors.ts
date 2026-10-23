@@ -69,12 +69,29 @@ export class VersionNotFoundError extends ItemsError {
 /** A tag change the rules refuse (version-rules.ts), with the rule's own sentence. */
 export class TagRuleError extends ItemsError {
   override readonly name: string = "TagRuleError";
+  /** The rule as a code and its values, for the web app's sentence (131). */
+  readonly code: string;
+  readonly tag: string;
+  readonly version: string;
+  readonly max: number;
+  constructor(rule: { message: string; code: string; tag: string; version: string; max: number }) {
+    super(rule.message);
+    this.code = rule.code;
+    this.tag = rule.tag;
+    this.version = rule.version;
+    this.max = rule.max;
+  }
 }
 
 export class VersionMessageError extends ItemsError {
   override readonly name: string = "VersionMessageError";
-  constructor(what: string) {
-    super(`${what} needs 1 to 300 characters.`);
+  constructor(
+    /** Which message: a deprecation's or a yank's (131: the web app's select). */
+    readonly what: "deprecate" | "yank",
+  ) {
+    super(
+      `${what === "deprecate" ? "A deprecation message" : "A yank reason"} needs 1 to 300 characters.`,
+    );
   }
 }
 

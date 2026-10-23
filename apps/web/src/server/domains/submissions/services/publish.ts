@@ -14,6 +14,7 @@ import {
   type ReleaseChoice,
   riskFlags,
   tagProblem,
+  tagProblemOf,
 } from "@ronneai/core";
 import { PackError, packItem } from "@ronneai/core/pack";
 import { isId } from "../../../db/ids";
@@ -252,7 +253,8 @@ export const releaseTogether = async (
     if (!version) throw new ReleaseVersionError();
     const tag = plan.tag?.trim() || defaultTag(version);
     const problem = tagProblem(tag, version);
-    if (problem) throw new ReleaseTagError(problem);
+    const code = tagProblemOf(tag, version);
+    if (problem && code) throw new ReleaseTagError(problem, code, tag);
     members.push({ submission, revision, files, manifest, version, tag });
   }
 
