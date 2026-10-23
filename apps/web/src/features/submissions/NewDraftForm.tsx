@@ -1,6 +1,12 @@
 "use client";
 
-import { ITEM_TYPES, type ItemType, NAME_MAX_LENGTH, nameProblem } from "@ronneai/core";
+import {
+  ITEM_TYPES,
+  type ItemType,
+  NAME_MAX_LENGTH,
+  type NameProblem,
+  nameProblem,
+} from "@ronneai/core";
 import { ArrowRight, CircleCheck, FileCode, Info, Search, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
@@ -67,6 +73,97 @@ const filterClasses =
 const workspaceOf = (name: string) =>
   name.includes("/") ? (name.split("/", 1)[0] ?? "") : "global";
 
+/**
+ * Which types the picker shows (feature 012): those in the chosen group whose id, description or
+ * tag holds what's typed, in the person's language (131: a tag is searched as it reads).
+ */
+export const useTypesMatching = () => {
+  const typeText = useTranslations("types");
+  return (search: string, group: TypeGroup | null): ItemType[] => {
+    const query = search.trim().toLowerCase();
+    return ITEM_TYPES.filter(
+      (candidate) =>
+        (group === null || TYPE_INFO[candidate].group === group) &&
+        (candidate.includes(query) ||
+          typeText(`description.${candidate}`).toLowerCase().includes(query) ||
+          typeText(`tag.${candidate}`).toLowerCase().includes(query)),
+    );
+  };
+};
+
+/** Under the name: what's wrong with it, or what a name is. */
+export const NameHint = ({ problem }: { problem: NameProblem | null }) => {
+  const t = useTranslations("author.newDraft");
+  const nameText = useTranslations("common.nameProblem");
+  return (
+    <p id="item-name-hint" className="text-xs text-muted">
+      {problem ? nameText(problem, { max: NAME_MAX_LENGTH }) : t("nameHint")}
+    </p>
+  );
+};
+
+/** A draft of the same name already exists: a note, not a stop. */
+export const RepeatNote = ({ itemName }: { itemName: string }) => {
+  const t = useTranslations("author.newDraft");
+  return (
+    <p className="text-xs text-fg">
+      <span className="mr-2 font-mono font-semibold">{t("note")}</span>
+      {t("repeat", { name: itemName })}
+    </p>
+  );
+};
+
+/**
+ * The side panel's starter files: the real template's ronne.yaml, the other files, and whether
+ * reviewers will see a risk flag; or what picking a type shows.
+ */
+export const StarterFiles = ({ type, itemName }: { type: ItemType | null; itemName: string }) => {
+  const t = useTranslations("author.newDraft");
+  const starter = useMemo(() => (type ? draftTemplate(type, itemName) : []), [type, itemName]);
+  const manifest = starter.find((file) => file.path === MANIFEST_PATH);
+  const others = starter.filter((file) => file.path !== MANIFEST_PATH);
+  return (
+    <>
+      {manifest ? (
+        <>
+          <div className="overflow-hidden rounded-control bg-code-bg">
+            <div className="flex items-center justify-between border-b border-code-muted/20 px-3 py-2 font-mono text-xs text-code-muted">
+              <span>{MANIFEST_PATH}</span>
+              <span>{t("template")}</span>
+            </div>
+            <pre className="max-h-96 overflow-auto p-3 font-mono text-xs leading-5 break-words whitespace-pre-wrap text-code-fg">
+              {manifest.content}
+            </pre>
+          </div>
+          {others.length > 0 ? (
+            <p className="text-xs text-muted">
+              {t("others", { files: others.map((file) => file.path).join(", ") })}
+            </p>
+          ) : (
+            <p className="text-xs text-muted">{t("one")}</p>
+          )}
+          <div className="grid gap-1.5 rounded-control bg-canvas p-3">
+            <p className="flex items-center justify-between gap-2 text-sm font-semibold text-fg">
+              <span className="flex items-center gap-2">
+                <ShieldCheck size={16} aria-hidden="true" />
+                {t("review")}
+              </span>
+              <Badge tone={TYPE_INFO[type as ItemType].highRisk ? "warning" : "muted"}>
+                {t(TYPE_INFO[type as ItemType].highRisk ? "riskFlag" : "standard")}
+              </Badge>
+            </p>
+            <p className="text-xs text-muted">
+              {t(TYPE_INFO[type as ItemType].highRisk ? "highRisk" : "standardRisk")}
+            </p>
+          </div>
+        </>
+      ) : (
+        <p className="rounded-control bg-canvas p-3 text-xs text-muted">{t("pick")}</p>
+      )}
+    </>
+  );
+};
+
 export const NewDraftForm = ({
   scopes,
   mine,
@@ -79,7 +176,6 @@ export const NewDraftForm = ({
 }) => {
   const typeText = useTranslations("types");
   const t = useTranslations("author.newDraft");
-  const nameText = useTranslations("common.nameProblem");
   const [state, action, pending] = useActionState<NewDraftState, FormData>(createDraftFromForm, {});
   const [scope, setScope] = useState(
     initialScope && scopes.some((option) => option.name === initialScope)
@@ -110,17 +206,7 @@ export const NewDraftForm = ({
       option.name.includes(query) ||
       option.description.toLowerCase().includes(query),
   );
-  const typeQuery = typeSearch.trim().toLowerCase();
-  const shownTypes = ITEM_TYPES.filter(
-    (candidate) =>
-      (group === null || TYPE_INFO[candidate].group === group) &&
-      (candidate.includes(typeQuery) ||
-        typeText(`description.${candidate}`).toLowerCase().includes(typeQuery) ||
-        typeText(`tag.${candidate}`).toLowerCase().includes(typeQuery)),
-  );
-  const starter = useMemo(() => (type ? draftTemplate(type, itemName) : []), [type, itemName]);
-  const manifest = starter.find((file) => file.path === MANIFEST_PATH);
-  const others = starter.filter((file) => file.path !== MANIFEST_PATH);
+  const shownTypes = useTypesMatching()(typeSearch, group);
 
   if (scopes.length === 0)
     return (
@@ -257,16 +343,9 @@ export const NewDraftForm = ({
                 />
               ) : null}
             </div>
-            <p id="item-name-hint" className="text-xs text-muted">
-              {problem ? nameText(problem, { max: NAME_MAX_LENGTH }) : t("nameHint")}
-            </p>
+            <NameHint problem={problem} />
             <Help id="name" />
-            {scope && name && mine.includes(itemName) ? (
-              <p className="text-xs text-fg">
-                <span className="mr-2 font-mono font-semibold">{t("note")}</span>
-                {t("repeat", { name: itemName })}
-              </p>
-            ) : null}
+            {scope && name && mine.includes(itemName) ? <RepeatNote itemName={itemName} /> : null}
           </div>
         </Section>
 
@@ -373,42 +452,7 @@ export const NewDraftForm = ({
             <FileCode size={16} aria-hidden="true" />
             {t("starter")}
           </h2>
-          {manifest ? (
-            <>
-              <div className="overflow-hidden rounded-control bg-code-bg">
-                <div className="flex items-center justify-between border-b border-code-muted/20 px-3 py-2 font-mono text-xs text-code-muted">
-                  <span>{MANIFEST_PATH}</span>
-                  <span>{t("template")}</span>
-                </div>
-                <pre className="max-h-96 overflow-auto p-3 font-mono text-xs leading-5 break-words whitespace-pre-wrap text-code-fg">
-                  {manifest.content}
-                </pre>
-              </div>
-              {others.length > 0 ? (
-                <p className="text-xs text-muted">
-                  {t("others", { files: others.map((file) => file.path).join(", ") })}
-                </p>
-              ) : (
-                <p className="text-xs text-muted">{t("one")}</p>
-              )}
-              <div className="grid gap-1.5 rounded-control bg-canvas p-3">
-                <p className="flex items-center justify-between gap-2 text-sm font-semibold text-fg">
-                  <span className="flex items-center gap-2">
-                    <ShieldCheck size={16} aria-hidden="true" />
-                    {t("review")}
-                  </span>
-                  <Badge tone={TYPE_INFO[type as ItemType].highRisk ? "warning" : "muted"}>
-                    {t(TYPE_INFO[type as ItemType].highRisk ? "riskFlag" : "standard")}
-                  </Badge>
-                </p>
-                <p className="text-xs text-muted">
-                  {t(TYPE_INFO[type as ItemType].highRisk ? "highRisk" : "standardRisk")}
-                </p>
-              </div>
-            </>
-          ) : (
-            <p className="rounded-control bg-canvas p-3 text-xs text-muted">{t("pick")}</p>
-          )}
+          <StarterFiles type={type} itemName={itemName} />
           <FieldError id="new-draft-error">{state.error}</FieldError>
           <div className="flex gap-2">
             <Button type="submit" loading={pending} className="flex-1">

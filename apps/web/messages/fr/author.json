@@ -232,6 +232,13 @@
     "keywordsHint": "Jusqu’à {max}, en lettres minuscules, chiffres et traits d’union.",
     "toolHint": "Un outil comme read ou shell, ou mcp:server pour les outils d’un MCP server.",
     "dependencyHint": "Trouvez-en une en tapant une partie de son nom : vos éléments dans n’importe quel état, et ceux des autres une fois publiés. Elle commence sur la plage compatible de la plus récente; choisissez-en une autre, ou une version exacte, au besoin.",
-    "asOfSave": "Au dernier enregistrement : les vérifications du registre sont refaites quand vous enregistrez."
+    "asOfSave": "Au dernier enregistrement : les vérifications du registre sont refaites quand vous enregistrez.",
+    "views": {
+      "form": "Formulaire",
+      "yaml": "YAML",
+      "canvas": "Canevas"
+    },
+    "viewsLegend": "Vue de ronne.yaml",
+    "mapPart": "{field} {n} : {part}"
   }
 }

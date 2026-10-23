@@ -90,7 +90,38 @@ type Status =
   | null;
 
 type View = "form" | "yaml" | "canvas";
-const VIEW_LABELS: Record<View, string> = { form: "Form", yaml: "YAML", canvas: "Canvas" };
+
+const VIEW_BUTTON =
+  "h-7 rounded-control px-3 text-xs font-semibold text-muted hover:text-fg aria-pressed:border aria-pressed:border-hairline aria-pressed:bg-surface aria-pressed:text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus";
+
+/** How ronne.yaml is shown: as a form, as YAML or as the canvas, in the person's language (131). */
+export const ViewSwitch = ({
+  views,
+  view,
+  onChange,
+}: {
+  views: readonly View[];
+  view: View;
+  onChange: (view: View) => void;
+}) => {
+  const t = useTranslations("author.form");
+  return (
+    <fieldset className="flex gap-1 rounded-control border border-hairline bg-canvas p-0.5">
+      <legend className="sr-only">{t("viewsLegend")}</legend>
+      {views.map((mode) => (
+        <button
+          key={mode}
+          type="button"
+          aria-pressed={view === mode}
+          onClick={() => onChange(mode)}
+          className={VIEW_BUTTON}
+        >
+          {t(`views.${mode}`)}
+        </button>
+      ))}
+    </fieldset>
+  );
+};
 
 /**
  * The canvas (feature 031) and React Flow with it, in a chunk of their own that loads when the
@@ -631,20 +662,7 @@ export const DraftEditor = ({
                 <span className="truncate font-mono text-sm text-fg">{file.path}</span>
                 <div className="flex flex-wrap items-center gap-1">
                   {file.path === MANIFEST_PATH ? (
-                    <fieldset className="flex gap-1 rounded-control border border-hairline bg-canvas p-0.5">
-                      <legend className="sr-only">ronne.yaml view</legend>
-                      {views.map((mode) => (
-                        <button
-                          key={mode}
-                          type="button"
-                          aria-pressed={view === mode}
-                          onClick={() => setView(mode)}
-                          className="h-7 rounded-control px-3 text-xs font-semibold text-muted hover:text-fg aria-pressed:border aria-pressed:border-hairline aria-pressed:bg-surface aria-pressed:text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
-                        >
-                          {VIEW_LABELS[mode]}
-                        </button>
-                      ))}
-                    </fieldset>
+                    <ViewSwitch views={views} view={view} onChange={setView} />
                   ) : (
                     <label className="flex items-center gap-1.5 px-2 text-xs text-muted">
                       <input

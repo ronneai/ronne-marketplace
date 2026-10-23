@@ -217,7 +217,7 @@ const Control = ({
             // biome-ignore lint/suspicious/noArrayIndexKey: keys change as they're typed.
             <div key={i} className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] gap-2">
               <input
-                aria-label={`${label} ${i + 1}: ${t("mapKey")}`}
+                aria-label={t("mapPart", { field: label, n: i + 1, part: t("mapKey") })}
                 value={key}
                 placeholder={t("mapKey")}
                 spellCheck={false}
@@ -227,7 +227,7 @@ const Control = ({
                 className={`${inputClasses} font-mono`}
               />
               <input
-                aria-label={`${label} ${i + 1}: ${t("mapValue")}`}
+                aria-label={t("mapPart", { field: label, n: i + 1, part: t("mapValue") })}
                 value={typeof item === "string" ? item : ""}
                 placeholder={t("mapValue")}
                 spellCheck={false}

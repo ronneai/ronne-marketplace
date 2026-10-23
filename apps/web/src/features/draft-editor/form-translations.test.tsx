@@ -9,8 +9,24 @@ import { inLocale } from "@/test/intl";
 
 vi.mock("@/features/submissions/actions", () => ({ createDraftFromForm: vi.fn() }));
 vi.mock("./dependency-picker/actions", () => ({ findDependenciesAction: vi.fn() }));
-const { NewDraftForm } = await import("@/features/submissions/NewDraftForm");
+vi.mock("./actions", () => ({}));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
+const { NewDraftForm, NameHint, RepeatNote, StarterFiles, useTypesMatching } = await import(
+  "@/features/submissions/NewDraftForm"
+);
 const { ManifestForm } = await import("./ManifestForm");
+const { ViewSwitch } = await import("./DraftEditor");
+
+/** What a hook gives, in a language: hooks run inside a render. */
+const grab = <T,>(locale: Locale, hook: () => T): T => {
+  let value: T | undefined;
+  const Grab = () => {
+    value = hook();
+    return null;
+  };
+  view(locale, <Grab />);
+  return value as T;
+};
 
 /** Propose item's form and the manifest form speak the person's language (feature 131). */
 const view = (locale: Locale, node: ReactElement) =>
@@ -89,6 +105,91 @@ describe("the new-draft form in three languages", () => {
   }
 });
 
+describe("the new-draft form's states in three languages", () => {
+  it("shows the starter files and the review note for a standard and a high-risk type", () => {
+    const standard = (l: Locale) => view(l, <StarterFiles type="agent" itemName="@platform/{x}" />);
+    const risky = (l: Locale) => view(l, <StarterFiles type="hook" itemName="@platform/a" />);
+    expect(standard("en")).toContain("And prompt.md. You edit them all in the next step.");
+    expect(standard("pt")).toContain(">modelo<");
+    expect(standard("pt")).toContain("E prompt.md. Você edita todos no próximo passo.");
+    expect(standard("pt")).toContain(">Revisão<");
+    expect(standard("pt")).toContain(">padrão<");
+    expect(standard("pt")).toContain("Ele não executa programas nem muda permissões");
+    expect(standard("pt")).toContain("name: &quot;@platform/{x}&quot;");
+    expect(risky("fr")).toContain(">alerte de risque<");
+    expect(risky("fr")).toContain("Il exécute des programmes");
+    expect(risky("fr")).toContain(">Révision<");
+    const bundle = (l: Locale) => view(l, <StarterFiles type="bundle" itemName="@p/b" />);
+    expect(bundle("pt")).toContain("Você o edita no próximo passo.");
+    expect(view("fr", <StarterFiles type={null} itemName="@p/b" />)).toContain(
+      "Choisissez un type pour voir le ronne.yaml",
+    );
+  });
+
+  it("words each name problem, the hint and the repeat note", () => {
+    const hint = (l: Locale, problem: Parameters<typeof NameHint>[0]["problem"]) =>
+      view(l, <NameHint problem={problem} />);
+    expect(hint("en", "too_long")).toContain("Use at most 64 characters.");
+    expect(hint("pt", "too_long")).toContain("Use no máximo 64 caracteres.");
+    expect(hint("pt", "characters")).toContain("Use apenas letras minúsculas, dígitos e hifens.");
+    expect(hint("fr", "edges")).toContain("Ne commencez ni ne terminez par un trait d’union.");
+    expect(hint("fr", "reserved")).toContain("Ce nom est réservé.");
+    expect(hint("pt", "empty")).toContain("Digite um nome.");
+    expect(hint("fr", null)).toContain("Le nom complet de l’élément.");
+    expect(view("pt", <RepeatNote itemName="@p/{x}" />)).toContain(
+      "Você já tem um rascunho chamado @p/{x}. Ainda pode criar outro.",
+    );
+    expect(view("fr", <RepeatNote itemName="@p/a" />)).toContain(">NOTE :<");
+  });
+
+  it("searches a type's tag as it reads in the language, and its group", () => {
+    const match = (l: Locale, search: string, group: "runtime" | null = null) =>
+      grab(l, useTypesMatching)(search, group);
+    expect(match("en", "lifecycle")).toEqual(["hook"]);
+    expect(match("pt", "ciclo")).toEqual(["hook"]);
+    expect(match("pt", "lifecycle")).toEqual([]);
+    expect(match("fr", "sous-agent")).toEqual(["agent"]);
+    expect(match("fr", "", "runtime")).toEqual([
+      "hook",
+      "mcp-server",
+      "permission-policy",
+      "statusline",
+      "lsp-server",
+    ]);
+  });
+
+  for (const locale of ["pt", "fr"] as const) {
+    it(`${locale}: no English left in the form's other states`, async () => {
+      const html = [
+        view(locale, <StarterFiles type="agent" itemName="@p/a" />),
+        view(locale, <StarterFiles type="hook" itemName="@p/a" />),
+        view(locale, <StarterFiles type="bundle" itemName="@p/a" />),
+        view(locale, <StarterFiles type={null} itemName="@p/a" />),
+        ...(["empty", "too_long", "characters", "edges", "reserved", null] as const).map((p) =>
+          view(locale, <NameHint problem={p} />),
+        ),
+        view(locale, <RepeatNote itemName="@p/a" />),
+      ].join("\n");
+      expect(await englishLeaks(["author", "common", "types"], locale, html)).toEqual([]);
+      expect(await ownTextsShown(["author", "common"], locale, html)).toBeGreaterThan(8);
+    });
+  }
+});
+
+describe("the editor's view switch in three languages", () => {
+  it("names the views and the group", () => {
+    const html = (l: Locale) =>
+      view(l, <ViewSwitch views={["form", "yaml", "canvas"]} view="form" onChange={() => {}} />);
+    expect(html("en")).toContain(">ronne.yaml view<");
+    expect(html("en")).toContain(">Form<");
+    expect(html("pt")).toContain(">Formulário<");
+    expect(html("pt")).toContain(">Visão do ronne.yaml<");
+    expect(html("fr")).toContain(">Canevas<");
+    expect(html("fr")).toContain(">Vue de ronne.yaml<");
+    expect(html("fr")).toContain(">YAML<");
+  });
+});
+
 describe("the manifest form in three languages", () => {
   it("keeps ronne.yaml's keys as written and words everything around them", () => {
     const pt = form("pt", "agent");
@@ -120,6 +221,10 @@ describe("the manifest form in three languages", () => {
     expect(headers).toContain('placeholder="Nome"');
     expect(headers).toContain('placeholder="Valor"');
     expect(headers).toContain('aria-label="Remover headers 1"');
+    expect(headers).toContain('aria-label="headers 1: Nome"');
+    expect(
+      form("fr", "mcp-server", `${manifestOf("mcp-server")}  headers:\n    X-Team: a\n`),
+    ).toContain('aria-label="headers 1 : Valeur"');
     expect(headers).toContain('value="{x}"');
   });
 

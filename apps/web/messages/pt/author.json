@@ -232,6 +232,13 @@
     "keywordsHint": "Até {max}, em letras minúsculas, dígitos e hifens.",
     "toolHint": "Uma ferramenta como read ou shell, ou mcp:server para as ferramentas de um MCP server.",
     "dependencyHint": "Encontre uma digitando parte do nome: seus itens em qualquer estado, e os dos outros depois de publicados. Ela começa no intervalo compatível da mais recente; escolha outro, ou uma versão exata, se precisar.",
-    "asOfSave": "Desde o último salvamento: as verificações do registro rodam de novo quando você salva."
+    "asOfSave": "Desde o último salvamento: as verificações do registro rodam de novo quando você salva.",
+    "views": {
+      "form": "Formulário",
+      "yaml": "YAML",
+      "canvas": "Canvas"
+    },
+    "viewsLegend": "Visão do ronne.yaml",
+    "mapPart": "{field} {n}: {part}"
   }
 }

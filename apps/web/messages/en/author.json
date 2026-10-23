@@ -232,6 +232,13 @@
     "keywordsHint": "Up to {max}, in lowercase letters, digits and hyphens.",
     "toolHint": "A tool such as read or shell, or mcp:server for an MCP server's tools.",
     "dependencyHint": "Find one by typing part of its name: your own items in any state, and others' once they're published. It starts on latest's compatible range; pick another, or an exact version, if you need one.",
-    "asOfSave": "As of your last save: the registry's checks run again when you save."
+    "asOfSave": "As of your last save: the registry's checks run again when you save.",
+    "views": {
+      "form": "Form",
+      "yaml": "YAML",
+      "canvas": "Canvas"
+    },
+    "viewsLegend": "ronne.yaml view",
+    "mapPart": "{field} {n}: {part}"
   }
 }
