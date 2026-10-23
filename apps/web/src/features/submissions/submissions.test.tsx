@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ForbiddenError } from "@/server/domains/identity/exceptions/errors";
 import { DraftScopeNotFoundError } from "@/server/domains/submissions/exceptions/errors";
 import type { Submission } from "@/server/domains/submissions/models/submission";
+import { englishLeaks } from "@/test/english-leak";
+import { inLocale, inLocaleAsync } from "@/test/intl";
 
 const drafts = vi.hoisted(() => ({
   createDraft: vi.fn(),
@@ -483,6 +485,37 @@ describe("pages", () => {
     expect(html.indexOf(">global</span>")).toBeLessThan(html.indexOf("@a<"));
     expect(html.indexOf("@a<")).toBeLessThan(html.indexOf(">acme</span>"));
     expect(html.indexOf(">acme</span>")).toBeLessThan(html.indexOf("@acme/b<"));
+  });
+});
+
+describe("New item in three languages (131)", () => {
+  it("titles, heads and describes the page in the language", async () => {
+    const { generateMetadata } = await import("@/app/(app)/submissions/new/page");
+    for (const [locale, title] of [
+      ["en", "New item"],
+      ["pt", "Novo item"],
+      ["fr", "Nouvel élément"],
+    ] as const)
+      expect(await inLocaleAsync(locale, () => generateMetadata())).toEqual({
+        title: `${title} · Ronne AI Marketplace`,
+      });
+    scopes.listScopes.mockResolvedValue({
+      scopes: [{ name: "a", description: "A.", workspace: { name: "global" } }],
+      nextCursor: null,
+    });
+    const page = async (locale: "pt" | "fr") =>
+      inLocaleAsync(locale, async () => renderToStaticMarkup(await NewItemPage()));
+    const pt = await page("pt");
+    expect(pt).toContain('aria-label="Trilha de navegação"');
+    expect(pt).toContain(">Submissões<");
+    expect(pt).toContain("O rascunho começa com um <code");
+    const fr = await page("fr");
+    expect(fr).toContain("Le brouillon commence avec un <code");
+    for (const [locale, html] of [
+      ["pt", pt],
+      ["fr", fr],
+    ] as const)
+      expect(await englishLeaks(["author", "common", "types"], locale, html)).toEqual([]);
   });
 });
 

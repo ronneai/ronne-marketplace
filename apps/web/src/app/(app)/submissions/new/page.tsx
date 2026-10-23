@@ -1,9 +1,11 @@
 import { formatScopeName, scopeRefFrom } from "@ronneai/core";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { PageHeader } from "@/components/ui/Panel";
 import { NewDraftForm } from "@/features/submissions/NewDraftForm";
 import type { ScopeOption } from "@/features/submissions/types";
+import { pageTitle } from "@/i18n/page-title";
 import { listScopes } from "@/server/domains/items/actions/scopes";
 import { listMySubmissions } from "@/server/domains/submissions/actions/drafts";
 import { itemNameOf } from "@/server/domains/submissions/models/submission";
@@ -11,7 +13,10 @@ import { requestHeaders } from "@/server/http/request-headers";
 import { holdPage } from "../../hold";
 import { loadShell } from "../../shell";
 
-export const metadata = { title: "New item · Ronne AI Marketplace" };
+export const generateMetadata = async () => {
+  const t = await getTranslations("author.newDraft");
+  return { title: pageTitle(t("title")) };
+};
 
 /** Scopes are few (root creates each one), so the picker gets them all, up to a generous cap. */
 const MAX_SCOPE_PAGES = 20;
@@ -40,6 +45,8 @@ const allScopes = async (headers: Headers): Promise<ScopeOption[]> => {
 
 const NewItem = async () => {
   await holdPage();
+  const t = await getTranslations("author.newDraft");
+  const crumbs = await getTranslations("item.breadcrumb");
   const headers = await requestHeaders();
   const [scopes, mine, { current }] = await Promise.all([
     allScopes(headers),
@@ -52,7 +59,7 @@ const NewItem = async () => {
     : undefined;
   return (
     <>
-      <nav aria-label="Breadcrumb" className="pb-3">
+      <nav aria-label={crumbs("label")} className="pb-3">
         <ol className="flex items-center gap-2 font-mono text-xs text-muted">
           <li>
             <Link
@@ -60,26 +67,24 @@ const NewItem = async () => {
               className="inline-flex items-center gap-1 hover:text-fg hover:underline"
             >
               <ArrowLeft size={14} aria-hidden="true" />
-              Submissions
+              {t("crumb")}
             </Link>
           </li>
           <li aria-hidden="true">/</li>
           <li aria-current="page" className="font-semibold text-fg">
-            New item
+            {t("title")}
           </li>
         </ol>
       </nav>
       <PageHeader
-        title="New item"
-        description={
-          <>
-            Pick where it lives, its name and its type. The draft starts with a{" "}
+        title={t("title")}
+        description={t.rich("description", {
+          code: (chunks) => (
             <code className="rounded-control bg-inline-code px-1.5 py-0.5 font-mono text-xs text-fg">
-              ronne.yaml
-            </code>{" "}
-            and the files it names, and only you see it until you submit it.
-          </>
-        }
+              {chunks}
+            </code>
+          ),
+        })}
       />
       <NewDraftForm scopes={scopes} mine={mine.map(itemNameOf)} initialScope={initialScope} />
     </>

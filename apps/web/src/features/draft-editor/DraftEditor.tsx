@@ -12,6 +12,7 @@ import { FilePlus, FolderPlus, History, Lock, Send, Settings, Undo2, Upload } fr
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   type ReactNode,
   useCallback,
@@ -211,6 +212,7 @@ export const DraftEditor = ({
   limits?: typeof DEFAULT_LIMITS;
 }) => {
   const router = useRouter();
+  const formText = useTranslations("author.form");
   const [state, dispatch] = useReducer(filesReducer, { files: draft.files, removed: [] });
   const [selected, setSelected] = useState(MANIFEST_PATH);
   const [open, setOpen] = useState<Open>(null);
@@ -422,7 +424,7 @@ export const DraftEditor = ({
             <IssuesSummary
               issues={issues}
               saved={problems.saved}
-              savedLabel={problems.savedLabel}
+              savedLabel={problems.asOfSave ? formText("asOfSave") : undefined}
               note={
                 readOnly
                   ? "The same checks that ran when it was submitted."
@@ -613,7 +615,7 @@ export const DraftEditor = ({
                   path={f.path}
                   issues={problems.byFile.get(f.path)?.live ?? []}
                   saved={problems.byFile.get(f.path)?.saved}
-                  savedLabel={problems.savedLabel}
+                  savedLabel={problems.asOfSave ? formText("asOfSave") : undefined}
                   onSelect={openIssue}
                   onRename={readOnly ? undefined : writeNewName}
                 />

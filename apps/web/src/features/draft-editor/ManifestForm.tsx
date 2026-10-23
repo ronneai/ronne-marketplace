@@ -2,6 +2,7 @@
 
 import { type ItemType, mayHaveDependencies } from "@ronneai/core";
 import { Plus, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
@@ -54,6 +55,7 @@ const Control = ({
   files: readonly string[];
   onChange: (value: unknown) => void;
 }) => {
+  const t = useTranslations("author.form");
   const id = idOf(path);
   switch (field.kind) {
     case "text":
@@ -88,11 +90,10 @@ const Control = ({
           onChange={(event) => onChange(event.target.value)}
           className={`${inputClasses} font-mono`}
         >
-          {!required || !current ? <option value="">(none)</option> : null}
+          {!required || !current ? <option value="">{t("none")}</option> : null}
           {options.map((path) => (
             <option key={path} value={path}>
-              {path}
-              {files.includes(path) ? "" : " (missing)"}
+              {files.includes(path) ? path : t("missing", { path })}
             </option>
           ))}
         </select>
@@ -107,7 +108,7 @@ const Control = ({
           onChange={(event) => onChange(event.target.value)}
           className={inputClasses}
         >
-          {!required || typeof value !== "string" ? <option value="">(none)</option> : null}
+          {!required || typeof value !== "string" ? <option value="">{t("none")}</option> : null}
           {field.options.map((option) => (
             <option key={option} value={option}>
               {option}
@@ -163,7 +164,7 @@ const Control = ({
               </div>
               <button
                 type="button"
-                aria-label={`Remove ${label} ${i + 1}`}
+                aria-label={t("remove", { field: label, n: i + 1 })}
                 onClick={() => set(items.filter((_, j) => j !== i))}
                 className={rowButton}
               >
@@ -178,7 +179,7 @@ const Control = ({
               onClick={() => set([...items, blank(field.item)])}
             >
               <Plus size={16} aria-hidden="true" />
-              Add {label.toLowerCase()}
+              {t("add", { field: label.toLowerCase() })}
             </Button>
           </div>
         </div>
@@ -216,9 +217,9 @@ const Control = ({
             // biome-ignore lint/suspicious/noArrayIndexKey: keys change as they're typed.
             <div key={i} className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] gap-2">
               <input
-                aria-label={`${label} ${i + 1}: ${field.keyLabel}`}
+                aria-label={`${label} ${i + 1}: ${t("mapKey")}`}
                 value={key}
-                placeholder={field.keyLabel}
+                placeholder={t("mapKey")}
                 spellCheck={false}
                 onChange={(event) =>
                   set(entries.map((old, j) => (j === i ? [event.target.value, old[1]] : old)))
@@ -226,9 +227,9 @@ const Control = ({
                 className={`${inputClasses} font-mono`}
               />
               <input
-                aria-label={`${label} ${i + 1}: ${field.valueLabel}`}
+                aria-label={`${label} ${i + 1}: ${t("mapValue")}`}
                 value={typeof item === "string" ? item : ""}
-                placeholder={field.valueLabel}
+                placeholder={t("mapValue")}
                 spellCheck={false}
                 onChange={(event) =>
                   set(entries.map((old, j) => (j === i ? [old[0], event.target.value] : old)))
@@ -237,7 +238,7 @@ const Control = ({
               />
               <button
                 type="button"
-                aria-label={`Remove ${label} ${i + 1}`}
+                aria-label={t("remove", { field: label, n: i + 1 })}
                 onClick={() => set(entries.filter((_, j) => j !== i))}
                 className={rowButton}
               >
@@ -252,7 +253,7 @@ const Control = ({
               onClick={() => set([...entries, ["", ""]])}
             >
               <Plus size={16} aria-hidden="true" />
-              Add {label.toLowerCase()}
+              {t("add", { field: label.toLowerCase() })}
             </Button>
           </div>
         </div>
@@ -275,38 +276,42 @@ const FieldRow = ({
   files: readonly string[];
   onChange: (value: unknown) => void;
   hint?: string;
-}) => (
-  <div className="grid gap-1.5">
-    <Label htmlFor={idOf(path)}>
-      <span className="font-mono text-xs">{field.key}</span>
-      {field.required ? null : (
-        <span className="ml-2 text-xs font-normal text-muted">optional</span>
-      )}
-    </Label>
-    <Control
-      field={field}
-      path={path}
-      value={value}
-      required={field.required}
-      label={field.key}
-      files={files}
-      onChange={onChange}
-    />
-    {hint || (field.kind === "text" && field.hint) ? (
-      <p className="text-xs text-muted">{hint ?? (field.kind === "text" ? field.hint : null)}</p>
-    ) : null}
-  </div>
-);
+}) => {
+  const t = useTranslations("author.form");
+  const shownHint = hint ?? (field.kind === "text" && field.hint ? t("toolHint") : null);
+  return (
+    <div className="grid gap-1.5">
+      <Label htmlFor={idOf(path)}>
+        <span className="font-mono text-xs">{field.key}</span>
+        {field.required ? null : (
+          <span className="ml-2 text-xs font-normal text-muted">{t("optional")}</span>
+        )}
+      </Label>
+      <Control
+        field={field}
+        path={path}
+        value={value}
+        required={field.required}
+        label={field.key}
+        files={files}
+        onChange={onChange}
+      />
+      {shownHint ? <p className="text-xs text-muted">{shownHint}</p> : null}
+    </div>
+  );
+};
 
 const License = ({ value, onChange }: { value: unknown; onChange: (value: string) => void }) => {
+  const t = useTranslations("author.form");
   const current = typeof value === "string" ? value : "";
   const known = (LICENSES as readonly string[]).includes(current);
   const [other, setOther] = useState(current !== "" && !known);
   return (
     <div className="grid gap-1.5">
       <Label htmlFor="field-license">
+        {/* biome-ignore lint/plugin: a ronne.yaml key, the same in every language */}
         <span className="font-mono text-xs">license</span>
-        <span className="ml-2 text-xs font-normal text-muted">optional</span>
+        <span className="ml-2 text-xs font-normal text-muted">{t("optional")}</span>
       </Label>
       <div className="grid gap-2 sm:grid-cols-2">
         <select
@@ -319,19 +324,19 @@ const License = ({ value, onChange }: { value: unknown; onChange: (value: string
           }}
           className={inputClasses}
         >
-          <option value="">(none)</option>
+          <option value="">{t("none")}</option>
           {LICENSES.map((license) => (
             <option key={license} value={license}>
               {license}
             </option>
           ))}
-          <option value="other">Other SPDX id…</option>
+          <option value="other">{t("otherLicense")}</option>
         </select>
         {other ? (
           <input
-            aria-label="Other license"
+            aria-label={t("otherLicenseLabel")}
             value={current}
-            placeholder="An SPDX id, such as LGPL-3.0-only"
+            placeholder={t("otherLicensePlaceholder")}
             onChange={(event) => onChange(event.target.value)}
             className={`${inputClasses} font-mono`}
           />
@@ -367,16 +372,17 @@ export const ManifestForm = ({
   /** A submitted submission: the fieldset around the form disables it; this drops the hints. */
   readOnly?: boolean;
 }) => {
+  const t = useTranslations("author");
   const manifest = useMemo(() => readManifest(text), [text]);
   const fields = useMemo(() => blockFields(type), [type]);
   if (!manifest)
     return (
-      <Notice kind="info" title="The form needs valid YAML.">
+      <Notice kind="info" title={t("form.needsYaml")}>
         <div className="grid gap-3">
-          <p>ronne.yaml has a YAML error. Fix it in the YAML view; the problems below say where.</p>
+          <p>{t("canvas.yamlError")}</p>
           <div>
             <Button variant="secondary" onClick={onShowYaml}>
-              Open the YAML
+              {t("canvas.openYaml")}
             </Button>
           </div>
         </div>
@@ -395,16 +401,13 @@ export const ManifestForm = ({
         <p className="font-mono text-fg">
           {itemName} <span className="text-muted">· {type}</span>
         </p>
-        {readOnly ? null : (
-          <p className="text-xs text-muted">
-            The name and type come from the draft. Change the name in Settings; the type is fixed.
-          </p>
-        )}
+        {readOnly ? null : <p className="text-xs text-muted">{t("form.fromDraft")}</p>}
         <Help id="manifest" />
       </div>
 
       <div className="grid gap-1.5">
         <Label htmlFor="field-description">
+          {/* biome-ignore lint/plugin: a ronne.yaml key, the same in every language */}
           <span className="font-mono text-xs">description</span>
         </Label>
         <textarea
@@ -416,7 +419,7 @@ export const ManifestForm = ({
           className={`${inputClasses} h-auto py-2`}
         />
         <p id="field-description-hint" className="text-xs text-muted">
-          What it does and when to use it. AI tools read this to choose items.{" "}
+          {t("form.descriptionHint")}{" "}
           <span
             className={
               [...description].length > DESCRIPTION_MAX_LENGTH ? "font-semibold text-fg" : ""
@@ -441,7 +444,7 @@ export const ManifestForm = ({
         value={manifest.keywords}
         files={files}
         onChange={(value) => change(["keywords"], value)}
-        hint={`Up to ${KEYWORDS_MAX}, in lowercase letters, digits and hyphens.`}
+        hint={t("form.keywordsHint", { max: KEYWORDS_MAX })}
       />
 
       <FieldRow
@@ -470,14 +473,13 @@ export const ManifestForm = ({
 
       {mayDepend ? (
         <fieldset className="grid gap-3 border-t border-hairline pt-4">
-          <legend className="pr-2 font-mono text-sm font-semibold text-fg">dependencies</legend>
+          <legend className="pr-2 font-mono text-sm font-semibold text-fg">
+            {/* biome-ignore lint/plugin: a ronne.yaml key, the same in every language */}
+            dependencies
+          </legend>
           <p className="text-xs text-muted">
-            {type === "bundle"
-              ? "The items this bundle installs."
-              : "Items installed with this one."}{" "}
-            Find one by typing part of its name: your own items in any state, and others' once
-            they're published. It starts on latest's compatible range; pick another, or an exact
-            version, if you need one.
+            {t(type === "bundle" ? "canvas.bundleNote" : "canvas.otherNote")}{" "}
+            {t("form.dependencyHint")}
           </p>
           {readOnly ? null : (
             <div className="flex flex-wrap gap-x-6 gap-y-2">

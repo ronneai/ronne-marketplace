@@ -29,5 +29,18 @@
     "statusline": "Un script qui affiche la ligne d’état de l’outil d’IA.",
     "lsp-server": "Un serveur de langage qui donne à l’agent une compréhension du code.",
     "bundle": "Un ensemble d’éléments installés ensemble, comme un seul."
+  },
+  "tag": {
+    "skill": "skills d’agent",
+    "agent": "sous-agent",
+    "rule": "orientation",
+    "command": "prompt",
+    "output-style": "style",
+    "hook": "cycle de vie",
+    "mcp-server": "connexion",
+    "permission-policy": "sécurité",
+    "statusline": "script",
+    "lsp-server": "langage",
+    "bundle": "composite"
   }
 }

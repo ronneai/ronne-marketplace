@@ -100,5 +100,12 @@
     "kb": "{size, number, ::group-off} Ko",
     "mb": "{size, number, ::group-off} Mo",
     "mbTenth": "{size, number, ::.0 group-off} Mo"
+  },
+  "nameProblem": {
+    "empty": "Saisissez un nom.",
+    "too_long": "Utilisez au plus {max} caractères.",
+    "characters": "Utilisez seulement des lettres minuscules, des chiffres et des traits d’union.",
+    "edges": "Ne commencez ni ne terminez par un trait d’union.",
+    "reserved": "Ce nom est réservé."
   }
 }

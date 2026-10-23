@@ -2,14 +2,16 @@ import { type ItemType, manifestSchema } from "@ronneai/core";
 
 /** A form field generated from the manifest schema (feature 012). */
 export type Field =
-  | { kind: "text"; hint?: string; suggestions?: readonly string[] }
+  /** `hint` names a message: `toolName` is `author.form.toolHint`. */
+  | { kind: "text"; hint?: "toolName"; suggestions?: readonly string[] }
   | { kind: "file" }
   | { kind: "select"; options: readonly string[] }
   | { kind: "number"; min?: number; max?: number }
   | { kind: "checkbox" }
   | { kind: "list"; item: Field; max?: number }
   | { kind: "group"; fields: NamedField[] }
-  | { kind: "map"; keyLabel: string; valueLabel: string };
+  /** Keys and values, labelled Name and Value (`author.form.mapKey`, `mapValue`). */
+  | { kind: "map" };
 
 export type NamedField = Field & { key: string; required: boolean };
 
@@ -44,12 +46,7 @@ const fieldFor = (schema: Schema): Field => {
   if (schema.$ref) {
     const name = schema.$ref.split("/").at(-1) ?? "";
     if (name === "relPath") return { kind: "file" };
-    if (name === "toolName")
-      return {
-        kind: "text",
-        hint: "A tool such as read or shell, or mcp:server for an MCP server's tools.",
-        suggestions: TOOL_NAMES,
-      };
+    if (name === "toolName") return { kind: "text", hint: "toolName", suggestions: TOOL_NAMES };
     return fieldFor(root.$defs[name] ?? {});
   }
   if (schema.enum) return { kind: "select", options: schema.enum };
@@ -59,7 +56,7 @@ const fieldFor = (schema: Schema): Field => {
   if (schema.type === "array")
     return { kind: "list", item: fieldFor(schema.items ?? {}), max: schema.maxItems };
   if (schema.type === "object" || schema.properties) {
-    if (!schema.properties) return { kind: "map", keyLabel: "Name", valueLabel: "Value" };
+    if (!schema.properties) return { kind: "map" };
     return { kind: "group", fields: fieldsOf(schema) };
   }
   return { kind: "text" };

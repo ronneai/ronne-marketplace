@@ -22,17 +22,15 @@ export const savedOnly = (
   });
 };
 
-/** Said above the registry's issues while the files differ from what they checked (#142). */
-export const AS_OF_SAVE = "As of your last save: the registry's checks run again when you save.";
-
 /** One file's problems: 011's live ones, and the registry's from the last save. */
 export type FileProblems = { live: ManifestIssue[]; saved: ManifestIssue[] };
 
 /**
  * Everything the editor shows (#142): the registry's issues next to 011's, each once; all of them,
  * for the count; each file's, for the tree, where one about a file that
- * isn't there (a missing SKILL.md) belongs to ronne.yaml, which names it; and the label that sets
- * the registry's apart while the files differ from what they checked.
+ * isn't there (a missing SKILL.md) belongs to ronne.yaml, which names it; and whether to set the
+ * registry's apart, under "As of your last save" (`author.form.asOfSave`), while the files differ
+ * from what they checked.
  */
 export const editorProblems = (
   live: readonly ManifestIssue[],
@@ -54,6 +52,6 @@ export const editorProblems = (
     saved,
     all: [...live, ...saved],
     byFile,
-    savedLabel: dirty && !readOnly && saved.length > 0 ? AS_OF_SAVE : undefined,
+    asOfSave: dirty && !readOnly && saved.length > 0,
   };
 };
