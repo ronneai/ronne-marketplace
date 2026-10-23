@@ -306,11 +306,29 @@ describe("the editor's counts and times in three languages", () => {
     ]);
   });
 
-  it("says when it saved, on the reader's own clock", () => {
+  it("says when it saved, on the reader's own clock, not the server's", () => {
     const at = new Date("2026-10-23T15:10:05Z");
-    for (const l of ["en", "pt", "fr"] as const) {
-      const local = new Intl.DateTimeFormat(l, { timeStyle: "medium" }).format(at);
-      expect(view(l, <SavedLine at={at} withErrors={false} />), l).toContain(local);
+    // A reader in UTC+14, where no server or CI machine sits: the browser says so, and the time
+    // must follow it, not the zone the formatter would take by itself.
+    const reader = "Pacific/Kiritimati";
+    const defaults = new Intl.DateTimeFormat().resolvedOptions();
+    const spy = vi
+      .spyOn(Intl.DateTimeFormat.prototype, "resolvedOptions")
+      .mockImplementation(() => ({ ...defaults, timeZone: reader }));
+    try {
+      for (const l of ["en", "pt", "fr"] as const) {
+        const local = new Intl.DateTimeFormat(l, { timeStyle: "medium", timeZone: reader }).format(
+          at,
+        );
+        const elsewhere = new Intl.DateTimeFormat(l, {
+          timeStyle: "medium",
+          timeZone: "UTC",
+        }).format(at);
+        expect(local, "the zones differ").not.toBe(elsewhere);
+        expect(view(l, <SavedLine at={at} withErrors={false} />), l).toContain(local);
+      }
+    } finally {
+      spy.mockRestore();
     }
     expect(view("pt", <SavedLine at={at} withErrors={false} />)).toContain("Salvo às ");
     expect(view("fr", <SavedLine at={at} withErrors />)).toContain(
@@ -343,6 +361,17 @@ describe("the editor's dialogs in three languages", () => {
     expect(rename("pt")).toContain(">Novo caminho<");
     expect(rename("fr")).toContain("Utilisez / pour le déplacer dans un dossier.");
     expect(rename("fr")).toContain(">Renommer<");
+    // Each word in both languages, so one left in English is caught in either.
+    expect(newFile("fr", false)).toContain(">Nouveau fichier<");
+    expect(newFile("fr", false)).toContain("Utilisez / pour les dossiers, comme docs/usage.md.");
+    expect(newFile("pt", true)).toContain(">Nova pasta<");
+    expect(newFile("pt", true)).toContain(">Pasta e primeiro arquivo<");
+    expect(newFile("pt", true)).toContain("Uma pasta existe quando tem um arquivo");
+    expect(newFile("fr", true)).toContain("Un dossier existe dès qu’il contient un fichier");
+    expect(rename("fr")).toContain(">Renommer le fichier<");
+    expect(rename("fr")).toContain(">Nouveau chemin<");
+    expect(rename("pt")).toContain("Use / para movê-lo para uma pasta.");
+    expect(rename("pt")).toContain(">Renomear<");
   });
 
   it("words the path, delete, import and settings dialogs", () => {
