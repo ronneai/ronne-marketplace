@@ -636,6 +636,33 @@ describe("My submissions in three languages (131)", () => {
     expect(toolbar).toContain("Submeter selecionados (0)");
   });
 
+  it("counts the table's submissions in the footer with 0, 1 and 2, in each language", () => {
+    const footer = (l: L, count: number) =>
+      html(
+        l,
+        <SubmissionsTable {...table()} submissions={[draftRow]} total={{ count, capped: false }} />,
+      );
+    const cases: Record<L, [number, string][]> = {
+      en: [
+        [0, "0 submissions"],
+        [1, "1 submission<"],
+        [2, "2 submissions"],
+      ],
+      pt: [
+        [0, "0 submissão<"],
+        [1, "1 submissão<"],
+        [2, "2 submissões"],
+      ],
+      fr: [
+        [0, "0 soumission<"],
+        [1, "1 soumission<"],
+        [2, "2 soumissions"],
+      ],
+    };
+    for (const [l, rows] of Object.entries(cases) as [L, [number, string][]][])
+      for (const [count, text] of rows) expect(footer(l, count), `${l} ${count}`).toContain(text);
+  });
+
   it("words what Submit selected did to each", () => {
     const results = (l: L) =>
       html(
