@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { Help } from "@/components/help/Help";
 import { parseListQuery } from "@/components/ui/data-table/list-query";
@@ -10,6 +11,7 @@ import { BulkApproveProvider, BulkApproveToolbar } from "@/features/reviews/Bulk
 import { checkedQueueState, queueList, queueQueryOf } from "@/features/reviews/list";
 import { QueueStatusProvider } from "@/features/reviews/QueueStatus";
 import { approvableRows, QueueTable, QueueTabs, queueTab } from "@/features/reviews/QueueTable";
+import { pageTitle } from "@/i18n/page-title";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
 import { canInSomeShared } from "@/server/domains/identity/models/permissions";
 import { listQueue } from "@/server/domains/submissions/actions/reviews";
@@ -18,7 +20,10 @@ import { requestHeaders } from "@/server/http/request-headers";
 import { holdPage } from "../hold";
 import { workspaceView } from "../shell";
 
-export const metadata = { title: "Reviews · Ronne AI Marketplace" };
+export const generateMetadata = async () => {
+  const t = await getTranslations("author.queue");
+  return { title: pageTitle(t("pageTitle")) };
+};
 
 /** The review queue (feature 014): moderators and root only; anyone else gets a 404. */
 const Reviews = async ({
@@ -27,6 +32,7 @@ const Reviews = async ({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) => {
   await holdPage();
+  const t = await getTranslations("author.queue");
   const request = await requestHeaders();
   const user = await getCurrentUser(request);
   // Their own personal workspace (114) isn't reviewed: it makes nobody a reviewer.
@@ -54,10 +60,7 @@ const Reviews = async ({
   );
   return (
     <>
-      <PageHeader
-        title="Reviews"
-        description="What authors have sent for review. Review is the gate: nothing is installable until it's approved and released."
-      />
+      <PageHeader title={t("title")} description={t("description")} />
       {view.workspace ? (
         <Showing
           workspace={view.workspace}
@@ -73,7 +76,10 @@ const Reviews = async ({
             releasable={Object.fromEntries(rows.map((row) => [row.id, itemNameOf(row)]))}
           >
             {table(
-              <BulkReleaseToolbar selectAllLabel="Select all" help={<Help id="release-many" />} />,
+              <BulkReleaseToolbar
+                selectAllLabel={t("selectAll")}
+                help={<Help id="release-many" />}
+              />,
             )}
           </BulkReleaseProvider>
         ) : tab === "needs" ? (

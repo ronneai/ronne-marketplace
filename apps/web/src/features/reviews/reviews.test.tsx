@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Sidebar } from "@/components/app-shell/Sidebar";
 import { listUrl } from "@/components/ui/data-table/list-query";
 import type { QueueRow } from "@/server/domains/submissions/actions/reviews";
+import { englishLeaks } from "@/test/english-leak";
+import { inLocale, inLocaleAsync } from "@/test/intl";
 
 const reviews = vi.hoisted(() => ({
   listQueue: vi.fn(),
@@ -31,7 +33,8 @@ vi.mock("@/app/(app)/shell", async () => {
 });
 
 const { approvableRows, QueueTable, QueueTabs, queueTab } = await import("./QueueTable");
-const { BulkApproveProvider, BulkApproveToolbar } = await import("./BulkApprove");
+const { ApproveForm, ApproveTitle, BulkApproveProvider, BulkApproveToolbar, ResultList } =
+  await import("./BulkApprove");
 const { BulkReleaseProvider } = await import("../releases/BulkRelease");
 const { approveSelectedAction, decideAction } = await import("./actions");
 const { default: ReviewsPage } = await import("@/app/(app)/reviews/page");
@@ -500,4 +503,199 @@ describe("decideAction (security audit AUTHZ-2)", () => {
     // Requesting changes needs no revision.
     expect(await decideAction("s", "request_changes", "Why?")).toEqual({ done: true });
   });
+});
+
+describe("the review queue in three languages (131)", () => {
+  type L = "en" | "pt" | "fr";
+  const html = (l: L, node: Parameters<typeof renderToStaticMarkup>[0]) =>
+    inLocale(l, () => renderToStaticMarkup(node)).replace(/<!-- -->/g, "");
+  const withoutHelp = (text: string) =>
+    text
+      .replace(/<button[^>]*aria-haspopup="dialog"[^>]*>.*?<\/button>/g, "")
+      .replace(/<noscript>.*?<\/noscript>/g, "");
+  const listed = [
+    {
+      id: "a",
+      name: "@t/{x}",
+      type: "hook",
+      author: "Ada",
+      revision: 2,
+      riskKinds: ["hook"],
+      override: false,
+    },
+    {
+      id: "b",
+      name: "@t/b",
+      type: "skill",
+      author: "Mo",
+      revision: null,
+      riskKinds: [],
+      override: true,
+    },
+  ];
+  const form = (l: L, included: string[], overrides = true) =>
+    html(
+      l,
+      <ApproveForm
+        listed={overrides ? listed : listed.map((r) => ({ ...r, override: false }))}
+        included={new Set(included)}
+        filter=""
+        text=""
+        error={null}
+        approving={false}
+        onFilter={() => {}}
+        onShown={() => {}}
+        onToggle={() => {}}
+        onText={() => {}}
+        onCancel={() => {}}
+        onSubmit={() => {}}
+      />,
+    );
+
+  it("words the tabs, columns, badges and each tab's empty state", () => {
+    expect(html("pt", <QueueTabs tab="needs" />)).toContain(">Precisa de revisão<");
+    expect(html("fr", <QueueTabs tab="needs" />)).toContain(">En attente de l’auteur<");
+    const needs = (l: L) =>
+      html(
+        l,
+        <BulkApproveProvider approvable={approvableRows([row({ mine: true })])}>
+          <QueueTable {...tableProps("needs", [row({ mine: true })])} />
+        </BulkApproveProvider>,
+      );
+    expect(needs("pt")).toContain(">Autor<");
+    expect(needs("pt")).toContain(">Submetida<");
+    expect(needs("pt")).toContain(">⚠ risco<");
+    expect(needs("pt")).toContain(">seu<");
+    expect(needs("fr")).toContain('placeholder="Élément ou auteur"');
+    expect(needs("fr")).toContain('aria-label="Sélectionner @team/fmt"');
+    const empty = (l: L, tab: "needs" | "waiting" | "release" | "decided") =>
+      html(l, <QueueTable {...tableProps(tab, [])} />);
+    expect(empty("pt", "needs")).toContain("Nada precisa de revisão.");
+    expect(empty("pt", "waiting")).toContain("Nenhuma submissão está aguardando o autor.");
+    expect(empty("fr", "release")).toContain("Rien d’approuvé n’attend d’être publié.");
+    expect(empty("fr", "decided")).toContain("Rien n’a encore été décidé.");
+    const decided = html(
+      "fr",
+      <QueueTable {...tableProps("decided", [row({ status: "published" })])} />,
+    );
+    expect(decided).toContain(">Décidée<");
+    expect(decided).toContain(">Statut<");
+  });
+
+  it("words the batch review: title, list, summary with 1 and 2 overrides, and buttons", () => {
+    const title = (l: L, count: number) => html(l, <ApproveTitle count={count} done={false} />);
+    expect(title("en", 1)).toContain("Approve 1 submission?");
+    expect(title("pt", 1)).toContain("Aprovar 1 submissão?");
+    expect(title("pt", 2)).toContain("Aprovar 2 submissões?");
+    expect(title("fr", 2)).toContain("Approuver 2 soumissions?");
+    expect(title("fr", 1)).toContain(">Révision par lot<");
+    expect(html("pt", <ApproveTitle count={2} done />)).toBe("Aprovadas");
+    const one = form("en", ["a", "b"]);
+    expect(one).toContain(
+      "2 submissions selected</strong>: one is your own, approved as an override",
+    );
+    expect(form("pt", ["a"], false)).toContain("1 submissão selecionada</strong>.");
+    expect(form("pt", ["a", "b"])).toContain("2 submissões selecionadas</strong>: uma é sua");
+    expect(form("fr", ["b"])).toContain("1 soumission sélectionnée</strong> : une est la vôtre");
+    const both = listed.map((r) => ({ ...r, override: true }));
+    expect(
+      html(
+        "fr",
+        <ApproveForm
+          listed={both}
+          included={new Set(["a", "b"])}
+          filter=""
+          text=""
+          error={null}
+          approving={false}
+          onFilter={() => {}}
+          onShown={() => {}}
+          onToggle={() => {}}
+          onText={() => {}}
+          onCancel={() => {}}
+          onSubmit={() => {}}
+        />,
+      ),
+    ).toContain(" : 2 sont les vôtres, approuvées par dérogation");
+    expect(form("pt", ["a"])).toContain("Ada · revisão 2");
+    expect(form("pt", ["a"])).toContain('aria-label="Incluir @t/{x}"');
+    expect(form("pt", ["a", "b"])).toContain(">Aprovar 2 submissões<");
+    expect(form("fr", ["a"])).toContain(">Approuver 1 soumission<");
+    expect(form("fr", ["a"])).toContain(">dérogation<");
+    expect(form("fr", ["a"])).toContain("Une note pour chaque approbation");
+  });
+
+  it("words what approving did to each", () => {
+    const results = (l: L) =>
+      html(
+        l,
+        <ResultList
+          results={
+            [
+              {
+                id: "a",
+                name: "@t/a",
+                result: "approved",
+                override: false,
+                revision: 2,
+                reason: null,
+              },
+              {
+                id: "b",
+                name: "@t/b",
+                result: "approved",
+                override: true,
+                revision: 1,
+                reason: null,
+              },
+              {
+                id: "c",
+                name: "@t/c",
+                result: "not_approved",
+                override: false,
+                revision: null,
+                reason: "Gone.",
+              },
+            ] as never
+          }
+        />,
+      );
+    expect(results("pt")).toContain(">Aprovada:<");
+    expect(results("pt")).toContain(">Aprovada (override):<");
+    expect(results("pt")).toContain(">Não aprovada:<");
+    expect(results("fr")).toContain(">révision 2<");
+  });
+
+  it("titles and heads the page in the language", async () => {
+    const { generateMetadata } = await import("@/app/(app)/reviews/page");
+    expect(await inLocaleAsync("pt", () => generateMetadata())).toEqual({
+      title: "Revisões · Ronne AI Marketplace",
+    });
+    const page = await inLocaleAsync("fr", async () =>
+      renderToStaticMarkup(await ReviewsPage({ searchParams: Promise.resolve({}) })),
+    );
+    expect(page).toContain(">Révisions<");
+    expect(page).toContain("La révision fait office de contrôle");
+  });
+
+  for (const locale of ["pt", "fr"] as const) {
+    it(`${locale}: no English left on the queue and the batch review`, async () => {
+      const all = withoutHelp(
+        [
+          html(locale, <QueueTabs tab="release" />),
+          html(
+            locale,
+            <BulkApproveProvider approvable={approvableRows([row({ mine: true })])}>
+              <BulkApproveToolbar />
+              <QueueTable {...tableProps("needs", [row({ mine: true })])} />
+            </BulkApproveProvider>,
+          ),
+          html(locale, <QueueTable {...tableProps("waiting", [])} />),
+          form(locale, ["a", "b"]),
+          html(locale, <ApproveTitle count={2} done={false} />),
+        ].join("\n"),
+      );
+      expect(await englishLeaks(["author", "common"], locale, all)).toEqual([]);
+    });
+  }
 });

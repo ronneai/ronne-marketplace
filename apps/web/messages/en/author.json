@@ -452,5 +452,79 @@
       "confirmText": "Each is submitted with its files frozen, as Submit does in the editor: reviewers see them, except those in your personal workspace, which are approved at once. You can withdraw one until it's released.",
       "submitCount": "{count, plural, one {Submit # draft} other {Submit # drafts}}"
     }
+  },
+  "queue": {
+    "pageTitle": "Reviews",
+    "title": "Reviews",
+    "description": "What authors have sent for review. Review is the gate: nothing is installable until it's approved and released.",
+    "tabsLabel": "Review queue",
+    "tabs": {
+      "needs": "Needs review",
+      "waiting": "Waiting on the author",
+      "release": "To release",
+      "decided": "Decided"
+    },
+    "empty": {
+      "needs": "Nothing needs review. New submissions show up here.",
+      "waiting": "No submission is waiting on its author.",
+      "release": "Nothing approved is waiting to be released.",
+      "decided": "Nothing has been decided yet."
+    },
+    "noMatch": "No submissions match these filters.",
+    "time": {
+      "needs": "Submitted",
+      "waiting": "Submitted",
+      "release": "Approved",
+      "decided": "Decided"
+    },
+    "select": "Select",
+    "item": "Item",
+    "author": "Author",
+    "revision": "Revision",
+    "approvedBy": "Approved by",
+    "status": "Status",
+    "decisions": "Decisions",
+    "risk": "⚠ risk",
+    "yours": "yours",
+    "search": "Search",
+    "searchPlaceholder": "Item or author",
+    "type": "Type",
+    "anyType": "Any type",
+    "filter": "Filter",
+    "selectAll": "Select all",
+    "approve": {
+      "reasonLabel": "{name}: {reason}",
+      "selectOne": "Select {name}",
+      "include": "Include {name}",
+      "revision": "{author} · revision {revision, number, ::group-off}",
+      "override": "override",
+      "outcome": {
+        "approved": "Approved:",
+        "override": "Approved (override):",
+        "not": "Not approved:"
+      },
+      "resultRevision": "revision {revision, number, ::group-off}",
+      "doneTitle": "Approved",
+      "title": "{count, plural, one {Approve # submission?} other {Approve # submissions?}}",
+      "batch": "Batch review",
+      "selectAll": "Select all ({count, number})",
+      "approveSelected": "Approve selected ({count, number})",
+      "results": "What happened to each",
+      "done": "Done",
+      "filterLabel": "Filter submissions",
+      "filterPlaceholder": "Filter by name, type or author",
+      "selected": "{count, number} selected",
+      "deselectAll": "Deselect all",
+      "listLabel": "Submissions to approve",
+      "noMatch": "No submission matches.",
+      "summary": "{count, plural, one {# submission selected} other {# submissions selected}}",
+      "overrides": "{count, plural, one {: one is your own, approved as an override, marked in the conversation and the audit log.} other {: # are your own, approved as overrides, marked in the conversation and the audit log.}}",
+      "message": "Message",
+      "optional": "(optional)",
+      "messagePlaceholder": "A note for every approval",
+      "messageHint": "Added to every approval. Once approved, the author or a moderator can release each one.",
+      "cancel": "Cancel",
+      "submit": "{count, plural, one {Approve # submission} other {Approve # submissions}}"
+    }
   }
 }

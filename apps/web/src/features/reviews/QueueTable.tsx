@@ -1,6 +1,7 @@
 import { ITEM_TYPES } from "@ronneai/core";
 import Form from "next/form";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import { DependencyMarksIcon } from "@/components/submissions/DependencyMarks";
 import { ProposalBadges } from "@/components/submissions/ProposalBadges";
@@ -17,20 +18,12 @@ import { stripTab } from "@/components/ui/scroll-strip";
 import { TypeBadge } from "@/components/ui/TypeBadge";
 import type { QueueRow, QueueTab } from "@/server/domains/submissions/actions/reviews";
 import { itemNameOf } from "@/server/domains/submissions/models/submission";
-import { QUEUE_TABS } from "@/server/domains/submissions/services/queue";
 import { ReleaseSelectCell } from "../releases/BulkRelease";
 import { type ApprovableRow, ApproveSelectCell } from "./BulkApprove";
 import { RowDecisions } from "./DecisionBar";
 import type { QueueList, QueueListState } from "./list";
 
 const TAB_ORDER: QueueTab[] = ["needs", "waiting", "release", "decided"];
-
-const EMPTY: Record<QueueTab, string> = {
-  needs: "Nothing needs review. New submissions show up here.",
-  waiting: "No submission is waiting on its author.",
-  release: "Nothing approved is waiting to be released.",
-  decided: "Nothing has been decided yet.",
-};
 
 /** A tab's link, with the parameters it keeps (120's workspace). */
 const tabHref = (id: QueueTab, keep: Readonly<Record<string, string>>) => {
@@ -58,20 +51,23 @@ export const QueueTabs = ({
   tab: QueueTab;
   /** Parameters every tab's link keeps: the workspace shown (120). */
   keep?: Readonly<Record<string, string>>;
-}) => (
-  <ScrollStrip label="Review queue" className="mb-4 gap-1">
-    {TAB_ORDER.map((id) => (
-      <Link
-        key={id}
-        href={tabHref(id, keep)}
-        aria-current={id === tab ? "page" : undefined}
-        className={`${stripTab} ${tabClasses}`}
-      >
-        {QUEUE_TABS[id].label}
-      </Link>
-    ))}
-  </ScrollStrip>
-);
+}) => {
+  const t = useTranslations("author.queue");
+  return (
+    <ScrollStrip label={t("tabsLabel")} className="mb-4 gap-1">
+      {TAB_ORDER.map((id) => (
+        <Link
+          key={id}
+          href={tabHref(id, keep)}
+          aria-current={id === tab ? "page" : undefined}
+          className={`${stripTab} ${tabClasses}`}
+        >
+          {t(`tabs.${id}`)}
+        </Link>
+      ))}
+    </ScrollStrip>
+  );
+};
 
 /** The rows this reviewer can approve now, for BulkApproveProvider (054). */
 export const approvableRows = (rows: QueueRow[]): Record<string, ApprovableRow> =>
@@ -98,62 +94,58 @@ export const approvableRows = (rows: QueueRow[]): Record<string, ApprovableRow> 
 /** Tabs whose rows can be decided from the queue (058): Needs review, and To release (056). */
 const DECIDING: readonly QueueTab[] = ["needs", "release"];
 
-const TIME_HEADER: Record<QueueTab, string> = {
-  needs: "Submitted",
-  waiting: "Submitted",
-  release: "Approved",
-  decided: "Decided",
-};
-
 /**
  * The search and type filters (062): one GET form that submits on change, and chips. The workspace
  * is the current workspace's (120), a fixed parameter of the list, not a filter here.
  */
-const Filters = ({ list, state }: { list: QueueList; state: QueueListState }) => (
-  <div className="grid gap-2">
-    <Form
-      action={list.path}
-      scroll={false}
-      className="grid gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto] sm:items-end"
-    >
-      <HiddenListFields list={list} state={state} omit={["q", "type"]} />
-      <div className="grid gap-1.5">
-        <Label htmlFor="queue-search">Search</Label>
-        <Input
-          id="queue-search"
-          name="q"
-          type="search"
-          placeholder="Item or author"
-          maxLength={100}
-          defaultValue={state.filters.q}
-        />
-      </div>
-      <div className="grid gap-1.5">
-        <Label htmlFor="queue-type">Type</Label>
-        <select
-          id="queue-type"
-          name="type"
-          defaultValue={state.filters.type}
-          className={selectClasses}
-        >
-          <option value="">Any type</option>
-          {ITEM_TYPES.map((type) => (
-            <option key={type} value={type}>
-              {type}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="flex gap-2">
-        <button type="submit" data-submit className={buttonClasses("secondary")}>
-          Filter
-        </button>
-        <SubmitOnChange />
-      </div>
-    </Form>
-    <FilterChips list={list} state={state} labels={{ q: "Search", type: "Type" }} />
-  </div>
-);
+const Filters = ({ list, state }: { list: QueueList; state: QueueListState }) => {
+  const t = useTranslations("author.queue");
+  return (
+    <div className="grid gap-2">
+      <Form
+        action={list.path}
+        scroll={false}
+        className="grid gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto] sm:items-end"
+      >
+        <HiddenListFields list={list} state={state} omit={["q", "type"]} />
+        <div className="grid gap-1.5">
+          <Label htmlFor="queue-search">{t("search")}</Label>
+          <Input
+            id="queue-search"
+            name="q"
+            type="search"
+            placeholder={t("searchPlaceholder")}
+            maxLength={100}
+            defaultValue={state.filters.q}
+          />
+        </div>
+        <div className="grid gap-1.5">
+          <Label htmlFor="queue-type">{t("type")}</Label>
+          <select
+            id="queue-type"
+            name="type"
+            defaultValue={state.filters.type}
+            className={selectClasses}
+          >
+            <option value="">{t("anyType")}</option>
+            {ITEM_TYPES.map((type) => (
+              <option key={type} value={type}>
+                {type}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex gap-2">
+          <button type="submit" data-submit className={buttonClasses("secondary")}>
+            {t("filter")}
+          </button>
+          <SubmitOnChange />
+        </div>
+      </Form>
+      <FilterChips list={list} state={state} labels={{ q: t("search"), type: t("type") }} />
+    </div>
+  );
+};
 
 /** A tab's time: the first submit, the approval, or the decision. */
 const timeOf = (tab: QueueTab, row: QueueRow): Date =>
@@ -163,13 +155,16 @@ const timeOf = (tab: QueueTab, row: QueueRow): Date =>
       ? (row.approved?.at ?? row.updatedAt)
       : (row.submittedAt ?? row.updatedAt);
 
-const columns = (tab: QueueTab): Column<QueueRow, "time" | "name">[] => [
+const columns = (
+  tab: QueueTab,
+  t: ReturnType<typeof useTranslations<"author.queue">>,
+): Column<QueueRow, "time" | "name">[] => [
   ...(tab === "release"
     ? [
         {
           id: "select",
           header: "",
-          srHeader: "Select",
+          srHeader: t("select"),
           className: "w-10",
           render: (row: QueueRow) => <ReleaseSelectCell id={row.id} name={itemNameOf(row)} />,
         },
@@ -180,7 +175,7 @@ const columns = (tab: QueueTab): Column<QueueRow, "time" | "name">[] => [
         {
           id: "select",
           header: "",
-          srHeader: "Select",
+          srHeader: t("select"),
           className: "w-10",
           render: (row: QueueRow) => (
             <ApproveSelectCell
@@ -194,7 +189,7 @@ const columns = (tab: QueueTab): Column<QueueRow, "time" | "name">[] => [
     : []),
   {
     id: "item",
-    header: "Item",
+    header: t("item"),
     sort: "name",
     render: (row) => (
       <span className="flex min-w-0 items-center gap-2">
@@ -209,8 +204,8 @@ const columns = (tab: QueueTab): Column<QueueRow, "time" | "name">[] => [
         <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap">
           <TypeBadge type={row.type} />
           <ProposalBadges proposal={row.proposal} stale={row.stale} />
-          {row.risky ? <Badge tone="warning">⚠ risk</Badge> : null}
-          {row.mine ? <Badge>yours</Badge> : null}
+          {row.risky ? <Badge tone="warning">{t("risk")}</Badge> : null}
+          {row.mine ? <Badge>{t("yours")}</Badge> : null}
           <DependencyMarksIcon marks={row.marks} />
         </span>
       </span>
@@ -218,7 +213,7 @@ const columns = (tab: QueueTab): Column<QueueRow, "time" | "name">[] => [
   },
   {
     id: "author",
-    header: "Author",
+    header: t("author"),
     // Half as wide again (owner, 2026-10-09), so a full name fits before it's cut.
     className: "w-42",
     truncate: true,
@@ -227,7 +222,7 @@ const columns = (tab: QueueTab): Column<QueueRow, "time" | "name">[] => [
   },
   {
     id: "revision",
-    header: "Revision",
+    header: t("revision"),
     className: "w-16",
     mono: true,
     hideOnMobile: true,
@@ -237,7 +232,7 @@ const columns = (tab: QueueTab): Column<QueueRow, "time" | "name">[] => [
     ? [
         {
           id: "approver",
-          header: "Approved by",
+          header: t("approvedBy"),
           className: "w-32",
           truncate: true,
           hideOnMobile: true,
@@ -247,7 +242,7 @@ const columns = (tab: QueueTab): Column<QueueRow, "time" | "name">[] => [
     : []),
   {
     id: "time",
-    header: TIME_HEADER[tab],
+    header: t(`time.${tab}`),
     sort: "time",
     className: "w-48",
     mono: true,
@@ -258,7 +253,7 @@ const columns = (tab: QueueTab): Column<QueueRow, "time" | "name">[] => [
     ? [
         {
           id: "status",
-          header: "Status",
+          header: t("status"),
           className: "w-28",
           render: (row: QueueRow) => <StatusBadge status={row.status} />,
         },
@@ -269,7 +264,7 @@ const columns = (tab: QueueTab): Column<QueueRow, "time" | "name">[] => [
         {
           id: "decisions",
           header: "",
-          srHeader: "Decisions",
+          srHeader: t("decisions"),
           className: "w-52",
           align: "right" as const,
           render: (row: QueueRow) => (
@@ -303,22 +298,25 @@ export const QueueTable = ({
   page: { next: string | null; previous: string | null };
   total: { count: number; capped: boolean };
   actions?: ReactNode;
-}) => (
-  <DataTable
-    list={list}
-    state={state}
-    columns={columns(tab)}
-    rows={rows}
-    rowKey={(row) => row.id}
-    page={page}
-    total={total}
-    noun="submission"
-    toolbar={
-      <>
-        <Filters list={list} state={state} />
-        {actions}
-      </>
-    }
-    empty={{ none: EMPTY[tab], filtered: "No submissions match these filters." }}
-  />
-);
+}) => {
+  const t = useTranslations("author.queue");
+  return (
+    <DataTable
+      list={list}
+      state={state}
+      columns={columns(tab, t)}
+      rows={rows}
+      rowKey={(row) => row.id}
+      page={page}
+      total={total}
+      noun="submission"
+      toolbar={
+        <>
+          <Filters list={list} state={state} />
+          {actions}
+        </>
+      }
+      empty={{ none: t(`empty.${tab}`), filtered: t("noMatch") }}
+    />
+  );
+};

@@ -452,5 +452,79 @@
       "confirmText": "Chacun est soumis avec ses fichiers figés, comme Soumettre le fait dans l’éditeur : les réviseurs les voient, sauf ceux de votre espace de travail personnel, qui sont approuvés tout de suite. Vous pouvez en retirer un jusqu’à sa publication.",
       "submitCount": "{count, plural, one {Soumettre # brouillon} other {Soumettre # brouillons}}"
     }
+  },
+  "queue": {
+    "pageTitle": "Révisions",
+    "title": "Révisions",
+    "description": "Ce que les auteurs ont soumis pour révision. La révision fait office de contrôle : rien n’est installable avant d’être approuvé et publié.",
+    "tabsLabel": "File de révision",
+    "tabs": {
+      "needs": "À réviser",
+      "waiting": "En attente de l’auteur",
+      "release": "À publier",
+      "decided": "Décidées"
+    },
+    "empty": {
+      "needs": "Rien à réviser. Les nouvelles soumissions apparaissent ici.",
+      "waiting": "Aucune soumission n’attend son auteur.",
+      "release": "Rien d’approuvé n’attend d’être publié.",
+      "decided": "Rien n’a encore été décidé."
+    },
+    "noMatch": "Aucune soumission ne correspond à ces filtres.",
+    "time": {
+      "needs": "Soumise",
+      "waiting": "Soumise",
+      "release": "Approuvée",
+      "decided": "Décidée"
+    },
+    "select": "Sélectionner",
+    "item": "Élément",
+    "author": "Auteur",
+    "revision": "Révision",
+    "approvedBy": "Approuvée par",
+    "status": "Statut",
+    "decisions": "Décisions",
+    "risk": "⚠ risque",
+    "yours": "à vous",
+    "search": "Rechercher",
+    "searchPlaceholder": "Élément ou auteur",
+    "type": "Type",
+    "anyType": "Tous les types",
+    "filter": "Filtrer",
+    "selectAll": "Tout sélectionner",
+    "approve": {
+      "reasonLabel": "{name} : {reason}",
+      "selectOne": "Sélectionner {name}",
+      "include": "Inclure {name}",
+      "revision": "{author} · révision {revision, number, ::group-off}",
+      "override": "dérogation",
+      "outcome": {
+        "approved": "Approuvée :",
+        "override": "Approuvée (dérogation) :",
+        "not": "Non approuvée :"
+      },
+      "resultRevision": "révision {revision, number, ::group-off}",
+      "doneTitle": "Approuvées",
+      "title": "{count, plural, one {Approuver # soumission?} other {Approuver # soumissions?}}",
+      "batch": "Révision par lot",
+      "selectAll": "Tout sélectionner ({count, number})",
+      "approveSelected": "Approuver la sélection ({count, number})",
+      "results": "Ce qui est arrivé à chacune",
+      "done": "Terminé",
+      "filterLabel": "Filtrer les soumissions",
+      "filterPlaceholder": "Filtrer par nom, type ou auteur",
+      "selected": "{count, number} sélectionnées",
+      "deselectAll": "Tout désélectionner",
+      "listLabel": "Soumissions à approuver",
+      "noMatch": "Aucune soumission ne correspond.",
+      "summary": "{count, plural, one {# soumission sélectionnée} other {# soumissions sélectionnées}}",
+      "overrides": "{count, plural, one { : une est la vôtre, approuvée par dérogation, marquée dans la conversation et le journal d’audit.} other { : # sont les vôtres, approuvées par dérogation, marquées dans la conversation et le journal d’audit.}}",
+      "message": "Message",
+      "optional": "(facultatif)",
+      "messagePlaceholder": "Une note pour chaque approbation",
+      "messageHint": "Ajoutée à chaque approbation. Une fois approuvée, l’auteur ou un modérateur peut publier chacune.",
+      "cancel": "Annuler",
+      "submit": "{count, plural, one {Approuver # soumission} other {Approuver # soumissions}}"
+    }
   }
 }

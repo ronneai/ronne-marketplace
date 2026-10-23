@@ -452,5 +452,79 @@
       "confirmText": "Cada um é submetido com os arquivos congelados, como o Submeter faz no editor: os revisores os veem, menos os do seu espaço de trabalho pessoal, que são aprovados na hora. Você pode retirar um até ele ser lançado.",
       "submitCount": "{count, plural, one {Submeter # rascunho} other {Submeter # rascunhos}}"
     }
+  },
+  "queue": {
+    "pageTitle": "Revisões",
+    "title": "Revisões",
+    "description": "O que os autores enviaram para revisão. A revisão é o filtro: nada pode ser instalado até ser aprovado e lançado.",
+    "tabsLabel": "Fila de revisão",
+    "tabs": {
+      "needs": "Precisa de revisão",
+      "waiting": "Aguardando o autor",
+      "release": "Para lançar",
+      "decided": "Decididas"
+    },
+    "empty": {
+      "needs": "Nada precisa de revisão. Novas submissões aparecem aqui.",
+      "waiting": "Nenhuma submissão está aguardando o autor.",
+      "release": "Nada aprovado está aguardando lançamento.",
+      "decided": "Nada foi decidido ainda."
+    },
+    "noMatch": "Nenhuma submissão corresponde a estes filtros.",
+    "time": {
+      "needs": "Submetida",
+      "waiting": "Submetida",
+      "release": "Aprovada",
+      "decided": "Decidida"
+    },
+    "select": "Selecionar",
+    "item": "Item",
+    "author": "Autor",
+    "revision": "Revisão",
+    "approvedBy": "Aprovada por",
+    "status": "Status",
+    "decisions": "Decisões",
+    "risk": "⚠ risco",
+    "yours": "seu",
+    "search": "Pesquisar",
+    "searchPlaceholder": "Item ou autor",
+    "type": "Tipo",
+    "anyType": "Qualquer tipo",
+    "filter": "Filtrar",
+    "selectAll": "Selecionar tudo",
+    "approve": {
+      "reasonLabel": "{name}: {reason}",
+      "selectOne": "Selecionar {name}",
+      "include": "Incluir {name}",
+      "revision": "{author} · revisão {revision, number, ::group-off}",
+      "override": "override",
+      "outcome": {
+        "approved": "Aprovada:",
+        "override": "Aprovada (override):",
+        "not": "Não aprovada:"
+      },
+      "resultRevision": "revisão {revision, number, ::group-off}",
+      "doneTitle": "Aprovadas",
+      "title": "{count, plural, one {Aprovar # submissão?} other {Aprovar # submissões?}}",
+      "batch": "Revisão em lote",
+      "selectAll": "Selecionar tudo ({count, number})",
+      "approveSelected": "Aprovar selecionadas ({count, number})",
+      "results": "O que aconteceu com cada uma",
+      "done": "Concluir",
+      "filterLabel": "Filtrar submissões",
+      "filterPlaceholder": "Filtrar por nome, tipo ou autor",
+      "selected": "{count, number} selecionadas",
+      "deselectAll": "Desmarcar tudo",
+      "listLabel": "Submissões a aprovar",
+      "noMatch": "Nenhuma submissão corresponde.",
+      "summary": "{count, plural, one {# submissão selecionada} other {# submissões selecionadas}}",
+      "overrides": "{count, plural, one {: uma é sua, aprovada como override, marcada na conversa e no registro de auditoria.} other {: # são suas, aprovadas como overrides, marcadas na conversa e no registro de auditoria.}}",
+      "message": "Mensagem",
+      "optional": "(opcional)",
+      "messagePlaceholder": "Uma nota para cada aprovação",
+      "messageHint": "Adicionada a cada aprovação. Depois de aprovada, o autor ou um moderador pode lançar cada uma.",
+      "cancel": "Cancelar",
+      "submit": "{count, plural, one {Aprovar # submissão} other {Aprovar # submissões}}"
+    }
   }
 }
