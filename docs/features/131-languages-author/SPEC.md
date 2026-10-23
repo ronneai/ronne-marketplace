@@ -142,6 +142,10 @@ in Portuguese and French beside English. Nothing about what the screens do chang
   `getTranslations`, errors from `errorText`); the helpers move by area; type names stay as `rmk`
   prints them.
 
+- **"Retirar" / "retirer" for both withdraw and yank** (owner, 2026-10-23): 130 already uses it
+  for a yanked version, and 131 for withdrawing a submission. They sit on different screens; the
+  native reviewers in 133 settle whether withdraw gets another word.
+
 ## Open questions
 
 None.

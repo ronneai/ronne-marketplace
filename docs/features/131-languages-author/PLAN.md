@@ -51,7 +51,7 @@ Every task that moves a folder adds it to the `overrides` entry in `biome.json` 
   `app/(app)/reviews/page.tsx`.
   *Done when:* three-language tests; the route is in `MIGRATED_ROUTES`.
 
-- [ ] **8. Reviews: a review's page.** `DecisionBar`, `Conversation`, `CommentForm`,
+- [x] **8. Reviews: a review's page.** `DecisionBar`, `Conversation`, `CommentForm`,
   `ProposalChanges`, `ReviewFiles`, `PublishDialog`, `release-group.ts`,
   `app/(app)/reviews/[id]`.
   *Done when:* three-language tests of each decision and the publish dialog; the route is in

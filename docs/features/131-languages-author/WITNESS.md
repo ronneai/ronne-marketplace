@@ -280,3 +280,58 @@ Witnessed: 2026-10-23 11:46 EDT, by a fresh agent (blind). Commit: e720e574. Mac
 | 10 | Root's override is "exceção" / "dérogation", and the glossary records it | no | confirmed | `author.json`; `i18n.md` glossary row; the test expects ">Aprovada (exceção):<" |
 
 **Overall:** met.
+
+## Task 8 — Reviews: a review's page
+
+Witnessed: 2026-10-23 11:58 EDT, by a fresh agent (blind). Commit: 9aecc4ff. Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Each decision is worded through messages, tested in three languages | no | partly | Tests sample one language per decision; fr titles and hints set to English passed |
+| 2 | The publish dialog has three-language tests | no | partly | The success notice (`done` / `doneWith`) in no test |
+| 3 | `/reviews/[id]` is in `MIGRATED_ROUTES` | no | confirmed | `e2e/pages.ts`, `pages-coverage.test.ts`; removal fails |
+| 4 | The raw-text lint covers the folders | no | confirmed | `features/reviews/**`, `app/(app)/reviews/**`; planted text → 2 errors |
+| 5 | Core's `tagProblemOf` beside `tagProblem` | no | confirmed | Server keeps `tagProblem`; `versions.test.ts` 4 passed; mutation fails |
+| 6 | Bump reasons are data the dialog words; English as before | no | partly | English byte-identical; `depNew`→`fileNew` passed `bump.test.ts` |
+| 7 | No visible change in English | no | confirmed | Old English tests pass; lists follow the list format |
+| 8 | Statuses from one set of messages | no | confirmed | `DependentsChoice` uses `author.status` |
+| 9 | Whole sentences | no | confirmed | `t.rich` for preview, suggestion, by, submitted; plural legend |
+| 10 | Bump names as the spec said | no | partly | pt/fr keep major/minor/patch; the spec then asked for translated words |
+| 11 | Data shown as typed | no | confirmed | Probe with `{x}` values in names, versions, paths |
+| 12 | Counts of 0, 1 and 2 | no | partly | The dependents' legend hardcoded "1" in `one`, so 0 read "1 …" in pt and fr |
+| 13 | pt/fr typography and glossary | no | partly | fr "parce que il …"; fr `publish.stuck` ungrammatical |
+| 14 | What people write and out-of-scope text stay as given | no | confirmed | Event bodies raw; reasons passed as values; `<Help>` English until task 11 |
+| 15 | The task's tests and lint pass | no | confirmed | 247 passed; db 18 passed; core 4 passed; lint clean |
+
+**Overall:** not met: rows 1, 2, 6, 10, 12, 13.
+
+### Re-check (rows 1, 2, 6, 10, 12, 13)
+
+Witnessed: 2026-10-23 12:03 EDT, by a fresh agent (blind). Commit: a87e0a19. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Every decision's title, hint and button tested in pt and fr | no | partly | Most mutations fail; the request-changes title equals its button text, so an English title still passed |
+| 2 | The success notice tested in three languages | no | partly | `PublishedNotice` tested; fr with no others not asserted |
+| 6 | `suggestBump`'s reason kinds fully asserted | no | confirmed | `toEqual` on every kind; `depNew`→`fileNew` fails |
+| 10 | Bump names match SPEC.md and the glossary | no | confirmed | SPEC: semver terms stay, meanings translated; glossary row |
+| 12 | The dependents' legend shows the count | no | confirmed | `one {# …}`; 0 tested in pt and fr |
+| 13 | The French grammar errors fixed and tested | no | partly | "car" tested; `publish.stuck` rendered by no test |
+| 14 | The task's tests pass | no | confirmed | 47 passed |
+
+**Overall:** not met: rows 1, 2, 13.
+
+### Re-check (rows 1, 2, 13)
+
+A third round, with the owner's approval (2026-10-23).
+
+Witnessed: 2026-10-23 14:22 EDT, by a fresh agent (blind). Commit: ac946c4d. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The request-changes title is tested on the dialog's heading | no | confirmed | pt and fr title set to "Request changes" → each fails |
+| 2 | The notice with no others is tested in fr and pt | no | confirmed | English `done` in fr and in pt → each fails |
+| 13 | `publish.stuck` is rendered and tested in fr and pt | no | confirmed | The old fr wording and a wrong pt one → each fails |
+| 14 | The reviews tests pass, tree clean | no | confirmed | 70 passed; `git status` empty |
+
+**Overall:** met.
