@@ -605,7 +605,7 @@
       "statusRequested": "Requested changes on {name}."
     },
     "dependents": {
-      "legend": "{count, plural, one {1 submission depends on this} other {# submissions depend on this}}",
+      "legend": "{count, plural, one {# submission depends on this} other {# submissions depend on this}}",
       "line": "({status}, by {author})",
       "lineRefused": "({status}, by {author}): {reason}",
       "sendBack": "Request changes on them too",

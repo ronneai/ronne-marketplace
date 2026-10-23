@@ -74,8 +74,9 @@ in Portuguese and French beside English. Nothing about what the screens do chang
 - **Item types and file paths** stay as `rmk` prints them (130's rule): `ronne.yaml`, `SKILL.md`,
   `skill`, `mcp-server`.
 - **Version numbers, tags and ranges** (`1.2.0`, `latest`, `^1.0.0`) are data: inserted as given.
-- **Bump names** (major, minor, patch) are translated as words where a sentence uses them, with
-  the semver term beside them where the screen teaches it (the glossary has them).
+- **Bump names** (major, minor, patch) stay the semver terms in every language, as `rmk` and the
+  Documentation use them; what each means is translated beside it ("Minor: novidades,
+  compatível"). The glossary has them.
 - **Core's messages** show as they come, in English, inside the translated list (its heading,
   counts, severities and "line {n}" are messages). They keep their `backticked` names as code. So
   do the registry's own checks reported the same way (013's dependency checks on the canvas and in

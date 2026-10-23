@@ -26,7 +26,10 @@ describe("suggestBump", () => {
   });
 
   it("suggests major when a dependency is removed", () => {
-    expect(suggestBump(base, change({ dependencies: {} })).bump).toBe("major");
+    expect(suggestBump(base, change({ dependencies: {} }))).toEqual({
+      bump: "major",
+      reasons: [{ kind: "depLost", names: ["@team/lint"] }],
+    });
   });
 
   it("suggests major when a file the manifest names is removed", () => {
@@ -42,14 +45,21 @@ describe("suggestBump", () => {
       { kind: "fileNew", names: ["docs/usage.md"] },
     ]);
     expect(
-      suggestBump(base, change({ dependencies: { "@team/lint": "^1.0.0", "@team/git": "^2.0.0" } }))
-        .bump,
-    ).toBe("minor");
-    expect(suggestBump(base, change({ keywords: ["format", "style"] })).bump).toBe("minor");
+      suggestBump(
+        base,
+        change({ dependencies: { "@team/lint": "^1.0.0", "@team/git": "^2.0.0" } }),
+      ),
+    ).toEqual({ bump: "minor", reasons: [{ kind: "depNew", names: ["@team/git"] }] });
+    expect(suggestBump(base, change({ keywords: ["format", "style"] }))).toEqual({
+      bump: "minor",
+      reasons: [{ kind: "keywordNew", names: ["style"] }],
+    });
     expect(
-      suggestBump(base, change({ hook: { ...base.manifest.hook, matcher: { tool: "Edit" } } }))
-        .bump,
-    ).toBe("minor");
+      suggestBump(base, change({ hook: { ...base.manifest.hook, matcher: { tool: "Edit" } } })),
+    ).toEqual({
+      bump: "minor",
+      reasons: [{ kind: "blockGained", names: ["matcher"], type: "hook" }],
+    });
   });
 
   it("suggests patch for anything else, such as a changed description or file", () => {

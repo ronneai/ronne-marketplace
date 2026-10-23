@@ -41,6 +41,7 @@ const {
   groupBlockedBy,
   groupVersions,
   PublishDialog,
+  PublishedNotice,
   ReleaseGroupList,
   useTagWords,
 } = await import("./PublishDialog");
@@ -801,10 +802,49 @@ describe("a review's page in three languages (131)", () => {
   it("words the decision dialogs and the dependents' choice, with 1 and 2", () => {
     const dialog = (l: L, decision: "approve" | "request_changes" | "reject" | "override") =>
       html(l, <DecisionDialog id="s" name="@t/{x}" decision={decision} onClose={() => {}} />);
-    expect(dialog("pt", "approve")).toContain("Aprovar esta submissão?");
-    expect(dialog("pt", "request_changes")).toContain("Obrigatório. Diga o que alterar");
-    expect(dialog("fr", "reject")).toContain("Rejeter cette soumission?");
-    expect(dialog("fr", "override")).toContain(">Approuver (dérogation)<");
+    // Each decision's title, hint and button, in each language.
+    const words: Record<
+      "pt" | "fr",
+      Record<"approve" | "request_changes" | "reject" | "override", [string, string, string]>
+    > = {
+      pt: {
+        approve: ["Aprovar esta submissão?", "Opcional. Depois de aprovada", ">Aprovar<"],
+        request_changes: [
+          "Solicitar alterações",
+          "Obrigatório. Diga o que alterar",
+          ">Solicitar alterações<",
+        ],
+        reject: ["Rejeitar esta submissão?", "Obrigatório. Rejeitar é definitivo", ">Rejeitar<"],
+        override: [
+          "Aprovar a sua própria submissão?",
+          "Opcional. Como root, você pode aprovar",
+          ">Aprovar (exceção)<",
+        ],
+      },
+      fr: {
+        approve: ["Approuver cette soumission?", "Facultatif. Une fois approuvée", ">Approuver<"],
+        request_changes: [
+          "Demander des modifications",
+          "Obligatoire. Dites quoi modifier",
+          ">Demander des modifications<",
+        ],
+        reject: ["Rejeter cette soumission?", "Obligatoire. Un rejet est définitif", ">Rejeter<"],
+        override: [
+          "Approuver votre propre soumission?",
+          "Facultatif. En tant que root, vous pouvez",
+          ">Approuver (dérogation)<",
+        ],
+      },
+    };
+    for (const l of ["pt", "fr"] as const)
+      for (const decision of ["approve", "request_changes", "reject", "override"] as const) {
+        const [title, hint, button] = words[l][decision];
+        const text = dialog(l, decision);
+        expect(text, `${l} ${decision} title`).toContain(title);
+        expect(text, `${l} ${decision} hint`).toContain(hint);
+        expect(text, `${l} ${decision} button`).toContain(button);
+      }
+    expect(dialog("en", "override")).toContain(">Approve (override)<");
     const dep = (status: "submitted" | "changes_requested", ok: boolean) => ({
       id: status,
       name: `@t/${status}`,
@@ -825,6 +865,10 @@ describe("a review's page in three languages (131)", () => {
           onText={() => {}}
         />,
       );
+    expect(choice("en", 0)).toContain("0 submissions depend on this");
+    expect(choice("pt", 0)).toContain("0 submissão depende desta");
+    expect(choice("fr", 0)).toContain("0 soumission en dépend");
+    expect(choice("en", 2)).toContain("2 submissions depend on this");
     expect(choice("en", 1)).toContain("1 submission depends on this");
     expect(choice("pt", 1)).toContain("1 submissão depende desta");
     expect(choice("pt", 2)).toContain("2 submissões dependem desta");
@@ -892,7 +936,7 @@ describe("a review's page in three languages (131)", () => {
       suggested: { bump: "major", reasons: [{ kind: "depLost", names: ["@t/c"] }] },
     });
     expect(fr).toContain("Suggéré : <span");
-    expect(fr).toContain("parce que il ne dépend plus de `@t/c`.");
+    expect(fr).toContain(", car il ne dépend plus de `@t/c`.");
     expect(fr).toContain("Publié avec :");
     expect(fr).toContain(">Étiquette<");
     const two = dialog("en", {
@@ -924,6 +968,42 @@ describe("a review's page in three languages (131)", () => {
     expect(reasons("pt", "fileRemoved")).toContain("`n`, citado no manifesto, foi removido");
     expect(reasons("fr", "keywordNew")).toContain("le mot-clé `n` est nouveau");
     expect(reasons("fr", "blockLost", "agent")).toContain("le bloc agent n’a plus `n`");
+  });
+
+  it("says what a release published, with 0, 1, 2 and 3 others", () => {
+    const others = [
+      { name: "@t/b", version: "1.0.0" },
+      { name: "@t/c", version: "2.0.0" },
+      { name: "@t/d", version: "3.0.0" },
+    ];
+    const notice = (l: L, n: number) =>
+      html(
+        l,
+        <PublishedNotice
+          itemName="@t/{a}"
+          result={
+            {
+              ok: true,
+              version: "1.1.0",
+              tag: "latest",
+              sha256: "abc",
+              with: others.slice(0, n),
+            } as never
+          }
+        />,
+      );
+    expect(notice("en", 0)).toContain("Published @t/{a} 1.1.0 as latest.");
+    expect(notice("en", 1)).toContain("Published @t/{a} 1.1.0 as latest, with @t/b 1.0.0.");
+    expect(notice("en", 3)).toContain(
+      "Published @t/{a} 1.1.0 as latest, with @t/b 1.0.0, @t/c 2.0.0, and @t/d 3.0.0.",
+    );
+    expect(notice("pt", 0)).toContain("@t/{a} 1.1.0 publicado como latest.");
+    expect(notice("pt", 2)).toContain(
+      "@t/{a} 1.1.0 publicado como latest, com @t/b 1.0.0 e @t/c 2.0.0.",
+    );
+    expect(notice("fr", 1)).toContain("@t/{a} 1.1.0 publié comme latest, avec @t/b 1.0.0.");
+    expect(notice("fr", 3)).toContain("avec @t/b 1.0.0, @t/c 2.0.0 et @t/d 3.0.0.");
+    expect(notice("fr", 0)).toContain("sha256 abc");
   });
 
   it("words each tag problem", () => {

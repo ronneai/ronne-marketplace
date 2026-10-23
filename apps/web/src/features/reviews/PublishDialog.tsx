@@ -108,6 +108,39 @@ export const BumpSuggestion = ({ suggested }: { suggested: SuggestedBump }) => {
 };
 const radioInput = "mt-0.5 size-4 accent-(--accent)";
 
+/** What a release published (015): the item's version and tag, with what went along (112). */
+export const PublishedNotice = ({
+  itemName,
+  result,
+}: {
+  itemName: string;
+  result: Extract<PublishResult, { ok: true }>;
+}) => {
+  const t = useTranslations("author.review.publish");
+  const format = useFormatter();
+  return (
+    <Notice
+      kind="info"
+      title={
+        result.with && result.with.length > 0
+          ? t("doneWith", {
+              item: itemName,
+              version: result.version,
+              tag: result.tag,
+              others: format.list(
+                result.with.map((m) => `${m.name} ${m.version}`),
+                { type: "conjunction" },
+              ),
+            })
+          : t("done", { item: itemName, version: result.version, tag: result.tag })
+      }
+    >
+      {/* biome-ignore lint/plugin: the hash's name and value, the same in every language */}
+      <span className="font-mono text-xs break-all">sha256 {result.sha256}</span>
+    </Notice>
+  );
+};
+
 /**
  * Releases an approved submission (feature 015): stable or pre-release, the bump for later
  * releases, the tag and optional notes. The version is previewed with the same rule the server
@@ -139,7 +172,6 @@ export const PublishDialog = ({
   published: string[];
 }) => {
   const t = useTranslations("author.review");
-  const format = useFormatter();
   const router = useRouter();
   const [open, setOpen] = useState(defaultOpen);
   const [kind, setKind] = useState<"stable" | "prerelease">("stable");
@@ -184,29 +216,7 @@ export const PublishDialog = ({
         >
           {result?.ok ? (
             <div className="grid gap-4">
-              <Notice
-                kind="info"
-                title={
-                  result.with && result.with.length > 0
-                    ? t("publish.doneWith", {
-                        item: itemName,
-                        version: result.version,
-                        tag: result.tag,
-                        others: format.list(
-                          result.with.map((m) => `${m.name} ${m.version}`),
-                          { type: "conjunction" },
-                        ),
-                      })
-                    : t("publish.done", {
-                        item: itemName,
-                        version: result.version,
-                        tag: result.tag,
-                      })
-                }
-              >
-                {/* biome-ignore lint/plugin: the hash's name and value, the same in every language */}
-                <span className="font-mono text-xs break-all">sha256 {result.sha256}</span>
-              </Notice>
+              <PublishedNotice itemName={itemName} result={result} />
               <DialogActions>
                 <Link href={versionsHref} className={buttonClasses("secondary")}>
                   {t("publish.viewVersions")}

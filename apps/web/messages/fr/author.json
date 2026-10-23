@@ -605,7 +605,7 @@
       "statusRequested": "Modifications demandées pour {name}."
     },
     "dependents": {
-      "legend": "{count, plural, one {1 soumission en dépend} other {# soumissions en dépendent}}",
+      "legend": "{count, plural, one {# soumission en dépend} other {# soumissions en dépendent}}",
       "line": "({status}, par {author})",
       "lineRefused": "({status}, par {author}) : {reason}",
       "sendBack": "Leur demander aussi des modifications",
@@ -637,13 +637,13 @@
       "notes": "Notes de version (facultatif)",
       "preview": "Publie <mono>{item}</mono> <strong>{version}</strong> comme <mono>{tag}</mono>. Les versions ne changent jamais une fois publiées.",
       "badPre": "Cela ne donne pas de nouvelle version : un identifiant de préversion contient des lettres minuscules et des chiffres, et commence par une lettre.",
-      "stuck": "{name} n’obtient pas de version ainsi : il ne peut pas être publié avec de cette façon.",
+      "stuck": "{name} n’obtient pas de version ainsi : il ne peut pas être publié en même temps de cette façon.",
       "cancel": "Annuler",
       "submit": "Publier {version}",
       "withOne": "Publié avec :",
       "withMany": "Publiés avec, ces {count, number} :",
       "withLabel": "Publiés avec",
-      "suggested": "Suggéré : <strong>{bump, select, major {major} minor {minor} other {patch}}</strong>, parce que {reasons}."
+      "suggested": "Suggéré : <strong>{bump, select, major {major} minor {minor} other {patch}}</strong>, car {reasons}."
     },
     "tagProblem": {
       "format": "Une étiquette fait de 1 à 32 lettres minuscules, chiffres et traits d’union, et commence par une lettre.",
