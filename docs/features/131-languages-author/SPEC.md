@@ -1,0 +1,131 @@
+# 131 — Languages: author and review
+
+> Milestone: M19 · Depends on: 129, 130 · Design: [MVP §15](../../MVP/MVP.md#15-decision-log) · Contracts: none changed (the web app only; the API, `rmk` and MCP stay in English)
+
+## Goal
+
+The screens people use to **write, review and release** items speak the person's language: Propose
+item and the draft editor (form, YAML, files, the dependency canvas), My submissions, Reviews and a
+review's page, the item page's Files and Versions tabs, and the bulk submit, approve and release
+dialogs. 129 built the machinery and 130 the browse screens; this feature moves these screens over,
+in Portuguese and French beside English. Nothing about what the screens do changes.
+
+## Scope
+
+**In:**
+- **Shared pieces** (`components/submissions`, `components/files`, `components/code`,
+  `components/validation`, `components/risk-flags`, `components/tools`, `components/markdown`,
+  `components/dependency-canvas`): the status badges (`statusLabel` becomes messages; 130 left them
+  here), the proposal badges, the dependency marks, the Files tab and file viewer, the file tree
+  and code editor's labels, the issues popover and list (their labels and counts), the risk summary
+  (its labels), the dependency canvas's node text and controls.
+- **Propose item and the draft editor** (`features/draft-editor`, `app/(app)/submissions/new`,
+  `app/(app)/submissions/[id]`, `features/manifest-validation`): the new-draft form, the manifest
+  form (field labels, hints, placeholders, `manifest-fields.ts`), the YAML view, the file dialogs
+  (add, rename, delete, upload, zip import), the proposal bar, the submit dialogs and their preview
+  (`submit-preview.ts`), the composer canvas and the dependency picker, "As of your last save" and
+  the other editor notices.
+- **My submissions** (`features/submissions`, `app/(app)/submissions/page.tsx`): the table, its
+  filters, the archived actions, bulk submit.
+- **Reviews** (`features/reviews`, `app/(app)/reviews/**`): the queue (table, status, filters),
+  bulk approve, a review's page (decision bar, conversation and comment form, proposal changes,
+  the review's files, the publish dialog, release groups).
+- **Versions and releases** (`features/versions`, `features/releases`, the item page's `actions.ts`
+  and `tabs.ts` where they still hold text): the Versions tab, its change dialog (tag, deprecate,
+  yank), bulk release.
+- **What the actions say.** The success lines and errors of the action files above, as codes or
+  `errorText` (129). `errors.json` gets the submissions domain's classes (44, the base class
+  aside) and the items domain's that these screens can raise (`ItemNotFoundError`,
+  `VersionNotFoundError`, `TagRuleError`, `VersionMessageError`, `VersionDependsOnPrivateError`,
+  `ArtifactUnavailableError`), in all three languages, with their lists and plurals.
+- **Inline helpers.** The 27 `Help` entries these screens show move to `help.json`: `scope`,
+  `item-name`, `name`, `type`, `manifest`, `canvas`, `submit-together`, `submit-many`, `risk`,
+  `decisions`, `bump`, `tag`, `deprecate-yank`, `export`, `approve-many`, `withdraw`, `archived`,
+  `queue-decisions`, `add-dependency`, `version-range`, `which-bump`, `release-many`, `waits-on`,
+  `dependents-listed`, `ready`, `personal-review`, `after-submit`.
+- **Guards.** The folders above join the raw-text scan (`biome.json` overrides); their routes join
+  `MIGRATED_ROUTES` (`/submissions`, `/submissions/new`, `/submissions/[id]`, `/reviews`,
+  `/reviews/[id]`), so the phone sweep runs them in Portuguese and French; a component test per area
+  in three languages, with the English-leak guard; a test per new error class.
+
+**Out** (and where it goes instead):
+- **The messages `@ronneai/core` writes**: the manifest checks (`ManifestIssue.message`, 37 codes
+  plus the schema's), the risk flags' sentences and the renderers' warnings. `rmk validate` and
+  the registry print the same text, and the API returns it, so it stays English in every language,
+  shown as it comes inside a translated frame. See Decisions.
+- Admin pages, Admin › Scopes and Workspaces (the scope's dialogs, `InvalidScopeNameError`,
+  `ScopeNameTakenError`), settings, setup, SSO and SCIM, the remaining helpers: 132.
+- Item content, what people write (descriptions, review comments, release notes, file contents)
+  and names: stay as authored.
+- Native-speaker review of the new Portuguese and French: 133.
+
+## Behaviour
+
+- **No visible change in English.** Every English text stays as it is, except where it joined
+  pieces in code and has to become a whole sentence; there the English reads the same.
+- **Whole sentences** with placeholders, ICU plurals and `select` (129, 130): "{n} files",
+  "Submit {count} drafts together", "Waits on {name}", a status inside a sentence. A sentence with
+  a link or a `<code>` uses rich-text tags (`<mono>…</mono>`), never a split around the element.
+- **Statuses** (draft, submitted, changes requested, approved, rejected, withdrawn, published) are
+  one set of messages, used by the badge, the filters and the sentences that name a status.
+- **Item types and file paths** stay as `rmk` prints them (130's rule): `ronne.yaml`, `SKILL.md`,
+  `skill`, `mcp-server`.
+- **Version numbers, tags and ranges** (`1.2.0`, `latest`, `^1.0.0`) are data: inserted as given.
+- **Bump names** (major, minor, patch) are translated as words where a sentence uses them, with
+  the semver term beside them where the screen teaches it (the glossary has them).
+- **Core's messages** show as they come, in English, inside the translated list (its heading,
+  counts, severities and "line {n}" are messages). They keep their `backticked` names as code.
+- **Errors.** A known error shows its translation; an error with no translation shows the English
+  message (never a blank). The API's messages are unchanged.
+
+## Edge cases
+
+- Long Portuguese and French labels in the editor's toolbar, the decision bar and the bulk
+  dialogs must not break the layout on a phone: the sweep runs these pages in each language.
+- A draft's name, a scope, a version or a path inside a translated sentence is data, shown as
+  typed even if it looks like a placeholder (`{x}`).
+- Counts of 0, 1 and 2 follow each language's plural rule (tests check all three).
+- The editor's unsaved-changes guard (the browser's own "leave page?" prompt) is the browser's
+  text and follows the browser's language, not the app's; nothing to do.
+- A deep link to a draft, a review or a version keeps working in every language; no URL changes.
+
+## Documentation
+
+- **Items (proposing and the editor), Export, Review, Versions, Changes** (`items.tsx`,
+  `export.tsx`, `review.tsx`, `versions.tsx`, `changes.tsx` in ronne-web): the Portuguese and French pages take the new names of the labels they mention, from the
+  message files; English is unchanged. No new topic or section, so neither `topics.ts` changes.
+- **Helpers:** the 27 entries above are now in three languages; no new helper.
+- `docs/knowledge/i18n.md`: the glossary gains the words these screens add (draft, submit,
+  withdraw, request changes, approve, reject, release, bump, deprecate, yank, tag, dependency,
+  version range).
+
+## Acceptance criteria
+
+- [ ] Propose item, the draft editor (form, YAML, files, canvas), My submissions, Reviews and a
+      review's page, the item page's Files and Versions tabs, and the bulk dialogs render in
+      English, Portuguese and French with no English text left over (core's messages and data
+      aside), on desktop and on a phone.
+- [ ] The raw-text scan covers every folder listed in Scope and passes; the phone sweep runs their
+      routes in Portuguese and French.
+- [ ] Every action in scope returns a code or a translated message; the submissions errors and the
+      items errors listed have a text in all three languages (a test for each class, with 0/1/2
+      counts and lists where they have them); the API's messages are unchanged.
+- [ ] The 27 helpers read in the person's language and their links open the website's page in it.
+- [ ] The key-parity and placeholder tests pass.
+- [ ] The Portuguese and French Documentation pages name these screens' labels as the app does.
+
+## Decisions
+
+- **Core's messages stay English** (Claude, proposed 2026-10-23): `ManifestIssue.message`, the
+  risk flags and the renderers' warnings come from `@ronneai/core`, which `rmk` and the API share;
+  translating them would mean a code-to-message table for about 40 codes plus the JSON schema's
+  messages, kept beside core's. The frame around them is translated. 133 can revisit it with the
+  native reviewers.
+- **The rest follows 130's decisions**: the actions say their own words (success lines from
+  `getTranslations`, errors from `errorText`); the helpers move by area; type names stay as `rmk`
+  prints them.
+
+## Open questions
+
+- **Core's messages:** keep them English (proposed above), or translate them by code in this
+  feature?
