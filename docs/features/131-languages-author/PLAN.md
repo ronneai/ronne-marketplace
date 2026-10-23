@@ -100,10 +100,11 @@ as the owner's rule says. Accepted limits:
   (Behaviour).
 - `InvalidStatusTransitionError`'s English changed for reject, request changes and override (a fix
   of "rejectd", "request changesd", "overrided"); the API says the new words too.
-- Two prose choices on the website differ from the app's labels, for 133's native reader to settle
-  across every page: French prose says « revue » for a review (the app and the glossary say
+- **Follow-up for 133** (owner, 2026-10-23, moved out of task 13): two prose choices on the
+  website differ from the app's labels, for 133's native reader to settle across every page: French prose says « revue » for a review (the app and the glossary say
   « révision »), and pt/fr prose says "proposta de mudança" / « proposition de changement » (the app
   says "proposta de alteração" / « proposition de modification »). Labels the pages quote are the
-  app's.
+  app's. *Done when:* ronne-web's translation guide has one rule for each, and every pt and fr page
+  follows it.
 - The phone sweep's allowance for `/submissions/new` (072) is from before this feature and stays.
 
