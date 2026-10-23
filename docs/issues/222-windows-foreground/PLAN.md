@@ -13,7 +13,7 @@ the same change that completes it.
   with `cmd /c start`. `serviceTarget` refuses `win32` with the Windows line. *Done when:*
   `platform.test.ts`, `paths.test.ts` and the service tests cover each row of the spec's
   Behaviour that runs without Windows, and `pnpm --filter @ronneai/marketplace test` passes.
-- [ ] **2. Windows in CI.** `server-checks.yml`'s install matrix runs on `windows-latest` (Node 22
+- [x] **2. Windows in CI.** `server-checks.yml`'s install matrix runs on `windows-latest` (Node 22
   and 24); `server-probe.js` gets back its Windows branches and checks the `service` refusal
   there; the Refuses Windows job goes; `release.yml`'s comments and notes follow. *Done when:* the
   pull request's Install and run jobs pass on Windows (a run on GitHub; the owner pushes).

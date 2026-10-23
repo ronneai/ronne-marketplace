@@ -166,6 +166,16 @@ Witnessed: 2026-10-22 22:41 EDT, by a fresh agent (blind). Commit: 159a9fed. Mac
 
 **Overall:** not met: row 6 waits for the GitHub run after the owner pushes; everything else holds.
 
+### Re-check 2 (blind): row 6, the GitHub run
+
+Witnessed: 2026-10-22 23:38 EDT, by a fresh agent (blind). Commit: 48273fa4. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6 | The Install and run jobs pass on Windows, Node 22 and 24 (a run on GitHub) | no | confirmed | `gh run view 39895459442 --json headSha,jobs` → "Server package" on fix/222-windows-foreground, head 166fcb77, success, all 17 jobs passed, both `windows-latest` Install and run jobs included. `git diff --stat 166fcb77 48273fa4` → only PLAN.md, WITNESS.md and the issues index, so the CI and probe code are what ran. `gh run view 39895459442 --log` → both Windows jobs run `server-probe.js` and print "rmk-server --version: 0.5.0 (Node 22.23.3, win32 x64)" / "(Node 24.21.0, win32 x64)", "Windows: the terminal-only note at start; service status refused, exit 1", then health, setup, sign-in, revoke-access, rotate-secret, backup, the STORAGE refusal, the port freed, restore. PR #230's own run (39896074397) was still in progress |
+
+**Overall:** met: the run on this branch's code passed Install and run on Windows with Node 22 and 24, with the probe's Windows checks in the logs.
+
 ## Task 3 — Repository docs
 
 Witnessed: 2026-10-22 22:39 EDT, by a fresh agent (blind). Commit: 5ebc96d8. Machine: macOS 27.0.1, Node v24.0.0.
