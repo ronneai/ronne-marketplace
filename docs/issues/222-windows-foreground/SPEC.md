@@ -53,8 +53,9 @@ setup. For a server that starts at boot, Windows still uses WSL 2 or a Linux vir
   prints. The scripts don't look for a service there (none can exist) and run on the data folder.
 - **CI:** `server-checks.yml` adds `windows-latest` (Node 22 and 24) to the install matrix, which
   runs `server-probe.js` there: start, setup, sign-in, `revoke-access`, `rotate-secret`, backup and
-  restore, the port free after stopping. The probe gets back its Windows branches (npm's `.cmd`
-  through a shell, `taskkill` for the tree, the case-insensitive `--out` check) and checks the
+  restore, the port free after stopping. The probe gets back its Windows branches (`taskkill` for
+  the tree, the case-insensitive `--out` check; npm's `.cmd` isn't run through a shell any more:
+  the probe runs the package's `bin.js` with Node, `docs/knowledge/codeql-shell.md`) and checks the
   `service` refusal on Windows. The **Refuses Windows** job goes. `release.yml`'s comments and
   notes say what's above.
 

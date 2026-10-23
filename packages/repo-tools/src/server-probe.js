@@ -10,12 +10,20 @@
 // account and a stored file come back the same.
 // Then it stops it and checks the port is free. On Windows, the start's terminal-only note and the
 // `service` refusal (#222). Used by the server-package workflow on Ubuntu, macOS and Windows.
-import { execFileSync, execSync, spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { delimiter, join } from "node:path";
 import { parseEnv } from "node:util";
 
 const command = process.argv[2] ?? "rmk-server";
@@ -23,13 +31,23 @@ const work = mkdtempSync(join(tmpdir(), "rmk-server-probe-"));
 const dataDir = join(work, "data");
 const windows = process.platform === "win32";
 const options = (env, dir = dataDir) => ({ env: { ...process.env, ...env, RONNE_DATA_DIR: dir } });
-// npm installs a .cmd on Windows, which only a shell can start. The shell gets one command line:
-// passing arguments separately with `shell: true` is deprecated (DEP0190).
-const line = (args) => [`"${command}"`, ...args].join(" ");
-const runSync = (args, opts) =>
-  windows ? execSync(line(args), opts) : execFileSync(command, args, opts);
-const start = (args, opts) =>
-  windows ? spawn(line(args), { ...opts, shell: true }) : spawn(command, args, opts);
+/**
+ * On Windows, npm's `rmk-server.cmd` only starts through a shell, and a shell command line with
+ * this run's paths in it is what CodeQL flags (docs/knowledge/codeql-shell.md). So the probe runs
+ * the package that `.cmd` starts, with this Node and no shell: the global install's
+ * `node_modules/@ronneai/marketplace/dist/bin.js`, beside the `.cmd` on PATH.
+ */
+const windowsEntry = () => {
+  for (const dir of (process.env.PATH ?? "").split(delimiter)) {
+    if (!dir || !existsSync(join(dir, `${command}.cmd`))) continue;
+    const entry = join(dir, "node_modules", "@ronneai", "marketplace", "dist", "bin.js");
+    if (existsSync(entry)) return entry;
+  }
+  throw new Error(`no ${command}.cmd on PATH with @ronneai/marketplace beside it`);
+};
+const [program, prefix] = windows ? [process.execPath, [windowsEntry()]] : [command, []];
+const runSync = (args, opts) => execFileSync(program, [...prefix, ...args], opts);
+const start = (args, opts) => spawn(program, [...prefix, ...args], opts);
 
 const freePort = () =>
   new Promise((resolve) => {
@@ -49,7 +67,7 @@ const portFree = (port) =>
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/** Stops the server and everything it started: on Windows the shell's whole tree. */
+/** Stops the server and everything it started: on Windows its whole process tree. */
 const stop = (child) => {
   if (windows) {
     try {
