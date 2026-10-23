@@ -7,6 +7,7 @@ import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogActions } from "@/components/ui/Dialog";
 import { FieldError, inputClasses, Label } from "@/components/ui/Field";
+import { useBytes } from "@/i18n/bytes";
 import { deleteDraftAction, importZipAction, renameDraftAction } from "./actions";
 import type { PathIssue } from "./files";
 
@@ -25,6 +26,49 @@ export const usePathWords = () => {
         return t(issue.kind);
     }
   };
+};
+
+/** Why an upload is refused: too large, with its size and the limit, in the language (131). */
+export const useTooBig = () => {
+  const t = useTranslations("author.editor");
+  const bytes = useBytes();
+  return (name: string, size: number, max: number) =>
+    t("tooBig", { name, size: bytes(size), max: bytes(max) });
+};
+
+type PathDialogProps = {
+  initial: string;
+  problem: (path: string) => string | null;
+  onDone: (path: string) => void;
+  onClose: () => void;
+};
+
+/** New file or new folder: the path of the file, or of a folder's first file. */
+export const NewPathDialog = ({ folder, ...props }: PathDialogProps & { folder: boolean }) => {
+  const t = useTranslations("author.editor");
+  return (
+    <PathDialog
+      title={t(folder ? "newFolderTitle" : "newFileTitle")}
+      label={t(folder ? "folderLabel" : "pathLabel")}
+      hint={t(folder ? "folderHint" : "fileHint")}
+      confirm={t("create")}
+      {...props}
+    />
+  );
+};
+
+/** Rename a file: its new path, which may move it into a folder. */
+export const RenamePathDialog = (props: PathDialogProps) => {
+  const t = useTranslations("author.editor");
+  return (
+    <PathDialog
+      title={t("renameTitle")}
+      label={t("newPath")}
+      hint={t("renameHint")}
+      confirm={t("rename")}
+      {...props}
+    />
+  );
 };
 
 /** New file, new folder and rename: one path, checked as it's typed. */

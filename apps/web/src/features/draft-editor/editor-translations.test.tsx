@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import type { ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
@@ -11,9 +12,17 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn(), push: 
 vi.mock("./actions", () => ({}));
 vi.mock("./dependency-picker/actions", () => ({ findDependenciesAction: vi.fn() }));
 
-const { DraftEditor } = await import("./DraftEditor");
-const { DeleteFileDialog, DraftSettingsDialog, ImportZipDialog, PathDialog, usePathWords } =
-  await import("./FileDialogs");
+const { DraftEditor, SavedLine } = await import("./DraftEditor");
+const {
+  DeleteFileDialog,
+  DraftSettingsDialog,
+  ImportZipDialog,
+  NewPathDialog,
+  PathDialog,
+  RenamePathDialog,
+  usePathWords,
+  useTooBig,
+} = await import("./FileDialogs");
 const {
   DeleteArchivedDialog,
   GroupList,
@@ -233,7 +242,109 @@ describe("the editor's header, toolbar and status in three languages", () => {
   });
 });
 
+describe("the editor's counts and times in three languages", () => {
+  it("names Submit with 0, 1 and 2 more drafts in each language", () => {
+    const label = (l: Locale, count: number) =>
+      grab(l, useSubmitWords).label(
+        false,
+        Array.from({ length: count }, (_, i) => member(`@t/${i}`)),
+      );
+    expect([0, 1, 2].map((n) => label("en", n))).toEqual([
+      "Submit for review",
+      "Submit with 1 more draft",
+      "Submit with 2 more drafts",
+    ]);
+    expect([0, 1, 2].map((n) => label("pt", n))).toEqual([
+      "Submeter para revisão",
+      "Submeter com mais 1 rascunho",
+      "Submeter com mais 2 rascunhos",
+    ]);
+    expect([0, 1, 2].map((n) => label("fr", n))).toEqual([
+      "Soumettre pour révision",
+      "Soumettre avec 1 autre brouillon",
+      "Soumettre avec 2 autres brouillons",
+    ]);
+  });
+
+  it("heads the group with 1 and 2 drafts in each language", () => {
+    const heading = (l: Locale, count: number) =>
+      view(
+        l,
+        <GroupList
+          itemName="@t/a"
+          members={Array.from({ length: count }, (_, i) => member(`@t/${i}`))}
+        />,
+      ).match(/<h3[^>]*>([^<]+)<\/h3>/)?.[1];
+    expect([1, 2].map((n) => heading("en", n))).toEqual([
+      "Goes with 1 of your drafts:",
+      "Goes with 2 of your drafts:",
+    ]);
+    expect([1, 2].map((n) => heading("pt", n))).toEqual([
+      "Vai junto com 1 dos seus rascunhos:",
+      "Vai junto com 2 dos seus rascunhos:",
+    ]);
+    expect([1, 2].map((n) => heading("fr", n))).toEqual([
+      "Part avec 1 de vos brouillons :",
+      "Part avec 2 de vos brouillons :",
+    ]);
+  });
+
+  it("counts errors and files with 1 and 2 in each language", () => {
+    const errors = (l: Locale, count: number) =>
+      grab(l, () => useTranslations("author.editor"))("notReadyErrors", { count });
+    expect([1, 2].map((n) => errors("en", n))).toEqual([
+      "Fix the error first.",
+      "Fix the 2 errors first.",
+    ]);
+    expect([1, 2].map((n) => errors("pt", n))).toEqual([
+      "Corrija o erro primeiro.",
+      "Corrija os 2 erros primeiro.",
+    ]);
+    expect([1, 2].map((n) => errors("fr", n))).toEqual([
+      "Corrigez d’abord l’erreur.",
+      "Corrigez d’abord les 2 erreurs.",
+    ]);
+  });
+
+  it("says when it saved, on the reader's own clock", () => {
+    const at = new Date("2026-10-23T15:10:05Z");
+    for (const l of ["en", "pt", "fr"] as const) {
+      const local = new Intl.DateTimeFormat(l, { timeStyle: "medium" }).format(at);
+      expect(view(l, <SavedLine at={at} withErrors={false} />), l).toContain(local);
+    }
+    expect(view("pt", <SavedLine at={at} withErrors={false} />)).toContain("Salvo às ");
+    expect(view("fr", <SavedLine at={at} withErrors />)).toContain(
+      "Corrigez ses erreurs avant de le soumettre",
+    );
+  });
+
+  it("says an upload is too large, with sizes in the language", () => {
+    const tooBig = (l: Locale) => grab(l, useTooBig)("{x}.bin", 3 * 1024 * 1024, 1024 * 1024);
+    expect(tooBig("en")).toBe("{x}.bin is 3 MB; a file can be at most 1 MB.");
+    expect(tooBig("pt")).toBe("{x}.bin tem 3 MB; um arquivo pode ter no máximo 1 MB.");
+    expect(tooBig("fr")).toBe("{x}.bin fait 3 Mo; un fichier peut faire au plus 1 Mo.");
+  });
+});
+
 describe("the editor's dialogs in three languages", () => {
+  it("words the new file, new folder and rename dialogs", () => {
+    const props = { initial: "", problem: () => null, onDone: () => {}, onClose: () => {} };
+    const newFile = (l: Locale, folder: boolean) =>
+      view(l, <NewPathDialog folder={folder} {...props} />);
+    expect(newFile("en", false)).toContain(">New file<");
+    expect(newFile("pt", false)).toContain(">Novo arquivo<");
+    expect(newFile("pt", false)).toContain(">Caminho<");
+    expect(newFile("pt", false)).toContain("Use / para pastas, como docs/usage.md.");
+    expect(newFile("pt", false)).toContain(">Criar<");
+    expect(newFile("fr", true)).toContain(">Nouveau dossier<");
+    expect(newFile("fr", true)).toContain(">Dossier et premier fichier<");
+    const rename = (l: Locale) => view(l, <RenamePathDialog {...props} initial="a.md" />);
+    expect(rename("pt")).toContain(">Renomear arquivo<");
+    expect(rename("pt")).toContain(">Novo caminho<");
+    expect(rename("fr")).toContain("Utilisez / pour le déplacer dans un dossier.");
+    expect(rename("fr")).toContain(">Renommer<");
+  });
+
   it("words the path, delete, import and settings dialogs", () => {
     const path = view(
       "pt",
@@ -385,6 +496,25 @@ for (const locale of ["pt", "fr"] as const) {
           feedback: { kind: "request_changes", by: "Rae", at: T1, body: null },
         }),
         view(locale, <DeleteFileDialog path="a.md" onDone={() => {}} onClose={() => {}} />),
+        view(
+          locale,
+          <NewPathDialog
+            folder
+            initial=""
+            problem={() => null}
+            onDone={() => {}}
+            onClose={() => {}}
+          />,
+        ),
+        view(
+          locale,
+          <RenamePathDialog
+            initial="a.md"
+            problem={() => null}
+            onDone={() => {}}
+            onClose={() => {}}
+          />,
+        ),
         view(locale, <ImportZipDialog draftId="d" dirty={false} onClose={() => {}} />),
         view(
           locale,

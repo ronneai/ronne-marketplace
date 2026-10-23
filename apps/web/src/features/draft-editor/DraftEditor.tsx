@@ -12,15 +12,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useFormatter, useTranslations } from "next-intl";
-import {
-  type ReactNode,
-  useCallback,
-  useMemo,
-  useReducer,
-  useRef,
-  useState,
-  useTransition,
-} from "react";
+import { useCallback, useMemo, useReducer, useRef, useState, useTransition } from "react";
 import { CodeEditor } from "@/components/code/CodeEditor";
 import { FileTree } from "@/components/code/FileTree";
 import type { Mentions } from "@/components/code/mentions";
@@ -53,8 +45,10 @@ import {
   DeleteFileDialog,
   DraftSettingsDialog,
   ImportZipDialog,
-  PathDialog,
+  NewPathDialog,
+  RenamePathDialog,
   usePathWords,
+  useTooBig,
 } from "./FileDialogs";
 import {
   changesOf,
@@ -156,6 +150,25 @@ const folderOf = (path: string) =>
 const toolClasses =
   "inline-flex items-center gap-1.5 rounded-control px-2 py-1 text-xs text-muted hover:bg-tint hover:text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus";
 
+/**
+ * After a save: when, on the reader's own clock as the browser tells it (the provider's zone is
+ * the server's), and whether errors are left to fix before submitting.
+ */
+export const SavedLine = ({ at, withErrors }: { at: Date; withErrors: boolean }) => {
+  const t = useTranslations("author.editor");
+  const format = useFormatter();
+  const time = format.dateTime(at, {
+    timeStyle: "medium",
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  });
+  return (
+    <>
+      <span className="mr-2 font-mono text-xs font-semibold">{t("ok")}</span>
+      {t(withErrors ? "savedWithErrors" : "savedAt", { time })}
+    </>
+  );
+};
+
 /** Which read-only notice a draft gets, for each status the author can't edit (013, 058). */
 const readOnlyKind = (draft: EditorDraft) =>
   !draft.mine
@@ -255,9 +268,9 @@ export const DraftEditor = ({
   const formText = useTranslations("author.form");
   const fieldText = useTranslations("common.field");
   const t = useTranslations("author.editor");
-  const format = useFormatter();
   const bytes = useBytes();
   const pathWords = usePathWords();
+  const tooBig = useTooBig();
   const submitWords = useSubmitWords();
   const [state, dispatch] = useReducer(filesReducer, { files: draft.files, removed: [] });
   const [selected, setSelected] = useState(initialPath);
@@ -438,11 +451,7 @@ export const DraftEditor = ({
       if (chosen.size > limits.maxFileBytes) {
         setStatus({
           kind: "error",
-          message: t("tooBig", {
-            name: chosen.name,
-            size: bytes(chosen.size),
-            max: bytes(limits.maxFileBytes),
-          }),
+          message: tooBig(chosen.name, chosen.size, limits.maxFileBytes),
         });
         continue;
       }
@@ -577,15 +586,10 @@ export const DraftEditor = ({
         className={readOnly ? "sr-only" : "min-h-5 text-sm text-fg"}
       >
         {status?.kind === "saved" && !dirty ? (
-          <>
-            <span className="mr-2 font-mono text-xs font-semibold">{t("ok")}</span>
-            {t(
-              status.issues.some((issue) => issue.severity === "error")
-                ? "savedWithErrors"
-                : "savedAt",
-              { time: format.dateTime(status.at, { timeStyle: "medium" }) },
-            )}
-          </>
+          <SavedLine
+            at={status.at}
+            withErrors={status.issues.some((issue) => issue.severity === "error")}
+          />
         ) : status?.kind === "error" ? (
           <span className="text-error-text">
             <span className="mr-2 font-mono text-xs font-semibold">{fieldText("error")}</span>
@@ -805,12 +809,9 @@ export const DraftEditor = ({
 
       <UnsavedChangesGuard dirty={dirty} message={t("leave")} />
       {open?.kind === "new-file" ? (
-        <PathDialog
-          title={t(open.folder ? "newFolderTitle" : "newFileTitle")}
-          label={t(open.folder ? "folderLabel" : "pathLabel")}
-          hint={t(open.folder ? "folderHint" : "fileHint")}
+        <NewPathDialog
+          folder={open.folder}
           initial={open.folder ? "" : folderOf(file?.path ?? "")}
-          confirm={t("create")}
           problem={(path) => pathWords(newPathProblem(state, path))}
           onDone={(path) => {
             dispatch({ type: "put", path, encoding: "utf8", content: "" });
@@ -821,12 +822,8 @@ export const DraftEditor = ({
         />
       ) : null}
       {open?.kind === "rename" ? (
-        <PathDialog
-          title={t("renameTitle")}
-          label={t("newPath")}
-          hint={t("renameHint")}
+        <RenamePathDialog
           initial={open.path}
-          confirm={t("rename")}
           problem={(path) => pathWords(newPathProblem(state, path, open.path))}
           onDone={(path) => {
             dispatch({ type: "rename", from: open.path, to: path });
