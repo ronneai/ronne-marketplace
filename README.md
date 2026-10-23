@@ -228,9 +228,10 @@ sudo rmk-server service uninstall        # the data stays; --delete-data deletes
 - **Upgrading:** `npm install --global @ronneai/marketplace@latest`, then `sudo rmk-server service
   restart`. A Node.js moved or removed since the install needs `sudo rmk-server service install`
   again (`status` says so).
-- **Windows:** the server runs in WSL 2 or a Linux virtual machine, with the Linux steps there
-  (`rmk-server` refuses to run on Windows itself, and npm won't install it there); `rmk` and
-  `rmk-mcp` run on Windows itself (feature 121).
+- **Windows:** `npx @ronneai/marketplace` runs the server in a terminal, with no service
+  (best-effort; data in `%LOCALAPPDATA%\RonneAI\Marketplace`; #222). To run it at boot, use WSL 2
+  or a Linux virtual machine, with the Linux steps there. `rmk` and `rmk-mcp` run on Windows itself
+  (feature 121).
 - **No systemd** (a container, WSL 1, another init system): run `rmk-server start --no-open` under
   your own supervisor, or use Docker.
 

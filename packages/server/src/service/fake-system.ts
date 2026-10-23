@@ -5,6 +5,8 @@ export type FakeSystem = System & {
   files: Map<string, { content: string; mode: number }>;
   dirs: Map<string, number>;
   commands: string[];
+  /** The paths read or looked for (exists, readFile, isLink), in order. */
+  reads: string[];
   output: string[];
   errors: string[];
   /** Ports that are in use. */
@@ -37,6 +39,7 @@ export const fakeSystem = (
     files: new Map(),
     dirs: new Map(),
     commands: [],
+    reads: [],
     output: [],
     errors: [],
     busy: new Set(),
@@ -66,17 +69,27 @@ export const fakeSystem = (
       return 0;
     },
     which: (name) => (sys.files.has(`/usr/bin/${name}`) ? `/usr/bin/${name}` : undefined),
-    isLink: (path) => sys.links.has(path),
+    isLink: (path) => {
+      sys.reads.push(path);
+      return sys.links.has(path);
+    },
     sameFile: (a, b) => {
       const id = (path: string) => sys.aliases.get(path) ?? path;
       return sys.exists(id(a)) && id(a) === id(b);
     },
     // A folder exists when it was made or holds a file, as on a disk.
-    exists: (path) =>
-      sys.files.has(path) ||
-      sys.dirs.has(path) ||
-      [...sys.files.keys()].some((file) => inside(file, path)),
-    readFile: (path) => sys.files.get(path)?.content,
+    exists: (path) => {
+      sys.reads.push(path);
+      return (
+        sys.files.has(path) ||
+        sys.dirs.has(path) ||
+        [...sys.files.keys()].some((file) => inside(file, path))
+      );
+    },
+    readFile: (path) => {
+      sys.reads.push(path);
+      return sys.files.get(path)?.content;
+    },
     writeFile: (path, content, mode) => {
       sys.files.set(path, { content, mode });
     },

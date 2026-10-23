@@ -47,7 +47,8 @@ until you approve its "npm" environment.
         dependencies…", and "runs with its own Node.js, none on PATH". Their archives are the
         run's `bundle-*` artifacts.
   - [ ] *server-checks*, *install-scripts*, *database* and *e2e*: the server installed on Linux
-        and macOS on Node 22 and 24 and run as a service on each, refused on Windows, the install
+        and macOS on Node 22 and 24 and run as a service on each, run in a terminal on Windows
+        (and its `service` refused), the install
         script,
         every database test on PostgreSQL, MySQL and MariaDB, and the end-to-end tests. The
         GitHub release waits for them.

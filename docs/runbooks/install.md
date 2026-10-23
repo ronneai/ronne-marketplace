@@ -6,11 +6,12 @@
 > then. Built so far: Docker (080, 081), npm and its service (082, 083), the bundles (084), the
 > `.deb` and `.rpm` (085). On hold: the Homebrew tap. Withdrawn by
 > [121](../features/121-no-windows-server/SPEC.md): the Windows service (086), the Windows installer
-> and winget (087), and `install.ps1`.
+> and winget (087), and `install.ps1`. Since [#222](../issues/222-windows-foreground/SPEC.md),
+> `rmk-server` runs on Windows again, in a terminal only.
 
 Ronne AI Marketplace installs in one command on macOS and Linux, with Docker or without it, on your
-own machine or on a server with your domain and HTTPS. On Windows, it runs in WSL 2 or a Linux
-virtual machine ([below](#windows)).
+own machine or on a server with your domain and HTTPS. On Windows, it runs in a terminal with
+`npx`, or as a server in WSL 2 or a Linux virtual machine ([below](#windows)).
 
 ## Choose your way to install
 
@@ -23,7 +24,7 @@ Ronne.
 | Ronne on your own computer | No Docker | apt/dnf, as a service (Homebrew on hold) | `http://localhost:7650` |
 | Ronne for a team, on a server with a domain | Docker | The install script, answering "server" | `https://your-domain` |
 | Ronne for a team, no Docker | Linux server | The `.deb`/`.rpm` package, as a service | `https://your-domain` |
-| To try it once, without installing a service | Node.js 22+ | `npx @ronneai/marketplace` | `http://localhost:7650` |
+| To try it once, without installing a service | Node.js 22.12+ | `npx @ronneai/marketplace` | `http://localhost:7650` |
 
 Every way keeps your data (the database, stored items and settings) in one folder or volume, and
 runs database upgrades by itself when you upgrade Ronne. Ronne's commands are `rmk` (installing
@@ -239,11 +240,27 @@ Where things are, for a service installed with npm:
 
 ## Windows
 
-The server runs on Linux and macOS (feature [121](../features/121-no-windows-server/SPEC.md)). On
-Windows, run it in **WSL 2** or a Linux virtual machine, and follow the Linux steps there:
+On Windows, Ronne runs two ways.
+
+**In a terminal, on Windows itself** (best-effort; [#222](../issues/222-windows-foreground/SPEC.md)).
+With Node.js 22.12 or later, in PowerShell:
+
+```powershell
+npx @ronneai/marketplace
+```
+
+It runs while the terminal is open, with no service: nothing starts it at boot, and `rmk-server
+service` refuses on Windows. The data lives in `%LOCALAPPDATA%\RonneAI\Marketplace` (or
+`RONNE_DATA_DIR`), where 0.3.x kept it, so an instance started with `npx` on 0.3.x upgrades in
+place. `npx @ronneai/marketplace reset-root-password` and the other commands run on the same data.
+It's checked in CI, but not a production setup. A Windows service from 0.3.x is removed with
+`npx @ronneai/marketplace@0.3.2 service uninstall`, in a terminal opened as administrator.
+
+**As a server, in WSL 2 or a Linux virtual machine**, following the Linux steps there:
 
 ```powershell
 wsl --install          # in PowerShell as administrator: WSL 2 with Ubuntu; restart when it asks
+wsl --install -d Ubuntu   # when WSL is there with no Linux distribution (wsl -l -v lists none)
 ```
 
 Then, in the Ubuntu terminal, use the install script (with Docker Desktop's WSL integration on, or
@@ -253,8 +270,7 @@ under `[boot]` in `/etc/wsl.conf` and run `wsl --shutdown` in PowerShell. Window
 in WSL at `http://localhost:7650`.
 
 `rmk` and the MCP server run on Windows itself, where your AI tools are:
-`npm install --global @ronneai/rmk @ronneai/mcp` in PowerShell. Installing `@ronneai/marketplace`
-there stops with npm's `EBADPLATFORM`, and `rmk-server` points here.
+`npm install --global @ronneai/rmk @ronneai/mcp` in PowerShell.
 
 ## After installing
 
@@ -308,7 +324,8 @@ folder is kept unless you delete it.
 | The domain doesn't open, or the browser warns about the certificate | Check that the domain's DNS points at this server (`nslookup ronne.example.com`), that ports 80 and 443 are open, and read the proxy's log: `docker compose logs proxy` |
 | "Permission denied" on the data folder | Docker: `docker compose run --rm --user root web chown -R 1000:1000 /app/data`. Service: run `sudo rmk-server service install` again, which fixes the owner |
 | Forgot the root password | `docker compose exec web pnpm run reset-root-password`, or `sudo rmk-server reset-root-password` |
-| "rmk-server runs on Linux and macOS" (on Windows) | Run the server in WSL 2 or a Linux VM: [Windows](#windows) |
+| "service isn't available on Windows" | On Windows, `rmk-server` runs in a terminal only. To start it at boot, run it in WSL 2 or a Linux VM: [Windows](#windows) |
+| `EBADPLATFORM` on Windows | `@ronneai/marketplace` 0.4.0 and 0.5.0 didn't install on Windows; use a later version: [Windows](#windows) |
 
 **Where the logs are:** Docker: `docker compose logs web` (and `proxy`). Service:
 `sudo rmk-server service logs`; underneath, `journalctl -u rmk-server` on Linux, and

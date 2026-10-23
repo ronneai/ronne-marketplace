@@ -1,8 +1,8 @@
 name: Clients on Windows
 
 # Reusable (121): the commands people run on Windows, `rmk` and `rmk-mcp`, with @ronneai/core under
-# them, built and tested on Windows. The server doesn't run there (WSL 2 or a Linux VM instead),
-# so this is the only Windows check. Called by ci.yml (`run` from changes.yml: a pull request that
+# them, built and tested on Windows (the server's Windows check, in a terminal since #222, is in
+# server-checks.yml). Called by ci.yml (`run` from changes.yml: a pull request that
 # changes these packages, or the shared files; every push to main) and by nightly.yml.
 on:
   workflow_call:

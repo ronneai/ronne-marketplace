@@ -1,5 +1,6 @@
 // `rmk-server service …` (feature 083): picks the system's backend and runs the action.
 
+import { WINDOWS_HELP } from "../platform.js";
 import { SERVICE_HELP, type ServiceCommand } from "./args.js";
 import { controlService, serviceLogs, serviceStatus } from "./control.js";
 import { type Backend, type InstallContext, installService, uninstallService } from "./install.js";
@@ -14,6 +15,11 @@ export const serviceTarget = (
   program: { node: string; entry: string; version: string },
   asUser = false,
 ): { backend: Backend; context: InstallContext } | { error: string } => {
+  // On Windows it runs in a terminal only (#222; the service went with 121).
+  if (sys.platform === "win32")
+    return {
+      error: `service isn't available on Windows. Run rmk-server start in a terminal, or run Ronne in WSL 2 or Linux to start it at boot: ${WINDOWS_HELP}`,
+    };
   if (asUser && sys.platform !== "darwin")
     return {
       error: "--user is for macOS; on Linux the service always has its own account.",

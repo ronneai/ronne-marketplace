@@ -4,7 +4,7 @@ import { dataDir } from "./paths.js";
 
 describe("rmk-server's data folder (082)", () => {
   it("uses RONNE_DATA_DIR on every system", () => {
-    for (const platform of ["darwin", "linux"] as const)
+    for (const platform of ["darwin", "linux", "win32"] as const)
       expect(dataDir(platform, { RONNE_DATA_DIR: "/srv/ronne" }, "/home/me")).toBe("/srv/ronne");
   });
 
@@ -23,6 +23,18 @@ describe("rmk-server's data folder (082)", () => {
     );
     expect(dataDir("freebsd", {}, "/home/me")).toBe(
       join("/home/me", ".local", "share", "rmk-server"),
+    );
+  });
+
+  it("Windows: 0.3.2's folder under LOCALAPPDATA, else under the home folder (#222)", () => {
+    expect(
+      dataDir("win32", { LOCALAPPDATA: "C:\\Users\\me\\AppData\\Local" }, "C:\\Users\\me"),
+    ).toBe("C:\\Users\\me\\AppData\\Local\\RonneAI\\Marketplace");
+    expect(dataDir("win32", { LOCALAPPDATA: "D:\\Data" }, "C:\\Users\\me")).toBe(
+      "D:\\Data\\RonneAI\\Marketplace",
+    );
+    expect(dataDir("win32", {}, "C:\\Users\\me")).toBe(
+      "C:\\Users\\me\\AppData\\Local\\RonneAI\\Marketplace",
     );
   });
 });
