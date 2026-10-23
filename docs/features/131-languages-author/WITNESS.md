@@ -335,3 +335,46 @@ Witnessed: 2026-10-23 14:22 EDT, by a fresh agent (blind). Commit: ac946c4d. Mac
 | 14 | The reviews tests pass, tree clean | no | confirmed | 70 passed; `git status` empty |
 
 **Overall:** met.
+
+## Task 9 — Versions and releases
+
+Witnessed: 2026-10-23 14:28 EDT, by a fresh agent (blind). Commit: b765d0b3. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The task's tests pass | no | confirmed | 12 files, 143 passed; i18n 169 passed |
+| 2 | `VersionsTab`, `VersionControls` and `ChangeDialog` speak pt and fr, with tests | no | confirmed | All dialogs rendered open in pt and fr with a no-English check; an English `unyankText` fails it |
+| 3 | `BulkRelease` speaks pt and fr, with three-language tests | no | partly | The dialog opened from the toolbar (title, submit, together, cancel, done, disabled reasons) never rendered in pt or fr; mutations there passed |
+| 4 | Plan problems carry a `code` the screen words | no | confirmed | `release-plan.ts` `code` and `tag`; English `problem` kept; mutations fail |
+| 5 | No visible change in English | no | confirmed | Every removed literal matches `en/author.json` |
+| 6 | Counts of 0, 1 and 2 follow plural rules | no | confirmed | Probe of `release.title`, `submit`, `versions.reach` |
+| 7 | Numbers follow the language | no | partly | `format.number` in `VersionsTab.tsx`; no test catches `toLocaleString("en-US")` |
+| 8 | Versions, tags and ranges are data | no | confirmed | `1.0.{x}` and `beta` kept |
+| 9 | Glossary and typography | no | confirmed | obsoleta/retirada, obsolète/retirée/étiquette; fr spacing |
+| 10 | The three folders are in the scan | no | confirmed | `biome.json`; planted text fails |
+| 11 | The item page's remaining text | no | confirmed | `tabs.ts`, `load.ts` hold no text; `actions.ts` uses `errorText` |
+
+**Overall:** not met: rows 3, 7.
+
+### Re-check (rows 3, 7)
+
+Witnessed: 2026-10-23 14:38 EDT, by a fresh agent (blind). Commit: cd3a186b. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 3 | The release dialog's own text is rendered in pt and fr by tests that fail when it goes wrong | no | partly | `ReleaseTitle` and `ReleaseFooter` tested at 0, 1, 2; code mutations fail; but pt `cancel`, pt `fixSettings`, fr `together`, fr `nothing` set to English passed |
+| 7 | The 30-day counts follow the language | no | confirmed | `>1.240<`, `>12.345<`, `>1 240<`; `toLocaleString("en-US")` fails it |
+
+**Overall:** not met: row 3.
+
+### Re-check (row 3)
+
+A third round, with the owner's approval (2026-10-23).
+
+Witnessed: 2026-10-23 15:19 EDT, by a fresh agent (blind). Commit: 89064c7f. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 3 | Any `author` message set to its English value in pt or fr fails a test; the allowlist is per language and names only identical messages | no | confirmed | `author-untranslated.test.ts`: the four cases and 11 more across the namespace each fail; translating an allowlisted entry fails the allowlist check; 193 tests pass |
+
+**Overall:** met.

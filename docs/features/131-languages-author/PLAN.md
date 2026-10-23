@@ -57,7 +57,7 @@ Every task that moves a folder adds it to the `overrides` entry in `biome.json` 
   *Done when:* three-language tests of each decision and the publish dialog; the route is in
   `MIGRATED_ROUTES`.
 
-- [ ] **9. Versions and releases.** `VersionsTab`, `VersionControls`, `ChangeDialog` (tag,
+- [x] **9. Versions and releases.** `VersionsTab`, `VersionControls`, `ChangeDialog` (tag,
   deprecate, yank), `BulkRelease`, the item page's remaining text (`actions.ts`, `tabs.ts`).
   *Done when:* three-language tests; `features/versions`, `features/releases` and the rest of
   `features/item-page` are in the scan.
