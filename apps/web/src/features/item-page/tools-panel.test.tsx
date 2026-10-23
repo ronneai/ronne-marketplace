@@ -34,7 +34,7 @@ describe("the Works in tab's places", () => {
 
   it("names a section of AGENTS.md and a local plugin", () => {
     expect(panel("pt", "rule")).toContain(`uma seção de ${code("AGENTS.md")}`);
-    expect(panel("fr", "rule")).toContain(`une section de ${code("AGENTS.md")}`);
+    expect(panel("fr", "rule")).toContain(`une section du fichier ${code("AGENTS.md")}`);
     expect(placeFor("claude-code", "lsp-server", "ls")).toEqual({
       kind: "plugin",
       path: ".claude/rmk-plugins/ls/",

@@ -62,7 +62,10 @@ in Portuguese and French beside English. Nothing about what the screens do chang
 ## Behaviour
 
 - **No visible change in English.** Every English text stays as it is, except where it joined
-  pieces in code and has to become a whole sentence; there the English reads the same.
+  pieces in code and has to become a whole sentence; there the English reads the same. One
+  English line changes on purpose: the Works in tab said "Goes to installs its items." for a
+  bundle (a place phrase dropped into the "Goes to" sentence); it now says "Installs its items one
+  by one." On that tab a key or a file stays in code and the words around it (" in ") are prose.
 - **Whole sentences** with placeholders, ICU plurals and `select` (129, 130): "{n} files",
   "Submit {count} drafts together", "Waits on {name}", a status inside a sentence. A sentence with
   a link or a `<code>` uses rich-text tags (`<mono>…</mono>`), never a split around the element.

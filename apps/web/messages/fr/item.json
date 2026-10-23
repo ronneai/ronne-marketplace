@@ -64,7 +64,7 @@
     "place": {
       "path": "<code>{path}</code>",
       "key": "la clé <code>{key}</code> de <code>{path}</code>",
-      "section": "une section de <code>{path}</code>",
+      "section": "une section du fichier <code>{path}</code>",
       "plugin": "un plugin local sous <code>{path}</code>"
     }
   },
