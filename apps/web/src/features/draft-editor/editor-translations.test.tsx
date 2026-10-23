@@ -39,12 +39,6 @@ const { ProposalBar } = await import("./ProposalBar");
 const view = (locale: Locale, node: ReactElement) =>
   inLocale(locale, () => renderToStaticMarkup(node)).replace(/<!-- -->/g, "");
 
-/** Without the inline helpers (their question and answer), which move in task 11 (still English). */
-const withoutHelp = (html: string) =>
-  html
-    .replace(/<button[^>]*aria-haspopup="dialog"[^>]*>.*?<\/button>/g, "")
-    .replace(/<noscript>.*?<\/noscript>/g, "");
-
 /** What a hook gives, in a language: hooks run inside a render. */
 const grab = <T,>(locale: Locale, hook: () => T): T => {
   let value: T | undefined;
@@ -507,69 +501,64 @@ describe("the editor's dialogs in three languages", () => {
 
 for (const locale of ["pt", "fr"] as const) {
   it(`${locale}: no English left in the editor and its dialogs`, async () => {
-    const html = withoutHelp(
-      [
-        editor(locale),
-        editor(locale, {}, "logo.png"),
-        editor(locale, submitted),
-        editor(locale, { ...submitted, notMemberOf: "acme" }),
-        editor(locale, {
-          status: "withdrawn",
-          readOnly: true,
-          canSubmit: false,
-          canRestore: true,
-          canDelete: true,
-        }),
-        editor(locale, {
-          status: "changes_requested",
-          feedback: { kind: "request_changes", by: "Rae", at: T1, body: null },
-        }),
-        view(locale, <DeleteFileDialog path="a.md" onDone={() => {}} onClose={() => {}} />),
-        view(
-          locale,
-          <NewPathDialog
-            folder
-            initial=""
-            problem={() => null}
-            onDone={() => {}}
-            onClose={() => {}}
-          />,
-        ),
-        view(
-          locale,
-          <RenamePathDialog
-            initial="a.md"
-            problem={() => null}
-            onDone={() => {}}
-            onClose={() => {}}
-          />,
-        ),
-        view(locale, <ImportZipDialog draftId="d" dirty={false} onClose={() => {}} />),
-        view(
-          locale,
-          <DraftSettingsDialog draftId="d" scope="p" name="r" dirty onClose={() => {}} />,
-        ),
-        view(locale, <SubmitDialog draftId="d" itemName="@t/a" dirty onClose={() => {}} />),
-        view(
-          locale,
-          <WithdrawDialog draftId="d" itemName="@t/a" dependents={2} onClose={() => {}} />,
-        ),
-        view(
-          locale,
-          <GroupList itemName="@t/a" members={[member("@t/b", false, { inCycle: true })]} />,
-        ),
-        view(
-          locale,
-          <ProposalBar
-            draftId="d"
-            proposal={proposal({ stale: "1.1.0", conflicts: [{ path: "a.md", change: null }] })}
-            status="draft"
-            dirty={false}
-          />,
-        ),
-      ].join("\n"),
-    );
-    expect(await englishLeaks(["author", "common"], locale, html)).toEqual([]);
+    const html = [
+      editor(locale),
+      editor(locale, {}, "logo.png"),
+      editor(locale, submitted),
+      editor(locale, { ...submitted, notMemberOf: "acme" }),
+      editor(locale, {
+        status: "withdrawn",
+        readOnly: true,
+        canSubmit: false,
+        canRestore: true,
+        canDelete: true,
+      }),
+      editor(locale, {
+        status: "changes_requested",
+        feedback: { kind: "request_changes", by: "Rae", at: T1, body: null },
+      }),
+      view(locale, <DeleteFileDialog path="a.md" onDone={() => {}} onClose={() => {}} />),
+      view(
+        locale,
+        <NewPathDialog
+          folder
+          initial=""
+          problem={() => null}
+          onDone={() => {}}
+          onClose={() => {}}
+        />,
+      ),
+      view(
+        locale,
+        <RenamePathDialog
+          initial="a.md"
+          problem={() => null}
+          onDone={() => {}}
+          onClose={() => {}}
+        />,
+      ),
+      view(locale, <ImportZipDialog draftId="d" dirty={false} onClose={() => {}} />),
+      view(locale, <DraftSettingsDialog draftId="d" scope="p" name="r" dirty onClose={() => {}} />),
+      view(locale, <SubmitDialog draftId="d" itemName="@t/a" dirty onClose={() => {}} />),
+      view(
+        locale,
+        <WithdrawDialog draftId="d" itemName="@t/a" dependents={2} onClose={() => {}} />,
+      ),
+      view(
+        locale,
+        <GroupList itemName="@t/a" members={[member("@t/b", false, { inCycle: true })]} />,
+      ),
+      view(
+        locale,
+        <ProposalBar
+          draftId="d"
+          proposal={proposal({ stale: "1.1.0", conflicts: [{ path: "a.md", change: null }] })}
+          status="draft"
+          dirty={false}
+        />,
+      ),
+    ].join("\n");
+    expect(await englishLeaks(["author", "help", "common"], locale, html)).toEqual([]);
     expect(await ownTextsShown(["author"], locale, html)).toBeGreaterThan(40);
   });
 }

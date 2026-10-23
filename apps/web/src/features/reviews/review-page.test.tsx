@@ -690,10 +690,6 @@ describe("a review's page in three languages (131)", () => {
   type L = "en" | "pt" | "fr";
   const html = (l: L, node: Parameters<typeof renderToStaticMarkup>[0]) =>
     inLocale(l, () => renderToStaticMarkup(node)).replace(/<!-- -->/g, "");
-  const withoutHelp = (text: string) =>
-    text
-      .replace(/<button[^>]*aria-haspopup="dialog"[^>]*>.*?<\/button>/g, "")
-      .replace(/<noscript>.*?<\/noscript>/g, "");
   const page = async (
     l: L,
     data: Partial<ReviewView> = {},
@@ -1070,29 +1066,27 @@ describe("a review's page in three languages (131)", () => {
 
   for (const locale of ["pt", "fr"] as const) {
     it(`${locale}: no English left on a review's page and its dialogs`, async () => {
-      const all = withoutHelp(
-        [
-          await page(locale),
-          await page(locale, {
-            mine: true,
-            can: { decide: false, override: true, comment: true, publish: false, sendBack: false },
-          }),
-          html(locale, <DecisionDialog id="s" name="@t/a" decision="reject" onClose={() => {}} />),
-          html(
-            locale,
-            <PublishDialog
-              id="s"
-              itemName="@t/a"
-              published={["1.0.0"]}
-              versionsHref="/v"
-              defaultOpen
-              suggested={{ bump: "minor", reasons: [{ kind: "fileNew", names: ["a.md"] }] }}
-              goesWith={[{ name: "@t/b", published: [], suggested: null }]}
-            />,
-          ),
-        ].join("\n"),
-      );
-      expect(await englishLeaks(["author", "common"], locale, all)).toEqual([]);
+      const all = [
+        await page(locale),
+        await page(locale, {
+          mine: true,
+          can: { decide: false, override: true, comment: true, publish: false, sendBack: false },
+        }),
+        html(locale, <DecisionDialog id="s" name="@t/a" decision="reject" onClose={() => {}} />),
+        html(
+          locale,
+          <PublishDialog
+            id="s"
+            itemName="@t/a"
+            published={["1.0.0"]}
+            versionsHref="/v"
+            defaultOpen
+            suggested={{ bump: "minor", reasons: [{ kind: "fileNew", names: ["a.md"] }] }}
+            goesWith={[{ name: "@t/b", published: [], suggested: null }]}
+          />,
+        ),
+      ].join("\n");
+      expect(await englishLeaks(["author", "help", "common"], locale, all)).toEqual([]);
     });
   }
 });

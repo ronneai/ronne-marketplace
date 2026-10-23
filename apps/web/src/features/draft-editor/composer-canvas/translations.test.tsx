@@ -380,7 +380,7 @@ for (const locale of ["pt", "fr"] as const) {
         />,
       ),
     ].join("\n");
-    expect(await englishLeaks(["author", "common"], locale, html)).toEqual([]);
+    expect(await englishLeaks(["author", "help", "common"], locale, html)).toEqual([]);
     expect(await ownTextsShown(["author"], locale, html)).toBeGreaterThan(10);
   });
 }

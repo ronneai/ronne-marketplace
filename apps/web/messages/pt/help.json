@@ -74,5 +74,113 @@
   "password-change": {
     "question": "Por que pedir?",
     "answer": "A senha que o root cria ou redefine é conhecida pelo root e foi compartilhada com a pessoa. Pedir uma nova no primeiro acesso faz com que só a pessoa a conheça. Até lá, ela vê apenas a página em que escolhe a senha, e os tokens de acesso dela são recusados. Desative para uma conta de teste compartilhada. As contas que entram por um provedor não têm senha para trocar."
+  },
+  "scope": {
+    "question": "O que é um escopo?",
+    "answer": "A parte do nome de um item antes do item, como @platform em @platform/code-reviewer, ou platform em @acme/platform/code-reviewer. Ele agrupa itens relacionados. O root e os admins de um espaço de trabalho criam escopos, cada um em um espaço de trabalho; os membros desse espaço propõem itens nele, e a revisão é a porta de entrada."
+  },
+  "item-name": {
+    "question": "Por que o nome inclui o espaço de trabalho?",
+    "answer": "O nome de um escopo é único dentro do seu espaço de trabalho, então duas equipes podem ter cada uma um escopo test. O nome completo diz qual: @espaço/escopo/nome, ou @escopo/nome em global. É o nome que você instala e do qual depende."
+  },
+  "name": {
+    "question": "Como devo nomeá-lo?",
+    "answer": "Diga o que ele faz, em letras minúsculas, dígitos e hifens: code-reviewer, sql-style, github. O nome fica fixo depois de publicado."
+  },
+  "type": {
+    "question": "Qual tipo?",
+    "answer": "Escolha o que a ferramenta de IA deve fazer com ele: uma skill que ela carrega quando precisa, uma regra que ela sempre segue, um hook que roda em um evento, um servidor MCP ao qual se conectar. O tipo não pode mudar depois."
+  },
+  "manifest": {
+    "question": "O que vai no ronne.yaml?",
+    "answer": "O que o item é: nome, tipo, descrição e palavras-chave, e as configurações próprias do seu tipo. Os outros arquivos são o conteúdo dele. Não há versão: o lançamento a define."
+  },
+  "canvas": {
+    "question": "O que o canvas altera?",
+    "answer": "Só as dependências no ronne.yaml. As posições ficam guardadas com o seu rascunho e não são lançadas."
+  },
+  "submit-together": {
+    "question": "Por que estes vão juntos?",
+    "answer": "O item precisa deles, diretamente ou um através do outro, e um item não pode ser revisado nem lançado sem o que precisa. Ao submeter, os seus rascunhos de que ele precisa vão junto; ao lançar, os aprovados de que ele precisa e que ainda não foram lançados. De um jeito ou de outro, todos ou nenhum."
+  },
+  "submit-many": {
+    "question": "Submeter vários de uma vez?",
+    "answer": "Marque os rascunhos marcados como Pronto, ou Selecionar todos os prontos, e depois Submeter selecionados: cada um é verificado de novo e submetido por conta própria, e você vê o que aconteceu com cada um. rmk submit --all faz o mesmo em um terminal."
+  },
+  "risk": {
+    "question": "Por que ele está sinalizado?",
+    "answer": "Os sinais mostram o que ele pode fazer na máquina de quem desenvolve: rodar comandos, iniciar servidores, mudar permissões, acessar a web. Eles são deduzidos dos arquivos, então o autor não pode escondê-los. Eles descrevem; quem revisa decide."
+  },
+  "decisions": {
+    "question": "O que estes botões fazem?",
+    "answer": "Aprovar permite que ele seja lançado. Solicitar alterações o devolve ao autor para corrigir e ressubmeter. Rejeitar o encerra. Solicitar alterações e rejeitar precisam de uma mensagem; aprovar não, incluindo a exceção do root. Eles estão aqui e em cada linha da fila de revisão; na sua própria submissão ficam desativados. Tudo fica registrado."
+  },
+  "bump": {
+    "question": "Patch, minor ou major?",
+    "answer": "Patch para correções, minor para algo novo que não quebra ninguém, major para uma mudança que quebra algo nas instalações, como uma opção ou dependência removida."
+  },
+  "tag": {
+    "question": "O que é uma tag?",
+    "answer": "Um nome que aponta para uma versão. latest é o que as instalações recebem por padrão, e só aponta para versões estáveis; os pré-lançamentos vão para next."
+  },
+  "deprecate-yank": {
+    "question": "Tornar obsoleta ou retirar?",
+    "answer": "Tornar obsoleta avisa: a versão continua instalável e mostra a sua mensagem. Retirar impede novas instalações, para uma versão quebrada ou insegura; os projetos que a fixam continuam funcionando."
+  },
+  "export": {
+    "question": "Já escreveu na sua ferramenta de IA?",
+    "answer": "Envie para cá com rmk export: ele lê a sua skill, agente, comando, regra ou servidor MCP do Claude Code, Codex ou Cursor, mostra tudo o que enviaria e cria aqui um rascunho privado para você conferir e submeter. Exportar de novo atualiza esse rascunho."
+  },
+  "approve-many": {
+    "question": "Aprovar várias de uma vez?",
+    "answer": "Marque as submissões que você pode aprovar, ou Selecionar tudo (as linhas desta página), e depois Aprovar selecionadas: as que têm sinais de risco aparecem primeiro, e uma mensagem opcional vai em cada aprovação. Cada uma é aprovada por conta própria, como na sua página, e você vê o que aconteceu com cada uma. Solicitar alterações e Rejeitar estão em cada linha."
+  },
+  "withdraw": {
+    "question": "Arquivar ou excluir?",
+    "answer": "Arquivar a tira da revisão e da sua lista; você pode restaurá-la como rascunho depois. Excluir a remove com o seu histórico, e só é oferecido enquanto nenhum revisor comentou nem decidiu sobre ela."
+  },
+  "archived": {
+    "question": "O que está arquivado?",
+    "answer": "Submissões que você retirou e guardou. Só você as vê. Restaure uma para editá-la e submetê-la de novo, ou exclua-a se nenhum revisor participou."
+  },
+  "queue-decisions": {
+    "question": "Aprovar, solicitar alterações ou rejeitar?",
+    "answer": "Solicitar alterações a devolve ao autor para corrigir e ressubmeter; Rejeitar a encerra de vez. Os dois precisam de um motivo, que o autor vê no topo da página dele. Cada linha os tem; aprovar fica na página do item, ou várias de uma vez com Aprovar selecionadas."
+  },
+  "add-dependency": {
+    "question": "Como adiciono uma?",
+    "answer": "Digite parte do nome e escolha na lista: os seus próprios itens em qualquer estado, e os dos outros depois de publicados. Ela começa no intervalo compatível da latest; escolha outro, ou uma versão exata, se precisar. Em um arquivo markdown, digite @ para fazer o mesmo."
+  },
+  "version-range": {
+    "question": "Compatível ou exata?",
+    "answer": "Compatível escreve um intervalo, como ^1.4.0: as instalações recebem a 1.x mais nova a partir da 1.4.0, então as correções da dependência chegam sem um novo lançamento deste item. Exata escreve uma versão, como 1.4.0, que as instalações mantêm depois de lançamentos mais novos: escolha-a quando uma versão posterior puder quebrar este item. Abaixo de 1.0 um intervalo é mais estreito: ^0.2.3 aceita a 0.2.3 ou uma 0.2.x posterior, nunca a 0.3."
+  },
+  "which-bump": {
+    "question": "Qual incremento?",
+    "answer": "Sugerido para cada um dá a cada proposta de alteração o incremento que as alterações dela sugerem; ou escolha patch, minor ou major para todas. Itens novos são lançados como 1.0.0, seja qual for a escolha."
+  },
+  "release-many": {
+    "question": "Lançar vários de uma vez?",
+    "answer": "Marque os aprovados, ou Selecionar todos os aprovados (as linhas desta página), e depois Lançar selecionados: escolha estável ou pré-lançamento, o incremento e a tag uma vez só, e veja todas as versões antes de qualquer coisa sair. O que está ligado por uma dependência é lançado junto, todos ou nenhum, e os aprovados de que eles precisam são adicionados."
+  },
+  "waits-on": {
+    "question": "Pelo que isto aguarda?",
+    "answer": "Algo de que ele depende ainda não foi lançado. Ele pode ser revisado e aprovado enquanto isso; é lançado assim que as dependências forem. Bloqueado quer dizer que uma foi rejeitada ou arquivada: remova-a das dependências, ou dependa de outro item."
+  },
+  "dependents-listed": {
+    "question": "Por que estas estão listadas?",
+    "answer": "Elas dependem desta submissão e aguardam o lançamento dela. Rejeitá-la as deixa aguardando por nada, então você pode devolvê-las aos autores no mesmo passo, com uma mensagem própria."
+  },
+  "ready": {
+    "question": "O que impede a submissão?",
+    "answer": "As verificações que Submeter faz: os arquivos são válidos, o nome está livre, cada dependência está lançada ou em revisão, e uma proposta de alteração muda alguma coisa. Um rascunho sem nada disso pendente está Pronto; abra um marcado a corrigir para ver o que falta."
+  },
+  "personal-review": {
+    "question": "Por que ele não é revisado?",
+    "answer": "Ele está no seu espaço de trabalho pessoal, que só você e o root podem ver ou instalar, então um segundo par de olhos não protegeria ninguém. O que você submete ali é aprovado na hora, e as versões são marcadas como não revisadas."
+  },
+  "after-submit": {
+    "question": "O que acontece agora?",
+    "answer": "Um moderador ou admin do espaço de trabalho dele, ou o root, que não seja você, o revisa. Essa pessoa o aprova, pede alterações ou o rejeita, e você verá isso na conversa. Depois de aprovado, você pode lançá-lo."
   }
 }

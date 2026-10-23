@@ -74,5 +74,113 @@
   "password-change": {
     "question": "Pourquoi le demander?",
     "answer": "Le mot de passe que root crée ou réinitialise est connu de root et a été communiqué à la personne. En demander un nouveau à la première connexion fait que seule la personne le connaît. D’ici là, elle ne voit que la page où elle le choisit, et ses jetons d’accès sont refusés. Désactivez-le pour un compte de test partagé. Les comptes qui se connectent par un fournisseur n’ont pas de mot de passe à remplacer."
+  },
+  "scope": {
+    "question": "Qu’est-ce qu’une portée?",
+    "answer": "La partie du nom d’un élément avant l’élément, comme @platform dans @platform/code-reviewer, ou platform dans @acme/platform/code-reviewer. Elle regroupe des éléments liés. Root et les admins d’un espace de travail créent les portées, chacune dans un espace de travail; les membres de cet espace y proposent des éléments, et la révision fait office de filtre."
+  },
+  "item-name": {
+    "question": "Pourquoi le nom comprend-il l’espace de travail?",
+    "answer": "Le nom d’une portée est unique dans son espace de travail, donc deux équipes peuvent chacune avoir une portée test. Le nom complet dit laquelle : @espace/portée/nom, ou @portée/nom dans global. C’est le nom que vous installez et dont vous dépendez."
+  },
+  "name": {
+    "question": "Comment le nommer?",
+    "answer": "Dites ce qu’il fait, en lettres minuscules, chiffres et traits d’union : code-reviewer, sql-style, github. Le nom est fixé une fois publié."
+  },
+  "type": {
+    "question": "Quel type?",
+    "answer": "Choisissez ce que l’outil d’IA doit en faire : une skill qu’il charge au besoin, une règle qu’il suit toujours, un hook qui s’exécute lors d’un événement, un serveur MCP auquel se connecter. Le type ne peut pas changer ensuite."
+  },
+  "manifest": {
+    "question": "Que mettre dans ronne.yaml?",
+    "answer": "Ce qu’est l’élément : son nom, son type, sa description et ses mots-clés, et les réglages propres à son type. Les autres fichiers sont son contenu. Il n’y a pas de version : c’est la publication qui la fixe."
+  },
+  "canvas": {
+    "question": "Que change le canevas?",
+    "answer": "Seulement les dépendances dans ronne.yaml. Les positions sont gardées avec votre brouillon et ne sont pas publiées."
+  },
+  "submit-together": {
+    "question": "Pourquoi vont-ils ensemble?",
+    "answer": "L’élément en a besoin, directement ou l’un par l’autre, et un élément ne peut être ni révisé ni publié sans ce dont il a besoin. À la soumission, vos brouillons dont il a besoin partent avec lui; à la publication, les approuvés dont il a besoin et qui ne sont pas encore publiés. Dans les deux cas, tous ou aucun."
+  },
+  "submit-many": {
+    "question": "En soumettre plusieurs à la fois?",
+    "answer": "Cochez les brouillons marqués Prêt, ou Sélectionner tous les prêts, puis Soumettre la sélection : chacun est vérifié de nouveau et soumis séparément, et vous voyez ce qui est arrivé à chacun. rmk submit --all fait de même depuis un terminal."
+  },
+  "risk": {
+    "question": "Pourquoi est-il signalé?",
+    "answer": "Les signaux montrent ce qu’il peut faire sur la machine d’un développeur : lancer des commandes, démarrer des serveurs, changer des permissions, accéder au web. Ils sont déduits des fichiers, donc l’auteur ne peut pas les cacher. Ils décrivent; le réviseur décide."
+  },
+  "decisions": {
+    "question": "Que font ces boutons?",
+    "answer": "Approuver permet de le publier. Demander des modifications le renvoie à son auteur pour qu’il corrige et soumette de nouveau. Rejeter le ferme. Demander des modifications et rejeter demandent un message; approuver non, dérogation de root comprise. Ils sont ici et sur chaque ligne de la file de révision; sur votre propre soumission, ils sont grisés. Tout est consigné."
+  },
+  "bump": {
+    "question": "Patch, minor ou major?",
+    "answer": "Patch pour des correctifs, minor pour une nouveauté qui ne casse rien, major pour un changement qui casse quelque chose pour les installations, comme une option ou une dépendance retirée."
+  },
+  "tag": {
+    "question": "Qu’est-ce qu’une étiquette?",
+    "answer": "Un nom qui pointe vers une version. latest est ce que les installations reçoivent par défaut, et ne pointe que vers des versions stables; les préversions vont vers next."
+  },
+  "deprecate-yank": {
+    "question": "Rendre obsolète ou retirer?",
+    "answer": "Rendre obsolète avertit : la version reste installable et affiche votre message. Retirer empêche les nouvelles installations, pour une version cassée ou dangereuse; les projets qui l’épinglent continuent de fonctionner."
+  },
+  "export": {
+    "question": "Déjà écrit dans votre outil d’IA?",
+    "answer": "Envoyez-le ici avec rmk export : il lit votre skill, agent, commande, règle ou serveur MCP depuis Claude Code, Codex ou Cursor, vous montre tout ce qu’il téléverserait et crée ici un brouillon privé à vérifier et soumettre. L’exporter de nouveau met ce brouillon à jour."
+  },
+  "approve-many": {
+    "question": "En approuver plusieurs à la fois?",
+    "answer": "Cochez les soumissions que vous pouvez approuver, ou Tout sélectionner (les lignes de cette page), puis Approuver la sélection : celles qui ont des signaux de risque viennent en premier, et un message facultatif accompagne chaque approbation. Chacune est approuvée séparément, comme depuis sa page, et vous voyez ce qui est arrivé à chacune. Demander des modifications et Rejeter sont sur chaque ligne."
+  },
+  "withdraw": {
+    "question": "Archiver ou supprimer?",
+    "answer": "Archiver la retire de la révision et de votre liste; vous pourrez la restaurer comme brouillon plus tard. Supprimer l’efface avec son historique, et n’est proposé que tant qu’aucun réviseur ne l’a commentée ni n’en a décidé."
+  },
+  "archived": {
+    "question": "Qu’est-ce qui est archivé?",
+    "answer": "Les soumissions que vous avez retirées et gardées. Vous seul les voyez. Restaurez-en une pour la modifier et la soumettre de nouveau, ou supprimez-la si aucun réviseur n’y a pris part."
+  },
+  "queue-decisions": {
+    "question": "Approuver, demander des modifications ou rejeter?",
+    "answer": "Demander des modifications la renvoie à son auteur pour qu’il corrige et soumette de nouveau; Rejeter la ferme pour de bon. Les deux demandent une raison, que l’auteur voit en haut de sa page. Chaque ligne les a; approuver se fait sur la page de l’élément, ou plusieurs à la fois avec Approuver la sélection."
+  },
+  "add-dependency": {
+    "question": "Comment en ajouter une?",
+    "answer": "Tapez une partie de son nom et choisissez-la dans la liste : vos propres éléments dans n’importe quel état, et ceux des autres une fois publiés. Elle part de la plage compatible de latest; choisissez-en une autre, ou une version exacte, si besoin. Dans un fichier markdown, tapez @ pour faire de même."
+  },
+  "version-range": {
+    "question": "Compatible ou exacte?",
+    "answer": "Compatible écrit une plage, comme ^1.4.0 : les installations reçoivent la 1.x la plus récente à partir de la 1.4.0, donc les correctifs de la dépendance arrivent sans nouvelle publication de cet élément. Exacte écrit une version, comme 1.4.0, que les installations gardent après des publications plus récentes : choisissez-la quand une version ultérieure pourrait casser cet élément. Sous 1.0, une plage est plus étroite : ^0.2.3 accepte la 0.2.3 ou une 0.2.x ultérieure, jamais la 0.3."
+  },
+  "which-bump": {
+    "question": "Quel incrément?",
+    "answer": "Suggéré pour chacun donne à chaque proposition de modification l’incrément que ses modifications suggèrent; ou choisissez patch, minor ou major pour toutes. Les nouveaux éléments sont publiés en 1.0.0, quel que soit votre choix."
+  },
+  "release-many": {
+    "question": "En publier plusieurs à la fois?",
+    "answer": "Cochez des approuvés, ou Tout sélectionner (approuvés) (les lignes de cette page), puis Publier la sélection : choisissez stable ou préversion, l’incrément et l’étiquette une seule fois, et voyez chaque version avant que rien ne parte. Ce qui est lié par une dépendance est publié ensemble, tout ou rien, et les approuvés dont ils ont besoin sont ajoutés."
+  },
+  "waits-on": {
+    "question": "Qu’attend-il?",
+    "answer": "Une de ses dépendances n’est pas encore publiée. Il peut être révisé et approuvé en attendant; il est publié une fois ses dépendances publiées. Bloqué veut dire qu’une a été rejetée ou archivée : retirez-la des dépendances, ou dépendez d’un autre élément."
+  },
+  "dependents-listed": {
+    "question": "Pourquoi sont-elles listées?",
+    "answer": "Elles dépendent de cette soumission et attendent sa publication. La rejeter les laisse attendre en vain, donc vous pouvez les renvoyer à leurs auteurs dans la même étape, avec un message à elles."
+  },
+  "ready": {
+    "question": "Qu’est-ce qui bloque la soumission?",
+    "answer": "Les vérifications que fait Soumettre : les fichiers sont valides, le nom est libre, chaque dépendance est publiée ou en révision, et une proposition de modification change quelque chose. Un brouillon sans rien de tout cela en suspens est Prêt; ouvrez-en un marqué à corriger pour voir ce qui reste."
+  },
+  "personal-review": {
+    "question": "Pourquoi n’est-il pas révisé?",
+    "answer": "Il est dans votre espace de travail personnel, que seuls vous et root pouvez voir ou installer, donc un deuxième regard ne protégerait personne. Ce que vous y soumettez est approuvé aussitôt, et ses versions sont marquées comme non révisées."
+  },
+  "after-submit": {
+    "question": "Et maintenant?",
+    "answer": "Un modérateur ou un admin de son espace de travail, ou root, autre que vous, le révise. Il l’approuve, demande des modifications ou le rejette, et vous le verrez dans la conversation. Une fois approuvé, vous pouvez le publier."
   }
 }

@@ -31,12 +31,6 @@ const grab = <T,>(locale: Locale, hook: () => T): T => {
 const view = (locale: Locale, node: ReactElement) =>
   inLocale(locale, () => renderToStaticMarkup(node)).replace(/<!-- -->/g, "");
 
-/** Without the inline helpers (their question and answer), which move in task 11 (still English). */
-const withoutHelp = (html: string) =>
-  html
-    .replace(/<button[^>]*aria-haspopup="dialog"[^>]*>.*?<\/button>/g, "")
-    .replace(/<noscript>.*?<\/noscript>/g, "");
-
 const scopes = [
   { name: "ana/tools", description: "Mine.", personal: true },
   { name: "platform", description: "Shared tools." },
@@ -95,10 +89,10 @@ describe("the new-draft form in three languages", () => {
 
   for (const locale of ["pt", "fr"] as const) {
     it(`${locale}: no English left on the form`, async () => {
-      const html = withoutHelp(
-        [newDraft(locale), view(locale, <NewDraftForm scopes={[]} mine={[]} />)].join("\n"),
+      const html = [newDraft(locale), view(locale, <NewDraftForm scopes={[]} mine={[]} />)].join(
+        "\n",
       );
-      expect(await englishLeaks(["author", "common", "types"], locale, html)).toEqual([]);
+      expect(await englishLeaks(["author", "help", "common", "types"], locale, html)).toEqual([]);
       expect(await ownTextsShown(["author"], locale, html)).toBeGreaterThan(15);
     });
   }
@@ -182,7 +176,7 @@ describe("the new-draft form's states in three languages", () => {
         view(locale, <RepeatNote itemName="@p/a" />),
         view(locale, <NoTypeMatch />),
       ].join("\n");
-      expect(await englishLeaks(["author", "common", "types"], locale, html)).toEqual([]);
+      expect(await englishLeaks(["author", "help", "common", "types"], locale, html)).toEqual([]);
       expect(await ownTextsShown(["author", "common"], locale, html)).toBeGreaterThan(8);
     });
   }
@@ -252,8 +246,8 @@ describe("the manifest form in three languages", () => {
 
   for (const locale of ["pt", "fr"] as const) {
     it(`${locale}: no English left on any type's form`, async () => {
-      const html = withoutHelp(ITEM_TYPES.map((type) => form(locale, type)).join("\n"));
-      expect(await englishLeaks(["author", "common"], locale, html)).toEqual([]);
+      const html = ITEM_TYPES.map((type) => form(locale, type)).join("\n");
+      expect(await englishLeaks(["author", "help", "common"], locale, html)).toEqual([]);
       expect(await ownTextsShown(["author"], locale, html)).toBeGreaterThan(8);
     });
   }

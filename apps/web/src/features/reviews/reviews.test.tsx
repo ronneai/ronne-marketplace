@@ -515,10 +515,6 @@ describe("the review queue in three languages (131)", () => {
   type L = "en" | "pt" | "fr";
   const html = (l: L, node: Parameters<typeof renderToStaticMarkup>[0]) =>
     inLocale(l, () => renderToStaticMarkup(node)).replace(/<!-- -->/g, "");
-  const withoutHelp = (text: string) =>
-    text
-      .replace(/<button[^>]*aria-haspopup="dialog"[^>]*>.*?<\/button>/g, "")
-      .replace(/<noscript>.*?<\/noscript>/g, "");
   const listed = [
     {
       id: "a",
@@ -750,22 +746,20 @@ describe("the review queue in three languages (131)", () => {
 
   for (const locale of ["pt", "fr"] as const) {
     it(`${locale}: no English left on the queue and the batch review`, async () => {
-      const all = withoutHelp(
-        [
-          html(locale, <QueueTabs tab="release" />),
-          html(
-            locale,
-            <BulkApproveProvider approvable={approvableRows([row({ mine: true })])}>
-              <BulkApproveToolbar />
-              <QueueTable {...tableProps("needs", [row({ mine: true })])} />
-            </BulkApproveProvider>,
-          ),
-          html(locale, <QueueTable {...tableProps("waiting", [])} />),
-          form(locale, ["a", "b"]),
-          html(locale, <ApproveTitle count={2} done={false} />),
-        ].join("\n"),
-      );
-      expect(await englishLeaks(["author", "common"], locale, all)).toEqual([]);
+      const all = [
+        html(locale, <QueueTabs tab="release" />),
+        html(
+          locale,
+          <BulkApproveProvider approvable={approvableRows([row({ mine: true })])}>
+            <BulkApproveToolbar />
+            <QueueTable {...tableProps("needs", [row({ mine: true })])} />
+          </BulkApproveProvider>,
+        ),
+        html(locale, <QueueTable {...tableProps("waiting", [])} />),
+        form(locale, ["a", "b"]),
+        html(locale, <ApproveTitle count={2} done={false} />),
+      ].join("\n");
+      expect(await englishLeaks(["author", "help", "common"], locale, all)).toEqual([]);
     });
   }
 });

@@ -136,10 +136,6 @@ describe("the Versions tab in three languages (131)", () => {
   type L = "en" | "pt" | "fr";
   const html = (l: L, node: Parameters<typeof renderToStaticMarkup>[0]) =>
     inLocale(l, () => renderToStaticMarkup(node)).replace(/<!-- -->/g, "");
-  const withoutHelp = (text: string) =>
-    text
-      .replace(/<button[^>]*aria-haspopup="dialog"[^>]*>.*?<\/button>/g, "")
-      .replace(/<noscript>.*?<\/noscript>/g, "");
   const tab = async (l: L) => {
     versions.itemPage.mockResolvedValue(pageData({ canManage: true }));
     return inLocaleAsync(l, async () =>
@@ -237,64 +233,56 @@ describe("the Versions tab in three languages (131)", () => {
   for (const locale of ["pt", "fr"] as const) {
     it(`${locale}: no English left on the Versions tab and its dialogs`, async () => {
       const { TagControls, VersionControls } = await import("./VersionControls");
-      const all = withoutHelp(
-        [
-          await tab(locale),
-          html(
-            locale,
-            <VersionControls
-              itemRef={itemRef}
-              version="1.0.0"
-              deprecated={false}
-              yanked={false}
-              open="deprecate"
-            />,
-          ),
-          html(
-            locale,
-            <VersionControls
-              itemRef={itemRef}
-              version="1.0.0"
-              deprecated={false}
-              yanked={false}
-              open="yank"
-            />,
-          ),
-          html(
-            locale,
-            <VersionControls itemRef={itemRef} version="1.0.0" deprecated yanked open="yank" />,
-          ),
-          html(
-            locale,
-            <VersionControls
-              itemRef={itemRef}
-              version="1.0.0"
-              deprecated
-              yanked
-              open="deprecate"
-            />,
-          ),
-          html(
-            locale,
-            <TagControls
-              itemRef={itemRef}
-              tag=""
-              versions={[{ version: "1.0.0", yanked: false }]}
-              open="move"
-            />,
-          ),
-          html(
-            locale,
-            <TagControls
-              itemRef={itemRef}
-              tag="beta"
-              versions={[{ version: "1.0.0", yanked: false }]}
-              open="remove"
-            />,
-          ),
-        ].join("\n"),
-      );
-      expect(await englishLeaks(["author", "common"], locale, all)).toEqual([]);
+      const all = [
+        await tab(locale),
+        html(
+          locale,
+          <VersionControls
+            itemRef={itemRef}
+            version="1.0.0"
+            deprecated={false}
+            yanked={false}
+            open="deprecate"
+          />,
+        ),
+        html(
+          locale,
+          <VersionControls
+            itemRef={itemRef}
+            version="1.0.0"
+            deprecated={false}
+            yanked={false}
+            open="yank"
+          />,
+        ),
+        html(
+          locale,
+          <VersionControls itemRef={itemRef} version="1.0.0" deprecated yanked open="yank" />,
+        ),
+        html(
+          locale,
+          <VersionControls itemRef={itemRef} version="1.0.0" deprecated yanked open="deprecate" />,
+        ),
+        html(
+          locale,
+          <TagControls
+            itemRef={itemRef}
+            tag=""
+            versions={[{ version: "1.0.0", yanked: false }]}
+            open="move"
+          />,
+        ),
+        html(
+          locale,
+          <TagControls
+            itemRef={itemRef}
+            tag="beta"
+            versions={[{ version: "1.0.0", yanked: false }]}
+            open="remove"
+          />,
+        ),
+      ].join("\n");
+      expect(await englishLeaks(["author", "help", "common"], locale, all)).toEqual([]);
     });
   }
 });

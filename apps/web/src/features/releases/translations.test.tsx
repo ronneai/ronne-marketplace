@@ -22,10 +22,6 @@ const {
 /** Releasing many at once speaks the person's language (feature 131). */
 const view = (locale: Locale, node: ReactElement) =>
   inLocale(locale, () => renderToStaticMarkup(node)).replace(/<!-- -->/g, "");
-const withoutHelp = (text: string) =>
-  text
-    .replace(/<button[^>]*aria-haspopup="dialog"[^>]*>.*?<\/button>/g, "")
-    .replace(/<noscript>.*?<\/noscript>/g, "");
 
 const candidate = (name: string, published: string[], includedFor?: string[]) => ({
   id: name,
@@ -223,68 +219,66 @@ describe("releasing many at once in three languages", () => {
 
   for (const locale of ["pt", "fr"] as const) {
     it(`${locale}: no English left in the release dialog's parts`, async () => {
-      const all = withoutHelp(
-        [
-          view(
-            locale,
-            <SettingsForm
-              settings={settingsOf("stable")}
-              onChange={() => {}}
-              notes=""
-              onNotes={() => {}}
-            />,
-          ),
-          preview(locale, "stable"),
-          preview(locale, "prerelease"),
-          view(
-            locale,
-            <ReleaseResults
-              results={[
-                {
-                  id: "a",
-                  name: "@t/a",
-                  result: "published",
-                  version: "1.0.0",
-                  tag: "latest",
-                  sha256: "abc",
-                },
-                { id: "c", name: null, result: "not_found" },
-              ]}
-            />,
-          ),
-          view(
-            locale,
-            <BulkReleaseProvider releasable={{ a: "@t/a" }}>
-              <BulkReleaseToolbar />
-            </BulkReleaseProvider>,
-          ),
-          view(locale, <ReleaseTitle count={2} done={false} />),
-          view(locale, <ReleaseTitle count={2} done />),
-          view(
-            locale,
-            <ReleaseFooter
-              count={0}
-              blocked={false}
-              error={null}
-              releasing={false}
-              onCancel={() => {}}
-              onRelease={() => {}}
-            />,
-          ),
-          view(
-            locale,
-            <ReleaseFooter
-              count={2}
-              blocked
-              error={null}
-              releasing={false}
-              onCancel={() => {}}
-              onRelease={() => {}}
-            />,
-          ),
-        ].join("\n"),
-      );
-      expect(await englishLeaks(["author", "common"], locale, all)).toEqual([]);
+      const all = [
+        view(
+          locale,
+          <SettingsForm
+            settings={settingsOf("stable")}
+            onChange={() => {}}
+            notes=""
+            onNotes={() => {}}
+          />,
+        ),
+        preview(locale, "stable"),
+        preview(locale, "prerelease"),
+        view(
+          locale,
+          <ReleaseResults
+            results={[
+              {
+                id: "a",
+                name: "@t/a",
+                result: "published",
+                version: "1.0.0",
+                tag: "latest",
+                sha256: "abc",
+              },
+              { id: "c", name: null, result: "not_found" },
+            ]}
+          />,
+        ),
+        view(
+          locale,
+          <BulkReleaseProvider releasable={{ a: "@t/a" }}>
+            <BulkReleaseToolbar />
+          </BulkReleaseProvider>,
+        ),
+        view(locale, <ReleaseTitle count={2} done={false} />),
+        view(locale, <ReleaseTitle count={2} done />),
+        view(
+          locale,
+          <ReleaseFooter
+            count={0}
+            blocked={false}
+            error={null}
+            releasing={false}
+            onCancel={() => {}}
+            onRelease={() => {}}
+          />,
+        ),
+        view(
+          locale,
+          <ReleaseFooter
+            count={2}
+            blocked
+            error={null}
+            releasing={false}
+            onCancel={() => {}}
+            onRelease={() => {}}
+          />,
+        ),
+      ].join("\n");
+      expect(await englishLeaks(["author", "help", "common"], locale, all)).toEqual([]);
     });
   }
 });

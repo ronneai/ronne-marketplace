@@ -516,7 +516,7 @@ describe("New item in three languages (131)", () => {
       ["pt", pt],
       ["fr", fr],
     ] as const)
-      expect(await englishLeaks(["author", "common", "types"], locale, html)).toEqual([]);
+      expect(await englishLeaks(["author", "help", "common", "types"], locale, html)).toEqual([]);
   });
 });
 
@@ -734,7 +734,7 @@ describe("My submissions in three languages (131)", () => {
         .join("\n")
         .replace(/<button[^>]*aria-haspopup="dialog"[^>]*>.*?<\/button>/g, "")
         .replace(/<noscript>.*?<\/noscript>/g, "");
-      expect(await englishLeaks(["author", "common"], locale, all)).toEqual([]);
+      expect(await englishLeaks(["author", "help", "common"], locale, all)).toEqual([]);
     });
   }
 });
