@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. `rmk-server` on Windows.** [risky] `SUPPORTED_PLATFORMS` and `package.json`'s `os` gain
+- [x] **1. `rmk-server` on Windows.** [risky] `SUPPORTED_PLATFORMS` and `package.json`'s `os` gain
   `win32`; the refusal names the three systems. `dataDir` gets back 0.3.2's Windows folder, and
   `--help` lists it. `run.ts` prints the Windows note after "Data folder: …" and opens the browser
   with `cmd /c start`. `serviceTarget` refuses `win32` with the Windows line. *Done when:*

@@ -115,6 +115,31 @@ Witnessed: 2026-10-22 22:45 EDT, by a fresh agent (adversarial). Commit: 60252ed
 
 **Since these passes** (uncommitted when they ran, in the next commit): `run.test.ts` sets `SystemRoot` to `D:\WINNT` and expects `D:\WINNT\System32\cmd.exe` (row 11c; M6d then fails the test, run in the adversarial scratch copy), and takes a free port instead of 47123. That's the third round of fixes for task 1: whether it gets a third re-check is the owner's call (state-witness.md, "Two rounds, then the owner").
 
+### Re-check 3 (blind): row 11c, and the run.test.ts diff
+
+Witnessed: 2026-10-22 23:31 EDT, by a fresh agent (blind). Commit: 166fcb77. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 11c | A test sees that run.ts passes `process.env` (so SystemRoot) to `browserCommand` | no | confirmed | `run.ts:41`; `run.test.ts` sets `SystemRoot = "D:\\WINNT"` and expects `D:\\WINNT\\System32\\cmd.exe`. M6d (`{}`) → fails; M6e (hard-coded `C:\\Windows`) → fails |
+| 11d | The test takes a free port instead of 47123 | no | confirmed | `git diff 60252ed3 166fcb77 -- packages/server/src` → `listen(0, "127.0.0.1")`, the port used in `--port` and the expected URL |
+| 12 | `pnpm --filter @ronneai/marketplace test` passes | no | confirmed | 13 files, 107 tests passed |
+
+**Overall:** met: the call site's environment is covered by a test, and the package's tests pass.
+
+### Re-check 3 (adversarial): the run.test.ts diff
+
+Witnessed: 2026-10-22 23:31 EDT, by a fresh agent (adversarial). Commit: 166fcb77. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| R3.1 | The test fails when run.ts doesn't pass `process.env` to `browserCommand` | no | confirmed | `mutate2.sh`: `{}` → 1 failed; `{ SystemRoot: "C:\\Windows" }` → 1 failed; restored, `cmp` matches |
+| R3.2 | The URL uses the chosen port | no | confirmed | run.ts opening a fixed `http://localhost:47123` → 1 failed; unmutated 5/5 passes |
+| R3.3 | The free port doesn't flake, race or leak | no | confirmed | 12 runs, 6 at a time → 12/12 passed; leak probe → port refused after the test, 0 `Server` handles. The probe-to-`portFree` window is a few milliseconds and couldn't be made to fail |
+| R3.4 | The test never imports the real start script | no | confirmed | A sentinel `dist-scripts/start.mjs` that writes a file on import, at the real `webDir` in the scratch copy → test passed, nothing written |
+
+**Overall:** met: both gaps are fixed; no bugs found. The real Windows run is task 2's CI.
+
 ## Task 2 — Windows in CI
 
 Witnessed: 2026-10-22 22:39 EDT, by a fresh agent (blind). Commit: 5ebc96d8. Machine: macOS 27.0.1, Node v24.0.0.
