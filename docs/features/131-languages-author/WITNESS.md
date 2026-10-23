@@ -576,3 +576,16 @@ Witnessed: 2026-10-23 17:06 EDT, by a fresh agent (blind). Commit: f7253303 (ron
 | R | ronne-web lint, typecheck, test | no | confirmed | 280 files; tsc exit 0; 183 passed |
 
 **Overall:** not met: row 9b. Fixed in ronne-web 892ace4; every other "stays in English" rule of the guide was checked against the app (the SCIM labels are hardcoded English in `UsersPage.tsx` and `ScimSection.tsx`).
+
+### Re-check (row 9b)
+
+Witnessed: 2026-10-23 17:08 EDT, by a fresh agent (blind). Commit: 37441dee (ronne-web 892ace4). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 9b | No guide row contradicts another or the app | no | confirmed | Line 70 matches the app: the members' list translated (`WorkspacesPage.tsx:90-128`), root's table hardcoded English (`WorkspacesTable.tsx:66-67,91`, `WorkspaceDialogs.tsx:401`); agrees with lines 80, 174, 209, 210, 262 |
+| — | `witness:check` | no | confirmed | exit 0 |
+
+**Overall:** met.
+
+A remark outside the row: the pt and fr workspaces pages implied `rmk export` shows "Pessoal" / « Personnel »; it prints `Personal` (the CLI stays English). Fixed in ronne-web 1164ba2.

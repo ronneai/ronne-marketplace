@@ -80,7 +80,7 @@ Every task that moves a folder adds it to the `overrides` entry in `biome.json` 
   English left (core's messages and data aside); the phone sweep passes in each language.
   *Done when:* the e2e project runs green (chromium and phone) on a fresh build.
 
-- [ ] **13. Documentation and records.** The Portuguese and French pages in ronne-web name the
+- [x] **13. Documentation and records.** The Portuguese and French pages in ronne-web name the
   labels as the app does (a branch there); the glossary; the index row; the PLAN's "Done" notes.
   *Done when:* `pnpm witness:check` passes; the ronne-web branch builds.
 
@@ -88,7 +88,7 @@ Every task that moves a folder adds it to the `overrides` entry in `biome.json` 
 
 All thirteen tasks are ticked, each with its witness passes in `WITNESS.md` (tasks 4, 5, 8 and 9
 took a third round, with the owner's approval). The Documentation is on the ronne-web branch
-`feat/131-languages-author` (commits 287f55e, d899d89, d96e15f, 53a03e8, fea5c25, cfabd17, 2f42df9, 3f2095a, 6a4bec7, 892ace4), not pushed: it goes live with the release,
+`feat/131-languages-author` (commits 287f55e, d899d89, d96e15f, 53a03e8, fea5c25, cfabd17, 2f42df9, 3f2095a, 6a4bec7, 892ace4, 1164ba2), not pushed: it goes live with the release,
 as the owner's rule says. Accepted limits:
 
 - The pt and fr texts are first drafts for a native reader in 133, who also decides whether
