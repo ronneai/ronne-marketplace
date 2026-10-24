@@ -52,7 +52,11 @@ describe("planReleases (055)", () => {
     expect(later).toMatchObject({ version: "1.2.1-beta.1", tag: "next" });
     expect(
       planReleases([fresh], { kind: "prerelease", id: "Beta!", bump: "minor" })[0],
-    ).toMatchObject({ ok: false, problem: expect.stringContaining("pre-release id") });
+    ).toMatchObject({
+      ok: false,
+      problem: expect.stringContaining("pre-release id"),
+      code: "no_version",
+    });
   });
 
   it("takes one tag for all, checked against each version", () => {
@@ -63,7 +67,12 @@ describe("planReleases (055)", () => {
     ).toEqual(["stable", "stable"]);
     expect(
       planReleases([fresh], { kind: "prerelease", id: "rc", bump: "minor", tag: "latest" })[0],
-    ).toMatchObject({ ok: false, problem: expect.stringContaining("latest can only point") });
+    ).toMatchObject({
+      ok: false,
+      problem: expect.stringContaining("latest can only point"),
+      code: "latest_prerelease",
+      tag: "latest",
+    });
     expect(planReleases([fresh], { kind: "stable", bump: "minor", tag: "v1" })[0]).toMatchObject({
       ok: false,
     });

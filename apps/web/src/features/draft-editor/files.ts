@@ -1,4 +1,4 @@
-import { pathProblem } from "@ronneai/core";
+import { type PathProblem, pathProblemOf } from "@ronneai/core";
 import { byteSize, MANIFEST_PATH } from "@/server/domains/submissions/models/submission";
 import type { EditorFile } from "./types";
 
@@ -152,16 +152,30 @@ export const isDirty = (state: FilesState) =>
   state.removed.length > 0 || state.files.some((file) => file.dirty);
 
 /** Why a new or renamed file can't have this path, or null. */
-export const newPathProblem = (state: FilesState, path: string, from?: string): string | null => {
-  if (from === MANIFEST_PATH && path !== MANIFEST_PATH)
-    return "ronne.yaml can't be renamed: every item has one.";
-  const problem = pathProblem(path);
-  if (problem) return `The path ${problem}.`;
+/**
+ * Why a new or renamed file can't have `path`, or null, as data the editor words (131,
+ * `usePathWords`): ronne.yaml can't be renamed, the path itself isn't allowed (core's
+ * `pathProblemOf`), a file or a folder is already there, or it would sit inside a file.
+ */
+export type PathIssue =
+  | { kind: "manifest" }
+  | { kind: "path"; problem: PathProblem }
+  | { kind: "exists"; path: string }
+  | { kind: "folder"; path: string }
+  | { kind: "nested" };
+
+export const newPathProblem = (
+  state: FilesState,
+  path: string,
+  from?: string,
+): PathIssue | null => {
+  if (from === MANIFEST_PATH && path !== MANIFEST_PATH) return { kind: "manifest" };
+  const problem = pathProblemOf(path);
+  if (problem) return { kind: "path", problem };
   if (path !== from && state.files.some((file) => file.path === path))
-    return `There's already a file at ${path}.`;
-  if (state.files.some((file) => file.path.startsWith(`${path}/`))) return `${path} is a folder.`;
-  if (state.files.some((file) => path.startsWith(`${file.path}/`)))
-    return "A file can't be inside another file.";
+    return { kind: "exists", path };
+  if (state.files.some((file) => file.path.startsWith(`${path}/`))) return { kind: "folder", path };
+  if (state.files.some((file) => path.startsWith(`${file.path}/`))) return { kind: "nested" };
   return null;
 };
 

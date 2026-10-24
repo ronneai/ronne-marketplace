@@ -3,6 +3,7 @@
 import { Check, Info, Search } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { createContext, type ReactNode, useContext, useState, useTransition } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -85,11 +86,12 @@ export const ApproveSelectCell = ({
   /** Why it can't be approved now; null when it can. */
   reason: string | null;
 }) => {
+  const t = useTranslations("author.queue.approve");
   const { selected, toggle } = useSelection();
   return (
     <input
       type="checkbox"
-      aria-label={reason ? `${name}: ${reason}` : `Select ${name}`}
+      aria-label={reason ? t("reasonLabel", { name, reason }) : t("selectOne", { name })}
       title={reason ?? undefined}
       disabled={reason !== null}
       checked={selected.has(id)}
@@ -106,8 +108,6 @@ const riskyFirst = (rows: Listed[]) => [
   ...rows.filter((row) => row.riskKinds.length > 0),
   ...rows.filter((row) => row.riskKinds.length === 0),
 ];
-
-const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
 
 const checkbox =
   "mt-0.5 size-4 shrink-0 rounded-sm border border-strong accent-(--accent) outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus";
@@ -134,61 +134,76 @@ const ListedRow = ({
   row: Listed;
   included: boolean;
   onToggle: () => void;
-}) => (
-  <li className="border-b border-hairline last:border-b-0">
-    <label className="flex cursor-pointer items-start gap-2.5 rounded-control px-1 py-2.5 hover:bg-canvas">
-      <input
-        type="checkbox"
-        aria-label={`Include ${row.name}`}
-        checked={included}
-        onChange={onToggle}
-        className={checkbox}
-      />
-      <span className="grid min-w-0 flex-1 gap-1">
-        <span className="flex items-center justify-between gap-2">
-          <span className="truncate font-mono text-[13px] font-semibold text-fg">{row.name}</span>
-          <TypeBadge type={row.type} className="shrink-0" />
-        </span>
-        <span className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs text-muted">
-          <span>
-            {row.author}
-            {row.revision !== null ? ` · revision ${row.revision}` : ""}
+}) => {
+  const t = useTranslations("author.queue.approve");
+  return (
+    <li className="border-b border-hairline last:border-b-0">
+      <label className="flex cursor-pointer items-start gap-2.5 rounded-control px-1 py-2.5 hover:bg-canvas">
+        <input
+          type="checkbox"
+          aria-label={t("include", { name: row.name })}
+          checked={included}
+          onChange={onToggle}
+          className={checkbox}
+        />
+        <span className="grid min-w-0 flex-1 gap-1">
+          <span className="flex items-center justify-between gap-2">
+            <span className="truncate font-mono text-[13px] font-semibold text-fg">{row.name}</span>
+            <TypeBadge type={row.type} className="shrink-0" />
           </span>
-          {row.override || row.riskKinds.length > 0 ? (
-            <span className="flex flex-wrap justify-end gap-1.5">
-              {row.override ? <Badge>override</Badge> : null}
-              {row.riskKinds.map((kind) => (
-                <Badge key={kind} tone="warning">
-                  ⚠ {kind}
-                </Badge>
-              ))}
+          <span className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs text-muted">
+            <span>
+              {row.revision !== null
+                ? t("revision", { author: row.author, revision: row.revision })
+                : row.author}
+            </span>
+            {row.override || row.riskKinds.length > 0 ? (
+              <span className="flex flex-wrap justify-end gap-1.5">
+                {row.override ? <Badge>{t("override")}</Badge> : null}
+                {row.riskKinds.map((kind) => (
+                  <Badge key={kind} tone="warning">
+                    ⚠ {kind}
+                  </Badge>
+                ))}
+              </span>
+            ) : null}
+          </span>
+        </span>
+      </label>
+    </li>
+  );
+};
+
+/** What approving did to each (054). */
+export const ResultList = ({ results }: { results: ApproveResult[] }) => {
+  const t = useTranslations("author.queue.approve");
+  return (
+    <ul className="text-sm">
+      {results.map((r) => (
+        <li key={r.id} className="border-b border-hairline py-2.5 last:border-b-0">
+          <span className="mr-2 font-mono text-xs font-semibold">
+            {t(
+              r.result === "approved"
+                ? r.override
+                  ? "outcome.override"
+                  : "outcome.approved"
+                : "outcome.not",
+            )}
+          </span>
+          <Link href={`/reviews/${r.id}`} className="font-mono text-link hover:underline">
+            {r.name}
+          </Link>
+          {r.revision !== null ? (
+            <span className="ml-2 font-mono text-xs text-muted">
+              {t("resultRevision", { revision: r.revision })}
             </span>
           ) : null}
-        </span>
-      </span>
-    </label>
-  </li>
-);
-
-const outcome = (r: ApproveResult) =>
-  r.result === "approved" ? (r.override ? "Approved (override)" : "Approved") : "Not approved";
-
-const ResultList = ({ results }: { results: ApproveResult[] }) => (
-  <ul className="text-sm">
-    {results.map((r) => (
-      <li key={r.id} className="border-b border-hairline py-2.5 last:border-b-0">
-        <span className="mr-2 font-mono text-xs font-semibold">{outcome(r)}:</span>
-        <Link href={`/reviews/${r.id}`} className="font-mono text-link hover:underline">
-          {r.name}
-        </Link>
-        {r.revision !== null ? (
-          <span className="ml-2 font-mono text-xs text-muted">revision {r.revision}</span>
-        ) : null}
-        {r.reason ? <p className="mt-1 text-muted">{r.reason}</p> : null}
-      </li>
-    ))}
-  </ul>
-);
+          {r.reason ? <p className="mt-1 text-muted">{r.reason}</p> : null}
+        </li>
+      ))}
+    </ul>
+  );
+};
 
 /** Whether a row matches the filter: by name, type or author, ignoring case. */
 const matches = (row: Listed, filter: string) => {
@@ -199,8 +214,163 @@ const matches = (row: Listed, filter: string) => {
   );
 };
 
+/**
+ * The batch review's form (054): the filter and selection on top, the list scrolling on its own,
+ * then the summary, one optional message for all, and the buttons. The toolbar holds its state.
+ */
+export const ApproveForm = ({
+  listed,
+  included,
+  filter,
+  text,
+  error,
+  approving,
+  onFilter,
+  onShown,
+  onToggle,
+  onText,
+  onCancel,
+  onSubmit,
+}: {
+  listed: Listed[];
+  included: ReadonlySet<string>;
+  filter: string;
+  text: string;
+  error: string | null;
+  approving: boolean;
+  onFilter: (filter: string) => void;
+  /** Includes, or leaves out, every row the filter shows. */
+  onShown: (include: boolean) => void;
+  onToggle: (id: string) => void;
+  onText: (text: string) => void;
+  onCancel: () => void;
+  onSubmit: () => void;
+}) => {
+  const t = useTranslations("author.queue.approve");
+  const going = listed.filter((row) => included.has(row.id));
+  const overrides = going.filter((row) => row.override).length;
+  const shown = listed.filter((row) => matches(row, filter));
+  const allShownIncluded = shown.length > 0 && shown.every((row) => included.has(row.id));
+  return (
+    <form
+      className="flex min-h-0 flex-1 flex-col"
+      onSubmit={(event) => {
+        event.preventDefault();
+        onSubmit();
+      }}
+    >
+      <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-hairline bg-canvas px-4 py-2.5">
+        <div className="relative min-w-40 flex-1">
+          <Search
+            size={14}
+            aria-hidden
+            className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-muted"
+          />
+          <input
+            type="search"
+            aria-label={t("filterLabel")}
+            placeholder={t("filterPlaceholder")}
+            value={filter}
+            onChange={(event) => onFilter(event.target.value)}
+            className={`${inputClasses} h-8 pl-8 text-xs`}
+          />
+        </div>
+        <label className="flex items-center gap-1.5 text-xs font-semibold text-muted">
+          <input
+            type="checkbox"
+            checked={allShownIncluded}
+            onChange={() => onShown(!allShownIncluded)}
+            className={checkbox.replace("mt-0.5 ", "")}
+          />
+          {t("selected", { count: going.length })}
+        </label>
+        <span aria-hidden className="text-strong">
+          |
+        </span>
+        <button
+          type="button"
+          onClick={() => onShown(false)}
+          className="text-xs font-semibold text-muted underline decoration-dotted hover:text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
+        >
+          {t("deselectAll")}
+        </button>
+      </div>
+      <ScrollingList label={t("listLabel")}>
+        {shown.length > 0 ? (
+          <ul>
+            {shown.map((row) => (
+              <ListedRow
+                key={row.id}
+                row={row}
+                included={included.has(row.id)}
+                onToggle={() => onToggle(row.id)}
+              />
+            ))}
+          </ul>
+        ) : (
+          <p className="py-6 text-center text-sm text-muted">{t("noMatch")}</p>
+        )}
+      </ScrollingList>
+      <div className="grid shrink-0 gap-3 border-t border-hairline px-4 py-4">
+        <p className="flex items-start gap-2 text-sm text-muted">
+          <Info size={16} aria-hidden className="mt-0.5 shrink-0 text-accent-strong" />
+          <span>
+            {t.rich("summary", {
+              count: going.length,
+              overrides,
+              strong: (chunks) => <strong className="font-semibold text-fg">{chunks}</strong>,
+            })}
+          </span>
+        </p>
+        <div className="grid gap-1.5">
+          <Label htmlFor="bulk-approve-message">
+            {t("message")} <span className="font-normal text-muted">{t("optional")}</span>
+          </Label>
+          <textarea
+            id="bulk-approve-message"
+            rows={2}
+            maxLength={5000}
+            placeholder={t("messagePlaceholder")}
+            value={text}
+            onChange={(event) => onText(event.target.value)}
+            aria-describedby="bulk-approve-hint bulk-approve-error"
+            className={`${inputClasses} h-auto resize-none py-2`}
+          />
+          <p id="bulk-approve-hint" className="text-xs text-muted">
+            {t("messageHint")}
+          </p>
+          <FieldError id="bulk-approve-error">{error}</FieldError>
+        </div>
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button variant="secondary" onClick={onCancel}>
+            {t("cancel")}
+          </Button>
+          <Button type="submit" loading={approving} disabled={going.length === 0}>
+            <Check size={16} aria-hidden />
+            {t("submit", { count: going.length })}
+          </Button>
+        </div>
+      </div>
+    </form>
+  );
+};
+
+/** The batch review's title: how many it approves, or that they're approved. */
+export const ApproveTitle = ({ count, done }: { count: number; done: boolean }) => {
+  const t = useTranslations("author.queue.approve");
+  return done ? (
+    t("doneTitle")
+  ) : (
+    <span className="flex flex-wrap items-center gap-2.5">
+      {t("title", { count })}
+      <Badge aria-hidden>{t("batch")}</Badge>
+    </span>
+  );
+};
+
 /** Select all and Approve selected, above the Needs review table; only when something can be. */
 export const BulkApproveToolbar = ({ help }: { help?: ReactNode }) => {
+  const t = useTranslations("author.queue.approve");
   const router = useRouter();
   const { approvable, selected, selectAll, clear } = useSelection();
   const [open, setOpen] = useState(false);
@@ -217,9 +387,7 @@ export const BulkApproveToolbar = ({ help }: { help?: ReactNode }) => {
   if (approvable.size === 0 && !open) return null;
   const chosen = [...selected].filter((id) => approvable.has(id));
   const going = listed.filter((row) => included.has(row.id));
-  const overrides = going.filter((row) => row.override).length;
   const shown = listed.filter((row) => matches(row, filter));
-  const allShownIncluded = shown.length > 0 && shown.every((row) => included.has(row.id));
   const setShown = (include: boolean) =>
     setIncluded((previous) => {
       const next = new Set(previous);
@@ -244,20 +412,13 @@ export const BulkApproveToolbar = ({ help }: { help?: ReactNode }) => {
       router.refresh();
     }
   };
-  const title = results ? (
-    "Approved"
-  ) : (
-    <span className="flex flex-wrap items-center gap-2.5">
-      Approve {plural(going.length, "submission", "submissions")}?
-      <Badge aria-hidden>Batch review</Badge>
-    </span>
-  );
+  const title = <ApproveTitle count={going.length} done={results !== null} />;
   return (
     <div className="flex flex-wrap items-center gap-2 pb-4">
       {approvable.size > 0 ? (
         <>
           <Button variant="secondary" onClick={selectAll}>
-            Select all ({approvable.size})
+            {t("selectAll", { count: approvable.size })}
           </Button>
           <Button
             disabled={chosen.length === 0}
@@ -276,7 +437,7 @@ export const BulkApproveToolbar = ({ help }: { help?: ReactNode }) => {
               setOpen(true);
             }}
           >
-            Approve selected ({chosen.length})
+            {t("approveSelected", { count: chosen.length })}
           </Button>
           {help}
         </>
@@ -284,18 +445,27 @@ export const BulkApproveToolbar = ({ help }: { help?: ReactNode }) => {
       <Dialog open={open} onClose={close} title={title} size="large" fixedHeight>
         {results ? (
           <>
-            <ScrollingList label="What happened to each">
+            <ScrollingList label={t("results")}>
               <ResultList results={results} />
             </ScrollingList>
             <div className="flex shrink-0 justify-end border-t border-hairline px-4 py-4">
-              <Button onClick={close}>Done</Button>
+              <Button onClick={close}>{t("done")}</Button>
             </div>
           </>
         ) : (
-          <form
-            className="flex min-h-0 flex-1 flex-col"
-            onSubmit={(event) => {
-              event.preventDefault();
+          <ApproveForm
+            listed={listed}
+            included={included}
+            filter={filter}
+            text={text}
+            error={error}
+            approving={approving}
+            onFilter={setFilter}
+            onShown={setShown}
+            onToggle={toggle}
+            onText={setText}
+            onCancel={close}
+            onSubmit={() =>
               startApprove(async () => {
                 const state = await approveSelectedAction(
                   going.map((row) => ({ id: row.id, revision: row.revision })),
@@ -303,104 +473,9 @@ export const BulkApproveToolbar = ({ help }: { help?: ReactNode }) => {
                 );
                 if ("error" in state) return setError(state.error);
                 setResults(state.results);
-              });
-            }}
-          >
-            <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-hairline bg-canvas px-4 py-2.5">
-              <div className="relative min-w-40 flex-1">
-                <Search
-                  size={14}
-                  aria-hidden
-                  className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-muted"
-                />
-                <input
-                  type="search"
-                  aria-label="Filter submissions"
-                  placeholder="Filter by name, type or author"
-                  value={filter}
-                  onChange={(event) => setFilter(event.target.value)}
-                  className={`${inputClasses} h-8 pl-8 text-xs`}
-                />
-              </div>
-              <label className="flex items-center gap-1.5 text-xs font-semibold text-muted">
-                <input
-                  type="checkbox"
-                  checked={allShownIncluded}
-                  onChange={() => setShown(!allShownIncluded)}
-                  className={checkbox.replace("mt-0.5 ", "")}
-                />
-                {going.length} selected
-              </label>
-              <span aria-hidden className="text-strong">
-                |
-              </span>
-              <button
-                type="button"
-                onClick={() => setShown(false)}
-                className="text-xs font-semibold text-muted underline decoration-dotted hover:text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
-              >
-                Deselect all
-              </button>
-            </div>
-            <ScrollingList label="Submissions to approve">
-              {shown.length > 0 ? (
-                <ul>
-                  {shown.map((row) => (
-                    <ListedRow
-                      key={row.id}
-                      row={row}
-                      included={included.has(row.id)}
-                      onToggle={() => toggle(row.id)}
-                    />
-                  ))}
-                </ul>
-              ) : (
-                <p className="py-6 text-center text-sm text-muted">No submission matches.</p>
-              )}
-            </ScrollingList>
-            <div className="grid shrink-0 gap-3 border-t border-hairline px-4 py-4">
-              <p className="flex items-start gap-2 text-sm text-muted">
-                <Info size={16} aria-hidden className="mt-0.5 shrink-0 text-accent-strong" />
-                <span>
-                  <strong className="font-semibold text-fg">
-                    {plural(going.length, "submission", "submissions")} selected
-                  </strong>
-                  {overrides > 0
-                    ? `: ${overrides === 1 ? "one is" : `${overrides} are`} your own, approved as ${overrides === 1 ? "an override" : "overrides"}, marked in the conversation and the audit log.`
-                    : "."}
-                </span>
-              </p>
-              <div className="grid gap-1.5">
-                <Label htmlFor="bulk-approve-message">
-                  Message <span className="font-normal text-muted">(optional)</span>
-                </Label>
-                <textarea
-                  id="bulk-approve-message"
-                  rows={2}
-                  maxLength={5000}
-                  placeholder="A note for every approval"
-                  value={text}
-                  onChange={(event) => setText(event.target.value)}
-                  aria-describedby="bulk-approve-hint bulk-approve-error"
-                  className={`${inputClasses} h-auto resize-none py-2`}
-                />
-                <p id="bulk-approve-hint" className="text-xs text-muted">
-                  Added to every approval. Once approved, the author or a moderator can release each
-                  one.
-                </p>
-                <FieldError id="bulk-approve-error">{error}</FieldError>
-              </div>
-              <div className="flex flex-wrap justify-end gap-2">
-                <Button variant="secondary" onClick={close}>
-                  Cancel
-                </Button>
-                <Button type="submit" loading={approving} disabled={going.length === 0}>
-                  <Check size={16} aria-hidden />
-                  Approve {plural(going.length, "submission", "submissions")}
-                </Button>
-              </div>
-            </div>
-          </form>
+              })
+            }
+          />
         )}
       </Dialog>
     </div>

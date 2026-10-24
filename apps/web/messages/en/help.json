@@ -74,5 +74,113 @@
   "password-change": {
     "question": "Why ask?",
     "answer": "A password root creates or resets is known to root, and was shared with the person. Asking for a new one at the first sign-in means that only the person knows it. Until they do, they see only the page where they choose it, and their access tokens are refused. Turn it off for a shared test account. Accounts that sign in with a provider have no password to replace."
+  },
+  "scope": {
+    "question": "What's a scope?",
+    "answer": "The part of an item's name before the item, such as @platform in @platform/code-reviewer, or platform in @acme/platform/code-reviewer. It groups related items. Root and a workspace's admins create scopes, each in a workspace; its workspace's members propose items in it, and review is the gate."
+  },
+  "item-name": {
+    "question": "Why does the name include the workspace?",
+    "answer": "A scope's name is unique within its workspace, so two teams can each have a test scope. The full name says which: @workspace/scope/name, or @scope/name in global. That's the name you install and depend on."
+  },
+  "name": {
+    "question": "How should I name it?",
+    "answer": "Say what it does, in lowercase letters, digits and hyphens: code-reviewer, sql-style, github. The name is fixed once it's published."
+  },
+  "type": {
+    "question": "Which type?",
+    "answer": "Pick what the AI tool should do with it: a skill it loads when needed, a rule it always follows, a hook that runs on an event, an MCP server to connect to. The type can't change later."
+  },
+  "manifest": {
+    "question": "What goes in ronne.yaml?",
+    "answer": "What the item is: its name, type, description and keywords, and its type's own settings. The other files are its content. There's no version: the release sets it."
+  },
+  "canvas": {
+    "question": "What does the canvas change?",
+    "answer": "Only dependencies in ronne.yaml. Positions are kept with your draft and aren't released."
+  },
+  "submit-together": {
+    "question": "Why do these go together?",
+    "answer": "The item needs them, directly or through each other, and an item can't be reviewed or released without what it needs. At submit, the drafts of yours it needs go with it; at release, the approved ones it needs that aren't released yet. Either way, all or none."
+  },
+  "submit-many": {
+    "question": "Submit several at once?",
+    "answer": "Tick the drafts marked Ready, or Select all ready, then Submit selected: each is checked again and submitted on its own, and you see what happened to each. rmk submit --all does the same from a terminal."
+  },
+  "risk": {
+    "question": "Why is it flagged?",
+    "answer": "Flags show what it can do on a developer's machine: run commands, start servers, change permissions, reach the web. They're worked out from the files, so the author can't hide them. They describe; the reviewer decides."
+  },
+  "decisions": {
+    "question": "What do these do?",
+    "answer": "Approve lets it be released. Request changes sends it back to its author to fix and resubmit. Reject closes it. Request changes and reject need a message; approving doesn't, root's override included. They're here and on each row of the review queue; on your own submission they're greyed out. All are recorded."
+  },
+  "bump": {
+    "question": "Patch, minor or major?",
+    "answer": "Patch for fixes, minor for something new that breaks nobody, major for a change that breaks something for installs, such as a removed option or dependency."
+  },
+  "tag": {
+    "question": "What's a tag?",
+    "answer": "A name that points to a version. latest is what installs get by default, and only points to stable versions; pre-releases go to next."
+  },
+  "deprecate-yank": {
+    "question": "Deprecate or yank?",
+    "answer": "Deprecate warns: the version stays installable and shows your message. Yank stops new installs, for a broken or unsafe version; projects that pin it keep working."
+  },
+  "export": {
+    "question": "Already wrote it in your AI tool?",
+    "answer": "Send it here with rmk export: it reads your skill, agent, command, rule or MCP server from Claude Code, Codex or Cursor, shows you everything it would upload, and creates a private draft here for you to check and submit. Exporting it again updates that draft."
+  },
+  "approve-many": {
+    "question": "Approve several at once?",
+    "answer": "Tick the submissions you can approve, or Select all (the rows on this page), then Approve selected: the ones with risk flags are listed first, and one optional message goes on every approval. Each is approved on its own, as from its page, and you see what happened to each. Request changes and Reject are on each row."
+  },
+  "withdraw": {
+    "question": "Archive or delete?",
+    "answer": "Archive takes it out of review and out of your list; you can restore it as a draft later. Delete removes it with its history, and is offered only while no reviewer has commented on it or decided it."
+  },
+  "archived": {
+    "question": "What's archived?",
+    "answer": "Submissions you withdrew and kept. Only you see them. Restore one to edit and submit it again, or delete it if no reviewer took part."
+  },
+  "queue-decisions": {
+    "question": "Approve, request changes or reject?",
+    "answer": "Request changes sends it back to its author to fix and resubmit; Reject closes it for good. Both need a reason, which the author sees at the top of their page. Each row has them; approving is on the item's page, or several at once with Approve selected."
+  },
+  "add-dependency": {
+    "question": "How do I add one?",
+    "answer": "Type part of its name and pick it from the list: your own items in any state, and others' once they're published. It starts on latest's compatible range; pick another, or an exact version, if you need one. In a markdown file, type @ to do the same."
+  },
+  "version-range": {
+    "question": "Compatible or exact?",
+    "answer": "Compatible writes a range, such as ^1.4.0: installs get the newest 1.x from 1.4.0 on, so the dependency's fixes arrive without a new release of this item. Exactly writes one version, such as 1.4.0, which installs keep after newer releases: pick it when a later version could break this item. Below 1.0 a range is narrower: ^0.2.3 accepts 0.2.3 or a later 0.2.x, never 0.3."
+  },
+  "which-bump": {
+    "question": "Which bump?",
+    "answer": "Suggested for each gives every change proposal the bump its changes suggest; or pick patch, minor or major for all. New items are released as 1.0.0 whatever you pick."
+  },
+  "release-many": {
+    "question": "Release several at once?",
+    "answer": "Tick approved ones, or Select all approved (the rows on this page), then Release selected: choose stable or pre-release, the bump and the tag once, and see every version before anything goes out. What's joined by a dependency is released together, all or none, and the approved ones they need are added."
+  },
+  "waits-on": {
+    "question": "What does this wait on?",
+    "answer": "Something it depends on isn't released yet. It can be reviewed and approved meanwhile; it's released once its dependencies are. Blocked means one was rejected or archived: remove it from dependencies, or depend on another item."
+  },
+  "dependents-listed": {
+    "question": "Why are these listed?",
+    "answer": "They depend on this submission and wait for its release. Rejecting it leaves them waiting on nothing, so you can send them back to their authors in the same step, with a message of their own."
+  },
+  "ready": {
+    "question": "What blocks submitting?",
+    "answer": "The checks Submit runs: the files are valid, the name is free, every dependency is released or in review, and a change proposal changes something. A draft with none of these left is Ready; open one marked to fix to see what's left."
+  },
+  "personal-review": {
+    "question": "Why isn't it reviewed?",
+    "answer": "It's in your personal workspace, which only you and root can see or install from, so a second pair of eyes would protect nobody. What you submit there is approved at once, and its versions are marked as not reviewed."
+  },
+  "after-submit": {
+    "question": "What happens next?",
+    "answer": "A moderator or admin of its workspace, or root, who isn't you reviews it. They approve it, ask for changes, or reject it, and you'll see it in the conversation. Once approved, you can release it."
   }
 }

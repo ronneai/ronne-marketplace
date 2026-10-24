@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { inputClasses, Label } from "@/components/ui/Field";
 import type { ItemRef } from "@/server/domains/items/actions/versions";
 import { ChangeDialog } from "./ChangeDialog";
@@ -36,11 +37,10 @@ const TextArea = ({
 export type VersionReach = { runs: number; installs: number };
 
 /** What the deprecate and yank dialogs say about who still uses the version (047). */
-export const reachLine = ({ runs, installs }: VersionReach) =>
-  `Reported in the last 30 days: ${runs.toLocaleString("en-US")} ${runs === 1 ? "run" : "runs"}, ${installs.toLocaleString("en-US")} ${installs === 1 ? "install" : "installs"}.`;
-
-const Reach = ({ reach }: { reach: VersionReach | null }) =>
-  reach ? <p className="text-sm text-fg">{reachLine(reach)}</p> : null;
+export const Reach = ({ reach }: { reach: VersionReach | null }) => {
+  const t = useTranslations("author.versions");
+  return reach ? <p className="text-sm text-fg">{t("reach", reach)}</p> : null;
+};
 
 /**
  * The actions on one version: deprecate or undeprecate, yank or unyank (feature 016). `reach` is the
@@ -52,83 +52,91 @@ export const VersionControls = ({
   deprecated,
   yanked,
   reach = null,
+  open,
 }: {
   itemRef: ItemRef;
   version: string;
   deprecated: boolean;
   yanked: boolean;
   reach?: VersionReach | null;
-}) => (
-  <div className="flex flex-wrap justify-end gap-1">
-    {deprecated ? (
-      <ChangeDialog
-        itemRef={itemRef}
-        label="Undeprecate"
-        title={`Undeprecate ${version}?`}
-        confirm="Undeprecate"
-        initial={{}}
-        change={() => ({ kind: "undeprecate", version })}
-      >
-        <p className="text-sm text-fg">Its deprecation message goes away.</p>
-      </ChangeDialog>
-    ) : (
-      <ChangeDialog
-        itemRef={itemRef}
-        label="Deprecate"
-        title={`Deprecate ${version}`}
-        confirm="Deprecate"
-        initial={{ message: "" }}
-        change={(v) => ({ kind: "deprecate", version, message: v.message })}
-        fields={(v, set) => (
-          <TextArea
-            id="deprecate-message"
-            label="Message"
-            value={v.message}
-            onChange={(message) => set({ message })}
-            hint="Shown wherever this version is installed, such as “Use 1.2.0 or later.” It stays installable."
-          />
-        )}
-      >
-        <Reach reach={reach} />
-      </ChangeDialog>
-    )}
-    {yanked ? (
-      <ChangeDialog
-        itemRef={itemRef}
-        label="Unyank"
-        title={`Unyank ${version}?`}
-        confirm="Unyank"
-        initial={{}}
-        change={() => ({ kind: "unyank", version })}
-      >
-        <p className="text-sm text-fg">
-          New installs can resolve it again. Tags stay where they are.
-        </p>
-      </ChangeDialog>
-    ) : (
-      <ChangeDialog
-        itemRef={itemRef}
-        label="Yank"
-        title={`Yank ${version}`}
-        confirm="Yank"
-        destructive
-        initial={{ reason: "" }}
-        change={(v) => ({ kind: "yank", version, reason: v.reason })}
-        fields={(v, set) => (
-          <TextArea
-            id="yank-reason"
-            label="Reason"
-            value={v.reason}
-            onChange={(reason) => set({ reason })}
-            hint="New installs can't resolve it; projects that pin it in their lockfile still get it. If latest points to it, latest moves back."
-          />
-        )}
-      >
-        <Reach reach={reach} />
-      </ChangeDialog>
-    )}
-  </div>
-);
+  /** Which dialog opens at once: for a test, or a link that asks for it. */
+  open?: "deprecate" | "yank";
+}) => {
+  const t = useTranslations("author.versions");
+  return (
+    <div className="flex flex-wrap justify-end gap-1">
+      {deprecated ? (
+        <ChangeDialog
+          itemRef={itemRef}
+          label={t("undeprecate")}
+          title={t("undeprecateTitle", { version })}
+          confirm={t("undeprecate")}
+          defaultOpen={open === "deprecate"}
+          initial={{}}
+          change={() => ({ kind: "undeprecate", version })}
+        >
+          <p className="text-sm text-fg">{t("undeprecateText")}</p>
+        </ChangeDialog>
+      ) : (
+        <ChangeDialog
+          itemRef={itemRef}
+          label={t("deprecate")}
+          title={t("deprecateTitle", { version })}
+          confirm={t("deprecate")}
+          defaultOpen={open === "deprecate"}
+          initial={{ message: "" }}
+          change={(v) => ({ kind: "deprecate", version, message: v.message })}
+          fields={(v, set) => (
+            <TextArea
+              id="deprecate-message"
+              label={t("message")}
+              value={v.message}
+              onChange={(message) => set({ message })}
+              hint={t("deprecateHint")}
+            />
+          )}
+        >
+          <Reach reach={reach} />
+        </ChangeDialog>
+      )}
+      {yanked ? (
+        <ChangeDialog
+          itemRef={itemRef}
+          label={t("unyank")}
+          title={t("unyankTitle", { version })}
+          confirm={t("unyank")}
+          defaultOpen={open === "yank"}
+          initial={{}}
+          change={() => ({ kind: "unyank", version })}
+        >
+          <p className="text-sm text-fg">{t("unyankText")}</p>
+        </ChangeDialog>
+      ) : (
+        <ChangeDialog
+          itemRef={itemRef}
+          label={t("yank")}
+          title={t("yankTitle", { version })}
+          confirm={t("yank")}
+          defaultOpen={open === "yank"}
+          destructive
+          initial={{ reason: "" }}
+          change={(v) => ({ kind: "yank", version, reason: v.reason })}
+          fields={(v, set) => (
+            <TextArea
+              id="yank-reason"
+              label={t("reason")}
+              value={v.reason}
+              onChange={(reason) => set({ reason })}
+              hint={t("yankHint")}
+            />
+          )}
+        >
+          <Reach reach={reach} />
+        </ChangeDialog>
+      )}
+    </div>
+  );
+};
 
 /** Moving a tag, or adding one, to a version chosen from the list. */
 export const TagControls = ({
@@ -136,28 +144,33 @@ export const TagControls = ({
   tag,
   versions,
   current,
+  open,
 }: {
   itemRef: ItemRef;
   /** The tag to move; empty to add a new one. */
   tag: string;
   versions: { version: string; yanked: boolean }[];
   current?: string;
+  /** Which dialog opens at once: for a test, or a link that asks for it. */
+  open?: "move" | "remove";
 }) => {
+  const t = useTranslations("author.versions");
   const choosable = versions.filter((v) => !v.yanked).map((v) => v.version);
   return (
     <div className="flex flex-wrap justify-end gap-1">
       <ChangeDialog
         itemRef={itemRef}
-        label={tag ? "Move" : "Add a tag"}
-        title={tag ? `Move ${tag}` : "Add a tag"}
-        confirm={tag ? "Move" : "Add"}
+        label={tag ? t("move") : t("addTag")}
+        title={tag ? t("moveTitle", { tag }) : t("addTag")}
+        confirm={tag ? t("move") : t("add")}
+        defaultOpen={open === "move"}
         initial={{ tag, version: current ?? choosable[0] ?? "" }}
         change={(v) => ({ kind: "move_tag", tag: v.tag, version: v.version })}
         fields={(v, set) => (
           <>
             {tag ? null : (
               <div className="grid gap-1.5">
-                <Label htmlFor="tag-name">Tag</Label>
+                <Label htmlFor="tag-name">{t("tag")}</Label>
                 <input
                   id="tag-name"
                   required
@@ -166,13 +179,11 @@ export const TagControls = ({
                   onChange={(event) => set({ ...v, tag: event.target.value })}
                   className={`${inputClasses} font-mono`}
                 />
-                <p className="text-xs text-muted">
-                  Lowercase letters, digits and hyphens, such as beta or stable-1.
-                </p>
+                <p className="text-xs text-muted">{t("tagHint")}</p>
               </div>
             )}
             <div className="grid gap-1.5">
-              <Label htmlFor="tag-version">Version</Label>
+              <Label htmlFor="tag-version">{t("versionLabel")}</Label>
               <select
                 id="tag-version"
                 value={v.version}
@@ -192,15 +203,19 @@ export const TagControls = ({
       {tag && tag !== "latest" ? (
         <ChangeDialog
           itemRef={itemRef}
-          label="Remove"
-          title={`Remove ${tag}?`}
-          confirm="Remove"
+          label={t("remove")}
+          title={t("removeTitle", { tag })}
+          confirm={t("remove")}
+          defaultOpen={open === "remove"}
           destructive
           initial={{}}
           change={() => ({ kind: "remove_tag", tag })}
         >
           <p className="text-sm text-fg">
-            Installing @{itemRef.scope}/{itemRef.name}@{tag} stops working.
+            {t.rich("removeText", {
+              install: `@${itemRef.scope}/${itemRef.name}@${tag}`,
+              mono: (chunks) => <>{chunks}</>,
+            })}
           </p>
         </ChangeDialog>
       ) : null}

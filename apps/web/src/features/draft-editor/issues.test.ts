@@ -1,6 +1,6 @@
 import type { ManifestIssue } from "@ronneai/core";
 import { describe, expect, it } from "vitest";
-import { AS_OF_SAVE, editorProblems, savedOnly } from "./issues";
+import { editorProblems, savedOnly } from "./issues";
 
 const range: ManifestIssue = {
   severity: "error",
@@ -35,20 +35,19 @@ describe("what the editor shows (#142)", () => {
     expect(shown.all).toEqual([schema, range, missing]);
     expect(shown.byFile.get("ronne.yaml")).toEqual({ live: [schema], saved: [range, missing] });
     expect(shown.byFile.has("SKILL.md")).toBe(false);
-    expect(shown.savedLabel).toBeUndefined();
+    expect(shown.asOfSave).toBe(false);
   });
 
   it("marks the registry's as of the last save while there are unsaved changes", () => {
-    expect(editorProblems([], [range], { paths, dirty: true, readOnly: false }).savedLabel).toBe(
-      AS_OF_SAVE,
+    expect(editorProblems([], [range], { paths, dirty: true, readOnly: false }).asOfSave).toBe(
+      true,
     );
-    expect(AS_OF_SAVE).toMatch(/^As of your last save/);
     // Nothing to mark, or nothing to edit.
-    expect(editorProblems([schema], [], { paths, dirty: true, readOnly: false }).savedLabel).toBe(
-      undefined,
+    expect(editorProblems([schema], [], { paths, dirty: true, readOnly: false }).asOfSave).toBe(
+      false,
     );
-    expect(editorProblems([], [range], { paths, dirty: true, readOnly: true }).savedLabel).toBe(
-      undefined,
+    expect(editorProblems([], [range], { paths, dirty: true, readOnly: true }).asOfSave).toBe(
+      false,
     );
   });
 

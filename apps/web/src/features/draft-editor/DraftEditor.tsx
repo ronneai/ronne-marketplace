@@ -2,7 +2,6 @@
 
 import {
   DEFAULT_LIMITS,
-  formatBytes,
   formatItemName,
   formatScopeName,
   type ManifestIssue,
@@ -12,15 +11,8 @@ import { FilePlus, FolderPlus, History, Lock, Send, Settings, Undo2, Upload } fr
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  type ReactNode,
-  useCallback,
-  useMemo,
-  useReducer,
-  useRef,
-  useState,
-  useTransition,
-} from "react";
+import { useFormatter, useTranslations } from "next-intl";
+import { useCallback, useMemo, useReducer, useRef, useState, useTransition } from "react";
 import { CodeEditor } from "@/components/code/CodeEditor";
 import { FileTree } from "@/components/code/FileTree";
 import type { Mentions } from "@/components/code/mentions";
@@ -36,6 +28,7 @@ import { TypeBadge } from "@/components/ui/TypeBadge";
 import { UnsavedChangesGuard } from "@/components/ui/UnsavedChangesGuard";
 import { FileIssues, IssuesSummary } from "@/components/validation/IssuesPopover";
 import { AskToJoinLink } from "@/components/workspaces/AskToJoinLink";
+import { useBytes } from "@/i18n/bytes";
 import type { DependencyOption } from "@/server/domains/submissions/actions/composer";
 import {
   MANIFEST_PATH,
@@ -46,8 +39,17 @@ import { startingFiles } from "@/server/domains/submissions/models/templates";
 import { saveDraftAction } from "./actions";
 import { addDependency, hasCanvas } from "./composer-canvas/model";
 import { findDependenciesAction } from "./dependency-picker/actions";
-import { dependencyRows, rangeFor, statusText } from "./dependency-picker/model";
-import { DeleteFileDialog, DraftSettingsDialog, ImportZipDialog, PathDialog } from "./FileDialogs";
+import { dependencyRows, rangeFor } from "./dependency-picker/model";
+import { usePickerWords } from "./dependency-picker/words";
+import {
+  DeleteFileDialog,
+  DraftSettingsDialog,
+  ImportZipDialog,
+  NewPathDialog,
+  RenamePathDialog,
+  usePathWords,
+  useTooBig,
+} from "./FileDialogs";
 import {
   changesOf,
   type FilesAction,
@@ -65,7 +67,7 @@ import {
   DeleteArchivedDialog,
   RestoreButton,
   SubmitDialog,
-  submitLabel,
+  useSubmitWords,
   WithdrawDialog,
 } from "./SubmitDialogs";
 import type { EditorDraft, SaveResult } from "./types";
@@ -88,7 +90,47 @@ type Status =
   | null;
 
 type View = "form" | "yaml" | "canvas";
-const VIEW_LABELS: Record<View, string> = { form: "Form", yaml: "YAML", canvas: "Canvas" };
+
+const VIEW_BUTTON =
+  "h-7 rounded-control px-3 text-xs font-semibold text-muted hover:text-fg aria-pressed:border aria-pressed:border-hairline aria-pressed:bg-surface aria-pressed:text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus";
+
+/** How ronne.yaml is shown: as a form, as YAML or as the canvas, in the person's language (131). */
+export const ViewSwitch = ({
+  views,
+  view,
+  onChange,
+}: {
+  views: readonly View[];
+  view: View;
+  onChange: (view: View) => void;
+}) => {
+  const t = useTranslations("author.form");
+  return (
+    <fieldset className="flex gap-1 rounded-control border border-hairline bg-canvas p-0.5">
+      <legend className="sr-only">{t("viewsLegend")}</legend>
+      {views.map((mode) => (
+        <button
+          key={mode}
+          type="button"
+          aria-pressed={view === mode}
+          onClick={() => onChange(mode)}
+          className={VIEW_BUTTON}
+        >
+          {t(`views.${mode}`)}
+        </button>
+      ))}
+    </fieldset>
+  );
+};
+
+const CanvasLoading = () => {
+  const t = useTranslations("author.editor");
+  return (
+    <p role="status" className="grid h-full place-content-center bg-surface text-sm text-muted">
+      {t("loadingCanvas")}
+    </p>
+  );
+};
 
 /**
  * The canvas (feature 031) and React Flow with it, in a chunk of their own that loads when the
@@ -98,11 +140,7 @@ const ComposerView = dynamic(
   () => import("./composer-canvas/ComposerView").then((module) => module.ComposerView),
   {
     ssr: false,
-    loading: () => (
-      <p role="status" className="grid h-full place-content-center bg-surface text-sm text-muted">
-        Loading the canvas…
-      </p>
-    ),
+    loading: () => <CanvasLoading />,
   },
 );
 
@@ -112,51 +150,67 @@ const folderOf = (path: string) =>
 const toolClasses =
   "inline-flex items-center gap-1.5 rounded-control px-2 py-1 text-xs text-muted hover:bg-tint hover:text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus";
 
-/** The read-only notice's title, for each status the author can't edit (013, 058). */
-const readOnlyTitle = (draft: EditorDraft): ReactNode => {
-  if (!draft.mine) return "Someone else's submission.";
-  if (draft.notMemberOf) return `You're no longer a member of ${draft.notMemberOf}.`;
-  if (draft.status === "approved" && draft.selfApproved)
-    return "Approved by you: personal workspaces aren't reviewed.";
-  if (draft.status === "approved") return "Approved.";
-  if (draft.status === "published") return "Released.";
+/**
+ * After a save: when, on the reader's own clock as the browser tells it (the provider's zone is
+ * the server's), and whether errors are left to fix before submitting.
+ */
+export const SavedLine = ({ at, withErrors }: { at: Date; withErrors: boolean }) => {
+  const t = useTranslations("author.editor");
+  const format = useFormatter();
+  const time = format.dateTime(at, {
+    timeStyle: "medium",
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  });
   return (
     <>
-      Submitted for review
-      {draft.submittedAt ? (
-        <>
-          {" "}
-          on <LocalTime value={draft.submittedAt} precision="day" />
-        </>
-      ) : null}
-      .
+      <span className="mr-2 font-mono text-xs font-semibold">{t("ok")}</span>
+      {t(withErrors ? "savedWithErrors" : "savedAt", { time })}
     </>
   );
 };
 
-const readOnlyText = (draft: EditorDraft): ReactNode => {
-  if (!draft.mine) return "You can read it, but only its author can change or withdraw it.";
-  if (draft.notMemberOf)
-    return (
-      <span>
-        You can read it and withdraw it, but not change, submit or release it. To work on it again,{" "}
-        <AskToJoinLink workspace={draft.notMemberOf} />; its moderators can still decide it.
-      </span>
-    );
-  if (draft.status === "approved" && draft.selfApproved)
-    return "It's ready to release. What it can do is listed below, as a reviewer would have seen it. Until it's released you can still withdraw it.";
-  if (draft.status === "approved")
-    return "It's ready to release, by you or a moderator. Until then you can still withdraw it, and a reviewer can send it back.";
-  if (draft.status === "published")
-    return "A released version never changes: View versions lists them. To change the item, propose a change from its page.";
-  return "Its files are frozen, so reviewers see exactly what you submitted. You can withdraw it until it's released.";
+/** Which read-only notice a draft gets, for each status the author can't edit (013, 058). */
+const readOnlyKind = (draft: EditorDraft) =>
+  !draft.mine
+    ? "others"
+    : draft.notMemberOf
+      ? "notMember"
+      : draft.status === "approved" && draft.selfApproved
+        ? "selfApproved"
+        : draft.status === "approved"
+          ? "approved"
+          : draft.status === "published"
+            ? "published"
+            : "submitted";
+
+/** The read-only notice's title. */
+const ReadOnlyTitle = ({ draft }: { draft: EditorDraft }) => {
+  const t = useTranslations("author.editor.readOnly");
+  const kind = readOnlyKind(draft);
+  if (kind === "notMember") return t("notMember", { workspace: draft.notMemberOf ?? "" });
+  if (kind !== "submitted") return t(kind);
+  const submittedAt = draft.submittedAt;
+  return submittedAt
+    ? t.rich("submittedOn", {
+        date: () => <LocalTime value={submittedAt} precision="day" />,
+      })
+    : t("submitted");
 };
 
-const FEEDBACK_TITLE = {
-  request_changes: "Changes requested by",
-  reject: "Rejected by",
-  rebase: "Rebased by",
-} as const;
+/** The read-only notice's text. */
+const ReadOnlyText = ({ draft }: { draft: EditorDraft }) => {
+  const t = useTranslations("author.editor.readOnlyText");
+  const kind = readOnlyKind(draft);
+  return kind === "notMember" ? (
+    <span>
+      {t.rich("notMember", {
+        join: () => <AskToJoinLink workspace={draft.notMemberOf ?? ""} />,
+      })}
+    </span>
+  ) : (
+    t(kind)
+  );
+};
 
 /**
  * Why it was sent back or closed (058), at the top of the page: who, when, and their message,
@@ -168,34 +222,32 @@ const FeedbackNotice = ({
 }: {
   feedback: NonNullable<EditorDraft["feedback"]>;
   mine: boolean;
-}) => (
-  <Notice
-    kind={feedback.kind === "reject" ? "error" : "warn"}
-    title={
-      <>
-        {FEEDBACK_TITLE[feedback.kind]} {feedback.by},{" "}
-        <LocalTime value={feedback.at} precision="day" />
-        {feedback.kind === "rebase" && feedback.body ? ` onto ${feedback.body}` : ""}.
-      </>
-    }
-  >
-    <div className="grid gap-2">
-      {feedback.body && feedback.kind !== "rebase" ? (
-        <p className="whitespace-pre-wrap break-words">{feedback.body}</p>
-      ) : null}
-      <p className="text-muted">
-        {feedback.kind === "reject"
-          ? "Rejected is final: start a new draft to try again."
-          : mine
-            ? "Edit the files, then Resubmit for review."
-            : "It's back with its author."}{" "}
-        <a href="#conversation" className="underline underline-offset-2">
-          See the conversation
-        </a>
-      </p>
-    </div>
-  </Notice>
-);
+}) => {
+  const t = useTranslations("author.editor.feedback");
+  const date = () => <LocalTime value={feedback.at} precision="day" />;
+  return (
+    <Notice
+      kind={feedback.kind === "reject" ? "error" : "warn"}
+      title={
+        feedback.kind === "rebase" && feedback.body
+          ? t.rich("rebaseTitle", { by: feedback.by, version: feedback.body, date })
+          : t.rich("title", { kind: feedback.kind, by: feedback.by, date })
+      }
+    >
+      <div className="grid gap-2">
+        {feedback.body && feedback.kind !== "rebase" ? (
+          <p className="whitespace-pre-wrap break-words">{feedback.body}</p>
+        ) : null}
+        <p className="text-muted">
+          {t(feedback.kind === "reject" ? "reject" : mine ? "mine" : "others")}{" "}
+          <a href="#conversation" className="underline underline-offset-2">
+            {t("conversation")}
+          </a>
+        </p>
+      </div>
+    </Notice>
+  );
+};
 
 /**
  * The draft editor (feature 012): a file tree on the left, CodeMirror on the right, and one Save
@@ -205,13 +257,23 @@ const FeedbackNotice = ({
 export const DraftEditor = ({
   draft,
   limits = DEFAULT_LIMITS,
+  initialPath = MANIFEST_PATH,
 }: {
   draft: EditorDraft;
   limits?: typeof DEFAULT_LIMITS;
+  /** The file it opens on: ronne.yaml unless another is asked for. */
+  initialPath?: string;
 }) => {
   const router = useRouter();
+  const formText = useTranslations("author.form");
+  const fieldText = useTranslations("common.field");
+  const t = useTranslations("author.editor");
+  const bytes = useBytes();
+  const pathWords = usePathWords();
+  const tooBig = useTooBig();
+  const submitWords = useSubmitWords();
   const [state, dispatch] = useReducer(filesReducer, { files: draft.files, removed: [] });
-  const [selected, setSelected] = useState(MANIFEST_PATH);
+  const [selected, setSelected] = useState(initialPath);
   const [open, setOpen] = useState<Open>(null);
   const [status, setStatus] = useState<Status>(null);
   // What Submit would refuse (#142): the registry's checks, from the page load, then each save.
@@ -273,9 +335,9 @@ export const DraftEditor = ({
   // Only 011's: the registry's may be out of date, so Submit's dialog checks them again (#142).
   const errorCount = issues.filter((issue) => issue.severity === "error").length;
   const notReady = dirty
-    ? "Save your changes first: the checks, and reviewers, see what's saved."
+    ? t("notReadyUnsaved")
     : errorCount > 0
-      ? `Fix ${errorCount === 1 ? "the error" : `the ${errorCount} errors`} first.`
+      ? t("notReadyErrors", { count: errorCount })
       : null;
 
   /** Opens the file and line an issue is about; in ronne.yaml, that's the YAML view. */
@@ -345,6 +407,10 @@ export const DraftEditor = ({
   const manifestNow = useRef(manifestText);
   manifestNow.current = manifestText;
   const offered = useRef(new Map<string, DependencyOption>());
+  // Read when the list opens: the words follow the language without rebuilding the mentions.
+  const words = usePickerWords();
+  const wordsNow = useRef(words);
+  wordsNow.current = words;
   const mentions = useMemo<Mentions | null>(
     () =>
       readOnly || !mayHaveDependencies(draft.type)
@@ -361,7 +427,7 @@ export const DraftEditor = ({
               for (const option of result.options) offered.current.set(option.name, option);
               return result.options.map((option) => ({
                 name: option.name,
-                detail: `${option.type} · ${statusText(option)}`,
+                detail: `${option.type} · ${wordsNow.current.statusText(option)}`,
               }));
             },
             pick: (name) => {
@@ -385,12 +451,12 @@ export const DraftEditor = ({
       if (chosen.size > limits.maxFileBytes) {
         setStatus({
           kind: "error",
-          message: `${chosen.name} is ${formatBytes(chosen.size)}; a file can be at most ${formatBytes(limits.maxFileBytes)}.`,
+          message: tooBig(chosen.name, chosen.size, limits.maxFileBytes),
         });
         continue;
       }
       const path = target ?? `${folderOf(file?.path ?? "")}${chosen.name}`;
-      const problem = target ? null : newPathProblem(state, path, path);
+      const problem = target ? null : pathWords(newPathProblem(state, path, path));
       if (problem) {
         setStatus({ kind: "error", message: problem });
         continue;
@@ -417,20 +483,20 @@ export const DraftEditor = ({
             <IssuesSummary
               issues={issues}
               saved={problems.saved}
-              savedLabel={problems.savedLabel}
-              note={
-                readOnly
-                  ? "The same checks that ran when it was submitted."
-                  : "A draft can be saved with problems; it has to be free of errors to be submitted."
-              }
+              savedLabel={problems.asOfSave ? formText("asOfSave") : undefined}
+              note={t(readOnly ? "issuesNoteReadOnly" : "issuesNote")}
               onSelect={openIssue}
               onRename={readOnly ? undefined : writeNewName}
             />
             <span
               className={`font-mono text-xs ${overLimit ? "font-semibold text-fg" : "text-muted"}`}
             >
-              {totals.count} of {limits.maxFiles} files · {formatBytes(totals.bytes)} of{" "}
-              {formatBytes(limits.maxTotalBytes)}
+              {t("totals", {
+                count: totals.count,
+                max: limits.maxFiles,
+                bytes: bytes(totals.bytes),
+                maxBytes: bytes(limits.maxTotalBytes),
+              })}
             </span>
           </div>
         </div>
@@ -438,13 +504,13 @@ export const DraftEditor = ({
           {draft.versionsHref ? (
             <Link href={draft.versionsHref} className={buttonClasses("secondary")}>
               <History size={16} aria-hidden="true" />
-              View versions
+              {t("viewVersions")}
             </Link>
           ) : null}
           {draft.canWithdraw ? (
             <Button variant="ghost" onClick={() => setOpen({ kind: "withdraw" })}>
               <Undo2 size={16} aria-hidden="true" />
-              Withdraw
+              {t("withdraw")}
             </Button>
           ) : null}
           {readOnly ? null : (
@@ -453,7 +519,7 @@ export const DraftEditor = ({
               {draft.status === "draft" ? (
                 <Button variant="ghost" onClick={() => setOpen({ kind: "settings" })}>
                   <Settings size={16} aria-hidden="true" />
-                  Settings
+                  {t("settings")}
                 </Button>
               ) : null}
               <Button
@@ -462,14 +528,14 @@ export const DraftEditor = ({
                 loading={saving}
                 disabled={!dirty}
               >
-                {dirty ? "Save" : "Saved"}
+                {t(dirty ? "save" : "saved")}
               </Button>
             </>
           )}
           {draft.canSubmit ? (
             <Button onClick={() => setOpen({ kind: "submit" })} disabledReason={notReady}>
               <Send size={16} aria-hidden="true" />
-              {submitLabel(draft.status === "changes_requested", [], draft.personal)}
+              {submitWords.label(draft.status === "changes_requested", [], draft.personal)}
             </Button>
           ) : null}
         </div>
@@ -485,17 +551,17 @@ export const DraftEditor = ({
       ) : null}
 
       {draft.status === "withdrawn" && draft.mine ? (
-        <Notice kind="info" title="Archived.">
+        <Notice kind="info" title={t("archivedTitle")}>
           <div className="grid gap-3">
             <p className="flex items-start gap-2">
               <Lock size={14} aria-hidden="true" className="mt-0.5 shrink-0" />
-              It's out of review and doesn't hold its name. Restore it to edit and submit it again.
+              {t("archived")}
             </p>
             <div className="flex flex-wrap items-center gap-2">
               {draft.canRestore ? <RestoreButton draftId={draft.id} /> : null}
               {draft.canDelete ? (
                 <Button variant="ghost" onClick={() => setOpen({ kind: "delete-submission" })}>
-                  Delete for good
+                  {t("deleteForGood")}
                 </Button>
               ) : null}
             </div>
@@ -504,10 +570,10 @@ export const DraftEditor = ({
       ) : draft.feedback ? (
         <FeedbackNotice feedback={draft.feedback} mine={draft.mine} />
       ) : readOnly ? (
-        <Notice kind="info" title={readOnlyTitle(draft)}>
+        <Notice kind="info" title={<ReadOnlyTitle draft={draft} />}>
           <p className="flex items-start gap-2">
             <Lock size={14} aria-hidden="true" className="mt-0.5 shrink-0" />
-            {readOnlyText(draft)}
+            <ReadOnlyText draft={draft} />
           </p>
           {draft.status === "approved" && draft.selfApproved ? (
             <Help id="personal-review" className="mt-2" />
@@ -520,30 +586,27 @@ export const DraftEditor = ({
         className={readOnly ? "sr-only" : "min-h-5 text-sm text-fg"}
       >
         {status?.kind === "saved" && !dirty ? (
-          <>
-            <span className="mr-2 font-mono text-xs font-semibold">OK:</span>
-            Saved at {status.at.toLocaleTimeString()}.
-            {status.issues.some((issue) => issue.severity === "error")
-              ? " Fix its errors before you submit it: the icons in the file list show where."
-              : ""}
-          </>
+          <SavedLine
+            at={status.at}
+            withErrors={status.issues.some((issue) => issue.severity === "error")}
+          />
         ) : status?.kind === "error" ? (
           <span className="text-error-text">
-            <span className="mr-2 font-mono text-xs font-semibold">ERR:</span>
+            <span className="mr-2 font-mono text-xs font-semibold">{fieldText("error")}</span>
             {status.message}
           </span>
         ) : null}
       </p>
       {status?.kind === "stale" ? (
-        <Notice kind="info" title="Someone saved this draft elsewhere.">
+        <Notice kind="info" title={t("staleTitle")}>
           <div className="grid gap-3">
             <p>{status.message}</p>
             <div className="flex flex-wrap gap-2">
               <Button variant="secondary" onClick={() => router.refresh()}>
-                Reload and lose my changes
+                {t("reload")}
               </Button>
               <Button onClick={() => save(true)} loading={saving}>
-                Overwrite with mine
+                {t("overwrite")}
               </Button>
             </div>
           </div>
@@ -556,7 +619,7 @@ export const DraftEditor = ({
           className="group min-w-0 rounded-panel border border-hairline bg-surface lg:self-start"
         >
           <summary className="cursor-pointer px-3 py-2 text-sm font-semibold text-fg lg:hidden">
-            Files ({totals.count})
+            {t("files", { count: totals.count })}
           </summary>
           <div className="grid gap-2 border-t border-hairline p-2 lg:border-t-0">
             <div className={readOnly ? "hidden" : "flex flex-wrap gap-1"}>
@@ -566,7 +629,7 @@ export const DraftEditor = ({
                 onClick={() => setOpen({ kind: "new-file", folder: false })}
               >
                 <FilePlus size={14} aria-hidden="true" />
-                File
+                {t("newFile")}
               </button>
               <button
                 type="button"
@@ -574,25 +637,25 @@ export const DraftEditor = ({
                 onClick={() => setOpen({ kind: "new-file", folder: true })}
               >
                 <FolderPlus size={14} aria-hidden="true" />
-                Folder
+                {t("newFolder")}
               </button>
               <button type="button" className={toolClasses} onClick={() => upload.current?.click()}>
                 <Upload size={14} aria-hidden="true" />
-                Upload
+                {t("upload")}
               </button>
               <button
                 type="button"
                 className={toolClasses}
                 onClick={() => setOpen({ kind: "import" })}
               >
-                Import .zip
+                {t("importZip")}
               </button>
               <input
                 ref={upload}
                 type="file"
                 multiple
                 hidden
-                aria-label="Upload files"
+                aria-label={t("uploadLabel")}
                 onChange={(event) => {
                   void addFiles(event.target.files);
                   event.target.value = "";
@@ -608,7 +671,7 @@ export const DraftEditor = ({
                   path={f.path}
                   issues={problems.byFile.get(f.path)?.live ?? []}
                   saved={problems.byFile.get(f.path)?.saved}
-                  savedLabel={problems.savedLabel}
+                  savedLabel={problems.asOfSave ? formText("asOfSave") : undefined}
                   onSelect={openIssue}
                   onRename={readOnly ? undefined : writeNewName}
                 />
@@ -617,27 +680,14 @@ export const DraftEditor = ({
           </div>
         </details>
 
-        <section aria-label="Editor" className="grid min-w-0 content-start gap-2">
+        <section aria-label={t("editor")} className="grid min-w-0 content-start gap-2">
           {file ? (
             <>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="truncate font-mono text-sm text-fg">{file.path}</span>
                 <div className="flex flex-wrap items-center gap-1">
                   {file.path === MANIFEST_PATH ? (
-                    <fieldset className="flex gap-1 rounded-control border border-hairline bg-canvas p-0.5">
-                      <legend className="sr-only">ronne.yaml view</legend>
-                      {views.map((mode) => (
-                        <button
-                          key={mode}
-                          type="button"
-                          aria-pressed={view === mode}
-                          onClick={() => setView(mode)}
-                          className="h-7 rounded-control px-3 text-xs font-semibold text-muted hover:text-fg aria-pressed:border aria-pressed:border-hairline aria-pressed:bg-surface aria-pressed:text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
-                        >
-                          {VIEW_LABELS[mode]}
-                        </button>
-                      ))}
-                    </fieldset>
+                    <ViewSwitch views={views} view={view} onChange={setView} />
                   ) : (
                     <label className="flex items-center gap-1.5 px-2 text-xs text-muted">
                       <input
@@ -653,15 +703,15 @@ export const DraftEditor = ({
                         }
                         className="size-4 accent-(--accent)"
                       />
-                      Executable
+                      {t("executable")}
                     </label>
                   )}
                   {starting.has(file.path) && file.path !== MANIFEST_PATH && !readOnly ? (
                     <span
                       className="px-2 text-xs text-muted"
-                      title={`One of the ${draft.type}'s starting files: edit it, but it can't be deleted or renamed.`}
+                      title={t("startingFileTitle", { type: draft.type })}
                     >
-                      Starting file
+                      {t("startingFile")}
                     </span>
                   ) : null}
                   {!starting.has(file.path) && !readOnly ? (
@@ -671,14 +721,14 @@ export const DraftEditor = ({
                         className={toolClasses}
                         onClick={() => setOpen({ kind: "rename", path: file.path })}
                       >
-                        Rename
+                        {t("rename")}
                       </button>
                       <button
                         type="button"
                         className={toolClasses}
                         onClick={() => setOpen({ kind: "delete", path: file.path })}
                       >
-                        Delete
+                        {t("delete")}
                       </button>
                     </>
                   ) : null}
@@ -694,7 +744,10 @@ export const DraftEditor = ({
               >
                 {file.path === MANIFEST_PATH && view === "form" ? (
                   <fieldset disabled={readOnly} className="min-w-0 rounded-panel bg-surface">
-                    <legend className="sr-only">ronne.yaml</legend>
+                    <legend className="sr-only">
+                      {/* biome-ignore lint/plugin: a file name, the same in every language */}
+                      ronne.yaml
+                    </legend>
                     <ManifestForm
                       text={file.content}
                       type={draft.type}
@@ -730,20 +783,17 @@ export const DraftEditor = ({
                   />
                 ) : (
                   <div className="grid h-full place-content-center justify-items-center gap-3 bg-surface p-6 text-center">
-                    <p className="text-sm text-fg">
-                      A binary file, {formatBytes(file.size)}. It can be replaced or deleted, but
-                      not edited here.
-                    </p>
+                    <p className="text-sm text-fg">{t("binary", { size: bytes(file.size) })}</p>
                     {readOnly ? null : (
                       <Button variant="secondary" onClick={() => replace.current?.click()}>
-                        Replace
+                        {t("replace")}
                       </Button>
                     )}
                     <input
                       ref={replace}
                       type="file"
                       hidden
-                      aria-label={`Replace ${file.path}`}
+                      aria-label={t("replaceLabel", { path: file.path })}
                       onChange={(event) => {
                         void addFiles(event.target.files, file.path);
                         event.target.value = "";
@@ -757,22 +807,12 @@ export const DraftEditor = ({
         </section>
       </div>
 
-      <UnsavedChangesGuard
-        dirty={dirty}
-        message="Your changes to this draft aren't saved. If you leave now, they're lost."
-      />
+      <UnsavedChangesGuard dirty={dirty} message={t("leave")} />
       {open?.kind === "new-file" ? (
-        <PathDialog
-          title={open.folder ? "New folder" : "New file"}
-          label={open.folder ? "Folder and first file" : "Path"}
-          hint={
-            open.folder
-              ? "A folder exists once it has a file, so name one: docs/usage.md."
-              : "Use / for folders, such as docs/usage.md."
-          }
+        <NewPathDialog
+          folder={open.folder}
           initial={open.folder ? "" : folderOf(file?.path ?? "")}
-          confirm="Create"
-          problem={(path) => newPathProblem(state, path)}
+          problem={(path) => pathWords(newPathProblem(state, path))}
           onDone={(path) => {
             dispatch({ type: "put", path, encoding: "utf8", content: "" });
             setSelected(path);
@@ -782,13 +822,9 @@ export const DraftEditor = ({
         />
       ) : null}
       {open?.kind === "rename" ? (
-        <PathDialog
-          title="Rename file"
-          label="New path"
-          hint="Use / to move it into a folder."
+        <RenamePathDialog
           initial={open.path}
-          confirm="Rename"
-          problem={(path) => newPathProblem(state, path, open.path)}
+          problem={(path) => pathWords(newPathProblem(state, path, open.path))}
           onDone={(path) => {
             dispatch({ type: "rename", from: open.path, to: path });
             setSelected(path);

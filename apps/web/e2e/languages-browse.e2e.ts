@@ -130,6 +130,9 @@ const loadAll = (locale: string) => {
   return all;
 };
 
+/** A message whose English is also a seeded item's keyword, which the cards show as written. */
+const KEYWORD_AS_TAG = ["types.tag.permission-policy"];
+
 /** Words of the scopes table on a workspace's page, English until the admin sweep (132). */
 const UNTIL_132 = [
   "catalogue.view.search.label",
@@ -180,7 +183,8 @@ for (const words of LANGUAGES) {
       await expect(card).toBeVisible();
       await expect(card.getByText(words.installs)).toBeVisible();
       await expect(card.getByRole("button", { name: words.star })).toBeVisible();
-      await noEnglish(page, words.lang);
+      // The seeded skill's keyword "security" is data; it reads as permission-policy's tag (131).
+      await noEnglish(page, words.lang, KEYWORD_AS_TAG);
       await context.close();
     });
 

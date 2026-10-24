@@ -112,7 +112,7 @@ describe("the review queue", () => {
       ]);
     expect(await approvable(asModerator)).toEqual([
       ["fmt", ["hook", "executable"], { approvable: true, override: false }],
-      ["mine", [], { approvable: false, reason: "Your own submission" }],
+      ["mine", [], { approvable: false, reason: "Your own submission", why: { code: "own" } }],
       ["roots", [], { approvable: true, override: false }],
     ]);
     expect((await approvable(asRoot)).map(([name, , a]) => [name, a])).toEqual([

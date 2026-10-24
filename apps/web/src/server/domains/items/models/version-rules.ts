@@ -1,4 +1,4 @@
-import { highestStable, tagProblem } from "@ronneai/core";
+import { highestStable, type TagProblem, tagProblem, tagProblemOf } from "@ronneai/core";
 
 /** Up to this many dist-tags per item (feature 016). */
 export const MAX_TAGS = 20;
@@ -26,17 +26,58 @@ export const moveTagProblem = (
   target: Version,
   existingTags: number,
   isNew: boolean,
-): string | null => {
+): string | null => moveTagRule(tag, target, existingTags, isNew)?.message ?? null;
+
+/**
+ * A tag rule refused, in English (as the API says it) and as a code with its values, which the web
+ * app words (131).
+ */
+export type TagRule = {
+  message: string;
+  code: TagProblem | "yanked" | "too_many" | "latest_kept";
+  tag: string;
+  version: string;
+  max: number;
+};
+
+/** The same as `moveTagProblem`, as a `TagRule`. */
+export const moveTagRule = (
+  tag: string,
+  target: Version,
+  existingTags: number,
+  isNew: boolean,
+): TagRule | null => {
+  const rule = (code: TagRule["code"], message: string): TagRule => ({
+    message,
+    code,
+    tag,
+    version: target.version,
+    max: MAX_TAGS,
+  });
   const problem = tagProblem(tag, target.version);
-  if (problem) return problem;
-  if (target.yanked) return `${target.version} is yanked, so no tag can point to it.`;
-  if (isNew && existingTags >= MAX_TAGS) return `An item can have at most ${MAX_TAGS} tags.`;
+  const code = tagProblemOf(tag, target.version);
+  if (problem && code) return rule(code, problem);
+  if (target.yanked)
+    return rule("yanked", `${target.version} is yanked, so no tag can point to it.`);
+  if (isNew && existingTags >= MAX_TAGS)
+    return rule("too_many", `An item can have at most ${MAX_TAGS} tags.`);
   return null;
 };
 
 /** `latest` can't be removed: an item with a stable version always has it (MVP §3.4). */
-export const removeTagProblem = (tag: string): string | null =>
-  tag === "latest" ? "latest can't be removed; point it at another version instead." : null;
+export const removeTagProblem = (tag: string): string | null => removeTagRule(tag)?.message ?? null;
+
+/** The same as `removeTagProblem`, as a `TagRule`. */
+export const removeTagRule = (tag: string): TagRule | null =>
+  tag === "latest"
+    ? {
+        message: "latest can't be removed; point it at another version instead.",
+        code: "latest_kept",
+        tag,
+        version: "",
+        max: MAX_TAGS,
+      }
+    : null;
 
 /** A deprecation message or yank reason: 1 to 300 characters, trimmed; null when it's invalid. */
 export const messageFrom = (value: string): string | null => {

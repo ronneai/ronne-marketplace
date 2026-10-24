@@ -1,6 +1,7 @@
 "use client";
 
 import type { ItemType } from "@ronneai/core";
+import { useTranslations } from "next-intl";
 import { useComposer } from "@/components/dependency-canvas/context";
 import {
   DependencyFactsLine,
@@ -31,29 +32,28 @@ export const DependencyPanel = ({
   wide?: boolean;
   onShow: (id: string) => void;
 }) => {
+  const t = useTranslations("author.canvas");
   const { readOnly } = useComposer();
   const dependencies = nodes.flatMap((node) => (node.type === "dependency" ? [node] : []));
   return (
-    <aside aria-label="Dependencies" className="grid content-start gap-3">
+    <aside aria-label={t("dependencies")} className="grid content-start gap-3">
       <div className="grid gap-1">
         <h2 className="text-sm font-semibold text-fg">
-          Dependencies <span className="font-mono text-xs text-muted">({dependencies.length})</span>
+          {t.rich("dependenciesCount", {
+            count: dependencies.length,
+            muted: (chunks) => <span className="font-mono text-xs text-muted">{chunks}</span>,
+          })}
         </h2>
-        <p className="text-xs text-muted">
-          {type === "bundle" ? "The items this bundle installs." : "Items installed with this one."}
-        </p>
+        <p className="text-xs text-muted">{t(type === "bundle" ? "bundleNote" : "otherNote")}</p>
         <Help id="canvas" />
       </div>
       {failed ? (
-        <Notice kind="warn" title="The catalogue couldn't be reached.">
-          The dependencies are shown as ronne.yaml has them; their details come back with the next
-          change.
+        <Notice kind="warn" title={t("unreachable")}>
+          {t("unreachableBody")}
         </Notice>
       ) : null}
       {dependencies.length === 0 ? (
-        <p className="text-sm text-muted">
-          None yet.{readOnly ? "" : " Add one from the catalogue, or drag it onto the canvas."}
-        </p>
+        <p className="text-sm text-muted">{t(readOnly ? "noneYet" : "noneYetAdd")}</p>
       ) : (
         <ul className={wide ? "grid gap-2 sm:grid-cols-2" : "grid gap-2"}>
           {dependencies.map(({ id, data }) => (
@@ -64,7 +64,7 @@ export const DependencyPanel = ({
               <div className="flex items-start justify-between gap-2">
                 <button
                   type="button"
-                  title="Show on the canvas"
+                  title={t("show")}
                   onClick={() => onShow(id)}
                   className="min-w-0 rounded-control text-left font-mono text-xs font-semibold break-all text-fg outline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-focus"
                 >

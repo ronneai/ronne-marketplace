@@ -1,21 +1,26 @@
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { LocalTime } from "@/components/ui/LocalTime";
 import type { ReviewEvent, ReviewEventKind } from "@/server/domains/submissions/models/review";
 import { CommentForm } from "./CommentForm";
 
-const SAID: Record<ReviewEventKind, (event: ReviewEvent) => string> = {
-  submit: (e) => `submitted revision ${e.revision}`,
-  resubmit: (e) => `resubmitted it as revision ${e.revision}`,
-  comment: () => "commented",
-  request_changes: () => "requested changes",
-  approve: () => "approved it",
-  reject: () => "rejected it",
-  override: () => "approved their own submission, as root (override)",
-  self_approve: () => "submitted it in their personal workspace, so it was approved without review",
-  withdraw: () => "archived it",
-  restore: () => "restored it as a draft",
-  publish: (e) => `released it as ${e.body ?? "a new version"}`,
-  rebase: (e) => `rebased it onto ${e.body ?? "a newer version"}`,
+/** What an event says after its actor's name, in the person's language (131). */
+const useSaid = () => {
+  const t = useTranslations("author.review.said");
+  return (event: ReviewEvent): string => {
+    switch (event.kind) {
+      case "submit":
+      case "resubmit":
+        return t(event.kind, { revision: event.revision ?? 0 });
+      case "publish":
+      case "rebase":
+        return event.body
+          ? t(event.kind, { version: event.body })
+          : t(event.kind === "publish" ? "publishNone" : "rebaseNone");
+      default:
+        return t(event.kind);
+    }
+  };
 };
 
 /** Events whose body is part of the sentence, not a message under it. */
@@ -38,36 +43,40 @@ export const Conversation = ({
   canComment: boolean;
   /** The item's Versions page, which a release links to. */
   versionsHref: string;
-}) => (
-  <section aria-labelledby="conversation" className="grid gap-3">
-    <h2 id="conversation" className="text-lg font-semibold text-fg">
-      Conversation
-    </h2>
-    <ol className="grid gap-2">
-      {events.map((event) => (
-        <li
-          key={event.id}
-          className={`rounded-panel border p-3 text-sm ${DECISIONS.has(event.kind) ? "border-strong bg-surface" : "border-hairline bg-surface"}`}
-        >
-          <p className="text-fg">
-            <span className="font-semibold">{event.actor.name}</span>{" "}
-            {event.kind === "publish" ? (
-              <Link href={versionsHref} className="underline underline-offset-2">
-                {SAID[event.kind](event)}
-              </Link>
-            ) : (
-              SAID[event.kind](event)
-            )}
-            <span className="ml-2 font-mono text-xs text-muted">
-              <LocalTime value={event.createdAt} />
-            </span>
-          </p>
-          {event.body && !INLINE_BODY.has(event.kind) ? (
-            <p className="mt-1 whitespace-pre-wrap break-words text-fg">{event.body}</p>
-          ) : null}
-        </li>
-      ))}
-    </ol>
-    {canComment ? <CommentForm id={id} /> : null}
-  </section>
-);
+}) => {
+  const t = useTranslations("author.review");
+  const said = useSaid();
+  return (
+    <section aria-labelledby="conversation" className="grid gap-3">
+      <h2 id="conversation" className="text-lg font-semibold text-fg">
+        {t("conversation")}
+      </h2>
+      <ol className="grid gap-2">
+        {events.map((event) => (
+          <li
+            key={event.id}
+            className={`rounded-panel border p-3 text-sm ${DECISIONS.has(event.kind) ? "border-strong bg-surface" : "border-hairline bg-surface"}`}
+          >
+            <p className="text-fg">
+              <span className="font-semibold">{event.actor.name}</span>{" "}
+              {event.kind === "publish" ? (
+                <Link href={versionsHref} className="underline underline-offset-2">
+                  {said(event)}
+                </Link>
+              ) : (
+                said(event)
+              )}
+              <span className="ml-2 font-mono text-xs text-muted">
+                <LocalTime value={event.createdAt} />
+              </span>
+            </p>
+            {event.body && !INLINE_BODY.has(event.kind) ? (
+              <p className="mt-1 whitespace-pre-wrap break-words text-fg">{event.body}</p>
+            ) : null}
+          </li>
+        ))}
+      </ol>
+      {canComment ? <CommentForm id={id} /> : null}
+    </section>
+  );
+};

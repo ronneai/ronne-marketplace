@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { DeleteArchivedDialog, RestoreButton } from "../draft-editor/SubmitDialogs";
@@ -14,13 +15,14 @@ export const ArchivedActions = ({
   name: string;
   canDelete: boolean;
 }) => {
+  const t = useTranslations("author.submissions");
   const [deleting, setDeleting] = useState(false);
   return (
     <div className="flex flex-wrap items-center gap-2">
       <RestoreButton draftId={id} />
       {canDelete ? (
         <Button variant="ghost" onClick={() => setDeleting(true)}>
-          Delete
+          {t("delete")}
         </Button>
       ) : null}
       {deleting ? (

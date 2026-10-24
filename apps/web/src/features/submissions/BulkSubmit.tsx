@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { createContext, type ReactNode, useContext, useState, useTransition } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -110,6 +111,7 @@ export const SelectCell = ({
   /** What Submit would refuse now; 0 means ready. */
   errors: number;
 }) => {
+  const t = useTranslations("author.submissions.bulk");
   const { selected, toggle, neededBy } = useSelection();
   const ready = errors === 0;
   const lockedFor = selected.has(id) ? neededBy(id) : null;
@@ -118,16 +120,16 @@ export const SelectCell = ({
       type="checkbox"
       aria-label={
         !ready
-          ? `Fix ${errors} ${errors === 1 ? "issue" : "issues"} in ${name} first`
+          ? t("fixFirst", { count: errors, name })
           : lockedFor
-            ? `${name}: included for ${lockedFor}`
-            : `Select ${name}`
+            ? t("included", { name, by: lockedFor })
+            : t("selectOne", { name })
       }
       title={
         !ready
-          ? `Fix ${errors} ${errors === 1 ? "issue" : "issues"} first`
+          ? t("fixFirstTitle", { count: errors })
           : lockedFor
-            ? `Included for ${lockedFor}: it goes with it`
+            ? t("includedTitle", { by: lockedFor })
             : undefined
       }
       disabled={!ready || lockedFor !== null}
@@ -139,60 +141,90 @@ export const SelectCell = ({
 };
 
 /** Next to a draft's status: Ready, or how many issues block it, linking to the editor. */
-export const ReadinessMark = ({ id, errors }: { id: string; errors: number }) =>
-  errors === 0 ? (
+export const ReadinessMark = ({ id, errors }: { id: string; errors: number }) => {
+  const t = useTranslations("author.submissions.bulk");
+  return errors === 0 ? (
     <Badge tone="accent" className="ml-2">
-      Ready
+      {t("ready")}
     </Badge>
   ) : (
     <Link
       href={`/submissions/${id}`}
       className="ml-2 font-mono text-xs text-warning-text hover:underline"
     >
-      {errors} to fix
+      {t("toFix", { count: errors })}
     </Link>
   );
-
-const OUTCOME: Record<BulkResult["result"], string> = {
-  submitted: "Submitted",
-  resubmitted: "Resubmitted",
-  not_ready: "Not submitted",
-  not_found: "Not submitted",
-  not_submittable: "Not submitted",
-  not_a_member: "Not submitted",
 };
 
 /**
  * What Submit selected did to each draft, with why one wasn't submitted, and Ask to join for one in
  * a workspace the person isn't in (094).
  */
-export const BulkResults = ({ results }: { results: BulkResult[] }) => (
-  <ul className="grid gap-2 text-sm">
-    {results.map((r) => (
-      <li key={r.id}>
-        <span className="mr-2 font-mono text-xs font-semibold">{OUTCOME[r.result]}:</span>
-        <Link href={`/submissions/${r.id}`} className="font-mono text-link hover:underline">
-          {r.name}
-        </Link>
-        {r.reasons.length > 0 ? (
-          <ul className="ml-4 list-disc text-muted">
-            {r.reasons.map((reason) => (
-              <li key={reason}>{reason}</li>
-            ))}
-            {r.joinWorkspace ? (
-              <li>
-                <AskToJoinLink workspace={r.joinWorkspace} />
-              </li>
-            ) : null}
-          </ul>
-        ) : null}
-      </li>
-    ))}
-  </ul>
-);
+export const BulkResults = ({ results }: { results: BulkResult[] }) => {
+  const t = useTranslations("author.submissions.bulk");
+  return (
+    <ul className="grid gap-2 text-sm">
+      {results.map((r) => (
+        <li key={r.id}>
+          <span className="mr-2 font-mono text-xs font-semibold">{t(`outcome.${r.result}`)}</span>
+          <Link href={`/submissions/${r.id}`} className="font-mono text-link hover:underline">
+            {r.name}
+          </Link>
+          {r.reasons.length > 0 ? (
+            <ul className="ml-4 list-disc text-muted">
+              {r.reasons.map((reason) => (
+                <li key={reason}>{reason}</li>
+              ))}
+              {r.joinWorkspace ? (
+                <li>
+                  <AskToJoinLink workspace={r.joinWorkspace} />
+                </li>
+              ) : null}
+            </ul>
+          ) : null}
+        </li>
+      ))}
+    </ul>
+  );
+};
+
+/** What Submit selected asks before it goes: the drafts, what submitting does, and the buttons. */
+export const SubmitConfirm = ({
+  drafts,
+  submitting,
+  onCancel,
+  onSubmit,
+}: {
+  drafts: readonly { id: string; name: string }[];
+  submitting: boolean;
+  onCancel: () => void;
+  onSubmit: () => void;
+}) => {
+  const t = useTranslations("author.submissions.bulk");
+  return (
+    <div className="grid gap-4">
+      <ul className="grid gap-1 font-mono text-sm">
+        {drafts.map((draft) => (
+          <li key={draft.id}>{draft.name}</li>
+        ))}
+      </ul>
+      <p className="text-sm text-muted">{t("confirmText")}</p>
+      <DialogActions>
+        <Button variant="secondary" onClick={onCancel}>
+          {t("cancel")}
+        </Button>
+        <Button loading={submitting} onClick={onSubmit}>
+          {t("submitCount", { count: drafts.length })}
+        </Button>
+      </DialogActions>
+    </div>
+  );
+};
 
 /** Select all ready and Submit selected, above the table; only when something is ready. */
 export const BulkToolbar = ({ help }: { help?: ReactNode }) => {
+  const t = useTranslations("author.submissions.bulk");
   const router = useRouter();
   const { ready, selected, selectAll, clear } = useSelection();
   const [open, setOpen] = useState(false);
@@ -216,7 +248,7 @@ export const BulkToolbar = ({ help }: { help?: ReactNode }) => {
       {ready.size > 0 ? (
         <>
           <Button variant="secondary" onClick={selectAll}>
-            Select all ready ({ready.size})
+            {t("selectAll", { count: ready.size })}
           </Button>
           <Button
             disabled={chosen.length === 0}
@@ -225,7 +257,7 @@ export const BulkToolbar = ({ help }: { help?: ReactNode }) => {
               setOpen(true);
             }}
           >
-            Submit selected ({chosen.length})
+            {t("submitSelected", { count: chosen.length })}
           </Button>
           {help}
         </>
@@ -233,43 +265,26 @@ export const BulkToolbar = ({ help }: { help?: ReactNode }) => {
       <Dialog
         open={open}
         onClose={close}
-        title={results ? "Submitted" : `Submit ${confirming.length}`}
+        title={results ? t("doneTitle") : t("confirmTitle", { count: confirming.length })}
       >
         {results ? (
           <div className="grid gap-4">
             <BulkResults results={results} />
             <DialogActions>
-              <Button onClick={close}>Done</Button>
+              <Button onClick={close}>{t("done")}</Button>
             </DialogActions>
           </div>
         ) : (
-          <div className="grid gap-4">
-            <ul className="grid gap-1 font-mono text-sm">
-              {confirming.map((draft) => (
-                <li key={draft.id}>{draft.name}</li>
-              ))}
-            </ul>
-            <p className="text-sm text-muted">
-              Each is submitted with its files frozen, as Submit does in the editor: reviewers see
-              them, except those in your personal workspace, which are approved at once. You can
-              withdraw one until it's released.
-            </p>
-            <DialogActions>
-              <Button variant="secondary" onClick={close}>
-                Cancel
-              </Button>
-              <Button
-                loading={submitting}
-                onClick={() =>
-                  startSubmit(async () =>
-                    setResults(await submitSelectedAction(confirming.map((draft) => draft.id))),
-                  )
-                }
-              >
-                Submit {confirming.length} {confirming.length === 1 ? "draft" : "drafts"}
-              </Button>
-            </DialogActions>
-          </div>
+          <SubmitConfirm
+            drafts={confirming}
+            submitting={submitting}
+            onCancel={close}
+            onSubmit={() =>
+              startSubmit(async () =>
+                setResults(await submitSelectedAction(confirming.map((draft) => draft.id))),
+              )
+            }
+          />
         )}
       </Dialog>
     </div>

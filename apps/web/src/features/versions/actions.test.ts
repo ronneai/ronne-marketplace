@@ -35,7 +35,13 @@ describe("changeVersions", () => {
 
   it("turns domain and permission errors into messages, and rethrows anything else", async () => {
     versions.moveTag.mockRejectedValue(
-      new TagRuleError("latest can only point to a stable version"),
+      new TagRuleError({
+        message: "latest can only point to a stable version, not a pre-release.",
+        code: "latest_prerelease",
+        tag: "latest",
+        version: "2.0.0-beta.1",
+        max: 20,
+      }),
     );
     expect(
       await changeVersions(ref, { kind: "move_tag", tag: "latest", version: "2.0.0-beta.1" }),

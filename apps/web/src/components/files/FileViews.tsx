@@ -1,5 +1,6 @@
-import { formatBytes } from "@ronneai/core";
+import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/Badge";
+import { useBytes } from "@/i18n/bytes";
 import type { FileChange } from "@/server/domains/submissions/models/diff";
 
 const STATUS_TONE = { added: "accent", removed: "error", changed: "muted" } as const;
@@ -18,20 +19,20 @@ const LAYOUT_PATH = ".ronne/layout.json";
  * shown, because they stay with the draft and aren't released.
  */
 const Unreleased = ({ paths }: { paths: readonly string[] }) => {
+  const t = useTranslations("author.diff");
   if (paths.length === 0) return null;
   const layoutOnly = paths.length === 1 && paths[0] === LAYOUT_PATH;
+  const named = paths.map((path, i) => (
+    <span key={path}>
+      {i > 0 ? ", " : null}
+      <code className="font-mono text-[0.85em]">{path}</code>
+    </span>
+  ));
   return (
     <p className="text-sm text-muted">
-      {layoutOnly ? "The canvas layout (" : null}
-      {paths.map((path, i) => (
-        <span key={path}>
-          {i > 0 ? ", " : null}
-          <code className="font-mono text-[0.85em]">{path}</code>
-        </span>
-      ))}
       {layoutOnly
-        ? ") changed too. It isn't released, so it isn't part of this diff."
-        : " changed too. Files in .ronne/ aren't released, so they aren't part of this diff."}
+        ? t.rich("layout", { path: () => named })
+        : t.rich("ronne", { count: paths.length, paths: () => named })}
     </p>
   );
 };
@@ -50,11 +51,13 @@ export const FileChanges = ({
   /** What to say when nothing changed; "No changes since revision N." by default. */
   emptyText?: string;
 }) => {
+  const t = useTranslations("author.diff");
+  const bytes = useBytes();
   if (changes.length === 0)
     return (
       <div className="grid gap-2">
         <p className="text-sm text-muted">
-          {emptyText ?? `No changes${since ? ` since revision ${since}` : ""}.`}
+          {emptyText ?? (since ? t("noChangesSince", { since }) : t("noChanges"))}
         </p>
         <Unreleased paths={unreleased} />
       </div>
@@ -68,18 +71,19 @@ export const FileChanges = ({
           className="overflow-hidden rounded-panel border border-hairline bg-surface"
         >
           <FileHeader path={change.path}>
-            <Badge tone={STATUS_TONE[change.status]}>{change.status}</Badge>
-            {change.executableChanged ? <Badge tone="warning">executable changed</Badge> : null}
+            <Badge tone={STATUS_TONE[change.status]}>{t(`status.${change.status}`)}</Badge>
+            {change.executableChanged ? (
+              <Badge tone="warning">{t("executableChanged")}</Badge>
+            ) : null}
           </FileHeader>
           {change.binary ? (
             <p className="px-3 py-2 text-sm text-muted">
-              A binary file
-              {change.sizeAfter !== undefined ? `, now ${formatBytes(change.sizeAfter)}` : ""}.
+              {change.sizeAfter !== undefined
+                ? t("binaryNow", { size: bytes(change.sizeAfter) })
+                : t("binary")}
             </p>
           ) : change.hunks === "too_large" ? (
-            <p className="px-3 py-2 text-sm text-muted">
-              Too large to diff here: see it under All files.
-            </p>
+            <p className="px-3 py-2 text-sm text-muted">{t("tooLarge")}</p>
           ) : change.hunks && change.hunks.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full font-mono text-xs">
@@ -110,9 +114,9 @@ export const FileChanges = ({
                         <td className="whitespace-pre-wrap break-all py-0.5 pr-3">
                           <span className="sr-only">
                             {line.kind === "added"
-                              ? "Added: "
+                              ? `${t("lineAdded")} `
                               : line.kind === "removed"
-                                ? "Removed: "
+                                ? `${t("lineRemoved")} `
                                 : ""}
                           </span>
                           {line.text}

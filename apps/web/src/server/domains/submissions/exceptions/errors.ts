@@ -3,8 +3,12 @@ import {
   type ManifestIssue,
   NAME_PROBLEM_MESSAGES,
   type NameProblem,
+  type PathProblem,
+  pathProblem,
+  type TagProblem,
 } from "@ronneai/core";
 import { MESSAGE_FOR_PEOPLE } from "../../../log/message-for-people";
+import type { Why } from "../models/why";
 
 /** Errors the submissions domain raises. Pages turn them into `ERR:` lines. */
 export class SubmissionsError extends Error {
@@ -34,8 +38,11 @@ export class InvalidItemNameError extends SubmissionsError {
 
 export class InvalidItemTypeError extends SubmissionsError {
   override readonly name: string = "InvalidItemTypeError";
+  /** No type given, which the sentence says as "(empty)" (131). */
+  readonly empty: boolean;
   constructor(readonly type: string) {
     super(`${type || "(empty)"} isn't an item type.`);
+    this.empty = !type;
   }
 }
 
@@ -114,6 +121,12 @@ export class InvalidStatusTransitionError extends SubmissionsError {
           withdraw: "withdrawn",
           restore: "restored",
           publish: "published",
+          request_changes: "sent back for changes",
+          approve: "approved",
+          reject: "rejected",
+          override: "approved as an override",
+          rebase: "rebased",
+          delete: "deleted",
         }[action] ?? `${action.replace("_", " ")}d`
       }.`,
     );
@@ -123,10 +136,16 @@ export class InvalidStatusTransitionError extends SubmissionsError {
 /** Submit refused: 011's checks found errors in the saved files. */
 export class SubmissionInvalidError extends SubmissionsError {
   override readonly name: string = "SubmissionInvalidError";
+  /** For the web app's sentence (131): how many errors, the first one's words, how many more. */
+  readonly errorCount: number;
+  readonly first: string;
+  readonly more: number;
   constructor(
     readonly issues: readonly ManifestIssue[],
     /** At release (015), the first problem is named: usually a dependency not released yet (056). */
-    when: "submit" | "release" = "submit",
+    readonly when: "submit" | "release" = "submit",
+    /** At release, the release group's refusal as a code, for the web app's sentence (131). */
+    readonly why?: Why,
   ) {
     const errors = issues.filter((issue) => issue.severity === "error");
     super(
@@ -134,6 +153,10 @@ export class SubmissionInvalidError extends SubmissionsError {
         ? `It can't be released yet: ${errors[0]?.message ?? "its checks fail."}${errors.length > 1 ? ` (and ${errors.length - 1} more)` : ""}`
         : `The draft has ${errors.length} ${errors.length === 1 ? "problem" : "problems"} to fix before it can be submitted.`,
     );
+    this.errorCount = errors.length;
+    // Core's or the registry's words, in English as they come (131).
+    this.first = errors[0]?.message ?? "its checks fail.";
+    this.more = Math.max(errors.length - 1, 0);
   }
 }
 
@@ -231,11 +254,22 @@ export class DependencyDraftError extends SubmissionsError {
 
 export class InvalidFilePathError extends SubmissionsError {
   override readonly name: string = "InvalidFilePathError";
+  /** What's wrong, for the web app's sentence (131): core's path problem, or `twice`. */
+  readonly code: PathProblem | "twice";
+  readonly empty: boolean;
   constructor(
     readonly path: string,
-    problem: string,
+    problem: PathProblem | { twice: string },
+    /** With `twice`: in one what (a save, an upload). */
+    readonly what = typeof problem === "string" ? "" : problem.twice,
   ) {
-    super(`The path ${path || "(empty)"} ${problem}.`);
+    super(
+      `The path ${path || "(empty)"} ${
+        typeof problem === "string" ? pathProblem(path) : `appears twice in one ${problem.twice}`
+      }.`,
+    );
+    this.code = typeof problem === "string" ? problem : "twice";
+    this.empty = !path;
   }
 }
 
@@ -248,7 +282,7 @@ export class InvalidFileContentError extends SubmissionsError {
 
 export class ManifestRequiredError extends SubmissionsError {
   override readonly name: string = "ManifestRequiredError";
-  constructor(reason: "deleted" | "missing" = "deleted") {
+  constructor(readonly reason: "deleted" | "missing" = "deleted") {
     super(
       reason === "deleted"
         ? "ronne.yaml can't be deleted: every item has one."
@@ -272,20 +306,28 @@ export class StartingFileError extends SubmissionsError {
 
 export class FileTooLargeError extends SubmissionsError {
   override readonly name: string = "FileTooLargeError";
+  /** The sizes as the sentence writes them (131). */
+  readonly sizeText: string;
+  readonly maxText: string;
   constructor(
     readonly path: string,
     size: number,
     readonly max: number,
   ) {
     super(`${path} is ${formatBytes(size)}; a file can be at most ${formatBytes(max)}.`);
+    this.sizeText = formatBytes(size);
+    this.maxText = formatBytes(max);
   }
 }
 
 export class DraftLimitError extends SubmissionsError {
   override readonly name: string = "DraftLimitError";
+  /** The total and its limit as the sentence writes them (131). */
+  readonly actualText: string;
+  readonly maxText: string;
   constructor(
     readonly limit: "files" | "total",
-    actual: number,
+    readonly actual: number,
     readonly max: number,
   ) {
     super(
@@ -293,6 +335,8 @@ export class DraftLimitError extends SubmissionsError {
         ? `That would give the draft ${actual} files; the limit is ${max}.`
         : `That would make the draft ${formatBytes(actual)}; the limit is ${formatBytes(max)}.`,
     );
+    this.actualText = formatBytes(actual);
+    this.maxText = formatBytes(max);
   }
 }
 
@@ -310,10 +354,19 @@ export class DraftQuotaError extends SubmissionsError {
  */
 export class DraftMismatchError extends SubmissionsError {
   override readonly name: string = "DraftMismatchError";
+  /** The draft's parts, for the web app's sentence (131). */
+  readonly draftName: string;
+  readonly draftType: string;
+  readonly proposed: boolean;
+  readonly baseVersion: string;
   constructor(readonly draft: { name: string; type: string; baseVersion: string | null }) {
     super(
       `That draft is ${draft.name}, a ${draft.type}${draft.baseVersion ? ` proposed from ${draft.baseVersion}` : ""}; the upload is something else, so it would be a new draft.`,
     );
+    this.draftName = draft.name;
+    this.draftType = draft.type;
+    this.proposed = Boolean(draft.baseVersion);
+    this.baseVersion = draft.baseVersion ?? "";
   }
 }
 
@@ -327,18 +380,33 @@ export class StaleFilesError extends SubmissionsError {
   }
 }
 
+/** Why a .zip import is refused, as a code and its values (131): the web app words it. */
+export type ZipRefusal =
+  | {
+      code: "not_zip" | "zip64" | "damaged_list" | "encrypted" | "empty" | "no_manifest";
+    }
+  | { code: "damaged" | "method" | "link" | "twice"; entry: string }
+  | { code: "bad_path"; entry: string; pathCode: PathProblem }
+  | { code: "too_big"; maxText: string }
+  | { code: "too_many"; count: number; max: number }
+  | { code: "file_too_big"; entry: string; sizeText: string; maxText: string }
+  | { code: "total_too_big"; sizeText: string; maxText: string };
+
 /** A .zip import refused before anything changed. */
 export class ZipImportError extends SubmissionsError {
   override readonly name: string = "ZipImportError";
-  constructor(reason: string) {
+  readonly code: ZipRefusal["code"];
+  constructor(reason: string, refusal: ZipRefusal) {
     super(`That .zip can't be imported: ${reason}`);
+    this.code = refusal.code;
+    Object.assign(this, refusal);
   }
 }
 
 /** A reviewer deciding on their own submission; root can approve its own through an override. */
 export class OwnSubmissionError extends SubmissionsError {
   override readonly name: string = "OwnSubmissionError";
-  constructor(canOverride: boolean) {
+  constructor(readonly canOverride: boolean) {
     super(
       canOverride
         ? "You can't review your own submission. As root, you can approve it with an override."
@@ -349,9 +417,19 @@ export class OwnSubmissionError extends SubmissionsError {
 
 export const REVIEW_MESSAGE_MAX_LENGTH = 5000;
 
+/** What needs a message, by the English words the services pass (131: the web app's select). */
+const WHAT_CODES: Record<string, string> = {
+  "Requesting changes": "request_changes",
+  Rejecting: "reject",
+  "A comment": "comment",
+  "Sending its dependents back": "send_back",
+};
+
 /** A decision that needs a message without one, or any message that's too long. */
 export class ReviewMessageError extends SubmissionsError {
   override readonly name: string = "ReviewMessageError";
+  /** What needs a message, as a code for the web app's sentence (131). */
+  readonly what: string;
   constructor(
     readonly reason: "required" | "too_long",
     what: string,
@@ -361,6 +439,7 @@ export class ReviewMessageError extends SubmissionsError {
         ? `${what} needs a message, so the author knows what to do.`
         : `A message can have at most ${REVIEW_MESSAGE_MAX_LENGTH.toLocaleString("en")} characters.`,
     );
+    this.what = WHAT_CODES[what] ?? "other";
   }
 }
 
@@ -414,6 +493,14 @@ export class VersionExistsError extends SubmissionsError {
 
 export class ReleaseTagError extends SubmissionsError {
   override readonly name: string = "ReleaseTagError";
+  constructor(
+    message: string,
+    /** Core's code for the problem, and the tag, for the web app's sentence (131). */
+    readonly code: TagProblem,
+    readonly tag: string,
+  ) {
+    super(message);
+  }
 }
 
 export const RELEASE_NOTES_MAX_LENGTH = 2000;
@@ -477,6 +564,9 @@ export class ProposalArtifactError extends SubmissionsError {
  */
 export class RevisionChangedError extends SubmissionsError {
   override readonly name: string = "RevisionChangedError";
+  /** The revisions as the sentence writes them, "–" for none (131). */
+  readonly reviewedLabel: string;
+  readonly latestLabel: string;
   constructor(
     readonly reviewed: number | null,
     readonly latest: number | null,
@@ -484,6 +574,8 @@ export class RevisionChangedError extends SubmissionsError {
     super(
       `It changed since you opened it: you reviewed revision ${reviewed ?? "–"}, and revision ${latest ?? "–"} is the latest. Nothing was approved: look at the new revision first.`,
     );
+    this.reviewedLabel = String(reviewed ?? "–");
+    this.latestLabel = String(latest ?? "–");
   }
 }
 

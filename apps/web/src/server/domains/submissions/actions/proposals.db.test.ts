@@ -568,7 +568,7 @@ describe("the review of a proposal", () => {
     // Not "`.ronne/layout.json` is new", which would make it a minor release.
     expect(view.proposal?.suggested).toEqual({
       bump: "patch",
-      reasons: ["nothing is added or removed"],
+      reasons: [{ kind: "nothing", names: [] }],
     });
   });
 
@@ -590,7 +590,7 @@ describe("the review of a proposal", () => {
       baseVersion: "1.0.0",
       stale: null,
       manifest: [{ field: "description", before: "Checks code.", after: "Checks code better." }],
-      suggested: { bump: "minor", reasons: ["`docs/usage.md` is new"] },
+      suggested: { bump: "minor", reasons: [{ kind: "fileNew", names: ["docs/usage.md"] }] },
     });
     expect(view.proposal?.changes?.map((c) => [c.path, c.status])).toEqual([
       ["README.md", "changed"],

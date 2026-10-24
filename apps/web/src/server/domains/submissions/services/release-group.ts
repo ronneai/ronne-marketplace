@@ -2,8 +2,8 @@ import { type Bump, dependenciesFirst, parseItemName } from "@ronneai/core";
 import { isId } from "../../../db/ids";
 import { can } from "../../identity/models/permissions";
 import { BulkLimitError, NotAMemberError } from "../exceptions/errors";
-import { statusLabel } from "../models/status";
 import { itemNameOf, itemRefOf, type Submission } from "../models/submission";
+import { type Why, whyEnglish } from "../models/why";
 import { dependenciesOf, marksFor } from "./dependency-marks";
 import { requireSignedIn } from "./membership";
 import { staleVersion } from "./proposals";
@@ -38,7 +38,14 @@ export type ReleaseCandidate = {
 export type ReleasedSubmission =
   | { id: string; name: string; result: "published"; version: string; tag: string; sha256: string }
   | { id: string; name: string | null; result: "not_found" }
-  | { id: string; name: string; result: "not_releasable" | "skipped"; reason: string };
+  | {
+      id: string;
+      name: string;
+      result: "not_releasable" | "skipped";
+      reason: string;
+      /** The reason as a code (131). */
+      why: Why;
+    };
 
 export type PreparedRelease = {
   /** In release order, dependencies first. */
@@ -51,13 +58,13 @@ export type PreparedRelease = {
  * Why the actor can't release it, or null: its workspace's moderators and root release any, the
  * author their own while a member of its workspace (091).
  */
-const releaseRefusal = (actor: SubmissionActor, submission: Submission): string | null => {
+const releaseRefusal = (actor: SubmissionActor, submission: Submission): Why | null => {
   if (can(actor.user, "submissions.publish", submission.workspace.id)) return null;
   if (submission.authorId === actor.user?.id)
     return can(actor.user, "submissions.create", submission.workspace.id)
       ? null
-      : new NotAMemberError(submission.workspace.name, "release").message;
-  return "Only its author, a moderator or root releases it.";
+      : { code: "error", error: new NotAMemberError(submission.workspace.name, "release") };
+  return { code: "not_releaser" };
 };
 
 /**
@@ -79,18 +86,18 @@ export const prepareRelease = async (
   const names = new Map<string, string>(); // item name → submission id in the batch
 
   /** Why `submission` can't go now, or null. */
-  const problemOf = async (submission: Submission): Promise<string | null> => {
+  const problemOf = async (submission: Submission): Promise<Why | null> => {
     if (submission.status !== "approved")
-      return `It's ${statusLabel(submission.status)}, not approved.`;
+      return { code: "not_approved", status: submission.status };
     const refusal = releaseRefusal(actor, submission);
     if (refusal) return refusal;
     const newer = await staleVersion(registry, submission);
-    if (newer) return `Rebase needed: ${newer} has been released since it was approved.`;
+    if (newer) return { code: "released_since", newer };
     return null;
   };
 
   /** Adds a submission, then its approved dependencies that aren't released yet. */
-  const add = async (submission: Submission, includedFor?: string): Promise<string | null> => {
+  const add = async (submission: Submission, includedFor?: string): Promise<Why | null> => {
     const name = itemNameOf(submission);
     const known = chosen.get(submission.id);
     if (known) {
@@ -102,8 +109,7 @@ export const prepareRelease = async (
     if (problem) return problem;
     // Two proposals of one item can't go in one batch: the second would be stale after the first.
     const twin = names.get(name);
-    if (twin && twin !== submission.id)
-      return `Another change to ${name} is in this batch: release them one at a time.`;
+    if (twin && twin !== submission.id) return { code: "twin", name };
     // What this one brings in, so a refusal takes it all back (112: all or none).
     const before = new Set(chosen.keys());
     chosen.set(submission.id, {
@@ -119,15 +125,14 @@ export const prepareRelease = async (
       const waiting = open.find(
         (s) => s.status === "submitted" || s.status === "changes_requested",
       );
-      const reason = approved
+      const reason: Why | null = approved
         ? null
         : waiting
-          ? `It waits on ${dependency}, which is ${statusLabel(waiting.status)}.`
-          : `It waits on ${dependency}, which isn't on its way to a release.`;
+          ? { code: "waits_on", dependency, status: waiting.status }
+          : { code: "waits_on_stopped", dependency };
       const found = approved ? await deps.repo.find(approved.id) : null;
       const why =
-        reason ??
-        (found ? await add(found, name) : `It waits on ${dependency}, which couldn't be found.`);
+        reason ?? (found ? await add(found, name) : { code: "waits_on_missing", dependency });
       if (why) {
         for (const id of [...chosen.keys()])
           if (!before.has(id)) {
@@ -142,11 +147,7 @@ export const prepareRelease = async (
             if (left.length > 0) kept.includedFor = left;
             else delete kept.includedFor;
           }
-        // A nested reason reads on in lower case: "… can't be released with it: it waits on …".
-        return (
-          reason ??
-          `${dependency} can't be released with it: ${why.charAt(0).toLowerCase()}${why.slice(1)}`
-        );
+        return reason ?? { code: "dependency_blocked", dependency, why };
       }
     }
     return null;
@@ -169,7 +170,8 @@ export const prepareRelease = async (
         id,
         name: itemNameOf(submission),
         result: "not_releasable",
-        reason: problem,
+        reason: whyEnglish(problem),
+        why: problem,
       });
   }
 

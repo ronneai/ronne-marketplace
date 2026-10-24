@@ -1,16 +1,23 @@
 "use client";
 
-import { type Bump, defaultTag, nextVersion, type ReleaseChoice, tagProblem } from "@ronneai/core";
+import {
+  type Bump,
+  defaultTag,
+  nextVersion,
+  type ReleaseChoice,
+  tagProblemOf,
+} from "@ronneai/core";
 import { Rocket } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useFormatter, useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { Help } from "@/components/help/Help";
 import { Button, buttonClasses } from "@/components/ui/Button";
 import { Dialog, DialogActions } from "@/components/ui/Dialog";
 import { FieldError, inputClasses, Label } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
-import type { SuggestedBump } from "@/server/domains/submissions/models/bump";
+import type { BumpReason, SuggestedBump } from "@/server/domains/submissions/models/bump";
 import { publishAction } from "./actions";
 import type { PublishResult, ReleaseMember } from "./types";
 
@@ -30,48 +37,109 @@ export const groupVersions = (
     return { name: member.name, version: nextVersion(member.published, choice) };
   });
 
-/** Why Publish is off for the group (112): one that gets no version, as the server would refuse. */
-export const groupBlockedBy = (group: readonly { name: string; version: string | null }[]) => {
-  const stuck = group.find((member) => member.version === null);
-  return stuck
-    ? `${stuck.name} gets no version from that: it can't be released with it this way.`
-    : null;
-};
+/**
+ * Why Publish is off for the group (112): the first that gets no version, as the server would
+ * refuse; the dialog words it (`publish.stuck`).
+ */
+export const groupBlockedBy = (group: readonly { name: string; version: string | null }[]) =>
+  group.find((member) => member.version === null)?.name ?? null;
 
 /** What's released with the item (112), each with its version. */
 export const ReleaseGroupList = ({
   members,
 }: {
   members: readonly { name: string; version: string | null }[];
-}) => (
-  <section aria-labelledby="release-group" className="grid gap-2">
-    <div className="flex flex-wrap items-center gap-2">
-      <h3 id="release-group" className="text-sm font-semibold text-fg">
-        Released with {members.length === 1 ? "it" : `these ${members.length}`}:
-      </h3>
-      <Help id="submit-together" />
-    </div>
-    <ul className="grid gap-1" aria-label="Released with it">
-      {members.map((member) => (
-        <li key={member.name} className="text-sm text-fg">
-          <span className="font-mono">{member.name}</span>{" "}
-          <span className="font-mono font-semibold">{member.version ?? "—"}</span>
-        </li>
-      ))}
-    </ul>
-  </section>
-);
+}) => {
+  const t = useTranslations("author.review.publish");
+  return (
+    <section aria-labelledby="release-group" className="grid gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <h3 id="release-group" className="text-sm font-semibold text-fg">
+          {members.length === 1 ? t("withOne") : t("withMany", { count: members.length })}
+        </h3>
+        <Help id="submit-together" />
+      </div>
+      <ul className="grid gap-1" aria-label={t("withLabel")}>
+        {members.map((member) => (
+          <li key={member.name} className="text-sm text-fg">
+            <span className="font-mono">{member.name}</span>{" "}
+            <span className="font-mono font-semibold">{member.version ?? "—"}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+};
 
 const radio = "flex items-start gap-2 text-sm text-fg";
 
+/** Why a tag can't point to a version, in the person's language (131), or null. */
+export const useTagWords = () => {
+  const t = useTranslations("author.review.tagProblem");
+  return (tag: string, version: string): string | null => {
+    const problem = tagProblemOf(tag, version);
+    return problem ? t(problem, { tag }) : null;
+  };
+};
+
+/** One reason in words, its names as `code` (as they read before 131). */
+const useReasonWords = () => {
+  const t = useTranslations("author.review.reason");
+  return (reason: BumpReason) =>
+    t(reason.kind, {
+      names: reason.names.map((name) => `\`${name}\``).join(", "),
+      type: reason.type ?? "",
+    });
+};
+
 /** Why the dialog picked a bump for a change proposal (017); the publisher can pick another. */
-export const BumpSuggestion = ({ suggested }: { suggested: SuggestedBump }) => (
-  <p className="text-xs text-muted">
-    Suggested: <span className="font-semibold text-fg">{suggested.bump}</span>, because{" "}
-    {suggested.reasons.join("; ")}.
-  </p>
-);
+export const BumpSuggestion = ({ suggested }: { suggested: SuggestedBump }) => {
+  const t = useTranslations("author.review.publish");
+  const words = useReasonWords();
+  return (
+    <p className="text-xs text-muted">
+      {t.rich("suggested", {
+        bump: suggested.bump,
+        reasons: suggested.reasons.map(words).join("; "),
+        strong: (chunks) => <span className="font-semibold text-fg">{chunks}</span>,
+      })}
+    </p>
+  );
+};
 const radioInput = "mt-0.5 size-4 accent-(--accent)";
+
+/** What a release published (015): the item's version and tag, with what went along (112). */
+export const PublishedNotice = ({
+  itemName,
+  result,
+}: {
+  itemName: string;
+  result: Extract<PublishResult, { ok: true }>;
+}) => {
+  const t = useTranslations("author.review.publish");
+  const format = useFormatter();
+  return (
+    <Notice
+      kind="info"
+      title={
+        result.with && result.with.length > 0
+          ? t("doneWith", {
+              item: itemName,
+              version: result.version,
+              tag: result.tag,
+              others: format.list(
+                result.with.map((m) => `${m.name} ${m.version}`),
+                { type: "conjunction" },
+              ),
+            })
+          : t("done", { item: itemName, version: result.version, tag: result.tag })
+      }
+    >
+      {/* biome-ignore lint/plugin: the hash's name and value, the same in every language */}
+      <span className="font-mono text-xs break-all">sha256 {result.sha256}</span>
+    </Notice>
+  );
+};
 
 /**
  * Releases an approved submission (feature 015): stable or pre-release, the bump for later
@@ -86,7 +154,13 @@ export const PublishDialog = ({
   suggested = null,
   blocked = null,
   goesWith = [],
+  defaultOpen = false,
+  defaultKind = "stable",
 }: {
+  /** Opened at once, without its button being pressed. */
+  defaultOpen?: boolean;
+  /** The kind of release it starts on: stable unless asked. */
+  defaultKind?: "stable" | "prerelease";
   /** Its approved dependencies not released yet (112): released with it. */
   goesWith?: ReleaseMember[];
   /** Why it can't be released yet (056): a dependency not released, or blocked. */
@@ -100,9 +174,10 @@ export const PublishDialog = ({
   /** The item's versions so far; empty for a first release. */
   published: string[];
 }) => {
+  const t = useTranslations("author.review");
   const router = useRouter();
-  const [open, setOpen] = useState(false);
-  const [kind, setKind] = useState<"stable" | "prerelease">("stable");
+  const [open, setOpen] = useState(defaultOpen);
+  const [kind, setKind] = useState<"stable" | "prerelease">(defaultKind);
   const [preId, setPreId] = useState("beta");
   const [bump, setBump] = useState<Bump>(suggested?.bump ?? "minor");
   const [tag, setTag] = useState("");
@@ -114,13 +189,13 @@ export const PublishDialog = ({
     kind === "stable" ? { kind, bump } : { kind, id: preId.trim(), bump };
   const version = nextVersion(published, choice);
   const shownTag = tag.trim() || (version ? defaultTag(version) : "");
-  const problem = !version
-    ? "That doesn't give a new version: a pre-release id is lowercase letters and digits, starting with a letter."
-    : tagProblem(shownTag, version);
+  const tagWords = useTagWords();
+  const problem = !version ? t("publish.badPre") : tagWords(shownTag, version);
   const first = published.length === 0;
   // What goes with it gets its versions by the same rule (112): one that gets none stops it.
   const group = groupVersions(goesWith, kind, preId);
-  const blockedBy = groupBlockedBy(group);
+  const stuck = groupBlockedBy(group);
+  const blockedBy = stuck ? t("publish.stuck", { name: stuck }) : null;
 
   return (
     <>
@@ -128,10 +203,10 @@ export const PublishDialog = ({
         onClick={() => setOpen(true)}
         disabled={blocked !== null}
         title={blocked ?? undefined}
-        aria-label={blocked ? `Publish: ${blocked}` : undefined}
+        aria-label={blocked ? t("publish.blockedLabel", { reason: blocked }) : undefined}
       >
         <Rocket size={16} aria-hidden="true" />
-        Publish
+        {t("publish.button")}
       </Button>
       {open ? (
         <Dialog
@@ -140,23 +215,14 @@ export const PublishDialog = ({
             setOpen(false);
             if (result?.ok) router.refresh();
           }}
-          title={`Publish ${itemName}`}
+          title={t("publish.title", { item: itemName })}
         >
           {result?.ok ? (
             <div className="grid gap-4">
-              <Notice
-                kind="info"
-                title={`Published ${itemName} ${result.version} as ${result.tag}${
-                  result.with && result.with.length > 0
-                    ? `, with ${result.with.map((m) => `${m.name} ${m.version}`).join(", ")}`
-                    : ""
-                }.`}
-              >
-                <span className="font-mono text-xs break-all">sha256 {result.sha256}</span>
-              </Notice>
+              <PublishedNotice itemName={itemName} result={result} />
               <DialogActions>
                 <Link href={versionsHref} className={buttonClasses("secondary")}>
-                  View versions
+                  {t("publish.viewVersions")}
                 </Link>
                 <Button
                   onClick={() => {
@@ -164,7 +230,7 @@ export const PublishDialog = ({
                     router.refresh();
                   }}
                 >
-                  Done
+                  {t("publish.doneButton")}
                 </Button>
               </DialogActions>
             </div>
@@ -181,7 +247,9 @@ export const PublishDialog = ({
               }}
             >
               <fieldset className="grid gap-2">
-                <legend className="pb-1 text-sm font-semibold text-fg">Release</legend>
+                <legend className="pb-1 text-sm font-semibold text-fg">
+                  {t("publish.release")}
+                </legend>
                 <label className={radio}>
                   <input
                     type="radio"
@@ -190,7 +258,7 @@ export const PublishDialog = ({
                     onChange={() => setKind("stable")}
                     className={radioInput}
                   />
-                  <span>Stable</span>
+                  <span>{t("publish.stable")}</span>
                 </label>
                 <label className={radio}>
                   <input
@@ -200,11 +268,11 @@ export const PublishDialog = ({
                     onChange={() => setKind("prerelease")}
                     className={radioInput}
                   />
-                  <span>Pre-release, such as a beta for early testers</span>
+                  <span>{t("publish.prerelease")}</span>
                 </label>
                 {kind === "prerelease" ? (
                   <div className="grid gap-1.5 pl-6">
-                    <Label htmlFor="pre-id">Pre-release id</Label>
+                    <Label htmlFor="pre-id">{t("publish.preId")}</Label>
                     <input
                       id="pre-id"
                       value={preId}
@@ -217,7 +285,9 @@ export const PublishDialog = ({
               </fieldset>
               {first ? null : (
                 <fieldset className="grid gap-2">
-                  <legend className="pb-1 text-sm font-semibold text-fg">Change</legend>
+                  <legend className="pb-1 text-sm font-semibold text-fg">
+                    {t("publish.change")}
+                  </legend>
                   {suggested ? <BumpSuggestion suggested={suggested} /> : null}
                   <Help id="bump" />
                   {(["patch", "minor", "major"] as const).map((b) => (
@@ -229,19 +299,13 @@ export const PublishDialog = ({
                         onChange={() => setBump(b)}
                         className={radioInput}
                       />
-                      <span>
-                        {b === "patch"
-                          ? "Patch: fixes, nothing new"
-                          : b === "minor"
-                            ? "Minor: new, and compatible"
-                            : "Major: breaks something for installs"}
-                      </span>
+                      <span>{t(`publish.bump.${b}`)}</span>
                     </label>
                   ))}
                 </fieldset>
               )}
               <div className="grid gap-1.5">
-                <Label htmlFor="release-tag">Tag</Label>
+                <Label htmlFor="release-tag">{t("publish.tag")}</Label>
                 <input
                   id="release-tag"
                   value={tag}
@@ -249,13 +313,11 @@ export const PublishDialog = ({
                   onChange={(event) => setTag(event.target.value)}
                   className={`${inputClasses} font-mono`}
                 />
-                <p className="text-xs text-muted">
-                  Installing without a version uses latest. Pre-releases go to next by default.
-                </p>
+                <p className="text-xs text-muted">{t("publish.tagHint")}</p>
                 <Help id="tag" />
               </div>
               <div className="grid gap-1.5">
-                <Label htmlFor="release-notes">Release notes (optional)</Label>
+                <Label htmlFor="release-notes">{t("publish.notes")}</Label>
                 <textarea
                   id="release-notes"
                   rows={3}
@@ -268,12 +330,13 @@ export const PublishDialog = ({
               {goesWith.length > 0 ? <ReleaseGroupList members={group} /> : null}
               <p className="rounded-control bg-canvas p-3 text-sm text-fg" role="status">
                 {version && !problem && !blockedBy ? (
-                  <>
-                    Publishes <span className="font-mono">{itemName}</span>{" "}
-                    <span className="font-mono font-semibold">{version}</span> as{" "}
-                    <span className="font-mono">{shownTag}</span>. Versions never change once
-                    published.
-                  </>
+                  t.rich("publish.preview", {
+                    item: itemName,
+                    version,
+                    tag: shownTag,
+                    mono: (chunks) => <span className="font-mono">{chunks}</span>,
+                    strong: (chunks) => <span className="font-mono font-semibold">{chunks}</span>,
+                  })
                 ) : (
                   <span className="text-error-text">{problem ?? blockedBy}</span>
                 )}
@@ -283,10 +346,10 @@ export const PublishDialog = ({
               </FieldError>
               <DialogActions>
                 <Button variant="secondary" onClick={() => setOpen(false)}>
-                  Cancel
+                  {t("publish.cancel")}
                 </Button>
                 <Button type="submit" loading={pending} disabled={Boolean(problem || blockedBy)}>
-                  Publish {version ?? ""}
+                  {t("publish.submit", { version: version ?? "" })}
                 </Button>
               </DialogActions>
             </form>

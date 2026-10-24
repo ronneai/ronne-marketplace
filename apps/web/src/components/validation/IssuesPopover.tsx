@@ -3,6 +3,7 @@
 import type { Placement } from "@floating-ui/react";
 import type { ManifestIssue } from "@ronneai/core";
 import { CircleCheck, CircleX, TriangleAlert } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { cn } from "@/components/ui/cn";
 import { Popover } from "@/components/ui/Popover";
 import { TONES, type Tone } from "@/components/ui/tones";
@@ -14,15 +15,21 @@ import { IssueList } from "./IssueList";
  * teal with none) and accepts classes and placement, so other pages can use them as they are.
  */
 
-/** How many errors and warnings, as words: "2 errors, 1 warning". */
-export const issueCount = (issues: readonly ManifestIssue[]): string => {
-  const errors = issues.filter((issue) => issue.severity === "error").length;
-  const warnings = issues.length - errors;
-  const words = [
-    errors ? `${errors} ${errors === 1 ? "error" : "errors"}` : "",
-    warnings ? `${warnings} ${warnings === 1 ? "warning" : "warnings"}` : "",
-  ].filter(Boolean);
-  return words.length ? words.join(", ") : "No problems";
+/** How many errors and warnings, as words in the person's language: "2 errors, 1 warning". */
+export const useIssueCount = () => {
+  const t = useTranslations("author.issues");
+  return (issues: readonly ManifestIssue[]): string => {
+    const errors = issues.filter((issue) => issue.severity === "error").length;
+    const warnings = issues.length - errors;
+    if (errors && warnings)
+      return t("both", {
+        errors: t("errors", { count: errors }),
+        warnings: t("warnings", { count: warnings }),
+      });
+    if (errors) return t("errors", { count: errors });
+    if (warnings) return t("warnings", { count: warnings });
+    return t("noProblems");
+  };
 };
 
 /** The tone a set of issues takes: `error` with any error, `warning` with warnings only. */
@@ -129,10 +136,12 @@ export const FileIssues = ({
   className?: string;
   placement?: Placement;
 }) => {
+  const t = useTranslations("author.issues");
+  const issueCount = useIssueCount();
   const all = [...issues, ...saved];
   return all.length === 0 ? null : (
     <Popover
-      label={`Show problems: ${issueCount(all).toLowerCase()}`}
+      label={t("show", { count: issueCount(all) })}
       button={<IssuesIcon issues={all} />}
       buttonClassName={cn("p-0.5", className)}
       tone={issuesTone(all)}
@@ -178,11 +187,13 @@ export const IssuesSummary = ({
   className?: string;
   placement?: Placement;
 }) => {
+  const t = useTranslations("author.issues");
+  const issueCount = useIssueCount();
   const all = [...issues, ...saved];
   const tone = issuesTone(all);
   return (
     <Popover
-      label={`Problems: ${issueCount(all)}`}
+      label={t("summary", { count: issueCount(all) })}
       maxWidth={520}
       tone={tone === "ok" ? "default" : tone}
       placement={placement}

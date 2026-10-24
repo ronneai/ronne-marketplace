@@ -9,7 +9,25 @@ import { stringify } from "yaml";
  * - minor: a file, a dependency, a keyword or a type-block field is added;
  * - patch: anything else.
  */
-export type SuggestedBump = { bump: Bump; reasons: string[] };
+export type SuggestedBump = { bump: Bump; reasons: BumpReason[] };
+
+/**
+ * Why a bump is suggested, as data the screen words in the person's language (131): what was lost
+ * or gained, the names involved, and the type whose block it is.
+ */
+export type BumpReason = {
+  kind:
+    | "blockLost"
+    | "depLost"
+    | "fileRemoved"
+    | "fileNew"
+    | "depNew"
+    | "keywordNew"
+    | "blockGained"
+    | "nothing";
+  names: string[];
+  type?: string;
+};
 
 type Manifest = Record<string, unknown>;
 type Side = { manifest: Manifest; paths: readonly string[] };
@@ -36,7 +54,8 @@ const added = (before: readonly string[], after: readonly string[]) =>
   after.filter((x) => !before.includes(x));
 const removed = (before: readonly string[], after: readonly string[]) =>
   before.filter((x) => !after.includes(x));
-const list = (items: string[]) => items.map((item) => `\`${item}\``).join(", ");
+const reason = (kind: BumpReason["kind"], names: string[], type?: string): BumpReason[] =>
+  names.length ? [type === undefined ? { kind, names } : { kind, names, type }] : [];
 
 export const suggestBump = (base: Side, current: Side): SuggestedBump => {
   const type = typeof base.manifest.type === "string" ? base.manifest.type : "";
@@ -48,36 +67,23 @@ export const suggestBump = (base: Side, current: Side): SuggestedBump => {
   const namedFiles = base.paths.filter((path) => named.has(path));
 
   const major = [
-    ...(removed(blockBefore, blockAfter).length
-      ? [`the ${type} block no longer has ${list(removed(blockBefore, blockAfter))}`]
-      : []),
-    ...(removed(depsBefore, depsAfter).length
-      ? [`it no longer depends on ${list(removed(depsBefore, depsAfter))}`]
-      : []),
-    ...(removed(namedFiles, current.paths).length
-      ? [`${list(removed(namedFiles, current.paths))}, which the manifest names, is removed`]
-      : []),
+    ...reason("blockLost", removed(blockBefore, blockAfter), type),
+    ...reason("depLost", removed(depsBefore, depsAfter)),
+    ...reason("fileRemoved", removed(namedFiles, current.paths)),
   ];
   if (major.length) return { bump: "major", reasons: major };
 
   const minor = [
-    ...(added(base.paths, current.paths).length
-      ? [`${list(added(base.paths, current.paths))} is new`]
-      : []),
-    ...(added(depsBefore, depsAfter).length
-      ? [`it now depends on ${list(added(depsBefore, depsAfter))}`]
-      : []),
-    ...(added(strings(base.manifest.keywords), strings(current.manifest.keywords)).length
-      ? [
-          `keyword ${list(added(strings(base.manifest.keywords), strings(current.manifest.keywords)))} is new`,
-        ]
-      : []),
-    ...(added(blockBefore, blockAfter).length
-      ? [`the ${type} block gains ${list(added(blockBefore, blockAfter))}`]
-      : []),
+    ...reason("fileNew", added(base.paths, current.paths)),
+    ...reason("depNew", added(depsBefore, depsAfter)),
+    ...reason(
+      "keywordNew",
+      added(strings(base.manifest.keywords), strings(current.manifest.keywords)),
+    ),
+    ...reason("blockGained", added(blockBefore, blockAfter), type),
   ];
   if (minor.length) return { bump: "minor", reasons: minor };
-  return { bump: "patch", reasons: ["nothing is added or removed"] };
+  return { bump: "patch", reasons: [{ kind: "nothing", names: [] }] };
 };
 
 /** A top-level manifest field that differs between two versions, as YAML, for side-by-side reading. */

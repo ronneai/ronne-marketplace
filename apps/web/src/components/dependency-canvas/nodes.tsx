@@ -3,6 +3,7 @@
 import { Handle, type Node, type NodeProps, Position } from "@xyflow/react";
 import { X } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/components/ui/cn";
@@ -31,15 +32,14 @@ export const ItemNode = ({ data }: NodeProps<ItemFlowNode>) => (
   </div>
 );
 
-/** How one of the person's own items on its way reads on a badge (089), as in 056's marks. */
-export const unreleasedLabel = (status: UnreleasedStatus): string =>
-  status === "draft"
-    ? "draft, yours"
-    : status === "submitted"
-      ? "in review, yours"
-      : status === "changes_requested"
-        ? "back for changes, yours"
-        : "pending release, yours";
+/**
+ * How one of the person's own items on its way reads on a badge (089), as in 056's marks, in the
+ * person's language (131): "in review, yours".
+ */
+export const UnreleasedBadge = ({ status }: { status: UnreleasedStatus }) => {
+  const t = useTranslations("author.canvas.unreleased");
+  return <Badge tone="warning">{t(status)}</Badge>;
+};
 
 /**
  * What the catalogue knows of a dependency, or that it doesn't know it. One of the person's own on
@@ -51,21 +51,24 @@ export const DependencyFactsLine = ({
 }: {
   facts: DependencyNodeData["facts"];
   status?: DependencyNodeData["status"];
-}) =>
-  facts === undefined ? (
-    <span className="font-mono text-[11px] text-muted">Checking the catalogue…</span>
+}) => {
+  const t = useTranslations("author.canvas");
+  return facts === undefined ? (
+    <span className="font-mono text-[11px] text-muted">{t("checking")}</span>
   ) : facts === null ? (
     status ? (
-      <Badge tone="warning">{unreleasedLabel(status)}</Badge>
+      <UnreleasedBadge status={status} />
     ) : (
-      <Badge tone="error">not published</Badge>
+      <Badge tone="error">{t("notPublished")}</Badge>
     )
   ) : (
     <>
       <TypeBadge type={facts.type} />
+      {/* biome-ignore lint/plugin: a version number, the same in every language */}
       <span className="font-mono text-[11px] text-muted">v{facts.version}</span>
     </>
   );
+};
 
 /** A dependency's problems, then its warnings (112), as the Problems list words them. */
 export const DependencyProblems = ({
@@ -74,22 +77,29 @@ export const DependencyProblems = ({
 }: {
   problems: readonly string[];
   warnings?: readonly string[];
-}) => (
-  <>
-    {problems.map((problem) => (
-      <p key={problem} className="text-xs text-fg">
-        <span className="mr-1.5 font-mono text-[11px] font-semibold text-error-text">ERR:</span>
-        <CodeText text={problem} />
-      </p>
-    ))}
-    {warnings.map((warning) => (
-      <p key={warning} className="text-xs text-fg">
-        <span className="mr-1.5 font-mono text-[11px] font-semibold text-warning-text">WARN:</span>
-        <CodeText text={warning} />
-      </p>
-    ))}
-  </>
-);
+}) => {
+  const field = useTranslations("common.field");
+  return (
+    <>
+      {problems.map((problem) => (
+        <p key={problem} className="text-xs text-fg">
+          <span className="mr-1.5 font-mono text-[11px] font-semibold text-error-text">
+            {field("error")}
+          </span>
+          <CodeText text={problem} />
+        </p>
+      ))}
+      {warnings.map((warning) => (
+        <p key={warning} className="text-xs text-fg">
+          <span className="mr-1.5 font-mono text-[11px] font-semibold text-warning-text">
+            {field("warning")}
+          </span>
+          <CodeText text={warning} />
+        </p>
+      ))}
+    </>
+  );
+};
 
 /**
  * The range field, in a node or in the panel. `nodrag` keeps a drag from starting in it. It shows
@@ -107,6 +117,7 @@ export const RangeField = ({
   invalid: boolean;
   className?: string;
 }) => {
+  const t = useTranslations("author.canvas");
   const { readOnly, setRange } = useComposer();
   const [typed, setTyped] = useState(range);
   const [seen, setSeen] = useState(range);
@@ -116,7 +127,7 @@ export const RangeField = ({
   }
   return (
     <input
-      aria-label={`Range of ${name}`}
+      aria-label={t("rangeOf", { name })}
       value={typed}
       disabled={readOnly}
       aria-invalid={invalid || undefined}
@@ -138,11 +149,12 @@ export const RangeField = ({
 };
 
 export const RemoveButton = ({ name }: { name: string }) => {
+  const t = useTranslations("author.canvas");
   const { readOnly, remove } = useComposer();
   return readOnly ? null : (
     <button
       type="button"
-      aria-label={`Remove ${name}`}
+      aria-label={t("remove", { name })}
       onClick={() => remove([name])}
       className="nodrag nopan inline-flex size-7 shrink-0 items-center justify-center rounded-control text-muted outline-offset-2 hover:bg-tint hover:text-fg focus-visible:outline-2 focus-visible:outline-focus"
     >
@@ -174,45 +186,48 @@ const DependencyName = ({ name }: { name: string }) => {
  * One dependency: its name, what the catalogue says of it (type, listed version, description, the
  * tools it works in), its range, and its problems, which are the ones the checks report.
  */
-export const DependencyNode = ({ data, selected }: NodeProps<DependencyFlowNode>) => (
-  <div
-    className={cn(
-      "grid w-60 gap-2 rounded-panel border bg-surface p-3",
-      data.problems.length > 0
-        ? "border-error"
-        : selected
-          ? "border-accent-strong"
-          : "border-strong",
-    )}
-  >
-    <div className="flex items-start justify-between gap-2">
-      <div className="grid min-w-0 gap-1.5">
-        <DependencyName name={data.name} />
-        <div className="flex flex-wrap items-center gap-1.5">
-          <DependencyFactsLine facts={data.facts} status={data.status} />
+export const DependencyNode = ({ data, selected }: NodeProps<DependencyFlowNode>) => {
+  const t = useTranslations("author.canvas");
+  return (
+    <div
+      className={cn(
+        "grid w-60 gap-2 rounded-panel border bg-surface p-3",
+        data.problems.length > 0
+          ? "border-error"
+          : selected
+            ? "border-accent-strong"
+            : "border-strong",
+      )}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="grid min-w-0 gap-1.5">
+          <DependencyName name={data.name} />
+          <div className="flex flex-wrap items-center gap-1.5">
+            <DependencyFactsLine facts={data.facts} status={data.status} />
+          </div>
         </div>
+        <RemoveButton name={data.name} />
       </div>
-      <RemoveButton name={data.name} />
+      {data.facts?.description ? (
+        <p className="line-clamp-2 text-xs text-fg">{data.facts.description}</p>
+      ) : null}
+      <div className="flex items-center gap-2">
+        <span aria-hidden="true" className="font-mono text-[11px] text-muted">
+          {t("range")}
+        </span>
+        <RangeField name={data.name} range={data.range} invalid={data.problems.length > 0} />
+      </div>
+      {data.facts ? (
+        <p className="font-mono text-[11px] text-muted">
+          {data.facts.tools.length > 0
+            ? t("worksIn", { tools: data.facts.tools.join(", ") })
+            : t("worksInNone")}
+        </p>
+      ) : null}
+      <DependencyProblems problems={data.problems} warnings={data.warnings} />
+      <Handle type="target" position={Position.Top} isConnectable={false} className={centre} />
     </div>
-    {data.facts?.description ? (
-      <p className="line-clamp-2 text-xs text-fg">{data.facts.description}</p>
-    ) : null}
-    <div className="flex items-center gap-2">
-      <span aria-hidden="true" className="font-mono text-[11px] text-muted">
-        range
-      </span>
-      <RangeField name={data.name} range={data.range} invalid={data.problems.length > 0} />
-    </div>
-    {data.facts ? (
-      <p className="font-mono text-[11px] text-muted">
-        {data.facts.tools.length > 0
-          ? `works in ${data.facts.tools.join(", ")}`
-          : "works in no built-in tool"}
-      </p>
-    ) : null}
-    <DependencyProblems problems={data.problems} warnings={data.warnings} />
-    <Handle type="target" position={Position.Top} isConnectable={false} className={centre} />
-  </div>
-);
+  );
+};
 
 export const nodeTypes = { item: ItemNode, dependency: DependencyNode };

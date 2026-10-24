@@ -1,3 +1,4 @@
+import { whyText } from "@/i18n/why-server";
 import { prepareRelease } from "@/server/domains/submissions/actions/publish";
 import type { ReleaseMember } from "./types";
 
@@ -13,7 +14,7 @@ export const releaseGroupFor = async (
   const { candidates, refused } = await prepareRelease(headers, { ids: [id] });
   const refusal = refused.find((r) => r.id === id);
   return {
-    blocked: refusal && refusal.result === "not_releasable" ? refusal.reason : null,
+    blocked: refusal && refusal.result === "not_releasable" ? await whyText(refusal.why) : null,
     goesWith: candidates
       .filter((candidate) => candidate.id !== id)
       .map((candidate) => ({

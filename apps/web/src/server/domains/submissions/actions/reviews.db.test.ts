@@ -402,7 +402,11 @@ describe("rejecting a dependency (056)", () => {
       (await listDependents(asModerator, style, app)).map((d) => [d.id, d.name, d.sendBack]),
     ).toEqual([
       [kit, "@team/kit", { ok: true }],
-      [mods, "@team/mods", { ok: false, reason: "Yours: edit or withdraw it." }],
+      [
+        mods,
+        "@team/mods",
+        { ok: false, reason: "Yours: edit or withdraw it.", why: { code: "yours" } },
+      ],
     ]);
     // The author of the dependency sees them, but can't send them back.
     expect((await listDependents(asAuthor, style, app)).every((d) => !d.sendBack.ok)).toBe(true);

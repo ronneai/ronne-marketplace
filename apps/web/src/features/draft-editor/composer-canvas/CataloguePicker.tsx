@@ -2,10 +2,10 @@
 
 import { DEPENDENCY_TYPES, type ItemType } from "@ronneai/core";
 import { Plus } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { startDrag } from "@/components/dependency-canvas/drag";
-import { unreleasedLabel } from "@/components/dependency-canvas/nodes";
-import { Badge } from "@/components/ui/Badge";
+import { UnreleasedBadge } from "@/components/dependency-canvas/nodes";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/components/ui/cn";
 import { inputClasses, selectClasses } from "@/components/ui/Field";
@@ -27,55 +27,59 @@ export const PickerResults = ({
   entries: readonly PickerEntry[];
   added: ReadonlySet<string>;
   onAdd: (entry: PickerEntry) => void;
-}) => (
-  <ul aria-label="Catalogue results" className="grid gap-1.5">
-    {entries.map((entry) => {
-      const has = added.has(entry.name);
-      return (
-        <li
-          key={entry.name}
-          draggable={!has}
-          onDragStart={(event) => startDrag(event, entry)}
-          className={cn(
-            "flex items-center justify-between gap-2 rounded-control border border-hairline p-2",
-            has ? "" : "cursor-grab hover:border-strong",
-          )}
-        >
-          <div className="grid min-w-0 gap-1">
-            <p className="font-mono text-xs font-semibold break-all text-fg">{entry.name}</p>
-            <div className="flex flex-wrap items-center gap-1.5">
-              <TypeBadge type={entry.type} />
-              {entry.status === "published" ? (
-                <span className="font-mono text-[11px] text-muted">
-                  v{entry.version}
-                  {entry.mine ? ", yours" : ""}
-                </span>
-              ) : (
-                <Badge tone="warning">{unreleasedLabel(entry.status)}</Badge>
-              )}
+}) => {
+  const t = useTranslations("author.catalogue");
+  return (
+    <ul aria-label={t("results")} className="grid gap-1.5">
+      {entries.map((entry) => {
+        const has = added.has(entry.name);
+        return (
+          <li
+            key={entry.name}
+            draggable={!has}
+            onDragStart={(event) => startDrag(event, entry)}
+            className={cn(
+              "flex items-center justify-between gap-2 rounded-control border border-hairline p-2",
+              has ? "" : "cursor-grab hover:border-strong",
+            )}
+          >
+            <div className="grid min-w-0 gap-1">
+              <p className="font-mono text-xs font-semibold break-all text-fg">{entry.name}</p>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <TypeBadge type={entry.type} />
+                {entry.status === "published" ? (
+                  <span className="font-mono text-[11px] text-muted">
+                    {entry.mine
+                      ? t("publishedYours", { version: entry.version ?? "" })
+                      : `v${entry.version}`}
+                  </span>
+                ) : (
+                  <UnreleasedBadge status={entry.status} />
+                )}
+              </div>
+              {entry.description ? (
+                <p className="line-clamp-2 text-xs text-fg">{entry.description}</p>
+              ) : null}
             </div>
-            {entry.description ? (
-              <p className="line-clamp-2 text-xs text-fg">{entry.description}</p>
-            ) : null}
-          </div>
-          {has ? (
-            <span className="shrink-0 px-2 font-mono text-[11px] text-muted">added</span>
-          ) : (
-            <Button
-              variant="secondary"
-              aria-label={`Add ${entry.name}`}
-              onClick={() => onAdd(entry)}
-              className="h-7 shrink-0 gap-1 px-2 text-xs"
-            >
-              <Plus size={14} aria-hidden="true" />
-              Add
-            </Button>
-          )}
-        </li>
-      );
-    })}
-  </ul>
-);
+            {has ? (
+              <span className="shrink-0 px-2 font-mono text-[11px] text-muted">{t("added")}</span>
+            ) : (
+              <Button
+                variant="secondary"
+                aria-label={t("add", { name: entry.name })}
+                onClick={() => onAdd(entry)}
+                className="h-7 shrink-0 gap-1 px-2 text-xs"
+              >
+                <Plus size={14} aria-hidden="true" />
+                {t("addButton")}
+              </Button>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+};
 
 type Found =
   | { state: "loading"; entries: PickerEntry[]; nextCursor: null }
@@ -98,6 +102,7 @@ export const CataloguePicker = ({
   added: ReadonlySet<string>;
   onAdd: (entry: PickerEntry) => void;
 }) => {
+  const t = useTranslations("author.catalogue");
   const [q, setQ] = useState("");
   const [only, setOnly] = useState<ItemType | "">("");
   const [found, setFound] = useState<Found>({ state: "loading", entries: [], nextCursor: null });
@@ -148,25 +153,25 @@ export const CataloguePicker = ({
 
   const entries = found.entries.filter((entry) => entry.name !== itemName);
   return (
-    <section aria-label="Add from the catalogue" className="grid content-start gap-2">
-      <h2 className="text-sm font-semibold text-fg">Add from the catalogue</h2>
+    <section aria-label={t("heading")} className="grid content-start gap-2">
+      <h2 className="text-sm font-semibold text-fg">{t("heading")}</h2>
       <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
         <input
           type="search"
-          aria-label="Search the catalogue"
-          placeholder="Name or keyword"
+          aria-label={t("search")}
+          placeholder={t("placeholder")}
           maxLength={100}
           value={q}
           onChange={(event) => setQ(event.target.value)}
           className={cn(inputClasses, "h-8")}
         />
         <select
-          aria-label="Type"
+          aria-label={t("type")}
           value={only}
           onChange={(event) => setOnly(event.target.value as ItemType | "")}
           className={cn(selectClasses, "h-8 w-auto font-mono text-xs")}
         >
-          <option value="">Any type</option>
+          <option value="">{t("anyType")}</option>
           {DEPENDENCY_TYPES[type].map((allowed) => (
             <option key={allowed} value={allowed}>
               {allowed}
@@ -175,15 +180,17 @@ export const CataloguePicker = ({
         </select>
       </div>
       <p role="status" className="text-xs text-muted">
-        {found.state === "failed"
-          ? "The catalogue couldn't be reached. Change the search to try again."
-          : found.state === "loading"
-            ? "Searching…"
-            : entries.length === 0
-              ? search || only
-                ? "Nothing matches."
-                : "Nothing yet to depend on."
-              : "Add one, or drag it onto the canvas."}
+        {t(
+          found.state === "failed"
+            ? "failed"
+            : found.state === "loading"
+              ? "searching"
+              : entries.length === 0
+                ? search || only
+                  ? "noMatch"
+                  : "nothingYet"
+                : "hint",
+        )}
       </p>
       <PickerResults entries={entries} added={added} onAdd={onAdd} />
       {found.state === "ready" && found.nextCursor ? (
@@ -194,7 +201,7 @@ export const CataloguePicker = ({
             onClick={() => void more()}
             className="h-7 px-2 text-xs"
           >
-            Show more
+            {t("more")}
           </Button>
         </div>
       ) : null}

@@ -1,4 +1,5 @@
 import type { ManifestIssue } from "@ronneai/core";
+import { useTranslations } from "next-intl";
 
 /** A message with its `backticked` names shown as code. */
 export const CodeText = ({ text }: { text: string }) =>
@@ -16,7 +17,8 @@ export const CodeText = ({ text }: { text: string }) =>
 
 /**
  * Validation issues from `@ronneai/core` (feature 011): errors first, then warnings, each with the
- * file and line it's about. The submission editor (012) shows these under the editor and links each
+ * file and line it's about. The messages are core's, in English as `rmk` prints them (131); the
+ * words around them follow the person's language. The submission editor (012) shows these under the editor and links each
  * one to its place. Mono `ERR:` / `WARN:` prefixes in red and amber (design system 032); the
  * message stays in the text colour, so a long list is still easy to read.
  */
@@ -30,17 +32,20 @@ export const IssueList = ({
   /** Writes a dependency under its name now (118), for an issue that offers it. */
   onRename?: (rename: { from: string; to: string }) => void;
 }) => {
+  const t = useTranslations("author.issues");
+  const field = useTranslations("common.field");
   if (issues.length === 0)
     return (
       <p role="status" className="text-sm text-muted">
-        <span className="mr-2 font-mono text-xs font-semibold text-fg">OK:</span>No problems found.
+        <span className="mr-2 font-mono text-xs font-semibold text-fg">{t("ok")}</span>
+        {t("none")}
       </p>
     );
   const sorted = [...issues].sort((a, b) =>
     a.severity === b.severity ? 0 : a.severity === "error" ? -1 : 1,
   );
   return (
-    <ul className="grid gap-1.5" aria-label="Problems">
+    <ul className="grid gap-1.5" aria-label={t("list")}>
       {sorted.map((issue, i) => {
         const where = `${issue.file ?? "ronne.yaml"}${issue.line ? `:${issue.line}` : ""}`;
         const content = (
@@ -48,7 +53,7 @@ export const IssueList = ({
             <span
               className={`mr-2 font-mono text-xs font-semibold ${issue.severity === "error" ? "text-error-text" : "text-warning-text"}`}
             >
-              {issue.severity === "error" ? "ERR:" : "WARN:"}
+              {field(issue.severity === "error" ? "error" : "warning")}
             </span>
             <span className="text-fg">
               <CodeText text={issue.message} />
@@ -77,7 +82,7 @@ export const IssueList = ({
                 onClick={() => issue.rename && onRename(issue.rename)}
                 className="ml-2 rounded-control border border-strong px-1.5 py-0.5 text-xs font-semibold text-fg hover:border-accent outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus pointer-coarse:min-h-11"
               >
-                Use the new name
+                {t("rename")}
               </button>
             ) : null}
           </li>

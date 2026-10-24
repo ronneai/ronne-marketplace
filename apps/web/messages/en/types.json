@@ -29,5 +29,18 @@
     "statusline": "A script that prints the AI tool's status line.",
     "lsp-server": "A language server that gives the agent code intelligence.",
     "bundle": "A set of items installed together, as one."
+  },
+  "tag": {
+    "skill": "agent skills",
+    "agent": "sub-agent",
+    "rule": "guidance",
+    "command": "prompt",
+    "output-style": "style",
+    "hook": "lifecycle",
+    "mcp-server": "connection",
+    "permission-policy": "security",
+    "statusline": "script",
+    "lsp-server": "language",
+    "bundle": "composite"
   }
 }

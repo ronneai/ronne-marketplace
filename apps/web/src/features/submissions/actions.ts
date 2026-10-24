@@ -2,10 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
+import { errorText } from "@/i18n/errors";
 import { IdentityError } from "@/server/domains/identity/exceptions/errors";
 import { createDraft } from "@/server/domains/submissions/actions/drafts";
 import { submitManyDrafts } from "@/server/domains/submissions/actions/submissions";
-import { SubmissionsError } from "@/server/domains/submissions/exceptions/errors";
+import { NotAMemberError, SubmissionsError } from "@/server/domains/submissions/exceptions/errors";
 import { itemNameOf } from "@/server/domains/submissions/models/submission";
 import { requestHeaders } from "@/server/http/request-headers";
 import { serverAction } from "@/server/http/server-action";
@@ -25,7 +27,7 @@ export const createDraftFromForm = serverAction(
       }));
     } catch (error) {
       if (error instanceof SubmissionsError || error instanceof IdentityError)
-        return { error: error.message };
+        return { error: await errorText(error) };
       throw error;
     }
     revalidatePath("/submissions");
@@ -40,18 +42,23 @@ export const createDraftFromForm = serverAction(
 export const submitSelectedAction = serverAction(async (ids: string[]): Promise<BulkResult[]> => {
   const { results } = await submitManyDrafts(await requestHeaders(), { ids });
   revalidatePath("/submissions");
-  return results.map((r) => ({
-    id: r.id,
-    name: "submission" in r ? itemNameOf(r.submission) : r.id,
-    result: r.result,
-    reasons:
-      r.result === "not_ready" || r.result === "not_a_member"
-        ? r.issues.filter((i) => i.severity === "error").map((i) => i.message)
-        : r.result === "not_found"
-          ? ["It's no longer one of your drafts."]
-          : r.result === "not_submittable"
-            ? ["It isn't a draft any more."]
-            : [],
-    ...(r.result === "not_a_member" ? { joinWorkspace: r.submission.workspace.name } : {}),
-  }));
+  const t = await getTranslations("author.actions");
+  return Promise.all(
+    results.map(async (r) => ({
+      id: r.id,
+      name: "submission" in r ? itemNameOf(r.submission) : r.id,
+      result: r.result,
+      reasons:
+        r.result === "not_a_member"
+          ? [await errorText(new NotAMemberError(r.submission.workspace.name))]
+          : r.result === "not_ready"
+            ? r.issues.filter((i) => i.severity === "error").map((i) => i.message)
+            : r.result === "not_found"
+              ? [t("notYours")]
+              : r.result === "not_submittable"
+                ? [t("notDraft")]
+                : [],
+      ...(r.result === "not_a_member" ? { joinWorkspace: r.submission.workspace.name } : {}),
+    })),
+  );
 });

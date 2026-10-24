@@ -1,19 +1,19 @@
 "use client";
 
-import { ITEM_TYPES, type ItemType, NAME_PROBLEM_MESSAGES, nameProblem } from "@ronneai/core";
+import {
+  ITEM_TYPES,
+  type ItemType,
+  NAME_MAX_LENGTH,
+  type NameProblem,
+  nameProblem,
+} from "@ronneai/core";
 import { ArrowRight, CircleCheck, FileCode, Info, Search, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Fragment, type ReactNode, useActionState, useMemo, useState } from "react";
 import { Help } from "@/components/help/Help";
 import { docsHref } from "@/components/help/topics";
-import {
-  HIGH_RISK_NOTE,
-  STANDARD_RISK_NOTE,
-  TYPE_GROUPS,
-  TYPE_INFO,
-  type TypeGroup,
-} from "@/components/submissions/item-types";
+import { TYPE_GROUPS, TYPE_INFO, type TypeGroup } from "@/components/submissions/item-types";
 import { Badge } from "@/components/ui/Badge";
 import { Button, buttonClasses } from "@/components/ui/Button";
 import { cn } from "@/components/ui/cn";
@@ -73,6 +73,103 @@ const filterClasses =
 const workspaceOf = (name: string) =>
   name.includes("/") ? (name.split("/", 1)[0] ?? "") : "global";
 
+/**
+ * Which types the picker shows (feature 012): those in the chosen group whose id, description or
+ * tag holds what's typed, in the person's language (131: a tag is searched as it reads).
+ */
+export const useTypesMatching = () => {
+  const typeText = useTranslations("types");
+  return (search: string, group: TypeGroup | null): ItemType[] => {
+    const query = search.trim().toLowerCase();
+    return ITEM_TYPES.filter(
+      (candidate) =>
+        (group === null || TYPE_INFO[candidate].group === group) &&
+        (candidate.includes(query) ||
+          typeText(`description.${candidate}`).toLowerCase().includes(query) ||
+          typeText(`tag.${candidate}`).toLowerCase().includes(query)),
+    );
+  };
+};
+
+/** Under the name: what's wrong with it, or what a name is. */
+export const NameHint = ({ problem }: { problem: NameProblem | null }) => {
+  const t = useTranslations("author.newDraft");
+  const nameText = useTranslations("common.nameProblem");
+  return (
+    <p id="item-name-hint" className="text-xs text-muted">
+      {problem ? nameText(problem, { max: NAME_MAX_LENGTH }) : t("nameHint")}
+    </p>
+  );
+};
+
+/** The type filter matches nothing: say so, and how to see them all. */
+export const NoTypeMatch = () => {
+  const t = useTranslations("author.newDraft");
+  return <p className="text-sm text-muted">{t("noType", { count: ITEM_TYPES.length })}</p>;
+};
+
+/** A draft of the same name already exists: a note, not a stop. */
+export const RepeatNote = ({ itemName }: { itemName: string }) => {
+  const t = useTranslations("author.newDraft");
+  return (
+    <p className="text-xs text-fg">
+      <span className="mr-2 font-mono font-semibold">{t("note")}</span>
+      {t("repeat", { name: itemName })}
+    </p>
+  );
+};
+
+/**
+ * The side panel's starter files: the real template's ronne.yaml, the other files, and whether
+ * reviewers will see a risk flag; or what picking a type shows.
+ */
+export const StarterFiles = ({ type, itemName }: { type: ItemType | null; itemName: string }) => {
+  const t = useTranslations("author.newDraft");
+  const starter = useMemo(() => (type ? draftTemplate(type, itemName) : []), [type, itemName]);
+  const manifest = starter.find((file) => file.path === MANIFEST_PATH);
+  const others = starter.filter((file) => file.path !== MANIFEST_PATH);
+  return (
+    <>
+      {manifest ? (
+        <>
+          <div className="overflow-hidden rounded-control bg-code-bg">
+            <div className="flex items-center justify-between border-b border-code-muted/20 px-3 py-2 font-mono text-xs text-code-muted">
+              <span>{MANIFEST_PATH}</span>
+              <span>{t("template")}</span>
+            </div>
+            <pre className="max-h-96 overflow-auto p-3 font-mono text-xs leading-5 break-words whitespace-pre-wrap text-code-fg">
+              {manifest.content}
+            </pre>
+          </div>
+          {others.length > 0 ? (
+            <p className="text-xs text-muted">
+              {t("others", { files: others.map((file) => file.path).join(", ") })}
+            </p>
+          ) : (
+            <p className="text-xs text-muted">{t("one")}</p>
+          )}
+          <div className="grid gap-1.5 rounded-control bg-canvas p-3">
+            <p className="flex items-center justify-between gap-2 text-sm font-semibold text-fg">
+              <span className="flex items-center gap-2">
+                <ShieldCheck size={16} aria-hidden="true" />
+                {t("review")}
+              </span>
+              <Badge tone={TYPE_INFO[type as ItemType].highRisk ? "warning" : "muted"}>
+                {t(TYPE_INFO[type as ItemType].highRisk ? "riskFlag" : "standard")}
+              </Badge>
+            </p>
+            <p className="text-xs text-muted">
+              {t(TYPE_INFO[type as ItemType].highRisk ? "highRisk" : "standardRisk")}
+            </p>
+          </div>
+        </>
+      ) : (
+        <p className="rounded-control bg-canvas p-3 text-xs text-muted">{t("pick")}</p>
+      )}
+    </>
+  );
+};
+
 export const NewDraftForm = ({
   scopes,
   mine,
@@ -84,6 +181,7 @@ export const NewDraftForm = ({
   initialScope?: string;
 }) => {
   const typeText = useTranslations("types");
+  const t = useTranslations("author.newDraft");
   const [state, action, pending] = useActionState<NewDraftState, FormData>(createDraftFromForm, {});
   const [scope, setScope] = useState(
     initialScope && scopes.some((option) => option.name === initialScope)
@@ -100,7 +198,7 @@ export const NewDraftForm = ({
 
   const name = typed.trim().toLowerCase();
   const problem = name ? nameProblem(name, "item") : null;
-  const itemName = `@${scope || "scope"}/${name || "name"}`;
+  const itemName = `@${scope || t("scopeWord")}/${name || t("nameWord")}`;
   const chosenScope = scopes.find((option) => option.name === scope);
 
   const query = scopeSearch.trim().toLowerCase().replace(/^@/, "");
@@ -114,26 +212,18 @@ export const NewDraftForm = ({
       option.name.includes(query) ||
       option.description.toLowerCase().includes(query),
   );
-  const typeQuery = typeSearch.trim().toLowerCase();
-  const shownTypes = ITEM_TYPES.filter(
-    (candidate) =>
-      (group === null || TYPE_INFO[candidate].group === group) &&
-      (candidate.includes(typeQuery) ||
-        typeText(`description.${candidate}`).toLowerCase().includes(typeQuery) ||
-        TYPE_INFO[candidate].tag.includes(typeQuery)),
-  );
-  const starter = useMemo(() => (type ? draftTemplate(type, itemName) : []), [type, itemName]);
-  const manifest = starter.find((file) => file.path === MANIFEST_PATH);
-  const others = starter.filter((file) => file.path !== MANIFEST_PATH);
+  const shownTypes = useTypesMatching()(typeSearch, group);
 
   if (scopes.length === 0)
     return (
-      <Notice kind="info" title="There are no scopes yet.">
-        Every item lives in a scope. Create one in your personal workspace, from{" "}
-        <Link href="/workspaces" className="text-link underline underline-offset-2">
-          Workspaces
-        </Link>
-        , or ask root for one in a shared workspace, then come back.
+      <Notice kind="info" title={t("noScopesTitle")}>
+        {t.rich("noScopes", {
+          link: (chunks) => (
+            <Link href="/workspaces" className="text-link underline underline-offset-2">
+              {chunks}
+            </Link>
+          ),
+        })}
       </Notice>
     );
 
@@ -145,24 +235,24 @@ export const NewDraftForm = ({
       <div className="grid min-w-0 gap-6">
         <Section
           step={1}
-          title="Where it lives"
+          title={t("step1")}
           aside={
             <NewTabLink
               href={docsHref("scopes")}
               className="text-sm text-link underline underline-offset-2"
             >
-              About scopes
+              {t("aboutScopes")}
             </NewTabLink>
           }
         >
           <fieldset className="grid gap-2">
-            <legend className="pb-2 text-sm font-semibold text-fg">Scope</legend>
+            <legend className="pb-2 text-sm font-semibold text-fg">{t("scope")}</legend>
             <Help id="scope" />
             {scopes.length > SCOPE_SEARCH_FROM ? (
               <input
                 type="search"
-                aria-label="Search scopes"
-                placeholder="Search scopes"
+                aria-label={t("searchScopes")}
+                placeholder={t("searchScopes")}
                 value={scopeSearch}
                 onChange={(event) => setScopeSearch(event.target.value)}
                 className={inputClasses}
@@ -179,7 +269,7 @@ export const NewDraftForm = ({
                   <Fragment key={option.name}>
                     {heading ? (
                       <span className="w-full px-2 pt-1 font-mono text-xs text-muted [overflow-wrap:anywhere]">
-                        {option.personal ? `Personal (${workspace})` : workspace}
+                        {option.personal ? t("personal", { workspace }) : workspace}
                       </span>
                     ) : null}
                     <label className={chipClasses}>
@@ -198,7 +288,7 @@ export const NewDraftForm = ({
                 );
               })}
               {shownScopes.length === 0 ? (
-                <p className="px-3 py-1.5 text-xs text-muted">No scope matches.</p>
+                <p className="px-3 py-1.5 text-xs text-muted">{t("noScope")}</p>
               ) : null}
             </div>
             <p className="min-h-4 text-xs text-muted [overflow-wrap:anywhere]">
@@ -208,7 +298,7 @@ export const NewDraftForm = ({
                   {chosenScope.description}
                 </>
               ) : (
-                "Where the item lives: a scope of one of your workspaces. Review is the gate."
+                t("scopeHint")
               )}
             </p>
           </fieldset>
@@ -217,7 +307,7 @@ export const NewDraftForm = ({
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <span className="flex items-center gap-1">
                 <label htmlFor="item-name" className="text-sm font-semibold text-fg">
-                  Name
+                  {t("name")}
                 </label>
                 <Help id="item-name" />
               </span>
@@ -230,7 +320,7 @@ export const NewDraftForm = ({
                 className="shrink-0 font-mono text-sm text-muted pointer-coarse:text-base"
                 aria-hidden="true"
               >
-                @{scope || "scope"}/
+                @{scope || t("scopeWord")}/
               </span>
               <input
                 id="item-name"
@@ -243,6 +333,7 @@ export const NewDraftForm = ({
                 onChange={(event) => setTyped(event.target.value)}
                 aria-describedby="item-name-hint"
                 aria-invalid={problem ? true : undefined}
+                // biome-ignore lint/plugin: an example item name, written as names are
                 placeholder="code-reviewer"
                 className={cn(
                   "h-full min-w-0 flex-1 bg-transparent font-mono text-sm text-fg outline-none placeholder:text-muted/50",
@@ -253,30 +344,25 @@ export const NewDraftForm = ({
                 <CircleCheck
                   size={18}
                   className="ml-2 shrink-0 text-fg"
-                  aria-label="Valid name"
+                  aria-label={t("validName")}
                   role="img"
                 />
               ) : null}
             </div>
-            <p id="item-name-hint" className="text-xs text-muted">
-              {problem
-                ? NAME_PROBLEM_MESSAGES[problem]
-                : "The item's full name. Lowercase letters, digits and hyphens."}
-            </p>
+            <NameHint problem={problem} />
             <Help id="name" />
-            {scope && name && mine.includes(itemName) ? (
-              <p className="text-xs text-fg">
-                <span className="mr-2 font-mono font-semibold">NOTE:</span>You already have a draft
-                named {itemName}. You can still create another.
-              </p>
-            ) : null}
+            {scope && name && mine.includes(itemName) ? <RepeatNote itemName={itemName} /> : null}
           </div>
         </Section>
 
         <Section
           step={2}
-          title="What it is"
-          aside={<span className="font-mono text-xs text-muted">{ITEM_TYPES.length} types</span>}
+          title={t("step2")}
+          aside={
+            <span className="font-mono text-xs text-muted">
+              {t("typesCount", { count: ITEM_TYPES.length })}
+            </span>
+          }
         >
           <div className="grid gap-3">
             <Help id="type" />
@@ -288,22 +374,22 @@ export const NewDraftForm = ({
               />
               <input
                 type="search"
-                aria-label="Filter types"
-                placeholder="Filter types, such as mcp, rule or agent"
+                aria-label={t("filterTypes")}
+                placeholder={t("filterPlaceholder")}
                 value={typeSearch}
                 onChange={(event) => setTypeSearch(event.target.value)}
                 className={`${inputClasses} pl-9`}
               />
             </div>
             <fieldset className="flex flex-wrap gap-2">
-              <legend className="sr-only">Type groups</legend>
+              <legend className="sr-only">{t("groups")}</legend>
               <button
                 type="button"
                 aria-pressed={group === null}
                 onClick={() => setGroup(null)}
                 className={filterClasses}
               >
-                All ({ITEM_TYPES.length})
+                {t("all", { count: ITEM_TYPES.length })}
               </button>
               {TYPE_GROUPS.map((option) => (
                 <button
@@ -318,11 +404,9 @@ export const NewDraftForm = ({
               ))}
             </fieldset>
           </div>
-          <p className="text-xs text-muted">
-            It can't be changed later: another type means a new item.
-          </p>
+          <p className="text-xs text-muted">{t("fixed")}</p>
           <fieldset>
-            <legend className="sr-only">Type</legend>
+            <legend className="sr-only">{t("type")}</legend>
             <div className="grid gap-2 sm:grid-cols-2">
               {ITEM_TYPES.map((candidate) => {
                 const info = TYPE_INFO[candidate];
@@ -344,8 +428,8 @@ export const NewDraftForm = ({
                     />
                     <span className="flex flex-wrap items-center gap-2 pr-6">
                       <span className="font-mono text-sm font-semibold text-fg">{candidate}</span>
-                      <Badge>{info.tag}</Badge>
-                      {info.highRisk ? <Badge tone="warning">⚠ risk</Badge> : null}
+                      <Badge>{typeText(`tag.${candidate}`)}</Badge>
+                      {info.highRisk ? <Badge tone="warning">{t("risk")}</Badge> : null}
                     </span>
                     <span className="text-xs text-muted">
                       {typeText(`description.${candidate}`)}
@@ -361,80 +445,35 @@ export const NewDraftForm = ({
                 );
               })}
             </div>
-            {shownTypes.length === 0 ? (
-              <p className="text-sm text-muted">No type matches. Clear the filter to see all 11.</p>
-            ) : null}
+            {shownTypes.length === 0 ? <NoTypeMatch /> : null}
           </fieldset>
         </Section>
       </div>
 
-      <aside aria-label="Starter files" className="grid gap-4 lg:sticky lg:top-20">
+      <aside aria-label={t("starter")} className="grid gap-4 lg:sticky lg:top-20">
         <div className="grid gap-4 rounded-panel border border-hairline bg-surface p-4">
           <h2 className="flex items-center gap-2 text-sm font-semibold text-fg">
             <FileCode size={16} aria-hidden="true" />
-            Starter files
+            {t("starter")}
           </h2>
-          {manifest ? (
-            <>
-              <div className="overflow-hidden rounded-control bg-code-bg">
-                <div className="flex items-center justify-between border-b border-code-muted/20 px-3 py-2 font-mono text-xs text-code-muted">
-                  <span>{MANIFEST_PATH}</span>
-                  <span>template</span>
-                </div>
-                <pre className="max-h-96 overflow-auto p-3 font-mono text-xs leading-5 break-words whitespace-pre-wrap text-code-fg">
-                  {manifest.content}
-                </pre>
-              </div>
-              {others.length > 0 ? (
-                <p className="text-xs text-muted">
-                  And {others.map((file) => file.path).join(", ")}. You edit them all in the next
-                  step.
-                </p>
-              ) : (
-                <p className="text-xs text-muted">You edit it in the next step.</p>
-              )}
-              <div className="grid gap-1.5 rounded-control bg-canvas p-3">
-                <p className="flex items-center justify-between gap-2 text-sm font-semibold text-fg">
-                  <span className="flex items-center gap-2">
-                    <ShieldCheck size={16} aria-hidden="true" />
-                    Review
-                  </span>
-                  <Badge tone={TYPE_INFO[type as ItemType].highRisk ? "warning" : "muted"}>
-                    {TYPE_INFO[type as ItemType].highRisk ? "risk flag" : "standard"}
-                  </Badge>
-                </p>
-                <p className="text-xs text-muted">
-                  {TYPE_INFO[type as ItemType].highRisk ? HIGH_RISK_NOTE : STANDARD_RISK_NOTE}
-                </p>
-              </div>
-            </>
-          ) : (
-            <p className="rounded-control bg-canvas p-3 text-xs text-muted">
-              Pick a type to see the ronne.yaml and files the draft starts with.
-            </p>
-          )}
+          <StarterFiles type={type} itemName={itemName} />
           <FieldError id="new-draft-error">{state.error}</FieldError>
           <div className="flex gap-2">
             <Button type="submit" loading={pending} className="flex-1">
-              Create draft
+              {t("create")}
               <ArrowRight size={16} aria-hidden="true" />
             </Button>
             <Link href="/submissions" className={buttonClasses("secondary")}>
-              Cancel
+              {t("cancel")}
             </Link>
           </div>
-          <p className="text-center text-xs text-muted">
-            Only you see the draft until you submit it for review.
-          </p>
+          <p className="text-center text-xs text-muted">{t("onlyYou")}</p>
         </div>
         <div className="flex gap-3 rounded-panel border border-hairline bg-surface p-4">
           <Info size={16} aria-hidden="true" className="mt-0.5 shrink-0 text-muted" />
           <div className="grid gap-1">
-            <p className="text-sm font-semibold text-fg">Checked as you type</p>
-            <p className="text-xs text-muted">
-              In the editor, ronne.yaml and its files are checked as you type, with the same checks
-              the server runs when you save.
-            </p>
+            <p className="text-sm font-semibold text-fg">{t("checkedTitle")}</p>
+            <p className="text-xs text-muted">{t("checked")}</p>
           </div>
         </div>
       </aside>

@@ -1,5 +1,6 @@
 import { can } from "../../identity/models/permissions";
 import type { SubmissionStatus } from "../models/status";
+import { type Why, whyEnglish } from "../models/why";
 import type { ReviewDecision } from "./reviews";
 import type { SubmissionActor } from "./submissions";
 
@@ -12,13 +13,13 @@ import type { SubmissionActor } from "./submissions";
 /** A decision the viewer is shown: allowed, or disabled with the reason. */
 export type DecisionOption =
   | { decision: ReviewDecision; allowed: true }
-  | { decision: ReviewDecision; allowed: false; reason: string };
+  | { decision: ReviewDecision; allowed: false; reason: string; why: Why };
 
 /** Why a reviewer can't decide on their own submission. */
-export const OWN_SUBMISSION_REASON = "Your own submission: another moderator or root decides.";
+export const OWN_SUBMISSION_REASON = whyEnglish({ code: "own_decide" });
 
 /** Why a stale proposal (017) can't be approved yet. */
-export const rebaseReason = (stale: string) => `Rebase needed: ${stale} is out`;
+export const rebaseReason = (stale: string) => whyEnglish({ code: "stale", newer: stale });
 
 /**
  * The decisions a viewer sees on a submission, in the order the buttons show them. A decision that
@@ -40,11 +41,16 @@ export const decisionsFor = (
   const mine = submission.authorId === actor.user?.id;
   const own = (decision: ReviewDecision): DecisionOption =>
     mine
-      ? { decision, allowed: false, reason: OWN_SUBMISSION_REASON }
+      ? { decision, allowed: false, reason: OWN_SUBMISSION_REASON, why: { code: "own_decide" } }
       : { decision, allowed: true };
   const approving = (decision: ReviewDecision): DecisionOption =>
     submission.stale
-      ? { decision, allowed: false, reason: rebaseReason(submission.stale) }
+      ? {
+          decision,
+          allowed: false,
+          reason: rebaseReason(submission.stale),
+          why: { code: "stale", newer: submission.stale },
+        }
       : { decision, allowed: true };
 
   if (submission.status === "submitted")

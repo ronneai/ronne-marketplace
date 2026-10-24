@@ -100,6 +100,9 @@ export type SaveResult =
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
+/** Withdraw's result (057): `reviewHistory` when a reviewer took part, so only archiving is left. */
+export type WithdrawResult = { ok: true } | { ok: false; error: string; reviewHistory?: true };
+
 /**
  * Submit and its preview: the checks' issues, and whether it went through. `sent`: the person's
  * own drafts that went with it (112), by name.

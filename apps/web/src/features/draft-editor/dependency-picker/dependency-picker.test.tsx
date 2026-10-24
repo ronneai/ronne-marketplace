@@ -4,9 +4,21 @@ import type { DependencyOption } from "@/server/domains/submissions/actions/comp
 
 vi.mock("./actions", () => ({ findDependenciesAction: vi.fn() }));
 const { DependencyField, RangeInput } = await import("./DependencyField");
-const { acceptsText, dependencyRows, rangeFor, statusText, versionChoices } = await import(
-  "./model"
-);
+const { dependencyRows, rangeFor } = await import("./model");
+const { usePickerWords } = await import("./words");
+
+/** The picker's words as the screens get them, in English (131). */
+const english = (() => {
+  let words: ReturnType<typeof usePickerWords> | undefined;
+  const Grab = () => {
+    words = usePickerWords();
+    return null;
+  };
+  renderToStaticMarkup(<Grab />);
+  if (!words) throw new Error("no words");
+  return words;
+})();
+const { acceptsText, statusText, versionChoices } = english;
 
 const option = (overrides: Partial<DependencyOption> = {}): DependencyOption => ({
   name: "@team/github",

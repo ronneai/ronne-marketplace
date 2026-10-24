@@ -28,15 +28,23 @@ vi.mock("next/navigation", () => ({
 vi.mock("./actions", () => ({}));
 
 const { DraftEditor } = await import("./DraftEditor");
-const {
-  afterSubmit,
-  CHANGED_SINCE_CHECK,
-  GroupList,
-  SubmitOutcome,
-  submitBlocked,
-  submitLabel,
-  WithdrawDialog,
-} = await import("./SubmitDialogs");
+const { afterSubmit, GroupList, SubmitOutcome, useSubmitWords, WithdrawDialog } = await import(
+  "./SubmitDialogs"
+);
+const { usePathWords } = await import("./FileDialogs");
+
+/** A words hook's functions, in English: hooks run inside a render. */
+const grab = <T,>(hook: () => T): T => {
+  let value: T | undefined;
+  const Grab = () => {
+    value = hook();
+    return null;
+  };
+  renderToStaticMarkup(<Grab />);
+  return value as T;
+};
+const { label: submitLabel, blocked: submitBlocked } = grab(useSubmitWords);
+const pathWords = grab(usePathWords);
 const { toPreview } = await import("./submit-preview");
 const { default: DraftPage } = await import("@/app/(app)/submissions/[id]/page");
 
@@ -146,11 +154,16 @@ describe("filesReducer", () => {
 
   it("checks new paths", () => {
     const state = start();
-    expect(newPathProblem(state, "prompt.md")).toBe("There's already a file at prompt.md.");
-    expect(newPathProblem(state, "../x")).toContain("outside the item");
-    expect(newPathProblem(state, "prompt.md/x")).toBe("A file can't be inside another file.");
+    const words = (path: string, from?: string) => pathWords(newPathProblem(state, path, from));
+    expect(newPathProblem(state, "prompt.md")).toEqual({ kind: "exists", path: "prompt.md" });
+    expect(words("prompt.md")).toBe("There's already a file at prompt.md.");
+    expect(newPathProblem(state, "../x")).toEqual({ kind: "path", problem: "outside" });
+    expect(words("../x")).toBe('The path goes outside the item with "..".');
+    expect(words("prompt.md/x")).toBe("A file can't be inside another file.");
     expect(newPathProblem(state, "docs/usage.md")).toBeNull();
-    expect(newPathProblem(state, "other.yaml", "ronne.yaml")).toContain("can't be renamed");
+    expect(words("other.yaml", "ronne.yaml")).toBe(
+      "ronne.yaml can't be renamed: every item has one.",
+    );
     // Uploading over a file is allowed, ronne.yaml included.
     expect(newPathProblem(state, "ronne.yaml", "ronne.yaml")).toBeNull();
   });
@@ -652,7 +665,6 @@ describe("the Submit dialog's group (112)", () => {
   it("after Submit: refused, says so and checks again; sent along, says what; else closes", () => {
     expect(afterSubmit({ ok: false, error: "The draft has 1 problem…", issues: [] })).toEqual({
       next: "recheck",
-      message: CHANGED_SINCE_CHECK,
     });
     expect(afterSubmit({ ok: true, issues: [], sent: ["@team/skill"] })).toEqual({
       next: "outcome",

@@ -46,7 +46,7 @@ describe("the submission errors a draft upload raises (037)", () => {
   it.each([
     [new InvalidItemNameError("characters"), 400, "invalid_name", undefined],
     [new InvalidItemTypeError("skil"), 400, "invalid_type", undefined],
-    [new InvalidFilePathError("../x", "leaves the item"), 400, "invalid_path", { path: "../x" }],
+    [new InvalidFilePathError("../x", "outside"), 400, "invalid_path", { path: "../x" }],
     [new InvalidFileContentError("a.png"), 400, "invalid_content", { path: "a.png" }],
     [new ManifestRequiredError("missing"), 400, "manifest_required", undefined],
     [new DraftScopeNotFoundError("nowhere"), 404, "scope_not_found", { scope: "nowhere" }],

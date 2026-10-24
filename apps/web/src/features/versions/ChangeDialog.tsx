@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { type ReactNode, useState, useTransition } from "react";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogActions } from "@/components/ui/Dialog";
@@ -22,7 +23,10 @@ export const ChangeDialog = <V extends Record<string, string>>({
   fields,
   change,
   children,
+  defaultOpen = false,
 }: {
+  /** Opened at once, without its button being pressed. */
+  defaultOpen?: boolean;
   itemRef: ItemRef;
   label: string;
   title: string;
@@ -33,8 +37,9 @@ export const ChangeDialog = <V extends Record<string, string>>({
   change: (values: V) => VersionChange;
   children?: ReactNode;
 }) => {
+  const t = useTranslations("author.versions");
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const [values, setValues] = useState(initial);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -69,7 +74,7 @@ export const ChangeDialog = <V extends Record<string, string>>({
             <FieldError id="change-error">{error}</FieldError>
             <DialogActions>
               <Button variant="secondary" onClick={() => setOpen(false)}>
-                Cancel
+                {t("cancel")}
               </Button>
               <Button
                 type="submit"

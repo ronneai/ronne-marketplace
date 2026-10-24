@@ -95,5 +95,17 @@
   },
   "languageSwitch": {
     "label": "Language"
+  },
+  "bytes": {
+    "kb": "{size, number, ::group-off} KB",
+    "mb": "{size, number, ::group-off} MB",
+    "mbTenth": "{size, number, ::.0 group-off} MB"
+  },
+  "nameProblem": {
+    "empty": "Enter a name.",
+    "too_long": "Use at most {max} characters.",
+    "characters": "Use only lowercase letters, digits and hyphens.",
+    "edges": "Don't start or end with a hyphen.",
+    "reserved": "That name is reserved."
   }
 }

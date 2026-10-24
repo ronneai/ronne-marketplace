@@ -19,18 +19,47 @@ const error = (
   ...extra,
 });
 
+/** Why a path isn't allowed in a package, as a code a screen can word (131). */
+export type PathProblem =
+  | "empty"
+  | "too_long"
+  | "control"
+  | "backslash"
+  | "absolute"
+  | "outside"
+  | "segment";
+
+/** The longest path a package may hold, in characters. */
+export const PATH_MAX = PATH_MAX_LENGTH;
+
 /** Why a path isn't allowed in a package, or null. Relative, with /, inside the item. */
-export const pathProblem = (path: string): string | null => {
-  if (path.length === 0) return "is empty";
-  if (path.length > PATH_MAX_LENGTH) return `is longer than ${PATH_MAX_LENGTH} characters`;
+export const pathProblemOf = (path: string): PathProblem | null => {
+  if (path.length === 0) return "empty";
+  if (path.length > PATH_MAX_LENGTH) return "too_long";
   // biome-ignore lint/suspicious/noControlCharactersInRegex: control characters are what it refuses.
-  if (/[\u0000-\u001f\u007f]/.test(path)) return "contains control characters";
-  if (path.includes("\\")) return "uses \\ (use / between folders)";
-  if (path.startsWith("/")) return "starts with / (paths are relative to the item)";
+  if (/[\u0000-\u001f\u007f]/.test(path)) return "control";
+  if (path.includes("\\")) return "backslash";
+  if (path.startsWith("/")) return "absolute";
   const parts = path.split("/");
-  if (parts.includes("..")) return 'goes outside the item with ".."';
-  if (parts.some((part) => part === "" || part === ".")) return "has an empty or . segment";
+  if (parts.includes("..")) return "outside";
+  if (parts.some((part) => part === "" || part === ".")) return "segment";
   return null;
+};
+
+const PATH_PROBLEM_WORDS: Record<PathProblem, string> = {
+  empty: "is empty",
+  too_long: `is longer than ${PATH_MAX_LENGTH} characters`,
+  control: "contains control characters",
+  backslash: "uses \\ (use / between folders)",
+  absolute: "starts with / (paths are relative to the item)",
+  outside: 'goes outside the item with ".."',
+  segment: "has an empty or . segment",
+};
+
+/** Why a path isn't allowed, in words after "The path …" (as `rmk` and the API say it), or null. */
+export const pathProblem = (path: string): string | null => {
+  const problem = pathProblemOf(path);
+  return problem ? PATH_PROBLEM_WORDS[problem] : null;
 };
 
 /** The files a manifest refers to, with the field that names each one. */

@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ForbiddenError } from "@/server/domains/identity/exceptions/errors";
 import { DraftScopeNotFoundError } from "@/server/domains/submissions/exceptions/errors";
 import type { Submission } from "@/server/domains/submissions/models/submission";
+import { englishLeaks } from "@/test/english-leak";
+import { inLocale, inLocaleAsync } from "@/test/intl";
 
 const drafts = vi.hoisted(() => ({
   createDraft: vi.fn(),
@@ -75,9 +77,8 @@ const mockList = (list: Submission[]) => {
   );
 };
 const { NewDraftForm } = await import("./NewDraftForm");
-const { BulkResults, BulkSubmitProvider, BulkToolbar, neededBy, toggled } = await import(
-  "./BulkSubmit"
-);
+const { BulkResults, BulkSubmitProvider, BulkToolbar, neededBy, SubmitConfirm, toggled } =
+  await import("./BulkSubmit");
 const { BulkReleaseProvider, BulkReleaseToolbar } = await import("../releases/BulkRelease");
 const releases = await import("../releases/actions");
 const { default: SubmissionsPage } = await import("@/app/(app)/submissions/page");
@@ -307,12 +308,14 @@ describe("a draft in a workspace they aren't in (091, 094)", () => {
         id: away.id,
         name: "@acme/platform/away-one",
         result: "not_a_member",
-        reasons: ["You aren't a member."],
+        reasons: [
+          "You aren't a member of the acme workspace. Ask to join acme to propose changes.",
+        ],
         joinWorkspace: "acme",
       },
     ]);
     const html = renderToStaticMarkup(<BulkResults results={results} />);
-    expect(html).toContain("You aren&#x27;t a member.");
+    expect(html).toContain("You aren&#x27;t a member of the acme workspace.");
     expect(html).toMatch(/<a [^>]*href="\/workspaces\/acme\/join"[^>]*>Ask to join acme<\/a>/);
   });
 });
@@ -484,6 +487,256 @@ describe("pages", () => {
     expect(html.indexOf("@a<")).toBeLessThan(html.indexOf(">acme</span>"));
     expect(html.indexOf(">acme</span>")).toBeLessThan(html.indexOf("@acme/b<"));
   });
+});
+
+describe("New item in three languages (131)", () => {
+  it("titles, heads and describes the page in the language", async () => {
+    const { generateMetadata } = await import("@/app/(app)/submissions/new/page");
+    for (const [locale, title] of [
+      ["en", "New item"],
+      ["pt", "Novo item"],
+      ["fr", "Nouvel élément"],
+    ] as const)
+      expect(await inLocaleAsync(locale, () => generateMetadata())).toEqual({
+        title: `${title} · Ronne AI Marketplace`,
+      });
+    scopes.listScopes.mockResolvedValue({
+      scopes: [{ name: "a", description: "A.", workspace: { name: "global" } }],
+      nextCursor: null,
+    });
+    const page = async (locale: "pt" | "fr") =>
+      inLocaleAsync(locale, async () => renderToStaticMarkup(await NewItemPage()));
+    const pt = await page("pt");
+    expect(pt).toContain('aria-label="Trilha de navegação"');
+    expect(pt).toContain(">Submissões<");
+    expect(pt).toContain("O rascunho começa com um <code");
+    const fr = await page("fr");
+    expect(fr).toContain("Le brouillon commence avec un <code");
+    for (const [locale, html] of [
+      ["pt", pt],
+      ["fr", fr],
+    ] as const)
+      expect(await englishLeaks(["author", "help", "common", "types"], locale, html)).toEqual([]);
+  });
+});
+
+describe("My submissions in three languages (131)", () => {
+  type L = "en" | "pt" | "fr";
+  const html = (l: L, node: Parameters<typeof renderToStaticMarkup>[0]) =>
+    inLocale(l, () => renderToStaticMarkup(node)).replace(/<!-- -->/g, "");
+  const draftRow = submission({ id: "01J0000000000000000000000A", name: "ready-one" });
+  const backRow = submission({
+    id: "01J0000000000000000000000B",
+    name: "back",
+    status: "changes_requested",
+  });
+  const goneRow = submission({ id: "01J0000000000000000000000C", status: "withdrawn" });
+
+  it("words the status filters with their counts, archived last", () => {
+    const counts = { draft: 2, submitted: 1, withdrawn: 1 };
+    expect(html("en", <StatusFilters counts={counts} state={table().state} />)).toContain(
+      ">archived (1)<",
+    );
+    const pt = html("pt", <StatusFilters counts={counts} state={table().state} />);
+    expect(pt).toContain('aria-label="Filtrar por status"');
+    expect(pt).toContain(">Todas (3)<");
+    expect(pt).toContain(">rascunho (2)<");
+    expect(pt).toContain(">arquivado (1)<");
+    expect(html("fr", <StatusFilters counts={counts} state={table().state} />)).toContain(
+      ">soumis (1)<",
+    );
+  });
+
+  it("words the table, its rows' feedback and actions, and the empty states", () => {
+    const rows = (l: L) =>
+      html(
+        l,
+        <SubmissionsTable
+          {...table()}
+          submissions={[draftRow, backRow, goneRow]}
+          feedback={{ [backRow.id]: { kind: "request_changes", by: "Mo", body: "Fix {x}." } }}
+          deletable={{ [goneRow.id]: true }}
+        />,
+      );
+    expect(rows("pt")).toContain(">Última alteração<");
+    expect(rows("pt")).toContain("Alterações solicitadas por Mo: </span>Fix {x}.");
+    expect(rows("pt")).toContain('placeholder="Nome do item"');
+    expect(rows("pt")).toContain(">Excluir<");
+    expect(rows("pt")).toContain(">Restaurar<");
+    expect(rows("fr")).toContain("Modifications demandées par Mo : </span>");
+    expect(rows("fr")).toContain(">Tous les types<");
+    expect(rows("fr")).toContain('aria-label="Retirer : @platform/ready-one"');
+    const rejected = html(
+      "fr",
+      <SubmissionsTable
+        {...table()}
+        submissions={[backRow]}
+        feedback={{ [backRow.id]: { kind: "reject", by: "Mo", body: null } }}
+      />,
+    );
+    expect(rejected).toContain("Rejeté par Mo.");
+    const empty = (l: L, params: Record<string, string>) =>
+      html(
+        l,
+        <SubmissionsTable
+          {...table(params)}
+          submissions={[]}
+          total={{ count: 0, capped: false }}
+        />,
+      );
+    expect(empty("pt", { status: "withdrawn" })).toContain("Nada arquivado.");
+    expect(empty("fr", {})).toContain("Rien ici : essayez un autre statut.");
+    expect(empty("pt", { q: "x" })).toContain("Nenhuma submissão corresponde a estes filtros.");
+    expect(html("fr", <NoSubmissions />)).toContain("Vous n’avez encore aucun brouillon.");
+  });
+
+  it("counts issues and drafts with 1 and 2 in each language", () => {
+    const marks = (l: L) =>
+      html(
+        l,
+        <BulkSubmitProvider ready={{ [draftRow.id]: "@platform/ready-one" }}>
+          <SubmissionsTable
+            {...table()}
+            submissions={[draftRow, backRow, goneRow]}
+            errors={{ [draftRow.id]: 0, [backRow.id]: 1, [goneRow.id]: 2 }}
+          />
+        </BulkSubmitProvider>,
+      );
+    expect(marks("en")).toContain('aria-label="Fix 1 issue in @platform/back first"');
+    expect(marks("pt")).toContain('aria-label="Corrija 1 problema em @platform/back primeiro"');
+    expect(marks("pt")).toContain('title="Corrija 2 problemas primeiro"');
+    expect(marks("pt")).toContain(">Pronto<");
+    expect(marks("fr")).toContain('aria-label="Corrigez d’abord 1 problème dans @platform/back"');
+    expect(marks("fr")).toContain(">2 à corriger<");
+    expect(marks("fr")).toContain('aria-label="Sélectionner @platform/ready-one"');
+    const confirm = (l: L, count: number) =>
+      html(
+        l,
+        <SubmitConfirm
+          drafts={Array.from({ length: count }, (_, i) => ({ id: `${i}`, name: `@t/${i}` }))}
+          submitting={false}
+          onCancel={() => {}}
+          onSubmit={() => {}}
+        />,
+      );
+    expect([1, 2].map((n) => confirm("en", n).match(/>(Submit \d drafts?)</)?.[1])).toEqual([
+      "Submit 1 draft",
+      "Submit 2 drafts",
+    ]);
+    expect(confirm("pt", 1)).toContain(">Submeter 1 rascunho<");
+    expect(confirm("pt", 2)).toContain(">Submeter 2 rascunhos<");
+    expect(confirm("fr", 1)).toContain(">Soumettre 1 brouillon<");
+    expect(confirm("fr", 2)).toContain(">Soumettre 2 brouillons<");
+    expect(confirm("fr", 2)).toContain("Chacun est soumis avec ses fichiers figés");
+    const toolbar = html(
+      "pt",
+      <BulkSubmitProvider ready={{ [draftRow.id]: "@platform/ready-one" }}>
+        <BulkToolbar />
+      </BulkSubmitProvider>,
+    );
+    expect(toolbar).toContain("Selecionar todos os prontos (1)");
+    expect(toolbar).toContain("Submeter selecionados (0)");
+  });
+
+  it("counts the table's submissions in the footer with 0, 1 and 2, in each language", () => {
+    const footer = (l: L, count: number) =>
+      html(
+        l,
+        <SubmissionsTable {...table()} submissions={[draftRow]} total={{ count, capped: false }} />,
+      );
+    const cases: Record<L, [number, string][]> = {
+      en: [
+        [0, "0 submissions"],
+        [1, "1 submission<"],
+        [2, "2 submissions"],
+      ],
+      pt: [
+        [0, "0 submissão<"],
+        [1, "1 submissão<"],
+        [2, "2 submissões"],
+      ],
+      fr: [
+        [0, "0 soumission<"],
+        [1, "1 soumission<"],
+        [2, "2 soumissions"],
+      ],
+    };
+    for (const [l, rows] of Object.entries(cases) as [L, [number, string][]][])
+      for (const [count, text] of rows) expect(footer(l, count), `${l} ${count}`).toContain(text);
+  });
+
+  it("words what Submit selected did to each", () => {
+    const results = (l: L) =>
+      html(
+        l,
+        <BulkResults
+          results={[
+            { id: "a", name: "@t/a", result: "submitted", reasons: [] },
+            { id: "b", name: "@t/b", result: "not_ready", reasons: ["Broken."] },
+          ]}
+        />,
+      );
+    expect(results("pt")).toContain(">Submetido:<");
+    expect(results("pt")).toContain(">Não submetido:<");
+    expect(results("fr")).toContain(">Soumis :<");
+    expect(results("fr")).toContain(">Non soumis :<");
+  });
+
+  it("titles and heads the page in the language", async () => {
+    const { generateMetadata } = await import("@/app/(app)/submissions/page");
+    expect(await inLocaleAsync("fr", () => generateMetadata())).toEqual({
+      title: "Mes soumissions · Ronne AI Marketplace",
+    });
+    mockList([draftRow]);
+    const page = await inLocaleAsync("pt", async () =>
+      renderToStaticMarkup(await SubmissionsPage({ searchParams: Promise.resolve({}) })),
+    );
+    expect(page).toContain("Minhas submissões");
+    expect(page).toContain("Seus rascunhos e submissões.");
+    expect(page).toContain(">Novo item<");
+  });
+
+  for (const locale of ["pt", "fr"] as const) {
+    it(`${locale}: no English left on My submissions`, async () => {
+      const all = [
+        html(
+          locale,
+          <StatusFilters counts={{ draft: 1, submitted: 1, withdrawn: 1 }} state={table().state} />,
+        ),
+        html(
+          locale,
+          <BulkSubmitProvider ready={{ [draftRow.id]: "@platform/ready-one" }}>
+            <BulkToolbar />
+            <SubmissionsTable
+              {...table()}
+              submissions={[draftRow, backRow, goneRow]}
+              errors={{ [draftRow.id]: 0, [backRow.id]: 2 }}
+              feedback={{ [backRow.id]: { kind: "reject", by: "Mo", body: null } }}
+              deletable={{ [goneRow.id]: true }}
+            />
+          </BulkSubmitProvider>,
+        ),
+        html(locale, <NoSubmissions />),
+        html(
+          locale,
+          <SubmitConfirm
+            drafts={[{ id: "a", name: "@t/a" }]}
+            submitting={false}
+            onCancel={() => {}}
+            onSubmit={() => {}}
+          />,
+        ),
+        html(
+          locale,
+          <BulkResults results={[{ id: "a", name: "@t/a", result: "resubmitted", reasons: [] }]} />,
+        ),
+      ]
+        .join("\n")
+        .replace(/<button[^>]*aria-haspopup="dialog"[^>]*>.*?<\/button>/g, "")
+        .replace(/<noscript>.*?<\/noscript>/g, "");
+      expect(await englishLeaks(["author", "help", "common"], locale, all)).toEqual([]);
+    });
+  }
 });
 
 describe("the current workspace (120)", () => {

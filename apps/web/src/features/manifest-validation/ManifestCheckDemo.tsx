@@ -25,6 +25,7 @@ export const ManifestCheckDemo = () => {
   return (
     <div className="grid gap-3">
       <label htmlFor="manifest-demo" className="text-sm font-semibold text-fg">
+        {/* biome-ignore lint/plugin: a file name, the same in every language */}
         ronne.yaml
       </label>
       <textarea

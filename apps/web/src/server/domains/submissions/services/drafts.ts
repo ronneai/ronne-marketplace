@@ -10,7 +10,7 @@ import {
   normalizeScopeName,
   type PackageLimits,
   parseItemName,
-  pathProblem,
+  pathProblemOf,
   scopeRefFrom,
 } from "@ronneai/core";
 import { isScalar, parseDocument } from "yaml";
@@ -405,9 +405,9 @@ export const submitIssuesOf = async (
 const checkPaths = (paths: readonly string[], what: string) => {
   const seen = new Set<string>();
   for (const path of paths) {
-    const problem = pathProblem(path);
+    const problem = pathProblemOf(path);
     if (problem) throw new InvalidFilePathError(path, problem);
-    if (seen.has(path)) throw new InvalidFilePathError(path, `appears twice in one ${what}`);
+    if (seen.has(path)) throw new InvalidFilePathError(path, { twice: what });
     seen.add(path);
   }
 };
@@ -865,6 +865,7 @@ export const importZip = async (
   if (input.mode === "replace" && !paths.has(MANIFEST_PATH))
     throw new ZipImportError(
       "it has no ronne.yaml, and replacing would leave the draft without one. Merge it instead.",
+      { code: "no_manifest" },
     );
   return saveDraftFiles(deps, actor, id, {
     writes: files.map((file) => ({

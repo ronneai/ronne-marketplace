@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { itemPath } from "@/components/catalogue/ItemCard";
 import { RiskSummary } from "@/components/risk-flags/RiskSummary";
 import { DraftEditor } from "@/features/draft-editor/DraftEditor";
@@ -7,6 +8,7 @@ import { Conversation } from "@/features/reviews/Conversation";
 import { PublishDialog } from "@/features/reviews/PublishDialog";
 import { releaseGroupFor } from "@/features/reviews/release-group";
 import { versionsPath } from "@/features/versions/links";
+import { pageTitle } from "@/i18n/page-title";
 import { draftSubmitIssues } from "@/server/domains/submissions/actions/drafts";
 import { type ProposalPanel, proposalPanel } from "@/server/domains/submissions/actions/proposals";
 import { countDependents, getReview } from "@/server/domains/submissions/actions/reviews";
@@ -23,7 +25,10 @@ import { type Draft, itemNameOf } from "@/server/domains/submissions/models/subm
 import { requestHeaders } from "@/server/http/request-headers";
 import { holdPage } from "../../hold";
 
-export const metadata = { title: "Draft · Ronne AI Marketplace" };
+export const generateMetadata = async () => {
+  const t = await getTranslations("author.editor");
+  return { title: pageTitle(t("pageTitle")) };
+};
 
 const REBASABLE = new Set(["draft", "changes_requested", "submitted", "approved"]);
 
@@ -100,6 +105,7 @@ const toEditorDraft = (
  */
 const DraftPage = async ({ params }: { params: Promise<{ id: string }> }) => {
   await holdPage();
+  const t = await getTranslations("author.editor");
   const { id } = await params;
   const request = await requestHeaders();
   let draft: Draft & { mine: boolean; member: boolean };
@@ -175,11 +181,9 @@ const DraftPage = async ({ params }: { params: Promise<{ id: string }> }) => {
         >
           <div className="grid gap-1">
             <h2 id="release" className="text-sm font-semibold text-fg">
-              Approved
+              {t("approvedTitle")}
             </h2>
-            <p className="text-sm text-muted">
-              Publish it to make it installable. Versions never change once published.
-            </p>
+            <p className="text-sm text-muted">{t("approvedText")}</p>
           </div>
           <PublishDialog
             id={id}
