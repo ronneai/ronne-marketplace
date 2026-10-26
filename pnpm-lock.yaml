@@ -615,9 +615,6 @@ packages:
   '@codemirror/streamparser@6.0.0':
     resolution: {integrity: sha512-JTFPF6xrfjt0mnfGPgzcLiMwYmvIyNaoizp8BYzv8FE8KrT6GBGDZ190rtt+O7Wke3gG/MFHyiY9YGNeimof4w==}
 
-  '@codemirror/view@6.43.14':
-    resolution: {integrity: sha512-hC45YnmJNR1rz42OF57BLoQNFMV12/13drnvibDsR2quNDmldcb4WvYVV81hFQg56i9lcqQMEDqilhX2QDcGQQ==}
-
   '@codemirror/view@6.43.15':
     resolution: {integrity: sha512-HHsfpqFeHyXLs983pSRe38Xajs0vFWZQ2BuX0m7Ki8w3jZ5iD8cuR3lBz2/5/X53Dhf32SBHKh6rtSTB6tKeGw==}
 
@@ -812,9 +809,6 @@ packages:
 
   '@formatjs/icu-messageformat-parser@3.5.18':
     resolution: {integrity: sha512-wX1efcL8d7K5QapOTRsP/OLTA/kpwe4LwqWyNxDNg5iRs8i9jJbCyxB5P8jc4KOW5oiLzz2DJr+BRY5xMV9+bA==}
-
-  '@formatjs/icu-messageformat-parser@3.5.21':
-    resolution: {integrity: sha512-Vnl7IOSyMRaP4Pjv48etkT2nlcIwzh4QWIa3hewzGlZZPBbft+TbMir4MijpDViOLN/1hvkGC10oYMuilsG+fw==}
 
   '@formatjs/icu-messageformat-parser@3.5.22':
     resolution: {integrity: sha512-YuwN+dDKgssfuYwtOyGQD0CSn7K46g9cv1Fp0VgKpjZDDFvv8b8crzP990IcJhRPWHhKzCGsbUSJVIguyyFA5A==}
@@ -3224,7 +3218,7 @@ snapshots:
     dependencies:
       '@codemirror/language': 6.13.1
       '@codemirror/state': 6.7.6
-      '@codemirror/view': 6.43.14
+      '@codemirror/view': 6.43.15
       '@lezer/common': 1.5.3
 
   '@codemirror/commands@6.11.1':
@@ -3293,7 +3287,7 @@ snapshots:
     dependencies:
       '@codemirror/state': 6.7.6
       '@codemirror/streamparser': 6.0.0
-      '@codemirror/view': 6.43.14
+      '@codemirror/view': 6.43.15
       '@lezer/common': 1.5.3
       '@lezer/highlight': 1.2.5
       '@lezer/lr': 1.4.10
@@ -3314,13 +3308,6 @@ snapshots:
       '@marijn/find-cluster-break': 1.0.4
 
   '@codemirror/streamparser@6.0.0': {}
-
-  '@codemirror/view@6.43.14':
-    dependencies:
-      '@codemirror/state': 6.7.6
-      crelt: 1.0.7
-      style-mod: 4.1.4
-      w3c-keyname: 2.2.8
 
   '@codemirror/view@6.43.15':
     dependencies:
@@ -3448,10 +3435,6 @@ snapshots:
   '@formatjs/icu-messageformat-parser@3.5.18':
     dependencies:
       '@formatjs/icu-skeleton-parser': 2.1.11
-
-  '@formatjs/icu-messageformat-parser@3.5.21':
-    dependencies:
-      '@formatjs/icu-skeleton-parser': 2.1.12
 
   '@formatjs/icu-messageformat-parser@3.5.22':
     dependencies:
@@ -4594,7 +4577,7 @@ snapshots:
 
   icu-minify@4.14.9:
     dependencies:
-      '@formatjs/icu-messageformat-parser': 3.5.21
+      '@formatjs/icu-messageformat-parser': 3.5.22
 
   import-in-the-middle@3.5.2:
     dependencies:
