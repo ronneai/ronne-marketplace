@@ -88,7 +88,7 @@ jobs:
       # requests from forks get no secrets, so they skip this and pull anonymously, as before.
       - name: Sign in to Docker Hub (read-only)
         if: env.HAS_DOCKERHUB_TOKEN == 'true' && needs.changes.outputs.code != 'false' && needs.changes.outputs.full != 'false'
-        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
         with:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_READ_TOKEN }}
