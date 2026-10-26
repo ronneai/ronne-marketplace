@@ -17,6 +17,11 @@ updates:
       # Node 22 lacks. Move to a new major by hand when the minimum changes (dependency policy §2).
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
+      # 6.20.4 stops the "@" picker in the draft editor from offering your own draft
+      # (apps/web/e2e/dependency-picker.mobile.e2e.ts fails on phone-webkit and tablet; 6.20.3 passes).
+      # Drop this entry once the picker works with a newer release.
+      - dependency-name: "@codemirror/autocomplete"
+        versions: ["6.20.4"]
     groups:
       # Minor and patch updates together; each major version gets its own PR.
       npm-minor-and-patch:
