@@ -21,3 +21,8 @@ CVE-2026-111943 exp:2026-10-30
 # 2026-10-24: an out-of-bounds write in the C Brotli decoder. Fixed in 1.2.1-r0, in no Caddy image
 # yet. Exception E-9 in docs/policies/dependencies.md.
 CVE-2026-111497 exp:2026-10-30
+
+# Alpine's curl and libcurl 8.22.0-r0 in caddy:2.11.7, first seen on 2026-10-26: a use-after-free
+# in HTTP/2 upload. Fixed in 8.23.0-r0, in no Caddy image yet. Exception E-9 in
+# docs/policies/dependencies.md.
+CVE-2026-92392 exp:2026-10-30
