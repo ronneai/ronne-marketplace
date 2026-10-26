@@ -16,3 +16,8 @@ CVE-2026-78669 exp:2026-10-30
 # denylist, so Verify refuses known intermediates that are no longer trusted. Fixed in Go 1.26.10 and
 # 1.27.3, in no Caddy image yet. Exception E-8 in docs/policies/dependencies.md.
 CVE-2026-111943 exp:2026-10-30
+
+# Alpine's brotli-libs 1.2.0-r0 in caddy:2.11.7 (also the 2026-10-22 rebuild), first seen on
+# 2026-10-24: an out-of-bounds write in the C Brotli decoder. Fixed in 1.2.1-r0, in no Caddy image
+# yet. Exception E-9 in docs/policies/dependencies.md.
+CVE-2026-111497 exp:2026-10-30
