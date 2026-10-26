@@ -378,7 +378,8 @@ jobs:
   # Last, so a release on GitHub exists only once every artefact of it does, and every check passed.
   github-release:
     name: GitHub release
-    needs: [release, manifest, bundles, linux-packages, server-checks, install-scripts, database, e2e]
+    needs:
+      [release, manifest, bundles, linux-packages, server-checks, install-scripts, database, e2e]
     if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.dry_run) }}
     runs-on: ubuntu-latest
     timeout-minutes: 10

@@ -13,8 +13,8 @@ allowBuilds:
   # next-intl's optional message-extraction features (a file watcher and an SWC plugin). Ronne
   # doesn't turn them on, and their install scripts only fetch native binaries for them
   # (feature 129).
-  '@parcel/watcher': false
-  '@swc/core': false
+  "@parcel/watcher": false
+  "@swc/core": false
   # Native SQLite driver: downloads a prebuilt binary or compiles one (feature 002).
   better-sqlite3: true
   # tsx's compiler. Its postinstall only checks for the platform binary, which pnpm installs as an
@@ -24,7 +24,7 @@ allowBuilds:
 trustPolicy: no-downgrade
 # Exact versions that fail the trust check but were reviewed. One policy exception (§5) per entry.
 trustPolicyExclude:
-  - 'undici-types@6.21.0' # E-3
+  - "undici-types@6.21.0" # E-3
 # Drop exclusions automatically once the lockfile no longer uses them.
 trustPolicyExcludePrune: true
 # Transitive dependencies may only come from the registry, not git URLs or tarballs.
@@ -35,4 +35,4 @@ ignoredOptionalDependencies:
 
 # Save exact versions (policy §2). Runtime dependencies of packages published to npm use ^ ranges,
 # added with --save-prefix=^.
-savePrefix: ''
+savePrefix: ""

@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.5.15/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.6.2/schema.json",
   "extends": ["@ronneai/config/biome"],
   "vcs": {
     "enabled": true,
@@ -7,7 +7,13 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!**/*.code-workspace", "!docs/UI-Mocks-Materials", "!**/__golden__"]
+    "includes": [
+      "**",
+      "!**/*.code-workspace",
+      "!docs/UI-Mocks-Materials",
+      "!**/__golden__",
+      "!pnpm-lock.yaml"
+    ]
   },
   "overrides": [
     {
@@ -247,6 +253,26 @@
                 ]
               }
             }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/*.test.tsx"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noComponentHookFactories": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["apps/web/e2e/**"],
+      "linter": {
+        "rules": {
+          "performance": {
+            "useDomNodeTextContent": "off"
           }
         }
       }
