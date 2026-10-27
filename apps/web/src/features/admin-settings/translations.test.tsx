@@ -64,7 +64,7 @@ const { PendingErasures } = await import("./privacy/PendingErasures");
 const { RetentionForm } = await import("./privacy/RetentionForm");
 
 type L = "en" | "pt" | "fr";
-const NS = ["admin", "common"];
+const NS = ["admin", "common", "help"];
 const FILES = { en: enAdmin, pt: ptAdmin, fr: frAdmin };
 const render = (node: ReactElement, locale: L) =>
   inLocale(locale, () => renderToStaticMarkup(node));
@@ -361,12 +361,10 @@ describe("Settings › Authentication in three languages (132)", () => {
 
   for (const locale of ["pt", "fr"] as const) {
     it(`${locale}: every panel, form, dialog and notice leaves no English behind`, async () => {
-      // The inline helpers hold English until task 12; the identity domain's own words (a preset's
-      // steps and labels, the checks of a test) stay English like core's.
-      const html = everything(locale)
-        .replace(/<button[^>]*aria-haspopup="dialog"[\s\S]*?<\/noscript>/g, "")
-        // A product's name, as the preset cards write it.
-        .replaceAll("Google Workspace", "Google");
+      // The identity domain's own words (a preset's steps and labels, the checks of a test) stay
+      // English like core's.
+      // A product's name, as the preset cards write it, is left out.
+      const html = everything(locale).replaceAll("Google Workspace", "Google");
       expect(await englishLeaks(NS, locale, html)).toEqual([]);
       expect(await ownTextsShown(["admin"], locale, html)).toBeGreaterThan(60);
     });
@@ -554,10 +552,7 @@ describe("Settings › Usage, Plugin feeds and Privacy in three languages (132)"
 
   for (const locale of ["pt", "fr"] as const) {
     it(`${locale}: usage, feeds and privacy leave no English behind`, async () => {
-      const html = usageAndPrivacy(locale).replace(
-        /<button[^>]*aria-haspopup="dialog"[\s\S]*?<\/noscript>/g,
-        "",
-      );
+      const html = usageAndPrivacy(locale);
       expect(await englishLeaks(NS, locale, html)).toEqual([]);
       expect(await ownTextsShown(["admin"], locale, html)).toBeGreaterThan(25);
     });

@@ -43,7 +43,7 @@ const { CreateScopeForm, EditScopeForm } = await import("../admin-scopes/ScopeDi
 const { workspaceScopesList } = await import("../admin-scopes/list");
 
 type L = "en" | "pt" | "fr";
-const NS = ["admin", "common"];
+const NS = ["admin", "common", "help"];
 const render = (node: ReactElement, locale: L) =>
   inLocale(locale, () => renderToStaticMarkup(node));
 
@@ -398,11 +398,7 @@ describe("Moving a scope in three languages (132)", () => {
 describe("no English left behind in admin scopes and workspaces (132)", () => {
   for (const locale of ["pt", "fr"] as const) {
     it(`${locale}: every table, dialog and move step`, async () => {
-      // The inline helpers still hold English until task 12 moves them; leave them out of the scan.
-      const html = everything(locale).replace(
-        /<button[^>]*aria-haspopup="dialog"[\s\S]*?<\/noscript>/g,
-        "",
-      );
+      const html = everything(locale);
       expect(await englishLeaks(NS, locale, html)).toEqual([]);
       expect(await ownTextsShown(["admin"], locale, html)).toBeGreaterThan(40);
     });

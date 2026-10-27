@@ -332,3 +332,36 @@ Witnessed: 2026-10-27 13:05 EDT, by a fresh agent (blind re-check, rows 7, 8 and
 | 10 | Every admin success line is translated in pt and fr | yes | confirmed | pt `admin.done.workspaces.deleted` set to "Deleted." → 1 failed (`admin-untranslated`); restored, `cmp` identical. The workspaces `deleted` and `renamed` lines never reach a screen (the actions redirect), so that test is the only cover for them |
 
 **Overall:** met.
+
+## Task 12 — The inline helpers
+
+Witnessed: 2026-10-27 13:20 EDT, by a fresh agent (blind). Commit: 68e8baf3 plus the uncommitted tree. Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The 32 en messages equal the HEAD question and answer text (modulo ’ and the erase-user quoting) | yes | confirmed | Parsed `git show HEAD:…/Help.tsx` against `messages/en/help.json`: 32, no missing, no differences |
+| 2 | erase-user renders exactly `deleted-user-<id>` in en, pt and fr | yes | confirmed | intl-messageformat probe |
+| 3 | The 32 pt and 32 fr pairs are accurate and natural, with the right glossary words | yes | partly | All 64 read: no fact changed; one fr sentence had no subject ("Déprovisionner désactive le compte; ne l’efface jamais.") |
+| 4 | `Help.tsx` holds no question or answer text, and `HELP` entries are only `{ href }` | yes | confirmed | `satisfies Record<string, { href: string }>`; the test asserts `"question" in HELP[id]` and `"answer" in HELP[id]` are false |
+| 5 | The 32 hrefs are unchanged vs HEAD | yes | confirmed | `git diff -U0` shows no `docsHref` line changed |
+| 6 | Each helper's link opens the website's page in the language | yes | confirmed | The "read in the person's language" test over all ids |
+| 7 | `help.json` keys equal the HELP keys, and the parity test covers them | yes | confirmed | `help.test.tsx`, `help-untranslated.test.ts` |
+| 8 | Mutating pt or fr to English makes tests fail | yes | partly | A whole message identical to English fails; a hybrid answer (part English) passes every test |
+| 9 | Every `<Help id=…>` use still type-checks and renders | yes | confirmed | `tsc` clean; 383 tests passed |
+| 10 | The six admin translations tests now scan the helper texts | yes | confirmed | `NS` has "help", the workaround is gone; four swaps of a pt answer for another helper's English text each failed a test |
+
+**Overall:** not met (rows 3 and 8).
+
+The work after this pass: the fr sentence is fixed; `help.test.tsx` also asserts the rendered answer (a check of the wiring, as its comment now says). A re-check followed.
+
+Witnessed: 2026-10-27, by a fresh agent (blind, re-check of rows 3 and 8). Commit: 68e8baf3 plus the uncommitted tree. Machine: macOS (Darwin), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 3 | All 32 pt and 32 fr pairs are accurate and natural; the grammar slip is fixed | yes | confirmed | fr `scim-provider` now reads "Le déprovisionnement désactive le compte; il ne l’efface jamais."; `role-root`, `audit-actor` and `retention` re-read in both languages |
+| 8a | A pt helper answer left identical to its English text fails `vitest run src/components/help src/i18n` | yes | confirmed | pt `audit-actor` answer set to English → 2 failed (`help-untranslated`, `help.test`); restored, `cmp` identical |
+| 8b | A fr helper question left identical to its English text fails the same command | yes | confirmed | fr `retention` question set to English → the same 2 failed; restored, `cmp` identical |
+| 8c | The rendered-answer assertion in `help.test` checks that `Help` renders the message of its id | yes | confirmed | It compares the render with the answer read from the same JSON, so it catches a wiring fault, not a wrong text. An earlier wording of this claim ("a wrong pt text now fails") was false: a swapped pt answer passes; the witness showed it |
+| 8d | A hybrid answer (part English, part translated) is not detectable by any test, here or in the other namespaces, and is left to the native review (feature 133) | yes | confirmed | No test catches it; the whole-text checks only fail when the text equals the English |
+
+**Overall:** met.

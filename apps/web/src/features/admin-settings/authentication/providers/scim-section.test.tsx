@@ -60,7 +60,7 @@ describe("the SCIM section", () => {
     expect(html).toContain("Turn on SCIM");
     expect(html).not.toContain(BASE);
     expect(html).not.toContain("Generate token");
-    expect(html).toContain(HELP["scim-provider"].question);
+    expect(html).toContain("What does the provider need?");
   });
 
   it("on without a token: the base URL to copy, Generate, Turn off, and the provider's steps", () => {

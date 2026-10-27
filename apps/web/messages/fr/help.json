@@ -182,5 +182,133 @@
   "after-submit": {
     "question": "Et maintenant?",
     "answer": "Un modérateur ou un admin de son espace de travail, ou root, autre que vous, le révise. Il l’approuve, demande des modifications ou le rejette, et vous le verrez dans la conversation. Une fois approuvé, vous pouvez le publier."
+  },
+  "rename-workspace": {
+    "question": "Qu’est-ce qui change si je renomme?",
+    "answer": "Ses éléments prennent le nouveau nom : @acme/team/x devient @nouveau/team/x. Les anciens noms continuent de fonctionner pour les installations, les lockfiles et les dépendances, et rmk fait passer les projets aux nouveaux; Claude Code les affiche comme de nouveaux plugins. Les liens vers l’espace de travail (sa page, son lien d’adhésion) et l’ancien nom dans rmk --workspace ou un flux de CI cessent de fonctionner. Ses membres, ses portées et ses demandes restent."
+  },
+  "global-always": {
+    "question": "Pourquoi global est-il toujours là?",
+    "answer": "Chaque utilisateur sauf root est membre de global, l’espace de travail que tout le monde partage sur l’instance, et personne ne le quitte. Son rôle y peut changer, et ici vous ajoutez les autres espaces de travail où la personne travaille, chacun avec un rôle."
+  },
+  "move-who": {
+    "question": "Qui doit être d’accord?",
+    "answer": "Root, et un admin de global qui déplace vers global, déplacent aussitôt après avoir saisi le nom de la portée. Un admin de l’espace de travail de destination, ou quelqu’un qui déplace vers son propre espace de travail personnel, déplace aussitôt. Toute autre personne demande, et les admins de la destination ou root répondent (root seul pour global). Une portée dont des versions ne sont pas révisées demande toujours à quelqu’un d’autre."
+  },
+  "visibility": {
+    "question": "Public ou privé?",
+    "answer": "Toute personne connectée voit les portées et les éléments d’un espace de travail public et peut en dépendre. Ceux d’un espace privé ne sont vus que par ses membres, dans n’importe quel rôle, et par root; pour tous les autres, ils n’existent pas, et seuls ses propres éléments peuvent en dépendre. Root peut le changer plus tard : rendre un espace de travail privé est refusé tant que des éléments publiés à l’extérieur dépendent de ses éléments."
+  },
+  "token": {
+    "question": "À quoi sert un jeton?",
+    "answer": "Il permet à rmk et au serveur MCP du registre de lire le registre en votre nom et de créer des brouillons à votre nom : vous seul les voyez, et rien n’est soumis tant que vous ne le faites pas ici. Il ne peut pas se connecter à ce site, et vous pouvez le révoquer ici à tout moment."
+  },
+  "scim-provider": {
+    "question": "De quoi le fournisseur a-t-il besoin?",
+    "answer": "De l’URL de base et du jeton, comme jeton Bearer. Il envoie le courriel de chaque personne comme userName et un id qui ne change jamais comme externalId (dans Entra, associez-lui objectId), et pousse les groupes que les associations de cette page nomment. Le déprovisionnement désactive le compte; il ne l’efface jamais."
+  },
+  "scim-managed": {
+    "question": "Pourquoi SCIM gère-t-il ce compte?",
+    "answer": "Le fournisseur d’identité le crée et le met à jour par SCIM : sa prochaine synchronisation remet le nom, le courriel et l’état activé comme le dit le fournisseur. Changez cela chez le fournisseur. Un compte déprovisionné reste, désactivé."
+  },
+  "device-code": {
+    "question": "Qu’est-ce que ce code?",
+    "answer": "rmk login --web l’a affiché dans un terminal, avec l’adresse de cette page. L’approuver donne à ce terminal un jeton qui agit en votre nom pendant 90 jours : n’approuvez donc qu’un code que vous venez de demander vous-même. Le jeton apparaît ensuite sous Jetons d’accès, où vous pouvez le révoquer."
+  },
+  "plugin-feeds": {
+    "question": "Que signifient ces nombres?",
+    "answer": "Le marketplace de chaque outil tel qu’il a été construit en entier la dernière fois : sa taille, le nombre de plugins qu’il liste et le temps que sa construction a pris. Claude Code lit un marketplace d’au plus 5 MiB, en 10 secondes; au-delà de 80 % de l’un ou de l’autre, un avertissement s’affiche ici. Le miroir git n’a pas de limite de taille."
+  },
+  "usage-minimum": {
+    "question": "Pourquoi fixer un minimum?",
+    "answer": "Les pages des éléments affichent l’utilisation dès qu’une installation ou une exécution est rapportée (0). Avec un minimum, un élément n’affiche son utilisation qu’à partir de ce nombre d’installations plus d’exécutions en 30 jours, pour que quelques événements n’aient pas l’air d’une tendance et que les habitudes d’une seule équipe ne se voient pas."
+  },
+  "auth-methods": {
+    "question": "Comment les gens se connectent-ils?",
+    "answer": "Avec leur courriel et leur mot de passe, et avec le fournisseur d’identité de votre entreprise une fois que root en a activé un. Root peut toujours se connecter avec un mot de passe, donc un fournisseur d’identité défaillant ne peut pas exclure tout le monde."
+  },
+  "provider-values": {
+    "question": "Où trouver ces valeurs?",
+    "answer": "Chez votre fournisseur d’identité, dans l’application que vous enregistrez pour Ronne : les étapes ici disent où. La Documentation contient un guide par fournisseur, avec les claims que Ronne lit et les erreurs habituelles."
+  },
+  "redirect-uri": {
+    "question": "Pourquoi cette adresse?",
+    "answer": "Après la connexion, le fournisseur renvoie la personne à cette adresse, et seulement à une adresse enregistrée chez lui. Enregistrez-la exactement comme affichée : c’est l’adresse publique de cette instance et l’ID du fournisseur, ce qui explique que l’ID ne puisse pas changer ensuite."
+  },
+  "provider-groups": {
+    "question": "Comment les groupes sont-ils appliqués?",
+    "answer": "À chaque connexion avec ce fournisseur, chaque groupe associé auquel la personne appartient donne au moins son rôle dans son espace de travail, et un rôle donné par un groupe disparaît quand la personne le quitte. Les appartenances définies à la main, et root, ne sont jamais modifiés."
+  },
+  "password-lockout": {
+    "question": "Root peut-il être exclu?",
+    "answer": "Non. Root peut toujours se connecter avec un mot de passe, quoi qu’on choisisse ici. Si un fournisseur tombe en panne, disable-sso sur le serveur désactive tous les fournisseurs et rend son mot de passe à tout le monde."
+  },
+  "backup-codes-once": {
+    "question": "Pourquoi ne puis-je pas réafficher les codes?",
+    "answer": "Ronne les garde chiffrés et ne les affiche jamais après cette page, pour que personne qui ouvrirait plus tard votre compte ne puisse les lire. Enregistrez-les maintenant. Si vous les perdez, créez-en dix nouveaux sur cette page : les anciens cessent de fonctionner."
+  },
+  "lost-phone": {
+    "question": "Vous avez perdu votre téléphone?",
+    "answer": "Utilisez un des codes de secours que vous avez enregistrés en activant la double authentification. S’il n’en reste aucun, demandez à un root de réinitialiser votre double authentification dans Utilisateurs; connectez-vous ensuite avec votre mot de passe et configurez-la de nouveau sur le nouveau téléphone."
+  },
+  "two-factor-policy": {
+    "question": "Qui doit s’inscrire?",
+    "answer": "Sous Réviseurs et root : root, ainsi que les modérateurs et admins des espaces de travail partagés. Sous Tout le monde : tout compte avec un mot de passe. Une personne visée qui n’a pas configuré la double authentification est envoyée sur sa page Compte à sa prochaine visite et ne peut rien utiliser d’autre tant qu’elle ne l’a pas fait. Personne n’est déconnecté. Les comptes qui se connectent par un fournisseur d’identité d’entreprise ne sont pas visés."
+  },
+  "reset-two-factor": {
+    "question": "Quand réinitialiser la double authentification de quelqu’un?",
+    "answer": "Quand la personne a perdu son téléphone et ses codes de secours. Elle se connecte avec son seul mot de passe, puis configure de nouveau la double authentification sur sa page Compte, aussitôt si on l’exige d’elle. Un root qui a perdu la sienne et n’a aucun autre root à qui demander exécute reset-root-password sur le serveur, qui la réinitialise aussi."
+  },
+  "retention": {
+    "question": "Qu’est-ce qui est purgé, et quand?",
+    "answer": "Après la conservation des IP : l’adresse du client sur les événements d’audit, les sessions et les approbations de connexion rmk, et le courriel saisi lors d’une connexion échouée. Après la conservation des sessions : les sessions expirées et les approbations de connexion terminées sont supprimées. Après la conservation des commentaires : les commentaires marqués comme traités, comptés à partir de là (365 jours par défaut); les nouveaux commentaires ne sont jamais purgés. Les événements d’audit eux-mêmes ne sont jamais supprimés. Une purge s’exécute toutes les six heures, ou par rmk-server purge."
+  },
+  "erase-user": {
+    "question": "Que fait l’effacement?",
+    "answer": "Le courriel, le nom, la photo, les mots de passe, les liens de connexion, la double authentification, les sessions, les jetons, les appartenances, les favoris, les choix de Pour commencer, les commentaires envoyés et les brouillons de la personne disparaissent pour de bon. Ce qu’elle a fait reste sous le pseudonyme deleted-user-'<'id'>' : les éléments et versions qu’elle a publiés, ses soumissions envoyées et ses commentaires de révision, et les événements d’audit, qui gardent leur sens. L’ancien courriel est libre aussitôt. Pour empêcher l’accès sans effacer, désactivez la personne."
+  },
+  "notice": {
+    "question": "Qui voit ceci?",
+    "answer": "Toute personne connectée, sous l’en-tête de chaque page, une fois que vous l’affichez. Chaque personne peut la fermer; elle revient pour elle quand vous changez le message ou le ton, et non quand vous la masquez puis l’affichez de nouveau. Elle n’apparaît pas sur la page de connexion et n’est pas traduite : écrivez-la dans la langue que lisent vos gens."
+  },
+  "notice-tone": {
+    "question": "Information ou Attention?",
+    "answer": "Information sert aux nouvelles et au contexte, comme « ceci est une démonstration ». Attention sert à ce qui demande de la prudence, comme « les données de la démonstration sont réinitialisées vendredi » ou une fenêtre de maintenance."
+  },
+  "language": {
+    "question": "Qu’est-ce qui change?",
+    "answer": "Les écrans de Ronne eux-mêmes : menus, boutons, messages et liens vers la Documentation. Pas ce que les gens publient : les noms, descriptions et fichiers des éléments restent tels que leurs auteurs les ont écrits, et rmk reste en anglais. Automatique suit la langue de votre navigateur, et l’anglais quand il en demande une autre."
+  },
+  "your-data": {
+    "question": "Que contient le fichier?",
+    "answer": "Votre compte (jamais le hachage du mot de passe ni le secret de la double authentification), vos sessions, les noms de vos jetons, espaces de travail, demandes, portées, vos favoris, les commentaires que vous avez envoyés, vos choix de Pour commencer, les éléments que vous avez publiés, vos soumissions et commentaires, et les événements d’audit auxquels vous avez pris part. Les courriels des autres personnes sont remplacés. Ce n’est pas une sauvegarde : les fichiers et les données des autres n’y sont pas. Vous pouvez le télécharger une fois toutes les 10 minutes."
+  },
+  "download-user-data": {
+    "question": "Quand télécharger les données de quelqu’un?",
+    "answer": "Quand la personne a demandé ce que l’instance conserve sur elle et ne peut pas se connecter pour l’obtenir elle-même (compte désactivé ou double authentification perdue), et avant de l’effacer : un compte effacé n’a plus rien à donner. C’est le même fichier qu’elle obtiendrait, il compte comme son unique téléchargement par période de 10 minutes, et il est consigné dans le journal d’audit avec vous comme auteur."
+  },
+  "usage-policy": {
+    "question": "Que rapporte rmk?",
+    "answer": "Des décomptes quotidiens des installations, retraits et exécutions des éléments que rmk a installés depuis cette instance, par élément, version et outil d’IA. Jamais qui, quel projet, ni ce qui a été demandé. Désactivé : rien. Chacun choisit : activé, sauf si la personne exécute rmk telemetry off. Obligatoire : toujours."
+  },
+  "role-root": {
+    "question": "Que peut faire root?",
+    "answer": "Tout ce qu’un admin peut faire, dans tous les espaces de travail, et en plus gérer les utilisateurs, créer et supprimer des espaces de travail, modifier les réglages de l’instance, lire le journal d’audit et approuver ses propres soumissions. Il peut y avoir plusieurs root, et chacun peut changer le rôle ou le compte d’un autre root, mais pas le sien."
+  },
+  "own-row": {
+    "question": "Pourquoi ne puis-je pas modifier mon propre compte ici?",
+    "answer": "Pour que personne ne s’enferme dehors par erreur. Changez votre mot de passe dans Compte; un autre root peut changer votre rôle, vous désactiver ou réinitialiser votre mot de passe."
+  },
+  "audit-summary": {
+    "question": "Comment lire une ligne?",
+    "answer": "Chaque ligne est un événement : quand, qui, l’action et une phrase qui dit ce qui s’est passé. Ouvrez-le pour tout ce qui a été consigné : la cible, l’adresse IP, les détails et le JSON brut. Son lien ouvre le même événement pour toute personne avec qui vous le partagez."
+  },
+  "audit-incident": {
+    "question": "Vous gérez un incident?",
+    "answer": "Filtrez par la personne ou l’action et par les dates pour voir ce qui s’est passé. Pour mettre fin aux sessions ou aux jetons de tout le monde, ou remplacer le secret qui signe les sessions, utilisez les commandes du serveur : revoke-access et rotate-secret."
+  },
+  "audit-actor": {
+    "question": "Qui puis-je rechercher?",
+    "answer": "Une partie d’un courriel, quelle que soit la casse. system trouve les événements sans personne de connecté, comme la configuration et la ligne de commande."
   }
 }

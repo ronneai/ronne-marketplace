@@ -103,10 +103,13 @@ Every task that moves a folder adds it to the `overrides` entry in `biome.json` 
   unchanged (pinned by a test). Left in English on purpose: `InvalidProviderConfigError`, the
   CLI-only root errors, `ProviderFlowError`, `DataExportLimitError`, the usage and audit errors.
 
-- [ ] **12. The inline helpers.** The 32 entries move from `HELP` to `help.json`, in three
+- [x] **12. The inline helpers.** The 32 entries move from `HELP` to `help.json`, in three
   languages; `Help.tsx` keeps no text.
   *Done when:* `help.test.tsx` and the parity test cover them; each moved helper's link opens
   the website's page in the language.
+  *Note:* the six admin translations tests now scan the helper texts too (`help` is in their
+  namespaces and the workaround that hid the Help buttons is gone). A hybrid pt/fr answer is not
+  detectable by a test: the native review (133) reads them.
 
 - [ ] **13. End to end.** An end-to-end test that opens Users, a user's page, Audit log,
   Settings (each tab) and Scopes in Portuguese and French and sees no English left (core's

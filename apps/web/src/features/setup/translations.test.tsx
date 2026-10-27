@@ -27,7 +27,7 @@ import type { Say } from "./types";
 const { readDatabaseAnswers } = await import("./form");
 
 type L = "en" | "pt" | "fr";
-const NS = ["admin", "common"];
+const NS = ["admin", "common", "help"];
 const render = (node: ReactElement, locale: L) =>
   inLocale(locale, () => renderToStaticMarkup(node));
 

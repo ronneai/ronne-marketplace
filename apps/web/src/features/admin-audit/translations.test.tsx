@@ -15,7 +15,7 @@ const { EventDetails } = await import("./EventDetails");
 const { AUDIT_LIST, checkedState } = await import("./list");
 
 type L = "en" | "pt" | "fr";
-const NS = ["admin", "common"];
+const NS = ["admin", "common", "help"];
 const render = (node: ReactElement, locale: L) =>
   inLocale(locale, () => renderToStaticMarkup(node));
 
@@ -193,11 +193,7 @@ describe("the Audit log in three languages (132)", () => {
 
   for (const locale of ["pt", "fr"] as const) {
     it(`${locale}: every state leaves no English behind`, async () => {
-      // The inline helpers hold English until task 12; the event sentences until task 6.
-      const html = everything(locale).replace(
-        /<button[^>]*aria-haspopup="dialog"[\s\S]*?<\/noscript>/g,
-        "",
-      );
+      const html = everything(locale);
       expect(await englishLeaks(NS, locale, html)).toEqual([]);
       expect(await ownTextsShown(["admin"], locale, html)).toBeGreaterThan(15);
     });
