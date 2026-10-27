@@ -504,6 +504,235 @@
       "openUser": "Open the user",
       "openSubmission": "Open the submission",
       "openItem": "Open the item"
+    },
+    "sentences": {
+      "parts": {
+        "and": " and ",
+        "ended": {
+          "sessions": "{count, plural, one {# session ended} other {# sessions ended}}",
+          "tokens": "{count, plural, one {# token revoked} other {# tokens revoked}}",
+          "scimTokens": "{count, plural, one {# SCIM token revoked} other {# SCIM tokens revoked}}",
+          "requests": "{count, plural, one {# request to join cancelled} other {# requests to join cancelled}}",
+          "nothingLeft": "nothing left"
+        },
+        "via": {
+          "cli": "from the command line",
+          "api": "from rmk",
+          "scim": "through SCIM provisioning"
+        },
+        "roles": {
+          "root": "root",
+          "user": "user",
+          "moderator": "moderator",
+          "admin": "admin"
+        },
+        "changedDetails": "details",
+        "expires": "expires {date}",
+        "noExpiry": "no expiry",
+        "files": "{count, plural, one {# file} other {# files}}",
+        "members": "{count, plural, one {# member} other {# members}}",
+        "moveRequests": "{count, plural, one {# move request} other {# move requests}}",
+        "items": "{count, plural, one {# item} other {# items}}",
+        "versionsReviewed": "{count, plural, one {# version reviewed} other {# versions reviewed}}",
+        "retention": {
+          "ip": "IP addresses from {from} to {to} days",
+          "sessions": "expired sessions from {from} to {to} days",
+          "feedback": "handled feedback from {from} to {to} days",
+          "nothing": "nothing"
+        },
+        "notice": {
+          "shown": "shown",
+          "hidden": "hidden",
+          "tone": "tone {from} to {to}",
+          "words": "its words or link"
+        },
+        "fallback": {
+          "user": "a user",
+          "item": "an item",
+          "version": "a version",
+          "workspace": "a workspace",
+          "scope": "a scope",
+          "anotherName": "another name",
+          "unknownEmail": "an unknown email"
+        },
+        "signInReasons": {
+          "invalid": "wrong email or password",
+          "disabled": "the account is disabled",
+          "rate_limited": "too many attempts",
+          "two_factor_required": "the account uses two-factor sign-in",
+          "password_disabled": "password sign-in is root only",
+          "password_sign_in_disabled": "password sign-in is root only"
+        },
+        "policies": {
+          "off": "off",
+          "choice": "people choose",
+          "required": "required"
+        },
+        "passwordSaid": {
+          "everyone": "everyone",
+          "root_only": "root only"
+        },
+        "scimRefusals": {
+          "missing": "no bearer token",
+          "format": "not a SCIM token",
+          "unknown": "an unknown token",
+          "revoked": "a revoked token",
+          "expired": "a token past its 24 hours after a rotation",
+          "scim_off": "SCIM is off for the provider",
+          "root": "it named a root account, which Ronne manages",
+          "root_member": "a group named a root account as a member, which was left out"
+        },
+        "ssoReasons": {
+          "unverified_email": "the provider didn’t say the email is verified",
+          "not_allowed": "no account it may link or create",
+          "disabled": "the account is disabled",
+          "invalid_response": "the provider’s answer couldn’t be checked",
+          "provider_error": "the provider refused or didn’t answer",
+          "expired": "the sign-in took too long, or was used already",
+          "rate_limited": "too many attempts"
+        },
+        "ssoNotAllowed": {
+          "domain_not_allowed": "no account, and the email’s domain may not create one",
+          "non_ascii_email": "the address isn’t plain ASCII",
+          "invalid_email": "the address isn’t valid",
+          "lookalike_email": "the database compares it as equal to an account’s address (accents, letter forms or invisible characters)",
+          "link_off": "the account exists, and the provider doesn’t link by email",
+          "domain_not_listed": "the account exists, but its domain isn’t on the provider’s list",
+          "linked_to_another": "the account is linked to another person at the provider"
+        },
+        "twoFactorPolicies": {
+          "optional": "nobody (optional)",
+          "reviewers": "reviewers and root",
+          "everyone": "everyone"
+        },
+        "twoFactorReasons": {
+          "wrong_code": "a wrong code",
+          "used": "a code already used",
+          "too_many": "too many wrong codes",
+          "locked": "locked for 15 minutes",
+          "refused": "the account can’t sign in",
+          "unreadable": "the secret can’t be read"
+        }
+      },
+      "actions": {
+        "instance": {
+          "root_created": "Created the first root account, <name>{email}</name>{where, select, web {, in the web setup} other {, from the command line}}",
+          "access_revoked": "{scope, select, user {Revoked the access of <name>{who}</name>{ended}{via}} other {Revoked everyone’s access{ended}{via}}}",
+          "secret_rotated": "Replaced AUTH_SECRET, so everyone signs in again{ended}{twoFactor, plural, =0 {} one {, and turned off two-factor sign-in for # account} other {, and turned off two-factor sign-in for # accounts}}{via}",
+          "backup_made": "Made a backup: {rows, plural, one {# row} other {# rows}} in {tables, plural, one {# table} other {# tables}}, {files, plural, one {# stored file} other {# stored files}}{settings, select, true {, with the settings file} other {}}{encrypted, select, true {, encrypted} other {}}{via}",
+          "restored": "Restored a backup made by Ronne {version} at {time}: {rows, plural, one {# row} other {# rows}}, {files, plural, one {# stored file} other {# stored files}}{via}",
+          "auth_provider_created": "Added the identity provider <code>{provider}</code>",
+          "auth_provider_updated": "Changed the identity provider <code>{provider}</code>{hasChanged, select, true {: {changed}} other {}}",
+          "auth_provider_deleted": "Deleted the identity provider <code>{provider}</code>{memberships, plural, =0 {} one {, and the # membership its groups gave} other {, and the # memberships its groups gave}}",
+          "auth_provider_enabled": "Turned on the identity provider <code>{provider}</code>",
+          "auth_provider_disabled": "Turned off the identity provider <code>{provider}</code>{retest, select, true { (its settings changed, so it needs a new test)} other {}}",
+          "scim_enabled": "Turned on SCIM for <code>{provider}</code>",
+          "scim_disabled": "Turned off SCIM for <code>{provider}</code>{via}",
+          "scim_token_created": "Made a SCIM token for <code>{provider}</code>",
+          "scim_token_rotated": "Rotated the SCIM token of <code>{provider}</code>; the one before works for 24 more hours",
+          "scim_token_revoked": "{many, select, true {Revoked the SCIM token, and the one before its rotation, of <code>{provider}</code>} other {Revoked the SCIM token of <code>{provider}</code>}}",
+          "password_sign_in_changed": "Changed who may sign in with a password from {from} to {to}{via}"
+        },
+        "scim": {
+          "request_refused": "Refused a SCIM request: {reason}{hasProvider, select, true { (<code>{provider}</code>)} other {}}"
+        },
+        "user": {
+          "updated": "Changed the {changed} of <name>{who}</name>{relinked, select, true {, linked again,} other {}} through SCIM provisioning by <code>{provider}</code>",
+          "scim_adopted": "Linked <name>{who}</name> to SCIM provisioning by <code>{provider}</code>, which manages it from now on",
+          "password_reset": "Reset the password of <name>{who}</name>{twoFactor, select, true { and turned off its two-factor sign-in} other {}}{change, select, true {, asking for a new one at their next sign-in} other {}}{ended}{via}",
+          "password_change_requested": "{required, select, false {Stopped asking for a new password at the next sign-in of <name>{who}</name>{via}} other {Asked for a new password at the next sign-in of <name>{who}</name>{via}}}",
+          "two_factor_reset": "Turned off the two-factor sign-in of <name>{who}</name>{ended}{via}",
+          "password_changed": "{required, select, true {Chose their own password, as root asked} other {Changed their password}}{others, plural, =0 {} one { (# other session ended)} other { (# other sessions ended)}}",
+          "created": "Created <name>{email}</name> as {role}{change, select, true {, asking for a new password at their first sign-in} other {}}{sso, select, true { at their first sign-in with <code>{provider}</code>} other {}}",
+          "sso_linked": "Linked <name>{email}</name> to the identity provider <code>{provider}</code> (matched by verified email)",
+          "role_changed": "Changed <name>{who}</name> from {from} to {to}",
+          "disabled": "Disabled <name>{who}</name>{ended}",
+          "enabled": "Enabled <name>{who}</name>",
+          "erased": "Erased <name>{who}</name>",
+          "data_exported": "Downloaded the data of <name>{who}</name>{byRoot, select, true { (by root)} other {}}"
+        },
+        "auth": {
+          "signed_in": "{sso, select, true {Signed in with <code>{provider}</code>} other {{remember, select, true {Signed in (remembered for 30 days)} other {Signed in}}}}",
+          "sso_signed_in": "Signed in with the identity provider <code>{provider}</code>",
+          "sso_failed": "Failed sign-in with <code>{provider}</code>{hasEmail, select, true { for <name>{email}</name>} other {}}: {why}",
+          "device_started": "Asked for a sign-in code for <name>{label}</name> ({clientId} login --web)",
+          "device_approved": "Approved the sign-in code for <name>{label}</name>{hasIp, select, true {, asked from {ip}} other {}}",
+          "device_denied": "Denied the sign-in code for <name>{label}</name>",
+          "device_expired": "A sign-in code for <name>{label}</name> expired before it was used",
+          "sign_in_failed": "Failed sign-in for <name>{email}</name>: {reason}{via}",
+          "signed_out": "Signed out",
+          "two_factor_enabled": "Turned on two-factor sign-in",
+          "two_factor_disabled": "Turned off two-factor sign-in",
+          "backup_codes_regenerated": "Made new backup codes; the old ones stopped working",
+          "two_factor_failed": "A two-factor code was refused at sign-in ({reason})"
+        },
+        "access_token": {
+          "created": "Created token <name>{label}</name> ({expiry}{how, select, cli {, from rmk login} device {, by browser approval} other {}})",
+          "revoked": "Revoked token <name>{label}</name>{by, select, disable { (account disabled)} root { (by root)} other {}}"
+        },
+        "workspace": {
+          "created": "Created workspace <name>{label}</name>",
+          "updated": "{change, select, private {Made workspace <name>{label}</name> private} public {Made workspace <name>{label}</name> public} other {Changed the description of workspace <name>{label}</name>}}",
+          "renamed": "Renamed workspace <name>{from}</name> to <name>{to}</name>",
+          "deleted": "Deleted workspace <name>{label}</name>{details}",
+          "member_added": "Added <name>{email}</name> to <name>{workspace}</name> as {role}{via, select, sso {, through the groups of <code>{provider}</code>} scim {, through the SCIM groups of <code>{provider}</code>} other {}}",
+          "member_role_changed": "Changed <name>{email}</name> in <name>{workspace}</name> from {from} to {to}{via, select, sso {, through the groups of <code>{provider}</code>} scim {, through the SCIM groups of <code>{provider}</code>} other {}}",
+          "member_removed": "Removed <name>{email}</name> from <name>{workspace}</name>{via, select, sso {, through the groups of <code>{provider}</code>} scim {, through the SCIM groups of <code>{provider}</code>} other {}}",
+          "access_requested": "<name>{who}</name> asked to join <name>{workspace}</name>",
+          "access_approved": "{direct, select, true {Approved the request of <name>{who}</name> by adding them to <name>{workspace}</name>} other {Approved <name>{who}</name> joining <name>{workspace}</name>}}{hasRole, select, true { as {role}} other {}}",
+          "access_declined": "Declined <name>{who}</name> joining <name>{workspace}</name>",
+          "access_cancelled": "<name>{who}</name> cancelled their request to join <name>{workspace}</name>"
+        },
+        "scope": {
+          "created": "Created scope <name>{scope}</name>",
+          "updated": "Changed the description of <name>{scope}</name>",
+          "move_requested": "Asked to move <name>{scope}</name> to <name>{to}</name>{renamed, select, true {, as <name>{newName}</name>} other {}}",
+          "moved": "{direct, select, false {Approved moving} other {Moved}} <name>{scope}</name> to <name>{to}</name>{renamed, select, true {, as <name>{newName}</name>} other {}} ({counts})",
+          "move_declined": "Declined moving <name>{scope}</name> to <name>{to}</name>",
+          "move_cancelled": "Cancelled moving <name>{scope}</name> to <name>{to}</name>{lost, select, true { (whoever asked can no longer move it)} other {}}"
+        },
+        "submission": {
+          "draft_created": "Created a draft of <name>{item}</name> ({details}){via}",
+          "draft_updated": "Updated the draft of <name>{item}</name>{via}",
+          "submitted": "Submitted <name>{item}</name>{hasRevision, select, true { for review (revision {revision})} other { for review}}",
+          "resubmitted": "Resubmitted <name>{item}</name>{hasRevision, select, true { (revision {revision})} other {}}",
+          "withdrawn": "Archived <name>{item}</name>",
+          "restored": "Restored <name>{item}</name> as a draft",
+          "deleted": "Deleted <name>{item}</name>",
+          "approved": "Approved <name>{item}</name>",
+          "changes_requested": "Requested changes on <name>{item}</name>",
+          "rejected": "Rejected <name>{item}</name>",
+          "override_approved": "Approved their own <name>{item}</name> (override)",
+          "rebased": "Rebased <name>{item}</name> from {from} to {to}{conflicts, plural, =0 {} one { (# conflict)} other { (# conflicts)}}"
+        },
+        "version": {
+          "published": "Published <name>{item}</name>{hasTag, select, true { as <code>{tag}</code>} other {}}",
+          "deprecated": "Deprecated <name>{item}</name>",
+          "undeprecated": "Removed the deprecation of <name>{item}</name>",
+          "yanked": "Yanked <name>{item}</name>",
+          "unyanked": "Restored <name>{item}</name> (no longer yanked)"
+        },
+        "dist_tag": {
+          "moved": "Moved <code>{tag}</code> of <name>{item}</name>{hasFrom, select, true { from {from} to {to}} other { to {to}}}",
+          "removed": "Removed <code>{tag}</code> from <name>{item}</name>"
+        },
+        "pin": {
+          "added": "Pinned <name>{item}</name>{shelf, select, workspace { to workspace <name>{workspace}</name>} other { to Start here}}",
+          "removed": "Unpinned <name>{item}</name>{shelf, select, workspace { from workspace <name>{workspace}</name>} other { from Start here}}",
+          "reordered": "Moved <name>{item}</name>{direction, select, up { up} other { down}}{shelf, select, workspace { in workspace <name>{workspace}</name>} other { in Start here}}"
+        },
+        "feedback": {
+          "handled": "Marked a feedback message handled",
+          "deleted": "Deleted a feedback message"
+        },
+        "settings": {
+          "two_factor_policy": "Changed who must use two-factor sign-in from {from} to {to}",
+          "usage_policy": "Changed the usage policy from {from} to {to}",
+          "usage_minimum": "Changed the usage minimum from {from} to {to}",
+          "retention": "Changed the retention: {changes}",
+          "notice": "Changed the instance notice: {changes}"
+        }
+      }
     }
   }
 }

@@ -9,7 +9,7 @@ import { LocalTime } from "@/components/ui/LocalTime";
 import { utcText } from "@/components/ui/time-text";
 import type { AuditEvent } from "@/server/domains/audit/models/audit-event";
 import { actorLabel, detailPairs } from "./format";
-import { type SummaryPart, summarize } from "./summary";
+import { type SummaryPart, useSummarize } from "./summary";
 
 /** A summary's parts: names in bold, codes (tags) in mono. */
 export const Summary = ({ parts }: { parts: SummaryPart[] }) => (
@@ -75,6 +75,7 @@ const Row = ({ term, children }: { term: string; children: ReactNode }) => (
 /** Everything recorded about one event (060), for its dialog. */
 export const EventDetails = ({ event }: { event: AuditEvent }) => {
   const t = useTranslations("admin.audit.details");
+  const summarize = useSummarize();
   const href = targetHref(event);
   const target =
     event.targetType === "none" ? (

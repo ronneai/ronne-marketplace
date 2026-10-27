@@ -1,6 +1,16 @@
+import { createTranslator } from "next-intl";
 import { describe, expect, it } from "vitest";
 import { AUDIT_ACTIONS, type AuditEvent } from "@/server/domains/audit/models/audit-event";
-import { SUMMARIES, summarize, summaryText } from "./summary";
+import admin from "../../../messages/en/admin.json";
+import { type Say, SUMMARIES, summarize as summarizeWith, summaryText } from "./summary";
+
+// The sentences in English, from the message files: what these tests have always asserted.
+const say = createTranslator({
+  locale: "en",
+  messages: { admin },
+  namespace: "admin.audit.sentences",
+} as never) as unknown as Say;
+const summarize = (event: AuditEvent) => summarizeWith(event, say);
 
 const event = (action: string, metadata: AuditEvent["metadata"] = {}, extra = {}): AuditEvent => ({
   id: "01K6BZ3W1D8J9Q2R4T6V8X0Y31",
@@ -38,7 +48,7 @@ describe("audit summaries (060)", () => {
         scimTokensRevoked: 2,
         via: "cli",
       }),
-    ).toBe("Revoked everyone's access (2 SCIM tokens revoked) from the command line");
+    ).toBe("Revoked everyone’s access (2 SCIM tokens revoked) from the command line");
     expect(
       line("instance.access_revoked", {
         scope: "everyone",
@@ -48,7 +58,7 @@ describe("audit summaries (060)", () => {
         via: "cli",
       }),
     ).toBe(
-      "Revoked everyone's access (3 sessions ended, 1 token revoked, 1 SCIM token revoked) from the command line",
+      "Revoked everyone’s access (3 sessions ended, 1 token revoked, 1 SCIM token revoked) from the command line",
     );
     expect(
       line("instance.access_revoked", {
@@ -57,7 +67,7 @@ describe("audit summaries (060)", () => {
         tokensRevoked: 0,
         via: "cli",
       }),
-    ).toBe("Revoked everyone's access (nothing left) from the command line");
+    ).toBe("Revoked everyone’s access (nothing left) from the command line");
     expect(line("instance.scim_disabled", { provider: "acme", via: "cli" })).toBe(
       "Turned off SCIM for acme from the command line",
     );
@@ -95,7 +105,7 @@ describe("audit summaries (060)", () => {
         tokensRevoked: 23,
       }),
     ).toBe(
-      "Revoked everyone's access (41 sessions ended, 23 tokens revoked) from the command line",
+      "Revoked everyone’s access (41 sessions ended, 23 tokens revoked) from the command line",
     );
     expect(
       line(
@@ -182,7 +192,7 @@ describe("audit summaries (060)", () => {
         settings: true,
       }),
     ).toBe(
-      "Made a backup: 1284 rows in 31 tables, 412 stored files, with the settings file from the command line",
+      "Made a backup: 1,284 rows in 31 tables, 412 stored files, with the settings file from the command line",
     );
     expect(
       line("instance.restored", {
@@ -192,7 +202,7 @@ describe("audit summaries (060)", () => {
         files: 412,
       }),
     ).toBe(
-      "Restored a backup made by Ronne 0.3.2 at 2026-10-12 15:31: 1284 rows, 412 stored files from the command line",
+      "Restored a backup made by Ronne 0.3.2 at 2026-10-12 15:31: 1,284 rows, 412 stored files from the command line",
     );
     expect(line("access_token.created", { name: "laptop", expiresAt: null, via: "cli" })).toBe(
       "Created token laptop (no expiry, from rmk login)",
@@ -337,7 +347,7 @@ describe("audit summaries (060)", () => {
         why: "domain_not_listed",
       }),
     ).toBe(
-      "Failed sign-in with acme for ana@gmail.com: the account exists, but its domain isn't on the provider's list",
+      "Failed sign-in with acme for ana@gmail.com: the account exists, but its domain isn’t on the provider’s list",
     );
     expect(line("auth.sso_failed", { provider: "acme", reason: "not_allowed" })).toBe(
       "Failed sign-in with acme: no account it may link or create",

@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import type {
   AuditAction,
   AuditEvent,
@@ -7,15 +8,25 @@ import { erasedName } from "@/server/domains/identity/models/user";
 
 /**
  * One line in plain words for each audit event (feature 060), so the log reads as sentences rather
- * than ids and key-value pairs. Each action's summary is built from what its event records (the
- * metadata, and a user target's email); everything recorded is still in the details dialog.
+ * than ids and key-value pairs. Each action has one message (`admin.audit.sentences.actions`, in
+ * the person's language, feature 132) with its names inside tags: `<name>` for a name (bold) and
+ * `<code>` for a code (mono). The builders below only read what the event records (the metadata,
+ * and a user target's email) into the message's values; the words, their order and their plurals
+ * are the message's. Everything recorded is still in the details dialog.
  * A summary never throws: a missing key reads as nothing, and an unknown action falls back to its
  * name and target type.
  */
 export type SummaryPart = string | { name: string } | { code: string };
 
+/** What the sentences need of a translator: `useTranslations("admin.audit.sentences")` has both. */
+export type Say = {
+  markup: (key: string, values?: Record<string, unknown>) => string;
+  has: (key: string) => boolean;
+};
+
 type Meta = AuditEvent["metadata"];
-type Build = (m: Meta, event: AuditEvent) => SummaryPart[];
+type Values = Record<string, string | number>;
+type Build = (m: Meta, event: AuditEvent, h: Helpers) => Values;
 
 const text = (value: AuditMetadataValue | undefined): string =>
   value === undefined || value === null
@@ -29,545 +40,484 @@ const text = (value: AuditMetadataValue | undefined): string =>
 const num = (value: AuditMetadataValue | undefined): number =>
   typeof value === "number" ? value : Array.isArray(value) ? value.length : 0;
 
-const plural = (count: number, one: string, many = `${one}s`) =>
-  `${count} ${count === 1 ? one : many}`;
+/** A flag for an ICU `select`: the message tells `true` from anything else. */
+const flag = (value: boolean): string => String(value);
 
-/** "(2 sessions ended, 1 token revoked)", or nothing when both are 0. */
-const ended = (m: Meta): string => {
-  const parts = [
-    num(m.sessionsEnded) ? `${plural(num(m.sessionsEnded), "session")} ended` : "",
-    num(m.tokensRevoked) ? `${plural(num(m.tokensRevoked), "token")} revoked` : "",
-    // Identity providers' SCIM tokens, with everyone's access (108).
-    num(m.scimTokensRevoked) ? `${plural(num(m.scimTokensRevoked), "SCIM token")} revoked` : "",
-    // Their requests to join (094).
-    num(m.requestsCancelled)
-      ? `${plural(num(m.requestsCancelled), "request")} to join cancelled`
-      : "",
-  ].filter(Boolean);
-  return parts.length ? ` (${parts.join(", ")})` : "";
+/** The words the builders put into the values, in the person's language. */
+const helpersOf = (say: Say) => {
+  const part = (key: string, values?: Record<string, unknown>): string =>
+    say.markup(`parts.${key}`, values);
+  /** A recorded code that is a word of the table, never `__proto__` or `constructor`. */
+  const known = (group: string, key: string): boolean =>
+    key !== "" && !(key in Object.prototype) && say.has(`parts.${group}.${key}`);
+  /** A recorded code in words, or the code itself when there are none for it. */
+  const word = (group: string, key: string): string =>
+    known(group, key) ? part(`${group}.${key}`) : key;
+  const tryWord = (group: string, key: string): string | undefined =>
+    known(group, key) ? part(`${group}.${key}`) : undefined;
+
+  /** " (2 sessions ended, 1 token revoked)", or nothing when all are 0. */
+  const ended = (m: Meta): string => {
+    const list = [
+      num(m.sessionsEnded) ? part("ended.sessions", { count: num(m.sessionsEnded) }) : "",
+      num(m.tokensRevoked) ? part("ended.tokens", { count: num(m.tokensRevoked) }) : "",
+      // Identity providers' SCIM tokens, with everyone's access (108).
+      num(m.scimTokensRevoked) ? part("ended.scimTokens", { count: num(m.scimTokensRevoked) }) : "",
+      // Their requests to join (094).
+      num(m.requestsCancelled) ? part("ended.requests", { count: num(m.requestsCancelled) }) : "",
+    ].filter(Boolean);
+    return list.length ? ` (${list.join(", ")})` : "";
+  };
+
+  /** " from the command line", or nothing for the web. */
+  const via = (m: Meta): string => {
+    const how = known("via", text(m.via)) ? part(`via.${text(m.via)}`) : "";
+    return how ? ` ${how}` : "";
+  };
+
+  /** Who a user event is about: the target's email, or the one the event recorded. */
+  const who = (m: Meta, event: AuditEvent): string =>
+    event.targetEmail ?? (text(m.email) || part("fallback.user"));
+  const item = (m: Meta): string => text(m.name) || part("fallback.item");
+  const itemVersion = (m: Meta): string =>
+    m.version ? `${text(m.name)}@${text(m.version)}` : text(m.name) || part("fallback.version");
+  const scope = (m: Meta): string => {
+    const name = text(m.name);
+    return name.startsWith("@") ? name : `@${name}`;
+  };
+  const workspace = (m: Meta): string => text(m.name) || part("fallback.workspace");
+  /** A moved scope by its full name before the move (115). */
+  const moving = (m: Meta): string => text(m.scope) || part("fallback.scope");
+  const to = (m: Meta): string => text(m.to) || part("fallback.workspace");
+  const renamed = (m: Meta): Values => ({
+    renamed: flag(Boolean(text(m.newName)) && text(m.newName) !== text(m.scope)),
+    newName: text(m.newName),
+  });
+  const expiry = (m: Meta): string => {
+    const at = text(m.expiresAt);
+    return at ? part("expires", { date: at.slice(0, 10) }) : part("noExpiry");
+  };
+  /** The shelf a pin is on (125): a workspace's, or the instance's "Start here". */
+  const shelf = (m: Meta): Values => ({
+    shelf: text(m.workspace) ? "workspace" : "instance",
+    workspace: text(m.workspace),
+  });
+  /** A membership a provider's group mapping changed: at sign-in (106) or through SCIM (108). */
+  const bySso = (m: Meta): Values => ({
+    via: m.via === "sso" ? "sso" : m.via === "scim" ? "scim" : "none",
+    provider: text(m.provider),
+  });
+  return {
+    say,
+    part,
+    word,
+    tryWord,
+    ended,
+    via,
+    who,
+    item,
+    itemVersion,
+    scope,
+    workspace,
+    moving,
+    to,
+    renamed,
+    expiry,
+    shelf,
+    bySso,
+  };
 };
+type Helpers = ReturnType<typeof helpersOf>;
 
-/** Who a user event is about: the target's email, or the one the event recorded. */
-const who = (m: Meta, event: AuditEvent): SummaryPart =>
-  ({ name: event.targetEmail ?? (text(m.email) || "a user") }) as const;
-
-const item = (m: Meta): SummaryPart => ({ name: text(m.name) || "an item" });
-const itemVersion = (m: Meta): SummaryPart => ({
-  name: m.version ? `${text(m.name)}@${text(m.version)}` : text(m.name) || "a version",
-});
-const scope = (m: Meta): SummaryPart => {
-  const name = text(m.name);
-  return { name: name.startsWith("@") ? name : `@${name}` };
-};
-
-const workspace = (m: Meta): SummaryPart => ({ name: text(m.name) || "a workspace" });
-
-/** The shelf a pin is on (125): a workspace's, named in `workspace`, or the instance's. */
-const pinShelf = (m: Meta, preposition: string): (string | SummaryPart)[] =>
-  text(m.workspace)
-    ? [` ${preposition} workspace `, { name: text(m.workspace) }]
-    : [` ${preposition} Start here`];
-
-/** A moved scope by its full name before the move (115), and its full name after, if renamed. */
-const moving = (m: Meta): SummaryPart => ({ name: text(m.scope) || "a scope" });
-const renamedAs = (m: Meta): (string | SummaryPart)[] =>
-  text(m.newName) && text(m.newName) !== text(m.scope) ? [", as ", { name: text(m.newName) }] : [];
-
-/** A membership a provider's group mapping changed: at sign-in (106) or through SCIM (108). */
-const bySso = (m: Meta): (string | SummaryPart)[] =>
-  m.via === "sso"
-    ? [", through the groups of ", { code: text(m.provider) }]
-    : m.via === "scim"
-      ? [", through the SCIM groups of ", { code: text(m.provider) }]
-      : [];
-
-const VIA: Record<string, string> = {
-  cli: "from the command line",
-  api: "from rmk",
-  web: "",
-  scim: "through SCIM provisioning",
-};
-const via = (m: Meta) => (VIA[text(m.via)] ? ` ${VIA[text(m.via)]}` : "");
-
-const REASONS: Record<string, string> = {
-  invalid: "wrong email or password",
-  disabled: "the account is disabled",
-  rate_limited: "too many attempts",
-  two_factor_required: "the account uses two-factor sign-in",
-  password_disabled: "password sign-in is root only",
-  password_sign_in_disabled: "password sign-in is root only",
-};
-const POLICIES: Record<string, string> = {
-  off: "off",
-  choice: "people choose",
-  required: "required",
-};
-
-const expiry = (m: Meta): string => {
-  const at = text(m.expiresAt);
-  return at ? `expires ${at.slice(0, 10)}` : "no expiry";
-};
-
-/** Who may sign in with a password (106), as the audit log says it. */
-const PASSWORD_SAID: Record<string, string> = { everyone: "everyone", root_only: "root only" };
-
-/** Why a SCIM request was refused (108's guard). */
-const SCIM_REFUSALS: Record<string, string> = {
-  missing: "no bearer token",
-  format: "not a SCIM token",
-  unknown: "an unknown token",
-  revoked: "a revoked token",
-  expired: "a token past its 24 hours after a rotation",
-  scim_off: "SCIM is off for the provider",
-  root: "it named a root account, which Ronne manages",
-  root_member: "a group named a root account as a member, which was left out",
-};
-
-/** Why a sign-in with an identity provider was refused (106), as the audit log says it. */
-const SSO_REASONS: Record<string, string> = {
-  unverified_email: "the provider didn't say the email is verified",
-  not_allowed: "no account it may link or create",
-  disabled: "the account is disabled",
-  invalid_response: "the provider's answer couldn't be checked",
-  provider_error: "the provider refused or didn't answer",
-  expired: "the sign-in took too long, or was used already",
-  rate_limited: "too many attempts",
-};
-
-/** A table's own entry only (never `__proto__` or `constructor`). */
-const said = (table: Record<string, string>, key: string): string | undefined =>
-  Object.hasOwn(table, key) ? table[key] : undefined;
-
-/** Why `not_allowed`, when the row says (106, task 11). */
-const SSO_NOT_ALLOWED: Record<string, string> = {
-  domain_not_allowed: "no account, and the email's domain may not create one",
-  non_ascii_email: "the address isn't plain ASCII",
-  invalid_email: "the address isn't valid",
-  lookalike_email:
-    "the database compares it as equal to an account's address (accents, letter forms or invisible characters)",
-  link_off: "the account exists, and the provider doesn't link by email",
-  domain_not_listed: "the account exists, but its domain isn't on the provider's list",
-  linked_to_another: "the account is linked to another person at the provider",
-};
-
-/** Who must use two-factor sign-in (105), as the audit log says it. */
-const TWO_FACTOR_POLICIES_SAID: Record<string, string> = {
-  optional: "nobody (optional)",
-  reviewers: "reviewers and root",
-  everyone: "everyone",
-};
-
-/** Why a second step was refused (105), as the audit log says it. */
-const TWO_FACTOR_REASONS: Record<string, string> = {
-  wrong_code: "a wrong code",
-  used: "a code already used",
-  too_many: "too many wrong codes",
-  locked: "locked for 15 minutes",
-  refused: "the account can't sign in",
-  unreadable: "the secret can't be read",
-};
+/** A recorded object, such as `from` and `to` of a setting that changed. */
+const record = (value: unknown): Record<string, AuditMetadataValue> =>
+  typeof value === "object" && value && !Array.isArray(value)
+    ? (value as Record<string, AuditMetadataValue>)
+    : {};
 
 export const SUMMARIES: Record<AuditAction, Build> = {
-  "instance.root_created": (m) => [
-    "Created the first root account, ",
-    { name: text(m.email) },
-    m.via === "web" ? ", in the web setup" : ", from the command line",
-  ],
-  "instance.access_revoked": (m, e) =>
-    m.scope === "user"
-      ? ["Revoked the access of ", who(m, e), `${ended(m) || " (nothing left)"}${via(m)}`]
-      : [`Revoked everyone's access${ended(m) || " (nothing left)"}${via(m)}`],
-  "instance.secret_rotated": (m) => [
-    `Replaced AUTH_SECRET, so everyone signs in again${ended(m)}${num(m.twoFactorCleared) ? `, and turned off two-factor sign-in for ${plural(num(m.twoFactorCleared), "account")}` : ""}${via(m)}`,
-  ],
-  "instance.backup_made": (m) => [
-    `Made a backup: ${plural(num(m.rows), "row")} in ${plural(num(m.tables), "table")}, ${plural(num(m.files), "stored file")}${m.settings === true ? ", with the settings file" : ""}${m.encrypted === true ? ", encrypted" : ""}${via(m)}`,
-  ],
-  "instance.restored": (m) => {
-    const from = (m.from ?? {}) as Record<string, AuditMetadataValue>;
-    return [
-      `Restored a backup made by Ronne ${text(from.version)} at ${text(from.time).slice(0, 16).replace("T", " ")}: ${plural(num(m.rows), "row")}, ${plural(num(m.files), "stored file")}${via(m)}`,
-    ];
+  "instance.root_created": (m) => ({
+    email: text(m.email),
+    where: m.via === "web" ? "web" : "cli",
+  }),
+  "instance.access_revoked": (m, e, h) => ({
+    scope: m.scope === "user" ? "user" : "everyone",
+    who: h.who(m, e),
+    ended: h.ended(m) || ` (${h.part("ended.nothingLeft")})`,
+    via: h.via(m),
+  }),
+  "instance.secret_rotated": (m, _e, h) => ({
+    ended: h.ended(m),
+    twoFactor: num(m.twoFactorCleared),
+    via: h.via(m),
+  }),
+  "instance.backup_made": (m, _e, h) => ({
+    rows: num(m.rows),
+    tables: num(m.tables),
+    files: num(m.files),
+    settings: flag(m.settings === true),
+    encrypted: flag(m.encrypted === true),
+    via: h.via(m),
+  }),
+  "instance.restored": (m, _e, h) => {
+    const from = record(m.from);
+    return {
+      version: text(from.version),
+      time: text(from.time).slice(0, 16).replace("T", " "),
+      rows: num(m.rows),
+      files: num(m.files),
+      via: h.via(m),
+    };
   },
-  "instance.auth_provider_created": (m) => [
-    "Added the identity provider ",
-    { code: text(m.provider) },
-  ],
-  "instance.auth_provider_updated": (m) => [
-    "Changed the identity provider ",
-    { code: text(m.provider) },
-    Array.isArray(m.changed) && m.changed.length > 0 ? `: ${m.changed.map(text).join(", ")}` : "",
-  ],
-  "instance.auth_provider_deleted": (m) => [
-    "Deleted the identity provider ",
-    { code: text(m.provider) },
-    num(m.membershipsRemoved)
-      ? `, and the ${plural(num(m.membershipsRemoved), "membership")} its groups gave`
-      : "",
-  ],
-  "instance.auth_provider_enabled": (m) => [
-    "Turned on the identity provider ",
-    { code: text(m.provider) },
-  ],
-  "instance.auth_provider_disabled": (m) => [
-    "Turned off the identity provider ",
-    { code: text(m.provider) },
-    m.reason === "retest" ? " (its settings changed, so it needs a new test)" : "",
-  ],
-  "instance.scim_enabled": (m) => ["Turned on SCIM for ", { code: text(m.provider) }],
-  "instance.scim_disabled": (m) => ["Turned off SCIM for ", { code: text(m.provider) }, via(m)],
-  "instance.scim_token_created": (m) => ["Made a SCIM token for ", { code: text(m.provider) }],
-  "instance.scim_token_rotated": (m) => [
-    "Rotated the SCIM token of ",
-    { code: text(m.provider) },
-    "; the one before works for 24 more hours",
-  ],
-  "instance.scim_token_revoked": (m) => [
-    num(m.tokens) > 1
-      ? "Revoked the SCIM token, and the one before its rotation, of "
-      : "Revoked the SCIM token of ",
-    { code: text(m.provider) },
-  ],
-  "scim.request_refused": (m) => [
-    `Refused a SCIM request: ${SCIM_REFUSALS[text(m.reason)] ?? text(m.reason)}`,
-    ...(text(m.provider) ? [" (", { code: text(m.provider) }, ")"] : []),
-  ],
-  "instance.password_sign_in_changed": (m) => [
-    `Changed who may sign in with a password from ${PASSWORD_SAID[text(m.from)] ?? text(m.from)} to ${
-      PASSWORD_SAID[text(m.to)] ?? text(m.to)
-    }${via(m)}`,
-  ],
-  "user.updated": (m, e) => [
-    `Changed the ${Array.isArray(m.changed) && m.changed.length ? m.changed.map(text).join(" and ") : "details"} of `,
-    who(m, e),
-    `${m.relinked === true ? ", linked again," : ""} through SCIM provisioning by `,
-    { code: text(m.provider) },
-  ],
-  "user.scim_adopted": (m, e) => [
-    "Linked ",
-    who(m, e),
-    " to SCIM provisioning by ",
-    { code: text(m.provider) },
-    ", which manages it from now on",
-  ],
-  "user.password_reset": (m, e) => [
-    "Reset the password of ",
-    who(m, e),
-    `${m.twoFactorReset === true ? " and turned off its two-factor sign-in" : ""}${m.changeRequired === true ? ", asking for a new one at their next sign-in" : ""}${ended(m)}${via(m)}`,
-  ],
-  "user.password_change_requested": (m, e) => [
-    m.changeRequired === false
-      ? "Stopped asking for a new password at the next sign-in of "
-      : "Asked for a new password at the next sign-in of ",
-    who(m, e),
-    via(m),
-  ],
-  "user.two_factor_reset": (m, e) => [
-    "Turned off the two-factor sign-in of ",
-    who(m, e),
-    `${ended(m)}${via(m)}`,
-  ],
-  "auth.signed_in": (m) =>
-    m.via === "sso"
-      ? ["Signed in with ", { code: text(m.provider) }]
-      : [m.remember ? "Signed in (remembered for 30 days)" : "Signed in"],
-  "auth.sso_signed_in": (m) => [
-    "Signed in with the identity provider ",
-    { code: text(m.provider) },
-  ],
-  "auth.sso_failed": (m) => [
-    "Failed sign-in with ",
-    { code: text(m.provider) },
-    ...(text(m.email) ? [" for ", { name: text(m.email) }] : []),
-    `: ${said(SSO_NOT_ALLOWED, text(m.why)) ?? said(SSO_REASONS, text(m.reason)) ?? text(m.reason)}`,
-  ],
-  "auth.device_started": (m) => [
-    "Asked for a sign-in code for ",
-    { name: text(m.name) },
-    ` (${text(m.clientId)} login --web)`,
-  ],
-  "auth.device_approved": (m) => [
-    "Approved the sign-in code for ",
-    { name: text(m.name) },
-    ...(text(m.requesterIp) ? [`, asked from ${text(m.requesterIp)}`] : []),
-  ],
-  "auth.device_denied": (m) => ["Denied the sign-in code for ", { name: text(m.name) }],
-  "auth.device_expired": (m) => [
-    "A sign-in code for ",
-    { name: text(m.name) },
-    " expired before it was used",
-  ],
-  "auth.sign_in_failed": (m) => [
-    "Failed sign-in for ",
-    { name: text(m.email) || "an unknown email" },
-    `: ${REASONS[text(m.reason)] ?? text(m.reason)}${via(m)}`,
-  ],
-  "auth.signed_out": () => ["Signed out"],
-  "auth.two_factor_enabled": () => ["Turned on two-factor sign-in"],
-  "auth.two_factor_disabled": () => ["Turned off two-factor sign-in"],
-  "auth.backup_codes_regenerated": () => ["Made new backup codes; the old ones stopped working"],
-  "auth.two_factor_failed": (m) => [
-    `A two-factor code was refused at sign-in (${TWO_FACTOR_REASONS[text(m.reason)] ?? text(m.reason)})`,
-  ],
-  "user.password_changed": (m) => [
-    `${m.required === true ? "Chose their own password, as root asked" : "Changed their password"}${num(m.otherSessionsEnded) ? ` (${plural(num(m.otherSessionsEnded), "other session")} ended)` : ""}`,
-  ],
-  "user.created": (m) => [
-    "Created ",
-    { name: text(m.email) },
-    ` as ${text(m.role)}${m.changeRequired === true ? ", asking for a new password at their first sign-in" : ""}`,
-    ...(m.via === "sso" ? [" at their first sign-in with ", { code: text(m.provider) }] : []),
-  ],
-  "user.sso_linked": (m) => [
-    "Linked ",
-    { name: text(m.email) },
-    " to the identity provider ",
-    { code: text(m.provider) },
-    " (matched by verified email)",
-  ],
-  "user.role_changed": (m, e) => ["Changed ", who(m, e), ` from ${text(m.from)} to ${text(m.to)}`],
-  "user.disabled": (m, e) => ["Disabled ", who(m, e), ended(m)],
-  "user.enabled": (m, e) => ["Enabled ", who(m, e)],
+  "instance.auth_provider_created": (m) => ({ provider: text(m.provider) }),
+  "instance.auth_provider_updated": (m) => ({
+    provider: text(m.provider),
+    hasChanged: flag(Array.isArray(m.changed) && m.changed.length > 0),
+    changed: Array.isArray(m.changed) ? m.changed.map(text).join(", ") : "",
+  }),
+  "instance.auth_provider_deleted": (m) => ({
+    provider: text(m.provider),
+    memberships: num(m.membershipsRemoved),
+  }),
+  "instance.auth_provider_enabled": (m) => ({ provider: text(m.provider) }),
+  "instance.auth_provider_disabled": (m) => ({
+    provider: text(m.provider),
+    retest: flag(m.reason === "retest"),
+  }),
+  "instance.scim_enabled": (m) => ({ provider: text(m.provider) }),
+  "instance.scim_disabled": (m, _e, h) => ({ provider: text(m.provider), via: h.via(m) }),
+  "instance.scim_token_created": (m) => ({ provider: text(m.provider) }),
+  "instance.scim_token_rotated": (m) => ({ provider: text(m.provider) }),
+  "instance.scim_token_revoked": (m) => ({
+    provider: text(m.provider),
+    many: flag(num(m.tokens) > 1),
+  }),
+  "scim.request_refused": (m, _e, h) => ({
+    reason: h.word("scimRefusals", text(m.reason)),
+    hasProvider: flag(Boolean(text(m.provider))),
+    provider: text(m.provider),
+  }),
+  "instance.password_sign_in_changed": (m, _e, h) => ({
+    from: h.word("passwordSaid", text(m.from)),
+    to: h.word("passwordSaid", text(m.to)),
+    via: h.via(m),
+  }),
+  "user.updated": (m, e, h) => ({
+    changed:
+      Array.isArray(m.changed) && m.changed.length
+        ? m.changed.map(text).join(h.part("and"))
+        : h.part("changedDetails"),
+    who: h.who(m, e),
+    relinked: flag(m.relinked === true),
+    provider: text(m.provider),
+  }),
+  "user.scim_adopted": (m, e, h) => ({ who: h.who(m, e), provider: text(m.provider) }),
+  "user.password_reset": (m, e, h) => ({
+    who: h.who(m, e),
+    twoFactor: flag(m.twoFactorReset === true),
+    change: flag(m.changeRequired === true),
+    ended: h.ended(m),
+    via: h.via(m),
+  }),
+  "user.password_change_requested": (m, e, h) => ({
+    required: flag(m.changeRequired !== false),
+    who: h.who(m, e),
+    via: h.via(m),
+  }),
+  "user.two_factor_reset": (m, e, h) => ({
+    who: h.who(m, e),
+    ended: h.ended(m),
+    via: h.via(m),
+  }),
+  "auth.signed_in": (m) => ({
+    sso: flag(m.via === "sso"),
+    provider: text(m.provider),
+    remember: flag(Boolean(m.remember)),
+  }),
+  "auth.sso_signed_in": (m) => ({ provider: text(m.provider) }),
+  "auth.sso_failed": (m, _e, h) => ({
+    provider: text(m.provider),
+    hasEmail: flag(Boolean(text(m.email))),
+    email: text(m.email),
+    why:
+      h.tryWord("ssoNotAllowed", text(m.why)) ??
+      h.tryWord("ssoReasons", text(m.reason)) ??
+      text(m.reason),
+  }),
+  "auth.device_started": (m) => ({ label: text(m.name), clientId: text(m.clientId) }),
+  "auth.device_approved": (m) => ({
+    label: text(m.name),
+    hasIp: flag(Boolean(text(m.requesterIp))),
+    ip: text(m.requesterIp),
+  }),
+  "auth.device_denied": (m) => ({ label: text(m.name) }),
+  "auth.device_expired": (m) => ({ label: text(m.name) }),
+  "auth.sign_in_failed": (m, _e, h) => ({
+    email: text(m.email) || h.part("fallback.unknownEmail"),
+    reason: h.word("signInReasons", text(m.reason)),
+    via: h.via(m),
+  }),
+  "auth.signed_out": () => ({}),
+  "auth.two_factor_enabled": () => ({}),
+  "auth.two_factor_disabled": () => ({}),
+  "auth.backup_codes_regenerated": () => ({}),
+  "auth.two_factor_failed": (m, _e, h) => ({ reason: h.word("twoFactorReasons", text(m.reason)) }),
+  "user.password_changed": (m) => ({
+    required: flag(m.required === true),
+    others: num(m.otherSessionsEnded),
+  }),
+  "user.created": (m, _e, h) => ({
+    email: text(m.email),
+    role: h.word("roles", text(m.role)),
+    change: flag(m.changeRequired === true),
+    sso: flag(m.via === "sso"),
+    provider: text(m.provider),
+  }),
+  "user.sso_linked": (m) => ({ email: text(m.email), provider: text(m.provider) }),
+  "user.role_changed": (m, e, h) => ({
+    who: h.who(m, e),
+    from: h.word("roles", text(m.from)),
+    to: h.word("roles", text(m.to)),
+  }),
+  "user.disabled": (m, e, h) => ({ who: h.who(m, e), ended: h.ended(m) }),
+  "user.enabled": (m, e, h) => ({ who: h.who(m, e) }),
   // 103: the pseudonym from the id, never the name or the email the person had.
-  "user.erased": (_m, e) => ["Erased ", { name: e.targetId ? erasedName(e.targetId) : "a user" }],
-  "user.data_exported": (m, e) => [
-    "Downloaded the data of ",
-    who(m, e),
-    m.by === "root" ? " (by root)" : "",
-  ],
-  "access_token.created": (m) => [
-    "Created token ",
-    { name: text(m.name) },
-    ` (${expiry(m)}${m.via === "cli" ? ", from rmk login" : m.via === "device" ? ", by browser approval" : ""})`,
-  ],
-  "access_token.revoked": (m) => [
-    "Revoked token ",
-    { name: text(m.name) },
-    m.by === "disable" ? " (account disabled)" : m.by === "root" ? " (by root)" : "",
-  ],
-  "workspace.created": (m) => ["Created workspace ", workspace(m)],
-  "workspace.updated": (m) =>
-    m.visibility === "private"
-      ? ["Made workspace ", workspace(m), " private"]
-      : m.visibility === "public"
-        ? ["Made workspace ", workspace(m), " public"]
-        : ["Changed the description of workspace ", workspace(m)],
+  "user.erased": (_m, e, h) => ({
+    who: e.targetId ? erasedName(e.targetId) : h.part("fallback.user"),
+  }),
+  "user.data_exported": (m, e, h) => ({ who: h.who(m, e), byRoot: flag(m.by === "root") }),
+  "access_token.created": (m, _e, h) => ({
+    label: text(m.name),
+    expiry: h.expiry(m),
+    how: m.via === "cli" ? "cli" : m.via === "device" ? "device" : "other",
+  }),
+  "access_token.revoked": (m) => ({ label: text(m.name), by: text(m.by) }),
+  "workspace.created": (m, _e, h) => ({ label: h.workspace(m) }),
+  "workspace.updated": (m, _e, h) => ({
+    change: m.visibility === "private" ? "private" : m.visibility === "public" ? "public" : "other",
+    label: h.workspace(m),
+  }),
   // 113: "Renamed workspace acme to acme-platform".
-  "workspace.renamed": (m) => [
-    "Renamed workspace ",
-    { name: text(m.from) || "a workspace" },
-    " to ",
-    { name: text(m.to) || "another name" },
-  ],
-  "workspace.deleted": (m) => [
-    "Deleted workspace ",
-    workspace(m),
-    m.members === undefined
-      ? ""
-      : ` (${[
-          plural(num(m.members), "member"),
-          // The open requests to move a scope into it (115), closed with it.
-          num(m.scopeMoves) ? plural(num(m.scopeMoves), "move request") : "",
-        ]
-          .filter(Boolean)
-          .join(", ")})`,
-  ],
-  "workspace.member_added": (m) => [
-    "Added ",
-    { name: text(m.email) },
-    " to ",
-    { name: text(m.workspace) },
-    ` as ${text(m.role)}`,
-    ...bySso(m),
-  ],
-  "workspace.member_role_changed": (m) => [
-    "Changed ",
-    { name: text(m.email) },
-    ` in `,
-    { name: text(m.workspace) },
-    ` from ${text(m.from)} to ${text(m.to)}`,
-    ...bySso(m),
-  ],
-  "workspace.member_removed": (m) => [
-    "Removed ",
-    { name: text(m.email) },
-    " from ",
-    { name: text(m.workspace) },
-    ...bySso(m),
-  ],
+  "workspace.renamed": (m, _e, h) => ({
+    from: text(m.from) || h.part("fallback.workspace"),
+    to: text(m.to) || h.part("fallback.anotherName"),
+  }),
+  "workspace.deleted": (m, _e, h) => ({
+    label: h.workspace(m),
+    details:
+      m.members === undefined
+        ? ""
+        : ` (${[
+            h.part("members", { count: num(m.members) }),
+            // The open requests to move a scope into it (115), closed with it.
+            num(m.scopeMoves) ? h.part("moveRequests", { count: num(m.scopeMoves) }) : "",
+          ]
+            .filter(Boolean)
+            .join(", ")})`,
+  }),
+  "workspace.member_added": (m, _e, h) => ({
+    email: text(m.email),
+    workspace: text(m.workspace),
+    role: h.word("roles", text(m.role)),
+    ...h.bySso(m),
+  }),
+  "workspace.member_role_changed": (m, _e, h) => ({
+    email: text(m.email),
+    workspace: text(m.workspace),
+    from: h.word("roles", text(m.from)),
+    to: h.word("roles", text(m.to)),
+    ...h.bySso(m),
+  }),
+  "workspace.member_removed": (m, _e, h) => ({
+    email: text(m.email),
+    workspace: text(m.workspace),
+    ...h.bySso(m),
+  }),
   // Requests to join (094): the event is on the requester.
-  "workspace.access_requested": (m, e) => [
-    who(m, e),
-    " asked to join ",
-    { name: text(m.workspace) },
-  ],
-  "workspace.access_approved": (m, e) => [
-    m.direct ? "Approved the request of " : "Approved ",
-    who(m, e),
-    m.direct ? " by adding them to " : " joining ",
-    { name: text(m.workspace) },
-    m.role ? ` as ${text(m.role)}` : "",
-  ],
-  "workspace.access_declined": (m, e) => [
-    "Declined ",
-    who(m, e),
-    " joining ",
-    { name: text(m.workspace) },
-  ],
-  "workspace.access_cancelled": (m, e) => [
-    who(m, e),
-    " cancelled their request to join ",
-    { name: text(m.workspace) },
-  ],
-  "scope.created": (m) => ["Created scope ", scope(m)],
-  "scope.updated": (m) => ["Changed the description of ", scope(m)],
+  "workspace.access_requested": (m, e, h) => ({ who: h.who(m, e), workspace: text(m.workspace) }),
+  "workspace.access_approved": (m, e, h) => ({
+    direct: flag(Boolean(m.direct)),
+    who: h.who(m, e),
+    workspace: text(m.workspace),
+    hasRole: flag(Boolean(m.role)),
+    role: h.word("roles", text(m.role)),
+  }),
+  "workspace.access_declined": (m, e, h) => ({ who: h.who(m, e), workspace: text(m.workspace) }),
+  "workspace.access_cancelled": (m, e, h) => ({ who: h.who(m, e), workspace: text(m.workspace) }),
+  "scope.created": (m, _e, h) => ({ scope: h.scope(m) }),
+  "scope.updated": (m, _e, h) => ({ scope: h.scope(m) }),
   // 115: "Asked to move @infra to acme, as @acme/infra-tools".
-  "scope.move_requested": (m) => [
-    "Asked to move ",
-    moving(m),
-    " to ",
-    { name: text(m.to) || "a workspace" },
-    ...renamedAs(m),
-  ],
-  "scope.moved": (m) => [
-    m.direct === false ? "Approved moving " : "Moved ",
-    moving(m),
-    " to ",
-    { name: text(m.to) || "a workspace" },
-    ...renamedAs(m),
-    ` (${[
-      plural(num(m.items), "item"),
-      num(m.reviewed) ? `${plural(num(m.reviewed), "version")} reviewed` : "",
+  "scope.move_requested": (m, _e, h) => ({
+    scope: h.moving(m),
+    to: h.to(m),
+    ...h.renamed(m),
+  }),
+  "scope.moved": (m, _e, h) => ({
+    direct: flag(m.direct !== false),
+    scope: h.moving(m),
+    to: h.to(m),
+    ...h.renamed(m),
+    counts: [
+      h.part("items", { count: num(m.items) }),
+      num(m.reviewed) ? h.part("versionsReviewed", { count: num(m.reviewed) }) : "",
     ]
       .filter(Boolean)
-      .join(", ")})`,
-  ],
-  "scope.move_declined": (m) => [
-    "Declined moving ",
-    moving(m),
-    " to ",
-    { name: text(m.to) || "a workspace" },
-  ],
-  "scope.move_cancelled": (m) => [
-    "Cancelled moving ",
-    moving(m),
-    " to ",
-    { name: text(m.to) || "a workspace" },
-    text(m.reason) === "asker_lost_role" ? " (whoever asked can no longer move it)" : "",
-  ],
-  "submission.draft_created": (m) => [
-    "Created a draft of ",
-    item(m),
-    ` (${[text(m.type), m.files === undefined ? "" : plural(num(m.files), "file")]
+      .join(", "),
+  }),
+  "scope.move_declined": (m, _e, h) => ({ scope: h.moving(m), to: h.to(m) }),
+  "scope.move_cancelled": (m, _e, h) => ({
+    scope: h.moving(m),
+    to: h.to(m),
+    lost: flag(text(m.reason) === "asker_lost_role"),
+  }),
+  "submission.draft_created": (m, _e, h) => ({
+    item: h.item(m),
+    details: [text(m.type), m.files === undefined ? "" : h.part("files", { count: num(m.files) })]
       .filter(Boolean)
-      .join(", ")})${via(m)}`,
-  ],
-  "submission.draft_updated": (m) => ["Updated the draft of ", item(m), via(m)],
-  "submission.submitted": (m) => [
-    "Submitted ",
-    item(m),
-    m.revision === undefined ? " for review" : ` for review (revision ${text(m.revision)})`,
-  ],
-  "submission.resubmitted": (m) => [
-    "Resubmitted ",
-    item(m),
-    m.revision === undefined ? "" : ` (revision ${text(m.revision)})`,
-  ],
-  "submission.withdrawn": (m) => ["Archived ", item(m)],
-  "submission.restored": (m) => ["Restored ", item(m), " as a draft"],
-  "submission.deleted": (m) => ["Deleted ", item(m)],
-  "submission.approved": (m) => ["Approved ", item(m)],
-  "submission.changes_requested": (m) => ["Requested changes on ", item(m)],
-  "submission.rejected": (m) => ["Rejected ", item(m)],
-  "submission.override_approved": (m) => ["Approved their own ", item(m), " (override)"],
-  "submission.rebased": (m) => [
-    "Rebased ",
-    item(m),
-    ` from ${text(m.from)} to ${text(m.to)}`,
-    num(m.conflicts) ? ` (${plural(num(m.conflicts), "conflict")})` : "",
-  ],
-  "version.published": (m) => [
-    "Published ",
-    itemVersion(m),
-    ...(m.tag ? [" as ", { code: text(m.tag) }] : []),
-  ],
-  "version.deprecated": (m) => ["Deprecated ", itemVersion(m)],
-  "version.undeprecated": (m) => ["Removed the deprecation of ", itemVersion(m)],
-  "version.yanked": (m) => ["Yanked ", itemVersion(m)],
-  "version.unyanked": (m) => ["Restored ", itemVersion(m), " (no longer yanked)"],
-  "dist_tag.moved": (m) => [
-    "Moved ",
-    { code: text(m.tag) },
-    " of ",
-    item(m),
-    m.from ? ` from ${text(m.from)} to ${text(m.to)}` : ` to ${text(m.to)}`,
-  ],
-  "dist_tag.removed": (m) => ["Removed ", { code: text(m.tag) }, " from ", item(m)],
+      .join(", "),
+    via: h.via(m),
+  }),
+  "submission.draft_updated": (m, _e, h) => ({ item: h.item(m), via: h.via(m) }),
+  "submission.submitted": (m, _e, h) => ({
+    item: h.item(m),
+    hasRevision: flag(m.revision !== undefined),
+    revision: text(m.revision),
+  }),
+  "submission.resubmitted": (m, _e, h) => ({
+    item: h.item(m),
+    hasRevision: flag(m.revision !== undefined),
+    revision: text(m.revision),
+  }),
+  "submission.withdrawn": (m, _e, h) => ({ item: h.item(m) }),
+  "submission.restored": (m, _e, h) => ({ item: h.item(m) }),
+  "submission.deleted": (m, _e, h) => ({ item: h.item(m) }),
+  "submission.approved": (m, _e, h) => ({ item: h.item(m) }),
+  "submission.changes_requested": (m, _e, h) => ({ item: h.item(m) }),
+  "submission.rejected": (m, _e, h) => ({ item: h.item(m) }),
+  "submission.override_approved": (m, _e, h) => ({ item: h.item(m) }),
+  "submission.rebased": (m, _e, h) => ({
+    item: h.item(m),
+    from: text(m.from),
+    to: text(m.to),
+    conflicts: num(m.conflicts),
+  }),
+  "version.published": (m, _e, h) => ({
+    item: h.itemVersion(m),
+    hasTag: flag(Boolean(m.tag)),
+    tag: text(m.tag),
+  }),
+  "version.deprecated": (m, _e, h) => ({ item: h.itemVersion(m) }),
+  "version.undeprecated": (m, _e, h) => ({ item: h.itemVersion(m) }),
+  "version.yanked": (m, _e, h) => ({ item: h.itemVersion(m) }),
+  "version.unyanked": (m, _e, h) => ({ item: h.itemVersion(m) }),
+  "dist_tag.moved": (m, _e, h) => ({
+    tag: text(m.tag),
+    item: h.item(m),
+    hasFrom: flag(Boolean(m.from)),
+    from: text(m.from),
+    to: text(m.to),
+  }),
+  "dist_tag.removed": (m, _e, h) => ({ tag: text(m.tag), item: h.item(m) }),
   // 125: a pin names the item and its shelf, the instance's "Start here" or a workspace's.
-  "pin.added": (m) => ["Pinned ", item(m), ...pinShelf(m, "to")],
-  "pin.removed": (m) => ["Unpinned ", item(m), ...pinShelf(m, "from")],
-  "pin.reordered": (m) => [
-    "Moved ",
-    item(m),
-    text(m.direction) === "up" ? " up" : " down",
-    ...pinShelf(m, "in"),
-  ],
+  "pin.added": (m, _e, h) => ({ item: h.item(m), ...h.shelf(m) }),
+  "pin.removed": (m, _e, h) => ({ item: h.item(m), ...h.shelf(m) }),
+  "pin.reordered": (m, _e, h) => ({
+    item: h.item(m),
+    direction: text(m.direction),
+    ...h.shelf(m),
+  }),
   // 127: ids only, never the text of a message.
-  "feedback.handled": () => ["Marked a feedback message handled"],
-  "feedback.deleted": () => ["Deleted a feedback message"],
-  "settings.two_factor_policy": (m) => [
-    `Changed who must use two-factor sign-in from ${TWO_FACTOR_POLICIES_SAID[text(m.from)] ?? text(m.from)} to ${
-      TWO_FACTOR_POLICIES_SAID[text(m.to)] ?? text(m.to)
-    }`,
-  ],
-  "settings.usage_policy": (m) => [
-    `Changed the usage policy from ${POLICIES[text(m.from)] ?? text(m.from)} to ${
-      POLICIES[text(m.to)] ?? text(m.to)
-    }`,
-  ],
-  "settings.usage_minimum": (m) => [
-    `Changed the usage minimum from ${text(m.from)} to ${text(m.to)}`,
-  ],
-  "settings.retention": (m) => {
+  "feedback.handled": () => ({}),
+  "feedback.deleted": () => ({}),
+  "settings.two_factor_policy": (m, _e, h) => ({
+    from: h.word("twoFactorPolicies", text(m.from)),
+    to: h.word("twoFactorPolicies", text(m.to)),
+  }),
+  "settings.usage_policy": (m, _e, h) => ({
+    from: h.word("policies", text(m.from)),
+    to: h.word("policies", text(m.to)),
+  }),
+  "settings.usage_minimum": (m) => ({ from: text(m.from), to: text(m.to) }),
+  "settings.retention": (m, _e, h) => {
     // Only what changed, in days: `{ from: { ipDays, sessionsDays, feedbackDays }, to: { … } }` (102, 127).
-    const from = typeof m.from === "object" && m.from && !Array.isArray(m.from) ? m.from : {};
-    const to = typeof m.to === "object" && m.to && !Array.isArray(m.to) ? m.to : {};
+    const from = record(m.from);
+    const to = record(m.to);
     const changes = (
       [
-        ["ipDays", "IP addresses"],
-        ["sessionsDays", "expired sessions"],
-        ["feedbackDays", "handled feedback"],
+        ["ipDays", "ip"],
+        ["sessionsDays", "sessions"],
+        ["feedbackDays", "feedback"],
       ] as const
     )
       .filter(([key]) => text(from[key]) !== text(to[key]))
-      .map(([key, what]) => `${what} from ${text(from[key])} to ${text(to[key])} days`);
-    return [`Changed the retention: ${changes.join(", ") || "nothing"}`];
+      .map(([key, what]) =>
+        h.part(`retention.${what}`, { from: text(from[key]), to: text(to[key]) }),
+      );
+    return { changes: changes.join(", ") || h.part("retention.nothing") };
   },
-  "settings.notice": (m) => {
+  "settings.notice": (m, _e, h) => {
     // `{ from: { tone, shown }, to: { tone, shown }, revision }`: never the text (124).
-    const side = (v: unknown): { tone?: AuditMetadataValue; shown?: AuditMetadataValue } =>
-      typeof v === "object" && v && !Array.isArray(v) ? v : {};
-    const from = side(m.from);
-    const to = side(m.to);
+    const from = record(m.from);
+    const to = record(m.to);
     const changes = [
-      text(from.shown) !== text(to.shown) ? (to.shown === true ? "shown" : "hidden") : null,
-      text(from.tone) !== text(to.tone) ? `tone ${text(from.tone)} to ${text(to.tone)}` : null,
+      text(from.shown) !== text(to.shown)
+        ? to.shown === true
+          ? h.part("notice.shown")
+          : h.part("notice.hidden")
+        : null,
+      text(from.tone) !== text(to.tone)
+        ? h.part("notice.tone", { from: text(from.tone), to: text(to.tone) })
+        : null,
     ].filter((c) => c !== null);
-    return [`Changed the instance notice: ${changes.join(", ") || "its words or link"}`];
+    return { changes: changes.join(", ") || h.part("notice.words") };
   },
 };
 
 const isKnown = (action: string): action is AuditAction => Object.hasOwn(SUMMARIES, action);
 
+// A name and a code travel through the message as marked text, then come back as parts. The marks
+// are control characters no recorded value can carry (they are taken out of the values).
+const OPEN = "\u0001";
+const CLOSE = "\u0002";
+const MARKED = new RegExp(`${OPEN}([NC])([\\s\\S]*?)${CLOSE}`, "g");
+const clean = (value: string | number): string | number =>
+  typeof value === "number" ? value : value.replaceAll(OPEN, "").replaceAll(CLOSE, "");
+
+const toParts = (marked: string): SummaryPart[] => {
+  const parts: SummaryPart[] = [];
+  let at = 0;
+  for (const match of marked.matchAll(MARKED)) {
+    if (match.index > at) parts.push(marked.slice(at, match.index));
+    const value = match[2] ?? "";
+    parts.push(match[1] === "N" ? { name: value } : { code: value });
+    at = match.index + match[0].length;
+  }
+  if (at < marked.length) parts.push(marked.slice(at));
+  return parts;
+};
+
 /** The event's summary, as parts to render: text, names (bold) and codes (mono). */
-export const summarize = (event: AuditEvent): SummaryPart[] => {
+export const summarize = (event: AuditEvent, say: Say): SummaryPart[] => {
   const fallback = [`${event.action} (${event.targetType})`];
   if (!isKnown(event.action)) return fallback;
   try {
-    return SUMMARIES[event.action](event.metadata, event).filter((part) => part !== "");
+    const values = SUMMARIES[event.action](event.metadata, event, helpersOf(say));
+    const marked = say.markup(`actions.${event.action}`, {
+      ...Object.fromEntries(Object.entries(values).map(([key, value]) => [key, clean(value)])),
+      name: (chunks: string) => `${OPEN}N${chunks}${CLOSE}`,
+      code: (chunks: string) => `${OPEN}C${chunks}${CLOSE}`,
+    });
+    return toParts(marked).filter((part) => part !== "");
   } catch {
     return fallback;
   }
+};
+
+/** `summarize` in the language of the screen it is called from. */
+export const useSummarize = (): ((event: AuditEvent) => SummaryPart[]) => {
+  const t = useTranslations("admin.audit.sentences");
+  const say = t as unknown as Say;
+  return (event) => summarize(event, say);
 };
 
 /** The summary as plain text, for a tooltip or a screen-reader label. */

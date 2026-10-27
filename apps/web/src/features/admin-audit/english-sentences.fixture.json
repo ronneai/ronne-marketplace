@@ -1,0 +1,366 @@
+{
+  "instance.root_created": {
+    "empty": "Created the first root account, , from the command line",
+    "rich": "Created the first root account, ana@example.com, from the command line"
+  },
+  "instance.access_revoked": {
+    "empty": "Revoked everyone’s access (nothing left)",
+    "rich": "Revoked everyone’s access (2 sessions ended, 1 token revoked, 1 SCIM token revoked, 1 request to join cancelled) from the command line"
+  },
+  "instance.secret_rotated": {
+    "empty": "Replaced AUTH_SECRET, so everyone signs in again",
+    "rich": "Replaced AUTH_SECRET, so everyone signs in again (2 sessions ended, 1 token revoked, 1 SCIM token revoked, 1 request to join cancelled), and turned off two-factor sign-in for 2 accounts from the command line"
+  },
+  "instance.backup_made": {
+    "empty": "Made a backup: 0 rows in 0 tables, 0 stored files",
+    "rich": "Made a backup: 1,284 rows in 31 tables, 3 stored files, with the settings file, encrypted from the command line"
+  },
+  "instance.restored": {
+    "empty": "Restored a backup made by Ronne  at : 0 rows, 0 stored files",
+    "rich": "Restored a backup made by Ronne  at : 1,284 rows, 3 stored files from the command line"
+  },
+  "instance.auth_provider_created": {
+    "empty": "Added the identity provider ",
+    "rich": "Added the identity provider acme"
+  },
+  "instance.auth_provider_updated": {
+    "empty": "Changed the identity provider ",
+    "rich": "Changed the identity provider acme: name, email"
+  },
+  "instance.auth_provider_deleted": {
+    "empty": "Deleted the identity provider ",
+    "rich": "Deleted the identity provider acme, and the 1 membership its groups gave"
+  },
+  "instance.auth_provider_enabled": {
+    "empty": "Turned on the identity provider ",
+    "rich": "Turned on the identity provider acme"
+  },
+  "instance.auth_provider_disabled": {
+    "empty": "Turned off the identity provider ",
+    "rich": "Turned off the identity provider acme"
+  },
+  "instance.scim_enabled": {
+    "empty": "Turned on SCIM for ",
+    "rich": "Turned on SCIM for acme"
+  },
+  "instance.scim_disabled": {
+    "empty": "Turned off SCIM for ",
+    "rich": "Turned off SCIM for acme from the command line"
+  },
+  "instance.scim_token_created": {
+    "empty": "Made a SCIM token for ",
+    "rich": "Made a SCIM token for acme"
+  },
+  "instance.scim_token_rotated": {
+    "empty": "Rotated the SCIM token of ; the one before works for 24 more hours",
+    "rich": "Rotated the SCIM token of acme; the one before works for 24 more hours"
+  },
+  "instance.scim_token_revoked": {
+    "empty": "Revoked the SCIM token of ",
+    "rich": "Revoked the SCIM token, and the one before its rotation, of acme"
+  },
+  "scim.request_refused": {
+    "empty": "Refused a SCIM request: ",
+    "rich": "Refused a SCIM request: invalid (acme)"
+  },
+  "instance.password_sign_in_changed": {
+    "empty": "Changed who may sign in with a password from  to ",
+    "rich": "Changed who may sign in with a password from user to root from the command line"
+  },
+  "user.password_reset": {
+    "empty": "Reset the password of sam@example.com",
+    "rich": "Reset the password of sam@example.com and turned off its two-factor sign-in, asking for a new one at their next sign-in (2 sessions ended, 1 token revoked, 1 SCIM token revoked, 1 request to join cancelled) from the command line"
+  },
+  "user.password_change_requested": {
+    "empty": "Asked for a new password at the next sign-in of sam@example.com",
+    "rich": "Asked for a new password at the next sign-in of sam@example.com from the command line"
+  },
+  "auth.signed_in": {
+    "empty": "Signed in",
+    "rich": "Signed in (remembered for 30 days)"
+  },
+  "auth.sign_in_failed": {
+    "empty": "Failed sign-in for an unknown email: ",
+    "rich": "Failed sign-in for ana@example.com: wrong email or password from the command line"
+  },
+  "auth.signed_out": {
+    "empty": "Signed out",
+    "rich": "Signed out"
+  },
+  "user.password_changed": {
+    "empty": "Changed their password",
+    "rich": "Chose their own password, as root asked (1 other session ended)"
+  },
+  "auth.two_factor_enabled": {
+    "empty": "Turned on two-factor sign-in",
+    "rich": "Turned on two-factor sign-in"
+  },
+  "auth.two_factor_disabled": {
+    "empty": "Turned off two-factor sign-in",
+    "rich": "Turned off two-factor sign-in"
+  },
+  "auth.backup_codes_regenerated": {
+    "empty": "Made new backup codes; the old ones stopped working",
+    "rich": "Made new backup codes; the old ones stopped working"
+  },
+  "auth.two_factor_failed": {
+    "empty": "A two-factor code was refused at sign-in ()",
+    "rich": "A two-factor code was refused at sign-in (invalid)"
+  },
+  "auth.sso_signed_in": {
+    "empty": "Signed in with the identity provider ",
+    "rich": "Signed in with the identity provider acme"
+  },
+  "auth.sso_failed": {
+    "empty": "Failed sign-in with : ",
+    "rich": "Failed sign-in with acme for ana@example.com: the account exists, and the provider doesn’t link by email"
+  },
+  "auth.device_started": {
+    "empty": "Asked for a sign-in code for  ( login --web)",
+    "rich": "Asked for a sign-in code for @team/tools (rmk login --web)"
+  },
+  "auth.device_approved": {
+    "empty": "Approved the sign-in code for ",
+    "rich": "Approved the sign-in code for @team/tools, asked from 203.0.113.9"
+  },
+  "auth.device_denied": {
+    "empty": "Denied the sign-in code for ",
+    "rich": "Denied the sign-in code for @team/tools"
+  },
+  "auth.device_expired": {
+    "empty": "A sign-in code for  expired before it was used",
+    "rich": "A sign-in code for @team/tools expired before it was used"
+  },
+  "user.two_factor_reset": {
+    "empty": "Turned off the two-factor sign-in of sam@example.com",
+    "rich": "Turned off the two-factor sign-in of sam@example.com (2 sessions ended, 1 token revoked, 1 SCIM token revoked, 1 request to join cancelled) from the command line"
+  },
+  "user.created": {
+    "empty": "Created  as ",
+    "rich": "Created ana@example.com as moderator, asking for a new password at their first sign-in"
+  },
+  "user.updated": {
+    "empty": "Changed the details of sam@example.com through SCIM provisioning by ",
+    "rich": "Changed the name and email of sam@example.com, linked again, through SCIM provisioning by acme"
+  },
+  "user.scim_adopted": {
+    "empty": "Linked sam@example.com to SCIM provisioning by , which manages it from now on",
+    "rich": "Linked sam@example.com to SCIM provisioning by acme, which manages it from now on"
+  },
+  "user.sso_linked": {
+    "empty": "Linked  to the identity provider  (matched by verified email)",
+    "rich": "Linked ana@example.com to the identity provider acme (matched by verified email)"
+  },
+  "user.role_changed": {
+    "empty": "Changed sam@example.com from  to ",
+    "rich": "Changed sam@example.com from user to root"
+  },
+  "user.disabled": {
+    "empty": "Disabled sam@example.com",
+    "rich": "Disabled sam@example.com (2 sessions ended, 1 token revoked, 1 SCIM token revoked, 1 request to join cancelled)"
+  },
+  "user.enabled": {
+    "empty": "Enabled sam@example.com",
+    "rich": "Enabled sam@example.com"
+  },
+  "user.erased": {
+    "empty": "Erased deleted-user-01K6BZ3W1D8J9Q2R4T6V8X0Y30",
+    "rich": "Erased deleted-user-01K6BZ3W1D8J9Q2R4T6V8X0Y30"
+  },
+  "user.data_exported": {
+    "empty": "Downloaded the data of sam@example.com",
+    "rich": "Downloaded the data of sam@example.com (by root)"
+  },
+  "access_token.created": {
+    "empty": "Created token  (no expiry)",
+    "rich": "Created token @team/tools (expires 2026-12-31, from rmk login)"
+  },
+  "access_token.revoked": {
+    "empty": "Revoked token ",
+    "rich": "Revoked token @team/tools (by root)"
+  },
+  "workspace.created": {
+    "empty": "Created workspace a workspace",
+    "rich": "Created workspace @team/tools"
+  },
+  "workspace.updated": {
+    "empty": "Changed the description of workspace a workspace",
+    "rich": "Changed the description of workspace @team/tools"
+  },
+  "workspace.renamed": {
+    "empty": "Renamed workspace a workspace to another name",
+    "rich": "Renamed workspace user to root"
+  },
+  "workspace.deleted": {
+    "empty": "Deleted workspace a workspace",
+    "rich": "Deleted workspace @team/tools (4 members, 1 move request)"
+  },
+  "workspace.member_added": {
+    "empty": "Added  to  as ",
+    "rich": "Added ana@example.com to acme as moderator"
+  },
+  "workspace.member_role_changed": {
+    "empty": "Changed  in  from  to ",
+    "rich": "Changed ana@example.com in acme from user to root"
+  },
+  "workspace.member_removed": {
+    "empty": "Removed  from ",
+    "rich": "Removed ana@example.com from acme"
+  },
+  "workspace.access_requested": {
+    "empty": "sam@example.com asked to join ",
+    "rich": "sam@example.com asked to join acme"
+  },
+  "workspace.access_approved": {
+    "empty": "Approved sam@example.com joining ",
+    "rich": "Approved the request of sam@example.com by adding them to acme as moderator"
+  },
+  "workspace.access_declined": {
+    "empty": "Declined sam@example.com joining ",
+    "rich": "Declined sam@example.com joining acme"
+  },
+  "workspace.access_cancelled": {
+    "empty": "sam@example.com cancelled their request to join ",
+    "rich": "sam@example.com cancelled their request to join acme"
+  },
+  "scope.created": {
+    "empty": "Created scope @",
+    "rich": "Created scope @team/tools"
+  },
+  "scope.updated": {
+    "empty": "Changed the description of @",
+    "rich": "Changed the description of @team/tools"
+  },
+  "scope.move_requested": {
+    "empty": "Asked to move a scope to a workspace",
+    "rich": "Asked to move @infra to root, as @infra-tools"
+  },
+  "scope.moved": {
+    "empty": "Moved a scope to a workspace (0 items)",
+    "rich": "Moved @infra to root, as @infra-tools (2 items, 1 version reviewed)"
+  },
+  "scope.move_declined": {
+    "empty": "Declined moving a scope to a workspace",
+    "rich": "Declined moving @infra to root"
+  },
+  "scope.move_cancelled": {
+    "empty": "Cancelled moving a scope to a workspace",
+    "rich": "Cancelled moving @infra to root"
+  },
+  "submission.draft_created": {
+    "empty": "Created a draft of an item ()",
+    "rich": "Created a draft of @team/tools (skill, 3 files) from the command line"
+  },
+  "submission.draft_updated": {
+    "empty": "Updated the draft of an item",
+    "rich": "Updated the draft of @team/tools from the command line"
+  },
+  "submission.submitted": {
+    "empty": "Submitted an item for review",
+    "rich": "Submitted @team/tools for review (revision 2)"
+  },
+  "submission.resubmitted": {
+    "empty": "Resubmitted an item",
+    "rich": "Resubmitted @team/tools (revision 2)"
+  },
+  "submission.withdrawn": {
+    "empty": "Archived an item",
+    "rich": "Archived @team/tools"
+  },
+  "submission.restored": {
+    "empty": "Restored an item as a draft",
+    "rich": "Restored @team/tools as a draft"
+  },
+  "submission.deleted": {
+    "empty": "Deleted an item",
+    "rich": "Deleted @team/tools"
+  },
+  "submission.approved": {
+    "empty": "Approved an item",
+    "rich": "Approved @team/tools"
+  },
+  "submission.changes_requested": {
+    "empty": "Requested changes on an item",
+    "rich": "Requested changes on @team/tools"
+  },
+  "submission.rejected": {
+    "empty": "Rejected an item",
+    "rich": "Rejected @team/tools"
+  },
+  "submission.override_approved": {
+    "empty": "Approved their own an item (override)",
+    "rich": "Approved their own @team/tools (override)"
+  },
+  "submission.rebased": {
+    "empty": "Rebased an item from  to ",
+    "rich": "Rebased @team/tools from user to root (1 conflict)"
+  },
+  "version.published": {
+    "empty": "Published a version",
+    "rich": "Published @team/tools@1.2.0 as latest"
+  },
+  "version.deprecated": {
+    "empty": "Deprecated a version",
+    "rich": "Deprecated @team/tools@1.2.0"
+  },
+  "version.undeprecated": {
+    "empty": "Removed the deprecation of a version",
+    "rich": "Removed the deprecation of @team/tools@1.2.0"
+  },
+  "version.yanked": {
+    "empty": "Yanked a version",
+    "rich": "Yanked @team/tools@1.2.0"
+  },
+  "version.unyanked": {
+    "empty": "Restored a version (no longer yanked)",
+    "rich": "Restored @team/tools@1.2.0 (no longer yanked)"
+  },
+  "dist_tag.moved": {
+    "empty": "Moved  of an item to ",
+    "rich": "Moved latest of @team/tools from user to root"
+  },
+  "dist_tag.removed": {
+    "empty": "Removed  from an item",
+    "rich": "Removed latest from @team/tools"
+  },
+  "settings.usage_policy": {
+    "empty": "Changed the usage policy from  to ",
+    "rich": "Changed the usage policy from user to root"
+  },
+  "settings.usage_minimum": {
+    "empty": "Changed the usage minimum from  to ",
+    "rich": "Changed the usage minimum from user to root"
+  },
+  "settings.two_factor_policy": {
+    "empty": "Changed who must use two-factor sign-in from  to ",
+    "rich": "Changed who must use two-factor sign-in from user to root"
+  },
+  "settings.retention": {
+    "empty": "Changed the retention: nothing",
+    "rich": "Changed the retention: nothing"
+  },
+  "settings.notice": {
+    "empty": "Changed the instance notice: its words or link",
+    "rich": "Changed the instance notice: its words or link"
+  },
+  "pin.added": {
+    "empty": "Pinned an item to Start here",
+    "rich": "Pinned @team/tools to workspace acme"
+  },
+  "pin.removed": {
+    "empty": "Unpinned an item from Start here",
+    "rich": "Unpinned @team/tools from workspace acme"
+  },
+  "pin.reordered": {
+    "empty": "Moved an item down in Start here",
+    "rich": "Moved @team/tools up in workspace acme"
+  },
+  "feedback.handled": {
+    "empty": "Marked a feedback message handled",
+    "rich": "Marked a feedback message handled"
+  },
+  "feedback.deleted": {
+    "empty": "Deleted a feedback message",
+    "rich": "Deleted a feedback message"
+  }
+}

@@ -504,6 +504,235 @@
       "openUser": "Ouvrir l’utilisateur",
       "openSubmission": "Ouvrir la soumission",
       "openItem": "Ouvrir l’élément"
+    },
+    "sentences": {
+      "parts": {
+        "and": " et ",
+        "ended": {
+          "sessions": "{count, plural, one {# session terminée} other {# sessions terminées}}",
+          "tokens": "{count, plural, one {# jeton révoqué} other {# jetons révoqués}}",
+          "scimTokens": "{count, plural, one {# jeton SCIM révoqué} other {# jetons SCIM révoqués}}",
+          "requests": "{count, plural, one {# demande d’adhésion annulée} other {# demandes d’adhésion annulées}}",
+          "nothingLeft": "plus rien"
+        },
+        "via": {
+          "cli": "depuis la ligne de commande",
+          "api": "depuis rmk",
+          "scim": "par le provisionnement SCIM"
+        },
+        "roles": {
+          "root": "root",
+          "user": "utilisateur",
+          "moderator": "modérateur",
+          "admin": "admin"
+        },
+        "changedDetails": "données",
+        "expires": "expire le {date}",
+        "noExpiry": "sans expiration",
+        "files": "{count, plural, one {# fichier} other {# fichiers}}",
+        "members": "{count, plural, one {# membre} other {# membres}}",
+        "moveRequests": "{count, plural, one {# demande de déplacement} other {# demandes de déplacement}}",
+        "items": "{count, plural, one {# élément} other {# éléments}}",
+        "versionsReviewed": "{count, plural, one {# version révisée} other {# versions révisées}}",
+        "retention": {
+          "ip": "adresses IP de {from} à {to} jours",
+          "sessions": "sessions expirées de {from} à {to} jours",
+          "feedback": "commentaires traités de {from} à {to} jours",
+          "nothing": "rien"
+        },
+        "notice": {
+          "shown": "affiché",
+          "hidden": "masqué",
+          "tone": "ton de {from} à {to}",
+          "words": "son texte ou son lien"
+        },
+        "fallback": {
+          "user": "un utilisateur",
+          "item": "un élément",
+          "version": "une version",
+          "workspace": "un espace de travail",
+          "scope": "une portée",
+          "anotherName": "un autre nom",
+          "unknownEmail": "un courriel inconnu"
+        },
+        "signInReasons": {
+          "invalid": "courriel ou mot de passe incorrect",
+          "disabled": "le compte est désactivé",
+          "rate_limited": "trop de tentatives",
+          "two_factor_required": "le compte utilise la double authentification",
+          "password_disabled": "la connexion par mot de passe est réservée à root",
+          "password_sign_in_disabled": "la connexion par mot de passe est réservée à root"
+        },
+        "policies": {
+          "off": "désactivée",
+          "choice": "chacun choisit",
+          "required": "obligatoire"
+        },
+        "passwordSaid": {
+          "everyone": "tout le monde",
+          "root_only": "root seulement"
+        },
+        "scimRefusals": {
+          "missing": "aucun jeton porteur",
+          "format": "pas un jeton SCIM",
+          "unknown": "un jeton inconnu",
+          "revoked": "un jeton révoqué",
+          "expired": "un jeton au-delà de ses 24 heures après une rotation",
+          "scim_off": "SCIM est désactivé pour le fournisseur",
+          "root": "elle nommait un compte root, que Ronne gère",
+          "root_member": "un groupe nommait un compte root comme membre, qui a été laissé de côté"
+        },
+        "ssoReasons": {
+          "unverified_email": "le fournisseur n’a pas dit que le courriel est vérifié",
+          "not_allowed": "aucun compte qu’il puisse lier ou créer",
+          "disabled": "le compte est désactivé",
+          "invalid_response": "la réponse du fournisseur n’a pas pu être vérifiée",
+          "provider_error": "le fournisseur a refusé ou n’a pas répondu",
+          "expired": "la connexion a pris trop de temps, ou a déjà servi",
+          "rate_limited": "trop de tentatives"
+        },
+        "ssoNotAllowed": {
+          "domain_not_allowed": "aucun compte, et le domaine du courriel ne peut pas en créer",
+          "non_ascii_email": "l’adresse n’est pas en ASCII simple",
+          "invalid_email": "l’adresse n’est pas valide",
+          "lookalike_email": "la base de données la juge égale à l’adresse d’un compte (accents, formes de lettres ou caractères invisibles)",
+          "link_off": "le compte existe, et le fournisseur ne lie pas par courriel",
+          "domain_not_listed": "le compte existe, mais son domaine n’est pas dans la liste du fournisseur",
+          "linked_to_another": "le compte est lié à une autre personne chez le fournisseur"
+        },
+        "twoFactorPolicies": {
+          "optional": "personne (facultatif)",
+          "reviewers": "les réviseurs et root",
+          "everyone": "tout le monde"
+        },
+        "twoFactorReasons": {
+          "wrong_code": "un mauvais code",
+          "used": "un code déjà utilisé",
+          "too_many": "trop de mauvais codes",
+          "locked": "verrouillé pendant 15 minutes",
+          "refused": "le compte ne peut pas se connecter",
+          "unreadable": "le secret est illisible"
+        }
+      },
+      "actions": {
+        "instance": {
+          "root_created": "A créé le premier compte root, <name>{email}</name>{where, select, web {, dans la configuration web} other {, depuis la ligne de commande}}",
+          "access_revoked": "{scope, select, user {A révoqué l’accès de <name>{who}</name>{ended}{via}} other {A révoqué l’accès de tout le monde{ended}{via}}}",
+          "secret_rotated": "A remplacé AUTH_SECRET, donc tout le monde se reconnecte{ended}{twoFactor, plural, =0 {} one {, et a désactivé la double authentification de # compte} other {, et a désactivé la double authentification de # comptes}}{via}",
+          "backup_made": "A fait une sauvegarde : {rows, plural, one {# ligne} other {# lignes}} dans {tables, plural, one {# table} other {# tables}}, {files, plural, one {# fichier stocké} other {# fichiers stockés}}{settings, select, true {, avec le fichier de réglages} other {}}{encrypted, select, true {, chiffrée} other {}}{via}",
+          "restored": "A restauré une sauvegarde faite par Ronne {version} le {time} : {rows, plural, one {# ligne} other {# lignes}}, {files, plural, one {# fichier stocké} other {# fichiers stockés}}{via}",
+          "auth_provider_created": "A ajouté le fournisseur d’identité <code>{provider}</code>",
+          "auth_provider_updated": "A modifié le fournisseur d’identité <code>{provider}</code>{hasChanged, select, true { : {changed}} other {}}",
+          "auth_provider_deleted": "A supprimé le fournisseur d’identité <code>{provider}</code>{memberships, plural, =0 {} one {, et l’# appartenance que ses groupes donnaient} other {, et les # appartenances que ses groupes donnaient}}",
+          "auth_provider_enabled": "A activé le fournisseur d’identité <code>{provider}</code>",
+          "auth_provider_disabled": "A désactivé le fournisseur d’identité <code>{provider}</code>{retest, select, true { (ses réglages ont changé, il faut donc le tester de nouveau)} other {}}",
+          "scim_enabled": "A activé SCIM pour <code>{provider}</code>",
+          "scim_disabled": "A désactivé SCIM pour <code>{provider}</code>{via}",
+          "scim_token_created": "A créé un jeton SCIM pour <code>{provider}</code>",
+          "scim_token_rotated": "A fait la rotation du jeton SCIM de <code>{provider}</code>; le précédent fonctionne 24 heures de plus",
+          "scim_token_revoked": "{many, select, true {A révoqué le jeton SCIM de <code>{provider}</code> et celui d’avant la rotation} other {A révoqué le jeton SCIM de <code>{provider}</code>}}",
+          "password_sign_in_changed": "A changé qui peut se connecter avec un mot de passe, de {from} à {to}{via}"
+        },
+        "scim": {
+          "request_refused": "A refusé une requête SCIM : {reason}{hasProvider, select, true { (<code>{provider}</code>)} other {}}"
+        },
+        "user": {
+          "updated": "A modifié <name>{who}</name> ({changed}){relinked, select, true {, de nouveau lié,} other {}} par le provisionnement SCIM de <code>{provider}</code>",
+          "scim_adopted": "A lié <name>{who}</name> au provisionnement SCIM de <code>{provider}</code>, qui le gère désormais",
+          "password_reset": "A réinitialisé le mot de passe de <name>{who}</name>{twoFactor, select, true { et désactivé sa double authentification} other {}}{change, select, true {, en demandant un nouveau mot de passe à sa prochaine connexion} other {}}{ended}{via}",
+          "password_change_requested": "{required, select, false {A cessé de demander un nouveau mot de passe à la prochaine connexion de <name>{who}</name>{via}} other {A demandé un nouveau mot de passe à la prochaine connexion de <name>{who}</name>{via}}}",
+          "two_factor_reset": "A désactivé la double authentification de <name>{who}</name>{ended}{via}",
+          "password_changed": "{required, select, true {A choisi son propre mot de passe, comme root l’a demandé} other {A changé son mot de passe}}{others, plural, =0 {} one { (# autre session terminée)} other { (# autres sessions terminées)}}",
+          "created": "A créé <name>{email}</name> comme {role}{change, select, true {, en demandant un nouveau mot de passe à sa première connexion} other {}}{sso, select, true { à sa première connexion avec <code>{provider}</code>} other {}}",
+          "sso_linked": "A lié <name>{email}</name> au fournisseur d’identité <code>{provider}</code> (par courriel vérifié)",
+          "role_changed": "A fait passer <name>{who}</name> de {from} à {to}",
+          "disabled": "A désactivé <name>{who}</name>{ended}",
+          "enabled": "A activé <name>{who}</name>",
+          "erased": "A effacé <name>{who}</name>",
+          "data_exported": "A téléchargé les données de <name>{who}</name>{byRoot, select, true { (par root)} other {}}"
+        },
+        "auth": {
+          "signed_in": "{sso, select, true {Connecté avec <code>{provider}</code>} other {{remember, select, true {Connecté (mémorisé pendant 30 jours)} other {Connecté}}}}",
+          "sso_signed_in": "Connecté avec le fournisseur d’identité <code>{provider}</code>",
+          "sso_failed": "Échec de connexion avec <code>{provider}</code>{hasEmail, select, true { pour <name>{email}</name>} other {}} : {why}",
+          "device_started": "A demandé un code de connexion pour <name>{label}</name> ({clientId} login --web)",
+          "device_approved": "A approuvé le code de connexion de <name>{label}</name>{hasIp, select, true {, demandé depuis {ip}} other {}}",
+          "device_denied": "A refusé le code de connexion de <name>{label}</name>",
+          "device_expired": "Un code de connexion de <name>{label}</name> a expiré avant d’être utilisé",
+          "sign_in_failed": "Échec de connexion pour <name>{email}</name> : {reason}{via}",
+          "signed_out": "Déconnecté",
+          "two_factor_enabled": "A activé la double authentification",
+          "two_factor_disabled": "A désactivé la double authentification",
+          "backup_codes_regenerated": "A créé de nouveaux codes de secours; les anciens ont cessé de fonctionner",
+          "two_factor_failed": "Un code de double authentification a été refusé à la connexion ({reason})"
+        },
+        "access_token": {
+          "created": "A créé le jeton <name>{label}</name> ({expiry}{how, select, cli {, depuis rmk login} device {, par approbation dans le navigateur} other {}})",
+          "revoked": "A révoqué le jeton <name>{label}</name>{by, select, disable { (compte désactivé)} root { (par root)} other {}}"
+        },
+        "workspace": {
+          "created": "A créé l’espace de travail <name>{label}</name>",
+          "updated": "{change, select, private {A rendu l’espace de travail <name>{label}</name> privé} public {A rendu l’espace de travail <name>{label}</name> public} other {A modifié la description de l’espace de travail <name>{label}</name>}}",
+          "renamed": "A renommé l’espace de travail <name>{from}</name> en <name>{to}</name>",
+          "deleted": "A supprimé l’espace de travail <name>{label}</name>{details}",
+          "member_added": "A ajouté <name>{email}</name> à <name>{workspace}</name> comme {role}{via, select, sso {, par les groupes de <code>{provider}</code>} scim {, par les groupes SCIM de <code>{provider}</code>} other {}}",
+          "member_role_changed": "A fait passer <name>{email}</name> dans <name>{workspace}</name> de {from} à {to}{via, select, sso {, par les groupes de <code>{provider}</code>} scim {, par les groupes SCIM de <code>{provider}</code>} other {}}",
+          "member_removed": "A retiré <name>{email}</name> de <name>{workspace}</name>{via, select, sso {, par les groupes de <code>{provider}</code>} scim {, par les groupes SCIM de <code>{provider}</code>} other {}}",
+          "access_requested": "<name>{who}</name> a demandé à se joindre à <name>{workspace}</name>",
+          "access_approved": "{direct, select, true {A approuvé la demande de <name>{who}</name> en l’ajoutant à <name>{workspace}</name>} other {A approuvé l’adhésion de <name>{who}</name> à <name>{workspace}</name>}}{hasRole, select, true { comme {role}} other {}}",
+          "access_declined": "A refusé l’adhésion de <name>{who}</name> à <name>{workspace}</name>",
+          "access_cancelled": "<name>{who}</name> a annulé sa demande d’adhésion à <name>{workspace}</name>"
+        },
+        "scope": {
+          "created": "A créé la portée <name>{scope}</name>",
+          "updated": "A modifié la description de <name>{scope}</name>",
+          "move_requested": "A demandé le déplacement de <name>{scope}</name> vers <name>{to}</name>{renamed, select, true {, sous le nom <name>{newName}</name>} other {}}",
+          "moved": "{direct, select, false {A approuvé le déplacement de} other {A déplacé}} <name>{scope}</name> vers <name>{to}</name>{renamed, select, true {, sous le nom <name>{newName}</name>} other {}} ({counts})",
+          "move_declined": "A refusé le déplacement de <name>{scope}</name> vers <name>{to}</name>",
+          "move_cancelled": "A annulé le déplacement de <name>{scope}</name> vers <name>{to}</name>{lost, select, true { (la personne qui l’a demandé ne peut plus le déplacer)} other {}}"
+        },
+        "submission": {
+          "draft_created": "A créé un brouillon de <name>{item}</name> ({details}){via}",
+          "draft_updated": "A mis à jour le brouillon de <name>{item}</name>{via}",
+          "submitted": "A soumis <name>{item}</name>{hasRevision, select, true { pour révision (révision {revision})} other { pour révision}}",
+          "resubmitted": "A soumis de nouveau <name>{item}</name>{hasRevision, select, true { (révision {revision})} other {}}",
+          "withdrawn": "A archivé <name>{item}</name>",
+          "restored": "A restauré <name>{item}</name> comme brouillon",
+          "deleted": "A supprimé <name>{item}</name>",
+          "approved": "A approuvé <name>{item}</name>",
+          "changes_requested": "A demandé des modifications sur <name>{item}</name>",
+          "rejected": "A rejeté <name>{item}</name>",
+          "override_approved": "A approuvé son propre <name>{item}</name> (dérogation)",
+          "rebased": "A rebasé <name>{item}</name> de {from} à {to}{conflicts, plural, =0 {} one { (# conflit)} other { (# conflits)}}"
+        },
+        "version": {
+          "published": "A publié <name>{item}</name>{hasTag, select, true { comme <code>{tag}</code>} other {}}",
+          "deprecated": "A déclaré <name>{item}</name> obsolète",
+          "undeprecated": "A retiré l’obsolescence de <name>{item}</name>",
+          "yanked": "A retiré <name>{item}</name>",
+          "unyanked": "A restauré <name>{item}</name> (n’est plus retirée)"
+        },
+        "dist_tag": {
+          "moved": "A déplacé <code>{tag}</code> de <name>{item}</name>{hasFrom, select, true { de {from} à {to}} other { vers {to}}}",
+          "removed": "A retiré <code>{tag}</code> de <name>{item}</name>"
+        },
+        "pin": {
+          "added": "A épinglé <name>{item}</name>{shelf, select, workspace { dans l’espace de travail <name>{workspace}</name>} other { dans Commencez ici}}",
+          "removed": "A désépinglé <name>{item}</name>{shelf, select, workspace { de l’espace de travail <name>{workspace}</name>} other { de Commencez ici}}",
+          "reordered": "A déplacé <name>{item}</name>{direction, select, up { vers le haut} other { vers le bas}}{shelf, select, workspace { dans l’espace de travail <name>{workspace}</name>} other { dans Commencez ici}}"
+        },
+        "feedback": {
+          "handled": "A marqué un message de commentaires comme traité",
+          "deleted": "A supprimé un message de commentaires"
+        },
+        "settings": {
+          "two_factor_policy": "A changé qui doit utiliser la double authentification, de {from} à {to}",
+          "usage_policy": "A changé la politique d’utilisation, de {from} à {to}",
+          "usage_minimum": "A changé le minimum d’utilisation, de {from} à {to}",
+          "retention": "A changé la conservation : {changes}",
+          "notice": "A changé l’avis de l’instance : {changes}"
+        }
+      }
     }
   }
 }

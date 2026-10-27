@@ -152,3 +152,38 @@ Witnessed: 2026-10-27 11:28 EDT, by a fresh agent (third check, row 6 only). Com
 **Overall:** met.
 
 Row 11 of the first pass is not a claim of work done: the witness only noted that the timestamp code is unchanged in the diff.
+
+## Task 6 — The Audit log: the sentences
+
+Witnessed: 2026-10-27 11:45 EDT, by a fresh agent (blind). Commit: f646c3ef plus the uncommitted tree. Machine: macOS (Darwin 27.0.0), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The task's own tests pass | yes | confirmed | `vitest run --project unit src/features/admin-audit src/i18n` → 20 files, 378 passed |
+| 2 | A test covers every event type the server writes, in three languages, and the list comes from the audit domain | yes | confirmed | `AUDIT_ACTIONS` is the source; adding `"instance.brand_new"` to it → 5 tests failed; restored |
+| 3 | English is word for word what it was, but for the two deliberate changes (curly apostrophes, grouped numbers) | yes | confirmed | Old `summarize` against the new for 91 actions, 7 metadata bags, 1274 cases → 0 real differences |
+| 3b | A committed test pins the English of every action | yes | partly | About 42 of 91 actions had a literal assertion |
+| 4 | Counts of 0, 1 and 2 follow each language's plural rule | yes | confirmed | Sessions and conflicts in en, pt, fr; 0 is singular in pt and fr |
+| 5 | An unknown action or code shows its code; names that look like placeholders show as typed | yes | confirmed | `__proto__`, `constructor`, `toString`, `user.archived` → raw code or "action (user)" |
+| 6 | One ICU message per action, with `select` for the optional parts | yes | confirmed | `audit.sentences.actions` in the three files; builders only read metadata into values |
+| 7 | "Never fragments joined in code" | yes | partly | The ended list, the counts, the details and the change lists are joined in code |
+| 8 | The pt and fr sentences read naturally | yes | confirmed | All read; small nits only |
+| 9 | Mutations fail the tests | yes | confirmed | Five pt/fr mutations each failed two tests; restored |
+| 10 | `AUDIT_ACTIONS` is the source of the list | yes | confirmed | See row 2 |
+
+**Overall:** not met (rows 3b, 7).
+
+The work after this pass: `english-sentences.fixture.json` (the old output for every action, empty and rich bag) and a test comparing the new English to it; the colon of "provider updated" moved into the message (a space before it in French); SPEC.md Behaviour reworded to name the lists code joins. Four more checks followed, each on the rows that were not confirmed, and each found something small to name:
+
+- Re-check: 3b confirmed (91 actions, 177 of 182 comparisons identical, the 5 differences are the 3 apostrophes and 2 number groups); `auth_provider_updated`'s colon confirmed in all three languages; the spec wording partly (four joins not named).
+- Third check: 3c confirmed (pt left in English fails `admin-untranslated` and `sentences`; a missing `{provider}` placeholder fails the parity test; changes of pt/fr wording that stay translated are not pinned, by design: the native review is 133); the wording partly (the provider-update separator, `via()`'s space and the restored time format not named).
+- Fourth check: the wording partly (the token expiry date, `@scope`, `name@version` and the unknown-event fallback not named).
+- Fifth check: the wording partly (the brackets around "(nothing left)" alone).
+
+Witnessed: 2026-10-27, by a fresh agent (blind, read-only, the wording row of the last round). Commit: f646c3ef plus the uncommitted tree. Machine: macOS (Darwin), Node not run.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 7c | The SPEC bullets on audit sentences name every code-owned format in `summary.ts`, including the one around "nothing left" | yes | confirmed | Read `summary.ts` and the bullet: `ended()` list (:69), `via()` space (:75), `name@version` (:83), `@scope` (:86), token expiry (:98), restored time (:166), provider-update ", " (:176), SCIM "and" (:208), deleted-workspace list (:310), moved-scope counts (:365), draft details (:377), retention (:456) and notice (:472) lists, unknown-event fallback (:501), "(nothing left)" (:146); a re-scan found nothing else |
+
+**Overall:** met.

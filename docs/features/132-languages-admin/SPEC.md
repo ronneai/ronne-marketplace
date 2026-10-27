@@ -71,9 +71,17 @@ changes.
 - **Audit sentences are messages, not joined pieces.** Each event type has one ICU message with
   its names as placeholders (`{actor}`, `{scope}`); the names stay data and link where they did
   (`SummaryPart`). Where a sentence had optional parts (via SSO, a reason, a policy), the message
-  takes a `select` on a code, never fragments joined in code.
+  takes a `select` on a code, never fragments joined in code. The exception is what code puts between translated
+  pieces and around recorded data: the space, brackets and commas of the short list some sentences
+  end with ("(2 sessions ended, 1 token revoked)", or "(nothing left)" alone, a moved scope's counts, a draft's type and files,
+  a deleted workspace's members and move requests) and of the changes of the retention, of the
+  notice and of a provider update; the language's "and" between the fields a SCIM user update
+  changed; the space that opens "from the command line" and the like; and the identifiers and
+  dates written the same in every language: `@scope`, `name@version`, the `YYYY-MM-DD` of a token's
+  expiry and the `YYYY-MM-DD HH:MM` of a restored backup's time. Each item of a list is itself a
+  message with its plural.
 - **An unknown audit event type** (a new one from a later feature, or a stored one with no
-  message) shows its type code as it did; never blank.
+  message) shows its type code and its target type, `user.archived (user)`, as it did; never blank.
 - **The setup wizard** works with no database and no user: its messages load from files only,
   and a person with no cookie gets the browser's language, then English.
 - **Errors.** A known error shows its translation; an error with no translation shows the

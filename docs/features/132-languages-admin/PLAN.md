@@ -51,11 +51,15 @@ Every task that moves a folder adds it to the `overrides` entry in `biome.json` 
   fails when any pt or fr `admin` message equals its English one (a SAME table lists the words that
   really are the same); it covers the tasks that follow.
 
-- [ ] **6. The Audit log: the sentences.** `summary.ts` as ICU messages, one per event type, with
+- [x] **6. The Audit log: the sentences.** `summary.ts` as ICU messages, one per event type, with
   names as data and `select` for the optional parts (via, reason, policy, SCIM refusal).
   *Done when:* a test that every event type the server writes has a message in all three
   languages (the list comes from the audit domain, so a new type fails the test); 0/1/2 counts;
   an unknown type shows its code; the English text is word for word what it was (a snapshot).
+  *Note:* the snapshot is `english-sentences.fixture.json`, the output of the old code for every
+  action; the two deliberate English changes are curly apostrophes and numbers grouped by the
+  language ("1,284 rows"). Names and codes travel through the message as marked text and come back
+  as `SummaryPart`s. The pt and fr wording is first-draft, for 133's native review.
 
 - [ ] **7. Settings: the tabs and Authentication.** The tab names (`tabs.ts`), the sign-in
   methods panel, password policy, two-factor policy, `IdentityProvidersPanel`, `ProviderForm`,

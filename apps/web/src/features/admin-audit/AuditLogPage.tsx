@@ -18,7 +18,7 @@ import { EventDetails, Summary } from "./EventDetails";
 import { EventDialog } from "./EventDialog";
 import { actorLabel } from "./format";
 import { ACTION_OPTIONS, AUDIT_LIST, type AuditListState } from "./list";
-import { summarize, summaryText } from "./summary";
+import { type SummaryPart, summaryText, useSummarize } from "./summary";
 
 /** The filters: one GET form that submits on change, and a chip per active filter. */
 const Filters = ({ state }: { state: AuditListState }) => {
@@ -96,7 +96,11 @@ const Filters = ({ state }: { state: AuditListState }) => {
 
 type AuditT = ReturnType<typeof useTranslations<"admin.audit">>;
 
-const columns = (state: AuditListState, t: AuditT): Column<AuditEvent, "time" | "action">[] => [
+const columns = (
+  state: AuditListState,
+  t: AuditT,
+  summarize: (event: AuditEvent) => SummaryPart[],
+): Column<AuditEvent, "time" | "action">[] => [
   {
     id: "time",
     header: t("columns.time"),
@@ -173,6 +177,7 @@ export const AuditLogPage = ({
   selected?: AuditEvent | "missing";
 }) => {
   const t = useTranslations("admin.audit");
+  const summarize = useSummarize();
   const closeHref = listUrl(AUDIT_LIST, state);
   return (
     <>
@@ -190,7 +195,7 @@ export const AuditLogPage = ({
       <DataTable
         list={AUDIT_LIST}
         state={state}
-        columns={columns(state, t)}
+        columns={columns(state, t, summarize)}
         rows={events}
         rowKey={(event) => event.id}
         page={page}

@@ -24,6 +24,8 @@ const flat = (value: string | Tree, prefix = ""): Record<string, string> =>
  * where it does, so a new one is a decision made here.
  */
 const SAME: Record<string, readonly string[]> = {
+  "audit.sentences.parts.roles.root": ["pt", "fr"],
+  "audit.sentences.parts.roles.admin": ["pt", "fr"],
   "pages.area": ["pt", "fr"],
   "users.roleHover": ["pt"],
   "workspaceRows.roles.admin": ["pt", "fr"],
