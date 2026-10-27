@@ -50,7 +50,15 @@ jobs:
       # Chromium, and WebKit for the iOS Safari phone project (065; dependency exception E-5), from
       # Playwright's own download, with the system libraries they need. This is the only step that
       # fetches browsers: installing @playwright/test runs no scripts.
-      - run: pnpm --filter @ronneai/web exec playwright install --with-deps chromium webkit
+      # A normal install takes under a minute, but Ubuntu's mirror sometimes stalls it until the job
+      # limit (4 times on 2026-10-26, docs/knowledge/ci-runner-and-mirror-stalls.md). Each try gets
+      # 5 minutes and apt keeps the packages it already downloaded, so the next try is shorter.
+      - run: |
+          for attempt in 1 2 3; do
+            timeout 300 pnpm --filter @ronneai/web exec playwright install --with-deps chromium webkit && exit 0
+            echo "::warning::Playwright install try $attempt of 3 failed or timed out"
+          done
+          exit 1
         if: inputs.run != 'false'
       # Builds the web app, sets up a throwaway SQLite instance and runs this half of the tests
       # (apps/web/e2e). Each half has its own instance: no test relies on another's data.
