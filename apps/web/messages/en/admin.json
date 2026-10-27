@@ -1,4 +1,11 @@
 {
+  "pages": {
+    "area": "Admin",
+    "users": "Users",
+    "user": "User",
+    "audit": "Audit log",
+    "settings": "Settings"
+  },
   "notice": {
     "tab": "Notice",
     "title": "Instance notice",

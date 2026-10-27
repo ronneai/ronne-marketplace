@@ -628,6 +628,17 @@ describe("the shell in three languages (129)", () => {
       />,
     );
 
+  it("root's Admin links read in each language (132)", () => {
+    expectAll(
+      {
+        en: ["Users", "Audit log", "Settings"],
+        pt: ["Usuários", "Registro de auditoria", "Configurações"],
+        fr: ["Utilisateurs", "Journal d’audit", "Réglages"],
+      },
+      (locale) => sidebar(locale),
+    );
+  });
+
   it("the desktop sidebar: landmarks, groups, links, account menu and version", () => {
     expectAll(
       {

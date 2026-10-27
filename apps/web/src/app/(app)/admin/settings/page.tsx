@@ -17,8 +17,9 @@ import { can } from "@/server/domains/identity/models/permissions";
 import { instanceSettings } from "@/server/domains/settings/actions/settings";
 import { requestHeaders } from "@/server/http/request-headers";
 import { holdPage } from "../../hold";
+import { settingsTitle } from "../metadata";
 
-export const metadata = { title: "Settings · Admin · Ronne AI Marketplace" };
+export const generateMetadata = settingsTitle;
 
 /**
  * Root only (`settings.manage`): anyone else gets a 404. In tabs (122), by `?tab=`: Usage (046's

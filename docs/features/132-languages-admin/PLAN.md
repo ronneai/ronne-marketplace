@@ -11,11 +11,14 @@ Every task that moves a folder adds it to the `overrides` entry in `biome.json` 
 
 ## Tasks
 
-- [ ] **1. Admin shell and namespaces.** The admin layout and overview, page titles through
+- [x] **1. Admin shell and namespaces.** The admin layout and overview, page titles through
   `pageTitle`, the admin navigation; the `admin` namespace grows (its three files), and new
   namespaces `setup` and `audit` are registered if the size calls for them (clear the Vitest
   cache, see the i18n note).
   *Done when:* three-language test of the admin shell; the parity test passes.
+  *Note:* the layout and `/admin` index hold no text and the sidebar's labels were moved in 129, so
+  this task moved the four page titles (`admin/metadata.ts`) and tested the sidebar's Admin links in
+  three languages. No new namespace yet: `admin.json` stays small; task 5 or 6 decides on `audit`.
 
 - [ ] **2. Users: the list and create.** `UsersPage`, its table and filters, `CreateUserDialog`,
   `PasswordChoice`, `OneTimePassword`, `CopyEmailButton`, `list.ts`.

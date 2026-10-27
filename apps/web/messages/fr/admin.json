@@ -1,4 +1,11 @@
 {
+  "pages": {
+    "area": "Admin",
+    "users": "Utilisateurs",
+    "user": "Utilisateur",
+    "audit": "Journal d’audit",
+    "settings": "Réglages"
+  },
   "notice": {
     "tab": "Avis",
     "title": "Avis de l’instance",

@@ -11,8 +11,9 @@ import { can } from "@/server/domains/identity/models/permissions";
 import { listWorkspaces } from "@/server/domains/workspaces/actions/workspaces";
 import { requestHeaders } from "@/server/http/request-headers";
 import { holdPage } from "../../../hold";
+import { adminTitle } from "../../metadata";
 
-export const metadata = { title: "User · Ronne AI Marketplace" };
+export const generateMetadata = adminTitle("user");
 
 /**
  * One user (feature 123), under Users: root only (`users.view`), a 404 for anyone else and for an

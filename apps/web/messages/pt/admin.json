@@ -1,4 +1,11 @@
 {
+  "pages": {
+    "area": "Admin",
+    "users": "Usuários",
+    "user": "Usuário",
+    "audit": "Registro de auditoria",
+    "settings": "Configurações"
+  },
   "notice": {
     "tab": "Comunicado",
     "title": "Comunicado da instância",
