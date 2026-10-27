@@ -12,17 +12,20 @@ test("the Create user dialog's password box fits and is a touch target, in Engli
   baseURL,
 }, testInfo) => {
   await signIn(page, mobileUser(testInfo, "root"));
-  // The Users page is not moved to messages yet, so its button stays English; the dialog's box is not.
-  for (const [locale, box] of [
-    ["en", "Ask them to choose a new password when they sign in"],
-    ["fr", "Leur demander de choisir un nouveau mot de passe à la connexion"],
+  for (const [locale, button, box] of [
+    ["en", "Create user", "Ask them to choose a new password when they sign in"],
+    [
+      "fr",
+      "Créer un utilisateur",
+      "Leur demander de choisir un nouveau mot de passe à la connexion",
+    ],
   ] as const) {
     if (locale === "fr")
       await page
         .context()
         .addCookies([{ name: "ronne-locale", value: locale, url: baseURL ?? "/" }]);
     await page.goto("/admin/users");
-    await page.getByRole("button", { name: "Create user" }).first().click();
+    await page.getByRole("button", { name: button }).first().click();
     const dialog = page.getByRole("dialog");
     const checkbox = dialog.getByRole("checkbox", { name: box });
     await expect(checkbox).toBeVisible();

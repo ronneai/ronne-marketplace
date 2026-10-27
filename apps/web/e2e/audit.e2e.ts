@@ -116,7 +116,7 @@ test("root reads the audit log: setup, its own sign-in, and a settings change", 
   await main.getByRole("link", { name: "Settings" }).click();
   await choosePolicy(page, "Off");
   // The usage minimum (047): 0 by default; set, saved, then back to 0.
-  const minimum = page.getByLabel("Show an item's usage from");
+  const minimum = page.getByLabel("Show an item’s usage from");
   await expect(minimum).toHaveValue("0");
   const saveMinimum = async (value: string) => {
     await minimum.fill(value);

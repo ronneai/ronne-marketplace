@@ -32,7 +32,7 @@ export const TwoFactorPolicyForm = ({
   return (
     <form action={action} aria-label={t("title")} className="grid gap-4">
       <fieldset className="grid gap-3" aria-describedby="two-factor-policy-hint">
-        <legend className="mb-1 flex items-center gap-2 text-base font-semibold text-fg">
+        <legend className="mb-1 text-base font-semibold text-fg">
           {t("title")} <Help id="two-factor-policy" />
         </legend>
         <p id="two-factor-policy-hint" className="text-sm text-muted">

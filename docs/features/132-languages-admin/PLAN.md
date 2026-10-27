@@ -111,11 +111,17 @@ Every task that moves a folder adds it to the `overrides` entry in `biome.json` 
   namespaces and the workaround that hid the Help buttons is gone). A hybrid pt/fr answer is not
   detectable by a test: the native review (133) reads them.
 
-- [ ] **13. End to end.** An end-to-end test that opens Users, a user's page, Audit log,
+- [x] **13. End to end.** An end-to-end test that opens Users, a user's page, Audit log,
   Settings (each tab) and Scopes in Portuguese and French and sees no English left (core's
   messages and data aside), and the wizard on a fresh instance in the browser's language; the
   phone sweep passes in each language.
   *Done when:* the e2e project runs green (chromium and phone) on a fresh build.
+  *Note:* new `e2e/languages-admin.e2e.ts` and `e2e/setup-wizard-languages.e2e.ts` (a root of its own,
+  `adminLanguages`); older e2e that read the changed English were updated (curly apostrophes), and
+  the Create-user phone test now uses the French button. The first full run found a real layout
+  problem (the two-factor heading widened `/admin/settings` past a 320px phone in Portuguese), fixed
+  by dropping the heading's flex layout. The scan in the older language specs (browse, author)
+  still splits on newlines only, so it misses table cells; a follow-up for 133.
 
 - [ ] **14. Documentation and records.** The Portuguese and French pages in ronne-web name the
   labels as the app does (branch `feat/132-languages-admin`); the glossary; the index row set

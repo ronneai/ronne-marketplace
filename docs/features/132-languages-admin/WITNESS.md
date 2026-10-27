@@ -365,3 +365,28 @@ Witnessed: 2026-10-27, by a fresh agent (blind, re-check of rows 3 and 8). Commi
 | 8d | A hybrid answer (part English, part translated) is not detectable by any test, here or in the other namespaces, and is left to the native review (feature 133) | yes | confirmed | No test catches it; the whole-text checks only fail when the text equals the English |
 
 **Overall:** met.
+
+## Task 13 — End to end
+
+Witnessed: 2026-10-27 EDT, by a fresh agent (blind). Commit: 7ad1d25c plus the uncommitted tree. Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The e2e files run green on a fresh build: chromium and phone | yes | confirmed | `pnpm build` then `playwright test` on `languages-admin`, `setup-wizard-languages`, `setup-wizard`, `setup-nojs`, `languages-browse` and `mobile-sweep.mobile` → 61 passed across chromium, phone, phone-webkit, tablet, wizard and wizard-nojs; a full run before it had shown 14 failures, all in older tests whose English changed (curly apostrophes, the Users page's button now translated) and one real layout fix (see below) |
+| 2 | Users, a user's page, Audit log and every Settings tab show no English left in pt and fr | yes | partly | Hard-coding `Actor` in a filter label made the Audit tests fail; hard-coding the column header did not: the scan split the page text on newlines only, and table cells are tab-joined |
+| 3 | `/setup`, `/admin/users`, `/admin/users/[id]`, `/admin/audit` and `/admin/settings` are in `MIGRATED_ROUTES`, and the sweep runs them in pt and fr | yes | confirmed | `e2e/pages.ts:211-216`; the sweep filters `SWEEP_PAGES` by `MIGRATED_ROUTES`; "in pt:" and "in fr:" pass for root, member, moderator and signed out on phone, phone-webkit and tablet; `grep UNTIL_132 e2e` → none |
+| 4 | The wizard on a fresh instance shows in the browser's language, with no database and no user | yes | confirmed | `setup-wizard-languages.e2e.ts`: `/` redirects to `/setup`, `html lang`, heading, warning and the scan on each of the three steps; both tests pass |
+| 5 | The new files run in the right order and do not race | yes | confirmed | `workers: 1`, `fullyParallel: false`; the languages file sorts before the English install and only reads |
+| 6 | The new root `adminLanguages` is seeded and signs in once | yes | confirmed | `users.ts` adds it to `E2E_USERS`, `E2E_NAMES` and `E2E_ROOTS`; `beforeAll` signs in once and reuses `storageState` |
+
+**Overall:** not met (row 2).
+
+The work after this pass: both new specs split the page text on tabs as well as newlines.
+
+Witnessed: 2026-10-27, by a fresh agent (blind, re-check of row 2). Commit: 7ad1d25c plus the uncommitted tree. Machine: macOS (Darwin), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 2 | The `noEnglish` scan now sees English in table headers and cells, so a hard-coded English string in a table fails the Audit and Users tests | yes | confirmed | Hard-coding `header: "Actor"` in `AuditLogPage.tsx` failed the Audit test in pt and fr listing `admin.audit.columns.actor`; hard-coding "Never" in `NeverSignedIn` failed the Users test listing `admin.users.never`; restored, `cmp` identical, rebuilt, 6 passed |
+
+**Overall:** met.

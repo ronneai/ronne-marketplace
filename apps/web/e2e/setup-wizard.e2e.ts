@@ -16,7 +16,7 @@ test("sets the instance up from the browser, then signs in", async ({ page, requ
   expect((await request.get("/api/v1/me")).status()).toBe(503);
 
   // Before the install, the page says the instance isn't set up, and warns who can finish it.
-  const notSetUp = page.getByText("This instance isn't set up yet", { exact: false });
+  const notSetUp = page.getByText("This instance isn’t set up yet", { exact: false });
   const warning = page.getByText("Anyone who can open this page can set the instance up");
   await expect(notSetUp).toBeVisible();
   await expect(warning).toBeVisible();

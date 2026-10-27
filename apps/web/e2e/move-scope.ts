@@ -70,7 +70,7 @@ export const moveScopes = async (
   await owner.getByRole("button", { name: `Move @${scope}`, exact: true }).click();
   const ask = owner.getByRole("dialog", { name: `Move @${scope}` });
   await ask.getByLabel("Where to").selectOption(team);
-  await expect(ask.getByText(`${team}'s admins or root will answer.`)).toBeVisible();
+  await expect(ask.getByText(`${team}’s admins or root will answer.`)).toBeVisible();
   await expect(ask.getByText("Who will see them:")).toBeVisible();
   await ask.getByLabel("Message (optional)").fill("Our team runs these now.");
   await fits(owner, "the Move dialog");
