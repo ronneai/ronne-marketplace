@@ -156,3 +156,34 @@ Witnessed: 2026-10-27, by a fresh agent (blind). Commit: 4cacab93 plus the uncom
 
 **Overall:** met.
 
+## Task 6 — Documentation links
+
+Witnessed: 2026-10-27 17:30, by a fresh agent (blind). Commit: ec319f21 plus the uncommitted working tree. Machine: macOS (Darwin), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `pnpm docs:links` runs and its parsers read both real topic lists | no | confirmed | 35 topics and 149 sections on each side |
+| 2a | The unit test passes with the sibling present | no | confirmed | 6 tests |
+| 2b | Without the sibling the script says why it skipped | no | confirmed | a copy run where `../ronne-web` is missing printed the reason |
+| 2c | The vitest test also says why it skipped | no | partly | `it.skipIf` with the reason only in a comment |
+| 3 | Renaming a section fails the script, the test and `tsc` | no | confirmed | scopes `names` → `naming` |
+| 4a | Every `docsHref` link is checked against the app's list at compile time | no | confirmed | the rename made `tsc` fail at the call sites |
+| 4b | No Documentation address bypasses `docsHref` | no | partly | `packages/server/src/platform.ts` writes `WINDOWS_HELP` out; nothing checked it |
+| 5 | The website checks each topic and section in en, pt and fr | no | confirmed | `ronne-web` `docs.test.ts`, 9 tests; `--live` adds a per-language check |
+| 6 | `--live` works on the real site | no | confirmed | 105 pages opened, 24 problems: the deployed site is behind the repository |
+| 7 | The runbook items are accurate | no | confirmed | read against `docs-links.js`: the pre-release step is the sibling comparison, the post-release step is `--live` |
+| 8 | The app's topic list equals the website's and no code links to a moved section | no | confirmed | 35 topics each; app tests 1763 passed; lint clean |
+
+**Overall:** not met (rows 2c and 4b).
+
+The work after this pass: the sibling-comparison test's title says SKIPPED and why; `writtenLinkProblems` checks the addresses written out in `packages/*/src`.
+
+Witnessed: 2026-10-27 17:30, by a fresh agent (re-check, rows 2c and 4b). Commit: ec319f21 plus the uncommitted tree. Machine: macOS (Darwin 27), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 2c | The test titles say what is compared, and the sibling-comparison title says SKIPPED when `../ronne-web` is absent | no | confirmed | 8 passed; a copy with a missing sibling gave 7 passed, 1 skipped, titled "SKIPPED: ../ronne-web is not next to this repository, …" |
+| 4b | A bad written address makes the script and the test fail; restored, both pass | no | confirmed | `WINDOWS_HELP` → `#nope`: exit 1 naming `packages/server/src/platform.ts`; unit test 1 failed; restored (git shows no diff), exit 0, lint clean |
+
+**Overall:** met.
+

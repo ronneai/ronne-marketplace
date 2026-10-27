@@ -53,12 +53,20 @@ Follow [`docs/knowledge/i18n.md`](../../knowledge/i18n.md).
   checks each step of the wizard for sideways overflow at 320px, in Portuguese and French. The
   mentions of `MIGRATED_ROUTES` left in feature 132's records are history.
 
-- [ ] **6. Documentation links.** A test (and a script, `pnpm docs:links`) that checks every
+- [x] **6. Documentation links.** A test (and a script, `pnpm docs:links`) that checks every
   `Help` link and every Documentation link in the app against ronne-web's `topics.ts` and pages,
   in the three languages, when `../ronne-web` is present; the release runbook gets the step for
   the deployed site.
   *Done when:* the test passes with the sibling present and says why it skipped without it;
   renaming a section in ronne-web fails it.
+  *Note:* the first run found real drift: the website split Administration (22 October) and
+  Authentication (18 October) into topics of their own, and the app's list still had the old
+  sections, working only through the website's redirects. The app's topic list, its groups and its
+  helper links now follow the website's (`settings`, `notice`, `start-here`, `feedback`, `audit`,
+  `provider-guides`, `scim`, `password-sign-in`). TypeScript already makes every link match the
+  app's list, so the check compares the list with the website's (`pnpm docs:links`; the unit test
+  skips without `../ronne-web`) and `--live` opens the deployed pages. Today `--live` reports pages
+  missing: the deployed site is behind the repository until the release deploys it.
 
 - [ ] **7. Website wording.** In ronne-web (a branch `feat/133-languages-signoff`): the two
   rules in the translation guide; every pt and fr page follows them; the Overview tab, Status

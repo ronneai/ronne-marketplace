@@ -159,32 +159,63 @@ export const TOPICS = [
   },
   {
     slug: "admin",
-    title: "Administration",
+    title: "Users",
     summary:
-      "For roots: finding users, the instance's settings, and reading the audit log of who did what, and when. Workspaces are managed from their own pages.",
-    sections: [
-      { id: "users", title: "Users" },
-      { id: "settings", title: "Settings" },
-      { id: "notice", title: "Notice" },
-      { id: "pins", title: "Start here" },
-      { id: "feedback", title: "Feedback" },
-      { id: "audit", title: "Audit log" },
-    ],
+      "For roots: finding users, creating accounts, and everything on a user's page. Workspaces are managed from their own pages.",
+    sections: [{ id: "users", title: "Users" }],
+  },
+  {
+    slug: "settings",
+    title: "Settings",
+    summary:
+      "Root's settings for the instance, in five tabs: usage reporting, the plugin feeds, how people sign in, how long personal data is kept, and the notice.",
+    sections: [{ id: "settings", title: "Settings" }],
+  },
+  {
+    slug: "notice",
+    title: "Notice",
+    summary:
+      "One message root shows under the header of every page people see once signed in, such as a maintenance window: what it may hold, its tone, and when it shows again after someone closes it.",
+    sections: [{ id: "notice", title: "Notice" }],
+  },
+  {
+    slug: "start-here",
+    title: "Start here",
+    summary:
+      "The shelf on everyone's Home that root fills with the items to try first on this instance.",
+    sections: [{ id: "pins", title: "Start here" }],
+  },
+  {
+    slug: "feedback",
+    title: "Feedback",
+    summary:
+      "Root's inbox for what people send with Send feedback: reading it, marking it handled, deleting it, and how long it is kept.",
+    sections: [{ id: "feedback", title: "Feedback" }],
+  },
+  {
+    slug: "audit",
+    title: "Audit log",
+    summary:
+      "Who did what, and when: what the audit log records, how to filter and sort it, and how to share exactly what you see.",
+    sections: [{ id: "audit", title: "Audit log" }],
   },
   {
     slug: "authentication",
-    title: "Authentication",
+    title: "Identity providers",
     summary:
-      "Signing in with your company's identity provider: setting one up, mapping groups to workspace roles, the password rule, and what to do when a provider breaks.",
+      "Signing in with your company's identity provider: how it fits together, adding and testing a provider, and giving workspace roles from its groups.",
     sections: [
       { id: "overview", title: "How it fits together" },
       { id: "providers", title: "Adding a provider" },
       { id: "groups", title: "Groups and workspace roles" },
-      { id: "scim", title: "Provisioning with SCIM" },
-      { id: "scim-groups", title: "SCIM groups and workspace roles" },
-      { id: "scim-endpoints", title: "SCIM endpoints" },
-      { id: "password-policy", title: "Password sign-in" },
-      { id: "lockout", title: "Lockout and broken providers" },
+    ],
+  },
+  {
+    slug: "provider-guides",
+    title: "Provider guides",
+    summary:
+      "The steps at each identity provider the presets cover: Google Workspace, Microsoft Entra ID, Okta, Keycloak, authentik, Auth0, and any other OpenID Connect provider.",
+    sections: [
       { id: "google", title: "Google Workspace" },
       { id: "entra", title: "Microsoft Entra ID" },
       { id: "okta", title: "Okta" },
@@ -192,6 +223,36 @@ export const TOPICS = [
       { id: "authentik", title: "authentik" },
       { id: "auth0", title: "Auth0" },
       { id: "other-oidc", title: "Other OpenID Connect" },
+    ],
+  },
+  {
+    slug: "scim",
+    title: "Provisioning with SCIM",
+    summary:
+      "The identity provider creates, updates and deprovisions accounts and keeps workspace roles in step with its groups: what to check first, the token, the steps at each provider, and the endpoints Ronne serves.",
+    sections: [
+      { id: "scim", title: "Provisioning with SCIM" },
+      { id: "scim-before", title: "Before you turn it on" },
+      { id: "scim-token", title: "Turning it on, and the token" },
+      { id: "scim-accounts", title: "What the provider does to accounts" },
+      { id: "scim-groups", title: "SCIM groups and workspace roles" },
+      { id: "scim-entra", title: "Microsoft Entra ID" },
+      { id: "scim-okta", title: "Okta" },
+      { id: "scim-authentik", title: "authentik" },
+      { id: "scim-keycloak", title: "Keycloak" },
+      { id: "scim-auth0", title: "Auth0" },
+      { id: "scim-other", title: "Other providers" },
+      { id: "scim-endpoints", title: "SCIM endpoints" },
+    ],
+  },
+  {
+    slug: "password-sign-in",
+    title: "Password sign-in and lockout",
+    summary:
+      "Who may still sign in with a password once a provider is on, and how root gets back in when a provider breaks or can't be trusted.",
+    sections: [
+      { id: "password-policy", title: "Password sign-in" },
+      { id: "lockout", title: "Lockout and broken providers" },
     ],
   },
   {
@@ -343,9 +404,14 @@ export type SectionOf<T extends TopicSlug> = Extract<Topic, { slug: T }>["sectio
 
 /** How the Documentation's menu groups the topics, in order (owner's request, 2026-09-28). */
 export const TOPIC_GROUPS: { label: string; topics: readonly TopicSlug[] }[] = [
+  { label: "Getting started", topics: ["overview", "install", "update", "roles", "account"] },
   {
-    label: "Getting started",
-    topics: ["overview", "install", "update", "roles", "account", "admin", "authentication"],
+    label: "Authentication",
+    topics: ["authentication", "provider-guides", "scim", "password-sign-in"],
+  },
+  {
+    label: "Administration",
+    topics: ["admin", "settings", "notice", "start-here", "feedback", "audit"],
   },
   {
     label: "Installing items",

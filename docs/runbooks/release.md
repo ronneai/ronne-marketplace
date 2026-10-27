@@ -26,6 +26,11 @@ until you approve its "npm" environment.
       upload, an item type or a feed updated it, and its known gaps are current. Change its date and
       commit at the top when you check it.
 
+- [ ] The Documentation matches the app (feature 133). With `../ronne-web` checked out on the
+      branch that goes with this release, `pnpm docs:links` finds no difference between the app's
+      topics and sections and the website's (a topic or section added or renamed on one side is
+      changed on the other, [`docs/knowledge/i18n.md`](../knowledge/i18n.md)).
+
 **The version:**
 
 - [ ] A new version: a tag whose GitHub release already exists only re-runs the npm and image steps
@@ -61,6 +66,9 @@ until you approve its "npm" environment.
       release has the four npm tarballs, `install.sh`, the four `rmk-server-X.Y.Z-*`
       archives, the four Linux packages (`.deb` and `.rpm`, amd64 and arm64) and `checksums.txt`. Its notes name the bundles' Node.js version and their glibc
       2.34 requirement.
+- [ ] Once the website carries this version's Documentation, `pnpm docs:links --live` opens every
+      topic page in English, Portuguese and French and looks for every section the app links to; it
+      lists whatever is missing. Fix the website, not the app, if a page is not there yet.
 - [ ] A package's first release needs a short-lived `NPM_TOKEN` in the "npm" environment, since a
       trusted publisher can only be set on a package that exists. Link it on npmjs.com to this
       repository, `release.yml` and the "npm" environment, then delete the token.

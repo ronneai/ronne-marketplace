@@ -66,7 +66,7 @@ export const HELP = {
     href: docsHref("workspaces", "pins"),
   },
   "feedback-who": {
-    href: docsHref("admin", "feedback"),
+    href: docsHref("feedback", "feedback"),
   },
   "install-tick": {
     href: docsHref("overview", "getting-started"),
@@ -108,10 +108,10 @@ export const HELP = {
     href: docsHref("rmk", "tokens"),
   },
   "scim-provider": {
-    href: docsHref("authentication", "scim"),
+    href: docsHref("scim", "scim"),
   },
   "scim-managed": {
-    href: docsHref("authentication", "scim"),
+    href: docsHref("scim", "scim"),
   },
   "device-code": {
     href: docsHref("rmk", "web"),
@@ -192,7 +192,7 @@ export const HELP = {
     href: docsHref("authentication", "groups"),
   },
   "password-lockout": {
-    href: docsHref("authentication", "lockout"),
+    href: docsHref("password-sign-in", "lockout"),
   },
   "backup-codes-once": {
     href: docsHref("account", "two-factor"),
@@ -201,7 +201,7 @@ export const HELP = {
     href: docsHref("account", "two-factor"),
   },
   "two-factor-policy": {
-    href: docsHref("admin", "settings"),
+    href: docsHref("settings", "settings"),
   },
   "reset-two-factor": {
     href: docsHref("admin", "users"),
@@ -213,10 +213,10 @@ export const HELP = {
     href: docsHref("privacy", "erase"),
   },
   notice: {
-    href: docsHref("admin", "notice"),
+    href: docsHref("notice", "notice"),
   },
   "notice-tone": {
-    href: docsHref("admin", "notice"),
+    href: docsHref("notice", "notice"),
   },
   language: {
     href: docsHref("account", "language"),
@@ -240,13 +240,13 @@ export const HELP = {
     href: docsHref("install", "root"),
   },
   "audit-summary": {
-    href: docsHref("admin", "audit"),
+    href: docsHref("audit", "audit"),
   },
   "audit-incident": {
     href: docsHref("incidents", "incidents"),
   },
   "audit-actor": {
-    href: docsHref("admin", "audit"),
+    href: docsHref("audit", "audit"),
   },
 } as const satisfies Record<string, { href: string }>;
 

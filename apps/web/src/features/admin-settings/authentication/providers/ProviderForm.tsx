@@ -54,8 +54,8 @@ export const ProviderFormMessages = ({ state }: { state: ProviderFormState }) =>
   ) : null;
 };
 
-/** Each preset's guide in the Documentation's Authentication topic. */
-const PRESET_GUIDES: Record<string, SectionOf<"authentication">> = {
+/** Each preset's guide in the Documentation's Provider guides topic. */
+const PRESET_GUIDES: Record<string, SectionOf<"provider-guides">> = {
   google: "google",
   entra: "entra",
   okta: "okta",
@@ -66,8 +66,10 @@ const PRESET_GUIDES: Record<string, SectionOf<"authentication">> = {
 };
 
 /** The Documentation's guide for a preset; the topic's providers section for one it lacks. */
-export const presetGuide = (presetId: string): string =>
-  docsHref("authentication", PRESET_GUIDES[presetId] ?? "providers");
+export const presetGuide = (presetId: string): string => {
+  const guide = PRESET_GUIDES[presetId];
+  return guide ? docsHref("provider-guides", guide) : docsHref("authentication", "providers");
+};
 
 /** The setup steps for the chosen preset, numbered, the redirect URI first with Copy. */
 export const ProviderSteps = ({
