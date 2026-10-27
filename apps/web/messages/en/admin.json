@@ -455,5 +455,55 @@
     "moving": "Moving to {workspace}",
     "cancelled": "Cancelled",
     "cancelMove": "Cancel the move to {workspace}"
+  },
+  "audit": {
+    "title": "Audit log",
+    "description": "Who did what, and when. Open an event for every detail.",
+    "filters": {
+      "action": "Action",
+      "allActions": "All actions",
+      "all": "All {group}",
+      "actor": "Actor",
+      "actorPlaceholder": "Email, or system",
+      "from": "From (UTC)",
+      "to": "To (UTC)",
+      "apply": "Filter"
+    },
+    "chips": {
+      "action": "Action",
+      "actor": "Actor",
+      "from": "From",
+      "to": "To"
+    },
+    "columns": {
+      "time": "Time",
+      "actor": "Actor",
+      "event": "Event"
+    },
+    "detailsLink": "Details: {summary}",
+    "detailsTitle": "Details",
+    "missing": "That event doesn’t exist.",
+    "empty": {
+      "none": "No events yet.",
+      "filtered": "No events match these filters."
+    },
+    "dialog": {
+      "title": "Event details",
+      "close": "Close"
+    },
+    "details": {
+      "when": "When",
+      "actor": "Actor",
+      "action": "Action",
+      "target": "Target",
+      "ip": "IP address",
+      "details": "Details",
+      "eventId": "Event id",
+      "rawJson": "Raw JSON",
+      "copyJson": "Copy JSON",
+      "openUser": "Open the user",
+      "openSubmission": "Open the submission",
+      "openItem": "Open the item"
+    }
   }
 }

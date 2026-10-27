@@ -455,5 +455,55 @@
     "moving": "Déplacement vers {workspace}",
     "cancelled": "Annulé",
     "cancelMove": "Annuler le déplacement vers {workspace}"
+  },
+  "audit": {
+    "title": "Journal d’audit",
+    "description": "Qui a fait quoi, et quand. Ouvrez un événement pour tous les détails.",
+    "filters": {
+      "action": "Action",
+      "allActions": "Toutes les actions",
+      "all": "Toutes : {group}",
+      "actor": "Auteur",
+      "actorPlaceholder": "Courriel, ou system",
+      "from": "Du (UTC)",
+      "to": "Au (UTC)",
+      "apply": "Filtrer"
+    },
+    "chips": {
+      "action": "Action",
+      "actor": "Auteur",
+      "from": "Du",
+      "to": "Au"
+    },
+    "columns": {
+      "time": "Heure",
+      "actor": "Auteur",
+      "event": "Événement"
+    },
+    "detailsLink": "Détails : {summary}",
+    "detailsTitle": "Détails",
+    "missing": "Cet événement n’existe pas.",
+    "empty": {
+      "none": "Aucun événement pour l’instant.",
+      "filtered": "Aucun événement ne correspond à ces filtres."
+    },
+    "dialog": {
+      "title": "Détails de l’événement",
+      "close": "Fermer"
+    },
+    "details": {
+      "when": "Quand",
+      "actor": "Auteur",
+      "action": "Action",
+      "target": "Cible",
+      "ip": "Adresse IP",
+      "details": "Détails",
+      "eventId": "ID de l’événement",
+      "rawJson": "JSON brut",
+      "copyJson": "Copier le JSON",
+      "openUser": "Ouvrir l’utilisateur",
+      "openSubmission": "Ouvrir la soumission",
+      "openItem": "Ouvrir l’élément"
+    }
   }
 }

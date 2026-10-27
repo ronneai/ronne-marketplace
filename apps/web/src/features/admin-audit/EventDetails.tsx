@@ -1,5 +1,6 @@
 import { parseItemName } from "@ronneai/core";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import { itemPath } from "@/components/catalogue/ItemCard";
 import { Badge } from "@/components/ui/Badge";
@@ -34,12 +35,13 @@ export const Summary = ({ parts }: { parts: SummaryPart[] }) => (
 
 const linkClass = "text-link underline-offset-2 hover:underline";
 
-const OPEN_LABELS: Record<string, string> = {
-  user: "Open the user",
-  submission: "Open the submission",
-  item: "Open the item",
-  item_version: "Open the item",
-};
+/** Which message words the link to a target of each type: the types `targetHref` has a page for. */
+const OPEN_KEYS = {
+  user: "openUser",
+  submission: "openSubmission",
+  item: "openItem",
+  item_version: "openItem",
+} as const;
 
 /** A user's page (123): the account an event names, as its actor or as its target. */
 const userHref = (id: string): string => `/admin/users/${id}`;
@@ -72,6 +74,7 @@ const Row = ({ term, children }: { term: string; children: ReactNode }) => (
 
 /** Everything recorded about one event (060), for its dialog. */
 export const EventDetails = ({ event }: { event: AuditEvent }) => {
+  const t = useTranslations("admin.audit.details");
   const href = targetHref(event);
   const target =
     event.targetType === "none" ? (
@@ -85,7 +88,7 @@ export const EventDetails = ({ event }: { event: AuditEvent }) => {
         ) : null}
         {href ? (
           <Link href={href} className={`${linkClass} block text-sm`}>
-            {OPEN_LABELS[event.targetType] ?? "Open"}
+            {t(OPEN_KEYS[event.targetType as keyof typeof OPEN_KEYS])}
           </Link>
         ) : null}
       </>
@@ -94,34 +97,34 @@ export const EventDetails = ({ event }: { event: AuditEvent }) => {
   return (
     <div className="grid gap-4">
       <dl className="grid grid-cols-[8rem_minmax(0,1fr)] gap-x-4 gap-y-2.5 text-sm">
-        <Row term="When">
+        <Row term={t("when")}>
           <LocalTime value={event.createdAt} precision="second" />
           <span className="block font-mono text-xs text-muted">
             {utcText(event.createdAt, "second")}
           </span>
         </Row>
-        <Row term="Actor">
+        <Row term={t("actor")}>
           {actorLabel(event)}
           {event.actorId ? (
             <>
               <span className="block font-mono text-xs text-muted">{event.actorId}</span>
               <Link href={userHref(event.actorId)} className={`${linkClass} block text-sm`}>
-                Open the user
+                {t("openUser")}
               </Link>
             </>
           ) : null}
         </Row>
-        <Row term="Action">
+        <Row term={t("action")}>
           <Badge>{event.action}</Badge>
           <span className="mt-1 block">
             <Summary parts={summarize(event)} />
           </span>
         </Row>
-        <Row term="Target">{target}</Row>
-        <Row term="IP address">
+        <Row term={t("target")}>{target}</Row>
+        <Row term={t("ip")}>
           <span className="font-mono text-[13px]">{event.ipAddress ?? "—"}</span>
         </Row>
-        <Row term="Details">
+        <Row term={t("details")}>
           {pairs.length === 0 ? (
             "—"
           ) : (
@@ -135,16 +138,16 @@ export const EventDetails = ({ event }: { event: AuditEvent }) => {
             </dl>
           )}
         </Row>
-        <Row term="Event id">
+        <Row term={t("eventId")}>
           <span className="font-mono text-[13px]">{event.id}</span>
         </Row>
       </dl>
       <details className="text-sm">
-        <summary className="cursor-pointer text-muted hover:text-fg">Raw JSON</summary>
+        <summary className="cursor-pointer text-muted hover:text-fg">{t("rawJson")}</summary>
         <div className="mt-2">
           <CopyableCommand
             command={JSON.stringify(event, null, 2)}
-            label="Copy JSON"
+            label={t("copyJson")}
             prompt={false}
             wrap
           />

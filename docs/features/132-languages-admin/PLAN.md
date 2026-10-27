@@ -44,9 +44,12 @@ Every task that moves a folder adds it to the `overrides` entry in `biome.json` 
   ("Personal (1,000+)"), and a stray "(114)" dropped from the not-reviewed sentence. The
   load-failed messages are codes the forms word, so an effect never depends on a translator.
 
-- [ ] **5. The Audit log: the table.** `AuditLogPage`, filters, `EventDialog`, `EventDetails`,
+- [x] **5. The Audit log: the table.** `AuditLogPage`, filters, `EventDialog`, `EventDetails`,
   `format.ts`, `list.ts`, `app/(app)/admin/audit`.
   *Done when:* three-language tests; `/admin/audit` is in `MIGRATED_ROUTES`.
+  *Note:* the event sentences (`summary.ts`) are task 6. A new test, `src/i18n/admin-untranslated.test.ts`,
+  fails when any pt or fr `admin` message equals its English one (a SAME table lists the words that
+  really are the same); it covers the tasks that follow.
 
 - [ ] **6. The Audit log: the sentences.** `summary.ts` as ICU messages, one per event type, with
   names as data and `select` for the optional parts (via, reason, policy, SCIM refusal).

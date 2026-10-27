@@ -118,3 +118,37 @@ Witnessed: 2026-10-27 11:30 EDT, by a fresh agent (third check, row 10 only). Co
 | 10 | The translation tests fail if a pt/fr message goes back to English | yes | confirmed | The test now counts the search word twice (label and button) in the scopes and the workspaces tables; six mutations (pt and fr `admin.scopes.search.label`/`.submit`, pt `admin.workspaces.search.label`/`.submit`) each → 1 failed, 73 passed; unmutated 74 passed; `cmp` identical after each restore |
 
 **Overall:** met.
+
+## Task 5 — The Audit log: the table
+
+Witnessed: 2026-10-27 11:35 EDT, by a fresh agent (blind). Commit: c4673f27 plus the uncommitted tree. Machine: macOS (Darwin 27), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `AuditLogPage` and `EventDetails` read through `admin.audit` | yes | confirmed | `git diff`: every literal replaced by `t(...)`; only the Help ids stay English (task 12) |
+| 2 | `EventDialog`, `format.ts`, `list.ts` and `audit/page.tsx` need no screen-text change | yes | confirmed | Read each: a `title` prop, data and identifiers, no text |
+| 3 | en, pt and fr each have an `audit` block with the same keys | yes | confirmed | `vitest run src/features/admin-audit src/app/pages-coverage.test.ts src/i18n` → 369 passed |
+| 4 | `/admin/audit` is in `MIGRATED_ROUTES` and the pinned list | yes | confirmed | `e2e/pages.ts`, `pages-coverage.test.ts` pass (the sweep runs in task 13) |
+| 5 | The raw-text scan covers `admin-audit/**` and `app/(app)/admin/audit/**` | yes | confirmed | `biome.json`; a raw `<p>` in a scratch file → plugin error; file removed |
+| 6 | Three-language tests exist and fail when a pt/fr message goes back to English | yes | partly | Six mutations failed the suite; pt `dialog.close` and pt `details.open` survived |
+| 7 | Counts of 1 and 2 follow each language's plural rule | yes | confirmed | pt "1 evento", fr "1 événement" and "2 événements"; the empty state stands for 0 |
+| 8 | Names, ids and metadata are shown as recorded | yes | confirmed | `{count} <b>x</b>` escaped and unchanged; `auth.signed_in` stays the code |
+| 9 | English is unchanged | yes | confirmed | `admin-audit.test.tsx`; only "That event doesn’t exist." has a curly apostrophe |
+| 10 | `tsc` and `biome check` are clean | yes | confirmed | No output / "No fixes applied" |
+| 11 | Timestamps keep their numeric form | no | can't check here | `LocalTime` and `utcText` are unchanged in the diff; not rendered in a browser |
+
+**Overall:** not met (row 6; row 11 is a statement that nothing changed, see below).
+
+### Re-check (row 6), two rounds
+
+First re-check (2026-10-27): partly. The unreachable `details.open` message and its `?? "Open"` fallback were removed (`targetHref` only links user, submission, item and item_version, all of which have a word); tests were added for the links, the copy button, the actor placeholder and the no-JavaScript close. Ten of eleven mutations failed the suite; pt `details.openSubmission` survived.
+
+Witnessed: 2026-10-27 11:28 EDT, by a fresh agent (third check, row 6 only). Commit: c4673f27 plus the uncommitted tree. Machine: macOS (Darwin 27), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6 | A pt/fr audit message set back to its English makes a test fail | yes | confirmed | New `src/i18n/admin-untranslated.test.ts` fails when a pt or fr `admin` message equals the English one, except its SAME table (single words, placeholder patterns, symbols: checked, no untranslated sentence). Six mutations (pt `openSubmission`, pt `dialog.title`, fr `columns.actor`, pt `filters.apply`, fr `empty.none`, fr `columns.time`) each failed the run; unmutated 32 passed; `cmp` identical after each restore |
+
+**Overall:** met.
+
+Row 11 of the first pass is not a claim of work done: the witness only noted that the timestamp code is unchanged in the diff.

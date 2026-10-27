@@ -455,5 +455,55 @@
     "moving": "Movendo para {workspace}",
     "cancelled": "Cancelada",
     "cancelMove": "Cancelar a movimentação para {workspace}"
+  },
+  "audit": {
+    "title": "Registro de auditoria",
+    "description": "Quem fez o quê e quando. Abra um evento para ver todos os detalhes.",
+    "filters": {
+      "action": "Ação",
+      "allActions": "Todas as ações",
+      "all": "Todas: {group}",
+      "actor": "Autor",
+      "actorPlaceholder": "E-mail, ou system",
+      "from": "De (UTC)",
+      "to": "Até (UTC)",
+      "apply": "Filtrar"
+    },
+    "chips": {
+      "action": "Ação",
+      "actor": "Autor",
+      "from": "De",
+      "to": "Até"
+    },
+    "columns": {
+      "time": "Hora",
+      "actor": "Autor",
+      "event": "Evento"
+    },
+    "detailsLink": "Detalhes: {summary}",
+    "detailsTitle": "Detalhes",
+    "missing": "Esse evento não existe.",
+    "empty": {
+      "none": "Ainda não há eventos.",
+      "filtered": "Nenhum evento corresponde a estes filtros."
+    },
+    "dialog": {
+      "title": "Detalhes do evento",
+      "close": "Fechar"
+    },
+    "details": {
+      "when": "Quando",
+      "actor": "Autor",
+      "action": "Ação",
+      "target": "Alvo",
+      "ip": "Endereço IP",
+      "details": "Detalhes",
+      "eventId": "ID do evento",
+      "rawJson": "JSON bruto",
+      "copyJson": "Copiar JSON",
+      "openUser": "Abrir o usuário",
+      "openSubmission": "Abrir a submissão",
+      "openItem": "Abrir o item"
+    }
   }
 }

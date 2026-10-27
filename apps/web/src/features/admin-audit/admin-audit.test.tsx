@@ -232,7 +232,7 @@ describe("AuditLogPage (060)", () => {
   });
 
   it("says when the event in the URL doesn't exist", () => {
-    expect(page({ selected: "missing" })).toContain("That event doesn&#x27;t exist.");
+    expect(page({ selected: "missing" })).toContain("That event doesn’t exist.");
   });
 });
 
@@ -281,6 +281,6 @@ describe("/admin/audit page", () => {
       await Page({ searchParams: Promise.resolve({ event: "../../etc" }) }),
     );
     expect(audit.appAuditEvent).not.toHaveBeenCalled();
-    expect(html).toContain("That event doesn&#x27;t exist.");
+    expect(html).toContain("That event doesn’t exist.");
   });
 });
