@@ -45,3 +45,45 @@ Witnessed: 2026-10-27 16:45, by a fresh agent (blind). Commit: b2dc52e0 plus the
 
 **Overall:** met.
 
+## Task 3 — Fragment check
+
+Witnessed: 2026-10-27 16:45, by a fresh agent (blind). Commit: 4a24a7c9 plus the uncommitted new test and allowlist. Machine: macOS (Darwin), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The test passes with the reviewed allowlist | no | confirmed | 5 passed; one entry per locale, each with a reason |
+| 2 | Planting " the " in a pt message fails, naming the key | no | confirmed | plain, inside a plural option and inside a select option |
+| 3 | The same in an fr message, beside a `<code>` tag | no | confirmed | `auth:device.denied: the` |
+| 4 | English inside `<code>` or a `{placeholder}` does not fail | no | confirmed | 5 passed |
+| 5 | "a", "on", "me", "pour" do not fail | no | confirmed | not in the list; the self-test checks a French sentence |
+| 6 | The word list holds no real pt or fr word | no | partly | "more" (pt), "are" and "if" (fr), "must" borderline |
+| 7 | The check catches realistic half-translated messages | no | partly | 1 of 10 invented sentences: only function words were listed |
+| 8 | Each allowlist entry has a reason and still needs it | no | confirmed | the second test |
+| 9 | i18n tests and lint pass | no | confirmed | 355 tests; lint exit 0 |
+
+**Overall:** not met (rows 6 and 7).
+
+The work after this pass: the four words came out and a watch list of product nouns and verbs went in (user, workspace, settings, password, delete, create, update, submit, reset, disable, revoke, rotate, cancel, reviewer); the allowlist grew to 16 pt and 15 fr entries with reasons.
+
+Witnessed: 2026-10-27 16:50, by a fresh agent (blind re-check of rows 6, 7 and a new row 11). Commit: 4a24a7c9 plus the uncommitted tree. Machine: macOS (Darwin 27.0.0).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6 | The word list holds no real pt or fr word | yes | not met | "but" is French ("le but"); the probe flagged "Le but est de réussir" |
+| 7 | The check catches listed words; its limit is that unlisted words are not seen | yes | partly | 10 of 15 new invented sentences caught; the limit not yet documented |
+| 11 | Every allowlist reason is true | yes | partly | two reasons inexact (the command is `reset-root-password`; the hit in rename-workspace is the `--workspace` flag) |
+
+**Overall:** not met.
+
+The work after this pass: "but" removed; "saved rejected failed profile dashboard loading successfully" added; the two reasons corrected; `docs/knowledge/i18n.md` records the check and its limit.
+
+Witnessed: 2026-10-27, by a fresh agent (blind re-check of rows 6, 7 and 11). Commit: 4a24a7c9 plus the uncommitted tree. Machine: macOS (Darwin 27.0.0).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6 | No word in the list is a real pt or fr word | yes | confirmed | every word judged; "reset" and "dashboard" are loanwords not used in any pt or fr message today |
+| 7 | Listed words are caught; the limit is documented | yes | confirmed | 355 tests pass; the self-test; the i18n.md bullet states the limit |
+| 11 | Every allowlist reason is true | yes | confirmed | all keys resolved in both languages and read |
+
+**Overall:** met.
+

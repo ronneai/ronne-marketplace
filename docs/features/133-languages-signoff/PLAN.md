@@ -24,7 +24,7 @@ Follow [`docs/knowledge/i18n.md`](../../knowledge/i18n.md).
   *Done when:* `pnpm lint` passes; a fixture proves a new file in a new folder fails; the
   parity test passes.
 
-- [ ] **3. Fragment check.** A test that lists pt and fr messages containing a run of English
+- [x] **3. Fragment check.** A test that lists pt and fr messages containing a run of English
   function words, with the key and the words, failing unless on `english-fragments.allow.json`
   (a reason per entry). Run it, and settle each hit: fix the message or allow it with a reason.
   *Done when:* the test passes with a reviewed allowlist; planting "the" in a pt message fails
