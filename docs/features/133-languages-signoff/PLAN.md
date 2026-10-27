@@ -10,7 +10,7 @@ Follow [`docs/knowledge/i18n.md`](../../knowledge/i18n.md).
 
 ## Tasks
 
-- [ ] **1. Inventory.** List every file under `apps/web/src` the `biome.json` overrides do not
+- [x] **1. Inventory.** List every file under `apps/web/src` the `biome.json` overrides do not
   reach (`app/layout.tsx`, `app/language`, `app/(app)/current-workspace`, the workspace item
   routes, anything added since 132), with a line each: text to move, or nothing to move. Write it
   in `INVENTORY.md` in this folder.
