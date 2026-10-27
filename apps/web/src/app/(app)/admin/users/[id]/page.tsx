@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { DownloadDataButton } from "@/features/admin-users/DownloadDataDialog";
 import { EraseUserButton } from "@/features/admin-users/EraseUserDialog";
 import { UserPage, type UserPageSlots } from "@/features/admin-users/UserPage";
@@ -26,6 +27,7 @@ const User = async ({ params }: { params: Promise<{ id: string }> }) => {
   const me = await getCurrentUser(request);
   if (!me || !can(me, "users.view")) notFound();
 
+  const t = await getTranslations("admin.userWorkspaces");
   const { id } = await params;
   const detail = await adminGetUser(request, id).catch((error: unknown) => {
     if (error instanceof UserNotFoundError) notFound();
@@ -66,7 +68,7 @@ const User = async ({ params }: { params: Promise<{ id: string }> }) => {
       workspaces:
         user.role === "root" ? undefined : (
           <UserWorkspacesButton user={{ id: user.id, email: user.email }} workspaces={workspaces}>
-            Manage workspaces
+            {t("manage")}
           </UserWorkspacesButton>
         ),
       data: <DownloadDataButton user={{ id: user.id, email: user.email }} />,

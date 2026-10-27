@@ -118,5 +118,147 @@
       "email": "E-mail",
       "password": "Senha"
     }
+  },
+  "userPage": {
+    "back": "← Usuários",
+    "self": {
+      "title": "Esta é a sua própria conta.",
+      "body": "Outro root altera o seu papel, desativa você ou redefine a sua senha. Altere a sua senha em Conta."
+    },
+    "sections": {
+      "account": "Conta",
+      "access": "Acesso e login",
+      "workspaces": "Espaços de trabalho",
+      "data": "Dados da pessoa",
+      "erase": "Apagar esta conta"
+    },
+    "facts": {
+      "email": "E-mail",
+      "name": "Nome",
+      "role": "Papel",
+      "status": "Situação",
+      "created": "Criada em",
+      "language": "Idioma",
+      "lastSignIn": "Último acesso",
+      "provider": "Provedor",
+      "twoFactor": "Dois fatores",
+      "sessions": "Sessões",
+      "tokens": "Tokens de acesso"
+    },
+    "status": {
+      "active": "Ativa",
+      "disabled": "Desativada em <date></date>",
+      "erased": "Apagada em <date></date>"
+    },
+    "badge": {
+      "disabled": "Desativada",
+      "erased": "Apagada"
+    },
+    "automatic": "Automático",
+    "never": "Nunca",
+    "lastSignInHint": "Um acesso ao aplicativo web, com senha, um provedor ou uma segunda etapa. Não vale o rmk nem um token.",
+    "on": "Ativado",
+    "off": "Desativado",
+    "rootEvery": "Root: todos os espaços de trabalho.",
+    "noWorkspaces": "Nenhum.",
+    "dataBody": "Tudo o que a instância guarda sobre a pessoa em um só arquivo: a conta, os nomes dos tokens, submissões, comentários e eventos de auditoria.",
+    "auditLink": "Eventos da pessoa no registro de auditoria",
+    "eraseBody": "Apagar encerra a conta de vez. O e-mail, o nome, os acessos e os tokens somem; os itens publicados e os eventos de auditoria ficam, sob um pseudônimo. Não dá para desfazer."
+  },
+  "actions": {
+    "labels": {
+      "role": "Alterar papel",
+      "reset": "Redefinir senha",
+      "twoFactor": "Redefinir dois fatores",
+      "disable": "Desativar",
+      "enable": "Ativar"
+    },
+    "titles": {
+      "role": "Alterar papel",
+      "disable": "Desativar usuário",
+      "enable": "Ativar usuário",
+      "reset": "Redefinir senha",
+      "twoFactor": "Redefinir dois fatores"
+    },
+    "erasedDownload": "Baixar os dados (conta apagada)",
+    "erasedReason": "Esta conta foi apagada: não há nada da pessoa para baixar.",
+    "erasedAria": "Baixar os dados de {email}: conta apagada",
+    "done": "Concluir",
+    "cancel": "Cancelar",
+    "impactLoading": "Contando as sessões e os tokens…",
+    "impact": "Isto encerra todas as sessões da pessoa ({sessions, plural, one {# sessão} other {# sessões}}) e revoga {tokens, plural, one {# token de acesso} other {# tokens de acesso}}. Ela não consegue entrar até você ativá-la.",
+    "isRoot": "{email} é root.",
+    "enableBody": "A pessoa volta a poder entrar. Os tokens de acesso revogados continuam revogados.",
+    "resetBody": "Isto encerra todas as sessões da pessoa e revoga os tokens de acesso.",
+    "twoFactorBody": "Para celular perdido e códigos de backup perdidos. Isto desliga o login em dois fatores e encerra todas as sessões; a pessoa entra só com a senha e configura de novo se for exigido.",
+    "scimTitle": "{provider} gerencia esta conta por SCIM.",
+    "scimBody": "A próxima sincronização devolve a conta ao que o provedor diz: altere lá também.",
+    "newRole": "Novo papel",
+    "makeRoot": {
+      "title": "Tornar {email} root?",
+      "body": "A pessoa poderá fazer tudo o que você faz, inclusive alterar o seu papel ou desativar você."
+    },
+    "removeRoot": {
+      "title": "Remover o root de {email}?",
+      "body": "A pessoa perde a administração de usuários, os escopos, as configurações e o registro de auditoria na próxima requisição."
+    },
+    "changeRole": "Alterar o papel de <from></from> para <to></to>."
+  },
+  "erase": {
+    "button": "Apagar",
+    "title": "Apagar usuário",
+    "cancel": "Cancelar",
+    "done": "Concluir",
+    "irreversibleTitle": "Não dá para desfazer.",
+    "irreversibleBody": "Apagar é o fim da conta: nada traz a pessoa de volta, e o e-mail antigo fica livre para uma nova conta na hora. Para impedir o acesso sem apagar, desative a conta.",
+    "rootTitle": "{email} é root.",
+    "rootBody": "O papel vai junto com a conta.",
+    "goesHeading": "O que some",
+    "staysHeading": "O que fica, sob o pseudônimo",
+    "goes": {
+      "identity": "O e-mail, o nome e a foto: a conta passa a ser {pseudonym}.",
+      "credentials": "A senha, os vínculos com provedores de identidade e o login em dois fatores.",
+      "sessions": "Todas as sessões, tokens de acesso e aprovações de login do rmk.",
+      "scim": "Os vínculos SCIM, para que a próxima criação do provedor gere uma conta nova.",
+      "memberships": "As participações em espaços de trabalho, os pedidos para entrar em aberto e as movimentações de escopo em aberto.",
+      "drafts": "Os rascunhos, que só a pessoa via.",
+      "ip": "O endereço IP em todos os eventos de auditoria e o e-mail nos detalhes de qualquer evento."
+    },
+    "stays": {
+      "items": "Os itens publicados e todas as versões, mostrados como publicados por {pseudonym}.",
+      "submissions": "As submissões enviadas, aprovadas e rejeitadas, e todos os comentários de revisão.",
+      "audit": "Os eventos de auditoria em que a pessoa aparece, com o pseudônimo como autor.",
+      "workspace": "O espaço de trabalho pessoal, renomeado, quando tem um item publicado ou uma submissão; senão, é apagado."
+    },
+    "reminder": "Nada da pessoa poderá ser lido depois: se ela pediu o que a instância guarda sobre ela, entregue antes. <download>Baixar os dados</download>.",
+    "confirm": "Digite o e-mail da conta para confirmar"
+  },
+  "download": {
+    "button": "Baixar os dados",
+    "title": "Baixar os dados",
+    "close": "Fechar",
+    "download": "Baixar",
+    "body": "O arquivo JSON que a pessoa receberia na página Conta: conta, sessões, nomes dos tokens, espaços de trabalho, itens, submissões, comentários e eventos de auditoria, com os e-mails de outras pessoas substituídos. Conta como o download da pessoa pelos próximos 10 minutos, e o registro de auditoria anota que foi você quem o gerou."
+  },
+  "userWorkspaces": {
+    "title": "Espaços de trabalho de {email}",
+    "loading": "Carregando os espaços de trabalho…",
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "done": "Concluir",
+    "manage": "Gerenciar espaços de trabalho"
+  },
+  "workspaceRows": {
+    "legend": "Espaços de trabalho",
+    "roles": {
+      "user": "Usuário",
+      "moderator": "Moderador",
+      "admin": "Admin"
+    },
+    "workspaceN": "Espaço de trabalho {number, number}",
+    "roleIn": "Papel em {workspace}",
+    "remove": "Remover {workspace}",
+    "always": "Sempre",
+    "add": "Adicionar espaço de trabalho"
   }
 }

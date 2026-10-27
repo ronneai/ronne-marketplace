@@ -212,4 +212,5 @@ export const MIGRATED_ROUTES: ReadonlySet<string> = new Set([
   "/admin/settings",
   "/admin/feedback",
   "/admin/users",
+  "/admin/users/[id]",
 ]);

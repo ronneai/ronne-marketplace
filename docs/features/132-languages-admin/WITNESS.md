@@ -34,6 +34,8 @@ Witnessed: 2026-10-27 EDT, by a fresh agent (blind). Commit: 7cc64645 plus the u
 
 **Overall:** met.
 
+The witness listed the actions' words (task 11) and the Help entries (task 12) as out of scope, as the request said; they are not claims of this task.
+
 ## Task 2 — Users: the list and create
 
 Witnessed: 2026-10-27 about 11:05 EDT, by a fresh agent (blind). Commit: 291361fe plus the uncommitted tree. Machine: macOS (Darwin 27.0.0).
@@ -63,3 +65,25 @@ Witnessed: 2026-10-27 EDT, by a fresh agent (blind re-check). Commit: 291361fe p
 | 9 | `list.ts` has no screen text | no | confirmed | Read: list config, keys and enums only |
 
 **Overall:** met.
+
+The witness listed the actions' words (task 11) and the Help entries (task 12) as out of scope, as the request said; they are not claims of this task.
+
+## Task 3 — A user's page and its actions
+
+Witnessed: 2026-10-27 EDT, by a fresh agent (blind). Commit: 279b7784 plus the uncommitted tree. Machine: macOS (Darwin), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The seven components read in en, pt and fr through messages | yes | confirmed | `git diff --stat`: all seven `.tsx` and the three `admin.json` changed; a grep of the seven for raw strings and text nodes found none |
+| 2 | The raw-text scan covers `features/admin-users/**` and `app/(app)/admin/users/**` | yes | confirmed | `biome.json`; mutation: `<p>Raw English text</p>` in `EraseUserDialog.tsx` → "Text on the screen comes from the message files"; restored, `cmp` identical |
+| 3 | Three-language tests exist for each dialog (reset, require change, reset two-factor, disable, erase, download) | yes | confirmed | `user-translations.test.tsx`, 15 tests; mutation: pt erase text set to English → 1 failed / 14 passed; restored, `cmp` identical |
+| 4 | pt and fr leave no English behind | yes | confirmed | `englishLeaks` empty on the page, dialogs, erase, download and workspaces; `ownTextsShown` above the minimums |
+| 5 | The root's own row and an SSO user read right | yes | confirmed | "Voici votre propre compte." (fr), "Root: todos os espaços de trabalho." (pt), "Gerenciado por Okta" (pt), the SCIM-managed disable form, the root erase notice |
+| 6 | Counts of 0, 1 and 2 follow each language's plural rule | yes | confirmed | `admin.actions.impact`: en 1 and 2; pt 0 and 1; fr 0 and 2 (zero is singular in pt and fr, as CLDR) |
+| 7 | Names and emails are shown as data | yes | confirmed | `{count} <b>x</b>` and `{x}@example.com` render escaped, braces untouched |
+| 8 | `/admin/users/[id]` is in `MIGRATED_ROUTES` | yes | confirmed | `e2e/pages.ts` and `pages-coverage.test.ts` pass (the Playwright sweep runs in task 13) |
+| 9 | Parity passes and English is unchanged | yes | confirmed | Full web suite: 416 files, 4882 passed; `biome check` 0 errors; `tsc --noEmit` clean. English changes: curly apostrophe in "This can’t be undone." (test updated) |
+
+**Overall:** met.
+
+The witness listed the actions' words (task 11) and the Help entries (task 12) as out of scope, as the request said; they are not claims of this task.

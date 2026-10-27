@@ -1,17 +1,10 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { type ReactNode, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
 import { ActionForm, type Kind, type RowUser, useTitles } from "./UserActionDialogs";
-
-const LABELS = {
-  role: "Change role",
-  reset: "Reset password",
-  twoFactor: "Reset two-factor",
-  disable: "Disable",
-  enable: "Enable",
-} as const;
 
 /**
  * One of a user's actions, as a button on their page (123) that opens the dialog it opens from the
@@ -37,6 +30,7 @@ export const UserActionButton = ({
   children?: ReactNode;
 }) => {
   const titles = useTitles();
+  const labels = useTranslations("admin.actions.labels");
   const [opened, setOpened] = useState<Kind | null>(null);
   const [round, setRound] = useState(0);
   const close = () => {
@@ -47,7 +41,8 @@ export const UserActionButton = ({
     <>
       {hidden ? null : (
         <Button variant="secondary" onClick={() => setOpened(kind)}>
-          {children ?? (kind in LABELS ? LABELS[kind as keyof typeof LABELS] : titles[kind])}
+          {children ??
+            (kind === "askChange" || kind === "clearChange" ? titles[kind] : labels(kind))}
         </Button>
       )}
       <Dialog open={opened !== null} onClose={close} title={titles[opened ?? kind]}>
@@ -58,12 +53,15 @@ export const UserActionButton = ({
 };
 
 /** What an erased account's page offers: the greyed download, as its row did (103, 104). */
-export const ErasedDownloadButton = ({ email }: { email: string }) => (
-  <Button
-    variant="secondary"
-    disabledReason="This account was erased: there's nothing of theirs to download."
-    aria-label={`Download the data of ${email}: erased`}
-  >
-    Download their data (erased)
-  </Button>
-);
+export const ErasedDownloadButton = ({ email }: { email: string }) => {
+  const t = useTranslations("admin.actions");
+  return (
+    <Button
+      variant="secondary"
+      disabledReason={t("erasedReason")}
+      aria-label={t("erasedAria", { email })}
+    >
+      {t("erasedDownload")}
+    </Button>
+  );
+};

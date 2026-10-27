@@ -43,6 +43,7 @@ describe("the phone sweep's page list (feature 065)", () => {
         "/admin/settings",
         "/admin/feedback",
         "/admin/users",
+        "/admin/users/[id]",
         "/workspaces",
         "/workspaces/[name]",
         "/workspaces/[name]/join",

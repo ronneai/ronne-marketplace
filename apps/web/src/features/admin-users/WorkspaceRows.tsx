@@ -1,6 +1,7 @@
 "use client";
 
 import { Plus, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
 import { selectClasses } from "@/components/ui/Field";
@@ -19,18 +20,21 @@ const RoleSelect = ({
   label: string;
   value: WorkspaceRole;
   onChange: (role: WorkspaceRole) => void;
-}) => (
-  <select
-    aria-label={label}
-    value={value}
-    onChange={(event) => onChange(event.target.value as WorkspaceRole)}
-    className={selectClasses}
-  >
-    <option value="user">User</option>
-    <option value="moderator">Moderator</option>
-    <option value="admin">Admin</option>
-  </select>
-);
+}) => {
+  const t = useTranslations("admin.workspaceRows.roles");
+  return (
+    <select
+      aria-label={label}
+      value={value}
+      onChange={(event) => onChange(event.target.value as WorkspaceRole)}
+      className={selectClasses}
+    >
+      <option value="user">{t("user")}</option>
+      <option value="moderator">{t("moderator")}</option>
+      <option value="admin">{t("admin")}</option>
+    </select>
+  );
+};
 
 /**
  * A user's workspaces and roles (092): `global` first, always there, then the others, each with a
@@ -45,6 +49,7 @@ export const WorkspaceRows = ({
   rows: WorkspaceRow[];
   setRows: (rows: WorkspaceRow[]) => void;
 }) => {
+  const t = useTranslations("admin.workspaceRows");
   const nameOf = (id: string) => workspaces.find((w) => w.id === id)?.name ?? id;
   const unused = workspaces.filter((w) => !rows.some((row) => row.workspaceId === w.id));
   const update = (index: number, change: Partial<WorkspaceRow>) =>
@@ -52,7 +57,7 @@ export const WorkspaceRows = ({
   return (
     <fieldset className="grid gap-2">
       <legend className="mb-1 flex items-center gap-2 text-sm font-medium text-fg">
-        Workspaces
+        {t("legend")}
         <Help id="global-always" />
       </legend>
       <ul className="grid gap-2">
@@ -67,7 +72,7 @@ export const WorkspaceRows = ({
                 <span className="truncate font-mono text-sm">{workspace.name}</span>
               ) : (
                 <select
-                  aria-label={`Workspace ${index + 1}`}
+                  aria-label={t("workspaceN", { number: index + 1 })}
                   value={row.workspaceId}
                   onChange={(event) => update(index, { workspaceId: event.target.value })}
                   className={selectClasses}
@@ -81,16 +86,16 @@ export const WorkspaceRows = ({
                 </select>
               )}
               <RoleSelect
-                label={`Role in ${nameOf(row.workspaceId)}`}
+                label={t("roleIn", { workspace: nameOf(row.workspaceId) })}
                 value={row.role}
                 onChange={(role) => update(index, { role })}
               />
               {workspace?.isGlobal ? (
-                <span className="text-xs text-muted">Always</span>
+                <span className="text-xs text-muted">{t("always")}</span>
               ) : (
                 <Button
                   variant="ghost"
-                  aria-label={`Remove ${nameOf(row.workspaceId)}`}
+                  aria-label={t("remove", { workspace: nameOf(row.workspaceId) })}
                   onClick={() => setRows(rows.filter((_, i) => i !== index))}
                 >
                   <X size={16} aria-hidden="true" />
@@ -109,7 +114,7 @@ export const WorkspaceRows = ({
             }
           >
             <Plus size={16} aria-hidden="true" />
-            Add workspace
+            {t("add")}
           </Button>
         </div>
       ) : null}

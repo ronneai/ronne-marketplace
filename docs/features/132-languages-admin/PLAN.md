@@ -28,11 +28,13 @@ Every task that moves a folder adds it to the `overrides` entry in `biome.json` 
   The raw-text rule only reads JSX, so `admin/metadata.ts` (task 1) is covered by its test, not by
   the scan. The phone sweep of `/admin/users` in pt and fr runs in task 13.
 
-- [ ] **3. A user's page and its actions.** `UserPage`, `UserPageActions`, `UserActionDialogs`,
+- [x] **3. A user's page and its actions.** `UserPage`, `UserPageActions`, `UserActionDialogs`,
   `EraseUserDialog`, `DownloadDataDialog`, `UserWorkspacesDialog`, `WorkspaceRows`.
   *Done when:* three-language tests of each dialog (reset, require change, reset two-factor,
   disable, erase, download); the root's own row and an SSO user read right; `/admin/users/[id]`
   is in `MIGRATED_ROUTES`.
+  *Note:* the success lines and errors the user actions return (`state.done`, `state.error`, the
+  disable-impact error) stay English until task 11; the Help entries until task 12.
 
 - [ ] **4. Scopes and workspaces.** `admin-scopes` (table, dialogs), `admin-workspaces` (table,
   dialogs, `MoveScope`), and the scopes table on a workspace's page.

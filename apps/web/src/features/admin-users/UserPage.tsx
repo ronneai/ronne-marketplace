@@ -65,19 +65,16 @@ export const UserPage = ({
   slots?: UserPageSlots;
 }) => {
   const t = useTranslations("admin.passwordChange");
+  const u = useTranslations("admin.userPage");
+  const roles = useTranslations("common.roles");
   const erased = Boolean(user.erasedAt);
   const changeable = !self && !erased;
-  const status = user.erasedAt ? (
-    <>
-      Erased on <LocalTime value={user.erasedAt} precision="day" />
-    </>
-  ) : user.disabledAt ? (
-    <>
-      Disabled on <LocalTime value={user.disabledAt} precision="day" />
-    </>
-  ) : (
-    "Active"
-  );
+  const { erasedAt, disabledAt } = user;
+  const status = erasedAt
+    ? u.rich("status.erased", { date: () => <LocalTime value={erasedAt} precision="day" /> })
+    : disabledAt
+      ? u.rich("status.disabled", { date: () => <LocalTime value={disabledAt} precision="day" /> })
+      : u("status.active");
   const workspaces = [...(user.workspaces ?? [])].sort(
     (a, b) => ROLE_RANK[a.role] - ROLE_RANK[b.role] || a.name.localeCompare(b.name),
   );
@@ -88,55 +85,63 @@ export const UserPage = ({
         href="/admin/users"
         className="mb-3 inline-flex min-h-6 items-center text-sm text-link hover:underline outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus pointer-coarse:min-h-11"
       >
-        ← Users
+        {u("back")}
       </Link>
       <PageHeader
         title={user.name}
         description={
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <span className="font-mono text-[13px] break-all">{user.email}</span>
-            {user.role === "root" ? <Badge tone="accent">root</Badge> : <Badge>user</Badge>}
+            {user.role === "root" ? (
+              <Badge tone="accent">{roles("root")}</Badge>
+            ) : (
+              <Badge>{roles("user")}</Badge>
+            )}
             {user.erasedAt ? (
-              <Badge tone="warning">Erased</Badge>
+              <Badge tone="warning">{u("badge.erased")}</Badge>
             ) : user.disabledAt ? (
-              <Badge tone="warning">Disabled</Badge>
+              <Badge tone="warning">{u("badge.disabled")}</Badge>
             ) : null}
           </span>
         }
       />
       {self ? (
-        <Notice kind="info" title="This is your own account.">
-          Another root changes your role, disables you or resets your password. Change your password
-          in Account. <Help id="own-row" />
+        <Notice kind="info" title={u("self.title")}>
+          {u("self.body")} <Help id="own-row" />
         </Notice>
       ) : null}
       {changeable && user.scim?.managed ? (
         <ScimManagedNotice managedBy={user.scim.providerName} />
       ) : null}
       <div className="grid gap-4 pt-4 lg:grid-cols-2">
-        <Section id="user-account" title="Account">
+        <Section id="user-account" title={u("sections.account")}>
           <Facts>
-            <Fact label="Email">
+            <Fact label={u("facts.email")}>
               <span className="font-mono text-[13px]">{user.email}</span>
             </Fact>
-            <Fact label="Name">{user.name}</Fact>
-            <Fact label="Role">{user.role}</Fact>
-            <Fact label="Status">{status}</Fact>
-            <Fact label="Created">
+            <Fact label={u("facts.name")}>{user.name}</Fact>
+            <Fact label={u("facts.role")}>{roles(user.role)}</Fact>
+            <Fact label={u("facts.status")}>{status}</Fact>
+            <Fact label={u("facts.created")}>
               <LocalTime value={user.createdAt} precision="day" />
             </Fact>
-            <Fact label="Language">{user.locale ? LOCALE_NAMES[user.locale] : "Automatic"}</Fact>
-            <Fact label="Last sign-in">
-              {erased ? "–" : user.lastSignInAt ? <LocalTime value={user.lastSignInAt} /> : "Never"}
+            <Fact label={u("facts.language")}>
+              {user.locale ? LOCALE_NAMES[user.locale] : u("automatic")}
+            </Fact>
+            <Fact label={u("facts.lastSignIn")}>
+              {erased ? (
+                "–"
+              ) : user.lastSignInAt ? (
+                <LocalTime value={user.lastSignInAt} />
+              ) : (
+                u("never")
+              )}
               {erased ? null : (
-                <span className="block text-xs text-muted">
-                  A sign-in to the web app, with a password, a provider or a second step. Not rmk or
-                  a token.
-                </span>
+                <span className="block text-xs text-muted">{u("lastSignInHint")}</span>
               )}
             </Fact>
             {user.scim && !erased ? (
-              <Fact label="Provider">
+              <Fact label={u("facts.provider")}>
                 <ScimBadges user={user} />
               </Fact>
             ) : null}
@@ -144,31 +149,31 @@ export const UserPage = ({
           {changeable ? <Actions>{slots.role}</Actions> : null}
         </Section>
 
-        <Section id="user-access" title="Sign-in and access">
+        <Section id="user-access" title={u("sections.access")}>
           <Facts>
-            <Fact label="Two-factor">{user.twoFactor ? "On" : "Off"}</Fact>
+            <Fact label={u("facts.twoFactor")}>{user.twoFactor ? u("on") : u("off")}</Fact>
             {erased ? null : (
               <Fact label={t("fact")}>
                 {user.passwordChangeRequiredAt ? t("factAsked") : t("factNotAsked")}
               </Fact>
             )}
-            <Fact label="Sessions">{sessions}</Fact>
-            <Fact label="Access tokens">{tokens}</Fact>
+            <Fact label={u("facts.sessions")}>{sessions}</Fact>
+            <Fact label={u("facts.tokens")}>{tokens}</Fact>
           </Facts>
           {changeable ? <Actions>{slots.access}</Actions> : null}
         </Section>
 
-        <Section id="user-workspaces" title="Workspaces">
+        <Section id="user-workspaces" title={u("sections.workspaces")}>
           {user.role === "root" ? (
-            <p className="text-sm text-muted">Root: every workspace.</p>
+            <p className="text-sm text-muted">{u("rootEvery")}</p>
           ) : workspaces.length === 0 ? (
-            <p className="text-sm text-muted">None.</p>
+            <p className="text-sm text-muted">{u("noWorkspaces")}</p>
           ) : (
             <ul className="m-0 grid list-none gap-1.5 p-0 text-sm">
               {workspaces.map((w) => (
                 <li key={w.name} className="flex flex-wrap items-center gap-2">
                   <span className="font-mono text-[13px]">{w.name}</span>
-                  <Badge>{w.role}</Badge>
+                  <Badge>{roles(w.role)}</Badge>
                 </li>
               ))}
             </ul>
@@ -176,29 +181,22 @@ export const UserPage = ({
           {changeable ? <Actions>{slots.workspaces}</Actions> : null}
         </Section>
 
-        <Section id="user-data" title="Their data">
-          <p className="text-sm text-muted">
-            Everything the instance holds about them in one file: the account, token names,
-            submissions, comments and audit events.
-          </p>
+        <Section id="user-data" title={u("sections.data")}>
+          <p className="text-sm text-muted">{u("dataBody")}</p>
           <p className="text-sm">
             <Link
               href={`/admin/audit?actor=${encodeURIComponent(user.email)}`}
               className="text-link hover:underline outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
             >
-              Their events in the audit log
+              {u("auditLink")}
             </Link>
           </p>
           {self ? null : <Actions>{slots.data}</Actions>}
         </Section>
 
         {changeable ? (
-          <Section id="user-erase" title="Erase this account">
-            <p className="text-sm text-muted">
-              Erasing ends the account for good. Their email, name, sign-ins and tokens go; the
-              items they published and the audit events stay, under a pseudonym. It can&apos;t be
-              undone.
-            </p>
+          <Section id="user-erase" title={u("sections.erase")}>
+            <p className="text-sm text-muted">{u("eraseBody")}</p>
             <Actions>{slots.erase}</Actions>
           </Section>
         ) : null}

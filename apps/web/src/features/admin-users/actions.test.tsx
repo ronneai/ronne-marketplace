@@ -227,7 +227,7 @@ describe("rendering", () => {
     );
     expect(html).toContain("Ana Silva");
     expect(html).toContain("ana@example.com");
-    expect(html).toContain("This can&#x27;t be undone.");
+    expect(html).toContain("This can’t be undone.");
     expect(html).toContain("ana@example.com is a root.");
     expect(html).toContain("What goes");
     expect(html).toContain("What stays, under the pseudonym");

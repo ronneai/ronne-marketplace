@@ -41,22 +41,29 @@ export type RowUser = {
 };
 
 const ROLES: readonly Role[] = ["user", "root"];
-type TitledKind = "role" | "disable" | "enable" | "reset" | "twoFactor";
-export type Kind = TitledKind | "askChange" | "clearChange";
+export type Kind =
+  | "role"
+  | "disable"
+  | "enable"
+  | "reset"
+  | "twoFactor"
+  | "askChange"
+  | "clearChange";
 type FormAction = (state: AdminActionState, form: FormData) => Promise<AdminActionState>;
 
-const TITLES: Record<TitledKind, string> = {
-  role: "Change role",
-  disable: "Disable user",
-  enable: "Enable user",
-  reset: "Reset password",
-  twoFactor: "Reset two-factor",
-};
-
-/** Every dialog's title; the password-change ones are messages (128). */
+/** Every dialog's title: messages, the password-change ones from 128's. */
 export const useTitles = (): Record<Kind, string> => {
   const t = useTranslations("admin.passwordChange");
-  return { ...TITLES, askChange: t("askTitle"), clearChange: t("clearTitle") };
+  const titles = useTranslations("admin.actions.titles");
+  return {
+    role: titles("role"),
+    disable: titles("disable"),
+    enable: titles("enable"),
+    reset: titles("reset"),
+    twoFactor: titles("twoFactor"),
+    askChange: t("askTitle"),
+    clearChange: t("clearTitle"),
+  };
 };
 
 const ACTIONS: Record<Kind, FormAction> = {
@@ -69,56 +76,67 @@ const ACTIONS: Record<Kind, FormAction> = {
   clearChange: setPasswordChangeFromForm,
 };
 
+type Impact = { error: string } | { sessions: number; tokens: number } | null;
+
 const DisableImpact = ({ userId }: { userId: string }) => {
-  const [impact, setImpact] = useState<string>("Counting their sessions and tokens…");
+  const t = useTranslations("admin.actions");
+  const [impact, setImpact] = useState<Impact>(null);
   useEffect(() => {
-    disableImpactFor(userId).then((result) =>
-      setImpact(
-        "error" in result
-          ? result.error
-          : `This signs them out everywhere (${result.sessions} ${result.sessions === 1 ? "session" : "sessions"}) and revokes ${result.tokens} access ${result.tokens === 1 ? "token" : "tokens"}. They can't sign in until you enable them.`,
-      ),
-    );
+    disableImpactFor(userId).then(setImpact);
   }, [userId]);
-  return <p className="text-sm text-muted">{impact}</p>;
+  return (
+    <p className="text-sm text-muted">
+      {impact === null
+        ? t("impactLoading")
+        : "error" in impact
+          ? impact.error
+          : t("impact", { sessions: impact.sessions, tokens: impact.tokens })}
+    </p>
+  );
 };
 
 /**
  * Before Disable or Enable on an account a provider's SCIM manages (108): its next sync sets it
  * back to what the provider says.
  */
-export const ScimManagedNotice = ({ managedBy }: { managedBy?: string }) =>
-  managedBy ? (
-    <Notice kind="warn" title={`${managedBy} manages this account through SCIM.`}>
-      Its next sync sets the account back to what the provider says: change it there too.{" "}
-      <Help id="scim-managed" />
+export const ScimManagedNotice = ({ managedBy }: { managedBy?: string }) => {
+  const t = useTranslations("admin.actions");
+  return managedBy ? (
+    <Notice kind="warn" title={t("scimTitle", { provider: managedBy })}>
+      {t("scimBody")} <Help id="scim-managed" />
     </Notice>
   ) : null;
+};
 
 /** What a role change means, said before it happens; root changes are warnings (059). */
 export const RoleChangeNotice = ({ email, from, to }: { email: string; from: Role; to: Role }) => {
+  const t = useTranslations("admin.actions");
+  const roles = useTranslations("common.roles");
   if (to === "root")
     return (
-      <Notice kind="warn" title={`Make ${email} root?`}>
-        They&apos;ll be able to do everything you can, including changing your role or disabling
-        you.
+      <Notice kind="warn" title={t("makeRoot.title", { email })}>
+        {t("makeRoot.body")}
       </Notice>
     );
   if (from === "root")
     return (
-      <Notice kind="warn" title={`Remove root from ${email}?`}>
-        They&apos;ll lose user admin, scopes, settings and the audit log on their next request.
+      <Notice kind="warn" title={t("removeRoot.title", { email })}>
+        {t("removeRoot.body")}
       </Notice>
     );
   return (
     <p className="text-sm text-muted">
-      Change their role from <strong className="text-fg">{from}</strong> to{" "}
-      <strong className="text-fg">{to}</strong>.
+      {t.rich("changeRole", {
+        from: () => <strong className="text-fg">{roles(from)}</strong>,
+        to: () => <strong className="text-fg">{roles(to)}</strong>,
+      })}
     </p>
   );
 };
 
 const RoleChoice = ({ user }: { user: RowUser }) => {
+  const t = useTranslations("admin.actions");
+  const roles = useTranslations("common.roles");
   const others = ROLES.filter((role) => role !== user.role);
   const [role, setRole] = useState<Role>(others[0] ?? "user");
   const id = `role-${user.id}`;
@@ -126,7 +144,7 @@ const RoleChoice = ({ user }: { user: RowUser }) => {
     <>
       <div className="grid gap-1.5">
         <div className="flex items-center gap-2">
-          <Label htmlFor={id}>New role</Label>
+          <Label htmlFor={id}>{t("newRole")}</Label>
           <Help id="role-root" />
         </div>
         <select
@@ -138,7 +156,7 @@ const RoleChoice = ({ user }: { user: RowUser }) => {
         >
           {others.map((r) => (
             <option key={r} value={r}>
-              {r}
+              {roles(r)}
             </option>
           ))}
         </select>
@@ -161,6 +179,7 @@ export const ActionForm = ({
   const [state, action, pending] = useActionState<AdminActionState, FormData>(ACTIONS[kind], {});
   const titles = useTitles();
   const t = useTranslations("admin.passwordChange");
+  const a = useTranslations("admin.actions");
 
   if (state.oneTime || state.done)
     return (
@@ -171,7 +190,7 @@ export const ActionForm = ({
           <Notice kind="info" title={state.done} />
         )}
         <div>
-          <Button onClick={onDone}>Done</Button>
+          <Button onClick={onDone}>{a("done")}</Button>
         </div>
       </div>
     );
@@ -182,25 +201,19 @@ export const ActionForm = ({
       <p className="font-mono text-[13px] text-fg">{user.email}</p>
       {kind === "role" ? <RoleChoice user={user} /> : null}
       {kind === "disable" && user.role === "root" ? (
-        <Notice kind="warn" title={`${user.email} is a root.`} />
+        <Notice kind="warn" title={a("isRoot", { email: user.email })} />
       ) : null}
       {kind === "disable" ? <DisableImpact userId={user.id} /> : null}
       {kind === "disable" || kind === "enable" ? (
         <ScimManagedNotice managedBy={user.managedBy} />
       ) : null}
-      {kind === "enable" ? (
-        <p className="text-sm text-muted">
-          They can sign in again. Their revoked access tokens stay revoked.
-        </p>
-      ) : null}
+      {kind === "enable" ? <p className="text-sm text-muted">{a("enableBody")}</p> : null}
       {kind === "reset" && user.role === "root" ? (
-        <Notice kind="warn" title={`${user.email} is a root.`} />
+        <Notice kind="warn" title={a("isRoot", { email: user.email })} />
       ) : null}
       {kind === "reset" ? (
         <>
-          <p className="text-sm text-muted">
-            This signs them out everywhere and revokes their access tokens.
-          </p>
+          <p className="text-sm text-muted">{a("resetBody")}</p>
           <PasswordChoice idPrefix={`reset-${user.id}`} />
         </>
       ) : null}
@@ -212,18 +225,14 @@ export const ActionForm = ({
       ) : null}
       {kind === "twoFactor" ? (
         <div className="grid gap-1.5">
-          <p className="text-sm text-muted">
-            For a lost phone and lost backup codes. This turns off their two-factor sign-in and
-            signs them out everywhere; they sign in with their password alone, and set it up again
-            if it's required of them.
-          </p>
+          <p className="text-sm text-muted">{a("twoFactorBody")}</p>
           <Help id="reset-two-factor" />
         </div>
       ) : null}
       <FieldError id={`${kind}-${user.id}-error`}>{state.error}</FieldError>
       <DialogActions>
         <Button variant="ghost" onClick={onDone}>
-          Cancel
+          {a("cancel")}
         </Button>
         <Button type="submit" loading={pending}>
           {titles[kind]}

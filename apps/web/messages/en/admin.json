@@ -118,5 +118,147 @@
       "email": "Email",
       "password": "Password"
     }
+  },
+  "userPage": {
+    "back": "← Users",
+    "self": {
+      "title": "This is your own account.",
+      "body": "Another root changes your role, disables you or resets your password. Change your password in Account."
+    },
+    "sections": {
+      "account": "Account",
+      "access": "Sign-in and access",
+      "workspaces": "Workspaces",
+      "data": "Their data",
+      "erase": "Erase this account"
+    },
+    "facts": {
+      "email": "Email",
+      "name": "Name",
+      "role": "Role",
+      "status": "Status",
+      "created": "Created",
+      "language": "Language",
+      "lastSignIn": "Last sign-in",
+      "provider": "Provider",
+      "twoFactor": "Two-factor",
+      "sessions": "Sessions",
+      "tokens": "Access tokens"
+    },
+    "status": {
+      "active": "Active",
+      "disabled": "Disabled on <date></date>",
+      "erased": "Erased on <date></date>"
+    },
+    "badge": {
+      "disabled": "Disabled",
+      "erased": "Erased"
+    },
+    "automatic": "Automatic",
+    "never": "Never",
+    "lastSignInHint": "A sign-in to the web app, with a password, a provider or a second step. Not rmk or a token.",
+    "on": "On",
+    "off": "Off",
+    "rootEvery": "Root: every workspace.",
+    "noWorkspaces": "None.",
+    "dataBody": "Everything the instance holds about them in one file: the account, token names, submissions, comments and audit events.",
+    "auditLink": "Their events in the audit log",
+    "eraseBody": "Erasing ends the account for good. Their email, name, sign-ins and tokens go; the items they published and the audit events stay, under a pseudonym. It can’t be undone."
+  },
+  "actions": {
+    "labels": {
+      "role": "Change role",
+      "reset": "Reset password",
+      "twoFactor": "Reset two-factor",
+      "disable": "Disable",
+      "enable": "Enable"
+    },
+    "titles": {
+      "role": "Change role",
+      "disable": "Disable user",
+      "enable": "Enable user",
+      "reset": "Reset password",
+      "twoFactor": "Reset two-factor"
+    },
+    "erasedDownload": "Download their data (erased)",
+    "erasedReason": "This account was erased: there’s nothing of theirs to download.",
+    "erasedAria": "Download the data of {email}: erased",
+    "done": "Done",
+    "cancel": "Cancel",
+    "impactLoading": "Counting their sessions and tokens…",
+    "impact": "This signs them out everywhere ({sessions, plural, one {# session} other {# sessions}}) and revokes {tokens, plural, one {# access token} other {# access tokens}}. They can’t sign in until you enable them.",
+    "isRoot": "{email} is a root.",
+    "enableBody": "They can sign in again. Their revoked access tokens stay revoked.",
+    "resetBody": "This signs them out everywhere and revokes their access tokens.",
+    "twoFactorBody": "For a lost phone and lost backup codes. This turns off their two-factor sign-in and signs them out everywhere; they sign in with their password alone, and set it up again if it’s required of them.",
+    "scimTitle": "{provider} manages this account through SCIM.",
+    "scimBody": "Its next sync sets the account back to what the provider says: change it there too.",
+    "newRole": "New role",
+    "makeRoot": {
+      "title": "Make {email} root?",
+      "body": "They’ll be able to do everything you can, including changing your role or disabling you."
+    },
+    "removeRoot": {
+      "title": "Remove root from {email}?",
+      "body": "They’ll lose user admin, scopes, settings and the audit log on their next request."
+    },
+    "changeRole": "Change their role from <from></from> to <to></to>."
+  },
+  "erase": {
+    "button": "Erase",
+    "title": "Erase user",
+    "cancel": "Cancel",
+    "done": "Done",
+    "irreversibleTitle": "This can’t be undone.",
+    "irreversibleBody": "Erasing is the end of the account: nothing brings the person back, and the old email is free for a new account at once. To stop someone without erasing, disable them instead.",
+    "rootTitle": "{email} is a root.",
+    "rootBody": "Their role goes with the account.",
+    "goesHeading": "What goes",
+    "staysHeading": "What stays, under the pseudonym",
+    "goes": {
+      "identity": "Their email, name and picture: the account becomes {pseudonym}.",
+      "credentials": "Their password, identity-provider links and two-factor sign-in.",
+      "sessions": "Every session, access token and rmk login approval.",
+      "scim": "Their SCIM links, so the provider’s next create makes a new account.",
+      "memberships": "Their workspace memberships, open requests to join and open scope moves.",
+      "drafts": "Their drafts, which only they could see.",
+      "ip": "Their IP address on every audit event, and their email in any event’s details."
+    },
+    "stays": {
+      "items": "The items they published and every version, shown as published by {pseudonym}.",
+      "submissions": "Their submitted, approved and rejected submissions, and every review comment.",
+      "audit": "The audit events they appear in, with the pseudonym as who.",
+      "workspace": "Their personal workspace, renamed, when it holds a published item or a submission; otherwise it’s deleted."
+    },
+    "reminder": "Nothing of theirs can be read back afterwards: if the person asked for what the instance holds about them, give it to them first. <download>Download their data</download>.",
+    "confirm": "Type the account’s email to confirm"
+  },
+  "download": {
+    "button": "Download their data",
+    "title": "Download their data",
+    "close": "Close",
+    "download": "Download",
+    "body": "The JSON file they would get from their Account page: their account, sessions, token names, workspaces, items, submissions, comments and audit events, with other people’s emails replaced. It counts as their download for the next 10 minutes, and the audit log records that you made it."
+  },
+  "userWorkspaces": {
+    "title": "Workspaces of {email}",
+    "loading": "Loading their workspaces…",
+    "save": "Save",
+    "cancel": "Cancel",
+    "done": "Done",
+    "manage": "Manage workspaces"
+  },
+  "workspaceRows": {
+    "legend": "Workspaces",
+    "roles": {
+      "user": "User",
+      "moderator": "Moderator",
+      "admin": "Admin"
+    },
+    "workspaceN": "Workspace {number, number}",
+    "roleIn": "Role in {workspace}",
+    "remove": "Remove {workspace}",
+    "always": "Always",
+    "add": "Add workspace"
   }
 }

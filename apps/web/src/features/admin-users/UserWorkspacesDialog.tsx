@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { type ReactNode, useActionState, useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogActions } from "@/components/ui/Dialog";
@@ -19,6 +20,7 @@ const UserWorkspacesForm = ({
   workspaces: readonly WorkspaceOption[];
   onDone: () => void;
 }) => {
+  const t = useTranslations("admin.userWorkspaces");
   const [state, action, pending] = useActionState<AdminActionState, FormData>(
     saveUserWorkspacesFromForm,
     {},
@@ -36,7 +38,7 @@ const UserWorkspacesForm = ({
       <div className="grid gap-4">
         <Notice kind="info" title={state.done} />
         <div>
-          <Button onClick={onDone}>Done</Button>
+          <Button onClick={onDone}>{t("done")}</Button>
         </div>
       </div>
     );
@@ -51,15 +53,15 @@ const UserWorkspacesForm = ({
           <input type="hidden" name="workspaces" value={JSON.stringify(rows)} />
         </>
       ) : loadError ? null : (
-        <p className="text-sm text-muted">Loading their workspaces…</p>
+        <p className="text-sm text-muted">{t("loading")}</p>
       )}
       <FieldError id={`workspaces-${user.id}-error`}>{state.error}</FieldError>
       <DialogActions>
         <Button variant="ghost" onClick={onDone}>
-          Cancel
+          {t("cancel")}
         </Button>
         <Button type="submit" loading={pending} disabled={!rows}>
-          Save
+          {t("save")}
         </Button>
       </DialogActions>
     </form>
@@ -80,6 +82,7 @@ export const UserWorkspacesButton = ({
   /** The button's label. */
   children: ReactNode;
 }) => {
+  const t = useTranslations("admin.userWorkspaces");
   const [open, setOpen] = useState(false);
   const [round, setRound] = useState(0);
   const close = () => {
@@ -91,7 +94,7 @@ export const UserWorkspacesButton = ({
       <Button variant="secondary" onClick={() => setOpen(true)}>
         {children}
       </Button>
-      <Dialog open={open} onClose={close} title={`Workspaces of ${user.email}`}>
+      <Dialog open={open} onClose={close} title={t("title", { email: user.email })}>
         {open ? (
           <UserWorkspacesForm key={round} user={user} workspaces={workspaces} onDone={close} />
         ) : null}
