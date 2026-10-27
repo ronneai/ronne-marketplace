@@ -1,6 +1,7 @@
 # Reading the Portuguese and French (feature 133)
 
-For the two native readers: one of Brazilian Portuguese (pt-BR), one of Canadian French (fr-CA).
+For whoever reads the Portuguese (pt-BR) and the French (fr-CA): in 133 the readers were reviewer
+agents (owner, 2026-10-27), given this guide as their brief; a native speaker can use it the same way.
 You do not need to run the app or read code. You read, and you say what is wrong.
 
 ## What you get

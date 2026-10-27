@@ -105,7 +105,43 @@ Follow [`docs/knowledge/i18n.md`](../../knowledge/i18n.md).
   fragment tests pass; the e2e project is green. *The witness can check the record and the tests,
   not that the reading was done well: that verdict is "can't check here".*
 
-- [ ] **11. Documentation and records.** `docs/knowledge/i18n.md` (whole-app rule, fragment check,
+- [x] **11. Documentation and records.** `docs/knowledge/i18n.md` (whole-app rule, fragment check,
   review kit), the release runbook, the index row set to `done`, this PLAN's "Done" notes, and
   the ronne-web branch's translation guide.
   *Done when:* `pnpm witness:check` passes; the ronne-web branch builds.
+
+### Done (2026-10-27)
+
+Eleven tasks, each with its witness passes in `WITNESS.md`; most took a re-check, and the ones that
+did each found something real. The ronne-web branch `feat/133-languages-signoff` (7d396f4,
+3b0de0e, 3e495fb, aaafe69) is not pushed: it goes live with the release, as the owner's rule says.
+
+- **The raw-text rule covers the whole app** (`apps/web/src` bar the server, the API, tests and the
+  styleguide); the inventory found one gap, the root page description.
+- **The English-words check** catches listed English words in a pt or fr message; words off the
+  list are not seen (documented in `docs/knowledge/i18n.md`).
+- **One e2e English scan**, splitting on newlines and tabs, used by every whole-page language spec;
+  `languages-rest.e2e.ts` covers Home, Account, Feedback, the menu, the device page and sign-in.
+- **The phone sweep runs every page in each language** (`ENGLISH_ONLY_ROUTES`: `/admin`, a
+  redirect, and the styleguide). The wizard, which the sweep never reached, is checked at 320px in
+  pt and fr.
+- **Documentation links** (`pnpm docs:links`, `--live` in the release runbook) found real drift:
+  the website had split Administration and Authentication into eight topics, and the app's list was
+  updated to match. `--live` reports the new pages missing until the release deploys them.
+- **Website wording** agrees with the app (« révision », "proposta de alteração" / « proposition
+  de modification »), with a test in ronne-web that keeps the old words out.
+- **The language review was done by agents** (owner, 2026-10-27): eight reviewers, 407 findings,
+  367 applied as suggested, 29 applied differently, 11 kept with a reason (`REVIEW.md`). Owner
+  decisions: two-factor is "autenticação de dois fatores" / « double authentification »; French
+  « révision » stays for both meanings. It is a model reading a model's drafts; a read by native
+  speakers stays possible with the same kit.
+- **A layout fix the review caused**: the longer Portuguese two-factor heading pushed Settings past
+  a 320px phone in WebKit, because a legend sizes to its content there; the helper now sits under
+  the legend.
+- **Decisions** (MVP §15): the styleguide stays English; no instance default language; text the
+  server, a driver or core writes stays English.
+- **For later**: the French "Test sign-in" and "Test connection" buttons read « Test de connexion »
+  and « Tester la connexion », close enough to confuse; a "Done" button word to unify across the
+  app ("Concluir" stays for now). Unrelated timing flakes under load (`health.db.test.ts`,
+  `storage-names.test.ts`, `redact.test.ts`) still pass alone.
+

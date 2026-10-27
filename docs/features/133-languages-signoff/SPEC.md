@@ -9,7 +9,7 @@ Portuguese and French beside English. This feature makes that **true everywhere 
 for good**: the raw-text rule covers the whole app instead of a list that grows, the tests that
 look for English leaking into a translated page are as strong as we can make them, the phone
 sweep runs every page in each language, the Documentation links open the right page in the right
-language, a native speaker of each language has read the messages, and the website's wording
+language, a reviewer of each language has read the messages (agents, owner 2026-10-27), and the website's wording
 agrees with the app's. Nothing about what the screens do changes.
 
 ## Scope
@@ -101,7 +101,7 @@ agrees with the app's. Nothing about what the screens do changes.
 
 - **ronne-web:** `docs/translation-guide.md` gets the two wording rules and the Canadian-French
   note; pt and fr pages follow them and name the Overview tab, Status column and Cancel button
-  as the app does; corrections from the native review. No new topic or section. A branch
+  as the app does; corrections from the language review. No new topic or section. A branch
   `feat/133-languages-signoff` goes live with the release.
 - **In the app:** no new helper; helpers whose text a reviewer corrects change in `help.json`.
 - `docs/knowledge/i18n.md`: the rule covers the whole app; the fragment check and the allowlist;
@@ -133,7 +133,7 @@ agrees with the app's. Nothing about what the screens do changes.
 
 - **The rule covers the whole app by default and names its exceptions**, instead of listing the
   folders that comply, so a forgotten folder cannot stay English silently.
-- **Fragments are reported, not auto-fixed**: only a native reader can say that "Login" or "token"
+- **Fragments are reported, not auto-fixed**: only a reader of the language can say that "Login" or "token"
   is right in a Portuguese sentence.
 - **The review is done by agents, not people** (owner, 2026-10-27). It is a model reading a
   model's drafts, so it catches wrong meaning, grammar, register, typography and inconsistency,

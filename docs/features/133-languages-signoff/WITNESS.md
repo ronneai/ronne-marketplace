@@ -323,3 +323,34 @@ Witnessed: 2026-10-27 19:46 EDT, by a fresh agent (blind, re-check of rows 7 and
 
 **Overall:** met.
 
+## Task 11 — Documentation and records
+
+Witnessed: 2026-10-27, by a fresh agent (blind). Commit: 7b0cd3df plus the uncommitted docs. Machine: macOS (Darwin 27.0.0), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `pnpm witness:check` passes with task 11 unticked | no | confirmed | exit 0 |
+| 2 | The ronne-web branch builds and its tests pass | no | confirmed | `pnpm build` exit 0; `pnpm test` 187 passed |
+| 3 | The four ronne-web commits exist and are not pushed | no | confirmed | aaafe69, 3e495fb, 3b0de0e, 7d396f4; no remote contains them |
+| 4 | The site's translation guide carries the owner's decisions | no | confirmed | `docs/translation-guide.md:74, 130, 154, 239` |
+| 5 | The Done notes' claims hold (totals, `ENGLISH_ONLY_ROUTES`, `docs:links`, the runbook, the tests, the layout fix, MVP §15, the rule in `biome.json`) | no | confirmed | each read in the repo |
+| 6 | i18n.md covers the English-words check, the review kit and the Documentation links | no | confirmed | lines 63-82 |
+| 7 | i18n.md no longer describes the folder-list rule | no | partly | lines 21-25 still said "a folder joins the list" |
+| 8 | The README row does not overclaim | no | partly | its description still said "native-speaker review" |
+| 9 | Every SPEC acceptance box is ticked and backed by a met pass | no | confirmed | 9 boxes; tasks 1-10 end met |
+| 10 | The SPEC agrees with how the review was done | no | partly | the Goal and Documentation still said a native speaker read it |
+
+**Overall:** not met (rows 7, 8 and 10).
+
+The work after this pass: i18n.md says the rule covers the whole of `apps/web/src`; the README row and the SPEC put the review on agents.
+
+Witnessed: 2026-10-27 19:52 EDT, by a fresh agent (blind, re-check of rows 7, 8 and 10). Commit: 7b0cd3df plus the uncommitted docs. Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 7 | i18n.md describes the rule over the whole of `apps/web/src` with its exceptions | yes | confirmed | `grep -nE 'folder joins\|overrides'` → only line 22, the new wording |
+| 8 | The README row says the review was done by agents | yes | confirmed | line 359 |
+| 10 | The SPEC's Goal and Documentation speak of a reviewer, and nothing claims a native read happened | yes | confirmed | every remaining "native" is the persona, a rationale or "stays possible" |
+
+**Overall:** met.
+
