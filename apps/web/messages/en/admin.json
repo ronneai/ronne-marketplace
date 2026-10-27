@@ -734,5 +734,235 @@
         }
       }
     }
+  },
+  "settings": {
+    "page": {
+      "title": "Settings",
+      "description": "How this instance behaves. Each change takes effect at once and is recorded in the audit log.",
+      "tabsLabel": "Settings"
+    },
+    "tabs": {
+      "usage": "Usage",
+      "feeds": "Plugin feeds",
+      "authentication": "Authentication",
+      "privacy": "Privacy",
+      "notice": "Notice"
+    },
+    "methods": {
+      "title": "Sign-in methods",
+      "intro": "How people sign in to this instance.",
+      "columns": {
+        "method": "Method",
+        "state": "State",
+        "note": "Note"
+      },
+      "on": "On",
+      "off": "Off",
+      "password": {
+        "name": "Email and password",
+        "note": "Root can always sign in with a password, so a broken identity provider can’t lock everyone out.",
+        "rootOnly": "Root only: everyone else signs in with an identity provider. Root can always sign in with a password."
+      },
+      "provider": {
+        "failing": "Failing: see its page.",
+        "domains": "Creates accounts for {domains}.",
+        "linkOnly": "Links existing accounts only."
+      },
+      "twoFactor": {
+        "name": "Two-factor sign-in",
+        "optional": "Optional: people turn it on themselves.",
+        "reviewers": "Required for reviewers and root.",
+        "everyone": "Required for everyone."
+      }
+    },
+    "twoFactor": {
+      "title": "Two-factor sign-in",
+      "hint": "Who must use a code from an authenticator app after their password. Accounts that sign in through a company identity provider follow that provider’s own second step.",
+      "save": "Save",
+      "choices": {
+        "optional": {
+          "label": "Optional",
+          "hint": "People choose whether to turn it on, on their Account page."
+        },
+        "reviewers": {
+          "label": "Reviewers and root",
+          "hint": "Root, and the moderators and admins of shared workspaces: the people who approve what developers install."
+        },
+        "everyone": {
+          "label": "Everyone",
+          "hint": "Every account that signs in with a password."
+        }
+      },
+      "coverage": "{unenrolled, plural, =0 {{covered, plural, one {# person} other {# people}}, all with two-factor on.} other {{covered, plural, one {# person} other {# people}}; {unenrolled, plural, one {# person} other {# people}} must set it up at their next visit.}}"
+    },
+    "password": {
+      "title": "Password sign-in",
+      "hint": "Who may still sign in with a password once your identity provider is on. Root always can, so a broken provider can’t lock everyone out.",
+      "save": "Save",
+      "everyone": {
+        "label": "Everyone",
+        "hint": "People choose a provider or their password."
+      },
+      "rootOnly": {
+        "label": "Root only",
+        "hint": "Everyone else signs in with an identity provider.",
+        "needsProvider": "Turn on an identity provider that has passed its Test sign-in first."
+      },
+      "confirm": "{affected, plural, one {# person with a password loses their password sign-in, and must use the identity provider from now on.} other {# people with a password lose their password sign-in, and must use the identity provider from now on.}}"
+    },
+    "providers": {
+      "title": "Identity providers",
+      "add": "Add provider",
+      "intro": "Let people sign in with your company’s identity provider (OpenID Connect): Google Workspace, Microsoft Entra ID, Okta, Keycloak, authentik, Auth0 and others.",
+      "none": "No providers yet. Add one, test it, then turn it on: until then, everyone signs in with a password.",
+      "columns": {
+        "provider": "Provider",
+        "issuer": "Issuer",
+        "domains": "Domains",
+        "state": "State",
+        "lastSignIn": "Last sign-in"
+      },
+      "noDomains": "None",
+      "never": "Never",
+      "status": {
+        "off": "Off",
+        "tested": "Tested",
+        "on": "On",
+        "failing": "Failing"
+      }
+    },
+    "providerPage": {
+      "back": "← Authentication",
+      "addTitle": "Add provider",
+      "testNotice": {
+        "done": "Your Test sign-in finished: its result is below.",
+        "unavailable": "The provider can’t be tested now.",
+        "provider_error": "The provider didn’t answer. Check the issuer, then try again.",
+        "rate_limited": "Too many attempts. Wait a minute, then try again."
+      },
+      "unreadableTitle": "Enter the client secret again.",
+      "unreadableBody": "This server can’t read the stored one: it was saved under another AUTH_SECRET (as after a restore). Replace it below, then run Test sign-in."
+    },
+    "providerForm": {
+      "staleTitle": "Someone saved this provider since you opened it.",
+      "staleBody": "Reload the page to see their changes, then make yours again.",
+      "stepsTitle": "Set it up at the provider",
+      "chooseTitle": "Choose your identity provider",
+      "chooseIntro": "OpenID Connect. Each fills the form and shows its setup steps.",
+      "anyProvider": "Any provider that publishes a discovery document",
+      "formAdd": "Add provider",
+      "formEdit": "Edit provider",
+      "providerId": "Provider id",
+      "providerIdHint": "3 to 32 lowercase letters, digits and dashes. It is in the redirect URI and can’t be changed later.",
+      "displayName": "Display name",
+      "displayNameHint": "On the sign-in button: “Continue with …”.",
+      "issuer": "Issuer URL",
+      "clientId": "Client ID",
+      "secret": "Client secret",
+      "secretSaved": "Secret saved",
+      "replace": "Replace",
+      "secretHint": "Stored encrypted and never shown again.",
+      "scopes": "Scopes",
+      "scopesHint": "openid is always asked for.{groupsScope, select, none {} other { Add {groupsScope} when you map groups.}}",
+      "whoLegend": "Who may sign in",
+      "domains": "Email domains this provider signs in",
+      "domainsHint": "A new address in these domains gets an account on its first sign-in; an existing account with one is linked if the box below is ticked. Empty: only accounts already linked sign in.",
+      "linkByEmail": "Link existing accounts by verified email, in these domains only",
+      "groupsLegend": "Groups",
+      "groupsClaim": "Groups claim",
+      "warnTitle": "A group’s workspace was deleted.",
+      "warnBody": "It is skipped at sign-in; choose another workspace or remove the row.",
+      "group": "Group",
+      "workspace": "Workspace",
+      "choose": "Choose…",
+      "role": "Role",
+      "removeGroup": "Remove group {group}",
+      "addGroup": "Add a group",
+      "save": "Save"
+    },
+    "providerControls": {
+      "title": "Test, then turn on",
+      "connectionOk": "The connection works.",
+      "connectionFailed": "The connection failed.",
+      "testPassed": "Your Test sign-in passed.",
+      "testFailed": "Your Test sign-in didn’t pass.",
+      "subject": "Subject",
+      "email": "Email",
+      "verified": "(verified)",
+      "notVerified": "(not verified)",
+      "name": "Name",
+      "none": "None",
+      "groups": "Groups",
+      "noClaim": "No claim",
+      "wouldDo": "A sign-in would:",
+      "change": {
+        "add": "join {workspace} as {role}",
+        "change": "change role in {workspace} from {from} to {to}",
+        "remove": "leave {workspace}",
+        "release": "go back to user in {workspace}"
+      },
+      "nothingChanged": "Nothing was changed by the test.",
+      "deleteTitle": "Delete {name}?",
+      "deleteBody": "Nobody signs in with it any more. People linked to it keep their accounts, and can sign in with a password if they have one; the workspace roles its groups gave are removed.",
+      "cancel": "Cancel",
+      "deleteProvider": "Delete provider",
+      "testConnection": "Test connection",
+      "testSignIn": "Test sign-in",
+      "turnOff": "Turn off",
+      "turnOn": "Turn on",
+      "turnOnReason": "Run Test sign-in yourself, and pass it, before turning this provider on.",
+      "delete": "Delete",
+      "turnOnNeeds": "Turn on needs a passing Test sign-in by you, of the settings as they are now."
+    },
+    "scim": {
+      "title": "Provisioning (SCIM)",
+      "on": "On",
+      "off": "Off",
+      "intro": "{name} creates, updates and deprovisions accounts by itself, and keeps workspace roles in step with its groups through this page’s group mappings. Deprovisioning disables an account; it never erases one.",
+      "baseUrl": "Base URL",
+      "token": "Token",
+      "made": "Made",
+      "madeAt": "<date></date>{hasBy, select, true { by {by}} other {}}",
+      "lastUsed": "Last used",
+      "never": "Never",
+      "noToken": "No token yet: the provider can’t connect.",
+      "previous": "The token before the last rotation works until <date></date>{hasUsed, select, true { (last used <used></used>)} other {}}.",
+      "rotate": "Rotate",
+      "generate": "Generate token",
+      "revoke": "Revoke",
+      "turnOff": "Turn off SCIM",
+      "turnOn": "Turn on SCIM",
+      "atProvider": "At the provider",
+      "cancel": "Cancel",
+      "steps": {
+        "entra": {
+          "s1": "In Entra, open the enterprise application for Ronne, then Provisioning, and make a new configuration with Bearer authentication.",
+          "s2": "Paste the base URL above as the Tenant URL and the token as the Secret Token, then Test Connection.",
+          "s3": "In Attribute mapping, map objectId to externalId (Entra’s default, mailNickname, can be given to someone new).",
+          "s4": "Assign the users and groups to provision, then start provisioning."
+        },
+        "okta": {
+          "s1": "In Okta, open the app for Ronne; on its General tab, edit App Settings and choose SCIM as Provisioning.",
+          "s2": "On the Provisioning tab, set the SCIM connector base URL to the base URL above, the unique identifier field to userName, the actions Push New Users, Push Profile Updates and Push Groups, and HTTP Header authentication with the token.",
+          "s3": "Under To App, turn on Create Users, Update User Attributes and Deactivate Users, then push the groups Ronne maps."
+        },
+        "generic": {
+          "s1": "In the provider’s SCIM settings, set the base URL above and the token as a Bearer token.",
+          "s2": "Send the person’s email as userName, and an id that never changes as externalId.",
+          "s3": "Assign the users and groups to provision; the groups’ names (or ids) are what this page’s group mappings match."
+        }
+      },
+      "onTitle": "Turn on SCIM for {name}?",
+      "onBody": "{name} will create and update accounts, disable them when it deprovisions someone, and give workspace roles through its groups. Its sign-in stops applying the groups claim: SCIM becomes the one source of its groups. Roles its sign-in already gave stay until the provider changes that person’s groups. Next, generate a token for it.",
+      "offTitle": "Turn off SCIM for {name}?",
+      "offBody": "Every request from {name}’s SCIM is refused at once. Accounts, links and groups stay, and so does the token, for when you turn it on again.",
+      "rotateTitle": "Rotate the SCIM token?",
+      "rotateBody": "A new token is made and shown once. The current one keeps working for 24 hours, so you can change it at the provider calmly; a token from an earlier rotation stops now.",
+      "revokeTitle": "Revoke the SCIM token?",
+      "revokeBody": "Every SCIM token of {name} stops working at once, the one before a rotation too. Its requests are refused until you generate a new token and give it to the provider.",
+      "newTokenTitle": "Copy the token now",
+      "newTokenBody": "It’s shown once: Ronne keeps only its hash. Paste it into the provider’s SCIM settings.",
+      "newTokenPrevious": "The token before keeps working until <date></date>, so change it at the provider before then."
+    }
   }
 }

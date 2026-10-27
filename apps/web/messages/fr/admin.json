@@ -734,5 +734,235 @@
         }
       }
     }
+  },
+  "settings": {
+    "page": {
+      "title": "Réglages",
+      "description": "Comment cette instance se comporte. Chaque changement s’applique aussitôt et est consigné dans le journal d’audit.",
+      "tabsLabel": "Réglages"
+    },
+    "tabs": {
+      "usage": "Utilisation",
+      "feeds": "Flux de plugins",
+      "authentication": "Authentification",
+      "privacy": "Confidentialité",
+      "notice": "Avis"
+    },
+    "methods": {
+      "title": "Méthodes de connexion",
+      "intro": "Comment les gens se connectent à cette instance.",
+      "columns": {
+        "method": "Méthode",
+        "state": "État",
+        "note": "Remarque"
+      },
+      "on": "Activée",
+      "off": "Désactivée",
+      "password": {
+        "name": "Courriel et mot de passe",
+        "note": "Root peut toujours se connecter avec un mot de passe, donc un fournisseur d’identité défaillant ne peut pas exclure tout le monde.",
+        "rootOnly": "Root seulement : tous les autres se connectent avec un fournisseur d’identité. Root peut toujours se connecter avec un mot de passe."
+      },
+      "provider": {
+        "failing": "En échec : voir sa page.",
+        "domains": "Crée des comptes pour {domains}.",
+        "linkOnly": "Lie seulement les comptes existants."
+      },
+      "twoFactor": {
+        "name": "Double authentification",
+        "optional": "Facultative : chacun l’active de lui-même.",
+        "reviewers": "Obligatoire pour les réviseurs et root.",
+        "everyone": "Obligatoire pour tout le monde."
+      }
+    },
+    "twoFactor": {
+      "title": "Double authentification",
+      "hint": "Qui doit utiliser un code d’une application d’authentification après son mot de passe. Les comptes qui se connectent par un fournisseur d’identité d’entreprise suivent la deuxième étape de ce fournisseur.",
+      "save": "Enregistrer",
+      "choices": {
+        "optional": {
+          "label": "Facultative",
+          "hint": "Chacun choisit de l’activer, sur sa page Compte."
+        },
+        "reviewers": {
+          "label": "Réviseurs et root",
+          "hint": "Root, ainsi que les modérateurs et admins des espaces de travail partagés : les personnes qui approuvent ce que les développeurs installent."
+        },
+        "everyone": {
+          "label": "Tout le monde",
+          "hint": "Tout compte qui se connecte avec un mot de passe."
+        }
+      },
+      "coverage": "{unenrolled, plural, =0 {{covered, plural, one {# personne} other {# personnes}}, toutes avec la double authentification activée.} other {{covered, plural, one {# personne} other {# personnes}}; {unenrolled, plural, one {# personne} other {# personnes}} doivent la configurer à leur prochaine visite.}}"
+    },
+    "password": {
+      "title": "Connexion par mot de passe",
+      "hint": "Qui peut encore se connecter avec un mot de passe une fois votre fournisseur d’identité activé. Root le peut toujours, donc un fournisseur défaillant ne peut pas exclure tout le monde.",
+      "save": "Enregistrer",
+      "everyone": {
+        "label": "Tout le monde",
+        "hint": "Chacun choisit un fournisseur ou son mot de passe."
+      },
+      "rootOnly": {
+        "label": "Root seulement",
+        "hint": "Tous les autres se connectent avec un fournisseur d’identité.",
+        "needsProvider": "Activez d’abord un fournisseur d’identité qui a réussi son Test de connexion."
+      },
+      "confirm": "{affected, plural, one {# personne avec un mot de passe perd sa connexion par mot de passe et doit utiliser le fournisseur d’identité désormais.} other {# personnes avec un mot de passe perdent leur connexion par mot de passe et doivent utiliser le fournisseur d’identité désormais.}}"
+    },
+    "providers": {
+      "title": "Fournisseurs d’identité",
+      "add": "Ajouter un fournisseur",
+      "intro": "Laissez les gens se connecter avec le fournisseur d’identité de votre entreprise (OpenID Connect) : Google Workspace, Microsoft Entra ID, Okta, Keycloak, authentik, Auth0 et d’autres.",
+      "none": "Aucun fournisseur pour l’instant. Ajoutez-en un, testez-le, puis activez-le : d’ici là, tout le monde se connecte avec un mot de passe.",
+      "columns": {
+        "provider": "Fournisseur",
+        "issuer": "Émetteur",
+        "domains": "Domaines",
+        "state": "État",
+        "lastSignIn": "Dernière connexion"
+      },
+      "noDomains": "Aucun",
+      "never": "Jamais",
+      "status": {
+        "off": "Désactivé",
+        "tested": "Testé",
+        "on": "Activé",
+        "failing": "En échec"
+      }
+    },
+    "providerPage": {
+      "back": "← Authentification",
+      "addTitle": "Ajouter un fournisseur",
+      "testNotice": {
+        "done": "Votre Test de connexion est terminé : le résultat est ci-dessous.",
+        "unavailable": "Le fournisseur ne peut pas être testé maintenant.",
+        "provider_error": "Le fournisseur n’a pas répondu. Vérifiez l’émetteur, puis réessayez.",
+        "rate_limited": "Trop de tentatives. Attendez une minute, puis réessayez."
+      },
+      "unreadableTitle": "Saisissez de nouveau le secret du client.",
+      "unreadableBody": "Ce serveur ne peut pas lire le secret enregistré : il l’a été sous un autre AUTH_SECRET (comme après une restauration). Remplacez-le ci-dessous, puis lancez le Test de connexion."
+    },
+    "providerForm": {
+      "staleTitle": "Quelqu’un a enregistré ce fournisseur depuis que vous l’avez ouvert.",
+      "staleBody": "Rechargez la page pour voir ses changements, puis refaites les vôtres.",
+      "stepsTitle": "Configurez-le chez le fournisseur",
+      "chooseTitle": "Choisissez votre fournisseur d’identité",
+      "chooseIntro": "OpenID Connect. Chacun remplit le formulaire et montre ses étapes de configuration.",
+      "anyProvider": "Tout fournisseur qui publie un document de découverte",
+      "formAdd": "Ajouter un fournisseur",
+      "formEdit": "Modifier le fournisseur",
+      "providerId": "ID du fournisseur",
+      "providerIdHint": "De 3 à 32 lettres minuscules, chiffres et tirets. Il figure dans l’URI de redirection et ne peut pas être changé ensuite.",
+      "displayName": "Nom affiché",
+      "displayNameHint": "Sur le bouton de connexion : « Continuer avec … ».",
+      "issuer": "URL de l’émetteur",
+      "clientId": "ID du client",
+      "secret": "Secret du client",
+      "secretSaved": "Secret enregistré",
+      "replace": "Remplacer",
+      "secretHint": "Stocké chiffré et jamais réaffiché.",
+      "scopes": "Portées",
+      "scopesHint": "openid est toujours demandé.{groupsScope, select, none {} other { Ajoutez {groupsScope} quand vous associez des groupes.}}",
+      "whoLegend": "Qui peut se connecter",
+      "domains": "Domaines de courriel que ce fournisseur connecte",
+      "domainsHint": "Une nouvelle adresse de ces domaines obtient un compte à sa première connexion; un compte existant avec une telle adresse est lié si la case ci-dessous est cochée. Vide : seuls les comptes déjà liés se connectent.",
+      "linkByEmail": "Lier les comptes existants par courriel vérifié, dans ces domaines seulement",
+      "groupsLegend": "Groupes",
+      "groupsClaim": "Claim des groupes",
+      "warnTitle": "L’espace de travail d’un groupe a été supprimé.",
+      "warnBody": "Il est ignoré à la connexion; choisissez un autre espace de travail ou retirez la ligne.",
+      "group": "Groupe",
+      "workspace": "Espace de travail",
+      "choose": "Choisir…",
+      "role": "Rôle",
+      "removeGroup": "Retirer le groupe {group}",
+      "addGroup": "Ajouter un groupe",
+      "save": "Enregistrer"
+    },
+    "providerControls": {
+      "title": "Testez, puis activez",
+      "connectionOk": "La connexion fonctionne.",
+      "connectionFailed": "La connexion a échoué.",
+      "testPassed": "Votre Test de connexion a réussi.",
+      "testFailed": "Votre Test de connexion n’a pas réussi.",
+      "subject": "Subject",
+      "email": "Courriel",
+      "verified": "(vérifié)",
+      "notVerified": "(non vérifié)",
+      "name": "Nom",
+      "none": "Aucun",
+      "groups": "Groupes",
+      "noClaim": "Aucun claim",
+      "wouldDo": "Une connexion :",
+      "change": {
+        "add": "rejoindrait {workspace} comme {role}",
+        "change": "changerait de rôle dans {workspace}, de {from} à {to}",
+        "remove": "quitterait {workspace}",
+        "release": "redeviendrait utilisateur dans {workspace}"
+      },
+      "nothingChanged": "Le test n’a rien modifié.",
+      "deleteTitle": "Supprimer {name}?",
+      "deleteBody": "Plus personne ne se connecte avec lui. Les personnes liées gardent leurs comptes et peuvent se connecter avec un mot de passe si elles en ont un; les rôles d’espace de travail que ses groupes donnaient sont retirés.",
+      "cancel": "Annuler",
+      "deleteProvider": "Supprimer le fournisseur",
+      "testConnection": "Tester la connexion",
+      "testSignIn": "Test de connexion",
+      "turnOff": "Désactiver",
+      "turnOn": "Activer",
+      "turnOnReason": "Lancez vous-même le Test de connexion, et réussissez-le, avant d’activer ce fournisseur.",
+      "delete": "Supprimer",
+      "turnOnNeeds": "Pour activer, il faut un Test de connexion réussi par vous, avec les réglages tels qu’ils sont maintenant."
+    },
+    "scim": {
+      "title": "Provisionnement (SCIM)",
+      "on": "Activé",
+      "off": "Désactivé",
+      "intro": "{name} crée, met à jour et déprovisionne les comptes de lui-même, et garde les rôles d’espace de travail en phase avec ses groupes, grâce aux associations de groupes de cette page. Déprovisionner désactive un compte; ne l’efface jamais.",
+      "baseUrl": "URL de base",
+      "token": "Jeton",
+      "made": "Créé",
+      "madeAt": "<date></date>{hasBy, select, true { par {by}} other {}}",
+      "lastUsed": "Dernière utilisation",
+      "never": "Jamais",
+      "noToken": "Aucun jeton pour l’instant : le fournisseur ne peut pas se connecter.",
+      "previous": "Le jeton d’avant la dernière rotation fonctionne jusqu’au <date></date>{hasUsed, select, true { (dernière utilisation <used></used>)} other {}}.",
+      "rotate": "Faire la rotation",
+      "generate": "Générer un jeton",
+      "revoke": "Révoquer",
+      "turnOff": "Désactiver SCIM",
+      "turnOn": "Activer SCIM",
+      "atProvider": "Chez le fournisseur",
+      "cancel": "Annuler",
+      "steps": {
+        "entra": {
+          "s1": "Dans Entra, ouvrez l’application d’entreprise de Ronne, puis Provisioning, et créez une nouvelle configuration avec l’authentification Bearer.",
+          "s2": "Collez l’URL de base ci-dessus comme Tenant URL et le jeton comme Secret Token, puis Test Connection.",
+          "s3": "Dans Attribute mapping, associez objectId à externalId (la valeur par défaut d’Entra, mailNickname, peut être donnée à une nouvelle personne).",
+          "s4": "Assignez les utilisateurs et groupes à provisionner, puis démarrez le provisionnement."
+        },
+        "okta": {
+          "s1": "Dans Okta, ouvrez l’app de Ronne; sous l’onglet General, modifiez App Settings et choisissez SCIM comme Provisioning.",
+          "s2": "Sous l’onglet Provisioning, définissez l’URL de base du connecteur SCIM comme l’URL de base ci-dessus, le champ d’identifiant unique comme userName, les actions Push New Users, Push Profile Updates et Push Groups, et l’authentification HTTP Header avec le jeton.",
+          "s3": "Sous To App, activez Create Users, Update User Attributes et Deactivate Users, puis poussez les groupes que Ronne associe."
+        },
+        "generic": {
+          "s1": "Dans les réglages SCIM du fournisseur, définissez l’URL de base ci-dessus et le jeton comme jeton Bearer.",
+          "s2": "Envoyez le courriel de la personne comme userName, et un id qui ne change jamais comme externalId.",
+          "s3": "Assignez les utilisateurs et groupes à provisionner; les noms (ou ids) des groupes sont ce que les associations de groupes de cette page comparent."
+        }
+      },
+      "onTitle": "Activer SCIM pour {name}?",
+      "onBody": "{name} créera et mettra à jour les comptes, les désactivera quand il déprovisionnera quelqu’un, et donnera des rôles d’espace de travail par ses groupes. Sa connexion cesse d’appliquer le claim des groupes : SCIM devient l’unique source de ses groupes. Les rôles que sa connexion a déjà donnés restent jusqu’à ce que le fournisseur change les groupes de la personne. Ensuite, générez un jeton pour lui.",
+      "offTitle": "Désactiver SCIM pour {name}?",
+      "offBody": "Toute requête du SCIM de {name} est refusée aussitôt. Les comptes, les liens et les groupes restent, de même que le jeton, pour le jour où vous le réactiverez.",
+      "rotateTitle": "Faire la rotation du jeton SCIM?",
+      "rotateBody": "Un nouveau jeton est créé et affiché une seule fois. L’actuel continue de fonctionner 24 heures, pour que vous le changiez tranquillement chez le fournisseur; un jeton d’une rotation antérieure cesse de fonctionner maintenant.",
+      "revokeTitle": "Révoquer le jeton SCIM?",
+      "revokeBody": "Tous les jetons SCIM de {name} cessent de fonctionner aussitôt, celui d’avant une rotation aussi. Ses requêtes sont refusées jusqu’à ce que vous génériez un nouveau jeton et le remettiez au fournisseur.",
+      "newTokenTitle": "Copiez le jeton maintenant",
+      "newTokenBody": "Il n’est affiché qu’une fois : Ronne n’en garde que l’empreinte. Collez-le dans les réglages SCIM du fournisseur.",
+      "newTokenPrevious": "Le jeton d’avant continue de fonctionner jusqu’au <date></date>, alors changez-le chez le fournisseur avant."
+    }
   }
 }

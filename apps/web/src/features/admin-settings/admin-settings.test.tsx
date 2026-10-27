@@ -1,4 +1,5 @@
 import type { PluginTool } from "@ronneai/core/plugins";
+import { createTranslator } from "next-intl";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ForbiddenError } from "@/server/domains/identity/exceptions/errors";
@@ -6,6 +7,8 @@ import {
   InvalidUsageMinimumError,
   InvalidUsagePolicyError,
 } from "@/server/domains/settings/exceptions/errors";
+import { inLocaleAsync } from "@/test/intl";
+import admin from "../../../messages/en/admin.json";
 
 const settings = vi.hoisted(() => ({
   instanceSettings: vi.fn(),
@@ -55,6 +58,17 @@ const { UsagePolicyForm } = await import("./usage/UsagePolicyForm");
 const { PluginFeedsPanel } = await import("./feeds/PluginFeedsPanel");
 const { SignInMethodsPanel } = await import("./authentication/SignInMethodsPanel");
 const { signInMethods } = await import("./authentication/AuthenticationTab");
+
+// The sign-in methods in English, from the message files.
+const methodsT = createTranslator({
+  locale: "en",
+  messages: { admin },
+  namespace: "admin.settings.methods",
+} as never) as unknown as Parameters<typeof signInMethods>[1];
+const passwordMethods = signInMethods(
+  { twoFactorPolicy: "optional", passwordPolicy: "everyone", providers: [] },
+  methodsT,
+);
 const { RetentionForm } = await import("./privacy/RetentionForm");
 const { LastRun } = await import("./privacy/LastRun");
 const { PendingErasures } = await import("./privacy/PendingErasures");
@@ -194,7 +208,7 @@ describe("Admin › Settings' tabs (122)", () => {
 
 describe("Admin › Settings › Authentication › Sign-in methods (122)", () => {
   it("lists email and password as on, with root's note and the helper", () => {
-    const html = renderToStaticMarkup(<SignInMethodsPanel />);
+    const html = renderToStaticMarkup(<SignInMethodsPanel methods={passwordMethods} />);
     expect(html).toContain('aria-labelledby="sign-in-methods-title"');
     expect(html).toContain(">Sign-in methods</h2>");
     expect(html).toMatch(/Email and password<\/td><td[^>]*><span[^>]*>On<\/span>/);
@@ -214,7 +228,7 @@ describe("Admin › Settings › Authentication › Sign-in methods (122)", () =
   });
 
   it("has nothing to change: no form or input, and only the helper's button", () => {
-    const html = renderToStaticMarkup(<SignInMethodsPanel />);
+    const html = renderToStaticMarkup(<SignInMethodsPanel methods={passwordMethods} />);
     expect(html).not.toMatch(/<(form|input|select|textarea)\b/);
     expect(html.match(/<button\b/g)).toHaveLength(1);
     expect(html).toMatch(/<button[^>]*aria-haspopup="dialog"/);
@@ -399,11 +413,14 @@ describe("Sign-in methods with identity providers (106)", () => {
   });
 
   it("lists the password rule and each provider, on or off", () => {
-    const methods = signInMethods({
-      twoFactorPolicy: "optional",
-      passwordPolicy: "root_only",
-      providers: [provider("Acme", true), provider("Beta", false)],
-    });
+    const methods = signInMethods(
+      {
+        twoFactorPolicy: "optional",
+        passwordPolicy: "root_only",
+        providers: [provider("Acme", true), provider("Beta", false)],
+      },
+      methodsT,
+    );
     expect(methods.map((m) => [m.name, m.on])).toEqual([
       ["Email and password", true],
       ["Acme (OpenID Connect)", true],
@@ -420,11 +437,14 @@ describe("Sign-in methods with identity providers (106)", () => {
   });
 
   it("drops the Root only note while no provider is on (everyone has their password back)", () => {
-    const methods = signInMethods({
-      twoFactorPolicy: "optional",
-      passwordPolicy: "root_only",
-      providers: [provider("Beta", false)],
-    });
+    const methods = signInMethods(
+      {
+        twoFactorPolicy: "optional",
+        passwordPolicy: "root_only",
+        providers: [provider("Beta", false)],
+      },
+      methodsT,
+    );
     expect(methods[0]?.note).not.toContain("Root only");
   });
 });
@@ -625,5 +645,46 @@ describe("Admin › Settings › Privacy › an erasure that wasn't completed (1
     expect((await actions.retryErasures({}, new FormData())).error).toContain("users.manage");
     erasures.adminRetryErasures.mockRejectedValueOnce(new Error("boom"));
     await expect(actions.retryErasures({}, new FormData())).rejects.toThrow("boom");
+  });
+});
+
+describe("Admin › Settings in three languages (132)", () => {
+  it("the heading, the description and the tabs read in each language", async () => {
+    session.getCurrentUser.mockResolvedValue({ id: "r", role: "root" });
+    const words = {
+      en: [
+        "Settings",
+        "How this instance behaves",
+        "Plugin feeds",
+        "Authentication",
+        "Privacy",
+        "Notice",
+      ],
+      pt: [
+        "Configurações",
+        "Como esta instância se comporta",
+        "Feeds de plugins",
+        "Autenticação",
+        "Privacidade",
+        "Comunicado",
+      ],
+      fr: [
+        "Réglages",
+        "Comment cette instance se comporte",
+        "Flux de plugins",
+        "Authentification",
+        "Confidentialité",
+        "Avis",
+      ],
+    } as const;
+    for (const [locale, texts] of Object.entries(words) as [
+      keyof typeof words,
+      readonly string[],
+    ][]) {
+      const html = renderToStaticMarkup(
+        await inLocaleAsync(locale, () => AdminSettings("authentication")),
+      );
+      for (const text of texts) expect(html, `${locale}: ${text}`).toContain(text);
+    }
   });
 });

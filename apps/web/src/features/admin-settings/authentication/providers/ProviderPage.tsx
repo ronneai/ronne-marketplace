@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { getTranslations } from "next-intl/server";
 import { Notice } from "@/components/ui/Notice";
 import { Panel } from "@/components/ui/Panel";
 import { providerPage } from "@/server/domains/identity/actions/identity-providers";
@@ -10,27 +12,24 @@ import { ProviderControls } from "./ProviderControls";
 import { ProviderForm } from "./ProviderForm";
 import { ScimSection } from "./ScimSection";
 
-const TEST_NOTICES: Record<string, string> = {
-  done: "Your Test sign-in finished: its result is below.",
-  unavailable: "The provider can't be tested now.",
-  provider_error: "The provider didn't answer. Check the issuer, then try again.",
-  rate_limited: "Too many attempts. Wait a minute, then try again.",
-};
+const TEST_NOTICES = ["done", "unavailable", "provider_error", "rate_limited"] as const;
 
 /** Why the page was opened again after *Test sign-in* (`&test=`). */
-export const TestNotice = ({ test }: { test?: string }) =>
-  test && TEST_NOTICES[test] ? (
-    <Notice kind={test === "done" ? "info" : "warn"} title={TEST_NOTICES[test]} />
-  ) : null;
+export const TestNotice = ({ test }: { test?: string }) => {
+  const t = useTranslations("admin.settings.providerPage.testNotice");
+  const known = TEST_NOTICES.find((notice) => notice === test);
+  return known ? <Notice kind={known === "done" ? "info" : "warn"} title={t(known)} /> : null;
+};
 
 /** The stored client secret can't be read with this AUTH_SECRET (after a restore). */
-export const UnreadableSecretNotice = ({ reason }: { reason: string | null }) =>
-  reason === "secret_unreadable" ? (
-    <Notice kind="warn" title="Enter the client secret again.">
-      This server can&apos;t read the stored one: it was saved under another AUTH_SECRET (as after a
-      restore). Replace it below, then run Test sign-in.
+export const UnreadableSecretNotice = ({ reason }: { reason: string | null }) => {
+  const t = useTranslations("admin.settings.providerPage");
+  return reason === "secret_unreadable" ? (
+    <Notice kind="warn" title={t("unreadableTitle")}>
+      {t("unreadableBody")}
     </Notice>
   ) : null;
+};
 
 /**
  * Admin › Settings › Authentication › a provider (106): `?provider=<id>` to edit it, `new` to
@@ -47,6 +46,7 @@ export const ProviderPage = async ({
   /** Add provider with this preset chosen (its card links here). */
   preset?: string;
 }) => {
+  const t = await getTranslations("admin.settings.providerPage");
   const isNew = id === "new";
   let data: Awaited<ReturnType<typeof providerPage>>;
   try {
@@ -66,7 +66,7 @@ export const ProviderPage = async ({
           href="/admin/settings?tab=authentication"
           className="text-sm text-link hover:underline"
         >
-          ← Authentication
+          {t("back")}
         </Link>
       </div>
       <TestNotice test={test} />
@@ -74,7 +74,7 @@ export const ProviderPage = async ({
       <Panel padding="lg">
         <div className="grid gap-4">
           <h2 className="text-base font-semibold text-fg">
-            {provider ? provider.name : "Add provider"}
+            {provider ? provider.name : t("addTitle")}
           </h2>
           <ProviderForm
             // A card is a client navigation: a new key gives the chosen preset a fresh form, so its

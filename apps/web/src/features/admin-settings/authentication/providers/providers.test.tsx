@@ -220,7 +220,7 @@ describe("Edit provider", () => {
 
   it("lists the group rows, and warns about a deleted workspace", () => {
     expect(html()).toContain('value="Engineering"');
-    expect(html()).toContain("A group&#x27;s workspace was deleted");
+    expect(html()).toContain("A group’s workspace was deleted");
   });
 
   it("has the helpers: the preset's guide, the redirect URI, and how groups apply", () => {
@@ -394,16 +394,14 @@ describe("the results", () => {
         workspaceNames={{}}
       />,
     );
-    expect(html).toContain("Your Test sign-in didn&#x27;t pass.");
+    expect(html).toContain("Your Test sign-in didn’t pass.");
     expect(html).toContain("didn&#x27;t check out");
     expect(html).not.toContain("A sign-in would");
   });
 
   it("says why the page came back after Test sign-in", () => {
     expect(renderToStaticMarkup(<TestNotice test="done" />)).toContain("its result is below");
-    expect(renderToStaticMarkup(<TestNotice test="provider_error" />)).toContain(
-      "didn&#x27;t answer",
-    );
+    expect(renderToStaticMarkup(<TestNotice test="provider_error" />)).toContain("didn’t answer");
     expect(renderToStaticMarkup(<TestNotice test="rate_limited" />)).toContain("Too many attempts");
     expect(renderToStaticMarkup(<TestNotice test="something-else" />)).toBe("");
     expect(renderToStaticMarkup(<TestNotice />)).toBe("");

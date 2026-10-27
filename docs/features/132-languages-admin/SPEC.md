@@ -61,6 +61,10 @@ changes.
   workspace's name and description, the notice text root writes, a user's name, an audit
   event's stored details. Shown as stored.
 - **The messages `@ronneai/core` writes** stay English (131's decision).
+- **What the identity domain writes** stays English, like core's: an OIDC preset's setup steps,
+  piece labels and examples, the checks and the decision a *Test sign-in* or *Test connection*
+  returns, and the field errors of the provider form. The frame around them is translated; 133 can
+  revisit it with the native reviewers.
 - **The email or other notifications** (out of the MVP).
 - **An instance default language**, unless the owner wants it (Open questions).
 - **The sign-off**: the whole-app raw-text scan, the native-speaker review, the phone sweep in

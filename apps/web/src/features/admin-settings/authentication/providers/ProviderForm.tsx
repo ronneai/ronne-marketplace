@@ -2,6 +2,7 @@
 
 import { Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useActionState, useRef, useState } from "react";
 import { Help } from "@/components/help/Help";
 import { docsHref, type SectionOf } from "@/components/help/topics";
@@ -42,14 +43,16 @@ export type ProviderFormProps = {
 const ROLES: readonly MappedRole[] = ["user", "moderator", "admin"];
 
 /** What a save said: stale (someone saved since), or another error. */
-export const ProviderFormMessages = ({ state }: { state: ProviderFormState }) =>
-  state.stale ? (
-    <Notice kind="warn" title="Someone saved this provider since you opened it.">
-      Reload the page to see their changes, then make yours again.
+export const ProviderFormMessages = ({ state }: { state: ProviderFormState }) => {
+  const t = useTranslations("admin.settings.providerForm");
+  return state.stale ? (
+    <Notice kind="warn" title={t("staleTitle")}>
+      {t("staleBody")}
     </Notice>
   ) : state.error ? (
     <Notice kind="error" title={state.error} />
   ) : null;
+};
 
 /** Each preset's guide in the Documentation's Authentication topic. */
 const PRESET_GUIDES: Record<string, SectionOf<"authentication">> = {
@@ -73,30 +76,33 @@ export const ProviderSteps = ({
 }: {
   steps: readonly InstructionStep[];
   presetId: string;
-}) => (
-  <aside aria-labelledby="provider-steps-title" className="grid content-start gap-3">
-    <h3 id="provider-steps-title" className="text-sm font-semibold text-fg">
-      Set it up at the provider
-    </h3>
-    <Help id="provider-values" href={presetGuide(presetId)} />
-    <ol className="grid gap-3">
-      {steps.map((step, i) => (
-        <li key={step.title} className="grid gap-1 text-sm">
-          <span className="font-semibold text-fg">
-            {i + 1}. {step.title}
-          </span>
-          <span className="text-muted">{step.body}</span>
-          {step.copy ? (
-            <>
-              <CopyableCommand command={step.copy} prompt={false} wrap />
-              <Help id="redirect-uri" />
-            </>
-          ) : null}
-        </li>
-      ))}
-    </ol>
-  </aside>
-);
+}) => {
+  const t = useTranslations("admin.settings.providerForm");
+  return (
+    <aside aria-labelledby="provider-steps-title" className="grid content-start gap-3">
+      <h3 id="provider-steps-title" className="text-sm font-semibold text-fg">
+        {t("stepsTitle")}
+      </h3>
+      <Help id="provider-values" href={presetGuide(presetId)} />
+      <ol className="grid gap-3">
+        {steps.map((step, i) => (
+          <li key={step.title} className="grid gap-1 text-sm">
+            <span className="font-semibold text-fg">
+              {i + 1}. {step.title}
+            </span>
+            <span className="text-muted">{step.body}</span>
+            {step.copy ? (
+              <>
+                <CopyableCommand command={step.copy} prompt={false} wrap />
+                <Help id="redirect-uri" />
+              </>
+            ) : null}
+          </li>
+        ))}
+      </ol>
+    </aside>
+  );
+};
 
 /**
  * Admin › Settings › Authentication › Add / Edit provider (106). New: the presets as cards, then
@@ -113,6 +119,8 @@ export const ProviderForm = ({
   initialPreset,
   steps,
 }: ProviderFormProps) => {
+  const t = useTranslations("admin.settings.providerForm");
+  const roles = useTranslations("common.roles");
   const [state, action, pending] = useActionState<ProviderFormState, FormData>(
     saveProviderFromForm,
     {},
@@ -153,11 +161,9 @@ export const ProviderForm = ({
     return (
       <section aria-labelledby="choose-preset-title" className="grid gap-3">
         <h3 id="choose-preset-title" className="text-base font-semibold text-fg">
-          Choose your identity provider
+          {t("chooseTitle")}
         </h3>
-        <p className="text-sm text-muted">
-          OpenID Connect. Each fills the form and shows its setup steps.
-        </p>
+        <p className="text-sm text-muted">{t("chooseIntro")}</p>
         <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {presets.map((p) => (
             <li key={p.id} className="min-w-0">
@@ -166,9 +172,7 @@ export const ProviderForm = ({
                 className="grid min-h-11 w-full gap-1 rounded-control border border-strong bg-surface p-3 text-left text-sm hover:border-accent focus-visible:outline-2 focus-visible:outline-focus"
               >
                 <span className="font-semibold text-fg">{p.label}</span>
-                <span className="text-xs break-all text-muted">
-                  {p.issuer || "Any provider that publishes a discovery document"}
-                </span>
+                <span className="text-xs break-all text-muted">{p.issuer || t("anyProvider")}</span>
               </Link>
             </li>
           ))}
@@ -185,7 +189,7 @@ export const ProviderForm = ({
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
       <form
         action={action}
-        aria-label={isNew ? "Add provider" : "Edit provider"}
+        aria-label={isNew ? t("formAdd") : t("formEdit")}
         className="grid content-start gap-4"
       >
         <input type="hidden" name="mode" value={isNew ? "new" : "edit"} />
@@ -200,7 +204,7 @@ export const ProviderForm = ({
 
         {isNew ? (
           <div className="grid gap-1">
-            <Label htmlFor="provider-id">Provider id</Label>
+            <Label htmlFor="provider-id">{t("providerId")}</Label>
             <input
               id="provider-id"
               name="id"
@@ -212,14 +216,13 @@ export const ProviderForm = ({
               onChange={(e) => setTypedId(e.target.value)}
             />
             <p id="provider-id-hint" className="text-xs text-muted">
-              3 to 32 lowercase letters, digits and dashes. It is in the redirect URI and can&apos;t
-              be changed later.
+              {t("providerIdHint")}
             </p>
           </div>
         ) : null}
 
         <div className="grid gap-1">
-          <Label htmlFor="provider-name">Display name</Label>
+          <Label htmlFor="provider-name">{t("displayName")}</Label>
           <input
             id="provider-name"
             name="name"
@@ -230,7 +233,7 @@ export const ProviderForm = ({
             aria-describedby="provider-name-hint"
           />
           <p id="provider-name-hint" className="text-xs text-muted">
-            On the sign-in button: &quot;Continue with …&quot;.
+            {t("displayNameHint")}
           </p>
         </div>
 
@@ -250,7 +253,7 @@ export const ProviderForm = ({
           : null}
 
         <div className="grid gap-1">
-          <Label htmlFor="provider-issuer">Issuer URL</Label>
+          <Label htmlFor="provider-issuer">{t("issuer")}</Label>
           <input
             id="provider-issuer"
             name="issuer"
@@ -266,7 +269,7 @@ export const ProviderForm = ({
         </div>
 
         <div className="grid gap-1">
-          <Label htmlFor="provider-client-id">Client ID</Label>
+          <Label htmlFor="provider-client-id">{t("clientId")}</Label>
           <input
             id="provider-client-id"
             name="clientId"
@@ -280,7 +283,7 @@ export const ProviderForm = ({
         </div>
 
         <div className="grid gap-1">
-          <Label htmlFor="provider-secret">Client secret</Label>
+          <Label htmlFor="provider-secret">{t("secret")}</Label>
           {replaceSecret ? (
             <input
               id="provider-secret"
@@ -294,20 +297,20 @@ export const ProviderForm = ({
             />
           ) : (
             <div className="flex items-center gap-3 text-sm text-fg">
-              <span>Secret saved</span>
+              <span>{t("secretSaved")}</span>
               <Button variant="text" onClick={() => setReplaceSecret(true)}>
-                Replace
+                {t("replace")}
               </Button>
             </div>
           )}
           <p id="provider-secret-hint" className="text-xs text-muted">
-            Stored encrypted and never shown again.
+            {t("secretHint")}
           </p>
           <FieldError id="provider-secret-error">{fieldError("clientSecret")}</FieldError>
         </div>
 
         <div className="grid gap-1">
-          <Label htmlFor="provider-scopes">Scopes</Label>
+          <Label htmlFor="provider-scopes">{t("scopes")}</Label>
           <input
             id="provider-scopes"
             name="scopes"
@@ -316,27 +319,25 @@ export const ProviderForm = ({
             aria-describedby="provider-scopes-hint"
           />
           <p id="provider-scopes-hint" className="text-xs text-muted">
-            openid is always asked for.
-            {preset?.groupsScope ? ` Add ${preset.groupsScope} when you map groups.` : ""}
+            {t("scopesHint", { groupsScope: preset?.groupsScope || "none" })}
           </p>
         </div>
 
         <fieldset className="grid gap-3">
-          <legend className="mb-1 text-sm font-semibold text-fg">Who may sign in</legend>
+          <legend className="mb-1 text-sm font-semibold text-fg">{t("whoLegend")}</legend>
           <div className="grid gap-1">
-            <Label htmlFor="provider-domains">Email domains this provider signs in</Label>
+            <Label htmlFor="provider-domains">{t("domains")}</Label>
             <input
               id="provider-domains"
               name="domains"
               className={inputClasses}
+              // biome-ignore lint/plugin: example domains, written the same in every language
               placeholder="example.com, example.org"
               defaultValue={provider?.domains.join(", ") ?? ""}
               aria-describedby="provider-domains-hint"
             />
             <p id="provider-domains-hint" className="text-xs text-muted">
-              A new address in these domains gets an account on its first sign-in; an existing
-              account with one is linked if the box below is ticked. Empty: only accounts already
-              linked sign in.
+              {t("domainsHint")}
             </p>
           </div>
           <label className="flex items-start gap-2 text-sm text-fg">
@@ -346,16 +347,16 @@ export const ProviderForm = ({
               defaultChecked={provider?.linkByEmail ?? true}
               className="mt-0.5 size-4 accent-(--accent)"
             />
-            <span>Link existing accounts by verified email, in these domains only</span>
+            <span>{t("linkByEmail")}</span>
           </label>
         </fieldset>
 
         <fieldset className="grid gap-3">
           <legend className="mb-1 text-sm font-semibold text-fg">
-            Groups <Help id="provider-groups" />
+            {t("groupsLegend")} <Help id="provider-groups" />
           </legend>
           <div className="grid gap-1">
-            <Label htmlFor="provider-groups-claim">Groups claim</Label>
+            <Label htmlFor="provider-groups-claim">{t("groupsClaim")}</Label>
             <input
               id="provider-groups-claim"
               name="groupsClaim"
@@ -364,8 +365,8 @@ export const ProviderForm = ({
             />
           </div>
           {mappings.some((m) => m.warning) ? (
-            <Notice kind="warn" title="A group's workspace was deleted.">
-              It is skipped at sign-in; choose another workspace or remove the row.
+            <Notice kind="warn" title={t("warnTitle")}>
+              {t("warnBody")}
             </Notice>
           ) : null}
           <ul className="grid gap-2">
@@ -375,7 +376,7 @@ export const ProviderForm = ({
                 className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_8rem_auto] sm:items-end"
               >
                 <div className="grid gap-1">
-                  <Label htmlFor={`mapping-group-${i}`}>Group</Label>
+                  <Label htmlFor={`mapping-group-${i}`}>{t("group")}</Label>
                   <input
                     id={`mapping-group-${i}`}
                     name="mappingGroup"
@@ -387,7 +388,7 @@ export const ProviderForm = ({
                   />
                 </div>
                 <div className="grid gap-1">
-                  <Label htmlFor={`mapping-workspace-${i}`}>Workspace</Label>
+                  <Label htmlFor={`mapping-workspace-${i}`}>{t("workspace")}</Label>
                   <select
                     id={`mapping-workspace-${i}`}
                     name="mappingWorkspace"
@@ -399,7 +400,7 @@ export const ProviderForm = ({
                       )
                     }
                   >
-                    <option value="">Choose…</option>
+                    <option value="">{t("choose")}</option>
                     {workspaces.map((w) => (
                       <option key={w.id} value={w.id}>
                         {w.name}
@@ -408,7 +409,7 @@ export const ProviderForm = ({
                   </select>
                 </div>
                 <div className="grid gap-1">
-                  <Label htmlFor={`mapping-role-${i}`}>Role</Label>
+                  <Label htmlFor={`mapping-role-${i}`}>{t("role")}</Label>
                   <select
                     id={`mapping-role-${i}`}
                     name="mappingRole"
@@ -424,13 +425,13 @@ export const ProviderForm = ({
                   >
                     {ROLES.map((role) => (
                       <option key={role} value={role}>
-                        {role}
+                        {roles(role)}
                       </option>
                     ))}
                   </select>
                 </div>
                 <IconButton
-                  label={`Remove group ${row.group || i + 1}`}
+                  label={t("removeGroup", { group: row.group || String(i + 1) })}
                   onClick={() => setRows(rows.filter((_, j) => j !== i))}
                 >
                   <Trash2 className="size-4" aria-hidden />
@@ -448,14 +449,14 @@ export const ProviderForm = ({
                 ])
               }
             >
-              <Plus className="size-4" aria-hidden /> Add a group
+              <Plus className="size-4" aria-hidden /> {t("addGroup")}
             </Button>
           </div>
         </fieldset>
 
         <div className="flex flex-wrap gap-2">
           <Button type="submit" loading={pending}>
-            {isNew ? "Add provider" : "Save"}
+            {isNew ? t("formAdd") : t("save")}
           </Button>
         </div>
       </form>

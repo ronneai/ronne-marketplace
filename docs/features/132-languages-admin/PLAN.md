@@ -61,11 +61,14 @@ Every task that moves a folder adds it to the `overrides` entry in `biome.json` 
   language ("1,284 rows"). Names and codes travel through the message as marked text and come back
   as `SummaryPart`s. The pt and fr wording is first-draft, for 133's native review.
 
-- [ ] **7. Settings: the tabs and Authentication.** The tab names (`tabs.ts`), the sign-in
+- [x] **7. Settings: the tabs and Authentication.** The tab names (`tabs.ts`), the sign-in
   methods panel, password policy, two-factor policy, `IdentityProvidersPanel`, `ProviderForm`,
   `ProviderPage`, `ProviderControls`, `ScimSection`.
   *Done when:* three-language tests of each form and notice; provider values shown as stored;
   `/admin/settings` reads fully in the language except the tabs of task 8.
+  *Note:* what the identity domain writes (a preset's steps and labels, the checks a test returns, the
+  field errors) stays English, like core's (SPEC, Out). `signInMethods` takes a translator; the SCIM
+  steps are messages; the generic `admin-untranslated` test is the guard for short pt/fr words.
 
 - [ ] **8. Settings: Usage, Plugin feeds, Privacy, Notice.** `UsagePolicyForm`,
   `UsageMinimumForm`, `PluginFeedsPanel`, `PrivacyTab`, `RetentionForm`, `LastRun`,

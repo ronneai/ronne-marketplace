@@ -187,3 +187,31 @@ Witnessed: 2026-10-27, by a fresh agent (blind, read-only, the wording row of th
 | 7c | The SPEC bullets on audit sentences name every code-owned format in `summary.ts`, including the one around "nothing left" | yes | confirmed | Read `summary.ts` and the bullet: `ended()` list (:69), `via()` space (:75), `name@version` (:83), `@scope` (:86), token expiry (:98), restored time (:166), provider-update ", " (:176), SCIM "and" (:208), deleted-workspace list (:310), moved-scope counts (:365), draft details (:377), retention (:456) and notice (:472) lists, unknown-event fallback (:501), "(nothing left)" (:146); a re-scan found nothing else |
 
 **Overall:** met.
+
+## Task 7 — Settings: the tabs and Authentication
+
+Witnessed: 2026-10-27 11:55 EDT, by a fresh agent (blind). Commit: e9531c09 plus the uncommitted tree. Machine: macOS (Darwin), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The tab names come from messages (`tabs.ts` holds ids and hrefs) and read in each language | yes | confirmed | `tabs.ts`; "the tabs read in each language" passes |
+| 2 | Three-language tests exist for the sign-in methods, password and two-factor policy, provider list, form and notices, controls, test result and SCIM | yes | confirmed | `vitest run src/features/admin-settings src/i18n` → 22 files, 444 passed |
+| 3 | The Authentication tab reads fully in the language: no raw text left in its folders | yes | confirmed | `biome check` clean; `biome.json` adds `authentication/**` and `admin/settings/**` |
+| 4 | A provider's name and values are shown as stored | yes | confirmed | The "as typed" test passes |
+| 5 | Parity and placeholders: en, pt and fr have the same `settings` keys | yes | confirmed | 172 `settings` leaves in each |
+| 6 | Short pt/fr messages left in English are caught | yes | partly | Five mutations (pt `methods.on`, fr `providers.columns.state`, pt `scim.cancel`, fr `providerControls.delete`, pt `twoFactor.save`) each failed only the generic `admin-untranslated` test, not the screens' leak test |
+| 7 | The SAME table is minimal | yes | confirmed | Only `settings.providerControls.subject` (pt, fr) and `settings.scim.token` (pt) were added |
+| 8 | English is unchanged but for the curly apostrophes | yes | partly | About 106 removed phrases looked up in the en messages: none lost, but not diffed one by one |
+| 9 | The SPEC says the identity domain's English text stays English | yes | confirmed | New bullet under Out |
+| 10 | The pt and fr read naturally | yes | confirmed | About 18 read; fr "Faire la rotation" could be "Renouveler" |
+
+**Overall:** met, with two caveats (rows 6 and 8, partly).
+
+Witnessed: 2026-10-27, by a fresh agent (re-check of rows 6 and 8). Commit: e9531c09 plus the uncommitted tree. Machine: macOS (Darwin), Node 24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6 | A pt or fr `admin` message left identical to its English text fails `admin-untranslated.test.ts`, whatever its length; its SAME table lists the only words allowed to be the same | yes | confirmed | The whole `admin` file flattened: 722 keys in each language; the identical keys for `settings.*` are exactly the SAME entries (`subject` pt and fr, `scim.token` pt); the whole table matches (pt 9 identical keys, fr 18, all listed) |
+| 8 | No English sentence of the Authentication tab or the Settings page changed, but for curly apostrophes | yes | confirmed | The HEAD version of the 12 changed non-test files parsed with swc: 84 sentences of 3+ words checked against `en/admin.json` `settings.*` and `notice.*`, 0 missing; the leftovers are paths, classes, identifiers and field names |
+
+**Overall:** met.

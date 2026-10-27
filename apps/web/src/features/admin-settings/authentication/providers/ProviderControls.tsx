@@ -1,7 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useActionState, useState } from "react";
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogActions } from "@/components/ui/Dialog";
 import { Notice } from "@/components/ui/Notice";
@@ -13,23 +13,17 @@ import {
   enableProviderFromForm,
   testConnectionFromForm,
 } from "./actions";
-import { STATUS } from "./IdentityProvidersPanel";
+import { ProviderStatusBadge } from "./IdentityProvidersPanel";
 import type { ConnectionTestState, ProviderFormState } from "./types";
-
-const CHANGE_WORDS: Record<string, string> = {
-  add: "join",
-  change: "change role in",
-  remove: "leave",
-  release: "go back to user in",
-};
 
 /** Test connection's answer: what was checked, or why it couldn't be. */
 export const ConnectionResult = ({ state }: { state: ConnectionTestState }) => {
+  const t = useTranslations("admin.settings.providerControls");
   if (state.lines)
     return (
       <Notice
         kind={state.ok ? "info" : "error"}
-        title={state.ok ? "The connection works." : "The connection failed."}
+        title={state.ok ? t("connectionOk") : t("connectionFailed")}
       >
         <ul className="list-disc pl-5">
           {state.lines.map((line) => (
@@ -48,56 +42,62 @@ export const TestResult = ({
 }: {
   result: TestSignInResult;
   workspaceNames: Record<string, string>;
-}) => (
-  <Notice
-    kind={result.ok ? "info" : "error"}
-    title={result.ok ? "Your Test sign-in passed." : "Your Test sign-in didn't pass."}
-  >
-    <div className="grid gap-2">
-      <ul className="list-disc pl-5">
-        {result.lines.map((line) => (
-          <li key={line}>{line}</li>
-        ))}
-      </ul>
-      {result.claims ? (
-        <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-sm">
-          <dt className="text-muted">Subject</dt>
-          <dd className="font-mono break-all">{result.claims.subject}</dd>
-          <dt className="text-muted">Email</dt>
-          <dd className="break-all">
-            {result.claims.email} {result.claims.emailVerified ? "(verified)" : "(not verified)"}
-          </dd>
-          <dt className="text-muted">Name</dt>
-          <dd>{result.claims.name ?? "None"}</dd>
-          <dt className="text-muted">Groups</dt>
-          <dd className="font-mono break-all">
-            {result.claims.groups === null ? "No claim" : result.claims.groups.join(", ") || "None"}
-          </dd>
-        </dl>
-      ) : null}
-      {result.decision ? (
-        <p className="text-sm">
-          <span className="font-semibold">A sign-in would:</span> {result.decision}
-        </p>
-      ) : null}
-      {result.groupChanges.length > 0 ? (
-        <ul className="list-disc pl-5 text-sm">
-          {result.groupChanges.map((c) => (
-            <li key={`${c.kind}-${c.workspaceId}`}>
-              {CHANGE_WORDS[c.kind]} {workspaceNames[c.workspaceId] ?? c.workspaceId}
-              {c.kind === "add"
-                ? ` as ${c.role}`
-                : c.kind === "change"
-                  ? ` from ${c.from} to ${c.to}`
-                  : ""}
-            </li>
+}) => {
+  const t = useTranslations("admin.settings.providerControls");
+  const roles = useTranslations("common.roles");
+  return (
+    <Notice
+      kind={result.ok ? "info" : "error"}
+      title={result.ok ? t("testPassed") : t("testFailed")}
+    >
+      <div className="grid gap-2">
+        <ul className="list-disc pl-5">
+          {result.lines.map((line) => (
+            <li key={line}>{line}</li>
           ))}
         </ul>
-      ) : null}
-      <p className="text-xs text-muted">Nothing was changed by the test.</p>
-    </div>
-  </Notice>
-);
+        {result.claims ? (
+          <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-sm">
+            <dt className="text-muted">{t("subject")}</dt>
+            <dd className="font-mono break-all">{result.claims.subject}</dd>
+            <dt className="text-muted">{t("email")}</dt>
+            <dd className="break-all">
+              {result.claims.email} {result.claims.emailVerified ? t("verified") : t("notVerified")}
+            </dd>
+            <dt className="text-muted">{t("name")}</dt>
+            <dd>{result.claims.name ?? t("none")}</dd>
+            <dt className="text-muted">{t("groups")}</dt>
+            <dd className="font-mono break-all">
+              {result.claims.groups === null
+                ? t("noClaim")
+                : result.claims.groups.join(", ") || t("none")}
+            </dd>
+          </dl>
+        ) : null}
+        {result.decision ? (
+          <p className="text-sm">
+            <span className="font-semibold">{t("wouldDo")}</span> {result.decision}
+          </p>
+        ) : null}
+        {result.groupChanges.length > 0 ? (
+          <ul className="list-disc pl-5 text-sm">
+            {result.groupChanges.map((c) => (
+              <li key={`${c.kind}-${c.workspaceId}`}>
+                {t(`change.${c.kind}`, {
+                  workspace: workspaceNames[c.workspaceId] ?? c.workspaceId,
+                  role: c.kind === "add" ? roles(c.role) : "",
+                  from: c.kind === "change" ? roles(c.from) : "",
+                  to: c.kind === "change" ? roles(c.to) : "",
+                })}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        <p className="text-xs text-muted">{t("nothingChanged")}</p>
+      </div>
+    </Notice>
+  );
+};
 
 /** Delete's confirm: what deleting does, then Delete provider. */
 export const DeleteConfirm = ({
@@ -114,25 +114,25 @@ export const DeleteConfirm = ({
   onClose: () => void;
   action: (form: FormData) => void;
   pending: boolean;
-}) => (
-  <Dialog open={open} onClose={onClose} title={`Delete ${name}?`}>
-    <form action={action} className="grid gap-3">
-      <input type="hidden" name="id" value={id} />
-      <p className="text-sm text-fg">
-        Nobody signs in with it any more. People linked to it keep their accounts, and can sign in
-        with a password if they have one; the workspace roles its groups gave are removed.
-      </p>
-      <DialogActions>
-        <Button variant="secondary" onClick={onClose}>
-          Cancel
-        </Button>
-        <Button type="submit" variant="destructive" loading={pending}>
-          Delete provider
-        </Button>
-      </DialogActions>
-    </form>
-  </Dialog>
-);
+}) => {
+  const t = useTranslations("admin.settings.providerControls");
+  return (
+    <Dialog open={open} onClose={onClose} title={t("deleteTitle", { name })}>
+      <form action={action} className="grid gap-3">
+        <input type="hidden" name="id" value={id} />
+        <p className="text-sm text-fg">{t("deleteBody")}</p>
+        <DialogActions>
+          <Button variant="secondary" onClick={onClose}>
+            {t("cancel")}
+          </Button>
+          <Button type="submit" variant="destructive" loading={pending}>
+            {t("deleteProvider")}
+          </Button>
+        </DialogActions>
+      </form>
+    </Dialog>
+  );
+};
 
 /**
  * The provider's tests and switches (106): Test connection and Test sign-in (in a new tab), their
@@ -156,6 +156,7 @@ export const ProviderControls = ({
   lastTest: TestSignInResult | null;
   workspaceNames: Record<string, string>;
 }) => {
+  const t = useTranslations("admin.settings.providerControls");
   const [connection, testConnection, testing] = useActionState<ConnectionTestState, FormData>(
     testConnectionFromForm,
     {},
@@ -179,9 +180,9 @@ export const ProviderControls = ({
     <section aria-labelledby="provider-controls-title" className="grid gap-4">
       <div className="flex flex-wrap items-center gap-2">
         <h3 id="provider-controls-title" className="text-base font-semibold text-fg">
-          Test, then turn on
+          {t("title")}
         </h3>
-        <Badge tone={STATUS[status].tone}>{STATUS[status].label}</Badge>
+        <ProviderStatusBadge status={status} />
       </div>
       {error ? <Notice kind="error" title={error} /> : null}
 
@@ -189,7 +190,7 @@ export const ProviderControls = ({
         <form action={testConnection}>
           <input type="hidden" name="id" value={id} />
           <Button type="submit" variant="secondary" loading={testing}>
-            Test connection
+            {t("testConnection")}
           </Button>
         </form>
         {/* A plain form, so the browser opens the provider in a new tab (106). */}
@@ -200,7 +201,7 @@ export const ProviderControls = ({
           rel="noopener"
         >
           <Button type="submit" variant="secondary">
-            Test sign-in
+            {t("testSignIn")}
           </Button>
         </form>
       </div>
@@ -213,7 +214,7 @@ export const ProviderControls = ({
           <form action={disable}>
             <input type="hidden" name="id" value={id} />
             <Button type="submit" variant="secondary" loading={disabling}>
-              Turn off
+              {t("turnOff")}
             </Button>
           </form>
         ) : (
@@ -222,25 +223,17 @@ export const ProviderControls = ({
             <Button
               type="submit"
               loading={enabling}
-              disabledReason={
-                canEnable
-                  ? null
-                  : "Run Test sign-in yourself, and pass it, before turning this provider on."
-              }
+              disabledReason={canEnable ? null : t("turnOnReason")}
             >
-              Turn on
+              {t("turnOn")}
             </Button>
           </form>
         )}
         <Button variant="destructive" onClick={() => setConfirming(true)}>
-          Delete
+          {t("delete")}
         </Button>
       </div>
-      {!enabled && !canEnable ? (
-        <p className="text-sm text-muted">
-          Turn on needs a passing Test sign-in by you, of the settings as they are now.
-        </p>
-      ) : null}
+      {!enabled && !canEnable ? <p className="text-sm text-muted">{t("turnOnNeeds")}</p> : null}
 
       <DeleteConfirm
         id={id}

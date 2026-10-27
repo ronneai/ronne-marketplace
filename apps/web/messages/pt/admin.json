@@ -734,5 +734,235 @@
         }
       }
     }
+  },
+  "settings": {
+    "page": {
+      "title": "Configurações",
+      "description": "Como esta instância se comporta. Cada alteração vale na hora e fica registrada no registro de auditoria.",
+      "tabsLabel": "Configurações"
+    },
+    "tabs": {
+      "usage": "Uso",
+      "feeds": "Feeds de plugins",
+      "authentication": "Autenticação",
+      "privacy": "Privacidade",
+      "notice": "Comunicado"
+    },
+    "methods": {
+      "title": "Formas de entrar",
+      "intro": "Como as pessoas entram nesta instância.",
+      "columns": {
+        "method": "Forma",
+        "state": "Situação",
+        "note": "Observação"
+      },
+      "on": "Ligada",
+      "off": "Desligada",
+      "password": {
+        "name": "E-mail e senha",
+        "note": "O root sempre pode entrar com senha, então um provedor de identidade com defeito não deixa todo mundo de fora.",
+        "rootOnly": "Só o root: todos os outros entram com um provedor de identidade. O root sempre pode entrar com senha."
+      },
+      "provider": {
+        "failing": "Com falha: veja a página dele.",
+        "domains": "Cria contas para {domains}.",
+        "linkOnly": "Só vincula contas existentes."
+      },
+      "twoFactor": {
+        "name": "Login em dois fatores",
+        "optional": "Opcional: cada pessoa liga por conta própria.",
+        "reviewers": "Obrigatório para revisores e root.",
+        "everyone": "Obrigatório para todos."
+      }
+    },
+    "twoFactor": {
+      "title": "Login em dois fatores",
+      "hint": "Quem precisa usar um código de um aplicativo autenticador depois da senha. Contas que entram por um provedor de identidade da empresa seguem a segunda etapa do próprio provedor.",
+      "save": "Salvar",
+      "choices": {
+        "optional": {
+          "label": "Opcional",
+          "hint": "Cada pessoa escolhe se liga, na página Conta."
+        },
+        "reviewers": {
+          "label": "Revisores e root",
+          "hint": "O root e os moderadores e admins de espaços de trabalho compartilhados: quem aprova o que as pessoas desenvolvedoras instalam."
+        },
+        "everyone": {
+          "label": "Todos",
+          "hint": "Toda conta que entra com senha."
+        }
+      },
+      "coverage": "{unenrolled, plural, =0 {{covered, plural, one {# pessoa} other {# pessoas}}, todas com dois fatores ligado.} other {{covered, plural, one {# pessoa} other {# pessoas}}; {unenrolled, plural, one {# pessoa} other {# pessoas}} precisam configurar na próxima visita.}}"
+    },
+    "password": {
+      "title": "Login com senha",
+      "hint": "Quem ainda pode entrar com senha depois que o provedor de identidade for ligado. O root sempre pode, então um provedor com defeito não deixa todo mundo de fora.",
+      "save": "Salvar",
+      "everyone": {
+        "label": "Todos",
+        "hint": "Cada pessoa escolhe um provedor ou a própria senha."
+      },
+      "rootOnly": {
+        "label": "Só o root",
+        "hint": "Todos os outros entram com um provedor de identidade.",
+        "needsProvider": "Antes, ligue um provedor de identidade que tenha passado no Testar login."
+      },
+      "confirm": "{affected, plural, one {# pessoa com senha perde o login com senha e precisa usar o provedor de identidade daqui em diante.} other {# pessoas com senha perdem o login com senha e precisam usar o provedor de identidade daqui em diante.}}"
+    },
+    "providers": {
+      "title": "Provedores de identidade",
+      "add": "Adicionar provedor",
+      "intro": "Deixe as pessoas entrarem com o provedor de identidade da empresa (OpenID Connect): Google Workspace, Microsoft Entra ID, Okta, Keycloak, authentik, Auth0 e outros.",
+      "none": "Ainda não há provedores. Adicione um, teste e ligue: até lá, todos entram com senha.",
+      "columns": {
+        "provider": "Provedor",
+        "issuer": "Emissor",
+        "domains": "Domínios",
+        "state": "Situação",
+        "lastSignIn": "Último acesso"
+      },
+      "noDomains": "Nenhum",
+      "never": "Nunca",
+      "status": {
+        "off": "Desligado",
+        "tested": "Testado",
+        "on": "Ligado",
+        "failing": "Com falha"
+      }
+    },
+    "providerPage": {
+      "back": "← Autenticação",
+      "addTitle": "Adicionar provedor",
+      "testNotice": {
+        "done": "O seu Testar login terminou: o resultado está abaixo.",
+        "unavailable": "Não dá para testar o provedor agora.",
+        "provider_error": "O provedor não respondeu. Confira o emissor e tente de novo.",
+        "rate_limited": "Tentativas demais. Espere um minuto e tente de novo."
+      },
+      "unreadableTitle": "Informe o segredo do cliente de novo.",
+      "unreadableBody": "Este servidor não consegue ler o segredo guardado: ele foi salvo com outro AUTH_SECRET (como depois de uma restauração). Troque-o abaixo e rode o Testar login."
+    },
+    "providerForm": {
+      "staleTitle": "Alguém salvou este provedor depois que você o abriu.",
+      "staleBody": "Recarregue a página para ver as alterações da pessoa e refaça as suas.",
+      "stepsTitle": "Configure no provedor",
+      "chooseTitle": "Escolha o seu provedor de identidade",
+      "chooseIntro": "OpenID Connect. Cada um preenche o formulário e mostra os passos de configuração.",
+      "anyProvider": "Qualquer provedor que publique um documento de descoberta",
+      "formAdd": "Adicionar provedor",
+      "formEdit": "Editar provedor",
+      "providerId": "ID do provedor",
+      "providerIdHint": "De 3 a 32 letras minúsculas, dígitos e hifens. Ele fica na URI de redirecionamento e não pode ser mudado depois.",
+      "displayName": "Nome exibido",
+      "displayNameHint": "No botão de entrada: “Continuar com …”.",
+      "issuer": "URL do emissor",
+      "clientId": "ID do cliente",
+      "secret": "Segredo do cliente",
+      "secretSaved": "Segredo salvo",
+      "replace": "Trocar",
+      "secretHint": "Guardado criptografado e nunca mais mostrado.",
+      "scopes": "Escopos",
+      "scopesHint": "O openid é sempre pedido.{groupsScope, select, none {} other { Adicione {groupsScope} ao mapear grupos.}}",
+      "whoLegend": "Quem pode entrar",
+      "domains": "Domínios de e-mail que este provedor deixa entrar",
+      "domainsHint": "Um endereço novo nesses domínios ganha uma conta no primeiro acesso; uma conta existente com um deles é vinculada se a caixa abaixo estiver marcada. Vazio: só entram as contas já vinculadas.",
+      "linkByEmail": "Vincular contas existentes por e-mail verificado, só nesses domínios",
+      "groupsLegend": "Grupos",
+      "groupsClaim": "Claim de grupos",
+      "warnTitle": "O espaço de trabalho de um grupo foi excluído.",
+      "warnBody": "Ele é ignorado ao entrar; escolha outro espaço de trabalho ou remova a linha.",
+      "group": "Grupo",
+      "workspace": "Espaço de trabalho",
+      "choose": "Escolher…",
+      "role": "Papel",
+      "removeGroup": "Remover o grupo {group}",
+      "addGroup": "Adicionar um grupo",
+      "save": "Salvar"
+    },
+    "providerControls": {
+      "title": "Teste e depois ligue",
+      "connectionOk": "A conexão funciona.",
+      "connectionFailed": "A conexão falhou.",
+      "testPassed": "O seu Testar login passou.",
+      "testFailed": "O seu Testar login não passou.",
+      "subject": "Subject",
+      "email": "E-mail",
+      "verified": "(verificado)",
+      "notVerified": "(não verificado)",
+      "name": "Nome",
+      "none": "Nenhum",
+      "groups": "Grupos",
+      "noClaim": "Sem claim",
+      "wouldDo": "Um acesso:",
+      "change": {
+        "add": "entraria em {workspace} como {role}",
+        "change": "mudaria o papel em {workspace} de {from} para {to}",
+        "remove": "sairia de {workspace}",
+        "release": "voltaria a usuário em {workspace}"
+      },
+      "nothingChanged": "O teste não alterou nada.",
+      "deleteTitle": "Excluir {name}?",
+      "deleteBody": "Ninguém mais entra com ele. As pessoas vinculadas continuam com as contas e podem entrar com senha, se tiverem uma; os papéis em espaços de trabalho que os grupos dele davam são removidos.",
+      "cancel": "Cancelar",
+      "deleteProvider": "Excluir provedor",
+      "testConnection": "Testar conexão",
+      "testSignIn": "Testar login",
+      "turnOff": "Desligar",
+      "turnOn": "Ligar",
+      "turnOnReason": "Rode o Testar login você mesmo e passe nele antes de ligar este provedor.",
+      "delete": "Excluir",
+      "turnOnNeeds": "Para ligar é preciso um Testar login que você tenha passado, com as configurações como estão agora."
+    },
+    "scim": {
+      "title": "Provisionamento (SCIM)",
+      "on": "Ligado",
+      "off": "Desligado",
+      "intro": "{name} cria, atualiza e desprovisiona contas por conta própria e mantém os papéis em espaços de trabalho em sintonia com os grupos dele, pelos mapeamentos de grupos desta página. Desprovisionar desativa uma conta; nunca apaga.",
+      "baseUrl": "URL base",
+      "token": "Token",
+      "made": "Criado",
+      "madeAt": "<date></date>{hasBy, select, true { por {by}} other {}}",
+      "lastUsed": "Último uso",
+      "never": "Nunca",
+      "noToken": "Ainda não há token: o provedor não consegue se conectar.",
+      "previous": "O token anterior à última troca funciona até <date></date>{hasUsed, select, true { (último uso <used></used>)} other {}}.",
+      "rotate": "Trocar",
+      "generate": "Gerar token",
+      "revoke": "Revogar",
+      "turnOff": "Desligar o SCIM",
+      "turnOn": "Ligar o SCIM",
+      "atProvider": "No provedor",
+      "cancel": "Cancelar",
+      "steps": {
+        "entra": {
+          "s1": "No Entra, abra o aplicativo corporativo do Ronne, depois Provisionamento, e crie uma nova configuração com autenticação Bearer.",
+          "s2": "Cole a URL base acima como Tenant URL e o token como Secret Token, depois Test Connection.",
+          "s3": "Em Attribute mapping, mapeie objectId para externalId (o padrão do Entra, mailNickname, pode ser dado a alguém novo).",
+          "s4": "Atribua os usuários e grupos a provisionar e inicie o provisionamento."
+        },
+        "okta": {
+          "s1": "No Okta, abra o app do Ronne; na aba General, edite App Settings e escolha SCIM como Provisioning.",
+          "s2": "Na aba Provisioning, defina a URL base do conector SCIM como a URL base acima, o campo de identificador único como userName, as ações Push New Users, Push Profile Updates e Push Groups, e a autenticação HTTP Header com o token.",
+          "s3": "Em To App, ligue Create Users, Update User Attributes e Deactivate Users e depois envie os grupos que o Ronne mapeia."
+        },
+        "generic": {
+          "s1": "Nas configurações de SCIM do provedor, defina a URL base acima e o token como token Bearer.",
+          "s2": "Envie o e-mail da pessoa como userName e um id que nunca muda como externalId.",
+          "s3": "Atribua os usuários e grupos a provisionar; os nomes (ou ids) dos grupos são o que os mapeamentos de grupos desta página comparam."
+        }
+      },
+      "onTitle": "Ligar o SCIM para {name}?",
+      "onBody": "{name} vai criar e atualizar contas, desativá-las quando desprovisionar alguém e dar papéis em espaços de trabalho pelos grupos dele. O login dele deixa de aplicar a claim de grupos: o SCIM passa a ser a única fonte dos grupos. Os papéis que o login já deu ficam até o provedor mudar os grupos da pessoa. Em seguida, gere um token para ele.",
+      "offTitle": "Desligar o SCIM para {name}?",
+      "offBody": "Toda requisição do SCIM de {name} é recusada na hora. As contas, os vínculos e os grupos ficam, e o token também, para quando você ligar de novo.",
+      "rotateTitle": "Trocar o token SCIM?",
+      "rotateBody": "Um novo token é criado e mostrado uma só vez. O atual continua funcionando por 24 horas, para você trocá-lo no provedor com calma; um token de uma troca anterior deixa de funcionar agora.",
+      "revokeTitle": "Revogar o token SCIM?",
+      "revokeBody": "Todos os tokens SCIM de {name} param de funcionar na hora, inclusive o anterior a uma troca. As requisições são recusadas até você gerar um novo token e entregá-lo ao provedor.",
+      "newTokenTitle": "Copie o token agora",
+      "newTokenBody": "Ele é mostrado uma só vez: o Ronne guarda só o hash. Cole-o nas configurações de SCIM do provedor.",
+      "newTokenPrevious": "O token anterior continua funcionando até <date></date>, então troque-o no provedor antes disso."
+    }
   }
 }
