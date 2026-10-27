@@ -1,6 +1,5 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { type Browser, type BrowserContext, expect, type Page, test } from "@playwright/test";
+import { loadAll, noEnglish } from "./no-english";
 import { E2E_PASSWORD, E2E_USERS } from "./users";
 
 /**
@@ -10,31 +9,6 @@ import { E2E_PASSWORD, E2E_USERS } from "./users";
  * limit, docs/knowledge/e2e-sign-in-limit.md) and the same session opens in a browser per language.
  */
 let session: Awaited<ReturnType<BrowserContext["storageState"]>>;
-
-/** The message files, flattened: `admin.users.title` → "Users". */
-const MESSAGES = join(import.meta.dirname, "../messages");
-const flat = (value: unknown, prefix = ""): Record<string, string> =>
-  typeof value === "string"
-    ? { [prefix]: value }
-    : Object.assign(
-        {},
-        ...Object.entries(value as object).map(([key, child]) =>
-          flat(child, prefix ? `${prefix}.${key}` : key),
-        ),
-      );
-const NAMESPACES = ["admin", "common", "shell", "help", "errors", "workspaces", "types"];
-const loadAll = (locale: string) => {
-  const all: Record<string, string> = {};
-  for (const namespace of NAMESPACES)
-    Object.assign(
-      all,
-      flat(
-        JSON.parse(readFileSync(join(MESSAGES, locale, `${namespace}.json`), "utf8")),
-        namespace,
-      ),
-    );
-  return all;
-};
 
 test.beforeAll(async ({ browser, baseURL }) => {
   const context = await browser.newContext({ baseURL });
@@ -51,33 +25,6 @@ test.beforeAll(async ({ browser, baseURL }) => {
 const open = async (browser: Browser, baseURL: string | undefined, locale: string) => {
   const context = await browser.newContext({ baseURL, locale, storageState: session });
   return { context, page: await context.newPage() };
-};
-
-/**
- * No English left: every plain English text of these screens (a message with no placeholder or tag,
- * four characters or more) that reads differently in the language must not stand on a line of its
- * own on the page. Item content, names and what people write are not messages, so they never match.
- */
-const noEnglish = async (page: Page, lang: "pt" | "fr", except: readonly string[] = []) => {
-  const english = loadAll("en");
-  const own = loadAll(lang);
-  const ownTexts = new Set(Object.values(own));
-  // Closed panels (Filters, Sort, a table's actions) are not in `innerText`: open them all first.
-  await page.evaluate(() => {
-    for (const details of document.querySelectorAll("details")) details.open = true;
-  });
-  const lines = new Set(
-    (await page.locator("body").innerText())
-      .split(/[\n\t]/)
-      .map((line) => line.trim())
-      .filter(Boolean),
-  );
-  const leaks = Object.entries(english)
-    .filter(([key, text]) => text.length >= 4 && !/[{<]/.test(text) && text !== own[key])
-    .filter(([key, text]) => !ownTexts.has(text) && !except.includes(key))
-    .filter(([, text]) => lines.has(text))
-    .map(([key]) => key);
-  expect(leaks, `English left on ${page.url()}`).toEqual([]);
 };
 
 for (const [locale, lang] of [

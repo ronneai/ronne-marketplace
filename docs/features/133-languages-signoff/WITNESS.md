@@ -87,3 +87,31 @@ Witnessed: 2026-10-27, by a fresh agent (blind re-check of rows 6, 7 and 11). Co
 
 **Overall:** met.
 
+## Task 4 — One e2e English scan
+
+Witnessed: 2026-10-27, by a fresh agent (blind). Commit: 649ee16c plus the uncommitted tree. Machine: macOS (Darwin), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The new and refactored language specs run green | no | confirmed | chromium 47, wizard 2, mobile language specs on phone, tablet and phone-webkit 48 |
+| 2 | No spec defines its own `noEnglish`, `loadAll` or `flat` | no | confirmed | grep: only `e2e/no-english.ts` |
+| 3 | Every language spec uses the helper | no | partly | `languages.e2e.ts`, `languages.mobile` and `mobile-sweep` do not; `home.e2e` and `feedback.e2e` are English-only |
+| 4 | Planting English in a table cell fails Catalogue, Reviews and Users | no | confirmed | `ItemCard.tsx`, the `QueueTable` revision cell and the Users `StatusCell` each failed their spec naming the key |
+| 5 | The scan also bites on Home and Account › Tokens | no | partly | Home caught; the seeded user had no token, so the tokens table never rendered |
+| 6 | `restLanguages` is seeded and signs in once | no | confirmed | `users.ts`, `seed.ts:58` seeds every entry |
+| 7 | The helper opens closed `<details>` and splits on newline and tab | no | confirmed | `no-english.ts:40-45`; the cell mutations fail only because of the tab split |
+| 8 | Reading every namespace is safe | no | partly | three messages whose English is also data needed exceptions in browse |
+
+**Overall:** not met (rows 3 and 5).
+
+The work after this pass: `languages-rest` creates one token through the UI before it scans; browse's unused imports went; the PLAN's Note defines which specs scan a whole page.
+
+Witnessed: 2026-10-27, by a fresh agent (re-check, rows 3 and 5). Commit: 649ee16c plus the uncommitted tree. Machine: macOS (Darwin 27.0.0), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 5 | `languages-rest` scans Account › Tokens with a real row and catches English there in pt and fr | yes | confirmed | 24 passed; hard-coding `"never"` and the created header made `/account/tokens` fail in pt and fr naming `account.tokens.created` and `account.tokens.never`; restored with `cmp`, 18 passed |
+| 3 | The PLAN's definition of "every language spec" is honest | yes | confirmed | the pages `languages.e2e.ts` and `languages.mobile` open are scanned in `languages-rest`; the 404 page is the one exception (a heading and a link) |
+
+**Overall:** met.
+

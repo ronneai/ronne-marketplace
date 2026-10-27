@@ -1,56 +1,11 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
+import { loadAll, noEnglish } from "./no-english";
 
 /**
  * Feature 132: the setup wizard shows in the browser's language, on an instance with no database
  * and no user yet (the wizard project's blank instance), before the English test installs it.
  * Its file name sorts before `setup-wizard.e2e.ts`, which sets the instance up.
  */
-const MESSAGES = join(import.meta.dirname, "../messages");
-const flat = (value: unknown, prefix = ""): Record<string, string> =>
-  typeof value === "string"
-    ? { [prefix]: value }
-    : Object.assign(
-        {},
-        ...Object.entries(value as object).map(([key, child]) =>
-          flat(child, prefix ? `${prefix}.${key}` : key),
-        ),
-      );
-const loadAll = (locale: string) => {
-  const all: Record<string, string> = {};
-  for (const namespace of ["admin", "common", "help"])
-    Object.assign(
-      all,
-      flat(
-        JSON.parse(readFileSync(join(MESSAGES, locale, `${namespace}.json`), "utf8")),
-        namespace,
-      ),
-    );
-  return all;
-};
-
-const noEnglish = async (page: Page, lang: "pt" | "fr") => {
-  const english = loadAll("en");
-  const own = loadAll(lang);
-  const ownTexts = new Set(Object.values(own));
-  await page.evaluate(() => {
-    for (const details of document.querySelectorAll("details")) details.open = true;
-  });
-  const lines = new Set(
-    (await page.locator("body").innerText())
-      .split(/[\n\t]/)
-      .map((line) => line.trim())
-      .filter(Boolean),
-  );
-  const leaks = Object.entries(english)
-    .filter(([key, text]) => text.length >= 4 && !/[{<]/.test(text) && text !== own[key])
-    .filter(([, text]) => !ownTexts.has(text))
-    .filter(([, text]) => lines.has(text))
-    .map(([key]) => key);
-  expect(leaks, `English left on ${page.url()}`).toEqual([]);
-};
-
 for (const [locale, lang] of [
   ["pt-BR", "pt"],
   ["fr-CA", "fr"],

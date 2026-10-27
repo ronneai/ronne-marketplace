@@ -30,11 +30,18 @@ Follow [`docs/knowledge/i18n.md`](../../knowledge/i18n.md).
   *Done when:* the test passes with a reviewed allowlist; planting "the" in a pt message fails
   it; a plain Portuguese or French word that looks English ("a", "on", "me", "pour") does not.
 
-- [ ] **4. One e2e English scan.** Move `noEnglish` into a shared helper (newlines and tabs);
+- [x] **4. One e2e English scan.** Move `noEnglish` into a shared helper (newlines and tabs);
   use it in every language spec (browse, author, admin, wizard, account, home, feedback,
   sign-in).
   *Done when:* each spec uses the helper; planting English in a table cell fails the specs for
   Catalogue, Reviews and Users; the e2e project runs green.
+  *Note:* "every language spec" means the specs that scan a whole page for English: browse, author,
+  admin, the wizard and the new `languages-rest.e2e.ts` (Home, the Account pages, Feedback, the
+  phone menu, the device page, sign-in). `languages.e2e.ts` (the 404 page, the sidebar, choosing a
+  language, the sign-in links) makes targeted assertions and `languages.mobile` / `mobile-sweep`
+  check layout; none scans a whole page, so they stay as they are. The scan now reads every
+  message file, which made three messages whose English is also data (an item's `name`, a seeded
+  keyword, the `global` workspace's description) exceptions in the browse spec.
 
 - [ ] **5. Phone sweep in every language.** Remove `MIGRATED_ROUTES`; every page runs in en, pt
   and fr, signed in and out; `pages-coverage.test.ts` says every page file is in the sweep or on
