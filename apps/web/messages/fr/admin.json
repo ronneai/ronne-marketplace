@@ -1039,5 +1039,118 @@
         "retry": "Réessayer"
       }
     }
+  },
+  "setup": {
+    "page": {
+      "title": "Configurer Ronne AI Marketplace",
+      "notConfigured": "Cette instance n’est pas encore configurée. Il lui faut une base de données, son adresse publique et un compte root avant de pouvoir servir.",
+      "incomplete": "La configuration de cette instance n’a pas abouti. Reprenez là où elle s’est arrêtée : les réglages y sont; la base de données et le compte root peuvent ne pas y être.",
+      "warnTitle": "Quiconque peut ouvrir cette page peut configurer l’instance",
+      "warnBody": "Terminez maintenant, avant que l’adresse soit partagée.",
+      "metaTitle": "Configuration"
+    },
+    "unavailable": {
+      "title": "La base de données ne répond pas",
+      "body": "Ronne AI Marketplace est configuré pour utiliser <code>{database}</code>, mais n’arrive pas à la joindre. Vérifiez que le serveur tourne et que les réglages y correspondent encore; pour les changer, relancez la configuration là où il est installé, ou définissez <code>DATABASE_URL</code> dans l’environnement.",
+      "fromClone": "Depuis un clone",
+      "withDocker": "Avec Docker"
+    },
+    "steps": {
+      "settings": "Réglages écrits",
+      "migrations": "Migrations appliquées",
+      "root": "Compte root créé",
+      "progress": "Progression de l’installation",
+      "status": {
+        "pending": "en attente",
+        "running": "en cours",
+        "done": "terminée",
+        "failed": "échouée"
+      }
+    },
+    "wizard": {
+      "stepsLabel": "Étapes",
+      "pages": {
+        "database": "Base de données",
+        "instance": "Instance",
+        "root": "Compte root",
+        "install": "Installer"
+      },
+      "next": "Suivant",
+      "back": "Retour",
+      "install": "Installer",
+      "retry": "Réessayer",
+      "installHint": "Écrit les réglages, applique les migrations et crée le compte root.",
+      "testConnection": "Tester la connexion",
+      "connected": "Connecté à {server} et permissions vérifiées",
+      "doneTitle": "Ronne AI Marketplace est configuré",
+      "doneBody": "Connectez-vous avec <code>{email}</code> pour créer des portées et inviter des gens.",
+      "signIn": "Se connecter",
+      "goToSignIn": "Aller à la connexion"
+    },
+    "database": {
+      "legend": "Base de données",
+      "keep": "Garder la base de données déjà dans les réglages : <code>{database}</code>",
+      "which": "Quelle base de données?",
+      "sqlite": "SQLite : un fichier sur cette machine, rien d’autre à installer",
+      "mysql": "MySQL ou MariaDB : MySQL 8.4+ ou MariaDB 10.11+, déjà en marche",
+      "postgres": "PostgreSQL : 15+, déjà en marche",
+      "pickQuestion": "Laquelle choisir?",
+      "pickAnswer": "SQLite est la valeur par défaut et n’exige rien d’autre : un fichier, sauvegardé en le copiant. Choisissez MySQL, MariaDB ou PostgreSQL si vous en faites déjà tourner une, ou si beaucoup de gens sont attendus en même temps.",
+      "sqliteFile": "Fichier SQLite",
+      "pathDocker": "Relatif à l’application, dans le volume ronne-data. Gardez la valeur par défaut sauf si vous savez pourquoi.",
+      "pathNpm": "Dans le dossier de données de rmk-server. Gardez la valeur par défaut sauf si vous savez pourquoi.",
+      "pathNode": "Relatif à apps/web. Le dossier est créé s’il manque.",
+      "serverOnly": "Pour MySQL, MariaDB ou PostgreSQL seulement.",
+      "composeTitle": "Vous lancez la base de données avec Compose?",
+      "composeBody": "<code>docker compose --profile postgres up -d</code> (ou <code>mysql</code>) en démarre une à côté de Ronne. Utilisez l’hôte <code>postgres</code> (ou <code>mysql</code>), la base de données et l’utilisateur <code>ronne</code>, et le mot de passe de <code>RONNE_DB_PASSWORD</code>.",
+      "host": "Hôte",
+      "port": "Port",
+      "name": "Nom de la base de données",
+      "nameHint": "Elle doit déjà exister; la configuration ne crée pas de bases de données.",
+      "user": "Utilisateur",
+      "password": "Mot de passe"
+    },
+    "instance": {
+      "legend": "Instance",
+      "publicUrl": "Adresse publique (PUBLIC_URL)",
+      "envDocker": "Définie par RONNE_DOMAIN ou PUBLIC_URL dans l’environnement (compose.yaml), qui l’emporte sur les réglages. Changez-la là, dans le fichier .env à côté de compose.yaml, puis lancez docker compose up -d.",
+      "envOther": "Définie par PUBLIC_URL dans l’environnement, qui l’emporte sur les réglages. Changez-la là et redémarrez.",
+      "hint": "Là où les gens ouvriront Ronne AI Marketplace : l’adresse qu’un proxy inverse sert, ou {local} sur cette machine.",
+      "helpQuestion": "À quoi sert-elle?",
+      "helpAnswer": "Aux liens de l’application, à l’adresse que <code>rmk login</code> utilise et à l’origine à laquelle la connexion fait confiance. Derrière un proxy inverse, utilisez l’adresse https publique."
+    },
+    "root": {
+      "legend": "Compte root",
+      "intro": "Root peut tout faire, y compris créer d’autres utilisateurs et des portées.",
+      "helpQuestion": "Que peut faire root?",
+      "helpAnswer": "Tout : créer des portées et des utilisateurs, réviser et publier des éléments, et passer outre une décision (ce qui est consigné). Voici le premier root; les autres personnes ont leurs propres comptes, créés par un root, et un root peut en faire des root aussi.",
+      "email": "Courriel",
+      "name": "Nom affiché",
+      "password": "Mot de passe",
+      "passwordHint": "De 12 à 128 caractères. Rien d’autre n’est exigé : c’est la longueur qui compte.",
+      "again": "Mot de passe de nouveau"
+    },
+    "errors": {
+      "already_set_up": "Quelqu’un a déjà configuré cette instance. Connectez-vous.",
+      "database_unavailable": "La base de données des réglages ne répond pas, donc la configuration ne s’exécutera pas : elle ne modifie jamais une instance configurée depuis le navigateur. Réparez la base de données, ou les réglages sur le serveur (pnpm run setup, ou rmk-server setup), puis rechargez.",
+      "not_configured": "Écrivez d’abord les réglages.",
+      "public_url_rule": "Utilisez une adresse http:// ou https://.",
+      "path_required": "Saisissez un chemin de fichier.",
+      "host_required": "Saisissez l’hôte.",
+      "port_invalid": "Saisissez un numéro de port.",
+      "database_required": "Saisissez le nom de la base de données.",
+      "user_required": "Saisissez l’utilisateur.",
+      "passwords_mismatch": "Les deux mots de passe ne correspondent pas.",
+      "settings_unwritable": "Le fichier de réglages {path} ne peut pas être écrit : {reason}.{docker, select, true { Dans Docker, le volume de données appartient à root : exécutez `docker compose run --rm --user root web chown -R 1000:1000 /app/data` une fois.} other {}}",
+      "migration_failed": "Une migration a échoué sur {database} : {reason}",
+      "weak_secret": "L’AUTH_SECRET déjà dans les réglages compte moins de 32 caractères. Il est conservé, mais envisagez de le remplacer.",
+      "restart_needed": "Les réglages ont été écrits, mais ce processus utilise encore des valeurs de son environnement. Redémarrez-le et rechargez cette page."
+    },
+    "detail": {
+      "settings": "Réglages écrits dans {path}",
+      "upToDate": "Base de données à jour",
+      "migrations": "Migrations appliquées ({count, number})",
+      "root": "Compte root créé ({email})"
+    }
   }
 }

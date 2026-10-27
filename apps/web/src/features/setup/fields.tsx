@@ -1,8 +1,10 @@
+import { useTranslations } from "next-intl";
 import { Checkbox, FieldError, Label, Select, TextField } from "@/components/ui/Field";
 import { HelpTip } from "@/components/ui/HelpTip";
 import { Notice } from "@/components/ui/Notice";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { DEFAULT_PORTS } from "@/server/setup/database-url";
+import { useSay } from "./say";
 import type { SetupError, SetupField, SetupPageProps, SetupValues } from "./types";
 
 /**
@@ -16,8 +18,12 @@ export type FieldsProps = {
   error?: SetupError;
 };
 
-const fieldError = (error: SetupError | undefined, field: SetupField) =>
-  error?.field === field ? error.message : undefined;
+/** A hook, since the words are in the person's language: the field's error, if it is about it. */
+const useFieldError = () => {
+  const say = useSay();
+  return (error: SetupError | undefined, field: SetupField) =>
+    error?.field === field ? say(error.say, error.message) : undefined;
+};
 
 /** A section's error that isn't about one field (a failed connection check, for example). */
 export const SectionError = ({
@@ -27,9 +33,10 @@ export const SectionError = ({
   error?: SetupError;
   section: SetupError["section"];
 }) => {
+  const say = useSay();
   if (!error || error.section !== section || error.field) return null;
   return (
-    <Notice kind="error" title={error.message}>
+    <Notice kind="error" title={say(error.say, error.message)}>
       {error.detail ? (
         <code className="block font-mono text-xs break-words">{error.detail}</code>
       ) : null}
@@ -43,28 +50,26 @@ export const DatabaseFields = ({
   error,
   onKindChange,
 }: FieldsProps & { onKindChange?: (kind: SetupValues["kind"]) => void }) => {
+  const t = useTranslations("admin.setup.database");
+  const fieldError = useFieldError();
+  const mono = (chunks: React.ReactNode) => <code className="font-mono">{chunks}</code>;
   const docker = page.runtime === "docker";
   const showSqlite = values.kind === "sqlite";
   const showServer = values.kind !== "sqlite";
   return (
     <fieldset className="grid gap-4" data-section="database">
-      <legend className="text-base font-semibold text-fg">Database</legend>
+      <legend className="text-base font-semibold text-fg">{t("legend")}</legend>
       <SectionError error={error} section="database" />
       {page.currentDatabase ? (
         <Checkbox
           id="database.keep"
           name="database.keep"
           defaultChecked={values.keep}
-          label={
-            <>
-              Keep the database already in the settings:{" "}
-              <code className="font-mono">{page.currentDatabase}</code>
-            </>
-          }
+          label={t.rich("keep", { database: page.currentDatabase, code: mono })}
         />
       ) : null}
       <div className="grid gap-1.5">
-        <Label htmlFor="database.kind">Which database?</Label>
+        <Label htmlFor="database.kind">{t("which")}</Label>
         <Select
           id="database.kind"
           name="database.kind"
@@ -75,17 +80,12 @@ export const DatabaseFields = ({
               : undefined
           }
         >
-          <option value="sqlite">SQLite: a file on this machine, nothing else to install</option>
-          <option value="mysql">
-            MySQL or MariaDB: MySQL 8.4+ or MariaDB 10.11+, already running
-          </option>
-          <option value="postgres">PostgreSQL: 15+, already running</option>
+          <option value="sqlite">{t("sqlite")}</option>
+          <option value="mysql">{t("mysql")}</option>
+          <option value="postgres">{t("postgres")}</option>
         </Select>
-        <HelpTip question="Which one should I pick?">
-          <p>
-            SQLite is the default and needs nothing else: one file, backed up by copying it. Pick
-            MySQL, MariaDB or PostgreSQL when you already run one, or expect many people at once.
-          </p>
+        <HelpTip question={t("pickQuestion")}>
+          <p>{t("pickAnswer")}</p>
         </HelpTip>
       </div>
       <div
@@ -96,15 +96,9 @@ export const DatabaseFields = ({
         <TextField
           id="database.path"
           name="database.path"
-          label="SQLite file"
+          label={t("sqliteFile")}
           defaultValue={values.path}
-          hint={
-            docker
-              ? "Relative to the app, inside the ronne-data volume. Keep the default unless you know why."
-              : page.runtime === "npm"
-                ? "In rmk-server's data folder. Keep the default unless you know why."
-                : "Relative to apps/web. The folder is created if it's missing."
-          }
+          hint={docker ? t("pathDocker") : page.runtime === "npm" ? t("pathNpm") : t("pathNode")}
           error={fieldError(error, "database.path")}
           autoComplete="off"
         />
@@ -114,23 +108,17 @@ export const DatabaseFields = ({
         data-kind="server"
         hidden={!showServer && onKindChange !== undefined}
       >
-        {onKindChange ? null : (
-          <p className="text-xs text-muted">For MySQL, MariaDB or PostgreSQL only.</p>
-        )}
+        {onKindChange ? null : <p className="text-xs text-muted">{t("serverOnly")}</p>}
         {docker ? (
-          <Notice kind="info" title="Running the database with Compose?">
-            <code className="font-mono">docker compose --profile postgres up -d</code> (or{" "}
-            <code className="font-mono">mysql</code>) starts one next to Ronne. Use the host{" "}
-            <code className="font-mono">postgres</code> (or <code className="font-mono">mysql</code>
-            ), the database and user <code className="font-mono">ronne</code>, and the password from{" "}
-            <code className="font-mono">RONNE_DB_PASSWORD</code>.
+          <Notice kind="info" title={t("composeTitle")}>
+            {t.rich("composeBody", { code: mono })}
           </Notice>
         ) : null}
         <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_7rem]">
           <TextField
             id="database.host"
             name="database.host"
-            label="Host"
+            label={t("host")}
             defaultValue={values.host}
             error={fieldError(error, "database.host")}
             autoComplete="off"
@@ -138,7 +126,7 @@ export const DatabaseFields = ({
           <TextField
             id="database.port"
             name="database.port"
-            label="Port"
+            label={t("port")}
             inputMode="numeric"
             defaultValue={values.port}
             placeholder={values.kind === "postgres" ? DEFAULT_PORTS.postgres : DEFAULT_PORTS.mysql}
@@ -149,22 +137,22 @@ export const DatabaseFields = ({
         <TextField
           id="database.name"
           name="database.name"
-          label="Database name"
+          label={t("name")}
           defaultValue={values.name}
-          hint="It must exist already; setup doesn't create databases."
+          hint={t("nameHint")}
           error={fieldError(error, "database.name")}
           autoComplete="off"
         />
         <TextField
           id="database.user"
           name="database.user"
-          label="User"
+          label={t("user")}
           defaultValue={values.user}
           error={fieldError(error, "database.user")}
           autoComplete="off"
         />
         <div className="grid gap-1.5">
-          <Label htmlFor="database.password">Password</Label>
+          <Label htmlFor="database.password">{t("password")}</Label>
           <PasswordInput id="database.password" name="database.password" autoComplete="off" />
           <FieldError id="database.password-error">
             {fieldError(error, "database.password")}
@@ -176,31 +164,32 @@ export const DatabaseFields = ({
 };
 
 export const InstanceFields = ({ page, values, error }: FieldsProps) => {
+  const t = useTranslations("admin.setup.instance");
+  const fieldError = useFieldError();
   return (
     <fieldset className="grid gap-4" data-section="instance">
-      <legend className="text-base font-semibold text-fg">Instance</legend>
+      <legend className="text-base font-semibold text-fg">{t("legend")}</legend>
       <SectionError error={error} section="instance" />
       <TextField
         id="public_url"
         name="public_url"
-        label="Public address (PUBLIC_URL)"
+        label={t("publicUrl")}
         type="url"
         defaultValue={values.publicUrl}
         readOnly={page.publicUrlFromEnvironment}
         hint={
           page.publicUrlFromEnvironment
             ? page.runtime === "docker"
-              ? "Set by RONNE_DOMAIN or PUBLIC_URL in the environment (compose.yaml), which wins over the settings. Change it there, in the .env file next to compose.yaml, then run docker compose up -d."
-              : "Set by PUBLIC_URL in the environment, which wins over the settings. Change it there and restart."
-            : `Where people will open Ronne AI Marketplace: the address a reverse proxy serves, or ${page.localUrl ?? "http://localhost:3000"} on this machine.`
+              ? t("envDocker")
+              : t("envOther")
+            : t("hint", { local: page.localUrl ?? "http://localhost:3000" })
         }
         error={fieldError(error, "public_url")}
         autoComplete="off"
       />
-      <HelpTip question="What is it used for?">
+      <HelpTip question={t("helpQuestion")}>
         <p>
-          Links in the app, the address <code className="font-mono">rmk login</code> uses, and the
-          origin sign-in trusts. Behind a reverse proxy, use the public https address.
+          {t.rich("helpAnswer", { code: (chunks) => <code className="font-mono">{chunks}</code> })}
         </p>
       </HelpTip>
     </fieldset>
@@ -208,24 +197,20 @@ export const InstanceFields = ({ page, values, error }: FieldsProps) => {
 };
 
 export const RootFields = ({ values, error }: FieldsProps) => {
+  const t = useTranslations("admin.setup.root");
+  const fieldError = useFieldError();
   return (
     <fieldset className="grid gap-4" data-section="root">
-      <legend className="text-base font-semibold text-fg">Root account</legend>
+      <legend className="text-base font-semibold text-fg">{t("legend")}</legend>
       <SectionError error={error} section="root" />
-      <p className="text-sm text-muted">
-        Root can do everything, including creating other users and scopes.{" "}
-      </p>
-      <HelpTip question="What can root do?">
-        <p>
-          Everything: create scopes and users, review and release items, and override a decision
-          (which is recorded). This is the first root; other people get their own accounts, created
-          by a root, and a root can make them root too.
-        </p>
+      <p className="text-sm text-muted">{t("intro")}</p>
+      <HelpTip question={t("helpQuestion")}>
+        <p>{t("helpAnswer")}</p>
       </HelpTip>
       <TextField
         id="root.email"
         name="root.email"
-        label="Email"
+        label={t("email")}
         type="email"
         defaultValue={values.rootEmail}
         autoComplete="username"
@@ -235,14 +220,14 @@ export const RootFields = ({ values, error }: FieldsProps) => {
       <TextField
         id="root.name"
         name="root.name"
-        label="Display name"
+        label={t("name")}
         defaultValue={values.rootName}
         autoComplete="name"
         maxLength={80}
         error={fieldError(error, "root.name")}
       />
       <div className="grid gap-1.5">
-        <Label htmlFor="root.password">Password</Label>
+        <Label htmlFor="root.password">{t("password")}</Label>
         <PasswordInput
           id="root.password"
           name="root.password"
@@ -251,12 +236,12 @@ export const RootFields = ({ values, error }: FieldsProps) => {
           aria-describedby="root.password-hint"
         />
         <p id="root.password-hint" className="text-xs text-muted">
-          12 to 128 characters. Nothing else is required: length is what matters.
+          {t("passwordHint")}
         </p>
         <FieldError id="root.password-error">{fieldError(error, "root.password")}</FieldError>
       </div>
       <div className="grid gap-1.5">
-        <Label htmlFor="root.password_again">Password again</Label>
+        <Label htmlFor="root.password_again">{t("again")}</Label>
         <PasswordInput
           id="root.password_again"
           name="root.password_again"

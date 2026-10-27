@@ -63,7 +63,10 @@ changes.
 - **The messages `@ronneai/core` writes** stay English (131's decision).
 - **What the identity domain writes** stays English, like core's: an OIDC preset's setup steps,
   piece labels and examples, the checks and the decision a *Test sign-in* or *Test connection*
-  returns, and the field errors of the provider form. The frame around them is translated; 133 can
+  returns, and the field errors of the provider form.
+  The setup wizard likewise shows as written the database check's explanation, a driver's own
+  message, the settings-file merge error and the database-ahead error (they come from `server/`),
+  and the root account's email, name and password messages (the identity domain's). The frame around them is translated; 133 can
   revisit it with the native reviewers.
 - **The email or other notifications** (out of the MVP).
 - **An instance default language**, unless the owner wants it (Open questions).

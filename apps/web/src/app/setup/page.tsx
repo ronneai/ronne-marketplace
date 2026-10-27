@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
+import { getTranslations } from "next-intl/server";
 import { SetupPage } from "@/features/setup/SetupPage";
 import { DEFAULT_VALUES, type SetupPageProps } from "@/features/setup/types";
 import { LanguageSwitch } from "@/i18n/LanguageSwitch";
+import { pageTitle } from "@/i18n/page-title";
 import { currentPath } from "@/i18n/server";
 import { loadConfig } from "@/server/config";
 import { redactDatabaseUrl } from "@/server/db/url";
@@ -12,7 +14,10 @@ import { requestHeaders } from "@/server/http/request-headers";
 import { defaultDataPath, defaultPublicUrl, runtimeOf } from "@/server/runtime";
 import { getSetupState } from "@/server/setup/state";
 
-export const metadata = { title: "Set up · Ronne AI Marketplace" };
+export const generateMetadata = async () => {
+  const t = await getTranslations("admin.setup.page");
+  return { title: pageTitle(t("metaTitle")) };
+};
 
 /** The web setup (feature 036). Once the instance is ready, it only redirects. */
 const Setup = async () => {

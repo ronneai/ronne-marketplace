@@ -246,3 +246,33 @@ Witnessed: 2026-10-27, by a fresh agent (blind re-check). Commit: c24dcd17 plus 
 | 5 | The three `admin.json` files differ from HEAD only by additions | yes | confirmed | `git diff --stat -- messages` → 75 insertions each, no deletions; no removed lines in `git diff -U0` |
 
 **Overall:** met.
+
+## Task 9 — The setup wizard
+
+Witnessed: 2026-10-27 12:20 EDT, by a fresh agent (blind). Commit: e44a2be2 plus the uncommitted tree. Machine: macOS (Darwin 27.0.0), Node 24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Every English literal a person reads in the setup folder is a message, or is deliberately the server's or a driver's | yes | confirmed | Grep of the current files against HEAD; `STEP_LABELS`, `PAGES` and the "Steps" label are gone; biome clean; both globs in the scan |
+| 2 | Every `error(` / `invalid(` / notice / detail site has a `say`, or is a domain or driver message | yes | partly | form.ts 5 of 5; install.ts the ones named; `EnvMergeError`, `database_ahead` and the root account's identity messages had no `say` and were not named in the SPEC |
+| 3 | Mutated pt and fr messages fail tests | yes | confirmed | Ten mutations, short and `errors.*`, each failed at least one test; restored, `cmp` identical |
+| 4 | `useSay` cannot be abused | yes | partly | `__proto__`, `constructor` fell back; group keys and a message missing its values showed the path |
+| 5 | The wizard renders with no database and no user | yes | confirmed | Props-only `renderToStaticMarkup`; the client path imports nothing server-only |
+| 5b | `/setup` reads in the browser's language | yes | confirmed | `getTranslations` in `generateMetadata`; `requestLocale` tolerates no session; the page-level browser check is task 13 |
+| 6 | `/setup` is in `MIGRATED_ROUTES` | yes | confirmed | `e2e/pages.ts`, `pages-coverage.test.ts` pass |
+| 7 | The `say` design: English kept, a key beside it, `useSay` words it | yes | confirmed | `types.ts`, `install.ts`, `translations.test.tsx` renders all 20 says in three languages |
+| 8 | The pt and fr read naturally | yes | confirmed | Twelve pairs read |
+
+**Overall:** not met (rows 2 and 4).
+
+The work after this pass: `useSay` now checks that the key is one message with its values; SPEC.md Out names the server-written messages (the database check, a driver's, the settings-file merge, the database-ahead and the root account's identity messages). Two re-checks followed; the first found that the leak scan of the test still stripped the Help-tip buttons (an edit that had not applied), and that the root account's messages were not yet named.
+
+Witnessed: 2026-10-27, by a fresh agent (blind, re-check of rows 2 and 5). Commit: e44a2be2 plus the uncommitted tree. Machine: macOS (Darwin 27.0.0), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 2 | Every English string the wizard can show is a message with a `say`, or one the SPEC names as written by the server | yes | confirmed | SPEC.md:67-69 names the database check's explanation, a driver's message, the settings-file merge error, the database-ahead error and the root account's email, name and password messages (install.ts:282-286); the other sites carry a `say` |
+| 4 | `useSay` falls back for group keys, a message missing its values and prototype keys | yes | confirmed | The probe test covers `errors`, `detail`, `page`, `errors.settings_unwritable` with no values, `errors.nope` and `errors.__proto__` in pt and fr |
+| 5 | The wizard's Help-tip questions and answers are in the English-leak scan (no `replace(...)` left), and a pt/fr tip left as English fails `vitest run src/features/setup src/i18n` | yes | confirmed | `grep 'replace(' translations.test.tsx` → none; three mutations (pt `pickAnswer`, fr `helpAnswer`, pt `pickQuestion`) set to the exact English each failed `admin-untranslated`; restored, `cmp` identical |
+
+**Overall:** met.

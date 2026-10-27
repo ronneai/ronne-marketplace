@@ -17,6 +17,14 @@ export type SetupField =
 
 export type SetupSection = "database" | "instance" | "root";
 
+/**
+ * The words of a message of the setup in the person's language (feature 132): a key of
+ * `admin.setup.errors` or `admin.setup.detail` and its values. The English beside it stays what
+ * the tests and any caller read; a text with no `say` (a driver's own, the database check's) is
+ * shown as it is.
+ */
+export type Say = { key: string; values?: Record<string, string | number | boolean> };
+
 export type SetupErrorCode =
   | "already_set_up"
   | "database_unavailable"
@@ -34,9 +42,13 @@ export type SetupError = {
   section: SetupSection;
   field?: SetupField;
   message: string;
+  say?: Say;
   /** The driver's message or the statement that fixes it (database problems). */
   detail?: string;
 };
+
+/** Something worth knowing that didn't stop the install. */
+export type SetupNotice = { text: string; say?: Say };
 
 export type TestResult =
   | { ok: true; dialect: DatabaseDialect; serverVersion: string; warning?: string }
@@ -46,10 +58,10 @@ export type StepName = "settings" | "migrations" | "root";
 export const STEP_NAMES: StepName[] = ["settings", "migrations", "root"];
 
 export type StepStatus = "pending" | "running" | "done" | "failed";
-export type StepResult = { status: StepStatus; detail?: string };
+export type StepResult = { status: StepStatus; detail?: string; say?: Say };
 
 export type StepOutcome =
-  | { ok: true; detail: string; notices: string[]; email?: string }
+  | { ok: true; detail: string; say?: Say; notices: SetupNotice[]; email?: string }
   | { ok: false; error: SetupError };
 
 /** The non-secret answers, sent back so the form keeps them; passwords never are. */
@@ -72,7 +84,7 @@ export type InstallState = {
   steps: Record<StepName, StepResult>;
   error?: SetupError;
   /** Things worth knowing that didn't stop the install. */
-  notices: string[];
+  notices: SetupNotice[];
   values: SetupValues;
   done?: { email: string };
 };
@@ -81,12 +93,6 @@ export const PENDING_STEPS: Record<StepName, StepResult> = {
   settings: { status: "pending" },
   migrations: { status: "pending" },
   root: { status: "pending" },
-};
-
-export const STEP_LABELS: Record<StepName, string> = {
-  settings: "Settings written",
-  migrations: "Migrations applied",
-  root: "Root account created",
 };
 
 export const DEFAULT_VALUES: SetupValues = {

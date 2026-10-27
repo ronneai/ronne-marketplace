@@ -1039,5 +1039,118 @@
         "retry": "Retry"
       }
     }
+  },
+  "setup": {
+    "page": {
+      "title": "Set up Ronne AI Marketplace",
+      "notConfigured": "This instance isn’t set up yet. It needs a database, its public address and a root account before it can be used.",
+      "incomplete": "This instance’s setup didn’t finish. Pick up where it stopped: the settings are there, the database and the root account may not be.",
+      "warnTitle": "Anyone who can open this page can set the instance up",
+      "warnBody": "Finish it now, before the address is shared.",
+      "metaTitle": "Set up"
+    },
+    "unavailable": {
+      "title": "The database isn’t answering",
+      "body": "Ronne AI Marketplace is set up to use <code>{database}</code>, but can’t reach it. Check that the server is running and that the settings still match it; to change them, run setup again where it’s installed, or set <code>DATABASE_URL</code> in the environment.",
+      "fromClone": "From a clone",
+      "withDocker": "With Docker"
+    },
+    "steps": {
+      "settings": "Settings written",
+      "migrations": "Migrations applied",
+      "root": "Root account created",
+      "progress": "Installation progress",
+      "status": {
+        "pending": "pending",
+        "running": "running",
+        "done": "done",
+        "failed": "failed"
+      }
+    },
+    "wizard": {
+      "stepsLabel": "Steps",
+      "pages": {
+        "database": "Database",
+        "instance": "Instance",
+        "root": "Root account",
+        "install": "Install"
+      },
+      "next": "Next",
+      "back": "Back",
+      "install": "Install",
+      "retry": "Retry",
+      "installHint": "Writes the settings, applies the migrations and creates the root account.",
+      "testConnection": "Test connection",
+      "connected": "Connected to {server} and checked permissions",
+      "doneTitle": "Ronne AI Marketplace is set up",
+      "doneBody": "Sign in as <code>{email}</code> to create scopes and invite people.",
+      "signIn": "Sign in",
+      "goToSignIn": "Go to sign-in"
+    },
+    "database": {
+      "legend": "Database",
+      "keep": "Keep the database already in the settings: <code>{database}</code>",
+      "which": "Which database?",
+      "sqlite": "SQLite: a file on this machine, nothing else to install",
+      "mysql": "MySQL or MariaDB: MySQL 8.4+ or MariaDB 10.11+, already running",
+      "postgres": "PostgreSQL: 15+, already running",
+      "pickQuestion": "Which one should I pick?",
+      "pickAnswer": "SQLite is the default and needs nothing else: one file, backed up by copying it. Pick MySQL, MariaDB or PostgreSQL when you already run one, or expect many people at once.",
+      "sqliteFile": "SQLite file",
+      "pathDocker": "Relative to the app, inside the ronne-data volume. Keep the default unless you know why.",
+      "pathNpm": "In rmk-server’s data folder. Keep the default unless you know why.",
+      "pathNode": "Relative to apps/web. The folder is created if it’s missing.",
+      "serverOnly": "For MySQL, MariaDB or PostgreSQL only.",
+      "composeTitle": "Running the database with Compose?",
+      "composeBody": "<code>docker compose --profile postgres up -d</code> (or <code>mysql</code>) starts one next to Ronne. Use the host <code>postgres</code> (or <code>mysql</code>), the database and user <code>ronne</code>, and the password from <code>RONNE_DB_PASSWORD</code>.",
+      "host": "Host",
+      "port": "Port",
+      "name": "Database name",
+      "nameHint": "It must exist already; setup doesn’t create databases.",
+      "user": "User",
+      "password": "Password"
+    },
+    "instance": {
+      "legend": "Instance",
+      "publicUrl": "Public address (PUBLIC_URL)",
+      "envDocker": "Set by RONNE_DOMAIN or PUBLIC_URL in the environment (compose.yaml), which wins over the settings. Change it there, in the .env file next to compose.yaml, then run docker compose up -d.",
+      "envOther": "Set by PUBLIC_URL in the environment, which wins over the settings. Change it there and restart.",
+      "hint": "Where people will open Ronne AI Marketplace: the address a reverse proxy serves, or {local} on this machine.",
+      "helpQuestion": "What is it used for?",
+      "helpAnswer": "Links in the app, the address <code>rmk login</code> uses, and the origin sign-in trusts. Behind a reverse proxy, use the public https address."
+    },
+    "root": {
+      "legend": "Root account",
+      "intro": "Root can do everything, including creating other users and scopes.",
+      "helpQuestion": "What can root do?",
+      "helpAnswer": "Everything: create scopes and users, review and release items, and override a decision (which is recorded). This is the first root; other people get their own accounts, created by a root, and a root can make them root too.",
+      "email": "Email",
+      "name": "Display name",
+      "password": "Password",
+      "passwordHint": "12 to 128 characters. Nothing else is required: length is what matters.",
+      "again": "Password again"
+    },
+    "errors": {
+      "already_set_up": "Someone already set this instance up. Sign in.",
+      "database_unavailable": "The database in the settings isn’t answering, so the setup won’t run: it never changes a configured instance from the browser. Fix the database, or the settings on the server (pnpm run setup, or rmk-server setup), then reload.",
+      "not_configured": "Write the settings first.",
+      "public_url_rule": "Use an http:// or https:// address.",
+      "path_required": "Enter a file path.",
+      "host_required": "Enter the host.",
+      "port_invalid": "Enter a port number.",
+      "database_required": "Enter the database name.",
+      "user_required": "Enter the user.",
+      "passwords_mismatch": "The two passwords don’t match.",
+      "settings_unwritable": "The settings file {path} can’t be written: {reason}.{docker, select, true { In Docker, the data volume is owned by root: run `docker compose run --rm --user root web chown -R 1000:1000 /app/data` once.} other {}}",
+      "migration_failed": "A migration failed on {database}: {reason}",
+      "weak_secret": "The AUTH_SECRET already in the settings is shorter than 32 characters. It’s kept, but consider replacing it.",
+      "restart_needed": "The settings were written, but this process still uses values from its environment. Restart it and reload this page."
+    },
+    "detail": {
+      "settings": "Settings written to {path}",
+      "upToDate": "Database up to date",
+      "migrations": "Migrations applied ({count, number})",
+      "root": "Root account created ({email})"
+    }
   }
 }

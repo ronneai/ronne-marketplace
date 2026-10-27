@@ -1,21 +1,25 @@
 import { Check, Circle, LoaderCircle, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { cn } from "@/components/ui/cn";
-import { STEP_LABELS, STEP_NAMES, type StepName, type StepResult } from "./types";
+import { useSay } from "./say";
+import { STEP_NAMES, type StepName, type StepResult } from "./types";
 
 const ICONS = {
-  pending: { Icon: Circle, className: "text-muted", label: "pending" },
-  running: { Icon: LoaderCircle, className: "animate-spin text-fg", label: "running" },
-  done: { Icon: Check, className: "text-accent", label: "done" },
-  failed: { Icon: X, className: "text-error-text", label: "failed" },
+  pending: { Icon: Circle, className: "text-muted" },
+  running: { Icon: LoaderCircle, className: "animate-spin text-fg" },
+  done: { Icon: Check, className: "text-accent" },
+  failed: { Icon: X, className: "text-error-text" },
 } as const;
 
 /** The install's progress: one row per step, read out as it changes. */
 export const StepList = ({ steps }: { steps: Record<StepName, StepResult> }) => {
+  const t = useTranslations("admin.setup.steps");
+  const say = useSay();
   return (
-    <ol className="grid gap-2" aria-live="polite" aria-label="Installation progress">
+    <ol className="grid gap-2" aria-live="polite" aria-label={t("progress")}>
       {STEP_NAMES.map((name) => {
         const step = steps[name];
-        const { Icon, className, label } = ICONS[step.status];
+        const { Icon, className } = ICONS[step.status];
         return (
           <li
             key={name}
@@ -31,8 +35,8 @@ export const StepList = ({ steps }: { steps: Record<StepName, StepResult> }) => 
                   step.status === "pending" ? "text-muted" : "text-fg",
                 )}
               >
-                {STEP_LABELS[name]}
-                <span className="sr-only"> ({label})</span>
+                {t(name)}
+                <span className="sr-only"> ({t(`status.${step.status}`)})</span>
               </span>
               {step.detail ? (
                 <span
@@ -41,7 +45,7 @@ export const StepList = ({ steps }: { steps: Record<StepName, StepResult> }) => 
                     step.status === "failed" ? "text-error-text" : "text-muted",
                   )}
                 >
-                  {step.detail}
+                  {say(step.say, step.detail)}
                 </span>
               ) : null}
             </div>

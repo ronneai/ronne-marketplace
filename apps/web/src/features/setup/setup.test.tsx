@@ -35,7 +35,7 @@ describe("SetupPage", () => {
   it("shows every question, the Install button and the warning, and nothing about the terminal", () => {
     const html = renderToStaticMarkup(<SetupPage page={page()} />);
     expect(html).toContain("Set up Ronne AI Marketplace");
-    expect(html).toContain("isn&#x27;t set up yet");
+    expect(html).toContain("isn’t set up yet");
     for (const name of FIELDS) expect(html, name).toContain(`name="${name}"`);
     expect(html).toContain(">Install<");
     expect(html).not.toContain("pnpm run setup");
@@ -76,7 +76,7 @@ describe("SetupPage", () => {
     const html = renderToStaticMarkup(
       <SetupPage page={page({ runtime: "npm", localUrl: "http://localhost:7650" })} />,
     );
-    expect(html).toContain("In rmk-server&#x27;s data folder");
+    expect(html).toContain("In rmk-server’s data folder");
     expect(html).toContain("or http://localhost:7650 on this machine");
   });
 
@@ -90,7 +90,7 @@ describe("SetupPage", () => {
         })}
       />,
     );
-    expect(html).toContain("didn&#x27;t finish");
+    expect(html).toContain("didn’t finish");
     expect(html).toMatch(/name="database.keep"[^>]*checked/);
     expect(html).toContain("postgres://ronne:***@db:5432/ronne");
   });
@@ -101,7 +101,7 @@ describe("DatabaseUnavailable", () => {
     const html = renderToStaticMarkup(
       <DatabaseUnavailable database="postgres://ronne:***@db/ronne" />,
     );
-    expect(html).toContain("isn&#x27;t answering");
+    expect(html).toContain("isn’t answering");
     expect(html).toContain("postgres://ronne:***@db/ronne");
     expect(html).not.toContain("Set up Ronne");
   });

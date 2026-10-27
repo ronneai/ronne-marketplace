@@ -228,9 +228,21 @@ describe("the web setup's steps", () => {
   it("does the whole install in one go, and echoes the non-secret values with the progress", async () => {
     const state = await installAllWith(context, initial, form({ ...sqlite, ...root }));
     expect(state.steps).toEqual({
-      settings: { status: "done", detail: `Settings written to ${context.envPath}` },
-      migrations: { status: "done", detail: expect.stringMatching(/^Migrations applied/) },
-      root: { status: "done", detail: "Root account created (root@example.com)" },
+      settings: {
+        status: "done",
+        detail: `Settings written to ${context.envPath}`,
+        say: { key: "detail.settings", values: { path: context.envPath } },
+      },
+      migrations: {
+        status: "done",
+        detail: expect.stringMatching(/^Migrations applied/),
+        say: { key: "detail.migrations", values: { count: expect.any(Number) } },
+      },
+      root: {
+        status: "done",
+        detail: "Root account created (root@example.com)",
+        say: { key: "detail.root", values: { email: "root@example.com" } },
+      },
     });
     expect(state.done).toEqual({ email: "root@example.com" });
     expect(state.values).toMatchObject({ kind: "sqlite", rootEmail: "Root@Example.com" });

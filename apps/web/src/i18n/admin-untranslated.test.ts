@@ -24,6 +24,10 @@ const flat = (value: string | Tree, prefix = ""): Record<string, string> =>
  * where it does, so a new one is a decision made here.
  */
 const SAME: Record<string, readonly string[]> = {
+  "setup.database.host": ["pt"],
+  "setup.database.port": ["fr"],
+  "setup.wizard.pages.instance": ["fr"],
+  "setup.instance.legend": ["fr"],
   "settings.feeds.columns.plugins": ["pt", "fr"],
   "settings.providerControls.subject": ["pt", "fr"],
   "settings.scim.token": ["pt"],

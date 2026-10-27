@@ -78,11 +78,14 @@ Every task that moves a folder adds it to the `overrides` entry in `biome.json` 
   *Note:* small English changes: the purge's counts use plurals ("1 IP address"), the retention unit
   follows the number, and sizes and counts are written by the language ("4,6 MiB" in pt).
 
-- [ ] **9. The setup wizard.** `SetupPage`, `SetupForm`, `StepList`, `fields.tsx`,
+- [x] **9. The setup wizard.** `SetupPage`, `SetupForm`, `StepList`, `fields.tsx`,
   `DatabaseUnavailable`, `form.ts` and `install.ts` messages as codes, `app/setup`.
   *Done when:* three-language tests of each step and each validation message; a test that the
   wizard renders with no database and no user; `/setup` reads in the browser's language; it is
   in `MIGRATED_ROUTES`.
+  *Note:* the server's messages (`SetupError`, steps, notices) keep their English and gain a `say`
+  (a key of `admin.setup.errors` or `.detail` and its values), worded by `useSay`; what comes from
+  `server/` or a driver is shown as written (SPEC, Out). The nojs and wizard e2e run in task 13.
 
 - [ ] **10. Small pieces.** `components/cli-auth` (panel, `commands.ts` text around the
   commands, which stay as typed), `features/styleguide`.

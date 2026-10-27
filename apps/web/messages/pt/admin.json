@@ -1039,5 +1039,118 @@
         "retry": "Tentar de novo"
       }
     }
+  },
+  "setup": {
+    "page": {
+      "title": "Configurar o Ronne AI Marketplace",
+      "notConfigured": "Esta instância ainda não foi configurada. Ela precisa de um banco de dados, do endereço público e de uma conta root antes de poder ser usada.",
+      "incomplete": "A configuração desta instância não terminou. Continue de onde parou: as configurações estão lá; o banco de dados e a conta root podem não estar.",
+      "warnTitle": "Quem conseguir abrir esta página pode configurar a instância",
+      "warnBody": "Termine agora, antes de o endereço ser compartilhado.",
+      "metaTitle": "Configuração"
+    },
+    "unavailable": {
+      "title": "O banco de dados não está respondendo",
+      "body": "O Ronne AI Marketplace está configurado para usar <code>{database}</code>, mas não consegue alcançá-lo. Confira se o servidor está rodando e se as configurações ainda correspondem a ele; para mudá-las, rode a configuração de novo onde ele está instalado, ou defina <code>DATABASE_URL</code> no ambiente.",
+      "fromClone": "A partir de um clone",
+      "withDocker": "Com Docker"
+    },
+    "steps": {
+      "settings": "Configurações gravadas",
+      "migrations": "Migrações aplicadas",
+      "root": "Conta root criada",
+      "progress": "Andamento da instalação",
+      "status": {
+        "pending": "pendente",
+        "running": "em andamento",
+        "done": "concluída",
+        "failed": "com falha"
+      }
+    },
+    "wizard": {
+      "stepsLabel": "Etapas",
+      "pages": {
+        "database": "Banco de dados",
+        "instance": "Instância",
+        "root": "Conta root",
+        "install": "Instalar"
+      },
+      "next": "Avançar",
+      "back": "Voltar",
+      "install": "Instalar",
+      "retry": "Tentar de novo",
+      "installHint": "Grava as configurações, aplica as migrações e cria a conta root.",
+      "testConnection": "Testar conexão",
+      "connected": "Conectado a {server} e permissões verificadas",
+      "doneTitle": "O Ronne AI Marketplace está configurado",
+      "doneBody": "Entre como <code>{email}</code> para criar escopos e convidar pessoas.",
+      "signIn": "Entrar",
+      "goToSignIn": "Ir para o login"
+    },
+    "database": {
+      "legend": "Banco de dados",
+      "keep": "Manter o banco de dados que já está nas configurações: <code>{database}</code>",
+      "which": "Qual banco de dados?",
+      "sqlite": "SQLite: um arquivo nesta máquina, nada mais para instalar",
+      "mysql": "MySQL ou MariaDB: MySQL 8.4+ ou MariaDB 10.11+, já em execução",
+      "postgres": "PostgreSQL: 15+, já em execução",
+      "pickQuestion": "Qual devo escolher?",
+      "pickAnswer": "O SQLite é o padrão e não precisa de mais nada: um arquivo, cujo backup é copiá-lo. Escolha MySQL, MariaDB ou PostgreSQL quando já tiver um rodando, ou esperar muita gente ao mesmo tempo.",
+      "sqliteFile": "Arquivo SQLite",
+      "pathDocker": "Relativo ao aplicativo, dentro do volume ronne-data. Mantenha o padrão, a menos que saiba o motivo.",
+      "pathNpm": "Na pasta de dados do rmk-server. Mantenha o padrão, a menos que saiba o motivo.",
+      "pathNode": "Relativo a apps/web. A pasta é criada se não existir.",
+      "serverOnly": "Só para MySQL, MariaDB ou PostgreSQL.",
+      "composeTitle": "Rodando o banco de dados com o Compose?",
+      "composeBody": "<code>docker compose --profile postgres up -d</code> (ou <code>mysql</code>) sobe um ao lado do Ronne. Use o host <code>postgres</code> (ou <code>mysql</code>), o banco de dados e o usuário <code>ronne</code> e a senha de <code>RONNE_DB_PASSWORD</code>.",
+      "host": "Host",
+      "port": "Porta",
+      "name": "Nome do banco de dados",
+      "nameHint": "Ele já precisa existir; a configuração não cria bancos de dados.",
+      "user": "Usuário",
+      "password": "Senha"
+    },
+    "instance": {
+      "legend": "Instância",
+      "publicUrl": "Endereço público (PUBLIC_URL)",
+      "envDocker": "Definido por RONNE_DOMAIN ou PUBLIC_URL no ambiente (compose.yaml), que vale mais que as configurações. Mude lá, no arquivo .env ao lado do compose.yaml, e rode docker compose up -d.",
+      "envOther": "Definido por PUBLIC_URL no ambiente, que vale mais que as configurações. Mude lá e reinicie.",
+      "hint": "Onde as pessoas vão abrir o Ronne AI Marketplace: o endereço que um proxy reverso serve, ou {local} nesta máquina.",
+      "helpQuestion": "Para que serve?",
+      "helpAnswer": "Os links do aplicativo, o endereço que o <code>rmk login</code> usa e a origem em que o login confia. Atrás de um proxy reverso, use o endereço https público."
+    },
+    "root": {
+      "legend": "Conta root",
+      "intro": "O root pode tudo, inclusive criar outros usuários e escopos.",
+      "helpQuestion": "O que o root pode fazer?",
+      "helpAnswer": "Tudo: criar escopos e usuários, revisar e publicar itens e passar por cima de uma decisão (o que fica registrado). Este é o primeiro root; as outras pessoas têm contas próprias, criadas por um root, e um root pode torná-las root também.",
+      "email": "E-mail",
+      "name": "Nome exibido",
+      "password": "Senha",
+      "passwordHint": "De 12 a 128 caracteres. Mais nada é exigido: o que importa é o tamanho.",
+      "again": "Senha de novo"
+    },
+    "errors": {
+      "already_set_up": "Alguém já configurou esta instância. Entre.",
+      "database_unavailable": "O banco de dados das configurações não está respondendo, então a configuração não vai rodar: ela nunca altera uma instância configurada pelo navegador. Conserte o banco de dados, ou as configurações no servidor (pnpm run setup ou rmk-server setup), e recarregue.",
+      "not_configured": "Grave as configurações primeiro.",
+      "public_url_rule": "Use um endereço http:// ou https://.",
+      "path_required": "Informe o caminho de um arquivo.",
+      "host_required": "Informe o host.",
+      "port_invalid": "Informe um número de porta.",
+      "database_required": "Informe o nome do banco de dados.",
+      "user_required": "Informe o usuário.",
+      "passwords_mismatch": "As duas senhas não coincidem.",
+      "settings_unwritable": "Não é possível gravar o arquivo de configurações {path}: {reason}.{docker, select, true { No Docker, o volume de dados pertence ao root: rode `docker compose run --rm --user root web chown -R 1000:1000 /app/data` uma vez.} other {}}",
+      "migration_failed": "Uma migração falhou em {database}: {reason}",
+      "weak_secret": "O AUTH_SECRET que já está nas configurações tem menos de 32 caracteres. Ele foi mantido, mas considere trocá-lo.",
+      "restart_needed": "As configurações foram gravadas, mas este processo ainda usa valores do ambiente dele. Reinicie-o e recarregue esta página."
+    },
+    "detail": {
+      "settings": "Configurações gravadas em {path}",
+      "upToDate": "Banco de dados em dia",
+      "migrations": "Migrações aplicadas ({count, number})",
+      "root": "Conta root criada ({email})"
+    }
   }
 }
