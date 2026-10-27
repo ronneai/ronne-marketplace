@@ -206,7 +206,7 @@ describe("rendering", () => {
       <OneTimePassword value={{ email: "a@example.com", password: "Gen3ratedPassw0rd" }} />,
     );
     expect(html).toContain("Shown once");
-    expect(html).toContain("It won&#x27;t be shown again");
+    expect(html).toContain("It won’t be shown again");
     expect(html).toContain("a@example.com");
     expect(html).toContain("Gen3ratedPassw0rd");
   });

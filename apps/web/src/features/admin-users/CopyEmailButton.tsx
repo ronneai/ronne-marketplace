@@ -1,6 +1,7 @@
 "use client";
 
 import { Check, Copy } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { type CopyResult, copyText, selectText } from "@/components/ui/copy";
 import { IconButton } from "@/components/ui/IconButton";
@@ -33,6 +34,7 @@ export const copyOrSelect = async <T extends { getClientRects: () => { length: n
  * always `display: none`), for the person to copy by hand.
  */
 export const CopyEmailButton = ({ email }: { email: string }) => {
+  const t = useTranslations("admin.users.copy");
   const [state, setState] = useState<"idle" | "copied" | "manual">("idle");
   const copy = async (event: React.MouseEvent<HTMLButtonElement>) => {
     const sources = [
@@ -45,11 +47,11 @@ export const CopyEmailButton = ({ email }: { email: string }) => {
   return (
     <>
       {/* Above the phone's row-wide link (the row is `relative`), so a tap copies, not opens. */}
-      <IconButton label={`Copy ${email}`} onClick={copy} className="relative z-10">
+      <IconButton label={t("label", { email })} onClick={copy} className="relative z-10">
         {state === "copied" ? <Check size={14} aria-hidden /> : <Copy size={14} aria-hidden />}
       </IconButton>
       <span role="status" className="sr-only">
-        {state === "copied" ? "Copied" : state === "manual" ? "Selected: copy it yourself" : ""}
+        {state === "copied" ? t("copied") : state === "manual" ? t("manual") : ""}
       </span>
     </>
   );

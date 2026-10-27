@@ -48,5 +48,75 @@
     "askedDone": "La personne devra choisir un nouveau mot de passe à sa prochaine connexion.",
     "clearedDone": "La personne n’aura plus à choisir un nouveau mot de passe.",
     "unchanged": "Rien n’a changé."
+  },
+  "users": {
+    "title": "Utilisateurs",
+    "description": "Qui peut utiliser cette instance. Seul root crée des utilisateurs; personne ne s’inscrit seul.",
+    "filters": {
+      "search": "Rechercher",
+      "searchPlaceholder": "Courriel ou nom",
+      "role": "Rôle",
+      "anyRole": "Tous les rôles",
+      "status": "Statut",
+      "anyStatus": "Tous les statuts",
+      "apply": "Filtrer"
+    },
+    "status": {
+      "active": "actif",
+      "disabled": "désactivé",
+      "erased": "effacé"
+    },
+    "columns": {
+      "name": "Nom",
+      "email": "Courriel",
+      "role": "Rôle",
+      "status": "Statut",
+      "lastSignIn": "Dernière connexion",
+      "created": "Créé le",
+      "open": "Ouvrir"
+    },
+    "noRoles": "aucun",
+    "never": "Jamais",
+    "openUser": "Ouvrir {email}",
+    "roleHover": "{workspace} : {role}",
+    "empty": {
+      "none": "Aucun utilisateur pour l’instant.",
+      "filtered": "Aucun utilisateur ne correspond à ces filtres."
+    },
+    "scim": {
+      "erased": "Effacé le <date></date>",
+      "managed": "Géré par {provider}",
+      "adopted": "Adopté par {provider} le <date></date>",
+      "deprovisioned": "Déprovisionné par {provider} le <date></date>"
+    },
+    "copy": {
+      "label": "Copier {email}",
+      "copied": "Copié",
+      "manual": "Sélectionné : copiez-le vous-même"
+    },
+    "create": {
+      "button": "Créer un utilisateur",
+      "title": "Créer un utilisateur",
+      "email": "Courriel",
+      "name": "Nom",
+      "role": "Rôle",
+      "rootTitle": "Root peut tout faire.",
+      "rootBody": "Gérer les utilisateurs (les autres root aussi), les portées, les réglages et le journal d’audit, et approuver ses propres soumissions.",
+      "cancel": "Annuler",
+      "done": "Terminé"
+    },
+    "password": {
+      "legend": "Mot de passe",
+      "generate": "En générer un (20 caractères)",
+      "type": "En saisir un",
+      "new": "Nouveau mot de passe",
+      "length": "De 12 à 128 caractères."
+    },
+    "oneTime": {
+      "title": "Affiché une seule fois",
+      "body": "Remettez ceci à l’utilisateur par un canal de confiance. Il ne sera plus affiché.",
+      "email": "Courriel",
+      "password": "Mot de passe"
+    }
   }
 }

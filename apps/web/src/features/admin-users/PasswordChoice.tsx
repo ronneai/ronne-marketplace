@@ -10,13 +10,14 @@ import { PasswordInput } from "@/components/ui/PasswordInput";
 export const PasswordChoice = ({ idPrefix }: { idPrefix: string }) => {
   const [mode, setMode] = useState<"generate" | "type">("generate");
   const t = useTranslations("admin.passwordChange");
+  const u = useTranslations("admin.users.password");
   return (
     <fieldset className="grid gap-2">
-      <legend className="mb-1.5 text-sm font-semibold text-fg">Password</legend>
+      <legend className="mb-1.5 text-sm font-semibold text-fg">{u("legend")}</legend>
       {(
         [
-          ["generate", "Generate one (20 characters)"],
-          ["type", "Type one"],
+          ["generate", u("generate")],
+          ["type", u("type")],
         ] as const
       ).map(([value, label]) => (
         <label key={value} className="flex items-center gap-2 text-sm text-fg">
@@ -33,7 +34,7 @@ export const PasswordChoice = ({ idPrefix }: { idPrefix: string }) => {
       ))}
       {mode === "type" ? (
         <div className="grid gap-1.5">
-          <Label htmlFor={`${idPrefix}-password`}>New password</Label>
+          <Label htmlFor={`${idPrefix}-password`}>{u("new")}</Label>
           <PasswordInput
             id={`${idPrefix}-password`}
             name="password"
@@ -42,7 +43,7 @@ export const PasswordChoice = ({ idPrefix }: { idPrefix: string }) => {
             maxLength={128}
             required
           />
-          <p className="text-xs text-muted">12 to 128 characters.</p>
+          <p className="text-xs text-muted">{u("length")}</p>
         </div>
       ) : null}
       <div className="grid gap-1">

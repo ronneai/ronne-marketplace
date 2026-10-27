@@ -20,10 +20,13 @@ Every task that moves a folder adds it to the `overrides` entry in `biome.json` 
   this task moved the four page titles (`admin/metadata.ts`) and tested the sidebar's Admin links in
   three languages. No new namespace yet: `admin.json` stays small; task 5 or 6 decides on `audit`.
 
-- [ ] **2. Users: the list and create.** `UsersPage`, its table and filters, `CreateUserDialog`,
+- [x] **2. Users: the list and create.** `UsersPage`, its table and filters, `CreateUserDialog`,
   `PasswordChoice`, `OneTimePassword`, `CopyEmailButton`, `list.ts`.
   *Done when:* three-language tests with 0, 1 and 2 counts; `/admin/users` is in
   `MIGRATED_ROUTES`.
+  *Note:* a table with no rows shows its empty state, not a count, so 0 is tested as that state.
+  The raw-text rule only reads JSX, so `admin/metadata.ts` (task 1) is covered by its test, not by
+  the scan. The phone sweep of `/admin/users` in pt and fr runs in task 13.
 
 - [ ] **3. A user's page and its actions.** `UserPage`, `UserPageActions`, `UserActionDialogs`,
   `EraseUserDialog`, `DownloadDataDialog`, `UserWorkspacesDialog`, `WorkspaceRows`.

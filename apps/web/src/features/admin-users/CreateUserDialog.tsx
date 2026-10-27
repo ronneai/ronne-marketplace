@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useActionState, useState } from "react";
 import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
@@ -12,6 +13,8 @@ import { PasswordChoice } from "./PasswordChoice";
 import type { AdminActionState } from "./types";
 
 export const CreateUserForm = ({ onDone }: { onDone: () => void }) => {
+  const t = useTranslations("admin.users.create");
+  const roles = useTranslations("common.roles");
   const [state, action, pending] = useActionState<AdminActionState, FormData>(
     createUserFromForm,
     {},
@@ -22,17 +25,24 @@ export const CreateUserForm = ({ onDone }: { onDone: () => void }) => {
       <div className="grid gap-4">
         <OneTimePassword value={state.oneTime} />
         <div>
-          <Button onClick={onDone}>Done</Button>
+          <Button onClick={onDone}>{t("done")}</Button>
         </div>
       </div>
     );
   return (
     <form action={action} className="grid gap-4">
-      <TextField id="new-email" name="email" type="email" label="Email" required maxLength={255} />
-      <TextField id="new-name" name="name" label="Name" required maxLength={255} />
+      <TextField
+        id="new-email"
+        name="email"
+        type="email"
+        label={t("email")}
+        required
+        maxLength={255}
+      />
+      <TextField id="new-name" name="name" label={t("name")} required maxLength={255} />
       <div className="grid gap-1.5">
         <div className="flex items-center gap-2">
-          <Label htmlFor="new-role">Role</Label>
+          <Label htmlFor="new-role">{t("role")}</Label>
           <Help id="role-root" />
         </div>
         <select
@@ -42,24 +52,23 @@ export const CreateUserForm = ({ onDone }: { onDone: () => void }) => {
           onChange={(event) => setRole(event.target.value)}
           className={selectClasses}
         >
-          <option value="user">user</option>
-          <option value="root">root</option>
+          <option value="user">{roles("user")}</option>
+          <option value="root">{roles("root")}</option>
         </select>
       </div>
       {role === "root" ? (
-        <Notice kind="warn" title="Root can do everything.">
-          Manage users (other roots included), scopes, settings and the audit log, and approve their
-          own submissions.
+        <Notice kind="warn" title={t("rootTitle")}>
+          {t("rootBody")}
         </Notice>
       ) : null}
       <PasswordChoice idPrefix="new" />
       <FieldError id="create-error">{state.error}</FieldError>
       <DialogActions>
         <Button variant="ghost" onClick={onDone}>
-          Cancel
+          {t("cancel")}
         </Button>
         <Button type="submit" loading={pending}>
-          Create user
+          {t("button")}
         </Button>
       </DialogActions>
     </form>
@@ -68,6 +77,7 @@ export const CreateUserForm = ({ onDone }: { onDone: () => void }) => {
 
 /** "Create user" and its dialog. Each opening starts a fresh form, so a shown password never lingers. */
 export const CreateUserDialog = () => {
+  const t = useTranslations("admin.users.create");
   const [open, setOpen] = useState(false);
   const [round, setRound] = useState(0);
   const close = () => {
@@ -76,8 +86,8 @@ export const CreateUserDialog = () => {
   };
   return (
     <>
-      <Button onClick={() => setOpen(true)}>Create user</Button>
-      <Dialog open={open} onClose={close} title="Create user">
+      <Button onClick={() => setOpen(true)}>{t("button")}</Button>
+      <Dialog open={open} onClose={close} title={t("title")}>
         <CreateUserForm key={round} onDone={close} />
       </Dialog>
     </>

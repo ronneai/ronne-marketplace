@@ -48,5 +48,75 @@
     "askedDone": "A pessoa será convidada a escolher uma nova senha no próximo acesso.",
     "clearedDone": "A pessoa não será mais convidada a escolher uma nova senha.",
     "unchanged": "Nada mudou."
+  },
+  "users": {
+    "title": "Usuários",
+    "description": "Quem pode usar esta instância. Só o root cria usuários; ninguém se cadastra sozinho.",
+    "filters": {
+      "search": "Pesquisar",
+      "searchPlaceholder": "E-mail ou nome",
+      "role": "Papel",
+      "anyRole": "Qualquer papel",
+      "status": "Situação",
+      "anyStatus": "Qualquer situação",
+      "apply": "Filtrar"
+    },
+    "status": {
+      "active": "ativo",
+      "disabled": "desativado",
+      "erased": "apagado"
+    },
+    "columns": {
+      "name": "Nome",
+      "email": "E-mail",
+      "role": "Papel",
+      "status": "Situação",
+      "lastSignIn": "Último acesso",
+      "created": "Criado em",
+      "open": "Abrir"
+    },
+    "noRoles": "nenhum",
+    "never": "Nunca",
+    "openUser": "Abrir {email}",
+    "roleHover": "{workspace}: {role}",
+    "empty": {
+      "none": "Ainda não há usuários.",
+      "filtered": "Nenhum usuário corresponde a estes filtros."
+    },
+    "scim": {
+      "erased": "Apagado em <date></date>",
+      "managed": "Gerenciado por {provider}",
+      "adopted": "Adotado por {provider} em <date></date>",
+      "deprovisioned": "Desprovisionado por {provider} em <date></date>"
+    },
+    "copy": {
+      "label": "Copiar {email}",
+      "copied": "Copiado",
+      "manual": "Selecionado: copie você mesmo"
+    },
+    "create": {
+      "button": "Criar usuário",
+      "title": "Criar usuário",
+      "email": "E-mail",
+      "name": "Nome",
+      "role": "Papel",
+      "rootTitle": "O root pode tudo.",
+      "rootBody": "Gerenciar usuários (inclusive outros roots), escopos, configurações e o registro de auditoria, e aprovar as próprias submissões.",
+      "cancel": "Cancelar",
+      "done": "Concluir"
+    },
+    "password": {
+      "legend": "Senha",
+      "generate": "Gerar uma (20 caracteres)",
+      "type": "Digitar uma",
+      "new": "Nova senha",
+      "length": "De 12 a 128 caracteres."
+    },
+    "oneTime": {
+      "title": "Mostrada uma só vez",
+      "body": "Entregue isto ao usuário por um canal confiável. Não será mostrado de novo.",
+      "email": "E-mail",
+      "password": "Senha"
+    }
   }
 }

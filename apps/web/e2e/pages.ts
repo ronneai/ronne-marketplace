@@ -211,4 +211,5 @@ export const MIGRATED_ROUTES: ReadonlySet<string> = new Set([
   // looks for overflow and the language, so the other tabs, still English, are fine in it.
   "/admin/settings",
   "/admin/feedback",
+  "/admin/users",
 ]);

@@ -48,5 +48,75 @@
     "askedDone": "They will be asked to choose a new password at their next sign-in.",
     "clearedDone": "They will no longer be asked to choose a new password.",
     "unchanged": "Nothing changed."
+  },
+  "users": {
+    "title": "Users",
+    "description": "Who can use this instance. Only root creates users; nobody signs up.",
+    "filters": {
+      "search": "Search",
+      "searchPlaceholder": "Email or name",
+      "role": "Role",
+      "anyRole": "Any role",
+      "status": "Status",
+      "anyStatus": "Any status",
+      "apply": "Filter"
+    },
+    "status": {
+      "active": "active",
+      "disabled": "disabled",
+      "erased": "erased"
+    },
+    "columns": {
+      "name": "Name",
+      "email": "Email",
+      "role": "Role",
+      "status": "Status",
+      "lastSignIn": "Last sign-in",
+      "created": "Created",
+      "open": "Open"
+    },
+    "noRoles": "none",
+    "never": "Never",
+    "openUser": "Open {email}",
+    "roleHover": "{workspace}: {role}",
+    "empty": {
+      "none": "No users yet.",
+      "filtered": "No users match these filters."
+    },
+    "scim": {
+      "erased": "Erased on <date></date>",
+      "managed": "Managed by {provider}",
+      "adopted": "Adopted by {provider} on <date></date>",
+      "deprovisioned": "Deprovisioned by {provider} on <date></date>"
+    },
+    "copy": {
+      "label": "Copy {email}",
+      "copied": "Copied",
+      "manual": "Selected: copy it yourself"
+    },
+    "create": {
+      "button": "Create user",
+      "title": "Create user",
+      "email": "Email",
+      "name": "Name",
+      "role": "Role",
+      "rootTitle": "Root can do everything.",
+      "rootBody": "Manage users (other roots included), scopes, settings and the audit log, and approve their own submissions.",
+      "cancel": "Cancel",
+      "done": "Done"
+    },
+    "password": {
+      "legend": "Password",
+      "generate": "Generate one (20 characters)",
+      "type": "Type one",
+      "new": "New password",
+      "length": "12 to 128 characters."
+    },
+    "oneTime": {
+      "title": "Shown once",
+      "body": "Give this to the user through a trusted channel. It won’t be shown again.",
+      "email": "Email",
+      "password": "Password"
+    }
   }
 }
