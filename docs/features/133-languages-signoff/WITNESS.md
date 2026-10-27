@@ -215,3 +215,34 @@ Witnessed: 2026-10-27, by a fresh agent (blind re-check, claim 1). Commit: 1519f
 
 **Overall:** met.
 
+## Task 9 — The review kit
+
+Witnessed: 2026-10-27 17:40, by a fresh agent (blind). Commit: 6f179c5a plus the uncommitted work. Machine: macOS (Darwin), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Running `pnpm i18n:review` twice gives the same files | no | confirmed | `shasum -a 256` over all 30 files identical |
+| 2 | Every namespace has an .md and a .csv, and the rows equal the flattened keys | no | confirmed | 15 namespaces, 2754 messages; no empty pt or fr cell |
+| 3 | A changed message shows in the export | no | confirmed | a marker put in `pt/common.json` appeared once in `common.md` and once in `common.csv`; restored |
+| 4 | Awkward cases stay readable and parsable | no | confirmed | 23 CSV cells with a newline or quote parse with equal columns; no real pipe case |
+| 5 | The output folder is git-ignored and not committed | no | confirmed | `git check-ignore -v` |
+| 6 | The guide lists the glossary's rules, what to look at and leave alone, how to send corrections, and the website as part two | no | partly | it named four glossary terms and gave the website one pointer paragraph |
+| 7 | Tests and lint pass | no | confirmed | 4 tests; lint clean |
+
+**Overall:** not met (row 6).
+
+The work after this pass: the export also writes `GLOSSARY.md` (the whole glossary table) and `WEBSITE.md` (the 35 topics' pt and fr addresses), and the guide describes both.
+
+Witnessed: 2026-10-27 17:45, by a fresh agent (re-check, row 6). Commit: 6f179c5a plus the uncommitted tree. Machine: macOS (Darwin 27.0.0), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6a | The export is deterministic and writes the glossary and website files | yes | confirmed | two runs, 32 files, identical checksums |
+| 6b | `GLOSSARY.md` has the whole glossary table | yes | confirmed | 66 table lines in `i18n.md` and in `GLOSSARY.md`; `diff` empty |
+| 6c | `WEBSITE.md` has one row per topic | yes | confirmed | 35 topics, 35 rows |
+| 6d | The pt and fr addresses follow the site's pattern | yes | confirmed | three sampled addresses answered 200 |
+| 6e | The guide is usable for a non-developer native reader | yes | confirmed | read in full |
+| 6f | Tests and lint pass | yes | confirmed | 6 tests; lint clean |
+
+**Overall:** met.
+

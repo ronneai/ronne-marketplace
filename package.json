@@ -20,6 +20,7 @@
     "test": "turbo run test",
     "hooks:install": "git config core.hooksPath .githooks",
     "witness:check": "node packages/repo-tools/src/check-witness.js",
+    "i18n:review": "node packages/repo-tools/src/i18n-review.js",
     "docs:links": "node packages/repo-tools/src/docs-links.js",
     "docker:limits": "node packages/repo-tools/src/check-docker-hub-limits.js",
     "licenses:check": "pnpm licenses list --json | node packages/repo-tools/src/check-licenses.js",

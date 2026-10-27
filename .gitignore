@@ -31,3 +31,4 @@ test-results/
 
 # Certificates for the Docker proxy with RONNE_TLS=files (feature 080)
 /certs/
+docs/features/133-languages-signoff/review/

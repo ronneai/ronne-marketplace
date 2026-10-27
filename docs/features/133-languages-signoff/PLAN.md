@@ -87,7 +87,7 @@ Follow [`docs/knowledge/i18n.md`](../../knowledge/i18n.md).
   decision log; if the owner wants something built, add its task here or open its own feature.
   *Done when:* the SPEC's Open questions are answered and the decision log (MVP §15) has the lines.
 
-- [ ] **9. The review kit.** `pnpm i18n:review` writes, from the message files, one readable
+- [x] **9. The review kit.** `pnpm i18n:review` writes, from the message files, one readable
   file per namespace (key, screen, English, Portuguese, French) under `docs/features/133-…/review/`
   (git-ignored) and a short guide for the reviewers (what to look at, the glossary, how to send
   corrections). Add the website's pages as the second part of the guide.
