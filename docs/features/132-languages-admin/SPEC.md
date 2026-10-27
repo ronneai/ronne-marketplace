@@ -6,7 +6,7 @@
 
 The screens root and the people who run an instance use speak the person's language: Admin
 (Users and a user's page, Scopes and Workspaces, the Audit log, Settings with all its tabs, the
-identity provider and SCIM screens), the setup wizard, the CLI sign-in panel, and the styleguide.
+identity provider and SCIM screens), the setup wizard and the CLI sign-in panel.
 129 built the machinery, 130 and 131 moved browse and author; 124–128 already wrote Home, Notice,
 Feedback and the password change with messages. This feature moves what is left, in Portuguese and
 French beside English, and the last `Help` entries with them. Nothing about what the screens do
@@ -35,8 +35,8 @@ changes.
   "database unavailable" panel and its validation messages. The wizard runs before there is a
   user or a database, so the language is the cookie or the browser's (129), and the 129
   language links stay.
-- **Small pieces** (`components/cli-auth`: the CLI sign-in panel; `features/styleguide`, whose
-  demo text is moved so the folder joins the scan).
+- **Small pieces** (`components/cli-auth`: the CLI sign-in panel, whose words moved in 129; it joins
+  the scan here).
 - **What the actions say.** The success lines and errors of the action files above, as codes or
   `errorText` (129). `errors.json` gets the classes these screens can raise from the identity
   (39), settings (9), usage (3), audit (4) and workspaces (32) domains that are not there yet,
@@ -57,6 +57,9 @@ changes.
   error class.
 
 **Out** (and where it goes instead):
+- **The styleguide** (`features/styleguide`): a design reference for developers, open to anyone in
+  development and to root in production (032), whose demo text describes the design system. It
+  stays English and out of the scan (decision of this feature, to be confirmed by the owner).
 - **What other people wrote or configured**: a provider's name and values, a scope's or
   workspace's name and description, the notice text root writes, a user's name, an audit
   event's stored details. Shown as stored.
@@ -126,7 +129,7 @@ changes.
 ## Acceptance criteria
 
 - [ ] Admin (Users, a user's page, Scopes, Workspaces, Audit log, every Settings tab), the setup
-      wizard, the CLI sign-in panel and the styleguide render in English, Portuguese and French
+      wizard and the CLI sign-in panel render in English, Portuguese and French
       with no English text left over (core's messages and stored data aside), on desktop and on a
       phone.
 - [ ] Every audit event type reads as a translated sentence; an unknown type shows its code.

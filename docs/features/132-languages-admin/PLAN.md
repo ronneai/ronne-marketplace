@@ -87,9 +87,11 @@ Every task that moves a folder adds it to the `overrides` entry in `biome.json` 
   (a key of `admin.setup.errors` or `.detail` and its values), worded by `useSay`; what comes from
   `server/` or a driver is shown as written (SPEC, Out). The nojs and wizard e2e run in task 13.
 
-- [ ] **10. Small pieces.** `components/cli-auth` (panel, `commands.ts` text around the
-  commands, which stay as typed), `features/styleguide`.
-  *Done when:* three-language tests; both folders are in the scan.
+- [x] **10. Small pieces.** `components/cli-auth` (panel, `commands.ts` text around the
+  commands, which stay as typed). The styleguide stays English (SPEC, Out).
+  *Done when:* three-language tests; the folder is in the scan.
+  *Note:* the panel's words moved in 129; this task adds it to the scan and a test. The styleguide
+  was left English (a developer design reference); the owner is asked to confirm in the SPEC.
 
 - [ ] **11. What the actions say.** [risky] The success lines and errors of every action file
   in scope; `errors.json` gets the identity, settings, usage, audit and workspaces classes these

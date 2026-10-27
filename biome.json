@@ -73,6 +73,7 @@
         "apps/web/src/features/admin-scopes/**",
         "apps/web/src/features/admin-workspaces/**",
         "apps/web/src/features/admin-audit/**",
+        "apps/web/src/components/cli-auth/**",
         "apps/web/src/features/setup/**",
         "apps/web/src/app/setup/**",
         "apps/web/src/features/admin-settings/**",

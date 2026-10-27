@@ -276,3 +276,17 @@ Witnessed: 2026-10-27, by a fresh agent (blind, re-check of rows 2 and 5). Commi
 | 5 | The wizard's Help-tip questions and answers are in the English-leak scan (no `replace(...)` left), and a pt/fr tip left as English fails `vitest run src/features/setup src/i18n` | yes | confirmed | `grep 'replace(' translations.test.tsx` → none; three mutations (pt `pickAnswer`, fr `helpAnswer`, pt `pickQuestion`) set to the exact English each failed `admin-untranslated`; restored, `cmp` identical |
 
 **Overall:** met.
+
+## Task 10 — Small pieces
+
+Witnessed: 2026-10-27 12:35 EDT, by a fresh agent (blind). Commit: 34b29559 plus the uncommitted tree. Machine: macOS (Darwin 27.0.0).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `CliAuthPanel.tsx` and `commands.ts` hold no screen text of their own; the commands stay as typed | yes | confirmed | Every word comes from `useTranslations("common.cliAuth")`; the test asserts every `rmkCommands(registry)` string appears verbatim (HTML-escaped) in en, pt and fr |
+| 2 | `components/cli-auth/**` is in the raw-text scan | yes | confirmed | `git diff biome.json`; a planted `<p>Hello raw</p>` → "Found 2 errors"; restored, `cmp` identical |
+| 3 | The three-language test passes and a pt mutation of `title` or `step2` to English fails it | yes | confirmed | `vitest run src/components/cli-auth` → 5 passed; both mutations failed "the title and the three steps read in each language"; restored, `cmp` identical |
+| 4 | The pt and fr read naturally | yes | confirmed | All 10 keys read in both languages |
+| 5 | The styleguide stays English and out of the scan, and the deviation is reasonable and honestly recorded | yes | confirmed | `features/styleguide` has no translator; `access.ts` allows anyone signed in outside production and only root in production; SPEC (Goal, Scope, Out, Acceptance) and PLAN say so, "decision of this feature, to be confirmed by the owner" |
+
+**Overall:** met.
