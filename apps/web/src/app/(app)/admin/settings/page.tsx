@@ -17,14 +17,16 @@ import { can } from "@/server/domains/identity/models/permissions";
 import { instanceSettings } from "@/server/domains/settings/actions/settings";
 import { requestHeaders } from "@/server/http/request-headers";
 import { holdPage } from "../../hold";
+import { settingsTitle } from "../metadata";
 
-export const metadata = { title: "Settings · Admin · Ronne AI Marketplace" };
+export const generateMetadata = settingsTitle;
 
 /**
  * Root only (`settings.manage`): anyone else gets a 404. In tabs (122), by `?tab=`: Usage (046's
  * policy and 047's minimum, the default), Plugin feeds (079's last builds) and Authentication,
  * whose identity providers each have a page (`&provider=`, 106), Privacy (102's retention) and
- * Notice (124's message for every signed-in page; the first tab moved to messages, the rest follow in 131).
+
+ * Notice (124's message for every signed-in page).
  * Only the tab shown reads its data.
  */
 const AdminSettings = async ({ searchParams }: { searchParams: Promise<SearchParams> }) => {
@@ -60,18 +62,12 @@ const AdminSettings = async ({ searchParams }: { searchParams: Promise<SearchPar
       </>
     );
   };
-  // The tabs are still English, except Notice, which is written in messages from the start.
-  const noticeTab = (await getTranslations("admin.notice"))("tab");
-  const tabs = SETTINGS_TABS.map((entry) =>
-    entry.id === "notice" ? { ...entry, label: noticeTab } : entry,
-  );
+  const t = await getTranslations("admin.settings");
+  const tabs = SETTINGS_TABS.map((entry) => ({ ...entry, label: t(`tabs.${entry.id}`) }));
   return (
     <>
-      <PageHeader
-        title="Settings"
-        description="How this instance behaves. Each change takes effect at once and is recorded in the audit log."
-      />
-      <TabLinks label="Settings" tabs={tabs} current={tab} />
+      <PageHeader title={t("page.title")} description={t("page.description")} />
+      <TabLinks label={t("page.tabsLabel")} tabs={tabs} current={tab} />
       <div className="grid gap-4">{await content()}</div>
     </>
   );

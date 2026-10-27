@@ -28,7 +28,7 @@ export class InvalidPasswordError extends IdentityError {
   override readonly name: string = "InvalidPasswordError";
   constructor(
     readonly reason: "too_short" | "too_long",
-    limit: number,
+    readonly limit: number,
   ) {
     super(
       reason === "too_short"
@@ -203,12 +203,15 @@ export class ProviderIdTakenError extends IdentityError {
 
 export class InvalidProviderDomainsError extends IdentityError {
   override readonly name: string = "InvalidProviderDomainsError";
+  /** `named` when a domain was typed wrong, `empty` when none was: which sentence to say. */
+  readonly shape: "named" | "empty";
   constructor(readonly domain: string) {
     super(
       domain
         ? `"${domain}" isn't an email domain. Write domains like example.com, separated by commas.`
         : "Write email domains like example.com, separated by commas.",
     );
+    this.shape = domain ? "named" : "empty";
   }
 }
 

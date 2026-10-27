@@ -8,8 +8,9 @@ import { getCurrentUser } from "@/server/domains/identity/actions/session";
 import { can } from "@/server/domains/identity/models/permissions";
 import { requestHeaders } from "@/server/http/request-headers";
 import { holdPage } from "../../hold";
+import { adminTitle } from "../metadata";
 
-export const metadata = { title: "Audit log · Ronne AI Marketplace" };
+export const generateMetadata = adminTitle("audit");
 
 const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
 

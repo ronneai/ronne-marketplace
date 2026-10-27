@@ -1,6 +1,6 @@
 "use client";
 
-import { NAME_PROBLEM_MESSAGES, nameProblem, normalizeWorkspaceName } from "@ronneai/core";
+import { NAME_MAX_LENGTH, nameProblem, normalizeWorkspaceName } from "@ronneai/core";
 import { useTranslations } from "next-intl";
 import { useActionState, useEffect, useState } from "react";
 import { Help } from "@/components/help/Help";
@@ -19,11 +19,18 @@ import {
 } from "./actions";
 import type { RenameImpactResult, VisibilityImpactResult, WorkspaceActionState } from "./types";
 
+/** What a failed read of an impact sets as its error; the form words it in the language. */
+const LOAD_FAILED = "load_failed";
+
+/** A name in the monospace face the sentences around it use. */
+const mono = (chunks: React.ReactNode) => <span className="font-mono">{chunks}</span>;
+
 const Description = ({ defaultValue }: { defaultValue?: string }) => {
+  const t = useTranslations("admin.workspaces.dialogs.description");
   const [value, setValue] = useState(defaultValue ?? "");
   return (
     <div className="grid gap-1.5">
-      <Label htmlFor="workspace-description">Description</Label>
+      <Label htmlFor="workspace-description">{t("label")}</Label>
       <textarea
         id="workspace-description"
         name="description"
@@ -34,24 +41,27 @@ const Description = ({ defaultValue }: { defaultValue?: string }) => {
         onChange={(event) => setValue(event.target.value)}
         className={`${inputClasses} h-auto py-2`}
       />
-      <p className="text-xs text-muted">
-        Who it's for and what goes in it. {[...value].length}/300
-      </p>
+      <p className="text-xs text-muted">{t("hint", { used: [...value].length, max: 300 })}</p>
     </div>
   );
 };
 
-const Done = ({ message, onDone }: { message: string; onDone: () => void }) => (
-  <div className="grid gap-4">
-    <Notice kind="info" title={message} />
-    <div>
-      <Button onClick={onDone}>Done</Button>
+const Done = ({ message, onDone }: { message: string; onDone: () => void }) => {
+  const t = useTranslations("admin.workspaces.dialogs");
+  return (
+    <div className="grid gap-4">
+      <Notice kind="info" title={message} />
+      <div>
+        <Button onClick={onDone}>{t("done")}</Button>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 /** New workspace's form; exported for its test (the dialog renders it only when open). */
 export const CreateWorkspaceForm = ({ onDone }: { onDone: () => void }) => {
+  const t = useTranslations("admin.workspaces.dialogs");
+  const problems = useTranslations("common.nameProblem");
   const [state, action, pending] = useActionState<WorkspaceActionState, FormData>(
     createWorkspaceFromForm,
     {},
@@ -63,7 +73,7 @@ export const CreateWorkspaceForm = ({ onDone }: { onDone: () => void }) => {
   return (
     <form action={action} className="grid gap-4">
       <div className="grid gap-1.5">
-        <Label htmlFor="workspace-name">Name</Label>
+        <Label htmlFor="workspace-name">{t("create.name")}</Label>
         <input
           id="workspace-name"
           name="name"
@@ -79,49 +89,43 @@ export const CreateWorkspaceForm = ({ onDone }: { onDone: () => void }) => {
           className={inputClasses}
         />
         <p id="workspace-name-hint" className="text-xs text-muted">
-          {problem
-            ? NAME_PROBLEM_MESSAGES[problem]
-            : "Lowercase letters, digits and hyphens. Its items' names start with it: @name/scope/item."}
+          {problem ? problems(problem, { max: NAME_MAX_LENGTH }) : t("create.nameHint")}
         </p>
       </div>
       <Description />
       <fieldset className="grid gap-1.5">
         <legend className="mb-1 flex items-center gap-2 text-sm font-semibold text-fg">
-          Visibility <Help id="visibility" />
+          {t("create.visibility")} <Help id="visibility" />
         </legend>
         <label className="flex items-start gap-2 text-sm">
           <input type="radio" name="visibility" value="public" defaultChecked className="mt-1" />
           <span>
-            <span className="font-medium text-fg">Public</span>
-            <span className="block text-muted">
-              Everyone signed in sees its scopes and items, and can depend on them.
-            </span>
+            <span className="font-medium text-fg">{t("create.public")}</span>
+            <span className="block text-muted">{t("create.publicBody")}</span>
           </span>
         </label>
         <label className="flex items-start gap-2 text-sm">
           <input type="radio" name="visibility" value="private" className="mt-1" />
           <span>
-            <span className="font-medium text-fg">Private</span>
-            <span className="block text-muted">
-              Only its members and root see its items; only its own items can depend on them.
-            </span>
+            <span className="font-medium text-fg">{t("create.private")}</span>
+            <span className="block text-muted">{t("create.privateBody")}</span>
           </span>
         </label>
       </fieldset>
       <FieldError id="create-workspace-error">{state.error}</FieldError>
       <DialogActions>
         <Button variant="ghost" onClick={onDone}>
-          Cancel
+          {t("cancel")}
         </Button>
         <Button type="submit" loading={pending}>
-          Create workspace
+          {t("create.submit")}
         </Button>
       </DialogActions>
     </form>
   );
 };
 
-const EditForm = ({
+export const EditWorkspaceForm = ({
   name,
   description,
   onDone,
@@ -130,6 +134,7 @@ const EditForm = ({
   description: string;
   onDone: () => void;
 }) => {
+  const t = useTranslations("admin.workspaces.dialogs");
   const [state, action, pending] = useActionState<WorkspaceActionState, FormData>(
     updateWorkspaceFromForm,
     {},
@@ -143,17 +148,18 @@ const EditForm = ({
       <FieldError id={`edit-workspace-${name}-error`}>{state.error}</FieldError>
       <DialogActions>
         <Button variant="ghost" onClick={onDone}>
-          Cancel
+          {t("cancel")}
         </Button>
         <Button type="submit" loading={pending}>
-          Save
+          {t("save")}
         </Button>
       </DialogActions>
     </form>
   );
 };
 
-const DeleteForm = ({ name, onDone }: { name: string; onDone: () => void }) => {
+export const DeleteWorkspaceForm = ({ name, onDone }: { name: string; onDone: () => void }) => {
+  const t = useTranslations("admin.workspaces.dialogs");
   const [state, action, pending] = useActionState<WorkspaceActionState, FormData>(
     deleteWorkspaceFromForm,
     {},
@@ -161,17 +167,14 @@ const DeleteForm = ({ name, onDone }: { name: string; onDone: () => void }) => {
   return (
     <form action={action} className="grid gap-4">
       <input type="hidden" name="name" value={name} />
-      <p className="text-sm text-fg">
-        Delete the workspace <span className="font-mono">{name}</span>? It has no scopes. This can't
-        be undone.
-      </p>
+      <p className="text-sm text-fg">{t.rich("delete.body", { name, mono })}</p>
       <FieldError id={`delete-workspace-${name}-error`}>{state.error}</FieldError>
       <DialogActions>
         <Button variant="ghost" onClick={onDone}>
-          Cancel
+          {t("cancel")}
         </Button>
         <Button type="submit" variant="destructive" loading={pending}>
-          Delete workspace
+          {t("delete.submit")}
         </Button>
       </DialogActions>
     </form>
@@ -196,6 +199,7 @@ export const VisibilityForm = ({
   loaded?: VisibilityImpactResult;
 }) => {
   const t = useTranslations("shelves.visibility");
+  const v = useTranslations("admin.workspaces.dialogs");
   const [state, action, pending] = useActionState<WorkspaceActionState, FormData>(
     setVisibilityFromForm,
     {},
@@ -207,9 +211,7 @@ export const VisibilityForm = ({
     if (to !== "private" || loaded) return;
     visibilityImpactFor(name)
       .then(setImpact)
-      .catch(() =>
-        setImpact({ error: "Couldn't check what depends on its items. Try again in a moment." }),
-      );
+      .catch(() => setImpact({ error: LOAD_FAILED }));
   }, [name, to, loaded]);
   if (state.done) return <Done message={state.done} onDone={onDone} />;
   const blocked = impact && "dependents" in impact && impact.dependents.length > 0;
@@ -218,27 +220,23 @@ export const VisibilityForm = ({
       <input type="hidden" name="name" value={name} />
       <input type="hidden" name="visibility" value={to} />
       {to === "public" ? (
-        <p className="text-sm text-fg">
-          Make <span className="font-mono">{name}</span> public? Everyone on this instance will see
-          its items and can depend on them.
-        </p>
+        <p className="text-sm text-fg">{v.rich("visibility.askPublic", { name, mono })}</p>
       ) : !impact ? (
-        <p className="text-sm text-muted">Checking what depends on its items…</p>
+        <p className="text-sm text-muted">{v("visibility.checking")}</p>
       ) : "error" in impact ? (
-        <FieldError id={`visibility-${name}-load`}>{impact.error}</FieldError>
+        <FieldError id={`visibility-${name}-load`}>
+          {impact.error === LOAD_FAILED ? v("visibility.loadFailed") : impact.error}
+        </FieldError>
       ) : (
         <>
-          <p className="text-sm text-fg">
-            Make <span className="font-mono">{name}</span> private? Only its members and root will
-            see its items, and only its own items can depend on them.
-          </p>
+          <p className="text-sm text-fg">{v.rich("visibility.askPrivate", { name, mono })}</p>
           <Help id="visibility" />
           {impact.dependents.length > 0 ? (
             <Notice
               kind="error"
-              title={`${impact.dependents.length} ${impact.dependents.length === 1 ? "item" : "items"} outside ${name} ${impact.dependents.length === 1 ? "depends" : "depend"} on its items`}
+              title={v("visibility.dependentsTitle", { count: impact.dependents.length, name })}
             >
-              <p>They'd stop installing. Release them without it first.</p>
+              <p>{v("visibility.dependentsBody")}</p>
               <ul className="mt-1 list-disc pl-5 font-mono text-[13px]">
                 {impact.dependents.map((item) => (
                   <li key={item}>{item}</li>
@@ -260,9 +258,9 @@ export const VisibilityForm = ({
           {impact.openDependents.length > 0 ? (
             <Notice
               kind="warn"
-              title={`${impact.openDependents.length} open ${impact.openDependents.length === 1 ? "submission" : "submissions"} outside ${name} ${impact.openDependents.length === 1 ? "depends" : "depend"} on its items`}
+              title={v("visibility.openTitle", { count: impact.openDependents.length, name })}
             >
-              <p>They'll fail at release.</p>
+              <p>{v("visibility.openBody")}</p>
               <ul className="mt-1 list-disc pl-5 font-mono text-[13px]">
                 {impact.openDependents.map((item) => (
                   <li key={item}>{item}</li>
@@ -275,15 +273,15 @@ export const VisibilityForm = ({
       <FieldError id={`visibility-${name}-error`}>{state.error}</FieldError>
       <DialogActions>
         <Button variant="ghost" onClick={onDone}>
-          Cancel
+          {v("cancel")}
         </Button>
         <Button
           type="submit"
           loading={pending}
           disabled={!impact || "error" in impact}
-          disabledReason={blocked ? "Items outside depend on its items." : null}
+          disabledReason={blocked ? v("visibility.blocked") : null}
         >
-          {to === "private" ? "Make private" : "Make public"}
+          {to === "private" ? v("visibility.makePrivate") : v("visibility.makePublic")}
         </Button>
       </DialogActions>
     </form>
@@ -304,6 +302,8 @@ export const RenameForm = ({
   /** How many items it has, when it's already known (its test); else it's read on open. */
   loaded?: RenameImpactResult;
 }) => {
+  const t = useTranslations("admin.workspaces.dialogs");
+  const problems = useTranslations("common.nameProblem");
   const [state, action, pending] = useActionState<WorkspaceActionState, FormData>(
     renameWorkspaceFromForm,
     {},
@@ -314,7 +314,7 @@ export const RenameForm = ({
     if (loaded) return;
     renameImpactFor(name)
       .then(setImpact)
-      .catch(() => setImpact({ error: "Couldn't count its items. Try again in a moment." }));
+      .catch(() => setImpact({ error: LOAD_FAILED }));
   }, [name, loaded]);
   const to = normalizeWorkspaceName(typed);
   const problem = typed ? nameProblem(to, "workspace") : null;
@@ -325,7 +325,7 @@ export const RenameForm = ({
     <form action={action} className="grid gap-4">
       <input type="hidden" name="name" value={name} />
       <div className="grid gap-1.5">
-        <Label htmlFor={`rename-${name}`}>New name</Label>
+        <Label htmlFor={`rename-${name}`}>{t("rename.newName")}</Label>
         <input
           id={`rename-${name}`}
           name="to"
@@ -341,42 +341,35 @@ export const RenameForm = ({
           className={inputClasses}
         />
         <p id={`rename-${name}-hint`} className="text-xs text-muted">
-          {problem
-            ? NAME_PROBLEM_MESSAGES[problem]
-            : "Lowercase letters, digits and hyphens, and not another workspace's name."}
+          {problem ? problems(problem, { max: NAME_MAX_LENGTH }) : t("rename.hint")}
         </p>
       </div>
       {impact && "error" in impact ? (
-        <FieldError id={`rename-${name}-load`}>{impact.error}</FieldError>
+        <FieldError id={`rename-${name}-load`}>
+          {impact.error === LOAD_FAILED ? t("rename.loadFailed") : impact.error}
+        </FieldError>
       ) : (
-        <Notice kind="warn" title="What changes">
+        <Notice kind="warn" title={t("rename.changesTitle")}>
           <p>
-            {items === null ? "Its items" : `Its ${items} ${items === 1 ? "item" : "items"}`} will
-            be renamed from <span className="font-mono">@{name}/…</span> to{" "}
-            <span className="font-mono">@{shown}/…</span>. Their old names keep working for
-            installs, lockfiles and dependencies, and <span className="font-mono">rmk</span> moves
-            projects to the new names as they update; in Claude Code they show as new plugins.
+            {items === null
+              ? t.rich("rename.itemsUnknown", { from: name, to: shown, mono })
+              : t.rich("rename.items", { count: items, from: name, to: shown, mono })}
           </p>
-          <p className="mt-2">
-            Links to this workspace (its page and its join link) will stop working, and so will the
-            old name in <span className="font-mono">rmk search --workspace</span>,{" "}
-            <span className="font-mono">rmk feed build --workspace</span> and any CI workflow that
-            names it.
-          </p>
+          <p className="mt-2">{t.rich("rename.links", { mono })}</p>
         </Notice>
       )}
       <Help id="rename-workspace" />
       <FieldError id={`rename-${name}-error`}>{state.error}</FieldError>
       <DialogActions>
         <Button variant="ghost" onClick={onDone}>
-          Cancel
+          {t("cancel")}
         </Button>
         <Button
           type="submit"
           loading={pending}
-          disabledReason={problem ? "Fix the name first." : same ? "Type the new name." : null}
+          disabledReason={problem ? t("rename.fixName") : same ? t("rename.typeNew") : null}
         >
-          Rename
+          {t("rename.button")}
         </Button>
       </DialogActions>
     </form>
@@ -395,11 +388,12 @@ const useDialog = () => {
 };
 
 export const CreateWorkspaceDialog = () => {
+  const t = useTranslations("admin.workspaces.dialogs.create");
   const dialog = useDialog();
   return (
     <>
-      <Button onClick={dialog.show}>New workspace</Button>
-      <Dialog open={dialog.open} onClose={dialog.close} title="New workspace">
+      <Button onClick={dialog.show}>{t("button")}</Button>
+      <Dialog open={dialog.open} onClose={dialog.close} title={t("title")}>
         <CreateWorkspaceForm key={dialog.round} onDone={dialog.close} />
       </Dialog>
     </>
@@ -413,14 +407,20 @@ export const EditWorkspaceButton = ({
   name: string;
   description: string;
 }) => {
+  const t = useTranslations("admin.workspaces.dialogs.edit");
   const dialog = useDialog();
   return (
     <>
       <Button variant="secondary" onClick={dialog.show}>
-        Edit description
+        {t("button")}
       </Button>
-      <Dialog open={dialog.open} onClose={dialog.close} title="Edit workspace">
-        <EditForm key={dialog.round} name={name} description={description} onDone={dialog.close} />
+      <Dialog open={dialog.open} onClose={dialog.close} title={t("title")}>
+        <EditWorkspaceForm
+          key={dialog.round}
+          name={name}
+          description={description}
+          onDone={dialog.close}
+        />
       </Dialog>
     </>
   );
@@ -428,13 +428,14 @@ export const EditWorkspaceButton = ({
 
 /** Rename (113) on a workspace's page, for root and its admins; not for `global`. */
 export const RenameWorkspaceButton = ({ name }: { name: string }) => {
+  const t = useTranslations("admin.workspaces.dialogs.rename");
   const dialog = useDialog();
   return (
     <>
       <Button variant="secondary" onClick={dialog.show}>
-        Rename
+        {t("button")}
       </Button>
-      <Dialog open={dialog.open} onClose={dialog.close} title="Rename workspace">
+      <Dialog open={dialog.open} onClose={dialog.close} title={t("title")}>
         {dialog.open ? <RenameForm key={dialog.round} name={name} onDone={dialog.close} /> : null}
       </Dialog>
     </>
@@ -443,18 +444,19 @@ export const RenameWorkspaceButton = ({ name }: { name: string }) => {
 
 /** Delete, only while the workspace has no scopes: nothing moves scopes to another one yet. */
 export const DeleteWorkspaceButton = ({ name, scopes }: { name: string; scopes: number }) => {
+  const t = useTranslations("admin.workspaces.dialogs.delete");
   const dialog = useDialog();
   return (
     <>
       <Button
         variant="secondary"
         onClick={dialog.show}
-        disabledReason={scopes > 0 ? "Move or remove its scopes first." : null}
+        disabledReason={scopes > 0 ? t("reason") : null}
       >
-        Delete
+        {t("button")}
       </Button>
-      <Dialog open={dialog.open} onClose={dialog.close} title="Delete workspace">
-        <DeleteForm key={dialog.round} name={name} onDone={dialog.close} />
+      <Dialog open={dialog.open} onClose={dialog.close} title={t("title")}>
+        <DeleteWorkspaceForm key={dialog.round} name={name} onDone={dialog.close} />
       </Dialog>
     </>
   );
@@ -468,6 +470,7 @@ export const VisibilityButton = ({
   name: string;
   visibility: "public" | "private";
 }) => {
+  const t = useTranslations("admin.workspaces.dialogs.visibility");
   const dialog = useDialog();
   const to = visibility === "public" ? "private" : "public";
   // The way it was opened: the change refreshes the page, which flips `to` while the dialog still
@@ -480,12 +483,12 @@ export const VisibilityButton = ({
   return (
     <>
       <Button variant="secondary" onClick={open}>
-        {to === "private" ? "Make private" : "Make public"}
+        {to === "private" ? t("makePrivate") : t("makePublic")}
       </Button>
       <Dialog
         open={dialog.open}
         onClose={dialog.close}
-        title={asked === "private" ? "Make private" : "Make public"}
+        title={asked === "private" ? t("makePrivate") : t("makePublic")}
       >
         {dialog.open ? (
           <VisibilityForm key={dialog.round} name={name} to={asked} onDone={dialog.close} />

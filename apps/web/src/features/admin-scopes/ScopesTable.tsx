@@ -1,4 +1,5 @@
 import Form from "next/form";
+import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import { buttonClasses } from "@/components/ui/Button";
 import { type Column, DataTable, HiddenListFields } from "@/components/ui/data-table/DataTable";
@@ -9,37 +10,43 @@ import { LocalTime } from "@/components/ui/LocalTime";
 import type { Scope } from "@/server/domains/items/models/scope";
 import type { ScopesList, ScopesListState } from "./list";
 
-const Search = ({ list, state }: { list: ScopesList; state: ScopesListState }) => (
-  <div className="grid gap-2">
-    <Form action={list.path} scroll={false} className="flex flex-wrap items-end gap-2">
-      <HiddenListFields list={list} state={state} omit={["q"]} />
-      <div className="grid min-w-0 flex-1 gap-1.5">
-        <Label htmlFor="scope-search">Search</Label>
-        <Input
-          id="scope-search"
-          name="q"
-          type="search"
-          placeholder="Name or description"
-          maxLength={100}
-          defaultValue={state.filters.q}
-        />
-      </div>
-      <button type="submit" data-submit className={buttonClasses("secondary")}>
-        Search
-      </button>
-      <SubmitOnChange />
-    </Form>
-    <FilterChips list={list} state={state} labels={{ q: "Search" }} />
-  </div>
-);
+const Search = ({ list, state }: { list: ScopesList; state: ScopesListState }) => {
+  const t = useTranslations("admin.scopes.search");
+  return (
+    <div className="grid gap-2">
+      <Form action={list.path} scroll={false} className="flex flex-wrap items-end gap-2">
+        <HiddenListFields list={list} state={state} omit={["q"]} />
+        <div className="grid min-w-0 flex-1 gap-1.5">
+          <Label htmlFor="scope-search">{t("label")}</Label>
+          <Input
+            id="scope-search"
+            name="q"
+            type="search"
+            placeholder={t("placeholder")}
+            maxLength={100}
+            defaultValue={state.filters.q}
+          />
+        </div>
+        <button type="submit" data-submit className={buttonClasses("secondary")}>
+          {t("submit")}
+        </button>
+        <SubmitOnChange />
+      </Form>
+      <FilterChips list={list} state={state} labels={{ q: t("label") }} />
+    </div>
+  );
+};
+
+type ScopesT = ReturnType<typeof useTranslations<"admin.scopes">>;
 
 const columns = (
+  t: ScopesT,
   actions?: (scope: Scope) => ReactNode,
   note?: (scope: Scope) => ReactNode,
 ): Column<Scope, "name" | "created">[] => [
   {
     id: "name",
-    header: "Scope",
+    header: t("columns.scope"),
     sort: "name",
     className: "w-48",
     mono: true,
@@ -48,7 +55,7 @@ const columns = (
   },
   {
     id: "description",
-    header: "Description",
+    header: t("columns.description"),
     truncate: true,
     render: (scope) => {
       const extra = note?.(scope);
@@ -65,7 +72,7 @@ const columns = (
   },
   {
     id: "creator",
-    header: "Created by",
+    header: t("columns.creator"),
     className: "w-56",
     mono: true,
     truncate: true,
@@ -74,7 +81,7 @@ const columns = (
   },
   {
     id: "created",
-    header: "Created",
+    header: t("columns.created"),
     sort: "created",
     className: "w-28",
     mono: true,
@@ -117,20 +124,20 @@ export const ScopesTable = ({
   actions?: (scope: Scope) => ReactNode;
   /** A line under a scope's description, such as its move's state (115). */
   note?: (scope: Scope) => ReactNode;
-}) => (
-  <DataTable
-    list={list}
-    state={state}
-    columns={columns(actions, note)}
-    rows={scopes}
-    rowKey={(scope) => scope.id}
-    page={page}
-    total={total}
-    noun="scope"
-    toolbar={<Search list={list} state={state} />}
-    empty={{
-      none: "No scopes yet.",
-      filtered: "No scopes match this search.",
-    }}
-  />
-);
+}) => {
+  const t = useTranslations("admin.scopes");
+  return (
+    <DataTable
+      list={list}
+      state={state}
+      columns={columns(t, actions, note)}
+      rows={scopes}
+      rowKey={(scope) => scope.id}
+      page={page}
+      total={total}
+      noun="scope"
+      toolbar={<Search list={list} state={state} />}
+      empty={{ none: t("empty.none"), filtered: t("empty.filtered") }}
+    />
+  );
+};

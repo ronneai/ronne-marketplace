@@ -1,7 +1,8 @@
+import { useTranslations } from "next-intl";
 import { LocalTime } from "@/components/ui/LocalTime";
 import type { RetentionJobView } from "@/server/jobs/actions";
 
-const n = (value: unknown) => (typeof value === "number" ? value.toLocaleString("en-US") : "0");
+const n = (value: unknown): number => (typeof value === "number" ? value : 0);
 
 /**
  * The purge's last run under the Retention form (102): when, and what it cleared; that none has
@@ -10,39 +11,33 @@ const n = (value: unknown) => (typeof value === "number" ? value.toLocaleString(
  * same row, so a cron run shows here too.
  */
 export const LastRun = ({ status }: { status: RetentionJobView }) => {
+  const t = useTranslations("admin.settings.privacy.lastRun");
   const { lastRunAt, lastResult, running, schedulerOff } = status;
   let body: React.ReactNode;
   if (!lastRunAt || !lastResult) {
     body = (
       <>
-        No run yet.{" "}
-        {schedulerOff
-          ? "Scheduled jobs are off (RONNE_JOBS): run rmk-server purge from cron."
-          : "The first run is 5 minutes after the server starts, then every 6 hours."}
+        {t("none")} {schedulerOff ? t("schedulerOff") : t("firstRun")}
       </>
     );
   } else if (lastResult.status === "failed") {
-    body = (
-      <>
-        Last run <LocalTime value={lastRunAt} /> failed ({lastResult.error}). The server&apos;s logs
-        say why; the next run is on schedule.
-      </>
-    );
+    const error = lastResult.error;
+    body = t.rich("failed", { date: () => <LocalTime value={lastRunAt} />, error });
   } else {
     const c = lastResult.counts;
-    body = (
-      <>
-        Last run <LocalTime value={lastRunAt} />: cleared {n(c.ipsCleared)} IP addresses and{" "}
-        {n(c.emailsCleared)} failed sign-ins&apos; emails; deleted {n(c.sessionsDeleted)} expired
-        sessions, {n(c.grantsDeleted)} finished rmk login approvals and {n(c.feedbackDeleted)}{" "}
-        handled feedback messages.
-      </>
-    );
+    body = t.rich("done", {
+      date: () => <LocalTime value={lastRunAt} />,
+      ips: n(c.ipsCleared),
+      emails: n(c.emailsCleared),
+      sessions: n(c.sessionsDeleted),
+      grants: n(c.grantsDeleted),
+      feedback: n(c.feedbackDeleted),
+    });
   }
   return (
     <p className="text-sm text-muted" data-testid="retention-last-run">
       {body}
-      {running ? " A run is in progress." : null}
+      {running ? ` ${t("running")}` : null}
     </p>
   );
 };

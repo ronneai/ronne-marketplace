@@ -40,8 +40,7 @@ describe("inline help", () => {
   it("renders a helper as its question, answer and Learn more", () => {
     for (const id of Object.keys(HELP) as HelpId[]) {
       const html = renderToStaticMarkup(<Help id={id} />);
-      const question =
-        "question" in HELP[id] ? HELP[id].question : english[id as MovedId]?.question;
+      const question = english[id as MovedId]?.question;
       expect(question, id).toBeTruthy();
       expect(html).toContain(String(question).replaceAll("'", "&#x27;"));
       const link = html.match(
@@ -107,67 +106,32 @@ describe("Documentation links in the person's language (129)", () => {
   });
 });
 
-describe("the helpers moved to messages (130)", () => {
-  const MOVED = [
-    "workspace",
-    "personal-workspace",
-    "requests-who",
-    "member-roles",
-    "move-approve",
-    "current-workspace",
-    "contents",
-    "install",
-    "plugin",
-    "usage",
-    "support",
-    "propose",
-    "join",
-    "private-item",
-    "favorites",
-    "pins",
-    "install-tick",
-    "feedback-who",
-    "password-change",
-    // The authoring and review screens' (131).
-    "scope",
-    "item-name",
-    "name",
-    "type",
-    "manifest",
-    "canvas",
-    "submit-together",
-    "submit-many",
-    "risk",
-    "decisions",
-    "bump",
-    "tag",
-    "deprecate-yank",
-    "export",
-    "approve-many",
-    "withdraw",
-    "archived",
-    "queue-decisions",
-    "add-dependency",
-    "version-range",
-    "which-bump",
-    "release-many",
-    "waits-on",
-    "dependents-listed",
-    "ready",
-    "personal-review",
-    "after-submit",
-  ] as const;
+/**
+ * An answer as the page shows it: ICU quotes taken off, HTML-escaped (the apostrophe too). The test
+ * that uses it checks the wiring (Help renders the message of its id), not that the words are right:
+ * a wrong or hybrid translation is for the native review (feature 133).
+ */
+const shown = (answer = "") =>
+  answer
+    .replaceAll("'<'", "<")
+    .replaceAll("'>'", ">")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#x27;");
 
-  it("are exactly the ones with their words in help.json, and each has a link here", () => {
+describe("the helpers in messages (130, 131, 132)", () => {
+  // Every helper: its words are messages (130, 131, 132), and only its link is in HELP.
+  const MOVED = Object.keys(HELP) as HelpId[];
+
+  it("are exactly the ones in help.json, and each has a link here and no words of its own", () => {
     expect(Object.keys(english).sort()).toEqual([...MOVED].sort());
     for (const id of MOVED) {
       expect("question" in HELP[id], id).toBe(false);
+      expect("answer" in HELP[id], id).toBe(false);
       expect(HELP[id].href, id).toContain(DOCS_URL);
     }
-    // Every other helper still has its words here, so none shows a missing message.
-    for (const [id, help] of Object.entries(HELP))
-      if (!(MOVED as readonly string[]).includes(id))
-        expect("question" in help && "answer" in help, id).toBe(true);
   });
 
   it("read in the person's language, with the question, the answer and the language's link", async () => {
@@ -176,9 +140,11 @@ describe("the helpers moved to messages (130)", () => {
     for (const id of MOVED) {
       const ptHtml = inLocale("pt", () => renderToStaticMarkup(<Help id={id} />));
       expect(ptHtml, id).toContain(pt[id]?.question.replaceAll("'", "&#x27;"));
+      expect(ptHtml, id).toContain(shown(pt[id]?.answer));
       expect(ptHtml, id).toContain(`<a href="${localizedDocsHref(HELP[id].href, "pt")}"`);
       const frHtml = inLocale("fr", () => renderToStaticMarkup(<Help id={id} />));
       expect(frHtml, id).toContain(fr[id]?.question.replaceAll("'", "&#x27;"));
+      expect(frHtml, id).toContain(shown(fr[id]?.answer));
       expect(frHtml, id).toContain(`<a href="${localizedDocsHref(HELP[id].href, "fr")}"`);
     }
   });

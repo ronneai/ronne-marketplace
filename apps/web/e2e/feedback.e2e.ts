@@ -214,7 +214,7 @@ test("erasing an account deletes the feedback it sent", async ({ browser, baseUR
     .click();
   await root.getByRole("button", { name: "Erase", exact: true }).click();
   const erase = root.getByRole("dialog", { name: "Erase user" });
-  await erase.getByLabel("Type the account's email to confirm").fill(E2E_USERS.feedbackErasable);
+  await erase.getByLabel("Type the account’s email to confirm").fill(E2E_USERS.feedbackErasable);
   await erase.getByRole("button", { name: "Erase" }).click();
   await expect(erase.getByText(/Erased\. The account is now deleted-user/)).toBeVisible();
 

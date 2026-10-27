@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useActionState, useState } from "react";
 import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
@@ -8,8 +9,6 @@ import { Notice } from "@/components/ui/Notice";
 import type { PasswordSignInPolicy } from "@/server/domains/settings/models/password-sign-in-policy";
 import { savePasswordSignInPolicy } from "../actions";
 import type { SettingsActionState } from "../types";
-
-const people = (n: number) => (n === 1 ? "1 person" : `${n} people`);
 
 /** Whether Save may be pressed: a change, confirmed when it takes passwords away. */
 export const canSave = (
@@ -34,6 +33,7 @@ export const PasswordPolicyForm = ({
   /** How many people would lose their password sign-in (active, with a password, not root). */
   affected: number;
 }) => {
+  const t = useTranslations("admin.settings.password");
   const [state, action, pending] = useActionState<SettingsActionState, FormData>(
     savePasswordSignInPolicy,
     {},
@@ -42,14 +42,13 @@ export const PasswordPolicyForm = ({
   const [confirmed, setConfirmed] = useState(false);
   const needsConfirm = chosen === "root_only" && policy !== "root_only";
   return (
-    <form action={action} aria-label="Password sign-in" className="grid gap-4">
+    <form action={action} aria-label={t("title")} className="grid gap-4">
       <fieldset className="grid gap-3" aria-describedby="password-policy-hint">
         <legend className="mb-1 text-base font-semibold text-fg">
-          Password sign-in <Help id="password-lockout" />
+          {t("title")} <Help id="password-lockout" />
         </legend>
         <p id="password-policy-hint" className="text-sm text-muted">
-          Who may still sign in with a password once your identity provider is on. Root always can,
-          so a broken provider can&apos;t lock everyone out.
+          {t("hint")}
         </p>
         <label className="flex items-start gap-2 text-sm text-fg">
           <input
@@ -61,8 +60,8 @@ export const PasswordPolicyForm = ({
             className="mt-0.5 size-4 accent-(--accent)"
           />
           <span className="grid gap-0.5">
-            <span className="font-semibold">Everyone</span>
-            <span className="text-muted">People choose a provider or their password.</span>
+            <span className="font-semibold">{t("everyone.label")}</span>
+            <span className="text-muted">{t("everyone.hint")}</span>
           </span>
         </label>
         <label className="flex items-start gap-2 text-sm text-fg">
@@ -76,11 +75,9 @@ export const PasswordPolicyForm = ({
             className="mt-0.5 size-4 accent-(--accent)"
           />
           <span className="grid gap-0.5">
-            <span className="font-semibold">Root only</span>
+            <span className="font-semibold">{t("rootOnly.label")}</span>
             <span className="text-muted">
-              {usableProvider
-                ? "Everyone else signs in with an identity provider."
-                : "Turn on an identity provider that has passed its Test sign-in first."}
+              {usableProvider ? t("rootOnly.hint") : t("rootOnly.needsProvider")}
             </span>
           </span>
         </label>
@@ -94,17 +91,14 @@ export const PasswordPolicyForm = ({
             onChange={(e) => setConfirmed(e.target.checked)}
             className="mt-0.5 size-4 accent-(--accent)"
           />
-          <span>
-            {people(affected)} with a password {affected === 1 ? "loses" : "lose"} their password
-            sign-in, and must use the identity provider from now on.
-          </span>
+          <span>{t("confirm", { affected })}</span>
         </label>
       ) : null}
       <FieldError id="password-policy-error">{state.error}</FieldError>
       {state.done ? <Notice kind="info" title={state.done} /> : null}
       <div>
         <Button type="submit" loading={pending} disabled={!canSave(chosen, policy, confirmed)}>
-          Save
+          {t("save")}
         </Button>
       </div>
     </form>

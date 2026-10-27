@@ -71,7 +71,7 @@ export default defineConfig({
     },
     {
       name: "wizard",
-      testMatch: "**/setup-wizard.e2e.ts",
+      testMatch: ["**/setup-wizard-languages.e2e.ts", "**/setup-wizard.e2e.ts"],
       use: { ...devices["Desktop Chrome"], baseURL: instances.wizard.baseURL },
     },
     {

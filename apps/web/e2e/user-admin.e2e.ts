@@ -207,11 +207,11 @@ test("root creates a user, who signs in with the shown password; disabling them 
   await root.getByRole("button", { name: "Erase", exact: true }).click();
   const erase = root.getByRole("dialog", { name: "Erase user" });
   await expect(erase.getByText("What goes")).toBeVisible();
-  await expect(erase.getByText("This can't be undone.")).toBeVisible();
+  await expect(erase.getByText("This can’t be undone.")).toBeVisible();
   await expect(erase.getByRole("button", { name: "Erase" })).toBeDisabled();
-  await erase.getByLabel("Type the account's email to confirm").fill("someone-else@e2e.test");
+  await erase.getByLabel("Type the account’s email to confirm").fill("someone-else@e2e.test");
   await expect(erase.getByRole("button", { name: "Erase" })).toBeDisabled();
-  await erase.getByLabel("Type the account's email to confirm").fill(` ${erasable.toUpperCase()} `);
+  await erase.getByLabel("Type the account’s email to confirm").fill(` ${erasable.toUpperCase()} `);
   await expect(erase.getByRole("button", { name: "Erase" })).toBeEnabled();
   await erase.getByRole("button", { name: "Erase" }).click();
   await expect(erase.getByText(/Erased\. The account is now deleted-user/)).toBeVisible();

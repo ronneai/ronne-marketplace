@@ -1,4 +1,5 @@
 import { rendererById } from "@ronneai/core/render";
+import { useFormatter, useTranslations } from "next-intl";
 import { Help } from "@/components/help/Help";
 import { LocalTime } from "@/components/ui/LocalTime";
 import { Notice } from "@/components/ui/Notice";
@@ -7,9 +8,6 @@ import type { FeedStatsRow } from "@/server/domains/feeds/actions/feeds";
 
 const MIB = 1024 * 1024;
 
-const size = (bytes: number) =>
-  bytes >= MIB ? `${(bytes / MIB).toFixed(1)} MiB` : `${Math.max(1, Math.round(bytes / 1024))} KiB`;
-
 const toolName = (tool: string) => rendererById(tool)?.name ?? tool;
 
 /**
@@ -17,48 +15,46 @@ const toolName = (tool: string) => rendererById(tool)?.name ?? tool;
  * warning when Claude Code's comes near the limits it reads a marketplace within.
  */
 export const PluginFeedsPanel = ({ rows }: { rows: FeedStatsRow[] }) => {
+  const t = useTranslations("admin.settings.feeds");
+  const format = useFormatter();
+  const tenths = { minimumFractionDigits: 1, maximumFractionDigits: 1 };
+  // Sizes and seconds are symbols written the same in every language; the digits follow it.
+  const size = (bytes: number) =>
+    bytes >= MIB
+      ? `${format.number(bytes / MIB, tenths)} MiB`
+      : `${format.number(Math.max(1, Math.round(bytes / 1024)))} KiB`;
+  const seconds = (ms: number) => `${format.number(ms / 1000, tenths)} s`;
   const near = rows.filter((row) => row.warnings.length > 0);
   return (
     <section aria-labelledby="plugin-feeds-title" className="grid gap-3">
       <div className="flex flex-wrap items-center gap-2">
         <h2 id="plugin-feeds-title" className="text-base font-semibold text-fg">
-          Plugin feeds
+          {t("title")}
         </h2>
         <Help id="plugin-feeds" />
       </div>
-      <p className="text-sm text-muted">
-        Each tool&apos;s marketplace as it was last built in full: Claude Code reads its own from
-        this website; rmk feed build reads Codex&apos;s and Cursor&apos;s for the git mirror.
-      </p>
+      <p className="text-sm text-muted">{t("intro")}</p>
       {near.map((row) => (
         <Notice
           key={row.tool}
           kind="warn"
-          title={`${toolName(row.tool)}'s marketplace is near ${row.warnings.length > 1 ? "its limits" : row.warnings[0] === "size" ? "its size limit" : "its time limit"}.`}
+          title={t("nearTitle", {
+            tool: toolName(row.tool),
+            what: row.warnings.length > 1 ? "both" : row.warnings[0] === "size" ? "size" : "time",
+          })}
         >
-          {row.warnings.includes("size") ? (
-            <p>
-              Claude Code reads a marketplace of at most 5 MiB from an address. Past it, the
-              marketplace stops loading; add the git mirror (rmk feed build) in Claude Code instead,
-              which has no such limit.
-            </p>
-          ) : null}
-          {row.warnings.includes("time") ? (
-            <p>
-              Claude Code waits 10 seconds for a marketplace. It&apos;s built once per change and
-              then answered from memory, so only the first request after a release waits this long.
-            </p>
-          ) : null}
+          {row.warnings.includes("size") ? <p>{t("sizeBody")}</p> : null}
+          {row.warnings.includes("time") ? <p>{t("timeBody")}</p> : null}
         </Notice>
       ))}
       <Table>
         <thead>
           <tr>
-            <Th>Tool</Th>
-            <Th>Size</Th>
-            <Th>Plugins</Th>
-            <Th>Build time</Th>
-            <Th>Built</Th>
+            <Th>{t("columns.tool")}</Th>
+            <Th>{t("columns.size")}</Th>
+            <Th>{t("columns.plugins")}</Th>
+            <Th>{t("columns.buildTime")}</Th>
+            <Th>{t("columns.built")}</Th>
           </tr>
         </thead>
         <tbody>
@@ -69,11 +65,13 @@ export const PluginFeedsPanel = ({ rows }: { rows: FeedStatsRow[] }) => {
                 <>
                   <Td className={warnings.includes("size") ? "text-warning-text" : undefined}>
                     {size(stats.sizeBytes)}
-                    {tool === "claude-code" ? <span className="text-muted"> of 5 MiB</span> : null}
+                    {tool === "claude-code" ? (
+                      <span className="text-muted">{t("ofLimit")}</span>
+                    ) : null}
                   </Td>
-                  <Td>{stats.plugins.toLocaleString("en")}</Td>
+                  <Td>{format.number(stats.plugins)}</Td>
                   <Td className={warnings.includes("time") ? "text-warning-text" : undefined}>
-                    {(stats.buildMs / 1000).toFixed(1)} s
+                    {seconds(stats.buildMs)}
                   </Td>
                   <Td>
                     <LocalTime value={stats.builtAt} />
@@ -81,7 +79,7 @@ export const PluginFeedsPanel = ({ rows }: { rows: FeedStatsRow[] }) => {
                 </>
               ) : (
                 <Td colSpan={4} className="text-muted">
-                  Not built yet: it&apos;s built the first time someone reads it.
+                  {t("notBuilt")}
                 </Td>
               )}
             </tr>

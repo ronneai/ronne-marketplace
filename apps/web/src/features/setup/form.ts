@@ -5,11 +5,12 @@ import { DEFAULT_VALUES, type SetupError, type SetupValues } from "./types";
 
 const text = (form: FormData, name: string) => String(form.get(name) ?? "").trim();
 
-const invalid = (field: SetupError["field"], message: string): SetupError => ({
+const invalid = (field: SetupError["field"], message: string, say: string): SetupError => ({
   code: "invalid",
   section: "database",
   field,
   message,
+  say: { key: `errors.${say}` },
 });
 
 export const readKind = (form: FormData): SetupValues["kind"] => {
@@ -41,18 +42,25 @@ export const readDatabaseAnswers = (
   const kind = readKind(form);
   if (kind === "sqlite") {
     const path = text(form, "database.path");
-    if (!path) return { ok: false, error: invalid("database.path", "Enter a file path.") };
+    if (!path)
+      return { ok: false, error: invalid("database.path", "Enter a file path.", "path_required") };
     return { ok: true, answers: { dialect: "sqlite", path } };
   }
   const host = text(form, "database.host");
-  if (!host) return { ok: false, error: invalid("database.host", "Enter the host.") };
+  if (!host)
+    return { ok: false, error: invalid("database.host", "Enter the host.", "host_required") };
   const port = text(form, "database.port") || DEFAULT_PORTS[kind];
   if (!/^\d{1,5}$/.test(port))
-    return { ok: false, error: invalid("database.port", "Enter a port number.") };
+    return { ok: false, error: invalid("database.port", "Enter a port number.", "port_invalid") };
   const database = text(form, "database.name");
-  if (!database) return { ok: false, error: invalid("database.name", "Enter the database name.") };
+  if (!database)
+    return {
+      ok: false,
+      error: invalid("database.name", "Enter the database name.", "database_required"),
+    };
   const user = text(form, "database.user");
-  if (!user) return { ok: false, error: invalid("database.user", "Enter the user.") };
+  if (!user)
+    return { ok: false, error: invalid("database.user", "Enter the user.", "user_required") };
   const password = String(form.get("database.password") ?? "");
   return { ok: true, answers: { dialect: kind, host, port, database, user, password } };
 };

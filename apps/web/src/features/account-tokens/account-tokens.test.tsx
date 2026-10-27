@@ -148,7 +148,7 @@ describe("TokensPage", () => {
   it("explains an empty list, and what a token is for", () => {
     const html = renderToStaticMarkup(<TokensPage tokens={[]} now={new Date()} />);
     expect(html).toContain("No tokens yet");
-    expect(html).toContain("What&#x27;s a token for?");
+    expect(html).toContain("What’s a token for?");
     expect(html).toContain('href="https://www.ronne.ai/en/marketplace/docs/rmk#tokens"');
   });
 

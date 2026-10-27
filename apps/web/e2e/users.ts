@@ -34,6 +34,8 @@ export const E2E_USERS = {
   browseLanguages: "browse-languages@e2e.test",
   // 131: writes, submits and reviews in Portuguese and French: a moderator, for the review queue.
   authorLanguages: "author-languages@e2e.test",
+  // 132: reads Admin (Users, a user, the Audit log, every Settings tab) in Portuguese and French: a root.
+  adminLanguages: "admin-languages@e2e.test",
   // Choose a language on Account › Language and Save (129): one with JavaScript, one without. Each
   // changes its own profile, so neither can be shared.
   languageChooser: "language-chooser@e2e.test",
@@ -291,6 +293,7 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   languages: "Languages",
   browseLanguages: "Browse Languages",
   authorLanguages: "Author Languages",
+  adminLanguages: "Admin Languages",
   phoneLanguages: "Phone Languages",
   phoneWebkitLanguages: "Phone WebKit Languages",
   tabletLanguages: "Tablet Languages",
@@ -510,6 +513,7 @@ export const E2E_MODERATORS: readonly (keyof typeof E2E_USERS)[] = [
 
 /** Seeded as root, besides the root setup creates (more than one root since 059). */
 export const E2E_ROOTS: readonly (keyof typeof E2E_USERS)[] = [
+  "adminLanguages",
   "shelvesRoot",
   "ssoRoot",
   "phoneSsoRoot",

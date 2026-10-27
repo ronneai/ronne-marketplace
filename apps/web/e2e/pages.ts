@@ -207,8 +207,11 @@ export const MIGRATED_ROUTES: ReadonlySet<string> = new Set([
   "/reviews/[id]",
   "/submissions/new",
   "/submissions/[id]",
-  // Settings (124): only the Notice tab is in messages so far; the rest follow in 132. The sweep
-  // looks for overflow and the language, so the other tabs, still English, are fine in it.
+  // Settings (124, 132): every tab is in messages.
   "/admin/settings",
   "/admin/feedback",
+  "/admin/users",
+  "/admin/users/[id]",
+  "/admin/audit",
+  "/setup",
 ]);

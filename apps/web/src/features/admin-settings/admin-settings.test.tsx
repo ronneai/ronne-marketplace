@@ -1,11 +1,15 @@
 import type { PluginTool } from "@ronneai/core/plugins";
+import { createTranslator } from "next-intl";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ForbiddenError } from "@/server/domains/identity/exceptions/errors";
 import {
   InvalidUsageMinimumError,
   InvalidUsagePolicyError,
+  SettingsError,
 } from "@/server/domains/settings/exceptions/errors";
+import { inLocaleAsync } from "@/test/intl";
+import admin from "../../../messages/en/admin.json";
 
 const settings = vi.hoisted(() => ({
   instanceSettings: vi.fn(),
@@ -55,6 +59,17 @@ const { UsagePolicyForm } = await import("./usage/UsagePolicyForm");
 const { PluginFeedsPanel } = await import("./feeds/PluginFeedsPanel");
 const { SignInMethodsPanel } = await import("./authentication/SignInMethodsPanel");
 const { signInMethods } = await import("./authentication/AuthenticationTab");
+
+// The sign-in methods in English, from the message files.
+const methodsT = createTranslator({
+  locale: "en",
+  messages: { admin },
+  namespace: "admin.settings.methods",
+} as never) as unknown as Parameters<typeof signInMethods>[1];
+const passwordMethods = signInMethods(
+  { twoFactorPolicy: "optional", passwordPolicy: "everyone", providers: [] },
+  methodsT,
+);
 const { RetentionForm } = await import("./privacy/RetentionForm");
 const { LastRun } = await import("./privacy/LastRun");
 const { PendingErasures } = await import("./privacy/PendingErasures");
@@ -194,7 +209,7 @@ describe("Admin › Settings' tabs (122)", () => {
 
 describe("Admin › Settings › Authentication › Sign-in methods (122)", () => {
   it("lists email and password as on, with root's note and the helper", () => {
-    const html = renderToStaticMarkup(<SignInMethodsPanel />);
+    const html = renderToStaticMarkup(<SignInMethodsPanel methods={passwordMethods} />);
     expect(html).toContain('aria-labelledby="sign-in-methods-title"');
     expect(html).toContain(">Sign-in methods</h2>");
     expect(html).toMatch(/Email and password<\/td><td[^>]*><span[^>]*>On<\/span>/);
@@ -214,7 +229,7 @@ describe("Admin › Settings › Authentication › Sign-in methods (122)", () =
   });
 
   it("has nothing to change: no form or input, and only the helper's button", () => {
-    const html = renderToStaticMarkup(<SignInMethodsPanel />);
+    const html = renderToStaticMarkup(<SignInMethodsPanel methods={passwordMethods} />);
     expect(html).not.toMatch(/<(form|input|select|textarea)\b/);
     expect(html.match(/<button\b/g)).toHaveLength(1);
     expect(html).toMatch(/<button[^>]*aria-haspopup="dialog"/);
@@ -247,7 +262,7 @@ describe("Admin › Settings", () => {
     expect(html).toMatch(/checked="" value="required"/);
     expect(html.match(/checked=""/g)).toHaveLength(1);
     // The usage minimum, with its current value.
-    expect(html).toContain("Show an item&#x27;s usage from");
+    expect(html).toContain("Show an item’s usage from");
     expect(html).toMatch(/name="usageMinimum"[^>]*value="20"/);
   });
 
@@ -324,7 +339,7 @@ describe("Admin › Settings › Plugin feeds (079)", () => {
         ]}
       />,
     );
-    expect(html).toContain("Claude Code&#x27;s marketplace is near its limits.");
+    expect(html).toContain("Claude Code’s marketplace is near its limits.");
     expect(html).toContain("add the git mirror (rmk feed build) in Claude Code");
     expect(html).toContain("Claude Code waits 10 seconds");
     expect(html.match(/text-warning-text/g)?.length).toBeGreaterThanOrEqual(2);
@@ -399,11 +414,14 @@ describe("Sign-in methods with identity providers (106)", () => {
   });
 
   it("lists the password rule and each provider, on or off", () => {
-    const methods = signInMethods({
-      twoFactorPolicy: "optional",
-      passwordPolicy: "root_only",
-      providers: [provider("Acme", true), provider("Beta", false)],
-    });
+    const methods = signInMethods(
+      {
+        twoFactorPolicy: "optional",
+        passwordPolicy: "root_only",
+        providers: [provider("Acme", true), provider("Beta", false)],
+      },
+      methodsT,
+    );
     expect(methods.map((m) => [m.name, m.on])).toEqual([
       ["Email and password", true],
       ["Acme (OpenID Connect)", true],
@@ -420,11 +438,14 @@ describe("Sign-in methods with identity providers (106)", () => {
   });
 
   it("drops the Root only note while no provider is on (everyone has their password back)", () => {
-    const methods = signInMethods({
-      twoFactorPolicy: "optional",
-      passwordPolicy: "root_only",
-      providers: [provider("Beta", false)],
-    });
+    const methods = signInMethods(
+      {
+        twoFactorPolicy: "optional",
+        passwordPolicy: "root_only",
+        providers: [provider("Beta", false)],
+      },
+      methodsT,
+    );
     expect(methods[0]?.note).not.toContain("Root only");
   });
 });
@@ -491,7 +512,7 @@ describe("Admin › Settings › Privacy › Retention (102)", () => {
         }}
       />,
     );
-    expect(ok).toContain("cleared 1,204 IP addresses and 37 failed sign-ins&#x27; emails");
+    expect(ok).toContain("cleared 1,204 IP addresses and 37 failed sign-ins’ emails");
     expect(ok).toContain(
       "deleted 312 expired sessions, 9 finished rmk login approvals and 6 handled feedback messages",
     );
@@ -583,7 +604,7 @@ describe("Admin › Settings › Privacy › an erasure that wasn't completed (1
       <PendingErasures erasures={[{ userId: "u1", startedAt: at }]} />,
     );
     expect(one).toContain("WARN:");
-    expect(one).toContain("An erasure wasn&#x27;t completed.");
+    expect(one).toContain("An erasure wasn’t completed.");
     expect(one).toMatch(/<time dateTime="2026-10-19T12:00:00.000Z"/);
     expect(one).toMatch(/<button[^>]*type="submit"[^>]*>Retry</);
     expect(one).toContain("the retention purge also finishes it on its next run");
@@ -595,14 +616,14 @@ describe("Admin › Settings › Privacy › an erasure that wasn't completed (1
         ]}
       />,
     );
-    expect(two).toContain("2 erasures weren&#x27;t completed.");
+    expect(two).toContain("2 erasures weren’t completed.");
   });
 
   it("is on the Privacy tab, read with the tab, and absent when there's none", async () => {
     session.getCurrentUser.mockResolvedValue({ id: "r", role: "root" });
     erasures.adminPendingErasures.mockResolvedValueOnce([{ userId: "u1", startedAt: at }]);
     const html = renderToStaticMarkup(await AdminSettings("privacy"));
-    expect(html).toContain("An erasure wasn&#x27;t completed.");
+    expect(html).toContain("An erasure wasn’t completed.");
     expect(html.indexOf("Last run")).toBeLessThan(html.indexOf("Retry"));
     const clean = renderToStaticMarkup(await AdminSettings("privacy"));
     expect(clean).not.toContain("completed.");
@@ -625,5 +646,101 @@ describe("Admin › Settings › Privacy › an erasure that wasn't completed (1
     expect((await actions.retryErasures({}, new FormData())).error).toContain("users.manage");
     erasures.adminRetryErasures.mockRejectedValueOnce(new Error("boom"));
     await expect(actions.retryErasures({}, new FormData())).rejects.toThrow("boom");
+  });
+});
+
+describe("Admin › Settings in three languages (132)", () => {
+  it("the heading, the description and the tabs read in each language", async () => {
+    session.getCurrentUser.mockResolvedValue({ id: "r", role: "root" });
+    const words = {
+      en: [
+        "Settings",
+        "How this instance behaves",
+        "Plugin feeds",
+        "Authentication",
+        "Privacy",
+        "Notice",
+      ],
+      pt: [
+        "Configurações",
+        "Como esta instância se comporta",
+        "Feeds de plugins",
+        "Autenticação",
+        "Privacidade",
+        "Comunicado",
+      ],
+      fr: [
+        "Réglages",
+        "Comment cette instance se comporte",
+        "Flux de plugins",
+        "Authentification",
+        "Confidentialité",
+        "Avis",
+      ],
+    } as const;
+    for (const [locale, texts] of Object.entries(words) as [
+      keyof typeof words,
+      readonly string[],
+    ][]) {
+      const html = renderToStaticMarkup(
+        await inLocaleAsync(locale, () => AdminSettings("authentication")),
+      );
+      for (const text of texts) expect(html, `${locale}: ${text}`).toContain(text);
+    }
+  });
+});
+
+describe("what the settings actions say, in each language (132)", () => {
+  const say = async (locale: "en" | "pt" | "fr", run: () => Promise<unknown>) =>
+    (await inLocaleAsync(locale, run)) as { done?: string; error?: string };
+
+  it("the success lines read in the language of the request", async () => {
+    settings.setUsagePolicy.mockResolvedValue({ changed: true });
+    const save = () => actions.saveUsagePolicy({}, form("choice"));
+    expect((await say("en", save)).done).toBe("Usage reporting saved.");
+    expect((await say("pt", save)).done).toBe("Relatório de uso salvo.");
+    expect((await say("fr", save)).done).toBe("Rapport d’utilisation enregistré.");
+    settings.setUsagePolicy.mockResolvedValue({ changed: false });
+    expect((await say("pt", save)).done).toBe("Nada mudou.");
+    expect((await say("fr", save)).done).toBe("Rien n’a changé.");
+  });
+
+  it("Retry counts what it finished by each language's rule", async () => {
+    const retry = (n: number) => async () => {
+      erasures.adminRetryErasures.mockResolvedValueOnce(n);
+      return actions.retryErasures({}, new FormData());
+    };
+    expect((await say("en", retry(1))).done).toBe("Finished 1 erasure.");
+    expect((await say("en", retry(2))).done).toBe("Finished 2 erasures.");
+    expect((await say("pt", retry(1))).done).toBe("1 apagamento concluído.");
+    expect((await say("pt", retry(2))).done).toBe("2 apagamentos concluídos.");
+    expect((await say("fr", retry(2))).done).toBe("2 effacements terminés.");
+    expect((await say("fr", retry(0))).done).toBe("Il ne restait rien à terminer.");
+  });
+
+  it("the settings errors read in the language of the request", async () => {
+    settings.setUsagePolicy.mockRejectedValue(new InvalidUsagePolicyError());
+    const save = () => actions.saveUsagePolicy({}, form("nope"));
+    expect((await say("en", save)).error).toBe(new InvalidUsagePolicyError().message);
+    expect((await say("pt", save)).error).toBe(
+      "Escolha desligado, cada pessoa escolhe ou obrigatório.",
+    );
+    expect((await say("fr", save)).error).toBe(
+      "Choisissez désactivé, chacun choisit ou obligatoire.",
+    );
+  });
+});
+
+describe("an error nobody translated, in each language (132)", () => {
+  it("still shows its English message", async () => {
+    class SomethingNewError extends SettingsError {
+      override readonly name: string = "SomethingNewError";
+    }
+    settings.setUsagePolicy.mockRejectedValue(new SomethingNewError("It broke in a new way."));
+    for (const locale of ["en", "pt", "fr"] as const)
+      expect(
+        await inLocaleAsync(locale, () => actions.saveUsagePolicy({}, form("choice"))),
+        locale,
+      ).toEqual({ error: "It broke in a new way." });
   });
 });

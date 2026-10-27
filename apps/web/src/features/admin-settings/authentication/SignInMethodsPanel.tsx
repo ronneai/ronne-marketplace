@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import { Help } from "@/components/help/Help";
 import { Badge } from "@/components/ui/Badge";
 import { Table, Td, Th } from "@/components/ui/Table";
@@ -5,36 +6,24 @@ import { Table, Td, Th } from "@/components/ui/Table";
 /** One way to sign in, as the panel lists it (122; 105 and 106 add theirs). */
 export type SignInMethod = { name: string; on: boolean; note: string };
 
-/** How people can sign in today: email and password, the only method until 105 and 106. */
-export const SIGN_IN_METHODS: readonly SignInMethod[] = [
-  {
-    name: "Email and password",
-    on: true,
-    note: "Root can always sign in with a password, so a broken identity provider can't lock everyone out.",
-  },
-];
-
 /** Admin › Settings › Authentication › Sign-in methods (122): read-only, for now. */
-export const SignInMethodsPanel = ({
-  methods = SIGN_IN_METHODS,
-}: {
-  methods?: readonly SignInMethod[];
-}) => {
+export const SignInMethodsPanel = ({ methods }: { methods: readonly SignInMethod[] }) => {
+  const t = useTranslations("admin.settings.methods");
   return (
     <section aria-labelledby="sign-in-methods-title" className="grid gap-3">
       <div className="flex flex-wrap items-center gap-2">
         <h2 id="sign-in-methods-title" className="text-base font-semibold text-fg">
-          Sign-in methods
+          {t("title")}
         </h2>
         <Help id="auth-methods" />
       </div>
-      <p className="text-sm text-muted">How people sign in to this instance.</p>
+      <p className="text-sm text-muted">{t("intro")}</p>
       <Table>
         <thead>
           <tr>
-            <Th>Method</Th>
-            <Th>State</Th>
-            <Th>Note</Th>
+            <Th>{t("columns.method")}</Th>
+            <Th>{t("columns.state")}</Th>
+            <Th>{t("columns.note")}</Th>
           </tr>
         </thead>
         <tbody>
@@ -42,7 +31,9 @@ export const SignInMethodsPanel = ({
             <tr key={method.name}>
               <Td className="font-semibold">{method.name}</Td>
               <Td>
-                <Badge tone={method.on ? "accent" : "muted"}>{method.on ? "On" : "Off"}</Badge>
+                <Badge tone={method.on ? "accent" : "muted"}>
+                  {method.on ? t("on") : t("off")}
+                </Badge>
               </Td>
               <Td className="text-muted">{method.note}</Td>
             </tr>

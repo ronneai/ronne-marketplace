@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { errorText } from "@/i18n/errors";
 import {
   createProvider,
   deleteProvider,
@@ -69,8 +70,9 @@ export const saveProviderFromForm = serverAction(
       else await updateProvider(await requestHeaders(), id, input, new Date(text(form, "version")));
     } catch (error) {
       if (error instanceof InvalidProviderConfigError) return { fields: error.fields };
-      if (error instanceof StaleProviderError) return { stale: true, error: error.message };
-      if (error instanceof IdentityError) return { error: error.message };
+      if (error instanceof StaleProviderError)
+        return { stale: true, error: await errorText(error) };
+      if (error instanceof IdentityError) return { error: await errorText(error) };
       throw error;
     }
     revalidatePath("/admin/settings");
@@ -86,7 +88,7 @@ export const testConnectionFromForm = serverAction(
       revalidatePath("/admin/settings");
       return result;
     } catch (error) {
-      if (error instanceof IdentityError) return { error: error.message };
+      if (error instanceof IdentityError) return { error: await errorText(error) };
       throw error;
     }
   },
@@ -102,7 +104,7 @@ const providerAction = (
     try {
       await run(await requestHeaders(), id);
     } catch (error) {
-      if (error instanceof IdentityError) return { error: error.message };
+      if (error instanceof IdentityError) return { error: await errorText(error) };
       throw error;
     }
     revalidatePath("/admin/settings");
@@ -132,7 +134,7 @@ const scimAction = (run: (headers: Headers, id: string) => Promise<unknown>) =>
     try {
       await run(await requestHeaders(), id);
     } catch (error) {
-      if (error instanceof IdentityError) return { error: error.message };
+      if (error instanceof IdentityError) return { error: await errorText(error) };
       throw error;
     }
     revalidatePath("/admin/settings");
@@ -159,7 +161,7 @@ export const generateScimFromForm = serverAction(
       revalidatePath("/admin/settings");
       return { token: made.token };
     } catch (error) {
-      if (error instanceof IdentityError) return { error: error.message };
+      if (error instanceof IdentityError) return { error: await errorText(error) };
       throw error;
     }
   },

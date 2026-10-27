@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getTranslations } from "next-intl/server";
+import { errorText } from "@/i18n/errors";
 import { adminRetryErasures } from "@/server/domains/identity/actions/erase-user";
 import { IdentityError } from "@/server/domains/identity/exceptions/errors";
 import {
@@ -21,10 +23,11 @@ export const saveUsagePolicy = serverAction(
     try {
       const { changed } = await setUsagePolicy(await requestHeaders(), form.get("usagePolicy"));
       revalidatePath("/admin/settings");
-      return { done: changed ? "Usage reporting saved." : "Nothing changed." };
+      const t = await getTranslations("admin.done.settings");
+      return { done: changed ? t("usage") : t("nothing") };
     } catch (error) {
       if (error instanceof SettingsError || error instanceof IdentityError)
-        return { error: error.message };
+        return { error: await errorText(error) };
       throw error;
     }
   },
@@ -36,10 +39,11 @@ export const saveUsageMinimum = serverAction(
     try {
       const { changed } = await setUsageMinimum(await requestHeaders(), form.get("usageMinimum"));
       revalidatePath("/admin/settings");
-      return { done: changed ? "Usage minimum saved." : "Nothing changed." };
+      const t = await getTranslations("admin.done.settings");
+      return { done: changed ? t("minimum") : t("nothing") };
     } catch (error) {
       if (error instanceof SettingsError || error instanceof IdentityError)
-        return { error: error.message };
+        return { error: await errorText(error) };
       throw error;
     }
   },
@@ -54,10 +58,11 @@ export const saveTwoFactorPolicy = serverAction(
         form.get("twoFactorPolicy"),
       );
       revalidatePath("/admin/settings");
-      return { done: changed ? "Two-factor sign-in saved." : "Nothing changed." };
+      const t = await getTranslations("admin.done.settings");
+      return { done: changed ? t("twoFactor") : t("nothing") };
     } catch (error) {
       if (error instanceof SettingsError || error instanceof IdentityError)
-        return { error: error.message };
+        return { error: await errorText(error) };
       throw error;
     }
   },
@@ -73,10 +78,11 @@ export const saveRetention = serverAction(
         feedbackDays: form.get("feedbackDays"),
       });
       revalidatePath("/admin/settings");
-      return { done: changed ? "Retention saved." : "Nothing changed." };
+      const t = await getTranslations("admin.done.settings");
+      return { done: changed ? t("retention") : t("nothing") };
     } catch (error) {
       if (error instanceof SettingsError || error instanceof IdentityError)
-        return { error: error.message };
+        return { error: await errorText(error) };
       throw error;
     }
   },
@@ -92,10 +98,11 @@ export const savePasswordSignInPolicy = serverAction(
         form.get("confirm") === "on",
       );
       revalidatePath("/admin/settings");
-      return { done: changed ? "Password sign-in saved." : "Nothing changed." };
+      const t = await getTranslations("admin.done.settings");
+      return { done: changed ? t("password") : t("nothing") };
     } catch (error) {
       if (error instanceof SettingsError || error instanceof IdentityError)
-        return { error: error.message };
+        return { error: await errorText(error) };
       throw error;
     }
   },
@@ -107,14 +114,10 @@ export const retryErasures = serverAction(
     try {
       const finished = await adminRetryErasures(await requestHeaders());
       revalidatePath("/admin/settings");
-      return {
-        done:
-          finished === 0
-            ? "Nothing was left to finish."
-            : `Finished ${finished} ${finished === 1 ? "erasure" : "erasures"}.`,
-      };
+      const t = await getTranslations("admin.done.settings");
+      return { done: finished === 0 ? t("erasuresNone") : t("erasures", { count: finished }) };
     } catch (error) {
-      if (error instanceof IdentityError) return { error: error.message };
+      if (error instanceof IdentityError) return { error: await errorText(error) };
       throw error;
     }
   },

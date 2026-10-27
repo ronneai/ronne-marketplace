@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useActionState, useState } from "react";
 import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
@@ -13,31 +14,11 @@ import {
 import { saveRetention } from "../actions";
 import type { SettingsActionState } from "../types";
 
-/** The two numbers, each with what it covers; Save is on once either changed. */
-const FIELDS: readonly {
-  name: keyof RetentionPolicy;
-  id: string;
-  label: string;
-  hint: string;
-}[] = [
-  {
-    name: "ipDays",
-    id: "retention-ip",
-    label: "Keep IP addresses for",
-    hint: "The client addresses kept with audit events, sessions and rmk login approvals, and the email typed in a failed sign-in. Older ones are cleared; the events stay.",
-  },
-  {
-    name: "sessionsDays",
-    id: "retention-sessions",
-    label: "Keep expired sessions for",
-    hint: "A session that has expired, and a finished rmk login approval. Older ones are deleted.",
-  },
-  {
-    name: "feedbackDays",
-    id: "retention-feedback",
-    label: "Keep handled feedback for",
-    hint: "Feedback people sent from Send feedback that you marked handled, counted from then. Older ones are deleted. New feedback is kept until you handle or delete it.",
-  },
+/** The three numbers, each with what it covers (`admin.settings.privacy.fields`); Save is on once any changed. */
+const FIELDS: readonly { name: keyof RetentionPolicy; id: string }[] = [
+  { name: "ipDays", id: "retention-ip" },
+  { name: "sessionsDays", id: "retention-sessions" },
+  { name: "feedbackDays", id: "retention-feedback" },
 ];
 
 /**
@@ -45,6 +26,7 @@ const FIELDS: readonly {
  * runs by them, on its own schedule or from `rmk-server purge`.
  */
 export const RetentionForm = ({ retention }: { retention: RetentionPolicy }) => {
+  const t = useTranslations("admin.settings.privacy");
   const [state, action, pending] = useActionState<SettingsActionState, FormData>(saveRetention, {});
   const [typed, setTyped] = useState<Record<keyof RetentionPolicy, string>>({
     ipDays: String(retention.ipDays),
@@ -55,19 +37,16 @@ export const RetentionForm = ({ retention }: { retention: RetentionPolicy }) => 
     (field) => typed[field.name].trim() === String(retention[field.name]),
   );
   return (
-    <form action={action} aria-label="Retention" className="grid gap-4">
+    <form action={action} aria-label={t("ariaLabel")} className="grid gap-4">
       <div className="grid gap-1">
         <h2 className="flex items-center gap-2 text-base font-semibold text-fg">
-          Retention <Help id="retention" />
+          {t("title")} <Help id="retention" />
         </h2>
-        <p className="text-sm text-muted">
-          How long this instance keeps what identifies a person&apos;s connection. A purge runs
-          every six hours and clears what is older. Shortening a number clears more at the next run.
-        </p>
+        <p className="text-sm text-muted">{t("intro")}</p>
       </div>
       {FIELDS.map((field) => (
         <div key={field.name} className="grid gap-1.5">
-          <Label htmlFor={field.id}>{field.label}</Label>
+          <Label htmlFor={field.id}>{t(`fields.${field.name}.label`)}</Label>
           <div className="flex flex-wrap items-center gap-2 text-sm text-fg">
             <input
               id={field.id}
@@ -82,10 +61,10 @@ export const RetentionForm = ({ retention }: { retention: RetentionPolicy }) => 
               aria-describedby={`${field.id}-hint`}
               className={`${inputClasses} w-28`}
             />
-            <span>days</span>
+            <span>{t("days", { count: Number(typed[field.name]) || 0 })}</span>
           </div>
           <p id={`${field.id}-hint`} className="text-xs text-muted">
-            {field.hint}
+            {t(`fields.${field.name}.hint`)}
           </p>
         </div>
       ))}
@@ -93,7 +72,7 @@ export const RetentionForm = ({ retention }: { retention: RetentionPolicy }) => 
       {state.done ? <Notice kind="info" title={state.done} /> : null}
       <div>
         <Button type="submit" disabled={pending || unchanged}>
-          Save
+          {t("save")}
         </Button>
       </div>
     </form>

@@ -8,8 +8,9 @@ import { adminListUsers } from "@/server/domains/identity/actions/user-admin";
 import { can } from "@/server/domains/identity/models/permissions";
 import { requestHeaders } from "@/server/http/request-headers";
 import { holdPage } from "../../hold";
+import { adminTitle } from "../metadata";
 
-export const metadata = { title: "Users · Ronne AI Marketplace" };
+export const generateMetadata = adminTitle("users");
 
 /**
  * Root only (`users.view`): anyone else gets a 404. The whole view is in the URL (061). Each row

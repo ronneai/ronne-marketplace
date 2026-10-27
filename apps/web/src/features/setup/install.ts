@@ -25,6 +25,7 @@ import {
   type InstallState,
   PENDING_STEPS,
   type SetupError,
+  type SetupNotice,
   type StepOutcome,
   type TestResult,
 } from "./types";
@@ -54,6 +55,14 @@ const error = (
   extra: Partial<SetupError> = {},
 ): StepOutcome => ({ ok: false, error: { code, section, message, ...extra } });
 
+type Said = NonNullable<SetupError["say"]>;
+
+/** The words of `admin.setup.errors` that say the same as the English beside it. */
+const say = (key: string, values?: Said["values"]): Said => ({ key: `errors.${key}`, values });
+
+/** The words of `admin.setup.detail` for a finished step. */
+const done = (key: string, values?: Said["values"]): Said => ({ key: `detail.${key}`, values });
+
 const config = (context: SetupContext): AppConfig =>
   loadConfig({ appDir: context.appDir, env: context.env });
 
@@ -73,12 +82,22 @@ const refusal = async (
   if (current === "ready")
     return {
       state: current,
-      refused: { code: "already_set_up", section, message: ALREADY_SET_UP },
+      refused: {
+        code: "already_set_up",
+        section,
+        message: ALREADY_SET_UP,
+        say: say("already_set_up"),
+      },
     };
   if (current === "unavailable")
     return {
       state: current,
-      refused: { code: "database_unavailable", section, message: DATABASE_UNAVAILABLE },
+      refused: {
+        code: "database_unavailable",
+        section,
+        message: DATABASE_UNAVAILABLE,
+        say: say("database_unavailable"),
+      },
     };
   return { state: current };
 };
@@ -135,7 +154,11 @@ export const installSettingsWith = async (
 
   // The environment wins over the file, so a PUBLIC_URL there is what the instance uses.
   const publicUrl = normalizePublicUrl(context.env.PUBLIC_URL || readValues(form).publicUrl);
-  if (!publicUrl) return error("invalid", "instance", PUBLIC_URL_RULE, { field: "public_url" });
+  if (!publicUrl)
+    return error("invalid", "instance", PUBLIC_URL_RULE, {
+      field: "public_url",
+      say: say("public_url_rule"),
+    });
 
   try {
     const written = writeSettings({
@@ -145,17 +168,24 @@ export const installSettingsWith = async (
       publicUrl,
       env: context.env,
     });
-    const notices: string[] = [];
-    if (checked.warning) notices.push(checked.warning);
+    const notices: SetupNotice[] = [];
+    if (checked.warning) notices.push({ text: checked.warning });
     if (written.weakSecret)
-      notices.push(
-        "The AUTH_SECRET already in the settings is shorter than 32 characters. It's kept, but consider replacing it.",
-      );
+      notices.push({
+        text: "The AUTH_SECRET already in the settings is shorter than 32 characters. It's kept, but consider replacing it.",
+        say: say("weak_secret"),
+      });
     if (written.restartNeeded)
-      notices.push(
-        "The settings were written, but this process still uses values from its environment. Restart it and reload this page.",
-      );
-    return { ok: true, detail: `Settings written to ${written.envPath}`, notices };
+      notices.push({
+        text: "The settings were written, but this process still uses values from its environment. Restart it and reload this page.",
+        say: say("restart_needed"),
+      });
+    return {
+      ok: true,
+      detail: `Settings written to ${written.envPath}`,
+      say: done("settings", { path: written.envPath }),
+      notices,
+    };
   } catch (caught) {
     // A settings file that can't be merged safely (a key line inside a multi-line value): unchanged.
     if (caught instanceof EnvMergeError)
@@ -170,6 +200,13 @@ export const installSettingsWith = async (
         "settings_unwritable",
         "database",
         `The settings file ${context.envPath} can't be written: ${(caught as Error).message}.${fix}`,
+        {
+          say: say("settings_unwritable", {
+            path: context.envPath,
+            reason: (caught as Error).message,
+            docker: context.env.RONNE_RUNTIME === "docker",
+          }),
+        },
       );
     }
     throw caught;
@@ -180,7 +217,8 @@ export const installSettingsWith = async (
 export const installMigrationsWith = async (context: SetupContext): Promise<StepOutcome> => {
   const { state: current, refused } = await refusal(context, "database");
   if (refused) return { ok: false, error: refused };
-  if (current === "not_configured") return error("not_configured", "database", NOT_CONFIGURED);
+  if (current === "not_configured")
+    return error("not_configured", "database", NOT_CONFIGURED, { say: say("not_configured") });
   const url = config(context).databaseUrl as string;
   try {
     const { applied } = await applyMigrations(url, { appDir: context.appDir });
@@ -188,6 +226,7 @@ export const installMigrationsWith = async (context: SetupContext): Promise<Step
       ok: true,
       detail:
         applied.length === 0 ? "Database up to date" : `Migrations applied (${applied.length})`,
+      say: applied.length === 0 ? done("upToDate") : done("migrations", { count: applied.length }),
       notices: [],
     };
   } catch (caught) {
@@ -197,6 +236,12 @@ export const installMigrationsWith = async (context: SetupContext): Promise<Step
       "migration_failed",
       "database",
       `A migration failed on ${redactDatabaseUrl(url)}: ${(caught as Error).message}`,
+      {
+        say: say("migration_failed", {
+          database: redactDatabaseUrl(url),
+          reason: (caught as Error).message,
+        }),
+      },
     );
   }
 };
@@ -208,11 +253,13 @@ export const installRootWith = async (
 ): Promise<StepOutcome> => {
   const { state: current, refused } = await refusal(context, "root");
   if (refused) return { ok: false, error: refused };
-  if (current === "not_configured") return error("not_configured", "root", NOT_CONFIGURED);
+  if (current === "not_configured")
+    return error("not_configured", "root", NOT_CONFIGURED, { say: say("not_configured") });
   const input = readRootInput(form);
   if (input.password !== input.again)
     return error("mismatch", "root", "The two passwords don't match.", {
       field: "root.password_again",
+      say: say("passwords_mismatch"),
     });
   const url = config(context).databaseUrl as string;
   try {
@@ -226,6 +273,7 @@ export const installRootWith = async (
     return {
       ok: true,
       detail: `Root account created (${root.email})`,
+      say: done("root", { email: root.email }),
       notices: [],
       email: root.email,
     };
@@ -237,7 +285,7 @@ export const installRootWith = async (
     if (caught instanceof InvalidPasswordError)
       return error("invalid", "root", caught.message, { field: "root.password" });
     if (caught instanceof RootAlreadyExistsError)
-      return error("already_set_up", "root", ALREADY_SET_UP);
+      return error("already_set_up", "root", ALREADY_SET_UP, { say: say("already_set_up") });
     throw caught;
   }
 };
@@ -259,10 +307,14 @@ export const installAllWith = async (
   ): Promise<StepOutcome> => {
     const outcome = await step();
     if (outcome.ok) {
-      next.steps[name] = { status: "done", detail: outcome.detail };
+      next.steps[name] = { status: "done", detail: outcome.detail, say: outcome.say };
       next.notices.push(...outcome.notices);
     } else {
-      next.steps[name] = { status: "failed", detail: outcome.error.message };
+      next.steps[name] = {
+        status: "failed",
+        detail: outcome.error.message,
+        say: outcome.error.say,
+      };
       next.error = outcome.error;
     }
     return outcome;

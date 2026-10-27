@@ -177,7 +177,7 @@ test("root makes a workspace private and public again, and an outsider sees it g
     `Make ${E2E_SHELF.workspace} private? Only its members and root will see its items`,
   );
   await dialog.getByRole("button", { name: "Make private" }).click();
-  await expect(dialog).toContainText("It's private: only its members and root see its items.");
+  await expect(dialog).toContainText("It’s private: only its members and root see its items.");
   await dialog.getByRole("button", { name: "Done" }).click();
 
   expect((await outsider.goto(shelfPage))?.status()).toBe(404);
@@ -189,7 +189,7 @@ test("root makes a workspace private and public again, and an outsider sees it g
   const back = root.getByRole("dialog", { name: "Make public" });
   await expect(back).toContainText(`Make ${E2E_SHELF.workspace} public?`);
   await back.getByRole("button", { name: "Make public" }).click();
-  await expect(back).toContainText("It's public: everyone signed in sees its items.");
+  await expect(back).toContainText("It’s public: everyone signed in sees its items.");
 
   expect((await outsider.goto(shelfPage))?.status()).toBe(200);
   await expect(outsider.getByRole("main")).toContainText(`Workspace${E2E_SHELF.workspace}`);

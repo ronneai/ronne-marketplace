@@ -1,4 +1,11 @@
 {
+  "pages": {
+    "area": "Admin",
+    "users": "Usuários",
+    "user": "Usuário",
+    "audit": "Registro de auditoria",
+    "settings": "Configurações"
+  },
   "notice": {
     "tab": "Comunicado",
     "title": "Comunicado da instância",
@@ -41,5 +48,1148 @@
     "askedDone": "A pessoa será convidada a escolher uma nova senha no próximo acesso.",
     "clearedDone": "A pessoa não será mais convidada a escolher uma nova senha.",
     "unchanged": "Nada mudou."
+  },
+  "users": {
+    "title": "Usuários",
+    "description": "Quem pode usar esta instância. Só o root cria usuários; ninguém se cadastra sozinho.",
+    "filters": {
+      "search": "Pesquisar",
+      "searchPlaceholder": "E-mail ou nome",
+      "role": "Papel",
+      "anyRole": "Qualquer papel",
+      "status": "Situação",
+      "anyStatus": "Qualquer situação",
+      "apply": "Filtrar"
+    },
+    "status": {
+      "active": "ativo",
+      "disabled": "desativado",
+      "erased": "apagado"
+    },
+    "columns": {
+      "name": "Nome",
+      "email": "E-mail",
+      "role": "Papel",
+      "status": "Situação",
+      "lastSignIn": "Último acesso",
+      "created": "Criado em",
+      "open": "Abrir"
+    },
+    "noRoles": "nenhum",
+    "never": "Nunca",
+    "openUser": "Abrir {email}",
+    "roleHover": "{workspace}: {role}",
+    "empty": {
+      "none": "Ainda não há usuários.",
+      "filtered": "Nenhum usuário corresponde a estes filtros."
+    },
+    "scim": {
+      "erased": "Apagado em <date></date>",
+      "managed": "Gerenciado por {provider}",
+      "adopted": "Adotado por {provider} em <date></date>",
+      "deprovisioned": "Desprovisionado por {provider} em <date></date>"
+    },
+    "copy": {
+      "label": "Copiar {email}",
+      "copied": "Copiado",
+      "manual": "Selecionado: copie você mesmo"
+    },
+    "create": {
+      "button": "Criar usuário",
+      "title": "Criar usuário",
+      "email": "E-mail",
+      "name": "Nome",
+      "role": "Papel",
+      "rootTitle": "O root pode tudo.",
+      "rootBody": "Gerenciar usuários (inclusive outros roots), escopos, configurações e o registro de auditoria, e aprovar as próprias submissões.",
+      "cancel": "Cancelar",
+      "done": "Concluir"
+    },
+    "password": {
+      "legend": "Senha",
+      "generate": "Gerar uma (20 caracteres)",
+      "type": "Digitar uma",
+      "new": "Nova senha",
+      "length": "De 12 a 128 caracteres."
+    },
+    "oneTime": {
+      "title": "Mostrada uma só vez",
+      "body": "Entregue isto ao usuário por um canal confiável. Não será mostrado de novo.",
+      "email": "E-mail",
+      "password": "Senha"
+    }
+  },
+  "userPage": {
+    "back": "← Usuários",
+    "self": {
+      "title": "Esta é a sua própria conta.",
+      "body": "Outro root altera o seu papel, desativa você ou redefine a sua senha. Altere a sua senha em Conta."
+    },
+    "sections": {
+      "account": "Conta",
+      "access": "Acesso e login",
+      "workspaces": "Espaços de trabalho",
+      "data": "Dados da pessoa",
+      "erase": "Apagar esta conta"
+    },
+    "facts": {
+      "email": "E-mail",
+      "name": "Nome",
+      "role": "Papel",
+      "status": "Situação",
+      "created": "Criada em",
+      "language": "Idioma",
+      "lastSignIn": "Último acesso",
+      "provider": "Provedor",
+      "twoFactor": "Dois fatores",
+      "sessions": "Sessões",
+      "tokens": "Tokens de acesso"
+    },
+    "status": {
+      "active": "Ativa",
+      "disabled": "Desativada em <date></date>",
+      "erased": "Apagada em <date></date>"
+    },
+    "badge": {
+      "disabled": "Desativada",
+      "erased": "Apagada"
+    },
+    "automatic": "Automático",
+    "never": "Nunca",
+    "lastSignInHint": "Um acesso ao aplicativo web, com senha, um provedor ou uma segunda etapa. Não vale o rmk nem um token.",
+    "on": "Ativado",
+    "off": "Desativado",
+    "rootEvery": "Root: todos os espaços de trabalho.",
+    "noWorkspaces": "Nenhum.",
+    "dataBody": "Tudo o que a instância guarda sobre a pessoa em um só arquivo: a conta, os nomes dos tokens, submissões, comentários e eventos de auditoria.",
+    "auditLink": "Eventos da pessoa no registro de auditoria",
+    "eraseBody": "Apagar encerra a conta de vez. O e-mail, o nome, os acessos e os tokens somem; os itens publicados e os eventos de auditoria ficam, sob um pseudônimo. Não dá para desfazer."
+  },
+  "actions": {
+    "labels": {
+      "role": "Alterar papel",
+      "reset": "Redefinir senha",
+      "twoFactor": "Redefinir dois fatores",
+      "disable": "Desativar",
+      "enable": "Ativar"
+    },
+    "titles": {
+      "role": "Alterar papel",
+      "disable": "Desativar usuário",
+      "enable": "Ativar usuário",
+      "reset": "Redefinir senha",
+      "twoFactor": "Redefinir dois fatores"
+    },
+    "erasedDownload": "Baixar os dados (conta apagada)",
+    "erasedReason": "Esta conta foi apagada: não há nada da pessoa para baixar.",
+    "erasedAria": "Baixar os dados de {email}: conta apagada",
+    "done": "Concluir",
+    "cancel": "Cancelar",
+    "impactLoading": "Contando as sessões e os tokens…",
+    "impact": "Isto encerra todas as sessões da pessoa ({sessions, plural, one {# sessão} other {# sessões}}) e revoga {tokens, plural, one {# token de acesso} other {# tokens de acesso}}. Ela não consegue entrar até você ativá-la.",
+    "isRoot": "{email} é root.",
+    "enableBody": "A pessoa volta a poder entrar. Os tokens de acesso revogados continuam revogados.",
+    "resetBody": "Isto encerra todas as sessões da pessoa e revoga os tokens de acesso.",
+    "twoFactorBody": "Para celular perdido e códigos de backup perdidos. Isto desliga o login em dois fatores e encerra todas as sessões; a pessoa entra só com a senha e configura de novo se for exigido.",
+    "scimTitle": "{provider} gerencia esta conta por SCIM.",
+    "scimBody": "A próxima sincronização devolve a conta ao que o provedor diz: altere lá também.",
+    "newRole": "Novo papel",
+    "makeRoot": {
+      "title": "Tornar {email} root?",
+      "body": "A pessoa poderá fazer tudo o que você faz, inclusive alterar o seu papel ou desativar você."
+    },
+    "removeRoot": {
+      "title": "Remover o root de {email}?",
+      "body": "A pessoa perde a administração de usuários, os escopos, as configurações e o registro de auditoria na próxima requisição."
+    },
+    "changeRole": "Alterar o papel de <from></from> para <to></to>."
+  },
+  "erase": {
+    "button": "Apagar",
+    "title": "Apagar usuário",
+    "cancel": "Cancelar",
+    "done": "Concluir",
+    "irreversibleTitle": "Não dá para desfazer.",
+    "irreversibleBody": "Apagar é o fim da conta: nada traz a pessoa de volta, e o e-mail antigo fica livre para uma nova conta na hora. Para impedir o acesso sem apagar, desative a conta.",
+    "rootTitle": "{email} é root.",
+    "rootBody": "O papel vai junto com a conta.",
+    "goesHeading": "O que some",
+    "staysHeading": "O que fica, sob o pseudônimo",
+    "goes": {
+      "identity": "O e-mail, o nome e a foto: a conta passa a ser {pseudonym}.",
+      "credentials": "A senha, os vínculos com provedores de identidade e o login em dois fatores.",
+      "sessions": "Todas as sessões, tokens de acesso e aprovações de login do rmk.",
+      "scim": "Os vínculos SCIM, para que a próxima criação do provedor gere uma conta nova.",
+      "memberships": "As participações em espaços de trabalho, os pedidos para entrar em aberto e as movimentações de escopo em aberto.",
+      "drafts": "Os rascunhos, que só a pessoa via.",
+      "ip": "O endereço IP em todos os eventos de auditoria e o e-mail nos detalhes de qualquer evento."
+    },
+    "stays": {
+      "items": "Os itens publicados e todas as versões, mostrados como publicados por {pseudonym}.",
+      "submissions": "As submissões enviadas, aprovadas e rejeitadas, e todos os comentários de revisão.",
+      "audit": "Os eventos de auditoria em que a pessoa aparece, com o pseudônimo como autor.",
+      "workspace": "O espaço de trabalho pessoal, renomeado, quando tem um item publicado ou uma submissão; senão, é apagado."
+    },
+    "reminder": "Nada da pessoa poderá ser lido depois: se ela pediu o que a instância guarda sobre ela, entregue antes. <download>Baixar os dados</download>.",
+    "confirm": "Digite o e-mail da conta para confirmar"
+  },
+  "download": {
+    "button": "Baixar os dados",
+    "title": "Baixar os dados",
+    "close": "Fechar",
+    "download": "Baixar",
+    "body": "O arquivo JSON que a pessoa receberia na página Conta: conta, sessões, nomes dos tokens, espaços de trabalho, itens, submissões, comentários e eventos de auditoria, com os e-mails de outras pessoas substituídos. Conta como o download da pessoa pelos próximos 10 minutos, e o registro de auditoria anota que foi você quem o gerou."
+  },
+  "userWorkspaces": {
+    "title": "Espaços de trabalho de {email}",
+    "loading": "Carregando os espaços de trabalho…",
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "done": "Concluir",
+    "manage": "Gerenciar espaços de trabalho"
+  },
+  "workspaceRows": {
+    "legend": "Espaços de trabalho",
+    "roles": {
+      "user": "Usuário",
+      "moderator": "Moderador",
+      "admin": "Admin"
+    },
+    "workspaceN": "Espaço de trabalho {number, number}",
+    "roleIn": "Papel em {workspace}",
+    "remove": "Remover {workspace}",
+    "always": "Sempre",
+    "add": "Adicionar espaço de trabalho"
+  },
+  "scopes": {
+    "search": {
+      "label": "Pesquisar",
+      "placeholder": "Nome ou descrição",
+      "submit": "Pesquisar"
+    },
+    "columns": {
+      "scope": "Escopo",
+      "description": "Descrição",
+      "creator": "Criado por",
+      "created": "Criado em"
+    },
+    "empty": {
+      "none": "Ainda não há escopos.",
+      "filtered": "Nenhum escopo corresponde a esta pesquisa."
+    },
+    "create": {
+      "button": "Criar escopo",
+      "title": "Criar escopo",
+      "name": "Nome",
+      "hint": "Os itens se chamarão <mono>@{name}/item</mono>. Letras minúsculas, dígitos e hifens.",
+      "inWorkspace": "Em <mono>{workspace}</mono>. Os admins ou o root podem movê-lo depois.",
+      "submit": "Criar escopo"
+    },
+    "edit": {
+      "label": "Editar @{name}",
+      "title": "Editar escopo"
+    },
+    "description": {
+      "label": "Descrição",
+      "hint": "O que pertence a este escopo. {used, number}/{max, number}"
+    },
+    "cancel": "Cancelar",
+    "done": "Concluir",
+    "save": "Salvar",
+    "fallbackName": "escopo"
+  },
+  "workspaces": {
+    "search": {
+      "label": "Pesquisar",
+      "placeholder": "Nome ou descrição",
+      "placeholderPersonal": "Nome, descrição ou dono",
+      "submit": "Pesquisar"
+    },
+    "chips": {
+      "q": "Pesquisa",
+      "kind": "Tipo"
+    },
+    "kinds": {
+      "label": "Tipo",
+      "shared": "Compartilhados",
+      "personal": "Pessoais",
+      "count": "{kind} ({count, number}{more})"
+    },
+    "visibility": {
+      "public": "Público",
+      "private": "Privado"
+    },
+    "columns": {
+      "workspace": "Espaço de trabalho",
+      "description": "Descrição",
+      "visibility": "Visibilidade",
+      "scopes": "Escopos",
+      "moderators": "Moderadores",
+      "created": "Criado em",
+      "owner": "Dono"
+    },
+    "none": "Nenhum",
+    "empty": {
+      "none": "Ainda não há espaços de trabalho.",
+      "filtered": "Nenhum espaço de trabalho corresponde a esta pesquisa."
+    },
+    "dialogs": {
+      "cancel": "Cancelar",
+      "done": "Concluir",
+      "save": "Salvar",
+      "description": {
+        "label": "Descrição",
+        "hint": "Para quem é e o que vai nele. {used, number}/{max, number}"
+      },
+      "create": {
+        "button": "Novo espaço de trabalho",
+        "title": "Novo espaço de trabalho",
+        "name": "Nome",
+        "nameHint": "Letras minúsculas, dígitos e hifens. Os nomes dos itens começam com ele: @nome/escopo/item.",
+        "visibility": "Visibilidade",
+        "public": "Público",
+        "publicBody": "Todos que entraram veem os escopos e os itens e podem depender deles.",
+        "private": "Privado",
+        "privateBody": "Só os membros e o root veem os itens; só os próprios itens podem depender deles.",
+        "submit": "Criar espaço de trabalho"
+      },
+      "edit": {
+        "button": "Editar descrição",
+        "title": "Editar espaço de trabalho"
+      },
+      "delete": {
+        "button": "Excluir",
+        "title": "Excluir espaço de trabalho",
+        "body": "Excluir o espaço de trabalho <mono>{name}</mono>? Ele não tem escopos. Não dá para desfazer.",
+        "submit": "Excluir espaço de trabalho",
+        "reason": "Mova ou remova os escopos antes."
+      },
+      "visibility": {
+        "makePrivate": "Tornar privado",
+        "makePublic": "Tornar público",
+        "askPublic": "Tornar <mono>{name}</mono> público? Todos nesta instância verão os itens e poderão depender deles.",
+        "askPrivate": "Tornar <mono>{name}</mono> privado? Só os membros e o root verão os itens, e só os próprios itens poderão depender deles.",
+        "checking": "Verificando o que depende dos itens…",
+        "loadFailed": "Não foi possível verificar o que depende dos itens. Tente de novo em instantes.",
+        "dependentsTitle": "{count, plural, one {# item fora de {name} depende dos itens dele} other {# itens fora de {name} dependem dos itens dele}}",
+        "dependentsBody": "Eles deixariam de instalar. Publique-os sem essa dependência antes.",
+        "openTitle": "{count, plural, one {# submissão em aberto fora de {name} depende dos itens dele} other {# submissões em aberto fora de {name} dependem dos itens dele}}",
+        "openBody": "Elas falhariam na publicação.",
+        "blocked": "Itens de fora dependem dos itens dele."
+      },
+      "rename": {
+        "button": "Renomear",
+        "title": "Renomear espaço de trabalho",
+        "newName": "Novo nome",
+        "hint": "Letras minúsculas, dígitos e hifens, e não o nome de outro espaço de trabalho.",
+        "loadFailed": "Não foi possível contar os itens. Tente de novo em instantes.",
+        "changesTitle": "O que muda",
+        "items": "{count, plural, one {O # item} other {Os # itens}} será renomeado de <mono>@{from}/…</mono> para <mono>@{to}/…</mono>. Os nomes antigos continuam funcionando em instalações, lockfiles e dependências, e o <mono>rmk</mono> leva os projetos aos novos nomes conforme atualizam; no Claude Code aparecem como plugins novos.",
+        "itemsUnknown": "Os itens serão renomeados de <mono>@{from}/…</mono> para <mono>@{to}/…</mono>. Os nomes antigos continuam funcionando em instalações, lockfiles e dependências, e o <mono>rmk</mono> leva os projetos aos novos nomes conforme atualizam; no Claude Code aparecem como plugins novos.",
+        "links": "Os links deste espaço de trabalho (a página e o link para entrar) deixarão de funcionar, e o nome antigo também em <mono>rmk search --workspace</mono>, <mono>rmk feed build --workspace</mono> e em qualquer fluxo de CI que o cite.",
+        "fixName": "Corrija o nome antes.",
+        "typeNew": "Digite o novo nome."
+      }
+    }
+  },
+  "move": {
+    "personalTarget": "Pessoal ({name})",
+    "more": "e mais {count, number}",
+    "hidden": "e mais {count, number} que você não vê: em um espaço de trabalho em que você não está, ou um nome que ninguém tem",
+    "seenBy": {
+      "personal": "Só você e o root",
+      "public": "Todos nesta instância",
+      "private": "Só os membros de {workspace} e o root"
+    },
+    "breakTitle": "Esta movimentação quebraria algo",
+    "outsideDependents": "Itens publicados fora de {workspace} dependem dos itens dele e deixariam de instalar para quem não vê {workspace}:",
+    "ownDependencies": "Os itens dele dependem de itens de um espaço de trabalho privado que não é {workspace}, e não poderiam depender deles lá:",
+    "aliasTaken": "Estes novos nomes são nomes antigos de outros itens e continuam sendo deles:",
+    "changesTitle": "O que muda",
+    "itemsNamed": "{count, plural, one {O # item se chamará:} other {Os # itens se chamarão:}}",
+    "oldNames": "Os nomes antigos continuam funcionando, e o <mono>rmk</mono> leva os projetos aos novos; no Claude Code aparecem como plugins novos.",
+    "noItems": "Ainda não tem itens.",
+    "whoSee": "<strong>Quem vai vê-los:</strong> {who}.",
+    "fewerSee": "As instalações de quem não os vê mais deixam de atualizar.",
+    "whoReview": "<strong>Quem vai revisá-los:</strong> {who}",
+    "reviewNobody": "ninguém: espaços de trabalho pessoais não passam por revisão.",
+    "reviewBy": "moderadores e admins de {workspace}.",
+    "notMembers": "Trabalho em aberto de quem não é membro de {workspace}: a pessoa poderá lê-lo e retirá-lo, mas não alterá-lo nem enviá-lo.",
+    "openDependents": "Submissões em aberto de fora que dependem dos itens dele falharão na publicação:",
+    "notReviewed": "Sem revisão: outra pessoa precisa aprovar a movimentação, e aprová-la revisa os itens.",
+    "whereTo": "Para onde",
+    "pick": "Escolha um espaço de trabalho",
+    "nameThere": "O nome dele lá",
+    "nameHint": "O nome atual, a menos que o espaço de trabalho já tenha um escopo com esse nome.",
+    "clash": "{workspace} já tem um escopo chamado {name}: escolha outro nome para ele lá.",
+    "message": "Mensagem (opcional)",
+    "rootAnswers": "O root responderá.",
+    "adminsAnswer": "Os admins de {workspace} ou o root responderão.",
+    "ask": "Pedir para mover",
+    "moveScope": "Mover escopo",
+    "cancel": "Cancelar",
+    "back": "Voltar",
+    "continue": "Continuar",
+    "done": "Concluir",
+    "ok": "OK:",
+    "targetsFailed": "Não foi possível ler os espaços de trabalho. Tente de novo em instantes.",
+    "impactFailed": "Não foi possível verificar a movimentação. Tente de novo em instantes.",
+    "blocked": {
+      "pick": "Escolha um espaço de trabalho.",
+      "checking": "Verificando a movimentação…",
+      "fixName": "Corrija o nome do escopo antes.",
+      "pickAnother": "Escolha outro nome para ele lá.",
+      "refuses": "Algo listado acima impede a movimentação.",
+      "typeName": "Digite o nome do escopo."
+    },
+    "doneMoved": "@{scope} foi movido para {workspace}.",
+    "doneAsked": "Pedido para mover @{scope} para {workspace} enviado.",
+    "question": "{items, plural, one {Mover @{scope} e o # item dele para {workspace}, {renamed, select, true {renomeado como} other {como}} {full}?} other {Mover @{scope} e os # itens dele para {workspace}, {renamed, select, true {renomeado como} other {como}} {full}?}}",
+    "everyoneTitle": "Todos vão vê-los",
+    "everyoneBody": "Os itens dele passarão a ser de todos nesta instância.",
+    "typeIntro": "Ninguém mais responde a esta movimentação. Para confirmar, digite o nome do escopo, <mono>{scope}</mono>.",
+    "scopeName": "Nome do escopo",
+    "moveLabel": "Mover @{scope}",
+    "moveTitle": "Mover @{scope}",
+    "declined": "Movimentação para {workspace} recusada",
+    "moving": "Movendo para {workspace}",
+    "cancelled": "Cancelada",
+    "cancelMove": "Cancelar a movimentação para {workspace}"
+  },
+  "audit": {
+    "title": "Registro de auditoria",
+    "description": "Quem fez o quê e quando. Abra um evento para ver todos os detalhes.",
+    "filters": {
+      "action": "Ação",
+      "allActions": "Todas as ações",
+      "all": "Todas: {group}",
+      "actor": "Autor",
+      "actorPlaceholder": "E-mail, ou system",
+      "from": "De (UTC)",
+      "to": "Até (UTC)",
+      "apply": "Filtrar"
+    },
+    "chips": {
+      "action": "Ação",
+      "actor": "Autor",
+      "from": "De",
+      "to": "Até"
+    },
+    "columns": {
+      "time": "Hora",
+      "actor": "Autor",
+      "event": "Evento"
+    },
+    "detailsLink": "Detalhes: {summary}",
+    "detailsTitle": "Detalhes",
+    "missing": "Esse evento não existe.",
+    "empty": {
+      "none": "Ainda não há eventos.",
+      "filtered": "Nenhum evento corresponde a estes filtros."
+    },
+    "dialog": {
+      "title": "Detalhes do evento",
+      "close": "Fechar"
+    },
+    "details": {
+      "when": "Quando",
+      "actor": "Autor",
+      "action": "Ação",
+      "target": "Alvo",
+      "ip": "Endereço IP",
+      "details": "Detalhes",
+      "eventId": "ID do evento",
+      "rawJson": "JSON bruto",
+      "copyJson": "Copiar JSON",
+      "openUser": "Abrir o usuário",
+      "openSubmission": "Abrir a submissão",
+      "openItem": "Abrir o item"
+    },
+    "sentences": {
+      "parts": {
+        "and": " e ",
+        "ended": {
+          "sessions": "{count, plural, one {# sessão encerrada} other {# sessões encerradas}}",
+          "tokens": "{count, plural, one {# token revogado} other {# tokens revogados}}",
+          "scimTokens": "{count, plural, one {# token SCIM revogado} other {# tokens SCIM revogados}}",
+          "requests": "{count, plural, one {# pedido para entrar cancelado} other {# pedidos para entrar cancelados}}",
+          "nothingLeft": "nada restava"
+        },
+        "via": {
+          "cli": "pela linha de comando",
+          "api": "pelo rmk",
+          "scim": "pelo provisionamento SCIM"
+        },
+        "roles": {
+          "root": "root",
+          "user": "usuário",
+          "moderator": "moderador",
+          "admin": "admin"
+        },
+        "changedDetails": "dados",
+        "expires": "expira em {date}",
+        "noExpiry": "sem expiração",
+        "files": "{count, plural, one {# arquivo} other {# arquivos}}",
+        "members": "{count, plural, one {# membro} other {# membros}}",
+        "moveRequests": "{count, plural, one {# pedido de movimentação} other {# pedidos de movimentação}}",
+        "items": "{count, plural, one {# item} other {# itens}}",
+        "versionsReviewed": "{count, plural, one {# versão revisada} other {# versões revisadas}}",
+        "retention": {
+          "ip": "endereços IP de {from} para {to} dias",
+          "sessions": "sessões expiradas de {from} para {to} dias",
+          "feedback": "feedback tratado de {from} para {to} dias",
+          "nothing": "nada"
+        },
+        "notice": {
+          "shown": "exibido",
+          "hidden": "oculto",
+          "tone": "tom de {from} para {to}",
+          "words": "o texto ou o link"
+        },
+        "fallback": {
+          "user": "um usuário",
+          "item": "um item",
+          "version": "uma versão",
+          "workspace": "um espaço de trabalho",
+          "scope": "um escopo",
+          "anotherName": "outro nome",
+          "unknownEmail": "um e-mail desconhecido"
+        },
+        "signInReasons": {
+          "invalid": "e-mail ou senha incorretos",
+          "disabled": "a conta está desativada",
+          "rate_limited": "tentativas demais",
+          "two_factor_required": "a conta usa login em dois fatores",
+          "password_disabled": "o login com senha é só para o root",
+          "password_sign_in_disabled": "o login com senha é só para o root"
+        },
+        "policies": {
+          "off": "desligada",
+          "choice": "cada pessoa escolhe",
+          "required": "obrigatória"
+        },
+        "passwordSaid": {
+          "everyone": "todos",
+          "root_only": "só o root"
+        },
+        "scimRefusals": {
+          "missing": "nenhum token de portador",
+          "format": "não é um token SCIM",
+          "unknown": "um token desconhecido",
+          "revoked": "um token revogado",
+          "expired": "um token além das 24 horas após uma rotação",
+          "scim_off": "o SCIM está desligado para o provedor",
+          "root": "citava uma conta root, que o Ronne gerencia",
+          "root_member": "um grupo citava uma conta root como membro, que foi deixada de fora"
+        },
+        "ssoReasons": {
+          "unverified_email": "o provedor não disse que o e-mail é verificado",
+          "not_allowed": "nenhuma conta que ele possa vincular ou criar",
+          "disabled": "a conta está desativada",
+          "invalid_response": "não foi possível verificar a resposta do provedor",
+          "provider_error": "o provedor recusou ou não respondeu",
+          "expired": "o login demorou demais ou já foi usado",
+          "rate_limited": "tentativas demais"
+        },
+        "ssoNotAllowed": {
+          "domain_not_allowed": "nenhuma conta, e o domínio do e-mail não pode criar uma",
+          "non_ascii_email": "o endereço não é ASCII simples",
+          "invalid_email": "o endereço não é válido",
+          "lookalike_email": "o banco de dados o compara como igual ao endereço de uma conta (acentos, formas de letras ou caracteres invisíveis)",
+          "link_off": "a conta existe, e o provedor não vincula por e-mail",
+          "domain_not_listed": "a conta existe, mas o domínio não está na lista do provedor",
+          "linked_to_another": "a conta está vinculada a outra pessoa no provedor"
+        },
+        "twoFactorPolicies": {
+          "optional": "ninguém (opcional)",
+          "reviewers": "revisores e root",
+          "everyone": "todos"
+        },
+        "twoFactorReasons": {
+          "wrong_code": "um código errado",
+          "used": "um código já usado",
+          "too_many": "códigos errados demais",
+          "locked": "bloqueado por 15 minutos",
+          "refused": "a conta não pode entrar",
+          "unreadable": "não foi possível ler o segredo"
+        }
+      },
+      "actions": {
+        "instance": {
+          "root_created": "Criou a primeira conta root, <name>{email}</name>{where, select, web {, na configuração pela web} other {, pela linha de comando}}",
+          "access_revoked": "{scope, select, user {Revogou o acesso de <name>{who}</name>{ended}{via}} other {Revogou o acesso de todos{ended}{via}}}",
+          "secret_rotated": "Trocou o AUTH_SECRET, então todos entram de novo{ended}{twoFactor, plural, =0 {} one {, e desligou o login em dois fatores de # conta} other {, e desligou o login em dois fatores de # contas}}{via}",
+          "backup_made": "Fez um backup: {rows, plural, one {# linha} other {# linhas}} em {tables, plural, one {# tabela} other {# tabelas}}, {files, plural, one {# arquivo guardado} other {# arquivos guardados}}{settings, select, true {, com o arquivo de configurações} other {}}{encrypted, select, true {, criptografado} other {}}{via}",
+          "restored": "Restaurou um backup feito pelo Ronne {version} em {time}: {rows, plural, one {# linha} other {# linhas}}, {files, plural, one {# arquivo guardado} other {# arquivos guardados}}{via}",
+          "auth_provider_created": "Adicionou o provedor de identidade <code>{provider}</code>",
+          "auth_provider_updated": "Alterou o provedor de identidade <code>{provider}</code>{hasChanged, select, true {: {changed}} other {}}",
+          "auth_provider_deleted": "Excluiu o provedor de identidade <code>{provider}</code>{memberships, plural, =0 {} one {, e a # participação que os grupos dele davam} other {, e as # participações que os grupos dele davam}}",
+          "auth_provider_enabled": "Ligou o provedor de identidade <code>{provider}</code>",
+          "auth_provider_disabled": "Desligou o provedor de identidade <code>{provider}</code>{retest, select, true { (as configurações mudaram, então precisa de um novo teste)} other {}}",
+          "scim_enabled": "Ligou o SCIM para <code>{provider}</code>",
+          "scim_disabled": "Desligou o SCIM para <code>{provider}</code>{via}",
+          "scim_token_created": "Criou um token SCIM para <code>{provider}</code>",
+          "scim_token_rotated": "Trocou o token SCIM de <code>{provider}</code>; o anterior funciona por mais 24 horas",
+          "scim_token_revoked": "{many, select, true {Revogou o token SCIM de <code>{provider}</code> e o anterior à troca} other {Revogou o token SCIM de <code>{provider}</code>}}",
+          "password_sign_in_changed": "Alterou quem pode entrar com senha de {from} para {to}{via}"
+        },
+        "scim": {
+          "request_refused": "Recusou uma requisição SCIM: {reason}{hasProvider, select, true { (<code>{provider}</code>)} other {}}"
+        },
+        "user": {
+          "updated": "Alterou <name>{who}</name> ({changed}){relinked, select, true {, vinculando de novo,} other {}} pelo provisionamento SCIM de <code>{provider}</code>",
+          "scim_adopted": "Vinculou <name>{who}</name> ao provisionamento SCIM de <code>{provider}</code>, que passa a gerenciá-lo",
+          "password_reset": "Redefiniu a senha de <name>{who}</name>{twoFactor, select, true { e desligou o login em dois fatores} other {}}{change, select, true {, pedindo uma nova no próximo acesso} other {}}{ended}{via}",
+          "password_change_requested": "{required, select, false {Deixou de pedir uma nova senha no próximo acesso de <name>{who}</name>{via}} other {Pediu uma nova senha no próximo acesso de <name>{who}</name>{via}}}",
+          "two_factor_reset": "Desligou o login em dois fatores de <name>{who}</name>{ended}{via}",
+          "password_changed": "{required, select, true {Escolheu a própria senha, como o root pediu} other {Alterou a própria senha}}{others, plural, =0 {} one { (# outra sessão encerrada)} other { (# outras sessões encerradas)}}",
+          "created": "Criou <name>{email}</name> como {role}{change, select, true {, pedindo uma nova senha no primeiro acesso} other {}}{sso, select, true { no primeiro acesso com <code>{provider}</code>} other {}}",
+          "sso_linked": "Vinculou <name>{email}</name> ao provedor de identidade <code>{provider}</code> (por e-mail verificado)",
+          "role_changed": "Alterou <name>{who}</name> de {from} para {to}",
+          "disabled": "Desativou <name>{who}</name>{ended}",
+          "enabled": "Ativou <name>{who}</name>",
+          "erased": "Apagou <name>{who}</name>",
+          "data_exported": "Baixou os dados de <name>{who}</name>{byRoot, select, true { (pelo root)} other {}}"
+        },
+        "auth": {
+          "signed_in": "{sso, select, true {Entrou com <code>{provider}</code>} other {{remember, select, true {Entrou (lembrado por 30 dias)} other {Entrou}}}}",
+          "sso_signed_in": "Entrou com o provedor de identidade <code>{provider}</code>",
+          "sso_failed": "Falha ao entrar com <code>{provider}</code>{hasEmail, select, true { para <name>{email}</name>} other {}}: {why}",
+          "device_started": "Pediu um código de acesso para <name>{label}</name> ({clientId} login --web)",
+          "device_approved": "Aprovou o código de acesso de <name>{label}</name>{hasIp, select, true {, pedido de {ip}} other {}}",
+          "device_denied": "Recusou o código de acesso de <name>{label}</name>",
+          "device_expired": "Um código de acesso de <name>{label}</name> expirou antes de ser usado",
+          "sign_in_failed": "Falha ao entrar para <name>{email}</name>: {reason}{via}",
+          "signed_out": "Saiu",
+          "two_factor_enabled": "Ligou o login em dois fatores",
+          "two_factor_disabled": "Desligou o login em dois fatores",
+          "backup_codes_regenerated": "Gerou novos códigos de backup; os antigos deixaram de funcionar",
+          "two_factor_failed": "Um código de dois fatores foi recusado ao entrar ({reason})"
+        },
+        "access_token": {
+          "created": "Criou o token <name>{label}</name> ({expiry}{how, select, cli {, pelo rmk login} device {, por aprovação no navegador} other {}})",
+          "revoked": "Revogou o token <name>{label}</name>{by, select, disable { (conta desativada)} root { (pelo root)} other {}}"
+        },
+        "workspace": {
+          "created": "Criou o espaço de trabalho <name>{label}</name>",
+          "updated": "{change, select, private {Tornou o espaço de trabalho <name>{label}</name> privado} public {Tornou o espaço de trabalho <name>{label}</name> público} other {Alterou a descrição do espaço de trabalho <name>{label}</name>}}",
+          "renamed": "Renomeou o espaço de trabalho <name>{from}</name> para <name>{to}</name>",
+          "deleted": "Excluiu o espaço de trabalho <name>{label}</name>{details}",
+          "member_added": "Adicionou <name>{email}</name> a <name>{workspace}</name> como {role}{via, select, sso {, pelos grupos de <code>{provider}</code>} scim {, pelos grupos SCIM de <code>{provider}</code>} other {}}",
+          "member_role_changed": "Alterou <name>{email}</name> em <name>{workspace}</name> de {from} para {to}{via, select, sso {, pelos grupos de <code>{provider}</code>} scim {, pelos grupos SCIM de <code>{provider}</code>} other {}}",
+          "member_removed": "Removeu <name>{email}</name> de <name>{workspace}</name>{via, select, sso {, pelos grupos de <code>{provider}</code>} scim {, pelos grupos SCIM de <code>{provider}</code>} other {}}",
+          "access_requested": "<name>{who}</name> pediu para entrar em <name>{workspace}</name>",
+          "access_approved": "{direct, select, true {Aprovou o pedido de <name>{who}</name> adicionando a pessoa a <name>{workspace}</name>} other {Aprovou a entrada de <name>{who}</name> em <name>{workspace}</name>}}{hasRole, select, true { como {role}} other {}}",
+          "access_declined": "Recusou a entrada de <name>{who}</name> em <name>{workspace}</name>",
+          "access_cancelled": "<name>{who}</name> cancelou o pedido para entrar em <name>{workspace}</name>"
+        },
+        "scope": {
+          "created": "Criou o escopo <name>{scope}</name>",
+          "updated": "Alterou a descrição de <name>{scope}</name>",
+          "move_requested": "Pediu para mover <name>{scope}</name> para <name>{to}</name>{renamed, select, true {, como <name>{newName}</name>} other {}}",
+          "moved": "{direct, select, false {Aprovou a movimentação de} other {Moveu}} <name>{scope}</name> para <name>{to}</name>{renamed, select, true {, como <name>{newName}</name>} other {}} ({counts})",
+          "move_declined": "Recusou mover <name>{scope}</name> para <name>{to}</name>",
+          "move_cancelled": "Cancelou a movimentação de <name>{scope}</name> para <name>{to}</name>{lost, select, true { (quem pediu não pode mais movê-lo)} other {}}"
+        },
+        "submission": {
+          "draft_created": "Criou um rascunho de <name>{item}</name> ({details}){via}",
+          "draft_updated": "Atualizou o rascunho de <name>{item}</name>{via}",
+          "submitted": "Enviou <name>{item}</name>{hasRevision, select, true { para revisão (revisão {revision})} other { para revisão}}",
+          "resubmitted": "Reenviou <name>{item}</name>{hasRevision, select, true { (revisão {revision})} other {}}",
+          "withdrawn": "Arquivou <name>{item}</name>",
+          "restored": "Restaurou <name>{item}</name> como rascunho",
+          "deleted": "Excluiu <name>{item}</name>",
+          "approved": "Aprovou <name>{item}</name>",
+          "changes_requested": "Solicitou alterações em <name>{item}</name>",
+          "rejected": "Rejeitou <name>{item}</name>",
+          "override_approved": "Aprovou o próprio <name>{item}</name> (exceção)",
+          "rebased": "Rebaseou <name>{item}</name> de {from} para {to}{conflicts, plural, =0 {} one { (# conflito)} other { (# conflitos)}}"
+        },
+        "version": {
+          "published": "Publicou <name>{item}</name>{hasTag, select, true { como <code>{tag}</code>} other {}}",
+          "deprecated": "Marcou <name>{item}</name> como obsoleta",
+          "undeprecated": "Removeu a obsolescência de <name>{item}</name>",
+          "yanked": "Retirou <name>{item}</name>",
+          "unyanked": "Restaurou <name>{item}</name> (não está mais retirada)"
+        },
+        "dist_tag": {
+          "moved": "Moveu <code>{tag}</code> de <name>{item}</name>{hasFrom, select, true { de {from} para {to}} other { para {to}}}",
+          "removed": "Removeu <code>{tag}</code> de <name>{item}</name>"
+        },
+        "pin": {
+          "added": "Fixou <name>{item}</name>{shelf, select, workspace { no espaço de trabalho <name>{workspace}</name>} other { em Comece por aqui}}",
+          "removed": "Desafixou <name>{item}</name>{shelf, select, workspace { do espaço de trabalho <name>{workspace}</name>} other { de Comece por aqui}}",
+          "reordered": "Moveu <name>{item}</name>{direction, select, up { para cima} other { para baixo}}{shelf, select, workspace { no espaço de trabalho <name>{workspace}</name>} other { em Comece por aqui}}"
+        },
+        "feedback": {
+          "handled": "Marcou uma mensagem de feedback como tratada",
+          "deleted": "Excluiu uma mensagem de feedback"
+        },
+        "settings": {
+          "two_factor_policy": "Alterou quem precisa usar o login em dois fatores de {from} para {to}",
+          "usage_policy": "Alterou a política de uso de {from} para {to}",
+          "usage_minimum": "Alterou o mínimo de uso de {from} para {to}",
+          "retention": "Alterou a retenção: {changes}",
+          "notice": "Alterou o comunicado da instância: {changes}"
+        }
+      }
+    }
+  },
+  "settings": {
+    "page": {
+      "title": "Configurações",
+      "description": "Como esta instância se comporta. Cada alteração vale na hora e fica registrada no registro de auditoria.",
+      "tabsLabel": "Configurações"
+    },
+    "tabs": {
+      "usage": "Uso",
+      "feeds": "Feeds de plugins",
+      "authentication": "Autenticação",
+      "privacy": "Privacidade",
+      "notice": "Comunicado"
+    },
+    "methods": {
+      "title": "Formas de entrar",
+      "intro": "Como as pessoas entram nesta instância.",
+      "columns": {
+        "method": "Forma",
+        "state": "Situação",
+        "note": "Observação"
+      },
+      "on": "Ligada",
+      "off": "Desligada",
+      "password": {
+        "name": "E-mail e senha",
+        "note": "O root sempre pode entrar com senha, então um provedor de identidade com defeito não deixa todo mundo de fora.",
+        "rootOnly": "Só o root: todos os outros entram com um provedor de identidade. O root sempre pode entrar com senha."
+      },
+      "provider": {
+        "failing": "Com falha: veja a página dele.",
+        "domains": "Cria contas para {domains}.",
+        "linkOnly": "Só vincula contas existentes."
+      },
+      "twoFactor": {
+        "name": "Login em dois fatores",
+        "optional": "Opcional: cada pessoa liga por conta própria.",
+        "reviewers": "Obrigatório para revisores e root.",
+        "everyone": "Obrigatório para todos."
+      }
+    },
+    "twoFactor": {
+      "title": "Login em dois fatores",
+      "hint": "Quem precisa usar um código de um aplicativo autenticador depois da senha. Contas que entram por um provedor de identidade da empresa seguem a segunda etapa do próprio provedor.",
+      "save": "Salvar",
+      "choices": {
+        "optional": {
+          "label": "Opcional",
+          "hint": "Cada pessoa escolhe se liga, na página Conta."
+        },
+        "reviewers": {
+          "label": "Revisores e root",
+          "hint": "O root e os moderadores e admins de espaços de trabalho compartilhados: quem aprova o que as pessoas desenvolvedoras instalam."
+        },
+        "everyone": {
+          "label": "Todos",
+          "hint": "Toda conta que entra com senha."
+        }
+      },
+      "coverage": "{unenrolled, plural, =0 {{covered, plural, one {# pessoa} other {# pessoas}}, todas com dois fatores ligado.} other {{covered, plural, one {# pessoa} other {# pessoas}}; {unenrolled, plural, one {# pessoa} other {# pessoas}} precisam configurar na próxima visita.}}"
+    },
+    "password": {
+      "title": "Login com senha",
+      "hint": "Quem ainda pode entrar com senha depois que o provedor de identidade for ligado. O root sempre pode, então um provedor com defeito não deixa todo mundo de fora.",
+      "save": "Salvar",
+      "everyone": {
+        "label": "Todos",
+        "hint": "Cada pessoa escolhe um provedor ou a própria senha."
+      },
+      "rootOnly": {
+        "label": "Só o root",
+        "hint": "Todos os outros entram com um provedor de identidade.",
+        "needsProvider": "Antes, ligue um provedor de identidade que tenha passado no Testar login."
+      },
+      "confirm": "{affected, plural, one {# pessoa com senha perde o login com senha e precisa usar o provedor de identidade daqui em diante.} other {# pessoas com senha perdem o login com senha e precisam usar o provedor de identidade daqui em diante.}}"
+    },
+    "providers": {
+      "title": "Provedores de identidade",
+      "add": "Adicionar provedor",
+      "intro": "Deixe as pessoas entrarem com o provedor de identidade da empresa (OpenID Connect): Google Workspace, Microsoft Entra ID, Okta, Keycloak, authentik, Auth0 e outros.",
+      "none": "Ainda não há provedores. Adicione um, teste e ligue: até lá, todos entram com senha.",
+      "columns": {
+        "provider": "Provedor",
+        "issuer": "Emissor",
+        "domains": "Domínios",
+        "state": "Situação",
+        "lastSignIn": "Último acesso"
+      },
+      "noDomains": "Nenhum",
+      "never": "Nunca",
+      "status": {
+        "off": "Desligado",
+        "tested": "Testado",
+        "on": "Ligado",
+        "failing": "Com falha"
+      }
+    },
+    "providerPage": {
+      "back": "← Autenticação",
+      "addTitle": "Adicionar provedor",
+      "testNotice": {
+        "done": "O seu Testar login terminou: o resultado está abaixo.",
+        "unavailable": "Não dá para testar o provedor agora.",
+        "provider_error": "O provedor não respondeu. Confira o emissor e tente de novo.",
+        "rate_limited": "Tentativas demais. Espere um minuto e tente de novo."
+      },
+      "unreadableTitle": "Informe o segredo do cliente de novo.",
+      "unreadableBody": "Este servidor não consegue ler o segredo guardado: ele foi salvo com outro AUTH_SECRET (como depois de uma restauração). Troque-o abaixo e rode o Testar login."
+    },
+    "providerForm": {
+      "staleTitle": "Alguém salvou este provedor depois que você o abriu.",
+      "staleBody": "Recarregue a página para ver as alterações da pessoa e refaça as suas.",
+      "stepsTitle": "Configure no provedor",
+      "chooseTitle": "Escolha o seu provedor de identidade",
+      "chooseIntro": "OpenID Connect. Cada um preenche o formulário e mostra os passos de configuração.",
+      "anyProvider": "Qualquer provedor que publique um documento de descoberta",
+      "formAdd": "Adicionar provedor",
+      "formEdit": "Editar provedor",
+      "providerId": "ID do provedor",
+      "providerIdHint": "De 3 a 32 letras minúsculas, dígitos e hifens. Ele fica na URI de redirecionamento e não pode ser mudado depois.",
+      "displayName": "Nome exibido",
+      "displayNameHint": "No botão de entrada: “Continuar com …”.",
+      "issuer": "URL do emissor",
+      "clientId": "ID do cliente",
+      "secret": "Segredo do cliente",
+      "secretSaved": "Segredo salvo",
+      "replace": "Trocar",
+      "secretHint": "Guardado criptografado e nunca mais mostrado.",
+      "scopes": "Escopos",
+      "scopesHint": "O openid é sempre pedido.{groupsScope, select, none {} other { Adicione {groupsScope} ao mapear grupos.}}",
+      "whoLegend": "Quem pode entrar",
+      "domains": "Domínios de e-mail que este provedor deixa entrar",
+      "domainsHint": "Um endereço novo nesses domínios ganha uma conta no primeiro acesso; uma conta existente com um deles é vinculada se a caixa abaixo estiver marcada. Vazio: só entram as contas já vinculadas.",
+      "linkByEmail": "Vincular contas existentes por e-mail verificado, só nesses domínios",
+      "groupsLegend": "Grupos",
+      "groupsClaim": "Claim de grupos",
+      "warnTitle": "O espaço de trabalho de um grupo foi excluído.",
+      "warnBody": "Ele é ignorado ao entrar; escolha outro espaço de trabalho ou remova a linha.",
+      "group": "Grupo",
+      "workspace": "Espaço de trabalho",
+      "choose": "Escolher…",
+      "role": "Papel",
+      "removeGroup": "Remover o grupo {group}",
+      "addGroup": "Adicionar um grupo",
+      "save": "Salvar"
+    },
+    "providerControls": {
+      "title": "Teste e depois ligue",
+      "connectionOk": "A conexão funciona.",
+      "connectionFailed": "A conexão falhou.",
+      "testPassed": "O seu Testar login passou.",
+      "testFailed": "O seu Testar login não passou.",
+      "subject": "Subject",
+      "email": "E-mail",
+      "verified": "(verificado)",
+      "notVerified": "(não verificado)",
+      "name": "Nome",
+      "none": "Nenhum",
+      "groups": "Grupos",
+      "noClaim": "Sem claim",
+      "wouldDo": "Um acesso:",
+      "change": {
+        "add": "entraria em {workspace} como {role}",
+        "change": "mudaria o papel em {workspace} de {from} para {to}",
+        "remove": "sairia de {workspace}",
+        "release": "voltaria a usuário em {workspace}"
+      },
+      "nothingChanged": "O teste não alterou nada.",
+      "deleteTitle": "Excluir {name}?",
+      "deleteBody": "Ninguém mais entra com ele. As pessoas vinculadas continuam com as contas e podem entrar com senha, se tiverem uma; os papéis em espaços de trabalho que os grupos dele davam são removidos.",
+      "cancel": "Cancelar",
+      "deleteProvider": "Excluir provedor",
+      "testConnection": "Testar conexão",
+      "testSignIn": "Testar login",
+      "turnOff": "Desligar",
+      "turnOn": "Ligar",
+      "turnOnReason": "Rode o Testar login você mesmo e passe nele antes de ligar este provedor.",
+      "delete": "Excluir",
+      "turnOnNeeds": "Para ligar é preciso um Testar login que você tenha passado, com as configurações como estão agora."
+    },
+    "scim": {
+      "title": "Provisionamento (SCIM)",
+      "on": "Ligado",
+      "off": "Desligado",
+      "intro": "{name} cria, atualiza e desprovisiona contas por conta própria e mantém os papéis em espaços de trabalho em sintonia com os grupos dele, pelos mapeamentos de grupos desta página. Desprovisionar desativa uma conta; nunca apaga.",
+      "baseUrl": "URL base",
+      "token": "Token",
+      "made": "Criado",
+      "madeAt": "<date></date>{hasBy, select, true { por {by}} other {}}",
+      "lastUsed": "Último uso",
+      "never": "Nunca",
+      "noToken": "Ainda não há token: o provedor não consegue se conectar.",
+      "previous": "O token anterior à última troca funciona até <date></date>{hasUsed, select, true { (último uso <used></used>)} other {}}.",
+      "rotate": "Trocar",
+      "generate": "Gerar token",
+      "revoke": "Revogar",
+      "turnOff": "Desligar o SCIM",
+      "turnOn": "Ligar o SCIM",
+      "atProvider": "No provedor",
+      "cancel": "Cancelar",
+      "steps": {
+        "entra": {
+          "s1": "No Entra, abra o aplicativo corporativo do Ronne, depois Provisionamento, e crie uma nova configuração com autenticação Bearer.",
+          "s2": "Cole a URL base acima como Tenant URL e o token como Secret Token, depois Test Connection.",
+          "s3": "Em Attribute mapping, mapeie objectId para externalId (o padrão do Entra, mailNickname, pode ser dado a alguém novo).",
+          "s4": "Atribua os usuários e grupos a provisionar e inicie o provisionamento."
+        },
+        "okta": {
+          "s1": "No Okta, abra o app do Ronne; na aba General, edite App Settings e escolha SCIM como Provisioning.",
+          "s2": "Na aba Provisioning, defina a URL base do conector SCIM como a URL base acima, o campo de identificador único como userName, as ações Push New Users, Push Profile Updates e Push Groups, e a autenticação HTTP Header com o token.",
+          "s3": "Em To App, ligue Create Users, Update User Attributes e Deactivate Users e depois envie os grupos que o Ronne mapeia."
+        },
+        "generic": {
+          "s1": "Nas configurações de SCIM do provedor, defina a URL base acima e o token como token Bearer.",
+          "s2": "Envie o e-mail da pessoa como userName e um id que nunca muda como externalId.",
+          "s3": "Atribua os usuários e grupos a provisionar; os nomes (ou ids) dos grupos são o que os mapeamentos de grupos desta página comparam."
+        }
+      },
+      "onTitle": "Ligar o SCIM para {name}?",
+      "onBody": "{name} vai criar e atualizar contas, desativá-las quando desprovisionar alguém e dar papéis em espaços de trabalho pelos grupos dele. O login dele deixa de aplicar a claim de grupos: o SCIM passa a ser a única fonte dos grupos. Os papéis que o login já deu ficam até o provedor mudar os grupos da pessoa. Em seguida, gere um token para ele.",
+      "offTitle": "Desligar o SCIM para {name}?",
+      "offBody": "Toda requisição do SCIM de {name} é recusada na hora. As contas, os vínculos e os grupos ficam, e o token também, para quando você ligar de novo.",
+      "rotateTitle": "Trocar o token SCIM?",
+      "rotateBody": "Um novo token é criado e mostrado uma só vez. O atual continua funcionando por 24 horas, para você trocá-lo no provedor com calma; um token de uma troca anterior deixa de funcionar agora.",
+      "revokeTitle": "Revogar o token SCIM?",
+      "revokeBody": "Todos os tokens SCIM de {name} param de funcionar na hora, inclusive o anterior a uma troca. As requisições são recusadas até você gerar um novo token e entregá-lo ao provedor.",
+      "newTokenTitle": "Copie o token agora",
+      "newTokenBody": "Ele é mostrado uma só vez: o Ronne guarda só o hash. Cole-o nas configurações de SCIM do provedor.",
+      "newTokenPrevious": "O token anterior continua funcionando até <date></date>, então troque-o no provedor antes disso."
+    },
+    "usage": {
+      "policyTitle": "Relatório de uso",
+      "policyHint": "Contagens de instalações, remoções e execuções dos itens que o rmk instalou desta instância, por dia, item, versão e ferramenta. Nunca quem, onde ou o que foi pedido.",
+      "save": "Salvar",
+      "choices": {
+        "off": {
+          "label": "Desligado",
+          "hint": "O rmk não relata nada, e esta instância recusa relatórios de uso."
+        },
+        "choice": {
+          "label": "Cada pessoa escolhe",
+          "hint": "O rmk relata contagens de uso, a menos que a pessoa desligue com rmk telemetry off."
+        },
+        "required": {
+          "label": "Obrigatório",
+          "hint": "Todo rmk que instala desta instância relata contagens de uso; as pessoas não podem desligar."
+        }
+      },
+      "minimumTitle": "Mínimo de uso",
+      "minimumLabel": "Mostrar o uso de um item a partir de",
+      "minimumUnit": "instalações ou execuções em 30 dias",
+      "minimumHint": "Com 0, o uso aparece assim que houver algum. Um número maior evita que poucos eventos pareçam uma tendência, ou que os hábitos de uma só equipe apareçam."
+    },
+    "feeds": {
+      "title": "Feeds de plugins",
+      "intro": "O marketplace de cada ferramenta como foi construído por completo da última vez: o Claude Code lê o dele neste site; o rmk feed build lê os do Codex e do Cursor para o espelho git.",
+      "nearTitle": "O marketplace de {tool} está perto de {what, select, both {seus limites} size {seu limite de tamanho} other {seu limite de tempo}}.",
+      "sizeBody": "O Claude Code lê de um endereço um marketplace de no máximo 5 MiB. Além disso, o marketplace deixa de carregar; adicione no Claude Code o espelho git (rmk feed build), que não tem esse limite.",
+      "timeBody": "O Claude Code espera 10 segundos por um marketplace. Ele é construído uma vez por alteração e depois respondido da memória, então só a primeira requisição depois de uma publicação espera tanto.",
+      "columns": {
+        "tool": "Ferramenta",
+        "size": "Tamanho",
+        "plugins": "Plugins",
+        "buildTime": "Tempo de construção",
+        "built": "Construído"
+      },
+      "ofLimit": " de 5 MiB",
+      "notBuilt": "Ainda não construído: ele é construído na primeira vez que alguém o lê."
+    },
+    "privacy": {
+      "title": "Retenção",
+      "ariaLabel": "Retenção",
+      "intro": "Por quanto tempo esta instância guarda o que identifica a conexão de uma pessoa. Uma limpeza roda a cada seis horas e apaga o que é mais antigo. Diminuir um número apaga mais na próxima execução.",
+      "save": "Salvar",
+      "days": "{count, plural, one {dia} other {dias}}",
+      "fields": {
+        "ipDays": {
+          "label": "Guardar endereços IP por",
+          "hint": "Os endereços dos clientes guardados com eventos de auditoria, sessões e aprovações de login do rmk, e o e-mail digitado em um acesso que falhou. Os mais antigos são apagados; os eventos ficam."
+        },
+        "sessionsDays": {
+          "label": "Guardar sessões expiradas por",
+          "hint": "Uma sessão que expirou e uma aprovação de login do rmk concluída. As mais antigas são excluídas."
+        },
+        "feedbackDays": {
+          "label": "Guardar feedback tratado por",
+          "hint": "Feedback que as pessoas enviaram em Enviar feedback e que você marcou como tratado, contado a partir daí. Os mais antigos são excluídos. O feedback novo é guardado até você tratá-lo ou excluí-lo."
+        }
+      },
+      "lastRun": {
+        "none": "Nenhuma execução ainda.",
+        "schedulerOff": "As tarefas agendadas estão desligadas (RONNE_JOBS): rode rmk-server purge pelo cron.",
+        "firstRun": "A primeira execução é 5 minutos depois que o servidor inicia, e depois a cada 6 horas.",
+        "failed": "A última execução, em <date></date>, falhou ({error}). Os logs do servidor dizem o motivo; a próxima execução segue o calendário.",
+        "done": "Última execução em <date></date>: apagou {ips, plural, one {# endereço IP} other {# endereços IP}} e {emails, plural, one {# e-mail de acesso que falhou} other {# e-mails de acessos que falharam}}; excluiu {sessions, plural, one {# sessão expirada} other {# sessões expiradas}}, {grants, plural, one {# aprovação de login do rmk concluída} other {# aprovações de login do rmk concluídas}} e {feedback, plural, one {# mensagem de feedback tratada} other {# mensagens de feedback tratadas}}.",
+        "running": "Uma execução está em andamento."
+      },
+      "erasures": {
+        "ariaLabel": "Apagamentos não concluídos",
+        "title": "{count, plural, one {Um apagamento não foi concluído.} other {# apagamentos não foram concluídos.}}",
+        "body": "O servidor parou antes de o registro de auditoria ser reescrito, então o endereço apagado ainda está em alguns eventos. Tentar de novo conclui a reescrita e registra o apagamento; a limpeza de retenção também a conclui na próxima execução.",
+        "started": "Iniciado em <date></date>",
+        "retry": "Tentar de novo"
+      }
+    }
+  },
+  "setup": {
+    "page": {
+      "title": "Configurar o Ronne AI Marketplace",
+      "notConfigured": "Esta instância ainda não foi configurada. Ela precisa de um banco de dados, do endereço público e de uma conta root antes de poder ser usada.",
+      "incomplete": "A configuração desta instância não terminou. Continue de onde parou: as configurações estão lá; o banco de dados e a conta root podem não estar.",
+      "warnTitle": "Quem conseguir abrir esta página pode configurar a instância",
+      "warnBody": "Termine agora, antes de o endereço ser compartilhado.",
+      "metaTitle": "Configuração"
+    },
+    "unavailable": {
+      "title": "O banco de dados não está respondendo",
+      "body": "O Ronne AI Marketplace está configurado para usar <code>{database}</code>, mas não consegue alcançá-lo. Confira se o servidor está rodando e se as configurações ainda correspondem a ele; para mudá-las, rode a configuração de novo onde ele está instalado, ou defina <code>DATABASE_URL</code> no ambiente.",
+      "fromClone": "A partir de um clone",
+      "withDocker": "Com Docker"
+    },
+    "steps": {
+      "settings": "Configurações gravadas",
+      "migrations": "Migrações aplicadas",
+      "root": "Conta root criada",
+      "progress": "Andamento da instalação",
+      "status": {
+        "pending": "pendente",
+        "running": "em andamento",
+        "done": "concluída",
+        "failed": "com falha"
+      }
+    },
+    "wizard": {
+      "stepsLabel": "Etapas",
+      "pages": {
+        "database": "Banco de dados",
+        "instance": "Instância",
+        "root": "Conta root",
+        "install": "Instalar"
+      },
+      "next": "Avançar",
+      "back": "Voltar",
+      "install": "Instalar",
+      "retry": "Tentar de novo",
+      "installHint": "Grava as configurações, aplica as migrações e cria a conta root.",
+      "testConnection": "Testar conexão",
+      "connected": "Conectado a {server} e permissões verificadas",
+      "doneTitle": "O Ronne AI Marketplace está configurado",
+      "doneBody": "Entre como <code>{email}</code> para criar escopos e convidar pessoas.",
+      "signIn": "Entrar",
+      "goToSignIn": "Ir para o login"
+    },
+    "database": {
+      "legend": "Banco de dados",
+      "keep": "Manter o banco de dados que já está nas configurações: <code>{database}</code>",
+      "which": "Qual banco de dados?",
+      "sqlite": "SQLite: um arquivo nesta máquina, nada mais para instalar",
+      "mysql": "MySQL ou MariaDB: MySQL 8.4+ ou MariaDB 10.11+, já em execução",
+      "postgres": "PostgreSQL: 15+, já em execução",
+      "pickQuestion": "Qual devo escolher?",
+      "pickAnswer": "O SQLite é o padrão e não precisa de mais nada: um arquivo, cujo backup é copiá-lo. Escolha MySQL, MariaDB ou PostgreSQL quando já tiver um rodando, ou esperar muita gente ao mesmo tempo.",
+      "sqliteFile": "Arquivo SQLite",
+      "pathDocker": "Relativo ao aplicativo, dentro do volume ronne-data. Mantenha o padrão, a menos que saiba o motivo.",
+      "pathNpm": "Na pasta de dados do rmk-server. Mantenha o padrão, a menos que saiba o motivo.",
+      "pathNode": "Relativo a apps/web. A pasta é criada se não existir.",
+      "serverOnly": "Só para MySQL, MariaDB ou PostgreSQL.",
+      "composeTitle": "Rodando o banco de dados com o Compose?",
+      "composeBody": "<code>docker compose --profile postgres up -d</code> (ou <code>mysql</code>) sobe um ao lado do Ronne. Use o host <code>postgres</code> (ou <code>mysql</code>), o banco de dados e o usuário <code>ronne</code> e a senha de <code>RONNE_DB_PASSWORD</code>.",
+      "host": "Host",
+      "port": "Porta",
+      "name": "Nome do banco de dados",
+      "nameHint": "Ele já precisa existir; a configuração não cria bancos de dados.",
+      "user": "Usuário",
+      "password": "Senha"
+    },
+    "instance": {
+      "legend": "Instância",
+      "publicUrl": "Endereço público (PUBLIC_URL)",
+      "envDocker": "Definido por RONNE_DOMAIN ou PUBLIC_URL no ambiente (compose.yaml), que vale mais que as configurações. Mude lá, no arquivo .env ao lado do compose.yaml, e rode docker compose up -d.",
+      "envOther": "Definido por PUBLIC_URL no ambiente, que vale mais que as configurações. Mude lá e reinicie.",
+      "hint": "Onde as pessoas vão abrir o Ronne AI Marketplace: o endereço que um proxy reverso serve, ou {local} nesta máquina.",
+      "helpQuestion": "Para que serve?",
+      "helpAnswer": "Os links do aplicativo, o endereço que o <code>rmk login</code> usa e a origem em que o login confia. Atrás de um proxy reverso, use o endereço https público."
+    },
+    "root": {
+      "legend": "Conta root",
+      "intro": "O root pode tudo, inclusive criar outros usuários e escopos.",
+      "helpQuestion": "O que o root pode fazer?",
+      "helpAnswer": "Tudo: criar escopos e usuários, revisar e publicar itens e passar por cima de uma decisão (o que fica registrado). Este é o primeiro root; as outras pessoas têm contas próprias, criadas por um root, e um root pode torná-las root também.",
+      "email": "E-mail",
+      "name": "Nome exibido",
+      "password": "Senha",
+      "passwordHint": "De 12 a 128 caracteres. Mais nada é exigido: o que importa é o tamanho.",
+      "again": "Senha de novo"
+    },
+    "errors": {
+      "already_set_up": "Alguém já configurou esta instância. Entre.",
+      "database_unavailable": "O banco de dados das configurações não está respondendo, então a configuração não vai rodar: ela nunca altera uma instância configurada pelo navegador. Conserte o banco de dados, ou as configurações no servidor (pnpm run setup ou rmk-server setup), e recarregue.",
+      "not_configured": "Grave as configurações primeiro.",
+      "public_url_rule": "Use um endereço http:// ou https://.",
+      "path_required": "Informe o caminho de um arquivo.",
+      "host_required": "Informe o host.",
+      "port_invalid": "Informe um número de porta.",
+      "database_required": "Informe o nome do banco de dados.",
+      "user_required": "Informe o usuário.",
+      "passwords_mismatch": "As duas senhas não coincidem.",
+      "settings_unwritable": "Não é possível gravar o arquivo de configurações {path}: {reason}.{docker, select, true { No Docker, o volume de dados pertence ao root: rode `docker compose run --rm --user root web chown -R 1000:1000 /app/data` uma vez.} other {}}",
+      "migration_failed": "Uma migração falhou em {database}: {reason}",
+      "weak_secret": "O AUTH_SECRET que já está nas configurações tem menos de 32 caracteres. Ele foi mantido, mas considere trocá-lo.",
+      "restart_needed": "As configurações foram gravadas, mas este processo ainda usa valores do ambiente dele. Reinicie-o e recarregue esta página."
+    },
+    "detail": {
+      "settings": "Configurações gravadas em {path}",
+      "upToDate": "Banco de dados em dia",
+      "migrations": "Migrações aplicadas ({count, number})",
+      "root": "Conta root criada ({email})"
+    }
+  },
+  "done": {
+    "users": {
+      "saved": "Salvo: {parts}.",
+      "nothing": "Nada mudou.",
+      "added": "{count, plural, one {# espaço de trabalho adicionado} other {# espaços de trabalho adicionados}}",
+      "changed": "{count, plural, one {# papel alterado} other {# papéis alterados}}",
+      "removed": "{count, plural, one {# espaço de trabalho removido} other {# espaços de trabalho removidos}}",
+      "roleChanged": "Papel alterado para {role}.",
+      "disabled": "Desativado. A pessoa foi desconectada de todos os lugares.",
+      "enabled": "Ativado. A pessoa pode entrar de novo.",
+      "twoFactorOff": "Login em dois fatores desligado. A pessoa foi desconectada de todos os lugares.",
+      "twoFactorNone": "A pessoa não tinha login em dois fatores: nada mudou.",
+      "erased": "Apagado. A conta agora é deleted-user e nada da pessoa pode ser lido de volta."
+    },
+    "scopes": {
+      "created": "@{name} criado.",
+      "createdIn": "@{name} criado em {workspace}.",
+      "descriptionSaved": "Descrição salva."
+    },
+    "workspaces": {
+      "created": "{name} criado.",
+      "descriptionSaved": "Descrição salva.",
+      "deleted": "Excluído.",
+      "private": "Agora é privado: só os membros e o root veem os itens.",
+      "public": "Agora é público: todos que entraram veem os itens.",
+      "renamed": "Renomeado para {name}.",
+      "cancelled": "Cancelado."
+    },
+    "settings": {
+      "usage": "Relatório de uso salvo.",
+      "minimum": "Mínimo de uso salvo.",
+      "twoFactor": "Login em dois fatores salvo.",
+      "retention": "Retenção salva.",
+      "password": "Login com senha salvo.",
+      "nothing": "Nada mudou.",
+      "erasuresNone": "Não havia nada a concluir.",
+      "erasures": "{count, plural, one {# apagamento concluído.} other {# apagamentos concluídos.}}"
+    }
   }
 }

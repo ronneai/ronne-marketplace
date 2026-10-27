@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { BrandLogo } from "@/components/ui/BrandLogo";
@@ -18,9 +19,10 @@ export const SetupPage = ({
   languageSwitch,
 }: {
   page: SetupPageProps;
-  /** The language links (feature 129), rendered by the server page: the rest of this page moves in 132. */
+  /** The language links (feature 129), rendered by the server page. */
   languageSwitch?: ReactNode;
 }) => {
+  const t = useTranslations("admin.setup.page");
   const [done, setDone] = useState(false);
   return (
     <main className="mx-auto flex min-h-dvh max-w-2xl flex-col justify-center gap-4 px-4 py-12">
@@ -30,13 +32,11 @@ export const SetupPage = ({
           <BrandLogo height={40} className="text-fg" />
           <div className="grid gap-1">
             <h1 className="text-[22px] leading-7 font-semibold tracking-[-0.015em] text-fg">
-              Set up Ronne AI Marketplace
+              {t("title")}
             </h1>
             {done ? null : (
               <p className="text-sm text-muted">
-                {page.state === "incomplete"
-                  ? "This instance's setup didn't finish. Pick up where it stopped: the settings are there, the database and the root account may not be."
-                  : "This instance isn't set up yet. It needs a database, its public address and a root account before it can be used."}
+                {page.state === "incomplete" ? t("incomplete") : t("notConfigured")}
               </p>
             )}
           </div>
@@ -44,8 +44,8 @@ export const SetupPage = ({
         <SetupForm page={page} onDone={() => setDone(true)} />
       </Panel>
       {done ? null : (
-        <Notice kind="warn" title="Anyone who can open this page can set the instance up">
-          Finish it now, before the address is shared.
+        <Notice kind="warn" title={t("warnTitle")}>
+          {t("warnBody")}
         </Notice>
       )}
     </main>

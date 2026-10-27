@@ -1,6 +1,7 @@
 import { Info } from "lucide-react";
 import Form from "next/form";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Help } from "@/components/help/Help";
 import { Badge } from "@/components/ui/Badge";
 import { buttonClasses } from "@/components/ui/Button";
@@ -17,18 +18,11 @@ import { EventDetails, Summary } from "./EventDetails";
 import { EventDialog } from "./EventDialog";
 import { actorLabel } from "./format";
 import { ACTION_OPTIONS, AUDIT_LIST, type AuditListState } from "./list";
-import { summarize, summaryText } from "./summary";
-
-type Filter = keyof AuditListState["filters"];
-const CHIP_LABELS: Record<Filter, string> = {
-  action: "Action",
-  actor: "Actor",
-  from: "From",
-  to: "To",
-};
+import { type SummaryPart, summaryText, useSummarize } from "./summary";
 
 /** The filters: one GET form that submits on change, and a chip per active filter. */
 const Filters = ({ state }: { state: AuditListState }) => {
+  const t = useTranslations("admin.audit");
   const { filters } = state;
   return (
     <div className="grid gap-2">
@@ -43,12 +37,12 @@ const Filters = ({ state }: { state: AuditListState }) => {
           omit={["action", "actor", "from", "to"]}
         />
         <div className="grid gap-1.5">
-          <Label htmlFor="action">Action</Label>
+          <Label htmlFor="action">{t("filters.action")}</Label>
           <select id="action" name="action" defaultValue={filters.action} className={selectClasses}>
-            <option value="">All actions</option>
+            <option value="">{t("filters.allActions")}</option>
             {ACTION_OPTIONS.map((option) => (
               <optgroup key={option.group} label={option.group}>
-                <option value={option.all}>All {option.all}</option>
+                <option value={option.all}>{t("filters.all", { group: option.all })}</option>
                 {option.actions.map((action) => (
                   <option key={action} value={action}>
                     {action}
@@ -60,41 +54,56 @@ const Filters = ({ state }: { state: AuditListState }) => {
         </div>
         <div className="grid gap-1.5">
           <div className="flex items-center gap-2">
-            <Label htmlFor="actor">Actor</Label>
+            <Label htmlFor="actor">{t("filters.actor")}</Label>
             <Help id="audit-actor" />
           </div>
           <Input
             id="actor"
             name="actor"
             type="search"
-            placeholder="Email, or system"
+            placeholder={t("filters.actorPlaceholder")}
             defaultValue={filters.actor}
           />
         </div>
         <div className="grid gap-1.5">
-          <Label htmlFor="from">From (UTC)</Label>
+          <Label htmlFor="from">{t("filters.from")}</Label>
           <Input id="from" name="from" type="date" defaultValue={filters.from} />
         </div>
         <div className="grid gap-1.5">
-          <Label htmlFor="to">To (UTC)</Label>
+          <Label htmlFor="to">{t("filters.to")}</Label>
           <Input id="to" name="to" type="date" defaultValue={filters.to} />
         </div>
         <div className="flex gap-2">
           <button type="submit" data-submit className={buttonClasses("secondary")}>
-            Filter
+            {t("filters.apply")}
           </button>
           <SubmitOnChange />
         </div>
       </Form>
-      <FilterChips list={AUDIT_LIST} state={state} labels={CHIP_LABELS} />
+      <FilterChips
+        list={AUDIT_LIST}
+        state={state}
+        labels={{
+          action: t("chips.action"),
+          actor: t("chips.actor"),
+          from: t("chips.from"),
+          to: t("chips.to"),
+        }}
+      />
     </div>
   );
 };
 
-const columns = (state: AuditListState): Column<AuditEvent, "time" | "action">[] => [
+type AuditT = ReturnType<typeof useTranslations<"admin.audit">>;
+
+const columns = (
+  state: AuditListState,
+  t: AuditT,
+  summarize: (event: AuditEvent) => SummaryPart[],
+): Column<AuditEvent, "time" | "action">[] => [
   {
     id: "time",
-    header: "Time",
+    header: t("columns.time"),
     sort: "time",
     className: "w-52",
     mono: true,
@@ -103,7 +112,7 @@ const columns = (state: AuditListState): Column<AuditEvent, "time" | "action">[]
   },
   {
     id: "actor",
-    header: "Actor",
+    header: t("columns.actor"),
     className: "w-56",
     truncate: true,
     hideOnMobile: true,
@@ -115,7 +124,7 @@ const columns = (state: AuditListState): Column<AuditEvent, "time" | "action">[]
   },
   {
     id: "event",
-    header: "Event",
+    header: t("columns.event"),
     sort: "action",
     render: (event) => {
       const parts = summarize(event);
@@ -139,8 +148,8 @@ const columns = (state: AuditListState): Column<AuditEvent, "time" | "action">[]
       <Link
         href={listUrl(AUDIT_LIST, state, {}, { event: event.id })}
         scroll={false}
-        aria-label={`Details: ${summaryText(summarize(event))}`}
-        title="Details"
+        aria-label={t("detailsLink", { summary: summaryText(summarize(event)) })}
+        title={t("detailsTitle")}
         className="inline-flex size-7 items-center justify-center rounded-control text-muted after:absolute after:inset-0 hover:text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
       >
         <Info size={16} aria-hidden="true" />
@@ -167,12 +176,14 @@ export const AuditLogPage = ({
   /** The event in `?event=`: the event, "missing" when there's none with that id, or nothing. */
   selected?: AuditEvent | "missing";
 }) => {
+  const t = useTranslations("admin.audit");
+  const summarize = useSummarize();
   const closeHref = listUrl(AUDIT_LIST, state);
   return (
     <>
       <PageHeader
-        title="Audit log"
-        description="Who did what, and when. Open an event for every detail."
+        title={t("title")}
+        description={t("description")}
         actions={
           <>
             <Help id="audit-summary" />
@@ -180,36 +191,31 @@ export const AuditLogPage = ({
           </>
         }
       />
-      {selected === "missing" ? (
-        <Notice kind="info" title="That event doesn't exist." className="mb-4" />
-      ) : null}
+      {selected === "missing" ? <Notice kind="info" title={t("missing")} className="mb-4" /> : null}
       <DataTable
         list={AUDIT_LIST}
         state={state}
-        columns={columns(state)}
+        columns={columns(state, t, summarize)}
         rows={events}
         rowKey={(event) => event.id}
         page={page}
         total={total}
         noun="event"
         toolbar={<Filters state={state} />}
-        empty={{
-          none: "No events yet.",
-          filtered: "No events match these filters.",
-        }}
+        empty={{ none: t("empty.none"), filtered: t("empty.filtered") }}
       />
       {selected && selected !== "missing" ? (
         <>
-          <EventDialog title="Event details" closeHref={closeHref}>
+          <EventDialog title={t("dialog.title")} closeHref={closeHref}>
             <EventDetails event={selected} />
           </EventDialog>
           {/* Without JavaScript the dialog can't open, so the details show here instead. */}
           <noscript>
             <Panel className="mt-4">
               <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-lg font-semibold">Event details</h2>
+                <h2 className="text-lg font-semibold">{t("dialog.title")}</h2>
                 <a href={closeHref} className="text-link">
-                  Close
+                  {t("dialog.close")}
                 </a>
               </div>
               <EventDetails event={selected} />

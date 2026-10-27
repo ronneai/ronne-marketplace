@@ -1,8 +1,9 @@
 "use client";
 
-import { NAME_PROBLEM_MESSAGES, normalizeScopeName } from "@ronneai/core";
+import { NAME_MAX_LENGTH, normalizeScopeName } from "@ronneai/core";
 import { FolderInput } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useActionState, useEffect, useState } from "react";
 import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
@@ -23,12 +24,18 @@ import type {
 /** How many of a list to show before "and N more". */
 const SHOWN = 8;
 
-const plural = (count: number, one: string, many = `${one}s`) =>
-  `${count} ${count === 1 ? one : many}`;
+/** What a failed read of the targets or the impact sets as its error; the form words it. */
+const LOAD_FAILED = "load_failed";
+
+/** A name in the monospace face the sentences around it use. */
+const mono = (chunks: React.ReactNode) => <span className="font-mono">{chunks}</span>;
 
 /** A target as the select shows it: the asker's own personal workspace as Personal (114). */
-export const targetLabel = (target: MoveTarget) =>
-  target.personal ? `Personal (${target.name})` : target.name;
+const useTargetLabel = () => {
+  const t = useTranslations("admin.move");
+  return (target: MoveTarget) =>
+    target.personal ? t("personalTarget", { name: target.name }) : target.name;
+};
 
 /** A list, its first few named, the rest counted, and those the asker can't see counted too. */
 const Listed = ({
@@ -39,33 +46,37 @@ const Listed = ({
   items: string[];
   hidden?: number;
   render?: (item: string) => React.ReactNode;
-}) => (
-  <ul className="grid gap-0.5">
-    {items.slice(0, SHOWN).map((item) => (
-      <li key={item}>{render(item)}</li>
-    ))}
-    {items.length > SHOWN ? <li>and {items.length - SHOWN} more</li> : null}
-    {hidden > 0 ? (
-      <li className="text-muted">
-        and {hidden} more you can't see: in a workspace you aren't in, or a name nobody has
-      </li>
-    ) : null}
-  </ul>
-);
+}) => {
+  const t = useTranslations("admin.move");
+  return (
+    <ul className="grid gap-0.5">
+      {items.slice(0, SHOWN).map((item) => (
+        <li key={item}>{render(item)}</li>
+      ))}
+      {items.length > SHOWN ? <li>{t("more", { count: items.length - SHOWN })}</li> : null}
+      {hidden > 0 ? <li className="text-muted">{t("hidden", { count: hidden })}</li> : null}
+    </ul>
+  );
+};
 
 /** Who would see the items in the target (093, 114). */
-const seenBy = (impact: MoveImpact) =>
-  impact.target.personal
-    ? "Only you and root"
-    : impact.target.visibility === "public"
-      ? "Everyone on this instance"
-      : `Only ${impact.target.name}'s members and root`;
+const useSeenBy = () => {
+  const t = useTranslations("admin.move.seenBy");
+  return (impact: MoveImpact) =>
+    impact.target.personal
+      ? t("personal")
+      : impact.target.visibility === "public"
+        ? t("public")
+        : t("private", { workspace: impact.target.name });
+};
 
 /**
  * What moving changes and what refuses it (115), from the checks: the new names, who sees and
  * reviews the items, open work stranded, not-reviewed versions, and the refusals, listed.
  */
 export const MoveChanges = ({ impact }: { impact: MoveImpact }) => {
+  const t = useTranslations("admin.move");
+  const seenBy = useSeenBy();
   const refusals =
     impact.outsideDependents.length +
     impact.outsideHidden +
@@ -74,23 +85,17 @@ export const MoveChanges = ({ impact }: { impact: MoveImpact }) => {
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-3 text-sm">
       {refusals > 0 || impact.aliasTaken.length + impact.aliasHidden > 0 ? (
-        <Notice kind="error" title="This move would break something">
+        <Notice kind="error" title={t("breakTitle")}>
           <div className="grid gap-2">
             {impact.outsideDependents.length + impact.outsideHidden > 0 ? (
               <div>
-                <p>
-                  Released items outside {impact.target.name} depend on its items, and would stop
-                  installing for people who can't see {impact.target.name}:
-                </p>
+                <p>{t("outsideDependents", { workspace: impact.target.name })}</p>
                 <Listed items={impact.outsideDependents} hidden={impact.outsideHidden} />
               </div>
             ) : null}
             {impact.ownDependencies.length + impact.ownHidden > 0 ? (
               <div>
-                <p>
-                  Its items depend on items in a private workspace other than {impact.target.name},
-                  which they couldn't depend on there:
-                </p>
+                <p>{t("ownDependencies", { workspace: impact.target.name })}</p>
                 <Listed
                   items={impact.ownDependencies.map((d) => `${d.item} → ${d.dependency}`)}
                   hidden={impact.ownHidden}
@@ -99,50 +104,47 @@ export const MoveChanges = ({ impact }: { impact: MoveImpact }) => {
             ) : null}
             {impact.aliasTaken.length + impact.aliasHidden > 0 ? (
               <div>
-                <p>These new names are other items' old names, and stay theirs:</p>
+                <p>{t("aliasTaken")}</p>
                 <Listed items={impact.aliasTaken} hidden={impact.aliasHidden} />
               </div>
             ) : null}
           </div>
         </Notice>
       ) : null}
-      <Notice kind="info" title="What changes">
+      <Notice kind="info" title={t("changesTitle")}>
         <div className="grid gap-2">
           {impact.items.length > 0 ? (
             <div>
-              <p>Its {plural(impact.items.length, "item")} will be named:</p>
+              <p>{t("itemsNamed", { count: impact.items.length })}</p>
               <Listed
                 items={impact.items.map((i) => `${i.from} → ${i.to}`)}
                 render={(line) => (
                   <span className="font-mono text-xs [overflow-wrap:anywhere]">{line}</span>
                 )}
               />
-              <p className="mt-1 text-muted">
-                Their old names keep working, and <span className="font-mono">rmk</span> moves
-                projects to the new ones; in Claude Code they show as new plugins.
-              </p>
+              <p className="mt-1 text-muted">{t.rich("oldNames", { mono })}</p>
             </div>
           ) : (
-            <p>It has no items yet.</p>
+            <p>{t("noItems")}</p>
           )}
           <p>
-            <strong>Who will see them:</strong> {seenBy(impact)}.
-            {impact.fewerSee
-              ? " Installs by people who can no longer see them stop updating."
-              : null}
+            {t.rich("whoSee", {
+              who: seenBy(impact),
+              strong: (chunks) => <strong>{chunks}</strong>,
+            })}
+            {impact.fewerSee ? ` ${t("fewerSee")}` : null}
           </p>
           <p>
-            <strong>Who will review them:</strong>{" "}
-            {impact.target.personal
-              ? "nobody: personal workspaces aren't reviewed."
-              : `${impact.target.name}'s moderators and admins.`}
+            {t.rich("whoReview", {
+              who: impact.target.personal
+                ? t("reviewNobody")
+                : t("reviewBy", { workspace: impact.target.name }),
+              strong: (chunks) => <strong>{chunks}</strong>,
+            })}
           </p>
           {impact.notMembers.length + impact.notMembersHidden > 0 ? (
             <div>
-              <p>
-                Open work by people who aren't {impact.target.name}'s members: they'll be able to
-                read and withdraw it, not change or submit it.
-              </p>
+              <p>{t("notMembers", { workspace: impact.target.name })}</p>
               <Listed
                 items={impact.notMembers.map((n) => `${n.item} (${n.author})`)}
                 hidden={impact.notMembersHidden}
@@ -151,16 +153,13 @@ export const MoveChanges = ({ impact }: { impact: MoveImpact }) => {
           ) : null}
           {impact.openDependents.length + impact.openHidden > 0 ? (
             <div>
-              <p>Open submissions outside that depend on its items will fail at release:</p>
+              <p>{t("openDependents")}</p>
               <Listed items={impact.openDependents} hidden={impact.openHidden} />
             </div>
           ) : null}
           {impact.notReviewed.length > 0 ? (
             <div>
-              <p>
-                Not reviewed (114): someone else has to approve the move, and approving reviews
-                them.
-              </p>
+              <p>{t("notReviewed")}</p>
               <Listed items={impact.notReviewed} />
             </div>
           ) : null}
@@ -200,6 +199,9 @@ export const MoveForm = ({
     name?: string;
   };
 }) => {
+  const t = useTranslations("admin.move");
+  const problems = useTranslations("common.nameProblem");
+  const targetLabel = useTargetLabel();
   const [state, action, pending] = useActionState<MoveActionState, FormData>(
     askMoveFromForm,
     loaded?.state ?? {},
@@ -217,7 +219,7 @@ export const MoveForm = ({
     if (loaded) return;
     moveTargetsFor(scope.id)
       .then(setTargets)
-      .catch(() => setTargets({ error: "Couldn't read the workspaces. Try again in a moment." }));
+      .catch(() => setTargets({ error: LOAD_FAILED }));
   }, [scope.id, loaded]);
 
   // The checks again as the target or the name changes, a moment after typing stops.
@@ -226,7 +228,7 @@ export const MoveForm = ({
     const timer = setTimeout(() => {
       moveImpactFor({ scopeId: scope.id, to, name })
         .then(setImpact)
-        .catch(() => setImpact({ error: "Couldn't check the move. Try again in a moment." }));
+        .catch(() => setImpact({ error: LOAD_FAILED }));
     }, 250);
     return () => clearTimeout(timer);
   }, [scope.id, to, name, loaded]);
@@ -235,13 +237,13 @@ export const MoveForm = ({
     return (
       <div className="grid grid-cols-[minmax(0,1fr)] gap-4">
         <p role="status" className="text-sm text-fg">
-          <span className="mr-2 font-mono text-xs font-semibold">OK:</span>
+          <span className="mr-2 font-mono text-xs font-semibold">{t("ok")}</span>
           {state.done === "moved"
-            ? `Moved @${scope.name} to ${to}.`
-            : `Asked to move @${scope.name} to ${to}.`}
+            ? t("doneMoved", { scope: scope.name, workspace: to })
+            : t("doneAsked", { scope: scope.name, workspace: to })}
         </p>
         <DialogActions>
-          <Button onClick={onDone}>Done</Button>
+          <Button onClick={onDone}>{t("done")}</Button>
         </DialogActions>
       </div>
     );
@@ -251,21 +253,25 @@ export const MoveForm = ({
   const way = checked?.way ?? null;
   const clash = checked?.clash ? checked : null;
   const blocked = !to
-    ? "Pick a workspace."
+    ? t("blocked.pick")
     : !checked
-      ? "Checking the move…"
+      ? t("blocked.checking")
       : checked.nameProblem
-        ? "Fix the scope's name first."
+        ? t("blocked.fixName")
         : checked.clash
-          ? "Pick another name for it there."
+          ? t("blocked.pickAnother")
           : checked.refused
-            ? "Something listed above refuses the move."
+            ? t("blocked.refuses")
             : null;
   const full = (n: string) => (to === "global" ? `@${n}` : `@${to}/${n}`);
   const items = checked?.items.length ?? 0;
-  const question = `Move @${scope.name} and its ${plural(items, "item")} to ${to}, ${
-    name === scope.name ? "as" : "renamed to"
-  } ${full(name)}?`;
+  const question = t("question", {
+    scope: scope.name,
+    items,
+    workspace: to,
+    renamed: String(name !== scope.name),
+    full: full(name),
+  });
 
   return (
     <form
@@ -290,9 +296,11 @@ export const MoveForm = ({
         <>
           <Help id="move-who" />
           <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-1.5">
-            <Label htmlFor={`move-${scope.id}-to`}>Where to</Label>
+            <Label htmlFor={`move-${scope.id}-to`}>{t("whereTo")}</Label>
             {targets && "error" in targets ? (
-              <FieldError id={`move-${scope.id}-targets`}>{targets.error}</FieldError>
+              <FieldError id={`move-${scope.id}-targets`}>
+                {targets.error === LOAD_FAILED ? t("targetsFailed") : targets.error}
+              </FieldError>
             ) : (
               <select
                 id={`move-${scope.id}-to`}
@@ -303,7 +311,7 @@ export const MoveForm = ({
                 }}
                 className={selectClasses}
               >
-                <option value="">Pick a workspace</option>
+                <option value="">{t("pick")}</option>
                 {(targets?.targets ?? []).map((target) => (
                   <option key={target.name} value={target.name}>
                     {targetLabel(target)}
@@ -313,7 +321,7 @@ export const MoveForm = ({
             )}
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor={`move-${scope.id}-name`}>Its name there</Label>
+            <Label htmlFor={`move-${scope.id}-name`}>{t("nameThere")}</Label>
             <input
               id={`move-${scope.id}-name`}
               value={typed}
@@ -328,20 +336,22 @@ export const MoveForm = ({
             />
             <p id={`move-${scope.id}-name-hint`} className="text-xs text-muted">
               {checked?.nameProblem
-                ? NAME_PROBLEM_MESSAGES[checked.nameProblem]
+                ? problems(checked.nameProblem, { max: NAME_MAX_LENGTH })
                 : clash
-                  ? `${to} already has a scope called ${name}: pick another name for it there.`
-                  : "Its current name, unless the workspace has a scope by that name."}
+                  ? t("clash", { workspace: to, name })
+                  : t("nameHint")}
             </p>
           </div>
           {impact && "error" in impact ? (
-            <FieldError id={`move-${scope.id}-impact`}>{impact.error}</FieldError>
+            <FieldError id={`move-${scope.id}-impact`}>
+              {impact.error === LOAD_FAILED ? t("impactFailed") : impact.error}
+            </FieldError>
           ) : shown ? (
             <MoveChanges impact={shown} />
           ) : null}
           {way === "request" ? (
             <div className="grid gap-1.5">
-              <Label htmlFor={`move-${scope.id}-message`}>Message (optional)</Label>
+              <Label htmlFor={`move-${scope.id}-message`}>{t("message")}</Label>
               <textarea
                 id={`move-${scope.id}-message`}
                 name="message"
@@ -353,23 +363,23 @@ export const MoveForm = ({
               />
               <p className="text-xs text-muted">
                 {checked?.answeredBy === "root"
-                  ? "Root will answer."
-                  : `${to}'s admins or root will answer.`}
+                  ? t("rootAnswers")
+                  : t("adminsAnswer", { workspace: to })}
               </p>
             </div>
           ) : null}
           <FieldError id={`move-${scope.id}-error`}>{state.error}</FieldError>
           <DialogActions>
             <Button variant="ghost" onClick={onDone}>
-              Cancel
+              {t("cancel")}
             </Button>
             {way === "request" ? (
               <Button type="submit" loading={pending} disabledReason={blocked}>
-                Ask to move
+                {t("ask")}
               </Button>
             ) : (
               <Button disabledReason={blocked} onClick={() => setStep("confirm")}>
-                Move scope
+                {t("moveScope")}
               </Button>
             )}
           </DialogActions>
@@ -379,32 +389,29 @@ export const MoveForm = ({
           <p className="text-sm text-fg">{question}</p>
           {checked ? <MoveChanges impact={checked} /> : null}
           {to === "global" ? (
-            <Notice kind="warn" title="Everyone will see them">
-              Its items will be everyone's on this instance.
+            <Notice kind="warn" title={t("everyoneTitle")}>
+              {t("everyoneBody")}
             </Notice>
           ) : null}
           <FieldError id={`move-${scope.id}-error`}>{state.error}</FieldError>
           <DialogActions>
             <Button variant="ghost" onClick={() => setStep("form")}>
-              Back
+              {t("back")}
             </Button>
             {way === "twice" ? (
-              <Button onClick={() => setStep("type")}>Continue</Button>
+              <Button onClick={() => setStep("type")}>{t("continue")}</Button>
             ) : (
               <Button type="submit" loading={pending}>
-                Move scope
+                {t("moveScope")}
               </Button>
             )}
           </DialogActions>
         </>
       ) : (
         <>
-          <p className="text-sm text-fg">
-            Nobody else answers this move. To confirm, type the scope's name,{" "}
-            <span className="font-mono">{scope.name}</span>.
-          </p>
+          <p className="text-sm text-fg">{t.rich("typeIntro", { scope: scope.name, mono })}</p>
           <div className="grid gap-1.5">
-            <Label htmlFor={`move-${scope.id}-confirm`}>Scope name</Label>
+            <Label htmlFor={`move-${scope.id}-confirm`}>{t("scopeName")}</Label>
             <input
               id={`move-${scope.id}-confirm`}
               name="confirm"
@@ -419,14 +426,14 @@ export const MoveForm = ({
           <FieldError id={`move-${scope.id}-error`}>{state.error}</FieldError>
           <DialogActions>
             <Button variant="ghost" onClick={() => setStep("confirm")}>
-              Back
+              {t("back")}
             </Button>
             <Button
               type="submit"
               loading={pending}
-              disabledReason={confirm.trim() === scope.name ? null : "Type the scope's name."}
+              disabledReason={confirm.trim() === scope.name ? null : t("blocked.typeName")}
             >
-              Move scope
+              {t("moveScope")}
             </Button>
           </DialogActions>
         </>
@@ -443,6 +450,7 @@ export const MoveScopeButton = ({
   scope: { id: string; name: string };
   workspace: string;
 }) => {
+  const t = useTranslations("admin.move");
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [round, setRound] = useState(0);
@@ -454,10 +462,15 @@ export const MoveScopeButton = ({
   };
   return (
     <>
-      <IconButton onClick={() => setOpen(true)} label={`Move @${scope.name}`}>
+      <IconButton onClick={() => setOpen(true)} label={t("moveLabel", { scope: scope.name })}>
         <FolderInput size={16} aria-hidden="true" />
       </IconButton>
-      <Dialog open={open} onClose={close} title={`Move @${scope.name}`} size="large">
+      <Dialog
+        open={open}
+        onClose={close}
+        title={t("moveTitle", { scope: scope.name })}
+        size="large"
+      >
         {open ? <MoveForm key={round} scope={scope} workspace={workspace} onDone={close} /> : null}
       </Dialog>
     </>
@@ -478,6 +491,7 @@ export const MoveState = ({
   /** What the last Cancel answered, for its tests. */
   loaded?: WorkspaceActionState;
 }) => {
+  const t = useTranslations("admin.move");
   const [state, action, pending] = useActionState<WorkspaceActionState, FormData>(
     cancelMoveFromForm,
     loaded ?? {},
@@ -485,24 +499,24 @@ export const MoveState = ({
   if (move.status === "declined")
     return (
       <span className="grid gap-0.5 text-xs break-words text-muted">
-        <span>Move to {move.toWorkspace} declined</span>
+        <span>{t("declined", { workspace: move.toWorkspace })}</span>
         {move.reason ? <span className="text-fg">“{move.reason}”</span> : null}
       </span>
     );
-  if (state.done) return <span className="text-xs text-muted">Cancelled</span>;
+  if (state.done) return <span className="text-xs text-muted">{t("cancelled")}</span>;
   return (
     <form action={action} className="flex flex-wrap items-center gap-x-2 text-xs text-muted">
       <input type="hidden" name="moveId" value={move.id} />
       <input type="hidden" name="workspace" value={workspace} />
-      <span>Moving to {move.toWorkspace}</span>
+      <span>{t("moving", { workspace: move.toWorkspace })}</span>
       <Button
         type="submit"
         variant="text"
         loading={pending}
-        aria-label={`Cancel the move to ${move.toWorkspace}`}
+        aria-label={t("cancelMove", { workspace: move.toWorkspace })}
         className="text-xs"
       >
-        Cancel
+        {t("cancel")}
       </Button>
       {state.error ? <FieldError id={`move-${move.id}-cancel`}>{state.error}</FieldError> : null}
     </form>

@@ -1,7 +1,8 @@
 "use client";
 
-import { NAME_PROBLEM_MESSAGES, nameProblem, normalizeScopeName } from "@ronneai/core";
+import { NAME_MAX_LENGTH, nameProblem, normalizeScopeName } from "@ronneai/core";
 import { Pencil } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogActions } from "@/components/ui/Dialog";
@@ -11,11 +12,15 @@ import { Notice } from "@/components/ui/Notice";
 import { createScopeFromForm, updateScopeFromForm } from "./actions";
 import type { ScopeActionState } from "./types";
 
+/** A name in the monospace face the sentences around it use. */
+const mono = (chunks: React.ReactNode) => <span className="font-mono text-fg">{chunks}</span>;
+
 const Description = ({ defaultValue }: { defaultValue?: string }) => {
+  const t = useTranslations("admin.scopes.description");
   const [value, setValue] = useState(defaultValue ?? "");
   return (
     <div className="grid gap-1.5">
-      <Label htmlFor="scope-description">Description</Label>
+      <Label htmlFor="scope-description">{t("label")}</Label>
       <textarea
         id="scope-description"
         name="description"
@@ -26,7 +31,7 @@ const Description = ({ defaultValue }: { defaultValue?: string }) => {
         onChange={(event) => setValue(event.target.value)}
         className={`${inputClasses} h-auto py-2`}
       />
-      <p className="text-xs text-muted">What belongs in this scope. {[...value].length}/300</p>
+      <p className="text-xs text-muted">{t("hint", { used: [...value].length, max: 300 })}</p>
     </div>
   );
 };
@@ -34,15 +39,26 @@ const Description = ({ defaultValue }: { defaultValue?: string }) => {
 /** The workspace a new scope goes in: the one whose page it's created on (092, 115). */
 export type WorkspaceChoice = { id: string; name: string };
 
-const InWorkspace = ({ workspace }: { workspace: WorkspaceChoice }) => (
-  <p className="text-sm text-muted">
-    In <span className="font-mono text-fg">{workspace.name}</span>
-    <input type="hidden" name="workspaceId" value={workspace.id} />. Its admins or root can move it
-    later.
-  </p>
-);
+const InWorkspace = ({ workspace }: { workspace: WorkspaceChoice }) => {
+  const t = useTranslations("admin.scopes.create");
+  return (
+    <p className="text-sm text-muted">
+      {t.rich("inWorkspace", { workspace: workspace.name, mono })}
+      <input type="hidden" name="workspaceId" value={workspace.id} />
+    </p>
+  );
+};
 
-const CreateForm = ({ workspace, onDone }: { workspace: WorkspaceChoice; onDone: () => void }) => {
+/** Exported for its test (the dialog renders it only when open). */
+export const CreateScopeForm = ({
+  workspace,
+  onDone,
+}: {
+  workspace: WorkspaceChoice;
+  onDone: () => void;
+}) => {
+  const t = useTranslations("admin.scopes");
+  const problems = useTranslations("common.nameProblem");
   const [state, action, pending] = useActionState<ScopeActionState, FormData>(
     createScopeFromForm,
     {},
@@ -55,14 +71,14 @@ const CreateForm = ({ workspace, onDone }: { workspace: WorkspaceChoice; onDone:
       <div className="grid gap-4">
         <Notice kind="info" title={state.done} />
         <div>
-          <Button onClick={onDone}>Done</Button>
+          <Button onClick={onDone}>{t("done")}</Button>
         </div>
       </div>
     );
   return (
     <form action={action} className="grid gap-4">
       <div className="grid gap-1.5">
-        <Label htmlFor="scope-name">Name</Label>
+        <Label htmlFor="scope-name">{t("create.name")}</Label>
         <input
           id="scope-name"
           name="name"
@@ -76,14 +92,9 @@ const CreateForm = ({ workspace, onDone }: { workspace: WorkspaceChoice; onDone:
           className={inputClasses}
         />
         <p id="scope-name-hint" className="text-xs text-muted">
-          {problem ? (
-            NAME_PROBLEM_MESSAGES[problem]
-          ) : (
-            <>
-              Items will be named <span className="font-mono text-fg">@{name || "scope"}/item</span>
-              . Lowercase letters, digits and hyphens.
-            </>
-          )}
+          {problem
+            ? problems(problem, { max: NAME_MAX_LENGTH })
+            : t.rich("create.hint", { name: name || t("fallbackName"), mono })}
         </p>
       </div>
       <InWorkspace workspace={workspace} />
@@ -91,17 +102,17 @@ const CreateForm = ({ workspace, onDone }: { workspace: WorkspaceChoice; onDone:
       <FieldError id="create-scope-error">{state.error}</FieldError>
       <DialogActions>
         <Button variant="ghost" onClick={onDone}>
-          Cancel
+          {t("cancel")}
         </Button>
         <Button type="submit" loading={pending}>
-          Create scope
+          {t("create.submit")}
         </Button>
       </DialogActions>
     </form>
   );
 };
 
-const EditForm = ({
+export const EditScopeForm = ({
   name,
   description,
   onDone,
@@ -110,6 +121,7 @@ const EditForm = ({
   description: string;
   onDone: () => void;
 }) => {
+  const t = useTranslations("admin.scopes");
   const [state, action, pending] = useActionState<ScopeActionState, FormData>(
     updateScopeFromForm,
     {},
@@ -119,7 +131,7 @@ const EditForm = ({
       <div className="grid gap-4">
         <Notice kind="info" title={state.done} />
         <div>
-          <Button onClick={onDone}>Done</Button>
+          <Button onClick={onDone}>{t("done")}</Button>
         </div>
       </div>
     );
@@ -131,10 +143,10 @@ const EditForm = ({
       <FieldError id={`edit-scope-${name}-error`}>{state.error}</FieldError>
       <DialogActions>
         <Button variant="ghost" onClick={onDone}>
-          Cancel
+          {t("cancel")}
         </Button>
         <Button type="submit" loading={pending}>
-          Save
+          {t("save")}
         </Button>
       </DialogActions>
     </form>
@@ -153,26 +165,33 @@ const useDialog = () => {
 };
 
 export const CreateScopeDialog = ({ workspace }: { workspace: WorkspaceChoice }) => {
+  const t = useTranslations("admin.scopes.create");
   const dialog = useDialog();
   return (
     <>
-      <Button onClick={dialog.show}>Create scope</Button>
-      <Dialog open={dialog.open} onClose={dialog.close} title="Create scope">
-        <CreateForm key={dialog.round} workspace={workspace} onDone={dialog.close} />
+      <Button onClick={dialog.show}>{t("button")}</Button>
+      <Dialog open={dialog.open} onClose={dialog.close} title={t("title")}>
+        <CreateScopeForm key={dialog.round} workspace={workspace} onDone={dialog.close} />
       </Dialog>
     </>
   );
 };
 
 export const EditScopeButton = ({ name, description }: { name: string; description: string }) => {
+  const t = useTranslations("admin.scopes.edit");
   const dialog = useDialog();
   return (
     <>
-      <IconButton onClick={dialog.show} label={`Edit @${name}`}>
+      <IconButton onClick={dialog.show} label={t("label", { name })}>
         <Pencil size={16} aria-hidden="true" />
       </IconButton>
-      <Dialog open={dialog.open} onClose={dialog.close} title="Edit scope">
-        <EditForm key={dialog.round} name={name} description={description} onDone={dialog.close} />
+      <Dialog open={dialog.open} onClose={dialog.close} title={t("title")}>
+        <EditScopeForm
+          key={dialog.round}
+          name={name}
+          description={description}
+          onDone={dialog.close}
+        />
       </Dialog>
     </>
   );
