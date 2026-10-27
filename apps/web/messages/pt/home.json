@@ -17,7 +17,7 @@
   },
   "recent": {
     "title": "Publicados recentemente",
-    "seeAll": "Ver tudo"
+    "seeAll": "Ver todos"
   },
   "mostUsed": {
     "title": "Mais usados"
@@ -67,12 +67,12 @@
     },
     "setUp": {
       "title": "Tudo pronto",
-      "text": "O rmk está conectado e você instalou um item. Isto some na sua próxima visita; você pode trazê-lo de volta em Conta quando quiser.",
+      "text": "O rmk está conectado e você instalou um item. Este painel some na sua próxima visita; você pode trazê-lo de volta em Conta quando quiser.",
       "docs": "Ler a Documentação",
       "new": "Propor item"
     },
     "noScope": {
-      "text": "Este registro ainda não tem escopo. Crie um para que as pessoas possam enviar itens.",
+      "text": "Este registro ainda não tem escopo. Crie um para que as pessoas possam submeter itens.",
       "action": "Abrir o espaço de trabalho global"
     },
     "next": "Próximo: {step}",

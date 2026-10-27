@@ -701,7 +701,7 @@ describe("the shell in three languages (129)", () => {
       {
         en: ['aria-label="Reviews (3 waiting)"', 'aria-label="Unfold the sidebar"'],
         pt: ['aria-label="Revisões (3 aguardando)"', 'aria-label="Expandir a barra lateral"'],
-        fr: ['aria-label="Révisions (3 en attente)"', 'aria-label="Agrandir la barre latérale"'],
+        fr: ['aria-label="Révisions (3 en attente)"', 'aria-label="Développer la barre latérale"'],
       },
       (l) => sidebar(l, true),
     );
@@ -804,7 +804,7 @@ describe("the shell in three languages (129)", () => {
       {
         en: ["open source (MIT)"],
         pt: ["código aberto (MIT)"],
-        fr: ["source ouverte (MIT)"],
+        fr: ["code source ouvert (MIT)"],
       },
       shell,
     );

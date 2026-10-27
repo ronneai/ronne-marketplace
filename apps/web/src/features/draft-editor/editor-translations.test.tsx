@@ -278,8 +278,8 @@ describe("the editor's counts and times in three languages", () => {
       "Vai junto com 2 dos seus rascunhos:",
     ]);
     expect([1, 2].map((n) => heading("fr", n))).toEqual([
-      "Part avec 1 de vos brouillons :",
-      "Part avec 2 de vos brouillons :",
+      "Accompagné de 1 de vos brouillons :",
+      "Accompagné de 2 de vos brouillons :",
     ]);
   });
 

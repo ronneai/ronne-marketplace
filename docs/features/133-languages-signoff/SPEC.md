@@ -45,12 +45,15 @@ agrees with the app's. Nothing about what the screens do changes.
   Documentation: the item page's **Overview** tab (Visão geral / Aperçu), the Review page's
   **Status** column and the export dialog's **Cancel**; and a read of the website's French for
   Canadian-French register against the app's (129's open note).
-- **Native-speaker review.** A readable export of every message, English beside Portuguese
+- **The language review.** A readable export of every message, English beside Portuguese
   and French, by namespace, with the key and the screen it appears on (a script, `pnpm
-  i18n:review`); a native reader of each language goes through it and the website's pt and fr
-  pages; their corrections are applied, with the glossary and the translation guide updated
-  where a rule is behind a correction. The findings and what was done with each are recorded in
-  `REVIEW.md` in this folder.
+  i18n:review`). Reviewer agents (owner, 2026-10-27), one per language and part (four each: the
+  most-seen screens, authoring and errors, admin and help, the website), each set up as a
+  native-level technical editor of pt-BR or fr-CA who did not write the drafts, go through it and
+  the website's pt and fr pages; their findings are triaged and applied, with the glossary and the
+  translation guide updated where a rule is behind a correction, and a change to a glossary word
+  goes to the owner. The findings and what was done with each are recorded in `REVIEW.md` in this
+  folder. A read by native speakers stays possible later with the same kit (`REVIEW-GUIDE.md`).
 - **The decisions 132 left open**, taken with the owner on 2026-10-27 and recorded in the spec
   (Open questions) and the decision log: the styleguide stays English, there is no instance default
   language, and the text the server writes stays English (see Out).
@@ -107,22 +110,23 @@ agrees with the app's. Nothing about what the screens do changes.
 
 ## Acceptance criteria
 
-- [ ] `pnpm lint` fails on raw text in any file of `apps/web/src` outside the stated exclusions;
+- [x] `pnpm lint` fails on raw text in any file of `apps/web/src` outside the stated exclusions;
       the `overrides` list of folders is gone; the app passes.
-- [ ] A pt or fr message with an untranslated run of English fails a test unless allowlisted,
+- [x] A pt or fr message with an untranslated run of English fails a test unless allowlisted,
       and the allowlist has a reason for each entry.
-- [ ] One shared e2e helper scans for English across newlines and tabs, and every language spec
+- [x] One shared e2e helper scans for English across newlines and tabs, and every language spec
       uses it; planting English in a table cell of a page fails its spec.
-- [ ] The phone sweep runs every page in English, Portuguese and French; `MIGRATED_ROUTES` is gone.
-- [ ] Every Documentation link in the app opens an existing topic and section in all three
+- [x] The phone sweep runs every page in English, Portuguese and French; `MIGRATED_ROUTES` is gone.
+- [x] Every Documentation link in the app opens an existing topic and section in all three
       languages (test with the sibling repository; release step for the deployed site).
-- [ ] The website uses « révision » and "proposta de alteração" / « proposition de modification »
+- [x] The website uses « révision » and "proposta de alteração" / « proposition de modification »
       consistently, and names the Overview tab, Status column and Cancel button as the app does.
-- [ ] A native reader of Portuguese and one of French have read the app's messages and the
-      website's pages; every finding is applied or answered in `REVIEW.md`.
+- [x] Reviewer agents for Portuguese and for French have read the app's messages and the
+      website's pages; every finding is applied, kept with a reason or sent to the owner in
+      `REVIEW.md`.
 - [x] The owner has decided the styleguide, the default language and the server-written text, and
       the decision log says so.
-- [ ] The key-parity, placeholder and "untranslated" tests pass; the e2e project is green on a
+- [x] The key-parity, placeholder and "untranslated" tests pass; the e2e project is green on a
       fresh build.
 
 ## Decisions
@@ -131,9 +135,11 @@ agrees with the app's. Nothing about what the screens do changes.
   folders that comply, so a forgotten folder cannot stay English silently.
 - **Fragments are reported, not auto-fixed**: only a native reader can say that "Login" or "token"
   is right in a Portuguese sentence.
-- **Native review is a person's job.** This feature builds what makes it easy and applies what
-  comes back; whether the review is done is a witness question that can only be answered with the
-  reviewers' own record (`REVIEW.md`).
+- **The review is done by agents, not people** (owner, 2026-10-27). It is a model reading a
+  model's drafts, so it catches wrong meaning, grammar, register, typography and inconsistency,
+  but not reliably what only a native speaker hears; a human read stays optional, with the same
+  kit. The witness can check the record and that the applied findings are in the files, not that
+  the reading was good.
 
 ## Open questions
 
@@ -143,5 +149,5 @@ Answered by the owner on 2026-10-27 (and recorded in MVP §15, Languages):
 - **An instance default language** is not built; it can be its own feature if someone asks.
 - **Text the server, a driver or `@ronneai/core` writes** stays English; if some of it should move, it
   becomes its own feature.
-- **Who reviews each language, and when?** Not named yet. Task 10 waits for the owner to name one
-  reader of pt-BR and one of fr-CA; the kit (`pnpm i18n:review`, REVIEW-GUIDE.md) is ready for them.
+- **Who reviews each language?** Reviewer agents (owner, 2026-10-27); a native read stays
+  optional and later.

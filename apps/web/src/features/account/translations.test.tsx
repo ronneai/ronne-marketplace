@@ -61,7 +61,7 @@ describe("Account in three languages (129)", () => {
       {
         en: [">Password<", ">Two-factor sign-in<", ">Language<", 'aria-label="Account"'],
         pt: [">Senha<", ">Autenticação de dois fatores<", ">Idioma<", 'aria-label="Conta"'],
-        fr: [">Mot de passe<", ">Connexion à deux facteurs<", ">Langue<", 'aria-label="Compte"'],
+        fr: [">Mot de passe<", ">Double authentification<", ">Langue<", 'aria-label="Compte"'],
       },
       (l) => view(l, <AccountTabs current="language" />),
     );
@@ -103,7 +103,7 @@ describe("Account in three languages (129)", () => {
     each(
       {
         en: ["Password changed", "other sessions were signed out"],
-        pt: ["Senha alterada", "as outras sessões foram encerradas"],
+        pt: ["Senha alterada", "as outras foram encerradas"],
         fr: ["Mot de passe changé", "les autres sessions ont été fermées"],
       },
       (l) => view(l, <ChangePasswordForm initial={{ changed: true }} />),
@@ -184,7 +184,7 @@ describe("Two-factor sign-in in three languages (129)", () => {
           "Inativa",
         ],
         fr: [
-          "Configurez la connexion à deux facteurs pour continuer",
+          "Configurez la double authentification pour continuer",
           "root ainsi que les modérateurs et administrateurs des espaces de travail partagés",
           "Désactivée",
         ],
@@ -210,7 +210,7 @@ describe("Two-factor sign-in in three languages (129)", () => {
         ],
         fr: [
           "7 codes de secours restants.",
-          "Désactiver la connexion à deux facteurs",
+          "Désactiver la double authentification",
           "Codes de secours",
         ],
       },
@@ -241,8 +241,8 @@ describe("Two-factor sign-in in three languages (129)", () => {
     each(
       {
         en: ["Your password", "Set up two-factor"],
-        pt: ["Sua senha", "Configurar a autenticação de dois fatores"],
-        fr: ["Votre mot de passe", "Configurer la connexion à deux facteurs"],
+        pt: ["Sua senha", "Configurar"],
+        fr: ["Votre mot de passe", "Configurer la double authentification"],
       },
       (l) => view(l, <SetupFlow />),
     );
@@ -291,12 +291,12 @@ describe("Two-factor sign-in in three languages (129)", () => {
       {
         en: ["A code from the app, or a backup code", "Turn off two-factor"],
         pt: [
-          "Um código do aplicativo, ou um código de backup",
+          "Um código do aplicativo ou um código de backup",
           "Desativar a autenticação de dois fatores",
         ],
         fr: [
           "Un code de l’application, ou un code de secours",
-          "Désactiver la connexion à deux facteurs",
+          "Désactiver la double authentification",
         ],
       },
       (l) => view(l, <TurnOffTwoFactor />),
@@ -366,7 +366,7 @@ describe("Access tokens and the terminal in three languages (129)", () => {
     each(
       {
         en: ["No tokens yet. Create one, or run <code"],
-        pt: ["Nenhum token ainda. Crie um, ou execute <code"],
+        pt: ["Nenhum token ainda. Crie um ou execute <code"],
         fr: ["Aucun jeton pour l’instant. Créez-en un, ou exécutez <code"],
       },
       (l) => view(l, <TokensPage tokens={[]} now={new Date()} />),

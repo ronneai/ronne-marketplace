@@ -31,7 +31,7 @@
     "kind_required": "Escolha o tipo de feedback.",
     "message_required": "Escreva uma mensagem.",
     "message_too_long": "A mensagem tem mais de {max, number} caracteres. Reduza o texto.",
-    "rate_limited": "Você pode enviar {limit, number} mensagens por hora. Tente novamente mais tarde."
+    "rate_limited": "Você pode enviar {limit, number} mensagens por hora. Tente de novo mais tarde."
   },
   "admin": {
     "title": "Feedback",
@@ -40,7 +40,7 @@
       "search": "Pesquisar",
       "searchPlaceholder": "Mensagem, nome ou e-mail",
       "anyKind": "Qualquer tipo",
-      "anyStatus": "Qualquer estado",
+      "anyStatus": "Qualquer situação",
       "apply": "Filtrar"
     },
     "columns": {
@@ -50,7 +50,7 @@
       "message": "Mensagem",
       "page": "Página",
       "version": "Versão",
-      "status": "Estado",
+      "status": "Situação",
       "sent": "Enviada",
       "open": "Abrir"
     },

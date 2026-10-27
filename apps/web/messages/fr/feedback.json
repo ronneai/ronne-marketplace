@@ -35,7 +35,7 @@
   },
   "admin": {
     "title": "Commentaires",
-    "description": "Ce que les gens ont envoyé avec Envoyer des commentaires, du plus récent au plus ancien. Seul le root les voit.",
+    "description": "Ce que les gens ont envoyé avec « Envoyer des commentaires », du plus récent au plus ancien. Seul root les voit.",
     "filters": {
       "search": "Rechercher",
       "searchPlaceholder": "Message, nom ou courriel",
@@ -77,7 +77,7 @@
       "deleted": "{count, plural, =0 {Rien n’a été supprimé.} one {# message supprimé.} other {# messages supprimés.}}"
     },
     "errors": {
-      "forbidden": "Seul le root peut faire cela.",
+      "forbidden": "Seul root peut faire cela.",
       "too_many": "Sélectionnez au plus {max, number} messages."
     },
     "delete": {
@@ -93,5 +93,5 @@
       "noPage": "Non incluse"
     }
   },
-  "where": "Où cela va-t-il?"
+  "where": "Où va votre message?"
 }

@@ -752,7 +752,7 @@ describe("a review's page in three languages (131)", () => {
     };
     const pt = await page("pt", { proposal: stale as never });
     expect(pt).toContain("A 1.1.0 foi lançada depois que esta proposta começou.");
-    expect(pt).toContain(">Alterações da 1.0.0<");
+    expect(pt).toContain(">Alterações em relação à 1.0.0<");
     expect(pt).toContain(">Campos do ronne.yaml<");
     expect(pt).toContain(">(não definido)<");
     expect(pt).toContain("Não foi possível ler os arquivos da 1.0.0");
@@ -964,7 +964,7 @@ describe("a review's page in three languages (131)", () => {
           ]}
         />,
       ),
-    ).toContain("Lançados junto, estes 2:");
+    ).toContain("Lançados junto (2):");
     const reasons = (l: L, kind: string, type?: string) =>
       html(
         l,

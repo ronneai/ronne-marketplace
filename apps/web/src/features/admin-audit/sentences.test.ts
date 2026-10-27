@@ -58,9 +58,11 @@ describe("every audit action has a sentence in each language (132)", () => {
 
 describe("audit sentences in Portuguese and French (132)", () => {
   it("reads a few events in the language", () => {
-    expect(line("pt", "auth.signed_in", { remember: true })).toBe("Entrou (lembrado por 30 dias)");
+    expect(line("pt", "auth.signed_in", { remember: true })).toBe(
+      "Entrou (sessão lembrada por 30 dias)",
+    );
     expect(line("fr", "auth.signed_in", { remember: true })).toBe(
-      "Connecté (mémorisé pendant 30 jours)",
+      "Connexion (mémorisée pendant 30 jours)",
     );
     expect(line("pt", "user.disabled", { sessionsEnded: 2, tokensRevoked: 1 })).toBe(
       "Desativou sam@example.com (2 sessões encerradas, 1 token revogado)",
@@ -69,7 +71,7 @@ describe("audit sentences in Portuguese and French (132)", () => {
       "A désactivé sam@example.com (2 sessions terminées, 1 jeton révoqué)",
     );
     expect(line("pt", "auth.sign_in_failed", { email: "a@b.c", reason: "invalid" })).toBe(
-      "Falha ao entrar para a@b.c: e-mail ou senha incorretos",
+      "Falha de login de a@b.c: e-mail ou senha incorretos",
     );
     expect(line("fr", "auth.sign_in_failed", { email: "a@b.c", reason: "invalid" })).toBe(
       "Échec de connexion pour a@b.c : courriel ou mot de passe incorrect",

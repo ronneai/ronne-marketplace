@@ -17,7 +17,7 @@
   },
   "move-approve": {
     "question": "O que aprovar faz?",
-    "answer": "Confere a movimentação de novo e move o escopo: os itens dele passam a ter os nomes do novo espaço de trabalho, os nomes antigos continuam funcionando, e as versões não revisadas passam a revisadas em seu nome. Se algo quebrar agora, nada é movido e a solicitação continua aberta, com a lista."
+    "answer": "Confere a movimentação de novo e move o escopo: os itens dele passam a ter os nomes do novo espaço de trabalho, os nomes antigos continuam funcionando, e as versões não revisadas passam a revisadas em seu nome. Se algo fosse quebrar agora, nada é movido e a solicitação continua aberta, com a lista."
   },
   "current-workspace": {
     "question": "O que isto filtra?",
@@ -49,7 +49,7 @@
   },
   "join": {
     "question": "Como entro?",
-    "answer": "Qualquer pessoa conectada lê e instala os itens de um espaço de trabalho público, mas só os membros propõem e submetem ali. Peça para entrar pela página Espaços de trabalho, ou pelo link de convite que os moderadores ou admins enviam para um privado; o root ou os moderadores e admins respondem, e você vê a resposta ali."
+    "answer": "Qualquer pessoa conectada lê e instala os itens de um espaço de trabalho público, mas só os membros propõem e submetem ali. Peça para entrar pela página Espaços de trabalho, ou pelo link para entrar que os moderadores ou admins enviam para um privado; o root ou os moderadores e admins respondem, e você vê a resposta ali."
   },
   "private-item": {
     "question": "Quem pode ver isto?",
@@ -57,7 +57,7 @@
   },
   "favorites": {
     "question": "O que são favoritos?",
-    "answer": "Sua própria lista de itens aos quais voltar: clique na estrela de um item, e de novo para tirá-lo. Só você a vê, o root inclusive, e cabem até 200. O Início mostra os seis últimos, e o filtro Favoritos do Catálogo lista todos."
+    "answer": "A sua lista de itens para ver depois: clique na estrela de um item, e de novo para tirá-lo. Só você a vê: nem o root tem acesso a ela, e cabem até 200. O Início mostra os seis últimos, e o filtro Favoritos do Catálogo lista todos."
   },
   "pins": {
     "question": "Quem vê estes itens fixados?",
@@ -77,7 +77,7 @@
   },
   "scope": {
     "question": "O que é um escopo?",
-    "answer": "A parte do nome de um item antes do item, como @platform em @platform/code-reviewer, ou platform em @acme/platform/code-reviewer. Ele agrupa itens relacionados. O root e os admins de um espaço de trabalho criam escopos, cada um em um espaço de trabalho; os membros desse espaço propõem itens nele, e a revisão é a porta de entrada."
+    "answer": "A parte do nome de um item antes do item, como @platform em @platform/code-reviewer, ou platform em @acme/platform/code-reviewer. Ele agrupa itens relacionados. O root e os admins de um espaço de trabalho criam escopos, cada um em um espaço de trabalho; os membros desse espaço propõem itens nele, e a revisão é o filtro."
   },
   "item-name": {
     "question": "Por que o nome inclui o espaço de trabalho?",
@@ -105,7 +105,7 @@
   },
   "submit-many": {
     "question": "Submeter vários de uma vez?",
-    "answer": "Marque os rascunhos marcados como Pronto, ou Selecionar todos os prontos, e depois Submeter selecionados: cada um é verificado de novo e submetido por conta própria, e você vê o que aconteceu com cada um. rmk submit --all faz o mesmo em um terminal."
+    "answer": "Marque os rascunhos com o status Pronto, ou Selecionar todos os prontos, e depois Submeter selecionados: cada um é verificado de novo e submetido individualmente, e você vê o que aconteceu com cada um. rmk submit --all faz o mesmo em um terminal."
   },
   "risk": {
     "question": "Por que ele está sinalizado?",
@@ -133,7 +133,7 @@
   },
   "approve-many": {
     "question": "Aprovar várias de uma vez?",
-    "answer": "Marque as submissões que você pode aprovar, ou Selecionar tudo (as linhas desta página), e depois Aprovar selecionadas: as que têm sinais de risco aparecem primeiro, e uma mensagem opcional vai em cada aprovação. Cada uma é aprovada por conta própria, como na sua página, e você vê o que aconteceu com cada uma. Solicitar alterações e Rejeitar estão em cada linha."
+    "answer": "Marque as submissões que você pode aprovar, ou Selecionar tudo (as linhas desta página), e depois Aprovar selecionadas: as que têm sinais de risco aparecem primeiro, e uma mensagem opcional vai em cada aprovação. Cada uma é aprovada individualmente, como na página dela, e você vê o que aconteceu com cada uma. Solicitar alterações e Rejeitar estão em cada linha."
   },
   "withdraw": {
     "question": "Arquivar ou excluir?",
@@ -145,7 +145,7 @@
   },
   "queue-decisions": {
     "question": "Aprovar, solicitar alterações ou rejeitar?",
-    "answer": "Solicitar alterações a devolve ao autor para corrigir e ressubmeter; Rejeitar a encerra de vez. Os dois precisam de um motivo, que o autor vê no topo da página dele. Cada linha os tem; aprovar fica na página do item, ou várias de uma vez com Aprovar selecionadas."
+    "answer": "Solicitar alterações a devolve ao autor para corrigir e ressubmeter; Rejeitar a encerra de vez. Os dois precisam de um motivo, que o autor vê no topo da página dele. Os dois estão em cada linha; aprovar fica na página do item, ou várias de uma vez com Aprovar selecionadas."
   },
   "add-dependency": {
     "question": "Como adiciono uma?",
@@ -164,12 +164,12 @@
     "answer": "Marque os aprovados, ou Selecionar todos os aprovados (as linhas desta página), e depois Lançar selecionados: escolha estável ou pré-lançamento, o bump e a tag uma vez só, e veja todas as versões antes de qualquer coisa sair. O que está ligado por uma dependência é lançado junto, todos ou nenhum, e os aprovados de que eles precisam são adicionados."
   },
   "waits-on": {
-    "question": "Pelo que isto aguarda?",
+    "question": "O que isto está aguardando?",
     "answer": "Algo de que ele depende ainda não foi lançado. Ele pode ser revisado e aprovado enquanto isso; é lançado assim que as dependências forem. Bloqueado quer dizer que uma foi rejeitada ou arquivada: remova-a das dependências, ou dependa de outro item."
   },
   "dependents-listed": {
     "question": "Por que estas estão listadas?",
-    "answer": "Elas dependem desta submissão e aguardam o lançamento dela. Rejeitá-la as deixa aguardando por nada, então você pode devolvê-las aos autores no mesmo passo, com uma mensagem própria."
+    "answer": "Elas dependem desta submissão e aguardam o lançamento dela. Se você a rejeitar, elas ficam esperando algo que não vai chegar, então você pode devolvê-las aos autores no mesmo passo, com uma mensagem própria."
   },
   "ready": {
     "question": "O que impede a submissão?",
@@ -197,27 +197,27 @@
   },
   "visibility": {
     "question": "Público ou privado?",
-    "answer": "Todos que entraram veem os escopos e itens de um espaço de trabalho público e podem depender deles. Os de um privado só são vistos pelos membros, em qualquer papel, e pelo root; para os demais não existem, e só os próprios itens podem depender deles. O root pode mudar isso depois: tornar um espaço de trabalho privado é recusado enquanto itens publicados de fora dependerem dos itens dele."
+    "answer": "Todos que entraram veem os escopos e itens de um espaço de trabalho público e podem depender deles. Os de um privado só são vistos pelos membros, em qualquer papel, e pelo root; para os demais não existem, e só os próprios itens podem depender deles. O root pode mudar isso depois: tornar um espaço de trabalho privado é recusado enquanto itens lançados de fora dependerem dos itens dele."
   },
   "token": {
     "question": "Para que serve um token?",
-    "answer": "Ele deixa o rmk e o servidor MCP do registro lerem o registro como você e criarem rascunhos em seu nome: só você os vê, e nada é enviado até você fazer isso aqui. Ele não entra neste site, e você pode revogá-lo aqui a qualquer momento."
+    "answer": "Ele deixa o rmk e o servidor MCP do registro lerem o registro como você e criarem rascunhos em seu nome: só você os vê, e nada é submetido até você fazer isso aqui. Ele não entra neste site, e você pode revogá-lo aqui a qualquer momento."
   },
   "scim-provider": {
-    "question": "O que o provedor precisa?",
+    "question": "Do que o provedor precisa?",
     "answer": "A URL base e o token, como token Bearer. Ele envia o e-mail de cada pessoa como userName e um id que nunca muda como externalId (no Entra, mapeie objectId para ele) e envia os grupos que os mapeamentos desta página citam. Desprovisionar desativa a conta; nunca a apaga."
   },
   "scim-managed": {
     "question": "Por que o SCIM gerencia esta conta?",
-    "answer": "O provedor de identidade a cria e atualiza pelo SCIM: a próxima sincronização volta o nome, o e-mail e se está ativa ao que o provedor diz. Mude isso no provedor. Uma conta desprovisionada continua, desativada."
+    "answer": "O provedor de identidade a cria e atualiza pelo SCIM: a próxima sincronização restaura o nome, o e-mail e o status (ativa ou não) conforme o provedor. Mude isso no provedor. Uma conta desprovisionada continua, desativada."
   },
   "device-code": {
     "question": "O que é este código?",
-    "answer": "O rmk login --web o mostrou em um terminal, com o endereço desta página. Aprová-lo dá a esse terminal um token que age como você por 90 dias; por isso, só aprove um código que você mesmo acabou de pedir. O token aparece depois em Tokens de acesso, onde você pode revogá-lo."
+    "answer": "O rmk login --web o mostrou em um terminal, com o endereço desta página. Aprová-lo dá a esse terminal um token que age como você por 90 dias; por isso, só aprove um código que você acabou de pedir. O token aparece depois em Tokens de acesso, onde você pode revogá-lo."
   },
   "plugin-feeds": {
     "question": "O que significam estes números?",
-    "answer": "O marketplace de cada ferramenta como foi construído por completo da última vez: o tamanho, quantos plugins lista e quanto tempo levou para construir. O Claude Code lê um marketplace de no máximo 5 MiB, em até 10 segundos; passando de 80% de um dos dois, aparece um aviso aqui. O espelho git não tem limite de tamanho."
+    "answer": "O marketplace de cada ferramenta como foi gerado por completo da última vez: o tamanho, quantos plugins lista e quanto tempo levou para gerar. O Claude Code lê um marketplace de no máximo 5 MiB, em até 10 segundos; passando de 80% de um dos dois, aparece um aviso aqui. O espelho git não tem limite de tamanho."
   },
   "usage-minimum": {
     "question": "Por que definir um mínimo?",
@@ -233,14 +233,14 @@
   },
   "redirect-uri": {
     "question": "Por que este endereço?",
-    "answer": "Depois que alguém entra, o provedor o devolve a este endereço, e só a um endereço registrado nele. Registre-o exatamente como aparece: é o endereço público desta instância e o ID do provedor, por isso o ID não pode mudar depois."
+    "answer": "Depois que alguém entra, o provedor manda a pessoa de volta a este endereço, e só a um endereço registrado nele. Registre-o exatamente como aparece: é o endereço público desta instância e o ID do provedor, por isso o ID não pode mudar depois."
   },
   "provider-groups": {
     "question": "Como os grupos são aplicados?",
     "answer": "A cada login com este provedor, cada grupo mapeado em que a pessoa está dá pelo menos o seu papel no espaço de trabalho dele, e um papel que um grupo deu some quando a pessoa sai do grupo. Participações definidas à mão, e o root, nunca são alterados."
   },
   "password-lockout": {
-    "question": "O root pode ficar de fora?",
+    "question": "O root pode ficar bloqueado?",
     "answer": "Não. O root sempre pode entrar com senha, seja o que for escolhido aqui. Se um provedor quebrar, o disable-sso no servidor desliga todos os provedores e devolve a senha a todo mundo."
   },
   "backup-codes-once": {
@@ -249,15 +249,15 @@
   },
   "lost-phone": {
     "question": "Perdeu o celular?",
-    "answer": "Use um dos códigos de backup que você salvou quando ligou os dois fatores. Sem nenhum sobrando, peça a um root para redefinir os seus dois fatores em Usuários; depois entre com a senha e configure de novo no celular novo."
+    "answer": "Use um dos códigos de backup que você salvou quando ativou a autenticação de dois fatores. Sem nenhum sobrando, peça a um root para redefinir os seus dois fatores em Usuários; depois entre com a senha e configure de novo no celular novo."
   },
   "two-factor-policy": {
-    "question": "Quem precisa se cadastrar?",
-    "answer": "Em Revisores e root: o root e os moderadores e admins de espaços de trabalho compartilhados. Em Todos: toda conta com senha. Quem for coberto e ainda não configurou os dois fatores é levado à página Conta na próxima visita e não pode usar mais nada até configurar. Ninguém é desconectado. Contas que entram por um provedor de identidade da empresa não são cobertas."
+    "question": "Quem precisa ativar a autenticação de dois fatores?",
+    "answer": "Em Revisores e root: o root e os moderadores e admins de espaços de trabalho compartilhados. Em Todos: toda conta com senha. Quem for coberto e ainda não configurou a autenticação de dois fatores é levado à página Conta na próxima visita e não pode usar mais nada até configurar. Ninguém é desconectado. Contas que entram por um provedor de identidade da empresa não são cobertas."
   },
   "reset-two-factor": {
-    "question": "Quando redefino os dois fatores de alguém?",
-    "answer": "Quando a pessoa perdeu o celular e os códigos de backup. Ela entra só com a senha e configura os dois fatores de novo na página Conta, na hora, se for exigido dela. Um root que perdeu os seus e não tem outro root para pedir roda reset-root-password no servidor, que também os redefine."
+    "question": "Quando redefino a autenticação de dois fatores de alguém?",
+    "answer": "Quando a pessoa perdeu o celular e os códigos de backup. Ela entra só com a senha e configura a autenticação de dois fatores de novo na página Conta, na hora, se for exigido dela. Um root que perdeu os seus e não tem outro root para pedir roda reset-root-password no servidor, que também os redefine."
   },
   "retention": {
     "question": "O que é apagado, e quando?",
@@ -265,11 +265,11 @@
   },
   "erase-user": {
     "question": "O que apagar faz?",
-    "answer": "O e-mail, o nome, a foto, as senhas, os vínculos de login, os dois fatores, as sessões, os tokens, as participações, os favoritos, as escolhas dos Primeiros passos, o feedback enviado e os rascunhos da pessoa somem para sempre. O que ela fez continua sob o pseudônimo deleted-user-'<'id'>': os itens e versões que publicou, as submissões enviadas e os comentários de revisão, e os eventos de auditoria, que continuam fazendo sentido. O e-mail antigo fica livre na hora. Para impedir o acesso sem apagar, desative a conta."
+    "answer": "O e-mail, o nome, a foto, as senhas, os vínculos de login, a autenticação de dois fatores, as sessões, os tokens, as participações, os favoritos, as escolhas dos Primeiros passos, o feedback enviado e os rascunhos da pessoa somem para sempre. O que ela fez continua sob o pseudônimo deleted-user-'<'id'>': os itens e versões que publicou, as submissões enviadas e os comentários de revisão, e os eventos de auditoria, que continuam fazendo sentido. O e-mail antigo fica livre na hora. Para impedir o acesso sem apagar, desative a conta."
   },
   "notice": {
     "question": "Quem vê isto?",
-    "answer": "Todos que entraram, abaixo do cabeçalho de todas as páginas, depois que você mostrar o comunicado. Cada pessoa pode dispensá-lo; ele volta para ela quando você muda a mensagem ou o tom, e não quando você só o oculta e mostra. Ele não aparece na página de login e não é traduzido: escreva no idioma que as suas pessoas leem."
+    "answer": "Todos que entraram, abaixo do cabeçalho de todas as páginas, depois que você mostrar o comunicado. Cada pessoa pode dispensá-lo; ele volta para ela quando você muda a mensagem ou o tom, e não quando você só o oculta e mostra. Ele não aparece na página de login e não é traduzido: escreva no idioma que as pessoas da sua organização leem."
   },
   "notice-tone": {
     "question": "Informação ou Aviso?",
@@ -281,11 +281,11 @@
   },
   "your-data": {
     "question": "O que há no arquivo?",
-    "answer": "A sua conta (nunca o hash da senha nem o segredo dos dois fatores), as sessões, os nomes dos tokens, espaços de trabalho, pedidos, escopos, os favoritos, o feedback que você enviou, as escolhas dos Primeiros passos, os itens que você publicou, as submissões e comentários, e os eventos de auditoria de que você participou. Os e-mails de outras pessoas são substituídos. Não é um backup: arquivos e dados de outras pessoas não estão nele. Você pode baixá-lo uma vez a cada 10 minutos."
+    "answer": "A sua conta (nunca o hash da senha nem o segredo da autenticação de dois fatores), as sessões, os nomes dos tokens, espaços de trabalho, solicitações, escopos, os favoritos, o feedback que você enviou, as escolhas dos Primeiros passos, os itens que você publicou, as submissões e comentários, e os eventos de auditoria de que você participou. Os e-mails de outras pessoas são substituídos. Não é um backup: arquivos e dados de outras pessoas não estão nele. Você pode baixá-lo uma vez a cada 10 minutos."
   },
   "download-user-data": {
     "question": "Quando baixo os dados de alguém?",
-    "answer": "Quando a pessoa pediu o que a instância guarda sobre ela e não consegue entrar para pegar sozinha (conta desativada ou dois fatores perdidos), e antes de apagá-la: uma conta apagada não tem mais nada a dar. É o mesmo arquivo que ela receberia, conta como o único download dela a cada 10 minutos e fica registrado no registro de auditoria com você como autor."
+    "answer": "Quando a pessoa pediu o que a instância guarda sobre ela e não consegue entrar para pegar sozinha (conta desativada ou sem acesso à autenticação de dois fatores), e antes de apagá-la: uma conta apagada não tem mais nada a dar. É o mesmo arquivo que ela receberia, conta como o único download dela a cada 10 minutos e fica registrado no registro de auditoria com você como autor."
   },
   "usage-policy": {
     "question": "O que o rmk relata?",
@@ -297,11 +297,11 @@
   },
   "own-row": {
     "question": "Por que não posso mudar a minha própria conta aqui?",
-    "answer": "Para que ninguém se tranque do lado de fora por engano. Altere a sua senha em Conta; outro root pode mudar o seu papel, desativar você ou redefinir a sua senha."
+    "answer": "Para que ninguém fique sem acesso por engano. Altere a sua senha em Conta; outro root pode mudar o seu papel, desativar você ou redefinir a sua senha."
   },
   "audit-summary": {
     "question": "Como leio uma linha?",
-    "answer": "Cada linha é um evento: quando, quem, a ação e uma frase dizendo o que aconteceu. Abra-o para ver tudo o que foi registrado: o alvo, o endereço IP, os detalhes e o JSON bruto. O link dele abre o mesmo evento para quem você o compartilhar."
+    "answer": "Cada linha é um evento: quando, quem, a ação e uma frase dizendo o que aconteceu. Abra-o para ver tudo o que foi registrado: o alvo, o endereço IP, os detalhes e o JSON bruto. O link dele abre o mesmo evento com quem você o compartilhar."
   },
   "audit-incident": {
     "question": "Respondendo a um incidente?",
@@ -309,6 +309,6 @@
   },
   "audit-actor": {
     "question": "Quem posso pesquisar?",
-    "answer": "Parte de um e-mail, em qualquer caixa. system encontra eventos sem ninguém conectado, como a configuração e a linha de comando."
+    "answer": "Parte de um e-mail, com maiúsculas ou minúsculas. system encontra eventos sem ninguém conectado, como a configuração e a linha de comando."
   }
 }

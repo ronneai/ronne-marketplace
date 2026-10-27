@@ -85,9 +85,9 @@ describe("the item page in three languages", () => {
     expect(pt).toContain("Ela foi retirada: Breaks on Windows.");
     expect(pt).toContain("Mostrar a mais recente");
     const fr = await render("fr", { tab: "readme", version: "1.0.0" });
-    expect(fr).toContain("Vous consultez la 1.0.0, pas la plus récente (1.1.0).");
+    expect(fr).toContain("Vous consultez la 1.0.0, pas celle de l’étiquette latest (1.1.0).");
     expect(fr).toContain("Elle a été retirée : Breaks on Windows.");
-    expect(fr).toContain("Afficher la plus récente");
+    expect(fr).toContain("Afficher la version latest");
   });
 
   it("without a latest tag the notice says the listed version", async () => {
@@ -129,8 +129,8 @@ describe("the item page in three languages", () => {
       ],
       [
         "fr",
-        "Vous consultez la 1.0.0, pas la plus récente (1.1.0).",
-        "Afficher la plus récente",
+        "Vous consultez la 1.0.0, pas celle de l’étiquette latest (1.1.0).",
+        "Afficher la version latest",
         "obsolète",
       ],
     ] as const) {

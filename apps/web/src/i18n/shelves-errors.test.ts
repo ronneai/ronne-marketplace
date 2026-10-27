@@ -50,7 +50,7 @@ describe("pins and favorites errors in three languages (125)", () => {
       "Commencez ici compte déjà 12 éléments. Retirez-en un d’abord.",
     );
     expect(await text("fr", new PinLimitError("acme", 12))).toBe(
-      "Les éléments épinglés de acme sont déjà 12. Retirez-en un d’abord.",
+      "acme compte déjà 12 éléments épinglés. Retirez-en un d’abord.",
     );
   });
 

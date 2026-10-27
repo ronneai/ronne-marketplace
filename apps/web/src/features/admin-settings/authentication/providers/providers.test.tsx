@@ -448,7 +448,7 @@ describe("what the provider actions say, in each language (132)", () => {
     const en = await inLocaleAsync("en", enable);
     expect(en).toEqual({ error: new ProviderNotTestedError().message });
     expect(await inLocaleAsync("pt", enable)).toEqual({
-      error: "Rode o Testar login você mesmo e passe nele antes de ligar este provedor.",
+      error: "Execute pessoalmente o Testar login, com sucesso, antes de ativar este provedor.",
     });
     expect(await inLocaleAsync("fr", enable)).toEqual({
       error:

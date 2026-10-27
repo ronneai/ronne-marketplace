@@ -20,10 +20,10 @@
     "published": "publié le <date></date>"
   },
   "notice": {
-    "title": "{kind, select, latest {Vous consultez la {version}, pas la plus récente ({target}).} other {Vous consultez la {version}, pas la version listée ({target}).}}",
+    "title": "{kind, select, latest {Vous consultez la {version}, pas celle de l’étiquette latest ({target}).} other {Vous consultez la {version}, pas la version listée ({target}).}}",
     "yanked": "Elle a été retirée : {reason}. Les nouvelles installations ne peuvent pas la résoudre; les projets qui l’épinglent continuent de fonctionner.",
     "deprecated": "Elle est obsolète : {message}",
-    "show": "{kind, select, latest {Afficher la plus récente} other {Afficher la {version}}}"
+    "show": "{kind, select, latest {Afficher la version latest} other {Afficher la {version}}}"
   },
   "tabs": {
     "label": "Élément",
@@ -45,7 +45,7 @@
     "range": "Plage"
   },
   "risks": {
-    "none": "Rien de signalé : aucun hook, serveur MCP, règle de permission, ligne d’état, serveur de langage, script, exécutable ni adresse web."
+    "none": "Rien de signalé : aucun hook, serveur MCP, règle d’autorisation, ligne d’état, serveur de langage, script, exécutable ni adresse web."
   },
   "tools": {
     "title": "Fonctionne dans",
@@ -58,7 +58,7 @@
     "native": "Va dans <place></place>.",
     "nativeAsIs": "S’installe tel quel.",
     "bundle": "Installe ses éléments un par un.",
-    "degraded": "Va dans <place></place>, avec une partie laissée de côté : la page de l’outil dit laquelle.",
+    "degraded": "Va dans <place></place>, mais une partie est laissée de côté : la page de l’outil précise laquelle.",
     "off": "Le ronne.yaml de cette version tient l’élément à l’écart de cet outil.",
     "none": "{tool} n’a pas de place pour les éléments de type {type}; rmk les ignore donc ici, avec un avertissement.",
     "place": {
@@ -78,7 +78,7 @@
     },
     "stats": {
       "installs": "Installations, 30 jours",
-      "installsDetail": "{removed, number} retirées · {downloads, number} téléchargements",
+      "installsDetail": "{removed, number} désinstallations · {downloads, number} téléchargements",
       "runs": "Exécutions, 30 jours",
       "notCounted": "Non comptées",
       "runsNotCounted": "Les exécutions ne sont pas comptées pour les éléments de type {type}",
@@ -103,7 +103,7 @@
     },
     "install": {
       "title": "Installer",
-      "quickFlags": "Raccourcis",
+      "quickFlags": "Options rapides",
       "plugin": "Comme plugin Claude Code",
       "deprecated": "Cette version est obsolète : {message}",
       "allYanked": "Toutes les versions sont retirées : il n’y a rien à installer. Les projets qui en épinglent une continuent de fonctionner.",
@@ -120,8 +120,8 @@
     },
     "document": {
       "openInFiles": "Ouvrir dans Fichiers",
-      "binary": "Un fichier binaire. Fichiers le liste.",
-      "tooLarge": "Trop volumineux pour être affiché ici. Fichiers le liste.",
+      "binary": "Un fichier binaire. Il figure dans l’onglet Fichiers.",
+      "tooLarge": "Trop volumineux pour être affiché ici. Il figure dans l’onglet Fichiers.",
       "empty": "Ce fichier est vide.",
       "missing": "{path} n’est pas dans cette version.",
       "missingBody": "Le manifeste le mentionne, mais le paquet publié ne le contient pas."
@@ -129,7 +129,7 @@
     "dependencies": {
       "label": "Dépendances",
       "uses": "{count, plural, one {Utilise # élément} other {Utilise # éléments}}",
-      "loading": "Chargement du diagramme…"
+      "loading": "Chargement du canevas…"
     },
     "verification": {
       "title": "Vérification du paquet",
@@ -189,7 +189,7 @@
       "risk": {
         "hook": "S’exécute lors d’un événement",
         "mcp_server": "Démarre un serveur MCP",
-        "permission_policy": "Modifie les permissions",
+        "permission_policy": "Modifie les autorisations",
         "status_or_lsp": "Exécute une commande",
         "executable": "Fournit des fichiers exécutables",
         "shell_script": "Fournit des scripts shell",
@@ -197,7 +197,7 @@
       },
       "role": {
         "agent": "instruction système",
-        "skill": "entrée de la skill",
+        "skill": "fichier d’entrée",
         "rule": "corps de la règle",
         "command": "modèle de la commande",
         "output-style": "style de sortie",
@@ -219,12 +219,12 @@
         "user": "Saisi par une personne",
         "model": "Choisi par le modèle",
         "agent": "Utilisé dans un agent",
-        "ci": "En CI",
+        "ci": "En IC",
         "unknown": "Non signalé"
       },
       "outcome": {
         "success": "Réussie",
-        "error": "Terminée en erreur",
+        "error": "Terminée par une erreur",
         "cancelled": "Annulée",
         "unknown": "Non signalé"
       },
@@ -232,8 +232,8 @@
       "none": "Aucune au cours de ces jours.",
       "toolRuns": "{count, plural, one {# exécution} other {# exécutions}} ({share, number, percent})",
       "row": "{count, number} · <strong>{share, number, percent}</strong>",
-      "gap": "{tools} {count, plural, one {ne signale pas} other {ne signalent pas}} les exécutions de {type}; là, seules les installations sont comptées.",
-      "stopped": "Cette instance ne collecte plus l’utilisation; voici les jours conservés.",
+      "gap": "{tools} {count, plural, one {ne signale pas} other {ne signalent pas}} les exécutions de {type}; pour ces outils, seules les installations sont comptées.",
+      "stopped": "Cette instance ne collecte plus les données d’utilisation; voici les jours conservés.",
       "runsPerDay": "Exécutions par jour",
       "installsPerDay": "Installations par jour",
       "runsBar": "{day} : {count, plural, one {# exécution} other {# exécutions}}",
@@ -245,10 +245,10 @@
       "day": "Jour",
       "runsCol": "Exécutions",
       "installsCol": "Installations",
-      "removalsCol": "Retraits",
+      "removalsCol": "Désinstallations",
       "started": "Ce qui les a lancées",
       "ended": "Comment elles se sont terminées",
-      "counted": "Compté par rmk sur les machines qui rapportent à cette instance; <sent>voir ce qui est envoyé</sent>."
+      "counted": "Compté par rmk sur les machines qui transmettent leurs données à cette instance; <sent>voir ce qui est envoyé</sent>."
     }
   }
 }

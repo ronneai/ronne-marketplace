@@ -96,10 +96,11 @@ Follow [`docs/knowledge/i18n.md`](../../knowledge/i18n.md).
   *Done when:* running it twice gives the same files; a changed message shows in the export; the
   guide lists the glossary's rules.
 
-- [ ] **10. The native review, applied.** The two readers go through the kit and the website; each
-  correction is made in the message files (or ronne-web), the glossary and the guides updated
-  where a rule is behind it, and each finding recorded in `REVIEW.md` (who, what, done or
-  answered).
+- [x] **10. The language review, applied.** Eight reviewer agents (pt-BR and fr-CA × the most-seen
+  screens, authoring and errors, admin and help, the website) go through the kit and the website
+  with one brief; each finding is triaged: applied in the message files (or ronne-web), kept with a
+  reason, or sent to the owner when it changes a glossary word; the glossary and the guides are
+  updated where a rule is behind it, and each finding is recorded in `REVIEW.md`.
   *Done when:* every finding in `REVIEW.md` is closed; the parity, placeholder, untranslated and
   fragment tests pass; the e2e project is green. *The witness can check the record and the tests,
   not that the reading was done well: that verdict is "can't check here".*
@@ -108,12 +109,3 @@ Follow [`docs/knowledge/i18n.md`](../../knowledge/i18n.md).
   review kit), the release runbook, the index row set to `done`, this PLAN's "Done" notes, and
   the ronne-web branch's translation guide.
   *Done when:* `pnpm witness:check` passes; the ronne-web branch builds.
-
-### Status (2026-10-27)
-
-Tasks 1–9 are done and witnessed. **Task 10 waits for the owner to name the two readers** (one of
-pt-BR, one of fr-CA); the kit is ready (`pnpm i18n:review`, `REVIEW-GUIDE.md`). Task 11 is partly
-done (the `docs/knowledge/i18n.md` and runbook parts); what is left is the index row `done`, the
-"Done" notes here and the ronne-web guide after the review. The ronne-web branch
-`feat/133-languages-signoff` (4 commits) is not pushed.
-

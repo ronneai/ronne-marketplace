@@ -1,7 +1,7 @@
 {
   "header": {
     "title": "Conta",
-    "description": "Sua senha e como você entra. Cada alteração fica registrada no registro de auditoria.",
+    "description": "Sua senha e como você entra. Cada alteração fica gravada no registro de auditoria.",
     "languageDescription": "O idioma das telas do Ronne."
   },
   "tabs": {
@@ -13,17 +13,17 @@
   "password": {
     "metaTitle": "Senha",
     "title": "Alterar senha",
-    "intro": "Os outros navegadores e dispositivos são desconectados quando ela muda.",
+    "intro": "Ao alterar a senha, os outros navegadores e dispositivos são desconectados.",
     "current": "Senha atual",
     "next": "Nova senha",
     "nextHint": "De 12 a 128 caracteres.",
     "confirm": "Confirmar a nova senha",
     "submit": "Alterar senha",
     "changedTitle": "Senha alterada",
-    "changed": "Você continua conectado aqui; as outras sessões foram encerradas.",
+    "changed": "Sua sessão continua ativa aqui; as outras foram encerradas.",
     "required": {
       "title": "Escolha sua própria senha para continuar",
-      "body": "Um administrador definiu a senha com que você entrou. Troque-a por uma que só você conheça; o resto do Ronne abre depois disso. Use a senha com que você entrou como senha atual."
+      "body": "Um administrador definiu a senha com que você entrou. Troque-a por uma que só você conheça; o restante do Ronne fica disponível depois disso. Use a senha com que você entrou como senha atual."
     },
     "errors": {
       "wrong_password": "A senha atual está errada",
@@ -46,7 +46,7 @@
     "description": "As telas do Ronne estão em inglês, português e francês. Isto muda as telas, não o que as pessoas publicam: nomes, descrições e arquivos dos itens ficam como seus autores escreveram, e o rmk continua em inglês.",
     "label": "Idioma das telas",
     "automatic": "Automático (o idioma do navegador)",
-    "hint": "Automático segue o seu navegador, e o inglês quando ele pede outro idioma.",
+    "hint": "No modo automático, usa o idioma do navegador, ou o inglês se o navegador pedir um idioma que não está disponível.",
     "save": "Salvar",
     "savedTitle": "Idioma salvo",
     "saved": "As telas agora usam o idioma que você escolheu.",
@@ -56,7 +56,7 @@
   "security": {
     "required": {
       "title": "Configure a autenticação de dois fatores para continuar",
-      "body": "Seu administrador a exige para {who, select, reviewers {o root e os moderadores e administradores dos espaços de trabalho compartilhados} other {todas as pessoas}}. O resto do Ronne abre quando ela estiver ativa."
+      "body": "Seu administrador a exige para {who, select, reviewers {o root e os moderadores e administradores dos espaços de trabalho compartilhados} other {todas as pessoas}}. O restante do Ronne fica disponível quando ela estiver ativa."
     },
     "continue": {
       "title": "A autenticação de dois fatores está ativa",
@@ -77,13 +77,13 @@
     },
     "setup": {
       "password": "Sua senha",
-      "start": "Configurar a autenticação de dois fatores",
+      "start": "Configurar",
       "startOver": "Recomeçar",
       "doneTitle": "A autenticação de dois fatores está ativa",
       "done": "A partir de agora, ao entrar com a sua senha também será pedido um código do aplicativo.",
       "saved": "Já os salvei",
       "step1": "Abra o seu aplicativo autenticador (Google Authenticator, 1Password, Authy, Microsoft Authenticator…).",
-      "step2": "Leia o código QR, ou digite a chave.",
+      "step2": "Leia o código QR ou digite a chave.",
       "step3": "Digite o código de 6 dígitos que o aplicativo mostra.",
       "qrAlt": "Código QR para o seu aplicativo autenticador",
       "orType": "Ou digite esta chave",
@@ -101,8 +101,8 @@
       "off": "Agora, para entrar, só é pedida a sua senha.",
       "done": "Concluído",
       "turnOffLabel": "Desativar a autenticação de dois fatores",
-      "code": "Um código do aplicativo, ou um código de backup",
-      "turnOff": "Desativar a autenticação de dois fatores"
+      "code": "Um código do aplicativo ou um código de backup",
+      "turnOff": "Desativar"
     },
     "backup": {
       "fileTitle": "Ronne AI Marketplace: códigos de backup da autenticação de dois fatores",
@@ -112,11 +112,11 @@
       "save": "Eles não serão mostrados de novo. Cada um permite entrar uma vez se você perder o celular.",
       "copyAll": "Copiar todos",
       "copied": "Copiado",
-      "manual": "Selecionado: copie-os",
+      "manual": "Selecionados: copie-os",
       "download": "Baixar (.txt)"
     },
     "errors": {
-      "not_signed_in": "Você foi desconectado. Entre de novo.",
+      "not_signed_in": "Sua sessão foi encerrada. Entre de novo.",
       "no_password": "Sua conta não tem senha aqui: você entra pela sua empresa, que protege o login.",
       "wrong_password": "A senha está errada",
       "wrong_code": "Esse código está errado. Confira o relógio do celular se continuar falhando.",
@@ -133,7 +133,7 @@
     "metaTitle": "Tokens de acesso",
     "title": "Tokens de acesso",
     "description": "Tokens pessoais para o rmk e o servidor MCP. Eles agem como você; não conseguem entrar neste site.",
-    "empty": "Nenhum token ainda. Crie um, ou execute <code>rmk login</code>.",
+    "empty": "Nenhum token ainda. Crie um ou execute <code>rmk login</code>.",
     "name": "Nome",
     "token": "Token",
     "created": "Criado (UTC)",
@@ -169,7 +169,7 @@
       "copyNow": "Copie agora",
       "copyBody": "Ele não será mostrado de novo. Quem o tiver pode agir como você até ele expirar ou você revogá-lo.",
       "token": "Token: {name}",
-      "signIn": "Entre no rmk com ele",
+      "signIn": "Conecte o rmk com ele",
       "expires": "Expira em",
       "never": "Ele nunca expira."
     },
@@ -186,7 +186,7 @@
   },
   "gettingStarted": {
     "title": "Primeiros passos",
-    "description": "Traga de volta a lista de Primeiros passos no Início. Ela continua de onde você está: o que você já fez continua marcado.",
+    "description": "Traga de volta a lista de Primeiros passos no Início. Ela retoma de onde você parou: o que você já fez continua marcado.",
     "show": "Mostrar Primeiros passos de novo"
   }
 }

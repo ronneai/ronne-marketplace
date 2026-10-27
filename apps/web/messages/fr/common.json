@@ -4,7 +4,7 @@
     "automatic": "Automatique"
   },
   "metadata": {
-    "description": "Un registre organisé et auto-hébergé de capacités d’IA."
+    "description": "Un registre sélectionné et auto-hébergé de capacités d’IA."
   },
   "close": "Fermer",
   "copy": {
@@ -61,7 +61,7 @@
   },
   "notFound": {
     "title": "Page introuvable",
-    "message": "Il n’y a rien à cette adresse. Elle a peut-être changé, ou vous n’y avez peut-être pas accès.",
+    "message": "Il n’y a rien à cette adresse. La page a peut-être été déplacée, ou vous n’y avez peut-être pas accès.",
     "home": "Aller à l’accueil"
   },
   "error": {
@@ -89,11 +89,11 @@
     "step1": "Obtenez rmk",
     "step1Hint": "Depuis npm, avec Node.js 22.12 ou plus récent (<readme>le README</readme> en dit plus) :",
     "step2": "Connectez-vous",
-    "step2Tokens": "Avec votre courriel et votre mot de passe, ou avec un jeton personnel de <tokens>Jetons d’accès</tokens>.",
+    "step2Tokens": "Avec votre courriel et votre mot de passe, ou avec un jeton personnel créé dans <tokens>Jetons d’accès</tokens>.",
     "step2Here": "Avec votre courriel et votre mot de passe, ou avec un jeton personnel de cette page.",
-    "webHint": "Inscrit par votre entreprise, ou vous utilisez la connexion à deux facteurs? Approuvez plutôt dans le navigateur :",
+    "webHint": "Vous vous connectez par votre entreprise ou utilisez la double authentification? Approuvez plutôt dans le navigateur :",
     "step3": "Vérifiez, puis installez",
-    "step3Hint": "<mono>rmk whoami</mono> indique qui vous êtes. Chaque page d’élément affiche sa commande d’installation; la Documentation explique le reste une fois connecté.",
+    "step3Hint": "<mono>rmk whoami</mono> indique qui vous êtes. Chaque page d’élément affiche sa commande d’installation; la Documentation explique le reste une fois la connexion établie.",
     "globalHint": "En dehors de <mono>global</mono>, le nom d’un élément commence par son espace de travail : <mono>rmk install @workspace/scope/name</mono>."
   },
   "languageSwitch": {

@@ -153,7 +153,7 @@ describe("the setup wizard in three languages (132)", () => {
         "Configurer Ronne AI Marketplace",
         "Quelle base de données?",
         "Compte root",
-        "Mot de passe de nouveau",
+        "Confirmer le mot de passe",
         ">Installer<",
       ],
     };

@@ -902,7 +902,7 @@ describe("the pages", () => {
     const personal = await inLocaleAsync("fr", async () =>
       renderToStaticMarkup(await workspacePage("ana")),
     );
-    expect(personal).toContain("Le vôtre seul, toujours privé.");
+    expect(personal).toContain("À vous seul, toujours privé.");
     expect(personal).toContain(">Personnel<");
   });
 

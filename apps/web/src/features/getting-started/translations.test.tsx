@@ -48,7 +48,7 @@ describe("the checklist in Portuguese and French", () => {
     for (const text of [
       ">Pour commencer<",
       "2 sur 4 terminées",
-      'aria-label="Masquer Pour commencer"',
+      'aria-label="Masquer « Pour commencer »"',
       ">J’en ai installé un<",
       ">Facultative<",
       "Ensuite : Installez votre premier élément",

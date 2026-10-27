@@ -128,7 +128,7 @@ describe("sign-in in three languages (129)", () => {
     each(
       {
         en: ["Email or password is wrong"],
-        pt: ["O e-mail ou a senha está errado"],
+        pt: ["E-mail ou senha incorretos"],
         fr: ["Le courriel ou le mot de passe est incorrect"],
       },
       (l) =>
@@ -185,7 +185,7 @@ describe("the device page in three languages (129)", () => {
     each(
       {
         en: ["Sign in rmk", "The 8 characters rmk login --web printed.", "Continue"],
-        pt: ["Entrar no rmk", "Os 8 caracteres que o rmk login --web mostrou.", "Continuar"],
+        pt: ["Conectar o rmk", "Os 8 caracteres que o rmk login --web mostrou.", "Continuar"],
         fr: ["Connecter rmk", "Les 8 caractères qu’a affichés rmk login --web.", "Continuer"],
       },
       (l) => view(l, <DevicePage typed="" />),

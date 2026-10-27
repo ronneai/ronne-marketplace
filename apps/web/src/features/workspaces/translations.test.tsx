@@ -104,18 +104,18 @@ describe("the Workspaces list in three languages", () => {
 
   it("a request's state reads in the language, dates inside the sentence", () => {
     expect(list("en")).toMatch(/Requested <time[^>]*>2026-10-08<\/time>/);
-    expect(list("pt")).toMatch(/Solicitado em <time[^>]*>2026-10-08<\/time>/);
+    expect(list("pt")).toMatch(/Solicitada em <time[^>]*>2026-10-08<\/time>/);
     expect(list("pt")).toMatch(
-      /Recusado em <time[^>]*>2026-10-07<\/time>; peça de novo a partir de <time[^>]*>2026-10-20<\/time>/,
+      /Recusada em <time[^>]*>2026-10-07<\/time>; peça de novo a partir de <time[^>]*>2026-10-20<\/time>/,
     );
-    expect(list("fr")).toMatch(/Demandé le <time[^>]*>2026-10-08<\/time>/);
+    expect(list("fr")).toMatch(/Demandée le <time[^>]*>2026-10-08<\/time>/);
     expect(list("fr")).toMatch(
       /Refusée le <time[^>]*>2026-10-07<\/time>; redemandez à partir du <time[^>]*>2026-10-20<\/time>/,
     );
     expect(list("fr")).toContain("« Not now. »");
     expect(list("pt")).toContain("“Not now.”");
     // A declined request with no wait to serve has no "ask again".
-    expect(list("pt")).toMatch(/Recusado em <time[^>]*>2026-10-07<\/time>(?!;)/);
+    expect(list("pt")).toMatch(/Recusada em <time[^>]*>2026-10-07<\/time>(?!;)/);
   });
 
   it("the other requests, and Ask to join with the workspace in its name", () => {
@@ -123,7 +123,7 @@ describe("the Workspaces list in three languages", () => {
     expect(list("fr")).toContain("Vos autres demandes");
     expect(list("pt")).toContain('aria-label="Pedir para entrar em open"');
     expect(list("fr")).toContain('aria-label="Demander à se joindre à open"');
-    expect(list("fr")).toContain('aria-label="Annuler votre demande pour se joindre à asked"');
+    expect(list("fr")).toContain('aria-label="Annuler votre demande d’adhésion à asked"');
   });
 
   it("the join form counts characters in the language's number format", () => {

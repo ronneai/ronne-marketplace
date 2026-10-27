@@ -103,7 +103,7 @@ describe("dependency marks in three languages", () => {
     const words: Record<Locale, string[]> = {
       en: ["in review", "back with its author", "pending release", "not submitted"],
       pt: ["em revisão", "de volta com o autor", "aguardando lançamento", "não submetido"],
-      fr: ["en révision", "de retour chez son auteur", "en attente de publication", "non soumis"],
+      fr: ["en révision", "renvoyé à son auteur", "en attente de publication", "non soumis"],
     };
     const statuses = ["submitted", "changes_requested", "approved", "not_submitted"] as const;
     for (const l of ["en", "pt", "fr"] as const)

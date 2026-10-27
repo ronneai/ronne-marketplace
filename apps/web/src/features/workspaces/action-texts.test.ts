@@ -159,7 +159,7 @@ describe("the member actions", () => {
         )
       ).error,
     ).toBe(
-      "Vous ne pouvez pas modifier ni retirer votre propre adhésion : un autre admin ou root le fait.",
+      "Vous ne pouvez pas modifier ni retirer votre propre adhésion : un autre admin ou root doit le faire.",
     );
   });
 

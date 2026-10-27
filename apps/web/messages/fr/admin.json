@@ -114,7 +114,7 @@
     },
     "oneTime": {
       "title": "Affiché une seule fois",
-      "body": "Remettez ceci à l’utilisateur par un canal de confiance. Il ne sera plus affiché.",
+      "body": "Remettez ces informations à l’utilisateur par un canal de confiance. Elles ne seront plus affichées.",
       "email": "Courriel",
       "password": "Mot de passe"
     }
@@ -123,7 +123,7 @@
     "back": "← Utilisateurs",
     "self": {
       "title": "Voici votre propre compte.",
-      "body": "Un autre root modifie votre rôle, vous désactive ou réinitialise votre mot de passe. Changez votre mot de passe dans Compte."
+      "body": "C’est un autre root qui peut modifier votre rôle, vous désactiver ou réinitialiser votre mot de passe. Changez votre mot de passe dans Compte."
     },
     "sections": {
       "account": "Compte",
@@ -156,7 +156,7 @@
     },
     "automatic": "Automatique",
     "never": "Jamais",
-    "lastSignInHint": "Une connexion à l’application web, avec un mot de passe, un fournisseur ou une deuxième étape. Pas rmk ni un jeton.",
+    "lastSignInHint": "Une connexion à l’application web, avec un mot de passe, un fournisseur ou une deuxième étape. Pas une connexion par rmk ou par un jeton.",
     "on": "Activée",
     "off": "Désactivée",
     "rootEvery": "Root : tous les espaces de travail.",
@@ -397,7 +397,7 @@
     "more": "et {count, number} de plus",
     "hidden": "et {count, number} de plus que vous ne voyez pas : dans un espace de travail où vous n’êtes pas, ou un nom que personne n’a",
     "seenBy": {
-      "personal": "Vous seul et root",
+      "personal": "Seulement vous et root",
       "public": "Tout le monde sur cette instance",
       "private": "Seuls les membres de {workspace} et root"
     },
@@ -408,15 +408,15 @@
     "changesTitle": "Ce qui change",
     "itemsNamed": "{count, plural, one {Son # élément s’appellera :} other {Ses # éléments s’appelleront :}}",
     "oldNames": "Les anciens noms continuent de fonctionner, et <mono>rmk</mono> fait passer les projets aux nouveaux; dans Claude Code, ils apparaissent comme de nouveaux plugins.",
-    "noItems": "Il n’a pas encore d’éléments.",
+    "noItems": "Elle n’a pas encore d’éléments.",
     "whoSee": "<strong>Qui les verra :</strong> {who}.",
     "fewerSee": "Les installations des personnes qui ne les voient plus cessent de se mettre à jour.",
     "whoReview": "<strong>Qui les révisera :</strong> {who}",
     "reviewNobody": "personne : les espaces de travail personnels ne sont pas révisés.",
     "reviewBy": "les modérateurs et admins de {workspace}.",
-    "notMembers": "Travail ouvert de personnes qui ne sont pas membres de {workspace} : elles pourront le lire et le retirer, pas le modifier ni le soumettre.",
+    "notMembers": "Travaux en cours de personnes qui ne sont pas membres de {workspace} : elles pourront le lire et le retirer, pas le modifier ni le soumettre.",
     "openDependents": "Des soumissions ouvertes de l’extérieur qui dépendent de ses éléments échoueront à la publication :",
-    "notReviewed": "Non révisés : quelqu’un d’autre doit approuver le déplacement, et l’approuver les révise.",
+    "notReviewed": "Non révisés : quelqu’un d’autre doit approuver le déplacement, et l’approbation vaut révision.",
     "whereTo": "Destination",
     "pick": "Choisir un espace de travail",
     "nameThere": "Son nom là-bas",
@@ -439,14 +439,14 @@
       "checking": "Vérification du déplacement…",
       "fixName": "Corrigez d’abord le nom de la portée.",
       "pickAnother": "Choisissez-lui un autre nom là-bas.",
-      "refuses": "Un point listé plus haut refuse le déplacement.",
+      "refuses": "Un des points ci-dessus empêche le déplacement.",
       "typeName": "Saisissez le nom de la portée."
     },
     "doneMoved": "@{scope} a été déplacée vers {workspace}.",
     "doneAsked": "Demande de déplacement de @{scope} vers {workspace} envoyée.",
     "question": "{items, plural, one {Déplacer @{scope} et son # élément vers {workspace}, {renamed, select, true {renommée en} other {sous le nom}} {full}?} other {Déplacer @{scope} et ses # éléments vers {workspace}, {renamed, select, true {renommée en} other {sous le nom}} {full}?}}",
     "everyoneTitle": "Tout le monde les verra",
-    "everyoneBody": "Ses éléments deviendront ceux de tout le monde sur cette instance.",
+    "everyoneBody": "Ses éléments seront visibles par tout le monde sur cette instance.",
     "typeIntro": "Personne d’autre ne répond à ce déplacement. Pour confirmer, saisissez le nom de la portée, <mono>{scope}</mono>.",
     "scopeName": "Nom de la portée",
     "moveLabel": "Déplacer @{scope}",
@@ -577,13 +577,13 @@
           "format": "pas un jeton SCIM",
           "unknown": "un jeton inconnu",
           "revoked": "un jeton révoqué",
-          "expired": "un jeton au-delà de ses 24 heures après une rotation",
+          "expired": "un jeton expiré 24 heures après une rotation",
           "scim_off": "SCIM est désactivé pour le fournisseur",
           "root": "elle nommait un compte root, que Ronne gère",
           "root_member": "un groupe nommait un compte root comme membre, qui a été laissé de côté"
         },
         "ssoReasons": {
-          "unverified_email": "le fournisseur n’a pas dit que le courriel est vérifié",
+          "unverified_email": "le fournisseur n’a pas indiqué que le courriel était vérifié",
           "not_allowed": "aucun compte qu’il puisse lier ou créer",
           "disabled": "le compte est désactivé",
           "invalid_response": "la réponse du fournisseur n’a pas pu être vérifiée",
@@ -623,7 +623,7 @@
           "restored": "A restauré une sauvegarde faite par Ronne {version} le {time} : {rows, plural, one {# ligne} other {# lignes}}, {files, plural, one {# fichier stocké} other {# fichiers stockés}}{via}",
           "auth_provider_created": "A ajouté le fournisseur d’identité <code>{provider}</code>",
           "auth_provider_updated": "A modifié le fournisseur d’identité <code>{provider}</code>{hasChanged, select, true { : {changed}} other {}}",
-          "auth_provider_deleted": "A supprimé le fournisseur d’identité <code>{provider}</code>{memberships, plural, =0 {} one {, et l’# appartenance que ses groupes donnaient} other {, et les # appartenances que ses groupes donnaient}}",
+          "auth_provider_deleted": "A supprimé le fournisseur d’identité <code>{provider}</code>{memberships, plural, =0 {} one {, et l’appartenance que ses groupes donnaient} other {, et les # appartenances que ses groupes donnaient}}",
           "auth_provider_enabled": "A activé le fournisseur d’identité <code>{provider}</code>",
           "auth_provider_disabled": "A désactivé le fournisseur d’identité <code>{provider}</code>{retest, select, true { (ses réglages ont changé, il faut donc le tester de nouveau)} other {}}",
           "scim_enabled": "A activé SCIM pour <code>{provider}</code>",
@@ -652,15 +652,15 @@
           "data_exported": "A téléchargé les données de <name>{who}</name>{byRoot, select, true { (par root)} other {}}"
         },
         "auth": {
-          "signed_in": "{sso, select, true {Connecté avec <code>{provider}</code>} other {{remember, select, true {Connecté (mémorisé pendant 30 jours)} other {Connecté}}}}",
-          "sso_signed_in": "Connecté avec le fournisseur d’identité <code>{provider}</code>",
+          "signed_in": "{sso, select, true {Connexion avec <code>{provider}</code>} other {{remember, select, true {Connexion (mémorisée pendant 30 jours)} other {Connexion}}}}",
+          "sso_signed_in": "Connexion avec le fournisseur d’identité <code>{provider}</code>",
           "sso_failed": "Échec de connexion avec <code>{provider}</code>{hasEmail, select, true { pour <name>{email}</name>} other {}} : {why}",
           "device_started": "A demandé un code de connexion pour <name>{label}</name> ({clientId} login --web)",
           "device_approved": "A approuvé le code de connexion de <name>{label}</name>{hasIp, select, true {, demandé depuis {ip}} other {}}",
           "device_denied": "A refusé le code de connexion de <name>{label}</name>",
           "device_expired": "Un code de connexion de <name>{label}</name> a expiré avant d’être utilisé",
           "sign_in_failed": "Échec de connexion pour <name>{email}</name> : {reason}{via}",
-          "signed_out": "Déconnecté",
+          "signed_out": "Déconnexion",
           "two_factor_enabled": "A activé la double authentification",
           "two_factor_disabled": "A désactivé la double authentification",
           "backup_codes_regenerated": "A créé de nouveaux codes de secours; les anciens ont cessé de fonctionner",
@@ -694,7 +694,7 @@
         "submission": {
           "draft_created": "A créé un brouillon de <name>{item}</name> ({details}){via}",
           "draft_updated": "A mis à jour le brouillon de <name>{item}</name>{via}",
-          "submitted": "A soumis <name>{item}</name>{hasRevision, select, true { pour révision (révision {revision})} other { pour révision}}",
+          "submitted": "A soumis <name>{item}</name>{hasRevision, select, true { à réviser (révision {revision})} other { à réviser}}",
           "resubmitted": "A soumis de nouveau <name>{item}</name>{hasRevision, select, true { (révision {revision})} other {}}",
           "withdrawn": "A archivé <name>{item}</name>",
           "restored": "A restauré <name>{item}</name> comme brouillon",
@@ -727,7 +727,7 @@
         },
         "settings": {
           "two_factor_policy": "A changé qui doit utiliser la double authentification, de {from} à {to}",
-          "usage_policy": "A changé la politique d’utilisation, de {from} à {to}",
+          "usage_policy": "A changé le rapport d’utilisation, de {from} à {to}",
           "usage_minimum": "A changé le minimum d’utilisation, de {from} à {to}",
           "retention": "A changé la conservation : {changes}",
           "notice": "A changé l’avis de l’instance : {changes}"
@@ -848,7 +848,7 @@
       "staleBody": "Rechargez la page pour voir ses changements, puis refaites les vôtres.",
       "stepsTitle": "Configurez-le chez le fournisseur",
       "chooseTitle": "Choisissez votre fournisseur d’identité",
-      "chooseIntro": "OpenID Connect. Chacun remplit le formulaire et montre ses étapes de configuration.",
+      "chooseIntro": "OpenID Connect. Chaque choix préremplit le formulaire et affiche ses étapes de configuration.",
       "anyProvider": "Tout fournisseur qui publie un document de découverte",
       "formAdd": "Ajouter un fournisseur",
       "formEdit": "Modifier le fournisseur",
@@ -865,7 +865,7 @@
       "scopes": "Portées",
       "scopesHint": "openid est toujours demandé.{groupsScope, select, none {} other { Ajoutez {groupsScope} quand vous associez des groupes.}}",
       "whoLegend": "Qui peut se connecter",
-      "domains": "Domaines de courriel que ce fournisseur connecte",
+      "domains": "Domaines de courriel pris en charge par ce fournisseur",
       "domainsHint": "Une nouvelle adresse de ces domaines obtient un compte à sa première connexion; un compte existant avec une telle adresse est lié si la case ci-dessous est cochée. Vide : seuls les comptes déjà liés se connectent.",
       "linkByEmail": "Lier les comptes existants par courriel vérifié, dans ces domaines seulement",
       "groupsLegend": "Groupes",
@@ -918,7 +918,7 @@
       "title": "Provisionnement (SCIM)",
       "on": "Activé",
       "off": "Désactivé",
-      "intro": "{name} crée, met à jour et déprovisionne les comptes de lui-même, et garde les rôles d’espace de travail en phase avec ses groupes, grâce aux associations de groupes de cette page. Déprovisionner désactive un compte; ne l’efface jamais.",
+      "intro": "{name} crée, met à jour et déprovisionne les comptes de lui-même, et garde les rôles d’espace de travail en phase avec ses groupes, grâce aux associations de groupes de cette page. Déprovisionner désactive un compte, mais ne l’efface jamais.",
       "baseUrl": "URL de base",
       "token": "Jeton",
       "made": "Créé",
@@ -991,8 +991,8 @@
       "title": "Flux de plugins",
       "intro": "Le marketplace de chaque outil tel qu’il a été construit en entier la dernière fois : Claude Code lit le sien depuis ce site; rmk feed build lit ceux de Codex et de Cursor pour le miroir git.",
       "nearTitle": "Le marketplace de {tool} approche {what, select, both {de ses limites} size {de sa limite de taille} other {de sa limite de temps}}.",
-      "sizeBody": "Claude Code lit à une adresse un marketplace d’au plus 5 MiB. Au-delà, le marketplace cesse de se charger; ajoutez plutôt le miroir git (rmk feed build) dans Claude Code, qui n’a pas cette limite.",
-      "timeBody": "Claude Code attend 10 secondes un marketplace. Il est construit une fois par changement puis servi depuis la mémoire, donc seule la première requête après une publication attend autant.",
+      "sizeBody": "Claude Code lit à une adresse un marketplace d’au plus 5 Mio. Au-delà, le marketplace cesse de se charger; ajoutez plutôt le miroir git (rmk feed build) dans Claude Code, qui n’a pas cette limite.",
+      "timeBody": "Claude Code attend un marketplace pendant 10 secondes au plus. Il est construit une fois par changement puis servi depuis la mémoire, donc seule la première requête après une publication attend autant.",
       "columns": {
         "tool": "Outil",
         "size": "Taille",
@@ -1000,7 +1000,7 @@
         "buildTime": "Temps de construction",
         "built": "Construit"
       },
-      "ofLimit": " sur 5 MiB",
+      "ofLimit": " sur 5 Mio",
       "notBuilt": "Pas encore construit : il l’est la première fois que quelqu’un le lit."
     },
     "privacy": {
@@ -1027,7 +1027,7 @@
         "none": "Aucune exécution pour l’instant.",
         "schedulerOff": "Les tâches planifiées sont désactivées (RONNE_JOBS) : exécutez rmk-server purge depuis cron.",
         "firstRun": "La première exécution a lieu 5 minutes après le démarrage du serveur, puis toutes les 6 heures.",
-        "failed": "La dernière exécution, le <date></date>, a échoué ({error}). Les journaux du serveur disent pourquoi; la prochaine exécution suit l’horaire.",
+        "failed": "La dernière exécution, le <date></date>, a échoué ({error}). Les journaux du serveur disent pourquoi; la prochaine exécution aura lieu comme prévu.",
         "done": "Dernière exécution le <date></date> : {ips, plural, one {# adresse IP effacée} other {# adresses IP effacées}} et {emails, plural, one {# courriel de connexion échouée effacé} other {# courriels de connexions échouées effacés}}; {sessions, plural, one {# session expirée supprimée} other {# sessions expirées supprimées}}, {grants, plural, one {# approbation de connexion rmk terminée supprimée} other {# approbations de connexion rmk terminées supprimées}} et {feedback, plural, one {# message de commentaires traité supprimé} other {# messages de commentaires traités supprimés}}.",
         "running": "Une exécution est en cours."
       },
@@ -1128,7 +1128,7 @@
       "name": "Nom affiché",
       "password": "Mot de passe",
       "passwordHint": "De 12 à 128 caractères. Rien d’autre n’est exigé : c’est la longueur qui compte.",
-      "again": "Mot de passe de nouveau"
+      "again": "Confirmer le mot de passe"
     },
     "errors": {
       "already_set_up": "Quelqu’un a déjà configuré cette instance. Connectez-vous.",

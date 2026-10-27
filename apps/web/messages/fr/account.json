@@ -7,7 +7,7 @@
   "tabs": {
     "label": "Compte",
     "password": "Mot de passe",
-    "security": "Connexion à deux facteurs",
+    "security": "Double authentification",
     "language": "Langue"
   },
   "password": {
@@ -20,23 +20,23 @@
     "confirm": "Confirmer le nouveau mot de passe",
     "submit": "Changer le mot de passe",
     "changedTitle": "Mot de passe changé",
-    "changed": "Vous restez connecté ici; les autres sessions ont été fermées.",
+    "changed": "Votre session reste ouverte ici; les autres sessions ont été fermées.",
     "required": {
       "title": "Choisissez votre propre mot de passe pour continuer",
-      "body": "Un administrateur a défini le mot de passe avec lequel vous vous êtes connecté. Remplacez-le par un mot de passe que vous seul connaissez; le reste de Ronne s’ouvre ensuite. Utilisez le mot de passe avec lequel vous vous êtes connecté comme mot de passe actuel."
+      "body": "Un administrateur a défini le mot de passe utilisé pour cette connexion. Remplacez-le par un mot de passe connu de vous seulement; le reste de Ronne s’ouvre ensuite. Comme mot de passe actuel, utilisez celui qui vous a servi à vous connecter."
     },
     "errors": {
       "wrong_password": "Le mot de passe actuel est incorrect",
       "too_short": "Le nouveau mot de passe doit contenir au moins 12 caractères",
       "too_long": "Le nouveau mot de passe peut contenir au plus 128 caractères",
       "mismatch": "Les nouveaux mots de passe ne correspondent pas",
-      "same_password": "Le nouveau mot de passe doit être différent de celui avec lequel vous vous êtes connecté",
+      "same_password": "Le nouveau mot de passe doit être différent de celui qui vous a servi à vous connecter",
       "rate_limited": "Trop de tentatives, attendez une minute"
     }
   },
   "data": {
     "title": "Vos données",
-    "description": "Tout ce que cette instance conserve à votre sujet dans un seul fichier JSON : votre compte, vos sessions, les noms de vos jetons, vos espaces de travail, éléments, soumissions, commentaires et événements d’audit. Ce n’est pas une sauvegarde, et les données des autres personnes n’y figurent pas. Vous pouvez le télécharger une fois toutes les 10 minutes. Une liste de plus de 10 000 lignes est tronquée, et le fichier l’indique en haut; demandez à root une exportation de la base de données si vous en avez besoin de plus.",
+    "description": "Tout ce que cette instance conserve à votre sujet dans un seul fichier JSON : votre compte, vos sessions, les noms de vos jetons, vos espaces de travail, éléments, soumissions, commentaires et événements d’audit. Ce n’est pas une sauvegarde, et les données des autres personnes n’y figurent pas. Vous pouvez le télécharger une fois toutes les 10 minutes. Une liste de plus de 10 000 lignes est tronquée, et le fichier l’indique en haut; demandez à root une exportation de la base de données s’il vous en faut davantage.",
     "download": "Télécharger mes données",
     "lastDownloaded": "Dernier téléchargement :"
   },
@@ -46,7 +46,7 @@
     "description": "Les écrans de Ronne existent en anglais, en portugais et en français. Cela change les écrans, pas ce que les gens publient : les noms, descriptions et fichiers des éléments restent comme leurs auteurs les ont écrits, et rmk reste en anglais.",
     "label": "Langue des écrans",
     "automatic": "Automatique (la langue du navigateur)",
-    "hint": "Automatique suit votre navigateur, et l’anglais s’il demande une autre langue.",
+    "hint": "Automatique suit la langue de votre navigateur, ou utilise l’anglais si cette langue n’est pas offerte.",
     "save": "Enregistrer",
     "savedTitle": "Langue enregistrée",
     "saved": "Les écrans utilisent maintenant la langue que vous avez choisie.",
@@ -55,31 +55,31 @@
   },
   "security": {
     "required": {
-      "title": "Configurez la connexion à deux facteurs pour continuer",
+      "title": "Configurez la double authentification pour continuer",
       "body": "Votre administrateur l’exige pour {who, select, reviewers {root ainsi que les modérateurs et administrateurs des espaces de travail partagés} other {tout le monde}}. Le reste de Ronne s’ouvre dès qu’elle est activée."
     },
     "continue": {
-      "title": "La connexion à deux facteurs est activée",
+      "title": "La double authentification est activée",
       "body": "Vous pouvez retourner à ce que vous faisiez.",
       "button": "Continuer"
     },
     "panel": {
-      "title": "Connexion à deux facteurs",
+      "title": "Double authentification",
       "on": "Activée",
       "off": "Désactivée",
       "companyTitle": "La connexion de votre entreprise protège votre compte",
       "company": "Vous vous connectez par le fournisseur d’identité de votre entreprise, qui demande sa propre deuxième étape. Il n’y a rien à configurer ici.",
-      "offIntro": "La connexion demandera aussi un code à 6 chiffres d’une application sur votre téléphone, de sorte qu’un mot de passe volé ne suffit pas.",
+      "offIntro": "La connexion demandera aussi un code à 6 chiffres d’une application sur votre téléphone, de sorte qu’un mot de passe volé ne suffise pas.",
       "onIntro": "La connexion avec votre mot de passe demande aussi un code de votre application d’authentification, ou l’un de vos codes de secours.",
       "codesLeft": "{count, plural, one {# code de secours restant.} other {# codes de secours restants.}}",
       "backupTitle": "Codes de secours",
-      "turnOffTitle": "Désactiver la connexion à deux facteurs"
+      "turnOffTitle": "Désactiver la double authentification"
     },
     "setup": {
       "password": "Votre mot de passe",
-      "start": "Configurer la connexion à deux facteurs",
+      "start": "Configurer la double authentification",
       "startOver": "Recommencer",
-      "doneTitle": "La connexion à deux facteurs est activée",
+      "doneTitle": "La double authentification est activée",
       "done": "Désormais, la connexion avec votre mot de passe demande aussi un code de l’application.",
       "saved": "Je les ai enregistrés",
       "step1": "Ouvrez votre application d’authentification (Google Authenticator, 1Password, Authy, Microsoft Authenticator…).",
@@ -97,33 +97,33 @@
       "regenerateLabel": "Nouveaux codes de secours",
       "regenerateNote": "Dix nouveaux codes, affichés une seule fois. Ceux que vous avez maintenant cessent de fonctionner.",
       "regenerate": "Créer de nouveaux codes de secours",
-      "offTitle": "La connexion à deux facteurs est désactivée",
+      "offTitle": "La double authentification est désactivée",
       "off": "La connexion ne demande maintenant que votre mot de passe.",
       "done": "Terminé",
-      "turnOffLabel": "Désactiver la connexion à deux facteurs",
+      "turnOffLabel": "Désactiver la double authentification",
       "code": "Un code de l’application, ou un code de secours",
-      "turnOff": "Désactiver la connexion à deux facteurs"
+      "turnOff": "Désactiver la double authentification"
     },
     "backup": {
-      "fileTitle": "Ronne AI Marketplace : codes de secours de la connexion à deux facteurs",
+      "fileTitle": "Ronne AI Marketplace : codes de secours de la double authentification",
       "fileAbout": "Chaque code ne fonctionne qu’une fois, à la place d’un code de votre application d’authentification.",
       "title": "Codes de secours",
       "saveTitle": "Enregistrez-les maintenant",
       "save": "Ils ne seront plus affichés. Chacun permet de vous connecter une fois si vous perdez votre téléphone.",
       "copyAll": "Tout copier",
       "copied": "Copié",
-      "manual": "Sélectionné : copiez-les",
+      "manual": "Sélectionnés : copiez-les",
       "download": "Télécharger (.txt)"
     },
     "errors": {
-      "not_signed_in": "Vous avez été déconnecté. Connectez-vous de nouveau.",
+      "not_signed_in": "Votre session a été fermée. Connectez-vous de nouveau.",
       "no_password": "Votre compte n’a pas de mot de passe ici : vous vous connectez par votre entreprise, qui protège la connexion.",
       "wrong_password": "Le mot de passe est incorrect",
       "wrong_code": "Ce code est incorrect. Vérifiez l’horloge du téléphone si cela continue d’échouer.",
-      "used": "Ce code a déjà été utilisé. Attendez le suivant de l’application.",
+      "used": "Ce code a déjà été utilisé. Attendez le prochain code de l’application.",
       "rate_limited": "Trop de tentatives, attendez une minute",
-      "already_on": "La connexion à deux facteurs est déjà activée",
-      "not_enabled": "La connexion à deux facteurs est désactivée",
+      "already_on": "La double authentification est déjà activée",
+      "not_enabled": "La double authentification est désactivée",
       "another_tab": "La configuration a été commencée dans un autre onglet. Recommencez.",
       "replaced": "Cette configuration a été remplacée par une plus récente, dans un autre onglet ou par un second clic. Recommencez.",
       "just_made": "Vous venez de créer de nouveaux codes de secours : utilisez ceux-là."
@@ -138,7 +138,7 @@
     "token": "Jeton",
     "created": "Créé (UTC)",
     "lastUsed": "Dernière utilisation",
-    "expires": "Expire le",
+    "expires": "Expiration",
     "status": "État",
     "actions": "Actions",
     "viaDevice": "approbation dans le navigateur",
@@ -186,7 +186,7 @@
   },
   "gettingStarted": {
     "title": "Pour commencer",
-    "description": "Faites revenir la liste Pour commencer sur l’accueil. Elle reprend là où vous en êtes : ce que vous avez fait reste coché.",
-    "show": "Afficher de nouveau la liste Pour commencer"
+    "description": "Faites revenir la liste « Pour commencer » sur l’accueil. Elle reprend là où vous en êtes : ce que vous avez fait reste coché.",
+    "show": "Afficher de nouveau la liste « Pour commencer »"
   }
 }

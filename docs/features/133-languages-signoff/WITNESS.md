@@ -276,3 +276,50 @@ Witnessed: 2026-10-27, by a fresh agent (blind, re-check of row 8). Commit: a01d
 
 **Overall:** met.
 
+## Task 10 — The language review, applied
+
+Witnessed: 2026-10-27 19:34 EDT, by a fresh agent (blind). Commit: 2b9aca96 plus the uncommitted diff (ronne-web 3e495fb plus its diff). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Every row of REVIEW.md has a status and every changed or kept row a note; the totals match | no | confirmed | a probe over the 407 rows; fr-C-39 reads more like changed than kept |
+| 2 | The done rows are applied | no | confirmed | all 370 checked by key or line; six explained differences |
+| 3 | The changed rows match their notes | no | confirmed | 8 checked by hand |
+| 4 | The kept rows have sound reasons | no | confirmed | all 12 judged |
+| 5 | French says « double authentification » everywhere | no | confirmed | grep over app and site: no « deux facteurs » |
+| 6 | Portuguese says "autenticação de dois fatores"; the glossary has the row | no | confirmed | grep; `i18n.md:192` |
+| 7 | The website quotes the app's current labels | no | not met | six bold labels still had the app's old text |
+| 8 | Parity, placeholder, untranslated and fragment tests pass | no | confirmed | 355 tests; a planted parity break failed |
+| 9 | The app's unit project passes | no | confirmed | 3368 tests |
+| 10 | Root lint and typecheck pass | no | confirmed | `pnpm lint` exit 0 (45 warnings, 2 infos); `pnpm typecheck` 7 of 7 tasks |
+| 11 | ronne-web lint, typecheck and test pass | no | not met | `metadata.test.ts`: the pt home description was 172 characters, over the 160 limit |
+| 12 | The e2e project is green | no | confirmed | sweep, languages-admin and languages-rest: 69 passed (the full run of 311 by the implementer) |
+| 13 | The test changes only update expected strings | no | confirmed | all 25 files read |
+| 14 | The two-factor Help moved out of the legend; the sweep passes on phone-webkit | no | confirmed | 15 of 15; the Help still renders |
+| 15 | The reading was done well | no | can't check here | the witness checks the record and the tests, not a language reading; the owner chose an agent review (SPEC, Decisions), and a native read stays possible with the kit |
+
+**Overall:** not met (rows 7 and 11).
+
+The work after this pass: the six website labels, the guide's "Set up two-factor" row and the app's fr Help naming the old button were updated; the two pt metadata texts were shortened; REVIEW.md regenerated.
+
+Witnessed: 2026-10-27 19:43 EDT, by a fresh agent (blind re-check, rows 1, 7 and 11). Commit: 2b9aca96 plus the uncommitted tree (ronne-web 3e495fb plus its tree). Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The website quotes no old app label | yes | confirmed | the stale-label probe printed nothing |
+| 7 | REVIEW.md agrees with the files | yes | partly | pt-B-13 was done though its final text differs |
+| 11 | The shortened pt metadata keeps the meaning, and the checks pass | yes | partly | checks pass; the description had dropped "capacidades" with room left |
+
+**Overall:** not met.
+
+The work after this pass: pt-B-13 is changed with a note; the description and title keep "registro" and "capacidades" within the limits.
+
+Witnessed: 2026-10-27 19:46 EDT, by a fresh agent (blind, re-check of rows 7 and 11). Commit: 2b9aca96 plus the uncommitted tree (ronne-web 3e495fb plus its tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 7 | REVIEW.md agrees with the files: no stale label, the totals right, only the five known probe artefacts flagged | yes | confirmed | `rows 407 { done: 367, changed: 29, kept: 11 }`, matching line 9; stale probe silent |
+| 11 | The pt website texts keep the meaning within the site's limits, and the notes match | yes | confirmed | title 59 characters, description 158; ronne-web 187 tests pass, lint clean |
+
+**Overall:** met.
+

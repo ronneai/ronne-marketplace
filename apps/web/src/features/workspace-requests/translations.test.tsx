@@ -160,15 +160,15 @@ describe("Scope moves in three languages", () => {
       "1 item<",
       "2 itens",
       "Não revisadas: 1.0.0, 1.1.0. Aprovar as revisa.",
-      "2 coisas a impedem agora: Aprovar lista.",
+      "2 motivos impedem isso agora: Aprovar mostra quais.",
       ">Renomeado<",
-      'aria-label="Aprovar mover @beta/infra para acme"',
+      'aria-label="Aprovar a movimentação de @beta/infra para acme"',
     ])
       expect(pt, text).toContain(text);
     const fr = view("fr", <ScopeMovesTable moves={[move()]} />);
     for (const text of [
       "Non révisées : 1.0.0, 1.1.0. Approuver les révise.",
-      "2 éléments la refusent maintenant",
+      "2 obstacles empêchent maintenant le déplacement",
       ">Renommé<",
       "1 élément<",
     ])
@@ -183,8 +183,10 @@ describe("Scope moves in three languages", () => {
     const one = (l: Locale) =>
       view(l, <ScopeMovesTable moves={[move({ impact: impact({ clash: true }) })]} />);
     expect(one("en")).toContain("1 thing refuses it now: Approve lists them.");
-    expect(one("pt")).toContain("1 coisa a impede agora: Aprovar lista.");
-    expect(one("fr")).toContain("1 élément la refuse maintenant : Approuver les liste.");
+    expect(one("pt")).toContain("1 motivo impede isso agora: Aprovar mostra qual.");
+    expect(one("fr")).toContain(
+      "1 obstacle empêche maintenant le déplacement : Approuver les liste.",
+    );
   });
 });
 
