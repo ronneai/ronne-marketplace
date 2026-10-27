@@ -21,6 +21,10 @@ vi.mock("next/link", () => ({
 vi.mock("./actions", () => ({
   saveTwoFactorPolicy: vi.fn(),
   savePasswordSignInPolicy: vi.fn(),
+  saveUsagePolicy: vi.fn(),
+  saveUsageMinimum: vi.fn(),
+  saveRetention: vi.fn(),
+  retryErasures: vi.fn(),
 }));
 vi.mock("./authentication/providers/actions", () => ({
   saveProviderFromForm: vi.fn(),
@@ -52,6 +56,12 @@ const { ProviderControls, ConnectionResult, TestResult, DeleteConfirm } = await 
 );
 const { ScimSection, NewToken } = await import("./authentication/providers/ScimSection");
 const { SETTINGS_TABS } = await import("./tabs");
+const { UsagePolicyForm } = await import("./usage/UsagePolicyForm");
+const { UsageMinimumForm } = await import("./usage/UsageMinimumForm");
+const { PluginFeedsPanel } = await import("./feeds/PluginFeedsPanel");
+const { LastRun } = await import("./privacy/LastRun");
+const { PendingErasures } = await import("./privacy/PendingErasures");
+const { RetentionForm } = await import("./privacy/RetentionForm");
 
 type L = "en" | "pt" | "fr";
 const NS = ["admin", "common"];
@@ -359,6 +369,197 @@ describe("Settings › Authentication in three languages (132)", () => {
         .replaceAll("Google Workspace", "Google");
       expect(await englishLeaks(NS, locale, html)).toEqual([]);
       expect(await ownTextsShown(["admin"], locale, html)).toBeGreaterThan(60);
+    });
+  }
+});
+
+// Usage, Plugin feeds and Privacy (task 8).
+const at = new Date("2026-10-18T12:00:00.000Z");
+const counts = (n: number) => ({
+  ipsCleared: n,
+  emailsCleared: n,
+  sessionsDeleted: n,
+  grantsDeleted: n,
+  feedbackDeleted: n,
+});
+const lastRun = (locale: L, n: number) =>
+  render(
+    <LastRun
+      status={{
+        lastRunAt: at,
+        lastResult: { at: at.toISOString(), ms: 1, status: "ok", counts: counts(n) },
+        running: true,
+        schedulerOff: false,
+      }}
+    />,
+    locale,
+  );
+const feeds = (locale: L, extra = {}) =>
+  render(
+    <PluginFeedsPanel
+      rows={
+        [
+          {
+            tool: "claude-code",
+            stats: { sizeBytes: 4_800_000, plugins: 1234, buildMs: 1250, builtAt: at },
+            warnings: ["size", "time"],
+          },
+          {
+            tool: "codex",
+            stats: { sizeBytes: 2048, plugins: 2, buildMs: 80, builtAt: at },
+            warnings: [],
+          },
+          { tool: "cursor", stats: null, warnings: [], ...extra },
+        ] as never
+      }
+    />,
+    locale,
+  );
+const ret = { ipDays: 90, sessionsDays: 90, feedbackDays: 1 };
+const erasures = (locale: L, n: number) =>
+  render(
+    <PendingErasures
+      erasures={Array.from({ length: n }, (_, i) => ({ userId: `u${i}`, startedAt: at }))}
+    />,
+    locale,
+  );
+const usageAndPrivacy = (locale: L) =>
+  [
+    render(<UsagePolicyForm policy="choice" />, locale),
+    render(<UsageMinimumForm minimum={5} />, locale),
+    feeds(locale),
+    render(
+      <LastRun
+        status={{ lastRunAt: null, lastResult: null, running: false, schedulerOff: true }}
+      />,
+      locale,
+    ),
+    render(
+      <LastRun
+        status={{ lastRunAt: null, lastResult: null, running: false, schedulerOff: false }}
+      />,
+      locale,
+    ),
+    render(
+      <LastRun
+        status={{
+          lastRunAt: at,
+          lastResult: { at: at.toISOString(), ms: 1, status: "failed", error: "Error" },
+          running: false,
+          schedulerOff: false,
+        }}
+      />,
+      locale,
+    ),
+    lastRun(locale, 1),
+    lastRun(locale, 2),
+    erasures(locale, 1),
+    erasures(locale, 2),
+    render(<RetentionForm retention={ret} />, locale),
+  ].join("\n");
+
+describe("Settings › Usage, Plugin feeds and Privacy in three languages (132)", () => {
+  it("the usage forms read in each language", () => {
+    expect(render(<UsagePolicyForm policy="off" />, "pt")).toContain("Cada pessoa escolhe");
+    expect(render(<UsagePolicyForm policy="off" />, "fr")).toContain("Chacun choisit");
+    expect(render(<UsagePolicyForm policy="off" />, "pt")).toContain("Obrigatório");
+    expect(render(<UsagePolicyForm policy="off" />, "fr")).toContain("Désactivé");
+    expect(render(<UsageMinimumForm minimum={0} />, "pt")).toContain(
+      "Mostrar o uso de um item a partir de",
+    );
+    expect(render(<UsageMinimumForm minimum={0} />, "fr")).toContain(
+      "installations ou exécutions en 30 jours",
+    );
+  });
+
+  it("the plugin feeds read in each language, with numbers written by the language", () => {
+    expect(feeds("en")).toContain("Claude Code’s marketplace is near its limits.");
+    expect(feeds("pt")).toContain("O marketplace de Claude Code está perto de seus limites.");
+    expect(feeds("fr")).toContain("Le marketplace de Claude Code approche de ses limites.");
+    expect(feeds("en")).toContain("4.6 MiB");
+    expect(feeds("pt")).toContain("4,6 MiB");
+    expect(feeds("pt")).toContain("1,3 s");
+    expect(feeds("fr")).toMatch(/1[\s\u202f\u00a0]234/);
+    expect(feeds("en")).toContain("1,234");
+    expect(feeds("pt")).toContain("Tempo de construção");
+    expect(feeds("fr")).toContain("Pas encore construit");
+  });
+
+  it("names the limit it nears: size only, time only, or both", () => {
+    const one = (locale: L, warnings: string[]) =>
+      render(
+        <PluginFeedsPanel
+          rows={
+            [
+              {
+                tool: "claude-code",
+                stats: { sizeBytes: 1, plugins: 1, buildMs: 1, builtAt: at },
+                warnings,
+              },
+            ] as never
+          }
+        />,
+        locale,
+      );
+    expect(one("en", ["size"])).toContain("is near its size limit.");
+    expect(one("en", ["time"])).toContain("is near its time limit.");
+    expect(one("pt", ["size"])).toContain("perto de seu limite de tamanho.");
+    expect(one("fr", ["time"])).toContain("approche de sa limite de temps.");
+  });
+
+  it("the purge's last run counts what it cleared by each language's rule (0, 1 and 2)", () => {
+    expect(lastRun("en", 0)).toContain("cleared 0 IP addresses and 0 failed sign-ins’ emails");
+    // Zero is singular in Portuguese and French.
+    expect(lastRun("pt", 0)).toContain("apagou 0 endereço IP e 0 e-mail de acesso que falhou");
+    expect(lastRun("fr", 0)).toContain("0 adresse IP effacée");
+    expect(lastRun("en", 1)).toContain("cleared 1 IP address and 1 failed sign-in’s email");
+    expect(lastRun("en", 2)).toContain("cleared 2 IP addresses and 2 failed sign-ins’ emails");
+    expect(lastRun("pt", 1)).toContain("apagou 1 endereço IP e 1 e-mail de acesso que falhou");
+    expect(lastRun("pt", 2)).toContain("apagou 2 endereços IP");
+    expect(lastRun("fr", 1)).toContain("1 adresse IP effacée");
+    expect(lastRun("fr", 2)).toContain("2 adresses IP effacées");
+    expect(lastRun("pt", 1)).toContain("Uma execução está em andamento.");
+  });
+
+  it("the purge's other states and the retention form read in each language", () => {
+    const idle = (locale: L, schedulerOff: boolean) =>
+      render(
+        <LastRun status={{ lastRunAt: null, lastResult: null, running: false, schedulerOff }} />,
+        locale,
+      );
+    expect(idle("pt", false)).toContain("Nenhuma execução ainda.");
+    expect(idle("fr", true)).toContain("RONNE_JOBS");
+    expect(render(<RetentionForm retention={ret} />, "pt")).toContain("Guardar endereços IP por");
+    expect(render(<RetentionForm retention={ret} />, "fr")).toContain(
+      "Garder les adresses IP pendant",
+    );
+    // The unit follows the number typed: 1 day, 90 days.
+    expect(render(<RetentionForm retention={ret} />, "en")).toContain(">day<");
+    expect(render(<RetentionForm retention={ret} />, "pt")).toContain(">dias<");
+    expect(render(<RetentionForm retention={ret} />, "pt")).toContain(">dia<");
+  });
+
+  it("the pending erasures count by each language's rule (0, 1 and 2)", () => {
+    // None: nothing is shown but the Retry result.
+    expect(erasures("en", 0)).toBe("");
+    expect(erasures("pt", 0)).toBe("");
+    expect(erasures("en", 1)).toContain("An erasure wasn’t completed.");
+    expect(erasures("en", 2)).toContain("2 erasures weren’t completed.");
+    expect(erasures("pt", 1)).toContain("Um apagamento não foi concluído.");
+    expect(erasures("pt", 2)).toContain("2 apagamentos não foram concluídos.");
+    expect(erasures("fr", 1)).toContain("Un effacement n’a pas été terminé.");
+    expect(erasures("fr", 2)).toContain("2 effacements n’ont pas été terminés.");
+    expect(render(<PendingErasures erasures={[]} />, "pt")).toBe("");
+  });
+
+  for (const locale of ["pt", "fr"] as const) {
+    it(`${locale}: usage, feeds and privacy leave no English behind`, async () => {
+      const html = usageAndPrivacy(locale).replace(
+        /<button[^>]*aria-haspopup="dialog"[\s\S]*?<\/noscript>/g,
+        "",
+      );
+      expect(await englishLeaks(NS, locale, html)).toEqual([]);
+      expect(await ownTextsShown(["admin"], locale, html)).toBeGreaterThan(25);
     });
   }
 });

@@ -215,3 +215,34 @@ Witnessed: 2026-10-27, by a fresh agent (re-check of rows 6 and 8). Commit: e953
 | 8 | No English sentence of the Authentication tab or the Settings page changed, but for curly apostrophes | yes | confirmed | The HEAD version of the 12 changed non-test files parsed with swc: 84 sentences of 3+ words checked against `en/admin.json` `settings.*` and `notice.*`, 0 missing; the leftovers are paths, classes, identifiers and field names |
 
 **Overall:** met.
+
+## Task 8 — Settings: Usage, Plugin feeds, Privacy, Notice
+
+Witnessed: 2026-10-27 12:10 EDT, by a fresh agent (blind). Commit: c24dcd17 plus the uncommitted tree. Machine: macOS (Darwin 27.0.0), Node 24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The usage forms, the plugin feeds and the privacy panels read their words from messages | yes | confirmed | Every visible string and aria-label in the 7 components is `t(...)`; the HEAD prose literals are all in `en/admin.json` |
+| 2 | The new keys exist in en, pt and fr with the same placeholders | yes | confirmed | +75 lines in each; `vitest run src/i18n src/features/admin-settings` → 452 passed |
+| 3 | English is unchanged but for the stated deviations (curly apostrophes, plural counts in the purge sentence, the retention unit following the number, numbers written by the language) | yes | confirmed | The literal check; only apostrophes changed in the old test lines |
+| 4 | Three-language tests cover the purge sentence and the erasures for counts 0, 1 and 2 | yes | partly | 1 and 2 were asserted; 0 was not |
+| 5 | The tests fail when a translation is left in English | yes | confirmed | Six mutations (long and short, pt and fr) each failed the generic test |
+| 6 | The only message identical to English is allowed | yes | confirmed | `settings.feeds.columns.plugins` (pt, fr) is in the SAME table |
+| 7 | The purge sentence reads correctly with plurals in pt and fr | yes | confirmed | Read for 1 and 2 |
+| 8 | Numbers use the language's separators; MiB, KiB and "s" stay in code | yes | confirmed | `format.number` with one decimal; en "1,204" and "4.6" as before |
+| 9 | The retention unit follows the typed number | yes | confirmed | `>day<`, `>dias<`, `>dia<` |
+| 10 | All of `features/admin-settings` is in the raw-text scan | yes | confirmed | `biome.json` has `features/admin-settings/**`; biome clean |
+| 11 | The Settings comment in `e2e/pages.ts` no longer says the rest follow in 132 | yes | confirmed | It reads "Settings (124, 132): every tab is in messages." |
+| 12 | The Notice tab joins the scan | yes | confirmed | Covered by the glob |
+| 13 | The pt and fr read naturally | yes | confirmed | About 12 read |
+
+**Overall:** not met (row 4).
+
+Witnessed: 2026-10-27, by a fresh agent (blind re-check). Commit: c24dcd17 plus the uncommitted tree. Machine: macOS (Darwin), Node not recorded.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4 | Three-language tests cover the purge sentence and the pending erasures for counts 0, 1 and 2 (0 is singular in pt and fr; an empty list shows nothing) | yes | confirmed | The tests assert en 0, 1, 2; pt 0, 1, 2; fr 0, 1, 2 for the purge; erasures 0 render nothing; 113 passed; mutating pt `one {# endereço IP}` → 1 failed; restored, `cmp` clean |
+| 5 | The three `admin.json` files differ from HEAD only by additions | yes | confirmed | `git diff --stat -- messages` → 75 insertions each, no deletions; no removed lines in `git diff -U0` |
+
+**Overall:** met.

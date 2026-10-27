@@ -963,6 +963,81 @@
       "newTokenTitle": "Copy the token now",
       "newTokenBody": "It’s shown once: Ronne keeps only its hash. Paste it into the provider’s SCIM settings.",
       "newTokenPrevious": "The token before keeps working until <date></date>, so change it at the provider before then."
+    },
+    "usage": {
+      "policyTitle": "Usage reporting",
+      "policyHint": "Counts of installs, removals and runs of the items rmk installed from this instance, by day, item, version and tool. Never who, where, or what was asked.",
+      "save": "Save",
+      "choices": {
+        "off": {
+          "label": "Off",
+          "hint": "rmk reports nothing, and this instance refuses usage reports."
+        },
+        "choice": {
+          "label": "People choose",
+          "hint": "rmk reports usage counts unless the person turns it off with rmk telemetry off."
+        },
+        "required": {
+          "label": "Required",
+          "hint": "Every rmk that installs from this instance reports usage counts; people can’t turn it off."
+        }
+      },
+      "minimumTitle": "Usage minimum",
+      "minimumLabel": "Show an item’s usage from",
+      "minimumUnit": "installs or runs in 30 days",
+      "minimumHint": "0 shows usage as soon as there’s any. A higher number keeps a few events from looking like a trend, or one team’s habits from showing."
+    },
+    "feeds": {
+      "title": "Plugin feeds",
+      "intro": "Each tool’s marketplace as it was last built in full: Claude Code reads its own from this website; rmk feed build reads Codex’s and Cursor’s for the git mirror.",
+      "nearTitle": "{tool}’s marketplace is near {what, select, both {its limits} size {its size limit} other {its time limit}}.",
+      "sizeBody": "Claude Code reads a marketplace of at most 5 MiB from an address. Past it, the marketplace stops loading; add the git mirror (rmk feed build) in Claude Code instead, which has no such limit.",
+      "timeBody": "Claude Code waits 10 seconds for a marketplace. It’s built once per change and then answered from memory, so only the first request after a release waits this long.",
+      "columns": {
+        "tool": "Tool",
+        "size": "Size",
+        "plugins": "Plugins",
+        "buildTime": "Build time",
+        "built": "Built"
+      },
+      "ofLimit": " of 5 MiB",
+      "notBuilt": "Not built yet: it’s built the first time someone reads it."
+    },
+    "privacy": {
+      "title": "Retention",
+      "ariaLabel": "Retention",
+      "intro": "How long this instance keeps what identifies a person’s connection. A purge runs every six hours and clears what is older. Shortening a number clears more at the next run.",
+      "save": "Save",
+      "days": "{count, plural, one {day} other {days}}",
+      "fields": {
+        "ipDays": {
+          "label": "Keep IP addresses for",
+          "hint": "The client addresses kept with audit events, sessions and rmk login approvals, and the email typed in a failed sign-in. Older ones are cleared; the events stay."
+        },
+        "sessionsDays": {
+          "label": "Keep expired sessions for",
+          "hint": "A session that has expired, and a finished rmk login approval. Older ones are deleted."
+        },
+        "feedbackDays": {
+          "label": "Keep handled feedback for",
+          "hint": "Feedback people sent from Send feedback that you marked handled, counted from then. Older ones are deleted. New feedback is kept until you handle or delete it."
+        }
+      },
+      "lastRun": {
+        "none": "No run yet.",
+        "schedulerOff": "Scheduled jobs are off (RONNE_JOBS): run rmk-server purge from cron.",
+        "firstRun": "The first run is 5 minutes after the server starts, then every 6 hours.",
+        "failed": "Last run <date></date> failed ({error}). The server’s logs say why; the next run is on schedule.",
+        "done": "Last run <date></date>: cleared {ips, plural, one {# IP address} other {# IP addresses}} and {emails, plural, one {# failed sign-in’s email} other {# failed sign-ins’ emails}}; deleted {sessions, plural, one {# expired session} other {# expired sessions}}, {grants, plural, one {# finished rmk login approval} other {# finished rmk login approvals}} and {feedback, plural, one {# handled feedback message} other {# handled feedback messages}}.",
+        "running": "A run is in progress."
+      },
+      "erasures": {
+        "ariaLabel": "Erasures not completed",
+        "title": "{count, plural, one {An erasure wasn’t completed.} other {# erasures weren’t completed.}}",
+        "body": "The server stopped before the audit log was rewritten, so the erased address is still in some events. Retry finishes the rewrite and records the erasure; the retention purge also finishes it on its next run.",
+        "started": "Started <date></date>",
+        "retry": "Retry"
+      }
     }
   }
 }

@@ -963,6 +963,81 @@
       "newTokenTitle": "Copie o token agora",
       "newTokenBody": "Ele é mostrado uma só vez: o Ronne guarda só o hash. Cole-o nas configurações de SCIM do provedor.",
       "newTokenPrevious": "O token anterior continua funcionando até <date></date>, então troque-o no provedor antes disso."
+    },
+    "usage": {
+      "policyTitle": "Relatório de uso",
+      "policyHint": "Contagens de instalações, remoções e execuções dos itens que o rmk instalou desta instância, por dia, item, versão e ferramenta. Nunca quem, onde ou o que foi pedido.",
+      "save": "Salvar",
+      "choices": {
+        "off": {
+          "label": "Desligado",
+          "hint": "O rmk não relata nada, e esta instância recusa relatórios de uso."
+        },
+        "choice": {
+          "label": "Cada pessoa escolhe",
+          "hint": "O rmk relata contagens de uso, a menos que a pessoa desligue com rmk telemetry off."
+        },
+        "required": {
+          "label": "Obrigatório",
+          "hint": "Todo rmk que instala desta instância relata contagens de uso; as pessoas não podem desligar."
+        }
+      },
+      "minimumTitle": "Mínimo de uso",
+      "minimumLabel": "Mostrar o uso de um item a partir de",
+      "minimumUnit": "instalações ou execuções em 30 dias",
+      "minimumHint": "Com 0, o uso aparece assim que houver algum. Um número maior evita que poucos eventos pareçam uma tendência, ou que os hábitos de uma só equipe apareçam."
+    },
+    "feeds": {
+      "title": "Feeds de plugins",
+      "intro": "O marketplace de cada ferramenta como foi construído por completo da última vez: o Claude Code lê o dele neste site; o rmk feed build lê os do Codex e do Cursor para o espelho git.",
+      "nearTitle": "O marketplace de {tool} está perto de {what, select, both {seus limites} size {seu limite de tamanho} other {seu limite de tempo}}.",
+      "sizeBody": "O Claude Code lê de um endereço um marketplace de no máximo 5 MiB. Além disso, o marketplace deixa de carregar; adicione no Claude Code o espelho git (rmk feed build), que não tem esse limite.",
+      "timeBody": "O Claude Code espera 10 segundos por um marketplace. Ele é construído uma vez por alteração e depois respondido da memória, então só a primeira requisição depois de uma publicação espera tanto.",
+      "columns": {
+        "tool": "Ferramenta",
+        "size": "Tamanho",
+        "plugins": "Plugins",
+        "buildTime": "Tempo de construção",
+        "built": "Construído"
+      },
+      "ofLimit": " de 5 MiB",
+      "notBuilt": "Ainda não construído: ele é construído na primeira vez que alguém o lê."
+    },
+    "privacy": {
+      "title": "Retenção",
+      "ariaLabel": "Retenção",
+      "intro": "Por quanto tempo esta instância guarda o que identifica a conexão de uma pessoa. Uma limpeza roda a cada seis horas e apaga o que é mais antigo. Diminuir um número apaga mais na próxima execução.",
+      "save": "Salvar",
+      "days": "{count, plural, one {dia} other {dias}}",
+      "fields": {
+        "ipDays": {
+          "label": "Guardar endereços IP por",
+          "hint": "Os endereços dos clientes guardados com eventos de auditoria, sessões e aprovações de login do rmk, e o e-mail digitado em um acesso que falhou. Os mais antigos são apagados; os eventos ficam."
+        },
+        "sessionsDays": {
+          "label": "Guardar sessões expiradas por",
+          "hint": "Uma sessão que expirou e uma aprovação de login do rmk concluída. As mais antigas são excluídas."
+        },
+        "feedbackDays": {
+          "label": "Guardar feedback tratado por",
+          "hint": "Feedback que as pessoas enviaram em Enviar feedback e que você marcou como tratado, contado a partir daí. Os mais antigos são excluídos. O feedback novo é guardado até você tratá-lo ou excluí-lo."
+        }
+      },
+      "lastRun": {
+        "none": "Nenhuma execução ainda.",
+        "schedulerOff": "As tarefas agendadas estão desligadas (RONNE_JOBS): rode rmk-server purge pelo cron.",
+        "firstRun": "A primeira execução é 5 minutos depois que o servidor inicia, e depois a cada 6 horas.",
+        "failed": "A última execução, em <date></date>, falhou ({error}). Os logs do servidor dizem o motivo; a próxima execução segue o calendário.",
+        "done": "Última execução em <date></date>: apagou {ips, plural, one {# endereço IP} other {# endereços IP}} e {emails, plural, one {# e-mail de acesso que falhou} other {# e-mails de acessos que falharam}}; excluiu {sessions, plural, one {# sessão expirada} other {# sessões expiradas}}, {grants, plural, one {# aprovação de login do rmk concluída} other {# aprovações de login do rmk concluídas}} e {feedback, plural, one {# mensagem de feedback tratada} other {# mensagens de feedback tratadas}}.",
+        "running": "Uma execução está em andamento."
+      },
+      "erasures": {
+        "ariaLabel": "Apagamentos não concluídos",
+        "title": "{count, plural, one {Um apagamento não foi concluído.} other {# apagamentos não foram concluídos.}}",
+        "body": "O servidor parou antes de o registro de auditoria ser reescrito, então o endereço apagado ainda está em alguns eventos. Tentar de novo conclui a reescrita e registra o apagamento; a limpeza de retenção também a conclui na próxima execução.",
+        "started": "Iniciado em <date></date>",
+        "retry": "Tentar de novo"
+      }
     }
   }
 }

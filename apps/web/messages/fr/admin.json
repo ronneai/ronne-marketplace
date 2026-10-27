@@ -963,6 +963,81 @@
       "newTokenTitle": "Copiez le jeton maintenant",
       "newTokenBody": "Il n’est affiché qu’une fois : Ronne n’en garde que l’empreinte. Collez-le dans les réglages SCIM du fournisseur.",
       "newTokenPrevious": "Le jeton d’avant continue de fonctionner jusqu’au <date></date>, alors changez-le chez le fournisseur avant."
+    },
+    "usage": {
+      "policyTitle": "Rapport d’utilisation",
+      "policyHint": "Décomptes des installations, retraits et exécutions des éléments que rmk a installés depuis cette instance, par jour, élément, version et outil. Jamais qui, où, ni ce qui a été demandé.",
+      "save": "Enregistrer",
+      "choices": {
+        "off": {
+          "label": "Désactivé",
+          "hint": "rmk ne rapporte rien, et cette instance refuse les rapports d’utilisation."
+        },
+        "choice": {
+          "label": "Chacun choisit",
+          "hint": "rmk rapporte des décomptes d’utilisation, sauf si la personne le désactive avec rmk telemetry off."
+        },
+        "required": {
+          "label": "Obligatoire",
+          "hint": "Chaque rmk qui installe depuis cette instance rapporte des décomptes d’utilisation; les gens ne peuvent pas le désactiver."
+        }
+      },
+      "minimumTitle": "Minimum d’utilisation",
+      "minimumLabel": "Afficher l’utilisation d’un élément à partir de",
+      "minimumUnit": "installations ou exécutions en 30 jours",
+      "minimumHint": "Avec 0, l’utilisation s’affiche dès qu’il y en a. Un nombre plus élevé évite que quelques événements aient l’air d’une tendance, ou que les habitudes d’une seule équipe se voient."
+    },
+    "feeds": {
+      "title": "Flux de plugins",
+      "intro": "Le marketplace de chaque outil tel qu’il a été construit en entier la dernière fois : Claude Code lit le sien depuis ce site; rmk feed build lit ceux de Codex et de Cursor pour le miroir git.",
+      "nearTitle": "Le marketplace de {tool} approche {what, select, both {de ses limites} size {de sa limite de taille} other {de sa limite de temps}}.",
+      "sizeBody": "Claude Code lit à une adresse un marketplace d’au plus 5 MiB. Au-delà, le marketplace cesse de se charger; ajoutez plutôt le miroir git (rmk feed build) dans Claude Code, qui n’a pas cette limite.",
+      "timeBody": "Claude Code attend 10 secondes un marketplace. Il est construit une fois par changement puis servi depuis la mémoire, donc seule la première requête après une publication attend autant.",
+      "columns": {
+        "tool": "Outil",
+        "size": "Taille",
+        "plugins": "Plugins",
+        "buildTime": "Temps de construction",
+        "built": "Construit"
+      },
+      "ofLimit": " sur 5 MiB",
+      "notBuilt": "Pas encore construit : il l’est la première fois que quelqu’un le lit."
+    },
+    "privacy": {
+      "title": "Conservation",
+      "ariaLabel": "Conservation",
+      "intro": "Combien de temps cette instance garde ce qui identifie la connexion d’une personne. Une purge s’exécute toutes les six heures et efface ce qui est plus ancien. Raccourcir un nombre efface davantage à la prochaine exécution.",
+      "save": "Enregistrer",
+      "days": "{count, plural, one {jour} other {jours}}",
+      "fields": {
+        "ipDays": {
+          "label": "Garder les adresses IP pendant",
+          "hint": "Les adresses des clients conservées avec les événements d’audit, les sessions et les approbations de connexion rmk, et le courriel saisi lors d’une connexion échouée. Les plus anciennes sont effacées; les événements restent."
+        },
+        "sessionsDays": {
+          "label": "Garder les sessions expirées pendant",
+          "hint": "Une session expirée et une approbation de connexion rmk terminée. Les plus anciennes sont supprimées."
+        },
+        "feedbackDays": {
+          "label": "Garder les commentaires traités pendant",
+          "hint": "Les commentaires que les gens ont envoyés avec Envoyer des commentaires et que vous avez marqués comme traités, comptés à partir de là. Les plus anciens sont supprimés. Les nouveaux commentaires sont gardés jusqu’à ce que vous les traitiez ou les supprimiez."
+        }
+      },
+      "lastRun": {
+        "none": "Aucune exécution pour l’instant.",
+        "schedulerOff": "Les tâches planifiées sont désactivées (RONNE_JOBS) : exécutez rmk-server purge depuis cron.",
+        "firstRun": "La première exécution a lieu 5 minutes après le démarrage du serveur, puis toutes les 6 heures.",
+        "failed": "La dernière exécution, le <date></date>, a échoué ({error}). Les journaux du serveur disent pourquoi; la prochaine exécution suit l’horaire.",
+        "done": "Dernière exécution le <date></date> : {ips, plural, one {# adresse IP effacée} other {# adresses IP effacées}} et {emails, plural, one {# courriel de connexion échouée effacé} other {# courriels de connexions échouées effacés}}; {sessions, plural, one {# session expirée supprimée} other {# sessions expirées supprimées}}, {grants, plural, one {# approbation de connexion rmk terminée supprimée} other {# approbations de connexion rmk terminées supprimées}} et {feedback, plural, one {# message de commentaires traité supprimé} other {# messages de commentaires traités supprimés}}.",
+        "running": "Une exécution est en cours."
+      },
+      "erasures": {
+        "ariaLabel": "Effacements non terminés",
+        "title": "{count, plural, one {Un effacement n’a pas été terminé.} other {# effacements n’ont pas été terminés.}}",
+        "body": "Le serveur s’est arrêté avant la réécriture du journal d’audit, donc l’adresse effacée figure encore dans certains événements. Réessayer termine la réécriture et consigne l’effacement; la purge de conservation la termine aussi à sa prochaine exécution.",
+        "started": "Commencé le <date></date>",
+        "retry": "Réessayer"
+      }
     }
   }
 }

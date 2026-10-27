@@ -261,7 +261,7 @@ describe("Admin › Settings", () => {
     expect(html).toMatch(/checked="" value="required"/);
     expect(html.match(/checked=""/g)).toHaveLength(1);
     // The usage minimum, with its current value.
-    expect(html).toContain("Show an item&#x27;s usage from");
+    expect(html).toContain("Show an item’s usage from");
     expect(html).toMatch(/name="usageMinimum"[^>]*value="20"/);
   });
 
@@ -338,7 +338,7 @@ describe("Admin › Settings › Plugin feeds (079)", () => {
         ]}
       />,
     );
-    expect(html).toContain("Claude Code&#x27;s marketplace is near its limits.");
+    expect(html).toContain("Claude Code’s marketplace is near its limits.");
     expect(html).toContain("add the git mirror (rmk feed build) in Claude Code");
     expect(html).toContain("Claude Code waits 10 seconds");
     expect(html.match(/text-warning-text/g)?.length).toBeGreaterThanOrEqual(2);
@@ -511,7 +511,7 @@ describe("Admin › Settings › Privacy › Retention (102)", () => {
         }}
       />,
     );
-    expect(ok).toContain("cleared 1,204 IP addresses and 37 failed sign-ins&#x27; emails");
+    expect(ok).toContain("cleared 1,204 IP addresses and 37 failed sign-ins’ emails");
     expect(ok).toContain(
       "deleted 312 expired sessions, 9 finished rmk login approvals and 6 handled feedback messages",
     );
@@ -603,7 +603,7 @@ describe("Admin › Settings › Privacy › an erasure that wasn't completed (1
       <PendingErasures erasures={[{ userId: "u1", startedAt: at }]} />,
     );
     expect(one).toContain("WARN:");
-    expect(one).toContain("An erasure wasn&#x27;t completed.");
+    expect(one).toContain("An erasure wasn’t completed.");
     expect(one).toMatch(/<time dateTime="2026-10-19T12:00:00.000Z"/);
     expect(one).toMatch(/<button[^>]*type="submit"[^>]*>Retry</);
     expect(one).toContain("the retention purge also finishes it on its next run");
@@ -615,14 +615,14 @@ describe("Admin › Settings › Privacy › an erasure that wasn't completed (1
         ]}
       />,
     );
-    expect(two).toContain("2 erasures weren&#x27;t completed.");
+    expect(two).toContain("2 erasures weren’t completed.");
   });
 
   it("is on the Privacy tab, read with the tab, and absent when there's none", async () => {
     session.getCurrentUser.mockResolvedValue({ id: "r", role: "root" });
     erasures.adminPendingErasures.mockResolvedValueOnce([{ userId: "u1", startedAt: at }]);
     const html = renderToStaticMarkup(await AdminSettings("privacy"));
-    expect(html).toContain("An erasure wasn&#x27;t completed.");
+    expect(html).toContain("An erasure wasn’t completed.");
     expect(html.indexOf("Last run")).toBeLessThan(html.indexOf("Retry"));
     const clean = renderToStaticMarkup(await AdminSettings("privacy"));
     expect(clean).not.toContain("completed.");

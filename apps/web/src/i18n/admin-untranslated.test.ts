@@ -24,6 +24,7 @@ const flat = (value: string | Tree, prefix = ""): Record<string, string> =>
  * where it does, so a new one is a decision made here.
  */
 const SAME: Record<string, readonly string[]> = {
+  "settings.feeds.columns.plugins": ["pt", "fr"],
   "settings.providerControls.subject": ["pt", "fr"],
   "settings.scim.token": ["pt"],
   "audit.sentences.parts.roles.root": ["pt", "fr"],

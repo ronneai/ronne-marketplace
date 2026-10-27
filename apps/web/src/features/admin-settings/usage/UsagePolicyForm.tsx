@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useActionState, useState } from "react";
 import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
@@ -9,55 +10,39 @@ import type { UsagePolicy } from "@/server/domains/settings/models/usage-policy"
 import { saveUsagePolicy } from "../actions";
 import type { SettingsActionState } from "../types";
 
-/** The three usage policies, as root reads them (feature 046). */
-export const POLICY_CHOICES: readonly { value: UsagePolicy; label: string; hint: string }[] = [
-  {
-    value: "off",
-    label: "Off",
-    hint: "rmk reports nothing, and this instance refuses usage reports.",
-  },
-  {
-    value: "choice",
-    label: "People choose",
-    hint: "rmk reports usage counts unless the person turns it off with rmk telemetry off.",
-  },
-  {
-    value: "required",
-    label: "Required",
-    hint: "Every rmk that installs from this instance reports usage counts; people can't turn it off.",
-  },
-];
+/** The three usage policies, as root reads them (feature 046); their words are `admin.settings.usage.choices`. */
+export const POLICY_CHOICES: readonly UsagePolicy[] = ["off", "choice", "required"];
 
 /** Root's usage policy: one choice and Save. */
 export const UsagePolicyForm = ({ policy }: { policy: UsagePolicy }) => {
+  const t = useTranslations("admin.settings.usage");
   const [state, action, pending] = useActionState<SettingsActionState, FormData>(
     saveUsagePolicy,
     {},
   );
   const [chosen, setChosen] = useState<UsagePolicy>(policy);
   return (
-    <form action={action} aria-label="Usage reporting" className="grid gap-4">
+    <form action={action} aria-label={t("policyTitle")} className="grid gap-4">
       <fieldset className="grid gap-3" aria-describedby="usage-policy-hint">
         <legend className="mb-1 flex items-center gap-2 text-sm font-semibold text-fg">
-          Usage reporting <Help id="usage-policy" />
+          {t("policyTitle")} <Help id="usage-policy" />
         </legend>
         <p id="usage-policy-hint" className="text-sm text-muted">
-          Counts of installs, removals and runs of the items rmk installed from this instance, by
-          day, item, version and tool. Never who, where, or what was asked.
+          {t("policyHint")}
         </p>
         {POLICY_CHOICES.map((choice) => (
-          <label key={choice.value} className="flex items-start gap-2 text-sm text-fg">
+          <label key={choice} className="flex items-start gap-2 text-sm text-fg">
             <input
               type="radio"
               name="usagePolicy"
-              value={choice.value}
-              checked={chosen === choice.value}
-              onChange={() => setChosen(choice.value)}
+              value={choice}
+              checked={chosen === choice}
+              onChange={() => setChosen(choice)}
               className="mt-0.5 size-4 accent-(--accent)"
             />
             <span className="grid gap-0.5">
-              <span className="font-semibold">{choice.label}</span>
-              <span className="text-muted">{choice.hint}</span>
+              <span className="font-semibold">{t(`choices.${choice}.label`)}</span>
+              <span className="text-muted">{t(`choices.${choice}.hint`)}</span>
             </span>
           </label>
         ))}
@@ -66,7 +51,7 @@ export const UsagePolicyForm = ({ policy }: { policy: UsagePolicy }) => {
       {state.done ? <Notice kind="info" title={state.done} /> : null}
       <div>
         <Button type="submit" disabled={pending || chosen === policy}>
-          Save
+          {t("save")}
         </Button>
       </div>
     </form>

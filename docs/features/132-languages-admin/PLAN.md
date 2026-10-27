@@ -70,11 +70,13 @@ Every task that moves a folder adds it to the `overrides` entry in `biome.json` 
   field errors) stays English, like core's (SPEC, Out). `signInMethods` takes a translator; the SCIM
   steps are messages; the generic `admin-untranslated` test is the guard for short pt/fr words.
 
-- [ ] **8. Settings: Usage, Plugin feeds, Privacy, Notice.** `UsagePolicyForm`,
+- [x] **8. Settings: Usage, Plugin feeds, Privacy, Notice.** `UsagePolicyForm`,
   `UsageMinimumForm`, `PluginFeedsPanel`, `PrivacyTab`, `RetentionForm`, `LastRun`,
   `PendingErasures`; the Notice tab joins the scan.
   *Done when:* three-language tests; all of `features/admin-settings` is in the scan; the
   Settings comment in `e2e/pages.ts` no longer says "the rest follow in 132".
+  *Note:* small English changes: the purge's counts use plurals ("1 IP address"), the retention unit
+  follows the number, and sizes and counts are written by the language ("4,6 MiB" in pt).
 
 - [ ] **9. The setup wizard.** `SetupPage`, `SetupForm`, `StepList`, `fields.tsx`,
   `DatabaseUnavailable`, `form.ts` and `install.ts` messages as codes, `app/setup`.
