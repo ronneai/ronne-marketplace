@@ -26,3 +26,22 @@ Witnessed: 2026-10-27, by a fresh agent (blind, re-check of row 5). Commit: f1b7
 
 **Overall:** met.
 
+## Task 2 — The rule over the whole app
+
+Witnessed: 2026-10-27 16:45, by a fresh agent (blind). Commit: b2dc52e0 plus the uncommitted diff. Machine: macOS (Darwin), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `pnpm lint` passes | no | confirmed | exit 0; 44 warnings and 2 infos, the same as a clean worktree of HEAD (no new diagnostics) |
+| 2 | The override is `apps/web/src/**` minus the stated exceptions | no | confirmed | `git diff biome.json` |
+| 3 | A new file in a new folder fails the rule | no | confirmed | probes in `features/zzprobe` and `app/zz` gave a `plugin` diagnostic; deleted |
+| 4 | The exceptions are not linted | no | confirmed | a probe in the styleguide folder gave none; the test also covers `server/` |
+| 5 | A fixture test proves a new folder fails | no | confirmed | the includes-equality test and `lintAs` over three new folders and three exceptions pass; the test was not watched failing under a changed config |
+| 6 | The i18n tests pass | no | confirmed | `npx vitest run src/i18n` → 18 files, 350 tests |
+| 7 | The root description is served in three languages | no | confirmed | `next start` on a blank instance, curl with Accept-Language en, pt-BR, fr-CA → the three descriptions |
+| 8 | The setup page still renders with no database | no | confirmed | `/setup` 200 in all three |
+| 9 | No JSX screen text lives outside the new coverage | no | confirmed | only the four styleguide files are excluded |
+| 10 | The remaining inventory text is moved or carries a reasoned `biome-ignore` | no | confirmed | 24 `biome-ignore lint/plugin` hits, each with a reason |
+
+**Overall:** met.
+

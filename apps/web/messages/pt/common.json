@@ -3,6 +3,9 @@
     "label": "Idioma",
     "automatic": "Automático"
   },
+  "metadata": {
+    "description": "Um registro curado e auto-hospedado de recursos de IA."
+  },
   "close": "Fechar",
   "copy": {
     "label": "copiar",

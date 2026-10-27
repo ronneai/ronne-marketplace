@@ -3,6 +3,7 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { NextIntlClientProvider } from "next-intl";
+import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { DatabaseUnavailable } from "@/features/setup/DatabaseUnavailable";
 import { parseTheme, THEME_COOKIE } from "@/features/theme/theme";
@@ -15,9 +16,10 @@ import { manrope, plexMono } from "./fonts";
 import { viewportFor } from "./viewport";
 import "./globals.css";
 
-export const metadata: Metadata = {
-  title: "Ronne AI Marketplace",
-  description: "A self-hosted, curated registry of AI capabilities.",
+/** The product name stays as it is; the description is in the person's language (133). */
+export const generateMetadata = async (): Promise<Metadata> => {
+  const t = await getTranslations("common.metadata");
+  return { title: "Ronne AI Marketplace", description: t("description") };
 };
 
 /** The viewport and the browser bar's colour, from the theme cookie (feature 065). */

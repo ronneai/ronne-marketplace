@@ -3,6 +3,9 @@
     "label": "Language",
     "automatic": "Automatic"
   },
+  "metadata": {
+    "description": "A self-hosted, curated registry of AI capabilities."
+  },
   "close": "Close",
   "copy": {
     "label": "copy",

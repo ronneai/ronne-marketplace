@@ -3,6 +3,9 @@
     "label": "Langue",
     "automatic": "Automatique"
   },
+  "metadata": {
+    "description": "Un registre organisé et auto-hébergé de capacités d’IA."
+  },
   "close": "Fermer",
   "copy": {
     "label": "copier",

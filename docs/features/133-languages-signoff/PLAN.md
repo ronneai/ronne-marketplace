@@ -17,7 +17,7 @@ Follow [`docs/knowledge/i18n.md`](../../knowledge/i18n.md).
   *Done when:* the inventory is complete: a script lists the uncovered files and the document
   accounts for every one.
 
-- [ ] **2. The rule over the whole app.** Replace the folder list with `apps/web/src/**` minus
+- [x] **2. The rule over the whole app.** Replace the folder list with `apps/web/src/**` minus
   `server/**`, `app/api/**`, `features/styleguide/**`, `app/(app)/styleguide/**` and test files;
   move the text the inventory found into messages (three languages) or give it a
   `biome-ignore lint/plugin: <why>`.
