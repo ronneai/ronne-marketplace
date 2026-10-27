@@ -128,21 +128,21 @@ changes.
 
 ## Acceptance criteria
 
-- [ ] Admin (Users, a user's page, Scopes, Workspaces, Audit log, every Settings tab), the setup
+- [x] Admin (Users, a user's page, Scopes, Workspaces, Audit log, every Settings tab), the setup
       wizard and the CLI sign-in panel render in English, Portuguese and French
       with no English text left over (core's messages and stored data aside), on desktop and on a
       phone.
-- [ ] Every audit event type reads as a translated sentence; an unknown type shows its code.
-- [ ] The raw-text scan covers every folder listed in Scope and passes; the phone sweep runs the
+- [x] Every audit event type reads as a translated sentence; an unknown type shows its code.
+- [x] The raw-text scan covers every folder listed in Scope and passes; the phone sweep runs the
       routes in Portuguese and French; 130's `UNTIL_132` allowance is gone.
-- [ ] Every action in scope returns a code or a translated message; each error class added has
+- [x] Every action in scope returns a code or a translated message; each error class added has
       a text in all three languages (a test for each, with 0/1/2 counts and lists where they
       have them); the API's messages are unchanged.
-- [ ] The 32 helpers read in the person's language and their links open the website's page in it;
+- [x] The 32 helpers read in the person's language and their links open the website's page in it;
       `Help.tsx` holds no text.
-- [ ] The setup wizard shows in the browser's language with no database and no user.
-- [ ] The key-parity and placeholder tests pass.
-- [ ] The Portuguese and French Documentation pages name these screens' labels as the app does.
+- [x] The setup wizard shows in the browser's language with no database and no user.
+- [x] The key-parity and placeholder tests pass.
+- [x] The Portuguese and French Documentation pages name these screens' labels as the app does.
 
 ## Decisions
 
@@ -157,5 +157,6 @@ changes.
 
 - **An instance default language.** 129 left it "if wanted": root sets the language that people
   with no choice, and the sign-in and setup pages, start in (today: the browser's, then English).
-  Recommendation: leave it out of this feature; it adds a setting, a column of tests and a
-  Documentation topic, and nobody has asked. It can be its own feature if wanted.
+  **Not built in this feature** (recommendation: leave it out; it adds a setting, tests and a
+  Documentation topic, and nobody has asked). It can be its own feature if the owner wants it.
+- **The styleguide stays English** (see Out). The owner confirms or asks for it to move.

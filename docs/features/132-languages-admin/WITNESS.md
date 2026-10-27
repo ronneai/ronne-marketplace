@@ -390,3 +390,31 @@ Witnessed: 2026-10-27, by a fresh agent (blind, re-check of row 2). Commit: 7ad1
 | 2 | The `noEnglish` scan now sees English in table headers and cells, so a hard-coded English string in a table fails the Audit and Users tests | yes | confirmed | Hard-coding `header: "Actor"` in `AuditLogPage.tsx` failed the Audit test in pt and fr listing `admin.audit.columns.actor`; hard-coding "Never" in `NeverSignedIn` failed the Users test listing `admin.users.never`; restored, `cmp` identical, rebuilt, 6 passed |
 
 **Overall:** met.
+
+## Task 14 — Documentation and records
+
+Witnessed: 2026-10-27, by a fresh agent (blind). Commit: 59ca0245 plus the uncommitted tree (ronne-web b3bec56). Machine: macOS (Darwin 27), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The pt pages name the app's labels exactly | no | confirmed | 104 quoted labels compared with `messages/pt/*.json`: 94 exact, the rest placeholder forms, glosses or prose; none invented |
+| 2 | The fr pages name the app's labels exactly | no | confirmed | 110 labels: 97 exact, the rest placeholder forms or glosses; straight apostrophe on the site is documented |
+| 3 | No topic or section changed | no | confirmed | `topics.ts` not in the diff; section ids kept |
+| 4 | ronne-web tests, lint, typecheck, build pass | no | confirmed | 183 tests, lint, tsc, build all green |
+| 5 | Glossary rows match the app; index row says done; `en/privacy.tsx` true to the app | no | confirmed | rows read against pt/fr values; README row done; `schedulerOff` message matches |
+| 6 | fr pages read coherently | no | partly | two slips: "est activé" and « de utilisateur » (the app's own sentence) |
+| 7 | PLAN Done note written | no | not met | not yet written |
+
+**Overall:** not met (rows 6 and 7).
+
+The work after this pass: ronne-web f95d8ac fixes "activée", the stray space and the audit example; the app's fr `role_changed` and `member_role_changed` now say « du rôle … au rôle … »; PLAN "Done (2026-10-27)" written.
+
+Witnessed: 2026-10-27, by a fresh agent (blind, re-check of rows 6 and 7). Commit: 59ca0245 plus the uncommitted tree (ronne-web f95d8ac). Machine: macOS (Darwin), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6 | App and docs French agree; the slips are fixed | yes | confirmed | `git show f95d8ac`; `messages/fr/admin.json:648,679` read "du rôle {from} au rôle {to}" |
+| 7 | PLAN Done section is true; checks pass | yes | confirmed | five claims spot-checked; ronne-web lint, typecheck, 183 tests; marketplace 388 tests; `pnpm witness:check` exit 0 |
+
+**Overall:** met.
+

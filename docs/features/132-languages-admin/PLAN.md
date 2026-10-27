@@ -123,7 +123,36 @@ Every task that moves a folder adds it to the `overrides` entry in `biome.json` 
   by dropping the heading's flex layout. The scan in the older language specs (browse, author)
   still splits on newlines only, so it misses table cells; a follow-up for 133.
 
-- [ ] **14. Documentation and records.** The Portuguese and French pages in ronne-web name the
+- [x] **14. Documentation and records.** The Portuguese and French pages in ronne-web name the
   labels as the app does (branch `feat/132-languages-admin`); the glossary; the index row set
   to `done`; the PLAN's "Done" notes; whichever decision the owner takes on the default language.
   *Done when:* `pnpm witness:check` passes; the ronne-web branch builds.
+
+### Done (2026-10-27)
+
+Fourteen tasks, each with its witness passes in `WITNESS.md` (the risky task 11 also had an
+adversarial pass; several tasks took three rounds or more, mostly to pin what the tests could and
+could not catch). The Documentation is on the ronne-web branch `feat/132-languages-admin`
+(commits b3bec56 and f95d8ac), not pushed: it goes live with the release, as the owner's rule says.
+Accepted limits and decisions for the owner:
+
+- **The styleguide stays English** (a developer design reference); the SPEC records it as this
+  feature's decision, to be confirmed.
+- **The instance default language was not built** (129 said "if wanted"); it can be its own feature.
+- **Text the server or a driver writes stays English**: the identity domain's presets and test
+  results, `InvalidProviderConfigError`'s field messages, the setup's database check, the settings
+  file merge error and the root account's identity messages (SPEC, Out). 133 can revisit.
+- **First-draft pt and fr** for 133's native reader. A pt/fr text that is only partly English is
+  caught by no test (the whole-text checks need it to equal the English); `help-untranslated`,
+  `admin-untranslated` and the SAME tables guard the rest.
+- **Small English changes**: curly apostrophes, counts with plurals ("1 IP address"), sizes and
+  counts written by the language ("1,284 rows", "4.6 MiB"), the retention unit following the
+  number, and a stray "(114)" dropped from the move dialog.
+- **French fix found late**: the audit sentences said « de utilisateur »; they now say « du rôle
+  utilisateur au rôle modérateur ».
+- **Follow-ups for 133**: the older language e2e specs (browse, author) split the page text on
+  newlines only and so miss table cells; the item page's Overview tab and the Review page's Status
+  column still read English in the Documentation's pt/fr pages (they are 130/131's screens).
+- The full test run showed unrelated timing flakes under load (`health.db.test.ts`,
+  `storage-names.test.ts`, `redact.test.ts`); each passes alone.
+
