@@ -68,12 +68,19 @@ Follow [`docs/knowledge/i18n.md`](../../knowledge/i18n.md).
   skips without `../ronne-web`) and `--live` opens the deployed pages. Today `--live` reports pages
   missing: the deployed site is behind the repository until the release deploys it.
 
-- [ ] **7. Website wording.** In ronne-web (a branch `feat/133-languages-signoff`): the two
+- [x] **7. Website wording.** In ronne-web (a branch `feat/133-languages-signoff`): the two
   rules in the translation guide; every pt and fr page follows them; the Overview tab, Status
   column and Cancel button named as the app does; a read of the French for the Canadian register.
   *Done when:* a grep over `pt/` and `fr/` finds no « revue », « proposition de changement » or
   "proposta de mudança" outside a quoted foreign label; ronne-web lint, typecheck, test and build
   pass.
+  *Note:* ronne-web branch `feat/133-languages-signoff` (commits 7d396f4, 3b0de0e, 3e495fb, not
+  pushed): the guide's rules (the review is « révision » and the round « révision N »; a change
+  proposal is "proposta de alteração" / « proposition de modification »; "mudança"/« changement » stay
+  for a change in general and a scope move stays "movimentação" / « déplacement »), the Overview
+  tab, the home and marketplace messages, and a test that keeps the old words out. `Status` and the
+  export `Cancel` stay: the app's pt says Status too, and Cancel is the `rmk export` prompt. The pt
+  prose keeps "iteração" for a round (the app's label is "revisão N").
 
 - [ ] **8. Decisions with the owner.** Ask: the styleguide, the instance default language, the
   server-written text, and who the two readers are. Record each answer in this SPEC and in the

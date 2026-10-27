@@ -187,3 +187,31 @@ Witnessed: 2026-10-27 17:30, by a fresh agent (re-check, rows 2c and 4b). Commit
 
 **Overall:** met.
 
+## Task 7 — Website wording
+
+Witnessed: 2026-10-27, by a fresh agent (blind). Commit: 1519fa6c (ronne-web 3b0de0e). Machine: macOS (Darwin), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A grep over pt and fr finds no « revue », « proposition de changement » or "proposta de mudança" outside a quoted foreign label | no | not met | `www/messages/fr.json` still had four « Revue » (a bold label and two titles), two with « changements » where the app says « modifications » |
+| 2 | The guide's new rules agree with the app | no | confirmed | `docs/translation-guide.md` rows for révision, proposition de modification, "proposta de alteração" |
+| 3 | The changed pages follow the rules without agreement errors or drift | no | confirmed | about 24 fr and 14 pt passages sampled |
+| 4 | Overview → Visão geral / Aperçu; Status and Cancel left alone | no | confirmed | `Cancel` is the CLI's own prompt (`packages/cli/src/export-command.ts:395`); the app's pt says Status, fr Statut |
+| 5 | ronne-web lint, typecheck, test and build pass; `topics.ts` unchanged; section ids intact | no | confirmed | 183 tests |
+| 6 | The French follows the Canadian register | no | confirmed | no e-mail, mail, week-end; « courriel » throughout; not a full read |
+
+**Overall:** not met (row 1).
+
+The work after this pass: the four « Revue » and the two « changements » in `fr.json` were changed, and `www/src/i18n/wording.test.ts` guards the three families in the pages and messages.
+
+Witnessed: 2026-10-27, by a fresh agent (blind re-check, claim 1). Commit: 1519fa6c (ronne-web 3e495fb). Machine: macOS (Darwin), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1a | No « revue », « proposition de changement » or "proposta de mudança" outside a quoted foreign label | yes | confirmed | case-insensitive grep over `www/src`, `www/messages` and the guide: 10 hits, one real (the idiom « passe en revue »), the rest the guide's "never" rows and the test's own patterns |
+| 1b | The new `wording.test.ts` bites | yes | confirmed | "Revue " added to a French message → 1 failed; restored (`cmp` identical) → 4 passed |
+| 1c | ronne-web lint, typecheck, test and build pass | yes | confirmed | 187 tests |
+| 1d | The working tree is clean afterwards | no | confirmed | `git status --short` empty |
+
+**Overall:** met.
+
