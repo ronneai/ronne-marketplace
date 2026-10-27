@@ -290,3 +290,45 @@ Witnessed: 2026-10-27 12:35 EDT, by a fresh agent (blind). Commit: 34b29559 plus
 | 5 | The styleguide stays English and out of the scan, and the deviation is reasonable and honestly recorded | yes | confirmed | `features/styleguide` has no translator; `access.ts` allows anyone signed in outside production and only root in production; SPEC (Goal, Scope, Out, Acceptance) and PLAN say so, "decision of this feature, to be confirmed by the owner" |
 
 **Overall:** met.
+
+## Task 11 — What the actions say
+
+Witnessed: 2026-10-27 12:55 EDT, by a fresh agent (blind). Commit: 58cfcc18 plus the uncommitted tree. Machine: macOS (Darwin), Node default.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Every `catch` in the in-scope action files returns `errorText(error)`, no `error.message` left | yes | confirmed | `grep "\.message"` over the six action files → none; the notice actions return codes |
+| 2 | Every success line in scope is a message | yes | confirmed | The diff removes every English literal; `getTranslations("admin.done.*")` and `common.roles` |
+| 3 | The new classes' English equals the class message exactly | yes | confirmed | `admin-errors.test.ts` (44 instances); 639 passed |
+| 4 | The pt and fr read correctly | yes | confirmed | All read in both languages, no mistranslation |
+| 5 | The three class changes do not alter any `.message` | yes | confirmed | `git diff src/server`; the test pins 7 messages |
+| 6 | Nothing else reads `limit`, `which` or `shape` oddly | yes | confirmed | Grep; only `valuesOf` reads them |
+| 7 | No class the admin screens can raise is still untranslated, but for the named exceptions | yes | partly | Feeds, Feedback, Shelves, Submissions and `ScimRequestError` classes listed as untranslated; reach not traced |
+| 8 | An action test shows an unknown error still shows the English message | yes | partly | Only the `errorText` unit test existed |
+| 9 | A test per class in three languages | yes | confirmed | 44 cases in en, pt and fr, plus a per-area action test |
+| 10 | The tests catch a pt/fr success line left in English | yes | partly | pt `admin.done.workspaces.deleted` set to "Deleted." left `admin-workspaces` green |
+| 11 | `errorText` cannot be abused with the new classes | yes | confirmed | Name pattern, placeholder-looking values shown as typed, missing values fall back to the message |
+
+**Overall:** not met (rows 7, 8, 10).
+
+Witnessed: 2026-10-27 12:55 EDT, by a fresh agent (adversarial). Commit: 58cfcc18 plus the uncommitted tree. Machine: macOS (Darwin), Node 22/24 per .nvmrc.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| A | Every domain-error catch in the admin actions returns `errorText(error)`, with success lines as messages and English unchanged | yes | confirmed | Grep for `.message` and hardcoded English `done:`/`error:` finds none; reverting `errorText` to `error.message` in each of the five action files failed 1 to 4 tests each; restored |
+| B | The `.message` of every domain class is unchanged, so the API and `rmk` messages are unchanged | yes | confirmed | HEAD and new identity and settings `errors.ts` side by side: 814 constructions (17 argument shapes against every class), `message`, `name`, constructor and logged form identical; no diff in `items` errors |
+| C | `errorText` never shows a key, an empty text or a crash for the new classes | yes | confirmed | Every class with an `errors.<Name>` key in en, pt, fr with 24 hostile values (ICU plural text, `<b>{x}</b>`, 200 KB strings, NaN, Date, null, NUL and RTL characters, `__proto__`): no throw, no empty output, no key shown |
+| D | The actions still refuse non-root as before; no secret or driver text newly reaches the browser | yes | confirmed | The diff only changes the catches and the `done` text; `InvalidProviderConfigError` fields and the setup's driver messages are passed as before |
+| E | The three modified classes behave the same for every caller, and logging or serialising them leaks nothing new | yes | confirmed | Callers use `message`, `reason` or `instanceof` only; `errorFields` writes name, message, code and stack, `message` is `[hidden]` for the people-facing classes; no `JSON.stringify` of a domain error anywhere; the new values are non-secret constants |
+
+**Overall:** met.
+
+Witnessed: 2026-10-27 13:05 EDT, by a fresh agent (blind re-check, rows 7, 8 and 10). Commit: 58cfcc18 plus the uncommitted tree. Machine: macOS (Darwin), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 7 | No class the in-scope actions' catches can raise is untranslated, except the named exceptions | yes | confirmed | The catches only test `instanceof` for the identity, workspaces, items and settings base classes (the one exception, `ScopeMoveRefusedError`, returns its impact); Feeds, Feedback, Shelves, Submissions, Usage and Audit errors extend their own bases and would be rethrown; `ScimRequestError` extends `Error` |
+| 8 | Each admin area has an "untranslated error in each language" action test | yes | confirmed | `vitest run` of the four admin features and `src/i18n` → 35 files, 646 passed |
+| 10 | Every admin success line is translated in pt and fr | yes | confirmed | pt `admin.done.workspaces.deleted` set to "Deleted." → 1 failed (`admin-untranslated`); restored, `cmp` identical. The workspaces `deleted` and `renamed` lines never reach a screen (the actions redirect), so that test is the only cover for them |
+
+**Overall:** met.

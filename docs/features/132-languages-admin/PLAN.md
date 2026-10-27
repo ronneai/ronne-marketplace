@@ -93,11 +93,15 @@ Every task that moves a folder adds it to the `overrides` entry in `biome.json` 
   *Note:* the panel's words moved in 129; this task adds it to the scan and a test. The styleguide
   was left English (a developer design reference); the owner is asked to confirm in the SPEC.
 
-- [ ] **11. What the actions say.** [risky] The success lines and errors of every action file
+- [x] **11. What the actions say.** [risky] The success lines and errors of every action file
   in scope; `errors.json` gets the identity, settings, usage, audit and workspaces classes these
   screens can raise that it lacks, in all three languages, with lists and plurals.
   *Done when:* a test per class in three languages (`errors.test.ts`); an action test that an
   unknown error still shows the English message; the API's messages are unchanged (a test).
+  *Note:* 35 classes were added to `errors.json` (identity 23, settings 7, items' scope errors 5); three
+  classes gained a public field their message uses (`limit`, `which`, `shape`), their `.message`
+  unchanged (pinned by a test). Left in English on purpose: `InvalidProviderConfigError`, the
+  CLI-only root errors, `ProviderFlowError`, `DataExportLimitError`, the usage and audit errors.
 
 - [ ] **12. The inline helpers.** The 32 entries move from `HELP` to `help.json`, in three
   languages; `Help.tsx` keeps no text.

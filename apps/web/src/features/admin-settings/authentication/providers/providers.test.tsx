@@ -1,12 +1,14 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  IdentityError,
   InvalidProviderConfigError,
   ProviderNotTestedError,
   StaleProviderError,
 } from "@/server/domains/identity/exceptions/errors";
 import type { IdentityProvider } from "@/server/domains/identity/models/identity-provider";
 import { OIDC_PRESETS } from "@/server/domains/identity/models/oidc-presets";
+import { inLocaleAsync } from "@/test/intl";
 
 const providers = vi.hoisted(() => ({
   createProvider: vi.fn(),
@@ -429,5 +431,57 @@ describe("the results", () => {
     expect(html).toContain("Delete Acme SSO?");
     expect(html).toContain("People linked to it keep their accounts");
     expect(html).toContain("Delete provider");
+  });
+});
+
+describe("what the provider actions say, in each language (132)", () => {
+  const form = (fields: Record<string, string>) => {
+    const data = new FormData();
+    for (const [key, value] of Object.entries(fields)) data.set(key, value);
+    return data;
+  };
+
+  it("the errors read in the language of the request", async () => {
+    providers.enableProvider.mockRejectedValue(new ProviderNotTestedError());
+    const enable = () => actions.enableProviderFromForm({}, form({ id: "acme" }));
+    const en = await inLocaleAsync("en", enable);
+    expect(en).toEqual({ error: new ProviderNotTestedError().message });
+    expect(await inLocaleAsync("pt", enable)).toEqual({
+      error: "Rode o Testar login você mesmo e passe nele antes de ligar este provedor.",
+    });
+    expect(await inLocaleAsync("fr", enable)).toEqual({
+      error:
+        "Lancez vous-même le Test de connexion, et réussissez-le, avant d’activer ce fournisseur.",
+    });
+  });
+
+  it("a stale form says so in the language", async () => {
+    providers.updateProvider.mockRejectedValue(new StaleProviderError(new Date()));
+    const save = () =>
+      actions.saveProviderFromForm(
+        {},
+        form({ mode: "edit", id: "acme", version: provider.updatedAt.toISOString() }),
+      );
+    expect(await inLocaleAsync("pt", save)).toMatchObject({
+      stale: true,
+      error:
+        "Alguém alterou este provedor depois que você o abriu. Recarregue para ver as alterações.",
+    });
+  });
+});
+
+describe("an error nobody translated, in each language (132)", () => {
+  it("still shows its English message", async () => {
+    class SomethingNewError extends IdentityError {
+      override readonly name: string = "SomethingNewError";
+    }
+    providers.enableProvider.mockRejectedValue(new SomethingNewError("It broke in a new way."));
+    const data = new FormData();
+    data.set("id", "acme");
+    for (const locale of ["en", "pt", "fr"] as const)
+      expect(
+        await inLocaleAsync(locale, () => actions.enableProviderFromForm({}, data)),
+        locale,
+      ).toEqual({ error: "It broke in a new way." });
   });
 });

@@ -1152,5 +1152,44 @@
       "migrations": "Migrations applied ({count, number})",
       "root": "Root account created ({email})"
     }
+  },
+  "done": {
+    "users": {
+      "saved": "Saved: {parts}.",
+      "nothing": "Nothing changed.",
+      "added": "{count, plural, one {# workspace added} other {# workspaces added}}",
+      "changed": "{count, plural, one {# role changed} other {# roles changed}}",
+      "removed": "{count, plural, one {# workspace removed} other {# workspaces removed}}",
+      "roleChanged": "Role changed to {role}.",
+      "disabled": "Disabled. They’re signed out everywhere.",
+      "enabled": "Enabled. They can sign in again.",
+      "twoFactorOff": "Two-factor sign-in turned off. They’re signed out everywhere.",
+      "twoFactorNone": "They had no two-factor sign-in: nothing changed.",
+      "erased": "Erased. The account is now deleted-user and nothing of theirs can be read back."
+    },
+    "scopes": {
+      "created": "Created @{name}.",
+      "createdIn": "Created @{name} in {workspace}.",
+      "descriptionSaved": "Description saved."
+    },
+    "workspaces": {
+      "created": "Created {name}.",
+      "descriptionSaved": "Description saved.",
+      "deleted": "Deleted.",
+      "private": "It’s private: only its members and root see its items.",
+      "public": "It’s public: everyone signed in sees its items.",
+      "renamed": "Renamed to {name}.",
+      "cancelled": "Cancelled."
+    },
+    "settings": {
+      "usage": "Usage reporting saved.",
+      "minimum": "Usage minimum saved.",
+      "twoFactor": "Two-factor sign-in saved.",
+      "retention": "Retention saved.",
+      "password": "Password sign-in saved.",
+      "nothing": "Nothing changed.",
+      "erasuresNone": "Nothing was left to finish.",
+      "erasures": "{count, plural, one {Finished # erasure.} other {Finished # erasures.}}"
+    }
   }
 }

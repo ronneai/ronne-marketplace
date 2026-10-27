@@ -1,8 +1,9 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ForbiddenError } from "@/server/domains/identity/exceptions/errors";
-import { ScopeNameTakenError } from "@/server/domains/items/exceptions/errors";
+import { ItemsError, ScopeNameTakenError } from "@/server/domains/items/exceptions/errors";
 import type { Scope } from "@/server/domains/items/models/scope";
+import { inLocaleAsync } from "@/test/intl";
 
 const scopes = vi.hoisted(() => ({
   createScope: vi.fn(),
@@ -166,5 +167,64 @@ describe("Admin › Scopes, gone (115)", () => {
     const at = (has: boolean) =>
       redirects.findIndex((r) => r.source === "/admin/scopes" && (r.has !== undefined) === has);
     expect(at(true)).toBeLessThan(at(false));
+  });
+});
+
+describe("what the scope actions say, in each language (132)", () => {
+  const say = async (locale: "en" | "pt" | "fr", run: () => Promise<unknown>) =>
+    (await inLocaleAsync(locale, run)) as { done?: string; error?: string };
+
+  it("the success lines read in the language of the request", async () => {
+    scopes.createScope.mockResolvedValue(scope());
+    const create = () =>
+      actions.createScopeFromForm({}, form({ name: "platform", description: "d" }));
+    expect((await say("en", create)).done).toBe("Created @platform.");
+    expect((await say("pt", create)).done).toBe("@platform criado.");
+    expect((await say("fr", create)).done).toBe("@platform créée.");
+    scopes.createScope.mockResolvedValue(scope({ workspace: { id: "w1", name: "acme" } }));
+    expect((await say("pt", create)).done).toBe("@platform criado em acme.");
+    expect((await say("fr", create)).done).toBe("@platform créée dans acme.");
+    scopes.updateScopeDescription.mockResolvedValue(scope());
+    const update = () =>
+      actions.updateScopeFromForm({}, form({ name: "platform", description: "d" }));
+    expect((await say("pt", update)).done).toBe("Descrição salva.");
+    expect((await say("fr", update)).done).toBe("Description enregistrée.");
+  });
+
+  it("the errors read in the language of the request", async () => {
+    scopes.createScope.mockRejectedValue(new ScopeNameTakenError("platform"));
+    const create = () =>
+      actions.createScopeFromForm({}, form({ name: "platform", description: "d" }));
+    const en = (await say("en", create)).error;
+    expect(en).toBe(new ScopeNameTakenError("platform").message);
+    expect((await say("pt", create)).error).not.toBe(en);
+    expect((await say("fr", create)).error).not.toBe(en);
+  });
+});
+
+describe("an error nobody translated, in each language (132)", () => {
+  it("still shows its English message", async () => {
+    class SomethingNewError extends ItemsError {
+      override readonly name: string = "SomethingNewError";
+    }
+    scopes.createScope.mockRejectedValue(new SomethingNewError("It broke in a new way."));
+    for (const locale of ["en", "pt", "fr"] as const)
+      expect(
+        await inLocaleAsync(locale, () =>
+          actions.createScopeFromForm({}, form({ name: "x", description: "d" })),
+        ),
+        locale,
+      ).toEqual({ error: "It broke in a new way." });
+  });
+
+  it("the description line reads in each language", async () => {
+    scopes.updateScopeDescription.mockResolvedValue(scope());
+    const update = (locale: "en" | "pt" | "fr") =>
+      inLocaleAsync(locale, () =>
+        actions.updateScopeFromForm({}, form({ name: "platform", description: "d" })),
+      );
+    expect(await update("en")).toEqual({ done: "Description saved." });
+    expect(await update("pt")).toEqual({ done: "Descrição salva." });
+    expect(await update("fr")).toEqual({ done: "Description enregistrée." });
   });
 });

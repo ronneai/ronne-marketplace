@@ -6,6 +6,7 @@ import { ForbiddenError } from "@/server/domains/identity/exceptions/errors";
 import {
   InvalidUsageMinimumError,
   InvalidUsagePolicyError,
+  SettingsError,
 } from "@/server/domains/settings/exceptions/errors";
 import { inLocaleAsync } from "@/test/intl";
 import admin from "../../../messages/en/admin.json";
@@ -686,5 +687,60 @@ describe("Admin › Settings in three languages (132)", () => {
       );
       for (const text of texts) expect(html, `${locale}: ${text}`).toContain(text);
     }
+  });
+});
+
+describe("what the settings actions say, in each language (132)", () => {
+  const say = async (locale: "en" | "pt" | "fr", run: () => Promise<unknown>) =>
+    (await inLocaleAsync(locale, run)) as { done?: string; error?: string };
+
+  it("the success lines read in the language of the request", async () => {
+    settings.setUsagePolicy.mockResolvedValue({ changed: true });
+    const save = () => actions.saveUsagePolicy({}, form("choice"));
+    expect((await say("en", save)).done).toBe("Usage reporting saved.");
+    expect((await say("pt", save)).done).toBe("Relatório de uso salvo.");
+    expect((await say("fr", save)).done).toBe("Rapport d’utilisation enregistré.");
+    settings.setUsagePolicy.mockResolvedValue({ changed: false });
+    expect((await say("pt", save)).done).toBe("Nada mudou.");
+    expect((await say("fr", save)).done).toBe("Rien n’a changé.");
+  });
+
+  it("Retry counts what it finished by each language's rule", async () => {
+    const retry = (n: number) => async () => {
+      erasures.adminRetryErasures.mockResolvedValueOnce(n);
+      return actions.retryErasures({}, new FormData());
+    };
+    expect((await say("en", retry(1))).done).toBe("Finished 1 erasure.");
+    expect((await say("en", retry(2))).done).toBe("Finished 2 erasures.");
+    expect((await say("pt", retry(1))).done).toBe("1 apagamento concluído.");
+    expect((await say("pt", retry(2))).done).toBe("2 apagamentos concluídos.");
+    expect((await say("fr", retry(2))).done).toBe("2 effacements terminés.");
+    expect((await say("fr", retry(0))).done).toBe("Il ne restait rien à terminer.");
+  });
+
+  it("the settings errors read in the language of the request", async () => {
+    settings.setUsagePolicy.mockRejectedValue(new InvalidUsagePolicyError());
+    const save = () => actions.saveUsagePolicy({}, form("nope"));
+    expect((await say("en", save)).error).toBe(new InvalidUsagePolicyError().message);
+    expect((await say("pt", save)).error).toBe(
+      "Escolha desligado, cada pessoa escolhe ou obrigatório.",
+    );
+    expect((await say("fr", save)).error).toBe(
+      "Choisissez désactivé, chacun choisit ou obligatoire.",
+    );
+  });
+});
+
+describe("an error nobody translated, in each language (132)", () => {
+  it("still shows its English message", async () => {
+    class SomethingNewError extends SettingsError {
+      override readonly name: string = "SomethingNewError";
+    }
+    settings.setUsagePolicy.mockRejectedValue(new SomethingNewError("It broke in a new way."));
+    for (const locale of ["en", "pt", "fr"] as const)
+      expect(
+        await inLocaleAsync(locale, () => actions.saveUsagePolicy({}, form("choice"))),
+        locale,
+      ).toEqual({ error: "It broke in a new way." });
   });
 });

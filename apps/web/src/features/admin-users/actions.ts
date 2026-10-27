@@ -59,7 +59,7 @@ export const userWorkspacesFor = serverAction(
       return { rows: memberships.map(({ workspaceId, role }) => ({ workspaceId, role })) };
     } catch (error) {
       if (error instanceof IdentityError || error instanceof WorkspacesError)
-        return { error: error.message };
+        return { error: await errorText(error) };
       throw error;
     }
   },
@@ -80,8 +80,6 @@ const workspacesFrom = (form: FormData) => {
   }
 };
 
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
-
 /** Saves a user's Workspaces dialog (092): the difference, in one go, and says what changed. */
 export const saveUserWorkspacesFromForm = serverAction(
   async (_previous: AdminActionState, form: FormData): Promise<AdminActionState> =>
@@ -90,12 +88,13 @@ export const saveUserWorkspacesFromForm = serverAction(
         userId: text(form, "userId"),
         workspaces: workspacesFrom(form),
       });
+      const t = await getTranslations("admin.done.users");
       const parts = [
-        added ? `${plural(added, "workspace")} added` : "",
-        changed ? `${plural(changed, "role")} changed` : "",
-        removed ? `${plural(removed, "workspace")} removed` : "",
+        added ? t("added", { count: added }) : "",
+        changed ? t("changed", { count: changed }) : "",
+        removed ? t("removed", { count: removed }) : "",
       ].filter(Boolean);
-      return { done: parts.length ? `Saved: ${parts.join(", ")}.` : "Nothing changed." };
+      return { done: parts.length ? t("saved", { parts: parts.join(", ") }) : t("nothing") };
     }),
 );
 
@@ -116,8 +115,14 @@ export const createUserFromForm = serverAction(
 export const changeRoleFromForm = serverAction(
   async (_previous: AdminActionState, form: FormData): Promise<AdminActionState> =>
     attempt(async () => {
-      await adminChangeRole(await requestHeaders(), text(form, "userId"), text(form, "role"));
-      return { done: `Role changed to ${text(form, "role")}.` };
+      const role = text(form, "role");
+      await adminChangeRole(await requestHeaders(), text(form, "userId"), role);
+      const roles = await getTranslations("common.roles");
+      const t = await getTranslations("admin.done.users");
+      // A role the screen doesn't know is shown as typed.
+      return {
+        done: t("roleChanged", { role: role === "root" || role === "user" ? roles(role) : role }),
+      };
     }),
 );
 
@@ -125,7 +130,7 @@ export const disableUserFromForm = serverAction(
   async (_previous: AdminActionState, form: FormData): Promise<AdminActionState> =>
     attempt(async () => {
       await adminDisableUser(await requestHeaders(), text(form, "userId"));
-      return { done: "Disabled. They're signed out everywhere." };
+      return { done: (await getTranslations("admin.done.users"))("disabled") };
     }),
 );
 
@@ -133,7 +138,7 @@ export const enableUserFromForm = serverAction(
   async (_previous: AdminActionState, form: FormData): Promise<AdminActionState> =>
     attempt(async () => {
       await adminEnableUser(await requestHeaders(), text(form, "userId"));
-      return { done: "Enabled. They can sign in again." };
+      return { done: (await getTranslations("admin.done.users"))("enabled") };
     }),
 );
 
@@ -170,11 +175,8 @@ export const resetTwoFactorFromForm = serverAction(
   async (_previous: AdminActionState, form: FormData): Promise<AdminActionState> =>
     attempt(async () => {
       const { reset } = await adminResetTwoFactor(await requestHeaders(), text(form, "userId"));
-      return {
-        done: reset
-          ? "Two-factor sign-in turned off. They're signed out everywhere."
-          : "They had no two-factor sign-in: nothing changed.",
-      };
+      const t = await getTranslations("admin.done.users");
+      return { done: reset ? t("twoFactorOff") : t("twoFactorNone") };
     }),
 );
 
@@ -187,11 +189,9 @@ export const eraseUserFromForm = serverAction(
   async (_previous: AdminActionState, form: FormData): Promise<AdminActionState> => {
     try {
       await adminEraseUser(await requestHeaders(), text(form, "userId"), text(form, "confirm"));
-      return {
-        done: "Erased. The account is now deleted-user and nothing of theirs can be read back.",
-      };
+      return { done: (await getTranslations("admin.done.users"))("erased") };
     } catch (error) {
-      if (error instanceof IdentityError) return { error: error.message };
+      if (error instanceof IdentityError) return { error: await errorText(error) };
       throw error;
     }
   },
@@ -203,7 +203,7 @@ export const disableImpactFor = serverAction(
     try {
       return await adminDisableImpact(await requestHeaders(), userId);
     } catch (error) {
-      if (error instanceof IdentityError) return { error: error.message };
+      if (error instanceof IdentityError) return { error: await errorText(error) };
       throw error;
     }
   },

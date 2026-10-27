@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getTranslations } from "next-intl/server";
+import { errorText } from "@/i18n/errors";
 import { IdentityError } from "@/server/domains/identity/exceptions/errors";
 import { createScope, updateScopeDescription } from "@/server/domains/items/actions/scopes";
 import { ItemsError } from "@/server/domains/items/exceptions/errors";
@@ -19,7 +21,7 @@ const attempt = async (work: () => Promise<string>): Promise<ScopeActionState> =
     return { done };
   } catch (error) {
     if (error instanceof ItemsError || error instanceof IdentityError)
-      return { error: error.message };
+      return { error: await errorText(error) };
     throw error;
   }
 };
@@ -32,9 +34,10 @@ export const createScopeFromForm = serverAction(
         description: text(form, "description"),
         workspaceId: text(form, "workspaceId") || undefined,
       });
+      const t = await getTranslations("admin.done.scopes");
       return scope.workspace.name === "global"
-        ? `Created @${scope.name}.`
-        : `Created @${scope.name} in ${scope.workspace.name}.`;
+        ? t("created", { name: scope.name })
+        : t("createdIn", { name: scope.name, workspace: scope.workspace.name });
     }),
 );
 
@@ -45,6 +48,6 @@ export const updateScopeFromForm = serverAction(
         name: text(form, "name"),
         description: text(form, "description"),
       });
-      return "Description saved.";
+      return (await getTranslations("admin.done.scopes"))("descriptionSaved");
     }),
 );

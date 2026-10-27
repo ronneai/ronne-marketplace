@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
+import { errorText } from "@/i18n/errors";
 import { IdentityError } from "@/server/domains/identity/exceptions/errors";
 import {
   askScopeMove,
@@ -45,7 +47,7 @@ const attempt = async (
     return { done };
   } catch (error) {
     if (error instanceof WorkspacesError || error instanceof IdentityError)
-      return { error: error.message };
+      return { error: await errorText(error) };
     throw error;
   }
 };
@@ -58,7 +60,7 @@ export const createWorkspaceFromForm = serverAction(
         description: text(form, "description"),
         visibility: text(form, "visibility"),
       });
-      return `Created ${workspace.name}.`;
+      return (await getTranslations("admin.done.workspaces"))("created", { name: workspace.name });
     }, ["/workspaces"]),
 );
 
@@ -69,7 +71,7 @@ export const updateWorkspaceFromForm = serverAction(
         name: text(form, "name"),
         description: text(form, "description"),
       });
-      return "Description saved.";
+      return (await getTranslations("admin.done.workspaces"))("descriptionSaved");
     }, ["/workspaces", workspacePath(text(form, "name"))]),
 );
 
@@ -78,7 +80,7 @@ export const deleteWorkspaceFromForm = serverAction(
   async (_previous: WorkspaceActionState, form: FormData): Promise<WorkspaceActionState> => {
     const state = await attempt(async () => {
       await deleteWorkspace(await requestHeaders(), { name: text(form, "name") });
-      return "Deleted.";
+      return (await getTranslations("admin.done.workspaces"))("deleted");
     }, ["/workspaces"]);
     if (state.done) redirect("/workspaces");
     return state;
@@ -96,9 +98,8 @@ export const setVisibilityFromForm = serverAction(
       });
       // What everyone sees changes: the catalogue, item pages, every list.
       revalidatePath("/", "layout");
-      return visibility === "private"
-        ? "It's private: only its members and root see its items."
-        : "It's public: everyone signed in sees its items.";
+      const t = await getTranslations("admin.done.workspaces");
+      return visibility === "private" ? t("private") : t("public");
     }, ["/workspaces", workspacePath(text(form, "name"))]),
 );
 
@@ -109,7 +110,7 @@ export const visibilityImpactFor = serverAction(
       return await visibilityImpact(await requestHeaders(), name);
     } catch (error) {
       if (error instanceof WorkspacesError || error instanceof IdentityError)
-        return { error: error.message };
+        return { error: await errorText(error) };
       throw error;
     }
   },
@@ -129,7 +130,7 @@ export const renameWorkspaceFromForm = serverAction(
       });
       to = workspace.name;
       revalidatePath("/", "layout");
-      return `Renamed to ${workspace.name}.`;
+      return (await getTranslations("admin.done.workspaces"))("renamed", { name: workspace.name });
     }, ["/workspaces"]);
     if (state.done) redirect(workspacePath(to));
     return state;
@@ -142,15 +143,15 @@ export const renameImpactFor = serverAction(async (name: string): Promise<Rename
     return await renameImpact(await requestHeaders(), name);
   } catch (error) {
     if (error instanceof WorkspacesError || error instanceof IdentityError)
-      return { error: error.message };
+      return { error: await errorText(error) };
     throw error;
   }
 });
 
 /** A domain refusal as the dialog's error, anything else thrown on. */
-const refusal = (error: unknown) => {
+const refusal = async (error: unknown) => {
   if (error instanceof WorkspacesError || error instanceof IdentityError)
-    return { error: error.message };
+    return { error: await errorText(error) };
   throw error;
 };
 
@@ -159,7 +160,7 @@ export const moveTargetsFor = serverAction(async (scopeId: string): Promise<Move
   try {
     return { targets: await moveTargets(await requestHeaders(), { scopeId }) };
   } catch (error) {
-    return refusal(error);
+    return await refusal(error);
   }
 });
 
@@ -169,7 +170,7 @@ export const moveImpactFor = serverAction(
     try {
       return await moveImpact(await requestHeaders(), input);
     } catch (error) {
-      return refusal(error);
+      return await refusal(error);
     }
   },
 );
@@ -192,7 +193,7 @@ export const askMoveFromForm = serverAction(
       return { done: result.outcome };
     } catch (error) {
       if (error instanceof ScopeMoveRefusedError) return { refused: error.impact };
-      return refusal(error);
+      return await refusal(error);
     }
   },
 );
@@ -202,6 +203,6 @@ export const cancelMoveFromForm = serverAction(
   async (_previous: WorkspaceActionState, form: FormData): Promise<WorkspaceActionState> =>
     attempt(async () => {
       await cancelScopeMove(await requestHeaders(), { moveId: text(form, "moveId") });
-      return "Cancelled.";
+      return (await getTranslations("admin.done.workspaces"))("cancelled");
     }, [workspacePath(text(form, "workspace")), "/workspaces/requests"]),
 );

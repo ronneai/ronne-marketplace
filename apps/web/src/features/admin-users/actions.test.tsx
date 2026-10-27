@@ -4,10 +4,17 @@ import {
   CannotModifySelfError,
   EmailTakenError,
   ForbiddenError,
+  IdentityError,
+  LastRootError,
   NoPasswordError,
 } from "@/server/domains/identity/exceptions/errors";
 import { inLocaleAsync } from "@/test/intl";
 
+const workspacesActions = vi.hoisted(() => ({
+  setUserWorkspaces: vi.fn(),
+  userMemberships: vi.fn(),
+}));
+vi.mock("@/server/domains/workspaces/actions/workspaces", () => workspacesActions);
 const erase = vi.hoisted(() => ({ adminEraseUser: vi.fn() }));
 vi.mock("@/server/domains/identity/actions/erase-user", () => erase);
 const admin = vi.hoisted(() => ({
@@ -306,7 +313,7 @@ describe("rendering", () => {
   it("resets two-factor, and says when there was none (105)", async () => {
     admin.adminResetTwoFactor.mockResolvedValueOnce({ email: "u@example.com", reset: true });
     expect(await actions.resetTwoFactorFromForm({}, form({ userId: "u" }))).toEqual({
-      done: "Two-factor sign-in turned off. They're signed out everywhere.",
+      done: "Two-factor sign-in turned off. They’re signed out everywhere.",
     });
     expect(admin.adminResetTwoFactor).toHaveBeenCalledWith(expect.any(Headers), "u");
     expect(cache.revalidatePath).toHaveBeenCalledWith("/admin/users");
@@ -381,5 +388,83 @@ describe("rendering", () => {
 
   it("the create button renders", () => {
     expect(renderToStaticMarkup(<CreateUserDialog />)).toContain("Create user");
+  });
+});
+
+describe("what the user actions say, in each language (132)", () => {
+  const say = async (locale: "en" | "pt" | "fr", run: () => Promise<unknown>) =>
+    (await inLocaleAsync(locale, run)) as { done?: string; error?: string };
+
+  it("the success lines read in the language of the request", async () => {
+    admin.adminDisableUser.mockResolvedValue(undefined);
+    admin.adminEnableUser.mockResolvedValue(undefined);
+    admin.adminChangeRole.mockResolvedValue(undefined);
+    admin.adminResetTwoFactor.mockResolvedValue({ reset: true });
+    erase.adminEraseUser.mockResolvedValue(undefined);
+    const disable = () => actions.disableUserFromForm({}, form({ userId: "u" }));
+    expect((await say("en", disable)).done).toBe("Disabled. They’re signed out everywhere.");
+    expect((await say("pt", disable)).done).toBe(
+      "Desativado. A pessoa foi desconectada de todos os lugares.",
+    );
+    expect((await say("fr", disable)).done).toBe("Désactivé. La personne est déconnectée partout.");
+    const enable = () => actions.enableUserFromForm({}, form({ userId: "u" }));
+    expect((await say("pt", enable)).done).toContain("pode entrar de novo");
+    expect((await say("fr", enable)).done).toContain("peut se reconnecter");
+    const role = () => actions.changeRoleFromForm({}, form({ userId: "u", role: "root" }));
+    expect((await say("pt", role)).done).toBe("Papel alterado para root.");
+    expect((await say("fr", role)).done).toBe("Rôle changé en root.");
+    const user = () => actions.changeRoleFromForm({}, form({ userId: "u", role: "user" }));
+    expect((await say("pt", user)).done).toBe("Papel alterado para usuário.");
+    const two = () => actions.resetTwoFactorFromForm({}, form({ userId: "u" }));
+    expect((await say("pt", two)).done).toContain("Login em dois fatores desligado");
+    expect((await say("fr", two)).done).toContain("Double authentification désactivée");
+    const erased = () => actions.eraseUserFromForm({}, form({ userId: "u", confirm: "x" }));
+    expect((await say("pt", erased)).done).toContain("Apagado.");
+    expect((await say("fr", erased)).done).toContain("Effacé.");
+  });
+
+  it("the errors read in the language of the request, from the error's class", async () => {
+    admin.adminDisableUser.mockRejectedValue(new LastRootError());
+    const disable = () => actions.disableUserFromForm({}, form({ userId: "u" }));
+    expect((await say("en", disable)).error).toBe(new LastRootError().message);
+    expect((await say("pt", disable)).error).toContain("sem um root ativo");
+    expect((await say("fr", disable)).error).toContain("sans root actif");
+    erase.adminEraseUser.mockRejectedValue(new EraseConfirmationError());
+    const erase1 = () => actions.eraseUserFromForm({}, form({ userId: "u", confirm: "x" }));
+    expect((await say("pt", erase1)).error).toContain("exatamente como aparece");
+    expect((await say("fr", erase1)).error).toContain("exactement comme affiché");
+    admin.adminDisableImpact.mockRejectedValue(new LastRootError());
+    expect(
+      ((await inLocaleAsync("pt", () => actions.disableImpactFor("u"))) as { error: string }).error,
+    ).toContain("root ativo");
+  });
+
+  it("the workspaces dialog counts what it saved by each language's rule", async () => {
+    workspacesActions.setUserWorkspaces.mockResolvedValue({ added: 1, changed: 2, removed: 0 });
+    const save = () =>
+      actions.saveUserWorkspacesFromForm({}, form({ userId: "u", workspaces: "[]" }));
+    expect((await say("en", save)).done).toBe("Saved: 1 workspace added, 2 roles changed.");
+    expect((await say("pt", save)).done).toBe(
+      "Salvo: 1 espaço de trabalho adicionado, 2 papéis alterados.",
+    );
+    expect((await say("fr", save)).done).toBe(
+      "Enregistré : 1 espace de travail ajouté, 2 rôles modifiés.",
+    );
+    workspacesActions.setUserWorkspaces.mockResolvedValue({ added: 0, changed: 0, removed: 0 });
+    expect((await say("pt", save)).done).toBe("Nada mudou.");
+  });
+});
+
+describe("an error nobody translated, in each language (132)", () => {
+  it("still shows its English message", async () => {
+    class SomethingNewError extends IdentityError {
+      override readonly name: string = "SomethingNewError";
+    }
+    admin.adminEnableUser.mockRejectedValue(new SomethingNewError("It broke in a new way."));
+    for (const locale of ["en", "pt", "fr"] as const)
+      expect(
+        await inLocaleAsync(locale, () => actions.enableUserFromForm({}, form({ userId: "u" }))),
+        locale,
+      ).toEqual({ error: "It broke in a new way." });
   });
 });

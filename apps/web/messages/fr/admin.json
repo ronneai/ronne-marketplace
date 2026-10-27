@@ -1152,5 +1152,44 @@
       "migrations": "Migrations appliquées ({count, number})",
       "root": "Compte root créé ({email})"
     }
+  },
+  "done": {
+    "users": {
+      "saved": "Enregistré : {parts}.",
+      "nothing": "Rien n’a changé.",
+      "added": "{count, plural, one {# espace de travail ajouté} other {# espaces de travail ajoutés}}",
+      "changed": "{count, plural, one {# rôle modifié} other {# rôles modifiés}}",
+      "removed": "{count, plural, one {# espace de travail retiré} other {# espaces de travail retirés}}",
+      "roleChanged": "Rôle changé en {role}.",
+      "disabled": "Désactivé. La personne est déconnectée partout.",
+      "enabled": "Activé. La personne peut se reconnecter.",
+      "twoFactorOff": "Double authentification désactivée. La personne est déconnectée partout.",
+      "twoFactorNone": "La personne n’avait pas de double authentification : rien n’a changé.",
+      "erased": "Effacé. Le compte est maintenant deleted-user et rien de ce qui le concernait ne peut être relu."
+    },
+    "scopes": {
+      "created": "@{name} créée.",
+      "createdIn": "@{name} créée dans {workspace}.",
+      "descriptionSaved": "Description enregistrée."
+    },
+    "workspaces": {
+      "created": "{name} créé.",
+      "descriptionSaved": "Description enregistrée.",
+      "deleted": "Supprimé.",
+      "private": "Il est maintenant privé : seuls ses membres et root voient ses éléments.",
+      "public": "Il est maintenant public : toute personne connectée voit ses éléments.",
+      "renamed": "Renommé en {name}.",
+      "cancelled": "Annulé."
+    },
+    "settings": {
+      "usage": "Rapport d’utilisation enregistré.",
+      "minimum": "Minimum d’utilisation enregistré.",
+      "twoFactor": "Double authentification enregistrée.",
+      "retention": "Conservation enregistrée.",
+      "password": "Connexion par mot de passe enregistrée.",
+      "nothing": "Rien n’a changé.",
+      "erasuresNone": "Il ne restait rien à terminer.",
+      "erasures": "{count, plural, one {# effacement terminé.} other {# effacements terminés.}}"
+    }
   }
 }

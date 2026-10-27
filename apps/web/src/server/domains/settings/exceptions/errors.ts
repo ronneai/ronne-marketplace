@@ -27,7 +27,7 @@ export class InvalidUsageMinimumError extends SettingsError {
 
 export class InvalidRetentionError extends SettingsError {
   override readonly name: string = "InvalidRetentionError";
-  constructor(which: "ipDays" | "sessionsDays" | "feedbackDays") {
+  constructor(readonly which: "ipDays" | "sessionsDays" | "feedbackDays") {
     const what = {
       ipDays: "IP addresses",
       sessionsDays: "Expired sessions",

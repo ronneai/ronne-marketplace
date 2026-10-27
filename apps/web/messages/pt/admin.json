@@ -1152,5 +1152,44 @@
       "migrations": "Migrações aplicadas ({count, number})",
       "root": "Conta root criada ({email})"
     }
+  },
+  "done": {
+    "users": {
+      "saved": "Salvo: {parts}.",
+      "nothing": "Nada mudou.",
+      "added": "{count, plural, one {# espaço de trabalho adicionado} other {# espaços de trabalho adicionados}}",
+      "changed": "{count, plural, one {# papel alterado} other {# papéis alterados}}",
+      "removed": "{count, plural, one {# espaço de trabalho removido} other {# espaços de trabalho removidos}}",
+      "roleChanged": "Papel alterado para {role}.",
+      "disabled": "Desativado. A pessoa foi desconectada de todos os lugares.",
+      "enabled": "Ativado. A pessoa pode entrar de novo.",
+      "twoFactorOff": "Login em dois fatores desligado. A pessoa foi desconectada de todos os lugares.",
+      "twoFactorNone": "A pessoa não tinha login em dois fatores: nada mudou.",
+      "erased": "Apagado. A conta agora é deleted-user e nada da pessoa pode ser lido de volta."
+    },
+    "scopes": {
+      "created": "@{name} criado.",
+      "createdIn": "@{name} criado em {workspace}.",
+      "descriptionSaved": "Descrição salva."
+    },
+    "workspaces": {
+      "created": "{name} criado.",
+      "descriptionSaved": "Descrição salva.",
+      "deleted": "Excluído.",
+      "private": "Agora é privado: só os membros e o root veem os itens.",
+      "public": "Agora é público: todos que entraram veem os itens.",
+      "renamed": "Renomeado para {name}.",
+      "cancelled": "Cancelado."
+    },
+    "settings": {
+      "usage": "Relatório de uso salvo.",
+      "minimum": "Mínimo de uso salvo.",
+      "twoFactor": "Login em dois fatores salvo.",
+      "retention": "Retenção salva.",
+      "password": "Login com senha salvo.",
+      "nothing": "Nada mudou.",
+      "erasuresNone": "Não havia nada a concluir.",
+      "erasures": "{count, plural, one {# apagamento concluído.} other {# apagamentos concluídos.}}"
+    }
   }
 }

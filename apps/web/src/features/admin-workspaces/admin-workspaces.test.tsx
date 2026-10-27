@@ -8,6 +8,7 @@ import {
   WorkspaceHasOutsideDependentsError,
   WorkspaceNameTakenError,
   WorkspaceNotEmptyError,
+  WorkspacesError,
 } from "@/server/domains/workspaces/exceptions/errors";
 import type { Workspace } from "@/server/domains/workspaces/models/workspace";
 import { inLocaleAsync } from "@/test/intl";
@@ -144,7 +145,7 @@ describe("workspace actions", () => {
     workspaces.setWorkspaceVisibility.mockResolvedValue(undefined);
     expect(
       await actions.setVisibilityFromForm({}, form({ name: "acme", visibility: "private" })),
-    ).toEqual({ done: "It's private: only its members and root see its items." });
+    ).toEqual({ done: "It’s private: only its members and root see its items." });
     expect(workspaces.setWorkspaceVisibility).toHaveBeenCalledWith(expect.any(Headers), {
       name: "acme",
       visibility: "private",
@@ -152,7 +153,7 @@ describe("workspace actions", () => {
     expect(cache.revalidatePath).toHaveBeenCalledWith("/", "layout");
     expect(
       await actions.setVisibilityFromForm({}, form({ name: "acme", visibility: "public" })),
-    ).toEqual({ done: "It's public: everyone signed in sees its items." });
+    ).toEqual({ done: "It’s public: everyone signed in sees its items." });
     workspaces.setWorkspaceVisibility.mockRejectedValueOnce(
       new WorkspaceHasOutsideDependentsError("acme", ["@team/front"]),
     );
@@ -1130,5 +1131,76 @@ describe("a workspace's pinned items (125)", () => {
       kind: "workspace",
       workspaceId: "w1",
     });
+  });
+});
+
+describe("what the workspace actions say, in each language (132)", () => {
+  const say = async (locale: "en" | "pt" | "fr", run: () => Promise<unknown>) =>
+    (await inLocaleAsync(locale, run)) as { done?: string; error?: string };
+
+  it("the success lines read in the language of the request", async () => {
+    workspaces.createWorkspace.mockResolvedValue(workspace());
+    const create = () =>
+      actions.createWorkspaceFromForm(
+        {},
+        form({ name: "acme", description: "d", visibility: "public" }),
+      );
+    expect((await say("en", create)).done).toBe("Created acme.");
+    expect((await say("pt", create)).done).toBe("acme criado.");
+    expect((await say("fr", create)).done).toBe("acme créé.");
+    workspaces.setWorkspaceVisibility.mockResolvedValue(workspace());
+    const hide = () =>
+      actions.setVisibilityFromForm({}, form({ name: "acme", visibility: "private" }));
+    const show = () =>
+      actions.setVisibilityFromForm({}, form({ name: "acme", visibility: "public" }));
+    expect((await say("pt", hide)).done).toContain("Agora é privado");
+    expect((await say("fr", show)).done).toContain("Il est maintenant public");
+    workspaces.cancelScopeMove.mockResolvedValue(undefined);
+    const cancel = () => actions.cancelMoveFromForm({}, form({ moveId: "m", workspace: "acme" }));
+    expect((await say("pt", cancel)).done).toBe("Cancelado.");
+    expect((await say("fr", cancel)).done).toBe("Annulé.");
+  });
+
+  it("the errors read in the language of the request", async () => {
+    workspaces.createWorkspace.mockRejectedValue(new WorkspaceNameTakenError("acme"));
+    const create = () =>
+      actions.createWorkspaceFromForm(
+        {},
+        form({ name: "acme", description: "d", visibility: "public" }),
+      );
+    const en = (await say("en", create)).error;
+    expect(en).toBe(new WorkspaceNameTakenError("acme").message);
+    expect((await say("pt", create)).error).not.toBe(en);
+    expect((await say("fr", create)).error).not.toBe(en);
+  });
+});
+
+describe("an error nobody translated, and the description line, in each language (132)", () => {
+  it("an untranslated error still shows its English message", async () => {
+    class SomethingNewError extends WorkspacesError {
+      override readonly name: string = "SomethingNewError";
+    }
+    workspaces.createWorkspace.mockRejectedValue(new SomethingNewError("It broke in a new way."));
+    for (const locale of ["en", "pt", "fr"] as const)
+      expect(
+        await inLocaleAsync(locale, () =>
+          actions.createWorkspaceFromForm(
+            {},
+            form({ name: "acme", description: "d", visibility: "public" }),
+          ),
+        ),
+        locale,
+      ).toEqual({ error: "It broke in a new way." });
+  });
+
+  it("the description line reads in each language", async () => {
+    workspaces.updateWorkspace.mockResolvedValue(workspace());
+    const update = (locale: "en" | "pt" | "fr") =>
+      inLocaleAsync(locale, () =>
+        actions.updateWorkspaceFromForm({}, form({ name: "acme", description: "d" })),
+      );
+    expect(await update("en")).toEqual({ done: "Description saved." });
+    expect(await update("pt")).toEqual({ done: "Descrição salva." });
+    expect(await update("fr")).toEqual({ done: "Description enregistrée." });
   });
 });
