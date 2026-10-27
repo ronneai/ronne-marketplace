@@ -10,7 +10,7 @@ vi.mock("./actions", () => ({
   moveTargetsFor: vi.fn(),
 }));
 
-const { MoveForm, MoveChanges, MoveState, targetLabel } = await import("./MoveScope");
+const { MoveForm, MoveChanges, MoveState } = await import("./MoveScope");
 
 // The Move dialog (115, task 5): where to, the name there, what changes, and the button that
 // says what will happen.
@@ -79,7 +79,7 @@ describe("the Move dialog (115)", () => {
     // Its helper leads to the Documentation's section.
     expect(html).toContain("Who has to agree?");
     expect(html).toContain("/marketplace/docs/workspaces#moving");
-    expect(targetLabel(targets.targets[2] as never)).toBe("acme");
+    expect(html).toContain(">acme</option>");
   });
 
   it("says Move scope when it moves at once, and shows the new names and who sees them", () => {
@@ -88,7 +88,7 @@ describe("the Move dialog (115)", () => {
     expect(html).not.toContain("Ask to move");
     expect(html).toContain("@beta/infra/deploy → @acme/infra/deploy");
     expect(html).toContain("Everyone on this instance");
-    expect(html).toContain("acme&#x27;s moderators and admins");
+    expect(html).toContain("acme’s moderators and admins");
     // No message for a move made at once.
     expect(html).not.toContain("Message (optional)");
   });
@@ -97,7 +97,7 @@ describe("the Move dialog (115)", () => {
     const admins = form({ ...impact(), way: "request", answeredBy: "admins" });
     expect(admins).toContain(">Ask to move<");
     expect(admins).toContain("Message (optional)");
-    expect(admins).toContain("acme&#x27;s admins or root will answer.");
+    expect(admins).toContain("acme’s admins or root will answer.");
     const root = form(
       {
         ...impact({ target: { ...impact().target, name: "global", global: true } }),
@@ -134,10 +134,10 @@ describe("the Move dialog (115)", () => {
     for (const text of [
       "This move would break something",
       "@acme/team/app",
-      "and 2 more you can&#x27;t see",
+      "and 2 more you can’t see",
       "@beta/infra/kit → @vault/secret/lib",
-      "and 1 more you can&#x27;t see",
-      "other items&#x27; old names",
+      "and 1 more you can’t see",
+      "other items’ old names",
     ])
       expect(html, text).toContain(text);
     expect(html).toMatch(/<button[^>]*disabled=""[^>]*>[^<]*Move scope/);
@@ -163,7 +163,7 @@ describe("the Move dialog (115)", () => {
       />,
     );
     for (const text of [
-      "Only vault&#x27;s members and root",
+      "Only vault’s members and root",
       "Installs by people who can no longer see them stop updating.",
       "@beta/infra/wip (bob@example.com)",
       "@team/app",
@@ -180,7 +180,7 @@ describe("the Move dialog (115)", () => {
     const twice = form({ ...impact(), way: "twice", answeredBy: null }, { step: "confirm" });
     expect(twice).toContain(">Continue<");
     const typed = form({ ...impact(), way: "twice", answeredBy: null }, { step: "type" });
-    expect(typed).toContain("type the scope&#x27;s name");
+    expect(typed).toContain("type the scope’s name");
     expect(typed).toContain('name="confirm"');
     expect(typed).toMatch(/<button[^>]*disabled=""[^>]*>[^<]*Move scope/);
     // Into global, it says everyone will see them.
@@ -253,8 +253,8 @@ describe("the Move dialog (115)", () => {
         })}
       />,
     );
-    expect(html).toContain("nobody: personal workspaces aren&#x27;t reviewed.");
-    expect(html).not.toContain("ana&#x27;s moderators");
+    expect(html).toContain("nobody: personal workspaces aren’t reviewed.");
+    expect(html).not.toContain("ana’s moderators");
     expect(html).toContain("Only you and root");
   });
 

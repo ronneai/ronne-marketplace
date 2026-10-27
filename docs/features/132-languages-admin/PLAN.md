@@ -36,10 +36,13 @@ Every task that moves a folder adds it to the `overrides` entry in `biome.json` 
   *Note:* the success lines and errors the user actions return (`state.done`, `state.error`, the
   disable-impact error) stay English until task 11; the Help entries until task 12.
 
-- [ ] **4. Scopes and workspaces.** `admin-scopes` (table, dialogs), `admin-workspaces` (table,
+- [x] **4. Scopes and workspaces.** `admin-scopes` (table, dialogs), `admin-workspaces` (table,
   dialogs, `MoveScope`), and the scopes table on a workspace's page.
   *Done when:* three-language tests; `UNTIL_132` is removed from `e2e/languages-browse.e2e.ts`
   and the e2e still passes.
+  *Note:* three small English changes: curly apostrophes, counts grouped by the language
+  ("Personal (1,000+)"), and a stray "(114)" dropped from the not-reviewed sentence. The
+  load-failed messages are codes the forms word, so an effect never depends on a translator.
 
 - [ ] **5. The Audit log: the table.** `AuditLogPage`, filters, `EventDialog`, `EventDetails`,
   `format.ts`, `list.ts`, `app/(app)/admin/audit`.

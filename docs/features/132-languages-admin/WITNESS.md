@@ -87,3 +87,34 @@ Witnessed: 2026-10-27 EDT, by a fresh agent (blind). Commit: 279b7784 plus the u
 **Overall:** met.
 
 The witness listed the actions' words (task 11) and the Help entries (task 12) as out of scope, as the request said; they are not claims of this task.
+
+## Task 4 — Scopes and workspaces
+
+Witnessed: 2026-10-27 11:20 EDT, by a fresh agent (blind). Commit: 37ba57b1 plus the uncommitted tree. Machine: macOS (Darwin 27), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The scopes and workspaces tables, dialogs and `MoveScope` read through `admin.scopes`, `admin.workspaces` and `admin.move` in en, pt and fr | yes | confirmed | `git diff --stat`: the `.tsx` files and the three `admin.json` changed; `ScopesTable.tsx` uses `useTranslations` |
+| 2 | The scopes table on a workspace's page is translated; `UNTIL_132` is gone and the e2e passes | yes | confirmed | `grep UNTIL_132 e2e src` → none; `playwright test e2e/languages-browse.e2e.ts --project=chromium` → 6 passed |
+| 3 | The raw-text scan covers both folders | yes | confirmed | `biome.json`; mutation: raw JSX in `MoveScope.tsx` → "Text on the screen comes from the message files"; restored, `cmp` identical |
+| 4 | Three-language tests exist and English is unchanged but for the stated deviations | yes | confirmed | `vitest run src/features/admin-scopes src/features/admin-workspaces` → 81 passed; parity 52 passed; `tsc` clean |
+| 5 | Counts of 0, 1 and 2 follow each language's plural rule | yes | confirmed | Scopes 1 and 2, items outside 1 and 2, the move question; the empty state stands for 0 |
+| 6 | Names, scopes and descriptions are shown as data | yes | confirmed | Tests with `{count} <b>x</b>` and typed item names |
+| 7 | Deviation: curly apostrophes | yes | confirmed | Acceptable deviation. Typography only, as in task 3 |
+| 8 | Deviation: "Personal (1,000+)" is grouped by the language | yes | confirmed | Acceptable deviation. en "1,000+", pt "1.000+" |
+| 9 | Deviation: "(114)" dropped from the not-reviewed sentence | yes | confirmed | Acceptable deviation. A feature number that leaked into screen text |
+| 10 | The translation tests fail if a pt/fr message goes back to English | yes | partly | Setting pt `scopes.search.label` and `.submit` to "Search" still passed: short texts are skipped by the leak helper and the new assertion used `toContain` |
+
+**Overall:** not met (row 10).
+
+### Re-check (row 10), two rounds
+
+First re-check, 2026-10-27: not met. The search test used `toContain`, and the label and the button say the same word, so mutating one still left the other: all four mutations (pt and fr, `label` and `submit`) survived.
+
+Witnessed: 2026-10-27 11:30 EDT, by a fresh agent (third check, row 10 only). Commit: 37ba57b1 plus the uncommitted tree. Machine: macOS (Darwin), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 10 | The translation tests fail if a pt/fr message goes back to English | yes | confirmed | The test now counts the search word twice (label and button) in the scopes and the workspaces tables; six mutations (pt and fr `admin.scopes.search.label`/`.submit`, pt `admin.workspaces.search.label`/`.submit`) each → 1 failed, 73 passed; unmutated 74 passed; `cmp` identical after each restore |
+
+**Overall:** met.

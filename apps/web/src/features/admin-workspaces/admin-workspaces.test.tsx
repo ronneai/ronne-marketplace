@@ -404,7 +404,7 @@ describe("WorkspacesTable", () => {
     );
     expect(searched).toContain('href="/workspaces?q=an&amp;sort=created">Shared (2)</a>');
     expect(searched).toContain(
-      'href="/workspaces?q=an&amp;kind=personal&amp;sort=created">Personal (1000+)</a>',
+      'href="/workspaces?q=an&amp;kind=personal&amp;sort=created">Personal (1,000+)</a>',
     );
     expect(searched).not.toMatch(/href="[^"]*cursor=c9[^"]*">(Shared|Personal)/);
     expect(html).not.toContain(">Moderators<");

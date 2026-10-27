@@ -133,16 +133,6 @@ const loadAll = (locale: string) => {
 /** A message whose English is also a seeded item's keyword, which the cards show as written. */
 const KEYWORD_AS_TAG = ["types.tag.permission-policy"];
 
-/** Words of the scopes table on a workspace's page, English until the admin sweep (132). */
-const UNTIL_132 = [
-  "catalogue.view.search.label",
-  "catalogue.view.search.submit",
-  "catalogue.view.filters.scope",
-  "catalogue.place.scope",
-  "workspaces.members.search",
-  "workspaces.moves.scope",
-];
-
 /**
  * No English left: every plain English text of these screens (a message with no placeholder or tag,
  * four characters or more) that reads differently in the language must not stand on a line of its
@@ -235,9 +225,7 @@ for (const words of LANGUAGES) {
       await expect(page).toHaveURL(/\/workspaces\/global$/);
       await expect(page.getByRole("link", { name: words.allWorkspaces })).toBeVisible();
       await expect(page.getByRole("link", { name: words.scopes, exact: true })).toBeVisible();
-      // The scopes table and its search are shared with Admin › Workspaces and move with the admin
-      // sweep (feature 132): until then their English "Search" and "Scope" may stand on this page.
-      await noEnglish(page, words.lang, UNTIL_132);
+      await noEnglish(page, words.lang);
       // Everyone is in global: its join page says so, in the language.
       await page.goto("/workspaces/global/join");
       await expect(page.locator("html")).toHaveAttribute("lang", words.lang);

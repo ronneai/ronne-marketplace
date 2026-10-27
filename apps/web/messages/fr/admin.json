@@ -260,5 +260,200 @@
     "remove": "Retirer {workspace}",
     "always": "Toujours",
     "add": "Ajouter un espace de travail"
+  },
+  "scopes": {
+    "search": {
+      "label": "Rechercher",
+      "placeholder": "Nom ou description",
+      "submit": "Rechercher"
+    },
+    "columns": {
+      "scope": "Portée",
+      "description": "Description",
+      "creator": "Créée par",
+      "created": "Créée le"
+    },
+    "empty": {
+      "none": "Aucune portée pour l’instant.",
+      "filtered": "Aucune portée ne correspond à cette recherche."
+    },
+    "create": {
+      "button": "Créer une portée",
+      "title": "Créer une portée",
+      "name": "Nom",
+      "hint": "Les éléments s’appelleront <mono>@{name}/élément</mono>. Lettres minuscules, chiffres et traits d’union.",
+      "inWorkspace": "Dans <mono>{workspace}</mono>. Ses admins ou root pourront la déplacer plus tard.",
+      "submit": "Créer la portée"
+    },
+    "edit": {
+      "label": "Modifier @{name}",
+      "title": "Modifier la portée"
+    },
+    "description": {
+      "label": "Description",
+      "hint": "Ce qui appartient à cette portée. {used, number}/{max, number}"
+    },
+    "cancel": "Annuler",
+    "done": "Terminé",
+    "save": "Enregistrer",
+    "fallbackName": "portée"
+  },
+  "workspaces": {
+    "search": {
+      "label": "Rechercher",
+      "placeholder": "Nom ou description",
+      "placeholderPersonal": "Nom, description ou propriétaire",
+      "submit": "Rechercher"
+    },
+    "chips": {
+      "q": "Recherche",
+      "kind": "Type"
+    },
+    "kinds": {
+      "label": "Type",
+      "shared": "Partagés",
+      "personal": "Personnels",
+      "count": "{kind} ({count, number}{more})"
+    },
+    "visibility": {
+      "public": "Public",
+      "private": "Privé"
+    },
+    "columns": {
+      "workspace": "Espace de travail",
+      "description": "Description",
+      "visibility": "Visibilité",
+      "scopes": "Portées",
+      "moderators": "Modérateurs",
+      "created": "Créé le",
+      "owner": "Propriétaire"
+    },
+    "none": "Aucun",
+    "empty": {
+      "none": "Aucun espace de travail pour l’instant.",
+      "filtered": "Aucun espace de travail ne correspond à cette recherche."
+    },
+    "dialogs": {
+      "cancel": "Annuler",
+      "done": "Terminé",
+      "save": "Enregistrer",
+      "description": {
+        "label": "Description",
+        "hint": "À qui il s’adresse et ce qu’il contient. {used, number}/{max, number}"
+      },
+      "create": {
+        "button": "Nouvel espace de travail",
+        "title": "Nouvel espace de travail",
+        "name": "Nom",
+        "nameHint": "Lettres minuscules, chiffres et traits d’union. Les noms de ses éléments commencent par lui : @nom/portée/élément.",
+        "visibility": "Visibilité",
+        "public": "Public",
+        "publicBody": "Toute personne connectée voit ses portées et ses éléments, et peut en dépendre.",
+        "private": "Privé",
+        "privateBody": "Seuls ses membres et root voient ses éléments; seuls ses propres éléments peuvent en dépendre.",
+        "submit": "Créer l’espace de travail"
+      },
+      "edit": {
+        "button": "Modifier la description",
+        "title": "Modifier l’espace de travail"
+      },
+      "delete": {
+        "button": "Supprimer",
+        "title": "Supprimer l’espace de travail",
+        "body": "Supprimer l’espace de travail <mono>{name}</mono>? Il n’a aucune portée. C’est irréversible.",
+        "submit": "Supprimer l’espace de travail",
+        "reason": "Déplacez ou retirez d’abord ses portées."
+      },
+      "visibility": {
+        "makePrivate": "Rendre privé",
+        "makePublic": "Rendre public",
+        "askPublic": "Rendre <mono>{name}</mono> public? Tout le monde sur cette instance verra ses éléments et pourra en dépendre.",
+        "askPrivate": "Rendre <mono>{name}</mono> privé? Seuls ses membres et root verront ses éléments, et seuls ses propres éléments pourront en dépendre.",
+        "checking": "Vérification de ce qui dépend de ses éléments…",
+        "loadFailed": "Impossible de vérifier ce qui dépend de ses éléments. Réessayez dans un instant.",
+        "dependentsTitle": "{count, plural, one {# élément hors de {name} dépend de ses éléments} other {# éléments hors de {name} dépendent de ses éléments}}",
+        "dependentsBody": "Ils cesseraient de s’installer. Publiez-les d’abord sans cette dépendance.",
+        "openTitle": "{count, plural, one {# soumission ouverte hors de {name} dépend de ses éléments} other {# soumissions ouvertes hors de {name} dépendent de ses éléments}}",
+        "openBody": "Elles échoueraient à la publication.",
+        "blocked": "Des éléments de l’extérieur dépendent de ses éléments."
+      },
+      "rename": {
+        "button": "Renommer",
+        "title": "Renommer l’espace de travail",
+        "newName": "Nouveau nom",
+        "hint": "Lettres minuscules, chiffres et traits d’union, et pas le nom d’un autre espace de travail.",
+        "loadFailed": "Impossible de compter ses éléments. Réessayez dans un instant.",
+        "changesTitle": "Ce qui change",
+        "items": "{count, plural, one {Son # élément sera renommé} other {Ses # éléments seront renommés}} de <mono>@{from}/…</mono> à <mono>@{to}/…</mono>. Les anciens noms continuent de fonctionner pour les installations, les lockfiles et les dépendances, et <mono>rmk</mono> fait passer les projets aux nouveaux noms à mesure qu’ils se mettent à jour; dans Claude Code, ils apparaissent comme de nouveaux plugins.",
+        "itemsUnknown": "Ses éléments seront renommés de <mono>@{from}/…</mono> à <mono>@{to}/…</mono>. Les anciens noms continuent de fonctionner pour les installations, les lockfiles et les dépendances, et <mono>rmk</mono> fait passer les projets aux nouveaux noms à mesure qu’ils se mettent à jour; dans Claude Code, ils apparaissent comme de nouveaux plugins.",
+        "links": "Les liens vers cet espace de travail (sa page et son lien d’adhésion) cesseront de fonctionner, tout comme l’ancien nom dans <mono>rmk search --workspace</mono>, <mono>rmk feed build --workspace</mono> et tout flux de CI qui le nomme.",
+        "fixName": "Corrigez d’abord le nom.",
+        "typeNew": "Saisissez le nouveau nom."
+      }
+    }
+  },
+  "move": {
+    "personalTarget": "Personnel ({name})",
+    "more": "et {count, number} de plus",
+    "hidden": "et {count, number} de plus que vous ne voyez pas : dans un espace de travail où vous n’êtes pas, ou un nom que personne n’a",
+    "seenBy": {
+      "personal": "Vous seul et root",
+      "public": "Tout le monde sur cette instance",
+      "private": "Seuls les membres de {workspace} et root"
+    },
+    "breakTitle": "Ce déplacement casserait quelque chose",
+    "outsideDependents": "Des éléments publiés hors de {workspace} dépendent de ses éléments et cesseraient de s’installer pour les personnes qui ne voient pas {workspace} :",
+    "ownDependencies": "Ses éléments dépendent d’éléments d’un espace de travail privé autre que {workspace}, dont ils ne pourraient pas dépendre là-bas :",
+    "aliasTaken": "Ces nouveaux noms sont d’anciens noms d’autres éléments, et leur restent :",
+    "changesTitle": "Ce qui change",
+    "itemsNamed": "{count, plural, one {Son # élément s’appellera :} other {Ses # éléments s’appelleront :}}",
+    "oldNames": "Les anciens noms continuent de fonctionner, et <mono>rmk</mono> fait passer les projets aux nouveaux; dans Claude Code, ils apparaissent comme de nouveaux plugins.",
+    "noItems": "Il n’a pas encore d’éléments.",
+    "whoSee": "<strong>Qui les verra :</strong> {who}.",
+    "fewerSee": "Les installations des personnes qui ne les voient plus cessent de se mettre à jour.",
+    "whoReview": "<strong>Qui les révisera :</strong> {who}",
+    "reviewNobody": "personne : les espaces de travail personnels ne sont pas révisés.",
+    "reviewBy": "les modérateurs et admins de {workspace}.",
+    "notMembers": "Travail ouvert de personnes qui ne sont pas membres de {workspace} : elles pourront le lire et le retirer, pas le modifier ni le soumettre.",
+    "openDependents": "Des soumissions ouvertes de l’extérieur qui dépendent de ses éléments échoueront à la publication :",
+    "notReviewed": "Non révisés : quelqu’un d’autre doit approuver le déplacement, et l’approuver les révise.",
+    "whereTo": "Destination",
+    "pick": "Choisir un espace de travail",
+    "nameThere": "Son nom là-bas",
+    "nameHint": "Son nom actuel, sauf si l’espace de travail a déjà une portée de ce nom.",
+    "clash": "{workspace} a déjà une portée appelée {name} : choisissez-lui un autre nom là-bas.",
+    "message": "Message (facultatif)",
+    "rootAnswers": "Root répondra.",
+    "adminsAnswer": "Les admins de {workspace} ou root répondront.",
+    "ask": "Demander le déplacement",
+    "moveScope": "Déplacer la portée",
+    "cancel": "Annuler",
+    "back": "Retour",
+    "continue": "Continuer",
+    "done": "Terminé",
+    "ok": "OK :",
+    "targetsFailed": "Impossible de lire les espaces de travail. Réessayez dans un instant.",
+    "impactFailed": "Impossible de vérifier le déplacement. Réessayez dans un instant.",
+    "blocked": {
+      "pick": "Choisissez un espace de travail.",
+      "checking": "Vérification du déplacement…",
+      "fixName": "Corrigez d’abord le nom de la portée.",
+      "pickAnother": "Choisissez-lui un autre nom là-bas.",
+      "refuses": "Un point listé plus haut refuse le déplacement.",
+      "typeName": "Saisissez le nom de la portée."
+    },
+    "doneMoved": "@{scope} a été déplacée vers {workspace}.",
+    "doneAsked": "Demande de déplacement de @{scope} vers {workspace} envoyée.",
+    "question": "{items, plural, one {Déplacer @{scope} et son # élément vers {workspace}, {renamed, select, true {renommée en} other {sous le nom}} {full}?} other {Déplacer @{scope} et ses # éléments vers {workspace}, {renamed, select, true {renommée en} other {sous le nom}} {full}?}}",
+    "everyoneTitle": "Tout le monde les verra",
+    "everyoneBody": "Ses éléments deviendront ceux de tout le monde sur cette instance.",
+    "typeIntro": "Personne d’autre ne répond à ce déplacement. Pour confirmer, saisissez le nom de la portée, <mono>{scope}</mono>.",
+    "scopeName": "Nom de la portée",
+    "moveLabel": "Déplacer @{scope}",
+    "moveTitle": "Déplacer @{scope}",
+    "declined": "Déplacement vers {workspace} refusé",
+    "moving": "Déplacement vers {workspace}",
+    "cancelled": "Annulé",
+    "cancelMove": "Annuler le déplacement vers {workspace}"
   }
 }

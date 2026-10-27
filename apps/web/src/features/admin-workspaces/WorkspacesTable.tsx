@@ -1,5 +1,6 @@
 import Form from "next/form";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/Badge";
 import { buttonClasses } from "@/components/ui/Button";
 import { type Column, DataTable, HiddenListFields } from "@/components/ui/data-table/DataTable";
@@ -11,36 +12,41 @@ import { LocalTime } from "@/components/ui/LocalTime";
 import type { Workspace } from "@/server/domains/workspaces/models/workspace";
 import { type WorkspacesList, type WorkspacesListState, workspacePath } from "./list";
 
-const Search = ({ list, state }: { list: WorkspacesList; state: WorkspacesListState }) => (
-  <div className="grid gap-2">
-    <Form action={list.path} scroll={false} className="flex flex-wrap items-end gap-2">
-      <HiddenListFields list={list} state={state} omit={["q"]} />
-      <div className="grid min-w-0 flex-1 gap-1.5">
-        <Label htmlFor="workspace-search">Search</Label>
-        <Input
-          id="workspace-search"
-          name="q"
-          type="search"
-          placeholder={
-            state.filters.kind === "personal" ? "Name, description or owner" : "Name or description"
-          }
-          maxLength={100}
-          defaultValue={state.filters.q}
-        />
-      </div>
-      <button type="submit" data-submit className={buttonClasses("secondary")}>
-        Search
-      </button>
-      <SubmitOnChange />
-    </Form>
-    <FilterChips
-      list={list}
-      state={state}
-      labels={{ q: "Search", kind: "Kind" }}
-      hidden={["kind"]}
-    />
-  </div>
-);
+const Search = ({ list, state }: { list: WorkspacesList; state: WorkspacesListState }) => {
+  const t = useTranslations("admin.workspaces");
+  return (
+    <div className="grid gap-2">
+      <Form action={list.path} scroll={false} className="flex flex-wrap items-end gap-2">
+        <HiddenListFields list={list} state={state} omit={["q"]} />
+        <div className="grid min-w-0 flex-1 gap-1.5">
+          <Label htmlFor="workspace-search">{t("search.label")}</Label>
+          <Input
+            id="workspace-search"
+            name="q"
+            type="search"
+            placeholder={
+              state.filters.kind === "personal"
+                ? t("search.placeholderPersonal")
+                : t("search.placeholder")
+            }
+            maxLength={100}
+            defaultValue={state.filters.q}
+          />
+        </div>
+        <button type="submit" data-submit className={buttonClasses("secondary")}>
+          {t("search.submit")}
+        </button>
+        <SubmitOnChange />
+      </Form>
+      <FilterChips
+        list={list}
+        state={state}
+        labels={{ q: t("chips.q"), kind: t("chips.kind") }}
+        hidden={["kind"]}
+      />
+    </div>
+  );
+};
 
 type KindCounts = Record<"shared" | "personal", { count: number; capped: boolean }>;
 
@@ -59,36 +65,44 @@ const KindTabs = ({
   list: WorkspacesList;
   state: WorkspacesListState;
   counts: KindCounts;
-}) => (
-  <nav aria-label="Kind" className="flex flex-wrap gap-2">
-    {(
-      [
-        ["", "Shared", counts.shared],
-        ["personal", "Personal", counts.personal],
-      ] as const
-    ).map(([kind, label, n]) => (
-      <Link
-        key={label}
-        href={listUrl(list, state, { filters: { kind } })}
-        aria-current={state.filters.kind === kind ? "page" : undefined}
-        className={tabClasses}
-      >
-        {label} ({n.count}
-        {n.capped ? "+" : ""})
-      </Link>
-    ))}
-  </nav>
-);
-
-export const VISIBILITY_LABELS: Record<Workspace["visibility"], string> = {
-  public: "Public",
-  private: "Private",
+}) => {
+  const t = useTranslations("admin.workspaces.kinds");
+  return (
+    <nav aria-label={t("label")} className="flex flex-wrap gap-2">
+      {(
+        [
+          ["", "shared", counts.shared],
+          ["personal", "personal", counts.personal],
+        ] as const
+      ).map(([kind, key, n]) => (
+        <Link
+          key={key}
+          href={listUrl(list, state, { filters: { kind } })}
+          aria-current={state.filters.kind === kind ? "page" : undefined}
+          className={tabClasses}
+        >
+          {t("count", { kind: t(key), count: n.count, more: n.capped ? "+" : "" })}
+        </Link>
+      ))}
+    </nav>
+  );
 };
 
-const columns: Column<Workspace, "name" | "created">[] = [
+const VisibilityBadge = ({ visibility }: { visibility: Workspace["visibility"] }) => {
+  const t = useTranslations("admin.workspaces.visibility");
+  return <Badge>{t(visibility)}</Badge>;
+};
+
+const NoModerators = () => (
+  <span className="text-muted">{useTranslations("admin.workspaces")("none")}</span>
+);
+
+type WorkspacesT = ReturnType<typeof useTranslations<"admin.workspaces">>;
+
+const workspaceColumns = (t: WorkspacesT): Column<Workspace, "name" | "created">[] => [
   {
     id: "name",
-    header: "Workspace",
+    header: t("columns.workspace"),
     sort: "name",
     className: "w-48",
     mono: true,
@@ -105,19 +119,19 @@ const columns: Column<Workspace, "name" | "created">[] = [
   },
   {
     id: "description",
-    header: "Description",
+    header: t("columns.description"),
     truncate: true,
     render: (workspace) => <span title={workspace.description}>{workspace.description}</span>,
   },
   {
     id: "visibility",
-    header: "Visibility",
+    header: t("columns.visibility"),
     className: "w-28",
-    render: (workspace) => <Badge>{VISIBILITY_LABELS[workspace.visibility]}</Badge>,
+    render: (workspace) => <VisibilityBadge visibility={workspace.visibility} />,
   },
   {
     id: "scopes",
-    header: "Scopes",
+    header: t("columns.scopes"),
     className: "w-20",
     mono: true,
     align: "right",
@@ -125,19 +139,19 @@ const columns: Column<Workspace, "name" | "created">[] = [
   },
   {
     id: "moderators",
-    header: "Moderators",
+    header: t("columns.moderators"),
     className: "w-32",
     // With none, only root reviews its submissions (091). "None": the header already says what.
     render: (workspace) =>
       workspace.moderators > 0 ? (
         <span className="font-mono">{workspace.moderators}</span>
       ) : (
-        <span className="text-muted">None</span>
+        <NoModerators />
       ),
   },
   {
     id: "created",
-    header: "Created",
+    header: t("columns.created"),
     sort: "created",
     className: "w-28",
     mono: true,
@@ -150,15 +164,15 @@ const columns: Column<Workspace, "name" | "created">[] = [
  * A personal workspace's columns (114): its owner instead of visibility and moderators, which are
  * always private and nobody.
  */
-const personalColumns: Column<Workspace, "name" | "created">[] = [
-  ...columns.filter((c) => c.id === "name"),
+const personalColumns = (t: WorkspacesT): Column<Workspace, "name" | "created">[] => [
+  ...workspaceColumns(t).filter((c) => c.id === "name"),
   {
     id: "owner",
-    header: "Owner",
+    header: t("columns.owner"),
     truncate: true,
     render: (workspace) => <span title={workspace.ownerEmail ?? ""}>{workspace.ownerEmail}</span>,
   },
-  ...columns.filter((c) => c.id === "scopes" || c.id === "created"),
+  ...workspaceColumns(t).filter((c) => c.id === "scopes" || c.id === "created"),
 ];
 
 /** Root's Workspaces list (feature 090; under Workspaces since 115): `global` first, then sorted, searched and paged on the server. */
@@ -177,25 +191,25 @@ export const WorkspacesTable = ({
   total: { count: number; capped: boolean };
   /** Root's Shared and Personal tabs (114, 115), with how many of each match the search. */
   kinds?: KindCounts;
-}) => (
-  <DataTable
-    list={list}
-    state={state}
-    columns={state.filters.kind === "personal" ? personalColumns : columns}
-    rows={workspaces}
-    rowKey={(workspace) => workspace.id}
-    page={page}
-    total={total}
-    noun="workspace"
-    toolbar={
-      <div className="grid gap-3">
-        {kinds ? <KindTabs list={list} state={state} counts={kinds} /> : null}
-        <Search list={list} state={state} />
-      </div>
-    }
-    empty={{
-      none: "No workspaces yet.",
-      filtered: "No workspaces match this search.",
-    }}
-  />
-);
+}) => {
+  const t = useTranslations("admin.workspaces");
+  return (
+    <DataTable
+      list={list}
+      state={state}
+      columns={state.filters.kind === "personal" ? personalColumns(t) : workspaceColumns(t)}
+      rows={workspaces}
+      rowKey={(workspace) => workspace.id}
+      page={page}
+      total={total}
+      noun="workspace"
+      toolbar={
+        <div className="grid gap-3">
+          {kinds ? <KindTabs list={list} state={state} counts={kinds} /> : null}
+          <Search list={list} state={state} />
+        </div>
+      }
+      empty={{ none: t("empty.none"), filtered: t("empty.filtered") }}
+    />
+  );
+};

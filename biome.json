@@ -71,6 +71,8 @@
         "apps/web/src/features/admin-feedback/**",
         "apps/web/src/app/(app)/admin/feedback/**",
         "apps/web/src/features/admin-users/**",
+        "apps/web/src/features/admin-scopes/**",
+        "apps/web/src/features/admin-workspaces/**",
         "apps/web/src/app/(app)/admin/users/**",
         "apps/web/src/app/(app)/feedback/**",
         "apps/web/src/app/sign-in/**",

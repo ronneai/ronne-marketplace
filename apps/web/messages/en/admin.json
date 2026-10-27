@@ -260,5 +260,200 @@
     "remove": "Remove {workspace}",
     "always": "Always",
     "add": "Add workspace"
+  },
+  "scopes": {
+    "search": {
+      "label": "Search",
+      "placeholder": "Name or description",
+      "submit": "Search"
+    },
+    "columns": {
+      "scope": "Scope",
+      "description": "Description",
+      "creator": "Created by",
+      "created": "Created"
+    },
+    "empty": {
+      "none": "No scopes yet.",
+      "filtered": "No scopes match this search."
+    },
+    "create": {
+      "button": "Create scope",
+      "title": "Create scope",
+      "name": "Name",
+      "hint": "Items will be named <mono>@{name}/item</mono>. Lowercase letters, digits and hyphens.",
+      "inWorkspace": "In <mono>{workspace}</mono>. Its admins or root can move it later.",
+      "submit": "Create scope"
+    },
+    "edit": {
+      "label": "Edit @{name}",
+      "title": "Edit scope"
+    },
+    "description": {
+      "label": "Description",
+      "hint": "What belongs in this scope. {used, number}/{max, number}"
+    },
+    "cancel": "Cancel",
+    "done": "Done",
+    "save": "Save",
+    "fallbackName": "scope"
+  },
+  "workspaces": {
+    "search": {
+      "label": "Search",
+      "placeholder": "Name or description",
+      "placeholderPersonal": "Name, description or owner",
+      "submit": "Search"
+    },
+    "chips": {
+      "q": "Search",
+      "kind": "Kind"
+    },
+    "kinds": {
+      "label": "Kind",
+      "shared": "Shared",
+      "personal": "Personal",
+      "count": "{kind} ({count, number}{more})"
+    },
+    "visibility": {
+      "public": "Public",
+      "private": "Private"
+    },
+    "columns": {
+      "workspace": "Workspace",
+      "description": "Description",
+      "visibility": "Visibility",
+      "scopes": "Scopes",
+      "moderators": "Moderators",
+      "created": "Created",
+      "owner": "Owner"
+    },
+    "none": "None",
+    "empty": {
+      "none": "No workspaces yet.",
+      "filtered": "No workspaces match this search."
+    },
+    "dialogs": {
+      "cancel": "Cancel",
+      "done": "Done",
+      "save": "Save",
+      "description": {
+        "label": "Description",
+        "hint": "Who it’s for and what goes in it. {used, number}/{max, number}"
+      },
+      "create": {
+        "button": "New workspace",
+        "title": "New workspace",
+        "name": "Name",
+        "nameHint": "Lowercase letters, digits and hyphens. Its items’ names start with it: @name/scope/item.",
+        "visibility": "Visibility",
+        "public": "Public",
+        "publicBody": "Everyone signed in sees its scopes and items, and can depend on them.",
+        "private": "Private",
+        "privateBody": "Only its members and root see its items; only its own items can depend on them.",
+        "submit": "Create workspace"
+      },
+      "edit": {
+        "button": "Edit description",
+        "title": "Edit workspace"
+      },
+      "delete": {
+        "button": "Delete",
+        "title": "Delete workspace",
+        "body": "Delete the workspace <mono>{name}</mono>? It has no scopes. This can’t be undone.",
+        "submit": "Delete workspace",
+        "reason": "Move or remove its scopes first."
+      },
+      "visibility": {
+        "makePrivate": "Make private",
+        "makePublic": "Make public",
+        "askPublic": "Make <mono>{name}</mono> public? Everyone on this instance will see its items and can depend on them.",
+        "askPrivate": "Make <mono>{name}</mono> private? Only its members and root will see its items, and only its own items can depend on them.",
+        "checking": "Checking what depends on its items…",
+        "loadFailed": "Couldn’t check what depends on its items. Try again in a moment.",
+        "dependentsTitle": "{count, plural, one {# item outside {name} depends on its items} other {# items outside {name} depend on its items}}",
+        "dependentsBody": "They’d stop installing. Release them without it first.",
+        "openTitle": "{count, plural, one {# open submission outside {name} depends on its items} other {# open submissions outside {name} depend on its items}}",
+        "openBody": "They’ll fail at release.",
+        "blocked": "Items outside depend on its items."
+      },
+      "rename": {
+        "button": "Rename",
+        "title": "Rename workspace",
+        "newName": "New name",
+        "hint": "Lowercase letters, digits and hyphens, and not another workspace’s name.",
+        "loadFailed": "Couldn’t count its items. Try again in a moment.",
+        "changesTitle": "What changes",
+        "items": "{count, plural, one {Its # item} other {Its # items}} will be renamed from <mono>@{from}/…</mono> to <mono>@{to}/…</mono>. Their old names keep working for installs, lockfiles and dependencies, and <mono>rmk</mono> moves projects to the new names as they update; in Claude Code they show as new plugins.",
+        "itemsUnknown": "Its items will be renamed from <mono>@{from}/…</mono> to <mono>@{to}/…</mono>. Their old names keep working for installs, lockfiles and dependencies, and <mono>rmk</mono> moves projects to the new names as they update; in Claude Code they show as new plugins.",
+        "links": "Links to this workspace (its page and its join link) will stop working, and so will the old name in <mono>rmk search --workspace</mono>, <mono>rmk feed build --workspace</mono> and any CI workflow that names it.",
+        "fixName": "Fix the name first.",
+        "typeNew": "Type the new name."
+      }
+    }
+  },
+  "move": {
+    "personalTarget": "Personal ({name})",
+    "more": "and {count, number} more",
+    "hidden": "and {count, number} more you can’t see: in a workspace you aren’t in, or a name nobody has",
+    "seenBy": {
+      "personal": "Only you and root",
+      "public": "Everyone on this instance",
+      "private": "Only {workspace}’s members and root"
+    },
+    "breakTitle": "This move would break something",
+    "outsideDependents": "Released items outside {workspace} depend on its items, and would stop installing for people who can’t see {workspace}:",
+    "ownDependencies": "Its items depend on items in a private workspace other than {workspace}, which they couldn’t depend on there:",
+    "aliasTaken": "These new names are other items’ old names, and stay theirs:",
+    "changesTitle": "What changes",
+    "itemsNamed": "{count, plural, one {Its # item will be named:} other {Its # items will be named:}}",
+    "oldNames": "Their old names keep working, and <mono>rmk</mono> moves projects to the new ones; in Claude Code they show as new plugins.",
+    "noItems": "It has no items yet.",
+    "whoSee": "<strong>Who will see them:</strong> {who}.",
+    "fewerSee": "Installs by people who can no longer see them stop updating.",
+    "whoReview": "<strong>Who will review them:</strong> {who}",
+    "reviewNobody": "nobody: personal workspaces aren’t reviewed.",
+    "reviewBy": "{workspace}’s moderators and admins.",
+    "notMembers": "Open work by people who aren’t {workspace}’s members: they’ll be able to read and withdraw it, not change or submit it.",
+    "openDependents": "Open submissions outside that depend on its items will fail at release:",
+    "notReviewed": "Not reviewed: someone else has to approve the move, and approving reviews them.",
+    "whereTo": "Where to",
+    "pick": "Pick a workspace",
+    "nameThere": "Its name there",
+    "nameHint": "Its current name, unless the workspace has a scope by that name.",
+    "clash": "{workspace} already has a scope called {name}: pick another name for it there.",
+    "message": "Message (optional)",
+    "rootAnswers": "Root will answer.",
+    "adminsAnswer": "{workspace}’s admins or root will answer.",
+    "ask": "Ask to move",
+    "moveScope": "Move scope",
+    "cancel": "Cancel",
+    "back": "Back",
+    "continue": "Continue",
+    "done": "Done",
+    "ok": "OK:",
+    "targetsFailed": "Couldn’t read the workspaces. Try again in a moment.",
+    "impactFailed": "Couldn’t check the move. Try again in a moment.",
+    "blocked": {
+      "pick": "Pick a workspace.",
+      "checking": "Checking the move…",
+      "fixName": "Fix the scope’s name first.",
+      "pickAnother": "Pick another name for it there.",
+      "refuses": "Something listed above refuses the move.",
+      "typeName": "Type the scope’s name."
+    },
+    "doneMoved": "Moved @{scope} to {workspace}.",
+    "doneAsked": "Asked to move @{scope} to {workspace}.",
+    "question": "{items, plural, one {Move @{scope} and its # item to {workspace}, {renamed, select, true {renamed to} other {as}} {full}?} other {Move @{scope} and its # items to {workspace}, {renamed, select, true {renamed to} other {as}} {full}?}}",
+    "everyoneTitle": "Everyone will see them",
+    "everyoneBody": "Its items will be everyone’s on this instance.",
+    "typeIntro": "Nobody else answers this move. To confirm, type the scope’s name, <mono>{scope}</mono>.",
+    "scopeName": "Scope name",
+    "moveLabel": "Move @{scope}",
+    "moveTitle": "Move @{scope}",
+    "declined": "Move to {workspace} declined",
+    "moving": "Moving to {workspace}",
+    "cancelled": "Cancelled",
+    "cancelMove": "Cancel the move to {workspace}"
   }
 }

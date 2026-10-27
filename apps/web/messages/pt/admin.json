@@ -260,5 +260,200 @@
     "remove": "Remover {workspace}",
     "always": "Sempre",
     "add": "Adicionar espaço de trabalho"
+  },
+  "scopes": {
+    "search": {
+      "label": "Pesquisar",
+      "placeholder": "Nome ou descrição",
+      "submit": "Pesquisar"
+    },
+    "columns": {
+      "scope": "Escopo",
+      "description": "Descrição",
+      "creator": "Criado por",
+      "created": "Criado em"
+    },
+    "empty": {
+      "none": "Ainda não há escopos.",
+      "filtered": "Nenhum escopo corresponde a esta pesquisa."
+    },
+    "create": {
+      "button": "Criar escopo",
+      "title": "Criar escopo",
+      "name": "Nome",
+      "hint": "Os itens se chamarão <mono>@{name}/item</mono>. Letras minúsculas, dígitos e hifens.",
+      "inWorkspace": "Em <mono>{workspace}</mono>. Os admins ou o root podem movê-lo depois.",
+      "submit": "Criar escopo"
+    },
+    "edit": {
+      "label": "Editar @{name}",
+      "title": "Editar escopo"
+    },
+    "description": {
+      "label": "Descrição",
+      "hint": "O que pertence a este escopo. {used, number}/{max, number}"
+    },
+    "cancel": "Cancelar",
+    "done": "Concluir",
+    "save": "Salvar",
+    "fallbackName": "escopo"
+  },
+  "workspaces": {
+    "search": {
+      "label": "Pesquisar",
+      "placeholder": "Nome ou descrição",
+      "placeholderPersonal": "Nome, descrição ou dono",
+      "submit": "Pesquisar"
+    },
+    "chips": {
+      "q": "Pesquisa",
+      "kind": "Tipo"
+    },
+    "kinds": {
+      "label": "Tipo",
+      "shared": "Compartilhados",
+      "personal": "Pessoais",
+      "count": "{kind} ({count, number}{more})"
+    },
+    "visibility": {
+      "public": "Público",
+      "private": "Privado"
+    },
+    "columns": {
+      "workspace": "Espaço de trabalho",
+      "description": "Descrição",
+      "visibility": "Visibilidade",
+      "scopes": "Escopos",
+      "moderators": "Moderadores",
+      "created": "Criado em",
+      "owner": "Dono"
+    },
+    "none": "Nenhum",
+    "empty": {
+      "none": "Ainda não há espaços de trabalho.",
+      "filtered": "Nenhum espaço de trabalho corresponde a esta pesquisa."
+    },
+    "dialogs": {
+      "cancel": "Cancelar",
+      "done": "Concluir",
+      "save": "Salvar",
+      "description": {
+        "label": "Descrição",
+        "hint": "Para quem é e o que vai nele. {used, number}/{max, number}"
+      },
+      "create": {
+        "button": "Novo espaço de trabalho",
+        "title": "Novo espaço de trabalho",
+        "name": "Nome",
+        "nameHint": "Letras minúsculas, dígitos e hifens. Os nomes dos itens começam com ele: @nome/escopo/item.",
+        "visibility": "Visibilidade",
+        "public": "Público",
+        "publicBody": "Todos que entraram veem os escopos e os itens e podem depender deles.",
+        "private": "Privado",
+        "privateBody": "Só os membros e o root veem os itens; só os próprios itens podem depender deles.",
+        "submit": "Criar espaço de trabalho"
+      },
+      "edit": {
+        "button": "Editar descrição",
+        "title": "Editar espaço de trabalho"
+      },
+      "delete": {
+        "button": "Excluir",
+        "title": "Excluir espaço de trabalho",
+        "body": "Excluir o espaço de trabalho <mono>{name}</mono>? Ele não tem escopos. Não dá para desfazer.",
+        "submit": "Excluir espaço de trabalho",
+        "reason": "Mova ou remova os escopos antes."
+      },
+      "visibility": {
+        "makePrivate": "Tornar privado",
+        "makePublic": "Tornar público",
+        "askPublic": "Tornar <mono>{name}</mono> público? Todos nesta instância verão os itens e poderão depender deles.",
+        "askPrivate": "Tornar <mono>{name}</mono> privado? Só os membros e o root verão os itens, e só os próprios itens poderão depender deles.",
+        "checking": "Verificando o que depende dos itens…",
+        "loadFailed": "Não foi possível verificar o que depende dos itens. Tente de novo em instantes.",
+        "dependentsTitle": "{count, plural, one {# item fora de {name} depende dos itens dele} other {# itens fora de {name} dependem dos itens dele}}",
+        "dependentsBody": "Eles deixariam de instalar. Publique-os sem essa dependência antes.",
+        "openTitle": "{count, plural, one {# submissão em aberto fora de {name} depende dos itens dele} other {# submissões em aberto fora de {name} dependem dos itens dele}}",
+        "openBody": "Elas falhariam na publicação.",
+        "blocked": "Itens de fora dependem dos itens dele."
+      },
+      "rename": {
+        "button": "Renomear",
+        "title": "Renomear espaço de trabalho",
+        "newName": "Novo nome",
+        "hint": "Letras minúsculas, dígitos e hifens, e não o nome de outro espaço de trabalho.",
+        "loadFailed": "Não foi possível contar os itens. Tente de novo em instantes.",
+        "changesTitle": "O que muda",
+        "items": "{count, plural, one {O # item} other {Os # itens}} será renomeado de <mono>@{from}/…</mono> para <mono>@{to}/…</mono>. Os nomes antigos continuam funcionando em instalações, lockfiles e dependências, e o <mono>rmk</mono> leva os projetos aos novos nomes conforme atualizam; no Claude Code aparecem como plugins novos.",
+        "itemsUnknown": "Os itens serão renomeados de <mono>@{from}/…</mono> para <mono>@{to}/…</mono>. Os nomes antigos continuam funcionando em instalações, lockfiles e dependências, e o <mono>rmk</mono> leva os projetos aos novos nomes conforme atualizam; no Claude Code aparecem como plugins novos.",
+        "links": "Os links deste espaço de trabalho (a página e o link para entrar) deixarão de funcionar, e o nome antigo também em <mono>rmk search --workspace</mono>, <mono>rmk feed build --workspace</mono> e em qualquer fluxo de CI que o cite.",
+        "fixName": "Corrija o nome antes.",
+        "typeNew": "Digite o novo nome."
+      }
+    }
+  },
+  "move": {
+    "personalTarget": "Pessoal ({name})",
+    "more": "e mais {count, number}",
+    "hidden": "e mais {count, number} que você não vê: em um espaço de trabalho em que você não está, ou um nome que ninguém tem",
+    "seenBy": {
+      "personal": "Só você e o root",
+      "public": "Todos nesta instância",
+      "private": "Só os membros de {workspace} e o root"
+    },
+    "breakTitle": "Esta movimentação quebraria algo",
+    "outsideDependents": "Itens publicados fora de {workspace} dependem dos itens dele e deixariam de instalar para quem não vê {workspace}:",
+    "ownDependencies": "Os itens dele dependem de itens de um espaço de trabalho privado que não é {workspace}, e não poderiam depender deles lá:",
+    "aliasTaken": "Estes novos nomes são nomes antigos de outros itens e continuam sendo deles:",
+    "changesTitle": "O que muda",
+    "itemsNamed": "{count, plural, one {O # item se chamará:} other {Os # itens se chamarão:}}",
+    "oldNames": "Os nomes antigos continuam funcionando, e o <mono>rmk</mono> leva os projetos aos novos; no Claude Code aparecem como plugins novos.",
+    "noItems": "Ainda não tem itens.",
+    "whoSee": "<strong>Quem vai vê-los:</strong> {who}.",
+    "fewerSee": "As instalações de quem não os vê mais deixam de atualizar.",
+    "whoReview": "<strong>Quem vai revisá-los:</strong> {who}",
+    "reviewNobody": "ninguém: espaços de trabalho pessoais não passam por revisão.",
+    "reviewBy": "moderadores e admins de {workspace}.",
+    "notMembers": "Trabalho em aberto de quem não é membro de {workspace}: a pessoa poderá lê-lo e retirá-lo, mas não alterá-lo nem enviá-lo.",
+    "openDependents": "Submissões em aberto de fora que dependem dos itens dele falharão na publicação:",
+    "notReviewed": "Sem revisão: outra pessoa precisa aprovar a movimentação, e aprová-la revisa os itens.",
+    "whereTo": "Para onde",
+    "pick": "Escolha um espaço de trabalho",
+    "nameThere": "O nome dele lá",
+    "nameHint": "O nome atual, a menos que o espaço de trabalho já tenha um escopo com esse nome.",
+    "clash": "{workspace} já tem um escopo chamado {name}: escolha outro nome para ele lá.",
+    "message": "Mensagem (opcional)",
+    "rootAnswers": "O root responderá.",
+    "adminsAnswer": "Os admins de {workspace} ou o root responderão.",
+    "ask": "Pedir para mover",
+    "moveScope": "Mover escopo",
+    "cancel": "Cancelar",
+    "back": "Voltar",
+    "continue": "Continuar",
+    "done": "Concluir",
+    "ok": "OK:",
+    "targetsFailed": "Não foi possível ler os espaços de trabalho. Tente de novo em instantes.",
+    "impactFailed": "Não foi possível verificar a movimentação. Tente de novo em instantes.",
+    "blocked": {
+      "pick": "Escolha um espaço de trabalho.",
+      "checking": "Verificando a movimentação…",
+      "fixName": "Corrija o nome do escopo antes.",
+      "pickAnother": "Escolha outro nome para ele lá.",
+      "refuses": "Algo listado acima impede a movimentação.",
+      "typeName": "Digite o nome do escopo."
+    },
+    "doneMoved": "@{scope} foi movido para {workspace}.",
+    "doneAsked": "Pedido para mover @{scope} para {workspace} enviado.",
+    "question": "{items, plural, one {Mover @{scope} e o # item dele para {workspace}, {renamed, select, true {renomeado como} other {como}} {full}?} other {Mover @{scope} e os # itens dele para {workspace}, {renamed, select, true {renomeado como} other {como}} {full}?}}",
+    "everyoneTitle": "Todos vão vê-los",
+    "everyoneBody": "Os itens dele passarão a ser de todos nesta instância.",
+    "typeIntro": "Ninguém mais responde a esta movimentação. Para confirmar, digite o nome do escopo, <mono>{scope}</mono>.",
+    "scopeName": "Nome do escopo",
+    "moveLabel": "Mover @{scope}",
+    "moveTitle": "Mover @{scope}",
+    "declined": "Movimentação para {workspace} recusada",
+    "moving": "Movendo para {workspace}",
+    "cancelled": "Cancelada",
+    "cancelMove": "Cancelar a movimentação para {workspace}"
   }
 }
