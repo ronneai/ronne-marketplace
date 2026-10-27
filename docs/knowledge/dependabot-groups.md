@@ -7,6 +7,9 @@ on 2026-10-26).
 
 ## What to do
 
+- **Groups now:** `tooling` (`@biomejs/*`, `turbo`, `typescript`), `codemirror` (`@codemirror/*`,
+  `@lezer/*`) and the catch-all `npm-minor-and-patch`. A package goes to the first group that matches, so
+  a failing tool or editor bump no longer blocks the rest.
 - **Find which member fails before changing the config.** Re-run once, read the failing step, then
   test the PR's own lockfile in a scratch worktree (`pnpm install --frozen-lockfile`, build, the
   failing test).

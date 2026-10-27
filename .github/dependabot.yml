@@ -18,6 +18,18 @@ updates:
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
     groups:
+      # A group listed first takes its packages out of the catch-all below, so a tool whose minor
+      # changes its output (Biome 2.6) or a package family that must move together (CodeMirror)
+      # can't block the other updates (docs/knowledge/dependabot-groups.md).
+      tooling:
+        patterns: ["@biomejs/*", "turbo", "typescript"]
+        update-types: [minor, patch]
+      # Two copies of one CodeMirror package break the editor, so the family moves as one PR. If
+      # `pnpm test` reports two versions, run `pnpm dedupe` on the PR
+      # (docs/knowledge/duplicate-codemirror-packages.md).
+      codemirror:
+        patterns: ["@codemirror/*", "@lezer/*"]
+        update-types: [minor, patch]
       # Minor and patch updates together; each major version gets its own PR.
       npm-minor-and-patch:
         patterns: ["*"]
