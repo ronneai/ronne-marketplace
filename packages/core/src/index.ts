@@ -71,6 +71,7 @@ export { manifestSchema } from "./schema/index.js";
 export {
   type Bump,
   bothRanges,
+  compareNewestFirst,
   defaultTag,
   highestMatching,
   highestStable,

@@ -8,6 +8,9 @@ retries included (the seed runs once per run, so a retry sees the same data), an
 
 ## What to do
 
+- **Use `compareNewestFirst`** (`@ronneai/core`, `versions.ts`) as the tie-breaker for versions. The picker
+  (`dependency-search.ts`) sorts by `publishedAt` and then by it; `dependency-search.test.ts` covers equal
+  timestamps, and the e2e seed now publishes its versions a millisecond apart.
 - **Sort by time and then by something unique.** `listing.ts` breaks ties by `id`, and `versions.ts`
   by `version`. Do the same wherever a list of versions is ordered by `publishedAt`.
 - **Prefer a semver comparison** for "newest version": a backport released later (1.0.1 after 2.0.0)

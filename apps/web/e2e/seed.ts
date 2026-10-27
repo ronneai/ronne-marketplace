@@ -147,7 +147,9 @@ const itemId = await items.insertItem({
   createdAt: new Date(),
 });
 let latest = "";
-for (const version of ["1.0.0", "1.1.0"])
+// A millisecond apart: the Versions page and the picker order by publish time (#143).
+const firstPublishedAt = Date.now();
+for (const [index, version] of ["1.0.0", "1.1.0"].entries())
   latest = await items.insertVersion({
     itemId,
     version,
@@ -159,7 +161,7 @@ for (const version of ["1.0.0", "1.1.0"])
     sha256: "0".repeat(64),
     size: 512,
     publishedBy: ids.releaser ?? "",
-    publishedAt: new Date(),
+    publishedAt: new Date(firstPublishedAt + index),
     submissionId: null,
     dependencies: [],
     riskFlags: [],

@@ -1,6 +1,6 @@
 import { satisfies } from "semver";
 import { describe, expect, it } from "vitest";
-import { bothRanges, tagProblem, tagProblemOf } from "./versions.js";
+import { bothRanges, compareNewestFirst, tagProblem, tagProblemOf } from "./versions.js";
 
 describe("bothRanges (118)", () => {
   it("needs both ranges, whatever their form, in either order", () => {
@@ -49,5 +49,24 @@ describe("tagProblemOf (131)", () => {
     expect(tagProblem("latest", "1.0.0-beta.1")).toBe(
       "latest can only point to a stable version, not a pre-release.",
     );
+  });
+});
+
+describe("compareNewestFirst", () => {
+  it("puts the higher version first, by number and not by text", () => {
+    expect(["1.9.0", "1.10.0", "2.0.0", "1.2.0"].sort(compareNewestFirst)).toEqual([
+      "2.0.0",
+      "1.10.0",
+      "1.9.0",
+      "1.2.0",
+    ]);
+  });
+
+  it("puts a release before its pre-release", () => {
+    expect(["1.0.0-beta.1", "1.0.0"].sort(compareNewestFirst)).toEqual(["1.0.0", "1.0.0-beta.1"]);
+  });
+
+  it("falls back to text order for a version that isn't valid", () => {
+    expect(["a", "b"].sort(compareNewestFirst)).toEqual(["b", "a"]);
   });
 });
