@@ -115,3 +115,44 @@ Witnessed: 2026-10-27, by a fresh agent (re-check, rows 3 and 5). Commit: 649ee1
 
 **Overall:** met.
 
+## Task 5 — Phone sweep in every language
+
+Witnessed: 2026-10-27 17:15, by a fresh agent (blind). Commit: 4cacab93 plus the uncommitted diff. Machine: macOS (Darwin 27), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The sweep passes on phone, phone-webkit and tablet | no | confirmed | 45 passed: 15 per project, 15 per language |
+| 2 | Every page runs in en, pt and fr, signed in and out | no | confirmed | 31 pages; only `/admin` and `/styleguide` are English-only; sign-in and two-factor are in |
+| 3 | `MIGRATED_ROUTES` is removed | no | partly | gone from code and live docs; still named in feature 132's records (history) |
+| 4 | A page file added without being in the sweep fails the coverage test | no | confirmed | a probe page failed "lists every page in the app" |
+| 5 | An English-only entry must be a real page with a reason | no | confirmed | `/nope` failed "is not a page"; the exact-list pin fails on an added entry |
+| 6 | pt and fr cover every page except the two | no | partly | `/setup` has `skip` in every language, so it was never swept on a phone in pt or fr |
+| 7 | The sweep checks the page is in the language | no | confirmed | `html lang` after the cookie; it proves the attribute, not the text |
+
+**Overall:** not met (rows 3 and 6).
+
+The work after this pass: `setup-wizard-languages.e2e.ts` checks each wizard step for sideways overflow at 320px in pt and fr; the skip reason, a stale comment and the PLAN Note were reworded.
+
+Witnessed: 2026-10-27, by a fresh agent (re-check). Commit: 4cacab93 plus the uncommitted tree. Machine: macOS (Darwin), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The wizard e2e passes in pt and fr with `fitsPhone` | yes | confirmed | 2 passed |
+| 2 | `fitsPhone` checks 320px at each of the 3 steps, in pt and fr | yes | confirmed | `setup-wizard-languages.e2e.ts:14-20`, called at 47, 52 and 56 |
+| 3 | It fails when the width is narrowed | yes | confirmed | width 120 → 2 failed "sticks out"; restored |
+| 4 | It fails on a real overflow in the wizard | yes | confirmed | `min-w-[400px]` on the form → "page is 441px wide in a 320px viewport"; restored and rebuilt |
+| 5 | The phone sweep still passes | yes | confirmed | 15 passed on phone |
+| 6 | Lint and typecheck are clean | yes | confirmed | no errors |
+
+**Overall:** met. Not covered: WebKit and tablet for the wizard; only 320px and sideways overflow; steps after the third, validation errors and the success state.
+
+Witnessed: 2026-10-27, by a fresh agent (blind). Commit: 4cacab93 plus the uncommitted tree. Machine: macOS (Darwin), Node not run (read and grep only).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| a | The `/setup` skip reason in `pages.ts` is true | no | confirmed | `pages.ts:57`; the spec loops pt-BR and fr-CA and calls `fitsPhone` after each step |
+| b | The sweep's comments no longer say "migrated pages" and say every page runs in all three languages | no | confirmed | no `MIGRATED_ROUTES` in `apps` or `packages`; line 107 filters with `ENGLISH_ONLY_ROUTES` |
+| c | The PLAN Note is true; no `MIGRATED_ROUTES` in code, `docs/knowledge` or `docs/runbooks` | no | confirmed | the sweep ignores `skip` pages, so `/setup` was never opened; grep finds only feature records |
+
+**Overall:** met.
+

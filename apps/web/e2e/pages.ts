@@ -54,7 +54,7 @@ export const SWEEP_PAGES: readonly SweepPage[] = [
     route: "/setup",
     roles: "signedOut",
     urls: () => ["/setup"],
-    skip: "Only on an instance that isn't set up: the wizard projects cover it (074 adds phones)",
+    skip: "Only on an instance that isn't set up: the wizard project covers it, in each language at 320px (setup-wizard-languages.e2e.ts, 133)",
   },
   { route: "/", roles: EVERYONE, urls: () => ["/"] },
   { route: "/catalogue", roles: EVERYONE, urls: () => ["/catalogue"] },
@@ -174,44 +174,11 @@ export const SWEEP_PAGES: readonly SweepPage[] = [
 ];
 
 /**
- * The pages whose text is in the message files (feature 129): the sweep also runs them in
- * Portuguese and French, where the words are longer. Each sweep of the translation work adds its
- * pages; the sign-off (133) makes it every page.
+ * The pages the Portuguese and French sweeps skip (feature 133): every other page runs in all three
+ * languages, so a new page is swept in each from its first commit. A page is here only with its
+ * reason; `src/app/pages-coverage.test.ts` fails on a route that is not a page.
  */
-export const MIGRATED_ROUTES: ReadonlySet<string> = new Set([
-  "/sign-in",
-  "/sign-in/two-factor",
-  "/",
-  "/menu",
-  "/feedback",
-  "/device",
-  "/account/password",
-  "/account/security",
-  "/account/language",
-  "/account/tokens",
-  "/catalogue",
-  // The item page: its header and tabs are in messages; the Overview and Versions tabs follow.
-  "/items/[scope]/[name]",
-  "/items/[scope]/[name]/versions",
-  "/workspaces/[name]/items/[scope]/[item]",
-  "/workspaces/[name]/items/[scope]/[item]/versions",
-  // Workspaces: the list for members and the join page; the workspace page follows.
-  "/workspaces",
-  "/workspaces/[name]",
-  "/workspaces/[name]/join",
-  "/workspaces/requests",
-  // Authoring and review (131): Propose item, the editor, My submissions, the review queue and a
-  // review's page.
-  "/submissions",
-  "/reviews",
-  "/reviews/[id]",
-  "/submissions/new",
-  "/submissions/[id]",
-  // Settings (124, 132): every tab is in messages.
-  "/admin/settings",
-  "/admin/feedback",
-  "/admin/users",
-  "/admin/users/[id]",
-  "/admin/audit",
-  "/setup",
-]);
+export const ENGLISH_ONLY_ROUTES: Readonly<Record<string, string>> = {
+  "/admin": "It only redirects to /admin/users and shows no text.",
+  "/styleguide": "A developer's design reference, English by decision (133 SPEC, Out).",
+};

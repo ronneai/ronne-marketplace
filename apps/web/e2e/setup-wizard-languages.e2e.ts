@@ -1,11 +1,24 @@
 import { expect, type Page, test } from "@playwright/test";
 import { loadAll, noEnglish } from "./no-english";
+import { describeOverflow, measureOverflow, overflows } from "./sweep";
 
 /**
  * Feature 132: the setup wizard shows in the browser's language, on an instance with no database
  * and no user yet (the wizard project's blank instance), before the English test installs it.
  * Its file name sorts before `setup-wizard.e2e.ts`, which sets the instance up.
  */
+/**
+ * The mobile sweep skips /setup (the wizard runs on instances of its own), so the wizard's phone
+ * width is checked here, in each language, at each step (133): nothing may stick out at 320px.
+ */
+const fitsPhone = async (page: Page) => {
+  const size = page.viewportSize();
+  await page.setViewportSize({ width: 320, height: 700 });
+  const overflow = await measureOverflow(page);
+  expect(overflows(overflow) ? describeOverflow(overflow) : null, page.url()).toBeNull();
+  if (size) await page.setViewportSize(size);
+};
+
 for (const [locale, lang] of [
   ["pt-BR", "pt"],
   ["fr-CA", "fr"],
@@ -31,13 +44,16 @@ for (const [locale, lang] of [
       page.getByRole("button", { name: word("admin.setup.wizard.testConnection") }),
     ).toBeVisible();
     await noEnglish(page, lang);
+    await fitsPhone(page);
     // The steps of the wizard, one by one.
     await page.getByRole("button", { name: word("admin.setup.wizard.next") }).click();
     await expect(page.getByLabel(word("admin.setup.instance.publicUrl"))).toBeVisible();
     await noEnglish(page, lang);
+    await fitsPhone(page);
     await page.getByRole("button", { name: word("admin.setup.wizard.next") }).click();
     await expect(page.getByLabel(word("admin.setup.root.again"))).toBeVisible();
     await noEnglish(page, lang);
+    await fitsPhone(page);
     await context.close();
   });
 }

@@ -1,7 +1,7 @@
 import { readdirSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { describe, expect, it } from "vitest";
-import { MIGRATED_ROUTES, SWEEP_PAGES } from "../../e2e/pages";
+import { ENGLISH_ONLY_ROUTES, SWEEP_PAGES } from "../../e2e/pages";
 
 // Every page.tsx under app/, as its route: route groups like (app) aren't part of the URL.
 const appDir = new URL(".", import.meta.url).pathname;
@@ -29,43 +29,13 @@ describe("the phone sweep's page list (feature 065)", () => {
         expect(page.urls(data, role).length, `${page.route} as ${role}`).toBeGreaterThan(0);
   });
 
-  it("runs the migrated pages (129) in every language, and only pages it lists", () => {
+  it("runs every page in every language, except the few listed with their reason (133)", () => {
     const listed = new Set(SWEEP_PAGES.map((page) => page.route));
-    for (const route of MIGRATED_ROUTES) expect(listed.has(route), route).toBe(true);
-    // Pinned: dropping a page from the language sweeps has to be a decision, made here.
-    expect([...MIGRATED_ROUTES].sort()).toEqual(
-      [
-        "/",
-        "/account/language",
-        "/account/password",
-        "/account/security",
-        "/account/tokens",
-        "/admin/settings",
-        "/admin/feedback",
-        "/admin/users",
-        "/admin/users/[id]",
-        "/admin/audit",
-        "/setup",
-        "/workspaces",
-        "/workspaces/[name]",
-        "/workspaces/[name]/join",
-        "/workspaces/requests",
-        "/catalogue",
-        "/items/[scope]/[name]",
-        "/items/[scope]/[name]/versions",
-        "/workspaces/[name]/items/[scope]/[item]",
-        "/workspaces/[name]/items/[scope]/[item]/versions",
-        "/device",
-        "/menu",
-        "/feedback",
-        "/sign-in",
-        "/sign-in/two-factor",
-        "/submissions/new",
-        "/submissions/[id]",
-        "/submissions",
-        "/reviews",
-        "/reviews/[id]",
-      ].sort(),
-    );
+    for (const [route, reason] of Object.entries(ENGLISH_ONLY_ROUTES)) {
+      expect(listed.has(route), `${route} is not a page`).toBe(true);
+      expect(reason.length, `${route} needs a reason`).toBeGreaterThan(10);
+    }
+    // Pinned: leaving a page out of the language sweeps has to be a decision, made here.
+    expect(Object.keys(ENGLISH_ONLY_ROUTES).sort()).toEqual(["/admin", "/styleguide"]);
   });
 });

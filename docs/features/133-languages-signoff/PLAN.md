@@ -43,11 +43,15 @@ Follow [`docs/knowledge/i18n.md`](../../knowledge/i18n.md).
   message file, which made three messages whose English is also data (an item's `name`, a seeded
   keyword, the `global` workspace's description) exceptions in the browse spec.
 
-- [ ] **5. Phone sweep in every language.** Remove `MIGRATED_ROUTES`; every page runs in en, pt
+- [x] **5. Phone sweep in every language.** Remove `MIGRATED_ROUTES`; every page runs in en, pt
   and fr, signed in and out; `pages-coverage.test.ts` says every page file is in the sweep or on
   an exceptions list with a reason.
   *Done when:* the sweep passes on phone, phone-webkit and tablet; a page file added without
   being in the sweep fails the coverage test.
+  *Note:* `/setup` is skipped by the sweep in every language (it needs an instance that is not set
+  up), so the old pt/fr list never swept it on a phone either; `setup-wizard-languages.e2e.ts` now
+  checks each step of the wizard for sideways overflow at 320px, in Portuguese and French. The
+  mentions of `MIGRATED_ROUTES` left in feature 132's records are history.
 
 - [ ] **6. Documentation links.** A test (and a script, `pnpm docs:links`) that checks every
   `Help` link and every Documentation link in the app against ronne-web's `topics.ts` and pages,
