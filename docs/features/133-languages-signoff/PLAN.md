@@ -82,10 +82,12 @@ Follow [`docs/knowledge/i18n.md`](../../knowledge/i18n.md).
   export `Cancel` stay: the app's pt says Status too, and Cancel is the `rmk export` prompt. The pt
   prose keeps "iteração" for a round (the app's label is "revisão N").
 
-- [ ] **8. Decisions with the owner.** Ask: the styleguide, the instance default language, the
+- [x] **8. Decisions with the owner.** Ask: the styleguide, the instance default language, the
   server-written text, and who the two readers are. Record each answer in this SPEC and in the
   decision log; if the owner wants something built, add its task here or open its own feature.
   *Done when:* the SPEC's Open questions are answered and the decision log (MVP §15) has the lines.
+  *Note:* answered 2026-10-27: styleguide English, no default language, server text English; the
+  readers are not named yet, which keeps task 10 open.
 
 - [x] **9. The review kit.** `pnpm i18n:review` writes, from the message files, one readable
   file per namespace (key, screen, English, Portuguese, French) under `docs/features/133-…/review/`

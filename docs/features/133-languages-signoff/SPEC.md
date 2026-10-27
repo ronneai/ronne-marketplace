@@ -51,18 +51,17 @@ agrees with the app's. Nothing about what the screens do changes.
   pages; their corrections are applied, with the glossary and the translation guide updated
   where a rule is behind a correction. The findings and what was done with each are recorded in
   `REVIEW.md` in this folder.
-- **The decisions 132 left open**, taken with the owner and recorded in the spec and the
-  decision log: the styleguide (English or not), the instance default language (build or not),
-  and the text the server writes (see Out).
+- **The decisions 132 left open**, taken with the owner on 2026-10-27 and recorded in the spec
+  (Open questions) and the decision log: the styleguide stays English, there is no instance default
+  language, and the text the server writes stays English (see Out).
 
 **Out** (and where it goes instead):
-- **The styleguide** stays English and out of the rule *unless* the owner decides otherwise in
-  task 8.
+- **The styleguide** stays English and out of the rule (owner, 2026-10-27).
 - **Text the server, a driver or `@ronneai/core` writes** (core's validation and risk messages,
   the identity domain's OIDC presets and test results, the setup's database check and a driver's
-  own message): English, as decided in 131 and 132, and listed in the Documentation. Task 8 asks
-  the owner whether any of it should move; if so it becomes its own feature, not part of the
-  sign-off.
+  own message): English, as decided in 131 and 132 and confirmed by the owner on 2026-10-27, and
+  listed in the Documentation. If any of it should move, it becomes its own feature, not part of
+  the sign-off.
 - **More languages**: a new message folder and a row in the language list (129).
 - **An identity provider's language claim** setting a person's language (129's open question):
   left out until someone asks.
@@ -121,7 +120,7 @@ agrees with the app's. Nothing about what the screens do changes.
       consistently, and names the Overview tab, Status column and Cancel button as the app does.
 - [ ] A native reader of Portuguese and one of French have read the app's messages and the
       website's pages; every finding is applied or answered in `REVIEW.md`.
-- [ ] The owner has decided the styleguide, the default language and the server-written text, and
+- [x] The owner has decided the styleguide, the default language and the server-written text, and
       the decision log says so.
 - [ ] The key-parity, placeholder and "untranslated" tests pass; the e2e project is green on a
       fresh build.
@@ -138,6 +137,11 @@ agrees with the app's. Nothing about what the screens do changes.
 
 ## Open questions
 
-- **Who reviews each language, and when?** The owner names the readers (one pt-BR, one fr-CA).
-  Until they do, tasks 1–6 can land and task 7 waits.
-- **The styleguide, the default language and the server-written text** (task 8).
+Answered by the owner on 2026-10-27 (and recorded in MVP §15, Languages):
+
+- **The styleguide** stays English and outside the rule (a developer reference).
+- **An instance default language** is not built; it can be its own feature if someone asks.
+- **Text the server, a driver or `@ronneai/core` writes** stays English; if some of it should move, it
+  becomes its own feature.
+- **Who reviews each language, and when?** Not named yet. Task 10 waits for the owner to name one
+  reader of pt-BR and one of fr-CA; the kit (`pnpm i18n:review`, REVIEW-GUIDE.md) is ready for them.

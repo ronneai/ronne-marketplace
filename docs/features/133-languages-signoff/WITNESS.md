@@ -246,3 +246,33 @@ Witnessed: 2026-10-27 17:45, by a fresh agent (re-check, row 6). Commit: 6f179c5
 
 **Overall:** met.
 
+## Task 8 — Decisions with the owner
+
+The owner's answers were given in the session, so the witness could judge only the record. They are not claims a witness can check.
+
+Witnessed: 2026-10-27, by a fresh agent (blind, 10-minute budget). Commit: a01d4615 plus the uncommitted tree (MVP.md, SPEC.md, PLAN.md). Machine: macOS (Darwin), read-only.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The SPEC records "styleguide stays English" | yes | confirmed | Open questions |
+| 2 | The SPEC records "no instance default language" | yes | confirmed | Open questions |
+| 3 | The SPEC records "server, driver and core text stays English" | yes | confirmed | Open questions |
+| 4 | The SPEC records that the readers are not named yet and task 10 waits | yes | confirmed | Open questions; no claim that the review is done |
+| 5 | MVP §15 (the Languages row) has the three decisions, dated 2026-10-27 | yes | confirmed | the diff of `MVP.md` |
+| 6 | The decision log does not claim the review is done | no | confirmed | the row had no such statement |
+| 7 | "The raw-text rule covers the whole of `apps/web/src` bar the server, the API, tests and the styleguide" matches `biome.json` | yes | confirmed | `biome.json` lines 21-26 |
+| 8 | The SPEC's other sections agree | no | partly | Scope and Out still read "unless the owner decides otherwise in task 8"; the acceptance box was not ticked |
+| 9 | PLAN task 8 is consistent; task 10 stays open and honest | yes | confirmed | `[x]` with a Note; task 10 `[ ]` |
+
+**Overall:** not met (row 8).
+
+The work after this pass: Scope and Out say "decided 2026-10-27"; the acceptance box is ticked; the MVP row says the native-speaker review is still to be done.
+
+Witnessed: 2026-10-27, by a fresh agent (blind, re-check of row 8). Commit: a01d4615 plus the uncommitted tree (SPEC.md, PLAN.md, MVP.md). Machine: macOS (Darwin), read-only.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 8 | The SPEC's other sections agree with the recorded decisions; nothing reads as an open question that was answered; nothing says the review is done | yes | confirmed | read the diff and the whole 147-line SPEC: Scope and Out say "decided 2026-10-27", the box at line 123 is ticked and the review box at line 121 is not, the MVP row says the review is still to be done |
+
+**Overall:** met.
+
