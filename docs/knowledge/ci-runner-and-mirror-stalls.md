@@ -11,8 +11,9 @@ job. On 2026-10-26 they cost one e2e shard 25 minutes four times and one bundle 
   the failed jobs; the same job takes under a minute when it starts.
 - **Don't raise a job timeout** to cope with either: it only makes the hang longer.
 - **Don't switch to another mirror or turn off apt's signature checks** to avoid the stall.
-- The install step is guarded by `timeout-minutes` and a retry loop once that PR lands; until then
-  these hangs are expected a few times a day.
+- The install step in `e2e.yml` now tries up to 3 times, 5 minutes each, so a stall costs at most 5
+  minutes. If all three fail, the job fails with `Playwright install try N of 3` warnings: re-run it. The
+  macOS no-runner case has no guard.
 
 ## How to spot it
 

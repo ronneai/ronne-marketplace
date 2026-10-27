@@ -8,6 +8,8 @@ bump can leave exactly that behind. On 2026-10-26 it failed `dependency-picker.m
 
 ## What to do
 
+- **The guard:** `packages/repo-tools/src/lockfile-duplicates.test.js` fails `pnpm test` when `pnpm-lock.yaml`
+  has two versions of any `@codemirror/*` package. On a Dependabot PR, run `pnpm dedupe` and push it.
 - **Before blaming the new version, count the copies.** `grep -E "^  '@codemirror/(view|state|autocomplete|language|commands)@" pnpm-lock.yaml | sort -u`
   should list one version of each. Two lines for the same package is the problem.
 - **Fix it with `pnpm dedupe`** and commit the lockfile with the bump. Run it on the Dependabot
@@ -33,9 +35,8 @@ lockfile has two versions of one `@codemirror/*` package.
 3. Dependabot raised the direct dependency in `apps/web/package.json`, while other packages in the family
    kept the older version they had resolved before, because it still satisfied their range.
    `confirmed` for the lockfile; the same shape explains the earlier PR with `autocomplete` 6.20.4.
-4. Nothing in CI checks for duplicate copies, so the first signal was a UI test. `confirmed`.
+4. Nothing in CI checked for duplicate copies, so the first signal was a UI test. `confirmed`; a lockfile test now does.
 
 Control: with one copy of each package, including `autocomplete` 6.20.4, the test passes.
 
-Found: 2026-10-26. Evidence: PRs #240, #242, #244, #243; the guard test is listed under "Pending" in
-the post-mortem of that day.
+Found: 2026-10-26. Evidence: PRs #240, #242, #244, #243.
