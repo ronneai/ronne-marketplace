@@ -1,4 +1,5 @@
 import {
+  compareNewestFirst,
   DEPENDENCY_TYPES,
   formatItemName,
   type ItemType,
@@ -106,7 +107,11 @@ export const findDependencies = async (
       if (skip.has(name)) continue;
       const versions = (await deps.registry.publishedVersions(entry.id))
         .filter((v) => !v.yanked)
-        .sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime())
+        .sort(
+          (a, b) =>
+            b.publishedAt.getTime() - a.publishedAt.getTime() ||
+            compareNewestFirst(a.version, b.version),
+        )
         .map((v) => v.version);
       options.push({
         name,

@@ -6,6 +6,7 @@ import {
   minor,
   patch,
   prerelease,
+  rcompare,
   rsort,
   valid,
   validRange,
@@ -116,6 +117,15 @@ export const bothRanges = (a: string, b: string): string | null => {
 
 /** Whether `value` reads as a semver range (`^1.2.0`, `>=1 <2`, `1.0.0`), as `rmk install` takes it. */
 export const isVersionRange = (value: string): boolean => validRange(value) !== null;
+
+/**
+ * For `sort`: the higher version first. It breaks ties between versions published in the same
+ * millisecond (docs/knowledge/sort-needs-a-tiebreaker.md); text order when either isn't valid.
+ */
+export const compareNewestFirst = (a: string, b: string): number => {
+  if (valid(a) !== null && valid(b) !== null) return rcompare(a, b);
+  return a < b ? 1 : a > b ? -1 : 0;
+};
 
 /** The highest stable (non-pre-release) version, or null: where `latest` can point (MVP §3.4). */
 export const highestStable = (versions: readonly string[]): string | null =>
