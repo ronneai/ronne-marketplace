@@ -1,6 +1,5 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-import { type Browser, type BrowserContext, expect, type Page, test } from "@playwright/test";
+import { type Browser, type BrowserContext, expect, test } from "@playwright/test";
+import { noEnglish } from "./no-english";
 import { E2E_PASSWORD, E2E_SCOPE, E2E_SKILL, E2E_USAGE_PEAK, E2E_USERS } from "./users";
 
 /**
@@ -96,70 +95,16 @@ const LANGUAGES: Words[] = [
   },
 ];
 
-/** The message files, flattened: `catalogue.view.filters.button` → "Filters". */
-const MESSAGES = join(import.meta.dirname, "../messages");
-const flat = (value: unknown, prefix = ""): Record<string, string> =>
-  typeof value === "string"
-    ? { [prefix]: value }
-    : Object.assign(
-        {},
-        ...Object.entries(value as object).map(([key, child]) =>
-          flat(child, prefix ? `${prefix}.${key}` : key),
-        ),
-      );
-const NAMESPACES = [
-  "catalogue",
-  "item",
-  "workspaces",
-  "types",
-  "common",
-  "shell",
-  "help",
-  "shelves",
-];
-const loadAll = (locale: string) => {
-  const all: Record<string, string> = {};
-  for (const namespace of NAMESPACES)
-    Object.assign(
-      all,
-      flat(
-        JSON.parse(readFileSync(join(MESSAGES, locale, `${namespace}.json`), "utf8")),
-        namespace,
-      ),
-    );
-  return all;
-};
-
-/** A message whose English is also a seeded item's keyword, which the cards show as written. */
-const KEYWORD_AS_TAG = ["types.tag.permission-policy"];
-
 /**
- * No English left: every plain English text of these screens (a message with no placeholder or tag,
- * four characters or more) that reads differently in the language must not stand on a line of its
- * own on the page. Item content, names and what people write are not messages, so they never match.
+ * Messages whose English is also data these pages show as written: a seeded item's keyword
+ * (a tag), the manifest field "name" an item page quotes, and the `global` workspace's seeded
+ * description. The scan reads every message of the app (133), so these stand out.
  */
-const noEnglish = async (page: Page, lang: "pt" | "fr", except: readonly string[] = []) => {
-  const english = loadAll("en");
-  const own = loadAll(lang);
-  const ownTexts = new Set(Object.values(own));
-  // Closed panels (Filters, Sort, a table's actions) are not in `innerText`: open them all first.
-  await page.evaluate(() => {
-    for (const details of document.querySelectorAll("details")) details.open = true;
-  });
-  const lines = new Set(
-    (await page.locator("body").innerText())
-      .split("\n")
-      .map((line) => line.trim())
-      .filter(Boolean),
-  );
-  const leaks = Object.entries(english)
-    .filter(([key, text]) => text.length >= 4 && !/[{<]/.test(text) && text !== own[key])
-    // A word the language also writes as the English does (a type name, Admin) is not a leak.
-    .filter(([, text]) => !ownTexts.has(text))
-    .filter(([key, text]) => lines.has(text) && !except.includes(key))
-    .map(([key]) => key);
-  expect(leaks, `English left on ${page.url()}`).toEqual([]);
-};
+const DATA_AS_TEXT = [
+  "types.tag.permission-policy",
+  "author.newDraft.nameWord",
+  "admin.move.seenBy.public",
+];
 
 for (const words of LANGUAGES) {
   test.describe(`in ${words.lang}`, () => {
@@ -174,7 +119,7 @@ for (const words of LANGUAGES) {
       await expect(card.getByText(words.installs)).toBeVisible();
       await expect(card.getByRole("button", { name: words.star })).toBeVisible();
       // The seeded skill's keyword "security" is data; it reads as permission-policy's tag (131).
-      await noEnglish(page, words.lang, KEYWORD_AS_TAG);
+      await noEnglish(page, words.lang, DATA_AS_TEXT);
       await context.close();
     });
 
@@ -196,7 +141,7 @@ for (const words of LANGUAGES) {
       await page.getByRole("button", { name: words.pin, exact: true }).click();
       const menu = page.getByRole("dialog");
       await expect(menu.getByRole("button", { name: words.pinDone })).toBeVisible();
-      await noEnglish(page, words.lang);
+      await noEnglish(page, words.lang, DATA_AS_TEXT);
       await menu.getByRole("button", { name: words.pinDone }).click();
       // The usage card names the peak's day in the language, with the count.
       const usage = page.getByRole("region", { name: words.usage });
@@ -211,7 +156,7 @@ for (const words of LANGUAGES) {
       await expect(
         page.getByRole("link", { name: /Learn more|Saiba mais|En savoir plus/ }).first(),
       ).toHaveAttribute("href", new RegExp(`/${words.lang}/marketplace/docs/`));
-      await noEnglish(page, words.lang);
+      await noEnglish(page, words.lang, DATA_AS_TEXT);
       await context.close();
     });
 
@@ -225,14 +170,14 @@ for (const words of LANGUAGES) {
       await expect(page).toHaveURL(/\/workspaces\/global$/);
       await expect(page.getByRole("link", { name: words.allWorkspaces })).toBeVisible();
       await expect(page.getByRole("link", { name: words.scopes, exact: true })).toBeVisible();
-      await noEnglish(page, words.lang);
+      await noEnglish(page, words.lang, DATA_AS_TEXT);
       // Everyone is in global: its join page says so, in the language.
       await page.goto("/workspaces/global/join");
       await expect(page.locator("html")).toHaveAttribute("lang", words.lang);
       await expect(page.getByText(words.joined)).toBeVisible();
-      await noEnglish(page, words.lang);
+      await noEnglish(page, words.lang, DATA_AS_TEXT);
       await page.goto("/workspaces");
-      await noEnglish(page, words.lang);
+      await noEnglish(page, words.lang, DATA_AS_TEXT);
       await context.close();
     });
   });

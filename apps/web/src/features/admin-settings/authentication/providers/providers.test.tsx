@@ -228,7 +228,7 @@ describe("Edit provider", () => {
   it("has the helpers: the preset's guide, the redirect URI, and how groups apply", () => {
     expect(html()).toContain("Where do I find these values?");
     expect(html()).toContain(
-      `href="${localizedDocsHref(`${DOCS_URL}/authentication#okta`, "en")}"`,
+      `href="${localizedDocsHref(`${DOCS_URL}/provider-guides#okta`, "en")}"`,
     );
     expect(html()).toContain("Why this address?");
     expect(html()).toContain("How are groups applied?");
@@ -236,11 +236,12 @@ describe("Edit provider", () => {
 });
 
 describe("the presets' guides", () => {
-  it("send each preset to its own section of the Authentication topic", () => {
-    const sections = (topicOf("authentication")?.sections ?? []).map((s) => s.id as string);
+  it("send each preset to its own section of the Provider guides topic", () => {
+    const sections = (topicOf("provider-guides")?.sections ?? []).map((s) => s.id as string);
     for (const preset of OIDC_PRESETS) {
-      const section = presetGuide(preset.id).split("#")[1] ?? "";
-      expect(section, preset.id).not.toBe("providers");
+      const guide = presetGuide(preset.id);
+      const section = guide.split("#")[1] ?? "";
+      expect(guide, preset.id).toContain("/provider-guides#");
       expect(sections, preset.id).toContain(section);
     }
     expect(presetGuide("unknown")).toBe(`${DOCS_URL}/authentication#providers`);
@@ -447,7 +448,7 @@ describe("what the provider actions say, in each language (132)", () => {
     const en = await inLocaleAsync("en", enable);
     expect(en).toEqual({ error: new ProviderNotTestedError().message });
     expect(await inLocaleAsync("pt", enable)).toEqual({
-      error: "Rode o Testar login você mesmo e passe nele antes de ligar este provedor.",
+      error: "Execute pessoalmente o Testar login, com sucesso, antes de ativar este provedor.",
     });
     expect(await inLocaleAsync("fr", enable)).toEqual({
       error:

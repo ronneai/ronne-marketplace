@@ -44,9 +44,9 @@
     "askTitle": "Pedir uma nova senha",
     "clearTitle": "Deixar de pedir uma nova senha",
     "askBody": "No próximo acesso, a pessoa precisa escolher a própria senha antes de qualquer outra coisa. A senha, as sessões e os tokens continuam como estão.",
-    "clearBody": "A pessoa não será mais convidada a escolher uma nova senha. A senha, as sessões e os tokens continuam como estão.",
-    "askedDone": "A pessoa será convidada a escolher uma nova senha no próximo acesso.",
-    "clearedDone": "A pessoa não será mais convidada a escolher uma nova senha.",
+    "clearBody": "A pessoa não precisará mais escolher uma nova senha. A senha, as sessões e os tokens continuam como estão.",
+    "askedDone": "A pessoa terá de escolher uma nova senha no próximo acesso.",
+    "clearedDone": "A pessoa não precisará mais escolher uma nova senha.",
     "unchanged": "Nada mudou."
   },
   "users": {
@@ -92,7 +92,7 @@
     "copy": {
       "label": "Copiar {email}",
       "copied": "Copiado",
-      "manual": "Selecionado: copie você mesmo"
+      "manual": "Selecionado: copie manualmente"
     },
     "create": {
       "button": "Criar usuário",
@@ -190,7 +190,7 @@
     "isRoot": "{email} é root.",
     "enableBody": "A pessoa volta a poder entrar. Os tokens de acesso revogados continuam revogados.",
     "resetBody": "Isto encerra todas as sessões da pessoa e revoga os tokens de acesso.",
-    "twoFactorBody": "Para celular perdido e códigos de backup perdidos. Isto desliga o login em dois fatores e encerra todas as sessões; a pessoa entra só com a senha e configura de novo se for exigido.",
+    "twoFactorBody": "Para quando o celular e os códigos de backup foram perdidos. Isto desliga a autenticação de dois fatores e encerra todas as sessões; a pessoa entra só com a senha e configura de novo se for exigido.",
     "scimTitle": "{provider} gerencia esta conta por SCIM.",
     "scimBody": "A próxima sincronização devolve a conta ao que o provedor diz: altere lá também.",
     "newRole": "Novo papel",
@@ -199,7 +199,7 @@
       "body": "A pessoa poderá fazer tudo o que você faz, inclusive alterar o seu papel ou desativar você."
     },
     "removeRoot": {
-      "title": "Remover o root de {email}?",
+      "title": "Tirar o papel root de {email}?",
       "body": "A pessoa perde a administração de usuários, os escopos, as configurações e o registro de auditoria na próxima requisição."
     },
     "changeRole": "Alterar o papel de <from></from> para <to></to>."
@@ -217,10 +217,10 @@
     "staysHeading": "O que fica, sob o pseudônimo",
     "goes": {
       "identity": "O e-mail, o nome e a foto: a conta passa a ser {pseudonym}.",
-      "credentials": "A senha, os vínculos com provedores de identidade e o login em dois fatores.",
+      "credentials": "A senha, os vínculos com provedores de identidade e a autenticação de dois fatores.",
       "sessions": "Todas as sessões, tokens de acesso e aprovações de login do rmk.",
       "scim": "Os vínculos SCIM, para que a próxima criação do provedor gere uma conta nova.",
-      "memberships": "As participações em espaços de trabalho, os pedidos para entrar em aberto e as movimentações de escopo em aberto.",
+      "memberships": "As participações em espaços de trabalho, as solicitações para entrar em aberto e as movimentações de escopo em aberto.",
       "drafts": "Os rascunhos, que só a pessoa via.",
       "ip": "O endereço IP em todos os eventos de auditoria e o e-mail nos detalhes de qualquer evento."
     },
@@ -230,7 +230,7 @@
       "audit": "Os eventos de auditoria em que a pessoa aparece, com o pseudônimo como autor.",
       "workspace": "O espaço de trabalho pessoal, renomeado, quando tem um item publicado ou uma submissão; senão, é apagado."
     },
-    "reminder": "Nada da pessoa poderá ser lido depois: se ela pediu o que a instância guarda sobre ela, entregue antes. <download>Baixar os dados</download>.",
+    "reminder": "Nada da pessoa poderá ser lido depois: se ela pediu o que a instância guarda sobre ela, entregue isso a ela antes. <download>Baixar os dados</download>.",
     "confirm": "Digite o e-mail da conta para confirmar"
   },
   "download": {
@@ -372,9 +372,9 @@
         "checking": "Verificando o que depende dos itens…",
         "loadFailed": "Não foi possível verificar o que depende dos itens. Tente de novo em instantes.",
         "dependentsTitle": "{count, plural, one {# item fora de {name} depende dos itens dele} other {# itens fora de {name} dependem dos itens dele}}",
-        "dependentsBody": "Eles deixariam de instalar. Publique-os sem essa dependência antes.",
+        "dependentsBody": "Eles deixariam de poder ser instalados. Lance-os sem essa dependência antes.",
         "openTitle": "{count, plural, one {# submissão em aberto fora de {name} depende dos itens dele} other {# submissões em aberto fora de {name} dependem dos itens dele}}",
-        "openBody": "Elas falhariam na publicação.",
+        "openBody": "Elas falhariam no lançamento.",
         "blocked": "Itens de fora dependem dos itens dele."
       },
       "rename": {
@@ -384,7 +384,7 @@
         "hint": "Letras minúsculas, dígitos e hifens, e não o nome de outro espaço de trabalho.",
         "loadFailed": "Não foi possível contar os itens. Tente de novo em instantes.",
         "changesTitle": "O que muda",
-        "items": "{count, plural, one {O # item} other {Os # itens}} será renomeado de <mono>@{from}/…</mono> para <mono>@{to}/…</mono>. Os nomes antigos continuam funcionando em instalações, lockfiles e dependências, e o <mono>rmk</mono> leva os projetos aos novos nomes conforme atualizam; no Claude Code aparecem como plugins novos.",
+        "items": "{count, plural, one {O # item será renomeado} other {Os # itens serão renomeados}} de <mono>@{from}/…</mono> para <mono>@{to}/…</mono>. Os nomes antigos continuam funcionando em instalações, lockfiles e dependências, e o <mono>rmk</mono> leva os projetos aos novos nomes conforme atualizam; no Claude Code aparecem como plugins novos.",
         "itemsUnknown": "Os itens serão renomeados de <mono>@{from}/…</mono> para <mono>@{to}/…</mono>. Os nomes antigos continuam funcionando em instalações, lockfiles e dependências, e o <mono>rmk</mono> leva os projetos aos novos nomes conforme atualizam; no Claude Code aparecem como plugins novos.",
         "links": "Os links deste espaço de trabalho (a página e o link para entrar) deixarão de funcionar, e o nome antigo também em <mono>rmk search --workspace</mono>, <mono>rmk feed build --workspace</mono> e em qualquer fluxo de CI que o cite.",
         "fixName": "Corrija o nome antes.",
@@ -402,7 +402,7 @@
       "private": "Só os membros de {workspace} e o root"
     },
     "breakTitle": "Esta movimentação quebraria algo",
-    "outsideDependents": "Itens publicados fora de {workspace} dependem dos itens dele e deixariam de instalar para quem não vê {workspace}:",
+    "outsideDependents": "Itens lançados fora de {workspace} dependem dos itens dele e deixariam de poder ser instalados por quem não vê {workspace}:",
     "ownDependencies": "Os itens dele dependem de itens de um espaço de trabalho privado que não é {workspace}, e não poderiam depender deles lá:",
     "aliasTaken": "Estes novos nomes são nomes antigos de outros itens e continuam sendo deles:",
     "changesTitle": "O que muda",
@@ -414,8 +414,8 @@
     "whoReview": "<strong>Quem vai revisá-los:</strong> {who}",
     "reviewNobody": "ninguém: espaços de trabalho pessoais não passam por revisão.",
     "reviewBy": "moderadores e admins de {workspace}.",
-    "notMembers": "Trabalho em aberto de quem não é membro de {workspace}: a pessoa poderá lê-lo e retirá-lo, mas não alterá-lo nem enviá-lo.",
-    "openDependents": "Submissões em aberto de fora que dependem dos itens dele falharão na publicação:",
+    "notMembers": "Trabalho em aberto de quem não é membro de {workspace}: a pessoa poderá lê-lo e retirá-lo, mas não alterá-lo nem submetê-lo.",
+    "openDependents": "Submissões em aberto de fora que dependem dos itens dele falharão no lançamento:",
     "notReviewed": "Sem revisão: outra pessoa precisa aprovar a movimentação, e aprová-la revisa os itens.",
     "whereTo": "Para onde",
     "pick": "Escolha um espaço de trabalho",
@@ -464,7 +464,7 @@
       "allActions": "Todas as ações",
       "all": "Todas: {group}",
       "actor": "Autor",
-      "actorPlaceholder": "E-mail, ou system",
+      "actorPlaceholder": "E-mail ou system",
       "from": "De (UTC)",
       "to": "Até (UTC)",
       "apply": "Filtrar"
@@ -512,7 +512,7 @@
           "sessions": "{count, plural, one {# sessão encerrada} other {# sessões encerradas}}",
           "tokens": "{count, plural, one {# token revogado} other {# tokens revogados}}",
           "scimTokens": "{count, plural, one {# token SCIM revogado} other {# tokens SCIM revogados}}",
-          "requests": "{count, plural, one {# pedido para entrar cancelado} other {# pedidos para entrar cancelados}}",
+          "requests": "{count, plural, one {# solicitação para entrar cancelada} other {# solicitações para entrar canceladas}}",
           "nothingLeft": "nada restava"
         },
         "via": {
@@ -559,7 +559,7 @@
           "invalid": "e-mail ou senha incorretos",
           "disabled": "a conta está desativada",
           "rate_limited": "tentativas demais",
-          "two_factor_required": "a conta usa login em dois fatores",
+          "two_factor_required": "a conta usa autenticação de dois fatores",
           "password_disabled": "o login com senha é só para o root",
           "password_sign_in_disabled": "o login com senha é só para o root"
         },
@@ -573,17 +573,17 @@
           "root_only": "só o root"
         },
         "scimRefusals": {
-          "missing": "nenhum token de portador",
+          "missing": "nenhum token Bearer",
           "format": "não é um token SCIM",
           "unknown": "um token desconhecido",
           "revoked": "um token revogado",
-          "expired": "um token além das 24 horas após uma rotação",
+          "expired": "um token anterior cujas 24 horas após a troca já passaram",
           "scim_off": "o SCIM está desligado para o provedor",
           "root": "citava uma conta root, que o Ronne gerencia",
           "root_member": "um grupo citava uma conta root como membro, que foi deixada de fora"
         },
         "ssoReasons": {
-          "unverified_email": "o provedor não disse que o e-mail é verificado",
+          "unverified_email": "o provedor não disse que o e-mail está verificado",
           "not_allowed": "nenhuma conta que ele possa vincular ou criar",
           "disabled": "a conta está desativada",
           "invalid_response": "não foi possível verificar a resposta do provedor",
@@ -618,7 +618,7 @@
         "instance": {
           "root_created": "Criou a primeira conta root, <name>{email}</name>{where, select, web {, na configuração pela web} other {, pela linha de comando}}",
           "access_revoked": "{scope, select, user {Revogou o acesso de <name>{who}</name>{ended}{via}} other {Revogou o acesso de todos{ended}{via}}}",
-          "secret_rotated": "Trocou o AUTH_SECRET, então todos entram de novo{ended}{twoFactor, plural, =0 {} one {, e desligou o login em dois fatores de # conta} other {, e desligou o login em dois fatores de # contas}}{via}",
+          "secret_rotated": "Trocou o AUTH_SECRET, então todos precisam entrar de novo{ended}{twoFactor, plural, =0 {} one {, e desligou a autenticação de dois fatores de # conta} other {, e desligou a autenticação de dois fatores de # contas}}{via}",
           "backup_made": "Fez um backup: {rows, plural, one {# linha} other {# linhas}} em {tables, plural, one {# tabela} other {# tabelas}}, {files, plural, one {# arquivo guardado} other {# arquivos guardados}}{settings, select, true {, com o arquivo de configurações} other {}}{encrypted, select, true {, criptografado} other {}}{via}",
           "restored": "Restaurou um backup feito pelo Ronne {version} em {time}: {rows, plural, one {# linha} other {# linhas}}, {files, plural, one {# arquivo guardado} other {# arquivos guardados}}{via}",
           "auth_provider_created": "Adicionou o provedor de identidade <code>{provider}</code>",
@@ -639,9 +639,9 @@
         "user": {
           "updated": "Alterou <name>{who}</name> ({changed}){relinked, select, true {, vinculando de novo,} other {}} pelo provisionamento SCIM de <code>{provider}</code>",
           "scim_adopted": "Vinculou <name>{who}</name> ao provisionamento SCIM de <code>{provider}</code>, que passa a gerenciá-lo",
-          "password_reset": "Redefiniu a senha de <name>{who}</name>{twoFactor, select, true { e desligou o login em dois fatores} other {}}{change, select, true {, pedindo uma nova no próximo acesso} other {}}{ended}{via}",
+          "password_reset": "Redefiniu a senha de <name>{who}</name>{twoFactor, select, true { e desligou a autenticação de dois fatores} other {}}{change, select, true {, pedindo uma nova no próximo acesso} other {}}{ended}{via}",
           "password_change_requested": "{required, select, false {Deixou de pedir uma nova senha no próximo acesso de <name>{who}</name>{via}} other {Pediu uma nova senha no próximo acesso de <name>{who}</name>{via}}}",
-          "two_factor_reset": "Desligou o login em dois fatores de <name>{who}</name>{ended}{via}",
+          "two_factor_reset": "Desligou a autenticação de dois fatores de <name>{who}</name>{ended}{via}",
           "password_changed": "{required, select, true {Escolheu a própria senha, como o root pediu} other {Alterou a própria senha}}{others, plural, =0 {} one { (# outra sessão encerrada)} other { (# outras sessões encerradas)}}",
           "created": "Criou <name>{email}</name> como {role}{change, select, true {, pedindo uma nova senha no primeiro acesso} other {}}{sso, select, true { no primeiro acesso com <code>{provider}</code>} other {}}",
           "sso_linked": "Vinculou <name>{email}</name> ao provedor de identidade <code>{provider}</code> (por e-mail verificado)",
@@ -652,17 +652,17 @@
           "data_exported": "Baixou os dados de <name>{who}</name>{byRoot, select, true { (pelo root)} other {}}"
         },
         "auth": {
-          "signed_in": "{sso, select, true {Entrou com <code>{provider}</code>} other {{remember, select, true {Entrou (lembrado por 30 dias)} other {Entrou}}}}",
+          "signed_in": "{sso, select, true {Entrou com <code>{provider}</code>} other {{remember, select, true {Entrou (sessão lembrada por 30 dias)} other {Entrou}}}}",
           "sso_signed_in": "Entrou com o provedor de identidade <code>{provider}</code>",
-          "sso_failed": "Falha ao entrar com <code>{provider}</code>{hasEmail, select, true { para <name>{email}</name>} other {}}: {why}",
+          "sso_failed": "Falha ao entrar com <code>{provider}</code>{hasEmail, select, true { de <name>{email}</name>} other {}}: {why}",
           "device_started": "Pediu um código de acesso para <name>{label}</name> ({clientId} login --web)",
           "device_approved": "Aprovou o código de acesso de <name>{label}</name>{hasIp, select, true {, pedido de {ip}} other {}}",
           "device_denied": "Recusou o código de acesso de <name>{label}</name>",
           "device_expired": "Um código de acesso de <name>{label}</name> expirou antes de ser usado",
-          "sign_in_failed": "Falha ao entrar para <name>{email}</name>: {reason}{via}",
+          "sign_in_failed": "Falha de login de <name>{email}</name>: {reason}{via}",
           "signed_out": "Saiu",
-          "two_factor_enabled": "Ligou o login em dois fatores",
-          "two_factor_disabled": "Desligou o login em dois fatores",
+          "two_factor_enabled": "Ligou a autenticação de dois fatores",
+          "two_factor_disabled": "Desligou a autenticação de dois fatores",
           "backup_codes_regenerated": "Gerou novos códigos de backup; os antigos deixaram de funcionar",
           "two_factor_failed": "Um código de dois fatores foi recusado ao entrar ({reason})"
         },
@@ -681,21 +681,21 @@
           "access_requested": "<name>{who}</name> pediu para entrar em <name>{workspace}</name>",
           "access_approved": "{direct, select, true {Aprovou o pedido de <name>{who}</name> adicionando a pessoa a <name>{workspace}</name>} other {Aprovou a entrada de <name>{who}</name> em <name>{workspace}</name>}}{hasRole, select, true { como {role}} other {}}",
           "access_declined": "Recusou a entrada de <name>{who}</name> em <name>{workspace}</name>",
-          "access_cancelled": "<name>{who}</name> cancelou o pedido para entrar em <name>{workspace}</name>"
+          "access_cancelled": "<name>{who}</name> cancelou a solicitação para entrar em <name>{workspace}</name>"
         },
         "scope": {
           "created": "Criou o escopo <name>{scope}</name>",
           "updated": "Alterou a descrição de <name>{scope}</name>",
           "move_requested": "Pediu para mover <name>{scope}</name> para <name>{to}</name>{renamed, select, true {, como <name>{newName}</name>} other {}}",
           "moved": "{direct, select, false {Aprovou a movimentação de} other {Moveu}} <name>{scope}</name> para <name>{to}</name>{renamed, select, true {, como <name>{newName}</name>} other {}} ({counts})",
-          "move_declined": "Recusou mover <name>{scope}</name> para <name>{to}</name>",
+          "move_declined": "Recusou a movimentação de <name>{scope}</name> para <name>{to}</name>",
           "move_cancelled": "Cancelou a movimentação de <name>{scope}</name> para <name>{to}</name>{lost, select, true { (quem pediu não pode mais movê-lo)} other {}}"
         },
         "submission": {
           "draft_created": "Criou um rascunho de <name>{item}</name> ({details}){via}",
           "draft_updated": "Atualizou o rascunho de <name>{item}</name>{via}",
-          "submitted": "Enviou <name>{item}</name>{hasRevision, select, true { para revisão (revisão {revision})} other { para revisão}}",
-          "resubmitted": "Reenviou <name>{item}</name>{hasRevision, select, true { (revisão {revision})} other {}}",
+          "submitted": "Submeteu <name>{item}</name>{hasRevision, select, true { para revisão (revisão {revision})} other { para revisão}}",
+          "resubmitted": "Ressubmeteu <name>{item}</name>{hasRevision, select, true { (revisão {revision})} other {}}",
           "withdrawn": "Arquivou <name>{item}</name>",
           "restored": "Restaurou <name>{item}</name> como rascunho",
           "deleted": "Excluiu <name>{item}</name>",
@@ -703,12 +703,12 @@
           "changes_requested": "Solicitou alterações em <name>{item}</name>",
           "rejected": "Rejeitou <name>{item}</name>",
           "override_approved": "Aprovou o próprio <name>{item}</name> (exceção)",
-          "rebased": "Rebaseou <name>{item}</name> de {from} para {to}{conflicts, plural, =0 {} one { (# conflito)} other { (# conflitos)}}"
+          "rebased": "Fez rebase de <name>{item}</name> de {from} para {to}{conflicts, plural, =0 {} one { (# conflito)} other { (# conflitos)}}"
         },
         "version": {
           "published": "Publicou <name>{item}</name>{hasTag, select, true { como <code>{tag}</code>} other {}}",
           "deprecated": "Marcou <name>{item}</name> como obsoleta",
-          "undeprecated": "Removeu a obsolescência de <name>{item}</name>",
+          "undeprecated": "Desmarcou <name>{item}</name> como obsoleta",
           "yanked": "Retirou <name>{item}</name>",
           "unyanked": "Restaurou <name>{item}</name> (não está mais retirada)"
         },
@@ -726,7 +726,7 @@
           "deleted": "Excluiu uma mensagem de feedback"
         },
         "settings": {
-          "two_factor_policy": "Alterou quem precisa usar o login em dois fatores de {from} para {to}",
+          "two_factor_policy": "Alterou quem precisa usar a autenticação de dois fatores de {from} para {to}",
           "usage_policy": "Alterou a política de uso de {from} para {to}",
           "usage_minimum": "Alterou o mínimo de uso de {from} para {to}",
           "retention": "Alterou a retenção: {changes}",
@@ -738,7 +738,7 @@
   "settings": {
     "page": {
       "title": "Configurações",
-      "description": "Como esta instância se comporta. Cada alteração vale na hora e fica registrada no registro de auditoria.",
+      "description": "Como esta instância se comporta. Cada alteração vale na hora e fica gravada no registro de auditoria.",
       "tabsLabel": "Configurações"
     },
     "tabs": {
@@ -769,14 +769,14 @@
         "linkOnly": "Só vincula contas existentes."
       },
       "twoFactor": {
-        "name": "Login em dois fatores",
+        "name": "Autenticação de dois fatores",
         "optional": "Opcional: cada pessoa liga por conta própria.",
-        "reviewers": "Obrigatório para revisores e root.",
-        "everyone": "Obrigatório para todos."
+        "reviewers": "Obrigatória para revisores e root.",
+        "everyone": "Obrigatória para todos."
       }
     },
     "twoFactor": {
-      "title": "Login em dois fatores",
+      "title": "Autenticação de dois fatores",
       "hint": "Quem precisa usar um código de um aplicativo autenticador depois da senha. Contas que entram por um provedor de identidade da empresa seguem a segunda etapa do próprio provedor.",
       "save": "Salvar",
       "choices": {
@@ -793,7 +793,7 @@
           "hint": "Toda conta que entra com senha."
         }
       },
-      "coverage": "{unenrolled, plural, =0 {{covered, plural, one {# pessoa} other {# pessoas}}, todas com dois fatores ligado.} other {{covered, plural, one {# pessoa} other {# pessoas}}; {unenrolled, plural, one {# pessoa} other {# pessoas}} precisam configurar na próxima visita.}}"
+      "coverage": "{unenrolled, plural, =0 {{covered, plural, one {# pessoa} other {# pessoas}}, todas com a autenticação de dois fatores ligada.} other {{covered, plural, one {# pessoa} other {# pessoas}}; {unenrolled, plural, one {# pessoa} other {# pessoas}} precisam configurar na próxima visita.}}"
     },
     "password": {
       "title": "Login com senha",
@@ -835,7 +835,7 @@
       "back": "← Autenticação",
       "addTitle": "Adicionar provedor",
       "testNotice": {
-        "done": "O seu Testar login terminou: o resultado está abaixo.",
+        "done": "O seu teste de login terminou: o resultado está abaixo.",
         "unavailable": "Não dá para testar o provedor agora.",
         "provider_error": "O provedor não respondeu. Confira o emissor e tente de novo.",
         "rate_limited": "Tentativas demais. Espere um minuto e tente de novo."
@@ -884,8 +884,8 @@
       "title": "Teste e depois ligue",
       "connectionOk": "A conexão funciona.",
       "connectionFailed": "A conexão falhou.",
-      "testPassed": "O seu Testar login passou.",
-      "testFailed": "O seu Testar login não passou.",
+      "testPassed": "O seu teste de login passou.",
+      "testFailed": "O seu teste de login não passou.",
       "subject": "Subject",
       "email": "E-mail",
       "verified": "(verificado)",
@@ -894,12 +894,12 @@
       "none": "Nenhum",
       "groups": "Grupos",
       "noClaim": "Sem claim",
-      "wouldDo": "Um acesso:",
+      "wouldDo": "Com um login, a pessoa:",
       "change": {
         "add": "entraria em {workspace} como {role}",
         "change": "mudaria o papel em {workspace} de {from} para {to}",
         "remove": "sairia de {workspace}",
-        "release": "voltaria a usuário em {workspace}"
+        "release": "voltaria a ser usuário em {workspace}"
       },
       "nothingChanged": "O teste não alterou nada.",
       "deleteTitle": "Excluir {name}?",
@@ -910,9 +910,9 @@
       "testSignIn": "Testar login",
       "turnOff": "Desligar",
       "turnOn": "Ligar",
-      "turnOnReason": "Rode o Testar login você mesmo e passe nele antes de ligar este provedor.",
+      "turnOnReason": "Rode o Testar login pessoalmente e passe nele antes de ligar este provedor.",
       "delete": "Excluir",
-      "turnOnNeeds": "Para ligar é preciso um Testar login que você tenha passado, com as configurações como estão agora."
+      "turnOnNeeds": "Para ligar, você precisa passar no Testar login com as configurações como estão agora."
     },
     "scim": {
       "title": "Provisionamento (SCIM)",
@@ -937,7 +937,7 @@
       "steps": {
         "entra": {
           "s1": "No Entra, abra o aplicativo corporativo do Ronne, depois Provisionamento, e crie uma nova configuração com autenticação Bearer.",
-          "s2": "Cole a URL base acima como Tenant URL e o token como Secret Token, depois Test Connection.",
+          "s2": "Cole a URL base acima como Tenant URL e o token como Secret Token, depois clique em Test Connection.",
           "s3": "Em Attribute mapping, mapeie objectId para externalId (o padrão do Entra, mailNickname, pode ser dado a alguém novo).",
           "s4": "Atribua os usuários e grupos a provisionar e inicie o provisionamento."
         },
@@ -953,7 +953,7 @@
         }
       },
       "onTitle": "Ligar o SCIM para {name}?",
-      "onBody": "{name} vai criar e atualizar contas, desativá-las quando desprovisionar alguém e dar papéis em espaços de trabalho pelos grupos dele. O login dele deixa de aplicar a claim de grupos: o SCIM passa a ser a única fonte dos grupos. Os papéis que o login já deu ficam até o provedor mudar os grupos da pessoa. Em seguida, gere um token para ele.",
+      "onBody": "{name} vai criar e atualizar contas, desativá-las quando desprovisionar alguém e dar papéis em espaços de trabalho pelos grupos dele. O login dele deixa de aplicar o claim de grupos: o SCIM passa a ser a única fonte dos grupos. Os papéis que o login já deu ficam até o provedor mudar os grupos da pessoa. Em seguida, gere um token para ele.",
       "offTitle": "Desligar o SCIM para {name}?",
       "offBody": "Toda requisição do SCIM de {name} é recusada na hora. As contas, os vínculos e os grupos ficam, e o token também, para quando você ligar de novo.",
       "rotateTitle": "Trocar o token SCIM?",
@@ -989,19 +989,19 @@
     },
     "feeds": {
       "title": "Feeds de plugins",
-      "intro": "O marketplace de cada ferramenta como foi construído por completo da última vez: o Claude Code lê o dele neste site; o rmk feed build lê os do Codex e do Cursor para o espelho git.",
-      "nearTitle": "O marketplace de {tool} está perto de {what, select, both {seus limites} size {seu limite de tamanho} other {seu limite de tempo}}.",
-      "sizeBody": "O Claude Code lê de um endereço um marketplace de no máximo 5 MiB. Além disso, o marketplace deixa de carregar; adicione no Claude Code o espelho git (rmk feed build), que não tem esse limite.",
-      "timeBody": "O Claude Code espera 10 segundos por um marketplace. Ele é construído uma vez por alteração e depois respondido da memória, então só a primeira requisição depois de uma publicação espera tanto.",
+      "intro": "O marketplace de cada ferramenta como foi gerado por completo da última vez: o Claude Code lê o dele neste site; o rmk feed build lê os do Codex e do Cursor para o espelho git.",
+      "nearTitle": "O marketplace de {tool} está perto {what, select, both {dos seus limites} size {do seu limite de tamanho} other {do seu limite de tempo}}.",
+      "sizeBody": "O Claude Code lê de um endereço um marketplace de no máximo 5 MiB. Acima disso, o marketplace deixa de carregar; adicione no Claude Code o espelho git (rmk feed build), que não tem esse limite.",
+      "timeBody": "O Claude Code espera 10 segundos por um marketplace. Ele é gerado uma vez por alteração e depois servido a partir da memória, então só a primeira requisição depois de um lançamento espera tanto.",
       "columns": {
         "tool": "Ferramenta",
         "size": "Tamanho",
         "plugins": "Plugins",
-        "buildTime": "Tempo de construção",
-        "built": "Construído"
+        "buildTime": "Tempo de geração",
+        "built": "Gerado"
       },
       "ofLimit": " de 5 MiB",
-      "notBuilt": "Ainda não construído: ele é construído na primeira vez que alguém o lê."
+      "notBuilt": "Ainda não gerado: ele é gerado na primeira vez que alguém o lê."
     },
     "privacy": {
       "title": "Retenção",
@@ -1027,7 +1027,7 @@
         "none": "Nenhuma execução ainda.",
         "schedulerOff": "As tarefas agendadas estão desligadas (RONNE_JOBS): rode rmk-server purge pelo cron.",
         "firstRun": "A primeira execução é 5 minutos depois que o servidor inicia, e depois a cada 6 horas.",
-        "failed": "A última execução, em <date></date>, falhou ({error}). Os logs do servidor dizem o motivo; a próxima execução segue o calendário.",
+        "failed": "A última execução, em <date></date>, falhou ({error}). Os logs do servidor dizem o motivo; a próxima execução acontece no horário previsto.",
         "done": "Última execução em <date></date>: apagou {ips, plural, one {# endereço IP} other {# endereços IP}} e {emails, plural, one {# e-mail de acesso que falhou} other {# e-mails de acessos que falharam}}; excluiu {sessions, plural, one {# sessão expirada} other {# sessões expiradas}}, {grants, plural, one {# aprovação de login do rmk concluída} other {# aprovações de login do rmk concluídas}} e {feedback, plural, one {# mensagem de feedback tratada} other {# mensagens de feedback tratadas}}.",
         "running": "Uma execução está em andamento."
       },
@@ -1051,7 +1051,7 @@
     },
     "unavailable": {
       "title": "O banco de dados não está respondendo",
-      "body": "O Ronne AI Marketplace está configurado para usar <code>{database}</code>, mas não consegue alcançá-lo. Confira se o servidor está rodando e se as configurações ainda correspondem a ele; para mudá-las, rode a configuração de novo onde ele está instalado, ou defina <code>DATABASE_URL</code> no ambiente.",
+      "body": "O Ronne AI Marketplace está configurado para usar <code>{database}</code>, mas não consegue se conectar a ele. Confira se o servidor está rodando e se as configurações ainda correspondem a ele; para mudá-las, rode a configuração de novo onde ele está instalado, ou defina <code>DATABASE_URL</code> no ambiente.",
       "fromClone": "A partir de um clone",
       "withDocker": "Com Docker"
     },
@@ -1095,7 +1095,7 @@
       "mysql": "MySQL ou MariaDB: MySQL 8.4+ ou MariaDB 10.11+, já em execução",
       "postgres": "PostgreSQL: 15+, já em execução",
       "pickQuestion": "Qual devo escolher?",
-      "pickAnswer": "O SQLite é o padrão e não precisa de mais nada: um arquivo, cujo backup é copiá-lo. Escolha MySQL, MariaDB ou PostgreSQL quando já tiver um rodando, ou esperar muita gente ao mesmo tempo.",
+      "pickAnswer": "O SQLite é o padrão e não precisa de mais nada: um só arquivo, e o backup é uma cópia dele. Escolha MySQL, MariaDB ou PostgreSQL quando já tiver um rodando, ou esperar muita gente ao mesmo tempo.",
       "sqliteFile": "Arquivo SQLite",
       "pathDocker": "Relativo ao aplicativo, dentro do volume ronne-data. Mantenha o padrão, a menos que saiba o motivo.",
       "pathNpm": "Na pasta de dados do rmk-server. Mantenha o padrão, a menos que saiba o motivo.",
@@ -1113,8 +1113,8 @@
     "instance": {
       "legend": "Instância",
       "publicUrl": "Endereço público (PUBLIC_URL)",
-      "envDocker": "Definido por RONNE_DOMAIN ou PUBLIC_URL no ambiente (compose.yaml), que vale mais que as configurações. Mude lá, no arquivo .env ao lado do compose.yaml, e rode docker compose up -d.",
-      "envOther": "Definido por PUBLIC_URL no ambiente, que vale mais que as configurações. Mude lá e reinicie.",
+      "envDocker": "Definido por RONNE_DOMAIN ou PUBLIC_URL no ambiente (compose.yaml), que tem prioridade sobre as configurações. Mude lá, no arquivo .env ao lado do compose.yaml, e rode docker compose up -d.",
+      "envOther": "Definido por PUBLIC_URL no ambiente, que tem prioridade sobre as configurações. Mude lá e reinicie.",
       "hint": "Onde as pessoas vão abrir o Ronne AI Marketplace: o endereço que um proxy reverso serve, ou {local} nesta máquina.",
       "helpQuestion": "Para que serve?",
       "helpAnswer": "Os links do aplicativo, o endereço que o <code>rmk login</code> usa e a origem em que o login confia. Atrás de um proxy reverso, use o endereço https público."
@@ -1123,7 +1123,7 @@
       "legend": "Conta root",
       "intro": "O root pode tudo, inclusive criar outros usuários e escopos.",
       "helpQuestion": "O que o root pode fazer?",
-      "helpAnswer": "Tudo: criar escopos e usuários, revisar e publicar itens e passar por cima de uma decisão (o que fica registrado). Este é o primeiro root; as outras pessoas têm contas próprias, criadas por um root, e um root pode torná-las root também.",
+      "helpAnswer": "Tudo: criar escopos e usuários, revisar e lançar itens e abrir uma exceção a uma decisão (o que fica registrado). Este é o primeiro root; as outras pessoas têm contas próprias, criadas por um root, e um root pode torná-las root também.",
       "email": "E-mail",
       "name": "Nome exibido",
       "password": "Senha",
@@ -1163,9 +1163,9 @@
       "roleChanged": "Papel alterado para {role}.",
       "disabled": "Desativado. A pessoa foi desconectada de todos os lugares.",
       "enabled": "Ativado. A pessoa pode entrar de novo.",
-      "twoFactorOff": "Login em dois fatores desligado. A pessoa foi desconectada de todos os lugares.",
-      "twoFactorNone": "A pessoa não tinha login em dois fatores: nada mudou.",
-      "erased": "Apagado. A conta agora é deleted-user e nada da pessoa pode ser lido de volta."
+      "twoFactorOff": "Autenticação de dois fatores desligada. A pessoa foi desconectada de todos os lugares.",
+      "twoFactorNone": "A pessoa não tinha autenticação de dois fatores: nada mudou.",
+      "erased": "Apagado. A conta agora é deleted-user e nada da pessoa pode ser recuperado."
     },
     "scopes": {
       "created": "@{name} criado.",
@@ -1184,7 +1184,7 @@
     "settings": {
       "usage": "Relatório de uso salvo.",
       "minimum": "Mínimo de uso salvo.",
-      "twoFactor": "Login em dois fatores salvo.",
+      "twoFactor": "Autenticação de dois fatores salva.",
       "retention": "Retenção salva.",
       "password": "Login com senha salvo.",
       "nothing": "Nada mudou.",

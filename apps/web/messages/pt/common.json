@@ -3,11 +3,14 @@
     "label": "Idioma",
     "automatic": "Automático"
   },
+  "metadata": {
+    "description": "Um registro curado e auto-hospedado de recursos de IA."
+  },
   "close": "Fechar",
   "copy": {
     "label": "copiar",
     "done": "copiado",
-    "manual": "selecionado: copie você mesmo"
+    "manual": "selecionado: copie manualmente"
   },
   "password": {
     "show": "Mostrar senha",
@@ -88,7 +91,7 @@
     "step2": "Entre",
     "step2Tokens": "Com o seu e-mail e senha, ou com um token pessoal de <tokens>Tokens de acesso</tokens>.",
     "step2Here": "Com o seu e-mail e senha, ou com um token pessoal desta página.",
-    "webHint": "Tem conta pela sua empresa, ou usa a autenticação de dois fatores? Aprove no navegador:",
+    "webHint": "Entra com o login da sua empresa ou usa a autenticação de dois fatores? Aprove pelo navegador:",
     "step3": "Confira e instale",
     "step3Hint": "<mono>rmk whoami</mono> diz quem você é. Cada página de item mostra o seu comando de instalação; a Documentação explica o resto depois que você entrar.",
     "globalHint": "Fora do <mono>global</mono>, o nome de um item começa pelo seu espaço de trabalho: <mono>rmk install @workspace/scope/name</mono>."

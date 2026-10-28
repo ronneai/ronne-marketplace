@@ -51,16 +51,16 @@
     "title": "Funciona em",
     "level": {
       "native": "compatível",
-      "degraded": "em parte",
+      "degraded": "parcial",
       "off": "desligado",
       "none": "ignorado"
     },
     "native": "Vai para <place></place>.",
     "nativeAsIs": "Instala como está.",
     "bundle": "Instala seus itens um por um.",
-    "degraded": "Vai para <place></place>, com parte dele de fora: a página da ferramenta diz o quê.",
+    "degraded": "Vai para <place></place>, mas sem algumas partes: a página da ferramenta diz quais.",
     "off": "O ronne.yaml desta versão mantém o item longe desta ferramenta.",
-    "none": "{tool} não tem lugar para itens do tipo {type}, então o rmk os ignora ali com um aviso.",
+    "none": "{tool} não tem lugar para itens do tipo {type}, então o rmk o ignora nessa ferramenta, com um aviso.",
     "place": {
       "path": "<code>{path}</code>",
       "key": "<code>{key}</code> em <code>{path}</code>",
@@ -74,7 +74,7 @@
   "overview": {
     "files": {
       "unreadable": "Os arquivos desta versão não podem ser lidos.",
-      "unreadableBody": "O pacote dela não está no armazenamento ou não confere com o checksum. Avise um administrador."
+      "unreadableBody": "O pacote desta versão não está no armazenamento ou não confere com o checksum. Avise um administrador."
     },
     "stats": {
       "installs": "Instalações, 30 dias",
@@ -103,7 +103,7 @@
     },
     "install": {
       "title": "Instalar",
-      "quickFlags": "Atalhos",
+      "quickFlags": "Opções rápidas",
       "plugin": "Como plugin do Claude Code",
       "deprecated": "Esta versão está obsoleta: {message}",
       "allYanked": "Todas as versões foram retiradas: não há nada para instalar. Projetos que fixam uma continuam funcionando.",
@@ -120,8 +120,8 @@
     },
     "document": {
       "openInFiles": "Abrir em Arquivos",
-      "binary": "Um arquivo binário. Arquivos o lista.",
-      "tooLarge": "Grande demais para mostrar aqui. Arquivos o lista.",
+      "binary": "Um arquivo binário. Ele aparece em Arquivos.",
+      "tooLarge": "Grande demais para mostrar aqui. Ele aparece em Arquivos.",
       "empty": "Este arquivo está vazio.",
       "missing": "{path} não está nesta versão.",
       "missingBody": "O manifesto o cita, mas o pacote lançado não o tem."
@@ -129,7 +129,7 @@
     "dependencies": {
       "label": "Dependências",
       "uses": "{count, plural, one {Usa # item} other {Usa # itens}}",
-      "loading": "Carregando o diagrama…"
+      "loading": "Carregando o canvas…"
     },
     "verification": {
       "title": "Verificação do pacote",
@@ -191,8 +191,8 @@
         "mcp_server": "Inicia um servidor MCP",
         "permission_policy": "Altera permissões",
         "status_or_lsp": "Executa um comando",
-        "executable": "Traz arquivos executáveis",
-        "shell_script": "Traz scripts de shell",
+        "executable": "Inclui arquivos executáveis",
+        "shell_script": "Inclui scripts de shell",
         "network": "Cita endereços web"
       },
       "role": {
@@ -207,7 +207,7 @@
       },
       "guard": {
         "tools": "Só estas ferramentas: {tools}.",
-        "globs": "Vale só para arquivos que combinam com {globs}.",
+        "globs": "Vale só para arquivos que correspondem a {globs}.",
         "manual": "Vale só quando alguém pede.",
         "hookTool": "Roda só para a ferramenta `{tool}`.",
         "blocks": "Bloqueia {what}.",

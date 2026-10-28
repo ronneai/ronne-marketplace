@@ -25,7 +25,7 @@
     "main": "Principal",
     "home": "Accueil",
     "fold": "Réduire la barre latérale",
-    "unfold": "Agrandir la barre latérale",
+    "unfold": "Développer la barre latérale",
     "account": "Compte",
     "accountOf": "{name}, votre compte",
     "signOut": "Se déconnecter",
@@ -53,7 +53,7 @@
     "manage": "Gérer les espaces de travail"
   },
   "footer": {
-    "openSource": "ronne marketplace · source ouverte (MIT)"
+    "openSource": "ronne marketplace · code source ouvert (MIT)"
   },
   "theme": {
     "toDark": "Passer au thème sombre",

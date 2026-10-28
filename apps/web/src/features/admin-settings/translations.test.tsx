@@ -295,7 +295,7 @@ describe("Settings › Authentication in three languages (132)", () => {
       render(<TwoFactorPolicyForm policy="optional" coverage={coverage} />, locale);
     expect(html("en")).toContain("3 people, all with two-factor on.");
     expect(html("en")).toContain("1 person; 2 people must set it up at their next visit.");
-    expect(html("pt")).toContain("3 pessoas, todas com dois fatores ligado.");
+    expect(html("pt")).toContain("3 pessoas, todas com a autenticação de dois fatores ligada.");
     expect(html("pt")).toContain("1 pessoa; 2 pessoas precisam configurar na próxima visita.");
     expect(html("fr")).toContain("3 personnes, toutes avec la double authentification activée.");
     expect(html("fr")).toContain(
@@ -321,7 +321,7 @@ describe("Settings › Authentication in three languages (132)", () => {
     expect(render(<IdentityProvidersPanel rows={[row({ status: "failing" })]} />, "fr")).toContain(
       "En échec",
     );
-    expect(render(<TestNotice test="done" />, "pt")).toContain("O seu Testar login terminou");
+    expect(render(<TestNotice test="done" />, "pt")).toContain("O seu teste de login terminou");
     expect(render(<TestNotice test="rate_limited" />, "fr")).toContain("Trop de tentatives");
     expect(render(<TestNotice test="constructor" />, "fr")).toBe("");
     expect(form("pt", { provider: null })).toContain("Escolha o seu provedor de identidade");
@@ -335,7 +335,7 @@ describe("Settings › Authentication in three languages (132)", () => {
   it("the controls, the test result and the SCIM section read in each language", () => {
     expect(controls("pt")).toContain("Testar conexão");
     expect(controls("fr")).toContain("Tester la connexion");
-    expect(controls("pt")).toContain("O seu Testar login passou.");
+    expect(controls("pt")).toContain("O seu teste de login passou.");
     expect(controls("pt")).toContain("entraria em acme como moderador");
     expect(controls("pt")).toContain("mudaria o papel em acme de usuário para admin");
     expect(controls("fr")).toContain("redeviendrait utilisateur dans acme");
@@ -472,14 +472,14 @@ describe("Settings › Usage, Plugin feeds and Privacy in three languages (132)"
 
   it("the plugin feeds read in each language, with numbers written by the language", () => {
     expect(feeds("en")).toContain("Claude Code’s marketplace is near its limits.");
-    expect(feeds("pt")).toContain("O marketplace de Claude Code está perto de seus limites.");
+    expect(feeds("pt")).toContain("O marketplace de Claude Code está perto dos seus limites.");
     expect(feeds("fr")).toContain("Le marketplace de Claude Code approche de ses limites.");
     expect(feeds("en")).toContain("4.6 MiB");
     expect(feeds("pt")).toContain("4,6 MiB");
     expect(feeds("pt")).toContain("1,3 s");
     expect(feeds("fr")).toMatch(/1[\s\u202f\u00a0]234/);
     expect(feeds("en")).toContain("1,234");
-    expect(feeds("pt")).toContain("Tempo de construção");
+    expect(feeds("pt")).toContain("Tempo de geração");
     expect(feeds("fr")).toContain("Pas encore construit");
   });
 
@@ -501,7 +501,7 @@ describe("Settings › Usage, Plugin feeds and Privacy in three languages (132)"
       );
     expect(one("en", ["size"])).toContain("is near its size limit.");
     expect(one("en", ["time"])).toContain("is near its time limit.");
-    expect(one("pt", ["size"])).toContain("perto de seu limite de tamanho.");
+    expect(one("pt", ["size"])).toContain("perto do seu limite de tamanho.");
     expect(one("fr", ["time"])).toContain("approche de sa limite de temps.");
   });
 

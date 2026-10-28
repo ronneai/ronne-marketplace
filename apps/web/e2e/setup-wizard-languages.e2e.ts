@@ -1,54 +1,22 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
+import { loadAll, noEnglish } from "./no-english";
+import { describeOverflow, measureOverflow, overflows } from "./sweep";
 
 /**
  * Feature 132: the setup wizard shows in the browser's language, on an instance with no database
  * and no user yet (the wizard project's blank instance), before the English test installs it.
  * Its file name sorts before `setup-wizard.e2e.ts`, which sets the instance up.
  */
-const MESSAGES = join(import.meta.dirname, "../messages");
-const flat = (value: unknown, prefix = ""): Record<string, string> =>
-  typeof value === "string"
-    ? { [prefix]: value }
-    : Object.assign(
-        {},
-        ...Object.entries(value as object).map(([key, child]) =>
-          flat(child, prefix ? `${prefix}.${key}` : key),
-        ),
-      );
-const loadAll = (locale: string) => {
-  const all: Record<string, string> = {};
-  for (const namespace of ["admin", "common", "help"])
-    Object.assign(
-      all,
-      flat(
-        JSON.parse(readFileSync(join(MESSAGES, locale, `${namespace}.json`), "utf8")),
-        namespace,
-      ),
-    );
-  return all;
-};
-
-const noEnglish = async (page: Page, lang: "pt" | "fr") => {
-  const english = loadAll("en");
-  const own = loadAll(lang);
-  const ownTexts = new Set(Object.values(own));
-  await page.evaluate(() => {
-    for (const details of document.querySelectorAll("details")) details.open = true;
-  });
-  const lines = new Set(
-    (await page.locator("body").innerText())
-      .split(/[\n\t]/)
-      .map((line) => line.trim())
-      .filter(Boolean),
-  );
-  const leaks = Object.entries(english)
-    .filter(([key, text]) => text.length >= 4 && !/[{<]/.test(text) && text !== own[key])
-    .filter(([, text]) => !ownTexts.has(text))
-    .filter(([, text]) => lines.has(text))
-    .map(([key]) => key);
-  expect(leaks, `English left on ${page.url()}`).toEqual([]);
+/**
+ * The mobile sweep skips /setup (the wizard runs on instances of its own), so the wizard's phone
+ * width is checked here, in each language, at each step (133): nothing may stick out at 320px.
+ */
+const fitsPhone = async (page: Page) => {
+  const size = page.viewportSize();
+  await page.setViewportSize({ width: 320, height: 700 });
+  const overflow = await measureOverflow(page);
+  expect(overflows(overflow) ? describeOverflow(overflow) : null, page.url()).toBeNull();
+  if (size) await page.setViewportSize(size);
 };
 
 for (const [locale, lang] of [
@@ -76,13 +44,16 @@ for (const [locale, lang] of [
       page.getByRole("button", { name: word("admin.setup.wizard.testConnection") }),
     ).toBeVisible();
     await noEnglish(page, lang);
+    await fitsPhone(page);
     // The steps of the wizard, one by one.
     await page.getByRole("button", { name: word("admin.setup.wizard.next") }).click();
     await expect(page.getByLabel(word("admin.setup.instance.publicUrl"))).toBeVisible();
     await noEnglish(page, lang);
+    await fitsPhone(page);
     await page.getByRole("button", { name: word("admin.setup.wizard.next") }).click();
     await expect(page.getByLabel(word("admin.setup.root.again"))).toBeVisible();
     await noEnglish(page, lang);
+    await fitsPhone(page);
     await context.close();
   });
 }

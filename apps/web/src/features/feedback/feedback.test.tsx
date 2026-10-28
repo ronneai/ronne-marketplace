@@ -51,7 +51,7 @@ describe("the Send feedback form (127)", () => {
     const html = form();
     expect(html).toContain("Where does it go?");
     expect(html).toContain("Who reads this?");
-    expect(html).toContain("https://www.ronne.ai/en/marketplace/docs/admin#feedback");
+    expect(html).toContain("https://www.ronne.ai/en/marketplace/docs/feedback#feedback");
   });
 
   it("offers no page option when there is no page to name", () => {

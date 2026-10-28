@@ -227,7 +227,7 @@ describe("the Versions tab in three languages (131)", () => {
     expect(tags("pt", "beta", "move")).toContain("Mover beta");
     expect(tags("fr", "beta", "remove")).toContain("Supprimer beta?");
     expect(tags("fr", "beta", "remove")).toContain(
-      "Installer @team/github@beta cesse de fonctionner.",
+      "La commande @team/github@beta cessera de fonctionner.",
     );
   });
 

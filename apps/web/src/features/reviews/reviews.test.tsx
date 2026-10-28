@@ -567,7 +567,7 @@ describe("the review queue in three languages (131)", () => {
     expect(needs("pt")).toContain(">Autor<");
     expect(needs("pt")).toContain(">Submetida<");
     expect(needs("pt")).toContain(">⚠ risco<");
-    expect(needs("pt")).toContain(">seu<");
+    expect(needs("pt")).toContain(">sua<");
     expect(needs("fr")).toContain('placeholder="Élément ou auteur"');
     expect(needs("fr")).toContain('aria-label="Sélectionner @team/fmt"');
     const empty = (l: L, tab: "needs" | "waiting" | "release" | "decided") =>

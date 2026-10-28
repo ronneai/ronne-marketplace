@@ -2,7 +2,7 @@
   "group": {
     "guidance": "Orientações",
     "runtime": "Execução e ferramentas",
-    "bundles": "Pacotes"
+    "bundles": "Bundles"
   },
   "name": {
     "skill": "Skill",
@@ -20,7 +20,7 @@
   "description": {
     "skill": "Instruções (SKILL.md), com scripts e arquivos opcionais, que a IA carrega quando uma tarefa precisa delas.",
     "agent": "Um subagente com prompt, ferramentas permitidas e modelo próprios.",
-    "rule": "Orientações que valem sempre, para arquivos que combinam, quando a IA decide ou sob demanda.",
+    "rule": "Orientações que valem sempre, para arquivos correspondentes, quando a IA decide ou sob demanda.",
     "command": "Um prompt reutilizável ou comando de barra, com argumentos.",
     "output-style": "Muda a forma como o agente escreve as respostas.",
     "hook": "Um comando que roda em um evento de uma ferramenta de IA, como tool.after ou session.start.",

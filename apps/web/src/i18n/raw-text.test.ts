@@ -2,13 +2,14 @@ import { execFileSync } from "node:child_process";
 import {
   copyFileSync,
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, describe, expect, it } from "vitest";
 
@@ -106,5 +107,54 @@ describe("biome.json (129)", () => {
       const path = pattern.replace(/\/\*\*.*$/, "").replaceAll("\\", "");
       expect(existsSync(repo(path)), path).toBe(true);
     }
+  });
+
+  it("covers the whole app, with the stated exceptions only (133)", () => {
+    expect(override?.includes).toEqual([
+      "apps/web/src/**",
+      "!apps/web/src/server/**",
+      "!apps/web/src/app/api/**",
+      "!apps/web/src/features/styleguide/**",
+      "!apps/web/src/app/(app)/styleguide/**",
+      "!**/*.test.tsx",
+    ]);
+  });
+
+  /** Biome's diagnostics for `source` written as the file `path` (removed again), with the repo's own config. */
+  const lintAs = (path: string, source: string) => {
+    const file = repo(path);
+    const created = !existsSync(dirname(file));
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, source);
+    try {
+      execFileSync(repo("node_modules/.bin/biome"), ["lint", "--colors=off", path], {
+        cwd: repo(""),
+        encoding: "utf8",
+        stdio: "pipe",
+      });
+      return "";
+    } catch (error) {
+      const failed = error as { stdout?: string; stderr?: string };
+      return `${failed.stdout ?? ""}${failed.stderr ?? ""}`;
+    } finally {
+      rmSync(file, { force: true });
+      if (created) rmSync(dirname(file), { recursive: true, force: true });
+    }
+  };
+  const RAW = "const Probe = () => <p>Hello there</p>;\nexport default Probe;\n";
+
+  it("fails raw text in a folder that does not exist yet, and passes it in an exception (133)", () => {
+    for (const path of [
+      "apps/web/src/features/a-new-area/ProbeCheck.tsx",
+      "apps/web/src/components/a-new-kind/ProbeCheck.tsx",
+      "apps/web/src/app/(app)/a-new-route/ProbeCheck.tsx",
+    ])
+      expect(lintAs(path, RAW), path).toContain("plugin");
+    for (const path of [
+      "apps/web/src/features/styleguide/ProbeCheck.tsx",
+      "apps/web/src/app/(app)/styleguide/ProbeCheck.tsx",
+      "apps/web/src/server/ProbeCheck.tsx",
+    ])
+      expect(lintAs(path, RAW), path).not.toContain("plugin");
   });
 });

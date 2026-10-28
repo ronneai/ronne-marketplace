@@ -23,7 +23,7 @@ describe("Account's Show getting started again (126)", () => {
       ">Mostrar Primeiros passos de novo<",
     );
     expect(inLocale("fr", () => renderToStaticMarkup(<ShowAgainSection />))).toContain(
-      ">Afficher de nouveau la liste Pour commencer<",
+      ">Afficher de nouveau la liste « Pour commencer »<",
     );
   });
 });

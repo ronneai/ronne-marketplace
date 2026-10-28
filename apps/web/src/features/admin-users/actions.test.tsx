@@ -416,7 +416,7 @@ describe("what the user actions say, in each language (132)", () => {
     const user = () => actions.changeRoleFromForm({}, form({ userId: "u", role: "user" }));
     expect((await say("pt", user)).done).toBe("Papel alterado para usuário.");
     const two = () => actions.resetTwoFactorFromForm({}, form({ userId: "u" }));
-    expect((await say("pt", two)).done).toContain("Login em dois fatores desligado");
+    expect((await say("pt", two)).done).toContain("Autenticação de dois fatores desligada");
     expect((await say("fr", two)).done).toContain("Double authentification désactivée");
     const erased = () => actions.eraseUserFromForm({}, form({ userId: "u", confirm: "x" }));
     expect((await say("pt", erased)).done).toContain("Apagado.");

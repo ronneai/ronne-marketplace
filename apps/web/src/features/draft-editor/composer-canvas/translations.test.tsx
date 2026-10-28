@@ -314,12 +314,12 @@ describe("the version picker in three languages", () => {
   it("words each option's status, and whose it is", () => {
     const status = (l: Locale, o: DependencyOption) => grab(l, usePickerWords).statusText(o);
     expect(status("pt", option())).toBe("publicado na 1.4.0");
-    expect(status("fr", option({ mine: true }))).toBe("publié en 1.4.0, à vous");
+    expect(status("fr", option({ mine: true }))).toBe("1.4.0 publiée, à vous");
     expect(status("pt", option({ status: "draft", mine: true, latest: null }))).toBe(
       "rascunho, seu",
     );
     expect(status("fr", option({ status: "changes_requested", latest: null }))).toBe(
-      "de retour chez son auteur",
+      "renvoyé à son auteur",
     );
     expect(status("en", option({ latest: null }))).toBe("published");
   });

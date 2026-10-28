@@ -2,7 +2,7 @@
   "page": {
     "list": "Espaces de travail",
     "join": "Se joindre à un espace de travail",
-    "requests": "Demandes pour se joindre",
+    "requests": "Demandes d’adhésion",
     "workspace": "Espace de travail"
   },
   "list": {
@@ -24,7 +24,7 @@
     "request": "Demande"
   },
   "request": {
-    "requested": "Demandé le <date></date>",
+    "requested": "Demandée le <date></date>",
     "declined": "Refusée le <date></date>",
     "declinedAgain": "Refusée le <date></date>; redemandez à partir du <again></again>",
     "reason": "« {reason} »"
@@ -36,7 +36,7 @@
     "ask": "Demander à se joindre",
     "askAria": "Demander à se joindre à {workspace}",
     "cancelRequest": "Annuler",
-    "cancelAria": "Annuler votre demande pour se joindre à {workspace}"
+    "cancelAria": "Annuler votre demande d’adhésion à {workspace}"
   },
   "join": {
     "title": "Se joindre à <mono>{name}</mono>",
@@ -57,8 +57,8 @@
     "scopes": "Portées",
     "members": "Membres",
     "requests": "Demandes",
-    "global": "Toute instance l’a, et tout le monde y est. Il ne peut être ni modifié ni supprimé.",
-    "personal": "{owner, select, you {Le vôtre seul} other {Celui de son propriétaire seul}}, toujours privé. Ses éléments sont publiés sans révision.",
+    "global": "Il existe dans toute instance, et tout le monde en est membre. Il ne peut être ni modifié ni supprimé.",
+    "personal": "{owner, select, you {À vous seul} other {À son propriétaire seul}}, toujours privé. Ses éléments sont publiés sans révision.",
     "scopeMoves": "Déplacements de portée"
   },
   "members": {
@@ -78,7 +78,7 @@
     "remove": "Retirer",
     "removeAria": "Retirer {email}",
     "removeTitle": "Retirer le membre",
-    "removeBody": "Retirer <mono>{email}</mono> de <mono>{workspace}</mono>? La personne cesse de proposer et de réviser là-bas; ce qu’elle a déjà soumis reste.",
+    "removeBody": "Retirer <mono>{email}</mono> de <mono>{workspace}</mono>? La personne ne pourra plus y proposer ni y réviser; ce qu’elle a déjà soumis reste.",
     "cancel": "Annuler",
     "findPeople": "Trouver des personnes",
     "findHint": "Par courriel ou nom. Les personnes déjà dans {workspace}, root et les utilisateurs désactivés ne sont pas listés.",
@@ -112,7 +112,7 @@
     "reason": "Motif (facultatif)",
     "reasonHint": "La personne le voit sur sa page Espaces de travail. {used, number}/{max, number}",
     "cancel": "Annuler",
-    "pageTitle": "Demandes pour se joindre",
+    "pageTitle": "Demandes d’adhésion",
     "pageDescription": "Personnes qui demandent à se joindre aux espaces de travail que vous modérez. Approuver les ajoute comme utilisateurs.",
     "movesIntro": "Portées que les admins de leurs espaces de travail ont demandé de déplacer vers un espace que vous gérez. Approuver revérifie le déplacement et l’effectue."
   },
@@ -126,7 +126,7 @@
     "message": "Message",
     "items": "{count, plural, one {# élément} other {# éléments}}",
     "notReviewed": "Non révisées : {versions}. Approuver les révise.",
-    "refuses": "{count, plural, one {# élément la refuse maintenant : Approuver les liste.} other {# éléments la refusent maintenant : Approuver les liste.}}",
+    "refuses": "{count, plural, one {# obstacle empêche maintenant le déplacement : Approuver les liste.} other {# obstacles empêchent maintenant le déplacement : Approuver les liste.}}",
     "renamed": "Renommé",
     "approve": "Approuver",
     "approveAria": "Approuver le déplacement de {scope} vers {to}",

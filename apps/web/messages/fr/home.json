@@ -12,7 +12,7 @@
   "waiting": {
     "title": "Ce qui vous attend",
     "drafts": "Vous avez {count, plural, one {# brouillon} other {# brouillons}} en cours.",
-    "changes": "{count, plural, one {# de vos soumissions demande} other {# de vos soumissions demandent}} des modifications.",
+    "changes": "{count, plural, one {# de vos soumissions nécessite} other {# de vos soumissions nécessitent}} des modifications.",
     "review": "{count, plural, one {# soumission attend} other {# soumissions attendent}} une révision."
   },
   "recent": {
@@ -35,7 +35,7 @@
     "title": "Pour commencer",
     "progress": "{done} sur {total} terminées",
     "hide": "Masquer",
-    "hideLabel": "Masquer Pour commencer",
+    "hideLabel": "Masquer « Pour commencer »",
     "done": "Terminée",
     "todo": "Pas encore terminée",
     "optional": "Facultative",

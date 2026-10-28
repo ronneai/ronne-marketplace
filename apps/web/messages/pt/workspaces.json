@@ -19,14 +19,14 @@
     },
     "yours": "Seu",
     "otherTitle": "Suas outras solicitações",
-    "otherIntro": "Feitas a partir de um link de entrada. Você vê um espaço de trabalho aqui quando entrar nele.",
+    "otherIntro": "Feitas a partir de um link de entrada. Você verá um espaço de trabalho aqui quando entrar nele.",
     "name": "Nome",
     "request": "Solicitação"
   },
   "request": {
-    "requested": "Solicitado em <date></date>",
-    "declined": "Recusado em <date></date>",
-    "declinedAgain": "Recusado em <date></date>; peça de novo a partir de <again></again>",
+    "requested": "Solicitada em <date></date>",
+    "declined": "Recusada em <date></date>",
+    "declinedAgain": "Recusada em <date></date>; peça de novo a partir de <again></again>",
     "reason": "“{reason}”"
   },
   "controls": {
@@ -99,7 +99,7 @@
     "workspace": "Espaço de trabalho",
     "asked": "Solicitado (UTC)",
     "message": "Mensagem",
-    "answer": "Responder",
+    "answer": "Resposta",
     "noMessage": "Nenhuma",
     "more": "As {shown, number} mais antigas de {total, number}. Responda a estas para ver o resto.",
     "roleFor": "Papel para {email}",
@@ -114,7 +114,7 @@
     "cancel": "Cancelar",
     "pageTitle": "Solicitações para entrar",
     "pageDescription": "Pessoas pedindo para entrar nos espaços de trabalho que você modera. Aprovar as adiciona como usuários.",
-    "movesIntro": "Escopos que os admins dos espaços de trabalho deles pediram para mover para um espaço que você administra. Aprovar confere a movimentação de novo e a faz."
+    "movesIntro": "Escopos que os admins dos espaços de trabalho deles pediram para mover para um espaço de trabalho que você administra. Aprovar verifica a movimentação de novo e a executa."
   },
   "moves": {
     "none": "Nenhuma movimentação aguardando.",
@@ -126,14 +126,14 @@
     "message": "Mensagem",
     "items": "{count, plural, one {# item} other {# itens}}",
     "notReviewed": "Não revisadas: {versions}. Aprovar as revisa.",
-    "refuses": "{count, plural, one {# coisa a impede agora: Aprovar lista.} other {# coisas a impedem agora: Aprovar lista.}}",
+    "refuses": "{count, plural, one {# motivo impede isso agora: Aprovar mostra qual.} other {# motivos impedem isso agora: Aprovar mostra quais.}}",
     "renamed": "Renomeado",
     "approve": "Aprovar",
-    "approveAria": "Aprovar mover {scope} para {to}",
+    "approveAria": "Aprovar a movimentação de {scope} para {to}",
     "decline": "Recusar",
-    "declineAria": "Recusar mover {scope} para {to}",
+    "declineAria": "Recusar a movimentação de {scope} para {to}",
     "declineTitle": "Recusar movimentação",
-    "declineBody": "Recusar mover <mono>{scope}</mono> para <mono>{to}</mono>?",
+    "declineBody": "Recusar a movimentação de <mono>{scope}</mono> para <mono>{to}</mono>?",
     "reason": "Motivo (opcional)",
     "reasonHint": "{name} vê isso na linha do escopo. {used, number}/{max, number}",
     "cancel": "Cancelar"

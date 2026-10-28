@@ -32,9 +32,10 @@ export const TwoFactorPolicyForm = ({
   return (
     <form action={action} aria-label={t("title")} className="grid gap-4">
       <fieldset className="grid gap-3" aria-describedby="two-factor-policy-hint">
-        <legend className="mb-1 text-base font-semibold text-fg">
-          {t("title")} <Help id="two-factor-policy" />
-        </legend>
+        {/* The helper sits under the legend, not in it: WebKit sizes a legend to its content, so a
+            long question in Portuguese pushed the page past a 320px phone (133). */}
+        <legend className="mb-1 text-base font-semibold text-fg">{t("title")}</legend>
+        <Help id="two-factor-policy" />
         <p id="two-factor-policy-hint" className="text-sm text-muted">
           {t("hint")}
         </p>

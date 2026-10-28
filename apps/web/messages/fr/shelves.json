@@ -16,10 +16,10 @@
     "pin": "Épingler",
     "unpin": "Désépingler",
     "pinLabel": "Épingler {name} dans {shelf}",
-    "unpinLabel": "Retirer l’épingle de {name} de {shelf}",
+    "unpinLabel": "Désépingler {name} de {shelf}",
     "manage": "Gérer",
     "manageLabel": "Gérer {shelf}",
-    "blockedPrivate": "Seuls les éléments d’un espace de travail public peuvent être épinglés dans Commencez ici.",
+    "blockedPrivate": "Seuls les éléments d’un espace de travail public peuvent être épinglés dans « Commencez ici ».",
     "done": "Terminé"
   },
   "manage": {
@@ -31,7 +31,7 @@
     "down": "Descendre {name}",
     "remove": "Retirer {name}",
     "unavailable": "Non disponible",
-    "unavailableHint": "Il n’a pas de version installable pour le moment. Retirez-le ou laissez-le : il revient quand il en aura une.",
+    "unavailableHint": "Il n’a pas de version installable pour le moment. Retirez-le ou laissez-le : il reviendra quand il en aura une.",
     "back": "Retour"
   },
   "home": {
@@ -41,7 +41,7 @@
     "workspacePins": "Éléments épinglés"
   },
   "visibility": {
-    "startHereTitle": "{count, plural, one {# élément est épinglé dans Commencez ici} other {# éléments sont épinglés dans Commencez ici}}",
-    "startHereBody": "Tout le monde voit Commencez ici, donc les éléments d’un espace de travail privé ne peuvent pas y figurer. {count, plural, one {Il en est retiré} other {Ils en sont retirés}} quand vous rendez cet espace de travail privé."
+    "startHereTitle": "{count, plural, one {# élément est épinglé dans « Commencez ici »} other {# éléments sont épinglés dans « Commencez ici »}}",
+    "startHereBody": "Tout le monde voit « Commencez ici », donc les éléments d’un espace de travail privé ne peuvent pas y figurer. {count, plural, one {Il en est retiré} other {Ils en sont retirés}} quand vous rendez cet espace de travail privé."
   }
 }

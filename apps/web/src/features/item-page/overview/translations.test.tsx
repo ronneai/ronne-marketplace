@@ -144,7 +144,7 @@ describe("the Overview in three languages", () => {
     expect(pt).toContain("Claude Code 62% · Codex 38%");
     const fr = await render("fr");
     expect(fr).toContain("Installations, 30 jours");
-    expect(fr).toMatch(/3 retirées · 12\s345 téléchargements/);
+    expect(fr).toMatch(/3 désinstallations · 12\s345 téléchargements/);
     expect(fr).toContain("1 signalement");
     expect(fr).toMatch(/13,7 par jour · 94\s?% réussies/);
   });
@@ -192,7 +192,7 @@ describe("the Overview in three languages", () => {
     expect(fr).toContain("Ce qui les a lancées");
     expect(fr).toContain("Comment elles se sont terminées");
     expect(fr).toMatch(
-      /Codex et Cursor ne signalent pas les exécutions de skill; là, seules les installations sont comptées\./,
+      /Codex et Cursor ne signalent pas les exécutions de skill; pour ces outils, seules les installations sont comptées\./,
     );
     usage.itemUsage.mockResolvedValue(shownUsage({ runsCounted: false, runs: 0 }));
     const notCounted = await render("pt");

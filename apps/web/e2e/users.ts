@@ -32,6 +32,8 @@ export const E2E_USERS = {
   languages: "languages@e2e.test",
   // 130: reads the Catalogue, an item and the Workspaces pages in Portuguese and French.
   browseLanguages: "browse-languages@e2e.test",
+  // 133: reads Home, Account, Feedback, the menu and sign-in in Portuguese and French.
+  restLanguages: "rest-languages@e2e.test",
   // 131: writes, submits and reviews in Portuguese and French: a moderator, for the review queue.
   authorLanguages: "author-languages@e2e.test",
   // 132: reads Admin (Users, a user, the Audit log, every Settings tab) in Portuguese and French: a root.
@@ -292,6 +294,7 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   languageSaved: "Language Saved",
   languages: "Languages",
   browseLanguages: "Browse Languages",
+  restLanguages: "Rest Languages",
   authorLanguages: "Author Languages",
   adminLanguages: "Admin Languages",
   phoneLanguages: "Phone Languages",

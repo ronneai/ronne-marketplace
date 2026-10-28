@@ -16,7 +16,7 @@
     "pin": "Fixar",
     "unpin": "Desafixar",
     "pinLabel": "Fixar {name} em {shelf}",
-    "unpinLabel": "Remover a fixação de {name} de {shelf}",
+    "unpinLabel": "Desafixar {name} de {shelf}",
     "manage": "Gerenciar",
     "manageLabel": "Gerenciar {shelf}",
     "blockedPrivate": "Só itens de um espaço de trabalho público podem ser fixados em Comece por aqui.",

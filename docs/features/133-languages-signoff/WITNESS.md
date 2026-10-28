@@ -1,0 +1,356 @@
+# 133 — Witness record
+
+Passes by the `state-witness` agent, one block per task ([how it works](../../knowledge/state-witness.md)).
+
+## Task 1 — Inventory
+
+Witnessed: 2026-10-27, by a fresh agent (blind). Commit: f1b783a6. Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The list of uncovered `.tsx` files is complete | no | confirmed | The agent's own script over the `biome.json` override's globs printed the same 9 files as the document (the three styleguide demos share a row) |
+| 2 | `admin/layout.tsx` and `admin/page.tsx` have no text | no | confirmed | read both: a permission check and a redirect |
+| 3 | The two workspace item pages are thin wrappers | no | confirmed | read both; their only text is a title already from `getTranslations("item.page")` |
+| 4 | `app/layout.tsx` has one real hit, the static metadata | no | confirmed | `layout.tsx:19-22` |
+| 5 | The styleguide is out of scope as the SPEC says | no | can't check here | files present and unmatched; the SPEC's Out was not opened |
+| 6 | The `.ts` routes write no screen text | no | confirmed | `language`, `current-workspace`, and the two `data` routes read; `server/http/user-data-api.ts` not read |
+
+**Overall:** met.
+
+Witnessed: 2026-10-27, by a fresh agent (blind, re-check of row 5). Commit: f1b783a6. Machine: macOS (Darwin), read-only check.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 5 | The styleguide is out of scope as the SPEC says, and is a developer reference | no | confirmed | `133 SPEC.md:19-20,59-60` and `132 SPEC.md:60-62` record it (provisional until task 8); `032 SPEC.md:22` and `features/styleguide/access.ts` (open outside production, root only in production) |
+| 6 | `server/http/user-data-api.ts` writes no component screen text | no | confirmed | it writes English API error bodies for the download route (lines 45-103), under the server/API exclusion; the wording belongs to task 8's server-text decision |
+
+**Overall:** met.
+
+## Task 2 — The rule over the whole app
+
+Witnessed: 2026-10-27 16:45, by a fresh agent (blind). Commit: b2dc52e0 plus the uncommitted diff. Machine: macOS (Darwin), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `pnpm lint` passes | no | confirmed | exit 0; 44 warnings and 2 infos, the same as a clean worktree of HEAD (no new diagnostics) |
+| 2 | The override is `apps/web/src/**` minus the stated exceptions | no | confirmed | `git diff biome.json` |
+| 3 | A new file in a new folder fails the rule | no | confirmed | probes in `features/zzprobe` and `app/zz` gave a `plugin` diagnostic; deleted |
+| 4 | The exceptions are not linted | no | confirmed | a probe in the styleguide folder gave none; the test also covers `server/` |
+| 5 | A fixture test proves a new folder fails | no | confirmed | the includes-equality test and `lintAs` over three new folders and three exceptions pass; the test was not watched failing under a changed config |
+| 6 | The i18n tests pass | no | confirmed | `npx vitest run src/i18n` → 18 files, 350 tests |
+| 7 | The root description is served in three languages | no | confirmed | `next start` on a blank instance, curl with Accept-Language en, pt-BR, fr-CA → the three descriptions |
+| 8 | The setup page still renders with no database | no | confirmed | `/setup` 200 in all three |
+| 9 | No JSX screen text lives outside the new coverage | no | confirmed | only the four styleguide files are excluded |
+| 10 | The remaining inventory text is moved or carries a reasoned `biome-ignore` | no | confirmed | 24 `biome-ignore lint/plugin` hits, each with a reason |
+
+**Overall:** met.
+
+## Task 3 — Fragment check
+
+Witnessed: 2026-10-27 16:45, by a fresh agent (blind). Commit: 4a24a7c9 plus the uncommitted new test and allowlist. Machine: macOS (Darwin), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The test passes with the reviewed allowlist | no | confirmed | 5 passed; one entry per locale, each with a reason |
+| 2 | Planting " the " in a pt message fails, naming the key | no | confirmed | plain, inside a plural option and inside a select option |
+| 3 | The same in an fr message, beside a `<code>` tag | no | confirmed | `auth:device.denied: the` |
+| 4 | English inside `<code>` or a `{placeholder}` does not fail | no | confirmed | 5 passed |
+| 5 | "a", "on", "me", "pour" do not fail | no | confirmed | not in the list; the self-test checks a French sentence |
+| 6 | The word list holds no real pt or fr word | no | partly | "more" (pt), "are" and "if" (fr), "must" borderline |
+| 7 | The check catches realistic half-translated messages | no | partly | 1 of 10 invented sentences: only function words were listed |
+| 8 | Each allowlist entry has a reason and still needs it | no | confirmed | the second test |
+| 9 | i18n tests and lint pass | no | confirmed | 355 tests; lint exit 0 |
+
+**Overall:** not met (rows 6 and 7).
+
+The work after this pass: the four words came out and a watch list of product nouns and verbs went in (user, workspace, settings, password, delete, create, update, submit, reset, disable, revoke, rotate, cancel, reviewer); the allowlist grew to 16 pt and 15 fr entries with reasons.
+
+Witnessed: 2026-10-27 16:50, by a fresh agent (blind re-check of rows 6, 7 and a new row 11). Commit: 4a24a7c9 plus the uncommitted tree. Machine: macOS (Darwin 27.0.0).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6 | The word list holds no real pt or fr word | yes | not met | "but" is French ("le but"); the probe flagged "Le but est de réussir" |
+| 7 | The check catches listed words; its limit is that unlisted words are not seen | yes | partly | 10 of 15 new invented sentences caught; the limit not yet documented |
+| 11 | Every allowlist reason is true | yes | partly | two reasons inexact (the command is `reset-root-password`; the hit in rename-workspace is the `--workspace` flag) |
+
+**Overall:** not met.
+
+The work after this pass: "but" removed; "saved rejected failed profile dashboard loading successfully" added; the two reasons corrected; `docs/knowledge/i18n.md` records the check and its limit.
+
+Witnessed: 2026-10-27, by a fresh agent (blind re-check of rows 6, 7 and 11). Commit: 4a24a7c9 plus the uncommitted tree. Machine: macOS (Darwin 27.0.0).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6 | No word in the list is a real pt or fr word | yes | confirmed | every word judged; "reset" and "dashboard" are loanwords not used in any pt or fr message today |
+| 7 | Listed words are caught; the limit is documented | yes | confirmed | 355 tests pass; the self-test; the i18n.md bullet states the limit |
+| 11 | Every allowlist reason is true | yes | confirmed | all keys resolved in both languages and read |
+
+**Overall:** met.
+
+## Task 4 — One e2e English scan
+
+Witnessed: 2026-10-27, by a fresh agent (blind). Commit: 649ee16c plus the uncommitted tree. Machine: macOS (Darwin), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The new and refactored language specs run green | no | confirmed | chromium 47, wizard 2, mobile language specs on phone, tablet and phone-webkit 48 |
+| 2 | No spec defines its own `noEnglish`, `loadAll` or `flat` | no | confirmed | grep: only `e2e/no-english.ts` |
+| 3 | Every language spec uses the helper | no | partly | `languages.e2e.ts`, `languages.mobile` and `mobile-sweep` do not; `home.e2e` and `feedback.e2e` are English-only |
+| 4 | Planting English in a table cell fails Catalogue, Reviews and Users | no | confirmed | `ItemCard.tsx`, the `QueueTable` revision cell and the Users `StatusCell` each failed their spec naming the key |
+| 5 | The scan also bites on Home and Account › Tokens | no | partly | Home caught; the seeded user had no token, so the tokens table never rendered |
+| 6 | `restLanguages` is seeded and signs in once | no | confirmed | `users.ts`, `seed.ts:58` seeds every entry |
+| 7 | The helper opens closed `<details>` and splits on newline and tab | no | confirmed | `no-english.ts:40-45`; the cell mutations fail only because of the tab split |
+| 8 | Reading every namespace is safe | no | partly | three messages whose English is also data needed exceptions in browse |
+
+**Overall:** not met (rows 3 and 5).
+
+The work after this pass: `languages-rest` creates one token through the UI before it scans; browse's unused imports went; the PLAN's Note defines which specs scan a whole page.
+
+Witnessed: 2026-10-27, by a fresh agent (re-check, rows 3 and 5). Commit: 649ee16c plus the uncommitted tree. Machine: macOS (Darwin 27.0.0), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 5 | `languages-rest` scans Account › Tokens with a real row and catches English there in pt and fr | yes | confirmed | 24 passed; hard-coding `"never"` and the created header made `/account/tokens` fail in pt and fr naming `account.tokens.created` and `account.tokens.never`; restored with `cmp`, 18 passed |
+| 3 | The PLAN's definition of "every language spec" is honest | yes | confirmed | the pages `languages.e2e.ts` and `languages.mobile` open are scanned in `languages-rest`; the 404 page is the one exception (a heading and a link) |
+
+**Overall:** met.
+
+## Task 5 — Phone sweep in every language
+
+Witnessed: 2026-10-27 17:15, by a fresh agent (blind). Commit: 4cacab93 plus the uncommitted diff. Machine: macOS (Darwin 27), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The sweep passes on phone, phone-webkit and tablet | no | confirmed | 45 passed: 15 per project, 15 per language |
+| 2 | Every page runs in en, pt and fr, signed in and out | no | confirmed | 31 pages; only `/admin` and `/styleguide` are English-only; sign-in and two-factor are in |
+| 3 | `MIGRATED_ROUTES` is removed | no | partly | gone from code and live docs; still named in feature 132's records (history) |
+| 4 | A page file added without being in the sweep fails the coverage test | no | confirmed | a probe page failed "lists every page in the app" |
+| 5 | An English-only entry must be a real page with a reason | no | confirmed | `/nope` failed "is not a page"; the exact-list pin fails on an added entry |
+| 6 | pt and fr cover every page except the two | no | partly | `/setup` has `skip` in every language, so it was never swept on a phone in pt or fr |
+| 7 | The sweep checks the page is in the language | no | confirmed | `html lang` after the cookie; it proves the attribute, not the text |
+
+**Overall:** not met (rows 3 and 6).
+
+The work after this pass: `setup-wizard-languages.e2e.ts` checks each wizard step for sideways overflow at 320px in pt and fr; the skip reason, a stale comment and the PLAN Note were reworded.
+
+Witnessed: 2026-10-27, by a fresh agent (re-check). Commit: 4cacab93 plus the uncommitted tree. Machine: macOS (Darwin), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The wizard e2e passes in pt and fr with `fitsPhone` | yes | confirmed | 2 passed |
+| 2 | `fitsPhone` checks 320px at each of the 3 steps, in pt and fr | yes | confirmed | `setup-wizard-languages.e2e.ts:14-20`, called at 47, 52 and 56 |
+| 3 | It fails when the width is narrowed | yes | confirmed | width 120 → 2 failed "sticks out"; restored |
+| 4 | It fails on a real overflow in the wizard | yes | confirmed | `min-w-[400px]` on the form → "page is 441px wide in a 320px viewport"; restored and rebuilt |
+| 5 | The phone sweep still passes | yes | confirmed | 15 passed on phone |
+| 6 | Lint and typecheck are clean | yes | confirmed | no errors |
+
+**Overall:** met. Not covered: WebKit and tablet for the wizard; only 320px and sideways overflow; steps after the third, validation errors and the success state.
+
+Witnessed: 2026-10-27, by a fresh agent (blind). Commit: 4cacab93 plus the uncommitted tree. Machine: macOS (Darwin), Node not run (read and grep only).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| a | The `/setup` skip reason in `pages.ts` is true | no | confirmed | `pages.ts:57`; the spec loops pt-BR and fr-CA and calls `fitsPhone` after each step |
+| b | The sweep's comments no longer say "migrated pages" and say every page runs in all three languages | no | confirmed | no `MIGRATED_ROUTES` in `apps` or `packages`; line 107 filters with `ENGLISH_ONLY_ROUTES` |
+| c | The PLAN Note is true; no `MIGRATED_ROUTES` in code, `docs/knowledge` or `docs/runbooks` | no | confirmed | the sweep ignores `skip` pages, so `/setup` was never opened; grep finds only feature records |
+
+**Overall:** met.
+
+## Task 6 — Documentation links
+
+Witnessed: 2026-10-27 17:30, by a fresh agent (blind). Commit: ec319f21 plus the uncommitted working tree. Machine: macOS (Darwin), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `pnpm docs:links` runs and its parsers read both real topic lists | no | confirmed | 35 topics and 149 sections on each side |
+| 2a | The unit test passes with the sibling present | no | confirmed | 6 tests |
+| 2b | Without the sibling the script says why it skipped | no | confirmed | a copy run where `../ronne-web` is missing printed the reason |
+| 2c | The vitest test also says why it skipped | no | partly | `it.skipIf` with the reason only in a comment |
+| 3 | Renaming a section fails the script, the test and `tsc` | no | confirmed | scopes `names` → `naming` |
+| 4a | Every `docsHref` link is checked against the app's list at compile time | no | confirmed | the rename made `tsc` fail at the call sites |
+| 4b | No Documentation address bypasses `docsHref` | no | partly | `packages/server/src/platform.ts` writes `WINDOWS_HELP` out; nothing checked it |
+| 5 | The website checks each topic and section in en, pt and fr | no | confirmed | `ronne-web` `docs.test.ts`, 9 tests; `--live` adds a per-language check |
+| 6 | `--live` works on the real site | no | confirmed | 105 pages opened, 24 problems: the deployed site is behind the repository |
+| 7 | The runbook items are accurate | no | confirmed | read against `docs-links.js`: the pre-release step is the sibling comparison, the post-release step is `--live` |
+| 8 | The app's topic list equals the website's and no code links to a moved section | no | confirmed | 35 topics each; app tests 1763 passed; lint clean |
+
+**Overall:** not met (rows 2c and 4b).
+
+The work after this pass: the sibling-comparison test's title says SKIPPED and why; `writtenLinkProblems` checks the addresses written out in `packages/*/src`.
+
+Witnessed: 2026-10-27 17:30, by a fresh agent (re-check, rows 2c and 4b). Commit: ec319f21 plus the uncommitted tree. Machine: macOS (Darwin 27), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 2c | The test titles say what is compared, and the sibling-comparison title says SKIPPED when `../ronne-web` is absent | no | confirmed | 8 passed; a copy with a missing sibling gave 7 passed, 1 skipped, titled "SKIPPED: ../ronne-web is not next to this repository, …" |
+| 4b | A bad written address makes the script and the test fail; restored, both pass | no | confirmed | `WINDOWS_HELP` → `#nope`: exit 1 naming `packages/server/src/platform.ts`; unit test 1 failed; restored (git shows no diff), exit 0, lint clean |
+
+**Overall:** met.
+
+## Task 7 — Website wording
+
+Witnessed: 2026-10-27, by a fresh agent (blind). Commit: 1519fa6c (ronne-web 3b0de0e). Machine: macOS (Darwin), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A grep over pt and fr finds no « revue », « proposition de changement » or "proposta de mudança" outside a quoted foreign label | no | not met | `www/messages/fr.json` still had four « Revue » (a bold label and two titles), two with « changements » where the app says « modifications » |
+| 2 | The guide's new rules agree with the app | no | confirmed | `docs/translation-guide.md` rows for révision, proposition de modification, "proposta de alteração" |
+| 3 | The changed pages follow the rules without agreement errors or drift | no | confirmed | about 24 fr and 14 pt passages sampled |
+| 4 | Overview → Visão geral / Aperçu; Status and Cancel left alone | no | confirmed | `Cancel` is the CLI's own prompt (`packages/cli/src/export-command.ts:395`); the app's pt says Status, fr Statut |
+| 5 | ronne-web lint, typecheck, test and build pass; `topics.ts` unchanged; section ids intact | no | confirmed | 183 tests |
+| 6 | The French follows the Canadian register | no | confirmed | no e-mail, mail, week-end; « courriel » throughout; not a full read |
+
+**Overall:** not met (row 1).
+
+The work after this pass: the four « Revue » and the two « changements » in `fr.json` were changed, and `www/src/i18n/wording.test.ts` guards the three families in the pages and messages.
+
+Witnessed: 2026-10-27, by a fresh agent (blind re-check, claim 1). Commit: 1519fa6c (ronne-web 3e495fb). Machine: macOS (Darwin), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1a | No « revue », « proposition de changement » or "proposta de mudança" outside a quoted foreign label | yes | confirmed | case-insensitive grep over `www/src`, `www/messages` and the guide: 10 hits, one real (the idiom « passe en revue »), the rest the guide's "never" rows and the test's own patterns |
+| 1b | The new `wording.test.ts` bites | yes | confirmed | "Revue " added to a French message → 1 failed; restored (`cmp` identical) → 4 passed |
+| 1c | ronne-web lint, typecheck, test and build pass | yes | confirmed | 187 tests |
+| 1d | The working tree is clean afterwards | no | confirmed | `git status --short` empty |
+
+**Overall:** met.
+
+## Task 9 — The review kit
+
+Witnessed: 2026-10-27 17:40, by a fresh agent (blind). Commit: 6f179c5a plus the uncommitted work. Machine: macOS (Darwin), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Running `pnpm i18n:review` twice gives the same files | no | confirmed | `shasum -a 256` over all 30 files identical |
+| 2 | Every namespace has an .md and a .csv, and the rows equal the flattened keys | no | confirmed | 15 namespaces, 2754 messages; no empty pt or fr cell |
+| 3 | A changed message shows in the export | no | confirmed | a marker put in `pt/common.json` appeared once in `common.md` and once in `common.csv`; restored |
+| 4 | Awkward cases stay readable and parsable | no | confirmed | 23 CSV cells with a newline or quote parse with equal columns; no real pipe case |
+| 5 | The output folder is git-ignored and not committed | no | confirmed | `git check-ignore -v` |
+| 6 | The guide lists the glossary's rules, what to look at and leave alone, how to send corrections, and the website as part two | no | partly | it named four glossary terms and gave the website one pointer paragraph |
+| 7 | Tests and lint pass | no | confirmed | 4 tests; lint clean |
+
+**Overall:** not met (row 6).
+
+The work after this pass: the export also writes `GLOSSARY.md` (the whole glossary table) and `WEBSITE.md` (the 35 topics' pt and fr addresses), and the guide describes both.
+
+Witnessed: 2026-10-27 17:45, by a fresh agent (re-check, row 6). Commit: 6f179c5a plus the uncommitted tree. Machine: macOS (Darwin 27.0.0), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6a | The export is deterministic and writes the glossary and website files | yes | confirmed | two runs, 32 files, identical checksums |
+| 6b | `GLOSSARY.md` has the whole glossary table | yes | confirmed | 66 table lines in `i18n.md` and in `GLOSSARY.md`; `diff` empty |
+| 6c | `WEBSITE.md` has one row per topic | yes | confirmed | 35 topics, 35 rows |
+| 6d | The pt and fr addresses follow the site's pattern | yes | confirmed | three sampled addresses answered 200 |
+| 6e | The guide is usable for a non-developer native reader | yes | confirmed | read in full |
+| 6f | Tests and lint pass | yes | confirmed | 6 tests; lint clean |
+
+**Overall:** met.
+
+## Task 8 — Decisions with the owner
+
+The owner's answers were given in the session, so the witness could judge only the record. They are not claims a witness can check.
+
+Witnessed: 2026-10-27, by a fresh agent (blind, 10-minute budget). Commit: a01d4615 plus the uncommitted tree (MVP.md, SPEC.md, PLAN.md). Machine: macOS (Darwin), read-only.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The SPEC records "styleguide stays English" | yes | confirmed | Open questions |
+| 2 | The SPEC records "no instance default language" | yes | confirmed | Open questions |
+| 3 | The SPEC records "server, driver and core text stays English" | yes | confirmed | Open questions |
+| 4 | The SPEC records that the readers are not named yet and task 10 waits | yes | confirmed | Open questions; no claim that the review is done |
+| 5 | MVP §15 (the Languages row) has the three decisions, dated 2026-10-27 | yes | confirmed | the diff of `MVP.md` |
+| 6 | The decision log does not claim the review is done | no | confirmed | the row had no such statement |
+| 7 | "The raw-text rule covers the whole of `apps/web/src` bar the server, the API, tests and the styleguide" matches `biome.json` | yes | confirmed | `biome.json` lines 21-26 |
+| 8 | The SPEC's other sections agree | no | partly | Scope and Out still read "unless the owner decides otherwise in task 8"; the acceptance box was not ticked |
+| 9 | PLAN task 8 is consistent; task 10 stays open and honest | yes | confirmed | `[x]` with a Note; task 10 `[ ]` |
+
+**Overall:** not met (row 8).
+
+The work after this pass: Scope and Out say "decided 2026-10-27"; the acceptance box is ticked; the MVP row says the native-speaker review is still to be done.
+
+Witnessed: 2026-10-27, by a fresh agent (blind, re-check of row 8). Commit: a01d4615 plus the uncommitted tree (SPEC.md, PLAN.md, MVP.md). Machine: macOS (Darwin), read-only.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 8 | The SPEC's other sections agree with the recorded decisions; nothing reads as an open question that was answered; nothing says the review is done | yes | confirmed | read the diff and the whole 147-line SPEC: Scope and Out say "decided 2026-10-27", the box at line 123 is ticked and the review box at line 121 is not, the MVP row says the review is still to be done |
+
+**Overall:** met.
+
+## Task 10 — The language review, applied
+
+Witnessed: 2026-10-27 19:34 EDT, by a fresh agent (blind). Commit: 2b9aca96 plus the uncommitted diff (ronne-web 3e495fb plus its diff). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Every row of REVIEW.md has a status and every changed or kept row a note; the totals match | no | confirmed | a probe over the 407 rows; fr-C-39 reads more like changed than kept |
+| 2 | The done rows are applied | no | confirmed | all 370 checked by key or line; six explained differences |
+| 3 | The changed rows match their notes | no | confirmed | 8 checked by hand |
+| 4 | The kept rows have sound reasons | no | confirmed | all 12 judged |
+| 5 | French says « double authentification » everywhere | no | confirmed | grep over app and site: no « deux facteurs » |
+| 6 | Portuguese says "autenticação de dois fatores"; the glossary has the row | no | confirmed | grep; `i18n.md:192` |
+| 7 | The website quotes the app's current labels | no | not met | six bold labels still had the app's old text |
+| 8 | Parity, placeholder, untranslated and fragment tests pass | no | confirmed | 355 tests; a planted parity break failed |
+| 9 | The app's unit project passes | no | confirmed | 3368 tests |
+| 10 | Root lint and typecheck pass | no | confirmed | `pnpm lint` exit 0 (45 warnings, 2 infos); `pnpm typecheck` 7 of 7 tasks |
+| 11 | ronne-web lint, typecheck and test pass | no | not met | `metadata.test.ts`: the pt home description was 172 characters, over the 160 limit |
+| 12 | The e2e project is green | no | confirmed | sweep, languages-admin and languages-rest: 69 passed (the full run of 311 by the implementer) |
+| 13 | The test changes only update expected strings | no | confirmed | all 25 files read |
+| 14 | The two-factor Help moved out of the legend; the sweep passes on phone-webkit | no | confirmed | 15 of 15; the Help still renders |
+| 15 | The reading was done well | no | can't check here | the witness checks the record and the tests, not a language reading; the owner chose an agent review (SPEC, Decisions), and a native read stays possible with the kit |
+
+**Overall:** not met (rows 7 and 11).
+
+The work after this pass: the six website labels, the guide's "Set up two-factor" row and the app's fr Help naming the old button were updated; the two pt metadata texts were shortened; REVIEW.md regenerated.
+
+Witnessed: 2026-10-27 19:43 EDT, by a fresh agent (blind re-check, rows 1, 7 and 11). Commit: 2b9aca96 plus the uncommitted tree (ronne-web 3e495fb plus its tree). Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The website quotes no old app label | yes | confirmed | the stale-label probe printed nothing |
+| 7 | REVIEW.md agrees with the files | yes | partly | pt-B-13 was done though its final text differs |
+| 11 | The shortened pt metadata keeps the meaning, and the checks pass | yes | partly | checks pass; the description had dropped "capacidades" with room left |
+
+**Overall:** not met.
+
+The work after this pass: pt-B-13 is changed with a note; the description and title keep "registro" and "capacidades" within the limits.
+
+Witnessed: 2026-10-27 19:46 EDT, by a fresh agent (blind, re-check of rows 7 and 11). Commit: 2b9aca96 plus the uncommitted tree (ronne-web 3e495fb plus its tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 7 | REVIEW.md agrees with the files: no stale label, the totals right, only the five known probe artefacts flagged | yes | confirmed | `rows 407 { done: 367, changed: 29, kept: 11 }`, matching line 9; stale probe silent |
+| 11 | The pt website texts keep the meaning within the site's limits, and the notes match | yes | confirmed | title 59 characters, description 158; ronne-web 187 tests pass, lint clean |
+
+**Overall:** met.
+
+## Task 11 — Documentation and records
+
+Witnessed: 2026-10-27, by a fresh agent (blind). Commit: 7b0cd3df plus the uncommitted docs. Machine: macOS (Darwin 27.0.0), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `pnpm witness:check` passes with task 11 unticked | no | confirmed | exit 0 |
+| 2 | The ronne-web branch builds and its tests pass | no | confirmed | `pnpm build` exit 0; `pnpm test` 187 passed |
+| 3 | The four ronne-web commits exist and are not pushed | no | confirmed | aaafe69, 3e495fb, 3b0de0e, 7d396f4; no remote contains them |
+| 4 | The site's translation guide carries the owner's decisions | no | confirmed | `docs/translation-guide.md:74, 130, 154, 239` |
+| 5 | The Done notes' claims hold (totals, `ENGLISH_ONLY_ROUTES`, `docs:links`, the runbook, the tests, the layout fix, MVP §15, the rule in `biome.json`) | no | confirmed | each read in the repo |
+| 6 | i18n.md covers the English-words check, the review kit and the Documentation links | no | confirmed | lines 63-82 |
+| 7 | i18n.md no longer describes the folder-list rule | no | partly | lines 21-25 still said "a folder joins the list" |
+| 8 | The README row does not overclaim | no | partly | its description still said "native-speaker review" |
+| 9 | Every SPEC acceptance box is ticked and backed by a met pass | no | confirmed | 9 boxes; tasks 1-10 end met |
+| 10 | The SPEC agrees with how the review was done | no | partly | the Goal and Documentation still said a native speaker read it |
+
+**Overall:** not met (rows 7, 8 and 10).
+
+The work after this pass: i18n.md says the rule covers the whole of `apps/web/src`; the README row and the SPEC put the review on agents.
+
+Witnessed: 2026-10-27 19:52 EDT, by a fresh agent (blind, re-check of rows 7, 8 and 10). Commit: 7b0cd3df plus the uncommitted docs. Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 7 | i18n.md describes the rule over the whole of `apps/web/src` with its exceptions | yes | confirmed | `grep -nE 'folder joins\|overrides'` → only line 22, the new wording |
+| 8 | The README row says the review was done by agents | yes | confirmed | line 359 |
+| 10 | The SPEC's Goal and Documentation speak of a reviewer, and nothing claims a native read happened | yes | confirmed | every remaining "native" is the persona, a rationale or "stays possible" |
+
+**Overall:** met.
+

@@ -16,7 +16,7 @@
   "marks": {
     "waits": {
       "submitted": "en révision",
-      "changes_requested": "de retour chez son auteur",
+      "changes_requested": "renvoyé à son auteur",
       "approved": "en attente de publication",
       "not_submitted": "non soumis"
     },
@@ -33,7 +33,7 @@
     "wontRelease": "Une dépendance ne sera pas publiée.",
     "releasedOnce": "Il est publié une fois celles-ci publiées.",
     "canRelease": "Il peut être publié une fois ses dépendances publiées.",
-    "blockedHint": "Retirez-la des dépendances, ou dépendez d’un autre élément, puis soumettez de nouveau."
+    "blockedHint": "Retirez-la des dépendances, ou choisissez une autre dépendance, puis soumettez de nouveau."
   },
   "files": {
     "browser": "Fichiers de cette version",
@@ -82,7 +82,7 @@
   "risk": {
     "heading": "Ce qu’il peut faire ({count, number, ::group-off})",
     "widens": "ÉLARGIT :",
-    "note": "Ils sont déduits des fichiers; l’auteur ne peut ni les définir ni les masquer."
+    "note": "Ces capacités sont déduites des fichiers; l’auteur ne peut ni les définir ni les masquer."
   },
   "canvas": {
     "unreleased": {
@@ -160,7 +160,7 @@
       "firstExactly": "exactement sa première publication"
     },
     "latest": "{accepts}, la plus récente",
-    "published": "publié en {version}",
+    "published": "{version} publiée",
     "yours": "{status}, à vous",
     "versionOf": "Version de {name}",
     "add": "Ajouter une dépendance",
@@ -230,7 +230,7 @@
     "fromDraft": "Le nom et le type viennent du brouillon. Changez le nom dans Réglages; le type est fixe.",
     "descriptionHint": "Ce qu’il fait et quand l’utiliser. Les outils d’IA le lisent pour choisir des éléments.",
     "keywordsHint": "Jusqu’à {max}, en lettres minuscules, chiffres et traits d’union.",
-    "toolHint": "Un outil comme read ou shell, ou mcp:server pour les outils d’un MCP server.",
+    "toolHint": "Un outil comme read ou shell, ou mcp:server pour les outils d’un serveur MCP.",
     "dependencyHint": "Trouvez-en une en tapant une partie de son nom : vos éléments dans n’importe quel état, et ceux des autres une fois publiés. Elle commence sur la plage compatible de la plus récente; choisissez-en une autre, ou une version exacte, au besoin.",
     "asOfSave": "Au dernier enregistrement : les vérifications du registre sont refaites quand vous enregistrez.",
     "views": {
@@ -256,8 +256,8 @@
     "readOnlyText": {
       "others": "Vous pouvez le lire, mais seul son auteur peut le modifier ou le retirer.",
       "notMember": "Vous pouvez le lire et le retirer, mais pas le modifier, le soumettre ni le publier. Pour y travailler de nouveau, <join></join>; ses modérateurs peuvent encore en décider.",
-      "selfApproved": "Il est prêt à publier. Ce qu’il peut faire est listé ci-dessous, comme un réviseur l’aurait vu. Tant qu’il n’est pas publié, vous pouvez encore le retirer.",
-      "approved": "Il est prêt à publier, par vous ou par un modérateur. D’ici là, vous pouvez encore le retirer, et un réviseur peut le renvoyer.",
+      "selfApproved": "Il est prêt à être publié. Ce qu’il peut faire est listé ci-dessous, comme un réviseur l’aurait vu. Tant qu’il n’est pas publié, vous pouvez encore le retirer.",
+      "approved": "Il est prêt à être publié, par vous ou par un modérateur. D’ici là, vous pouvez encore le retirer, et un réviseur peut le renvoyer.",
       "published": "Une version publiée ne change jamais : Voir les versions les liste. Pour modifier l’élément, proposez une modification depuis sa page.",
       "submitted": "Ses fichiers sont figés, donc les réviseurs voient exactement ce que vous avez soumis. Vous pouvez le retirer jusqu’à sa publication."
     },
@@ -265,8 +265,8 @@
       "title": "{kind, select, reject {Rejeté par} rebase {Rebase fait par} other {Modifications demandées par}} {by}, <date></date>.",
       "rebaseTitle": "Rebase fait par {by}, <date></date>, sur la {version}.",
       "reject": "Un rejet est définitif : commencez un nouveau brouillon pour réessayer.",
-      "mine": "Modifiez les fichiers, puis Soumettez de nouveau pour révision.",
-      "others": "Il est de retour chez son auteur.",
+      "mine": "Modifiez les fichiers, puis cliquez sur « Soumettre de nouveau pour révision ».",
+      "others": "Il a été renvoyé à son auteur.",
       "conversation": "Voir la conversation"
     },
     "issuesNoteReadOnly": "Les mêmes vérifications qu’à sa soumission.",
@@ -303,7 +303,7 @@
     "binary": "Un fichier binaire, {size}. Il peut être remplacé ou supprimé, mais pas modifié ici.",
     "replace": "Remplacer",
     "replaceLabel": "Remplacer {path}",
-    "leave": "Vos modifications à ce brouillon ne sont pas enregistrées. Si vous partez maintenant, elles sont perdues.",
+    "leave": "Vos modifications à ce brouillon ne sont pas enregistrées. Si vous partez maintenant, elles seront perdues.",
     "tooBig": "{name} fait {size}; un fichier peut faire au plus {max}.",
     "newFolderTitle": "Nouveau dossier",
     "newFileTitle": "Nouveau fichier",
@@ -336,7 +336,7 @@
     "unsaved": "Enregistrez ou annulez d’abord vos modifications : ceci remplace le contenu de l’éditeur.",
     "importTitle": "Importer un .zip",
     "archive": "Archive",
-    "importHint": "Un seul dossier racine est déballé. Les liens, les chemins hors de l’élément et les fichiers au-delà des limites sont refusés, et alors rien ne change.",
+    "importHint": "Si l’archive n’a qu’un dossier racine, seul son contenu est importé. Les liens, les chemins hors de l’élément et les fichiers au-delà des limites sont refusés, et alors rien ne change.",
     "existing": "Fichiers existants",
     "merge": "Fusionner : les fichiers de l’archive remplacent ceux du brouillon au même chemin; les autres restent.",
     "replaceAll": "Remplacer : seuls les fichiers de l’archive restent. Elle doit contenir un ronne.yaml.",
@@ -357,7 +357,7 @@
       "changed": "Quelque chose a changé depuis la vérification : voici où en est chaque brouillon.",
       "outcome": "{item} est soumis pour révision, avec {names}.",
       "outcomePersonal": "{item} est soumis, avec {names}.",
-      "goesWith": "{count, plural, one {Part avec # de vos brouillons :} other {Part avec # de vos brouillons :}}",
+      "goesWith": "{count, plural, one {Accompagné de # de vos brouillons :} other {Accompagné de # de vos brouillons :}}",
       "groupLabel": "Brouillons soumis avec {item}",
       "needEachOther": "interdépendants",
       "ready": "prêt",
@@ -393,7 +393,7 @@
       "rebase": "Faire un rebase sur la {stale}",
       "saveFirst": "Enregistrez d’abord vos modifications.",
       "conflicts": "Conflits ({count, number})",
-      "conflictsText": "Vous et la {version} avez tous deux modifié ces fichiers. Ils ont gardé votre version : comparez-la avec celle de la {version}, corrigez-la dans l’éditeur, enregistrez, puis marquez-la résolue. La soumission attend qu’il n’en reste aucun.",
+      "conflictsText": "Vous et la {version} avez tous deux modifié ces fichiers. Ces fichiers ont gardé votre version : comparez-la avec celle de la {version}, corrigez-la dans l’éditeur, enregistrez, puis marquez-la résolue. La soumission attend qu’il n’en reste aucun.",
       "compare": "Comparer avec la {version}",
       "same": "C’est maintenant identique à la version de base.",
       "unreadable": "Les fichiers de la {version} n’ont pas pu être lus, donc il n’y a rien à comparer.",
@@ -432,7 +432,7 @@
       "included": "{name} : inclus pour {by}",
       "selectOne": "Sélectionner {name}",
       "fixFirstTitle": "{count, plural, one {Corrigez d’abord # problème} other {Corrigez d’abord # problèmes}}",
-      "includedTitle": "Inclus pour {by} : il part avec lui",
+      "includedTitle": "Inclus pour {by} : il est soumis avec lui",
       "ready": "Prêt",
       "toFix": "{count, number} à corriger",
       "outcome": {
@@ -443,7 +443,7 @@
         "not_submittable": "Non soumis :",
         "not_a_member": "Non soumis :"
       },
-      "selectAll": "Sélectionner tous les prêts ({count, number})",
+      "selectAll": "Tout sélectionner (prêts) ({count, number})",
       "submitSelected": "Soumettre la sélection ({count, number})",
       "doneTitle": "Soumis",
       "confirmTitle": "Soumettre {count, number}",
@@ -521,7 +521,7 @@
       "message": "Message",
       "optional": "(facultatif)",
       "messagePlaceholder": "Une note pour chaque approbation",
-      "messageHint": "Ajoutée à chaque approbation. Une fois approuvée, l’auteur ou un modérateur peut publier chacune.",
+      "messageHint": "Ajoutée à chaque approbation. Une fois approuvée, chacune peut être publiée par son auteur ou un modérateur.",
       "cancel": "Annuler",
       "submit": "{count, plural, one {Approuver # soumission} other {Approuver # soumissions}}"
     }
@@ -540,7 +540,7 @@
     "stale": "Elle modifie la {version}, donc l’approuver maintenant annulerait ce que la {stale} a changé. L’auteur fait d’abord un rebase sur la {stale}.",
     "files": "Fichiers",
     "filesView": "Vue des fichiers",
-    "changesTo": "Modifications de la {version}",
+    "changesTo": "Modifications à la {version}",
     "changesSince": "Modifications depuis la révision {number, number, ::group-off}",
     "allFiles": "Tous les fichiers",
     "noChangesSince": "Aucune modification depuis la révision {number, number, ::group-off}.",
@@ -556,7 +556,7 @@
     "proposed": "Proposé",
     "notSet": "(non défini)",
     "removed": "(retiré)",
-    "noChangesTo": "Aucune modification de la {version}.",
+    "noChangesTo": "Aucune modification à la {version}.",
     "unreadable": "Les fichiers de la {version} n’ont pas pu être lus, donc les modifications ne peuvent pas être montrées. Demandez à root de vérifier le stockage.",
     "conversation": "Conversation",
     "comment": "Commenter",
@@ -611,7 +611,7 @@
       "sendBack": "Leur demander aussi des modifications",
       "theirMessage": "Leur message",
       "stay": "Elles restent telles quelles, marquées bloquées.",
-      "message": "{name} a été rejeté : retirez-le des dépendances, ou dépendez d’un autre élément.",
+      "message": "{name} a été rejeté : retirez-le des dépendances, ou choisissez une autre dépendance.",
       "thisItem": "Cet élément"
     },
     "publish": {
@@ -633,7 +633,7 @@
         "major": "Major : casse quelque chose pour les installations"
       },
       "tag": "Étiquette",
-      "tagHint": "Installer sans version utilise latest. Les préversions vont dans next par défaut.",
+      "tagHint": "Une installation sans version utilise latest. Les préversions vont dans next par défaut.",
       "notes": "Notes de version (facultatif)",
       "preview": "Publie <mono>{item}</mono> <strong>{version}</strong> comme <mono>{tag}</mono>. Les versions ne changent jamais une fois publiées.",
       "badPre": "Cela ne donne pas de nouvelle version : un identifiant de préversion contient des lettres minuscules et des chiffres, et commence par une lettre.",
@@ -641,7 +641,7 @@
       "cancel": "Annuler",
       "submit": "Publier {version}",
       "withOne": "Publié avec :",
-      "withMany": "Publiés avec, ces {count, number} :",
+      "withMany": "Publiés avec ces {count, number} :",
       "withLabel": "Publiés avec",
       "suggested": "Suggéré : <strong>{bump, select, major {major} minor {minor} other {patch}}</strong>, car {reasons}."
     },
@@ -703,7 +703,7 @@
     "versionLabel": "Version",
     "remove": "Supprimer",
     "removeTitle": "Supprimer {tag}?",
-    "removeText": "Installer <mono>{install}</mono> cesse de fonctionner."
+    "removeText": "La commande <mono>{install}</mono> cessera de fonctionner."
   },
   "release": {
     "selectOne": "Sélectionner {name} pour le publier",
@@ -742,7 +742,7 @@
     "as": "{version} comme {tag}",
     "includedFor": "inclus pour {names}",
     "unknown": "Il n’existe pas, ou vous ne pouvez pas le voir.",
-    "together": "Ce qui est lié par une dépendance est publié ensemble, tout ou rien; un groupe qui échoue n’arrête que lui-même. Les versions ne changent jamais une fois publiées.",
+    "together": "Ce qui est lié par une dépendance est publié ensemble, tout ou rien; l’échec d’un groupe n’arrête que ce groupe. Les versions ne changent jamais une fois publiées.",
     "cancel": "Annuler",
     "nothing": "Rien ici ne peut être publié.",
     "fixSettings": "Modifiez les réglages : certaines versions ou étiquettes ne fonctionnent pas.",
@@ -754,7 +754,7 @@
   },
   "actions": {
     "chooseZip": "Choisissez un fichier .zip à importer.",
-    "reloadRevision": "Rechargez la page : elle ne dit pas quelle révision vous avez révisée.",
+    "reloadRevision": "Rechargez la page : elle n’indique pas quelle révision vous avez examinée.",
     "reloadRevisions": "Rechargez la page : elle ne dit pas à quelle révision chacune en est.",
     "gone": "Elle n’existe plus, ou vous ne pouvez pas la voir.",
     "notYours": "Ce n’est plus un de vos brouillons.",
@@ -770,17 +770,17 @@
     "yours": "C’est la vôtre : modifiez-la ou retirez-la.",
     "cannot_send_back": "Elle est {status, select, draft {en brouillon} submitted {soumise} changes_requested {renvoyée pour modifications} approved {approuvée} rejected {rejetée} withdrawn {archivée} published {publiée} other {{status}}}.",
     "not_approved": "Elle est {status, select, draft {en brouillon} submitted {soumise} changes_requested {renvoyée pour modifications} approved {approuvée} rejected {rejetée} withdrawn {archivée} published {publiée} other {{status}}}, pas approuvée.",
-    "not_releaser": "Seuls son auteur, un modérateur ou root la publient.",
+    "not_releaser": "Seuls son auteur, un modérateur ou root peuvent la publier.",
     "released_since": "Rebase nécessaire : la {newer} a été publiée depuis son approbation.",
     "twin": "Une autre modification de {name} est dans ce lot : publiez-les une à la fois.",
     "waits_on": "Elle attend {dependency}, qui est {status, select, draft {en brouillon} submitted {soumis} changes_requested {renvoyé pour modifications} approved {approuvé} rejected {rejeté} withdrawn {archivé} published {publié} other {{status}}}.",
     "waits_on_stopped": "Elle attend {dependency}, qui n’est pas en voie d’être publié.",
     "waits_on_missing": "Elle attend {dependency}, qui est introuvable.",
     "dependency_blocked": "{dependency} ne peut pas être publié avec elle : {why}",
-    "too_many": "Elle va avec {others} autres, plus de {most} à la fois : publiez-en d’abord quelques-unes.",
+    "too_many": "Elle est liée à {others} autres, plus de {most} à la fois : publiez-en d’abord quelques-unes.",
     "unplanned": "Elle n’a pas pu être planifiée.",
-    "goes_with": "Elle va avec {name}, qui ne peut pas partir : {why}",
-    "together": "{why} (publiées avec {names} : aucune n’est partie.)",
+    "goes_with": "Elle est liée à {name}, qui ne peut pas être publié : {why}",
+    "together": "{why} (publiées avec {names} : aucune n’a été publiée.)",
     "store_failed": "Elle n’a pas pu être stockée ni enregistrée : {detail}"
   }
 }

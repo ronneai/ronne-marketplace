@@ -120,7 +120,7 @@ describe("the risk summary in three languages", () => {
     expect(html("fr")).toContain("Ce qu’il peut faire (2)");
     expect(html("fr")).toContain("ÉLARGIT :");
     expect(html("fr")).toContain(
-      "Ils sont déduits des fichiers; l’auteur ne peut ni les définir ni les masquer.",
+      "Ces capacités sont déduites des fichiers; l’auteur ne peut ni les définir ni les masquer.",
     );
     for (const l of ["en", "pt", "fr"] as const)
       expect(html(l)).toContain('Runs <code class="font-mono text-[0.85em]">./check.sh</code>');

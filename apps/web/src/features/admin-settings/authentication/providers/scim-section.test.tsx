@@ -145,10 +145,10 @@ describe("the SCIM section", () => {
     expect(renderToStaticMarkup(<NewToken state={{ error: "Nope" }} />)).toBe("");
   });
 
-  it("its helper leads to the Authentication topic's SCIM section", () => {
-    expect(HELP["scim-provider"].href).toBe(`${DOCS_URL}/authentication#scim`);
-    expect(HELP["scim-managed"].href).toBe(`${DOCS_URL}/authentication#scim`);
-    expect(topicOf("authentication")?.sections.map((s) => s.id)).toEqual(
+  it("its helper leads to the SCIM topic", () => {
+    expect(HELP["scim-provider"].href).toBe(`${DOCS_URL}/scim#scim`);
+    expect(HELP["scim-managed"].href).toBe(`${DOCS_URL}/scim#scim`);
+    expect(topicOf("scim")?.sections.map((s) => s.id)).toEqual(
       expect.arrayContaining(["scim", "scim-groups"]),
     );
   });

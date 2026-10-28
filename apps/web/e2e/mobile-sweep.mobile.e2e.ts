@@ -1,7 +1,7 @@
 import { writeFileSync } from "node:fs";
 import { expect, type Page, test } from "@playwright/test";
 import { type MobileRole, mobileUser, signIn } from "./mobile";
-import { MIGRATED_ROUTES, SWEEP_PAGES, type SweepData, type SweepRole } from "./pages";
+import { ENGLISH_ONLY_ROUTES, SWEEP_PAGES, type SweepData, type SweepRole } from "./pages";
 import {
   describeOverflow,
   measureOverflow,
@@ -92,8 +92,8 @@ test.beforeAll(async ({ playwright }, testInfo) => {
 });
 
 /**
- * One sweep per language (feature 129): English over every page, Portuguese and French over the
- * pages already moved to messages (`MIGRATED_ROUTES`), whose longer words are what could overflow.
+ * One sweep per language (features 129, 133): every page in English, Portuguese and French, apart
+ * from the few in `ENGLISH_ONLY_ROUTES`; the longer words of the translations are what could overflow.
  * The shared sign-in helper types English labels, so the person signs in in English and then picks
  * the language the way the sign-in page's links do: with the `ronne-locale` cookie.
  */
@@ -104,7 +104,7 @@ const sweep = (language: Language) => {
   const tag = language === "en" ? "" : `in ${language}: `;
   const suffix = language === "en" ? "" : `-${language}`;
   const pages =
-    language === "en" ? SWEEP_PAGES : SWEEP_PAGES.filter((p) => MIGRATED_ROUTES.has(p.route));
+    language === "en" ? SWEEP_PAGES : SWEEP_PAGES.filter((p) => !(p.route in ENGLISH_ONLY_ROUTES));
   const speak = async (page: Page, baseURL: string | undefined) => {
     if (language === "en") return;
     await page
@@ -172,7 +172,7 @@ const sweep = (language: Language) => {
     const failing = results.filter((r) => r.problem && !expected(r.url));
     const failingUrls = new Set(results.filter((r) => r.problem).map((r) => r.url));
     const sweptUrls = new Set(results.map((r) => r.url));
-    // Only a page this run swept can be stale: the language runs open the migrated pages alone.
+    // Only a page this run swept can be stale: the language runs skip the English-only pages.
     const stale = Object.keys(EXPECTED_FAILURES).filter(
       (url) => expected(url) && sweptUrls.has(url) && !failingUrls.has(url),
     );
