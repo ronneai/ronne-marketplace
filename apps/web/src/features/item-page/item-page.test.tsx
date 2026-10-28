@@ -18,6 +18,9 @@ vi.mock("@/server/domains/items/actions/catalogue", () => catalogue);
 vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));
 const shelves = vi.hoisted(() => ({ favoritedAmong: vi.fn() }));
 vi.mock("@/server/domains/shelves/actions/pins", () => ({ pinTargets: async () => [] }));
+const moves = vi.hoisted(() => ({ itemMoveView: vi.fn(async () => null as unknown) }));
+vi.mock("@/server/domains/workspaces/actions/workspaces", () => moves);
+vi.mock("@/features/item-move/actions", () => ({}));
 vi.mock("@/server/domains/shelves/actions/favorites", () => shelves);
 vi.mock("@/features/favorites/actions", () => ({ toggleFavoriteFromForm: vi.fn() }));
 vi.mock("next/navigation", () => ({
@@ -63,6 +66,7 @@ const FILES: ContentFile[] = [
 
 beforeEach(() => {
   vi.clearAllMocks();
+  moves.itemMoveView.mockResolvedValue(null);
   shelves.favoritedAmong.mockResolvedValue(new Set());
   versions.itemPage.mockResolvedValue(itemPageData());
   versions.versionContents.mockResolvedValue(FILES);
@@ -96,6 +100,36 @@ const usageShown = (extra: Record<string, unknown> = {}) => ({
   byTrigger: [],
   byOutcome: [],
   ...extra,
+});
+
+describe("Move to another scope… on the item page (134)", () => {
+  it("shows the button to a member when the workspace has another scope, and the request's notice", async () => {
+    expect(await render()).not.toContain("Move to another scope…");
+    moves.itemMoveView.mockResolvedValue({
+      workspace: "global",
+      way: "request",
+      targets: [{ id: "s2", name: "kit", description: "Kit." }],
+      latest: {
+        id: "m1",
+        status: "open",
+        to: "@kit",
+        reason: null,
+        askedByName: "Ana",
+        mine: false,
+      },
+    });
+    const html = await render();
+    expect(html).toContain("Move to another scope…");
+    expect(html).toContain("Moving to @kit, asked by Ana");
+    // No other scope: nothing to move it to.
+    moves.itemMoveView.mockResolvedValue({
+      workspace: "global",
+      way: "now",
+      targets: [],
+      latest: null,
+    });
+    expect(await render()).not.toContain("Move to another scope…");
+  });
 });
 
 describe("Propose a change refused (091, 094)", () => {

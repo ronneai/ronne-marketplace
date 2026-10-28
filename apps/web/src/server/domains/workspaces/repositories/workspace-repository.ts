@@ -414,6 +414,12 @@ export interface WorkspaceRepository {
     userId: string,
     workspaceId: string,
   ): Promise<{ root: boolean; role: "admin" | "moderator" | "user" | null } | null>;
+  /** The workspace's scopes, by name: where an item could move (134). */
+  scopesIn(workspaceId: string): Promise<{ id: string; name: string; description: string }[]>;
+  /** The item's latest move, with its target scope's name and its asker's name (134). */
+  latestItemMoveOf(
+    itemId: string,
+  ): Promise<(ItemMove & { toScope: string; askedByName: string | null }) | null>;
 }
 
 /** An item as moving it to another scope reads it (134). */

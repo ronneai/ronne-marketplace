@@ -195,6 +195,10 @@
     "question": "Quem precisa concordar?",
     "answer": "O root, e um admin do global movendo para o global, movem na hora depois de digitar o nome do escopo. Um admin do espaço de trabalho de destino, ou alguém movendo para o próprio espaço de trabalho pessoal, move na hora. Qualquer outra pessoa pede, e os admins do destino ou o root respondem (só o root, no caso do global). Um escopo com versões não revisadas sempre pede a outra pessoa."
   },
+  "item-move-who": {
+    "question": "Quem precisa concordar?",
+    "answer": "O root e os moderadores e admins do espaço de trabalho movem um item na hora. Qualquer outro membro pede, e eles respondem; ninguém responde ao próprio pedido. O item fica no mesmo espaço de trabalho, então quem o vê, revisa e instala não muda."
+  },
   "visibility": {
     "question": "Público ou privado?",
     "answer": "Todos que entraram veem os escopos e itens de um espaço de trabalho público e podem depender deles. Os de um privado só são vistos pelos membros, em qualquer papel, e pelo root; para os demais não existem, e só os próprios itens podem depender deles. O root pode mudar isso depois: tornar um espaço de trabalho privado é recusado enquanto itens lançados de fora dependerem dos itens dele."

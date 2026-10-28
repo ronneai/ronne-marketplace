@@ -44,7 +44,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   checksums, tags, downloads, pins and favorites unchanged.
   *Done when:* those tests pass, with a move in `global`, in a shared workspace and moved back.
 
-- [ ] **6. The Move dialog.** On the item page: Move to another scope… (members and root, when
+- [x] **6. The Move dialog.** On the item page: Move to another scope… (members and root, when
   there is another scope), the scope select, what it changes, the clash, the message, Move item or
   Ask to move, the confirmation; the open and declined notices with Cancel. Messages in en, pt
   and fr (129, `docs/knowledge/i18n.md`); the "Who has to agree?" helper.

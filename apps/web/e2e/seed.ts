@@ -23,6 +23,7 @@ import {
   E2E_ERASE,
   E2E_FALLBACK_ITEMS,
   E2E_FOCUS,
+  E2E_ITEM_MOVE,
   E2E_JOIN,
   E2E_JOIN_MODERATORS,
   E2E_LONG_SCOPE,
@@ -663,6 +664,84 @@ for (const [project, who] of Object.entries(E2E_MOVE.projects)) {
       createdBy: null,
       createdAt: new Date(),
     });
+}
+// Moving items (134): per project, a workspace with two scopes, the item released in one with a
+// real package, its member and its moderator.
+for (const [project, who] of Object.entries(E2E_ITEM_MOVE.projects)) {
+  const workspaceId = await kyselyWorkspaceRepository(db, dialect).insert({
+    name: E2E_ITEM_MOVE.workspace(project),
+    description: "A team, for the end-to-end tests of moving items.",
+    visibility: "public",
+    createdBy: null,
+    createdAt: new Date(),
+  });
+  const now = toDbDate(new Date(), dialect);
+  for (const [key, role] of [
+    [who.member, "user"],
+    [who.moderator, "moderator"],
+  ] as const)
+    await db
+      .insertInto("workspace_members")
+      .values({
+        workspace_id: workspaceId,
+        user_id: ids[key] ?? "",
+        role,
+        added_by: null,
+        created_at: now,
+        updated_at: now,
+      })
+      .execute();
+  const scopes = kyselyScopeRepository(db, dialect, UNFILTERED);
+  const from = await scopes.insert({
+    name: E2E_ITEM_MOVE.from,
+    description: "Where the item starts.",
+    workspaceId,
+    createdBy: null,
+    createdAt: new Date(),
+  });
+  await scopes.insert({
+    name: E2E_ITEM_MOVE.to,
+    description: "Where it moves.",
+    workspaceId,
+    createdBy: null,
+    createdAt: new Date(),
+  });
+  const full = `@${E2E_ITEM_MOVE.workspace(project)}/${E2E_ITEM_MOVE.from}/${E2E_ITEM_MOVE.item}`;
+  const movedFiles = [
+    {
+      path: "ronne.yaml",
+      text: `name: "${full}"\ntype: rule\ndescription: Deploys.\nrule:\n  body: rule.md\n  activation: always\n`,
+    },
+    { path: "rule.md", text: "Deploy with care.\n" },
+  ].map((file) => ({ path: file.path, bytes: new TextEncoder().encode(file.text) }));
+  const packed = await packItem(movedFiles, { version: "1.0.0" });
+  const artifactPath = `${E2E_ITEM_MOVE.workspace(project)}/${E2E_ITEM_MOVE.from}/${E2E_ITEM_MOVE.item}/1.0.0.tgz`;
+  await localStorage(storagePath).put(artifactPath, packed.tgz);
+  const moved = await items.insertItem({
+    scopeId: from,
+    name: E2E_ITEM_MOVE.item,
+    type: "rule",
+    description: "Deploys.",
+    ownerId: ids[who.moderator] ?? "",
+    createdAt: new Date(),
+  });
+  const version = await items.insertVersion({
+    itemId: moved,
+    version: "1.0.0",
+    manifest: { name: full, type: "rule", description: "Deploys." },
+    readme: null,
+    files: movedFiles.map((f) => ({ path: f.path, size: f.bytes.length, executable: false })),
+    notes: null,
+    artifactPath,
+    sha256: packed.sha256,
+    size: packed.size,
+    publishedBy: ids[who.moderator] ?? "",
+    publishedAt: new Date(),
+    submissionId: null,
+    dependencies: [],
+    riskFlags: [],
+  });
+  await items.setTag(moved, "latest", version);
 }
 // A scope with the longest name there can be, no hyphen to break at, in global for good: every
 // page that lists scopes shows it, so the phone sweep checks it fits whatever runs first (115).

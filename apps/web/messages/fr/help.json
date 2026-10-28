@@ -195,6 +195,10 @@
     "question": "Qui doit être d’accord?",
     "answer": "Root, et un admin de global qui déplace vers global, déplacent aussitôt après avoir saisi le nom de la portée. Un admin de l’espace de travail de destination, ou quelqu’un qui déplace vers son propre espace de travail personnel, déplace aussitôt. Toute autre personne demande, et les admins de la destination ou root répondent (root seul pour global). Une portée dont des versions ne sont pas révisées demande toujours à quelqu’un d’autre."
   },
+  "item-move-who": {
+    "question": "Qui doit être d’accord?",
+    "answer": "Root et les modérateurs et admins de l’espace de travail déplacent un élément aussitôt. Tout autre membre demande, et ils répondent; personne ne répond à sa propre demande. L’élément reste dans son espace de travail, donc qui le voit, le révise et l’installe ne change pas."
+  },
   "visibility": {
     "question": "Public ou privé?",
     "answer": "Toute personne connectée voit les portées et les éléments d’un espace de travail public et peut en dépendre. Ceux d’un espace privé ne sont vus que par ses membres, dans n’importe quel rôle, et par root; pour tous les autres, ils n’existent pas, et seuls ses propres éléments peuvent en dépendre. Root peut le changer plus tard : rendre un espace de travail privé est refusé tant que des éléments publiés à l’extérieur dépendent de ses éléments."

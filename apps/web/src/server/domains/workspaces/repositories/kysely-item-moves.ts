@@ -22,6 +22,8 @@ type ItemMoveMethods = Pick<
   | "decideItemMove"
   | "applyItemMove"
   | "roleIn"
+  | "scopesIn"
+  | "latestItemMoveOf"
 >;
 
 type MoveRow = Selectable<ItemMoveTable>;
@@ -206,5 +208,31 @@ export const itemMoveMethods = (
       .where("user_id", "=", userId)
       .executeTakeFirst();
     return { root: user.role === "root", role: member?.role ?? null };
+  },
+
+  scopesIn: async (workspaceId) =>
+    db
+      .selectFrom("scopes")
+      .select(["id", "name", "description"])
+      .where("workspace_id", "=", workspaceId)
+      .orderBy("name")
+      .orderBy("id")
+      .execute(),
+
+  latestItemMoveOf: async (itemId) => {
+    const row = await db
+      .selectFrom("item_moves")
+      .innerJoin("scopes", "scopes.id", "item_moves.to_scope_id")
+      .leftJoin("user", "user.id", "item_moves.requested_by")
+      .selectAll("item_moves")
+      .select(["scopes.name as to_scope", "user.name as asked_by_name"])
+      .where("item_moves.item_id", "=", itemId)
+      // The newest first; ids are ULIDs, so they break a tie in time.
+      .orderBy("item_moves.created_at", "desc")
+      .orderBy("item_moves.id", "desc")
+      .executeTakeFirst();
+    return row
+      ? { ...toMove(row), toScope: row.to_scope, askedByName: row.asked_by_name ?? null }
+      : null;
   },
 });

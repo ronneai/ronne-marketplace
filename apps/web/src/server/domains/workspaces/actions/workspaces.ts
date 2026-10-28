@@ -232,6 +232,10 @@ export const itemMoveImpact = async (
   app: AppAuth = getAppAuth(),
 ) => itemMoves.itemMoveImpact(deps(app).repo, await actor(headers, app), input);
 
+/** The item page's Move to another scope… (134), or null for someone who may not ask. */
+export const itemMoveView = async (headers: Headers, itemId: string, app: AppAuth = getAppAuth()) =>
+  itemMoves.itemMoveView(deps(app).repo, await actor(headers, app), itemId);
+
 /** Moves an item to another scope of its workspace, or asks to (134). */
 export const askItemMove = async (
   headers: Headers,

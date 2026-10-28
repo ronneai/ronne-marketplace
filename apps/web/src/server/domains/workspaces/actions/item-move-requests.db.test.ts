@@ -43,6 +43,7 @@ import {
   cancelItemMove,
   createWorkspace,
   declineItemMove,
+  itemMoveView,
   setWorkspaceVisibility,
 } from "./workspaces";
 
@@ -650,5 +651,69 @@ describe("asking to move an item, and moving it (134)", () => {
     const asked = await ask(as.ana, deploy);
     await adminEraseUser(as.root, who.ana.id, "ana@example.com", app);
     expect(await moveRow(asked.moveId)).toMatchObject({ status: "cancelled", reason: null });
+  });
+});
+
+describe("the item page's Move to another scope… (134, task 6)", () => {
+  it("is for members and root, with the workspace's other scopes and how it would happen", async () => {
+    const deploy = await released("infra", "deploy");
+    expect(await itemMoveView(as.bob, deploy, app)).toBeNull();
+    expect(await itemMoveView(new Headers(), deploy, app)).toBeNull();
+    const forAna = await itemMoveView(as.ana, deploy, app);
+    expect(forAna).toEqual({
+      workspace: "acme",
+      way: "request",
+      targets: [{ id: devops, name: "devops", description: "devops." }],
+      latest: null,
+    });
+    for (const name of ["mod", "adm", "root"] as const)
+      expect((await itemMoveView(as[name], deploy, app))?.way, name).toBe("now");
+    // A member removed since: read again, so nothing.
+    await removeWorkspaceRole(app, who.ana.id, acme);
+    expect(await itemMoveView(as.ana, deploy, app)).toBeNull();
+  });
+
+  it("shows an open request to its asker and those who answer, a declined one to its asker only", async () => {
+    const deploy = await released("infra", "deploy");
+    await adminCreateUser(
+      as.root,
+      { email: "cy@example.com", name: "cy", role: "user", password },
+      app,
+    );
+    const cy = (
+      await t.db
+        .selectFrom("user")
+        .select("id")
+        .where("email", "=", "cy@example.com")
+        .executeTakeFirstOrThrow()
+    ).id;
+    await setWorkspaceRole(app, cy, "user", acme);
+    const asCy = await signedIn("cy@example.com");
+    const asked = await ask(as.ana, deploy, devops, "Please.");
+    expect((await itemMoveView(as.ana, deploy, app))?.latest).toEqual({
+      id: asked.moveId,
+      status: "open",
+      to: "@acme/devops",
+      reason: null,
+      askedByName: "ana",
+      mine: true,
+    });
+    expect((await itemMoveView(as.mod, deploy, app))?.latest).toMatchObject({
+      status: "open",
+      mine: false,
+      askedByName: "ana",
+    });
+    // Another member who can't answer sees nothing of it.
+    expect((await itemMoveView(asCy, deploy, app))?.latest).toBeNull();
+    await declineItemMove(as.mod, { moveId: asked.moveId, reason: "Keep it." }, app);
+    expect((await itemMoveView(as.ana, deploy, app))?.latest).toMatchObject({
+      status: "declined",
+      reason: "Keep it.",
+    });
+    expect((await itemMoveView(as.mod, deploy, app))?.latest).toBeNull();
+    // A cancelled request isn't shown; the next request replaces the declined one.
+    const again = await ask(as.ana, deploy);
+    await cancelItemMove(as.ana, { moveId: again.moveId }, app);
+    expect((await itemMoveView(as.ana, deploy, app))?.latest).toBeNull();
   });
 });

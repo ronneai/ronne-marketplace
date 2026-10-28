@@ -539,3 +539,69 @@ export const cancelItemMove = async (
     );
   });
 };
+
+/** What the item page needs for Move to another scope… (134), for someone who may ask. */
+export type ItemMoveView = {
+  /** The item's workspace, by name: its moderators, admins or root answer a request. */
+  workspace: string;
+  /** Whether a move by this person happens at once or is a request. */
+  way: "now" | "request";
+  /** The workspace's other scopes. */
+  targets: { id: string; name: string; description: string }[];
+  /**
+   * The latest request, while it's open (for its asker and whoever may answer it) or declined
+   * (for its asker, until the next request); null otherwise.
+   */
+  latest: {
+    id: string;
+    status: "open" | "declined";
+    /** The target scope, in full. */
+    to: string;
+    reason: string | null;
+    askedByName: string | null;
+    /** The person asked it. */
+    mine: boolean;
+  } | null;
+};
+
+/**
+ * The item page's Move… (134): null for someone who may not ask (not in the item's workspace, or
+ * signed out), else where it could go, how, and the request to show. Read from the database, as
+ * asking will be.
+ */
+export const itemMoveView = async (
+  repo: WorkspaceRepository,
+  actor: WorkspaceActor,
+  itemId: string,
+): Promise<ItemMoveView | null> => {
+  const user = actor.user;
+  if (!user) return null;
+  const item = await repo.itemForMove(itemId);
+  if (!item) return null;
+  const standing = await standingIn(repo, user.id, item.workspaceId);
+  if (standing === "none") return null;
+  const workspace = await repo.findById(item.workspaceId);
+  if (!workspace) return null;
+  const targets = (await repo.scopesIn(item.workspaceId)).filter((s) => s.id !== item.scopeId);
+  const move = await repo.latestItemMoveOf(item.id);
+  const mine = move?.requestedBy === user.id;
+  const shown =
+    move &&
+    ((move.status === "open" && (mine || standing === "moves")) ||
+      (move.status === "declined" && mine))
+      ? {
+          id: move.id,
+          status: move.status as "open" | "declined",
+          to: scopeFullName(workspace, move.toScope),
+          reason: move.status === "declined" ? move.reason : null,
+          askedByName: move.askedByName,
+          mine,
+        }
+      : null;
+  return {
+    workspace: workspace.name,
+    way: standing === "moves" ? "now" : "request",
+    targets,
+    latest: shown,
+  };
+};

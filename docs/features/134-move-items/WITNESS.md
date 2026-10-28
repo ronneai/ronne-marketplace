@@ -262,3 +262,37 @@ Witnessed: 2026-10-28 00:14 EDT, by a fresh agent (blind). Commit: 7a915b85 plus
 | 1-2 | The test still passes on every database after the diff | no | confirmed | `vitest run --project db …after-item-move.db.test.ts` → 3 passed; `pnpm test:db:postgres` / `:mysql` / `:mariadb -- …` → 3 passed on each |
 
 **Overall:** met: the shared-workspace test now checks that the download count is unchanged apart from the one download after the move, and both mutations fail it.
+
+## Task 6 — The Move dialog
+
+Witnessed: 2026-10-28 00:37 EDT, by a fresh agent (blind). Commit: 552b32ac + working tree (23 modified, 3 untracked). Machine: macOS (Darwin 27), Node v24.0.0. (Time corrected by the witness at its re-check: it first wrote 00:45.)
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Move to another scope… shows for members of the item's workspace and root, only when the workspace has another scope | no | confirmed | `ItemPageView.tsx` shows it only when `page.move && page.move.targets.length > 0`; "is for members and root…" db test: non-member and no session null, user `request`, mod/adm/root `now`, removed member null. Mutation dropping the `targets.length` check → item-page.test fails |
+| 2 | Step 1: a select of the workspace's other scopes, with their descriptions | no | partly | The other scopes are listed (`scopesIn` without the item's own); but `MoveItem.tsx` renders `<option>{target.name}</option>` and never uses `target.description` |
+| 3 | Step 2: what changes once a scope is picked: the new name, the old name kept and rmk, Claude Code's new plugin, open work taking the new name, others' drafts counted | no | confirmed | `MoveItemChanges` and the `item.move` keys; move-item.test checks the from → to, "Its 2 open drafts…", "and 1 draft you can’t see"; checks for another scope aren't reused (`to: "s3"` with an `s2` impact shows "Checking…") |
+| 4 | A clash (item, open submission, another item's old name) shows its reason and disables the button | no | confirmed | the test loops over all 3 kinds; `Button.tsx:60` sets `disabled` with `disabledReason`; mutation ignoring `checked.refused` → the test fails |
+| 5 | Step 3: an optional message, only for a request | no | confirmed | the textarea only when `request` (maxLength 500); tests for both ways |
+| 6 | Step 4: the button says what will happen, Move item or Ask to move ("acme's moderators, admins or root will answer") | no | partly | Move item / Ask to move right; mutation `request = false` → 2 tests fail. But `answeredBy` reads "This workspace’s moderators, admins or root will answer.", not naming the workspace |
+| 7 | A move made at once asks once more: "Move @acme/infra/deploy to @acme/devops, as @acme/devops/deploy?" | no | confirmed | the `question` key matches; Enter goes to the confirmation; mutation skipping it → the test fails |
+| 8 | The open-request notice shows for the asker and those who can answer; a declined one only to its asker, with the reason, until the next request | no | confirmed | `itemMoveView`'s condition; db test: open → ana and mod, cy null, declined → ana only, cancelled not shown; component tests cover open, mine, former user, cancelled, declined; mutation → "a declined one…" fails |
+| 9 | Messages in en, pt and fr | no | confirmed | `item.move` has 36 keys in each; pt/fr English-leak checks → []; the i18n and help tests → 77 passed; `biome lint` → no errors |
+| 10 | The "Who has to agree?" helper → `scopes#moving-items` | no | confirmed | `Help.tsx:47`, `topics.ts`, `help.json` ×3; the test checks the link |
+| 11 | Done when: component tests cover a direct move, a request, a clash and the notices | no | confirmed | 71 passed; each of 5 mutations made a test fail |
+| 12 | Done when: the phone sweep passes for the dialog | no | confirmed | `playwright test e2e/move-item.mobile.e2e.ts --project phone --project phone-webkit --project tablet` → 3 passed; `fits` and `noSideScroll` at the screen's width, 360px and 320px |
+| 13 | The view's repository reads work on all dialects | no | confirmed | `item-move-requests.db.test.ts` → 24 passed on SQLite, PostgreSQL, MySQL and MariaDB |
+
+**Overall:** not met: the scope select doesn't show the scopes' descriptions (row 2), and the line under Ask to move doesn't name the workspace (row 6).
+
+### Re-check (rows 2 and 6)
+
+Witnessed: 2026-10-28 00:39 EDT, by a fresh agent (blind). Commit: 552b32ac + working tree (23 modified, 3 untracked, plus SPEC.md and WITNESS.md). Machine: macOS (Darwin 27), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 2 | Step 1 (as SPEC.md now reads): a select of the workspace's other scopes, the chosen one's description under it | no | confirmed | SPEC.md:74 has the new wording; MoveItem.tsx shows the chosen target's `description` in a `<p>` under the select; move-item.test:76–77 (`>Devops.</p>` with `s2` chosen, none without). Mutation never rendering it → "says what the chosen scope is for, under the select" fails (1 failed / 13 passed) |
+| 6 | Step 4: the line under Ask to move names the workspace ("acme's moderators, admins or root will answer") | no | confirmed | `itemMoveView` returns `workspace: workspace.name` (item-moves.ts:602); en `answeredBy` = "{workspace}’s moderators, admins or root will answer.", pt and fr "de {workspace}"; move-item.test:108; the db test expects `workspace: "acme"` (24 passed on SQLite and PostgreSQL). Mutation with a fixed "This workspace" → "asks for anyone else…" fails |
+| — | The diff hasn't broken the rest | no | confirmed | `vitest run` on move-item, item-page, item-page translations, `messages.parity` and `messages` → 104 passed (English-leak and `{workspace}` placeholder parity included). Phone sweep (`--project phone --project phone-webkit --project tablet`) → 3 passed |
+
+**Overall:** met: the chosen scope's description shows under the select, and the line under Ask to move names the item's workspace, in all three languages; tests and mutations back both.

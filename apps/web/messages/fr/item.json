@@ -71,6 +71,48 @@
   "propose": {
     "button": "Proposer une modification"
   },
+  "move": {
+    "button": "Déplacer vers une autre portée…",
+    "title": "Déplacer {item}",
+    "whereTo": "Vers quelle portée",
+    "pick": "Choisissez une portée",
+    "changesTitle": "Ce qui change",
+    "newName": "Son nom là-bas : <mono>{from}</mono> → <mono>{to}</mono>",
+    "oldName": "L’ancien nom continue de fonctionner, et rmk passe les projets au nouveau à mesure qu’ils installent ou mettent à jour. Ses versions ne changent pas.",
+    "claudeCode": "Dans Claude Code, il apparaît comme un nouveau plugin, marqué « Déplacé depuis » pendant 30 jours.",
+    "proposals": "{count, plural, one {Son brouillon ou sa proposition ouverte prend le nouveau nom.} other {Ses # brouillons et propositions ouverts prennent le nouveau nom.}}",
+    "dependents": "Le travail ouvert de cet espace de travail qui en dépend prend le nouveau nom :",
+    "hidden": "{count, plural, one {et # brouillon que vous ne voyez pas} other {et # brouillons que vous ne voyez pas}}",
+    "more": "et {count} de plus",
+    "clashTitle": "Il ne peut pas y aller",
+    "clash": "{clash, select, item {{scope} a déjà un élément nommé {name}.} submission {Un élément nommé {name} attend une révision dans {scope}.} other {{newName} est l’ancien nom d’un autre élément.}} Choisissez une autre portée.",
+    "message": "Message (facultatif)",
+    "answeredBy": "Les modérateurs ou les admins de {workspace}, ou root, répondront.",
+    "moveItem": "Déplacer l’élément",
+    "ask": "Demander le déplacement",
+    "cancel": "Annuler",
+    "back": "Retour",
+    "question": "Déplacer <mono>{item}</mono> vers <mono>{scope}</mono>, sous le nom <mono>{newName}</mono>?",
+    "blocked": {
+      "pick": "Choisissez d’abord une portée.",
+      "checking": "Vérification de ce qui change…",
+      "clash": "Le nom est déjà pris là-bas."
+    },
+    "ok": "OK",
+    "doneMoved": "Déplacé. C’est maintenant {newName}.",
+    "doneAsked": "Déplacement vers {scope} demandé.",
+    "done": "Terminé",
+    "impactFailed": "Impossible de lire ce qui change. Réessayez.",
+    "notice": {
+      "moving": "Déplacement vers {scope}, demandé par {name}",
+      "movingMine": "Déplacement vers {scope} : en attente d’une réponse",
+      "declined": "Déplacement vers {scope} refusé",
+      "cancel": "Annuler",
+      "cancelMove": "Annuler le déplacement vers {scope}",
+      "cancelled": "Déplacement annulé."
+    },
+    "formerUser": "un ancien utilisateur"
+  },
   "overview": {
     "files": {
       "unreadable": "Les fichiers de cette version ne peuvent pas être lus.",

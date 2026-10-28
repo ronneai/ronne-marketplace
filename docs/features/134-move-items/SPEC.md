@@ -71,7 +71,7 @@ Ana · Cancel". A declined request shows its asker "Move to @acme/devops decline
 until the next request.
 
 **The Move dialog.**
-1. **To which scope:** a select of the workspace's other scopes, with their descriptions.
+1. **To which scope:** a select of the workspace's other scopes, the chosen one's description under it.
 2. **What it changes**, as soon as a scope is picked: the new name (`@acme/infra/deploy` →
    `@acme/devops/deploy`); that the old name keeps working and `rmk` moves projects to the new one;
    that in Claude Code it shows as a new plugin, with "Moved from" for 30 days (118); its open
