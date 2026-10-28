@@ -64,7 +64,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* tests cover each reason, a backfilled entry without people, an erased user, and a
   private earlier workspace seen by an outsider; the phone sweep passes.
 
-- [ ] **9. End to end.** A Playwright test: a member asks, a moderator approves, the item installs
+- [x] **9. End to end.** A Playwright test: a member asks, a moderator approves, the item installs
   by its new name and its old one, History shows the move; a moderator's direct move.
   *Done when:* it passes on the desktop and phone projects.
 

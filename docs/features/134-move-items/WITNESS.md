@@ -359,3 +359,33 @@ Witnessed: 2026-10-28 01:33 EDT, by a fresh agent (blind). Commit: 4ce291c5 + wo
 | 8 | Messages in en, pt and fr | no | confirmed | the `history` keys in all 3 `item.json` (`when`, `change`, `who` gone; nothing uses them); `vitest run src/i18n/messages.parity.test.ts src/features/item-page/history-tab.test.tsx` → 55 passed |
 
 **Overall:** met: a migration row now has to be `direct: false` with nobody named, the move back is tested on all four dialects, and the unused message keys are gone.
+
+## Task 9 — End to end
+
+Witnessed: 2026-10-28 01:38 EDT, by a fresh agent (blind). Commit: 017a81ca + working tree (`M e2e/move-item.ts`, `M e2e/move-item.mobile.e2e.ts`, `?? e2e/move-item.e2e.ts`). Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The end-to-end test passes on the desktop and phone projects (chromium, phone, phone-webkit, tablet) | no | confirmed | from apps/web: `pnpm exec playwright test e2e/move-item.e2e.ts e2e/move-item.mobile.e2e.ts --project chromium --project phone --project phone-webkit --project tablet --reporter=line` → `4 passed (21.3s)`; both files call `moveItemEndToEnd` |
+| 2 | A member asks to move the item, through the Move dialog's "Ask to move" | no | confirmed | move-item.ts:141-147; separate member and moderator users per project (`E2E_ITEM_MOVE`) |
+| 3 | A moderator approves the move from the Requests page | no | confirmed | move-item.ts:149-152: `/workspaces/requests`, `Approve moving <old> to @ws/devops`, then "No item moves waiting." |
+| 4 | After the move, the old address redirects to the new name's page | no | confirmed | move-item.ts:154-156; mutation (alias left out in `setAliases`, rebuilt) → the test fails at move-item.ts:155 |
+| 5 | History shows the move, with who asked and who approved | no | confirmed | move-item.ts:157-163: "Moved to another scope" and "asked by <member>, approved by <moderator>" |
+| 6 | The item installs by its new name, and a project on the old name moves to the new one | no | confirmed | `rmk update` → lockfile `[newName]`; a new project's `rmk install <newName>` → `[newName]`; with the alias mutation, `rmk update` fails |
+| 7 | The test shows the item installs by its old name after the move | no | partly | `rmk install <oldName>` runs only before the move; after it the old name is used only through `rmk update`. The behaviour holds (probe: a new project's `rmk install <oldName>` → `Installed …/devops/deploy@1.0.0 … is now …`), but the test doesn't assert it |
+| 8 | A moderator moves the item directly, at once, after the confirmation | no | confirmed | move-item.ts:182-191: "Move item" twice, "Moved. It’s <old> now.", the URL and heading back at infra, on all 4 projects |
+| 9 | The new test files pass lint | no | confirmed | `biome check` on the 3 e2e files → no fixes |
+
+**Overall:** not met: everything holds and the test fails without the alias, but it never runs `rmk install <old name>` after the move (row 7).
+
+### Re-check (row 7)
+
+Witnessed: 2026-10-28 01:44 EDT, by a fresh agent (blind). Commit: 017a81ca + working tree (`M e2e/move-item.ts`, `M e2e/move-item.mobile.e2e.ts`, `?? e2e/move-item.e2e.ts`). Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 7 | The test shows the item installs by its old name after the move | no | confirmed | After `rmk update`, the test loops over `[oldName, newName]`, each in a new project with `rmk install <asked> --target claude-code` (move-item.ts:169-177); the old name's output must contain `<old> is now <new>`, both lockfiles `[newName]`. `playwright test … --project chromium --project phone --project phone-webkit --project tablet` → `4 passed (23.1s)`. Mutation (no alias, the redirect and `rmk update` assertions skipped) → fails at move-item.ts:170, the install after the move |
+| 1 | The test passes on the desktop and phone projects | no | confirmed | the same run → 4 passed on chromium, phone, phone-webkit and tablet |
+| 6 | The item installs by its new name | no | confirmed | move-item.ts:169-177, the `newName` pass asserts `[newName]`; passed |
+
+**Overall:** met: rows 1, 6 and 7 are confirmed, and so are all rows from the first pass.
