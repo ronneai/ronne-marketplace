@@ -28,7 +28,7 @@ the operator sets up a provider and root turns it on).
   root has chosen **Static and semantic** in settings, with a warning naming where the files go.
 - **What is scanned:** each submission revision (013) of the item types root picks, `skill` by default.
   The scan runs on the revision's files, written by Ronne into a fresh private temporary directory.
-- **When:** sending a submission queues a scan of its new revision. The `skill-scan` job runs the queued
+- **When:** sending a submission queues a scan of its new revision. The `skill_scan` job runs the queued
   scans one at a time.
 - **Advisory.** The result is shown and never blocks anything. Submit, approve, override, bulk approve
   and release all behave as before, whatever the scan says or whether it ran at all.
@@ -58,7 +58,9 @@ the operator sets up a provider and root turns it on).
 **Turning it on.** The operator installs SkillSpector at the reviewed commit, with exactly the packages
 in its `uv.lock` (the knowledge note gives both ways: `uv sync --frozen` directly, or the image from
 `scripts/skill-scanner/Dockerfile` with the `skillspector-sandbox` wrapper),
-and sets `RONNE_SKILL_SCANNER` to a JSON array of the command and its leading arguments: the
+and sets `RONNE_SKILL_SCANNER` to a JSON array of the command, an absolute path (a relative one
+would be looked up from the scan's folder, beside the submitted files, so it's refused), and its
+leading arguments: the
 installed program, `["/opt/skillspector/venv/bin/skillspector"]`, or the wrapper, which mounts
 the folder Ronne passes into the container, `["/usr/local/bin/skillspector-sandbox"]`.
 The command comes from the environment or the settings file, never from the web: whoever can change it can run anything on
@@ -99,7 +101,7 @@ it adds a `content_scans` row, `queued`, in the same transaction. When it's off,
 the panel says "Not scanned". In a personal workspace a submission is approved at once (114). The scan
 is still queued and still shows on the review page.
 
-**Running.** The `skill-scan` job ([`run-job.ts`](../../../apps/web/src/server/jobs/run-job.ts), with
+**Running.** The `skill_scan` job ([`run-job.ts`](../../../apps/web/src/server/jobs/run-job.ts), with
 the job lease) takes the oldest `queued` row, marks it `running`, and:
 1. writes the revision's files into a new `0700` directory under the OS temporary folder. It uses the
    same path checks as `checkPackage` (no `..`, no absolute paths, no symbolic links);
@@ -110,13 +112,19 @@ the job lease) takes the oldest `queued` row, marks it `running`, and:
    (a little under the timeout), `SKILLSPECTOR_LOG_LEVEL=ERROR` and `LANGCHAIN_TRACING_V2=false`, and for
    a semantic scan the provider's variables above. `DATABASE_URL`, `AUTH_SECRET` and every other
    variable Ronne has never reach it;
-4. kills it after the timeout (`RONNE_SKILL_SCANNER_TIMEOUT`, 300 seconds by default) and reads at most
-   4 MiB of output;
-5. removes the directory, whatever happened.
+4. stops it after the timeout (`RONNE_SKILL_SCANNER_TIMEOUT`, 300 seconds by default) or past 4 MiB
+   of output: SIGTERM to its process group, then SIGKILL 5 seconds later (the wrapper stops its
+   container on SIGTERM). When it exits, whatever it left running in its group is killed. Ronne
+   stops waiting 2 seconds after that even if something outside the group still holds the output;
+5. removes the directory, whatever happened. A scan never throws: a folder that can't be made is
+   `no temporary folder`, a write the disk refuses is `write failed`, a command that can't be
+   executed is `not runnable`, and a path given twice, inside another file, outside the item, with a
+   name over 255 bytes, or differing from another only in case or Unicode form (a case-insensitive
+   disk would merge them) is `bad file path`.
 
 Exit 0 or 1 with JSON that passes `parseSkillScan` (`@ronneai/core`) gives `done`. A timeout, exit 2,
 too much output or JSON that doesn't parse gives `failed`, with a short reason (`timeout`, `exit 2`,
-`output too large`, `invalid report`). The process's own output is never stored or shown, since it
+`output too large`, `invalid report`, `not found`, `not runnable`, `signal`, and the three above). The process's own output is never stored or shown, since it
 can echo item content. The job is started as soon as a scan is queued (fire and forget, under the
 lease) and also runs every minute in `scheduler.ts`. `RONNE_JOBS=off` stops both. A `running` row
 older than twice the timeout goes back to `queued` once, and is marked `failed` the second time.
@@ -141,12 +149,23 @@ semantic scan whose LLM wasn't available is kept as a static result, and says so
 - **Queued / running:** "Scanning…". The page refreshes the panel while it waits.
 - **Failed:** "The scan didn't finish (timeout)". Root also sees "Scan again", which queues a new row.
 - **Not scanned:** scanning was off, or the type isn't scanned. Root sees "Scan now".
+- "Scan again" and "Scan now" show only while a scanner command is set; without one they're refused,
+  since nothing would take the scan. They're also refused unless the revision's newest scan failed
+  or it has none, so root can't add a second while one waits, runs or has finished.
 - Each revision shows its own scan, so a resubmit gets a new one and the old revision keeps its own.
 
 ## Edge cases
 
-- **The scanner is removed or broken after scans were queued:** every scan fails with `exit` or
-  `not found` (ENOENT), and the panel and Admin › Settings show the last error. Nothing else is affected.
+- **The scanner is removed or broken after scans were queued:** every scan fails with `exit`,
+  `not found` or `not runnable`, or, when `RONNE_SKILL_SCANNER` itself was removed, `not configured`;
+  the panel and Admin › Settings show the last error. Nothing else is affected. The job takes no
+  lease unless a scan is waiting or stuck (`running` for more than twice the timeout), so an
+  instance that doesn't scan reads one row a minute. The folder sweep runs every minute either way,
+  with no lease: it only touches folders older than any scan can last.
+- **Ronne's process dies during a scan:** the scan folder stays until the next job run removes
+  `ronne-scan-*` folders older than twice the longest a scan can take; the scan row is retried as a
+  stuck one. The scanner keeps running in its own process group until SkillSpector's own deadline
+  (`SKILLSPECTOR_MAX_WORKFLOW_SECONDS`, which Ronne sets a little under the timeout).
 - **Many submissions at once** (bulk upload, 037): they wait in the queue, one at a time. A scan never
   slows down submitting.
 - **More than one replica** (M17): the lease means one replica scans at a time. Each replica needs the
@@ -155,8 +174,9 @@ semantic scan whose LLM wasn't available is kept as a static result, and says so
   coverage. We show "Some files were too large to scan" when its report says so.
 - **An item type that isn't a skill** but is picked in settings (`agent`, `command`, `mcp-server`):
   scanned the same way. SkillSpector reads Markdown, scripts and MCP configs.
-- **A submission withdrawn or deleted while queued:** its scan row goes with the revision (cascade).
-  The job skips a row whose revision has gone.
+- **A submission withdrawn or deleted while queued:** a deleted one's scan row goes with the
+  revision (cascade); a withdrawn (archived) one's is dropped by the job without scanning. Restoring
+  it and sending it again makes a new revision, with its own scan.
 - **Data download and erasure** (103, 104): scans hold no personal data, only findings about files,
   and go with their revision.
 - **Retention** (060): scans go when their revision is purged.

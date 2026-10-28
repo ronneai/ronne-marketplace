@@ -32,7 +32,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   reads them, task 6 writes them).
   *Done when:* the migration's db test passes on the four databases, and the guard test passes.
 
-- [ ] **4. The runner.** [risky] `apps/web/src/server/domains/scans/`: a `SkillScanner` interface, and a
+- [x] **4. The runner.** [risky] `apps/web/src/server/domains/scans/`: a `SkillScanner` interface, and a
   `CommandSkillScanner` (temporary directory, path checks, no shell, environment allowlist, timeout and
   kill, output cap, cleanup) that reads `RONNE_SKILL_SCANNER`, `RONNE_SKILL_SCANNER_TIMEOUT` and, for
   semantic scans, the allowlisted `RONNE_SKILL_SCANNER_ENV_*` provider variables.
@@ -44,7 +44,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   only for static, and that the directory is gone afterwards.
 
 - [ ] **5. Queue and job.** `send` queues a scan in its transaction when scanning is on and the type is
-  scanned. The `skill-scan` job (run-job and the lease) takes one scan, runs it, and retries a stuck
+  scanned. The `skill_scan` job (run-job and the lease) takes one scan, runs it, and retries a stuck
   one once. It is kicked off on queue and every minute in `scheduler.ts`, and respects `RONNE_JOBS=off`.
   "Scan again" and "Scan now" are root actions.
   *Done when:* db tests cover queued on and off, the type filter, a personal workspace, done, failed, a
@@ -68,6 +68,10 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* the docs render tests pass, and every new helper's link lands on a real section.
 
 ## Notes
+
+- Follow-up: on macOS, an item name with an unassigned code point fails `write failed` (APFS refuses
+  it with EILSEQ), which blames Ronne rather than the item. Adding `EILSEQ` to the runner's clash list
+  would make it `bad file path`. Linux accepts such names.
 
 - SkillSpector's `THIRD_PARTY_NOTICES.md` covers only what it vendors. Its installed tree has five
   packages outside §1 (MPL-2.0, CNRI-Python, PSF-2.0), allowed as E-11 (owner, 2026-10-28). Check the

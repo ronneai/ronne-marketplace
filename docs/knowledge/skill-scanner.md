@@ -37,8 +37,10 @@ make running it safe, how to install it, and how to move the pin.
    and its key come only from `RONNE_SKILL_SCANNER_ENV_*` variables, never from the web or the database.
 2. Only a local folder that Ronne wrote: a fresh `0700` temporary directory with the revision's files,
    checked like `checkPackage` (no `..`, no absolute paths, no symbolic links). Never a URL or a git remote.
-3. `execFile` with an argument array, never a shell. The command is a JSON array from the environment or
-   the settings file, never from the web: whoever sets it can run anything as the server's user.
+3. An argument array, never a shell. The command is a JSON array from the environment or the
+   settings file, never from the web: whoever sets it can run anything as the server's user. Its
+   first part must be an absolute path: a relative one would be looked up from the scan's folder,
+   beside the submitted files.
 4. An environment built from an allowlist, not filtered from `process.env`: `PATH`, `HOME` and
    `TMPDIR` (both a `home/` folder beside the files, in the private temporary directory), `LANG`, `SKILLSPECTOR_MAX_WORKFLOW_SECONDS`, `SKILLSPECTOR_LOG_LEVEL=ERROR`,
    `LANGCHAIN_TRACING_V2=false`, and for a semantic scan `SKILLSPECTOR_PROVIDER`, `SKILLSPECTOR_MODEL`,
@@ -47,7 +49,15 @@ make running it safe, how to install it, and how to move the pin.
    unprefixed `OPENAI_API_KEY`, a prefixed name off the list (`RONNE_SKILL_SCANNER_ENV_ANTHROPIC_BASE_URL`)
    and another provider's variables (`OPENAI_API_KEY` with `SKILLSPECTOR_PROVIDER=anthropic`) never
    reach it, and that a static scan gets none of the provider's variables even with one set up.
-5. A timeout that kills it, at most 4 MiB of output read, and the folder removed in a `finally`.
+5. A timeout, and at most 4 MiB of output read: then SIGTERM to the scanner's process group and
+   SIGKILL 5 seconds later. Whatever it leaves running in its group when it exits is killed too, and
+   the folder is removed in a `finally` (and, if Ronne itself died, by the next job run). The
+   wrapper removes its container on SIGTERM (`rm -f`, which also catches one still being created):
+   killing the `docker run` client alone would leave the container running. The sweep skips
+   symbolic links and folders another user owns, so a link planted in a shared `/tmp` is never
+   followed. Accepted limit: on macOS a scanner could set the immutable flag (`chflags uchg`) on a
+   file in its folder, which Ronne doesn't clear, so that folder stays; SkillSpector doesn't, and an
+   item can't make it.
 6. Its report is untrusted: `parseSkillScan` keeps known fields only, cuts strings and the list of
    findings, and the panel renders text, never HTML. Its stdout and stderr are never stored or
    logged as they are, since they can echo item content.
@@ -68,7 +78,10 @@ git rev-parse HEAD   # must print the commit above
 ```
 
 **A. As the user Ronne runs as** (the simplest; the scanner then has the same access to the
-machine as Ronne itself, and may reach OSV.dev):
+machine as Ronne itself, and may reach OSV.dev). The environment allowlist keeps Ronne's secrets
+out of the scanner's environment, but not out of its reach: run this way, it could read Ronne's
+settings file (and, on Linux, `/proc/<pid>/environ` of Ronne's process). SkillSpector doesn't, and
+doesn't run the code it scans; for isolation that doesn't rest on that, use B.
 
 ```sh
 UV_PROJECT_ENVIRONMENT=/opt/skillspector/venv uv sync --frozen --no-dev --no-editable

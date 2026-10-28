@@ -53,9 +53,24 @@ if [ -z "$network" ]; then
   network=$SEMANTIC_NETWORK
 fi
 
+# A name of its own, so a stopped scan stops its container: Ronne sends SIGTERM first (then SIGKILL
+# after a grace period), and killing the `run` client alone would leave the container running.
+name="ronne-scan-$$-$(date +%s)"
+# On SIGTERM, remove the container (`rm -f`, not `kill`: it also takes one that never started). The
+# signal reaches the `run` client too, and the daemon can finish a create the client already sent,
+# so keep removing for a few seconds, inside Ronne's 5-second grace before SIGKILL.
+stop() {
+  for _ in 1 2 3 4; do
+    "$RUNTIME" rm -f "$name" >/dev/null 2>&1
+    sleep 1
+  done
+  exit 143
+}
+trap stop TERM INT HUP
+
 # The provider's variables reach the container only if Ronne passed them, which it does only for a
 # semantic scan (`-e NAME` without a value passes nothing when NAME is unset).
-exec "$RUNTIME" run --rm $userns --network "$network" --read-only --tmpfs /tmp \
+"$RUNTIME" run --rm --name "$name" $userns --network "$network" --read-only --tmpfs /tmp \
   --cap-drop ALL --security-opt no-new-privileges \
   --memory 1g --cpus 1 --pids-limit 256 --user "$user" \
   -e HOME=/tmp -e SKILLSPECTOR_MAX_WORKFLOW_SECONDS -e SKILLSPECTOR_LOG_LEVEL -e LANGCHAIN_TRACING_V2 \
@@ -63,4 +78,5 @@ exec "$RUNTIME" run --rm $userns --network "$network" --read-only --tmpfs /tmp \
   -e OPENAI_API_KEY -e OPENAI_BASE_URL -e ANTHROPIC_API_KEY -e NVIDIA_INFERENCE_KEY \
   -e AZURE_OPENAI_API_KEY -e AZURE_OPENAI_ENDPOINT -e AZURE_OPENAI_DEPLOYMENT -e AZURE_OPENAI_API_VERSION \
   -e SKILLSPECTOR_COMPAT_API_KEY -e SKILLSPECTOR_COMPAT_BASE_URL -e OLLAMA_BASE_URL \
-  -v "$dir:/scan/skill:ro" "$IMAGE" scan /scan/skill "$@"
+  -v "$dir:/scan/skill:ro" "$IMAGE" scan /scan/skill "$@" &
+wait $!

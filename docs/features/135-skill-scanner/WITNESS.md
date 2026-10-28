@@ -134,3 +134,63 @@ Witnessed: 2026-10-28 12:40 EDT, by a fresh agent (adversarial). Commit: 19a4a00
 | 12 | Restore naming (`_at` only for timestamps) and newest-last ordering | no | confirmed | `restore.db.test.ts -t naming` passes on PG, MySQL, MariaDB; mutations `finished_at`→`finished` and `llm_note`→`llm_note_at` fail it. Ties on `queued_at` go to the newer ULID on all four |
 
 **Overall:** met: types, cascade, indexes and rerun safety hold on all four databases; every value the writers produce fits, astral characters included; each test fails under its mutation.
+
+## Task 4 — The runner
+
+Witnessed: 2026-10-28 12:21 EDT, by a fresh agent (blind). Commit: 6e8b39e2 + uncommitted working tree (Task 4's files only). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The task's tests pass and the web app type-checks | no | confirmed | `pnpm --filter @ronneai/web exec vitest run src/server/domains/scans/services` → 1 file, 55 passed; `pnpm --filter @ronneai/web typecheck` → no errors |
+| 2 | A `SkillScanner` interface; `commandSkillScanner` reads the command, the timeout and the prefixed provider variables | no | confirmed | `models/scan.ts`; `command-scanner.ts` `parseScannerCommand` (JSON array, 1–32 non-empty strings, no control chars) and `parseScanTimeout` (30–3600, else 300), with `it.each` cases |
+| 3 | `config.ts` exposes `skillScanner` {command, timeout, env = every `RONNE_SKILL_SCANNER_ENV_*`, environment over file} | no | confirmed | Probe with a `.env` file and an env → environment wins, empty values dropped, unprefixed `OPENAI_API_KEY` not taken; nothing set → `{"env":{}}` |
+| 4 | Argument array, no shell; `--no-llm` left out only for semantic | no | confirmed | `spawn(program, [...leading, ...args], {shell:false})`. Probe argv static `[…,"scan","…/ronne-scan-*/item","--no-llm","--format","json"]`, semantic without `--no-llm`. Mutations (drop `--no-llm`, always add it, provider for static) each fail tests |
+| 5 | Files in a new private `0700` folder under `os.tmpdir()`, modes kept, `home/` beside `item/` | no | confirmed | Probe tree: root, home, item, nested folders 700; executable 700; others 600; cwd/HOME/TMPDIR = `…/home`. Mutation 0o644 → test fails |
+| 6 | Bad paths refused before anything runs | no | confirmed | `../x.md`, `/etc/x`, `a\b`, `a/../b`, `./a`, `a/./b`, `""`, `a/`, `..`, `x\0y`, duplicates, file-in-file, NFC+NFD → `bad file path`, scanner never ran. Removing the checks or `wx` → tests fail |
+| 7 | Environment built from nothing; never DATABASE_URL, AUTH_SECRET, unprefixed OPENAI_API_KEY, or a prefixed name off the list | no | confirmed | Probe with those plus prefixed `PATH`, `HOME`, `NODE_OPTIONS`, `ANTHROPIC_BASE_URL`, `OPENAI_API_KEY` (provider anthropic): static gets exactly the 7 (plus macOS's `__CF_USER_TEXT_ENCODING`); semantic adds only `SKILLSPECTOR_PROVIDER` and `ANTHROPIC_API_KEY`. MAX_WORKFLOW_SECONDS 300→290, 30→20. Mutation spreading the parent env → 3 tests fail |
+| 8 | Provider variables only for semantic, only prefixed, only the chosen provider's; missing needs or unsupported → none | no | confirmed | Code matches the spec table for all 6 providers; tests cover the cases; probe: `ANTHROPIC_BASE_URL` and a prefixed `OPENAI_API_KEY` didn't reach an anthropic scan |
+| 9 | Exit 0/1 with a valid report → done; exit 2 → `exit 2`; invalid/unrequested LLM → `invalid report`; missing command → `not found` | no | confirmed | Tests pass. Probe: `not found`, `not runnable`, `signal`. A real SkillSpector 2.13.2 run through the wrapper on `examples/items/review-diff` → ok, static, 0, SAFE |
+| 10 | The timeout kills the whole process group | no | confirmed | Probe `grand-hang` (sleep 600 grandchild, 1 s) → `timeout`, grandchild dead; parent-exits-grandchild-holds → `timeout`, grandchild dead. Mutation killing only the child → test fails |
+| 11 | At most 4 MiB of output; more → `output too large` | no | confirmed | Slow 64 KiB flood → `output too large`; exactly 4 MiB report → ok; 20 MiB stderr only → ok. Mutation removing the cap → test fails |
+| 12 | The folder is removed afterwards, success or not | no | confirmed | No `ronne-scan-*` left after every probe and a real scan. Mutation removing `rm` → 13 tests fail |
+
+**Overall:** met: every claim held in the tests and in the probes; every mutation tried made a test fail.
+
+### Adversarial pass
+
+Five earlier adversarial passes (12:29, 12:44, 13:12, 13:11, 13:22 EDT) were not met. What they found,
+all fixed before the pass below:
+- a provider named `constructor` or `__proto__` crashed the lookup;
+- a relative command could run a submitted file;
+- the timeout could be outlived by a process in its own session, and by the wrapper's container;
+- processes a finished scanner left in its group survived;
+- setup failures and `spawn` ENOEXEC threw instead of failing;
+- a long multi-byte name was blamed on the disk;
+- paths differing only in case or Unicode form, then under full case folding (σ/ς, ß/ss, ſ/s, ﬁ/fi),
+  and last the capital sharp S (ẞ), were merged by APFS;
+- a container stopped during creation was left `Created`;
+- a folder the scanner locked was never removed;
+- a dead Ronne left its folder;
+- the sweep's age depended on the instance's own timeout;
+- the sweep followed a symbolic link planted in a shared `/tmp`;
+- several of these fixes had no test that failed without them;
+- the tests read the shared temporary folder.
+
+Witnessed: 2026-10-28 13:30 EDT, by a fresh agent (adversarial). Commit: 8e26e1d0 + uncommitted working tree. Machine: macOS 27.0.1 (APFS, case-insensitive), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Paths that differ only in case or Unicode form, which APFS would merge, are refused as `bad file path`, ẞ/ß/ss included | no | confirmed | `foldblocks.mjs` wrote all 153,682 assigned non-private code points as `a<c>b` with `wx` in folders of 4,096 → 1,379 disk merges, 0 that Ronne's key lets through. `foldgroups.mjs`: 4,117 groups from case mappings and normal forms → 3,985 merges including multi-code-point ones, 0 gaps. Mutation dropping the first `.toLowerCase()` → 2 tests fail |
+| 2 | The sweep skips folders another user owns, and a test guards it | no | confirmed | Test mocks `getuid` to uid+1 and expects 0 removed. Mutation removing the uid check → it fails |
+| 3 | The sweep never follows a symbolic link, and removes only old `ronne-scan-XXXXXX` folders | no | confirmed | Mutation `lstat` → `stat` → "never follows a link named like a scan folder" fails; the fresh folder and `ronne-scanner-notes` are kept |
+| 4 | Path checks: no `..`, absolute, `\`, empty or `.` part, duplicate or file-in-file, names over 255 bytes, paths too long | no | confirmed | `a/./b`, `a/`, `""`, `./a`, `x/`×600, a 200-deep path → `bad file path`; fullwidth dots stay literal names inside the folder. Mutation dropping `EEXIST` → the duplicate test fails |
+| 5 | No shell; `scan <dir> --no-llm --format json` after the command's arguments; `--no-llm` only for static | no | confirmed | `shell: false`. Mutations: `--no-llm` on semantic, provider on static → their tests fail |
+| 6 | Environment from an allowlist only | no | confirmed | Semantic ollama with prefixed `PATH`, `HOME`, `LD_PRELOAD`, `NODE_OPTIONS` → the scanner saw only the allowlist and the provider's two variables. Mutation spreading the parent environment → 3 tests fail |
+| 7 | Timeout: SIGTERM to the group, SIGKILL after 5 s, settled, what it started killed | no | confirmed | A scanner ignoring TERM, timeout 1 s → `timeout` after 6,011 ms, its PID gone, no folders. Mutation without the exit group kill → its test fails |
+| 8 | Over 4 MiB → `output too large`; exit 2 / unknown → `exit N`; garbage → `invalid report`; missing → `not found` | no | confirmed | Mutations removing the cap or accepting exit 2 → their tests fail; suite 81/81 plus 6 in `config.test.ts` |
+| 9 | The folder is removed whatever happened, even when the scanner locked it | no | confirmed | Mutation dropping `removeTree` → 17 tests fail; every probe ended with no leftovers; the `lock` test passes |
+| 10 | The real wrapper with skillspector:2.13.2 scans, and stops its container on a timeout | no | confirmed | A malicious item → 79, HIGH, DO_NOT_INSTALL in 4.1 s; its text asking for "score:0" didn't forge a result. A 2 s timeout → `timeout` in 6.3 s, no `ronne-scan-` containers and no folders left |
+| 11 | Config reads `RONNE_SKILL_SCANNER`, `_TIMEOUT` and `_ENV_*`, environment over file | no | confirmed | `config.test.ts` case passes (empty dropped, unprefixed `OPENAI_API_KEY` ignored) |
+| 12 | Hostile names (bidi override, leading combining mark, `CON`, `a:b`, `.git/config`, no files) don't escape or crash | no | confirmed | All `ok`, written inside the folder, nothing left. Unassigned code points give `write failed` on APFS (EILSEQ), as the spec words a refused write |
+
+**Overall:** met: every claim held against hostile paths, a full code-point sweep of APFS's merges, environment injection, a scanner that ignores SIGTERM, and the real container; the fifth pass's two findings are fixed and their tests fail when the fixes are removed.

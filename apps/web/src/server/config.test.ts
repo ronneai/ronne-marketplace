@@ -52,6 +52,31 @@ describe("loadConfig", () => {
     expect(config.storagePath).toBe("/data/storage");
   });
 
+  it("reads the security scan's settings from the file and the environment (135)", () => {
+    const scanFile = join(dir, "scan.env");
+    writeFileSync(
+      scanFile,
+      'RONNE_SKILL_SCANNER=["/opt/x"]\nRONNE_SKILL_SCANNER_TIMEOUT=60\nRONNE_SKILL_SCANNER_ENV_SKILLSPECTOR_PROVIDER=ollama\nRONNE_SKILL_SCANNER_ENV_OLLAMA_BASE_URL=http://file:1/v1\n',
+    );
+    const config = loadConfig({
+      appDir: dir,
+      env: {
+        RONNE_ENV_FILE: scanFile,
+        RONNE_SKILL_SCANNER_ENV_OLLAMA_BASE_URL: "http://env:2/v1",
+        RONNE_SKILL_SCANNER_ENV_SKILLSPECTOR_MODEL: "",
+        OPENAI_API_KEY: "sk-unprefixed",
+      },
+    });
+    expect(config.skillScanner).toEqual({
+      command: '["/opt/x"]',
+      timeout: "60",
+      env: {
+        RONNE_SKILL_SCANNER_ENV_SKILLSPECTOR_PROVIDER: "ollama",
+        RONNE_SKILL_SCANNER_ENV_OLLAMA_BASE_URL: "http://env:2/v1",
+      },
+    });
+  });
+
   it("is not configured without a settings file or variables", () => {
     const config = loadConfig({ appDir: join(dir, "empty"), env: {} });
     expect(config.databaseUrl).toBeUndefined();
