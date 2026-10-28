@@ -57,3 +57,22 @@ export const skillScanPolicyFrom = (stored: {
     ? stored.analysis
     : DEFAULT_SKILL_SCAN_POLICY.analysis,
 });
+
+/**
+ * What the operator set up, as settings may show it (135): whether a scanner command is set, and
+ * the provider for semantic scans (its name, model and the host the files go to), never a key.
+ */
+export type SkillScanner = {
+  configured: boolean;
+  provider: { name: string; model: string | null; host: string } | null;
+};
+
+/** Admin › Settings › Security scan. */
+export type SkillScanSettings = {
+  policy: SkillScanPolicy;
+  scanner: SkillScanner;
+  lastVersion: string | null;
+  lastError: string | null;
+  /** Semantic is chosen but no provider is set up any more: scans run static. */
+  runsStatic: boolean;
+};

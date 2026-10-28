@@ -193,6 +193,15 @@ describe("scanProvider", () => {
     expect(provider?.variables.SKILLSPECTOR_MODEL).toBe(long);
   });
 
+  it("names NVIDIA's real host for nv_build", () => {
+    expect(
+      scanProvider({
+        RONNE_SKILL_SCANNER_ENV_SKILLSPECTOR_PROVIDER: "nv_build",
+        RONNE_SKILL_SCANNER_ENV_NVIDIA_INFERENCE_KEY: "k",
+      })?.host,
+    ).toBe("integrate.api.nvidia.com");
+  });
+
   it("names the endpoint's host when one is set", () => {
     expect(
       scanProvider({

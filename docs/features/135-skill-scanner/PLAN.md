@@ -50,10 +50,10 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* db tests cover queued on and off, the type filter, a personal workspace, done, failed, a
   stuck row retried and then failed, and a withdrawn submission, on the four databases.
 
-- [ ] **6. Settings.** [risky] Admin › Settings › Security scan, root only: whether a command is set,
+- [x] **6. Settings.** [risky] Admin › Settings › Security scan, root only: whether a command is set,
   the last version and error, the switch, the types, and the analysis (static, or static and semantic
   with the provider, model and host named, never a key). It is refused without a command, semantic
-  without a supported provider, and audited (`settings.skill_scan_changed`). Messages in three languages.
+  without a supported provider, and audited (`settings.skill_scan`). Messages in three languages.
   *Done when:* db tests for the service and the refusal, a page test, and the i18n parity tests pass.
 
 - [ ] **7. Review panel.** The Security scan panel on the review page (data from `review-page.ts`):
@@ -69,6 +69,10 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 ## Notes
 
+- Follow-up, shared with every instance setting: on MySQL and MariaDB two saves at the same moment
+  can both audit the same `from` (the read takes no row lock), so the second event's `from` is
+  stale. The saved state is right (the last write wins). A fix belongs in the settings repository,
+  for all settings at once.
 - Follow-up: on macOS, an item name with an unassigned code point fails `write failed` (APFS refuses
   it with EILSEQ), which blames Ronne rather than the item. Adding `EILSEQ` to the runner's clash list
   would make it `bad file path`. Linux accepts such names.

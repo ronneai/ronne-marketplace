@@ -378,5 +378,9 @@
   "feedback.deleted": {
     "empty": "Deleted a feedback message",
     "rich": "Deleted a feedback message"
+  },
+  "settings.skill_scan": {
+    "empty": "Changed the security scan: nothing",
+    "rich": "Changed the security scan: nothing"
   }
 }

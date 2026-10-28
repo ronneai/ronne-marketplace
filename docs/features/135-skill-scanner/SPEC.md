@@ -34,7 +34,7 @@ the operator sets up a provider and root turns it on).
   and release all behave as before, whatever the scan says or whether it ran at all.
 - **Where it shows:** a **Security scan** panel on the review page, beside the risk flags.
 - **The sandbox** (Behaviour, below), and what an operator must do for it ([`docs/knowledge/skill-scanner.md`](../../knowledge/skill-scanner.md)).
-- Audit events `settings.skill_scan_changed` (root turns scanning on or off, or changes the types or
+- Audit events `settings.skill_scan` (root turns scanning on or off, or changes the types or
   the analysis).
 
 **Out** (and where it goes instead):
@@ -65,10 +65,10 @@ installed program, `["/opt/skillspector/venv/bin/skillspector"]`, or the wrapper
 the folder Ronne passes into the container, `["/usr/local/bin/skillspector-sandbox"]`.
 The command comes from the environment or the settings file, never from the web: whoever can change it can run anything on
 the server, and that is the operator, not root (decision 3). **Admin › Settings › Security scan** shows
-whether a command is configured (its first word only), the version it reported the last time it ran,
+whether a command is configured (not the command itself), the version it reported the last time it ran,
 a switch (off by default), the item types to scan, and the **analysis**: **Static** (the default) or
 **Static and semantic**. Semantic can be chosen only when the operator has set up a provider (below);
-the choice then says "Each submission's files are sent to <provider> (<host>)", with the host of its
+the choice then says "Each submission's files are sent to <provider> at <host> (<model>)", with the host of its
 endpoint (the provider's own when none is set). Turning scanning on with no command configured,
 or choosing semantic with no provider, is refused with a message that names the environment variable.
 
@@ -158,7 +158,9 @@ semantic scan whose LLM wasn't available is kept as a static result, and says so
 
 - **The scanner is removed or broken after scans were queued:** every scan fails with `exit`,
   `not found` or `not runnable`, or, when `RONNE_SKILL_SCANNER` itself was removed, `not configured`;
-  the panel and Admin › Settings show the last error. Nothing else is affected. The job takes no
+  the panel and Admin › Settings show the last error. Nothing else is affected. Root can still save
+  the settings while scanning is on (change the types, turn it off); turning it on anew needs the
+  command again. The job takes no
   lease unless a scan is waiting or stuck (`running` for more than twice the timeout), so an
   instance that doesn't scan reads one row a minute. The folder sweep runs every minute either way,
   with no lease: it only touches folders older than any scan can last.
@@ -181,7 +183,8 @@ semantic scan whose LLM wasn't available is kept as a static result, and says so
   and go with their revision.
 - **Retention** (060): scans go when their revision is purged.
 - **The provider is removed from the environment and the settings file while semantic is chosen:** the next scans run
-  static, and settings say "Semantic chosen, but no provider is set up: scans are static".
+  static, and settings say so. Root can still save (turn scanning off, change the types) without
+  picking Static first; choosing semantic anew needs a provider again.
 - **The provider fails or times out during a scan:** SkillSpector finishes the static part and says
   the LLM wasn't available. The scan is `done`, static, with that note.
 - **Semantic and the container wrapper:** the provider must be reachable, so the wrapper can't use

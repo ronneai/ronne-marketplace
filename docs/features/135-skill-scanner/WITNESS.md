@@ -234,3 +234,81 @@ Witnessed: 2026-10-28 13:40 EDT, by a fresh agent (blind). Commit: 8e26e1d0 plus
 | 9 | Web typecheck passes | no | confirmed | `pnpm --filter @ronneai/web typecheck` → no errors |
 
 **Overall:** met: the lease renewal between scans, the `startJobsIfOn` scan ticks and the refusal of a second request hold, each with a test that fails without the fix; with the third pass's confirmed claims, the task holds on the four databases.
+
+## Task 6 — Settings
+
+Two earlier blind passes (14:06 EDT, twice) were not met. They found:
+- an empty "()" when the provider has no model, then a model named `none` hidden;
+- the confirmation warning untested;
+- root unable to save once the provider was gone;
+- no test guarding that a key never reaches the page;
+- the last error shown as an English code on pt/fr screens.
+
+All fixed before the pass below.
+
+Witnessed: 2026-10-28 14:30 EDT, by a fresh agent (blind). Commit: ab07538f + uncommitted task-6 diff. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The service's db tests pass on SQLite and the three servers | no | confirmed | `vitest run --project db src/server/domains/settings` → 31 passed; `pnpm test:db:postgres|mysql|mariadb -- …/skill-scan.db.test.ts` → 10 passed each |
+| 2 | Root only, to read and to save | no | confirmed | `settings.manage` is `["root"]`; the page calls `notFound()` without it; both service functions call `requirePermission`. Mutation removing it → "is root's alone" fails |
+| 3 | On without a command refused; keeping it on after the command went allowed | no | confirmed | `enabled && !scanner.configured && !from.enabled`; mutations removing the check or `&& !from.enabled` each fail a test |
+| 4 | Semantic without a provider refused; keeping it allowed; settings say scans run static | no | confirmed | Mutations removing the check or `from.analysis !== "semantic"` each fail; `runsStatic` asserted and rendered |
+| 5 | Audited as `settings.skill_scan` with from/to; nothing when unchanged | no | confirmed | Mutation of the action → 2 tests fail; the sentence reads right in en, pt and fr |
+| 6 | Settings show whether a command is set, the provider, model and host, never a key | no | confirmed | `skill-scanner.test.ts` covers the key and URL secrets; through `loadConfig` an unprefixed `OPENAI_API_KEY` is ignored |
+| 7 | A model named `none` is shown | no | confirmed | Test "shows a model even when it's named none"; mutation fails it |
+| 8 | The confirmation names the provider and host when switching to semantic | no | confirmed | `SemanticConfirm` tested in en and fr; mutation returning null fails it |
+| 9 | nv_build's host is a host name | no | confirmed | `defaultHost: "integrate.api.nvidia.com"` |
+| 10 | Last version doesn't contradict last error | no | confirmed | "The last scan that finished used SkillSpector {version}." in three languages |
+| 11 | Semantic stays choosable after clicking Static in the runs-static state | no | confirmed | `off` uses the saved `policy.analysis` (code read) |
+| 12 | A test pins the fixes for 8, 9, 11 and the switch in 3 | no | partly | Mutations of `chosen`, the radio rule, the switch's `disabled` and nv_build's host each left the tests green |
+| 13 | Three languages, parity, typecheck and lint pass | no | confirmed | 625 tests passed; typecheck clean; lint no errors |
+| 14 | Nobody can set the command or the provider from the web | no | confirmed | The action reads only `enabled`, `types` and `analysis`; the scanner comes from `loadConfig()` |
+
+**Overall:** not met: row 12. Tests were added (`scan-state.test.tsx`, nv_build's host in `command-scanner.test.ts`) and re-checked below.
+
+### Re-check
+
+Witnessed: 2026-10-28 14:23 EDT, by a fresh agent (blind). Commit: ab07538f (plus the uncommitted task 6 diff). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A test fails when the form stops passing the chosen analysis to the confirmation | no | confirmed | `chosen={policy.analysis}` or `chosen="static"` → `scan-state.test.tsx` "asks to confirm when root switches to semantic" fails; swapping `saved` too |
+| 2 | A test fails when the Semantic radio's rule uses the clicked analysis | no | confirmed | `analysis !== "semantic"`, or dropping the clause → "keeps Semantic choosable after root clicked Static" fails |
+| 3 | A test fails when the switch stops being submittable with scanning on and the command gone | no | confirmed | `disabled={!scanner.configured}` → "keeps the switch submittable…" fails |
+| 4 | A test fails when nv_build's host changes | no | confirmed | `"api.nvidia.com"` or `""` → "names NVIDIA's real host for nv_build" fails |
+| 5 | No test in `scan/` is vacuous | no | confirmed | All 17 read; each absence-only assertion fails under a mutation or sits beside a positive match |
+| 6 | The named unit tests pass | no | confirmed | 34 files, 628 passed |
+| 7 | The settings db tests pass on SQLite | no | confirmed | 31 passed |
+| 8 | Typecheck and lint pass | no | confirmed | Both exit 0 |
+
+**Overall:** met: each fix has a test that fails when it's reverted, no scan test is vacuous, and the named tests, typecheck and lint pass.
+
+### Adversarial pass
+
+Two earlier adversarial passes (14:04 and 14:25 EDT) were not met. They found: no test guarding that
+a provider's key stays off the page; the last scan error shown as an English code on pt/fr screens;
+nv_build's host shown as English words; a model named `none` hidden; the last-version and last-error
+notices contradicting each other; the Semantic radio locking in the runs-static state. All fixed
+before this pass. A stale audit `from` when two saves race on MySQL/MariaDB is shared by every
+instance setting and recorded as a follow-up in PLAN.md's Notes; the second pass judged that
+acceptable.
+
+Witnessed: 2026-10-28 14:20 EDT, by a fresh agent (adversarial). Commit: ab07538f (plus the task 6 working tree; it changed during the pass, so the agent synced and reran). Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Root only: a moderator, a user or no session can't read or save; bad input from them still gets "forbidden" | no | confirmed | Probes → all `ForbiddenError` on SQLite, PG 15, MySQL 8.4 and MariaDB 10.11; the page calls `notFound()` without `settings.manage`. Mutation dropping `requirePermission` → "is root's alone" fails |
+| 2 | The page shows whether a command is set, never the command | no | confirmed | `skillScannerFrom` returns only `configured`; invalid commands (`"/opt/s"`, `'["s"]'`, NUL, `{}`, `""`) → `configured:false`, no command text in the output |
+| 3 | Semantic names the provider, model and host, never a key; nv_build shows its real host in every language | no | confirmed | `skill-scanner.test.ts` covers key, userinfo and query secrets; mutation passing the whole provider → fails. pt/fr → `nv_build em/sur integrate.api.nvidia.com`; mutation of the old host → "names NVIDIA's real host" fails |
+| 4 | The model is shown as configured, `none` included | no | confirmed | `sent to ollama at h:1 (none).`; mutation always using `sendsNoModel` → 2 tests fail |
+| 5 | Last version and last error don't contradict each other, in three languages | no | confirmed | "The last scan that finished used…"; every ScanError code worded in pt, `exit -1` and a 20-digit exit code included |
+| 6 | Operator strings and the last error can't inject HTML or ICU | no | confirmed | `<b>`, `"><svg>`, `{host}`, `'{x}'`, `constructor`, `__proto__` render escaped and literal, no crash |
+| 7 | Switch, types and analysis save; odd values are refused or normalised | no | confirmed | `__proto__`, `Skill`, `"skill,agent"`, objects → refused; `["agent","evil"," skill "]` → `[skill, agent]`; odd analyses refused; `enabled` `"ON"`, `" on"`, `"1"`, `1`, `["on"]` → off; same on all four databases |
+| 8 | On without a command is refused, naming the variable; root can still change types or turn it off once it's gone | no | confirmed | db test and mutation; three-language messages name `RONNE_SKILL_SCANNER`; the switch renders checked and enabled |
+| 9 | Semantic without a provider is refused, but stays choosable while saved | no | confirmed | Mutation removing the refusal → test fails; both radios enabled in the runs-static state; mutation of the saved-state rule → `scan-state.test.tsx` fails |
+| 10 | Audited as `settings.skill_scan` with from/to, nothing when unchanged; hostile metadata can't break the summary | no | confirmed | Metadata `{from,to}` with actor and IP, no secrets; mutation of the action name → 2 db tests fail; hostile metadata → plain text parts |
+| 11 | A forged action passes on only enabled, types and analysis; domain errors become `ERR` text, others rethrown | no | confirmed | Extra fields dropped; forbidden → `{error}`; `Error("boom")` rethrown |
+| 12 | Done when: db tests, a page test and i18n parity pass | no | confirmed | 215 unit tests; db tests and probes 11/11 on each server; 417 i18n and audit tests; mutation removing a pt key or a `{host}` → parity fails; biome clean |
+
+**Overall:** met: root-only checks, both refusals, the audit, the key-free provider view, escaping and i18n parity held against forged, odd and hostile input on all four databases, and the earlier findings stay fixed.

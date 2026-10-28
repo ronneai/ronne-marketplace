@@ -612,6 +612,13 @@
           "locked": "bloqueado por 15 minutos",
           "refused": "a conta não pode entrar",
           "unreadable": "não foi possível ler o segredo"
+        },
+        "skillScan": {
+          "on": "ativada",
+          "off": "desativada",
+          "types": "tipos de {from} para {to}",
+          "analysis": "análise de {from, select, semantic {estática e semântica} other {estática}} para {to, select, semantic {estática e semântica} other {estática}}",
+          "nothing": "nada"
         }
       },
       "actions": {
@@ -736,7 +743,8 @@
           "usage_policy": "Alterou a política de uso de {from} para {to}",
           "usage_minimum": "Alterou o mínimo de uso de {from} para {to}",
           "retention": "Alterou a retenção: {changes}",
-          "notice": "Alterou o comunicado da instância: {changes}"
+          "notice": "Alterou o comunicado da instância: {changes}",
+          "skill_scan": "Alterou a verificação de segurança: {changes}"
         }
       }
     }
@@ -752,7 +760,8 @@
       "feeds": "Feeds de plugins",
       "authentication": "Autenticação",
       "privacy": "Privacidade",
-      "notice": "Comunicado"
+      "notice": "Comunicado",
+      "scan": "Verificação de segurança"
     },
     "methods": {
       "title": "Formas de entrar",
@@ -1044,6 +1053,43 @@
         "started": "Iniciado em <date></date>",
         "retry": "Tentar de novo"
       }
+    },
+    "scan": {
+      "title": "Verificação de segurança",
+      "intro": "O SkillSpector, da NVIDIA, verifica cada submissão no momento em que é enviada, e o que ele encontra aparece na página de revisão ao lado dos sinais de risco. É uma segunda opinião para quem revisa: nunca bloqueia uma submissão, uma aprovação ou uma publicação.",
+      "scanner": {
+        "configured": "O verificador está configurado neste servidor.",
+        "lastVersion": "A última verificação concluída usou o SkillSpector {version}.",
+        "missing": {
+          "title": "Nenhum verificador está configurado neste servidor",
+          "body": "Quem opera o servidor instala o SkillSpector e indica o comando dele em RONNE_SKILL_SCANNER (no ambiente ou no arquivo de configurações) e reinicia o Ronne. Só então a verificação pode ser ativada aqui."
+        },
+        "lastError": "A última verificação não terminou: {reason, select, timeout {passou do tempo limite} not_found {o comando do verificador não foi encontrado} not_runnable {o comando do verificador não pode ser executado} not_configured {nenhum comando de verificador está definido} output_too_large {produziu saída demais} invalid_report {o relatório não pôde ser lido} signal {foi interrompida por um sinal} no_temporary_folder {a pasta temporária não pôde ser criada} bad_file_path {um caminho de arquivo da submissão foi recusado} write_failed {os arquivos não puderam ser gravados} exit {terminou com o código {code}} other {{error}}}"
+      },
+      "enabled": {
+        "label": "Verificar submissões",
+        "hint": "Cada revisão dos tipos abaixo é verificada quando é enviada para revisão."
+      },
+      "types": {
+        "title": "Tipos de item a verificar",
+        "hint": "O SkillSpector lê Markdown, scripts e configurações de MCP. É nas skills que ele encontra mais."
+      },
+      "analysis": {
+        "title": "Análise",
+        "static": {
+          "label": "Estática",
+          "hint": "Verificações de padrões e de código neste servidor. O conteúdo dos itens não sai dele."
+        },
+        "semantic": {
+          "label": "Estática e semântica",
+          "hint": "Também pergunta a um LLM se uma skill faz o que diz. Precisa de um provedor configurado por quem opera o servidor.",
+          "sends": "Também pergunta a um LLM se uma skill faz o que diz. Os arquivos de cada submissão são enviados para {provider} em {host} ({model}).",
+          "sendsNoModel": "Também pergunta a um LLM se uma skill faz o que diz. Os arquivos de cada submissão são enviados para {provider} em {host}."
+        },
+        "warning": "A partir de agora, os arquivos de cada submissão verificada são enviados para {provider} em {host}. Salve para confirmar.",
+        "runsStatic": "A análise semântica está escolhida, mas não há mais um provedor configurado no servidor: as verificações são estáticas."
+      },
+      "save": "Salvar"
     }
   },
   "setup": {
@@ -1195,7 +1241,8 @@
       "password": "Login com senha salvo.",
       "nothing": "Nada mudou.",
       "erasuresNone": "Não havia nada a concluir.",
-      "erasures": "{count, plural, one {# apagamento concluído.} other {# apagamentos concluídos.}}"
+      "erasures": "{count, plural, one {# apagamento concluído.} other {# apagamentos concluídos.}}",
+      "scan": "Verificação de segurança salva."
     }
   }
 }

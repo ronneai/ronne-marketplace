@@ -140,5 +140,9 @@
   "InvalidScopeDescriptionError": "A descrição de um escopo precisa ter de 1 a 300 caracteres.",
   "ScopeNameTakenError": "O escopo @{scopeName} já existe.",
   "ScopeWorkspaceNotFoundError": "Esse espaço de trabalho não existe.",
-  "ScopeNotFoundError": "Esse escopo não existe."
+  "ScopeNotFoundError": "Esse escopo não existe.",
+  "SkillScanNotConfiguredError": "Defina RONNE_SKILL_SCANNER no servidor (o comando do verificador, como um array JSON) e reinicie o Ronne antes.",
+  "SkillScanNoProviderError": "Configure antes um provedor de LLM no servidor (RONNE_SKILL_SCANNER_ENV_SKILLSPECTOR_PROVIDER e as variáveis dele) e reinicie o Ronne.",
+  "InvalidSkillScanTypesError": "Escolha pelo menos um tipo de item a verificar.",
+  "InvalidSkillScanAnalysisError": "Escolha estática, ou estática e semântica."
 }

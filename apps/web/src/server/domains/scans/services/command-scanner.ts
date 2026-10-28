@@ -80,7 +80,7 @@ const PROVIDERS: Record<string, ProviderSpec> = {
     variables: ["NVIDIA_INFERENCE_KEY"],
     needs: ["NVIDIA_INFERENCE_KEY"],
     endpoint: null,
-    defaultHost: "NVIDIA's hosted endpoint",
+    defaultHost: "integrate.api.nvidia.com",
   },
   azure_openai: {
     variables: [

@@ -1,11 +1,39 @@
+import { loadConfig } from "../../../config";
 import { hasUsableProvider } from "../../identity/actions/password-policy";
 import { getCurrentUser } from "../../identity/actions/session";
 import { clientIp } from "../../identity/models/client-ip";
 import { type AppAuth, getAppAuth } from "../../identity/repositories/auth-instance";
+import { parseScannerCommand, scanProvider } from "../../scans/services/command-scanner";
+import type { SkillScanner } from "../models/skill-scan-policy";
 import { kyselySettingsRepository } from "../repositories/kysely-settings-repository";
 import * as service from "../services/settings";
 
 export type { InstanceSettings } from "../services/settings";
+
+/**
+ * What settings may show of the operator's scanner setup: whether a command is set, and the
+ * provider's name, model and host. Never its variables, which hold the key: they stay on the server.
+ */
+export const skillScannerFrom = (
+  config: { command?: string; env: Record<string, string> } | undefined,
+): SkillScanner => {
+  const provider = scanProvider(config?.env ?? {});
+  return {
+    configured: parseScannerCommand(config?.command) !== null,
+    provider: provider ? { name: provider.name, model: provider.model, host: provider.host } : null,
+  };
+};
+
+const skillScanner = (): SkillScanner => skillScannerFrom(loadConfig().skillScanner);
+
+export const skillScanSettings = async (headers: Headers, app: AppAuth = getAppAuth()) =>
+  service.skillScanSettings(deps(app), await actor(headers, app), skillScanner());
+
+export const setSkillScanPolicy = async (
+  headers: Headers,
+  value: { enabled: unknown; types: unknown; analysis: unknown },
+  app: AppAuth = getAppAuth(),
+) => service.setSkillScanPolicy(deps(app), await actor(headers, app), value, skillScanner());
 
 /** Instance settings (feature 046). Thin: the service checks everything. */
 const deps = ({ db, dialect }: AppAuth): service.SettingsDeps => ({
