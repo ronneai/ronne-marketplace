@@ -26,7 +26,7 @@ import type { ScanFile, ScanOutcome, ScanProvider, SkillScanner } from "../model
 import { kyselyContentScanRepository } from "../repositories/kysely-content-scan-repository";
 import { commandSkillScanner } from "../services/command-scanner";
 import { MAX_SCAN_ATTEMPTS, runQueuedScans } from "../services/scans";
-import { requestScan, sendingWithScans } from "./scans";
+import { requestScan, reviewScan, sendingWithScans } from "./scans";
 
 // Runs on the database in TEST_DATABASE_URL (in-memory SQLite by default; 004 runs all of them).
 let t: TestDb;
@@ -466,5 +466,32 @@ describe("root asking for a scan (135)", () => {
     ).id;
     expect(await requestScan(asRoot, revisionId, app)).toBe(false);
     expect(await scans()).toEqual([]);
+  });
+});
+
+describe("the review page's scan (135)", () => {
+  it("gives the revision's newest scan, and lets only root ask again after a failure", async () => {
+    await turnOn();
+    await submitDraft(asAna, (await drafted()).id, app);
+    const revisionId = (
+      await t.db.selectFrom("submission_revisions").select("id").executeTakeFirstOrThrow()
+    ).id;
+    expect(await reviewScan(asRoot, revisionId, app)).toMatchObject({
+      scan: { status: "queued" },
+      canRequest: false,
+    });
+    await t.db.updateTable("content_scans").set({ status: "done" }).execute();
+    expect((await reviewScan(asRoot, revisionId, app)).canRequest).toBe(false);
+    await t.db.updateTable("content_scans").set({ status: "running" }).execute();
+    expect((await reviewScan(asRoot, revisionId, app)).canRequest).toBe(false);
+    await t.db.updateTable("content_scans").set({ status: "failed", error: "timeout" }).execute();
+    expect(await reviewScan(asRoot, revisionId, app)).toMatchObject({
+      scan: { status: "failed", error: "timeout" },
+      canRequest: true,
+    });
+    expect((await reviewScan(asAna, revisionId, app)).canRequest).toBe(false);
+    vi.stubEnv("RONNE_SKILL_SCANNER", "");
+    expect((await reviewScan(asRoot, revisionId, app)).canRequest).toBe(false);
+    expect(await reviewScan(asRoot, null, app)).toEqual({ scan: null, canRequest: false });
   });
 });

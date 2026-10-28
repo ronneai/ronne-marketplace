@@ -782,5 +782,36 @@
     "goes_with": "Elle est liée à {name}, qui ne peut pas être publié : {why}",
     "together": "{why} (publiées avec {names} : aucune n’a été publiée.)",
     "store_failed": "Elle n’a pas pu être stockée ni enregistrée : {detail}"
+  },
+  "scan": {
+    "heading": "Analyse de sécurité",
+    "none": "Cette révision n’a pas été analysée.",
+    "now": "Analyser maintenant",
+    "again": "Analyser à nouveau",
+    "refused": "Impossible d’analyser maintenant : il faut une commande d’analyseur, et la dernière analyse doit avoir échoué.",
+    "pending": "Analyse en cours… ce panneau se met à jour tout seul.",
+    "failed": "L’analyse n’a pas abouti : {reason, select, timeout {elle a dépassé le délai} not_found {la commande de l’analyseur est introuvable} not_runnable {la commande de l’analyseur ne peut pas être exécutée} not_configured {aucune commande d’analyseur n’est définie} output_too_large {elle a produit trop de sortie} invalid_report {son rapport n’a pas pu être lu} signal {elle a été arrêtée par un signal} no_temporary_folder {son dossier temporaire n’a pas pu être créé} bad_file_path {un chemin de fichier de la soumission a été refusé} write_failed {ses fichiers n’ont pas pu être écrits} exit {elle s’est terminée avec le code {code}} other {{error}}}",
+    "severity": {
+      "CRITICAL": "Critique",
+      "HIGH": "Élevée",
+      "MEDIUM": "Moyenne",
+      "LOW": "Faible"
+    },
+    "score": "score de {score, number} sur 100",
+    "recommendation": {
+      "SAFE": "Semble sûr",
+      "CAUTION": "À examiner de près",
+      "DO_NOT_INSTALL": "Probablement dangereux"
+    },
+    "clean": "Aucun résultat.",
+    "rule": "{rule} · {category}",
+    "omitted": "{count, plural, one {# autre résultat n’est pas affiché.} other {# autres résultats ne sont pas affichés.}}",
+    "incomplete": "Certains fichiers n’ont pas été analysés en entier (trop gros, ou l’analyse a manqué de temps).",
+    "by": {
+      "static": "Analyse statique par SkillSpector {version}.",
+      "semantic": "Analyse statique et sémantique par SkillSpector {version}, avec {provider} {model}.",
+      "llmUnavailable": "Analyse statique par SkillSpector {version} : l’analyse sémantique n’a pas eu lieu, car le fournisseur n’était pas disponible."
+    },
+    "advisory": "À titre indicatif : elle peut manquer des problèmes et signaler du code sûr."
   }
 }

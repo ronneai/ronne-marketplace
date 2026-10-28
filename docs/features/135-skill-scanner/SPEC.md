@@ -97,8 +97,7 @@ always sends to `api.anthropic.com`; an operator who sets one with the prefix se
 the knowledge note says so.
 
 **Queuing.** When `send` (013) creates a revision of an item type that is scanned, and scanning is on,
-it adds a `content_scans` row, `queued`, in the same transaction. When it's off, it adds nothing, and
-the panel says "Not scanned". In a personal workspace a submission is approved at once (114). The scan
+it adds a `content_scans` row, `queued`, in the same transaction. When it's off, it adds nothing. In a personal workspace a submission is approved at once (114). The scan
 is still queued and still shows on the review page.
 
 **Running.** The `skill_scan` job ([`run-job.ts`](../../../apps/web/src/server/jobs/run-job.ts), with
@@ -148,7 +147,9 @@ semantic scan whose LLM wasn't available is kept as a static result, and says so
   safe code."
 - **Queued / running:** "Scanning…". The page refreshes the panel while it waits.
 - **Failed:** "The scan didn't finish (timeout)". Root also sees "Scan again", which queues a new row.
-- **Not scanned:** scanning was off, or the type isn't scanned. Root sees "Scan now".
+- **Not scanned:** scanning was off, or the type isn't scanned. Only root, who can do something
+  about it, sees "This revision wasn't scanned" and "Scan now"; other reviewers see no panel, so an
+  instance that doesn't scan shows nothing new.
 - "Scan again" and "Scan now" show only while a scanner command is set; without one they're refused,
   since nothing would take the scan. They're also refused unless the revision's newest scan failed
   or it has none, so root can't add a second while one waits, runs or has finished.

@@ -782,5 +782,36 @@
     "goes_with": "It goes with {name}, which can't go: {why}",
     "together": "{why} (released together with {names}: none went.)",
     "store_failed": "It couldn't be stored or recorded: {detail}"
+  },
+  "scan": {
+    "heading": "Security scan",
+    "none": "This revision wasn't scanned.",
+    "now": "Scan now",
+    "again": "Scan again",
+    "refused": "It can't be scanned now: a scanner command must be set and the last scan must have failed.",
+    "pending": "Scanning… this panel updates on its own.",
+    "failed": "The scan didn't finish: {reason, select, timeout {it ran past the timeout} not_found {the scanner's command wasn't found} not_runnable {the scanner's command can't be run} not_configured {no scanner command is set} output_too_large {it wrote too much output} invalid_report {its report couldn't be read} signal {it was stopped by a signal} no_temporary_folder {its temporary folder couldn't be made} bad_file_path {a file path in the submission was refused} write_failed {its files couldn't be written} exit {it exited with code {code}} other {{error}}}",
+    "severity": {
+      "CRITICAL": "Critical",
+      "HIGH": "High",
+      "MEDIUM": "Medium",
+      "LOW": "Low"
+    },
+    "score": "score {score, number} of 100",
+    "recommendation": {
+      "SAFE": "Looks safe",
+      "CAUTION": "Look closely",
+      "DO_NOT_INSTALL": "Likely unsafe"
+    },
+    "clean": "No findings.",
+    "rule": "{rule} · {category}",
+    "omitted": "{count, plural, one {# more finding isn't shown.} other {# more findings aren't shown.}}",
+    "incomplete": "Some files weren't fully scanned (too large, or the scan ran out of time).",
+    "by": {
+      "static": "Static scan by SkillSpector {version}.",
+      "semantic": "Static and semantic scan by SkillSpector {version}, with {provider} {model}.",
+      "llmUnavailable": "Static scan by SkillSpector {version}: semantic analysis didn't run, as the provider wasn't available."
+    },
+    "advisory": "Advisory: it can miss problems and flag safe code."
   }
 }

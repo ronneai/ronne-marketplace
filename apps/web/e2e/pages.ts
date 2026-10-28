@@ -166,6 +166,7 @@ export const SWEEP_PAGES: readonly SweepPage[] = [
       "/admin/settings?tab=privacy",
       // The Notice tab (124): the first tab written in messages.
       "/admin/settings?tab=notice",
+      "/admin/settings?tab=scan",
       // Add provider (106): the preset cards; identity-providers.mobile.e2e.ts walks the form.
       "/admin/settings?tab=authentication&provider=new",
     ],

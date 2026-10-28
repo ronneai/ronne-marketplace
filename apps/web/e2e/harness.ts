@@ -57,6 +57,11 @@ export const prepareInstance = (): Instance => {
       ...base,
       AUTH_SECRET: written.AUTH_SECRET ?? "",
       TRUST_PROXY: "false",
+      // A stand-in for SkillSpector (135): scanning stays off until a test turns it on.
+      RONNE_SKILL_SCANNER: JSON.stringify([
+        process.execPath,
+        join(appDir, "e2e/fake-skillspector.mjs"),
+      ]),
       NEXT_TELEMETRY_DISABLED: "1",
     },
   };

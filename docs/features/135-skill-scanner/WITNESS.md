@@ -312,3 +312,55 @@ Witnessed: 2026-10-28 14:20 EDT, by a fresh agent (adversarial). Commit: ab07538
 | 12 | Done when: db tests, a page test and i18n parity pass | no | confirmed | 215 unit tests; db tests and probes 11/11 on each server; 417 i18n and audit tests; mutation removing a pt key or a `{host}` → parity fails; biome clean |
 
 **Overall:** met: root-only checks, both refusals, the audit, the key-free provider view, escaping and i18n parity held against forged, odd and hostile input on all four databases, and the earlier findings stay fixed.
+
+## Task 7 — Review panel
+
+Witnessed: 2026-10-28 14:33 EDT, by a fresh agent (blind). Commit: fdfe6fe9 + uncommitted diff (task 7 files). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Component tests for each state (none, queued/running, failed, done) pass | no | confirmed | `vitest run src/features/reviews src/i18n` → 447 passed; mutations (pending text, failed branch) each fail `scan-panel.test.tsx` |
+| 2 | A finding containing HTML renders as plain text | no | confirmed | The test checks `&lt;script&gt;` present and `<script>alert` absent; mutation to `dangerouslySetInnerHTML` → fails |
+| 3 | Findings link to file:line in the review's file view | no | confirmed | `href="/reviews/sub1?view=all&amp;file=SKILL.md&amp;line=10#files"`; mutation dropping `&line=` → fails; the e2e checks the `SKILL.md:3` link |
+| 4 | Badge colours by severity, tokens only | no | partly | The map and tokens are right; no test guarded the map (mutation `MEDIUM: "error"` → passed) |
+| 5 | By-line (static / semantic / LLM unavailable) and the advisory | no | confirmed | All three by-lines and the advisory tested; mutation removing the advisory → fails |
+| 6 | Not scanned: the panel says so; root sees "Scan now" | no | partly | Hidden from non-root reviewers, while SPEC.md said it shows |
+| 7 | Scan again / now only for root, with a command, when the newest failed or there is none | no | confirmed | `reviewScan` and `requestScan`; mutations of root, configured and the newest check each fail; a done scan's `canRequest` not asserted |
+| 8 | The page refreshes the panel while it waits | no | partly | `router.refresh()` every 5 s, mounted only while waiting; removing it left the component tests green |
+| 9 | Each revision shows its own scan | no | confirmed | The page passes the newest revision's id; `latestFor` is keyed by revision (code read) |
+| 10 | Messages in en/pt/fr, no raw screen text | no | confirmed | i18n tests pass; pt and fr rendered; lint clean |
+| 11 | Playwright (fake scanner): submit, then queued, then done, then approve | no | confirmed | `playwright test e2e/skill-scan.e2e.ts --project chromium` → 1 passed: "Scanning…", then "Likely unsafe" and the finding, then Approve → "approved it"; scanning turned off in `finally` |
+| 12 | The phone sweep passes | no | confirmed | `playwright test e2e/mobile-sweep.mobile.e2e.ts --project phone` → 15 passed, `/admin/settings?tab=scan` included |
+| 13 | Typecheck clean | no | confirmed | No errors |
+
+**Overall:** not met: rows 4, 6 and 8. SPEC.md now says only root sees the not-scanned panel, the badge tokens are tested per severity, the refresh has its own tests, and done and running scans are asserted unrequestable; re-checked below.
+
+### Re-check
+
+Witnessed: 2026-10-28 14:40 EDT, by a fresh agent (blind). Commit: fdfe6fe9 + uncommitted task 7 diff. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| a | With no scan, only root sees the panel; SPEC.md and the code agree | no | confirmed | SPEC.md's "Not scanned" lines match `ScanPanel.tsx`; tested for root and for Ana |
+| b | A test guards each severity's badge colour | no | confirmed | Mutations of MEDIUM, HIGH and LOW each fail their case |
+| c1 | A test guards the refresh while queued or running | no | confirmed | Removing `<ScanRefresh />`, or changing the interval, fails a test |
+| c2 | The refresh stops once the panel stops waiting | no | partly | `startRefreshing`'s cleanup is guarded, but dropping the component effect's cleanup left the tests green |
+| d | Root can't ask again when the newest is done or running | no | confirmed | `status !== "running"` and "neither queued nor running" mutations each fail |
+| e | The unmodified tree passes the checks | no | confirmed | 85 review tests, 20 db tests, 367 i18n tests, typecheck and lint pass |
+
+**Overall:** not met: row c2. A test of the component's effect and its cleanup was added; re-checked below.
+
+### Re-check
+
+Witnessed: 2026-10-28 14:42 EDT, by a fresh agent (blind). Commit: fdfe6fe9 + uncommitted task 7 diff. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| c2 | A test fails when `ScanRefresh`'s effect drops its cleanup | no | confirmed | That mutation, and a no-op cleanup, each fail `scan-refresh-effect.test.tsx` |
+| c2a | A test fails when the effect doesn't call `router.refresh` | no | confirmed | `startRefreshing(() => {})` → fails |
+| c2b | A test fails when `<ScanRefresh />` is removed from the waiting branch | no | confirmed | → "says it's scanning while queued or running" fails |
+| c2c | A test fails when the interval changes | no | confirmed | `everyMs * 2`, a fixed `1000` and `REFRESH_EVERY_MS = 10_000` each fail |
+| c2d | The new test isn't vacuous | no | confirmed | With the `useEffect` call deleted it fails |
+| c2e | The checks pass on the unmodified tree | no | confirmed | 86 review tests, 20 db tests, 367 i18n tests, typecheck and lint pass |
+
+**Overall:** met: with the first pass's confirmed rows and these re-checks, every claim of task 7 holds.

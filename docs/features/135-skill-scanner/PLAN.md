@@ -56,7 +56,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   without a supported provider, and audited (`settings.skill_scan`). Messages in three languages.
   *Done when:* db tests for the service and the refusal, a page test, and the i18n parity tests pass.
 
-- [ ] **7. Review panel.** The Security scan panel on the review page (data from `review-page.ts`):
+- [x] **7. Review panel.** The Security scan panel on the review page (data from `review-page.ts`):
   the states, the findings table with links to file lines, and plain-text rendering. Messages in
   three languages. Then the end-to-end test.
   *Done when:* component tests for each state and for a finding containing HTML pass, and a

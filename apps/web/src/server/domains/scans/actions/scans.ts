@@ -1,9 +1,11 @@
 import { loadConfig } from "../../../config";
 import { kickSkillScans } from "../../../jobs/scheduler";
 import { getCurrentUser } from "../../identity/actions/session";
+import { can } from "../../identity/models/permissions";
 import { type AppAuth, getAppAuth } from "../../identity/repositories/auth-instance";
 import { kyselySettingsRepository } from "../../settings/repositories/kysely-settings-repository";
 import { skillScanPolicy } from "../../settings/services/settings";
+import type { ContentScan } from "../repositories/content-scan-repository";
 import { kyselyContentScanRepository } from "../repositories/kysely-content-scan-repository";
 import { parseScannerCommand } from "../services/command-scanner";
 import * as service from "../services/scans";
@@ -54,4 +56,34 @@ export const requestScan = async (
   );
   if (queued) kickSkillScans();
   return queued;
+};
+
+/** What the review page's Security scan panel shows for a revision (135). */
+export type ReviewScan = {
+  /** The revision's newest scan, or null when it has none. */
+  scan: ContentScan | null;
+  /** Root, with a scanner command set, and the newest scan failed or there is none. */
+  canRequest: boolean;
+};
+
+/**
+ * The scan of the revision the review page shows. The page has already checked the viewer may see
+ * the submission; this only reads the scan, and whether root may ask for one.
+ */
+export const reviewScan = async (
+  headers: Headers,
+  revisionId: string | null,
+  app: AppAuth = getAppAuth(),
+): Promise<ReviewScan> => {
+  if (!revisionId) return { scan: null, canRequest: false };
+  const scan =
+    (await kyselyContentScanRepository(app.db, app.dialect).latestFor([revisionId])).get(
+      revisionId,
+    ) ?? null;
+  const root = can(await getCurrentUser(headers, app), "settings.manage");
+  const configured = parseScannerCommand(loadConfig().skillScanner?.command) !== null;
+  return {
+    scan,
+    canRequest: root && configured && (scan === null || scan.status === "failed"),
+  };
 };

@@ -20,10 +20,12 @@ import { ProposalChanges } from "@/features/reviews/ProposalChanges";
 import { PublishDialog } from "@/features/reviews/PublishDialog";
 import { ReviewAllFiles, ReviewChanges } from "@/features/reviews/ReviewFiles";
 import { releaseGroupFor } from "@/features/reviews/release-group";
+import { ScanPanel } from "@/features/reviews/ScanPanel";
 import { versionsPath } from "@/features/versions/links";
 import { pageTitle } from "@/i18n/page-title";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
 import { canInSomeShared } from "@/server/domains/identity/models/permissions";
+import { reviewScan } from "@/server/domains/scans/actions/scans";
 import { getReview, type ReviewView } from "@/server/domains/submissions/actions/reviews";
 import { dependencyMarks } from "@/server/domains/submissions/actions/submissions";
 import { SubmissionNotFoundError } from "@/server/domains/submissions/exceptions/errors";
@@ -96,6 +98,9 @@ const Review = async ({
       ? asked
       : defaultView;
   const base = `/reviews/${submission.id}`;
+  // The Security scan of the revision shown (135); the review itself already checked access.
+  const latestRevisionId = review.revisions.at(-1)?.id ?? null;
+  const scanView = await reviewScan(request, latestRevisionId);
   const viewHref = (v: string) => (v === defaultView ? base : `${base}?view=${v}`);
   // What's released: `.ronne/` (the canvas layout) is the editor's, not the reviewer's (058).
   const files = current
@@ -185,6 +190,13 @@ const Review = async ({
       <DependencyMarksNotice marks={marks} />
 
       <RiskSummary flags={review.flags} base={base} />
+
+      <ScanPanel
+        view={scanView}
+        base={base}
+        revisionId={latestRevisionId}
+        submissionId={submission.id}
+      />
 
       {current ? (
         <section aria-labelledby="files" className="grid gap-3">
