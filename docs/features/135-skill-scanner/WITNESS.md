@@ -90,3 +90,47 @@ Witnessed: 2026-10-28 12:46 EDT, by a fresh agent (blind). Commit: 19a4a00d (plu
 | 7 | Spot-check: fixtures, LLM refusal, paths, export | no | confirmed | `spot.ts`: the three fixtures parse as recorded and are refused as semantic; hostile paths → null; `index.ts` exports |
 
 **Overall:** met: with the re-check, every claim holds: real fixtures, the export, refusals, the LLM checks, sorting and caps, field dropping, paths, column fit, and cleaning that matches its doc comment for every code point.
+
+## Task 3 — Migration
+
+Witnessed: 2026-10-28 12:21 EDT, by a fresh agent (blind). Commit: 6e8b39e2 + uncommitted diff. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The migration's db test passes on SQLite | no | confirmed | `pnpm --filter @ronneai/web exec vitest run --project db src/server/db/migrations/0038_content_scans.db.test.ts` → 1 file, 5 passed |
+| 2 | The same on PostgreSQL 15, MySQL 8.4 and MariaDB 10.11 | no | confirmed | `pnpm test:db:postgres -- <file>`, `:mysql`, `:mariadb` (containers already up) → 5 passed on each |
+| 3 | The guard test passes, and the FK is table-level, not inline | no | confirmed | `vitest run src/server/db/migrations/migrations.guard.test.ts` → 39 passed. `0038_content_scans.ts` uses `.addForeignKeyConstraint("content_scans_revision_id_fk", …)`. Mutation in a scratch copy (inline `.references(...)`) → guard fails |
+| 4 | Columns match the spec's Data section (all 20, nullability; attempts and findings_omitted not null, default 0) | no | confirmed | `information_schema.columns` / `pragma table_info` on all four → id, revision_id, scanner, status, queued_at not null; attempts, findings_omitted not null default 0; 13 others nullable. `complete` boolean/tinyint/INTEGER; `findings` longtext on MySQL/MariaDB; timestamps timestamptz/datetime/TEXT. Insert without `scanner` rejected |
+| 5 | revision_id → submission_revisions, ON DELETE CASCADE; unknown revision refused | no | confirmed | db test "goes with its revision" checks `foreignKeys()` = CASCADE and the delete, on all four. Mutation (cascade removed) → that test fails on SQLite. "refuses a scan of a revision that doesn't exist" passes on all four |
+| 6 | Indexes on (status, queued_at) and on revision_id | no | confirmed | Probe → `content_scans_status_idx (status, queued_at)` and `content_scans_revision_idx (revision_id, queued_at)` on all four; revision_id leads the composite index, so it covers the spec's "on revision_id" |
+| 7 | Several rows per revision allowed, ordered by queued_at | no | confirmed | db test "keeps several scans of one revision" → 2 rows in queued_at order on all four; no unique constraint on revision_id |
+| 8 | Findings larger than MySQL's 64 KB `text` are stored whole | no | confirmed | db test stores 200×500-character findings (>65,535) and reads them back exactly on all four. Mutation `longText()` → `text()` → that test fails on MySQL |
+| 9 | Registered and safe to re-run | no | confirmed | `migrations/index.ts` adds `"0038_content_scans": contentScans` after 0037. Calling `up()` again on a migrated database → no error, still 3 indexes on all four |
+| 10 | `ContentScanTable` matches the columns and is in `Database`; typecheck passes | no | confirmed | All 20 columns with matching nullability, `Generated<number>` for the two defaulted counts, `content_scans: ContentScanTable` in `Database`. `pnpm --filter @ronneai/web typecheck` → exit 0 |
+
+**Overall:** met: table, FK cascade, indexes and types hold on SQLite, PostgreSQL, MySQL and MariaDB; the guard test passes; mutations show the tests catch a missing cascade, MySQL's `text` limit and an inline reference.
+
+### Adversarial pass
+
+An earlier adversarial pass (12:29 EDT) was not met: `scanner_version` (64) and `llm_model` (128) were
+narrower than what the parser and `scanProvider` let through. The parser now refuses a version over 64
+code points, `scanProvider` cuts the model to 128, and the db test writes the longest values, multi-byte.
+
+Witnessed: 2026-10-28 12:40 EDT, by a fresh agent (adversarial). Commit: 19a4a00d (plus the uncommitted working tree). Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The migration's db test passes on all four databases | no | confirmed | `vitest run --project db …/0038_content_scans.db.test.ts` with `TEST_DATABASE_URL` unset, then PG 15, MySQL 8.4, MariaDB 10.11 → `6 passed (6)` on each |
+| 2 | The guard test passes and covers 0038 | no | confirmed | `migrations.guard.test.ts` → 39 passed. Mutation: inline `.references(...)` in 0038 → the guard fails |
+| 3 | Every Data-section column exists, and `ContentScanTable` matches | no | confirmed | `diff` of `addColumn` names against `ContentScanTable` keys → match; all 20 columns; `tsc --noEmit` exit 0 |
+| 4 | Registered in `migrations/index.ts` | no | confirmed | `index.ts:83`. Mutation removing it → 5 of 6 db tests fail |
+| 5 | Cascade to `submission_revisions`; a missing revision refused | no | confirmed | Deleting the submission or the revision removes the scans on all four. Mutation without cascade → "goes with its revision" fails |
+| 6 | Everything the real writers produce fits, multi-byte included (`parseSkillScan` → `finish`) | no | confirmed | Probe with the real `parseSkillScan`, `scanProvider` and repository on 1,000 hostile issues (700 😀 ids, quotes, backslashes, 模, 497-character paths, line 2147483647, score 99.5) → 200 findings, 800 omitted, 1,422,201 bytes of JSON read back equal on all four. Mutation `findings` as `text` → fails on MariaDB |
+| 7 | `scanner_version` holds the parser's longest (64 code points, astral too) | no | confirmed | 64×😀 round-trips on all four; 65 ASCII → refused on PG, MySQL and MariaDB (strict). Mutation varchar(63) → test fails |
+| 8 | `llm_model` (128) and `llm_provider` (32) hold what `scanProvider` writes | no | confirmed | Model of 400×😀 → 128×😀, read back on all four; `openai_compatible` (17) fits; 129 → refused on the servers. Mutation varchar(127) → test fails |
+| 9 | `error` (64) holds every `ScanError` | no | confirmed | Every reason, including `exit -1.7976931348623157e+308` (28 characters), stored exactly on all four; the two newer reasons are 19 and 12 characters |
+| 10 | Integer and boolean columns round-trip | no | confirmed | `complete` false → false; score 99.5 → 100; `findings_omitted` and `attempts` take 2147483647 on all four |
+| 11 | Rerun after a partial failure is safe; both indexes exist | no | confirmed | `up()` again, then with one and both indexes dropped → exactly the two indexes on all four (`mysqlHasIndex` skips existing ones) |
+| 12 | Restore naming (`_at` only for timestamps) and newest-last ordering | no | confirmed | `restore.db.test.ts -t naming` passes on PG, MySQL, MariaDB; mutations `finished_at`→`finished` and `llm_note`→`llm_note_at` fail it. Ties on `queued_at` go to the newer ULID on all four |
+
+**Overall:** met: types, cascade, indexes and rerun safety hold on all four databases; every value the writers produce fits, astral characters included; each test fails under its mutation.

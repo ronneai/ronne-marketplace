@@ -35,6 +35,7 @@ import { userOnboarding } from "./0034_user_onboarding";
 import { feedback } from "./0035_feedback";
 import { passwordChangeRequired } from "./0036_password_change_required";
 import { itemMoves } from "./0037_item_moves";
+import { contentScans } from "./0038_content_scans";
 import type { AppMigration } from "./types";
 
 /**
@@ -79,4 +80,5 @@ export const migrations: Record<string, AppMigration> = {
   "0035_feedback": feedback,
   "0036_password_change_required": passwordChangeRequired,
   "0037_item_moves": itemMoves,
+  "0038_content_scans": contentScans,
 };

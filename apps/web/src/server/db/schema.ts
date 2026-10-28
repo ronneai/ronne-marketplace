@@ -625,6 +625,40 @@ export interface ItemNameHistoryTable {
   created_at: Timestamp;
 }
 
+/**
+ * The security scan of a submission revision (migration 0038_content_scans, feature 135). The
+ * result columns are null until it's done; `error` is set when it failed.
+ */
+export interface ContentScanTable {
+  id: string;
+  revision_id: string;
+  scanner: "skillspector";
+  scanner_version: string | null;
+  status: "queued" | "running" | "done" | "failed";
+  /** Times the job has started it: a stuck `running` scan is queued again once. */
+  attempts: Generated<number>;
+  score: number | null;
+  severity: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL" | null;
+  recommendation: "SAFE" | "CAUTION" | "DO_NOT_INSTALL" | null;
+  /** False when the scanner analysed only part of the files. */
+  complete: DbBoolean | null;
+  /** What ran: `semantic` only when the LLM analysis was asked for and ran (null until done). */
+  analysis: "static" | "semantic" | null;
+  /** `unavailable` when semantic analysis was asked for and the LLM didn't run. */
+  llm_note: "unavailable" | null;
+  /** The provider and model the operator set, for a semantic scan. */
+  llm_provider: string | null;
+  llm_model: string | null;
+  /** JSON: `SkillScanFinding[]` from `@ronneai/core`. */
+  findings: string | null;
+  findings_omitted: Generated<number>;
+  /** A short reason Ronne writes (`timeout`, `exit 2`, `invalid report`), never the scanner's output. */
+  error: string | null;
+  queued_at: Timestamp;
+  started_at: Timestamp | null;
+  finished_at: Timestamp | null;
+}
+
 /** Kysely table types for the whole app. Each migration that adds a table adds its interface here. */
 export interface Database {
   user: UserTable;
@@ -652,6 +686,7 @@ export interface Database {
   submission_files: SubmissionFileTable;
   submission_revisions: SubmissionRevisionTable;
   submission_revision_files: SubmissionRevisionFileTable;
+  content_scans: ContentScanTable;
   review_events: ReviewEventTable;
   items: ItemTable;
   item_aliases: ItemAliasTable;

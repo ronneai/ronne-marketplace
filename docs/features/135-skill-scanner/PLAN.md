@@ -27,7 +27,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* its Vitest suite passes on the fixtures and on bad input (missing fields, wrong types,
   huge strings, 10k findings).
 
-- [ ] **3. Migration.** [risky] `content_scans` as the spec's Data section says, with Kysely types in
+- [x] **3. Migration.** [risky] `content_scans` as the spec's Data section says, with Kysely types in
   `db/schema.ts`. The settings are rows of `instance_settings`, so they need no migration (task 5
   reads them, task 6 writes them).
   *Done when:* the migration's db test passes on the four databases, and the guard test passes.
