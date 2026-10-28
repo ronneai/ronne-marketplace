@@ -34,6 +34,7 @@ import { pinsAndFavorites } from "./0033_pins_and_favorites";
 import { userOnboarding } from "./0034_user_onboarding";
 import { feedback } from "./0035_feedback";
 import { passwordChangeRequired } from "./0036_password_change_required";
+import { itemMoves } from "./0037_item_moves";
 import type { AppMigration } from "./types";
 
 /**
@@ -77,4 +78,5 @@ export const migrations: Record<string, AppMigration> = {
   "0034_user_onboarding": userOnboarding,
   "0035_feedback": feedback,
   "0036_password_change_required": passwordChangeRequired,
+  "0037_item_moves": itemMoves,
 };

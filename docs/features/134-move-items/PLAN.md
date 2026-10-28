@@ -9,9 +9,10 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 ## Tasks
 
-- [ ] **1. Migration.** [risky] `item_moves` and `item_name_history` as the spec's Data section
-  says (cascades with the item and the target scope; `requested_by` and `decided_by` set null when
-  a user is deleted); the backfill from `item_aliases`, with 115's `scope_moves` matched by scope
+- [x] **1. Migration.** [risky] `item_moves` and `item_name_history` as the spec's Data section
+  says (`item_moves` as 115's `scope_moves`: it goes with its item, its target scope and
+  its asker, the source scope and the answerer set null; `item_name_history` goes with its item,
+  both people set null); the backfill from `item_aliases`, with 115's `scope_moves` matched by scope
   and timestamp where it can be. Kysely types in `db/schema.ts`.
   *Done when:* the migration's db test (a backfill with migration, move and rename aliases, a
   scope moved and moved back) passes on the four databases; the guard test passes.
