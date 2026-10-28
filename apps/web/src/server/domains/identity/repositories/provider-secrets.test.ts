@@ -13,6 +13,12 @@ describe("identity provider secrets", () => {
     expect(decryptSecret(AUTH_SECRET, "acme", stored)).toBe(SECRET);
   });
 
+  it("still opens a value sealed before the shared helper (136): the format is unchanged", () => {
+    // Sealed by 106's own provider-secrets.ts, before it moved onto crypto/sealed.ts.
+    const stored = "v1.Sk5P7DzBf55MMOkE.5JAlhSFzkdl6Z294-wi3j2OXNvaFVyGVp6B7mkQKuhxWkXc";
+    expect(decryptSecret(AUTH_SECRET, "acme", stored)).toBe(SECRET);
+  });
+
   it("uses a fresh nonce for every value", () => {
     const one = encryptSecret(AUTH_SECRET, "acme", SECRET);
     const two = encryptSecret(AUTH_SECRET, "acme", SECRET);

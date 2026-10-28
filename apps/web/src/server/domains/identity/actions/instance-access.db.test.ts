@@ -3,6 +3,7 @@ import { toDbDate } from "../../../db/dates";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
 import { requireToken } from "../../../http/require-token";
 import { listAuditEvents } from "../../audit/actions/audit";
+import { openSetting, sealSetting } from "../../settings/models/instance-secrets";
 import { UserNotFoundError } from "../exceptions/errors";
 import type { AppAuth } from "../repositories/auth-instance";
 import { kyselyScimTokenRepository } from "../repositories/kysely-scim-token-repository";
@@ -309,7 +310,14 @@ describe("rotate-secret's sessions (098)", () => {
       await endSessionsForNewSecret(t.db, t.dialect, () => {
         wrote = true;
       }),
-    ).toEqual({ sessions: 2, twoFactorCleared: 0, providerSecrets: 0, unreadable: 0 });
+    ).toEqual({
+      sessions: 2,
+      twoFactorCleared: 0,
+      providerSecrets: 0,
+      settingSecrets: 0,
+      unreadable: 0,
+      settingUnreadable: 0,
+    });
 
     expect(wrote).toBe(true);
     expect(await signedIn(root)).toBe(false);
@@ -348,5 +356,66 @@ describe("rotate-secret's sessions (098)", () => {
     expect(await signedIn(ada)).toBe(true);
     const restarted = testAppAuth(t, { secret: "a-new-secret-a-new-secret-a-new-secret-01" });
     expect(await getCurrentUser(ada, restarted)).toBeNull();
+  });
+});
+
+describe("rotate-secret's instance setting secrets (136)", () => {
+  const OLD_SECRET = "old-secret-old-secret-old-secret-0001";
+  const NEW_SECRET = "new-secret-new-secret-new-secret-0002";
+  const setting = (key: string, value: string) =>
+    t.db
+      .insertInto("instance_settings")
+      .values({ key, value, updated_by: null, updated_at: toDbDate(new Date(), t.dialect) })
+      .execute();
+  const stored = async (key: string) =>
+    (
+      await t.db
+        .selectFrom("instance_settings")
+        .select("value")
+        .where("key", "=", key)
+        .executeTakeFirstOrThrow()
+    ).value;
+
+  it("re-seals the scan key under the new AUTH_SECRET, audited by count, never the key", async () => {
+    await setting("skill_scan_key_enc", sealSetting(OLD_SECRET, "skill_scan_key_enc", "sk-1"));
+    await setting("skill_scan_model", "gpt-x");
+    // Not sealed by this instance: left as it was, and counted unreadable.
+    const foreign = sealSetting("someone-else-someone-else-000000", "other_key_enc", "x");
+    await setting("other_key_enc", foreign);
+    await setting("empty_enc", "");
+
+    const counts = await endSessionsForNewSecret(t.db, t.dialect, () => {}, {
+      from: OLD_SECRET,
+      to: NEW_SECRET,
+    });
+
+    expect(counts).toMatchObject({ settingSecrets: 1, settingUnreadable: 1, unreadable: 0 });
+    expect(openSetting(NEW_SECRET, "skill_scan_key_enc", await stored("skill_scan_key_enc"))).toBe(
+      "sk-1",
+    );
+    expect(await stored("skill_scan_model")).toBe("gpt-x");
+    expect(await stored("other_key_enc")).toBe(foreign);
+    expect(await stored("empty_enc")).toBe("");
+    const [event] = (await listAuditEvents(t.db, t.dialect, {})).events.filter(
+      (e) => e.action === "instance.secret_rotated",
+    );
+    expect(event?.metadata).toMatchObject({ settingSecretsReencrypted: 1 });
+    expect(JSON.stringify(event)).not.toContain("sk-1");
+  });
+
+  it("changes no setting when writing the new secret fails", async () => {
+    const sealed = sealSetting(OLD_SECRET, "skill_scan_key_enc", "sk-1");
+    await setting("skill_scan_key_enc", sealed);
+    await expect(
+      endSessionsForNewSecret(
+        t.db,
+        t.dialect,
+        () => {
+          throw new Error("disk full");
+        },
+        { from: OLD_SECRET, to: NEW_SECRET },
+      ),
+    ).rejects.toThrow("disk full");
+    expect(await stored("skill_scan_key_enc")).toBe(sealed);
   });
 });

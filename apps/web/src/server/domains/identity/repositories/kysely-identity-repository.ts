@@ -519,6 +519,22 @@ export const kyselyIdentityRepository = (
         .execute();
     },
 
+    async instanceSecrets() {
+      // A few rows: filtered here, as LIKE's `_` and its escaping differ between the dialects.
+      const rows = await db.selectFrom("instance_settings").select(["key", "value"]).execute();
+      return rows
+        .filter((r) => r.key.endsWith("_enc") && r.value !== "")
+        .map((r) => ({ key: r.key, valueEnc: r.value }));
+    },
+
+    async setInstanceSecret(key, valueEnc) {
+      await db
+        .updateTable("instance_settings")
+        .set({ value: valueEnc })
+        .where("key", "=", key)
+        .execute();
+    },
+
     async setPassword(userId, passwordHash, now) {
       await forUpdate(
         db.selectFrom("user").select("id").where("id", "=", userId),

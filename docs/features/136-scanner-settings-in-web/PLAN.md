@@ -14,7 +14,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - `docs/features/README.md` lists 136 in M20.
   - *Done when:* the docs say this, and `pnpm witness:check` passes.
 
-- [ ] **2. Encryption for instance secrets.** [risky]
+- [x] **2. Encryption for instance secrets.** [risky]
   - Generalise `provider-secrets.ts` into a helper for any instance secret (its own HKDF `info`,
     the associated data), keeping identity providers' format and tests unchanged.
   - `rotate-secret` re-encrypts the scan key too.
@@ -51,3 +51,9 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* the docs render tests pass, and every new helper's link lands on a real section.
 
 ## Notes
+
+- **For task 4 (from task 2's adversarial pass):** `rotate-secret` reads the `_enc` settings without
+  a lock, as it does identity providers' secrets. A key saved in the web while it runs could be
+  overwritten by the old key, re-sealed. The save path should make this impossible or harmless
+  (lock the row, or compare before writing).
+- `open` accepts only strict base64url parts: Node.js's decoder would skip stray characters.

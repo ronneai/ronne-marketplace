@@ -14,6 +14,7 @@ const database = vi.hoisted(() => ({
   inPlaceComplete: false,
   writeFails: undefined as string | undefined,
   url: undefined as string | undefined,
+  counts: {} as Record<string, number>,
 }));
 vi.mock("../db/create-db", () => ({
   createDb: (url: string) => {
@@ -43,7 +44,7 @@ vi.mock("../domains/identity/actions/instance-access", () => ({
   endSessionsForNewSecret: async (_db: unknown, _dialect: unknown, writeSecret: () => void) => {
     writeSecret();
     if (database.fails) throw new Error("the commit failed");
-    return 3;
+    return { sessions: 3, ...database.counts };
   },
 }));
 
@@ -61,6 +62,7 @@ beforeEach(() => {
   database.inPlaceComplete = false;
   database.writeFails = undefined;
   database.url = undefined;
+  database.counts = {};
 });
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
@@ -91,6 +93,23 @@ describe("runRotateSecret (098)", () => {
     );
   });
 
+  it("says how many secrets in Admin › Settings were re-encrypted, and which to enter again (136)", async () => {
+    database.counts = { settingSecrets: 1 };
+    await rotate({ RONNE_RUNTIME: "docker" });
+    expect(lines.join("\n")).toContain(
+      "Re-encrypted 1 secret in Admin › Settings, such as the security scan's API key: they keep working.",
+    );
+    expect(lines.join("\n")).not.toContain("already unreadable");
+
+    lines = [];
+    database.counts = { settingSecrets: 0, settingUnreadable: 2 };
+    await rotate({ RONNE_RUNTIME: "docker" });
+    expect(lines.join("\n")).toContain(
+      "2 secrets in Admin › Settings were already unreadable (an older AUTH_SECRET): enter them again there",
+    );
+    expect(lines.join("\n")).not.toContain("Re-encrypted");
+  });
+
   it("a database failing after the file is written: says so, with the host's commands", async () => {
     database.fails = true;
     await expect(rotate({ RONNE_RUNTIME: "docker" })).rejects.toThrow(
@@ -104,6 +123,10 @@ describe("runRotateSecret (098)", () => {
     // Nor were the identity providers' client secrets re-encrypted (106).
     await expect(rotate({ RONNE_RUNTIME: "docker" })).rejects.toThrow(
       "The identity providers' client secrets weren't re-encrypted either: enter each one again on its provider's page.",
+    );
+    // Nor the secrets in Admin › Settings (136).
+    await expect(rotate({ RONNE_RUNTIME: "docker" })).rejects.toThrow(
+      "Nor were the secrets in Admin › Settings, such as the security scan's API key: enter them again there.",
     );
     await expect(rotate({ RONNE_RUNTIME: "npm", RONNE_SERVICE: "1" })).rejects.toThrow(
       "Run `sudo rmk-server revoke-access --everyone --sessions-only`.",

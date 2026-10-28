@@ -1,5 +1,6 @@
 import type { Db } from "../../../db/create-db";
 import type { DatabaseDialect } from "../../../db/url";
+import { resealSetting } from "../../settings/models/instance-secrets";
 import { ProviderSecretUnreadableError } from "../exceptions/errors";
 import { kyselyIdentityRepository } from "../repositories/kysely-identity-repository";
 import { decryptSecret, encryptSecret } from "../repositories/provider-secrets";
@@ -44,6 +45,7 @@ export const endSessionsForNewSecret = (
           }
         }
       : undefined,
+    secrets ? (key, stored) => resealSetting(secrets.from, secrets.to, key, stored) : undefined,
   );
 
 export const clearTwoFactorAfterRestore = (
