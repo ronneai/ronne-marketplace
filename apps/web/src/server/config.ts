@@ -35,6 +35,8 @@ export type AppConfig = {
   skillScanner?: {
     command?: string;
     timeout?: string;
+    /** RONNE_SKILL_SCANNER_HTTP_HOSTS (136): hosts a web-set endpoint may use despite the checks. */
+    httpHosts?: string;
     env: Record<string, string>;
   };
 };
@@ -76,6 +78,7 @@ export const loadConfig = (options: { appDir?: string; env?: Env } = {}): AppCon
     skillScanner: {
       command: value("RONNE_SKILL_SCANNER"),
       timeout: value("RONNE_SKILL_SCANNER_TIMEOUT"),
+      httpHosts: value("RONNE_SKILL_SCANNER_HTTP_HOSTS"),
       env: withPrefix("RONNE_SKILL_SCANNER_ENV_"),
     },
   };

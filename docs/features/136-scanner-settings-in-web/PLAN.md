@@ -22,11 +22,11 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     doesn't decrypt), another `AUTH_SECRET`, and damaged values; the rotate-secret db test covers
     the scan key on the four databases.
 
-- [ ] **3. Endpoint checks.** [risky]
+- [x] **3. Endpoint checks.** [risky]
   - `https://` only.
   - Resolve the host and refuse private, loopback, link-local and metadata addresses (IPv4 and
     IPv6, mapped addresses included) unless allowed by `RONNE_SKILL_SCANNER_HTTP_HOSTS`.
-  - Used on save and at scan time.
+  - Used on save and at scan time (wired in task 4, where the save and the job's provider are built).
   - *Done when:* unit tests with a fake resolver cover each address class, a hostname that resolves
     to a private address, userinfo and odd URL forms.
 
@@ -57,3 +57,10 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   overwritten by the old key, re-sealed. The save path should make this impossible or harmless
   (lock the row, or compare before writing).
 - `open` accepts only strict base64url parts: Node.js's decoder would skip stray characters.
+- **For task 4 (from task 3's passes):**
+  - store and pass `checkEndpoint`'s `url.href`, never the typed value, with a test;
+  - Test connection connects only to the addresses the check resolved (a `lookup` that returns
+    them) and follows no redirects;
+  - an allowed host is allowed on any port, and an entry with a port, a scheme or a wildcard never
+    matches: the install guide and knowledge note say entries are bare host names or addresses.
+

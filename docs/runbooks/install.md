@@ -316,7 +316,10 @@ submission for hidden instructions, credential access, exfiltration and obfuscat
 its findings to reviewers. Ronne doesn't ship it: install it at the pinned version, name its command
 in `RONNE_SKILL_SCANNER`, restart Ronne, then turn it on in Admin › Settings › Security scan.
 [`skill-scanner.md`](../knowledge/skill-scanner.md) has the install, the container wrapper and the
-rules it follows. Installs without Docker only, for now.
+rules it follows. Installs without Docker only, for now. NVIDIA's own pages:
+[Scanning agent skills](https://docs.nvidia.com/skills/scanning-agent-skills) (what it checks, how to
+run it) and [NVIDIA/SkillSpector](https://github.com/NVIDIA/SkillSpector) (the source, its releases
+and licence).
 
 **Uninstall:** `docker compose down` in the `ronne-marketplace` folder (add `-v` only to delete all
 data), or `sudo apt remove rmk-server` or `sudo dnf remove rmk-server` (the data stays). Your data

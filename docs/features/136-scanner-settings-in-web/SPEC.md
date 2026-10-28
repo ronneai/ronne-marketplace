@@ -34,7 +34,13 @@ command runs anything on the server, and that would reach every secret Ronne hol
   - private, loopback, link-local and metadata addresses (for example `169.254.169.254`) are refused
     unless the operator allows them in the same list, so the field can't be used to reach internal
     services;
-  - checked when saved and again when a scan starts (DNS can change).
+  - checked when saved and again when a scan starts (DNS can change), and stored as checked (the
+    normalised URL), never as typed; backslashes, spaces and control characters are refused, as
+    other URL parsers read them differently;
+  - **the limit:** the scanner looks the host up again itself, so a name whose DNS answer changes
+    between Ronne's check and that lookup (DNS rebinding) isn't covered. Only an egress proxy or
+    firewall the operator runs closes that; the docs say so. Test connection, which Ronne makes
+    itself, connects only to the addresses it checked and follows no redirects.
 - **The command, chosen from the operator's list:**
   - `RONNE_SKILL_SCANNERS`: a JSON array of allowed commands, each a JSON array as 135's
     `RONNE_SKILL_SCANNER` is (absolute path, no shell);
@@ -113,6 +119,9 @@ fails the scan with a new short reason, `endpoint refused`.
 - **Backups** (`backups`): a full backup can decrypt stored keys, as it can identity providers'.
 - **Install guide** and `docs/knowledge/skill-scanner.md`: `RONNE_SKILL_SCANNERS` and the host
   allowlist, beside 135's variables.
+- **Where to get SkillSpector** (owner, 2026-10-28): the Settings topic, the install guide and the
+  knowledge note link NVIDIA's guide (`docs.nvidia.com/skills/scanning-agent-skills`), its
+  repository (`github.com/NVIDIA/SkillSpector`), and the website links Ronne's install note.
 - **Helpers:** the key field, "How is the key kept?" → `settings#security-scan`.
 
 ## Acceptance criteria
