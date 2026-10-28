@@ -43,8 +43,9 @@ aliases and 115's requests make it safe now.
   or anyone who could answer it; approved or declined (optional reason). On the Requests page and
   the workspace's Requests tab (094, 115), counted in the nav.
 - **The move itself:** one transaction under the item's release lock: the item's scope, its alias,
-  its open work renamed (its own drafts and change proposals, and other drafts and submissions
-  that depend on it: 113's rewrite), a history entry, the request closed, the catalogue revision
+  its open work renamed (its own drafts and change proposals, and the workspace's other drafts
+  and submissions that depend on it: 113's rewrite; open work in other workspaces keeps the old
+  name, which resolves through the alias), a history entry, the request closed, the catalogue revision
   raised (079), `item.moved` audited.
 - **History** (owner, 2026-10-27): a **History** tab on the item page lists every name the item
   has had and how each changed: moved to another scope (this feature), its scope moved to another
@@ -74,7 +75,7 @@ until the next request.
 2. **What it changes**, as soon as a scope is picked: the new name (`@acme/infra/deploy` →
    `@acme/devops/deploy`); that the old name keeps working and `rmk` moves projects to the new one;
    that in Claude Code it shows as a new plugin, with "Moved from" for 30 days (118); its open
-   drafts and proposals, and other people's open work that depends on it, take the new name. A
+   drafts and proposals, and the workspace's open work that depends on it, take the new name. A
    clash (above) is shown with the reason and disables the button. Other people's drafts are
    counted, never named (only root sees them).
 3. **Message** (optional), when it will be a request.

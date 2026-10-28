@@ -21,7 +21,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   `item_name_history` row per item, in their transactions, with who asked and approved.
   *Done when:* their db tests assert the rows; nothing else in them changes.
 
-- [ ] **3. The checks.** `itemMoveImpact(item, targetScope, viewer)`: the target is another scope
+- [x] **3. The checks.** `itemMoveImpact(item, targetScope, viewer)`: the target is another scope
   of the same workspace, the new name, the clashes (an item, an open new-item submission, another
   item's alias; this item's own alias is fine), the open work that will be renamed (others'
   drafts counted, not named).

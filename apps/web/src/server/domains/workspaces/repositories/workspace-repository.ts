@@ -358,7 +358,32 @@ export interface WorkspaceRepository {
   standing(userId: string, workspaceId: string): Promise<{ root: boolean; admin: boolean } | null>;
   /** Whether the user, not disabled, is root or an admin of the workspace (a move's asker). */
   canStillMove(userId: string, workspaceId: string): Promise<boolean>;
+
+  // Moving an item to another scope of its workspace (134).
+  /** The item with its scope and workspace, or null when there's none with that id. */
+  itemForMove(itemId: string): Promise<ItemForMove | null>;
+  /** Whether the scope has an item with this name, byte for byte. */
+  itemNamedIn(scopeId: string, name: string): Promise<boolean>;
+  /**
+   * Whether the scope has an open submission (submitted, changes requested or approved) of a new
+   * item with this name, byte for byte: it would take the name at release.
+   */
+  newItemSubmittedIn(scopeId: string, name: string): Promise<boolean>;
+  /** The open submissions of these ids, with their author, status and the item they change. */
+  submissionsAbout(
+    ids: readonly string[],
+  ): Promise<ReadonlyMap<string, { authorId: string; status: string; itemId: string | null }>>;
 }
+
+/** An item as moving it to another scope reads it (134). */
+export type ItemForMove = {
+  id: string;
+  name: string;
+  type: string;
+  scopeId: string;
+  scopeName: string;
+  workspaceId: string;
+};
 
 /** Open work in a scope (115): who wrote it, and what it depends on. */
 export type ScopeWork = {

@@ -103,3 +103,37 @@ Witnessed: 2026-10-27 23:10 EDT, by a fresh agent (blind). Commit: 5a91ba44 + wo
 | 9 | The same on the three database servers | no | confirmed | Both files on SQLite (`vitest run --project db`) → 41 passed, 1 skipped; `pnpm test:db:postgres -- <both files>` → 42 passed; `:mysql` → 42 passed; `:mariadb` → 42 passed |
 
 **Overall:** met: the rename and move history rows are written in their transactions and checked by tests, including which way the names go, on all four databases.
+
+## Task 3 — The checks
+
+Witnessed: 2026-10-27 23:17 EDT, by a fresh agent (blind). Commit: e807d0ca + working tree (11 modified, 4 untracked). Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Root, and the workspace's moderators and admins, move at once (`way: "now"`); any other member gets a request; global's members are everyone | no | confirmed | `permissions.ts:57-60`: `items.move_ask` for user, moderator and admin, `items.move` for moderator and admin; "gives the new name…" covers root and mod (now) and ana (request); "writes global's names short" covers bob in global (request); `vitest run permissions.test.ts …` → 77 passed |
+| 2 | Someone outside the workspace, or an item that doesn't exist, gets the same not-found error | no | confirmed | `item-moves.ts:33-35` throws `ItemMoveItemNotFoundError` when the item is missing or `can(user,"items.move_ask")` fails; the test checks bob in acme and a random id; probe: bob and mod on ana's personal workspace → not found |
+| 3 | The target must be another scope of the same workspace | no | confirmed | `item-moves.ts:38-39`; "refuses a scope of another workspace…" covers all three; mutation M4 (drop the `workspaceId` check) → 1 failed of 9 |
+| 4 | The new name keeps the item's name in the target scope (`@acme/infra/deploy` → `@acme/devops/deploy`; `@tools/lint` → `@kit/lint` in global) | no | confirmed | tests, rows 1 and 2; probe: global move back → `newName: "@tools/lint"` |
+| 5 | Clashes: an item in the target scope (`item`); an open new-item submission (submitted, changes requested, approved), not a draft, withdrawn, rejected or another item's proposal (`submission`); another item's alias (`alias`) | no | confirmed | `item-moves.ts:70-76`, `kysely-item-moves.ts:42-63` (byte for byte); a test case for each; mutation M2 (drafts clash) → 1 failed; passes on all four databases |
+| 6 | This item's own alias doesn't clash, so it can move back | no | confirmed | `item-moves.ts:74` (`alias.itemId !== item.id`); mutation M1 (`true`) → 1 failed; a probe with a real moved state gave `clash: null, refused: false`. The task test only inserts the alias, never putting the item in its new scope |
+| 7 | The db tests cover `global`, a shared workspace and a personal workspace | no | not met | `grep -i personal item-move-checks.db.test.ts` → nothing. Mutation `if (!workspace \|\| workspace.ownerId) throw` in `itemMovePlaces` → still 9 passed. The behaviour is right by probe: ana `way: "now"` in her personal workspace, root `now`, others not found |
+| 8 | Open work: the item's own drafts and proposals counted; the workspace's dependent open work named; other people's drafts counted, not named, except for root; other workspaces' work and closed submissions left out | no | confirmed | `item-moves.ts:78-98`; "counts its own open work…" (ana `dependentsHidden: 1`, root 0 and `wip` named); mutation M3 (drop `&& !root`) → 1 failed; probe: a global draft hidden for bob, an acme submission depending on `@tools/lint` not listed |
+| 9 | Open work never refuses a move | no | confirmed | `refused: clash !== null` (`item-moves.ts:113`); "refuses nobody's move for open work" |
+| 10 | The same on all three database servers | no | confirmed | `pnpm test:db:postgres\|mysql\|mariadb -- …/item-move-checks.db.test.ts` → 9 passed on each; SQLite → 9 passed |
+| 11 | The ItemMove* errors have messages in en, pt and fr, with their placeholders | no | confirmed | `errors.json` ×3, lines 40-43; `workspace-errors.test.ts` cases for all four → passed |
+| 12 | Lint and types are clean | no | confirmed | `biome check` on the changed folders → no fixes; `tsc --noEmit -p apps/web` → exit 0 |
+
+**Overall:** not met: the checks are right on all four databases and in a personal workspace (by probe), but the task's db tests have no personal-workspace case, which the *Done when* requires.
+
+### Re-check (rows 6 and 7, and the changed test)
+
+Witnessed: 2026-10-27 23:21 EDT, by a fresh agent (blind). Commit: e807d0ca + working tree (only `item-move-checks.db.test.ts` changed since the last pass). Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6 | This item's own alias doesn't clash, so it can move back where it came from | no | confirmed | `item-move-checks.db.test.ts:262-278` moves the item to devops with its `@acme/infra/deploy` alias, then checks the move back to infra → `newName: "@acme/infra/deploy", clash: null, refused: false`. Mutation M1 (`alias.itemId !== item.id` → `true`) → 1 failed of 10 |
+| 7 | The db tests cover `global`, a shared workspace and a personal workspace | no | confirmed | New case at `item-move-checks.db.test.ts:179-193`: in ana's personal workspace, ana and root get `way: "now"`; mod and bob get `ItemMoveItemNotFoundError`. Mutation (`if (!workspace \|\| workspace.ownerId) throw …`) → 1 failed of 10; before, it passed 9 of 9 |
+| 10 | The changed test file passes on all four databases | no | confirmed | SQLite `vitest run --project db …item-move-checks.db.test.ts` → 10 passed; `pnpm test:db:postgres\|mysql\|mariadb -- …` → 10 passed on each |
+| 12 | The changed file is lint-clean | no | confirmed | `biome check` on the file → no fixes applied |
+
+**Overall:** met: rows 6 and 7 now hold. The personal-workspace case and the real move back both fail under their mutations and pass on SQLite, PostgreSQL, MySQL and MariaDB.

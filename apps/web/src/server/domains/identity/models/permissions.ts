@@ -54,6 +54,10 @@ export const WORKSPACE_PERMISSIONS = {
   "scopes.move": ["admin"],
   /** Pin items to the workspace's shelf and order them (feature 125). */
   "pins.manage": ["admin"],
+  /** Ask to move one of the workspace's items to another of its scopes (134). */
+  "items.move_ask": ["user", "moderator", "admin"],
+  /** Move an item to another scope at once, and answer others' requests to (134). */
+  "items.move": ["moderator", "admin"],
 } as const satisfies Record<string, readonly WorkspaceRole[]>;
 
 export type InstancePermission = keyof typeof INSTANCE_PERMISSIONS;

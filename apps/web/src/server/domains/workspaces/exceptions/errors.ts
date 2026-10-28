@@ -1,5 +1,6 @@
 import { NAME_MAX_LENGTH, NAME_PROBLEM_MESSAGES, type NameProblem } from "@ronneai/core";
 import { MESSAGE_FOR_PEOPLE } from "../../../log/message-for-people";
+import type { ItemMoveImpact } from "../models/item-move";
 import type { MoveImpact } from "../models/scope-move";
 
 /** Errors the workspaces domain raises (feature 090). Pages turn them into `ERR:` lines. */
@@ -290,5 +291,40 @@ export class InvalidScopeMoveTextError extends WorkspacesError {
   override readonly name: string = "InvalidScopeMoveTextError";
   constructor(readonly field: "message" | "reason") {
     super(`A move's ${field} has at most 500 characters.`);
+  }
+}
+
+/** An item the asker can't move, or one that isn't there (134): never told apart. */
+export class ItemMoveItemNotFoundError extends WorkspacesError {
+  override readonly name: string = "ItemMoveItemNotFoundError";
+  constructor() {
+    super("That item doesn't exist.");
+  }
+}
+
+/** A target that isn't another scope of the item's workspace (134). */
+export class ItemMoveScopeNotFoundError extends WorkspacesError {
+  override readonly name: string = "ItemMoveScopeNotFoundError";
+  constructor() {
+    super("That scope isn't in the item's workspace.");
+  }
+}
+
+/** Moving an item to the scope it's in already (134). */
+export class ItemMoveSameScopeError extends WorkspacesError {
+  override readonly name: string = "ItemMoveSameScopeError";
+  constructor(readonly scopeName: string) {
+    super(`The item is in ${scopeName} already.`);
+  }
+}
+
+/** The new name is taken (134): the checks' result, for the dialog to say why. */
+export class ItemMoveRefusedError extends WorkspacesError {
+  override readonly name: string = "ItemMoveRefusedError";
+  /** The name that's taken, for the message in the web app's languages. */
+  readonly newName: string;
+  constructor(readonly impact: ItemMoveImpact) {
+    super(`${impact.newName} is taken, so the item can't move there. Nothing moved.`);
+    this.newName = impact.newName;
   }
 }

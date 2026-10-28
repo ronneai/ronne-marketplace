@@ -8,6 +8,7 @@ import {
   SubmissionNotFoundError,
 } from "@/server/domains/submissions/exceptions/errors";
 import * as w from "@/server/domains/workspaces/exceptions/errors";
+import type { ItemMoveImpact } from "@/server/domains/workspaces/models/item-move";
 import type { MoveImpact } from "@/server/domains/workspaces/models/scope-move";
 import { inLocale } from "@/test/intl";
 import { errorText } from "./errors";
@@ -21,6 +22,7 @@ type L = "en" | "pt" | "fr";
 const text = (locale: L, error: Error) => inLocale(locale, () => errorText(error));
 
 const impact = {} as MoveImpact;
+const itemImpact = { newName: "@acme/devops/deploy" } as ItemMoveImpact;
 
 /** One of each class, with values that show up in the sentence. */
 const CASES: [Error, string[]][] = [
@@ -67,6 +69,10 @@ const CASES: [Error, string[]][] = [
   [new w.ScopeMoveAskerLostRoleError(), []],
   [new w.InvalidScopeMoveTextError("message"), ["500"]],
   [new w.InvalidScopeMoveTextError("reason"), ["500"]],
+  [new w.ItemMoveItemNotFoundError(), []],
+  [new w.ItemMoveScopeNotFoundError(), []],
+  [new w.ItemMoveSameScopeError("infra"), ["infra"]],
+  [new w.ItemMoveRefusedError(itemImpact), ["@acme/devops/deploy"]],
   [new NotAMemberError("acme"), ["acme"]],
   [new NotAMemberError("acme", "release"), ["acme"]],
   [new NotAMemberError("acme", "comment"), ["acme"]],

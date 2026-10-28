@@ -13,6 +13,7 @@ import { recordAudit } from "../../audit/actions/audit";
 import { isWorkspaceRole } from "../../identity/models/user";
 import type { Workspace, WorkspaceVisibility } from "../models/workspace";
 import { accessRequestMethods } from "./kysely-access-requests";
+import { itemMoveMethods } from "./kysely-item-moves";
 import { scopeMoveMethods } from "./kysely-scope-moves";
 import type {
   MemberFilters,
@@ -806,5 +807,6 @@ export const kyselyWorkspaceRepository = (
 
     ...accessRequestMethods(db, dialect),
     ...scopeMoveMethods(db, dialect),
+    ...itemMoveMethods(db),
   };
 };
