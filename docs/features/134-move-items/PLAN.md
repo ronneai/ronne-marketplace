@@ -38,7 +38,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   member, refusals at ask and at approve, a release racing a move, two answers at once and a lost
   role, on the four databases.
 
-- [ ] **5. After the move.** Tests that the item follows its new name from the next request:
+- [x] **5. After the move.** Tests that the item follows its new name from the next request:
   catalogue, item page (the old name redirects), search, the registry API, resolve, MCP, feeds
   and the review queue; old names install and `rmk` rewrites the lockfile; versions, tarball
   checksums, tags, downloads, pins and favorites unchanged.

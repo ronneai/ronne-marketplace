@@ -227,3 +227,38 @@ Witnessed: 2026-10-28 00:03 EDT, by a fresh agent (blind). Commit: 9c72d89f + wo
 | 18 | When the answerer can't see the target's new workspace, the error names the scope in the item's workspace, never the private workspace | no | confirmed | "never names a private workspace the answerer can't see when the target moved into it" passes on all four (`@acme/devops`, no "beta"); M8 (`targetWorkspace ?? workspace`) → it fails, 1 of 22; restored, `cmp` matches |
 
 **Overall:** met: with this re-check, every row of task 4's passes is confirmed on all four databases.
+
+## Task 5 — After the move
+
+Witnessed: 2026-10-28 00:10 EDT, by a fresh agent (blind). Commit: 7a915b85 plus the untracked `apps/web/src/server/domains/workspaces/actions/after-item-move.db.test.ts`. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The task's tests pass on SQLite | no | confirmed | `pnpm --filter @ronneai/web exec vitest run --project db src/server/domains/workspaces/actions/after-item-move.db.test.ts` → 3 passed |
+| 2 | The same on PostgreSQL, MySQL and MariaDB | no | confirmed | `pnpm test:db:postgres` / `:mysql` / `:mariadb -- src/server/domains/workspaces/actions/after-item-move.db.test.ts` → 3 passed on each |
+| 3 | There are tests for a move in a shared workspace, in `global`, and a move back | no | confirmed | three `it`s: acme infra→devops, global tools→kit, acme infra→devops→infra |
+| 4 | Item page: the new name shows the item and the old name redirects | no | confirmed | `itemPage` for the old and new refs both return the new `fullName`; `features/item-page/load.ts:50-52` redirects when `fullName` differs. With the alias write removed (`setAliases([], …)`), all 3 fail |
+| 5 | The catalogue and search list it under the new scope | no | confirmed | `browseCatalogue {q:"deploy"}` → `acme/devops/deploy`. Probe: the scope filter `devops` lists it, `infra` nothing; the API search (`/api/v1/items`, which MCP uses) gives `@acme/devops/deploy` for `q=deploy`, `q=devops`, `scope=devops` |
+| 6 | Feeds offer it under its new name from the next request | no | confirmed | the marketplace before and after (`acme.infra.deploy` → `acme.devops.deploy`, `kit.lint`, `acme.infra.deploy`). With `bumpCatalogueRevision` removed from `applyItemMove`, the shared test fails |
+| 7 | Resolve: the old name resolves and the answer says the new name | no | confirmed | `resolveAs` → `renamed {old: new}` in all three. Keeping the moved-back item's own old alias fails the moved-back test |
+| 8 | The registry API (rmk and MCP read through it) answers both names with the new one | no | confirmed | `getRegistryItem` with a reader's token: 200 and the new name, for both refs (shared) and the old ref (global). packages/mcp reads through rmk's client (`/api/v1/...`, server.test.ts:64) |
+| 9 | Old names install (the tarball downloads under the old name) | no | confirmed | shared test: `downloadArtifactAs(old, "1.0.0")` returns bytes |
+| 10 | `rmk` rewrites the lockfile from resolve's `renamed` | no | confirmed | 118's code: `vitest run src/install-renamed.test.ts` in packages/cli → 8 passed; with `now = (name) => name` in install.ts:281, 2 fail. The server sends the `renamed` shape rmk reads |
+| 11 | Review queue: the open proposal stays with the same workspace's reviewers, under the new scope | no | confirmed | `listQueue(mod, needs)` → `acme/devops/deploy`; leaving `submissions.scope_id` unchanged fails it |
+| 12 | Versions, checksums, tarball paths and tags are unchanged | no | confirmed | `untouched()` compares `item_versions` (id, item_id, version, sha256, artifact_path) and `dist_tags`, in all 3 |
+| 13 | Download counts are unchanged, in all three cases | no | partly | Global and moved-back check them (`download_count: 7` in `applyItemMove` fails both); the shared test replaces them (`{ ...after, downloads: before.downloads }`), so that mutation passes it |
+| 14 | Pins and favorites follow the item | no | confirmed | `listFavorites(reader)` → `[deploy]`; `untouched().pins` keeps `item_id shelf` unchanged |
+| 15 | Moving back: the first name is the name again and the second an alias | no | confirmed | both refs → `@acme/infra/deploy`, the feed `acme.infra.deploy`, resolve renames `@acme/devops/deploy` → `@acme/infra/deploy`; History's half is task 8 |
+
+**Overall:** not met: everything holds, but the shared-workspace test doesn't check that the download count is unchanged (row 13).
+
+### Re-check (row 13)
+
+Witnessed: 2026-10-28 00:14 EDT, by a fresh agent (blind). Commit: 7a915b85 plus the untracked `apps/web/src/server/domains/workspaces/actions/after-item-move.db.test.ts`. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 13 | Download counts are unchanged, in all three cases | no | confirmed | The shared test now expects `untouched()` to equal `before` with the deploy item's count raised by exactly 1 (test lines 277-282). `download_count: 7` in `applyItemMove` → 3 failed (3), shared included; `download_count + 1` at the move → 3 failed (3) |
+| 1-2 | The test still passes on every database after the diff | no | confirmed | `vitest run --project db …after-item-move.db.test.ts` → 3 passed; `pnpm test:db:postgres` / `:mysql` / `:mariadb -- …` → 3 passed on each |
+
+**Overall:** met: the shared-workspace test now checks that the download count is unchanged apart from the one download after the move, and both mutations fail it.
