@@ -9,7 +9,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 ## Tasks
 
-- [ ] **1. Decision.**
+- [x] **1. Decision.**
   - MVP.md §15's "Security scan" row and 135's decisions 3 and 5 updated to point at 136.
   - `docs/features/README.md` lists 136 in M20.
   - *Done when:* the docs say this, and `pnpm witness:check` passes.

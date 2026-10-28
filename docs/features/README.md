@@ -363,9 +363,11 @@ use what it taught. From 129 on every new screen is written with messages.
 
 Moderators get a second opinion on what an item says and does (owner, 2026-10-28): NVIDIA's
 SkillSpector, installed by the operator, scans each submission revision, statically by default and
-with semantic (LLM) analysis when the operator sets up a provider and root chooses it, and its
+with semantic (LLM) analysis when a provider is set up (by the operator; by root too once 136
+lands) and root chooses it, and its
 findings show on the review page. Advisory: it never blocks a submit, an approval or a release.
 
 | ID | Feature | Depends on | Status |
 |---|---|---|---|
 | [135](./135-skill-scanner/SPEC.md) | Security scan of submissions: the operator installs SkillSpector at a pinned version (`RONNE_SKILL_SCANNER`), root turns it on and picks the item types; each revision is scanned statically (`--no-llm`) by default, or with semantic analysis when the operator sets up a provider (`RONNE_SKILL_SCANNER_ENV_*`) and root chooses it, in a private folder with a short environment allowlist and a timeout; a Security scan panel on the review page | 013, 014, 015, 060, 129 | done (the Documentation in ronne-web `feat/135-skill-scanner`) |
+| [136](./136-scanner-settings-in-web/SPEC.md) | Scanner settings in Admin › Settings: root sets the provider, model, endpoint, timeout and a write-only API key (encrypted at rest as identity providers' secrets, re-keyed by `rotate-secret`, never shown or logged); endpoints `https://` and not internal unless the operator allows the host; root picks the command from the operator's `RONNE_SKILL_SCANNERS` list; environment variables still win | 135, 106, 098, 099 | in progress |

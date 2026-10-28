@@ -255,7 +255,8 @@ semantic scan whose LLM wasn't available is kept as a static result, and says so
    every week, so it stays outside our image and pnpm tree. The operator pins it, and the
    dependencies policy lists it as an operator-installed tool.
 3. **The command comes from the environment or the settings file, never from the web** (Claude): a
-   command set in the web would let root run anything on the server.
+   command set in the web would let root run anything on the server. 136 keeps this: root picks a
+   command only from the operator's list.
 4. **Each revision is scanned, not each version** (Claude): the moderator decides on a revision,
    and a version is a revision that was released.
 5. **Static by default; semantic only when the operator sets up a provider and root chooses it**
@@ -263,7 +264,8 @@ semantic scan whose LLM wasn't available is kept as a static result, and says so
    like the command (decision 3) and like `DATABASE_URL` and `AUTH_SECRET`: the operator decides
    where item content may go and holds the provider's key. Set from the web, an endpoint would let
    root send item content anywhere, and the key would sit in the database, readable by anyone with
-   access to it.
+   access to it. Changed by [136](../136-scanner-settings-in-web/SPEC.md): root sets the provider and its key in
+   the web too, the key encrypted at rest; the environment still wins.
 
 ## Open questions
 
