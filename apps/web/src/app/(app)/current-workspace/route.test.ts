@@ -28,7 +28,7 @@ describe("GET /current-workspace", () => {
   it("sets a member's workspace and goes back to the page, without its ?workspace=", async () => {
     const response = await call("set=global&next=%2Fcatalogue%3Fq%3Dx%26workspace%3Dana");
     expect(response.status).toBe(303);
-    expect(response.headers.get("location")).toBe("http://localhost:3000/catalogue?q=x");
+    expect(response.headers.get("location")).toBe("/catalogue?q=x");
     const cookie = response.headers.get("set-cookie") ?? "";
     expect(cookie).toMatch(/^ronne-workspace=global;/);
     expect(cookie).toMatch(/HttpOnly/i);
@@ -38,7 +38,7 @@ describe("GET /current-workspace", () => {
 
   it("clears it for an empty set=", async () => {
     const response = await call("set=&next=%2Freviews");
-    expect(response.headers.get("location")).toBe("http://localhost:3000/reviews");
+    expect(response.headers.get("location")).toBe("/reviews");
     expect(response.headers.get("set-cookie")).toMatch(/^ronne-workspace=;.*(Max-Age=0|Expires=)/i);
   });
 
@@ -46,7 +46,7 @@ describe("GET /current-workspace", () => {
     for (const set of ["open", "secret"]) {
       const response = await call(`set=${set}&next=%2Fcatalogue`);
       expect(response.headers.get("set-cookie"), set).toBeNull();
-      expect(response.headers.get("location")).toBe("http://localhost:3000/catalogue");
+      expect(response.headers.get("location")).toBe("/catalogue");
     }
   });
 
@@ -59,8 +59,16 @@ describe("GET /current-workspace", () => {
       "%2F%252e%252e%2F%2Fevil.test",
     ]) {
       const response = await call(`set=global&next=${next}`);
-      expect(response.headers.get("location"), next).toBe("http://localhost:3000/");
+      expect(response.headers.get("location"), next).toBe("/");
     }
+  });
+
+  it("sends a path only, never the address the server listens on", async () => {
+    // The standalone server sees `http://0.0.0.0:3000/…` whatever the browser used.
+    const response = await GET(
+      new NextRequest("http://0.0.0.0:3000/current-workspace?set=global&next=%2Fcatalogue"),
+    );
+    expect(response.headers.get("location")).toBe("/catalogue");
   });
 
   it("asks for a session first", async () => {
