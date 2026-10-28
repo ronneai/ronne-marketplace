@@ -32,3 +32,20 @@ export type ItemMoveImpact = {
   /** Something above refuses the move. */
   refused: boolean;
 };
+
+/** A request to move an item, or a move made at once (recorded approved), as the services read it. */
+export type ItemMove = {
+  id: string;
+  itemId: string;
+  /** Null once the scope it left is deleted. */
+  fromScopeId: string | null;
+  toScopeId: string;
+  requestedBy: string;
+  message: string | null;
+  status: "open" | "approved" | "declined" | "cancelled";
+  decidedBy: string | null;
+  /** Why it was declined (shown to the asker), or why it was cancelled. */
+  reason: string | null;
+  createdAt: Date;
+  decidedAt: Date | null;
+};

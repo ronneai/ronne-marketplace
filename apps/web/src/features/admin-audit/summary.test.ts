@@ -270,6 +270,26 @@ describe("audit summaries (060)", () => {
     expect(line("scope.move_cancelled", { ...named, reason: "asker_lost_role" })).toBe(
       "Cancelled moving @beta/infra to acme (whoever asked can no longer move it)",
     );
+    // Item moves (134).
+    const item = { name: "@acme/infra/deploy", newName: "@acme/devops/deploy", to: "@acme/devops" };
+    expect(line("item.move_requested", item)).toBe(
+      "Asked to move @acme/infra/deploy to @acme/devops",
+    );
+    expect(line("item.moved", { ...item, direct: true })).toBe(
+      "Moved @acme/infra/deploy to @acme/devops, as @acme/devops/deploy",
+    );
+    expect(line("item.moved", { ...item, direct: false })).toBe(
+      "Approved moving @acme/infra/deploy to @acme/devops, as @acme/devops/deploy",
+    );
+    expect(line("item.move_declined", item)).toBe(
+      "Declined moving @acme/infra/deploy to @acme/devops",
+    );
+    expect(line("item.move_cancelled", { ...item, reason: "target_moved" })).toBe(
+      "Cancelled moving @acme/infra/deploy to @acme/devops (that scope is in another workspace now)",
+    );
+    expect(line("item.move_cancelled", { ...item, reason: "asker_lost_role" })).toBe(
+      "Cancelled moving @acme/infra/deploy to @acme/devops (whoever asked is no longer in the workspace)",
+    );
     // Requests to join (094).
     const asker = { email: "uma@x.com", workspace: "acme" };
     expect(line("workspace.access_requested", asker)).toBe("uma@x.com asked to join acme");

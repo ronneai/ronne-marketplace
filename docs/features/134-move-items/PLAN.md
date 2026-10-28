@@ -28,7 +28,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* db tests cover each case, `global` and a shared and a personal workspace, and
   moving back.
 
-- [ ] **4. Asking, answering, moving.** [risky] `requestItemMove`, `cancelItemMove`,
+- [x] **4. Asking, answering, moving.** [risky] `requestItemMove`, `cancelItemMove`,
   `approveItemMove`, `declineItemMove`, and the direct move for root and the workspace's
   moderators and admins; the asker never answers their own; the asker's membership re-checked at
   approval; a target that left the workspace cancels (`target_moved`); the move transaction (the

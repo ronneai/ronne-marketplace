@@ -247,6 +247,22 @@
     "empty": "Cancelled moving a scope to a workspace",
     "rich": "Cancelled moving @infra to root"
   },
+  "item.move_requested": {
+    "empty": "Asked to move an item to a scope",
+    "rich": "Asked to move @team/tools to root"
+  },
+  "item.moved": {
+    "empty": "Moved an item to a scope",
+    "rich": "Moved @team/tools to root, as @infra-tools"
+  },
+  "item.move_declined": {
+    "empty": "Declined moving an item to a scope",
+    "rich": "Declined moving @team/tools to root"
+  },
+  "item.move_cancelled": {
+    "empty": "Cancelled moving an item to a scope",
+    "rich": "Cancelled moving @team/tools to root"
+  },
   "submission.draft_created": {
     "empty": "Created a draft of an item ()",
     "rich": "Created a draft of @team/tools (skill, 3 files) from the command line"

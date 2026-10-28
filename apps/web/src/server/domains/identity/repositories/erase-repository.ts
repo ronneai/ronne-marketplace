@@ -57,6 +57,8 @@ export interface EraseRepository {
   deleteMemberships(userId: string): Promise<number>;
   /** Open scope moves the person asked for (115), cancelled with no reason. Returns how many. */
   cancelScopeMoves(userId: string, at: Date): Promise<number>;
+  /** Open item moves the person asked for (134), cancelled with no reason. Returns how many. */
+  cancelItemMoves(userId: string, at: Date): Promise<number>;
   /** Drafts (status `draft`) with their files. Returns how many. */
   deleteDrafts(userId: string): Promise<number>;
   /** The personal workspace (114), when there is one. */

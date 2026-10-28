@@ -328,3 +328,51 @@ export class ItemMoveRefusedError extends WorkspacesError {
     this.newName = impact.newName;
   }
 }
+
+/** A move already waiting for an answer for the item (134). */
+export class ItemMoveOpenError extends WorkspacesError {
+  override readonly name: string = "ItemMoveOpenError";
+  constructor(readonly scopeName: string) {
+    super(`A move to ${scopeName} is waiting for an answer.`);
+  }
+}
+
+/** A move request that isn't there, or that the person can't answer or cancel (134). */
+export class ItemMoveNotFoundError extends WorkspacesError {
+  override readonly name: string = "ItemMoveNotFoundError";
+  constructor() {
+    super("That move request doesn't exist.");
+  }
+}
+
+/** A move request answered or cancelled already (134). */
+export class ItemMoveAnsweredError extends WorkspacesError {
+  override readonly name: string = "ItemMoveAnsweredError";
+  constructor() {
+    super("Already answered.");
+  }
+}
+
+/** Approving found the asker no longer in the item's workspace: the request was cancelled (134). */
+export class ItemMoveAskerLostRoleError extends WorkspacesError {
+  override readonly name: string = "ItemMoveAskerLostRoleError";
+  constructor() {
+    super("Whoever asked is no longer in the item's workspace, so the request was cancelled.");
+  }
+}
+
+/** Approving found the item or its target in different workspaces now: the request was cancelled (134). */
+export class ItemMoveTargetMovedError extends WorkspacesError {
+  override readonly name: string = "ItemMoveTargetMovedError";
+  constructor(readonly scopeName: string) {
+    super(`${scopeName} is now in another workspace than the item, so the request was cancelled.`);
+  }
+}
+
+/** A message or decline reason too long, or with a NUL (134). */
+export class InvalidItemMoveTextError extends WorkspacesError {
+  override readonly name: string = "InvalidItemMoveTextError";
+  constructor(readonly field: "message" | "reason") {
+    super(`A move's ${field} has at most 500 characters.`);
+  }
+}

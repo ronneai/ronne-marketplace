@@ -153,7 +153,9 @@ export const eraseUser = async (
       await repo.deleteOnboarding(userId);
       const feedbackDeleted = await repo.deleteFeedback(userId);
       const requestsCancelled = await repo.identity.cancelAccessRequests(userId, at);
-      const movesCancelled = await repo.cancelScopeMoves(userId, at);
+      // Their scope moves (115) and item moves (134): one count of move requests.
+      const movesCancelled =
+        (await repo.cancelScopeMoves(userId, at)) + (await repo.cancelItemMoves(userId, at));
       const draftsDeleted = await repo.deleteDrafts(userId);
 
       let personalWorkspace: EraseCounts["personalWorkspace"] = "none";

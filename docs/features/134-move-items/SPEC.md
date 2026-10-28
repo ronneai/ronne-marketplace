@@ -116,9 +116,11 @@ Reviews of its open submissions stay with the same workspace's moderators.
 - **A clash that appears while the request is open** (an item released in the target with that
   name): Approve says so and leaves it open; the asker cancels.
 - **The target scope is deleted, or moved to another workspace (115), while a request is open:**
-  deleting cascades the request (counted in the scope's audit event); a scope moved out makes the
-  request cross-workspace, so Approve refuses it ("@acme/devops is now in another workspace") and
-  closes it as cancelled (`reason: "target_moved"`).
+  deleting it removes the request with it; a scope moved out makes the request cross-workspace, so
+  Approve refuses it ("@beta/devops is now in another workspace than the item": the scope where it
+  is now, or as it was in the item's workspace, `@acme/devops`, when the answerer doesn't see its
+  new workspace, so a private workspace is never named) and closes it as cancelled
+  (`reason: "target_moved"`).
 - **The item's own scope moves to another workspace while a request is open:** the same, as the
   request now crosses workspaces.
 - **A release while the item moves:** they take the same lock, so one waits for the other; a

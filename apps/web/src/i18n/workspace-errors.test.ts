@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { UserNotFoundError } from "@/server/domains/identity/exceptions/errors";
 import {
+  ItemMovedError,
   ItemRenamedMeanwhileError,
   NotAMemberError,
   ProposalArtifactError,
@@ -73,6 +74,13 @@ const CASES: [Error, string[]][] = [
   [new w.ItemMoveScopeNotFoundError(), []],
   [new w.ItemMoveSameScopeError("infra"), ["infra"]],
   [new w.ItemMoveRefusedError(itemImpact), ["@acme/devops/deploy"]],
+  [new w.ItemMoveOpenError("@acme/devops"), ["@acme/devops"]],
+  [new w.ItemMoveNotFoundError(), []],
+  [new w.ItemMoveAnsweredError(), []],
+  [new w.ItemMoveAskerLostRoleError(), []],
+  [new w.ItemMoveTargetMovedError("devops"), ["devops"]],
+  [new w.InvalidItemMoveTextError("message"), ["500"]],
+  [new w.InvalidItemMoveTextError("reason"), ["500"]],
   [new NotAMemberError("acme"), ["acme"]],
   [new NotAMemberError("acme", "release"), ["acme"]],
   [new NotAMemberError("acme", "comment"), ["acme"]],
@@ -81,6 +89,7 @@ const CASES: [Error, string[]][] = [
   [new ProposalBaseNotFoundError("@a/x", "1.2.0"), ["@a/x", "1.2.0"]],
   [new ProposalArtifactError("@a/x", "1.2.0"), ["@a/x", "1.2.0"]],
   [new ItemRenamedMeanwhileError("@a/x", "@a/y"), ["@a/x", "@a/y"]],
+  [new ItemMovedError("@a/x"), ["@a/x"]],
 ];
 
 describe("workspace and proposal errors in three languages (130)", () => {

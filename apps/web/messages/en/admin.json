@@ -691,6 +691,12 @@
           "move_declined": "Declined moving <name>{scope}</name> to <name>{to}</name>",
           "move_cancelled": "Cancelled moving <name>{scope}</name> to <name>{to}</name>{lost, select, true { (whoever asked can no longer move it)} other {}}"
         },
+        "item": {
+          "move_requested": "Asked to move <name>{item}</name> to <name>{to}</name>",
+          "moved": "{direct, select, false {Approved moving} other {Moved}} <name>{item}</name> to <name>{to}</name>{hasNewName, select, true {, as <name>{newName}</name>} other {}}",
+          "move_declined": "Declined moving <name>{item}</name> to <name>{to}</name>",
+          "move_cancelled": "Cancelled moving <name>{item}</name> to <name>{to}</name>{why, select, asker_lost_role { (whoever asked is no longer in the workspace)} target_moved { (that scope is in another workspace now)} other {}}"
+        },
         "submission": {
           "draft_created": "Created a draft of <name>{item}</name> ({details}){via}",
           "draft_updated": "Updated the draft of <name>{item}</name>{via}",

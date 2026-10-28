@@ -589,6 +589,16 @@ export class ScopeMovedError extends SubmissionsError {
   }
 }
 
+/** The item moved to another scope of its workspace while its change was being released (134). */
+export class ItemMovedError extends SubmissionsError {
+  override readonly name: string = "ItemMovedError";
+  constructor(readonly itemName: string) {
+    super(
+      `${itemName} moved to another scope while it was being released. Nothing was released: release it again.`,
+    );
+  }
+}
+
 /**
  * Its workspace was renamed (113) between packing the release, under the old name, and storing it.
  * Nothing was released; releasing again packs it under the new name.

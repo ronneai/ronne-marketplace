@@ -2,6 +2,7 @@ import type { KeysetPage, SortDir } from "../../../db/keyset";
 import type { NewAuditEvent } from "../../audit/models/audit-event";
 import type { WorkspaceRole } from "../../identity/models/user";
 import type { AccessRequest, PendingRequest, RequestWithWorkspace } from "../models/access-request";
+import type { ItemMove } from "../models/item-move";
 import type { Member, Membership, MemberUser } from "../models/member";
 import type { ScopeMove } from "../models/scope-move";
 import type { Workspace, WorkspaceVisibility } from "../models/workspace";
@@ -139,7 +140,7 @@ export interface WorkspaceRepository {
    */
   addNameHistory(
     entries: readonly NameHistoryEntry[],
-    reason: "rename_workspace" | "move_scope",
+    reason: "rename_workspace" | "move_scope" | "move_item",
     who: { requestedBy: string | null; decidedBy: string | null; sourceId: string | null },
     at: Date,
   ): Promise<void>;
@@ -373,6 +374,46 @@ export interface WorkspaceRepository {
   submissionsAbout(
     ids: readonly string[],
   ): Promise<ReadonlyMap<string, { authorId: string; status: string; itemId: string | null }>>;
+  /** Locks the item's row until the transaction ends: the lock a release takes on it. */
+  lockItemForMove(itemId: string): Promise<void>;
+  /** The item's open move, if any. */
+  openItemMoveOf(itemId: string): Promise<ItemMove | null>;
+  findItemMove(id: string): Promise<ItemMove | null>;
+  /** Locks a move's row until the transaction ends. */
+  lockItemMove(id: string): Promise<void>;
+  insertItemMove(move: {
+    itemId: string;
+    fromScopeId: string;
+    toScopeId: string;
+    requestedBy: string;
+    message: string | null;
+    status: "open" | "approved";
+    decidedBy: string | null;
+    at: Date;
+  }): Promise<string>;
+  /** Closes an open move; false when it wasn't open any more. */
+  decideItemMove(
+    id: string,
+    decision: {
+      status: "approved" | "declined" | "cancelled";
+      decidedBy: string | null;
+      reason: string | null;
+      at: Date;
+    },
+  ): Promise<boolean>;
+  /**
+   * Puts the item, and every submission that changes it, in the scope, and raises the catalogue
+   * revision: its name and plugin name change.
+   */
+  applyItemMove(itemId: string, scopeId: string): Promise<void>;
+  /**
+   * The user's standing in the workspace now, read from the database: root, and their role there;
+   * null when they're gone or disabled.
+   */
+  roleIn(
+    userId: string,
+    workspaceId: string,
+  ): Promise<{ root: boolean; role: "admin" | "moderator" | "user" | null } | null>;
 }
 
 /** An item as moving it to another scope reads it (134). */

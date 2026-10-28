@@ -137,3 +137,93 @@ Witnessed: 2026-10-27 23:21 EDT, by a fresh agent (blind). Commit: e807d0ca + wo
 | 12 | The changed file is lint-clean | no | confirmed | `biome check` on the file → no fixes applied |
 
 **Overall:** met: rows 6 and 7 now hold. The personal-workspace case and the real move back both fail under their mutations and pass on SQLite, PostgreSQL, MySQL and MariaDB.
+
+## Task 4 — Asking, answering, moving
+
+Witnessed: 2026-10-27 23:43 EDT, by a fresh agent (blind). Commit: 9c72d89f + working tree (24 modified files, 1 untracked test file). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | "Who decides", row 1: root, moderators and admins move the item at once (new scope, alias `move`, history row, `approved` request, `item.moved` with `direct: true`) | no | confirmed | "moves at once for root, moderators and admins…" passes on SQLite, PostgreSQL, MySQL and MariaDB; it covers mod, adm and root; `standingIn` returns `moves` for root, admin and moderator |
+| 2 | "Who decides", row 2: a regular member asks, and moderators, admins or root answer | no | confirmed | "asks for a regular member…" → `requested`, item stays in infra, no history row; mod approves → `moved`, history requested_by=ana, decided_by=mod, `direct: false` |
+| 3 | The asker never answers their own request | no | partly | The code holds: probe P1 (ana asks, is promoted to moderator, then approve and decline both → `ItemMoveNotFoundError`, root still approves) passes on all four databases. The suite doesn't pin it: mutation M1, removing `user.id === move.requestedBy \|\|` from `approveItemMove`, leaves all 17 tests passing |
+| 4 | A non-member, and a member removed since their session was read, get not found and no request is written | no | confirmed | "answers as not found to someone outside the workspace, and to a removed member" → `ItemMoveItemNotFoundError`, `item_moves` empty; `roleIn` reads `user` and `workspace_members` fresh |
+| 5 | Refusals at ask, and at approve: a clash refuses, and at approval leaves the request open | no | confirmed | "refuses a clash at ask…" → `ItemMoveRefusedError` both times, the request stays `open`, the item stays in infra |
+| 6 | The asker's membership is re-checked at approval: cancelled with `asker_lost_role` | no | confirmed | "cancels a request whose asker left…" passes; mutation M2 (check removed) → it fails |
+| 7 | A target that left the workspace cancels the request (`target_moved`); so does the item's own scope moving out | no | confirmed | "cancels a request whose target scope moved…" passes; M3 (only `!target` kept) → it fails; probe P2 (infra moved to beta, then approve) → rejected, row `cancelled`, on all four databases |
+| 8 | The move transaction changes the item's and its submissions' scope, adds the alias, applies 113's rewrite, writes the history row, closes the request, raises the catalogue revision and audits | no | confirmed | "moves at once…", "names the item anew in its proposals and in the workspace's open work…" (proposal and dependent draft rewritten, then released as 1.1.0 on the same item) and "moves back…" pass; M5 (catalogue bump removed) → "moves at once" fails |
+| 9 | A release racing a move: they share the lock, and a release packed under the old name is refused (`ItemMovedError`) | no | confirmed | "refuses a release packed under the item's old scope" and "lets a release and a move at the same time end consistently" pass on all four databases; M4 (publish.ts check removed) → the first fails; release: submission then items (`publish.ts:371,434`), move: open submissions then the item: the same order |
+| 10 | Two answers at once: the first wins, the second gets "Already answered" | no | confirmed | "answers two approvals at once once" → 1 fulfilled, 1 `ItemMoveAnsweredError`, 1 history row, on all four databases; M6 (status guards removed) → 2 tests fail; probe P3 (decline and approve at once) → one wins, consistent, on all four databases |
+| 11 | A lost role: a moderator demoted since their session was read asks instead of moving, and can't answer | no | confirmed | "asks, not moves, for a moderator demoted…" and "lets a moderator demoted… answer nothing" pass |
+| 12 | Cancel and decline: the asker or an answerer cancels, others can't; decline's optional reason; 500-character limit | no | confirmed | "declines with a reason, and is cancelled by its asker or an answerer…" and "refuses a message or a reason over 500 characters" pass |
+| 13 | One open request per item, a direct move included | no | confirmed | "keeps one open move per item" → `ItemMoveOpenError` for ana and for mod; checked under the item's lock |
+| 14 | The four audit events, on the item, naming both scopes; message and decline reason stay out of the log | no | confirmed | `audit-event.ts` adds the four actions; metadata holds name and to (plus from and newName on `moved`); the decline test checks the text is absent; `summary.test.ts` and the i18n tests → 21 files, 379 passed |
+| 15 | Erasing a person cancels their open item moves | no | confirmed | "cancels the open item moves of a person erased" → `cancelled`, reason null; `erase-user.ts` adds `cancelItemMoves` to `movesCancelled` |
+| 16 | All of the above on the four databases, and the shared `publish.db.test.ts` still passes | no | confirmed | `pnpm test:db:{postgres,mysql,mariadb} -- <item-move-requests, publish>` → 24 passed on each; SQLite → 24 passed. A first loop over all three servers failed at once with `ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL` (cause not captured; likely the other witness on the same servers); each rerun passed |
+| 17 | The errors in three languages, and the spec's wording for a target moved out: "@acme/devops is now in another workspace" | no | partly | keys in en, pt and fr, parity tests pass; but `ItemMoveTargetMovedError(result.target)` gets the bare `devops`, not `@acme/devops` |
+
+**Overall:** not met: the behaviour holds on all four databases, but no test pins "never by its asker" (row 3), and the target-moved error names the bare scope, not its full name (row 17).
+
+### Adversarial pass
+
+Witnessed: 2026-10-27 23:47 EDT, by a fresh agent (adversarial). Commit: 9c72d89f + working tree (uncommitted diff). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Root and the workspace's moderators and admins move at once, and so does a personal workspace's owner | no | confirmed | "moves at once for root, moderators and admins" passed on all 4 (3 runs each on the servers). Probe P1: bob, owner of personal workspace `bob`, got `moved` → `@bob/pb/tool` (SQLite, PG; the probe's own datetime insert failed on MySQL and MariaDB). Probe P8, in `global`: bob asks → `requested`, `@ga/gt` → `@gb/gt`; approved by a global moderator, alias `@ga/gt`, on all 4 |
+| 2 | Any other member gets a request, answered by moderators, admins or root, never by its asker | no | confirmed | "asks for a regular member…" passed on all 4. Probe P2: ana asks, is promoted to moderator, then approves or declines her own → `ItemMoveNotFoundError`, still open (all 4). Mutation M1 (dropping `user.id === move.requestedBy` from approve) → the suite still passes 17/17, P2 fails |
+| 3 | A non-member and a removed member are refused | no | confirmed | "answers as not found…" passed on all 4. Probe P3: an admin of `beta` gets `ItemMoveNotFoundError` from approve, cancel and decline on acme's request; another workspace's scope, the own scope and a missing id refused at ask; no session → ask, approve and cancel reject |
+| 4 | The asker's membership is re-checked at approval (`asker_lost_role`), including an asker disabled since | no | confirmed | "cancels a request whose asker left…" passed on all 4; mutation M3 (no asker check) → it fails. Probe P10 (disabled asker → `ItemMoveAskerLostRoleError`) passed on SQLite and PG |
+| 5 | A target that left the workspace cancels (`target_moved`), including when the item's own scope moved to another workspace | no | partly | Target moved out: passes on all 4. Item's own scope moved out (probe P7: `askScopeMove(infra → beta)`, then root approves) → closes as `asker_lost_role` on all 4; the spec says `target_moved`. The asker check (`item-moves.ts:394`) runs before the target check (`:396`) |
+| 6 | Refusals at ask and at approve (a clash; one open request per item) | no | confirmed | "refuses a clash…" and "keeps one open move per item" passed on all 4. Probe P6: another item's alias → `ItemMoveRefusedError`. Probe P5: three concurrent asks → `[requested, ItemMoveOpenError, ItemMoveOpenError]`, at most one open, on all 4 |
+| 7 | Two answers at once: one wins, the others get "Already answered" | no | confirmed | "answers two approvals at once once" passed on all 4. Probe P4 (approve + decline + cancel at once) → one fulfilled, the others `ItemMoveAnsweredError`, the scope matching the status, on all 4. M7 (no status check) → 2 fail. M4 and M6 → 17 pass on PG: the asker's user-row lock already serialises two answerers |
+| 8 | A lost role: a demoted moderator answers nothing and asks instead of moving | no | confirmed | both tests pass on all 4. Caveat: M8 and M9 (session `can()` instead of `standingIn`) still pass 17/17: `actor()` reads memberships fresh, so these tests never meet a stale session |
+| 9 | The move transaction: the item's scope, the alias, 113's rewrite, history, request, catalogue revision, audit event | no | confirmed | "moves at once…", "names the item anew…" and "moves back…" passed on all 4; `item-moves.ts:211-247`, `kysely-item-moves.ts:184-193`. Probe P9a (a move racing a rename): both ok, history in order. P9b (racing a scope move): both ok, or on MySQL the move refused with `ItemMoveScopeNotFoundError` after the scope move won; no deadlock, consistent |
+| 10 | Under the item's release lock: a release racing a move ends consistently, and one packed under the old name is refused with `ItemMovedError` | no | partly | Lock order holds: probe `zz-adv-race` queues both behind a held lock in both orders on PG, MySQL and MariaDB: one item, no deadlock, `ItemMovedError` when the move goes first. But "lets a release and a move at the same time end consistently" is flaky (failed on PG 1 in 3: `expected ItemNameTakenError … to be an instance of ItemMovedError`). Probe W4: a move committing between the release's read and its pre-pack transaction (`publish.ts:249` → `ownItem`) refuses it as "@acme/infra/deploy is taken", the item's own old name |
+| 11 | Four audit events, naming both scopes; message and reason kept out | no | confirmed | `audit-event.ts` adds the four; `summary.ts` the sentences; `vitest run summary.test.ts workspace-errors.test.ts workspaces.test.ts` → 80 passed; the decline test checks the text is absent |
+| 12 | Erasure cancels the person's open item moves | no | confirmed | the test passed on all 4; `cancelItemMoves` only touches `status = 'open'` |
+| 13 | Spec, Edge cases: deleting the target scope cascades the open request | no | can't check here | the probe's scope held an item (`items_scope_id_fk`); out of time; the cascade belongs to task 1's migration |
+| 14 | On the four databases | no | confirmed | SQLite 17/17. PG: 17, 16 (row 10's flake), 17. MySQL 3×17. MariaDB 3×17 |
+
+**Overall:** not met: a request whose item's own scope moved closes as `asker_lost_role`, a move landing just before a release's pre-pack check refuses it as "taken" (and makes the race test flaky), and the "never the asker" check has no test that fails without it.
+
+### Re-check of rows 3 and 17, and the diff since the last pass
+
+Witnessed: 2026-10-27 23:58 EDT, by a fresh agent (blind). Commit: 9c72d89f + working tree (27 entries in `git status`). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 3 | The asker never answers their own request | no | confirmed | "never lets the asker answer their own request, even once they may answer others'" passes on all four databases; M1 (remove `user.id === move.requestedBy \|\|` in `approveItemMove`) → it fails, 1 of 21; M1b (the same in `declineItemMove`) → it fails too; probe P1 passes on all four |
+| 17 | The target-moved error names the scope in full, as the spec words it ("@acme/devops is now in another workspace") | no | partly | `approveItemMove` passes `scopeFullName(...)`, the test checks `@beta/devops`; but SPEC.md:120 still says "@acme/devops is now in another workspace", and SPEC.md isn't in the diff |
+| 18 | When the answerer can't see the target's new workspace, the error names the scope in the item's workspace, never the private workspace | no | partly | Probe P4 (devops moved to beta, beta made private, mod approves) → `scopeName` `@acme/devops`, no "beta", on all four. No test pins it: M8 (`targetWorkspace ?? workspace`) leaves all 21 passing |
+| 19 | The target check runs before the asker check; the item's own scope moving out cancels as `target_moved`, named in the item's workspace | no | confirmed | "cancels a request whose item's own scope moved…" (`@acme/devops`) and probe P2 pass on all four |
+| 20 | Roles are read again under the lock: a stale session asks instead of moving, and answers nothing | no | confirmed | the new test with the stale `who.mod` passes on all four: `requested`, approve and decline → `ItemMoveNotFoundError`, still `open` |
+| 21 | `ownItem`: the proposal's own item under an old name is refused as moved; another item's old name is still "taken" | no | confirmed | "refuses a release as moved, not as taken…" passes on all four; M9 (`if (false)`) → it and the `publish.test.ts` unit case fail; as is, `publish.test.ts` → 3 passed |
+| 22 | Nothing else broke: the item-move file, `publish.db.test.ts` and probes P1–P4 | no | confirmed | 32 passed on SQLite, PostgreSQL, MySQL and MariaDB; P3 (decline and approve at once: one wins) on all four |
+
+**Overall:** not met: the asker rule is pinned (row 3), but the spec still words the target-moved error as "@acme/devops" while the code names `@beta/devops` (row 17), and no test pins the private-workspace fallback (row 18).
+
+### Adversarial re-check — rows 2, 5, 8, 10, 13 and the diff since the last pass
+
+Witnessed: 2026-10-27 23:58 EDT, by a fresh agent (adversarial). Commit: 9c72d89f + working tree (uncommitted diff, including the fixes to `item-moves.ts`, `publish.ts` and `publish.test.ts`, and the new db cases). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 2 | Any other member's move is a request that moderators, admins or root answer, never the asker | no | confirmed | `item-move-requests.db.test.ts` → 21/21 on SQLite, PG, MySQL and MariaDB. M1 (dropping `user.id === move.requestedBy \|\|` from approve) → "never lets the asker answer their own request…" fails, 1 failed / 20 passed |
+| 5 | A target that left the workspace cancels as `target_moved`, including when the item's own scope moved out | no | confirmed | Probe P7 (`infra` moved to `beta`, root approves) → `ItemMoveTargetMovedError`, `cancelled`, `target_moved` on all 4. M11 (asker checked before target) → the new test fails. R7b: a beta admin answering after the move gets the same; acme's moderator gets `ItemMoveNotFoundError`. R7c (target moved to a private `secret`) → names `@acme/devops`, never `secret` |
+| 8 | A lost role (demoted moderator, stale session) is read again under the lock | no | confirmed | "reads roles again under the lock…" (stale `who.mod`) fails under M8 (approve uses the session's `can()`), M8b (decline) and M9 (ask): 1 failed / 20 passed each; 21/21 on all 4 without mutations |
+| 10 | A release racing a move is refused with `ItemMovedError` ("…release it again"), never as "taken" | no | confirmed | Probe W4 (the move commits right after the release reads the revision files) → `ItemMovedError … release it again.`, only 1.0.0 stored, on all 4 (before the fix: `ItemNameTakenError`). W1–W3: the release goes out under the new name; W5–W8: the hook never fires. M10 (no `ItemMovedError` branch in `ownItem`) → "refuses a release as moved, not as taken…" fails. The release tests ran 8× on PG → 3 passed each time. `zz-adv-race` on PG → 4/4 consistent, no deadlock. `publish.test.ts` → 3 passed |
+| 13 | Deleting the target scope cascades the open request | no | confirmed | Probe R13 (open request to an empty scope, the scope deleted) → the `item_moves` row is gone, and a new ask → `requested`, on all 4 |
+
+**Overall:** met: the asker can't answer their own request, the target is checked before the asker, roles are read again under the lock, a release racing a move is refused as moved, and deleting the target scope removes the request. Every row has a mutation or probe that fails without the fix, on all four databases.
+
+### Re-check (rows 17 and 18)
+
+Witnessed: 2026-10-28 00:03 EDT, by a fresh agent (blind). Commit: 9c72d89f + working tree (28 entries in `git status`; SPEC.md is now among them). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 17 | The target-moved error names the scope in full, as the spec words it | no | confirmed | SPEC.md's edge case "The target scope is deleted, or moved…" now says "@beta/devops is now in another workspace than the item", the scope where it is now, or `@acme/devops` when the answerer doesn't see its new workspace, matching the code and the error's English text. "cancels a request whose target scope moved…" checks `@beta/devops`. The item-move file → 22 passed on SQLite, PostgreSQL, MySQL and MariaDB |
+| 18 | When the answerer can't see the target's new workspace, the error names the scope in the item's workspace, never the private workspace | no | confirmed | "never names a private workspace the answerer can't see when the target moved into it" passes on all four (`@acme/devops`, no "beta"); M8 (`targetWorkspace ?? workspace`) → it fails, 1 of 22; restored, `cmp` matches |
+
+**Overall:** met: with this re-check, every row of task 4's passes is confirmed on all four databases.

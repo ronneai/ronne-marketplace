@@ -807,6 +807,6 @@ export const kyselyWorkspaceRepository = (
 
     ...accessRequestMethods(db, dialect),
     ...scopeMoveMethods(db, dialect),
-    ...itemMoveMethods(db),
+    ...itemMoveMethods(db, dialect),
   };
 };
