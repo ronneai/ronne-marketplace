@@ -314,7 +314,11 @@ would clear; without `--dry-run` it runs one now.
 **Scan submissions with SkillSpector (optional).** Ronne can have NVIDIA's SkillSpector check each
 submission for hidden instructions, credential access, exfiltration and obfuscated code, and show
 its findings to reviewers. Ronne doesn't ship it: install it at the pinned version, name its command
-in `RONNE_SKILL_SCANNER`, restart Ronne, then turn it on in Admin › Settings › Security scan.
+in `RONNE_SKILL_SCANNER` (or list several in `RONNE_SKILL_SCANNERS` for root to choose from),
+restart Ronne, then turn it on in Admin › Settings › Security scan, where root can also set up an
+LLM provider and its key for semantic analysis. An endpoint on a private address, or over
+`http://` (a local Ollama), needs its host in `RONNE_SKILL_SCANNER_HTTP_HOSTS`, bare names or
+addresses separated by commas.
 [`skill-scanner.md`](../knowledge/skill-scanner.md) has the install, the container wrapper and the
 rules it follows. Installs without Docker only, for now. NVIDIA's own pages:
 [Scanning agent skills](https://docs.nvidia.com/skills/scanning-agent-skills) (what it checks, how to

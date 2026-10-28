@@ -1104,7 +1104,7 @@
         "removeButton": "Retirer",
         "keep": "La garder",
         "removeWarning": "La clé enregistrée est retirée à l’enregistrement.",
-        "keyMoves": "Changer le fournisseur ou l’hôte du point de terminaison retire la clé enregistrée, sauf si vous en saisissez une.",
+        "keyMoves": "Changer le fournisseur ou l’adresse du point de terminaison (schéma, hôte ou port) retire la clé enregistrée, sauf si vous en saisissez une.",
         "test": {
           "button": "Tester la connexion",
           "testing": "Test en cours…",

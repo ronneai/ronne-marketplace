@@ -1104,7 +1104,7 @@
         "removeButton": "Remove",
         "keep": "Keep it",
         "removeWarning": "The stored key is removed when you save.",
-        "keyMoves": "Changing the provider or the endpoint's host removes the stored key, unless you enter one.",
+        "keyMoves": "Changing the provider or the endpoint's address (its scheme, host or port) removes the stored key, unless you enter one.",
         "test": {
           "button": "Test connection",
           "testing": "Testing…",

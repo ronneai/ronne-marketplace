@@ -333,6 +333,6 @@
   },
   "scan-key": {
     "question": "Como a chave é guardada?",
-    "answer": "Criptografada no banco de dados com uma chave derivada do AUTH_SECRET do servidor, e só para o provedor e o endpoint para os quais foi informada. Ela nunca é mostrada de novo, nem gravada no log de auditoria ou nos logs, e só é descriptografada enquanto uma verificação roda. Um backup completo consegue descriptografá-la, como consegue os segredos dos provedores de identidade."
+    "answer": "Criptografada no banco de dados com uma chave derivada do AUTH_SECRET do servidor, e só para o provedor e o endpoint para os quais foi informada. Ela nunca é mostrada de novo, nem gravada no log de auditoria ou nos logs, e só é descriptografada no servidor, sem nunca ir para o navegador. Um backup completo consegue descriptografá-la, como consegue os segredos dos provedores de identidade."
   }
 }

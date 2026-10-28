@@ -131,22 +131,22 @@ fails the scan with a new short reason, `endpoint refused`.
 
 ## Acceptance criteria
 
-- [ ] Root sets the provider, model, endpoint, key and timeout in the tab, and a semantic scan uses
+- [x] Root sets the provider, model, endpoint, key and timeout in the tab, and a semantic scan uses
   them; the environment's values, when set, win and are shown read-only.
-- [ ] The key is stored only as AES-256-GCM ciphertext bound to its setting, and is never returned to
+- [x] The key is stored only as AES-256-GCM ciphertext bound to its setting, and is never returned to
   the browser, written to the audit log or logged. Tests show a key set through the tab is absent
   from the page props, the action's response, the audit metadata and the log lines.
-- [ ] `rotate-secret` re-encrypts it; a key that no longer decrypts reads as "No key" with a notice,
+- [x] `rotate-secret` re-encrypts it; a key that no longer decrypts reads as "No key" with a notice,
   and semantic runs static.
-- [ ] An endpoint that isn't `https://`, or resolves to a private, loopback, link-local or metadata
+- [x] An endpoint that isn't `https://`, or resolves to a private, loopback, link-local or metadata
   address, is refused on save and at scan time, unless the operator allowed that host.
-- [ ] Root can choose only among `RONNE_SKILL_SCANNERS`; no web input becomes a command or an
+- [x] Root can choose only among `RONNE_SKILL_SCANNERS`; no web input becomes a command or an
   argument.
-- [ ] Test connection makes one request to the provider and reports only reached, refused or
+- [x] Test connection makes one request to the provider and reports only reached, refused or
   unreachable.
-- [ ] Every change is audited without the key or the endpoint's path and query.
-- [ ] The tab is in English, Portuguese and French, and passes the phone sweep.
-- [ ] The Documentation and inline helpers listed above say what the feature does.
+- [x] Every change is audited without the key or the endpoint's path and query.
+- [x] The tab is in English, Portuguese and French, and passes the phone sweep.
+- [x] The Documentation and inline helpers listed above say what the feature does.
 
 ## Decisions
 

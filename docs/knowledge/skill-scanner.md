@@ -34,8 +34,10 @@ make running it safe, how to install it, and how to move the pin.
 
 ## The rules Ronne follows (don't loosen them)
 
-1. `--no-llm` unless root chose semantic analysis *and* the operator set up a provider. The provider
-   and its key come only from `RONNE_SKILL_SCANNER_ENV_*` variables, never from the web or the database.
+1. `--no-llm` unless root chose semantic analysis *and* a provider is set up: by the operator in
+   `RONNE_SKILL_SCANNER_ENV_*` variables (which win), or by root in Admin › Settings since 136, its
+   key sealed in the database (below). The command is never set from the web: root picks one of the
+   operator's.
 2. Only a local folder that Ronne wrote: a fresh `0700` temporary directory with the revision's files,
    checked like `checkPackage` (no `..`, no absolute paths, no symbolic links). Never a URL or a git remote.
 3. An argument array, never a shell. The command is a JSON array from the environment or the
@@ -133,7 +135,8 @@ says matches what its code does. It catches more, but every scanned revision's f
 provider, scans take minutes and cost money, and two runs can disagree. Ronne runs it only when both
 of these hold:
 
-1. **The operator sets up a provider** in Ronne's environment or its settings file (which, like
+1. **A provider is set up**: by root in the web ([below](#set-up-from-the-web-136)), or by the
+   operator in Ronne's environment or its settings file (which, like
    `DATABASE_URL` and `AUTH_SECRET` there, is in Ronne's backups), with the prefix
    `RONNE_SKILL_SCANNER_ENV_`. Ronne strips the prefix and passes on only the chosen provider's own
    variables (the spec's table), only to semantic scans: SkillSpector would otherwise fall back to
@@ -164,6 +167,50 @@ lookups also run.
 Instead of `export`, the same lines (without `export`) can go in Ronne's settings file (`.env` next to
 the app, or the file `RONNE_ENV_FILE` names); the environment wins over it. Then restart Ronne, and turn scanning on in **Admin › Settings › Security scan**. With more than one
 replica (M17), install it on each one.
+
+## Set up from the web (136)
+
+Root can set the provider, model, endpoint, timeout and API key in Admin › Settings › Security
+scan, and choose the command from the operator's list. What the environment sets wins, and the tab
+shows it read-only.
+
+- **The command list**: `RONNE_SKILL_SCANNERS`, a JSON array of commands, each one as
+  `RONNE_SKILL_SCANNER` is (an absolute path and its arguments, no shell):
+
+  ```sh
+  export RONNE_SKILL_SCANNERS='[["/usr/local/bin/skillspector-sandbox"],["/opt/skillspector/venv/bin/skillspector"]]'
+  ```
+
+  The tab names each by its position and file name, never its arguments. With one command it's
+  chosen by itself. If the list drops the chosen one, nothing is scanned until root picks another.
+- **The key** is write-only. It's sealed with AES-256-GCM under a key HKDF derives from
+  `AUTH_SECRET` (`crypto/sealed.ts`, as identity providers' secrets are), together with the
+  provider and endpoint origin it was typed for (`settings/models/scan-key.ts`): it opens only for
+  that pair, so a save that raced another or a hand edit can't send it elsewhere. It's never
+  shown, audited or logged, and it's opened only on the server, never sent to the browser: for a
+  scan's run, for Test connection, and whenever the tab loads or saves (`scanSetupNow` reads
+  whether it still opens).
+  `rotate-secret` re-seals it. A key that no longer opens (an `AUTH_SECRET` edited by hand, a
+  restore with another one) reads as "enter it again", and semantic scans run static.
+- **Endpoints** must be `https://`, with no user name or password, on a host whose every address is
+  public (no private, loopback, link-local, metadata or other reserved range, IPv4 or IPv6, mapped
+  forms included). Backslashes, spaces and control characters are refused: other URL parsers read
+  them differently. The operator can allow hosts in `RONNE_SKILL_SCANNER_HTTP_HOSTS`, bare names or
+  addresses separated by commas or spaces (any port; an entry with a port, a scheme or a wildcard
+  never matches); those may use `http://`, for a local Ollama:
+
+  ```sh
+  export RONNE_SKILL_SCANNER_HTTP_HOSTS='ollama.lan, 10.0.0.5'
+  ```
+
+  The endpoint is checked on save and again before each run of semantic scans; a refused one fails
+  them `endpoint refused`. **The limit:** SkillSpector looks the host up again itself, so a DNS
+  answer that changes between Ronne's check and that lookup isn't covered. If that matters, run the
+  scanner behind an egress firewall or proxy that allows only the provider.
+- **Test connection** makes one GET to the provider's list of models with the key, to the addresses
+  the check resolved only, following no redirect, and says reached, refused or unreachable.
+- **Backups**: a full backup holds `AUTH_SECRET` and the database, so it can open the key, as it
+  can identity providers' secrets. Encrypt copies that leave the machine.
 
 ## Moving the pin
 

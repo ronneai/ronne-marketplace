@@ -333,6 +333,6 @@
   },
   "scan-key": {
     "question": "How is the key kept?",
-    "answer": "Encrypted in the database with a key derived from the server’s AUTH_SECRET, and only for the provider and endpoint it was entered for. It’s never shown again, nor written to the audit log or the logs, and it’s decrypted only while a scan runs. A full backup can decrypt it, as it can the identity providers’ secrets."
+    "answer": "Encrypted in the database with a key derived from the server’s AUTH_SECRET, and only for the provider and endpoint it was entered for. It’s never shown again, nor written to the audit log or the logs, and it’s decrypted only on the server, never sent to the browser. A full backup can decrypt it, as it can the identity providers’ secrets."
   }
 }

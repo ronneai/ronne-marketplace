@@ -47,7 +47,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* component tests for each state, a test that the key never reaches the props, i18n
     parity, and an e2e (fake provider endpoint) pass; the phone sweep passes.
 
-- [ ] **6. Documentation.** The spec's Documentation section, in ronne-web and here.
+- [x] **6. Documentation.** The spec's Documentation section, in ronne-web and here.
   - *Done when:* the docs render tests pass, and every new helper's link lands on a real section.
 
 ## Notes

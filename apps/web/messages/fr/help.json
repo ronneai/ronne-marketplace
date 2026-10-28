@@ -333,6 +333,6 @@
   },
   "scan-key": {
     "question": "Comment la clé est-elle gardée?",
-    "answer": "Chiffrée dans la base de données avec une clé dérivée de l’AUTH_SECRET du serveur, et seulement pour le fournisseur et le point de terminaison pour lesquels elle a été saisie. Elle n’est jamais montrée de nouveau, ni écrite dans le journal d’audit ou les journaux, et elle n’est déchiffrée que pendant une analyse. Une sauvegarde complète peut la déchiffrer, comme les secrets des fournisseurs d’identité."
+    "answer": "Chiffrée dans la base de données avec une clé dérivée de l’AUTH_SECRET du serveur, et seulement pour le fournisseur et le point de terminaison pour lesquels elle a été saisie. Elle n’est jamais montrée de nouveau, ni écrite dans le journal d’audit ou les journaux, et elle n’est déchiffrée que sur le serveur, sans jamais être envoyée au navigateur. Une sauvegarde complète peut la déchiffrer, comme les secrets des fournisseurs d’identité."
   }
 }

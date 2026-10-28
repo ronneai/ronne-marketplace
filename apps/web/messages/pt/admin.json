@@ -1104,7 +1104,7 @@
         "removeButton": "Remover",
         "keep": "Manter",
         "removeWarning": "A chave guardada é removida ao salvar.",
-        "keyMoves": "Mudar o provedor ou o host do endpoint remove a chave guardada, a menos que você informe uma.",
+        "keyMoves": "Mudar o provedor ou o endereço do endpoint (esquema, host ou porta) remove a chave guardada, a menos que você informe uma.",
         "test": {
           "button": "Testar conexão",
           "testing": "Testando…",

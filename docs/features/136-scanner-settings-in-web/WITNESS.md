@@ -333,3 +333,57 @@ Witnessed: 2026-10-28 18:21 EDT, by a fresh agent (blind, scoped to row 5 above)
 | 4 | The admin-settings unit tests pass with the real source | no | confirmed | 11 files, 160 passed |
 
 **Overall:** met: with the earlier passes' confirmed rows, every claim of task 5 holds.
+
+## Task 6 — Documentation
+
+Witnessed: 2026-10-28 18:26 EDT, by a fresh agent (blind). Commit: 8896561c + the uncommitted docs diff (marketplace, and ronne-web `feat/136-scanner-settings-in-web` working tree). Machine: macOS (Darwin 27), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Settings › Security scan covers the tab's setup, what the operator still provides, how the key is kept, Test connection, the environment winning | no | confirmed | New Scanner / LLM provider / Timeout bullets and the key, endpoint, Test connection and "Set on the server" paragraphs |
+| 2 | Every statement matches how the app behaves | no | partly | Most hold. Wrong: "decrypted only while a scan runs" (the tab load and Test connection open it too, `scan-setup.ts` `keyFrom`); "the endpoint's host" (it's the origin: scheme, host and port), also in the app's `keyMoves` message |
+| 3 | Backups: a full backup can decrypt the key; a restore with another `AUTH_SECRET` asks for it again | no | confirmed | en/pt/fr `backups.tsx`; `docs/runbooks/backup.md` |
+| 4 | Install guide and knowledge note document `RONNE_SKILL_SCANNERS` and the host allowlist | no | partly | The knowledge note has both; `install.md` never mentions `RONNE_SKILL_SCANNER_HTTP_HOSTS` |
+| 5 | NVIDIA's guide and repository and Ronne's install note are linked | no | confirmed | `links.*` in settings; `install.md`, `skill-scanner.md:4` |
+| 6 | The helpers link to a real section | no | confirmed | `scan-settings`, `scan-key` → `settings#security-scan`; `id="security-scan"` once per built page |
+| 7 | pt and fr say what en says, with the app's labels | no | confirmed | Labels match `messages/{pt,fr}/admin.json`; glossary terms |
+| 8 | ronne-web checks and docs render tests pass; built pages show the new text | no | confirmed | lint, typecheck, 187 tests, build → exit 0 |
+| 9 | Marketplace help and i18n tests pass | no | confirmed | 383 passed |
+| 10 | Nothing claims more than is built | no | confirmed | Docker still unsupported, in all three languages and the install guide |
+
+**Overall:** not met: rows 2 and 4. The key is now said to be decrypted only on the server, to run a scan, test the connection and show whether it still opens; bound to the endpoint's address (scheme, host and port), in the docs, product facts, the app's `keyMoves` and the `scan-key` helper, in three languages; the install guide names `RONNE_SKILL_SCANNER_HTTP_HOSTS`. Re-checked below.
+
+### Re-check
+
+Witnessed: 2026-10-28 18:30 EDT, by a fresh agent (blind). Commit: 8896561c + uncommitted docs and messages (marketplace); ronne-web `feat/136-scanner-settings-in-web`, uncommitted. Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The `scan-key` helper says only what the code does about decryption | no | partly | "Only on the server" holds, but the listed occasions miss saves: `setSkillScanPolicy` and `setSkillScanSetup` call `scanSetupNow` → `keyFrom` → `openScanKey` |
+| 2 | The website's security-scan passage, the same claim | no | partly | The same list, the same gap, in en, pt and fr |
+| 3 | The knowledge note's decryption sentence | no | partly | Misses the two save paths; "never sent to the browser" holds (`skillScannerFrom`) |
+| 4 | `keyMoves` says the key follows the endpoint's scheme, host and port | no | confirmed | en/pt/fr; `scan-key.ts` `originOf`; a path change keeps the key |
+| 5 | The website and product facts say origin, not host | no | confirmed | No hits for the old host wording in either repo |
+| 6 | The install guide names `RONNE_SKILL_SCANNER_HTTP_HOSTS` correctly | no | confirmed | `install.md:318-321`; `endpoint.ts` splits on commas and spaces |
+| 7 | The labels in the docs match the app's in each language | no | confirmed | `messages/*/admin.json` |
+| 8 | ronne-web checks pass | no | confirmed | lint, typecheck, 187 tests |
+| 9 | Marketplace help, i18n and admin-settings tests pass | no | confirmed | 543 passed |
+
+**Overall:** not met: rows 1–3. The wording no longer lists occasions: "decrypted only on the server, never sent to the browser", in the website (three languages), the product facts and the `scan-key` helper; the knowledge note gives the full list, saves included. Re-checked below.
+
+### Re-check
+
+Witnessed: 2026-10-28 18:34 EDT, by a fresh agent (blind, scoped to rows 1–3 above). Commit: 8896561c + uncommitted diff (marketplace); ronne-web `feat/136-scanner-settings-in-web`, uncommitted. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The stored key is decrypted only on the server | no | confirmed | `keyFrom` → `openScanKey` in `scanSetup`; callers `scanSetupNow`, the job's `setupNow`, `testSkillScanConnection`; `scanCommand` never opens it |
+| 2 | The key is never sent to the browser | no | confirmed | `ScanTab` passes `skillScanSettings`: `provider` is name, model, host; `stored.key` is `set`/`unreadable`/`none`; the actions return translated text and the host |
+| 3 | The knowledge note's full list is complete and correct | no | confirmed | Load, save (`setSkillScanSetup`, `setSkillScanPolicy`), Test connection, a scan's run; no other callers |
+| 4 | en, pt and fr `settings.tsx` say the same and no more than the code | no | confirmed | Read side by side |
+| 5 | `scan-key.answer` says the same in en, pt and fr | no | confirmed | `help.json:336` in each |
+| 6 | Product facts use the same wording | no | confirmed | `product-facts.md:118` |
+| 7 | ronne-web checks pass | no | confirmed | lint, typecheck, 187 tests |
+| 8 | Marketplace help and i18n tests pass | no | confirmed | 383 passed |
+
+**Overall:** met: with the earlier passes' confirmed rows, the Documentation in ronne-web's `feat/136-scanner-settings-in-web` and here says what the feature does.
