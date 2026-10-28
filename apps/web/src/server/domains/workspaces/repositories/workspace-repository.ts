@@ -48,6 +48,9 @@ export type OpenFile = {
   content: string;
 };
 
+/** One item's name before and after a rename or a move (134's history). */
+export type NameHistoryEntry = { itemId: string; oldName: string; newName: string };
+
 /** What the workspace services need from storage. Implemented with Kysely in kysely-workspace-repository.ts. */
 export interface WorkspaceRepository {
   transaction<T>(work: (repo: WorkspaceRepository) => Promise<T>): Promise<T>;
@@ -128,6 +131,16 @@ export interface WorkspaceRepository {
     add: readonly { name: string; itemId: string }[],
     drop: readonly string[],
     reason: "rename" | "move",
+    at: Date,
+  ): Promise<void>;
+  /**
+   * Writes items' name changes to their history (134): a rename (113) or a scope's move (115),
+   * with who asked and who approved, and the `scope_moves` row behind a move.
+   */
+  addNameHistory(
+    entries: readonly NameHistoryEntry[],
+    reason: "rename_workspace" | "move_scope",
+    who: { requestedBy: string | null; decidedBy: string | null; sourceId: string | null },
     at: Date,
   ): Promise<void>;
   delete(id: string): Promise<void>;

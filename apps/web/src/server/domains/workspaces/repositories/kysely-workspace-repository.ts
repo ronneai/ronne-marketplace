@@ -457,6 +457,27 @@ export const kyselyWorkspaceRepository = (
           .execute();
     },
 
+    addNameHistory: async (entries, reason, who, at) => {
+      const createdAt = toDbDate(at, dialect);
+      for (let i = 0; i < entries.length; i += IN_LIST_SIZE)
+        await db
+          .insertInto("item_name_history")
+          .values(
+            entries.slice(i, i + IN_LIST_SIZE).map((entry) => ({
+              id: newId(),
+              item_id: entry.itemId,
+              old_name: entry.oldName,
+              new_name: entry.newName,
+              reason,
+              requested_by: who.requestedBy,
+              decided_by: who.decidedBy,
+              source_id: who.sourceId,
+              created_at: createdAt,
+            })),
+          )
+          .execute();
+    },
+
     lockWorkspace: async (id) => {
       await forUpdate(
         db.selectFrom("workspaces").select("id").where("id", "=", id),

@@ -106,6 +106,7 @@ const racingRepo = (): WorkspaceRepository => {
     itemWorkspaces: async () => new Map(),
     rename: async () => {},
     setAliases: async () => {},
+    addNameHistory: async () => {},
     lockOpenWorkIn: async () => {},
     openManifestsIn: async () => [],
     openFiles: async () => [],

@@ -73,3 +73,33 @@ Witnessed: 2026-10-27 23:01 EDT, by a fresh agent (adversarial). Commit: 4af8ed6
 | 12 | A backfill that fails partway on MySQL completes on rerun; batches never split one item's entries | no | confirmed | Probe `probe-rerun.db.test.ts`, a throw planted before batch 2. Case A (1 item with 1 alias + 300 items with 2 each): "after failed run 499, after rerun 601" (601 expected; 600 before the fix). Case B (1 item with 1 alias + 1 item with 600): "after failed run 1, after rerun 600". Both pass on MySQL and MariaDB. Mutation M11 (`historyBatches` cutting every 500 entries again) → the unit test fails |
 
 **Overall:** met: the keys follow 115 as the SPEC and the corrected PLAN say, the scope check is now caught by the test, and an interrupted MySQL backfill now completes on rerun.
+
+## Task 2 — History written by 113 and 115
+
+Witnessed: 2026-10-27 23:08 EDT, by a fresh agent (blind). Commit: 5a91ba44 + working tree (`git diff`, 7 files). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Renaming a workspace writes one `item_name_history` row per item, with the old name and the new name | no | confirmed | `workspaces.ts:229-240` maps every item from `itemsIn` to `named(workspace.name)` → `named(to)`. A probe renames `acme` to `acme-x` with two released items and gets exactly `[@acme/team/deploy → @acme-x/team/deploy, @acme/team/lint → @acme-x/team/lint]` |
+| 2 | The rename row has `reason: rename_workspace`, `requested_by` and `decided_by` set to the renamer, and no source | no | confirmed | `workspaces.ts:230,238`: `by = actor.user?.id`, `{requestedBy: by, decidedBy: by, sourceId: null}`; the rename test's expected rows check all four fields |
+| 3 | A direct scope move writes a row per item with `move_scope`, asker = decider = the mover, and `source_id` = the `scope_moves` row | no | confirmed | `scope-moves.ts:539-557`: written after `insertMove`, with `sourceId: moveId`. Mutation M3 (`sourceId: null`) → the move test fails, 1 failed / 40 passed |
+| 4 | An approved move writes a row with `requested_by` = the asker, `decided_by` = the approver and `source_id` = the move; nothing while the request is open | no | confirmed | `scope-moves.ts:661-666`. The test checks no history for `lint` before approval, then dave → carol with `asked.moveId`. Mutations M2 (`decidedBy: move.requestedBy`) and M6 (old and new names swapped in `performMove`) fail it |
+| 5 | The history is written inside the rename's or move's transaction | no | confirmed | `kysely-workspace-repository.ts:187-191`: `transaction` hands `work` a repo bound to `trx`, and both services call `addNameHistory` on it. Probe: a throw right after `addNameHistory` in a rename → rejected, and both `item_name_history` and the new workspace name were empty (SQLite) |
+| 6 | A refused rename or move writes no history | no | confirmed | "writes no history when a rename is refused" and `scope-move-requests.db.test.ts:359-360` (refused when asked and when approved) pass |
+| 7 | Their db tests assert the rows | no | partly | M1 (rename's `addNameHistory` turned off) → the rename history test fails. But M4, swapping `oldName`/`newName` in `renameLockedWorkspace`, still passes all 41 tests: the round trip `acme → acme-platform → acme` gives the same two rows either way |
+| 8 | Nothing else in those tests changes | no | confirmed | `git diff --numstat`: rename.db.test.ts 29 added / 0 deleted, scope-move-requests.db.test.ts 40 / 0. `performMove`'s return shape changed and both callers use it (`scope-moves.ts:539,645`); the unit fake adds `addNameHistory`; `vitest run src/server/domains/workspaces/services` → 5 passed |
+| 9 | The same on the three database servers | no | confirmed | `pnpm test:db:postgres -- <both files>` → 42 passed; `:mysql` → 42 passed; `:mariadb` → 42 passed; SQLite (with erase-user.db.test.ts) → 51 passed, 1 skipped |
+
+**Overall:** not met: the code writes the right history rows in the right transactions on all four databases, but the rename's db test doesn't check which way the names go (row 7). Also noted: `NameHistoryEntry` was put between the repository interface and its doc comment.
+
+### Re-check (rows 7 and 8, plus the diff since the first pass)
+
+Witnessed: 2026-10-27 23:10 EDT, by a fresh agent (blind). Commit: 5a91ba44 + working tree (`git diff`: the fixed `rename.db.test.ts` and `workspace-repository.ts`). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 7 | Their db tests assert the rows | no | confirmed | `rename.db.test.ts` checks the single row after `acme → acme-platform` (old `@acme/team/deploy`, new `@acme-platform/team/deploy`, the reason, both user ids, `source_id: null`), then both rows after renaming back. Mutation M4 (`oldName`/`newName` swapped in `renameLockedWorkspace`) → "writes each rename to its items' history…" fails, 1 failed / 40 passed (it passed before the fix). M1 (no `addNameHistory` call) → still fails |
+| 8 | Nothing else in those tests changes | no | confirmed | `git diff --numstat`: `rename.db.test.ts` 41 added / 0 deleted, `scope-move-requests.db.test.ts` 40 / 0. In `workspace-repository.ts`, `NameHistoryEntry` (lines 51-52) now sits above "What the workspace services need from storage…" (line 54), back directly on `interface WorkspaceRepository` (line 55) |
+| 9 | The same on the three database servers | no | confirmed | Both files on SQLite (`vitest run --project db`) → 41 passed, 1 skipped; `pnpm test:db:postgres -- <both files>` → 42 passed; `:mysql` → 42 passed; `:mariadb` → 42 passed |
+
+**Overall:** met: the rename and move history rows are written in their transactions and checked by tests, including which way the names go, on all four databases.

@@ -17,7 +17,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* the migration's db test (a backfill with migration, move and rename aliases, a
   scope moved and moved back) passes on the four databases; the guard test passes.
 
-- [ ] **2. History written by 113 and 115.** Renaming a workspace and moving a scope write an
+- [x] **2. History written by 113 and 115.** Renaming a workspace and moving a scope write an
   `item_name_history` row per item, in their transactions, with who asked and approved.
   *Done when:* their db tests assert the rows; nothing else in them changes.
 

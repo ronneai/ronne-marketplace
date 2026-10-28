@@ -294,6 +294,44 @@ describe("asking to move a scope, and moving it (115)", () => {
     );
   });
 
+  it("writes each move to its items' history, with who asked and approved and the move's row (134)", async () => {
+    const one = await scope("one", beta);
+    const deploy = await release(one, "deploy");
+    const direct = await askScopeMove(as.carol, { scopeId: one, to: "acme" }, app);
+    const two = await scope("two", beta);
+    const lint = await release(two, "lint");
+    const asked = await askScopeMove(as.dave, { scopeId: two, to: "acme" }, app);
+    const history = (itemId: string) =>
+      t.db
+        .selectFrom("item_name_history")
+        .select(["old_name", "new_name", "reason", "requested_by", "decided_by", "source_id"])
+        .where("item_id", "=", itemId)
+        .execute();
+    expect(await history(deploy)).toEqual([
+      {
+        old_name: "@beta/one/deploy",
+        new_name: "@acme/one/deploy",
+        reason: "move_scope",
+        requested_by: who.carol.id,
+        decided_by: who.carol.id,
+        source_id: direct.moveId,
+      },
+    ]);
+    // Asked, not moved yet: nothing in the history until it's approved.
+    expect(await history(lint)).toEqual([]);
+    await approveScopeMove(as.carol, { moveId: asked.moveId }, app);
+    expect(await history(lint)).toEqual([
+      {
+        old_name: "@beta/two/lint",
+        new_name: "@acme/two/lint",
+        reason: "move_scope",
+        requested_by: who.dave.id,
+        decided_by: who.carol.id,
+        source_id: asked.moveId,
+      },
+    ]);
+  });
+
   it("refuses at ask with the list, and at approval leaves the request open", async () => {
     const infra = await scope("infra", beta);
     const deploy = await release(infra, "deploy");
@@ -318,6 +356,8 @@ describe("asking to move a scope, and moving it (115)", () => {
     );
     expect(await moveRow(asked.moveId)).toMatchObject({ status: "open" });
     expect((await scopeOf(other)).workspace_id).toBe(beta);
+    // Refused at ask and at approval: no history written (134).
+    expect(await t.db.selectFrom("item_name_history").selectAll().execute()).toEqual([]);
   });
 
   it("refuses at approval a clash that appeared since, leaving the request open", async () => {

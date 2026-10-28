@@ -50,6 +50,7 @@ let asUser: Headers;
 let asOtherAdmin: Headers;
 let author: CurrentUser;
 let acme: string;
+let adminId: string;
 let other: string;
 const password = "correct horse battery";
 
@@ -89,6 +90,7 @@ beforeEach(async () => {
   }
   await setWorkspaceRole(app, ids.admin, "admin", acme);
   await setWorkspaceRole(app, ids.otherAdmin, "admin", other);
+  adminId = ids.admin;
   asAdmin = await signedIn("admin@example.com");
   asModerator = await signedIn("mod@example.com");
   asUser = await signedIn("user@example.com");
@@ -446,6 +448,45 @@ describe("renaming a workspace (113)", () => {
     expect(await aliases()).toEqual(["@acme-platform/team/deploy rename"]);
     await rename(asAdmin, "acme", "acme-platform");
     expect(await aliases()).toEqual(["@acme/team/deploy rename"]);
+  });
+
+  it("writes each rename to its items' history, by whoever renamed it (134)", async () => {
+    await released("deploy");
+    const history = () =>
+      t.db
+        .selectFrom("item_name_history")
+        .select(["old_name", "new_name", "reason", "requested_by", "decided_by", "source_id"])
+        .orderBy("old_name")
+        .execute();
+    await rename(asAdmin, "acme", "acme-platform");
+    // One way first, so the direction of the names is checked, then back.
+    expect(await history()).toEqual([
+      {
+        old_name: "@acme/team/deploy",
+        new_name: "@acme-platform/team/deploy",
+        reason: "rename_workspace",
+        requested_by: adminId,
+        decided_by: adminId,
+        source_id: null,
+      },
+    ]);
+    await rename(asAdmin, "acme-platform", "acme");
+    const entry = {
+      reason: "rename_workspace",
+      requested_by: adminId,
+      decided_by: adminId,
+      source_id: null,
+    };
+    expect(await history()).toEqual([
+      { old_name: "@acme-platform/team/deploy", new_name: "@acme/team/deploy", ...entry },
+      { old_name: "@acme/team/deploy", new_name: "@acme-platform/team/deploy", ...entry },
+    ]);
+  });
+
+  it("writes no history when a rename is refused", async () => {
+    await released("deploy");
+    await expect(rename(asUser, "acme", "acme-platform")).rejects.toThrow();
+    expect(await t.db.selectFrom("item_name_history").selectAll().execute()).toEqual([]);
   });
 
   it("refuses a name that would give an item another item's old name", async () => {
