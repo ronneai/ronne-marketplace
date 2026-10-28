@@ -1,6 +1,7 @@
-import { type NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import { LOCALE_COOKIE, localeCookieOptions, parseLocale } from "@/i18n/locale";
 import { safeBackPath } from "@/server/domains/identity/models/route-guard";
+import { redirectToPath } from "@/server/http/redirect-path";
 
 /**
  * The language switch's links (feature 129): sets the `ronne-locale` cookie and goes back to the
@@ -12,10 +13,7 @@ import { safeBackPath } from "@/server/domains/identity/models/route-guard";
 export const GET = (request: NextRequest) => {
   const params = request.nextUrl.searchParams;
   const locale = parseLocale(params.get("set"));
-  const response = NextResponse.redirect(
-    new URL(safeBackPath(params.get("next")), request.url),
-    303,
-  );
+  const response = redirectToPath(safeBackPath(params.get("next")));
   if (locale) response.cookies.set(LOCALE_COOKIE, locale, localeCookieOptions);
   return response;
 };

@@ -1,4 +1,4 @@
-import { type NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import {
   backTo,
   choiceOf,
@@ -7,6 +7,7 @@ import {
 } from "@/features/current-workspace/current-workspace";
 import { requireUser } from "@/server/domains/identity/actions/session";
 import { myWorkspacesAs } from "@/server/domains/workspaces/actions/workspaces";
+import { redirectToPath } from "@/server/http/redirect-path";
 import { requestHeaders } from "@/server/http/request-headers";
 
 /**
@@ -20,7 +21,7 @@ export const GET = async (request: NextRequest) => {
   const members = (await myWorkspacesAs(user)).filter((w) => w.role);
   const params = request.nextUrl.searchParams;
   const choice = choiceOf(params.get("set"), members);
-  const response = NextResponse.redirect(new URL(backTo(params.get("next")), request.url), 303);
+  const response = redirectToPath(backTo(params.get("next")));
   if (choice.action === "set")
     response.cookies.set(WORKSPACE_COOKIE, choice.name, workspaceCookieOptions);
   else if (choice.action === "clear") response.cookies.delete(WORKSPACE_COOKIE);
