@@ -51,7 +51,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* component tests cover a direct move, a request, a clash and the notices; the
   phone sweep passes for the dialog.
 
-- [ ] **7. Item moves on the Requests page.** The third table on `/workspaces/requests` and on a
+- [x] **7. Item moves on the Requests page.** The third table on `/workspaces/requests` and on a
   workspace's Requests tab, for root and the workspace's moderators and admins; Approve, Decline
   with a reason, Already answered; the nav count. Messages in en, pt and fr.
   *Done when:* db and component tests cover who sees which rows and each answer; the phone sweep

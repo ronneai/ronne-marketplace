@@ -5,6 +5,7 @@ const session = vi.hoisted(() => ({ getCurrentUser: vi.fn() }));
 const workspaces = vi.hoisted(() => ({
   requestsToAnswerList: vi.fn(),
   movesToAnswer: vi.fn(async () => ({ moves: [], total: 0 })),
+  itemMovesToAnswer: vi.fn(async () => ({ moves: [], total: 0 })),
 }));
 const navigation = vi.hoisted(() => ({
   notFound: vi.fn(() => {
@@ -19,7 +20,10 @@ vi.mock("@/features/workspace-requests/actions", () => ({
   declineRequestFromForm: vi.fn(),
   approveMoveFromForm: vi.fn(),
   declineMoveFromForm: vi.fn(),
+  approveItemMoveFromForm: vi.fn(),
+  declineItemMoveFromForm: vi.fn(),
 }));
+vi.mock("@/features/item-move/actions", () => ({}));
 vi.mock("@/features/admin-workspaces/actions", () => ({
   askMoveFromForm: vi.fn(),
   cancelMoveFromForm: vi.fn(),
@@ -101,6 +105,33 @@ describe("the Requests page", () => {
     }
     session.getCurrentUser.mockResolvedValue({ role: "user", workspaces: { acme: "moderator" } });
     expect(renderToStaticMarkup(await WorkspaceRequests())).not.toContain("Scope moves");
+  });
+
+  it("lists the item moves for a workspace's moderators (134)", async () => {
+    session.getCurrentUser.mockResolvedValue({ role: "user", workspaces: { acme: "moderator" } });
+    workspaces.requestsToAnswerList.mockResolvedValue({ requests: [], total: 0 });
+    workspaces.itemMovesToAnswer.mockResolvedValue({
+      moves: [
+        {
+          id: "m1",
+          item: "@acme/infra/deploy",
+          type: "skill",
+          newName: "@acme/devops/deploy",
+          from: "@acme/infra",
+          to: "@acme/devops",
+          workspace: "acme",
+          askedBy: { email: "ana@example.com", name: "Ana" },
+          createdAt: new Date("2026-10-27T10:00:00Z"),
+          message: null,
+          refusal: null,
+        },
+      ],
+      total: 1,
+    } as never);
+    const html = renderToStaticMarkup(await WorkspaceRequests());
+    expect(html).toContain(">Item moves<");
+    expect(html).toContain("Items members asked to move to another scope");
+    expect(html).toContain("@acme/devops/deploy");
   });
 
   it("is a 404 for someone who answers nowhere", async () => {

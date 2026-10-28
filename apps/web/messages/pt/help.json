@@ -199,6 +199,10 @@
     "question": "Quem precisa concordar?",
     "answer": "O root e os moderadores e admins do espaço de trabalho movem um item na hora. Qualquer outro membro pede, e eles respondem; ninguém responde ao próprio pedido. O item fica no mesmo espaço de trabalho, então quem o vê, revisa e instala não muda."
   },
+  "item-move-approve": {
+    "question": "O que aprovar faz?",
+    "answer": "Verifica o nome novo de novo e move o item: o nome antigo continua funcionando, as versões não mudam, e os rascunhos e propostas abertos dele passam a usar o nome novo. Se o nome já estiver em uso lá, nada é movido e o pedido continua aberto."
+  },
   "visibility": {
     "question": "Público ou privado?",
     "answer": "Todos que entraram veem os escopos e itens de um espaço de trabalho público e podem depender deles. Os de um privado só são vistos pelos membros, em qualquer papel, e pelo root; para os demais não existem, e só os próprios itens podem depender deles. O root pode mudar isso depois: tornar um espaço de trabalho privado é recusado enquanto itens lançados de fora dependerem dos itens dele."

@@ -7,17 +7,20 @@ import { errorText } from "@/i18n/errors";
 import { IdentityError } from "@/server/domains/identity/exceptions/errors";
 import {
   approveAccessRequest,
+  approveItemMove,
   approveScopeMove,
   declineAccessRequest,
+  declineItemMove,
   declineScopeMove,
 } from "@/server/domains/workspaces/actions/workspaces";
 import {
+  ItemMoveRefusedError,
   ScopeMoveRefusedError,
   WorkspacesError,
 } from "@/server/domains/workspaces/exceptions/errors";
 import { requestHeaders } from "@/server/http/request-headers";
 import { serverAction } from "@/server/http/server-action";
-import type { AnswerState, MoveAnswerState } from "./types";
+import type { AnswerState, ItemMoveAnswerState, MoveAnswerState } from "./types";
 
 const text = (form: FormData, key: string) => String(form.get(key) ?? "");
 
@@ -95,6 +98,43 @@ export const declineMoveFromForm = serverAction(
   async (_previous: MoveAnswerState, form: FormData): Promise<MoveAnswerState> =>
     attempt(form, async () => {
       await declineScopeMove(await requestHeaders(), {
+        moveId: text(form, "moveId"),
+        reason: text(form, "reason"),
+      });
+      return (await getTranslations("workspaces.results"))("declined");
+    }),
+);
+
+/**
+ * Approves an item move (134): the name checked again, then moved; or why it's taken now, leaving
+ * the request open. A move changes every page that names the item.
+ */
+export const approveItemMoveFromForm = serverAction(
+  async (_previous: ItemMoveAnswerState, form: FormData): Promise<ItemMoveAnswerState> => {
+    let newName: string;
+    try {
+      const result = await approveItemMove(await requestHeaders(), {
+        moveId: text(form, "moveId"),
+      });
+      newName = result.impact.newName;
+    } catch (error) {
+      // Why the name is taken now; anything else (answered already, the asker gone, the scope in
+      // another workspace) as its message.
+      if (error instanceof ItemMoveRefusedError) return { refused: error.impact };
+      if (error instanceof WorkspacesError || error instanceof IdentityError)
+        return { error: await errorText(error) };
+      throw error;
+    }
+    revalidatePath("/", "layout");
+    return { done: (await getTranslations("workspaces.results"))("itemMoved", { newName }) };
+  },
+);
+
+/** Declines an item move, with an optional reason its asker sees on the item's page (134). */
+export const declineItemMoveFromForm = serverAction(
+  async (_previous: ItemMoveAnswerState, form: FormData): Promise<ItemMoveAnswerState> =>
+    attempt(form, async () => {
+      await declineItemMove(await requestHeaders(), {
         moveId: text(form, "moveId"),
         reason: text(form, "reason"),
       });

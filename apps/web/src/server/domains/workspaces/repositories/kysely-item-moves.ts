@@ -24,6 +24,7 @@ type ItemMoveMethods = Pick<
   | "roleIn"
   | "scopesIn"
   | "latestItemMoveOf"
+  | "pendingItemMoves"
 >;
 
 type MoveRow = Selectable<ItemMoveTable>;
@@ -234,5 +235,30 @@ export const itemMoveMethods = (
     return row
       ? { ...toMove(row), toScope: row.to_scope, askedByName: row.asked_by_name ?? null }
       : null;
+  },
+
+  pendingItemMoves: async (workspaceIds, limit) => {
+    if (workspaceIds !== "all" && workspaceIds.length === 0) return [];
+    let query = db
+      .selectFrom("item_moves")
+      .innerJoin("items", "items.id", "item_moves.item_id")
+      .innerJoin("scopes", "scopes.id", "items.scope_id")
+      .innerJoin("user as requester", "requester.id", "item_moves.requested_by")
+      .selectAll("item_moves")
+      .select([
+        "scopes.workspace_id as workspace_id",
+        "requester.email as requester_email",
+        "requester.name as requester_name",
+      ])
+      .where("item_moves.status", "=", "open")
+      .orderBy("item_moves.created_at")
+      .orderBy("item_moves.id")
+      .limit(limit);
+    if (workspaceIds !== "all") query = query.where("scopes.workspace_id", "in", [...workspaceIds]);
+    return (await query.execute()).map((row) => ({
+      ...toMove(row),
+      workspaceId: row.workspace_id,
+      requester: { email: row.requester_email, name: row.requester_name },
+    }));
   },
 });

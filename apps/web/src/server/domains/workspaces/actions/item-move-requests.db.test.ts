@@ -41,8 +41,10 @@ import {
   askItemMove,
   askScopeMove,
   cancelItemMove,
+  countItemMovesToAnswer,
   createWorkspace,
   declineItemMove,
+  itemMovesToAnswer,
   itemMoveView,
   setWorkspaceVisibility,
 } from "./workspaces";
@@ -715,5 +717,76 @@ describe("the item page's Move to another scope… (134, task 6)", () => {
     const again = await ask(as.ana, deploy);
     await cancelItemMove(as.ana, { moveId: again.moveId }, app);
     expect((await itemMoveView(as.ana, deploy, app))?.latest).toBeNull();
+  });
+});
+
+describe("the Item moves table on the Requests pages (134, task 7)", () => {
+  it("lists the open moves for the workspace's moderators, admins and root, never the asker's own", async () => {
+    const deploy = await released("infra", "deploy");
+    const asked = await ask(as.ana, deploy, devops, "Please.");
+    const rows = async (headers: Headers, input: { workspaceId?: string } = {}) =>
+      (await itemMovesToAnswer(headers, input, app)).moves;
+    for (const name of ["mod", "adm", "root"] as const)
+      expect(await rows(as[name]), name).toEqual([
+        {
+          id: asked.moveId,
+          item: "@acme/infra/deploy",
+          type: "skill",
+          newName: "@acme/devops/deploy",
+          from: "@acme/infra",
+          to: "@acme/devops",
+          workspace: "acme",
+          askedBy: { email: "ana@example.com", name: "ana" },
+          createdAt: expect.any(Date),
+          message: "Please.",
+          refusal: null,
+        },
+      ]);
+    // The asker, a member who can't answer, and someone outside: nothing.
+    for (const name of ["ana", "bob"] as const) expect(await rows(as[name]), name).toEqual([]);
+    // One workspace's tab: acme's lists it, beta's doesn't.
+    expect(await rows(as.mod, { workspaceId: acme })).toHaveLength(1);
+    expect(await rows(as.mod, { workspaceId: beta })).toEqual([]);
+    expect(await rows(as.root, { workspaceId: beta })).toEqual([]);
+    // The nav's count, the same.
+    expect(await countItemMovesToAnswer(as.mod, app)).toBe(1);
+    expect(await countItemMovesToAnswer(as.root, app)).toBe(1);
+    expect(await countItemMovesToAnswer(as.ana, app)).toBe(0);
+    expect(await countItemMovesToAnswer(as.bob, app)).toBe(0);
+    // Answered: gone from the table and the count.
+    await approveItemMove(as.mod, { moveId: asked.moveId }, app);
+    expect(await rows(as.root)).toEqual([]);
+    expect(await countItemMovesToAnswer(as.root, app)).toBe(0);
+  });
+
+  it("says on its row what would refuse it now: a clash, or the scope in another workspace", async () => {
+    const deploy = await released("infra", "deploy");
+    const lint = await released("infra", "lint");
+    await ask(as.ana, deploy);
+    await ask(as.ana, lint);
+    await released("devops", "deploy");
+    await askScopeMove(as.root, { scopeId: devops, to: "beta", confirm: "devops" }, app);
+    const refusals = Object.fromEntries(
+      (await itemMovesToAnswer(as.root, {}, app)).moves.map((m) => [m.item, m.refusal]),
+    );
+    expect(refusals).toEqual({ "@acme/infra/deploy": "moved", "@acme/infra/lint": "moved" });
+  });
+
+  it("never lists the asker's own request, nor counts it, even once they moderate", async () => {
+    const deploy = await released("infra", "deploy");
+    await ask(as.ana, deploy);
+    await setWorkspaceRole(app, who.ana.id, "moderator", acme);
+    expect((await itemMovesToAnswer(as.ana, {}, app)).moves).toEqual([]);
+    expect(await countItemMovesToAnswer(as.ana, app)).toBe(0);
+    expect(await countItemMovesToAnswer(as.mod, app)).toBe(1);
+  });
+
+  it("marks a clash that appeared since it was asked", async () => {
+    const deploy = await released("infra", "deploy");
+    await ask(as.ana, deploy);
+    await released("devops", "deploy");
+    expect((await itemMovesToAnswer(as.mod, {}, app)).moves.map((m) => m.refusal)).toEqual([
+      "item",
+    ]);
   });
 });

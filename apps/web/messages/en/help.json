@@ -199,6 +199,10 @@
     "question": "Who has to agree?",
     "answer": "Root, and the workspace’s moderators and admins, move an item at once. Any other member asks, and they answer; nobody answers their own request. The item stays in its workspace, so who sees, reviews and installs it doesn’t change."
   },
+  "item-move-approve": {
+    "question": "What does approving do?",
+    "answer": "It checks the new name again and moves the item: its old name keeps working, its versions don’t change, and its open drafts and proposals take the new name. If the name is taken there now, nothing moves and the request stays open."
+  },
   "visibility": {
     "question": "Public or private?",
     "answer": "Everyone signed in sees a public workspace’s scopes and items, and can depend on them. A private one’s are seen only by its members, in any role, and root; to anyone else they don’t exist, and only its own items can depend on them. Root can change it later: turning a workspace private is refused while released items outside depend on its items."

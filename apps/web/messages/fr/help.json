@@ -199,6 +199,10 @@
     "question": "Qui doit être d’accord?",
     "answer": "Root et les modérateurs et admins de l’espace de travail déplacent un élément aussitôt. Tout autre membre demande, et ils répondent; personne ne répond à sa propre demande. L’élément reste dans son espace de travail, donc qui le voit, le révise et l’installe ne change pas."
   },
+  "item-move-approve": {
+    "question": "Que fait l’approbation?",
+    "answer": "Elle revérifie le nouveau nom et déplace l’élément : son ancien nom continue de fonctionner, ses versions ne changent pas, et ses brouillons et propositions ouverts prennent le nouveau nom. Si le nom est déjà pris là-bas, rien n’est déplacé et la demande reste ouverte."
+  },
   "visibility": {
     "question": "Public ou privé?",
     "answer": "Toute personne connectée voit les portées et les éléments d’un espace de travail public et peut en dépendre. Ceux d’un espace privé ne sont vus que par ses membres, dans n’importe quel rôle, et par root; pour tous les autres, ils n’existent pas, et seuls ses propres éléments peuvent en dépendre. Root peut le changer plus tard : rendre un espace de travail privé est refusé tant que des éléments publiés à l’extérieur dépendent de ses éléments."

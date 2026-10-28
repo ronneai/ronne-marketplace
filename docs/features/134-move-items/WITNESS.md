@@ -296,3 +296,35 @@ Witnessed: 2026-10-28 00:39 EDT, by a fresh agent (blind). Commit: 552b32ac + wo
 | — | The diff hasn't broken the rest | no | confirmed | `vitest run` on move-item, item-page, item-page translations, `messages.parity` and `messages` → 104 passed (English-leak and `{workspace}` placeholder parity included). Phone sweep (`--project phone --project phone-webkit --project tablet`) → 3 passed |
 
 **Overall:** met: the chosen scope's description shows under the select, and the line under Ask to move names the item's workspace, in all three languages; tests and mutations back both.
+
+## Task 7 — Item moves on the Requests page
+
+Witnessed: 2026-10-28 00:58 EDT, by a fresh agent (blind). Commit: 7456e11d + working tree (24 modified, 2 untracked). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `/workspaces/requests` has a third table, Item moves: root sees every open request, a workspace's moderators and admins their workspace's, a plain member or an outsider none | no | confirmed | `vitest run --project db …/item-move-requests.db.test.ts` → 27 passed; rows for mod, adm and root, `[]` for ana and bob; `requests/page.test.tsx` passed. Mutation: the page renders `null` instead of `<ItemMovesTable>` → "lists the item moves for a workspace's moderators (134)" fails |
+| 2 | A workspace's Requests tab shows only that workspace's item moves | no | confirmed | db test: acme's → 1 row, beta's → `[]`, also for root. Mutation ignoring `workspaceId` → it fails. The tab's wiring (`[name]/page.tsx:114-139`) checked by reading only |
+| 3 | The asker never sees their own request (no row, no Approve, not in the count), even after promotion to moderator | no | partly | The behaviour holds (probe: ana asks, is promoted, her table and count are empty), but M1 (deleting `if (move.requestedBy === user.id) continue;`) and M2 (count `pending.length`) still pass the task 7 db tests |
+| 4 | Each row shows the item and its type, from and to, its new name, who asked and when, the message, and any clash since | no | confirmed | `item-moves-table.test.tsx` → 6 passed; db tests "marks a clash that appeared" (`item`) and scope-moved (`moved`) pass; mutation hiding the refusal line → its test fails |
+| 5 | Approve re-checks and moves, or leaves it open and says what refuses it; Decline takes an optional reason; a second answer gets "Already answered" | no | confirmed | task 4's db tests (rerun) pass: clash at approval leaves it open, decline with reason, two approvals → one `ItemMoveAnsweredError`; `actions.ts` returns `refused` for `ItemMoveRefusedError`; the e2e declines with a reason and the asker sees it |
+| 6 | Done when: component tests cover each answer | no | partly | Only Approve's `done` and `refused` states are rendered; nothing renders the Decline dialog or the `error` state ("Already answered.") |
+| 7 | The nav's Requests count includes item moves | no | confirmed | `shell.test.ts` → 13 passed (12 for root, 9 for a moderator); mutation (`0` in shell.ts) → it fails; db: count 1 for mod and root, 0 for ana and bob, 0 after approval |
+| 8 | Messages in en, pt and fr | no | confirmed | `itemMoves` has 17 keys in each; the other keys and `item-move-approve` present in all three; pt/fr English-leak tests pass; the unit project passes in full |
+| 9 | The help link `item-move-approve` points to the Documentation | no | confirmed | `Help.tsx` → `docsHref("scopes","moving-items")`; `topics.ts:67`; the component test sees the link |
+| 10 | `pendingItemMoves` works on the three servers | no | confirmed | `pnpm test:db:postgres` / `:mysql` / `:mariadb -- …/item-move-requests.db.test.ts` → 27 passed each |
+| 11 | The phone sweep passes | no | confirmed | `playwright test e2e/move-item.mobile.e2e.ts e2e/mobile-sweep.mobile.e2e.ts --project phone --project phone-webkit --project tablet` → 48 passed; the build is newer than every edited file |
+
+**Overall:** not met: the behaviour holds, but the task's tests don't protect the "never the asker's own" filter (row 3), and no component test covers Decline or "Already answered" (row 6).
+
+### Re-check (rows 3 and 6)
+
+Witnessed: 2026-10-28 01:13 EDT, by a fresh agent (blind). Commit: 7456e11d + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 3 | The asker never sees their own request (no row, no Approve, not in the count), even after promotion to moderator, and a test guards it | no | confirmed | New case `item-move-requests.db.test.ts:775` → task 7 cases 4 passed on SQLite; the file 28 passed on PostgreSQL, MySQL and MariaDB. M1 (the `requestedBy` skip removed) and M2 (`return pending.length;`) each fail "never lists the asker's own request, nor counts it, even once they moderate" |
+| 6 | Done when: component tests cover each answer (Approve moved or refused, Decline with a reason, Already answered) | no | confirmed | `vitest run src/features/workspace-requests` → 25 passed; `item-moves-table.test.tsx` renders `DeclineItemMoveForm` (reason, `maxLength="500"`, "Ana sees it on the item’s page. 0/500") and Approve with `loaded={{ error: "Already answered." }}`; the pt/fr leak checks include the decline form. Mutations `maxLength={5000}` and Approve's `FieldError` with `{null}` each fail a test. (Decline's own "Already answered" state isn't rendered: the form takes no `loaded`; it goes through the same `attempt` and `FieldError` as the scope-move answers) |
+| 11 | The phone sweep passes (the only source change is the export of `DeclineItemMoveForm`) | no | confirmed | `ItemMovesTable.tsx:60` is now `export const DeclineItemMoveForm`, nothing else in the source; the first pass's 48 passed holds |
+
+**Overall:** met: the own-request filter now has a test that fails without it, and the component tests render each answer, Decline and "Already answered" included.

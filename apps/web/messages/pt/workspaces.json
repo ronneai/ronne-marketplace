@@ -59,7 +59,8 @@
     "requests": "Solicitações",
     "global": "Toda instância o tem, e todos estão nele. Ele não pode ser alterado nem excluído.",
     "personal": "{owner, select, you {Só seu} other {Só do dono dele}}, sempre privado. Os itens dele são lançados sem revisão.",
-    "scopeMoves": "Movimentações de escopo"
+    "scopeMoves": "Movimentações de escopo",
+    "itemMoves": "Movimentações de item"
   },
   "members": {
     "search": "Pesquisar",
@@ -114,7 +115,8 @@
     "cancel": "Cancelar",
     "pageTitle": "Solicitações para entrar",
     "pageDescription": "Pessoas pedindo para entrar nos espaços de trabalho que você modera. Aprovar as adiciona como usuários.",
-    "movesIntro": "Escopos que os admins dos espaços de trabalho deles pediram para mover para um espaço de trabalho que você administra. Aprovar verifica a movimentação de novo e a executa."
+    "movesIntro": "Escopos que os admins dos espaços de trabalho deles pediram para mover para um espaço de trabalho que você administra. Aprovar verifica a movimentação de novo e a executa.",
+    "itemMovesIntro": "Itens que membros pediram para mover para outro escopo de um espaço de trabalho que você modera. Aprovar verifica o nome de novo e move o item."
   },
   "moves": {
     "none": "Nenhuma movimentação aguardando.",
@@ -138,6 +140,25 @@
     "reasonHint": "{name} vê isso na linha do escopo. {used, number}/{max, number}",
     "cancel": "Cancelar"
   },
+  "itemMoves": {
+    "none": "Nenhuma movimentação de item aguardando.",
+    "item": "Item",
+    "from": "De",
+    "to": "Para",
+    "newName": "Nome dele lá",
+    "askedBy": "Solicitado por (UTC)",
+    "message": "Mensagem",
+    "refusal": "{refusal, select, item {O escopo agora tem um item com esse nome: Aprovar não pode movê-lo.} submission {Um item novo com esse nome aguarda revisão lá: Aprovar não pode movê-lo.} alias {Esse nome agora é o nome antigo de outro item: Aprovar não pode movê-lo.} other {O escopo agora está em outro espaço de trabalho: Aprovar cancela o pedido.}}",
+    "approve": "Aprovar",
+    "approveAria": "Aprovar a movimentação de {item} para {to}",
+    "decline": "Recusar",
+    "declineAria": "Recusar a movimentação de {item} para {to}",
+    "declineTitle": "Recusar movimentação",
+    "declineBody": "Recusar a movimentação de <mono>{item}</mono> para <mono>{to}</mono>?",
+    "reason": "Motivo (opcional)",
+    "reasonHint": "{name} vê isso na página do item. {used, number}/{max, number}",
+    "cancel": "Cancelar"
+  },
   "results": {
     "sent": "Solicitação enviada.",
     "alreadyIn": "Você já está nele.",
@@ -148,6 +169,7 @@
     "removed": "Removido.",
     "approved": "Aprovado: a pessoa está em {workspace} como {role}.",
     "declined": "Recusado.",
-    "moved": "Movido para {workspace}."
+    "moved": "Movido para {workspace}.",
+    "itemMoved": "Movido: agora ele é {newName}."
   }
 }

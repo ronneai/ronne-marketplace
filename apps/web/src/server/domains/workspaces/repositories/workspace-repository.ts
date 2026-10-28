@@ -420,6 +420,14 @@ export interface WorkspaceRepository {
   latestItemMoveOf(
     itemId: string,
   ): Promise<(ItemMove & { toScope: string; askedByName: string | null }) | null>;
+  /**
+   * The open item moves of items in these workspaces (all of them for `"all"`), oldest first, at
+   * most `limit`, with who asked and the item's workspace now (134).
+   */
+  pendingItemMoves(
+    workspaceIds: "all" | readonly string[],
+    limit: number,
+  ): Promise<(ItemMove & { workspaceId: string; requester: { email: string; name: string } })[]>;
 }
 
 /** An item as moving it to another scope reads it (134). */

@@ -15,6 +15,7 @@ import { requireUser } from "@/server/domains/identity/actions/session";
 import { can, canInSomeShared } from "@/server/domains/identity/models/permissions";
 import { countNeedsReview } from "@/server/domains/submissions/actions/reviews";
 import {
+  countItemMovesToAnswer,
   countMovesToAnswer,
   myWorkspacesAs,
   requestsToAnswer,
@@ -46,11 +47,13 @@ export const loadShell = cache(async () => {
   const newFeedback = can(user, "feedback.manage") ? await countNewFeedback(request) : 0;
   // Root and moderators see how many requests to join wait for them next to Requests (094).
   // And the scope moves waiting for them (115): root's, and a shared workspace's admins'.
+  // And the item moves waiting for them (134): a workspace's moderators', admins' and root's.
   const toAnswer = canInSomeShared(user, "access_requests.answer")
     ? (await requestsToAnswer(request)) +
       (user.role === "root" || canInSomeShared(user, "scopes.move")
         ? await countMovesToAnswer(request)
-        : 0)
+        : 0) +
+      (await countItemMovesToAnswer(request))
     : 0;
   // The switcher lists the workspaces they're a member of: personal first, then global, then by
   // name (119). Public ones they could join stay on the Workspaces page.

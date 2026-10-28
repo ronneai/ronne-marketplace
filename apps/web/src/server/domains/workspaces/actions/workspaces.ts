@@ -236,6 +236,17 @@ export const itemMoveImpact = async (
 export const itemMoveView = async (headers: Headers, itemId: string, app: AppAuth = getAppAuth()) =>
   itemMoves.itemMoveView(deps(app).repo, await actor(headers, app), itemId);
 
+/** The item moves waiting for the reader's answer (134), in every workspace or in one. */
+export const itemMovesToAnswer = async (
+  headers: Headers,
+  input: { workspaceId?: string } = {},
+  app: AppAuth = getAppAuth(),
+) => itemMoves.itemMovesToAnswer(deps(app), await actor(headers, app), input);
+
+/** How many item moves wait for the reader's answer (134), for the nav. */
+export const countItemMovesToAnswer = async (headers: Headers, app: AppAuth = getAppAuth()) =>
+  itemMoves.countItemMovesToAnswer(deps(app), await actor(headers, app));
+
 /** Moves an item to another scope of its workspace, or asks to (134). */
 export const askItemMove = async (
   headers: Headers,

@@ -1,6 +1,6 @@
 import { formatItemName, formatScopeName, parseItemName, parseManifest } from "@ronneai/core";
 import type { AuditAction } from "../../audit/models/audit-event";
-import { can } from "../../identity/models/permissions";
+import { can, workspacesWith } from "../../identity/models/permissions";
 import { renamedFrontmatterAgent, renamedManifest } from "../../submissions/models/manifest-names";
 import {
   InvalidItemMoveTextError,
@@ -604,4 +604,106 @@ export const itemMoveView = async (
     targets,
     latest: shown,
   };
+};
+
+/** How many open item moves the Item moves table reads at most. */
+export const PENDING_ITEM_MOVES_SHOWN = 100;
+
+/** A request to move an item as the Item moves table shows it (134), with what refuses it now. */
+export type ItemMoveRequestRow = {
+  id: string;
+  /** The item's full name now, its type, and its full name once moved. */
+  item: string;
+  type: string;
+  newName: string;
+  /** The scopes, in full. */
+  from: string;
+  to: string;
+  /** The item's workspace. */
+  workspace: string;
+  askedBy: { email: string; name: string };
+  createdAt: Date;
+  message: string | null;
+  /**
+   * What the checks say now: a clash, or `moved` when the item and its target aren't in one
+   * workspace any more (approving cancels it); null when it can move.
+   */
+  refusal: ItemMoveImpact["clash"] | "moved" | null;
+};
+
+/** The workspaces where the person answers item moves: all for root, else where they moderate. */
+const answersItemMovesIn = (user: NonNullable<WorkspaceActor["user"]>) =>
+  workspacesWith(user, "items.move");
+
+/**
+ * The item moves waiting for this person's answer (134), oldest first: in every workspace where
+ * they moderate or administer (every one for root), or in one; never their own requests. Each row
+ * says what would refuse it now, from the checks approving runs.
+ */
+export const itemMovesToAnswer = async (
+  deps: WorkspaceDeps,
+  actor: WorkspaceActor,
+  input: { workspaceId?: string } = {},
+): Promise<{ moves: ItemMoveRequestRow[]; total: number }> => {
+  const user = actor.user;
+  if (!user) return { moves: [], total: 0 };
+  const answered = answersItemMovesIn(user);
+  const where =
+    input.workspaceId === undefined
+      ? answered
+      : answered === "all" || answered.includes(input.workspaceId)
+        ? [input.workspaceId]
+        : [];
+  const pending = await deps.repo.pendingItemMoves(where, PENDING_ITEM_MOVES_SHOWN);
+  const rows: ItemMoveRequestRow[] = [];
+  for (const move of pending) {
+    if (move.requestedBy === user.id) continue;
+    const item = await deps.repo.itemForMove(move.itemId);
+    const workspace = item ? await deps.repo.findById(item.workspaceId) : null;
+    const target = await deps.repo.scopeById(move.toScopeId);
+    if (!item || !workspace || !target) continue;
+    const name = formatItemName({
+      workspace: workspace.name,
+      scope: item.scopeName,
+      name: item.name,
+    });
+    const sameWorkspace = target.workspaceId === workspace.id && target.id !== item.scopeId;
+    const impact = sameWorkspace
+      ? await checkItemMove(deps.repo, actor, {
+          item,
+          workspace,
+          target: { id: target.id, name: target.name },
+        })
+      : null;
+    rows.push({
+      id: move.id,
+      item: name,
+      type: item.type,
+      newName:
+        impact?.newName ??
+        formatItemName({ workspace: workspace.name, scope: target.name, name: item.name }),
+      from: scopeFullName(workspace, item.scopeName),
+      to: scopeFullName(workspace, target.name),
+      workspace: workspace.name,
+      askedBy: move.requester,
+      createdAt: move.createdAt,
+      message: move.message,
+      refusal: impact ? impact.clash : "moved",
+    });
+  }
+  return { moves: rows, total: rows.length };
+};
+
+/** How many item moves wait for this person's answer (134), for the nav's Requests count. */
+export const countItemMovesToAnswer = async (
+  deps: WorkspaceDeps,
+  actor: WorkspaceActor,
+): Promise<number> => {
+  const user = actor.user;
+  if (!user) return 0;
+  const pending = await deps.repo.pendingItemMoves(
+    answersItemMovesIn(user),
+    PENDING_ITEM_MOVES_SHOWN,
+  );
+  return pending.filter((move) => move.requestedBy !== user.id).length;
 };

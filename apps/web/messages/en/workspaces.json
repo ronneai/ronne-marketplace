@@ -59,7 +59,8 @@
     "requests": "Requests",
     "global": "Every instance has it, and everyone is in it. It can’t be changed or deleted.",
     "personal": "{owner, select, you {Yours} other {Its owner’s}} alone, always private. Its items are released without review.",
-    "scopeMoves": "Scope moves"
+    "scopeMoves": "Scope moves",
+    "itemMoves": "Item moves"
   },
   "members": {
     "search": "Search",
@@ -114,7 +115,8 @@
     "cancel": "Cancel",
     "pageTitle": "Requests to join",
     "pageDescription": "People asking to join the workspaces you moderate. Approving adds them as users.",
-    "movesIntro": "Scopes their workspaces’ admins asked to move into a workspace you run. Approving checks the move again and moves it."
+    "movesIntro": "Scopes their workspaces’ admins asked to move into a workspace you run. Approving checks the move again and moves it.",
+    "itemMovesIntro": "Items members asked to move to another scope of a workspace you moderate. Approving checks the name again and moves the item."
   },
   "moves": {
     "none": "No moves waiting.",
@@ -138,6 +140,25 @@
     "reasonHint": "{name} sees it on the scope’s row. {used, number}/{max, number}",
     "cancel": "Cancel"
   },
+  "itemMoves": {
+    "none": "No item moves waiting.",
+    "item": "Item",
+    "from": "From",
+    "to": "To",
+    "newName": "Its name there",
+    "askedBy": "Asked by (UTC)",
+    "message": "Message",
+    "refusal": "{refusal, select, item {The scope has an item with that name now: Approve can’t move it.} submission {A new item with that name is waiting for review there: Approve can’t move it.} alias {That name is another item’s old name now: Approve can’t move it.} other {The scope is in another workspace now: Approve cancels the request.}}",
+    "approve": "Approve",
+    "approveAria": "Approve moving {item} to {to}",
+    "decline": "Decline",
+    "declineAria": "Decline moving {item} to {to}",
+    "declineTitle": "Decline move",
+    "declineBody": "Decline moving <mono>{item}</mono> to <mono>{to}</mono>?",
+    "reason": "Reason (optional)",
+    "reasonHint": "{name} sees it on the item’s page. {used, number}/{max, number}",
+    "cancel": "Cancel"
+  },
   "results": {
     "sent": "Request sent.",
     "alreadyIn": "You're in it already.",
@@ -148,6 +169,7 @@
     "removed": "Removed.",
     "approved": "Approved: they're in {workspace} as {role}.",
     "declined": "Declined.",
-    "moved": "Moved to {workspace}."
+    "moved": "Moved to {workspace}.",
+    "itemMoved": "Moved: it’s {newName} now."
   }
 }
