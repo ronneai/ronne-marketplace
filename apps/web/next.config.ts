@@ -8,6 +8,12 @@ const nextConfig: NextConfig = {
   output: process.env.NEXT_OUTPUT === "standalone" ? "standalone" : undefined,
   // Don't advertise the framework in response headers.
   poweredByHeader: false,
+  // `pnpm dev` serves its scripts only to localhost; other hostnames that open it, such as the dev
+  // machine's address on the network, go in DEV_ORIGINS (comma-separated, in .env.local). Without
+  // this, the page loads there but nothing on it responds. A build ignores it.
+  allowedDevOrigins: process.env.DEV_ORIGINS?.split(",")
+    .map((host) => host.trim())
+    .filter(Boolean),
   experimental: {
     serverActions: {
       // The draft editor saves every changed file at once, and imports .zip files (feature 012):
