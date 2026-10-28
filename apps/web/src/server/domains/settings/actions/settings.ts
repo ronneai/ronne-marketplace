@@ -3,37 +3,60 @@ import { hasUsableProvider } from "../../identity/actions/password-policy";
 import { getCurrentUser } from "../../identity/actions/session";
 import { clientIp } from "../../identity/models/client-ip";
 import { type AppAuth, getAppAuth } from "../../identity/repositories/auth-instance";
-import { parseScannerCommand, scanProvider } from "../../scans/services/command-scanner";
+import { scanSetupNow } from "../../scans/actions/scans";
+import { parseAllowedHosts, type Resolver } from "../../scans/models/endpoint";
+import type { ScanSetup } from "../../scans/services/scan-setup";
+import { systemResolver } from "../../scans/services/system-resolver";
 import type { SkillScanner } from "../models/skill-scan-policy";
 import { kyselySettingsRepository } from "../repositories/kysely-settings-repository";
 import * as service from "../services/settings";
+import type { ScanSetupInput } from "../services/skill-scan-setup";
+import * as setup from "../services/skill-scan-setup";
 
 export type { InstanceSettings } from "../services/settings";
 
 /**
- * What settings may show of the operator's scanner setup: whether a command is set, and the
- * provider's name, model and host. Never its variables, which hold the key: they stay on the server.
+ * What settings may show of the scanner's setup (135, 136): whether a command is set, the
+ * provider's name, model and host, and where each part comes from. Never the provider's variables
+ * or the key: they stay on the server.
  */
-export const skillScannerFrom = (
-  config: { command?: string; env: Record<string, string> } | undefined,
-): SkillScanner => {
-  const provider = scanProvider(config?.env ?? {});
-  return {
-    configured: parseScannerCommand(config?.command) !== null,
-    provider: provider ? { name: provider.name, model: provider.model, host: provider.host } : null,
-  };
-};
+export const skillScannerFrom = (setup: ScanSetup): SkillScanner => ({
+  configured: setup.command !== null,
+  provider: setup.provider
+    ? { name: setup.provider.name, model: setup.provider.model, host: setup.provider.host }
+    : null,
+  setup: setup.shown,
+});
 
-const skillScanner = (): SkillScanner => skillScannerFrom(loadConfig().skillScanner);
+const skillScanner = async (app: AppAuth): Promise<SkillScanner> =>
+  skillScannerFrom(await scanSetupNow(app));
 
 export const skillScanSettings = async (headers: Headers, app: AppAuth = getAppAuth()) =>
-  service.skillScanSettings(deps(app), await actor(headers, app), skillScanner());
+  service.skillScanSettings(deps(app), await actor(headers, app), await skillScanner(app));
 
 export const setSkillScanPolicy = async (
   headers: Headers,
   value: { enabled: unknown; types: unknown; analysis: unknown },
   app: AppAuth = getAppAuth(),
-) => service.setSkillScanPolicy(deps(app), await actor(headers, app), value, skillScanner());
+) =>
+  service.setSkillScanPolicy(deps(app), await actor(headers, app), value, await skillScanner(app));
+
+/** Root's scanner setup (136): the command, timeout and provider, with the write-only key. */
+export const setSkillScanSetup = async (
+  headers: Headers,
+  value: ScanSetupInput,
+  app: AppAuth = getAppAuth(),
+  /** For tests: a resolver of their own. */
+  resolve: Resolver = systemResolver(),
+) => {
+  const config = loadConfig();
+  return setup.setSkillScanSetup(deps(app), await actor(headers, app), value, {
+    shown: (await scanSetupNow(app)).shown,
+    authSecret: config.authSecret,
+    allowedHosts: parseAllowedHosts(config.skillScanner?.httpHosts),
+    resolve,
+  });
+};
 
 /** Instance settings (feature 046). Thin: the service checks everything. */
 const deps = ({ db, dialect }: AppAuth): service.SettingsDeps => ({

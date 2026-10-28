@@ -142,12 +142,17 @@ export const endSessionsForNewSecret = async (
     let settingUnreadable = 0;
     if (rekeySetting)
       for (const { key, valueEnc } of await repo.instanceSecrets()) {
-        const next = rekeySetting(key, valueEnc);
-        if (next === null) settingUnreadable++;
-        else {
-          await repo.setInstanceSecret(key, next);
-          settingSecrets++;
+        // Written only over the value read: one root saved meanwhile is re-sealed in its turn.
+        let current: string | null = valueEnc;
+        let done = false;
+        for (let attempt = 0; current !== null && !done && attempt < 3; attempt++) {
+          const next = rekeySetting(key, current);
+          if (next === null) break;
+          done = await repo.setInstanceSecret(key, current, next);
+          if (!done) current = await repo.instanceSecret(key);
         }
+        if (done) settingSecrets++;
+        else if (current !== null) settingUnreadable++;
       }
     await repo.recordAudit(
       {

@@ -119,3 +119,81 @@ export class InvalidSkillScanAnalysisError extends SettingsError {
     super("Choose static, or static and semantic.");
   }
 }
+
+export class InvalidScanProviderError extends SettingsError {
+  override readonly name: string = "InvalidScanProviderError";
+  constructor() {
+    super("Choose one of the providers listed, or none.");
+  }
+}
+
+export class InvalidScanModelError extends SettingsError {
+  override readonly name: string = "InvalidScanModelError";
+  constructor() {
+    super("Enter a model name of at most 128 characters, on one line.");
+  }
+}
+
+export class InvalidScanTimeoutError extends SettingsError {
+  override readonly name: string = "InvalidScanTimeoutError";
+  constructor() {
+    super("Enter a timeout from 30 to 3600 seconds, or leave it empty for 300.");
+  }
+}
+
+export class InvalidScanCommandError extends SettingsError {
+  override readonly name: string = "InvalidScanCommandError";
+  constructor() {
+    super("Choose one of the scanner commands the server lists.");
+  }
+}
+
+export class InvalidScanKeyError extends SettingsError {
+  override readonly name: string = "InvalidScanKeyError";
+  constructor() {
+    super("Enter the API key on one line, at most 4096 characters, for a provider that takes one.");
+  }
+}
+
+export class InvalidScanEndpointError extends SettingsError {
+  override readonly name: string = "InvalidScanEndpointError";
+  constructor() {
+    super(
+      "Enter the endpoint as a URL, such as https://api.example.com/v1, with no spaces or backslashes.",
+    );
+  }
+}
+
+export class ScanEndpointCredentialsError extends SettingsError {
+  override readonly name: string = "ScanEndpointCredentialsError";
+  constructor() {
+    super(
+      "Leave the user name and password out of the endpoint: enter the API key in its own field.",
+    );
+  }
+}
+
+export class ScanEndpointNotHttpsError extends SettingsError {
+  override readonly name: string = "ScanEndpointNotHttpsError";
+  constructor() {
+    super(
+      "The endpoint must start with https://. The server's operator can allow http:// for a host in RONNE_SKILL_SCANNER_HTTP_HOSTS.",
+    );
+  }
+}
+
+export class ScanEndpointInternalError extends SettingsError {
+  override readonly name: string = "ScanEndpointInternalError";
+  constructor() {
+    super(
+      "That endpoint is on a private, loopback or link-local address, which isn't allowed. The server's operator can allow its host in RONNE_SKILL_SCANNER_HTTP_HOSTS.",
+    );
+  }
+}
+
+export class ScanEndpointUnresolvedError extends SettingsError {
+  override readonly name: string = "ScanEndpointUnresolvedError";
+  constructor() {
+    super("That endpoint's host can't be found. Check its name.");
+  }
+}

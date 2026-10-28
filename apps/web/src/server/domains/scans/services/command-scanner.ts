@@ -52,6 +52,8 @@ type ProviderSpec = {
   variables: readonly string[];
   /** Variables it can't work without. */
   needs: readonly string[];
+  /** The variable that holds its API key, if it takes one (136: root may set it in the web). */
+  key: string | null;
   /** The variable that sets its endpoint, if it has one. */
   endpoint: string | null;
   /** Where the files go when no endpoint is set. */
@@ -67,18 +69,21 @@ const PROVIDERS: Record<string, ProviderSpec> = {
   openai: {
     variables: ["OPENAI_API_KEY", "OPENAI_BASE_URL"],
     needs: ["OPENAI_API_KEY"],
+    key: "OPENAI_API_KEY",
     endpoint: "OPENAI_BASE_URL",
     defaultHost: "api.openai.com",
   },
   anthropic: {
     variables: ["ANTHROPIC_API_KEY"],
     needs: ["ANTHROPIC_API_KEY"],
+    key: "ANTHROPIC_API_KEY",
     endpoint: null,
     defaultHost: "api.anthropic.com",
   },
   nv_build: {
     variables: ["NVIDIA_INFERENCE_KEY"],
     needs: ["NVIDIA_INFERENCE_KEY"],
+    key: "NVIDIA_INFERENCE_KEY",
     endpoint: null,
     defaultHost: "integrate.api.nvidia.com",
   },
@@ -90,21 +95,40 @@ const PROVIDERS: Record<string, ProviderSpec> = {
       "AZURE_OPENAI_API_VERSION",
     ],
     needs: ["AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT"],
+    key: "AZURE_OPENAI_API_KEY",
     endpoint: "AZURE_OPENAI_ENDPOINT",
     defaultHost: "",
   },
   openai_compatible: {
     variables: ["SKILLSPECTOR_COMPAT_API_KEY", "SKILLSPECTOR_COMPAT_BASE_URL"],
     needs: ["SKILLSPECTOR_COMPAT_API_KEY", "SKILLSPECTOR_COMPAT_BASE_URL"],
+    key: "SKILLSPECTOR_COMPAT_API_KEY",
     endpoint: "SKILLSPECTOR_COMPAT_BASE_URL",
     defaultHost: "",
   },
   ollama: {
     variables: ["OLLAMA_BASE_URL"],
     needs: [],
+    key: null,
     endpoint: "OLLAMA_BASE_URL",
     defaultHost: "localhost:11434",
   },
+};
+
+/** The providers' names, as root picks one in the web (136). */
+export const SCAN_PROVIDER_NAMES = Object.keys(PROVIDERS);
+
+/** What root sets for a provider in the web (136): its key and endpoint variables, if any. */
+export const providerFields = (
+  name: string,
+): { key: string | null; endpoint: string | null; endpointNeeded: boolean } | null => {
+  const spec = Object.hasOwn(PROVIDERS, name) ? PROVIDERS[name] : undefined;
+  if (!spec) return null;
+  // From the web, an endpoint is needed where the provider has no public one of its own: Ollama's
+  // default is this machine, which only the operator may allow.
+  const endpointNeeded =
+    spec.endpoint !== null && (spec.needs.includes(spec.endpoint) || spec.key === null);
+  return { key: spec.key, endpoint: spec.endpoint, endpointNeeded };
 };
 
 /** Passed with every provider. */

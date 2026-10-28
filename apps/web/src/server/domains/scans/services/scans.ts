@@ -1,6 +1,6 @@
 import { requirePermission } from "../../identity/models/permissions";
 import type { CurrentUser } from "../../identity/models/user";
-import type { ScanProvider, SkillScanner } from "../models/scan";
+import type { ScanError, ScanProvider, SkillScanner } from "../models/scan";
 import type { ContentScanRepository } from "../repositories/content-scan-repository";
 
 /**
@@ -14,6 +14,8 @@ export type ScanJobDeps = {
   semantic: boolean;
   provider: ScanProvider | null;
   timeoutSeconds: number;
+  /** Fails every scan taken with this reason instead of running it (136: `endpoint refused`). */
+  refuse?: ScanError | null;
   now?: () => Date;
   /** Called while a scan runs, so the job keeps its lease (run-job's `renew`). */
   renew?: () => Promise<void>;
@@ -81,7 +83,9 @@ export const runQueuedScans = async (
       counts.skipped++;
       continue;
     }
-    const outcome = await keepingLease(deps, () => deps.scanner.scan(files, { semantic }));
+    const outcome = deps.refuse
+      ? { ok: false as const, error: deps.refuse }
+      : await keepingLease(deps, () => deps.scanner.scan(files, { semantic }));
     const at = now(deps);
     if (outcome.ok) {
       const llm =

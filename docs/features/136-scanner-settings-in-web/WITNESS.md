@@ -174,3 +174,108 @@ Witnessed: 2026-10-28 16:29 EDT, by a fresh agent (blind). Commit: 62c6ff79 + wo
 | 5 | ronne-web lint, typecheck and tests pass from `www/` | no | confirmed | exit 0; 187 passed |
 
 **Overall:** met: with the first pass's confirmed rows, the Documentation links NVIDIA's guide and repository and Ronne's install note in all three languages, claiming no more than the app does. The website change is in ronne-web's `feat/136-scanner-settings-in-web`.
+
+## Task 4 — Settings service and the scan job
+
+Witnessed: 2026-10-28 17:06 EDT, by a fresh agent (blind). Commit: 6eabe25b + working tree (25 modified, 5 untracked). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The task's tests pass on SQLite | no | confirmed | 5 files, 42 passed |
+| 2 | The db tests pass on PostgreSQL, MySQL and MariaDB | no | confirmed | 41 passed each; one MariaDB file-level flake, green on two reruns |
+| 3 | Set: provider, model, timeout, command and the key, sealed | no | confirmed | Mutation storing an unsealed key → 6 of 13 fail |
+| 4 | Replace audited `replaced` | no | confirmed | Mutation `keyEvent = "set"` → fails |
+| 5 | Remove deletes the sealed value, audited `removed` | no | confirmed | Mutation ignoring `removeKey` → fails |
+| 6 | An empty key field keeps the key | no | confirmed | Mutation removing on any save → 3 fail |
+| 7 | A kept key is removed when the provider or endpoint origin changes | no | confirmed | Mutation dropping `moved` → fails; same origin, other path keeps it |
+| 8 | The environment wins on save and at run time | no | confirmed | Removing each of the three guards → fails |
+| 9 | An undecryptable key reads unreadable, no provider, runs static | no | confirmed | Mutation in `keyFrom` → setup and job tests fail |
+| 10 | A dropped command runs nothing and is flagged | no | confirmed | Fallback to `list[0]` → fails; `commandDropped:false` → fails |
+| 11 | The key is absent from every returned value and audit event | no | confirmed | Mutation adding the key to metadata → 3 fail |
+| 12 | The audit keeps the endpoint's host only | no | confirmed | Mutation storing the URL → 2 fail |
+| 13 | The job decrypts the key for the run, in the scanner's environment only | no | confirmed | Fake scanner sees `ANTHROPIC_API_KEY`, no `AUTH_SECRET`; no `authSecret` → 3 fail |
+| 14 | A refused endpoint at scan time fails `endpoint refused` without running the scanner | no | confirmed | Two mutations → fail |
+| 15 | The job uses root's timeout | no | confirmed | `stuckBefore(at, 300)` → fails |
+| 16 | Note: the endpoint is stored as checked (`url.href`) | no | confirmed | Storing as typed → 2 fail |
+| 17 | Note: allowed hosts on any port; entries with a port, scheme or wildcard never match | no | confirmed | Probe passed |
+| 18 | Note: a key saved during rotate-secret is never overwritten by the old one | no | partly | Unit test fails under mutation; no db test covers the compare, and on MySQL/MariaDB the compare ignores case (`v1.AAAA.bbbb` matched `v1.AAAA.BBBB`) |
+| 19 | Note: Test connection pins the checked addresses, no redirects | no | not met | No Test connection code yet; the plan builds it in task 5 |
+| 20 | Unicode model and a key with spaces around it, four databases | no | confirmed | Probe passed on all four |
+
+**Overall:** not met: rows 18 and 19.
+
+### Adversarial
+
+Witnessed: 2026-10-28 17:14 EDT, by a fresh agent (adversarial). Commit: 6eabe25b + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The Done-when db tests pass on the four databases | no | confirmed | SQLite 41 passed; PostgreSQL, MySQL, MariaDB 41 each; unit 33 |
+| 2 | The key never comes out (save's return, audit, `shown`, `skillScannerFrom`, page data) | no | confirmed | Probe P1 on SQLite, PG, MySQL: no `SECRET`, no sealed value |
+| 3 | A kept key is removed when provider or endpoint origin changes, one save after another | no | confirmed | Another port or host → removed; same origin, other path → kept. Mutation dropping `moved` → fails |
+| 4 | A key typed for one provider or endpoint never goes to another, also with two saves at once | no | not met | Probe P8 on PG and MySQL: save B (anthropic, no key) read before A (openai_compatible + key) committed, then wrote the provider only → `ANTHROPIC_API_KEY` = A's key |
+| 5 | The environment wins, never mixed with root's key | no | confirmed | Partial env provider vars → root's key never used; env provider + web save → nothing stored. Remark: an invalid env timeout fell back to root's value, not 300 |
+| 6 | Only a listed command can run; no web input becomes a command or argument | no | confirmed | `"1e0"`, `"01"`, `"__proto__"`, `"-1"`, `"0;rm"`, `0.5`, an array → refused or ignored |
+| 7 | The endpoint is checked on save and stored as checked | no | confirmed | Literals, mixed DNS, backslash, userinfo, `%2f@`, `http://`, `javascript:` → refused with the right error |
+| 8 | The job re-checks a web-set endpoint and fails semantic scans `endpoint refused` | no | confirmed | Mutation `refuse = null` → fails |
+| 9 | Ollama and keyless providers: no key, no default-host fallback from the web | no | confirmed | `ollama` + key → refused; no endpoint → no provider; `localhost:11434` → refused |
+| 10 | An undecryptable key reads unreadable; semantic runs static | no | confirmed | Tests pass on the four databases |
+| 11 | A dropped command stops scanning until root picks another | no | confirmed | Test passes |
+| 12 | The audit holds the endpoint's host only | no | confirmed | No path or query in events |
+| 13 | rotate-secret never writes the old key back over one saved meanwhile | no | confirmed | Probe R3 on PG, MySQL, MariaDB: new value re-sealed. Mutation without re-read → fails |
+| 14 | The database compare-and-set is covered on the real databases | no | partly | Removing `where value = from` leaves the db tests green; only the probe catches it |
+| 15 | The key is opened only for the job's run | no | confirmed | Remark: `scanSetupNow` also opened it on submit and review paths that need only the command |
+| 16 | The key is never logged | no | confirmed | By reading: no logger calls in the touched files; stderr dropped |
+
+**Overall:** not met: rows 4 and 14. Fixed after both passes: the key is sealed with the provider and endpoint origin it was typed for and opens only for that pair (`scan-key.ts`), with a db test of the raced save; `setInstanceSecret` compares exactly (`db/exact.ts`, binary on MySQL), with a db test of a case-flipped value changed between rotate's read and write, and one that a bound key still opens after rotation; queuing and the review page read the command only (`scanCommand`); an invalid env timeout is 300 again; the Test connection note moves to task 5. Re-checked below.
+
+### Re-check
+
+Witnessed: 2026-10-28 17:26 EDT, by a fresh agent (adversarial). Commit: 6eabe25b + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The task's tests pass on the four databases | yes | confirmed | 45/45 db on each; 20/20 unit |
+| 2 | Two saves at once can't send a key typed for one provider or endpoint to another | yes | confirmed | Two-connection race probe on PostgreSQL, MySQL, MariaDB: three cases (`anthropic`, another host, `openai`) → provider null, key `unreadable`, no `SECRET` in the setup or the audit |
+| 3 | The race tests fail without the binding | yes | confirmed | `openScanKey` returning the key unchecked → the unit and db race tests fail |
+| 4 | No other way found to send the key to a host it wasn't typed for | no | confirmed | Hand-edited endpoints change the origin; `user@evil` → origin evil; a backslash form is re-checked before every semantic scan; an env provider means the stored key is never read |
+| 5 | rotate-secret's compare-and-set is exact on MySQL and MariaDB | yes | confirmed | Case-flipped, upper-cased, trailing-space and trailing-LF values → `false` on all four; the exact value → `true` |
+| 6 | A db test fails when the repository's exact compare is reverted | yes | partly | `.where("value","=",from)` still passes on MySQL: the test's value differed by case alone only when the sealed value ended in `a`/`A` |
+| 7 | Test connection's pinning is moved to task 5 | yes | confirmed | PLAN Notes; SPEC.md states the rebinding limit |
+| 8 | Queuing and the review page read the command only | yes | confirmed | `scanCommandNow` → `scanCommand`, which never opens the key. Remark: the minute tick opens it for the timeout; a job path, nothing returned |
+| 9 | An invalid environment timeout gives 300 | yes | confirmed | Mutation → the test fails |
+| 10 | The key is absent from every returned value, audit event and page data | yes | confirmed | `summary()` audits the host only; probe events have no `SECRET` |
+
+**Overall:** not met: row 6. The test now upper-cases the sealed value's first letter (`v` of `v1.`), which always differs by case only. Re-checked below.
+
+### Re-check
+
+Witnessed: 2026-10-28 17:28 EDT, by a fresh agent (blind, scoped to row 6 above). Commit: 6eabe25b + uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The rotate race test builds a value that always differs from the sealed one by case only | no | confirmed | `instance-access.db.test.ts:432` `` `V${sealed.slice(1)}` ``; every sealed value starts `v1.` (`crypto/sealed.ts`) |
+| 2 | With `setInstanceSecret` back on `.where("value", "=", from)`, it fails on MySQL | no | confirmed | Scratch copy, 3 runs → exit 1 each, only this test failing |
+| 3 | The same on MariaDB | no | confirmed | 3 runs → exit 1 each; SQLite still passes, as it compares by case anyway |
+| 4 | Restored, the file passes on the four databases | no | confirmed | SQLite, PostgreSQL, MySQL, MariaDB → 18/18 each |
+
+**Overall:** met: with the earlier re-check's other rows, every claim of task 4 holds on the four databases.
+
+### Re-check (adversarial)
+
+Witnessed: 2026-10-28 17:35 EDT, by a fresh agent (adversarial). Commit: 6eabe25b + staged working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The task's tests pass on SQLite | no | confirmed | 7 files, 65 passed |
+| 2 | The db tests pass on PostgreSQL, MySQL and MariaDB | no | confirmed | 45 of 45 on each |
+| 3 | The key opens only for the provider and origin it was typed for | no | confirmed | `openScanKey` unchecked → 2 tests fail; restored, `cmp` identical |
+| 4 | rotate-secret's compare-and-set is exact on MySQL | no | confirmed | `exactEquals` without `binary` → 2 of 19 fail on MySQL; restored |
+| 5 | Queuing and the review page read the command only | no | confirmed | `scanCommand` takes no AUTH_SECRET and never calls `keyFrom` |
+| 6 | An invalid environment timeout gives 300 | no | confirmed | Mutation → the test fails; restored |
+| 7 | A hand-edited endpoint two parsers read differently can't send the key elsewhere | no | confirmed | `https://api.good.com\@evil.com/v1` opens the key (same origin to Node) but the job's re-check refuses it → `endpoint refused`; 8 more forms agree or are refused |
+| 8 | No other route for the key to another provider or host | no | confirmed | Raced saves and hand edits → `unreadable`; env provider built from the env only; `Object.hasOwn` on names; sealed JSON built with `JSON.stringify` |
+| 9 | The key is absent from returned values, audit events, page data and logs | no | confirmed | `{changed}` only; `summary()`; `skillScannerFrom`; no logger calls; scanner stderr dropped |
+| 10 | Only a listed command can run | no | confirmed | Index checked against the list on save; `/^\d{1,2}$/` and `list[chosen]` at run time |
+
+**Overall:** met: the Done-when tests pass on the four databases, each recorded fix fails its test when reverted, and no attempt got the key elsewhere or ran an unlisted command. Two remarks are in PLAN's notes.

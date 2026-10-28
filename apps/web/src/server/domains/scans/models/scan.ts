@@ -18,6 +18,8 @@ export type ScanError =
   | "output too large"
   | "invalid report"
   | "signal"
+  /** A web-set endpoint failed its check when the scan started (136): DNS changed, say. */
+  | "endpoint refused"
   | `exit ${number}`;
 
 export type ScanOutcome = { ok: true; result: SkillScanResult } | { ok: false; error: ScanError };

@@ -51,7 +51,7 @@ command runs anything on the server, and that would reach every secret Ronne hol
   (never the key).
 - **Audit:**
   - `settings.skill_scan` records what changed: the provider, model, endpoint host, timeout, the
-    command's index in the list, and "key set", "key replaced" or "key removed";
+    command's index in the list, and `keyChange`: `set`, `replaced` or `removed`;
   - never the key, and never the full endpoint URL (only its host, as userinfo and query strings can
     hold secrets).
 
@@ -81,6 +81,10 @@ command runs anything on the server, and that would reach every secret Ronne hol
 
 **Saving.** One Save for the tab:
 - The key is sent only when root typed one; an empty field keeps the stored key.
+- A kept key is removed when the provider or the endpoint's origin (scheme, host and port)
+  changes, unless root types a key with the change: a key typed for one provider or endpoint never
+  goes to another. The sealed value holds the provider and origin with the key, and it opens only
+  for that pair: a save that raced this one, or a hand edit, can't redirect it either.
 - Remove asks first, then deletes the encrypted value.
 - Semantic still needs a provider (135): a provider whose required key or endpoint is missing counts
   as none, as `scanProvider` decides today.

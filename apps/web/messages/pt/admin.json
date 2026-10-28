@@ -1064,7 +1064,7 @@
           "title": "Nenhum verificador está configurado neste servidor",
           "body": "Quem opera o servidor instala o SkillSpector e indica o comando dele em RONNE_SKILL_SCANNER (no ambiente ou no arquivo de configurações) e reinicia o Ronne. Só então a verificação pode ser ativada aqui."
         },
-        "lastError": "A última verificação não terminou: {reason, select, timeout {passou do tempo limite} not_found {o comando do verificador não foi encontrado} not_runnable {o comando do verificador não pode ser executado} not_configured {nenhum comando de verificador está definido} output_too_large {produziu saída demais} invalid_report {o relatório não pôde ser lido} signal {foi interrompida por um sinal} no_temporary_folder {a pasta temporária não pôde ser criada} bad_file_path {um caminho de arquivo da submissão foi recusado} write_failed {os arquivos não puderam ser gravados} exit {terminou com o código {code}} other {{error}}}"
+        "lastError": "A última verificação não terminou: {reason, select, timeout {passou do tempo limite} not_found {o comando do verificador não foi encontrado} not_runnable {o comando do verificador não pode ser executado} not_configured {nenhum comando de verificador está definido} output_too_large {produziu saída demais} invalid_report {o relatório não pôde ser lido} signal {foi interrompida por um sinal} no_temporary_folder {a pasta temporária não pôde ser criada} bad_file_path {um caminho de arquivo da submissão foi recusado} write_failed {os arquivos não puderam ser gravados} endpoint_refused {o endpoint do LLM não passou na verificação quando a verificação começou} exit {terminou com o código {code}} other {{error}}}"
       },
       "enabled": {
         "label": "Verificar submissões",

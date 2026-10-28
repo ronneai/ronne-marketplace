@@ -1,5 +1,6 @@
 import type { Kysely } from "kysely";
 import { fromDbDate, toDbBoolean, toDbDate } from "../../../db/dates";
+import { exactEquals } from "../../../db/exact";
 import { newId } from "../../../db/ids";
 import { countCapped, paginate } from "../../../db/keyset";
 import { forUpdate, readCommittedTransaction } from "../../../db/locks";
@@ -527,12 +528,23 @@ export const kyselyIdentityRepository = (
         .map((r) => ({ key: r.key, valueEnc: r.value }));
     },
 
-    async setInstanceSecret(key, valueEnc) {
-      await db
-        .updateTable("instance_settings")
-        .set({ value: valueEnc })
+    async instanceSecret(key) {
+      const row = await db
+        .selectFrom("instance_settings")
+        .select("value")
         .where("key", "=", key)
-        .execute();
+        .executeTakeFirst();
+      return row?.value || null;
+    },
+
+    async setInstanceSecret(key, from, to) {
+      const result = await db
+        .updateTable("instance_settings")
+        .set({ value: to })
+        .where("key", "=", key)
+        .where(exactEquals(dialect, "value", from))
+        .executeTakeFirst();
+      return Number(result.numUpdatedRows) === 1;
     },
 
     async setPassword(userId, passwordHash, now) {

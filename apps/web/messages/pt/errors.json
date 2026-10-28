@@ -142,7 +142,17 @@
   "ScopeWorkspaceNotFoundError": "Esse espaço de trabalho não existe.",
   "ScopeNotFoundError": "Esse escopo não existe.",
   "SkillScanNotConfiguredError": "Defina RONNE_SKILL_SCANNER no servidor (o comando do verificador, como um array JSON) e reinicie o Ronne antes.",
-  "SkillScanNoProviderError": "Configure antes um provedor de LLM no servidor (RONNE_SKILL_SCANNER_ENV_SKILLSPECTOR_PROVIDER e as variáveis dele) e reinicie o Ronne.",
+  "SkillScanNoProviderError": "Configure antes um provedor de LLM: abaixo, ou no servidor com RONNE_SKILL_SCANNER_ENV_SKILLSPECTOR_PROVIDER e as variáveis dele.",
   "InvalidSkillScanTypesError": "Escolha pelo menos um tipo de item a verificar.",
-  "InvalidSkillScanAnalysisError": "Escolha estática, ou estática e semântica."
+  "InvalidSkillScanAnalysisError": "Escolha estática, ou estática e semântica.",
+  "InvalidScanProviderError": "Escolha um dos provedores da lista, ou nenhum.",
+  "InvalidScanModelError": "Informe um nome de modelo com no máximo 128 caracteres, em uma linha.",
+  "InvalidScanTimeoutError": "Informe um tempo limite de 30 a 3600 segundos, ou deixe vazio para 300.",
+  "InvalidScanCommandError": "Escolha um dos comandos de verificador que o servidor lista.",
+  "InvalidScanKeyError": "Informe a chave de API em uma linha, com no máximo 4096 caracteres, para um provedor que use uma.",
+  "InvalidScanEndpointError": "Informe o endpoint como uma URL, como https://api.example.com/v1, sem espaços nem barras invertidas.",
+  "ScanEndpointNotHttpsError": "O endpoint precisa começar com https://. Quem opera o servidor pode permitir http:// para um host em RONNE_SKILL_SCANNER_HTTP_HOSTS.",
+  "ScanEndpointCredentialsError": "Deixe o nome de usuário e a senha fora do endpoint: informe a chave de API no campo dela.",
+  "ScanEndpointInternalError": "Esse endpoint está em um endereço privado, de loopback ou link-local, o que não é permitido. Quem opera o servidor pode permitir o host dele em RONNE_SKILL_SCANNER_HTTP_HOSTS.",
+  "ScanEndpointUnresolvedError": "O host desse endpoint não foi encontrado. Confira o nome dele."
 }

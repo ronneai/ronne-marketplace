@@ -5,20 +5,48 @@ import { can } from "../../identity/models/permissions";
 import { type AppAuth, getAppAuth } from "../../identity/repositories/auth-instance";
 import { kyselySettingsRepository } from "../../settings/repositories/kysely-settings-repository";
 import { skillScanPolicy } from "../../settings/services/settings";
+import { storedScanSetup } from "../../settings/services/skill-scan-setup";
 import type { ContentScan } from "../repositories/content-scan-repository";
 import { kyselyContentScanRepository } from "../repositories/kysely-content-scan-repository";
-import { parseScannerCommand } from "../services/command-scanner";
+import { type ScanSetup, scanCommand, scanSetup } from "../services/scan-setup";
 import * as service from "../services/scans";
 
 /**
+ * The scanner's setup now (135, 136): the operator's config over root's settings. Its provider's
+ * variables hold the key: only the job passes them on, to the scanner.
+ */
+export const scanSetupNow = async (
+  app: Pick<AppAuth, "db" | "dialect">,
+  env: Record<string, string | undefined> = process.env,
+): Promise<ScanSetup> => {
+  const config = loadConfig({ env });
+  return scanSetup(
+    config.skillScanner,
+    await storedScanSetup(kyselySettingsRepository(app.db, app.dialect)),
+    config.authSecret,
+  );
+};
+
+/** Only the command to run now: what queuing and the review page need, without opening the key. */
+const scanCommandNow = async (
+  app: Pick<AppAuth, "db" | "dialect">,
+  env: Record<string, string | undefined> = process.env,
+): Promise<string[] | null> =>
+  scanCommand(
+    loadConfig({ env }).skillScanner,
+    await storedScanSetup(kyselySettingsRepository(app.db, app.dialect)),
+  );
+
+/**
  * The item types a revision sent now is queued for the security scan of (135): root's types when
- * scanning is on and the operator set a scanner command; none otherwise.
+ * scanning is on and a scanner command is set (the operator's, or one root chose from their list);
+ * none otherwise.
  */
 export const scanTypesNow = async (
   app: Pick<AppAuth, "db" | "dialect">,
   env: Record<string, string | undefined> = process.env,
 ): Promise<readonly string[]> => {
-  if (!parseScannerCommand(loadConfig({ env }).skillScanner?.command)) return [];
+  if (!(await scanCommandNow(app, env))) return [];
   const policy = await skillScanPolicy({ repo: kyselySettingsRepository(app.db, app.dialect) });
   return policy.enabled ? policy.types : [];
 };
@@ -49,7 +77,7 @@ export const requestScan = async (
   const queued = await service.requestScan(
     {
       repo: kyselyContentScanRepository(app.db, app.dialect),
-      configured: parseScannerCommand(loadConfig().skillScanner?.command) !== null,
+      configured: (await scanCommandNow(app)) !== null,
     },
     { user },
     revisionId,
@@ -81,7 +109,7 @@ export const reviewScan = async (
       revisionId,
     ) ?? null;
   const root = can(await getCurrentUser(headers, app), "settings.manage");
-  const configured = parseScannerCommand(loadConfig().skillScanner?.command) !== null;
+  const configured = (await scanCommandNow(app)) !== null;
   return {
     scan,
     canRequest: root && configured && (scan === null || scan.status === "failed"),

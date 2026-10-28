@@ -30,7 +30,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* unit tests with a fake resolver cover each address class, a hostname that resolves
     to a private address, userinfo and odd URL forms.
 
-- [ ] **4. Settings service and the scan job.** [risky]
+- [x] **4. Settings service and the scan job.** [risky]
   - Provider, model, endpoint, timeout, command index and the write-only key, with the environment
     winning.
   - The job builds the provider from the environment or the settings, decrypting the key for the
@@ -59,8 +59,16 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 - `open` accepts only strict base64url parts: Node.js's decoder would skip stray characters.
 - **For task 4 (from task 3's passes):**
   - store and pass `checkEndpoint`'s `url.href`, never the typed value, with a test;
-  - Test connection connects only to the addresses the check resolved (a `lookup` that returns
-    them) and follows no redirects;
+  - Test connection (built in task 5) connects only to the addresses the check resolved (a
+    `lookup` that returns them) and follows no redirects;
   - an allowed host is allowed on any port, and an entry with a port, a scheme or a wildcard never
     matches: the install guide and knowledge note say entries are bare host names or addresses.
-
+- **From task 4's passes:** the key is sealed with the provider and the endpoint's origin it was
+  typed for, and opens only for that pair, so two saves at once (or a hand edit) can't send it to
+  another provider or host; `rotate-secret`'s compare-and-set is exact on MySQL and MariaDB
+  (`db/exact.ts`, whose collation ignores case); queuing and the review page read the command
+  only, never opening the key.
+- **Remarks from task 4's last adversarial pass (harmless, for task 5 or later):** the timeout
+  field accepts forms such as `1e2` or `0x40`, as `Number()` reads them (the tab can send digits
+  only); the job passes the stored endpoint, already checked, where passing `checked.url.href`
+  would keep the parser guard even if `AMBIGUOUS` were loosened.

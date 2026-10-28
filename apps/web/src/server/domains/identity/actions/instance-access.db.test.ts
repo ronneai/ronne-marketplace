@@ -3,10 +3,14 @@ import { toDbDate } from "../../../db/dates";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
 import { requireToken } from "../../../http/require-token";
 import { listAuditEvents } from "../../audit/actions/audit";
-import { openSetting, sealSetting } from "../../settings/models/instance-secrets";
+import { openSetting, resealSetting, sealSetting } from "../../settings/models/instance-secrets";
+import { openScanKey, sealScanKey } from "../../settings/models/scan-key";
 import { UserNotFoundError } from "../exceptions/errors";
 import type { AppAuth } from "../repositories/auth-instance";
+import type { IdentityRepository } from "../repositories/identity-repository";
+import { kyselyIdentityRepository } from "../repositories/kysely-identity-repository";
 import { kyselyScimTokenRepository } from "../repositories/kysely-scim-token-repository";
+import * as service from "../services/instance-access";
 import {
   checkScimToken,
   createScimToken,
@@ -417,5 +421,44 @@ describe("rotate-secret's instance setting secrets (136)", () => {
       ),
     ).rejects.toThrow("disk full");
     expect(await stored("skill_scan_key_enc")).toBe(sealed);
+  });
+
+  it("never writes the old key back over one that changed between its read and its write", async () => {
+    const key = "skill_scan_key_enc";
+    const sealed = sealSetting(OLD_SECRET, key, "sk-1");
+    await setting(key, sealed);
+    // The value changes, by case only, after rotate read it: MySQL's collation would call them equal.
+    // Its first letter, `v` of `v1.`, upper-cased: the same value but for case, always.
+    const flipped = `V${sealed.slice(1)}`;
+    const real = kyselyIdentityRepository(t.db, t.dialect);
+    const repo: IdentityRepository = {
+      ...real,
+      transaction: (work) =>
+        real.transaction((tx) =>
+          work({
+            ...tx,
+            instanceSecrets: async () => {
+              const rows = await tx.instanceSecrets();
+              await tx.setInstanceSecret(key, sealed, flipped);
+              return rows;
+            },
+          }),
+        ),
+    };
+    const counts = await service.endSessionsForNewSecret(
+      { repo },
+      () => {},
+      undefined,
+      (k, v) => resealSetting(OLD_SECRET, NEW_SECRET, k, v),
+    );
+    expect(await stored(key)).toBe(flipped);
+    expect(counts).toMatchObject({ settingSecrets: 0, settingUnreadable: 1 });
+  });
+
+  it("re-seals the scan key with what it was typed for: it still opens for that provider", async () => {
+    const typedFor = { provider: "anthropic", endpoint: null };
+    await setting("skill_scan_key_enc", sealScanKey(OLD_SECRET, "sk-ant-1", typedFor));
+    await endSessionsForNewSecret(t.db, t.dialect, () => {}, { from: OLD_SECRET, to: NEW_SECRET });
+    expect(openScanKey(NEW_SECRET, await stored("skill_scan_key_enc"), typedFor)).toBe("sk-ant-1");
   });
 });
