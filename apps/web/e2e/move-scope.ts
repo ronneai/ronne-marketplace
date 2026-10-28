@@ -6,7 +6,7 @@ import { E2E_MOVE } from "./users";
  * The phone sweep's check (065) on the page as it is, at its own width and at 360px and 320px:
  * nothing scrolls sideways or sticks out.
  */
-const fits = async (page: Page, what: string) => {
+export const fits = async (page: Page, what: string) => {
   const size = page.viewportSize() ?? { width: 412, height: 915 };
   for (const width of [size.width, 360, 320]) {
     await page.setViewportSize({ width, height: size.height });
@@ -20,7 +20,7 @@ const fits = async (page: Page, what: string) => {
  * Nothing in a dialog scrolls sideways (115): the sweep leaves what's inside a scrolling box to
  * the box, so the dialog's own body is checked here. Its buttons stay in view.
  */
-const noSideScroll = async (page: Page, dialog: Locator, what: string) => {
+export const noSideScroll = async (page: Page, dialog: Locator, what: string) => {
   const size = page.viewportSize() ?? { width: 412, height: 915 };
   for (const width of [size.width, 360, 320]) {
     await page.setViewportSize({ width, height: size.height });

@@ -195,6 +195,18 @@
     "question": "Who has to agree?",
     "answer": "Root, and an admin of global moving into global, move at once after typing the scope’s name. An admin of the target workspace, or someone moving into their own personal workspace, moves at once. Anyone else asks, and the target’s admins or root answer (root alone for global). A scope with versions not reviewed always asks someone else."
   },
+  "item-move-who": {
+    "question": "Who has to agree?",
+    "answer": "Root, and the workspace’s moderators and admins, move an item at once. Any other member asks, and they answer; nobody answers their own request. The item stays in its workspace, so who sees, reviews and installs it doesn’t change."
+  },
+  "item-move-approve": {
+    "question": "What does approving do?",
+    "answer": "It checks the new name again and moves the item: its old name keeps working, its versions don’t change, and its open drafts and proposals take the new name. If the name is taken there now, nothing moves and the request stays open."
+  },
+  "item-history": {
+    "question": "Why did the name change?",
+    "answer": "An item’s name changes when it moves to another scope, when its scope moves to another workspace, or when its workspace is renamed; an item from before item names included the workspace also shows when it was added. Every old name keeps working: it installs, depends and opens this page, and no other item can take it."
+  },
   "visibility": {
     "question": "Public or private?",
     "answer": "Everyone signed in sees a public workspace’s scopes and items, and can depend on them. A private one’s are seen only by its members, in any role, and root; to anyone else they don’t exist, and only its own items can depend on them. Root can change it later: turning a workspace private is refused while released items outside depend on its items."

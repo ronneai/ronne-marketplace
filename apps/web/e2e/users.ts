@@ -271,6 +271,16 @@ export const E2E_USERS = {
   tabletScopeMover: "scope-mover-tablet@e2e.test",
   tabletScopeMoveAdmin: "scope-move-admin-tablet@e2e.test",
   tabletScopeMoveRoot: "scope-move-root-tablet@e2e.test",
+  // 134: a member who asks to move an item to another scope, and a moderator who moves one at
+  // once and answers; a pair per project. After root's email, and named after Root.
+  scopeItemMover: "scope-item-mover@e2e.test",
+  scopeItemModerator: "scope-item-moderator@e2e.test",
+  phoneScopeItemMover: "scope-item-mover-phone@e2e.test",
+  phoneScopeItemModerator: "scope-item-moderator-phone@e2e.test",
+  phoneWebkitScopeItemMover: "scope-item-mover-ios@e2e.test",
+  phoneWebkitScopeItemModerator: "scope-item-moderator-ios@e2e.test",
+  tabletScopeItemMover: "scope-item-mover-tablet@e2e.test",
+  tabletScopeItemModerator: "scope-item-moderator-tablet@e2e.test",
 } as const;
 
 /** The display names, which the header shows (not the email). */
@@ -476,6 +486,14 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   tabletScopeMover: "Tablet Scope Mover",
   tabletScopeMoveAdmin: "Tablet Move Admin",
   tabletScopeMoveRoot: "Tablet Move Root",
+  scopeItemMover: "Scope Item Mover",
+  scopeItemModerator: "Scope Item Moderator",
+  phoneScopeItemMover: "Phone Item Mover",
+  phoneScopeItemModerator: "Phone Item Moderator",
+  phoneWebkitScopeItemMover: "iOS Item Mover",
+  phoneWebkitScopeItemModerator: "iOS Item Moderator",
+  tabletScopeItemMover: "Tablet Item Mover",
+  tabletScopeItemModerator: "Tablet Item Moderator",
 };
 
 /** Seeded with root's request to choose a new password (128): held on the change page at sign-in. */
@@ -788,4 +806,27 @@ export const E2E_MOVE = {
   rootScope: (project: string) => `e2emoveroot${project.replaceAll("-", "")}`.padEnd(64, "r"),
   /** The owner's personal workspace: their email's local part (114). */
   personal: (owner: keyof typeof E2E_USERS) => E2E_USERS[owner].split("@")[0] ?? "",
+};
+
+/**
+ * Moving an item to another scope (134): per project, a workspace with two scopes, `infra` with
+ * the item and `devops`, its member who asks and its moderator who answers.
+ */
+export const E2E_ITEM_MOVE = {
+  from: "infra",
+  to: "devops",
+  item: "deploy",
+  projects: {
+    chromium: { member: "scopeItemMover", moderator: "scopeItemModerator" },
+    phone: { member: "phoneScopeItemMover", moderator: "phoneScopeItemModerator" },
+    "phone-webkit": {
+      member: "phoneWebkitScopeItemMover",
+      moderator: "phoneWebkitScopeItemModerator",
+    },
+    tablet: { member: "tabletScopeItemMover", moderator: "tabletScopeItemModerator" },
+  } as const satisfies Record<
+    string,
+    { member: keyof typeof E2E_USERS; moderator: keyof typeof E2E_USERS }
+  >,
+  workspace: (project: string) => `e2e-item-move-${project}`,
 };

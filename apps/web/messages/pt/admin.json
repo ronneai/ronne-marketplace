@@ -691,6 +691,12 @@
           "move_declined": "Recusou a movimentação de <name>{scope}</name> para <name>{to}</name>",
           "move_cancelled": "Cancelou a movimentação de <name>{scope}</name> para <name>{to}</name>{lost, select, true { (quem pediu não pode mais movê-lo)} other {}}"
         },
+        "item": {
+          "move_requested": "Pediu para mover <name>{item}</name> para <name>{to}</name>",
+          "moved": "{direct, select, false {Aprovou a movimentação de} other {Moveu}} <name>{item}</name> para <name>{to}</name>{hasNewName, select, true {, como <name>{newName}</name>} other {}}",
+          "move_declined": "Recusou a movimentação de <name>{item}</name> para <name>{to}</name>",
+          "move_cancelled": "Cancelou a movimentação de <name>{item}</name> para <name>{to}</name>{why, select, asker_lost_role { (quem pediu não está mais no espaço de trabalho)} target_moved { (esse escopo agora está em outro espaço de trabalho)} other {}}"
+        },
         "submission": {
           "draft_created": "Criou um rascunho de <name>{item}</name> ({details}){via}",
           "draft_updated": "Atualizou o rascunho de <name>{item}</name>{via}",

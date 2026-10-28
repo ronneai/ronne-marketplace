@@ -26,6 +26,7 @@ import {
   workspaceMembersList,
 } from "@/features/workspace-members/list";
 import { MembersTable } from "@/features/workspace-members/MembersTable";
+import { ItemMovesTable } from "@/features/workspace-requests/ItemMovesTable";
 import { RequestsTable } from "@/features/workspace-requests/RequestsTable";
 import { ScopeMovesTable } from "@/features/workspace-requests/ScopeMovesTable";
 import { NotIn } from "@/features/workspaces/WorkspacesPage";
@@ -35,6 +36,7 @@ import { can } from "@/server/domains/identity/models/permissions";
 import { pageScopes } from "@/server/domains/items/actions/scopes";
 import { shelfKey } from "@/server/domains/shelves/models/shelf";
 import {
+  itemMovesToAnswer,
   movesToAnswer,
   ownRequests,
   pageMembers,
@@ -109,9 +111,10 @@ const WorkspacePage = async ({
 
   const content = async () => {
     if (tab === "requests") {
-      const [{ requests, total }, { moves }] = await Promise.all([
+      const [{ requests, total }, { moves }, { moves: itemMoves }] = await Promise.all([
         pendingRequests(request, workspace.id),
         movesToAnswer(request, { workspaceId: workspace.id }),
+        itemMovesToAnswer(request, { workspaceId: workspace.id }),
       ]);
       return (
         <div className="grid gap-3">
@@ -123,6 +126,15 @@ const WorkspacePage = async ({
                 {t("workspacePage.scopeMoves")}
               </h2>
               <ScopeMovesTable moves={moves} />
+            </section>
+          ) : null}
+          {/* Its items asked to move to another of its scopes (134), for its moderators and admins. */}
+          {itemMoves.length > 0 ? (
+            <section aria-labelledby="item-moves" className="mb-4 grid gap-3">
+              <h2 id="item-moves" className="text-base font-semibold text-fg">
+                {t("workspacePage.itemMoves")}
+              </h2>
+              <ItemMovesTable moves={itemMoves} />
             </section>
           ) : null}
           <RequestsTable

@@ -11,9 +11,11 @@ import { ScrollStrip } from "@/components/ui/ScrollStrip";
 import { stripTab } from "@/components/ui/scroll-strip";
 import { TypeBadge } from "@/components/ui/TypeBadge";
 import { FavoriteButton } from "@/features/favorites/FavoriteButton";
+import { MoveItemButton, MoveItemNotice } from "@/features/item-move/MoveItem";
 import { PinMenu } from "@/features/pins/PinMenu";
 import type { PinTargetView } from "@/features/pins/types";
 import type { ItemPage } from "@/server/domains/items/actions/versions";
+import type { ItemMoveView } from "@/server/domains/workspaces/services/item-moves";
 import { ProposeButton } from "./ProposeButton";
 import { ITEM_TABS, type ItemTab, itemTabHref } from "./tabs";
 
@@ -28,8 +30,15 @@ export const ItemPageView = ({
   tab,
   children,
 }: {
-  /** `favorited`: whether the person has favorited the item; `pinTargets`: where they may pin it (125). Without them, no star or Pin menu. */
-  page: ItemPage & { favorited?: boolean; pinTargets?: PinTargetView[] };
+  /**
+   * `favorited`: whether the person has favorited the item; `pinTargets`: where they may pin it
+   * (125); `move`: Move to another scope… (134). Without them, no star, Pin menu or Move.
+   */
+  page: ItemPage & {
+    favorited?: boolean;
+    pinTargets?: PinTargetView[];
+    move?: ItemMoveView | null;
+  };
   tab: ItemTab;
   children: ReactNode;
 }) => {
@@ -109,8 +118,13 @@ export const ItemPageView = ({
             <PinMenu itemId={page.item.id} name={name} targets={page.pinTargets} />
           ) : null}
           <ProposeButton item={name} version={shown.version} />
+          {page.move && page.move.targets.length > 0 ? (
+            <MoveItemButton item={{ id: page.item.id, fullName: name }} view={page.move} />
+          ) : null}
         </div>
       </header>
+
+      {page.move?.latest ? <MoveItemNotice latest={page.move.latest} /> : null}
 
       {other ? (
         <Notice

@@ -3,12 +3,14 @@ import type { ReactNode } from "react";
 import { FilesBrowser } from "@/components/files/FilesBrowser";
 import { selectedFile } from "@/components/files/shown";
 import { Help } from "@/components/help/Help";
+import { HistoryTab } from "@/features/item-page/HistoryTab";
 import { ItemPageView } from "@/features/item-page/ItemPageView";
 import { DependenciesTab, ReadmeTab, RisksTab } from "@/features/item-page/ItemTabs";
 import {
   type ItemParams,
   loadContents,
   loadDependencyFacts,
+  loadHistory,
   loadItemPage,
   loadUsage,
   pluginCommandOf,
@@ -41,7 +43,7 @@ const WithContentsHelp = ({ children }: { children: ReactNode }) => (
 );
 
 /**
- * An item's page (feature 018): Overview (044), README, Dependencies, Files, Works in (026) and What it can do,
+ * An item's page (feature 018): Overview (044), README, Dependencies, Files, Works in (026), What it can do and History (134),
  * for `latest` or `?version=`. Versions is its own path, `versions/`. Everyone signed in reads it.
  * Overview and Files read the version's files from its artifact; the other tabs never do.
  */
@@ -93,6 +95,8 @@ const Item = async ({
         <ToolsPanel name={ref.name} type={type} manifest={shown.manifest} />
       ) : tab === "risks" ? (
         <RisksTab flags={shown.riskFlags} />
+      ) : tab === "history" ? (
+        <HistoryTab history={await loadHistory(page.item.id)} />
       ) : (
         <ReadmeTab readme={shown.readme} description={page.item.description} />
       )}

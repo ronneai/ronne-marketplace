@@ -126,6 +126,17 @@ export const kyselyEraseRepository = (
       );
     },
 
+    async cancelItemMoves(userId, now) {
+      return count(
+        await db
+          .updateTable("item_moves")
+          .set({ status: "cancelled", decided_at: at(now), reason: null })
+          .where("requested_by", "=", userId)
+          .where("status", "=", "open")
+          .executeTakeFirst(),
+      );
+    },
+
     async deleteDrafts(userId) {
       // The files and revisions go with the row (their foreign keys cascade).
       return count(

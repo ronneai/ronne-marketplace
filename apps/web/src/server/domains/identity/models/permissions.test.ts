@@ -42,11 +42,17 @@ const EXPECTED: Record<
       "submissions.publish",
       "versions.manage",
       "access_requests.answer",
+      "items.move_ask",
+      "items.move",
     ],
     b: [],
     instance: ["account.manage_own"],
   },
-  "user in A": { a: ["submissions.create"], b: [], instance: ["account.manage_own"] },
+  "user in A": {
+    a: ["submissions.create", "items.move_ask"],
+    b: [],
+    instance: ["account.manage_own"],
+  },
   "non-member": { a: [], b: [], instance: ["account.manage_own"] },
 };
 
@@ -77,6 +83,8 @@ describe("permissions (091)", () => {
         "account.manage_own",
         "audit.view",
         "feedback.manage",
+        "items.move",
+        "items.move_ask",
         "members.manage",
         "pins.manage",
         "pins.manage_global",

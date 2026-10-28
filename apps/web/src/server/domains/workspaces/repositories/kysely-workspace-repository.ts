@@ -13,6 +13,7 @@ import { recordAudit } from "../../audit/actions/audit";
 import { isWorkspaceRole } from "../../identity/models/user";
 import type { Workspace, WorkspaceVisibility } from "../models/workspace";
 import { accessRequestMethods } from "./kysely-access-requests";
+import { itemMoveMethods } from "./kysely-item-moves";
 import { scopeMoveMethods } from "./kysely-scope-moves";
 import type {
   MemberFilters,
@@ -457,6 +458,27 @@ export const kyselyWorkspaceRepository = (
           .execute();
     },
 
+    addNameHistory: async (entries, reason, who, at) => {
+      const createdAt = toDbDate(at, dialect);
+      for (let i = 0; i < entries.length; i += IN_LIST_SIZE)
+        await db
+          .insertInto("item_name_history")
+          .values(
+            entries.slice(i, i + IN_LIST_SIZE).map((entry) => ({
+              id: newId(),
+              item_id: entry.itemId,
+              old_name: entry.oldName,
+              new_name: entry.newName,
+              reason,
+              requested_by: who.requestedBy,
+              decided_by: who.decidedBy,
+              source_id: who.sourceId,
+              created_at: createdAt,
+            })),
+          )
+          .execute();
+    },
+
     lockWorkspace: async (id) => {
       await forUpdate(
         db.selectFrom("workspaces").select("id").where("id", "=", id),
@@ -785,5 +807,6 @@ export const kyselyWorkspaceRepository = (
 
     ...accessRequestMethods(db, dialect),
     ...scopeMoveMethods(db, dialect),
+    ...itemMoveMethods(db, dialect),
   };
 };

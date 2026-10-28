@@ -89,6 +89,8 @@ const helpersOf = (say: Say) => {
   /** A moved scope by its full name before the move (115). */
   const moving = (m: Meta): string => text(m.scope) || part("fallback.scope");
   const to = (m: Meta): string => text(m.to) || part("fallback.workspace");
+  /** An item move's target scope (134). */
+  const toScope = (m: Meta): string => text(m.to) || part("fallback.scope");
   const renamed = (m: Meta): Values => ({
     renamed: flag(Boolean(text(m.newName)) && text(m.newName) !== text(m.scope)),
     newName: text(m.newName),
@@ -121,6 +123,7 @@ const helpersOf = (say: Say) => {
     workspace,
     moving,
     to,
+    toScope,
     renamed,
     expiry,
     shelf,
@@ -369,6 +372,24 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     scope: h.moving(m),
     to: h.to(m),
     lost: flag(text(m.reason) === "asker_lost_role"),
+  }),
+  // 134: "Moved @acme/infra/deploy to @acme/devops, as @acme/devops/deploy".
+  "item.move_requested": (m, _e, h) => ({ item: h.item(m), to: h.toScope(m) }),
+  "item.moved": (m, _e, h) => ({
+    direct: flag(m.direct !== false),
+    item: h.item(m),
+    to: h.toScope(m),
+    hasNewName: flag(Boolean(text(m.newName))),
+    newName: text(m.newName),
+  }),
+  "item.move_declined": (m, _e, h) => ({ item: h.item(m), to: h.toScope(m) }),
+  "item.move_cancelled": (m, _e, h) => ({
+    item: h.item(m),
+    to: h.toScope(m),
+    why:
+      text(m.reason) === "asker_lost_role" || text(m.reason) === "target_moved"
+        ? text(m.reason)
+        : "other",
   }),
   "submission.draft_created": (m, _e, h) => ({
     item: h.item(m),

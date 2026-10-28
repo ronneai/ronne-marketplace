@@ -28,6 +28,7 @@ import type { ItemRepository } from "../../items/repositories/item-repository";
 import {
   BulkLimitError,
   DependencyNotVisibleError,
+  ItemMovedError,
   ItemNameTakenError,
   RELEASE_NOTES_MAX_LENGTH,
   ReleaseNotesError,
@@ -203,10 +204,17 @@ export const artifactBase = (
  */
 export const ownItem = async (
   items: Pick<ItemRepository, "findByName" | "isOldName">,
-  submission: Pick<Submission, "workspace" | "scope" | "name">,
+  submission: Pick<Submission, "workspace" | "scope" | "name"> & {
+    proposal?: Pick<NonNullable<Submission["proposal"]>, "itemId"> | null;
+  },
 ) => {
   const name = itemNameOf(submission);
   const found = await items.findByName(itemRefOf(submission));
+  // The proposal's own item under an old name: it moved to another scope since this was read
+  // (134), so the release is refused as moved, not as a name someone else has.
+  const proposed = submission.proposal?.itemId;
+  if (found && found.fullName !== name && proposed !== undefined && found.id === proposed)
+    throw new ItemMovedError(name);
   // Said as "taken" to everyone: the release store reads every workspace (015), so it can't tell
   // whether the releaser sees the item that had the name; the checks before said more to members.
   if ((found && found.fullName !== name) || (!found && (await items.isOldName(name))))
@@ -370,6 +378,11 @@ export const releaseTogether = async (
       await submissions.lockSubmission(member.submission.id);
       const current = await submissions.find(member.submission.id);
       transition(current?.status ?? member.submission.status, "publish");
+      // Its item moved to another scope meanwhile (134): the move takes this lock too and puts the
+      // submission in the new scope, so a release packed under the old name is refused, as for a
+      // rename.
+      if (current && current.scope.id !== member.submission.scope.id)
+        throw new ItemMovedError(itemNameOf(member.submission));
       await requireCurrent(submissions.registry(), member.submission);
     }
 

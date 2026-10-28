@@ -31,6 +31,7 @@ const workspaces = vi.hoisted(() => ({
   scopeMovesIn: vi.fn(async () => ({})),
   pendingRequests: vi.fn(async () => ({ requests: [], total: 0 })),
   movesToAnswer: vi.fn(async () => ({ moves: [], total: 0 })),
+  itemMovesToAnswer: vi.fn(async () => ({ moves: [], total: 0 })),
   ownRequests: vi.fn(async (): Promise<unknown[]> => []),
   myWorkspaces: vi.fn(async (): Promise<unknown[]> => []),
   pageMembers: vi.fn(async () => ({

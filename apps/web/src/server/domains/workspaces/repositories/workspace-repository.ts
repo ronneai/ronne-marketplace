@@ -2,6 +2,7 @@ import type { KeysetPage, SortDir } from "../../../db/keyset";
 import type { NewAuditEvent } from "../../audit/models/audit-event";
 import type { WorkspaceRole } from "../../identity/models/user";
 import type { AccessRequest, PendingRequest, RequestWithWorkspace } from "../models/access-request";
+import type { ItemMove } from "../models/item-move";
 import type { Member, Membership, MemberUser } from "../models/member";
 import type { ScopeMove } from "../models/scope-move";
 import type { Workspace, WorkspaceVisibility } from "../models/workspace";
@@ -47,6 +48,9 @@ export type OpenFile = {
   /** The file's text, decoded when it was stored as base64; written back as utf8. */
   content: string;
 };
+
+/** One item's name before and after a rename or a move (134's history). */
+export type NameHistoryEntry = { itemId: string; oldName: string; newName: string };
 
 /** What the workspace services need from storage. Implemented with Kysely in kysely-workspace-repository.ts. */
 export interface WorkspaceRepository {
@@ -128,6 +132,16 @@ export interface WorkspaceRepository {
     add: readonly { name: string; itemId: string }[],
     drop: readonly string[],
     reason: "rename" | "move",
+    at: Date,
+  ): Promise<void>;
+  /**
+   * Writes items' name changes to their history (134): a rename (113) or a scope's move (115),
+   * with who asked and who approved, and the `scope_moves` row behind a move.
+   */
+  addNameHistory(
+    entries: readonly NameHistoryEntry[],
+    reason: "rename_workspace" | "move_scope" | "move_item",
+    who: { requestedBy: string | null; decidedBy: string | null; sourceId: string | null },
     at: Date,
   ): Promise<void>;
   delete(id: string): Promise<void>;
@@ -345,7 +359,106 @@ export interface WorkspaceRepository {
   standing(userId: string, workspaceId: string): Promise<{ root: boolean; admin: boolean } | null>;
   /** Whether the user, not disabled, is root or an admin of the workspace (a move's asker). */
   canStillMove(userId: string, workspaceId: string): Promise<boolean>;
+
+  // Moving an item to another scope of its workspace (134).
+  /** The item with its scope and workspace, or null when there's none with that id. */
+  itemForMove(itemId: string): Promise<ItemForMove | null>;
+  /** Whether the scope has an item with this name, byte for byte. */
+  itemNamedIn(scopeId: string, name: string): Promise<boolean>;
+  /**
+   * Whether the scope has an open submission (submitted, changes requested or approved) of a new
+   * item with this name, byte for byte: it would take the name at release.
+   */
+  newItemSubmittedIn(scopeId: string, name: string): Promise<boolean>;
+  /** The open submissions of these ids, with their author, status and the item they change. */
+  submissionsAbout(
+    ids: readonly string[],
+  ): Promise<ReadonlyMap<string, { authorId: string; status: string; itemId: string | null }>>;
+  /** Locks the item's row until the transaction ends: the lock a release takes on it. */
+  lockItemForMove(itemId: string): Promise<void>;
+  /** The item's open move, if any. */
+  openItemMoveOf(itemId: string): Promise<ItemMove | null>;
+  findItemMove(id: string): Promise<ItemMove | null>;
+  /** Locks a move's row until the transaction ends. */
+  lockItemMove(id: string): Promise<void>;
+  insertItemMove(move: {
+    itemId: string;
+    fromScopeId: string;
+    toScopeId: string;
+    requestedBy: string;
+    message: string | null;
+    status: "open" | "approved";
+    decidedBy: string | null;
+    at: Date;
+  }): Promise<string>;
+  /** Closes an open move; false when it wasn't open any more. */
+  decideItemMove(
+    id: string,
+    decision: {
+      status: "approved" | "declined" | "cancelled";
+      decidedBy: string | null;
+      reason: string | null;
+      at: Date;
+    },
+  ): Promise<boolean>;
+  /**
+   * Puts the item, and every submission that changes it, in the scope, and raises the catalogue
+   * revision: its name and plugin name change.
+   */
+  applyItemMove(itemId: string, scopeId: string): Promise<void>;
+  /**
+   * The user's standing in the workspace now, read from the database: root, and their role there;
+   * null when they're gone or disabled.
+   */
+  roleIn(
+    userId: string,
+    workspaceId: string,
+  ): Promise<{ root: boolean; role: "admin" | "moderator" | "user" | null } | null>;
+  /** The workspace's scopes, by name: where an item could move (134). */
+  scopesIn(workspaceId: string): Promise<{ id: string; name: string; description: string }[]>;
+  /** The item's latest move, with its target scope's name and its asker's name (134). */
+  latestItemMoveOf(
+    itemId: string,
+  ): Promise<(ItemMove & { toScope: string; askedByName: string | null }) | null>;
+  /**
+   * The open item moves of items in these workspaces (all of them for `"all"`), oldest first, at
+   * most `limit`, with who asked and the item's workspace now (134).
+   */
+  pendingItemMoves(
+    workspaceIds: "all" | readonly string[],
+    limit: number,
+  ): Promise<(ItemMove & { workspaceId: string; requester: { email: string; name: string } })[]>;
+  /**
+   * The item's name changes, newest first (134): the names, why, who asked and who approved (by
+   * display name, null when unknown or gone), and for a scope's move the workspace it came from.
+   */
+  itemNameHistory(itemId: string): Promise<NameHistoryRow[]>;
 }
+
+/** One change of an item's name as its History tab reads it (134). */
+export type NameHistoryRow = {
+  id: string;
+  oldName: string;
+  newName: string;
+  reason: "move_item" | "move_scope" | "rename_workspace" | "migration";
+  requestedBy: string | null;
+  decidedBy: string | null;
+  requestedByName: string | null;
+  decidedByName: string | null;
+  /** A scope's move (115): the workspace it left, while that workspace exists. */
+  fromWorkspaceId: string | null;
+  createdAt: Date;
+};
+
+/** An item as moving it to another scope reads it (134). */
+export type ItemForMove = {
+  id: string;
+  name: string;
+  type: string;
+  scopeId: string;
+  scopeName: string;
+  workspaceId: string;
+};
 
 /** Open work in a scope (115): who wrote it, and what it depends on. */
 export type ScopeWork = {

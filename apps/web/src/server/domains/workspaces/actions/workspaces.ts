@@ -5,6 +5,7 @@ import { type AppAuth, getAppAuth } from "../../identity/repositories/auth-insta
 import { kyselyWorkspaceRepository } from "../repositories/kysely-workspace-repository";
 import type { WorkspacePageQuery } from "../repositories/workspace-repository";
 import * as requests from "../services/access-requests";
+import * as itemMoves from "../services/item-moves";
 import * as members from "../services/members";
 import * as moves from "../services/scope-moves";
 import * as service from "../services/workspaces";
@@ -223,6 +224,60 @@ export const cancelScopeMove = async (
   input: { moveId: string },
   app: AppAuth = getAppAuth(),
 ) => moves.cancelScopeMove(deps(app), await actor(headers, app), input);
+
+/** What moving an item to another scope of its workspace would change (134), for the dialog. */
+export const itemMoveImpact = async (
+  headers: Headers,
+  input: { itemId: string; toScopeId: string },
+  app: AppAuth = getAppAuth(),
+) => itemMoves.itemMoveImpact(deps(app).repo, await actor(headers, app), input);
+
+/** The item page's Move to another scope… (134), or null for someone who may not ask. */
+export const itemMoveView = async (headers: Headers, itemId: string, app: AppAuth = getAppAuth()) =>
+  itemMoves.itemMoveView(deps(app).repo, await actor(headers, app), itemId);
+
+/** The item moves waiting for the reader's answer (134), in every workspace or in one. */
+export const itemMovesToAnswer = async (
+  headers: Headers,
+  input: { workspaceId?: string } = {},
+  app: AppAuth = getAppAuth(),
+) => itemMoves.itemMovesToAnswer(deps(app), await actor(headers, app), input);
+
+/** How many item moves wait for the reader's answer (134), for the nav. */
+export const countItemMovesToAnswer = async (headers: Headers, app: AppAuth = getAppAuth()) =>
+  itemMoves.countItemMovesToAnswer(deps(app), await actor(headers, app));
+
+/** The item page's History tab (134): every name the item has had, as the reader may see them. */
+export const itemHistory = async (headers: Headers, itemId: string, app: AppAuth = getAppAuth()) =>
+  itemMoves.itemHistory(deps(app).repo, await actor(headers, app), itemId);
+
+/** Moves an item to another scope of its workspace, or asks to (134). */
+export const askItemMove = async (
+  headers: Headers,
+  input: { itemId: string; toScopeId: string; message?: string },
+  app: AppAuth = getAppAuth(),
+) => itemMoves.askItemMove(deps(app), await actor(headers, app), input);
+
+/** Approves a request to move an item (134). */
+export const approveItemMove = async (
+  headers: Headers,
+  input: { moveId: string },
+  app: AppAuth = getAppAuth(),
+) => itemMoves.approveItemMove(deps(app), await actor(headers, app), input);
+
+/** Declines a request to move an item, with an optional reason (134). */
+export const declineItemMove = async (
+  headers: Headers,
+  input: { moveId: string; reason?: string },
+  app: AppAuth = getAppAuth(),
+) => itemMoves.declineItemMove(deps(app), await actor(headers, app), input);
+
+/** Cancels a request to move an item: its asker, or whoever may answer it (134). */
+export const cancelItemMove = async (
+  headers: Headers,
+  input: { moveId: string },
+  app: AppAuth = getAppAuth(),
+) => itemMoves.cancelItemMove(deps(app), await actor(headers, app), input);
 
 /** Where a scope could move (115), for the Move dialog's select. */
 export const moveTargets = async (

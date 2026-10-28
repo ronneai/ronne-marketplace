@@ -59,7 +59,8 @@
     "requests": "Demandes",
     "global": "Il existe dans toute instance, et tout le monde en est membre. Il ne peut être ni modifié ni supprimé.",
     "personal": "{owner, select, you {À vous seul} other {À son propriétaire seul}}, toujours privé. Ses éléments sont publiés sans révision.",
-    "scopeMoves": "Déplacements de portée"
+    "scopeMoves": "Déplacements de portée",
+    "itemMoves": "Déplacements d’élément"
   },
   "members": {
     "search": "Rechercher",
@@ -114,7 +115,8 @@
     "cancel": "Annuler",
     "pageTitle": "Demandes d’adhésion",
     "pageDescription": "Personnes qui demandent à se joindre aux espaces de travail que vous modérez. Approuver les ajoute comme utilisateurs.",
-    "movesIntro": "Portées que les admins de leurs espaces de travail ont demandé de déplacer vers un espace que vous gérez. Approuver revérifie le déplacement et l’effectue."
+    "movesIntro": "Portées que les admins de leurs espaces de travail ont demandé de déplacer vers un espace que vous gérez. Approuver revérifie le déplacement et l’effectue.",
+    "itemMovesIntro": "Éléments que des membres ont demandé de déplacer vers une autre portée d’un espace de travail que vous modérez. Approuver revérifie le nom et déplace l’élément."
   },
   "moves": {
     "none": "Aucun déplacement en attente.",
@@ -138,6 +140,25 @@
     "reasonHint": "{name} le voit sur la ligne de la portée. {used, number}/{max, number}",
     "cancel": "Annuler"
   },
+  "itemMoves": {
+    "none": "Aucun déplacement d’élément en attente.",
+    "item": "Élément",
+    "from": "De",
+    "to": "Vers",
+    "newName": "Son nom là-bas",
+    "askedBy": "Demandé par (UTC)",
+    "message": "Message",
+    "refusal": "{refusal, select, item {La portée a maintenant un élément de ce nom : Approuver ne peut pas le déplacer.} submission {Un nouvel élément de ce nom y attend une révision : Approuver ne peut pas le déplacer.} alias {Ce nom est maintenant l’ancien nom d’un autre élément : Approuver ne peut pas le déplacer.} other {La portée est maintenant dans un autre espace de travail : Approuver annule la demande.}}",
+    "approve": "Approuver",
+    "approveAria": "Approuver le déplacement de {item} vers {to}",
+    "decline": "Refuser",
+    "declineAria": "Refuser le déplacement de {item} vers {to}",
+    "declineTitle": "Refuser le déplacement",
+    "declineBody": "Refuser le déplacement de <mono>{item}</mono> vers <mono>{to}</mono>?",
+    "reason": "Motif (facultatif)",
+    "reasonHint": "{name} le voit sur la page de l’élément. {used, number}/{max, number}",
+    "cancel": "Annuler"
+  },
   "results": {
     "sent": "Demande envoyée.",
     "alreadyIn": "Vous en faites déjà partie.",
@@ -148,6 +169,7 @@
     "removed": "Retiré.",
     "approved": "Approuvé : la personne est dans {workspace} comme {role}.",
     "declined": "Refusé.",
-    "moved": "Déplacé vers {workspace}."
+    "moved": "Déplacé vers {workspace}.",
+    "itemMoved": "Déplacé : c’est maintenant {newName}."
   }
 }

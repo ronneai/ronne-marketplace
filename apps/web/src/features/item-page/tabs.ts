@@ -8,6 +8,7 @@ export const ITEM_TABS = [
   "files",
   "tools",
   "risks",
+  "history",
 ] as const;
 export type ItemTab = (typeof ITEM_TABS)[number];
 
@@ -17,7 +18,8 @@ export const tabFrom = (value: string | undefined): ItemTab =>
   value === "dependencies" ||
   value === "files" ||
   value === "tools" ||
-  value === "risks"
+  value === "risks" ||
+  value === "history"
     ? value
     : "overview";
 

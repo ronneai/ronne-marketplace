@@ -226,6 +226,18 @@ export const renameLockedWorkspace = async (
     "rename",
     at,
   );
+  // Their history (134): renamed by whoever renamed the workspace, nobody had to answer.
+  const by = actor.user?.id ?? null;
+  await repo.addNameHistory(
+    items.map((item) => ({
+      itemId: item.id,
+      oldName: named(workspace.name, item),
+      newName: named(to, item),
+    })),
+    "rename_workspace",
+    { requestedBy: by, decidedBy: by, sourceId: null },
+    at,
+  );
   // Nobody joins a personal workspace (114): requests kept for its new name stay by name.
   const requestsJoined = workspace.ownerId
     ? 0

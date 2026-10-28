@@ -6,6 +6,7 @@ const feedback = vi.hoisted(() => ({ countNewFeedback: vi.fn() }));
 const workspaces = vi.hoisted(() => ({
   requestsToAnswer: vi.fn(),
   countMovesToAnswer: vi.fn(),
+  countItemMovesToAnswer: vi.fn(),
   myWorkspacesAs: vi.fn(),
 }));
 const cookie = vi.hoisted(() => ({
@@ -55,6 +56,7 @@ beforeEach(() => {
   reviews.countNeedsReview.mockResolvedValue(4);
   workspaces.requestsToAnswer.mockResolvedValue(2);
   workspaces.countMovesToAnswer.mockResolvedValue(3);
+  workspaces.countItemMovesToAnswer.mockResolvedValue(0);
   workspaces.myWorkspacesAs.mockResolvedValue([]);
   cookie.value = undefined;
   cookie.workspace = undefined;
@@ -94,6 +96,14 @@ describe("loadShell's nav counts", () => {
     expect(workspaces.countMovesToAnswer).toHaveBeenCalledTimes(1);
   });
 
+  it("adds the item moves waiting for a moderator, an admin or root (134)", async () => {
+    workspaces.countItemMovesToAnswer.mockResolvedValue(7);
+    session.requireUser.mockResolvedValue(user({ global: "user", acme: "moderator" }));
+    expect((await loadShell()).navCounts["/workspaces/requests"]).toBe(9);
+    session.requireUser.mockResolvedValue(user({}, "root"));
+    expect((await loadShell()).navCounts["/workspaces/requests"]).toBe(12);
+  });
+
   it("counts nothing, and asks nothing, for someone who answers nowhere", async () => {
     session.requireUser.mockResolvedValue(user({ global: "user" }));
     expect((await loadShell()).navCounts).toEqual({
@@ -102,6 +112,7 @@ describe("loadShell's nav counts", () => {
       "/admin/feedback": 0,
     });
     expect(workspaces.requestsToAnswer).not.toHaveBeenCalled();
+    expect(workspaces.countItemMovesToAnswer).not.toHaveBeenCalled();
     expect(feedback.countNewFeedback).not.toHaveBeenCalled();
     expect(reviews.countNeedsReview).not.toHaveBeenCalled();
   });

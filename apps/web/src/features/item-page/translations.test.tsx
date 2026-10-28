@@ -11,6 +11,10 @@ vi.mock("@/server/domains/usage/actions/usage", () => ({ itemUsage: vi.fn() }));
 vi.mock("@/server/domains/items/actions/catalogue", () => ({ dependencyFacts: vi.fn() }));
 vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));
 vi.mock("@/server/domains/shelves/actions/pins", () => ({ pinTargets: async () => [] }));
+vi.mock("@/server/domains/workspaces/actions/workspaces", () => ({
+  itemMoveView: async () => null,
+}));
+vi.mock("@/features/item-move/actions", () => ({}));
 vi.mock("@/server/domains/shelves/actions/favorites", () => ({
   favoritedAmong: async () => new Set<string>(),
 }));

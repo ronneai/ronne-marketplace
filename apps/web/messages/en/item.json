@@ -34,7 +34,8 @@
     "files": "Files",
     "tools": "Works in",
     "risks": "What it can do",
-    "risksCount": "What it can do ({count})"
+    "risksCount": "What it can do ({count})",
+    "history": "History"
   },
   "readme": {
     "none": "This version has no README."
@@ -70,6 +71,61 @@
   },
   "propose": {
     "button": "Propose a change"
+  },
+  "move": {
+    "button": "Move to another scope…",
+    "title": "Move {item}",
+    "whereTo": "To which scope",
+    "pick": "Pick a scope",
+    "changesTitle": "What it changes",
+    "newName": "Its name there: <mono>{from}</mono> → <mono>{to}</mono>",
+    "oldName": "The old name keeps working, and rmk moves projects to the new one as they install or update. Its versions don’t change.",
+    "claudeCode": "In Claude Code it shows as a new plugin, marked “Moved from” for 30 days.",
+    "proposals": "{count, plural, one {Its open draft or proposal takes the new name.} other {Its # open drafts and proposals take the new name.}}",
+    "dependents": "Open work in this workspace that depends on it takes the new name:",
+    "hidden": "{count, plural, one {and # draft you can’t see} other {and # drafts you can’t see}}",
+    "more": "and {count} more",
+    "clashTitle": "It can’t move there",
+    "clash": "{clash, select, item {{scope} already has an item called {name}.} submission {An item called {name} is waiting for review in {scope}.} other {{newName} is another item’s old name.}} Pick another scope.",
+    "message": "Message (optional)",
+    "answeredBy": "{workspace}’s moderators, admins or root will answer.",
+    "moveItem": "Move item",
+    "ask": "Ask to move",
+    "cancel": "Cancel",
+    "back": "Back",
+    "question": "Move <mono>{item}</mono> to <mono>{scope}</mono>, as <mono>{newName}</mono>?",
+    "blocked": {
+      "pick": "Pick a scope first.",
+      "checking": "Checking what it changes…",
+      "clash": "The name is taken there."
+    },
+    "ok": "OK",
+    "doneMoved": "Moved. It’s {newName} now.",
+    "doneAsked": "Asked to move it to {scope}.",
+    "done": "Done",
+    "impactFailed": "What it changes couldn’t be read. Try again.",
+    "notice": {
+      "moving": "Moving to {scope}, asked by {name}",
+      "movingMine": "Moving to {scope}: waiting for an answer",
+      "declined": "Move to {scope} declined",
+      "cancel": "Cancel",
+      "cancelMove": "Cancel the move to {scope}",
+      "cancelled": "Move cancelled."
+    },
+    "formerUser": "a former user"
+  },
+  "history": {
+    "title": "Names",
+    "now": "Its name now: <mono>{name}</mono>",
+    "none": "It has had this name since it was first released.",
+    "from": "<mono>{from}</mono> → <mono>{to}</mono>",
+    "hidden": "a name in a workspace you can’t see",
+    "reason": "{reason, select, move_item {Moved to another scope} move_scope {Its scope moved to another workspace} rename_workspace {Its workspace was renamed} other {The workspace was added to item names}}",
+    "by": "by {name}",
+    "askedApproved": "asked by {asked}, approved by {approved}",
+    "askedBy": "asked by {name}",
+    "approvedBy": "approved by {name}",
+    "formerUser": "a former user"
   },
   "overview": {
     "files": {

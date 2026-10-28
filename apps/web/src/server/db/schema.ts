@@ -591,6 +591,40 @@ export interface ItemAliasTable {
   created_at: Timestamp;
 }
 
+/**
+ * Moving an item to another scope of its workspace (migration 0037_item_moves, feature 134): open
+ * until answered or cancelled; a move made at once is recorded approved.
+ */
+export interface ItemMoveTable {
+  id: string;
+  item_id: string;
+  /** Null once the source scope is deleted (only after the item left it). */
+  from_scope_id: string | null;
+  to_scope_id: string;
+  requested_by: string;
+  message: string | null;
+  status: "open" | "approved" | "declined" | "cancelled";
+  decided_by: string | null;
+  /** Why it was declined (shown to the asker), or why it was cancelled (`asker_lost_role`, `target_moved`). */
+  reason: string | null;
+  created_at: Timestamp;
+  decided_at: Timestamp | null;
+}
+
+/** Every name change of an item, for its History tab (migration 0037_item_moves, feature 134). */
+export interface ItemNameHistoryTable {
+  id: string;
+  item_id: string;
+  old_name: string;
+  new_name: string;
+  reason: "move_item" | "move_scope" | "rename_workspace" | "migration";
+  requested_by: string | null;
+  decided_by: string | null;
+  /** The `item_moves` or `scope_moves` row behind it, when there is one. */
+  source_id: string | null;
+  created_at: Timestamp;
+}
+
 /** Kysely table types for the whole app. Each migration that adds a table adds its interface here. */
 export interface Database {
   user: UserTable;
@@ -621,6 +655,8 @@ export interface Database {
   review_events: ReviewEventTable;
   items: ItemTable;
   item_aliases: ItemAliasTable;
+  item_moves: ItemMoveTable;
+  item_name_history: ItemNameHistoryTable;
   item_favorites: ItemFavoriteTable;
   user_onboarding: UserOnboardingTable;
   feedback: FeedbackTable;

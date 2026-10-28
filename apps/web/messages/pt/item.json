@@ -34,7 +34,8 @@
     "files": "Arquivos",
     "tools": "Funciona em",
     "risks": "O que ele pode fazer",
-    "risksCount": "O que ele pode fazer ({count})"
+    "risksCount": "O que ele pode fazer ({count})",
+    "history": "Histórico"
   },
   "readme": {
     "none": "Esta versão não tem README."
@@ -70,6 +71,61 @@
   },
   "propose": {
     "button": "Propor uma alteração"
+  },
+  "move": {
+    "button": "Mover para outro escopo…",
+    "title": "Mover {item}",
+    "whereTo": "Para qual escopo",
+    "pick": "Escolha um escopo",
+    "changesTitle": "O que muda",
+    "newName": "O nome dele lá: <mono>{from}</mono> → <mono>{to}</mono>",
+    "oldName": "O nome antigo continua funcionando, e o rmk passa os projetos para o novo conforme eles instalam ou atualizam. As versões não mudam.",
+    "claudeCode": "No Claude Code, ele aparece como um novo plugin, marcado “Movido de” por 30 dias.",
+    "proposals": "{count, plural, one {O rascunho ou a proposta aberta dele passa a usar o novo nome.} other {Os # rascunhos e propostas abertos dele passam a usar o novo nome.}}",
+    "dependents": "O trabalho aberto neste espaço de trabalho que depende dele passa a usar o novo nome:",
+    "hidden": "{count, plural, one {e # rascunho que você não vê} other {e # rascunhos que você não vê}}",
+    "more": "e mais {count}",
+    "clashTitle": "Ele não pode ir para lá",
+    "clash": "{clash, select, item {{scope} já tem um item chamado {name}.} submission {Um item chamado {name} aguarda revisão em {scope}.} other {{newName} é o nome antigo de outro item.}} Escolha outro escopo.",
+    "message": "Mensagem (opcional)",
+    "answeredBy": "Os moderadores ou os admins de {workspace}, ou o root, vão responder.",
+    "moveItem": "Mover item",
+    "ask": "Pedir para mover",
+    "cancel": "Cancelar",
+    "back": "Voltar",
+    "question": "Mover <mono>{item}</mono> para <mono>{scope}</mono>, como <mono>{newName}</mono>?",
+    "blocked": {
+      "pick": "Escolha um escopo primeiro.",
+      "checking": "Verificando o que muda…",
+      "clash": "O nome já está em uso lá."
+    },
+    "ok": "OK",
+    "doneMoved": "Movido. Agora ele é {newName}.",
+    "doneAsked": "Pedido para movê-lo para {scope} enviado.",
+    "done": "Concluir",
+    "impactFailed": "Não foi possível ler o que muda. Tente de novo.",
+    "notice": {
+      "moving": "Movendo para {scope}, pedido por {name}",
+      "movingMine": "Movendo para {scope}: aguardando resposta",
+      "declined": "Movimentação para {scope} recusada",
+      "cancel": "Cancelar",
+      "cancelMove": "Cancelar a movimentação para {scope}",
+      "cancelled": "Movimentação cancelada."
+    },
+    "formerUser": "um ex-usuário"
+  },
+  "history": {
+    "title": "Nomes",
+    "now": "O nome dele agora: <mono>{name}</mono>",
+    "none": "Ele tem este nome desde que foi lançado pela primeira vez.",
+    "from": "<mono>{from}</mono> → <mono>{to}</mono>",
+    "hidden": "um nome em um espaço de trabalho que você não vê",
+    "reason": "{reason, select, move_item {Movido para outro escopo} move_scope {O escopo dele foi movido para outro espaço de trabalho} rename_workspace {O espaço de trabalho dele foi renomeado} other {O espaço de trabalho passou a fazer parte dos nomes dos itens}}",
+    "by": "por {name}",
+    "askedApproved": "pedido por {asked}, aprovado por {approved}",
+    "askedBy": "pedido por {name}",
+    "approvedBy": "aprovado por {name}",
+    "formerUser": "um ex-usuário"
   },
   "overview": {
     "files": {

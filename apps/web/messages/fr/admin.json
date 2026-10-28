@@ -691,6 +691,12 @@
           "move_declined": "A refusé le déplacement de <name>{scope}</name> vers <name>{to}</name>",
           "move_cancelled": "A annulé le déplacement de <name>{scope}</name> vers <name>{to}</name>{lost, select, true { (la personne qui l’a demandé ne peut plus le déplacer)} other {}}"
         },
+        "item": {
+          "move_requested": "A demandé le déplacement de <name>{item}</name> vers <name>{to}</name>",
+          "moved": "{direct, select, false {A approuvé le déplacement de} other {A déplacé}} <name>{item}</name> vers <name>{to}</name>{hasNewName, select, true {, sous le nom <name>{newName}</name>} other {}}",
+          "move_declined": "A refusé le déplacement de <name>{item}</name> vers <name>{to}</name>",
+          "move_cancelled": "A annulé le déplacement de <name>{item}</name> vers <name>{to}</name>{why, select, asker_lost_role { (la personne qui l’a demandé n’est plus dans l’espace de travail)} target_moved { (cette portée est maintenant dans un autre espace de travail)} other {}}"
+        },
         "submission": {
           "draft_created": "A créé un brouillon de <name>{item}</name> ({details}){via}",
           "draft_updated": "A mis à jour le brouillon de <name>{item}</name>{via}",

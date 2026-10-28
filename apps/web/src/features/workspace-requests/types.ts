@@ -18,3 +18,10 @@ export type MoveAnswerState = {
   error?: string;
   refused?: import("@/server/domains/workspaces/models/scope-move").MoveImpact;
 };
+
+/** What an item move's answer shows after its action (134): a confirmation, a refusal, or the clash. */
+export type ItemMoveAnswerState = {
+  done?: string;
+  error?: string;
+  refused?: import("@/server/domains/workspaces/models/item-move").ItemMoveImpact;
+};

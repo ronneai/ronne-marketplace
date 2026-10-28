@@ -458,7 +458,12 @@ const performMove = async (
   );
   await repo.applyMove(scope.id, target.id, name);
   const reviewed = reviewedBy ? await repo.markReviewed(scope.id, reviewedBy) : 0;
-  return { items: items.length, reviewed };
+  const renames = items.map((item) => ({
+    itemId: item.id,
+    oldName: before(item),
+    newName: after(item),
+  }));
+  return { done: { items: items.length, reviewed }, renames };
 };
 
 /** Locks the scope and both workspaces, then reads them again: what the checks and the move use. */
@@ -531,7 +536,7 @@ export const askScopeMove = async (
     // scope's name.
     if (way === "twice" && input.confirm?.trim() !== scope.name)
       throw new ScopeMoveConfirmationError(scope.name);
-    const done = await performMove(repo, places, name, null, at);
+    const { done, renames } = await performMove(repo, places, name, null, at);
     const moveId = await repo.insertMove({
       scopeId: scope.id,
       fromWorkspaceId: source.id,
@@ -543,6 +548,13 @@ export const askScopeMove = async (
       decidedBy: user.id,
       at,
     });
+    // The items' history (134), behind the move's row: moved by the asker, nobody had to answer.
+    await repo.addNameHistory(
+      renames,
+      "move_scope",
+      { requestedBy: user.id, decidedBy: user.id, sourceId: moveId },
+      at,
+    );
     await auditMove(
       repo,
       actor,
@@ -630,7 +642,7 @@ export const approveScopeMove = async (
     if (!mayAnswer(user, move, target, impact.notReviewed.length > 0))
       throw new ScopeMoveNotFoundError();
     if (impact.refused) throw new ScopeMoveRefusedError(impact);
-    const done = await performMove(
+    const { done, renames } = await performMove(
       repo,
       places,
       move.newName,
@@ -646,6 +658,12 @@ export const approveScopeMove = async (
       }))
     )
       throw new ScopeMoveAnsweredError();
+    await repo.addNameHistory(
+      renames,
+      "move_scope",
+      { requestedBy: move.requestedBy, decidedBy: user.id, sourceId: move.id },
+      at,
+    );
     await auditMove(
       repo,
       actor,
