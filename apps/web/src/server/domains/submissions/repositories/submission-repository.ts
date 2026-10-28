@@ -167,6 +167,8 @@ export interface SubmissionRepository {
     files: readonly DraftFile[],
     at: Date,
   ): Promise<Revision>;
+  /** Queues the revision for the security scan (135), in the same transaction as the revision. */
+  queueScan(revisionId: string, at: Date): Promise<void>;
   /** Oldest first. */
   revisions(submissionId: string): Promise<Revision[]>;
   /** In path order, by code unit. */

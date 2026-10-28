@@ -43,7 +43,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   static scan gets none of the provider's variables even with a provider set up), `--no-llm`
   only for static, and that the directory is gone afterwards.
 
-- [ ] **5. Queue and job.** `send` queues a scan in its transaction when scanning is on and the type is
+- [x] **5. Queue and job.** `send` queues a scan in its transaction when scanning is on and the type is
   scanned. The `skill_scan` job (run-job and the lease) takes one scan, runs it, and retries a stuck
   one once. It is kicked off on queue and every minute in `scheduler.ts`, and respects `RONNE_JOBS=off`.
   "Scan again" and "Scan now" are root actions.

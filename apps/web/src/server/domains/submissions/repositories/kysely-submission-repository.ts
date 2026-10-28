@@ -10,6 +10,7 @@ import { containsInsensitive } from "../../../db/search";
 import { upsert } from "../../../db/upsert";
 import type { DatabaseDialect } from "../../../db/url";
 import { recordAudit } from "../../audit/actions/audit";
+import { kyselyContentScanRepository } from "../../scans/repositories/kysely-content-scan-repository";
 import type { Viewer } from "../../workspaces/models/viewer";
 import {
   inVisibleWorkspace,
@@ -463,6 +464,10 @@ export const kyselySubmissionRepository = (
 
     recordAudit: async (event, now) => {
       await recordAudit(db, dialect, event, now);
+    },
+
+    queueScan: async (revisionId, at) => {
+      await kyselyContentScanRepository(db, dialect).queue(revisionId, at);
     },
 
     createRevision: async (submissionId, createdBy, files, at) => {

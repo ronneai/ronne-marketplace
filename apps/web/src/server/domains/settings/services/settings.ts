@@ -34,6 +34,13 @@ import {
   retentionDaysFrom,
 } from "../models/retention-policy";
 import {
+  SKILL_SCAN_ANALYSIS_KEY,
+  SKILL_SCAN_ENABLED_KEY,
+  SKILL_SCAN_TYPES_KEY,
+  type SkillScanPolicy,
+  skillScanPolicyFrom,
+} from "../models/skill-scan-policy";
+import {
   DEFAULT_TWO_FACTOR_POLICY,
   isTwoFactorPolicy,
   TWO_FACTOR_POLICY_KEY,
@@ -69,6 +76,20 @@ export const usagePolicy = async (deps: SettingsDeps): Promise<UsagePolicy> => {
 export const usageMinimum = async (deps: SettingsDeps): Promise<number> => {
   const stored = await deps.repo.get(USAGE_MINIMUM_KEY);
   return (stored && usageMinimumFrom(stored.value)) ?? DEFAULT_USAGE_MINIMUM;
+};
+
+/** The security scan's policy (135): off, skills, static until root sets it. Read on every use. */
+export const skillScanPolicy = async (deps: SettingsDeps): Promise<SkillScanPolicy> => {
+  const [enabled, types, analysis] = await Promise.all(
+    [SKILL_SCAN_ENABLED_KEY, SKILL_SCAN_TYPES_KEY, SKILL_SCAN_ANALYSIS_KEY].map((key) =>
+      deps.repo.get(key),
+    ),
+  );
+  return skillScanPolicyFrom({
+    enabled: enabled?.value ?? null,
+    types: types?.value ?? null,
+    analysis: analysis?.value ?? null,
+  });
 };
 
 /** Who must use two-factor sign-in (105); `optional` until root sets it. Read on every request. */

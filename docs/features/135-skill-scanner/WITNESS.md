@@ -194,3 +194,43 @@ Witnessed: 2026-10-28 13:30 EDT, by a fresh agent (adversarial). Commit: 8e26e1d
 | 12 | Hostile names (bidi override, leading combining mark, `CON`, `a:b`, `.git/config`, no files) don't escape or crash | no | confirmed | All `ok`, written inside the folder, nothing left. Unassigned code points give `write failed` on APFS (EILSEQ), as the spec words a refused write |
 
 **Overall:** met: every claim held against hostile paths, a full code-point sweep of APFS's merges, environment injection, a scanner that ignores SIGTERM, and the real container; the fifth pass's two findings are fixed and their tests fail when the fixes are removed.
+
+## Task 5 — Queue and job
+
+Three earlier blind passes (13:07, 13:11, 13:31 EDT) were not met. What they found, all fixed before
+the re-check below:
+- the "scanning off" test passed with the switch ignored;
+- a withdrawn submission's queued scan still ran; it is now dropped without scanning;
+- scans queued with no scanner command stayed "Scanning…"; they now fail `not configured`, and root's
+  request is refused without a command;
+- a scan stuck `running` after a crash was never retried, nor its folder swept, unless another scan
+  was queued; a stuck scan now counts as work, and the sweep runs every minute on its own;
+- the lease wasn't renewed between short scans; it now is, before each scan after the first;
+- root could queue a second scan while one waited, ran or had finished;
+- tests were missing for the order, the stuck threshold, the scheduler's wiring and schedule, the
+  kicks, `RONNE_JOBS=off` and the kick after a send.
+
+The third pass (13:31) confirmed 23 of its 25 claims with mutations on the four databases (queuing
+in the send's transaction, the off switch, the type filter, no command, bulk and API submits, the
+personal workspace, order, one at a time, done and failed, the stuck threshold and retry, a stuck
+scan with nothing queued, no lease when idle, withdrawn and deleted, `not configured`, the sweep, the
+kicks, `RONNE_JOBS=off`, root only, the settings keys, the guard, typecheck). Its two failed claims are
+rows 1 and 2 below.
+
+### Re-check
+
+Witnessed: 2026-10-28 13:40 EDT, by a fresh agent (blind). Commit: 8e26e1d0 plus the working-tree diff (tasks 4 and 5 uncommitted). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The job's lease is renewed between scans, however short they are | no | confirmed | `services/scans.ts` `if (i > 0) await deps.renew?.()`; run-job's `renew` throws `LeaseLostError`, ending the run; `probe-renew.test.ts` (80 ms scans, 100 ms interval) → renews > 0; mutations M18 (line removed) and M18b (`i > 1`) → "renews the job's lease between scans" fails |
+| 2 | `startJobsIfOn` starts the scan ticks (after 1 min, then every minute) beside the retention purge, none with `RONNE_JOBS=off` | no | confirmed | `scheduler.test.ts` "starts the scan ticks with the server…" (5 scans, 1 purge by 5 min) and "starts no scan ticks with RONNE_JOBS=off"; `probe-startjobs.test.ts` passes; M19 (no-op) and M19b (every 6 h) → the test fails |
+| 3 | Root's "Scan again"/"Scan now" is refused while the newest scan is queued, running or done; allowed when it failed or there is none | no | confirmed | `services/scans.ts`; test "lets root ask again only when the newest scan failed" (queued → false, done → false, failed → true, 2 rows); M20 (check removed) and M21 (only `queued` refused) → that test fails |
+| 4 | Spot-check: the scan is queued inside the send's transaction | no | confirmed | A throw planted in `addEvent` (after `queueScan`) in a scratch copy → no `content_scans` row and no revision left |
+| 5 | Spot-check: type filter, stuck retry once then fail, withdrawn dropped, no lease when idle, kick with `RONNE_JOBS=off` | no | confirmed | Mutations M02, M05b, M08, M12 and M14a each make their named test fail; every restore byte-identical |
+| 6 | Scan, job and guard db tests pass on SQLite | no | confirmed | `vitest run --project db src/server/domains/scans src/server/jobs …/visibility-guard.db.test.ts` → 6 files, 51 passed |
+| 7 | The same db files pass on PostgreSQL, MySQL and MariaDB | no | confirmed | `pnpm test:db:{postgres,mysql,mariadb} -- <files>` → 3 files, 28 passed each |
+| 8 | Job and policy unit tests pass | no | confirmed | `vitest run src/server/jobs …/skill-scan-policy.test.ts` → 6 files, 48 passed |
+| 9 | Web typecheck passes | no | confirmed | `pnpm --filter @ronneai/web typecheck` → no errors |
+
+**Overall:** met: the lease renewal between scans, the `startJobsIfOn` scan ticks and the refusal of a second request hold, each with a test that fails without the fix; with the third pass's confirmed claims, the task holds on the four databases.
