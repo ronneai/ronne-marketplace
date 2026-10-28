@@ -42,25 +42,28 @@ export const ProposeButton = ({ item, version }: { item: string; version: string
   const [pending, start] = useTransition();
   return (
     <div className="grid justify-items-end gap-1">
-      <Button
-        variant="secondary"
-        loading={pending}
-        onClick={() =>
-          start(async () => {
-            setRefused(null);
-            const result = await proposeChangeAction(item, version);
-            if (!result.ok)
-              // Kept as the action returned it, so the workspace to join can't be dropped on the way.
-              return setRefused(result);
-            router.push(`/submissions/${result.id}`);
-          })
-        }
-      >
-        <GitPullRequest size={16} aria-hidden="true" />
-        {t("button")}
-      </Button>
+      <div className="flex items-center gap-2">
+        <Button
+          variant="secondary"
+          loading={pending}
+          onClick={() =>
+            start(async () => {
+              setRefused(null);
+              const result = await proposeChangeAction(item, version);
+              if (!result.ok)
+                // Kept as the action returned it, so the workspace to join can't be dropped on the way.
+                return setRefused(result);
+              router.push(`/submissions/${result.id}`);
+            })
+          }
+        >
+          <GitPullRequest size={16} aria-hidden="true" />
+          {t("button")}
+        </Button>
+        {/* Beside the button, as an icon, so the row of actions stays tight. */}
+        <Help id="propose" iconOnly />
+      </div>
       {refused ? <ProposeRefusal refused={refused} /> : null}
-      <Help id="propose" className="max-w-xs" />
     </div>
   );
 };

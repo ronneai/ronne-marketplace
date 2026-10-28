@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogActions } from "@/components/ui/Dialog";
 import { Input, Label } from "@/components/ui/Field";
+import { IconButton } from "@/components/ui/IconButton";
 import { pinToShelfAction, unpinFromShelfAction } from "./actions";
 import { ManageShelf } from "./ManageShelf";
 import type { PinTargetView } from "./types";
@@ -17,7 +18,7 @@ import type { PinTargetView } from "./types";
 const SEARCH_FROM = 8;
 
 /**
- * The Pin menu on an item's page (feature 125): where the person may pin this item. Start here for
+ * The Pin menu on an item's page (feature 125), opened by a pin icon beside the star: where the person may pin this item. Start here for
  * root, and each workspace they administer (root: any, found by name); each row pins or unpins, and
  * opens that shelf's Manage view in the same dialog. Whatever the server refuses (the limit of 12)
  * shows at the top. A dialog rather than a floating menu, so it fills a phone's screen (067).
@@ -63,10 +64,9 @@ export const PinMenu = ({
   if (targets.length === 0) return null;
   return (
     <>
-      <Button variant="secondary" onClick={() => setOpen(true)}>
-        <Pin size={16} aria-hidden="true" />
-        {t("pin.button")}
-      </Button>
+      <IconButton label={t("pin.button")} onClick={() => setOpen(true)}>
+        <Pin size={18} aria-hidden="true" />
+      </IconButton>
       <Dialog
         open={open}
         onClose={close}

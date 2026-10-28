@@ -75,9 +75,10 @@ export const ItemPageView = ({
         / <span className="text-fg">{name}</span>
       </nav>
 
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div className="grid min-w-0 gap-2">
-          <div className="flex flex-wrap items-center gap-2">
+      <header className="grid min-w-0 gap-2">
+        {/* The item's actions sit on its name's row, so the description has the full width. */}
+        <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+          <div className="flex min-h-9 min-w-0 flex-wrap items-center gap-2 pointer-coarse:min-h-11">
             <h1 className="font-mono text-xl font-semibold break-all text-fg">{name}</h1>
             {/* biome-ignore lint/plugin: a version number, the same in every language */}
             <span className="font-mono text-sm text-muted">v{shown.version}</span>
@@ -91,37 +92,39 @@ export const ItemPageView = ({
             {shown.deprecatedMessage ? <Badge tone="warning">{t("badge.deprecated")}</Badge> : null}
             {shown.yankedAt ? <Badge tone="error">{t("badge.yanked")}</Badge> : null}
           </div>
-          <ItemPlace
-            workspace={page.item.workspace}
-            scope={page.item.scope.name}
-            privateWorkspace={page.item.privateWorkspace}
-            personalWorkspace={page.item.personalWorkspace}
-          />
-          <p className="text-sm text-fg">{description || t("noDescription")}</p>
-          <p className="font-mono text-xs text-muted">
-            {meta.map((part, index) => (
-              <Fragment key={part.id}>
-                {index ? " · " : null}
-                {part.text}
-              </Fragment>
-            ))}
-          </p>
+          <div className="flex flex-wrap items-start gap-2">
+            {page.favorited === undefined ? null : (
+              <>
+                <FavoriteButton itemId={page.item.id} name={name} favorited={page.favorited} />
+                {/* Padding, not flex, lines it up with the star: without JavaScript its answer
+                    shows inline and must stack under the icon, not over the star. */}
+                <Help id="favorites" iconOnly className="pt-2.5 pointer-coarse:pt-4" />
+              </>
+            )}
+            {page.pinTargets?.length ? (
+              <PinMenu itemId={page.item.id} name={name} targets={page.pinTargets} />
+            ) : null}
+            <ProposeButton item={name} version={shown.version} />
+            {page.move && page.move.targets.length > 0 ? (
+              <MoveItemButton item={{ id: page.item.id, fullName: name }} view={page.move} />
+            ) : null}
+          </div>
         </div>
-        <div className="flex flex-wrap items-start gap-2">
-          {page.favorited === undefined ? null : (
-            <>
-              <FavoriteButton itemId={page.item.id} name={name} favorited={page.favorited} />
-              <Help id="favorites" iconOnly />
-            </>
-          )}
-          {page.pinTargets?.length ? (
-            <PinMenu itemId={page.item.id} name={name} targets={page.pinTargets} />
-          ) : null}
-          <ProposeButton item={name} version={shown.version} />
-          {page.move && page.move.targets.length > 0 ? (
-            <MoveItemButton item={{ id: page.item.id, fullName: name }} view={page.move} />
-          ) : null}
-        </div>
+        <ItemPlace
+          workspace={page.item.workspace}
+          scope={page.item.scope.name}
+          privateWorkspace={page.item.privateWorkspace}
+          personalWorkspace={page.item.personalWorkspace}
+        />
+        <p className="text-sm text-fg">{description || t("noDescription")}</p>
+        <p className="font-mono text-xs text-muted">
+          {meta.map((part, index) => (
+            <Fragment key={part.id}>
+              {index ? " · " : null}
+              {part.text}
+            </Fragment>
+          ))}
+        </p>
       </header>
 
       {page.move?.latest ? <MoveItemNotice latest={page.move.latest} /> : null}
