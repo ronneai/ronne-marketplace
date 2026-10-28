@@ -253,7 +253,7 @@ Every instance has `global` (public, reserved, can't be edited or removed), and 
 Item names stay `@scope/name`: scope names stay unique across the instance, so `rmk`, lockfiles and
 plugin feeds don't change (until 118: scope names unique per workspace, items named
 `@workspace/scope/name`, `@scope/name` for `global`; owner, 2026-10-09). Build order: 090 → 091 → 092 → 093 → 094 → 095, then 118 → 113 → 114 → 115
-(owner, 2026-10-09). 116 and 117 stay planned. Inviting people by email isn't planned (owner,
+(owner, 2026-10-09). 116 and 117 stay planned; 134 moves single items between scopes (owner, 2026-10-27). Inviting people by email isn't planned (owner,
 2026-10-09).
 
 | ID | Feature | Depends on | Status |
@@ -270,6 +270,7 @@ plugin feeds don't change (until 118: scope names unique per workspace, items na
 | [118](./118-workspace-in-names/SPEC.md) | The workspace in item names: scope names unique per workspace; `@workspace/scope/name`, `@scope/name` meaning `global`; old names kept as aliases that reserve their name; the manifest, API, resolver, `rmk` (lockfile rewritten to the new name), MCP, feeds and URLs; `client_too_old` for older `rmk` | 090–095, 011, 015, 019, 020, 022, 027, 037, 077, 097 | done |
 | 116 | Per-workspace tokens: a personal access token limited to some of its user's workspaces, for `rmk`, MCP and the feeds | 009, 093, 095 | planned |
 | 117 | Asking for a role: a member asks to be a workspace's moderator (or admin), answered by its admins or root, like a request to join | 092, 094 | planned |
+| [134](./134-move-items/SPEC.md) | Moving an item to another scope in the same workspace: any member asks, the workspace's moderators, admins or root move at once or answer; versions unchanged, the old name kept as an alias; a History tab with every name change (134, 115, 113, 118) | 091, 092, 094, 113, 115, 118, 017, 044 | specified |
 
 ### M14 — Run it safely
 

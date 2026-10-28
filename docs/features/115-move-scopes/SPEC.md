@@ -47,7 +47,8 @@ on every item in the scope; this feature says who decides, and what a move may n
   `scope.move_cancelled`, on the scope, naming both workspaces.
 
 **Out** (and where it goes instead):
-- **Moving one item to another scope.** Its name would change; not planned.
+- **Moving one item to another scope.** Its name would change; not planned here. Planned since
+  2026-10-27 as [134](../134-move-items/SPEC.md), within one workspace.
 - **Moving several scopes at once.** One at a time; a workspace with many can ask for each.
 - **Moving into someone else's personal workspace.** Only its owner moves scopes in (114: only
   the owner has access), so it's never offered to anyone else, root included.
