@@ -96,11 +96,9 @@ export const ItemPageView = ({
             {page.favorited === undefined ? null : (
               <>
                 <FavoriteButton itemId={page.item.id} name={name} favorited={page.favorited} />
-                <Help
-                  id="favorites"
-                  iconOnly
-                  className="flex h-9 items-center pointer-coarse:h-11"
-                />
+                {/* Padding, not flex, lines it up with the star: without JavaScript its answer
+                    shows inline and must stack under the icon, not over the star. */}
+                <Help id="favorites" iconOnly className="pt-2.5 pointer-coarse:pt-4" />
               </>
             )}
             {page.pinTargets?.length ? (
