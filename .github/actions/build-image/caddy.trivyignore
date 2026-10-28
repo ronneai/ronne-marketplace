@@ -1,28 +1,35 @@
-# Vulnerabilities the proxy-image scan accepts for now: exception E-7 in
+# Vulnerabilities the proxy-image scan accepts for now: exceptions E-7 to E-10 in
 # docs/policies/dependencies.md. Only the Caddy image's scan reads this file; ours stays strict.
 # Each line expires on its date, after which the scan fails on it again.
 
 # Go standard library in caddy:2.11.6 (Go 1.26.8). Fixed in Go 1.26.9; no Caddy image is built
 # with it yet (2.11.7 also uses Go 1.26.8).
-CVE-2026-78667 exp:2026-10-30
-CVE-2026-97031 exp:2026-10-30
+CVE-2026-78667 exp:2026-11-13
+CVE-2026-97031 exp:2026-11-13
 
 # Go standard library and golang.org/x/net v0.59.0 in caddy:2.11.6: a denial of service through
 # HTTP/2 SETTINGS frames, first seen on 2026-10-09. Fixed in Go 1.26.9 and x/net 0.60.0, in no
 # Caddy image yet. Our Caddyfile (compose.yaml and rmk-server's) serves HTTP/1.1 only until then.
-CVE-2026-78669 exp:2026-10-30
+CVE-2026-78669 exp:2026-11-13
 
 # Go standard library in caddy:2.11.7 (Go 1.26.8), first seen on 2026-10-21: crypto/x509 gains a
 # denylist, so Verify refuses known intermediates that are no longer trusted. Fixed in Go 1.26.10 and
 # 1.27.3, in no Caddy image yet. Exception E-8 in docs/policies/dependencies.md.
-CVE-2026-111943 exp:2026-10-30
+CVE-2026-111943 exp:2026-11-13
 
 # Alpine's brotli-libs 1.2.0-r0 in caddy:2.11.7 (also the 2026-10-22 rebuild), first seen on
 # 2026-10-24: an out-of-bounds write in the C Brotli decoder. Fixed in 1.2.1-r0, in no Caddy image
 # yet. Exception E-9 in docs/policies/dependencies.md.
-CVE-2026-111497 exp:2026-10-30
+CVE-2026-111497 exp:2026-11-13
 
 # Alpine's curl and libcurl 8.22.0-r0 in caddy:2.11.7, first seen on 2026-10-26: a use-after-free
 # in HTTP/2 upload. Fixed in 8.23.0-r0, in no Caddy image yet. Exception E-9 in
 # docs/policies/dependencies.md.
-CVE-2026-92392 exp:2026-10-30
+CVE-2026-92392 exp:2026-11-13
+
+# github.com/go-jose/go-jose/v4 v4.1.5 in caddy:2.11.7, first seen on 2026-10-28: a denial of
+# service when parsing JWKs that contain RSA keys. Fixed in 4.1.6, in no Caddy release yet. Only
+# smallstep's Wire provisioner reaches it (through go-oidc), and only Caddy's ACME server
+# (`acme_server`) runs that; neither Caddyfile has one. Exception E-10 in
+# docs/policies/dependencies.md.
+CVE-2026-116587 exp:2026-11-13
