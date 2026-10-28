@@ -13,6 +13,9 @@ vi.mock("@/server/domains/submissions/actions/reviews", () => reviews);
 const submissions = vi.hoisted(() => ({ dependencyMarks: vi.fn(async () => ({})) }));
 vi.mock("@/server/domains/submissions/actions/submissions", () => submissions);
 vi.mock("@/server/domains/identity/actions/session", () => session);
+vi.mock("@/server/domains/scans/actions/scans", () => ({
+  reviewScan: async () => ({ scan: null, canRequest: false }),
+}));
 vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));
 vi.mock("./actions", () => ({ decideAction: vi.fn(), commentFromForm: vi.fn() }));
 const releaseGroup = vi.hoisted(() => ({

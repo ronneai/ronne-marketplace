@@ -612,6 +612,13 @@
           "locked": "verrouillé pendant 15 minutes",
           "refused": "le compte ne peut pas se connecter",
           "unreadable": "le secret est illisible"
+        },
+        "skillScan": {
+          "on": "activée",
+          "off": "désactivée",
+          "types": "types de {from} à {to}",
+          "analysis": "analyse {from, select, semantic {statique et sémantique} other {statique}} à {to, select, semantic {statique et sémantique} other {statique}}",
+          "nothing": "rien"
         }
       },
       "actions": {
@@ -736,7 +743,8 @@
           "usage_policy": "A changé le rapport d’utilisation, de {from} à {to}",
           "usage_minimum": "A changé le minimum d’utilisation, de {from} à {to}",
           "retention": "A changé la conservation : {changes}",
-          "notice": "A changé l’avis de l’instance : {changes}"
+          "notice": "A changé l’avis de l’instance : {changes}",
+          "skill_scan": "A modifié l’analyse de sécurité : {changes}"
         }
       }
     }
@@ -752,7 +760,8 @@
       "feeds": "Flux de plugins",
       "authentication": "Authentification",
       "privacy": "Confidentialité",
-      "notice": "Avis"
+      "notice": "Avis",
+      "scan": "Analyse de sécurité"
     },
     "methods": {
       "title": "Méthodes de connexion",
@@ -1044,6 +1053,43 @@
         "started": "Commencé le <date></date>",
         "retry": "Réessayer"
       }
+    },
+    "scan": {
+      "title": "Analyse de sécurité",
+      "intro": "SkillSpector, de NVIDIA, analyse chaque soumission dès son envoi, et ce qu’il trouve s’affiche sur la page de révision à côté des signaux de risque. C’est un deuxième avis pour les personnes qui révisent : il ne bloque jamais une soumission, une approbation ou une publication.",
+      "scanner": {
+        "configured": "L’analyseur est configuré sur ce serveur.",
+        "lastVersion": "La dernière analyse terminée a utilisé SkillSpector {version}.",
+        "missing": {
+          "title": "Aucun analyseur n’est configuré sur ce serveur",
+          "body": "La personne qui exploite le serveur installe SkillSpector, indique sa commande dans RONNE_SKILL_SCANNER (dans l’environnement ou le fichier de paramètres), puis redémarre Ronne. L’analyse peut alors être activée ici."
+        },
+        "lastError": "La dernière analyse n’a pas abouti : {reason, select, timeout {elle a dépassé le délai} not_found {la commande de l’analyseur est introuvable} not_runnable {la commande de l’analyseur ne peut pas être exécutée} not_configured {aucune commande d’analyseur n’est définie} output_too_large {elle a produit trop de sortie} invalid_report {son rapport n’a pas pu être lu} signal {elle a été arrêtée par un signal} no_temporary_folder {son dossier temporaire n’a pas pu être créé} bad_file_path {un chemin de fichier de la soumission a été refusé} write_failed {ses fichiers n’ont pas pu être écrits} exit {elle s’est terminée avec le code {code}} other {{error}}}"
+      },
+      "enabled": {
+        "label": "Analyser les soumissions",
+        "hint": "Chaque révision des types ci-dessous est analysée à son envoi pour révision."
+      },
+      "types": {
+        "title": "Types d’éléments à analyser",
+        "hint": "SkillSpector lit le Markdown, les scripts et les paramètres MCP. C’est dans les compétences qu’il trouve le plus."
+      },
+      "analysis": {
+        "title": "Analyse",
+        "static": {
+          "label": "Statique",
+          "hint": "Des vérifications de motifs et de code sur ce serveur. Le contenu des éléments n’en sort pas."
+        },
+        "semantic": {
+          "label": "Statique et sémantique",
+          "hint": "Demande aussi à un LLM si une compétence fait ce qu’elle annonce. Il faut un fournisseur configuré par la personne qui exploite le serveur.",
+          "sends": "Demande aussi à un LLM si une compétence fait ce qu’elle annonce. Les fichiers de chaque soumission sont envoyés à {provider} sur {host} ({model}).",
+          "sendsNoModel": "Demande aussi à un LLM si une compétence fait ce qu’elle annonce. Les fichiers de chaque soumission sont envoyés à {provider} sur {host}."
+        },
+        "warning": "Désormais, les fichiers de chaque soumission analysée sont envoyés à {provider} sur {host}. Enregistrez pour confirmer.",
+        "runsStatic": "L’analyse sémantique est choisie, mais aucun fournisseur n’est plus configuré sur le serveur : les analyses sont statiques."
+      },
+      "save": "Enregistrer"
     }
   },
   "setup": {
@@ -1195,7 +1241,8 @@
       "password": "Connexion par mot de passe enregistrée.",
       "nothing": "Rien n’a changé.",
       "erasuresNone": "Il ne restait rien à terminer.",
-      "erasures": "{count, plural, one {# effacement terminé.} other {# effacements terminés.}}"
+      "erasures": "{count, plural, one {# effacement terminé.} other {# effacements terminés.}}",
+      "scan": "Analyse de sécurité enregistrée."
     }
   }
 }

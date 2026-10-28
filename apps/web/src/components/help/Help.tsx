@@ -218,6 +218,12 @@ export const HELP = {
   retention: {
     href: docsHref("privacy", "retention"),
   },
+  "security-scan": {
+    href: docsHref("review", "security-scan"),
+  },
+  "scan-settings": {
+    href: docsHref("settings", "security-scan"),
+  },
   "erase-user": {
     href: docsHref("privacy", "erase"),
   },

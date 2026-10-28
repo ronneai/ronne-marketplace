@@ -1,6 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { setLoggerForTests } from "../log";
-import { EVERY_MS, FIRST_RUN_MS, jobsOff, startScheduler } from "./scheduler";
+import {
+  EVERY_MS,
+  FIRST_RUN_MS,
+  jobsOff,
+  kickSkillScans,
+  SCAN_SCHEDULE,
+  startJobsIfOn,
+  startScheduler,
+  stopJobs,
+} from "./scheduler";
 
 /** Timers under the test's control: `fire()` runs what's due at the new time. */
 const fakeTimers = () => {
@@ -110,5 +119,108 @@ describe("the in-process scheduler (102)", () => {
     for (const off of ["off", "OFF", " Off ", "0", "false"]) expect(jobsOff(off), off).toBe(true);
     for (const on of [undefined, "", "on", "1", "true", "yes", "no"])
       expect(jobsOff(on), String(on)).toBe(false);
+  });
+});
+
+describe("the security scan's schedule and kicks (135)", () => {
+  it("looks at the queue a minute after start, then every minute", async () => {
+    expect(SCAN_SCHEDULE).toEqual({ job: "skill_scan", firstMs: 60_000, everyMs: 60_000 });
+    const clock = fakeTimers();
+    let runs = 0;
+    const stop = startScheduler({
+      timers: clock.timers,
+      ...SCAN_SCHEDULE,
+      run: async () => {
+        runs++;
+      },
+    });
+    await clock.advanceTo(59_000);
+    expect(runs).toBe(0);
+    await clock.advanceTo(60_000);
+    expect(runs).toBe(1);
+    await clock.advanceTo(120_000);
+    expect(runs).toBe(2);
+    stop();
+  });
+
+  it("starts the scan ticks with the server, beside the retention purge", async () => {
+    const clock = fakeTimers();
+    let scans = 0;
+    let purges = 0;
+    startJobsIfOn(
+      {},
+      {
+        timers: clock.timers,
+        runScans: async () => {
+          scans++;
+        },
+        runRetention: async () => {
+          purges++;
+        },
+      },
+    );
+    try {
+      await clock.advanceTo(59_000);
+      expect([scans, purges]).toEqual([0, 0]);
+      // A minute at a time: each tick schedules the next from when it ran.
+      for (let minute = 1; minute <= 5; minute++) await clock.advanceTo(minute * 60_000);
+      expect([scans, purges]).toEqual([5, 1]);
+    } finally {
+      stopJobs();
+    }
+  });
+
+  it("starts no scan ticks with RONNE_JOBS=off", async () => {
+    const clock = fakeTimers();
+    let scans = 0;
+    startJobsIfOn(
+      { RONNE_JOBS: "off" },
+      {
+        timers: clock.timers,
+        runScans: async () => {
+          scans++;
+        },
+      },
+    );
+    try {
+      await clock.advanceTo(3_600_000);
+      expect(scans).toBe(0);
+      expect(clock.pending()).toEqual([]);
+    } finally {
+      stopJobs();
+    }
+  });
+
+  it("runs nothing on a kick with RONNE_JOBS=off", async () => {
+    let runs = 0;
+    kickSkillScans({ RONNE_JOBS: "off" }, async () => {
+      runs++;
+    });
+    await new Promise((done) => setImmediate(done));
+    expect(runs).toBe(0);
+  });
+
+  it("folds kicks during a run into one more run", async () => {
+    let runs = 0;
+    let release: (() => void) | undefined;
+    const run = () =>
+      new Promise<void>((resolve) => {
+        runs++;
+        release = resolve;
+      });
+    kickSkillScans({}, run);
+    for (let i = 0; i < 4; i++) kickSkillScans({}, run);
+    expect(runs).toBe(1);
+    release?.();
+    await new Promise((done) => setImmediate(done));
+    expect(runs).toBe(2);
+    release?.();
+    await new Promise((done) => setImmediate(done));
+    expect(runs).toBe(2);
+    // A kick after it's done starts a new run.
+    kickSkillScans({}, run);
+    expect(runs).toBe(3);
+    release?.();
+    await new Promise((done) => setImmediate(done));
   });
 });

@@ -94,6 +94,7 @@ export const TOPICS = [
       { id: "reviewing", title: "What reviewers look at" },
       { id: "decisions", title: "Decisions" },
       { id: "approve-many", title: "Approving many at once" },
+      { id: "security-scan", title: "The security scan" },
     ],
   },
   {
@@ -170,8 +171,11 @@ export const TOPICS = [
     slug: "settings",
     title: "Settings",
     summary:
-      "Root's settings for the instance, in five tabs: usage reporting, the plugin feeds, how people sign in, how long personal data is kept, and the notice.",
-    sections: [{ id: "settings", title: "Settings" }],
+      "Root's settings for the instance, in six tabs: usage reporting, the plugin feeds, how people sign in, how long personal data is kept, the notice, and the security scan.",
+    sections: [
+      { id: "settings", title: "Settings" },
+      { id: "security-scan", title: "Security scan" },
+    ],
   },
   {
     slug: "notice",

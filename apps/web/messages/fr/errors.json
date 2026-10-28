@@ -140,5 +140,9 @@
   "InvalidScopeDescriptionError": "La description d’une portée doit compter de 1 à 300 caractères.",
   "ScopeNameTakenError": "La portée @{scopeName} existe déjà.",
   "ScopeWorkspaceNotFoundError": "Cet espace de travail n’existe pas.",
-  "ScopeNotFoundError": "Cette portée n’existe pas."
+  "ScopeNotFoundError": "Cette portée n’existe pas.",
+  "SkillScanNotConfiguredError": "Définissez d’abord RONNE_SKILL_SCANNER sur le serveur (la commande de l’analyseur, en tableau JSON), puis redémarrez Ronne.",
+  "SkillScanNoProviderError": "Configurez d’abord un fournisseur de LLM sur le serveur (RONNE_SKILL_SCANNER_ENV_SKILLSPECTOR_PROVIDER et ses variables), puis redémarrez Ronne.",
+  "InvalidSkillScanTypesError": "Choisissez au moins un type d’élément à analyser.",
+  "InvalidSkillScanAnalysisError": "Choisissez statique, ou statique et sémantique."
 }

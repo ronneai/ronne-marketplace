@@ -476,6 +476,25 @@ export const SUMMARIES: Record<AuditAction, Build> = {
       );
     return { changes: changes.join(", ") || h.part("retention.nothing") };
   },
+  "settings.skill_scan": (m, _e, h) => {
+    // `{ from: { enabled, types, analysis }, to: { … } }` (135): only what changed.
+    const from = record(m.from);
+    const to = record(m.to);
+    const list = (value: AuditMetadataValue | undefined) =>
+      Array.isArray(value) ? value.map(String).join(", ") : text(value);
+    const changes = [
+      text(from.enabled) !== text(to.enabled)
+        ? h.part(to.enabled === true ? "skillScan.on" : "skillScan.off")
+        : null,
+      list(from.types) !== list(to.types)
+        ? h.part("skillScan.types", { from: list(from.types), to: list(to.types) })
+        : null,
+      text(from.analysis) !== text(to.analysis)
+        ? h.part("skillScan.analysis", { from: text(from.analysis), to: text(to.analysis) })
+        : null,
+    ].filter((c) => c !== null);
+    return { changes: changes.join(", ") || h.part("skillScan.nothing") };
+  },
   "settings.notice": (m, _e, h) => {
     // `{ from: { tone, shown }, to: { tone, shown }, revision }`: never the text (124).
     const from = record(m.from);

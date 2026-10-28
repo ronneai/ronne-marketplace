@@ -176,6 +176,9 @@ export const E2E_USERS = {
   bulkSubmitter: "bulk-submitter@e2e.test",
   approveAuthor: "approve-author@e2e.test",
   bulkApprover: "bulk-approver@e2e.test",
+  // The security scan (135): a root who turns it on and reviews, and an author who submits a skill.
+  scanRoot: "scan-root@e2e.test",
+  scanAuthor: "scan-author@e2e.test",
   pendingAuthor: "pending-author@e2e.test",
   pendingModerator: "pending-moderator@e2e.test",
   releaseAuthor: "release-author@e2e.test",
@@ -409,6 +412,8 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   bulkSubmitter: "Bo Bulk",
   approveAuthor: "Ava Author",
   bulkApprover: "Bea Approver",
+  scanRoot: "Sam Root",
+  scanAuthor: "Sky Author",
   pendingAuthor: "Pia Author",
   pendingModerator: "Pim Moderator",
   releaseAuthor: "Rex Author",
@@ -555,6 +560,7 @@ export const E2E_ROOTS: readonly (keyof typeof E2E_USERS)[] = [
   "phoneNoticeRoot",
   "phoneWebkitNoticeRoot",
   "tabletNoticeRoot",
+  "scanRoot",
 ];
 
 /**

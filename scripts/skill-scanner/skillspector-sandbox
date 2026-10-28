@@ -1,0 +1,82 @@
+#!/bin/sh
+# SkillSpector in a container, for Ronne's RONNE_SKILL_SCANNER (feature 135;
+# docs/knowledge/skill-scanner.md). Ronne calls it as: skillspector-sandbox scan <dir> --no-llm --format json
+# (without --no-llm for a semantic scan). A static scan gets no network at all.
+set -eu
+
+# Set these for the user Ronne runs as. Ronne gives the scanner a HOME of its own and none of its
+# environment, so the container runtime can't find its socket or storage without them.
+# docker (rootless Docker), or podman (rootless Podman). Never a rootful Docker.
+RUNTIME=docker
+# That user's home, where docker or podman keep their settings.
+RUNTIME_HOME=/home/ronne
+# Rootless Docker's socket, such as unix:///run/user/1001/docker.sock. Empty for podman.
+RUNTIME_SOCKET=
+IMAGE=skillspector:2.13.2
+# For semantic scans only: the container network that reaches the LLM provider, and nothing else you
+# can avoid (a network of its own, or bridge if the provider is on the internet). Empty refuses them.
+SEMANTIC_NETWORK=
+
+[ "$#" -ge 2 ] && [ "$1" = scan ] || exit 2
+dir=$2
+shift 2
+
+HOME=$RUNTIME_HOME
+XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}
+export HOME XDG_RUNTIME_DIR
+if [ -n "$RUNTIME_SOCKET" ]; then
+  DOCKER_HOST=$RUNTIME_SOCKET
+  export DOCKER_HOST
+fi
+
+# Ronne's folder is 0700 and owned by Ronne's user, so the container must run as that user on the
+# host. Rootless Docker maps container root (0) to it, and any other container user to a subuid
+# that can't read the folder; Podman's keep-id maps Ronne's own uid to itself. Either way the
+# process has no capabilities and can't gain any.
+if [ "$RUNTIME" = podman ]; then
+  user="$(id -u):$(id -g)"
+  userns=--userns=keep-id
+else
+  user=0:0
+  userns=
+fi
+
+network=
+for arg in "$@"; do
+  if [ "$arg" = --no-llm ]; then network=none; fi
+done
+if [ -z "$network" ]; then
+  [ -n "$SEMANTIC_NETWORK" ] || {
+    echo "skillspector-sandbox: set SEMANTIC_NETWORK for semantic scans" >&2
+    exit 2
+  }
+  network=$SEMANTIC_NETWORK
+fi
+
+# A name of its own, so a stopped scan stops its container: Ronne sends SIGTERM first (then SIGKILL
+# after a grace period), and killing the `run` client alone would leave the container running.
+name="ronne-scan-$$-$(date +%s)"
+# On SIGTERM, remove the container (`rm -f`, not `kill`: it also takes one that never started). The
+# signal reaches the `run` client too, and the daemon can finish a create the client already sent,
+# so keep removing for a few seconds, inside Ronne's 5-second grace before SIGKILL.
+stop() {
+  for _ in 1 2 3 4; do
+    "$RUNTIME" rm -f "$name" >/dev/null 2>&1
+    sleep 1
+  done
+  exit 143
+}
+trap stop TERM INT HUP
+
+# The provider's variables reach the container only if Ronne passed them, which it does only for a
+# semantic scan (`-e NAME` without a value passes nothing when NAME is unset).
+"$RUNTIME" run --rm --name "$name" $userns --network "$network" --read-only --tmpfs /tmp \
+  --cap-drop ALL --security-opt no-new-privileges \
+  --memory 1g --cpus 1 --pids-limit 256 --user "$user" \
+  -e HOME=/tmp -e SKILLSPECTOR_MAX_WORKFLOW_SECONDS -e SKILLSPECTOR_LOG_LEVEL -e LANGCHAIN_TRACING_V2 \
+  -e SKILLSPECTOR_PROVIDER -e SKILLSPECTOR_MODEL -e SKILLSPECTOR_REASONING_EFFORT \
+  -e OPENAI_API_KEY -e OPENAI_BASE_URL -e ANTHROPIC_API_KEY -e NVIDIA_INFERENCE_KEY \
+  -e AZURE_OPENAI_API_KEY -e AZURE_OPENAI_ENDPOINT -e AZURE_OPENAI_DEPLOYMENT -e AZURE_OPENAI_API_VERSION \
+  -e SKILLSPECTOR_COMPAT_API_KEY -e SKILLSPECTOR_COMPAT_BASE_URL -e OLLAMA_BASE_URL \
+  -v "$dir:/scan/skill:ro" "$IMAGE" scan /scan/skill "$@" &
+wait $!

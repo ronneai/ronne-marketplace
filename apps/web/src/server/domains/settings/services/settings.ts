@@ -5,10 +5,14 @@ import {
   InvalidNoticeError,
   InvalidPasswordSignInPolicyError,
   InvalidRetentionError,
+  InvalidSkillScanAnalysisError,
+  InvalidSkillScanTypesError,
   InvalidTwoFactorPolicyError,
   InvalidUsageMinimumError,
   InvalidUsagePolicyError,
   NoUsableProviderError,
+  SkillScanNoProviderError,
+  SkillScanNotConfiguredError,
 } from "../exceptions/errors";
 import {
   DEFAULT_NOTICE,
@@ -33,6 +37,19 @@ import {
   type RetentionPolicy,
   retentionDaysFrom,
 } from "../models/retention-policy";
+import {
+  isSkillScanAnalysis,
+  SKILL_SCAN_ANALYSIS_KEY,
+  SKILL_SCAN_ENABLED_KEY,
+  SKILL_SCAN_LAST_ERROR_KEY,
+  SKILL_SCAN_LAST_VERSION_KEY,
+  SKILL_SCAN_TYPES_KEY,
+  type SkillScanner,
+  type SkillScanPolicy,
+  type SkillScanSettings,
+  skillScanPolicyFrom,
+  skillScanTypesFrom,
+} from "../models/skill-scan-policy";
 import {
   DEFAULT_TWO_FACTOR_POLICY,
   isTwoFactorPolicy,
@@ -69,6 +86,20 @@ export const usagePolicy = async (deps: SettingsDeps): Promise<UsagePolicy> => {
 export const usageMinimum = async (deps: SettingsDeps): Promise<number> => {
   const stored = await deps.repo.get(USAGE_MINIMUM_KEY);
   return (stored && usageMinimumFrom(stored.value)) ?? DEFAULT_USAGE_MINIMUM;
+};
+
+/** The security scan's policy (135): off, skills, static until root sets it. Read on every use. */
+export const skillScanPolicy = async (deps: SettingsDeps): Promise<SkillScanPolicy> => {
+  const [enabled, types, analysis] = await Promise.all(
+    [SKILL_SCAN_ENABLED_KEY, SKILL_SCAN_TYPES_KEY, SKILL_SCAN_ANALYSIS_KEY].map((key) =>
+      deps.repo.get(key),
+    ),
+  );
+  return skillScanPolicyFrom({
+    enabled: enabled?.value ?? null,
+    types: types?.value ?? null,
+    analysis: analysis?.value ?? null,
+  });
 };
 
 /** Who must use two-factor sign-in (105); `optional` until root sets it. Read on every request. */
@@ -353,6 +384,87 @@ export const setNotice = async (
           to: { tone: to.tone, shown: to.shown },
           revision,
         },
+        ipAddress: actor.ip,
+      },
+      at,
+    );
+    return { changed: true };
+  });
+};
+
+/**
+ * Admin › Settings › Security scan (135): root's policy, what the operator set up (`scanner`: a
+ * command or not, and the provider's name, model and host, never a key), and what the scanner said
+ * last.
+ */
+export const skillScanSettings = async (
+  deps: SettingsDeps,
+  actor: SettingsActor,
+  scanner: SkillScanner,
+): Promise<SkillScanSettings> => {
+  requirePermission(actor.user, "settings.manage");
+  const [policy, version, error] = await Promise.all([
+    skillScanPolicy(deps),
+    deps.repo.get(SKILL_SCAN_LAST_VERSION_KEY),
+    deps.repo.get(SKILL_SCAN_LAST_ERROR_KEY),
+  ]);
+  return {
+    policy,
+    scanner,
+    lastVersion: version?.value || null,
+    lastError: error?.value || null,
+    // Semantic chosen while the provider is gone: scans run static, and the page says so.
+    runsStatic: policy.analysis === "semantic" && scanner.provider === null,
+  };
+};
+
+/**
+ * Root sets the security scan (135): on or off, the item types, static or semantic. Turning it on
+ * needs the operator's command; choosing semantic needs the operator's provider. Audited as
+ * `settings.skill_scan` with the old and new policy.
+ */
+export const setSkillScanPolicy = async (
+  deps: SettingsDeps,
+  actor: SettingsActor,
+  value: { enabled: unknown; types: unknown; analysis: unknown },
+  scanner: SkillScanner,
+): Promise<{ changed: boolean }> => {
+  requirePermission(actor.user, "settings.manage");
+  const enabled = value.enabled === true || value.enabled === "on" || value.enabled === "true";
+  const types =
+    Array.isArray(value.types) && value.types.every((type) => typeof type === "string")
+      ? skillScanTypesFrom(value.types)
+      : null;
+  if (!types) throw new InvalidSkillScanTypesError();
+  if (!isSkillScanAnalysis(value.analysis)) throw new InvalidSkillScanAnalysisError();
+  const analysis = value.analysis;
+  const to: SkillScanPolicy = { enabled, types, analysis };
+  const at = now(deps);
+  return deps.repo.transaction(async (repo) => {
+    const from = await skillScanPolicy({ repo });
+    // Turning scanning on needs the command. Keeping it on once the command went is allowed, so
+    // root can still change the types (the waiting scans fail `not configured` meanwhile).
+    if (enabled && !scanner.configured && !from.enabled) throw new SkillScanNotConfiguredError();
+    // Choosing semantic needs a provider. Keeping it once the provider went is allowed, so root
+    // can still turn scanning off or change the types (scans run static meanwhile).
+    if (analysis === "semantic" && !scanner.provider && from.analysis !== "semantic")
+      throw new SkillScanNoProviderError();
+    if (
+      from.enabled === to.enabled &&
+      from.analysis === to.analysis &&
+      from.types.join(",") === to.types.join(",")
+    )
+      return { changed: false };
+    const by = actor.user?.id ?? null;
+    await repo.set(SKILL_SCAN_ENABLED_KEY, String(to.enabled), by, at);
+    await repo.set(SKILL_SCAN_TYPES_KEY, to.types.join(","), by, at);
+    await repo.set(SKILL_SCAN_ANALYSIS_KEY, to.analysis, by, at);
+    await repo.recordAudit(
+      {
+        actorId: by,
+        action: "settings.skill_scan",
+        target: { type: "instance" },
+        metadata: { from, to },
         ipAddress: actor.ip,
       },
       at,

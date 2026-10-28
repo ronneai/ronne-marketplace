@@ -612,6 +612,13 @@
           "locked": "locked for 15 minutes",
           "refused": "the account can’t sign in",
           "unreadable": "the secret can’t be read"
+        },
+        "skillScan": {
+          "on": "turned on",
+          "off": "turned off",
+          "types": "types {from} to {to}",
+          "analysis": "analysis {from, select, semantic {static and semantic} other {static}} to {to, select, semantic {static and semantic} other {static}}",
+          "nothing": "nothing"
         }
       },
       "actions": {
@@ -736,7 +743,8 @@
           "usage_policy": "Changed the usage policy from {from} to {to}",
           "usage_minimum": "Changed the usage minimum from {from} to {to}",
           "retention": "Changed the retention: {changes}",
-          "notice": "Changed the instance notice: {changes}"
+          "notice": "Changed the instance notice: {changes}",
+          "skill_scan": "Changed the security scan: {changes}"
         }
       }
     }
@@ -752,7 +760,8 @@
       "feeds": "Plugin feeds",
       "authentication": "Authentication",
       "privacy": "Privacy",
-      "notice": "Notice"
+      "notice": "Notice",
+      "scan": "Security scan"
     },
     "methods": {
       "title": "Sign-in methods",
@@ -1044,6 +1053,43 @@
         "started": "Started <date></date>",
         "retry": "Retry"
       }
+    },
+    "scan": {
+      "title": "Security scan",
+      "intro": "NVIDIA's SkillSpector scans each submission the moment it's sent, and its findings show on the review page beside the risk flags. It's a second opinion for reviewers: it never blocks a submission, an approval or a release.",
+      "scanner": {
+        "configured": "The scanner is set up on this server.",
+        "lastVersion": "The last scan that finished used SkillSpector {version}.",
+        "missing": {
+          "title": "No scanner is set up on this server",
+          "body": "The server's operator installs SkillSpector and names its command in RONNE_SKILL_SCANNER (in the environment or the settings file), then restarts Ronne. Only then can scanning be turned on here."
+        },
+        "lastError": "The last scan didn't finish: {reason, select, timeout {it ran past the timeout} not_found {the scanner's command wasn't found} not_runnable {the scanner's command can't be run} not_configured {no scanner command is set} output_too_large {it wrote too much output} invalid_report {its report couldn't be read} signal {it was stopped by a signal} no_temporary_folder {its temporary folder couldn't be made} bad_file_path {a file path in the submission was refused} write_failed {its files couldn't be written} exit {it exited with code {code}} other {{error}}}"
+      },
+      "enabled": {
+        "label": "Scan submissions",
+        "hint": "Each revision of the types below is scanned when it's sent for review."
+      },
+      "types": {
+        "title": "Item types to scan",
+        "hint": "SkillSpector reads Markdown, scripts and MCP settings. Skills are where it finds the most."
+      },
+      "analysis": {
+        "title": "Analysis",
+        "static": {
+          "label": "Static",
+          "hint": "Pattern and code checks on this server. Item content doesn't leave it."
+        },
+        "semantic": {
+          "label": "Static and semantic",
+          "hint": "Also asks an LLM whether a skill does what it says. Needs a provider the server's operator sets up.",
+          "sends": "Also asks an LLM whether a skill does what it says. Each submission's files are sent to {provider} at {host} ({model}).",
+          "sendsNoModel": "Also asks an LLM whether a skill does what it says. Each submission's files are sent to {provider} at {host}."
+        },
+        "warning": "From now on, each scanned submission's files are sent to {provider} at {host}. Save to confirm.",
+        "runsStatic": "Semantic analysis is chosen, but no provider is set up on the server any more: scans run static."
+      },
+      "save": "Save"
     }
   },
   "setup": {
@@ -1195,7 +1241,8 @@
       "password": "Password sign-in saved.",
       "nothing": "Nothing changed.",
       "erasuresNone": "Nothing was left to finish.",
-      "erasures": "{count, plural, one {Finished # erasure.} other {Finished # erasures.}}"
+      "erasures": "{count, plural, one {Finished # erasure.} other {Finished # erasures.}}",
+      "scan": "Security scan saved."
     }
   }
 }

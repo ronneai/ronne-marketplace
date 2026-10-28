@@ -1,0 +1,4 @@
+name: "@demo/tidy-imports"
+type: skill
+version: 0.1.0
+description: Sorts and tidies import statements in the current project.

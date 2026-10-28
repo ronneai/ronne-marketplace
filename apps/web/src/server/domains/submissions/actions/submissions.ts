@@ -3,6 +3,7 @@ import type { Authenticated } from "../../identity/actions/access-tokens";
 import { getCurrentUser } from "../../identity/actions/session";
 import { clientIp } from "../../identity/models/client-ip";
 import { type AppAuth, getAppAuth } from "../../identity/repositories/auth-instance";
+import { sendingWithScans } from "../../scans/actions/scans";
 import { viewerOf } from "../../workspaces/actions/viewer";
 import type { Viewer } from "../../workspaces/models/viewer";
 import type { Submission } from "../models/submission";
@@ -64,7 +65,12 @@ export const submitDraft = async (
   id: string,
   app: AppAuth = getAppAuth(),
   storage?: StorageAdapter,
-) => service.submitDraft(...(await bound(headers, app, storage)), id);
+) => {
+  const [base, actor] = await bound(headers, app, storage);
+  return sendingWithScans(app, (scanTypes) =>
+    service.submitDraft({ ...base, scanTypes }, actor, id),
+  );
+};
 
 /** Archives it (the default) or deletes it for good (057). */
 export const withdrawSubmission = async (
@@ -117,7 +123,12 @@ export const submitManyDrafts = async (
   selection: bulk.BulkSelection,
   app: AppAuth = getAppAuth(),
   storage?: StorageAdapter,
-) => bulk.submitMany(...(await bound(headers, app, storage)), selection);
+) => {
+  const [base, actor] = await bound(headers, app, storage);
+  return sendingWithScans(app, (scanTypes) =>
+    bulk.submitMany({ ...base, scanTypes }, actor, selection),
+  );
+};
 
 /** The token's user and address, for 052's API; the audit names the token. */
 const tokenActor = (
@@ -152,8 +163,10 @@ export const submitManyDraftsAs = async (
   app: AppAuth = getAppAuth(),
   storage?: StorageAdapter,
 ) =>
-  bulk.submitMany(
-    deps(app, await viewerOf(auth.user, app), storage),
-    tokenActor(auth, headers, app),
-    selection,
+  sendingWithScans(app, async (scanTypes) =>
+    bulk.submitMany(
+      { ...deps(app, await viewerOf(auth.user, app), storage), scanTypes },
+      tokenActor(auth, headers, app),
+      selection,
+    ),
   );

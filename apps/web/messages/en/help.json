@@ -322,5 +322,13 @@
   "audit-actor": {
     "question": "Who can I search for?",
     "answer": "Part of an email, in any case. system finds events with no one signed in, such as the setup and the command line."
+  },
+  "security-scan": {
+    "question": "What is this scan?",
+    "answer": "NVIDIA’s SkillSpector checked this revision when it was sent: hidden instructions, reading keys or credentials, sending data away, obfuscated code, scripts fetched and run. It’s a second opinion, not a decision: it can miss problems and flag safe code, and it never blocks an approval."
+  },
+  "scan-settings": {
+    "question": "How do I set up the scanner?",
+    "answer": "The server’s operator installs SkillSpector at a pinned version and names its command in RONNE_SKILL_SCANNER (a JSON array, in the environment or the settings file), then restarts Ronne. For semantic analysis they also set up an LLM provider with RONNE_SKILL_SCANNER_ENV_ variables. Neither can be set here."
   }
 }

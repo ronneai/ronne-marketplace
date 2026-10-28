@@ -358,3 +358,14 @@ use what it taught. From 129 on every new screen is written with messages.
 | [131](./131-languages-author/SPEC.md) | Languages: author and review. Draft editor, composer, submissions, reviews, versions, releases and their error messages | 129, 130 | done |
 | [132](./132-languages-admin/SPEC.md) | Languages: admin and setup. Admin pages, settings tabs, audit log labels, the setup wizard, SSO and SCIM screens; an instance default language if wanted | 129 | done (the Documentation in ronne-web `feat/132-languages-admin`; the instance default language was not built) |
 | [133](./133-languages-signoff/SPEC.md) | Languages: sign-off. The raw-text scan covers the whole app, a language review of Portuguese and French (by agents, owner 2026-10-27) (with 131's follow-up: « revue » and "proposta de mudança" on the website), the phone sweep in each language, Documentation links checked | 130, 131, 132 | done (reviewed by agents; the Documentation in ronne-web `feat/133-languages-signoff`) |
+
+### M20 — Security scan
+
+Moderators get a second opinion on what an item says and does (owner, 2026-10-28): NVIDIA's
+SkillSpector, installed by the operator, scans each submission revision, statically by default and
+with semantic (LLM) analysis when the operator sets up a provider and root chooses it, and its
+findings show on the review page. Advisory: it never blocks a submit, an approval or a release.
+
+| ID | Feature | Depends on | Status |
+|---|---|---|---|
+| [135](./135-skill-scanner/SPEC.md) | Security scan of submissions: the operator installs SkillSpector at a pinned version (`RONNE_SKILL_SCANNER`), root turns it on and picks the item types; each revision is scanned statically (`--no-llm`) by default, or with semantic analysis when the operator sets up a provider (`RONNE_SKILL_SCANNER_ENV_*`) and root chooses it, in a private folder with a short environment allowlist and a timeout; a Security scan panel on the review page | 013, 014, 015, 060, 129 | done (the Documentation in ronne-web `feat/135-skill-scanner`) |

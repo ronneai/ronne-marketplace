@@ -140,5 +140,9 @@
   "InvalidScopeDescriptionError": "A scope's description needs 1 to 300 characters.",
   "ScopeNameTakenError": "The scope @{scopeName} already exists.",
   "ScopeWorkspaceNotFoundError": "That workspace doesn't exist.",
-  "ScopeNotFoundError": "That scope doesn't exist."
+  "ScopeNotFoundError": "That scope doesn't exist.",
+  "SkillScanNotConfiguredError": "Set RONNE_SKILL_SCANNER on the server (the scanner's command, as a JSON array) and restart Ronne first.",
+  "SkillScanNoProviderError": "Set up an LLM provider on the server first (RONNE_SKILL_SCANNER_ENV_SKILLSPECTOR_PROVIDER and its variables), then restart Ronne.",
+  "InvalidSkillScanTypesError": "Pick at least one item type to scan.",
+  "InvalidSkillScanAnalysisError": "Choose static, or static and semantic."
 }

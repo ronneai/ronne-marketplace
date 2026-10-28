@@ -28,6 +28,15 @@ export type AppConfig = {
   otel?: Record<string, string>;
   /** RONNE_JOBS as given (102): `off` turns the in-process scheduler off; server/jobs reads it. */
   jobs?: string;
+  /**
+   * The security scan (135): RONNE_SKILL_SCANNER and RONNE_SKILL_SCANNER_TIMEOUT as given, and every
+   * RONNE_SKILL_SCANNER_ENV_* setting (the environment's over the file's). domains/scans reads them.
+   */
+  skillScanner?: {
+    command?: string;
+    timeout?: string;
+    env: Record<string, string>;
+  };
 };
 
 /**
@@ -43,6 +52,15 @@ export const loadConfig = (options: { appDir?: string; env?: Env } = {}): AppCon
     ? parseEnv(readFileSync(/*turbopackIgnore: true*/ envFile, "utf8"))
     : {};
   const value = (key: string) => env[key] || file[key] || undefined;
+  const withPrefix = (prefix: string): Record<string, string> =>
+    Object.fromEntries(
+      [...new Set([...Object.keys(file), ...Object.keys(env)])]
+        .filter((key) => key.startsWith(prefix))
+        .flatMap((key) => {
+          const set = value(key);
+          return set ? [[key, set]] : [];
+        }),
+    );
 
   return {
     envFile,
@@ -54,14 +72,12 @@ export const loadConfig = (options: { appDir?: string; env?: Env } = {}): AppCon
     logLevel: value("LOG_LEVEL"),
     logFormat: value("LOG_FORMAT"),
     jobs: value("RONNE_JOBS"),
-    otel: Object.fromEntries(
-      [...new Set([...Object.keys(file), ...Object.keys(env)])]
-        .filter((key) => key.startsWith("OTEL_"))
-        .flatMap((key) => {
-          const set = value(key);
-          return set ? [[key, set]] : [];
-        }),
-    ),
+    otel: withPrefix("OTEL_"),
+    skillScanner: {
+      command: value("RONNE_SKILL_SCANNER"),
+      timeout: value("RONNE_SKILL_SCANNER_TIMEOUT"),
+      env: withPrefix("RONNE_SKILL_SCANNER_ENV_"),
+    },
   };
 };
 

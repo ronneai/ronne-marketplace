@@ -50,6 +50,11 @@ export type SubmissionDeps = {
   storage?: StorageAdapter;
   now?: () => Date;
   limits?: PackageLimits;
+  /**
+   * The item types a sent revision is queued for the security scan of (135): root's types when
+   * scanning is on and a scanner command is set, else none. Read once, before the transaction.
+   */
+  scanTypes?: readonly string[];
 };
 export type SubmissionActor = {
   user: CurrentUser | null;
@@ -261,8 +266,12 @@ export const checkSubmitGroup = async (
 const groupCheck = (deps: SubmissionDeps, repo: SubmissionRepository, submission: Submission) =>
   allIssues(deps, repo, submission);
 
-/** One member sent for review: its status, a revision, the event and the audit record. */
+/**
+ * One member sent for review: its status, a revision, the event and the audit record, and the
+ * revision queued for the security scan when its type is scanned (135).
+ */
 const send = async (
+  deps: SubmissionDeps,
   repo: SubmissionRepository,
   actor: SubmissionActor,
   submission: Submission,
@@ -274,6 +283,7 @@ const send = async (
   const submittedAt = submission.submittedAt ?? at;
   await repo.setStatus(submission.id, status, { updatedAt: at, submittedAt });
   const revision = await repo.createRevision(submission.id, actor.user?.id ?? "", files, at);
+  if (deps.scanTypes?.includes(submission.type)) await repo.queueScan(revision.id, at);
   await repo.addEvent({
     submissionId: submission.id,
     actorId: actor.user?.id ?? "",
@@ -386,7 +396,10 @@ export const sendGroup = async (
   const sent: SentMember[] = [];
   for (const member of checked.members)
     if (member.result === "ready")
-      sent.push({ ...(await send(repo, actor, member.submission, at)), issues: member.issues });
+      sent.push({
+        ...(await send(deps, repo, actor, member.submission, at)),
+        issues: member.issues,
+      });
   return { ok: true, sent };
 };
 

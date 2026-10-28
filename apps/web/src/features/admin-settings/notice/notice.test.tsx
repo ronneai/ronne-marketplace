@@ -60,7 +60,7 @@ beforeEach(() => {
 });
 
 describe("The Notice tab (124)", () => {
-  it("is the last tab of Settings, selected by ?tab=notice, with the form and no other panel", async () => {
+  it("is a tab of Settings, selected by ?tab=notice, with the form and no other panel", async () => {
     const page = await AdminSettingsPage({ searchParams: Promise.resolve({ tab: "notice" }) });
     const html = renderToStaticMarkup(page);
     expect(html).toMatch(/aria-current="page"[^>]*>Notice</);

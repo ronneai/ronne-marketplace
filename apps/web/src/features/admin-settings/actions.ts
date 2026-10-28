@@ -8,6 +8,7 @@ import { IdentityError } from "@/server/domains/identity/exceptions/errors";
 import {
   setPasswordSignInPolicy,
   setRetention,
+  setSkillScanPolicy,
   setTwoFactorPolicy,
   setUsageMinimum,
   setUsagePolicy,
@@ -118,6 +119,26 @@ export const retryErasures = serverAction(
       return { done: finished === 0 ? t("erasuresNone") : t("erasures", { count: finished }) };
     } catch (error) {
       if (error instanceof IdentityError) return { error: await errorText(error) };
+      throw error;
+    }
+  },
+);
+
+/** Saves the security scan's policy (135), turning domain errors into the form's `ERR:` line. */
+export const saveSkillScanPolicy = serverAction(
+  async (_previous: SettingsActionState, form: FormData): Promise<SettingsActionState> => {
+    try {
+      const { changed } = await setSkillScanPolicy(await requestHeaders(), {
+        enabled: form.get("enabled"),
+        types: form.getAll("types"),
+        analysis: form.get("analysis"),
+      });
+      revalidatePath("/admin/settings");
+      const t = await getTranslations("admin.done.settings");
+      return { done: changed ? t("scan") : t("nothing") };
+    } catch (error) {
+      if (error instanceof SettingsError || error instanceof IdentityError)
+        return { error: await errorText(error) };
       throw error;
     }
   },

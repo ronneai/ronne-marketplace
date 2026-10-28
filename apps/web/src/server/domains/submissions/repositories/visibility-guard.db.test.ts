@@ -219,6 +219,7 @@ const SUBMISSION_WRITES: Partial<Record<keyof SubmissionRepository, string>> = {
   setProposalBase: "a write",
   setConflicts: "a write",
   createRevision: "a write",
+  queueScan: "a write",
   addEvent: "a write",
   writeFile: "a write",
   deleteFile: "a write",

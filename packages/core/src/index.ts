@@ -69,6 +69,18 @@ export {
 export { type RiskFlag, type RiskFlagKind, riskFlags } from "./risk-flags.js";
 export { manifestSchema } from "./schema/index.js";
 export {
+  parseSkillScan,
+  SKILL_SCAN_MAX_FINDINGS,
+  SKILL_SCAN_MAX_TEXT,
+  SKILL_SCAN_RECOMMENDATIONS,
+  SKILL_SCAN_SEVERITIES,
+  type SkillScanFinding,
+  type SkillScanParse,
+  type SkillScanRecommendation,
+  type SkillScanResult,
+  type SkillScanSeverity,
+} from "./skill-scan/parse-skill-scan.js";
+export {
   type Bump,
   bothRanges,
   compareNewestFirst,

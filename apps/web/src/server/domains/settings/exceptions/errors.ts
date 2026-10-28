@@ -85,3 +85,37 @@ export class InvalidNoticeError extends SettingsError {
     super(NOTICE_WORDS[problem]);
   }
 }
+
+/** Scanning can't be turned on without the scanner's command, which only the operator sets (135). */
+export class SkillScanNotConfiguredError extends SettingsError {
+  override readonly name: string = "SkillScanNotConfiguredError";
+  constructor() {
+    super(
+      "Set RONNE_SKILL_SCANNER on the server (the scanner's command, as a JSON array) and restart Ronne first.",
+    );
+  }
+}
+
+/** Semantic analysis needs a provider the operator set up (135). */
+export class SkillScanNoProviderError extends SettingsError {
+  override readonly name: string = "SkillScanNoProviderError";
+  constructor() {
+    super(
+      "Set up an LLM provider on the server first (RONNE_SKILL_SCANNER_ENV_SKILLSPECTOR_PROVIDER and its variables), then restart Ronne.",
+    );
+  }
+}
+
+export class InvalidSkillScanTypesError extends SettingsError {
+  override readonly name: string = "InvalidSkillScanTypesError";
+  constructor() {
+    super("Pick at least one item type to scan.");
+  }
+}
+
+export class InvalidSkillScanAnalysisError extends SettingsError {
+  override readonly name: string = "InvalidSkillScanAnalysisError";
+  constructor() {
+    super("Choose static, or static and semantic.");
+  }
+}

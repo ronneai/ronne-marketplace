@@ -782,5 +782,36 @@
     "goes_with": "Ela vai junto com {name}, que não pode ir: {why}",
     "together": "{why} (lançamento conjunto com {names}: nenhuma foi lançada.)",
     "store_failed": "Não foi possível armazená-la ou registrá-la: {detail}"
+  },
+  "scan": {
+    "heading": "Verificação de segurança",
+    "none": "Esta revisão não foi verificada.",
+    "now": "Verificar agora",
+    "again": "Verificar de novo",
+    "refused": "Não é possível verificar agora: é preciso um comando de verificador, e a última verificação tem de ter falhado.",
+    "pending": "Verificando… este painel se atualiza sozinho.",
+    "failed": "A verificação não terminou: {reason, select, timeout {passou do tempo limite} not_found {o comando do verificador não foi encontrado} not_runnable {o comando do verificador não pode ser executado} not_configured {nenhum comando de verificador está definido} output_too_large {produziu saída demais} invalid_report {o relatório não pôde ser lido} signal {foi interrompida por um sinal} no_temporary_folder {a pasta temporária não pôde ser criada} bad_file_path {um caminho de arquivo da submissão foi recusado} write_failed {os arquivos não puderam ser gravados} exit {terminou com o código {code}} other {{error}}}",
+    "severity": {
+      "CRITICAL": "Crítica",
+      "HIGH": "Alta",
+      "MEDIUM": "Média",
+      "LOW": "Baixa"
+    },
+    "score": "pontuação {score, number} de 100",
+    "recommendation": {
+      "SAFE": "Parece seguro",
+      "CAUTION": "Olhe com atenção",
+      "DO_NOT_INSTALL": "Provavelmente inseguro"
+    },
+    "clean": "Nada encontrado.",
+    "rule": "{rule} · {category}",
+    "omitted": "{count, plural, one {Mais # resultado não é mostrado.} other {Mais # resultados não são mostrados.}}",
+    "incomplete": "Alguns arquivos não foram verificados por inteiro (grandes demais, ou a verificação ficou sem tempo).",
+    "by": {
+      "static": "Verificação estática pelo SkillSpector {version}.",
+      "semantic": "Verificação estática e semântica pelo SkillSpector {version}, com {provider} {model}.",
+      "llmUnavailable": "Verificação estática pelo SkillSpector {version}: a análise semântica não rodou, porque o provedor não estava disponível."
+    },
+    "advisory": "É só uma indicação: pode deixar passar problemas e apontar código seguro."
   }
 }
