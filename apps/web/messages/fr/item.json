@@ -34,7 +34,8 @@
     "files": "Fichiers",
     "tools": "Fonctionne dans",
     "risks": "Ce qu’il peut faire",
-    "risksCount": "Ce qu’il peut faire ({count})"
+    "risksCount": "Ce qu’il peut faire ({count})",
+    "history": "Historique"
   },
   "readme": {
     "none": "Cette version n’a pas de README."
@@ -111,6 +112,19 @@
       "cancelMove": "Annuler le déplacement vers {scope}",
       "cancelled": "Déplacement annulé."
     },
+    "formerUser": "un ancien utilisateur"
+  },
+  "history": {
+    "title": "Noms",
+    "now": "Son nom maintenant : <mono>{name}</mono>",
+    "none": "Il porte ce nom depuis sa première publication.",
+    "from": "<mono>{from}</mono> → <mono>{to}</mono>",
+    "hidden": "un nom dans un espace de travail que vous ne voyez pas",
+    "reason": "{reason, select, move_item {Déplacé vers une autre portée} move_scope {Sa portée a été déplacée vers un autre espace de travail} rename_workspace {Son espace de travail a été renommé} other {L’espace de travail a été ajouté aux noms des éléments}}",
+    "by": "par {name}",
+    "askedApproved": "demandé par {asked}, approuvé par {approved}",
+    "askedBy": "demandé par {name}",
+    "approvedBy": "approuvé par {name}",
     "formerUser": "un ancien utilisateur"
   },
   "overview": {

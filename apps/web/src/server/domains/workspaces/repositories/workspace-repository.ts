@@ -428,7 +428,27 @@ export interface WorkspaceRepository {
     workspaceIds: "all" | readonly string[],
     limit: number,
   ): Promise<(ItemMove & { workspaceId: string; requester: { email: string; name: string } })[]>;
+  /**
+   * The item's name changes, newest first (134): the names, why, who asked and who approved (by
+   * display name, null when unknown or gone), and for a scope's move the workspace it came from.
+   */
+  itemNameHistory(itemId: string): Promise<NameHistoryRow[]>;
 }
+
+/** One change of an item's name as its History tab reads it (134). */
+export type NameHistoryRow = {
+  id: string;
+  oldName: string;
+  newName: string;
+  reason: "move_item" | "move_scope" | "rename_workspace" | "migration";
+  requestedBy: string | null;
+  decidedBy: string | null;
+  requestedByName: string | null;
+  decidedByName: string | null;
+  /** A scope's move (115): the workspace it left, while that workspace exists. */
+  fromWorkspaceId: string | null;
+  createdAt: Date;
+};
 
 /** An item as moving it to another scope reads it (134). */
 export type ItemForMove = {

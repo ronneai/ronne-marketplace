@@ -34,7 +34,8 @@
     "files": "Files",
     "tools": "Works in",
     "risks": "What it can do",
-    "risksCount": "What it can do ({count})"
+    "risksCount": "What it can do ({count})",
+    "history": "History"
   },
   "readme": {
     "none": "This version has no README."
@@ -111,6 +112,19 @@
       "cancelMove": "Cancel the move to {scope}",
       "cancelled": "Move cancelled."
     },
+    "formerUser": "a former user"
+  },
+  "history": {
+    "title": "Names",
+    "now": "Its name now: <mono>{name}</mono>",
+    "none": "It has had this name since it was first released.",
+    "from": "<mono>{from}</mono> → <mono>{to}</mono>",
+    "hidden": "a name in a workspace you can’t see",
+    "reason": "{reason, select, move_item {Moved to another scope} move_scope {Its scope moved to another workspace} rename_workspace {Its workspace was renamed} other {The workspace was added to item names}}",
+    "by": "by {name}",
+    "askedApproved": "asked by {asked}, approved by {approved}",
+    "askedBy": "asked by {name}",
+    "approvedBy": "approved by {name}",
     "formerUser": "a former user"
   },
   "overview": {

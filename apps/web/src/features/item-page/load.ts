@@ -15,7 +15,7 @@ import { favoritedAmong } from "@/server/domains/shelves/actions/favorites";
 import { pinTargets } from "@/server/domains/shelves/actions/pins";
 import { shelfKey } from "@/server/domains/shelves/models/shelf";
 import { itemUsage, itemUsageByVersion } from "@/server/domains/usage/actions/usage";
-import { itemMoveView } from "@/server/domains/workspaces/actions/workspaces";
+import { itemHistory, itemMoveView } from "@/server/domains/workspaces/actions/workspaces";
 import { requestHeaders } from "@/server/http/request-headers";
 
 export type ItemParams = Promise<{ workspace?: string; scope: string; name: string }>;
@@ -114,4 +114,11 @@ export const pluginCommandOf = (
   if (!publicUrl || !page.installable || shown.version !== page.listed || shown.yankedAt)
     return null;
   return inClaudeCodeFeed(item, shown.manifest) ? pluginInstallCommand(item, publicUrl) : null;
+};
+
+/** The History tab's names (134): every name the item has had, as the reader may see them. */
+export const loadHistory = async (itemId: string) => {
+  const history = await itemHistory(await requestHeaders(), itemId);
+  if (!history) notFound();
+  return history;
 };

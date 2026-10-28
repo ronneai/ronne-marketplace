@@ -50,6 +50,9 @@ export const HELP = {
   "item-move-approve": {
     href: docsHref("scopes", "moving-items"),
   },
+  "item-history": {
+    href: docsHref("items", "history"),
+  },
   "personal-workspace": {
     href: docsHref("workspaces", "personal"),
   },

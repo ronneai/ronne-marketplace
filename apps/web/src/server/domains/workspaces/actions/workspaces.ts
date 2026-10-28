@@ -247,6 +247,10 @@ export const itemMovesToAnswer = async (
 export const countItemMovesToAnswer = async (headers: Headers, app: AppAuth = getAppAuth()) =>
   itemMoves.countItemMovesToAnswer(deps(app), await actor(headers, app));
 
+/** The item page's History tab (134): every name the item has had, as the reader may see them. */
+export const itemHistory = async (headers: Headers, itemId: string, app: AppAuth = getAppAuth()) =>
+  itemMoves.itemHistory(deps(app).repo, await actor(headers, app), itemId);
+
 /** Moves an item to another scope of its workspace, or asks to (134). */
 export const askItemMove = async (
   headers: Headers,

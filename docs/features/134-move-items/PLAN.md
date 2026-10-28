@@ -57,7 +57,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* db and component tests cover who sees which rows and each answer; the phone sweep
   passes.
 
-- [ ] **8. History tab.** `?tab=history` on the item page: the current name, each change newest
+- [x] **8. History tab.** `?tab=history` on the item page: the current name, each change newest
   first with its reason, date and people; earlier names in a workspace the viewer can't see shown
   as "a workspace you can't see". Messages in en, pt and fr; the "Why did the name change?"
   helper.

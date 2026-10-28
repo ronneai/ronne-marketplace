@@ -18,7 +18,10 @@ vi.mock("@/server/domains/items/actions/catalogue", () => catalogue);
 vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));
 const shelves = vi.hoisted(() => ({ favoritedAmong: vi.fn() }));
 vi.mock("@/server/domains/shelves/actions/pins", () => ({ pinTargets: async () => [] }));
-const moves = vi.hoisted(() => ({ itemMoveView: vi.fn(async () => null as unknown) }));
+const moves = vi.hoisted(() => ({
+  itemMoveView: vi.fn(async () => null as unknown),
+  itemHistory: vi.fn(async () => null as unknown),
+}));
 vi.mock("@/server/domains/workspaces/actions/workspaces", () => moves);
 vi.mock("@/features/item-move/actions", () => ({}));
 vi.mock("@/server/domains/shelves/actions/favorites", () => shelves);
@@ -129,6 +132,32 @@ describe("Move to another scope… on the item page (134)", () => {
       latest: null,
     });
     expect(await render()).not.toContain("Move to another scope…");
+  });
+});
+
+describe("the History tab (134)", () => {
+  it("shows the item's names on ?tab=history, and is a 404 when the reader doesn't see it", async () => {
+    moves.itemHistory.mockResolvedValue({
+      current: "@team/github",
+      entries: [
+        {
+          id: "h1",
+          at: new Date("2026-10-27T10:00:00Z"),
+          reason: "move_item",
+          from: "@tools/github",
+          to: "@team/github",
+          askedBy: "Ana",
+          approvedBy: "Mo",
+          direct: false,
+        },
+      ],
+    });
+    const html = await render({ tab: "history" });
+    expect(html).toContain(">History<");
+    expect(html).toContain("Moved to another scope");
+    expect(html).toContain("@tools/github");
+    moves.itemHistory.mockResolvedValue(null);
+    await expect(render({ tab: "history" })).rejects.toThrow();
   });
 });
 

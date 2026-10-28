@@ -328,3 +328,34 @@ Witnessed: 2026-10-28 01:13 EDT, by a fresh agent (blind). Commit: 7456e11d + wo
 | 11 | The phone sweep passes (the only source change is the export of `DeclineItemMoveForm`) | no | confirmed | `ItemMovesTable.tsx:60` is now `export const DeclineItemMoveForm`, nothing else in the source; the first pass's 48 passed holds |
 
 **Overall:** met: the own-request filter now has a test that fails without it, and the component tests render each answer, Decline and "Already answered" included.
+
+## Task 8 — History tab
+
+Witnessed: 2026-10-28 01:27 EDT, by a fresh agent (blind). Commit: 4ce291c5 + working tree. Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `?tab=history` is a tab of the item page and renders the History tab; a 404 for a reader who doesn't see the item | no | confirmed | `tabs.ts` adds `history`; `page.tsx` renders `HistoryTab` with `loadHistory`, which calls `notFound()` on null; `vitest run item-page.test.tsx history-tab.test.tsx workspaces.test.ts` → 41 passed |
+| 2 | The current name first, then each change newest first, with reason, from → to, date and people | no | confirmed | `item-history.db.test.ts` "lists every change newest first"; ordered by `created_at desc, id desc`; 5 passed on SQLite, PostgreSQL, MySQL and MariaDB |
+| 3 | Tests cover each reason | no | confirmed | `rename_workspace`, `move_item` and `move_scope` through the real actions, `migration` from an inserted row; `history-tab.test.tsx` checks all four texts |
+| 4 | A backfilled entry without people names nobody | no | partly | The code is right (`direct: row.requestedBy !== null && …`, `item-moves.ts:773`), but dropping `row.requestedBy !== null &&` still passed 5 of 5: a null/null migration row would show "by a former user" |
+| 5 | An erased user shows as their pseudonym | no | confirmed | "names an erased person by their pseudonym" passes on all 4 dialects |
+| 6 | An earlier name in a private workspace shows as "a workspace you can't see" to an outsider, and every older name stays hidden | no | confirmed | db tests: `move_scope` has `from: null` for ana, mod and bob; bob, once in vault, sees `@vault/infra/deploy`; the earlier migration row is `[null, null]`; mutation `sees(row.fromWorkspaceId)` → `true` fails 2 tests |
+| 7 | Moving back: the History tab shows both moves | no | confirmed | Probe (`probe-history.db.test.ts`): infra → devops → infra gives both `move_item` entries and the `move_scope` → passed; no repository test for it |
+| 8 | Messages in en, pt and fr | no | confirmed | `tabs.history`, `history.*`, `help.json` `item-history` in all three; parity and help → 65 passed; pt/fr leak tests pass. Side note: `history.when`, `history.change` and `history.who` are never used |
+| 9 | The "Why did the name change?" helper links to `items#history`, and both repositories' topics match | no | confirmed | `Help.tsx`, `topics.ts`; the UI test checks the link; `pnpm docs:links` → "Compared 35 topics with the website's"; ronne-web `feat/134-move-items` has the three `history:` sections |
+| 10 | The phone sweep passes with the History tab in it | no | confirmed | `e2e/pages.ts` adds `?tab=history`; `playwright test e2e/mobile-sweep.mobile.e2e.ts --project phone --project phone-webkit --project tablet` → 45 passed |
+
+**Overall:** not met: one test gap (row 4): no test fails if a backfilled entry with nobody's name were shown as "by a former user".
+
+### Re-check (row 4)
+
+Witnessed: 2026-10-28 01:33 EDT, by a fresh agent (blind). Commit: 4ce291c5 + working tree. Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4 | A backfilled entry without people names nobody | no | confirmed | `item-history.db.test.ts:234` checks `["migration", null, null, null, null, false]` and the scope move's `direct: true`. The mutation (`direct: row.requestedBy === row.decidedBy`) → "hides every older name once a hidden workspace is crossed" fails, 1 of 6; restored, `cmp` matched |
+| 7 | Moving back: the History tab shows both moves | no | confirmed | New case at `item-history.db.test.ts:243`; 6 passed on SQLite, PostgreSQL, MySQL and MariaDB |
+| 8 | Messages in en, pt and fr | no | confirmed | the `history` keys in all 3 `item.json` (`when`, `change`, `who` gone; nothing uses them); `vitest run src/i18n/messages.parity.test.ts src/features/item-page/history-tab.test.tsx` → 55 passed |
+
+**Overall:** met: a migration row now has to be `direct: false` with nobody named, the move back is tested on all four dialects, and the unused message keys are gone.

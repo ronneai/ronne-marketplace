@@ -65,6 +65,7 @@ export const SWEEP_PAGES: readonly SweepPage[] = [
     urls: () => [
       item(E2E_SKILL),
       `${item(E2E_SKILL)}?tab=files`,
+      `${item(E2E_SKILL)}?tab=history`,
       item(E2E_RMK_ITEMS.agent),
       item(E2E_VERSIONED_ITEM),
     ],

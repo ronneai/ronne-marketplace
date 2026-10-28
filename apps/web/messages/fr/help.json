@@ -203,6 +203,10 @@
     "question": "Que fait l’approbation?",
     "answer": "Elle revérifie le nouveau nom et déplace l’élément : son ancien nom continue de fonctionner, ses versions ne changent pas, et ses brouillons et propositions ouverts prennent le nouveau nom. Si le nom est déjà pris là-bas, rien n’est déplacé et la demande reste ouverte."
   },
+  "item-history": {
+    "question": "Pourquoi le nom a-t-il changé?",
+    "answer": "Le nom d’un élément change quand il passe à une autre portée, quand sa portée passe à un autre espace de travail ou quand son espace de travail est renommé. Chaque ancien nom continue de fonctionner : il installe, sert de dépendance et ouvre cette page, et aucun autre élément ne peut le prendre."
+  },
   "visibility": {
     "question": "Public ou privé?",
     "answer": "Toute personne connectée voit les portées et les éléments d’un espace de travail public et peut en dépendre. Ceux d’un espace privé ne sont vus que par ses membres, dans n’importe quel rôle, et par root; pour tous les autres, ils n’existent pas, et seuls ses propres éléments peuvent en dépendre. Root peut le changer plus tard : rendre un espace de travail privé est refusé tant que des éléments publiés à l’extérieur dépendent de ses éléments."

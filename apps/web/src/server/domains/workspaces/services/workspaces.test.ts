@@ -122,6 +122,7 @@ const racingRepo = (): WorkspaceRepository => {
     scopesIn: async () => [],
     latestItemMoveOf: async () => null,
     pendingItemMoves: async () => [],
+    itemNameHistory: async () => [],
     lockOpenWorkIn: async () => {},
     openManifestsIn: async () => [],
     openFiles: async () => [],

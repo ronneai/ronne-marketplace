@@ -25,6 +25,7 @@ type ItemMoveMethods = Pick<
   | "scopesIn"
   | "latestItemMoveOf"
   | "pendingItemMoves"
+  | "itemNameHistory"
 >;
 
 type MoveRow = Selectable<ItemMoveTable>;
@@ -259,6 +260,43 @@ export const itemMoveMethods = (
       ...toMove(row),
       workspaceId: row.workspace_id,
       requester: { email: row.requester_email, name: row.requester_name },
+    }));
+  },
+
+  itemNameHistory: async (itemId) => {
+    const rows = await db
+      .selectFrom("item_name_history as h")
+      .leftJoin("user as asker", "asker.id", "h.requested_by")
+      .leftJoin("user as answerer", "answerer.id", "h.decided_by")
+      .leftJoin("scope_moves as sm", "sm.id", "h.source_id")
+      .select([
+        "h.id",
+        "h.old_name",
+        "h.new_name",
+        "h.reason",
+        "h.requested_by",
+        "h.decided_by",
+        "h.created_at",
+        "asker.name as asker_name",
+        "answerer.name as answerer_name",
+        "sm.from_workspace_id as from_workspace_id",
+      ])
+      .where("h.item_id", "=", itemId)
+      // Newest first; ids are ULIDs, so they break a tie in time.
+      .orderBy("h.created_at", "desc")
+      .orderBy("h.id", "desc")
+      .execute();
+    return rows.map((row) => ({
+      id: row.id,
+      oldName: row.old_name,
+      newName: row.new_name,
+      reason: row.reason,
+      requestedBy: row.requested_by,
+      decidedBy: row.decided_by,
+      requestedByName: row.asker_name ?? null,
+      decidedByName: row.answerer_name ?? null,
+      fromWorkspaceId: row.reason === "move_scope" ? (row.from_workspace_id ?? null) : null,
+      createdAt: fromDbDate(row.created_at) as Date,
     }));
   },
 });

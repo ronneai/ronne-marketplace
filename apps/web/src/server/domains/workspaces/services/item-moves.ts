@@ -22,7 +22,11 @@ import {
 } from "../models/item-move";
 import { seesWorkspace, visibleWorkspaces } from "../models/viewer";
 import type { Workspace } from "../models/workspace";
-import type { ItemForMove, WorkspaceRepository } from "../repositories/workspace-repository";
+import type {
+  ItemForMove,
+  NameHistoryRow,
+  WorkspaceRepository,
+} from "../repositories/workspace-repository";
 import type { WorkspaceActor, WorkspaceDeps } from "./workspaces";
 
 /** What a move reads: the item, its workspace, and the scope it would go to. */
@@ -706,4 +710,72 @@ export const countItemMovesToAnswer = async (
     PENDING_ITEM_MOVES_SHOWN,
   );
   return pending.filter((move) => move.requestedBy !== user.id).length;
+};
+
+/** One change of the item's name on its History tab (134). */
+export type ItemHistoryEntry = {
+  id: string;
+  at: Date;
+  reason: NameHistoryRow["reason"];
+  /** The names, or null for one in a workspace the reader can't see (093). */
+  from: string | null;
+  to: string | null;
+  /** Who asked and who approved, by display name; the same person when nobody had to answer. */
+  askedBy: string | null;
+  approvedBy: string | null;
+  /** Nobody had to answer: asked and approved by the same person. */
+  direct: boolean;
+};
+
+/**
+ * The item's History tab (134): its name now, then each change, newest first. Read back in time,
+ * the item stays in the workspace it's in now until a scope's move (115) brought it from another:
+ * a name in a workspace the reader can't see shows as hidden, never its name, so History tells
+ * nobody where a private item came from. A scope's move whose source is gone, or unknown (moves
+ * before 134), counts as hidden unless the old name's workspace is one the reader sees by name.
+ * Null for an item the reader doesn't see.
+ */
+export const itemHistory = async (
+  repo: WorkspaceRepository,
+  actor: WorkspaceActor,
+  itemId: string,
+): Promise<{ current: string; entries: ItemHistoryEntry[] } | null> => {
+  const item = await repo.itemForMove(itemId);
+  if (!item) return null;
+  const all = await repo.list();
+  const viewer = visibleWorkspaces(actor.user, all);
+  const sees = (workspaceId: string) => seesWorkspace(viewer, workspaceId);
+  const workspace = all.find((w) => w.id === item.workspaceId);
+  if (!workspace || !sees(workspace.id)) return null;
+  const byName = new Map(all.map((w) => [w.name, w]));
+  const seenByName = (name: string) => {
+    const parts = parseItemName(name);
+    const named = parts ? byName.get(parts.workspace) : undefined;
+    return named !== undefined && sees(named.id);
+  };
+  let visible = true;
+  const entries: ItemHistoryEntry[] = [];
+  for (const row of await repo.itemNameHistory(item.id)) {
+    const fromVisible: boolean =
+      row.reason !== "move_scope"
+        ? visible
+        : row.fromWorkspaceId
+          ? sees(row.fromWorkspaceId)
+          : seenByName(row.oldName);
+    entries.push({
+      id: row.id,
+      at: row.createdAt,
+      reason: row.reason,
+      from: fromVisible ? row.oldName : null,
+      to: visible ? row.newName : null,
+      askedBy: row.requestedByName,
+      approvedBy: row.decidedByName,
+      direct: row.requestedBy !== null && row.requestedBy === row.decidedBy,
+    });
+    visible = fromVisible;
+  }
+  return {
+    current: formatItemName({ workspace: workspace.name, scope: item.scopeName, name: item.name }),
+    entries,
+  };
 };
