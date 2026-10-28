@@ -5,6 +5,7 @@ import { clientIp } from "../../identity/models/client-ip";
 import { type AppAuth, getAppAuth } from "../../identity/repositories/auth-instance";
 import { scanSetupNow } from "../../scans/actions/scans";
 import { parseAllowedHosts, type Resolver } from "../../scans/models/endpoint";
+import { type Probe, providerProbe } from "../../scans/services/provider-probe";
 import type { ScanSetup } from "../../scans/services/scan-setup";
 import { systemResolver } from "../../scans/services/system-resolver";
 import type { SkillScanner } from "../models/skill-scan-policy";
@@ -55,6 +56,24 @@ export const setSkillScanSetup = async (
     authSecret: config.authSecret,
     allowedHosts: parseAllowedHosts(config.skillScanner?.httpHosts),
     resolve,
+  });
+};
+
+/** Test connection (136): one request to the provider from the form, reached, refused or not. */
+export const testSkillScanConnection = async (
+  headers: Headers,
+  value: { provider: unknown; endpoint: unknown; key: unknown },
+  app: AppAuth = getAppAuth(),
+  /** For tests: their own resolver and probe. */
+  options: { resolve?: Resolver; probe?: Probe } = {},
+) => {
+  const config = loadConfig();
+  return setup.testSkillScanConnection(deps(app), await actor(headers, app), value, {
+    shown: (await scanSetupNow(app)).shown,
+    authSecret: config.authSecret,
+    allowedHosts: parseAllowedHosts(config.skillScanner?.httpHosts),
+    resolve: options.resolve ?? systemResolver(),
+    probe: options.probe ?? providerProbe(),
   });
 };
 

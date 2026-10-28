@@ -1062,9 +1062,61 @@
         "lastVersion": "A última verificação concluída usou o SkillSpector {version}.",
         "missing": {
           "title": "Nenhum verificador está configurado neste servidor",
-          "body": "Quem opera o servidor instala o SkillSpector e indica o comando dele em RONNE_SKILL_SCANNER (no ambiente ou no arquivo de configurações) e reinicia o Ronne. Só então a verificação pode ser ativada aqui."
+          "body": "Quem opera o servidor instala o SkillSpector e lista o comando dele em RONNE_SKILL_SCANNERS (ou define RONNE_SKILL_SCANNER), no ambiente ou no arquivo de configurações, e depois reinicia o Ronne. Aí ele pode ser escolhido aqui."
         },
         "lastError": "A última verificação não terminou: {reason, select, timeout {passou do tempo limite} not_found {o comando do verificador não foi encontrado} not_runnable {o comando do verificador não pode ser executado} not_configured {nenhum comando de verificador está definido} output_too_large {produziu saída demais} invalid_report {o relatório não pôde ser lido} signal {foi interrompida por um sinal} no_temporary_folder {a pasta temporária não pôde ser criada} bad_file_path {um caminho de arquivo da submissão foi recusado} write_failed {os arquivos não puderam ser gravados} endpoint_refused {o endpoint do LLM não passou na verificação quando a verificação começou} exit {terminou com o código {code}} other {{error}}}"
+      },
+      "command": {
+        "title": "Verificador",
+        "hint": "Os comandos que quem opera o servidor permite. Cada um aparece pelo nome do arquivo; os argumentos ficam no servidor.",
+        "label": "Comando",
+        "choose": "Escolha um comando",
+        "option": "{position}. {name}",
+        "only": "{name}, o único comando do servidor.",
+        "fromServer": "Definido no servidor, em RONNE_SKILL_SCANNER.",
+        "dropped": "O comando escolhido antes não está mais na lista do servidor. Escolha outro: até lá, nada é verificado."
+      },
+      "provider": {
+        "title": "Provedor de LLM",
+        "hint": "Para a análise semântica: para onde os arquivos de cada submissão são enviados.",
+        "fromServer": "Definido no servidor: {provider} em {host}.",
+        "fromServerIncomplete": "Definido no servidor, mas incompleto: as verificações semânticas rodam estáticas.",
+        "label": "Provedor",
+        "none": "Nenhum",
+        "names": {
+          "openai": "OpenAI",
+          "anthropic": "Anthropic",
+          "nv_build": "NVIDIA Build",
+          "azure_openai": "Azure OpenAI",
+          "openai_compatible": "Compatível com OpenAI",
+          "ollama": "Ollama"
+        },
+        "model": "Modelo",
+        "modelHint": "Como o provedor o chama.",
+        "endpoint": "Endpoint",
+        "endpointHint": "Uma URL https://. Um endereço privado, ou http://, só para um host que quem opera o servidor permite.",
+        "key": "Chave de API",
+        "keyHint": "Só de escrita: guardada criptografada e nunca mostrada de novo. Deixe vazio para manter a chave guardada.",
+        "keySet": "Chave definida",
+        "keyNone": "Sem chave",
+        "keyUnreadable": "A chave guardada não pode ser lida: informe-a de novo.",
+        "replace": "Substituir",
+        "removeButton": "Remover",
+        "keep": "Manter",
+        "removeWarning": "A chave guardada é removida ao salvar.",
+        "keyMoves": "Mudar o provedor ou o host do endpoint remove a chave guardada, a menos que você informe uma.",
+        "test": {
+          "button": "Testar conexão",
+          "testing": "Testando…",
+          "reached": "{host} respondeu.",
+          "refused": "{host} recusou a chave.",
+          "unreachable": "Não foi possível alcançar {host}."
+        }
+      },
+      "timeout": {
+        "label": "Tempo limite, em segundos",
+        "hint": "De 30 a 3600. Deixe vazio para 300.",
+        "fromServer": "Definido no servidor: {seconds} segundos."
       },
       "enabled": {
         "label": "Verificar submissões",
@@ -1082,12 +1134,12 @@
         },
         "semantic": {
           "label": "Estática e semântica",
-          "hint": "Também pergunta a um LLM se uma skill faz o que diz. Precisa de um provedor configurado por quem opera o servidor.",
+          "hint": "Também pergunta a um LLM se uma skill faz o que diz. Precisa de um provedor, configurado abaixo ou no servidor.",
           "sends": "Também pergunta a um LLM se uma skill faz o que diz. Os arquivos de cada submissão são enviados para {provider} em {host} ({model}).",
           "sendsNoModel": "Também pergunta a um LLM se uma skill faz o que diz. Os arquivos de cada submissão são enviados para {provider} em {host}."
         },
         "warning": "A partir de agora, os arquivos de cada submissão verificada são enviados para {provider} em {host}. Salve para confirmar.",
-        "runsStatic": "A análise semântica está escolhida, mas não há mais um provedor configurado no servidor: as verificações são estáticas."
+        "runsStatic": "A análise semântica está escolhida, mas nenhum provedor está mais configurado: as verificações rodam estáticas."
       },
       "save": "Salvar"
     }

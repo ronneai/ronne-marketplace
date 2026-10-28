@@ -18,7 +18,17 @@ export type EndpointProblem =
  * `url` is the endpoint as checked, which is what is stored and passed on (`url.href`), never what
  * was typed: other URL parsers may read a typed value's host differently.
  */
-export type EndpointCheck = { ok: true; url: URL } | { ok: false; problem: EndpointProblem };
+export type EndpointCheck =
+  | {
+      ok: true;
+      url: URL;
+      /**
+       * The addresses checked, to connect to and no others (136, Test connection); null for an
+       * operator's host, which isn't checked.
+       */
+      addresses: readonly string[] | null;
+    }
+  | { ok: false; problem: EndpointProblem };
 
 // Backslashes, spaces and control characters: WHATWG URL reads or drops them where Python's
 // parsers (the scanner's) read them otherwise, so `https://a.com\@10.0.0.1/` could be two hosts.
@@ -153,10 +163,12 @@ export const checkEndpoint = async (
   // Never allowed, as they'd be a secret kept in a plain setting and the audit's host.
   if (url.username !== "" || url.password !== "")
     return { ok: false, problem: "credentials in url" };
-  if (options.allowedHosts.has(host)) return { ok: true, url };
+  if (options.allowedHosts.has(host)) return { ok: true, url, addresses: null };
   if (url.protocol !== "https:") return { ok: false, problem: "not https" };
   if (isIP(host) !== 0)
-    return isInternalAddress(host) ? { ok: false, problem: "internal address" } : { ok: true, url };
+    return isInternalAddress(host)
+      ? { ok: false, problem: "internal address" }
+      : { ok: true, url, addresses: [host] };
   if (host === "localhost" || host.endsWith(".localhost"))
     return { ok: false, problem: "internal address" };
   let addresses: readonly string[];
@@ -169,5 +181,5 @@ export const checkEndpoint = async (
   // Every address: a name with one public and one internal address could be given either.
   return addresses.some(isInternalAddress)
     ? { ok: false, problem: "internal address" }
-    : { ok: true, url };
+    : { ok: true, url, addresses };
 };

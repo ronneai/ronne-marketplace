@@ -4,8 +4,9 @@ import { requestHeaders } from "@/server/http/request-headers";
 import { SkillScanForm } from "./SkillScanForm";
 
 /**
- * Admin › Settings › Security scan (135): what the operator set up, what the scanner said last,
- * and root's switch, types and analysis. Root only: the page already refused anyone else.
+ * Admin › Settings › Security scan (135, 136): what the operator set up, what the scanner said
+ * last, root's setup (never a key: only whether one is stored), and the switch, types and
+ * analysis. Root only: the page already refused anyone else.
  */
 export const ScanTab = async () => {
   const settings = await skillScanSettings(await requestHeaders());

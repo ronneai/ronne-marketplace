@@ -110,6 +110,8 @@ export type ScanSetupShown = {
   timeoutFrom: "environment" | "settings" | "default";
   timeoutSeconds: number;
   providerFrom: "environment" | "settings" | null;
+  /** The providers root may pick, with the fields each takes. */
+  providers: { name: string; takesKey: boolean; hasEndpoint: boolean; needsEndpoint: boolean }[];
   stored: {
     provider: string | null;
     model: string | null;

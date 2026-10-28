@@ -1062,9 +1062,61 @@
         "lastVersion": "The last scan that finished used SkillSpector {version}.",
         "missing": {
           "title": "No scanner is set up on this server",
-          "body": "The server's operator installs SkillSpector and names its command in RONNE_SKILL_SCANNER (in the environment or the settings file), then restarts Ronne. Only then can scanning be turned on here."
+          "body": "The server's operator installs SkillSpector and lists its command in RONNE_SKILL_SCANNERS (or sets RONNE_SKILL_SCANNER), in the environment or the settings file, then restarts Ronne. It can then be chosen here."
         },
         "lastError": "The last scan didn't finish: {reason, select, timeout {it ran past the timeout} not_found {the scanner's command wasn't found} not_runnable {the scanner's command can't be run} not_configured {no scanner command is set} output_too_large {it wrote too much output} invalid_report {its report couldn't be read} signal {it was stopped by a signal} no_temporary_folder {its temporary folder couldn't be made} bad_file_path {a file path in the submission was refused} write_failed {its files couldn't be written} endpoint_refused {its LLM endpoint failed its check when the scan started} exit {it exited with code {code}} other {{error}}}"
+      },
+      "command": {
+        "title": "Scanner",
+        "hint": "The commands the server's operator allows. Each is named by its file; its arguments stay on the server.",
+        "label": "Command",
+        "choose": "Choose a command",
+        "option": "{position}. {name}",
+        "only": "{name}, the server's only command.",
+        "fromServer": "Set on the server, in RONNE_SKILL_SCANNER.",
+        "dropped": "The command chosen before is no longer in the server's list. Choose another: until then, nothing is scanned."
+      },
+      "provider": {
+        "title": "LLM provider",
+        "hint": "For semantic analysis: where each submission's files are sent.",
+        "fromServer": "Set on the server: {provider} at {host}.",
+        "fromServerIncomplete": "Set on the server, but not complete: semantic scans run static.",
+        "label": "Provider",
+        "none": "None",
+        "names": {
+          "openai": "OpenAI",
+          "anthropic": "Anthropic",
+          "nv_build": "NVIDIA Build",
+          "azure_openai": "Azure OpenAI",
+          "openai_compatible": "OpenAI-compatible",
+          "ollama": "Ollama"
+        },
+        "model": "Model",
+        "modelHint": "As the provider names it.",
+        "endpoint": "Endpoint",
+        "endpointHint": "An https:// URL. A private address, or http://, only for a host the server's operator allows.",
+        "key": "API key",
+        "keyHint": "Write-only: kept encrypted and never shown again. Leave it empty to keep the stored key.",
+        "keySet": "Key set",
+        "keyNone": "No key",
+        "keyUnreadable": "The stored key can't be read: enter it again.",
+        "replace": "Replace",
+        "removeButton": "Remove",
+        "keep": "Keep it",
+        "removeWarning": "The stored key is removed when you save.",
+        "keyMoves": "Changing the provider or the endpoint's host removes the stored key, unless you enter one.",
+        "test": {
+          "button": "Test connection",
+          "testing": "Testing…",
+          "reached": "Reached {host}.",
+          "refused": "{host} refused the key.",
+          "unreachable": "Couldn't reach {host}."
+        }
+      },
+      "timeout": {
+        "label": "Timeout, in seconds",
+        "hint": "From 30 to 3600. Leave it empty for 300.",
+        "fromServer": "Set on the server: {seconds} seconds."
       },
       "enabled": {
         "label": "Scan submissions",
@@ -1082,12 +1134,12 @@
         },
         "semantic": {
           "label": "Static and semantic",
-          "hint": "Also asks an LLM whether a skill does what it says. Needs a provider the server's operator sets up.",
+          "hint": "Also asks an LLM whether a skill does what it says. Needs a provider, set up below or on the server.",
           "sends": "Also asks an LLM whether a skill does what it says. Each submission's files are sent to {provider} at {host} ({model}).",
           "sendsNoModel": "Also asks an LLM whether a skill does what it says. Each submission's files are sent to {provider} at {host}."
         },
         "warning": "From now on, each scanned submission's files are sent to {provider} at {host}. Save to confirm.",
-        "runsStatic": "Semantic analysis is chosen, but no provider is set up on the server any more: scans run static."
+        "runsStatic": "Semantic analysis is chosen, but no provider is set up any more: scans run static."
       },
       "save": "Save"
     }

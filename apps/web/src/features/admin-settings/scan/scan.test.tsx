@@ -5,7 +5,12 @@ import type { SkillScanSettings } from "@/server/domains/settings/models/skill-s
 import { inLocale } from "@/test/intl";
 import admin from "../../../../messages/en/admin.json";
 
-const settings = vi.hoisted(() => ({ setSkillScanPolicy: vi.fn(), skillScanSettings: vi.fn() }));
+const settings = vi.hoisted(() => ({
+  setSkillScanPolicy: vi.fn(),
+  setSkillScanSetup: vi.fn(),
+  skillScanSettings: vi.fn(),
+  testSkillScanConnection: vi.fn(),
+}));
 vi.mock("@/server/domains/settings/actions/settings", () => settings);
 vi.mock("@/server/domains/identity/actions/erase-user", () => ({ adminRetryErasures: vi.fn() }));
 vi.mock("@/server/domains/identity/repositories/auth-instance", () => ({ getAppAuth: () => ({}) }));
@@ -133,7 +138,7 @@ describe("Admin › Settings › Security scan (135)", () => {
   it("says scans run static when the provider went", () => {
     expect(
       html({ policy: { enabled: true, types: ["skill"], analysis: "semantic" }, runsStatic: true }),
-    ).toContain("no provider is set up on the server any more: scans run static");
+    ).toContain("no provider is set up any more: scans run static");
   });
 
   it("lists every item type, the picked ones checked, and Save off until something changed", () => {
@@ -150,6 +155,7 @@ describe("Admin › Settings › Security scan (135)", () => {
   });
 
   it("saves the switch, the types and the analysis, and words a domain error", async () => {
+    settings.setSkillScanSetup.mockResolvedValue({ changed: false });
     settings.setSkillScanPolicy.mockResolvedValueOnce({ changed: true });
     const data = new FormData();
     data.set("enabled", "on");

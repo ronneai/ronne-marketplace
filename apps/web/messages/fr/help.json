@@ -329,6 +329,10 @@
   },
   "scan-settings": {
     "question": "Comment configurer l’analyseur?",
-    "answer": "La personne qui exploite le serveur installe SkillSpector dans une version fixée, indique sa commande dans RONNE_SKILL_SCANNER (un tableau JSON, dans l’environnement ou le fichier de paramètres), puis redémarre Ronne. Pour l’analyse sémantique, elle configure aussi un fournisseur de LLM avec des variables RONNE_SKILL_SCANNER_ENV_. Ni l’un ni l’autre ne peut être défini ici."
+    "answer": "La personne qui exploite le serveur installe SkillSpector dans une version fixée et liste sa commande dans RONNE_SKILL_SCANNERS (un tableau JSON de commandes, dans l’environnement ou le fichier de paramètres), puis redémarre Ronne; vous en choisissez une ici. Pour l’analyse sémantique, configurez un fournisseur ci-dessous, ou la personne qui exploite le serveur en configure un avec des variables RONNE_SKILL_SCANNER_ENV_, qui ont priorité."
+  },
+  "scan-key": {
+    "question": "Comment la clé est-elle gardée?",
+    "answer": "Chiffrée dans la base de données avec une clé dérivée de l’AUTH_SECRET du serveur, et seulement pour le fournisseur et le point de terminaison pour lesquels elle a été saisie. Elle n’est jamais montrée de nouveau, ni écrite dans le journal d’audit ou les journaux, et elle n’est déchiffrée que pendant une analyse. Une sauvegarde complète peut la déchiffrer, comme les secrets des fournisseurs d’identité."
   }
 }

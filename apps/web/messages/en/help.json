@@ -329,6 +329,10 @@
   },
   "scan-settings": {
     "question": "How do I set up the scanner?",
-    "answer": "The server’s operator installs SkillSpector at a pinned version and names its command in RONNE_SKILL_SCANNER (a JSON array, in the environment or the settings file), then restarts Ronne. For semantic analysis they also set up an LLM provider with RONNE_SKILL_SCANNER_ENV_ variables. Neither can be set here."
+    "answer": "The server’s operator installs SkillSpector at a pinned version and lists its command in RONNE_SKILL_SCANNERS (a JSON array of commands, in the environment or the settings file), then restarts Ronne; you choose one here. For semantic analysis, set up a provider below, or the operator sets one with RONNE_SKILL_SCANNER_ENV_ variables, which win."
+  },
+  "scan-key": {
+    "question": "How is the key kept?",
+    "answer": "Encrypted in the database with a key derived from the server’s AUTH_SECRET, and only for the provider and endpoint it was entered for. It’s never shown again, nor written to the audit log or the logs, and it’s decrypted only while a scan runs. A full backup can decrypt it, as it can the identity providers’ secrets."
   }
 }

@@ -5,6 +5,7 @@ import { createRoot } from "../../identity/actions/root-account";
 import { ForbiddenError } from "../../identity/exceptions/errors";
 import type { CurrentUser } from "../../identity/models/user";
 import type { Resolver } from "../../scans/models/endpoint";
+import type { ProbeTarget } from "../../scans/services/provider-probe";
 import { type ScannerConfig, scanSetup } from "../../scans/services/scan-setup";
 import {
   InvalidScanCommandError,
@@ -21,7 +22,12 @@ import {
 import { openScanKey } from "../models/scan-key";
 import { kyselySettingsRepository } from "../repositories/kysely-settings-repository";
 import type { SettingsDeps } from "./settings";
-import { type ScanSetupInput, setSkillScanSetup, storedScanSetup } from "./skill-scan-setup";
+import {
+  type ScanSetupInput,
+  setSkillScanSetup,
+  storedScanSetup,
+  testSkillScanConnection,
+} from "./skill-scan-setup";
 
 // Runs on the database in TEST_DATABASE_URL (in-memory SQLite by default; 004 runs all of them).
 let t: TestDb;
@@ -33,6 +39,7 @@ const KEY = "sk-live-SECRET-0123456789";
 const OTHER_KEY = "sk-live-SECRET-9876543210";
 
 const dns: Record<string, string[]> = {
+  "api.anthropic.com": ["160.79.104.10"],
   "llm.example.com": ["93.184.215.14"],
   "llm2.example.com": ["93.184.215.15"],
   "inside.example.com": ["10.0.0.9"],
@@ -322,5 +329,97 @@ describe("what the setup reads back (136)", () => {
     expect(setup.provider).toBeNull();
     expect(setup.shown.stored.key).toBe("unreadable");
     expect(JSON.stringify(setup)).not.toContain("SECRET");
+  });
+});
+
+describe("Test connection (136)", () => {
+  const sent: ProbeTarget[] = [];
+  const test = async (
+    value: { provider?: string; endpoint?: string; key?: string },
+    config: ScannerConfig = { commands: LIST, env: {} },
+  ) => {
+    const shown = scanSetup(config, await stored(), AUTH_SECRET).shown;
+    return testSkillScanConnection(
+      deps,
+      { user: root, ip: null },
+      { provider: value.provider ?? "", endpoint: value.endpoint ?? "", key: value.key ?? "" },
+      {
+        shown,
+        authSecret: AUTH_SECRET,
+        allowedHosts: new Set(["ollama.lan"]),
+        resolve,
+        probe: async (target) => {
+          sent.push(target);
+          return "refused";
+        },
+      },
+    );
+  };
+  beforeEach(() => {
+    sent.length = 0;
+  });
+
+  it("sends the key typed now to the checked addresses only, and says what came back", async () => {
+    expect(await test({ provider: "anthropic", key: "sk-typed" })).toEqual({
+      result: "refused",
+      host: "api.anthropic.com",
+    });
+    expect(sent).toHaveLength(1);
+    expect(sent[0]?.url.href).toBe("https://api.anthropic.com/v1/models");
+    expect(sent[0]?.headers["x-api-key"]).toBe("sk-typed");
+    expect(sent[0]?.addresses).toEqual(["160.79.104.10"]);
+  });
+
+  it("uses the stored key only for the provider and endpoint it was typed for", async () => {
+    await save({ provider: "openai_compatible", endpoint: "https://llm.example.com/v1", key: KEY });
+    await test({ provider: "openai_compatible", endpoint: "https://llm.example.com/v1" });
+    expect(sent[0]?.headers.authorization).toBe(`Bearer ${KEY}`);
+    // Another host in the form: the stored key isn't sent there.
+    await expect(
+      test({ provider: "openai_compatible", endpoint: "https://llm2.example.com/v1" }),
+    ).rejects.toThrow(InvalidScanKeyError);
+    await expect(test({ provider: "openai" })).rejects.toThrow(InvalidScanKeyError);
+    expect(sent).toHaveLength(1);
+  });
+
+  it("checks the endpoint as a save does, and sends nothing to one refused", async () => {
+    await expect(
+      test({ provider: "openai_compatible", endpoint: "https://inside.example.com/v1", key: KEY }),
+    ).rejects.toThrow(ScanEndpointInternalError);
+    await expect(
+      test({
+        provider: "openai_compatible",
+        endpoint: "https://8.8.8.8\\@169.254.169.254/",
+        key: KEY,
+      }),
+    ).rejects.toThrow(InvalidScanEndpointError);
+    expect(sent).toHaveLength(0);
+    // The operator's host goes through, unpinned: it isn't checked.
+    await test({ provider: "ollama", endpoint: "http://ollama.lan:11434" });
+    expect(sent[0]).toMatchObject({ addresses: null });
+    expect(sent[0]?.url.href).toBe("http://ollama.lan:11434/api/tags");
+  });
+
+  it("can't test the environment's provider, and is root's only", async () => {
+    const env = { env: { RONNE_SKILL_SCANNER_ENV_SKILLSPECTOR_PROVIDER: "ollama" } };
+    await expect(test({ provider: "anthropic", key: KEY }, env)).rejects.toThrow(
+      InvalidScanProviderError,
+    );
+    const shown = scanSetup({ env: {} }, await stored(), AUTH_SECRET).shown;
+    await expect(
+      testSkillScanConnection(
+        deps,
+        { user: null, ip: null },
+        { provider: "anthropic", endpoint: "", key: KEY },
+        {
+          shown,
+          authSecret: AUTH_SECRET,
+          allowedHosts: new Set(),
+          resolve,
+          probe: async () => "reached",
+        },
+      ),
+    ).rejects.toThrow(ForbiddenError);
+    expect(sent).toHaveLength(0);
   });
 });

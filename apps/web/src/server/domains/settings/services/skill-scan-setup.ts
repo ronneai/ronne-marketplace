@@ -1,6 +1,7 @@
 import { requirePermission } from "../../identity/models/permissions";
 import { checkEndpoint, type EndpointProblem, type Resolver } from "../../scans/models/endpoint";
 import { providerFields } from "../../scans/services/command-scanner";
+import { type Probe, type ProbeResult, probeRequest } from "../../scans/services/provider-probe";
 import {
   InvalidScanCommandError,
   InvalidScanEndpointError,
@@ -14,7 +15,7 @@ import {
   ScanEndpointUnresolvedError,
   type SettingsError,
 } from "../exceptions/errors";
-import { originOf, sealScanKey } from "../models/scan-key";
+import { openScanKey, originOf, sealScanKey } from "../models/scan-key";
 import {
   type ScanSetupShown,
   SKILL_SCAN_COMMAND_KEY,
@@ -209,4 +210,53 @@ export const setSkillScanSetup = async (
     );
     return { changed: true };
   });
+};
+
+/**
+ * Test connection (136): one request to the provider root is setting up, from the form as it is,
+ * with the key typed now or the stored one (only when it was typed for this provider and
+ * endpoint). The endpoint is checked as on save and the request goes to the checked addresses
+ * only. Says reached, refused or unreachable, and the host; nothing else of the answer.
+ */
+export const testSkillScanConnection = async (
+  deps: SettingsDeps,
+  actor: SettingsActor,
+  value: Pick<ScanSetupInput, "provider" | "endpoint" | "key">,
+  context: ScanSetupContext & { probe: Probe },
+): Promise<{ result: ProbeResult; host: string }> => {
+  requirePermission(actor.user, "settings.manage");
+  if (context.shown.providerFrom === "environment") throw new InvalidScanProviderError();
+  const provider = text(value.provider);
+  const fields = provider ? providerFields(provider) : null;
+  if (!fields) throw new InvalidScanProviderError();
+  let endpoint: string | null = null;
+  const typedEndpoint = text(value.endpoint);
+  if (fields.endpoint && typedEndpoint) {
+    const checked = await checkEndpoint(typedEndpoint, context);
+    if (!checked.ok) throw new ENDPOINT_ERRORS[checked.problem]();
+    endpoint = checked.url.href;
+  }
+  const typedKey = typeof value.key === "string" ? value.key.trim() : "";
+  if (typedKey && (!fields.key || typedKey.length > MAX_KEY || CONTROL.test(typedKey)))
+    throw new InvalidScanKeyError();
+  let key: string | null = typedKey || null;
+  if (!key && fields.key) {
+    const stored = await storedScanSetup(deps.repo);
+    key =
+      stored.keyEnc && context.authSecret
+        ? openScanKey(context.authSecret, stored.keyEnc, { provider, endpoint })
+        : null;
+    if (!key) throw new InvalidScanKeyError();
+  }
+  const request = probeRequest(provider, endpoint, key);
+  if (!request) throw new InvalidScanEndpointError();
+  // The provider's own host is checked too, so the request goes to the addresses checked.
+  const target = await checkEndpoint(request.url.href, context);
+  if (!target.ok) throw new ENDPOINT_ERRORS[target.problem]();
+  const result = await context.probe({
+    url: target.url,
+    headers: request.headers,
+    addresses: target.addresses,
+  });
+  return { result, host: target.url.host };
 };

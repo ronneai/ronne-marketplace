@@ -40,7 +40,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     key that no longer decrypts, a dropped command, and the key absent from every returned value and
     audit event, on the four databases.
 
-- [ ] **5. The tab.**
+- [x] **5. The tab.**
   - Scanner choice, provider fields, key field with Key set / Replace / Remove, Test connection,
     and the timeout.
   - Messages in three languages.

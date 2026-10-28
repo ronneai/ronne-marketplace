@@ -279,3 +279,57 @@ Witnessed: 2026-10-28 17:35 EDT, by a fresh agent (adversarial). Commit: 6eabe25
 | 10 | Only a listed command can run | no | confirmed | Index checked against the list on save; `/^\d{1,2}$/` and `list[chosen]` at run time |
 
 **Overall:** met: the Done-when tests pass on the four databases, each recorded fix fails its test when reverted, and no attempt got the key elsewhere or ran an unlisted command. Two remarks are in PLAN's notes.
+
+## Task 5 — The tab
+
+Witnessed: 2026-10-28 18:08 EDT, by a fresh agent (blind). Commit: 641ca8e4 + working tree (21 modified, 7 untracked). Machine: macOS 27 (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Scanner choice: by position and file name, never arguments; one line for one; dropped notice; the environment's read-only | no | confirmed | 130 passed; `scan-setup.test.tsx` "the scanner command" |
+| 2 | Provider fields: endpoint only where taken (required where needed), key only where taken; the environment's read-only | no | confirmed | "asks for an endpoint only where…" and "shows the environment's provider…" pass |
+| 3 | Key field: empty password input; Key set with Replace / Remove; unreadable notice | no | confirmed | `type="password"`, no value; `>Replace<`, `>Remove<`; unreadable notice with an empty field |
+| 4 | Component tests for each state | no | partly | Rendered states tested; clicked states not: a no-op Replace or a renamed `removeKey` left every unit test green, and nothing clicked Replace |
+| 5 | The key never reaches the page props | no | confirmed | `JSON.stringify(props)` has no `SECRET` or `v1.`; mutation leaking the key → fails; e2e `page.content()` has no key |
+| 6 | The key stays out of logs and audit; sent only when typed | no | confirmed | `grep -cF <key> server.log` → 0; no `audit_log` or `instance_settings` row holds it |
+| 7 | Test connection: one request, reached / refused / unreachable with the host only | no | confirmed | `provider-probe.test.ts`; e2e `/v1/models` with the key → "Reached"; 401 → "refused the key" |
+| 8 | Test connection pins the checked addresses and follows no redirects | no | confirmed | `pinned.invalid` reachable only by the pinned lookup; mutations fail 3 and 1; a 302 gives one request |
+| 9 | Stored key only for the provider and origin it was sealed for; endpoint checked as on save; root only; not for the environment's provider | no | confirmed | `skill-scan-setup.db.test.ts` "Test connection (136)" |
+| 10 | Timeout: seconds, empty for 300, the environment's read-only; digits only | yes | confirmed | `pattern="[0-9]*"`; browser probe refuses `1e2`, `0x40`, full-width. Unguarded: removing `pattern` passes every test |
+| 11 | Provider choice and timeout side by side on wider screens, stacked on a phone | no | confirmed | `sm:grid-cols-2` row, by reading; unguarded by a test |
+| 12 | Messages in three languages, parity | no | confirmed | Parity, untranslated and raw-text tests pass; deleting a fr key → fails |
+| 13 | e2e with a fake provider endpoint | no | confirmed | 2 passed |
+| 14 | The phone sweep passes and visits the scan tab | no | confirmed | `mobile-sweep.mobile.e2e.ts --project=phone` → 15 passed; `e2e/pages.ts:169` |
+
+**Overall:** not met: row 4. The key field is now a stateless `KeyField` with `keyModeAfter`, each mode rendered by a test (`key-field.test.tsx`); the e2e clicks Replace and saves a new key; the timeout's pattern and the side-by-side row have a test ("the layout"). Re-checked below.
+
+### Re-check
+
+Witnessed: 2026-10-28 18:16 EDT, by a fresh agent (blind). Commit: 641ca8e4 + working tree. Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Component tests render each key state, in pt and fr too | no | confirmed | `key-field.test.tsx`; 407 passed; renaming `removeKey` in KeyField → 1 fails |
+| 2 | The transitions after Replace, Remove and Keep are tested | no | confirmed | `keyModeAfter`; breaking Replace or Keep → 1 fails each |
+| 3 | A no-op Replace is caught | no | confirmed | Missed by unit tests; caught by the e2e (clicks Replace, expects an empty field, saves `${KEY}-2`, checks the provider got it); reasoned, not run mutated |
+| 4 | A renamed `removeKey` is caught | no | confirmed | Field side by a unit test; reading side by the e2e (Remove, Save, `Key set` count 0) |
+| 5 | Clicking Keep undoes Remove in the page | no | partly | Logic tested; the button's wiring isn't: a no-op Keep leaves every test green |
+| 6 | The timeout takes digits only | no | confirmed | Deleting `pattern` → 1 fails |
+| 7 | The timeout sits beside the provider's choice on wider screens | no | confirmed | Removing `sm:grid-cols-2` → 1 fails; dropping `{beside}` → 2 fail |
+| 8 | The key never reaches the props; i18n parity | no | confirmed | Unchanged since the first pass |
+| 9 | The phone sweep passes | no | confirmed | 15 passed |
+
+**Overall:** not met: row 5. The e2e now clicks Remove then Keep, and checks `Key set` is back with no `removeKey` input. Re-checked below.
+
+### Re-check
+
+Witnessed: 2026-10-28 18:21 EDT, by a fresh agent (blind, scoped to row 5 above). Commit: 641ca8e4 + uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The e2e clicks Remove, then Keep it, and checks Key set is back with no `removeKey` and no removal notice | no | confirmed | `skill-scan-setup.e2e.ts:100-106` |
+| 2 | With the code as it is, the e2e passes | no | confirmed | 2 passed against the current build |
+| 3 | With Keep a no-op, it fails at the Keep step | no | confirmed | Scratch copy, `KeyField.tsx:64` → `() => {}`, rebuilt → fails at line 104, "Key set" not found |
+| 4 | The admin-settings unit tests pass with the real source | no | confirmed | 11 files, 160 passed |
+
+**Overall:** met: with the earlier passes' confirmed rows, every claim of task 5 holds.

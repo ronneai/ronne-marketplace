@@ -76,7 +76,8 @@ command runs anything on the server, and that would reach every secret Ronne hol
   - **Test connection**: one request to the provider's models endpoint with the key, saying
     "Reached <host>", "The key was refused" or "Couldn't reach <host>". Never item content; no
     output beyond that line.
-- **Timeout:** seconds, 300 by default.
+- **Timeout:** seconds, 300 by default; beside the provider's choice on wider screens, below it on a
+  phone (owner, 2026-10-28).
 - A setting the environment fixes is shown with "Set on the server", and its field is read-only.
 
 **Saving.** One Save for the tab:

@@ -8,6 +8,7 @@ import {
   parseScannerCommand,
   parseScanTimeout,
   providerFields,
+  SCAN_PROVIDER_NAMES,
   scanProvider,
 } from "./command-scanner";
 
@@ -157,6 +158,19 @@ export const scanSetup = (
       timeoutFrom: envTimeout ? "environment" : storedTimeout ? "settings" : "default",
       timeoutSeconds: envTimeout ?? storedTimeout ?? DEFAULT_SCAN_TIMEOUT_SECONDS,
       providerFrom: envProvider ? "environment" : provider ? "settings" : null,
+      providers: SCAN_PROVIDER_NAMES.flatMap((name) => {
+        const fields = providerFields(name);
+        return fields
+          ? [
+              {
+                name,
+                takesKey: fields.key !== null,
+                hasEndpoint: fields.endpoint !== null,
+                needsEndpoint: fields.endpointNeeded,
+              },
+            ]
+          : [];
+      }),
       stored: {
         provider: stored.provider || null,
         model: stored.model || null,
