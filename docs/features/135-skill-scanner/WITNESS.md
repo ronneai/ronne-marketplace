@@ -42,3 +42,51 @@ Witnessed: 2026-10-28 12:28 EDT, by a fresh agent (blind). Commit: 6e8b39e2 (plu
 | 15 | `pnpm witness:check` passes | no | confirmed | `pnpm witness:check; echo $?` → 0 |
 
 **Overall:** met: the decision, policy row, E-11, M20 entry, knowledge note and scripts are present, agree with each other and with SkillSpector v2.13.2 and config.ts.
+
+## Task 2 — Recorded fixtures and parseSkillScan
+
+Three earlier blind passes (12:21, 12:28, 12:43 EDT) were not met. What they found, all fixed before
+the passes below:
+- paths with a scheme (`file:`, `https:`) or `~` were kept;
+- line numbers past an INTEGER column, and a fractional score, were kept;
+- a version longer than its 64-character column was kept;
+- a path too long to keep was cut instead of dropped;
+- invisible characters survived the cleaning: the right-to-left mark and zero-width characters first,
+  then the soft hyphen, variation selectors and tag characters, then unassigned default-ignorables
+  and lone surrogates;
+- the character class was written with literal bidirectional characters; it now uses escapes only.
+
+Witnessed: 2026-10-28 12:43 EDT, by a fresh agent (blind). Commit: 19a4a00d (plus the uncommitted `packages/core/src/skill-scan/` and `packages/core/src/index.ts`). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The fixtures are real SkillSpector v2.13.2 `--no-llm --format json` reports on `examples/items/secure-coding`, `examples/items/github-mcp` and a bad sample skill | no | confirmed | Re-recorded all three with image `skillspector:2.13.2` through the wrapper, using fixtures/README.md's loop → exit 0/0/1, 0 SAFE 0 / 22 CAUTION 2 / 100 DO_NOT_INSTALL 14. `jq -S` diff with the committed reports: only `scanned_at` and the random `finding_id`s differ |
+| 2 | Its suite passes on the fixtures and on bad input (missing fields, wrong types, huge strings, 10k findings) | no | confirmed | `vitest run src/skill-scan` → 57 passed (fixtures, 14 refusals, 10,000 findings, 2,000-emoji strings) |
+| 3 | Exported from `@ronneai/core`; the package type-checks | no | confirmed | `index.ts` exports `parseSkillScan`, `SKILL_SCAN_*` and 5 types; `typecheck` clean; `biome check` clean |
+| 4 | It refuses anything that isn't a report | no | confirmed | "", BOM, a log line first → "not JSON"; scores "50", true, null, 1e400, -0.1, 100.4 → refused; lowercase severity, numeric id, `issues: null` → refused; CRLF JSON → ok |
+| 5 | The LLM check, and a semantic scan whose LLM didn't run kept as static | no | confirmed | Static with llm_requested true / "false" / 0 / missing → "not a static scan"; semantic with false or none → "not a semantic scan"; unavailable or errored → `static`, `llmUnavailable: true` |
+| 6 | Sorted most severe first, capped at 200, the rest counted | no | confirmed | 10k / 100k / 300k issues → 200 kept, the rest counted. Mutations (no sort, no cap) → tests fail |
+| 7 | Only known fields survive | no | confirmed | "SECRET" in extra fields at every level → absent from the output |
+| 8 | The cleaning removes what its doc comment says | no | partly | Default-ignorable code points (U+E0080–E0FFF, U+FFF0–FFF8, U+17B4, U+2065) and lone surrogates survived |
+| 9 | Paths: relative inside the item, else null | no | confirmed | null for `a/../b`, `..\x`, `..<ZWSP>/x`, `<RLO>/etc`, leading spaces, `C:x`, `\\?\C:\x`, `//host/x`, `~`, 501 characters, non-strings. Mutations of each check → tests fail |
+| 10 | What it returns fits the columns | no | confirmed | Version: 64 code points kept, 65 refused; score 99.5 → 100; lines over 2147483647 → null; 200 maxed findings = 523,401 bytes (longtext). Mutations → tests fail |
+| 11 | No literal invisible characters in the source | no | confirmed | `LC_ALL=C grep -nP '[^\x09\x0a\x20-\x7e]'` → only the visible `…` and `😀` |
+| 12 | The tests cover the behaviour | no | confirmed | 17 mutations in a scratch copy each fail at least one test |
+
+**Overall:** not met: row 8. The cleaning was fixed (`\p{Default_Ignorable_Code_Point}` and `\p{Cs}` added) and re-checked below.
+
+### Re-check
+
+Witnessed: 2026-10-28 12:46 EDT, by a fresh agent (blind). Commit: 19a4a00d (plus the uncommitted Task 2 files). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Cleaning removes every Cc but tab and newline, plus every Cf, Cs, Default_Ignorable_Code_Point (assigned or not), Zl and Zp, and nothing else | no | confirmed | `sweep.ts` sends all 0x110000 code points through `parseSkillScan` and compares with an independent `\p{…}` check → removed 6,319, kept 1,107,793, mismatches 0 |
+| 2 | Lone surrogates are removed; pairs are kept | no | confirmed | `\ud800`, `\udfff`, a reversed pair → removed; `😀` kept |
+| 3 | Tabs and newlines are kept | no | confirmed | `"line1\nline2\tcol"` unchanged |
+| 4 | Ordinary text is left alone, apart from what the doc comment lists | no | confirmed | Accents, combining accents, CJK, Arabic, Hebrew, Devanagari unchanged; emoji with skin tones and flags intact; ZWJ sequences split, as the comment says |
+| 5 | Tests cover the cleaning | no | confirmed | Mutations (no Default_Ignorable, no Cs, no tab/newline lookahead) → tests fail |
+| 6 | Core suite and typecheck pass | no | confirmed | `pnpm --filter @ronneai/core test` → 42 files, 447 passed; `typecheck` exit 0 |
+| 7 | Spot-check: fixtures, LLM refusal, paths, export | no | confirmed | `spot.ts`: the three fixtures parse as recorded and are refused as semantic; hostile paths → null; `index.ts` exports |
+
+**Overall:** met: with the re-check, every claim holds: real fixtures, the export, refusals, the LLM checks, sorting and caps, field dropping, paths, column fit, and cleaning that matches its doc comment for every code point.

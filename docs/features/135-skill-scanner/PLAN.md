@@ -18,7 +18,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   how to upgrade the pin.
   *Done when:* the docs say this, and `pnpm witness:check` passes.
 
-- [ ] **2. Recorded fixtures and `parseSkillScan`.** Build SkillSpector at the pinned tag in Docker,
+- [x] **2. Recorded fixtures and `parseSkillScan`.** Build SkillSpector at the pinned tag in Docker,
   run `scan --no-llm --format json` on two items from `examples/items` and on a bad sample skill, and
   record the reports under `packages/core/src/skill-scan/fixtures/`. Then `parseSkillScan` in
   `packages/core/src/skill-scan/` (exported from the package): validate the input, map it, sort the
