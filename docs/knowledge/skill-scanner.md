@@ -1,0 +1,166 @@
+# The skill scanner (SkillSpector)
+
+Feature [135](../features/135-skill-scanner/SPEC.md) runs NVIDIA's SkillSpector
+([github.com/NVIDIA/SkillSpector](https://github.com/NVIDIA/SkillSpector)) on each submission
+revision and shows what it finds on the review page. Ronne doesn't ship it. The operator installs
+it and names its command in `RONNE_SKILL_SCANNER`. This note covers what we checked, the rules that
+make running it safe, how to install it, and how to move the pin.
+
+## What we checked (2026-10-28, v2.13.2)
+
+- **Licence:** SkillSpector itself is Apache-2.0. Its `THIRD_PARTY_NOTICES.md` lists only
+  Apache-2.0, MIT and BSD-3-Clause, but that file covers what it vendors, not the Python packages
+  it installs: its `uv.lock` describes 158, and 63 of them end up installed on Linux. Listed in the built image (`scripts/skill-scanner/licences.py`),
+  most are MIT, BSD, ISC or Apache-2.0, and five aren't on §1's allowed list:
+  - `certifi` (MPL-2.0), and `orjson` and `tqdm` (MPL-2.0 together with MIT or Apache-2.0);
+  - `regex` (Apache-2.0 and CNRI-Python);
+  - `typing_extensions` (PSF-2.0).
+
+  They need an exception in `docs/policies/dependencies.md` §5 (E-11). Its `pyproject.toml` mentions
+  semgrep (LGPL) only in a comment about click versions, and semgrep isn't in `uv.lock`.
+- **What it runs:** it parses the skill's files (Python's `ast`, regular expressions, YARA) and
+  doesn't execute them. It starts processes only to `git clone` a URL and for the CLI-based LLM
+  providers. Ronne gives it a local folder, never a URL, and passes `SKILLSPECTOR_PROVIDER` only when
+  it is one of the six HTTP providers, so neither happens, static or semantic.
+- **Network with `--no-llm`:** only OSV.dev, with the dependency names and versions the skill
+  declares (not its files). If OSV.dev can't be reached, it uses a list built into the tool.
+  LangSmith tracing exists but is off unless `LANGCHAIN_TRACING_V2` is set, and Ronne sets it to `false`.
+- **Limits of its own:** 100 MiB per input, 10,000 zip members, 1 MB read per file, and a deadline per
+  scan (`SKILLSPECTOR_MAX_WORKFLOW_SECONDS`, 600 by default; Ronne passes its own timeout).
+- **Contract:** `scan <dir> --format json` prints a report whose shape and exit codes (0: score ≤ 50,
+  1: score > 50, 2: error) its README calls stable. Exit 1 is a finished scan, not a failure.
+- **Not used:** its MCP server's HTTP transport, which has no authentication, and `baseline`.
+
+## The rules Ronne follows (don't loosen them)
+
+1. `--no-llm` unless root chose semantic analysis *and* the operator set up a provider. The provider
+   and its key come only from `RONNE_SKILL_SCANNER_ENV_*` variables, never from the web or the database.
+2. Only a local folder that Ronne wrote: a fresh `0700` temporary directory with the revision's files,
+   checked like `checkPackage` (no `..`, no absolute paths, no symbolic links). Never a URL or a git remote.
+3. `execFile` with an argument array, never a shell. The command is a JSON array from the environment or
+   the settings file, never from the web: whoever sets it can run anything as the server's user.
+4. An environment built from an allowlist, not filtered from `process.env`: `PATH`, `HOME` and
+   `TMPDIR` (both a `home/` folder beside the files, in the private temporary directory), `LANG`, `SKILLSPECTOR_MAX_WORKFLOW_SECONDS`, `SKILLSPECTOR_LOG_LEVEL=ERROR`,
+   `LANGCHAIN_TRACING_V2=false`, and for a semantic scan `SKILLSPECTOR_PROVIDER`, `SKILLSPECTOR_MODEL`,
+   `SKILLSPECTOR_REASONING_EFFORT` and the chosen provider's own variables only (the spec's table),
+   read from `RONNE_SKILL_SCANNER_ENV_<NAME>`. Tests prove `DATABASE_URL`, `AUTH_SECRET`, an
+   unprefixed `OPENAI_API_KEY`, a prefixed name off the list (`RONNE_SKILL_SCANNER_ENV_ANTHROPIC_BASE_URL`)
+   and another provider's variables (`OPENAI_API_KEY` with `SKILLSPECTOR_PROVIDER=anthropic`) never
+   reach it, and that a static scan gets none of the provider's variables even with one set up.
+5. A timeout that kills it, at most 4 MiB of output read, and the folder removed in a `finally`.
+6. Its report is untrusted: `parseSkillScan` keeps known fields only, cuts strings and the list of
+   findings, and the panel renders text, never HTML. Its stdout and stderr are never stored or
+   logged as they are, since they can echo item content.
+7. Advisory: nothing waits for a scan or reads its score to decide.
+
+## Installing it
+
+Both ways install the reviewed commit, `abd82935b67f765a9541013c0866c6349251dcdf` (v2.13.2), with
+exactly the packages in its `uv.lock` (`uv sync --frozen`). Don't use `uv tool install` or
+SkillSpector's own Dockerfile. They resolve the packages again (`pip install .`), so what gets
+installed isn't what was reviewed. Check out the commit, not the tag: a tag can be moved.
+
+```sh
+git clone https://github.com/NVIDIA/SkillSpector.git /opt/skillspector/src
+cd /opt/skillspector/src
+git checkout --detach abd82935b67f765a9541013c0866c6349251dcdf
+git rev-parse HEAD   # must print the commit above
+```
+
+**A. As the user Ronne runs as** (the simplest; the scanner then has the same access to the
+machine as Ronne itself, and may reach OSV.dev):
+
+```sh
+UV_PROJECT_ENVIRONMENT=/opt/skillspector/venv uv sync --frozen --no-dev --no-editable
+export RONNE_SKILL_SCANNER='["/opt/skillspector/venv/bin/skillspector"]'
+```
+
+**B. In a container, with no network** (stronger: it gets a read-only copy of the files, no network,
+no capabilities and limited memory). Build the image with Ronne's
+[`scripts/skill-scanner/Dockerfile`](../../scripts/skill-scanner/Dockerfile): `uv sync --frozen`
+on base images pinned by digest, and no `git` in the image. Then install
+[`scripts/skill-scanner/skillspector-sandbox`](../../scripts/skill-scanner/skillspector-sandbox)
+(owned by root, mode 0755), which mounts the folder Ronne gives it read-only:
+
+```sh
+docker build -f /path/to/ronne-marketplace/scripts/skill-scanner/Dockerfile -t skillspector:2.13.2 .
+install -m 0755 /path/to/ronne-marketplace/scripts/skill-scanner/skillspector-sandbox /usr/local/bin/
+export RONNE_SKILL_SCANNER='["/usr/local/bin/skillspector-sandbox"]'
+```
+
+Edit the three settings at the top of the installed wrapper for Ronne's user: `RUNTIME` (`docker`
+or `podman`), `RUNTIME_HOME` (that user's home) and `RUNTIME_SOCKET` (rootless Docker's socket, such
+as `unix:///run/user/1001/docker.sock`; empty for Podman). Ronne gives the scanner a `HOME` of its
+own and none of its environment (rule 4). Without these settings, `docker` would fall back to
+`/var/run/docker.sock`, the rootful daemon, and Podman wouldn't find its storage. The container
+itself gets `HOME=/tmp`, the `SKILLSPECTOR_*` and `LANGCHAIN_TRACING_V2` variables, and for a semantic
+scan the provider's variables (its key among them), which Ronne passes only then.
+
+Ronne's folder is `0700` and owned by Ronne's user, so the container must run as that user on the
+host. Never loosen the folder's mode instead.
+- **Rootless Docker** maps container root (`0`) to the host user who runs it, and every other container
+  user to a subordinate uid (`100000` and up) that can't read the folder. So the wrapper runs as
+  `--user 0:0`: root inside, Ronne's user outside, with `--cap-drop ALL` and `no-new-privileges`.
+- **Podman** gets `--userns=keep-id --user "$(id -u):$(id -g)"`, which maps Ronne's uid to itself.
+- **Rootful Docker** isn't supported: the socket is as good as root on the host. Docker Desktop
+  on macOS, used to test the wrapper, remaps ownership on mounts and hides all of this.
+
+Both rootless runtimes need the user's runtime directory, `/run/user/<uid>`. A service user
+(`rmk-server service install`) has one only with lingering on: `loginctl enable-linger <user>`.
+
+Don't give a socket to Ronne's own
+container: that's why Docker installs of Ronne don't get the scanner yet (135, Out).
+
+## Semantic analysis (optional)
+
+Static scans keep item content on the server (at most the declared dependency names and versions go
+to OSV.dev, and nothing with the wrapper's `--network none`). Semantic analysis also asks an LLM whether what a skill
+says matches what its code does. It catches more, but every scanned revision's files go to the
+provider, scans take minutes and cost money, and two runs can disagree. Ronne runs it only when both
+of these hold:
+
+1. **The operator sets up a provider** in Ronne's environment or its settings file (which, like
+   `DATABASE_URL` and `AUTH_SECRET` there, is in Ronne's backups), with the prefix
+   `RONNE_SKILL_SCANNER_ENV_`. Ronne strips the prefix and passes on only the chosen provider's own
+   variables (the spec's table), only to semantic scans: SkillSpector would otherwise fall back to
+   `OPENAI_API_KEY` and `OPENAI_BASE_URL` for a provider whose key is unset. A hosted provider without
+   its key, or Azure and compatible without their endpoint, counts as none. SkillSpector's other
+   variables aren't passed, even prefixed: `ANTHROPIC_BASE_URL` and `OPENAI_PROJECT_ID` are ignored, so
+   `anthropic` always sends to `api.anthropic.com`. For a model on your own network:
+
+   ```sh
+   RONNE_SKILL_SCANNER_ENV_SKILLSPECTOR_PROVIDER=ollama
+   RONNE_SKILL_SCANNER_ENV_OLLAMA_BASE_URL=http://10.0.0.5:11434/v1
+   RONNE_SKILL_SCANNER_ENV_SKILLSPECTOR_MODEL=qwen3-coder:30b
+   ```
+
+   or a hosted one (`openai`, `anthropic`, `nv_build`, `azure_openai`, `openai_compatible`), with its
+   key in `RONNE_SKILL_SCANNER_ENV_<KEY NAME>`. `bedrock`, `anthropic_proxy` and the CLI
+   providers aren't supported (135, Out).
+2. **Root chooses Static and semantic** in Admin › Settings › Security scan, after a warning naming the
+   provider and the host the files go to.
+
+In the container, `localhost` is the container itself: give `OLLAMA_BASE_URL` (or the compatible
+endpoint) an address the container can reach. With the container wrapper, set `SEMANTIC_NETWORK` in it to a network that reaches the provider:
+a Docker network of its own that holds the provider (best for a local model), or `bridge` for a
+hosted one. Static scans keep `--network none`, and with `SEMANTIC_NETWORK` empty the wrapper
+refuses semantic scans rather than open the network. With network access, SkillSpector's OSV.dev
+lookups also run.
+
+Instead of `export`, the same lines (without `export`) can go in Ronne's settings file (`.env` next to
+the app, or the file `RONNE_ENV_FILE` names); the environment wins over it. Then restart Ronne, and turn scanning on in **Admin › Settings › Security scan**. With more than one
+replica (M17), install it on each one.
+
+## Moving the pin
+
+1. Read the new release's changelog, `pyproject.toml` and `uv.lock`: new network calls, and anything
+   that executes input.
+2. Build the image, and list what it installed with `scripts/skill-scanner/licences.py` (its header
+   says how). Every licence must be allowed by `docs/policies/dependencies.md` §1 or covered by an
+   exception in §5. A new one stops the upgrade until the owner decides.
+3. Check its advisories, and those of the packages it installs, on osv.dev and GitHub.
+4. Re-record the fixtures in `packages/core/src/skill-scan/fixtures/reports/` (their README says
+   how), and run `pnpm --filter @ronneai/core test`. A change in the JSON shape breaks
+   `parseSkillScan` there, never in production.
+5. Update the commit and version here, in the dependencies policy's table, in the Dockerfile's
+   header, in `licences.py`'s header, and in the wrapper's image tag, in the same change.
