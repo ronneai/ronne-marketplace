@@ -205,7 +205,7 @@
   },
   "item-history": {
     "question": "Por que o nome mudou?",
-    "answer": "O nome de um item muda quando ele vai para outro escopo, quando o escopo dele vai para outro espaço de trabalho ou quando o espaço de trabalho dele é renomeado. Todo nome antigo continua funcionando: instala, serve de dependência e abre esta página, e nenhum outro item pode ficar com ele."
+    "answer": "O nome de um item muda quando ele vai para outro escopo, quando o escopo dele vai para outro espaço de trabalho ou quando o espaço de trabalho dele é renomeado; um item de antes de os nomes incluírem o espaço de trabalho também mostra quando ele entrou. Todo nome antigo continua funcionando: instala, serve de dependência e abre esta página, e nenhum outro item pode ficar com ele."
   },
   "visibility": {
     "question": "Público ou privado?",

@@ -205,7 +205,7 @@
   },
   "item-history": {
     "question": "Why did the name change?",
-    "answer": "An item’s name changes when it moves to another scope, when its scope moves to another workspace, or when its workspace is renamed. Every old name keeps working: it installs, depends and opens this page, and no other item can take it."
+    "answer": "An item’s name changes when it moves to another scope, when its scope moves to another workspace, or when its workspace is renamed; an item from before item names included the workspace also shows when it was added. Every old name keeps working: it installs, depends and opens this page, and no other item can take it."
   },
   "visibility": {
     "question": "Public or private?",

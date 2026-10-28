@@ -205,7 +205,7 @@
   },
   "item-history": {
     "question": "Pourquoi le nom a-t-il changé?",
-    "answer": "Le nom d’un élément change quand il passe à une autre portée, quand sa portée passe à un autre espace de travail ou quand son espace de travail est renommé. Chaque ancien nom continue de fonctionner : il installe, sert de dépendance et ouvre cette page, et aucun autre élément ne peut le prendre."
+    "answer": "Le nom d’un élément change quand il passe à une autre portée, quand sa portée passe à un autre espace de travail ou quand son espace de travail est renommé; un élément d’avant que les noms incluent l’espace de travail montre aussi quand il a été ajouté. Chaque ancien nom continue de fonctionner : il installe, sert de dépendance et ouvre cette page, et aucun autre élément ne peut le prendre."
   },
   "visibility": {
     "question": "Public ou privé?",

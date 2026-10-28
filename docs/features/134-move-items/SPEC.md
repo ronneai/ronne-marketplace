@@ -173,23 +173,23 @@ Reviews of its open submissions stay with the same workspace's moderators.
 
 ## Acceptance criteria
 
-- [ ] Only members of the item's workspace and root can ask; the service refuses everyone else.
-- [ ] Root and the workspace's moderators and admins move at once after a confirmation; any other
+- [x] Only members of the item's workspace and root can ask; the service refuses everyone else.
+- [x] Root and the workspace's moderators and admins move at once after a confirmation; any other
   member's move is a request that only they answer, never the asker.
-- [ ] The target is always another scope of the same workspace; anything else is refused.
-- [ ] A clash (an item, an open submission of a new item, or another item's alias with the new
+- [x] The target is always another scope of the same workspace; anything else is refused.
+- [x] A clash (an item, an open submission of a new item, or another item's alias with the new
   name) refuses the move, when asked and when approved.
-- [ ] After a move the item has the new name everywhere from the next request; the old name works
+- [x] After a move the item has the new name everywhere from the next request; the old name works
   as an alias; versions, tarballs, checksums, tags, downloads, pins and favorites are unchanged;
   the catalogue revision rose; open work names the new name.
-- [ ] One open move per item; asker and answerers cancel; a second answer gets "Already answered";
+- [x] One open move per item; asker and answerers cancel; a second answer gets "Already answered";
   an asker who left the workspace has the request cancelled at approval.
-- [ ] History lists every name change (this feature's, 115's, 113's, 118's), old ones backfilled,
+- [x] History lists every name change (this feature's, 115's, 113's, 118's), old ones backfilled,
   without naming a workspace the viewer can't see.
-- [ ] Every step is audited.
-- [ ] The dialog, the Item moves table and History are in English, Portuguese and French (129) and
+- [x] Every step is audited.
+- [x] The dialog, the Item moves table and History are in English, Portuguese and French (129) and
   pass the phone sweep (065).
-- [ ] The Documentation and inline helpers listed above say what the feature does.
+- [x] The Documentation and inline helpers listed above say what the feature does.
 
 ## Decisions
 

@@ -68,7 +68,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   by its new name and its old one, History shows the move; a moderator's direct move.
   *Done when:* it passes on the desktop and phone projects.
 
-- [ ] **10. Documentation.** The sections in the spec's Documentation list in ronne-web (a
+- [x] **10. Documentation.** The sections in the spec's Documentation list in ronne-web (a
   `feat/134-move-items` branch), in en, pt and fr; both `topics.ts` files; `pnpm docs:links`
   finds no difference; MVP.md's permissions table and decision log say what was built.
   *Done when:* `pnpm docs:links` passes against that branch and every helper links to a section

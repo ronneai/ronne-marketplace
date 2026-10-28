@@ -389,3 +389,38 @@ Witnessed: 2026-10-28 01:44 EDT, by a fresh agent (blind). Commit: 017a81ca + wo
 | 6 | The item installs by its new name | no | confirmed | move-item.ts:169-177, the `newName` pass asserts `[newName]`; passed |
 
 **Overall:** met: rows 1, 6 and 7 are confirmed, and so are all rows from the first pass.
+
+## Task 10 — Documentation
+
+Witnessed: 2026-10-28 01:55 EDT, by a fresh agent (blind). Commit: 0904f46d plus the working tree (MVP.md, README.md, SPEC.md); ronne-web `feat/134-move-items` at ddeb537. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `pnpm docs:links` passes against ronne-web's `feat/134-move-items` | no | confirmed | `pnpm docs:links` → "Compared 35 topics with the website's.", exit 0; ronne-web on feat/134-move-items |
+| 2 | Both `topics.ts` files add `scopes#moving-items` and `items#history` together | no | confirmed | `apps/web/src/components/help/topics.ts:67,81`; ronne-web's topics.ts diff adds both |
+| 3 | Every helper links to a section that exists | no | confirmed | `Help.tsx:47-55` (`item-move-who`, `item-move-approve` → `scopes#moving-items`, `item-history` → `items#history`), typed on `SectionOf<…>`; used at `MoveItem.tsx:179`, `ItemMovesTable.tsx:158`, `HistoryTab.tsx:42` |
+| 4 | New section `scopes#moving-items` in en, pt and fr: who asks, who answers, what changes, clashes, moving back | no | confirmed | ronne-web `{en,pt,fr}/scopes.tsx`, checked against `item-moves.ts` (`standingIn`, the confirm step, the three clash kinds, own old names, open work renamed, one workspace only) |
+| 5 | `scopes#who` says an item can move to another scope of its workspace | no | confirmed | a new `<li>` in all three; the `names` paragraph corrected ("its scope can change") |
+| 6 | `workspaces#joining` and "Creating and managing them": the Requests page holds item moves, moderators answer them | no | confirmed | all three `workspaces.tsx`; matches `[name]/page.tsx:103-137` and `/workspaces/requests/page.tsx:35` |
+| 7 | `workspaces#moving` points to moving one item instead | no | confirmed | a new `<p>` with a DocLink to `scopes#moving-items` in all three |
+| 8 | New section `items#history`: the History tab and what each entry means | no | partly | `{en,pt,fr}/items.tsx` give three reasons a name changes; the app has a fourth, `migration` (backfilled by `0037_item_moves.ts:209`, shown as "The workspace was added to item names"), which the section and the `item-history` helper leave out |
+| 9 | `roles` says moderators answer item moves in their workspace | no | confirmed | `{en,pt,fr}/roles.tsx`: "Move an item to another scope of the workspace", ask/✓/✓/✓ (pt "pedir", fr "demander"); matches `standingIn` |
+| 10 | pt and fr follow the glossary and typography; straight apostrophes in ronne-web prose | no | confirmed | `docs/knowledge/i18n.md:124-167`; fr space before ":" only, « Déplacé depuis »; only `&apos;` in the diff |
+| 11 | ronne-web checks pass on the branch | no | confirmed | in www: `pnpm test` → exit 0; `pnpm lint` → no fixes; `pnpm typecheck` → no errors |
+| 12 | repo-tools tests pass | no | confirmed | `pnpm --filter @ronneai/repo-tools test` → 181 passed |
+| 13 | MVP.md's permissions table says what was built | no | confirmed | the row drops "planned": ask / ✅ / ✅ (and the workspace's admins), never one's own; matches `item-moves.ts:192,360` |
+| 14 | MVP.md's Workspaces UI row and the Scopes and Old names decision rows say what was built | no | confirmed | "and item moves (134)"; Scopes and Old names as built, matching the service and migration 0037 |
+| 15 | 134's status is `done` in the index | no | confirmed | `docs/features/README.md:273` → "done (the Documentation in ronne-web `feat/134-move-items`)" |
+
+**Overall:** not met: everything holds except row 8: the History section (and its helper) leaves out the 118 migration entry the app shows on upgraded instances.
+
+### Re-check (row 8)
+
+Witnessed: 2026-10-28 01:57 EDT, by a fresh agent (blind). Commit: 0904f46d plus the working tree (`apps/web/messages/{en,pt,fr}/help.json`, MVP.md, README.md, SPEC.md, WITNESS.md); ronne-web `feat/134-move-items` at 1201625. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 8 | The `items#history` section and the `item-history` helper explain every entry the History tab shows, the 118 migration entry included | no | confirmed | `git show 1201625`: en, pt and fr `items.tsx` say an item from before item names included the workspace also shows when its workspace was added to its name; the three `help.json` answers say the same. Matches `0037_item_moves.ts:136-140` (`migration`, shown as "The workspace was added to item names") and `0022_workspace_in_names.db.test.ts:103` (only items outside `global`). Typography as the glossary says; the app's JSON uses ’, ronne-web `&apos;` |
+| 8a | The diff breaks no checks | no | confirmed | ronne-web `pnpm test` → 187 passed; `pnpm lint` → no fixes; `pnpm docs:links` → "Compared 35 topics with the website's."; apps/web `vitest run src/i18n src/components/help` → 383 passed; the `help.json` files parse |
+
+**Overall:** met: the History section and its helper now cover the 118 migration entry in all three languages, and every other row of the first pass was confirmed.
