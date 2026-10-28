@@ -462,13 +462,18 @@ describe("commandSkillScanner", () => {
   );
 
   it.skipIf(process.platform === "win32")(
-    "says a command it can't execute is not runnable, without throwing",
+    "fails, without throwing, on a command the system won't execute",
     async () => {
       const script = join(out, "no-shebang");
       writeFileSync(script, "echo hi\n");
       chmodSync(script, 0o755);
       const outcome = await commandSkillScanner({ command: [script], tmpRoot: roots }).scan(files);
-      expect(outcome).toEqual({ ok: false, error: "not runnable" });
+      // macOS refuses a script without `#!` (spawn throws ENOEXEC: `not runnable`); Linux runs it
+      // with /bin/sh instead, and what it prints isn't a report (`invalid report`).
+      expect(outcome).toEqual({
+        ok: false,
+        error: process.platform === "darwin" ? "not runnable" : "invalid report",
+      });
       expect(leftovers()).toEqual([]);
     },
   );
