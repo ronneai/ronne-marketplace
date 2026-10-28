@@ -62,7 +62,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* component tests for each state and for a finding containing HTML pass, and a
   Playwright file (fake scanner) shows submit, then queued, then done, then approve. The phone sweep passes.
 
-- [ ] **8. Documentation.** The spec's Documentation section: ronne-web sections and `topics.ts` in
+- [x] **8. Documentation.** The spec's Documentation section: ronne-web sections and `topics.ts` in
   three languages (a branch `feat/135-skill-scanner` there), `apps/web/src/components/help/topics.ts`,
   both helpers, and `install.md`.
   *Done when:* the docs render tests pass, and every new helper's link lands on a real section.

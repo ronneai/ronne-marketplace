@@ -322,5 +322,13 @@
   "audit-actor": {
     "question": "Quem posso pesquisar?",
     "answer": "Parte de um e-mail, com maiúsculas ou minúsculas. system encontra eventos sem ninguém conectado, como a configuração e a linha de comando."
+  },
+  "security-scan": {
+    "question": "O que é esta verificação?",
+    "answer": "O SkillSpector, da NVIDIA, verificou esta revisão quando ela foi enviada: instruções escondidas, leitura de chaves ou credenciais, envio de dados para fora, código ofuscado, scripts baixados e executados. É uma segunda opinião, não uma decisão: pode deixar passar problemas e apontar código seguro, e nunca bloqueia uma aprovação."
+  },
+  "scan-settings": {
+    "question": "Como configuro o verificador?",
+    "answer": "Quem opera o servidor instala o SkillSpector em uma versão fixada, indica o comando dele em RONNE_SKILL_SCANNER (um array JSON, no ambiente ou no arquivo de configurações) e reinicia o Ronne. Para a análise semântica, também configura um provedor de LLM com variáveis RONNE_SKILL_SCANNER_ENV_. Nenhum dos dois pode ser definido aqui."
   }
 }

@@ -364,3 +364,38 @@ Witnessed: 2026-10-28 14:42 EDT, by a fresh agent (blind). Commit: fdfe6fe9 + un
 | c2e | The checks pass on the unmodified tree | no | confirmed | 86 review tests, 20 db tests, 367 i18n tests, typecheck and lint pass |
 
 **Overall:** met: with the first pass's confirmed rows and these re-checks, every claim of task 7 holds.
+
+## Task 8 — Documentation
+
+Witnessed: 2026-10-28 14:52 EDT, by a fresh agent (blind). Commit: d1a16e30 (marketplace, plus uncommitted diff); ronne-web branch feat/135-skill-scanner, uncommitted diff. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The ronne-web docs render tests pass, with lint, typecheck and build | no | confirmed | `pnpm lint` → 281 files, no fixes; `pnpm typecheck` → exit 0; `pnpm test` → 187 passed; `pnpm build` → en/pt/fr `review.html` and `settings.html` built |
+| 2 | The marketplace help, i18n, settings and review tests pass; the web app typechecks | no | confirmed | 606 tests passed; typecheck exit 0 |
+| 3 | Each new helper's link lands on a real section, in all three languages | no | confirmed | `Help.tsx` → `docsHref("review","security-scan")` and `("settings","security-scan")`; each built page has exactly one `id="security-scan"` |
+| 4 | The help test fails if a helper points at a missing section | no | confirmed | `"security-scans"` in a scratch copy → `help.test.tsx` 2 failed |
+| 5 | The two `topics.ts` files agree | no | confirmed | `topics-agree.py` → 35 topics each side, 0 differences |
+| 6 | The helpers sit on the panel and settings headings, with en/pt/fr text | no | confirmed | `<Help id="security-scan" />` in `ScanPanel.tsx`, `<Help id="scan-settings" />` in `SkillScanForm.tsx`; both keys in the three `help.json` |
+| 7 | Settings facts match the code | no | confirmed | Six tabs, scan last; defaults off, skill, static; refusals; provider and host never the key; last version and error; audited |
+| 8 | Review facts match the code | no | confirmed | Severity, score, three recommendations, rule and category, file:line link, Scanning…, failure reason, Scan again / now for root, a scan per revision, which scan ran, advisory |
+| 9 | Network and install facts match the knowledge note | no | confirmed | OSV.dev names and versions only; JSON array from the environment or settings file; `RONNE_SKILL_SCANNER_ENV_*`; not for Docker installs yet |
+| 10 | pt and fr say the same as en, with the app's own labels | no | confirmed | Same sentences and facts; bold labels match `messages/{pt,fr}`; terms per the translation guide |
+| 11 | `install.md` has the optional step, linking the knowledge note | no | confirmed | Under "After installing", before "Troubleshooting" |
+| 12 | SPEC's Documentation section and `product-facts.md` agree with the build | no | confirmed | `review#security-scan`, "set up the scanner"; the facts row matches |
+| 13 | No Documentation still states the old Settings layout | no | not met | `en/pt/fr notice.tsx` still called Notice Settings' last tab |
+
+**Overall:** not met: row 13. The three Notice topics now say fifth tab; re-checked below.
+
+### Re-check
+
+Witnessed: 2026-10-28 14:55 EDT, by a fresh agent (blind). Commit: d1a16e30 + working tree (marketplace); ronne-web e65118a + working tree (both on feat/135-skill-scanner). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The Notice topic calls Notice the fifth Settings tab in en, pt and fr, as the app has it | no | confirmed | `en/notice.tsx:19`, `pt/notice.tsx:20`, `fr/notice.tsx:20`; `tabs.ts` puts notice fifth and scan sixth |
+| 2 | No other statement gets the Settings tab count or order wrong | no | confirmed | "six tabs" and the order Usage … Security scan in all three `settings.tsx`; `help.json` has no Settings tab claim; `product-facts.md` says fifth |
+| 3 | The website's checks pass | no | confirmed | `pnpm lint`, `pnpm typecheck`, `pnpm test` (187) → exit 0 |
+| 4 | The marketplace's help, i18n, settings and review tests pass | no | confirmed | 606 passed |
+
+**Overall:** met: with the first pass's confirmed rows, every claim of task 8 holds; the Documentation is in ronne-web's branch `feat/135-skill-scanner`.

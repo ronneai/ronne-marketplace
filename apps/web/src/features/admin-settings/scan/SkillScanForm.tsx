@@ -3,6 +3,7 @@
 import { ITEM_TYPES, type ItemType } from "@ronneai/core";
 import { useTranslations } from "next-intl";
 import { useActionState, useState } from "react";
+import { Help } from "@/components/help/Help";
 import { reasonOf } from "@/components/scan/reason";
 import { Button } from "@/components/ui/Button";
 import { FieldError } from "@/components/ui/Field";
@@ -46,7 +47,9 @@ export const SkillScanForm = ({ settings }: { settings: SkillScanSettings }) => 
   return (
     <form action={action} aria-label={t("title")} className="grid gap-4">
       <div className="grid gap-1">
-        <h2 className="text-base font-semibold text-fg">{t("title")}</h2>
+        <h2 className="flex items-center gap-2 text-base font-semibold text-fg">
+          {t("title")} <Help id="scan-settings" />
+        </h2>
         <p className="text-sm text-muted">{t("intro")}</p>
       </div>
 

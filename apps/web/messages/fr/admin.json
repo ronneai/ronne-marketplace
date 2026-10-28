@@ -1056,7 +1056,7 @@
     },
     "scan": {
       "title": "Analyse de sécurité",
-      "intro": "SkillSpector, de NVIDIA, analyse chaque soumission dès son envoi, et ce qu’il trouve s’affiche sur la page de revue à côté des signaux de risque. C’est un deuxième avis pour les personnes qui révisent : il ne bloque jamais une soumission, une approbation ou une publication.",
+      "intro": "SkillSpector, de NVIDIA, analyse chaque soumission dès son envoi, et ce qu’il trouve s’affiche sur la page de révision à côté des signaux de risque. C’est un deuxième avis pour les personnes qui révisent : il ne bloque jamais une soumission, une approbation ou une publication.",
       "scanner": {
         "configured": "L’analyseur est configuré sur ce serveur.",
         "lastVersion": "La dernière analyse terminée a utilisé SkillSpector {version}.",
@@ -1068,7 +1068,7 @@
       },
       "enabled": {
         "label": "Analyser les soumissions",
-        "hint": "Chaque révision des types ci-dessous est analysée à son envoi en revue."
+        "hint": "Chaque révision des types ci-dessous est analysée à son envoi pour révision."
       },
       "types": {
         "title": "Types d’éléments à analyser",

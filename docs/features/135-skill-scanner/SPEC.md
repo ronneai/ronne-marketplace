@@ -208,7 +208,7 @@ semantic scan whose LLM wasn't available is kept as a static result, and says so
 ## Documentation
 
 - **Reviewing submissions** (the review topic), a new section **Security scan**
-  (`reviews#security-scan`): what SkillSpector checks, what the badge and findings mean, that it's
+  (`review#security-scan`): what SkillSpector checks, what the badge and findings mean, that it's
   advisory, static unless root chose semantic (and what that sends where), and can miss things and
   flag safe code, and that each revision gets its own scan.
 - **Admin › Settings** topic, a new section **Security scan** (`settings#security-scan`): what the
@@ -217,36 +217,36 @@ semantic scan whose LLM wasn't available is kept as a static result, and says so
   can't be set from the web.
 - **Install guide** (`docs/runbooks/install.md`, "After installing"): an optional step, "Scan
   submissions with SkillSpector", linking to the knowledge note.
-- **Helpers:** on the panel, "What is this scan?" → `reviews#security-scan`. In settings, "How do I
-  install the scanner?" → `settings#security-scan`.
+- **Helpers:** on the panel, "What is this scan?" → `review#security-scan`. In settings, "How do I
+  set up the scanner?" → `settings#security-scan`.
 - New sections change `apps/web/src/components/help/topics.ts` and ronne-web's `topics.ts` together,
   in English, Portuguese and French.
 
 ## Acceptance criteria
 
-- [ ] With `RONNE_SKILL_SCANNER` unset or the switch off, sending a submission queues nothing and
+- [x] With `RONNE_SKILL_SCANNER` unset or the switch off, sending a submission queues nothing and
   every existing test passes unchanged.
-- [ ] With both set, sending a revision of a scanned type queues exactly one scan, in the same transaction.
-- [ ] The scanner is run with an argument array, no shell, with `--no-llm` unless the scan is
+- [x] With both set, sending a revision of a scanned type queues exactly one scan, in the same transaction.
+- [x] The scanner is run with an argument array, no shell, with `--no-llm` unless the scan is
   semantic, on a private temporary directory that is removed afterwards, success or not.
-- [ ] The scanner's environment holds only the allowlisted variables: the provider's only for a
+- [x] The scanner's environment holds only the allowlisted variables: the provider's only for a
   semantic scan, only from `RONNE_SKILL_SCANNER_ENV_*`, and only the chosen provider's. A test shows
   `DATABASE_URL`, `AUTH_SECRET`, an unprefixed `OPENAI_API_KEY`, a prefixed name off the list
   (`RONNE_SKILL_SCANNER_ENV_ANTHROPIC_BASE_URL`) and another provider's variables (`OPENAI_API_KEY`
   with `SKILLSPECTOR_PROVIDER=anthropic`) never reach it, and a static scan gets none of the
   provider's variables even with a provider set up.
-- [ ] Semantic can be chosen only with a supported provider set up; the warning names the provider and
+- [x] Semantic can be chosen only with a supported provider set up; the warning names the provider and
   host; keys are never shown, stored or logged; a report that used the LLM when it wasn't asked to is refused.
-- [ ] A timeout kills the process and records `failed (timeout)`. Too much output, exit 2 or invalid
+- [x] A timeout kills the process and records `failed (timeout)`. Too much output, exit 2 or invalid
   JSON record `failed` with their reason. A stuck `running` row is retried once.
-- [ ] `parseSkillScan` accepts SkillSpector's real reports (fixtures recorded from v2.13.x on
+- [x] `parseSkillScan` accepts SkillSpector's real reports (fixtures recorded from v2.13.x on
   `examples/items` and on a bad sample skill), rejects anything else, and enforces its caps.
-- [ ] The review panel shows each state, findings render as plain text, and approve, override and
+- [x] The review panel shows each state, findings render as plain text, and approve, override and
   bulk approve work whatever the scan says.
-- [ ] Root turns scanning on and off and picks types. It is refused without a command, and audited.
+- [x] Root turns scanning on and off and picks types. It is refused without a command, and audited.
   Nobody can set the command from the web.
-- [ ] The panel and settings are in English, Portuguese and French (129) and pass the phone sweep (065).
-- [ ] The Documentation and inline helpers listed above say what the feature does now.
+- [x] The panel and settings are in English, Portuguese and French (129) and pass the phone sweep (065).
+- [x] The Documentation and inline helpers listed above say what the feature does now.
 
 ## Decisions
 

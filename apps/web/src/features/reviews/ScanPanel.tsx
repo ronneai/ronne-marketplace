@@ -2,6 +2,7 @@ import type { SkillScanFinding, SkillScanSeverity } from "@ronneai/core";
 import { ScanSearch } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { Help } from "@/components/help/Help";
 import { reasonOf } from "@/components/scan/reason";
 import { Badge, type BadgeTone } from "@/components/ui/Badge";
 import type { ReviewScan } from "@/server/domains/scans/actions/scans";
@@ -54,7 +55,7 @@ export const ScanPanel = ({
   const heading = (
     <h2 id="scan-panel" className="flex items-center gap-2 font-semibold text-fg">
       <ScanSearch size={16} aria-hidden="true" />
-      {t("heading")}
+      {t("heading")} <Help id="security-scan" />
     </h2>
   );
   const frame = "grid gap-3 rounded-panel border border-hairline p-4 text-sm";
