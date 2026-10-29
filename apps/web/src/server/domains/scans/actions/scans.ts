@@ -15,7 +15,7 @@ import { kyselyScanDismissalRepository } from "../repositories/kysely-scan-dismi
 import type { Dismissal } from "../repositories/scan-dismissal-repository";
 import * as dismissals from "../services/dismissals";
 import { canDismiss, canSeeScan } from "../services/dismissals";
-import { type ScanSetup, scanCommand, scanSetup } from "../services/scan-setup";
+import { type ScanSetup, scannerSet, scanSetup } from "../services/scan-setup";
 import * as service from "../services/scans";
 
 /**
@@ -49,26 +49,27 @@ export const scanGatePolicyNow = async (
   return { enabled: policy.enabled, types: policy.types, blockScore };
 };
 
-/** Only the command to run now: what queuing and the review page need, without opening the key. */
-const scanCommandNow = async (
+/** Whether a scanner is set now: what queuing and the review page need, without opening the key. */
+const scannerSetNow = async (
   app: Pick<AppAuth, "db" | "dialect">,
   env: Record<string, string | undefined> = process.env,
-): Promise<string[] | null> =>
-  scanCommand(
+): Promise<boolean> =>
+  scannerSet(
     loadConfig({ env }).skillScanner,
     await storedScanSetup(kyselySettingsRepository(app.db, app.dialect)),
   );
 
 /**
  * The item types a revision sent now is queued for the security scan of (135): root's types when
- * scanning is on and a scanner command is set (the operator's, or one root chose from their list);
+ * scanning is on and a scanner is set (the service's address, the operator's command, or one root
+ * chose from their list);
  * none otherwise.
  */
 export const scanTypesNow = async (
   app: Pick<AppAuth, "db" | "dialect">,
   env: Record<string, string | undefined> = process.env,
 ): Promise<readonly string[]> => {
-  if (!(await scanCommandNow(app, env))) return [];
+  if (!(await scannerSetNow(app, env))) return [];
   const policy = await skillScanPolicy({ repo: kyselySettingsRepository(app.db, app.dialect) });
   return policy.enabled ? policy.types : [];
 };
@@ -99,7 +100,7 @@ export const requestScan = async (
   const queued = await service.requestScan(
     {
       repo: kyselyContentScanRepository(app.db, app.dialect),
-      configured: (await scanCommandNow(app)) !== null,
+      configured: await scannerSetNow(app),
     },
     { user },
     revisionId,
@@ -139,7 +140,7 @@ export const reviewScan = async (
       revisionId,
     ) ?? null;
   const root = can(user, "settings.manage");
-  const configured = (await scanCommandNow(app)) !== null;
+  const configured = await scannerSetNow(app);
   const canRequest =
     root && configured && (scan === null || scan.status === "failed" || scan.status === "done");
   if (!scan) return { ...NO_SCAN, canRequest };

@@ -352,6 +352,32 @@ describe("running the queue (135)", () => {
     expect(row).toEqual({ status: "failed", error: "timeout" });
   });
 
+  it("puts a scan back when the scanner service is busy, stopping the run, then fails it as busy (156)", async () => {
+    await turnOn();
+    await submitDraft(asAna, (await drafted("team", "one")).id, app);
+    await submitDraft(asAna, (await drafted("team", "two")).id, app);
+    const busy = fakeScanner({ ok: false, error: "busy" });
+    // The first is put back and the run stops there: the second isn't even taken.
+    expect(await run(busy.scanner)).toMatchObject({ requeued: 1, failed: 0, scanned: 0 });
+    expect(busy.calls).toHaveLength(1);
+    expect((await scans()).map((scan) => scan.status).sort()).toEqual(["queued", "queued"]);
+    expect(
+      (await kyselySettingsRepository(t.db, t.dialect).get(SKILL_SCAN_LAST_ERROR_KEY))?.value,
+    ).toBeUndefined();
+
+    // Taken again (its last attempt), busy again: it fails, and the run goes on to the next.
+    expect(await run(busy.scanner)).toMatchObject({ requeued: 1, failed: 1, scanned: 0 });
+    const rows = await t.db
+      .selectFrom("content_scans")
+      .select(["status", "error", "attempts"])
+      .orderBy("attempts", "desc")
+      .execute();
+    expect(rows).toEqual([
+      { status: "failed", error: "busy", attempts: MAX_SCAN_ATTEMPTS },
+      { status: "queued", error: null, attempts: 1 },
+    ]);
+  });
+
   it("renews the job's lease between scans, however short they are", async () => {
     await turnOn();
     for (const name of ["one", "two", "three"])

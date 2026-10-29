@@ -5,6 +5,7 @@ import { clientIp } from "../../identity/models/client-ip";
 import { type AppAuth, getAppAuth } from "../../identity/repositories/auth-instance";
 import { scanSetupNow } from "../../scans/actions/scans";
 import { parseAllowedHosts, type Resolver } from "../../scans/models/endpoint";
+import { scannerServices } from "../../scans/services/http-scanner";
 import { type Probe, providerProbe } from "../../scans/services/provider-probe";
 import type { ScanSetup } from "../../scans/services/scan-setup";
 import { systemResolver } from "../../scans/services/system-resolver";
@@ -22,7 +23,7 @@ export type { InstanceSettings } from "../services/settings";
  * or the key: they stay on the server.
  */
 export const skillScannerFrom = (setup: ScanSetup): SkillScanner => ({
-  configured: setup.command !== null,
+  configured: setup.service !== null || setup.command !== null,
   provider: setup.provider
     ? { name: setup.provider.name, model: setup.provider.model, host: setup.provider.host }
     : null,
@@ -32,8 +33,14 @@ export const skillScannerFrom = (setup: ScanSetup): SkillScanner => ({
 const skillScanner = async (app: AppAuth): Promise<SkillScanner> =>
   skillScannerFrom(await scanSetupNow(app));
 
-export const skillScanSettings = async (headers: Headers, app: AppAuth = getAppAuth()) =>
-  service.skillScanSettings(deps(app), await actor(headers, app), await skillScanner(app));
+export const skillScanSettings = async (headers: Headers, app: AppAuth = getAppAuth()) => {
+  const who = await actor(headers, app);
+  const setup = await scanSetupNow(app);
+  // Asked only once the actor may see the page: the service skips the call otherwise.
+  return service.skillScanSettings(deps(app), who, skillScannerFrom(setup), async () =>
+    setup.service ? scannerServices(setup.service) : undefined,
+  );
+};
 
 export const setSkillScanPolicy = async (
   headers: Headers,

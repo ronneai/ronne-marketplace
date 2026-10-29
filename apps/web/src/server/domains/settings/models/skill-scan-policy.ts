@@ -1,4 +1,5 @@
 import { ITEM_TYPES, type ItemType } from "@ronneai/core";
+import type { ServiceHealth } from "../../scans/models/scan";
 
 /**
  * The security scan of submissions (feature 135), as root sets it: off until root turns it on,
@@ -109,6 +110,19 @@ export type SkillScanner = {
   provider: { name: string; model: string | null; host: string } | null;
   /** The setup's sources and root's stored values (136). */
   setup?: ScanSetupShown;
+  /** The scanner services (156) and their state, static first; only on the settings page. */
+  services?: ScannerServiceState[];
+};
+
+/**
+ * One scanner service as the tab shows it (156): its address (the operator's, never secret), whether
+ * it's compose's (the proxy's ports, so the tab can give the command that starts it) and its state.
+ */
+export type ScannerServiceState = {
+  kind: "static" | "semantic";
+  address: string;
+  compose: boolean;
+  health: ServiceHealth;
 };
 
 /**
@@ -117,7 +131,10 @@ export type SkillScanner = {
  * the key, and never a command's arguments.
  */
 export type ScanSetupShown = {
-  commandFrom: "environment" | "list" | null;
+  /** "service": the scanner service's address is set (156), and no command runs. */
+  commandFrom: "service" | "environment" | "list" | null;
+  /** What's wrong with the service's addresses (156), for the tab to say. */
+  serviceProblems: ScanServiceProblem[];
   commands: { index: number; name: string }[];
   chosenCommand: number | null;
   commandDropped: boolean;
@@ -133,6 +150,12 @@ export type ScanSetupShown = {
     key: "set" | "unreadable" | "none";
   };
 };
+
+/**
+ * An address the operator set for the scanner service that can't be used (156): the static one
+ * or the semantic one isn't a plain http(s) address, or a semantic one is set with no static one.
+ */
+export type ScanServiceProblem = "url" | "semanticUrl" | "semanticAlone";
 
 /** Admin › Settings › Security scan. */
 export type SkillScanSettings = {

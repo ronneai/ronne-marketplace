@@ -285,6 +285,19 @@ describe("the environment wins (136)", () => {
   });
 });
 
+describe("the scanner service (156)", () => {
+  it("keeps root's command choice when the form is saved while a service is set", async () => {
+    await save({ command: "1" });
+    // The tab shows no command field then: the form sends none.
+    await save({ command: "" }, { url: "http://proxy:8081", commands: LIST, env: {} });
+    expect((await stored()).command).toBe("1");
+    // Back to the command once the address goes.
+    expect(scanSetup({ commands: LIST, env: {} }, await stored(), AUTH_SECRET).command).toEqual([
+      "/opt/b/scan",
+    ]);
+  });
+});
+
 describe("what the setup reads back (136)", () => {
   it("reads a key that no longer opens as unreadable, and root can enter it again", async () => {
     await save({ ...anthropic, key: KEY });

@@ -29,7 +29,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     - a key sent with a semantic scan appears in no log;
     - `skillspector-sandbox` still scans with `--entrypoint skillspector`.
 
-- [ ] **3. Ronne's HTTP scanner.** [risky]
+- [x] **3. Ronne's HTTP scanner.** [risky]
   - `apps/web/src/server/domains/scans/services/http-scanner.ts`: `httpSkillScanner`, with the same contract and errors as the command scanner, plus `unreachable` (no answer, or the proxy's 502 or 504) and `busy` (the service's 503 with the JSON body `{"error": "busy"}`), the scan key in a header, and the proxy's 403 for a wrong key worded as such.
   - `config.ts` reads `RONNE_SKILL_SCANNER_URL` and `RONNE_SKILL_SCANNER_SEMANTIC_URL`, and refuses an address with credentials, a path or another scheme.
   - `skill-scan-setup.ts`: an address wins over a command, and the tab learns where the scanner is.
@@ -51,6 +51,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - `scripts/skill-scanner/scanner.compose.yaml` for host installs.
   - `install.sh` asks the question, on a fresh install and when it's run again to upgrade, and writes `COMPOSE_PROFILES` with the addresses and a new scan key (32 bytes, hex); `test-install.sh` covers both answers and the rerun.
   - *Done when:*
+    - the proxy's refusals for the scan key are JSON, `{"error": "scan key"}` for a wrong key and `{"error": "not set up"}` for none, with status 403, which is what Ronne reads as "scan key refused" (a probe against the real proxy shows it for `/scan` and `/health`);
     - `pnpm test:install` passes under dash and bash;
     - `docker compose --profile scanner config` is valid;
     - a local run scans a skill end to end with no `.env` editing;

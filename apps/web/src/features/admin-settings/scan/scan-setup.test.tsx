@@ -90,6 +90,122 @@ describe("the scanner command (136)", () => {
   });
 });
 
+describe("the scanner service (156)", () => {
+  const withServices = (
+    services: NonNullable<SkillScanSettings["scanner"]["services"]>,
+    config: Parameters<typeof scanSetup>[0] = {
+      url: "http://proxy:8081",
+      command: '["/env/scan"]',
+      commands: LIST,
+      env: {},
+    },
+  ) => {
+    const value = props(config);
+    return html({ ...value, scanner: { ...value.scanner, services } });
+  };
+
+  it("shows the service as ready with the scanner's version, and no command field", () => {
+    const page = withServices([
+      {
+        kind: "static",
+        address: "http://proxy:8081",
+        compose: true,
+        health: { state: "ready", version: "2.13.2" },
+      },
+      {
+        kind: "semantic",
+        address: "http://proxy:8082",
+        compose: true,
+        health: { state: "ready", version: null },
+      },
+    ]);
+    expect(page).toContain("The scanner container: ready, SkillSpector 2.13.2.");
+    expect(page).toContain("The semantic scanner container: ready.");
+    expect(page).not.toMatch(/name="command"/);
+    expect(page).not.toContain("RONNE_SKILL_SCANNER.");
+    expect(page).not.toContain("skillspector-sandbox");
+  });
+
+  it("says when it isn't reachable, with compose's command to start it", () => {
+    const page = withServices([
+      {
+        kind: "semantic",
+        address: "http://proxy:8082",
+        compose: true,
+        health: { state: "unreachable" },
+      },
+    ]);
+    expect(page).toContain(
+      "The semantic scanner container isn&#x27;t reachable at http://proxy:8082.",
+    );
+    expect(page).toContain("docker compose --profile scanner-semantic up -d");
+  });
+
+  it("gives no compose command for a service of the operator's own", () => {
+    const page = withServices(
+      [
+        {
+          kind: "static",
+          address: "http://127.0.0.1:7670",
+          compose: false,
+          health: { state: "unreachable" },
+        },
+      ],
+      { url: "http://127.0.0.1:7670", env: {} },
+    );
+    expect(page).toContain("isn&#x27;t reachable at http://127.0.0.1:7670.");
+    expect(page).not.toContain("docker compose");
+  });
+
+  it("says the proxy refused the scan key, with the command that recreates it", () => {
+    const page = withServices([
+      {
+        kind: "static",
+        address: "http://proxy:8081",
+        compose: true,
+        health: { state: "scan key refused" },
+      },
+    ]);
+    expect(page).toContain("The scanner container: the proxy refused Ronne&#x27;s scan key.");
+    expect(page).toContain("docker compose up -d --force-recreate proxy");
+  });
+
+  it("says when an address can't be used, with no command field", () => {
+    const page = html(
+      props({ url: "http://proxy:8081/scan", semanticUrl: "x", command: '["/env/scan"]', env: {} }),
+    );
+    expect(page).toContain("RONNE_SKILL_SCANNER_URL isn&#x27;t a plain http or https address");
+    expect(page).toContain(
+      "RONNE_SKILL_SCANNER_SEMANTIC_URL isn&#x27;t a plain http or https address",
+    );
+    expect(page).not.toMatch(/name="command"/);
+    const alone = html(props({ semanticUrl: "http://proxy:8082", commands: LIST, env: {} }));
+    expect(alone).toContain("is set without RONNE_SKILL_SCANNER_URL");
+    // The operator's commands are still offered: no service is set.
+    expect(alone).toMatch(/name="command"/);
+  });
+
+  it("reads in Portuguese and French", () => {
+    const services = [
+      {
+        kind: "static" as const,
+        address: "http://proxy:8081",
+        compose: true,
+        health: { state: "ready" as const, version: "2.13.2" },
+      },
+    ];
+    const value = props({ url: "http://proxy:8081", env: {} });
+    const page = (locale: "pt" | "fr") =>
+      inLocale(locale, () =>
+        renderToStaticMarkup(
+          <SkillScanForm settings={{ ...value, scanner: { ...value.scanner, services } }} />,
+        ),
+      );
+    expect(page("pt")).toContain("O contêiner do verificador: pronto, SkillSpector 2.13.2.");
+    expect(page("fr")).toContain("Le conteneur de l’analyseur : prêt, SkillSpector 2.13.2.");
+  });
+});
+
 describe("the provider and its key (136)", () => {
   it("shows root's provider, model and endpoint, and the key only as set, never its value", () => {
     const value = props(

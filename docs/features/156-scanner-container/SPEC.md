@@ -64,7 +64,7 @@ A Docker install then gets the scanner by answering one question in the installe
   `web` passes on `RONNE_SKILL_SCANNER_URL` and `RONNE_SKILL_SCANNER_SEMANTIC_URL` from `.env`, empty when they aren't set. The installer writes them with the profiles (`http://proxy:8081`, `http://proxy:8082`), so an install without the scanner has no address and never shows it as unreachable.
 - **For a host install.** `scripts/skill-scanner/scanner.compose.yaml` runs the same service on `127.0.0.1:7670`, outside the ports the installer picks for Ronne (7650–7661), and `RONNE_SKILL_SCANNER_URL=http://127.0.0.1:7670` points Ronne at it. That's one line in the settings file, in place of the wrapper's setup.
 - **Ronne's side.**
-  - `httpSkillScanner`, a second `SkillScanner` next to `commandSkillScanner`, with the same contract and the same errors. It adds two of its own: **unreachable** (no answer, or the proxy's 502 or 504) and **busy** (it's scanning something else: the service's 503 with the JSON body `{"error": "busy"}`, told apart from any other 503 by that body). A busy scan goes back to the queue, counted against the scan's attempts (`MAX_SCAN_ATTEMPTS`, which today only gives a stuck scan its one more try), and the job's run stops there, so the scan waits for the next run, a minute later. Once its attempts are used up, it fails as busy. Every other error fails the scan, as today. It reads the report with `parseSkillScan`, as now.
+  - `httpSkillScanner`, a second `SkillScanner` next to `commandSkillScanner`, with the same contract and the same errors. It adds two of its own: **unreachable** (no answer, or the proxy's 502 or 504) and **busy** (it's scanning something else: the service's 503 with the JSON body `{"error": "busy"}`, told apart from any other 503 by that body). A busy scan goes back to the queue, counted against the scan's attempts (`MAX_SCAN_ATTEMPTS`, which today only gives a stuck scan its one more try), and the job's run stops there, so the scan waits for the next run, a minute later. Once its attempts are used up, it fails as busy. The proxy's 403 for the scan key is **scan key refused**, and the service refusing the request itself (too large, malformed, its own fault) is **refused**; the service's other errors keep their names (timeout, output too large, bad file path, …). Every error but busy fails the scan, as today. It reads the report with `parseSkillScan`, as now.
   - **Which scanner a scan uses:**
     - With a service address set, scans go to it, whatever command is set: the address is the newer way, and compose sets it.
     - A static scan goes to `RONNE_SKILL_SCANNER_URL`. A semantic one goes to `RONNE_SKILL_SCANNER_SEMANTIC_URL`, or fails as not set up when it isn't set.
@@ -72,7 +72,8 @@ A Docker install then gets the scanner by answering one question in the installe
   - **The addresses** come from the environment or the settings file, never from the web: like the command, they're the operator's choice (135, decision 3).
   - **Admin › Settings › Security scan** shows where the scanner is:
     - "The scanner container: ready, SkillSpector 2.13.2", from one `/health` call with a short timeout, the way Test connection works;
-    - or "not reachable", with the command that starts it;
+    - or "not reachable", with the command that starts it (for compose's proxy only: an address of the operator's own gets no command);
+    - or that the proxy refused the scan key, with the command that recreates the proxy;
     - and the same for the semantic service when it's set.
 
     The command field doesn't show when a service is set.
@@ -114,7 +115,8 @@ A Docker install then gets the scanner by answering one question in the installe
 - **The service is busy:** the scan goes back to the queue and is tried again on the job's next run, up to its attempts. Ronne's replicas share one scan lease, so they normally never scan at the same time. The service is busy when another Ronne instance uses it too, when it's still finishing a scan Ronne gave up on (Ronne's timeout, or a restart), or when a replica lost the 15-minute lease during a long scan and another one took it.
 - **A report that doesn't parse, or one over the cap:** the same errors as the command path.
 - **Files Ronne would refuse:** the service checks the paths again, with Ronne's rules (`pathProblemOf`, `caseClash`), and refuses the request whole. One difference, on purpose: it also refuses a path with a lone surrogate, which no file can be named after (Node would write it as U+FFFD). Ronne's stored paths are UTF-8, so they never hold one.
-- **An address with credentials, a path, or an unknown scheme:** the configuration is refused at start-up, the way a bad command is. The tab says the address is invalid.
+- **An address with credentials, a path, a query, or an unknown scheme:** it isn't used, as a bad command isn't: Ronne starts, and nothing is scanned. A command set beside it doesn't run in its place, since the operator chose the service. The tab says which address is invalid. A semantic address that isn't one makes semantic scans fail as not set up, and one set without a static address is used for nothing; the tab says so in both cases.
+- **A service that stalls or drips its answer:** Ronne stops waiting at the scan's timeout plus 30 seconds, whatever the answer does, and the scan fails as unreachable. The tab's `/health` call stops after 3 seconds.
 
 ## Data
 

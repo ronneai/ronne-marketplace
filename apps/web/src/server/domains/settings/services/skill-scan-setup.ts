@@ -137,9 +137,11 @@ export const setSkillScanSetup = async (
 
   const commandText =
     typeof value.command === "number" ? String(value.command) : text(value.command);
+  // The environment's command, or the scanner service (156), fixes it: root's choice stays as is.
+  const commandFixed = shown.commandFrom === "environment" || shown.commandFrom === "service";
   if (
     commandText &&
-    shown.commandFrom !== "environment" &&
+    !commandFixed &&
     !shown.commands.some((choice) => String(choice.index) === commandText)
   )
     throw new InvalidScanCommandError();
@@ -165,7 +167,7 @@ export const setSkillScanSetup = async (
   return deps.repo.transaction(async (repo) => {
     const from = await storedScanSetup(repo);
     const to: StoredScanSetup = { ...from };
-    if (shown.commandFrom !== "environment") to.command = commandText;
+    if (!commandFixed) to.command = commandText;
     if (shown.timeoutFrom !== "environment") to.timeout = timeoutText;
     let keyEvent: "set" | "replaced" | "removed" | null = null;
     if (!envProvider) {

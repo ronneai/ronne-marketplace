@@ -439,3 +439,151 @@ Witnessed: 2026-10-29 17:24 EDT, by a fresh agent (adversarial, re-check). Commi
 | 6 | Memory per connection lower | yes | confirmed | four × 32 MiB |
 
 **Overall:** met. Remarks: the bomb is 17% over the cap (it would fail loudly, not silently, if the limits grew); the comment's "27 MB" now reads "20 MiB … about 28 MB".
+
+## Task 3
+
+Witnessed: 2026-10-29 17:50 EDT, by a fresh agent (blind). Commit: d23daa7a + working-tree diff (25 modified, 3 untracked). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Stand-in server tests cover ready, unreachable, busy, timeout, the cap, a bad report, the semantic route | no | confirmed | 141 pass; one mutation per rule fails a test |
+| 2 | Busy told from another 503 | no | confirmed | HTML 503 → unreachable; but the status isn't checked |
+| 3 | Unreachable: no answer, drop, 502, 504, redirect | no | confirmed | tests |
+| 4 | The scan key in a header | no | confirmed | mutation fails |
+| 5 | The proxy's 403 worded as such | no | partly | needs the proxy's JSON body (task 4) |
+| 6 | Bad addresses refused | no | partly | parsed out, but a command beside it runs silently, and the tab doesn't say |
+| 7 | An address wins over a command | no | confirmed | mutations |
+| 8 | Static to one address, semantic to the other | no | confirmed | Host header; no key on a static scan |
+| 9 | Busy requeued, counted, run stops | no | confirmed | four databases, mutations |
+| 10 | The tab's states from a short `/health` | no | confirmed | no test of its timeout |
+| 11 | A real scan through the image | no | confirmed | 14 findings; busy and bad paths real |
+| 12 | The command path's tests | no | confirmed | pass |
+| 13 | Messages in en, pt, fr | no | confirmed | parity tests |
+| 14 | Types and lint | no | confirmed | clean |
+
+**Overall:** not met: rows 5 and 6.
+
+### Adversarial pass
+
+Witnessed: 2026-10-29 17:36 EDT, by a fresh agent (adversarial). Commit: d23daa7a + working-tree diff. Machine: macOS (Darwin 27), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Never longer than the timeout plus grace | no | not met | headers then a stall or a drip: no result at 90 s (POST with `redirect: "error"` ignores the abort once the body started) |
+| 2 | The answer capped | no | confirmed | endless chunked; mutation |
+| 3 | Every service error a fixed `ScanError` | no | not met | `{"error":"constructor"}` reads Object.prototype; the job fails and the scan stays running |
+| 4 | Non-JSON 200s, redirects, bad exits | no | confirmed | probes |
+| 5 | Busy only the 503 | no | partly | matched by body alone |
+| 6 | Provider variables only to the semantic address | no | confirmed | code and mutation |
+| 7 | The key header | no | confirmed | mutation |
+| 8 | Bad addresses refused, tab says so | no | not met | silent; the command beside it runs |
+| 9 | Busy requeue | no | confirmed | mutations |
+| 10 | Address wins, everywhere | no | confirmed | mutations |
+| 11 | Saving keeps root's command choice | no | partly | code right, no test |
+| 12 | `/health` root-only, can't hang the page | no | partly | no test of the order; any JSON is "ready"; version uncapped |
+| 13 | Messages | no | confirmed | grep |
+| 14 | Tests pass | no | confirmed | 141 and 36 |
+
+**Overall:** not met: rows 1, 3, 8. Fixed since:
+- One deadline of Ronne's own covers the whole request, the body included. Each read is raced with it, `redirect` is `manual` (a 3xx is no answer), and the reader is cancelled. Tests cover a hang, a stall after headers, a drip, and a fetch that ignores its abort signal, for scans and for `/health`.
+- Service errors come from a `Map`: `constructor`, `__proto__` and the rest are "refused".
+- Busy counts only on a 503, and the scan key only on a 403. Anything else is "refused".
+- A static address that's set but isn't a plain http(s) one (credentials, a path, a query, even an empty `?` or `#`) means no scanner: the command beside it doesn't run. The tab says which address is wrong, a bad semantic address, and a semantic one set with no static one, in en, pt and fr. The SPEC edge case now says this. A bad command was never refused at start-up either.
+- `/health` is ready only for `{"scanner": "skillspector"}`, with the version kept only if it's at most 32 version characters.
+- New tests for saving the form while a service is set (it keeps root's command choice) and for `/health` being asked only after the permission check.
+- The implementer undid each of these fixes in turn, and each makes a test fail.
+- The whole web suite passes (two unrelated timing tests timed out at a load average of 166 and pass alone), lint and types are clean, and a real scan through the image gives 14 findings.
+- Row 5's JSON body is task 4's to give; the 403 is read by status and body together.
+
+### Re-check
+
+Witnessed: 2026-10-29 18:13 EDT, by a fresh agent (blind). Commit: d23daa7a + working-tree diff (25 modified, 3 untracked). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | One deadline over the whole request, body included | no | confirmed | mutations; a drip and a hang give unreachable at the deadline |
+| 2 | A redirect is no answer | no | confirmed | 307 to a second server: never hit |
+| 3 | Service errors from a Map | no | confirmed | `constructor`, `__proto__`, `toString` → refused |
+| 4 | Busy only on a 503, the key only on a 403 | no | confirmed | probes and mutations |
+| 5–7 | Unreachable pages; `/health` shape, version, 3 s | no | confirmed | probes |
+| 8–10 | Invalid address → no scanner; problems; messages | no | confirmed | mutations; i18n tests |
+| 11 | The proxy's 403 body | no | can't check here | the proxy is task 4's; a bare 403 would read as unreachable |
+| 12–14 | Keep root's command; `/health` after permission; a real scan | no | confirmed | 14 findings |
+
+**Overall:** not met: row 11 waits for task 4. Test gaps: the race around `fetcher`, the 3xx branch, the 3 s constant.
+
+### Re-check
+
+Witnessed: 2026-10-29 18:17 EDT, by a fresh agent (adversarial). Commit: d23daa7a (plus the uncommitted diff and the three untracked files). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Task tests pass on SQLite, PostgreSQL 15, MySQL 8.4 | no | confirmed | 149 unit, 91 db |
+| 2 | Stall, drip, slow headers stop at the deadline, no timer left | no | confirmed | `unreachable` at 1005–1011 ms; the socket closes |
+| 3 | A body ending at the deadline: whole or unreachable | no | confirmed | no unhandled rejection |
+| 4 | A 3xx never followed or read | no | confirmed | including through the job |
+| 5 | Map; busy 503; key 403 | no | confirmed | real image: three at once → ok, busy, busy |
+| 6 | Hostile reports never throw | no | confirmed | 1e6-deep nests |
+| 7 | `/health` shape, version, timeout | no | confirmed | mutations |
+| 8 | Addresses | no | confirmed | IPv6, whitespace, odd forms |
+| 9 | Each fix fails a test when undone | no | partly | M2 (race around `fetcher`), M11 (3xx), M13 (`clearTimeout`) still pass |
+| 10 | No scan stays running; lease released | no | confirmed | three databases |
+| 11–12 | Real image; messages | no | confirmed | 14 findings through the image; 12 message tests pass |
+
+**Overall:** not met: row 9. Fixed since:
+- Tests for a fetch that never settles and ignores its signal, a 3xx whose body looks like the service's (and one whose body never ends), a timer left open after a scan, and the health timeout being 3000 ms.
+- The implementer undid each in turn (M2, M11, M13, and the constant at 30000), and each makes a test fail. 29 tests pass.
+- Task 4's *Done when* now holds the proxy's 403 JSON bodies, which row 11 of the blind pass waited for.
+
+### Re-check
+
+Witnessed: 2026-10-29 18:30 local, by a fresh agent (blind, re-check). Commit: d23daa7a plus the uncommitted diff and untracked files. Machine: macOS (Darwin 27.0.0), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A fetch that never settles and ignores its signal ends as unreachable | no | confirmed | 29/29 pass; without the race around `fetcher` only that test fails |
+| 2 | A 3xx is no answer whatever its body says; an endless one returns in under 1 s | no | confirmed | without the 3xx check only that test fails |
+| 3 | No timer left after an answered scan | no | confirmed | without `clearTimeout` only that test fails |
+| 4 | The health timeout is 3000 ms | no | confirmed | at 30000 only that test fails |
+| 5 | The timer test restores the globals it patches | no | confirmed | `finally` block; no cross-test effects |
+| 6 | Not flaky | no | confirmed | 5 plain runs and 3 under 8 busy loops: 29/29 each |
+| 7 | Types clean, repository untouched | no | confirmed | `tsc` no output; `git status` md5 unchanged |
+
+**Overall:** met.
+
+### Re-check
+
+Witnessed: 2026-10-29 18:35 local, by a fresh agent (adversarial). Commit: d23daa7a plus the staged task-3 diff. Machine: macOS (Darwin), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The test for headers that never come fails without the race around `fetcher` | no | confirmed | race removed → fails at 5010 ms |
+| 2 | The test for a fetch that ignores its signal fails without the race in `readAnswer` | no | confirmed | fails at 5006 ms |
+| 3 | The 3xx test fails without the branch, and if the body is read | no | confirmed | `if (false)` → fails; reading the body → endless case fails |
+| 4 | The timer test fails without `clearTimeout`, and with `unref` instead | no | confirmed | both fail |
+| 5 | The 3xx handling cancels the body | no | partly | removing `body.cancel()` passes all 29: no test observes it |
+| 6 | Every status 300–399 is a redirect | no | partly | `=== 302 \|\| === 307` passes all 29 |
+| 7 | The health timeout is 3000 ms by default, in the tab's call | no | partly | `timeoutMs = 60000`, or 60000 from `scannerServices`, passes all 29 |
+| 8 | Not flaky | no | confirmed | 8 runs, 4 under load: 29/29 |
+| 9 | Nothing else wrong in `call`, `readAnswer`, `serviceHealth`, `scannerServices` | no | confirmed | read; 302 tests, 36 db tests, `tsc` clean |
+
+**Overall:** not met: rows 5, 6 and 7, all weak tests, no bug in the code. Fixed since:
+- The 3xx test runs statuses 300, 301, 302, 303, 305, 307, 308 and 399 with a service-looking body, and checks 299 and 400 are answers. A redirect whose stream records a `cancel` must see it called.
+- A test reads the longest timer a call sets with no timeout argument, for `serviceHealth` and for `scannerServices`, and expects 3000.
+- The implementer ran five weaker variants (302/307 only, 301–398, no cancel, 60000 default, 60000 from `scannerServices`): each fails a test. 29 tests pass.
+
+### Re-check
+
+Witnessed: 2026-10-29 19:07 local, by a fresh agent (adversarial). Commit: d23daa7a plus the staged task-3 work. Machine: macOS (Darwin), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The 3xx test fails when the 3xx check is wrong | no | confirmed | `status === 302 \|\| status === 307`, `> 300 && < 399` and `>= 300 && < 400 && !== 308` each → 1 failed, 28 passed |
+| 2 | It fails when the redirect body isn't cancelled, or is cancelled on the wrong object | no | confirmed | no `cancel()` → fails; `response.clone().body` cancelled → fails |
+| 3 | The default-deadline test fails on a wrong default | no | confirmed | `timeoutMs = 60000`, `scannerServices` passing 60000 and `HEALTH_TIMEOUT_MS = 5000` each → fails |
+| 4 | A deadline under 3000 for the semantic service is not caught (known, harmless: "three seconds at most" holds) | no | confirmed | 3000 for the static and 1000 for the semantic service → 29 of 29 pass, as the witness showed. Its report called the row "partly"; recorded here as the claim it evidenced, with the owner's acceptance of test-strength findings (2026-10-29) |
+| 5 | The tests are not flaky | no | confirmed | 8 runs, 4 under 8 busy loops: 29/29 |
+| 6 | The timer-recording test restores `globalThis.setTimeout` | no | confirmed | `finally`; nothing later affected |
+| 7 | Scoped suites and typecheck are green | no | confirmed | 14 files, 302 tests; `tsc` no output |
+
+**Overall:** met. No bugs found.

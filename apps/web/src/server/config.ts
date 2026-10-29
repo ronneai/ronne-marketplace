@@ -39,6 +39,13 @@ export type AppConfig = {
     commands?: string;
     /** RONNE_SKILL_SCANNER_HTTP_HOSTS (136): hosts a web-set endpoint may use despite the checks. */
     httpHosts?: string;
+    /**
+     * RONNE_SKILL_SCANNER_URL and RONNE_SKILL_SCANNER_SEMANTIC_URL (156): the scanner service's
+     * addresses, and RONNE_SCAN_KEY, the key its proxy checks.
+     */
+    url?: string;
+    semanticUrl?: string;
+    scanKey?: string;
     env: Record<string, string>;
   };
 };
@@ -82,6 +89,9 @@ export const loadConfig = (options: { appDir?: string; env?: Env } = {}): AppCon
       timeout: value("RONNE_SKILL_SCANNER_TIMEOUT"),
       commands: value("RONNE_SKILL_SCANNERS"),
       httpHosts: value("RONNE_SKILL_SCANNER_HTTP_HOSTS"),
+      url: value("RONNE_SKILL_SCANNER_URL"),
+      semanticUrl: value("RONNE_SKILL_SCANNER_SEMANTIC_URL"),
+      scanKey: value("RONNE_SCAN_KEY"),
       env: withPrefix("RONNE_SKILL_SCANNER_ENV_"),
     },
   };

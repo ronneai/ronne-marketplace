@@ -1068,9 +1068,9 @@
         "lastVersion": "The last scan that finished used SkillSpector {version}.",
         "missing": {
           "title": "No scanner is set up on this server",
-          "body": "The server's operator installs SkillSpector and lists its command in RONNE_SKILL_SCANNERS (or sets RONNE_SKILL_SCANNER), in the environment or the settings file, then restarts Ronne. It can then be chosen here."
+          "body": "With Docker, the server's operator adds the scanner container: the installer asks. Otherwise, they install SkillSpector and list its command in RONNE_SKILL_SCANNERS (or set RONNE_SKILL_SCANNER), in the environment or the settings file, then restart Ronne. A command can then be chosen here."
         },
-        "lastError": "The last scan didn't finish: {reason, select, timeout {it ran past the timeout} not_found {the scanner's command wasn't found} not_runnable {the scanner's command can't be run} not_configured {no scanner command is set} output_too_large {it wrote too much output} invalid_report {its report couldn't be read} signal {it was stopped by a signal} no_temporary_folder {its temporary folder couldn't be made} bad_file_path {a file path in the submission was refused} write_failed {its files couldn't be written} endpoint_refused {its LLM endpoint failed its check when the scan started} exit {it exited with code {code}} other {{error}}}"
+        "lastError": "The last scan didn't finish: {reason, select, timeout {it ran past the timeout} not_found {the scanner's command wasn't found} not_runnable {the scanner's command can't be run} not_configured {no scanner is set up} output_too_large {it wrote too much output} invalid_report {its report couldn't be read} signal {it was stopped by a signal} no_temporary_folder {its temporary folder couldn't be made} bad_file_path {a file path in the submission was refused} write_failed {its files couldn't be written} endpoint_refused {its LLM endpoint failed its check when the scan started} unreachable {the scanner service couldn't be reached} busy {the scanner service was busy with another scan} scan_key_refused {the scanner service refused the scan key} refused {the scanner service refused the request} exit {it exited with code {code}} other {{error}}}"
       },
       "command": {
         "title": "Scanner",
@@ -1080,7 +1080,21 @@
         "option": "{position}. {name}",
         "only": "{name}, the server's only command.",
         "fromServer": "Set on the server, in RONNE_SKILL_SCANNER.",
-        "dropped": "The command chosen before is no longer in the server's list. Choose another: until then, nothing is scanned."
+        "dropped": "The command chosen before is no longer in the server's list. Choose another: until then, nothing is scanned.",
+        "service": {
+          "name": "{kind, select, semantic {The semantic scanner container} other {The scanner container}}",
+          "ready": "{name}: ready, SkillSpector {version}.",
+          "readyNoVersion": "{name}: ready.",
+          "unreachable": "{name} isn't reachable at {address}.",
+          "keyRefused": "{name}: the proxy refused Ronne's scan key.",
+          "start": "On the server, start it with",
+          "recreate": "On the server, recreate the proxy so it reads the key in .env:",
+          "problem": {
+            "url": "RONNE_SKILL_SCANNER_URL isn't a plain http or https address, so nothing is scanned. The server's operator fixes it and restarts Ronne.",
+            "semanticUrl": "RONNE_SKILL_SCANNER_SEMANTIC_URL isn't a plain http or https address, so semantic scans fail. The server's operator fixes it and restarts Ronne.",
+            "semanticAlone": "RONNE_SKILL_SCANNER_SEMANTIC_URL is set without RONNE_SKILL_SCANNER_URL, so Ronne doesn't use it."
+          }
+        }
       },
       "provider": {
         "title": "LLM provider",

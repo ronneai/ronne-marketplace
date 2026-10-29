@@ -36,6 +36,11 @@ export interface ContentScanRepository {
     at: Date,
   ): Promise<{ requeued: number; failed: number }>;
   /**
+   * Puts a running scan back in the queue when it has had fewer than `maxAttempts` (156: the
+   * scanner service was busy). False when its attempts are used up, or it isn't running.
+   */
+  putBack(id: string, maxAttempts: number): Promise<boolean>;
+  /**
    * The revision's files, or null when there's nothing to scan: the revision is gone, or its
    * submission was withdrawn (archived) while the scan waited.
    */

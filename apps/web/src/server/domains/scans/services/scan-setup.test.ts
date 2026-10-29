@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { sealScanKey } from "../../settings/models/scan-key";
 import type { StoredScanSetup } from "../../settings/models/skill-scan-policy";
-import { parseScannerList, scanCommand, scanSetup } from "./scan-setup";
+import { parseScannerList, scannerSet, scanServiceOf, scanSetup } from "./scan-setup";
 
 const AUTH_SECRET = "test-secret-test-secret-test-secret-00";
 const NONE: StoredScanSetup = {
@@ -186,8 +186,8 @@ describe("scanSetup: the key goes only where it was typed for (136)", () => {
   });
 });
 
-describe("scanCommand (136)", () => {
-  it("gives the same command as scanSetup, from the config and root's choice only", () => {
+describe("scannerSet (136, 156)", () => {
+  it("is set when scanSetup has a command, from the config and root's choice only", () => {
     for (const [config, stored] of [
       [
         { command: '["/env/scan"]', commands: LIST, env: {} },
@@ -202,7 +202,94 @@ describe("scanCommand (136)", () => {
         { ...NONE, command: "1" },
       ],
       [{ commands: '[["/only"]]', env: {} }, NONE],
+      [{ commands: LIST, env: {} }, NONE],
+      [{ env: {} }, NONE],
     ] as const)
-      expect(scanCommand(config, stored)).toEqual(scanSetup(config, stored, AUTH_SECRET).command);
+      expect(scannerSet(config, stored)).toBe(
+        scanSetup(config, stored, AUTH_SECRET).command !== null,
+      );
+  });
+
+  it("is set by a service address alone (156)", () => {
+    expect(scannerSet({ url: "http://proxy:8081", env: {} }, NONE)).toBe(true);
+    expect(scannerSet({ url: "ftp://proxy", env: {} }, NONE)).toBe(false);
+  });
+});
+
+describe("the scanner service (156)", () => {
+  it("wins over a command, and the tab says so", () => {
+    const setup = scanSetup(
+      {
+        url: "http://proxy:8081",
+        semanticUrl: "http://proxy:8082/",
+        scanKey: " k ",
+        command: '["/env/scan"]',
+        env: {},
+      },
+      NONE,
+      AUTH_SECRET,
+    );
+    expect(setup.service?.url.href).toBe("http://proxy:8081/");
+    expect(setup.service?.semanticUrl?.href).toBe("http://proxy:8082/");
+    expect(setup.service?.key).toBe("k");
+    expect(setup.shown.commandFrom).toBe("service");
+  });
+
+  it("takes only a plain http or https address, with no path, query or credentials", () => {
+    for (const url of [
+      "",
+      "proxy:8081",
+      "file:///tmp/x",
+      "http://user:pw@proxy:8081",
+      "http://proxy:8081/scan",
+      "http://proxy:8081/?a=1",
+      "http://proxy:8081/#x",
+      "http://proxy:8081?",
+      "http://proxy:8081#",
+      "http://proxy:8081//",
+    ])
+      expect(scanServiceOf({ url, env: {} }), url).toBeNull();
+    expect(scanServiceOf({ url: "https://scan.example", env: {} })?.url.href).toBe(
+      "https://scan.example/",
+    );
+  });
+
+  it("runs no command beside an address that isn't one, and the tab says why (156)", () => {
+    const setup = scanSetup(
+      { url: "http://proxy:8081/scan", command: '["/env/scan"]', commands: LIST, env: {} },
+      { ...NONE, command: "1" },
+      AUTH_SECRET,
+    );
+    expect(setup.service).toBeNull();
+    expect(setup.command).toBeNull();
+    expect(setup.shown.commandFrom).toBe("service");
+    expect(setup.shown.commandDropped).toBe(false);
+    expect(setup.shown.serviceProblems).toEqual(["url"]);
+    expect(
+      scannerSet({ url: "http://proxy:8081/scan", command: '["/env/scan"]', env: {} }, NONE),
+    ).toBe(false);
+  });
+
+  it("says a semantic address is unusable, or set with no static one", () => {
+    expect(
+      scanSetup({ url: "http://proxy:8081", semanticUrl: "ftp://x", env: {} }, NONE, AUTH_SECRET)
+        .shown.serviceProblems,
+    ).toEqual(["semanticUrl"]);
+    const alone = scanSetup(
+      { semanticUrl: "http://proxy:8082", command: '["/env/scan"]', env: {} },
+      NONE,
+      AUTH_SECRET,
+    );
+    expect(alone.shown.serviceProblems).toEqual(["semanticAlone"]);
+    // With no static address, the command still runs: the service isn't set.
+    expect(alone.command).toEqual(["/env/scan"]);
+    expect(alone.shown.commandFrom).toBe("environment");
+    expect(scanSetup({ env: {} }, NONE, AUTH_SECRET).shown.serviceProblems).toEqual([]);
+  });
+
+  it("has no semantic address unless a valid one is set, and no key unless one is", () => {
+    const service = scanServiceOf({ url: "http://proxy:8081", semanticUrl: "nope", env: {} });
+    expect(service?.semanticUrl).toBeNull();
+    expect(service?.key).toBeNull();
   });
 });

@@ -10,6 +10,7 @@ import {
   STALE_SCAN_FOLDER_MS,
   sweepScanFolders,
 } from "../domains/scans/services/command-scanner";
+import { httpSkillScanner } from "../domains/scans/services/http-scanner";
 import { type ScanSetup, scanSetup } from "../domains/scans/services/scan-setup";
 import { runQueuedScans, stuckBefore } from "../domains/scans/services/scans";
 import { systemResolver } from "../domains/scans/services/system-resolver";
@@ -41,7 +42,7 @@ const setupNow = async (
 
 /**
  * Runs the queued scans. Scans already queued run even if root has turned scanning off since:
- * they were asked for. With no command they fail `not configured`, which settings show.
+ * they were asked for. With no scanner they fail `not configured`, which settings show.
  */
 export const runSkillScanJob = async (
   deps: JobDeps,
@@ -50,7 +51,7 @@ export const runSkillScanJob = async (
 ): Promise<JobRun> =>
   runJob(deps, SKILL_SCAN_JOB, async (renew) => {
     const policy = await skillScanPolicy({ repo: kyselySettingsRepository(deps.db, deps.dialect) });
-    const { command, provider, timeoutSeconds, endpointToCheck } = await setupNow(
+    const { service, command, provider, timeoutSeconds, endpointToCheck } = await setupNow(
       deps,
       config,
       options,
@@ -67,7 +68,10 @@ export const runSkillScanJob = async (
     }
     const counts = await runQueuedScans({
       repo: kyselyContentScanRepository(deps.db, deps.dialect),
-      scanner: commandSkillScanner({ command, timeoutSeconds, provider }),
+      // The scanner service's address wins over a command (156).
+      scanner: service
+        ? httpSkillScanner({ ...service, timeoutSeconds, provider })
+        : commandSkillScanner({ command, timeoutSeconds, provider }),
       semantic: policy.analysis === "semantic",
       provider,
       timeoutSeconds,

@@ -116,7 +116,11 @@ export const SkillScanForm = ({ settings }: { settings: SkillScanSettings }) => 
             <h3 id="scan-command-title" className="text-sm font-semibold text-fg">
               {t("command.title")}
             </h3>
-            <ScannerCommand key={`${setup.chosenCommand}`} setup={setup} />
+            <ScannerCommand
+              key={`${setup.chosenCommand}`}
+              setup={setup}
+              services={scanner.services}
+            />
           </section>
           <section className="grid gap-2" aria-labelledby="scan-provider-title">
             <h3 id="scan-provider-title" className="text-sm font-semibold text-fg">

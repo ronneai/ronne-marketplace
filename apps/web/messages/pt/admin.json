@@ -1068,9 +1068,9 @@
         "lastVersion": "A última verificação concluída usou o SkillSpector {version}.",
         "missing": {
           "title": "Nenhum verificador está configurado neste servidor",
-          "body": "Quem opera o servidor instala o SkillSpector e lista o comando dele em RONNE_SKILL_SCANNERS (ou define RONNE_SKILL_SCANNER), no ambiente ou no arquivo de configurações, e depois reinicia o Ronne. Aí ele pode ser escolhido aqui."
+          "body": "Com Docker, quem opera o servidor adiciona o contêiner do verificador: o instalador pergunta. Caso contrário, instala o SkillSpector e lista o comando dele em RONNE_SKILL_SCANNERS (ou define RONNE_SKILL_SCANNER), no ambiente ou no arquivo de configurações, e depois reinicia o Ronne. Aí um comando pode ser escolhido aqui."
         },
-        "lastError": "A última verificação não terminou: {reason, select, timeout {passou do tempo limite} not_found {o comando do verificador não foi encontrado} not_runnable {o comando do verificador não pode ser executado} not_configured {nenhum comando de verificador está definido} output_too_large {produziu saída demais} invalid_report {o relatório não pôde ser lido} signal {foi interrompida por um sinal} no_temporary_folder {a pasta temporária não pôde ser criada} bad_file_path {um caminho de arquivo da submissão foi recusado} write_failed {os arquivos não puderam ser gravados} endpoint_refused {o endpoint do LLM não passou na verificação quando a verificação começou} exit {terminou com o código {code}} other {{error}}}"
+        "lastError": "A última verificação não terminou: {reason, select, timeout {passou do tempo limite} not_found {o comando do verificador não foi encontrado} not_runnable {o comando do verificador não pode ser executado} not_configured {nenhum verificador está configurado} output_too_large {produziu saída demais} invalid_report {o relatório não pôde ser lido} signal {foi interrompida por um sinal} no_temporary_folder {a pasta temporária não pôde ser criada} bad_file_path {um caminho de arquivo da submissão foi recusado} write_failed {os arquivos não puderam ser gravados} endpoint_refused {o endpoint do LLM não passou na verificação quando a verificação começou} unreachable {não foi possível acessar o serviço do verificador} busy {o serviço do verificador estava ocupado com outra verificação} scan_key_refused {o serviço do verificador recusou a chave de verificação} refused {o serviço do verificador recusou o pedido} exit {terminou com o código {code}} other {{error}}}"
       },
       "command": {
         "title": "Verificador",
@@ -1080,7 +1080,21 @@
         "option": "{position}. {name}",
         "only": "{name}, o único comando do servidor.",
         "fromServer": "Definido no servidor, em RONNE_SKILL_SCANNER.",
-        "dropped": "O comando escolhido antes não está mais na lista do servidor. Escolha outro: até lá, nada é verificado."
+        "dropped": "O comando escolhido antes não está mais na lista do servidor. Escolha outro: até lá, nada é verificado.",
+        "service": {
+          "name": "{kind, select, semantic {O contêiner do verificador semântico} other {O contêiner do verificador}}",
+          "ready": "{name}: pronto, SkillSpector {version}.",
+          "readyNoVersion": "{name}: pronto.",
+          "unreachable": "{name} não está acessível em {address}.",
+          "keyRefused": "{name}: o proxy recusou a chave de verificação do Ronne.",
+          "start": "No servidor, inicie-o com",
+          "recreate": "No servidor, recrie o proxy para que ele leia a chave no .env:",
+          "problem": {
+            "url": "RONNE_SKILL_SCANNER_URL não é um endereço http ou https simples, então nada é verificado. Quem opera o servidor corrige o endereço e reinicia o Ronne.",
+            "semanticUrl": "RONNE_SKILL_SCANNER_SEMANTIC_URL não é um endereço http ou https simples, então as verificações semânticas falham. Quem opera o servidor corrige o endereço e reinicia o Ronne.",
+            "semanticAlone": "RONNE_SKILL_SCANNER_SEMANTIC_URL está definido sem RONNE_SKILL_SCANNER_URL, então o Ronne não o usa."
+          }
+        }
       },
       "provider": {
         "title": "Provedor de LLM",
