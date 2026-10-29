@@ -113,7 +113,7 @@ A Docker install then gets the scanner by answering one question in the installe
 - **A semantic scan without the semantic service:** it fails as not set up. Static scans go on.
 - **The service is busy:** the scan goes back to the queue and is tried again on the job's next run, up to its attempts. Ronne's replicas share one scan lease, so they normally never scan at the same time. The service is busy when another Ronne instance uses it too, when it's still finishing a scan Ronne gave up on (Ronne's timeout, or a restart), or when a replica lost the 15-minute lease during a long scan and another one took it.
 - **A report that doesn't parse, or one over the cap:** the same errors as the command path.
-- **Files Ronne would refuse:** the service checks the paths again and refuses the request whole.
+- **Files Ronne would refuse:** the service checks the paths again, with Ronne's rules (`pathProblemOf`, `caseClash`), and refuses the request whole. One difference, on purpose: it also refuses a path with a lone surrogate, which no file can be named after (Node would write it as U+FFFD). Ronne's stored paths are UTF-8, so they never hold one.
 - **An address with credentials, a path, or an unknown scheme:** the configuration is refused at start-up, the way a bad command is. The tab says the address is invalid.
 
 ## Data

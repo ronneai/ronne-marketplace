@@ -17,7 +17,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - `docs/policies/dependencies.md`: SkillSpector's row says compose can build it on the server, still not shipped.
   - *Done when:* the docs say the same as the spec, and `pnpm witness:check` passes.
 
-- [ ] **2. The scan service and its image.** [risky]
+- [x] **2. The scan service and its image.** [risky]
   - `scripts/skill-scanner/scan-service.py`, standard library only: `GET /health` and `POST /scan`. It mirrors `command-scanner.ts`: the environment allowlist, the timeout and its process-group kill, the 4 MiB output cap, the path rules and the folder's removal. It also caps the body, runs one scan at a time (busy → 503) and logs nothing from a request.
   - Its tests use `unittest`, with a stand-in `skillspector` script.
   - `scripts/skill-scanner/Dockerfile`: SkillSpector fetched by BuildKit's git `ADD` at the pinned commit, a non-root user, and the service as entrypoint, with `skillspector` kept for the wrapper.
@@ -43,7 +43,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 - [ ] **4. Compose and the installer.** [risky]
   - `compose.yaml`:
-    - the `scanner` and `scanner-semantic` services, each behind its profile, built from the repository at the install's version, and hardened (read-only, tmpfs, no capabilities, limits, a healthcheck);
+    - the `scanner` and `scanner-semantic` services, each behind its profile, built from the repository at the install's version, and hardened (read-only, tmpfs, no capabilities, limits, a healthcheck, `init: true` so the service isn't PID 1 and orphans are reaped);
     - the internal `scan` and `scan-semantic` networks, each shared with the proxy alone, and `scan-egress` for `scanner-semantic`;
     - the proxy's two internal ports (`:8081`, `:8082`) in its Caddyfile, never published, serving only requests with the scan key (`RONNE_SCAN_KEY`), which Caddy strips before forwarding, with no upload cap; with no key every request gets a worded 403 and the proxy still starts; a wrong key gets its own worded 403;
     - the comment on `RONNE_TRUSTED_PROXIES` says to name the front proxy, not every private range, with the scanner;
