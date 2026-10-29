@@ -30,6 +30,10 @@ const SAME: Record<string, readonly string[]> = {
   // A product name and a version; a category name and a count; a word French shares.
   "scan.card.engine": ["pt", "fr"],
   "scan.dialog.category": ["pt", "fr"],
+  // A line number; a severity and a count; a finding's words and fix, in pt (fr adds a space).
+  "scan.dialog.line": ["pt", "fr"],
+  "scan.dialog.severityChip": ["pt", "fr"],
+  "scan.dialog.askFixLine": ["pt"],
   "review.tabs.conversation": ["fr"],
   "files.source": ["fr"],
   "issues.ok": ["pt"],

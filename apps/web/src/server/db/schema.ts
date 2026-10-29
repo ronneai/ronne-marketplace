@@ -670,6 +670,8 @@ export interface ScanDismissalTable {
   user_id: string;
   /** Plain text, 1 to 500 characters. */
   reason: string;
+  /** A false positive (the finding is wrong), or an accepted risk (real, known and fine), 0040. */
+  kind: Generated<"false_positive" | "accepted">;
   created_at: Timestamp;
 }
 

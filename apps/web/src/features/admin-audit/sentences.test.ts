@@ -120,6 +120,20 @@ describe("audit sentences in Portuguese and French (132)", () => {
     }
   });
 
+  it("tells an accepted risk from a false positive (137)", () => {
+    const mark = { name: "@team/tools", rule: "P2" };
+    expect(line("en", "scan.finding_dismissed", { ...mark, kind: "accepted" })).toBe(
+      "Accepted the risk of the finding P2 of @team/tools",
+    );
+    // Marks made before 0040 have no kind: they were false positives.
+    expect(line("en", "scan.finding_dismissed", mark)).toBe(
+      "Marked the finding P2 of @team/tools a false positive",
+    );
+    expect(line("pt", "scan.finding_dismissed", { ...mark, kind: "accepted" })).toContain(
+      "Aceitou o risco",
+    );
+  });
+
   it("keeps an unknown reason or code as recorded, and an unknown action as its name", () => {
     for (const locale of ["pt", "fr"] as const) {
       expect(

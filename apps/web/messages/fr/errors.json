@@ -160,6 +160,7 @@
   "ScanEndpointUnresolvedError": "L’hôte de ce point de terminaison est introuvable. Vérifiez son nom.",
   "DismissalReasonError": "{reason, select, required {Dites pourquoi c’est un faux positif, pour que les autres personnes qui révisent le sachent.} other {Un motif peut avoir au plus 500 caractères.}}",
   "FindingNotFoundError": "Ce résultat n’existe plus, ou vous ne pouvez pas le voir.",
-  "FindingDismissedError": "Ce résultat est déjà marqué comme faux positif.",
-  "NotScanReviewerError": "Seules les personnes qui révisent la soumission marquent des résultats comme faux positifs, jamais son auteur."
+  "FindingDismissedError": "Ce résultat est déjà marqué, comme faux positif ou risque accepté.",
+  "NotScanReviewerError": "Seules les personnes qui révisent la soumission marquent des résultats comme faux positifs, jamais son auteur.",
+  "DismissalKindError": "Marquez-le comme faux positif ou comme risque accepté."
 }

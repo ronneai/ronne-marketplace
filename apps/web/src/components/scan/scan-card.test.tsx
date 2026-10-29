@@ -1,10 +1,12 @@
 import type { SkillScanFinding, SkillScanResult } from "@ronneai/core";
+import { createTranslator } from "next-intl";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import type { ReviewScan } from "@/server/domains/scans/actions/scans";
 import type { ContentScan } from "@/server/domains/scans/repositories/content-scan-repository";
 import type { ScanGate } from "@/server/domains/submissions/models/scan-gate";
 import { inLocale } from "@/test/intl";
+import author from "../../../messages/en/author.json";
 
 vi.mock("./scan-actions", () => ({ markFalsePositive: vi.fn(), restoreFalsePositive: vi.fn() }));
 // A visible stand-in, so the tests see where the card keeps refreshing.
@@ -12,7 +14,15 @@ vi.mock("./ScanRefresh", () => ({ ScanRefresh: () => "REFRESHING" }));
 
 const { ScanCard } = await import("./ScanCard");
 const { ScanFindings } = await import("./ScanFindings");
-const { exportName, exportReport, summarise } = await import("./summary");
+const { ASK_FIX_MAX_LENGTH, askFixMessage, chosenFindings, findingLink } = await import(
+  "./ScanFindings"
+);
+const { REVIEW_MESSAGE_MAX_LENGTH } = await import(
+  "@/server/domains/submissions/exceptions/errors"
+);
+const { exportName, exportReport, filterFindings, groupByFile, summarise } = await import(
+  "./summary"
+);
 
 const finding = (overrides: Partial<SkillScanFinding> = {}): SkillScanFinding => ({
   rule: "P2",
@@ -108,7 +118,7 @@ describe("summarise (137)", () => {
     });
   });
 
-  it("exports Ronne's kept copy with the false positives, and names the file safely", () => {
+  it("exports Ronne's kept copy with each mark and its kind, and names the file safely", () => {
     const json = JSON.parse(
       exportReport({
         item: "@team/tidy-notes",
@@ -117,7 +127,20 @@ describe("summarise (137)", () => {
         result: result(),
         llm: null,
         dismissals: [
-          { finding: 0, reason: "Docs.", by: "Mo", at: new Date("2026-10-28T13:00:00Z") },
+          {
+            finding: 0,
+            kind: "false_positive",
+            reason: "Docs.",
+            by: "Mo",
+            at: new Date("2026-10-28T13:00:00Z"),
+          },
+          {
+            finding: 1,
+            kind: "accepted",
+            reason: "Known.",
+            by: "Mo",
+            at: new Date("2026-10-28T13:00:00Z"),
+          },
         ],
       }),
     );
@@ -128,7 +151,22 @@ describe("summarise (137)", () => {
       scanner: "skillspector 2.13.2",
       score: 100,
       findings: result().findings,
-      falsePositives: [{ finding: 0, reason: "Docs.", by: "Mo", at: "2026-10-28T13:00:00.000Z" }],
+      marks: [
+        {
+          finding: 0,
+          kind: "false_positive",
+          reason: "Docs.",
+          by: "Mo",
+          at: "2026-10-28T13:00:00.000Z",
+        },
+        {
+          finding: 1,
+          kind: "accepted",
+          reason: "Known.",
+          by: "Mo",
+          at: "2026-10-28T13:00:00.000Z",
+        },
+      ],
     });
     expect(json).not.toHaveProperty("llm");
     expect(exportName("@team/tidy notes", 2)).toBe("team-tidy-notes-r2-security-scan.json");
@@ -244,12 +282,116 @@ describe("the security scan's card (137)", () => {
   });
 });
 
+describe("the findings, by file (137)", () => {
+  const marks = (...indexes: number[]) => new Set(indexes);
+  const none = { category: null, severity: null, status: null };
+
+  it("groups by file, files by path and none last, and sorts by line, then the most severe", () => {
+    const findings = [
+      finding({ rule: "A", file: "b.md", line: 9, severity: "LOW" }),
+      finding({ rule: "B", file: "a.md", line: 3 }),
+      finding({ rule: "C", file: null, line: null }),
+      finding({ rule: "D", file: "b.md", line: 2 }),
+      finding({ rule: "E", file: "b.md", line: 9, severity: "CRITICAL" }),
+    ];
+    const groups = groupByFile(filterFindings(result({ findings }), none, marks()));
+    expect(groups.map((g) => [g.file, g.findings.map((f) => f.finding.rule)])).toEqual([
+      ["a.md", ["B"]],
+      ["b.md", ["D", "E", "A"]],
+      [null, ["C"]],
+    ]);
+  });
+
+  it("filters by category, severity and status, keeping each finding's position", () => {
+    const r = result();
+    expect(
+      filterFindings(r, { ...none, category: "Prompt Injection" }, marks()).map((f) => f.index),
+    ).toEqual([0, 2]);
+    expect(filterFindings(r, { ...none, severity: "HIGH" }, marks()).length).toBe(4);
+    const mixed = result({
+      findings: [finding({ severity: "LOW" }), finding(), finding({ severity: "CRITICAL" })],
+    });
+    expect(
+      filterFindings(mixed, { ...none, severity: "LOW" }, marks()).map((f) => f.index),
+    ).toEqual([0]);
+    expect(filterFindings(r, { ...none, severity: "LOW" }, marks())).toEqual([]);
+    expect(filterFindings(r, { ...none, status: "marked" }, marks(1)).map((f) => f.index)).toEqual([
+      1,
+    ]);
+    expect(filterFindings(r, { ...none, status: "open" }, marks(1)).map((f) => f.index)).toEqual([
+      0, 2, 3,
+    ]);
+  });
+
+  it("keeps the quote within what a review message may hold, and says how many it left out", () => {
+    expect(ASK_FIX_MAX_LENGTH).toBe(REVIEW_MESSAGE_MAX_LENGTH);
+    const t = createTranslator({
+      locale: "en",
+      messages: { scan: author.scan },
+      namespace: "scan",
+    });
+    const many = Array.from({ length: 200 }, (_, i) =>
+      finding({ rule: `R${i}`, title: "T".repeat(60), remediation: "F".repeat(150) }),
+    );
+    const text = askFixMessage(
+      t as never,
+      result({ findings: many }),
+      many.map((_, i) => i),
+    );
+    expect(text.length).toBeLessThanOrEqual(REVIEW_MESSAGE_MAX_LENGTH - 500);
+    // Astral characters count twice in the textarea's maxLength (UTF-16): still within it.
+    const astral = Array.from({ length: 200 }, (_, i) =>
+      finding({ rule: `R${i}`, title: "\u{1D54F}".repeat(500) }),
+    );
+    const wide = askFixMessage(
+      t as never,
+      result({ findings: astral }),
+      astral.map((_, i) => i),
+    );
+    expect(wide.length).toBeLessThanOrEqual(REVIEW_MESSAGE_MAX_LENGTH - 500);
+    expect(text).toMatch(/…and \d+ more findings: see the Security scan tab\.$/);
+    expect(text).toContain("(R0,");
+  });
+
+  it("asks only for the selected findings still open and shown", () => {
+    const set = (...i: number[]) => new Set(i);
+    // 1 was marked after it was selected; 3 is hidden by a filter.
+    expect(chosenFindings(set(3, 0, 1, 2), set(1), set(0, 1, 2))).toEqual([0, 2]);
+  });
+
+  it("links to the page at a finding, keeping its tab", () => {
+    expect(
+      findingLink(
+        { origin: "https://ronne.example", pathname: "/reviews/sub1", search: "?tab=scan" },
+        3,
+      ),
+    ).toBe("https://ronne.example/reviews/sub1?tab=scan#finding-3");
+  });
+
+  it("quotes the findings for Request changes, in order, with where and how to fix", () => {
+    const t = createTranslator({
+      locale: "en",
+      messages: { scan: author.scan },
+      namespace: "scan",
+    });
+    expect(askFixMessage(t as never, result(), [3, 0])).toBe(
+      [
+        "Please fix these security scan findings:",
+        "",
+        "- Hidden <b>Instructions</b> (P2, SKILL.md:10): Remove the hidden text.",
+        "- Hidden <b>Instructions</b> (SC2)",
+      ].join("\n"),
+    );
+  });
+});
+
 describe("the security scan's findings (137)", () => {
   const findings = (
     props: {
       canDismiss?: boolean;
       base?: string | null;
       dismissals?: ReviewScan["dismissals"];
+      askFix?: boolean;
     } = {},
   ) =>
     renderToStaticMarkup(
@@ -262,45 +404,98 @@ describe("the security scan's findings (137)", () => {
         canDismiss={props.canDismiss ?? false}
         submissionId="sub1"
         base={props.base === undefined ? "/reviews/sub1" : props.base}
+        onAskFix={props.askFix ? () => {} : undefined}
       />,
     );
 
-  it("lists every finding with its rule, explanation and fix, and filters by category", () => {
+  it("shows each file's findings under its name, with a line column and the filters", () => {
     const html = findings();
+    expect(html).toMatch(/aria-label="SKILL.md"/);
+    expect(html).toMatch(/aria-label="scripts\/sync.py"/);
+    expect(html).toContain("Not in a file");
+    expect(html).toContain(">L10<");
+    expect(html).toContain(">2 findings<");
     expect(html).toContain(">All (4)<");
     expect(html).toContain(">Prompt Injection (2)<");
-    expect(html).toContain("Showing 4 of 4");
-    expect(html).toContain("P2 · Prompt Injection");
+    expect(html).toContain(">High (4)<");
+    expect(html).toContain(">Open (4)<");
     expect(html).toContain("Remove the hidden text.");
     expect(html).toContain("Export report (JSON)");
+    expect(html).toContain('id="finding-0"');
     expect(html).not.toContain("<script>");
   });
 
-  it("links a finding's file and line into the Files tab, or shows it as text without one", () => {
+  it("links a line and a file into the Files tab, or shows them as text without one", () => {
     expect(findings()).toContain(
       'href="/reviews/sub1?tab=files&amp;view=all&amp;file=SKILL.md&amp;line=10#files"',
     );
+    expect(findings()).toContain(
+      'href="/reviews/sub1?tab=files&amp;view=all&amp;file=SKILL.md#files"',
+    );
     const plain = findings({ base: null });
-    expect(plain).toContain(">SKILL.md:10<");
+    expect(plain).toContain(">L10<");
     expect(plain).not.toContain("tab=files");
   });
 
-  it("offers Mark false positive to a reviewer only, and shows a mark with its reason and Restore", () => {
-    expect(findings()).not.toContain("Mark false positive");
-    expect(findings({ canDismiss: true })).toContain("Mark false positive");
+  it("gives a reviewer Mark false positive and Accept the risk as buttons, and everyone Copy link", () => {
+    const viewer = findings();
+    expect(viewer).not.toContain("Mark false positive");
+    expect(viewer).not.toContain("Accept the risk");
+    expect(viewer).toContain("Copy link");
+    const reviewer = findings({ canDismiss: true });
+    expect(reviewer).toMatch(/<button[^>]*>Mark false positive<\/button>/);
+    expect(reviewer).toMatch(/<button[^>]*>Accept the risk<\/button>/);
+  });
+
+  it("offers Ask the author to fix it, and selecting findings, only where it's given", () => {
+    expect(findings()).not.toContain("Ask the author to fix it");
+    const html = findings({ askFix: true });
+    expect(html).toContain("Ask the author to fix it");
+    expect(html).toContain("Select every open finding");
+    expect(html).toContain('aria-label="Select Hidden &lt;b&gt;Instructions&lt;/b&gt;, line 10"');
+  });
+
+  it("shows a mark's kind, by whom and why, with Restore for a reviewer only", () => {
+    const at = new Date();
     const marked = findings({
       canDismiss: true,
+      askFix: true,
       dismissals: [
-        { finding: 0, reason: "Docs <i>only</i>.", by: { id: "m", name: "Mo" }, at: new Date() },
+        {
+          finding: 0,
+          kind: "false_positive",
+          reason: "Docs <i>only</i>.",
+          by: { id: "m", name: "Mo" },
+          at,
+        },
+        {
+          finding: 1,
+          kind: "accepted",
+          reason: "Reads it on purpose.",
+          by: { id: "m", name: null },
+          at,
+        },
       ],
     });
+    expect(marked).toContain(">False positive<");
     expect(marked).toContain("Marked a false positive by Mo");
     expect(marked).toContain("Docs &lt;i&gt;only&lt;/i&gt;.");
+    expect(marked).toContain(">Accepted risk<");
+    expect(marked).toContain("Risk accepted by a former user");
     expect(marked).toContain(">Restore<");
+    expect(marked).toContain(">Marked (2)<");
+    // A marked finding isn't asked about: the two marked ones have no Ask, the others do.
+    expect(marked.match(/>Ask the author to fix it</g)?.length).toBe(2);
     const read = findings({
-      dismissals: [{ finding: 0, reason: "Docs.", by: { id: "m", name: null }, at: new Date() }],
+      dismissals: [
+        { finding: 0, kind: "false_positive", reason: "Docs.", by: { id: "m", name: "Mo" }, at },
+      ],
     });
-    expect(read).toContain("Marked a false positive by a former user");
     expect(read).not.toContain(">Restore<");
+  });
+
+  it("is in Portuguese and French", () => {
+    expect(inLocale("pt", () => findings({ canDismiss: true }))).toContain("Aceitar o risco");
+    expect(inLocale("fr", () => findings({ canDismiss: true }))).toContain("Accepter le risque");
   });
 });

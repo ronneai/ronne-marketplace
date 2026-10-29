@@ -38,7 +38,15 @@ export class FindingNotFoundError extends ScansError {
 export class FindingDismissedError extends ScansError {
   override readonly name: string = "FindingDismissedError";
   constructor() {
-    super("That finding is already marked a false positive.");
+    super("That finding is already marked, as a false positive or an accepted risk.");
+  }
+}
+
+/** A mark is a false positive or an accepted risk (137); nothing else. */
+export class DismissalKindError extends ScansError {
+  override readonly name: string = "DismissalKindError";
+  constructor() {
+    super("Mark it as a false positive or as an accepted risk.");
   }
 }
 

@@ -1,9 +1,14 @@
 import type { SkillScanFinding } from "@ronneai/core";
 import type { NewAuditEvent } from "../../audit/models/audit-event";
 
-/** A finding a reviewer marked a false positive (137): its position in the scan, and why. */
+/** What a reviewer's mark says (137): the finding is wrong, or it's real and the risk accepted. */
+export const DISMISSAL_KINDS = ["false_positive", "accepted"] as const;
+export type DismissalKind = (typeof DISMISSAL_KINDS)[number];
+
+/** A finding a reviewer marked (137): its position in the scan, the kind of mark, and why. */
 export type Dismissal = {
   finding: number;
+  kind: DismissalKind;
   reason: string;
   by: { id: string; name: string | null };
   at: Date;
@@ -42,6 +47,7 @@ export interface ScanDismissalRepository {
   dismiss(input: {
     scanId: string;
     finding: number;
+    kind: DismissalKind;
     userId: string;
     reason: string;
     at: Date;

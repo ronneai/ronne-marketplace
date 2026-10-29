@@ -160,6 +160,7 @@
   "ScanEndpointUnresolvedError": "That endpoint’s host can’t be found. Check its name.",
   "DismissalReasonError": "{reason, select, required {Say why it's a false positive, so the other reviewers know.} other {A reason can have at most 500 characters.}}",
   "FindingNotFoundError": "That finding no longer exists, or you can't see it.",
-  "FindingDismissedError": "That finding is already marked a false positive.",
-  "NotScanReviewerError": "Only the submission's reviewers mark findings as false positives, never its author."
+  "FindingDismissedError": "That finding is already marked, as a false positive or an accepted risk.",
+  "NotScanReviewerError": "Only the submission's reviewers mark findings as false positives, never its author.",
+  "DismissalKindError": "Mark it as a false positive or as an accepted risk."
 }

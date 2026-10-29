@@ -105,7 +105,7 @@ describe("dismissalReasonFrom (137)", () => {
   });
 
   it("refuses a reason with nothing to read: blanks, fillers, joiners or marks alone", () => {
-    for (const blank of ["⠀", "́", "ㅤ", "‍", "  ", "️"])
+    for (const blank of ["\u{1D159}", " \u{1D159} \u{1D159} ", "⠀", "́", "ㅤ", "‍", "  ", "️"])
       expect(() => dismissalReasonFrom(blank), JSON.stringify(blank)).toThrow();
     expect(dismissalReasonFrom("é")).toBe("é");
   });

@@ -26,6 +26,11 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn() }),
 }));
 vi.mock("./actions", () => ({}));
+// A submitted item's page also reads its review and scan (137).
+const review = vi.hoisted(() => ({ getReview: vi.fn(), countDependents: vi.fn(async () => 0) }));
+vi.mock("@/server/domains/submissions/actions/reviews", () => review);
+const scans = vi.hoisted(() => ({ reviewScan: vi.fn() }));
+vi.mock("@/server/domains/scans/actions/scans", () => scans);
 
 const { DraftEditor } = await import("./DraftEditor");
 const { afterSubmit, GroupList, SubmitOutcome, useSubmitWords, WithdrawDialog } = await import(
@@ -672,5 +677,85 @@ describe("the Submit dialog's group (112)", () => {
     });
     expect(afterSubmit({ ok: true, issues: [], sent: [] })).toEqual({ next: "close" });
     expect(afterSubmit({ ok: true, issues: [] })).toEqual({ next: "close" });
+  });
+});
+
+describe("the scan on a submitted item's page (137)", () => {
+  const finished = {
+    scan: {
+      id: "01J0000000000000000000SCAN",
+      revisionId: "r1",
+      status: "done",
+      attempts: 1,
+      result: {
+        scanner: "skillspector",
+        scannerVersion: "2.13.2",
+        analysis: "static",
+        llmUnavailable: false,
+        score: 90,
+        severity: "HIGH",
+        recommendation: "DO_NOT_INSTALL",
+        complete: true,
+        findings: [
+          {
+            rule: "P2",
+            category: "Prompt Injection",
+            severity: "HIGH",
+            confidence: 0.9,
+            title: "Hidden Instructions",
+            explanation: null,
+            remediation: "Remove it.",
+            file: "SKILL.md",
+            line: 3,
+          },
+        ],
+        findingsOmitted: 0,
+      },
+      llm: null,
+      error: null,
+      queuedAt: new Date(T1),
+      startedAt: new Date(T1),
+      finishedAt: new Date(T1),
+    },
+    canRequest: false,
+    dismissals: [],
+    canDismiss: true,
+  };
+  const page = async (mine: boolean) => {
+    drafts.viewSubmission.mockResolvedValue({
+      ...draft(),
+      status: "submitted",
+      mine,
+      member: mine,
+    });
+    review.getReview.mockResolvedValue({
+      mine,
+      revisions: [{ id: "r1", number: 1 }],
+      current: { number: 1, files: [] },
+      events: [],
+      flags: [],
+      published: [],
+      proposal: null,
+      gate: { blocked: true, by: "score", score: 90, threshold: 70 },
+      can: { decide: false, override: false, comment: true, publish: false, sendBack: false },
+    });
+    scans.reviewScan.mockResolvedValue(finished);
+    return renderToStaticMarkup(
+      await DraftPage({ params: Promise.resolve({ id: "01J0000000000000000000000A" }) }),
+    );
+  };
+
+  it("gives the author their read-only view: the findings under the card, what to do", async () => {
+    const html = await page(true);
+    expect(html).toContain("Change the files and send it again.");
+    expect(html).toContain("Remove it.");
+    expect(html).not.toContain("Inspect 1 finding");
+  });
+
+  it("gives anyone else a link to the review page's tab, not the author's view", async () => {
+    const html = await page(false);
+    expect(html).not.toContain("Change the files and send it again.");
+    expect(html).not.toContain("Mark false positive");
+    expect(html).toContain('href="/reviews/01J0000000000000000000000A?tab=scan"');
   });
 });

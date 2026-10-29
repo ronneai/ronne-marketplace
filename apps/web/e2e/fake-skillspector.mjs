@@ -1,6 +1,6 @@
 // A stand-in for SkillSpector in the end-to-end tests (135), called as
 //   fake-skillspector.mjs scan <dir> --no-llm --format json
-// After three seconds it reports one finding in SKILL.md, as SkillSpector would for a hidden
+// After three seconds it reports two findings in SKILL.md, as SkillSpector would for a hidden
 // instruction.
 const report = {
   risk_assessment: { score: 75, severity: "HIGH", recommendation: "DO_NOT_INSTALL" },
@@ -16,6 +16,16 @@ const report = {
       explanation: "A comment tells the agent to do something the skill doesn't say.",
       remediation: "Remove the comment, or say it in the skill.",
       location: { file: "SKILL.md", start_line: 3 },
+    },
+    {
+      id: "PE3",
+      category: "Privilege Escalation",
+      severity: "MEDIUM",
+      confidence: 0.7,
+      pattern: "Credential Access",
+      explanation: "It mentions a credential file.",
+      remediation: "Use an environment variable instead.",
+      location: { file: "SKILL.md", start_line: 4 },
     },
   ],
 };

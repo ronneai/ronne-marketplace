@@ -94,20 +94,49 @@ test("scans a skill, blocks approval at the threshold, marks a false positive, a
     ).toBeDisabled();
 
     // The Security scan tab: the finding, its fix, the link into the files, and a false positive.
-    await card.getByRole("link", { name: "Inspect 1 finding" }).click();
+    await card.getByRole("link", { name: "Inspect 2 findings" }).click();
     await expect(page).toHaveURL(new RegExp(`/reviews/${id}\\?tab=scan`));
     const findings = page.getByRole("region", { name: "Security scan" });
     await expect(findings.getByText("Hidden Instructions")).toBeVisible();
     await expect(findings.getByText("Remove the comment, or say it in the skill.")).toBeVisible();
-    await expect(findings.getByRole("link", { name: "SKILL.md:3" })).toHaveAttribute(
+    // By file, sorted by line (137).
+    const file = findings.getByRole("region", { name: "SKILL.md" });
+    await expect(file.getByText("2 findings")).toBeVisible();
+    await expect(file.getByRole("link", { name: "L3" })).toHaveAttribute(
       "href",
       `/reviews/${id}?tab=files&view=all&file=SKILL.md&line=3#files`,
     );
-    await findings.getByRole("button", { name: "Mark false positive" }).click();
-    await findings.getByLabel("Why is it a false positive?").fill("The comment is documentation.");
-    await findings.getByRole("button", { name: "Mark it" }).click();
-    await expect(findings.getByText("Marked a false positive by Sam Root")).toBeVisible();
-    await expect(findings.getByText("The comment is documentation.")).toBeVisible();
+    const first = file.locator("#finding-0");
+    const second = file.locator("#finding-1");
+
+    // Ask the author to fix it: Request changes, with the finding quoted; left unsent here.
+    await second.getByRole("button", { name: "Ask the author to fix it" }).click();
+    const ask = page.getByRole("dialog", { name: "Request changes" });
+    await expect(ask.getByLabel("Message")).toHaveValue(
+      /Please fix these security scan findings:[\s\S]*Credential Access \(PE3, SKILL\.md:4\): Use an environment variable instead\./,
+    );
+    await ask.getByRole("button", { name: "Cancel" }).click();
+
+    // Copy link, then a false positive and an accepted risk.
+    await second.getByRole("button", { name: "Copy link" }).click();
+    await expect(
+      second.getByText("Link copied").or(second.getByText("Copy the link from the address bar.")),
+    ).toBeVisible();
+    await first.getByRole("button", { name: "Mark false positive" }).click();
+    await first.getByLabel("Why is it a false positive?").fill("The comment is documentation.");
+    await first.getByRole("button", { name: "Mark it" }).click();
+    await expect(first.getByText("Marked a false positive by Sam Root")).toBeVisible();
+    await expect(first.getByText("The comment is documentation.")).toBeVisible();
+    await second.getByRole("button", { name: "Accept the risk" }).click();
+    await second.getByLabel("Why is the risk acceptable?").fill("It names the file in its docs.");
+    await second.getByRole("button", { name: "Accept the risk" }).click();
+    await expect(second.getByText("Risk accepted by Sam Root")).toBeVisible();
+    await expect(findings.getByRole("button", { name: "Marked (2)" })).toBeVisible();
+
+    // The link Copy link gives opens the tab at the finding, which it highlights (:target).
+    await page.goto(`/reviews/${id}?tab=scan#finding-1`);
+    await expect(page.locator("#finding-1")).toBeVisible();
+    expect(await page.locator("#finding-1").evaluate((el) => el.matches(":target"))).toBe(true);
 
     // Root's override, from the card: the reason is required.
     await page.getByRole("link", { name: "Overview" }).click();

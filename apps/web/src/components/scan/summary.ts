@@ -33,7 +33,13 @@ export const exportReport = (input: {
   scannedAt: Date | string | null;
   result: SkillScanResult;
   llm: { provider: string; model: string | null } | null;
-  dismissals: readonly { finding: number; reason: string; by: string | null; at: Date | string }[];
+  dismissals: readonly {
+    finding: number;
+    kind: "false_positive" | "accepted";
+    reason: string;
+    by: string | null;
+    at: Date | string;
+  }[];
 }): string =>
   `${JSON.stringify(
     {
@@ -49,8 +55,10 @@ export const exportReport = (input: {
       complete: input.result.complete,
       findings: input.result.findings,
       findingsOmitted: input.result.findingsOmitted,
-      falsePositives: input.dismissals.map((d) => ({
+      // Each reviewer's mark (137): a false positive, or an accepted risk.
+      marks: input.dismissals.map((d) => ({
         finding: d.finding,
+        kind: d.kind,
         reason: d.reason,
         by: d.by,
         at: new Date(d.at).toISOString(),
@@ -63,3 +71,57 @@ export const exportReport = (input: {
 /** A file name for the export: the item's name made safe, and the revision. */
 export const exportName = (item: string, revision: number | null): string =>
   `${item.replace(/^@/, "").replace(/[^a-z0-9._-]+/gi, "-")}-r${revision ?? 0}-security-scan.json`;
+
+/** A kept finding with its position in the scan, which is how a mark and a link name it. */
+export type IndexedFinding = { finding: SkillScanResult["findings"][number]; index: number };
+
+/** What the Security scan tab filters by (137): each `null` is "all". */
+export type FindingFilter = {
+  category: string | null;
+  severity: SkillScanResult["severity"] | null;
+  /** `open`: not marked by a reviewer; `marked`: a false positive or an accepted risk. */
+  status: "open" | "marked" | null;
+};
+
+const SEVERITY_RANK = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 } as const;
+
+/** The findings the filter keeps, each with its position. */
+export const filterFindings = (
+  result: SkillScanResult,
+  filter: FindingFilter,
+  marked: ReadonlySet<number>,
+): IndexedFinding[] =>
+  result.findings
+    .map((finding, index) => ({ finding, index }))
+    .filter(
+      ({ finding, index }) =>
+        (filter.category === null || finding.category === filter.category) &&
+        (filter.severity === null || finding.severity === filter.severity) &&
+        (filter.status === null || (filter.status === "marked") === marked.has(index)),
+    );
+
+/**
+ * The findings by file (137), as a code-quality tool's issue list: files by path, those that name
+ * none last; in each, by line (none first: the file as a whole), then the most severe first.
+ */
+export const groupByFile = (
+  findings: readonly IndexedFinding[],
+): { file: string | null; findings: IndexedFinding[] }[] => {
+  const groups = new Map<string | null, IndexedFinding[]>();
+  for (const item of findings) {
+    const list = groups.get(item.finding.file) ?? [];
+    list.push(item);
+    groups.set(item.finding.file, list);
+  }
+  return [...groups]
+    .sort(([a], [b]) => (a === null ? 1 : b === null ? -1 : a.localeCompare(b)))
+    .map(([file, list]) => ({
+      file,
+      findings: list.sort(
+        (a, b) =>
+          (a.finding.line ?? 0) - (b.finding.line ?? 0) ||
+          SEVERITY_RANK[a.finding.severity] - SEVERITY_RANK[b.finding.severity] ||
+          a.index - b.index,
+      ),
+    }));
+};

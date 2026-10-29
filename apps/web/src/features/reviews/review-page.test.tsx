@@ -13,9 +13,17 @@ vi.mock("@/server/domains/submissions/actions/reviews", () => reviews);
 const submissions = vi.hoisted(() => ({ dependencyMarks: vi.fn(async () => ({})) }));
 vi.mock("@/server/domains/submissions/actions/submissions", () => submissions);
 vi.mock("@/server/domains/identity/actions/session", () => session);
-vi.mock("@/server/domains/scans/actions/scans", () => ({
-  reviewScan: async () => ({ scan: null, canRequest: false, dismissals: [], canDismiss: false }),
+const scans = vi.hoisted(() => ({
+  reviewScan: vi.fn(
+    async (): Promise<unknown> => ({
+      scan: null,
+      canRequest: false,
+      dismissals: [],
+      canDismiss: false,
+    }),
+  ),
 }));
+vi.mock("@/server/domains/scans/actions/scans", () => scans);
 vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));
 vi.mock("./actions", () => ({ decideAction: vi.fn(), commentFromForm: vi.fn() }));
 const releaseGroup = vi.hoisted(() => ({
@@ -517,6 +525,63 @@ describe("the review page", () => {
     expect(html).not.toContain('aria-label="ronne.yaml"');
     // The tab counts what it shows (137).
     expect(html).toContain(">Files (2)<");
+  });
+
+  it("offers Ask the author to fix it only to whoever may request changes (137)", async () => {
+    scans.reviewScan.mockResolvedValue({
+      scan: {
+        id: "01J0000000000000000000SCAN",
+        revisionId: "r",
+        status: "done",
+        attempts: 1,
+        result: {
+          scanner: "skillspector",
+          scannerVersion: "2.13.2",
+          analysis: "static",
+          llmUnavailable: false,
+          score: 80,
+          severity: "HIGH",
+          recommendation: "CAUTION",
+          complete: true,
+          findings: [
+            {
+              rule: "P2",
+              category: "Prompt Injection",
+              severity: "HIGH",
+              confidence: 0.9,
+              title: "Hidden Instructions",
+              explanation: null,
+              remediation: null,
+              file: "hook.sh",
+              line: 1,
+            },
+          ],
+          findingsOmitted: 0,
+        },
+        llm: null,
+        error: null,
+        queuedAt: new Date(),
+        startedAt: new Date(),
+        finishedAt: new Date(),
+      },
+      canRequest: false,
+      dismissals: [],
+      canDismiss: true,
+    });
+    expect(await render({ tab: "scan" })).toContain("Ask the author to fix it");
+    // On their own submission a reviewer can't request changes, so there's no Ask.
+    reviews.getReview.mockResolvedValue(
+      view({ mine: true, decisions: [own("approve"), own("request_changes"), own("reject")] }),
+    );
+    const own_ = await render({ tab: "scan" });
+    expect(own_).toContain("Hidden Instructions");
+    expect(own_).not.toContain("Ask the author to fix it");
+    scans.reviewScan.mockResolvedValue({
+      scan: null,
+      canRequest: false,
+      dismissals: [],
+      canDismiss: false,
+    });
   });
 
   it("says on the Security scan tab that the revision wasn't scanned (137)", async () => {

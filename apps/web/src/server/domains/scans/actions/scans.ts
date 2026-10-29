@@ -162,7 +162,7 @@ const dismissalActor = async (headers: Headers, app: AppAuth) => ({
 /** A reviewer marks one finding of a finished scan a false positive, with a reason (137). */
 export const dismissFinding = async (
   headers: Headers,
-  input: { scanId: unknown; finding: unknown; reason: unknown },
+  input: { scanId: unknown; finding: unknown; reason: unknown; kind?: unknown },
   app: AppAuth = getAppAuth(),
 ) =>
   dismissals.dismissFinding(

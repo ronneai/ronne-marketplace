@@ -721,7 +721,7 @@
           "rebased": "Fez rebase de <name>{item}</name> de {from} para {to}{conflicts, plural, =0 {} one { (# conflito)} other { (# conflitos)}}"
         },
         "scan": {
-          "finding_dismissed": "Marcou o achado <code>{rule}</code> de <name>{item}</name> como falso positivo",
+          "finding_dismissed": "{kind, select, accepted {Aceitou o risco do achado <code>{rule}</code> de <name>{item}</name>} other {Marcou o achado <code>{rule}</code> de <name>{item}</name> como falso positivo}}",
           "finding_restored": "Restaurou o achado <code>{rule}</code> de <name>{item}</name>"
         },
         "version": {

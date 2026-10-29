@@ -136,3 +136,33 @@ describe("0039_scan_dismissals", () => {
     await expect(dismiss(newId(), 0)).rejects.toThrow();
   });
 });
+
+describe("0040_scan_dismissal_kind", () => {
+  it("makes every mark a false positive unless it says it's an accepted risk", async () => {
+    const { revisionId } = await insertRevision();
+    const scan = await queue(revisionId);
+    const plain = await dismiss(scan, 0);
+    const accepted = newId();
+    await t.db
+      .insertInto("scan_dismissals")
+      .values({
+        id: accepted,
+        scan_id: scan,
+        finding: 1,
+        user_id: userId,
+        reason: "Known.",
+        kind: "accepted",
+        created_at: now(),
+      })
+      .execute();
+    const rows = await t.db
+      .selectFrom("scan_dismissals")
+      .select(["id", "kind"])
+      .where("id", "in", [plain, accepted])
+      .execute();
+    expect(Object.fromEntries(rows.map((r) => [r.id, r.kind]))).toEqual({
+      [plain]: "false_positive",
+      [accepted]: "accepted",
+    });
+  });
+});

@@ -160,6 +160,7 @@
   "ScanEndpointUnresolvedError": "O host desse endpoint não foi encontrado. Confira o nome dele.",
   "DismissalReasonError": "{reason, select, required {Diga por que é um falso positivo, para os outros revisores saberem.} other {Um motivo pode ter no máximo 500 caracteres.}}",
   "FindingNotFoundError": "Esse achado não existe mais, ou você não pode vê-lo.",
-  "FindingDismissedError": "Esse achado já está marcado como falso positivo.",
-  "NotScanReviewerError": "Só quem revisa a submissão marca achados como falsos positivos, nunca o autor."
+  "FindingDismissedError": "Esse achado já está marcado, como falso positivo ou risco aceito.",
+  "NotScanReviewerError": "Só quem revisa a submissão marca achados como falsos positivos, nunca o autor.",
+  "DismissalKindError": "Marque-o como falso positivo ou como risco aceito."
 }

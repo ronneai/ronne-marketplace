@@ -33,7 +33,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     open, the override (root allowed, a moderator refused, the reason required), and a threshold
     changed between scan and decision, on the four databases.
 
-- [ ] **4. Dismissals.** [risky]
+- [x] **4. Dismissals.** [risky]
   - Migration `0039_scan_dismissals`, a repository, and a service: dismiss with a reason, restore;
     reviewers of the submission only, never its author; audited.
   - Reading a scan: the reviewers of the submission, or its author (authors see their own scan).

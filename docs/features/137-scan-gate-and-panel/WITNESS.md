@@ -349,6 +349,39 @@ Witnessed: 2026-10-29 07:50 EDT, by a fresh agent (adversarial). Commit: 1f33fb1
 
 **Overall:** not met: rows 9–11. As the owner chose (2026-10-29: one more round, then a new finding is a follow-up), they're fixed in this commit without another round: `reviewScan` returns no scan for a revision id that isn't one, before any query (db test with `\u0000`, a NUL-suffixed id, a lower-case one, on four databases); a reason needs a letter, digit, punctuation or symbol that isn't invisible (U+2800, U+0301 alone, U+3164, ZWJ alone refused; "é" kept); a unit test, written with escapes, fails without `\p{Cs}`. Task 4 stays unticked until task 6's adversarial pass, which changes the same code, covers them (PLAN's Notes).
 
+### Re-check
+
+Witnessed: 2026-10-29 08:57 EDT, by a fresh agent (adversarial; within task 6's adversarial pass, as PLAN's Notes said). Commit: 54e7fcb4 + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `reviewScan` returns no scan for a revision id that isn't an id, before any query | no | confirmed | NUL, NUL-suffixed, 5000×x, SQL, 123, {}, "", null → no scan on four databases; removing `isId` → the PostgreSQL test fails |
+| 2 | A reason needs a visible letter, digit, punctuation or symbol | no | partly | 16 invisible inputs refused on four databases; but U+1D159 (a blank-drawing symbol) accepted |
+| 3 | A shipped test fails without `\p{Cs}` | no | confirmed | "drops lone surrogates" fails |
+| 4 | Visibility | no | confirmed | four databases |
+| 5 | The author rule | no | confirmed | four databases |
+| 6 | Races | no | confirmed | four databases; a two-kind race → 1 row, 1 event |
+| 7 | Hostile scan ids and finding indexes | no | confirmed | four databases, 0 rows |
+| 8 | Audit: one event per mark | no | confirmed | four databases |
+
+**Overall:** not met: row 2. U+1D159 is now refused with U+2800, with a unit test (also "  𝅙 𝅙 "). Re-checked below, with task 6's re-check.
+
+### Re-check
+
+Witnessed: 2026-10-29 09:20 EDT, by a fresh agent (adversarial; with task 6's re-check). Commit: 54e7fcb4 + uncommitted diff. Machine: macOS 27.0, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | db tests on four databases; guard and unit tests | no | confirmed | 65/65 on PostgreSQL, MySQL, MariaDB; SQLite 455 |
+| 2 | A reason with nothing visible is refused | no | confirmed | 25 inputs on four databases (U+2800, U+1D159, marks alone, fillers, joiners, lone surrogates, tags, private use…); an emoji ZWJ sequence kept; removing U+1D159 or U+2800 from `VISIBLE` → a test fails each |
+| 3 | A shipped test fails without `\p{Cs}` | no | confirmed | 1 failed |
+| 4 | Hostile scan and revision ids: not found or no scan, never a driver error | no | confirmed | 12 shapes on four databases; removing `isId` from `reviewScan` → the PostgreSQL test fails |
+| 5 | The author refused, an outsider not found, visibility | no | confirmed | four databases |
+| 6 | Races | no | confirmed | four databases |
+| 7 | Finding indexes | no | confirmed | 10 shapes; -0 is 0 |
+
+**Overall:** met. Remark: a bad kind is refused before the access check, which reveals nothing about the scan.
+
 ## Task 5 — The card, the review page's tabs and the threshold field
 
 Witnessed: 2026-10-29 08:03 EDT, by a fresh agent (blind). Commit: 8eb6dde2 + uncommitted diff. Machine: macOS 27.0.1, Node v24.0.0.
@@ -396,3 +429,106 @@ Witnessed: 2026-10-29 08:18 EDT, by a fresh agent (blind). Commit: 8eb6dde2 + un
 | 6 | Tokens only | no | confirmed | grep → none |
 
 **Overall:** met. After it, the phone e2e waits for "Hidden Instructions" on `?tab=scan` (2 passed, phone and tablet); a test of `/submissions/[id]` as a reviewer is in PLAN's Notes for task 6.
+
+## Task 6 — The findings: by file, and their actions
+
+Witnessed: 2026-10-29 08:52 EDT, by a fresh agent (blind). Commit: 54e7fcb4 + uncommitted diff. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Grouped by file, by path, none last, each with its count and link | no | confirmed | `groupByFile`; mutation → the test fails; e2e |
+| 2 | By line, then most severe; an `L10` column linked to the line | no | confirmed | test; author's page as text |
+| 3 | Filters by category, severity and status | no | confirmed | test; e2e "Marked (2)" |
+| 4 | Mark false positive and Accept the risk visible to reviewers; kind, by whom, why; Restore | no | confirmed | tests; e2e |
+| 5 | Ask the author to fix it, prefilled; several or all open; only for whoever may request changes | no | confirmed | tests; e2e (cancelled). Remark: a selection goes stale when a finding is marked or filtered out |
+| 6 | Copy link's permalink opens and highlights the finding | no | partly | nothing tests the link (a mutation stays green) |
+| 7 | Migration 0040 | no | confirmed | four databases |
+| 8 | The kind validated, stored, shown and audited | no | confirmed | db tests |
+| 9 | The download's kinds | no | confirmed | mutation → the test fails |
+| 10 | db tests on four databases | no | confirmed | 580 / 582 passed |
+| 11 | The audit log tells the kinds apart | no | partly | nothing tests it (a mutation stays green) |
+| 12 | Messages in three languages; tokens only | no | confirmed | 3752 unit passed |
+| 13 | Task 5's note: `/submissions/[id]` as a reviewer | no | confirmed | mutation → the test fails |
+| 14 | The e2e covers accepting a risk and asking for a fix | no | confirmed | 1 passed |
+| 15 | The phone sweep | no | confirmed | 16 passed |
+| 16 | Typecheck and lint | no | confirmed | exit 0 |
+
+**Overall:** not met: rows 6, 11, and the stale selection. `findingLink` is a tested function, and the e2e opens `?tab=scan#finding-1` and checks it's `:target`; a sentences test tells an accepted risk from a false positive (and a mark without a kind); `chosenFindings` asks only for selected findings still open and shown, with a test. Re-checked below.
+
+### Adversarial pass
+
+Witnessed: 2026-10-29 08:57 EDT, by a fresh agent (adversarial). Commit: 54e7fcb4 + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Grouping with odd data | no | confirmed | 158 findings, 154 groups, null last, none lost |
+| 2 | Sorting | no | confirmed | probe; mutation → the test fails |
+| 3 | Filters | no | confirmed | probe; mutation → the test fails |
+| 4 | A kind accepts only `false_positive` or `accepted` | no | confirmed | 23 hostile kinds refused, 0 rows, four databases |
+| 5 | What the browser sends is validated on the server | no | confirmed | the service doesn't trust the type |
+| 6 | Migration 0040 on four databases | no | confirmed | NOT NULL, default, old rows false positives |
+| 7 | Old or odd stored kinds read as false positives | no | confirmed | `'ACCEPTED'` → false positive |
+| 8 | Audited with `metadata.kind`; sentences tell the kinds apart | no | confirmed | three languages |
+| 9 | The download's kinds | no | confirmed | mutations → tests fail |
+| 10 | Two kinds raced: one mark, one event | no | confirmed | four databases |
+| 11 | Only reviewers mark, whatever the kind | no | confirmed | 0 rows |
+| 12 | A mark's kind, by whom, why; the author can't mark | no | confirmed | probe; test |
+| 13 | The ask message from untrusted text never breaks ICU or adds markup | no | confirmed | braces, quotes, `<script>`, newlines verbatim in three languages |
+| 14 | Ask quotes only selected findings still open and shown | no | confirmed | mutation → the test fails |
+| 15 | The prefilled Request changes can be sent | no | partly | 30 long findings → 7612 characters; the server's limit is 5000 |
+| 16 | Ask only for whoever may request changes | no | partly | the code is right; no test fails if it's always offered |
+| 17 | Copy link keeps the tab and `#finding-<n>` | no | confirmed | mutation → the test fails |
+| 18 | The author's page | no | confirmed | mutation → the test fails |
+| 19 | Neither kind moves the score or the gate | no | confirmed | grep |
+| 20 | db tests for the kind on four databases | no | confirmed | 25/25 each |
+| 21 | The e2e and the phone sweep | no | can't check here | told not to run Playwright alongside another witness |
+
+**Overall:** not met: rows 15, 16, 21. The quote stops before `ASK_FIX_MAX_LENGTH` (equal to `REVIEW_MESSAGE_MAX_LENGTH`, a test says so) with "…and N more findings: see the Security scan tab.", tested with 200 long findings; a review-page test offers Ask to a reviewer and not on their own submission, and fails if it's always offered; the e2e (2 passed) and the phone sweep with the scan test (48 passed on phone, phone-WebKit and tablet) ran after the fixes; `markFalsePositive`/`restoreFalsePositive` answer a request that isn't an object with words, with a test. Re-checked below.
+
+### Re-check
+
+Witnessed: 2026-10-29 09:25 EDT, by a fresh agent (blind). Commit: 54e7fcb4 + uncommitted diff. Machine: macOS 27.0.1, Node v24.0.0. (The filters were put on one row while it ran, owner 2026-10-29: layout only.)
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Copy link's permalink keeps the page and tab, `#finding-<n>` | no | confirmed | two mutations → the test fails |
+| 2 | Opening it highlights the finding | no | confirmed | e2e `:target`; the built CSS has the rules |
+| 3 | The audit sentence tells the kinds apart | no | confirmed | mutation → the test fails |
+| 4 | Ask quotes only selected findings still open and shown | no | confirmed | two mutations → the test fails |
+| 5 | The prefilled message stays within the server's limit | no | confirmed | both 5000 code points; two mutations → the test fails |
+| 6 | Ask only for whoever may request changes | no | confirmed | mutation → 2 tests fail |
+| 7 | Grouped by file | no | confirmed | mutation → the test fails |
+| 8 | By line, then the most severe | no | confirmed | mutation → the test fails |
+| 9 | Filters by category, severity and status | no | partly | removing the severity filter leaves every test green: the fixture is all High |
+| 10 | Mark and Accept for reviewers; a mark's kind, by whom, why; Restore | no | confirmed | two mutations → tests fail; e2e |
+| 11 | The kind audited and in the download | no | confirmed | two mutations → the test fails |
+| 12 | Migration 0040 and the db tests on four databases | no | confirmed | 580 / 582 passed |
+| 13 | The export includes the marks | no | partly | an accepted risk exports under `falsePositives`, with no kind |
+| 14 | The e2e covers accepting a risk and asking for a fix | no | confirmed | 1 passed |
+| 15 | The phone sweep | no | confirmed | 16 passed |
+| 16 | Typecheck, lint, unit suite | no | confirmed | exit 0; exit 0; 3759 passed |
+
+**Overall:** not met: rows 9 and 13. A test filters a mix of Low, High and Critical by Low (it fails with the severity filter removed); the export writes `marks`, each with its `kind`, tested with both kinds. Re-checked below.
+
+### Re-check
+
+Witnessed: 2026-10-29 09:20 EDT, by a fresh agent (adversarial). Commit: 54e7fcb4 + uncommitted diff. Machine: macOS 27.0, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The task's unit and component tests | no | confirmed | 639 passed |
+| 2 | Grouped by file, sorted by line then severity | no | confirmed | two mutations → tests fail |
+| 3 | The ask message within the server's limit in three languages | no | confirmed | 200 findings at the caps → 4134 / 4151 / 4166 code points; 300 random runs ≤ 5000; "…and N more" right |
+| 4 | Hostile finding text never breaks ICU or adds markup | no | confirmed | verbatim in three languages; shown as plain text |
+| 5 | `chosenFindings` | no | confirmed | probe; mutation → the test fails |
+| 6 | `findingLink` and `:target` | no | confirmed | probe; mutation → the test fails |
+| 7 | The prefilled Request changes can be edited and sent | no | partly | counted in code points; the textarea's `maxLength` counts UTF-16 units: 4180 code points of astral titles are 8180 units, so after an edit Send is blocked |
+| 8 | Ask only for whoever may request changes | no | confirmed | mutation → 2 tests fail |
+| 9 | No Ask on a marked finding | no | partly | the code is right; no test fails without it |
+| 10 | The actions answer a request that isn't an object with words | no | confirmed | mutation → the test fails |
+| 11 | The kind, migration 0040, audit, sentences, download on four databases | no | confirmed | 65/65; an upgrade from 0039 keeps old marks false positives; hostile kinds refused |
+| 12 | Two kinds raced; the author sees kinds read-only | no | confirmed | four databases |
+| 13 | The e2e and the phone sweep | no | can't check here | not run alongside another witness |
+
+**Overall:** not met: rows 7, 9, 13. The quote now counts UTF-16 units (never fewer than code points) and takes at most 4500 of the 5000, leaving room for the reviewer's words, tested with 200 findings of astral titles; a test checks the marked findings have no Ask (it fails without the check); the e2e and the phone sweep run in the next re-check. Re-checked below.
+

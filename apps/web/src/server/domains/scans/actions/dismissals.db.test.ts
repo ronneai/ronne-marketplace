@@ -20,6 +20,7 @@ import {
   withdrawSubmission,
 } from "../../submissions/actions/submissions";
 import {
+  DismissalKindError,
   DismissalReasonError,
   FindingDismissedError,
   FindingNotFoundError,
@@ -161,6 +162,7 @@ describe("marking a finding a false positive (137)", () => {
     expect(view.dismissals).toEqual([
       {
         finding: 0,
+        kind: "false_positive",
         reason: "Docs only.",
         by: { id: expect.any(String), name: "Mo" },
         at: expect.any(Date),
@@ -362,6 +364,53 @@ describe("a scan a reviewer can't see (137)", () => {
     await expect(
       dismissFinding(asModerator, { scanId, finding: 0, reason: "No." }, app),
     ).rejects.toThrow(FindingNotFoundError);
+  });
+});
+
+describe("accepting a risk (137)", () => {
+  it("records an accepted risk apart from a false positive, in the view, the audit and the download", async () => {
+    const { scanId, revisionId } = await scanned();
+    await dismissFinding(
+      asModerator,
+      { scanId, finding: 0, reason: "It reads a token on purpose.", kind: "accepted" },
+      app,
+    );
+    await dismissFinding(asModerator, { scanId, finding: 1, reason: "Not real." }, app);
+    expect(
+      (await reviewScan(asAuthor, revisionId, app)).dismissals.map((d) => [d.finding, d.kind]),
+    ).toEqual([
+      [0, "accepted"],
+      [1, "false_positive"],
+    ]);
+    expect((await audited("scan.finding_dismissed")).map((e) => e.metadata.kind).sort()).toEqual([
+      "accepted",
+      "false_positive",
+    ]);
+    const moderator = await getCurrentUser(asModerator, app);
+    const kinds = (
+      await kyselyUserDataRepository(t.db, t.dialect).comments(moderator?.id ?? "", 100)
+    ).map((c) => c.kind);
+    expect(kinds).toContain("accepted_risk");
+    expect(kinds).toContain("false_positive");
+  });
+
+  it("refuses a kind that isn't one, and changes nothing", async () => {
+    const { scanId } = await scanned();
+    for (const kind of ["wontfix", "", 1, null, ["accepted"]])
+      await expect(
+        dismissFinding(asModerator, { scanId, finding: 0, reason: "Hm.", kind }, app),
+      ).rejects.toThrow(DismissalKindError);
+    expect(await t.db.selectFrom("scan_dismissals").select("id").execute()).toEqual([]);
+  });
+
+  it("reads a mark made before 0040 as a false positive", async () => {
+    const { scanId, revisionId } = await scanned();
+    await dismissFinding(asModerator, { scanId, finding: 0, reason: "Old." }, app);
+    const [row] = await t.db.selectFrom("scan_dismissals").select("kind").execute();
+    expect(row?.kind).toBe("false_positive");
+    expect((await reviewScan(asModerator, revisionId, app)).dismissals[0]?.kind).toBe(
+      "false_positive",
+    );
   });
 });
 

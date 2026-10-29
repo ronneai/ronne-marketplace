@@ -6,14 +6,17 @@ import type { CurrentUser } from "../../identity/models/user";
 import { itemNameOf } from "../../submissions/models/submission";
 import {
   DISMISSAL_REASON_MAX_LENGTH,
+  DismissalKindError,
   DismissalReasonError,
   FindingDismissedError,
   FindingNotFoundError,
   NotScanReviewerError,
 } from "../exceptions/errors";
-import type {
-  DismissalTarget,
-  ScanDismissalRepository,
+import {
+  DISMISSAL_KINDS,
+  type DismissalKind,
+  type DismissalTarget,
+  type ScanDismissalRepository,
 } from "../repositories/scan-dismissal-repository";
 
 /**
@@ -30,8 +33,8 @@ export type DismissalDeps = { repo: ScanDismissalRepository; now?: () => Date };
 // isn't one; nor are lone surrogates (half pairs). And one with nothing visible (spaces, fillers, joiners) isn't one either.
 const UNSAFE = /(?![\t\n\u200d])[\p{Cc}\p{Cf}\p{Cs}]/gu;
 // Something to read: a letter, digit, punctuation or symbol that isn't invisible (fillers, the
-// blank Braille pattern); spaces, joiners and combining marks alone aren't.
-const VISIBLE = /(?![\u2800\p{Default_Ignorable_Code_Point}])[\p{L}\p{N}\p{P}\p{S}]/u;
+// blank Braille pattern, the null notehead); spaces, joiners and combining marks alone aren't.
+const VISIBLE = /(?![\u2800\u{1D159}\p{Default_Ignorable_Code_Point}])[\p{L}\p{N}\p{P}\p{S}]/u;
 
 /** The reason as kept: cleaned and trimmed, 1 to 500 characters. */
 export const dismissalReasonFrom = (value: unknown): string => {
@@ -39,6 +42,14 @@ export const dismissalReasonFrom = (value: unknown): string => {
   if (!VISIBLE.test(reason)) throw new DismissalReasonError("required");
   if ([...reason].length > DISMISSAL_REASON_MAX_LENGTH) throw new DismissalReasonError("too_long");
   return reason;
+};
+
+/** A mark's kind as sent (137): left out, a false positive, as marks were before 0040. */
+const dismissalKindFrom = (value: unknown): DismissalKind => {
+  if (value === undefined) return "false_positive";
+  if (typeof value === "string" && (DISMISSAL_KINDS as readonly string[]).includes(value))
+    return value as DismissalKind;
+  throw new DismissalKindError();
 };
 
 /**
@@ -90,9 +101,10 @@ const now = (deps: DismissalDeps) => (deps.now ?? (() => new Date()))();
 export const dismissFinding = async (
   deps: DismissalDeps,
   actor: DismissalActor,
-  input: { scanId: unknown; finding: unknown; reason: unknown },
+  input: { scanId: unknown; finding: unknown; reason: unknown; kind?: unknown },
 ): Promise<void> => {
   const scanId = scanIdFrom(input.scanId);
+  const kind = dismissalKindFrom(input.kind);
   const reason = dismissalReasonFrom(input.reason);
   const at = now(deps);
   // The scan's row is locked first, so marks and restores of one scan run one at a time; a
@@ -102,7 +114,9 @@ export const dismissFinding = async (
       await repo.lockScan(scanId);
       const { target, index, kept } = await findingFor(repo, actor, scanId, input.finding);
       const userId = actor.user?.id ?? "";
-      if (!(await repo.dismiss({ scanId: target.scanId, finding: index, userId, reason, at })))
+      if (
+        !(await repo.dismiss({ scanId: target.scanId, finding: index, kind, userId, reason, at }))
+      )
         throw new FindingDismissedError();
       await repo.recordAudit(
         {
@@ -114,6 +128,7 @@ export const dismissFinding = async (
             name: itemNameOf(target.submission),
             revision: target.revision,
             finding: index,
+            kind,
             rule: kept.rule,
             ...(kept.file ? { file: kept.file } : {}),
             reason,

@@ -38,16 +38,25 @@ override. This changes 135's decision 1 ("advisory, never blocks").
   - **Conversation** (with its count): the thread and the comment form; a decision made on the page
     opens it, so the reviewer sees the decision recorded;
   - **Security scan** (with the count of findings once scanned): every finding, below.
-- **The findings** (the Security scan tab; no dialog, owner, 2026-10-28):
-  - one filter per category, with counts, and All;
-  - each finding:
-    - its severity, title, rule and category;
-    - its file and line, which **jump to the code**: the Files tab's All files view at that line;
-    - SkillSpector's explanation, and its **remediation** ("How to fix:"), kept from now on;
-  - **Mark false positive** (reviewers): a finding is dismissed with a required reason. It then shows
-    as dismissed, by whom, with the reason, and can be restored;
+- **The findings** (the Security scan tab; no dialog, owner, 2026-10-28), as a code-quality tool's
+  issue list (owner, 2026-10-29, after SonarQube's):
+  - **by file**, files by path and those that name none last, each with its count and a link to it
+    in the Files tab; in each, **by line** (a line column, `L10`, linked to the line), then the most
+    severe first;
+  - filters by **category**, **severity** and **status** (open, marked), each with counts, and All;
+  - each finding: its severity, title, rule and category, SkillSpector's explanation, and its
+    **remediation** ("How to fix:"), kept from now on; a mark shows its kind, by whom, and why;
+  - the actions, visible on each finding:
+    - **Mark false positive** and **Accept the risk** (reviewers): a mark with a required reason,
+      a false positive (the finding is wrong) or an accepted risk (it's real, and known and fine),
+      which anyone who may review the submission can restore;
+    - **Ask the author to fix it** (whoever may request changes): Request changes opens with the
+      finding quoted (its title, rule, file and line, and the fix); several can be selected, or
+      every open one, and asked for in one message, which the reviewer can edit before sending;
+    - **Copy link**: a link to the page at the finding (`#finding-<n>`), which it opens and
+      highlights;
   - **Export report (JSON)**: Ronne's kept copy of the result (never SkillSpector's raw output),
-    with the item's name, the revision, the time and the dismissals, built in the browser.
+    with the item's name, the revision, the time and the marks, built in the browser.
   - Before a scan has finished, the tab shows the card's state (waiting, failed, not scanned).
 - **Authors see their own scan** on their submission page, which has no tabs: the card with the
   findings under it, with no Scan again, Override or Mark false positive, and a file and line as
@@ -162,12 +171,15 @@ override. This changes 135's decision 1 ("advisory, never blocks").
 - Migration `0039_scan_dismissals`: `scan_dismissals` (`id`, `scan_id` → `content_scans.id` on
   delete cascade, `finding` int, `user_id`, `reason`, `created_at`), unique on (`scan_id`,
   `finding`).
+- Migration `0040_scan_dismissal_kind`: `scan_dismissals.kind`, `false_positive` (the default, as
+  every mark before) or `accepted`; audited with the mark (`metadata.kind`), and in the data
+  download as `false_positive` or `accepted_risk`.
 - `instance_settings`: `skill_scan_block_score` (empty or 1–100).
 - `content_scans.result`: findings keep `remediation` (cleaned and cut like the other text). Older
   rows have none, and read as before.
 - Audit actions: `submission.scan_override_approved`, `scan.finding_dismissed`, `scan.finding_restored`.
-- The data download (104) includes the reasons a person gave for false positives, as comments of
-  the kind `false_positive`, as it includes their review messages.
+- The data download (104) includes the reasons a person gave for their marks, as comments of the
+  kind `false_positive` or `accepted_risk`, as it includes their review messages.
 - Review event kind: `scan_override`.
 
 ## Documentation
@@ -213,12 +225,15 @@ override. This changes 135's decision 1 ("advisory, never blocks").
 3. **The findings have jump to code, the category filters, the JSON export and Mark false positive**
    (owner, 2026-10-28); they're in the review page's Security scan tab, not a dialog, and the page
    has tabs as a pull request has, with an Overview first (owner, 2026-10-28).
-4. **Dismissals don't move the score** (Claude): the score is SkillSpector's. A dismissal tells the
+4. **Marks don't move the score** (Claude): the score is SkillSpector's. A dismissal tells the
    other reviewers; the override is root's decision.
 5. **No gate on the owner's own submissions in their personal workspace** (Claude): the author
    approves on send there (114), before a scan can finish. Only theirs: someone else's submission
    in a scope moved there (115) is gated, or a workspace admin could approve it past the gate
    (task 3's adversarial pass).
+6. **An accepted risk is a mark of its own kind** (owner, 2026-10-29): a false positive says the
+   scanner is wrong, an accepted risk that it's right and that's fine; the list, the audit and the
+   export tell them apart. Neither moves the score or the gate.
 
 ## Open questions
 

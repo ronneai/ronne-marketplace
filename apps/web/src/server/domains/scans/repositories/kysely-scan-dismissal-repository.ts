@@ -76,6 +76,7 @@ export const kyselyScanDismissalRepository = (
         "scan_dismissals.scan_id",
         "scan_dismissals.finding",
         "scan_dismissals.reason",
+        "scan_dismissals.kind",
         "scan_dismissals.user_id",
         "scan_dismissals.created_at",
         "user.name",
@@ -87,6 +88,7 @@ export const kyselyScanDismissalRepository = (
       const list = byScan.get(row.scan_id) ?? [];
       list.push({
         finding: Number(row.finding),
+        kind: row.kind === "accepted" ? "accepted" : "false_positive",
         reason: row.reason,
         by: { id: row.user_id, name: row.name ?? null },
         at: fromDbDate(row.created_at),
@@ -96,7 +98,7 @@ export const kyselyScanDismissalRepository = (
     return byScan;
   },
 
-  async dismiss({ scanId, finding, userId, reason, at }) {
+  async dismiss({ scanId, finding, kind, userId, reason, at }) {
     try {
       await db
         .insertInto("scan_dismissals")
@@ -104,6 +106,7 @@ export const kyselyScanDismissalRepository = (
           id: newId(),
           scan_id: scanId,
           finding,
+          kind,
           user_id: userId,
           reason,
           created_at: toDbDate(at, dialect),

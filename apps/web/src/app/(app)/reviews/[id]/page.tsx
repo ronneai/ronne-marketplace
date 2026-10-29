@@ -6,7 +6,6 @@ import { selectedFile, showFiles } from "@/components/files/shown";
 import { Help } from "@/components/help/Help";
 import { RiskSummary } from "@/components/risk-flags/RiskSummary";
 import { ScanCard } from "@/components/scan/ScanCard";
-import { ScanFindings } from "@/components/scan/ScanFindings";
 import { DependencyMarksNotice } from "@/components/submissions/DependencyMarks";
 import { ProposalBadges } from "@/components/submissions/ProposalBadges";
 import { StatusBadge } from "@/components/submissions/StatusBadge";
@@ -22,6 +21,7 @@ import { DecisionBar } from "@/features/reviews/DecisionBar";
 import { ProposalChanges } from "@/features/reviews/ProposalChanges";
 import { PublishDialog } from "@/features/reviews/PublishDialog";
 import { ReviewAllFiles, ReviewChanges } from "@/features/reviews/ReviewFiles";
+import { ReviewScanFindings } from "@/features/reviews/ReviewScanFindings";
 import { releaseGroupFor } from "@/features/reviews/release-group";
 import { ScanOverride } from "@/features/reviews/ScanOverride";
 import { ScanRequest } from "@/features/reviews/ScanRequest";
@@ -351,7 +351,7 @@ const Review = async ({
 
       {tab === "scan" ? (
         scan?.status === "done" && scan.result && scan.result.findings.length > 0 ? (
-          <ScanFindings
+          <ReviewScanFindings
             item={itemNameOf(submission)}
             revision={current?.number ?? null}
             scan={{ id: scan.id, finishedAt: scan.finishedAt, llm: scan.llm }}
@@ -360,6 +360,8 @@ const Review = async ({
             canDismiss={scanView.canDismiss}
             submissionId={submission.id}
             base={base}
+            name={itemNameOf(submission)}
+            canAskFix={review.decisions.some((d) => d.decision === "request_changes" && d.allowed)}
           />
         ) : (
           scanCard(true)

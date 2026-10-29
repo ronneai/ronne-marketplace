@@ -109,6 +109,7 @@ export const DecisionDialog = ({
   revision,
   onClose,
   onDone,
+  initialText = "",
 }: {
   id: string;
   /** The item's name, for the dependents' message (056). */
@@ -122,11 +123,13 @@ export const DecisionDialog = ({
   onClose: () => void;
   /** After the decision went through, before the page refreshes. */
   onDone?: () => void;
+  /** The message to start from: the findings the author is asked to fix (137). */
+  initialText?: string;
 }) => {
   const t = useTranslations("author.review");
   const router = useRouter();
   const pathname = usePathname();
-  const [text, setText] = useState("");
+  const [text, setText] = useState(initialText);
   const [sendBack, setSendBack] = useState(true);
   // What the dependents are told (056), prefilled in the reviewer's language and editable.
   const [othersText, setOthersText] = useState(

@@ -37,6 +37,7 @@ import { passwordChangeRequired } from "./0036_password_change_required";
 import { itemMoves } from "./0037_item_moves";
 import { contentScans } from "./0038_content_scans";
 import { scanDismissals } from "./0039_scan_dismissals";
+import { scanDismissalKind } from "./0040_scan_dismissal_kind";
 import type { AppMigration } from "./types";
 
 /**
@@ -83,4 +84,5 @@ export const migrations: Record<string, AppMigration> = {
   "0037_item_moves": itemMoves,
   "0038_content_scans": contentScans,
   "0039_scan_dismissals": scanDismissals,
+  "0040_scan_dismissal_kind": scanDismissalKind,
 };

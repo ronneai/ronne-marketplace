@@ -442,6 +442,7 @@ export const kyselyUserDataRepository = (
           "scopes.name as scope",
           "workspaces.name as workspace",
           "scan_dismissals.reason as body",
+          "scan_dismissals.kind as kind",
           "scan_dismissals.created_at as at",
           "scan_dismissals.id as id",
         ])
@@ -461,7 +462,7 @@ export const kyselyUserDataRepository = (
         ...dismissals.map((row) => ({
           submission: `@${row.scope}/${row.name}`,
           workspace: row.workspace,
-          kind: "false_positive",
+          kind: row.kind === "accepted" ? "accepted_risk" : "false_positive",
           body: row.body as string | null,
           createdAt: fromDbDate(row.at),
         })),

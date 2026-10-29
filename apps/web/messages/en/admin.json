@@ -721,7 +721,7 @@
           "rebased": "Rebased <name>{item}</name> from {from} to {to}{conflicts, plural, =0 {} one { (# conflict)} other { (# conflicts)}}"
         },
         "scan": {
-          "finding_dismissed": "Marked the finding <code>{rule}</code> of <name>{item}</name> a false positive",
+          "finding_dismissed": "{kind, select, accepted {Accepted the risk of the finding <code>{rule}</code> of <name>{item}</name>} other {Marked the finding <code>{rule}</code> of <name>{item}</name> a false positive}}",
           "finding_restored": "Restored the finding <code>{rule}</code> of <name>{item}</name>"
         },
         "version": {
