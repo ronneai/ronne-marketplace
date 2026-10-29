@@ -9,9 +9,11 @@ import {
   setPasswordSignInPolicy,
   setRetention,
   setSkillScanPolicy,
+  setSkillScanSetup,
   setTwoFactorPolicy,
   setUsageMinimum,
   setUsagePolicy,
+  testSkillScanConnection,
 } from "@/server/domains/settings/actions/settings";
 import { SettingsError } from "@/server/domains/settings/exceptions/errors";
 import { requestHeaders } from "@/server/http/request-headers";
@@ -124,18 +126,53 @@ export const retryErasures = serverAction(
   },
 );
 
-/** Saves the security scan's policy (135), turning domain errors into the form's `ERR:` line. */
+/**
+ * Saves the Security scan tab (135, 136): first the setup (command, timeout, provider and the
+ * write-only key), then the switch, types and analysis, so a provider set in the same save can be
+ * chosen. Domain errors become the form's `ERR:` line.
+ */
 export const saveSkillScanPolicy = serverAction(
   async (_previous: SettingsActionState, form: FormData): Promise<SettingsActionState> => {
     try {
-      const { changed } = await setSkillScanPolicy(await requestHeaders(), {
+      const headers = await requestHeaders();
+      const setup = await setSkillScanSetup(headers, {
+        provider: form.get("provider"),
+        model: form.get("model"),
+        endpoint: form.get("endpoint"),
+        timeout: form.get("timeout"),
+        command: form.get("command"),
+        key: form.get("key"),
+        removeKey: form.get("removeKey"),
+      });
+      const policy = await setSkillScanPolicy(headers, {
         enabled: form.get("enabled"),
         types: form.getAll("types"),
         analysis: form.get("analysis"),
       });
       revalidatePath("/admin/settings");
       const t = await getTranslations("admin.done.settings");
-      return { done: changed ? t("scan") : t("nothing") };
+      return { done: setup.changed || policy.changed ? t("scan") : t("nothing") };
+    } catch (error) {
+      if (error instanceof SettingsError || error instanceof IdentityError)
+        return { error: await errorText(error) };
+      throw error;
+    }
+  },
+);
+
+/** Test connection (136): one request to the provider in the form; says reached, refused or not. */
+export const testScanConnection = serverAction(
+  async (_previous: SettingsActionState, form: FormData): Promise<SettingsActionState> => {
+    try {
+      const { result, host } = await testSkillScanConnection(await requestHeaders(), {
+        provider: form.get("provider"),
+        endpoint: form.get("endpoint"),
+        key: form.get("key"),
+      });
+      const t = await getTranslations("admin.settings.scan");
+      if (result === "reached") return { done: t("provider.test.reached", { host }) };
+      if (result === "refused") return { error: t("provider.test.refused", { host }) };
+      return { error: t("provider.test.unreachable", { host }) };
     } catch (error) {
       if (error instanceof SettingsError || error instanceof IdentityError)
         return { error: await errorText(error) };

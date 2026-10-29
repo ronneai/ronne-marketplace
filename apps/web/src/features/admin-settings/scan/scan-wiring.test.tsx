@@ -6,7 +6,7 @@ vi.mock("./SemanticConfirm", () => ({
   SemanticConfirm: (props: { saved: string; chosen: string; provider: { host: string } | null }) =>
     `CONFIRM saved=${props.saved} chosen=${props.chosen} host=${props.provider?.host ?? "none"}`,
 }));
-vi.mock("../actions", () => ({ saveSkillScanPolicy: vi.fn() }));
+vi.mock("../actions", () => ({ saveSkillScanPolicy: vi.fn(), testScanConnection: vi.fn() }));
 
 const { SkillScanForm } = await import("./SkillScanForm");
 

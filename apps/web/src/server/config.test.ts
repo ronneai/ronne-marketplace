@@ -56,7 +56,7 @@ describe("loadConfig", () => {
     const scanFile = join(dir, "scan.env");
     writeFileSync(
       scanFile,
-      'RONNE_SKILL_SCANNER=["/opt/x"]\nRONNE_SKILL_SCANNER_TIMEOUT=60\nRONNE_SKILL_SCANNER_ENV_SKILLSPECTOR_PROVIDER=ollama\nRONNE_SKILL_SCANNER_ENV_OLLAMA_BASE_URL=http://file:1/v1\n',
+      'RONNE_SKILL_SCANNER=["/opt/x"]\nRONNE_SKILL_SCANNER_TIMEOUT=60\nRONNE_SKILL_SCANNER_ENV_SKILLSPECTOR_PROVIDER=ollama\nRONNE_SKILL_SCANNER_ENV_OLLAMA_BASE_URL=http://file:1/v1\nRONNE_SKILL_SCANNER_HTTP_HOSTS=file.lan\n',
     );
     const config = loadConfig({
       appDir: dir,
@@ -64,12 +64,15 @@ describe("loadConfig", () => {
         RONNE_ENV_FILE: scanFile,
         RONNE_SKILL_SCANNER_ENV_OLLAMA_BASE_URL: "http://env:2/v1",
         RONNE_SKILL_SCANNER_ENV_SKILLSPECTOR_MODEL: "",
+        RONNE_SKILL_SCANNER_HTTP_HOSTS: "ollama.lan, 10.0.0.5",
         OPENAI_API_KEY: "sk-unprefixed",
       },
     });
     expect(config.skillScanner).toEqual({
       command: '["/opt/x"]',
       timeout: "60",
+      // 136: the environment's over the file's, as given; domains/scans parses it.
+      httpHosts: "ollama.lan, 10.0.0.5",
       env: {
         RONNE_SKILL_SCANNER_ENV_SKILLSPECTOR_PROVIDER: "ollama",
         RONNE_SKILL_SCANNER_ENV_OLLAMA_BASE_URL: "http://env:2/v1",

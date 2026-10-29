@@ -1,5 +1,6 @@
 import type { Kysely } from "kysely";
 import { fromDbDate, toDbBoolean, toDbDate } from "../../../db/dates";
+import { exactEquals } from "../../../db/exact";
 import { newId } from "../../../db/ids";
 import { countCapped, paginate } from "../../../db/keyset";
 import { forUpdate, readCommittedTransaction } from "../../../db/locks";
@@ -517,6 +518,33 @@ export const kyselyIdentityRepository = (
         .set({ secret_enc: secretEnc })
         .where("id", "=", id)
         .execute();
+    },
+
+    async instanceSecrets() {
+      // A few rows: filtered here, as LIKE's `_` and its escaping differ between the dialects.
+      const rows = await db.selectFrom("instance_settings").select(["key", "value"]).execute();
+      return rows
+        .filter((r) => r.key.endsWith("_enc") && r.value !== "")
+        .map((r) => ({ key: r.key, valueEnc: r.value }));
+    },
+
+    async instanceSecret(key) {
+      const row = await db
+        .selectFrom("instance_settings")
+        .select("value")
+        .where("key", "=", key)
+        .executeTakeFirst();
+      return row?.value || null;
+    },
+
+    async setInstanceSecret(key, from, to) {
+      const result = await db
+        .updateTable("instance_settings")
+        .set({ value: to })
+        .where("key", "=", key)
+        .where(exactEquals(dialect, "value", from))
+        .executeTakeFirst();
+      return Number(result.numUpdatedRows) === 1;
     },
 
     async setPassword(userId, passwordHash, now) {

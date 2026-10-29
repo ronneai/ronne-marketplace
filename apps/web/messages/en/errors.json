@@ -142,7 +142,17 @@
   "ScopeWorkspaceNotFoundError": "That workspace doesn't exist.",
   "ScopeNotFoundError": "That scope doesn't exist.",
   "SkillScanNotConfiguredError": "Set RONNE_SKILL_SCANNER on the server (the scanner's command, as a JSON array) and restart Ronne first.",
-  "SkillScanNoProviderError": "Set up an LLM provider on the server first (RONNE_SKILL_SCANNER_ENV_SKILLSPECTOR_PROVIDER and its variables), then restart Ronne.",
+  "SkillScanNoProviderError": "Set up an LLM provider first: below, or on the server with RONNE_SKILL_SCANNER_ENV_SKILLSPECTOR_PROVIDER and its variables.",
   "InvalidSkillScanTypesError": "Pick at least one item type to scan.",
-  "InvalidSkillScanAnalysisError": "Choose static, or static and semantic."
+  "InvalidSkillScanAnalysisError": "Choose static, or static and semantic.",
+  "InvalidScanProviderError": "Choose one of the providers listed, or none.",
+  "InvalidScanModelError": "Enter a model name of at most 128 characters, on one line.",
+  "InvalidScanTimeoutError": "Enter a timeout from 30 to 3600 seconds, or leave it empty for 300.",
+  "InvalidScanCommandError": "Choose one of the scanner commands the server lists.",
+  "InvalidScanKeyError": "Enter the API key on one line, at most 4096 characters, for a provider that takes one.",
+  "InvalidScanEndpointError": "Enter the endpoint as a URL, such as https://api.example.com/v1, with no spaces or backslashes.",
+  "ScanEndpointNotHttpsError": "The endpoint must start with https://. The server’s operator can allow http:// for a host in RONNE_SKILL_SCANNER_HTTP_HOSTS.",
+  "ScanEndpointCredentialsError": "Leave the user name and password out of the endpoint: enter the API key in its own field.",
+  "ScanEndpointInternalError": "That endpoint is on a private, loopback or link-local address, which isn’t allowed. The server’s operator can allow its host in RONNE_SKILL_SCANNER_HTTP_HOSTS.",
+  "ScanEndpointUnresolvedError": "That endpoint’s host can’t be found. Check its name."
 }

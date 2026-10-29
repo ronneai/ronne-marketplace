@@ -25,6 +25,34 @@ export const DEFAULT_SKILL_SCAN_POLICY: SkillScanPolicy = {
 export const SKILL_SCAN_ENABLED_KEY = "skill_scan_enabled";
 export const SKILL_SCAN_TYPES_KEY = "skill_scan_types";
 export const SKILL_SCAN_ANALYSIS_KEY = "skill_scan_analysis";
+/** The scanner's setup as root sets it in the web (136); the environment's, when set, wins. */
+export const SKILL_SCAN_PROVIDER_KEY = "skill_scan_provider";
+export const SKILL_SCAN_MODEL_KEY = "skill_scan_model";
+export const SKILL_SCAN_ENDPOINT_KEY = "skill_scan_endpoint";
+export const SKILL_SCAN_TIMEOUT_KEY = "skill_scan_timeout";
+/** The index of the chosen command in the operator's RONNE_SKILL_SCANNERS. */
+export const SKILL_SCAN_COMMAND_KEY = "skill_scan_command";
+/** The provider's API key, sealed (`instance-secrets.ts`); empty once removed. */
+export const SKILL_SCAN_KEY_ENC_KEY = "skill_scan_key_enc";
+export const SKILL_SCAN_SETUP_KEYS = [
+  SKILL_SCAN_PROVIDER_KEY,
+  SKILL_SCAN_MODEL_KEY,
+  SKILL_SCAN_ENDPOINT_KEY,
+  SKILL_SCAN_TIMEOUT_KEY,
+  SKILL_SCAN_COMMAND_KEY,
+  SKILL_SCAN_KEY_ENC_KEY,
+] as const;
+
+/** The setup's stored values, as read from `instance_settings` (null when never set). */
+export type StoredScanSetup = {
+  provider: string | null;
+  model: string | null;
+  endpoint: string | null;
+  timeout: string | null;
+  command: string | null;
+  keyEnc: string | null;
+};
+
 /** What the scanner said last, for the settings page: its version, or why it failed. */
 export const SKILL_SCAN_LAST_VERSION_KEY = "skill_scan_last_version";
 export const SKILL_SCAN_LAST_ERROR_KEY = "skill_scan_last_error";
@@ -65,6 +93,31 @@ export const skillScanPolicyFrom = (stored: {
 export type SkillScanner = {
   configured: boolean;
   provider: { name: string; model: string | null; host: string } | null;
+  /** The setup's sources and root's stored values (136). */
+  setup?: ScanSetupShown;
+};
+
+/**
+ * Where the scanner's setup comes from and what root stored (136), as the tab shows it: the
+ * operator's commands by file name, what the environment fixes, and whether a key is stored. Never
+ * the key, and never a command's arguments.
+ */
+export type ScanSetupShown = {
+  commandFrom: "environment" | "list" | null;
+  commands: { index: number; name: string }[];
+  chosenCommand: number | null;
+  commandDropped: boolean;
+  timeoutFrom: "environment" | "settings" | "default";
+  timeoutSeconds: number;
+  providerFrom: "environment" | "settings" | null;
+  /** The providers root may pick, with the fields each takes. */
+  providers: { name: string; takesKey: boolean; hasEndpoint: boolean; needsEndpoint: boolean }[];
+  stored: {
+    provider: string | null;
+    model: string | null;
+    endpoint: string | null;
+    key: "set" | "unreadable" | "none";
+  };
 };
 
 /** Admin › Settings › Security scan. */

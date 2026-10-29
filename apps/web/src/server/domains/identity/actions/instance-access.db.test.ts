@@ -3,9 +3,14 @@ import { toDbDate } from "../../../db/dates";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
 import { requireToken } from "../../../http/require-token";
 import { listAuditEvents } from "../../audit/actions/audit";
+import { openSetting, resealSetting, sealSetting } from "../../settings/models/instance-secrets";
+import { openScanKey, sealScanKey } from "../../settings/models/scan-key";
 import { UserNotFoundError } from "../exceptions/errors";
 import type { AppAuth } from "../repositories/auth-instance";
+import type { IdentityRepository } from "../repositories/identity-repository";
+import { kyselyIdentityRepository } from "../repositories/kysely-identity-repository";
 import { kyselyScimTokenRepository } from "../repositories/kysely-scim-token-repository";
+import * as service from "../services/instance-access";
 import {
   checkScimToken,
   createScimToken,
@@ -309,7 +314,14 @@ describe("rotate-secret's sessions (098)", () => {
       await endSessionsForNewSecret(t.db, t.dialect, () => {
         wrote = true;
       }),
-    ).toEqual({ sessions: 2, twoFactorCleared: 0, providerSecrets: 0, unreadable: 0 });
+    ).toEqual({
+      sessions: 2,
+      twoFactorCleared: 0,
+      providerSecrets: 0,
+      settingSecrets: 0,
+      unreadable: 0,
+      settingUnreadable: 0,
+    });
 
     expect(wrote).toBe(true);
     expect(await signedIn(root)).toBe(false);
@@ -348,5 +360,105 @@ describe("rotate-secret's sessions (098)", () => {
     expect(await signedIn(ada)).toBe(true);
     const restarted = testAppAuth(t, { secret: "a-new-secret-a-new-secret-a-new-secret-01" });
     expect(await getCurrentUser(ada, restarted)).toBeNull();
+  });
+});
+
+describe("rotate-secret's instance setting secrets (136)", () => {
+  const OLD_SECRET = "old-secret-old-secret-old-secret-0001";
+  const NEW_SECRET = "new-secret-new-secret-new-secret-0002";
+  const setting = (key: string, value: string) =>
+    t.db
+      .insertInto("instance_settings")
+      .values({ key, value, updated_by: null, updated_at: toDbDate(new Date(), t.dialect) })
+      .execute();
+  const stored = async (key: string) =>
+    (
+      await t.db
+        .selectFrom("instance_settings")
+        .select("value")
+        .where("key", "=", key)
+        .executeTakeFirstOrThrow()
+    ).value;
+
+  it("re-seals the scan key under the new AUTH_SECRET, audited by count, never the key", async () => {
+    await setting("skill_scan_key_enc", sealSetting(OLD_SECRET, "skill_scan_key_enc", "sk-1"));
+    await setting("skill_scan_model", "gpt-x");
+    // Not sealed by this instance: left as it was, and counted unreadable.
+    const foreign = sealSetting("someone-else-someone-else-000000", "other_key_enc", "x");
+    await setting("other_key_enc", foreign);
+    await setting("empty_enc", "");
+
+    const counts = await endSessionsForNewSecret(t.db, t.dialect, () => {}, {
+      from: OLD_SECRET,
+      to: NEW_SECRET,
+    });
+
+    expect(counts).toMatchObject({ settingSecrets: 1, settingUnreadable: 1, unreadable: 0 });
+    expect(openSetting(NEW_SECRET, "skill_scan_key_enc", await stored("skill_scan_key_enc"))).toBe(
+      "sk-1",
+    );
+    expect(await stored("skill_scan_model")).toBe("gpt-x");
+    expect(await stored("other_key_enc")).toBe(foreign);
+    expect(await stored("empty_enc")).toBe("");
+    const [event] = (await listAuditEvents(t.db, t.dialect, {})).events.filter(
+      (e) => e.action === "instance.secret_rotated",
+    );
+    expect(event?.metadata).toMatchObject({ settingSecretsReencrypted: 1 });
+    expect(JSON.stringify(event)).not.toContain("sk-1");
+  });
+
+  it("changes no setting when writing the new secret fails", async () => {
+    const sealed = sealSetting(OLD_SECRET, "skill_scan_key_enc", "sk-1");
+    await setting("skill_scan_key_enc", sealed);
+    await expect(
+      endSessionsForNewSecret(
+        t.db,
+        t.dialect,
+        () => {
+          throw new Error("disk full");
+        },
+        { from: OLD_SECRET, to: NEW_SECRET },
+      ),
+    ).rejects.toThrow("disk full");
+    expect(await stored("skill_scan_key_enc")).toBe(sealed);
+  });
+
+  it("never writes the old key back over one that changed between its read and its write", async () => {
+    const key = "skill_scan_key_enc";
+    const sealed = sealSetting(OLD_SECRET, key, "sk-1");
+    await setting(key, sealed);
+    // The value changes, by case only, after rotate read it: MySQL's collation would call them equal.
+    // Its first letter, `v` of `v1.`, upper-cased: the same value but for case, always.
+    const flipped = `V${sealed.slice(1)}`;
+    const real = kyselyIdentityRepository(t.db, t.dialect);
+    const repo: IdentityRepository = {
+      ...real,
+      transaction: (work) =>
+        real.transaction((tx) =>
+          work({
+            ...tx,
+            instanceSecrets: async () => {
+              const rows = await tx.instanceSecrets();
+              await tx.setInstanceSecret(key, sealed, flipped);
+              return rows;
+            },
+          }),
+        ),
+    };
+    const counts = await service.endSessionsForNewSecret(
+      { repo },
+      () => {},
+      undefined,
+      (k, v) => resealSetting(OLD_SECRET, NEW_SECRET, k, v),
+    );
+    expect(await stored(key)).toBe(flipped);
+    expect(counts).toMatchObject({ settingSecrets: 0, settingUnreadable: 1 });
+  });
+
+  it("re-seals the scan key with what it was typed for: it still opens for that provider", async () => {
+    const typedFor = { provider: "anthropic", endpoint: null };
+    await setting("skill_scan_key_enc", sealScanKey(OLD_SECRET, "sk-ant-1", typedFor));
+    await endSessionsForNewSecret(t.db, t.dialect, () => {}, { from: OLD_SECRET, to: NEW_SECRET });
+    expect(openScanKey(NEW_SECRET, await stored("skill_scan_key_enc"), typedFor)).toBe("sk-ant-1");
   });
 });

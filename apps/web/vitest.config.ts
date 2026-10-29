@@ -52,6 +52,9 @@ export default defineConfig({
         test: {
           name: "db",
           include: dbInclude,
+          // This clone's settings file stays out, as in the unit project: a value set there for
+          // trying something by hand (RONNE_SKILL_SCANNERS, say) would reach the tests.
+          env: { RONNE_ENV_FILE: ".env.db-tests-have-none" },
           // On a server, each test file migrates one database and empties it between tests (112).
           setupFiles: ["./src/server/db/testing/db-setup.ts"],
           globalSetup: ["./src/server/db/testing/db-global-setup.ts"],

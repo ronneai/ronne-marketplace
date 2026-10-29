@@ -68,7 +68,9 @@ export const runSkillScans = async (env: Record<string, string | undefined>) => 
   const config = loadConfig({ env });
   if (!isConfigured(config)) return;
   const { db, dialect } = getAppDb(config.databaseUrl);
-  await runSkillScansOn({ db, dialect }, config.skillScanner ?? { env: {} });
+  await runSkillScansOn({ db, dialect }, config.skillScanner ?? { env: {} }, {
+    authSecret: config.authSecret,
+  });
 };
 
 /** When the scan queue is looked at: a minute after start, then every minute. */

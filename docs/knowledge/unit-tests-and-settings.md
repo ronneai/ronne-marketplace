@@ -17,6 +17,11 @@ passed. In CI it failed with "Ronne AI Marketplace isn't set up yet" (PR #140).
   unit test sees what CI sees. Keep it that way.
 - **When a page or action gains a server call, mock it** in every unit test that renders it. Look
   for the domain's `actions/*` module (`vi.mock("@/server/domains/…/actions/…")`).
+- **The `db` project hides the settings file too** (since 136): on #259, a
+  `RONNE_SKILL_SCANNERS` line added to `apps/web/.env` to try the scanner by hand failed three
+  database tests that expect no scanner, on that machine only. `loadConfig` reads the file when an
+  environment value is empty, so `vi.stubEnv(name, "")` can't hide it; a db test that needs a
+  setting stubs it.
 - **A test that needs a database is a `*.db.test.ts`** and gets one from `createTestDb()`. The
   `db` project still reads `TEST_DATABASE_URL`.
 

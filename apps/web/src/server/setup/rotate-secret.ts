@@ -143,8 +143,17 @@ export const runRotateSecret = async (options: {
     let twoFactorCleared: number;
     let providerSecrets: number;
     let unreadable: number;
+    let settingSecrets: number;
+    let settingUnreadable: number;
     try {
-      ({ sessions, twoFactorCleared, providerSecrets, unreadable } = await endSessionsForNewSecret(
+      ({
+        sessions,
+        twoFactorCleared,
+        providerSecrets,
+        unreadable,
+        settingSecrets,
+        settingUnreadable,
+      } = await endSessionsForNewSecret(
         db,
         dialect,
         () => {
@@ -175,7 +184,7 @@ export const runRotateSecret = async (options: {
       // Written, then the database failed to commit: the new secret is in place, sessions aren't ended.
       if (written)
         throw new SetupFailedError(
-          `The new AUTH_SECRET was written, but ending the sessions failed. Run ${followUp("revoke-access", "--everyone --sessions-only", env)}${runtimeOf(env) === "node" ? `, then restart the server: ${restartHint(env)}` : ""}. Two-factor sign-in wasn't turned off either, and its secrets can't be read with the new AUTH_SECRET: run ${followUp("rotate-secret", "--yes", env)} again once the database answers, or ${followUp("reset-two-factor", "--email <email>", env)} for each person who has it. The identity providers' client secrets weren't re-encrypted either: enter each one again on its provider's page.`,
+          `The new AUTH_SECRET was written, but ending the sessions failed. Run ${followUp("revoke-access", "--everyone --sessions-only", env)}${runtimeOf(env) === "node" ? `, then restart the server: ${restartHint(env)}` : ""}. Two-factor sign-in wasn't turned off either, and its secrets can't be read with the new AUTH_SECRET: run ${followUp("rotate-secret", "--yes", env)} again once the database answers, or ${followUp("reset-two-factor", "--email <email>", env)} for each person who has it. The identity providers' client secrets weren't re-encrypted either: enter each one again on its provider's page. Nor were the secrets in Admin › Settings, such as the security scan's API key: enter them again there.`,
         );
       throw error;
     }
@@ -199,6 +208,14 @@ export const runRotateSecret = async (options: {
     if (unreadable > 0)
       prompts.log.warn(
         `${unreadable} identity provider ${unreadable === 1 ? "secret was" : "secrets were"} already unreadable (an older AUTH_SECRET): enter the client secret again on the provider's page.`,
+      );
+    if (settingSecrets > 0)
+      prompts.log.info(
+        `Re-encrypted ${settingSecrets} ${settingSecrets === 1 ? "secret" : "secrets"} in Admin › Settings, such as the security scan's API key: they keep working.`,
+      );
+    if (settingUnreadable > 0)
+      prompts.log.warn(
+        `${settingUnreadable} ${settingUnreadable === 1 ? "secret" : "secrets"} in Admin › Settings ${settingUnreadable === 1 ? "was" : "were"} already unreadable (an older AUTH_SECRET): enter ${settingUnreadable === 1 ? "it" : "them"} again there, such as the security scan's API key.`,
       );
     prompts.log.info("Access tokens keep working; to revoke them too, run revoke-access.");
     return { sessions, twoFactorCleared };

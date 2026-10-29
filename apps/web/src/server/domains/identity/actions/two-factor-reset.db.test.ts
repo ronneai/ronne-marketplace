@@ -192,7 +192,14 @@ describe("a new AUTH_SECRET", () => {
       await endSessionsForNewSecret(t.db, t.dialect, () => {
         written = true;
       }),
-    ).toEqual({ sessions: 2, twoFactorCleared: 2, providerSecrets: 0, unreadable: 0 });
+    ).toEqual({
+      sessions: 2,
+      twoFactorCleared: 2,
+      providerSecrets: 0,
+      settingSecrets: 0,
+      unreadable: 0,
+      settingUnreadable: 0,
+    });
     expect(written).toBe(true);
     expect(await records()).toBe(0);
     const flags = await t.db.selectFrom("user").select("two_factor_enabled").execute();

@@ -118,6 +118,15 @@ export interface IdentityRepository {
   /** Every identity provider's id and encrypted client secret (106), for rotate-secret. */
   providerSecrets(): Promise<{ id: string; secretEnc: string }[]>;
   setProviderSecret(id: string, secretEnc: string): Promise<void>;
+  /** Instance settings holding a sealed secret (136): every `instance_settings` key ending `_enc`. */
+  instanceSecrets(): Promise<{ key: string; valueEnc: string }[]>;
+  /** One of them now, or null when it's gone or empty. */
+  instanceSecret(key: string): Promise<string | null>;
+  /**
+   * Writes `to` only if the row still holds `from` (136): a key root saved meanwhile is never put
+   * back to the old one. False when it changed.
+   */
+  setInstanceSecret(key: string, from: string, to: string): Promise<boolean>;
   /** Ends every session on the instance; returns how many. */
   deleteAllSessions(): Promise<number>;
   /** Revokes every token not revoked yet, everyone's; returns how many. */

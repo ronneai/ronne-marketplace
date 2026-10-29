@@ -1,11 +1,22 @@
-import { mkdirSync, readdirSync, utimesSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  utimesSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { fileURLToPath } from "node:url";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { toDbDate } from "../db/dates";
 import { newId } from "../db/ids";
 import { GLOBAL_WORKSPACE_ID } from "../db/migrations/0019_workspaces";
 import { createTestDb, type TestDb } from "../db/testing/test-db";
+import type { Resolver } from "../domains/scans/models/endpoint";
+import { sealScanKey } from "../domains/settings/models/scan-key";
 import { runSkillScansOn, SKILL_SCAN_JOB } from "./skill-scan-job";
 
 // Runs on the database in TEST_DATABASE_URL (in-memory SQLite by default; 004 runs all of them).
@@ -146,5 +157,153 @@ describe("runSkillScansOn (135)", () => {
     utimesSync(folder, long, long);
     await runSkillScansOn({ db: t.db, dialect: t.dialect }, config);
     expect(readdirSync(tmpdir())).not.toContain(name);
+  });
+});
+
+describe("the job with root's setup (136)", () => {
+  const AUTH_SECRET = "test-secret-test-secret-test-secret-00";
+  const COMPAT = { provider: "openai_compatible", endpoint: "https://llm.example.com/v1" };
+  const fake = fileURLToPath(
+    new URL("../domains/scans/services/testing/fake-scanner.mjs", import.meta.url),
+  );
+  let dir: string;
+  let out: string;
+  let commands: string;
+  const resolveTo =
+    (address: string): Resolver =>
+    async () => [address];
+
+  const settings = async (values: Record<string, string>) => {
+    await t.db.deleteFrom("instance_settings").where("key", "like", "skill_scan%").execute();
+    for (const [key, value] of Object.entries(values))
+      await t.db
+        .insertInto("instance_settings")
+        .values({ key, value, updated_by: null, updated_at: now() })
+        .execute();
+  };
+  const scanRow = () =>
+    t.db
+      .selectFrom("content_scans")
+      .select(["status", "error", "llm_provider"])
+      .executeTakeFirstOrThrow();
+  const seen = () => JSON.parse(readFileSync(out, "utf8")).env as Record<string, string>;
+
+  beforeEach(async () => {
+    dir = mkdtempSync(join(tmpdir(), "ronne-136-job-"));
+    out = join(dir, "env.json");
+    commands = JSON.stringify([[process.execPath, fake, "env", out]]);
+    await t.db.deleteFrom("content_scans").execute();
+    await scan("queued");
+  });
+  afterEach(() => rmSync(dir, { recursive: true, force: true }));
+
+  it("runs root's command and provider, the key opened for the scanner only", async () => {
+    await settings({
+      skill_scan_analysis: "semantic",
+      skill_scan_provider: "anthropic",
+      skill_scan_model: "claude-x",
+      skill_scan_key_enc: sealScanKey(AUTH_SECRET, "sk-ant-SECRET", {
+        provider: "anthropic",
+        endpoint: null,
+      }),
+    });
+    await runSkillScansOn(
+      { db: t.db, dialect: t.dialect },
+      { commands, env: {} },
+      { authSecret: AUTH_SECRET },
+    );
+    expect(await scanRow()).toMatchObject({ status: "done", llm_provider: "anthropic" });
+    expect(seen()).toMatchObject({
+      SKILLSPECTOR_PROVIDER: "anthropic",
+      SKILLSPECTOR_MODEL: "claude-x",
+      ANTHROPIC_API_KEY: "sk-ant-SECRET",
+    });
+    expect(seen()).not.toHaveProperty("AUTH_SECRET");
+  });
+
+  it("runs static when the key no longer opens", async () => {
+    await settings({
+      skill_scan_analysis: "semantic",
+      skill_scan_provider: "anthropic",
+      skill_scan_key_enc: sealScanKey("another-secret-another-secret-0000", "sk-x", {
+        provider: "anthropic",
+        endpoint: null,
+      }),
+    });
+    await runSkillScansOn(
+      { db: t.db, dialect: t.dialect },
+      { commands, env: {} },
+      { authSecret: AUTH_SECRET },
+    );
+    expect(await scanRow()).toMatchObject({ status: "done", llm_provider: null });
+    expect(seen()).not.toHaveProperty("ANTHROPIC_API_KEY");
+    expect(seen()).not.toHaveProperty("SKILLSPECTOR_PROVIDER");
+  });
+
+  it("fails semantic scans `endpoint refused` when root's endpoint now resolves inside, without running the scanner", async () => {
+    await settings({
+      skill_scan_analysis: "semantic",
+      skill_scan_provider: "openai_compatible",
+      skill_scan_endpoint: "https://llm.example.com/v1",
+      skill_scan_key_enc: sealScanKey(AUTH_SECRET, "sk-SECRET", COMPAT),
+    });
+    await runSkillScansOn(
+      { db: t.db, dialect: t.dialect },
+      { commands, env: {} },
+      { authSecret: AUTH_SECRET, resolve: resolveTo("169.254.169.254") },
+    );
+    expect(await scanRow()).toMatchObject({ status: "failed", error: "endpoint refused" });
+    expect(existsSync(out)).toBe(false);
+    const last = await t.db
+      .selectFrom("instance_settings")
+      .select("value")
+      .where("key", "=", "skill_scan_last_error")
+      .executeTakeFirst();
+    expect(last?.value).toBe("endpoint refused");
+  });
+
+  it("runs the scan when the endpoint still checks out", async () => {
+    await settings({
+      skill_scan_analysis: "semantic",
+      skill_scan_provider: "openai_compatible",
+      skill_scan_endpoint: "https://llm.example.com/v1",
+      skill_scan_key_enc: sealScanKey(AUTH_SECRET, "sk-SECRET", COMPAT),
+    });
+    await runSkillScansOn(
+      { db: t.db, dialect: t.dialect },
+      { commands, env: {} },
+      { authSecret: AUTH_SECRET, resolve: resolveTo("93.184.215.14") },
+    );
+    expect(await scanRow()).toMatchObject({ status: "done", llm_provider: "openai_compatible" });
+    expect(seen().SKILLSPECTOR_COMPAT_BASE_URL).toBe("https://llm.example.com/v1");
+  });
+
+  it("leaves static scans alone: they send the endpoint nothing", async () => {
+    await settings({
+      skill_scan_analysis: "static",
+      skill_scan_provider: "openai_compatible",
+      skill_scan_endpoint: "https://llm.example.com/v1",
+      skill_scan_key_enc: sealScanKey(AUTH_SECRET, "sk-SECRET", COMPAT),
+    });
+    await runSkillScansOn(
+      { db: t.db, dialect: t.dialect },
+      { commands, env: {} },
+      { authSecret: AUTH_SECRET, resolve: resolveTo("10.0.0.1") },
+    );
+    expect(await scanRow()).toMatchObject({ status: "done", llm_provider: null });
+  });
+
+  it("uses root's timeout to tell a stuck scan", async () => {
+    await t.db.deleteFrom("content_scans").execute();
+    await settings({ skill_scan_timeout: "30" });
+    // Past twice root's 30 seconds, well inside twice the default 300.
+    await scan("running", 90_000);
+    expect(
+      await runSkillScansOn(
+        { db: t.db, dialect: t.dialect },
+        { commands, env: {} },
+        { authSecret: AUTH_SECRET },
+      ),
+    ).not.toBeNull();
   });
 });

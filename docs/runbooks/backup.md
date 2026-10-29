@@ -30,7 +30,8 @@ Wrote /var/lib/rmk-server/backups/ronne-backup-20261014-130541.tar (322 KiB) in 
 ```
 
 **The archive is as sensitive as the server.** With the settings file in it, it holds `AUTH_SECRET`
-and the database's password. Keep the backups folder to the server's admins (it's made with mode
+and the database's password, so it can decrypt the secrets the database keeps: identity providers'
+client secrets and the security scan's API key. Keep the backups folder to the server's admins (it's made with mode
 0700, each archive 0600), and encrypt copies that leave the machine (below). If an archive leaks,
 follow [the settings file, a backup or the server leaked](incident-response.md#the-settings-file-a-backup-or-the-server-leaked).
 
@@ -243,7 +244,9 @@ writes or keeps the settings file.
   another one), two-factor sign-in is turned off for everyone who had it, and each identity
   provider whose client secret can't be read is marked *Failing* with "Enter the client secret
   again" (Admin › Settings › Authentication); restore says how many of each. Sign-in with such a
-  provider fails until its secret is entered again: root can still sign in with a password.
+  provider fails until its secret is entered again: root can still sign in with a password. The
+  security scan's API key can't be read either: Admin › Settings › Security scan asks for it
+  again, and semantic scans run static meanwhile.
 
 An encrypted archive asks for its passphrase (or `--passphrase-file`). A backup made while some
 stored files were missing asks before restoring without them (`--yes` restores anyway).

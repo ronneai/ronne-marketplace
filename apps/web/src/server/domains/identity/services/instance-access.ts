@@ -111,11 +111,16 @@ export const endSessionsForNewSecret = async (
    * re-encrypted, or null when the old key can't read it (it stays, and stays unreadable).
    */
   rekey?: (providerId: string, stored: string) => string | null,
+  /** The same for the instance settings holding a secret (136), by setting key. */
+  rekeySetting?: (key: string, stored: string) => string | null,
 ): Promise<{
   sessions: number;
   twoFactorCleared: number;
   providerSecrets: number;
+  settingSecrets: number;
   unreadable: number;
+  /** Instance setting secrets the old key couldn't read: they stay, and stay unreadable. */
+  settingUnreadable: number;
 }> => {
   const now = (deps.now ?? (() => new Date()))();
   return deps.repo.transaction(async (repo) => {
@@ -133,6 +138,22 @@ export const endSessionsForNewSecret = async (
           providerSecrets++;
         }
       }
+    let settingSecrets = 0;
+    let settingUnreadable = 0;
+    if (rekeySetting)
+      for (const { key, valueEnc } of await repo.instanceSecrets()) {
+        // Written only over the value read: one root saved meanwhile is re-sealed in its turn.
+        let current: string | null = valueEnc;
+        let done = false;
+        for (let attempt = 0; current !== null && !done && attempt < 3; attempt++) {
+          const next = rekeySetting(key, current);
+          if (next === null) break;
+          done = await repo.setInstanceSecret(key, current, next);
+          if (!done) current = await repo.instanceSecret(key);
+        }
+        if (done) settingSecrets++;
+        else if (current !== null) settingUnreadable++;
+      }
     await repo.recordAudit(
       {
         actorId: null,
@@ -143,12 +164,20 @@ export const endSessionsForNewSecret = async (
           sessionsEnded: sessions,
           ...(twoFactorCleared > 0 ? { twoFactorCleared } : {}),
           ...(providerSecrets > 0 ? { providerSecretsReencrypted: providerSecrets } : {}),
+          ...(settingSecrets > 0 ? { settingSecretsReencrypted: settingSecrets } : {}),
         },
       },
       now,
     );
     writeSecret();
-    return { sessions, twoFactorCleared, providerSecrets, unreadable };
+    return {
+      sessions,
+      twoFactorCleared,
+      providerSecrets,
+      settingSecrets,
+      unreadable,
+      settingUnreadable,
+    };
   });
 };
 

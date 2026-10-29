@@ -62,6 +62,8 @@ export const prepareInstance = (): Instance => {
         process.execPath,
         join(appDir, "e2e/fake-skillspector.mjs"),
       ]),
+      // 136: the tests' fake LLM provider listens here, over http.
+      RONNE_SKILL_SCANNER_HTTP_HOSTS: "127.0.0.1",
       NEXT_TELEMETRY_DISABLED: "1",
     },
   };

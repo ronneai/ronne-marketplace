@@ -142,7 +142,17 @@
   "ScopeWorkspaceNotFoundError": "Cet espace de travail n’existe pas.",
   "ScopeNotFoundError": "Cette portée n’existe pas.",
   "SkillScanNotConfiguredError": "Définissez d’abord RONNE_SKILL_SCANNER sur le serveur (la commande de l’analyseur, en tableau JSON), puis redémarrez Ronne.",
-  "SkillScanNoProviderError": "Configurez d’abord un fournisseur de LLM sur le serveur (RONNE_SKILL_SCANNER_ENV_SKILLSPECTOR_PROVIDER et ses variables), puis redémarrez Ronne.",
+  "SkillScanNoProviderError": "Configurez d’abord un fournisseur de LLM : ci-dessous, ou sur le serveur avec RONNE_SKILL_SCANNER_ENV_SKILLSPECTOR_PROVIDER et ses variables.",
   "InvalidSkillScanTypesError": "Choisissez au moins un type d’élément à analyser.",
-  "InvalidSkillScanAnalysisError": "Choisissez statique, ou statique et sémantique."
+  "InvalidSkillScanAnalysisError": "Choisissez statique, ou statique et sémantique.",
+  "InvalidScanProviderError": "Choisissez un des fournisseurs de la liste, ou aucun.",
+  "InvalidScanModelError": "Saisissez un nom de modèle d’au plus 128 caractères, sur une ligne.",
+  "InvalidScanTimeoutError": "Saisissez un délai de 30 à 3600 secondes, ou laissez vide pour 300.",
+  "InvalidScanCommandError": "Choisissez une des commandes d’analyseur que le serveur liste.",
+  "InvalidScanKeyError": "Saisissez la clé d’API sur une ligne, d’au plus 4096 caractères, pour un fournisseur qui en prend une.",
+  "InvalidScanEndpointError": "Saisissez le point de terminaison sous forme d’URL, comme https://api.example.com/v1, sans espaces ni barres obliques inverses.",
+  "ScanEndpointNotHttpsError": "Le point de terminaison doit commencer par https://. La personne qui exploite le serveur peut permettre http:// pour un hôte dans RONNE_SKILL_SCANNER_HTTP_HOSTS.",
+  "ScanEndpointCredentialsError": "Laissez le nom d’utilisateur et le mot de passe hors du point de terminaison : saisissez la clé d’API dans son propre champ.",
+  "ScanEndpointInternalError": "Ce point de terminaison est sur une adresse privée, de bouclage ou de lien local, ce qui n’est pas permis. La personne qui exploite le serveur peut permettre son hôte dans RONNE_SKILL_SCANNER_HTTP_HOSTS.",
+  "ScanEndpointUnresolvedError": "L’hôte de ce point de terminaison est introuvable. Vérifiez son nom."
 }
