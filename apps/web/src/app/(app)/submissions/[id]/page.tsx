@@ -1,12 +1,13 @@
+import { Pencil } from "lucide-react";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { itemPath } from "@/components/catalogue/ItemCard";
-import { RiskSummary } from "@/components/risk-flags/RiskSummary";
+import { buttonClasses } from "@/components/ui/Button";
+import { AuthorNotices } from "@/features/draft-editor/AuthorNotices";
 import { DraftEditor } from "@/features/draft-editor/DraftEditor";
 import type { EditorDraft, EditorProposal } from "@/features/draft-editor/types";
-import { Conversation } from "@/features/reviews/Conversation";
-import { PublishDialog } from "@/features/reviews/PublishDialog";
-import { releaseGroupFor } from "@/features/reviews/release-group";
+import { SubmissionScreen } from "@/features/reviews/SubmissionScreen";
 import { versionsPath } from "@/features/versions/links";
 import { pageTitle } from "@/i18n/page-title";
 import { draftSubmitIssues } from "@/server/domains/submissions/actions/drafts";
@@ -103,10 +104,17 @@ const toEditorDraft = (
  * The draft editor (feature 012), and a submission's read-only view (013). Only the author sees a
  * draft; moderators and root also see submitted ones. Anyone else gets a 404.
  */
-const DraftPage = async ({ params }: { params: Promise<{ id: string }> }) => {
+const DraftPage = async ({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) => {
   await holdPage();
   const t = await getTranslations("author.editor");
   const { id } = await params;
+  const query = (await searchParams) ?? {};
   const request = await requestHeaders();
   let draft: Draft & { mine: boolean; member: boolean };
   try {
@@ -121,8 +129,6 @@ const DraftPage = async ({ params }: { params: Promise<{ id: string }> }) => {
   const panel = draft.proposal && draft.mine ? await proposalPanel(request, id) : null;
   // What it waits on (056): dependencies not released yet, or blocked.
   const marks = (await dependencyMarks(request, [draft]))[draft.id];
-  // What goes out with it, or why it can't go yet (112).
-  const release = review?.can.publish ? await releaseGroupFor(request, id) : null;
   // Who depends on it (056): the author's withdraw confirmation gives the count.
   const dependents =
     draft.mine && draft.status !== "draft" && canTransition(draft.status, "withdraw")
@@ -155,58 +161,50 @@ const DraftPage = async ({ params }: { params: Promise<{ id: string }> }) => {
     : null;
   // Approved as sent, in its author's personal workspace (114): the latest approval says.
   const selfApproved =
-    review?.events.filter((e) => ["approve", "override", "self_approve"].includes(e.kind)).at(-1)
-      ?.kind === "self_approve";
+    review?.events
+      .filter((e) => ["approve", "override", "scan_override", "self_approve"].includes(e.kind))
+      .at(-1)?.kind === "self_approve";
+  const editorDraft = toEditorDraft(
+    draft,
+    review?.published.length ? versionsPath(draft) : null,
+    panel,
+    dependents,
+    marks,
+    canDelete,
+    feedback,
+    submitIssues,
+    selfApproved,
+  );
+  // Once sent, the screen the reviewer sees (137), with the author's actions; its files open in
+  // the editor with Edit files, while the author may still change them.
+  const editable = draft.mine && draft.member && isEditable(draft.status);
+  if (review && !(editable && query.edit === "1")) {
+    // Called, not rendered as a child: the page's own output, as a test renders it.
+    return SubmissionScreen({
+      review,
+      query,
+      route: "author",
+      actions: editable ? (
+        <Link href={`/submissions/${id}?edit=1`} className={buttonClasses("primary")}>
+          <Pencil size={16} aria-hidden="true" />
+          {t("editFiles")}
+        </Link>
+      ) : null,
+      notices: draft.mine ? <AuthorNotices draft={editorDraft} /> : null,
+    });
+  }
   return (
     <div className="grid gap-6">
-      {/* A new version from the server (an import, a rename, a submit) starts the editor afresh. */}
-      <DraftEditor
-        key={draft.updatedAt.toISOString()}
-        draft={toEditorDraft(
-          draft,
-          review?.published.length ? versionsPath(draft) : null,
-          panel,
-          dependents,
-          marks,
-          canDelete,
-          feedback,
-          submitIssues,
-          selfApproved,
-        )}
-      />
-      {review?.can.publish ? (
-        <section
-          aria-labelledby="release"
-          className="flex flex-wrap items-center justify-between gap-3 rounded-panel border border-hairline bg-surface p-4"
-        >
-          <div className="grid gap-1">
-            <h2 id="release" className="text-sm font-semibold text-fg">
-              {t("approvedTitle")}
-            </h2>
-            <p className="text-sm text-muted">{t("approvedText")}</p>
-          </div>
-          <PublishDialog
-            id={id}
-            itemName={itemNameOf(draft)}
-            published={review.published}
-            versionsHref={versionsPath(draft)}
-            suggested={review.proposal?.suggested ?? null}
-            blocked={release?.blocked ?? null}
-            goesWith={release?.goesWith ?? []}
-          />
-        </section>
-      ) : null}
       {review ? (
-        <>
-          <RiskSummary flags={review.flags} />
-          <Conversation
-            id={id}
-            events={review.events}
-            canComment={review.can.comment}
-            versionsHref={versionsPath(draft)}
-          />
-        </>
+        <Link
+          href={`/submissions/${id}`}
+          className="justify-self-start text-sm text-link underline underline-offset-2"
+        >
+          {t("backToSubmission")}
+        </Link>
       ) : null}
+      {/* A new version from the server (an import, a rename, a submit) starts the editor afresh. */}
+      <DraftEditor key={draft.updatedAt.toISOString()} draft={editorDraft} />
     </div>
   );
 };

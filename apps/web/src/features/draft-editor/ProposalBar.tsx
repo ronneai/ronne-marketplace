@@ -22,11 +22,14 @@ export const ProposalBar = ({
   proposal,
   status,
   dirty,
+  personal = false,
 }: {
   draftId: string;
   proposal: EditorProposal;
   status: string;
   dirty: boolean;
+  /** In the author's own personal workspace (114): resubmitting approves it, with no review. */
+  personal?: boolean;
 }) => {
   const t = useTranslations("author.editor.proposal");
   const router = useRouter();
@@ -53,10 +56,17 @@ export const ProposalBar = ({
         <div className="grid gap-2">
           <p>
             {proposal.stale
-              ? t(status === "submitted" || status === "approved" ? "staleReview" : "stale", {
-                  version: proposal.baseVersion,
-                  stale: proposal.stale,
-                })
+              ? t(
+                  status !== "submitted" && status !== "approved"
+                    ? "stale"
+                    : personal
+                      ? "stalePersonal"
+                      : "staleReview",
+                  {
+                    version: proposal.baseVersion,
+                    stale: proposal.stale,
+                  },
+                )
               : t("fresh")}{" "}
             <Link href={proposal.baseHref} className="underline underline-offset-2">
               {t("see", { version: proposal.baseVersion })}

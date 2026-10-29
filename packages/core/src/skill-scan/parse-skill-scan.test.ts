@@ -85,9 +85,16 @@ describe("parseSkillScan on SkillSpector's real reports", () => {
       confidence: expect.any(Number),
       title: "Hidden Instructions",
       explanation: expect.any(String),
+      remediation: expect.any(String),
       file: "SKILL.md",
       line: 10,
     });
+  });
+
+  it("keeps each finding's remediation (137)", () => {
+    const result = parsed(fixture("bad-skill"));
+    expect(result.findings.every((f) => typeof f.remediation === "string")).toBe(true);
+    expect(result.findings.find((f) => f.rule === "AST8")?.remediation).toMatch(/^Remove the/);
   });
 
   it("keeps none of the quoted item content", () => {
@@ -235,6 +242,17 @@ describe("parseSkillScan's caps and cleaning", () => {
     ).join("");
     const [finding] = parsed(report([issue({ explanation: `Safe${hidden}` })])).findings;
     expect(finding?.explanation).toBe("Safe");
+  });
+
+  it("cleans and cuts a remediation like the other text, and reads a missing one as none", () => {
+    const long = "x".repeat(SKILL_SCAN_MAX_TEXT * 2);
+    const [cut] = parsed(report([issue({ remediation: `\u202e${long}` })])).findings;
+    expect(Array.from(cut?.remediation ?? "")).toHaveLength(SKILL_SCAN_MAX_TEXT);
+    expect(cut?.remediation?.startsWith("x")).toBe(true);
+    const [none] = parsed(report([issue()])).findings;
+    expect(none?.remediation).toBeNull();
+    const [notText] = parsed(report([issue({ remediation: 42 })])).findings;
+    expect(notText?.remediation).toBeNull();
   });
 
   it("keeps tabs and newlines in an explanation", () => {

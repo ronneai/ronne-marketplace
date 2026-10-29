@@ -13,9 +13,17 @@ vi.mock("@/server/domains/submissions/actions/reviews", () => reviews);
 const submissions = vi.hoisted(() => ({ dependencyMarks: vi.fn(async () => ({})) }));
 vi.mock("@/server/domains/submissions/actions/submissions", () => submissions);
 vi.mock("@/server/domains/identity/actions/session", () => session);
-vi.mock("@/server/domains/scans/actions/scans", () => ({
-  reviewScan: async () => ({ scan: null, canRequest: false }),
+const scans = vi.hoisted(() => ({
+  reviewScan: vi.fn(
+    async (): Promise<unknown> => ({
+      scan: null,
+      canRequest: false,
+      dismissals: [],
+      canDismiss: false,
+    }),
+  ),
 }));
+vi.mock("@/server/domains/scans/actions/scans", () => scans);
 vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));
 vi.mock("./actions", () => ({ decideAction: vi.fn(), commentFromForm: vi.fn() }));
 const releaseGroup = vi.hoisted(() => ({
@@ -288,6 +296,18 @@ describe("a queue row's decisions (058)", () => {
     expect(html).toContain(reason);
   });
 
+  it("starts from the message it's given: the findings the author is asked to fix (137)", () => {
+    const html = renderToStaticMarkup(
+      <DecisionDialog
+        id="s"
+        decision="request_changes"
+        initialText="Please fix these security scan findings:"
+        onClose={() => {}}
+      />,
+    );
+    expect(html).toMatch(/<textarea[^>]*>Please fix these security scan findings:<\/textarea>/);
+  });
+
   it("asks for a required reason, and offers to send the dependents back when rejecting", () => {
     const html = renderToStaticMarkup(
       <DecisionDialog
@@ -341,6 +361,7 @@ const view = (overrides: Partial<ReviewView> = {}): ReviewView => ({
   issues: [],
   events: [event({ revision: 2, kind: "resubmit" })],
   published: [],
+  gate: { blocked: false, threshold: null },
   decisions: [
     { decision: "approve", allowed: true },
     { decision: "request_changes", allowed: true },
@@ -418,17 +439,45 @@ describe("the review page", () => {
     );
   });
 
-  it("shows the header, decisions, risk summary, changes since the last revision, checks and conversation", async () => {
+  it("opens on Overview: the header, decisions, risk summary and checks, above the tabs (137)", async () => {
     const html = await render();
     expect(html).toContain("@team/fmt");
     expect(html).toContain("Ada Author");
     expect(html).toContain("revision 2");
     expect(html).toContain(">Approve<");
     expect(html).toContain("What it can do (1)");
-    expect(html).toMatch(/aria-current="page"[^>]*>Changes since revision 1/);
     expect(html).toContain("Checks on revision 2");
-    expect(html).toContain("resubmitted it as revision 2");
-    expect(html).toContain("What do these do?");
+    expect(html).toMatch(/aria-current="page"[^>]*>Overview</);
+    expect(html).toContain(">Files (1)<");
+    expect(html).toContain(">Conversation (1)<");
+    expect(html).toContain(">Security scan<");
+    // Not the other tabs' content.
+    expect(html).not.toContain("resubmitted it as revision 2");
+    expect(html).not.toContain("Changes since revision 1");
+  });
+
+  it("puts What do these do? beside the decisions, before them (owner, 2026-10-28)", async () => {
+    const html = await render();
+    expect(html.indexOf("What do these do?")).toBeGreaterThan(-1);
+    expect(html.indexOf("What do these do?")).toBeLessThan(html.indexOf(">Approve<"));
+  });
+
+  it("shows the files on the Files tab, and the conversation on its own (137)", async () => {
+    const files = await render({ tab: "files" });
+    expect(files).toMatch(/aria-current="page"[^>]*>Files \(1\)/);
+    expect(files).toMatch(/aria-current="page"[^>]*>Changes since revision 1/);
+    expect(files).not.toContain("Checks on revision 2");
+    const conversation = await render({ tab: "conversation" });
+    expect(conversation).toContain("resubmitted it as revision 2");
+    expect(conversation).not.toContain("What it can do (1)");
+  });
+
+  it("opens Files for a link to a file or a view, as a risk flag's or a finding's (137)", async () => {
+    expect(await render({ view: "all" })).toMatch(/aria-current="page"[^>]*>Files \(1\)/);
+    expect(await render({ file: "rule.md", line: "2" })).toMatch(
+      /aria-current="page"[^>]*>Files \(1\)/,
+    );
+    expect(await render({ tab: "nope" })).toMatch(/aria-current="page"[^>]*>Overview</);
   });
 
   it("shows all files on request, and tells a reviewer about their own submission", async () => {
@@ -486,6 +535,72 @@ describe("the review page", () => {
     expect(html).not.toContain("layout.json");
     expect(html).toContain('aria-label="hook.sh"');
     expect(html).not.toContain('aria-label="ronne.yaml"');
+    // The tab counts what it shows (137).
+    expect(html).toContain(">Files (2)<");
+  });
+
+  it("offers Ask the author to fix it only to whoever may request changes (137)", async () => {
+    scans.reviewScan.mockResolvedValue({
+      scan: {
+        id: "01J0000000000000000000SCAN",
+        revisionId: "r",
+        status: "done",
+        attempts: 1,
+        result: {
+          scanner: "skillspector",
+          scannerVersion: "2.13.2",
+          analysis: "static",
+          llmUnavailable: false,
+          score: 80,
+          severity: "HIGH",
+          recommendation: "CAUTION",
+          complete: true,
+          findings: [
+            {
+              rule: "P2",
+              category: "Prompt Injection",
+              severity: "HIGH",
+              confidence: 0.9,
+              title: "Hidden Instructions",
+              explanation: null,
+              remediation: null,
+              file: "hook.sh",
+              line: 1,
+            },
+          ],
+          findingsOmitted: 0,
+        },
+        llm: null,
+        error: null,
+        queuedAt: new Date(),
+        startedAt: new Date(),
+        finishedAt: new Date(),
+      },
+      canRequest: false,
+      dismissals: [],
+      canDismiss: true,
+    });
+    expect(await render({ tab: "scan" })).toContain("Ask the author to fix it");
+    // On their own submission a reviewer can't request changes, so there's no Ask.
+    reviews.getReview.mockResolvedValue(
+      view({ mine: true, decisions: [own("approve"), own("request_changes"), own("reject")] }),
+    );
+    const own_ = await render({ tab: "scan" });
+    expect(own_).toContain("Hidden Instructions");
+    expect(own_).not.toContain("Ask the author to fix it");
+    scans.reviewScan.mockResolvedValue({
+      scan: null,
+      canRequest: false,
+      dismissals: [],
+      canDismiss: false,
+    });
+  });
+
+  it("says on the Security scan tab that the revision wasn't scanned (137)", async () => {
+    const html = await render({ tab: "scan" });
+    expect(html).toContain("This revision wasn&#x27;t scanned.");
+    // Not on the Overview, where there's nothing to say.
+    expect(await render()).not.toContain("This revision wasn&#x27;t scanned.");
   });
 
   it("lets the author withdraw their own from the review page, and nobody else (058)", async () => {
@@ -528,6 +643,9 @@ describe("the review page", () => {
   it("is a 404 for anyone who can't review, and for a submission they can't see", async () => {
     reviews.getReview.mockRejectedValue(new SubmissionNotFoundError());
     await expect(render()).rejects.toThrow("NEXT_NOT_FOUND");
+    // Without a review role, a 404 before the submission is even read.
+    reviews.getReview.mockReset();
+    reviews.getReview.mockResolvedValue(view());
     session.getCurrentUser.mockResolvedValue({
       id: "u",
       email: "u@x.test",
@@ -535,6 +653,7 @@ describe("the review page", () => {
       role: "user",
     });
     await expect(render()).rejects.toThrow("NEXT_NOT_FOUND");
+    expect(reviews.getReview).not.toHaveBeenCalled();
   });
 });
 
@@ -573,10 +692,10 @@ describe("a change proposal's review", () => {
   };
 
   it("opens on the changes to the base version: manifest fields side by side, then the files", async () => {
-    const html = await renderWith(proposal());
+    const html = await renderWith(proposal(), { tab: "files" });
     expect(html).toMatch(/aria-current="page"[^>]*>Changes to 1\.0\.0/);
-    expect(html).toContain('href="/reviews/01J0000000000000000000000A?view=changes"');
-    expect(html).toContain('href="/reviews/01J0000000000000000000000A?view=all"');
+    expect(html).toContain('href="/reviews/01J0000000000000000000000A?tab=files&amp;view=changes"');
+    expect(html).toContain('href="/reviews/01J0000000000000000000000A?tab=files&amp;view=all"');
     expect(html).toContain("ronne.yaml fields");
     expect(html).toMatch(/>description<\/td><td[^>]*>Old\.<\/td><td[^>]*>New\.</);
     expect(html).toContain('aria-label="README.md"');
@@ -585,14 +704,16 @@ describe("a change proposal's review", () => {
   it("still shows the changes since the last revision on request", async () => {
     const html = await renderWith(proposal(), { view: "changes" });
     expect(html).toMatch(/aria-current="page"[^>]*>Changes since revision 1/);
-    expect(html).toMatch(/href="\/reviews\/01J0000000000000000000000A"[^>]*>Changes to/);
+    expect(html).toMatch(/href="\/reviews\/01J0000000000000000000000A\?tab=files"[^>]*>Changes to/);
   });
 
   it("says when nothing changed, or when the base can't be read", async () => {
-    expect(await renderWith(proposal({ changes: [], manifest: [] }))).toContain(
+    expect(await renderWith(proposal({ changes: [], manifest: [] }), { tab: "files" })).toContain(
       "No changes to 1.0.0.",
     );
-    expect(await renderWith(proposal({ changes: null }))).toContain("couldn&#x27;t be read");
+    expect(await renderWith(proposal({ changes: null }), { tab: "files" })).toContain(
+      "couldn&#x27;t be read",
+    );
   });
 
   it("has no base view for a new item", async () => {
@@ -721,17 +842,19 @@ describe("a review's page in three languages (131)", () => {
 
   it("words the header, the views, the checks and the decisions", async () => {
     const pt = await page("pt");
+    const ptFiles = await page("pt", {}, { tab: "files" });
     expect(pt).toContain('aria-label="Trilha de navegação"');
     expect(pt).toContain(">Revisões<");
     expect(pt).toContain('por <span class="text-fg">Ada Author</span>');
     expect(pt).toContain(">revisão 2<");
     expect(pt).toContain("submetida <time");
-    expect(pt).toContain(">Alterações desde a revisão 1<");
-    expect(pt).toContain(">Todos os arquivos<");
+    expect(ptFiles).toContain(">Alterações desde a revisão 1<");
+    expect(ptFiles).toContain(">Todos os arquivos<");
     expect(pt).toContain(">Verificações da revisão 2<");
     expect(pt).toContain(">Aprovar<");
     expect(pt).toContain(">Solicitar alterações<");
-    expect(pt).toContain(">Conversa<");
+    expect(pt).toContain(">Visão geral<");
+    expect(pt).toContain(">Conversa (1)<");
     const fr = await page("fr", {
       mine: true,
       can: { decide: false, override: true, comment: true, publish: false, sendBack: false },
@@ -753,7 +876,7 @@ describe("a review's page in three languages (131)", () => {
       manifest: [{ field: "description", before: null, after: "New." }],
       suggested: null,
     };
-    const pt = await page("pt", { proposal: stale as never });
+    const pt = await page("pt", { proposal: stale as never }, { tab: "files" });
     expect(pt).toContain("A 1.1.0 foi lançada depois que esta proposta começou.");
     expect(pt).toContain(">Alterações em relação à 1.0.0<");
     expect(pt).toContain(">Campos do ronne.yaml<");

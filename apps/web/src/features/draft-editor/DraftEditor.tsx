@@ -22,12 +22,10 @@ import { StatusBadge } from "@/components/submissions/StatusBadge";
 import { Button, buttonClasses } from "@/components/ui/Button";
 import { cn } from "@/components/ui/cn";
 import { DirtyMark } from "@/components/ui/DirtyMark";
-import { LocalTime } from "@/components/ui/LocalTime";
 import { Notice } from "@/components/ui/Notice";
 import { TypeBadge } from "@/components/ui/TypeBadge";
 import { UnsavedChangesGuard } from "@/components/ui/UnsavedChangesGuard";
 import { FileIssues, IssuesSummary } from "@/components/validation/IssuesPopover";
-import { AskToJoinLink } from "@/components/workspaces/AskToJoinLink";
 import { useBytes } from "@/i18n/bytes";
 import type { DependencyOption } from "@/server/domains/submissions/actions/composer";
 import {
@@ -36,6 +34,7 @@ import {
   validateDraft,
 } from "@/server/domains/submissions/models/submission";
 import { startingFiles } from "@/server/domains/submissions/models/templates";
+import { FeedbackNotice, ReadOnlyText, ReadOnlyTitle } from "./AuthorNotices";
 import { saveDraftAction } from "./actions";
 import { addDependency, hasCanvas } from "./composer-canvas/model";
 import { findDependenciesAction } from "./dependency-picker/actions";
@@ -166,86 +165,6 @@ export const SavedLine = ({ at, withErrors }: { at: Date; withErrors: boolean })
       <span className="mr-2 font-mono text-xs font-semibold">{t("ok")}</span>
       {t(withErrors ? "savedWithErrors" : "savedAt", { time })}
     </>
-  );
-};
-
-/** Which read-only notice a draft gets, for each status the author can't edit (013, 058). */
-const readOnlyKind = (draft: EditorDraft) =>
-  !draft.mine
-    ? "others"
-    : draft.notMemberOf
-      ? "notMember"
-      : draft.status === "approved" && draft.selfApproved
-        ? "selfApproved"
-        : draft.status === "approved"
-          ? "approved"
-          : draft.status === "published"
-            ? "published"
-            : "submitted";
-
-/** The read-only notice's title. */
-const ReadOnlyTitle = ({ draft }: { draft: EditorDraft }) => {
-  const t = useTranslations("author.editor.readOnly");
-  const kind = readOnlyKind(draft);
-  if (kind === "notMember") return t("notMember", { workspace: draft.notMemberOf ?? "" });
-  if (kind !== "submitted") return t(kind);
-  const submittedAt = draft.submittedAt;
-  return submittedAt
-    ? t.rich("submittedOn", {
-        date: () => <LocalTime value={submittedAt} precision="day" />,
-      })
-    : t("submitted");
-};
-
-/** The read-only notice's text. */
-const ReadOnlyText = ({ draft }: { draft: EditorDraft }) => {
-  const t = useTranslations("author.editor.readOnlyText");
-  const kind = readOnlyKind(draft);
-  return kind === "notMember" ? (
-    <span>
-      {t.rich("notMember", {
-        join: () => <AskToJoinLink workspace={draft.notMemberOf ?? ""} />,
-      })}
-    </span>
-  ) : (
-    t(kind)
-  );
-};
-
-/**
- * Why it was sent back or closed (058), at the top of the page: who, when, and their message,
- * with a link to the whole conversation below.
- */
-const FeedbackNotice = ({
-  feedback,
-  mine,
-}: {
-  feedback: NonNullable<EditorDraft["feedback"]>;
-  mine: boolean;
-}) => {
-  const t = useTranslations("author.editor.feedback");
-  const date = () => <LocalTime value={feedback.at} precision="day" />;
-  return (
-    <Notice
-      kind={feedback.kind === "reject" ? "error" : "warn"}
-      title={
-        feedback.kind === "rebase" && feedback.body
-          ? t.rich("rebaseTitle", { by: feedback.by, version: feedback.body, date })
-          : t.rich("title", { kind: feedback.kind, by: feedback.by, date })
-      }
-    >
-      <div className="grid gap-2">
-        {feedback.body && feedback.kind !== "rebase" ? (
-          <p className="whitespace-pre-wrap break-words">{feedback.body}</p>
-        ) : null}
-        <p className="text-muted">
-          {t(feedback.kind === "reject" ? "reject" : mine ? "mine" : "others")}{" "}
-          <a href="#conversation" className="underline underline-offset-2">
-            {t("conversation")}
-          </a>
-        </p>
-      </div>
-    </Notice>
   );
 };
 
@@ -568,7 +487,12 @@ export const DraftEditor = ({
           </div>
         </Notice>
       ) : draft.feedback ? (
-        <FeedbackNotice feedback={draft.feedback} mine={draft.mine} />
+        <FeedbackNotice
+          feedback={draft.feedback}
+          mine={draft.mine}
+          draftId={draft.id}
+          personal={draft.personal}
+        />
       ) : readOnly ? (
         <Notice kind="info" title={<ReadOnlyTitle draft={draft} />}>
           <p className="flex items-start gap-2">

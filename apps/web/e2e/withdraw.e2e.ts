@@ -52,7 +52,7 @@ test("an author archives a submission, finds it under Archived, restores it and 
   // A reviewer took part, so only archiving is offered.
   const moderator = await browser.newPage();
   await signIn(moderator, E2E_USERS.archiveModerator);
-  await moderator.goto(url.replace("/submissions/", "/reviews/"));
+  await moderator.goto(`${url.replace("/submissions/", "/reviews/")}?tab=conversation`);
   await moderator.getByLabel("Comment").fill("Why a rule rather than a skill?");
   await moderator.getByRole("button", { name: "Comment" }).click();
   await expect(moderator.getByText("Why a rule rather than a skill?")).toBeVisible();
@@ -82,6 +82,7 @@ test("an author archives a submission, finds it under Archived, restores it and 
   await author.goto(url);
   await expect(author.getByRole("button", { name: "Submit for review" })).toBeEnabled();
   await submit(author, "Submit for review");
+  await author.getByRole("link", { name: /^Conversation/ }).click();
   await expect(author.getByText("restored it as a draft")).toBeVisible();
   await expect(author.getByText("submitted revision 2")).toBeVisible();
 });

@@ -11,6 +11,7 @@ import {
 } from "../models/bump";
 import { type FileChange, isUnreleased, reviewDiff } from "../models/diff";
 import type { ReviewEvent, Revision, RevisionFile } from "../models/review";
+import { type ScanGate, scanGate } from "../models/scan-gate";
 import { canTransition, OPEN_STATUSES } from "../models/status";
 import {
   fileBytes,
@@ -39,6 +40,8 @@ export type ReviewView = {
   unreleased: string[];
   flags: RiskFlag[];
   issues: ManifestIssue[];
+  /** What the security scan's gate (137) says of approving the latest revision. */
+  gate: ScanGate;
   events: ReviewEvent[];
   /** The item's published versions, yanked ones included: the publish dialog's preview (015), and
    * whether the page links to the Versions page (016). */
@@ -173,7 +176,13 @@ export const getReview = async (
     : [];
   const diff = latest ? reviewDiff(previousFiles, files) : { changes: [], unreleased: [] };
   const proposal = await proposalView(deps, submission, latest ? files : null);
-  const decisions = decisionsFor(actor, { ...submission, stale: proposal?.stale ?? null });
+  // The security scan's gate (137): what blocks approving the latest revision, if anything.
+  const gate = scanGate(
+    deps.scanGate,
+    submission,
+    (await deps.repo.latestScans([submission.id])).get(submission.id) ?? null,
+  );
+  const decisions = decisionsFor(actor, { ...submission, stale: proposal?.stale ?? null, gate });
   return {
     submission: {
       ...submission,
@@ -191,6 +200,7 @@ export const getReview = async (
     published,
     proposal,
     decisions,
+    gate,
     // The flags come from the same rules as the decisions (058), so the two never disagree.
     can: {
       decide: submitted && allows(decisions, "reject"),

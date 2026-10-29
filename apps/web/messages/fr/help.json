@@ -325,7 +325,7 @@
   },
   "security-scan": {
     "question": "Qu’est-ce que cette analyse?",
-    "answer": "SkillSpector, de NVIDIA, a analysé cette révision à son envoi : instructions cachées, lecture de clés ou d’identifiants, envoi de données vers l’extérieur, code obscurci, scripts téléchargés et exécutés. C’est un deuxième avis, pas une décision : l’analyse peut manquer des problèmes et signaler du code sûr, et elle ne bloque jamais une approbation."
+    "answer": "SkillSpector, de NVIDIA, a analysé cette révision à son envoi : instructions cachées, lecture de clés ou d’identifiants, envoi de données vers l’extérieur, code obscurci, scripts téléchargés et exécutés. C’est un deuxième avis : l’analyse peut manquer des problèmes et signaler du code sûr. Elle ne bloque une approbation que si root a défini un score qui bloque, et root peut alors encore déroger."
   },
   "scan-settings": {
     "question": "Comment configurer l’analyseur?",
@@ -334,5 +334,9 @@
   "scan-key": {
     "question": "Comment la clé est-elle gardée?",
     "answer": "Chiffrée dans la base de données avec une clé dérivée de l’AUTH_SECRET du serveur, et seulement pour le fournisseur et le point de terminaison pour lesquels elle a été saisie. Elle n’est jamais montrée de nouveau, ni écrite dans le journal d’audit ou les journaux, et elle n’est déchiffrée que sur le serveur, sans jamais être envoyée au navigateur. Une sauvegarde complète peut la déchiffrer, comme les secrets des fournisseurs d’identité."
+  },
+  "scan-threshold": {
+    "question": "Que bloque le seuil?",
+    "answer": "Avec un score défini, une soumission dont la dernière analyse l’atteint ou le dépasse ne peut pas être approuvée, ni une dont l’analyse est en attente, a échoué ou n’a jamais eu lieu : une analyse en panne n’est pas un moyen de passer. Seul root peut l’approuver quand même, avec un motif consigné dans l’audit. La soumission d’une personne dans son propre espace de travail personnel n’est pas bloquée."
   }
 }

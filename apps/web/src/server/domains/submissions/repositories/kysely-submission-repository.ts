@@ -18,6 +18,7 @@ import {
   isReadableSubmission,
 } from "../../workspaces/repositories/visible";
 import type { ReviewEvent, ReviewEventKind, Revision } from "../models/review";
+import type { ScanState } from "../models/scan-gate";
 import { OPEN_STATUSES } from "../models/status";
 import type { DraftFile, Submission, SubmissionStatus } from "../models/submission";
 import { kyselyRegistryLookup } from "./kysely-registry-lookup";
@@ -506,6 +507,42 @@ export const kyselySubmissionRepository = (
           })
           .execute();
       return revision;
+    },
+
+    latestScans: async (submissionIds) => {
+      const latest = new Map<string, NonNullable<ScanState>>();
+      if (submissionIds.length === 0) return latest;
+      const rows = await db
+        .selectFrom("submission_revisions")
+        .leftJoin("content_scans", "content_scans.revision_id", "submission_revisions.id")
+        .select([
+          "submission_revisions.submission_id",
+          "submission_revisions.number",
+          "content_scans.id as scan_id",
+          "content_scans.status",
+          "content_scans.score",
+        ])
+        .where("submission_revisions.submission_id", "in", [...submissionIds])
+        .where(isReadableSubmission(viewer, "submission_revisions.submission_id"))
+        .orderBy("submission_revisions.number")
+        .orderBy("content_scans.queued_at")
+        .orderBy("content_scans.id")
+        .execute();
+      // Oldest first: a newer revision starts over, and its newest scan is the one left.
+      const numbers = new Map<string, number>();
+      for (const row of rows) {
+        const number = Number(row.number);
+        if (number !== numbers.get(row.submission_id)) {
+          numbers.set(row.submission_id, number);
+          latest.delete(row.submission_id);
+        }
+        if (row.scan_id !== null && row.status !== null)
+          latest.set(row.submission_id, {
+            status: row.status,
+            score: row.status === "done" && row.score !== null ? Number(row.score) : null,
+          });
+      }
+      return latest;
     },
 
     revisions: async (submissionId) =>

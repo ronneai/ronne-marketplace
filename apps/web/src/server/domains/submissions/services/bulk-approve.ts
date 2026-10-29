@@ -6,9 +6,11 @@ import {
   InvalidStatusTransitionError,
   OwnSubmissionError,
   RevisionChangedError,
+  ScanBlockedError,
   SubmissionNotFoundError,
   SubmissionStaleError,
 } from "../exceptions/errors";
+import type { ScanGate } from "../models/scan-gate";
 import type { SubmissionStatus } from "../models/status";
 import type { Submission } from "../models/submission";
 import { type Why, whyEnglish } from "../models/why";
@@ -48,6 +50,8 @@ export const approvability = (
     authorId: string;
     stale: string | null;
     workspace: { id: string; name: string };
+    /** The security scan's gate (137). Approving many never overrides it. */
+    gate?: ScanGate;
   },
 ): Approvability => {
   if (!can(actor.user, "submissions.review", submission.workspace.id))
@@ -55,6 +59,10 @@ export const approvability = (
   if (submission.status !== "submitted")
     return notApprovable({ code: "status", status: submission.status });
   if (submission.stale) return notApprovable({ code: "stale", newer: submission.stale });
+  if (submission.gate?.blocked) {
+    const { by, score, threshold } = submission.gate;
+    return notApprovable({ code: "scan_blocked", by, score, threshold });
+  }
   const mine = submission.authorId === actor.user?.id;
   if (mine && !can(actor.user, "submissions.override")) return notApprovable({ code: "own" });
   return { approvable: true, override: mine };
@@ -128,7 +136,8 @@ export const approveMany = async (
         error instanceof InvalidStatusTransitionError ||
         error instanceof OwnSubmissionError ||
         error instanceof SubmissionStaleError ||
-        error instanceof RevisionChangedError
+        error instanceof RevisionChangedError ||
+        error instanceof ScanBlockedError
       )
         results.push({
           id,

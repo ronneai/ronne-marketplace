@@ -37,7 +37,7 @@ export const skillScanSettings = async (headers: Headers, app: AppAuth = getAppA
 
 export const setSkillScanPolicy = async (
   headers: Headers,
-  value: { enabled: unknown; types: unknown; analysis: unknown },
+  value: { enabled: unknown; types: unknown; analysis: unknown; blockScore?: unknown },
   app: AppAuth = getAppAuth(),
 ) =>
   service.setSkillScanPolicy(deps(app), await actor(headers, app), value, await skillScanner(app));

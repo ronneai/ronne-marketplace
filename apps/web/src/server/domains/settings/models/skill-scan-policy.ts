@@ -53,6 +53,20 @@ export type StoredScanSetup = {
   keyEnc: string | null;
 };
 
+/**
+ * The score from which the security scan blocks approval (137): empty, no gate (the default), or a
+ * whole number from 1 to 100.
+ */
+export const SKILL_SCAN_BLOCK_SCORE_KEY = "skill_scan_block_score";
+
+/** A threshold as stored or typed: a whole number from 1 to 100, else null (no gate). */
+export const blockScoreFrom = (value: string | null | undefined): number | null => {
+  const text = (value ?? "").trim();
+  if (!/^\d{1,3}$/.test(text)) return null;
+  const score = Number(text);
+  return score >= 1 && score <= 100 ? score : null;
+};
+
 /** What the scanner said last, for the settings page: its version, or why it failed. */
 export const SKILL_SCAN_LAST_VERSION_KEY = "skill_scan_last_version";
 export const SKILL_SCAN_LAST_ERROR_KEY = "skill_scan_last_error";
@@ -123,6 +137,8 @@ export type ScanSetupShown = {
 /** Admin › Settings › Security scan. */
 export type SkillScanSettings = {
   policy: SkillScanPolicy;
+  /** The score from which approval is blocked (137); null for none. */
+  blockScore: number | null;
   scanner: SkillScanner;
   lastVersion: string | null;
   lastError: string | null;

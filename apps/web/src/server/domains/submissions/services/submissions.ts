@@ -19,6 +19,7 @@ import {
   SubmissionNotFoundError,
 } from "../exceptions/errors";
 import { isUnreleased } from "../models/diff";
+import type { ScanGatePolicy } from "../models/scan-gate";
 import { type SubmissionStatus, transition } from "../models/status";
 import {
   type Draft,
@@ -55,6 +56,11 @@ export type SubmissionDeps = {
    * scanning is on and a scanner command is set, else none. Read once, before the transaction.
    */
   scanTypes?: readonly string[];
+  /**
+   * Root's scan settings, for the gate on approval (137); read once, before the transaction.
+   * Absent, nothing is gated.
+   */
+  scanGate?: ScanGatePolicy;
 };
 export type SubmissionActor = {
   user: CurrentUser | null;

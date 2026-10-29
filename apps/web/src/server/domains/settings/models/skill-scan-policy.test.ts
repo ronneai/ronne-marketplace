@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  blockScoreFrom,
   DEFAULT_SKILL_SCAN_POLICY,
   skillScanPolicyFrom,
   skillScanTypesFrom,
@@ -43,5 +44,18 @@ describe("skillScanPolicyFrom", () => {
     expect(skillScanPolicyFrom({ enabled: "yes", types: "nothing", analysis: "llm" })).toEqual(
       DEFAULT_SKILL_SCAN_POLICY,
     );
+  });
+});
+
+describe("blockScoreFrom (137)", () => {
+  it("reads a whole number from 1 to 100", () => {
+    expect(blockScoreFrom("1")).toBe(1);
+    expect(blockScoreFrom(" 70 ")).toBe(70);
+    expect(blockScoreFrom("100")).toBe(100);
+  });
+
+  it("reads anything else as no threshold", () => {
+    for (const value of ["", "0", "101", "7.5", "1e2", "0x40", "-5", "abc", null, undefined])
+      expect(blockScoreFrom(value)).toBeNull();
   });
 });

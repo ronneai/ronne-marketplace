@@ -618,6 +618,7 @@
           "off": "desativada",
           "types": "tipos de {from} para {to}",
           "analysis": "análise de {from, select, semantic {estática e semântica} other {estática}} para {to, select, semantic {estática e semântica} other {estática}}",
+          "blockScore": "a pontuação que bloqueia a aprovação de {from, select, none {nenhuma} other {{from}}} para {to, select, none {nenhuma} other {{to}}}",
           "nothing": "nada"
         }
       },
@@ -716,7 +717,12 @@
           "changes_requested": "Solicitou alterações em <name>{item}</name>",
           "rejected": "Rejeitou <name>{item}</name>",
           "override_approved": "Aprovou o próprio <name>{item}</name> (exceção)",
+          "scan_override_approved": "Aprovou <name>{item}</name> apesar da verificação de segurança (exceção)",
           "rebased": "Fez rebase de <name>{item}</name> de {from} para {to}{conflicts, plural, =0 {} one { (# conflito)} other { (# conflitos)}}"
+        },
+        "scan": {
+          "finding_dismissed": "{kind, select, accepted {Aceitou o risco do achado <code>{rule}</code> de <name>{item}</name>} other {Marcou o achado <code>{rule}</code> de <name>{item}</name> como falso positivo}}",
+          "finding_restored": "Restaurou o achado <code>{rule}</code> de <name>{item}</name>"
         },
         "version": {
           "published": "Publicou <name>{item}</name>{hasTag, select, true { como <code>{tag}</code>} other {}}",
@@ -1056,7 +1062,7 @@
     },
     "scan": {
       "title": "Verificação de segurança",
-      "intro": "O SkillSpector, da NVIDIA, verifica cada submissão no momento em que é enviada, e o que ele encontra aparece na página de revisão ao lado dos sinais de risco. É uma segunda opinião para quem revisa: nunca bloqueia uma submissão, uma aprovação ou uma publicação.",
+      "intro": "O SkillSpector, da NVIDIA, verifica cada submissão no momento em que é enviada, e o que ele encontra aparece na página de revisão ao lado dos sinais de risco. É uma segunda opinião para quem revisa: só bloqueia uma aprovação quando você define uma pontuação abaixo, e nunca uma submissão ou uma publicação.",
       "scanner": {
         "configured": "O verificador está configurado neste servidor.",
         "lastVersion": "A última verificação concluída usou o SkillSpector {version}.",
@@ -1141,7 +1147,13 @@
         "warning": "A partir de agora, os arquivos de cada submissão verificada são enviados para {provider} em {host}. Salve para confirmar.",
         "runsStatic": "A análise semântica está escolhida, mas nenhum provedor está mais configurado: as verificações rodam estáticas."
       },
-      "save": "Salvar"
+      "save": "Salvar",
+      "blockScore": {
+        "title": "Bloquear a aprovação",
+        "label": "Pontuação que bloqueia a aprovação",
+        "hint": "Uma submissão cuja verificação chegar a essa pontuação ou passar dela, ou que não tiver verificação concluída, não pode ser aprovada; só o root pode abrir uma exceção. Deixe vazio para só indicar.",
+        "range": "Informe um número inteiro de 1 a 100, ou deixe vazio."
+      }
     }
   },
   "setup": {

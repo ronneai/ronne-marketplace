@@ -259,7 +259,14 @@
       "selfApproved": "It's ready to release. What it can do is listed below, as a reviewer would have seen it. Until it's released you can still withdraw it.",
       "approved": "It's ready to release, by you or a moderator. Until then you can still withdraw it, and a reviewer can send it back.",
       "published": "A released version never changes: View versions lists them. To change the item, propose a change from its page.",
-      "submitted": "Its files are frozen, so reviewers see exactly what you submitted. You can withdraw it until it's released."
+      "submitted": "Its files are frozen, so reviewers see exactly what you submitted. You can withdraw it until it's released.",
+      "notMemberApproved": "It's approved. You can read it and withdraw it, but not release it. To release it yourself, <join></join>; a moderator can still release it.",
+      "notMemberPublished": "A released version never changes, and you can't withdraw it. To propose a change, <join></join>.",
+      "notMemberChanges": "It's back with you: you can read it and withdraw it, but not change or resubmit it. To fix it and resubmit it, <join></join>.",
+      "notMemberDraft": "You can read it and withdraw it, but not change or submit it. To work on it again, <join></join>.",
+      "notMemberApprovedStale": "It's approved, but a newer version came out: it can't be released until it's rebased, which needs you back. You can read it and withdraw it. To rebase it, <join></join>; a reviewer can still send it back.",
+      "approvedStale": "It can't be released until you rebase it onto the newer version. Until then you can still withdraw it, and a reviewer can send it back.",
+      "selfApprovedStale": "It can't be released until you rebase it onto the newer version. Until then you can still withdraw it."
     },
     "feedback": {
       "title": "{kind, select, reject {Rejected by} rebase {Rebased by} other {Changes requested by}} {by}, <date></date>.",
@@ -267,7 +274,9 @@
       "reject": "Rejected is final: start a new draft to try again.",
       "mine": "Edit the files, then Resubmit for review.",
       "others": "It's back with its author.",
-      "conversation": "See the conversation"
+      "conversation": "See the conversation",
+      "rejectNotMember": "Rejected is final. To try again with a new draft, <join></join>.",
+      "minePersonal": "Edit the files, then Resubmit: it's approved again at once."
     },
     "issuesNoteReadOnly": "The same checks that ran when it was submitted.",
     "issuesNote": "A draft can be saved with problems; it has to be free of errors to be submitted.",
@@ -397,10 +406,12 @@
       "compare": "Compare with {version}",
       "same": "It's the same as the base version now.",
       "unreadable": "{version}'s files couldn't be read, so there's nothing to compare with.",
-      "resolve": "Mark resolved"
+      "resolve": "Mark resolved",
+      "stalePersonal": "It changes {version}. Rebasing brings in what {stale} changed: files you didn't touch take {stale}'s, and files you both changed stay yours, listed below to compare. It goes back to changes requested, and resubmitting it approves it again."
     },
-    "approvedTitle": "Approved",
-    "approvedText": "Publish it to make it installable. Versions never change once published."
+    "editFiles": "Edit files",
+    "backToSubmission": "Back to the submission",
+    "archivedNotMember": "It's out of review and doesn't hold its name. You're no longer a member of {workspace}: to restore it, <join></join>."
   },
   "submissions": {
     "pageTitle": "My submissions",
@@ -568,6 +579,7 @@
       "approve": "approved it",
       "reject": "rejected it",
       "override": "approved their own submission, as root (override)",
+      "scan_override": "approved it past the security scan, as root (override)",
       "self_approve": "submitted it in their personal workspace, so it was approved without review",
       "withdraw": "archived it",
       "restore": "restored it as a draft",
@@ -596,6 +608,11 @@
         "button": "Approve (override)",
         "title": "Approve your own submission?",
         "hint": "Optional. As root, you can approve your own submission; it's marked as an override in the conversation and the audit log."
+      },
+      "scan_override": {
+        "button": "Approve (override the scan)",
+        "title": "Approve past the security scan?",
+        "hint": "Required. As root, you approve it although the security scan blocks it: say why. It's marked as an override in the conversation and the audit log."
       },
       "message": "Message",
       "cancel": "Cancel",
@@ -659,7 +676,16 @@
       "keywordNew": "keyword {names} is new",
       "blockGained": "the {type} block gains {names}",
       "nothing": "nothing is added or removed"
-    }
+    },
+    "tabs": {
+      "label": "Review",
+      "overview": "Overview",
+      "files": "Files ({count, number})",
+      "conversation": "Conversation ({count, number})",
+      "scan": "Security scan",
+      "scanCount": "Security scan ({count, number})"
+    },
+    "staleApproved": "It changes {version}, so releasing it now would undo what {stale} changed. It can't be released until the author rebases it onto {stale}."
   },
   "versions": {
     "intro": "Versions never change once published. Tags point installs at them; deprecating warns, and yanking stops new installs.",
@@ -766,6 +792,7 @@
     "stale": "Rebase needed: {newer} is out",
     "own": "Your own submission",
     "own_decide": "Your own submission: another moderator or root decides.",
+    "scan_blocked": "{by, select, score {Approval is blocked: the security scan's score, {score}, is at or above the threshold, {threshold}.} pending {Approval waits for the security scan to finish.} failed {Approval is blocked: the security scan didn't finish. Scan again, or override.} other {Approval is blocked: this revision wasn't scanned. Scan it, or override.}}",
     "not_reviewer": "Only reviewers send submissions back.",
     "yours": "Yours: edit or withdraw it.",
     "cannot_send_back": "It's {status, select, changes_requested {changes requested} withdrawn {archived} other {{status}}}.",
@@ -788,7 +815,7 @@
     "none": "This revision wasn't scanned.",
     "now": "Scan now",
     "again": "Scan again",
-    "refused": "It can't be scanned now: a scanner command must be set and the last scan must have failed.",
+    "refused": "It can't be scanned now: a scanner command must be set, and no scan may be waiting or running.",
     "pending": "Scanning… this panel updates on its own.",
     "failed": "The scan didn't finish: {reason, select, timeout {it ran past the timeout} not_found {the scanner's command wasn't found} not_runnable {the scanner's command can't be run} not_configured {no scanner command is set} output_too_large {it wrote too much output} invalid_report {its report couldn't be read} signal {it was stopped by a signal} no_temporary_folder {its temporary folder couldn't be made} bad_file_path {a file path in the submission was refused} write_failed {its files couldn't be written} endpoint_refused {its LLM endpoint failed its check when the scan started} exit {it exited with code {code}} other {{error}}}",
     "severity": {
@@ -812,6 +839,74 @@
       "semantic": "Static and semantic scan by SkillSpector {version}, with {provider} {model}.",
       "llmUnavailable": "Static scan by SkillSpector {version}: semantic analysis didn't run, as the provider wasn't available."
     },
-    "advisory": "Advisory: it can miss problems and flag safe code."
+    "advisory": "It can miss problems and flag safe code.",
+    "card": {
+      "engine": "SkillSpector {version}",
+      "title": "{count, plural, =0 {No findings} one {# finding} other {# findings}}",
+      "inFiles": "{count, plural, one {in # file:} other {in # files:}}",
+      "moreFiles": "and {count, number} more",
+      "threat": "Threat score",
+      "outOf": "of 100",
+      "inspect": "{count, plural, one {Inspect # finding} other {Inspect # findings}}",
+      "override": "Override",
+      "guide": "Security scan guide",
+      "falsePositives": "{count, plural, one {# finding marked by a reviewer} other {# findings marked by reviewers}}",
+      "categories": "Findings by category",
+      "open": "Under the threshold, {threshold}.",
+      "authorScore": "Change the files and send it again."
+    },
+    "dialog": {
+      "title": "Security scan",
+      "of": "{name}, revision {revision, number, ::group-off}",
+      "filters": "Findings by category",
+      "all": "All ({count, number})",
+      "category": "{category} ({count, number})",
+      "showing": "Showing {shown, number} of {total, number}",
+      "fix": "How to fix:",
+      "dismiss": "Mark false positive",
+      "reason": "Why is it a false positive?",
+      "reasonHint": "Required. The other reviewers read it; it doesn't change the score.",
+      "save": "Mark it",
+      "cancel": "Cancel",
+      "dismissed": "Marked a false positive by {name}",
+      "formerUser": "a former user",
+      "restore": "Restore",
+      "export": "Export report (JSON)",
+      "close": "Close",
+      "severityFilter": "Severity",
+      "statusFilter": "Status",
+      "categoryFilter": "Category",
+      "anySeverity": "All",
+      "severityChip": "{severity} ({count, number})",
+      "statusAll": "All ({count, number})",
+      "statusOpen": "Open ({count, number})",
+      "statusMarked": "Marked ({count, number})",
+      "fileCount": "{count, plural, one {# finding} other {# findings}}",
+      "noFile": "Not in a file",
+      "line": "L{line, number, ::group-off}",
+      "accept": "Accept the risk",
+      "acceptReason": "Why is the risk acceptable?",
+      "accepted": "Risk accepted by {name}",
+      "falsePositiveBadge": "False positive",
+      "acceptedBadge": "Accepted risk",
+      "askFix": "Ask the author to fix it",
+      "askFixMany": "{count, plural, =0 {Ask the author to fix the selected findings} one {Ask the author to fix # finding} other {Ask the author to fix # findings}}",
+      "select": "Select {name}",
+      "selectOpen": "Select all",
+      "clearSelection": "Clear the selection",
+      "copyLink": "Copy link",
+      "copied": "Link copied",
+      "copyManual": "Copy the link from the address bar.",
+      "askFixIntro": "Please fix these security scan findings:",
+      "askFixLine": "{title} ({rule}{hasWhere, select, true {, {where}} other {}}){hasFix, select, true {: {fix}} other {}}",
+      "none": "No finding matches these filters.",
+      "askFixMore": "{count, plural, one {…and # more finding: see the Security scan tab.} other {…and # more findings: see the Security scan tab.}}",
+      "actionOn": "{action}: {name}",
+      "markTitle": "Mark it a false positive?",
+      "acceptTitle": "Accept the risk?",
+      "restoreTitle": "Restore this finding?",
+      "restoreBody": "The mark and its reason are removed, and the finding is open again.",
+      "findingName": "{title}{hasWhere, select, true {, {where}} other {}}, finding {number, number}"
+    }
   }
 }

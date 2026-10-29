@@ -259,7 +259,14 @@
       "selfApproved": "Está pronto para lançar. O que ele pode fazer está listado abaixo, como um revisor teria visto. Até ser lançado, você ainda pode retirá-lo.",
       "approved": "Está pronto para lançar, por você ou por um moderador. Até lá, você ainda pode retirá-lo, e um revisor pode devolvê-lo.",
       "published": "Uma versão lançada nunca muda: Ver versões lista todas. Para alterar o item, proponha uma alteração na página dele.",
-      "submitted": "Os arquivos dele estão congelados, então os revisores veem exatamente o que você submeteu. Você pode retirá-lo até ele ser lançado."
+      "submitted": "Os arquivos dele estão congelados, então os revisores veem exatamente o que você submeteu. Você pode retirá-lo até ele ser lançado.",
+      "notMemberApproved": "Ele foi aprovado. Você pode lê-lo e retirá-lo, mas não lançá-lo. Para lançá-lo você mesmo, <join></join>; um moderador ainda pode lançá-lo.",
+      "notMemberPublished": "Uma versão lançada nunca muda, e você não pode retirá-la. Para propor uma alteração, <join></join>.",
+      "notMemberChanges": "Ele voltou para você: você pode lê-lo e retirá-lo, mas não alterar nem submeter de novo. Para corrigi-lo e submeter de novo, <join></join>.",
+      "notMemberDraft": "Você pode lê-lo e retirá-lo, mas não alterar nem submeter. Para trabalhar nele de novo, <join></join>.",
+      "notMemberApprovedStale": "Ele foi aprovado, mas saiu uma versão mais nova: não pode ser lançado antes de um rebase, que precisa de você de volta. Você pode lê-lo e retirá-lo. Para fazer o rebase, <join></join>; um revisor ainda pode devolvê-lo.",
+      "approvedStale": "Ele não pode ser lançado antes de você fazer rebase sobre a versão mais nova. Até lá, você ainda pode retirá-lo, e um revisor pode devolvê-lo.",
+      "selfApprovedStale": "Ele não pode ser lançado antes de você fazer rebase sobre a versão mais nova. Até lá, você ainda pode retirá-lo."
     },
     "feedback": {
       "title": "{kind, select, reject {Rejeitado por} rebase {Rebase feito por} other {Alterações solicitadas por}} {by}, <date></date>.",
@@ -267,7 +274,9 @@
       "reject": "Rejeitado é definitivo: comece um novo rascunho para tentar de novo.",
       "mine": "Edite os arquivos e depois Ressubmeta para revisão.",
       "others": "Está de volta com o autor.",
-      "conversation": "Ver a conversa"
+      "conversation": "Ver a conversa",
+      "rejectNotMember": "Rejeitado é definitivo. Para tentar de novo com um novo rascunho, <join></join>.",
+      "minePersonal": "Edite os arquivos e depois Ressubmeta: ele é aprovado de novo na hora."
     },
     "issuesNoteReadOnly": "As mesmas verificações que rodaram quando ele foi submetido.",
     "issuesNote": "Um rascunho pode ser salvo com problemas; ele precisa estar sem erros para ser submetido.",
@@ -397,10 +406,12 @@
       "compare": "Comparar com a {version}",
       "same": "Agora está igual à versão de base.",
       "unreadable": "Não foi possível ler os arquivos da {version}, então não há com o que comparar.",
-      "resolve": "Marcar como resolvido"
+      "resolve": "Marcar como resolvido",
+      "stalePersonal": "Ela altera a {version}. O rebase traz o que a {stale} mudou: os arquivos que você não tocou ficam com os da {stale}, e os que vocês dois mudaram ficam com os seus, listados abaixo para comparar. Ela volta para alterações solicitadas, e submetê-la de novo a aprova outra vez."
     },
-    "approvedTitle": "Aprovado",
-    "approvedText": "Publique-o para torná-lo instalável. As versões nunca mudam depois de publicadas."
+    "editFiles": "Editar arquivos",
+    "backToSubmission": "Voltar à submissão",
+    "archivedNotMember": "Ele saiu da revisão e não reserva o nome. Você não é mais membro de {workspace}: para restaurá-lo, <join></join>."
   },
   "submissions": {
     "pageTitle": "Minhas submissões",
@@ -568,6 +579,7 @@
       "approve": "aprovou",
       "reject": "rejeitou",
       "override": "aprovou a própria submissão, como root (exceção)",
+      "scan_override": "aprovou apesar da verificação de segurança, como root (exceção)",
       "self_approve": "submeteu no espaço de trabalho pessoal, então foi aprovada sem revisão",
       "withdraw": "arquivou",
       "restore": "restaurou como rascunho",
@@ -596,6 +608,11 @@
         "button": "Aprovar (exceção)",
         "title": "Aprovar a sua própria submissão?",
         "hint": "Opcional. Como root, você pode aprovar a sua própria submissão; ela fica marcada como exceção na conversa e no registro de auditoria."
+      },
+      "scan_override": {
+        "button": "Aprovar (exceção à verificação)",
+        "title": "Aprovar apesar da verificação de segurança?",
+        "hint": "Obrigatório. Como root, você a aprova mesmo com a verificação de segurança bloqueando: diga por quê. Ela fica marcada como exceção na conversa e no registro de auditoria."
       },
       "message": "Mensagem",
       "cancel": "Cancelar",
@@ -659,7 +676,16 @@
       "keywordNew": "a palavra-chave {names} é nova",
       "blockGained": "o bloco {type} ganha {names}",
       "nothing": "nada foi adicionado ou removido"
-    }
+    },
+    "tabs": {
+      "label": "Revisão",
+      "overview": "Visão geral",
+      "files": "Arquivos ({count, number})",
+      "conversation": "Conversa ({count, number})",
+      "scan": "Verificação de segurança",
+      "scanCount": "Verificação de segurança ({count, number})"
+    },
+    "staleApproved": "Ela altera a {version}, então lançá-la agora desfaria o que a {stale} mudou. Ela não pode ser lançada até o autor fazer o rebase sobre a {stale}."
   },
   "versions": {
     "intro": "As versões nunca mudam depois de publicadas. As tags apontam as instalações para elas; marcar como obsoleta avisa, e retirar impede novas instalações.",
@@ -766,6 +792,7 @@
     "stale": "Precisa de rebase: a {newer} foi lançada",
     "own": "Sua própria submissão",
     "own_decide": "Sua própria submissão: outro moderador ou o root decide.",
+    "scan_blocked": "{by, select, score {A aprovação está bloqueada: a pontuação da verificação de segurança, {score}, está no limite, {threshold}, ou acima dele.} pending {A aprovação espera a verificação de segurança terminar.} failed {A aprovação está bloqueada: a verificação de segurança não terminou. Verifique de novo, ou use a exceção.} other {A aprovação está bloqueada: esta revisão não foi verificada. Verifique-a, ou use a exceção.}}",
     "not_reviewer": "Só revisores devolvem submissões.",
     "yours": "É sua: edite-a ou retire-a.",
     "cannot_send_back": "Está {status, select, draft {em rascunho} submitted {submetida} changes_requested {com alterações solicitadas} approved {aprovada} rejected {rejeitada} withdrawn {arquivada} published {publicada} other {{status}}}.",
@@ -788,7 +815,7 @@
     "none": "Esta revisão não foi verificada.",
     "now": "Verificar agora",
     "again": "Verificar de novo",
-    "refused": "Não é possível verificar agora: é preciso um comando de verificador, e a última verificação tem de ter falhado.",
+    "refused": "Não é possível verificar agora: é preciso um comando de verificador, e nenhuma verificação pode estar esperando ou rodando.",
     "pending": "Verificando… este painel se atualiza sozinho.",
     "failed": "A verificação não terminou: {reason, select, timeout {passou do tempo limite} not_found {o comando do verificador não foi encontrado} not_runnable {o comando do verificador não pode ser executado} not_configured {nenhum comando de verificador está definido} output_too_large {produziu saída demais} invalid_report {o relatório não pôde ser lido} signal {foi interrompida por um sinal} no_temporary_folder {a pasta temporária não pôde ser criada} bad_file_path {um caminho de arquivo da submissão foi recusado} write_failed {os arquivos não puderam ser gravados} endpoint_refused {o endpoint do LLM não passou na verificação quando a verificação começou} exit {terminou com o código {code}} other {{error}}}",
     "severity": {
@@ -812,6 +839,74 @@
       "semantic": "Verificação estática e semântica pelo SkillSpector {version}, com {provider} {model}.",
       "llmUnavailable": "Verificação estática pelo SkillSpector {version}: a análise semântica não rodou, porque o provedor não estava disponível."
     },
-    "advisory": "É só uma indicação: pode deixar passar problemas e apontar código seguro."
+    "advisory": "Pode deixar passar problemas e apontar código seguro.",
+    "card": {
+      "engine": "SkillSpector {version}",
+      "title": "{count, plural, =0 {Nenhum achado} one {# achado} other {# achados}}",
+      "inFiles": "{count, plural, one {em # arquivo:} other {em # arquivos:}}",
+      "moreFiles": "e mais {count, number}",
+      "threat": "Pontuação de risco",
+      "outOf": "de 100",
+      "inspect": "{count, plural, one {Ver # achado} other {Ver # achados}}",
+      "override": "Abrir exceção",
+      "guide": "Guia da verificação de segurança",
+      "falsePositives": "{count, plural, one {# achado marcado por um revisor} other {# achados marcados por revisores}}",
+      "categories": "Achados por categoria",
+      "open": "Abaixo do limite, {threshold}.",
+      "authorScore": "Mude os arquivos e envie de novo."
+    },
+    "dialog": {
+      "title": "Verificação de segurança",
+      "of": "{name}, revisão {revision, number, ::group-off}",
+      "filters": "Achados por categoria",
+      "all": "Todos ({count, number})",
+      "category": "{category} ({count, number})",
+      "showing": "Mostrando {shown, number} de {total, number}",
+      "fix": "Como corrigir:",
+      "dismiss": "Marcar como falso positivo",
+      "reason": "Por que é um falso positivo?",
+      "reasonHint": "Obrigatório. Os outros revisores leem; não muda a pontuação.",
+      "save": "Marcar",
+      "cancel": "Cancelar",
+      "dismissed": "Marcado como falso positivo por {name}",
+      "formerUser": "um antigo usuário",
+      "restore": "Restaurar",
+      "export": "Exportar relatório (JSON)",
+      "close": "Fechar",
+      "severityFilter": "Gravidade",
+      "statusFilter": "Situação",
+      "categoryFilter": "Categoria",
+      "anySeverity": "Todas",
+      "severityChip": "{severity} ({count, number})",
+      "statusAll": "Todos ({count, number})",
+      "statusOpen": "Abertos ({count, number})",
+      "statusMarked": "Marcados ({count, number})",
+      "fileCount": "{count, plural, one {# achado} other {# achados}}",
+      "noFile": "Fora de um arquivo",
+      "line": "L{line, number, ::group-off}",
+      "accept": "Aceitar o risco",
+      "acceptReason": "Por que o risco é aceitável?",
+      "accepted": "Risco aceito por {name}",
+      "falsePositiveBadge": "Falso positivo",
+      "acceptedBadge": "Risco aceito",
+      "askFix": "Pedir ao autor para corrigir",
+      "askFixMany": "{count, plural, =0 {Pedir ao autor para corrigir os achados selecionados} one {Pedir ao autor para corrigir # achado} other {Pedir ao autor para corrigir # achados}}",
+      "select": "Selecionar {name}",
+      "selectOpen": "Selecionar todos",
+      "clearSelection": "Limpar a seleção",
+      "copyLink": "Copiar link",
+      "copied": "Link copiado",
+      "copyManual": "Copie o link da barra de endereço.",
+      "askFixIntro": "Corrija estes achados da verificação de segurança:",
+      "askFixLine": "{title} ({rule}{hasWhere, select, true {, {where}} other {}}){hasFix, select, true {: {fix}} other {}}",
+      "none": "Nenhum achado corresponde a estes filtros.",
+      "askFixMore": "{count, plural, one {…e mais # achado: veja a aba Verificação de segurança.} other {…e mais # achados: veja a aba Verificação de segurança.}}",
+      "actionOn": "{action}: {name}",
+      "markTitle": "Marcar como falso positivo?",
+      "acceptTitle": "Aceitar o risco?",
+      "restoreTitle": "Restaurar este achado?",
+      "restoreBody": "A marcação e o motivo dela são removidos, e o achado volta a ficar aberto.",
+      "findingName": "{title}{hasWhere, select, true {, {where}} other {}}, achado {number, number}"
+    }
   }
 }

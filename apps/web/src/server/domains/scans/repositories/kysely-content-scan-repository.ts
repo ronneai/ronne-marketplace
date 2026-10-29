@@ -29,7 +29,11 @@ const toScan = (row: Selectable<ContentScanTable>): ContentScan => {
           severity: row.severity,
           recommendation: row.recommendation,
           complete: Boolean(row.complete),
-          findings: decodeJson<SkillScanFinding[]>(row.findings) ?? [],
+          // Scans stored before 137 kept no remediation: they read as none.
+          findings: (decodeJson<SkillScanFinding[]>(row.findings) ?? []).map((finding) => ({
+            ...finding,
+            remediation: finding.remediation ?? null,
+          })),
           findingsOmitted: row.findings_omitted,
         }
       : null;

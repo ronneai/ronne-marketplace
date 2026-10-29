@@ -47,6 +47,7 @@ const props = (
   authSecret = AUTH_SECRET,
 ): SkillScanSettings => ({
   policy: { enabled: true, types: ["skill"], analysis: "static" },
+  blockScore: null,
   scanner: skillScannerFrom(scanSetup(config, { ...NONE, ...stored }, authSecret)),
   lastVersion: null,
   lastError: null,

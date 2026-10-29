@@ -236,7 +236,7 @@ test("root creates a user, who signs in with the shown password; disabling them 
   await root.goto(`/items/${E2E_SCOPE}/${E2E_ERASE.item}/versions`);
   await expect(root.getByText(/by deleted-user-/).first()).toBeVisible();
   await expect(root.getByText("Erasable Person")).toHaveCount(0);
-  await root.goto(`/reviews/${E2E_ERASE.submissionId}`);
+  await root.goto(`/reviews/${E2E_ERASE.submissionId}?tab=conversation`);
   const conversation = root.getByRole("region", { name: "Conversation" });
   await expect(conversation).toContainText(E2E_ERASE.comment);
   await expect(conversation).toContainText(/deleted-user-/);

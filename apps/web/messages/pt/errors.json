@@ -83,10 +83,12 @@
   "StaleFilesError": "{paths} {pathsCount, plural, one {mudou desde que você o abriu} other {mudaram desde que você os abriu}}. Recarregue para ver as alterações, ou salve de novo para sobrescrevê-las.",
   "ZipImportError": "Esse .zip não pode ser importado: {code, select, not_zip {não é um arquivo .zip.} zip64 {usa ZIP64, que só é necessário para arquivos muito acima dos limites.} damaged_list {a lista de arquivos está danificada.} encrypted {está criptografado.} damaged {{entry} está danificado.} method {{entry} usa um método de compressão diferente de deflate.} too_big {passa de {maxText}.} link {{entry} é um link ou arquivo especial, não um arquivo comum.} bad_path {o caminho {entry} {pathCode, select, empty {está vazio} too_long {tem mais de 255 caracteres} control {contém caracteres de controle} backslash {usa \\ (use / entre pastas)} absolute {começa com / (os caminhos são relativos ao item)} outside {sai do item com \"..\"} other {tem um trecho vazio ou com \".\"}}.} empty {não tem arquivos.} too_many {tem {count} arquivos; o limite é {max}.} file_too_big {{entry} tem {sizeText}; um arquivo pode ter no máximo {maxText}.} total_too_big {os arquivos somam {sizeText}; o limite é {maxText}.} twice {tem {entry} duas vezes.} other {não tem ronne.yaml, e substituir deixaria o rascunho sem um. Mescle em vez disso.}}",
   "OwnSubmissionError": "{canOverride, select, true {Você não pode revisar a sua própria submissão. Como root, você pode aprová-la como exceção.} other {Você não pode revisar a sua própria submissão: outro moderador ou o root precisa fazê-lo.}}",
-  "ReviewMessageError": "{reason, select, required {{what, select, request_changes {Solicitar alterações} reject {Rejeitar} comment {Um comentário} send_back {Devolver os dependentes} other {Isto}} precisa de uma mensagem, para o autor saber o que fazer.} other {Uma mensagem pode ter no máximo 5.000 caracteres.}}",
+  "ReviewMessageError": "{reason, select, required {{what, select, request_changes {Solicitar alterações} reject {Rejeitar} comment {Um comentário} send_back {Devolver os dependentes} scan_override {Abrir uma exceção à verificação de segurança} other {Isto}} precisa de uma mensagem, para o autor saber o que fazer.} other {Uma mensagem pode ter no máximo 5.000 caracteres.}}",
   "BulkLimitError": "São {count} submissões; uma única operação aceita no máximo {limit}.",
   "ConversationClosedError": "Esta submissão não está em revisão, então não aceita comentários.",
   "OverrideNotNeededError": "Uma exceção é só para a sua própria submissão. Aprove esta normalmente.",
+  "ScanBlockedError": "{by, select, score {A aprovação está bloqueada: a pontuação da verificação de segurança, {score}, está no limite, {threshold}, ou acima dele.} pending {A aprovação espera a verificação de segurança terminar.} failed {A aprovação está bloqueada: a verificação de segurança não terminou. Verifique de novo, ou use a exceção.} other {A aprovação está bloqueada: esta revisão não foi verificada. Verifique-a, ou use a exceção.}}",
+  "ScanOverrideNotNeededError": "A verificação de segurança não bloqueia esta submissão. Aprove-a normalmente.",
   "ReleaseVersionError": "Isso não gera uma nova versão: um id de pré-lançamento tem letras minúsculas e dígitos, começa com uma letra e precisa vir depois do atual.",
   "VersionExistsError": "{itemName} {version} já está publicada, e as versões nunca são reutilizadas.",
   "ReleaseTagError": "{code, select, format {Uma tag tem de 1 a 32 letras minúsculas, dígitos e hifens, começando com uma letra.} range {{tag} parece um intervalo de versões, então não pode ser uma tag.} other {latest só pode apontar para uma versão estável, não para um pré-lançamento.}}",
@@ -145,6 +147,7 @@
   "SkillScanNoProviderError": "Configure antes um provedor de LLM: abaixo, ou no servidor com RONNE_SKILL_SCANNER_ENV_SKILLSPECTOR_PROVIDER e as variáveis dele.",
   "InvalidSkillScanTypesError": "Escolha pelo menos um tipo de item a verificar.",
   "InvalidSkillScanAnalysisError": "Escolha estática, ou estática e semântica.",
+  "InvalidSkillScanBlockScoreError": "A pontuação que bloqueia a aprovação é um número inteiro de 1 a 100, ou vazio para nenhuma.",
   "InvalidScanProviderError": "Escolha um dos provedores da lista, ou nenhum.",
   "InvalidScanModelError": "Informe um nome de modelo com no máximo 128 caracteres, em uma linha.",
   "InvalidScanTimeoutError": "Informe um tempo limite de 30 a 3600 segundos, ou deixe vazio para 300.",
@@ -154,5 +157,10 @@
   "ScanEndpointNotHttpsError": "O endpoint precisa começar com https://. Quem opera o servidor pode permitir http:// para um host em RONNE_SKILL_SCANNER_HTTP_HOSTS.",
   "ScanEndpointCredentialsError": "Deixe o nome de usuário e a senha fora do endpoint: informe a chave de API no campo dela.",
   "ScanEndpointInternalError": "Esse endpoint está em um endereço privado, de loopback ou link-local, o que não é permitido. Quem opera o servidor pode permitir o host dele em RONNE_SKILL_SCANNER_HTTP_HOSTS.",
-  "ScanEndpointUnresolvedError": "O host desse endpoint não foi encontrado. Confira o nome dele."
+  "ScanEndpointUnresolvedError": "O host desse endpoint não foi encontrado. Confira o nome dele.",
+  "DismissalReasonError": "{reason, select, required {Diga por que é um falso positivo, para os outros revisores saberem.} other {Um motivo pode ter no máximo 500 caracteres.}}",
+  "FindingNotFoundError": "Esse achado não existe mais, ou você não pode vê-lo.",
+  "FindingDismissedError": "Esse achado já está marcado, como falso positivo ou risco aceito.",
+  "NotScanReviewerError": "Só quem revisa a submissão marca achados como falsos positivos, nunca o autor.",
+  "DismissalKindError": "Marque-o como falso positivo ou como risco aceito."
 }

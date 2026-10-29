@@ -25,6 +25,8 @@ export const REVIEW_EVENT_KINDS = [
   "approve",
   "reject",
   "override",
+  // Root approved it past the security scan's gate (137), with a reason.
+  "scan_override",
   // Approved when its author submitted it in their own personal workspace (114): not reviewed.
   "self_approve",
   "withdraw",

@@ -133,6 +133,7 @@ const result = (overrides: Partial<SkillScanResult> = {}): SkillScanResult => ({
       confidence: 0.9,
       title: "Hidden Instructions",
       explanation: null,
+      remediation: null,
       file: "rule.md",
       line: 1,
     },
@@ -262,6 +263,24 @@ describe("running the queue (135)", () => {
     const settings = kyselySettingsRepository(t.db, t.dialect);
     expect((await settings.get(SKILL_SCAN_LAST_VERSION_KEY))?.value).toBe("2.13.2");
     expect((await settings.get(SKILL_SCAN_LAST_ERROR_KEY))?.value).toBe("");
+  });
+
+  it("reads a scan stored before 137, whose findings kept no remediation, as having none", async () => {
+    await turnOn();
+    await submitDraft(asAna, (await drafted()).id, app);
+    await run(fakeScanner({ ok: true, result: result() }).scanner);
+    const old = result().findings.map(({ remediation: _, ...rest }) => rest);
+    await t.db
+      .updateTable("content_scans")
+      .set({ findings: JSON.stringify(old) })
+      .execute();
+    const { revision_id } = await t.db
+      .selectFrom("content_scans")
+      .select("revision_id")
+      .executeTakeFirstOrThrow();
+    const scan = (await repo().latestFor([revision_id])).get(revision_id);
+    expect(scan?.result?.findings).toEqual(result().findings);
+    expect(scan?.result?.findings[0]?.remediation).toBeNull();
   });
 
   it("records a failure with its short reason", async () => {
@@ -442,7 +461,7 @@ describe("root asking for a scan (135)", () => {
     expect(await requestScan(asRoot, "01JZZZZZZZZZZZZZZZZZZZZZZZ", app)).toBe(false);
   });
 
-  it("lets root ask again only when the newest scan failed", async () => {
+  it("lets root ask again once the newest scan failed or finished, never while one waits (137)", async () => {
     await turnOn();
     await submitDraft(asAna, (await drafted()).id, app);
     const revisionId = (
@@ -451,11 +470,16 @@ describe("root asking for a scan (135)", () => {
     // One is waiting already.
     expect(await requestScan(asRoot, revisionId, app)).toBe(false);
     await run(fakeScanner({ ok: true, result: result() }).scanner);
-    // It finished.
+    // It finished: since 137, root may scan it again.
+    expect(await requestScan(asRoot, revisionId, app)).toBe(true);
+    expect(await scans()).toHaveLength(2);
+    // The new one waits.
+    expect(await requestScan(asRoot, revisionId, app)).toBe(false);
+    await t.db.updateTable("content_scans").set({ status: "running" }).execute();
     expect(await requestScan(asRoot, revisionId, app)).toBe(false);
     await t.db.updateTable("content_scans").set({ status: "failed", error: "timeout" }).execute();
     expect(await requestScan(asRoot, revisionId, app)).toBe(true);
-    expect(await scans()).toHaveLength(2);
+    expect(await scans()).toHaveLength(3);
   });
 
   it("refuses root's request when no scanner command is set: nothing would take it", async () => {
@@ -470,7 +494,7 @@ describe("root asking for a scan (135)", () => {
 });
 
 describe("the review page's scan (135)", () => {
-  it("gives the revision's newest scan, and lets only root ask again after a failure", async () => {
+  it("gives the revision's newest scan, and lets only root ask again once none waits or runs", async () => {
     await turnOn();
     await submitDraft(asAna, (await drafted()).id, app);
     const revisionId = (
@@ -481,7 +505,7 @@ describe("the review page's scan (135)", () => {
       canRequest: false,
     });
     await t.db.updateTable("content_scans").set({ status: "done" }).execute();
-    expect((await reviewScan(asRoot, revisionId, app)).canRequest).toBe(false);
+    expect((await reviewScan(asRoot, revisionId, app)).canRequest).toBe(true);
     await t.db.updateTable("content_scans").set({ status: "running" }).execute();
     expect((await reviewScan(asRoot, revisionId, app)).canRequest).toBe(false);
     await t.db.updateTable("content_scans").set({ status: "failed", error: "timeout" }).execute();
@@ -492,6 +516,11 @@ describe("the review page's scan (135)", () => {
     expect((await reviewScan(asAna, revisionId, app)).canRequest).toBe(false);
     vi.stubEnv("RONNE_SKILL_SCANNER", "");
     expect((await reviewScan(asRoot, revisionId, app)).canRequest).toBe(false);
-    expect(await reviewScan(asRoot, null, app)).toEqual({ scan: null, canRequest: false });
+    expect(await reviewScan(asRoot, null, app)).toEqual({
+      scan: null,
+      canRequest: false,
+      dismissals: [],
+      canDismiss: false,
+    });
   });
 });

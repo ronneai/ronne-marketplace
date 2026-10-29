@@ -307,9 +307,21 @@
     "empty": "Approved their own an item (override)",
     "rich": "Approved their own @team/tools (override)"
   },
+  "submission.scan_override_approved": {
+    "empty": "Approved an item past the security scan (override)",
+    "rich": "Approved @team/tools past the security scan (override)"
+  },
   "submission.rebased": {
     "empty": "Rebased an item from  to ",
     "rich": "Rebased @team/tools from user to root (1 conflict)"
+  },
+  "scan.finding_dismissed": {
+    "empty": "Marked the finding  of an item a false positive",
+    "rich": "Marked the finding P2 of @team/tools a false positive"
+  },
+  "scan.finding_restored": {
+    "empty": "Restored the finding  of an item",
+    "rich": "Restored the finding P2 of @team/tools"
   },
   "version.published": {
     "empty": "Published a version",

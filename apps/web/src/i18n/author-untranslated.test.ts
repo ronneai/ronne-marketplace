@@ -27,6 +27,16 @@ const flat = (value: string | Tree, prefix = ""): Record<string, string> =>
 const SAME: Record<string, readonly string[]> = {
   "files.frontmatter": ["pt", "fr"],
   "scan.rule": ["pt", "fr"],
+  // A product name and a version; a category name and a count; a word French shares.
+  "scan.card.engine": ["pt", "fr"],
+  "scan.dialog.category": ["pt", "fr"],
+  // A line number; a severity and a count; a finding's words and fix, in pt (fr adds a space).
+  "scan.dialog.line": ["pt", "fr"],
+  "scan.dialog.severityChip": ["pt", "fr"],
+  "scan.dialog.askFixLine": ["pt"],
+  // An action and a finding's title, for an icon's name (fr adds a space).
+  "scan.dialog.actionOn": ["pt"],
+  "review.tabs.conversation": ["fr"],
   "files.source": ["fr"],
   "issues.ok": ["pt"],
   "issues.both": ["pt", "fr"],

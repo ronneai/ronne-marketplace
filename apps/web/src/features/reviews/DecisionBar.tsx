@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { Help } from "@/components/help/Help";
@@ -22,6 +22,7 @@ const COPY: Record<
   request_changes: { required: true, variant: "secondary" },
   reject: { required: true, variant: "destructive" },
   override: { required: false, variant: "secondary" },
+  scan_override: { required: true, variant: "secondary" },
 };
 
 /**
@@ -108,6 +109,7 @@ export const DecisionDialog = ({
   revision,
   onClose,
   onDone,
+  initialText = "",
 }: {
   id: string;
   /** The item's name, for the dependents' message (056). */
@@ -121,10 +123,13 @@ export const DecisionDialog = ({
   onClose: () => void;
   /** After the decision went through, before the page refreshes. */
   onDone?: () => void;
+  /** The message to start from: the findings the author is asked to fix (137). */
+  initialText?: string;
 }) => {
   const t = useTranslations("author.review");
   const router = useRouter();
-  const [text, setText] = useState("");
+  const pathname = usePathname();
+  const [text, setText] = useState(initialText);
   const [sendBack, setSendBack] = useState(true);
   // What the dependents are told (056), prefilled in the reviewer's language and editable.
   const [othersText, setOthersText] = useState(
@@ -160,6 +165,9 @@ export const DecisionDialog = ({
             }
             onDone?.();
             onClose();
+            // On the review page, the decision shows where it's recorded: the Conversation tab
+            // (137). A queue row stays where it is.
+            if (via !== "queue") router.push(`${pathname}?tab=conversation`);
             router.refresh();
           });
         }}

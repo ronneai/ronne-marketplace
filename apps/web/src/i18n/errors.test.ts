@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import * as identityErrors from "@/server/domains/identity/exceptions/errors";
 import * as itemsErrors from "@/server/domains/items/exceptions/errors";
+import * as scansErrors from "@/server/domains/scans/exceptions/errors";
 import * as settingsErrors from "@/server/domains/settings/exceptions/errors";
 import * as shelvesErrors from "@/server/domains/shelves/exceptions/errors";
 import * as submissionsErrors from "@/server/domains/submissions/exceptions/errors";
@@ -137,6 +138,7 @@ describe("domain errors in three languages (129)", () => {
       shelvesErrors,
       itemsErrors,
       settingsErrors,
+      scansErrors,
     ];
     for (const key of Object.keys(en))
       expect(

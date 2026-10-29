@@ -618,6 +618,7 @@
           "off": "désactivée",
           "types": "types de {from} à {to}",
           "analysis": "analyse {from, select, semantic {statique et sémantique} other {statique}} à {to, select, semantic {statique et sémantique} other {statique}}",
+          "blockScore": "le score qui bloque l’approbation de {from, select, none {aucun} other {{from}}} à {to, select, none {aucun} other {{to}}}",
           "nothing": "rien"
         }
       },
@@ -716,7 +717,12 @@
           "changes_requested": "A demandé des modifications sur <name>{item}</name>",
           "rejected": "A rejeté <name>{item}</name>",
           "override_approved": "A approuvé son propre <name>{item}</name> (dérogation)",
+          "scan_override_approved": "A approuvé <name>{item}</name> malgré l’analyse de sécurité (dérogation)",
           "rebased": "A rebasé <name>{item}</name> de {from} à {to}{conflicts, plural, =0 {} one { (# conflit)} other { (# conflits)}}"
+        },
+        "scan": {
+          "finding_dismissed": "{kind, select, accepted {A accepté le risque du résultat <code>{rule}</code> de <name>{item}</name>} other {A marqué le résultat <code>{rule}</code> de <name>{item}</name> comme faux positif}}",
+          "finding_restored": "A rétabli le résultat <code>{rule}</code> de <name>{item}</name>"
         },
         "version": {
           "published": "A publié <name>{item}</name>{hasTag, select, true { comme <code>{tag}</code>} other {}}",
@@ -1056,7 +1062,7 @@
     },
     "scan": {
       "title": "Analyse de sécurité",
-      "intro": "SkillSpector, de NVIDIA, analyse chaque soumission dès son envoi, et ce qu’il trouve s’affiche sur la page de révision à côté des signaux de risque. C’est un deuxième avis pour les personnes qui révisent : il ne bloque jamais une soumission, une approbation ou une publication.",
+      "intro": "SkillSpector, de NVIDIA, analyse chaque soumission dès son envoi, et ce qu’il trouve s’affiche sur la page de révision à côté des signaux de risque. C’est un deuxième avis pour les personnes qui révisent : il ne bloque une approbation que si vous définissez un score ci-dessous, et jamais une soumission ou une publication.",
       "scanner": {
         "configured": "L’analyseur est configuré sur ce serveur.",
         "lastVersion": "La dernière analyse terminée a utilisé SkillSpector {version}.",
@@ -1141,7 +1147,13 @@
         "warning": "Désormais, les fichiers de chaque soumission analysée sont envoyés à {provider} sur {host}. Enregistrez pour confirmer.",
         "runsStatic": "L’analyse sémantique est choisie, mais aucun fournisseur n’est plus configuré : les analyses restent statiques."
       },
-      "save": "Enregistrer"
+      "save": "Enregistrer",
+      "blockScore": {
+        "title": "Bloquer l’approbation",
+        "label": "Score qui bloque l’approbation",
+        "hint": "Une soumission dont l’analyse atteint ou dépasse ce score, ou qui n’a pas d’analyse terminée, ne peut pas être approuvée; seul root peut déroger. Laissez vide pour seulement indiquer.",
+        "range": "Saisissez un nombre entier de 1 à 100, ou laissez vide."
+      }
     }
   },
   "setup": {

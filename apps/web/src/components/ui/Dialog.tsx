@@ -41,6 +41,9 @@ export type DialogSize = keyof typeof DIALOG_SIZES;
  *
  * `closeOnBackdrop` closes it on a click or tap outside the panel (066's menu). Off by default, so
  * a stray tap can't lose what's typed in a form.
+ *
+ * `busy` keeps it open while what it started is saving (137): Esc is refused (and, should the
+ * browser close it anyway, it opens again), the close button is off, the backdrop does nothing.
  */
 export const Dialog = ({
   open,
@@ -50,7 +53,9 @@ export const Dialog = ({
   size = "medium",
   fixedHeight = false,
   closeOnBackdrop = false,
+  busy = false,
 }: {
+  busy?: boolean;
   size?: DialogSize | "side";
   fixedHeight?: boolean;
   open: boolean;
@@ -67,8 +72,9 @@ export const Dialog = ({
     const dialog = ref.current;
     if (!dialog) return;
     if (open && !dialog.open) dialog.showModal();
-    if (!open && dialog.open) dialog.close();
-  }, [open]);
+    // Closed by the caller: once it's no longer busy, should that be what held it.
+    if (!open && !busy && dialog.open) dialog.close();
+  }, [open, busy]);
 
   // iOS doesn't always scroll a focused field above the on-screen keyboard inside a dialog: once
   // the keyboard is up, bring the field into view (067).
@@ -89,10 +95,19 @@ export const Dialog = ({
     // biome-ignore lint/a11y/useKeyWithClickEvents: the keyboard closes it with Esc, natively.
     <dialog
       ref={ref}
-      onClose={onClose}
+      onCancel={(event) => {
+        if (busy) event.preventDefault();
+      }}
+      onClose={() => {
+        // Browsers may close on a second Esc whatever `cancel` said: put it back while busy.
+        if (busy && open) ref.current?.showModal();
+        else onClose();
+      }}
       // A click on the backdrop targets the <dialog> itself; the panel's content covers the rest.
       onClick={
-        closeOnBackdrop ? (event) => event.target === event.currentTarget && onClose() : undefined
+        closeOnBackdrop
+          ? (event) => event.target === event.currentTarget && !busy && onClose()
+          : undefined
       }
       aria-labelledby={titleId}
       className={cn(
@@ -114,9 +129,11 @@ export const Dialog = ({
         </h2>
         <button
           type="button"
-          onClick={onClose}
+          // Nothing passed: a caller's `onClose` may take an argument of its own.
+          onClick={() => onClose()}
+          disabled={busy}
           aria-label={t("close")}
-          className="-mr-2 inline-flex size-10 shrink-0 items-center justify-center rounded-control text-muted hover:bg-tint hover:text-fg pointer-coarse:size-11 outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
+          className="-mr-2 inline-flex size-10 shrink-0 items-center justify-center rounded-control text-muted hover:bg-tint hover:text-fg pointer-coarse:size-11 outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-60"
         >
           <X size={18} aria-hidden />
         </button>

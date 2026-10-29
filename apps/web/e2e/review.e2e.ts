@@ -63,7 +63,8 @@ test("a moderator reviews a hook, the author publishes it, and another item depe
   await request.getByLabel("Message").fill("Make the script print what it formatted.");
   await request.getByRole("button", { name: "Request changes" }).click();
   await expect(moderator.getByText("requested changes")).toBeVisible();
-  const reviewUrl = moderator.url();
+  // The page without its tab: a decision opens the Conversation tab (137).
+  const reviewUrl = moderator.url().split("?")[0] ?? "";
 
   // The author reads it, edits the script, and resubmits.
   await author.goto(submissionUrl);
@@ -71,6 +72,8 @@ test("a moderator reviews a hook, the author publishes it, and another item depe
   await expect(
     author.getByRole("status").filter({ hasText: "Changes requested by" }),
   ).toContainText("Make the script print what it formatted.");
+  // The review page's screen (137): Edit files opens the editor while it may be changed.
+  await author.getByRole("link", { name: "Edit files" }).click();
   await author
     .getByRole("list", { name: "Files" })
     .getByRole("button", { name: /hook\.sh/ })
@@ -87,7 +90,7 @@ test("a moderator reviews a hook, the author publishes it, and another item depe
   await expect(author.getByText(/Submitted for review on/)).toBeVisible();
 
   // The moderator sees what changed since revision 1, and approves.
-  await moderator.goto(reviewUrl);
+  await moderator.goto(`${reviewUrl}?tab=files`);
   await expect(moderator.getByRole("link", { name: "Changes since revision 1" })).toHaveAttribute(
     "aria-current",
     "page",
@@ -126,6 +129,7 @@ test("a moderator reviews a hook, the author publishes it, and another item depe
     "href",
     `/items/${E2E_SCOPE}/fmt-hook/versions`,
   );
+  await author.getByRole("link", { name: /^Conversation/ }).click();
   await author.getByRole("link", { name: "released it as 1.0.0" }).click();
   await expect(author).toHaveURL(new RegExp(`/items/${E2E_SCOPE}/fmt-hook/versions$`));
   await expect(author.getByText("latest → 1.0.0")).toBeVisible();

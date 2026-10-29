@@ -5,6 +5,7 @@ export const RICH: AuditEvent["metadata"] = {
   name: "@team/tools",
   version: "1.2.0",
   tag: "latest",
+  rule: "P2",
   email: "ana@example.com",
   provider: "acme",
   role: "moderator",

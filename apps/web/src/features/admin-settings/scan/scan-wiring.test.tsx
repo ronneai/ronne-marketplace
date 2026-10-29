@@ -16,6 +16,7 @@ describe("the security scan form's confirmation (135)", () => {
       <SkillScanForm
         settings={{
           policy: { enabled: true, types: ["skill"], analysis: "static" },
+          blockScore: null,
           scanner: { configured: true, provider: { name: "ollama", model: null, host: "h:1" } },
           lastVersion: null,
           lastError: null,

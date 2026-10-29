@@ -8,6 +8,7 @@ import {
   type TagProblem,
 } from "@ronneai/core";
 import { MESSAGE_FOR_PEOPLE } from "../../../log/message-for-people";
+import { type ScanBlock, scanBlockedEnglish } from "../models/scan-gate";
 import type { Why } from "../models/why";
 
 /** Errors the submissions domain raises. Pages turn them into `ERR:` lines. */
@@ -423,6 +424,7 @@ const WHAT_CODES: Record<string, string> = {
   Rejecting: "reject",
   "A comment": "comment",
   "Sending its dependents back": "send_back",
+  "Overriding the security scan": "scan_override",
 };
 
 /** A decision that needs a message without one, or any message that's too long. */
@@ -467,6 +469,26 @@ export class OverrideNotNeededError extends SubmissionsError {
   override readonly name: string = "OverrideNotNeededError";
   constructor() {
     super("An override is only for your own submission. Approve this one instead.");
+  }
+}
+
+/** The security scan's gate (137) blocks approving this revision: root can override it. */
+export class ScanBlockedError extends SubmissionsError {
+  override readonly name: string = "ScanBlockedError";
+  constructor(
+    readonly by: ScanBlock,
+    readonly score: number | null,
+    readonly threshold: number,
+  ) {
+    super(scanBlockedEnglish(by, score, threshold));
+  }
+}
+
+/** The scan override is for a submission the gate blocks; one it doesn't is approved normally. */
+export class ScanOverrideNotNeededError extends SubmissionsError {
+  override readonly name: string = "ScanOverrideNotNeededError";
+  constructor() {
+    super("The security scan doesn't block this submission. Approve it instead.");
   }
 }
 

@@ -83,6 +83,8 @@ test("a moderator requests changes and rejects from the queue, and the author re
   // The author fixes it and resubmits.
   await author.goto(fixUrl);
   await expect(author.getByText("Changes requested by Remy Moderator")).toBeVisible();
+  // The review page's screen (137): Edit files opens the editor while it may be changed.
+  await author.getByRole("link", { name: "Edit files" }).click();
   await author.getByLabel("description").fill("A rule for the review decisions test, all files.");
   await author.keyboard.press("ControlOrMeta+s");
   await expect(author.getByText(/Saved at/)).toBeVisible();

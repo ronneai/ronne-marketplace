@@ -83,10 +83,12 @@
   "StaleFilesError": "{paths} changed since you opened {pathsCount, plural, one {it} other {them}}. Reload to see the changes, or save again to overwrite them.",
   "ZipImportError": "That .zip can't be imported: {code, select, not_zip {it isn't a .zip file.} zip64 {it uses ZIP64, which is only needed for archives far over the limits.} damaged_list {its file list is damaged.} encrypted {it's encrypted.} damaged {{entry} is damaged.} method {{entry} uses a compression method other than deflate.} too_big {it's over {maxText}.} link {{entry} is a link or special file, not a regular file.} bad_path {the path {entry} {pathCode, select, empty {is empty} too_long {is longer than 255 characters} control {contains control characters} backslash {uses \\ (use / between folders)} absolute {starts with / (paths are relative to the item)} outside {goes outside the item with \"..\"} other {has an empty or . segment}}.} empty {it has no files.} too_many {it has {count} files; the limit is {max}.} file_too_big {{entry} is {sizeText}; a file can be at most {maxText}.} total_too_big {its files add up to {sizeText}; the limit is {maxText}.} twice {it has {entry} twice.} other {it has no ronne.yaml, and replacing would leave the draft without one. Merge it instead.}}",
   "OwnSubmissionError": "{canOverride, select, true {You can't review your own submission. As root, you can approve it with an override.} other {You can't review your own submission: another moderator or root has to.}}",
-  "ReviewMessageError": "{reason, select, required {{what, select, request_changes {Requesting changes} reject {Rejecting} comment {A comment} send_back {Sending its dependents back} other {This}} needs a message, so the author knows what to do.} other {A message can have at most 5,000 characters.}}",
+  "ReviewMessageError": "{reason, select, required {{what, select, request_changes {Requesting changes} reject {Rejecting} comment {A comment} send_back {Sending its dependents back} scan_override {Overriding the security scan} other {This}} needs a message, so the author knows what to do.} other {A message can have at most 5,000 characters.}}",
   "BulkLimitError": "That's {count} submissions; one request takes at most {limit}.",
   "ConversationClosedError": "This submission isn't under review, so it can't take comments.",
   "OverrideNotNeededError": "An override is only for your own submission. Approve this one instead.",
+  "ScanBlockedError": "{by, select, score {Approval is blocked: the security scan's score, {score}, is at or above the threshold, {threshold}.} pending {Approval waits for the security scan to finish.} failed {Approval is blocked: the security scan didn't finish. Scan again, or override.} other {Approval is blocked: this revision wasn't scanned. Scan it, or override.}}",
+  "ScanOverrideNotNeededError": "The security scan doesn't block this submission. Approve it instead.",
   "ReleaseVersionError": "That doesn't give a new version: a pre-release id is lowercase letters and digits, starting with a letter, and has to sort after the current one.",
   "VersionExistsError": "{itemName} {version} is already published, and versions are never reused.",
   "ReleaseTagError": "{code, select, format {A tag is 1 to 32 lowercase letters, digits and hyphens, starting with a letter.} range {{tag} reads as a version range, so it can't be a tag.} other {latest can only point to a stable version, not a pre-release.}}",
@@ -145,6 +147,7 @@
   "SkillScanNoProviderError": "Set up an LLM provider first: below, or on the server with RONNE_SKILL_SCANNER_ENV_SKILLSPECTOR_PROVIDER and its variables.",
   "InvalidSkillScanTypesError": "Pick at least one item type to scan.",
   "InvalidSkillScanAnalysisError": "Choose static, or static and semantic.",
+  "InvalidSkillScanBlockScoreError": "The score that blocks approval is a whole number from 1 to 100, or empty for none.",
   "InvalidScanProviderError": "Choose one of the providers listed, or none.",
   "InvalidScanModelError": "Enter a model name of at most 128 characters, on one line.",
   "InvalidScanTimeoutError": "Enter a timeout from 30 to 3600 seconds, or leave it empty for 300.",
@@ -154,5 +157,10 @@
   "ScanEndpointNotHttpsError": "The endpoint must start with https://. The server’s operator can allow http:// for a host in RONNE_SKILL_SCANNER_HTTP_HOSTS.",
   "ScanEndpointCredentialsError": "Leave the user name and password out of the endpoint: enter the API key in its own field.",
   "ScanEndpointInternalError": "That endpoint is on a private, loopback or link-local address, which isn’t allowed. The server’s operator can allow its host in RONNE_SKILL_SCANNER_HTTP_HOSTS.",
-  "ScanEndpointUnresolvedError": "That endpoint’s host can’t be found. Check its name."
+  "ScanEndpointUnresolvedError": "That endpoint’s host can’t be found. Check its name.",
+  "DismissalReasonError": "{reason, select, required {Say why it's a false positive, so the other reviewers know.} other {A reason can have at most 500 characters.}}",
+  "FindingNotFoundError": "That finding no longer exists, or you can't see it.",
+  "FindingDismissedError": "That finding is already marked, as a false positive or an accepted risk.",
+  "NotScanReviewerError": "Only the submission's reviewers mark findings as false positives, never its author.",
+  "DismissalKindError": "Mark it as a false positive or as an accepted risk."
 }

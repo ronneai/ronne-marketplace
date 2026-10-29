@@ -495,11 +495,11 @@ export const kyselyItemRepository = (
       .select(["review_events.kind", "review_events.created_at", "user.name"])
       .where("review_events.submission_id", "=", submissionId)
       .where(isVisibleSubmission(viewer, "review_events.submission_id"))
-      .where("review_events.kind", "in", ["approve", "override"])
+      .where("review_events.kind", "in", ["approve", "override", "scan_override"])
       .orderBy("review_events.created_at", "desc")
       .executeTakeFirst();
     return row
-      ? { by: row.name ?? null, at: fromDbDate(row.created_at), override: row.kind === "override" }
+      ? { by: row.name ?? null, at: fromDbDate(row.created_at), override: row.kind !== "approve" }
       : null;
   },
 

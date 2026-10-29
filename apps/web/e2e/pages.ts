@@ -95,13 +95,26 @@ export const SWEEP_PAGES: readonly SweepPage[] = [
   {
     route: "/submissions/[id]",
     roles: ["member"],
-    urls: (data) => [`/submissions/${data.draftId}`],
+    // A draft's editor, and the member's submitted one: the review page's screen (137), each tab.
+    urls: (data) => [
+      `/submissions/${data.draftId}`,
+      `/submissions/${data.submissionId}`,
+      `/submissions/${data.submissionId}?tab=files`,
+      `/submissions/${data.submissionId}?tab=conversation`,
+      `/submissions/${data.submissionId}?tab=scan`,
+    ],
   },
   { route: "/reviews", roles: REVIEWERS, urls: () => ["/reviews"] },
   {
     route: "/reviews/[id]",
     roles: REVIEWERS,
-    urls: (data) => [`/reviews/${data.submissionId}`],
+    // Each tab (137): Overview, Files, Conversation and Security scan.
+    urls: (data) => [
+      `/reviews/${data.submissionId}`,
+      `/reviews/${data.submissionId}?tab=files`,
+      `/reviews/${data.submissionId}?tab=conversation`,
+      `/reviews/${data.submissionId}?tab=scan`,
+    ],
   },
   // Workspaces and their join links (094): a public one, global (where everyone is in), and a
   // name no workspace has, which shows as a private one does.

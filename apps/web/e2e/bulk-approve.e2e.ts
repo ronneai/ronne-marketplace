@@ -90,6 +90,6 @@ test("approves the selected submissions with one message, and reports one withdr
   await expect(done).toContainText("archived");
   await done.getByRole("button", { name: "Done" }).click();
 
-  await page.goto(`/reviews/${ids[0]}`);
+  await page.goto(`/reviews/${ids[0]}?tab=conversation`);
   await expect(page.getByText("Approved together.")).toBeVisible();
 });

@@ -9,10 +9,13 @@ import {
   REVIEW_MESSAGE_MAX_LENGTH,
   ReviewMessageError,
   RevisionChangedError,
+  ScanBlockedError,
+  ScanOverrideNotNeededError,
   SubmissionNotFoundError,
   SubmissionsError,
 } from "../exceptions/errors";
 import type { ReviewEventKind } from "../models/review";
+import { scanGate } from "../models/scan-gate";
 import {
   canTransition,
   OPEN_STATUSES,
@@ -107,6 +110,13 @@ const DECISIONS = {
     // Optional since 054: it's still recorded as an override, with or without a reason.
     requires: null,
   },
+  // Root, past the security scan's gate (137): on anyone's submission, its own included.
+  scan_override: {
+    action: "approve",
+    kind: "scan_override",
+    audit: "submission.scan_override_approved",
+    requires: "Overriding the security scan",
+  },
 } as const satisfies Record<string, Decision>;
 
 export type ReviewDecision = keyof typeof DECISIONS;
@@ -135,7 +145,8 @@ export const decide = async (
   },
 ): Promise<Submission> => {
   const decision = DECISIONS[input.decision];
-  if (input.decision === "override") requirePermission(actor.user, "submissions.override");
+  if (input.decision === "override" || input.decision === "scan_override")
+    requirePermission(actor.user, "submissions.override");
   // Someone who moderates nowhere is refused outright; a moderator, in the submission's workspace.
   else if (!canInSome(actor.user, "submissions.review"))
     throw new ForbiddenError("submissions.review");
@@ -147,11 +158,12 @@ export const decide = async (
     // A moderator of the submission's workspace, or root (091); others only see their own here.
     if (
       input.decision !== "override" &&
+      input.decision !== "scan_override" &&
       !can(actor.user, "submissions.review", submission.workspace.id)
     )
       throw new ForbiddenError("submissions.review");
     if (input.decision === "override" && !mine) throw new OverrideNotNeededError();
-    if (input.decision !== "override" && mine)
+    if (input.decision !== "override" && input.decision !== "scan_override" && mine)
       throw new OwnSubmissionError(can(actor.user, "submissions.override"));
     const status = transition(submission.status, decision.action);
     const revision = await latestRevision(repo, submission.id);
@@ -164,6 +176,19 @@ export const decide = async (
     // A stale proposal (017) is rebased before anyone approves it.
     if (decision.action === "approve")
       await requireCurrent(deps.registry ?? repo.registry(), submission);
+    // The security scan's gate (137), on the revision approved, read under the row's lock.
+    const gate =
+      decision.action === "approve"
+        ? scanGate(
+            deps.scanGate,
+            submission,
+            (await repo.latestScans([submission.id])).get(submission.id) ?? null,
+          )
+        : null;
+    if (input.decision === "scan_override" && !gate?.blocked)
+      throw new ScanOverrideNotNeededError();
+    if (input.decision !== "scan_override" && gate?.blocked)
+      throw new ScanBlockedError(gate.by, gate.score, gate.threshold);
     await repo.setStatus(submission.id, status, { updatedAt: at });
     await repo.addEvent({
       submissionId: submission.id,
@@ -184,6 +209,9 @@ export const decide = async (
           ...(message ? { message } : {}),
           ...(input.via ? { via: input.via } : {}),
           ...(input.cause ? { cause: input.cause } : {}),
+          ...(input.decision === "scan_override" && gate?.blocked
+            ? { scan: { by: gate.by, score: gate.score, threshold: gate.threshold } }
+            : {}),
         },
         ipAddress: actor.ip,
       },

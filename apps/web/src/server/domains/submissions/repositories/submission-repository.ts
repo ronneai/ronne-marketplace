@@ -8,6 +8,7 @@ import type {
   Revision,
   RevisionFile,
 } from "../models/review";
+import type { ScanState } from "../models/scan-gate";
 import type { DraftFile, Submission, SubmissionStatus } from "../models/submission";
 import type { RegistryLookup } from "./registry-lookup";
 
@@ -169,6 +170,11 @@ export interface SubmissionRepository {
   ): Promise<Revision>;
   /** Queues the revision for the security scan (135), in the same transaction as the revision. */
   queueScan(revisionId: string, at: Date): Promise<void>;
+  /**
+   * The newest scan of each submission's latest revision (137), for the gate: missing from the map
+   * when the latest revision has no scan, or the viewer can't read the submission.
+   */
+  latestScans(submissionIds: readonly string[]): Promise<Map<string, NonNullable<ScanState>>>;
   /** Oldest first. */
   revisions(submissionId: string): Promise<Revision[]>;
   /** In path order, by code unit. */

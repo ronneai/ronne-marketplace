@@ -227,6 +227,9 @@ export const HELP = {
   "scan-key": {
     href: docsHref("security-scan", "semantic"),
   },
+  "scan-threshold": {
+    href: docsHref("security-scan", "gate"),
+  },
   "erase-user": {
     href: docsHref("privacy", "erase"),
   },

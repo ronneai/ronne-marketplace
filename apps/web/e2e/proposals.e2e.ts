@@ -90,14 +90,15 @@ test("a user proposes a change, a newer version comes out, the user rebases, and
   await expect(
     proposer.getByText(`A change to @${E2E_SCOPE}/${E2E_PROPOSAL_ITEM} 1.0.1.`),
   ).toBeVisible();
-  // It keeps the user's description and brings in the README from 1.0.1.
+  // It keeps the user's description and brings in the README from 1.0.1, in the editor (137).
+  await proposer.getByRole("link", { name: "Edit files" }).click();
   await expect(proposer.getByLabel("description")).toHaveValue(
     "Prompts for commit messages that say why.",
   );
   await submit(proposer, "Resubmit for review");
 
   // The moderator sees the change against 1.0.1 and approves it; the user releases it as 1.1.0.
-  await moderator.goto(mine.replace("/submissions/", "/reviews/"));
+  await moderator.goto(`${mine.replace("/submissions/", "/reviews/")}?tab=files`);
   await expect(moderator.getByRole("link", { name: "Changes to 1.0.1" })).toHaveAttribute(
     "aria-current",
     "page",

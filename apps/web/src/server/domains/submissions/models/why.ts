@@ -1,6 +1,7 @@
 import type { TagProblem } from "@ronneai/core";
 import type { IdentityError } from "../../identity/exceptions/errors";
 import type { SubmissionsError } from "../exceptions/errors";
+import { type ScanBlock, scanBlockedEnglish } from "./scan-gate";
 import { type SubmissionStatus, statusLabel } from "./status";
 
 /**
@@ -14,6 +15,8 @@ export type Why =
   | { code: "stale"; newer: string }
   | { code: "own" }
   | { code: "own_decide" }
+  /** The security scan's gate (137). */
+  | { code: "scan_blocked"; by: ScanBlock; score: number | null; threshold: number }
   | { code: "not_reviewer" }
   | { code: "yours" }
   | { code: "cannot_send_back"; status: SubmissionStatus }
@@ -47,6 +50,8 @@ export const whyEnglish = (why: Why): string => {
       return "Your own submission";
     case "own_decide":
       return "Your own submission: another moderator or root decides.";
+    case "scan_blocked":
+      return scanBlockedEnglish(why.by, why.score, why.threshold);
     case "not_reviewer":
       return "Only reviewers send submissions back.";
     case "yours":

@@ -416,6 +416,7 @@ export const SUMMARIES: Record<AuditAction, Build> = {
   "submission.changes_requested": (m, _e, h) => ({ item: h.item(m) }),
   "submission.rejected": (m, _e, h) => ({ item: h.item(m) }),
   "submission.override_approved": (m, _e, h) => ({ item: h.item(m) }),
+  "submission.scan_override_approved": (m, _e, h) => ({ item: h.item(m) }),
   "submission.rebased": (m, _e, h) => ({
     item: h.item(m),
     from: text(m.from),
@@ -492,9 +493,23 @@ export const SUMMARIES: Record<AuditAction, Build> = {
       text(from.analysis) !== text(to.analysis)
         ? h.part("skillScan.analysis", { from: text(from.analysis), to: text(to.analysis) })
         : null,
+      // `blockScore: { from, to }`, only when the threshold changed (137); null is none.
+      m.blockScore !== undefined
+        ? h.part("skillScan.blockScore", {
+            from: text(record(m.blockScore).from) || "none",
+            to: text(record(m.blockScore).to) || "none",
+          })
+        : null,
     ].filter((c) => c !== null);
     return { changes: changes.join(", ") || h.part("skillScan.nothing") };
   },
+  // `kind` since 0040 (137): an accepted risk, or a false positive, as every mark was before.
+  "scan.finding_dismissed": (m, _e, h) => ({
+    item: h.item(m),
+    rule: text(m.rule),
+    kind: text(m.kind) === "accepted" ? "accepted" : "false_positive",
+  }),
+  "scan.finding_restored": (m, _e, h) => ({ item: h.item(m), rule: text(m.rule) }),
   "settings.notice": (m, _e, h) => {
     // `{ from: { tone, shown }, to: { tone, shown }, revision }`: never the text (124).
     const from = record(m.from);

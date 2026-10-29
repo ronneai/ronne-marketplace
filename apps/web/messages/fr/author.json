@@ -259,7 +259,14 @@
       "selfApproved": "Il est prêt à être publié. Ce qu’il peut faire est listé ci-dessous, comme un réviseur l’aurait vu. Tant qu’il n’est pas publié, vous pouvez encore le retirer.",
       "approved": "Il est prêt à être publié, par vous ou par un modérateur. D’ici là, vous pouvez encore le retirer, et un réviseur peut le renvoyer.",
       "published": "Une version publiée ne change jamais : Voir les versions les liste. Pour modifier l’élément, proposez une modification depuis sa page.",
-      "submitted": "Ses fichiers sont figés, donc les réviseurs voient exactement ce que vous avez soumis. Vous pouvez le retirer jusqu’à sa publication."
+      "submitted": "Ses fichiers sont figés, donc les réviseurs voient exactement ce que vous avez soumis. Vous pouvez le retirer jusqu’à sa publication.",
+      "notMemberApproved": "Il est approuvé. Vous pouvez le lire et le retirer, mais pas le publier. Pour le publier vous-même, <join></join>; un modérateur peut encore le publier.",
+      "notMemberPublished": "Une version publiée ne change jamais, et vous ne pouvez pas la retirer. Pour proposer une modification, <join></join>.",
+      "notMemberChanges": "Il vous est revenu : vous pouvez le lire et le retirer, mais pas le modifier ni le soumettre de nouveau. Pour le corriger et le soumettre de nouveau, <join></join>.",
+      "notMemberDraft": "Vous pouvez le lire et le retirer, mais pas le modifier ni le soumettre. Pour y travailler de nouveau, <join></join>.",
+      "notMemberApprovedStale": "Il est approuvé, mais une version plus récente est sortie : il ne peut pas être publié avant un rebase, qui demande votre retour. Vous pouvez le lire et le retirer. Pour faire le rebase, <join></join>; un réviseur peut encore le renvoyer.",
+      "approvedStale": "Il ne peut pas être publié avant que vous fassiez un rebase sur la version plus récente. D’ici là, vous pouvez encore le retirer, et un réviseur peut le renvoyer.",
+      "selfApprovedStale": "Il ne peut pas être publié avant que vous fassiez un rebase sur la version plus récente. D’ici là, vous pouvez encore le retirer."
     },
     "feedback": {
       "title": "{kind, select, reject {Rejeté par} rebase {Rebase fait par} other {Modifications demandées par}} {by}, <date></date>.",
@@ -267,7 +274,9 @@
       "reject": "Un rejet est définitif : commencez un nouveau brouillon pour réessayer.",
       "mine": "Modifiez les fichiers, puis cliquez sur « Soumettre de nouveau pour révision ».",
       "others": "Il a été renvoyé à son auteur.",
-      "conversation": "Voir la conversation"
+      "conversation": "Voir la conversation",
+      "rejectNotMember": "Un rejet est définitif. Pour réessayer avec un nouveau brouillon, <join></join>.",
+      "minePersonal": "Modifiez les fichiers, puis cliquez sur « Soumettre de nouveau » : il est de nouveau approuvé aussitôt."
     },
     "issuesNoteReadOnly": "Les mêmes vérifications qu’à sa soumission.",
     "issuesNote": "Un brouillon peut être enregistré avec des problèmes; il doit être sans erreur pour être soumis.",
@@ -397,10 +406,12 @@
       "compare": "Comparer avec la {version}",
       "same": "C’est maintenant identique à la version de base.",
       "unreadable": "Les fichiers de la {version} n’ont pas pu être lus, donc il n’y a rien à comparer.",
-      "resolve": "Marquer résolu"
+      "resolve": "Marquer résolu",
+      "stalePersonal": "Elle modifie la {version}. Le rebase apporte ce que la {stale} a changé : les fichiers que vous n’avez pas touchés prennent ceux de la {stale}, et ceux que vous avez tous deux modifiés restent les vôtres, listés ci-dessous pour comparer. Elle repasse en modifications demandées, et la soumettre de nouveau l’approuve encore."
     },
-    "approvedTitle": "Approuvé",
-    "approvedText": "Publiez-le pour le rendre installable. Les versions ne changent jamais une fois publiées."
+    "editFiles": "Modifier les fichiers",
+    "backToSubmission": "Retour à la soumission",
+    "archivedNotMember": "Il est sorti de la révision et ne réserve plus son nom. Vous n’êtes plus membre de {workspace} : pour le restaurer, <join></join>."
   },
   "submissions": {
     "pageTitle": "Mes soumissions",
@@ -568,6 +579,7 @@
       "approve": "l’a approuvée",
       "reject": "l’a rejetée",
       "override": "a approuvé sa propre soumission, en tant que root (dérogation)",
+      "scan_override": "l’a approuvée malgré l’analyse de sécurité, en tant que root (dérogation)",
       "self_approve": "l’a soumise dans son espace de travail personnel, donc elle a été approuvée sans révision",
       "withdraw": "l’a archivée",
       "restore": "l’a restaurée comme brouillon",
@@ -596,6 +608,11 @@
         "button": "Approuver (dérogation)",
         "title": "Approuver votre propre soumission?",
         "hint": "Facultatif. En tant que root, vous pouvez approuver votre propre soumission; elle est marquée comme dérogation dans la conversation et le journal d’audit."
+      },
+      "scan_override": {
+        "button": "Approuver (déroger à l’analyse)",
+        "title": "Approuver malgré l’analyse de sécurité?",
+        "hint": "Obligatoire. En tant que root, vous l’approuvez même si l’analyse de sécurité la bloque : dites pourquoi. Elle est marquée comme dérogation dans la conversation et le journal d’audit."
       },
       "message": "Message",
       "cancel": "Annuler",
@@ -659,7 +676,16 @@
       "keywordNew": "le mot-clé {names} est nouveau",
       "blockGained": "le bloc {type} gagne {names}",
       "nothing": "rien n’est ajouté ni retiré"
-    }
+    },
+    "tabs": {
+      "label": "Révision",
+      "overview": "Vue d’ensemble",
+      "files": "Fichiers ({count, number})",
+      "conversation": "Conversation ({count, number})",
+      "scan": "Analyse de sécurité",
+      "scanCount": "Analyse de sécurité ({count, number})"
+    },
+    "staleApproved": "Elle modifie la {version}, donc la publier maintenant annulerait ce que la {stale} a changé. Elle ne peut pas être publiée avant que l’auteur fasse un rebase sur la {stale}."
   },
   "versions": {
     "intro": "Les versions ne changent jamais une fois publiées. Les étiquettes y dirigent les installations; marquer comme obsolète avertit, et retirer empêche les nouvelles installations.",
@@ -766,6 +792,7 @@
     "stale": "Rebase nécessaire : la {newer} est sortie",
     "own": "Votre propre soumission",
     "own_decide": "Votre propre soumission : un autre modérateur ou root décide.",
+    "scan_blocked": "{by, select, score {L’approbation est bloquée : le score de l’analyse de sécurité, {score}, atteint ou dépasse le seuil, {threshold}.} pending {L’approbation attend la fin de l’analyse de sécurité.} failed {L’approbation est bloquée : l’analyse de sécurité n’a pas abouti. Analysez à nouveau, ou dérogez.} other {L’approbation est bloquée : cette révision n’a pas été analysée. Analysez-la, ou dérogez.}}",
     "not_reviewer": "Seuls les réviseurs renvoient des soumissions.",
     "yours": "C’est la vôtre : modifiez-la ou retirez-la.",
     "cannot_send_back": "Elle est {status, select, draft {en brouillon} submitted {soumise} changes_requested {renvoyée pour modifications} approved {approuvée} rejected {rejetée} withdrawn {archivée} published {publiée} other {{status}}}.",
@@ -788,7 +815,7 @@
     "none": "Cette révision n’a pas été analysée.",
     "now": "Analyser maintenant",
     "again": "Analyser à nouveau",
-    "refused": "Impossible d’analyser maintenant : il faut une commande d’analyseur, et la dernière analyse doit avoir échoué.",
+    "refused": "Impossible d’analyser maintenant : il faut une commande d’analyseur, et aucune analyse ne doit être en attente ou en cours.",
     "pending": "Analyse en cours… ce panneau se met à jour tout seul.",
     "failed": "L’analyse n’a pas abouti : {reason, select, timeout {elle a dépassé le délai} not_found {la commande de l’analyseur est introuvable} not_runnable {la commande de l’analyseur ne peut pas être exécutée} not_configured {aucune commande d’analyseur n’est définie} output_too_large {elle a produit trop de sortie} invalid_report {son rapport n’a pas pu être lu} signal {elle a été arrêtée par un signal} no_temporary_folder {son dossier temporaire n’a pas pu être créé} bad_file_path {un chemin de fichier de la soumission a été refusé} write_failed {ses fichiers n’ont pas pu être écrits} endpoint_refused {son point de terminaison de LLM n’a pas passé sa vérification au début de l’analyse} exit {elle s’est terminée avec le code {code}} other {{error}}}",
     "severity": {
@@ -812,6 +839,74 @@
       "semantic": "Analyse statique et sémantique par SkillSpector {version}, avec {provider} {model}.",
       "llmUnavailable": "Analyse statique par SkillSpector {version} : l’analyse sémantique n’a pas eu lieu, car le fournisseur n’était pas disponible."
     },
-    "advisory": "À titre indicatif : elle peut manquer des problèmes et signaler du code sûr."
+    "advisory": "Elle peut manquer des problèmes et signaler du code sûr.",
+    "card": {
+      "engine": "SkillSpector {version}",
+      "title": "{count, plural, =0 {Aucun résultat} one {# résultat} other {# résultats}}",
+      "inFiles": "{count, plural, one {dans # fichier :} other {dans # fichiers :}}",
+      "moreFiles": "et {count, number} de plus",
+      "threat": "Score de risque",
+      "outOf": "sur 100",
+      "inspect": "{count, plural, one {Examiner # résultat} other {Examiner # résultats}}",
+      "override": "Déroger",
+      "guide": "Guide de l’analyse de sécurité",
+      "falsePositives": "{count, plural, one {# résultat marqué par un réviseur} other {# résultats marqués par des réviseurs}}",
+      "categories": "Résultats par catégorie",
+      "open": "Sous le seuil, {threshold}.",
+      "authorScore": "Modifiez les fichiers et envoyez-la de nouveau."
+    },
+    "dialog": {
+      "title": "Analyse de sécurité",
+      "of": "{name}, révision {revision, number, ::group-off}",
+      "filters": "Résultats par catégorie",
+      "all": "Tous ({count, number})",
+      "category": "{category} ({count, number})",
+      "showing": "{shown, number} sur {total, number} affichés",
+      "fix": "Comment corriger :",
+      "dismiss": "Marquer comme faux positif",
+      "reason": "Pourquoi est-ce un faux positif?",
+      "reasonHint": "Obligatoire. Les autres personnes qui révisent le lisent; le score ne change pas.",
+      "save": "Le marquer",
+      "cancel": "Annuler",
+      "dismissed": "Marqué comme faux positif par {name}",
+      "formerUser": "une personne qui n’est plus là",
+      "restore": "Rétablir",
+      "export": "Exporter le rapport (JSON)",
+      "close": "Fermer",
+      "severityFilter": "Gravité",
+      "statusFilter": "État",
+      "categoryFilter": "Catégorie",
+      "anySeverity": "Toutes",
+      "severityChip": "{severity} ({count, number})",
+      "statusAll": "Tous ({count, number})",
+      "statusOpen": "Ouverts ({count, number})",
+      "statusMarked": "Marqués ({count, number})",
+      "fileCount": "{count, plural, one {# résultat} other {# résultats}}",
+      "noFile": "Hors d’un fichier",
+      "line": "L{line, number, ::group-off}",
+      "accept": "Accepter le risque",
+      "acceptReason": "Pourquoi le risque est-il acceptable?",
+      "accepted": "Risque accepté par {name}",
+      "falsePositiveBadge": "Faux positif",
+      "acceptedBadge": "Risque accepté",
+      "askFix": "Demander à l’auteur de corriger",
+      "askFixMany": "{count, plural, =0 {Demander à l’auteur de corriger les résultats sélectionnés} one {Demander à l’auteur de corriger # résultat} other {Demander à l’auteur de corriger # résultats}}",
+      "select": "Sélectionner {name}",
+      "selectOpen": "Tout sélectionner",
+      "clearSelection": "Effacer la sélection",
+      "copyLink": "Copier le lien",
+      "copied": "Lien copié",
+      "copyManual": "Copiez le lien depuis la barre d’adresse.",
+      "askFixIntro": "Veuillez corriger ces résultats de l’analyse de sécurité :",
+      "askFixLine": "{title} ({rule}{hasWhere, select, true {, {where}} other {}}){hasFix, select, true { : {fix}} other {}}",
+      "none": "Aucun résultat ne correspond à ces filtres.",
+      "askFixMore": "{count, plural, one {…et # autre résultat : voyez l’onglet Analyse de sécurité.} other {…et # autres résultats : voyez l’onglet Analyse de sécurité.}}",
+      "actionOn": "{action} : {name}",
+      "markTitle": "Le marquer comme faux positif?",
+      "acceptTitle": "Accepter le risque?",
+      "restoreTitle": "Rétablir ce résultat?",
+      "restoreBody": "La marque et son motif sont retirés, et le résultat est de nouveau ouvert.",
+      "findingName": "{title}{hasWhere, select, true {, {where}} other {}}, résultat {number, number}"
+    }
   }
 }

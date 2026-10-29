@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Memberships } from "../../identity/models/user";
+import type { ScanGate } from "../models/scan-gate";
 import type { SubmissionStatus } from "../models/status";
 import { allows, decisionsFor, OWN_SUBMISSION_REASON } from "./decisions";
 
@@ -87,5 +88,62 @@ describe("decisionsFor (058)", () => {
     expect(allows(options, "reject")).toBe(false);
     expect(allows(decisionsFor(actor("moderator"), submission("submitted")), "reject")).toBe(true);
     expect(allows(options, "override")).toBe(false);
+  });
+});
+
+describe("decisionsFor with the security scan's gate (137)", () => {
+  const blocked = {
+    blocked: true as const,
+    by: "score" as const,
+    score: 90,
+    threshold: 70,
+  };
+  const REASON =
+    "Approval is blocked: the security scan's score, 90, is at or above the threshold, 70.";
+  const gated = (role: Role, mine = false, gate: ScanGate = blocked) =>
+    decisionsFor(actor(role, mine ? "author" : "viewer"), {
+      ...submission("submitted"),
+      gate,
+    }).map((option) =>
+      option.allowed ? option.decision : `${option.decision} (${option.reason})`,
+    );
+
+  it("disables a moderator's Approve with the reason, and leaves the other two", () => {
+    expect(gated("moderator")).toEqual([`approve (${REASON})`, "request_changes", "reject"]);
+  });
+
+  it("gives root the scan override beside the disabled Approve", () => {
+    expect(gated("root")).toEqual([
+      `approve (${REASON})`,
+      "request_changes",
+      "reject",
+      "scan_override",
+    ]);
+  });
+
+  it("puts the scan override in place of 054's override on root's own submission", () => {
+    const own = (decision: string) => `${decision} (${OWN_SUBMISSION_REASON})`;
+    expect(gated("root", true)).toEqual([
+      own("approve"),
+      own("request_changes"),
+      own("reject"),
+      "scan_override",
+    ]);
+  });
+
+  it("changes nothing when the gate is open", () => {
+    expect(gated("root", false, { blocked: false, threshold: 70 })).toEqual([
+      "approve",
+      "request_changes",
+      "reject",
+    ]);
+  });
+
+  it("keeps the scan override off for a stale proposal until it's rebased", () => {
+    const options = decisionsFor(actor("root"), {
+      ...submission("submitted", "author", "1.4.0"),
+      gate: blocked,
+    });
+    expect(options.find((o) => o.decision === "scan_override")).toMatchObject({ allowed: false });
   });
 });
