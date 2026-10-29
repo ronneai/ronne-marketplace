@@ -172,9 +172,21 @@ export const TOPICS = [
     title: "Settings",
     summary:
       "Root's settings for the instance, in six tabs: usage reporting, the plugin feeds, how people sign in, how long personal data is kept, the notice, and the security scan.",
+    sections: [{ id: "settings", title: "Settings" }],
+  },
+  {
+    slug: "security-scan",
+    title: "Security scan",
+    summary:
+      "Scanning each submission with NVIDIA's SkillSpector: installing the scanner, connecting it to Ronne, setting up the scan in Settings, semantic analysis with an LLM, and what to do when a scan fails.",
     sections: [
-      { id: "settings", title: "Settings" },
       { id: "security-scan", title: "Security scan" },
+      { id: "install", title: "Install SkillSpector" },
+      { id: "connect", title: "Connect it to Ronne" },
+      { id: "settings", title: "Set up the scan" },
+      { id: "semantic", title: "Semantic analysis" },
+      { id: "try-it", title: "Try it" },
+      { id: "troubleshooting", title: "When a scan fails" },
     ],
   },
   {
@@ -417,7 +429,7 @@ export const TOPIC_GROUPS: { label: string; topics: readonly TopicSlug[] }[] = [
   },
   {
     label: "Administration",
-    topics: ["admin", "settings", "notice", "start-here", "feedback", "audit"],
+    topics: ["admin", "settings", "security-scan", "notice", "start-here", "feedback", "audit"],
   },
   {
     label: "Installing items",

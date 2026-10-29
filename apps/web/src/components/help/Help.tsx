@@ -222,10 +222,10 @@ export const HELP = {
     href: docsHref("review", "security-scan"),
   },
   "scan-settings": {
-    href: docsHref("settings", "security-scan"),
+    href: docsHref("security-scan", "install"),
   },
   "scan-key": {
-    href: docsHref("settings", "security-scan"),
+    href: docsHref("security-scan", "semantic"),
   },
   "erase-user": {
     href: docsHref("privacy", "erase"),

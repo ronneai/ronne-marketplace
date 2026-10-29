@@ -118,16 +118,20 @@ fails the scan with a new short reason, `endpoint refused`.
 
 ## Documentation
 
-- **Settings › Security scan** (`settings#security-scan`): set up from the tab; what the operator
-  still provides (the list of commands, any `http://` or private hosts); how the key is kept;
-  "Test connection"; that the environment wins.
+- **Security scan**, a topic of its own in the Administration group (owner, 2026-10-28; it was the
+  section `settings#security-scan`, which the website sends on to `security-scan#security-scan`):
+  the runbook for installing SkillSpector at the pin (`install`), connecting it to Ronne
+  (`connect`), setting up the scan in the tab (`settings`), semantic analysis with the key, the
+  endpoint checks and "Test connection" (`semantic`), a skill to try it with (`try-it`) and what a
+  failed scan's reasons mean (`troubleshooting`); that the environment wins.
 - **Backups** (`backups`): a full backup can decrypt stored keys, as it can identity providers'.
 - **Install guide** and `docs/knowledge/skill-scanner.md`: `RONNE_SKILL_SCANNERS` and the host
   allowlist, beside 135's variables.
 - **Where to get SkillSpector** (owner, 2026-10-28): the Settings topic, the install guide and the
   knowledge note link NVIDIA's guide (`docs.nvidia.com/skills/scanning-agent-skills`), its
   repository (`github.com/NVIDIA/SkillSpector`), and the website links Ronne's install note.
-- **Helpers:** the key field, "How is the key kept?" → `settings#security-scan`.
+- **Helpers:** the tab's "How do I set up the scanner?" → `security-scan#install`; the key field's
+  "How is the key kept?" → `security-scan#semantic`.
 
 ## Acceptance criteria
 
