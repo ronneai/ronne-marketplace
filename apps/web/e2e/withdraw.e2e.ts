@@ -52,7 +52,7 @@ test("an author archives a submission, finds it under Archived, restores it and 
   // A reviewer took part, so only archiving is offered.
   const moderator = await browser.newPage();
   await signIn(moderator, E2E_USERS.archiveModerator);
-  await moderator.goto(url.replace("/submissions/", "/reviews/"));
+  await moderator.goto(`${url.replace("/submissions/", "/reviews/")}?tab=conversation`);
   await moderator.getByLabel("Comment").fill("Why a rule rather than a skill?");
   await moderator.getByRole("button", { name: "Comment" }).click();
   await expect(moderator.getByText("Why a rule rather than a skill?")).toBeVisible();

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { Help } from "@/components/help/Help";
@@ -125,6 +125,7 @@ export const DecisionDialog = ({
 }) => {
   const t = useTranslations("author.review");
   const router = useRouter();
+  const pathname = usePathname();
   const [text, setText] = useState("");
   const [sendBack, setSendBack] = useState(true);
   // What the dependents are told (056), prefilled in the reviewer's language and editable.
@@ -161,6 +162,9 @@ export const DecisionDialog = ({
             }
             onDone?.();
             onClose();
+            // On the review page, the decision shows where it's recorded: the Conversation tab
+            // (137). A queue row stays where it is.
+            if (via !== "queue") router.push(`${pathname}?tab=conversation`);
             router.refresh();
           });
         }}

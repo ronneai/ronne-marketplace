@@ -97,7 +97,7 @@ test("a user proposes a change, a newer version comes out, the user rebases, and
   await submit(proposer, "Resubmit for review");
 
   // The moderator sees the change against 1.0.1 and approves it; the user releases it as 1.1.0.
-  await moderator.goto(mine.replace("/submissions/", "/reviews/"));
+  await moderator.goto(`${mine.replace("/submissions/", "/reviews/")}?tab=files`);
   await expect(moderator.getByRole("link", { name: "Changes to 1.0.1" })).toHaveAttribute(
     "aria-current",
     "page",

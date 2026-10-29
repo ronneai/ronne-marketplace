@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { itemPath } from "@/components/catalogue/ItemCard";
 import { RiskSummary } from "@/components/risk-flags/RiskSummary";
+import { ScanCard } from "@/components/scan/ScanCard";
 import { DraftEditor } from "@/features/draft-editor/DraftEditor";
 import type { EditorDraft, EditorProposal } from "@/features/draft-editor/types";
 import { Conversation } from "@/features/reviews/Conversation";
@@ -9,6 +10,7 @@ import { PublishDialog } from "@/features/reviews/PublishDialog";
 import { releaseGroupFor } from "@/features/reviews/release-group";
 import { versionsPath } from "@/features/versions/links";
 import { pageTitle } from "@/i18n/page-title";
+import { reviewScan } from "@/server/domains/scans/actions/scans";
 import { draftSubmitIssues } from "@/server/domains/submissions/actions/drafts";
 import { type ProposalPanel, proposalPanel } from "@/server/domains/submissions/actions/proposals";
 import { countDependents, getReview } from "@/server/domains/submissions/actions/reviews";
@@ -117,6 +119,8 @@ const DraftPage = async ({ params }: { params: Promise<{ id: string }> }) => {
   }
   // Once submitted, the author also sees the risk summary and the conversation (feature 014).
   const review = draft.status === "draft" ? null : await getReview(request, id);
+  // The author sees their own scan (137): the latest revision's, read-only.
+  const scanView = review ? await reviewScan(request, review.revisions.at(-1)?.id ?? null) : null;
   // A change proposal (017): the author sees whether it's stale, and its conflicts.
   const panel = draft.proposal && draft.mine ? await proposalPanel(request, id) : null;
   // What it waits on (056): dependencies not released yet, or blocked.
@@ -200,6 +204,19 @@ const DraftPage = async ({ params }: { params: Promise<{ id: string }> }) => {
       {review ? (
         <>
           <RiskSummary flags={review.flags} />
+          {scanView ? (
+            <ScanCard
+              view={scanView}
+              gate={review.gate}
+              item={itemNameOf(draft)}
+              revision={review.current?.number ?? null}
+              submissionId={id}
+              base={null}
+              // Someone else's (a reviewer here): the review page's tab has the findings.
+              inspectHref={review.mine ? null : `/reviews/${id}?tab=scan`}
+              author={review.mine}
+            />
+          ) : null}
           <Conversation
             id={id}
             events={review.events}

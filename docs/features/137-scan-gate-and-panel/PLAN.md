@@ -41,16 +41,31 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     the author and an outsider refused, the cascade when a scan goes, and the audit events, on the
     four databases; the migration's guard test passes.
 
-- [ ] **5. The card, the dialog and the threshold field.**
-  - The summary card replaces `ScanPanel` on the review page and shows on the author's submission
-    page; the dialog with category tabs, jump to code, remediation, dismiss and restore, and the
-    JSON export; the threshold field in the tab.
+- [x] **5. The card, the review page's tabs and the threshold field.**
+  - The summary card replaces `ScanPanel` on the review page's Overview and shows on the author's
+    submission page (with the findings under it); the review page's tabs (Overview, Files,
+    Conversation, Security scan, owner 2026-10-28); the Security scan tab with category filters,
+    jump to code, remediation, dismiss and restore, and the JSON export; root's Override on the
+    card; "What do these do?" before the decisions; the threshold section in the settings tab.
   - Messages in three languages; tokens only.
   - *Done when:* component tests for each state (waiting, failed, none, clean, blocked, open, author
-    view), the export's content, i18n parity, an e2e (fake scanner: a blocked approval, the dialog,
-    a dismissal, root's override) and the phone sweep pass.
+    view), the tabs and the export's content, i18n parity, an e2e (fake scanner: a blocked
+    approval, the Security scan tab, a dismissal, root's override, the author's view), the other
+    e2e tests that read the review page, and the phone sweep of every tab pass.
 
-- [ ] **6. Documentation.** The spec's Documentation section, in ronne-web and here.
+- [ ] **6. The findings: by file, and their actions** (owner, 2026-10-29). [risky]
+  - The Security scan tab groups the findings by file (their count, a link to the file), sorted by
+    line, with a line column, as a code-quality tool's issue list (the owner's SonarQube example);
+    filters by category, severity and status (open, marked).
+  - On each finding, visible: **Mark false positive** and **Accept the risk** (a mark's kind,
+    migration `0040_scan_dismissal_kind`, audited and in the data download), **Ask the author to fix
+    it** (one or several findings quoted in a Request changes message), and **Copy link** (a
+    permalink that opens and highlights the finding).
+  - *Done when:* component tests for the grouping, sorting, filters and each action; db tests for
+    the kind (audit, data download, the four databases); the e2e covers accepting a risk and asking
+    for a fix; the phone sweep passes; the adversarial pass also re-checks task 4's last three fixes.
+
+- [ ] **7. Documentation.** The spec's Documentation section, in ronne-web and here.
   - *Done when:* the docs render tests pass, and every new helper's link lands on a real section.
 
 ## Notes
@@ -66,4 +81,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   owner chose no further round. The last round's three findings (a NUL in a revision id on
   PostgreSQL, a blank Braille reason, no test for lone surrogates) are fixed in task 4's commit;
   task 4 is ticked once task 6's adversarial pass, which changes the dismissals, re-checks them.
+- **For task 6 (from task 5's re-check):** no test renders `/submissions/[id]` as a reviewer; one
+  should check there's no "Change the files and send it again.", no findings under the card, and
+  the link to the review page's Security scan tab.
 

@@ -325,7 +325,7 @@
   },
   "security-scan": {
     "question": "O que é esta verificação?",
-    "answer": "O SkillSpector, da NVIDIA, verificou esta revisão quando ela foi enviada: instruções escondidas, leitura de chaves ou credenciais, envio de dados para fora, código ofuscado, scripts baixados e executados. É uma segunda opinião, não uma decisão: pode deixar passar problemas e apontar código seguro, e nunca bloqueia uma aprovação."
+    "answer": "O SkillSpector, da NVIDIA, verificou esta revisão quando ela foi enviada: instruções escondidas, leitura de chaves ou credenciais, envio de dados para fora, código ofuscado, scripts baixados e executados. É uma segunda opinião: pode deixar passar problemas e apontar código seguro. Só bloqueia uma aprovação quando o root define uma pontuação que bloqueia, e aí o root ainda pode abrir uma exceção."
   },
   "scan-settings": {
     "question": "Como configuro o verificador?",
@@ -334,5 +334,9 @@
   "scan-key": {
     "question": "Como a chave é guardada?",
     "answer": "Criptografada no banco de dados com uma chave derivada do AUTH_SECRET do servidor, e só para o provedor e o endpoint para os quais foi informada. Ela nunca é mostrada de novo, nem gravada no log de auditoria ou nos logs, e só é descriptografada no servidor, sem nunca ir para o navegador. Um backup completo consegue descriptografá-la, como consegue os segredos dos provedores de identidade."
+  },
+  "scan-threshold": {
+    "question": "O que o limite bloqueia?",
+    "answer": "Com uma pontuação definida, uma submissão cuja última verificação chegar a ela ou passar dela não pode ser aprovada, nem uma cuja verificação estiver esperando, tiver falhado ou nunca tiver rodado: uma verificação quebrada não é um jeito de passar. Só o root pode aprová-la mesmo assim, com um motivo que fica na auditoria. A submissão de alguém no próprio espaço de trabalho pessoal não é bloqueada."
   }
 }

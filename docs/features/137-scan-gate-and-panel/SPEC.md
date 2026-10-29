@@ -6,8 +6,9 @@
 
 The scan's result is hard to read today: one long panel listing every finding. The owner's redesign
 (2026-10-28, a Stitch mock) makes it a **summary card** with the score, the recommendation and the
-findings counted by category. All the findings are in a **dialog**. The authors see their own
-scan too.
+findings counted by category. The review page becomes **tabs**, as a pull request's (owner,
+2026-10-28): Overview, Files, Conversation and Security scan, and every finding is in the Security
+scan tab. The authors see their own scan too.
 
 It also turns the scan from advice into a **gate**. Root sets a threshold score in the Security
 scan tab, and a revision that scores at or above it can't be approved, except by root's audited
@@ -23,27 +24,39 @@ override. This changes 135's decision 1 ("advisory, never blocks").
   - the findings counted by category ("Prompt Injection 3");
   - the score out of 100;
   - what the gate says, when there is a threshold (below);
-  - the actions: **Inspect {n} findings** (opens the dialog), **Scan again** (root), and
-    **Override** (root, when the gate blocks);
+  - the actions: **Inspect {n} findings** (opens the Security scan tab), **Scan again** (root),
+    and **Override** (root, when the gate blocks; it opens the scan override's decision);
   - the footer: what ran ("Static scan by SkillSpector 2.13.2"), that it can miss problems and flag
     safe code, and a link to the Documentation.
   - The waiting, failed and not-scanned states keep 135's words, in the same card frame.
-- **The details dialog:**
-  - the header: the severity, the item's name, the scanner's version and the score;
-  - one tab per category, with counts, and All;
+- **The review page's tabs** (owner, 2026-10-28), links with their own address (`?tab=`):
+  - above them, whichever is open: the title, the decision buttons with "What do these do?" just
+    before them, and a stale proposal's notice (it says why Approve is off);
+  - **Overview**, the default: the dependency marks, the risk flags, the scan's card and the checks;
+  - **Files** (with its count): the file views, as before; a link to a file or a view (a risk
+    flag's, a finding's) opens this tab;
+  - **Conversation** (with its count): the thread and the comment form; a decision made on the page
+    opens it, so the reviewer sees the decision recorded;
+  - **Security scan** (with the count of findings once scanned): every finding, below.
+- **The findings** (the Security scan tab; no dialog, owner, 2026-10-28):
+  - one filter per category, with counts, and All;
   - each finding:
     - its severity, title, rule and category;
-    - its file and line, which **jump to the code**: the review page's All files view at that line;
-    - SkillSpector's explanation, and its **remediation**, kept from now on;
+    - its file and line, which **jump to the code**: the Files tab's All files view at that line;
+    - SkillSpector's explanation, and its **remediation** ("How to fix:"), kept from now on;
   - **Mark false positive** (reviewers): a finding is dismissed with a required reason. It then shows
     as dismissed, by whom, with the reason, and can be restored;
   - **Export report (JSON)**: Ronne's kept copy of the result (never SkillSpector's raw output),
-    with the item's name, the revision, the time and the dismissals, built in the browser;
-  - **Close**.
-- **Authors see their own scan** on their submission page: the card and the dialog, with no
-  Scan again, Override or Mark false positive. They see the dismissals, read-only.
-- **The threshold**, in Admin › Settings › Security scan: **Block approval at score**, empty (no
-  gate, the default) or 1 to 100. It's audited with the rest of the tab (`settings.skill_scan`).
+    with the item's name, the revision, the time and the dismissals, built in the browser.
+  - Before a scan has finished, the tab shows the card's state (waiting, failed, not scanned).
+- **Authors see their own scan** on their submission page, which has no tabs: the card with the
+  findings under it, with no Scan again, Override or Mark false positive, and a file and line as
+  text. They see the dismissals, read-only.
+- **The threshold**, in Admin › Settings › Security scan, a section of its own, **Blocking
+  approval**, with its helper and a narrow field, **Score that blocks approval**: empty (no gate,
+  the default) or a whole number from 1 to 100. Anything else says so under the field and keeps
+  Save off; the server refuses it too. It's audited with the rest of the tab
+  (`settings.skill_scan`). The tab's intro no longer says the scan never blocks an approval.
 - **The gate.** With scanning on and a threshold set, the latest revision of a submission whose type
   is scanned can't be approved when:
   - its latest scan finished with a score at or above the threshold;
@@ -77,6 +90,8 @@ override. This changes 135's decision 1 ("advisory, never blocks").
 - **The gate on release:** approval is the gate. An approved submission is released as before, and a
   threshold set later doesn't reach back to it.
 - **A "Request human review" button** (in the mock): a human review is what the page already is.
+- **The dialog** of the first version of this spec: the Security scan tab replaced it (owner,
+  2026-10-28).
 - **SkillSpector's code snippets:** they repeat item content the review page already shows.
 
 ## Behaviour
@@ -89,7 +104,8 @@ override. This changes 135's decision 1 ("advisory, never blocks").
   - error for **Likely unsafe** and the CRITICAL and HIGH severities;
   - warning for **Look closely** and MEDIUM;
   - muted for **Looks safe** and LOW;
-  - the gate's notice is an error when it blocks.
+  - the gate's notice is an error when it blocks by the score, a failed scan or none, and a
+    warning while the scan waits or runs (it's about to pass or block).
 
 **The gate's words:**
 - Blocked by score: "Approval is blocked: the security scan's score, {score}, is at or above the
@@ -170,8 +186,11 @@ override. This changes 135's decision 1 ("advisory, never blocks").
 ## Acceptance criteria
 
 - [ ] The review page and the author's submission page show the card with the result's real numbers,
-  and the dialog lists every kept finding with its explanation and remediation, filtered by category.
-- [ ] A finding's file and line open the All files view at that line.
+  and the Security scan tab (under the card on the author's page) lists every kept finding with its
+  explanation and remediation, filtered by category.
+- [ ] The review page has the Overview, Files, Conversation and Security scan tabs, each with its own
+  address; the title, decisions and a stale notice stay above them.
+- [ ] A finding's file and line open the Files tab's All files view at that line.
 - [ ] The export downloads the kept result, with the dismissals, as JSON.
 - [ ] Reviewers dismiss and restore findings with a reason; the author can't; both are audited.
 - [ ] With a threshold, a revision at or above it, or with no finished scan, can't be approved from
@@ -180,8 +199,8 @@ override. This changes 135's decision 1 ("advisory, never blocks").
   moderator's attempt is refused.
 - [ ] Without a threshold, or with scanning off, approval is as before.
 - [ ] Authors see their own scan and nobody else's.
-- [ ] The card, dialog and threshold field are in English, Portuguese and French, use tokens only,
-  and pass the phone sweep.
+- [ ] The card, the tabs, the findings and the threshold field are in English, Portuguese and French,
+  use tokens only, and pass the phone sweep (every tab).
 - [ ] The Documentation and helpers above say what the feature does.
 
 ## Decisions
@@ -191,8 +210,9 @@ override. This changes 135's decision 1 ("advisory, never blocks").
    decides. With none set, the default, it's still advice.
 2. **It fails closed** (owner, 2026-10-28): a pending, failed or missing scan blocks too, or making
    the scan fail would get past it.
-3. **The dialog has jump to code, the category tabs, the JSON export and Mark false positive** (owner,
-   2026-10-28).
+3. **The findings have jump to code, the category filters, the JSON export and Mark false positive**
+   (owner, 2026-10-28); they're in the review page's Security scan tab, not a dialog, and the page
+   has tabs as a pull request has, with an Overview first (owner, 2026-10-28).
 4. **Dismissals don't move the score** (Claude): the score is SkillSpector's. A dismissal tells the
    other reviewers; the override is root's decision.
 5. **No gate on the owner's own submissions in their personal workspace** (Claude): the author

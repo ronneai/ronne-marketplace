@@ -1062,7 +1062,7 @@
     },
     "scan": {
       "title": "Security scan",
-      "intro": "NVIDIA's SkillSpector scans each submission the moment it's sent, and its findings show on the review page beside the risk flags. It's a second opinion for reviewers: it never blocks a submission, an approval or a release.",
+      "intro": "NVIDIA's SkillSpector scans each submission the moment it's sent, and its findings show on the review page beside the risk flags. It's a second opinion for reviewers: it blocks an approval only when you set a score below, and never a submission or a release.",
       "scanner": {
         "configured": "The scanner is set up on this server.",
         "lastVersion": "The last scan that finished used SkillSpector {version}.",
@@ -1147,7 +1147,13 @@
         "warning": "From now on, each scanned submission's files are sent to {provider} at {host}. Save to confirm.",
         "runsStatic": "Semantic analysis is chosen, but no provider is set up any more: scans run static."
       },
-      "save": "Save"
+      "save": "Save",
+      "blockScore": {
+        "title": "Blocking approval",
+        "label": "Score that blocks approval",
+        "hint": "A submission whose scan scores at or above it, or that has no finished scan, can't be approved; only root can override. Leave it empty to only advise.",
+        "range": "Enter a whole number from 1 to 100, or leave it empty."
+      }
     }
   },
   "setup": {

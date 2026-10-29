@@ -325,7 +325,7 @@
   },
   "security-scan": {
     "question": "What is this scan?",
-    "answer": "NVIDIA’s SkillSpector checked this revision when it was sent: hidden instructions, reading keys or credentials, sending data away, obfuscated code, scripts fetched and run. It’s a second opinion, not a decision: it can miss problems and flag safe code, and it never blocks an approval."
+    "answer": "NVIDIA’s SkillSpector checked this revision when it was sent: hidden instructions, reading keys or credentials, sending data away, obfuscated code, scripts fetched and run. It’s a second opinion: it can miss problems and flag safe code. It blocks an approval only when root has set a score that blocks, and then root can still override it."
   },
   "scan-settings": {
     "question": "How do I set up the scanner?",
@@ -334,5 +334,9 @@
   "scan-key": {
     "question": "How is the key kept?",
     "answer": "Encrypted in the database with a key derived from the server’s AUTH_SECRET, and only for the provider and endpoint it was entered for. It’s never shown again, nor written to the audit log or the logs, and it’s decrypted only on the server, never sent to the browser. A full backup can decrypt it, as it can the identity providers’ secrets."
+  },
+  "scan-threshold": {
+    "question": "What does the threshold block?",
+    "answer": "With a score set, a submission whose latest scan scores at or above it can't be approved, nor one whose scan is waiting, failed or never ran: a broken scan isn't a way past it. Only root can approve it anyway, with a reason that's audited. An author's own submission in their personal workspace isn't blocked."
   }
 }

@@ -6,7 +6,7 @@ import { type FormEvent, useActionState, useEffect, useState, useTransition } fr
 import { Help } from "@/components/help/Help";
 import { reasonOf } from "@/components/scan/reason";
 import { Button } from "@/components/ui/Button";
-import { FieldError } from "@/components/ui/Field";
+import { FieldError, Input, Label } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
 import type {
   SkillScanAnalysis,
@@ -40,6 +40,12 @@ export const SkillScanForm = ({ settings }: { settings: SkillScanSettings }) => 
   const [enabled, setEnabled] = useState(policy.enabled);
   const [types, setTypes] = useState<readonly ItemType[]>(policy.types);
   const [analysis, setAnalysis] = useState<SkillScanAnalysis>(policy.analysis);
+  // The score that blocks approval (137): empty for none. Digits only, as typed.
+  const savedScore = settings.blockScore === null ? "" : String(settings.blockScore);
+  const [blockScore, setBlockScore] = useState(savedScore);
+  // Empty is none; otherwise a whole number from 1 to 100, said before Save (the server checks too).
+  const blockScoreBad =
+    blockScore !== "" && !(Number(blockScore) >= 1 && Number(blockScore) <= 100);
   const setup = scanner.setup;
   // With JavaScript, Save sends the form in a transition: React then leaves the fields as they
   // are, where a form action would reset them (a controlled select would show its first option
@@ -61,7 +67,8 @@ export const SkillScanForm = ({ settings }: { settings: SkillScanSettings }) => 
     !setupChanged &&
     enabled === policy.enabled &&
     analysis === policy.analysis &&
-    types.join(",") === policy.types.join(",");
+    types.join(",") === policy.types.join(",") &&
+    blockScore === savedScore;
   const toggle = (type: ItemType) =>
     setTypes(
       types.includes(type)
@@ -216,10 +223,41 @@ export const SkillScanForm = ({ settings }: { settings: SkillScanSettings }) => 
       </fieldset>
       <SemanticConfirm saved={policy.analysis} chosen={analysis} provider={scanner.provider} />
 
+      <section className="grid gap-2" aria-labelledby="scan-block-title">
+        <h3 id="scan-block-title" className="flex items-center gap-2 text-sm font-semibold text-fg">
+          {t("blockScore.title")} <Help id="scan-threshold" />
+        </h3>
+        <p id="scan-block-score-hint" className="text-sm text-muted">
+          {t("blockScore.hint")}
+        </p>
+        <div className="grid gap-1.5">
+          <Label htmlFor="scan-block-score">{t("blockScore.label")}</Label>
+          <div className="w-24">
+            <Input
+              id="scan-block-score"
+              name="blockScore"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={3}
+              value={blockScore}
+              onChange={(event) => setBlockScore(event.target.value.replace(/\D/g, ""))}
+              aria-invalid={blockScoreBad || undefined}
+              aria-describedby="scan-block-score-hint scan-block-score-error"
+            />
+          </div>
+          <FieldError id="scan-block-score-error">
+            {blockScoreBad ? t("blockScore.range") : null}
+          </FieldError>
+        </div>
+      </section>
+
       <FieldError id="scan-error">{state.error}</FieldError>
       {state.done ? <Notice kind="info" title={state.done} /> : null}
       <div>
-        <Button type="submit" disabled={pending || unchanged || types.length === 0}>
+        <Button
+          type="submit"
+          disabled={pending || unchanged || types.length === 0 || blockScoreBad}
+        >
           {t("save")}
         </Button>
       </div>

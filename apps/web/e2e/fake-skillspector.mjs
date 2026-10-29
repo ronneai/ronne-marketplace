@@ -14,6 +14,7 @@ const report = {
       confidence: 0.9,
       pattern: "Hidden Instructions",
       explanation: "A comment tells the agent to do something the skill doesn't say.",
+      remediation: "Remove the comment, or say it in the skill.",
       location: { file: "SKILL.md", start_line: 3 },
     },
   ],

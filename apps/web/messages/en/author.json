@@ -665,6 +665,14 @@
       "keywordNew": "keyword {names} is new",
       "blockGained": "the {type} block gains {names}",
       "nothing": "nothing is added or removed"
+    },
+    "tabs": {
+      "label": "Review",
+      "overview": "Overview",
+      "files": "Files ({count, number})",
+      "conversation": "Conversation ({count, number})",
+      "scan": "Security scan",
+      "scanCount": "Security scan ({count, number})"
     }
   },
   "versions": {
@@ -819,6 +827,40 @@
       "semantic": "Static and semantic scan by SkillSpector {version}, with {provider} {model}.",
       "llmUnavailable": "Static scan by SkillSpector {version}: semantic analysis didn't run, as the provider wasn't available."
     },
-    "advisory": "Advisory: it can miss problems and flag safe code."
+    "advisory": "It can miss problems and flag safe code.",
+    "card": {
+      "engine": "SkillSpector {version}",
+      "title": "{count, plural, =0 {No findings} one {# finding} other {# findings}}",
+      "inFiles": "{count, plural, one {in # file:} other {in # files:}}",
+      "moreFiles": "and {count, number} more",
+      "threat": "Threat score",
+      "outOf": "of 100",
+      "inspect": "{count, plural, one {Inspect # finding} other {Inspect # findings}}",
+      "override": "Override",
+      "guide": "Security scan guide",
+      "falsePositives": "{count, plural, one {# marked a false positive} other {# marked false positives}}",
+      "categories": "Findings by category",
+      "open": "Under the threshold, {threshold}.",
+      "authorScore": "Change the files and send it again."
+    },
+    "dialog": {
+      "title": "Security scan",
+      "of": "{name}, revision {revision, number, ::group-off}",
+      "filters": "Findings by category",
+      "all": "All ({count, number})",
+      "category": "{category} ({count, number})",
+      "showing": "Showing {shown, number} of {total, number}",
+      "fix": "How to fix:",
+      "dismiss": "Mark false positive",
+      "reason": "Why is it a false positive?",
+      "reasonHint": "Required. The other reviewers read it; it doesn't change the score.",
+      "save": "Mark it",
+      "cancel": "Cancel",
+      "dismissed": "Marked a false positive by {name}",
+      "formerUser": "a former user",
+      "restore": "Restore",
+      "export": "Export report (JSON)",
+      "close": "Close"
+    }
   }
 }

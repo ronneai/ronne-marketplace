@@ -150,6 +150,16 @@ describe("Admin › Settings › Security scan (135)", () => {
     expect(page).toMatch(/<button[^>]*disabled=""[^>]*>Save/);
   });
 
+  it("shows the score that blocks approval, empty for none, with its helper (137)", () => {
+    expect(html({})).toMatch(/<input[^>]*id="scan-block-score"[^>]*name="blockScore"[^>]*value=""/);
+    expect(html({})).toContain("Blocking approval");
+    expect(html({})).toContain("Score that blocks approval");
+    expect(html({})).toContain("What does the threshold block?");
+    expect(html({ blockScore: 70 })).toMatch(/name="blockScore"[^>]*value="70"/);
+    // A narrow field, not the whole row.
+    expect(html({})).toMatch(/<div class="w-24"><input[^>]*id="scan-block-score"/);
+  });
+
   it("reads in Portuguese and French", () => {
     expect(inLocale("pt", () => html({}))).toContain("Verificação de segurança");
     expect(inLocale("fr", () => html({}))).toContain("Analyse de sécurité");
@@ -169,6 +179,15 @@ describe("Admin › Settings › Security scan (135)", () => {
       types: ["skill", "agent"],
       analysis: "static",
     });
+    // The threshold goes with them when the form has it (137), and is kept when it hasn't.
+    data.set("blockScore", "70");
+    settings.setSkillScanPolicy.mockResolvedValueOnce({ changed: true });
+    await actions.saveSkillScanPolicy({}, data);
+    expect(settings.setSkillScanPolicy).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({ blockScore: "70" }),
+    );
+    data.delete("blockScore");
     settings.setSkillScanPolicy.mockRejectedValueOnce(new SkillScanNotConfiguredError());
     expect(await actions.saveSkillScanPolicy({}, data)).toEqual({
       error: expect.stringContaining("RONNE_SKILL_SCANNER"),

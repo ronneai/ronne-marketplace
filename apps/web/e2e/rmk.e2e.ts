@@ -833,7 +833,7 @@ test("rmk exports an edited install as a change proposal that a moderator review
     await expect(author.getByText(/Submitted for review on/)).toBeVisible();
 
     const moderator = await signIn(E2E_USERS.changeModerator);
-    await moderator.goto(`/reviews/${draft.id}`);
+    await moderator.goto(`/reviews/${draft.id}?tab=files`);
     const changes = moderator.getByRole("link", { name: `Changes to ${version}` });
     await expect(changes).toBeVisible();
     await changes.click();

@@ -665,6 +665,14 @@
       "keywordNew": "a palavra-chave {names} é nova",
       "blockGained": "o bloco {type} ganha {names}",
       "nothing": "nada foi adicionado ou removido"
+    },
+    "tabs": {
+      "label": "Revisão",
+      "overview": "Visão geral",
+      "files": "Arquivos ({count, number})",
+      "conversation": "Conversa ({count, number})",
+      "scan": "Verificação de segurança",
+      "scanCount": "Verificação de segurança ({count, number})"
     }
   },
   "versions": {
@@ -819,6 +827,40 @@
       "semantic": "Verificação estática e semântica pelo SkillSpector {version}, com {provider} {model}.",
       "llmUnavailable": "Verificação estática pelo SkillSpector {version}: a análise semântica não rodou, porque o provedor não estava disponível."
     },
-    "advisory": "É só uma indicação: pode deixar passar problemas e apontar código seguro."
+    "advisory": "Pode deixar passar problemas e apontar código seguro.",
+    "card": {
+      "engine": "SkillSpector {version}",
+      "title": "{count, plural, =0 {Nenhum achado} one {# achado} other {# achados}}",
+      "inFiles": "{count, plural, one {em # arquivo:} other {em # arquivos:}}",
+      "moreFiles": "e mais {count, number}",
+      "threat": "Pontuação de risco",
+      "outOf": "de 100",
+      "inspect": "{count, plural, one {Ver # achado} other {Ver # achados}}",
+      "override": "Abrir exceção",
+      "guide": "Guia da verificação de segurança",
+      "falsePositives": "{count, plural, one {# marcado como falso positivo} other {# marcados como falsos positivos}}",
+      "categories": "Achados por categoria",
+      "open": "Abaixo do limite, {threshold}.",
+      "authorScore": "Mude os arquivos e envie de novo."
+    },
+    "dialog": {
+      "title": "Verificação de segurança",
+      "of": "{name}, revisão {revision, number, ::group-off}",
+      "filters": "Achados por categoria",
+      "all": "Todos ({count, number})",
+      "category": "{category} ({count, number})",
+      "showing": "Mostrando {shown, number} de {total, number}",
+      "fix": "Como corrigir:",
+      "dismiss": "Marcar como falso positivo",
+      "reason": "Por que é um falso positivo?",
+      "reasonHint": "Obrigatório. Os outros revisores leem; não muda a pontuação.",
+      "save": "Marcar",
+      "cancel": "Cancelar",
+      "dismissed": "Marcado como falso positivo por {name}",
+      "formerUser": "um antigo usuário",
+      "restore": "Restaurar",
+      "export": "Exportar relatório (JSON)",
+      "close": "Fechar"
+    }
   }
 }

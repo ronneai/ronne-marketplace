@@ -130,7 +130,7 @@ test("rejecting a skill sends the bundle that uses it back to its author", async
   await reject.getByRole("button", { name: "Reject", exact: true }).click();
   await expect(moderator.getByText("rejected it")).toBeVisible();
 
-  await moderator.goto(`/reviews/${kitId}`);
+  await moderator.goto(`/reviews/${kitId}?tab=conversation`);
   await expect(moderator.getByText(`@${E2E_SCOPE}/pd-gone was rejected: remove it`)).toBeVisible();
   await expect(moderator.getByText("changes requested").first()).toBeVisible();
 });

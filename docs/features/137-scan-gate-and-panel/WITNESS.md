@@ -348,3 +348,51 @@ Witnessed: 2026-10-29 07:50 EDT, by a fresh agent (adversarial). Commit: 1f33fb1
 | 14 | Concurrent marks, restores and deletions | no | confirmed | four databases |
 
 **Overall:** not met: rows 9–11. As the owner chose (2026-10-29: one more round, then a new finding is a follow-up), they're fixed in this commit without another round: `reviewScan` returns no scan for a revision id that isn't one, before any query (db test with `\u0000`, a NUL-suffixed id, a lower-case one, on four databases); a reason needs a letter, digit, punctuation or symbol that isn't invisible (U+2800, U+0301 alone, U+3164, ZWJ alone refused; "é" kept); a unit test, written with escapes, fails without `\p{Cs}`. Task 4 stays unticked until task 6's adversarial pass, which changes the same code, covers them (PLAN's Notes).
+
+## Task 5 — The card, the review page's tabs and the threshold field
+
+Witnessed: 2026-10-29 08:03 EDT, by a fresh agent (blind). Commit: 8eb6dde2 + uncommitted diff. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Typecheck, lint, the unit suite | no | confirmed | 7/7; exit 0; 3741 passed |
+| 2 | The card shows the result's real numbers | no | confirmed | `summarise`; scan-card tests; e2e |
+| 3 | The card's states | no | confirmed | scan-card tests; e2e |
+| 4 | Tones as specified | no | partly | the waiting gate is a warning; SPEC says an error when it blocks |
+| 5 | Before a scan finishes, the Security scan tab shows the card's state | no | partly | with no scan, no root action and no gate the card returns nothing: the tab is empty |
+| 6 | Tokens only, flat | no | confirmed | no raw colours or shadows |
+| 7 | Tabs: Overview default, `?tab=` links with counts, unknown → Overview | no | confirmed | review-page tests |
+| 8 | The Files tab's count is the files it shows | no | partly | counts `.ronne/` files the tab leaves out (read, not run) |
+| 9 | A link to a file or a view opens Files | no | confirmed | review-page test |
+| 10 | Stale notice, title and decisions above the tabs; "What do these do?" before the buttons | no | confirmed | `page.tsx:209,238,243`; test |
+| 11 | A decision opens the Conversation tab; a queue row stays | no | confirmed | `DecisionBar.tsx:167`; review e2e |
+| 12 | The findings tab | no | confirmed | scan-card tests; e2e href |
+| 13 | Mark and Restore for reviewers only | no | confirmed | mutation → a test fails; e2e |
+| 14 | The JSON export | no | confirmed | test |
+| 15 | Override only for root when blocked | no | confirmed | `decisions.ts:69`; e2e |
+| 16 | The author's read-only view | no | confirmed | tests; e2e |
+| 17 | The threshold section | no | confirmed | e2e "150" → error, Save off; kept when absent |
+| 18 | Three languages; no "never blocks an approval" | no | confirmed | key counts equal; grep |
+| 19 | The e2e tests that read the review page | no | confirmed | 2 + 17 passed |
+| 20 | The phone sweep covers every tab | no | partly | the swept submission has no scan: the card and findings are never on a phone |
+
+**Overall:** not met: rows 4, 5, 8, 20; remark: `/submissions/[id]` gave a reviewer the author's view. SPEC's tones now say the waiting gate is a warning (it's about to pass or block); the Security scan tab always shows the card's state (`always`), with tests; the Files tab counts what it shows, with a test; a phone e2e (`skill-scan.mobile.e2e.ts`, its own root per project) has root Scan now a member's skill and checks the Overview and the Security scan tab don't scroll sideways at the project's width and 320px, passing on phone, phone-WebKit and tablet; `/submissions/[id]` gives the author's view only to the author, others a link to the review page's tab. Re-checked below.
+
+### Re-check
+
+Witnessed: 2026-10-29 08:18 EDT, by a fresh agent (blind). Commit: 8eb6dde2 + uncommitted diff. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Typecheck, lint and the unit suite | no | confirmed | exit 0; exit 0; 3742 passed |
+| 4 | Tones: the waiting gate a warning; score, failed, none errors | no | confirmed | `ScanCard.tsx:50`; mutation → a test fails |
+| 5 | The Security scan tab says "This revision wasn't scanned." whoever views it; the Overview only when there's something to say | no | confirmed | `page.tsx:365` `scanCard(true)`; mutations either way → the test fails |
+| 8 | The Files count equals the files it lists | no | confirmed | `page.tsx:126-128,253,334`; mutation → the test fails |
+| 20 | A phone/tablet e2e renders a finished scan's card and findings and checks sideways scrolling; the sweep covers every tab | no | confirmed | 16 passed on phone. Remark: on `?tab=scan` the wait accepted the card alone |
+| 21 | `/submissions/[id]` gives the author's view only to the author | no | confirmed | `submissions/[id]/page.tsx:216-217`. Remark: no test fails if it always passed `author` |
+| 12 | The findings tab | no | confirmed | tests; e2e href |
+| 19 | The review-page e2e and the adjusted ones | no | confirmed | 2 + 17 passed |
+| 17 | The threshold section | no | confirmed | `SkillScanForm.tsx:225-259`; test |
+| 6 | Tokens only | no | confirmed | grep → none |
+
+**Overall:** met. After it, the phone e2e waits for "Hidden Instructions" on `?tab=scan` (2 passed, phone and tablet); a test of `/submissions/[id]` as a reviewer is in PLAN's Notes for task 6.

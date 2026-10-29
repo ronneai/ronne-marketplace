@@ -665,6 +665,14 @@
       "keywordNew": "le mot-clé {names} est nouveau",
       "blockGained": "le bloc {type} gagne {names}",
       "nothing": "rien n’est ajouté ni retiré"
+    },
+    "tabs": {
+      "label": "Révision",
+      "overview": "Vue d’ensemble",
+      "files": "Fichiers ({count, number})",
+      "conversation": "Conversation ({count, number})",
+      "scan": "Analyse de sécurité",
+      "scanCount": "Analyse de sécurité ({count, number})"
     }
   },
   "versions": {
@@ -819,6 +827,40 @@
       "semantic": "Analyse statique et sémantique par SkillSpector {version}, avec {provider} {model}.",
       "llmUnavailable": "Analyse statique par SkillSpector {version} : l’analyse sémantique n’a pas eu lieu, car le fournisseur n’était pas disponible."
     },
-    "advisory": "À titre indicatif : elle peut manquer des problèmes et signaler du code sûr."
+    "advisory": "Elle peut manquer des problèmes et signaler du code sûr.",
+    "card": {
+      "engine": "SkillSpector {version}",
+      "title": "{count, plural, =0 {Aucun résultat} one {# résultat} other {# résultats}}",
+      "inFiles": "{count, plural, one {dans # fichier :} other {dans # fichiers :}}",
+      "moreFiles": "et {count, number} de plus",
+      "threat": "Score de risque",
+      "outOf": "sur 100",
+      "inspect": "{count, plural, one {Examiner # résultat} other {Examiner # résultats}}",
+      "override": "Déroger",
+      "guide": "Guide de l’analyse de sécurité",
+      "falsePositives": "{count, plural, one {# marqué comme faux positif} other {# marqués comme faux positifs}}",
+      "categories": "Résultats par catégorie",
+      "open": "Sous le seuil, {threshold}.",
+      "authorScore": "Modifiez les fichiers et envoyez-la de nouveau."
+    },
+    "dialog": {
+      "title": "Analyse de sécurité",
+      "of": "{name}, révision {revision, number, ::group-off}",
+      "filters": "Résultats par catégorie",
+      "all": "Tous ({count, number})",
+      "category": "{category} ({count, number})",
+      "showing": "{shown, number} sur {total, number} affichés",
+      "fix": "Comment corriger :",
+      "dismiss": "Marquer comme faux positif",
+      "reason": "Pourquoi est-ce un faux positif?",
+      "reasonHint": "Obligatoire. Les autres personnes qui révisent le lisent; le score ne change pas.",
+      "save": "Le marquer",
+      "cancel": "Annuler",
+      "dismissed": "Marqué comme faux positif par {name}",
+      "formerUser": "une personne qui n’est plus là",
+      "restore": "Rétablir",
+      "export": "Exporter le rapport (JSON)",
+      "close": "Fermer"
+    }
   }
 }
