@@ -366,7 +366,8 @@ Moderators get a second opinion on what an item says and does (owner, 2026-10-28
 SkillSpector, installed by the operator, scans each submission revision, statically by default and
 with semantic (LLM) analysis when a provider is set up (by the operator; by root too once 136
 lands) and root chooses it, and its
-findings show on the review page. Advisory: it never blocks a submit, an approval or a release.
+findings show on the review page. Advisory by default: it never blocks a submit or a release, and
+once 137 lands, blocks an approval only when root sets a threshold score.
 
 | ID | Feature | Depends on | Status |
 |---|---|---|---|

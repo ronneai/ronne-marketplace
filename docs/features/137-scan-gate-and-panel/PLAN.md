@@ -9,9 +9,9 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 ## Tasks
 
-- [ ] **1. Decision.**
+- [x] **1. Decision.**
   - MVP.md §12's "Security scan in review" and §15's "Security scan" row say a threshold can block
-    approval (137); 135's decision 4 points at 137.
+    approval (137); 135's decision 1 points at 137.
   - `docs/features/README.md` lists 137 in M20, and the M20 intro no longer says it never blocks.
   - *Done when:* the docs say this, and `pnpm witness:check` passes.
 

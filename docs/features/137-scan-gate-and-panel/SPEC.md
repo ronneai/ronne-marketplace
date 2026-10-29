@@ -1,6 +1,6 @@
 # 137 — Security scan: a summary, the details, and a score that blocks approval
 
-> Milestone: M20 · Depends on: 135, 136, 014, 054, 058 · Design: [MVP §15](../../MVP/MVP.md#15-decision-log) ("Security scan"), [135 SPEC](../135-skill-scanner/SPEC.md) decision 4 · Contracts: none changed
+> Milestone: M20 · Depends on: 135, 136, 014, 054, 058 · Design: [MVP §15](../../MVP/MVP.md#15-decision-log) ("Security scan"), [135 SPEC](../135-skill-scanner/SPEC.md) decision 1 · Contracts: none changed
 
 ## Goal
 
@@ -11,7 +11,7 @@ scan too.
 
 It also turns the scan from advice into a **gate**. Root sets a threshold score in the Security
 scan tab, and a revision that scores at or above it can't be approved, except by root's audited
-override. This changes 135's decision 4 ("advisory, never blocks").
+override. This changes 135's decision 1 ("advisory, never blocks").
 
 ## Scope
 
@@ -175,7 +175,7 @@ override. This changes 135's decision 4 ("advisory, never blocks").
 ## Decisions
 
 1. **The score blocks approval at root's threshold; root alone overrides, with a reason, audited**
-   (owner, 2026-10-28). It changes 135's decision 4: the scan was advice, and with a threshold set it
+   (owner, 2026-10-28). It changes 135's decision 1: the scan was advice, and with a threshold set it
    decides. With none set, the default, it's still advice.
 2. **It fails closed** (owner, 2026-10-28): a pending, failed or missing scan blocks too, or making
    the scan fail would get past it.

@@ -30,8 +30,9 @@ the operator sets up a provider and root turns it on).
   The scan runs on the revision's files, written by Ronne into a fresh private temporary directory.
 - **When:** sending a submission queues a scan of its new revision. The `skill_scan` job runs the queued
   scans one at a time.
-- **Advisory.** The result is shown and never blocks anything. Submit, approve, override, bulk approve
-  and release all behave as before, whatever the scan says or whether it ran at all.
+- **Advisory.** The result is shown and never blocks anything (changed by
+  [137](../137-scan-gate-and-panel/SPEC.md), planned: root's threshold can block approval). Submit, approve, override, bulk approve
+  and release all behave as before (until 137), whatever the scan says or whether it ran at all.
 - **Where it shows:** a **Security scan** panel on the review page, beside the risk flags.
 - **The sandbox** (Behaviour, below), and what an operator must do for it ([`docs/knowledge/skill-scanner.md`](../../knowledge/skill-scanner.md)).
 - Audit events `settings.skill_scan` (root turns scanning on or off, or changes the types or
@@ -250,7 +251,9 @@ semantic scan whose LLM wasn't available is kept as a static result, and says so
 
 ## Decisions
 
-1. **SkillSpector, on the server, advisory** (owner, 2026-10-28).
+1. **SkillSpector, on the server, advisory** (owner, 2026-10-28). To be changed by [137](../137-scan-gate-and-panel/SPEC.md)
+   (planned): with a threshold root sets, a score at or above it, or a revision with no finished scan,
+   will block approval (root can override); with none set, the default, it stays advisory.
 2. **External and opt-in** (Claude): it is Python with a large dependency tree, alpha, and released
    every week, so it stays outside our image and pnpm tree. The operator pins it, and the
    dependencies policy lists it as an operator-installed tool.
