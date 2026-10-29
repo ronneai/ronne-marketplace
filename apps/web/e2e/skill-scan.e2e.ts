@@ -247,7 +247,13 @@ test("scans a skill, blocks approval at the threshold, marks a false positive, a
     try {
       const authorPage = await author.newPage();
       await signIn(authorPage, E2E_USERS.scanAuthor);
+      // The review page's screen (137): the Overview's card, then the Security scan tab.
       await authorPage.goto(`/submissions/${id}`);
+      await expect(authorPage.getByRole("link", { name: "Overview" })).toHaveAttribute(
+        "aria-current",
+        "page",
+      );
+      await authorPage.getByRole("link", { name: /^Security scan \(/ }).click();
       const own = authorPage.getByRole("region", { name: "Security scan" }).first();
       await expect(own.getByText("Likely unsafe")).toBeVisible();
       await expect(own.getByText("Marked a false positive by Sam Root")).toBeVisible();

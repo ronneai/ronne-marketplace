@@ -643,6 +643,9 @@ describe("the review page", () => {
   it("is a 404 for anyone who can't review, and for a submission they can't see", async () => {
     reviews.getReview.mockRejectedValue(new SubmissionNotFoundError());
     await expect(render()).rejects.toThrow("NEXT_NOT_FOUND");
+    // Without a review role, a 404 before the submission is even read.
+    reviews.getReview.mockReset();
+    reviews.getReview.mockResolvedValue(view());
     session.getCurrentUser.mockResolvedValue({
       id: "u",
       email: "u@x.test",
@@ -650,6 +653,7 @@ describe("the review page", () => {
       role: "user",
     });
     await expect(render()).rejects.toThrow("NEXT_NOT_FOUND");
+    expect(reviews.getReview).not.toHaveBeenCalled();
   });
 });
 

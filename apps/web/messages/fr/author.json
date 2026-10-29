@@ -259,7 +259,14 @@
       "selfApproved": "Il est prêt à être publié. Ce qu’il peut faire est listé ci-dessous, comme un réviseur l’aurait vu. Tant qu’il n’est pas publié, vous pouvez encore le retirer.",
       "approved": "Il est prêt à être publié, par vous ou par un modérateur. D’ici là, vous pouvez encore le retirer, et un réviseur peut le renvoyer.",
       "published": "Une version publiée ne change jamais : Voir les versions les liste. Pour modifier l’élément, proposez une modification depuis sa page.",
-      "submitted": "Ses fichiers sont figés, donc les réviseurs voient exactement ce que vous avez soumis. Vous pouvez le retirer jusqu’à sa publication."
+      "submitted": "Ses fichiers sont figés, donc les réviseurs voient exactement ce que vous avez soumis. Vous pouvez le retirer jusqu’à sa publication.",
+      "notMemberApproved": "Il est approuvé. Vous pouvez le lire et le retirer, mais pas le publier. Pour le publier vous-même, <join></join>; un modérateur peut encore le publier.",
+      "notMemberPublished": "Une version publiée ne change jamais, et vous ne pouvez pas la retirer. Pour proposer une modification, <join></join>.",
+      "notMemberChanges": "Il vous est revenu : vous pouvez le lire et le retirer, mais pas le modifier ni le soumettre de nouveau. Pour le corriger et le soumettre de nouveau, <join></join>.",
+      "notMemberDraft": "Vous pouvez le lire et le retirer, mais pas le modifier ni le soumettre. Pour y travailler de nouveau, <join></join>.",
+      "notMemberApprovedStale": "Il est approuvé, mais une version plus récente est sortie : il ne peut pas être publié avant un rebase, qui demande votre retour. Vous pouvez le lire et le retirer. Pour faire le rebase, <join></join>; un réviseur peut encore le renvoyer.",
+      "approvedStale": "Il ne peut pas être publié avant que vous fassiez un rebase sur la version plus récente. D’ici là, vous pouvez encore le retirer, et un réviseur peut le renvoyer.",
+      "selfApprovedStale": "Il ne peut pas être publié avant que vous fassiez un rebase sur la version plus récente. D’ici là, vous pouvez encore le retirer."
     },
     "feedback": {
       "title": "{kind, select, reject {Rejeté par} rebase {Rebase fait par} other {Modifications demandées par}} {by}, <date></date>.",
@@ -267,7 +274,9 @@
       "reject": "Un rejet est définitif : commencez un nouveau brouillon pour réessayer.",
       "mine": "Modifiez les fichiers, puis cliquez sur « Soumettre de nouveau pour révision ».",
       "others": "Il a été renvoyé à son auteur.",
-      "conversation": "Voir la conversation"
+      "conversation": "Voir la conversation",
+      "rejectNotMember": "Un rejet est définitif. Pour réessayer avec un nouveau brouillon, <join></join>.",
+      "minePersonal": "Modifiez les fichiers, puis cliquez sur « Soumettre de nouveau » : il est de nouveau approuvé aussitôt."
     },
     "issuesNoteReadOnly": "Les mêmes vérifications qu’à sa soumission.",
     "issuesNote": "Un brouillon peut être enregistré avec des problèmes; il doit être sans erreur pour être soumis.",
@@ -397,10 +406,12 @@
       "compare": "Comparer avec la {version}",
       "same": "C’est maintenant identique à la version de base.",
       "unreadable": "Les fichiers de la {version} n’ont pas pu être lus, donc il n’y a rien à comparer.",
-      "resolve": "Marquer résolu"
+      "resolve": "Marquer résolu",
+      "stalePersonal": "Elle modifie la {version}. Le rebase apporte ce que la {stale} a changé : les fichiers que vous n’avez pas touchés prennent ceux de la {stale}, et ceux que vous avez tous deux modifiés restent les vôtres, listés ci-dessous pour comparer. Elle repasse en modifications demandées, et la soumettre de nouveau l’approuve encore."
     },
-    "approvedTitle": "Approuvé",
-    "approvedText": "Publiez-le pour le rendre installable. Les versions ne changent jamais une fois publiées."
+    "editFiles": "Modifier les fichiers",
+    "backToSubmission": "Retour à la soumission",
+    "archivedNotMember": "Il est sorti de la révision et ne réserve plus son nom. Vous n’êtes plus membre de {workspace} : pour le restaurer, <join></join>."
   },
   "submissions": {
     "pageTitle": "Mes soumissions",
@@ -673,7 +684,8 @@
       "conversation": "Conversation ({count, number})",
       "scan": "Analyse de sécurité",
       "scanCount": "Analyse de sécurité ({count, number})"
-    }
+    },
+    "staleApproved": "Elle modifie la {version}, donc la publier maintenant annulerait ce que la {stale} a changé. Elle ne peut pas être publiée avant que l’auteur fasse un rebase sur la {stale}."
   },
   "versions": {
     "intro": "Les versions ne changent jamais une fois publiées. Les étiquettes y dirigent les installations; marquer comme obsolète avertit, et retirer empêche les nouvelles installations.",

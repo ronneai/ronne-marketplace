@@ -259,7 +259,14 @@
       "selfApproved": "Está pronto para lançar. O que ele pode fazer está listado abaixo, como um revisor teria visto. Até ser lançado, você ainda pode retirá-lo.",
       "approved": "Está pronto para lançar, por você ou por um moderador. Até lá, você ainda pode retirá-lo, e um revisor pode devolvê-lo.",
       "published": "Uma versão lançada nunca muda: Ver versões lista todas. Para alterar o item, proponha uma alteração na página dele.",
-      "submitted": "Os arquivos dele estão congelados, então os revisores veem exatamente o que você submeteu. Você pode retirá-lo até ele ser lançado."
+      "submitted": "Os arquivos dele estão congelados, então os revisores veem exatamente o que você submeteu. Você pode retirá-lo até ele ser lançado.",
+      "notMemberApproved": "Ele foi aprovado. Você pode lê-lo e retirá-lo, mas não lançá-lo. Para lançá-lo você mesmo, <join></join>; um moderador ainda pode lançá-lo.",
+      "notMemberPublished": "Uma versão lançada nunca muda, e você não pode retirá-la. Para propor uma alteração, <join></join>.",
+      "notMemberChanges": "Ele voltou para você: você pode lê-lo e retirá-lo, mas não alterar nem submeter de novo. Para corrigi-lo e submeter de novo, <join></join>.",
+      "notMemberDraft": "Você pode lê-lo e retirá-lo, mas não alterar nem submeter. Para trabalhar nele de novo, <join></join>.",
+      "notMemberApprovedStale": "Ele foi aprovado, mas saiu uma versão mais nova: não pode ser lançado antes de um rebase, que precisa de você de volta. Você pode lê-lo e retirá-lo. Para fazer o rebase, <join></join>; um revisor ainda pode devolvê-lo.",
+      "approvedStale": "Ele não pode ser lançado antes de você fazer rebase sobre a versão mais nova. Até lá, você ainda pode retirá-lo, e um revisor pode devolvê-lo.",
+      "selfApprovedStale": "Ele não pode ser lançado antes de você fazer rebase sobre a versão mais nova. Até lá, você ainda pode retirá-lo."
     },
     "feedback": {
       "title": "{kind, select, reject {Rejeitado por} rebase {Rebase feito por} other {Alterações solicitadas por}} {by}, <date></date>.",
@@ -267,7 +274,9 @@
       "reject": "Rejeitado é definitivo: comece um novo rascunho para tentar de novo.",
       "mine": "Edite os arquivos e depois Ressubmeta para revisão.",
       "others": "Está de volta com o autor.",
-      "conversation": "Ver a conversa"
+      "conversation": "Ver a conversa",
+      "rejectNotMember": "Rejeitado é definitivo. Para tentar de novo com um novo rascunho, <join></join>.",
+      "minePersonal": "Edite os arquivos e depois Ressubmeta: ele é aprovado de novo na hora."
     },
     "issuesNoteReadOnly": "As mesmas verificações que rodaram quando ele foi submetido.",
     "issuesNote": "Um rascunho pode ser salvo com problemas; ele precisa estar sem erros para ser submetido.",
@@ -397,10 +406,12 @@
       "compare": "Comparar com a {version}",
       "same": "Agora está igual à versão de base.",
       "unreadable": "Não foi possível ler os arquivos da {version}, então não há com o que comparar.",
-      "resolve": "Marcar como resolvido"
+      "resolve": "Marcar como resolvido",
+      "stalePersonal": "Ela altera a {version}. O rebase traz o que a {stale} mudou: os arquivos que você não tocou ficam com os da {stale}, e os que vocês dois mudaram ficam com os seus, listados abaixo para comparar. Ela volta para alterações solicitadas, e submetê-la de novo a aprova outra vez."
     },
-    "approvedTitle": "Aprovado",
-    "approvedText": "Publique-o para torná-lo instalável. As versões nunca mudam depois de publicadas."
+    "editFiles": "Editar arquivos",
+    "backToSubmission": "Voltar à submissão",
+    "archivedNotMember": "Ele saiu da revisão e não reserva o nome. Você não é mais membro de {workspace}: para restaurá-lo, <join></join>."
   },
   "submissions": {
     "pageTitle": "Minhas submissões",
@@ -673,7 +684,8 @@
       "conversation": "Conversa ({count, number})",
       "scan": "Verificação de segurança",
       "scanCount": "Verificação de segurança ({count, number})"
-    }
+    },
+    "staleApproved": "Ela altera a {version}, então lançá-la agora desfaria o que a {stale} mudou. Ela não pode ser lançada até o autor fazer o rebase sobre a {stale}."
   },
   "versions": {
     "intro": "As versões nunca mudam depois de publicadas. As tags apontam as instalações para elas; marcar como obsoleta avisa, e retirar impede novas instalações.",

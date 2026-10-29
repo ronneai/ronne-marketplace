@@ -259,7 +259,14 @@
       "selfApproved": "It's ready to release. What it can do is listed below, as a reviewer would have seen it. Until it's released you can still withdraw it.",
       "approved": "It's ready to release, by you or a moderator. Until then you can still withdraw it, and a reviewer can send it back.",
       "published": "A released version never changes: View versions lists them. To change the item, propose a change from its page.",
-      "submitted": "Its files are frozen, so reviewers see exactly what you submitted. You can withdraw it until it's released."
+      "submitted": "Its files are frozen, so reviewers see exactly what you submitted. You can withdraw it until it's released.",
+      "notMemberApproved": "It's approved. You can read it and withdraw it, but not release it. To release it yourself, <join></join>; a moderator can still release it.",
+      "notMemberPublished": "A released version never changes, and you can't withdraw it. To propose a change, <join></join>.",
+      "notMemberChanges": "It's back with you: you can read it and withdraw it, but not change or resubmit it. To fix it and resubmit it, <join></join>.",
+      "notMemberDraft": "You can read it and withdraw it, but not change or submit it. To work on it again, <join></join>.",
+      "notMemberApprovedStale": "It's approved, but a newer version came out: it can't be released until it's rebased, which needs you back. You can read it and withdraw it. To rebase it, <join></join>; a reviewer can still send it back.",
+      "approvedStale": "It can't be released until you rebase it onto the newer version. Until then you can still withdraw it, and a reviewer can send it back.",
+      "selfApprovedStale": "It can't be released until you rebase it onto the newer version. Until then you can still withdraw it."
     },
     "feedback": {
       "title": "{kind, select, reject {Rejected by} rebase {Rebased by} other {Changes requested by}} {by}, <date></date>.",
@@ -267,7 +274,9 @@
       "reject": "Rejected is final: start a new draft to try again.",
       "mine": "Edit the files, then Resubmit for review.",
       "others": "It's back with its author.",
-      "conversation": "See the conversation"
+      "conversation": "See the conversation",
+      "rejectNotMember": "Rejected is final. To try again with a new draft, <join></join>.",
+      "minePersonal": "Edit the files, then Resubmit: it's approved again at once."
     },
     "issuesNoteReadOnly": "The same checks that ran when it was submitted.",
     "issuesNote": "A draft can be saved with problems; it has to be free of errors to be submitted.",
@@ -397,10 +406,12 @@
       "compare": "Compare with {version}",
       "same": "It's the same as the base version now.",
       "unreadable": "{version}'s files couldn't be read, so there's nothing to compare with.",
-      "resolve": "Mark resolved"
+      "resolve": "Mark resolved",
+      "stalePersonal": "It changes {version}. Rebasing brings in what {stale} changed: files you didn't touch take {stale}'s, and files you both changed stay yours, listed below to compare. It goes back to changes requested, and resubmitting it approves it again."
     },
-    "approvedTitle": "Approved",
-    "approvedText": "Publish it to make it installable. Versions never change once published."
+    "editFiles": "Edit files",
+    "backToSubmission": "Back to the submission",
+    "archivedNotMember": "It's out of review and doesn't hold its name. You're no longer a member of {workspace}: to restore it, <join></join>."
   },
   "submissions": {
     "pageTitle": "My submissions",
@@ -673,7 +684,8 @@
       "conversation": "Conversation ({count, number})",
       "scan": "Security scan",
       "scanCount": "Security scan ({count, number})"
-    }
+    },
+    "staleApproved": "It changes {version}, so releasing it now would undo what {stale} changed. It can't be released until the author rebases it onto {stale}."
   },
   "versions": {
     "intro": "Versions never change once published. Tags point installs at them; deprecating warns, and yanking stops new installs.",

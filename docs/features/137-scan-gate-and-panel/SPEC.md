@@ -17,6 +17,19 @@ override. This changes 135's decision 1 ("advisory, never blocks").
 ## Scope
 
 **In:**
+- **One screen for reviewers and authors** (owner, 2026-10-29): a submitted item's page is the same
+  for whoever reviews it (`/reviews/<id>`) and for its author (`/submissions/<id>`): the header, the
+  tabs (Overview, Files, Conversation, Security scan), the Overview's waits-on notice, risk summary,
+  card and checks, the Files tab's read-only viewer with its change views, the conversation and the
+  findings. Only the actions allowed change:
+  - a reviewer: the decisions (each off with its reason when it isn't theirs), the scan's actions;
+  - the author: Withdraw; **Edit files** while it may be changed (after changes are requested),
+    which opens the editor, with Save and Resubmit, and a way back; why it was sent back, or why it
+    can't be changed now; an archived one's Restore and Delete (a removed member is told to rejoin
+    to restore it, and, as its status allows, what's left to them); a proposal's rebase. On the author's
+    page a decision shows only where one is allowed (root on its own, say);
+  - Publish, for whoever may publish.
+  A draft is still its editor alone.
 - **The summary card**, on the review page and on the author's submission page, in place of 135's
   panel:
   - the recommendation, the severity and the scanner's version, as badges;
@@ -68,9 +81,9 @@ override. This changes 135's decision 1 ("advisory, never blocks").
   - **Export report (JSON)**: Ronne's kept copy of the result (never SkillSpector's raw output),
     with the item's name, the revision, the time and the marks, built in the browser.
   - Before a scan has finished, the tab shows the card's state (waiting, failed, not scanned).
-- **Authors see their own scan** on their submission page, which has no tabs: the card with the
-  findings under it, with no Scan again, Override or Mark false positive, and a file and line as
-  text. They see the dismissals, read-only.
+- **Authors see their own scan** on their submission page, the review page's screen (task 8): the
+  card on the Overview and the findings on the Security scan tab, linked into the Files tab, with
+  no Scan again, Override or Mark false positive. They see the dismissals, read-only.
 - **The threshold**, in Admin › Settings › Security scan, a section of its own, **Blocking
   approval**, with its helper and a narrow field, **Score that blocks approval**: empty (no gate,
   the default) or a whole number from 1 to 100. Anything else says so under the field and keeps
@@ -201,6 +214,8 @@ override. This changes 135's decision 1 ("advisory, never blocks").
 - **Submitting and review › The security scan** (`review#security-scan`): the card, the dialog,
   jumping to the code, the export, false positives, authors seeing their scan, and a blocked
   approval.
+- **Submitting and review** (`review`): the author's page is the review page's screen, with Edit
+  files to change it after changes are requested.
 - **Helpers:**
   - the card's "What is this scan?" stays (`review#security-scan`);
   - the threshold field's "What does the threshold block?" → `security-scan#gate`.
@@ -208,10 +223,13 @@ override. This changes 135's decision 1 ("advisory, never blocks").
 ## Acceptance criteria
 
 - [ ] The review page and the author's submission page show the card with the result's real numbers,
-  and the Security scan tab (under the card on the author's page) lists every kept finding with its
+  and the Security scan tab (on both pages) lists every kept finding with its
   explanation and remediation, filtered by category.
 - [ ] The review page has the Overview, Files, Conversation and Security scan tabs, each with its own
   address; the title, decisions and a stale notice stay above them.
+- [ ] The author's submission page is the same screen, with the author's actions: Edit files opens
+  the editor only while it may be changed; nobody sees a decision they can't make there; a draft is
+  the editor.
 - [ ] A finding's file and line open the Files tab's All files view at that line.
 - [ ] The export downloads the kept result, with the dismissals, as JSON.
 - [ ] Reviewers dismiss and restore findings with a reason; the author can't; both are audited.
@@ -244,6 +262,10 @@ override. This changes 135's decision 1 ("advisory, never blocks").
 6. **An accepted risk is a mark of its own kind** (owner, 2026-10-29): a false positive says the
    scanner is wrong, an accepted risk that it's right and that's fine; the list, the audit and the
    export tell them apart. Neither moves the score or the gate.
+7. **One screen, the actions by role** (owner, 2026-10-29): reviewers and authors see one screen
+   (`SubmissionScreen`), so what's shown can't drift between them. The author's files are the
+   reviewer's read-only viewer, and Edit files opens the editor while they may change them, rather
+   than the editor in the Files tab.
 
 ## Open questions
 

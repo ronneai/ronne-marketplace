@@ -47,13 +47,14 @@ test("a user writes a skill, submits it, sees it read-only, and withdraws it", a
   await expect(submit.getByText("All checks passed.")).toBeVisible();
   await submit.getByRole("button", { name: "Submit for review" }).click();
 
-  // Read-only now: no Save or Settings, the editor can't be typed into, and Withdraw is offered.
+  // Read-only now, on the review page's screen (137): no editor, no Save or Edit files, its files
+  // on the Files tab, and Withdraw offered.
   await expect(page.getByText(/Submitted for review on/)).toBeVisible();
   await expect(page.getByRole("button", { name: /^Save/ })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Settings" })).toHaveCount(0);
-  await expect(page.getByLabel("description")).toBeDisabled();
-  await files.getByRole("button", { name: /SKILL\.md/ }).click();
-  await expect(page.getByLabel("Contents of SKILL.md")).toHaveAttribute("contenteditable", "false");
+  await expect(page.getByRole("link", { name: "Edit files" })).toHaveCount(0);
+  await expect(page.getByLabel("description")).toHaveCount(0);
+  await page.getByRole("link", { name: /^Files/ }).click();
+  await expect(page.getByText("SKILL.md").first()).toBeVisible();
 
   await page.getByRole("button", { name: "Withdraw" }).click();
   const withdraw = page.getByRole("dialog", { name: /Withdraw/ });

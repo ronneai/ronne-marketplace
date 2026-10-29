@@ -82,6 +82,7 @@ test("an author archives a submission, finds it under Archived, restores it and 
   await author.goto(url);
   await expect(author.getByRole("button", { name: "Submit for review" })).toBeEnabled();
   await submit(author, "Submit for review");
+  await author.getByRole("link", { name: /^Conversation/ }).click();
   await expect(author.getByText("restored it as a draft")).toBeVisible();
   await expect(author.getByText("submitted revision 2")).toBeVisible();
 });

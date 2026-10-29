@@ -90,7 +90,8 @@ test("a user proposes a change, a newer version comes out, the user rebases, and
   await expect(
     proposer.getByText(`A change to @${E2E_SCOPE}/${E2E_PROPOSAL_ITEM} 1.0.1.`),
   ).toBeVisible();
-  // It keeps the user's description and brings in the README from 1.0.1.
+  // It keeps the user's description and brings in the README from 1.0.1, in the editor (137).
+  await proposer.getByRole("link", { name: "Edit files" }).click();
   await expect(proposer.getByLabel("description")).toHaveValue(
     "Prompts for commit messages that say why.",
   );

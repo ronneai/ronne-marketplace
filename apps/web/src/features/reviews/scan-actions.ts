@@ -18,7 +18,9 @@ export const askForScan = serverAction(
       return { refused: true };
     try {
       const queued = await requestScan(await requestHeaders(), revisionId);
+      // The review page and the author's, which share the screen (137).
       revalidatePath(`/reviews/${submissionId}`);
+      revalidatePath(`/submissions/${submissionId}`);
       return queued ? { queued: true } : { refused: true };
     } catch (error) {
       if (error instanceof IdentityError) return { refused: true };

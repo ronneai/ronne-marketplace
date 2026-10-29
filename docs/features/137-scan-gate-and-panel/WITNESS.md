@@ -836,3 +836,460 @@ Witnessed: 2026-10-29 10:58 EDT, by a fresh agent (adversarial). Commit: 3db0561
 | 10 | Nothing else regressed | no | confirmed | web tests 5561 passed; typecheck clean; lint 0 errors |
 
 **Overall:** met. Remark: the same Cancel-passes-its-event mutation on the mark modal's Cancel survives (an unmarked finding's `dismissal` stays `null`, so nobody could notice); the code is right.
+
+## Task 8
+
+Witnessed: 2026-10-29 11:26 EDT, by a fresh agent (blind). Commit: a764f192 + uncommitted diff (sha256 of diff and untracked files 6d106661…214e, same at start and end). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Both routes render `SubmissionScreen` with the same header, tabs and content | no | confirmed | both pages call it; `diff -w` against the old review page shows only route-dependent lines |
+| 2 | The review page as before for reviewers | no | confirmed | same diff; gate unchanged; review-page tests pass |
+| 3 | The author's actions | no | confirmed | code; probes (Withdraw, Restore, Delete for good) |
+| 4 | No decision buttons on the author's page unless allowed | no | confirmed | probe |
+| 5 | `?edit=1` on one that can't be changed | no | partly | holds in probes; no test fails without `isEditable` |
+| 6 | Edit files opens the editor; a draft stays the editor | no | confirmed | unit test; e2e |
+| 7 | Page tests for both routes | no | partly | the author's notices and decision filtering untested (mutations stay green) |
+| 8 | The e2e on the new screen | no | confirmed | 13 passed |
+| 9 | The phone sweep | no | confirmed | 16 passed; it doesn't visit the author's submitted page |
+| 10 | Access unchanged | no | confirmed | same `viewSubmission`/`getReview` calls |
+| 11 | Text in three languages | no | confirmed | parity tests; lint |
+| 12 | Typecheck, lint, unit, build | no | confirmed | exit 0; 3765 passed |
+
+**Overall:** not met: rows 5 and 7.
+
+Witnessed: 2026-10-29 11:30 EDT, by a fresh agent (adversarial). Commit: a764f192 + uncommitted diff and untracked `AuthorNotices.tsx`, `SubmissionScreen.tsx`. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | One screen, per-route links | no | confirmed | probe: no `/reviews/` link on the author's page; mutation → a test fails |
+| 2 | No new access | no | confirmed | gate kept; `viewSubmission` 404s as before. Gap (older): removing the gate fails no test |
+| 3 | `?edit=1` only when the author may change it | no | partly | holds; dropping the guard or the member check fails no test |
+| 4 | A draft stays the editor | no | confirmed | probe |
+| 5 | Withdraw and Edit files | no | confirmed | probe; tests |
+| 6 | Author notices, once each | no | partly | hold; `notices: null` fails no test; a removed member is told to edit with no way to |
+| 7 | Decisions on the author route | no | partly | root's own: Override with three disabled buttons |
+| 8 | Links from `/submissions/<id>` | no | partly | Scan again revalidates only `/reviews/<id>` |
+| 9 | Nothing lost | no | partly | the approved box's sentence gone (its keys dead); a moderator on `/submissions/<id>` gets "My submissions" and no stale notice |
+| 10 | Page tests | no | partly | mutations survive (rows 3, 6, 7) |
+| 11 | e2e, phone sweep | no | can't check here | not run |
+
+**Overall:** not met. Fixed since:
+- Scan again revalidates both pages.
+- The author's page shows only the decisions someone may make.
+- Someone else's `/submissions/<id>` leads back to Reviews and shows the stale notice. The author's own page uses its proposal bar for that.
+- A removed member gets the not-a-member notice (with Ask to join) and, under it, why it was sent back.
+- The approved box's keys are removed: the read-only notice already says "Approved. It's ready to release…".
+- The stray doc comments in `DraftEditor.tsx` are moved with their code.
+- Page tests now cover:
+  - `?edit=1` on every status, for a non-member and for someone else;
+  - the notices;
+  - Restore, Delete and Withdraw;
+  - the decisions filtered;
+  - the way back and the stale notice.
+- The review page's 404 test now checks that `getReview` isn't reached.
+- The implementer's mutations (any `?edit`, no member check, no `isEditable`, no notices, all decisions, no stale notice, a fixed way back) each fail a test.
+- The phone sweep visits the author's submitted page, every tab: 45 passed on phone, phone WebKit and tablet.
+
+### Re-check
+
+Witnessed: 2026-10-29 11:38 EDT, by a fresh agent (blind). Commit: a764f192 + uncommitted diff and untracked `AuthorNotices.tsx`, `SubmissionScreen.tsx` (sha256 of diff and untracked files 1f4c0dd5…caa4, same at start and end). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | One screen, only the actions differing | no | confirmed | both pages call `SubmissionScreen` |
+| 2 | The author's four tabs, Overview first | no | confirmed | test; e2e |
+| 3 | A reviewer sees every decision | no | confirmed | mutation → 2 tests fail |
+| 4 | Withdraw while it can be withdrawn | no | confirmed | mutation → 2 tests fail |
+| 5 | Edit files and `?edit=1` only while it may be changed | yes | confirmed | four mutations → tests fail |
+| 6 | Sent back or read-only; a removed member's notices | yes | partly | the removed member is still told "Edit the files, then Resubmit for review." |
+| 7 | Archived: Restore and Delete | yes | confirmed | mutation → a test fails |
+| 8 | The rebase bar | no | confirmed | e2e; no page test |
+| 9 | Publish | no | confirmed | mutation → tests fail; e2e |
+| 10 | Only allowed decisions on the author route | yes | confirmed | mutation → a test fails |
+| 11 | Page tests fail when each behaviour goes | yes | partly | rebase bar and draft-stays-editor survive |
+| 12 | Someone else: back to Reviews, stale notice | yes | confirmed | mutations → tests fail |
+| 13 | Scan again refreshes both pages | yes | confirmed | code; no test |
+| 14 | A draft stays the editor | no | confirmed | code; e2e |
+| 15 | The e2e on the new screen | no | confirmed | 13 passed |
+| 16 | The phone sweep, author's tabs included | yes | confirmed | 16 passed |
+| 17 | Typecheck, lint, unit | no | confirmed | 3770 passed |
+
+**Overall:** not met: rows 6 and 11.
+
+### Re-check
+
+Witnessed: 2026-10-29 11:46 EDT, by a fresh agent (adversarial). Commit: a764f192 + uncommitted diff and untracked `AuthorNotices.tsx`, `SubmissionScreen.tsx` (sha256 of diff+untracked 1f4c0dd53362). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Both routes, links on their own route | no | confirmed | mutation → 2 tests fail |
+| 2 | Access no wider | no | confirmed | server unchanged; probes |
+| 3 | The review page's 404 before reading | yes | confirmed | mutation → the test fails |
+| 4 | `ownPage` decides whose notices show | yes | partly | notices for everyone survives the tests |
+| 5 | Decisions per route | yes | confirmed | mutations → tests fail |
+| 6 | `?edit=1` | yes | confirmed | odd values, every status; mutations fail |
+| 7 | Notices: none missing or duplicated | yes | partly | the stale notice shown twice on the author's page survives the tests |
+| 8 | Scan again revalidates both | yes | partly | no test |
+| 9 | Other actions refresh from `/submissions/<id>` | no | confirmed | code read |
+| 10 | The removed messages unused | yes | confirmed | `git grep` |
+| 11 | Page tests | yes | partly | rows 4, 7, 8 |
+| 12 | Lint, typecheck | no | confirmed | clean |
+| 13 | SPEC describes the new screen | no | partly | two passages still describe the old author page |
+| 14 | e2e, phone | yes | can't check here | not run |
+
+**Overall:** not met. Fixed since:
+- A removed member's feedback notice keeps why and the link to the conversation, without "Edit the files, then Resubmit".
+- New page tests:
+  - the rebase bar, with the stale notice once on the author's own page;
+  - a draft stays the editor, with `getReview` never called;
+  - someone else gets none of the author's notices;
+  - the removed member's wording.
+- A unit test for `askForScan` checks both paths are refreshed.
+- Each of the six mutations named above fails a test (run by the implementer).
+- SPEC's two passages now describe the shared screen.
+- Unit suite: 3775 passed; the 13 e2e passed.
+
+### Re-check
+
+Witnessed: 2026-10-29 11:50 EDT, by a fresh agent (blind). Commit: a764f192 + uncommitted diff and untracked `AuthorNotices.tsx`, `SubmissionScreen.tsx`, `scan-actions.test.ts` (sha1 of diff+untracked b4b8a60c3bbd, same at start and end). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | One screen, only the actions differing | no | confirmed | mutation → a test fails |
+| 2 | A reviewer sees every decision | no | confirmed | mutation → 2 tests fail |
+| 3 | Withdraw | no | confirmed | mutation → 2 tests fail |
+| 4 | Edit files and `?edit=1` | no | confirmed | mutations → tests fail; e2e |
+| 5 | Notices; a removed member's, without telling them to edit | no | confirmed | mutations → tests fail |
+| 6 | Archived: Restore and Delete | no | confirmed | mutation → a test fails |
+| 7 | The rebase bar, the stale notice once | no | confirmed | mutation → a test fails; e2e |
+| 8 | Publish for whoever may | no | partly | hiding it on the author route alone fails no page test (e2e only) |
+| 9 | Only allowed decisions on the author route | no | confirmed | mutation → a test fails |
+| 10 | Someone else: none of the notices, back to Reviews, stale notice | no | confirmed | mutations → tests fail |
+| 11 | Scan again refreshes both | no | confirmed | mutation → `scan-actions.test.ts` fails |
+| 12 | A draft stays the editor | no | confirmed | mutation → a test fails |
+| 13 | Page tests | no | partly | Publish, the Files tab and the Conversation tab on the author route alone: e2e only |
+| 14 | The e2e on the new screen | no | confirmed | 13 passed |
+| 15 | The phone sweep, the author's tabs included | no | confirmed | 16 passed |
+| 16 | SPEC describes the shared screen | no | confirmed | grep for the old wording finds nothing |
+| 17 | Typecheck, lint, unit, build | no | confirmed | 3775 passed |
+
+**Overall:** not met: rows 8 and 13 (test gaps).
+
+### Re-check
+
+Witnessed: 2026-10-29 11:50 EDT, by a fresh agent (adversarial). Commit: a764f192 + uncommitted diff and untracked `AuthorNotices.tsx`, `SubmissionScreen.tsx`, `scan-actions.test.ts`. Machine: macOS 27.0, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Both routes, own links | no | confirmed | mutation → 2 tests fail |
+| 2 | Access no wider | no | confirmed | gate and reads unchanged; probes |
+| 3 | `?edit=1` | no | confirmed | probes; mutation → a test fails |
+| 4 | Decisions per route | no | confirmed | mutations → tests fail |
+| 5 | Notices, once each, every status and role | no | confirmed | 23-case matrix |
+| 6 | The feedback wording per reader | no | confirmed | probes; mutations → tests fail |
+| 7 | Every action refreshes `/submissions/<id>` | no | confirmed | code read |
+| 8 | `scan-actions.test.ts` | no | confirmed | mutation → it fails |
+| 9 | Page tests fail when each behaviour goes | no | partly | the personal-review helper, the self-approved computation, a removed member's "Rejected is final" survive |
+| 10 | SPEC matches the code | no | confirmed | read |
+| 11 | Unit, i18n, lint, typecheck | no | confirmed | 335 + 367 passed; clean |
+
+**Overall:** not met: row 9 (test gaps). Remark, older than this task: an archived submission by a removed member says "Restore it to edit and submit it again." with no Restore and no not-a-member notice (as in the editor before).
+
+Fixed since: page tests on the author route for Publish (shown with `can.publish`, not without), a file on the Files tab, an event on the Conversation tab, a removed member's "Rejected is final", and the personal workspace's "Approved by you" with its helper (and a plain approval's "Approved."); each of the six mutations named above fails a test (run by the implementer). The owner asked for one more round (2026-10-29). Then, on the owner's word, an archived submission by a removed member says they must rejoin to restore it (`archivedNotMember`, with Ask to join), with no Restore and Delete still offered where allowed; a page test covers it and fails without it. (A round started for the tests alone was stopped for this change.)
+
+### Re-check
+
+Witnessed: 2026-10-29 12:04 EDT, by a fresh agent (blind). Commit: a764f192 + uncommitted diff and 3 untracked files (diff hash `7365683b5b2b…01bd` at start and end, the same). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Typecheck, lint, unit, build | no | confirmed | exit 0; 3778 passed; build compiled |
+| 2 | Publish on the author route for whoever may | no | confirmed | mutation → the test fails |
+| 3 | The author route's Files and Conversation tabs | no | confirmed | two mutations → the test fails |
+| 4 | A removed member: "Rejected is final" | no | confirmed | mutation → the test fails |
+| 5 | "Approved by you" with its helper; "Approved." otherwise | no | confirmed | two mutations → the test fails |
+| 6 | A removed member's archived notice | no | confirmed | three mutations → the test fails; the key in three languages |
+| 7 | `?edit=1` | no | confirmed | mutation → the test fails |
+| 8 | A draft stays the editor | no | confirmed | mutation → the test fails |
+| 9 | Someone else: no notices, back to Reviews, stale notice | no | confirmed | mutations → tests fail |
+| 10 | Only allowed decisions on the author route | no | confirmed | mutation → the test fails |
+| 11 | Scan again refreshes both | no | confirmed | mutation → `scan-actions.test.ts` fails |
+| 12 | The e2e on the new screen | no | confirmed | 13 passed |
+| 13 | The phone sweep | no | confirmed | 16 passed |
+
+**Overall:** met.
+
+### Re-check
+
+Witnessed: 2026-10-29 12:04 EDT, by a fresh agent (adversarial). Commit: a764f192 + uncommitted diff and untracked `AuthorNotices.tsx`, `SubmissionScreen.tsx`, `scan-actions.test.ts`. Machine: macOS 27.0, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Unit tests | yes | confirmed | 492 passed; biome clean |
+| 2 | A removed author's archived notice: rejoin, Ask to join, no Restore | yes | confirmed | probe; the server refuses a non-member's restore |
+| 3 | Delete still offered where allowed | yes | confirmed | probe both ways |
+| 4 | A member's archived one as before | no | confirmed | probe in three languages |
+| 5 | Someone else: no notices | no | confirmed | mutation → a test fails |
+| 6 | A workspace they can't rejoin | no | confirmed | the join page says so |
+| 7 | `archivedNotMember` ICU | yes | confirmed | probe; the parity test catches a broken tag |
+| 8 | The new tests fail when their behaviour goes | yes | confirmed | eleven mutations; two older ones on 114's event filter survive |
+| 9 | Scan again | yes | confirmed | mutation → the test fails |
+| 10 | Access, decisions, `?edit=1` | no | confirmed | mutations → tests fail |
+| 11 | Notices right for every status a removed author sees | no | not met | a removed author's rejected one: "withdraw it… can still decide it" above "Rejected is final" (this task's) |
+
+**Overall:** not met: row 11. Fixed since: a rejected submission shows only why it was rejected, member or not; the test asserts no not-a-member or "can still decide it" text; a test that the latest approval decides "Approved by you" (root's override after the author's own isn't theirs), which kills the two surviving filter mutations. Each fails a test when undone (run by the implementer). On the owner's word (2026-10-29) the older wording is fixed too: a removed author's approved one says they can withdraw it but not release it, and a moderator still can (`notMemberApproved`); a published one that it never changes and can't be withdrawn, and to rejoin to propose a change (`notMemberPublished`), in three languages, with a test that fails on the old text. The owner asked for one more round.
+
+### Re-check
+
+Witnessed: 2026-10-29 13:17 EDT, by a fresh agent (blind). Commit: a764f192 + uncommitted diff and untracked `AuthorNotices.tsx`, `SubmissionScreen.tsx`, `scan-actions.test.ts` (diff sha256 5bb6629e…2c2df3d at start and end). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Typecheck, lint, unit | no | confirmed | exit 0; 3779 passed |
+| 2 | Build | no | confirmed | exit 0 |
+| 3 | The e2e (chromium) | no | confirmed | 13 passed |
+| 4 | The phone tests | no | confirmed | 16 passed |
+| 5 | A rejected one shows only why | no | confirmed | mutation → the test fails |
+| 6 | The rejected wording true for a removed member | no | partly | "start a new draft" needs membership (`createDraft` → `requireMember`) |
+| 7 | `notMemberApproved` true | no | confirmed | withdraw, publish rules read; mutation → the test fails |
+| 8 | `notMemberPublished` true | no | confirmed | status and proposal rules read; mutation → the test fails |
+| 9 | `notMember` true for submitted and changes requested | no | partly | changes requested: "its moderators can still decide it" is false |
+| 10 | New keys in three languages | no | confirmed | parity tests |
+| 11 | The latest approval decides "Approved by you" | no | confirmed | two mutations caught; `scan_override` untested |
+| 12 | Tests fail when each behaviour goes | no | partly | a doubled rejection notice and `scan_override` survive |
+| 13 | Everything else holds | no | confirmed | tests; e2e |
+
+**Overall:** not met: rows 6, 9, 12.
+
+### Re-check
+
+Witnessed: 2026-10-29 13:22 EDT, by a fresh agent (adversarial). Commit: a764f192 + uncommitted diff and untracked `AuthorNotices.tsx`, `SubmissionScreen.tsx`, `scan-actions.test.ts` (sha1 of diff+untracked 66288b82cb95). Machine: macOS 27.0, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Unit, i18n, lint | no | confirmed | 493 passed; clean |
+| 2 | A rejected one: only why, once | yes | confirmed | matrix probe; mutation → the test fails |
+| 3 | The rejected wording for a removed author | no | partly | "start a new draft" needs membership |
+| 4 | `notMemberApproved` | yes | confirmed | rules read; mutation → the test fails |
+| 5 | `notMemberPublished` | yes | confirmed | rules read; mutation → the test fails |
+| 6 | `notMember` for submitted and changes requested | yes | not met | changes requested: no moderator can decide it |
+| 7 | The editor, which shares the text | no | partly | a removed author's draft: "its moderators can still decide it" |
+| 8 | ICU of the new keys | yes | confirmed | formatted in three languages |
+| 9 | The latest approval decides | yes | confirmed | mutations → the test fails |
+| 10 | No notice contradicts or repeats another | no | partly | row 6 |
+| 11 | Tests fail when each behaviour goes | no | partly | a doubled rejection notice survives |
+| 12 | Someone else gets no notices | no | confirmed | matrix; mutation → the test fails |
+| 13 | Access, decisions, `?edit=1`, refreshes | no | confirmed | four mutations → tests fail |
+
+**Overall:** not met: row 6. Fixed since:
+- A removed author's read-only text is worded for each status:
+  - changes requested (`notMemberChanges`): back with them, withdraw only, rejoin to fix and resubmit;
+  - their draft (`notMemberDraft`): read only, rejoin to work on it;
+  - approved and published as before.
+- A rejection tells a removed author to rejoin to try with a new draft (`feedback.rejectNotMember`, with Ask to join); a member keeps "start a new draft". All three languages.
+- Tests now check each wording, the rejection notice shown once, and `scan_override` counted among approvals.
+- Each of the five mutations fails a test (run by the implementer).
+- The leftovers are wording, so one more scoped round runs without asking (the owner's rule).
+
+### Re-check
+
+Witnessed: 2026-10-29 13:28 EDT, by a fresh agent (blind). Commit: a764f192 + uncommitted diff and untracked `AuthorNotices.tsx`, `SubmissionScreen.tsx`, `scan-actions.test.ts` (sha256 of diff+untracked 73a8d1038d55…eebe7, same at start and end). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Removed, submitted: read, withdraw; moderators decide | no | confirmed | member checks read |
+| 2 | Changes requested (`notMemberChanges`) | no | confirmed | `status.ts`; `requireMember` on resubmit and edits |
+| 3 | Their draft (`notMemberDraft`) | no | confirmed | true; remark: doesn't mention Withdraw, which the editor offers |
+| 4 | Approved (`notMemberApproved`) | no | confirmed | `publish.ts` |
+| 5 | Published (`notMemberPublished`) | no | confirmed | `status.ts`; `proposals.ts` |
+| 6 | Rejected, removed: rejoin for a new draft | no | confirmed | `drafts.ts` |
+| 7 | The rejection once | no | confirmed | the count test |
+| 8 | Three languages | no | confirmed | diff read; parity tests |
+| 9 | Each wording's test fails without it | no | confirmed | 8 mutations, one test each |
+| 10 | `scan_override` counted | no | confirmed | mutation → the test fails |
+| 11 | Typecheck, lint | no | confirmed | exit 0 |
+| 12 | Unit | no | confirmed | 3779 passed |
+| 13 | Build | no | confirmed | exit 0 |
+| 14 | e2e chromium | no | confirmed | 13 passed |
+| 15 | e2e phone | no | confirmed | 16 passed |
+
+**Overall:** met.
+
+### Re-check
+
+Witnessed: 2026-10-29 13:40 EDT, by a fresh agent (adversarial). Commit: a764f192 + uncommitted diff and untracked `AuthorNotices.tsx`, `SubmissionScreen.tsx`, `scan-actions.test.ts`. Machine: macOS 27.0, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Task tests, i18n, no regression | no | confirmed | 493 passed; the copy's 3 `reset-setup` failures are `pnpm exec` refusing a scratch copy |
+| 2 | Removed author's draft | no | confirmed | matrix; mutation → a test fails |
+| 3 | Changes requested, removed | no | confirmed | matrix; three mutations fail |
+| 4 | Submitted, removed | no | confirmed | a stale one can still be rejected or sent back |
+| 5 | `notMemberApproved` for every approved one | no | partly | a stale approved proposal: "a moderator can still release it" is false (rebase first); the member's `approved` text says the same |
+| 6 | `notMemberPublished` | no | confirmed | matrix; mutation → a test fails |
+| 7 | Rejected, removed | no | confirmed | two mutations fail |
+| 8 | Archived, removed | no | confirmed | two mutations fail |
+| 9 | `scan_override` | no | confirmed | mutation → the test fails |
+| 10 | Someone else, personal workspace | no | confirmed | matrix |
+| 11 | Three languages, ICU, glossary | no | partly | fr `rejectNotMember` "Le refus" where the glossary has rejeter ("Un rejet") |
+| 12 | Nothing contradicts or repeats | no | partly | row 5 |
+| 13 | Tests fail when each behaviour goes | no | confirmed | 11 mutations |
+
+**Overall:** not met: rows 5, 11 (wording). Fixed since: an approved stale proposal says it can't be released before a rebase, for a removed author (`notMemberApprovedStale`: they'd need to rejoin; a reviewer can send it back) and a member (`approvedStale`); fr `rejectNotMember` reads "Un rejet est définitif…"; `notMemberDraft` says they can withdraw it too; pt and fr use the glossary's "fazer rebase" and "faire un rebase". Tests for both stale wordings fail when undone (run by the implementer). Unit suite 3779 passed. Wording only: one more scoped round, under the owner's rule.
+
+### Re-check
+
+Witnessed: 2026-10-29 13:41 EDT, by a fresh agent (blind, scoped: wording). Commit: 370e4714 + uncommitted diff (sha256 of `git diff` + untracked files 06035cbe…5759e5, the same at start 13:36 and end 13:41). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `notMemberApprovedStale` true for a removed author | yes | confirmed | `publish.ts` `requireCurrent`; rebase needs membership; withdraw doesn't; `request_changes` from approved |
+| 2 | An approved stale proposal tells a member it needs a rebase | yes | partly | a self-approved one (personal workspace) still says "It's ready to release." |
+| 3 | `notMemberDraft` mentions withdrawing | yes | confirmed | `canWithdraw`; no member check |
+| 4 | fr `rejectNotMember` | yes | confirmed | read |
+| 5 | pt and fr say the same, glossary | yes | confirmed | read |
+| 6 | Each test fails without its behaviour | yes | confirmed | four mutations |
+| 7 | Typecheck, lint, unit | no | confirmed | exit 0; 3779 passed |
+| 8 | Build, desktop e2e | no | confirmed | 13 passed |
+| 9 | Phone e2e | no | confirmed | 16 passed |
+
+**Overall:** not met: row 2.
+
+### Re-check
+
+Witnessed: 2026-10-29 13:41 EDT, by a fresh agent (adversarial). Commit: 370e4714 + uncommitted diff and untracked `AuthorNotices.tsx`, `SubmissionScreen.tsx`, `scan-actions.test.ts` (sha1 of diff+untracked 48523946f19d). Machine: macOS 27.0, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Task tests, i18n parity, ICU | no | confirmed | 666 passed |
+| 2 | Removed author, approved stale | no | confirmed | matrix; mutation → the test fails |
+| 3 | Member, approved stale | no | confirmed | matrix; two mutations fail |
+| 4 | The same in a personal workspace | no | not met | self-approved stale: "It's ready to release." under the bar |
+| 5 | A removed author's draft: withdraw | no | confirmed | two mutations fail |
+| 6 | fr rejection texts | no | partly | nothing tests fr `rejectNotMember` |
+| 7 | Three languages | no | confirmed | glossary, punctuation |
+| 8 | Nothing contradicts or repeats (63 cases) | no | partly | row 4; and, older, a released, rejected or archived proposal still shows as out of date |
+| 9 | Tests fail when each behaviour goes | no | partly | the panel mock is always stale, so an up-to-date proposal is untested |
+
+**Overall:** not met: rows 4, 6, 8, 9. Fixed since:
+- A self-approved stale proposal says it can't be released before a rebase, and can still be withdrawn (`selfApprovedStale`, three languages).
+- A proposal that's released, rejected or archived no longer shows as out of date: no stale badge, notice or proposal bar, on either route.
+- The panel mock can be set per test.
+- New tests: the self-approved stale wording; no rebase talk once released, rejected or archived (author and someone else); an up-to-date approved proposal is "ready to release"; the French `rejectNotMember`.
+- Each of the four mutations fails a test (run by the implementer).
+- Unit suite 3782 passed; proposals, review, rmk, personal-workspace and withdraw e2e passed (14).
+
+The owner asked for one more round (2026-10-29).
+
+### Re-check
+
+Witnessed: 2026-10-29 13:51 EDT, by a fresh agent (blind, scoped). Commit: 370e4714 + uncommitted diff and untracked `AuthorNotices.tsx`, `SubmissionScreen.tsx`, `scan-actions.test.ts` (sha256 of `git diff` + untracked files 012707b7…49b0ed, the same at start 13:45 and end 13:50). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Self-approved stale: `selfApprovedStale` | yes | confirmed | `publish.ts` `requireCurrent`; rebase and withdraw from approved |
+| 2 | Three languages, glossary | yes | confirmed | read |
+| 3 | The proposal bar only while open | yes | confirmed | mutation → the test fails |
+| 4 | The screen's stale badge and notice only while open | yes | confirmed | mutation → the test fails |
+| 5 | Test: self-approved stale | yes | confirmed | mutation → it fails |
+| 6 | Test: up-to-date approved | yes | confirmed | mutation → it fails |
+| 7 | Test: French `rejectNotMember` | yes | confirmed | mutations → it fails |
+| 8 | Typecheck, lint, unit | no | confirmed | exit 0; 3782 passed |
+| 9 | Build, desktop e2e | no | confirmed | 21 passed (8 files, rmk included) |
+| 10 | Phone sweep | no | confirmed | 16 passed |
+
+**Overall:** met.
+
+### Re-check
+
+Witnessed: 2026-10-29 13:50 EDT, by a fresh agent (adversarial). Commit: 370e4714 + uncommitted diff and untracked `AuthorNotices.tsx`, `SubmissionScreen.tsx`, `scan-actions.test.ts` (sha1 of diff+untracked df634f918b49, the same at start and end). Machine: macOS 27.0, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Unit, lint, typecheck | no | confirmed | 3779 passed (the copy's 3 `reset-setup` failures are `pnpm exec` in a scratch copy) |
+| 2 | Self-approved stale wording | no | confirmed | matrix; mutation → the test fails |
+| 3 | The bar only while open | no | confirmed | mutation → the test fails |
+| 4 | The badge and notice only while open | no | partly | the badge's filter alone fails no test |
+| 5 | Hiding it for closed statuses hides nothing needed | no | confirmed | rejected is final; a restored one is a draft and shows stale again |
+| 6 | Up-to-date approved | no | confirmed | mutation → the test fails |
+| 7 | French `rejectNotMember` | no | confirmed | mutation → the test fails |
+| 8 | Three languages | no | confirmed | read; parity |
+| 9 | Nothing contradicts, every case on both routes | no | not met | older: in a personal workspace the proposal bar's stale text says "to be reviewed again" under "personal workspaces aren't reviewed"; on an approved stale one the review page's notice says "approving it now would undo…" where the release is what's blocked |
+
+**Overall:** not met: rows 4 and 9. Fixed since: a test that a released, rejected or archived proposal shows no stale badge, and that an open one does; it fails when the badge filter goes (run by the implementer). Row 9's two findings are in the proposal bar's and the review page's older wording (feature 017/131), shown the same before this task.
+
+On the owner's word (2026-10-29) both older wordings are fixed here too, in three languages:
+- In a personal workspace, an out-of-date proposal's bar says resubmitting approves it again (`editor.proposal.stalePersonal`), not "to be reviewed again". `ProposalBar` takes `personal`, from the page and the editor.
+- On an approved out-of-date proposal the review page's notice says releasing it would undo what the newer version changed, and that it waits on the author's rebase (`review.staleApproved`).
+
+Each has a test that fails when undone (run by the implementer). Unit suite: 3782 passed. Proposals, personal-workspace and rmk e2e: 10 passed. Re-checked below.
+
+### Re-check
+
+Witnessed: 2026-10-29 14:05 EDT, by a fresh agent (blind, scoped). Commit: 370e4714 + uncommitted diff and untracked `AuthorNotices.tsx`, `SubmissionScreen.tsx`, `scan-actions.test.ts` (sha256 of `git diff` + untracked files 8158946a…f4f958, the same at start 14:01 and end 14:05; 23 entries in `git status --short` both times). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | No stale badge or bar once released, rejected or archived; once when open | yes | confirmed | three mutations → tests fail |
+| 2 | `stalePersonal` in a personal workspace, `staleReview` elsewhere | yes | confirmed | `status.ts`; `submissions.ts` self-approval |
+| 3 | `personal` passed from `AuthorNotices` and `DraftEditor`, tested | yes | partly | the editor's never takes effect (it shows only draft and changes requested), so no test can cover it |
+| 4 | `staleApproved` on the review page | yes | confirmed | `publish.ts` `requireCurrent`; mutation → the test fails |
+| 5 | Three languages, glossary | yes | confirmed | read |
+| 6 | Typecheck, lint, unit, build, e2e | no | confirmed | 3782 passed; 22 chromium, 16 phone |
+
+**Overall:** not met: row 3.
+
+### Re-check
+
+Witnessed: 2026-10-29 14:07 EDT, by a fresh agent (adversarial, scoped). Commit: 370e4714 + uncommitted diff and untracked `AuthorNotices.tsx`, `SubmissionScreen.tsx`, `scan-actions.test.ts` (sha1 of diff+untracked 3619189bfee4, the same at start and end). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Unit, lint, typecheck | no | confirmed | 669 passed; clean |
+| 2 | `stalePersonal` and `staleReview` | no | confirmed | matrix; three mutations fail |
+| 3 | `DraftEditor` passes `personal` | no | confirmed | no visible effect (as row 3 above) |
+| 4 | `staleApproved` | no | confirmed | matrix; mutation → the test fails |
+| 5 | No stale state once closed | no | confirmed | two mutations fail |
+| 6 | `selfApprovedStale` and `approvedStale` | no | confirmed | matrix; mutation → the test fails |
+| 7 | Three languages | no | confirmed | read; the untranslated test catches English left in pt |
+| 8 | Nothing contradicts | no | not met | personal, sent back after a rebase: "Edit the files, then Resubmit for review." under the bar's "resubmitting it approves it again" (older `feedback.mine`) |
+| 9 | Nothing repeats | no | partly | "personal workspaces aren't reviewed" in the bar and in the notice under it |
+
+**Overall:** not met: rows 8, 9 (wording). Fixed since:
+- `stalePersonal` ends at "…and resubmitting it approves it again." The notice below says why, and the test checks the clause appears once.
+- In a personal workspace the feedback notice says "Edit the files, then Resubmit: it's approved again at once." (`feedback.minePersonal`), on the page and in the editor. Elsewhere it keeps "Resubmit for review".
+- The editor no longer passes `personal` to the proposal bar, where it could never take effect.
+- All three languages. The tests fail when the page's or the editor's wording is undone (run by the implementer).
+- Unit suite: 3783 passed. Wording only: one more scoped round, under the owner's rule.
+
+### Re-check
+
+Witnessed: 2026-10-29 14:14 EDT, by a fresh agent (blind, scoped). Commit: 370e4714 + uncommitted diff and untracked `AuthorNotices.tsx`, `SubmissionScreen.tsx`, `scan-actions.test.ts` (sha256 of `git diff` + untracked files 74659726…e4af, the same at start 14:09 and end 14:14; 23 entries in `git status --short`). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `stalePersonal` shortened; "aren't reviewed" once | yes | confirmed | `status.ts`; `submissions.ts` self-approval; mutation → the test fails |
+| 2 | `minePersonal` on the page and in the editor; "Resubmit for review" elsewhere | yes | confirmed | three mutations → the test fails |
+| 3 | The personal button's own word | yes | confirmed | `SubmitDialogs.tsx` `label`/`forReview` |
+| 4 | The editor no longer passes `personal` to the bar | yes | confirmed | it never took effect there |
+| 5 | Three languages, `i18n.md` | yes | confirmed | read; i18n tests pass |
+| 6 | The rest holds | no | confirmed | typecheck 0; lint 0 errors; 3783 passed; build; 22 chromium, 16 phone |
+
+**Overall:** met.
+
+### Re-check
+
+Witnessed: 2026-10-29 14:13 EDT, by a fresh agent (adversarial, scoped). Commit: 370e4714 + uncommitted diff and untracked `AuthorNotices.tsx`, `SubmissionScreen.tsx`, `scan-actions.test.ts` (sha1 of diff+untracked a49095e78321, the same at start and end; 23 entries in `git status --short`). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Task tests, lint, typecheck | no | confirmed | 486 passed; clean |
+| 2 | A personal author sent back: "Resubmit: it's approved again at once", page and editor | no | confirmed | matrix (7 statuses × 4 authors × stale × 3 languages); self-approval on resubmit |
+| 3 | A shared workspace keeps "Resubmit for review" | no | confirmed | matrix |
+| 4 | Bar, feedback and read-only notice agree; nothing repeats | no | confirmed | matrix |
+| 5 | The editor's `personal` removed, nothing visible changes | no | confirmed | matrix |
+| 6 | Tests fail when each behaviour goes | no | confirmed | eight mutations |
+| 7 | Three languages | no | confirmed | read |
+
+**Overall:** met. Remarks, older and outside this task: a personal-workspace item in `submitted` (hard to reach: it's self-approved in the same call) still reads "Submitted for review…"; fr "l'approuve encore" could read "l'approuve de nouveau".

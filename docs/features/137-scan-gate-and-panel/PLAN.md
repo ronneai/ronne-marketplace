@@ -69,7 +69,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     the kind (audit, data download, the four databases); the e2e covers accepting a risk and asking
     for a fix; the phone sweep passes; the adversarial pass also re-checks task 4's last three fixes.
 
-- [ ] **8. One screen for reviewers and authors** (owner, 2026-10-29). [risky]
+- [x] **8. One screen for reviewers and authors** (owner, 2026-10-29). [risky]
   - The author's submission page shows the review page's screen (`SubmissionScreen`): the same
     header, tabs, Overview, Files viewer, Conversation and Security scan, with only the actions
     allowed changing: a reviewer's decisions; the author's Withdraw, Edit files (while it may be
@@ -83,6 +83,10 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* the docs render tests pass, and every new helper's link lands on a real section.
 
 ## Notes
+
+- **From task 8's last passes (older wording, outside this task):** a personal-workspace item in
+  `submitted` (hard to reach: Submit approves it in the same call) still reads "Submitted for
+  review…"; in French, `stalePersonal`'s "l'approuve encore" could read "l'approuve de nouveau".
 
 - **From task 3's re-check (low, root only):** the exemption looks at who wrote the submission,
   not how it reached the personal workspace. An author's submission scanned high in a team scope,

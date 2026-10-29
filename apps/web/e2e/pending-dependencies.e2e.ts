@@ -97,10 +97,8 @@ test("a bundle and its skill are reviewed together, and released together (112)"
 
   const author = await signedIn(browser, E2E_USERS.pendingAuthor);
   await author.goto(`/submissions/${kitId}`);
-  // In the form, the dependency carries its own badge: approved, not released yet.
-  await expect(
-    author.getByLabel(`Waits on @${E2E_SCOPE}/pd-skill (pending release)`, { exact: true }),
-  ).toBeVisible();
+  // On the Overview, as the reviewer sees it (137): approved, not released yet.
+  await expect(author.getByText(`Waits on @${E2E_SCOPE}/pd-skill (pending release)`)).toBeVisible();
   // Publish takes the approved skill with it.
   await author.getByRole("button", { name: "Publish", exact: true }).click();
   const dialog = author.getByRole("dialog", { name: new RegExp(`Publish @${E2E_SCOPE}/pd-kit`) });

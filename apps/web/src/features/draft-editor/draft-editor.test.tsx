@@ -5,6 +5,7 @@ import { treeRows } from "@/components/code/FileTree";
 import { languageFor } from "@/components/code/languages";
 import { SubmissionNotFoundError } from "@/server/domains/submissions/exceptions/errors";
 import type { Draft } from "@/server/domains/submissions/models/submission";
+import { inLocaleAsync } from "@/test/intl";
 import { changesOf, type FilesState, filesReducer, isDirty, newPathProblem } from "./files";
 import type { EditorFile, GroupMember } from "./types";
 
@@ -24,6 +25,8 @@ vi.mock("next/navigation", () => ({
     throw new Error("NEXT_NOT_FOUND");
   },
   useRouter: () => ({ refresh: vi.fn() }),
+  usePathname: () => "/submissions/01J0000000000000000000000A",
+  useSearchParams: () => new URLSearchParams(),
 }));
 vi.mock("./actions", () => ({}));
 // A submitted item's page also reads its review and scan (137).
@@ -31,6 +34,21 @@ const review = vi.hoisted(() => ({ getReview: vi.fn(), countDependents: vi.fn(as
 vi.mock("@/server/domains/submissions/actions/reviews", () => review);
 const scans = vi.hoisted(() => ({ reviewScan: vi.fn() }));
 vi.mock("@/server/domains/scans/actions/scans", () => scans);
+// What goes out with an approved one (112): nothing else, nothing blocking.
+vi.mock("@/features/reviews/release-group", () => ({
+  releaseGroupFor: vi.fn(async () => ({ blocked: null, goesWith: [] })),
+}));
+// A change proposal's panel (017): out of date, onto 1.0.1.
+const proposals = vi.hoisted(() => ({
+  proposalPanel: vi.fn(
+    async (): Promise<{ baseVersion: string; stale: string | null; conflicts: [] }> => ({
+      baseVersion: "1.0.0",
+      stale: "1.0.1",
+      conflicts: [],
+    }),
+  ),
+}));
+vi.mock("@/server/domains/submissions/actions/proposals", () => proposals);
 
 const { DraftEditor } = await import("./DraftEditor");
 const { afterSubmit, GroupList, SubmitOutcome, useSubmitWords, WithdrawDialog } = await import(
@@ -448,7 +466,7 @@ describe("the draft page", () => {
     expect(html).toContain("Changes requested by Mo Moderator");
     expect(html).toContain("Name the tabs rule.");
     expect(html).toContain("Edit the files, then Resubmit for review.");
-    expect(html).toContain('href="#conversation"');
+    expect(html).toContain('href="/submissions/d?tab=conversation"');
   });
 
   it("says a rejection is final, with the reason, and not that it can be withdrawn (058)", () => {
@@ -721,14 +739,17 @@ describe("the scan on a submitted item's page (137)", () => {
     dismissals: [],
     canDismiss: true,
   };
-  const page = async (mine: boolean) => {
-    drafts.viewSubmission.mockResolvedValue({
-      ...draft(),
-      status: "submitted",
-      mine,
-      member: mine,
-    });
+  const page = async (mine: boolean, query: Record<string, string> = {}) => {
+    const submitted = { ...draft(), status: "submitted" as const };
+    drafts.viewSubmission.mockResolvedValue({ ...submitted, mine, member: mine });
     review.getReview.mockResolvedValue({
+      submission: { ...submitted, authorName: "Ada" },
+      previous: null,
+      changes: [],
+      unreleased: [],
+      issues: [],
+      decisions: [],
+      dependents: [],
       mine,
       revisions: [{ id: "r1", number: 1 }],
       current: { number: 1, files: [] },
@@ -739,23 +760,444 @@ describe("the scan on a submitted item's page (137)", () => {
       gate: { blocked: true, by: "score", score: 90, threshold: 70 },
       can: { decide: false, override: false, comment: true, publish: false, sendBack: false },
     });
-    scans.reviewScan.mockResolvedValue(finished);
+    // The server never lets an author mark their own submission's findings.
+    scans.reviewScan.mockResolvedValue({ ...finished, canDismiss: !mine });
     return renderToStaticMarkup(
-      await DraftPage({ params: Promise.resolve({ id: "01J0000000000000000000000A" }) }),
+      await DraftPage({
+        params: Promise.resolve({ id: "01J0000000000000000000000A" }),
+        searchParams: Promise.resolve(query),
+      }),
     );
   };
+  const base = "/submissions/01J0000000000000000000000A";
 
-  it("gives the author their read-only view: the findings under the card, what to do", async () => {
+  it("gives the author the review page's screen: its tabs, Overview first (137)", async () => {
     const html = await page(true);
+    for (const [tab, label] of [
+      ["", "Overview"],
+      ["?tab=files", "Files (0)"],
+      ["?tab=conversation", "Conversation (0)"],
+      ["?tab=scan", "Security scan (1)"],
+    ])
+      expect(html).toContain(`href="${base}${tab}">${label}<`);
+    expect(html).toMatch(/aria-current="page"[^>]*>Overview</);
+    // The way back is My submissions, and nobody's decisions show on the author's page.
+    expect(html).toContain('href="/submissions"');
+    expect(html).not.toContain("What do these do?");
+    // The card says what to do, and its findings are on their tab.
     expect(html).toContain("Change the files and send it again.");
-    expect(html).toContain("Remove it.");
-    expect(html).not.toContain("Inspect 1 finding");
+    expect(html).toContain(`href="${base}?tab=scan"`);
+    expect(html).not.toContain("Remove it.");
   });
 
-  it("gives anyone else a link to the review page's tab, not the author's view", async () => {
+  it("lists the author's findings on the Security scan tab, read-only", async () => {
+    const html = await page(true, { tab: "scan" });
+    expect(html).toContain("Remove it.");
+    expect(html).not.toContain('aria-label="Mark false positive: ');
+  });
+
+  it("offers Edit files while the author may change it, and opens the editor with it", async () => {
+    const asked = { ...draft(), status: "changes_requested" as const };
+    drafts.viewSubmission.mockResolvedValue({ ...asked, mine: true, member: true });
+    review.getReview.mockResolvedValue({
+      submission: { ...asked, authorName: "Ada" },
+      previous: null,
+      changes: [],
+      unreleased: [],
+      issues: [],
+      decisions: [],
+      dependents: [],
+      mine: true,
+      revisions: [{ id: "r1", number: 1 }],
+      current: { number: 1, files: [] },
+      events: [],
+      flags: [],
+      published: [],
+      proposal: null,
+      gate: { blocked: false, by: null },
+      can: { decide: false, override: false, comment: true, publish: false, sendBack: false },
+    });
+    scans.reviewScan.mockResolvedValue({ ...finished, scan: null });
+    const render = async (query: Record<string, string>) =>
+      renderToStaticMarkup(
+        await DraftPage({
+          params: Promise.resolve({ id: "01J0000000000000000000000A" }),
+          searchParams: Promise.resolve(query),
+        }),
+      );
+    const screen = await render({});
+    expect(screen).toContain(`href="${base}?edit=1"`);
+    expect(screen).toContain("Edit files");
+    const editor = await render({ edit: "1" });
+    expect(editor).toContain("Back to the submission");
+    expect(editor).toContain("Resubmit for review");
+    expect(editor).not.toContain(`href="${base}?tab=scan"`);
+  });
+
+  it("gives anyone else the screen without the author's view", async () => {
     const html = await page(false);
     expect(html).not.toContain("Change the files and send it again.");
-    expect(html).not.toContain("Mark false positive");
-    expect(html).toContain('href="/reviews/01J0000000000000000000000A?tab=scan"');
+    expect(html).not.toContain("Edit files");
+  });
+});
+
+describe("the author's submission page: the review page's screen, the author's actions (137)", () => {
+  beforeEach(() => vi.clearAllMocks());
+  const ID = "01J0000000000000000000000A";
+  const decision = (name: string, allowed: boolean) => ({
+    decision: name,
+    allowed,
+    reason: allowed ? null : "Not yours to decide.",
+    why: allowed ? null : { code: "own_decide" },
+  });
+  const open = async ({
+    status = "submitted",
+    mine = true,
+    member = true,
+    query = {},
+    feedback = false,
+    decisions = [],
+    stale = false,
+    proposal = false,
+    events: given,
+    publish = false,
+    personal = false,
+  }: {
+    proposal?: boolean;
+    /** The conversation, in place of the one feedback gives. */
+    events?: { kind: string; body: string | null }[];
+    publish?: boolean;
+    /** In the author's own personal workspace (114). */
+    personal?: boolean;
+    status?: string;
+    mine?: boolean;
+    member?: boolean;
+    query?: Record<string, string>;
+    feedback?: boolean;
+    decisions?: ReturnType<typeof decision>[];
+    stale?: boolean;
+  }) => {
+    const base = draft();
+    const submission = {
+      ...base,
+      workspace: personal ? { ...base.workspace, ownerId: base.authorId } : base.workspace,
+      status,
+      proposal: proposal
+        ? { itemId: "i1", baseVersionId: "v1", baseVersion: "1.0.0", conflicts: [] }
+        : null,
+    };
+    drafts.viewSubmission.mockResolvedValue({ ...submission, mine, member });
+    const events = given
+      ? given.map((e, i) => ({
+          id: `e${i}`,
+          ...e,
+          actor: { id: "m", name: "Mo Moderator" },
+          createdAt: new Date(T1),
+        }))
+      : feedback
+        ? [
+            {
+              id: "e1",
+              kind: "request_changes",
+              body: "Name the tabs rule.",
+              actor: { id: "m", name: "Mo Moderator" },
+              createdAt: new Date(T1),
+            },
+          ]
+        : [];
+    review.getReview.mockResolvedValue({
+      submission: { ...submission, authorName: "Ada" },
+      mine,
+      revisions: [{ id: "r1", number: 1 }],
+      current: {
+        number: 1,
+        files: [
+          {
+            path: "SKILL.md",
+            encoding: "utf8",
+            content: "Check the layout.\n",
+            size: 18,
+            executable: false,
+          },
+        ],
+      },
+      previous: null,
+      changes: [],
+      unreleased: [],
+      issues: [],
+      events,
+      flags: [],
+      published: [],
+      proposal: stale ? { baseVersion: "1.0.0", stale: "1.0.1", suggested: null } : null,
+      decisions,
+      dependents: [],
+      gate: { blocked: false, by: null },
+      can: { decide: false, override: false, comment: true, publish, sendBack: false },
+    });
+    scans.reviewScan.mockResolvedValue({
+      scan: null,
+      canRequest: false,
+      dismissals: [],
+      canDismiss: false,
+    });
+    return renderToStaticMarkup(
+      await DraftPage({
+        params: Promise.resolve({ id: ID }),
+        searchParams: Promise.resolve(query),
+      }),
+    );
+  };
+  const isScreen = (html: string) => html.includes(`href="/submissions/${ID}?tab=files"`);
+  const isEditor = (html: string) => html.includes("Back to the submission");
+
+  it("opens the editor with ?edit=1 only while the author may change it", async () => {
+    const edit = { edit: "1" };
+    expect(isEditor(await open({ status: "changes_requested", query: edit }))).toBe(true);
+    for (const shown of [
+      { status: "submitted" },
+      { status: "approved" },
+      { status: "published" },
+      { status: "rejected" },
+      { status: "changes_requested", member: false },
+      { status: "changes_requested", mine: false },
+    ]) {
+      const html = await open({ ...shown, query: edit });
+      expect(isEditor(html), JSON.stringify(shown)).toBe(false);
+      expect(isScreen(html), JSON.stringify(shown)).toBe(true);
+    }
+  });
+
+  it("says why it can't be changed, or why it was sent back, above the tabs", async () => {
+    expect(await open({})).toContain("Submitted for review");
+    const sent = await open({ status: "changes_requested", feedback: true });
+    expect(sent).toContain("Name the tabs rule.");
+    expect(sent).toContain(`href="/submissions/${ID}?tab=conversation"`);
+    // No longer a member: what they can do, and why it was sent back.
+    const removed = await open({ status: "changes_requested", feedback: true, member: false });
+    expect(removed).toContain("no longer a member");
+    expect(removed).toContain("Name the tabs rule.");
+    expect(removed).not.toContain("Edit files");
+    expect(removed).not.toContain("Edit the files, then Resubmit for review.");
+  });
+
+  it("shows the author the files, the conversation and Publish, as a reviewer sees them", async () => {
+    expect(await open({ query: { tab: "files" } })).toContain("Check the layout.");
+    expect(
+      await open({
+        query: { tab: "conversation" },
+        events: [{ kind: "comment", body: "Looks right." }],
+      }),
+    ).toContain("Looks right.");
+    expect(await open({ status: "approved", publish: true })).toMatch(/>Publish</);
+    expect(await open({ status: "approved" })).not.toMatch(/>Publish</);
+  });
+
+  it("tells a removed member only what's left to them, as its status allows", async () => {
+    const submitted = await open({ member: false });
+    expect(submitted).toContain("its moderators can still decide it");
+    // Sent back: nobody decides it until it's resubmitted, which needs them back.
+    const sent = await open({ status: "changes_requested", member: false });
+    expect(sent).toContain("It&#x27;s back with you: you can read it and withdraw it");
+    expect(sent).not.toContain("can still decide it");
+    const approved = await open({ status: "approved", member: false });
+    expect(approved).toContain(
+      "It&#x27;s approved. You can read it and withdraw it, but not release it.",
+    );
+    expect(approved).not.toContain("can still decide it");
+    // Approved, but out of date: nobody releases it before a rebase, member or not.
+    const stale = await open({ status: "approved", member: false, proposal: true, stale: true });
+    expect(stale).toContain(
+      "it can&#x27;t be released until it&#x27;s rebased, which needs you back",
+    );
+    expect(stale).not.toContain("a moderator can still release it");
+    const staleMine = await open({ status: "approved", proposal: true, stale: true });
+    expect(staleMine).toContain(
+      "It can&#x27;t be released until you rebase it onto the newer version.",
+    );
+    expect(staleMine).not.toContain("by you or a moderator");
+    // Their draft, in the editor: not before any moderator.
+    const own = await open({ status: "draft", member: false });
+    expect(own).toContain("You can read it and withdraw it, but not change or submit it.");
+    expect(own).not.toContain("can still decide it");
+    const published = await open({ status: "published", member: false });
+    expect(published).toContain("you can&#x27;t withdraw it. To propose a change,");
+    expect(published).not.toContain("can still decide it");
+    expect(published).not.toContain("You can read it and withdraw it");
+  });
+
+  it("tells a removed member a rejection is final", async () => {
+    const html = await open({
+      status: "rejected",
+      member: false,
+      events: [{ kind: "reject", body: "Out of scope." }],
+    });
+    // Final, once: a new draft there needs them back, so it says how.
+    expect(html.match(/Rejected is final/g)?.length).toBe(1);
+    expect(html).toContain("Rejected is final. To try again with a new draft,");
+    expect(html).toContain("Ask to join global");
+    expect(html).not.toContain("no longer a member");
+    expect(html).not.toContain("can still decide it");
+    const fr = await inLocaleAsync("fr", () =>
+      open({ status: "rejected", member: false, events: [{ kind: "reject", body: "Out." }] }),
+    );
+    expect(fr).toContain("Un rejet est définitif. Pour réessayer avec un nouveau brouillon,");
+    const member = await open({ status: "rejected", events: [{ kind: "reject", body: "Out." }] });
+    expect(member).toContain("Rejected is final: start a new draft to try again.");
+  });
+
+  it("says an approval in the author's personal workspace was theirs, with its helper", async () => {
+    const html = await open({
+      status: "approved",
+      personal: true,
+      events: [{ kind: "self_approve", body: null }],
+    });
+    expect(html).toContain("Approved by you: personal workspaces aren&#x27;t reviewed.");
+    expect(html).toContain("Why isn&#x27;t it reviewed?");
+    expect(await open({ status: "approved", events: [{ kind: "approve", body: null }] })).toContain(
+      "Approved.",
+    );
+    // The latest approval decides: root's override after their own isn't "by you".
+    const overridden = await open({
+      status: "approved",
+      personal: true,
+      events: [
+        { kind: "self_approve", body: null },
+        { kind: "override", body: "Root's call." },
+        { kind: "comment", body: "Noted." },
+      ],
+    });
+    expect(overridden).not.toContain("Approved by you");
+    expect(overridden).toContain("Approved.");
+    // Root's approval past the scan counts the same.
+    const scanned = await open({
+      status: "approved",
+      personal: true,
+      events: [
+        { kind: "self_approve", body: null },
+        { kind: "scan_override", body: "Reviewed by hand." },
+      ],
+    });
+    expect(scanned).not.toContain("Approved by you");
+  });
+
+  it("gives someone else none of the author's notices", async () => {
+    const other = await open({ mine: false, status: "changes_requested", feedback: true });
+    expect(other).not.toContain("Someone else's submission.");
+    expect(other).not.toContain("Name the tabs rule.");
+    expect(other).not.toContain("Submitted for review");
+  });
+
+  it("says an out-of-date proposal approved by its author waits on a rebase, not ready", async () => {
+    const html = await open({
+      status: "approved",
+      personal: true,
+      proposal: true,
+      stale: true,
+      events: [{ kind: "self_approve", body: null }],
+    });
+    expect(html).toContain("It can&#x27;t be released until you rebase it onto the newer version.");
+    expect(html).not.toContain("ready to release");
+    // Nobody reviews it there: resubmitting approves it again.
+    expect(html).toContain("and resubmitting it approves it again.");
+    // Said once, by the notice under the bar.
+    expect(html.match(/personal workspaces aren&#x27;t reviewed/g)?.length).toBe(1);
+    expect(html).not.toContain("to be reviewed again");
+    expect(await open({ status: "approved", proposal: true, stale: true })).toContain(
+      "to be reviewed again",
+    );
+  });
+
+  it("tells the author in a personal workspace that resubmitting approves it, on the page and in the editor", async () => {
+    const rebased = {
+      status: "changes_requested",
+      personal: true,
+      proposal: true,
+      events: [{ kind: "rebase", body: "1.0.1" }],
+    };
+    for (const html of [await open(rebased), await open({ ...rebased, query: { edit: "1" } })]) {
+      expect(html).toContain("Edit the files, then Resubmit: it&#x27;s approved again at once.");
+      expect(html).not.toContain("Resubmit for review.");
+    }
+    expect(await open({ ...rebased, personal: false })).toContain(
+      "Edit the files, then Resubmit for review.",
+    );
+  });
+
+  it("says nothing of a rebase once the proposal is released or closed", async () => {
+    for (const status of ["published", "rejected", "withdrawn"]) {
+      for (const mine of [true, false]) {
+        const html = await open({ status, mine, proposal: true, stale: true });
+        expect(html, `${status} ${mine}`).not.toContain("has been released since this proposal");
+        expect(html, `${status} ${mine}`).not.toContain("Rebase onto");
+        // Nor the header's stale badge.
+        expect(html, `${status} ${mine}`).not.toContain("has been released since: rebase first.");
+      }
+    }
+  });
+
+  it("calls an up-to-date approved proposal ready to release", async () => {
+    proposals.proposalPanel.mockResolvedValueOnce({
+      baseVersion: "1.0.0",
+      stale: null,
+      conflicts: [],
+    });
+    const html = await open({ status: "approved", proposal: true });
+    expect(html).toContain("ready to release, by you or a moderator");
+    expect(html).not.toContain("Rebase onto");
+  });
+
+  it("has the author's proposal bar, and says once that the proposal is out of date", async () => {
+    const html = await open({ proposal: true, stale: true });
+    expect(html).toContain("Rebase onto 1.0.1");
+    expect(html).toContain("1.0.1 has been released since: rebase first.");
+    expect(html.match(/1\.0\.1 has been released since this proposal started\./g)?.length).toBe(1);
+  });
+
+  it("keeps a draft its editor alone, with no tabs", async () => {
+    const html = await open({ status: "draft" });
+    expect(isScreen(html)).toBe(false);
+    expect(html).toContain("Submit for review");
+    expect(review.getReview).not.toHaveBeenCalled();
+  });
+
+  it("offers an archived one's Restore and Delete, and no Withdraw", async () => {
+    const html = await open({ status: "withdrawn" });
+    expect(html).toContain(">Restore<");
+    expect(html).toContain("Delete for good");
+    expect(html).not.toMatch(/>Withdraw</);
+    expect(await open({})).toMatch(/>Withdraw</);
+    // No longer a member: no Restore until they rejoin, and the way to.
+    const removed = await open({ status: "withdrawn", member: false });
+    expect(removed).not.toContain(">Restore<");
+    expect(removed).not.toContain("Restore it to edit and submit it again.");
+    expect(removed).toContain("no longer a member of global: to restore it,");
+    expect(removed).toContain("Ask to join global");
+    expect(removed).toContain("Delete for good");
+  });
+
+  it("shows only the decisions someone may make there, never a row of disabled ones", async () => {
+    const theirs = await open({
+      decisions: [decision("approve", false), decision("reject", false)],
+    });
+    expect(theirs).not.toContain("What do these do?");
+    expect(theirs).not.toMatch(/>Approve</);
+    const root = await open({
+      decisions: [decision("approve", false), decision("override", true)],
+    });
+    expect(root).toContain("What do these do?");
+    expect(root).not.toMatch(/>Approve</);
+  });
+
+  it("leads someone else back to Reviews, and tells them a proposal is out of date", async () => {
+    const other = await open({ mine: false, stale: true });
+    expect(other).toContain('href="/reviews"');
+    expect(other).not.toContain('href="/submissions"');
+    expect(other).toContain("1.0.1 has been released since this proposal started.");
+    expect(other).toContain("approving it now would undo what 1.0.1 changed");
+    // Approved already: the release is what waits.
+    const approved = await open({ mine: false, status: "approved", stale: true });
+    expect(approved).toContain("releasing it now would undo what 1.0.1 changed");
+    expect(approved).not.toContain("approving it now");
+    expect(await open({})).toContain('href="/submissions"');
   });
 });
