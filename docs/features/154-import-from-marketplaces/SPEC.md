@@ -165,9 +165,9 @@ scope is shown, and the person renames or picks another scope.
 1. **Import from git, with skills.sh as a finder** (Claude, 2026-10-29, from the vendor check):
    every marketplace named stores its items in git repositories, so one importer covers them and
    doesn't depend on an undocumented API.
-2. **Imports are drafts** (owner, 2026-10-29): reviewed and scanned like everything else; there is no
+2. **Imports are drafts** (Claude, 2026-10-29): reviewed and scanned like everything else; there is no
    way around review.
-3. **No reusable licence, no import** (owner, 2026-10-29), with root's list deciding what's reusable
+3. **No reusable licence, no import** (Claude, 2026-10-29; the owner to confirm, see Open questions), with root's list deciding what's reusable
    and the licence file kept with the item.
 4. **Off by default** (Claude): the server fetches from the internet only when root says so.
 

@@ -21,7 +21,7 @@ thing, and whether to depend on it, propose a change to it instead, or keep both
   - items in the revision's own workspace;
   - never another private or personal workspace's, even when the requester could see them.
 - **Only consenting content goes to the provider:** a candidate from a private workspace is sent only
-  if that workspace consented (148); it always is the revision's own.
+  if that workspace allows AI providers (147); it always is the revision's own.
 - **The model is given** the revision (as 148) and, per candidate, its name, type, description and
   the first 8 KiB of its body file, in their own delimited blocks.
 - **The answer** gets an `overlaps` list, at most 8: the candidate's name (only one of those sent;

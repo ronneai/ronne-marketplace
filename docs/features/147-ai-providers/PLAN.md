@@ -47,20 +47,30 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* the scan's existing tests pass, with new ones for a picked provider, a deleted one
     (static) and an endpoint refused at scan time.
 
-- [ ] **7. Ronne's client.** [risky]
+- [ ] **7. Workspace consent.** [risky]
+  - `workspaces.ai_consent_at` and `ai_consent_by` (migration), the switch on a private workspace's
+    settings page (its admins and root) and on Account (the personal workspace's owner), naming the
+    providers' hosts; `workspace.ai_consent` audited.
+  - The scan job reads it when a scan starts: no consent in a private or personal workspace means
+    static, with the card's reason.
+  - *Done when:* db tests cover public, private with and without consent, personal, a switch turned
+    off while a scan is queued, and a scope moved into a private workspace, with no request reaching
+    the fake provider without consent; an e2e test turns it on for a private workspace.
+
+- [ ] **8. Ronne's client.** [risky]
   - OpenAI-compatible (with Azure's variant) and Anthropic Messages over `node:https`, pinned
     addresses, no redirects, timeout, answer cap, token counts, Ronne's short reasons.
   - *Done when:* unit tests against a local fake server cover both formats, Azure's path and header,
     a slow answer, an oversized answer cut, a 401, a 429, a body that isn't the expected JSON, and
     the provider's error body never in the reason or the logs.
 
-- [ ] **8. The AI providers tab.**
+- [ ] **9. The AI providers tab.**
   - List, dialog, Test connection, delete with "Used by", the environment row; messages in the three
     languages.
   - *Done when:* component tests and an e2e test (desktop and phone) add, test, edit and delete a
     provider and pick it in Security scan.
 
-- [ ] **9. Documentation.** The topics, sections and helpers in the spec's Documentation section, in
+- [ ] **10. Documentation.** The topics, sections and helpers in the spec's Documentation section, in
   a ronne-web branch.
   *Done when:* the docs render tests pass, and every new helper's link lands on a real section.
 

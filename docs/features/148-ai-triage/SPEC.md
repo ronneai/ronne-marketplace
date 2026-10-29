@@ -21,13 +21,9 @@ check: that is the scan's job (135, 137).
   - the item types triaged (all by default);
   - the provider and model, picked from AI providers (147);
   - the limits (below).
-- **Workspaces consent before their content leaves the instance:**
-  - `global` and other public workspaces are triaged when root turns triage on;
-  - a **private workspace** (093) is triaged only when its admins (or root) turn it on, on the
-    workspace's settings page;
-  - a **personal workspace** (114) only when its owner turns it on, on Account;
-  - the switch names the provider's host: "Items in this workspace will be sent to
-    api.example.com".
+- **Workspaces consent before their content leaves the instance**, with 147's **Allow AI providers**
+  switch (one consent for the scan and triage): `global` and other public workspaces are triaged
+  when root turns triage on; a private or personal one only once it allows AI providers.
 - **When it runs:**
   - automatically for each revision sent for review, of a triaged type, in a workspace that allows
     it (queued in the same transaction as the scan's row, run by its own job);
@@ -58,8 +54,7 @@ check: that is the scan's job (135, 137).
   - the timeout (120 s), the most output tokens (4,000);
   - a run past a limit is recorded as `limit reached`, not queued forever.
   The tab shows this month's runs and the input and output tokens the provider reported.
-- **Audit:** `settings.triage` (with which fields changed), `workspace.triage_consent` (on or off,
-  by whom), `triage.requested` (manual runs). Never the prompt or the answer.
+- **Audit:** `settings.triage` (with which fields changed), `triage.requested` (manual runs). Never the prompt or the answer.
 
 **Out** (and where it goes instead):
 - **Comparing with other items:** 149.
@@ -113,7 +108,7 @@ again when they start and end as `not allowed`. Results already stored stay.
   (null for automatic), `status`, `attempts`, `provider_kind`, `provider_host`, `model`, `summary`,
   `suggestions` (long text, JSON), `omitted_files`, `input_tokens`, `output_tokens`, `error`,
   `queued_at`, `started_at`, `finished_at`; indexes as `content_scans`.
-- `workspaces.triage_consent` (boolean, default false; `global` and public ones ignore it).
+- Consent is 147's `workspaces.ai_consent_at`; nothing new here.
 - `instance_settings`: `triage_enabled`, `triage_types`, `triage_ai_provider`, `triage_ai_model`,
   `triage_daily_limit`, `triage_author_daily_limit`, `triage_timeout`, `triage_max_output`.
 - A job, `triage`, under the scheduler's lease, as `skill_scan`.
@@ -121,13 +116,11 @@ again when they start and end as `not allowed`. Results already stored stay.
 ## Documentation
 
 - **AI triage**, a new topic in the Reviews group (`ai-triage`): what it does and doesn't
-  (`overview`), turning it on (`settings`), workspace consent (`consent`), reading suggestions
+  (`overview`), turning it on (`settings`), workspace consent (a link to `ai-providers#consent`), reading suggestions
   (`suggestions`), asking for suggestions on a draft (`drafts`), limits (`limits`), and what a model
   can get wrong (`limits-of-advice`). `topics.ts` here and in ronne-web.
-- **Workspaces** (`workspaces#settings`) and **Account**: the consent switch.
 - **Reviewing** (`review`): the Triage tab.
-- **Helpers:** the tab's "What does triage send?" → `ai-triage#overview`; the consent switch's "Where
-  does our content go?" → `ai-triage#consent`; the card's "Can I trust this?" →
+- **Helpers:** the tab's "What does triage send?" → `ai-triage#overview`; the card's "Can I trust this?" →
   `ai-triage#limits-of-advice`; the draft panel's "What are suggestions?" → `ai-triage#drafts`.
 
 ## Acceptance criteria
@@ -151,8 +144,9 @@ again when they start and end as `not allowed`. Results already stored stay.
 
 1. **Advisory, never a gate** (owner, 2026-10-29: "looking for improving the items content").
    Unlike the scan after 137, triage blocks nothing.
-2. **Private content leaves only with the workspace's consent** (Claude): root sets where content
-   may go; a private workspace's admins decide whether theirs may.
+2. **Private content leaves only with the workspace's consent** (owner, 2026-10-29): root sets
+   where content may go; a private workspace's admins decide whether theirs may, once, for the scan
+   and triage alike (147).
 3. **No tools, text out, shown only** (Claude): the only safe use of a model reading untrusted
    content is one whose answer a person reads and acts on.
 4. **Limits counted in the database** (Claude): works with several replicas before 109's shared rate
@@ -160,6 +154,4 @@ again when they start and end as `not allowed`. Results already stored stay.
 
 ## Open questions
 
-- Should the semantic security scan (135) ask the same workspace consent before sending a private
-  workspace's files? Today it doesn't; 147 or this feature could add it.
 - Apply a suggested text to the draft in one click (the author reviews and saves)?

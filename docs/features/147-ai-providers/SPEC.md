@@ -1,6 +1,6 @@
 # 147 — AI providers, set up once and shared
 
-> Milestone: M24 · Depends on: 136, 122, 106, 098, 099 · Design: [MVP §15](../../MVP/MVP.md#15-decision-log) ("AI providers", "Security scan"), [136 SPEC](../136-scanner-settings-in-web/SPEC.md) · Contracts: none changed
+> Milestone: M24 · Depends on: 136, 122, 106, 098, 099, 092, 093, 114 · Design: [MVP §15](../../MVP/MVP.md#15-decision-log) ("AI providers", "Security scan"), [136 SPEC](../136-scanner-settings-in-web/SPEC.md) · Contracts: none changed
 
 ## Goal
 
@@ -59,15 +59,26 @@ scanner never did: Ronne itself calling the model.
     provider reports, kept for 148's limits;
   - errors become short reasons written by Ronne (`timeout`, `refused`, `unreachable`,
     `rate limited`, `bad answer`), never the provider's body, which can echo the prompt.
+- **Workspaces consent before their content goes to a provider** (owner, 2026-10-29): one switch
+  per workspace, **Allow AI providers**, for every feature that sends item content to one (the
+  semantic security scan now, triage (148) and its reports (151) later):
+  - `global` and other public workspaces count as allowing;
+  - a **private workspace** (093) only when its admins (or root) turn it on, on the workspace's
+    settings page;
+  - a **personal workspace** (114) only when its owner turns it on, on Account;
+  - the switch names the hosts of the providers the features use: "Items in this workspace will be
+    sent to api.example.com"; it is off for every private and personal workspace when this lands,
+    including for semantic scans that ran without asking before (135, 136).
 - **Deleting a provider** a feature uses asks first, saying which ones; those features then have no
   provider (the scan runs static; triage stops with "No provider").
 - **Audit:** `settings.ai_provider_created`, `_changed`, `_deleted`, with the name, kind, model,
   endpoint host and `keyChange` (`set`, `replaced`, `removed`); never the key, never the full URL.
-  Choosing a provider for the scan stays in `settings.skill_scan`.
+  Choosing a provider for the scan stays in `settings.skill_scan`. `workspace.ai_consent` records
+  the switch (on or off, by whom, the hosts named).
 
 **Out** (and where it goes instead):
 - **A provider per workspace.** One list for the instance, set by root. Workspaces choose whether
-  their content may go to it (148), not where it goes.
+  their content may go to it (the consent above), not where it goes.
 - **Keys protected from a full backup.** As 136: a full backup holds `AUTH_SECRET`; the Backups topic
   says so.
 - **An external secret manager** (Vault, a cloud KMS). Later, if asked.
@@ -94,6 +105,11 @@ refused` when the check fails. The scanner builds SkillSpector's variables from 
 **Which features use it.** Each consumer registers a name and reads its own setting; the tab's "Used
 by" column and the delete warning come from that.
 
+**The scan and consent.** A revision in a private or personal workspace that hasn't allowed AI
+providers is still scanned, statically (`--no-llm`), never skipped: the static scan never leaves the
+server. The scan's card says "Static: this workspace hasn't allowed AI providers". Consent is read
+when the scan starts, so a queued scan follows a switch turned off meanwhile.
+
 ## Edge cases
 
 - **A key that no longer opens** (another `AUTH_SECRET`, a restore): "The stored key can't be read:
@@ -102,6 +118,9 @@ by" column and the delete warning come from that.
   provider, and the tab says so.
 - **Two roots edit one provider:** the last save wins; each is audited.
 - **A provider renamed:** features keep it (they store the id).
+- **A scope moved into a private workspace** (115): its next scans follow that workspace's consent;
+  results already stored stay.
+- **Consent turned off:** new semantic scans run static at once; nothing already stored is removed.
 - **More than 20 providers:** refused; nobody needs more, and the list stays one screen.
 - **The data download** (104): providers are instance settings, not personal data; never included.
 
@@ -109,6 +128,8 @@ by" column and the delete warning come from that.
 
 - Migration `ai_providers`: `id`, `name` (unique), `kind`, `model`, `endpoint`, `key_enc`,
   `created_at`, `updated_at`, `updated_by`.
+- `workspaces.ai_consent_at` and `ai_consent_by` (nullable, as §9.4 prefers timestamps to
+  booleans): set when a private or personal workspace allows AI providers, cleared when it stops.
 - `instance_settings`: `skill_scan_ai_provider` (an id, or `environment`) and
   `skill_scan_ai_model`; 136's `skill_scan_provider`, `_model`, `_endpoint` and `_key_enc` removed
   once moved.
@@ -118,16 +139,17 @@ by" column and the delete warning come from that.
 
 - **AI providers**, a new topic in the Administration group (`ai-providers`): what a provider is,
   adding one (`add`), the key and how it's kept (`keys`), the endpoint checks and
-  `RONNE_AI_HTTP_HOSTS` (`endpoints`), Test connection, the environment provider, and which
-  features use one (`used-by`). `topics.ts` here and in ronne-web.
+  `RONNE_AI_HTTP_HOSTS` (`endpoints`), Test connection, the environment provider, which
+  features use one (`used-by`), and workspace consent (`consent`). `topics.ts` here and in ronne-web.
 - **Security scan** (`security-scan#semantic`): the provider is now picked from AI providers; the key
   steps move to the new topic and link there.
+- **Workspaces** (`workspaces#settings`) and **Account**: the Allow AI providers switch.
 - **Backups** (`backups`): "a full backup can decrypt stored keys" now names AI providers.
 - **Install guide** and `docs/knowledge/skill-scanner.md`: `RONNE_AI_HTTP_HOSTS`, and the older
   name still read.
 - **Helpers:** the tab's "What is an AI provider?" → `ai-providers`; the key field's "How is the key
   kept?" → `ai-providers#keys`; the Security scan tab's provider choice "Where do I add one?" →
-  `ai-providers#add`.
+  `ai-providers#add`; the consent switch's "Where does our content go?" → `ai-providers#consent`.
 
 ## Acceptance criteria
 
@@ -144,6 +166,8 @@ by" column and the delete warning come from that.
 - [ ] The Security scan tab picks a provider and a model from the list; semantic scans use them.
 - [ ] Ronne's client sends one request per call in both wire formats, with no tools, honours the
   timeout and the answer cap, records token counts, and reports only Ronne's short reasons.
+- [ ] A private workspace without its admins' consent, and a personal one without its owner's, is
+  scanned only statically: tests show no request reaches the fake provider, and the card says why.
 - [ ] Every change is audited without the key or the endpoint's path and query.
 - [ ] The tab is in English, Portuguese and French and passes the phone sweep.
 - [ ] The Documentation and inline helpers listed above say what the feature does.
@@ -158,6 +182,10 @@ by" column and the delete warning come from that.
    addresses the endpoint check needs (an SDK would do its own lookup), and add nothing to the
    dependency tree. Revisit if a kind needs more than chat completions or Messages.
 4. **The environment still wins** (136 decision 3).
+5. **One consent per workspace, for every feature that uses a provider** (owner, 2026-10-29: the
+   semantic scan asks the same consent as triage). Turned off for private and personal workspaces
+   when it lands, so a scan that sent their content before without asking now stops until they
+   choose.
 
 ## Open questions
 

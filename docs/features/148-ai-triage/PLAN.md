@@ -15,7 +15,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* the docs say this, and `pnpm witness:check` passes.
 
 - [ ] **2. Tables and settings.** [risky]
-  - `content_triages`, `workspaces.triage_consent`, the instance settings, a `triage` domain with
+  - `content_triages`, the instance settings, a `triage` domain with
     its repository.
   - *Done when:* db tests (SQLite, then the servers for these files) cover the cascade, the indexes,
     and settings read with broken values as defaults.
@@ -41,10 +41,9 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* db tests cover author, reviewer, other workspace member, outsider of a private
     workspace (not found), root, and the audit rows without prompt or answer.
 
-- [ ] **6. Settings tab and consent switches.**
-  - Admin › Settings › AI triage; the switch on a private workspace's settings page and on Account
-    for the personal workspace, naming the provider's host.
-  - *Done when:* component tests, and an e2e test turning triage on for a private workspace.
+- [ ] **6. Settings tab.**
+  - Admin › Settings › AI triage; consent is 147's switch.
+  - *Done when:* component tests, and an e2e test turning triage on and seeing a private workspace without consent left out.
 
 - [ ] **7. Results on the pages.**
   - The Triage tab and Overview card on the review page, the card on the submission page, the

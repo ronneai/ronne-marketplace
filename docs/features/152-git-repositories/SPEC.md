@@ -61,7 +61,7 @@ the bridge. This feature is the connection only: what is pushed, and when, is 15
 **Out** (and where it goes instead):
 - **SSH and deploy keys.** `isomorphic-git` speaks HTTPS only. Every host listed issues HTTPS tokens
   (GitHub fine-grained tokens, GitLab project access tokens, Bitbucket and Azure DevOps access
-  tokens). An SSH transport is a later feature, if asked.
+  tokens). No SSH for now (owner, 2026-10-29); a later feature if asked.
 - **OAuth apps and GitHub Apps** ("Connect with GitHub"). A token typed by root first; an app per host
   later, if asked.
 - **Repositories set up by workspace admins.** Root only for now (open question).
@@ -146,4 +146,3 @@ the run with `url refused`.
 ## Open questions
 
 - Should a workspace's admins be able to add repositories for their own workspace?
-- Is an SSH transport needed (some companies allow only SSH to their git server)?

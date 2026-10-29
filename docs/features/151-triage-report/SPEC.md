@@ -15,7 +15,7 @@ duplicates to merge, items to retire, weak descriptions, and gaps.
 - **Who runs one:**
   - a workspace's report: its admins and moderators, and root;
   - the instance report: root, covering `global`, the public workspaces, and private or personal ones
-    only if they consented (148).
+    only if they allow AI providers (147).
 - **When:** on request (**Run report**), at most once a day per workspace and once a day for the
   instance; and, if root turns it on, weekly for the instance.
 - **What it looks at:** the published items' latest versions (name, type, description, keywords,
@@ -56,8 +56,8 @@ duplicates to merge, items to retire, weak descriptions, and gaps.
 ## Edge cases
 
 - **An empty workspace:** "Nothing to report yet."
-- **A workspace that hasn't consented and is private:** its admins see "Turn on AI triage for this
-  workspace to run a report".
+- **A workspace that hasn't consented and is private:** its admins see "Allow AI providers for this
+  workspace to run a report" (147's switch).
 - **Items moved since a report** (115, 134): the old report keeps their names; links follow aliases.
 - **Retention:** six reports per workspace and for the instance; older ones deleted when a new one
   finishes.
