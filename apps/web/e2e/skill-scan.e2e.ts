@@ -118,19 +118,109 @@ test("scans a skill, blocks approval at the threshold, marks a false positive, a
     await ask.getByRole("button", { name: "Cancel" }).click();
 
     // Copy link, then a false positive and an accepted risk.
+    // The actions are icons down the finding's side; those that need words open a modal.
+    await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
     await second.getByRole("button", { name: "Copy link" }).click();
+    await expect(second.getByRole("button", { name: /^Link copied: / })).toBeVisible();
+    await expect(second.locator("svg.lucide-check")).toHaveCount(1);
+    // And back to Copy link a few seconds later.
+    await expect(second.getByRole("button", { name: /^Copy link: / })).toBeVisible({
+      timeout: 8_000,
+    });
+    // Where nothing can copy, it says so, with no check.
+    await page.evaluate(() => {
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: { writeText: () => Promise.reject(new Error("denied")) },
+      });
+      document.execCommand = () => false;
+    });
+    await second.getByRole("button", { name: /^Copy link: / }).click();
     await expect(
-      second.getByText("Link copied").or(second.getByText("Copy the link from the address bar.")),
+      second.getByRole("button", { name: /^Copy the link from the address bar\.: / }),
     ).toBeVisible();
+    // At once: the icon goes back to the link after 4 s anyway.
+    await expect(second.locator("svg.lucide-check")).toHaveCount(0, { timeout: 1_000 });
+    await expect(second.locator("svg.lucide-link-2")).toHaveCount(1, { timeout: 1_000 });
+    // Cancel leaves it open, and the modal goes.
     await first.getByRole("button", { name: "Mark false positive" }).click();
-    await first.getByLabel("Why is it a false positive?").fill("The comment is documentation.");
-    await first.getByRole("button", { name: "Mark it" }).click();
+    const mark = page.getByRole("dialog", { name: "Mark it a false positive?" });
+    await mark.getByLabel("Why is it a false positive?").fill("Not this time.");
+    await mark.getByRole("button", { name: "Cancel" }).click();
+    await expect(mark).toHaveCount(0);
+    // Focus goes back to the icon that opened it.
+    await expect(first.getByRole("button", { name: /^Mark false positive: / })).toBeFocused();
+    await expect(first.getByText("Marked a false positive by Sam Root")).toHaveCount(0);
+    await first.getByRole("button", { name: "Mark false positive" }).click();
+    await mark.getByLabel("Why is it a false positive?").fill("The comment is documentation.");
+    // While it saves (held back here), Esc, Cancel and Close can't shut it.
+    // `hold()` keeps the next server action back until its `release()`.
+    let release = () => {};
+    let held: Promise<void> | null = null;
+    const hold = () => {
+      held = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+    };
+    await page.route(`**/reviews/${id}*`, async (route) => {
+      const request = route.request();
+      const waiting = held;
+      if (waiting && request.method() === "POST" && request.headers()["next-action"]) {
+        held = null;
+        await waiting;
+      }
+      await route.fallback();
+    });
+    hold();
+    await mark.getByRole("button", { name: "Mark it" }).click();
+    await expect(mark.getByRole("button", { name: "Cancel" })).toBeDisabled();
+    await expect(mark.getByRole("button", { name: "Close" })).toBeDisabled();
+    // Esc is refused, not closed and put back: no close event.
+    await mark.evaluate((dialog) => {
+      (window as unknown as { closes: number }).closes = 0;
+      dialog.addEventListener("close", () => {
+        (window as unknown as { closes: number }).closes += 1;
+      });
+    });
+    await page.keyboard.press("Escape");
+    // `close` comes a task after the key: give it the time to, before counting.
+    await page.waitForTimeout(300);
+    expect(await page.evaluate(() => (window as unknown as { closes: number }).closes)).toBe(0);
+    await page.keyboard.press("Escape");
+    await expect(mark).toBeVisible();
+    release();
+    await expect(mark).toHaveCount(0);
+    // Marked, its first action now is Restore, which takes the focus.
+    await expect(first.getByRole("button", { name: /^Restore: / })).toBeFocused();
     await expect(first.getByText("Marked a false positive by Sam Root")).toBeVisible();
     await expect(first.getByText("The comment is documentation.")).toBeVisible();
     await second.getByRole("button", { name: "Accept the risk" }).click();
-    await second.getByLabel("Why is the risk acceptable?").fill("It names the file in its docs.");
-    await second.getByRole("button", { name: "Accept the risk" }).click();
+    const accept = page.getByRole("dialog", { name: "Accept the risk?" });
+    await accept.getByLabel("Why is the risk acceptable?").fill("It names the file in its docs.");
+    await accept.getByRole("button", { name: "Accept the risk" }).click();
     await expect(second.getByText("Risk accepted by Sam Root")).toBeVisible();
+    await expect(findings.getByRole("button", { name: "Marked (2)" })).toBeVisible();
+
+    // Restore asks first: Cancel keeps the mark, Restore takes it away; then it's marked again.
+    // A Cancel on the first finding mustn't take the focus when the second's save lands.
+    const restore = page.getByRole("dialog", { name: "Restore this finding?" });
+    await first.getByRole("button", { name: "Restore" }).click();
+    await restore.getByRole("button", { name: "Cancel" }).click();
+    await second.getByRole("button", { name: "Restore" }).click();
+    await restore.getByRole("button", { name: "Cancel" }).click();
+    await expect(second.getByText("Risk accepted by Sam Root")).toBeVisible();
+    await second.getByRole("button", { name: "Restore" }).click();
+    hold();
+    await restore.getByRole("button", { name: "Restore" }).click();
+    // Held back: it can't be closed while it saves.
+    await expect(restore.getByRole("button", { name: "Cancel" })).toBeDisabled();
+    await expect(restore.getByRole("button", { name: "Close" })).toBeDisabled();
+    release();
+    await expect(second.getByText("Risk accepted by Sam Root")).toHaveCount(0);
+    await expect(second.getByRole("button", { name: /^Mark false positive: / })).toBeFocused();
+    await second.getByRole("button", { name: "Accept the risk" }).click();
+    await accept.getByLabel("Why is the risk acceptable?").fill("It names the file in its docs.");
+    await accept.getByRole("button", { name: "Accept the risk" }).click();
     await expect(findings.getByRole("button", { name: "Marked (2)" })).toBeVisible();
 
     // The link Copy link gives opens the tab at the finding, which it highlights (:target).

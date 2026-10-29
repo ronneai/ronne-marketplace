@@ -53,7 +53,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     approval, the Security scan tab, a dismissal, root's override, the author's view), the other
     e2e tests that read the review page, and the phone sweep of every tab pass.
 
-- [ ] **6. The findings: by file, and their actions** (owner, 2026-10-29). [risky]
+- [x] **6. The findings: by file, and their actions** (owner, 2026-10-29). [risky]
   - The Security scan tab groups the findings by file (their count, a link to the file), sorted by
     line, with a line column, as a code-quality tool's issue list (the owner's SonarQube example);
     filters by category, severity and status (open, marked).
@@ -61,9 +61,23 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     migration `0040_scan_dismissal_kind`, audited and in the data download), **Ask the author to fix
     it** (one or several findings quoted in a Request changes message), and **Copy link** (a
     permalink that opens and highlights the finding).
+  - Then (owner, 2026-10-29): the actions are icons down each finding's right side (the action as
+    tooltip, a name unique on the page, token colours, the hand cursor), with modals for a reason
+    or a confirmation that can't close while saving and give focus back; the rule and category at
+    the bottom; an open row lights under the mouse; the toolbar always shown ("Select all").
   - *Done when:* component tests for the grouping, sorting, filters and each action; db tests for
     the kind (audit, data download, the four databases); the e2e covers accepting a risk and asking
     for a fix; the phone sweep passes; the adversarial pass also re-checks task 4's last three fixes.
+
+- [ ] **8. One screen for reviewers and authors** (owner, 2026-10-29). [risky]
+  - The author's submission page shows the review page's screen (`SubmissionScreen`): the same
+    header, tabs, Overview, Files viewer, Conversation and Security scan, with only the actions
+    allowed changing: a reviewer's decisions; the author's Withdraw, Edit files (while it may be
+    changed: the editor, with Save and Resubmit), why it was sent back, an archived one's Restore
+    and Delete, a proposal's rebase; Publish for whoever may. A draft stays the editor.
+  - *Done when:* page tests for both routes (tabs, actions per role, Edit files and the editor);
+    the e2e for submitting, withdrawing, requesting changes and releasing pass on the new screen;
+    the phone sweep passes.
 
 - [ ] **7. Documentation.** The spec's Documentation section, in ronne-web and here.
   - *Done when:* the docs render tests pass, and every new helper's link lands on a real section.

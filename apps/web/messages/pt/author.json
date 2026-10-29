@@ -878,10 +878,9 @@
       "falsePositiveBadge": "Falso positivo",
       "acceptedBadge": "Risco aceito",
       "askFix": "Pedir ao autor para corrigir",
-      "askFixMany": "{count, plural, one {Pedir ao autor para corrigir # achado} other {Pedir ao autor para corrigir # achados}}",
-      "select": "Selecionar {title}, linha {line}",
-      "selectNoLine": "Selecionar {title}",
-      "selectOpen": "Selecionar todos os achados abertos",
+      "askFixMany": "{count, plural, =0 {Pedir ao autor para corrigir os achados selecionados} one {Pedir ao autor para corrigir # achado} other {Pedir ao autor para corrigir # achados}}",
+      "select": "Selecionar {name}",
+      "selectOpen": "Selecionar todos",
       "clearSelection": "Limpar a seleção",
       "copyLink": "Copiar link",
       "copied": "Link copiado",
@@ -889,7 +888,13 @@
       "askFixIntro": "Corrija estes achados da verificação de segurança:",
       "askFixLine": "{title} ({rule}{hasWhere, select, true {, {where}} other {}}){hasFix, select, true {: {fix}} other {}}",
       "none": "Nenhum achado corresponde a estes filtros.",
-      "askFixMore": "{count, plural, one {…e mais # achado: veja a aba Verificação de segurança.} other {…e mais # achados: veja a aba Verificação de segurança.}}"
+      "askFixMore": "{count, plural, one {…e mais # achado: veja a aba Verificação de segurança.} other {…e mais # achados: veja a aba Verificação de segurança.}}",
+      "actionOn": "{action}: {name}",
+      "markTitle": "Marcar como falso positivo?",
+      "acceptTitle": "Aceitar o risco?",
+      "restoreTitle": "Restaurar este achado?",
+      "restoreBody": "A marcação e o motivo dela são removidos, e o achado volta a ficar aberto.",
+      "findingName": "{title}{hasWhere, select, true {, {where}} other {}}, achado {number, number}"
     }
   }
 }

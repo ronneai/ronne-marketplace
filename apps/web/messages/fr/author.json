@@ -878,10 +878,9 @@
       "falsePositiveBadge": "Faux positif",
       "acceptedBadge": "Risque accepté",
       "askFix": "Demander à l’auteur de corriger",
-      "askFixMany": "{count, plural, one {Demander à l’auteur de corriger # résultat} other {Demander à l’auteur de corriger # résultats}}",
-      "select": "Sélectionner {title}, ligne {line}",
-      "selectNoLine": "Sélectionner {title}",
-      "selectOpen": "Sélectionner tous les résultats ouverts",
+      "askFixMany": "{count, plural, =0 {Demander à l’auteur de corriger les résultats sélectionnés} one {Demander à l’auteur de corriger # résultat} other {Demander à l’auteur de corriger # résultats}}",
+      "select": "Sélectionner {name}",
+      "selectOpen": "Tout sélectionner",
       "clearSelection": "Effacer la sélection",
       "copyLink": "Copier le lien",
       "copied": "Lien copié",
@@ -889,7 +888,13 @@
       "askFixIntro": "Veuillez corriger ces résultats de l’analyse de sécurité :",
       "askFixLine": "{title} ({rule}{hasWhere, select, true {, {where}} other {}}){hasFix, select, true { : {fix}} other {}}",
       "none": "Aucun résultat ne correspond à ces filtres.",
-      "askFixMore": "{count, plural, one {…et # autre résultat : voyez l’onglet Analyse de sécurité.} other {…et # autres résultats : voyez l’onglet Analyse de sécurité.}}"
+      "askFixMore": "{count, plural, one {…et # autre résultat : voyez l’onglet Analyse de sécurité.} other {…et # autres résultats : voyez l’onglet Analyse de sécurité.}}",
+      "actionOn": "{action} : {name}",
+      "markTitle": "Le marquer comme faux positif?",
+      "acceptTitle": "Accepter le risque?",
+      "restoreTitle": "Rétablir ce résultat?",
+      "restoreBody": "La marque et son motif sont retirés, et le résultat est de nouveau ouvert.",
+      "findingName": "{title}{hasWhere, select, true {, {where}} other {}}, résultat {number, number}"
     }
   }
 }

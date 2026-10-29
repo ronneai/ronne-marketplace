@@ -210,6 +210,19 @@ describe("Tabs, CopyableCommand, Dialog", () => {
     expect(out).toContain('aria-label="Close"');
   });
 
+  it("turns its close button off while busy (137)", () => {
+    const close = (busy: boolean) =>
+      /<button[^>]*aria-label="Close"[^>]*>/.exec(
+        html(
+          <Dialog open={false} onClose={() => {}} title="Mark it" busy={busy}>
+            body
+          </Dialog>,
+        ),
+      )?.[0] ?? "";
+    expect(close(true)).toContain('disabled=""');
+    expect(close(false)).not.toContain('disabled=""');
+  });
+
   it("gives each dialog its own title id, so two on a page keep their names", () => {
     const out = html(
       <>

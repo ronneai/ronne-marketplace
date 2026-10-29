@@ -1,4 +1,7 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import type { SkillScanFinding, SkillScanResult } from "@ronneai/core";
+import { parseSkillScan } from "@ronneai/core";
 import { createTranslator } from "next-intl";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
@@ -418,6 +421,8 @@ describe("the security scan's findings (137)", () => {
     expect(html).toContain(">All (4)<");
     expect(html).toContain(">Prompt Injection (2)<");
     expect(html).toContain(">High (4)<");
+    // Only the severities there are: no Critical, Medium or Low chip on an all-High scan.
+    expect(html).not.toMatch(/>(Critical|Medium|Low) \(/);
     expect(html).toContain(">Open (4)<");
     expect(html).toContain("Remove the hidden text.");
     expect(html).toContain("Export report (JSON)");
@@ -437,22 +442,52 @@ describe("the security scan's findings (137)", () => {
     expect(plain).not.toContain("tab=files");
   });
 
-  it("gives a reviewer Mark false positive and Accept the risk as buttons, and everyone Copy link", () => {
+  it("gives a reviewer Mark false positive and Accept the risk as icons beside it, and everyone Copy link", () => {
     const viewer = findings();
     expect(viewer).not.toContain("Mark false positive");
     expect(viewer).not.toContain("Accept the risk");
     expect(viewer).toContain("Copy link");
     const reviewer = findings({ canDismiss: true });
-    expect(reviewer).toMatch(/<button[^>]*>Mark false positive<\/button>/);
-    expect(reviewer).toMatch(/<button[^>]*>Accept the risk<\/button>/);
+    // Icons, named for the finding, with no words beside them (owner, 2026-10-29).
+    expect(reviewer).toContain(
+      'aria-label="Mark false positive: Hidden &lt;b&gt;Instructions&lt;/b&gt;, SKILL.md:10, finding 1"',
+    );
+    expect(reviewer).toContain(
+      'aria-label="Accept the risk: Hidden &lt;b&gt;Instructions&lt;/b&gt;, SKILL.md:10, finding 1"',
+    );
+    expect(reviewer).not.toMatch(/>Mark false positive</);
+    // The tooltip is only the action (owner, 2026-10-29); the name keeps the finding.
+    expect(reviewer).toMatch(/aria-label="Accept the risk: [^"]*" title="Accept the risk"/);
+    expect(reviewer).toMatch(/aria-label="Copy link: [^"]*" title="Copy link"/);
+    // An open finding's row lights up under the mouse.
+    expect(reviewer).toMatch(/<li id="finding-0"[^>]*hover:bg-canvas/);
+    // Told apart by colour, tokens only (owner, 2026-10-29): amber accepts, teal asks for a fix.
+    const tone = (name: string) =>
+      new RegExp(`aria-label="${name}: [^"]*"[^>]*class="([^"]*)"`).exec(reviewer)?.[1] ?? "";
+    expect(tone("Accept the risk")).toContain("text-warning-text");
+    expect(tone("Mark false positive")).toContain("text-fg");
+    expect(tone("Copy link")).toContain("text-muted");
+    expect(tone("Accept the risk")).not.toContain("text-muted");
+    // They act as buttons: the hand cursor, toned or not.
+    expect(tone("Accept the risk")).toContain("cursor-pointer");
+    expect(tone("Copy link")).toContain("cursor-pointer");
+    // The rule and category sit where the buttons were, at the bottom of the finding.
+    expect(reviewer).toMatch(/How to fix:.*?P2 · Prompt Injection/s);
   });
 
   it("offers Ask the author to fix it, and selecting findings, only where it's given", () => {
     expect(findings()).not.toContain("Ask the author to fix it");
     const html = findings({ askFix: true });
     expect(html).toContain("Ask the author to fix it");
-    expect(html).toContain("Select every open finding");
-    expect(html).toContain('aria-label="Select Hidden &lt;b&gt;Instructions&lt;/b&gt;, line 10"');
+    expect(html).toContain("Select all");
+    // Always there, and off with nothing selected (owner, 2026-10-29).
+    expect(html).toMatch(
+      /<button[^>]*disabled=""[^>]*>Ask the author to fix the selected findings</,
+    );
+    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>Clear the selection</);
+    expect(html).toContain(
+      'aria-label="Select Hidden &lt;b&gt;Instructions&lt;/b&gt;, SKILL.md:10, finding 1"',
+    );
   });
 
   it("shows a mark's kind, by whom and why, with Restore for a reviewer only", () => {
@@ -482,16 +517,63 @@ describe("the security scan's findings (137)", () => {
     expect(marked).toContain("Docs &lt;i&gt;only&lt;/i&gt;.");
     expect(marked).toContain(">Accepted risk<");
     expect(marked).toContain("Risk accepted by a former user");
-    expect(marked).toContain(">Restore<");
+    expect(marked).toContain(
+      'aria-label="Restore: Hidden &lt;b&gt;Instructions&lt;/b&gt;, SKILL.md:10, finding 1"',
+    );
     expect(marked).toContain(">Marked (2)<");
     // A marked finding isn't asked about: the two marked ones have no Ask, the others do.
-    expect(marked.match(/>Ask the author to fix it</g)?.length).toBe(2);
+    expect(marked.match(/aria-label="Ask the author to fix it: /g)?.length).toBe(2);
     const read = findings({
       dismissals: [
         { finding: 0, kind: "false_positive", reason: "Docs.", by: { id: "m", name: "Mo" }, at },
       ],
     });
-    expect(read).not.toContain(">Restore<");
+    expect(read).not.toContain('aria-label="Restore: ');
+  });
+
+  it("keeps the toolbar when every finding is marked, with all three buttons off", () => {
+    const html = findings({
+      canDismiss: true,
+      askFix: true,
+      dismissals: result().findings.map((_, finding) => ({
+        finding,
+        kind: "false_positive" as const,
+        reason: "Fine.",
+        by: { id: "m", name: "Mo" },
+        at: new Date(),
+      })),
+    });
+    for (const name of [
+      "Ask the author to fix the selected findings",
+      "Select all",
+      "Clear the selection",
+    ])
+      expect(html).toMatch(new RegExp(`<button[^>]*disabled=""[^>]*>${name}<`));
+  });
+
+  it("names every control for its own finding, even two alike at one line (SkillSpector's report)", () => {
+    const report = readFileSync(
+      join(process.cwd(), "../../packages/core/src/skill-scan/fixtures/reports/bad-skill.json"),
+      "utf8",
+    );
+    const parsed = parseSkillScan(report);
+    if (!parsed.ok) throw new Error(parsed.problem);
+    const html = renderToStaticMarkup(
+      <ScanFindings
+        item="@team/bad"
+        revision={1}
+        scan={{ id: "s1", finishedAt: null, llm: null }}
+        result={parsed.result}
+        dismissals={[]}
+        canDismiss
+        submissionId="sub1"
+        base="/reviews/sub1"
+        onAskFix={() => {}}
+      />,
+    );
+    const names = [...html.matchAll(/aria-label="([^"]*)"/g)].map((m) => m[1]);
+    expect(names.length).toBeGreaterThan(parsed.result.findings.length * 4);
+    expect(new Set(names).size).toBe(names.length);
   });
 
   it("is in Portuguese and French", () => {

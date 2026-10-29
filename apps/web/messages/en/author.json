@@ -878,10 +878,9 @@
       "falsePositiveBadge": "False positive",
       "acceptedBadge": "Accepted risk",
       "askFix": "Ask the author to fix it",
-      "askFixMany": "{count, plural, one {Ask the author to fix # finding} other {Ask the author to fix # findings}}",
-      "select": "Select {title}, line {line}",
-      "selectNoLine": "Select {title}",
-      "selectOpen": "Select every open finding",
+      "askFixMany": "{count, plural, =0 {Ask the author to fix the selected findings} one {Ask the author to fix # finding} other {Ask the author to fix # findings}}",
+      "select": "Select {name}",
+      "selectOpen": "Select all",
       "clearSelection": "Clear the selection",
       "copyLink": "Copy link",
       "copied": "Link copied",
@@ -889,7 +888,13 @@
       "askFixIntro": "Please fix these security scan findings:",
       "askFixLine": "{title} ({rule}{hasWhere, select, true {, {where}} other {}}){hasFix, select, true {: {fix}} other {}}",
       "none": "No finding matches these filters.",
-      "askFixMore": "{count, plural, one {…and # more finding: see the Security scan tab.} other {…and # more findings: see the Security scan tab.}}"
+      "askFixMore": "{count, plural, one {…and # more finding: see the Security scan tab.} other {…and # more findings: see the Security scan tab.}}",
+      "actionOn": "{action}: {name}",
+      "markTitle": "Mark it a false positive?",
+      "acceptTitle": "Accept the risk?",
+      "restoreTitle": "Restore this finding?",
+      "restoreBody": "The mark and its reason are removed, and the finding is open again.",
+      "findingName": "{title}{hasWhere, select, true {, {where}} other {}}, finding {number, number}"
     }
   }
 }

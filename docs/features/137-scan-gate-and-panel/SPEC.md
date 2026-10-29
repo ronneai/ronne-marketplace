@@ -46,15 +46,25 @@ override. This changes 135's decision 1 ("advisory, never blocks").
   - filters by **category**, **severity** and **status** (open, marked), each with counts, and All;
   - each finding: its severity, title, rule and category, SkillSpector's explanation, and its
     **remediation** ("How to fix:"), kept from now on; a mark shows its kind, by whom, and why;
-  - the actions, visible on each finding:
-    - **Mark false positive** and **Accept the risk** (reviewers): a mark with a required reason,
-      a false positive (the finding is wrong) or an accepted risk (it's real, and known and fine),
-      which anyone who may review the submission can restore;
+  - the rule and category at the bottom of the finding; its actions as icons down its right side,
+    with no words beside them; those that ask
+    for something open a modal (owner, 2026-10-29), which can't be closed while it saves. Each
+    icon's tooltip is only its action; its accessible name is unique on the page: the action, the
+    title, the file and line, and the finding's number. An open finding's row turns the canvas
+    colour under the mouse. The icons show the hand cursor, as buttons do.
+    Colours tell them apart, tokens only: teal for Ask and Restore, amber for Accept the risk
+    (a warning one keeps), the text colour for Mark false positive, muted for Copy link; never red (none is an error). The actions:
+    - **Mark false positive** and **Accept the risk** (reviewers): a modal for the required reason,
+      a false positive (the finding is wrong) or an accepted risk (it's real, and known and fine);
+      **Restore**, for anyone who may review the submission, after a confirmation;
     - **Ask the author to fix it** (whoever may request changes): Request changes opens with the
       finding quoted (its title, rule, file and line, and the fix); several can be selected, or
       every open one, and asked for in one message, which the reviewer can edit before sending;
-    - **Copy link**: a link to the page at the finding (`#finding-<n>`), which it opens and
-      highlights;
+      the toolbar's "Ask the author to fix", "Select all" and "Clear the selection" are always
+      there: Ask off until something is selected, Select all off with no open finding shown, Clear
+      off with nothing held;
+    - **Copy link**: copies at once a link to the page at the finding (`#finding-<n>`), which it
+      opens and highlights; the icon shows it was copied for a few seconds;
   - **Export report (JSON)**: Ronne's kept copy of the result (never SkillSpector's raw output),
     with the item's name, the revision, the time and the marks, built in the browser.
   - Before a scan has finished, the tab shows the card's state (waiting, failed, not scanned).

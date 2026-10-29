@@ -532,3 +532,307 @@ Witnessed: 2026-10-29 09:20 EDT, by a fresh agent (adversarial). Commit: 54e7fcb
 
 **Overall:** not met: rows 7, 9, 13. The quote now counts UTF-16 units (never fewer than code points) and takes at most 4500 of the 5000, leaving room for the reviewer's words, tested with 200 findings of astral titles; a test checks the marked findings have no Ask (it fails without the check); the e2e and the phone sweep run in the next re-check. Re-checked below.
 
+
+### Re-check
+
+Witnessed: 2026-10-29 09:16 EDT, by a fresh agent (adversarial). Commit: 3db05612. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The task's unit and component tests | no | confirmed | 902 passed |
+| 2 | The prefill fits the textarea (UTF-16) and the server (code points), 500 left, three languages | no | confirmed | 12 hostile texts × 200 findings → ≤ 4500 units and code points; three mutations → the test fails |
+| 3 | Hostile text never breaks ICU or adds markup | no | confirmed | verbatim in three languages |
+| 4 | `chosenFindings` | no | confirmed | two mutations → the test fails |
+| 5 | `findingLink` | no | confirmed | mutation → the test fails |
+| 6 | No Ask on a marked finding | no | confirmed | mutation → the test fails |
+| 7 | Ask only for whoever may request changes | no | confirmed | mutation → 2 tests fail |
+| 8 | Filters with mixed data | no | confirmed | mutation → the test fails |
+| 9 | Grouping and sorting | no | confirmed | three mutations → the test fails |
+| 10 | The export's marks carry their kind | no | confirmed | mutation → the test fails |
+| 11 | The kind validated, audited, read back, downloaded | no | confirmed | six db mutations → a test fails each |
+| 12 | Migration 0040 on four databases | no | confirmed | upgrade from 0039 on four databases |
+| 13 | The actions answer a request that isn't an object | no | confirmed | mutation → the test fails |
+| 14 | Visibility and the author rule | no | confirmed | mutations → tests fail |
+| 15 | The e2e and the phone sweep | no | can't check here | not run beside another witness (the re-check below ran them: 2 + 16 passed) |
+
+**Overall:** not met: row 15, which the re-check below ran on the same commit and met. Remarks: only the e2e covered `DecisionDialog`'s `initialText`, and no test checked the severity chips list only those present: both now have a unit test.
+
+### Re-check
+
+Witnessed: 2026-10-29 09:24 EDT, by a fresh agent (blind). Commit: 3db05612. Machine: macOS 27.0, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Grouped by file | no | confirmed | mutation → the test fails; e2e |
+| 2 | By line, then most severe; `L<n>` linked | no | confirmed | mutation → the test fails |
+| 3 | Severity filter on mixed data | no | confirmed | mutation → the test fails |
+| 4 | Category and status filters on one row | no | confirmed | test; e2e "Marked (2)" |
+| 5 | Mark and Accept; kind, by whom, why; Restore | no | confirmed | e2e |
+| 6 | No Ask on a marked finding | no | confirmed | mutation → the test fails |
+| 7 | Ask only for whoever may request changes | no | confirmed | mutation → 2 tests fail |
+| 8 | Ask quotes one or several findings, editable | no | confirmed | e2e; `chosenFindings` test |
+| 9 | Quote length in UTF-16 units, ≤ 4500 of 5000 | no | confirmed | mutation to code points → the astral test fails |
+| 10 | Copy link's permalink, opened and highlighted | no | confirmed | test; e2e `:target`. Remark: removing the `target:` classes stays green |
+| 11 | The export's marks with their kind | no | confirmed | mutation → the test fails |
+| 12 | Migration 0040 | no | confirmed | mutation → the test fails |
+| 13 | The kind validated, stored, audited | no | confirmed | mutations → the test fails |
+| 14 | The download's kinds | no | confirmed | mutation → the test fails |
+| 15 | The audit sentence, three languages | no | confirmed | mutation → the test fails |
+| 16 | db tests on four databases | no | confirmed | 580 / 582 passed |
+| 17 | The scan and review e2e | no | confirmed | 2 passed |
+| 18 | The phone sweep | no | confirmed | 16 passed |
+| 19 | Typecheck, lint, unit suite | no | confirmed | exit 0; exit 0; 3759 passed |
+
+**Overall:** met (on 3db05612). Since then, on the owner's word (2026-10-29): the actions are icons down each finding's right side, with a modal for what needs words or a confirmation (mark, accept, restore); the rule and category sit at the bottom of the finding; "Ask the author to fix" is always shown, off with nothing selected. Re-checked below.
+
+### Re-check
+
+Witnessed: 2026-10-29 09:36 EDT, by a fresh agent (adversarial). Commit: 3db05612 + working tree (diff as of 09:31). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Unit and component tests, and the shared `IconButton` | no | confirmed | 748 passed; biome clean |
+| 2 | Icons with no words; rule and category at the bottom | no | confirmed | mutations → tests fail |
+| 3 | Each icon named for its finding, unique | no | partly | two findings with one title at one line (SkillSpector's `bad-skill.json`) share names |
+| 4 | Hostile titles add no markup | no | confirmed | escaped; `{action}` literal |
+| 5 | No mark icons without rights or for the author | no | confirmed | probe |
+| 6 | Ask and Clear shown, off with nothing selected | no | confirmed | three mutations → tests fail |
+| 7 | Disabled states after marking or filtering | no | partly | the toolbar went when every finding was marked; Clear off while a hidden selection was held |
+| 8 | Mark modal: Cancel, Esc, a failed mark | no | partly | code right, but no test fails without it; Cancel live while pending |
+| 9 | Restore's confirmation | no | partly | no test fails without it |
+| 10 | Double submits; racing marks | no | confirmed | db tests 41 passed |
+| 11 | Copy link's icon shows it | no | partly | the name sticks at "Link copied", losing the finding |
+| 12 | Nothing weakens task 4 or 6 | no | confirmed | no server code changed; 41 passed |
+| 13 | e2e and phone sweep | no | can't check here | not run |
+
+**Overall:** not met. Fixed since: names carry the file, line and finding number, with a test on `bad-skill.json` that every name is unique; Copy link keeps the finding's name and resets after 4 s; Cancel and Esc are off while saving; the toolbar stays when every finding is marked, Select all is off with no open finding shown, Clear is on while anything is held; the e2e now cancels a mark and cancels then confirms a restore. Re-checked below.
+
+### Re-check
+
+Witnessed: 2026-10-29 09:26 EDT, by a fresh agent (blind). Commit: 3db05612 + `git diff` as of 09:26. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Icon-only actions, named and with tooltips | no | confirmed | probe: no text in the column; `aria-label` = `title` |
+| 2 | Modals for mark, accept, restore | no | confirmed | probe; e2e passed |
+| 3 | Ask prefilled; Copy link copies, icon shows it | no | confirmed | e2e; probe clipboard. Remark: name lost after copying |
+| 4 | Rule and category at the bottom | no | confirmed | probe; unit test |
+| 5 | Toolbar always shown, disabled states | no | confirmed | probe; mutation → test fails |
+| 6 | `initialText` and severity chips tested | no | confirmed | two mutations → tests fail |
+| 7 | Task 6 still holds | no | confirmed | 3760 passed; e2e |
+| 8 | Tokens, keyboard, screen reader | no | confirmed | lint; focus into and back from the dialog |
+| 9 | Phone layout | no | confirmed | 16 passed |
+
+**Overall:** not met: the tree changed during the pass (colours, `IconButton`'s `tone`). Re-checked below with the fixes above.
+
+### Re-check
+
+Witnessed: 2026-10-29 09:41 EDT, by a fresh agent (adversarial). Commit: 3db05612 + `git diff` as of 09:35. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Every name unique, three languages | no | confirmed | three reports × en/pt/fr, hostile titles → no duplicates |
+| 2 | Hostile titles and paths can't break ICU or markup | no | confirmed | `select` keywords as paths, `<script>` → plain text |
+| 3 | Token colours; `IconButton` without `tone` unchanged | no | confirmed | probe; mutation → a test fails |
+| 4 | Modals can't close while saving | yes | not met | Esc closes the native `<dialog>` before `close`; the guard can't undo it; no test |
+| 5 | Restore confirms; mark asks in a modal | no | confirmed | code; e2e only |
+| 6 | Copy link's result and reset | no | partly | a failed copy shows the check; the timer isn't cleared; no test on the reset |
+| 7 | The toolbar's disabled states | no | partly | right in code; Select all's untested |
+| 8 | Task 4 and 6 guarantees | no | confirmed | server code untouched; tsc clean |
+| 9 | Tests fail when each behaviour goes | no | partly | the guards, the reset and Select all survive removal |
+
+**Overall:** not met. Fixed since: `Dialog` takes `busy`, which refuses Esc (`cancel` prevented, and reopened should the browser close it anyway), turns off the close button and the backdrop, with a unit test; the scan's modals pass `busy={pending}`; Copy link shows the check only when copied, and its timer is cleared on a new click and on unmount; a unit test that the toolbar stays, all three buttons off, when every finding is marked; the e2e checks Copy link comes back after a few seconds. (A blind re-check started at 09:40 was stopped, as these fixes came in.) Re-checked below.
+
+(Two re-checks started at 09:50 were stopped when the owner asked for more changes, 2026-10-29: the tooltip only the action, a light background on an open finding's row under the mouse, the hand cursor on the icon buttons. Re-checked below.)
+
+### Re-check
+
+Witnessed: 2026-10-29 09:47 EDT, by a fresh agent (adversarial). Commit: 3db05612 + `git diff` as of 09:47. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Tooltip only the action; names unique; hostile titles | no | confirmed | 1,009 findings × 3 languages → 5,047 names, no duplicates; four titles |
+| 2 | `IconButton` for other callers | no | confirmed | same classes plus `cursor-pointer`; title = label; mutations → tests fail |
+| 3 | `Dialog` `busy` | no | partly | `open` false while busy: reopened, and stays open after busy ends (no current caller) |
+| 4 | Modals stay open while saving; errors inside; success closes | no | confirmed | code; 465 passed |
+| 5 | Copy link's check and reset, timer cleared | no | confirmed | code |
+| 6 | Toolbar's disabled states | no | confirmed | mutations → tests fail |
+| 7 | Hover on open rows only | no | confirmed | built CSS; mutation → a test fails |
+| 8 | Task 4 and 6 guarantees | no | confirmed | no server change; 465 passed |
+| 9 | Each behaviour has a failing test | no | not met | the busy guards and the check icon survive removal |
+| 10 | e2e and phone | no | can't check here | not run |
+| 11 | SPEC wording | no | not met | "named for the finding (its label and tooltip)" against "tooltip is only its action" |
+
+**Overall:** not met. Fixed since: `Dialog` reopens only while `busy && open`, and closes once no longer busy if `open` turned false (the effect follows `busy` too); the SPEC line is gone; the e2e holds the mark's save back (`page.route`), checks Cancel and Close are off, presses Esc twice and sees the modal stay, then lets it land and close; with the Esc guard removed, that e2e fails (run by the implementer).
+
+### Re-check
+
+Witnessed: 2026-10-29 09:47 EDT, by a fresh agent (blind). Commit: 3db05612 + `git diff` (sha256 0ec48fe6…eada5, unchanged start to end). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Icon-only; tooltip only the action | no | confirmed | probe: 4 icons, no text, titles the action words |
+| 2 | Names unique | no | confirmed | 10 of 10 distinct; unit test on `bad-skill.json` |
+| 3 | Hand cursor | no | confirmed | computed `cursor: pointer` |
+| 4 | Token colours, no red | no | confirmed | computed colours = `--fg`, `--warning-text`, `--accent-strong`, `--muted` |
+| 5 | `IconButton` for other callers | no | confirmed | 3763 passed |
+| 6 | Hover on open rows; marked keep their tint | no | confirmed | computed `--canvas` on hover; mutation → a test fails |
+| 7 | Modals for mark, accept, restore | no | confirmed | probe; e2e |
+| 8 | Can't close while saving | no | partly | holds in the browser (actions delayed 3 s); no test fails without the Esc guard |
+| 9 | Ask prefilled | no | confirmed | e2e; unit |
+| 10 | Copy link | no | confirmed | check, then back after 4.4 s |
+| 11 | Rule and category at the bottom | no | confirmed | probe; unit |
+| 12 | Toolbar | no | confirmed | probe |
+| 13 | Task 6 still holds | no | confirmed | 2 e2e passed; 3763 unit |
+| 14 | Other dialogs as before | no | confirmed | Request changes closes on Esc |
+| 15 | Keyboard and focus | no | confirmed | focus into the modal and back |
+| 16 | Phone | no | confirmed | 16 passed |
+| 17 | Typecheck, lint, build | no | confirmed | exit 0 |
+
+**Overall:** not met: row 8's test gap, closed by the e2e above. Remark: a finding selected and then marked stays held (Clear stays on), and comes back checked if restored. Re-checked below.
+
+### Re-check
+
+Witnessed: 2026-10-29 10:00 EDT, by a fresh agent (adversarial). Commit: 3db05612 + `git diff` (sha256 823231dfb0ee…). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Icons only; tooltip the action; names unique | no | confirmed | hostile names in three languages; mutations → tests fail |
+| 2 | Token colours, `tone`, cursor; other callers unchanged | no | confirmed | mutations → tests fail |
+| 3 | `Dialog` `busy` in every order | no | confirmed | state model, 10 sequences, StrictMode |
+| 4 | Modals stay open while saving; error inside; close on success | no | confirmed | code |
+| 5 | Copy link: check only when copied; reset; timer cleared | no | confirmed | code |
+| 6 | Toolbar under every filter | no | confirmed | mutation → a test fails |
+| 7 | Hover on open rows only | no | confirmed | mutation → a test fails |
+| 8 | Each behaviour has a failing test | no | partly | nothing fails without "check only when copied"; the e2e can't tell a refused Esc from a close and reopen |
+| 9 | The e2e's route hold | no | confirmed | glob and `next-action` header checked against Playwright 1.64.1 and Next 16.4.3; fails rather than hangs |
+| 10 | SPEC wording | no | confirmed | matches the code |
+| 11 | Task 4 and 6 guarantees | no | confirmed | untouched; 465 passed |
+| 12 | Unit, lint, typecheck | no | confirmed | 465 passed; clean |
+| 13 | e2e | no | can't check here | not run |
+
+**Overall:** not met: row 8. Fixed since: the e2e grants the clipboard and asserts "Link copied" and the check, then takes the clipboard and the copy command away and asserts "Copy the link from the address bar." with no check; it counts the dialog's `close` events after one Esc while saving (0), so removing `preventDefault` alone fails it (run by the implementer: "Expected 0, Received 1"). Restore's `busy` stays covered by the code only.
+
+### Re-check
+
+Witnessed: 2026-10-29 10:01 EDT, by a fresh agent (blind). Commit: 3db05612 + `git diff` (sha256 823231df…8b36, unchanged start to end). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Checks green | no | confirmed | typecheck, lint, 3763 unit, build |
+| 2 | Icon-only; tooltip the action | no | confirmed | code; test |
+| 3 | Names unique | no | confirmed | mutation → the test fails |
+| 4 | Token colours; hand cursor | no | confirmed | code; test |
+| 5 | `IconButton` for other callers | no | confirmed | 3763 passed |
+| 6 | Hover on open rows | no | confirmed | mutation → a test fails |
+| 7 | Modals; Cancel keeps the state | no | confirmed | 2 e2e passed |
+| 8 | Can't close while saving | no | confirmed | code |
+| 9 | The e2e fails without the guard | no | confirmed | mutated build → fails at `expect(mark).toBeVisible()` |
+| 10 | Other dialogs as before | no | confirmed | e2e; unit |
+| 11 | Ask prefilled | no | confirmed | e2e; unit |
+| 12 | Copy link | no | confirmed | code; e2e |
+| 13 | Rule at the bottom; toolbar | no | confirmed | tests |
+| 14 | Keyboard and focus | no | partly | after Cancel, or a save, focus falls to `<body>`: the modal unmounts without the native close |
+| 15 | Phone | no | confirmed | 16 passed |
+
+**Overall:** not met: row 14. Fixed since: closing a modal puts focus back on the icon that opened it, and after a save, once the refresh swaps the icons, on the finding's first action (Restore); the e2e asserts both (`toBeFocused`). Re-checked below.
+
+### Re-check
+
+Witnessed: 2026-10-29 10:08 EDT, by a fresh agent (adversarial). Commit: 3db05612 + `git diff` (uncommitted). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Unit tests | no | confirmed | 465 passed |
+| 2 | Icons; tooltips; unique names, hostile titles | no | confirmed | code; tests |
+| 3 | Token colours; hand cursor | no | confirmed | code; tests |
+| 4 | Hover on open rows | no | confirmed | test |
+| 5 | Can't close while saving | no | confirmed | code; e2e covers Esc, the close count, Mark's busy |
+| 6 | Focus back to the opener | no | confirmed | code; the e2e's Cancel step |
+| 7 | Focus after a save, without stealing it | no | partly | the refocus flag is left on after a Cancel, so a later refresh can move focus to another finding (modelled) |
+| 8 | The e2e's clipboard steps | no | confirmed | the override dies with the next `goto` |
+| 9 | The close-event count | no | confirmed | listener before the first Esc |
+| 10 | Toolbar | no | confirmed | code; tests |
+| 11 | Task 4 and 6 guarantees | no | confirmed | untouched |
+| 12 | e2e | no | can't check here | not run |
+
+**Overall:** not met: row 7. Fixed since: the modals call `onClose(true)` only after a save, and every Cancel or close calls `onClose()` with nothing, so the flag is set only by a save.
+
+### Re-check
+
+Witnessed: 2026-10-29 10:17 EDT, by a fresh agent (blind). Commit: 3db05612 + `git diff` (sha256 7a7dd9ce…3c20c, unchanged start to end). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1–15 | Icons, names, colours, cursor, hover, modals, focus, Ask, Copy link, rule, toolbar, task 6, other dialogs, keyboard, phone | no | confirmed | probe in Chromium (computed colours, focus after each close, clipboard); 2 e2e passed; 16 phone passed |
+| 16 | The e2e fails without the focus return | no | confirmed | mutated build → fails at `toBeFocused()` |
+| 17 | The e2e fails without `preventDefault` on `cancel` | no | confirmed | "Expected: 0, Received: 1" |
+| 18 | The e2e fails without check-only-when-copied | no | not met | the no-check assertion waited 5 s, past the 4 s reset |
+| 19 | Typecheck, lint, unit, build | no | confirmed | exit 0; 3763 passed |
+
+**Overall:** not met: row 18. Fixed since: that assertion waits 1 s, and the link icon is asserted within 1 s too. (The owner then asked for the author's page to match the review page; that is task 8, not part of this re-check.)
+
+### Re-check
+
+Witnessed: 2026-10-29 10:39 EDT, by a fresh agent (blind). Commit: 3db05612 + the uncommitted diff (sha256 of `git diff` 0fa8064a…df24c, the same at start and end). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Icons down the right side, no words | no | confirmed | code; unit 3763 passed |
+| 2 | Tooltip only the action; names unique | no | confirmed | code; the `bad-skill.json` test |
+| 3 | Token colours, never red | no | confirmed | `ACTION_TONE`; tests |
+| 4 | Hand cursor; other icon buttons as before | no | confirmed | `git diff IconButton.tsx`; test |
+| 5 | Hover on open rows | no | confirmed | test |
+| 6 | Modals can't close while saving | no | confirmed | e2e: held save, Esc twice, 0 close events |
+| 7 | Focus back to the opener; after a save, the first action | no | confirmed | e2e passed |
+| 8 | Ask prefilled | no | confirmed | unit; e2e |
+| 9 | Copy link's states | no | confirmed | e2e with the clipboard granted, then taken |
+| 10 | The e2e fails without check-only-when-copied | no | confirmed | mutated clone → fails at `toHaveCount` (expected 0, received 1) |
+| 11 | Rule and category at the bottom | no | confirmed | test |
+| 12 | Toolbar | no | confirmed | test |
+| 13 | Task 6 still holds | no | confirmed | `skill-scan.e2e.ts` passed |
+| 14 | Other dialogs as before | no | confirmed | `review.e2e.ts`; `ui.test.tsx` |
+| 15 | Phone layout | no | confirmed | 16 passed |
+| 16 | Typecheck, lint, build | no | confirmed | 7/7; no errors; exit 0 |
+
+**Overall:** met.
+
+### Re-check
+
+Witnessed: 2026-10-29 10:44 EDT, by a fresh agent (adversarial). Commit: 3db05612 + `git diff` (sha256 0fa8064a92c1…, unchanged start to end). Machine: macOS 27.0, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Unit tests | no | confirmed | 465 passed |
+| 2 | Only a save calls `onClose(true)` | no | confirmed | every other path wraps `() => onClose()` |
+| 3 | The refocus flag only after a save | no | confirmed | model: Cancel on A then a save on B ends on B |
+| 4 | Later refreshes don't move focus | no | confirmed | code; model |
+| 5 | `Dialog` `busy`; other dialogs unharmed | no | confirmed | 50 uses read |
+| 6 | Unique names, action-only tooltips, hostile titles | no | confirmed | probe, 1001 findings, three languages |
+| 7 | Colours, cursor, hover | no | confirmed | mutations → tests fail |
+| 8 | Toolbar | no | confirmed | mutations → tests fail |
+| 9 | Task 4 and 6 guarantees | no | confirmed | server untouched |
+| 10 | A test fails when each behaviour goes | no | partly | nothing fails when a Cancel sets the refocus flag; Restore's `busy` untested |
+| 11 | The 1 s no-check wait | no | confirmed | read |
+| 12 | Typecheck, lint | no | confirmed | clean |
+
+**Overall:** not met: row 10. Fixed since: the e2e cancels Restore on the first finding, then restores the second with its save held back (Cancel and Close off while it saves) and checks the focus lands on the second's Mark false positive; with `refocus.current = true` for every close, it fails at that check (run by the implementer). `Dialog`'s close button now calls `onClose()` with nothing, for every caller. Re-checked below.
+
+### Re-check
+
+Witnessed: 2026-10-29 10:58 EDT, by a fresh agent (adversarial). Commit: 3db05612 + `git diff` (shasum 45d6a263…49, unchanged start to end). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The scan e2e passes on the current tree | no | confirmed | `next build`, `playwright test e2e/skill-scan.e2e.ts --project chromium` → 1 passed |
+| 2 | A Cancel setting the refocus flag fails the e2e | no | confirmed | mutation → fails at `toBeFocused` (`:220`) |
+| 3 | Restore's Cancel passing its event fails the e2e | no | confirmed | mutation → fails at `:220` |
+| 4 | Restore with `busy={false}` fails the e2e | no | confirmed | mutation → fails at `toBeDisabled` (`:217`) |
+| 5 | Without `preventDefault` the e2e fails | no | confirmed | close events 1, expected 0 |
+| 6 | Focus back to the opener after Cancel | no | confirmed | mutation → fails at `:152` |
+| 7 | Check only when copied | no | confirmed | mutation → fails at `:143` |
+| 8 | `hold()` holds one action, doesn't leak or hang | no | confirmed | rows 4–5; a never-released hold still ended in 17.9 s |
+| 9 | Dialog's change leaves every caller as before | no | confirmed | 50 uses in 36 files read |
+| 10 | Nothing else regressed | no | confirmed | web tests 5561 passed; typecheck clean; lint 0 errors |
+
+**Overall:** met. Remark: the same Cancel-passes-its-event mutation on the mark modal's Cancel survives (an unmarked finding's `dismissal` stays `null`, so nobody could notice); the code is right.

@@ -34,6 +34,8 @@ const SAME: Record<string, readonly string[]> = {
   "scan.dialog.line": ["pt", "fr"],
   "scan.dialog.severityChip": ["pt", "fr"],
   "scan.dialog.askFixLine": ["pt"],
+  // An action and a finding's title, for an icon's name (fr adds a space).
+  "scan.dialog.actionOn": ["pt"],
   "review.tabs.conversation": ["fr"],
   "files.source": ["fr"],
   "issues.ok": ["pt"],

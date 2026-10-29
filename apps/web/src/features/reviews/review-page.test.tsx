@@ -296,6 +296,18 @@ describe("a queue row's decisions (058)", () => {
     expect(html).toContain(reason);
   });
 
+  it("starts from the message it's given: the findings the author is asked to fix (137)", () => {
+    const html = renderToStaticMarkup(
+      <DecisionDialog
+        id="s"
+        decision="request_changes"
+        initialText="Please fix these security scan findings:"
+        onClose={() => {}}
+      />,
+    );
+    expect(html).toMatch(/<textarea[^>]*>Please fix these security scan findings:<\/textarea>/);
+  });
+
   it("asks for a required reason, and offers to send the dependents back when rejecting", () => {
     const html = renderToStaticMarkup(
       <DecisionDialog

@@ -1,14 +1,16 @@
 "use client";
 
 import type { SkillScanFinding, SkillScanResult, SkillScanSeverity } from "@ronneai/core";
-import { Link2 } from "lucide-react";
+import { Ban, Check, Link2, MessageSquareWarning, ShieldCheck, Undo2 } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { Badge, type BadgeTone } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { copyText } from "@/components/ui/copy";
+import { Dialog, DialogActions } from "@/components/ui/Dialog";
 import { FieldError, inputClasses, Label } from "@/components/ui/Field";
+import { IconButton } from "@/components/ui/IconButton";
 import type {
   Dismissal,
   DismissalKind,
@@ -36,19 +38,20 @@ const SEVERITIES: readonly SkillScanSeverity[] = ["CRITICAL", "HIGH", "MEDIUM", 
 const fileHref = (base: string, file: string, line: number | null) =>
   `${base}?tab=files&view=all&file=${encodeURIComponent(file)}${line ? `&line=${line}` : ""}#files`;
 
-/** Marks one finding (a reviewer): a false positive, or an accepted risk, with the reason. */
-const MarkForm = ({
+/** Marks one finding (a reviewer), in a modal: a false positive or an accepted risk, and why. */
+const MarkDialog = ({
   scanId,
   finding,
   kind,
   submissionId,
-  onDone,
+  onClose,
 }: {
   scanId: string;
   finding: number;
   kind: DismissalKind;
   submissionId: string;
-  onDone: () => void;
+  /** `true` when it saved, so focus can follow the icons the save changes. */
+  onClose: (saved?: boolean) => void;
 }) => {
   const t = useTranslations("author.scan.dialog");
   const [reason, setReason] = useState("");
@@ -56,41 +59,104 @@ const MarkForm = ({
   const [pending, start] = useTransition();
   const id = `mark-${finding}`;
   return (
-    <form
-      className="grid gap-2 rounded-control border border-hairline bg-tint p-3"
-      onSubmit={(event) => {
-        event.preventDefault();
-        start(async () => {
-          const result = await markFalsePositive({ scanId, finding, reason, kind, submissionId });
-          if (result.error) setError(result.error);
-          else onDone();
-        });
-      }}
+    // Kept open while the mark is on its way: it would land after "Cancel", and an error go unseen.
+    <Dialog
+      open
+      onClose={() => onClose()}
+      busy={pending}
+      title={kind === "accepted" ? t("acceptTitle") : t("markTitle")}
     >
-      <Label htmlFor={id}>{kind === "accepted" ? t("acceptReason") : t("reason")}</Label>
-      <textarea
-        id={id}
-        value={reason}
-        onChange={(event) => setReason(event.target.value)}
-        maxLength={500}
-        rows={2}
-        required
-        aria-describedby={`${id}-hint ${id}-error`}
-        className={`${inputClasses} h-auto py-2`}
-      />
-      <span id={`${id}-hint`} className="text-xs text-muted">
-        {t("reasonHint")}
-      </span>
-      <FieldError id={`${id}-error`}>{error}</FieldError>
-      <div className="flex flex-wrap gap-2">
-        <Button type="submit" variant="secondary" loading={pending}>
-          {kind === "accepted" ? t("accept") : t("save")}
-        </Button>
-        <Button type="button" variant="text" onClick={onDone}>
-          {t("cancel")}
-        </Button>
+      <form
+        className="grid gap-2"
+        onSubmit={(event) => {
+          event.preventDefault();
+          start(async () => {
+            const result = await markFalsePositive({ scanId, finding, reason, kind, submissionId });
+            if (result.error) setError(result.error);
+            else onClose(true);
+          });
+        }}
+      >
+        <Label htmlFor={id}>{kind === "accepted" ? t("acceptReason") : t("reason")}</Label>
+        <textarea
+          id={id}
+          value={reason}
+          onChange={(event) => setReason(event.target.value)}
+          maxLength={500}
+          rows={3}
+          required
+          aria-describedby={`${id}-hint ${id}-error`}
+          className={`${inputClasses} h-auto py-2`}
+        />
+        <span id={`${id}-hint`} className="text-xs text-muted">
+          {t("reasonHint")}
+        </span>
+        <FieldError id={`${id}-error`}>{error}</FieldError>
+        <DialogActions>
+          <Button type="button" variant="secondary" onClick={() => onClose()} disabled={pending}>
+            {t("cancel")}
+          </Button>
+          <Button type="submit" loading={pending}>
+            {kind === "accepted" ? t("accept") : t("save")}
+          </Button>
+        </DialogActions>
+      </form>
+    </Dialog>
+  );
+};
+
+/**
+ * Each action's colour, so the icons tell apart at a glance (owner, 2026-10-29), within the design
+ * system: teal for asking for a fix and restoring, amber for accepting a risk (a warning one keeps),
+ * the text colour for a false positive; Copy link stays muted. Never red: none is an error.
+ */
+const ACTION_TONE = {
+  dismiss: "text-fg",
+  accept: "text-warning-text",
+  restore: "text-accent-strong",
+  askFix: "text-accent-strong",
+} as const;
+
+/** Takes a mark away (a reviewer), after asking in a modal. */
+const RestoreDialog = ({
+  scanId,
+  finding,
+  submissionId,
+  onClose,
+}: {
+  scanId: string;
+  finding: number;
+  submissionId: string;
+  /** `true` when it saved, so focus can follow the icons the save changes. */
+  onClose: (saved?: boolean) => void;
+}) => {
+  const t = useTranslations("author.scan.dialog");
+  const [error, setError] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+  return (
+    <Dialog open onClose={() => onClose()} busy={pending} title={t("restoreTitle")} size="small">
+      <div className="grid gap-3">
+        <p className="text-sm text-fg">{t("restoreBody")}</p>
+        <FieldError id={`restore-${finding}-error`}>{error}</FieldError>
+        <DialogActions>
+          <Button type="button" variant="secondary" onClick={() => onClose()} disabled={pending}>
+            {t("cancel")}
+          </Button>
+          <Button
+            loading={pending}
+            onClick={() =>
+              start(async () => {
+                const result = await restoreFalsePositive({ scanId, finding, submissionId });
+                if (result.error) setError(result.error);
+                else onClose(true);
+              })
+            }
+          >
+            {t("restore")}
+          </Button>
+        </DialogActions>
       </div>
-    </form>
+    </Dialog>
   );
 };
 
@@ -107,30 +173,44 @@ export const findingLink = (
   index: number,
 ): string => `${location.origin}${location.pathname}${location.search}#finding-${index}`;
 
-/** Copies a link to the finding: the page, opened at it (`#finding-<n>`). */
-const CopyLink = ({ index }: { index: number }) => {
+/** Copies a link to the finding at once: the icon turns to a check, and it says so. */
+const CopyLink = ({ index, name }: { index: number; name: string }) => {
   const t = useTranslations("author.scan.dialog");
-  const [said, setSaid] = useState<string | null>(null);
+  const [said, setSaid] = useState<{ copied: boolean; text: string } | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(timer.current), []);
   return (
-    <span className="inline-flex items-center gap-1">
-      <Button
-        variant="text"
+    <>
+      <IconButton
+        // Named for the finding, copied or not; back to "Copy link" after a few seconds.
+        label={t("actionOn", { action: said?.text ?? t("copyLink"), name })}
+        // The tooltip is only the action; the name says which finding, for a screen reader.
+        tooltip={said?.text ?? t("copyLink")}
         onClick={async () => {
-          const copied = await copyText(findingLink(window.location, index));
-          setSaid(copied === "copied" ? t("copied") : t("copyManual"));
+          const copied = (await copyText(findingLink(window.location, index))) === "copied";
+          setSaid({ copied, text: copied ? t("copied") : t("copyManual") });
+          clearTimeout(timer.current);
+          timer.current = setTimeout(() => setSaid(null), 4000);
         }}
       >
-        <Link2 size={14} aria-hidden="true" />
-        {t("copyLink")}
-      </Button>
-      <span className="text-xs text-muted" aria-live="polite">
-        {said}
+        {/* A check only when it was copied: not when the address bar has to do. */}
+        {said?.copied ? (
+          <Check size={16} aria-hidden="true" />
+        ) : (
+          <Link2 size={16} aria-hidden="true" />
+        )}
+      </IconButton>
+      <span className="sr-only" aria-live="polite">
+        {said?.text}
       </span>
-    </span>
+    </>
   );
 };
 
-/** One finding: its line, what was found, why, how to fix it, its mark, and what can be done. */
+/**
+ * One finding: its line, what was found, why, how to fix it and its mark, and down its right
+ * side the actions as icons (owner, 2026-10-29); those that ask for something open a modal.
+ */
 const Finding = ({
   finding,
   index,
@@ -156,15 +236,47 @@ const Finding = ({
   onAskFix?: () => void;
 }) => {
   const t = useTranslations("author.scan");
-  const [marking, setMarking] = useState<DismissalKind | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [pending, start] = useTransition();
+  const [open, setOpen] = useState<DismissalKind | "restore" | null>(null);
+  const actions = useRef<HTMLDivElement>(null);
+  // The modal goes without the native close, so focus would fall to the page: back to the icon
+  // that opened it, or (once a mark changed the icons) the finding's first action.
+  const refocus = useRef(false);
+  const close = (saved = false) => {
+    const opener = open;
+    setOpen(null);
+    // Only a save changes the icons; after a Cancel, a later refresh mustn't move the focus.
+    refocus.current = saved;
+    requestAnimationFrame(() => {
+      const column = actions.current;
+      const button =
+        column?.querySelector<HTMLButtonElement>(`[data-action="${opener}"]`) ??
+        column?.querySelector<HTMLButtonElement>("button");
+      button?.focus();
+    });
+  };
+  // A save lands with the page's refresh, which swaps the icons: the one with the focus goes.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs when the mark comes or goes.
+  useEffect(() => {
+    if (!refocus.current) return;
+    refocus.current = false;
+    if (document.activeElement && document.activeElement !== document.body) return;
+    actions.current?.querySelector<HTMLButtonElement>("button")?.focus();
+  }, [dismissal]);
   const line = finding.line ? t("dialog.line", { line: finding.line }) : "";
+  // Unique on the page: the title, where it is, and its number (two findings can share both).
+  const where = finding.file ? `${finding.file}${finding.line ? `:${finding.line}` : ""}` : "";
+  const name = t("dialog.findingName", {
+    title: finding.title,
+    hasWhere: where ? "true" : "false",
+    where,
+    number: index + 1,
+  });
+  const on = (action: string) => t("dialog.actionOn", { action, name });
   return (
     <li
       id={`finding-${index}`}
       tabIndex={-1}
-      className={`grid scroll-mt-20 grid-cols-[3.5rem_1fr] gap-x-3 gap-y-1.5 border-t border-hairline p-3 first:border-t-0 target:bg-tint target:outline-2 target:outline-accent ${dismissal ? "bg-tint" : ""}`}
+      className={`grid scroll-mt-20 grid-cols-[3.5rem_1fr_auto] gap-x-3 border-t border-hairline p-3 first:border-t-0 target:bg-tint target:outline-2 target:outline-accent ${dismissal ? "bg-tint" : "hover:bg-canvas"}`}
     >
       <div className="flex items-start gap-1.5 pt-0.5">
         {onSelect && !dismissal ? (
@@ -172,11 +284,7 @@ const Finding = ({
             type="checkbox"
             checked={selected}
             onChange={(event) => onSelect(event.target.checked)}
-            aria-label={
-              finding.line
-                ? t("dialog.select", { title: finding.title, line: finding.line })
-                : t("dialog.selectNoLine", { title: finding.title })
-            }
+            aria-label={t("dialog.select", { name })}
             className="mt-0.5 size-4 accent-(--accent)"
           />
         ) : null}
@@ -193,14 +301,11 @@ const Finding = ({
           )
         ) : null}
       </div>
-      <div className="grid min-w-0 gap-1.5">
+      <div className="grid min-w-0 content-start gap-1.5">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
           <Badge tone={SEVERITY_TONE[finding.severity]}>{t(`severity.${finding.severity}`)}</Badge>
           <span className={`font-semibold ${dismissal ? "text-muted line-through" : "text-fg"}`}>
             {finding.title}
-          </span>
-          <span className="font-mono text-xs text-muted">
-            {t("rule", { rule: finding.rule, category: finding.category })}
           </span>
           {dismissal ? (
             <Badge tone="muted">
@@ -226,54 +331,75 @@ const Finding = ({
             <p className="whitespace-pre-wrap text-fg">{dismissal.reason}</p>
           </div>
         ) : null}
-        {marking ? (
-          <MarkForm
-            scanId={scanId}
-            finding={index}
-            kind={marking}
-            submissionId={submissionId}
-            onDone={() => setMarking(null)}
-          />
-        ) : (
-          <div className="flex flex-wrap items-center gap-2">
-            {canDismiss && !dismissal ? (
-              <>
-                <Button variant="secondary" onClick={() => setMarking("false_positive")}>
-                  {t("dialog.dismiss")}
-                </Button>
-                <Button variant="secondary" onClick={() => setMarking("accepted")}>
-                  {t("dialog.accept")}
-                </Button>
-              </>
-            ) : null}
-            {canDismiss && dismissal ? (
-              <Button
-                variant="secondary"
-                loading={pending}
-                onClick={() =>
-                  start(async () => {
-                    const result = await restoreFalsePositive({
-                      scanId,
-                      finding: index,
-                      submissionId,
-                    });
-                    setError(result.error ?? null);
-                  })
-                }
-              >
-                {t("dialog.restore")}
-              </Button>
-            ) : null}
-            {onAskFix && !dismissal ? (
-              <Button variant="text" onClick={onAskFix}>
-                {t("dialog.askFix")}
-              </Button>
-            ) : null}
-            <CopyLink index={index} />
-          </div>
-        )}
-        <FieldError id={`restore-${index}-error`}>{error}</FieldError>
+        {/* Where the buttons were (owner, 2026-10-29): what kind of finding it is. */}
+        <span className="font-mono text-xs text-muted">
+          {t("rule", { rule: finding.rule, category: finding.category })}
+        </span>
       </div>
+      {/* Each icon is named for the finding ("Mark false positive: Hidden Instructions"). */}
+      <div ref={actions} className="flex flex-col items-center gap-1 border-l border-hairline pl-2">
+        {canDismiss && !dismissal ? (
+          <>
+            <IconButton
+              label={on(t("dialog.dismiss"))}
+              tooltip={t("dialog.dismiss")}
+              onClick={() => setOpen("false_positive")}
+              data-action="false_positive"
+              tone={ACTION_TONE.dismiss}
+            >
+              <Ban size={16} aria-hidden="true" />
+            </IconButton>
+            <IconButton
+              label={on(t("dialog.accept"))}
+              tooltip={t("dialog.accept")}
+              onClick={() => setOpen("accepted")}
+              data-action="accepted"
+              tone={ACTION_TONE.accept}
+            >
+              <ShieldCheck size={16} aria-hidden="true" />
+            </IconButton>
+          </>
+        ) : null}
+        {canDismiss && dismissal ? (
+          <IconButton
+            label={on(t("dialog.restore"))}
+            tooltip={t("dialog.restore")}
+            onClick={() => setOpen("restore")}
+            data-action="restore"
+            tone={ACTION_TONE.restore}
+          >
+            <Undo2 size={16} aria-hidden="true" />
+          </IconButton>
+        ) : null}
+        {onAskFix && !dismissal ? (
+          <IconButton
+            label={on(t("dialog.askFix"))}
+            tooltip={t("dialog.askFix")}
+            onClick={onAskFix}
+            tone={ACTION_TONE.askFix}
+          >
+            <MessageSquareWarning size={16} aria-hidden="true" />
+          </IconButton>
+        ) : null}
+        <CopyLink index={index} name={name} />
+      </div>
+      {open === "false_positive" || open === "accepted" ? (
+        <MarkDialog
+          scanId={scanId}
+          finding={index}
+          kind={open}
+          submissionId={submissionId}
+          onClose={close}
+        />
+      ) : null}
+      {open === "restore" ? (
+        <RestoreDialog
+          scanId={scanId}
+          finding={index}
+          submissionId={submissionId}
+          onClose={close}
+        />
+      ) : null}
     </li>
   );
 };
@@ -489,25 +615,28 @@ export const ScanFindings = ({
         <span className="text-xs text-muted" aria-live="polite">
           {t("dialog.showing", { shown: shown.length, total: result.findings.length })}
         </span>
-        {askFix && open.length > 0 ? (
+        {askFix ? (
+          // Always there, off until something is selected (owner, 2026-10-29), even when every
+          // finding is marked.
           <div className="flex flex-wrap items-center gap-2">
-            {chosen.length > 0 ? (
-              <>
-                <Button onClick={() => askFix(chosen)}>
-                  {t("dialog.askFixMany", { count: chosen.length })}
-                </Button>
-                <Button variant="text" onClick={() => setSelected(new Set())}>
-                  {t("dialog.clearSelection")}
-                </Button>
-              </>
-            ) : (
-              <Button
-                variant="text"
-                onClick={() => setSelected(new Set(open.filter((i) => showing.has(i))))}
-              >
-                {t("dialog.selectOpen")}
-              </Button>
-            )}
+            <Button disabled={chosen.length === 0} onClick={() => askFix(chosen)}>
+              {t("dialog.askFixMany", { count: chosen.length })}
+            </Button>
+            <Button
+              variant="text"
+              disabled={!open.some((i) => showing.has(i))}
+              onClick={() => setSelected(new Set(open.filter((i) => showing.has(i))))}
+            >
+              {t("dialog.selectOpen")}
+            </Button>
+            <Button
+              variant="text"
+              // On while anything is held, a finding a filter hides included.
+              disabled={selected.size === 0}
+              onClick={() => setSelected(new Set())}
+            >
+              {t("dialog.clearSelection")}
+            </Button>
           </div>
         ) : null}
       </div>
