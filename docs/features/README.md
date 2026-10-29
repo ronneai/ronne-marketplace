@@ -201,7 +201,7 @@ token; Codex and Cursor only add git repositories, so `rmk` builds a mirror. The
 |---|---|---|---|
 | [076](./076-plugin-builders/SPEC.md) | Plugin builders in `@ronneai/core/plugins`: an item and its dependencies (a bundle and its members) as a Claude Code, Codex or Cursor plugin through the renderers; deterministic zips; each tool's marketplace file | 020, 021, 023, 024, 025, 026 | done |
 | [077](./077-claude-code-marketplace/SPEC.md) | Claude Code marketplace from the instance: `GET /api/v1/feeds/claude-code/marketplace.json` and plugin zips behind a token, built once per version and cached; `rmk plugin-setup claude-code` with `headersHelper: rmk auth headers`; the Plugin marketplaces topic | 076, 009, 019, 022, 027 | done |
-| [078](./078-plugin-feed-mirror/SPEC.md) | Git mirror for Codex and Cursor: the feeds for both tools, `rmk feed build --out <dir>` (deterministic, touches only what it wrote), a scheduled CI workflow to keep the repository current | 076, 077 | specified |
+| [078](./078-plugin-feed-mirror/SPEC.md) | Git mirror for Codex and Cursor: the feeds for both tools, `rmk feed build --out <dir>` (deterministic, touches only what it wrote), a scheduled CI workflow to keep the repository current | 076, 077 | in progress (tasks 1–5 built; task 6, the check by hand, is done in 153) |
 | [079](./079-plugin-feeds-at-scale/SPEC.md) | Plugin feeds at scale: a benchmark of the marketplaces at 1,000–10,000 items, a catalogue revision and an in-memory marketplace cache, build stats with warnings past 80% of Claude Code's limits (log and Admin › Settings), the 5 MiB cap only for Claude Code with the git mirror as the fallback; per-scope marketplaces wait for a measured trigger | 077, 078 | done |
 
 ### Across the app
@@ -358,6 +358,7 @@ use what it taught. From 129 on every new screen is written with messages.
 | [131](./131-languages-author/SPEC.md) | Languages: author and review. Draft editor, composer, submissions, reviews, versions, releases and their error messages | 129, 130 | done |
 | [132](./132-languages-admin/SPEC.md) | Languages: admin and setup. Admin pages, settings tabs, audit log labels, the setup wizard, SSO and SCIM screens; an instance default language if wanted | 129 | done (the Documentation in ronne-web `feat/132-languages-admin`; the instance default language was not built) |
 | [133](./133-languages-signoff/SPEC.md) | Languages: sign-off. The raw-text scan covers the whole app, a language review of Portuguese and French (by agents, owner 2026-10-27) (with 131's follow-up: « revue » and "proposta de mudança" on the website), the phone sweep in each language, Documentation links checked | 130, 131, 132 | done (reviewed by agents; the Documentation in ronne-web `feat/133-languages-signoff`) |
+| [141](./141-language-settings/SPEC.md) | Languages on and off, and the instance default: Admin › Settings › Languages sets the default, whether people may choose and which languages are offered; with choosing off everyone sees the default and the switches hide; the default replaces English as the last fallback; people's choices are kept; audited | 129, 132, 122, 007 | specified |
 
 ### M20 — Security scan
 
@@ -371,3 +372,58 @@ findings show on the review page. Advisory: it never blocks a submit, an approva
 |---|---|---|---|
 | [135](./135-skill-scanner/SPEC.md) | Security scan of submissions: the operator installs SkillSpector at a pinned version (`RONNE_SKILL_SCANNER`), root turns it on and picks the item types; each revision is scanned statically (`--no-llm`) by default, or with semantic analysis when the operator sets up a provider (`RONNE_SKILL_SCANNER_ENV_*`) and root chooses it, in a private folder with a short environment allowlist and a timeout; a Security scan panel on the review page | 013, 014, 015, 060, 129 | done (the Documentation in ronne-web `feat/135-skill-scanner`) |
 | [136](./136-scanner-settings-in-web/SPEC.md) | Scanner settings in Admin › Settings: root sets the provider, model, endpoint, timeout and a write-only API key (encrypted at rest as identity providers' secrets, re-keyed by `rotate-secret`, never shown or logged); endpoints `https://` and not internal unless the operator allows the host; root picks the command from the operator's `RONNE_SKILL_SCANNERS` list; environment variables still win | 135, 106, 098, 099 | done (the Documentation in ronne-web `feat/136-scanner-settings-in-web`) |
+
+## Planned on 2026-10-29
+
+The owner's next features (owner, 2026-10-29), built in this order: M21, then 141 (in M19), M22,
+M23, M24, M25 and M26, after 137 (M20, in progress on its own branch). Each row's "Depends on"
+names what must be `done` first. They were all specified at once, ahead of the usual "current
+and next milestone" rule, at the owner's request: a spec is re-checked against what was built
+since (and the vendors' current docs) before its work starts, as for one on hold.
+
+### M21 — Feedback in the app
+
+| ID | Feature | Depends on | Status |
+|---|---|---|---|
+| [138](./138-toasts/SPEC.md) | Toasts for the results of actions, with Sonner unstyled behind our own wrapper (our own component if it can't be translated or placed): bottom right from `sm`, across the bottom above `BottomBar` on phones; ok and info go after 5 s (paused on hover, focus and a hidden tab), warnings and errors stay until closed; `status`/`alert` regions that never take focus; `flashToast` after a redirect (a cookie with a message key, never text); field errors and one-time secrets stay inline | 032, 065, 067, 129 | specified |
+| [139](./139-notification-center/SPEC.md) | Notification center in the app: a bell with the unread count in the sidebar and Menu, the ten latest in a popover, `/notifications` on the server data table; written with the audit event in the same transaction (decisions, comments and releases on your submission, answers to your requests, requests you must answer, root's feedback), never to the actor; in the reader's language; hidden once you can't see the subject; polled every minute; kept 90 days; email and webhooks out | 007, 060, 102, 103, 104, 119, 129 | specified |
+| [140](./140-upgrade-check/SPEC.md) | Upgrade check for root: a daily request for the latest GitHub release, sending nothing about the instance, under the scheduler's lease; one notification per new version to each active root; Settings › Updates with the versions, Check now and this instance's update commands; "Update available" at the sidebar's foot; a switch and `RONNE_UPDATE_CHECK=off`; quiet when offline | 139, 122, 102, 005, 035, 082, 085 | specified |
+
+### M22 — Global search
+
+| ID | Feature | Depends on | Status |
+|---|---|---|---|
+| [142](./142-search-index/SPEC.md) | Search index in the server: Orama inside the web app's process (no new image or service) over each item's listed version (full name, old names, type, description, keywords); rebuilt in the background per catalogue revision, by each replica; filtered by the workspaces the reader sees and every hit checked again; today's `LIKE` until the first build; `GET /api/v1/search` and `searchEverywhere` | 018, 019, 079, 093, 114, 118 | specified |
+| [143](./143-search-everywhere/SPEC.md) | Search on every page: Search in the sidebar and an icon in the phone header, ⌘K/Ctrl+K; a dialog with items as you type, limited to the current workspace if wanted, and Go to entries for the pages the reader can open; a `/search` results page that works without JavaScript | 142, 119, 120, 066, 067, 129 | specified |
+| [144](./144-search-file-contents/SPEC.md) | File contents in search, at scale: `search_texts` holds each version's text files (64 KiB each), written at publish and backfilled; snippets with the file path; `rmk search` and MCP `search_items` move to `/api/v1/search` (older servers fall back); `RONNE_SEARCH_CONTENTS`; `bench:search` at 1k, 5k and 10k items | 142, 143, 044, 015, 022, 027 | specified |
+
+### M23 — MCP servers in items
+
+| ID | Feature | Depends on | Status |
+|---|---|---|---|
+| [145](./145-mcp-server-references/SPEC.md) | Reference MCP servers from items: an MCP servers field on skills, agents and commands (a picker of `mcp-server` items that adds the dependency), `mcp:<server>` in agents' tools; checks that tool references match a dependency and that two servers don't share a short name; Claude Code agents get `mcpServers`; the Overview lists "Uses MCP servers" | 096, 097, 089, 012, 031, 023, 024, 025 | specified |
+| [146](./146-mcp-server-setup/SPEC.md) | Install referenced MCP servers, with set-up steps: an optional `mcp-server.setup` file in the manifest; after install or update `rmk` lists each server's variables as set or not (never a value); `rmk mcp check` and MCP `check_mcp_servers`; "Set up on your machine" on the item page, per tool and system; the Documentation topic MCP servers | 145, 022, 027, 044, 045, 076, 077 | specified |
+
+### M24 — AI providers and triage
+
+| ID | Feature | Depends on | Status |
+|---|---|---|---|
+| [147](./147-ai-providers/SPEC.md) | AI providers, set up once and shared: Admin › Settings › AI providers lists named providers (135's six kinds, keys sealed and write-only, 136's endpoint checks, Test connection), the environment's read-only and winning; the security scan and triage each pick one and a model; 136's settings move over at start-up; Ronne's own model client (no tools, no SDK); one Allow AI providers switch per private or personal workspace, for the semantic scan and triage alike (without it the scan runs static) | 136, 122, 106, 098, 099, 092, 093, 114 | specified |
+| [148](./148-ai-triage/SPEC.md) | AI triage of submissions: advice on improving each submitted revision, and a draft on request; advisory, never a gate; root turns it on and picks types; private workspaces need their admins' consent, personal ones the owner's; files sent as untrusted data, fixed-shape answers shown as text; a Triage tab and card on the review page, the submission page and the editor; daily limits | 147, 135, 137, 014, 093, 114 | specified |
+| [149](./149-triage-overlap/SPEC.md) | Triage overlap: candidates from the search index, the model judging duplicate, overlaps or related, and recommending depend on it, propose a change, keep both or merge; compared only with what the revision's workspace may see | 148, 142, 144 | specified |
+| [150](./150-triage-guidance/SPEC.md) | Triage guidance, scanned before it's used: root for the instance and a workspace's admins for theirs, by item type and topic; each entry scanned by SkillSpector when the scan is on and used only under 137's threshold (fails closed, root may override); the last passing text stays in use while an edit is scanned | 148, 137, 135, 092 | specified |
+| [151](./151-triage-report/SPEC.md) | Triage report for a workspace and the instance: duplicates, items to retire, items to improve and gaps; on request once a day and an optional weekly instance report; six kept; private workspaces only with their consent | 149, 150, 090 | specified |
+
+### M25 — Git export
+
+| ID | Feature | Depends on | Status |
+|---|---|---|---|
+| [152](./152-git-repositories/SPEC.md) | Git repositories in Admin › Settings (root): an HTTPS URL, a branch, a use (push, read or both) and a write-only token encrypted and bound to the URL's origin, re-keyed by `rotate-secret`; 136's URL checks plus `RONNE_GIT_HOSTS`; Test connection; `isomorphic-git` | 136, 122, 090, 093, 098, 099 | specified |
+| [153](./153-git-push-feeds/SPEC.md) | Push the plugin marketplaces to git on every catalogue change: 078's tree (from `@ronneai/core/plugins`, as `rmk feed build` writes it) plus a `skills/` tree for other tools, in an optional folder; never a force push, a conflict stops it; a private workspace only when its admins turn it on, personal ones never; 078's check by hand in each tool | 152, 076, 077, 079, 093, 114 | specified |
+
+### M26 — Import
+
+| ID | Feature | Depends on | Status |
+|---|---|---|---|
+| [154](./154-import-from-marketplaces/SPEC.md) | Import from other marketplaces: skills, agents, commands, rules and MCP servers from a git repository, with skills.sh (Vercel's directory) search as a finder; drafts, reviewed and scanned like any other, with an Imported risk flag; source, commit and licence recorded, the licence file kept, nothing without a licence on root's list unless root records a permission note (flagged, kept out of git pushes until root allows); off by default, root says who and which hosts | 152, 037, 038, 040, 043, 051, 010, 135, 137, 014 | specified |
+| [155](./155-follow-upstream/SPEC.md) | Follow an imported item's source: a daily check and Check now bring changes in as an updated draft or a change proposal onto `latest` and notify its maintainers; never submits or releases on its own; the licence checked again; stopped states shown with reasons | 154, 017, 042, 051, 102, 139 | specified |

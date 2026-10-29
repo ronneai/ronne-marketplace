@@ -2,6 +2,15 @@
 
 > Milestone: M11 · Depends on: 076, 077 · Design: [MVP §3.3](../../MVP/MVP.md#33-platform-renderers) · Contracts: [`docs/spec/plugin-feeds.md`](../../spec/plugin-feeds.md)
 
+> **Since [153](../153-git-push-feeds/SPEC.md) (owner, 2026-10-29).** What 078 built stays: the
+> `codex` and `cursor` routes, `rmk feed build` (`packages/cli/src/feed-build.ts`) and
+> `--print-workflow` (`feed-workflow.ts`), and their Documentation (2748f56d, tasks 1–5). Its task 6,
+> the check by hand in Codex, Claude Code and Cursor, was never done: 153's task 6 does it for both
+> ways. 153 takes over as the **recommended** way: the instance pushes the same tree itself to a
+> repository root links in [152](../152-git-repositories/SPEC.md), on every catalogue change, with no
+> CI job. `rmk feed build` stays for a mirror built outside the instance (no instance-held git token);
+> its tree planning moves to `@ronneai/core/plugins` so both write the same bytes (153 task 2).
+
 ## Goal
 
 Codex and Cursor only add plugin marketplaces from a git repository. Cursor also needs a team admin
