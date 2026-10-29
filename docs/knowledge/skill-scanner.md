@@ -212,6 +212,26 @@ shows it read-only.
 - **Backups**: a full backup holds `AUTH_SECRET` and the database, so it can open the key, as it
   can identity providers' secrets. Encrypt copies that leave the machine.
 
+## The gate and the marks (137)
+
+- **The gate.** With scanning on and root's threshold set (`skill_scan_block_score`, 1–100;
+  empty means no gate), the latest revision of a scanned type can't be approved while its newest
+  scan scored at or above it, waits or runs, failed, or doesn't exist. It fails closed, so a scan
+  made to fail isn't a way past it. `scanGate` (`submissions/models/scan-gate.ts`) reads no
+  database. The review page, the queue, Approve many and `decide` all ask it. Root's **scan
+  override** (a decision of its own, with a reason, audited as
+  `submission.scan_override_approved`) is the only way past. The author's own submission in their
+  personal workspace isn't gated, because it's approved as it's sent. Releases aren't gated.
+- **Marks.** A reviewer marks a finding a false positive or an accepted risk, with a reason
+  (`scan_dismissals`, migrations 0039 and 0040). There's one mark per finding per scan, and the
+  scan row is locked while it's written. Marking and restoring are audited
+  (`scan.finding_dismissed` and `scan.finding_restored`, with the kind) and appear in the user's
+  data download. A mark never moves the score or the gate: the score is SkillSpector's, and
+  overriding is root's decision. Authors can't mark their own submission's findings.
+- **One screen.** The review page and the author's submission page share `SubmissionScreen`, so
+  the scan's card and tab are the same on both. Only the actions differ, by what the server
+  allows (`reviewScan`'s `canDismiss` and `canRequest`).
+
 ## Moving the pin
 
 1. Read the new release's changelog, `pyproject.toml` and `uv.lock`: new network calls, and anything

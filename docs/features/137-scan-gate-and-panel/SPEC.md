@@ -211,11 +211,16 @@ override. This changes 135's decision 1 ("advisory, never blocks").
   - **Set up the scan** gets the threshold and what it blocks;
   - a new section, **Blocking approval** (`gate`): what blocks, failing closed, root's override,
     and personal workspaces.
-- **Submitting and review › The security scan** (`review#security-scan`): the card, the dialog,
-  jumping to the code, the export, false positives, authors seeing their scan, and a blocked
-  approval.
+- **Submitting and review › The security scan** (`review#security-scan`): the card, the Security
+  scan tab (by file and line, the filters, the actions as icons with their dialogs, Select all),
+  jumping to the code, the export, the marks, authors seeing their scan, and a blocked approval.
 - **Submitting and review** (`review`): the author's page is the review page's screen, with Edit
   files to change it after changes are requested.
+  It's in **Reviewing** (`review#reviewing`), the changes-requested row of **Statuses**
+  (`review#statuses`), and **Decisions** (`review#decisions`): only allowed decisions show on the
+  author's page.
+- **Knowledge note** (`docs/knowledge/skill-scanner.md`, for maintainers): the gate, the marks and
+  the shared screen.
 - **Helpers:**
   - the card's "What is this scan?" stays (`review#security-scan`);
   - the threshold field's "What does the threshold block?" → `security-scan#gate`.

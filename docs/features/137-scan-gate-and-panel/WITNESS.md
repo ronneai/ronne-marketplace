@@ -1293,3 +1293,24 @@ Witnessed: 2026-10-29 14:13 EDT, by a fresh agent (adversarial, scoped). Commit:
 | 7 | Three languages | no | confirmed | read |
 
 **Overall:** met. Remarks, older and outside this task: a personal-workspace item in `submitted` (hard to reach: it's self-approved in the same call) still reads "Submitted for review…"; fr "l'approuve encore" could read "l'approuve de nouveau".
+
+## Task 7
+
+Witnessed: 2026-10-29 14:21 EDT, by a fresh agent (blind). Commit: d38eaeb5 (marketplace, plus the uncommitted `docs/knowledge/skill-scanner.md` and SPEC.md diff); ronne-web 1ee7a1a plus the uncommitted `www/src/content/docs/{en,pt,fr}/review.tsx` and `docs/product-facts.md`. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | ronne-web lint, typecheck, tests, build | no | confirmed | exit 0; 187 passed; the build has the new pt and fr text |
+| 2 | Set up the scan names the threshold, three languages | no | confirmed | `1ee7a1a`; labels match `admin.json` |
+| 3 | Blocking approval (`gate`), true to the code, three languages | no | confirmed | `scan-gate.ts`, `decisions.ts`, `SubmissionScreen.tsx`; `id="gate"` built in each |
+| 4 | The security scan section | no | confirmed | checked against `ScanCard.tsx`, `ScanFindings.tsx`, `dismissals.ts` |
+| 5 | The author's page is the review page's screen, in Reviewing, Statuses and Decisions | no | confirmed | `submissions/[id]/page.tsx`, `SubmissionScreen.tsx`; three diffs |
+| 6 | Button names match `author.json` | no | confirmed | every name, three languages |
+| 7 | pt and fr say the same as en, glossary | no | confirmed | compared section by section |
+| 8 | Every helper links to a real section; the two `topics.ts` agree | no | confirmed | six helpers and the card's guide link; built ids |
+| 9 | Help and i18n tests | no | confirmed | 383 passed |
+| 10 | The knowledge note matches the code | no | confirmed | each claim traced to its file |
+| 11 | SPEC's Documentation section | no | confirmed | matches rows 2–5 and 10 |
+| 12 | `pnpm witness:check` | no | confirmed | exit 0 |
+
+**Overall:** met.

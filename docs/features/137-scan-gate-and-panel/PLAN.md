@@ -79,7 +79,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     the e2e for submitting, withdrawing, requesting changes and releasing pass on the new screen;
     the phone sweep passes.
 
-- [ ] **7. Documentation.** The spec's Documentation section, in ronne-web and here.
+- [x] **7. Documentation.** The spec's Documentation section, in ronne-web and here.
   - *Done when:* the docs render tests pass, and every new helper's link lands on a real section.
 
 ## Notes
