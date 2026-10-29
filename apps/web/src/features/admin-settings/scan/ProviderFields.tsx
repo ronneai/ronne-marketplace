@@ -99,42 +99,45 @@ export const ProviderFields = ({
       </div>
       {info ? (
         <>
-          <TextField
-            id="scan-model"
-            name="model"
-            label={t("model")}
-            hint={t("modelHint")}
-            maxLength={128}
-            autoComplete="off"
-            value={model}
-            onChange={(event) => setModel(event.target.value)}
-          />
-          {info.hasEndpoint ? (
+          {/* Model, endpoint and key side by side on wider screens (owner, 2026-10-28). */}
+          <div className="grid gap-3 md:grid-cols-3 md:items-start">
             <TextField
-              id="scan-endpoint"
-              name="endpoint"
-              label={t("endpoint")}
-              hint={t("endpointHint")}
-              inputMode="url"
+              id="scan-model"
+              name="model"
+              label={t("model")}
+              hint={t("modelHint")}
+              maxLength={128}
               autoComplete="off"
-              spellCheck={false}
-              required={info.needsEndpoint}
-              value={endpoint}
-              onChange={(event) => setEndpoint(event.target.value)}
+              value={model}
+              onChange={(event) => setModel(event.target.value)}
             />
-          ) : null}
-          {info.takesKey ? (
-            <KeyField
-              mode={keyMode}
-              stored={keyStored ? stored.key : "none"}
-              value={key}
-              onType={setKey}
-              onClick={(click) => {
-                setKeyMode(keyModeAfter(keyMode, click));
-                onEdit();
-              }}
-            />
-          ) : null}
+            {info.hasEndpoint ? (
+              <TextField
+                id="scan-endpoint"
+                name="endpoint"
+                label={t("endpoint")}
+                hint={t("endpointHint")}
+                inputMode="url"
+                autoComplete="off"
+                spellCheck={false}
+                required={info.needsEndpoint}
+                value={endpoint}
+                onChange={(event) => setEndpoint(event.target.value)}
+              />
+            ) : null}
+            {info.takesKey ? (
+              <KeyField
+                mode={keyMode}
+                stored={keyStored ? stored.key : "none"}
+                value={key}
+                onType={setKey}
+                onClick={(click) => {
+                  setKeyMode(keyModeAfter(keyMode, click));
+                  onEdit();
+                }}
+              />
+            ) : null}
+          </div>
           <div className="grid gap-2">
             <div>
               <Button
