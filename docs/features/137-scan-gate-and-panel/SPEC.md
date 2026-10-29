@@ -108,8 +108,14 @@ override. This changes 135's decision 1 ("advisory, never blocks").
 - Who may dismiss: whoever may review the submission (a moderator of its workspace, or root), and
   never its author. A finding is dismissed once per scan. Restoring it deletes the dismissal.
 - Both are audited, `scan.finding_dismissed` and `scan.finding_restored`, with the finding's rule
-  and file, not its text.
-- The reason: 1 to 500 characters, plain text.
+  and file, not its text; a dismissal with its reason, as a review message is.
+- The reason: 1 to 500 characters, plain text, with control and invisible format characters
+  removed first (the zero-width joiner stays, so emoji sequences stay whole); a reason with nothing
+  visible in it is none.
+- Only a finished scan's findings can be marked. Someone who can't see the submission is told the
+  finding doesn't exist; its author is told only reviewers mark findings.
+- A scan is seen by the submission's author, and by its reviewers while it isn't a draft: one sent
+  back to draft (archived, then restored) is its author's alone, as on the review page.
 - A finding is known by its scan and its position in that scan's kept findings, which never change
   once a scan is stored. A new scan has its own dismissals.
 
@@ -144,6 +150,8 @@ override. This changes 135's decision 1 ("advisory, never blocks").
 - `content_scans.result`: findings keep `remediation` (cleaned and cut like the other text). Older
   rows have none, and read as before.
 - Audit actions: `submission.scan_override_approved`, `scan.finding_dismissed`, `scan.finding_restored`.
+- The data download (104) includes the reasons a person gave for false positives, as comments of
+  the kind `false_positive`, as it includes their review messages.
 - Review event kind: `scan_override`.
 
 ## Documentation

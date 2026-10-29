@@ -429,13 +429,45 @@ export const kyselyUserDataRepository = (
         .orderBy("review_events.id")
         .limit(limit)
         .execute();
-      return rows.map((row) => ({
-        submission: `@${row.scope}/${row.name}`,
-        workspace: row.workspace,
-        kind: row.kind,
-        body: row.body,
-        createdAt: fromDbDate(row.at),
-      }));
+      // The reasons they gave for marking scan findings false positives (137), as `false_positive`.
+      const dismissals = await db
+        .selectFrom("scan_dismissals")
+        .innerJoin("content_scans", "content_scans.id", "scan_dismissals.scan_id")
+        .innerJoin("submission_revisions", "submission_revisions.id", "content_scans.revision_id")
+        .innerJoin("submissions", "submissions.id", "submission_revisions.submission_id")
+        .innerJoin("scopes", "scopes.id", "submissions.scope_id")
+        .innerJoin("workspaces", "workspaces.id", "scopes.workspace_id")
+        .select([
+          "submissions.name as name",
+          "scopes.name as scope",
+          "workspaces.name as workspace",
+          "scan_dismissals.reason as body",
+          "scan_dismissals.created_at as at",
+          "scan_dismissals.id as id",
+        ])
+        .where("scan_dismissals.user_id", "=", userId)
+        .orderBy("scan_dismissals.created_at")
+        .orderBy("scan_dismissals.id")
+        .limit(limit)
+        .execute();
+      return [
+        ...rows.map((row) => ({
+          submission: `@${row.scope}/${row.name}`,
+          workspace: row.workspace,
+          kind: row.kind as string,
+          body: row.body,
+          createdAt: fromDbDate(row.at),
+        })),
+        ...dismissals.map((row) => ({
+          submission: `@${row.scope}/${row.name}`,
+          workspace: row.workspace,
+          kind: "false_positive",
+          body: row.body as string | null,
+          createdAt: fromDbDate(row.at),
+        })),
+      ]
+        .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+        .slice(0, limit);
     },
 
     async auditEvents(userId, limit) {

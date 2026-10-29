@@ -185,6 +185,7 @@ export const TOPICS = [
       { id: "connect", title: "Connect it to Ronne" },
       { id: "settings", title: "Set up the scan" },
       { id: "semantic", title: "Semantic analysis" },
+      { id: "gate", title: "Blocking approval" },
       { id: "try-it", title: "Try it" },
       { id: "troubleshooting", title: "When a scan fails" },
     ],

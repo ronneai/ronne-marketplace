@@ -62,4 +62,8 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   exemption (say, to a submission sent there) if the audit trail matters for it.
 - `pnpm test:db:<server> -- <paths>` takes several paths here; one witness's shell passed them as
   one string ("No test files found") and ran Vitest with `TEST_DATABASE_URL` instead.
+- **Task 4 (owner, 2026-10-29):** after six adversarial rounds, each finding fixed with a test, the
+  owner chose no further round. The last round's three findings (a NUL in a revision id on
+  PostgreSQL, a blank Braille reason, no test for lone surrogates) are fixed in task 4's commit;
+  task 4 is ticked once task 6's adversarial pass, which changes the dismissals, re-checks them.
 

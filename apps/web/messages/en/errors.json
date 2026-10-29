@@ -157,5 +157,9 @@
   "ScanEndpointNotHttpsError": "The endpoint must start with https://. The server’s operator can allow http:// for a host in RONNE_SKILL_SCANNER_HTTP_HOSTS.",
   "ScanEndpointCredentialsError": "Leave the user name and password out of the endpoint: enter the API key in its own field.",
   "ScanEndpointInternalError": "That endpoint is on a private, loopback or link-local address, which isn’t allowed. The server’s operator can allow its host in RONNE_SKILL_SCANNER_HTTP_HOSTS.",
-  "ScanEndpointUnresolvedError": "That endpoint’s host can’t be found. Check its name."
+  "ScanEndpointUnresolvedError": "That endpoint’s host can’t be found. Check its name.",
+  "DismissalReasonError": "{reason, select, required {Say why it's a false positive, so the other reviewers know.} other {A reason can have at most 500 characters.}}",
+  "FindingNotFoundError": "That finding no longer exists, or you can't see it.",
+  "FindingDismissedError": "That finding is already marked a false positive.",
+  "NotScanReviewerError": "Only the submission's reviewers mark findings as false positives, never its author."
 }

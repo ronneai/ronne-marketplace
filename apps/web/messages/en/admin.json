@@ -720,6 +720,10 @@
           "scan_override_approved": "Approved <name>{item}</name> past the security scan (override)",
           "rebased": "Rebased <name>{item}</name> from {from} to {to}{conflicts, plural, =0 {} one { (# conflict)} other { (# conflicts)}}"
         },
+        "scan": {
+          "finding_dismissed": "Marked the finding <code>{rule}</code> of <name>{item}</name> a false positive",
+          "finding_restored": "Restored the finding <code>{rule}</code> of <name>{item}</name>"
+        },
         "version": {
           "published": "Published <name>{item}</name>{hasTag, select, true { as <code>{tag}</code>} other {}}",
           "deprecated": "Deprecated <name>{item}</name>",

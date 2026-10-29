@@ -503,6 +503,8 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     ].filter((c) => c !== null);
     return { changes: changes.join(", ") || h.part("skillScan.nothing") };
   },
+  "scan.finding_dismissed": (m, _e, h) => ({ item: h.item(m), rule: text(m.rule) }),
+  "scan.finding_restored": (m, _e, h) => ({ item: h.item(m), rule: text(m.rule) }),
   "settings.notice": (m, _e, h) => {
     // `{ from: { tone, shown }, to: { tone, shown }, revision }`: never the text (124).
     const from = record(m.from);

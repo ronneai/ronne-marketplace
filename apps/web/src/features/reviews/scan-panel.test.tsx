@@ -52,7 +52,12 @@ const scan = (overrides: Partial<ContentScan> = {}): ContentScan => ({
 
 const html = (view: { scan: ContentScan | null; canRequest: boolean }) =>
   renderToStaticMarkup(
-    <ScanPanel view={view} base="/reviews/sub1" revisionId="r1" submissionId="sub1" />,
+    <ScanPanel
+      view={{ dismissals: [], canDismiss: false, ...view }}
+      base="/reviews/sub1"
+      revisionId="r1"
+      submissionId="sub1"
+    />,
   );
 
 describe("the review page's Security scan panel (135)", () => {

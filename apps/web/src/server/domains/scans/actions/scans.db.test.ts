@@ -516,6 +516,11 @@ describe("the review page's scan (135)", () => {
     expect((await reviewScan(asAna, revisionId, app)).canRequest).toBe(false);
     vi.stubEnv("RONNE_SKILL_SCANNER", "");
     expect((await reviewScan(asRoot, revisionId, app)).canRequest).toBe(false);
-    expect(await reviewScan(asRoot, null, app)).toEqual({ scan: null, canRequest: false });
+    expect(await reviewScan(asRoot, null, app)).toEqual({
+      scan: null,
+      canRequest: false,
+      dismissals: [],
+      canDismiss: false,
+    });
   });
 });

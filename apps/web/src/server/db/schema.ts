@@ -659,6 +659,20 @@ export interface ContentScanTable {
   finished_at: Timestamp | null;
 }
 
+/**
+ * A finding a reviewer marked a false positive (migration 0039_scan_dismissals, feature 137): its
+ * position in the scan's kept findings, once per scan.
+ */
+export interface ScanDismissalTable {
+  id: string;
+  scan_id: string;
+  finding: number;
+  user_id: string;
+  /** Plain text, 1 to 500 characters. */
+  reason: string;
+  created_at: Timestamp;
+}
+
 /** Kysely table types for the whole app. Each migration that adds a table adds its interface here. */
 export interface Database {
   user: UserTable;
@@ -687,6 +701,7 @@ export interface Database {
   submission_revisions: SubmissionRevisionTable;
   submission_revision_files: SubmissionRevisionFileTable;
   content_scans: ContentScanTable;
+  scan_dismissals: ScanDismissalTable;
   review_events: ReviewEventTable;
   items: ItemTable;
   item_aliases: ItemAliasTable;

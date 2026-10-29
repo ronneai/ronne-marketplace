@@ -157,5 +157,9 @@
   "ScanEndpointNotHttpsError": "Le point de terminaison doit commencer par https://. La personne qui exploite le serveur peut permettre http:// pour un hôte dans RONNE_SKILL_SCANNER_HTTP_HOSTS.",
   "ScanEndpointCredentialsError": "Laissez le nom d’utilisateur et le mot de passe hors du point de terminaison : saisissez la clé d’API dans son propre champ.",
   "ScanEndpointInternalError": "Ce point de terminaison est sur une adresse privée, de bouclage ou de lien local, ce qui n’est pas permis. La personne qui exploite le serveur peut permettre son hôte dans RONNE_SKILL_SCANNER_HTTP_HOSTS.",
-  "ScanEndpointUnresolvedError": "L’hôte de ce point de terminaison est introuvable. Vérifiez son nom."
+  "ScanEndpointUnresolvedError": "L’hôte de ce point de terminaison est introuvable. Vérifiez son nom.",
+  "DismissalReasonError": "{reason, select, required {Dites pourquoi c’est un faux positif, pour que les autres personnes qui révisent le sachent.} other {Un motif peut avoir au plus 500 caractères.}}",
+  "FindingNotFoundError": "Ce résultat n’existe plus, ou vous ne pouvez pas le voir.",
+  "FindingDismissedError": "Ce résultat est déjà marqué comme faux positif.",
+  "NotScanReviewerError": "Seules les personnes qui révisent la soumission marquent des résultats comme faux positifs, jamais son auteur."
 }

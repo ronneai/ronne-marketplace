@@ -720,6 +720,10 @@
           "scan_override_approved": "Aprovou <name>{item}</name> apesar da verificação de segurança (exceção)",
           "rebased": "Fez rebase de <name>{item}</name> de {from} para {to}{conflicts, plural, =0 {} one { (# conflito)} other { (# conflitos)}}"
         },
+        "scan": {
+          "finding_dismissed": "Marcou o achado <code>{rule}</code> de <name>{item}</name> como falso positivo",
+          "finding_restored": "Restaurou o achado <code>{rule}</code> de <name>{item}</name>"
+        },
         "version": {
           "published": "Publicou <name>{item}</name>{hasTag, select, true { como <code>{tag}</code>} other {}}",
           "deprecated": "Marcou <name>{item}</name> como obsoleta",
