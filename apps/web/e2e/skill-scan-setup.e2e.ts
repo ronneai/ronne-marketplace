@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { createServer, type IncomingHttpHeaders, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { expect, type Page, test } from "@playwright/test";
@@ -13,7 +14,9 @@ import { E2E_PASSWORD, E2E_USERS } from "./users";
  * if a server log line holds it. The provider is cleared at the end.
  */
 const instance: Instance = JSON.parse(process.env.RONNE_E2E_INSTANCE ?? "{}").main;
-const KEY = `sk-e2e-${Math.random().toString(36).slice(2)}-${Date.now()}`;
+// From node:crypto, not Math.random(): CodeQL fails a value that reaches recordSecret otherwise
+// (docs/knowledge/codeql-randomness.md).
+const KEY = `sk-e2e-${randomBytes(12).toString("hex")}`;
 
 let server: Server;
 let endpoint: string;
