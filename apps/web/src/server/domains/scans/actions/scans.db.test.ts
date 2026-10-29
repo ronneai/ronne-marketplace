@@ -133,6 +133,7 @@ const result = (overrides: Partial<SkillScanResult> = {}): SkillScanResult => ({
       confidence: 0.9,
       title: "Hidden Instructions",
       explanation: null,
+      remediation: null,
       file: "rule.md",
       line: 1,
     },
@@ -262,6 +263,24 @@ describe("running the queue (135)", () => {
     const settings = kyselySettingsRepository(t.db, t.dialect);
     expect((await settings.get(SKILL_SCAN_LAST_VERSION_KEY))?.value).toBe("2.13.2");
     expect((await settings.get(SKILL_SCAN_LAST_ERROR_KEY))?.value).toBe("");
+  });
+
+  it("reads a scan stored before 137, whose findings kept no remediation, as having none", async () => {
+    await turnOn();
+    await submitDraft(asAna, (await drafted()).id, app);
+    await run(fakeScanner({ ok: true, result: result() }).scanner);
+    const old = result().findings.map(({ remediation: _, ...rest }) => rest);
+    await t.db
+      .updateTable("content_scans")
+      .set({ findings: JSON.stringify(old) })
+      .execute();
+    const { revision_id } = await t.db
+      .selectFrom("content_scans")
+      .select("revision_id")
+      .executeTakeFirstOrThrow();
+    const scan = (await repo().latestFor([revision_id])).get(revision_id);
+    expect(scan?.result?.findings).toEqual(result().findings);
+    expect(scan?.result?.findings[0]?.remediation).toBeNull();
   });
 
   it("records a failure with its short reason", async () => {

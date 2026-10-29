@@ -15,7 +15,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - `docs/features/README.md` lists 137 in M20, and the M20 intro no longer says it never blocks.
   - *Done when:* the docs say this, and `pnpm witness:check` passes.
 
-- [ ] **2. Remediation in the kept result.**
+- [x] **2. Remediation in the kept result.**
   - `parseSkillScan` keeps each finding's `remediation`, cleaned and cut like the other text; older
     stored results without it still read.
   - *Done when:* core tests cover it on the recorded reports, and a stored result without it.

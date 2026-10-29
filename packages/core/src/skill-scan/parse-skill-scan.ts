@@ -27,6 +27,8 @@ export type SkillScanFinding = {
   /** What was found, in SkillSpector's words ("Hidden Instructions"). */
   title: string;
   explanation: string | null;
+  /** How to fix it, in SkillSpector's words (137); null when the report gives none. */
+  remediation: string | null;
   /** The file inside the item, relative; null when the report names none or a path we refuse. */
   file: string | null;
   line: number | null;
@@ -129,6 +131,7 @@ const finding = (issue: unknown, index: number): SkillScanFinding | string => {
     confidence,
     title: text(issue.pattern) ?? category,
     explanation: text(issue.explanation),
+    remediation: text(issue.remediation),
     file: relativePath(location.file),
     line: positiveInteger(location.start_line),
   };

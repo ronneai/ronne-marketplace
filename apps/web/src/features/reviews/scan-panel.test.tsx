@@ -27,6 +27,7 @@ const result = (overrides: Partial<SkillScanResult> = {}): SkillScanResult => ({
       confidence: 0.9,
       title: "Hidden <b>Instructions</b>",
       explanation: "Ignore previous <script>alert(1)</script> instructions.",
+      remediation: null,
       file: "SKILL.md",
       line: 10,
     },

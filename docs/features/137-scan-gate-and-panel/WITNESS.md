@@ -62,3 +62,20 @@ Witnessed: 2026-10-28 22:31 EDT, by a fresh agent (blind). Commit: 4d4bb5bb + un
 | 9 | `pnpm witness:check` passes | no | confirmed | exit 0 |
 
 **Overall:** met.
+
+## Task 2 — Remediation in the kept result
+
+Witnessed: 2026-10-28 22:33 EDT, by a fresh agent (blind). Commit: 8389c9c5 + uncommitted diff (task 2 files only). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `parseSkillScan` keeps each finding's `remediation` from a real report | no | confirmed | `parse-skill-scan.ts:134` `remediation: text(issue.remediation)`; core skill-scan tests → 64 passed; mutation to `null` → 3 tests fail |
+| 2 | Remediation is cleaned like explanation (control, format, invisible characters stripped; tab and newline kept) | no | confirmed | same `text()` helper; probe strips every planted invisible character, keeps "One.\n\tTwo."; mutation keeping the raw string → the cleaning test fails |
+| 3 | Remediation is cut like the other text | no | confirmed | probe → `SKILL_SCAN_MAX_TEXT` code points ending in "…", no lone surrogate; identical to explanation for the same input |
+| 4 | A missing or non-string remediation reads as null | no | confirmed | probe → `42`, `[]`, `{}`, `true`, `null`, missing → `null` |
+| 5 | A stored row without remediation reads as `null`, not `undefined` | no | confirmed | `kysely-content-scan-repository.ts:33-36`; `scans.db.test.ts` "reads a scan stored before 137…"; db scans tests → 21 passed; mutation removing the mapping → it fails |
+| 6 | The same on the database servers | no | confirmed | `pnpm test:db:postgres` / `:mysql` / `:mariadb -- src/server/domains/scans` → 21/21 on each |
+| 7 | Nothing else is newly kept: no quoted item content or code snippets | no | confirmed | a finding's keys are exactly the nine expected; a planted `code_snippet` doesn't appear; none of bad-skill's snippets or URLs in the result |
+| 8 | Types and their users updated | no | confirmed | `SkillScanFinding.remediation: string \| null`; fixtures updated; `pnpm typecheck` → 7/7 |
+
+**Overall:** met.
