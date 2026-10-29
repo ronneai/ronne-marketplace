@@ -45,20 +45,28 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     update of the same draft, the folder removed after a failure and a restart, and no token in any
     stored value.
 
-- [ ] **6. skills.sh search.**
+- [ ] **6. Permission notes.** [risky]
+  - Root only (server check): the note's fields, the proof stored through the `StorageAdapter` with
+    size and type limits, the confirmation, `item.import_permission`, the *Unlicensed — permission
+    recorded* flag, `push_allowed_at` read by 153, a withdrawal.
+  - *Done when:* db tests cover root importing with a note, a moderator and a user refused (server,
+    not only hidden), the proof's limits, the flag on the revision, the item left out of a push until
+    allowed, and a withdrawal; the proof is readable only by root and the item's moderators.
+
+- [ ] **7. skills.sh search.**
   - A small adapter behind an interface, off unless root turns it on, with a timeout; its answer
     checked against a schema, anything else read as unavailable.
   - *Done when:* unit tests with a fake server cover results, an empty answer, an unexpected shape and
     a timeout.
 
-- [ ] **7. The screens.**
+- [ ] **8. The screens.**
   - `/import` (where from, what's there with licences, into, import), the Imports tab, the provenance
     line and the *Imported* flag on the review page and the item page; messages in the three
     languages.
   - *Done when:* component tests cover each state; an end-to-end test imports a skill from the local
     git server, submits it and sees the flag and the provenance in review; the phone sweep passes.
 
-- [ ] **8. Documentation.** The topics, sections and helpers in the spec's Documentation section,
+- [ ] **9. Documentation.** The topics, sections and helpers in the spec's Documentation section,
   in ronne-web's `feat/154-import-from-marketplaces` branch.
   *Done when:* the docs render tests pass, and every new helper's link lands on a real section.
 

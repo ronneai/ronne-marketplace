@@ -27,7 +27,9 @@ other, so the instance never runs a newer upstream version nobody here looked at
   - the item's maintainers get a notification (139): "pdf has a newer source: a proposal is ready to
     submit".
 - **The licence, every time:** found again with 154's rules; a licence that's no longer on root's list
-  (or gone) stops following, brings nothing in and says why.
+  (or gone) stops following, brings nothing in and says why; for an item imported with root's
+  permission note (154), a change waits, `permission to confirm`, until root confirms the permission
+  again for the new commit.
 - **Its state**, on the item page: "Following github.com/acme/skills (main) · checked 2 hours ago ·
   up to date", "… · a proposal is waiting", or a stopped state with the reason: `source gone`
   (the repository, branch or path no longer exists), `licence changed`, `unreachable` (after 7 days

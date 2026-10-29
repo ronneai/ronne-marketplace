@@ -61,10 +61,15 @@ release that fails on one item shows the dialog's summary as now, plus an error 
 until closed. On a phone the toast sits above the draft editor's bar.
 
 **For the code.**
-- `components/ui/Toaster.tsx` (the region and the store), `components/ui/toast.ts` (`useToast`),
-  `components/ui/FlashToast.tsx`, `server/http/flash-toast.ts` (`flashToast`).
-- The store is a small React context in the root layout; no global singleton (hot reload,
-  `docs/knowledge/hot-reload-singletons.md`).
+- **Sonner** (MIT) does the queue, the timers and their pauses, stacking, swiping a toast away on
+  touch and the live regions, in its **unstyled** mode: every colour, border and motion is ours,
+  from the tokens, with no shadow.
+- **Behind our wrapper only:** `components/ui/Toaster.tsx` (the region), `components/ui/toast.ts`
+  (`useToast`), `components/ui/FlashToast.tsx`, `server/http/flash-toast.ts` (`flashToast`). Only
+  these files import `sonner` (a lint rule, as for Better Auth), so it can be replaced by our own
+  component without touching a page.
+- Every label Sonner shows (the close button, the region's name) comes from our messages.
+- No global singleton of our own (hot reload, `docs/knowledge/hot-reload-singletons.md`).
 - The flash cookie's key must be one of a typed list of message keys (`FlashKey`), so a cookie a
   person edits can only choose among our own messages; parameters are rendered as plain text through
   next-intl, never as HTML, and anything that doesn't parse is ignored.
@@ -115,14 +120,15 @@ None: no table, no setting. The flash cookie holds `{"k":"<FlashKey>","p":{…}}
 2. **Across the bottom on phones, above the bottom bar** (Claude, from 067's rules): the bottom right
    corner of a phone is where `BottomBar` puts Submit and Approve.
 3. **Errors and warnings stay until closed** (Claude): an error that goes by itself may never be read.
-4. **Our own component, not a library** (Claude): what's needed is small (a store, a region, a timer),
-   the common libraries draw shadows and motion the design system doesn't have, and it adds nothing
-   to check under the dependency policy. The owner may prefer Sonner (MIT); see Open questions.
+4. **Sonner, unstyled, behind our own wrapper** (owner, 2026-10-29, from Claude's comparison): it
+   saves the queue, the timers, swiping and the live regions, which are easy to get subtly wrong;
+   unstyled keeps the design system's flat look; the wrapper keeps it replaceable. **Fallback:** if
+   task 2 finds a label Sonner shows that can't be translated, or that it can't sit above the bottom
+   bar on a phone, this feature builds its own component behind the same wrapper instead, and this
+   decision says so.
 5. **The flash cookie carries a message key, never text** (Claude): the text is the reader's
    language, and a cookie can't put words of its own on the screen.
 
 ## Open questions
 
-- Sonner (MIT) instead of our own component? It would save the store and the timers, at the cost of
-  restyling it to flat and checking it under the policy.
 - Should a toast offer "View" when the result has a page (the released version)? Left out for now.

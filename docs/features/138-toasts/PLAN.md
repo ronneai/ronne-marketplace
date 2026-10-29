@@ -14,10 +14,15 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     dependencies.
   - *Done when:* both say what this spec says, and `pnpm witness:check` passes.
 
-- [ ] **2. The toast region and `useToast`.**
-  - `Toaster`, the store in a context in the root layout, `useToast()` with `ok`, `info`, `warning`
-    and `error`; timers, pause on hover, focus and a hidden tab; at most three; the same message
-    restarts its timer; the close button.
+- [ ] **2. Sonner checked, the toast region and `useToast`.**
+  - Sonner's latest stable version through the [dependency policy](../../policies/dependencies.md)
+    checklist (licence, release age, no known vulnerabilities, no install scripts).
+  - Before building on it, check that every label it shows can come from our messages and that it
+    can sit above `--bottom-bar-height` on a phone. If not, stop and take decision 4's fallback (our
+    own component behind the same wrapper), saying so in the spec.
+  - `Toaster` in unstyled mode in the root layout, `useToast()` with `ok`, `info`, `warning` and
+    `error`; timers, pause on hover, focus and a hidden tab; at most three; the same message
+    restarts its timer; the close button. A lint rule allows `sonner` imports only in the wrapper.
   - Tones from `tones.ts`, the mono prefix, no shadow; reduced motion.
   - *Done when:* unit tests with fake timers (`docs/knowledge/fake-timers.md`) cover each kind's
     lifetime, the pauses, the limit and the repeat; a test finds the `status` and `alert` regions

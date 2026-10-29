@@ -23,7 +23,8 @@ tools and the workspaces, and the instance commits and pushes on every change.
   - the **tools**: any of `claude-code`, `codex`, `cursor` (the three marketplaces of 078's tree) and
     `skills`, a plain Agent Skills tree for every other harness (below); all four by default;
   - the **workspaces**: the public workspaces' items always; a **private** workspace's only once one
-    of its admins has turned it on for that repository (below); **personal** workspaces (114) never;
+    of its admins has turned it on for that repository (below); **personal** workspaces (114) never; an item imported with a permission note (154) only once root
+    allowed it for that item;
   - the **folder** in the repository: the root by default, or a subfolder (`ronne/`), so a company can
     keep the marketplace beside other files;
   - **On** / **Off**, and **Push now**.

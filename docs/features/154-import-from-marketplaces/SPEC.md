@@ -55,7 +55,24 @@ the repository.
     Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, 0BSD, Unlicense, CC0-1.0, CC-BY-4.0;
   - an item whose licence is unknown, missing or not on the list **can't be imported**, with the
     reason ("No licence found: its author hasn't allowed reuse", "GPL-3.0 isn't on this instance's
-    list");
+    list"), **except by root with a permission note** (below);
+  - by default the list leaves out non-commercial licences (CC-BY-NC and the like), which forbid a
+    company's use, and copyleft ones (GPL, AGPL, CC-BY-SA), whose conditions pass to everyone the
+    content is copied to; root may add them, and the tab says what each kind means;
+- **Permission notes, root only** (owner, 2026-10-29): for an item without a licence on the list,
+  root can still import it by recording the permission the instance has:
+  - **who** gave it (the author or the rights holder, as typed), **how** (by email, a written
+    agreement, a public statement), the **text** of the permission, and optionally **proof**: a link
+    or an attached file (PDF, image or text, at most 5 MiB, kept in storage beside the draft);
+  - root confirms "I have permission to copy and distribute this content in this instance";
+  - recorded in `item_imports` with the note, who recorded it and when, and audited
+    (`item.import_permission`);
+  - the review page and the item page show a risk flag, *Unlicensed — permission recorded*, with
+    the note (proof visible to root and the item's moderators only);
+  - **not pushed to git repositories** (153) unless root turns that on for the item, as a separate,
+    audited choice: a permission to use inside the company isn't always a permission to publish;
+  - the permission covers the **commit imported**; a later upstream change (155) needs root to
+    confirm the permission again before it comes in;
   - the licence file is copied into the draft's files and the manifest's `license` is set to the id,
     so the notice the licence asks for travels with every version.
 - **Provenance**, recorded with each draft and kept on every version released from it: the source
@@ -75,7 +92,8 @@ the repository.
     must be added, and 152's URL checks apply (no internal addresses unless in `RONNE_GIT_HOSTS`);
   - **skills.sh search:** off by default; when on, searches go from the server to skills.sh and the
     page says so;
-  - **Licences:** the list above.
+  - **Licences:** the list above;
+  - **Permission notes:** on by default for root only; root can turn them off.
 - **Limits:** a repository of at most 50 MiB fetched and 5,000 files; each item within 037's package
   limits; no submodules, no LFS objects (their pointer files are left out with a warning), no
   symbolic links (left out with a warning); 20 imports per person per hour, as 037 limits uploads.
@@ -117,14 +135,22 @@ scope is shown, and the person renames or picks another scope.
 - **skills.sh answers nothing, or something unexpected:** "skills.sh search isn't available right
   now: paste the repository instead"; the URL path always works.
 - **A host taken off root's list:** its provenance stays; new imports from it are refused.
+- **The source adds a licence on root's list later:** the permission note stays on record, the flag
+  becomes *Imported* only, and 155 follows it as any other.
+- **A permission withdrawn** (the author asks): root deprecates or yanks the versions (016), as for
+  any item that must go; the note records the withdrawal date. The incident runbook (098) says so.
+- **A user other than root** sees "This item has no licence this instance accepts: ask root" with
+  the reason, and no way to add a note.
 
 ## Data
 
 - A migration: `item_imports` (`id`, `submission_id`, later `version_id` once released, `source_url`,
-  `source_path`, `ref`, `commit`, `license`, `license_sha256`, `imported_by`, `imported_at`), on all
-  three databases.
+  `source_path`, `ref`, `commit`, `license`, `license_sha256`, `imported_by`, `imported_at`, and for
+  a permission note `permission_from`, `permission_how`, `permission_text`, `permission_url`,
+  `permission_file_key`, `permission_by`, `permission_at`, `permission_withdrawn_at`,
+  `push_allowed_at`), on all three databases.
 - `instance_settings`: `imports_enabled`, `imports_who`, `imports_hosts`, `imports_skills_sh`,
-  `imports_licenses`.
+  `imports_licenses`, `imports_permission_notes`.
 - Contracts: `docs/spec/native-readers.md` gains the repository reader; the manifest is unchanged
   (`license` already exists).
 
@@ -132,7 +158,7 @@ scope is shown, and the person renames or picks another scope.
 
 - **Importing items**, a new topic in the Authoring group (`import`): what can be imported and from
   where (`sources`: git repositories, skills.sh and Vercel, plugin marketplaces), licences and why
-  some items can't come in (`licences`), what's recorded (`provenance`), and that imports are
+  some items can't come in (`licences`), permission notes for unlicensed items (`permission`), what's recorded (`provenance`), and that imports are
   reviewed and scanned like anything else (`review`).
 - **Settings** (`settings#imports`): the Imports tab.
 - **Reviewing** (`reviews#imported`): the *Imported* risk flag and the provenance line.
@@ -148,6 +174,10 @@ scope is shown, and the person renames or picks another scope.
   and the action refuse.
 - [ ] An item without a licence, with an unknown one, or with one off root's list can't be imported,
   with the reason; tests cover each licence-finding rule.
+- [ ] Root, and only root, can import such an item with a permission note; the note, its proof and
+  who recorded it are stored and audited; the *Unlicensed — permission recorded* flag shows; the
+  item is left out of git pushes until root allows it; an upstream change waits for root to confirm
+  again.
 - [ ] Imported drafts are reviewed and scanned like any other, and every revision with provenance
   carries the *Imported* flag.
 - [ ] Only root's hosts are fetched from, 152's URL checks apply, and a private repository is read
@@ -167,12 +197,12 @@ scope is shown, and the person renames or picks another scope.
    doesn't depend on an undocumented API.
 2. **Imports are drafts** (Claude, 2026-10-29): reviewed and scanned like everything else; there is no
    way around review.
-3. **No reusable licence, no import** (Claude, 2026-10-29; the owner to confirm, see Open questions), with root's list deciding what's reusable
-   and the licence file kept with the item.
+3. **No reusable licence, no import, unless root records a permission** (owner, 2026-10-29, option
+   B of Claude's three): root's list decides what's reusable (without non-commercial and copyleft
+   licences by default; CC-BY-4.0 on it, its attribution given by the provenance line and the kept
+   licence file), and the licence file travels with the item. An unlicensed item comes in only with
+   root's permission note, flagged, and isn't published to git without root's separate choice.
 4. **Off by default** (Claude): the server fetches from the internet only when root says so.
 
 ## Open questions
 
-- Should root be able to import an unlicensed item with a recorded permission note ("the author
-  allowed us by email")?
-- Is CC-BY-4.0 right on the default list (it asks for attribution, which the provenance line gives)?
