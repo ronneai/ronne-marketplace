@@ -26,7 +26,13 @@ const useSaid = () => {
 /** Events whose body is part of the sentence, not a message under it. */
 const INLINE_BODY = new Set<ReviewEventKind>(["publish", "rebase"]);
 
-const DECISIONS = new Set<ReviewEventKind>(["request_changes", "approve", "reject", "override"]);
+const DECISIONS = new Set<ReviewEventKind>([
+  "request_changes",
+  "approve",
+  "reject",
+  "override",
+  "scan_override",
+]);
 
 /**
  * The conversation (feature 014): comments and decisions, oldest first, and the comment form when

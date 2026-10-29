@@ -4,8 +4,9 @@ import { getCurrentUser } from "../../identity/actions/session";
 import { can } from "../../identity/models/permissions";
 import { type AppAuth, getAppAuth } from "../../identity/repositories/auth-instance";
 import { kyselySettingsRepository } from "../../settings/repositories/kysely-settings-repository";
-import { skillScanPolicy } from "../../settings/services/settings";
+import { skillScanBlockScore, skillScanPolicy } from "../../settings/services/settings";
 import { storedScanSetup } from "../../settings/services/skill-scan-setup";
+import type { ScanGatePolicy } from "../../submissions/models/scan-gate";
 import type { ContentScan } from "../repositories/content-scan-repository";
 import { kyselyContentScanRepository } from "../repositories/kysely-content-scan-repository";
 import { type ScanSetup, scanCommand, scanSetup } from "../services/scan-setup";
@@ -25,6 +26,21 @@ export const scanSetupNow = async (
     await storedScanSetup(kyselySettingsRepository(app.db, app.dialect)),
     config.authSecret,
   );
+};
+
+/**
+ * Root's settings for the gate on approval (137): whether scanning is on, its types, and the
+ * score that blocks. Read once per request, before a decision's transaction.
+ */
+export const scanGatePolicyNow = async (
+  app: Pick<AppAuth, "db" | "dialect">,
+): Promise<ScanGatePolicy> => {
+  const repo = kyselySettingsRepository(app.db, app.dialect);
+  const [policy, blockScore] = await Promise.all([
+    skillScanPolicy({ repo }),
+    skillScanBlockScore({ repo }),
+  ]);
+  return { enabled: policy.enabled, types: policy.types, blockScore };
 };
 
 /** Only the command to run now: what queuing and the review page need, without opening the key. */
@@ -90,7 +106,7 @@ export const requestScan = async (
 export type ReviewScan = {
   /** The revision's newest scan, or null when it has none. */
   scan: ContentScan | null;
-  /** Root, with a scanner command set, and the newest scan failed or there is none. */
+  /** Root, with a scanner command set, and no scan waiting or running (137: a finished one too). */
   canRequest: boolean;
 };
 
@@ -112,6 +128,7 @@ export const reviewScan = async (
   const configured = (await scanCommandNow(app)) !== null;
   return {
     scan,
-    canRequest: root && configured && (scan === null || scan.status === "failed"),
+    canRequest:
+      root && configured && (scan === null || scan.status === "failed" || scan.status === "done"),
   };
 };

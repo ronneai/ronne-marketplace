@@ -79,3 +79,85 @@ Witnessed: 2026-10-28 22:33 EDT, by a fresh agent (blind). Commit: 8389c9c5 + un
 | 8 | Types and their users updated | no | confirmed | `SkillScanFinding.remediation: string \| null`; fixtures updated; `pnpm typecheck` → 7/7 |
 
 **Overall:** met.
+
+## Task 3 — The threshold and the gate
+
+Witnessed: 2026-10-28 22:52 EDT, by a fresh agent (blind; it ran probes and mutations in a scratch copy). Commit: 87334c34 + uncommitted diff. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Type-checks | no | confirmed | `pnpm typecheck` → 7/7 |
+| 2 | `skill_scan_block_score` saved with the tab: empty none, 1–100, anything else refused with nothing changed, left out kept | no | confirmed | `settings.ts:430-439,474-489`; `admin-settings/actions.ts:151-152` (`form.has`); db test refuses "0", "101", "7.5", "1e2", "abc", 50 with no audit |
+| 3 | The threshold is audited with the tab, alone too | no | confirmed | `metadata.blockScore {from:null,to:60}`; the same value again → `changed:false`, no audit |
+| 4 | Pure `scanGate` covers every state | no | confirmed | `scan-gate.ts:34-55`; unit run → 216 passed; edges 69/70/100 |
+| 5 | `decisionsFor` gains the gate (Approve disabled, root's scan override, replaces 054's on root's own, stale keeps it off) | no | confirmed | `decisions.ts:59-71`; `decisions.test.ts` |
+| 6 | `decide` checks the gate under the lock against the revision approved; request changes and reject aren't gated | no | confirmed | `reviews.ts:157-191`; mutation removing the check → 7/14 db tests fail; a stale-revision scan override refused; no other code sets approved |
+| 7 | Queue rows and Approve many skip a blocked row, approve an open one; root's own too | no | confirmed | `queue.ts:187-198`, `bulk-approve.ts:62-65,140`; mutation → the test fails |
+| 8 | The gate uses the newest scan of the **latest** revision | no | partly | code right, probes pass on four databases; but mutation dropping `latest.delete(...)` passes every repository test: none has more than one revision |
+| 9 | db tests cover each approval path blocked and open | no | partly | the review page is db-tested only blocked |
+| 10 | `scan_override`: root only, reason required, event and audit with score, threshold and code; refused when not blocked | no | confirmed | db tests; mutation dropping the permission → "is root's alone" fails; the author refused too |
+| 11 | The threshold is read when the decision is made | no | confirmed | `actions/reviews.ts:21-25`; db test 80 vs 75 then 85 |
+| 12 | Root may Scan again any time, not while one waits or runs | no | confirmed | `scans.ts:118-126`, `actions/scans.ts:131-132`; `scans.db.test.ts` |
+| 13 | It works on the four databases | no | confirmed | 341 db tests on SQLite, PostgreSQL, MySQL, MariaDB; probes 7/7 on each |
+| 14 | The new words are in English, Portuguese and French | no | confirmed | keys present; `vitest run src/i18n` → 367 passed |
+
+**Overall:** not met: rows 8 and 9 (test gaps). Remarks: a hand-edited threshold that isn't valid reads as no gate; the gate's wording differed from SPEC "The gate's words". A db test now sends revisions 2 (unscanned, with revision 1 scored low → `none`) and 3 (scanned 99 → `score`), and fails with `latest.delete` removed; another checks the review page's open gate; SPEC's words now match the messages and say how a broken stored threshold reads. Re-checked below.
+
+### Adversarial pass
+
+Witnessed: 2026-10-28 22:49 EDT, by a fresh agent (adversarial). Commit: 87334c34 + uncommitted diff. Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The threshold: empty or 1–100, odd and hand-edited values as none, kept when left out, audited | no | confirmed | `skill-scan.db.test.ts` on four databases; a hand-set "070" reads 70 and blocks 80; 100 blocks 100 |
+| 2 | `decide` blocks at or above, pending, failed, none (fails closed) | no | confirmed | four dialects; mutation dropping the throw → 7/14 fail; a failed settings read throws rather than opening |
+| 3 | The gate uses the latest revision's newest scan | no | partly | code holds (probe on four dialects); mutation dropping `latest.delete(...)` passes every shipped test |
+| 4 | Checked under the row's lock against the revision approved | no | confirmed | `reviews.ts:157-191`, one transaction; approving revision 1 after revision 2 → `RevisionChangedError` |
+| 5 | The page and queue disable Approve with the reason; Approve many skips | no | confirmed | db tests; `ScanBlockedError` mid-batch → `not_approvable` |
+| 6 | Root alone overrides, with a reason; refused when not blocked | no | confirmed | a moderator's `scan_override` and `override` → ForbiddenError; open gate → ScanOverrideNotNeededError. Remark: a reason of only U+200B passes the shared `messageFrom` (not 137's) |
+| 7 | Audited with score, threshold and code; event `scan_override` | no | confirmed | db test on four dialects; `publish.ts:540`, `queue.ts:129` count it as an approval |
+| 8 | Replaces 054's override on root's own blocked submission | no | confirmed | db test; `decisions.ts:69-70` |
+| 9 | Personal workspaces aren't gated, and only root approves past the gate | no | not met | `scan-gate.ts:44` opened the gate for any submission in a personal workspace: a scope put in a moderator's personal workspace (as 115's move allows) let the moderator approve someone else's submission scored 99, on four dialects |
+| 10 | No threshold, scanning off or a type not scanned: as before | no | confirmed | db tests; scanning off with a score of 95 → open |
+| 11 | Root may Scan again unless one waits or runs | no | confirmed | `scans.db.test.ts` |
+| 12 | The new messages are valid ICU with matching placeholders | no | confirmed | 583 tests passed; placeholders match across en, pt, fr |
+
+**Overall:** not met: rows 3 and 9. The gate now opens only for the owner's own submission in their personal workspace (114's condition), and a db test with the scope in a moderator's personal workspace fails without the fix; the test gap of row 3 is the one closed after the first pass. SPEC (Out, Decision 5) and MVP §15 say "the owner's own". Re-checked below.
+
+### Re-check
+
+Witnessed: 2026-10-28 23:05 EDT, by a fresh agent (adversarial, blind). Commit: 87334c34 + uncommitted diff. Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Only the owner's own submission in their personal workspace is exempt; anyone else's there is gated | no | confirmed | `scan-gate.ts:48` (`ownerId === authorId`); probe: team scope in the moderator's personal workspace, score 99 → `decide` refused, Approve many `not_approvable`, page blocked; mutation `ownerId`-only → the 115 test fails |
+| 2 | `latestScans` counts only the latest revision's newest scan, and a shipped test proves it | no | confirmed | mutation deleting `latest.delete(...)` → "counts only the latest revision's scans…" fails |
+| 3 | The review page is db-tested blocked and open | no | confirmed | `scan-gate.db.test.ts:300,382`; mutations forcing the page gate open or blocked → the page tests fail |
+| 4 | No approval path gets past the gate | no | confirmed | `transition(…, "approve")` only in `submissions.ts:332` (the owner's self-approval on send); `decide` only through `actions/reviews.ts`, whose deps always carry `scanGatePolicyNow`; bulk goes through `decide` |
+| 5 | The gate fails closed | no | confirmed | done with no score → `failed`; 100 at 100 → `score`; a submission the viewer can't read → `none` |
+| 6 | Threshold saved and audited, bad values refused | no | confirmed | `skill-scan.db.test.ts:198-219`; mutations to the audit and the threshold-only change → tests fail |
+| 7 | Unit tests cover every gate state | no | confirmed | `scan-gate.test.ts:14-66`; unit run → 584 passed |
+| 8 | Override and the threshold read when deciding, on four databases | no | confirmed | 344 db tests on SQLite, PostgreSQL, MySQL, MariaDB; `pnpm typecheck` → 7/7 |
+
+**Overall:** met. Remark (low, root only): an author's submission scanned high in a team scope, whose scope is then moved into that author's own personal workspace, skips the gate, so root approves it without the scan override's reason and audit. Recorded in PLAN's Notes.
+
+### Re-check
+
+Witnessed: 2026-10-28 23:03 EDT, by a fresh agent (blind; probes and mutations in a scratch copy). Commit: 87334c34 + staged `git diff --cached`. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Types check | no | confirmed | `pnpm typecheck` → exit 0 |
+| 2 | Unit tests cover every gate state | no | confirmed | `models/scan-gate.test.ts:14-66`; unit run → 584 passed |
+| 3 | The gate uses only the latest revision's newest scan, with a db test | no | confirmed | `kysely-submission-repository.ts:512-546`; `scan-gate.db.test.ts:350,394`; mutation removing `latest.delete(...)` → 1 failed |
+| 4 | Each approval path db-tested blocked and open | no | confirmed | `scan-gate.db.test.ts:145-176` decide; `:319` queue and Approve many; `:300` page blocked; `:382` page open |
+| 5 | `decide` gates under the lock, against the revision approved | no | confirmed | `services/reviews.ts:179-191`; request changes and reject left alone (`:207`) |
+| 6 | The threshold is read when the decision is made | no | confirmed | `actions/reviews.ts:21-25`; `scan-gate.db.test.ts:186` |
+| 7 | `scan_override`: root only, reason required, event and audit, refused when not blocked | no | confirmed | `reviews.ts:113-119,148,189-191,212-214`; `scan-gate.db.test.ts:242,270,279,288` |
+| 8 | Only the owner's own submission in their personal workspace is exempt | no | confirmed | `scan-gate.ts:48`; `scan-gate.db.test.ts:216`; mutation → 1 failed; SPEC:73, :190 |
+| 9 | `skill_scan_block_score` saved and audited; a bad stored value reads as none | no | confirmed | `typedBlockScore`; `skill-scan.db.test.ts:197,207,224` |
+| 10 | Root may Scan again any time, never while one waits or runs | no | confirmed | `scans/services/scans.ts`; `scans/actions/scans.ts`; `scans.db.test.ts` |
+| 11 | Messages in en, pt, fr; SPEC's gate words match the English | no | confirmed | all keys in the three; the four blocked sentences equal SPEC:95-100 and `scanBlockedEnglish`. "Under the threshold" and the author's line are task 5's |
+| 12 | The db tests pass on the four databases | no | confirmed | 30 files, 344 passed on SQLite, PostgreSQL, MySQL, MariaDB |
+
+**Overall:** met.

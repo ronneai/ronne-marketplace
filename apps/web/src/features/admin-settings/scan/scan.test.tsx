@@ -24,6 +24,7 @@ const { SkillScanNotConfiguredError } = await import("@/server/domains/settings/
 
 const base: SkillScanSettings = {
   policy: { enabled: false, types: ["skill"], analysis: "static" },
+  blockScore: null,
   scanner: { configured: true, provider: null },
   lastVersion: null,
   lastError: null,

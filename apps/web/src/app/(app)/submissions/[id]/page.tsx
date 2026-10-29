@@ -155,8 +155,9 @@ const DraftPage = async ({ params }: { params: Promise<{ id: string }> }) => {
     : null;
   // Approved as sent, in its author's personal workspace (114): the latest approval says.
   const selfApproved =
-    review?.events.filter((e) => ["approve", "override", "self_approve"].includes(e.kind)).at(-1)
-      ?.kind === "self_approve";
+    review?.events
+      .filter((e) => ["approve", "override", "scan_override", "self_approve"].includes(e.kind))
+      .at(-1)?.kind === "self_approve";
   return (
     <div className="grid gap-6">
       {/* A new version from the server (an import, a rename, a submit) starts the editor afresh. */}

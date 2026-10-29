@@ -70,9 +70,10 @@ override. This changes 135's decision 1 ("advisory, never blocks").
 - **Dismissals don't change the score or the gate.** The score is SkillSpector's, computed from all
   its findings, and Ronne can't recompute it. A dismissal is a reviewer's note for the others; root's
   override is the way past the gate.
-- **The gate in personal workspaces** (114): a personal workspace's item is approved by its author
-  as it's sent, before any scan can finish, and only its owner and root see it. It's still scanned,
-  and its author sees the result.
+- **The gate on the owner's own submissions in their personal workspace** (114): those are
+  approved by their author as they're sent, before any scan can finish, and only the owner and root
+  see them. They're still scanned, and the author sees the result. Anyone else's submission there
+  (a scope moved in, 115) is gated like any other.
 - **The gate on release:** approval is the gate. An approved submission is released as before, and a
   threshold set later doesn't reach back to it.
 - **A "Request human review" button** (in the mock): a human review is what the page already is.
@@ -91,14 +92,17 @@ override. This changes 135's decision 1 ("advisory, never blocks").
   - the gate's notice is an error when it blocks.
 
 **The gate's words:**
-- Blocked by score: "Approval is blocked: the score, {score}, is at or above the threshold,
-  {threshold}."
-- Blocked while waiting: "Approval waits for the scan to finish."
-- Blocked by a failed scan: "Approval is blocked: the scan didn't finish. Scan again, or override."
-- Blocked with no scan: "Approval is blocked: this revision wasn't scanned. Scan now, or override."
+- Blocked by score: "Approval is blocked: the security scan's score, {score}, is at or above the
+  threshold, {threshold}."
+- Blocked while waiting: "Approval waits for the security scan to finish."
+- Blocked by a failed scan: "Approval is blocked: the security scan didn't finish. Scan again, or
+  override."
+- Blocked with no scan: "Approval is blocked: this revision wasn't scanned. Scan it, or override."
 - Not blocked: "Under the threshold, {threshold}."
 - The author reads the same reason, and, when blocked by the score, "Change the files and send it
   again."
+- A stored threshold that isn't a whole number from 1 to 100 (only a hand edit can make one) reads
+  as none, as the other settings read a broken value as their default.
 
 **Dismissals:**
 - Who may dismiss: whoever may review the submission (a moderator of its workspace, or root), and
@@ -183,8 +187,10 @@ override. This changes 135's decision 1 ("advisory, never blocks").
    2026-10-28).
 4. **Dismissals don't move the score** (Claude): the score is SkillSpector's. A dismissal tells the
    other reviewers; the override is root's decision.
-5. **No gate in personal workspaces** (Claude): the author approves on send there (114), before a scan
-   can finish, and nobody else installs it.
+5. **No gate on the owner's own submissions in their personal workspace** (Claude): the author
+   approves on send there (114), before a scan can finish. Only theirs: someone else's submission
+   in a scope moved there (115) is gated, or a workspace admin could approve it past the gate
+   (task 3's adversarial pass).
 
 ## Open questions
 

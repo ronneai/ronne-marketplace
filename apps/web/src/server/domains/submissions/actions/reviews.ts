@@ -2,6 +2,7 @@ import { instanceStorage, type StorageAdapter } from "../../../storage";
 import { getCurrentUser } from "../../identity/actions/session";
 import { clientIp } from "../../identity/models/client-ip";
 import { type AppAuth, getAppAuth } from "../../identity/repositories/auth-instance";
+import { scanGatePolicyNow } from "../../scans/actions/scans";
 import { viewerOf } from "../../workspaces/actions/viewer";
 import type { Viewer } from "../../workspaces/models/viewer";
 import { kyselySubmissionRepository } from "../repositories/kysely-submission-repository";
@@ -17,8 +18,10 @@ export type { ProposalView, ReviewView } from "../services/review-page";
 export type { Dependent, ReviewDecision, SentBack } from "../services/reviews";
 
 /** Entry points for review decisions and comments (feature 014). Thin: the services check. */
-const deps = ({ db, dialect }: AppAuth, viewer: Viewer): SubmissionDeps => ({
-  repo: kyselySubmissionRepository(db, dialect, viewer),
+const deps = async (app: AppAuth, viewer: Viewer): Promise<SubmissionDeps> => ({
+  repo: kyselySubmissionRepository(app.db, app.dialect, viewer),
+  // The security scan's gate on approval (137), read before any transaction.
+  scanGate: await scanGatePolicyNow(app),
 });
 
 /** The dependencies, bound to what the person sees (093), and the actor: one lookup each. */
@@ -30,7 +33,7 @@ const boundWith = async (headers: Headers, app: AppAuth, storage: StorageAdapter
 const bound = async (headers: Headers, app: AppAuth) => {
   const user = await getCurrentUser(headers, app);
   const actor: SubmissionActor = { user, ip: clientIp(headers, app.trustProxy) };
-  return [deps(app, await viewerOf(user, app)), actor] as const;
+  return [await deps(app, await viewerOf(user, app)), actor] as const;
 };
 
 export const decide = async (

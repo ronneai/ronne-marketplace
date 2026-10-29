@@ -25,6 +25,12 @@ export const wordWhy = ({ why: t, noVersion, tagProblem }: WhyTranslators) => {
       case "stale":
       case "released_since":
         return t(why.code, { newer: why.newer });
+      case "scan_blocked":
+        return t("scan_blocked", {
+          by: why.by,
+          score: why.score === null ? "" : String(why.score),
+          threshold: String(why.threshold),
+        });
       case "own":
       case "own_decide":
       case "not_reviewer":

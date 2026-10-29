@@ -120,6 +120,14 @@ export class InvalidSkillScanAnalysisError extends SettingsError {
   }
 }
 
+/** The threshold (137) is a whole number from 1 to 100, or empty for none. */
+export class InvalidSkillScanBlockScoreError extends SettingsError {
+  override readonly name: string = "InvalidSkillScanBlockScoreError";
+  constructor() {
+    super("The score that blocks approval is a whole number from 1 to 100, or empty for none.");
+  }
+}
+
 export class InvalidScanProviderError extends SettingsError {
   override readonly name: string = "InvalidScanProviderError";
   constructor() {

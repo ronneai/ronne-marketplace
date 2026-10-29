@@ -32,6 +32,7 @@ const render = (settings: SkillScanSettings, analysis: string | null) => {
 
 const base: SkillScanSettings = {
   policy: { enabled: true, types: ["skill"], analysis: "static" },
+  blockScore: null,
   scanner: { configured: true, provider: { name: "ollama", model: null, host: "h:1" } },
   lastVersion: null,
   lastError: null,

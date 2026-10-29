@@ -1,4 +1,5 @@
 import { can } from "../../identity/models/permissions";
+import type { ScanGate } from "../models/scan-gate";
 import type { SubmissionStatus } from "../models/status";
 import { type Why, whyEnglish } from "../models/why";
 import type { ReviewDecision } from "./reviews";
@@ -34,6 +35,8 @@ export const decisionsFor = (
     authorId: string;
     stale: string | null;
     workspace: { id: string };
+    /** The security scan's gate (137); absent or open, nothing is blocked. */
+    gate?: ScanGate;
   },
 ): DecisionOption[] => {
   // A moderator of the submission's workspace, or root (091).
@@ -53,16 +56,35 @@ export const decisionsFor = (
         }
       : { decision, allowed: true };
 
+  const gate = submission.gate?.blocked ? submission.gate : null;
+  const root = can(actor.user, "submissions.override");
+
   if (submission.status === "submitted")
     return [
-      mine ? own("approve") : approving("approve"),
+      mine ? own("approve") : gate ? scanBlocked("approve", gate) : approving("approve"),
       own("request_changes"),
       own("reject"),
-      ...(mine && can(actor.user, "submissions.override") ? [approving("override")] : []),
+      // While the gate blocks, root's way past it is the scan override, its own included.
+      ...(mine && root && !gate ? [approving("override")] : []),
+      ...(gate && root ? [approving("scan_override")] : []),
     ];
   // An approved one can still be sent back before it's released (056).
   if (submission.status === "approved") return [own("request_changes")];
   return [];
+};
+
+/** A decision the security scan's gate blocks (137), with the reason. */
+const scanBlocked = (
+  decision: ReviewDecision,
+  gate: Extract<ScanGate, { blocked: true }>,
+): DecisionOption => {
+  const why: Why = {
+    code: "scan_blocked",
+    by: gate.by,
+    score: gate.score,
+    threshold: gate.threshold,
+  };
+  return { decision, allowed: false, reason: whyEnglish(why), why };
 };
 
 /** Whether `decision` is listed and allowed. */

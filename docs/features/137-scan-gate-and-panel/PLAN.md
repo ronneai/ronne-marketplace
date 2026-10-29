@@ -20,7 +20,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     stored results without it still read.
   - *Done when:* core tests cover it on the recorded reports, and a stored result without it.
 
-- [ ] **3. The threshold and the gate.** [risky]
+- [x] **3. The threshold and the gate.** [risky]
   - `skill_scan_block_score` in the settings service, saved and audited with the tab.
   - A pure `scanGate` (the policy, the threshold, the submission's type and its latest revision's
     newest scan → open, or blocked with `score`, `pending`, `failed` or `none`).
@@ -54,3 +54,12 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* the docs render tests pass, and every new helper's link lands on a real section.
 
 ## Notes
+
+- **From task 3's re-check (low, root only):** the exemption looks at who wrote the submission,
+  not how it reached the personal workspace. An author's submission scanned high in a team scope,
+  whose scope then moves into that author's own personal workspace (115), skips the gate: only root
+  can approve it there, and does so without the scan override's reason and audit. Narrow the
+  exemption (say, to a submission sent there) if the audit trail matters for it.
+- `pnpm test:db:<server> -- <paths>` takes several paths here; one witness's shell passed them as
+  one string ("No test files found") and ran Vitest with `TEST_DATABASE_URL` instead.
+

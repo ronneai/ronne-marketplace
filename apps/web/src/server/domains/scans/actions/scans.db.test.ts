@@ -461,7 +461,7 @@ describe("root asking for a scan (135)", () => {
     expect(await requestScan(asRoot, "01JZZZZZZZZZZZZZZZZZZZZZZZ", app)).toBe(false);
   });
 
-  it("lets root ask again only when the newest scan failed", async () => {
+  it("lets root ask again once the newest scan failed or finished, never while one waits (137)", async () => {
     await turnOn();
     await submitDraft(asAna, (await drafted()).id, app);
     const revisionId = (
@@ -470,11 +470,16 @@ describe("root asking for a scan (135)", () => {
     // One is waiting already.
     expect(await requestScan(asRoot, revisionId, app)).toBe(false);
     await run(fakeScanner({ ok: true, result: result() }).scanner);
-    // It finished.
+    // It finished: since 137, root may scan it again.
+    expect(await requestScan(asRoot, revisionId, app)).toBe(true);
+    expect(await scans()).toHaveLength(2);
+    // The new one waits.
+    expect(await requestScan(asRoot, revisionId, app)).toBe(false);
+    await t.db.updateTable("content_scans").set({ status: "running" }).execute();
     expect(await requestScan(asRoot, revisionId, app)).toBe(false);
     await t.db.updateTable("content_scans").set({ status: "failed", error: "timeout" }).execute();
     expect(await requestScan(asRoot, revisionId, app)).toBe(true);
-    expect(await scans()).toHaveLength(2);
+    expect(await scans()).toHaveLength(3);
   });
 
   it("refuses root's request when no scanner command is set: nothing would take it", async () => {
@@ -489,7 +494,7 @@ describe("root asking for a scan (135)", () => {
 });
 
 describe("the review page's scan (135)", () => {
-  it("gives the revision's newest scan, and lets only root ask again after a failure", async () => {
+  it("gives the revision's newest scan, and lets only root ask again once none waits or runs", async () => {
     await turnOn();
     await submitDraft(asAna, (await drafted()).id, app);
     const revisionId = (
@@ -500,7 +505,7 @@ describe("the review page's scan (135)", () => {
       canRequest: false,
     });
     await t.db.updateTable("content_scans").set({ status: "done" }).execute();
-    expect((await reviewScan(asRoot, revisionId, app)).canRequest).toBe(false);
+    expect((await reviewScan(asRoot, revisionId, app)).canRequest).toBe(true);
     await t.db.updateTable("content_scans").set({ status: "running" }).execute();
     expect((await reviewScan(asRoot, revisionId, app)).canRequest).toBe(false);
     await t.db.updateTable("content_scans").set({ status: "failed", error: "timeout" }).execute();

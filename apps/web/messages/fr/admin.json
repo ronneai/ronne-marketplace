@@ -618,6 +618,7 @@
           "off": "désactivée",
           "types": "types de {from} à {to}",
           "analysis": "analyse {from, select, semantic {statique et sémantique} other {statique}} à {to, select, semantic {statique et sémantique} other {statique}}",
+          "blockScore": "le score qui bloque l’approbation de {from, select, none {aucun} other {{from}}} à {to, select, none {aucun} other {{to}}}",
           "nothing": "rien"
         }
       },
@@ -716,6 +717,7 @@
           "changes_requested": "A demandé des modifications sur <name>{item}</name>",
           "rejected": "A rejeté <name>{item}</name>",
           "override_approved": "A approuvé son propre <name>{item}</name> (dérogation)",
+          "scan_override_approved": "A approuvé <name>{item}</name> malgré l’analyse de sécurité (dérogation)",
           "rebased": "A rebasé <name>{item}</name> de {from} à {to}{conflicts, plural, =0 {} one { (# conflit)} other { (# conflits)}}"
         },
         "version": {

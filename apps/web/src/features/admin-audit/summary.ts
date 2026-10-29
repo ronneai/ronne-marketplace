@@ -416,6 +416,7 @@ export const SUMMARIES: Record<AuditAction, Build> = {
   "submission.changes_requested": (m, _e, h) => ({ item: h.item(m) }),
   "submission.rejected": (m, _e, h) => ({ item: h.item(m) }),
   "submission.override_approved": (m, _e, h) => ({ item: h.item(m) }),
+  "submission.scan_override_approved": (m, _e, h) => ({ item: h.item(m) }),
   "submission.rebased": (m, _e, h) => ({
     item: h.item(m),
     from: text(m.from),
@@ -491,6 +492,13 @@ export const SUMMARIES: Record<AuditAction, Build> = {
         : null,
       text(from.analysis) !== text(to.analysis)
         ? h.part("skillScan.analysis", { from: text(from.analysis), to: text(to.analysis) })
+        : null,
+      // `blockScore: { from, to }`, only when the threshold changed (137); null is none.
+      m.blockScore !== undefined
+        ? h.part("skillScan.blockScore", {
+            from: text(record(m.blockScore).from) || "none",
+            to: text(record(m.blockScore).to) || "none",
+          })
         : null,
     ].filter((c) => c !== null);
     return { changes: changes.join(", ") || h.part("skillScan.nothing") };

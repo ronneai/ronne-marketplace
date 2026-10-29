@@ -568,6 +568,7 @@
       "approve": "aprovou",
       "reject": "rejeitou",
       "override": "aprovou a própria submissão, como root (exceção)",
+      "scan_override": "aprovou apesar da verificação de segurança, como root (exceção)",
       "self_approve": "submeteu no espaço de trabalho pessoal, então foi aprovada sem revisão",
       "withdraw": "arquivou",
       "restore": "restaurou como rascunho",
@@ -596,6 +597,11 @@
         "button": "Aprovar (exceção)",
         "title": "Aprovar a sua própria submissão?",
         "hint": "Opcional. Como root, você pode aprovar a sua própria submissão; ela fica marcada como exceção na conversa e no registro de auditoria."
+      },
+      "scan_override": {
+        "button": "Aprovar (exceção à verificação)",
+        "title": "Aprovar apesar da verificação de segurança?",
+        "hint": "Obrigatório. Como root, você a aprova mesmo com a verificação de segurança bloqueando: diga por quê. Ela fica marcada como exceção na conversa e no registro de auditoria."
       },
       "message": "Mensagem",
       "cancel": "Cancelar",
@@ -766,6 +772,7 @@
     "stale": "Precisa de rebase: a {newer} foi lançada",
     "own": "Sua própria submissão",
     "own_decide": "Sua própria submissão: outro moderador ou o root decide.",
+    "scan_blocked": "{by, select, score {A aprovação está bloqueada: a pontuação da verificação de segurança, {score}, está no limite, {threshold}, ou acima dele.} pending {A aprovação espera a verificação de segurança terminar.} failed {A aprovação está bloqueada: a verificação de segurança não terminou. Verifique de novo, ou use a exceção.} other {A aprovação está bloqueada: esta revisão não foi verificada. Verifique-a, ou use a exceção.}}",
     "not_reviewer": "Só revisores devolvem submissões.",
     "yours": "É sua: edite-a ou retire-a.",
     "cannot_send_back": "Está {status, select, draft {em rascunho} submitted {submetida} changes_requested {com alterações solicitadas} approved {aprovada} rejected {rejeitada} withdrawn {arquivada} published {publicada} other {{status}}}.",
@@ -788,7 +795,7 @@
     "none": "Esta revisão não foi verificada.",
     "now": "Verificar agora",
     "again": "Verificar de novo",
-    "refused": "Não é possível verificar agora: é preciso um comando de verificador, e a última verificação tem de ter falhado.",
+    "refused": "Não é possível verificar agora: é preciso um comando de verificador, e nenhuma verificação pode estar esperando ou rodando.",
     "pending": "Verificando… este painel se atualiza sozinho.",
     "failed": "A verificação não terminou: {reason, select, timeout {passou do tempo limite} not_found {o comando do verificador não foi encontrado} not_runnable {o comando do verificador não pode ser executado} not_configured {nenhum comando de verificador está definido} output_too_large {produziu saída demais} invalid_report {o relatório não pôde ser lido} signal {foi interrompida por um sinal} no_temporary_folder {a pasta temporária não pôde ser criada} bad_file_path {um caminho de arquivo da submissão foi recusado} write_failed {os arquivos não puderam ser gravados} endpoint_refused {o endpoint do LLM não passou na verificação quando a verificação começou} exit {terminou com o código {code}} other {{error}}}",
     "severity": {

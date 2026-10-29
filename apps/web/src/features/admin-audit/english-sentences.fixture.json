@@ -307,6 +307,10 @@
     "empty": "Approved their own an item (override)",
     "rich": "Approved their own @team/tools (override)"
   },
+  "submission.scan_override_approved": {
+    "empty": "Approved an item past the security scan (override)",
+    "rich": "Approved @team/tools past the security scan (override)"
+  },
   "submission.rebased": {
     "empty": "Rebased an item from  to ",
     "rich": "Rebased @team/tools from user to root (1 conflict)"

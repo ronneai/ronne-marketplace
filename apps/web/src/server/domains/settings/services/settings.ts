@@ -6,6 +6,7 @@ import {
   InvalidPasswordSignInPolicyError,
   InvalidRetentionError,
   InvalidSkillScanAnalysisError,
+  InvalidSkillScanBlockScoreError,
   InvalidSkillScanTypesError,
   InvalidTwoFactorPolicyError,
   InvalidUsageMinimumError,
@@ -38,8 +39,10 @@ import {
   retentionDaysFrom,
 } from "../models/retention-policy";
 import {
+  blockScoreFrom,
   isSkillScanAnalysis,
   SKILL_SCAN_ANALYSIS_KEY,
+  SKILL_SCAN_BLOCK_SCORE_KEY,
   SKILL_SCAN_ENABLED_KEY,
   SKILL_SCAN_LAST_ERROR_KEY,
   SKILL_SCAN_LAST_VERSION_KEY,
@@ -101,6 +104,10 @@ export const skillScanPolicy = async (deps: SettingsDeps): Promise<SkillScanPoli
     analysis: analysis?.value ?? null,
   });
 };
+
+/** The score from which the security scan blocks approval (137); null, the default, for none. */
+export const skillScanBlockScore = async (deps: SettingsDeps): Promise<number | null> =>
+  blockScoreFrom((await deps.repo.get(SKILL_SCAN_BLOCK_SCORE_KEY))?.value);
 
 /** Who must use two-factor sign-in (105); `optional` until root sets it. Read on every request. */
 export const twoFactorPolicy = async (deps: SettingsDeps): Promise<TwoFactorPolicy> => {
@@ -403,19 +410,30 @@ export const skillScanSettings = async (
   scanner: SkillScanner,
 ): Promise<SkillScanSettings> => {
   requirePermission(actor.user, "settings.manage");
-  const [policy, version, error] = await Promise.all([
+  const [policy, blockScore, version, error] = await Promise.all([
     skillScanPolicy(deps),
+    skillScanBlockScore(deps),
     deps.repo.get(SKILL_SCAN_LAST_VERSION_KEY),
     deps.repo.get(SKILL_SCAN_LAST_ERROR_KEY),
   ]);
   return {
     policy,
+    blockScore,
     scanner,
     lastVersion: version?.value || null,
     lastError: error?.value || null,
     // Semantic chosen while the provider is gone: scans run static, and the page says so.
     runsStatic: policy.analysis === "semantic" && scanner.provider === null,
   };
+};
+
+/** The threshold as the form sends it (137): left out, kept; empty, none; else 1 to 100. */
+const typedBlockScore = (value: unknown): number | null | undefined => {
+  if (value === undefined) return undefined;
+  if (value === null || (typeof value === "string" && !value.trim())) return null;
+  const score = typeof value === "string" ? blockScoreFrom(value) : null;
+  if (score === null) throw new InvalidSkillScanBlockScoreError();
+  return score;
 };
 
 /**
@@ -426,7 +444,13 @@ export const skillScanSettings = async (
 export const setSkillScanPolicy = async (
   deps: SettingsDeps,
   actor: SettingsActor,
-  value: { enabled: unknown; types: unknown; analysis: unknown },
+  value: {
+    enabled: unknown;
+    types: unknown;
+    analysis: unknown;
+    /** The threshold (137): empty or null for none; left out, it's kept. */
+    blockScore?: unknown;
+  },
   scanner: SkillScanner,
 ): Promise<{ changed: boolean }> => {
   requirePermission(actor.user, "settings.manage");
@@ -438,10 +462,13 @@ export const setSkillScanPolicy = async (
   if (!types) throw new InvalidSkillScanTypesError();
   if (!isSkillScanAnalysis(value.analysis)) throw new InvalidSkillScanAnalysisError();
   const analysis = value.analysis;
+  const typedScore = typedBlockScore(value.blockScore);
   const to: SkillScanPolicy = { enabled, types, analysis };
   const at = now(deps);
   return deps.repo.transaction(async (repo) => {
     const from = await skillScanPolicy({ repo });
+    const fromScore = await skillScanBlockScore({ repo });
+    const toScore = typedScore === undefined ? fromScore : typedScore;
     // Turning scanning on needs the command. Keeping it on once the command went is allowed, so
     // root can still change the types (the waiting scans fail `not configured` meanwhile).
     if (enabled && !scanner.configured && !from.enabled) throw new SkillScanNotConfiguredError();
@@ -452,19 +479,27 @@ export const setSkillScanPolicy = async (
     if (
       from.enabled === to.enabled &&
       from.analysis === to.analysis &&
-      from.types.join(",") === to.types.join(",")
+      from.types.join(",") === to.types.join(",") &&
+      fromScore === toScore
     )
       return { changed: false };
     const by = actor.user?.id ?? null;
     await repo.set(SKILL_SCAN_ENABLED_KEY, String(to.enabled), by, at);
     await repo.set(SKILL_SCAN_TYPES_KEY, to.types.join(","), by, at);
     await repo.set(SKILL_SCAN_ANALYSIS_KEY, to.analysis, by, at);
+    if (fromScore !== toScore)
+      await repo.set(SKILL_SCAN_BLOCK_SCORE_KEY, toScore === null ? "" : String(toScore), by, at);
     await repo.recordAudit(
       {
         actorId: by,
         action: "settings.skill_scan",
         target: { type: "instance" },
-        metadata: { from, to },
+        // The threshold (137) only when it changed, as the summary words only what changed.
+        metadata: {
+          from,
+          to,
+          ...(fromScore !== toScore ? { blockScore: { from: fromScore, to: toScore } } : {}),
+        },
         ipAddress: actor.ip,
       },
       at,

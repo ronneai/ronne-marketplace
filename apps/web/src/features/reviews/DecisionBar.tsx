@@ -22,6 +22,7 @@ const COPY: Record<
   request_changes: { required: true, variant: "secondary" },
   reject: { required: true, variant: "destructive" },
   override: { required: false, variant: "secondary" },
+  scan_override: { required: true, variant: "secondary" },
 };
 
 /**

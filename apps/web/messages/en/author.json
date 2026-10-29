@@ -568,6 +568,7 @@
       "approve": "approved it",
       "reject": "rejected it",
       "override": "approved their own submission, as root (override)",
+      "scan_override": "approved it past the security scan, as root (override)",
       "self_approve": "submitted it in their personal workspace, so it was approved without review",
       "withdraw": "archived it",
       "restore": "restored it as a draft",
@@ -596,6 +597,11 @@
         "button": "Approve (override)",
         "title": "Approve your own submission?",
         "hint": "Optional. As root, you can approve your own submission; it's marked as an override in the conversation and the audit log."
+      },
+      "scan_override": {
+        "button": "Approve (override the scan)",
+        "title": "Approve past the security scan?",
+        "hint": "Required. As root, you approve it although the security scan blocks it: say why. It's marked as an override in the conversation and the audit log."
       },
       "message": "Message",
       "cancel": "Cancel",
@@ -766,6 +772,7 @@
     "stale": "Rebase needed: {newer} is out",
     "own": "Your own submission",
     "own_decide": "Your own submission: another moderator or root decides.",
+    "scan_blocked": "{by, select, score {Approval is blocked: the security scan's score, {score}, is at or above the threshold, {threshold}.} pending {Approval waits for the security scan to finish.} failed {Approval is blocked: the security scan didn't finish. Scan again, or override.} other {Approval is blocked: this revision wasn't scanned. Scan it, or override.}}",
     "not_reviewer": "Only reviewers send submissions back.",
     "yours": "Yours: edit or withdraw it.",
     "cannot_send_back": "It's {status, select, changes_requested {changes requested} withdrawn {archived} other {{status}}}.",
@@ -788,7 +795,7 @@
     "none": "This revision wasn't scanned.",
     "now": "Scan now",
     "again": "Scan again",
-    "refused": "It can't be scanned now: a scanner command must be set and the last scan must have failed.",
+    "refused": "It can't be scanned now: a scanner command must be set, and no scan may be waiting or running.",
     "pending": "Scanning… this panel updates on its own.",
     "failed": "The scan didn't finish: {reason, select, timeout {it ran past the timeout} not_found {the scanner's command wasn't found} not_runnable {the scanner's command can't be run} not_configured {no scanner command is set} output_too_large {it wrote too much output} invalid_report {its report couldn't be read} signal {it was stopped by a signal} no_temporary_folder {its temporary folder couldn't be made} bad_file_path {a file path in the submission was refused} write_failed {its files couldn't be written} endpoint_refused {its LLM endpoint failed its check when the scan started} exit {it exited with code {code}} other {{error}}}",
     "severity": {

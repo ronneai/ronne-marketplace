@@ -8,6 +8,7 @@ import {
 import type { SortDir } from "../../../db/keyset";
 import { ForbiddenError } from "../../identity/exceptions/errors";
 import { workspacesWith } from "../../identity/models/permissions";
+import { scanGate } from "../models/scan-gate";
 import { OPEN_STATUSES, type SubmissionStatus } from "../models/status";
 import { fileBytes, MANIFEST_PATH, type Submission, toPackageFile } from "../models/submission";
 import type { SubmissionRepository } from "../repositories/submission-repository";
@@ -125,7 +126,7 @@ export const latestRiskFlags = async (
 /** Who approved a submission and when: its last approval, an override included. */
 const approvalOf = async (repo: SubmissionRepository, submissionId: string) => {
   const event = (await repo.events(submissionId))
-    .filter((e) => e.kind === "approve" || e.kind === "override")
+    .filter((e) => e.kind === "approve" || e.kind === "override" || e.kind === "scan_override")
     .at(-1);
   return event ? { by: event.actor.name, at: event.createdAt } : null;
 };
@@ -183,13 +184,18 @@ export const listQueue = async (
     }),
   );
   const stale = await withStale(registry, rows);
+  // The security scan's gate (137), from each row's latest revision's newest scan.
+  const scans = await deps.repo.latestScans(rows.map((row) => row.id));
   return {
     workspaces,
-    rows: stale.map((row) => ({
-      ...row,
-      approvable: approvability(actor, row),
-      decisions: decisionsFor(actor, row),
-    })),
+    rows: stale.map((row) => {
+      const gated = { ...row, gate: scanGate(deps.scanGate, row, scans.get(row.id) ?? null) };
+      return {
+        ...gated,
+        approvable: approvability(actor, gated),
+        decisions: decisionsFor(actor, gated),
+      };
+    }),
     next: page.next,
     previous: page.previous,
     total,

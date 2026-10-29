@@ -341,6 +341,7 @@ const view = (overrides: Partial<ReviewView> = {}): ReviewView => ({
   issues: [],
   events: [event({ revision: 2, kind: "resubmit" })],
   published: [],
+  gate: { blocked: false, threshold: null },
   decisions: [
     { decision: "approve", allowed: true },
     { decision: "request_changes", allowed: true },

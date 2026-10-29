@@ -618,6 +618,7 @@
           "off": "turned off",
           "types": "types {from} to {to}",
           "analysis": "analysis {from, select, semantic {static and semantic} other {static}} to {to, select, semantic {static and semantic} other {static}}",
+          "blockScore": "the score that blocks approval {from, select, none {none} other {{from}}} to {to, select, none {none} other {{to}}}",
           "nothing": "nothing"
         }
       },
@@ -716,6 +717,7 @@
           "changes_requested": "Requested changes on <name>{item}</name>",
           "rejected": "Rejected <name>{item}</name>",
           "override_approved": "Approved their own <name>{item}</name> (override)",
+          "scan_override_approved": "Approved <name>{item}</name> past the security scan (override)",
           "rebased": "Rebased <name>{item}</name> from {from} to {to}{conflicts, plural, =0 {} one { (# conflict)} other { (# conflicts)}}"
         },
         "version": {

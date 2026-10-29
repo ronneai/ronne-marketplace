@@ -568,6 +568,7 @@
       "approve": "l’a approuvée",
       "reject": "l’a rejetée",
       "override": "a approuvé sa propre soumission, en tant que root (dérogation)",
+      "scan_override": "l’a approuvée malgré l’analyse de sécurité, en tant que root (dérogation)",
       "self_approve": "l’a soumise dans son espace de travail personnel, donc elle a été approuvée sans révision",
       "withdraw": "l’a archivée",
       "restore": "l’a restaurée comme brouillon",
@@ -596,6 +597,11 @@
         "button": "Approuver (dérogation)",
         "title": "Approuver votre propre soumission?",
         "hint": "Facultatif. En tant que root, vous pouvez approuver votre propre soumission; elle est marquée comme dérogation dans la conversation et le journal d’audit."
+      },
+      "scan_override": {
+        "button": "Approuver (déroger à l’analyse)",
+        "title": "Approuver malgré l’analyse de sécurité?",
+        "hint": "Obligatoire. En tant que root, vous l’approuvez même si l’analyse de sécurité la bloque : dites pourquoi. Elle est marquée comme dérogation dans la conversation et le journal d’audit."
       },
       "message": "Message",
       "cancel": "Annuler",
@@ -766,6 +772,7 @@
     "stale": "Rebase nécessaire : la {newer} est sortie",
     "own": "Votre propre soumission",
     "own_decide": "Votre propre soumission : un autre modérateur ou root décide.",
+    "scan_blocked": "{by, select, score {L’approbation est bloquée : le score de l’analyse de sécurité, {score}, atteint ou dépasse le seuil, {threshold}.} pending {L’approbation attend la fin de l’analyse de sécurité.} failed {L’approbation est bloquée : l’analyse de sécurité n’a pas abouti. Analysez à nouveau, ou dérogez.} other {L’approbation est bloquée : cette révision n’a pas été analysée. Analysez-la, ou dérogez.}}",
     "not_reviewer": "Seuls les réviseurs renvoient des soumissions.",
     "yours": "C’est la vôtre : modifiez-la ou retirez-la.",
     "cannot_send_back": "Elle est {status, select, draft {en brouillon} submitted {soumise} changes_requested {renvoyée pour modifications} approved {approuvée} rejected {rejetée} withdrawn {archivée} published {publiée} other {{status}}}.",
@@ -788,7 +795,7 @@
     "none": "Cette révision n’a pas été analysée.",
     "now": "Analyser maintenant",
     "again": "Analyser à nouveau",
-    "refused": "Impossible d’analyser maintenant : il faut une commande d’analyseur, et la dernière analyse doit avoir échoué.",
+    "refused": "Impossible d’analyser maintenant : il faut une commande d’analyseur, et aucune analyse ne doit être en attente ou en cours.",
     "pending": "Analyse en cours… ce panneau se met à jour tout seul.",
     "failed": "L’analyse n’a pas abouti : {reason, select, timeout {elle a dépassé le délai} not_found {la commande de l’analyseur est introuvable} not_runnable {la commande de l’analyseur ne peut pas être exécutée} not_configured {aucune commande d’analyseur n’est définie} output_too_large {elle a produit trop de sortie} invalid_report {son rapport n’a pas pu être lu} signal {elle a été arrêtée par un signal} no_temporary_folder {son dossier temporaire n’a pas pu être créé} bad_file_path {un chemin de fichier de la soumission a été refusé} write_failed {ses fichiers n’ont pas pu être écrits} endpoint_refused {son point de terminaison de LLM n’a pas passé sa vérification au début de l’analyse} exit {elle s’est terminée avec le code {code}} other {{error}}}",
     "severity": {

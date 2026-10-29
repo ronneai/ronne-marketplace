@@ -105,9 +105,10 @@ export const runQueuedScans = async (
 };
 
 /**
- * Root asks for a scan of one revision (135: "Scan again" after a failure, "Scan now" when it
- * wasn't scanned). Queued like any other; false when the revision is gone or withdrawn, when its
- * newest scan hasn't failed, or when no scanner command is set.
+ * Root asks for a scan of one revision (135: "Scan now" when it wasn't scanned; "Scan again",
+ * since 137 over a finished scan too, for a new scanner version or provider). Queued like any
+ * other; false when the revision is gone or withdrawn, when its newest scan still waits or runs,
+ * or when no scanner command is set.
  */
 export const requestScan = async (
   deps: { repo: ContentScanRepository; configured: boolean; now?: () => Date },
@@ -118,10 +119,9 @@ export const requestScan = async (
   // With no scanner command nothing would ever take it: it would show "Scanning…" for good.
   if (!deps.configured) return false;
   if (!(await deps.repo.revisionFiles(revisionId))) return false;
-  // Only when its newest scan failed, or it has none: not a second one while one waits or runs,
-  // nor again over one that finished.
+  // Not a second one while one waits or runs.
   const latest = (await deps.repo.latestFor([revisionId])).get(revisionId);
-  if (latest && latest.status !== "failed") return false;
+  if (latest && (latest.status === "queued" || latest.status === "running")) return false;
   await deps.repo.queue(revisionId, (deps.now ?? (() => new Date()))());
   return true;
 };

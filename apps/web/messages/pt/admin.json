@@ -618,6 +618,7 @@
           "off": "desativada",
           "types": "tipos de {from} para {to}",
           "analysis": "análise de {from, select, semantic {estática e semântica} other {estática}} para {to, select, semantic {estática e semântica} other {estática}}",
+          "blockScore": "a pontuação que bloqueia a aprovação de {from, select, none {nenhuma} other {{from}}} para {to, select, none {nenhuma} other {{to}}}",
           "nothing": "nada"
         }
       },
@@ -716,6 +717,7 @@
           "changes_requested": "Solicitou alterações em <name>{item}</name>",
           "rejected": "Rejeitou <name>{item}</name>",
           "override_approved": "Aprovou o próprio <name>{item}</name> (exceção)",
+          "scan_override_approved": "Aprovou <name>{item}</name> apesar da verificação de segurança (exceção)",
           "rebased": "Fez rebase de <name>{item}</name> de {from} para {to}{conflicts, plural, =0 {} one { (# conflito)} other { (# conflitos)}}"
         },
         "version": {

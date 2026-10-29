@@ -12,6 +12,7 @@ import {
 } from "../../identity/testing/test-auth";
 import { createScope } from "../../items/actions/scopes";
 import { kyselyItemRepository } from "../../items/repositories/kysely-item-repository";
+import { kyselyContentScanRepository } from "../../scans/repositories/kysely-content-scan-repository";
 import { kyselyUsageRepository } from "../../usage/repositories/kysely-usage-repository";
 import type { UsageRepository } from "../../usage/repositories/usage-repository";
 import { UNFILTERED, type Viewer } from "../../workspaces/models/viewer";
@@ -142,6 +143,8 @@ beforeEach(async () => {
     .select("id")
     .where("submission_id", "=", draft.id)
     .executeTakeFirstOrThrow();
+  // A scan of it, so the gate's read (137) has something to find.
+  await kyselyContentScanRepository(t.db, t.dialect).queue(revision.id, new Date());
   ids = { scope: scope.id, submission: draft.id, revision: revision.id, item, author: authorId };
   const viewerOf = async (id: string) =>
     loadViewer(t.db, { id, role: "user", workspaces: await loadMemberships(t.db, id) });
@@ -200,6 +203,7 @@ const SUBMISSION_READS: Partial<Record<keyof SubmissionRepository, Probe<Submiss
       await repo.registry().findItem({ workspace: "acme", scope: "acme-infra", name: "deploy" }),
     ),
   revisions: async (repo) => some(await repo.revisions(ids.submission)),
+  latestScans: async (repo) => (await repo.latestScans([ids.submission])).size > 0,
   revisionFiles: async (repo) => some(await repo.revisionFiles(ids.revision)),
   events: async (repo) => some(await repo.events(ids.submission)),
   latestEvents: async (repo) =>

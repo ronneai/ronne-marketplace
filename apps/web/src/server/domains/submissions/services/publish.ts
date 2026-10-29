@@ -537,7 +537,7 @@ export const releaseTogether = async (
       // there: nobody else looked, so it's released as not reviewed, and moving it out (115) needs
       // a review. The latest approval decides: one reviewed after being sent back counts.
       const approvals = (await submissions.events(submission.id)).filter((e) =>
-        ["approve", "override", "self_approve"].includes(e.kind),
+        ["approve", "override", "scan_override", "self_approve"].includes(e.kind),
       );
       const last = approvals.at(-1)?.kind;
       const reviewed =

@@ -148,6 +148,8 @@ export const saveSkillScanPolicy = serverAction(
         enabled: form.get("enabled"),
         types: form.getAll("types"),
         analysis: form.get("analysis"),
+        // Kept when the form has no such field (137).
+        blockScore: form.has("blockScore") ? form.get("blockScore") : undefined,
       });
       revalidatePath("/admin/settings");
       const t = await getTranslations("admin.done.settings");

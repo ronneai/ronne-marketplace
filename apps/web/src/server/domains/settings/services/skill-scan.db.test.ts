@@ -6,11 +6,13 @@ import { ForbiddenError } from "../../identity/exceptions/errors";
 import type { CurrentUser } from "../../identity/models/user";
 import {
   InvalidSkillScanAnalysisError,
+  InvalidSkillScanBlockScoreError,
   InvalidSkillScanTypesError,
   SkillScanNoProviderError,
   SkillScanNotConfiguredError,
 } from "../exceptions/errors";
 import {
+  SKILL_SCAN_BLOCK_SCORE_KEY,
   SKILL_SCAN_LAST_ERROR_KEY,
   SKILL_SCAN_LAST_VERSION_KEY,
   type SkillScanner,
@@ -19,6 +21,7 @@ import { kyselySettingsRepository } from "../repositories/kysely-settings-reposi
 import {
   type SettingsDeps,
   setSkillScanPolicy,
+  skillScanBlockScore,
   skillScanPolicy,
   skillScanSettings,
 } from "./settings";
@@ -50,13 +53,16 @@ beforeEach(async () => {
 afterEach(() => t.cleanup());
 
 const asRoot = { user: () => root, ip: IP };
-const set = (value: { enabled: unknown; types: unknown; analysis: unknown }, scanner = command) =>
-  setSkillScanPolicy(deps, { user: asRoot.user(), ip: IP }, value, scanner);
+const set = (
+  value: { enabled: unknown; types: unknown; analysis: unknown; blockScore?: unknown },
+  scanner = command,
+) => setSkillScanPolicy(deps, { user: asRoot.user(), ip: IP }, value, scanner);
 
 describe("the security scan's settings (135)", () => {
   it("shows the defaults, what the operator set up, and what the scanner said last", async () => {
     expect(await skillScanSettings(deps, { user: root, ip: null }, ollama)).toEqual({
       policy: { enabled: false, types: ["skill"], analysis: "static" },
+      blockScore: null,
       scanner: ollama,
       lastVersion: null,
       lastError: null,
@@ -178,5 +184,45 @@ describe("the security scan's settings (135)", () => {
     [{ enabled: "on", types: ["skill"], analysis: "llm" }, InvalidSkillScanAnalysisError],
   ])("refuses %j", async (value, error) => {
     await expect(set(value)).rejects.toThrow(error);
+  });
+});
+
+describe("the score that blocks approval (137)", () => {
+  const audits = async () =>
+    (await listAuditEvents(t.db, t.dialect, {})).events.filter(
+      (e) => e.action === "settings.skill_scan",
+    );
+  const policy = { enabled: "on", types: ["skill"], analysis: "static" };
+
+  it("saves a threshold, keeps it when the form leaves it out, and clears it when empty", async () => {
+    await set({ ...policy, blockScore: "70" });
+    expect(await skillScanBlockScore(deps)).toBe(70);
+    expect((await skillScanSettings(deps, { user: root, ip: null }, command)).blockScore).toBe(70);
+    await set({ ...policy, analysis: "static" });
+    expect(await skillScanBlockScore(deps)).toBe(70);
+    await set({ ...policy, blockScore: " " });
+    expect(await skillScanBlockScore(deps)).toBeNull();
+  });
+
+  it("audits a change of the threshold alone, with what it was", async () => {
+    await set(policy);
+    expect(await set({ ...policy, blockScore: "60" })).toEqual({ changed: true });
+    expect(await set({ ...policy, blockScore: "60" })).toEqual({ changed: false });
+    const events = await audits();
+    expect(events).toHaveLength(2);
+    expect(events[0]?.metadata).toMatchObject({ blockScore: { from: null, to: 60 } });
+    expect(events[1]?.metadata).not.toHaveProperty("blockScore");
+  });
+
+  it("refuses anything but a whole number from 1 to 100, and changes nothing", async () => {
+    for (const blockScore of ["0", "101", "7.5", "1e2", "abc", 50])
+      await expect(set({ ...policy, blockScore })).rejects.toThrow(InvalidSkillScanBlockScoreError);
+    expect(await skillScanBlockScore(deps)).toBeNull();
+    expect(await audits()).toHaveLength(0);
+  });
+
+  it("reads a hand-edited threshold that isn't one as none", async () => {
+    await deps.repo.set(SKILL_SCAN_BLOCK_SCORE_KEY, "lots", null, at);
+    expect(await skillScanBlockScore(deps)).toBeNull();
   });
 });
