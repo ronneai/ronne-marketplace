@@ -587,3 +587,183 @@ Witnessed: 2026-10-29 19:07 local, by a fresh agent (adversarial). Commit: d23da
 | 7 | Scoped suites and typecheck are green | no | confirmed | 14 files, 302 tests; `tsc` no output |
 
 **Overall:** met. No bugs found.
+
+## Task 4
+
+Witnessed: 2026-10-29 23:50 UTC, by a fresh agent (blind). Commit: 7784173b plus the uncommitted diff of compose.yaml, compose.build.yaml, scripts/install/install.sh and scripts/install/test-install.sh, and the untracked scripts/skill-scanner/scanner.compose.yaml. Machine: macOS (Darwin 27.0.0), Docker Desktop, Node 24 (host); the web container's own Node ran the Ronne-side probes.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The proxy's refusals for the scan key are JSON 403 on `/scan` and `/health` of :8081 and :8082 | no | confirmed | no key, empty, wrong and `*` → `403 {"error": "scan key"}`; right key → 200; proxy with no key → `{"error": "not set up"}` |
+| 2 | The same refusals hold from the scanners' own networks | no | confirmed | 20 requests per network, all 403 |
+| 3 | With the key unset or containing `*`, the proxy starts and refuses everything | no | confirmed | "Up 3 seconds" each time |
+| 4 | Ronne's `web` reaches both scanners through the proxy, and a scan works with no `.env` editing | no | confirmed | `/health` 200 on both with the key, 403 without; a POST `/scan` → 200 score 42. No Caddy upload-cap probe succeeded |
+| 5 | `scanner` can't open a connection outside, or to `web` or `scanner-semantic` | no | confirmed | name resolution fails; 1.1.1.1:443 unreachable |
+| 6 | `scanner-semantic` can't reach `web` or a database, but has internet | no | confirmed | `web` and `scanner` don't resolve; 1.1.1.1:443 connects |
+| 7 | Scanner services are read-only, non-root, no capabilities, limited, healthy, no published ports | no | confirmed | `docker inspect`: user 10001, ro, cap_drop ALL, 1 GiB, 256 pids, healthy |
+| 8 | The scan key never reaches a scanner | no | confirmed | an echo server saw no key header; the scanner's env has none |
+| 9 | `compose.yaml` with no profile still starts web and proxy, and `config` is valid | no | confirmed | only proxy and web, both Up; public site 307 |
+| 10 | The scanner builds from this checkout and from the git URL | no | partly | built from both, but the daemon wrote no log, so the fetch isn't shown; GitHub's URL waits for the merge |
+| 11 | `pnpm test:install` passes and catches mutations | no | confirmed | all passed; 5 mutations each fail named tests |
+| 12 | `--scanner no/yes/semantic` and the `--yes` rerun write the right `.env` | no | confirmed | `test-install.sh` |
+| 13 | A person's own profiles and scanner address survive | no | confirmed | tests and mutations |
+| 14 | The question's defaults | no | confirmed | driven in a pty under dash |
+| 15 | The `RONNE_TRUSTED_PROXIES` comment | no | confirmed | case 4 of compose.yaml |
+| 16 | The host compose file works on 127.0.0.1:7670 | no | confirmed | healthy; `/health` and a scan answered |
+
+**Overall:** not met: row 10 (the fetch from the git daemon isn't shown) and row 4 (the upload cap isn't shown).
+
+### Adversarial pass
+
+Witnessed: 2026-10-29 23:40 local, by a fresh agent (adversarial). Commit: 7784173b plus the uncommitted task-4 diff. Machine: macOS (Darwin 27.0.0, Docker Desktop).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `scanner` can't reach anything but the proxy's :80, :8081 and :8082 | no | confirmed | `web`, databases, the other scanner and the host don't resolve; external and metadata addresses unreachable; one /16 route, no default |
+| 2 | `scanner-semantic` can't reach `web` or a database, and has egress | no | confirmed | it also reaches host services through `host.docker.internal` on Docker Desktop (not in the spec) |
+| 3 | The ports need the scan key | no | confirmed | no, empty, wrong, prefix, `*`, placeholder text and comma-list keys all 403 |
+| 4 | Repeated or smuggled key headers don't let a non-holder in | no | confirmed | no bypass |
+| 5 | Caddy strips the key before the scanner | no | confirmed | an echo server saw no key; a forged X-Forwarded-For became the proxy's address |
+| 6 | Fails closed with no key or a `*` | no | confirmed | proxy running, 0 restarts |
+| 7 | Odd keys don't inject | no | confirmed | spaces, quotes, braces, `\|`; the key is never in Caddy's config |
+| 8 | A scanner can't reach Ronne past the proxy or spoof its address | no | confirmed | X-Forwarded-For replaced; the admin API is refused |
+| 9 | Method and URI tricks | no | confirmed | the gate holds |
+| 10 | Resource limits hold, the public site keeps working | no | confirmed | 100 MB body (no cap, as designed), 1500 half-open connections |
+| 11 | `RONNE_DOMAIN`, `RONNE_TLS`, `RONNE_TRUSTED_PROXIES` leave :8081 plain HTTP with the gate | no | confirmed | with a domain, internal TLS and a trusted proxy set, :8081 answered 200 over HTTP; TLS on it failed |
+| 12 | `docker compose config` valid; the key's visibility is documented | no | partly | the key shows in `docker inspect` and `config` of web and proxy; nothing said so |
+| 13 | The scanner builds from the git context | no | confirmed | a missing ref fails loudly |
+| 14 | `pnpm test:install` passes | no | confirmed | `dash` and `bash` both print all passed |
+| 15 | The installer tests catch undone rules | no | confirmed | 13 mutations; the interactive questions, the no-openssl fallback and quoted or CRLF values are untested |
+| 16 | The installer flows | no | confirmed | dash and bash, and a pty |
+| 17 | A scanner image is rebuilt when the install upgrades | no | not met | the tag is fixed, so `up -d` keeps the old image |
+| 18 | The person's own values survive odd `.env` input | no | partly | quoted values and CRLF don't: `COMPOSE_PROFILES="postgres,scanner",scanner` breaks Compose |
+
+**Overall:** not met: rows 12, 17 and 18. Fixed since:
+- The image is tagged with the ref (`ronne-skillspector:${RONNE_SCANNER_REF:-main}`), so an upgrade builds the new scanner; a copy of the script that isn't a release passes `--build`. A test fails if the tag is fixed again.
+- `env_get` drops a trailing carriage return and the quotes around a value, as Compose does; a test writes the scanner into a quoted, CRLF `.env` and reads the result back.
+- `env_set` writes its temporary file private from the start (`umask 077`, put back after), and a test sees mode 600 on the file before it is moved.
+- The compose file's comments say the key is readable by anyone who can run `docker inspect`, that it must be hex, and that `scanner-semantic` reaches host services on Docker Desktop.
+- The implementer undid each of these in turn (no quote strip, no CR strip, no umask, umask not put back, a fixed tag): each fails a test.
+- Row 10 of the blind pass: a git server run with `--verbose` logged two `upload-pack` requests during `docker compose build --no-cache scanner` from `git://…#v0.0.2:scripts/skill-scanner`, and the image `ronne-skillspector:v0.0.2` was built.
+- Row 4: a 20 MiB and a 30 MiB body through :8081 got 200 from the service; the public site's 28 MiB cap refused the 30 MiB body.
+
+### Re-check
+
+Witnessed: 2026-10-29 20:35 -03, by a fresh agent (blind, scoped to the fixes). Commit: 7784173b plus the uncommitted task-4 diff. Machine: macOS (Darwin 27.0.0), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `test-install.sh` passes under dash and bash | no | confirmed | both end `all passed` |
+| 2 | `env_get` drops a trailing CR, and a test fails without it | no | confirmed | `tr -d '\r'` removed → FAIL env_get drops a trailing carriage return |
+| 3 | `env_get` drops double and single quotes, and a test fails without it | no | confirmed | quote `sed` removed → three FAILs |
+| 4 | `env_set` creates its temporary file private | no | confirmed | `umask 077` removed → mode 644, FAIL |
+| 5 | `env_set` restores the umask | no | confirmed | restore removed → umask 0077, FAIL |
+| 6 | The image is tagged with the ref, and a test guards it | no | confirmed | `config`: `:main`, `:v9.9.9` on all three services; hard-coded tag → FAIL |
+| 7 | install.sh passes `--build` when the script isn't a release and the scanner is on | no | partly | the code is right but no test covers it: removing `&& ! is_release` left the suite green |
+| 8 | A quoted CRLF `.env` goes through the installer and gives an `.env` Compose accepts | no | confirmed | `cat -vt`: no quotes, no `^M`; `docker compose config` rc 0 |
+| 9 | A new ref builds a new image; the same ref reuses it | no | confirmed | own git daemon, three tags: same ref `CACHED`, new ref builds, tag absent builds |
+| 10 | compose.yaml comments on key visibility, hex and host.docker.internal | no | confirmed | present |
+
+**Overall:** not met: row 7.
+
+### Re-check
+
+Witnessed: 2026-10-29, by a fresh agent (adversarial). Commit: 7784173b plus the uncommitted task-4 diff. Machine: macOS (Darwin), Docker Compose v5.6.0, dash and bash 3.2.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `env_get` reads a value the way Compose does | no | confirmed | 18 cases under dash and bash; a CR in the middle of a value is dropped and a key name with regex characters also matches, neither reachable with the installer's fixed names |
+| 2 | `env_set` and `write_scanner` never leave a line Compose rejects | no | confirmed | quoted CRLF `.env` → `COMPOSE_PROFILES=postgres,scanner,scanner-semantic`; `docker compose config` accepts it |
+| 3 | The temporary file is mode 600 and the umask is put back | no | confirmed | `.env` is `-rw-------`; umask 0022 afterwards; without the line the test fails |
+| 4 | The image tag follows `RONNE_SCANNER_REF`, and a non-release copy passes `--build` | no | confirmed | `config` gives `:v1.2.3`; `--dry-run` builds only the scanner |
+| 5 | A bad `RONNE_SCANNER_REF` fails clearly | no | partly | `feature/x` passes `config`, then fails at build with "invalid reference format"; nothing says a branch name with `/` can't be a tag |
+| 6 | No regression in the isolation and the key gate | no | confirmed | config check only |
+
+**Overall:** not met: row 5. Also found: an inline `# comment` after `COMPOSE_PROFILES=scanner` made the installer read the scanner as off; two mirrors at one ref share a tag; the earlier version's image stays on disk. Fixed since:
+- compose.yaml says the ref must be a valid image tag (a release tag or `main`, not a branch with `/`), that the previous image stays until removed (and how), and that mirrors at one ref share a tag.
+- `env_get` drops a trailing ` # comment` on an unquoted value, and keeps a `#` inside quotes or with no space before it.
+- Tests for `--build`: a non-release run with the scanner passes it; with `--scanner no` it doesn't; a release (the script with a version baked in) doesn't, and pins `RONNE_SCANNER_REF=v0.3.0`. Tests for the three comment cases.
+- The implementer undid seven rules (no `! is_release`, always `--build`, no scanner check, comment not stripped, comment stripped in quotes, `#` with no space stripped, release ref not pinned): each fails a test.
+
+### Re-check
+
+Witnessed: 2026-10-29, by a fresh agent (blind re-check). Commit: 7784173b plus the uncommitted task-4 diff. Machine: macOS (Darwin 27.0.0), shell tests only.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `dash` and `bash scripts/install/test-install.sh` pass | no | confirmed | both print `all passed`; two dash runs in a row both pass |
+| 2 | The new section passes on its own | no | confirmed | copied with the header and fakes: 53 ok under dash and bash |
+| 3 | Non-release with the scanner passes `--build`; `--scanner no` and a release don't | no | confirmed | three mutations each fail a test |
+| 4 | A release pins `RONNE_SCANNER_REF=v<version>` | no | confirmed | pin replaced by `main` fails 2 tests |
+| 5 | `env_get` drops a trailing comment and keeps `#` inside quotes or with no space before it | no | confirmed | three mutations fail 3, 1 and 1 tests |
+| 6 | `FAKE_LOG` doesn't leak | no | confirmed | exported at the build tests, unset after |
+| 7 | The compose.yaml comment on the ref is accurate | no | partly | `config` accepts `feature/x`; that Docker rejects a `/` in a tag is shown by reading, not a build |
+| 8 | The profiled config is valid | no | confirmed | `config -q` rc 0 |
+
+**Overall:** met.
+
+### Re-check
+
+Witnessed: 2026-10-29, by a fresh agent (adversarial, blind). Commit: 7784173b plus uncommitted task-4 work. Machine: macOS (Darwin 27.0.0), shells: dash and bash 3.2.57.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `env_get` drops a trailing ` # comment` on an unquoted value, tabs included | no | confirmed | dash and bash 3.2 identical: `a # c`→`a`, `a<TAB># c`→`a`, `a # c<CR>`→`a` |
+| 2 | A `#` with no space before it, or inside quotes, is kept | no | confirmed | `#x`, `p#ss`, `http://x/#f`, `"a # b"` kept |
+| 3 | A quoted value followed by a comment | no | partly | `"a" # c` and `'a' # c` come back with the quotes and comment; Compose reads `a` |
+| 4 | What `env_set` writes back after `env_get` dropped a comment | no | confirmed | no database password goes through `env_get`; the scan key is rewritten only at exactly 64 hex |
+| 5 | `--build` for a non-release script with the scanner on, not for `--scanner no` or a release | no | confirmed | a `--yes` rerun takes SCANNER from `.env` and the rule still applies |
+| 6 | A release pins the ref; a non-release writes `main` | no | confirmed | the release test seds `@RONNE_VERSION@` into a copy and can't pass for the wrong reason |
+| 7 | The new tests pass and fail without their rules | no | confirmed | eight mutations each fail ≥1 test |
+| 8 | The repository is unchanged by this pass | no | confirmed | `git status --short` same before and after |
+
+**Overall:** not met: row 3. Fixed since:
+- `env_get` now reads a quoted value as Compose does: it ends at the closing quote, and only whitespace and a comment may follow (`COMPOSE_PROFILES="scanner" # x` → `scanner`). A quote of the other kind inside, a `#` inside the quotes, an empty quoted value and an opening quote with no closing one are covered.
+- Tests for each, and `scanner_now` on `COMPOSE_PROFILES="scanner" # x` says yes.
+- The implementer undid six rules (no closing-quote rule, a comment after the quote kept, anything accepted after the quote, no whitespace trim, an unquoted comment kept, the wrong first character): each fails a test under dash and bash.
+
+### Re-check
+
+Witnessed: 2026-10-29, by a fresh agent (adversarial, blind). Commit: 7784173b plus the uncommitted task-4 diff. Machine: macOS (Darwin), dash and bash 3.2.57.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A quoted value ends at its closing quote; only whitespace and a comment may follow | no | confirmed | `"a"#c`, `"a"<tab>#c`, `'a'#`, `"a" # "b"` and `"a"   ` all → a, as `docker compose config` reads them |
+| 2 | The fallback strips two outer quotes, else keeps the value | no | confirmed | `"a"b"`→`a"b`, `"a" "b"`→`a" "b`, `""`→empty, `"`→`"`, `""""`→`""`; the invalid ones are .env errors in Compose |
+| 3 | `*`, `?`, `[` in the value are safe; dash and bash 3.2 agree | no | confirmed | 29 cases, `diff` identical |
+| 4 | An unquoted value loses a trailing ` # comment` and keeps `=` and `#` with no space before it | no | confirmed | same as Compose |
+| 5 | Callers are unaffected by an empty line for a missing key | no | confirmed | all 17 uses are inside `$(...)` or filtered |
+| 6 | The earlier tests still exercise their intent, and the new ones fail when each rule is removed | no | partly | three mutations survived: a tab after the closing quote, a quote inside the comment, the single-quote fallback; behaviour is right |
+
+**Overall:** not met: row 6. Fixed since:
+- Four tests: a tab between the closing quote and the comment, a quote inside the comment (`"a" # "b"`), single quotes with one inside (`'a'b'`), and only whitespace after the closing quote.
+- The implementer undid the three surviving rules (the after-quote strip to spaces only, the greedy first quote, no single-quote fallback): each fails a test under dash and bash.
+- Not reachable from what the installer writes: a backslash escape such as `V="a\"b"` is read by Compose as `a"b` and by the installer as `a\"b`.
+
+### Re-check
+
+Witnessed: 2026-10-29, by a fresh agent (adversarial). Commit: 7784173b plus uncommitted task-4 work. Machine: macOS (Darwin), shell tests only.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The four new tests pass under dash and bash 3.2 and leave no state behind | no | confirmed | both "all passed"; `DIR=$keep_dir` follows the block |
+| 2 | `T="a"<tab># c` fails if the after-quote strip uses `' *'` | no | confirmed | FAIL T and FAIL X in both shells; `[ ]*` fails the same two |
+| 3 | `U="a" # "b"` fails if `%%` becomes `%` | no | confirmed | FAIL U (got `a" # "b`) |
+| 4 | `W='a'b'` fails without the single-quote fallback | no | confirmed | FAIL W (got `'a'b'`) |
+| 5 | `X="a"<tab>  ` fails without the `""` case | no | confirmed | only FAIL X; dropping both `""` and `"#"*` → 8 fails |
+| 6 | The tests catch a rule that handles only `"` and never `'` | no | confirmed | entry pattern `\"*)` → 4 fails |
+
+**Overall:** met. No bugs found.
+
+### Re-check
+
+Witnessed: 2026-10-29, by a fresh agent (blind). Commit: 7784173b plus uncommitted task-4 work. Machine: macOS (Darwin 27.0.0), Docker Compose.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A ref with a "/" fails to build | no | confirmed | `RONNE_SCANNER_REF=feature/x … build scanner` → `invalid tag "ronne-skillspector:feature/x": invalid reference format` |
+| 2 | Two versions sit side by side and the first stays after the second is built | no | confirmed | `v9.9.1` then `v9.9.2` built in turn → `docker image ls` showed both |
+| 3 | `docker image rm ronne-skillspector:v9.9.1` removes the old image | no | confirmed | `Untagged: ronne-skillspector:v9.9.1`, then `Deleted: sha256:6a32…` |
+| 4 | Installs fetching from different mirrors at one ref share that tag (the comment's claim) | no | confirmed | v9.9.1 built again from a different context → one tag, now pointing at `6a32f9d9de56` instead of `889af5b3d4aa`. The witness had expected the first image to be left untagged; Docker removed it (not in `docker image ls -a --no-trunc`, not dangling). The comment says only that they share the tag, which holds |
+
+**Overall:** met. The witness's own overall line was "not met" because of that expectation, which the comment doesn't make; the comment's three statements and the build error hold.

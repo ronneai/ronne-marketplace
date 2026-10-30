@@ -40,6 +40,9 @@ Options:
   --domain NAME     The domain, for --mode server
   --email ADDRESS   Optional email for the certificate authority (expiry notices)
   --dir PATH        The folder to install into (default: ~/ronne-marketplace)
+  --scanner CHOICE  The security scanner, a container built on first start (about 500 MB):
+                    no, yes (static scans), or semantic (also scans with an LLM provider, which
+                    gives the scanner internet access). Without it, the answer in .env stays
   -h, --help        Show this help
 EOF
 }
@@ -90,6 +93,19 @@ ask() {
   IFS= read -r ask_answer </dev/tty || ask_answer=""
   [ -n "$ask_answer" ] || ask_answer="$3"
   eval "$1=\$ask_answer"
+}
+
+# yesno "Question" DEFAULT: true for yes. DEFAULT is yes or no; --yes answers the default.
+yesno() {
+  [ "$YES" = 1 ] && [ "$2" = yes ] && return 0
+  [ "$YES" = 1 ] && return 1
+  if [ "$2" = yes ]; then printf '%s [Y/n]: ' "$1" >/dev/tty; else printf '%s [y/N]: ' "$1" >/dev/tty; fi
+  IFS= read -r yesno_answer </dev/tty || yesno_answer=""
+  case "$yesno_answer" in
+    "") [ "$2" = yes ] ;;
+    y | Y | yes | Yes | YES) return 0 ;;
+    *) return 1 ;;
+  esac
 }
 
 # confirm "Question": true for yes. The default is yes; --yes answers yes.
@@ -323,14 +339,44 @@ local_public_url() {
 
 # --- The folder and .env ----------------------------------------------------------------------
 
-# env_get KEY: the value of KEY in .env, or nothing.
+# env_value RAW: a .env value as Compose reads it. A quoted value ends at its closing quote, and only
+# whitespace and a comment may follow; an unquoted one loses a trailing " # comment".
+env_value() {
+  ev=$1
+  case "$ev" in
+    \"* | \'*)
+      ev_q=${ev%"${ev#?}"}
+      ev_rest=${ev#?}
+      ev_inner=${ev_rest%%"$ev_q"*}
+      if [ "$ev_inner" != "$ev_rest" ]; then
+        ev_after=$(printf '%s' "${ev_rest#"$ev_inner"?}" | sed 's/^[[:space:]]*//')
+        case "$ev_after" in
+          "" | "#"*)
+            printf '%s\n' "$ev_inner"
+            return
+            ;;
+        esac
+      fi
+      # Not a plain quoted value (a quote inside, say): both outer quotes off, if there are two.
+      printf '%s\n' "$ev" | sed -e 's/^"\(.*\)"$/\1/' -e "s/^'\\(.*\\)'\$/\\1/"
+      ;;
+    *) printf '%s\n' "$ev" | sed 's/[[:space:]][[:space:]]*#.*$//' ;;
+  esac
+}
+
+# env_get KEY: the value of KEY in .env, or nothing, as Compose reads it (no trailing CR from a file
+# saved on Windows, no quotes, no trailing comment).
 env_get() {
   [ -f "$DIR/.env" ] || return 0
-  sed -n "s/^$1=//p" "$DIR/.env" | tail -n 1
+  env_raw=$(sed -n "s/^$1=//p" "$DIR/.env" | tail -n 1 | tr -d '\r')
+  env_value "$env_raw"
 }
 
 # env_set KEY VALUE (an empty VALUE removes the line). Other lines are kept as they are.
 env_set() {
+  # Private from the first byte: .env can hold the scan key and the database password.
+  env_umask=$(umask)
+  umask 077
   env_tmp="$DIR/.env.tmp.$$"
   if [ -f "$DIR/.env" ]; then
     grep -v "^$1=" "$DIR/.env" >"$env_tmp" || true
@@ -339,6 +385,70 @@ env_set() {
   fi
   [ -z "$2" ] || printf '%s=%s\n' "$1" "$2" >>"$env_tmp"
   mv "$env_tmp" "$DIR/.env"
+  umask "$env_umask"
+}
+
+# --- The security scanner (156) ----------------------------------------------------------------
+
+# scanner_now: what .env has, as no, yes (static scans) or semantic.
+scanner_now() {
+  case ",$(env_get COMPOSE_PROFILES)," in
+    *,scanner-semantic,*) echo semantic ;;
+    *,scanner,*) echo yes ;;
+    *) echo no ;;
+  esac
+}
+
+# profiles_without_scanner: COMPOSE_PROFILES minus the scanner's, so the person's others stay.
+profiles_without_scanner() {
+  env_get COMPOSE_PROFILES | tr ',' '\n' | grep -v -e '^scanner$' -e '^scanner-semantic$' -e '^$' | paste -sd, - || true
+}
+
+# random_key: 32 random bytes in hex, which Caddy can't read as a wildcard.
+random_key() {
+  if command -v openssl >/dev/null 2>&1; then
+    openssl rand -hex 32
+  else
+    od -An -N32 -tx1 /dev/urandom | tr -d ' \n'
+  fi
+}
+
+# set_scanner_url KEY ADDRESS: writes an address of ours, or removes it (ADDRESS empty), but leaves
+# one the person set to their own scanner alone.
+set_scanner_url() {
+  case "$(env_get "$1")" in
+    "" | http://proxy:8081 | http://proxy:8082) env_set "$1" "$2" ;;
+    *) warn "Keeping your own $1 in $DIR/.env." ;;
+  esac
+}
+
+# write_scanner CHOICE: the profiles, the two addresses and the scan key in .env. The key is kept
+# when it is already 64 hex characters, so a rerun doesn't need the proxy recreated for nothing.
+write_scanner() {
+  others=$(profiles_without_scanner)
+  case "$1" in
+    no)
+      env_set COMPOSE_PROFILES "$others"
+      set_scanner_url RONNE_SKILL_SCANNER_URL ""
+      set_scanner_url RONNE_SKILL_SCANNER_SEMANTIC_URL ""
+      ;;
+    yes | semantic)
+      profiles=${others:+$others,}scanner
+      semantic_url=""
+      if [ "$1" = semantic ]; then
+        profiles="$profiles,scanner-semantic"
+        semantic_url=http://proxy:8082
+      fi
+      env_set COMPOSE_PROFILES "$profiles"
+      set_scanner_url RONNE_SKILL_SCANNER_URL http://proxy:8081
+      set_scanner_url RONNE_SKILL_SCANNER_SEMANTIC_URL "$semantic_url"
+      scan_key=$(env_get RONNE_SCAN_KEY)
+      case "$scan_key" in *[!0-9a-f]*) scan_key="" ;; esac
+      [ "${#scan_key}" = 64 ] || scan_key=$(random_key)
+      env_set RONNE_SCAN_KEY "$scan_key"
+      if is_release; then env_set RONNE_SCANNER_REF "v$RONNE_VERSION"; else env_set RONNE_SCANNER_REF main; fi
+      ;;
+  esac
 }
 
 check_folder() {
@@ -445,17 +555,19 @@ main() {
   MODE=""
   DOMAIN=""
   EMAIL=""
+  SCANNER=""
   DIR="${HOME:?}/ronne-marketplace"
   while [ $# -gt 0 ]; do
     case "$1" in
       --yes | -y) YES=1 ;;
-      --mode | --domain | --email | --dir)
+      --mode | --domain | --email | --dir | --scanner)
         [ $# -ge 2 ] || die "$1 needs a value."
         case "$1" in
           --mode) MODE="$2" ;;
           --domain) DOMAIN="$2" ;;
           --email) EMAIL="$2" ;;
           --dir) DIR="$2" ;;
+          --scanner) SCANNER="$2" ;;
         esac
         shift
         ;;
@@ -471,6 +583,10 @@ main() {
   case "$MODE" in
     "" | local | server) ;;
     *) die "--mode is local or server, not $MODE." ;;
+  esac
+  case "$SCANNER" in
+    "" | no | yes | semantic) ;;
+    *) die "--scanner is no, yes or semantic, not $SCANNER." ;;
   esac
   if [ "$YES" = 0 ] && ! has_tty; then
     die "No terminal to ask questions on. Run it from a terminal, or add --yes (with --mode and --domain)."
@@ -596,6 +712,23 @@ main() {
     esac
   fi
 
+  # The security scanner (156): a container built here on the first start. A rerun keeps the answer
+  # in .env unless --scanner says otherwise or the person changes it.
+  old_scanner=$(scanner_now)
+  if [ -z "$SCANNER" ]; then
+    if [ "$YES" = 1 ]; then
+      SCANNER=$old_scanner
+    elif yesno "Add the security scanner? It checks submissions with SkillSpector (about 500 MB, built on the first start, a few minutes)" "$([ "$old_scanner" = no ] && echo no || echo yes)"; then
+      if yesno "Also scan with an LLM provider (semantic)? The scanner then has internet access to reach it" "$([ "$old_scanner" = semantic ] && echo yes || echo no)"; then
+        SCANNER=semantic
+      else
+        SCANNER=yes
+      fi
+    else
+      SCANNER=no
+    fi
+  fi
+
   # Write the folder: compose.yaml from this release, .env with the answers.
   mkdir -p "$DIR" "$DIR/certs" || die "Can't create $DIR."
   if [ -n "${RONNE_INSTALL_COMPOSE_URL:-}" ]; then
@@ -624,12 +757,20 @@ main() {
     env_set RONNE_HTTPS_PORT "$(local_bind "$HTTPS_PORT_NUM")"
     env_set PUBLIC_URL "$(local_public_url "$(env_get PUBLIC_URL)" "$PORT")"
   fi
+  write_scanner "$SCANNER"
   chmod 600 "$DIR/.env" 2>/dev/null || true
   say "Wrote $DIR/compose.yaml and $DIR/.env"
 
   # Start, wait, open.
-  say "Starting Ronne (the first start downloads the images)…"
-  compose up -d --quiet-pull || die "docker compose up failed. See the messages above, and: cd $DIR && docker compose logs"
+  if [ "$SCANNER" = no ]; then
+    say "Starting Ronne (the first start downloads the images)…"
+  else
+    say "Starting Ronne (the first start downloads the images and builds the scanner, a few minutes)…"
+  fi
+  # A copy of the script that isn't a release builds the scanner from `main`, which moves.
+  if [ "$SCANNER" != no ] && ! is_release; then build_flag=--build; else build_flag=""; fi
+  # shellcheck disable=SC2086
+  compose up -d --quiet-pull $build_flag || die "docker compose up failed. See the messages above, and: cd $DIR && docker compose logs"
 
   if [ "$MODE" = server ]; then
     url="https://$DOMAIN"
@@ -644,6 +785,9 @@ main() {
     say "Ronne AI Marketplace is running: $url"
     if [ "$INSTALLED" = 0 ]; then
       say "Open it now and finish the setup: until then, anyone who can reach it can set it up."
+    fi
+    if [ "$SCANNER" != no ]; then
+      say "The security scanner is running. As root, turn scanning on in Admin > Settings > Security scan."
     fi
     open_browser "$url"
   else

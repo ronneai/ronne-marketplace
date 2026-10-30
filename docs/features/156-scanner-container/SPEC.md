@@ -45,7 +45,7 @@ A Docker install then gets the scanner by answering one question in the installe
   - **`scanner`** (profile `scanner`): static scans. Its only network is `scan`, which is `internal: true` and shared with the proxy alone. So it has no outbound network: it reaches only the proxy, never `web`, the databases or `scanner-semantic`.
   - **`scanner-semantic`** (profile `scanner-semantic`): semantic scans. It's on `scan-semantic` (internal, shared with the proxy alone) and on `scan-egress`, a network of its own that reaches the internet, so it can call the provider. It never shares a network with `web` or the databases. It can reach the proxy's public ports as any client on the internet can.
 
-  Both are built on the server from the repository at the install's version (a git build context ending in `:scripts/skill-scanner`), and tagged locally with the pin. Each has:
+  Both are built on the server from the repository at the install's version (a git build context ending in `:scripts/skill-scanner`), and tagged locally with the repository ref (`ronne-skillspector:v0.4.0`, or `main`), so an upgrade builds the new scanner. `RONNE_SCANNER_REF` names the ref and `RONNE_SCANNER_REPO` the repository (GitHub unless mirrored); the installer sets the ref to the version. Each has:
   - `read_only`, a `tmpfs` at `/tmp`, `cap_drop: [ALL]` and `no-new-privileges`;
   - limits on memory, CPU and processes;
   - a healthcheck on `/health`;
@@ -80,6 +80,8 @@ A Docker install then gets the scanner by answering one question in the installe
 - **The installer.** `install.sh` asks "Add the security scanner?". It says the image is about 500 MB and built on the first start, which takes a few minutes. On yes:
   - it writes `COMPOSE_PROFILES=scanner` to `.env`, or `scanner,scanner-semantic` when semantic analysis is wanted too, with the matching addresses;
   - it ends by saying that root turns scanning on in Admin › Settings › Security scan.
+
+  `--scanner no|yes|semantic` answers the question without a terminal; with `--yes` alone the answer in `.env` stays. A person's own `COMPOSE_PROFILES` entries and their own `RONNE_SKILL_SCANNER_URL` are kept, `.env` values with quotes or Windows line endings are read as Compose reads them, and the scan key is kept on a rerun when it is 64 hex characters. A copy of the script that isn't a release builds with `--build`, since `main` moves.
 
   An existing install gets the question by running the install command again, as for an upgrade. It keeps its version and settings, and on yes writes the same lines, so later upgrades rebuild the scanner too.
 - **CI.**

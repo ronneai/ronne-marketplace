@@ -41,7 +41,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     - the command path's tests still pass;
     - the tab's messages are in the three languages.
 
-- [ ] **4. Compose and the installer.** [risky]
+- [x] **4. Compose and the installer.** [risky]
   - `compose.yaml`:
     - the `scanner` and `scanner-semantic` services, each behind its profile, built from the repository at the install's version, and hardened (read-only, tmpfs, no capabilities, limits, a healthcheck, `init: true` so the service isn't PID 1 and orphans are reaped);
     - the internal `scan` and `scan-semantic` networks, each shared with the proxy alone, and `scan-egress` for `scanner-semantic`;
