@@ -182,8 +182,8 @@ export const deviceFlow = async ({
       // The next code: the one that turned it on is used.
       await signedOut
         .getByLabel("Code from your authenticator app")
+        .first()
         .fill(totpCode(`otpauth://totp/x?secret=${key}`, { step: 1 }));
-      await signedOut.getByRole("button", { name: "Verify" }).click();
       await expect(signedOut).toHaveURL(/\/device\?user_code=/);
       await confirm(signedOut, "rmk on e2e-2fa");
       await signedOut.getByRole("button", { name: "Approve" }).click();

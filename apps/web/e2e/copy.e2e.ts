@@ -24,6 +24,8 @@ test("copy works on a page served over plain http on a LAN address", async ({ pa
   const copy = page.locator("code", { hasText: "npm install" }).locator("..").getByRole("button");
   // The button is in the server's HTML; it copies once the page has hydrated.
   await expect(async () => {
+    // The commands are on the Terminal tab (157), which opens once the page has hydrated.
+    await page.getByRole("tab", { name: "Terminal (rmk)" }).click();
     await copy.click();
     await expect(copy).toHaveText("copied", { timeout: 500 });
   }).toPass();

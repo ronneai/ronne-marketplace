@@ -85,11 +85,10 @@ test("turn two-factor on, keep the backup codes, make new ones, and turn it off"
   // it on is refused as used), then, another time, a backup code, which is used up.
   await signOut(page);
   await passwordStep(page);
-  await page.getByLabel("Code from your authenticator app").fill("000000");
-  await page.getByRole("button", { name: "Verify" }).click();
+  // The code boxes (157) send the form themselves once the sixth digit is in: no Verify click.
+  await page.getByLabel("Code from your authenticator app").first().fill("000000");
   await expect(page.getByText("That code is wrong")).toBeVisible();
-  await page.getByLabel("Code from your authenticator app").fill(codeOf(key, 1));
-  await page.getByRole("button", { name: "Verify" }).click();
+  await page.getByLabel("Code from your authenticator app").first().fill(codeOf(key, 1));
   await expect(headerName(page, E2E_NAMES.twoFactor)).toBeVisible();
   await signOut(page);
   await passwordStep(page);

@@ -42,8 +42,11 @@ test("turns two-factor on and signs in with a code, on a touch screen", async ({
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
     true,
   );
-  await page.getByLabel("Code from your authenticator app").fill(totpCode(uri, { step: 1 }));
-  await page.getByRole("button", { name: "Verify" }).tap();
+  // The code boxes (157) send the form themselves once the sixth digit is in.
+  await page
+    .getByLabel("Code from your authenticator app")
+    .first()
+    .fill(totpCode(uri, { step: 1 }));
   await expect(page).not.toHaveURL(/\/sign-in/);
   await expect(page.getByRole("banner")).toBeVisible();
 });
