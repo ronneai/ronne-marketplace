@@ -1,7 +1,7 @@
 # Threat model
 
-> Feature [098](../features/098-threat-model/SPEC.md) · Checked against the code on 2026-10-20 (commit
-> `85c593e5`, before 0.5.0) · What to do when something goes wrong: the
+> Feature [098](../features/098-threat-model/SPEC.md) · Checked against the code on 2026-10-30 (commit
+> `a6355bc3`, before 0.6.0) · What to do when something goes wrong: the
 > [incident runbook](../runbooks/incident-response.md) · Reporting a vulnerability:
 > [`SECURITY.md`](../../SECURITY.md)
 
@@ -30,9 +30,13 @@ What an instance holds:
 | Two-factor secrets and backup codes (105) | database (`two_factor`), encrypted with a key from `AUTH_SECRET` | the second step of sign-in |
 | Identity providers' client secrets (106) | database (`identity_providers.secret_enc`), AES-256-GCM with a key from `AUTH_SECRET` | sign-in through the company's provider |
 | SCIM tokens (108) | database, sha256 only | create, change and disable accounts and group memberships |
+| The security scan's provider key (136) | database (`instance_settings.skill_scan_key_enc`), AES-256-GCM with a key from `AUTH_SECRET`, bound to its provider and endpoint | an LLM account; with it, a semantic scan's files go to the provider |
+| The scan key, `RONNE_SCAN_KEY` (156) | the settings file (`.env`), given to the web app and the proxy | the scanner containers' only door; without it the proxy refuses every scan request |
 | Items: released versions | storage (`.tgz`, immutable) and database (sha256) | run on every machine that installs them |
 | Drafts and submissions | database (`submission_files`) | not reviewed yet; may be private work |
 | The audit log, with IP addresses | database (`audit_log`) | the record of who did what; the addresses are cleared after the retention (102) |
+| Security scan results and reviewers' marks on findings (135, 137) | database (`content_scans`, `scan_dismissals`) | findings about files, and the reasons reviewers gave; no personal data beyond the marker's id |
+| Feedback and the instance notice (124, 127) | database (`feedback`, `instance_settings`) | what people wrote to the administrators; root's message shown to everyone |
 | Usage totals | database | aggregated, nothing about who sent them |
 | The settings file | `.env` / `/etc/rmk-server/env` / `…\Marketplace\.env` | `DATABASE_URL` (with its password) and `AUTH_SECRET` |
 | Backups (099) | wherever the operator keeps them | all of the above |
@@ -49,6 +53,7 @@ What an instance holds:
 | **A company's identity provider, or whoever administers it (106, 108)** | sign people in as anyone in the domains root chose, and, through groups and SCIM, put them in workspace roles and disable accounts | accounts, and the right to approve |
 | **A stolen access token or session** | everything its user can | the same, from elsewhere |
 | **Someone who reads the server's disk, database or backups** | read everything at rest | secrets, sessions, private items |
+| **A hostile item, aimed at the scanner (135, 156)** | put files in front of SkillSpector (Python, YARA, an optional LLM) that are written to defeat it, to run code in it, or to read what it can reach | a low score, a foothold next to Ronne, or the provider's key |
 | **A compromised dependency or image** | run inside our build or our server | the server, or every instance at once |
 | **A compromised developer machine with an `rmk` token** | the token's user's access | the registry, through that token |
 
@@ -70,6 +75,8 @@ flowchart LR
     Env["Settings file"]
   end
   Mirror["Git mirror<br/>(another host, 078)"]
+  Scanners["Scanner containers<br/>(static: no internet; semantic: provider only, 156)"]
+  LLM["LLM provider<br/>(semantic scans only, 135, 136)"]
   IdP["Identity provider<br/>(OpenID Connect and SCIM, 106, 108)"]
 
   Browser -- "HTTPS (Caddy, 080) or local HTTP" --> Web
@@ -81,6 +88,8 @@ flowchart LR
   IdP -- "SCIM, Bearer scim_ token" --> Web
   RMK -- "writes, sha256 checked" --> Files
   Files -- "run by" --> AI
+  Web -- "files + scan key, through the proxy" --> Scanners
+  Scanners -. "semantic scans only" .-> LLM
   Web --> Review
   Review -- "released versions" --> Store
   Web --> DB
@@ -97,6 +106,8 @@ The boundaries, in order of what's at stake:
 6. **The registry → a git mirror** on a host Ronne doesn't control.
 7. **Our build → every instance.** Dependencies, images, packages.
 8. **A company's identity provider → accounts and roles** (106, 108). What the provider says is believed in the domains root chose.
+9. **Submitted files → the scanner** (135, 156). Item content is untrusted input to a program that parses it, so the scanner runs where it can reach nothing of Ronne's.
+10. **The server → an LLM provider** (135, 136). A semantic scan sends item content, and the provider's key, off the server. Root chooses it and sees where.
 
 ## 4. Threats
 
@@ -110,6 +121,8 @@ The boundaries, in order of what's at stake:
 | A released version is changed afterwards | Versions are immutable; `rmk` checks sha256 on every download and against `rmk.lock`, and writes nothing on a mismatch (`checksum_mismatch`, `packages/cli/src/install.ts:141`) | Someone with write access to storage *and* the database can change both. No signatures: designed in MVP §14.2, post-MVP |
 | Installing runs the item | `rmk install` only writes files inside managed target paths, never runs them (`packages/cli/src/apply.ts`); unmanaged and user-edited files are never overwritten | The AI tool runs hooks, MCP servers and status lines once written; that's what they're for. The review above is the guard |
 | A harmful version stays installable after it's found | Yank (016): new installs can't resolve it, `latest` moves back (`latestAfterYank`), feeds drop it at their next refresh | A project that asks for a range keeps installing the version its lockfile pins, **without the warning 022's spec promises** (`packages/core/src/resolve.ts` returns no warning for a yanked pin), and its files, until `rmk update`; one that asks for a tag such as `latest` follows the tag at its next `rmk install`, so the lockfile doesn't hold it as 022 says: known gaps, below. The [incident runbook](../runbooks/incident-response.md) covers it |
+| A scan is a way past the review, or a way to hide risk | The scan is advice until root sets a threshold; then a revision at or above it, or one whose scan is waiting, failed or missing, can't be approved, in the review page, the queue, Approve many and `decide` (`scanGate`, `apps/web/src/server/domains/submissions/models/scan-gate.ts:34`; 137). Root approves past it only with a reason, audited as `submission.scan_override_approved` with the score, the threshold and why it blocked; moderators can't. Marking a finding a false positive or an accepted risk needs a reviewer who isn't the author, is audited, and never changes the score or the gate. Authors see their own scan. | The gate is off by default. The scanner is alpha and heuristic: an item can score low, and no flag or score replaces the reviewer. The owner of a personal workspace approves their own submission as it is sent, before any scan can finish (114), so it is never gated. Root can override alone, on the record |
+| An item is moved to take over or hide a name | Moving needs a member of the item's workspace, and only a moderator, admin or root moves at once; another member's request is answered by one of them, never by its asker. The move stays in the workspace, changes no version, tarball or checksum, keeps every old name as an alias, refuses a name that is taken (an item, an open submission or another's alias) and runs under the item's release lock; `item.move_requested`, `item.moved`, `item.move_declined` and `item.move_cancelled` are audited (134; `apps/web/src/server/domains/workspaces/services/item-moves.ts`) | Whoever moves an item changes what its name is called; lockfiles and installs keep working through the alias. The History tab shows every name |
 | An item carries a secret | MCP configs name environment variables, never values; export stops on known secret formats (`secretLike`, `packages/core/src/package-checks.ts:90`) | A secret in a format no pattern knows |
 | Export uploads more than the person meant | `rmk export` and the MCP export tools upload only the files in the preview the person saw; never `.env` files, keys, `.git` or symbolic links, never an environment variable's value; over MCP only items in the tools' own folders (MVP §12; [native readers](../spec/native-readers.md) §3; `packages/cli/src/export-command.ts`) | A file the person approved without reading it |
 
@@ -124,9 +137,11 @@ The boundaries, in order of what's at stake:
 | Traffic read on the way | HTTPS through Caddy with a domain (080, 083, 086); HTTP/1.1 only while exception E-7 lasts (`compose.yaml`, `packages/server/src/service/caddyfile.ts`) | A local install (`localhost:7650`) is plain HTTP by design; on a network, use a domain (install guide) |
 | Oversized or hostile uploads | Body limits (`proxy.ts`, 28 MiB for drafts), 5 MB packed / 20 MB unpacked / 500 files / 1 MB a file (`packages/core/src/limits.ts`), `..` and absolute paths refused (`packages/core/src/package-checks.ts:29-31`), links refused when unpacking (`packages/core/src/pack/tar.ts:107`, `apps/web/src/server/domains/submissions/models/zip.ts:124`), 30 uploads per 10 minutes and the upload API refuses a new draft once its author has 50 (037, `MAX_API_DRAFTS`; the web editor has no limit) | Upload rate limits are in memory too (109) |
 | Usage reports used to flood or track | 60 per 10 minutes, 256 KiB, added to daily totals with nothing about the sender (046) | — |
-
 | A password that leaks or is guessed is enough to sign in | Two-factor sign-in (105): a code from an authenticator app (TOTP) after the password, with backup codes; root makes it optional, required for everyone, or required for roots and moderators. One sign-in challenge takes at most 5 codes, 10 wrong codes in a row lock the second step for 15 minutes; a person who must enrol is held on `/account/security` and every server action refuses until they have; the TOTP secret and backup codes are encrypted with a key from `AUTH_SECRET`, and `rmk-server rotate-secret` clears them (people enrol again) | Bearer tokens (`/api/v1`) aren't held by it: they were made behind a sign-in, and revoking is the tool. TOTP only: no passkeys or security keys. Someone with the settings file and the database can read the secrets, as they can forge cookies |
 | Someone approves an `rmk login --web` code they didn't start | The page shows what asked (the name, the time, the address with `TRUST_PROXY`) and "Only approve if you just ran `rmk login --web` yourself"; Continue is a POST, and Approve and Deny are buttons, never links, so a prefetch changes nothing; the code is 8 characters from 31 (no look-alikes), five wrong entries a minute per address and ten per person an hour, a wrong code voids nothing; only the hash of the device code is stored, the 90-day token is handed over once, and both routes are rate limited (107) | A person who approves a code someone else started gives that someone a 90-day token as them. The requester picks the name shown (at most 100 characters, no control characters, shown isolated). The limits are in memory too (109) |
+| A password root chose stays in use | Root can require a new password at first sign-in (on by default when creating a user or resetting a password): while the flag is set every page redirects to `/account/password`, the guard test lists every page, a token of that account is answered `403 password_change_required` everywhere but `GET /api/v1/me`, and setting the new one ends the account's other sessions; audited as `user.password_changed` with `required: true` (128; `apps/web/src/server/http/password-change-hold.ts`) | Root may untick it, on the record. `rmk-server reset-root-password` and the setup wizard's root account aren't flagged (root chose the password at the terminal). Better Auth's own endpoints aren't held, as with the two-factor hold |
+| The instance notice carries a hostile link or markup | Root's message is plain text up to 500 characters, never HTML; a link is written `[words](address)` (at most 3) and an address that isn't a relative path or `https:`, such as `javascript:`, is refused, and checked again when drawn; saving is audited as `settings.notice` (124; `apps/web/src/server/domains/settings/models/notice-policy.ts:70`) | A link to another site is root's responsibility |
+| Feedback floods root, or carries markup | Signed in only; 10 messages an hour per person; plain text shown as text; only the page's path is kept, never its query string; handled and deleted are audited without the text; it is in the person's data download and erased with the account (127; `apps/web/src/server/domains/feedback/services/feedback-limiter.ts`) | The limit is in memory too (109). Root reads what people write |
 | Someone who isn't root manages users | The user page `/admin/users/<id>` and its actions (change role, disable, reset password or two-factor, download data, erase) need root's permissions; anyone else gets a 404 with no hint the user exists; each action is audited and the destructive ones ask for a typed confirmation (123, 103) | Root can do all of it, as root must |
 
 ### 4.3 One workspace → another (private workspaces)
@@ -162,8 +177,9 @@ The boundaries, in order of what's at stake:
 | Threat | What stops it today | What's left |
 |---|---|---|
 | A malicious npm release | pnpm waits 3 days before installing a release (`minimumReleaseAge: 4320`), fails on lost publishing trust (`trustPolicy: no-downgrade`), runs install scripts only from an allowlist (`strictDepBuilds`, `allowBuilds`), and refuses git and tarball sub-dependencies (`blockExoticSubdeps`) (`pnpm-workspace.yaml`) | A malicious release that stays hidden past 3 days |
-| Known vulnerabilities | `pnpm audit --audit-level high` and `pnpm licenses:check` in CI and nightly; CodeQL (`codeql.yml`); Trivy on the images (`.github/actions/build-image/action.yml`) | Time-limited exceptions such as E-7, Caddy's three Go CVEs until 2026-10-23 (`docs/policies/dependencies.md`) |
+| Known vulnerabilities | `pnpm audit --audit-level high` and `pnpm licenses:check` in CI and nightly; CodeQL (`codeql.yml`); Trivy on the images (`.github/actions/build-image/action.yml`) | Time-limited exceptions E-7 to E-10, Caddy's Go, Alpine and `go-jose` CVEs, until 2026-11-13 (`docs/policies/dependencies.md`) |
 | A swapped base image | Base images pinned by digest (`Dockerfile`: `node:24-trixie-slim@sha256:…`; Caddy in `compose.yaml`) | The optional database images in `compose.yaml` (`postgres:18`, `mysql:8.4`, the `postgres` and `mysql` profiles) are pinned by tag only |
+| The scanner image pulls code at build time (156) | Built on the operator's server, never published by Ronne, from our pinned Dockerfile: SkillSpector at commit `abd82935…` (BuildKit `ADD` from git), the packages exactly as its `uv.lock` (`uv sync --frozen`), uv and Python by digest (`scripts/skill-scanner/Dockerfile`); Dependabot follows the folder, and E-11 records the MPL-licensed packages | The first start needs GitHub and PyPI, and the Python packages are outside pnpm's 3-day cooldown and audit. Trivy scans the image as advice only |
 | A tampered package or image | npm trusted publishing with provenance; the image with BuildKit provenance and an SBOM (`.github/workflows/release.yml`) | The bundles, `.deb` and `.rpm` have checksums but no signatures |
 
 ### 4.7 A company's identity provider → accounts and roles (106, 108)
@@ -178,9 +194,21 @@ The boundaries, in order of what's at stake:
 | A broken or hostile provider locks everyone out | Root can always sign in with a password, a provider can't be turned on before its Test sign-in passed (a Test sign-in changes nothing), and `rmk-server disable-sso` turns every provider off from the terminal and gives everyone their password back | — |
 | A leaked SCIM token | `scim_` plus 32 random bytes, only its sha256 stored, shown once; one 401 answer for every refusal, with `Bearer` only and cookies ignored; 600 requests a minute per token, 20 refusals a minute per address; rotating keeps the old token for 24 hours, Revoke and turning SCIM off stop it at once, and `rmk-server revoke-access` revokes it too; deprovisioning disables the account and revokes its tokens and sessions; SCIM never sets a role except through the mappings, never touches root, and adopts an existing account only when its address matches, it signed in through this provider in the last 30 days, it has no other SCIM link, is enabled and isn't root | Until it is revoked, the token can create accounts in the provider's domains, disable accounts, and change group memberships, so the roles the mappings give |
 
+### 4.8 Item content → the scanner, and the LLM provider (135, 136, 137, 156)
+
+The scan is opt-in: nothing here applies until the operator sets up a scanner and root turns scanning on.
+
+| Threat | What stops it today | What's left |
+|---|---|---|
+| A hostile item attacks the scanner | Static scans don't execute the item. In Docker the scanner is a service container of its own (`scanner`, `scanner-semantic`): non-root, read-only, `cap_drop: [ALL]`, `no-new-privileges`, limits on memory, CPU and processes, one scan at a time, files written to a fresh 0700 folder and deleted whatever happens, paths checked again with Ronne's rules, a timeout that kills the process group, a 4 MiB cap on output, and nothing from a request logged (`compose.yaml`, `scripts/skill-scanner/scan-service.py`). With a command, the scanner gets a short allowlisted environment, so `DATABASE_URL` and `AUTH_SECRET` never reach it, and no shell | A container shares the host's kernel. A command the operator runs without the container wrapper runs as Ronne's user; the operator's choice (the command, like the endpoint list, is never set from the web, 135 decision 3) |
+| The scanner reaches Ronne, the database or the other scanner | Each scanner is on internal networks it shares with the proxy alone, never with `web` or the databases; the static one has no way out at all (`scan`, `internal: true`); CI tries the internet and `web:3000` from it and both must fail. Ronne reaches them through Caddy's internal ports 8081 and 8082, which compose never publishes and which serve only requests that carry `RONNE_SCAN_KEY` (32 random bytes in hex); with no key set, or the wrong one, every request gets a 403, and Caddy removes the header before forwarding (`packages/server/src/service/caddyfile.ts`, `compose.yaml`; 156) | A scanner can reach Ronne only by its public address, as any client can. `RONNE_TRUSTED_PROXIES` set to every private range would trust the scanners' addresses too, so the install guide says to name the web server's address when the scanner is on. The key is in the settings file, readable by whoever reads it. The semantic service has the provider's way out and holds the provider's key while it scans |
+| The scan sends item content and a key off the server | Static scans send nothing (the command path at most sends dependency names to OSV.dev; the container has no network). Semantic needs a provider and root choosing **Static and semantic**, with a warning naming the provider, model and host; only the chosen provider's variables are passed, and only to a semantic scan; the key is encrypted at rest (AES-256-GCM, sealed with its provider and endpoint origin, so a key typed for one never goes to another), never shown again, never in the audit log or logs, and re-encrypted by `rotate-secret` (136; `apps/web/src/server/domains/settings/models/scan-key.ts`). The endpoint must be `https://`, and private, loopback, link-local and metadata addresses are refused unless the operator allows the host (`RONNE_SKILL_SCANNER_HTTP_HOSTS`), on save and again at scan time (`apps/web/src/server/domains/scans/models/endpoint.ts`) | A name whose DNS answer changes between the check and the scanner's own lookup (rebinding) is covered only by the operator's egress proxy or firewall. A backup holds the settings file, so it can decrypt the key, as it can the identity providers' secrets |
+| Root points the scanner at a server of theirs | The addresses (156, decision 7) are checked on save: Ronne asks `/health` without the scan key and accepts only the scan service's answer or the proxy's refusal for the key, and sends the key only to an address that answered like Ronne's proxy. An address or a command in the environment wins and can't be changed from the web. Audited with the address's host | An address that answers like the service receives every submission's files, and a semantic address also the provider's key. A server that imitates the proxy's refusal and then the service's answer gets the scan key; the host is resolved again on every scan; the save is a way for root to probe ports. Root can already set an LLM endpoint: this guards a typo, not a root who means harm |
+| A finding's text attacks the reviewer's browser | `parseSkillScan` keeps only the documented fields, cuts strings to 500 characters and the list to 200 findings, and the findings render as plain text; the process's own output is never stored or shown; the reasons reviewers write are plain text with control characters removed (`@ronneai/core`, 135, 137) | — |
+
 ## 5. Known gaps
 
-Checked on 2026-10-20.
+Checked on 2026-10-30.
 
 | Gap | Closed by, or accepted by |
 |---|---|
@@ -200,7 +228,10 @@ Checked on 2026-10-20.
 | `rmk` installs a yanked version a lockfile pins without the warning 022's spec promises | Not planned yet: a bug against 022, for the owner to file and schedule |
 | `rmk install` doesn't install exactly `rmk.lock` for a dependency on a tag: when the tag moves (a release, a yank), it follows the tag, as 022's spec and `cli-files.md` say it shouldn't | Not planned yet: a bug against 022, for the owner to file and schedule |
 | The optional PostgreSQL and MySQL images are pinned by tag, not digest | Not planned yet: for the owner (the dependency policy pins images by digest) |
-| Personal workspaces release without review | Accepted: MVP §15, Approval (114, 115) |
+| Personal workspaces release without review, and aren't gated by the security scan | Accepted: MVP §15, Approval (114, 115); 137 decision 5 |
+| The security scan is alpha and heuristic, advisory until root sets a threshold, and an item can score low | Accepted: 135 and 137 decision 1 (a person decides; root's override is audited) |
+| A semantic scan sends item content and a key to a provider, and DNS rebinding isn't covered; root's scanner address is only checked, not trusted | Accepted: 136 and 156 decision 7 (the operator's egress proxy or firewall closes the first; the operator's environment overrides the second) |
+| The scanner runs in a container that shares the host's kernel, and its image is built on the server from GitHub and PyPI | Accepted: 156 (not published by Ronne; pinned by commit, digest and `uv.lock`) |
 
 ## 6. Keeping it true
 
