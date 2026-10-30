@@ -99,6 +99,18 @@ test("scans a skill, blocks approval at the threshold, marks a false positive, a
     const findings = page.getByRole("region", { name: "Security scan" });
     await expect(findings.getByText("Hidden Instructions")).toBeVisible();
     await expect(findings.getByText("Remove the comment, or say it in the skill.")).toBeVisible();
+    // The filters are buttons that open a list of checkboxes, and name what they narrow to.
+    const category = findings.getByRole("button", { name: "Category" });
+    await expect(category).toContainText("All");
+    await category.click();
+    await page
+      .getByRole("dialog", { name: "Category" })
+      .getByLabel(/^Prompt Injection/)
+      .check();
+    await expect(category).toContainText("Prompt Injection");
+    await page.getByRole("dialog", { name: "Category" }).getByLabel(/^All/).check();
+    await expect(category).toContainText("All");
+    await page.keyboard.press("Escape");
     // By file, sorted by line (137).
     const file = findings.getByRole("region", { name: "SKILL.md" });
     await expect(file.getByText("2 findings")).toBeVisible();
@@ -199,7 +211,11 @@ test("scans a skill, blocks approval at the threshold, marks a false positive, a
     await accept.getByLabel("Why is the risk acceptable?").fill("It names the file in its docs.");
     await accept.getByRole("button", { name: "Accept the risk" }).click();
     await expect(second.getByText("Risk accepted by Sam Root")).toBeVisible();
-    await expect(findings.getByRole("button", { name: "Marked (2)" })).toBeVisible();
+    await findings.getByRole("button", { name: "Status" }).click();
+    await expect(
+      page.getByRole("dialog", { name: "Status" }).getByLabel("Marked (2)"),
+    ).toBeVisible();
+    await page.keyboard.press("Escape");
 
     // Restore asks first: Cancel keeps the mark, Restore takes it away; then it's marked again.
     // A Cancel on the first finding mustn't take the focus when the second's save lands.
@@ -221,7 +237,11 @@ test("scans a skill, blocks approval at the threshold, marks a false positive, a
     await second.getByRole("button", { name: "Accept the risk" }).click();
     await accept.getByLabel("Why is the risk acceptable?").fill("It names the file in its docs.");
     await accept.getByRole("button", { name: "Accept the risk" }).click();
-    await expect(findings.getByRole("button", { name: "Marked (2)" })).toBeVisible();
+    await findings.getByRole("button", { name: "Status" }).click();
+    await expect(
+      page.getByRole("dialog", { name: "Status" }).getByLabel("Marked (2)"),
+    ).toBeVisible();
+    await page.keyboard.press("Escape");
 
     // The link Copy link gives opens the tab at the finding, which it highlights (:target).
     await page.goto(`/reviews/${id}?tab=scan#finding-1`);

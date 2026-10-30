@@ -75,12 +75,32 @@ export const exportName = (item: string, revision: number | null): string =>
 /** A kept finding with its position in the scan, which is how a mark and a link name it. */
 export type IndexedFinding = { finding: SkillScanResult["findings"][number]; index: number };
 
-/** What the Security scan tab filters by (137): each `null` is "all". */
+/**
+ * What the Security scan tab filters by (137): each `null` is "all", a set the values kept. A set
+ * is never empty or complete: `toggleChoice` turns both back into `null`.
+ */
 export type FindingFilter = {
-  category: string | null;
-  severity: SkillScanResult["severity"] | null;
+  categories: ReadonlySet<string> | null;
+  severities: ReadonlySet<SkillScanResult["severity"]> | null;
   /** `open`: not marked by a reviewer; `marked`: a false positive or an accepted risk. */
-  status: "open" | "marked" | null;
+  statuses: ReadonlySet<"open" | "marked"> | null;
+};
+
+/**
+ * A filter's choice after a value is ticked or unticked; `null` for "all". Unticking the last value
+ * or ticking every one leaves "all", so a filter never hides everything and "All" is how both read.
+ */
+export const toggleChoice = <T extends string>(
+  current: ReadonlySet<T> | null,
+  all: readonly T[],
+  value: T,
+): ReadonlySet<T> | null => {
+  // From "all", ticking a value narrows to it alone; the options read unticked while "All" is on.
+  if (current === null) return new Set([value]);
+  const next = new Set(current);
+  if (next.has(value)) next.delete(value);
+  else next.add(value);
+  return next.size === 0 || all.every((v) => next.has(v)) ? null : next;
 };
 
 const SEVERITY_RANK = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 } as const;
@@ -95,9 +115,9 @@ export const filterFindings = (
     .map((finding, index) => ({ finding, index }))
     .filter(
       ({ finding, index }) =>
-        (filter.category === null || finding.category === filter.category) &&
-        (filter.severity === null || finding.severity === filter.severity) &&
-        (filter.status === null || (filter.status === "marked") === marked.has(index)),
+        (filter.categories === null || filter.categories.has(finding.category)) &&
+        (filter.severities === null || filter.severities.has(finding.severity)) &&
+        (filter.statuses === null || filter.statuses.has(marked.has(index) ? "marked" : "open")),
     );
 
 /**
