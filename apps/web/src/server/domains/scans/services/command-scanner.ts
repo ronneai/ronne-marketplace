@@ -424,10 +424,10 @@ export const commandSkillScanner = (options: {
       try {
         root = await realpath(made);
         await chmod(root, 0o700);
-        item = join(root, "item");
-        home = join(root, "home");
-        await mkdir(item, { mode: 0o700 });
-        await mkdir(home, { mode: 0o700 });
+        item = join(/* turbopackIgnore: true */ root, "item");
+        home = join(/* turbopackIgnore: true */ root, "home");
+        await mkdir(/* turbopackIgnore: true */ item, { mode: 0o700 });
+        await mkdir(/* turbopackIgnore: true */ home, { mode: 0o700 });
       } catch {
         return { ok: false, error: "no temporary folder" };
       }
