@@ -99,6 +99,18 @@ test("scans a skill, blocks approval at the threshold, marks a false positive, a
     const findings = page.getByRole("region", { name: "Security scan" });
     await expect(findings.getByText("Hidden Instructions")).toBeVisible();
     await expect(findings.getByText("Remove the comment, or say it in the skill.")).toBeVisible();
+    // The filters are buttons that open a list of checkboxes, and name what they narrow to.
+    const category = findings.getByRole("button", { name: "Category" });
+    await expect(category).toContainText("All");
+    await category.click();
+    await page
+      .getByRole("dialog", { name: "Category" })
+      .getByLabel(/^Prompt Injection/)
+      .check();
+    await expect(category).toContainText("Prompt Injection");
+    await page.getByRole("dialog", { name: "Category" }).getByLabel(/^All/).check();
+    await expect(category).toContainText("All");
+    await page.keyboard.press("Escape");
     // By file, sorted by line (137).
     const file = findings.getByRole("region", { name: "SKILL.md" });
     await expect(file.getByText("2 findings")).toBeVisible();

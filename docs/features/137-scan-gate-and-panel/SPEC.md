@@ -56,7 +56,9 @@ override. This changes 135's decision 1 ("advisory, never blocks").
   - **by file**, files by path and those that name none last, each with its count and a link to it
     in the Files tab; in each, **by line** (a line column, `L10`, linked to the line), then the most
     severe first;
-  - filters by **category**, **severity** and **status** (open, marked), each with counts, and All;
+  - filters by **category**, **severity** and **status** (open, marked): each a button that opens a
+    popover of checkboxes with counts and names what it is narrowed to as badges (two, then +N), or
+    All; several values can be chosen (owner, 2026-10-30, with 0.6.0);
   - each finding: its severity, title, rule and category, SkillSpector's explanation, and its
     **remediation** ("How to fix:"), kept from now on; a mark shows its kind, by whom, and why;
   - the rule and category at the bottom of the finding; its actions as icons down its right side,
@@ -131,7 +133,7 @@ override. This changes 135's decision 1 ("advisory, never blocks").
 **The card's words come from the result**, never from the mock's sample text:
 - The title counts the kept findings, plus those cut by the cap, and names the files they point at.
   It shows up to three files, then "and {n} more".
-- The category chips are sorted by count, then by name.
+- The category options are sorted by count, then by name.
 - Tones follow the design system:
   - error for **Likely unsafe** and the CRITICAL and HIGH severities;
   - warning for **Look closely** and MEDIUM;

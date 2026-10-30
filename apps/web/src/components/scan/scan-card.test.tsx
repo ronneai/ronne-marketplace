@@ -23,9 +23,8 @@ const { ASK_FIX_MAX_LENGTH, askFixMessage, chosenFindings, findingLink } = await
 const { REVIEW_MESSAGE_MAX_LENGTH } = await import(
   "@/server/domains/submissions/exceptions/errors"
 );
-const { exportName, exportReport, filterFindings, groupByFile, summarise } = await import(
-  "./summary"
-);
+const { exportName, exportReport, filterFindings, groupByFile, summarise, toggleChoice } =
+  await import("./summary");
 
 const finding = (overrides: Partial<SkillScanFinding> = {}): SkillScanFinding => ({
   rule: "P2",
@@ -287,7 +286,7 @@ describe("the security scan's card (137)", () => {
 
 describe("the findings, by file (137)", () => {
   const marks = (...indexes: number[]) => new Set(indexes);
-  const none = { category: null, severity: null, status: null };
+  const none = { categories: null, severities: null, statuses: null };
 
   it("groups by file, files by path and none last, and sorts by line, then the most severe", () => {
     const findings = [
@@ -308,22 +307,53 @@ describe("the findings, by file (137)", () => {
   it("filters by category, severity and status, keeping each finding's position", () => {
     const r = result();
     expect(
-      filterFindings(r, { ...none, category: "Prompt Injection" }, marks()).map((f) => f.index),
+      filterFindings(r, { ...none, categories: new Set(["Prompt Injection"]) }, marks()).map(
+        (f) => f.index,
+      ),
     ).toEqual([0, 2]);
-    expect(filterFindings(r, { ...none, severity: "HIGH" }, marks()).length).toBe(4);
+    expect(
+      filterFindings(r, { ...none, severities: new Set(["HIGH"] as const) }, marks()).length,
+    ).toBe(4);
     const mixed = result({
       findings: [finding({ severity: "LOW" }), finding(), finding({ severity: "CRITICAL" })],
     });
     expect(
-      filterFindings(mixed, { ...none, severity: "LOW" }, marks()).map((f) => f.index),
+      filterFindings(mixed, { ...none, severities: new Set(["LOW"] as const) }, marks()).map(
+        (f) => f.index,
+      ),
     ).toEqual([0]);
-    expect(filterFindings(r, { ...none, severity: "LOW" }, marks())).toEqual([]);
-    expect(filterFindings(r, { ...none, status: "marked" }, marks(1)).map((f) => f.index)).toEqual([
-      1,
-    ]);
-    expect(filterFindings(r, { ...none, status: "open" }, marks(1)).map((f) => f.index)).toEqual([
-      0, 2, 3,
-    ]);
+    expect(filterFindings(r, { ...none, severities: new Set(["LOW"] as const) }, marks())).toEqual(
+      [],
+    );
+    expect(
+      filterFindings(r, { ...none, statuses: new Set(["marked"] as const) }, marks(1)).map(
+        (f) => f.index,
+      ),
+    ).toEqual([1]);
+    expect(
+      filterFindings(r, { ...none, statuses: new Set(["open"] as const) }, marks(1)).map(
+        (f) => f.index,
+      ),
+    ).toEqual([0, 2, 3]);
+  });
+
+  it("narrows a filter to several values, and back to all", () => {
+    const all = ["a", "b", "c"] as const;
+    const one = toggleChoice(null, all, "b");
+    expect([...(one ?? [])]).toEqual(["b"]);
+    const two = toggleChoice(one, all, "c");
+    expect([...(two ?? [])]).toEqual(["b", "c"]);
+    expect([...(toggleChoice(two, all, "b") ?? [])]).toEqual(["c"]);
+    expect(toggleChoice(one, all, "b")).toBeNull();
+    expect(toggleChoice(two, all, "a")).toBeNull();
+    const r = result();
+    expect(
+      filterFindings(
+        r,
+        { ...none, categories: new Set(["Prompt Injection", "Nothing"]) },
+        marks(),
+      ).map((f) => f.index),
+    ).toEqual([0, 2]);
   });
 
   it("keeps the quote within what a review message may hold, and says how many it left out", () => {
@@ -418,12 +448,13 @@ describe("the security scan's findings (137)", () => {
     expect(html).toContain("Not in a file");
     expect(html).toContain(">L10<");
     expect(html).toContain(">2 findings<");
-    expect(html).toContain(">All (4)<");
-    expect(html).toContain(">Prompt Injection (2)<");
-    expect(html).toContain(">High (4)<");
-    // Only the severities there are: no Critical, Medium or Low chip on an all-High scan.
-    expect(html).not.toMatch(/>(Critical|Medium|Low) \(/);
-    expect(html).toContain(">Open (4)<");
+    // Three filter buttons, each reading "All" with nothing narrowed; their options are in the
+    // popovers, which are closed.
+    expect(html.match(/>All</g)).toHaveLength(3);
+    expect(html).toMatch(/aria-label="Category"/);
+    expect(html).toMatch(/aria-label="Severity"/);
+    expect(html).toMatch(/aria-label="Status"/);
+    expect(html).not.toContain(">Prompt Injection (2)<");
     expect(html).toContain("Remove the hidden text.");
     expect(html).toContain("Export report (JSON)");
     expect(html).toContain('id="finding-0"');
@@ -520,7 +551,6 @@ describe("the security scan's findings (137)", () => {
     expect(marked).toContain(
       'aria-label="Restore: Hidden &lt;b&gt;Instructions&lt;/b&gt;, SKILL.md:10, finding 1"',
     );
-    expect(marked).toContain(">Marked (2)<");
     // A marked finding isn't asked about: the two marked ones have no Ask, the others do.
     expect(marked.match(/aria-label="Ask the author to fix it: /g)?.length).toBe(2);
     const read = findings({

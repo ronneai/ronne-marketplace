@@ -15,6 +15,7 @@ import type {
   Dismissal,
   DismissalKind,
 } from "@/server/domains/scans/repositories/scan-dismissal-repository";
+import { FilterPopover } from "./FilterPopover";
 import { markFalsePositive, restoreFalsePositive } from "./scan-actions";
 import {
   exportName,
@@ -404,34 +405,6 @@ const Finding = ({
   );
 };
 
-/** One row of toggle buttons: a filter's choices, "all" first. */
-const FilterRow = <T extends string>({
-  label,
-  choices,
-  value,
-  onChange,
-}: {
-  label: string;
-  choices: readonly { value: T | null; label: string }[];
-  value: T | null;
-  onChange: (value: T | null) => void;
-}) => (
-  <fieldset className="flex flex-wrap items-center gap-1.5">
-    <legend className="mr-1 float-left text-xs font-semibold text-muted">{label}</legend>
-    {choices.map((choice) => (
-      <button
-        key={choice.value ?? "all"}
-        type="button"
-        aria-pressed={value === choice.value}
-        className={`rounded-control border px-2.5 py-1 text-xs pointer-coarse:min-h-11 ${value === choice.value ? "border-accent-strong bg-accent-strong text-on-accent" : "border-hairline bg-surface text-fg hover:bg-tint"}`}
-        onClick={() => onChange(choice.value)}
-      >
-        {choice.label}
-      </button>
-    ))}
-  </fieldset>
-);
-
 type Translate = (key: string, values?: Record<string, string | number>) => string;
 
 /** A review message's longest: the server's REVIEW_MESSAGE_MAX_LENGTH (a test keeps them equal). */
@@ -516,9 +489,9 @@ export const ScanFindings = ({
 }) => {
   const t = useTranslations("author.scan");
   const [filter, setFilter] = useState<FindingFilter>({
-    category: null,
-    severity: null,
-    status: null,
+    categories: null,
+    severities: null,
+    statuses: null,
   });
   const [selected, setSelected] = useState<ReadonlySet<number>>(new Set());
   const { categories } = summarise(result);
@@ -569,44 +542,50 @@ export const ScanFindings = ({
 
       {/* The three filters on one row (owner, 2026-10-29), wrapping on a narrow screen. */}
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-        <FilterRow
+        <FilterPopover
           label={t("dialog.categoryFilter")}
-          value={filter.category}
-          onChange={(category) => setFilter({ ...filter, category })}
-          choices={[
-            { value: null, label: t("dialog.all", { count: result.findings.length }) },
-            ...categories.map((c) => ({
-              value: c.category,
-              label: t("dialog.category", { category: c.category, count: c.count }),
-            })),
-          ]}
+          allLabel={t("dialog.all", { count: result.findings.length })}
+          value={filter.categories}
+          onChange={(categories) => setFilter({ ...filter, categories })}
+          options={categories.map((c) => ({
+            value: c.category,
+            name: c.category,
+            label: t("dialog.category", { category: c.category, count: c.count }),
+          }))}
         />
-        <FilterRow
+        <FilterPopover
           label={t("dialog.severityFilter")}
-          value={filter.severity}
-          onChange={(severity) => setFilter({ ...filter, severity })}
-          choices={[
-            { value: null, label: t("dialog.anySeverity") },
-            ...SEVERITIES.filter((s) => result.findings.some((f) => f.severity === s)).map((s) => ({
+          allLabel={t("dialog.all", { count: result.findings.length })}
+          value={filter.severities}
+          onChange={(severities) => setFilter({ ...filter, severities })}
+          options={SEVERITIES.filter((s) => result.findings.some((f) => f.severity === s)).map(
+            (s) => ({
               value: s,
+              name: t(`severity.${s}`),
+              tone: SEVERITY_TONE[s],
               label: t("dialog.severityChip", {
                 severity: t(`severity.${s}`),
                 count: result.findings.filter((f) => f.severity === s).length,
               }),
-            })),
-          ]}
+            }),
+          )}
         />
-        <FilterRow
+        <FilterPopover
           label={t("dialog.statusFilter")}
-          value={filter.status}
-          onChange={(status) => setFilter({ ...filter, status })}
-          choices={[
-            { value: null, label: t("dialog.statusAll", { count: result.findings.length }) },
+          allLabel={t("dialog.all", { count: result.findings.length })}
+          value={filter.statuses}
+          onChange={(statuses) => setFilter({ ...filter, statuses })}
+          options={[
             {
-              value: "open",
+              value: "open" as const,
+              name: t("dialog.statusOpenName"),
               label: t("dialog.statusOpen", { count: count((i) => !marked.has(i)) }),
             },
-            { value: "marked", label: t("dialog.statusMarked", { count: marked.size }) },
+            {
+              value: "marked" as const,
+              name: t("dialog.statusMarkedName"),
+              label: t("dialog.statusMarked", { count: marked.size }),
+            },
           ]}
         />
       </div>
