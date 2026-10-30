@@ -211,7 +211,11 @@ test("scans a skill, blocks approval at the threshold, marks a false positive, a
     await accept.getByLabel("Why is the risk acceptable?").fill("It names the file in its docs.");
     await accept.getByRole("button", { name: "Accept the risk" }).click();
     await expect(second.getByText("Risk accepted by Sam Root")).toBeVisible();
-    await expect(findings.getByRole("button", { name: "Marked (2)" })).toBeVisible();
+    await findings.getByRole("button", { name: "Status" }).click();
+    await expect(
+      page.getByRole("dialog", { name: "Status" }).getByLabel("Marked (2)"),
+    ).toBeVisible();
+    await page.keyboard.press("Escape");
 
     // Restore asks first: Cancel keeps the mark, Restore takes it away; then it's marked again.
     // A Cancel on the first finding mustn't take the focus when the second's save lands.
@@ -233,7 +237,11 @@ test("scans a skill, blocks approval at the threshold, marks a false positive, a
     await second.getByRole("button", { name: "Accept the risk" }).click();
     await accept.getByLabel("Why is the risk acceptable?").fill("It names the file in its docs.");
     await accept.getByRole("button", { name: "Accept the risk" }).click();
-    await expect(findings.getByRole("button", { name: "Marked (2)" })).toBeVisible();
+    await findings.getByRole("button", { name: "Status" }).click();
+    await expect(
+      page.getByRole("dialog", { name: "Status" }).getByLabel("Marked (2)"),
+    ).toBeVisible();
+    await page.keyboard.press("Escape");
 
     // The link Copy link gives opens the tab at the finding, which it highlights (:target).
     await page.goto(`/reviews/${id}?tab=scan#finding-1`);
