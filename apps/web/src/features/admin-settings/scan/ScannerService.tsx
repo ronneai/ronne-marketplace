@@ -51,12 +51,9 @@ export const ScannerService = ({
             key={service.kind}
             kind="warn"
             title={
-              <>
-                {keyRefused
-                  ? t("keyRefused", { name })
-                  : t("unreachable", { name, address: service.address })}{" "}
-                {keyRefused ? null : <Help id="scan-container" />}
-              </>
+              keyRefused
+                ? t("keyRefused", { name })
+                : t("unreachable", { name, address: service.address })
             }
           >
             {service.compose ? (
@@ -65,6 +62,7 @@ export const ScannerService = ({
                 <code className="font-mono break-all">{command}</code>
               </p>
             ) : null}
+            {keyRefused ? null : <Help id="scan-container" />}
           </Notice>
         );
       })}
