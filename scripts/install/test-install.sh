@@ -205,7 +205,7 @@ FAKE_BUSY=""
 
 # --- The security scanner (156) ------------------------------------------------------------------
 envline() { grep "^$2=" "$1/.env" | tail -n 1; }
-hex64() { case "$1" in *[!0-9a-f]*) echo no ;; *) [ "${#1}" = 64 ] && echo yes || echo no ;; esac; }
+hex64() { case "$1" in *[!0-9a-f]*) echo no ;; *) [ "${#1}" = 64 ] && echo yes || echo no ;; esac }
 
 DIR="$work/sc"
 mkdir -p "$DIR"
