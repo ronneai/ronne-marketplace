@@ -1,6 +1,11 @@
 import { requirePermission } from "../../identity/models/permissions";
 import { checkEndpoint, type EndpointProblem, type Resolver } from "../../scans/models/endpoint";
 import { providerFields } from "../../scans/services/command-scanner";
+import {
+  parseServiceUrl,
+  type ServiceCheck,
+  type ServiceProblem,
+} from "../../scans/services/http-scanner";
 import { type Probe, type ProbeResult, probeRequest } from "../../scans/services/provider-probe";
 import {
   InvalidScanCommandError,
@@ -8,11 +13,16 @@ import {
   InvalidScanKeyError,
   InvalidScanModelError,
   InvalidScanProviderError,
+  InvalidScanServiceUrlError,
   InvalidScanTimeoutError,
   ScanEndpointCredentialsError,
   ScanEndpointInternalError,
   ScanEndpointNotHttpsError,
   ScanEndpointUnresolvedError,
+  ScanServiceKeyRefusedError,
+  ScanServiceNotScannerError,
+  ScanServiceSemanticAloneError,
+  ScanServiceUnreachableError,
   type SettingsError,
 } from "../exceptions/errors";
 import { openScanKey, originOf, sealScanKey } from "../models/scan-key";
@@ -23,7 +33,11 @@ import {
   SKILL_SCAN_KEY_ENC_KEY,
   SKILL_SCAN_MODEL_KEY,
   SKILL_SCAN_PROVIDER_KEY,
+  SKILL_SCAN_SEMANTIC_URL_GATED_KEY,
+  SKILL_SCAN_SEMANTIC_URL_KEY,
   SKILL_SCAN_TIMEOUT_KEY,
+  SKILL_SCAN_URL_GATED_KEY,
+  SKILL_SCAN_URL_KEY,
   type StoredScanSetup,
 } from "../models/skill-scan-policy";
 import type { SettingsRepository } from "../repositories/settings-repository";
@@ -31,16 +45,21 @@ import type { SettingsActor, SettingsDeps } from "./settings";
 
 /** Root's stored setup, as `scanSetup` reads it (136). */
 export const storedScanSetup = async (repo: SettingsRepository): Promise<StoredScanSetup> => {
-  const [provider, model, endpoint, timeout, command, keyEnc] = await Promise.all(
-    [
-      SKILL_SCAN_PROVIDER_KEY,
-      SKILL_SCAN_MODEL_KEY,
-      SKILL_SCAN_ENDPOINT_KEY,
-      SKILL_SCAN_TIMEOUT_KEY,
-      SKILL_SCAN_COMMAND_KEY,
-      SKILL_SCAN_KEY_ENC_KEY,
-    ].map((key) => repo.get(key)),
-  );
+  const [provider, model, endpoint, timeout, command, keyEnc, url, urlGated, semantic, semGated] =
+    await Promise.all(
+      [
+        SKILL_SCAN_PROVIDER_KEY,
+        SKILL_SCAN_MODEL_KEY,
+        SKILL_SCAN_ENDPOINT_KEY,
+        SKILL_SCAN_TIMEOUT_KEY,
+        SKILL_SCAN_COMMAND_KEY,
+        SKILL_SCAN_KEY_ENC_KEY,
+        SKILL_SCAN_URL_KEY,
+        SKILL_SCAN_URL_GATED_KEY,
+        SKILL_SCAN_SEMANTIC_URL_KEY,
+        SKILL_SCAN_SEMANTIC_URL_GATED_KEY,
+      ].map((key) => repo.get(key)),
+    );
   return {
     provider: provider?.value ?? null,
     model: model?.value ?? null,
@@ -48,6 +67,10 @@ export const storedScanSetup = async (repo: SettingsRepository): Promise<StoredS
     timeout: timeout?.value ?? null,
     command: command?.value ?? null,
     keyEnc: keyEnc?.value ?? null,
+    url: url?.value ?? null,
+    urlGated: urlGated?.value ?? null,
+    semanticUrl: semantic?.value ?? null,
+    semanticUrlGated: semGated?.value ?? null,
   };
 };
 
@@ -58,6 +81,12 @@ export type ScanSetupContext = {
   authSecret: string | undefined;
   allowedHosts: ReadonlySet<string>;
   resolve: Resolver;
+  /**
+   * The scan key the proxy checks (156), and the check that an address root typed is the scan
+   * service: the key is sent only to an address that has shown it is Ronne's proxy.
+   */
+  scanKey?: string | null;
+  checkService?: (text: string, key: string | null) => Promise<ServiceCheck>;
 };
 
 export type ScanSetupInput = {
@@ -69,6 +98,18 @@ export type ScanSetupInput = {
   /** Typed only to set or replace it: empty keeps the stored key. */
   key: unknown;
   removeKey: unknown;
+  /** The scanner service's addresses (156, decision 7); left out, they are kept as they are. */
+  serviceUrl?: unknown;
+  semanticServiceUrl?: unknown;
+};
+
+const MAX_URL = 2048;
+
+const SERVICE_ERRORS: Record<ServiceProblem, new () => SettingsError> = {
+  "not a url": InvalidScanServiceUrlError,
+  unreachable: ScanServiceUnreachableError,
+  "not the scanner": ScanServiceNotScannerError,
+  "scan key refused": ScanServiceKeyRefusedError,
 };
 
 const MAX_MODEL = 128;
@@ -102,6 +143,9 @@ const summary = (setup: StoredScanSetup) => ({
   endpointHost: hostOf(setup.endpoint),
   timeout: setup.timeout || null,
   command: setup.command || null,
+  // The scanner service's addresses (156): their hosts, only once root has set one.
+  ...(hostOf(setup.url) ? { serviceHost: hostOf(setup.url) } : {}),
+  ...(hostOf(setup.semanticUrl) ? { semanticServiceHost: hostOf(setup.semanticUrl) } : {}),
 });
 
 /**
@@ -137,9 +181,11 @@ export const setSkillScanSetup = async (
 
   const commandText =
     typeof value.command === "number" ? String(value.command) : text(value.command);
+  // The environment's command, or the scanner service (156), fixes it: root's choice stays as is.
+  const commandFixed = shown.commandFrom === "environment" || shown.commandFrom === "service";
   if (
     commandText &&
-    shown.commandFrom !== "environment" &&
+    !commandFixed &&
     !shown.commands.some((choice) => String(choice.index) === commandText)
   )
     throw new InvalidScanCommandError();
@@ -161,11 +207,51 @@ export const setSkillScanSetup = async (
   }
   if (key && !context.authSecret) throw new InvalidScanKeyError();
 
+  // The scanner's addresses (156): what the environment sets can't be changed here; a typed one
+  // is kept only if it is the scan service, and the check is skipped for one left as it was, so a
+  // scanner that is down doesn't stop an unrelated save.
+  const serviceFixed = shown.serviceFrom === "environment";
+  const stored = serviceFixed ? null : await storedScanSetup(deps.repo);
+  const typedService = async (typed: unknown, was: string | null, gatedWas: string | null) => {
+    if (serviceFixed || typed === undefined || typed === null) {
+      return { url: was ?? "", gated: gatedWas ?? "" };
+    }
+    const wanted = text(typed);
+    if (wanted === "") return { url: "", gated: "" };
+    if (wanted.length > MAX_URL || CONTROL.test(wanted)) throw new InvalidScanServiceUrlError();
+    // The same address as saved, however it is spelt (a trailing slash): not a change.
+    if ((parseServiceUrl(wanted)?.href ?? wanted) === (was ?? "")) {
+      return { url: was ?? "", gated: gatedWas ?? "" };
+    }
+    const checked = await (
+      context.checkService ?? (async () => ({ ok: false, problem: "unreachable" }) as ServiceCheck)
+    )(wanted, context.scanKey ?? null);
+    if (!checked.ok) throw new SERVICE_ERRORS[checked.problem]();
+    return { url: checked.url.href, gated: checked.gated ? "1" : "" };
+  };
+  const service = await typedService(
+    value.serviceUrl,
+    stored?.url ?? null,
+    stored?.urlGated ?? null,
+  );
+  const semantic = await typedService(
+    value.semanticServiceUrl,
+    stored?.semanticUrl ?? null,
+    stored?.semanticUrlGated ?? null,
+  );
+  if (semantic.url && !service.url) throw new ScanServiceSemanticAloneError();
+
   const at = (deps.now ?? (() => new Date()))();
   return deps.repo.transaction(async (repo) => {
     const from = await storedScanSetup(repo);
     const to: StoredScanSetup = { ...from };
-    if (shown.commandFrom !== "environment") to.command = commandText;
+    if (!commandFixed) to.command = commandText;
+    if (!serviceFixed) {
+      to.url = service.url;
+      to.urlGated = service.gated;
+      to.semanticUrl = semantic.url;
+      to.semanticUrlGated = semantic.gated;
+    }
     if (shown.timeoutFrom !== "environment") to.timeout = timeoutText;
     let keyEvent: "set" | "replaced" | "removed" | null = null;
     if (!envProvider) {
@@ -190,6 +276,10 @@ export const setSkillScanSetup = async (
       [SKILL_SCAN_TIMEOUT_KEY, "timeout"],
       [SKILL_SCAN_COMMAND_KEY, "command"],
       [SKILL_SCAN_KEY_ENC_KEY, "keyEnc"],
+      [SKILL_SCAN_URL_KEY, "url"],
+      [SKILL_SCAN_URL_GATED_KEY, "urlGated"],
+      [SKILL_SCAN_SEMANTIC_URL_KEY, "semanticUrl"],
+      [SKILL_SCAN_SEMANTIC_URL_GATED_KEY, "semanticUrlGated"],
     ];
     const changed = pairs.filter(([, field]) => (from[field] ?? "") !== (to[field] ?? ""));
     if (changed.length === 0) return { changed: false };

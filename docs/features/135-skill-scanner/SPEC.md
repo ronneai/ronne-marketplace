@@ -274,4 +274,4 @@ semantic scan whose LLM wasn't available is kept as a static result, and says so
 
 - Should a scan also be shown on the item page and to `rmk info` once moderators trust it? (Out,
   above. A later feature.)
-- An optional scanner image for Docker installs: wanted, and when?
+- ~~An optional scanner image for Docker installs: wanted, and when?~~ Yes (owner, 2026-10-29): [156](../156-scanner-container/SPEC.md), built on the server by compose, not published.

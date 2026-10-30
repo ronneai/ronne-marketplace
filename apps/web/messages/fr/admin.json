@@ -1068,9 +1068,9 @@
         "lastVersion": "La dernière analyse terminée a utilisé SkillSpector {version}.",
         "missing": {
           "title": "Aucun analyseur n’est configuré sur ce serveur",
-          "body": "La personne qui exploite le serveur installe SkillSpector et liste sa commande dans RONNE_SKILL_SCANNERS (ou définit RONNE_SKILL_SCANNER), dans l’environnement ou le fichier de paramètres, puis redémarre Ronne. Elle peut alors être choisie ici."
+          "body": "Avec Docker, la personne qui exploite le serveur ajoute le conteneur de l’analyseur : le programme d’installation le propose. Sinon, elle installe SkillSpector et liste sa commande dans RONNE_SKILL_SCANNERS (ou définit RONNE_SKILL_SCANNER), dans l’environnement ou le fichier de paramètres, puis redémarre Ronne. Une commande peut alors être choisie ici. Si un analyseur tourne déjà, saisissez son adresse ci-dessous."
         },
-        "lastError": "La dernière analyse n’a pas abouti : {reason, select, timeout {elle a dépassé le délai} not_found {la commande de l’analyseur est introuvable} not_runnable {la commande de l’analyseur ne peut pas être exécutée} not_configured {aucune commande d’analyseur n’est définie} output_too_large {elle a produit trop de sortie} invalid_report {son rapport n’a pas pu être lu} signal {elle a été arrêtée par un signal} no_temporary_folder {son dossier temporaire n’a pas pu être créé} bad_file_path {un chemin de fichier de la soumission a été refusé} write_failed {ses fichiers n’ont pas pu être écrits} endpoint_refused {son point de terminaison de LLM n’a pas passé sa vérification au début de l’analyse} exit {elle s’est terminée avec le code {code}} other {{error}}}"
+        "lastError": "La dernière analyse n’a pas abouti : {reason, select, timeout {elle a dépassé le délai} not_found {la commande de l’analyseur est introuvable} not_runnable {la commande de l’analyseur ne peut pas être exécutée} not_configured {aucun analyseur n’est configuré} output_too_large {elle a produit trop de sortie} invalid_report {son rapport n’a pas pu être lu} signal {elle a été arrêtée par un signal} no_temporary_folder {son dossier temporaire n’a pas pu être créé} bad_file_path {un chemin de fichier de la soumission a été refusé} write_failed {ses fichiers n’ont pas pu être écrits} endpoint_refused {son point de terminaison de LLM n’a pas passé sa vérification au début de l’analyse} unreachable {le conteneur de l’analyseur n’a pas pu être joint} busy {le conteneur de l’analyseur était occupé par une autre analyse} scan_key_refused {le conteneur de l’analyseur a refusé la clé d’analyse} refused {le conteneur de l’analyseur a refusé la demande} exit {elle s’est terminée avec le code {code}} other {{error}}}"
       },
       "command": {
         "title": "Analyseur",
@@ -1080,7 +1080,29 @@
         "option": "{position}. {name}",
         "only": "{name}, la seule commande du serveur.",
         "fromServer": "Définie sur le serveur, dans RONNE_SKILL_SCANNER.",
-        "dropped": "La commande choisie avant n’est plus dans la liste du serveur. Choisissez-en une autre : d’ici là, rien n’est analysé."
+        "dropped": "La commande choisie avant n’est plus dans la liste du serveur. Choisissez-en une autre : d’ici là, rien n’est analysé.",
+        "service": {
+          "name": "{kind, select, semantic {Le conteneur de l’analyseur sémantique} other {Le conteneur de l’analyseur}}",
+          "ready": "{name} : prêt, SkillSpector {version}.",
+          "readyNoVersion": "{name} : prêt.",
+          "unreachable": "{name} n’est pas joignable à {address}.",
+          "keyRefused": "{name} : le proxy a refusé la clé d’analyse de Ronne.",
+          "start": "Sur le serveur, démarrez-le avec",
+          "recreate": "Sur le serveur, recréez le proxy pour qu’il lise la clé dans .env :",
+          "problem": {
+            "url": "RONNE_SKILL_SCANNER_URL n’est pas une simple adresse http ou https : rien n’est analysé. La personne qui exploite le serveur la corrige et redémarre Ronne.",
+            "semanticUrl": "RONNE_SKILL_SCANNER_SEMANTIC_URL n’est pas une simple adresse http ou https : les analyses sémantiques échouent. La personne qui exploite le serveur la corrige et redémarre Ronne.",
+            "semanticAlone": "RONNE_SKILL_SCANNER_SEMANTIC_URL est définie sans RONNE_SKILL_SCANNER_URL : Ronne ne l’utilise pas."
+          }
+        }
+      },
+      "address": {
+        "label": "Adresse de l’analyseur",
+        "hint": "L’adresse où le conteneur ou le service de l’analyseur répond, comme http://127.0.0.1:7670. Ronne vérifie que c’est bien le service d’analyse avant d’enregistrer. Laissez vide pour utiliser une commande. Les fichiers de chaque soumission sont envoyés à cette adresse.",
+        "semanticLabel": "Adresse de l’analyseur sémantique",
+        "semanticHint": "Pour l’analyse sémantique seulement. Une analyse sémantique envoie la clé d’API du fournisseur de LLM à cette adresse, avec les fichiers. Laissez vide si vous n’utilisez pas l’analyse sémantique.",
+        "placeholder": "http://127.0.0.1:7670",
+        "semanticPlaceholder": "http://127.0.0.1:7671"
       },
       "provider": {
         "title": "Fournisseur de LLM",

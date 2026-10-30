@@ -87,6 +87,20 @@ describe("the security scan's settings (135)", () => {
     await expect(skillScanSettings(deps, { user: ana, ip: null }, command)).rejects.toThrow(
       ForbiddenError,
     );
+    // The scanner service is asked only once root is known to be asking (156).
+    let asked = 0;
+    const services = async () => {
+      asked++;
+      return [];
+    };
+    await expect(
+      skillScanSettings(deps, { user: ana, ip: null }, command, services),
+    ).rejects.toThrow(ForbiddenError);
+    expect(asked).toBe(0);
+    expect(
+      (await skillScanSettings(deps, { user: root, ip: null }, command, services)).scanner,
+    ).toMatchObject({ services: [] });
+    expect(asked).toBe(1);
     await expect(
       setSkillScanPolicy(
         deps,

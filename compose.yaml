@@ -31,7 +31,10 @@
 #   4. Behind a proxy you already run: no domain; point it at http://127.0.0.1:7650 and set
 #        RONNE_PORT=127.0.0.1:7650
 #        PUBLIC_URL=https://ronne.example.com
-#        RONNE_TRUSTED_PROXIES=private_ranges       trust its X-Forwarded-For (it must append to it)
+#        RONNE_TRUSTED_PROXIES=10.0.0.5             trust its X-Forwarded-For (it must append to it)
+#      Name the proxy's own address (or its network), not "private_ranges" and not every private
+#      range: the scanner containers (below) have private addresses on this project's networks, and
+#      a range that includes them would let a scanner set X-Forwarded-For.
 #
 # Certificates live in the caddy-data volume. `docker compose down -v` deletes them, and Let's
 # Encrypt limits how often it issues new ones.
@@ -39,12 +42,64 @@
 # To try it with PostgreSQL or MySQL instead of SQLite, add a profile, and point the setup at it:
 #   docker compose --profile postgres up -d         then in setup: host "postgres", database and user "ronne"
 #   docker compose --profile mysql up -d            then in setup: host "mysql", database and user "ronne"
+# The security scan's scanner (feature 156) is a container too, built on this machine the first time:
+#   docker compose --profile scanner up -d --build              static scans (no network at all)
+#   docker compose --profile scanner --profile scanner-semantic up -d --build    and semantic scans
+# install.sh does this and the .env lines for you (COMPOSE_PROFILES, the two addresses and
+# RONNE_SCAN_KEY). By hand, add to .env:
+#   COMPOSE_PROFILES=scanner
+#   RONNE_SKILL_SCANNER_URL=http://proxy:8081
+#   RONNE_SCAN_KEY=<64 hex characters: openssl rand -hex 32>
+#   and for semantic scans, scanner,scanner-semantic and RONNE_SKILL_SCANNER_SEMANTIC_URL=http://proxy:8082
+# RONNE_SCANNER_REF is the repository's tag the image is built from (install.sh sets it to the
+# version): v0.4.0, or main for the latest. RONNE_SCANNER_REPO is where it's fetched from, GitHub
+# unless you mirror it. Then root turns scanning on in Admin > Settings.
+# Good to know: RONNE_SCAN_KEY sits in the environment of web and proxy, so anyone who can run
+# `docker inspect` or `docker compose config` here can read it (they can already read everything
+# else; the Docker group is root on the machine). It must be hex: a key with a "*" makes the scanner
+# ports refuse everything. scanner-semantic has the internet and, on Docker Desktop, also the
+# host's own services through host.docker.internal; scanner has neither.
 # The database's password is RONNE_DB_PASSWORD (set it in the environment or a .env file next to
 # this one). These databases are only reachable inside this compose project.
 # Not "ronne": that name is reserved for another product, whose compose project may exist on the
 # same machine. A shared project name would share volumes (ronne_postgres-data), so `down -v` here
 # could delete the other project's data.
 name: ronne-marketplace
+
+# The scanner image (156): SkillSpector at a reviewed commit and Ronne's small scan service, built on
+# the server from this repository (nothing is downloaded from a registry), run read-only with no
+# capabilities, and reachable only through the proxy's two internal ports. The tag carries the
+# repository ref, so upgrading to a new version builds the new scanner; `--build` rebuilds the same
+# one (for `main`, which moves). The ref must be a valid image tag: a release tag such as v0.4.0 or
+# main, not a branch name with a "/" (use a tag instead). The earlier version's image stays on disk
+# until you remove it: docker image rm ronne-skillspector:v0.3.0 (or docker image prune -a).
+# Installs that fetch from different RONNE_SCANNER_REPO mirrors at one ref share that tag.
+x-scanner: &scanner
+  build:
+    context: ${RONNE_SCANNER_REPO:-https://github.com/ronneai/ronne-marketplace.git}#${RONNE_SCANNER_REF:-main}:scripts/skill-scanner
+  image: ronne-skillspector:${RONNE_SCANNER_REF:-main}
+  restart: unless-stopped
+  init: true
+  read_only: true
+  tmpfs:
+    - /tmp:size=512m
+  cap_drop: [ALL]
+  security_opt:
+    - no-new-privileges:true
+  mem_limit: 1g
+  cpus: 2
+  pids_limit: 256
+  healthcheck:
+    test:
+      - CMD
+      - /app/.venv/bin/python
+      - -I
+      - -c
+      - import urllib.request; urllib.request.urlopen("http://127.0.0.1:8080/health", timeout=3)
+    interval: 30s
+    timeout: 5s
+    retries: 3
+    start_period: 10s
 
 services:
   web:
@@ -73,6 +128,10 @@ services:
       OTEL_TRACES_SAMPLER_ARG: ${OTEL_TRACES_SAMPLER_ARG:-}
       OTEL_METRIC_EXPORT_INTERVAL: ${OTEL_METRIC_EXPORT_INTERVAL:-}
       OTEL_SDK_DISABLED: ${OTEL_SDK_DISABLED:-}
+      # The scanner (156), empty unless install.sh or .env sets them. Through proxy, never beside it.
+      RONNE_SKILL_SCANNER_URL: ${RONNE_SKILL_SCANNER_URL:-}
+      RONNE_SKILL_SCANNER_SEMANTIC_URL: ${RONNE_SKILL_SCANNER_SEMANTIC_URL:-}
+      RONNE_SCAN_KEY: ${RONNE_SCAN_KEY:-}
     volumes:
       - ronne-data:/app/data
 
@@ -87,6 +146,11 @@ services:
       RONNE_TLS: ${RONNE_TLS:-auto}
       RONNE_ACME_EMAIL: ${RONNE_ACME_EMAIL:-}
       RONNE_TRUSTED_PROXIES: ${RONNE_TRUSTED_PROXIES:-}
+      # Read by Caddy ({env.RONNE_SCAN_KEY}): the key the scanner ports (:8081, :8082) require.
+      RONNE_SCAN_KEY: ${RONNE_SCAN_KEY:-}
+    # The default network is where web is; scan and scan-semantic are where the scanners are, each
+    # shared with this proxy alone.
+    networks: [default, scan, scan-semantic]
     ports:
       - "${RONNE_PORT:-7650}:80"
       - "${RONNE_HTTPS_PORT:-7651}:443"
@@ -100,6 +164,19 @@ services:
       # Only read with RONNE_TLS=files. Docker creates it empty when it's missing (owned by root on
       # Linux, so create it yourself first if you'll put certificates in it).
       - ./certs:/certs:ro
+
+  scanner:
+    <<: *scanner
+    profiles: [scanner]
+    # Static scans. Its only network is scan, which has no way out: it can't call out, or reach web.
+    networks: [scan]
+
+  scanner-semantic:
+    <<: *scanner
+    profiles: [scanner-semantic]
+    # Semantic scans: the provider's host, so it has a way out on scan-egress. It shares no network
+    # with web or the databases.
+    networks: [scan-semantic, scan-egress]
 
   postgres:
     profiles: [postgres]
@@ -172,6 +249,30 @@ configs:
         tls internal
       }
 
+      # The scanner ports (156), never published. Only requests with the scan key get through, and the
+      # key goes no further. Fails closed: with no key (or one with a "*", which Caddy would read as
+      # a wildcard) every request is refused, so an install without the scanner is unaffected.
+      (scan-gate) {
+        @unset expression `{env.RONNE_SCAN_KEY} == "" || {env.RONNE_SCAN_KEY}.contains("*")`
+        header @unset Content-Type application/json
+        respond @unset `{"error": "not set up"}` 403
+        @wrongkey not header X-Ronne-Scan-Key {env.RONNE_SCAN_KEY}
+        header @wrongkey Content-Type application/json
+        respond @wrongkey `{"error": "scan key"}` 403
+      }
+      :8081 {
+        import scan-gate
+        reverse_proxy scanner:8080 {
+          header_up -X-Ronne-Scan-Key
+        }
+      }
+      :8082 {
+        import scan-gate
+        reverse_proxy scanner-semantic:8080 {
+          header_up -X-Ronne-Scan-Key
+        }
+      }
+
       ${RONNE_DOMAIN:-:80} {
         import tls${RONNE_DOMAIN:+-${RONNE_TLS:-auto}}
         # The app's limit for a draft upload, 28 MiB (Caddy's "MB" would be 1000 × 1000 bytes).
@@ -183,6 +284,15 @@ configs:
           header_up X-Forwarded-For {client_ip}
         }
       }
+
+networks:
+  # Internal: no way out of this network. scan is shared by the proxy and scanner; scan-semantic by
+  # the proxy and scanner-semantic. scan-egress is scanner-semantic's way to the provider.
+  scan:
+    internal: true
+  scan-semantic:
+    internal: true
+  scan-egress:
 
 volumes:
   ronne-data:

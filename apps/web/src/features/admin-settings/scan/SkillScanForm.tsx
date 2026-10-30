@@ -20,7 +20,16 @@ import { SemanticConfirm } from "./SemanticConfirm";
 import { TimeoutField } from "./TimeoutField";
 
 /** The fields of the scanner's setup (136): a change to any of them is something to save. */
-const SETUP_FIELDS = new Set(["command", "provider", "model", "endpoint", "key", "timeout"]);
+const SETUP_FIELDS = new Set([
+  "command",
+  "provider",
+  "model",
+  "endpoint",
+  "key",
+  "timeout",
+  "serviceUrl",
+  "semanticServiceUrl",
+]);
 
 const ANALYSES: readonly SkillScanAnalysis[] = ["static", "semantic"];
 
@@ -103,6 +112,7 @@ export const SkillScanForm = ({ settings }: { settings: SkillScanSettings }) => 
       ) : (
         <Notice kind="warn" title={t("scanner.missing.title")}>
           <p>{t("scanner.missing.body")}</p>
+          <Help id="scan-container" />
         </Notice>
       )}
       {settings.lastError ? (
@@ -116,7 +126,11 @@ export const SkillScanForm = ({ settings }: { settings: SkillScanSettings }) => 
             <h3 id="scan-command-title" className="text-sm font-semibold text-fg">
               {t("command.title")}
             </h3>
-            <ScannerCommand key={`${setup.chosenCommand}`} setup={setup} />
+            <ScannerCommand
+              key={`${setup.chosenCommand}`}
+              setup={setup}
+              services={scanner.services}
+            />
           </section>
           <section className="grid gap-2" aria-labelledby="scan-provider-title">
             <h3 id="scan-provider-title" className="text-sm font-semibold text-fg">

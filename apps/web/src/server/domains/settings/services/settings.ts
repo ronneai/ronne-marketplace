@@ -408,6 +408,8 @@ export const skillScanSettings = async (
   deps: SettingsDeps,
   actor: SettingsActor,
   scanner: SkillScanner,
+  /** The scanner services' state (156), asked once root is known to be the one asking. */
+  services?: () => Promise<SkillScanner["services"]>,
 ): Promise<SkillScanSettings> => {
   requirePermission(actor.user, "settings.manage");
   const [policy, blockScore, version, error] = await Promise.all([
@@ -419,7 +421,7 @@ export const skillScanSettings = async (
   return {
     policy,
     blockScore,
-    scanner,
+    scanner: services ? { ...scanner, services: await services() } : scanner,
     lastVersion: version?.value || null,
     lastError: error?.value || null,
     // Semantic chosen while the provider is gone: scans run static, and the page says so.

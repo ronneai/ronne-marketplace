@@ -224,6 +224,9 @@ export const HELP = {
   "scan-settings": {
     href: docsHref("security-scan", "install"),
   },
+  "scan-container": {
+    href: docsHref("security-scan", "container"),
+  },
   "scan-key": {
     href: docsHref("security-scan", "semantic"),
   },

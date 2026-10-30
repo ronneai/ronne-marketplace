@@ -20,6 +20,14 @@ export type ScanError =
   | "signal"
   /** A web-set endpoint failed its check when the scan started (136): DNS changed, say. */
   | "endpoint refused"
+  /** The scanner service (156): no answer, or one its proxy wrote (502, 504, a page). */
+  | "unreachable"
+  /** The service was running another scan: the scan goes back to the queue. */
+  | "busy"
+  /** The proxy refused the scan key, or has none set. */
+  | "scan key refused"
+  /** The service refused the request itself (too large, malformed, its own fault). */
+  | "refused"
   | `exit ${number}`;
 
 export type ScanOutcome = { ok: true; result: SkillScanResult } | { ok: false; error: ScanError };
@@ -37,6 +45,12 @@ export type ScanProvider = {
   host: string;
   variables: Record<string, string>;
 };
+
+/** What the settings tab shows of a scanner service (156), from one `/health` call. */
+export type ServiceHealth =
+  | { state: "ready"; version: string | null }
+  | { state: "unreachable" }
+  | { state: "scan key refused" };
 
 /** Runs one scan of a revision's files. Never throws for anything the scanner does. */
 export interface SkillScanner {

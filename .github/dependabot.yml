@@ -74,6 +74,23 @@ updates:
       - dependency-name: mariadb
         update-types: ["version-update:semver-major"]
 
+  # The scanner image's bases (feature 156): uv and Python by digest. Their versions move by hand
+  # with SkillSpector's own pins (docs/knowledge/skill-scanner.md), so only digests come through.
+  - package-ecosystem: docker
+    directory: /scripts/skill-scanner
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 3
+    commit-message:
+      prefix: "[chore]"
+    ignore:
+      - dependency-name: python
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: astral-sh/uv
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+
   # Images in compose.yaml (the app and the Caddy proxy, 080) and docker/test-databases.compose.yml.
   - package-ecosystem: docker-compose
     directories: ["/", "/docker"]

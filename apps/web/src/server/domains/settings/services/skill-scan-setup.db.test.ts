@@ -5,6 +5,7 @@ import { createRoot } from "../../identity/actions/root-account";
 import { ForbiddenError } from "../../identity/exceptions/errors";
 import type { CurrentUser } from "../../identity/models/user";
 import type { Resolver } from "../../scans/models/endpoint";
+import type { ServiceCheck } from "../../scans/services/http-scanner";
 import type { ProbeTarget } from "../../scans/services/provider-probe";
 import { type ScannerConfig, scanSetup } from "../../scans/services/scan-setup";
 import {
@@ -59,6 +60,8 @@ beforeEach(async () => {
   });
   root = { id, email: "root@example.com", name: "Root", role: "root", workspaces: {} };
   deps = { repo: kyselySettingsRepository(t.db, t.dialect), now: () => at };
+  asked = [];
+  serviceAnswer = (text) => ({ ok: true, url: new URL(text), gated: false, version: "2.13.2" });
 });
 afterEach(() => t.cleanup());
 
@@ -73,6 +76,15 @@ const BLANK: ScanSetupInput = {
   removeKey: false,
 };
 
+/** The addresses the scan service check was asked about, and what it answers (156). */
+let asked: { text: string; key: string | null }[] = [];
+let serviceAnswer: (text: string) => ServiceCheck = (text) => ({
+  ok: true,
+  url: new URL(text),
+  gated: false,
+  version: "2.13.2",
+});
+
 /** Saves as root, with the setup as it is now under `config`. */
 const save = async (
   value: Partial<ScanSetupInput>,
@@ -84,7 +96,17 @@ const save = async (
     deps,
     { user, ip: "203.0.113.7" },
     { ...BLANK, ...value },
-    { shown, authSecret: AUTH_SECRET, allowedHosts: new Set(["ollama.lan"]), resolve },
+    {
+      shown,
+      authSecret: AUTH_SECRET,
+      allowedHosts: new Set(["ollama.lan"]),
+      resolve,
+      scanKey: "the-scan-key",
+      checkService: async (text, key) => {
+        asked.push({ text, key });
+        return serviceAnswer(text);
+      },
+    },
   );
 };
 const stored = () => storedScanSetup(deps.repo);
@@ -282,6 +304,178 @@ describe("the environment wins (136)", () => {
     expect(setup.timeoutSeconds).toBe(120);
     expect(setup.provider?.name).toBe("ollama");
     expect(setup.provider?.variables).not.toHaveProperty("ANTHROPIC_API_KEY");
+  });
+});
+
+describe("the scanner service (156)", () => {
+  it("keeps root's command choice when the form is saved while a service is set", async () => {
+    await save({ command: "1" });
+    // The tab shows no command field then: the form sends none.
+    await save({ command: "" }, { url: "http://proxy:8081", commands: LIST, env: {} });
+    expect((await stored()).command).toBe("1");
+    // Back to the command once the address goes.
+    expect(scanSetup({ commands: LIST, env: {} }, await stored(), AUTH_SECRET).command).toEqual([
+      "/opt/b/scan",
+    ]);
+  });
+});
+
+describe("the scanner's addresses from the web (156, decision 7)", () => {
+  const ADDRESS = "http://127.0.0.1:7670/";
+  /** The four stored values, with "never set" and "cleared" both as the empty string. */
+  const addresses = async () => {
+    const row = await stored();
+    return {
+      url: row.url ?? "",
+      urlGated: row.urlGated ?? "",
+      semanticUrl: row.semanticUrl ?? "",
+      semanticUrlGated: row.semanticUrlGated ?? "",
+    };
+  };
+
+  it("stores an address that is the scan service, audits its host and sends the key only to check a proxy", async () => {
+    expect(await save({ serviceUrl: ADDRESS })).toEqual({ changed: true });
+    expect(await addresses()).toEqual({
+      url: ADDRESS,
+      urlGated: "",
+      semanticUrl: "",
+      semanticUrlGated: "",
+    });
+    expect(asked).toEqual([{ text: ADDRESS, key: "the-scan-key" }]);
+    const [latest] = await events();
+    expect(latest?.metadata).toMatchObject({
+      setup: { from: {}, to: { serviceHost: "127.0.0.1:7670" } },
+    });
+    expect(JSON.stringify(latest?.metadata)).not.toContain("the-scan-key");
+    // A proxy that took the key is marked, so the scan key goes to it.
+    serviceAnswer = (text) => ({ ok: true, url: new URL(text), gated: true, version: null });
+    await save({ serviceUrl: "http://proxy:8081/", semanticServiceUrl: "http://proxy:8082/" });
+    expect(await addresses()).toEqual({
+      url: "http://proxy:8081/",
+      urlGated: "1",
+      semanticUrl: "http://proxy:8082/",
+      semanticUrlGated: "1",
+    });
+  });
+
+  it("refuses an address that isn't the scan service, with the reason, and stores nothing", async () => {
+    const wanted = {
+      "not a url": "InvalidScanServiceUrlError",
+      unreachable: "ScanServiceUnreachableError",
+      "not the scanner": "ScanServiceNotScannerError",
+      "scan key refused": "ScanServiceKeyRefusedError",
+    } as const;
+    for (const [problem, name] of Object.entries(wanted)) {
+      serviceAnswer = () => ({ ok: false, problem: problem as keyof typeof wanted });
+      await expect(save({ serviceUrl: ADDRESS }), problem).rejects.toMatchObject({ name });
+    }
+    expect(await addresses()).toEqual({
+      url: "",
+      urlGated: "",
+      semanticUrl: "",
+      semanticUrlGated: "",
+    });
+    expect(await events()).toEqual([]);
+    // Too long, or with a control character: refused before any request.
+    asked = [];
+    for (const bad of ["http://x/" + "a".repeat(2100), "http://127.0.0.1:7670/\u0000"]) {
+      await expect(save({ serviceUrl: bad })).rejects.toMatchObject({
+        name: "InvalidScanServiceUrlError",
+      });
+    }
+    expect(asked).toEqual([]);
+  });
+
+  it("checks only what changed, so a scanner that is down doesn't stop an unrelated save", async () => {
+    await save({ serviceUrl: ADDRESS });
+    asked = [];
+    serviceAnswer = () => ({ ok: false, problem: "unreachable" });
+    await save({ serviceUrl: ADDRESS, timeout: "900" });
+    expect(asked).toEqual([]);
+    expect(await stored()).toMatchObject({ url: ADDRESS, timeout: "900" });
+    // A different address is checked.
+    await expect(save({ serviceUrl: "http://127.0.0.1:7671/" })).rejects.toBeInstanceOf(Error);
+    expect((await stored()).url).toBe(ADDRESS);
+  });
+
+  it("keeps the addresses when the form has no such field, and clears them when it sends empty ones", async () => {
+    await save({ serviceUrl: ADDRESS, semanticServiceUrl: "http://127.0.0.1:7671/" });
+    await save({ timeout: "600" });
+    expect(await addresses()).toMatchObject({
+      url: ADDRESS,
+      semanticUrl: "http://127.0.0.1:7671/",
+    });
+    await save({ serviceUrl: "", semanticServiceUrl: "" });
+    expect(await addresses()).toEqual({
+      url: "",
+      urlGated: "",
+      semanticUrl: "",
+      semanticUrlGated: "",
+    });
+  });
+
+  it("audits the semantic address's host too, and takes the same address spelt without its slash as no change", async () => {
+    await save({ serviceUrl: ADDRESS, semanticServiceUrl: "http://127.0.0.1:7671/" });
+    const [latest] = await events();
+    expect(latest?.metadata).toMatchObject({
+      setup: { to: { serviceHost: "127.0.0.1:7670", semanticServiceHost: "127.0.0.1:7671" } },
+    });
+    asked = [];
+    serviceAnswer = () => ({ ok: false, problem: "unreachable" });
+    expect(
+      await save({
+        serviceUrl: "http://127.0.0.1:7670",
+        semanticServiceUrl: "http://127.0.0.1:7671",
+      }),
+    ).toEqual({ changed: false });
+    expect(asked).toEqual([]);
+  });
+
+  it("refuses a semantic address with no address for the scanner", async () => {
+    await expect(save({ semanticServiceUrl: "http://127.0.0.1:7671/" })).rejects.toMatchObject({
+      name: "ScanServiceSemanticAloneError",
+    });
+    await save({ serviceUrl: ADDRESS });
+    await expect(
+      save({ serviceUrl: "", semanticServiceUrl: "http://127.0.0.1:7671/" }),
+    ).rejects.toMatchObject({ name: "ScanServiceSemanticAloneError" });
+  });
+
+  it("leaves the operator's addresses alone: what is typed is ignored, nothing is checked", async () => {
+    await save({ serviceUrl: ADDRESS });
+    asked = [];
+    await save(
+      { serviceUrl: "http://127.0.0.1:9999/", semanticServiceUrl: "http://127.0.0.1:9998/" },
+      { url: "http://proxy:8081", env: {} },
+    );
+    expect(asked).toEqual([]);
+    expect(await addresses()).toMatchObject({ url: ADDRESS, semanticUrl: "" });
+  });
+
+  it("leaves root's address alone while the environment sets a command", async () => {
+    await save({ serviceUrl: ADDRESS });
+    asked = [];
+    await save({ serviceUrl: "http://127.0.0.1:9999/" }, { command: '["/env/scan"]', env: {} });
+    expect(asked).toEqual([]);
+    expect((await addresses()).url).toBe(ADDRESS);
+  });
+
+  it("changes nothing else root chose, and is root's alone", async () => {
+    await save({ ...anthropic, command: "1", timeout: "900", key: KEY });
+    await save({ ...anthropic, command: "1", timeout: "900", serviceUrl: ADDRESS });
+    expect(await stored()).toMatchObject({ provider: "anthropic", command: "1", timeout: "900" });
+    expect(await keyNow()).toBe(KEY);
+    const ana: CurrentUser = {
+      id: "x",
+      email: "ana@example.com",
+      name: "Ana",
+      role: "user",
+      workspaces: {},
+    };
+    await expect(save({ serviceUrl: "http://127.0.0.1:7672/" }, undefined, ana)).rejects.toThrow(
+      ForbiddenError,
+    );
+    expect(asked.some((a) => a.text.includes("7672"))).toBe(false);
   });
 });
 

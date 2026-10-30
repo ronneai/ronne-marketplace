@@ -1,0 +1,42 @@
+# The scanner as a container for an install without Docker (feature 156): the same image and service
+# as Ronne's compose.yaml, on this machine only. Ronne (the rmk-server package or a service) then
+# sends its scans there over HTTP, in place of the sandbox wrapper.
+#
+#   docker compose -f scripts/skill-scanner/scanner.compose.yaml up -d --build
+#   then in Ronne's settings file or environment:  RONNE_SKILL_SCANNER_URL=http://127.0.0.1:7670
+#
+# Port 7670 is outside the ones the installer picks for Ronne (7650 to 7661). It's published on
+# 127.0.0.1 only, so nothing else on the network can reach it. Unlike compose.yaml's `scanner`, which
+# is on a network with no way out, this container has the host's network (a published port needs
+# it). Static scans use none of it. Semantic scans need an LLM provider's host, which Ronne sends.
+name: ronne-scanner
+
+services:
+  scanner:
+    build:
+      context: .
+    image: ronne-skillspector:2.13.2
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=512m
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 1g
+    cpus: 2
+    pids_limit: 256
+    ports:
+      - "127.0.0.1:7670:8080"
+    healthcheck:
+      test:
+        - CMD
+        - /app/.venv/bin/python
+        - -I
+        - -c
+        - import urllib.request; urllib.request.urlopen("http://127.0.0.1:8080/health", timeout=3)
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

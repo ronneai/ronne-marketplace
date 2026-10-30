@@ -7,6 +7,8 @@ import {
   rmSync,
   utimesSync,
 } from "node:fs";
+import { createServer, type Server } from "node:http";
+import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -305,5 +307,107 @@ describe("the job with root's setup (136)", () => {
         { authSecret: AUTH_SECRET },
       ),
     ).not.toBeNull();
+  });
+});
+
+describe("the job with the scanner service (156)", () => {
+  const fake = fileURLToPath(
+    new URL("../domains/scans/services/testing/fake-scanner.mjs", import.meta.url),
+  );
+  const REPORT = readFileSync(
+    join(process.cwd(), "../../packages/core/src/skill-scan/fixtures/reports/secure-coding.json"),
+    "utf8",
+  );
+  let server: Server;
+  let url: string;
+  let requests: { path: string; key: string | undefined }[];
+  let dir: string;
+
+  beforeEach(async () => {
+    requests = [];
+    dir = mkdtempSync(join(tmpdir(), "ronne-156-job-"));
+    server = createServer((request, response) => {
+      requests.push({
+        path: request.url ?? "",
+        key: request.headers["x-ronne-scan-key"] as string | undefined,
+      });
+      request.resume();
+      request.on("end", () => {
+        response.writeHead(200, { "content-type": "application/json" });
+        response.end(JSON.stringify({ exit: 0, report: REPORT }));
+      });
+    });
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+    await t.db.deleteFrom("content_scans").execute();
+    await scan("queued");
+  });
+  afterEach(async () => {
+    server.closeAllConnections();
+    await new Promise((resolve) => server.close(resolve));
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("scans through the service, with the scan key, and never runs the command beside it", async () => {
+    const out = join(dir, "env.json");
+    await runSkillScansOn(
+      { db: t.db, dialect: t.dialect },
+      {
+        url,
+        scanKey: "k-156",
+        command: JSON.stringify([process.execPath, fake, "env", out]),
+        env: {},
+      },
+    );
+    expect(requests).toEqual([{ path: "/scan", key: "k-156" }]);
+    expect(existsSync(out)).toBe(false);
+    expect(
+      await t.db.selectFrom("content_scans").select(["status", "error"]).executeTakeFirstOrThrow(),
+    ).toEqual({ status: "done", error: null });
+  });
+
+  /** Root's addresses, as the settings tab stores them (156, decision 7). */
+  const store = async (values: Record<string, string>) => {
+    await t.db.deleteFrom("instance_settings").where("key", "like", "skill_scan%").execute();
+    for (const [key, value] of Object.entries(values))
+      await t.db
+        .insertInto("instance_settings")
+        .values({ key, value, updated_by: null, updated_at: now() })
+        .execute();
+  };
+
+  it("scans through an address root typed, sending the scan key only to one that answered like the proxy", async () => {
+    await store({ skill_scan_url: `${url}/`, skill_scan_url_gated: "1" });
+    await runSkillScansOn({ db: t.db, dialect: t.dialect }, { scanKey: "k-156", env: {} });
+    expect(requests).toEqual([{ path: "/scan", key: "k-156" }]);
+    expect(
+      await t.db.selectFrom("content_scans").select(["status", "error"]).executeTakeFirstOrThrow(),
+    ).toEqual({ status: "done", error: null });
+
+    // The service itself, not the proxy: the key stays home.
+    requests = [];
+    await t.db.deleteFrom("content_scans").execute();
+    await scan("queued");
+    await store({ skill_scan_url: `${url}/`, skill_scan_url_gated: "" });
+    await runSkillScansOn({ db: t.db, dialect: t.dialect }, { scanKey: "k-156", env: {} });
+    expect(requests).toEqual([{ path: "/scan", key: undefined }]);
+  });
+
+  it("ignores root's address when the environment sets one, and runs no command beside either", async () => {
+    await store({ skill_scan_url: "http://127.0.0.1:1/", skill_scan_url_gated: "1" });
+    await runSkillScansOn({ db: t.db, dialect: t.dialect }, { url, scanKey: "k", env: {} });
+    expect(requests).toEqual([{ path: "/scan", key: "k" }]);
+  });
+
+  it("fails the scan as unreachable when the service doesn't answer", async () => {
+    server.closeAllConnections();
+    await new Promise((resolve) => server.close(resolve));
+    await runSkillScansOn({ db: t.db, dialect: t.dialect }, { url, env: {} });
+    expect(
+      await t.db.selectFrom("content_scans").select(["status", "error"]).executeTakeFirstOrThrow(),
+    ).toEqual({ status: "failed", error: "unreachable" });
+    // The afterEach closes it again.
+    server = createServer();
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   });
 });

@@ -178,9 +178,10 @@ export const TOPICS = [
     slug: "security-scan",
     title: "Security scan",
     summary:
-      "Scanning each submission with NVIDIA's SkillSpector: installing the scanner, connecting it to Ronne, setting up the scan in Settings, semantic analysis with an LLM, and what to do when a scan fails.",
+      "Scanning each submission with NVIDIA's SkillSpector: adding the scanner container or installing the scanner, connecting it to Ronne, setting up the scan in Settings, semantic analysis with an LLM, and what to do when a scan fails.",
     sections: [
       { id: "security-scan", title: "Security scan" },
+      { id: "container", title: "The scanner container" },
       { id: "install", title: "Install SkillSpector" },
       { id: "connect", title: "Connect it to Ronne" },
       { id: "settings", title: "Set up the scan" },

@@ -11,6 +11,10 @@ const NONE: StoredScanSetup = {
   timeout: null,
   command: null,
   keyEnc: null,
+  url: null,
+  urlGated: null,
+  semanticUrl: null,
+  semanticUrlGated: null,
 };
 const AUTH_SECRET = "test-secret-test-secret-test-secret-00";
 

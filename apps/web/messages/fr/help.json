@@ -329,7 +329,11 @@
   },
   "scan-settings": {
     "question": "Comment configurer l’analyseur?",
-    "answer": "La personne qui exploite le serveur installe SkillSpector dans une version fixée et liste sa commande dans RONNE_SKILL_SCANNERS (un tableau JSON de commandes, dans l’environnement ou le fichier de paramètres), puis redémarre Ronne; vous en choisissez une ici. Pour l’analyse sémantique, configurez un fournisseur ci-dessous, ou la personne qui exploite le serveur en configure un avec des variables RONNE_SKILL_SCANNER_ENV_, qui ont priorité."
+    "answer": "Avec Docker, la personne qui exploite le serveur ajoute le conteneur de l’analyseur (le programme d’installation le propose). Sans Docker, elle installe SkillSpector à une version figée et liste sa commande dans RONNE_SKILL_SCANNERS (un tableau JSON de commandes, dans l’environnement ou le fichier de paramètres), puis redémarre Ronne ; vous en choisissez une ici. Pour l’analyse sémantique, configurez un fournisseur plus bas, ou elle en définit un avec des variables RONNE_SKILL_SCANNER_ENV_, qui ont priorité."
+  },
+  "scan-container": {
+    "question": "Comment ajouter l’analyseur ?",
+    "answer": "Sur une installation Docker, relancez la commande d’installation et répondez oui à « Add the security scanner? ». Ronne construit l’analyseur sur le serveur, quelques minutes la première fois, et cet onglet l’affiche comme prêt. Sans Docker, la personne qui exploite le serveur installe SkillSpector et liste sa commande à la place. Si un analyseur tourne déjà, saisissez son adresse dans le champ ci-dessous."
   },
   "scan-key": {
     "question": "Comment la clé est-elle gardée?",

@@ -119,6 +119,17 @@ export const kyselyContentScanRepository = (
     return { requeued: Number(requeued.numUpdatedRows), failed: Number(failed.numUpdatedRows) };
   },
 
+  async putBack(id, maxAttempts) {
+    const back = await db
+      .updateTable("content_scans")
+      .set({ status: "queued", started_at: null })
+      .where("id", "=", id)
+      .where("status", "=", "running")
+      .where("attempts", "<", maxAttempts)
+      .executeTakeFirst();
+    return Number(back.numUpdatedRows) > 0;
+  },
+
   async revisionFiles(revisionId) {
     const revision = await db
       .selectFrom("submission_revisions")

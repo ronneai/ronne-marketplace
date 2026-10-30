@@ -93,13 +93,15 @@ export RONNE_SKILL_SCANNER='["/opt/skillspector/venv/bin/skillspector"]'
 
 **B. In a container, with no network** (stronger: it gets a read-only copy of the files, no network,
 no capabilities and limited memory). Build the image with Ronne's
-[`scripts/skill-scanner/Dockerfile`](../../scripts/skill-scanner/Dockerfile): `uv sync --frozen`
-on base images pinned by digest, and no `git` in the image. Then install
+[`scripts/skill-scanner/Dockerfile`](../../scripts/skill-scanner/Dockerfile): it fetches SkillSpector
+at the pinned commit itself (BuildKit's `ADD` from git, so the build needs only that folder), runs
+`uv sync --frozen` on base images pinned by digest, and puts no `git` in the image. Its entrypoint is
+Ronne's scan service (156); the wrapper runs `skillspector` itself with `--entrypoint`. Then install
 [`scripts/skill-scanner/skillspector-sandbox`](../../scripts/skill-scanner/skillspector-sandbox)
 (owned by root, mode 0755), which mounts the folder Ronne gives it read-only:
 
 ```sh
-docker build -f /path/to/ronne-marketplace/scripts/skill-scanner/Dockerfile -t skillspector:2.13.2 .
+docker build -t skillspector:2.13.2 /path/to/ronne-marketplace/scripts/skill-scanner
 install -m 0755 /path/to/ronne-marketplace/scripts/skill-scanner/skillspector-sandbox /usr/local/bin/
 export RONNE_SKILL_SCANNER='["/usr/local/bin/skillspector-sandbox"]'
 ```
@@ -232,6 +234,41 @@ shows it read-only.
   the scan's card and tab are the same on both. Only the actions differ, by what the server
   allows (`reviewScan`'s `canDismiss` and `canRequest`).
 
+## The scan service (156)
+
+`scripts/skill-scanner/scan-service.py` runs in the image and takes the files over HTTP. It's what a
+malicious item reaches, so it trusts neither the client nor the scanner:
+- it reads the whole request within 60 seconds before taking its one-scan lock, and takes at most four
+  connections at once (a bound on memory and on the processes left for the scanner);
+- it reads the scanner's output against the deadline, kills the scanner's process group once it
+  exits, and gives the pipe two seconds;
+- it removes the scan folder whatever happens, and sweeps stale ones, as `command-scanner.ts` does;
+- it logs only the route, never a path, a file, a key or a report.
+
+Its path rules are Ronne's (`pathProblemOf`, `caseClash`), with two differences. It refuses a lone
+surrogate, which no stored path holds. And it folds names with the image's Python (Unicode 15), which
+for a handful of new characters is a little more lenient than Node (Unicode 16). Its tests need an
+executable `/tmp` for their stand-in scanner; the service itself runs with a noexec one.
+
+## How CI checks the container (156)
+
+The image job (`image.yml`, `build-image/scanner-probe.sh`) runs when `scripts/skill-scanner/` or
+`compose.yaml` changes, and in every release and nightly run. It builds the scanner from the checkout
+(tagged `ronne-skillspector:ci`, so compose never builds from GitHub, whose default branch has none of
+a new change), runs the service's tests in it, starts compose with both profiles, and checks:
+- the scanner ports refuse no key, an empty one, a wrong one and `*` with a 403 and JSON, and take the
+  right key;
+- `scanner` can't reach the internet, `web` or `scanner-semantic`, and `scanner-semantic` can't reach
+  `web` or `scanner`;
+- the bad-skill fixture, sent from the `web` container through the proxy, comes back with a high score;
+- with no key (or one with a `*`) the proxy starts and refuses every request.
+
+Trivy scans the scanner image as advice: it prints findings and never fails the run, since the image
+isn't shipped. The probe pulls one Docker Hub image the other probes don't, the Python base
+(`docs/knowledge/docker-hub-pulls.md`). To run it by hand: `pnpm build` is not needed, only a web
+image (`docker build -t ronne-web:ci .`) and `.github/actions/build-image/scanner-probe.sh ronne-web:ci`;
+it binds 127.0.0.1:7650 and 7651.
+
 ## Moving the pin
 
 1. Read the new release's changelog, `pyproject.toml` and `uv.lock`: new network calls, and anything
@@ -244,4 +281,5 @@ shows it read-only.
    how), and run `pnpm --filter @ronneai/core test`. A change in the JSON shape breaks
    `parseSkillScan` there, never in production.
 5. Update the commit and version here, in the dependencies policy's table, in the Dockerfile's
-   header, in `licences.py`'s header, and in the wrapper's image tag, in the same change.
+   header and its `ADD` line, in `licences.py`'s header, in the wrapper's image tag, and in the
+   scanner services' image tags in `compose.yaml` (156), in the same change.

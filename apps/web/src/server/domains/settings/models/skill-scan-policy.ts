@@ -1,4 +1,5 @@
 import { ITEM_TYPES, type ItemType } from "@ronneai/core";
+import type { ServiceHealth } from "../../scans/models/scan";
 
 /**
  * The security scan of submissions (feature 135), as root sets it: off until root turns it on,
@@ -34,6 +35,14 @@ export const SKILL_SCAN_TIMEOUT_KEY = "skill_scan_timeout";
 export const SKILL_SCAN_COMMAND_KEY = "skill_scan_command";
 /** The provider's API key, sealed (`instance-secrets.ts`); empty once removed. */
 export const SKILL_SCAN_KEY_ENC_KEY = "skill_scan_key_enc";
+/**
+ * The scanner service's addresses root typed (156, decision 7), and whether each answered like
+ * Ronne's proxy when it was saved ("1": the scan key goes to it; empty: it's the service itself).
+ */
+export const SKILL_SCAN_URL_KEY = "skill_scan_url";
+export const SKILL_SCAN_URL_GATED_KEY = "skill_scan_url_gated";
+export const SKILL_SCAN_SEMANTIC_URL_KEY = "skill_scan_semantic_url";
+export const SKILL_SCAN_SEMANTIC_URL_GATED_KEY = "skill_scan_semantic_url_gated";
 export const SKILL_SCAN_SETUP_KEYS = [
   SKILL_SCAN_PROVIDER_KEY,
   SKILL_SCAN_MODEL_KEY,
@@ -41,6 +50,10 @@ export const SKILL_SCAN_SETUP_KEYS = [
   SKILL_SCAN_TIMEOUT_KEY,
   SKILL_SCAN_COMMAND_KEY,
   SKILL_SCAN_KEY_ENC_KEY,
+  SKILL_SCAN_URL_KEY,
+  SKILL_SCAN_URL_GATED_KEY,
+  SKILL_SCAN_SEMANTIC_URL_KEY,
+  SKILL_SCAN_SEMANTIC_URL_GATED_KEY,
 ] as const;
 
 /** The setup's stored values, as read from `instance_settings` (null when never set). */
@@ -51,6 +64,11 @@ export type StoredScanSetup = {
   timeout: string | null;
   command: string | null;
   keyEnc: string | null;
+  /** The scanner service's addresses root typed (156), and whether the scan key goes to each. */
+  url: string | null;
+  urlGated: string | null;
+  semanticUrl: string | null;
+  semanticUrlGated: string | null;
 };
 
 /**
@@ -109,6 +127,19 @@ export type SkillScanner = {
   provider: { name: string; model: string | null; host: string } | null;
   /** The setup's sources and root's stored values (136). */
   setup?: ScanSetupShown;
+  /** The scanner services (156) and their state, static first; only on the settings page. */
+  services?: ScannerServiceState[];
+};
+
+/**
+ * One scanner service as the tab shows it (156): its address (the operator's, never secret), whether
+ * it's compose's (the proxy's ports, so the tab can give the command that starts it) and its state.
+ */
+export type ScannerServiceState = {
+  kind: "static" | "semantic";
+  address: string;
+  compose: boolean;
+  health: ServiceHealth;
 };
 
 /**
@@ -117,7 +148,15 @@ export type SkillScanner = {
  * the key, and never a command's arguments.
  */
 export type ScanSetupShown = {
-  commandFrom: "environment" | "list" | null;
+  /** "service": the scanner service's address is set (156), and no command runs. */
+  commandFrom: "service" | "environment" | "list" | null;
+  /** What's wrong with the service's addresses (156), for the tab to say. */
+  serviceProblems: ScanServiceProblem[];
+  /** Where the scanner service's addresses come from (156): the environment's wins over root's. */
+  serviceFrom: "environment" | "settings" | null;
+  /** The addresses as set, for the fields: the address is not a secret. */
+  serviceUrl: string;
+  semanticServiceUrl: string;
   commands: { index: number; name: string }[];
   chosenCommand: number | null;
   commandDropped: boolean;
@@ -133,6 +172,12 @@ export type ScanSetupShown = {
     key: "set" | "unreadable" | "none";
   };
 };
+
+/**
+ * An address the operator set for the scanner service that can't be used (156): the static one
+ * or the semantic one isn't a plain http(s) address, or a semantic one is set with no static one.
+ */
+export type ScanServiceProblem = "url" | "semanticUrl" | "semanticAlone";
 
 /** Admin › Settings › Security scan. */
 export type SkillScanSettings = {

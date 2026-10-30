@@ -21,7 +21,23 @@ export const helpersInParagraphs = (text: string): number[] =>
     .filter((match) => /<Help(Tip)?\b/.test(match[1] ?? ""))
     .map((match) => text.slice(0, match.index).split("\n").length);
 
+/**
+ * The line of each `title={…}` in `text` that holds a helper: a Notice's title is a `<p>` (the
+ * guide says to put the helper in its body instead).
+ */
+export const helpersInTitles = (text: string): number[] =>
+  [...text.matchAll(/\btitle=\{([\s\S]*?)\}(?=\s*(?:>|\/>|\w+=))/g)]
+    .filter((match) => /<Help(Tip)?\b/.test(match[1] ?? ""))
+    .map((match) => text.slice(0, match.index).split("\n").length);
+
 describe("inline helpers (033)", () => {
+  it("finds a helper inside a title prop, and not one in the body", () => {
+    expect(
+      helpersInTitles("<Notice\n  title={\n    <>\n      text <Help id='y' />\n    </>\n  }\n>"),
+    ).toEqual([2]);
+    expect(helpersInTitles("<Notice title={t('a')}>\n  <Help id='y' />\n</Notice>")).toEqual([]);
+  });
+
   it("finds a helper inside a paragraph, and not one beside it", () => {
     expect(helpersInParagraphs("a\n<p className='x'>\n  text <Help id='y' />\n</p>")).toEqual([2]);
     expect(helpersInParagraphs("<p>text <HelpTip question='q'>a</HelpTip></p>")).toEqual([1]);
@@ -44,6 +60,13 @@ describe("inline helpers (033)", () => {
       helpersInParagraphs(readFileSync(file, "utf8")).map(
         (line) => `${file.replace(SRC, "")}:${line}`,
       ),
+    );
+    expect(inside).toEqual([]);
+  });
+
+  it("are in a Notice's body, never in its title", () => {
+    const inside = sources(SRC).flatMap((file) =>
+      helpersInTitles(readFileSync(file, "utf8")).map((line) => `${file.replace(SRC, "")}:${line}`),
     );
     expect(inside).toEqual([]);
   });

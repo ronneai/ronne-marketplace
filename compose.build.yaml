@@ -9,3 +9,10 @@ services:
   web:
     build: .
     image: ronne-web:local
+  # The scanner's image from this checkout too (156), not from the repository on GitHub.
+  scanner:
+    build:
+      context: scripts/skill-scanner
+  scanner-semantic:
+    build:
+      context: scripts/skill-scanner

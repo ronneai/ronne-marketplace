@@ -23,7 +23,7 @@ export type ScanJobDeps = {
   renewEveryMs?: number;
 };
 
-/** A stuck scan is retried once, then fails. */
+/** A stuck scan, or one the scanner service was too busy for (156), is retried once, then fails. */
 export const MAX_SCAN_ATTEMPTS = 2;
 /** At most this many scans per run; the next run takes the rest. */
 export const SCANS_PER_RUN = 20;
@@ -95,6 +95,10 @@ export const runQueuedScans = async (
       await repo.finish(scan.id, { ok: true, result: outcome.result, llm }, at);
       await repo.recordLast({ version: outcome.result.scannerVersion }, at);
       counts.scanned++;
+    } else if (outcome.error === "busy" && (await repo.putBack(scan.id, MAX_SCAN_ATTEMPTS))) {
+      // The service is scanning something else: this one waits for the next run, as do the rest.
+      counts.requeued++;
+      break;
     } else {
       await repo.finish(scan.id, outcome, at);
       await repo.recordLast({ error: outcome.error }, at);

@@ -68,6 +68,7 @@ stop() {
 }
 trap stop TERM INT HUP
 
+# The image's entrypoint is Ronne's scan service (156): this runs SkillSpector itself.
 # The provider's variables reach the container only if Ronne passed them, which it does only for a
 # semantic scan (`-e NAME` without a value passes nothing when NAME is unset).
 "$RUNTIME" run --rm --name "$name" $userns --network "$network" --read-only --tmpfs /tmp \
@@ -78,5 +79,5 @@ trap stop TERM INT HUP
   -e OPENAI_API_KEY -e OPENAI_BASE_URL -e ANTHROPIC_API_KEY -e NVIDIA_INFERENCE_KEY \
   -e AZURE_OPENAI_API_KEY -e AZURE_OPENAI_ENDPOINT -e AZURE_OPENAI_DEPLOYMENT -e AZURE_OPENAI_API_VERSION \
   -e SKILLSPECTOR_COMPAT_API_KEY -e SKILLSPECTOR_COMPAT_BASE_URL -e OLLAMA_BASE_URL \
-  -v "$dir:/scan/skill:ro" "$IMAGE" scan /scan/skill "$@" &
+  -v "$dir:/scan/skill:ro" --entrypoint skillspector "$IMAGE" scan /scan/skill "$@" &
 wait $!
