@@ -50,7 +50,7 @@
     "test:install": "dash scripts/install/test-install.sh && bash scripts/install/test-install.sh"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.6.2",
+    "@biomejs/biome": "2.6.3",
     "@ronneai/config": "workspace:*",
     "@ronneai/rmk": "workspace:*",
     "@types/node": "22.20.5",
