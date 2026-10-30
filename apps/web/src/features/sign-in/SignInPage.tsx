@@ -1,16 +1,15 @@
 import { useTranslations } from "next-intl";
+import { AuthShell } from "@/components/auth-shell/AuthShell";
 import { CliAuthPanel } from "@/components/cli-auth/CliAuthPanel";
-import { BrandLogo } from "@/components/ui/BrandLogo";
 import { Notice } from "@/components/ui/Notice";
-import { Panel } from "@/components/ui/Panel";
-import { LanguageSwitch } from "@/i18n/LanguageSwitch";
+import { Tabs } from "@/components/ui/Tabs";
 import { ProviderButtons } from "./ProviderButtons";
 import { SignInForm } from "./SignInForm";
 import { SIGN_IN_AGAIN, SSO_ERROR_CODES } from "./types";
 
 /**
- * The sign-in screen (spec 006, from the mock): the card, with the terminal guide beside it on
- * wide screens and below it on phones (022).
+ * The sign-in screen (spec 006, redesigned in 157 from the split-screen mocks): the auth shell with
+ * two tabs, signing in to the account and using `rmk` from the terminal (022).
  */
 export const SignInPage = ({
   next,
@@ -35,7 +34,7 @@ export const SignInPage = ({
   /** Sent back from the second step (105): `?reason=`, said above the form. */
   again?: string;
   /** The identity providers that are on (106), as buttons. */
-  providers?: readonly { id: string; name: string }[];
+  providers?: readonly { id: string; name: string; preset?: string }[];
   /** *Root only* (106): the buttons first, the password form behind "Use your password (root)". */
   rootOnly?: boolean;
   /** Back from a provider (106): `?error=`, said above the form. */
@@ -51,58 +50,62 @@ export const SignInPage = ({
   const form = (
     <SignInForm next={next} resetCommand={resetCommand} initial={email ? { email } : undefined} />
   );
-  return (
-    <main className="mx-auto grid min-h-dvh w-full max-w-5xl content-center gap-6 px-4 py-12 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:items-start">
-      <div className="lg:col-span-2">
-        <LanguageSwitch here={here} />
+  const account = (
+    <div className="grid gap-6">
+      <div className="grid gap-1">
+        <h1 className="text-[22px] leading-7 font-semibold tracking-[-0.015em] text-fg">
+          {t("title")}
+        </h1>
+        <p className="text-sm text-muted">
+          {passwordBehindLink
+            ? t("subtitleRootOnly")
+            : providers.length > 0
+              ? t("subtitleBoth")
+              : t("subtitlePassword")}
+        </p>
       </div>
-      <Panel padding="lg" className="grid gap-6">
-        <div className="grid gap-3">
-          <BrandLogo height={40} className="text-fg" />
-          <div className="grid gap-1">
-            <h1 className="text-[22px] leading-7 font-semibold tracking-[-0.015em] text-fg">
-              {t("title")}
-            </h1>
-            <p className="text-sm text-muted">
-              {passwordBehindLink
-                ? t("subtitleRootOnly")
-                : providers.length > 0
-                  ? t("subtitleBoth")
-                  : t("subtitlePassword")}
-            </p>
-          </div>
-        </div>
-        {setupDone ? (
-          <Notice kind="info" title={t("setupDoneTitle")}>
-            {t("setupDone")}
-          </Notice>
-        ) : null}
-        {againCode ? <Notice kind="warn" title={t(`again.${againCode}`)} /> : null}
-        {ssoCode ? <Notice kind="error" title={t(`sso.${ssoCode}`)} /> : null}
-        {passwordBehindLink ? (
-          <>
-            <ProviderButtons providers={providers} next={next} />
-            {/* A disclosure, so it opens without JavaScript too. */}
-            <details className="grid gap-4">
-              <summary className="cursor-pointer text-sm text-link hover:underline">
-                {t("usePassword")}
-              </summary>
-              <div className="mt-4">{form}</div>
-            </details>
-          </>
-        ) : (
-          <>
-            {form}
-            {providers.length > 0 ? (
-              <>
-                <p className="text-center text-xs text-muted">{t("or")}</p>
-                <ProviderButtons providers={providers} next={next} />
-              </>
-            ) : null}
-          </>
-        )}
-      </Panel>
-      <CliAuthPanel registry={registry} />
-    </main>
+      {setupDone ? (
+        <Notice kind="info" title={t("setupDoneTitle")}>
+          {t("setupDone")}
+        </Notice>
+      ) : null}
+      {againCode ? <Notice kind="warn" title={t(`again.${againCode}`)} /> : null}
+      {ssoCode ? <Notice kind="error" title={t(`sso.${ssoCode}`)} /> : null}
+      {passwordBehindLink ? (
+        <>
+          <ProviderButtons providers={providers} next={next} />
+          {/* A disclosure, so it opens without JavaScript too. */}
+          <details className="grid gap-4">
+            <summary className="cursor-pointer text-sm text-link hover:underline">
+              {t("usePassword")}
+            </summary>
+            <div className="mt-4">{form}</div>
+          </details>
+        </>
+      ) : (
+        <>
+          {form}
+          {providers.length > 0 ? (
+            <>
+              <p className="text-center text-xs text-muted">{t("or")}</p>
+              <ProviderButtons providers={providers} next={next} />
+            </>
+          ) : null}
+        </>
+      )}
+    </div>
+  );
+  return (
+    <AuthShell here={here}>
+      <Tabs
+        tabs={[
+          { label: t("tabAccount"), content: account },
+          {
+            label: t("tabTerminal"),
+            content: <CliAuthPanel registry={registry} framed={false} compact />,
+          },
+        ]}
+      />
+    </AuthShell>
   );
 };

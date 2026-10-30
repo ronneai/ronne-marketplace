@@ -1,9 +1,7 @@
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { BrandLogo } from "@/components/ui/BrandLogo";
-import { Panel } from "@/components/ui/Panel";
+import { AuthShell } from "@/components/auth-shell/AuthShell";
 import { TwoFactorStep } from "@/features/sign-in/TwoFactorStep";
-import { LanguageSwitch } from "@/i18n/LanguageSwitch";
 import { currentPath } from "@/i18n/server";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
 import { safeNextPath } from "@/server/domains/identity/models/route-guard";
@@ -32,30 +30,24 @@ const TwoFactorSignIn = async ({
   if (await getCurrentUser(await requestHeaders())) redirect(next);
   const t = await getTranslations("auth.twoFactor");
   return (
-    <main className="mx-auto grid min-h-dvh w-full max-w-md content-center gap-6 px-4 py-12">
-      <LanguageSwitch here={await currentPath()} />
-      <Panel padding="lg" className="grid gap-6">
-        <div className="grid gap-3">
-          <BrandLogo height={40} className="text-fg" />
-          <div className="grid gap-1">
-            <h1 className="text-[22px] leading-7 font-semibold tracking-[-0.015em] text-fg">
-              {t("title")}
-            </h1>
-            <p className="text-sm text-muted">{t("subtitle")}</p>
-          </div>
-        </div>
-        <TwoFactorStep
-          next={next}
-          method={one(params.method) === "backup" ? "backup_code" : "totp"}
-        />
-        <p className="text-xs text-muted">
-          {t("lost")}{" "}
-          <a href="/sign-in" className="text-link underline-offset-2 hover:underline">
-            {t("startAgain")}
-          </a>
-        </p>
-      </Panel>
-    </main>
+    <AuthShell here={await currentPath()}>
+      <div className="grid gap-1">
+        <h1 className="text-[22px] leading-7 font-semibold tracking-[-0.015em] text-fg">
+          {t("title")}
+        </h1>
+        <p className="text-sm text-muted">{t("subtitle")}</p>
+      </div>
+      <TwoFactorStep
+        next={next}
+        method={one(params.method) === "backup" ? "backup_code" : "totp"}
+      />
+      <p className="text-xs text-muted">
+        {t("lost")}{" "}
+        <a href="/sign-in" className="text-link underline-offset-2 hover:underline">
+          {t("startAgain")}
+        </a>
+      </p>
+    </AuthShell>
   );
 };
 

@@ -16,6 +16,7 @@ export const Disclosure = ({
   className,
   summaryClassName,
   panelClassName,
+  compact = false,
 }: {
   summary: ReactNode;
   children: ReactNode;
@@ -23,6 +24,8 @@ export const Disclosure = ({
   className?: string;
   summaryClassName?: string;
   panelClassName?: string;
+  /** A narrow menu panel (a list of links, such as the language menu), not a wide form one. */
+  compact?: boolean;
 }) => {
   const ref = useRef<HTMLDetailsElement>(null);
   useEffect(() => {
@@ -65,7 +68,8 @@ export const Disclosure = ({
       </summary>
       <div
         className={cn(
-          "absolute z-20 mt-2 w-[min(32rem,calc(100vw-2rem))] rounded-panel border border-strong bg-surface p-4",
+          "absolute z-20 mt-2 rounded-panel border border-strong bg-surface",
+          compact ? "w-48 p-1" : "w-[min(32rem,calc(100vw-2rem))] p-4",
           align === "right" ? "right-0" : "left-0",
           panelClassName,
         )}

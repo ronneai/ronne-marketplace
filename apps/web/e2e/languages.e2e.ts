@@ -153,6 +153,9 @@ test.describe("the language links on the sign-in page", () => {
       page.getByRole("heading", { name: "Sign in to Ronne AI Marketplace" }),
     ).toBeVisible();
     const links = page.getByRole("navigation", { name: "Language" });
+    // A menu: it shows the language in use, and opens to the list.
+    await expect(links.getByRole("group")).toBeVisible();
+    await links.getByText("English").click();
     await expect(links.getByRole("link")).toHaveText(["English", "Português", "Français"]);
     await expect(links.getByRole("link", { name: "English" })).toHaveAttribute(
       "aria-current",
@@ -200,10 +203,9 @@ test.describe("the language links on the sign-in page", () => {
     ).toBeVisible();
 
     // Pick French on the page, then sign in: the profile's Portuguese beats the cookie's French.
-    await page
-      .getByRole("navigation", { name: "Idioma" })
-      .getByRole("link", { name: "Français" })
-      .click();
+    const menu = page.getByRole("navigation", { name: "Idioma" });
+    await menu.getByText("Português").click();
+    await menu.getByRole("link", { name: "Français" }).click();
     await expect(
       page.getByRole("heading", { name: "Connexion à Ronne AI Marketplace" }),
     ).toBeVisible();

@@ -37,10 +37,12 @@ export const hasUsableProvider = async (app: AppAuth): Promise<boolean> => {
 };
 
 /** The providers people can sign in with, for the sign-in page's buttons: id and name only. */
-export const signInProviders = async (app: AppAuth): Promise<{ id: string; name: string }[]> =>
+export const signInProviders = async (
+  app: AppAuth,
+): Promise<{ id: string; name: string; preset: string }[]> =>
   app.db
     .selectFrom("identity_providers")
-    .select(["id", "name"])
+    .select(["id", "name", "preset"])
     .where("enabled", "=", toDbBoolean(true, app.dialect))
     .orderBy("name")
     .execute();

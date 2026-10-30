@@ -47,6 +47,20 @@ describe("SignInPage", () => {
   });
 });
 
+describe("the sign-in layout (157)", () => {
+  it("is the auth shell with the two tabs, the brand panel and the language switch", () => {
+    const html = renderToStaticMarkup(<SignInPage resetCommand={CLONE} next="/" />);
+    expect(html).toContain("Your team&#x27;s AI capabilities, curated in one place");
+    expect(html).toMatch(/role="tab"[^>]*aria-selected="true"[^>]*>Account sign in</);
+    expect(html).toMatch(/role="tab"[^>]*aria-selected="false"[^>]*>Terminal \(rmk\)</);
+    expect(html).toContain("Português");
+    // Nothing the mock invented: no status, no user count, no company.
+    for (const text of ["Operational", "42,000", "Technologies Inc"]) {
+      expect(html).not.toContain(text);
+    }
+  });
+});
+
 describe("SignInForm errors", () => {
   it("shows the generic error and keeps the email, never the password", () => {
     const html = renderToStaticMarkup(
@@ -140,7 +154,27 @@ describe("signing in with an identity provider (106)", () => {
     expect(html.indexOf(">Password<")).toBeLessThan(html.indexOf("Continue with Acme SSO"));
     expect(html).not.toContain("Use your password (root)");
     // 44px tall on a touch screen.
-    expect(html).toMatch(/pointer-coarse:h-11[^"]*w-full"[^>]*>Continue with Acme SSO/);
+    expect(html).toMatch(
+      /pointer-coarse:h-11[^"]*w-full"[^>]*>(<svg.*?<\/svg>)?Continue with Acme SSO/,
+    );
+  });
+
+  it("puts the vendor's mark on a provider's button, chosen by its preset (157)", () => {
+    const html = renderToStaticMarkup(
+      <SignInPage
+        resetCommand={CLONE}
+        next="/"
+        providers={[
+          { id: "ms", name: "Microsoft Entra ID", preset: "entra" },
+          { id: "g", name: "Google Workspace", preset: "google" },
+          { id: "o", name: "Okta", preset: "okta" },
+        ]}
+      />,
+    );
+    // The four Microsoft squares, the Google G's red, and the neutral key for the rest.
+    expect(html).toContain("fill-(--mark-ms-red)");
+    expect(html).toContain("fill-(--mark-g-red)");
+    expect(html).toContain("lucide-key-round");
   });
 
   it("with Root only, puts the buttons first and the password form behind Use your password (root)", () => {

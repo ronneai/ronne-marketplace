@@ -94,7 +94,8 @@
     "webHint": "Entra com o login da sua empresa ou usa a autenticação de dois fatores? Aprove pelo navegador:",
     "step3": "Confira e instale",
     "step3Hint": "<mono>rmk whoami</mono> diz quem você é. Cada página de item mostra o seu comando de instalação; a Documentação explica o resto depois que você entrar.",
-    "globalHint": "Fora do <mono>global</mono>, o nome de um item começa pelo seu espaço de trabalho: <mono>rmk install @workspace/scope/name</mono>."
+    "globalHint": "Fora do <mono>global</mono>, o nome de um item começa pelo seu espaço de trabalho: <mono>rmk install @workspace/scope/name</mono>.",
+    "moreWays": "Outras formas de entrar"
   },
   "languageSwitch": {
     "label": "Idioma"
@@ -110,5 +111,19 @@
     "characters": "Use apenas letras minúsculas, dígitos e hifens.",
     "edges": "Não comece nem termine com hífen.",
     "reserved": "Esse nome é reservado."
+  },
+  "authShell": {
+    "eyebrow": "Registro e marketplace",
+    "headline": "As capacidades de IA da sua equipe, curadas em um só lugar",
+    "lead": "Skills, agentes, regras, comandos, hooks e servidores MCP, revisados antes do lançamento e entregues ao Claude Code, Codex e Cursor.",
+    "reviewedTitle": "Revisado antes do lançamento",
+    "reviewedBody": "Todo item e toda mudança precisa de uma aprovação.",
+    "installTitle": "Um comando para instalar",
+    "installBody": "O rmk coloca os itens onde cada ferramenta os lê.",
+    "docs": "Documentação",
+    "openSource": "Código aberto (MIT)"
+  },
+  "codeInput": {
+    "digit": "{label}: dígito {n} de {total}"
   }
 }

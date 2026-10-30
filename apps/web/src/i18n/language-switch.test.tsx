@@ -9,15 +9,21 @@ const view = (locale: "en" | "pt" | "fr", here?: string) =>
 describe("the language switch (129)", () => {
   it("links each language, in its own name, to the route that sets the cookie and comes back", () => {
     const html = view("en", "/sign-in?next=%2Fitems");
-    const links = [...html.matchAll(/<a href="([^"]+)"[^>]*lang="(\w+)"[^>]*>([^<]+)<\/a>/g)].map(
-      (m) => [m[1]?.replaceAll("&amp;", "&"), m[2], m[3]],
-    );
+    const links = [
+      ...html.matchAll(/<a href="([^"]+)"[^>]*lang="(\w+)"[^>]*>([^<]+)(?:<svg|<\/a>)/g),
+    ].map((m) => [m[1]?.replaceAll("&amp;", "&"), m[2], m[3]]);
     const next = encodeURIComponent("/sign-in?next=%2Fitems");
     expect(links).toEqual([
       [`/language?set=en&next=${next}`, "en", "English"],
       [`/language?set=pt&next=${next}`, "pt", "Português"],
       [`/language?set=fr&next=${next}`, "fr", "Français"],
     ]);
+  });
+
+  it("is a menu that shows the language in use, so more languages need no room (157)", () => {
+    const html = view("pt");
+    expect(html).toMatch(/<details[^>]*><summary[^>]*>.*<span lang="pt">Português<\/span>/);
+    expect(html).toContain("<ul");
   });
 
   it("marks the language in use, and is named in that language", () => {
