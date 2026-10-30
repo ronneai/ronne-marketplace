@@ -43,7 +43,7 @@ moved on.
 | Suite | Images | Pulls a run | Runs on |
 |---|---|---|---|
 | `database.yml` | postgres, mysql, mariadb | 3 | pull requests (not drafts), `main`, nightly, weekly, releases |
-| `image.yml` | the node base, Trivy, Caddy (scan and compose probe) | 3–4 per architecture | pull requests that change the image (amd64), `main`, nightly, releases (both) |
+| `image.yml` | the node base, Trivy, Caddy (scan and compose probe), Python (the scanner's base, 156) | 4–5 per architecture | pull requests that change the image (amd64), `main`, nightly, releases (both) |
 | `packages.yml` | Ubuntu, Debian, Fedora | 3 per architecture, more on retries | pull requests that change the server, nightly, releases |
 | `install-scripts.yml` | shfmt | 1 | pull requests that change the scripts, nightly, releases |
 

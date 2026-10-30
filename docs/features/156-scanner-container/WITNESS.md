@@ -767,3 +767,60 @@ Witnessed: 2026-10-29, by a fresh agent (blind). Commit: 7784173b plus uncommitt
 | 4 | Installs fetching from different mirrors at one ref share that tag (the comment's claim) | no | confirmed | v9.9.1 built again from a different context → one tag, now pointing at `6a32f9d9de56` instead of `889af5b3d4aa`. The witness had expected the first image to be left untagged; Docker removed it (not in `docker image ls -a --no-trunc`, not dangling). The comment says only that they share the tag, which holds |
 
 **Overall:** met. The witness's own overall line was "not met" because of that expectation, which the comment doesn't make; the comment's three statements and the build error hold.
+
+## Task 5
+
+Witnessed: 2026-10-29 21:00–21:50 America/Sao_Paulo, by a fresh agent (blind). Commit: e5c89d65 plus the uncommitted diff and the untracked `.github/actions/build-image/scanner-probe.sh`. Machine: macOS (Darwin 27.0.0), Node 24 (not used by the probe), Docker Desktop. shellcheck is not installed.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `ci-scope.js` puts `scripts/skill-scanner/` in the `image` suite | no | confirmed | the diff adds `/^scripts\/skill-scanner\//` |
+| 2 | A change there runs the image suite and nothing else | no | confirmed | `npx vitest run` in repo-tools: 20 files, 181 tests pass; the image test expects `{...none, image:true}` for the scanner's files |
+| 3 | image.yml, nightly.yml and release.yml all run the probe | no | confirmed | `action.yml` adds the step; `image.yml:76` and `release.yml:185` use the action; `nightly.yml` calls image.yml |
+| 4 | The probe parses and passes locally | no | confirmed | `scanner-probe.sh ronne-web:ci` → exit 0, every `OK:` line; no `ronne-ci*` containers or networks left |
+| 5 | The key gate: no, empty, wrong and `*` keys get 403 JSON on both ports; the right key 200 | no | confirmed | mutations (wrong key answered 200; `:8082` without the gate) each fail the probe |
+| 6 | Isolation | no | confirmed | `scanner` on `default`, `scanner-semantic` on `default`, and `scan` made non-internal each fail the probe |
+| 7 | A fixture scan goes through the proxy, authenticated | no | confirmed | scored 100, exit 1; without the key header → "fixture scan answered 403" |
+| 8 | Fail-closed with no key or a `*` | no | confirmed | three mutations fail the probe |
+| 9 | The probe checks the scanners publish no host port | no | partly | a `ports:` entry on `scanner` still passed: a port on an internal-only network isn't bound, so the running containers don't show it |
+| 10 | The proxy strips the scan key before forwarding | no | partly | removing `header_up -X-Ronne-Scan-Key` still passed: nothing checks what the scanner receives |
+| 11 | Trivy runs on the scanner image as advice only | no | confirmed | `--exit-code 0 … \|\| true` |
+| 12 | Dependabot has a docker entry for `/scripts/skill-scanner` holding python and uv to digests | no | confirmed | parsed; ignore list has both for major and minor |
+| 13 | The docs describe the new pull and run; uv comes from ghcr.io | no | confirmed | `Dockerfile:8` is ghcr.io; lines 10 and 16 are Docker Hub's Python |
+| 14 | No Docker Hub pull beyond the job's own plus the Python base | no | confirmed | `config --images`: caddy, the built scanner, the local web image |
+
+**Overall:** not met: rows 9 and 10. Fixed since:
+- The probe reads the compose config for `ports` on both scanners (a published port on an internal network wouldn't show in a running container), and the running containers too.
+- The probe stops each scanner in turn, puts a stand-in on its network that answers with the headers it received, and sends a request with the key through :8081 and :8082: the scanner must not see `x-ronne-scan-key`, and must see another header.
+- The implementer undid the rules: the static key strip, the semantic key strip, and a `ports:` entry on `scanner` each fail the probe. The whole probe passes again locally.
+
+### Re-check
+
+Witnessed: 2026-10-29 afternoon, by a fresh agent (blind, re-check). Commit: e5c89d65 plus the uncommitted task-5 work. Machine: macOS (Darwin 27.0.0), Node 24 (not used by the probe).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The probe passes locally | no | confirmed | `scanner-probe.sh ronne-web:ci` → exit 0 in 56 s, every `OK:` line; no `ronne-ci*` container or network left |
+| 2 | The scanners publish no port, checked in the config and in the running containers | no | confirmed | `ports: ["127.0.0.1:7699:8080"]` on `scanner` → "FAILED: ['scanner'] publish ports in the config"; the same on `scanner-semantic` |
+| 3 | The proxy strips `X-Ronne-Scan-Key` on :8081 | no | confirmed | first `header_up -X-Ronne-Scan-Key` removed → exit 1 at "the proxy reaches the stand-in for scanner" |
+| 4 | The proxy strips it on :8082 | no | confirmed | second one removed → exit 1 at the stand-in for scanner-semantic |
+| 5 | The cleanup trap removes the stand-in when a step fails | no | confirmed | `kill -TERM` mid-step → exit 143, no `ronne-ci*` container or network left |
+| 6 | A weaker variant is caught | no | partly | the check looked only for the header's name: a `header_up` that copies the key's value into another header would pass |
+
+**Overall:** not met: row 6. Fixed since: the stand-in's check also requires that the scan key's value appears in none of the header values it received. The implementer's mutation (`header_up X-Other {http.request.header.X-Ronne-Scan-Key}` kept beside the strip) fails the probe at the stand-in step, and the whole probe still passes.
+
+### Re-check
+
+Witnessed: 2026-10-29 23:01 EDT, by a fresh agent (blind). Commit: e5c89d65 plus the uncommitted `.github/actions/build-image/scanner-probe.sh` (the working tree's diff). Machine: macOS (Darwin 27), Docker; the probe uses no host Node.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The probe passes locally with the new value check | no | confirmed | port 7650 free first; `scanner-probe.sh ronne-web:ci` → every step OK in 54 s; the "scan failed: ZeroDivisionError" line is the scanner unit tests' own logging |
+| 2 | `header_up X-Other {http.request.header.X-Ronne-Scan-Key}` kept beside the strip on :8081 fails the probe | no | confirmed | "AssertionError: the value of the scan key reached the scanner" at the stand-in for scanner |
+| 3 | The same on :8082 fails the probe | no | confirmed | the scanner stand-in passes, then the scanner-semantic one fails the same way |
+| 4 | The key in an Authorization header (`Bearer …`) fails the probe | no | confirmed | "the value of the scan key reached the scanner" |
+| 5 | The strip removed fails the probe | no | confirmed | "the scanner was sent the scan key" |
+| 6 | `bash -n` passes, and the python snippet in the single-quoted `-c` has no apostrophe | no | confirmed | exit 0; 0 apostrophes counted between the quotes |
+| 7 | Nothing is left behind | no | confirmed | no `ronne-ci` container or network after the real run and all four mutation runs |
+
+**Overall:** met. No bugs found.

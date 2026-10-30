@@ -35,8 +35,12 @@ describe("ciScope", () => {
       "compose.yaml",
       "docker/pnpm",
       ".github/actions/build-image/install-probe.sh",
+      ".github/actions/build-image/scanner-probe.sh",
       ".github/workflows/image.yml",
       "apps/web/scripts/setup.ts",
+      "scripts/skill-scanner/scan-service.py",
+      "scripts/skill-scanner/Dockerfile",
+      "scripts/skill-scanner/scanner.compose.yaml",
     ])
       expect(ciScope([file]), file).toEqual({ ...none, image: true });
   });

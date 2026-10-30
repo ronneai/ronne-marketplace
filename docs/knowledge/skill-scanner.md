@@ -250,6 +250,25 @@ surrogate, which no stored path holds. And it folds names with the image's Pytho
 for a handful of new characters is a little more lenient than Node (Unicode 16). Its tests need an
 executable `/tmp` for their stand-in scanner; the service itself runs with a noexec one.
 
+## How CI checks the container (156)
+
+The image job (`image.yml`, `build-image/scanner-probe.sh`) runs when `scripts/skill-scanner/` or
+`compose.yaml` changes, and in every release and nightly run. It builds the scanner from the checkout
+(tagged `ronne-skillspector:ci`, so compose never builds from GitHub, whose default branch has none of
+a new change), runs the service's tests in it, starts compose with both profiles, and checks:
+- the scanner ports refuse no key, an empty one, a wrong one and `*` with a 403 and JSON, and take the
+  right key;
+- `scanner` can't reach the internet, `web` or `scanner-semantic`, and `scanner-semantic` can't reach
+  `web` or `scanner`;
+- the bad-skill fixture, sent from the `web` container through the proxy, comes back with a high score;
+- with no key (or one with a `*`) the proxy starts and refuses every request.
+
+Trivy scans the scanner image as advice: it prints findings and never fails the run, since the image
+isn't shipped. The probe pulls one Docker Hub image the other probes don't, the Python base
+(`docs/knowledge/docker-hub-pulls.md`). To run it by hand: `pnpm build` is not needed, only a web
+image (`docker build -t ronne-web:ci .`) and `.github/actions/build-image/scanner-probe.sh ronne-web:ci`;
+it binds 127.0.0.1:7650 and 7651.
+
 ## Moving the pin
 
 1. Read the new release's changelog, `pyproject.toml` and `uv.lock`: new network calls, and anything

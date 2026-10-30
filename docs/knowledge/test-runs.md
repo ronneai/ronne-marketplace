@@ -44,8 +44,9 @@ run included), so a release is checked as fully as before.
 - **"When its files change"** is `packages/repo-tools/src/ci-scope.js`, through `changes.yml`'s
   `image`, `server` and `install` outputs:
   - the image: the `Dockerfile`, `.dockerignore`, `compose.yaml`, `docker/`, the build-image
-    action, the web app's `next.config` and `scripts/`, and `scripts/install/` (the image job runs
-    install.sh against it);
+    action, the web app's `next.config` and `scripts/`, `scripts/install/` (the image job runs
+    install.sh against it) and `scripts/skill-scanner/` (it builds the scanner's container, runs its
+    tests, and probes it behind the proxy's scan key: 156);
   - the server package: `packages/server/`, `packaging/`, `scripts/service/`,
     `scripts/packages/`, its scripts in `packages/repo-tools`, and its workflows;
   - the install scripts: `scripts/install/` and their tools.

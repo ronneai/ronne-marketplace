@@ -32,6 +32,8 @@ export const SUITE_PATHS = {
     // Backup and restore (099): the image's smoke test restores a backup into a new volume.
     /^apps\/web\/src\/server\/backup\//,
     /^scripts\/install\//,
+    // The scanner's image, its service and its tests (156): the image job builds and probes it.
+    /^scripts\/skill-scanner\//,
   ],
   // rmk-server (082) with the web app's standalone build inside, its bundles (084), the Linux
   // packages (085) and the services (083, 086).

@@ -57,7 +57,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     - a local run scans a skill end to end with no `.env` editing;
     - `scanner` can't open a connection outside or to `web`; `scanner-semantic` can't reach `web` or a database; neither can use `proxy:8081` or `proxy:8082` (no scan key, an empty one, a wrong one or a wildcard); with no key set the proxy starts and the ports refuse; Ronne still reaches both through the proxy.
 
-- [ ] **5. CI.**
+- [x] **5. CI.**
   - `ci-scope.js`: `scripts/skill-scanner/` in the `image` suite.
   - The image job:
     - builds the scanner;
