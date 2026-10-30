@@ -27,6 +27,13 @@ const ANSWER_LIMIT = 16 * 1024 * 1024;
 export const HEALTH_TIMEOUT_MS = 3000;
 
 /**
+ * The address of a route on the service. Built from one string on purpose: `new URL("scan", base)`
+ * reads to Next's file tracing as a path on disk, and it then packs the whole of `src` into the
+ * standalone build and the server package.
+ */
+const routeOf = (base: URL, route: "scan" | "health"): URL => new URL(`${base.href}${route}`);
+
+/**
  * A service address as the operator wrote it: `http://` or `https://`, no user or password, no
  * query or fragment, and no path but `/` (the service answers `/scan` and `/health` there).
  * Null when it isn't one, so a bad address is refused at start-up like a bad command.
@@ -195,7 +202,7 @@ export const httpSkillScanner = (options: HttpScannerOptions): SkillScanner => (
     if (key) headers[SCAN_KEY_HEADER] = key;
     const answer = await call(
       options.fetch ?? fetch,
-      new URL("scan", target),
+      routeOf(target, "scan"),
       { method: "POST", headers, body },
       (options.timeoutSeconds + (options.graceSeconds ?? ANSWER_GRACE_SECONDS)) * 1000,
     );
@@ -222,7 +229,7 @@ const probeHealth = async (
 ): Promise<HealthProbe> => {
   const headers: Record<string, string> = {};
   if (key) headers[SCAN_KEY_HEADER] = key;
-  const answer = await call(fetcher, new URL("health", url), { headers }, timeoutMs);
+  const answer = await call(fetcher, routeOf(url, "health"), { headers }, timeoutMs);
   if (!answer) return { kind: "none" };
   const { status, body } = answer;
   const error = errorOf(body);

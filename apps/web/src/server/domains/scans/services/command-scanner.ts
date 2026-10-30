@@ -313,7 +313,10 @@ const run = (
     const [program = "", ...leading] = command;
     let child: ChildProcessByStdio<null, Readable, Readable>;
     try {
-      child = spawn(program, [...leading, ...args], {
+      // The program is the operator's command, known only at run time: not a file for Next's file
+      // tracing to follow. Without this it traces the whole project into the standalone build and
+      // the server package, which the bundle check refuses.
+      child = spawn(/* turbopackIgnore: true */ program, [...leading, ...args], {
         cwd,
         // Next.js types `process.env` with NODE_ENV required; the scanner's environment has none.
         env: env as NodeJS.ProcessEnv,
