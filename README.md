@@ -95,13 +95,16 @@ why: usually the DNS, a closed port, or ports other than 80 and 443.
   ```sh
   RONNE_PORT=127.0.0.1:7650              # not reachable from outside
   PUBLIC_URL=https://ronne.example.com
-  RONNE_TRUSTED_PROXIES=private_ranges   # take the client's address from your X-Forwarded-For
+  RONNE_TRUSTED_PROXIES=10.0.0.5         # your web server's address: take the client's address from its X-Forwarded-For
   ```
+
+  Name your web server's address, not `private_ranges`, once you add the security scanner: every
+  private range includes the scanners' addresses too, and a scanner could set the client's address.
 
   Your proxy must append to `X-Forwarded-For` (nginx: `$proxy_add_x_forwarded_for`) and allow
   request bodies of at least 28 MB (nginx: `client_max_body_size 28m;`), for drafts sent with a
-  token. Keep the port on 127.0.0.1: with private ranges trusted, a client reaching it directly
-  could claim any address.
+  token. Keep the port on 127.0.0.1, so that
+  nothing reaches Ronne except through your proxy.
 - **Certificates** live in the `caddy-data` volume. `docker compose down -v` deletes them, and
   Let's Encrypt limits how often a domain can ask for new ones.
 
@@ -112,7 +115,7 @@ why: usually the DNS, a closed port, or ports other than 80 and 443.
 | `RONNE_DOMAIN` | empty | The name to serve over HTTPS. Empty: HTTP only |
 | `RONNE_TLS` | `auto` | With a domain: `auto` (Let's Encrypt), `files` (`./certs`), `internal` (Caddy's CA) |
 | `RONNE_ACME_EMAIL` | empty | Email for the certificate authority |
-| `RONNE_TRUSTED_PROXIES` | empty | Who may set `X-Forwarded-For` (Caddy's `trusted_proxies static`) |
+| `RONNE_TRUSTED_PROXIES` | empty | Who may set `X-Forwarded-For` (Caddy's `trusted_proxies static`): your web server's address, not `private_ranges` with the scanner |
 | `PUBLIC_URL` | `https://RONNE_DOMAIN`, or `http://localhost:RONNE_PORT` | The address people open |
 
 #### Running it

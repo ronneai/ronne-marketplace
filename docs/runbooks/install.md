@@ -111,7 +111,11 @@ address without a port.
 | `RONNE_HTTPS_PORT` | `7651` | The HTTPS port on your machine |
 | `RONNE_TLS` | `auto` | `auto` (Let's Encrypt), `files` (your own certificate), `internal` (a test certificate) |
 | `RONNE_ACME_EMAIL` | empty | Where the certificate authority sends expiry notices |
-| `RONNE_TRUSTED_PROXIES` | empty | Only behind your own web server: who may tell Ronne the client's address (`private_ranges`) |
+| `RONNE_TRUSTED_PROXIES` | empty | Only behind your own web server: who may tell Ronne the client's address (your web server's address, such as `10.0.0.5`; not `private_ranges` with the scanner, which includes the scanners) |
+| `COMPOSE_PROFILES` | empty | `scanner`, and `scanner-semantic` for semantic analysis: the security scan's containers (install.sh sets them; keep any database profile in the list) |
+| `RONNE_SKILL_SCANNER_URL`, `RONNE_SKILL_SCANNER_SEMANTIC_URL` | empty | The scanner containers' addresses, `http://proxy:8081` and `http://proxy:8082` (install.sh sets them) |
+| `RONNE_SCAN_KEY` | empty | 64 hex characters the proxy requires on those two ports (install.sh makes one; `openssl rand -hex 32`) |
+| `RONNE_SCANNER_REF` | `main` | The tag the scanner is built from, and its image tag (install.sh sets the version); `RONNE_SCANNER_REPO` is where it's fetched from |
 | `LOG_LEVEL` | `info` | The least serious log lines written: `debug`, `info`, `warn` or `error` |
 | `LOG_FORMAT` | `json` | `json`, or `text` for a person reading a terminal |
 | `RONNE_JOBS` | `on` | `off` stops the server's own retention purge (every six hours); run `rmk-server purge` from cron then ([Privacy](https://www.ronne.ai/marketplace/docs/privacy#retention)) |
@@ -124,8 +128,10 @@ creates a missing one owned by root, and then you need `sudo` to write to it. Wh
 
 **Behind your own web server** (nginx, Apache, Traefik or a load balancer that already handles
 HTTPS): leave `RONNE_DOMAIN` empty, set `RONNE_PORT=127.0.0.1:7650`,
-`PUBLIC_URL=https://ronne.example.com` and `RONNE_TRUSTED_PROXIES=private_ranges`, and point your
-web server at `http://127.0.0.1:7650`. It must add the client's address to `X-Forwarded-For`
+`PUBLIC_URL=https://ronne.example.com` and `RONNE_TRUSTED_PROXIES` to your web server's address
+(such as `10.0.0.5`), and point your web server at `http://127.0.0.1:7650`. Name it rather than
+`private_ranges` if you add the security scanner below: every private range includes the scanners'
+addresses too, and a scanner could then set the client's address. It must add the client's address to `X-Forwarded-For`
 (nginx: `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`) and allow request bodies
 of at least 28 MB (nginx: `client_max_body_size 28m;`).
 
@@ -313,14 +319,29 @@ would clear; without `--dry-run` it runs one now.
 
 **Scan submissions with SkillSpector (optional).** Ronne can have NVIDIA's SkillSpector check each
 submission for hidden instructions, credential access, exfiltration and obfuscated code, and show
-its findings to reviewers. Ronne doesn't ship it: install it at the pinned version, name its command
-in `RONNE_SKILL_SCANNER` (or list several in `RONNE_SKILL_SCANNERS` for root to choose from),
-restart Ronne, then turn it on in Admin › Settings › Security scan, where root can also set up an
+its findings to reviewers. Ronne doesn't ship it.
+
+*With Docker*, `install.sh` asks "Add the security scanner?" (or takes `--scanner yes`, or
+`--scanner semantic` for semantic analysis too), and an existing install gets the question when you
+run the install command again. Compose then builds the scanner on your server from Ronne's
+repository at your version, with SkillSpector at the pinned commit: a few minutes and about 500 MB
+the first time, with access to GitHub and PyPI. The scanner is a container of its own with no way
+out, and Ronne reaches it through the proxy with a scan key (`RONNE_SCAN_KEY`, made for you); a
+second container does the semantic scans, with the internet for the provider and nothing of Ronne's.
+Upgrading builds the new version's scanner; the old image stays until you remove it
+(`docker image rm ronne-skillspector:v<old version>`).
+
+*Without Docker*, install it at the pinned version and name its command in `RONNE_SKILL_SCANNER` (or
+list several in `RONNE_SKILL_SCANNERS` for root to choose from), restart Ronne, or run the same
+container with `docker compose -f scripts/skill-scanner/scanner.compose.yaml up -d --build` and set
+`RONNE_SKILL_SCANNER_URL=http://127.0.0.1:7670`; an address wins over a command.
+
+Then turn it on in Admin › Settings › Security scan, where root can also set up an
 LLM provider and its key for semantic analysis. An endpoint on a private address, or over
 `http://` (a local Ollama), needs its host in `RONNE_SKILL_SCANNER_HTTP_HOSTS`, bare names or
 addresses separated by commas.
-[`skill-scanner.md`](../knowledge/skill-scanner.md) has the install, the container wrapper and the
-rules it follows. Installs without Docker only, for now. NVIDIA's own pages:
+[`skill-scanner.md`](../knowledge/skill-scanner.md) has the install, the container wrapper, the scan
+service and the rules it follows. NVIDIA's own pages:
 [Scanning agent skills](https://docs.nvidia.com/skills/scanning-agent-skills) (what it checks, how to
 run it) and [NVIDIA/SkillSpector](https://github.com/NVIDIA/SkillSpector) (the source, its releases
 and licence).

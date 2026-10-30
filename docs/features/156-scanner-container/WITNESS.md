@@ -824,3 +824,50 @@ Witnessed: 2026-10-29 23:01 EDT, by a fresh agent (blind). Commit: e5c89d65 plus
 | 7 | Nothing is left behind | no | confirmed | no `ronne-ci` container or network after the real run and all four mutation runs |
 
 **Overall:** met. No bugs found.
+
+## Task 6
+
+Witnessed: 2026-10-29 23:20 EDT, by a fresh agent (blind). Commit: 16d999a7 plus the uncommitted diff; ronne-web 6893327. Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The installer's question, the `--scanner` flag and "run the install command again" are as documented | no | confirmed | `install.sh` asks both questions on every run unless `--yes` or `--scanner` is given |
+| 2 | The by-hand `.env` lines are enough | no | confirmed | `docker compose config` in a scratch dir builds both scanners at `#v0.4.0:scripts/skill-scanner` and gives `web` both URLs |
+| 3 | Compose builds the scanner before it starts anything | no | confirmed | `up -d --dry-run`: "Image scanner Built" before any "Network … Creating" |
+| 4 | The old image stays; the tag carries the version; about 500 MB | no | confirmed | several `ronne-skillspector:*` tags side by side at 445 MB |
+| 5 | Needs GitHub and PyPI | no | confirmed | the git context and the Dockerfile |
+| 6 | The proxy takes only requests carrying the key, refuses with none, strips it, publishes nothing | no | confirmed | `compose.yaml` scan-gate and no `ports:` |
+| 7 | The container descriptions | no | confirmed | the networks and limits in `config` (runtime isolation not tested here) |
+| 8 | The 32 MiB figure and the "refused the request" remedy | no | confirmed | `BODY_LIMIT`; the log writes only the method and route |
+| 9 | Busy: next run, a minute later, failed after a second try | no | confirmed | `MAX_SCAN_ATTEMPTS = 2`, `SCAN_EVERY_MS = 60 * 1000` |
+| 10 | The four errors and remedies match the app | no | partly | the app's messages said "scanner service", the website "scanner container" |
+| 11 | An address that isn't plain http(s) is used for nothing and the tab says which | no | confirmed | `parseServiceUrl`, `serviceConfigOf` |
+| 12 | The tab shows "The scanner container: ready, SkillSpector 2.13.2" | no | confirmed | `admin.json` command.service |
+| 13 | The host install | no | confirmed | `scanner.compose.yaml` |
+| 14 | Trusted proxies: name the web server's address everywhere | no | partly | README line 106 still justified the 127.0.0.1 binding with "private ranges trusted" |
+| 15 | The runbook's paragraph and table rows | no | confirmed | match `install.sh` and `compose.yaml` |
+| 16 | The helpers exist in en, pt and fr, link to real sections, and the app's topics match the website's | no | confirmed | `docs-links` 8 passed; help, i18n and scan tests 430 passed |
+| 17 | The new "When a scan fails" bullets exist in en, pt and fr | no | not met | 9 list items in en, 5 in pt and fr: the four bullets were English only, and no test counts them |
+| 18 | pt and fr carry the `container` section's meaning | no | confirmed | read paragraph by paragraph |
+| 19 | ronne-web checks pass | no | confirmed | 187 tests, lint, typecheck |
+| 20 | The product-facts row is accurate and labelled | no | confirmed | "in the next release", cites the spec and the code |
+| 21 | SPEC.md's first-start text and Documentation section describe the shipped behaviour | no | confirmed | except the pt/fr bullets (row 17) |
+
+**Overall:** not met: row 17, with rows 10 and 14 partly met. Fixed since:
+- The four bullets are in pt and fr (9 list items in each language), and ronne-web's docs test now counts list items per section against English for every topic, naming the section and both counts. With the French "refused the request" bullet removed, it fails with `security-scan#troubleshooting: 8 against 9`.
+- The app's error messages (admin and author, in the three languages) now say "scanner container", as the tab and the website do.
+- README's sentence about the 127.0.0.1 binding no longer mentions trusting private ranges.
+
+### Re-check
+
+Witnessed: 2026-10-29 23:15 local, by a fresh agent (blind re-check). Commit: 16d999a7 plus the uncommitted task-6 diff; ronne-web e7b9367. Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The `troubleshooting` section has the same number of list items in en, pt and fr, and the four new bullets mean the same | no | confirmed | 9, 9, 9; each bullet read against the English: the commands, the 32 MiB, "next run, a minute later, a second try", hex-only key |
+| 2 | The new docs test passes, fails when an item is removed from fr or pt, and has no false alarm in any other topic | no | confirmed | 11 passed; removing the first item from fr, then pt → only its own test fails; the full website suite 189 tests |
+| 3 | The app's four new failure reasons say "scanner container" / "contêiner do verificador" / "conteneur de l'analyseur" and agree with the website | no | confirmed | parsed admin.json and author.json |
+| 4 | The README's binding sentence no longer mentions trusting private ranges; the trusted-proxies advice is consistent everywhere | no | confirmed | README, runbook, compose.yaml and the Install topic in the three languages |
+| 5 | The suites and checks are green | no | confirmed | 430 app tests in 26 files; website lint, typecheck and tests |
+
+**Overall:** met. No bugs found. (The one lint note it saw, an unnecessary fragment in the new website test, is removed; the test is back to `docs.test.ts`.)

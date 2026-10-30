@@ -101,7 +101,14 @@ export const SkillScanForm = ({ settings }: { settings: SkillScanSettings }) => 
           ) : null}
         </Notice>
       ) : (
-        <Notice kind="warn" title={t("scanner.missing.title")}>
+        <Notice
+          kind="warn"
+          title={
+            <>
+              {t("scanner.missing.title")} <Help id="scan-container" />
+            </>
+          }
+        >
           <p>{t("scanner.missing.body")}</p>
         </Notice>
       )}

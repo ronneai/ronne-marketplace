@@ -70,5 +70,5 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - `docs/knowledge/docker-hub-pulls.md` and `docs/knowledge/test-runs.md` get the new pulls and runs.
   - *Done when:* the jobs run on a pull request that changes `scripts/skill-scanner/`, are skipped on one that doesn't, and pass.
 
-- [ ] **6. Documentation.** The spec's Documentation section, in ronne-web and here, including the trusted-proxies lines in `docs/runbooks/install.md` and the root `README.md`.
+- [x] **6. Documentation.** The spec's Documentation section, in ronne-web and here, including the trusted-proxies lines in `docs/runbooks/install.md` and the root `README.md`.
   - *Done when:* the docs render tests pass, and the new helper's link lands on a real section.

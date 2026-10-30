@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { Help } from "@/components/help/Help";
 import { Notice } from "@/components/ui/Notice";
 import type {
   ScannerServiceState,
@@ -50,9 +51,12 @@ export const ScannerService = ({
             key={service.kind}
             kind="warn"
             title={
-              keyRefused
-                ? t("keyRefused", { name })
-                : t("unreachable", { name, address: service.address })
+              <>
+                {keyRefused
+                  ? t("keyRefused", { name })
+                  : t("unreachable", { name, address: service.address })}{" "}
+                {keyRefused ? null : <Help id="scan-container" />}
+              </>
             }
           >
             {service.compose ? (

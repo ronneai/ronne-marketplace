@@ -15,7 +15,8 @@
     "help:password-lockout.answer": "Names the server command disable-sso, which is written in English.",
     "help:reset-two-factor.answer": "Names the server command reset-root-password, written in English.",
     "help:audit-incident.answer": "Names the server commands revoke-access and rotate-secret, written in English.",
-    "author:canvas.nodeHelp": "Names the Delete keyboard key as it is printed on keyboards."
+    "author:canvas.nodeHelp": "Names the Delete keyboard key as it is printed on keyboards.",
+    "help:scan-container.answer": "Quotes the installer's own English prompt, Add the security scanner?"
   },
   "fr": {
     "account:security.setup.step1": "Names the 1Password app.",
@@ -32,6 +33,7 @@
     "help:rename-workspace.answer": "Quotes the rmk --workspace flag, written in English.",
     "help:password-lockout.answer": "Names the server command disable-sso, which is written in English.",
     "help:reset-two-factor.answer": "Names the server command reset-root-password, written in English.",
-    "help:audit-incident.answer": "Names the server commands revoke-access and rotate-secret, written in English."
+    "help:audit-incident.answer": "Names the server commands revoke-access and rotate-secret, written in English.",
+    "help:scan-container.answer": "Quotes the installer's own English prompt, Add the security scanner?"
   }
 }

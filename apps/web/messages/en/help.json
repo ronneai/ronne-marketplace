@@ -329,7 +329,11 @@
   },
   "scan-settings": {
     "question": "How do I set up the scanner?",
-    "answer": "The server’s operator installs SkillSpector at a pinned version and lists its command in RONNE_SKILL_SCANNERS (a JSON array of commands, in the environment or the settings file), then restarts Ronne; you choose one here. For semantic analysis, set up a provider below, or the operator sets one with RONNE_SKILL_SCANNER_ENV_ variables, which win."
+    "answer": "With Docker, the server’s operator adds the scanner container (the installer asks). Without Docker, they install SkillSpector at a pinned version and list its command in RONNE_SKILL_SCANNERS (a JSON array of commands, in the environment or the settings file), then restart Ronne; you choose one here. For semantic analysis, set up a provider below, or the operator sets one with RONNE_SKILL_SCANNER_ENV_ variables, which win."
+  },
+  "scan-container": {
+    "question": "How do I add the scanner?",
+    "answer": "On a Docker install, run the install command again and answer yes to “Add the security scanner?”. Ronne builds the scanner on the server, a few minutes the first time, and this tab shows it as ready. Without Docker, the operator installs SkillSpector and lists its command instead."
   },
   "scan-key": {
     "question": "How is the key kept?",

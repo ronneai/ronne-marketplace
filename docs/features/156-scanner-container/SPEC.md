@@ -106,7 +106,7 @@ A Docker install then gets the scanner by answering one question in the installe
   4. The next submission of a scanned type is scanned.
 
   No `.env` line is typed.
-- **The first start.** The scanner's image builds while Ronne is already usable. Until `scanner` is healthy, the tab says it isn't reachable yet, and a scan queued meanwhile fails as unreachable. Root can use Scan again once it's ready, and the 137 gate fails closed meanwhile.
+- **The first start.** Compose builds the scanner's image before it starts anything, so a new install is ready a few minutes later than without it (an install that is already running keeps serving until the build is done). Until `scanner` is healthy, a few seconds more, the tab says it isn't reachable yet, and a scan queued meanwhile fails as unreachable. Root can use Scan again once it's ready, and the 137 gate fails closed meanwhile.
 - **Upgrading Ronne.** The new `compose.yaml` builds the scanner at the new version, and the pin moves with Ronne's releases. `docker compose up -d` rebuilds it once.
 - **Turning it off.** Removing the profile from `COMPOSE_PROFILES`, or stopping the container, leaves Ronne working. The tab says unreachable, and with scanning on, scans fail and the gate blocks, as for a broken command today.
 
@@ -137,13 +137,13 @@ None. No migration. The addresses are read from the environment or the settings 
 
 ## Acceptance criteria
 
-- [ ] A fresh `install.sh`, answered yes, scans a skill once root turns scanning on, with no `.env` editing.
-- [ ] `scanner` has no outbound network: CI tries a connection to the internet from it, and to `web:3000`, and both fail.
-- [ ] A semantic scan finishes through `scanner-semantic` with a provider set in the web.
-- [ ] A host install scans through `scanner.compose.yaml` with one line in the settings file.
-- [ ] The tab shows the scanner as ready or not reachable, and every failure has a worded error in en, pt and fr.
-- [ ] The command and the wrapper work as before when no address is set.
-- [ ] The Documentation and the helper above say what the feature does.
+- [ ] A fresh `install.sh`, answered yes, scans a skill once root turns scanning on, with no `.env` editing. (Each part is tested: the installer's `.env`, the build from a git URL, the proxy, a scan through it. The whole run waits for this to be on GitHub, since compose builds from there.)
+- [x] `scanner` has no outbound network: CI tries a connection to the internet from it, and to `web:3000`, and both fail.
+- [ ] A semantic scan finishes through `scanner-semantic` with a provider set in the web. (Not run: it needs an LLM provider and its key. The routing, the key gate and the isolation are tested.)
+- [x] A host install scans through `scanner.compose.yaml` with one line in the settings file.
+- [x] The tab shows the scanner as ready or not reachable, and every failure has a worded error in en, pt and fr.
+- [x] The command and the wrapper work as before when no address is set.
+- [x] The Documentation and the helper above say what the feature does.
 
 ## Decisions
 

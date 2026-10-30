@@ -329,7 +329,11 @@
   },
   "scan-settings": {
     "question": "Como configuro o verificador?",
-    "answer": "Quem opera o servidor instala o SkillSpector em uma versão fixada e lista o comando dele em RONNE_SKILL_SCANNERS (um array JSON de comandos, no ambiente ou no arquivo de configurações) e reinicia o Ronne; você escolhe um aqui. Para a análise semântica, configure um provedor abaixo, ou quem opera o servidor configura um com variáveis RONNE_SKILL_SCANNER_ENV_, que têm prioridade."
+    "answer": "Com Docker, quem opera o servidor adiciona o contêiner do verificador (o instalador pergunta). Sem Docker, instala o SkillSpector em uma versão fixada e lista o comando dele em RONNE_SKILL_SCANNERS (um array JSON de comandos, no ambiente ou no arquivo de configurações) e reinicia o Ronne; você escolhe um aqui. Para a análise semântica, configure um provedor abaixo, ou quem opera o servidor configura um com variáveis RONNE_SKILL_SCANNER_ENV_, que têm prioridade."
+  },
+  "scan-container": {
+    "question": "Como adiciono o verificador?",
+    "answer": "Em uma instalação com Docker, rode o comando de instalação de novo e responda sim a “Add the security scanner?”. O Ronne constrói o verificador no servidor, alguns minutos na primeira vez, e esta aba o mostra como pronto. Sem Docker, quem opera o servidor instala o SkillSpector e lista o comando dele."
   },
   "scan-key": {
     "question": "Como a chave é guardada?",
