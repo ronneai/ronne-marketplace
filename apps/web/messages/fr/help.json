@@ -333,7 +333,7 @@
   },
   "scan-container": {
     "question": "Comment ajouter l’analyseur ?",
-    "answer": "Sur une installation Docker, relancez la commande d’installation et répondez oui à « Add the security scanner? ». Ronne construit l’analyseur sur le serveur, quelques minutes la première fois, et cet onglet l’affiche comme prêt. Sans Docker, la personne qui exploite le serveur installe SkillSpector et liste sa commande à la place."
+    "answer": "Sur une installation Docker, relancez la commande d’installation et répondez oui à « Add the security scanner? ». Ronne construit l’analyseur sur le serveur, quelques minutes la première fois, et cet onglet l’affiche comme prêt. Sans Docker, la personne qui exploite le serveur installe SkillSpector et liste sa commande à la place. Si un analyseur tourne déjà, saisissez son adresse dans le champ ci-dessous."
   },
   "scan-key": {
     "question": "Comment la clé est-elle gardée?",

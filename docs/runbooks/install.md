@@ -334,7 +334,11 @@ Upgrading builds the new version's scanner; the old image stays until you remove
 *Without Docker*, install it at the pinned version and name its command in `RONNE_SKILL_SCANNER` (or
 list several in `RONNE_SKILL_SCANNERS` for root to choose from), restart Ronne, or run the same
 container with `docker compose -f scripts/skill-scanner/scanner.compose.yaml up -d --build` and set
-`RONNE_SKILL_SCANNER_URL=http://127.0.0.1:7670`; an address wins over a command.
+`RONNE_SKILL_SCANNER_URL=http://127.0.0.1:7670`, or let root type that address in Admin › Settings ›
+Security scan (Ronne checks that it answers as the scan service before it saves it, but every submission's
+files are sent to that address, so only root types one you run; an address or a command set in the
+environment wins over root's, which come back if you remove it, with the scan key they were
+checked against; so recheck them after you change `RONNE_SCAN_KEY`); an address wins over a command.
 
 Then turn it on in Admin › Settings › Security scan, where root can also set up an
 LLM provider and its key for semantic analysis. An endpoint on a private address, or over

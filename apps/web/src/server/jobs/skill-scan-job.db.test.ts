@@ -366,6 +366,39 @@ describe("the job with the scanner service (156)", () => {
     ).toEqual({ status: "done", error: null });
   });
 
+  /** Root's addresses, as the settings tab stores them (156, decision 7). */
+  const store = async (values: Record<string, string>) => {
+    await t.db.deleteFrom("instance_settings").where("key", "like", "skill_scan%").execute();
+    for (const [key, value] of Object.entries(values))
+      await t.db
+        .insertInto("instance_settings")
+        .values({ key, value, updated_by: null, updated_at: now() })
+        .execute();
+  };
+
+  it("scans through an address root typed, sending the scan key only to one that answered like the proxy", async () => {
+    await store({ skill_scan_url: `${url}/`, skill_scan_url_gated: "1" });
+    await runSkillScansOn({ db: t.db, dialect: t.dialect }, { scanKey: "k-156", env: {} });
+    expect(requests).toEqual([{ path: "/scan", key: "k-156" }]);
+    expect(
+      await t.db.selectFrom("content_scans").select(["status", "error"]).executeTakeFirstOrThrow(),
+    ).toEqual({ status: "done", error: null });
+
+    // The service itself, not the proxy: the key stays home.
+    requests = [];
+    await t.db.deleteFrom("content_scans").execute();
+    await scan("queued");
+    await store({ skill_scan_url: `${url}/`, skill_scan_url_gated: "" });
+    await runSkillScansOn({ db: t.db, dialect: t.dialect }, { scanKey: "k-156", env: {} });
+    expect(requests).toEqual([{ path: "/scan", key: undefined }]);
+  });
+
+  it("ignores root's address when the environment sets one, and runs no command beside either", async () => {
+    await store({ skill_scan_url: "http://127.0.0.1:1/", skill_scan_url_gated: "1" });
+    await runSkillScansOn({ db: t.db, dialect: t.dialect }, { url, scanKey: "k", env: {} });
+    expect(requests).toEqual([{ path: "/scan", key: "k" }]);
+  });
+
   it("fails the scan as unreachable when the service doesn't answer", async () => {
     server.closeAllConnections();
     await new Promise((resolve) => server.close(resolve));

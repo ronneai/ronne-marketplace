@@ -143,6 +143,11 @@ export const saveSkillScanPolicy = serverAction(
         command: form.get("command"),
         key: form.get("key"),
         removeKey: form.get("removeKey"),
+        // Kept when the form has no such field (156).
+        serviceUrl: form.has("serviceUrl") ? form.get("serviceUrl") : undefined,
+        semanticServiceUrl: form.has("semanticServiceUrl")
+          ? form.get("semanticServiceUrl")
+          : undefined,
       });
       const policy = await setSkillScanPolicy(headers, {
         enabled: form.get("enabled"),

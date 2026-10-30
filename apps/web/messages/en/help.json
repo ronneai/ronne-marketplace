@@ -333,7 +333,7 @@
   },
   "scan-container": {
     "question": "How do I add the scanner?",
-    "answer": "On a Docker install, run the install command again and answer yes to “Add the security scanner?”. Ronne builds the scanner on the server, a few minutes the first time, and this tab shows it as ready. Without Docker, the operator installs SkillSpector and lists its command instead."
+    "answer": "On a Docker install, run the install command again and answer yes to “Add the security scanner?”. Ronne builds the scanner on the server, a few minutes the first time, and this tab shows it as ready. Without Docker, the operator installs SkillSpector and lists its command instead. If a scanner is already running, type its address in the field below."
   },
   "scan-key": {
     "question": "How is the key kept?",

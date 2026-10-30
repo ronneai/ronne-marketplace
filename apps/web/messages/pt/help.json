@@ -333,7 +333,7 @@
   },
   "scan-container": {
     "question": "Como adiciono o verificador?",
-    "answer": "Em uma instalação com Docker, rode o comando de instalação de novo e responda sim a “Add the security scanner?”. O Ronne constrói o verificador no servidor, alguns minutos na primeira vez, e esta aba o mostra como pronto. Sem Docker, quem opera o servidor instala o SkillSpector e lista o comando dele."
+    "answer": "Em uma instalação com Docker, rode o comando de instalação de novo e responda sim a “Add the security scanner?”. O Ronne constrói o verificador no servidor, alguns minutos na primeira vez, e esta aba o mostra como pronto. Sem Docker, quem opera o servidor instala o SkillSpector e lista o comando dele. Se um verificador já está rodando, digite o endereço dele no campo abaixo."
   },
   "scan-key": {
     "question": "Como a chave é guardada?",

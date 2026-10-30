@@ -1068,7 +1068,7 @@
         "lastVersion": "A última verificação concluída usou o SkillSpector {version}.",
         "missing": {
           "title": "Nenhum verificador está configurado neste servidor",
-          "body": "Com Docker, quem opera o servidor adiciona o contêiner do verificador: o instalador pergunta. Caso contrário, instala o SkillSpector e lista o comando dele em RONNE_SKILL_SCANNERS (ou define RONNE_SKILL_SCANNER), no ambiente ou no arquivo de configurações, e depois reinicia o Ronne. Aí um comando pode ser escolhido aqui."
+          "body": "Com Docker, quem opera o servidor adiciona o contêiner do verificador: o instalador pergunta. Caso contrário, instala o SkillSpector e lista o comando dele em RONNE_SKILL_SCANNERS (ou define RONNE_SKILL_SCANNER), no ambiente ou no arquivo de configurações, e depois reinicia o Ronne. Aí um comando pode ser escolhido aqui. Se um verificador já está rodando, informe o endereço dele abaixo."
         },
         "lastError": "A última verificação não terminou: {reason, select, timeout {passou do tempo limite} not_found {o comando do verificador não foi encontrado} not_runnable {o comando do verificador não pode ser executado} not_configured {nenhum verificador está configurado} output_too_large {produziu saída demais} invalid_report {o relatório não pôde ser lido} signal {foi interrompida por um sinal} no_temporary_folder {a pasta temporária não pôde ser criada} bad_file_path {um caminho de arquivo da submissão foi recusado} write_failed {os arquivos não puderam ser gravados} endpoint_refused {o endpoint do LLM não passou na verificação quando a verificação começou} unreachable {não foi possível acessar o contêiner do verificador} busy {o contêiner do verificador estava ocupado com outra verificação} scan_key_refused {o contêiner do verificador recusou a chave de verificação} refused {o contêiner do verificador recusou o pedido} exit {terminou com o código {code}} other {{error}}}"
       },
@@ -1095,6 +1095,14 @@
             "semanticAlone": "RONNE_SKILL_SCANNER_SEMANTIC_URL está definido sem RONNE_SKILL_SCANNER_URL, então o Ronne não o usa."
           }
         }
+      },
+      "address": {
+        "label": "Endereço do verificador",
+        "hint": "Onde o contêiner ou o serviço do verificador responde, como http://127.0.0.1:7670. O Ronne confere que é o serviço de verificação antes de salvar. Deixe vazio para usar um comando. Todos os arquivos das submissões são enviados para este endereço.",
+        "semanticLabel": "Endereço do verificador semântico",
+        "semanticHint": "Só para a análise semântica. Uma verificação semântica envia a chave de API do provedor de LLM para este endereço, junto com os arquivos. Deixe vazio se você não usa a análise semântica.",
+        "placeholder": "http://127.0.0.1:7670",
+        "semanticPlaceholder": "http://127.0.0.1:7671"
       },
       "provider": {
         "title": "Provedor de LLM",

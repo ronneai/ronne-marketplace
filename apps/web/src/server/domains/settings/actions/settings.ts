@@ -5,7 +5,11 @@ import { clientIp } from "../../identity/models/client-ip";
 import { type AppAuth, getAppAuth } from "../../identity/repositories/auth-instance";
 import { scanSetupNow } from "../../scans/actions/scans";
 import { parseAllowedHosts, type Resolver } from "../../scans/models/endpoint";
-import { scannerServices } from "../../scans/services/http-scanner";
+import {
+  checkScanService,
+  type ServiceCheck,
+  scannerServices,
+} from "../../scans/services/http-scanner";
 import { type Probe, providerProbe } from "../../scans/services/provider-probe";
 import type { ScanSetup } from "../../scans/services/scan-setup";
 import { systemResolver } from "../../scans/services/system-resolver";
@@ -54,8 +58,10 @@ export const setSkillScanSetup = async (
   headers: Headers,
   value: ScanSetupInput,
   app: AppAuth = getAppAuth(),
-  /** For tests: a resolver of their own. */
+  /** For tests: a resolver of their own, and the check that an address is the scan service. */
   resolve: Resolver = systemResolver(),
+  checkService: (text: string, key: string | null) => Promise<ServiceCheck> = (text, key) =>
+    checkScanService(text, key),
 ) => {
   const config = loadConfig();
   return setup.setSkillScanSetup(deps(app), await actor(headers, app), value, {
@@ -63,6 +69,8 @@ export const setSkillScanSetup = async (
     authSecret: config.authSecret,
     allowedHosts: parseAllowedHosts(config.skillScanner?.httpHosts),
     resolve,
+    scanKey: config.skillScanner?.scanKey?.trim() || null,
+    checkService,
   });
 };
 

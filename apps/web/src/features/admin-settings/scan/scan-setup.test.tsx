@@ -37,6 +37,10 @@ const NONE: StoredScanSetup = {
   timeout: null,
   command: null,
   keyEnc: null,
+  url: null,
+  urlGated: null,
+  semanticUrl: null,
+  semanticUrlGated: null,
 };
 const LIST = JSON.stringify([["/opt/a/skillspector-sandbox", "--secret-arg"], ["/opt/b/run"]]);
 
@@ -87,6 +91,60 @@ describe("the scanner command (136)", () => {
     const page = html(props({ command: '["/env/scan"]', commands: LIST, env: {} }));
     expect(page).toContain("Set on the server, in RONNE_SKILL_SCANNER.");
     expect(page).not.toMatch(/name="command"/);
+  });
+});
+
+describe("the scanner's addresses in the web (156, decision 7)", () => {
+  const typed = { url: "http://127.0.0.1:7670/", semanticUrl: "http://127.0.0.1:7671/" };
+
+  it("shows both fields with root's addresses, named for the form, beside the command", () => {
+    const page = html(props({ commands: LIST, env: {} }, typed));
+    expect(page).toContain('name="serviceUrl"');
+    expect(page).toContain('value="http://127.0.0.1:7670/"');
+    expect(page).toContain('name="semanticServiceUrl"');
+    expect(page).toContain('value="http://127.0.0.1:7671/"');
+    expect(page).toContain("Scanner address");
+    expect(page).toContain("Semantic scanner address");
+    // The command choice is hidden by an address, as the state says.
+    expect(page).not.toMatch(/name="command"/);
+  });
+
+  it("shows empty fields before any address is set, with the command still offered", () => {
+    const page = html(props({ commands: LIST, env: {} }));
+    expect(page).toMatch(/name="serviceUrl"[^>]*value=""/);
+    expect(page).toMatch(/name="command"/);
+  });
+
+  it("says a semantic scan sends the provider's key to the semantic address", () => {
+    expect(html(props({ env: {} }))).toContain("sends the LLM provider’s API key to this address");
+  });
+
+  it("has no fields when the environment sets a command, which beats root's address", () => {
+    const page = html(props({ command: '["/env/scan"]', env: {} }, typed));
+    expect(page).not.toContain('name="serviceUrl"');
+    expect(page).toContain("Set on the server, in RONNE_SKILL_SCANNER.");
+  });
+
+  it("says every submission's files go to the address", () => {
+    expect(html(props({ env: {} }))).toContain(
+      "Every submission’s files are sent to this address.",
+    );
+  });
+
+  it("has no fields when the environment sets the addresses", () => {
+    const page = html(props({ url: "http://proxy:8081", env: {} }, typed));
+    expect(page).not.toContain('name="serviceUrl"');
+    expect(page).not.toContain('name="semanticServiceUrl"');
+  });
+
+  it("reads in Portuguese and French", () => {
+    const value = props({ env: {} });
+    const pt = inLocale("pt", () => html(value));
+    const fr = inLocale("fr", () => html(value));
+    expect(pt).toContain("Endereço do verificador");
+    expect(pt).toContain("Endereço do verificador semântico");
+    expect(fr).toContain("Adresse de l’analyseur");
+    expect(fr).toContain("Adresse de l’analyseur sémantique");
   });
 });
 

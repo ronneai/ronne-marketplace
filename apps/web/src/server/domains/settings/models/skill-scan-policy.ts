@@ -35,6 +35,14 @@ export const SKILL_SCAN_TIMEOUT_KEY = "skill_scan_timeout";
 export const SKILL_SCAN_COMMAND_KEY = "skill_scan_command";
 /** The provider's API key, sealed (`instance-secrets.ts`); empty once removed. */
 export const SKILL_SCAN_KEY_ENC_KEY = "skill_scan_key_enc";
+/**
+ * The scanner service's addresses root typed (156, decision 7), and whether each answered like
+ * Ronne's proxy when it was saved ("1": the scan key goes to it; empty: it's the service itself).
+ */
+export const SKILL_SCAN_URL_KEY = "skill_scan_url";
+export const SKILL_SCAN_URL_GATED_KEY = "skill_scan_url_gated";
+export const SKILL_SCAN_SEMANTIC_URL_KEY = "skill_scan_semantic_url";
+export const SKILL_SCAN_SEMANTIC_URL_GATED_KEY = "skill_scan_semantic_url_gated";
 export const SKILL_SCAN_SETUP_KEYS = [
   SKILL_SCAN_PROVIDER_KEY,
   SKILL_SCAN_MODEL_KEY,
@@ -42,6 +50,10 @@ export const SKILL_SCAN_SETUP_KEYS = [
   SKILL_SCAN_TIMEOUT_KEY,
   SKILL_SCAN_COMMAND_KEY,
   SKILL_SCAN_KEY_ENC_KEY,
+  SKILL_SCAN_URL_KEY,
+  SKILL_SCAN_URL_GATED_KEY,
+  SKILL_SCAN_SEMANTIC_URL_KEY,
+  SKILL_SCAN_SEMANTIC_URL_GATED_KEY,
 ] as const;
 
 /** The setup's stored values, as read from `instance_settings` (null when never set). */
@@ -52,6 +64,11 @@ export type StoredScanSetup = {
   timeout: string | null;
   command: string | null;
   keyEnc: string | null;
+  /** The scanner service's addresses root typed (156), and whether the scan key goes to each. */
+  url: string | null;
+  urlGated: string | null;
+  semanticUrl: string | null;
+  semanticUrlGated: string | null;
 };
 
 /**
@@ -135,6 +152,11 @@ export type ScanSetupShown = {
   commandFrom: "service" | "environment" | "list" | null;
   /** What's wrong with the service's addresses (156), for the tab to say. */
   serviceProblems: ScanServiceProblem[];
+  /** Where the scanner service's addresses come from (156): the environment's wins over root's. */
+  serviceFrom: "environment" | "settings" | null;
+  /** The addresses as set, for the fields: the address is not a secret. */
+  serviceUrl: string;
+  semanticServiceUrl: string;
   commands: { index: number; name: string }[];
   chosenCommand: number | null;
   commandDropped: boolean;

@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { ScanFile, ScanProvider } from "../models/scan";
 import {
+  checkScanService,
   HEALTH_TIMEOUT_MS,
   httpSkillScanner,
   outcomeOf,
@@ -500,5 +501,136 @@ describe("scannerServices (156)", () => {
 
   it("asks only the static service when no semantic one is set", async () => {
     expect(await scannerServices({ url: base(), semanticUrl: null, key: null })).toHaveLength(1);
+  });
+});
+
+describe("checkScanService (156, decision 7)", () => {
+  const HEALTH = '{"scanner": "skillspector", "version": "2.13.2"}';
+  const keyHeader = SCAN_KEY_HEADER.toLowerCase();
+  /** The key each request carried, in order. */
+  const keysSeen = () => seen.map((s) => s.request.headers[keyHeader]);
+  const gate = (right: string): ((path: string) => Reply) => {
+    return () => {
+      const last = seen.at(-1)?.request.headers[keyHeader];
+      return last === right
+        ? { status: 200, body: HEALTH }
+        : { status: 403, body: '{"error": "scan key"}' };
+    };
+  };
+
+  it("takes the scan service itself, without ever sending the key", async () => {
+    reply = () => ({ status: 200, body: HEALTH });
+    expect(await checkScanService(base().href, "the-key")).toEqual({
+      ok: true,
+      url: base(),
+      gated: false,
+      version: "2.13.2",
+    });
+    expect(keysSeen()).toEqual([undefined]);
+  });
+
+  it("takes Ronne's proxy that accepts the key, asking first without it", async () => {
+    reply = gate("the-key");
+    expect(await checkScanService(base().href, "the-key")).toMatchObject({
+      ok: true,
+      gated: true,
+      version: "2.13.2",
+    });
+    expect(keysSeen()).toEqual([undefined, "the-key"]);
+  });
+
+  it("refuses the proxy when its key is wrong, or Ronne has none", async () => {
+    reply = gate("another-key");
+    expect(await checkScanService(base().href, "the-key")).toEqual({
+      ok: false,
+      problem: "scan key refused",
+    });
+    reply = () => ({ status: 403, body: '{"error": "not set up"}' });
+    seen = [];
+    expect(await checkScanService(base().href, null)).toEqual({
+      ok: false,
+      problem: "scan key refused",
+    });
+    // With no key to send, nothing was sent beyond the first question.
+    expect(keysSeen()).toEqual([undefined]);
+  });
+
+  it("never sends the key to a server that is neither the service nor the proxy", async () => {
+    for (const answer of [
+      { status: 200, body: "<html>hello</html>" },
+      { status: 200, body: '{"scanner": "other"}' },
+      { status: 404, body: "" },
+      { status: 500, body: '{"error": "scan key"}' },
+      { status: 403, body: "Forbidden" },
+      { status: 302, body: "", headers: { location: "/elsewhere" } },
+    ]) {
+      seen = [];
+      reply = () => answer;
+      const result = await checkScanService(base().href, "the-key");
+      expect(result.ok, JSON.stringify(answer)).toBe(false);
+      expect(keysSeen(), JSON.stringify(answer)).toEqual([undefined]);
+    }
+  });
+
+  it("says which problem: not an address, no answer, not the scanner", async () => {
+    for (const text of ["", "nope", "ftp://x", `http://u:p@127.0.0.1:${port}/`, `${base()}scan`]) {
+      expect(await checkScanService(text, null), text).toEqual({ ok: false, problem: "not a url" });
+    }
+    reply = () => ({ status: 200, body: "<html></html>" });
+    expect(await checkScanService(base().href, null)).toEqual({
+      ok: false,
+      problem: "not the scanner",
+    });
+    // A port nothing listens on.
+    const closed = new URL("http://127.0.0.1:1/");
+    expect(await checkScanService(closed.href, null)).toEqual({
+      ok: false,
+      problem: "unreachable",
+    });
+  });
+
+  it("gives up on a server that stalls, with the short timeout", async () => {
+    for (const answer of ["hang", "stall", "drip"] as const) {
+      reply = () => answer;
+      const started = Date.now();
+      expect(await checkScanService(base().href, "the-key", fetch, 300), answer).toEqual({
+        ok: false,
+        problem: "unreachable",
+      });
+      expect(Date.now() - started, answer).toBeLessThan(2000);
+    }
+  });
+});
+
+describe("the scan key per address (156)", () => {
+  it("sends the semantic address its own key, and none when it has none", async () => {
+    const keyOf = () => seen.at(-1)?.request.headers[SCAN_KEY_HEADER.toLowerCase()];
+    reply = () => ({ status: 200, body: JSON.stringify({ exit: 0, report: report() }) });
+    const both = scanner({
+      semanticUrl: new URL(`http://localhost:${port}/`),
+      provider: PROVIDER,
+      key: "static-key",
+      semanticKey: "semantic-key",
+    });
+    await both.scan(FILES);
+    expect(keyOf()).toBe("static-key");
+    await both.scan(FILES, { semantic: true });
+    expect(keyOf()).toBe("semantic-key");
+    const noSemanticKey = scanner({
+      semanticUrl: new URL(`http://localhost:${port}/`),
+      provider: PROVIDER,
+      key: "static-key",
+      semanticKey: null,
+    });
+    await noSemanticKey.scan(FILES, { semantic: true });
+    expect(keyOf()).toBeUndefined();
+    // Without a separate semantic key, the static one is used for both (the operator's setup).
+    const shared = scanner({
+      semanticUrl: new URL(`http://localhost:${port}/`),
+      provider: PROVIDER,
+      key: "static-key",
+    });
+    await shared.scan(FILES, { semantic: true });
+    expect(keyOf()).toBe("static-key");
   });
 });

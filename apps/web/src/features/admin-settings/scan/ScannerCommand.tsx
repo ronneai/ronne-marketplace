@@ -8,6 +8,7 @@ import type {
   ScannerServiceState,
   ScanSetupShown,
 } from "@/server/domains/settings/models/skill-scan-policy";
+import { ScannerAddress } from "./ScannerAddress";
 import { ScannerService } from "./ScannerService";
 
 /**
@@ -16,6 +17,19 @@ import { ScannerService } from "./ScannerService";
  * With the scanner service's address set (156), the service and its state instead: no command runs.
  */
 export const ScannerCommand = ({
+  setup,
+  services,
+}: {
+  setup: ScanSetupShown;
+  services?: readonly ScannerServiceState[];
+}) => (
+  <div className="grid gap-4">
+    <ScannerCommandChoice setup={setup} services={services} />
+    <ScannerAddress setup={setup} />
+  </div>
+);
+
+const ScannerCommandChoice = ({
   setup,
   services,
 }: {

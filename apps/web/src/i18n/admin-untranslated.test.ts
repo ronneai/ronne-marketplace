@@ -39,6 +39,9 @@ const SAME: Record<string, readonly string[]> = {
   "settings.scan.provider.names.azure_openai": ["pt", "fr"],
   "settings.scan.provider.names.ollama": ["pt", "fr"],
   "settings.scan.provider.endpoint": ["pt"],
+  // 156: example addresses, the same in every language.
+  "settings.scan.address.placeholder": ["pt", "fr"],
+  "settings.scan.address.semanticPlaceholder": ["pt", "fr"],
   "audit.sentences.parts.roles.root": ["pt", "fr"],
   "audit.sentences.parts.roles.admin": ["pt", "fr"],
   "pages.area": ["pt", "fr"],

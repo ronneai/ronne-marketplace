@@ -163,6 +163,8 @@ export type HttpScannerOptions = {
   url: URL;
   semanticUrl: URL | null;
   key: string | null;
+  /** The scan key for the semantic address; the static one's `key` otherwise. */
+  semanticKey?: string | null;
   timeoutSeconds: number;
   provider: ScanProvider | null;
   fetch?: typeof fetch;
@@ -187,7 +189,10 @@ export const httpSkillScanner = (options: HttpScannerOptions): SkillScanner => (
       ...(provider ? { provider: provider.variables } : {}),
     });
     const headers: Record<string, string> = { "Content-Type": "application/json" };
-    if (options.key) headers[SCAN_KEY_HEADER] = options.key;
+    // The semantic address has its own key: root's addresses get the scan key only when they
+    // answered like the proxy as they were saved (156).
+    const key = provider && options.semanticKey !== undefined ? options.semanticKey : options.key;
+    if (key) headers[SCAN_KEY_HEADER] = key;
     const answer = await call(
       options.fetch ?? fetch,
       new URL("scan", target),
@@ -202,21 +207,26 @@ export const httpSkillScanner = (options: HttpScannerOptions): SkillScanner => (
 /** The scanner's version as the service gives it: short, and only the characters a version has. */
 const VERSION = /^[0-9A-Za-z.+-]{1,32}$/;
 
-/** One short `/health` call, the way Test connection is one request. */
-export const serviceHealth = async (
+/** What one `/health` call showed (156): the service itself, the proxy's refusal, or neither. */
+type HealthProbe =
+  | { kind: "ready"; version: string | null }
+  | { kind: "gate" }
+  | { kind: "other" }
+  | { kind: "none" };
+
+const probeHealth = async (
   url: URL,
   key: string | null,
-  fetcher: typeof fetch = fetch,
-  timeoutMs = HEALTH_TIMEOUT_MS,
-): Promise<ServiceHealth> => {
+  fetcher: typeof fetch,
+  timeoutMs: number,
+): Promise<HealthProbe> => {
   const headers: Record<string, string> = {};
   if (key) headers[SCAN_KEY_HEADER] = key;
   const answer = await call(fetcher, new URL("health", url), { headers }, timeoutMs);
-  if (!answer) return { state: "unreachable" };
+  if (!answer) return { kind: "none" };
   const { status, body } = answer;
   const error = errorOf(body);
-  if (status === 403 && (error === "scan key" || error === "not set up"))
-    return { state: "scan key refused" };
+  if (status === 403 && (error === "scan key" || error === "not set up")) return { kind: "gate" };
   // Ready only as the scan service says it: {"scanner": "skillspector", "version": …}.
   if (
     status !== 200 ||
@@ -224,12 +234,58 @@ export const serviceHealth = async (
     typeof body !== "object" ||
     (body as { scanner?: unknown }).scanner !== "skillspector"
   )
-    return { state: "unreachable" };
+    return { kind: "other" };
   const version = (body as { version?: unknown }).version;
   return {
-    state: "ready",
+    kind: "ready",
     version: typeof version === "string" && VERSION.test(version) ? version : null,
   };
+};
+
+/** One short `/health` call, the way Test connection is one request. */
+export const serviceHealth = async (
+  url: URL,
+  key: string | null,
+  fetcher: typeof fetch = fetch,
+  timeoutMs = HEALTH_TIMEOUT_MS,
+): Promise<ServiceHealth> => {
+  const probe = await probeHealth(url, key, fetcher, timeoutMs);
+  if (probe.kind === "ready") return { state: "ready", version: probe.version };
+  return probe.kind === "gate" ? { state: "scan key refused" } : { state: "unreachable" };
+};
+
+/** Why an address root typed was refused (156, decision 7). */
+export type ServiceProblem = "not a url" | "unreachable" | "not the scanner" | "scan key refused";
+
+export type ServiceCheck =
+  | { ok: true; url: URL; gated: boolean; version: string | null }
+  | { ok: false; problem: ServiceProblem };
+
+/**
+ * Whether an address root typed is the scan service (156, decision 7). The scan key is never sent
+ * to an address that hasn't shown what it is: `/health` is asked without it first, and the address
+ * is accepted if it is the service itself, or if it is Ronne's proxy refusing for the key and then
+ * ready with it. `gated` says the scan key goes to it. A server that mimics either answer would
+ * pass: this stops a typo or the wrong server, not someone who means harm.
+ */
+export const checkScanService = async (
+  text: string,
+  key: string | null,
+  fetcher: typeof fetch = fetch,
+  timeoutMs = HEALTH_TIMEOUT_MS,
+): Promise<ServiceCheck> => {
+  const url = parseServiceUrl(text);
+  if (!url) return { ok: false, problem: "not a url" };
+  const first = await probeHealth(url, null, fetcher, timeoutMs);
+  if (first.kind === "ready") return { ok: true, url, gated: false, version: first.version };
+  if (first.kind === "none") return { ok: false, problem: "unreachable" };
+  if (first.kind === "other") return { ok: false, problem: "not the scanner" };
+  // The proxy refused for the key: it needs ours, and ours must be right.
+  if (!key) return { ok: false, problem: "scan key refused" };
+  const second = await probeHealth(url, key, fetcher, timeoutMs);
+  if (second.kind === "ready") return { ok: true, url, gated: true, version: second.version };
+  if (second.kind === "gate") return { ok: false, problem: "scan key refused" };
+  return { ok: false, problem: second.kind === "none" ? "unreachable" : "not the scanner" };
 };
 
 /** The compose install's proxy (156): its ports are the scanner services. */
@@ -237,19 +293,32 @@ const COMPOSE_PROXY = "proxy";
 
 /** Each service's state now (156), static first: one short `/health` call each, at once. */
 export const scannerServices = async (
-  service: { url: URL; semanticUrl: URL | null; key: string | null },
+  service: {
+    url: URL;
+    semanticUrl: URL | null;
+    key: string | null;
+    semanticKey?: string | null;
+  },
   fetcher?: typeof fetch,
 ): Promise<ScannerServiceState[]> => {
   const targets = [
-    { kind: "static" as const, url: service.url },
-    ...(service.semanticUrl ? [{ kind: "semantic" as const, url: service.semanticUrl }] : []),
+    { kind: "static" as const, url: service.url, key: service.key },
+    ...(service.semanticUrl
+      ? [
+          {
+            kind: "semantic" as const,
+            url: service.semanticUrl,
+            key: service.semanticKey !== undefined ? service.semanticKey : service.key,
+          },
+        ]
+      : []),
   ];
   return Promise.all(
-    targets.map(async ({ kind, url }) => ({
+    targets.map(async ({ kind, url, key }) => ({
       kind,
       address: url.origin,
       compose: url.hostname === COMPOSE_PROXY,
-      health: await serviceHealth(url, service.key, fetcher),
+      health: await serviceHealth(url, key, fetcher),
     })),
   );
 };

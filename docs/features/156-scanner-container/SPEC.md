@@ -69,7 +69,7 @@ A Docker install then gets the scanner by answering one question in the installe
     - With a service address set, scans go to it, whatever command is set: the address is the newer way, and compose sets it.
     - A static scan goes to `RONNE_SKILL_SCANNER_URL`. A semantic one goes to `RONNE_SKILL_SCANNER_SEMANTIC_URL`, or fails as not set up when it isn't set.
     - The web-set endpoint is checked again before a semantic scan, as today.
-  - **The addresses** come from the environment or the settings file, never from the web: like the command, they're the operator's choice (135, decision 3).
+  - **The addresses** come from the environment or the settings file, or root sets them in Admin › Settings › Security scan (owner, 2026-10-29; decision 7). The environment wins and shows as **Set on the server**. The scan key (`RONNE_SCAN_KEY`) stays the operator's. Root can type any address, but it must really be the scan service: on save, Ronne asks its `/health` without the scan key, and accepts only the service's own answer (`{"scanner": "skillspector"}`) or the proxy's refusal for the scan key. It then asks again with the key when the proxy refused, so the key goes only to an address that answered like Ronne's proxy. An address that answers neither is refused, and the field says why: not an address, no answer, not the scan service, or the proxy refused the scan key.
   - **Admin › Settings › Security scan** shows where the scanner is:
     - "The scanner container: ready, SkillSpector 2.13.2", from one `/health` call with a short timeout, the way Test connection works;
     - or "not reachable", with the command that starts it (for compose's proxy only: an address of the operator's own gets no command);
@@ -94,7 +94,7 @@ A Docker install then gets the scanner by answering one question in the installe
 **Out:**
 - **Publishing the scanner image** (owner, 2026-10-29): it's built on the server, so Ronne still doesn't ship SkillSpector or its Python packages. E-11 still allows them, reworded in task 1: Ronne's compose file and installer now build the image on the operator's server, but nothing is distributed by Ronne.
 - **A model server (Ollama) in compose.**
-- **Setting the addresses, the command or `RONNE_SKILL_SCANNER_HTTP_HOSTS` from the web.** The host list is the guard against the server being made to call internal addresses (136); it stays the operator's.
+- **Setting the command or `RONNE_SKILL_SCANNER_HTTP_HOSTS` from the web.** The command runs anything on the server and the host list guards the LLM endpoint (136); both stay the operator's. (The scanner's addresses and the scan key are not on this list any more: see decision 7. The scan key is still the operator's.)
 - **Changing 147.** When 147 lands, it picks the provider for both services, as it says.
 
 ## Behaviour
@@ -153,6 +153,8 @@ None. No migration. The addresses are read from the environment or the settings 
 4. **The installer asks** (owner, 2026-10-29). It isn't always on: it's an extra image and container that many instances never use.
 5. **The addresses are the operator's, like the command** (Claude, from 135's decision 3). Compose sets them, so Docker installs type nothing. `RONNE_SKILL_SCANNER_HTTP_HOSTS` stays the operator's too (owner, 2026-10-29).
 6. **Through the proxy, never beside Ronne** (owner, 2026-10-29). A scanner runs untrusted content, so it never shares a network with `web`: Ronne reaches it through Caddy's internal ports, and it can reach Ronne only the way any client does, at its real address. The scanner ports need the scan key, so a scanner can't call the other.
+
+7. **Root can set the scanner's addresses in the web** (owner, 2026-10-29, after asking: the other options were only for hosts the operator allows, or operator-only). Any address root types, so a local test needs no `.env` edit, but it must really be the scan service: Ronne checks `/health` before saving, without the scan key, and only sends the key to an address that answered like Ronne's proxy. This is a weaker guard than the LLM endpoint's: an address that answers like the service can receive every submission's files, and a semantic address also the LLM provider's API key, which a semantic scan carries. Four limits the check cannot remove: a server that imitates the proxy's refusal and then the service's answer gets the scan key; the host is resolved again on every scan, so an address that later points at another server keeps getting the key; the save is also a way for root to probe which ports answer (three different errors); and the check reads nothing back beyond the fixed answers. The operator's settings still win: an address **or a command** in the environment fixes the scanner, and root's addresses are ignored then, as for every other setting the environment sets. Root can already set an LLM endpoint, and the check stops a typo or the wrong server, not a root who means harm. The change is audited with the address's host.
 
 ## Open questions
 

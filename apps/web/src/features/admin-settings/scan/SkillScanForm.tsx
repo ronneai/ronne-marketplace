@@ -20,7 +20,16 @@ import { SemanticConfirm } from "./SemanticConfirm";
 import { TimeoutField } from "./TimeoutField";
 
 /** The fields of the scanner's setup (136): a change to any of them is something to save. */
-const SETUP_FIELDS = new Set(["command", "provider", "model", "endpoint", "key", "timeout"]);
+const SETUP_FIELDS = new Set([
+  "command",
+  "provider",
+  "model",
+  "endpoint",
+  "key",
+  "timeout",
+  "serviceUrl",
+  "semanticServiceUrl",
+]);
 
 const ANALYSES: readonly SkillScanAnalysis[] = ["static", "semantic"];
 

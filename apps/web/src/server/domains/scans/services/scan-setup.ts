@@ -32,40 +32,68 @@ export type ScannerConfig = {
 
 /**
  * The scanner as a service (156): its static address, its semantic one if set, and the scan key
- * the proxy checks.
+ * the proxy checks, for each address. The key goes to the operator's addresses, and to root's only
+ * when each answered like Ronne's proxy as it was saved.
  */
-export type ScanService = { url: URL; semanticUrl: URL | null; key: string | null };
+export type ScanService = {
+  url: URL;
+  semanticUrl: URL | null;
+  key: string | null;
+  semanticKey: string | null;
+};
 
 /**
- * What the operator set of the service (156). A static address set means the service, valid or
- * not: an invalid one is no scanner at all, never a silent fall back to the command beside it.
- * `problems` names what the tab says is wrong: an address that isn't one, or a semantic address
- * with no static one (used for nothing).
+ * What is set of the service (156): the operator's addresses, else those root typed. A static
+ * address set means the service, valid or not: an invalid one is no scanner at all, never a
+ * silent fall back to the command beside it. `problems` names what the tab says is wrong: an
+ * address that isn't one, or a semantic address with no static one (used for nothing).
  */
 export const serviceConfigOf = (
   config: ScannerConfig | undefined,
+  stored?: StoredScanSetup,
 ): {
   set: boolean;
   service: ScanService | null;
   problems: ScanServiceProblem[];
+  from: "environment" | "settings" | null;
+  urlText: string;
+  semanticText: string;
 } => {
-  const urlText = config?.url?.trim() ?? "";
-  const semanticText = config?.semanticUrl?.trim() ?? "";
+  const envUrl = config?.url?.trim() ?? "";
+  const envSemantic = config?.semanticUrl?.trim() ?? "";
+  // Either address, or a command, set in the environment means the operator manages the scanner:
+  // root's addresses are ignored, as every other setting the environment fixes.
+  const fromEnv = envUrl !== "" || envSemantic !== "" || Boolean(config?.command?.trim());
+  const urlText = fromEnv ? envUrl : (stored?.url?.trim() ?? "");
+  const semanticText = fromEnv ? envSemantic : (stored?.semanticUrl?.trim() ?? "");
   const url = parseServiceUrl(urlText);
   const semanticUrl = parseServiceUrl(semanticText);
   const problems: ScanServiceProblem[] = [];
   if (urlText && !url) problems.push("url");
   if (semanticText && !semanticUrl) problems.push("semanticUrl");
   if (semanticText && !urlText) problems.push("semanticAlone");
+  const scanKey = config?.scanKey?.trim() || null;
   return {
     set: urlText !== "",
-    service: url ? { url, semanticUrl, key: config?.scanKey?.trim() || null } : null,
+    service: url
+      ? {
+          url,
+          semanticUrl,
+          key: fromEnv || stored?.urlGated === "1" ? scanKey : null,
+          semanticKey: fromEnv || stored?.semanticUrlGated === "1" ? scanKey : null,
+        }
+      : null,
     problems,
+    from: fromEnv ? "environment" : urlText || semanticText ? "settings" : null,
+    urlText,
+    semanticText,
   };
 };
 
-export const scanServiceOf = (config: ScannerConfig | undefined): ScanService | null =>
-  serviceConfigOf(config).service;
+export const scanServiceOf = (
+  config: ScannerConfig | undefined,
+  stored?: StoredScanSetup,
+): ScanService | null => serviceConfigOf(config, stored).service;
 
 /** Where a part of the setup comes from: the operator's environment wins over root's settings. */
 export type SetupSource = "environment" | "settings" | "default";
@@ -153,7 +181,7 @@ const providerFromSettings = (stored: StoredScanSetup, key: string | null): Scan
  * No command runs while a service address is set (156), even one that isn't valid.
  */
 const commandOf = (config: ScannerConfig | undefined, stored: StoredScanSetup) => {
-  const serviceSet = serviceConfigOf(config).set;
+  const serviceSet = serviceConfigOf(config, stored).set;
   const list = parseScannerList(config?.commands);
   const commands = list.flatMap((command, index) =>
     command ? [{ index, name: basename(command[0] as string) }] : [],
@@ -176,7 +204,7 @@ const commandOf = (config: ScannerConfig | undefined, stored: StoredScanSetup) =
  * no more than that (queuing on send, the review page): it never opens the key.
  */
 export const scannerSet = (config: ScannerConfig | undefined, stored: StoredScanSetup): boolean =>
-  scanServiceOf(config) !== null || commandOf(config, stored).command !== null;
+  scanServiceOf(config, stored) !== null || commandOf(config, stored).command !== null;
 
 export const scanSetup = (
   config: ScannerConfig | undefined,
@@ -185,7 +213,7 @@ export const scanSetup = (
 ): ScanSetup => {
   const env = config?.env ?? {};
   const { commands, envCommand, chosen, fromList, command, serviceSet } = commandOf(config, stored);
-  const { service, problems } = serviceConfigOf(config);
+  const { service, problems, from, urlText, semanticText } = serviceConfigOf(config, stored);
 
   // The environment's timeout wins when set; one that isn't valid is 300, as in 135.
   const envTimeout = config?.timeout?.trim() ? parseScanTimeout(config.timeout) : null;
@@ -215,6 +243,9 @@ export const scanSetup = (
       commandDropped:
         !serviceSet && envCommand === undefined && chosen !== null && fromList === null,
       serviceProblems: problems,
+      serviceFrom: from,
+      serviceUrl: urlText,
+      semanticServiceUrl: semanticText,
       timeoutFrom: envTimeout ? "environment" : storedTimeout ? "settings" : "default",
       timeoutSeconds: envTimeout ?? storedTimeout ?? DEFAULT_SCAN_TIMEOUT_SECONDS,
       providerFrom: envProvider ? "environment" : provider ? "settings" : null,

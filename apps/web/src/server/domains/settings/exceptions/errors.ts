@@ -190,6 +190,47 @@ export class ScanEndpointNotHttpsError extends SettingsError {
   }
 }
 
+export class InvalidScanServiceUrlError extends SettingsError {
+  override readonly name: string = "InvalidScanServiceUrlError";
+  constructor() {
+    super(
+      "Enter the scanner's address as a plain http:// or https:// URL, such as http://127.0.0.1:7670, with no user name, path or query.",
+    );
+  }
+}
+
+export class ScanServiceUnreachableError extends SettingsError {
+  override readonly name: string = "ScanServiceUnreachableError";
+  constructor() {
+    super(
+      "Ronne couldn't reach that address. Check that the scanner is running and the address and port are right.",
+    );
+  }
+}
+
+export class ScanServiceNotScannerError extends SettingsError {
+  override readonly name: string = "ScanServiceNotScannerError";
+  constructor() {
+    super("That address answered, but it isn't Ronne's scan service. Check the address and port.");
+  }
+}
+
+export class ScanServiceKeyRefusedError extends SettingsError {
+  override readonly name: string = "ScanServiceKeyRefusedError";
+  constructor() {
+    super(
+      "That address is Ronne's proxy, but it refused Ronne's scan key. The server's operator checks RONNE_SCAN_KEY and recreates the proxy.",
+    );
+  }
+}
+
+export class ScanServiceSemanticAloneError extends SettingsError {
+  override readonly name: string = "ScanServiceSemanticAloneError";
+  constructor() {
+    super("Set the scanner's address before the semantic scanner's.");
+  }
+}
+
 export class ScanEndpointInternalError extends SettingsError {
   override readonly name: string = "ScanEndpointInternalError";
   constructor() {

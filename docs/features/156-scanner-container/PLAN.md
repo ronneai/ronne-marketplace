@@ -70,5 +70,16 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - `docs/knowledge/docker-hub-pulls.md` and `docs/knowledge/test-runs.md` get the new pulls and runs.
   - *Done when:* the jobs run on a pull request that changes `scripts/skill-scanner/`, are skipped on one that doesn't, and pass.
 
+- [x] **7. The scanner's addresses in Admin › Settings › Security scan.** [risky] (owner, 2026-10-29; decision 7)
+  - Two fields, **Scanner address** and **Semantic scanner address**, stored as settings (`skill_scan_url`, `skill_scan_semantic_url`). The environment's `RONNE_SKILL_SCANNER_URL` and `RONNE_SKILL_SCANNER_SEMANTIC_URL` win and show as **Set on the server**; the scan key stays `RONNE_SCAN_KEY`.
+  - Saving checks the address is the scan service: only a plain `http(s)` address, then `/health` **without the key**: the service's own answer, or the proxy's scan-key refusal; for a refusal, `/health` again with the key must be ready. Anything else is refused with a worded error (not an address, no answer, not the scan service, the proxy refused the scan key), in en, pt and fr. The key never goes to an address that answered neither way.
+  - The job, `scanTypesNow`, the review page and the tab read the stored address through the same setup as the environment's. An empty field removes it. The audit entry carries the address's host only. An address or a command in the environment fixes the scanner: root's addresses are ignored and their fields hidden, like every other setting the environment sets.
+  - The spec, MVP §15, the Documentation (website and app help, runbook) say it.
+  - *Done when:*
+    - unit and database tests cover the precedence, the validation (a stand-in server for the service, the proxy's refusal, a wrong server, a closed port, a redirect, a slow one), the audit entry and the keeping of root's other choices;
+    - the tab saves an address and shows the container as ready; an address that is another server is refused with the reason;
+    - the scan key reaches only an address that answered like the proxy (a test sees the header on a gated stand-in, and none on a plain one);
+    - lint, types, tests and build pass, and the database tests on the four servers.
+
 - [x] **6. Documentation.** The spec's Documentation section, in ronne-web and here, including the trusted-proxies lines in `docs/runbooks/install.md` and the root `README.md`.
   - *Done when:* the docs render tests pass, and the new helper's link lands on a real section.

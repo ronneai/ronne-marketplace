@@ -871,3 +871,151 @@ Witnessed: 2026-10-29 23:15 local, by a fresh agent (blind re-check). Commit: 16
 | 5 | The suites and checks are green | no | confirmed | 430 app tests in 26 files; website lint, typecheck and tests |
 
 **Overall:** met. No bugs found. (The one lint note it saw, an unnecessary fragment in the new website test, is removed; the test is back to `docs.test.ts`.)
+
+## Task 7
+
+Witnessed: 2026-10-29 23:55 EDT, by a fresh agent (blind). Commit: 4918e46b plus the uncommitted task-7 diff and the untracked `ScannerAddress.tsx`. Machine: macOS (Darwin 27.0.0), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The fields save through `saveSkillScanPolicy` → `setSkillScanSetup`; a form without them keeps the addresses | no | confirmed | `actions.ts` passes `undefined` for a missing field; `typedService` keeps the stored value |
+| 2 | Only plain http(s) addresses are accepted | no | confirmed | real `checkScanService`: `ftp://`, credentials, a path, a query and text all → `not a url`; overlong or control characters throw `InvalidScanServiceUrlError` |
+| 3 | `/health` is asked first without the key; the real service is accepted as itself, not gated | no | confirmed | real image on 127.0.0.1:17770 → `{"ok":true,"gated":false,"version":"2.13.2"}`; key sent in the first probe → 3 tests fail |
+| 4 | A closed port is unreachable, another HTTP server is not the scanner, a redirect is no answer | no | confirmed | port 17769 → `unreachable`; a python server → `not the scanner`; `redirect: "manual"` |
+| 5 | The key goes only to a proxy that refused without it and is ready with it | no | confirmed | real Caddy proxy: right key → ok, gated true; wrong or no key → `scan key refused`; :8082 and :80 → `not the scanner`; three mutations fail 1, 2 and 2 tests |
+| 6 | The stored gated flag decides whether the scan key reaches the address at scan time | no | confirmed | `key: fromEnv \|\| urlGated === "1" ? scanKey : null`, and the same for the semantic key; mutations fail unit and db tests |
+| 7 | The environment's addresses win, root's are ignored and can't be overwritten, and the tab shows them as set on the server | no | confirmed | `fromEnv`, `serviceFixed`, `ScannerAddress` returns null; three mutations each fail a test |
+| 8 | Clearing works; an unchanged address isn't re-checked; a semantic address with no static one is refused | no | confirmed | `wanted === was`; `ScanServiceSemanticAloneError`; two mutations fail |
+| 9 | The job, `scanTypesNow`, the review page and the tab read the stored address through one setup | no | confirmed | `storedScanSetup` is passed to `scanSetup` or `scannerSet` in each |
+| 10 | The errors are worded in en, pt and fr | no | confirmed | five new keys in each `errors.json`; parity tests pass |
+| 11 | The audit entry carries the host only | no | partly | `summary()` adds `serviceHost` and `semanticServiceHost`; removing the semantic one fails no test |
+| 12 | The tab shows both fields, and the semantic hint says the LLM provider's key is sent to that address | no | confirmed | `semanticHint` and the tab tests |
+| 13 | The tests pass, types and lint are clean | no | confirmed | 824 unit tests; 99 db tests on SQLite; `tsc` clean; lint 0 errors |
+| 14 | The tests cover the rules | no | confirmed | nine mutations fail a test, except the semantic host in the audit (row 11) |
+| 15 | The database tests pass on the four servers | no | can't check here | SQLite only; outside the brief |
+| 16 | The website text, the spec and the runbook say it | no | can't check here | only the in-app messages and help were read |
+
+**Overall:** not met: row 11 partly, rows 15 and 16 not checked. A second finding: the unchanged check compares the typed text with the stored `URL.href`, so the address without its trailing slash is re-checked, and fails if the scanner is down.
+
+### Adversarial pass
+
+Witnessed: 2026-10-29 23:55 EDT, by a fresh agent (adversarial). Commit: 4918e46b plus the uncommitted diff and the untracked `ScannerAddress.tsx`. Machine: macOS (Darwin 27), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The scan key reaches only an address that showed it is the proxy | no | confirmed | a plain-service stand-in saw no key; first probe sending the key fails 3 tests |
+| 2 | The key per address comes from the stored gated flag, and always for environment addresses; the health call and the scans follow the same rule | no | confirmed | the only places that send `X-Ronne-Scan-Key` are `http-scanner.ts:195` and `:224`; two mutations fail tests |
+| 3 | The gated flag is recomputed on every change, so it can't go stale | no | confirmed | `typedService` rechecks a changed address, clears a cleared one, keeps an unchanged one |
+| 4 | Redirects are never followed, in the check or in scans | no | confirmed | a 302 to a real service → `unreachable`; `follow` fails 2 tests |
+| 5 | The check's limits: 3 s over the body, a size cap, slow drips | no | confirmed | a dripping body → `unreachable` after 3003 ms; 1 MiB chunks → `not the scanner` in 30 ms; at most about 12 s per save |
+| 6 | The errors are fixed texts; the audit carries hosts only | no | confirmed | `errors.ts`, `summary()` |
+| 7 | Only root can call it, and the permission is checked before any request goes out | no | confirmed | `requirePermission` is the first statement; CSRF with a live server not run |
+| 8 | A form without the fields keeps the addresses; empty ones clear them | no | confirmed | `form.has(...)`; mutations fail |
+| 9 | A stored address that isn't valid sets the service, no command runs | no | confirmed | `serviceSet` in `commandOf`; a mutation fails 3 tests |
+| 10 | The tests, types and lint pass | no | confirmed | 806 unit tests, 77 db tests, `tsc` clean, lint 0 errors |
+| 11 | Every guard rule has a failing test | no | confirmed | 13 mutations, none survived |
+| 12 | The risk is stated everywhere it should be | no | partly | the static field's hint and the runbook don't say every submission's files go to the typed address; the website says "the key goes only to the proxy", which overstates |
+
+**Overall:** not met: row 12. Also found: a server that imitates the proxy's refusal and then the service's answer gets the scan key (inherent to decision 7); an operator's command in the environment was overridden by root's web address; the check is a port probe; DNS is resolved again on every scan. Fixed since:
+- An address or a command in the environment now fixes the scanner: root's addresses are ignored and their fields hidden, like every other setting the environment sets. Tests: unit, screen and database.
+- The unchanged check compares the normalised address, so a trailing slash is no change. A database test also asserts the semantic host in the audit entry, which fails if it is removed.
+- The static field's hint, the runbook and the website say every submission's files go to the typed address; the website says the key goes "only to an address that answers like the proxy" and that the check stops a typo, not a server made to look like the scanner (en, pt, fr).
+- The spec's decision 7 lists the limits the check cannot remove (a mimicking server gets the key; DNS is resolved again on each scan; the save probes ports; the environment wins).
+
+### Re-check
+
+Witnessed: 2026-10-29 23:58 EDT, by a fresh agent (blind re-check). Commit: 4918e46b plus the uncommitted task-7 diff and the untracked `ScannerAddress.tsx`; ronne-web a8d397b. Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The audit entry carries the semantic address's host, and a test pins it | no | confirmed | `skill-scan-setup.db.test.ts:421`; deleting the `semanticServiceHost` line fails it |
+| 2 | The same address with or without a trailing slash is not a change | no | confirmed | comparing the raw text instead fails the test |
+| 3 | An address or a command in the environment fixes the scanner; root's addresses are ignored and their fields hidden | no | confirmed | dropping the command term fails 2 tests; a tab test shows no `serviceUrl` field |
+| 4 | The static field's hint says every submission's files go to the address, in en, pt and fr | no | confirmed | removing the en sentence fails a test |
+| 5 | The website text says the same in en, pt and fr and matches the code | no | confirmed | read in three languages against `serviceConfigOf` and `http-scanner.ts` |
+| 6 | The website's docs tests pass, including the list-item counting test | no | confirmed | 189 passed; removing the pt Scanner address item fails the test |
+| 7 | The spec, the plan, the MVP row and the runbook match the behaviour | no | confirmed | the MVP row said "addresses" without "or a command"; fixed since |
+| 8 | App unit tests | no | confirmed | 41 files, 827 tests |
+| 9 | SQLite database tests | no | confirmed | 5 files, 101 tests |
+| 10 | The same four database test files on PostgreSQL, MySQL and MariaDB | no | confirmed | 80 tests passed on each |
+| 11 | `tsc` and lint | no | confirmed | no output; no errors |
+
+**Overall:** met. No bugs found.
+
+### Re-check
+
+Witnessed: 2026-10-29 23:59 EDT, by a fresh agent (adversarial re-check). Commit: 4918e46b plus the uncommitted diff and the untracked `ScannerAddress.tsx`. Machine: macOS (Darwin 27), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | An address or a command in the environment fixes the scanner; the stored scan key is never sent to root's gated address | no | confirmed | stored gated address plus an environment command and key → `from: "environment"`, `service: null`, no scanner is built |
+| 2 | A form post with the address fields while the environment fixes the scanner can't store or check an address | no | confirmed | `serviceFixed = false` fails 2 db tests |
+| 3 | Only a semantic address in the environment fixes the scanner, shows the problem, and ignores root's address | no | confirmed | `["environment", false, ["semanticAlone"], null]` |
+| 4 | An invalid environment command still fixes the scanner, and root can't get around it | no | confirmed | `command: '["/x"'` plus a stored address → `from: "environment"`, `set: false` |
+| 5 | `RONNE_SKILL_SCANNERS` (the list) doesn't fix the address | no | confirmed | `fromEnv` reads `config.command` only |
+| 6 | The unchanged compare uses the normalised href, so a different address can't skip the check | no | confirmed | `HTTP://A:7670`, `/.`, `/%2e`, `/x/..` → the same href; `a.` stays distinct; userinfo, `?`, `#` and a path are refused |
+| 7 | Each rule fails a test when undone | no | confirmed | ten mutations in the scratch copy, none survived |
+| 8 | The tab never shows fields while the environment fixes the scanner, or the reverse | no | confirmed | `serviceFrom` null or "settings" shows them |
+| 9 | i18n and the hint in en, pt and fr | no | confirmed | 812 tests |
+| 10 | Typecheck and lint | no | confirmed | no output; no errors |
+| 11 | The website text in ronne-web a8d397b | no | can't check here | not read |
+
+**Overall:** met for the code. Row 11 unchecked (the next pass covers it). Also noted, not blocking: removing the environment's command brings root's stored addresses back with their old gated flags, so the runbook says to recheck them after changing `RONNE_SCAN_KEY`.
+
+### Re-check
+
+Witnessed: 2026-10-30 00:05 local, by a fresh agent (adversarial). Commit: 4918e46b plus the uncommitted task-7 diff; ronne-web a8d397b. Machine: macOS (Darwin), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The `settings` bullet is accurate and doesn't overstate | no | confirmed | against `checkScanService` and `probeHealth`; the mimic caveat matches the function's own comment |
+| 2 | The `connect` paragraph is accurate | no | confirmed | the environment's address wins; a malformed address is used for nothing and no command runs |
+| 3 | The `container` host-install paragraph is accurate | no | confirmed | names the three ways to supply the address; no overclaim |
+| 4 | The troubleshooting bullets are accurate | no | partly | the four bullets read are right, but nothing covers an address refused on save |
+| 5 | The product-facts row is accurate | no | confirmed | matches the code |
+| 6 | pt and fr say the same as en | no | confirmed | all three read |
+| 7 | No outdated sentence from before the address could be typed in the web | no | confirmed | "can't be typed in the web" is about commands, which still can't be |
+| 8 | The website tests pass | no | confirmed | 189 passed |
+
+**Overall:** not met: row 4. Fixed since: a troubleshooting item, in en, pt and fr (ten items in each language, counted by the docs test), for an address refused on save: the field says why; it must be a plain http(s) address with no user name, path or query; no answer means the scanner isn't running or the address or port is wrong; not the scan service means something else answered; the proxy refused the scan key means the operator checks `RONNE_SCAN_KEY` and recreates the proxy.
+
+### Re-check
+
+Witnessed: 2026-10-30 00:20 local, by a fresh agent (adversarial, blind). Commit: 4918e46b plus the uncommitted task-7 diff; ronne-web 6aeecbc. Machine: macOS (Darwin 27.0.0).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The new troubleshooting item names the right causes and remedies for the four `ServiceProblem` reasons | no | confirmed | `security-scan.tsx` en:627-632 against `errors.json` 159-162: plain http(s) with no user name, path or query; no answer; something else answered; the proxy refused the key, with `RONNE_SCAN_KEY` and recreating the proxy |
+| 2 | The pt and fr wording is faithful and uses the terms of the rest of those files | no | confirmed | pt 654-660 and fr 699-707 match `errors.json` in pt and fr |
+| 3 | The refusal of a semantic address with no scanner address is in the item | no | partly | it was not; the item said the field says why |
+| 4 | The item count is the same in the three languages | no | confirmed | 10 in en, pt and fr |
+| 5 | The website's tests, lint and typecheck pass | no | confirmed | 189 tests; lint and `tsc` clean |
+
+**Overall:** not met: row 3. Fixed since: the item adds, in en, pt and fr, that the semantic scanner's address also needs the scanner's address set first.
+
+### Re-check
+
+Witnessed: 2026-10-30 00:30 local, by a fresh agent (adversarial). Commit: 4918e46b plus the uncommitted task-7 diff; ronne-web e8e5076. Machine: macOS (Darwin).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The English item covers the four `ServiceProblem` reasons and the fifth (a semantic address needs the scanner's first) | no | confirmed | `security-scan.tsx` 627-633 against `skill-scan-setup.ts:242`; it covers clearing the static address while a semantic one is stored |
+| 2 | pt says the same, with consistent terms | no | confirmed | pt 654-661 has all five |
+| 3 | fr says the same, with consistent terms | no | not met | fr 699-708 stopped after the proxy clause: the fifth sentence was missing |
+| 4 | The item count is 10 in the three languages | no | confirmed | 10, 10, 10 |
+| 5 | The website's tests, lint and typecheck pass | no | confirmed | no failure; lint and `tsc` clean |
+
+**Overall:** not met: row 3. Fixed since: the French item has the sentence (my edit script had failed on the French wording and the amended commit lacked it). The website HEAD is now 1277808; en, pt and fr each carry the sentence, the docs test counts 10 items in each, and 189 tests pass.
+
+### Re-check
+
+Witnessed: 2026-10-30 00:40 local, by a fresh agent (adversarial). Commit: 4918e46b plus the uncommitted task-7 diff; ronne-web 12778086bc0a8278f73c8159038964147c9c5e1e. Machine: macOS (Darwin), Node 24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The troubleshooting item covers the four `ServiceProblem` refusals in en, pt and fr | no | confirmed | en:627-633, pt:654-661, fr:699-708 against the kinds in `http-scanner.ts` |
+| 2 | The same item covers the fifth, a semantic address needs the scanner's first, in all three languages | no | confirmed | en:632-633, pt:660-661, fr:707-708; wording matches `ScanServiceSemanticAloneError` in `errors.json` |
+| 3 | The item count is 10 in each language | no | confirmed | 10, 10, 10 |
+| 4 | Tests, lint and typecheck pass in `ronne-web/www` | no | confirmed | no failures; lint and `tsc` clean |
+
+**Overall:** met. No bugs found.
