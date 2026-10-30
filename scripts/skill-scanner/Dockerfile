@@ -5,7 +5,7 @@
 # (the tag `skillspector-sandbox` runs). Ronne's compose file builds it on the server as
 # ronne-skillspector (156). The entrypoint is the scan service; the `skillspector` command is still
 # in the image, which the wrapper runs with --entrypoint skillspector.
-FROM ghcr.io/astral-sh/uv:0.13.0@sha256:cdc6093146eb3ff6a40107b38f008b789e050e77ad87865e381d9917da55a168 AS uv
+FROM ghcr.io/astral-sh/uv:0.13.6@sha256:af22a52f5eafef3d78e551599d405c02df61919d18028f0cea8eda93bc9986d0 AS uv
 
 FROM python:3.12-slim-bookworm@sha256:8a7e7cc04fd3e2bd787f7f24e22d5d119aa590d429b50c95dfe12b3abe52f48b AS builder
 COPY --from=uv /uv /usr/local/bin/uv
