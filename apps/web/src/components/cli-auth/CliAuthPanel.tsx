@@ -24,6 +24,15 @@ const Hint = ({ children }: { children: ReactNode }) => (
   <p className="text-xs text-muted">{children}</p>
 );
 
+const Wrapper = ({ framed, children }: { framed: boolean; children: ReactNode }) =>
+  framed ? (
+    <Panel padding="lg" className="grid gap-5">
+      {children}
+    </Panel>
+  ) : (
+    <div className="grid gap-5">{children}</div>
+  );
+
 /**
  * Using `rmk` from the terminal, on the sign-in page and on Access tokens (022): how to get it,
  * how to sign in (with this instance's URL when it's known, `registry`), and what comes next.
@@ -32,16 +41,25 @@ const Hint = ({ children }: { children: ReactNode }) => (
 export const CliAuthPanel = ({
   linkToTokens = true,
   registry,
+  framed = true,
+  compact = false,
 }: {
   linkToTokens?: boolean;
   /** This instance's public URL, for `--registry`. */
   registry?: string;
+  /** In its own card; off when it sits inside another one, such as a tab of the sign-in page (157). */
+  framed?: boolean;
+  /**
+   * Short enough to fit without scrolling (157): the token and browser sign-ins sit behind "Other
+   * ways to sign in", and the note on workspace names is left out. Access tokens shows it all.
+   */
+  compact?: boolean;
 }) => {
   const t = useTranslations("common.cliAuth");
   const mono = (chunks: ReactNode) => <span className="font-mono">{chunks}</span>;
   const commands = rmkCommands(registry);
   return (
-    <Panel padding="lg" className="grid gap-5">
+    <Wrapper framed={framed}>
       <div className="grid gap-1">
         <h2 className="text-lg font-semibold text-fg">{t("title")}</h2>
         <p className="text-sm text-muted">{t.rich("intro", { mono })}</p>
@@ -72,17 +90,32 @@ export const CliAuthPanel = ({
               : t("step2Here")}
           </Hint>
           <CopyableCommand command={commands.login} wrap />
-          <CopyableCommand command={commands.loginToken} wrap />
-          <Hint>{t("webHint")}</Hint>
-          <CopyableCommand command={commands.loginWeb} wrap />
+          {compact ? (
+            <details className="grid gap-2">
+              <summary className="cursor-pointer text-xs text-link underline-offset-2 hover:underline">
+                {t("moreWays")}
+              </summary>
+              <div className="mt-2 grid gap-2">
+                <CopyableCommand command={commands.loginToken} wrap />
+                <Hint>{t("webHint")}</Hint>
+                <CopyableCommand command={commands.loginWeb} wrap />
+              </div>
+            </details>
+          ) : (
+            <>
+              <CopyableCommand command={commands.loginToken} wrap />
+              <Hint>{t("webHint")}</Hint>
+              <CopyableCommand command={commands.loginWeb} wrap />
+            </>
+          )}
         </Step>
         <Step n={3} title={t("step3")}>
           <Hint>{t.rich("step3Hint", { mono })}</Hint>
           <CopyableCommand command={commands.whoami} />
           <CopyableCommand command={commands.installItem} wrap />
-          <Hint>{t.rich("globalHint", { mono })}</Hint>
+          {compact ? null : <Hint>{t.rich("globalHint", { mono })}</Hint>}
         </Step>
       </ol>
-    </Panel>
+    </Wrapper>
   );
 };

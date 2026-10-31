@@ -94,7 +94,8 @@
     "webHint": "Vous vous connectez par votre entreprise ou utilisez la double authentification? Approuvez plutôt dans le navigateur :",
     "step3": "Vérifiez, puis installez",
     "step3Hint": "<mono>rmk whoami</mono> indique qui vous êtes. Chaque page d’élément affiche sa commande d’installation; la Documentation explique le reste une fois la connexion établie.",
-    "globalHint": "En dehors de <mono>global</mono>, le nom d’un élément commence par son espace de travail : <mono>rmk install @workspace/scope/name</mono>."
+    "globalHint": "En dehors de <mono>global</mono>, le nom d’un élément commence par son espace de travail : <mono>rmk install @workspace/scope/name</mono>.",
+    "moreWays": "Autres façons de se connecter"
   },
   "languageSwitch": {
     "label": "Langue"
@@ -110,5 +111,19 @@
     "characters": "Utilisez seulement des lettres minuscules, des chiffres et des traits d’union.",
     "edges": "Ne commencez ni ne terminez par un trait d’union.",
     "reserved": "Ce nom est réservé."
+  },
+  "authShell": {
+    "eyebrow": "Registre et marketplace",
+    "headline": "Les capacités d'IA de votre équipe, organisées au même endroit",
+    "lead": "Skills, agents, règles, commandes, hooks et serveurs MCP, révisés avant leur publication et livrés à Claude Code, Codex et Cursor.",
+    "reviewedTitle": "Révisé avant publication",
+    "reviewedBody": "Chaque élément et chaque changement demande une approbation.",
+    "installTitle": "Une commande pour installer",
+    "installBody": "rmk place les éléments là où chaque outil les lit.",
+    "docs": "Documentation",
+    "openSource": "Code source ouvert (MIT)"
+  },
+  "codeInput": {
+    "digit": "{label} : chiffre {n} sur {total}"
   }
 }

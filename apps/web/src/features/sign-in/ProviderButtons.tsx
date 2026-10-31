@@ -1,6 +1,7 @@
 import { useTranslations } from "next-intl";
 import { buttonClasses } from "@/components/ui/Button";
 import { ssoFromForm } from "./actions";
+import { ProviderIcon } from "./ProviderIcon";
 
 /**
  * "Continue with <provider>" for each identity provider that's on (106): each a small form that
@@ -10,7 +11,7 @@ export const ProviderButtons = ({
   providers,
   next,
 }: {
-  providers: readonly { id: string; name: string }[];
+  providers: readonly { id: string; name: string; preset?: string }[];
   next: string;
 }) => {
   const t = useTranslations("auth.signIn");
@@ -21,6 +22,7 @@ export const ProviderButtons = ({
           <input type="hidden" name="provider" value={provider.id} />
           <input type="hidden" name="next" value={next} />
           <button type="submit" className={`${buttonClasses("secondary")} w-full`}>
+            <ProviderIcon preset={provider.preset ?? "other"} />
             {t("continueWith", { provider: provider.name })}
           </button>
         </form>

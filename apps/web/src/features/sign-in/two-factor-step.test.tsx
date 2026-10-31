@@ -136,3 +136,28 @@ describe("SignInPage after the second step", () => {
     expect(odd).toBe(renderToStaticMarkup(<SignInPage resetCommand="x" next="/" />));
   });
 });
+
+describe("the code boxes (157)", () => {
+  it("are a plain numeric field before JavaScript runs, posting `code`", () => {
+    const html = renderToStaticMarkup(<TwoFactorStep next="/" method="totp" />);
+    expect(html).toMatch(/<input[^>]*id="code"[^>]*name="code"/);
+    expect(html).toContain('inputMode="numeric"');
+  });
+
+  it("the backup code stays one text field", () => {
+    const html = renderToStaticMarkup(<TwoFactorStep next="/" method="backup_code" />);
+    expect(html).toMatch(/<input[^>]*name="code"/);
+    expect(html).toContain('maxLength="32"');
+  });
+
+  it("the second step page uses the same shell as sign-in", async () => {
+    const { AuthShell } = await import("@/components/auth-shell/AuthShell");
+    const html = renderToStaticMarkup(<AuthShell>x</AuthShell>);
+    expect(html).toContain("Português");
+    expect(html).toContain("curated in one place");
+    // The Documentation opens in a new tab, so the sign-in stays where it was.
+    expect(html).toMatch(
+      /<a[^>]*href="https:\/\/www\.ronne\.ai[^"]*"[^>]*target="_blank"[^>]*>Documentation/,
+    );
+  });
+});

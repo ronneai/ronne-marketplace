@@ -94,7 +94,8 @@
     "webHint": "Signed up with your company, or using two-factor sign-in? Approve it in the browser instead:",
     "step3": "Check, then install",
     "step3Hint": "<mono>rmk whoami</mono> says who you are. Every item page shows its install command; the Documentation explains the rest once you're signed in.",
-    "globalHint": "Outside <mono>global</mono>, an item's name starts with its workspace: <mono>rmk install @workspace/scope/name</mono>."
+    "globalHint": "Outside <mono>global</mono>, an item's name starts with its workspace: <mono>rmk install @workspace/scope/name</mono>.",
+    "moreWays": "Other ways to sign in"
   },
   "languageSwitch": {
     "label": "Language"
@@ -110,5 +111,19 @@
     "characters": "Use only lowercase letters, digits and hyphens.",
     "edges": "Don't start or end with a hyphen.",
     "reserved": "That name is reserved."
+  },
+  "authShell": {
+    "eyebrow": "Registry & marketplace",
+    "headline": "Your team's AI capabilities, curated in one place",
+    "lead": "Skills, agents, rules, commands, hooks and MCP servers, reviewed before release and delivered to Claude Code, Codex and Cursor.",
+    "reviewedTitle": "Reviewed before release",
+    "reviewedBody": "Every item and change needs an approval.",
+    "installTitle": "One command to install",
+    "installBody": "rmk puts items where each tool reads them.",
+    "docs": "Documentation",
+    "openSource": "Open source (MIT)"
+  },
+  "codeInput": {
+    "digit": "{label}: digit {n} of {total}"
   }
 }

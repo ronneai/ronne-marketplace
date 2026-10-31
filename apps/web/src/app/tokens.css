@@ -62,6 +62,15 @@
   --focus: #14213d;
   /* Code previews: an Ink block with Paper text, in both themes. */
   --code-bg: #0b1220;
+  /* Vendor marks on the sign-in buttons (157): their own brand colours, the same in both themes. */
+  --mark-ms-red: #f25022;
+  --mark-ms-green: #7fba00;
+  --mark-ms-blue: #00a4ef;
+  --mark-ms-yellow: #ffb900;
+  --mark-g-red: #ea4335;
+  --mark-g-blue: #4285f4;
+  --mark-g-yellow: #fbbc05;
+  --mark-g-green: #34a853;
   --code-fg: #f7f9fa;
   --code-muted: #bfe9e1;
   --syntax-comment: #59636e;
@@ -141,6 +150,15 @@
   --chart-codex: #d97706;
   --focus: #18b6a4;
   --code-bg: #0b1220;
+  /* Vendor marks on the sign-in buttons (157): their own brand colours, the same in both themes. */
+  --mark-ms-red: #f25022;
+  --mark-ms-green: #7fba00;
+  --mark-ms-blue: #00a4ef;
+  --mark-ms-yellow: #ffb900;
+  --mark-g-red: #ea4335;
+  --mark-g-blue: #4285f4;
+  --mark-g-yellow: #fbbc05;
+  --mark-g-green: #34a853;
   --code-fg: #f7f9fa;
   --code-muted: #bfe9e1;
   --syntax-comment: #8b949e;

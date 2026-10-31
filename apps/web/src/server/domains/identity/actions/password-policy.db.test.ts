@@ -141,7 +141,7 @@ describe("Root only", () => {
     expect((await webSignIn("ana@acme.com")).ok).toBe(true);
     expect(await signInProviders(app)).toEqual([]);
     await setEnabled(true);
-    expect(await signInProviders(app)).toEqual([{ id: "acme", name: "Acme SSO" }]);
+    expect(await signInProviders(app)).toEqual([{ id: "acme", name: "Acme SSO", preset: "okta" }]);
     expect((await webSignIn("ana@acme.com")).ok).toBe(false);
   });
 });
