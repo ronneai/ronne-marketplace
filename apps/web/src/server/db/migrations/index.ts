@@ -38,6 +38,7 @@ import { itemMoves } from "./0037_item_moves";
 import { contentScans } from "./0038_content_scans";
 import { scanDismissals } from "./0039_scan_dismissals";
 import { scanDismissalKind } from "./0040_scan_dismissal_kind";
+import { notifications } from "./0041_notifications";
 import type { AppMigration } from "./types";
 
 /**
@@ -85,4 +86,5 @@ export const migrations: Record<string, AppMigration> = {
   "0038_content_scans": contentScans,
   "0039_scan_dismissals": scanDismissals,
   "0040_scan_dismissal_kind": scanDismissalKind,
+  "0041_notifications": notifications,
 };

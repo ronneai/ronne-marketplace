@@ -14,7 +14,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     and webhooks stay out, and `docs/features/README.md` lists 139 in M21 with its dependencies.
   - *Done when:* the docs say what this spec says, and `pnpm witness:check` passes.
 
-- [ ] **2. The table and the domain.** [risky]
+- [x] **2. The table and the domain.** [risky]
   - The migration, its schema interface, the repository (insert many, list by keyset, count unread
     capped at 100, mark read, mark all read, delete older than), the `notify` service.
   - *Done when:* the migration and repository db tests pass on SQLite and, with `pnpm test:db:up`,

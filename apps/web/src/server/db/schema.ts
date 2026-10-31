@@ -561,6 +561,23 @@ export interface FeedbackTable {
   created_at: Timestamp;
 }
 
+/**
+ * One notification for one person (migration 0041, feature 139). `kind` and `params` (JSON text,
+ * at most 2 KiB) say what happened; the sentence is a message in the reader's language. `read_at`
+ * null is unread.
+ */
+export interface NotificationTable {
+  id: string;
+  user_id: string;
+  kind: string;
+  actor_id: string | null;
+  subject_type: string;
+  subject_id: string;
+  params: string;
+  created_at: Timestamp;
+  read_at: Timestamp | null;
+}
+
 /** A person's favorite item (migration 0033, feature 125). Theirs alone. */
 export interface ItemFavoriteTable {
   user_id: string;
@@ -712,6 +729,7 @@ export interface Database {
   item_favorites: ItemFavoriteTable;
   user_onboarding: UserOnboardingTable;
   feedback: FeedbackTable;
+  notifications: NotificationTable;
   item_pins: ItemPinTable;
   item_versions: ItemVersionTable;
   dist_tags: DistTagTable;
