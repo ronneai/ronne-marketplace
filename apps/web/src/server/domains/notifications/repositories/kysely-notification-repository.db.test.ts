@@ -112,8 +112,19 @@ describe("the repository", () => {
     await repo().markRead(ana, [first as string], new Date());
     expect((await repo().page({ userId: ana, size: 10, state: "unread" })).rows).toHaveLength(1);
     expect((await repo().page({ userId: ana, size: 10, state: "read" })).rows).toHaveLength(1);
-    const rejected = await repo().page({ userId: ana, size: 10, kind: "submission.rejected" });
+    const rejected = await repo().page({ userId: ana, size: 10, kinds: ["submission.rejected"] });
     expect(rejected.rows.map((n) => n.kind)).toEqual(["submission.rejected"]);
+    // Several kinds at once: any of them.
+    const both = await repo().page({
+      userId: ana,
+      size: 10,
+      kinds: ["submission.rejected", "submission.approved"],
+    });
+    expect(both.rows).toHaveLength(2);
+    const other = await repo().page({ userId: ana, size: 10, kinds: ["submission.comment"] });
+    expect(other.rows).toEqual([]);
+    // None given is every kind.
+    expect((await repo().page({ userId: ana, size: 10, kinds: [] })).rows).toHaveLength(2);
   });
 
   it("counts unread up to the cap, and marking read lowers it", async () => {

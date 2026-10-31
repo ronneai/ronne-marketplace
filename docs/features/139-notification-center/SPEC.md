@@ -28,12 +28,16 @@ it, and a page with all of them. In the app only; email and webhooks stay out of
   changes, never raw colours), its sentence, and when (`LocalTime`, 049); "See all" at the foot.
   No filter chips, row buttons, Dismiss or settings in it: the filters are on the page.
 - **The page**, `/notifications`: every notification of the person, newest first, on the server data
-  table (060) with keyset pagination, 25 to a page, a filter by status (read or unread) and by kind,
-  the kinds grouped by what they are about (the filters live only here, not in the popover); a
-  row is a link when its subject is still there, and opening it marks it read; mark the selected or
-  all of them read (a toast says how many; the bell follows). The total counts what the reader sees
-  and reads "at least" past 1,000. Selecting and marking need JavaScript; the filters and paging
-  work without it.
+  table (060) with keyset pagination, 25 to a page, and two filters, Status (unread, read) and About
+  (the kinds, listed under what they are about), each the multi-select popover the Security scan
+  tab uses (137, shared): the button shows what is chosen as badges beside it, "All" when nothing
+  is, and the choice is any of the ticked values; ticking every value or none is "All". They live
+  in the address (`?state=read&kind=a,b`, a comma list, which the shared list-query layer reads and
+  cleans), and only on this page, not in the popover; a row is a link when its subject is still
+  there, and opening it marks it read; mark the selected or
+    all of them read (a toast says how many; the bell follows). The total counts what the reader sees
+  and reads "at least" past 1,000. Selecting, marking and choosing filters need JavaScript; paging
+  and the address work without it.
 - **What notifies whom** (the first set; each is one `kind`):
   - **the author of a submission:** approved, approved by override, changes requested, rejected, a
     comment by someone else (014, 058); released by someone else (015, 055); a dependency they

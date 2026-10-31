@@ -52,12 +52,10 @@
     "description": "O que aconteceu com o seu trabalho e o que espera por você, das mais recentes às mais antigas. São mantidas por 90 dias.",
     "filters": {
       "state": "Situação",
-      "anyState": "Todas",
-      "unread": "Não lidas",
-      "read": "Lidas",
       "kind": "Sobre",
-      "anyKind": "Qualquer assunto",
-      "apply": "Aplicar"
+      "all": "Todas",
+      "unread": "Não lidas",
+      "read": "Lidas"
     },
     "groups": {
       "submission": "Suas submissões",
@@ -84,11 +82,11 @@
       },
       "scope_move": {
         "moved": "Escopo movido",
-        "declined": "Movimentação recusada"
+        "declined": "Movimentação de escopo recusada"
       },
       "item_move": {
         "moved": "Item movido",
-        "declined": "Movimentação recusada"
+        "declined": "Movimentação de item recusada"
       },
       "membership": {
         "added": "Adicionado a um espaço de trabalho",

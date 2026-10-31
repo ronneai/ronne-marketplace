@@ -52,12 +52,10 @@
     "description": "Ce qui est arrivé à votre travail et ce qui vous attend, des plus récentes aux plus anciennes. Elles sont conservées 90 jours.",
     "filters": {
       "state": "État",
-      "anyState": "Toutes",
-      "unread": "Non lues",
-      "read": "Lues",
       "kind": "Concernant",
-      "anyKind": "Tout",
-      "apply": "Appliquer"
+      "all": "Toutes",
+      "unread": "Non lues",
+      "read": "Lues"
     },
     "groups": {
       "submission": "Vos soumissions",
@@ -84,11 +82,11 @@
       },
       "scope_move": {
         "moved": "Portée déplacée",
-        "declined": "Déplacement refusé"
+        "declined": "Déplacement de portée refusé"
       },
       "item_move": {
         "moved": "Élément déplacé",
-        "declined": "Déplacement refusé"
+        "declined": "Déplacement d’élément refusé"
       },
       "membership": {
         "added": "Ajout à un espace de travail",

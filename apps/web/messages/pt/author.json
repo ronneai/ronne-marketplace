@@ -876,8 +876,6 @@
       "statusFilter": "Situação",
       "categoryFilter": "Categoria",
       "severityChip": "{severity} ({count, number})",
-      "filterAll": "Todos",
-      "filterMore": "+{count, number} mais",
       "statusOpenName": "Abertos",
       "statusMarkedName": "Marcados",
       "statusOpen": "Abertos ({count, number})",

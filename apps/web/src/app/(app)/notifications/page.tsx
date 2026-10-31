@@ -33,7 +33,7 @@ const NotificationsRoute = async ({ searchParams }: { searchParams: Promise<Sear
   const query = notificationsQueryOf(state);
   const [paged, total] = await Promise.all([
     pageNotifications(request, query),
-    countNotifications(request, { state: query.state, kind: query.kind }),
+    countNotifications(request, { state: query.state, kinds: query.kinds }),
   ]);
   return (
     <NotificationsPage

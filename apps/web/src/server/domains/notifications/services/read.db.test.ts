@@ -467,7 +467,7 @@ describe("the page's total (139)", () => {
       capped: false,
     });
     expect(
-      await countVisible(t.db, t.dialect, viewer, { userId: ana, kind: "submission.comment" }),
+      await countVisible(t.db, t.dialect, viewer, { userId: ana, kinds: ["submission.comment"] }),
     ).toEqual({ count: 1, capped: false });
     // Read ones count under "read", not "unread".
     const [newest] = await latestVisible(t.db, t.dialect, viewer, ana, 1);

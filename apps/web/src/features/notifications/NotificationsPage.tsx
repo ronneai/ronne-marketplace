@@ -1,15 +1,11 @@
-import Form from "next/form";
 import { useTranslations } from "next-intl";
-import { buttonClasses } from "@/components/ui/Button";
-import { type Column, DataTable, HiddenListFields } from "@/components/ui/data-table/DataTable";
-import { FilterChips } from "@/components/ui/data-table/FilterChips";
-import { SubmitOnChange } from "@/components/ui/data-table/SubmitOnChange";
-import { Label, selectClasses } from "@/components/ui/Field";
+import { type Column, DataTable } from "@/components/ui/data-table/DataTable";
 import { LocalTime } from "@/components/ui/LocalTime";
 import { PageHeader } from "@/components/ui/Panel";
 import type { NotificationView } from "@/server/domains/notifications/services/read";
 import { notificationHref } from "./href";
-import { KIND_GROUPS, NOTIFICATIONS_LIST, type NotificationsListState, STATES } from "./list";
+import { NOTIFICATIONS_LIST, type NotificationsListState } from "./list";
+import { NotificationFilters } from "./NotificationFilters";
 import { BulkBar, OpenLink, SelectCell, SelectionProvider } from "./NotificationsSelection";
 import { renderSentence } from "./sentence";
 
@@ -19,68 +15,6 @@ type Row = {
   href: string | null;
   unread: boolean;
   createdAt: Date;
-};
-
-const Filters = ({ state }: { state: NotificationsListState }) => {
-  const t = useTranslations("notifications.page");
-  const labels = { state: t("filters.state"), kind: t("filters.kind") };
-  return (
-    <div className="grid gap-2">
-      <Form
-        action={NOTIFICATIONS_LIST.path}
-        scroll={false}
-        className="grid gap-3 sm:grid-cols-[repeat(2,minmax(0,1fr))_auto] sm:items-end"
-      >
-        <HiddenListFields list={NOTIFICATIONS_LIST} state={state} omit={["state", "kind"]} />
-        <div className="grid gap-1.5">
-          <Label htmlFor="state">{t("filters.state")}</Label>
-          <select
-            id="state"
-            name="state"
-            defaultValue={state.filters.state}
-            className={selectClasses}
-          >
-            <option value="">{t("filters.anyState")}</option>
-            {STATES.map((value) => (
-              <option key={value} value={value}>
-                {t(`filters.${value}`)}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="grid gap-1.5">
-          <Label htmlFor="kind">{t("filters.kind")}</Label>
-          <select id="kind" name="kind" defaultValue={state.filters.kind} className={selectClasses}>
-            <option value="">{t("filters.anyKind")}</option>
-            {KIND_GROUPS.map(({ group, kinds }) => (
-              <optgroup key={group} label={t(`groups.${group as "submission"}`)}>
-                {kinds.map((kind) => (
-                  <option key={kind} value={kind}>
-                    {t(`kinds.${kind}`)}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-        </div>
-        <div className="flex gap-2">
-          <button type="submit" data-submit className={buttonClasses("secondary")}>
-            {t("filters.apply")}
-          </button>
-          <SubmitOnChange />
-        </div>
-      </Form>
-      <FilterChips
-        list={NOTIFICATIONS_LIST}
-        state={state}
-        labels={labels}
-        display={{
-          state: (value) => t(`filters.${value as "unread"}`),
-          kind: (value) => t(`kinds.${value as "submission.approved"}`),
-        }}
-      />
-    </div>
-  );
 };
 
 /**
@@ -170,7 +104,7 @@ export const NotificationsPage = ({
           noun="notification"
           toolbar={
             <div className="grid gap-3">
-              <Filters state={state} />
+              <NotificationFilters state={state} />
               <BulkBar />
             </div>
           }

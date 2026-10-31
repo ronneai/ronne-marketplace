@@ -161,5 +161,9 @@
   },
   "codeInput": {
     "digit": "{label}: digit {n} of {total}"
+  },
+  "filter": {
+    "all": "All",
+    "more": "+{count, number} more"
   }
 }

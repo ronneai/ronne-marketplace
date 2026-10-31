@@ -7,8 +7,12 @@
  */
 export type SortDir = "asc" | "desc";
 
-/** `string`: trimmed text, at most 200 characters. `day`: a `YYYY-MM-DD` date, or nothing. */
-export type FilterKind = "string" | "day";
+/**
+ * `string`: trimmed text, at most 200 characters. `day`: a `YYYY-MM-DD` date, or nothing. `list`
+ * (139): several values joined by commas, for a multi-select filter: each value letters, digits,
+ * `.`, `_` or `-`, no repeats, at most 1000 characters in all.
+ */
+export type FilterKind = "string" | "day" | "list";
 
 export type ListDefinition<S extends string, F extends string> = {
   /** The page's path, such as `/admin/audit`. */
@@ -54,8 +58,25 @@ export const isDay = (value: string): boolean => {
   return !Number.isNaN(date.getTime()) && date.toISOString().startsWith(value);
 };
 
+const MAX_LIST = 1000;
+const LIST_VALUE = /^[A-Za-z0-9._-]{1,64}$/;
+
+/** The values of a `list` filter, in the order given, each once; anything malformed is dropped. */
+export const listValues = (value: string): string[] =>
+  [...new Set(value.split(",").map((part) => part.trim()))].filter((part) => LIST_VALUE.test(part));
+
 const filterValue = (kind: FilterKind, raw: string): string => {
   if (kind === "day") return isDay(raw) ? raw : "";
+  if (kind === "list") {
+    const kept: string[] = [];
+    let length = 0;
+    for (const part of listValues(raw)) {
+      length += part.length + (kept.length ? 1 : 0);
+      if (length > MAX_LIST) break;
+      kept.push(part);
+    }
+    return kept.join(",");
+  }
   return raw.slice(0, MAX_FILTER);
 };
 

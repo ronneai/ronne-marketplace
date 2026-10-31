@@ -876,8 +876,6 @@
       "statusFilter": "État",
       "categoryFilter": "Catégorie",
       "severityChip": "{severity} ({count, number})",
-      "filterAll": "Tous",
-      "filterMore": "+{count, number} de plus",
       "statusOpenName": "Ouverts",
       "statusMarkedName": "Marqués",
       "statusOpen": "Ouverts ({count, number})",

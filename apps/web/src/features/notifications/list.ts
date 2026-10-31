@@ -1,4 +1,4 @@
-import { defineList, type ListState } from "@/components/ui/data-table/list-query";
+import { defineList, type ListState, listValues } from "@/components/ui/data-table/list-query";
 import {
   NOTIFICATION_KINDS,
   type NotificationKind,
@@ -12,17 +12,12 @@ export const NOTIFICATIONS_LIST = defineList({
   defaultSort: "created",
   sizes: [25, 50, 100],
   defaultSize: 25,
-  filters: { state: "string", kind: "string" },
+  filters: { state: "list", kind: "list" },
 });
 
 export type NotificationsListState = ListState<"created", "state" | "kind">;
 
 export const STATES = ["unread", "read"] as const;
-type State = (typeof STATES)[number];
-
-const isState = (value: string): value is State => (STATES as readonly string[]).includes(value);
-const isKind = (value: string): value is NotificationKind =>
-  (NOTIFICATION_KINDS as readonly string[]).includes(value);
 
 /** The kinds grouped by what they are about (`submission`, `request`…), in the order they are listed. */
 export const KIND_GROUPS: readonly { group: string; kinds: readonly NotificationKind[] }[] =
@@ -34,23 +29,41 @@ export const KIND_GROUPS: readonly { group: string; kinds: readonly Notification
     return groups;
   }, []);
 
-/** Drops a state or kind the page doesn't know, so the form and chips never show it. */
+/** The values of a `list` filter the page knows, in the order of `known`, each once. */
+const known = <T extends string>(value: string, all: readonly T[]): T[] => {
+  const asked = new Set(listValues(value));
+  return all.filter((v) => asked.has(v));
+};
+
+/**
+ * Keeps the states and kinds the page knows, in their own order, so the popovers and the address
+ * never show one it doesn't. Choosing every state, or every kind, is the same as choosing none.
+ */
 export const checkedNotificationsState = (
   state: NotificationsListState,
-): NotificationsListState => ({
-  ...state,
-  filters: {
-    state: isState(state.filters.state) ? state.filters.state : "",
-    kind: isKind(state.filters.kind) ? state.filters.kind : "",
-  },
-});
+): NotificationsListState => {
+  const states = known(state.filters.state, STATES);
+  const kinds = known(state.filters.kind, NOTIFICATION_KINDS);
+  return {
+    ...state,
+    filters: {
+      state: states.length === STATES.length ? "" : states.join(","),
+      kind: kinds.length === NOTIFICATION_KINDS.length ? "" : kinds.join(","),
+    },
+  };
+};
 
 /** The server query for a view (the person is added by the action). */
 export const notificationsQueryOf = (
   state: NotificationsListState,
-): Omit<NotificationPageQuery, "userId"> => ({
-  size: state.size,
-  cursor: state.cursor,
-  state: isState(state.filters.state) ? state.filters.state : undefined,
-  kind: isKind(state.filters.kind) ? state.filters.kind : undefined,
-});
+): Omit<NotificationPageQuery, "userId"> => {
+  const states = known(state.filters.state, STATES);
+  const kinds = known(state.filters.kind, NOTIFICATION_KINDS);
+  return {
+    size: state.size,
+    cursor: state.cursor,
+    // Both states are every notification.
+    state: states.length === 1 ? states[0] : undefined,
+    kinds: kinds.length > 0 && kinds.length < NOTIFICATION_KINDS.length ? kinds : undefined,
+  };
+};

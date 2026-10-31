@@ -50,16 +50,41 @@ test("the page lists, filters, pages and marks notifications read; the bell foll
   await expect(page.getByText(/rejected @e2e-seeded\/gone-/).first()).toBeVisible();
   await expect(page.getByRole("link", { name: /rejected @e2e-seeded\/gone-/ })).toHaveCount(0);
 
-  // Filter by state and by kind: kept in the address, shown as chips.
-  await page.getByLabel("Status", { exact: true }).selectOption("read");
+  // Filter by status and by kind with the multi-select popovers (137): what is chosen shows as
+  // badges on the button, and is kept in the address.
+  const status = page.getByRole("button", { name: "Status", exact: true });
+  const about = page.getByRole("button", { name: "About", exact: true });
+  await expect(status).toContainText("All");
+  await status.click();
+  await page.getByRole("dialog", { name: "Status" }).getByLabel("Read", { exact: true }).check();
   await expect(page).toHaveURL(/state=read/);
   await expect(page.getByText("5 notifications")).toBeVisible();
-  await page.getByLabel("Status", { exact: true }).selectOption("");
-  await page.getByLabel("About", { exact: true }).selectOption("submission.rejected");
-  await expect(page).toHaveURL(/kind=submission\.rejected/);
+  await expect(status).toContainText("Read");
+  await page.getByRole("dialog", { name: "Status" }).getByLabel("All", { exact: true }).check();
+  await expect(page).not.toHaveURL(/state=/);
+  await page.keyboard.press("Escape");
+
+  // Two kinds at once: any of them (10 each), shown beside the button.
+  await about.click();
+  const kinds = page.getByRole("dialog", { name: "About" });
+  await kinds.getByLabel("Added to a workspace", { exact: true }).check();
+  await kinds.getByLabel("Role changed", { exact: true }).check();
+  await expect(page).toHaveURL(/kind=membership\.added%2Cmembership\.role_changed/);
+  await expect(page.getByText("20 notifications")).toBeVisible();
+  await expect(about).toContainText("Added to a workspace");
+  await expect(about).toContainText("Role changed");
+  // A third makes the button say "+1 more"; unticking them all leaves "All".
+  await kinds.getByLabel("Rejected", { exact: true }).check();
+  await expect(about).toContainText("+1 more");
+  await expect(page.getByText("30 notifications")).toBeVisible();
+  await kinds.getByLabel("Added to a workspace", { exact: true }).uncheck();
+  await kinds.getByLabel("Role changed", { exact: true }).uncheck();
+  await expect(page).toHaveURL(/kind=submission\.rejected$/);
   await expect(page.getByText("10 notifications")).toBeVisible();
-  await page.getByRole("link", { name: "Remove the about filter" }).click();
+  await kinds.getByLabel("Rejected", { exact: true }).uncheck();
   await expect(page).not.toHaveURL(/kind=/);
+  await expect(about).toContainText("All");
+  await page.keyboard.press("Escape");
 
   // Opening a notification marks it read: the newest role change leads to the workspace, and the
   // badge goes from 25 to 24; the page is read again on the way back.
@@ -90,6 +115,7 @@ test("the page lists, filters, pages and marks notifications read; the bell foll
   await page.getByRole("button", { name: "Mark all as read" }).click();
   await expect(toastWith(page, "Marked 22 notifications as read.")).toBeVisible();
   await expect(bell).toHaveAccessibleName("Notifications, none unread");
-  await page.getByLabel("Status", { exact: true }).selectOption("unread");
+  await status.click();
+  await page.getByRole("dialog", { name: "Status" }).getByLabel("Unread", { exact: true }).check();
   await expect(page.getByText("No notifications match these filters.")).toBeVisible();
 });

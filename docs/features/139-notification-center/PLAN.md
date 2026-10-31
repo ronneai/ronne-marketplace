@@ -91,6 +91,11 @@ goes into `SPEC.md` instead.
   total is `countVisible`, up to 1,000 rows, so it reads "at least" past that. The e2e seed writes
   30 notifications for `notificationsReader` through `notify`. New page folders must join two lists:
   the phone sweep's (`e2e/pages.ts`) and feedback's `PAGE_ROOTS`.
+- **Filters (owner, 2026-10-31):** the page's filters are the scan tab's multi-select popovers, so
+  `FilterPopover` moved to `components/ui` (with `toggleChoice`, `filter.all`/`filter.more` in
+  `common`) and list-query gained a `list` filter kind (comma-separated values, at most 1,000
+  characters). The choice is optimistic (`useOptimistic` in a transition), so the box answers at
+  once while the address and the server's view catch up. The filters now need JavaScript.
 - **Task 7:** the purge deletes notifications older than a fixed 90 days (`RETENTION_DAYS`, no policy
   field), as its own last rule in `runRetentionPurge`, and `notificationsDeleted` is carried to the
   job log, the stored result, `rmk-server purge` and the Privacy tab. Erasing a user deletes the

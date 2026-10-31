@@ -4,7 +4,8 @@ import type { Notification, NotificationKind, SubjectType } from "../models/noti
 export type NotificationFilters = {
   /** `unread` or `read`; both when absent. */
   state?: "unread" | "read";
-  kind?: NotificationKind;
+  /** Any of these kinds; all kinds when absent or empty. */
+  kinds?: readonly NotificationKind[];
 };
 
 /** A notification as far as its visibility goes: its kind, its subject and where that lived. */

@@ -82,11 +82,11 @@ export const kyselyNotificationRepository = (
       return rows.length;
     },
 
-    async page({ userId, state, kind, size, cursor }) {
+    async page({ userId, state, kinds, size, cursor }) {
       let query = db.selectFrom("notifications").where("user_id", "=", userId);
       if (state === "unread") query = query.where("read_at", "is", null);
       if (state === "read") query = query.where("read_at", "is not", null);
-      if (kind) query = query.where("kind", "=", kind);
+      if (kinds?.length) query = query.where("kind", "in", [...kinds]);
       const page = await paginate(query.select(COLUMNS), {
         sort: { key: "created", column: "notifications.id", dir: "desc" },
         idColumn: "notifications.id",
@@ -121,14 +121,14 @@ export const kyselyNotificationRepository = (
         .length;
     },
 
-    async refs(userId, { state, kind }, cap) {
+    async refs(userId, { state, kinds }, cap) {
       let query = db
         .selectFrom("notifications")
         .select(["id", "kind", "subject_type", "subject_id", "workspace_ids"])
         .where("user_id", "=", userId);
       if (state === "unread") query = query.where("read_at", "is", null);
       if (state === "read") query = query.where("read_at", "is not", null);
-      if (kind) query = query.where("kind", "=", kind);
+      if (kinds?.length) query = query.where("kind", "in", [...kinds]);
       const rows = await query.orderBy("id", "desc").limit(cap).execute();
       // Rows of a kind or subject this version doesn't know are left out, as the list leaves them.
       return rows.flatMap((row) =>

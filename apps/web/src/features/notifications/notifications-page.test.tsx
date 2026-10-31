@@ -45,22 +45,37 @@ const render = (
 };
 
 describe("the notifications list's state (139)", () => {
-  it("reads a state and a kind from the address, newest first, and the person is not in it", () => {
-    const s = state({ state: "unread", kind: "submission.rejected" });
+  it("reads one or several kinds and a state from the address, newest first, no person in it", () => {
+    const s = state({ state: "unread", kind: "submission.rejected,submission.comment" });
     expect(s.sort).toBe("created");
     expect(s.dir).toBe("desc");
+    // In the order the kinds are listed, whatever order the address gave.
+    expect(s.filters.kind).toBe("submission.rejected,submission.comment");
     expect(notificationsQueryOf(s)).toEqual({
       size: 25,
       cursor: undefined,
       state: "unread",
-      kind: "submission.rejected",
+      kinds: ["submission.rejected", "submission.comment"],
     });
+    expect(state({ kind: "submission.comment,submission.rejected" }).filters.kind).toBe(
+      "submission.rejected,submission.comment",
+    );
+  });
+
+  it("reads both states, or every kind, as no filter at all", () => {
+    const every = NOTIFICATION_KINDS.join(",");
+    const s = state({ state: "read,unread", kind: every });
+    expect(s.filters).toEqual({ state: "", kind: "" });
+    expect(notificationsQueryOf(s)).toMatchObject({ state: undefined, kinds: undefined });
   });
 
   it("drops a state or kind it doesn't know", () => {
-    const s = state({ state: "archived", kind: "submission.exploded" });
-    expect(s.filters).toEqual({ state: "", kind: "" });
-    expect(notificationsQueryOf(s)).toMatchObject({ state: undefined, kind: undefined });
+    const s = state({ state: "archived", kind: "submission.exploded,submission.comment" });
+    expect(s.filters).toEqual({ state: "", kind: "submission.comment" });
+    expect(notificationsQueryOf(state({ state: "archived", kind: "nope" }))).toMatchObject({
+      state: undefined,
+      kinds: undefined,
+    });
     expect(parseListQuery(NOTIFICATIONS_LIST, { sort: "kind" }).sort).toBe("created");
   });
 
@@ -98,13 +113,20 @@ describe("the notifications page (139)", () => {
     expect(html).not.toContain("notifications.membership");
   });
 
-  it("offers the filters, with every kind under its group, and shows the chosen ones as chips", () => {
-    const html = render([view("n1")], { state: "unread", kind: "submission.comment" });
-    expect(html).toContain('name="state"');
-    expect(html).toContain('<optgroup label="Your submissions">');
-    for (const kind of NOTIFICATION_KINDS) expect(html).toContain(`value="${kind}"`);
-    expect(html).toContain("Remove the status filter");
-    expect(html).toContain("Remove the about filter");
+  it("offers the two filters as buttons that name what is chosen, 'All' when nothing is", () => {
+    const html = render([view("n1")]);
+    expect(html).toContain("Status");
+    expect(html).toContain("About");
+    expect((html.match(/>All</g) ?? []).length).toBeGreaterThanOrEqual(2);
+    const chosen = render([view("n1")], {
+      state: "unread",
+      kind: "submission.rejected,submission.comment,submission.approved",
+    });
+    // The chosen ones are badges on the button, in the list's order: two named, the rest "+1 more".
+    expect(chosen).toContain(">Unread<");
+    expect(chosen).toContain(">Approved<");
+    expect(chosen).toContain(">Rejected<");
+    expect(chosen).toContain("+1 more");
   });
 
   it("says when there is nothing, and when the filters leave nothing", () => {

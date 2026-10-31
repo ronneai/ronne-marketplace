@@ -24,16 +24,23 @@ describe("the notifications page (139)", () => {
 
   it("asks for the person's own, the view asked for in the address, and nobody else's", async () => {
     const html = renderToStaticMarkup(
-      await Page(props({ state: "unread", kind: "submission.rejected" })),
+      await Page(props({ state: "unread", kind: "submission.rejected,submission.comment" })),
     );
     expect(html).toContain("No notifications match these filters.");
     expect(domain.pageNotifications).toHaveBeenCalledWith(
       expect.any(Headers),
-      expect.objectContaining({ state: "unread", kind: "submission.rejected", size: 25 }),
+      expect.objectContaining({
+        state: "unread",
+        kinds: ["submission.rejected", "submission.comment"],
+        size: 25,
+      }),
     );
     expect(domain.countNotifications).toHaveBeenCalledWith(
       expect.any(Headers),
-      expect.objectContaining({ state: "unread", kind: "submission.rejected" }),
+      expect.objectContaining({
+        state: "unread",
+        kinds: ["submission.rejected", "submission.comment"],
+      }),
     );
     // The query never names a person: the action takes it from the session.
     expect(JSON.stringify(domain.pageNotifications.mock.calls)).not.toContain('"userId"');
@@ -43,7 +50,7 @@ describe("the notifications page (139)", () => {
     await Page(props({ state: "archived", kind: "nope" }));
     expect(domain.pageNotifications).toHaveBeenCalledWith(
       expect.any(Headers),
-      expect.objectContaining({ state: undefined, kind: undefined }),
+      expect.objectContaining({ state: undefined, kinds: undefined }),
     );
   });
 
