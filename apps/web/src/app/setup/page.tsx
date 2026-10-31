@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { getTranslations } from "next-intl/server";
+import { AuthShell } from "@/components/auth-shell/AuthShell";
 import { SetupPage } from "@/features/setup/SetupPage";
 import { DEFAULT_VALUES, type SetupPageProps } from "@/features/setup/types";
-import { LanguageSwitch } from "@/i18n/LanguageSwitch";
 import { pageTitle } from "@/i18n/page-title";
 import { currentPath } from "@/i18n/server";
 import { loadConfig } from "@/server/config";
@@ -45,7 +45,11 @@ const Setup = async () => {
       publicUrl: config.publicUrl ?? defaultPublicUrl(),
     },
   };
-  return <SetupPage page={page} languageSwitch={<LanguageSwitch here={await currentPath()} />} />;
+  return (
+    <AuthShell here={await currentPath()} wide>
+      <SetupPage page={page} />
+    </AuthShell>
+  );
 };
 
 export default Setup;

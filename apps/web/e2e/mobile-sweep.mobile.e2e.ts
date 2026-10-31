@@ -150,6 +150,9 @@ const sweep = (language: Language) => {
 
   for (const role of ROLES)
     test(`${tag}as ${role}`, async ({ page, baseURL }, testInfo) => {
+      // One visit to every page the role may open, at four widths: about 25s of the default 30s in
+      // WebKit on the CI runners, and it grows with each page.
+      test.setTimeout(90_000);
       await signIn(page, mobileUser(testInfo, role as MobileRole));
       await speak(page, baseURL);
       for (const sweepPage of pages) {

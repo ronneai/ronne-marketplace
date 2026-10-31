@@ -32,7 +32,7 @@ export const AuthShell = ({
           <LanguageSwitch here={here} />
         </header>
         <main
-          className={`mx-auto my-auto grid w-full gap-6 py-10 ${wide ? "max-w-xl" : "max-w-md"}`}
+          className={`mx-auto my-auto grid w-full gap-6 py-8 ${wide ? "max-w-xl" : "max-w-md"}`}
         >
           <BrandLogo height={40} className="text-fg" />
           {children}

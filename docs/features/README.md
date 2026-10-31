@@ -435,4 +435,4 @@ since (and the vendors' current docs) before its work starts, as for one on hold
 
 | ID | Feature | Depends on | Status |
 |---|---|---|---|
-| [157](./157-sign-in-redesign/SPEC.md) | Sign-in screens redesign: a reusable auth shell with the brand panel, sign-in and the `rmk` guide as tabs, vendor marks on the company sign-in buttons, the second step as six code boxes, and a language menu | 006, 022, 032, 105, 106, 129 | in progress |
+| [157](./157-sign-in-redesign/SPEC.md) | Sign-in screens redesign: a reusable auth shell with the brand panel, sign-in and the `rmk` guide as tabs, vendor marks on the company sign-in buttons, the second step as six code boxes, and a language menu | 006, 022, 032, 105, 106, 129 | done |
