@@ -7,6 +7,7 @@ import type { Database } from "../../../db/schema";
 import type { DatabaseDialect } from "../../../db/url";
 import { recordAudit } from "../../audit/actions/audit";
 import type { AuditMetadata } from "../../audit/models/audit-event";
+import { decodeParams } from "../../notifications/models/notification";
 import { isLocale } from "../models/locale";
 import type { UserDataItem, UserDataSignInMethod, UserDataVersion } from "../models/user-data";
 import { kyselyIdentityRepository } from "./kysely-identity-repository";
@@ -296,6 +297,26 @@ export const kyselyUserDataRepository = (
         status: row.status,
         sentAt: fromDbDate(row.created_at),
         handledAt: row.handled_at ? fromDbDate(row.handled_at) : null,
+      }));
+    },
+
+    async notifications(userId, limit) {
+      const rows = await db
+        .selectFrom("notifications")
+        .select(["id", "kind", "subject_type", "subject_id", "params", "created_at", "read_at"])
+        .where("user_id", "=", userId)
+        .orderBy("id")
+        .limit(limit)
+        .execute();
+      // The one who caused each (`actor_id`) is not read at all: another person's data.
+      return rows.map((row) => ({
+        id: row.id,
+        kind: row.kind,
+        subjectType: row.subject_type,
+        subjectId: row.subject_id,
+        params: decodeParams(row.params),
+        createdAt: fromDbDate(row.created_at),
+        readAt: row.read_at ? fromDbDate(row.read_at) : null,
       }));
     },
 

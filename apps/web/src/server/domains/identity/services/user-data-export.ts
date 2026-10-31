@@ -101,6 +101,17 @@ export const exportUserData = async (
       const scopes = list("scopes", await repo.scopes(userId, ask));
       const favorites = list("favorites", await repo.favorites(userId, ask));
       const feedback = list("feedback", await repo.feedback(userId, ask));
+      // Their notifications (139), without who caused them: new feedback's `sender` is a name, and
+      // any other email in a parameter is scrubbed, as in the audit events.
+      const notifications = list("notifications", await repo.notifications(userId, ask)).map(
+        (notification) => {
+          const { sender: _sender, ...params } = notification.params;
+          return {
+            ...notification,
+            params: scrubOtherEmails(params, account.email) as typeof notification.params,
+          };
+        },
+      );
       const onboarding = await repo.onboarding(userId);
       const found = await repo.items(userId, ask);
       const items = [];
@@ -141,6 +152,7 @@ export const exportUserData = async (
         scopes,
         favorites,
         feedback,
+        notifications,
         onboarding,
         items,
         submissions,

@@ -23,6 +23,7 @@ export type UserDataSection =
   | "scopes"
   | "favorites"
   | "feedback"
+  | "notifications"
   | "items"
   | "submissions"
   | "comments"
@@ -100,6 +101,21 @@ export type UserDataFeedback = {
   handledAt: Date | null;
 };
 
+/**
+ * A notification addressed to the person (139): what happened and what it was about, as stored (the
+ * sentence is drawn in the reader's language when shown). The one who caused it is left out, being
+ * another person's data, and so is the `sender` parameter of new feedback, their name.
+ */
+export type UserDataNotification = {
+  id: string;
+  kind: string;
+  subjectType: string;
+  subjectId: string;
+  params: Record<string, string | number | boolean | null>;
+  createdAt: Date;
+  readAt: Date | null;
+};
+
 /** The Getting started checklist's state (126); null when they never touched it. */
 export type UserDataOnboarding = {
   hiddenAt: Date | null;
@@ -161,6 +177,7 @@ export type UserData = {
   scopes: UserDataScope[];
   favorites: UserDataFavorite[];
   feedback: UserDataFeedback[];
+  notifications: UserDataNotification[];
   onboarding: UserDataOnboarding;
   items: UserDataItem[];
   submissions: UserDataSubmission[];

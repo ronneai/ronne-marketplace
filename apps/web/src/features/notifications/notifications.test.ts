@@ -30,7 +30,7 @@ const PARAMS: Record<string, Record<string, string | number>> = {
   "request.join_waiting": { workspace: "acme" },
   "request.scope_move_waiting": { scope: "tools", newName: "tools", from: "global", to: "acme" },
   "request.item_move_waiting": { item: "lint", newName: "lint", from: "tools", to: "more" },
-  "feedback.new": { sender: "Uma", feedbackKind: "idea" },
+  "feedback.new": { feedbackKind: "idea" },
 };
 
 const view = (
@@ -67,8 +67,7 @@ describe("notification sentences (139)", () => {
           const text = t(kind, sentenceValues(v, t("system", {})));
           expect(text, `${locale} ${kind}`).not.toMatch(/[{}]/);
           expect(text.length).toBeGreaterThan(10);
-          if (kind !== "feedback.new") expect(text).toContain(actor ?? t("system", {}));
-          else expect(text).toContain("Uma");
+          expect(text).toContain(actor ?? t("system", {}));
         }
       }
     },

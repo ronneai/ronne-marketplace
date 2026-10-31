@@ -215,7 +215,7 @@ describe("who may still see a notification", () => {
       root,
       "feedback.new",
       { type: "feedback", id },
-      { params: { sender: "Uma", feedbackKind: "idea" } },
+      { params: { feedbackKind: "idea" } },
     );
     const asRoot = await viewerOf(root, "root");
     expect((await latestVisible(t.db, t.dialect, asRoot, root, 10)).map((n) => n.link)).toEqual([

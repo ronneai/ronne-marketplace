@@ -228,3 +228,69 @@ Witnessed: 2026-10-31, by a fresh agent (blind, re-check of row 8 and what the d
 
 **Overall:** met.
 
+## Task 7 — Retention, erasure and your data
+
+Witnessed: 2026-10-31, by a fresh agent (blind). Commit: 42f9ce05 plus the uncommitted work. Machine: macOS (Darwin), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The purge deletes only notifications created strictly before now − 90 days (a fixed number, no setting), read or not, any user, in batches, oldest first | no | confirmed | `retention-purge.ts` `deleteOldNotifications`; `retention-purge.db.test.ts`: both states, two users, the exact cutoff kept, more than one batch |
+| 2 | A dry run only counts; the purge is idempotent, runs last, and touches nothing else | no | confirmed | the "leaves the audit log alone" test |
+| 3 | `notificationsDeleted` flows to the job log, the stored result, the log allowlist, the CLI output and the Privacy tab's last run; an old stored result still renders | no | confirmed | `retention-job.ts`, `log/events.ts`, `setup/purge.ts`, `LastRun.tsx` |
+| 4 | Erase deletes only the person's own notifications, reports the count when above 0, and leaves those they caused for others | no | confirmed | `erase-user.db.test.ts` |
+| 5 | The download has a `notifications` section of the person's own, oldest first, with the limit and `truncated`, no actor, no other person's name or email | no | confirmed | `user-data-export.db.test.ts` |
+| 6 | The db tests pass on SQLite and the three servers | no | confirmed | 3 files, 43 tests on each |
+| 7 | The messages have parity, follow the glossary, Canadian French punctuation, no gendered address; lint, typecheck | no | confirmed | `src/i18n`; 42 existing warnings |
+| 8 | The 103 and 104 spec edits match the behaviour | no | can't check here | not read by the witness |
+
+**Overall:** not met only for row 8.
+
+### Adversarial pass
+
+Witnessed: 2026-10-31, by a fresh agent (adversarial). Commit: 42f9ce05 plus the uncommitted work. Machine: macOS (Darwin), Node v24. Probe in the scratchpad, not committed.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The purge boundary is strict, on all four databases | no | confirmed | rows at the cutoff −1 ms, the cutoff, +1 ms: only the first deleted |
+| 2 | A backlog of more than a batch with identical times is deleted fully, with no loop and no skipped row | no | confirmed | 2 × batch + 37 rows |
+| 3 | A dry run writes nothing; a second run does nothing; the counts add up | no | confirmed | full-row snapshot before and after |
+| 4 | Rows inserted during a run are neither deleted nor break it | no | confirmed | 300 old purged, 20 new kept, on all four |
+| 5 | A wrong clock can't delete more than the other rules would | no | partly | no guard on any rule: a clock in 2099 deletes everything; the same for sessions and feedback, so equally safe, no safer |
+| 6 | Erase deletes only the person's own rows, in the same transaction | no | confirmed | `kysely-erase-repository.ts`, `erase-user.ts` |
+| 7 | Nothing in other people's notifications names the erased person | no | not met | `feedback.new` stored the sender's name in its parameters: erasing the sender deleted their feedback and left their name in root's notification |
+| 8 | The download leaks no one else | no | confirmed | `user-data-export.ts`; shipped tests |
+
+**Overall:** not met: row 7. Fixed: `feedback.new` stores only its kind; the sender is the notification's actor, read when shown, so an erased sender reads as the pseudonym.
+
+### Adversarial re-check
+
+Witnessed: 2026-10-31, by a fresh agent (adversarial re-check). Commit: 42f9ce05 plus the uncommitted work. Machine: macOS (Darwin), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | An erased sender's name is nowhere in root's `feedback.new` notification, and its displayed actor is the pseudonym | no | confirmed | `erase-user.db.test.ts` ("leaves no name of the sender…") on SQLite, PostgreSQL, MySQL and MariaDB |
+| 2 | A sender who is not erased shows their live name | no | confirmed | the messages use `{actor}` in en, pt and fr |
+| 3 | No other kind stores a person's name or email in a notification's parameters | no | confirmed | every `notify` site and the e2e seed read: only names of things and codes |
+| 4 | The `feedback.new` sentences render in all three languages, with and without an actor | no | confirmed | 24 files, 418 tests |
+| 5 | The export still strips `sender` defensively; nothing regressed | no | confirmed | 10 files, 93 tests (SQLite); 7 files, 76 tests on each server |
+| 6 | Lint and typecheck | no | confirmed | 42 existing warnings, no errors |
+
+**Overall:** met. Noted: no clock guard in any purge rule, a wrong clock far in the future would delete everything older than its cutoff; left as the other rules have it.
+
+### Re-check
+
+Witnessed: 2026-10-31, by a fresh agent (blind, re-check of the one row it couldn't check). Commit: 42f9ce05 plus the staged work. Machine: macOS (Darwin).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | 103: the erased person's own notifications are deleted | no | confirmed | `deleteNotifications` (`where user_id`), called in the erase transaction; `erase-user.db.test.ts` |
+| 2 | 103: `notificationsDeleted` is in the `user.erased` metadata only when above 0 | no | confirmed | `erase-user.ts`; the tests for a person with and without notifications |
+| 3 | 103: notifications the person caused for others stay and read as the pseudonym | no | confirmed | the test checks root's row survives and `latestVisible` gives `erasedName` |
+| 4 | 103: a notification's parameters never hold a person's name | no | confirmed | `kysely-feedback-repository.ts` stores `{ feedbackKind }`; every `params:` site read |
+| 5 | 104: the `notifications` section is {id, kind, subjectType, subjectId, params, createdAt, readAt}, with no actor | no | confirmed | `user-data.ts`, `kysely-user-data-repository.ts` |
+| 6 | 104: oldest first, the same row limit and `truncated` note | no | confirmed | repository and test |
+| 7 | 104: `sender` dropped, other emails scrubbed, version unchanged (1) | no | confirmed | `user-data-export.ts`; `USER_DATA_VERSION` |
+| 8 | The helper answers for erase and your data say the same | no | confirmed | `help.json` |
+
+**Overall:** met.
+

@@ -1049,7 +1049,7 @@
         "schedulerOff": "Scheduled jobs are off (RONNE_JOBS): run rmk-server purge from cron.",
         "firstRun": "The first run is 5 minutes after the server starts, then every 6 hours.",
         "failed": "Last run <date></date> failed ({error}). The server’s logs say why; the next run is on schedule.",
-        "done": "Last run <date></date>: cleared {ips, plural, one {# IP address} other {# IP addresses}} and {emails, plural, one {# failed sign-in’s email} other {# failed sign-ins’ emails}}; deleted {sessions, plural, one {# expired session} other {# expired sessions}}, {grants, plural, one {# finished rmk login approval} other {# finished rmk login approvals}} and {feedback, plural, one {# handled feedback message} other {# handled feedback messages}}.",
+        "done": "Last run <date></date>: cleared {ips, plural, one {# IP address} other {# IP addresses}} and {emails, plural, one {# failed sign-in’s email} other {# failed sign-ins’ emails}}; deleted {sessions, plural, one {# expired session} other {# expired sessions}}, {grants, plural, one {# finished rmk login approval} other {# finished rmk login approvals}}, {feedback, plural, one {# handled feedback message} other {# handled feedback messages}} and {notifications, plural, one {# notification} other {# notifications}}.",
         "running": "A run is in progress."
       },
       "erasures": {

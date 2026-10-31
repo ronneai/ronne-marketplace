@@ -43,6 +43,7 @@ export type EraseCounts = {
   movesCancelled?: number;
   favoritesDeleted?: number;
   feedbackDeleted?: number;
+  notificationsDeleted?: number;
 };
 
 export type EraseResult = EraseCounts & { eventsRewritten: number };
@@ -152,6 +153,7 @@ export const eraseUser = async (
       const favoritesDeleted = await repo.deleteFavorites(userId);
       await repo.deleteOnboarding(userId);
       const feedbackDeleted = await repo.deleteFeedback(userId);
+      const notificationsDeleted = await repo.deleteNotifications(userId);
       const requestsCancelled = await repo.identity.cancelAccessRequests(userId, at);
       // Their scope moves (115) and item moves (134): one count of move requests.
       const movesCancelled =
@@ -188,6 +190,7 @@ export const eraseUser = async (
         ...(movesCancelled > 0 ? { movesCancelled } : {}),
         ...(favoritesDeleted > 0 ? { favoritesDeleted } : {}),
         ...(feedbackDeleted > 0 ? { feedbackDeleted } : {}),
+        ...(notificationsDeleted > 0 ? { notificationsDeleted } : {}),
       };
       const row: PendingErasure = {
         userId,

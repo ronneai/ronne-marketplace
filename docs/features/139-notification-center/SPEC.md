@@ -76,8 +76,9 @@ goes back to 0.
 - recipients are user ids; the actor is removed from them; disabled users are skipped;
 - one row per recipient.
 
-**Reading them.** Each row stores its `kind` and parameters (ids and the names at that time), never a
-sentence: the sentence is a message (`notifications.<kind>`) drawn in the reader's language when
+**Reading them.** Each row stores its `kind` and parameters (ids and the names of things at that
+time, never a person's name: who did it is the row's `actor_id`, read when shown, so erasing them
+103 leaves a pseudonym and no name behind), never a sentence: the sentence is a message (`notifications.<kind>`) drawn in the reader's language when
 read. The link is built from the kind and the subject.
 
 **Who may still see it.** When a notification is read, it's shown only if the person can still see

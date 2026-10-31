@@ -46,7 +46,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* component and e2e tests cover paging, the filters and marking; the phone sweep and
     tap-target checks pass.
 
-- [ ] **7. Retention, erasure and your data.** [risky]
+- [x] **7. Retention, erasure and your data.** [risky]
   - The retention job deletes rows older than 90 days; erasing a user deletes theirs; the download
     (104) includes them.
   - *Done when:* the retention, erase and download db tests cover notifications.
@@ -91,3 +91,10 @@ goes into `SPEC.md` instead.
   total is `countVisible`, up to 1,000 rows, so it reads "at least" past that. The e2e seed writes
   30 notifications for `notificationsReader` through `notify`. New page folders must join two lists:
   the phone sweep's (`e2e/pages.ts`) and feedback's `PAGE_ROOTS`.
+- **Task 7:** the purge deletes notifications older than a fixed 90 days (`RETENTION_DAYS`, no policy
+  field), as its own last rule in `runRetentionPurge`, and `notificationsDeleted` is carried to the
+  job log, the stored result, `rmk-server purge` and the Privacy tab. Erasing a user deletes the
+  notifications addressed to them. A notification's parameters never hold a person's name: the
+  sender of new feedback was one, and erasing them left the name behind (found by the adversarial
+  pass), so the sentence now uses the actor, read when shown. The download's section drops
+  `sender` defensively and scrubs other emails. No purge rule guards against a wrong clock.

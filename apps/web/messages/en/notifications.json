@@ -32,7 +32,7 @@
     "item_move_waiting": "{actor} asked to move {item} from {from} to {to}."
   },
   "feedback": {
-    "new": "{sender} sent feedback: {feedbackKind, select, problem {a problem} idea {an idea} question {a question} praise {praise} other {a comment}}."
+    "new": "{actor} sent feedback: {feedbackKind, select, problem {a problem} idea {an idea} question {a question} praise {praise} other {a comment}}."
   },
   "fallback": "There is an update for you.",
   "ui": {

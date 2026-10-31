@@ -277,7 +277,7 @@
   },
   "erase-user": {
     "question": "Que fait l’effacement?",
-    "answer": "Le courriel, le nom, la photo, les mots de passe, les liens de connexion, la double authentification, les sessions, les jetons, les appartenances, les favoris, les choix de Pour commencer, les commentaires envoyés et les brouillons de la personne disparaissent pour de bon. Ce qu’elle a fait reste sous le pseudonyme deleted-user-'<'id'>' : les éléments et versions qu’elle a publiés, ses soumissions envoyées et ses commentaires de révision, et les événements d’audit, qui gardent leur sens. L’ancien courriel est libre aussitôt. Pour empêcher l’accès sans effacer, désactivez la personne."
+    "answer": "Le courriel, le nom, la photo, les mots de passe, les liens de connexion, la double authentification, les sessions, les jetons, les appartenances, les favoris, les choix de Pour commencer, les commentaires envoyés, les notifications et les brouillons de la personne disparaissent pour de bon. Ce qu’elle a fait reste sous le pseudonyme deleted-user-'<'id'>' : les éléments et versions qu’elle a publiés, ses soumissions envoyées et ses commentaires de révision, et les événements d’audit, qui gardent leur sens. L’ancien courriel est libre aussitôt. Pour empêcher l’accès sans effacer, désactivez la personne."
   },
   "notice": {
     "question": "Qui voit ceci?",
@@ -293,7 +293,7 @@
   },
   "your-data": {
     "question": "Que contient le fichier?",
-    "answer": "Votre compte (jamais le hachage du mot de passe ni le secret de la double authentification), vos sessions, les noms de vos jetons, espaces de travail, demandes, portées, vos favoris, les commentaires que vous avez envoyés, vos choix de Pour commencer, les éléments que vous avez publiés, vos soumissions et commentaires, et les événements d’audit auxquels vous avez pris part. Les courriels des autres personnes sont remplacés. Ce n’est pas une sauvegarde : les fichiers et les données des autres n’y sont pas. Vous pouvez le télécharger une fois toutes les 10 minutes."
+    "answer": "Votre compte (jamais le hachage du mot de passe ni le secret de la double authentification), vos sessions, les noms de vos jetons, espaces de travail, demandes, portées, vos favoris, les commentaires que vous avez envoyés, vos notifications, vos choix de Pour commencer, les éléments que vous avez publiés, vos soumissions et commentaires, et les événements d’audit auxquels vous avez pris part. Les courriels des autres personnes sont remplacés. Ce n’est pas une sauvegarde : les fichiers et les données des autres n’y sont pas. Vous pouvez le télécharger une fois toutes les 10 minutes."
   },
   "download-user-data": {
     "question": "Quand télécharger les données de quelqu’un?",

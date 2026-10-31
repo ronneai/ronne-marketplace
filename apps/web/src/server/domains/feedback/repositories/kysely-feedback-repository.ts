@@ -86,8 +86,9 @@ export const kyselyFeedbackRepository = (db: Db, dialect: DatabaseDialect): Feed
 
   return {
     // The row and the notification to every active root (139) are one transaction: a message that
-    // isn't stored tells nobody. The notification carries the sender's name as it is now and the
-    // kind, never the message.
+    // isn't stored tells nobody. The notification carries the kind, never the message and never the
+    // sender's name: who sent it is the notification's actor, read when it is shown, so erasing
+    // the sender (103) leaves their pseudonym there and no name behind.
     insert: (userId, feedback, { version, at, id = newId() }) =>
       readCommittedTransaction(db, dialect).execute(async (trx) => {
         await trx
@@ -102,11 +103,6 @@ export const kyselyFeedbackRepository = (db: Db, dialect: DatabaseDialect): Feed
             created_at: toDbDate(at, dialect),
           })
           .execute();
-        const sender = await trx
-          .selectFrom("user")
-          .select("name")
-          .where("id", "=", userId)
-          .executeTakeFirst();
         await notify(
           trx,
           dialect,
@@ -115,7 +111,7 @@ export const kyselyFeedbackRepository = (db: Db, dialect: DatabaseDialect): Feed
             kind: "feedback.new",
             actorId: userId,
             subject: { type: "feedback", id },
-            params: { sender: sender?.name ?? "", feedbackKind: feedback.kind },
+            params: { feedbackKind: feedback.kind },
           },
           at,
         );

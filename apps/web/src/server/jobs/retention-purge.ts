@@ -4,6 +4,7 @@ import { decodeJson, encodeJson } from "../db/json";
 import type { Database } from "../db/schema";
 import type { DatabaseDialect } from "../db/url";
 import type { AuditMetadata } from "../domains/audit/models/audit-event";
+import { RETENTION_DAYS as NOTIFICATION_DAYS } from "../domains/notifications/models/notification";
 import type { RetentionPolicy } from "../domains/settings/models/retention-policy";
 
 /**
@@ -25,6 +26,8 @@ export type PurgeCounts = {
   grantsDeleted: number;
   /** Feedback marked handled before the feedback retention, deleted (127). */
   feedbackDeleted: number;
+  /** Notifications older than their fixed 90 days, read or not, deleted (139). */
+  notificationsDeleted: number;
 };
 
 export type PurgeOptions = {
@@ -46,6 +49,8 @@ export const purgeCutoffs = (policy: RetentionPolicy, now: Date) => ({
   ip: daysBefore(now, policy.ipDays),
   sessions: daysBefore(now, policy.sessionsDays),
   feedback: daysBefore(now, policy.feedbackDays),
+  // Fixed, not root's to set (139): long enough to catch up after a holiday.
+  notifications: daysBefore(now, NOTIFICATION_DAYS),
 });
 
 type Db = Kysely<Database>;
@@ -333,6 +338,39 @@ const deleteHandledFeedback = async (
   );
 };
 
+/**
+ * Deletes notifications (139) created before the cutoff, read or not: they are kept for a fixed 90
+ * days. The oldest first, by `created_at` then `id`, as the other rules.
+ */
+const deleteOldNotifications = async (
+  db: Db,
+  dialect: DatabaseDialect,
+  cutoff: Date,
+  o: PurgeOptions,
+) => {
+  const matching = (q: Db) =>
+    q.selectFrom("notifications").where("created_at", "<", toDbDate(cutoff, dialect));
+  if (o.dryRun) return count(matching(db).select((eb) => eb.fn.countAll().as("n")));
+  return inBatches(o, () =>
+    db.transaction().execute(async (trx) => {
+      const ids = (
+        await matching(trx)
+          .select("id")
+          .orderBy("created_at")
+          .orderBy("id")
+          .limit(PURGE_BATCH)
+          .execute()
+      ).map((r) => r.id);
+      if (ids.length === 0) return 0;
+      const result = await trx
+        .deleteFrom("notifications")
+        .where("id", "in", ids)
+        .executeTakeFirst();
+      return Number(result.numDeletedRows);
+    }),
+  );
+};
+
 /** One purge at `now`, by `policy`. The rules run in the spec's order; each ends before the next. */
 export const runRetentionPurge = async (
   db: Db,
@@ -362,11 +400,15 @@ export const runRetentionPurge = async (
     deleteFinishedGrants(db, dialect, cutoff.sessions, now, o),
   );
   const feedbackDeleted = await rule((o) => deleteHandledFeedback(db, dialect, cutoff.feedback, o));
+  const notificationsDeleted = await rule((o) =>
+    deleteOldNotifications(db, dialect, cutoff.notifications, o),
+  );
   return {
     ipsCleared: { auditLog, sessions, deviceGrants },
     emailsCleared,
     sessionsDeleted,
     grantsDeleted,
     feedbackDeleted,
+    notificationsDeleted,
   };
 };

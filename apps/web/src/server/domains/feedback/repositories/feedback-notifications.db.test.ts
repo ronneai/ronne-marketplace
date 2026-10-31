@@ -51,13 +51,16 @@ describe("feedback.new (139)", () => {
     expect((await rows()).map((r) => r.user_id)).toEqual([other]);
   });
 
-  it("carries the sender's name and the kind, never the message", async () => {
+  it("carries the kind, never the message and never the sender's name", async () => {
     const [sender, root] = [await seedUser(t, "Ana"), await seedUser(t, "Root")];
     await makeRoot(root);
     await send(sender, "The secret message text");
     const [row] = await rows();
-    expect(JSON.parse(row?.params ?? "{}")).toEqual({ sender: "Ana", feedbackKind: "idea" });
+    expect(JSON.parse(row?.params ?? "{}")).toEqual({ feedbackKind: "idea" });
     expect(row?.params).not.toContain("secret");
+    // The sender is the actor, read when shown, so erasing them leaves a pseudonym and no name.
+    expect(row?.params).not.toContain("Ana");
+    expect(row?.actor_id).toBe(sender);
   });
 
   it("writes no notification when the message isn't stored", async () => {

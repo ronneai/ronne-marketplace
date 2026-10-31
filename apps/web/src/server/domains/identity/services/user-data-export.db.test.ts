@@ -5,6 +5,8 @@ import { createTestDb, type TestDb } from "../../../db/testing/test-db";
 import { listAuditEvents } from "../../audit/actions/audit";
 import { kyselyItemRepository } from "../../items/repositories/kysely-item-repository";
 import { kyselyScopeRepository } from "../../items/repositories/kysely-scope-repository";
+import type { NewNotification } from "../../notifications/models/notification";
+import { notify } from "../../notifications/services/notify";
 import { createDraft, saveDraftFiles } from "../../submissions/actions/drafts";
 import { comment } from "../../submissions/actions/reviews";
 import { submitDraft } from "../../submissions/actions/submissions";
@@ -664,5 +666,104 @@ describe("exportUserData (104)", () => {
         (e) => e.action === "user.data_exported",
       ),
     ).toBe(false);
+  });
+
+  describe("notifications (139)", () => {
+    const tell = (to: string, extra: Partial<NewNotification> = {}) =>
+      notify(t.db, t.dialect, {
+        recipients: [to],
+        kind: "membership.added",
+        actorId: rootId,
+        subject: { type: "workspace", id: GLOBAL_WORKSPACE_ID },
+        params: { workspace: "global", role: "user" },
+        ...extra,
+      });
+    const idsOf = async (user: string) =>
+      (await t.db.selectFrom("notifications").select("id").where("user_id", "=", user).execute())
+        .map((r) => r.id)
+        .sort();
+
+    it("includes the person's own, as stored, never anyone else's, and never who caused them", async () => {
+      const ana = await seedAna();
+      await tell(ana.id, {
+        kind: "feedback.new",
+        subject: { type: "feedback", id: newId() },
+        params: { sender: "Uma Quirós", feedbackKind: "idea" },
+      });
+      await tell(ana.id, {
+        params: { workspace: "global", role: "user", note: "ask bruno@other.example" },
+      });
+      await tell(rootId);
+      const { data } = await exportAs(ana.headers, ana.id);
+      const mine = await idsOf(ana.id);
+      expect(data.notifications.map((n) => n.id).sort()).toEqual(mine);
+      expect(data.notifications.length).toBeGreaterThanOrEqual(2);
+      const ids = new Set(data.notifications.map((n) => n.id));
+      for (const id of await idsOf(rootId)) expect(ids.has(id)).toBe(false);
+      const feedback = data.notifications.find((n) => n.kind === "feedback.new");
+      // Another person's name is not in her file: the parameter that carries it is dropped.
+      expect(feedback?.params).toEqual({ feedbackKind: "idea" });
+      expect(JSON.stringify(data.notifications)).not.toContain("Uma Quirós");
+      // Any other email in a parameter is scrubbed, as in the audit events.
+      const noted = data.notifications.find((n) => "note" in n.params);
+      expect(noted?.params.note).toBe("ask [other]");
+      // The shape: what it was and what about, when it came and whether it was read; nobody else.
+      expect(feedback).toEqual({
+        id: expect.any(String),
+        kind: "feedback.new",
+        subjectType: "feedback",
+        subjectId: expect.any(String),
+        params: { feedbackKind: "idea" },
+        createdAt: expect.any(Date),
+        readAt: null,
+      });
+      expect(JSON.stringify(data.notifications)).not.toContain(rootId);
+      expect(JSON.stringify(data.notifications)).not.toMatch(/actor/i);
+      // The oldest first.
+      const times = data.notifications.map((n) => n.id);
+      expect(times).toEqual([...times].sort());
+    });
+
+    it("gives a person with none an empty list", async () => {
+      const bob = await adminCreateUser(
+        asRoot,
+        { email: "bob@example.com", name: "Bob", role: "user", password },
+        app,
+      );
+      await tell(rootId);
+      const { data } = await exportAs(asRoot, bob.id);
+      expect(data.notifications).toEqual([]);
+      expect(data.truncated ?? []).not.toContain("notifications");
+    });
+
+    it("shows when it was read", async () => {
+      const bob = await adminCreateUser(
+        asRoot,
+        { email: "bob@example.com", name: "Bob", role: "user", password },
+        app,
+      );
+      await tell(bob.id);
+      await t.db
+        .updateTable("notifications")
+        .set({ read_at: at() })
+        .where("user_id", "=", bob.id)
+        .execute();
+      const { data } = await exportAs(asRoot, bob.id);
+      expect(data.notifications).toHaveLength(1);
+      expect(data.notifications[0]?.readAt).toEqual(expect.any(Date));
+    });
+
+    it("cuts the list past the limit, oldest kept, and says so", async () => {
+      const bob = await adminCreateUser(
+        asRoot,
+        { email: "bob@example.com", name: "Bob", role: "user", password },
+        app,
+      );
+      for (let i = 0; i < 3; i++) await tell(bob.id);
+      const all = await idsOf(bob.id);
+      const { data } = await exportAs(asRoot, bob.id, { maxRows: 2 });
+      expect(data.notifications.map((n) => n.id)).toEqual(all.slice(0, 2));
+      expect(data.truncated).toContain("notifications");
+    });
   });
 });
