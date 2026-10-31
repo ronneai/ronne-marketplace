@@ -101,6 +101,19 @@ describe("the notifications page (139)", () => {
     expect(html).toContain("Mark all as read");
   });
 
+  it("has a helper in the header, 'Why am I seeing this?', beside the title and not inside it", () => {
+    const html = render([view("n1")]);
+    expect(html).toContain("Why am I seeing this?");
+    expect(html).toContain("Each notification is addressed to you");
+    expect(html).toMatch(
+      /https:\/\/www\.ronne\.ai\/(?:en\/)?marketplace\/docs\/notifications#what/,
+    );
+    const header = html.slice(html.indexOf("<header"), html.indexOf("</header>"));
+    expect(header.indexOf("<h1")).toBeLessThan(header.indexOf("Why am I seeing this?"));
+    // A helper is a <details>: never inside a paragraph or the heading (hydration).
+    expect(html).not.toMatch(/<(p|h1)[^>]*>(?:(?!<\/(p|h1)>).)*<details/s);
+  });
+
   it("shows a row whose subject is gone as plain text, never a link", () => {
     const html = render([view("n1", { link: null })]);
     expect(html).toContain("Bruno requested changes to @tools/lint.");

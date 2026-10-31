@@ -36,7 +36,7 @@ it, and a page with all of them. In the app only; email and webhooks stay out of
   cleans), and only on this page, not in the popover; a row is a link when its subject is still
   there, and opening it marks it read; mark the selected or
     all of them read (a toast says how many; the bell follows). The total counts what the reader sees
-  and reads "at least" past 1,000. Selecting, marking and choosing filters need JavaScript; paging
+  and reads "1,000+" past that. Selecting, marking and choosing filters need JavaScript; paging
   and the address work without it.
 - **What notifies whom** (the first set; each is one `kind`):
   - **the author of a submission:** approved, approved by override, changes requested, rejected, a
@@ -150,20 +150,20 @@ marking read is a server action. A signed-out request gets 401 and nothing else.
 
 ## Acceptance criteria
 
-- [ ] The bell, in the fixed top bar of the content area (and in the phone header), shows the unread
+- [x] The bell, in the fixed top bar of the content area (and in the phone header), shows the unread
   count as a badge, and refreshes on navigation and every minute while visible; the sidebar is
   unchanged and the bar never covers it.
-- [ ] Each kind listed in Scope is written to its recipients, in the same transaction as its audit
+- [x] Each kind listed in Scope is written to its recipients, in the same transaction as its audit
   event, never to the actor or a disabled user; db tests cover each on the four databases.
-- [ ] Sentences are drawn in the reader's language from the kind and parameters; every
+- [x] Sentences are drawn in the reader's language from the kind and parameters; every
   `notifications.<kind>` message exists in English, Portuguese and French.
-- [ ] A notification whose subject the reader can no longer see is neither shown nor counted.
-- [ ] The popover lists the ten latest; `/notifications` pages, filters and marks read on the server
+- [x] A notification whose subject the reader can no longer see is neither shown nor counted.
+- [x] The popover lists the ten latest; `/notifications` pages, filters and marks read on the server
   data table; opening one marks it read.
-- [ ] Rows older than 90 days are purged; erasing a user deletes theirs; their data download
+- [x] Rows older than 90 days are purged; erasing a user deletes theirs; their data download
   includes them.
-- [ ] The popover, the page and the bell pass the phone sweep and the tap-target check.
-- [ ] The Documentation and inline helpers listed above say what the feature does.
+- [x] The popover, the page and the bell pass the phone sweep and the tap-target check.
+- [x] The Documentation and inline helpers listed above say what the feature does.
 
 ## Decisions
 

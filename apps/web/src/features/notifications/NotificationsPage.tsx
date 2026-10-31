@@ -1,4 +1,5 @@
 import { useTranslations } from "next-intl";
+import { Help } from "@/components/help/Help";
 import { type Column, DataTable } from "@/components/ui/data-table/DataTable";
 import { LocalTime } from "@/components/ui/LocalTime";
 import { PageHeader } from "@/components/ui/Panel";
@@ -90,7 +91,11 @@ export const NotificationsPage = ({
   ];
   return (
     <>
-      <PageHeader title={t("title")} description={t("description")} />
+      <PageHeader
+        title={t("title")}
+        description={t("description")}
+        actions={<Help id="notifications" />}
+      />
       <SelectionProvider ids={rows.map((row) => row.id)}>
         <DataTable
           list={NOTIFICATIONS_LIST}

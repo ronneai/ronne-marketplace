@@ -11,6 +11,10 @@
     "question": "Qui peut répondre?",
     "answer": "Root, dans tous les espaces de travail, et les modérateurs et admins de chaque espace de travail, dans le leur. Approuver ajoute la personne comme utilisateur; root et les admins de l’espace de travail peuvent choisir modérateur. Refuser peut donner un motif, que la personne voit; elle peut redemander 7 jours plus tard. La première réponse compte."
   },
+  "notifications": {
+    "question": "Pourquoi vois-je ceci?",
+    "answer": "Chaque notification vous est adressée à cause de quelque chose qui est arrivé à votre travail, d’une demande que vous avez faite ou d’une qui attend votre réponse. Vous n’en recevez jamais pour ce que vous avez fait vous-même. Elles sont conservées 90 jours, et ce que vous ne pouvez plus voir, comme les éléments d’un espace de travail privé auquel vous n’avez plus accès, est laissé de côté. Elles sont dans l’application seulement : pas de courriel."
+  },
   "member-roles": {
     "question": "Que peut faire chaque rôle?",
     "answer": "Un utilisateur propose et soumet des éléments dans l’espace de travail. Un modérateur les révise et les publie aussi. Un admin ajoute et retire aussi des membres, change leurs rôles, crée les portées de l’espace de travail et modifie sa description. Root peut tout faire dans tous les espaces de travail."

@@ -294,3 +294,32 @@ Witnessed: 2026-10-31, by a fresh agent (blind, re-check of the one row it could
 
 **Overall:** met.
 
+## Task 8 — Documentation
+
+Witnessed: 2026-10-31, by a fresh agent (blind). Commit: 12782511 plus the uncommitted work; ronne-web `docs/marketplace-139-notifications` at 82bbb9b. Machine: macOS (Darwin), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | ronne-web has en/pt/fr `notifications.tsx` with exactly the sections what, reading, kept, not-email, registered in `index.ts`, `docsTopics` and a group | no | confirmed | `git show --stat HEAD`; `topics.ts`; `pnpm test` 193 passed, lint, typecheck |
+| 2 | The app's `topics.ts` mirrors the website's, and `pnpm docs:links` passes | no | confirmed | "Compared 37 topics with the website's." |
+| 3 | The helper `notifications` → `notifications#what` (a real section) is in the page's header, with en/pt/fr text, without invalid nesting | no | confirmed | `Help.tsx`, `NotificationsPage.tsx`; 443 tests |
+| 4 | The kinds and who receives each, the bell, the popover, the page, 90 days, erase, the download, no email, match the code | no | partly | all matched except that the topic said the total "says at least" past 1,000, when the app shows "1,000+" |
+| 5 | The privacy additions are accurate for 102, 103 and 104 | no | confirmed | `retention-purge.ts`, `erase-user.ts`, `user-data-export.ts` |
+| 6 | The pt and fr copy matches the app's labels and the glossary, with Canadian French punctuation and no gendered address of the person | no | partly | gendered participles in pt and fr, a space before `;` and `?` in the fr |
+
+**Overall:** not met: rows 4 and 6.
+
+### Re-check
+
+Witnessed: 2026-10-31, by a fresh agent (blind, re-check of the findings). Commit: 12782511 plus the uncommitted help.json; ronne-web 3fb3e9e. Machine: macOS (Darwin), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The total reads "1,000+" past 1,000 in all three languages, and no "at least" is left in the topic or the privacy additions | no | confirmed | `en/notifications.tsx:105`; pt "1.000+", fr "1 000+" |
+| 2 | fr has no space before `;`, `?` or `!` in the website prose and the helper question | no | confirmed | grep; `fr/help.json:15` |
+| 3 | pt and fr have no gendered address of the person, and no new gendered form | no | confirmed | both files read in full |
+| 4 | The clumsy pt phrase is gone | no | confirmed | "não aparece no registro de auditoria" |
+| 5 | The tests, `pnpm docs:links`, typecheck and lint pass | no | confirmed | 193 tests (ronne-web); "Compared 37 topics"; 443 tests; 42 existing warnings |
+
+**Overall:** met. Not language-reviewed by the project's review agents (133) yet: the pt and fr copy was checked against the glossary and punctuation rules by the witness only.
+

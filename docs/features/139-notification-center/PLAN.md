@@ -51,7 +51,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     (104) includes them.
   - *Done when:* the retention, erase and download db tests cover notifications.
 
-- [ ] **8. Documentation.**
+- [x] **8. Documentation.**
   - The `notifications` topic, the privacy and your-data lines, the helper; `topics.ts` here and in
     ronne-web together.
   - *Done when:* the docs render tests and `pnpm docs:links` pass, and the helper lands on a real
@@ -88,7 +88,7 @@ goes into `SPEC.md` instead.
 - **Task 6:** the page is the feedback inbox's pattern (server data table, client selection parts).
   Its status filter is labelled "Status", not "Show", which the pager's page-size control already
   uses. The row checkbox sits in a `touch-hit` label (a bare input can't draw the 44px area). The
-  total is `countVisible`, up to 1,000 rows, so it reads "at least" past that. The e2e seed writes
+  total is `countVisible`, up to 1,000 rows, so it reads "1,000+" past that. The e2e seed writes
   30 notifications for `notificationsReader` through `notify`. New page folders must join two lists:
   the phone sweep's (`e2e/pages.ts`) and feedback's `PAGE_ROOTS`.
 - **Filters (owner, 2026-10-31):** the page's filters are the scan tab's multi-select popovers, so
@@ -96,6 +96,12 @@ goes into `SPEC.md` instead.
   `common`) and list-query gained a `list` filter kind (comma-separated values, at most 1,000
   characters). The choice is optimistic (`useOptimistic` in a transition), so the box answers at
   once while the address and the server's view catch up. The filters now need JavaScript.
+- **Task 8:** the Documentation is the `notifications` topic (Getting started group, after Account;
+  sections `what`, `reading`, `kept`, `not-email`), the Privacy additions, and the helper
+  `notifications#what` on the page, in ronne-web on `docs/marketplace-139-notifications` (two
+  commits, not pushed: it goes live with the release). The pt and fr copy was written by an agent
+  and checked by a witness against the glossary and punctuation; the project's language review (133)
+  has not read it.
 - **Task 7:** the purge deletes notifications older than a fixed 90 days (`RETENTION_DAYS`, no policy
   field), as its own last rule in `runRetentionPurge`, and `notificationsDeleted` is carried to the
   job log, the stored result, `rmk-server purge` and the Privacy tab. Erasing a user deletes the
