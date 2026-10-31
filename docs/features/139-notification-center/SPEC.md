@@ -5,19 +5,28 @@
 ## Goal
 
 People find out in the app what happened to their work and what waits for them, without watching
-each page (owner, 2026-10-29): a bell in the sidebar with how many are unread, a short list behind
+each page (owner, 2026-10-29): a bell in a top bar with how many are unread, a short list behind
 it, and a page with all of them. In the app only; email and webhooks stay out of scope.
 
 ## Scope
 
 **In:**
-- **A bell** at the top of the sidebar (119), beside the workspace switcher, and in the phone Menu
-  (066): the unread count as `NavCount` does it ("9+" past nine), a dot when folded.
-- **The short list**, a popover (`Popover`, full screen below `sm` as dialogs are, 067): the ten
-  latest, unread first marked, each with its sentence, when (`LocalTime`, 049) and a link; "Mark all
-  as read"; "See all".
+- **A top bar** (owner, 2026-10-31, from the mock `stitch_fixed_notification_center_bar`): a slim bar
+  fixed at the top of the content area, to the right of the sidebar (119), never over it; the
+  sidebar keeps its full height. From `lg`, the bar sticks to the top while the page scrolls and
+  holds the bell at its right; 143 later puts global search at its left. Below `lg` the phone header
+  (066) already is the top bar: the bell sits in it, beside the Menu button. Pages without the
+  sidebar (signed out, setup) have no bell.
+- **A bell** in that bar, with the unread count as a badge ("9+" past nine, as `NavCount` does it;
+  the count read out in the button's name). The sidebar and the Menu sheet get no bell.
+- **The short list**, a popover under the bell (`Popover`, full screen below `sm` as dialogs are,
+  067), flat with a border, no shadow: a header with the title, an unread pill and "Mark all as
+  read"; the ten latest, unread ones with a dot and a stronger title, read ones dimmed; each row is
+  one link with an icon tile by kind (neutral or teal, red only for a rejection or a request for
+  changes, never raw colours), its sentence, and when (`LocalTime`, 049); "See all" at the foot.
+  No filter chips, row buttons, Dismiss or settings in it: the filters are on the page.
 - **The page**, `/notifications`: every notification of the person, newest first, on the server data
-  table (060) with keyset pagination, a filter by read/unread and by kind; mark one, the selected or
+  table (060) with keyset pagination, a filter by read/unread and by kind (the filters live only here, not in the popover); mark one, the selected or
   all as read.
 - **What notifies whom** (the first set; each is one `kind`):
   - **the author of a submission:** approved, approved by override, changes requested, rejected, a
@@ -67,7 +76,7 @@ read. The link is built from the kind and the subject.
 its subject (`can` in the subject's workspace, 091, 093): someone removed from a private workspace no
 longer sees its item names in old notifications. Hidden ones aren't counted.
 
-**The count.** `loadShell` (`app/(app)/shell.ts`) adds the unread count to the nav counts with one
+**The count.** `loadShell` (`app/(app)/shell.ts`) adds the unread count to its result with one
 indexed query. A client component asks `GET /notifications/count` (a route handler of the web app,
 not `/api/v1`, session only) every 60 seconds while `document.visibilityState` is `visible`.
 
@@ -104,8 +113,9 @@ not `/api/v1`, session only) every 60 seconds while `document.visibilityState` i
 
 ## Acceptance criteria
 
-- [ ] The bell shows the unread count in the sidebar (open and folded) and in the phone Menu, and
-  refreshes on navigation and every minute while visible.
+- [ ] The bell, in the fixed top bar of the content area (and in the phone header), shows the unread
+  count as a badge, and refreshes on navigation and every minute while visible; the sidebar is
+  unchanged and the bar never covers it.
 - [ ] Each kind listed in Scope is written to its recipients, in the same transaction as its audit
   event, never to the actor or a disabled user; db tests cover each on the four databases.
 - [ ] Sentences are drawn in the reader's language from the kind and parameters; every
@@ -121,14 +131,22 @@ not `/api/v1`, session only) every 60 seconds while `document.visibilityState` i
 ## Decisions
 
 1. **Notifications in the app only** (owner, 2026-10-29); email and webhooks stay out (MVP §14.5).
-2. **Polling, not push** (Claude): one indexed query a minute per open page is cheap, needs no new
+2. **A top bar over the content, bell with a badge; a page as well as the popover** (owner,
+   2026-10-31): the popover is for a glance, the page for catching up, filtering and bulk marking.
+3. **Polling, not push** (Claude): one indexed query a minute per open page is cheap, needs no new
    connection type through Caddy (080), and works with several replicas.
-3. **Kinds and parameters, not sentences** (Claude): the sentence is in the reader's language, and a
+4. **Kinds and parameters, not sentences** (Claude): the sentence is in the reader's language, and a
    later translation fixes old notifications too.
-4. **Only what's addressed to the person** (Claude): a decision on your work, an answer to your
+5. **Only what's addressed to the person** (Claude): a decision on your work, an answer to your
    request, a request you must answer. Queue counts stay counts.
-5. **90 days, fixed** (Claude): long enough to catch up after a holiday; root's retention tab (102)
+6. **90 days, fixed** (Claude): long enough to catch up after a holiday; root's retention tab (102)
    can take it later if asked.
+
+## Design
+
+The mock's top bar, bell, badge and popover are the reference (a Stitch export, in the owner's
+git-ignored `docs/UI-Mocks-Materials`); its palette, shadow, filter chips, row buttons and settings
+gear are not used. Colours are our tokens and the type is our scale (158).
 
 ## Open questions
 

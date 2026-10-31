@@ -9,7 +9,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 ## Tasks
 
-- [ ] **1. Decision.**
+- [x] **1. Decision.**
   - MVP.md §15 has the "Notifications" row, §14.5 and §2 say in-app notifications are in and email
     and webhooks stay out, and `docs/features/README.md` lists 139 in M21 with its dependencies.
   - *Done when:* the docs say what this spec says, and `pnpm witness:check` passes.
@@ -32,11 +32,14 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* db tests cover a person removed from a private workspace (not shown, not counted),
     a deleted subject (no link) and an erased actor; messages pass the parity test.
 
-- [ ] **5. The bell, the popover and the count.**
-  - The bell in `Sidebar` and `MobileMenu`, the count in `loadShell`, the popover, the
-    `/notifications/count` route (session only) and the minute's polling while visible.
-  - *Done when:* component tests cover the count, the folded dot, "Mark all as read" and the
-    polling (fake timers, visibility); an e2e test sees a request for changes reach the author.
+- [ ] **5. The top bar, the bell, the popover and the count.**
+  - A top bar fixed over the content area from `lg` (not over the sidebar; the sidebar's height is
+    unchanged), the bell with its badge in it and in the phone header, the count in `loadShell`,
+    the popover (flat, per the spec's Design note), the `/notifications/count` route (session
+    only) and the minute's polling while visible.
+  - *Done when:* component tests cover the badge ("9+"), the bar not overlapping the sidebar,
+    "Mark all as read" and the polling (fake timers, visibility); an e2e test sees a request for
+    changes reach the author; the phone sweep passes with the bell in the header.
 
 - [ ] **6. The page `/notifications`.**
   - The data table, filters, selection and mark read; opening a link marks it read.
