@@ -17,6 +17,9 @@
       "error": "ERREUR :"
     }
   },
+  "flash": {
+    "draftDeleted": "Brouillon supprimé"
+  },
   "copy": {
     "label": "copier",
     "done": "copié",

@@ -17,6 +17,9 @@
       "error": "ERRO:"
     }
   },
+  "flash": {
+    "draftDeleted": "Rascunho excluído"
+  },
   "copy": {
     "label": "copiar",
     "done": "copiado",

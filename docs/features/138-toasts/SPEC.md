@@ -67,7 +67,9 @@ until closed. On a phone the toast sits above the draft editor's bar.
   touch and the live regions, in its **unstyled** mode: every colour, border and motion is ours,
   from the tokens, with no shadow.
 - **Behind our wrapper only:** `components/ui/Toaster.tsx` (the region), `components/ui/toast.tsx`
-  (`useToast`) and `ToastCard.tsx` (the box each toast draws), `components/ui/FlashToast.tsx`, `server/http/flash-toast.ts` (`flashToast`). Only
+  (`useToast`) and `ToastCard.tsx` (the box each toast draws), `components/ui/FlashToast.tsx` (reads and checks the cookie on the server) and
+  `FlashToastClient.tsx` (shows it and removes the cookie), `server/http/flash-toast.ts`
+  (`flashToast`), with the key list and the checks in `i18n/flash.ts`. Only
   these files import `sonner` (a lint rule, as for Better Auth), so it can be replaced by our own
   component without touching a page.
 - **What Sonner doesn't do, the wrapper does** (found in task 2, Sonner 2.0.8): Sonner has one
@@ -103,7 +105,9 @@ until closed. On a phone the toast sits above the draft editor's bar.
 
 ## Data
 
-None: no table, no setting. The flash cookie holds `{"k":"<FlashKey>","p":{…}}`, at most 1 KiB.
+None: no table, no setting. The flash cookie holds `{"i":"<id>","t":"<kind>","k":"<FlashKey>","p":{…}}`, at most 1 KiB: an id
+(so the same message twice is shown twice and a re-render shows it once), the kind (`ok` unless said),
+the key and at most five parameters, each a text of at most 200 characters or a number.
 
 ## Documentation
 

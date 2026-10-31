@@ -36,7 +36,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* a Playwright test on the styleguide checks the region's box on desktop, phone,
     phone-webkit and tablet (inside the viewport, not over the bar), and the mobile sweep passes.
 
-- [ ] **4. Flash toasts after a redirect.** [risky]
+- [x] **4. Flash toasts after a redirect.** [risky]
   - `flashToast(key, params)` on the server, `FlashToast` on the page: the `FlashKey` list, the
     cookie's size and lifetime, read once and deleted, parameters as text.
   - *Done when:* unit tests cover a good cookie, an unknown key, bad JSON, an oversized value and
@@ -66,6 +66,10 @@ goes into `SPEC.md` instead.
   says `// @vitest-environment happy-dom`) because Sonner's timers live in React effects. Move the
   clock in steps with React flushed between them (`tick` in `toast.test.tsx`): Sonner's removal
   after 200ms starts from an effect, which `act` runs only at its end.
+- Task 4: the root layout reads the cookie on the server and hands a checked flash to the client
+  piece (`FlashToast` → `FlashToastClient`), because a layout isn't remounted on a client-side
+  redirect but is rendered again. Wired first to deleting a draft for good (`withdrawAction` and
+  `deleteDraftAction`): the sweep (task 5) adds the rest of the keys.
 - Task 3: a modal `<dialog>` was not passed by a popover (it stayed under the dialog, and the page is inert
   anyway), so the region moves into the open dialog (`Toaster`). The styleguide page has each theme's
   sample twice: tests that click its buttons take `.first()`. A user's sign-ins are limited to 5 a

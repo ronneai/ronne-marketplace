@@ -135,3 +135,91 @@ Witnessed: 2026-10-31, by a fresh agent (blind, row 3 only). Commit: 36f0984d pl
 | 3 | On a tablet the toast clears the bar and what is under it | no | confirmed | `toast.mobile.e2e.ts:25-27` asserts, on the tablet project, more than 40 px between the bar's bottom and the screen edge; line 28 asserts the toast ends 12 px above the bar; `playwright test e2e/toast.mobile.e2e.ts --project tablet -g "action bar"` → 1 passed; `Toaster.tsx` identical to its backup |
 
 **Overall:** met: rows 3, 5, 6, 9 and 10 are confirmed by Re-check, Re-check 2 and this pass; the box tests pass on desktop, phone, phone-webkit and tablet.
+
+## Task 4 — Flash toasts after a redirect
+
+Witnessed: 2026-10-31 09:30, by a fresh agent (blind). Commit: afb6b7cb plus the uncommitted work. Machine: macOS (Darwin 27), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `flashToast` sets `ronne-toast` with path `/`, 30 s and SameSite=Lax, holding a key and never the text | no | confirmed | `flash-toast.ts` options; `flash-toast.test.ts` asserts them; the value does not contain "Draft deleted" |
+| 2 | `FlashKey` is a typed list; unknown keys and unparseable cookies are ignored | no | confirmed | `flash.ts:20`; removing the key check failed 2 tests |
+| 3 | Unit tests cover a good cookie, an unknown key and bad JSON | no | confirmed | `vitest run` of the task's test files → 21 passed |
+| 4 | Unit tests cover an oversized value | no | partly | removing `value.length > FLASH_MAX_LENGTH` left all 21 tests passing: the fixture was already rejected by the 200-character parameter cap |
+| 5 | Parameter validation is tested | no | confirmed | removing the type check failed 2 tests, the length cap 1, the name check 1 |
+| 6 | Markup in a parameter is shown as text | no | partly | only `parseFlash` kept the string; no test rendered markup into the DOM |
+| 7 | Read once and deleted; the toast shows once | no | confirmed | unit test: no `ronne-toast` after showing, a re-render gives one toast; e2e: cookie gone, a reload shows none |
+| 8 | An e2e test redirects and sees the toast once | no | confirmed | `playwright test e2e/flash-toast.e2e.ts` → 2 passed; "OK:Draft deleted" |
+| 9 | The e2e shows it in Portuguese for a person who chose it | no | confirmed | `ronne-locale=pt`, Portuguese UI, "OK:Rascunho excluído" |
+| 10 | An edited cookie shows nothing | no | confirmed | e2e: unknown key, nested param, `<script>` text → 0 toasts, `window.__flash` undefined |
+| 11 | Nothing sensitive is in the cookie | no | confirmed | both callers pass no parameters |
+| 12 | The layout shows the flash only when ready; a failed page does not consume the cookie | no | partly | by reading; not run |
+
+**Overall:** not met: rows 4 and 6 only half covered by tests.
+
+### Re-check
+
+Witnessed: 2026-10-31 09:20, by a fresh agent (blind re-check). Commit: afb6b7cb plus the uncommitted work. Machine: macOS (Darwin), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4 | A value over the size limit is ignored, even if every part of it is valid | no | confirmed | five valid 199-character parameters; removing the `FLASH_MAX_LENGTH` check failed "ignores a value over the size limit…" |
+| 6 | A parameter is shown as text, never as markup | no | confirmed | `flash-toast-markup.test.tsx` with the real ICU formatter; `dangerouslySetInnerHTML` in `ToastCard` failed it |
+| 12 | The layout shows the flash only when ready; a failed page keeps the cookie; JavaScript off | no | partly | by reading |
+
+**Overall:** not met: row 12 only read from the code.
+
+### Re-check 2
+
+Witnessed: 2026-10-31, by a fresh agent (blind re-check). Commit: afb6b7cb plus the uncommitted work. Machine: macOS (Darwin), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 12b | A failed page does not consume the cookie | no | partly | read from the code; no failed-page run |
+| 12c-i | The real Set-Cookie carries `Max-Age=30`, `SameSite=Lax`, `Path=/` and the key, not the text | no | confirmed | `playwright test e2e/flash-toast.e2e.ts` → 3 passed; test 1 asserts the header |
+| 12c-ii | With JavaScript off nothing shows, the page renders and the cookie stays | no | confirmed | test 3, `javaScriptEnabled: false` |
+
+**Overall:** not met: 12b only read from the code.
+
+### Re-check 3
+
+Witnessed: 2026-10-31, by a fresh agent (blind re-check). Commit: afb6b7cb plus the uncommitted work. Machine: macOS (Darwin), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 12b-i | A flash cookie for a page that fails to render is read and dropped by the next page that has the region, shown once, late | no | confirmed | `playwright test e2e/flash-toast.e2e.ts` → 4 passed; the 404 test expects status 404, one toast, the cookie gone, none on the next page |
+| 12b-ii | The cookie expires after 30 seconds | no | confirmed | test 1 asserts `Max-Age=30` on the real header; `FLASH_MAX_AGE = 30` in `flash.ts:10`, used at `flash-toast.ts:29` |
+
+**Overall:** met: rows 4, 6 and 12 are confirmed by the re-checks; the four Playwright tests pass.
+
+### Adversarial
+
+Witnessed: 2026-10-31 09:30, by a fresh agent (adversarial). Commit: afb6b7cb plus the uncommitted work. Machine: macOS (Darwin 27), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The key must be on the typed list; Object.prototype names can't fool the check | no | confirmed | probe: `toString`, `__proto__`, an array as the key, and `constructor`, `toString`, `null` as the kind → null |
+| 2 | Bad JSON, an array or null `p`, NaN, 1e999, deep nesting, a long id and an oversized value are ignored | no | confirmed | probe: null in each case; the 1024-character cap at `flash.ts:44` |
+| 3 | Parameter names can't carry `__proto__` | no | confirmed | probe: `__proto__` → null; `constructor` accepted as an own property, prototype unchanged |
+| 4 | Parameters are plain text: markup and ICU syntax in a value never become HTML or message syntax | no | confirmed | probe; `flash-toast-markup.test.tsx` passes; the only message has no placeholder |
+| 5 | The unit tests catch the removal of each check | no | confirmed | removing the key check, the size cap and the name check failed 4 of 10 tests |
+| 6 | 30 s, SameSite=Lax, path `/`, a key and no text | no | confirmed | the e2e reads the real `Set-Cookie`; each call gets a fresh `randomUUID` |
+| 7 | Read once and deleted | no | confirmed | e2e: no `ronne-toast` after the toast; a reload shows none |
+| 8 | The e2e redirects and sees the toast once, in Portuguese for a person who chose it | no | confirmed | "OK:Draft deleted", then "OK:Rascunho excluído" with `ronne-locale=pt` |
+| 9 | A hostile cookie shows nothing and runs nothing | no | confirmed | three tampered cookies → 0 toasts, `window.__flash` undefined |
+| 10 | The layout does not read the cookie when the app is not ready | no | confirmed | `layout.tsx:57` |
+| 11 | Nothing sensitive is in the cookie | no | confirmed | both callers pass no parameters |
+| 12 | Without JavaScript nothing breaks | no | confirmed | e2e test 3 |
+| 13 | Two tabs: each shows a flash at most once, and a second tab shows nothing but the message | no | partly | reasoned from the code, not run |
+
+**Overall:** met: all attempts to break the claims failed; row 13 was only reasoned.
+
+### Adversarial re-check
+
+Witnessed: 2026-10-31 09:45, by a fresh agent (adversarial re-check, row 13). Commit: afb6b7cb plus the uncommitted work. Machine: macOS (Darwin 27), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 13 | Each tab shows a flash at most once, and a second tab shows nothing but the message; across tabs the worst case is one duplicate | no | confirmed | a temporary two-tab spec (deleted afterwards, `git status` unchanged): (a) delete in tab A with both tabs open → A 1 toast, B 0, none after B reloads; (b) a valid cookie then `Promise.all([A.goto, B.goto])` → 1 toast in each, both "OK:Draft deleted" |
+
+**Overall:** met: no tab showed a flash twice and the only text was "Draft deleted"; two tabs loading at the same moment while the cookie is still there each show it once.

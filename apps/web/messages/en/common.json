@@ -17,6 +17,9 @@
       "error": "ERR:"
     }
   },
+  "flash": {
+    "draftDeleted": "Draft deleted"
+  },
   "copy": {
     "label": "copy",
     "done": "copied",
