@@ -100,6 +100,37 @@ export const countVisibleUnread = async (
     .length;
 };
 
+/** The most rows the page's total looks at before it reads "at least". */
+const TOTAL_CAP = 1000;
+
+/**
+ * How many notifications the reader sees under these filters (139): the newest rows up to a cap,
+ * with the hidden ones dropped, and whether the cap was reached. The `/notifications` page's total.
+ */
+export const countVisible = async (
+  db: Db,
+  dialect: DatabaseDialect,
+  viewer: Viewer,
+  query: NotificationFilters & { userId: string },
+  cap = TOTAL_CAP,
+): Promise<{ count: number; capped: boolean }> => {
+  const { userId, ...filters } = query;
+  const refs = await kyselyNotificationRepository(db, dialect).refs(userId, filters, cap);
+  if (refs.length === 0) return { count: 0, capped: false };
+  const resolved = await resolveRows(
+    db,
+    refs.map((row) => ({
+      kind: row.kind,
+      subject: { type: row.subjectType, id: row.subjectId },
+      workspaceIds: row.workspaceIds,
+    })),
+  );
+  const count = refs.filter(
+    (row, index) => shownTo(viewer, row.kind, resolved[index] ?? null).shown,
+  ).length;
+  return { count, capped: refs.length >= cap };
+};
+
 /** Batches fetched while hidden rows are skipped, so a page doesn't come up short for long. */
 const MAX_BATCHES = 5;
 

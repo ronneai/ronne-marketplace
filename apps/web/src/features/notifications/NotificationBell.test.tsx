@@ -135,6 +135,17 @@ describe("the count's refresh (139)", () => {
     expect(badge()).toBeNull();
   });
 
+  it("takes the count the server brings when the page is shown again", async () => {
+    await mount(5);
+    expect(badge()).toBe("5");
+    // Marking read on the page, then router.refresh(): the layout renders with a new number.
+    await act(async () => root.render(<NotificationBell initialCount={0} />));
+    expect(badge()).toBeNull();
+    await act(async () => root.render(<NotificationBell initialCount={3} />));
+    expect(badge()).toBe("3");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("stops asking once it is gone", async () => {
     await mount(1);
     await act(async () => root.unmount());

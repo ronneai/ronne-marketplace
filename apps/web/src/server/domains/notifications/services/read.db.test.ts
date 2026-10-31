@@ -7,7 +7,7 @@ import { visibleWorkspaces } from "../../workspaces/models/viewer";
 import { GLOBAL_WORKSPACE_ID } from "../../workspaces/models/workspace";
 import type { NotificationKind, SubjectType } from "../models/notification";
 import { notify } from "./notify";
-import { countVisibleUnread, latestVisible, pageVisible } from "./read";
+import { countVisible, countVisibleUnread, latestVisible, pageVisible } from "./read";
 
 let t: TestDb;
 beforeEach(async () => {
@@ -449,5 +449,57 @@ describe("lists and counts", () => {
   it("counts nothing, with a single query, when nothing is unread", async () => {
     const ana = await seedUser(t, "Ana");
     expect(await countVisibleUnread(t.db, t.dialect, await viewerOf(ana), ana)).toBe(0);
+  });
+});
+
+describe("the page's total (139)", () => {
+  it("counts what the reader sees under the filters, leaving the hidden out", async () => {
+    const ana = await seedUser(t, "Ana");
+    const secret = await seedWorkspace(t, "secret", "private");
+    const hidden = await submissionIn(ana, secret);
+    const open = await submissionIn(ana, GLOBAL_WORKSPACE_ID);
+    await tell(ana, "submission.comment", { type: "submission", id: open });
+    await tell(ana, "submission.rejected", { type: "submission", id: open });
+    await tell(ana, "submission.comment", { type: "submission", id: hidden });
+    const viewer = await viewerOf(ana);
+    expect(await countVisible(t.db, t.dialect, viewer, { userId: ana })).toEqual({
+      count: 2,
+      capped: false,
+    });
+    expect(
+      await countVisible(t.db, t.dialect, viewer, { userId: ana, kind: "submission.comment" }),
+    ).toEqual({ count: 1, capped: false });
+    // Read ones count under "read", not "unread".
+    const [newest] = await latestVisible(t.db, t.dialect, viewer, ana, 1);
+    await t.db
+      .updateTable("notifications")
+      .set({ read_at: at() })
+      .where("id", "=", newest?.id ?? "")
+      .execute();
+    expect(await countVisible(t.db, t.dialect, viewer, { userId: ana, state: "read" })).toEqual({
+      count: 1,
+      capped: false,
+    });
+    expect(await countVisible(t.db, t.dialect, viewer, { userId: ana, state: "unread" })).toEqual({
+      count: 1,
+      capped: false,
+    });
+  });
+
+  it("says when it stopped at its cap, and counts nobody else's", async () => {
+    const [ana, bruno] = [await seedUser(t, "Ana"), await seedUser(t, "Bruno")];
+    const open = await submissionIn(ana, GLOBAL_WORKSPACE_ID);
+    for (let i = 0; i < 7; i++)
+      await tell(ana, "submission.comment", { type: "submission", id: open });
+    await tell(bruno, "submission.comment", { type: "submission", id: open });
+    const viewer = await viewerOf(ana);
+    expect(await countVisible(t.db, t.dialect, viewer, { userId: ana }, 5)).toEqual({
+      count: 5,
+      capped: true,
+    });
+    expect(await countVisible(t.db, t.dialect, viewer, { userId: ana }, 50)).toEqual({
+      count: 7,
+      capped: false,
+    });
   });
 });

@@ -41,7 +41,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     "Mark all as read" and the polling (fake timers, visibility); an e2e test sees a request for
     changes reach the author; the phone sweep passes with the bell in the header.
 
-- [ ] **6. The page `/notifications`.**
+- [x] **6. The page `/notifications`.**
   - The data table, filters, selection and mark read; opening a link marks it read.
   - *Done when:* component and e2e tests cover paging, the filters and marking; the phone sweep and
     tap-target checks pass.
@@ -85,3 +85,9 @@ goes into `SPEC.md` instead.
   (`notifications`, `count`, `latest`) are in `telemetry/sanitize.ts`. Marking read is a server
   action; opening a row marks it read (not without JavaScript: the popover needs it, and the
   page, task 6, marks with forms).
+- **Task 6:** the page is the feedback inbox's pattern (server data table, client selection parts).
+  Its status filter is labelled "Status", not "Show", which the pager's page-size control already
+  uses. The row checkbox sits in a `touch-hit` label (a bare input can't draw the 44px area). The
+  total is `countVisible`, up to 1,000 rows, so it reads "at least" past that. The e2e seed writes
+  30 notifications for `notificationsReader` through `notify`. New page folders must join two lists:
+  the phone sweep's (`e2e/pages.ts`) and feedback's `PAGE_ROOTS`.

@@ -81,6 +81,7 @@
       "item": "{count, plural, one {item} other {itens}}",
       "member": "{count, plural, one {membro} other {membros}}",
       "message": "{count, plural, one {mensagem} other {mensagens}}",
+      "notification": "{count, plural, one {notificação} other {notificações}}",
       "scope": "{count, plural, one {escopo} other {escopos}}",
       "submission": "{count, plural, one {submissão} other {submissões}}",
       "user": "{count, plural, one {usuário} other {usuários}}",

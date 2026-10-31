@@ -7,6 +7,15 @@ export type NotificationFilters = {
   kind?: NotificationKind;
 };
 
+/** A notification as far as its visibility goes: its kind, its subject and where that lived. */
+export type NotificationRef = {
+  id: string;
+  kind: NotificationKind;
+  subjectType: SubjectType;
+  subjectId: string;
+  workspaceIds: string[];
+};
+
 export type NotificationPageQuery = NotificationFilters & {
   userId: string;
   size: number;
@@ -35,19 +44,13 @@ export interface NotificationRepository {
   latest(userId: string, limit: number): Promise<Notification[]>;
   /** How many are unread, up to `cap` (a result equal to `cap` means "that many or more"). */
   countUnread(userId: string, cap: number): Promise<number>;
-  /** The person's unread notifications, newest first, with what each is about (up to `cap`). */
-  unread(
-    userId: string,
-    cap: number,
-  ): Promise<
-    {
-      id: string;
-      kind: NotificationKind;
-      subjectType: SubjectType;
-      subjectId: string;
-      workspaceIds: string[];
-    }[]
-  >;
+  /**
+   * What the person's notifications are about, newest first (up to `cap`), for judging which they
+   * may see without reading each one whole. `unread` is `{ state: "unread" }`.
+   */
+  refs(userId: string, filters: NotificationFilters, cap: number): Promise<NotificationRef[]>;
+  /** The person's unread notifications, as `refs`. */
+  unread(userId: string, cap: number): Promise<NotificationRef[]>;
   /** Marks these read, the person's own and still unread only; returns the ids that changed. */
   markRead(userId: string, ids: readonly string[], at: Date): Promise<string[]>;
   /** Marks all of the person's unread notifications read; returns how many. */

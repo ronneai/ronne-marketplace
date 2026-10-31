@@ -120,6 +120,8 @@ export const E2E_USERS = {
   // Reaches the hourly limit (127), and an account root erases after it sent feedback.
   feedbackLimit: "feedback-limit@e2e.test",
   feedbackErasable: "feedback-erasable@e2e.test",
+  // Reads and marks read the notifications the seed wrote for them (139).
+  notificationsReader: "notifications-reader@e2e.test",
   // Sends feedback from the Menu on a phone and a tablet (127): one per device project.
   phoneFeedback: "phone-feedback@e2e.test",
   phoneWebkitFeedback: "phone-webkit-feedback@e2e.test",
@@ -370,6 +372,7 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   feedbackRoot: "Feedback Root",
   feedbackLimit: "Feedback Limit",
   feedbackErasable: "Feedback Erasable",
+  notificationsReader: "Nia Reader",
   phoneFeedback: "Phone Feedback",
   phoneWebkitFeedback: "Phone Webkit Feedback",
   tabletFeedback: "Tablet Feedback",

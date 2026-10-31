@@ -46,5 +46,93 @@
     "error": "Não foi possível carregar as notificações.",
     "retry": "Tentar de novo",
     "unreadMark": "Não lida"
+  },
+  "page": {
+    "title": "Notificações",
+    "description": "O que aconteceu com o seu trabalho e o que espera por você, das mais recentes às mais antigas. São mantidas por 90 dias.",
+    "filters": {
+      "state": "Situação",
+      "anyState": "Todas",
+      "unread": "Não lidas",
+      "read": "Lidas",
+      "kind": "Sobre",
+      "anyKind": "Qualquer assunto",
+      "apply": "Aplicar"
+    },
+    "groups": {
+      "submission": "Suas submissões",
+      "join_request": "Pedidos para entrar",
+      "scope_move": "Movimentação de escopo",
+      "item_move": "Movimentação de item",
+      "membership": "Sua participação",
+      "request": "Solicitações à sua espera",
+      "feedback": "Feedback"
+    },
+    "kinds": {
+      "submission": {
+        "approved": "Aprovada",
+        "approved_override": "Aprovada por exceção",
+        "changes_requested": "Alterações solicitadas",
+        "rejected": "Rejeitada",
+        "comment": "Comentário",
+        "released": "Publicada",
+        "dependency_rejected": "Dependência rejeitada"
+      },
+      "join_request": {
+        "approved": "Pedido para entrar aprovado",
+        "declined": "Pedido para entrar recusado"
+      },
+      "scope_move": {
+        "moved": "Escopo movido",
+        "declined": "Movimentação recusada"
+      },
+      "item_move": {
+        "moved": "Item movido",
+        "declined": "Movimentação recusada"
+      },
+      "membership": {
+        "added": "Adicionado a um espaço de trabalho",
+        "removed": "Removido de um espaço de trabalho",
+        "role_changed": "Papel alterado"
+      },
+      "request": {
+        "join_waiting": "Pedido para entrar",
+        "scope_move_waiting": "Pedido para mover um escopo",
+        "item_move_waiting": "Pedido para mover um item"
+      },
+      "feedback": {
+        "new": "Novo feedback"
+      }
+    },
+    "columns": {
+      "select": "Selecionar",
+      "state": "Situação",
+      "what": "Notificação",
+      "when": "Quando"
+    },
+    "state": {
+      "unread": "Não lida",
+      "read": "Lida"
+    },
+    "select": "Selecionar: {sentence}",
+    "bulk": {
+      "label": "Ações para as notificações selecionadas",
+      "selected": "{count, plural, =0 {Nenhuma selecionada} one {# selecionada} other {# selecionadas}}",
+      "markSelected": "Marcar selecionadas como lidas",
+      "markAll": "Marcar todas como lidas",
+      "selectAll": "Selecionar todas desta página",
+      "clear": "Limpar seleção"
+    },
+    "done": {
+      "read": "{count, plural, =0 {Nada a marcar: todas já estavam lidas.} one {# notificação marcada como lida.} other {# notificações marcadas como lidas.}}"
+    },
+    "errors": {
+      "failed": "Não foi possível marcá-las como lidas. Tente de novo."
+    },
+    "empty": {
+      "none": "Nenhuma notificação ainda. Elas aparecem aqui quando algo acontece com o seu trabalho ou espera por você.",
+      "filtered": "Nenhuma notificação corresponde a esses filtros."
+    },
+    "noLink": "Nada para abrir: aquilo de que se trata não existe mais."
   }
 }

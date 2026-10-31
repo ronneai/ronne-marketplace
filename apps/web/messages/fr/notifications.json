@@ -46,5 +46,93 @@
     "error": "Impossible de charger les notifications.",
     "retry": "Réessayer",
     "unreadMark": "Non lue"
+  },
+  "page": {
+    "title": "Notifications",
+    "description": "Ce qui est arrivé à votre travail et ce qui vous attend, des plus récentes aux plus anciennes. Elles sont conservées 90 jours.",
+    "filters": {
+      "state": "État",
+      "anyState": "Toutes",
+      "unread": "Non lues",
+      "read": "Lues",
+      "kind": "Concernant",
+      "anyKind": "Tout",
+      "apply": "Appliquer"
+    },
+    "groups": {
+      "submission": "Vos soumissions",
+      "join_request": "Demandes pour se joindre",
+      "scope_move": "Déplacement d’une portée",
+      "item_move": "Déplacement d’un élément",
+      "membership": "Votre appartenance",
+      "request": "Demandes en attente",
+      "feedback": "Commentaires"
+    },
+    "kinds": {
+      "submission": {
+        "approved": "Approuvée",
+        "approved_override": "Approuvée par dérogation",
+        "changes_requested": "Modifications demandées",
+        "rejected": "Rejetée",
+        "comment": "Commentaire",
+        "released": "Publiée",
+        "dependency_rejected": "Dépendance rejetée"
+      },
+      "join_request": {
+        "approved": "Demande approuvée",
+        "declined": "Demande refusée"
+      },
+      "scope_move": {
+        "moved": "Portée déplacée",
+        "declined": "Déplacement refusé"
+      },
+      "item_move": {
+        "moved": "Élément déplacé",
+        "declined": "Déplacement refusé"
+      },
+      "membership": {
+        "added": "Ajout à un espace de travail",
+        "removed": "Retrait d’un espace de travail",
+        "role_changed": "Rôle modifié"
+      },
+      "request": {
+        "join_waiting": "Demande pour se joindre",
+        "scope_move_waiting": "Demande de déplacer une portée",
+        "item_move_waiting": "Demande de déplacer un élément"
+      },
+      "feedback": {
+        "new": "Nouveaux commentaires"
+      }
+    },
+    "columns": {
+      "select": "Sélectionner",
+      "state": "État",
+      "what": "Notification",
+      "when": "Quand"
+    },
+    "state": {
+      "unread": "Non lue",
+      "read": "Lue"
+    },
+    "select": "Sélectionner : {sentence}",
+    "bulk": {
+      "label": "Actions pour les notifications sélectionnées",
+      "selected": "{count, plural, =0 {Aucune sélectionnée} one {# sélectionnée} other {# sélectionnées}}",
+      "markSelected": "Marquer la sélection comme lue",
+      "markAll": "Tout marquer comme lu",
+      "selectAll": "Tout sélectionner sur cette page",
+      "clear": "Effacer la sélection"
+    },
+    "done": {
+      "read": "{count, plural, =0 {Rien à marquer : elles étaient déjà toutes lues.} one {# notification marquée comme lue.} other {# notifications marquées comme lues.}}"
+    },
+    "errors": {
+      "failed": "Impossible de les marquer comme lues. Réessayez."
+    },
+    "empty": {
+      "none": "Aucune notification pour l’instant. Elles apparaissent ici lorsqu’il arrive quelque chose à votre travail ou qu’une demande vous attend.",
+      "filtered": "Aucune notification ne correspond à ces filtres."
+    },
+    "noLink": "Rien à ouvrir : ce dont il s’agissait n’existe plus."
   }
 }

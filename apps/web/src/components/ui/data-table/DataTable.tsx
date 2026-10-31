@@ -146,6 +146,7 @@ export type TableNoun =
   | "item"
   | "member"
   | "message"
+  | "notification"
   | "scope"
   | "submission"
   | "user"

@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { mobileUser, signIn } from "./mobile";
+import { E2E_USERS } from "./users";
 
 /**
  * Feature 139 on a phone and a tablet: the bell sits in the header beside the Menu, a tap target
@@ -54,4 +55,21 @@ test("the bell is a tap target and opens the panel as a screen that fits", async
   await page.keyboard.press("Escape");
   await expect(panel).toBeHidden();
   await expect(bell).toBeFocused();
+});
+
+/**
+ * The page's row checkboxes are small, so each has a tap area of 44px (067): a tap beside the box,
+ * inside that area, still ticks it. The seed wrote the reader's notifications for every project.
+ */
+test("a tap near a row's checkbox ticks it", async ({ page }) => {
+  await signIn(page, E2E_USERS.notificationsReader);
+  await page.goto("/notifications");
+  const box = page.getByRole("checkbox").first();
+  await expect(box).toBeVisible();
+  const at = await box.boundingBox();
+  expect(at, "has a box").not.toBeNull();
+  if (!at) return;
+  // 18px to the side of its centre is outside the 16px box and inside the 44px area.
+  await page.touchscreen.tap(at.x + at.width / 2 + 18, at.y + at.height / 2);
+  await expect(box).toBeChecked();
 });

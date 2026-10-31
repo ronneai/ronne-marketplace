@@ -46,5 +46,93 @@
     "error": "Couldn’t load notifications.",
     "retry": "Try again",
     "unreadMark": "Unread"
+  },
+  "page": {
+    "title": "Notifications",
+    "description": "What happened to your work and what waits for you, newest first. They are kept for 90 days.",
+    "filters": {
+      "state": "Status",
+      "anyState": "All",
+      "unread": "Unread",
+      "read": "Read",
+      "kind": "About",
+      "anyKind": "Anything",
+      "apply": "Apply"
+    },
+    "groups": {
+      "submission": "Your submissions",
+      "join_request": "Requests to join",
+      "scope_move": "Moving a scope",
+      "item_move": "Moving an item",
+      "membership": "Your membership",
+      "request": "Requests waiting for you",
+      "feedback": "Feedback"
+    },
+    "kinds": {
+      "submission": {
+        "approved": "Approved",
+        "approved_override": "Approved by override",
+        "changes_requested": "Changes requested",
+        "rejected": "Rejected",
+        "comment": "Comment",
+        "released": "Released",
+        "dependency_rejected": "Dependency rejected"
+      },
+      "join_request": {
+        "approved": "Join request approved",
+        "declined": "Join request declined"
+      },
+      "scope_move": {
+        "moved": "Scope moved",
+        "declined": "Move declined"
+      },
+      "item_move": {
+        "moved": "Item moved",
+        "declined": "Move declined"
+      },
+      "membership": {
+        "added": "Added to a workspace",
+        "removed": "Removed from a workspace",
+        "role_changed": "Role changed"
+      },
+      "request": {
+        "join_waiting": "Request to join",
+        "scope_move_waiting": "Request to move a scope",
+        "item_move_waiting": "Request to move an item"
+      },
+      "feedback": {
+        "new": "New feedback"
+      }
+    },
+    "columns": {
+      "select": "Select",
+      "state": "Status",
+      "what": "Notification",
+      "when": "When"
+    },
+    "state": {
+      "unread": "Unread",
+      "read": "Read"
+    },
+    "select": "Select: {sentence}",
+    "bulk": {
+      "label": "Actions for the selected notifications",
+      "selected": "{count, plural, =0 {None selected} one {# selected} other {# selected}}",
+      "markSelected": "Mark selected as read",
+      "markAll": "Mark all as read",
+      "selectAll": "Select all on this page",
+      "clear": "Clear selection"
+    },
+    "done": {
+      "read": "{count, plural, =0 {Nothing to mark: they were all read already.} one {Marked # notification as read.} other {Marked # notifications as read.}}"
+    },
+    "errors": {
+      "failed": "Couldn’t mark them as read. Try again."
+    },
+    "empty": {
+      "none": "No notifications yet. They appear here when something happens to your work or waits for you.",
+      "filtered": "No notifications match these filters."
+    },
+    "noLink": "Nothing to open: what this is about is gone."
   }
 }

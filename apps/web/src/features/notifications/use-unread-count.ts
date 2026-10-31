@@ -17,6 +17,15 @@ export const useUnreadCount = (initial: number) => {
   const path = usePathname();
   const first = useRef(true);
 
+  // A page that was shown again by the server (router.refresh after marking read) brings a new
+  // count with it: take it, as the minute's request would.
+  const seen = useRef(initial);
+  useEffect(() => {
+    if (seen.current === initial) return;
+    seen.current = initial;
+    setCount(initial);
+  }, [initial]);
+
   const refresh = useCallback(async () => {
     try {
       const response = await fetch("/notifications/count", {

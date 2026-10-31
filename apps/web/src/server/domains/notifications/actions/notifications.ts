@@ -2,7 +2,9 @@ import { getCurrentUser } from "../../identity/actions/session";
 import { type AppAuth, getAppAuth } from "../../identity/repositories/auth-instance";
 import { viewerOf } from "../../workspaces/actions/viewer";
 import { kyselyNotificationRepository } from "../repositories/kysely-notification-repository";
+import type { NotificationFilters } from "../repositories/notification-repository";
 import {
+  countVisible,
   countVisibleUnread,
   latestVisible,
   type NotificationView,
@@ -57,6 +59,18 @@ export const pageNotifications = async (
   const who = await reader(headers, app);
   return who
     ? pageVisible(app.db, app.dialect, who.viewer, { ...query, userId: who.user.id })
+    : null;
+};
+
+/** How many notifications the person sees under these filters (the page's total). */
+export const countNotifications = async (
+  headers: Headers,
+  filters: NotificationFilters,
+  app: AppAuth = getAppAuth(),
+) => {
+  const who = await reader(headers, app);
+  return who
+    ? countVisible(app.db, app.dialect, who.viewer, { ...filters, userId: who.user.id })
     : null;
 };
 

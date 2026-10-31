@@ -194,3 +194,37 @@ Witnessed: 2026-10-31, by a fresh agent (blind). Commit: b83f4f87 plus the uncom
 
 **Overall:** met. Noted: the geometry of "the bar not overlapping the sidebar" is checked in the e2e (the unit test checks order and classes); the action db tests were also run by the implementer on PostgreSQL, MySQL and MariaDB (6 tests each).
 
+## Task 6 — The page /notifications
+
+Witnessed: 2026-10-31, by a fresh agent (blind). Commit: 87aa9c6e plus the uncommitted work. Machine: macOS (Darwin), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The page lists the person's own notifications newest first on the server data table, 25 a page, state and kind filters in the URL (chips, a GET form), kinds grouped, unknown values dropped | no | confirmed | `list.ts`, `NotificationsPage.tsx`; the e2e saw 30 in all, 25 on page 1, `state=read` 5, `kind=rejected` 10 |
+| 2 | The query never carries a person id; someone else's can't appear | no | confirmed | `page.test.tsx`; `countNotifications` takes the id from the session |
+| 3 | Hidden rows are neither listed nor counted in the total | no | confirmed | `countVisible`; db tests (SQLite by the witness; the three servers by the implementer) |
+| 4 | Mark selected and Mark all go through `serverAction`, touch only the person's own rows, and toast with how many | no | confirmed | `actions.ts`; e2e toasts "Marked 2 notifications as read." and "Marked 23 notifications as read." |
+| 5 | The bell's badge follows after the page is shown again | no | confirmed | e2e: 25 → 23 → none |
+| 6 | Opening an unread row marks it read, a read one not; a row with no subject is text | no | confirmed | `NotificationsSelection.test.tsx`; the e2e checks the links |
+| 7 | The page is in the sweep and the sweep passes on phone, phone-webkit and tablet | no | confirmed | 15 passed on each |
+| 8 | Tap targets on a phone are at least 44px | no | partly | the row checkbox was a bare 16px input, with no enlarged tap area |
+| 9 | Component, db and e2e tests cover paging, the filters and marking | no | confirmed | 26 files, 424 tests; `notifications.e2e.ts` |
+| 10 | Messages with parity, the glossary, Canadian French punctuation, no gendered address | no | confirmed | `src/i18n` |
+| 11 | Lint and typecheck | no | confirmed | 42 existing warnings, no errors |
+| 12 | The seed writes 30 rows through `notify` for one reader and disturbs nothing else | no | confirmed | `seed.ts`, `users.ts` |
+
+**Overall:** not met: row 8. Also noted: no e2e covered "opening a link marks it read".
+
+### Re-check
+
+Witnessed: 2026-10-31, by a fresh agent (blind, re-check of row 8 and what the diff touches). Commit: 87aa9c6e plus the uncommitted work. Machine: macOS (Darwin), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The checkbox's label gives a 44px tap area on a coarse pointer, and a tap beside the box ticks it on phone, phone-webkit and tablet | no | confirmed | `touch-hit` in `globals.css`; `notifications.mobile.e2e.ts` 2 passed on each |
+| 2 | The new e2e can fail | no | confirmed | removing `touch-hit`, rebuilding: "a tap near a row's checkbox ticks it" failed (`toBeChecked()`); restored (md5 identical), rebuilt, passes |
+| 3 | The desktop e2e passes, and its click-marks-read step is meaningful | no | confirmed | `notifications.e2e.ts` passed; the bell goes 25 → 24 on the link click, only if `OpenLink` calls `markRead` |
+| 4 | The unit tests pass and the checkbox keeps its name "Select: <sentence>"; lint | no | confirmed | 24 files, 175 tests; 42 existing warnings |
+
+**Overall:** met.
+
