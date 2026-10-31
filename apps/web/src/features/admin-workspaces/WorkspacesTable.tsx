@@ -133,7 +133,6 @@ const workspaceColumns = (t: WorkspacesT): Column<Workspace, "name" | "created">
     id: "scopes",
     header: t("columns.scopes"),
     className: "w-20",
-    mono: true,
     align: "right",
     render: (workspace) => workspace.scopes,
   },
@@ -144,7 +143,7 @@ const workspaceColumns = (t: WorkspacesT): Column<Workspace, "name" | "created">
     // With none, only root reviews its submissions (091). "None": the header already says what.
     render: (workspace) =>
       workspace.moderators > 0 ? (
-        <span className="font-mono">{workspace.moderators}</span>
+        <span className="tabular-nums">{workspace.moderators}</span>
       ) : (
         <NoModerators />
       ),
@@ -154,7 +153,6 @@ const workspaceColumns = (t: WorkspacesT): Column<Workspace, "name" | "created">
     header: t("columns.created"),
     sort: "created",
     className: "w-28",
-    mono: true,
     hideOnMobile: true,
     render: (workspace) => <LocalTime value={workspace.createdAt} precision="day" />,
   },

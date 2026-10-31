@@ -62,7 +62,7 @@ const Card = ({
     className="grid min-w-0 content-start gap-3 rounded-panel border border-hairline bg-surface p-4"
   >
     <div className="flex flex-wrap items-center justify-between gap-2">
-      <h2 className="flex items-center gap-2 font-mono text-xs font-semibold tracking-wide text-fg uppercase">
+      <h2 className="flex items-center gap-2 text-xs font-semibold tracking-wide text-fg uppercase">
         <span aria-hidden="true" className="size-1.5 rounded-full bg-accent" />
         {title}
       </h2>
@@ -257,7 +257,7 @@ const Install = ({
           <CopyableCommand command={`rmk install ${name}@${shown.version}`} />
           {tools.length > 0 ? (
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-mono text-xs text-muted uppercase">{t("quickFlags")}</span>
+              <span className="text-xs text-muted uppercase">{t("quickFlags")}</span>
               {tools.map((renderer) => (
                 <CopyChip
                   key={renderer.id}
@@ -270,7 +270,7 @@ const Install = ({
           {plugin ? (
             <div className="grid gap-2">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="font-mono text-xs text-muted uppercase">{t("plugin")}</span>
+                <span className="text-xs text-muted uppercase">{t("plugin")}</span>
                 <Help id="plugin" />
               </div>
               <CopyableCommand command={plugin} />
@@ -303,7 +303,7 @@ const Capabilities = ({ page }: { page: ItemPage }) => {
     <Card title={t("title")}>
       <div className="grid gap-6 sm:grid-cols-2">
         <div className="grid content-start gap-2">
-          <h3 className="flex items-center gap-1.5 font-mono text-xs font-semibold text-fg uppercase">
+          <h3 className="flex items-center gap-1.5 text-xs font-semibold text-fg uppercase">
             <Check size={14} aria-hidden="true" className="text-accent" />
             {t("canDo")}
           </h3>
@@ -322,7 +322,7 @@ const Capabilities = ({ page }: { page: ItemPage }) => {
           )}
         </div>
         <div className="grid content-start gap-2">
-          <h3 className="flex items-center gap-1.5 font-mono text-xs font-semibold text-fg uppercase">
+          <h3 className="flex items-center gap-1.5 text-xs font-semibold text-fg uppercase">
             <Ban size={14} aria-hidden="true" className="text-muted" />
             {t("guardrails")}
           </h3>
@@ -354,7 +354,7 @@ const MainDocument = ({ file, role, href }: { file: ShownFile; role: string; hre
       <div className="flex flex-wrap items-center gap-2 border-b border-hairline px-4 py-2">
         <FileText size={14} aria-hidden="true" className="text-muted" />
         <h2 className="font-mono text-sm font-semibold break-all text-fg">{file.path}</h2>
-        <span className="min-w-0 flex-1 font-mono text-xs text-muted">{role}</span>
+        <span className="min-w-0 flex-1 text-xs text-muted">{role}</span>
         <Link href={href} className="text-xs text-muted underline underline-offset-2 hover:text-fg">
           {t("openInFiles")}
         </Link>
@@ -419,10 +419,23 @@ const Dependencies = ({
 };
 
 /** A side card's label and value on one line. */
-const Row = ({ label, children }: { label: string; children: ReactNode }) => (
+const Row = ({
+  label,
+  plain = false,
+  children,
+}: {
+  label: string;
+  /** Human text (a size, a date) in the sans font; left out, the value is a machine value in mono. */
+  plain?: boolean;
+  children: ReactNode;
+}) => (
   <div className="flex min-w-0 items-baseline justify-between gap-3 border-b border-hairline py-1.5 last:border-b-0">
-    <span className="shrink-0 font-mono text-xs text-muted">{label}</span>
-    <span className="min-w-0 text-right font-mono text-xs break-all text-fg">{children}</span>
+    <span className="shrink-0 text-xs text-muted">{label}</span>
+    <span
+      className={`min-w-0 text-right text-xs break-all text-fg ${plain ? "tabular-nums" : "font-mono"}`}
+    >
+      {children}
+    </span>
   </div>
 );
 
@@ -441,7 +454,9 @@ const Verification = ({ page }: { page: ItemPage }) => {
         <span className="font-mono text-[11px] text-muted uppercase">sha256</span>
         <code className="font-mono text-xs break-all text-fg">{page.shown.sha256}</code>
       </div>
-      <Row label={t("size")}>{bytes(page.shown.size)}</Row>
+      <Row label={t("size")} plain>
+        {bytes(page.shown.size)}
+      </Row>
     </Card>
   );
 };
@@ -522,7 +537,7 @@ const UsedBy = ({ page }: { page: ItemPage }) => {
             >
               @{dependent.scope}/{dependent.name}
             </Link>
-            <span className="font-mono text-[11px] text-muted">
+            <span className="text-[11px] text-muted">
               {t("asks", { type: dependent.type, range: dependent.range })}
             </span>
           </li>
@@ -558,7 +573,7 @@ const Maintainers = ({ page }: { page: ItemPage }) => {
         </span>
         <div className="grid">
           <span className="text-sm text-fg">{owner}</span>
-          <span className="font-mono text-xs text-muted">{t("owner")}</span>
+          <span className="text-xs text-muted">{t("owner")}</span>
         </div>
       </div>
       <div className="flex items-start gap-1.5 border-t border-hairline pt-3 text-xs text-fg">
@@ -604,7 +619,7 @@ const IncludedFiles = ({
               {file.path}
             </Link>
             {file.executable ? <Badge>{t("executable")}</Badge> : null}
-            <span className="shrink-0 font-mono text-muted">{bytes(file.size)}</span>
+            <span className="tabular-nums shrink-0 text-muted">{bytes(file.size)}</span>
           </li>
         ))}
       </ul>

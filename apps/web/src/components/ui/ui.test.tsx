@@ -192,10 +192,11 @@ describe("Tabs, CopyableCommand, Dialog", () => {
     expect(out).toMatch(/hidden=""[^>]*>second/);
   });
 
-  it("shows the command as selectable text with a copy button", () => {
+  it("shows the command as selectable text with an icon-only copy button (158)", () => {
     const out = html(<CopyableCommand command="rmk login" />);
     expect(out).toContain("rmk login");
-    expect(out).toContain(">copy<");
+    expect(out).toContain('aria-label="copy"');
+    expect(out).not.toContain(">copy<");
   });
 
   it("renders a labelled native dialog with a close button", () => {

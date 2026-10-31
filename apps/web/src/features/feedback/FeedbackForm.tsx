@@ -149,8 +149,7 @@ export const FeedbackForm = ({
             className="mt-0.5 accent-[var(--color-accent)]"
           />
           <span className="min-w-0">
-            {t("page.include")}{" "}
-            <span className="font-mono text-xs break-all text-muted">{page}</span>
+            {t("page.include")} <span className="text-xs break-all text-muted">{page}</span>
           </span>
           <input type="hidden" name="page" value={page} />
         </label>

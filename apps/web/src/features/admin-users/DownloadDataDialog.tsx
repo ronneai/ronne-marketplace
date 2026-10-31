@@ -20,7 +20,7 @@ export const DownloadDataBody = ({ user, onClose }: { user: DataUser; onClose: (
   const t = useTranslations("admin.download");
   return (
     <div className="grid gap-4">
-      <p className="font-mono text-[13px] text-fg">{user.email}</p>
+      <p className="text-[13px] text-fg">{user.email}</p>
       <div className="grid gap-1.5">
         <p className="text-sm text-muted">{t("body")}</p>
         <Help id="download-user-data" />

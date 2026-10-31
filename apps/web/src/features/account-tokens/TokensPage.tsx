@@ -68,17 +68,17 @@ export const TokensPage = ({
                       ) : null}
                     </Td>
                     <Td mono>{token.preview}…</Td>
-                    <Td mono>
+                    <Td>
                       <LocalTime value={token.createdAt} precision="day" />
                     </Td>
-                    <Td mono>
+                    <Td>
                       {token.lastUsedAt ? (
                         <LocalTime value={token.lastUsedAt} precision="day" />
                       ) : (
                         t("never")
                       )}
                     </Td>
-                    <Td mono>
+                    <Td>
                       {token.expiresAt ? (
                         <LocalTime value={token.expiresAt} precision="day" />
                       ) : (

@@ -115,7 +115,7 @@ describe("UsersPage (061)", () => {
     expect(html).not.toContain("All workspaces");
     // A badge per role, highest first, each with its count; names only on hover (092).
     expect(html).toMatch(
-      /gap-1\.5"><span>admin<\/span><span class="font-mono font-normal">1<\/span>.*<span>moderator<\/span><span[^>]*>2<.*<span>user<\/span><span[^>]*>1</,
+      /gap-1\.5"><span>admin<\/span><span class="tabular-nums font-normal">1<\/span>.*<span>moderator<\/span><span[^>]*>2<.*<span>user<\/span><span[^>]*>1</,
     );
     expect(html).toContain('title="global: user, acme: moderator, ops: admin, beta: moderator"');
     // In no workspace (not reachable while everyone is in global): "none".

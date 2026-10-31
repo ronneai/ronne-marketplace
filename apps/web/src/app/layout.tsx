@@ -14,7 +14,7 @@ import { loadConfig } from "@/server/config";
 import { redactDatabaseUrl } from "@/server/db/url";
 import { PATH_HEADER, SETUP_PATH } from "@/server/domains/identity/models/route-guard";
 import { getSetupState } from "@/server/setup/state";
-import { manrope, plexMono } from "./fonts";
+import { inter, plexMono } from "./fonts";
 import { viewportFor } from "./viewport";
 import "./globals.css";
 
@@ -43,7 +43,7 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
   const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
   const locale = await requestLocale();
   return (
-    <html lang={locale} data-theme={theme} className={`${manrope.variable} ${plexMono.variable}`}>
+    <html lang={locale} data-theme={theme} className={`${inter.variable} ${plexMono.variable}`}>
       <body className="bg-canvas text-fg antialiased">
         {/* The language and its messages come from src/i18n/request.ts (feature 129). */}
         <NextIntlClientProvider>

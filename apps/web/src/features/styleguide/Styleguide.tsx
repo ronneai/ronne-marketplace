@@ -61,7 +61,7 @@ const DEMO_COLUMNS: Column<DemoRow, "name">[] = [
 const Section = ({ title, children }: { title: string; children: ReactNode }) => {
   return (
     <section className="grid gap-3">
-      <h2 className="font-mono text-xs font-semibold text-muted">{title}</h2>
+      <h2 className="text-xs font-semibold text-muted">{title}</h2>
       {children}
     </section>
   );
@@ -97,8 +97,8 @@ export const ThemeSample = ({ theme }: { theme: "light" | "dark" }) => {
         </div>
       </Section>
       <Section title="type">
-        <p className="text-[28px] leading-9 font-semibold tracking-[-0.02em]">Headline 28/600</p>
-        <p className="text-sm">Body 14/500: human text in Manrope.</p>
+        <p className="type-page-title">Page title 28/600</p>
+        <p className="text-sm">Body 14/400: human text in Inter.</p>
         <p className="font-mono text-[13px]">
           @platform/code-reviewer 1.4.0: machine values in IBM Plex Mono
         </p>
@@ -233,7 +233,7 @@ export const Styleguide = () => {
   return (
     <div className="grid gap-6">
       <div className="grid gap-1">
-        <h1 className="text-[28px] leading-9 font-semibold tracking-[-0.02em]">Styleguide</h1>
+        <h1 className="type-page-title">Styleguide</h1>
         <p className="text-sm text-muted">Every shared component in both themes (feature 032).</p>
       </div>
       <div className="grid gap-6 lg:grid-cols-2">
@@ -241,9 +241,7 @@ export const Styleguide = () => {
         <ThemeSample theme="dark" />
       </div>
       <Panel padding="lg" className="grid gap-3">
-        <h2 className="font-mono text-xs font-semibold text-muted">
-          manifest validation (feature 011)
-        </h2>
+        <h2 className="text-xs font-semibold text-muted">manifest validation (feature 011)</h2>
         <p className="text-sm text-muted">
           The same checks as the server, running in your browser. Edit the manifest to see the
           problems change.

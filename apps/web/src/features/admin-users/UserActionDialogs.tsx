@@ -198,7 +198,7 @@ export const ActionForm = ({
   return (
     <form action={action} className="grid gap-4">
       <input type="hidden" name="userId" value={user.id} />
-      <p className="font-mono text-[13px] text-fg">{user.email}</p>
+      <p className="text-[13px] text-fg">{user.email}</p>
       {kind === "role" ? <RoleChoice user={user} /> : null}
       {kind === "disable" && user.role === "root" ? (
         <Notice kind="warn" title={a("isRoot", { email: user.email })} />

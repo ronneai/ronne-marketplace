@@ -132,7 +132,7 @@ export const FeedbackInbox = ({
       render: (row) => (
         <span title={row.sender.email} className="block min-w-0 truncate">
           {row.sender.name}
-          <span className="block truncate font-mono text-xs text-muted">{row.sender.email}</span>
+          <span className="block truncate text-xs text-muted">{row.sender.email}</span>
         </span>
       ),
     },
@@ -189,7 +189,6 @@ export const FeedbackInbox = ({
       header: t("columns.sent"),
       sort: "created",
       className: "w-48",
-      mono: true,
       nowrap: true,
       hideOnMobile: true,
       render: (row) => <LocalTime value={row.createdAt} />,

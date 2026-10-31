@@ -95,7 +95,7 @@ export const IssuesPanel = ({
     : undefined;
   return (
     <>
-      {heading ? <p className="font-mono font-semibold">{heading}</p> : null}
+      {heading ? <p className="font-semibold">{heading}</p> : null}
       {savedLabel && saved.length > 0 ? (
         <>
           {issues.length > 0 ? (
@@ -197,11 +197,7 @@ export const IssuesSummary = ({
       maxWidth={520}
       tone={tone === "ok" ? "default" : tone}
       placement={placement}
-      buttonClassName={cn(
-        "h-6 gap-1.5 border px-2 font-mono text-xs text-fg",
-        TONES[tone].chip,
-        className,
-      )}
+      buttonClassName={cn("h-6 gap-1.5 border px-2 text-xs text-fg", TONES[tone].chip, className)}
       button={
         <>
           <IssuesIcon issues={all} />

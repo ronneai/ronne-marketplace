@@ -110,9 +110,15 @@ test("tab strips show the current tab", async ({ page }, testInfo) => {
   await sidewaysOnScreen(await risks.boundingBox(), width);
   // On one line: the strip scrolls rather than squeezing a label (a 44px tab at most).
   expect((await risks.boundingBox())?.height ?? 0).toBeLessThanOrEqual(48);
-  // A strip scrolled to its end fades its start, if it had to scroll at all.
-  const scrolls = await strip.evaluate((el) => el.scrollWidth > el.clientWidth);
-  if (scrolls) await expect(strip).toHaveClass(/\bfade-(start|both)\b/);
+  // The fades follow the scroll: the start fades once the strip has moved, the end while more is
+  // left. A strip that overflows by a few pixels keeps the current tab in view without moving (158).
+  const { scrollLeft, scrollWidth, clientWidth } = await strip.evaluate((el) => ({
+    scrollLeft: el.scrollLeft,
+    scrollWidth: el.scrollWidth,
+    clientWidth: el.clientWidth,
+  }));
+  if (scrollLeft > 1) await expect(strip).toHaveClass(/\bfade-(start|both)\b/);
+  else if (scrollWidth > clientWidth + 1) await expect(strip).toHaveClass(/\bfade-end\b/);
 });
 
 test.describe("without JavaScript", () => {

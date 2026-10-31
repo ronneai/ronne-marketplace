@@ -72,7 +72,7 @@ export const Conversation = ({
               ) : (
                 said(event)
               )}
-              <span className="ml-2 font-mono text-xs text-muted">
+              <span className="ml-2 text-xs text-muted">
                 <LocalTime value={event.createdAt} />
               </span>
             </p>

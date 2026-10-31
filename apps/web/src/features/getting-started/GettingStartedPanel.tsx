@@ -87,7 +87,7 @@ const Ring = ({ done, total }: { done: number; total: number }) => {
           className="stroke-chart"
         />
       </svg>
-      <span className="absolute font-mono text-xs font-semibold text-fg">
+      <span className="tabular-nums absolute text-xs font-semibold text-fg">
         {t("ring", { done, total })}
       </span>
     </span>

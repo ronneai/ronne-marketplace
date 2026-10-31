@@ -66,7 +66,7 @@ export const EraseUserForm = ({
       <input type="hidden" name="userId" value={user.id} />
       <p className="text-sm text-fg">
         <span className="font-semibold">{user.name}</span>{" "}
-        <span className="font-mono text-[13px] text-muted">{user.email}</span>
+        <span className="text-[13px] text-muted">{user.email}</span>
       </p>
       <Notice kind="warn" title={t("irreversibleTitle")}>
         {t("irreversibleBody")} <Help id="erase-user" />

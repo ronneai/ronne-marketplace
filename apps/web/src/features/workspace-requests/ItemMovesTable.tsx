@@ -189,7 +189,7 @@ export const ItemMovesTable = ({ moves }: { moves: ItemMoveRequestRow[] }) => {
               </Td>
               <Td className="py-2 whitespace-nowrap">
                 <span className="block text-sm text-fg">{m.askedBy.name}</span>
-                <span className="block font-mono text-xs text-muted">{m.askedBy.email}</span>
+                <span className="block text-xs text-muted">{m.askedBy.email}</span>
                 <LocalTime value={m.createdAt} />
               </Td>
               <Td className="max-w-80 py-2 text-sm break-words whitespace-pre-line">

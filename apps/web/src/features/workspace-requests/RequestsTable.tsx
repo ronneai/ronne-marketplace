@@ -44,7 +44,7 @@ export const RequestsTable = ({
             <tr key={r.id}>
               <Td className="py-2">
                 <span className="block text-sm text-fg">{r.name}</span>
-                <span className="block font-mono text-xs text-muted">{r.email}</span>
+                <span className="block text-xs text-muted">{r.email}</span>
               </Td>
               {showWorkspace ? <Td mono>{r.workspace}</Td> : null}
               <Td className="whitespace-nowrap">

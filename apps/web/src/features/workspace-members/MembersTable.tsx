@@ -88,7 +88,7 @@ const columns = (
           {member.name}
           {member.userId === me ? <span className="text-muted"> {t("you")}</span> : null}
         </span>
-        <span className="truncate font-mono text-[13px] text-muted sm:hidden" title={member.email}>
+        <span className="truncate text-[13px] text-muted sm:hidden" title={member.email}>
           {member.email}
         </span>
         {member.disabled ? <span className="text-xs text-muted">{t("disabled")}</span> : null}
@@ -98,7 +98,6 @@ const columns = (
   {
     id: "email",
     header: t("email"),
-    mono: true,
     truncate: true,
     hideOnMobile: true,
     render: (member) => <span title={member.email}>{member.email}</span>,

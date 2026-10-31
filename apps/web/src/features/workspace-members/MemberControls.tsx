@@ -222,7 +222,7 @@ const AddForm = ({ workspace, onDone }: { workspace: MembersWorkspace; onDone: (
             {choices.map((user) => (
               <li key={user.id} className="flex min-w-0 items-center justify-between gap-2">
                 <span className="min-w-0 truncate text-sm">
-                  <span className="font-mono text-[13px]">{user.email}</span>{" "}
+                  <span className="text-[13px]">{user.email}</span>{" "}
                   <span className="text-muted">{user.name}</span>
                 </span>
                 <Button
@@ -244,7 +244,7 @@ const AddForm = ({ workspace, onDone }: { workspace: MembersWorkspace; onDone: (
           {picked.map((user) => (
             <li
               key={user.id}
-              className="flex min-w-0 items-center gap-1 rounded-control border border-hairline px-2 py-1 font-mono text-[13px]"
+              className="flex min-w-0 items-center gap-1 rounded-control border border-hairline px-2 py-1 text-[13px]"
             >
               <input type="hidden" name="userId" value={user.id} />
               <span className="min-w-0 truncate">{user.email}</span>

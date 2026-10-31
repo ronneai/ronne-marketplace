@@ -213,7 +213,7 @@ const Wizard = ({
               index === current ? "font-semibold text-fg" : "text-muted",
             )}
           >
-            <span className="font-mono">{index + 1}</span>
+            <span className="tabular-nums">{index + 1}</span>
             {t(`pages.${page}`)}
           </li>
         ))}

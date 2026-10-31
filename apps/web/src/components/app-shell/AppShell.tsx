@@ -76,7 +76,7 @@ export const AppShell = ({
             >
               <BrandLogo height={34} className="h-6 w-auto sm:h-[34px]" />
               {/* biome-ignore lint/plugin: the product's name, the same in every language */}
-              <span className="hidden font-mono text-xs text-muted sm:inline">/ marketplace</span>
+              <span className="hidden text-xs text-muted sm:inline">/ marketplace</span>
             </Link>
             <div className="ml-auto flex shrink-0 items-center gap-2">
               {user ? (
@@ -102,7 +102,7 @@ export const AppShell = ({
           <main className="w-full flex-1 px-4 py-8 sm:px-6">{children}</main>
         </div>
         <footer className="border-t border-hairline pb-safe px-safe">
-          <div className="flex flex-wrap justify-between gap-2 px-4 py-4 font-mono text-xs text-muted sm:px-6">
+          <div className="flex flex-wrap justify-between gap-2 px-4 py-4 text-xs text-muted sm:px-6">
             <span>{t("footer.openSource")}</span>
             <a
               href="https://github.com/ronneai/ronne-marketplace"

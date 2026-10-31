@@ -113,7 +113,7 @@ const RoleCell = ({ user }: { user: UserSummary }) => {
           // A flex badge drops the whitespace between its parts: the gap spaces them.
           <Badge key={role} className="gap-1.5">
             <span>{roles(role)}</span>
-            <span className="font-mono font-normal">{n}</span>
+            <span className="tabular-nums font-normal">{n}</span>
           </Badge>
         ))
       ) : (
@@ -216,7 +216,6 @@ const usersColumns = (t: UsersT): Column<UserSummary, "created" | "email" | "nam
     header: t("columns.email"),
     sort: "email",
     className: "w-60",
-    mono: true,
     truncate: true,
     // On a phone the name column is hidden, so the email is the link, and it covers the whole row
     // (the row is `relative`): a tap anywhere opens the page. From `sm` up the name is the link.
@@ -262,7 +261,6 @@ const usersColumns = (t: UsersT): Column<UserSummary, "created" | "email" | "nam
     id: "lastSignIn",
     header: t("columns.lastSignIn"),
     className: "w-48",
-    mono: true,
     nowrap: true,
     hideOnMobile: true,
     // A web sign-in (123): never for an account with none on record, a dash for an erased one.
@@ -280,7 +278,6 @@ const usersColumns = (t: UsersT): Column<UserSummary, "created" | "email" | "nam
     header: t("columns.created"),
     sort: "created",
     className: "w-28",
-    mono: true,
     nowrap: true,
     hideOnMobile: true,
     render: (user) => <LocalTime value={user.createdAt} precision="day" />,

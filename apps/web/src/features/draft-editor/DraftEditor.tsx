@@ -163,7 +163,7 @@ export const SavedLine = ({ at, withErrors }: { at: Date; withErrors: boolean })
   });
   return (
     <>
-      <span className="mr-2 font-mono text-xs font-semibold">{t("ok")}</span>
+      <span className="mr-2 text-xs font-semibold">{t("ok")}</span>
       {t(withErrors ? "savedWithErrors" : "savedAt", { time })}
     </>
   );
@@ -411,9 +411,7 @@ export const DraftEditor = ({
               onSelect={openIssue}
               onRename={readOnly ? undefined : writeNewName}
             />
-            <span
-              className={`font-mono text-xs ${overLimit ? "font-semibold text-fg" : "text-muted"}`}
-            >
+            <span className={`text-xs ${overLimit ? "font-semibold text-fg" : "text-muted"}`}>
               {t("totals", {
                 count: totals.count,
                 max: limits.maxFiles,
@@ -520,7 +518,7 @@ export const DraftEditor = ({
           />
         ) : status?.kind === "error" ? (
           <span className="text-error-text">
-            <span className="mr-2 font-mono text-xs font-semibold">{fieldText("error")}</span>
+            <span className="mr-2 text-xs font-semibold">{fieldText("error")}</span>
             {status.message}
           </span>
         ) : null}

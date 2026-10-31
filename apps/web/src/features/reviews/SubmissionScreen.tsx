@@ -149,6 +149,7 @@ export const SubmissionScreen = async ({
       request={
         scanView.canRequest && latestRevisionId ? (
           <ScanRequest
+            key="scan-request"
             revisionId={latestRevisionId}
             submissionId={submission.id}
             again={scan !== null}
@@ -158,6 +159,7 @@ export const SubmissionScreen = async ({
       override={
         scanOverride ? (
           <ScanOverride
+            key="scan-override"
             id={submission.id}
             name={itemNameOf(submission)}
             revision={current?.number ?? null}
@@ -169,7 +171,7 @@ export const SubmissionScreen = async ({
 
   return (
     <div className="grid gap-6">
-      <nav aria-label={crumbs("label")} className="font-mono text-xs text-muted">
+      <nav aria-label={crumbs("label")} className="text-xs text-muted">
         <Link
           href={ownPage ? "/submissions" : "/reviews"}
           className="hover:text-fg hover:underline"
@@ -192,10 +194,12 @@ export const SubmissionScreen = async ({
               })}
             </span>
             {current ? (
-              <span className="font-mono text-xs">{t("revision", { number: current.number })}</span>
+              <span className="tabular-nums text-xs">
+                {t("revision", { number: current.number })}
+              </span>
             ) : null}
             {submission.submittedAt ? (
-              <span className="font-mono text-xs">
+              <span className="text-xs">
                 {t.rich("submitted", {
                   date: () =>
                     submission.submittedAt ? <LocalTime value={submission.submittedAt} /> : null,

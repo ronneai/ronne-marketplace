@@ -37,7 +37,7 @@ export const IssueList = ({
   if (issues.length === 0)
     return (
       <p role="status" className="text-sm text-muted">
-        <span className="mr-2 font-mono text-xs font-semibold text-fg">{t("ok")}</span>
+        <span className="mr-2 text-xs font-semibold text-fg">{t("ok")}</span>
         {t("none")}
       </p>
     );
@@ -51,7 +51,7 @@ export const IssueList = ({
         const content = (
           <>
             <span
-              className={`mr-2 font-mono text-xs font-semibold ${issue.severity === "error" ? "text-error-text" : "text-warning-text"}`}
+              className={`mr-2 text-xs font-semibold ${issue.severity === "error" ? "text-error-text" : "text-warning-text"}`}
             >
               {field(issue.severity === "error" ? "error" : "warning")}
             </span>

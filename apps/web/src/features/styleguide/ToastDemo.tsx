@@ -9,7 +9,7 @@ export const ToastDemo = () => {
   const toast = useToast();
   return (
     <Panel padding="lg" className="grid gap-3">
-      <h2 className="font-mono text-xs font-semibold text-muted">toasts (feature 138)</h2>
+      <h2 className="text-xs font-semibold text-muted">toasts (feature 138)</h2>
       <p className="text-sm text-muted">
         The result of an action, at the bottom right (across the bottom on a phone, above the action
         bar). OK and info go after 5 seconds; a warning or an error stays until it is closed.

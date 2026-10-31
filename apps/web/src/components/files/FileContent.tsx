@@ -118,7 +118,7 @@ export const FileContent = ({ file, line }: { file: ShownFile; line?: number }) 
           {file.path}
         </h3>
         {file.executable ? <Badge>{t("executable")}</Badge> : null}
-        <span className="font-mono text-xs text-muted">{bytes(file.size)}</span>
+        <span className="tabular-nums text-xs text-muted">{bytes(file.size)}</span>
       </div>
       <Body file={file} line={line} />
     </section>

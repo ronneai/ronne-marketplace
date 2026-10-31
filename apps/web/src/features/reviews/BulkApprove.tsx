@@ -182,7 +182,7 @@ export const ResultList = ({ results }: { results: ApproveResult[] }) => {
     <ul className="text-sm">
       {results.map((r) => (
         <li key={r.id} className="border-b border-hairline py-2.5 last:border-b-0">
-          <span className="mr-2 font-mono text-xs font-semibold">
+          <span className="mr-2 text-xs font-semibold">
             {t(
               r.result === "approved"
                 ? r.override
@@ -195,7 +195,7 @@ export const ResultList = ({ results }: { results: ApproveResult[] }) => {
             {r.name}
           </Link>
           {r.revision !== null ? (
-            <span className="ml-2 font-mono text-xs text-muted">
+            <span className="ml-2 text-xs text-muted">
               {t("resultRevision", { revision: r.revision })}
             </span>
           ) : null}

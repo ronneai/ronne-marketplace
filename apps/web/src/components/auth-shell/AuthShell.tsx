@@ -72,9 +72,7 @@ const BrandPanel = () => {
       <div aria-hidden="true" className="absolute inset-0 bg-code-bg/40" />
       <div className="relative grid gap-1">
         <BrandLogo height={40} className="text-on-accent" />
-        <p className="font-mono text-xs tracking-wider text-on-accent/60 uppercase">
-          {t("eyebrow")}
-        </p>
+        <p className="text-xs tracking-wider text-on-accent/60 uppercase">{t("eyebrow")}</p>
       </div>
       <div className="relative grid max-w-xl gap-5">
         <h2 className="text-4xl leading-tight font-semibold tracking-[-0.02em] xl:text-5xl">

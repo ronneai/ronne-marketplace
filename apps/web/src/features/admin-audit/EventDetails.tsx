@@ -100,9 +100,7 @@ export const EventDetails = ({ event }: { event: AuditEvent }) => {
       <dl className="grid grid-cols-[8rem_minmax(0,1fr)] gap-x-4 gap-y-2.5 text-sm">
         <Row term={t("when")}>
           <LocalTime value={event.createdAt} precision="second" />
-          <span className="block font-mono text-xs text-muted">
-            {utcText(event.createdAt, "second")}
-          </span>
+          <span className="block text-xs text-muted">{utcText(event.createdAt, "second")}</span>
         </Row>
         <Row term={t("actor")}>
           {actorLabel(event)}

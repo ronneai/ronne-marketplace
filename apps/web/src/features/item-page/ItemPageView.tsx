@@ -68,7 +68,7 @@ export const ItemPageView = ({
   const kind = page.latest ? "latest" : "listed";
   return (
     <div className="grid grid-cols-1 gap-6">
-      <nav aria-label={t("breadcrumb.label")} className="font-mono text-xs text-muted">
+      <nav aria-label={t("breadcrumb.label")} className="text-xs text-muted">
         <Link href="/catalogue" className="hover:text-fg hover:underline">
           {t("breadcrumb.catalogue")}
         </Link>{" "}
@@ -117,7 +117,7 @@ export const ItemPageView = ({
           personalWorkspace={page.item.personalWorkspace}
         />
         <p className="text-sm text-fg">{description || t("noDescription")}</p>
-        <p className="font-mono text-xs text-muted">
+        <p className="text-xs text-muted">
           {meta.map((part, index) => (
             <Fragment key={part.id}>
               {index ? " · " : null}

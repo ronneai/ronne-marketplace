@@ -33,14 +33,14 @@ const metaRow = (html: string) => html.slice(html.indexOf("</h3>"), html.indexOf
 describe("the compact item card (Home's grid)", () => {
   const compact = renderToStaticMarkup(<ItemCard entry={entry} heading="h3" favorited compact />);
 
-  it("puts the date on the version's row, at the right, with no word beside it", () => {
-    const row = metaRow(compact);
-    expect(row.indexOf("v1.2.3")).toBeGreaterThan(-1);
-    expect(row.indexOf("<time")).toBeGreaterThan(row.indexOf("Skill"));
-    expect(row).toContain("ml-auto");
+  it("keeps the date out of the badge row, in the footer beside the installs", () => {
+    // A risk badge fills the version row; the date there wrapped onto a row of its own.
+    expect(metaRow(compact)).not.toContain("<time");
+    const footer = compact.slice(compact.indexOf("The base."));
+    expect(footer.indexOf("<time")).toBeGreaterThan(footer.indexOf("7 installs"));
     // The word is there for screen readers only.
-    expect(row).toMatch(/<span class="sr-only">Published <\/span>/);
-    expect(row).not.toContain("published ");
+    expect(footer).toMatch(/<span class="sr-only">Published <\/span>/);
+    expect(footer).not.toContain("published ");
   });
 
   it("has the installs and a copy icon in its footer, not the command in a box", () => {

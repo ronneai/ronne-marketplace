@@ -62,7 +62,7 @@ export const PickerResults = ({
               ) : null}
             </div>
             {has ? (
-              <span className="shrink-0 px-2 font-mono text-[11px] text-muted">{t("added")}</span>
+              <span className="shrink-0 px-2 text-[11px] text-muted">{t("added")}</span>
             ) : (
               <Button
                 variant="secondary"

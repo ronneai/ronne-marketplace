@@ -56,7 +56,7 @@ export const DeviceFlow = ({ initial }: { initial: DeviceFormState }) => {
             <bdi>{request.name}</bdi>
           </dd>
           <dt className="text-muted">{t("askedAt")}</dt>
-          <dd className="font-mono text-fg">
+          <dd className="text-fg">
             <LocalTime value={new Date(request.requestedAt)} />
           </dd>
           {request.requesterIp ? (

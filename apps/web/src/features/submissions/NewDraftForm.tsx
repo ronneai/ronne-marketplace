@@ -113,7 +113,7 @@ export const RepeatNote = ({ itemName }: { itemName: string }) => {
   const t = useTranslations("author.newDraft");
   return (
     <p className="text-xs text-fg">
-      <span className="mr-2 font-mono font-semibold">{t("note")}</span>
+      <span className="mr-2 font-semibold">{t("note")}</span>
       {t("repeat", { name: itemName })}
     </p>
   );
@@ -359,7 +359,7 @@ export const NewDraftForm = ({
           step={2}
           title={t("step2")}
           aside={
-            <span className="font-mono text-xs text-muted">
+            <span className="text-xs text-muted">
               {t("typesCount", { count: ITEM_TYPES.length })}
             </span>
           }

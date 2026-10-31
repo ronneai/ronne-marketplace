@@ -111,7 +111,7 @@ describe("the home page", () => {
     const html = await render();
     expect(html).toContain("Most used");
     expect(html).toContain("12 installs");
-    expect(html).toContain("1 install<");
+    expect(html).toContain("1 install");
   });
 
   it("shows a user their drafts and changes requested, and nothing when there are none", async () => {

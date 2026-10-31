@@ -128,18 +128,18 @@ export const VersionsTab = ({
                 </div>
               </Td>
               <Td className="text-xs text-muted">
-                <LocalTime value={v.publishedAt} className="font-mono" />
+                <LocalTime value={v.publishedAt} className="tabular-nums" />
                 <br />
                 {v.publishedByName ? t("by", { name: v.publishedByName }) : t("formerUser")}
               </Td>
-              <Td className="font-mono text-xs">{bytes(v.size)}</Td>
+              <Td className="tabular-nums text-xs">{bytes(v.size)}</Td>
               <Td className="font-mono text-xs" title={v.sha256}>
                 {v.sha256.slice(0, 12)}…
               </Td>
               {usage ? (
                 <>
-                  <Td className="font-mono text-xs">{count(usage[v.version]?.runs)}</Td>
-                  <Td className="font-mono text-xs">{count(usage[v.version]?.installs)}</Td>
+                  <Td className="tabular-nums text-xs">{count(usage[v.version]?.runs)}</Td>
+                  <Td className="tabular-nums text-xs">{count(usage[v.version]?.installs)}</Td>
                 </>
               ) : null}
               {page.canManage ? (
