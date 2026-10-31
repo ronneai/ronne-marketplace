@@ -215,3 +215,14 @@ body {
   max-width: 100%;
   height: auto;
 }
+
+/*
+ * The toast region has no box of its own: the toasts inside are fixed to the screen (feature 138).
+ * Above the sticky bars of a dialog it may be moved into (z-10).
+ */
+[data-toast-region] {
+  position: fixed;
+  z-index: 50;
+  width: 0;
+  height: 0;
+}

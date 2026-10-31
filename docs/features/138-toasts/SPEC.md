@@ -81,8 +81,14 @@ until closed. On a phone the toast sits above the draft editor's bar.
 - The flash cookie's key must be one of a typed list of message keys (`FlashKey`), so a cookie a
   person edits can only choose among our own messages; parameters are rendered as plain text through
   next-intl, never as HTML, and anything that doesn't parse is ignored.
-- `BottomBar` publishes its height in a CSS custom property (`--bottom-bar-height`) the region
-  reads, so the two never overlap, including while the bar follows the on-screen keyboard.
+- `BottomBar` publishes the distance from its top edge to the bottom of the screen in a CSS custom
+  property (`--bottom-bar-height`) the region reads, so the two never overlap, whatever is under the
+  bar (the app's bottom navigation, the footer it rests on) and while it follows the on-screen
+  keyboard.
+- **Over a dialog:** a modal dialog is in the top layer with the page inert, and a popover can't be
+  shown over it. While a dialog is open the `Toaster` moves the region into it (the same node), so a
+  toast is seen over the backdrop and can be closed; it goes back when the dialog closes. On a
+  phone the toast also clears the dialog's `DialogActions` bar.
 
 ## Edge cases
 

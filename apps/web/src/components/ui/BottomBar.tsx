@@ -12,6 +12,10 @@ const HIDDEN_FROM: Record<Until, string> = { sm: "sm:hidden", md: "md:hidden", l
  * (072), the review page's decisions (073). Put it last in the page's content: it sticks to the
  * bottom while the page scrolls, padded for the home indicator, and spans the content's padding.
  *
+ * The bar publishes the distance from its top edge to the bottom of the screen as
+ * `--bottom-bar-height` on the page (138), so the toasts sit above it and whatever is under it; 0
+ * while it is hidden.
+ *
  * On iOS the on-screen keyboard covers the bottom of the page without resizing it, so the bar
  * follows the visual viewport to stay above the keyboard. With `hideWhileTyping`, it steps aside
  * while a field elsewhere on the page has focus, to leave that field the room.
@@ -44,6 +48,44 @@ export const BottomBar = ({
     return () => {
       viewport.removeEventListener("resize", follow);
       viewport.removeEventListener("scroll", follow);
+    };
+  }, []);
+
+  useEffect(() => {
+    const bar = ref.current;
+    if (!bar) return;
+    const root = document.documentElement;
+    let frame = 0;
+    const publish = () => {
+      frame = 0;
+      // From the bar's top edge to the bottom of what is seen, so anything under the bar (the
+      // app's own bottom navigation, the footer it rests on, the keyboard) is counted too. 0 when
+      // the bar is not shown (`hidden`, or `display: none` from `until` up).
+      const { top, height } = bar.getBoundingClientRect();
+      const seen = window.visualViewport?.height ?? window.innerHeight;
+      root.style.setProperty(
+        "--bottom-bar-height",
+        height ? `${Math.max(0, seen - top)}px` : "0px",
+      );
+    };
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(publish);
+    };
+    publish();
+    const observer = new ResizeObserver(schedule);
+    observer.observe(bar);
+    window.addEventListener("scroll", schedule, { capture: true, passive: true });
+    window.addEventListener("resize", schedule);
+    window.visualViewport?.addEventListener("resize", schedule);
+    window.visualViewport?.addEventListener("scroll", schedule);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+      window.removeEventListener("scroll", schedule, { capture: true });
+      window.removeEventListener("resize", schedule);
+      window.visualViewport?.removeEventListener("resize", schedule);
+      window.visualViewport?.removeEventListener("scroll", schedule);
+      root.style.removeProperty("--bottom-bar-height");
     };
   }, []);
 

@@ -29,7 +29,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     lifetime, the pauses, the limit and the repeat; a test finds the always-present polite region while idle and the
     `status` and `alert` roles on the boxes (SPEC changed: Sonner has one live region); lint and typecheck pass.
 
-- [ ] **3. Placement on phones and above the bottom bar.**
+- [x] **3. Placement on phones and above the bottom bar.**
   - Bottom right from `sm`; across the bottom below it with the gutter and the safe area;
     `BottomBar` sets `--bottom-bar-height`, the region reads it.
   - The styleguide's Toasts section, with a bottom bar demo.
@@ -66,5 +66,7 @@ goes into `SPEC.md` instead.
   says `// @vitest-environment happy-dom`) because Sonner's timers live in React effects. Move the
   clock in steps with React flushed between them (`tick` in `toast.test.tsx`): Sonner's removal
   after 200ms starts from an effect, which `act` runs only at its end.
-- Task 3 must put the region above a modal `<dialog>` (the top layer), which Sonner's `section`
-  doesn't do by itself.
+- Task 3: a modal `<dialog>` was not passed by a popover (it stayed under the dialog, and the page is inert
+  anyway), so the region moves into the open dialog (`Toaster`). The styleguide page has each theme's
+  sample twice: tests that click its buttons take `.first()`. A user's sign-ins are limited to 5 a
+  minute: the toast tests sign in root of each project once or twice.

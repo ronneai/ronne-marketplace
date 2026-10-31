@@ -81,3 +81,57 @@ Witnessed: 2026-10-30 22:55, by a fresh agent (re-check of rows 4 and 13, with m
 | 4 | The offset reads `--bottom-bar-height` and a test sees it in the region's style (scoped by PLAN.md task 2: the box above a real bar is task 3) | no | confirmed | removing `var(--bottom-bar-height…)` from `ABOVE_BAR` → exactly that test fails; restored → 11 pass |
 
 **Overall:** met: rows 4 and 13 are confirmed within the scope PLAN.md states; row 14 (reduced motion) rests on Sonner's own CSS and its browser check is task 3's and the e2e task's.
+
+## Task 3 — Placement on phones and above the bottom bar
+
+Witnessed: 2026-10-31, by a fresh agent (blind). Commit: 36f0984d plus the uncommitted work. Machine: macOS (Darwin 27), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Desktop: bottom right, 16px from the edges, at most 24rem wide | no | confirmed | `playwright test e2e/toast.e2e.ts --project chromium` → 1 passed |
+| 2 | Phone: across the bottom with a 16px gutter, above the bar with 12px of air | no | confirmed | `toast.mobile.e2e.ts` on phone and phone-webkit → 2 passed each |
+| 3 | Tablet: in the corner, above the bar | no | confirmed | `toast.mobile.e2e.ts --project tablet` → 2 passed; `BottomBar.tsx` publishes the distance from the bar's top to the screen bottom |
+| 4 | `BottomBar` sets `--bottom-bar-height` and the region reads it | no | confirmed | `BottomBar.tsx:57-70`; `Toaster.tsx:14` |
+| 5 | The value goes back to 0 or is removed when the bar is hidden or unmounted | no | partly | code reads right; no test unmounts the bar |
+| 6 | The safe-area term is in the offsets | no | partly | `env(safe-area-inset-bottom, 0px)` in `Toaster.tsx`; no test |
+| 7 | The toast is on top over a modal dialog, above its buttons on a phone | no | confirmed | `toastIsOnTop` in the desktop and mobile tests; the toast is 12px above `[data-dialog-actions]` on a phone |
+| 8 | The styleguide has a Toasts section with a bottom bar demo | no | confirmed | `ToastDemo.tsx`, `Styleguide.tsx`, `DialogDemo.tsx` |
+| 9 | A test checks the box on desktop, phone, phone-webkit and tablet and fails if the toast overlaps the bar | no | partly | tests pass in all four projects; no mutation run |
+| 10 | The mobile sweep passes | no | not met | `mobile-sweep.mobile.e2e.ts --project phone` → 11 passed, 1 failed (a 90 s timeout in `page.evaluate`) |
+
+**Overall:** not met: row 10, and rows 5, 6 and 9 only read from the code.
+
+### Re-check
+
+Witnessed: 2026-10-31 09:05 EDT, by a fresh agent (blind, re-check). Commit: 36f0984d plus the uncommitted work. Machine: macOS (Darwin 27.0.0), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 10 | The mobile sweep passes, and no hang comes from the diff | no | confirmed | `playwright test e2e/mobile-sweep.mobile.e2e.ts --project phone` → 15 passed (50.5 s) with no sleep overlapping (`pmset -g log`); the earlier hangs overlapped the Mac's maintenance sleep (00:53 to 01:00) |
+| 5 | The value goes back to 0 or is removed when the bar is hidden or unmounted | no | confirmed | `vitest run bottom-bar.test.tsx toast.test.tsx` → 13 passed; dropping `removeProperty` failed "is 0 while the bar is not shown, and gone when it is removed" |
+| 6 | The safe-area term is in the offset and a test asserts it | no | confirmed | removing the term from `Toaster.tsx` failed "reads the bottom bar's height…"; restored, `cmp` identical |
+| 9 | The e2e fails if the toast overlaps the bar | no | partly | unmutated phone and tablet pass; the mutation was not re-run in this pass |
+| 3 | On a tablet the toast clears the bar and what is under it | no | partly | the passing tablet test; the mutation was not re-run |
+
+**Overall:** not met: rows 9 and 3 rest on the implementer's own mutation result.
+
+### Re-check 2
+
+Witnessed: 2026-10-31, by a fresh agent (blind, rows 9 and 3, mutation done by the witness). Commit: 36f0984d plus the uncommitted work. Machine: macOS (Darwin), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 9 | "a toast sits above the action bar" fails without the `--bottom-bar-height` term | no | confirmed | both `calc(var(--bottom-bar-height, 0px) + ` replaced by `calc(0px + `, `next build`: tablet failed (expected <= 870, received 1008), phone failed (expected <= 766, received 823); restored, `cmp` identical, rebuilt, both pass |
+| 3 | The case "the app's bottom navigation sits under the bar" is exercised on the tablet | no | partly | the toast sat at the viewport bottom (1008) when mutated and the bar's top is 142 px above it; the bar's own bottom edge was not read |
+
+**Overall:** not met: row 3 is partly confirmed.
+
+### Re-check 3
+
+Witnessed: 2026-10-31, by a fresh agent (blind, row 3 only). Commit: 36f0984d plus the uncommitted work. Machine: macOS (Darwin), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 3 | On a tablet the toast clears the bar and what is under it | no | confirmed | `toast.mobile.e2e.ts:25-27` asserts, on the tablet project, more than 40 px between the bar's bottom and the screen edge; line 28 asserts the toast ends 12 px above the bar; `playwright test e2e/toast.mobile.e2e.ts --project tablet -g "action bar"` → 1 passed; `Toaster.tsx` identical to its backup |
+
+**Overall:** met: rows 3, 5, 6, 9 and 10 are confirmed by Re-check, Re-check 2 and this pass; the box tests pass on desktop, phone, phone-webkit and tablet.

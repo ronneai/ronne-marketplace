@@ -69,6 +69,8 @@ describe("the toast region (138)", () => {
     const style = document.querySelector("[data-sonner-toaster]")?.getAttribute("style");
     expect(style).toContain("--offset-bottom: calc(var(--bottom-bar-height, 0px)");
     expect(style).toContain("--mobile-offset-bottom: calc(var(--bottom-bar-height, 0px)");
+    // And the home indicator.
+    expect(style).toContain("env(safe-area-inset-bottom, 0px)");
   });
 
   it("draws each toast unstyled by Sonner, so its shadow and colours never apply", async () => {
