@@ -25,8 +25,14 @@ it ([WITNESS.md](./WITNESS.md)); none has a pass yet.
   the menu first.
   *Done when:* `language-switch.test.tsx` passes and the menu switches the language.
 
-- [ ] **6. Phone check and Documentation.** The layout on a phone; the website's pages checked.
-  *Done when:* the two open acceptance criteria are ticked.
+- [ ] **6. Phone check and Documentation.** The layout on a phone; the website's pages checked and
+  changed.
+  *Done when:* the two acceptance criteria are ticked, and ronne-web's `account.tsx` has the
+  changes in en, pt and fr.
+
+- [ ] **7. Setup wizard on `AuthShell`.** `/setup` inside the shell, `wide`; `SetupPage` loses its
+  own card, logo and language switch.
+  *Done when:* `setup.test.tsx` passes and the wizard e2e projects pass.
 
 ## Notes
 

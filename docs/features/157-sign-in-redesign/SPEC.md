@@ -6,7 +6,7 @@
 
 The pages before sign-in look like the product: a brand panel beside the form, the account sign-in
 and the terminal (`rmk`) guide as two tabs, the second step as one box a digit, and one reusable
-skeleton so the setup wizard and any later page can move in.
+skeleton so the setup wizard and any later page sit on it.
 
 ## Scope
 
@@ -24,11 +24,12 @@ skeleton so the setup wizard and any later page can move in.
 - **Second step** (`/sign-in/two-factor`): in the same shell; the app's code is six boxes
   (`CodeInput`): a digit moves on, Backspace goes back, arrows move, a paste or an autofill spreads
   across the boxes, and the last digit submits once. Backup codes stay one text field.
+- **Setup wizard** (`/setup`): in the same shell (`wide`); the form, its steps and the warning are
+  unchanged, and the page no longer has a card of its own.
 - **Language switch** is a menu (a native `<details>`, so it works without JavaScript) showing the
   language in use, so more languages need no room.
 
 **Out:**
-- The setup wizard keeps its own layout for now; it can move onto `AuthShell` later.
 - The mock's invented content: the status line, "rmk v1.4.2", user counts, a company name.
 
 ## Behaviour
@@ -46,9 +47,11 @@ skeleton so the setup wizard and any later page can move in.
 
 ## Documentation
 
-None in the app's inline helpers: no helper is added or changed. The website's sign-in and
-two-factor pages (`../ronne-web`) describe the screens, so they are checked against this change in a
-ronne-web branch that goes live with the release.
+None in the app's inline helpers: no helper is added or changed. The website's "Your account" topic
+(`../ronne-web`, `www/src/content/docs/{en,pt,fr}/account.tsx`) is changed: *Signing in* says the page
+has two tabs, the language menu and the Documentation link in a new tab; *Two-factor sign-in* says the
+code is six boxes that send themselves; *Language* says menu where it said links. It goes live with
+the release, in a ronne-web branch.
 
 ## Acceptance criteria
 
@@ -57,5 +60,8 @@ ronne-web branch that goes live with the release.
 - [x] The code boxes type, delete, move, paste and submit once, checked in a browser.
 - [x] The language menu lists every locale and marks the one in use (`language-switch.test.tsx`).
 - [x] Nothing invented stays from the mock; no raw colour outside tokens (`design-rules.test.ts`).
-- [ ] The phone layout is checked.
-- [ ] The website's Documentation pages for sign-in and two-factor are checked against the screens.
+- [x] The phone layout is checked: sign-in (both tabs, the menu) at 375px, the setup wizard at 375px, and
+  the phone and tablet e2e projects pass.
+- [x] The website's Documentation pages for sign-in and two-factor are checked against the screens and
+  changed (ronne-web `862ad9f`).
+- [x] `/setup` uses `AuthShell`; the wizard e2e projects pass.
