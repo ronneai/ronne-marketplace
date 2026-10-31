@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Label, TextField } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
 import { PasswordInput } from "@/components/ui/PasswordInput";
+import { useToastWhen } from "@/components/ui/toast";
 import { regenerateFromForm, turnOffFromForm } from "./actions";
 import { BackupCodes } from "./BackupCodes";
 import type { RegenerateState, TurnOffState } from "./types";
@@ -62,17 +63,8 @@ export const RegenerateBackupCodes = ({ onDone = () => {} }: { onDone?: () => vo
 export const TurnOffTwoFactor = ({ onDone = () => {} }: { onDone?: () => void }) => {
   const t = useTranslations("account.security");
   const [state, action, pending] = useActionState<TurnOffState, FormData>(turnOffFromForm, {});
-  if (state.done)
-    return (
-      <div className="grid gap-3">
-        <Notice kind="info" title={t("manage.offTitle")}>
-          {t("manage.off")}
-        </Notice>
-        <div>
-          <Button onClick={onDone}>{t("manage.done")}</Button>
-        </div>
-      </div>
-    );
+  useToastWhen(state, state.done ? t("manage.offTitle") : null, "ok", onDone);
+  if (state.done) return null;
   return (
     <form
       action={action}

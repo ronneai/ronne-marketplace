@@ -1,11 +1,10 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogActions } from "@/components/ui/Dialog";
 import { FieldError } from "@/components/ui/Field";
-import { Notice } from "@/components/ui/Notice";
 import { revokeTokenFromForm } from "./actions";
 import type { TokenActionState } from "./types";
 
@@ -19,15 +18,11 @@ const RevokeForm = ({ id, name, onDone }: { id: string; name: string; onDone: ()
     revokeTokenFromForm,
     {},
   );
-  if (state.done)
-    return (
-      <div className="grid gap-4">
-        <Notice kind="info" title={state.done} />
-        <div>
-          <Button onClick={onDone}>{t("done")}</Button>
-        </div>
-      </div>
-    );
+  // The toast is the layout's: this form goes with the row once the page refreshes (138).
+  useEffect(() => {
+    if (state.done) onDone();
+  }, [state, onDone]);
+  if (state.done) return null;
   return (
     <form action={action} className="grid gap-4">
       <input type="hidden" name="tokenId" value={id} />

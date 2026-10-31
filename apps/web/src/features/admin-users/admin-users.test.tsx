@@ -39,7 +39,7 @@ const user = (overrides: Partial<UserSummary> = {}): UserSummary => ({
   createdAt: new Date("2026-09-20T10:00:00Z"),
   ...overrides,
 });
-const noFilters = { q: "", role: "", status: "" };
+const _noFilters = { q: "", role: "", status: "" };
 
 const state = (params: Record<string, string> = {}) =>
   checkedUsersState(parseListQuery(USERS_LIST, params));

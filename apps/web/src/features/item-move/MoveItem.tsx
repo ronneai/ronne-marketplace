@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/Button";
 import { Dialog, DialogActions } from "@/components/ui/Dialog";
 import { FieldError, inputClasses, Label, selectClasses } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
+import { useToastWhen } from "@/components/ui/toast";
 import type { ItemMoveImpact } from "@/server/domains/workspaces/models/item-move";
 import type { ItemMoveView } from "@/server/domains/workspaces/services/item-moves";
 import { askItemMoveFromForm, cancelItemMoveFromForm, itemMoveImpactFor } from "./actions";
@@ -129,23 +130,17 @@ export const MoveItemForm = ({
     };
   }, [item.id, to, loaded]);
 
-  if (state.done)
-    return (
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-4">
-        <p role="status" className="text-sm text-fg [overflow-wrap:anywhere]">
-          <span className="mr-2 font-mono text-xs font-semibold">{t("ok")}</span>
-          {state.done === "moved"
-            ? t("doneMoved", { newName: state.newName ?? "" })
-            : t("doneAsked", { scope: scopeOf(state.newName ?? "") })}
-        </p>
-        <DialogActions>
-          <Button onClick={() => onDone(state.done === "moved" ? state.newName : undefined)}>
-            {t("done")}
-          </Button>
-        </DialogActions>
-      </div>
-    );
-
+  useToastWhen(
+    state,
+    state.done === "moved"
+      ? t("doneMoved", { newName: state.newName ?? "" })
+      : state.done
+        ? t("doneAsked", { scope: scopeOf(state.newName ?? "") })
+        : null,
+    "ok",
+    () => onDone(state.done === "moved" ? state.newName : undefined),
+  );
+  if (state.done) return null;
   const checked = impact && "item" in impact && impact.target.id === to ? impact : null;
   const shown = state.refused ?? checked;
   const blocked = !to
@@ -332,6 +327,7 @@ export const MoveItemNotice = ({
     },
     loaded ?? {},
   );
+  useToastWhen(state, state.error, "error");
   if (latest.status === "declined")
     return (
       <Notice kind="warn" title={t("notice.declined", { scope: latest.to })}>
@@ -367,9 +363,6 @@ export const MoveItemNotice = ({
         >
           {t("notice.cancel")}
         </Button>
-        {state.error ? (
-          <FieldError id={`move-${latest.id}-cancel`}>{state.error}</FieldError>
-        ) : null}
       </form>
     </Notice>
   );

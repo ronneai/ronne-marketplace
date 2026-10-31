@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { toastWith } from "./toast";
 import { E2E_PASSWORD, E2E_USERS } from "./users";
 
 const signIn = async (page: Page, email: string) => {
@@ -20,7 +21,7 @@ test("a user drafts an agent in CodeMirror and the form, fixes its problem, save
   await dialog.getByLabel("Name").fill("e2e-drafts");
   await dialog.getByLabel("Description").fill("Drafts from the end-to-end tests.");
   await dialog.getByRole("button", { name: "Create scope" }).click();
-  await expect(dialog.getByText("Created @e2e-drafts.")).toBeVisible();
+  await expect(toastWith(dialog, "Created @e2e-drafts.")).toBeVisible();
 
   const user = await browser.newPage();
   await signIn(user, E2E_USERS.notRoot);
@@ -91,6 +92,7 @@ test("a user drafts an agent in CodeMirror and the form, fixes its problem, save
 
   await user.keyboard.press("ControlOrMeta+s");
   await expect(user.getByText(/Saved at/)).toBeVisible();
+  await expect(toastWith(user, "Draft saved")).toBeVisible();
 
   await user.reload();
   await expect(problems).toHaveAccessibleName("Problems: No problems");

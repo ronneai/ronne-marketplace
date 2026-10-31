@@ -5,7 +5,7 @@ import { type ReactNode, useActionState, useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogActions } from "@/components/ui/Dialog";
 import { FieldError } from "@/components/ui/Field";
-import { Notice } from "@/components/ui/Notice";
+import { useToastWhen } from "@/components/ui/toast";
 import { saveUserWorkspacesFromForm, userWorkspacesFor } from "./actions";
 import type { AdminActionState } from "./types";
 import { type WorkspaceOption, type WorkspaceRow, WorkspaceRows } from "./WorkspaceRows";
@@ -33,15 +33,8 @@ const UserWorkspacesForm = ({
     );
   }, [user.id]);
 
-  if (state.done)
-    return (
-      <div className="grid gap-4">
-        <Notice kind="info" title={state.done} />
-        <div>
-          <Button onClick={onDone}>{t("done")}</Button>
-        </div>
-      </div>
-    );
+  useToastWhen(state, state.done, "ok", onDone);
+  if (state.done) return null;
   return (
     <form action={action} className="grid gap-4">
       <input type="hidden" name="userId" value={user.id} />

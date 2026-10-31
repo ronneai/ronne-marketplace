@@ -1,5 +1,6 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 import { describeOverflow, measureOverflow, overflows } from "./sweep";
+import { toastWith } from "./toast";
 import { E2E_MOVE } from "./users";
 
 /**
@@ -76,8 +77,8 @@ export const moveScopes = async (
   await fits(owner, "the Move dialog");
   await noSideScroll(owner, ask, "the Move dialog");
   await ask.getByRole("button", { name: "Ask to move" }).click();
-  await expect(ask.getByText(`Asked to move @${scope} to ${team}.`)).toBeVisible();
-  await ask.getByRole("button", { name: "Done" }).click();
+  await expect(toastWith(ask, `Asked to move @${scope} to ${team}.`)).toBeVisible();
+  await expect(ask).toBeHidden();
   await expect(owner.getByText(`Moving to ${team}`)).toBeVisible();
 
   // The team's admin approves it from the Requests page, which the nav counts.
@@ -114,9 +115,8 @@ export const moveScopes = async (
   await noSideScroll(root, move, "the typed confirmation");
   await typed.fill(rootScope);
   await move.getByRole("button", { name: "Move scope" }).click();
-  await expect(move.getByText(`Moved @${rootScope} to ${team}.`)).toBeVisible();
-  await noSideScroll(root, move, "the move's result");
-  await move.getByRole("button", { name: "Done" }).click();
+  await expect(toastWith(move, `Moved @${rootScope} to ${team}.`)).toBeVisible();
+  await expect(move).toBeHidden();
   // Closing refreshes the page: the scope has left global.
   await expect(move).toBeHidden();
   await expect(moveButton).toHaveCount(0);

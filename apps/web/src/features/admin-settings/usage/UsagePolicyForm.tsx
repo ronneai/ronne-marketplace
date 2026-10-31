@@ -5,7 +5,7 @@ import { useActionState, useState } from "react";
 import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
 import { FieldError } from "@/components/ui/Field";
-import { Notice } from "@/components/ui/Notice";
+import { useToastWhen } from "@/components/ui/toast";
 import type { UsagePolicy } from "@/server/domains/settings/models/usage-policy";
 import { saveUsagePolicy } from "../actions";
 import type { SettingsActionState } from "../types";
@@ -20,6 +20,7 @@ export const UsagePolicyForm = ({ policy }: { policy: UsagePolicy }) => {
     saveUsagePolicy,
     {},
   );
+  useToastWhen(state, state.done);
   const [chosen, setChosen] = useState<UsagePolicy>(policy);
   return (
     <form action={action} aria-label={t("policyTitle")} className="grid gap-4">
@@ -48,7 +49,6 @@ export const UsagePolicyForm = ({ policy }: { policy: UsagePolicy }) => {
         ))}
       </fieldset>
       <FieldError id="usage-policy-error">{state.error}</FieldError>
-      {state.done ? <Notice kind="info" title={state.done} /> : null}
       <div>
         <Button type="submit" disabled={pending || chosen === policy}>
           {t("save")}

@@ -5,7 +5,7 @@ import { useActionState, useState } from "react";
 import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
 import { FieldError } from "@/components/ui/Field";
-import { Notice } from "@/components/ui/Notice";
+import { useToastWhen } from "@/components/ui/toast";
 import type { PasswordSignInPolicy } from "@/server/domains/settings/models/password-sign-in-policy";
 import { savePasswordSignInPolicy } from "../actions";
 import type { SettingsActionState } from "../types";
@@ -38,6 +38,7 @@ export const PasswordPolicyForm = ({
     savePasswordSignInPolicy,
     {},
   );
+  useToastWhen(state, state.done);
   const [chosen, setChosen] = useState<PasswordSignInPolicy>(policy);
   const [confirmed, setConfirmed] = useState(false);
   const needsConfirm = chosen === "root_only" && policy !== "root_only";
@@ -95,7 +96,6 @@ export const PasswordPolicyForm = ({
         </label>
       ) : null}
       <FieldError id="password-policy-error">{state.error}</FieldError>
-      {state.done ? <Notice kind="info" title={state.done} /> : null}
       <div>
         <Button type="submit" loading={pending} disabled={!canSave(chosen, policy, confirmed)}>
           {t("save")}

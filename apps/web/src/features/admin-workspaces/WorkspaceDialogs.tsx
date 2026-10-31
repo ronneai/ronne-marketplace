@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Dialog, DialogActions } from "@/components/ui/Dialog";
 import { FieldError, inputClasses, Label } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
+import { useToastWhen } from "@/components/ui/toast";
 import {
   createWorkspaceFromForm,
   deleteWorkspaceFromForm,
@@ -46,18 +47,6 @@ const Description = ({ defaultValue }: { defaultValue?: string }) => {
   );
 };
 
-const Done = ({ message, onDone }: { message: string; onDone: () => void }) => {
-  const t = useTranslations("admin.workspaces.dialogs");
-  return (
-    <div className="grid gap-4">
-      <Notice kind="info" title={message} />
-      <div>
-        <Button onClick={onDone}>{t("done")}</Button>
-      </div>
-    </div>
-  );
-};
-
 /** New workspace's form; exported for its test (the dialog renders it only when open). */
 export const CreateWorkspaceForm = ({ onDone }: { onDone: () => void }) => {
   const t = useTranslations("admin.workspaces.dialogs");
@@ -69,7 +58,8 @@ export const CreateWorkspaceForm = ({ onDone }: { onDone: () => void }) => {
   const [typed, setTyped] = useState("");
   const name = normalizeWorkspaceName(typed);
   const problem = typed ? nameProblem(name, "workspace") : null;
-  if (state.done) return <Done message={state.done} onDone={onDone} />;
+  useToastWhen(state, state.done, "ok", onDone);
+  if (state.done) return null;
   return (
     <form action={action} className="grid gap-4">
       <div className="grid gap-1.5">
@@ -139,7 +129,8 @@ export const EditWorkspaceForm = ({
     updateWorkspaceFromForm,
     {},
   );
-  if (state.done) return <Done message={state.done} onDone={onDone} />;
+  useToastWhen(state, state.done, "ok", onDone);
+  if (state.done) return null;
   return (
     <form action={action} className="grid gap-4">
       <input type="hidden" name="name" value={name} />
@@ -213,7 +204,8 @@ export const VisibilityForm = ({
       .then(setImpact)
       .catch(() => setImpact({ error: LOAD_FAILED }));
   }, [name, to, loaded]);
-  if (state.done) return <Done message={state.done} onDone={onDone} />;
+  useToastWhen(state, state.done, "ok", onDone);
+  if (state.done) return null;
   const blocked = impact && "dependents" in impact && impact.dependents.length > 0;
   return (
     <form action={action} className="grid gap-4">

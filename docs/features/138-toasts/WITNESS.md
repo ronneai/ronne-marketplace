@@ -223,3 +223,68 @@ Witnessed: 2026-10-31 09:45, by a fresh agent (adversarial re-check, row 13). Co
 | 13 | Each tab shows a flash at most once, and a second tab shows nothing but the message; across tabs the worst case is one duplicate | no | confirmed | a temporary two-tab spec (deleted afterwards, `git status` unchanged): (a) delete in tab A with both tabs open → A 1 toast, B 0, none after B reloads; (b) a valid cookie then `Promise.all([A.goto, B.goto])` → 1 toast in each, both "OK:Draft deleted" |
 
 **Overall:** met: no tab showed a flash twice and the only text was "Draft deleted"; two tabs loading at the same moment while the cookie is still there each show it once.
+
+## Task 5 — The sweep: confirmations become toasts
+
+Witnessed: 2026-10-31, by a fresh agent (blind). Commit: 75bdeed1 plus the uncommitted work. Machine: macOS (Darwin), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The confirming `state.done` notices became toasts (two-factor off, member controls, user dialogs, user workspaces, token revoke, erase user, workspace dialogs, scope dialogs, move item, move scope, seven settings forms) | no | confirmed | `grep -rn "state.done" apps/web/src`: each site calls `useToastWhen(state, state.done, …)`; dialogs pass `onDone` and return null |
+| 2 | The `state.done` sites still on screen are within the spec's Out list or a page/row state | no | partly | `ItemMovesTable.tsx:37` (an approved move) and `GettingStartedPanel` are not in `toasts.md` |
+| 3 | save draft, submit, withdraw, approve, request changes, reject, release, deprecate, yank and settings saved say a toast | no | partly | all found except a single (non-bulk) release toast |
+| 4 | Bulk approve and bulk release keep their summary and add a count toast and an error toast | no | confirmed | `BulkApprove.tsx`, `BulkRelease.tsx`: `approvedMany` / `notApprovedMany`, `releasedMany` / `notReleasedMany` |
+| 5 | The one-time password and backup codes are not toasts | no | confirmed | `UserActionDialogs.tsx` keeps `OneTimePassword`; `SetupFlow.tsx` untouched |
+| 6 | Errors of row and bulk actions without a form are error toasts | no | partly | only the two bulk-failure counts were error toasts |
+| 7 | The Notice form without JavaScript still shows its result | no | confirmed | `NoticeForm.tsx`: `fresh = state !== initial`; the result is shown in place for the initial state |
+| 8 | Messages exist in all three languages | no | confirmed | `messages/{en,fr,pt}/common.json` `done`; the `src/i18n` tests pass |
+| 9 | Component tests expect the toast instead of the notice | no | partly | no test covers the toasts of submit, decisions, bulk, versions |
+| 10 | Unit tests, lint and typecheck pass | no | confirmed | `vitest run src/features src/components/ui src/i18n` → 1772 passed; `tsc` clean |
+| 11 | The e2e sample passes | no | confirmed | `scopes`, `user-admin`, `move-item` on chromium; `move-scope.mobile` on phone and tablet |
+| 12 | `docs/knowledge/toasts.md` lists the rules | no | confirmed | the file exists with the table of when to use a toast, a notice or a dialog |
+
+**Overall:** not met: rows 2, 3, 6 and 9 are partly.
+
+### Re-check
+
+Witnessed: 2026-10-31 10:25 EDT, by a fresh agent (blind re-check, rows 2, 3, 6, 9). Commit: 75bdeed1 plus the uncommitted work. Machine: macOS (Darwin 27), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 2 | The `state.done` sites kept on screen are out of scope under SPEC "Out" | no | confirmed | `toasts.md` lists the move approval and "Cancelled." rows, the thank-you page, Getting started progress and the single release's result (version, tag, sha256) |
+| 3 | A single release also says a toast | no | confirmed | `PublishDialog.tsx`: `toast.ok(said("released"))`; `review.e2e.ts` asserts it |
+| 6 | Errors of row and bulk actions without a form are error toasts | no | partly | converted: item move approve, scope and item move cancel; still inline: cancel request, member role, a queue row's reject lookup, the favourite star, the feedback inbox bulk bar, Propose change |
+| 9 | The new toasts have tests that fail without them | no | partly | e2e assertions exist; removing the item-move approve toast failed `done-toasts.test.tsx`; the token-revoked toast had no test |
+
+**Overall:** not met: rows 6 and 9 are partly.
+
+### Re-check 2
+
+Witnessed: 2026-10-31 10:45 EDT, by a fresh agent (blind re-check, rows 6 and 9). Commit: 75bdeed1 plus the uncommitted work. Machine: macOS (Darwin 27), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6 | Errors of row and bulk actions without a form are error toasts | no | partly | cancel request, member role, row decision lookup and the star converted; `item-page/ProposeButton.tsx` still inline |
+| 9 | Tests cover the new toasts, including token revoked as a flash | no | confirmed | `flashToast("tokenRevoked")`; removing it failed `account-tokens.test.tsx`; the revoke step of `access-tokens.e2e.ts` passed; the Released toast is covered by `review.e2e.ts:117` only, which the witness accepts |
+
+**Overall:** not met: row 6 is partly.
+
+### Re-check 3
+
+Witnessed: 2026-10-31 10:55 EDT, by a fresh agent (blind re-check, row 6). Commit: 75bdeed1 plus the uncommitted work. Machine: macOS (Darwin 27), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6 | Errors of row and bulk actions without a form are error toasts, apart from the documented exceptions | no | partly | the Propose change exception is true (`ProposeRefusal` carries an Ask to join link and a Help) and is in `toasts.md:21`; `admin-feedback/InboxSelection.tsx` bulk bar still showed a failure and a notice inline |
+
+**Overall:** not met: the feedback inbox bulk bar still inline.
+
+### Re-check 4
+
+Witnessed: 2026-10-31 11:05 EDT, by a fresh agent (blind re-check, row 6). Commit: 75bdeed1 plus the uncommitted work. Machine: macOS (Darwin 27), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6 | Errors and notices of row and bulk actions without a form are toasts, apart from the documented exceptions | no | confirmed | `InboxSelection.tsx:53-63` `toast.ok` / `toast.error`, the two `<p>` in `BulkBar` gone; `vitest run src/features/admin-feedback` → 12 passed; `playwright test e2e/feedback.e2e.ts --project=chromium` → 5 passed; a re-grep of `role="alert"`, `role="status"`, `setNotice(`, `FieldError`, `state.error` in client components found only documented exceptions, dialogs, results and live regions |
+
+**Overall:** met: rows 2, 3, 6 and 9 are confirmed by the re-checks; rows 1, 4, 5, 7, 8 and 10 to 12 were confirmed by the first pass and the sites they name were not changed since. Full runs on the final build: chromium 166 passed, phone, phone-webkit and tablet 54 each.

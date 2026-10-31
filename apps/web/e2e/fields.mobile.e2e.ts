@@ -6,7 +6,7 @@ import { E2E_PASSWORD, E2E_SCOPE } from "./users";
  * Feature 067: on a touch screen every kind of field is 16px or more and at least 44px high, so
  * iOS Safari doesn't zoom the page when it gets focus, and focusing it doesn't zoom here either.
  */
-const checkField = async (page: Page, field: Locator, what: string) => {
+const checkField = async (_page: Page, field: Locator, what: string) => {
   await field.focus();
   const { fontSize, height, scale } = await field.evaluate((el) => ({
     fontSize: Number.parseFloat(getComputedStyle(el).fontSize),

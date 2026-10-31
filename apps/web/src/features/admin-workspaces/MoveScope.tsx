@@ -11,6 +11,7 @@ import { Dialog, DialogActions } from "@/components/ui/Dialog";
 import { FieldError, inputClasses, Label, selectClasses } from "@/components/ui/Field";
 import { IconButton } from "@/components/ui/IconButton";
 import { Notice } from "@/components/ui/Notice";
+import { useToastWhen } from "@/components/ui/toast";
 import type { MoveImpact } from "@/server/domains/workspaces/models/scope-move";
 import type { MoveTarget } from "@/server/domains/workspaces/services/scope-moves";
 import { askMoveFromForm, cancelMoveFromForm, moveImpactFor, moveTargetsFor } from "./actions";
@@ -233,21 +234,17 @@ export const MoveForm = ({
     return () => clearTimeout(timer);
   }, [scope.id, to, name, loaded]);
 
-  if (state.done)
-    return (
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-4">
-        <p role="status" className="text-sm text-fg">
-          <span className="mr-2 font-mono text-xs font-semibold">{t("ok")}</span>
-          {state.done === "moved"
-            ? t("doneMoved", { scope: scope.name, workspace: to })
-            : t("doneAsked", { scope: scope.name, workspace: to })}
-        </p>
-        <DialogActions>
-          <Button onClick={onDone}>{t("done")}</Button>
-        </DialogActions>
-      </div>
-    );
-
+  useToastWhen(
+    state,
+    state.done === "moved"
+      ? t("doneMoved", { scope: scope.name, workspace: to })
+      : state.done
+        ? t("doneAsked", { scope: scope.name, workspace: to })
+        : null,
+    "ok",
+    onDone,
+  );
+  if (state.done) return null;
   const shown = state.refused ?? (impact && "items" in impact ? impact : null);
   const checked = impact && "items" in impact && impact.target.name === to ? impact : null;
   const way = checked?.way ?? null;
@@ -496,6 +493,7 @@ export const MoveState = ({
     cancelMoveFromForm,
     loaded ?? {},
   );
+  useToastWhen(state, state.error, "error");
   if (move.status === "declined")
     return (
       <span className="grid gap-0.5 text-xs break-words text-muted">
@@ -518,7 +516,6 @@ export const MoveState = ({
       >
         {t("cancel")}
       </Button>
-      {state.error ? <FieldError id={`move-${move.id}-cancel`}>{state.error}</FieldError> : null}
     </form>
   );
 };

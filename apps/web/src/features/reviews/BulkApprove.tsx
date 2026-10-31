@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
 import { FieldError, inputClasses, Label } from "@/components/ui/Field";
 import { TypeBadge } from "@/components/ui/TypeBadge";
+import { useToast } from "@/components/ui/toast";
 import { approveSelectedAction } from "./actions";
 import type { ApproveResult } from "./types";
 
@@ -371,6 +372,8 @@ export const ApproveTitle = ({ count, done }: { count: number; done: boolean }) 
 /** Select all and Approve selected, above the Needs review table; only when something can be. */
 export const BulkApproveToolbar = ({ help }: { help?: ReactNode }) => {
   const t = useTranslations("author.queue.approve");
+  const said = useTranslations("common.done");
+  const toast = useToast();
   const router = useRouter();
   const { approvable, selected, selectAll, clear } = useSelection();
   const [open, setOpen] = useState(false);
@@ -473,6 +476,10 @@ export const BulkApproveToolbar = ({ help }: { help?: ReactNode }) => {
                 );
                 if ("error" in state) return setError(state.error);
                 setResults(state.results);
+                const approved = state.results.filter((r) => r.result === "approved").length;
+                if (approved > 0) toast.ok(said("approvedMany", { count: approved }));
+                const refused = state.results.length - approved;
+                if (refused > 0) toast.error(said("notApprovedMany", { count: refused }));
               })
             }
           />

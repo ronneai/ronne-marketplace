@@ -43,7 +43,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     markup in a parameter (shown as text); an e2e test saves something that redirects and sees the
     toast once, in Portuguese for a person who chose it.
 
-- [ ] **5. The sweep: confirmations become toasts.**
+- [x] **5. The sweep: confirmations become toasts.**
   - Each `state.done` notice that only confirms an action, in the order of `grep -rn "state.done"`;
     the redirecting actions that said nothing get a flash toast where the owner's list asks
     (save draft, submit, withdraw, approve, request changes, reject, release, deprecate, yank,

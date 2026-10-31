@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Dialog, DialogActions } from "@/components/ui/Dialog";
 import { FieldError, Input, Label } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
+import { useToastWhen } from "@/components/ui/toast";
 import { eraseUserFromForm } from "./actions";
 import { dataHref } from "./DownloadDataDialog";
 import type { AdminActionState } from "./types";
@@ -57,15 +58,8 @@ export const EraseUserForm = ({
   const confirmed = confirmsEmail(typed, user.email);
   const id = `erase-${user.id}`;
 
-  if (state.done)
-    return (
-      <div className="grid gap-4">
-        <Notice kind="info" title={state.done} />
-        <div>
-          <Button onClick={onDone}>{t("done")}</Button>
-        </div>
-      </div>
-    );
+  useToastWhen(state, state.done, "ok", onDone);
+  if (state.done) return null;
 
   return (
     <form action={action} className="grid gap-4">

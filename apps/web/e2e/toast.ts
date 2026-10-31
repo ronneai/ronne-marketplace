@@ -1,4 +1,4 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 
 /** The visual viewport: what the person sees, with the keyboard and the browser bars out of it. */
 export const viewportOf = (page: Page) =>
@@ -57,3 +57,9 @@ export const expectInTheCorner = (
     expect(box.width).toBeLessThanOrEqual(384 + 1);
   }
 };
+
+/** The toast that says `text` (a string is matched as a part of its words), on the page `from` is on. */
+export const toastWith = (from: Page | Locator, text: string | RegExp) =>
+  ("page" in from && typeof from.page === "function" ? from.page() : (from as Page))
+    .locator("[data-toast-kind]")
+    .filter({ hasText: text });

@@ -9,6 +9,7 @@ import { FieldError, inputClasses, Label } from "@/components/ui/Field";
 import { LocalTime } from "@/components/ui/LocalTime";
 import { Table, Td, Th } from "@/components/ui/Table";
 import { TypeBadge } from "@/components/ui/TypeBadge";
+import { useToastWhen } from "@/components/ui/toast";
 import { MoveItemChanges } from "@/features/item-move/MoveItem";
 import type { ItemMoveRequestRow } from "@/server/domains/workspaces/services/item-moves";
 import { approveItemMoveFromForm, declineItemMoveFromForm } from "./actions";
@@ -33,7 +34,8 @@ export const ApproveItemMoveForm = ({
     approveItemMoveFromForm,
     loaded ?? {},
   );
-  const errorId = `approve-item-move-${move.id}-error`;
+  // An error of a button in a row has no form to sit next to: it is a toast that stays (138).
+  useToastWhen(state, state.error, "error");
   if (state.done)
     return (
       <p role="status" className="text-xs text-muted [overflow-wrap:anywhere]">
@@ -47,11 +49,9 @@ export const ApproveItemMoveForm = ({
         type="submit"
         loading={pending}
         aria-label={t("approveAria", { item: move.item, to: move.to })}
-        aria-describedby={state.error ? errorId : undefined}
       >
         {t("approve")}
       </Button>
-      <FieldError id={errorId}>{state.error}</FieldError>
       {state.refused ? <MoveItemChanges impact={state.refused} /> : null}
     </form>
   );

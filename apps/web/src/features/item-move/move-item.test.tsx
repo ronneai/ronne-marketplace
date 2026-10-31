@@ -143,12 +143,11 @@ describe("the Move dialog (134)", () => {
   });
 
   it("says what happened", () => {
-    expect(form("now", { state: { done: "moved", newName: "@acme/devops/deploy" } })).toContain(
-      "Moved. It’s @acme/devops/deploy now.",
+    // Once it is done the dialog says it as a toast and closes; the form has nothing to show (138).
+    expect(form("now", { state: { done: "moved", newName: "@acme/devops/deploy" } })).toBe("");
+    expect(form("request", { state: { done: "requested", newName: "@acme/devops/deploy" } })).toBe(
+      "",
     );
-    expect(
-      form("request", { state: { done: "requested", newName: "@acme/devops/deploy" } }),
-    ).toContain("Asked to move it to @acme/devops.");
     // A clash found when it was sent: the dialog shows why, from the answer.
     expect(
       form("now", {
@@ -230,7 +229,6 @@ describe("the Move dialog in three languages (134)", () => {
           locale,
         ),
         form("now", { checked: impact(), step: "confirm" }, locale),
-        form("now", { state: { done: "moved", newName: "@acme/devops/deploy" } }, locale),
         view(
           locale,
           <MoveItemNotice

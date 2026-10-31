@@ -18,7 +18,27 @@
     }
   },
   "flash": {
-    "draftDeleted": "Rascunho excluído"
+    "draftDeleted": "Rascunho excluído",
+    "tokenRevoked": "Revogado. Ele deixa de funcionar na próxima requisição."
+  },
+  "done": {
+    "draftSaved": "Rascunho salvo",
+    "submitted": "Submetido para revisão",
+    "archived": "Arquivado",
+    "approved": "Aprovado",
+    "changesRequested": "Alterações solicitadas",
+    "rejected": "Rejeitado",
+    "released": "Lançado",
+    "approvedMany": "{count, plural, one {# submissão aprovada} other {# submissões aprovadas}}",
+    "notApprovedMany": "{count, plural, one {# submissão não pôde ser aprovada} other {# submissões não puderam ser aprovadas}}",
+    "releasedMany": "{count, plural, one {# submissão lançada} other {# submissões lançadas}}",
+    "notReleasedMany": "{count, plural, one {# submissão não pôde ser lançada} other {# submissões não puderam ser lançadas}}",
+    "tagMoved": "Tag movida",
+    "tagRemoved": "Tag removida",
+    "deprecated": "Versão obsoleta",
+    "undeprecated": "Versão não está mais obsoleta",
+    "yanked": "Versão retirada",
+    "unyanked": "Versão restaurada"
   },
   "copy": {
     "label": "copiar",

@@ -13,6 +13,7 @@ import { cn } from "@/components/ui/cn";
 import { Dialog } from "@/components/ui/Dialog";
 import { FieldError, inputClasses, Label, Select } from "@/components/ui/Field";
 import { TypeBadge } from "@/components/ui/TypeBadge";
+import { useToast } from "@/components/ui/toast";
 import type {
   ReleaseCandidate,
   ReleasedSubmission,
@@ -335,6 +336,8 @@ export const BulkReleaseToolbar = ({
   selectAllLabel?: string;
 }) => {
   const t = useTranslations("author.release");
+  const said = useTranslations("common.done");
+  const toast = useToast();
   const router = useRouter();
   const { releasable, selected, selectAll, clear } = useSelection();
   const [open, setOpen] = useState(false);
@@ -444,10 +447,15 @@ export const BulkReleaseToolbar = ({
                   if (!result.ok) return setError(result.error);
                   // What couldn't go from the start, then each one sent.
                   const refused = prepared?.refused ?? [];
-                  setResults([
+                  const all = [
                     ...refused,
                     ...result.results.filter((r) => !refused.some((x) => x.id === r.id)),
-                  ]);
+                  ];
+                  setResults(all);
+                  const released = all.filter((r) => r.result === "published").length;
+                  if (released > 0) toast.ok(said("releasedMany", { count: released }));
+                  const failed = all.length - released;
+                  if (failed > 0) toast.error(said("notReleasedMany", { count: failed }));
                 })
               }
             />

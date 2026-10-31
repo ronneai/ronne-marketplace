@@ -8,6 +8,7 @@ import { startRmk } from "./device";
 import type { Instance } from "./harness";
 import { openUser } from "./helpers";
 import { recordSecret } from "./secrets";
+import { toastWith } from "./toast";
 import { E2E_PASSWORD, E2E_USERS } from "./users";
 
 // Feature 128 on the desktop: someone root asked to choose a new password is held on the change page
@@ -130,8 +131,8 @@ test("root asks, stops asking, and a new account can be left alone", async ({ br
   await root.getByRole("button", { name: "Ask for a new password" }).click();
   const ask = root.getByRole("dialog", { name: "Ask for a new password" });
   await ask.getByRole("button", { name: "Ask for a new password" }).click();
-  await expect(ask.getByText("will be asked to choose a new password")).toBeVisible();
-  await ask.getByRole("button", { name: "Done" }).click();
+  await expect(toastWith(ask, "will be asked to choose a new password")).toBeVisible();
+  await expect(ask).toBeHidden();
   await expect(root.getByText("Asked at their next sign-in")).toBeVisible();
   await user.goto("/catalogue");
   await expect(user).toHaveURL(/\/account\/password\?next=%2Fcatalogue/);
@@ -140,8 +141,8 @@ test("root asks, stops asking, and a new account can be left alone", async ({ br
   await root.getByRole("button", { name: "Stop asking for a new password" }).click();
   const stop = root.getByRole("dialog", { name: "Stop asking for a new password" });
   await stop.getByRole("button", { name: "Stop asking for a new password" }).click();
-  await expect(stop.getByText("no longer be asked")).toBeVisible();
-  await stop.getByRole("button", { name: "Done" }).click();
+  await expect(toastWith(stop, "no longer be asked")).toBeVisible();
+  await expect(stop).toBeHidden();
   await expect(root.getByText("Not asked")).toBeVisible();
   await user.goto("/catalogue");
   await expect(user).toHaveURL(/\/catalogue$/);

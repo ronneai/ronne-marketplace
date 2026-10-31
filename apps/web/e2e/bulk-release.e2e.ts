@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, type Page, test } from "@playwright/test";
+import { toastWith } from "./toast";
 import { E2E_PASSWORD, E2E_SCOPE, E2E_USERS } from "./users";
 
 const BIN = fileURLToPath(new URL("../../../packages/cli/dist/bin.js", import.meta.url));
@@ -95,6 +96,7 @@ test("releases an agent and the skill it uses in one batch, then rmk installs th
   await expect(preview.getByRole("listitem").first()).toContainText(`included for ${agent}`);
   await expect(preview.getByText("1.0.0 as latest")).toHaveCount(2);
   await dialog.getByRole("button", { name: "Release 2 items" }).click();
+  await expect(toastWith(page, "Released 2 submissions")).toBeVisible();
   const done = page.getByRole("dialog", { name: "Released" });
   await expect(done.getByText("Published:", { exact: true })).toHaveCount(2);
   await done.getByRole("button", { name: "Done" }).click();

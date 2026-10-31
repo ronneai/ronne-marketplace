@@ -280,10 +280,8 @@ describe("rendering", () => {
         initialState={{ done: "Erased. The account is now deleted-user." }}
       />,
     );
-    expect(done).toContain("INFO:");
-    expect(done).toContain("Erased. The account is now deleted-user.");
-    expect(done).toMatch(/<button[^>]*>Done</);
-    expect(done).not.toContain('name="confirm"');
+    // Said as a toast and the dialog closes (138).
+    expect(done).toBe("");
   });
 
   it("erases once the email is typed, and shows the refusals (103)", async () => {

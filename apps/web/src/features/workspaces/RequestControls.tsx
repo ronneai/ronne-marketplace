@@ -5,6 +5,7 @@ import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogActions } from "@/components/ui/Dialog";
 import { FieldError, inputClasses, Label } from "@/components/ui/Field";
+import { useToastWhen } from "@/components/ui/toast";
 import { cancelRequestFromForm, requestAccessFromForm } from "./actions";
 import type { RequestActionState } from "./types";
 
@@ -101,6 +102,8 @@ export const CancelRequestButton = ({
     cancelRequestFromForm,
     {},
   );
+  // A button in a row has no field to put its error next to: a toast that stays (138).
+  useToastWhen(state, state.error, "error");
   return (
     <form action={action} className="inline-grid gap-1">
       <input type="hidden" name="requestId" value={requestId} />
@@ -113,7 +116,6 @@ export const CancelRequestButton = ({
       >
         {t("cancelRequest")}
       </button>
-      <FieldError id={`cancel-${requestId}-error`}>{state.error}</FieldError>
     </form>
   );
 };

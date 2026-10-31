@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { toast as sonner, type ToastT, type ToastToDismiss } from "sonner";
 import { ToastCard, type ToastKind } from "./ToastCard";
 import { MAX_TOASTS } from "./Toaster";
@@ -53,4 +54,27 @@ export const useToast = () => toast;
 /** Closes every toast at once: a page that signs the person out has no use for what was said. */
 export const dismissToasts = () => {
   sonner.dismiss();
+};
+
+/**
+ * Says what an action returned, as a toast, each time it returns (138): `result` is the action's
+ * state (a new object every time, so the same words twice are said twice) and `message` what to
+ * say about it, if anything: `useToastWhen(state, state.done)`.
+ */
+export const useToastWhen = (
+  result: unknown,
+  message: string | null | undefined | false,
+  kind: ToastKind = "ok",
+  /** Runs after it is said: a dialog that only confirmed closes (138). */
+  after?: () => void,
+) => {
+  const latest = useRef({ message, after });
+  latest.current = { message, after };
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `result` is the trigger: a new action state
+  useEffect(() => {
+    const { message, after } = latest.current;
+    if (!message) return;
+    toast[kind](message);
+    after?.();
+  }, [result, kind]);
 };

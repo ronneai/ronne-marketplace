@@ -5,7 +5,7 @@ import { useActionState, useState } from "react";
 import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
 import { FieldError, inputClasses, Label } from "@/components/ui/Field";
-import { Notice } from "@/components/ui/Notice";
+import { useToastWhen } from "@/components/ui/toast";
 import {
   MAX_RETENTION_DAYS,
   MIN_RETENTION_DAYS,
@@ -28,6 +28,7 @@ const FIELDS: readonly { name: keyof RetentionPolicy; id: string }[] = [
 export const RetentionForm = ({ retention }: { retention: RetentionPolicy }) => {
   const t = useTranslations("admin.settings.privacy");
   const [state, action, pending] = useActionState<SettingsActionState, FormData>(saveRetention, {});
+  useToastWhen(state, state.done);
   const [typed, setTyped] = useState<Record<keyof RetentionPolicy, string>>({
     ipDays: String(retention.ipDays),
     sessionsDays: String(retention.sessionsDays),
@@ -69,7 +70,6 @@ export const RetentionForm = ({ retention }: { retention: RetentionPolicy }) => 
         </div>
       ))}
       <FieldError id="retention-error">{state.error}</FieldError>
-      {state.done ? <Notice kind="info" title={state.done} /> : null}
       <div>
         <Button type="submit" disabled={pending || unchanged}>
           {t("save")}

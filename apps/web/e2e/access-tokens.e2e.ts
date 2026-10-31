@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { headerName } from "./helpers";
+import { toastWith } from "./toast";
 import { E2E_NAMES, E2E_PASSWORD, E2E_USERS } from "./users";
 
 test("create a token, use it on the API, revoke it, and it stops working", async ({
@@ -32,6 +33,7 @@ test("create a token, use it on the API, revoke it, and it stops working", async
 
   await page.getByRole("button", { name: "Revoke e2e laptop" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Revoke token" }).click();
+  await expect(toastWith(page, "Revoked. It stops working on its next request.")).toBeVisible();
   // The page refreshes: the row says revoked, and its revoke button (and dialog) are gone.
   await expect(page.getByRole("row").filter({ hasText: "e2e laptop" })).toContainText("revoked");
   await expect(page.getByRole("button", { name: "Revoke e2e laptop" })).toHaveCount(0);

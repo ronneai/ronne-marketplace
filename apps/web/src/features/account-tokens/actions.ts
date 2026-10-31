@@ -5,6 +5,7 @@ import { getTranslations } from "next-intl/server";
 import { errorText } from "@/i18n/errors";
 import { createMyToken, revokeMyToken } from "@/server/domains/identity/actions/access-tokens";
 import { IdentityError } from "@/server/domains/identity/exceptions/errors";
+import { flashToast } from "@/server/http/flash-toast";
 import { requestHeaders } from "@/server/http/request-headers";
 import { serverAction } from "@/server/http/server-action";
 import type { TokenActionState } from "./types";
@@ -50,6 +51,9 @@ export const revokeTokenFromForm = serverAction(
   async (_previous: TokenActionState, form: FormData): Promise<TokenActionState> =>
     attempt(async () => {
       await revokeMyToken(await requestHeaders(), text(form, "tokenId"));
+      // The page refreshes without the row's button, which takes the form (and any toast it would
+      // say) with it: the layout says it instead (138).
+      await flashToast("tokenRevoked");
       return { done: (await getTranslations("account.tokens.revoke"))("revoked") };
     }),
 );

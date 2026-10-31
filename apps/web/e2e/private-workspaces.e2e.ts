@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 import { type APIRequestContext, type Browser, expect, type Page, test } from "@playwright/test";
+import { toastWith } from "./toast";
 import { E2E_PASSWORD, E2E_SHELF, E2E_USERS, E2E_VAULT } from "./users";
 
 const RMK = fileURLToPath(new URL("../../../packages/cli/dist/bin.js", import.meta.url));
@@ -177,8 +178,10 @@ test("root makes a workspace private and public again, and an outsider sees it g
     `Make ${E2E_SHELF.workspace} private? Only its members and root will see its items`,
   );
   await dialog.getByRole("button", { name: "Make private" }).click();
-  await expect(dialog).toContainText("It’s private: only its members and root see its items.");
-  await dialog.getByRole("button", { name: "Done" }).click();
+  await expect(
+    toastWith(dialog, "It’s private: only its members and root see its items."),
+  ).toBeVisible();
+  await expect(dialog).toBeHidden();
 
   expect((await outsider.goto(shelfPage))?.status()).toBe(404);
   await root.goto(shelfPage);
@@ -189,7 +192,7 @@ test("root makes a workspace private and public again, and an outsider sees it g
   const back = root.getByRole("dialog", { name: "Make public" });
   await expect(back).toContainText(`Make ${E2E_SHELF.workspace} public?`);
   await back.getByRole("button", { name: "Make public" }).click();
-  await expect(back).toContainText("It’s public: everyone signed in sees its items.");
+  await expect(toastWith(back, "It’s public: everyone signed in sees its items.")).toBeVisible();
 
   expect((await outsider.goto(shelfPage))?.status()).toBe(200);
   await expect(outsider.getByRole("main")).toContainText(`Workspace${E2E_SHELF.workspace}`);

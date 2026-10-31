@@ -5,7 +5,7 @@ import { useActionState, useState } from "react";
 import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
 import { FieldError } from "@/components/ui/Field";
-import { Notice } from "@/components/ui/Notice";
+import { useToastWhen } from "@/components/ui/toast";
 import type { TwoFactorCoverage } from "@/server/domains/identity/models/two-factor-coverage";
 import type { TwoFactorPolicy } from "@/server/domains/settings/models/two-factor-policy";
 import { saveTwoFactorPolicy } from "../actions";
@@ -28,6 +28,7 @@ export const TwoFactorPolicyForm = ({
     saveTwoFactorPolicy,
     {},
   );
+  useToastWhen(state, state.done);
   const [chosen, setChosen] = useState<TwoFactorPolicy>(policy);
   return (
     <form action={action} aria-label={t("title")} className="grid gap-4">
@@ -62,7 +63,6 @@ export const TwoFactorPolicyForm = ({
         })}
       </fieldset>
       <FieldError id="two-factor-policy-error">{state.error}</FieldError>
-      {state.done ? <Notice kind="info" title={state.done} /> : null}
       <div>
         <Button type="submit" disabled={pending || chosen === policy}>
           {t("save")}

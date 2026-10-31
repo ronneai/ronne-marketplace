@@ -5,7 +5,7 @@ import { useActionState, useState } from "react";
 import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
 import { FieldError, inputClasses, Label } from "@/components/ui/Field";
-import { Notice } from "@/components/ui/Notice";
+import { useToastWhen } from "@/components/ui/toast";
 import { saveUsageMinimum } from "../actions";
 import type { SettingsActionState } from "../types";
 
@@ -16,6 +16,7 @@ export const UsageMinimumForm = ({ minimum }: { minimum: number }) => {
     saveUsageMinimum,
     {},
   );
+  useToastWhen(state, state.done);
   const [typed, setTyped] = useState(String(minimum));
   return (
     <form action={action} aria-label={t("minimumTitle")} className="grid gap-4">
@@ -45,7 +46,6 @@ export const UsageMinimumForm = ({ minimum }: { minimum: number }) => {
         </p>
       </div>
       <FieldError id="usage-minimum-error">{state.error}</FieldError>
-      {state.done ? <Notice kind="info" title={state.done} /> : null}
       <div>
         <Button type="submit" disabled={pending || typed.trim() === String(minimum)}>
           {t("save")}

@@ -231,10 +231,9 @@ describe("the Move dialog (115)", () => {
   });
 
   it("says what happened after submit: moved, asked, refused with the list, or the error", () => {
-    expect(form(undefined, { state: { done: "moved" } })).toContain("Moved @infra to acme.");
-    expect(form(undefined, { state: { done: "requested" } })).toContain(
-      "Asked to move @infra to acme.",
-    );
+    // Done is said as a toast and the dialog closes (138): the form has nothing to show.
+    expect(form(undefined, { state: { done: "moved" } })).toBe("");
+    expect(form(undefined, { state: { done: "requested" } })).toBe("");
     const refused = form(undefined, {
       state: { refused: impact({ outsideDependents: ["@acme/team/app"], refused: true }) },
     });

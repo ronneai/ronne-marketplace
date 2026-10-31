@@ -17,6 +17,7 @@ import { Button, buttonClasses } from "@/components/ui/Button";
 import { Dialog, DialogActions } from "@/components/ui/Dialog";
 import { FieldError, inputClasses, Label } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
+import { useToast } from "@/components/ui/toast";
 import type { BumpReason, SuggestedBump } from "@/server/domains/submissions/models/bump";
 import { publishAction } from "./actions";
 import type { PublishResult, ReleaseMember } from "./types";
@@ -175,6 +176,8 @@ export const PublishDialog = ({
   published: string[];
 }) => {
   const t = useTranslations("author.review");
+  const said = useTranslations("common.done");
+  const toast = useToast();
   const router = useRouter();
   const [open, setOpen] = useState(defaultOpen);
   const [kind, setKind] = useState<"stable" | "prerelease">(defaultKind);
@@ -239,11 +242,16 @@ export const PublishDialog = ({
               className="grid gap-4"
               onSubmit={(event) => {
                 event.preventDefault();
-                start(async () =>
-                  setResult(
-                    await publishAction(id, { choice, tag: tag.trim() || undefined, notes }),
-                  ),
-                );
+                start(async () => {
+                  const published = await publishAction(id, {
+                    choice,
+                    tag: tag.trim() || undefined,
+                    notes,
+                  });
+                  setResult(published);
+                  // The dialog keeps the version, the tag and the checksum to read and copy.
+                  if (published.ok) toast.ok(said("released"));
+                });
               }}
             >
               <fieldset className="grid gap-2">

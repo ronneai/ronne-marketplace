@@ -8,6 +8,7 @@ import { reasonOf } from "@/components/scan/reason";
 import { Button } from "@/components/ui/Button";
 import { FieldError, Input, Label } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
+import { useToastWhen } from "@/components/ui/toast";
 import type {
   SkillScanAnalysis,
   SkillScanSettings,
@@ -45,6 +46,7 @@ export const SkillScanForm = ({ settings }: { settings: SkillScanSettings }) => 
     saveSkillScanPolicy,
     {},
   );
+  useToastWhen(state, state.done);
   const { policy, scanner } = settings;
   const [enabled, setEnabled] = useState(policy.enabled);
   const [types, setTypes] = useState<readonly ItemType[]>(policy.types);
@@ -266,7 +268,6 @@ export const SkillScanForm = ({ settings }: { settings: SkillScanSettings }) => 
       </section>
 
       <FieldError id="scan-error">{state.error}</FieldError>
-      {state.done ? <Notice kind="info" title={state.done} /> : null}
       <div>
         <Button
           type="submit"

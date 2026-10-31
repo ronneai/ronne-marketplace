@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { toastWith } from "./toast";
 import { E2E_PASSWORD, E2E_SCOPE, E2E_USERS } from "./users";
 
 const signIn = async (page: Page, email: string) => {
@@ -113,6 +114,7 @@ test("a moderator reviews a hook, the author publishes it, and another item depe
   await publish.getByText("What's a tag?").click();
   await expect(publish.getByText(/A name that points to a version/)).toBeVisible();
   await publish.getByRole("button", { name: "Publish 1.0.0" }).click();
+  await expect(toastWith(publish, "Released")).toBeVisible();
   await expect(
     publish.getByText(`Published @${E2E_SCOPE}/fmt-hook 1.0.0 as latest.`),
   ).toBeVisible();
