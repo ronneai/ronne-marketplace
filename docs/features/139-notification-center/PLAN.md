@@ -26,7 +26,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* a db test per kind checks the recipients, and that a rolled-back decision writes
     none.
 
-- [ ] **4. Reading them, with the visibility check.** [risky]
+- [x] **4. Reading them, with the visibility check.** [risky]
   - The sentence from `notifications.<kind>` with its parameters, the link from the subject, the
     check that the reader can still see the subject (091, 093); hidden ones not counted.
   - *Done when:* db tests cover a person removed from a private workspace (not shown, not counted),
@@ -71,3 +71,10 @@ goes into `SPEC.md` instead.
   `testing/throw-after-notify.ts` makes a test fail a call right after its notification was written.
   The SCIM entry point isn't tested for notifications on its own: it shares `applyGroups` with the
   SSO path.
+- **Task 4:** the reader (`services/read.ts`, `subjects.ts`) resolves each subject in one batched
+  query per kind and judges it with `models/visibility.ts`; a notification stores the workspaces its
+  subject lived in (migration 0042, filled by `notify`), so a deleted subject can't bring a hidden
+  notification back. The domain returns a link descriptor, the web app turns it into an address
+  (`features/notifications/href.ts`); sentences are the `notifications` messages, drawn with
+  `renderSentence`, which falls back to a plain line rather than show a message key. The count and
+  the popover have accepted limits (spec).

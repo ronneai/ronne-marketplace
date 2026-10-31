@@ -75,6 +75,8 @@ export type Notification = {
   actorId: string | null;
   subject: { type: SubjectType; id: string };
   params: NotificationParams;
+  /** Where the subject lived when written (0042); empty when unknown. */
+  workspaceIds: string[];
   createdAt: Date;
   readAt: Date | null;
 };
@@ -125,5 +127,18 @@ export const decodeParams = (text: string): NotificationParams => {
     return out;
   } catch {
     return {};
+  }
+};
+
+/** The workspace ids stored with a notification, read back; anything unreadable is none. */
+export const decodeWorkspaceIds = (text: string | null): string[] => {
+  if (!text) return [];
+  try {
+    const value: unknown = JSON.parse(text);
+    return Array.isArray(value)
+      ? value.filter((id): id is string => typeof id === "string").slice(0, 2)
+      : [];
+  } catch {
+    return [];
   }
 };

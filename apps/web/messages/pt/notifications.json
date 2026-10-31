@@ -1,0 +1,38 @@
+{
+  "system": "O sistema",
+  "submission": {
+    "approved": "{actor} aprovou {name}.",
+    "approved_override": "{actor} aprovou {name} por exceção, apesar da análise de segurança.",
+    "changes_requested": "{actor} solicitou alterações em {name}.",
+    "rejected": "{actor} rejeitou {name}.",
+    "comment": "{actor} comentou em {name}.",
+    "released": "{actor} publicou {name} {version} (tag {tag}).",
+    "dependency_rejected": "{name} precisa de alterações: {actor} rejeitou a dependência {dependency}."
+  },
+  "join_request": {
+    "approved": "{actor} aprovou seu pedido para entrar em {workspace}.",
+    "declined": "{actor} recusou seu pedido para entrar em {workspace}."
+  },
+  "scope_move": {
+    "moved": "{actor} moveu o escopo {scope} de {from} para {to}.",
+    "declined": "{actor} recusou mover o escopo {scope} para {to}."
+  },
+  "item_move": {
+    "moved": "{actor} moveu {item} de {from} para {to}.",
+    "declined": "{actor} recusou mover {item} para {to}."
+  },
+  "membership": {
+    "added": "{actor} adicionou você a {workspace} como {role, select, admin {admin} moderator {moderador} other {usuário}}.",
+    "removed": "{actor} removeu você de {workspace}.",
+    "role_changed": "{actor} alterou seu papel em {workspace} de {from, select, admin {admin} moderator {moderador} other {usuário}} para {to, select, admin {admin} moderator {moderador} other {usuário}}."
+  },
+  "request": {
+    "join_waiting": "{actor} pediu para entrar em {workspace}.",
+    "scope_move_waiting": "{actor} pediu para mover o escopo {scope} de {from} para {to}.",
+    "item_move_waiting": "{actor} pediu para mover {item} de {from} para {to}."
+  },
+  "feedback": {
+    "new": "{sender} enviou feedback: {feedbackKind, select, problem {um problema} idea {uma ideia} question {uma dúvida} praise {um elogio} other {um comentário}}."
+  },
+  "fallback": "Há uma novidade para você."
+}

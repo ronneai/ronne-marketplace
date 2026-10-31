@@ -5,6 +5,7 @@ import type { Database } from "../../../db/schema";
 import type { DatabaseDialect } from "../../../db/url";
 import {
   decodeParams,
+  decodeWorkspaceIds,
   isNotificationKind,
   isSubjectType,
   type Notification,
@@ -20,6 +21,7 @@ type Row = {
   subject_type: string;
   subject_id: string;
   params: string;
+  workspace_ids: string | null;
   created_at: Date | string;
   read_at: Date | string | null;
 };
@@ -31,6 +33,7 @@ const COLUMNS = [
   "subject_type",
   "subject_id",
   "params",
+  "workspace_ids",
   "created_at",
   "read_at",
 ] as const;
@@ -44,6 +47,7 @@ const notificationOf = (row: Row): Notification | null =>
         actorId: row.actor_id,
         subject: { type: row.subject_type, id: row.subject_id },
         params: decodeParams(row.params),
+        workspaceIds: decodeWorkspaceIds(row.workspace_ids),
         createdAt: fromDbDate(row.created_at),
         readAt: row.read_at ? fromDbDate(row.read_at) : null,
       }
@@ -69,6 +73,7 @@ export const kyselyNotificationRepository = (
           subject_type: row.subjectType,
           subject_id: row.subjectId,
           params: row.params,
+          workspace_ids: row.workspaceIds,
           created_at: toDbDate(row.createdAt, dialect),
         })),
       )
@@ -106,12 +111,38 @@ export const kyselyNotificationRepository = (
   async countUnread(userId, cap) {
     const rows = await db
       .selectFrom("notifications")
-      .select("id")
+      .select(["kind", "subject_type"])
       .where("user_id", "=", userId)
       .where("read_at", "is", null)
       .limit(cap)
       .execute();
-    return rows.length;
+    return rows.filter((row) => isNotificationKind(row.kind) && isSubjectType(row.subject_type))
+      .length;
+  },
+
+  async unread(userId, cap) {
+    const rows = await db
+      .selectFrom("notifications")
+      .select(["id", "kind", "subject_type", "subject_id", "workspace_ids"])
+      .where("user_id", "=", userId)
+      .where("read_at", "is", null)
+      .orderBy("id", "desc")
+      .limit(cap)
+      .execute();
+    // Rows of a kind or subject this version doesn't know are left out, as the list leaves them.
+    return rows.flatMap((row) =>
+      isNotificationKind(row.kind) && isSubjectType(row.subject_type)
+        ? [
+            {
+              id: row.id,
+              kind: row.kind,
+              subjectType: row.subject_type,
+              subjectId: row.subject_id,
+              workspaceIds: decodeWorkspaceIds(row.workspace_ids),
+            },
+          ]
+        : [],
+    );
   },
 
   async markRead(userId, ids, at) {

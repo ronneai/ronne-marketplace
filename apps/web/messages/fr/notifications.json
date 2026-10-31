@@ -1,0 +1,38 @@
+{
+  "system": "Le système",
+  "submission": {
+    "approved": "{actor} a approuvé {name}.",
+    "approved_override": "{actor} a approuvé {name} par dérogation, malgré son analyse de sécurité.",
+    "changes_requested": "{actor} a demandé des modifications à {name}.",
+    "rejected": "{actor} a rejeté {name}.",
+    "comment": "{actor} a commenté {name}.",
+    "released": "{actor} a publié {name} {version} (étiquette {tag}).",
+    "dependency_rejected": "{name} nécessite des modifications : {actor} a rejeté sa dépendance {dependency}."
+  },
+  "join_request": {
+    "approved": "{actor} a approuvé votre demande de se joindre à {workspace}.",
+    "declined": "{actor} a refusé votre demande de se joindre à {workspace}."
+  },
+  "scope_move": {
+    "moved": "{actor} a déplacé la portée {scope} de {from} vers {to}.",
+    "declined": "{actor} a refusé de déplacer la portée {scope} vers {to}."
+  },
+  "item_move": {
+    "moved": "{actor} a déplacé {item} de {from} vers {to}.",
+    "declined": "{actor} a refusé de déplacer {item} vers {to}."
+  },
+  "membership": {
+    "added": "{actor} a ajouté votre compte à {workspace} avec le rôle {role, select, admin {admin} moderator {modérateur} other {utilisateur}}.",
+    "removed": "{actor} a retiré votre compte de {workspace}.",
+    "role_changed": "{actor} a changé votre rôle dans {workspace} : de {from, select, admin {admin} moderator {modérateur} other {utilisateur}} à {to, select, admin {admin} moderator {modérateur} other {utilisateur}}."
+  },
+  "request": {
+    "join_waiting": "{actor} demande à se joindre à {workspace}.",
+    "scope_move_waiting": "{actor} demande de déplacer la portée {scope} de {from} vers {to}.",
+    "item_move_waiting": "{actor} demande de déplacer {item} de {from} vers {to}."
+  },
+  "feedback": {
+    "new": "{sender} a envoyé des commentaires : {feedbackKind, select, problem {un problème} idea {une idée} question {une question} praise {des félicitations} other {un commentaire}}."
+  },
+  "fallback": "Il y a du nouveau pour vous."
+}

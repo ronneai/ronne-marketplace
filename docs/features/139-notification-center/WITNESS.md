@@ -129,3 +129,51 @@ Witnessed: 2026-10-31, by a fresh agent (blind, re-check of rows 4 and 5, and th
 
 **Overall:** met. Not covered, noted: the SCIM entry point (`scim-groups.ts:69`) has no test that checks notifications; it shares `applyGroups` with the SSO sign-in path, which is tested, including its rollback.
 
+## Task 4 — Reading them, with the visibility check
+
+Witnessed: 2026-10-31, by a fresh agent (blind). Commit: 249044f7 plus the uncommitted work. Machine: macOS (Darwin), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Db tests cover a person removed from a private workspace (not shown, not counted), a deleted subject (no link) and an erased actor, on all four databases | no | confirmed | `read.db.test.ts` 11/11 on SQLite, PostgreSQL, MySQL and MariaDB |
+| 2 | Every kind has a sentence in en, pt and fr with matching placeholders | no | confirmed | `vitest run src/i18n src/features/notifications` → 21 files, 386 tests |
+| 3 | The glossary and typography are followed (neutral address, Canadian punctuation) | no | confirmed | pt and fr files read |
+| 4 | The visibility rules match the spec | no | confirmed | `visibility.ts` |
+| 5 | Every subject type written by task 3 is resolved | no | confirmed | six subject types, six branches in `read.ts` |
+| 6 | Hidden rows are not counted; the count caps at 100 | no | confirmed | `countVisibleUnread` and its tests |
+| 7 | Queries are batched, one per subject type | no | confirmed | `resolveSubjects` (by reading) |
+| 8 | The actor's name is read at display time | no | confirmed | erased → pseudonym, deleted → null |
+| 9 | `pnpm lint` and `pnpm typecheck` | no | confirmed | 42 existing warnings, no errors |
+
+**Overall:** met.
+
+### Adversarial pass
+
+Witnessed: 2026-10-31, by a fresh agent (adversarial). Commit: 249044f7 plus the uncommitted work. Machine: macOS (Darwin), Node v24. Probes in the scratchpad, not committed.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A hidden notification stays hidden when its subject is deleted | no | not met | deleting an item (its move cascades away) or a submission made a hidden notification visible and counted: `shownTo` showed any notification with no subject, without a visibility check |
+| 2 | The count agrees with the list | no | not met | a row with an unknown subject type was counted but not listed |
+| 3 | The count and the popover are exact however many rows are hidden | no | partly | the count looks at the newest 100 unread rows, the popover at five batches: documented as accepted limits in the spec |
+| 4 | A sentence with a missing parameter doesn't break the page | no | partly | the translator returns the message path, shown as raw text: guarded by `renderSentence` |
+
+**Overall:** not met: rows 1 and 2.
+
+### Adversarial re-check
+
+Witnessed: 2026-10-31, by a fresh agent (adversarial re-check). Commit: 249044f7 plus the uncommitted work. Machine: macOS (Darwin), Node v22/24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A hidden notification stays hidden and uncounted after its submission, item move, scope move or join request is deleted | no | confirmed | five kinds against a private workspace the reader is not in: list `[]` and count 0 before and after, on all four databases |
+| 2 | `notify` stores at most two workspace ids, and null when the subject can't be resolved; every call site inserts the subject before notifying | no | confirmed | `notify.ts`; the sites in access requests, moves, reviews, publish, members and feedback read (the identity sites notify about a workspace that exists) |
+| 3 | A member of the private workspace still sees a deleted subject's notification, without a link, and it is counted | no | confirmed | 5 rows, count 5 |
+| 4 | Tampered, garbage or huge `workspace_ids` can't expose a hidden row or crash | no | confirmed | nine values tried, including an 800 KB array |
+| 5 | The count and the list agree for an unknown kind, an unknown subject type and bad parameters | no | confirmed | list 2, `countVisibleUnread` 2, `countUnread` 2, on four databases |
+| 6 | The spec documents the accepted limits | no | confirmed | SPEC.md "Who may still see it" |
+| 7 | `renderSentence` never returns a key or path | no | confirmed | 20 kinds plus a bogus one × 3 languages × 3 parameter sets, next-intl's real translator |
+| 8 | The suites pass | no | confirmed | notifications, 0041 and 0042 on SQLite and the three servers; 21 files and 389 tests in `features/notifications` and `i18n` |
+
+**Overall:** met. Noted, not blocking: a private workspace deleted later leaves its old notifications visible, without links, with the names they carry; rows with no stored workspaces (written before 0042) keep showing once their subject is deleted.
+

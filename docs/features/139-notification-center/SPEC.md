@@ -75,11 +75,26 @@ sentence: the sentence is a message (`notifications.<kind>`) drawn in the reader
 read. The link is built from the kind and the subject.
 
 **Who may still see it.** When a notification is read, it's shown only if the person can still see
-its subject (`can` in the subject's workspace, 091, 093): someone removed from a private workspace no
-longer sees its item names in old notifications. Hidden ones aren't counted.
+its subject (091, 093): someone removed from a private workspace no longer sees its item names in
+old notifications. Hidden ones aren't counted. The rule, per subject:
+- a submission, a request or a workspace is judged by the workspace it lives in now; a move by
+  either of its two workspaces (the asker and the answerers knew both names);
+- a subject that was deleted is still judged by the workspaces it lived in when the notification was
+  written (`workspace_ids`, below), so deleting an item or a request can't bring a hidden
+  notification back; with none of those workspaces left there is nothing to check, and it shows
+  without a link;
+- being removed from a workspace (`membership.removed`) and a declined request to join are always
+  shown, since their point is the workspace's name the person knew; they link to the workspace only
+  if the reader sees it;
+- feedback is for root alone.
+**Accepted limits:** the count looks at the newest 100 unread rows before hiding, and the popover
+at five batches of rows, so a reader with more than that many hidden rows newer than a visible one
+can see a count or a list short of the truth until they read or purge the hidden ones. A page of
+`/notifications` can hold fewer rows than its size when some are hidden.
 
-**The count.** `loadShell` (`app/(app)/shell.ts`) adds the unread count to its result with one
-indexed query. A client component asks `GET /notifications/count` (a route handler of the web app,
+**The count.** `loadShell` (`app/(app)/shell.ts`) adds the unread count to its result: one indexed
+query when nothing is unread, and otherwise the newest 100 unread rows with one batched query per
+kind of subject, to drop what the reader can't see. A client component asks `GET /notifications/count` (a route handler of the web app,
 not `/api/v1`, session only) every 60 seconds while `document.visibilityState` is `visible`.
 
 ## Edge cases
@@ -92,6 +107,8 @@ not `/api/v1`, session only) every 60 seconds while `document.visibilityState` i
   keeps the name it had, as the audit log does.
 - **The subject is deleted** (a draft deleted for good, 057): the notification stays, without a link.
 - **A person with many unread** (thousands): the count is capped at "99+" in the query (`LIMIT 100`).
+- **A parameter a sentence needs is missing** (an older or newer version wrote the row): the
+  sentence shows a plain fallback line ("There is an update for you."), never a message key.
 - **Several replicas** (111): nothing in memory; every replica reads the table.
 
 ## Data
@@ -100,7 +117,11 @@ not `/api/v1`, session only) every 60 seconds while `document.visibilityState` i
   - `id`, `user_id` (→ `user`, cascade on delete), `kind` (text), `actor_id` (nullable, → `user`,
     set null), `subject_type` and `subject_id` (text), `params` (JSON text, at most 2 KiB),
     `created_at`, `read_at` (nullable);
-  - index `(user_id, read_at, created_at)`, and `(created_at)` for the purge.
+  - index `(user_id, read_at, created_at)`, `(user_id, id)` for the list, and `(created_at)` for
+    the purge.
+- Migration (the next): `notifications.workspace_ids` (nullable JSON text, at most two workspace
+  ids): where the subject lived when written, filled by `notify`, so a deleted subject is still
+  judged by it.
 - The retention job (102) deletes rows older than 90 days.
 - No audit event for reading or marking read.
 

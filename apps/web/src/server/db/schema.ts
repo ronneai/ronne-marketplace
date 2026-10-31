@@ -576,6 +576,8 @@ export interface NotificationTable {
   params: string;
   created_at: Timestamp;
   read_at: Timestamp | null;
+  /** JSON list of the workspace ids the subject lived in when written (migration 0042). */
+  workspace_ids: string | null;
 }
 
 /** A person's favorite item (migration 0033, feature 125). Theirs alone. */
