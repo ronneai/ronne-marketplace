@@ -9,7 +9,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 ## Tasks
 
-- [ ] **1. Decision.**
+- [x] **1. Decision.**
   - MVP.md §15 has the "Toasts" row, and `docs/features/README.md` lists 138 in M21 with its
     dependencies.
   - *Done when:* both say what this spec says, and `pnpm witness:check` passes.
