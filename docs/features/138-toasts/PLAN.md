@@ -53,7 +53,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* the component tests of each changed feature expect the toast instead of the notice,
     the e2e suites pass on every project, and `docs/knowledge/toasts.md` lists the rules.
 
-- [ ] **6. Messages.**
+- [x] **6. Messages.**
   - Every new key in `en`, `pt` and `fr` (the region's name, the prefixes, close, each flash key).
   - *Done when:* the parity and raw-text tests pass, and `pnpm i18n:review` shows the new keys.
 

@@ -118,20 +118,20 @@ the key and at most five parameters, each a text of at most 200 characters or a 
 
 ## Acceptance criteria
 
-- [ ] One toast region on every page, at the bottom right from `sm` and across the bottom below it,
+- [x] One toast region on every page, at the bottom right from `sm` and across the bottom below it,
   above a `BottomBar` and the safe area; tested on the desktop, phone and tablet projects.
-- [ ] `ok` and `info` go after 5 seconds, pausing on hover, focus and a hidden tab; `warning` and
+- [x] `ok` and `info` go after 5 seconds, pausing on hover, focus and a hidden tab; `warning` and
   `error` stay until closed; each has a labelled close button with a 44px tap area on touch.
-- [ ] Toasts are announced (the polite region is in the page while idle; `status` and `alert` on the
+- [x] Toasts are announced (the polite region is in the page while idle; `status` and `alert` on the
   boxes), never take focus, and
   carry a text prefix besides their colour; reduced motion turns off the slide.
-- [ ] Only tokens from `tones.ts` and the design system; no shadows (the styleguide's check).
-- [ ] `flashToast` after a redirect shows the message once, in the reader's language; an edited
+- [x] Only tokens from `tones.ts` and the design system; no shadows (the styleguide's check).
+- [x] `flashToast` after a redirect shows the message once, in the reader's language; an edited
   cookie with an unknown key or bad parameters shows nothing.
-- [ ] Every success `Notice` that only confirms an action, and every error of an action with no
+- [x] Every success `Notice` that only confirms an action, and every error of an action with no
   form, is a toast; field and form errors, one-time secrets and the bulk release summary are not.
-- [ ] Every new text is a message in English, Portuguese and French.
-- [ ] `docs/knowledge/toasts.md` and the styleguide section exist.
+- [x] Every new text is a message in English, Portuguese and French.
+- [x] `docs/knowledge/toasts.md` and the styleguide section exist.
 
 ## Decisions
 

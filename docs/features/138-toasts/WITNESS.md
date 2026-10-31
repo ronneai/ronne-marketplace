@@ -288,3 +288,20 @@ Witnessed: 2026-10-31 11:05 EDT, by a fresh agent (blind re-check, row 6). Commi
 | 6 | Errors and notices of row and bulk actions without a form are toasts, apart from the documented exceptions | no | confirmed | `InboxSelection.tsx:53-63` `toast.ok` / `toast.error`, the two `<p>` in `BulkBar` gone; `vitest run src/features/admin-feedback` → 12 passed; `playwright test e2e/feedback.e2e.ts --project=chromium` → 5 passed; a re-grep of `role="alert"`, `role="status"`, `setNotice(`, `FieldError`, `state.error` in client components found only documented exceptions, dialogs, results and live regions |
 
 **Overall:** met: rows 2, 3, 6 and 9 are confirmed by the re-checks; rows 1, 4, 5, 7, 8 and 10 to 12 were confirmed by the first pass and the sites they name were not changed since. Full runs on the final build: chromium 166 passed, phone, phone-webkit and tablet 54 each.
+
+## Task 6 — Messages
+
+Witnessed: 2026-10-31, by a fresh agent (blind). Commit: 78e159dc. Machine: macOS (Darwin), Node as installed.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The feature added keys to en, pt and fr, and all three have the same set | no | confirmed | `git diff d150ec68^..HEAD -- apps/web/messages` → only `common.json`, with the same blocks in each language: `toast` (region, close, four prefixes), `flash` (draftDeleted, tokenRevoked) and `done` (17 keys) |
+| 2 | The ICU placeholders match across languages | no | confirmed | the only placeholders are the `{count, plural, …}` of the four `*Many` keys, with one and other in all three languages; `pnpm vitest run src/i18n` → 20 files, 378 tests passed (parity, raw-text, untranslated) |
+| 3 | Every key the code uses exists | no | confirmed | `common.toast`, `common.flash` (`FLASH_KEYS` is `draftDeleted`, `tokenRevoked`) and `common.done` (17 keys used) all present |
+| 4 | The added components have no raw on-screen text | no | confirmed | grep of `Toaster`, `ToastCard`, `FlashToastClient` found only CSS classes and `calc()` constants |
+| 5 | The styleguide's ToastDemo is English only by decision | no | confirmed | SPEC 133 line 62: "The styleguide stays English and out of the rule (owner, 2026-10-27)" |
+| 6 | The pt and fr wording follows the existing glossary | no | confirmed | Aprovado / Approuvé, Rejeitado / Rejeté, Lançado / Publié, Submetido / Soumis, Arquivado / Archivé, obsoleta / obsolète, retirada / retirée, Revogado / Révoqué, and the AVISO: / ERRO: and "ATTENTION :" / "ERREUR :" prefixes match existing messages |
+| 7 | `pnpm i18n:review` shows the new keys | no | confirmed | wrote 15 namespaces, 3125 messages; `common.md` lists `toast.region`, `toast.close`, the four `toast.prefix.*`, `flash.draftDeleted`, `flash.tokenRevoked` in three columns |
+| 8 | Lint passes on the touched message files | no | confirmed | `pnpm exec biome check apps/web/messages` → 45 files, no fixes applied |
+
+**Overall:** met: the new keys exist in all three languages, the placeholders match, the code uses only keys that exist, and the parity and raw-text tests pass.
