@@ -1,4 +1,5 @@
 import { expect, type Page } from "@playwright/test";
+import { toastWith } from "./toast";
 import { E2E_PERSONAL } from "./users";
 
 /**
@@ -29,8 +30,8 @@ export const releaseInPersonal = async (owner: Page, outsider: Page, workspace: 
   await create.getByLabel("Name").fill(scope);
   await create.getByLabel("Description").fill("My own tools.");
   await create.getByRole("button", { name: "Create scope" }).click();
-  await expect(create.getByText(`Created @${scope} in ${workspace}.`)).toBeVisible();
-  await create.getByRole("button", { name: "Done" }).click();
+  await expect(toastWith(create, `Created @${scope} in ${workspace}.`)).toBeVisible();
+  await expect(create).toBeHidden();
 
   // The editor offers it first, under Personal.
   await owner.goto("/submissions/new");

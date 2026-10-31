@@ -26,9 +26,11 @@ page or the dialog (owner, 2026-10-29). Today every result is a `Notice` drawn f
   - `warning` and `error`: until closed;
   - every toast has a close button (`IconButton`, a 44px tap area on a coarse pointer, 067).
 - **Accessibility:**
-  - the region is always in the page, empty when idle, so screen readers announce what is added;
-  - `ok` and `info` in a `role="status"` (`aria-live="polite"`) list, `warning` and `error` in a
-    `role="alert"` one;
+  - the region is always in the page, empty when idle, as one polite live region named
+    ("Notifications"), so screen readers announce what is added;
+  - `ok` and `info` are boxes with `role="status"`; `warning` and `error` are boxes with
+    `role="alert"`, announced at once when they appear (Sonner has one live region, not two, so the
+    first draft's list for each became a role on each box: Decision 6);
   - a toast never takes focus; the region is named ("Notifications") and reachable with Tab after
     the page's content;
   - `prefers-reduced-motion`: they appear and go without sliding.
@@ -64,17 +66,31 @@ until closed. On a phone the toast sits above the draft editor's bar.
 - **Sonner** (MIT) does the queue, the timers and their pauses, stacking, swiping a toast away on
   touch and the live regions, in its **unstyled** mode: every colour, border and motion is ours,
   from the tokens, with no shadow.
-- **Behind our wrapper only:** `components/ui/Toaster.tsx` (the region), `components/ui/toast.ts`
-  (`useToast`), `components/ui/FlashToast.tsx`, `server/http/flash-toast.ts` (`flashToast`). Only
+- **Behind our wrapper only:** `components/ui/Toaster.tsx` (the region), `components/ui/toast.tsx`
+  (`useToast`) and `ToastCard.tsx` (the box each toast draws), `components/ui/FlashToast.tsx` (reads and checks the cookie on the server) and
+  `FlashToastClient.tsx` (shows it and removes the cookie), `server/http/flash-toast.ts`
+  (`flashToast`), with the key list and the checks in `i18n/flash.ts`. Only
   these files import `sonner` (a lint rule, as for Better Auth), so it can be replaced by our own
   component without touching a page.
+- **What Sonner doesn't do, the wrapper does** (found in task 2, Sonner 2.0.8): Sonner has one
+  polite live region and no `role="alert"`, so each toast draws its own box (`ToastCard`) with
+  `role="status"` or `role="alert"`, and the always-present region is Sonner's polite `<section>`;
+  Sonner pauses its timers for the pointer and a hidden tab but not for the keyboard, so the
+  `Toaster` tells it focus inside the list is the pointer over it; the limit of three and the
+  one-toast-per-message rule are in `toast.tsx`, Sonner only hides the older ones.
 - Every label Sonner shows (the close button, the region's name) comes from our messages.
 - No global singleton of our own (hot reload, `docs/knowledge/hot-reload-singletons.md`).
 - The flash cookie's key must be one of a typed list of message keys (`FlashKey`), so a cookie a
   person edits can only choose among our own messages; parameters are rendered as plain text through
   next-intl, never as HTML, and anything that doesn't parse is ignored.
-- `BottomBar` publishes its height in a CSS custom property (`--bottom-bar-height`) the region
-  reads, so the two never overlap, including while the bar follows the on-screen keyboard.
+- `BottomBar` publishes the distance from its top edge to the bottom of the screen in a CSS custom
+  property (`--bottom-bar-height`) the region reads, so the two never overlap, whatever is under the
+  bar (the app's bottom navigation, the footer it rests on) and while it follows the on-screen
+  keyboard.
+- **Over a dialog:** a modal dialog is in the top layer with the page inert, and a popover can't be
+  shown over it. While a dialog is open the `Toaster` moves the region into it (the same node), so a
+  toast is seen over the backdrop and can be closed; it goes back when the dialog closes. On a
+  phone the toast also clears the dialog's `DialogActions` bar.
 
 ## Edge cases
 
@@ -89,7 +105,9 @@ until closed. On a phone the toast sits above the draft editor's bar.
 
 ## Data
 
-None: no table, no setting. The flash cookie holds `{"k":"<FlashKey>","p":{…}}`, at most 1 KiB.
+None: no table, no setting. The flash cookie holds `{"i":"<id>","t":"<kind>","k":"<FlashKey>","p":{…}}`, at most 1 KiB: an id
+(so the same message twice is shown twice and a re-render shows it once), the kind (`ok` unless said),
+the key and at most five parameters, each a text of at most 200 characters or a number.
 
 ## Documentation
 
@@ -100,19 +118,20 @@ None: no table, no setting. The flash cookie holds `{"k":"<FlashKey>","p":{…}}
 
 ## Acceptance criteria
 
-- [ ] One toast region on every page, at the bottom right from `sm` and across the bottom below it,
+- [x] One toast region on every page, at the bottom right from `sm` and across the bottom below it,
   above a `BottomBar` and the safe area; tested on the desktop, phone and tablet projects.
-- [ ] `ok` and `info` go after 5 seconds, pausing on hover, focus and a hidden tab; `warning` and
+- [x] `ok` and `info` go after 5 seconds, pausing on hover, focus and a hidden tab; `warning` and
   `error` stay until closed; each has a labelled close button with a 44px tap area on touch.
-- [ ] Toasts are announced (`status` and `alert` regions present while idle), never take focus, and
+- [x] Toasts are announced (the polite region is in the page while idle; `status` and `alert` on the
+  boxes), never take focus, and
   carry a text prefix besides their colour; reduced motion turns off the slide.
-- [ ] Only tokens from `tones.ts` and the design system; no shadows (the styleguide's check).
-- [ ] `flashToast` after a redirect shows the message once, in the reader's language; an edited
+- [x] Only tokens from `tones.ts` and the design system; no shadows (the styleguide's check).
+- [x] `flashToast` after a redirect shows the message once, in the reader's language; an edited
   cookie with an unknown key or bad parameters shows nothing.
-- [ ] Every success `Notice` that only confirms an action, and every error of an action with no
+- [x] Every success `Notice` that only confirms an action, and every error of an action with no
   form, is a toast; field and form errors, one-time secrets and the bulk release summary are not.
-- [ ] Every new text is a message in English, Portuguese and French.
-- [ ] `docs/knowledge/toasts.md` and the styleguide section exist.
+- [x] Every new text is a message in English, Portuguese and French.
+- [x] `docs/knowledge/toasts.md` and the styleguide section exist.
 
 ## Decisions
 
@@ -128,6 +147,9 @@ None: no table, no setting. The flash cookie holds `{"k":"<FlashKey>","p":{…}}
    decision says so.
 5. **The flash cookie carries a message key, never text** (Claude): the text is the reader's
    language, and a cookie can't put words of its own on the screen.
+
+6. **One polite region, a role on each box** (Claude, task 2): Sonner can't give `alert` its own
+   list; the role on a box added to the page is announced at once by screen readers.
 
 ## Open questions
 

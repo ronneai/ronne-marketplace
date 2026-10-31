@@ -6,8 +6,19 @@ import { type ReactNode, useState, useTransition } from "react";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogActions } from "@/components/ui/Dialog";
 import { FieldError } from "@/components/ui/Field";
+import { useToast } from "@/components/ui/toast";
 import type { ItemRef } from "@/server/domains/items/actions/versions";
 import { changeVersions, type VersionChange } from "./actions";
+
+/** What is said when each change went through (138): `common.done.<key>`. */
+const DONE = {
+  move_tag: "tagMoved",
+  remove_tag: "tagRemoved",
+  deprecate: "deprecated",
+  undeprecate: "undeprecated",
+  yank: "yanked",
+  unyank: "unyanked",
+} as const satisfies Record<VersionChange["kind"], string>;
 
 /**
  * A button that opens a dialog, runs one version change, and refreshes the page (feature 016).
@@ -38,6 +49,8 @@ export const ChangeDialog = <V extends Record<string, string>>({
   children?: ReactNode;
 }) => {
   const t = useTranslations("author.versions");
+  const said = useTranslations("common.done");
+  const toast = useToast();
   const router = useRouter();
   const [open, setOpen] = useState(defaultOpen);
   const [values, setValues] = useState(initial);
@@ -62,8 +75,10 @@ export const ChangeDialog = <V extends Record<string, string>>({
             onSubmit={(event) => {
               event.preventDefault();
               start(async () => {
-                const result = await changeVersions(itemRef, change(values));
+                const next = change(values);
+                const result = await changeVersions(itemRef, next);
                 if (!result.ok) return setError(result.error);
+                toast.ok(said(DONE[next.kind]));
                 setOpen(false);
                 router.refresh();
               });

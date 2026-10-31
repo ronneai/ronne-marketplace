@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Dialog, DialogActions } from "@/components/ui/Dialog";
 import { FieldError, inputClasses, Label } from "@/components/ui/Field";
 import { IconButton } from "@/components/ui/IconButton";
-import { Notice } from "@/components/ui/Notice";
+import { useToastWhen } from "@/components/ui/toast";
 import { createScopeFromForm, updateScopeFromForm } from "./actions";
 import type { ScopeActionState } from "./types";
 
@@ -66,15 +66,8 @@ export const CreateScopeForm = ({
   const [typed, setTyped] = useState("");
   const name = normalizeScopeName(typed);
   const problem = typed ? nameProblem(name, "scope") : null;
-  if (state.done)
-    return (
-      <div className="grid gap-4">
-        <Notice kind="info" title={state.done} />
-        <div>
-          <Button onClick={onDone}>{t("done")}</Button>
-        </div>
-      </div>
-    );
+  useToastWhen(state, state.done, "ok", onDone);
+  if (state.done) return null;
   return (
     <form action={action} className="grid gap-4">
       <div className="grid gap-1.5">
@@ -126,15 +119,8 @@ export const EditScopeForm = ({
     updateScopeFromForm,
     {},
   );
-  if (state.done)
-    return (
-      <div className="grid gap-4">
-        <Notice kind="info" title={state.done} />
-        <div>
-          <Button onClick={onDone}>{t("done")}</Button>
-        </div>
-      </div>
-    );
+  useToastWhen(state, state.done, "ok", onDone);
+  if (state.done) return null;
   return (
     <form action={action} className="grid gap-4">
       <input type="hidden" name="name" value={name} />

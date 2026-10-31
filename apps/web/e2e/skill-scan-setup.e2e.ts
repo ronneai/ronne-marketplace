@@ -4,6 +4,7 @@ import type { AddressInfo } from "node:net";
 import { expect, type Page, test } from "@playwright/test";
 import type { Instance } from "./harness";
 import { recordSecret } from "./secrets";
+import { toastWith } from "./toast";
 import { E2E_PASSWORD, E2E_USERS } from "./users";
 
 /**
@@ -67,12 +68,12 @@ test("root sets up a provider with a write-only key, tests it, and removes it", 
   try {
     await form.getByRole("button", { name: "Test connection" }).click();
     const host = new URL(endpoint).host;
-    await expect(form.getByText(`Reached ${host}.`)).toBeVisible();
+    await expect(toastWith(form, `Reached ${host}.`)).toBeVisible();
     expect(seen.at(-1)).toMatchObject({ url: "/v1/models" });
     expect(seen.at(-1)?.headers.authorization).toBe(`Bearer ${KEY}`);
 
     await form.getByRole("button", { name: "Save" }).click();
-    await expect(form.getByText("Security scan saved.")).toBeVisible();
+    await expect(toastWith(form, "Security scan saved.")).toBeVisible();
 
     // From now on the page knows only that a key is stored.
     form = await tab(page);
@@ -93,11 +94,11 @@ test("root sets up a provider with a write-only key, tests it, and removes it", 
     await expect(form.getByLabel("API key", { exact: true })).toHaveValue("");
     await form.getByLabel("API key", { exact: true }).fill(`${KEY}-2`);
     await form.getByRole("button", { name: "Save" }).click();
-    await expect(form.getByText("Security scan saved.")).toBeVisible();
+    await expect(toastWith(form, "Security scan saved.")).toBeVisible();
     form = await tab(page);
     await expect(form.getByText("Key set")).toBeVisible();
     await form.getByRole("button", { name: "Test connection" }).click();
-    await expect(form.getByText(`Reached ${host}.`)).toBeVisible();
+    await expect(toastWith(form, `Reached ${host}.`)).toBeVisible();
     expect(seen.at(-1)?.headers.authorization).toBe(`Bearer ${KEY}-2`);
 
     // Remove, then Keep: back to Key set, and nothing asks the server to remove it.
@@ -112,7 +113,7 @@ test("root sets up a provider with a write-only key, tests it, and removes it", 
     await form.getByRole("button", { name: "Remove", exact: true }).click();
     await expect(form.getByText("The stored key is removed when you save.")).toBeVisible();
     await form.getByRole("button", { name: "Save" }).click();
-    await expect(form.getByText("Security scan saved.")).toBeVisible();
+    await expect(toastWith(form, "Security scan saved.")).toBeVisible();
     form = await tab(page);
     await expect(form.getByText("Key set")).toHaveCount(0);
     await expect(form.getByLabel("API key", { exact: true })).toHaveValue("");
@@ -121,7 +122,7 @@ test("root sets up a provider with a write-only key, tests it, and removes it", 
     form = await tab(page);
     await form.getByLabel("Provider", { exact: true }).selectOption("");
     await form.getByRole("button", { name: "Save" }).click();
-    await expect(form.getByText(/Security scan saved\.|Nothing changed/)).toBeVisible();
+    await expect(toastWith(form, /Security scan saved\.|Nothing changed/)).toBeVisible();
   }
 });
 

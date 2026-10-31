@@ -4,6 +4,7 @@ import { toDbBoolean, toDbDate } from "../src/server/db/dates";
 import { totpCode } from "../src/server/domains/identity/testing/totp";
 import type { Instance } from "./harness";
 import { openUser } from "./helpers";
+import { toastWith } from "./toast";
 import { E2E_PASSWORD, E2E_USERS } from "./users";
 
 // Feature 105: while root requires two-factor of everyone, someone without it sees only
@@ -174,9 +175,9 @@ test("root requires it of reviewers, a moderator is held until enrolled, root re
     const dialog = page.getByRole("dialog", { name: "Reset two-factor" });
     await dialog.getByRole("button", { name: "Reset two-factor" }).click();
     await expect(
-      dialog.getByText("Two-factor sign-in turned off. They’re signed out everywhere."),
+      toastWith(dialog, "Two-factor sign-in turned off. They’re signed out everywhere."),
     ).toBeVisible();
-    await dialog.getByRole("button", { name: "Done" }).click();
+    await expect(dialog).toBeHidden();
     // The page was refreshed: two-factor is off, so there is nothing to reset.
     await expect(page.getByRole("button", { name: "Reset two-factor" })).toHaveCount(0);
   } finally {

@@ -136,6 +136,10 @@
                     "message": "Only apps/web/src/server/db may use a database driver. Use createDb() and the helpers in db/ instead (MVP §9.4, feature 002)."
                   },
                   {
+                    "group": ["sonner", "sonner/**"],
+                    "message": "Only components/ui/Toaster.tsx and toast.tsx import Sonner. Use useToast() instead, so it can be replaced (feature 138)."
+                  },
+                  {
                     "group": ["better-auth", "better-auth/**", "@better-auth/**"],
                     "message": "Only apps/web/src/server/domains/identity may use Better Auth. Use identity's actions instead (MVP §9.5, feature 006)."
                   }
@@ -162,6 +166,10 @@
                   {
                     "group": ["@ronneai/mcp", "@ronneai/mcp/**"],
                     "message": "The web app may import @ronneai/core, never the CLI or the MCP server (MVP §9.1)."
+                  },
+                  {
+                    "group": ["sonner", "sonner/**"],
+                    "message": "Only components/ui/Toaster.tsx and toast.tsx import Sonner. Use useToast() instead, so it can be replaced (feature 138)."
                   },
                   {
                     "group": ["better-auth", "better-auth/**", "@better-auth/**"],
@@ -192,8 +200,48 @@
                     "message": "The web app may import @ronneai/core, never the CLI or the MCP server (MVP §9.1)."
                   },
                   {
+                    "group": ["sonner", "sonner/**"],
+                    "message": "Only components/ui/Toaster.tsx and toast.tsx import Sonner. Use useToast() instead, so it can be replaced (feature 138)."
+                  },
+                  {
                     "group": ["better-sqlite3", "pg", "pg/**", "mysql2", "mysql2/**"],
                     "message": "Only apps/web/src/server/db may use a database driver. Use createDb() and the helpers in db/ instead (MVP §9.4, feature 002)."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "apps/web/src/components/ui/Toaster.tsx",
+        "apps/web/src/components/ui/toast.tsx",
+        "apps/web/src/components/ui/toast.test.tsx"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@ronneai/rmk", "@ronneai/rmk/**"],
+                    "message": "The web app may import @ronneai/core, never the CLI or the MCP server (MVP §9.1)."
+                  },
+                  {
+                    "group": ["@ronneai/mcp", "@ronneai/mcp/**"],
+                    "message": "The web app may import @ronneai/core, never the CLI or the MCP server (MVP §9.1)."
+                  },
+                  {
+                    "group": ["better-sqlite3", "pg", "pg/**", "mysql2", "mysql2/**"],
+                    "message": "Only apps/web/src/server/db may use a database driver. Use createDb() and the helpers in db/ instead (MVP §9.4, feature 002)."
+                  },
+                  {
+                    "group": ["better-auth", "better-auth/**", "@better-auth/**"],
+                    "message": "Only apps/web/src/server/domains/identity may use Better Auth. Use identity's actions instead (MVP §9.5, feature 006)."
                   }
                 ]
               }

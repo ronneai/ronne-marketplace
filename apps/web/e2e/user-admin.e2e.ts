@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { expect, type Page, test } from "@playwright/test";
 import { downloadAfter, openUser, userRow } from "./helpers";
 import { recordSecret } from "./secrets";
+import { toastWith } from "./toast";
 import { E2E_ERASE, E2E_PASSWORD, E2E_SCOPE, E2E_USERS } from "./users";
 
 const signIn = async (page: Page, email: string, password: string) => {
@@ -104,8 +105,8 @@ test("root creates a user, who signs in with the shown password; disabling them 
   await expect(memberships.getByLabel("Role in e2e-acme")).toHaveValue("user");
   await memberships.getByLabel("Role in e2e-acme").selectOption("moderator");
   await memberships.getByRole("button", { name: "Save" }).click();
-  await expect(memberships.getByText("Saved: 1 workspace added.")).toBeVisible();
-  await memberships.getByRole("button", { name: "Done" }).click();
+  await expect(toastWith(memberships, "Saved: 1 workspace added.")).toBeVisible();
+  await expect(memberships).toBeHidden();
   // The page shows it at once, and so does the list's role cell.
   await expect(root.getByText("e2e-acme", { exact: true })).toBeVisible();
   await root.goto(`/admin/users?q=${encodeURIComponent(email)}`);
@@ -115,8 +116,8 @@ test("root creates a user, who signs in with the shown password; disabling them 
   await expect(memberships.getByLabel("Role in e2e-acme")).toHaveValue("moderator");
   await memberships.getByRole("button", { name: "Remove e2e-acme" }).click();
   await memberships.getByRole("button", { name: "Save" }).click();
-  await expect(memberships.getByText("Saved: 1 workspace removed.")).toBeVisible();
-  await memberships.getByRole("button", { name: "Done" }).click();
+  await expect(toastWith(memberships, "Saved: 1 workspace removed.")).toBeVisible();
+  await expect(memberships).toBeHidden();
   await expect(root.getByText("e2e-acme", { exact: true })).toHaveCount(0);
   await root.goto(`/admin/users?q=${encodeURIComponent(email)}`);
   await expect(rowOf(root, email)).not.toContainText(/moderator/);
@@ -142,8 +143,8 @@ test("root creates a user, who signs in with the shown password; disabling them 
     await dialog.getByLabel("New role").selectOption(to);
     await expect(dialog.getByText(warning)).toBeVisible();
     await dialog.getByRole("button", { name: "Change role" }).click();
-    await expect(dialog.getByText(`Role changed to ${to}.`)).toBeVisible();
-    await dialog.getByRole("button", { name: "Done" }).click();
+    await expect(toastWith(dialog, `Role changed to ${to}.`)).toBeVisible();
+    await expect(dialog).toBeHidden();
   };
   await changeRole("root", `Make ${email} root?`);
   expect((await user.goto("/admin/users"))?.status()).toBe(200);
@@ -164,12 +165,10 @@ test("root creates a user, who signs in with the shown password; disabling them 
   const disable = root.getByRole("dialog");
   await expect(disable.getByText(/signs them out everywhere \(1 session\)/)).toBeVisible();
   await disable.getByRole("button", { name: "Disable user" }).click();
-  await expect(disable.getByText("Disabled.")).toBeVisible();
-  // The page refreshed behind the dialog (Disable is Enable now), and the dialog stays what it was
-  // opened for: its title and its result don't flip (123).
-  await expect(root.getByRole("dialog", { name: "Disable user" })).toBeVisible();
+  await expect(toastWith(disable, "Disabled.")).toBeVisible();
+  // The dialog closes, and the page behind it has refreshed (Disable is Enable now).
+  await expect(disable).toBeHidden();
   await expect(root.getByRole("button", { name: "Enable", exact: true })).toBeVisible();
-  await disable.getByRole("button", { name: "Done" }).click();
   // The page shows it at once, and so does the list.
   await expect(root.getByText("Disabled on")).toBeVisible();
   await root.goto(`/admin/users?q=${encodeURIComponent(email)}`);
@@ -214,8 +213,8 @@ test("root creates a user, who signs in with the shown password; disabling them 
   await erase.getByLabel("Type the account’s email to confirm").fill(` ${erasable.toUpperCase()} `);
   await expect(erase.getByRole("button", { name: "Erase" })).toBeEnabled();
   await erase.getByRole("button", { name: "Erase" }).click();
-  await expect(erase.getByText(/Erased\. The account is now deleted-user/)).toBeVisible();
-  await erase.getByRole("button", { name: "Done" }).click();
+  await expect(toastWith(erase, /Erased\. The account is now deleted-user/)).toBeVisible();
+  await expect(erase).toBeHidden();
   // The page is the pseudonym's now: Erased on, and only the greyed download (the dialog's Done
   // refreshed it).
   await expect(root.getByText(/Erased on/).first()).toBeVisible();
@@ -282,7 +281,7 @@ test("root creates a user, who signs in with the shown password; disabling them 
   await theirs.getByLabel("Workspace 2").selectOption({ label: "e2e-acme" });
   await theirs.getByLabel("Role in e2e-acme").selectOption("admin");
   await theirs.getByRole("button", { name: "Save" }).click();
-  await expect(theirs.getByText("Saved: 1 workspace added.")).toBeVisible();
+  await expect(toastWith(theirs, "Saved: 1 workspace added.")).toBeVisible();
 
   const admin = await browser.newPage();
   await signIn(admin, adminEmail, E2E_PASSWORD);
@@ -324,8 +323,8 @@ test("root creates a user, who signs in with the shown password; disabling them 
   await add.getByRole("button", { name: `Pick ${E2E_USERS.memberToAdd}` }).click();
   await add.getByLabel("Role").selectOption("moderator");
   await add.getByRole("button", { name: "Add members" }).click();
-  await expect(add.getByText("Added 1 person.")).toBeVisible();
-  await add.getByRole("button", { name: "Done" }).click();
+  await expect(toastWith(add, "Added 1 person.")).toBeVisible();
+  await expect(add).toBeHidden();
   await expect(admin.getByLabel(`Role of ${E2E_USERS.memberToAdd}`)).toHaveValue("moderator");
   // Changing it saves, and the select keeps the new role (it once went back until a reload).
   await admin.getByLabel(`Role of ${E2E_USERS.memberToAdd}`).selectOption("admin");
@@ -351,8 +350,8 @@ test("root creates a user, who signs in with the shown password; disabling them 
   await scope.getByLabel("Name").fill("acme-admin-tools");
   await scope.getByLabel("Description").fill("Made by e2e-acme's admin.");
   await scope.getByRole("button", { name: "Create scope" }).click();
-  await expect(scope.getByText(/Created/)).toBeVisible();
-  await scope.getByRole("button", { name: "Done" }).click();
+  await expect(toastWith(scope, /Created/)).toBeVisible();
+  await expect(scope).toBeHidden();
   await expect(admin.getByTitle("@acme-admin-tools", { exact: true })).toBeVisible();
 
   // And nothing else. Another workspace's page opens, as for everyone who sees it (115), with

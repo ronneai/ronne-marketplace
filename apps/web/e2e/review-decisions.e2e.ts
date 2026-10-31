@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { toastWith } from "./toast";
 import { E2E_PASSWORD, E2E_SCOPE, E2E_USERS } from "./users";
 
 /**
@@ -51,6 +52,9 @@ const decideFromRow = async (
   const dialog = page.getByRole("dialog");
   await dialog.getByLabel("Message").fill(reason);
   await dialog.getByRole("button", { name: decision, exact: true }).click();
+  await expect(
+    toastWith(page, decision === "Reject" ? "Rejected" : "Changes requested"),
+  ).toBeVisible();
   await expect(page.getByRole("status").filter({ hasText: full })).toBeVisible();
   await expect(page.getByRole("row", { name: new RegExp(full) })).toHaveCount(0);
 };
@@ -104,6 +108,7 @@ test("a moderator sends an approved one back from To release", async ({ browser 
   await moderator.goto(url.replace("/submissions/", "/reviews/"));
   await moderator.getByRole("button", { name: "Approve", exact: true }).click();
   await moderator.getByRole("dialog").getByRole("button", { name: "Approve" }).click();
+  await expect(toastWith(moderator, "Approved")).toBeVisible();
   await expect(moderator.getByRole("button", { name: "Request changes" })).toBeVisible();
 
   await moderator.goto("/reviews?tab=release");

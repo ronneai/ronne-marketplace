@@ -4,6 +4,7 @@ import { Star } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 import { IconButton } from "@/components/ui/IconButton";
+import { useToastWhen } from "@/components/ui/toast";
 import { toggleFavoriteFromForm } from "./actions";
 
 /**
@@ -24,6 +25,8 @@ export const FavoriteButton = ({
 }) => {
   const t = useTranslations("shelves.favorite");
   const [state, action, pending] = useActionState(toggleFavoriteFromForm, {});
+  // An icon button has no room for its error: a toast that stays (138).
+  useToastWhen(state, state.error, "error");
   return (
     <form action={action} className="grid justify-items-end gap-1">
       <input type="hidden" name="item" value={itemId} />
@@ -37,11 +40,6 @@ export const FavoriteButton = ({
       >
         <Star size={18} aria-hidden="true" fill={favorited ? "currentColor" : "none"} />
       </IconButton>
-      {state.error ? (
-        <p role="alert" className="max-w-xs text-right text-xs text-error-text">
-          {state.error}
-        </p>
-      ) : null}
     </form>
   );
 };

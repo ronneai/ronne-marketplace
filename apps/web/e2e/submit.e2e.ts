@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { toastWith } from "./toast";
 import { E2E_PASSWORD, E2E_SCOPE, E2E_USERS } from "./users";
 
 const signIn = async (page: Page, email: string) => {
@@ -46,6 +47,7 @@ test("a user writes a skill, submits it, sees it read-only, and withdraws it", a
   const submit = page.getByRole("dialog", { name: "Submit for review" });
   await expect(submit.getByText("All checks passed.")).toBeVisible();
   await submit.getByRole("button", { name: "Submit for review" }).click();
+  await expect(toastWith(page, "Submitted for review")).toBeVisible();
 
   // Read-only now, on the review page's screen (137): no editor, no Save or Edit files, its files
   // on the Files tab, and Withdraw offered.

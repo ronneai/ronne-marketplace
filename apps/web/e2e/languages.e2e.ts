@@ -1,4 +1,5 @@
 import { type Browser, type BrowserContext, expect, type Page, test } from "@playwright/test";
+import { toastWith } from "./toast";
 import { E2E_NAMES, E2E_PASSWORD, E2E_USERS } from "./users";
 
 /**
@@ -104,9 +105,9 @@ test.describe("choosing a language", () => {
 
     await select.selectOption("pt");
     await page.getByRole("button", { name: "Save" }).click();
-    // The same page, in the new language, with the confirmation.
+    // The same page, in the new language, with the confirmation as a toast, said in it too (138).
     await expect(page.locator("html")).toHaveAttribute("lang", "pt");
-    await expect(page.getByText("Idioma salvo")).toBeVisible();
+    await expect(toastWith(page, "Idioma salvo. As telas agora usam")).toBeVisible();
     const sidebar = page.getByRole("complementary", { name: "Barra lateral" });
     await expect(sidebar.getByRole("link", { name: "Catálogo" })).toBeVisible();
     await expect(page.getByLabel("Idioma das telas")).toHaveValue("pt");
@@ -191,7 +192,7 @@ test.describe("the language links on the sign-in page", () => {
     await page.goto("/account/language");
     await page.getByLabel("Language of the screens").selectOption("pt");
     await page.getByRole("button", { name: "Save" }).click();
-    await expect(page.getByText("Idioma salvo")).toBeVisible();
+    await expect(toastWith(page, "Idioma salvo")).toBeVisible();
 
     // Signed out, the sign-in page follows the cookie the Save left: Portuguese.
     const sidebar = page.getByRole("complementary", { name: "Barra lateral" });

@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { toastWith } from "./toast";
 import { E2E_PASSWORD, E2E_SCOPE, E2E_USERS } from "./users";
 
 /**
@@ -63,6 +64,7 @@ test("an author archives a submission, finds it under Archived, restores it and 
   await expect(withdraw.getByRole("radio", { name: /Delete for good/ })).toBeDisabled();
   await expect(withdraw.getByText("Reviewers have commented on it or decided it.")).toBeVisible();
   await withdraw.getByRole("button", { name: "Archive", exact: true }).click();
+  await expect(toastWith(author, "Archived")).toBeVisible();
   await expect(author.getByText("It's out of review and doesn't hold its name.")).toBeVisible();
 
   // Private now: the moderator gets a 404, on the review page and the submission page.

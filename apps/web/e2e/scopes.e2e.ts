@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { toastWith } from "./toast";
 import { E2E_PASSWORD, E2E_USERS } from "./users";
 
 const signIn = async (page: Page, email: string) => {
@@ -27,8 +28,8 @@ test("root creates, sorts and searches scopes on a workspace's page; Admin › S
   await expect(dialog.getByText("@e2e-team/item")).toBeVisible();
   await dialog.getByLabel("Description").fill("Items from the end-to-end tests.");
   await dialog.getByRole("button", { name: "Create scope" }).click();
-  await expect(dialog.getByText("Created @e2e-team.")).toBeVisible();
-  await dialog.getByRole("button", { name: "Done" }).click();
+  await expect(toastWith(dialog, "Created @e2e-team.")).toBeVisible();
+  await expect(dialog).toBeHidden();
   await expect(root.getByRole("cell", { name: "@e2e-team", exact: true })).toBeVisible();
   // Sorted on the server (061): newest first by Created, and the view stays in the URL.
   await root.getByRole("link", { name: "Created" }).click();
@@ -47,8 +48,8 @@ test("root creates, sorts and searches scopes on a workspace's page; Admin › S
   await create.getByLabel("Name").fill("E2E-Labs");
   await create.getByLabel("Description").fill("Labs, for the end-to-end tests.");
   await create.getByRole("button", { name: "Create workspace" }).click();
-  await expect(create.getByText("Created e2e-labs.")).toBeVisible();
-  await create.getByRole("button", { name: "Done" }).click();
+  await expect(toastWith(create, "Created e2e-labs.")).toBeVisible();
+  await expect(create).toBeHidden();
   await root.getByRole("link", { name: "e2e-labs", exact: true }).click();
   await expect(root).toHaveURL(/\/workspaces\/e2e-labs$/);
   await expect(root.getByText("No scopes yet.")).toBeVisible();
@@ -61,8 +62,8 @@ test("root creates, sorts and searches scopes on a workspace's page; Admin › S
   await expect(scopeDialog.getByText("In e2e-acme")).toBeVisible();
   await scopeDialog.getByLabel("Description").fill("Acme's infrastructure.");
   await scopeDialog.getByRole("button", { name: "Create scope" }).click();
-  await expect(scopeDialog.getByText("Created @e2e-acme-infra in e2e-acme.")).toBeVisible();
-  await scopeDialog.getByRole("button", { name: "Done" }).click();
+  await expect(toastWith(scopeDialog, "Created @e2e-acme-infra in e2e-acme.")).toBeVisible();
+  await expect(scopeDialog).toBeHidden();
   await expect(root.getByRole("cell", { name: "@e2e-acme-infra", exact: true })).toBeVisible();
   await expect(root.getByRole("cell", { name: "@e2e-team", exact: true })).toHaveCount(0);
   // The workspace now has a scope, so it can't be deleted.

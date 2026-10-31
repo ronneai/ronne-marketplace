@@ -7,6 +7,41 @@
     "description": "A self-hosted, curated registry of AI capabilities."
   },
   "close": "Close",
+  "toast": {
+    "region": "Notifications",
+    "close": "Close notification",
+    "prefix": {
+      "ok": "OK:",
+      "info": "INFO:",
+      "warning": "WARN:",
+      "error": "ERR:"
+    }
+  },
+  "flash": {
+    "draftDeleted": "Draft deleted",
+    "tokenRevoked": "Revoked. It stops working on its next request.",
+    "languageSaved": "Language saved. The screens now use the language you chose.",
+    "languageAutomatic": "Language saved. The screens now follow your browser's language."
+  },
+  "done": {
+    "draftSaved": "Draft saved",
+    "submitted": "Submitted for review",
+    "archived": "Archived",
+    "approved": "Approved",
+    "changesRequested": "Changes requested",
+    "rejected": "Rejected",
+    "released": "Released",
+    "approvedMany": "{count, plural, one {Approved # submission} other {Approved # submissions}}",
+    "notApprovedMany": "{count, plural, one {# submission could not be approved} other {# submissions could not be approved}}",
+    "releasedMany": "{count, plural, one {Released # submission} other {Released # submissions}}",
+    "notReleasedMany": "{count, plural, one {# submission could not be released} other {# submissions could not be released}}",
+    "tagMoved": "Tag moved",
+    "tagRemoved": "Tag removed",
+    "deprecated": "Version deprecated",
+    "undeprecated": "Version no longer deprecated",
+    "yanked": "Version yanked",
+    "unyanked": "Version restored"
+  },
   "copy": {
     "label": "copy",
     "done": "copied",

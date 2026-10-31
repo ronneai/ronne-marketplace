@@ -1,4 +1,4 @@
-import { type Browser, type BrowserContext, expect, type Page, test } from "@playwright/test";
+import { type Browser, type BrowserContext, expect, test } from "@playwright/test";
 import { loadAll, noEnglish } from "./no-english";
 import { E2E_PASSWORD, E2E_USERS } from "./users";
 

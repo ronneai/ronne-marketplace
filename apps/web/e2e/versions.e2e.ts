@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { toastWith } from "./toast";
 import { E2E_PASSWORD, E2E_SCOPE, E2E_USERS, E2E_VERSIONED_ITEM } from "./users";
 
 test("a moderator deprecates a version, yanks the latest one, then unyanks it", async ({
@@ -28,6 +29,7 @@ test("a moderator deprecates a version, yanks the latest one, then unyanks it", 
   ).toBeVisible();
   await deprecate.getByLabel("Message").fill("Use 1.1.0 or later.");
   await deprecate.getByRole("button", { name: "Deprecate", exact: true }).click();
+  await expect(toastWith(page, "Version deprecated")).toBeVisible();
   await expect(row("1.0.0").getByText("Use 1.1.0 or later.")).toBeVisible();
 
   // Yank 1.1.0, the latest: latest moves back to 1.0.0.
@@ -35,6 +37,7 @@ test("a moderator deprecates a version, yanks the latest one, then unyanks it", 
   const yank = page.getByRole("dialog", { name: "Yank 1.1.0" });
   await yank.getByLabel("Reason").fill("Breaks on Windows.");
   await yank.getByRole("button", { name: "Yank", exact: true }).click();
+  await expect(toastWith(page, "Version yanked")).toBeVisible();
   await expect(row("1.1.0").getByText(/Breaks on Windows\./)).toBeVisible();
   await expect(page.getByText("latest → 1.0.0")).toBeVisible();
 

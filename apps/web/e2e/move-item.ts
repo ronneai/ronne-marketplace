@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { type APIRequestContext, expect, type Page } from "@playwright/test";
 import { fits, noSideScroll } from "./move-scope";
+import { toastWith } from "./toast";
 import { E2E_ITEM_MOVE, E2E_NAMES, E2E_PASSWORD, E2E_USERS } from "./users";
 
 /** The item's page in the project's workspace, in its first scope or the one it moved to. */
@@ -61,8 +62,8 @@ export const itemMovesTableFits = async (member: Page, moderator: Page, project:
   await ask.getByLabel("To which scope").selectOption({ label: E2E_ITEM_MOVE.to });
   await ask.getByLabel("Message (optional)").fill("It belongs with devops.");
   await ask.getByRole("button", { name: "Ask to move" }).click();
-  await expect(ask.getByText(`Asked to move it to ${to}.`)).toBeVisible();
-  await ask.getByRole("button", { name: "Done" }).click();
+  await expect(toastWith(ask, `Asked to move it to ${to}.`)).toBeVisible();
+  await expect(ask).toBeHidden();
   await expect(member.getByText(`Moving to ${to}: waiting for an answer`)).toBeVisible();
 
   await moderator.goto("/workspaces/requests");
@@ -143,7 +144,7 @@ export const moveItemEndToEnd = async (
     const ask = member.getByRole("dialog", { name: `Move ${oldName}` });
     await ask.getByLabel("To which scope").selectOption({ label: E2E_ITEM_MOVE.to });
     await ask.getByRole("button", { name: "Ask to move" }).click();
-    await ask.getByRole("button", { name: "Done" }).click();
+    await expect(ask).toBeHidden();
 
     // The moderator approves it from the Requests page.
     await moderator.goto("/workspaces/requests");
@@ -187,8 +188,8 @@ export const moveItemEndToEnd = async (
   await move.getByLabel("To which scope").selectOption({ label: E2E_ITEM_MOVE.from });
   await move.getByRole("button", { name: "Move item" }).click();
   await move.getByRole("button", { name: "Move item" }).click();
-  await expect(move.getByText(`Moved. It’s ${oldName} now.`)).toBeVisible();
-  await move.getByRole("button", { name: "Done" }).click();
+  await expect(toastWith(move, `Moved. It’s ${oldName} now.`)).toBeVisible();
+  await expect(move).toBeHidden();
   await expect(moderator).toHaveURL(new RegExp(`${itemMovePath(project)}$`));
   await expect(moderator.getByRole("heading", { name: oldName })).toBeVisible();
 };

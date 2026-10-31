@@ -7,6 +7,8 @@ const tokens = vi.hoisted(() => ({ createMyToken: vi.fn(), revokeMyToken: vi.fn(
 const cache = vi.hoisted(() => ({ revalidatePath: vi.fn() }));
 vi.mock("@/server/domains/identity/actions/access-tokens", () => tokens);
 vi.mock("next/cache", () => cache);
+const flash = vi.hoisted(() => ({ flashToast: vi.fn() }));
+vi.mock("@/server/http/flash-toast", () => flash);
 vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));
 
 const actions = await import("./actions");
@@ -74,6 +76,8 @@ describe("revokeTokenFromForm", () => {
       "Revoked",
     );
     expect(tokens.revokeMyToken).toHaveBeenCalledWith(expect.any(Headers), "t1");
+    // The row and its form go when the page refreshes: the layout says it (138).
+    expect(flash.flashToast).toHaveBeenCalledWith("tokenRevoked");
   });
 });
 

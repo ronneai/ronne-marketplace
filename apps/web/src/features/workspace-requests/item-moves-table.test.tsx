@@ -107,8 +107,9 @@ describe("the Item moves table (134)", () => {
       "en",
       <ApproveItemMoveForm move={row()} loaded={{ error: "Already answered." }} />,
     );
-    expect(html).toContain("Already answered.");
-    expect(html).toContain('aria-describedby="approve-item-move-m1-error"');
+    // A button in a row has no form to put the error next to: it is a toast (138, done-toasts.test).
+    expect(html).not.toContain("Already answered.");
+    expect(html).toContain(">Approve<");
   });
 
   it("declines with an optional reason its asker sees", () => {

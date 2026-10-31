@@ -32,7 +32,8 @@
       "mismatch": "The new passwords don't match",
       "same_password": "The new password must be different from the one you signed in with",
       "rate_limited": "Too many attempts, wait a minute"
-    }
+    },
+    "changedToast": "Password changed. You're still signed in here; other sessions were signed out."
   },
   "data": {
     "title": "Your data",

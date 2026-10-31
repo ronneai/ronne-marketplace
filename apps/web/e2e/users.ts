@@ -189,6 +189,8 @@ export const E2E_USERS = {
   releaseModerator: "release-moderator@e2e.test",
   archiver: "archiver@e2e.test",
   archiveModerator: "archive-moderator@e2e.test",
+  // 138: deletes a draft and sees the flash toast after the redirect, in English and Portuguese.
+  flashAuthor: "flash-author@e2e.test",
   decisionAuthor: "decision-author@e2e.test",
   decisionModerator: "decision-moderator@e2e.test",
   workspaceAuthor: "workspace-author@e2e.test",
@@ -427,6 +429,7 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   releaseModerator: "Rhea Moderator",
   archiver: "Arlo Archiver",
   archiveModerator: "Ari Moderator",
+  flashAuthor: "Flo Author",
   decisionAuthor: "Dora Author",
   decisionModerator: "Remy Moderator",
   workspaceAuthor: "Wren Workspace",

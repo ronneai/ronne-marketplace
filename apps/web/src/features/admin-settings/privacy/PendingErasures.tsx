@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { FieldError } from "@/components/ui/Field";
 import { LocalTime } from "@/components/ui/LocalTime";
 import { Notice } from "@/components/ui/Notice";
+import { useToastWhen } from "@/components/ui/toast";
 import { retryErasures } from "../actions";
 import type { SettingsActionState } from "../types";
 
@@ -20,7 +21,8 @@ export type PendingErasureView = { userId: string; startedAt: Date };
 export const PendingErasures = ({ erasures }: { erasures: readonly PendingErasureView[] }) => {
   const t = useTranslations("admin.settings.privacy.erasures");
   const [state, action, pending] = useActionState<SettingsActionState, FormData>(retryErasures, {});
-  if (erasures.length === 0) return state.done ? <Notice kind="info" title={state.done} /> : null;
+  useToastWhen(state, state.done);
+  if (erasures.length === 0) return null;
   const count = erasures.length;
   return (
     <form action={action} aria-label={t("ariaLabel")} className="grid gap-2">

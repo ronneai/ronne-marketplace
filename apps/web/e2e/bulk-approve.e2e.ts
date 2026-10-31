@@ -1,4 +1,5 @@
 import { type Browser, expect, type Page, test } from "@playwright/test";
+import { toastWith } from "./toast";
 import { E2E_PASSWORD, E2E_SCOPE, E2E_USERS } from "./users";
 
 /**
@@ -84,6 +85,8 @@ test("approves the selected submissions with one message, and reports one withdr
 
   await dialog.getByLabel("Message (optional)").fill("Approved together.");
   await dialog.getByRole("button", { name: "Approve 3 submissions" }).click();
+  await expect(toastWith(page, "Approved 2 submissions")).toBeVisible();
+  await expect(toastWith(page, "1 submission could not be approved")).toBeVisible();
   const done = page.getByRole("dialog", { name: "Approved" });
   await expect(done.getByText("Approved:", { exact: true })).toHaveCount(2);
   await expect(done.getByText("Not approved:", { exact: true })).toHaveCount(1);

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Dialog, DialogActions } from "@/components/ui/Dialog";
 import { IconButton } from "@/components/ui/IconButton";
 import { LocalTime } from "@/components/ui/LocalTime";
+import { useToast } from "@/components/ui/toast";
 import { deleteFeedbackAction, markHandledAction } from "./actions";
 import type { FeedbackBulkResult, InboxRow } from "./types";
 
@@ -27,8 +28,6 @@ type Inbox = {
   pending: boolean;
   markHandled: (ids: string[]) => void;
   askDelete: (ids: string[]) => void;
-  notice: string | null;
-  failure: string | null;
 };
 
 const InboxContext = createContext<Inbox | null>(null);
@@ -51,19 +50,17 @@ export const InboxProvider = ({
   const router = useRouter();
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
   const [toDelete, setToDelete] = useState<string[] | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
-  const [failure, setFailure] = useState<string | null>(null);
+  const toast = useToast();
   const [pending, start] = useTransition();
 
   const finish = (result: FeedbackBulkResult, done: "handled" | "deleted") => {
     if (result.ok) {
-      setNotice(t(`done.${done}`, { count: result.changed }));
-      setFailure(null);
+      toast.ok(t(`done.${done}`, { count: result.changed }));
       setSelected(new Set());
       router.refresh();
     } else {
-      setNotice(null);
-      setFailure(t(`errors.${result.error}`, { max: 100 }));
+      // The bar has no field to put it next to: an error toast that stays (138).
+      toast.error(t(`errors.${result.error}`, { max: 100 }));
     }
   };
   const inbox: Inbox = {
@@ -81,8 +78,6 @@ export const InboxProvider = ({
     pending,
     markHandled: (rows) => start(async () => finish(await markHandledAction(rows), "handled")),
     askDelete: (rows) => setToDelete(rows),
-    notice,
-    failure,
   };
   return (
     <InboxContext.Provider value={inbox}>
@@ -166,16 +161,6 @@ export const BulkBar = () => {
           {t("bulk.clear")}
         </Button>
       </div>
-      {inbox.notice ? (
-        <p role="status" className="text-sm text-fg">
-          {inbox.notice}
-        </p>
-      ) : null}
-      {inbox.failure ? (
-        <p role="alert" className="text-sm text-error-text">
-          {inbox.failure}
-        </p>
-      ) : null}
     </div>
   );
 };

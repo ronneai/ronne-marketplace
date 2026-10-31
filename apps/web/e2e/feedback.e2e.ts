@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { toastWith } from "./toast";
 import { E2E_PASSWORD, E2E_USERS } from "./users";
 
 /**
@@ -138,7 +139,7 @@ test("root reads the inbox, marks two of four handled, and deletes one after ask
   await checks.nth(1).check();
   await expect(page.getByText("2 selected")).toBeVisible();
   await page.getByRole("button", { name: "Mark handled" }).click();
-  await expect(page.getByText("2 messages marked handled.")).toBeVisible();
+  await expect(toastWith(page, "2 messages marked handled.")).toBeVisible();
   await expect(
     page.getByRole("row", { name: /Feedback Root/ }).filter({ hasText: "Handled" }),
   ).toHaveCount(2);
@@ -216,7 +217,7 @@ test("erasing an account deletes the feedback it sent", async ({ browser, baseUR
   const erase = root.getByRole("dialog", { name: "Erase user" });
   await erase.getByLabel("Type the account’s email to confirm").fill(E2E_USERS.feedbackErasable);
   await erase.getByRole("button", { name: "Erase" }).click();
-  await expect(erase.getByText(/Erased\. The account is now deleted-user/)).toBeVisible();
+  await expect(toastWith(erase, /Erased\. The account is now deleted-user/)).toBeVisible();
 
   await root.goto(`/admin/feedback?q=${tag}`);
   await expect(root.getByText("No feedback matches these filters.")).toBeVisible();

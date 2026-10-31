@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogActions } from "@/components/ui/Dialog";
 import { FieldError } from "@/components/ui/Field";
+import { useToast } from "@/components/ui/toast";
 import { IssueList } from "@/components/validation/IssueList";
 import {
   checkSubmissionAction,
@@ -158,6 +159,8 @@ export const SubmitDialog = ({
   personal?: boolean;
 }) => {
   const t = useTranslations("author.editor");
+  const said = useTranslations("common.done");
+  const toast = useToast();
   const words = useSubmitWords();
   const router = useRouter();
   const [result, setResult] = useState<SubmitPreview | SubmitResult | null>(null);
@@ -244,6 +247,7 @@ export const SubmitDialog = ({
                     return setResult(await checkSubmissionAction(draftId));
                   }
                   if (then.next === "outcome") return setSent(then.sent);
+                  toast.ok(said("submitted"));
                   onClose();
                   router.refresh();
                 })
@@ -274,6 +278,8 @@ export const WithdrawDialog = ({
   onClose: () => void;
 }) => {
   const t = useTranslations("author.editor");
+  const said = useTranslations("common.done");
+  const toast = useToast();
   const router = useRouter();
   const [mode, setMode] = useState<"archive" | "delete">("archive");
   const [error, setError] = useState<string | null>(null);
@@ -331,6 +337,7 @@ export const WithdrawDialog = ({
                   if (result.reviewHistory) setMode("archive");
                   return setError(result.error);
                 }
+                toast.ok(said("archived"));
                 onClose();
                 router.refresh();
               })

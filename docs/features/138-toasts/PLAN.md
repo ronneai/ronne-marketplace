@@ -9,40 +9,41 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 ## Tasks
 
-- [ ] **1. Decision.**
+- [x] **1. Decision.**
   - MVP.md §15 has the "Toasts" row, and `docs/features/README.md` lists 138 in M21 with its
     dependencies.
   - *Done when:* both say what this spec says, and `pnpm witness:check` passes.
 
-- [ ] **2. Sonner checked, the toast region and `useToast`.**
+- [x] **2. Sonner checked, the toast region and `useToast`.**
   - Sonner's latest stable version through the [dependency policy](../../policies/dependencies.md)
     checklist (licence, release age, no known vulnerabilities, no install scripts).
   - Before building on it, check that every label it shows can come from our messages and that it
-    can sit above `--bottom-bar-height` on a phone. If not, stop and take decision 4's fallback (our
+    can sit above `--bottom-bar-height` on a phone (here: Sonner takes the offset as CSS and a test
+    reads it in the region's style; the box above a real bar is task 3's Playwright check). If not, stop and take decision 4's fallback (our
     own component behind the same wrapper), saying so in the spec.
   - `Toaster` in unstyled mode in the root layout, `useToast()` with `ok`, `info`, `warning` and
     `error`; timers, pause on hover, focus and a hidden tab; at most three; the same message
     restarts its timer; the close button. A lint rule allows `sonner` imports only in the wrapper.
   - Tones from `tones.ts`, the mono prefix, no shadow; reduced motion.
   - *Done when:* unit tests with fake timers (`docs/knowledge/fake-timers.md`) cover each kind's
-    lifetime, the pauses, the limit and the repeat; a test finds the `status` and `alert` regions
-    while idle; lint and typecheck pass.
+    lifetime, the pauses, the limit and the repeat; a test finds the always-present polite region while idle and the
+    `status` and `alert` roles on the boxes (SPEC changed: Sonner has one live region); lint and typecheck pass.
 
-- [ ] **3. Placement on phones and above the bottom bar.**
+- [x] **3. Placement on phones and above the bottom bar.**
   - Bottom right from `sm`; across the bottom below it with the gutter and the safe area;
     `BottomBar` sets `--bottom-bar-height`, the region reads it.
   - The styleguide's Toasts section, with a bottom bar demo.
   - *Done when:* a Playwright test on the styleguide checks the region's box on desktop, phone,
     phone-webkit and tablet (inside the viewport, not over the bar), and the mobile sweep passes.
 
-- [ ] **4. Flash toasts after a redirect.** [risky]
+- [x] **4. Flash toasts after a redirect.** [risky]
   - `flashToast(key, params)` on the server, `FlashToast` on the page: the `FlashKey` list, the
     cookie's size and lifetime, read once and deleted, parameters as text.
   - *Done when:* unit tests cover a good cookie, an unknown key, bad JSON, an oversized value and
     markup in a parameter (shown as text); an e2e test saves something that redirects and sees the
     toast once, in Portuguese for a person who chose it.
 
-- [ ] **5. The sweep: confirmations become toasts.**
+- [x] **5. The sweep: confirmations become toasts.**
   - Each `state.done` notice that only confirms an action, in the order of `grep -rn "state.done"`;
     the redirecting actions that said nothing get a flash toast where the owner's list asks
     (save draft, submit, withdraw, approve, request changes, reject, release, deprecate, yank,
@@ -52,7 +53,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* the component tests of each changed feature expect the toast instead of the notice,
     the e2e suites pass on every project, and `docs/knowledge/toasts.md` lists the rules.
 
-- [ ] **6. Messages.**
+- [x] **6. Messages.**
   - Every new key in `en`, `pt` and `fr` (the region's name, the prefixes, close, each flash key).
   - *Done when:* the parity and raw-text tests pass, and `pnpm i18n:review` shows the new keys.
 
@@ -60,3 +61,25 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+- Task 2: the unit tests run in happy-dom (`happy-dom` 21.0.4, MIT, a new dev dependency; the file
+  says `// @vitest-environment happy-dom`) because Sonner's timers live in React effects. Move the
+  clock in steps with React flushed between them (`tick` in `toast.test.tsx`): Sonner's removal
+  after 200ms starts from an effect, which `act` runs only at its end.
+- Follow-up (owner testing, 2026-10-31): the task 5 sweep matched `state.done` only. Account ›
+  Language (`state.saved`), Change password (`state.changed`) and the scan provider's Test button
+  (`testState.done`) kept their inline notices. They are toasts now (Language as a flash toast, so
+  it is said in the new language; the first two keep their in-place result without JavaScript).
+  `docs/knowledge/toasts.md` says to grep every `<Notice` and live region next time.
+- Follow-up 2 (owner testing): after Save on Admin › Settings, radios and checkboxes went back to
+  their old value until a refresh, because React resets a form after its action. The Usage policy,
+  Usage minimum, Retention, Two-factor policy, Password policy and Notice forms now use
+  `useKeptActionState` (`components/ui/kept-form.ts`); `audit.e2e.ts` asserts the radio stays.
+- Task 4: the root layout reads the cookie on the server and hands a checked flash to the client
+  piece (`FlashToast` → `FlashToastClient`), because a layout isn't remounted on a client-side
+  redirect but is rendered again. Wired first to deleting a draft for good (`withdrawAction` and
+  `deleteDraftAction`): the sweep (task 5) adds the rest of the keys.
+- Task 3: a modal `<dialog>` was not passed by a popover (it stayed under the dialog, and the page is inert
+  anyway), so the region moves into the open dialog (`Toaster`). The styleguide page has each theme's
+  sample twice: tests that click its buttons take `.first()`. A user's sign-ins are limited to 5 a
+  minute: the toast tests sign in root of each project once or twice.

@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { toastWith } from "./toast";
 import { E2E_PASSWORD, E2E_SCOPE, E2E_USERS } from "./users";
 
 /**
@@ -24,7 +25,7 @@ const setScanning = async (page: Page, on: boolean, threshold: string) => {
   await form.getByLabel(/Scan submissions/).setChecked(on);
   await form.getByLabel("Score that blocks approval").fill(threshold);
   await form.getByRole("button", { name: "Save" }).click();
-  await expect(form.getByText("Security scan saved.")).toBeVisible();
+  await expect(toastWith(form, "Security scan saved.")).toBeVisible();
 };
 
 test("scans a skill, blocks approval at the threshold, marks a false positive, and root overrides", async ({

@@ -6,7 +6,7 @@ import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogActions } from "@/components/ui/Dialog";
 import { FieldError, inputClasses, Label, selectClasses } from "@/components/ui/Field";
-import { Notice } from "@/components/ui/Notice";
+import { useToast, useToastWhen } from "@/components/ui/toast";
 import type { WorkspaceRole } from "@/server/domains/identity/models/user";
 import {
   addMembersFromForm,
@@ -43,7 +43,7 @@ const Hidden = ({ workspace, userId }: { workspace: MembersWorkspace; userId?: s
 );
 
 /**
- * A member's role, saved as soon as another is picked; a refusal shows under it, and the select
+ * A member's role, saved as soon as another is picked; a refusal is said as an error toast (138), and the select
  * goes back to the stored role. The action is called directly, not as a form's action: React
  * resets a form after its action, which put the select back on another role until a reload.
  */
@@ -56,7 +56,7 @@ export const MemberRoleSelect = ({
 }) => {
   const t = useTranslations("workspaces.members");
   const [role, setRole] = useState(member.role);
-  const [error, setError] = useState<string | undefined>();
+  const toast = useToast();
   const [pending, startTransition] = useTransition();
   useEffect(() => setRole(member.role), [member.role]);
   const change = (next: WorkspaceRole) => {
@@ -68,11 +68,12 @@ export const MemberRoleSelect = ({
     form.set("role", next);
     startTransition(async () => {
       const result = await changeMemberRoleFromForm({}, form);
-      setError(result.error);
-      if (result.error) setRole(member.role);
+      if (result.error) {
+        toast.error(result.error);
+        setRole(member.role);
+      }
     });
   };
-  const errorId = `member-role-${member.userId}-error`;
   return (
     <div className="grid gap-1">
       {/* The select fills its box (`selectClasses` has `w-full`): the box sets its width. */}
@@ -81,14 +82,12 @@ export const MemberRoleSelect = ({
           aria-label={t("roleOf", { email: member.email })}
           value={role}
           disabled={pending}
-          aria-describedby={error ? errorId : undefined}
           onChange={(event) => change(event.target.value as WorkspaceRole)}
           className={selectClasses}
         >
           <RoleOptions />
         </select>
       </div>
-      <FieldError id={errorId}>{error}</FieldError>
     </div>
   );
 };
@@ -197,15 +196,8 @@ const AddForm = ({ workspace, onDone }: { workspace: MembersWorkspace; onDone: (
     return () => clearTimeout(timer);
   }, [query, workspace.id]);
 
-  if (state.done)
-    return (
-      <div className="grid gap-4">
-        <Notice kind="info" title={state.done} />
-        <div>
-          <Button onClick={onDone}>{t("done")}</Button>
-        </div>
-      </div>
-    );
+  useToastWhen(state, state.done, "ok", onDone);
+  if (state.done) return null;
   const choices = found.filter((user) => !picked.some((p) => p.id === user.id));
   return (
     <form action={action} className="grid gap-4">

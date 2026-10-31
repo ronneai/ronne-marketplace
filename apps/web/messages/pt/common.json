@@ -7,6 +7,41 @@
     "description": "Um registro curado e auto-hospedado de recursos de IA."
   },
   "close": "Fechar",
+  "toast": {
+    "region": "Notificações",
+    "close": "Fechar notificação",
+    "prefix": {
+      "ok": "OK:",
+      "info": "INFO:",
+      "warning": "AVISO:",
+      "error": "ERRO:"
+    }
+  },
+  "flash": {
+    "draftDeleted": "Rascunho excluído",
+    "tokenRevoked": "Revogado. Ele deixa de funcionar na próxima requisição.",
+    "languageSaved": "Idioma salvo. As telas agora usam o idioma que você escolheu.",
+    "languageAutomatic": "Idioma salvo. As telas agora seguem o idioma do seu navegador."
+  },
+  "done": {
+    "draftSaved": "Rascunho salvo",
+    "submitted": "Submetido para revisão",
+    "archived": "Arquivado",
+    "approved": "Aprovado",
+    "changesRequested": "Alterações solicitadas",
+    "rejected": "Rejeitado",
+    "released": "Lançado",
+    "approvedMany": "{count, plural, one {# submissão aprovada} other {# submissões aprovadas}}",
+    "notApprovedMany": "{count, plural, one {# submissão não pôde ser aprovada} other {# submissões não puderam ser aprovadas}}",
+    "releasedMany": "{count, plural, one {# submissão lançada} other {# submissões lançadas}}",
+    "notReleasedMany": "{count, plural, one {# submissão não pôde ser lançada} other {# submissões não puderam ser lançadas}}",
+    "tagMoved": "Tag movida",
+    "tagRemoved": "Tag removida",
+    "deprecated": "Versão obsoleta",
+    "undeprecated": "Versão não está mais obsoleta",
+    "yanked": "Versão retirada",
+    "unyanked": "Versão restaurada"
+  },
   "copy": {
     "label": "copiar",
     "done": "copiado",

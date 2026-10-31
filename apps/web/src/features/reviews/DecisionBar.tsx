@@ -7,6 +7,7 @@ import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogActions } from "@/components/ui/Dialog";
 import { FieldError, inputClasses, Label } from "@/components/ui/Field";
+import { useToast } from "@/components/ui/toast";
 import { useWhy } from "@/i18n/why";
 import type { Dependent, ReviewDecision } from "@/server/domains/submissions/actions/reviews";
 import type { DecisionOption } from "@/server/domains/submissions/services/decisions";
@@ -127,6 +128,8 @@ export const DecisionDialog = ({
   initialText?: string;
 }) => {
   const t = useTranslations("author.review");
+  const said = useTranslations("common.done");
+  const toast = useToast();
   const router = useRouter();
   const pathname = usePathname();
   const [text, setText] = useState(initialText);
@@ -152,6 +155,7 @@ export const DecisionDialog = ({
               // Ones that couldn't be sent back stay in view, with why.
               if (result.skipped?.length) {
                 setSkipped(result.skipped);
+                toast.ok(said("rejected"));
                 onDone?.();
                 return router.refresh();
               }
@@ -163,6 +167,15 @@ export const DecisionDialog = ({
                 return router.refresh();
               }
             }
+            toast.ok(
+              said(
+                decision === "reject"
+                  ? "rejected"
+                  : decision === "request_changes"
+                    ? "changesRequested"
+                    : "approved",
+              ),
+            );
             onDone?.();
             onClose();
             // On the review page, the decision shows where it's recorded: the Conversation tab
@@ -300,7 +313,7 @@ export const RowDecisions = ({
   const [open, setOpen] = useState<{ decision: ReviewDecision; dependents: Dependent[] } | null>(
     null,
   );
-  const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
   const [pending, start] = useTransition();
   const say = useQueueStatus();
   const shown = decisions.filter((option) => ROW_DECISIONS.includes(option.decision));
@@ -316,12 +329,12 @@ export const RowDecisions = ({
             disabledReason={option.allowed ? null : why(option.why)}
             loading={pending && option.decision === "reject"}
             onClick={() => {
-              setError(null);
               if (option.decision !== "reject")
                 return setOpen({ decision: option.decision, dependents: [] });
               start(async () => {
                 const result = await dependentsAction(id);
-                if ("error" in result) return setError(result.error);
+                // No field to put it next to: an error toast that stays (138).
+                if ("error" in result) return toast.error(result.error);
                 setOpen({ decision: "reject", dependents: result.dependents });
               });
             }}
@@ -330,7 +343,6 @@ export const RowDecisions = ({
           </Button>
         ))}
       </div>
-      <FieldError id={`row-decision-error-${id}`}>{error}</FieldError>
       {open ? (
         <DecisionDialog
           id={id}

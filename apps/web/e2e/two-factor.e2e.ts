@@ -1,6 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 import { totpCode } from "../src/server/domains/identity/testing/totp";
 import { headerName } from "./helpers";
+import { toastWith } from "./toast";
 import { E2E_NAMES, E2E_PASSWORD, E2E_USERS } from "./users";
 
 // Two-factor on /account/security (105): each step the page goes through, in a real browser, and
@@ -115,13 +116,10 @@ test("turn two-factor on, keep the backup codes, make new ones, and turn it off"
   await turnOff.getByLabel("Your password").fill(E2E_PASSWORD);
   await turnOff.getByLabel("A code from the app, or a backup code").fill(newCodes[0] ?? "");
   await turnOff.getByRole("button", { name: "Turn off two-factor" }).click();
-  await expect(
-    page.getByRole("status").filter({ hasText: "Two-factor sign-in is off" }),
-  ).toBeVisible();
-  // Off now, and nothing that needs it on is offered while the notice is shown.
+  await expect(toastWith(page, "Two-factor sign-in is off")).toBeVisible();
+  // Off now, and nothing that needs it on is offered.
   await expect(panel.getByText("Off", { exact: true })).toBeVisible();
   await expect(page.getByRole("form", { name: "New backup codes" })).toHaveCount(0);
-  await page.getByRole("button", { name: "Done" }).click();
   await expect(panel.getByText("Off", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Set up two-factor" })).toBeVisible();
 });

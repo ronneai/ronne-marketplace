@@ -29,6 +29,7 @@ import {
   SubmissionsError,
 } from "@/server/domains/submissions/exceptions/errors";
 import { itemNameOf } from "@/server/domains/submissions/models/submission";
+import { flashToast } from "@/server/http/flash-toast";
 import { requestHeaders } from "@/server/http/request-headers";
 import { serverAction } from "@/server/http/server-action";
 import { toPreview } from "./submit-preview";
@@ -135,6 +136,7 @@ export const deleteDraftAction = serverAction(async (id: string): Promise<Action
     return { ok: false, error: await message(error) };
   }
   revalidatePath("/submissions");
+  await flashToast("draftDeleted");
   redirect("/submissions");
 });
 
@@ -174,7 +176,10 @@ export const withdrawAction = serverAction(
         : { ok: false, error: await message(error) };
     }
     revalidatePath("/submissions");
-    if (mode === "delete") redirect("/submissions");
+    if (mode === "delete") {
+      await flashToast("draftDeleted");
+      redirect("/submissions");
+    }
     revalidatePath(`/submissions/${id}`);
     return { ok: true };
   },

@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
 import type { Instance } from "./harness";
+import { toastWith } from "./toast";
 import { E2E_PASSWORD, E2E_SCOPE, E2E_SKILL, E2E_USERS } from "./users";
 
 // A reader in São Paulo (049): pages show times there, with UTC on hover.
@@ -21,7 +22,10 @@ const choosePolicy = async (page: Page, label: string) => {
   await page.getByRole("radio", { name: new RegExp(`^${label}`) }).check();
   const form = page.getByRole("form", { name: "Usage reporting" });
   await form.getByRole("button", { name: "Save" }).click();
-  await expect(form.getByText("Usage reporting saved.")).toBeVisible();
+  await expect(toastWith(form, "Usage reporting saved.")).toBeVisible();
+  // What was just saved stays chosen: React resets a form after its action, which unticked it
+  // until the page was read again (138, useKeptActionState).
+  await expect(page.getByRole("radio", { name: new RegExp(`^${label}`) })).toBeChecked();
 };
 
 // Root is the only root, and sign-in allows 5 attempts a minute per email, so root's admin pages
@@ -122,7 +126,7 @@ test("root reads the audit log: setup, its own sign-in, and a settings change", 
     await minimum.fill(value);
     const form = page.getByRole("form", { name: "Usage minimum" });
     await form.getByRole("button", { name: "Save" }).click();
-    await expect(form.getByText("Usage minimum saved.")).toBeVisible();
+    await expect(toastWith(form, "Usage minimum saved.")).toBeVisible();
   };
   await saveMinimum("5");
   await page.reload();
@@ -157,7 +161,7 @@ test("root reads the audit log: setup, its own sign-in, and a settings change", 
   const retention = page.getByRole("form", { name: "Retention" });
   await retention.getByLabel("Keep IP addresses for").fill("30");
   await retention.getByRole("button", { name: "Save" }).click();
-  await expect(retention.getByText("Retention saved.")).toBeVisible();
+  await expect(toastWith(retention, "Retention saved.")).toBeVisible();
   const instance: { main: Instance } = JSON.parse(process.env.RONNE_E2E_INSTANCE ?? "{}");
   const purge = execFileSync("pnpm", ["exec", "tsx", "scripts/purge.ts"], {
     cwd: resolve(import.meta.dirname, ".."),

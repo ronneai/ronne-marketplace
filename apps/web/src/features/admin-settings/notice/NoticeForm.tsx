@@ -1,12 +1,14 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useActionState, useState } from "react";
+import { useState } from "react";
 import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
 import { FieldError, inputClasses, Label, selectClasses } from "@/components/ui/Field";
+import { useKeptActionState } from "@/components/ui/kept-form";
 import { LocalTime } from "@/components/ui/LocalTime";
 import { Notice } from "@/components/ui/Notice";
+import { useToastWhen } from "@/components/ui/toast";
 import { NoticePreview } from "@/features/notice/NoticePreview";
 import {
   type Notice as InstanceNotice,
@@ -35,14 +37,24 @@ export const NoticeForm = ({
   initial?: NoticeFormState;
 }) => {
   const t = useTranslations("admin.notice");
-  const [state, action, pending] = useActionState(saveNotice, initial);
+  const { state, action, pending, onSubmit } = useKeptActionState(saveNotice, initial);
+  // The page a form posted without JavaScript comes back as shows its result in place (`initial`);
+  // a save made with JavaScript is said as a toast (138).
+  const fresh = state !== initial;
+  useToastWhen(state, fresh && state.done ? t(state.done) : null);
   const [message, setMessage] = useState(notice.message);
   const [tone, setTone] = useState<string>(notice.tone);
   const [shown, setShown] = useState(notice.shown);
   const errors = state.errors ?? {};
   const words = message.trim();
   return (
-    <form action={action} aria-label={t("title")} className="grid gap-4" noValidate>
+    <form
+      action={action}
+      onSubmit={onSubmit}
+      aria-label={t("title")}
+      className="grid gap-4"
+      noValidate
+    >
       <div className="grid gap-1">
         <h2 className="flex items-center gap-2 text-base font-semibold text-fg">
           {t("title")} <Help id="notice" />
@@ -131,7 +143,7 @@ export const NoticeForm = ({
         )}
         {words && !shown ? <p className="text-xs text-muted">{t("previewHidden")}</p> : null}
       </section>
-      {state.done ? <Notice kind="info" title={t(state.done)} /> : null}
+      {!fresh && state.done ? <Notice kind="info" title={t(state.done)} /> : null}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <Button type="submit" loading={pending}>
           {t("save")}

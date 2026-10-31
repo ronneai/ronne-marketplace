@@ -22,6 +22,7 @@ import { TypeBadge } from "@/components/ui/TypeBadge";
 import { ManifestCheckDemo } from "../manifest-validation/ManifestCheckDemo";
 import { BottomBarDemo } from "./BottomBarDemo";
 import { DialogDemo } from "./DialogDemo";
+import { ToastDemo } from "./ToastDemo";
 
 const SWATCHES = [
   ["canvas", "bg-canvas"],
@@ -249,6 +250,7 @@ export const Styleguide = () => {
         </p>
         <ManifestCheckDemo />
       </Panel>
+      <ToastDemo />
       <BottomBarDemo />
     </div>
   );

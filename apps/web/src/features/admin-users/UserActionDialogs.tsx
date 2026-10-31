@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { DialogActions } from "@/components/ui/Dialog";
 import { FieldError, Label, selectClasses } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
+import { useToastWhen } from "@/components/ui/toast";
 import {
   changeRoleFromForm,
   disableImpactFor,
@@ -181,19 +182,18 @@ export const ActionForm = ({
   const t = useTranslations("admin.passwordChange");
   const a = useTranslations("admin.actions");
 
-  if (state.oneTime || state.done)
+  // A one-time password is a result to read and copy, so it stays in the dialog (138).
+  useToastWhen(state, state.done, "ok", onDone);
+  if (state.oneTime)
     return (
       <div className="grid gap-4">
-        {state.oneTime ? (
-          <OneTimePassword value={state.oneTime} />
-        ) : (
-          <Notice kind="info" title={state.done} />
-        )}
+        <OneTimePassword value={state.oneTime} />
         <div>
           <Button onClick={onDone}>{a("done")}</Button>
         </div>
       </div>
     );
+  if (state.done) return null;
 
   return (
     <form action={action} className="grid gap-4">

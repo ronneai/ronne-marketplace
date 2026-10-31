@@ -24,6 +24,7 @@ import { cn } from "@/components/ui/cn";
 import { DirtyMark } from "@/components/ui/DirtyMark";
 import { Notice } from "@/components/ui/Notice";
 import { TypeBadge } from "@/components/ui/TypeBadge";
+import { useToast } from "@/components/ui/toast";
 import { UnsavedChangesGuard } from "@/components/ui/UnsavedChangesGuard";
 import { FileIssues, IssuesSummary } from "@/components/validation/IssuesPopover";
 import { useBytes } from "@/i18n/bytes";
@@ -187,6 +188,8 @@ export const DraftEditor = ({
   const formText = useTranslations("author.form");
   const fieldText = useTranslations("common.field");
   const t = useTranslations("author.editor");
+  const said = useTranslations("common.done");
+  const toast = useToast();
   const bytes = useBytes();
   const pathWords = usePathWords();
   const tooBig = useTooBig();
@@ -295,9 +298,10 @@ export const DraftEditor = ({
           at: new Date(),
           issues: [...result.issues, ...result.submitIssues],
         });
+        toast.ok(said("draftSaved"));
       });
     },
-    [state, saving, draft.id],
+    [state, saving, draft.id, toast, said],
   );
   useSaveShortcut(() => save());
 

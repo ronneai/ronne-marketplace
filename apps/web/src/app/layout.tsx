@@ -5,6 +5,8 @@ import { connection } from "next/server";
 import { NextIntlClientProvider } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
+import { FlashToast } from "@/components/ui/FlashToast";
+import { Toaster } from "@/components/ui/Toaster";
 import { DatabaseUnavailable } from "@/features/setup/DatabaseUnavailable";
 import { parseTheme, THEME_COOKIE } from "@/features/theme/theme";
 import { requestLocale } from "@/i18n/server";
@@ -50,6 +52,9 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
           ) : (
             children
           )}
+          {/* Every page has the toast region, empty until something is said (feature 138). */}
+          <Toaster />
+          {state === "ready" ? <FlashToast /> : null}
         </NextIntlClientProvider>
       </body>
     </html>

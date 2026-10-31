@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { LOCALE_COOKIE, localeCookieOptions } from "@/i18n/locale";
 import { changePassword, setLocale, signOut } from "@/server/domains/identity/actions/session";
 import { SIGN_IN_PATH, safeNextPath } from "@/server/domains/identity/models/route-guard";
+import { flashToast } from "@/server/http/flash-toast";
 import { requestHeaders } from "@/server/http/request-headers";
 import { serverAction } from "@/server/http/server-action";
 import type { ChangePasswordFormState, LanguageFormState } from "./types";
@@ -58,6 +59,8 @@ export const setLanguageFromForm = serverAction(
     if (result.locale) jar.set(LOCALE_COOKIE, result.locale, localeCookieOptions);
     else jar.delete(LOCALE_COOKIE);
     revalidatePath("/", "layout");
+    // Said by the layout once the page is drawn again, in the language just chosen (138).
+    await flashToast(result.locale ? "languageSaved" : "languageAutomatic");
     return { saved: result.locale ?? "automatic" };
   },
   // The language switch is open to someone who must replace their password first (128).
