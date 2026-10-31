@@ -35,8 +35,10 @@ it, and a page with all of them. In the app only; email and webhooks stay out of
   - **a person who asked to join a workspace:** approved or declined (094);
   - **a person who asked to move a scope or an item:** moved or declined (115, 134);
   - **a member:** added to a workspace, removed from one, their role there changed (092);
-  - **the people who answer requests** (root and the workspace's moderators and admins): a new
-    request to join or to move a scope or an item waits (094, 115, 134), once per request;
+  - **the people who answer requests:** a new request waits, once per request: to join a workspace
+    or to move an item (094, 134), for root and the workspace's moderators and admins; to move a
+    scope (115), for root and the target workspace's admins (root alone for `global` or a personal
+    workspace), as 115 says who answers;
   - **root:** new feedback (127); an update is available (140 adds the kind).
 - **Not to yourself:** an action never notifies the person who did it.
 - **Reading marks it read:** opening a notification's link marks it read; so does "Mark all as read".

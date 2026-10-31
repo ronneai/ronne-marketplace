@@ -120,6 +120,39 @@ const publish = (
   input: Parameters<typeof publishSubmission>[2] = { choice: { kind: "stable", bump: "patch" } },
 ) => publishSubmission(headers, id, input, app, storage);
 
+describe("notifications written with a release (139)", () => {
+  const told = async (email: string) =>
+    (
+      await t.db
+        .selectFrom("notifications")
+        .innerJoin("user", "user.id", "notifications.user_id")
+        .select([
+          "notifications.kind as kind",
+          "notifications.subject_id as subjectId",
+          "notifications.params as params",
+        ])
+        .where("user.email", "=", email)
+        .where("notifications.kind", "=", "submission.released")
+        .execute()
+    ).map((row) => ({ ...row, params: JSON.parse(row.params) as Record<string, unknown> }));
+
+  it("tells the author of a release by someone else, and nobody of their own", async () => {
+    const own = await approvedSkill("mine");
+    await publish(asAuthor, own);
+    expect(await told("author@example.com")).toEqual([]);
+    const id = await approvedSkill("theirs");
+    await publish(asRoot, id);
+    expect(await told("author@example.com")).toEqual([
+      {
+        kind: "submission.released",
+        subjectId: id,
+        params: { name: "@team/theirs", version: "1.0.0", tag: "latest" },
+      },
+    ]);
+    expect(await told("root@example.com")).toEqual([]);
+  });
+});
+
 describe("publishSubmission", () => {
   it("releases an approved submission as 1.0.0 on latest, stored, recorded and audited", async () => {
     const id = await approvedSkill();

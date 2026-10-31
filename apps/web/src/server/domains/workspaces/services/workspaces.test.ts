@@ -64,6 +64,8 @@ const racingRepo = (): WorkspaceRepository => {
     removeMember: async () => {},
     countMembers: async () => 0,
     recordAudit: async () => {},
+    notify: async () => {},
+    answerersOf: async () => [],
     lockAccessRequest: async () => {},
     accessRequest: async () => null,
     latestRequest: async () => null,

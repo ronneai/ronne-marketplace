@@ -530,6 +530,21 @@ export const askScopeMove = async (
         { ...names, items: impact.items.length },
         at,
       );
+      // Those who answer it (root, and a shared workspace's admins; root alone for `global` or a
+      // personal workspace) are told once (139).
+      await repo.notify(
+        {
+          recipients: await repo.answerersOf(
+            target.id,
+            !target.isGlobal && target.ownerId === null ? ["admin"] : [],
+          ),
+          kind: "request.scope_move_waiting",
+          actorId: user.id,
+          subject: { type: "scope_move", id: moveId },
+          params: { scope: names.scope, newName: names.newName, from: names.from, to: names.to },
+        },
+        at,
+      );
       return { outcome: "requested", moveId, impact };
     }
     // Root's, and a `global` admin's into `global` (decision 2): the second confirmation types the
@@ -678,6 +693,17 @@ export const approveScopeMove = async (
       },
       at,
     );
+    const moved = moveNames(scope, source, target, move.newName);
+    await repo.notify(
+      {
+        recipients: [move.requestedBy],
+        kind: "scope_move.moved",
+        actorId: user.id,
+        subject: { type: "scope_move", id: move.id },
+        params: { scope: moved.scope, newName: moved.newName, from: moved.from, to: moved.to },
+      },
+      at,
+    );
     return { outcome: "moved" as const, impact };
   });
   // Committed: the asker lost their role, and the request is closed.
@@ -712,6 +738,22 @@ export const declineScopeMove = async (
       "scope.move_declined",
       places.scope.id,
       moveNames(places.scope, places.source, places.target, move.newName),
+      at,
+    );
+    const declined = moveNames(places.scope, places.source, places.target, move.newName);
+    await repo.notify(
+      {
+        recipients: [move.requestedBy],
+        kind: "scope_move.declined",
+        actorId: actor.user?.id ?? null,
+        subject: { type: "scope_move", id: move.id },
+        params: {
+          scope: declined.scope,
+          newName: declined.newName,
+          from: declined.from,
+          to: declined.to,
+        },
+      },
       at,
     );
   });

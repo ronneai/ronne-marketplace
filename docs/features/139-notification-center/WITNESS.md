@@ -84,3 +84,48 @@ Witnessed: 2026-10-31, by a fresh agent (adversarial re-check of claim 9 and wha
 
 **Overall:** met.
 
+## Task 3 — Writing them from the services
+
+Witnessed: 2026-10-31, by a fresh agent (blind). Commit: 64b7726b plus the uncommitted work. Machine: macOS (Darwin), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Each of the 20 kinds (all but `update.available`, 140's) has a write site, called beside its audit event, in the same transaction, to the spec's recipients | no | confirmed | `reviews.ts`, `publish.ts`, `access-requests.ts`, `members.ts`, `scope-moves.ts`, `item-moves.ts`, `group-sync.ts`, `identity-providers.ts`, `kysely-feedback-repository.ts`; every call goes through a transaction-bound repository |
+| 2 | A db test per kind checks recipients, kind, subject, and that the actor gets nothing | no | confirmed | 8 db files, 105 tests, on SQLite, PostgreSQL, MySQL and MariaDB |
+| 3 | No free text (messages, reasons, comments, feedback text) in the parameters | no | confirmed | every call's params read; tests assert the review message and decline reasons are absent |
+| 4 | `request.scope_move_waiting` goes to root and admins, as the spec says | no | partly | the spec said moderators too; the code follows 115 (the target's admins or root answer). The spec was corrected |
+| 5 | "A rolled-back decision writes none" is tested per kind | no | partly | tests only covered refused actions, never a failure after the notification was written |
+
+**Overall:** not met: rows 4 and 5.
+
+### Adversarial pass
+
+Witnessed: 2026-10-31, by a fresh agent (adversarial). Commit: 64b7726b plus the uncommitted work. Machine: macOS (Darwin), Node v24. Probes in the scratchpad, not committed.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A refused or failed change leaves no notification and no audit row | no | confirmed | every site is after its guards; a bulk release where one group's storage put failed wrote 1 notification and 1 audit row |
+| 2 | A bulk release or approve writes one notification per submission | no | confirmed | 3 released → 3 rows; a repeat call → no more |
+| 3 | Concurrent answers write one notification | no | confirmed | four racing answers to one join request → 1 fulfilled, 1 notification, on all four databases |
+| 4 | The actor, disabled and erased people are never notified | no | confirmed | root's override, own comment and own release, an erased moderator, a disabled author |
+| 5 | A private workspace leaks nothing | no | confirmed | an ordinary member got none of a join request's notifications |
+| 6 | `global` at account creation, SSO or SCIM is silent; an open join request gets one notification, not two | no | confirmed | probes on all four |
+| 7 | `request.*_waiting` once, to the right answerers | no | confirmed | a repeat request writes nothing more |
+| 8 | Every covered audit action has its notification | no | confirmed | grep of every write site |
+
+**Overall:** met: no bugs. Notes: a first SSO sign-in that maps someone to a `global` role other than `user` sends a "role changed" notice (left as is); erasing a user doesn't delete notifications yet (task 7); `scope_move_waiting` for `global` and personal targets had no test (added).
+
+### Re-check
+
+Witnessed: 2026-10-31, by a fresh agent (blind, re-check of rows 4 and 5, and the claims the diff touches). Commit: 64b7726b plus the uncommitted work. Machine: macOS (Darwin), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A rollback test exists for each write path, throwing after `notify` wrote (`throw-after-notify.ts`), checking notifications, audit and state, with an unarmed control | no | confirmed | four `*.rollback.db.test.ts` files; mutation: moving the feedback `notify` out of its transaction made `feedback-notifications.rollback` fail ("expected 1 to be +0"); file restored, sha and diff unchanged |
+| 2 | The spec matches the code for the three `*_waiting` kinds, and `scope_move_waiting` is tested for shared, global and personal targets | no | confirmed | SPEC.md; `notifications-written.db.test.ts` |
+| 3 | Root's override of its own submission rolls back (status, thread, audit, notifications), and its unarmed control goes through | no | confirmed | the added test; mutation: the armed wrapper throwing before `notify` made it fail (3 failed, 5 passed), restored (md5 before and after `a2facffa…`), 8 of 8 pass |
+| 4 | Every new and changed db test passes on all three servers | no | confirmed | 13 files, 137 tests on PostgreSQL, MySQL and MariaDB |
+| 5 | No stray probe files | no | confirmed | `git status` |
+
+**Overall:** met. Not covered, noted: the SCIM entry point (`scim-groups.ts:69`) has no test that checks notifications; it shares `applyGroups` with the SSO sign-in path, which is tested, including its rollback.
+

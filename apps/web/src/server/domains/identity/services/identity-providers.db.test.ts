@@ -516,6 +516,18 @@ describe("deleting a provider", () => {
       action: "instance.auth_provider_deleted",
       metadata: { provider: "acme", membershipsRemoved: 1 },
     });
+    // The one who lost a membership is told (139), by the root who deleted the provider; those
+    // whose memberships stayed are told nothing.
+    const told = await t.db.selectFrom("notifications").selectAll().execute();
+    expect(told).toHaveLength(1);
+    expect(told[0]).toMatchObject({
+      user_id: given.id,
+      kind: "membership.removed",
+      actor_id: root.id,
+      subject_type: "workspace",
+      subject_id: given.ws,
+    });
+    expect(JSON.parse(told[0]?.params ?? "{}")).toEqual({ workspace: "ws-ann" });
   });
 });
 
@@ -566,6 +578,12 @@ describe("deleting a provider that gave a global role", () => {
       targetId: id,
       metadata: { from: "moderator", to: "user", via: "sso", provider: "acme" },
     });
+    expect(
+      (await t.db.selectFrom("notifications").selectAll().execute()).map((n) => [
+        n.user_id,
+        n.kind,
+      ]),
+    ).toEqual([[id, "membership.role_changed"]]);
   });
 });
 

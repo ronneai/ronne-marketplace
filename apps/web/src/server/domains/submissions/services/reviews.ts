@@ -2,6 +2,7 @@ import { isId } from "../../../db/ids";
 import type { AuditAction } from "../../audit/models/audit-event";
 import { ForbiddenError } from "../../identity/exceptions/errors";
 import { can, canInSome, requirePermission } from "../../identity/models/permissions";
+import type { NotificationKind } from "../../notifications/models/notification";
 import {
   ConversationClosedError,
   OverrideNotNeededError,
@@ -80,6 +81,8 @@ type Decision = {
   action: SubmissionAction;
   kind: ReviewEventKind;
   audit: AuditAction;
+  /** The notification the author gets (139). */
+  notifies: NotificationKind;
   /** What the message is for, when one is required. */
   requires: string | null;
 };
@@ -89,24 +92,28 @@ const DECISIONS = {
     action: "approve",
     kind: "approve",
     audit: "submission.approved",
+    notifies: "submission.approved",
     requires: null,
   },
   request_changes: {
     action: "request_changes",
     kind: "request_changes",
     audit: "submission.changes_requested",
+    notifies: "submission.changes_requested",
     requires: "Requesting changes",
   },
   reject: {
     action: "reject",
     kind: "reject",
     audit: "submission.rejected",
+    notifies: "submission.rejected",
     requires: "Rejecting",
   },
   override: {
     action: "approve",
     kind: "override",
     audit: "submission.override_approved",
+    notifies: "submission.approved_override",
     // Optional since 054: it's still recorded as an override, with or without a reason.
     requires: null,
   },
@@ -115,6 +122,7 @@ const DECISIONS = {
     action: "approve",
     kind: "scan_override",
     audit: "submission.scan_override_approved",
+    notifies: "submission.approved_override",
     requires: "Overriding the security scan",
   },
 } as const satisfies Record<string, Decision>;
@@ -217,6 +225,23 @@ export const decide = async (
       },
       at,
     );
+    // The author hears of it (139): the actor is never told, so root's override of its own
+    // submission tells nobody.
+    const dependency = input.cause ? await repo.find(input.cause.rejected) : null;
+    await repo.notify(
+      {
+        recipients: [submission.authorId],
+        kind: input.cause ? "submission.dependency_rejected" : decision.notifies,
+        actorId: actor.user?.id ?? null,
+        subject: { type: "submission", id: submission.id },
+        params: {
+          name: itemNameOf(submission),
+          revision,
+          ...(dependency ? { dependency: itemNameOf(dependency) } : {}),
+        },
+      },
+      at,
+    );
     return { ...submission, status, updatedAt: at };
   });
 };
@@ -244,14 +269,28 @@ export const comment = async (
     if (mine && !can(actor.user, "submissions.review", submission.workspace.id))
       requireMember(actor, submission.workspace, "comment");
     if (!OPEN_STATUSES.includes(submission.status)) throw new ConversationClosedError();
-    return repo.addEvent({
+    const revision = await latestRevision(repo, submission.id);
+    const eventId = await repo.addEvent({
       submissionId: submission.id,
       actorId: actor.user?.id ?? "",
       kind: "comment",
       body,
-      revision: await latestRevision(repo, submission.id),
+      revision,
       createdAt: at,
     });
+    // The author hears of a reviewer's comment (139); a comment by the author tells nobody yet.
+    if (!mine)
+      await repo.notify(
+        {
+          recipients: [submission.authorId],
+          kind: "submission.comment",
+          actorId: actor.user?.id ?? null,
+          subject: { type: "submission", id: submission.id },
+          params: { name: itemNameOf(submission), revision },
+        },
+        at,
+      );
+    return eventId;
   });
 };
 

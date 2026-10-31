@@ -139,7 +139,7 @@ export const requestAccess = async (
       throw new TooManyAccessRequestsError(OPEN_REQUESTS_LIMIT);
     const after = await askAgainFrom(repo, latest, at);
     if (after) throw new AccessRequestTooSoonError(after);
-    await repo.insertAccessRequest({
+    const requestId = await repo.insertAccessRequest({
       workspaceId: workspace?.id ?? null,
       workspaceName: name,
       userId: user.id,
@@ -153,6 +153,18 @@ export const requestAccess = async (
       { workspace: name, userId: user.id, email: user.email },
       at,
     );
+    // Those who answer are told once (139); a name with no workspace has nobody to tell.
+    if (workspace)
+      await repo.notify(
+        {
+          recipients: await repo.answerersOf(workspace.id),
+          kind: "request.join_waiting",
+          actorId: user.id,
+          subject: { type: "join_request", id: requestId },
+          params: { workspace: workspace.name },
+        },
+        at,
+      );
     return "sent";
   });
 };
@@ -297,6 +309,17 @@ export const approveAccessRequest = async (
         },
         at,
       );
+    // The approval tells them they're in (139); joining isn't also a separate "added" notice.
+    await repo.notify(
+      {
+        recipients: [requester.id],
+        kind: "join_request.approved",
+        actorId: actor.user?.id ?? null,
+        subject: { type: "join_request", id: request.id },
+        params: { workspace: workspace.name, role },
+      },
+      at,
+    );
   });
 };
 
@@ -324,6 +347,16 @@ export const declineAccessRequest = async (
       actor,
       "workspace.access_declined",
       { workspace: workspace.name, userId: requester.id, email: requester.email },
+      at,
+    );
+    await repo.notify(
+      {
+        recipients: [requester.id],
+        kind: "join_request.declined",
+        actorId: actor.user?.id ?? null,
+        subject: { type: "join_request", id: request.id },
+        params: { workspace: workspace.name },
+      },
       at,
     );
   });

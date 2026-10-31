@@ -255,6 +255,14 @@ describe("root's scan override (137)", () => {
     expect(await status(id)).toBe("approved");
     const events = await kyselySubmissionRepository(t.db, t.dialect, UNFILTERED).events(id);
     expect(events.at(-1)).toMatchObject({ kind: "scan_override", body: "False alarm: docs only." });
+    // The author hears of an override of someone else's blocked submission (139).
+    const [told] = await t.db
+      .selectFrom("notifications")
+      .innerJoin("user", "user.id", "notifications.user_id")
+      .select(["notifications.kind as kind", "notifications.subject_id as subjectId"])
+      .where("user.email", "=", "author@example.com")
+      .execute();
+    expect(told).toEqual({ kind: "submission.approved_override", subjectId: id });
     const [event] = await audited("submission.scan_override_approved");
     expect(event).toMatchObject({
       targetId: id,

@@ -341,6 +341,30 @@ export const deleteProvider = async (
           },
           at,
         );
+    // Told what changed for them (139), by the workspace's name now.
+    for (const m of lowered)
+      if (m.role !== "user")
+        await repo.notify(
+          {
+            recipients: [m.userId],
+            kind: "membership.role_changed",
+            actorId: actor.user?.id ?? null,
+            subject: { type: "workspace", id: m.workspaceId },
+            params: { workspace: m.workspaceName, from: m.role, to: "user" },
+          },
+          at,
+        );
+    for (const m of removed)
+      await repo.notify(
+        {
+          recipients: [m.userId],
+          kind: "membership.removed",
+          actorId: actor.user?.id ?? null,
+          subject: { type: "workspace", id: m.workspaceId },
+          params: { workspace: m.workspaceName },
+        },
+        at,
+      );
     for (const m of removed)
       await repo.recordAudit(
         {

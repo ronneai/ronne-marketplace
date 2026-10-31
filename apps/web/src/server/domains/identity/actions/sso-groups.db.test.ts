@@ -140,6 +140,15 @@ const memberEvents = async () =>
     (e): Record<string, unknown> => ({ action: e.action, ...e.metadata }),
   );
 
+/** What the mappings told the person (139): the kind and the workspace, oldest first. */
+const notices = async () =>
+  (await t.db.selectFrom("notifications").selectAll().orderBy("id").execute()).map((r) => ({
+    kind: r.kind,
+    actor: r.actor_id,
+    subject: r.subject_type,
+    params: JSON.parse(r.params) as Record<string, unknown>,
+  }));
+
 describe("groups at sign-in", () => {
   it("adds the memberships of the groups the person is in, marked as the provider's, and audits each", async () => {
     await setMappings([
@@ -159,6 +168,15 @@ describe("groups at sign-in", () => {
         provider: "acme",
       },
     ]);
+    // The person is told, with no actor; `global` was theirs already and isn't announced.
+    expect(await notices()).toEqual([
+      {
+        kind: "membership.added",
+        actor: null,
+        subject: "workspace",
+        params: { workspace: "eng", role: "user" },
+      },
+    ]);
   });
 
   it("removes what a group gave when the person leaves it, and adds a new group's", async () => {
@@ -175,6 +193,11 @@ describe("groups at sign-in", () => {
       "workspace.member_added eng",
       "workspace.member_added ops",
       "workspace.member_removed eng",
+    ]);
+    expect((await notices()).map((n) => `${n.kind} ${n.params.workspace}`)).toEqual([
+      "membership.added eng",
+      "membership.added ops",
+      "membership.removed eng",
     ]);
   });
 
@@ -194,6 +217,10 @@ describe("groups at sign-in", () => {
       from: "moderator",
       to: "user",
       via: "sso",
+    });
+    expect((await notices()).at(-1)).toMatchObject({
+      kind: "membership.role_changed",
+      params: { workspace: "eng", from: "moderator", to: "user" },
     });
   });
 

@@ -1,6 +1,7 @@
 import type { ItemType, ScopeRef } from "@ronneai/core";
 import type { KeysetPage, SortDir } from "../../../db/keyset";
 import type { NewAuditEvent } from "../../audit/models/audit-event";
+import type { NewNotification } from "../../notifications/models/notification";
 import type {
   NewReviewEvent,
   ReviewEvent,
@@ -153,6 +154,8 @@ export interface SubmissionRepository {
   /** Locks the submission's row until the transaction ends, so two decisions can't both pass. */
   lockSubmission(id: string): Promise<void>;
   recordAudit(event: NewAuditEvent, now: Date): Promise<void>;
+  /** Tells people (139), beside the audit event and in the same transaction. */
+  notify(notification: NewNotification, now: Date): Promise<void>;
   /** Moves a proposal to a newer base version, with the conflicts its rebase left (017). */
   setProposalBase(id: string, baseVersionId: string, conflicts: readonly string[]): Promise<void>;
   setConflicts(id: string, conflicts: readonly string[]): Promise<void>;

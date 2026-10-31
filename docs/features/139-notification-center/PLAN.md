@@ -20,7 +20,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* the migration and repository db tests pass on SQLite and, with `pnpm test:db:up`,
     on PostgreSQL, MySQL and MariaDB for these files; the migrations guard test passes.
 
-- [ ] **3. Writing them from the services.**
+- [x] **3. Writing them from the services.**
   - Each kind in Scope, called beside its audit event in the same transaction; the actor and
     disabled users left out.
   - *Done when:* a db test per kind checks the recipients, and that a rolled-back decision writes
@@ -61,3 +61,13 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+- **Task 3:** a repository method `notify(notification, now)` sits beside `recordAudit` on the
+  submission, workspace, SSO and identity-provider repositories; feedback's `insert` notifies in its
+  own transaction. Choices: a person added while their request to join is open gets
+  `join_request.approved` only; `global` is never announced at account creation (nor by SSO or SCIM
+  mapping, though a role change in it is); an at-once move by the asker writes nothing; cancelled
+  requests aren't notified. Parameters hold names, ids and numbers, never free text.
+  `testing/throw-after-notify.ts` makes a test fail a call right after its notification was written.
+  The SCIM entry point isn't tested for notifications on its own: it shares `applyGroups` with the
+  SSO path.

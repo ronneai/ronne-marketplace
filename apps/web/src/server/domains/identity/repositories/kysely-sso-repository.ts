@@ -6,6 +6,7 @@ import { forUpdate, readCommittedTransaction } from "../../../db/locks";
 import type { Database } from "../../../db/schema";
 import type { DatabaseDialect } from "../../../db/url";
 import { recordAudit } from "../../audit/actions/audit";
+import { notify } from "../../notifications/services/notify";
 import { kyselyIdentityRepository } from "./kysely-identity-repository";
 import type { SsoRepository, SsoSignInState } from "./sso-repository";
 
@@ -198,6 +199,10 @@ export const kyselySsoRepository = (
 
     async recordAudit(event, now) {
       await recordAudit(db, dialect, event, now);
+    },
+
+    async notify(notification, now) {
+      await notify(db, dialect, notification, now);
     },
   };
 };
