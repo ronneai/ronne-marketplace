@@ -1,15 +1,15 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useActionState, useState } from "react";
+import { useState } from "react";
 import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
 import { FieldError } from "@/components/ui/Field";
+import { useKeptActionState } from "@/components/ui/kept-form";
 import { useToastWhen } from "@/components/ui/toast";
 import type { TwoFactorCoverage } from "@/server/domains/identity/models/two-factor-coverage";
 import type { TwoFactorPolicy } from "@/server/domains/settings/models/two-factor-policy";
 import { saveTwoFactorPolicy } from "../actions";
-import type { SettingsActionState } from "../types";
 import { TWO_FACTOR_CHOICES } from "./two-factor-choices";
 
 /**
@@ -24,14 +24,11 @@ export const TwoFactorPolicyForm = ({
   coverage: TwoFactorCoverage;
 }) => {
   const t = useTranslations("admin.settings.twoFactor");
-  const [state, action, pending] = useActionState<SettingsActionState, FormData>(
-    saveTwoFactorPolicy,
-    {},
-  );
+  const { state, action, pending, onSubmit } = useKeptActionState(saveTwoFactorPolicy, {});
   useToastWhen(state, state.done);
   const [chosen, setChosen] = useState<TwoFactorPolicy>(policy);
   return (
-    <form action={action} aria-label={t("title")} className="grid gap-4">
+    <form action={action} onSubmit={onSubmit} aria-label={t("title")} className="grid gap-4">
       <fieldset className="grid gap-3" aria-describedby="two-factor-policy-hint">
         {/* The helper sits under the legend, not in it: WebKit sizes a legend to its content, so a
             long question in Portuguese pushed the page past a 320px phone (133). */}

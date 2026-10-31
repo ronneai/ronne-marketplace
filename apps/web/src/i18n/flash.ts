@@ -13,7 +13,12 @@ export const FLASH_MAX_AGE = 30;
 export const FLASH_MAX_LENGTH = 1024;
 
 /** The messages a flash can name: `common.flash.<key>`. */
-export const FLASH_KEYS = ["draftDeleted", "tokenRevoked"] as const;
+export const FLASH_KEYS = [
+  "draftDeleted",
+  "tokenRevoked",
+  "languageSaved",
+  "languageAutomatic",
+] as const;
 export type FlashKey = (typeof FLASH_KEYS)[number];
 
 export const FLASH_KINDS = ["ok", "info", "warning", "error"] as const;

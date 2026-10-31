@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { FieldError, Label } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
 import { PasswordInput } from "@/components/ui/PasswordInput";
+import { useToastWhen } from "@/components/ui/toast";
 import { changePasswordFromForm } from "./actions";
 import { type ChangePasswordFormState, ERROR_FIELD } from "./types";
 
@@ -28,10 +29,14 @@ export const ChangePasswordForm = ({
   const t = useTranslations("account.password");
   const [state, action, pending] = useActionState(changePasswordFromForm, initial);
   const errorField = state.error ? ERROR_FIELD[state.error] : null;
+  // Without JavaScript the page comes back with the result (`initial`): shown in place. With it,
+  // a toast (138).
+  const fresh = state !== initial;
+  useToastWhen(state, fresh && state.changed ? t("changedToast") : null);
   return (
     <form action={action} className="grid max-w-sm gap-4" noValidate>
       {returnTo !== undefined ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
-      {state.changed ? (
+      {state.changed && !fresh ? (
         <Notice kind="info" title={t("changedTitle")}>
           {t("changed")}
         </Notice>

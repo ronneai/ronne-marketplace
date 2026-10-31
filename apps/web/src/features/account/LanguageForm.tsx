@@ -29,7 +29,9 @@ export const LanguageForm = ({
   const current = state.saved ? (state.saved === "automatic" ? "" : state.saved) : (saved ?? "");
   return (
     <form action={action} className="grid max-w-sm gap-4" noValidate>
-      {state.saved ? (
+      {/* Without JavaScript the page comes back with the result (`initial`): shown here. With it, the
+          layout says it as a toast in the new language (138). */}
+      {state.saved && state === initial ? (
         <Notice kind="info" title={t("savedTitle")}>
           {state.saved === "automatic" ? t("savedAutomatic") : t("saved")}
         </Notice>

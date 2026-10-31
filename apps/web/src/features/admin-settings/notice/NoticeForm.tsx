@@ -1,10 +1,11 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useActionState, useState } from "react";
+import { useState } from "react";
 import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
 import { FieldError, inputClasses, Label, selectClasses } from "@/components/ui/Field";
+import { useKeptActionState } from "@/components/ui/kept-form";
 import { LocalTime } from "@/components/ui/LocalTime";
 import { Notice } from "@/components/ui/Notice";
 import { useToastWhen } from "@/components/ui/toast";
@@ -36,7 +37,7 @@ export const NoticeForm = ({
   initial?: NoticeFormState;
 }) => {
   const t = useTranslations("admin.notice");
-  const [state, action, pending] = useActionState(saveNotice, initial);
+  const { state, action, pending, onSubmit } = useKeptActionState(saveNotice, initial);
   // The page a form posted without JavaScript comes back as shows its result in place (`initial`);
   // a save made with JavaScript is said as a toast (138).
   const fresh = state !== initial;
@@ -47,7 +48,13 @@ export const NoticeForm = ({
   const errors = state.errors ?? {};
   const words = message.trim();
   return (
-    <form action={action} aria-label={t("title")} className="grid gap-4" noValidate>
+    <form
+      action={action}
+      onSubmit={onSubmit}
+      aria-label={t("title")}
+      className="grid gap-4"
+      noValidate
+    >
       <div className="grid gap-1">
         <h2 className="flex items-center gap-2 text-base font-semibold text-fg">
           {t("title")} <Help id="notice" />

@@ -19,7 +19,9 @@
   },
   "flash": {
     "draftDeleted": "Draft deleted",
-    "tokenRevoked": "Revoked. It stops working on its next request."
+    "tokenRevoked": "Revoked. It stops working on its next request.",
+    "languageSaved": "Language saved. The screens now use the language you chose.",
+    "languageAutomatic": "Language saved. The screens now follow your browser's language."
   },
   "done": {
     "draftSaved": "Draft saved",

@@ -1,14 +1,14 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useActionState, useState } from "react";
+import { useState } from "react";
 import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
 import { FieldError } from "@/components/ui/Field";
+import { useKeptActionState } from "@/components/ui/kept-form";
 import { useToastWhen } from "@/components/ui/toast";
 import type { PasswordSignInPolicy } from "@/server/domains/settings/models/password-sign-in-policy";
 import { savePasswordSignInPolicy } from "../actions";
-import type { SettingsActionState } from "../types";
 
 /** Whether Save may be pressed: a change, confirmed when it takes passwords away. */
 export const canSave = (
@@ -34,16 +34,13 @@ export const PasswordPolicyForm = ({
   affected: number;
 }) => {
   const t = useTranslations("admin.settings.password");
-  const [state, action, pending] = useActionState<SettingsActionState, FormData>(
-    savePasswordSignInPolicy,
-    {},
-  );
+  const { state, action, pending, onSubmit } = useKeptActionState(savePasswordSignInPolicy, {});
   useToastWhen(state, state.done);
   const [chosen, setChosen] = useState<PasswordSignInPolicy>(policy);
   const [confirmed, setConfirmed] = useState(false);
   const needsConfirm = chosen === "root_only" && policy !== "root_only";
   return (
-    <form action={action} aria-label={t("title")} className="grid gap-4">
+    <form action={action} onSubmit={onSubmit} aria-label={t("title")} className="grid gap-4">
       <fieldset className="grid gap-3" aria-describedby="password-policy-hint">
         <legend className="mb-1 text-base font-semibold text-fg">
           {t("title")} <Help id="password-lockout" />

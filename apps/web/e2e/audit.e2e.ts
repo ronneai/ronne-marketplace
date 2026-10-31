@@ -23,6 +23,9 @@ const choosePolicy = async (page: Page, label: string) => {
   const form = page.getByRole("form", { name: "Usage reporting" });
   await form.getByRole("button", { name: "Save" }).click();
   await expect(toastWith(form, "Usage reporting saved.")).toBeVisible();
+  // What was just saved stays chosen: React resets a form after its action, which unticked it
+  // until the page was read again (138, useKeptActionState).
+  await expect(page.getByRole("radio", { name: new RegExp(`^${label}`) })).toBeChecked();
 };
 
 // Root is the only root, and sign-in allows 5 attempts a minute per email, so root's admin pages

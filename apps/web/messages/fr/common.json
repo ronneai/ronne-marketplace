@@ -19,7 +19,9 @@
   },
   "flash": {
     "draftDeleted": "Brouillon supprimé",
-    "tokenRevoked": "Révoqué. Il cesse de fonctionner à sa prochaine requête."
+    "tokenRevoked": "Révoqué. Il cesse de fonctionner à sa prochaine requête.",
+    "languageSaved": "Langue enregistrée. Les écrans utilisent maintenant la langue que vous avez choisie.",
+    "languageAutomatic": "Langue enregistrée. Les écrans suivent maintenant la langue de votre navigateur."
   },
   "done": {
     "draftSaved": "Brouillon enregistré",

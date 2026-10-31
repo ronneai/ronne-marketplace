@@ -32,7 +32,8 @@
       "mismatch": "As novas senhas não são iguais",
       "same_password": "A nova senha precisa ser diferente da que você usou para entrar",
       "rate_limited": "Muitas tentativas, aguarde um minuto"
-    }
+    },
+    "changedToast": "Senha alterada. Sua sessão continua ativa aqui; as outras foram encerradas."
   },
   "data": {
     "title": "Seus dados",

@@ -66,6 +66,15 @@ goes into `SPEC.md` instead.
   says `// @vitest-environment happy-dom`) because Sonner's timers live in React effects. Move the
   clock in steps with React flushed between them (`tick` in `toast.test.tsx`): Sonner's removal
   after 200ms starts from an effect, which `act` runs only at its end.
+- Follow-up (owner testing, 2026-10-31): the task 5 sweep matched `state.done` only. Account ›
+  Language (`state.saved`), Change password (`state.changed`) and the scan provider's Test button
+  (`testState.done`) kept their inline notices. They are toasts now (Language as a flash toast, so
+  it is said in the new language; the first two keep their in-place result without JavaScript).
+  `docs/knowledge/toasts.md` says to grep every `<Notice` and live region next time.
+- Follow-up 2 (owner testing): after Save on Admin › Settings, radios and checkboxes went back to
+  their old value until a refresh, because React resets a form after its action. The Usage policy,
+  Usage minimum, Retention, Two-factor policy, Password policy and Notice forms now use
+  `useKeptActionState` (`components/ui/kept-form.ts`); `audit.e2e.ts` asserts the radio stays.
 - Task 4: the root layout reads the cookie on the server and hands a checked flash to the client
   piece (`FlashToast` → `FlashToastClient`), because a layout isn't remounted on a client-side
   redirect but is rendered again. Wired first to deleting a draft for good (`withdrawAction` and

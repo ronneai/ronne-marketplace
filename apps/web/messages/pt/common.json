@@ -19,7 +19,9 @@
   },
   "flash": {
     "draftDeleted": "Rascunho excluído",
-    "tokenRevoked": "Revogado. Ele deixa de funcionar na próxima requisição."
+    "tokenRevoked": "Revogado. Ele deixa de funcionar na próxima requisição.",
+    "languageSaved": "Idioma salvo. As telas agora usam o idioma que você escolheu.",
+    "languageAutomatic": "Idioma salvo. As telas agora seguem o idioma do seu navegador."
   },
   "done": {
     "draftSaved": "Rascunho salvo",

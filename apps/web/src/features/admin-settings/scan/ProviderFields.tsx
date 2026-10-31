@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl";
 import { type MouseEvent, type ReactNode, useActionState, useState, useTransition } from "react";
 import { Button } from "@/components/ui/Button";
 import { FieldError, Label, Select, TextField } from "@/components/ui/Field";
-import { Notice } from "@/components/ui/Notice";
+import { useToastWhen } from "@/components/ui/toast";
 import type {
   ScanSetupShown,
   SkillScanner,
@@ -41,6 +41,8 @@ export const ProviderFields = ({
     testScanConnection,
     {},
   );
+  // The test's answer is a line to read once: a toast (138); its error stays under the button.
+  useToastWhen(testState, testState.done);
   const { stored } = setup;
   // As the form's Save: sent in a transition with JavaScript, so the form isn't reset; without
   // it, the button's formAction posts the form.
@@ -152,7 +154,6 @@ export const ProviderFields = ({
               </Button>
             </div>
             <FieldError id="scan-test-error">{testState.error}</FieldError>
-            {testState.done ? <Notice kind="info" title={testState.done} /> : null}
           </div>
         </>
       ) : null}

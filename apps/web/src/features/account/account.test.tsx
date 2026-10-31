@@ -150,6 +150,12 @@ describe("setLanguageFromForm (129)", () => {
     );
     expect(jar.delete).not.toHaveBeenCalled();
     expect(cache.revalidatePath).toHaveBeenCalledWith("/", "layout");
+    // And leaves a flash for the layout to say in the new language (138).
+    expect(jar.set).toHaveBeenCalledWith(
+      "ronne-toast",
+      expect.stringContaining('"k":"languageSaved"'),
+      expect.objectContaining({ maxAge: 30, sameSite: "lax" }),
+    );
   });
 
   it("Automatic saves nothing on the profile and clears the cookie", async () => {
@@ -157,7 +163,13 @@ describe("setLanguageFromForm (129)", () => {
     expect(await setLanguageFromForm({}, choose(""))).toEqual({ saved: "automatic" });
     expect(session.setLocale).toHaveBeenCalledWith(expect.any(Headers), null);
     expect(jar.delete).toHaveBeenCalledWith("ronne-locale");
-    expect(jar.set).not.toHaveBeenCalled();
+    // No language cookie; only the flash (138).
+    expect(jar.set).not.toHaveBeenCalledWith("ronne-locale", expect.anything(), expect.anything());
+    expect(jar.set).toHaveBeenCalledWith(
+      "ronne-toast",
+      expect.stringContaining('"k":"languageAutomatic"'),
+      expect.anything(),
+    );
   });
 
   it("refuses a code that isn't a language, and leaves the cookie alone", async () => {

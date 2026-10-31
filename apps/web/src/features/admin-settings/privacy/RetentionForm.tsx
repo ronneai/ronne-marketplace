@@ -1,10 +1,11 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useActionState, useState } from "react";
+import { useState } from "react";
 import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
 import { FieldError, inputClasses, Label } from "@/components/ui/Field";
+import { useKeptActionState } from "@/components/ui/kept-form";
 import { useToastWhen } from "@/components/ui/toast";
 import {
   MAX_RETENTION_DAYS,
@@ -12,7 +13,6 @@ import {
   type RetentionPolicy,
 } from "@/server/domains/settings/models/retention-policy";
 import { saveRetention } from "../actions";
-import type { SettingsActionState } from "../types";
 
 /** The three numbers, each with what it covers (`admin.settings.privacy.fields`); Save is on once any changed. */
 const FIELDS: readonly { name: keyof RetentionPolicy; id: string }[] = [
@@ -27,7 +27,7 @@ const FIELDS: readonly { name: keyof RetentionPolicy; id: string }[] = [
  */
 export const RetentionForm = ({ retention }: { retention: RetentionPolicy }) => {
   const t = useTranslations("admin.settings.privacy");
-  const [state, action, pending] = useActionState<SettingsActionState, FormData>(saveRetention, {});
+  const { state, action, pending, onSubmit } = useKeptActionState(saveRetention, {});
   useToastWhen(state, state.done);
   const [typed, setTyped] = useState<Record<keyof RetentionPolicy, string>>({
     ipDays: String(retention.ipDays),
@@ -38,7 +38,7 @@ export const RetentionForm = ({ retention }: { retention: RetentionPolicy }) => 
     (field) => typed[field.name].trim() === String(retention[field.name]),
   );
   return (
-    <form action={action} aria-label={t("ariaLabel")} className="grid gap-4">
+    <form action={action} onSubmit={onSubmit} aria-label={t("ariaLabel")} className="grid gap-4">
       <div className="grid gap-1">
         <h2 className="flex items-center gap-2 text-base font-semibold text-fg">
           {t("title")} <Help id="retention" />

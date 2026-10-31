@@ -1,25 +1,22 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useActionState, useState } from "react";
+import { useState } from "react";
 import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
 import { FieldError, inputClasses, Label } from "@/components/ui/Field";
+import { useKeptActionState } from "@/components/ui/kept-form";
 import { useToastWhen } from "@/components/ui/toast";
 import { saveUsageMinimum } from "../actions";
-import type { SettingsActionState } from "../types";
 
 /** When item pages show usage (047): from any install or run (0), or from root's minimum. */
 export const UsageMinimumForm = ({ minimum }: { minimum: number }) => {
   const t = useTranslations("admin.settings.usage");
-  const [state, action, pending] = useActionState<SettingsActionState, FormData>(
-    saveUsageMinimum,
-    {},
-  );
+  const { state, action, pending, onSubmit } = useKeptActionState(saveUsageMinimum, {});
   useToastWhen(state, state.done);
   const [typed, setTyped] = useState(String(minimum));
   return (
-    <form action={action} aria-label={t("minimumTitle")} className="grid gap-4">
+    <form action={action} onSubmit={onSubmit} aria-label={t("minimumTitle")} className="grid gap-4">
       <div className="grid gap-1.5">
         <div className="flex flex-wrap items-center gap-2">
           <Label htmlFor="usage-minimum">{t("minimumLabel")}</Label>

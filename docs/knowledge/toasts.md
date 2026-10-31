@@ -40,6 +40,19 @@ submissions"), and an error toast if some failed.
   it once and removes the cookie. Keys and parameters that don't parse are ignored.
 - Messages for client toasts are in `common.done` (or the feature's own namespace).
 
+## Find every result, not only `state.done`
+
+The first sweep (138, task 5) matched `state.done` and missed forms that name their result
+differently: Account › Language (`state.saved`), Change password (`state.changed`) and the scan
+provider's Test button (`testState.done`) were found by the owner testing. Before calling a sweep
+finished, grep for `<Notice`, `role="status"` and `role="alert"` in every client component with
+`useActionState`, not for one field name.
+
+- **A form that works without JavaScript** (Language, Change password, Notice settings) shows its
+  result in place when the page comes back with it (`state === initial`), and as a toast otherwise.
+- **A language change** is said as a flash toast (`languageSaved`, `languageAutomatic`), so the
+  layout says it in the language just chosen once the page is drawn again.
+
 ## Traps
 
 - **Only `components/ui/Toaster.tsx` and `toast.tsx` import Sonner** (a lint rule). Everything

@@ -68,7 +68,7 @@ test("root sets up a provider with a write-only key, tests it, and removes it", 
   try {
     await form.getByRole("button", { name: "Test connection" }).click();
     const host = new URL(endpoint).host;
-    await expect(form.getByText(`Reached ${host}.`)).toBeVisible();
+    await expect(toastWith(form, `Reached ${host}.`)).toBeVisible();
     expect(seen.at(-1)).toMatchObject({ url: "/v1/models" });
     expect(seen.at(-1)?.headers.authorization).toBe(`Bearer ${KEY}`);
 
@@ -98,7 +98,7 @@ test("root sets up a provider with a write-only key, tests it, and removes it", 
     form = await tab(page);
     await expect(form.getByText("Key set")).toBeVisible();
     await form.getByRole("button", { name: "Test connection" }).click();
-    await expect(form.getByText(`Reached ${host}.`)).toBeVisible();
+    await expect(toastWith(form, `Reached ${host}.`)).toBeVisible();
     expect(seen.at(-1)?.headers.authorization).toBe(`Bearer ${KEY}-2`);
 
     // Remove, then Keep: back to Key set, and nothing asks the server to remove it.
