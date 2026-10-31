@@ -14,19 +14,20 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     dependencies.
   - *Done when:* both say what this spec says, and `pnpm witness:check` passes.
 
-- [ ] **2. Sonner checked, the toast region and `useToast`.**
+- [x] **2. Sonner checked, the toast region and `useToast`.**
   - Sonner's latest stable version through the [dependency policy](../../policies/dependencies.md)
     checklist (licence, release age, no known vulnerabilities, no install scripts).
   - Before building on it, check that every label it shows can come from our messages and that it
-    can sit above `--bottom-bar-height` on a phone. If not, stop and take decision 4's fallback (our
+    can sit above `--bottom-bar-height` on a phone (here: Sonner takes the offset as CSS and a test
+    reads it in the region's style; the box above a real bar is task 3's Playwright check). If not, stop and take decision 4's fallback (our
     own component behind the same wrapper), saying so in the spec.
   - `Toaster` in unstyled mode in the root layout, `useToast()` with `ok`, `info`, `warning` and
     `error`; timers, pause on hover, focus and a hidden tab; at most three; the same message
     restarts its timer; the close button. A lint rule allows `sonner` imports only in the wrapper.
   - Tones from `tones.ts`, the mono prefix, no shadow; reduced motion.
   - *Done when:* unit tests with fake timers (`docs/knowledge/fake-timers.md`) cover each kind's
-    lifetime, the pauses, the limit and the repeat; a test finds the `status` and `alert` regions
-    while idle; lint and typecheck pass.
+    lifetime, the pauses, the limit and the repeat; a test finds the always-present polite region while idle and the
+    `status` and `alert` roles on the boxes (SPEC changed: Sonner has one live region); lint and typecheck pass.
 
 - [ ] **3. Placement on phones and above the bottom bar.**
   - Bottom right from `sm`; across the bottom below it with the gutter and the safe area;
@@ -60,3 +61,10 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+- Task 2: the unit tests run in happy-dom (`happy-dom` 21.0.4, MIT, a new dev dependency; the file
+  says `// @vitest-environment happy-dom`) because Sonner's timers live in React effects. Move the
+  clock in steps with React flushed between them (`tick` in `toast.test.tsx`): Sonner's removal
+  after 200ms starts from an effect, which `act` runs only at its end.
+- Task 3 must put the region above a modal `<dialog>` (the top layer), which Sonner's `section`
+  doesn't do by itself.

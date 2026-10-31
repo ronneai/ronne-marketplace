@@ -7,6 +7,16 @@
     "description": "A self-hosted, curated registry of AI capabilities."
   },
   "close": "Close",
+  "toast": {
+    "region": "Notifications",
+    "close": "Close notification",
+    "prefix": {
+      "ok": "OK:",
+      "info": "INFO:",
+      "warning": "WARN:",
+      "error": "ERR:"
+    }
+  },
   "copy": {
     "label": "copy",
     "done": "copied",

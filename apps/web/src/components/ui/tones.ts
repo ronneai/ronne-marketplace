@@ -1,7 +1,7 @@
 /**
  * The tones a notification can take (design system 032, owner, 2026-10-01): one place for their
  * classes, so a popover, a chip and anything else about a problem look the same. Red and amber
- * only for errors and warnings; `ok` is teal; `default` is the helpers' popover teal. Tokens only.
+ * only for errors and warnings; `info` is the light blue, for information only (138); `ok` is teal; `default` is the helpers' popover teal. Tokens only.
  */
 export const TONES = {
   default: {
@@ -15,6 +15,12 @@ export const TONES = {
     arrow: "fill-popover stroke-popover-border",
     chip: "border-hairline bg-surface hover:bg-tint",
     text: "text-accent-strong",
+  },
+  info: {
+    surface: "border-info/40 bg-info-subtle",
+    arrow: "fill-info-subtle stroke-info/40",
+    chip: "border-info/40 bg-surface hover:bg-info-subtle",
+    text: "text-info-text",
   },
   warning: {
     surface: "border-warning/40 bg-warning-subtle",

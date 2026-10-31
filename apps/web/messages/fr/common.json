@@ -7,6 +7,16 @@
     "description": "Un registre sélectionné et auto-hébergé de capacités d’IA."
   },
   "close": "Fermer",
+  "toast": {
+    "region": "Notifications",
+    "close": "Fermer la notification",
+    "prefix": {
+      "ok": "OK :",
+      "info": "INFO :",
+      "warning": "ATTENTION :",
+      "error": "ERREUR :"
+    }
+  },
   "copy": {
     "label": "copier",
     "done": "copié",

@@ -26,9 +26,11 @@ page or the dialog (owner, 2026-10-29). Today every result is a `Notice` drawn f
   - `warning` and `error`: until closed;
   - every toast has a close button (`IconButton`, a 44px tap area on a coarse pointer, 067).
 - **Accessibility:**
-  - the region is always in the page, empty when idle, so screen readers announce what is added;
-  - `ok` and `info` in a `role="status"` (`aria-live="polite"`) list, `warning` and `error` in a
-    `role="alert"` one;
+  - the region is always in the page, empty when idle, as one polite live region named
+    ("Notifications"), so screen readers announce what is added;
+  - `ok` and `info` are boxes with `role="status"`; `warning` and `error` are boxes with
+    `role="alert"`, announced at once when they appear (Sonner has one live region, not two, so the
+    first draft's list for each became a role on each box: Decision 6);
   - a toast never takes focus; the region is named ("Notifications") and reachable with Tab after
     the page's content;
   - `prefers-reduced-motion`: they appear and go without sliding.
@@ -64,10 +66,16 @@ until closed. On a phone the toast sits above the draft editor's bar.
 - **Sonner** (MIT) does the queue, the timers and their pauses, stacking, swiping a toast away on
   touch and the live regions, in its **unstyled** mode: every colour, border and motion is ours,
   from the tokens, with no shadow.
-- **Behind our wrapper only:** `components/ui/Toaster.tsx` (the region), `components/ui/toast.ts`
-  (`useToast`), `components/ui/FlashToast.tsx`, `server/http/flash-toast.ts` (`flashToast`). Only
+- **Behind our wrapper only:** `components/ui/Toaster.tsx` (the region), `components/ui/toast.tsx`
+  (`useToast`) and `ToastCard.tsx` (the box each toast draws), `components/ui/FlashToast.tsx`, `server/http/flash-toast.ts` (`flashToast`). Only
   these files import `sonner` (a lint rule, as for Better Auth), so it can be replaced by our own
   component without touching a page.
+- **What Sonner doesn't do, the wrapper does** (found in task 2, Sonner 2.0.8): Sonner has one
+  polite live region and no `role="alert"`, so each toast draws its own box (`ToastCard`) with
+  `role="status"` or `role="alert"`, and the always-present region is Sonner's polite `<section>`;
+  Sonner pauses its timers for the pointer and a hidden tab but not for the keyboard, so the
+  `Toaster` tells it focus inside the list is the pointer over it; the limit of three and the
+  one-toast-per-message rule are in `toast.tsx`, Sonner only hides the older ones.
 - Every label Sonner shows (the close button, the region's name) comes from our messages.
 - No global singleton of our own (hot reload, `docs/knowledge/hot-reload-singletons.md`).
 - The flash cookie's key must be one of a typed list of message keys (`FlashKey`), so a cookie a
@@ -104,7 +112,8 @@ None: no table, no setting. The flash cookie holds `{"k":"<FlashKey>","p":{…}}
   above a `BottomBar` and the safe area; tested on the desktop, phone and tablet projects.
 - [ ] `ok` and `info` go after 5 seconds, pausing on hover, focus and a hidden tab; `warning` and
   `error` stay until closed; each has a labelled close button with a 44px tap area on touch.
-- [ ] Toasts are announced (`status` and `alert` regions present while idle), never take focus, and
+- [ ] Toasts are announced (the polite region is in the page while idle; `status` and `alert` on the
+  boxes), never take focus, and
   carry a text prefix besides their colour; reduced motion turns off the slide.
 - [ ] Only tokens from `tones.ts` and the design system; no shadows (the styleguide's check).
 - [ ] `flashToast` after a redirect shows the message once, in the reader's language; an edited
@@ -128,6 +137,9 @@ None: no table, no setting. The flash cookie holds `{"k":"<FlashKey>","p":{…}}
    decision says so.
 5. **The flash cookie carries a message key, never text** (Claude): the text is the reader's
    language, and a cookie can't put words of its own on the screen.
+
+6. **One polite region, a role on each box** (Claude, task 2): Sonner can't give `alert` its own
+   list; the role on a box added to the page is announced at once by screen readers.
 
 ## Open questions
 

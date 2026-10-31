@@ -7,6 +7,16 @@
     "description": "Um registro curado e auto-hospedado de recursos de IA."
   },
   "close": "Fechar",
+  "toast": {
+    "region": "Notificações",
+    "close": "Fechar notificação",
+    "prefix": {
+      "ok": "OK:",
+      "info": "INFO:",
+      "warning": "AVISO:",
+      "error": "ERRO:"
+    }
+  },
   "copy": {
     "label": "copiar",
     "done": "copiado",
