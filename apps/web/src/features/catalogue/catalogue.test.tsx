@@ -96,7 +96,7 @@ describe("the catalogue page", () => {
     expect(html).toContain('<option value="cursor">Cursor</option>');
     expect(html).not.toContain("⚠ risk");
     // Every card shows how often it's been downloaded (owner, 2026-10-02).
-    expect(html).toMatch(/\d+ installs?</);
+    expect(html).toMatch(/\d+ installs?/);
   });
 
   it("puts types, scope and tool in a Filters panel, the active ones beside it, and Sort on the right", async () => {
@@ -178,7 +178,7 @@ describe("the catalogue page", () => {
     expect(html).toContain("Deprecated: Use @team/fmt2.");
     expect(html).toContain("no installable version");
     expect(html).not.toContain("rmk install @team/gone");
-    expect(html).toMatch(/\d+ installs?</);
+    expect(html).toMatch(/\d+ installs?/);
   });
 
   it("explains how items arrive when nothing is published, and says when nothing matches", async () => {

@@ -69,7 +69,7 @@ export const ItemCard = ({
   const meta = (
     <>
       {/* biome-ignore lint/plugin: a version number, the same in every language */}
-      <span className="font-mono text-xs text-muted">v{entry.version}</span>
+      <span className="type-version text-muted">v{entry.version}</span>
       <TypeBadge type={entry.type} />
       {entry.risky ? <Badge tone="warning">{t("risk")}</Badge> : null}
       {entry.deprecatedMessage ? <Badge tone="warning">{t("deprecated")}</Badge> : null}
@@ -90,12 +90,12 @@ export const ItemCard = ({
             <Link
               href={itemPath(entry)}
               title={name}
-              className="line-clamp-2 font-mono text-[15px] font-semibold text-fg hover:underline"
+              className="type-id line-clamp-2 text-fg hover:underline"
             >
               {name}
             </Link>
           </Heading>
-          {/* The version and what is said of the item on the left, the date at the right. */}
+          {/* The version, type and flags; the date is in the footer, so a risk badge never pushes it down. */}
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             {meta}
             {/* The full name says the workspace and the scope; only a privacy cue is left to say. */}
@@ -112,10 +112,6 @@ export const ItemCard = ({
                 {place("private")}
               </span>
             ) : null}
-            <span className="ml-auto font-mono text-xs text-muted">
-              <span className="sr-only">{t("publishedLabel")} </span>
-              <LocalTime value={entry.publishedAt} precision="day" />
-            </span>
           </div>
           {favorited === undefined ? null : (
             <span className="absolute top-3 right-3">
@@ -126,10 +122,7 @@ export const ItemCard = ({
       ) : (
         <div className="flex flex-wrap items-center gap-2">
           <Heading className="min-w-0 break-all">
-            <Link
-              href={itemPath(entry)}
-              className="font-mono text-[15px] font-semibold text-fg hover:underline"
-            >
+            <Link href={itemPath(entry)} className="type-id text-fg hover:underline">
               {name}
             </Link>
           </Heading>
@@ -159,8 +152,11 @@ export const ItemCard = ({
       ) : null}
       {compact ? (
         <div className="mt-auto flex items-center justify-between gap-2 border-t border-hairline pt-2">
-          <p className="font-mono text-xs text-muted">
+          <p className="type-meta text-muted">
             {t("installs", { count: entry.downloadCount })}
+            {" · "}
+            <span className="sr-only">{t("publishedLabel")} </span>
+            <LocalTime value={entry.publishedAt} precision="day" />
           </p>
           {entry.installable ? (
             <CopyIconButton command={`rmk install ${name}`} label={t("copyInstall", { name })} />
@@ -168,7 +164,7 @@ export const ItemCard = ({
         </div>
       ) : (
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-hairline pt-2">
-          <p className="font-mono text-xs text-muted">
+          <p className="type-meta text-muted">
             {details.map((part, index) => (
               <Fragment key={part.id}>
                 {index ? " · " : null}

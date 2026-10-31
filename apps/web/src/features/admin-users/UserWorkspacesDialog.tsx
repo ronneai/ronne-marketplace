@@ -38,7 +38,7 @@ const UserWorkspacesForm = ({
   return (
     <form action={action} className="grid gap-4">
       <input type="hidden" name="userId" value={user.id} />
-      <p className="font-mono text-[13px] text-fg">{user.email}</p>
+      <p className="text-[13px] text-fg">{user.email}</p>
       {loadError ? <FieldError id={`workspaces-${user.id}-load`}>{loadError}</FieldError> : null}
       {rows ? (
         <>

@@ -176,8 +176,8 @@ describe("the Audit log in three languages (132)", () => {
     expect(item("fr")).toContain("Ouvrir l’élément");
     expect(item("pt")).toContain("Abrir o usuário");
     expect(item("fr")).toContain("Ouvrir l’utilisateur");
-    expect(item("pt")).toContain(">copiar json<");
-    expect(item("fr")).toContain(">copier le json<");
+    expect(item("pt")).toContain('aria-label="Copiar JSON"');
+    expect(item("fr")).toContain('aria-label="Copier le JSON"');
     expect(page("pt", [], {})).toContain('placeholder="E-mail ou system"');
     expect(page("fr", [], {})).toContain('placeholder="Courriel, ou system"');
     // The dialog is closed by a link inside <noscript> when there is no JavaScript.

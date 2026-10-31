@@ -56,14 +56,15 @@ describe("the shared UI pieces in three languages (129)", () => {
   });
 
   it("CopyableCommand's button", () => {
-    each({ en: [">copy<"], pt: [">copiar<"], fr: [">copier<"] }, (l) =>
-      html(l, <CopyableCommand command="rmk login" />),
+    each(
+      { en: ['aria-label="copy"'], pt: ['aria-label="copiar"'], fr: ['aria-label="copier"'] },
+      (l) => html(l, <CopyableCommand command="rmk login" />),
     );
   });
 
-  it("CopyableCommand keeps a caller's own label, lowercased", () => {
+  it("CopyableCommand keeps a caller's own label as the button's name", () => {
     expect(html("pt", <CopyableCommand command="x" label="Copy token" />)).toContain(
-      ">copy token<",
+      'aria-label="Copy token"',
     );
   });
 

@@ -41,7 +41,7 @@ export const Notice = ({
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <p className={cn("font-semibold", TITLE[kind])}>
-            <span className="mr-2 font-mono text-xs font-semibold">{PREFIX[kind]}</span>
+            <span className="mr-2 text-xs font-semibold">{PREFIX[kind]}</span>
             {title}
           </p>
           {children ? <div className="mt-1 text-fg">{children}</div> : null}

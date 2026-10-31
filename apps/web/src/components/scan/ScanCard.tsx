@@ -197,7 +197,7 @@ export const ScanCard = ({
 
         <div className="flex flex-wrap items-center gap-4 md:flex-col md:items-end">
           <div className="text-right">
-            <p className="font-mono text-3xl font-semibold text-fg">
+            <p className="tabular-nums text-3xl font-semibold text-fg">
               {result.score}
               <span className="text-sm font-normal text-muted"> {t("card.outOf")}</span>
             </p>

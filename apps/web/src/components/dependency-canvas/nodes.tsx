@@ -54,7 +54,7 @@ export const DependencyFactsLine = ({
 }) => {
   const t = useTranslations("author.canvas");
   return facts === undefined ? (
-    <span className="font-mono text-[11px] text-muted">{t("checking")}</span>
+    <span className="text-[11px] text-muted">{t("checking")}</span>
   ) : facts === null ? (
     status ? (
       <UnreleasedBadge status={status} />
@@ -83,15 +83,13 @@ export const DependencyProblems = ({
     <>
       {problems.map((problem) => (
         <p key={problem} className="text-xs text-fg">
-          <span className="mr-1.5 font-mono text-[11px] font-semibold text-error-text">
-            {field("error")}
-          </span>
+          <span className="mr-1.5 text-[11px] font-semibold text-error-text">{field("error")}</span>
           <CodeText text={problem} />
         </p>
       ))}
       {warnings.map((warning) => (
         <p key={warning} className="text-xs text-fg">
-          <span className="mr-1.5 font-mono text-[11px] font-semibold text-warning-text">
+          <span className="mr-1.5 text-[11px] font-semibold text-warning-text">
             {field("warning")}
           </span>
           <CodeText text={warning} />
@@ -212,13 +210,13 @@ export const DependencyNode = ({ data, selected }: NodeProps<DependencyFlowNode>
         <p className="line-clamp-2 text-xs text-fg">{data.facts.description}</p>
       ) : null}
       <div className="flex items-center gap-2">
-        <span aria-hidden="true" className="font-mono text-[11px] text-muted">
+        <span aria-hidden="true" className="text-[11px] text-muted">
           {t("range")}
         </span>
         <RangeField name={data.name} range={data.range} invalid={data.problems.length > 0} />
       </div>
       {data.facts ? (
-        <p className="font-mono text-[11px] text-muted">
+        <p className="text-[11px] text-muted">
           {data.facts.tools.length > 0
             ? t("worksIn", { tools: data.facts.tools.join(", ") })
             : t("worksInNone")}

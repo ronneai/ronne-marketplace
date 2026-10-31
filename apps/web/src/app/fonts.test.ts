@@ -6,7 +6,7 @@ const dir = new URL("./fonts/", import.meta.url);
 const readme = readFileSync(new URL("README.md", dir), "utf8");
 
 describe("self-hosted fonts", () => {
-  it.each(["manrope/Manrope-Variable.ttf", "ibm-plex-mono/IBMPlexMono-Var-Roman.woff2"])(
+  it.each(["inter/Inter-Variable-Latin.woff2", "ibm-plex-mono/IBMPlexMono-Var-Roman.woff2"])(
     "%s ships with its OFL text and matches the checksum in fonts/README.md",
     (file) => {
       const folder = file.split("/")[0];
@@ -24,6 +24,6 @@ describe("self-hosted fonts", () => {
     const loader = readFileSync(new URL("./fonts.ts", import.meta.url), "utf8");
     expect(loader).toContain("next/font/local");
     expect(loader).not.toMatch(/next\/font\/google|fonts\.googleapis|gstatic/);
-    expect(existsSync(new URL("manrope/OFL.txt", dir))).toBe(true);
+    expect(existsSync(new URL("inter/OFL.txt", dir))).toBe(true);
   });
 });

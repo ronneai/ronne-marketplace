@@ -76,7 +76,7 @@ export const MenuList = ({
       <nav aria-label={t("sidebar.main")} className="grid gap-3">
         {groupNav(items).map((group) => (
           <div key={group.id} className="grid gap-0.5">
-            <p className="px-3 pb-1 font-mono text-[11px] font-semibold uppercase tracking-wide text-muted">
+            <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wide text-muted">
               {t(`groups.${group.id}`)}
             </p>
             {group.items.map((item) =>
@@ -108,7 +108,7 @@ export const MenuList = ({
             <span className="truncate">{user.name}</span>
             {user.role !== "user" ? <Badge>{tCommon(`roles.${user.role}`)}</Badge> : null}
           </p>
-          <p className="truncate font-mono text-xs text-muted">{user.email}</p>
+          <p className="truncate text-xs text-muted">{user.email}</p>
         </div>
         <Link href="/account/password" onClick={onNavigate} className={row}>
           {t("sidebar.account")}

@@ -25,6 +25,9 @@ import {
 import { sidebarCookie } from "./sidebar-cookie";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 
+/** The product's second word beside the brand: its name, the same in every language. */
+const PRODUCT_SUFFIX = "/ marketplace";
+
 const focus = "outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus";
 
 /**
@@ -43,7 +46,7 @@ const LOGO_FOLDED = {
 };
 const LOGO_OPEN = { clipPath: "inset(0 0px 0 0)", transform: "translateX(0px)" };
 
-const link = `flex items-center rounded-control transition-[min-height,padding] duration-200 motion-reduce:transition-none text-sm text-muted hover:bg-canvas hover:text-fg aria-[current=page]:bg-tint aria-[current=page]:font-semibold aria-[current=page]:text-link ${focus}`;
+const link = `flex items-center rounded-control transition-[min-height,padding] duration-200 motion-reduce:transition-none type-nav text-muted hover:bg-canvas hover:text-fg aria-[current=page]:bg-tint aria-[current=page]:font-semibold aria-[current=page]:text-link ${focus}`;
 
 const menuItem = `block w-full rounded-control px-3 py-1.5 text-left text-sm text-fg hover:bg-tint ${focus}`;
 
@@ -197,6 +200,14 @@ export const Sidebar = ({
               className="h-[30px] w-auto max-w-none transition-[clip-path,transform] duration-200 ease-out motion-reduce:transition-none"
               style={folded ? LOGO_FOLDED : LOGO_OPEN}
             />
+            {/* The product's second word, in mono and grey, beside the brand while open (158); it fades as the rail folds.
+                Decorative: the link's name already says where it goes. */}
+            <span
+              aria-hidden="true"
+              className={`self-end overflow-hidden pb-[3px] font-mono text-xs leading-4 whitespace-nowrap text-muted/70 transition-[max-width,margin,opacity] duration-200 motion-reduce:transition-none ${folded ? "ml-0 max-w-0 opacity-0" : "ml-1.5 max-w-28"}`}
+            >
+              {PRODUCT_SUFFIX}
+            </span>
           </Link>
           <button
             type="button"
@@ -248,7 +259,7 @@ export const Sidebar = ({
           >
             <p
               aria-hidden={folded}
-              className={`overflow-hidden whitespace-nowrap px-3 font-mono text-[11px] font-semibold uppercase tracking-wide text-muted transition-[max-height,opacity,padding] duration-200 motion-reduce:transition-none ${folded ? "max-h-0 pb-0 opacity-0" : "max-h-8 pb-1"}`}
+              className={`overflow-hidden whitespace-nowrap px-3 type-group-label uppercase text-muted transition-[max-height,opacity,padding] duration-200 motion-reduce:transition-none ${folded ? "max-h-0 pb-0 opacity-0" : "max-h-8 pb-1"}`}
             >
               {t(`groups.${group.id}`)}
             </p>
@@ -291,7 +302,7 @@ export const Sidebar = ({
           >
             <div className="grid gap-0.5 border-b border-hairline px-3 pt-1.5 pb-2">
               <p className="truncate text-sm font-semibold text-fg">{user.name}</p>
-              <p className="truncate font-mono text-xs text-muted">{user.email}</p>
+              <p className="truncate text-xs text-muted">{user.email}</p>
             </div>
             <Link href="/account/password" className={menuItem}>
               {t("sidebar.account")}
@@ -313,7 +324,7 @@ export const Sidebar = ({
         {version ? (
           <p
             aria-hidden={folded}
-            className={`overflow-hidden px-1.5 font-mono text-xs whitespace-nowrap text-muted transition-[max-height,margin,opacity] duration-200 motion-reduce:transition-none ${folded ? "mt-0 max-h-0 opacity-0" : "mt-2 max-h-5"}`}
+            className={`overflow-hidden px-1.5 text-xs whitespace-nowrap text-muted transition-[max-height,margin,opacity] duration-200 motion-reduce:transition-none ${folded ? "mt-0 max-h-0 opacity-0" : "mt-2 max-h-5"}`}
           >
             {t("sidebar.version", { version })}
           </p>

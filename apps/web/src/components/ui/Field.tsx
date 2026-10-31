@@ -37,7 +37,7 @@ export const FieldError = ({ id, children }: { id: string; children?: ReactNode 
   if (!children) return null;
   return (
     <p id={id} role="alert" className="text-sm text-error-text">
-      <span className="font-mono text-xs font-semibold">{t("error")}</span> {children}
+      <span className="text-xs font-semibold">{t("error")}</span> {children}
     </p>
   );
 };
@@ -51,7 +51,7 @@ export const FieldWarning = ({ id, children }: { id: string; children?: ReactNod
   if (!children) return null;
   return (
     <p id={id} className="text-sm text-warning-text">
-      <span className="font-mono text-xs font-semibold">{t("warning")}</span> {children}
+      <span className="text-xs font-semibold">{t("warning")}</span> {children}
     </p>
   );
 };

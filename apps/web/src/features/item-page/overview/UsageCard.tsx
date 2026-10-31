@@ -87,13 +87,11 @@ const ToolBreakdown = ({ rows }: { rows: { key: string; count: number; share: nu
   const t = useTranslations("item.overview.usage");
   return (
     <div className="grid gap-2">
-      <h3 className="font-mono text-xs font-semibold tracking-wide text-muted uppercase">
-        {t("byTool")}
-      </h3>
+      <h3 className="text-xs font-semibold tracking-wide text-muted uppercase">{t("byTool")}</h3>
       {rows.length === 0 ? (
         <p className="text-sm text-muted">{t("none")}</p>
       ) : (
-        <ul className="grid gap-2 font-mono text-xs">
+        <ul className="tabular-nums grid gap-2 text-xs">
           {rows.map((row) => (
             <li key={row.key} className="grid gap-1">
               <div className="flex justify-between gap-2">
@@ -130,13 +128,11 @@ const Breakdown = ({
   const t = useTranslations("item.overview.usage");
   return (
     <div className="grid gap-2">
-      <h3 className="font-mono text-xs font-semibold tracking-wide text-muted uppercase">
-        {title}
-      </h3>
+      <h3 className="text-xs font-semibold tracking-wide text-muted uppercase">{title}</h3>
       {rows.length === 0 ? (
         <p className="text-sm text-muted">{t("none")}</p>
       ) : (
-        <ul className="grid gap-1.5 font-mono text-xs">
+        <ul className="tabular-nums grid gap-1.5 text-xs">
           {rows.map((row) => (
             <li
               key={row.label}
@@ -193,7 +189,7 @@ export const UsageBody = ({
     <div className="grid gap-4">
       {!usage.collecting ? <p className="text-sm text-muted">{t("stopped")}</p> : null}
       <div className="grid gap-2">
-        <h3 className="font-mono text-xs font-semibold tracking-wide text-muted uppercase">
+        <h3 className="text-xs font-semibold tracking-wide text-muted uppercase">
           {runs ? t("runsPerDay") : t("installsPerDay")}
         </h3>
         <DailyBars
@@ -203,7 +199,7 @@ export const UsageBody = ({
           }
           peak={usage.peak?.day ?? null}
         />
-        <div className="flex justify-between gap-2 font-mono text-xs text-muted">
+        <div className="tabular-nums flex justify-between gap-2 text-xs text-muted">
           <span>{shortDay(days[0]?.day ?? "", locale)}</span>
           <span>
             {usage.peak && usage.peak.count > 0
@@ -227,9 +223,9 @@ export const UsageBody = ({
               {usage.days.map((d) => (
                 <tr key={d.day}>
                   <Td>{shortDay(d.day, locale)}</Td>
-                  <Td className="font-mono text-xs">{format.number(d.runs)}</Td>
-                  <Td className="font-mono text-xs">{format.number(d.installs)}</Td>
-                  <Td className="font-mono text-xs">{format.number(d.removals)}</Td>
+                  <Td className="tabular-nums text-xs">{format.number(d.runs)}</Td>
+                  <Td className="tabular-nums text-xs">{format.number(d.installs)}</Td>
+                  <Td className="tabular-nums text-xs">{format.number(d.removals)}</Td>
                 </tr>
               ))}
             </tbody>

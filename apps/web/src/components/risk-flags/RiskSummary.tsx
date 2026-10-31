@@ -35,15 +35,13 @@ export const RiskSummary = ({
           // biome-ignore lint/suspicious/noArrayIndexKey: see above.
           <li key={i} className="flex flex-wrap items-baseline gap-x-2 text-fg">
             {flag.widening ? (
-              <span className="font-mono text-xs font-semibold text-warning-text">
-                {t("widens")}
-              </span>
+              <span className="text-xs font-semibold text-warning-text">{t("widens")}</span>
             ) : null}
             <span>
               <CodeText text={flag.message} />
             </span>
             {flag.file && !base ? (
-              <span className="font-mono text-xs text-muted">
+              <span className="text-xs text-muted">
                 {flag.file}
                 {flag.line ? `:${flag.line}` : ""}
               </span>
@@ -51,7 +49,7 @@ export const RiskSummary = ({
             {flag.file && base ? (
               <Link
                 href={`${base}?view=all&file=${encodeURIComponent(flag.file)}${flag.line ? `&line=${flag.line}` : ""}#files`}
-                className="font-mono text-xs text-muted underline underline-offset-2 hover:text-fg"
+                className="text-xs text-muted underline underline-offset-2 hover:text-fg"
               >
                 {flag.file}
                 {flag.line ? `:${flag.line}` : ""}

@@ -203,12 +203,12 @@ export const ReleaseResults = ({ results }: { results: ReleasedSubmission[] }) =
     <ul className="text-sm">
       {results.map((r) => (
         <li key={r.id} className="border-b border-hairline py-2.5 last:border-b-0">
-          <span className="mr-2 font-mono text-xs font-semibold">{t(`result.${r.result}`)}</span>
+          <span className="mr-2 text-xs font-semibold">{t(`result.${r.result}`)}</span>
           <Link href={`/submissions/${r.id}`} className="font-mono text-link hover:underline">
             {r.name ?? r.id}
           </Link>
           {r.result === "published" ? (
-            <span className="ml-2 font-mono text-xs text-muted">
+            <span className="ml-2 text-xs text-muted">
               {t("publishedAs", { version: r.version, tag: r.tag, sha: r.sha256.slice(0, 12) })}
             </span>
           ) : "reason" in r ? (

@@ -66,7 +66,7 @@ export const WorkspaceSwitcher = ({
           className={`grid min-w-0 flex-1 transition-[max-width,opacity] duration-200 motion-reduce:transition-none ${folded ? "max-w-0 opacity-0" : "max-w-64"}`}
         >
           <span className="truncate text-sm font-semibold">{chosen?.name ?? t("all")}</span>
-          <span className="truncate font-mono text-xs text-muted">
+          <span className="truncate text-xs text-muted">
             {chosen ? (chosen.personal ? t("personalKind") : t("kind")) : t("every")}
           </span>
         </span>
@@ -79,7 +79,7 @@ export const WorkspaceSwitcher = ({
       <div
         className={`absolute z-40 grid grid-cols-[minmax(0,1fr)] gap-0.5 rounded-panel border border-strong bg-surface p-1 ${folded ? "top-0 left-full ml-2 w-72" : "inset-x-0 top-full mt-1"}`}
       >
-        <p className="px-3 pt-1.5 pb-1 font-mono text-xs uppercase text-muted">{t("show")}</p>
+        <p className="px-3 pt-1.5 pb-1 text-xs uppercase text-muted">{t("show")}</p>
         <a
           href={chooseHref(null, here)}
           aria-current={chosen ? undefined : "true"}
@@ -98,7 +98,7 @@ export const WorkspaceSwitcher = ({
             >
               {mark(w.name === chosen?.name)}
               <span className="min-w-0 flex-1 truncate">{w.name}</span>
-              <span className="shrink-0 font-mono text-xs font-normal text-muted">
+              <span className="shrink-0 text-xs font-normal text-muted">
                 {w.personal ? t("personal") : tCommon(`roles.${w.role}`)}
               </span>
             </a>

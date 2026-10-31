@@ -13,7 +13,7 @@ const TONES = {
 export type BadgeTone = keyof typeof TONES;
 
 /**
- * A pill in the default font, Manrope 600 11px (design system 032; Manrope rather than IBM Plex
+ * A pill in the default font, Inter 500 12px (design system 032 and 158; Inter rather than IBM Plex
  * Mono since 2026-10-02, owner). `accent` is Deep teal with white text,
  * `muted` a soft fill, and `warning` and `error` amber and red on their subtle fills.
  */
@@ -25,7 +25,7 @@ export const Badge = ({
   return (
     <span
       className={cn(
-        "inline-flex h-5 items-center rounded-full px-2 whitespace-nowrap text-[11px] leading-none font-semibold",
+        "inline-flex h-5 items-center rounded-full px-2 whitespace-nowrap type-badge",
         TONES[tone],
         className,
       )}

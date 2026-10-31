@@ -41,9 +41,7 @@ export const ToastCard = ({
       )}
     >
       <p className="min-w-0 flex-1 py-1.5 break-words">
-        <span className={cn("mr-2 font-mono text-xs font-semibold", tone.text)}>
-          {t(`prefix.${kind}`)}
-        </span>
+        <span className={cn("mr-2 text-xs font-semibold", tone.text)}>{t(`prefix.${kind}`)}</span>
         {message}
       </p>
       <IconButton label={t("close")} onClick={onClose}>

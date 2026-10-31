@@ -12,7 +12,7 @@ import { Panel } from "@/components/ui/Panel";
 export const BottomBarDemo = () => (
   <>
     <Panel padding="lg" className="grid gap-3">
-      <h2 className="font-mono text-xs font-semibold text-muted">phone action bar (feature 067)</h2>
+      <h2 className="text-xs font-semibold text-muted">phone action bar (feature 067)</h2>
       <p className="text-sm text-muted">
         On a phone or tablet the bar at the bottom of the screen stays there while the page scrolls,
         and above the on-screen keyboard. From 1024px up the page shows its actions itself.

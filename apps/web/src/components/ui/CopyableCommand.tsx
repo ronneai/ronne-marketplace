@@ -44,18 +44,18 @@ export const CopyableCommand = ({
         {prompt ? <span className="text-muted select-none">$ </span> : null}
         {command}
       </code>
+      {/* Icon only (158). The label is the accessible name; the check says it's done, announced politely. */}
       <button
         type="button"
         onClick={copy}
-        className="touch-hit inline-flex h-7 shrink-0 items-center gap-1 rounded-control border border-hairline bg-surface px-2 font-mono text-xs text-muted hover:text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
+        aria-label={label ?? t("label")}
+        title={label ?? t("label")}
+        className={`touch-hit inline-flex h-7 shrink-0 items-center justify-center gap-1 rounded-control border border-hairline bg-surface text-xs text-muted hover:text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus ${state === "manual" ? "px-2" : "w-7"}`}
       >
         {state === "copied" ? <Check size={14} aria-hidden /> : <Copy size={14} aria-hidden />}
-        <span aria-live="polite">
-          {state === "copied"
-            ? t("done")
-            : state === "manual"
-              ? t("manual")
-              : (label?.toLowerCase() ?? t("label"))}
+        {/* Only when copying was blocked is there text to see: the person has to copy it themselves. */}
+        <span aria-live="polite" className={state === "manual" ? undefined : "sr-only"}>
+          {state === "copied" ? t("done") : state === "manual" ? t("manual") : ""}
         </span>
       </button>
     </div>

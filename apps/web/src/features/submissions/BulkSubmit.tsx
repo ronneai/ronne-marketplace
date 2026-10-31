@@ -148,10 +148,7 @@ export const ReadinessMark = ({ id, errors }: { id: string; errors: number }) =>
       {t("ready")}
     </Badge>
   ) : (
-    <Link
-      href={`/submissions/${id}`}
-      className="ml-2 font-mono text-xs text-warning-text hover:underline"
-    >
+    <Link href={`/submissions/${id}`} className="ml-2 text-xs text-warning-text hover:underline">
       {t("toFix", { count: errors })}
     </Link>
   );
@@ -167,7 +164,7 @@ export const BulkResults = ({ results }: { results: BulkResult[] }) => {
     <ul className="grid gap-2 text-sm">
       {results.map((r) => (
         <li key={r.id}>
-          <span className="mr-2 font-mono text-xs font-semibold">{t(`outcome.${r.result}`)}</span>
+          <span className="mr-2 text-xs font-semibold">{t(`outcome.${r.result}`)}</span>
           <Link href={`/submissions/${r.id}`} className="font-mono text-link hover:underline">
             {r.name}
           </Link>

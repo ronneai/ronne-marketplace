@@ -91,7 +91,7 @@ export const UserPage = ({
         title={user.name}
         description={
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <span className="font-mono text-[13px] break-all">{user.email}</span>
+            <span className="text-[13px] break-all">{user.email}</span>
             {user.role === "root" ? (
               <Badge tone="accent">{roles("root")}</Badge>
             ) : (
@@ -117,7 +117,7 @@ export const UserPage = ({
         <Section id="user-account" title={u("sections.account")}>
           <Facts>
             <Fact label={u("facts.email")}>
-              <span className="font-mono text-[13px]">{user.email}</span>
+              <span className="text-[13px]">{user.email}</span>
             </Fact>
             <Fact label={u("facts.name")}>{user.name}</Fact>
             <Fact label={u("facts.role")}>{roles(user.role)}</Fact>

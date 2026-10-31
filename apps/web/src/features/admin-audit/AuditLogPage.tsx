@@ -106,7 +106,6 @@ const columns = (
     header: t("columns.time"),
     sort: "time",
     className: "w-52",
-    mono: true,
     truncate: true,
     render: (event) => <LocalTime value={event.createdAt} precision="minute" />,
   },
@@ -117,7 +116,7 @@ const columns = (
     truncate: true,
     hideOnMobile: true,
     render: (event) => (
-      <span title={actorLabel(event)} className="font-mono text-[13px]">
+      <span title={actorLabel(event)} className="text-[13px]">
         {actorLabel(event)}
       </span>
     ),

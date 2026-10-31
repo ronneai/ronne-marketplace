@@ -304,7 +304,6 @@ export const SubmissionsTable = ({
       header: t("lastChange"),
       sort: "updated",
       className: "w-48",
-      mono: true,
       truncate: true,
       hideOnMobile: true,
       render: (row) => <LocalTime value={row.updatedAt} />,

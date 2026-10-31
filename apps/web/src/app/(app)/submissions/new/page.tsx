@@ -60,7 +60,7 @@ const NewItem = async () => {
   return (
     <>
       <nav aria-label={crumbs("label")} className="pb-3">
-        <ol className="flex items-center gap-2 font-mono text-xs text-muted">
+        <ol className="flex items-center gap-2 text-xs text-muted">
           <li>
             <Link
               href="/submissions"

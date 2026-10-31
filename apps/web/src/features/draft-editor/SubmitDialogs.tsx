@@ -78,7 +78,7 @@ export const SubmitOutcome = ({
   const names = useNames();
   return (
     <p role="status" className="text-sm text-fg">
-      <span className="mr-2 font-mono text-xs font-semibold">{t("ok")}</span>
+      <span className="mr-2 text-xs font-semibold">{t("ok")}</span>
       {t(personal ? "submit.outcomePersonal" : "submit.outcome", {
         item: itemName,
         names: names(sent),
@@ -217,7 +217,7 @@ export const SubmitDialog = ({
           ) : (
             <div className="grid gap-2">
               <p role="status" className="text-sm text-fg">
-                <span className="mr-2 font-mono text-xs font-semibold">{t("ok")}</span>
+                <span className="mr-2 text-xs font-semibold">{t("ok")}</span>
                 {t("submit.allPassed")}
               </p>
               {result.issues.length > 0 ? <IssueList issues={result.issues} /> : null}

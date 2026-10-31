@@ -596,6 +596,20 @@ describe("AppShell", () => {
       expect(sheet(html)).toMatch(/aria-current="page"[^>]*>(?:<svg[\s\S]*?<\/svg>)?Audit log</);
     });
 
+    it("says '/ marketplace' beside the logo, in mono and muted grey (158)", () => {
+      const open = shell("user");
+      expect(open).toMatch(/text-muted\/70[^>]*ml-1\.5 max-w-28[^>]*>\/ marketplace</);
+      expect(open).toContain("font-mono");
+    });
+
+    it("shows 99 as it is and anything above as 99+ (158)", () => {
+      expect(shell("moderator", { "/reviews": 99 })).toMatch(/>99<span class="sr-only"> waiting/);
+      expect(shell("moderator", { "/reviews": 100 })).toMatch(
+        />99\+<span class="sr-only"> waiting/,
+      );
+      expect(shell("moderator", { "/reviews": 100 })).not.toContain(">100<");
+    });
+
     it("shows no count on the Menu button when nothing waits", () => {
       expect(shell("moderator", { "/reviews": 0 })).not.toContain("waiting");
     });

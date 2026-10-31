@@ -41,7 +41,7 @@ export const StepList = ({ steps }: { steps: Record<StepName, StepResult> }) => 
               {step.detail ? (
                 <span
                   className={cn(
-                    "font-mono text-xs",
+                    "text-xs",
                     step.status === "failed" ? "text-error-text" : "text-muted",
                   )}
                 >

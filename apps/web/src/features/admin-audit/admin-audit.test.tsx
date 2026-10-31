@@ -186,7 +186,7 @@ describe("AuditLogPage (060)", () => {
       ">moderator<",
       "Raw JSON",
       "Open the user",
-      "copy json",
+      'aria-label="Copy JSON"',
     ]) {
       expect(html, text).toContain(text);
     }
