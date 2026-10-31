@@ -15,7 +15,23 @@ test("the sidebar folds and stays folded; the switcher opens a workspace", async
 
   const aside = sidebar(page);
   const nav = aside.getByRole("navigation", { name: "Main" });
-  await expect(page.getByRole("banner")).toBeHidden();
+  // The header is the top bar from lg (139): over the content, never over the sidebar, with the
+  // bell, and without the logo and the Menu that the sidebar replaces.
+  const bar = page.getByRole("banner");
+  await expect(bar).toBeVisible();
+  await expect(bar.getByRole("button", { name: /^Notifications/ })).toBeVisible();
+  await expect(bar.getByRole("button", { name: /^Menu/ })).toBeHidden();
+  await expect(bar.getByRole("link", { name: "Ronne AI" })).toBeHidden();
+  const [barBox, asideBox] = [await bar.boundingBox(), await aside.boundingBox()];
+  expect(barBox?.x).toBeGreaterThanOrEqual((asideBox?.x ?? 0) + (asideBox?.width ?? 0) - 1);
+  // The fold button sticks out of the sidebar, half over the page where the bar is: it must be the
+  // top element there, not hidden under the bar (owner, 2026-10-31).
+  const foldOnTop = () =>
+    aside.getByRole("button", { name: /fold the sidebar/i }).evaluate((button) => {
+      const box = button.getBoundingClientRect();
+      return button.contains(document.elementFromPoint(box.right - 2, box.top + box.height / 2));
+    });
+  expect(await foldOnTop()).toBe(true);
   await expect(aside.getByText("Discover", { exact: true })).toBeVisible();
   await expect(aside.getByRole("link", { name: "Propose item" })).toHaveAttribute(
     "href",

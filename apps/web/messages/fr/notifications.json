@@ -34,5 +34,17 @@
   "feedback": {
     "new": "{sender} a envoyé des commentaires : {feedbackKind, select, problem {un problème} idea {une idée} question {une question} praise {des félicitations} other {un commentaire}}."
   },
-  "fallback": "Il y a du nouveau pour vous."
+  "fallback": "Il y a du nouveau pour vous.",
+  "ui": {
+    "title": "Notifications",
+    "bell": "Notifications, {count, plural, =0 {aucune non lue} one {# non lue} other {# non lues}}",
+    "unread": "{count, plural, one {# non lue} other {# non lues}}",
+    "markAll": "Tout marquer comme lu",
+    "seeAll": "Voir toutes les notifications",
+    "empty": "Vous êtes à jour.",
+    "loading": "Chargement…",
+    "error": "Impossible de charger les notifications.",
+    "retry": "Réessayer",
+    "unreadMark": "Non lue"
+  }
 }

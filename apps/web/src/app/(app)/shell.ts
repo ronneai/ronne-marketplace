@@ -13,6 +13,7 @@ import { parseTheme, THEME_COOKIE } from "@/features/theme/theme";
 import { countNewFeedback } from "@/server/domains/feedback/actions/feedback";
 import { requireUser } from "@/server/domains/identity/actions/session";
 import { can, canInSomeShared } from "@/server/domains/identity/models/permissions";
+import { unreadCount } from "@/server/domains/notifications/actions/notifications";
 import { countNeedsReview } from "@/server/domains/submissions/actions/reviews";
 import {
   countItemMovesToAnswer,
@@ -55,6 +56,8 @@ export const loadShell = cache(async () => {
         : 0) +
       (await countItemMovesToAnswer(request))
     : 0;
+  // The bell's badge (139): what they haven't read and may still see.
+  const unread = (await unreadCount(request)) ?? 0;
   // The switcher lists the workspaces they're a member of: personal first, then global, then by
   // name (119). Public ones they could join stay on the Workspaces page.
   const workspaces: ShellWorkspace[] = (await myWorkspacesAs(user)).flatMap((w) =>
@@ -66,6 +69,7 @@ export const loadShell = cache(async () => {
     folded,
     workspaces,
     current: currentFrom(jar.get(WORKSPACE_COOKIE)?.value, workspaces),
+    unread,
     navCounts: {
       "/reviews": needsReview,
       "/workspaces/requests": toAnswer,

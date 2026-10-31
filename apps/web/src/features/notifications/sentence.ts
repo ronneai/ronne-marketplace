@@ -8,7 +8,10 @@ export type SentenceValues = Record<string, string | number>;
  * did it: their name now, or `system` (the message "The system") when nobody did. The sentence is
  * drawn in the reader's language where it is shown, so a translation fixes old notifications too.
  */
-export const sentenceValues = (view: NotificationView, system: string): SentenceValues => ({
+/** What a sentence needs of a notification: its kind, parameters and who did it. */
+export type SentenceSource = Pick<NotificationView, "kind" | "params" | "actor">;
+
+export const sentenceValues = (view: SentenceSource, system: string): SentenceValues => ({
   ...Object.fromEntries(
     Object.entries(view.params).filter(
       (entry): entry is [string, string | number] =>
@@ -28,7 +31,7 @@ export type Translate = (key: string, values: SentenceValues) => string;
  */
 export const renderSentence = (
   t: Translate,
-  view: NotificationView,
+  view: SentenceSource,
   system: string,
   fallback: string,
 ): string => {

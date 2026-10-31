@@ -32,7 +32,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* db tests cover a person removed from a private workspace (not shown, not counted),
     a deleted subject (no link) and an erased actor; messages pass the parity test.
 
-- [ ] **5. The top bar, the bell, the popover and the count.**
+- [x] **5. The top bar, the bell, the popover and the count.**
   - A top bar fixed over the content area from `lg` (not over the sidebar; the sidebar's height is
     unchanged), the bell with its badge in it and in the phone header, the count in `loadShell`,
     the popover (flat, per the spec's Design note), the `/notifications/count` route (session
@@ -78,3 +78,10 @@ goes into `SPEC.md` instead.
   (`features/notifications/href.ts`); sentences are the `notifications` messages, drawn with
   `renderSentence`, which falls back to a plain line rather than show a message key. The count and
   the popover have accepted limits (spec).
+- **Task 5:** the header is one sticky bar for every width (logo and Menu hidden from `lg`, one bell,
+  one poller); the sidebar is `z-40` over it so the fold button, half over the page, isn't covered.
+  `Popover` gained `bare` (no pointer, no default layout or tone). The phone panel is the shared
+  `Dialog`, which carries the title, so the panel drops its own heading there. New route segments
+  (`notifications`, `count`, `latest`) are in `telemetry/sanitize.ts`. Marking read is a server
+  action; opening a row marks it read (not without JavaScript: the popover needs it, and the
+  page, task 6, marks with forms).

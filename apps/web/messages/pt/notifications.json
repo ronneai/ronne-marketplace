@@ -34,5 +34,17 @@
   "feedback": {
     "new": "{sender} enviou feedback: {feedbackKind, select, problem {um problema} idea {uma ideia} question {uma dúvida} praise {um elogio} other {um comentário}}."
   },
-  "fallback": "Há uma novidade para você."
+  "fallback": "Há uma novidade para você.",
+  "ui": {
+    "title": "Notificações",
+    "bell": "Notificações, {count, plural, =0 {nenhuma não lida} one {# não lida} other {# não lidas}}",
+    "unread": "{count, plural, one {# não lida} other {# não lidas}}",
+    "markAll": "Marcar todas como lidas",
+    "seeAll": "Ver todas as notificações",
+    "empty": "Você não tem nada novo.",
+    "loading": "Carregando…",
+    "error": "Não foi possível carregar as notificações.",
+    "retry": "Tentar de novo",
+    "unreadMark": "Não lida"
+  }
 }

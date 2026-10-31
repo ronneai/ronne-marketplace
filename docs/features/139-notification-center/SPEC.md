@@ -13,12 +13,14 @@ it, and a page with all of them. In the app only; email and webhooks stay out of
 **In:**
 - **A top bar** (owner, 2026-10-31, from the mock `stitch_fixed_notification_center_bar`): a slim bar
   fixed at the top of the content area, to the right of the sidebar (119), never over it; the
-  sidebar keeps its full height. From `lg`, the bar sticks to the top while the page scrolls and
-  holds the bell at its right; 143 later puts global search at its left. Below `lg` the phone header
-  (066) already is the top bar: the bell sits in it, beside the Menu button. Pages without the
-  sidebar (signed out, setup) have no bell.
-- **A bell** in that bar, with the unread count as a badge ("9+" past nine, as `NavCount` does it;
-  the count read out in the button's name). The sidebar and the Menu sheet get no bell.
+  sidebar keeps its full height and sits above the bar (`z-40` over `z-30`), so its fold button,
+  which sticks out half over the page, is never hidden under it (owner, 2026-10-31). It is one
+  header for every width: from `lg` it sticks to the top while the page scrolls and holds the bell
+  at its right (143 later puts global search at its left), and the logo and the Menu, which the
+  sidebar replaces, are hidden; below `lg` it is the phone header (066) with the bell beside the
+  Menu button. Pages without the sidebar (signed out, setup) have no bell.
+- **A bell** in that bar, with the unread count as a badge ("99+" past ninety-nine, as `NavCount`
+  does it; the count read out in the button's name). The sidebar and the Menu sheet get no bell.
 - **The short list**, a popover under the bell (`Popover`, full screen below `sm` as dialogs are,
   067), flat with a border, no shadow: a header with the title, an unread pill and "Mark all as
   read"; the ten latest, unread ones with a dot and a stronger title, read ones dimmed; each row is
@@ -95,7 +97,10 @@ can see a count or a list short of the truth until they read or purge the hidden
 **The count.** `loadShell` (`app/(app)/shell.ts`) adds the unread count to its result: one indexed
 query when nothing is unread, and otherwise the newest 100 unread rows with one batched query per
 kind of subject, to drop what the reader can't see. A client component asks `GET /notifications/count` (a route handler of the web app,
-not `/api/v1`, session only) every 60 seconds while `document.visibilityState` is `visible`.
+not `/api/v1`, session only, never cached) on every change of page and every 60 seconds while
+`document.visibilityState` is `visible`, and at once when the page becomes visible again. The
+popover loads its ten from `GET /notifications/latest` (the same kind of route) each time it opens;
+marking read is a server action. A signed-out request gets 401 and nothing else.
 
 ## Edge cases
 

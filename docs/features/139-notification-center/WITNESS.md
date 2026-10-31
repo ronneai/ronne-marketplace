@@ -177,3 +177,20 @@ Witnessed: 2026-10-31, by a fresh agent (adversarial re-check). Commit: 249044f7
 
 **Overall:** met. Noted, not blocking: a private workspace deleted later leaves its old notifications visible, without links, with the names they carry; rows with no stored workspaces (written before 0042) keep showing once their subject is deleted.
 
+## Task 5 — The top bar, the bell, the popover and the count
+
+Witnessed: 2026-10-31, by a fresh agent (blind). Commit: b83f4f87 plus the uncommitted work. Machine: macOS (Darwin), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The header is one sticky top bar from `lg`, to the right of the sidebar and never over it; the logo and Menu are hidden from `lg`; the bell shows at every width; one bell, so one poller | no | confirmed | `AppShell.tsx`; `sidebar.e2e.ts` on Chromium measures the bar against the sidebar |
+| 2 | The sidebar is above the top bar, so the fold button (half over the page) is visible (owner, 2026-10-31), and the check can fail | no | confirmed | `Sidebar.tsx` `z-40` over the header's `z-30`; mutation: removing `z-40` and rebuilding made `sidebar.e2e.ts` fail ("Expected: true, Received: false"); restored (md5 `b3b72ea1…` before and after), rebuilt, passes |
+| 3 | The bell: "99+", none at zero, the count in its name, polling every minute only while visible, a refresh on a change of page but not on the first render, the latest loaded on open, mark all and mark one update the badge, a row without a link isn't a link, a row it can't word shows the fallback | no | confirmed | `vitest run src/features/notifications src/components/app-shell "src/app/(app)"` → 15 files, 132 tests |
+| 4 | The routes are session only (401 signed out) and never cached; the actions touch only the person's own rows | no | confirmed | `routes.test.ts`; `notifications/actions` db test, 6 tests |
+| 5 | `loadShell` returns `unread` and the layout passes it | no | confirmed | `shell.ts`, `layout.tsx` |
+| 6 | A request for changes reaches the author's bell; the phone sweep passes; the bell's phone checks pass on all three device projects | no | confirmed | `review.e2e.ts` (Chromium); `mobile-sweep.mobile.e2e.ts --project phone` 15 passed; `notifications.mobile.e2e.ts` on phone, phone-webkit, tablet |
+| 7 | Lint, typecheck and messages pass | no | confirmed | 42 existing warnings, no errors; `src/i18n` 381 tests |
+| 8 | The panel is flat, with tokens only | no | confirmed | no `shadow`, hex or `rgb(` in the new files |
+
+**Overall:** met. Noted: the geometry of "the bar not overlapping the sidebar" is checked in the e2e (the unit test checks order and classes); the action db tests were also run by the implementer on PostgreSQL, MySQL and MariaDB (6 tests each).
+

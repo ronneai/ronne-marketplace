@@ -67,6 +67,19 @@ test("a moderator reviews a hook, the author publishes it, and another item depe
   // The page without its tab: a decision opens the Conversation tab (137).
   const reviewUrl = moderator.url().split("?")[0] ?? "";
 
+  // The author hears of it (139): the bell in the top bar counts it, its panel words it, and
+  // opening it leads to the submission and marks it read.
+  await author.reload();
+  const bar = author.getByRole("banner");
+  const bell = bar.getByRole("button", { name: "Notifications, 1 unread" });
+  await expect(bell).toBeVisible();
+  await bell.click();
+  const panel = author.getByRole("dialog", { name: "Notifications, 1 unread" });
+  await expect(panel).toContainText(`Mo Moderator requested changes to @${E2E_SCOPE}/fmt-hook.`);
+  await panel.getByRole("link", { name: /requested changes to/ }).click();
+  await expect(author).toHaveURL(submissionUrl);
+  await expect(bar.getByRole("button", { name: "Notifications, none unread" })).toBeVisible();
+
   // The author reads it, edits the script, and resubmits.
   await author.goto(submissionUrl);
   // At the top of the page (058), and in the conversation below.

@@ -41,6 +41,7 @@ export const Popover = ({
   tone = "default",
   placement = "bottom-start",
   maxWidth = 360,
+  bare = false,
   children,
 }: {
   /** The button's accessible name, and the popover's. */
@@ -52,6 +53,11 @@ export const Popover = ({
   tone?: Tone;
   placement?: Placement;
   maxWidth?: number;
+  /**
+   * A panel that is a surface of its own (139): no pointer to the button, and none of the default
+   * layout, padding or tone: `className` says all of it.
+   */
+  bare?: boolean;
   children: ReactNode | ((close: () => void) => ReactNode);
 }) => {
   const [open, setOpen] = useState(false);
@@ -73,7 +79,7 @@ export const Popover = ({
           elements.floating.style.maxHeight = `${Math.max(120, availableHeight)}px`;
         },
       }),
-      arrow({ element: arrowRef }),
+      ...(bare ? [] : [arrow({ element: arrowRef })]),
     ],
   });
   const { getReferenceProps, getFloatingProps } = useInteractions([
@@ -104,19 +110,22 @@ export const Popover = ({
             aria-label={label}
             {...getFloatingProps()}
             className={cn(
-              "z-50 grid w-max gap-2 overflow-y-auto rounded-control border p-3 font-sans text-xs font-medium text-fg",
-              TONES[tone].surface,
+              "z-50 overflow-y-auto rounded-control border font-sans text-fg",
+              !bare && "grid w-max gap-2 p-3 text-xs font-medium",
+              !bare && TONES[tone].surface,
               className,
             )}
           >
-            <FloatingArrow
-              ref={arrowRef}
-              context={context}
-              width={12}
-              height={6}
-              strokeWidth={1}
-              className={TONES[tone].arrow}
-            />
+            {bare ? null : (
+              <FloatingArrow
+                ref={arrowRef}
+                context={context}
+                width={12}
+                height={6}
+                strokeWidth={1}
+                className={TONES[tone].arrow}
+              />
+            )}
             {typeof children === "function" ? children(() => setOpen(false)) : children}
           </div>
         </FloatingFocusManager>

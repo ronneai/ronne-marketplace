@@ -34,5 +34,17 @@
   "feedback": {
     "new": "{sender} sent feedback: {feedbackKind, select, problem {a problem} idea {an idea} question {a question} praise {praise} other {a comment}}."
   },
-  "fallback": "There is an update for you."
+  "fallback": "There is an update for you.",
+  "ui": {
+    "title": "Notifications",
+    "bell": "Notifications, {count, plural, =0 {none unread} one {# unread} other {# unread}}",
+    "unread": "{count, plural, one {# unread} other {# unread}}",
+    "markAll": "Mark all as read",
+    "seeAll": "See all notifications",
+    "empty": "You’re all caught up.",
+    "loading": "Loading…",
+    "error": "Couldn’t load notifications.",
+    "retry": "Try again",
+    "unreadMark": "Unread"
+  }
 }

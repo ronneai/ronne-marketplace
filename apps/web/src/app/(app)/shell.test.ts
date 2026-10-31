@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const session = vi.hoisted(() => ({ requireUser: vi.fn() }));
 const reviews = vi.hoisted(() => ({ countNeedsReview: vi.fn() }));
 const feedback = vi.hoisted(() => ({ countNewFeedback: vi.fn() }));
+const notifications = vi.hoisted(() => ({ unreadCount: vi.fn() }));
 const workspaces = vi.hoisted(() => ({
   requestsToAnswer: vi.fn(),
   countMovesToAnswer: vi.fn(),
@@ -16,6 +17,7 @@ const cookie = vi.hoisted(() => ({
 vi.mock("@/server/domains/identity/actions/session", () => session);
 vi.mock("@/server/domains/submissions/actions/reviews", () => reviews);
 vi.mock("@/server/domains/feedback/actions/feedback", () => feedback);
+vi.mock("@/server/domains/notifications/actions/notifications", () => notifications);
 vi.mock("@/server/domains/workspaces/actions/workspaces", () => workspaces);
 vi.mock("next/headers", () => ({
   cookies: async () => ({
@@ -58,9 +60,19 @@ beforeEach(() => {
   workspaces.countMovesToAnswer.mockResolvedValue(3);
   workspaces.countItemMovesToAnswer.mockResolvedValue(0);
   workspaces.myWorkspacesAs.mockResolvedValue([]);
+  notifications.unreadCount.mockResolvedValue(0);
   cookie.value = undefined;
   cookie.workspace = undefined;
   request.path = "/";
+});
+
+// The bell's badge (139): what the person hasn't read and may still see.
+describe("loadShell's unread notifications", () => {
+  it("gives the unread count, and none when nobody can be counted", async () => {
+    session.requireUser.mockResolvedValue(user({ global: "user" }));
+    notifications.unreadCount.mockResolvedValue(7);
+    expect((await loadShell()).unread).toBe(7);
+  });
 });
 
 // The nav counts (014, 094): each counted only for someone who can act on it.
