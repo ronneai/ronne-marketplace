@@ -8,12 +8,22 @@ export const ACCOUNT_TABS = [
   { id: "language", href: "/account/language" },
 ] as const;
 
-export const AccountTabs = ({ current }: { current: (typeof ACCOUNT_TABS)[number]["id"] }) => {
+export const AccountTabs = ({
+  current,
+  language = true,
+}: {
+  current: (typeof ACCOUNT_TABS)[number]["id"];
+  /** Whether the Language tab shows: not while root has turned choosing off (141). */
+  language?: boolean;
+}) => {
   const t = useTranslations("account.tabs");
   return (
     <TabLinks
       label={t("label")}
-      tabs={ACCOUNT_TABS.map((tab) => ({ ...tab, label: t(tab.id) }))}
+      tabs={ACCOUNT_TABS.filter((tab) => language || tab.id !== "language").map((tab) => ({
+        ...tab,
+        label: t(tab.id),
+      }))}
       current={current}
     />
   );

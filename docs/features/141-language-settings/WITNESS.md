@@ -69,3 +69,34 @@ Witnessed: 2026-10-31, by a fresh agent (blind). Commit: 647b1428 plus the uncom
 | 11 | The tests pass on SQLite and the three servers | no | confirmed | 645 unit tests; 7 db tests; 11 on each server |
 
 **Overall:** met.
+
+
+## Task 4 — What hides when choosing is off
+
+Witnessed: 2026-11-01, by a fresh agent (blind). Commit: 2b08216d plus the uncommitted diff. Machine: macOS (Darwin), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `LanguageSwitch` shows nothing with fewer than two languages and lists only the offered ones | no | confirmed | `LanguageSwitch.tsx`; `language-switch.test.tsx` |
+| 2 | `AuthShell` drops the whole header when choosing is off and passes `languages` to the switch | no | confirmed | always rendering the header fails 2 tests |
+| 3 | Sign-in, two-factor and setup pass `requestChoosableLocales()` to the shell | no | confirmed | read; the e2e saw no `/language` links on sign-in |
+| 4 | When the settings can't be read every language shows | no | confirmed | `requestChoosableLocales` returns all languages for a null policy; read, not run against a down database |
+| 5 | Account › Language is a 404 with choosing off or one language, and the tab is hidden on Password and Security | no | confirmed | removing `notFound` fails 2 tests; the tab filter fails 1; the e2e saw the 404 |
+| 6 | A saved language that isn't offered is not changed; the form shows Automatic with the note, in three languages | no | confirmed | `page.test.tsx`; dropping the note fails it |
+| 7 | The cookie and saved locale are ignored when not offered or with choosing off, never rewritten; `<html lang>` follows | no | confirmed | `locale.ts`; the e2e with a pt-BR browser saw `lang="fr"` |
+| 8 | Component tests cover both states | no | confirmed | 93 files, 1039 tests |
+| 9 | The e2e turns choosing off with French as the default and sees sign-in and Account in French with no language links | no | confirmed | `playwright test e2e/language-settings.e2e.ts --project chromium` → 1 passed |
+| 10 | `requestChoosableLocales` always returning all languages is caught | no | can't check here | the scratch copy could not load core and the e2e needed a rebuild |
+
+**Overall:** not met: row 10.
+
+### Re-check
+
+Witnessed: 2026-11-01, by a fresh agent (blind, row 10). Commit: 2b08216d plus the uncommitted diff. Machine: macOS (Darwin), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 10 | The tests for `requestChoosableLocales` fail if it always returns all languages, drops the `choosing` check, or returns [] for a null policy | yes | confirmed | 12 passed; in a scratch copy: always `LOCALES` fails 3, no `choosing()` fails 2, `[]` for null fails 1 |
+| 11 | The settings forms' tests still pass after the checkbox markup change | yes | confirmed | `src/features/admin-settings` → 14 files, 210 tests |
+
+**Overall:** met.

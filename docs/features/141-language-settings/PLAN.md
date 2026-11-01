@@ -27,7 +27,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* component tests cover the default's locked box, the switch hiding the list and the
     "reads as off" note; a db test covers the audit metadata.
 
-- [ ] **4. What hides when choosing is off.**
+- [x] **4. What hides when choosing is off.**
   - Account › Language, `LanguageSwitch` on sign-in, two-factor and setup; the note for a saved
     language no longer offered.
   - *Done when:* component tests cover both states; an e2e test turns choosing off with French as

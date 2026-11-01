@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { AuthShell } from "@/components/auth-shell/AuthShell";
 import { TwoFactorStep } from "@/features/sign-in/TwoFactorStep";
-import { currentPath } from "@/i18n/server";
+import { currentPath, requestChoosableLocales } from "@/i18n/server";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
 import { safeNextPath } from "@/server/domains/identity/models/route-guard";
 import { requestHeaders } from "@/server/http/request-headers";
@@ -30,7 +30,7 @@ const TwoFactorSignIn = async ({
   if (await getCurrentUser(await requestHeaders())) redirect(next);
   const t = await getTranslations("auth.twoFactor");
   return (
-    <AuthShell here={await currentPath()}>
+    <AuthShell here={await currentPath()} languages={await requestChoosableLocales()}>
       <div className="grid gap-1">
         <h1 className="text-[22px] leading-7 font-semibold tracking-[-0.015em] text-fg">
           {t("title")}

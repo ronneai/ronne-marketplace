@@ -23,7 +23,7 @@ vi.mock("react", async (importOriginal) => ({
   cache: <T>(fn: T) => fn,
 }));
 
-import { requestLocale } from "./server";
+import { requestChoosableLocales, requestLocale } from "./server";
 
 beforeEach(() => {
   session.getCurrentUser.mockReset();
@@ -110,5 +110,35 @@ describe("requestLocale with the instance's settings (141)", () => {
     session.getCurrentUser.mockResolvedValue(null);
     request.acceptLanguage = "ja";
     expect(await requestLocale()).toBe("en");
+  });
+});
+
+describe("requestChoosableLocales (141)", () => {
+  it("is none while choosing is off, so the switches hide", async () => {
+    language.languagePolicy.mockResolvedValue({
+      default: "fr",
+      choice: false,
+      offered: ["en", "pt", "fr"],
+    });
+    expect(await requestChoosableLocales()).toEqual([]);
+  });
+
+  it("is the offered languages while choosing is on", async () => {
+    language.languagePolicy.mockResolvedValue({
+      default: "fr",
+      choice: true,
+      offered: ["en", "fr"],
+    });
+    expect(await requestChoosableLocales()).toEqual(["en", "fr"]);
+  });
+
+  it("is none when only the default is offered: there is nothing to choose", async () => {
+    language.languagePolicy.mockResolvedValue({ default: "pt", choice: true, offered: ["pt"] });
+    expect(await requestChoosableLocales()).toEqual([]);
+  });
+
+  it("is every language when the settings can't be read (before setup, database down)", async () => {
+    language.languagePolicy.mockRejectedValue(new Error("database is down"));
+    expect(await requestChoosableLocales()).toEqual(["en", "pt", "fr"]);
   });
 });

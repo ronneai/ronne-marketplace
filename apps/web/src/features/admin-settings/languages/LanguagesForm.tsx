@@ -76,10 +76,7 @@ export const LanguagesForm = ({
         </p>
       </div>
       <div className="grid gap-1">
-        <label
-          htmlFor="language-choice"
-          className="flex items-center gap-2 text-sm font-semibold text-fg"
-        >
+        <label htmlFor="language-choice" className="flex items-start gap-2 text-sm text-fg">
           <input
             id="language-choice"
             name="choice"
@@ -87,17 +84,19 @@ export const LanguagesForm = ({
             checked={choice}
             onChange={(event) => setChoice(event.target.checked)}
             aria-describedby="language-choice-hint"
-            className="size-4 pointer-coarse:size-6"
+            className="mt-0.5 size-4 accent-(--accent)"
           />
-          {t("choice")}
+          <span className="grid gap-0.5">
+            <span className="font-semibold">{t("choice")}</span>
+            <span id="language-choice-hint" className="text-muted">
+              {t("choiceHint")}
+            </span>
+          </span>
         </label>
-        <p id="language-choice-hint" className="text-xs text-muted">
-          {t("choiceHint")}
-        </p>
       </div>
       <fieldset hidden={!choice} className="grid gap-2" aria-describedby="language-offered-hint">
-        <legend className="text-sm font-semibold text-fg">{t("offered")}</legend>
-        <p id="language-offered-hint" className="text-xs text-muted">
+        <legend className="mb-1 text-sm font-semibold text-fg">{t("offered")}</legend>
+        <p id="language-offered-hint" className="text-sm text-muted">
           {t("offeredHint")}
         </p>
         {LOCALES.map((locale) => {
@@ -111,7 +110,7 @@ export const LanguagesForm = ({
                 checked={locked || offered.includes(locale)}
                 disabled={locked}
                 onChange={(event) => toggle(locale, event.target.checked)}
-                className="size-4 pointer-coarse:size-6"
+                className="size-4 accent-(--accent)"
               />
               {LOCALE_NAMES[locale]}
               {locked ? <span className="text-xs text-muted">{t("locked")}</span> : null}

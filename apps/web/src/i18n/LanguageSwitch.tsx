@@ -12,10 +12,18 @@ import { LANGUAGE_PATH, safeBackPath } from "@/server/domains/identity/models/ro
  * can find theirs. A plain `<a>`, not Next's `Link`: the route sets a cookie, so it must never be
  * prefetched.
  */
-export const LanguageSwitch = ({ here = "/" }: { here?: string }) => {
+export const LanguageSwitch = ({
+  here = "/",
+  languages = LOCALES,
+}: {
+  here?: string;
+  /** The languages offered (141); fewer than two and there is nothing to switch, so nothing shows. */
+  languages?: readonly Locale[];
+}) => {
   const t = useTranslations("common.languageSwitch");
   const current = useLocale() as Locale;
   const back = safeBackPath(here);
+  if (languages.length < 2) return null;
   return (
     <nav aria-label={t("label")} className="text-sm">
       <Disclosure
@@ -30,7 +38,7 @@ export const LanguageSwitch = ({ here = "/" }: { here?: string }) => {
         }
       >
         <ul className="grid">
-          {LOCALES.map((locale) => (
+          {languages.map((locale) => (
             <li key={locale}>
               <a
                 href={`${LANGUAGE_PATH}?set=${locale}&next=${encodeURIComponent(back)}`}

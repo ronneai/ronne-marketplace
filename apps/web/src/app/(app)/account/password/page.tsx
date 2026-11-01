@@ -6,6 +6,7 @@ import { accountMetadata } from "@/features/account/metadata";
 import { YourDataSection } from "@/features/account/YourDataSection";
 import { AccountTabs } from "@/features/account-security/AccountTabs";
 import { ShowAgainSection } from "@/features/getting-started/ShowAgainSection";
+import { requestChoosableLocales } from "@/i18n/server";
 import { passwordChangeRequired } from "@/server/domains/identity/actions/session";
 import { myLastExport } from "@/server/domains/identity/actions/user-data";
 import { safeNextPath } from "@/server/domains/identity/models/route-guard";
@@ -46,7 +47,7 @@ const ChangePasswordPage = async ({
   return (
     <>
       <PageHeader title={t("header.title")} description={t("header.description")} />
-      <AccountTabs current="password" />
+      <AccountTabs current="password" language={(await requestChoosableLocales()).length > 1} />
       <Panel padding="lg">
         <section aria-labelledby="password-title" className="grid gap-4">
           <div className="grid gap-1">

@@ -5,7 +5,7 @@ import { PATH_HEADER, safeBackPath } from "@/server/domains/identity/models/rout
 import { languagePolicy } from "@/server/domains/settings/actions/language";
 import { choosing, type LanguagePolicy } from "@/server/domains/settings/models/language-policy";
 import { requestHeaders } from "@/server/http/request-headers";
-import { chooseLocale, LOCALE_COOKIE, type Locale } from "./locale";
+import { chooseLocale, LOCALE_COOKIE, LOCALES, type Locale } from "./locale";
 
 /**
  * The languages this instance speaks (141), read once per request. Before setup, or when the
@@ -19,6 +19,18 @@ export const requestLanguagePolicy = cache(async (): Promise<LanguagePolicy | nu
     // Not set up yet, or the database is down.
     return null;
   }
+});
+
+/**
+ * The languages people may choose among on this instance (141): the offered ones while choosing is
+ * on, none while it is off. Every language when the settings can't be read (before setup, database
+ * down), as before the settings existed. The switches that let a person choose show only when there
+ * is more than one.
+ */
+export const requestChoosableLocales = cache(async (): Promise<readonly Locale[]> => {
+  const policy = await requestLanguagePolicy();
+  if (!policy) return LOCALES;
+  return choosing(policy) ? policy.offered : [];
 });
 
 /**

@@ -52,7 +52,8 @@
     "savedTitle": "Language saved",
     "saved": "The screens now use the language you chose.",
     "savedAutomatic": "The screens now follow your browser's language.",
-    "invalid": "Choose one of the languages in the list."
+    "invalid": "Choose one of the languages in the list.",
+    "notOffered": "Your earlier choice, {name}, isn't offered on this instance now, so Automatic applies. It comes back if root offers it again."
   },
   "security": {
     "required": {

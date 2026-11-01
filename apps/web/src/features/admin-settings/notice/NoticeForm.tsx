@@ -115,10 +115,7 @@ export const NoticeForm = ({
         </FieldError>
       </div>
       <div className="grid gap-1">
-        <label
-          htmlFor="notice-shown"
-          className="flex items-center gap-2 text-sm font-semibold text-fg"
-        >
+        <label htmlFor="notice-shown" className="flex items-start gap-2 text-sm text-fg">
           <input
             id="notice-shown"
             name="shown"
@@ -126,13 +123,15 @@ export const NoticeForm = ({
             checked={shown}
             onChange={(event) => setShown(event.target.checked)}
             aria-describedby="notice-shown-hint"
-            className="size-4 pointer-coarse:size-6"
+            className="mt-0.5 size-4 accent-(--accent)"
           />
-          {t("shown")}
+          <span className="grid gap-0.5">
+            <span className="font-semibold">{t("shown")}</span>
+            <span id="notice-shown-hint" className="text-muted">
+              {t("shownHint")}
+            </span>
+          </span>
         </label>
-        <p id="notice-shown-hint" className="text-xs text-muted">
-          {t("shownHint")}
-        </p>
       </div>
       <section aria-label={t("preview")} className="grid gap-1.5">
         <h3 className="text-sm font-semibold text-fg">{t("preview")}</h3>

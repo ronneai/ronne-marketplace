@@ -5,7 +5,7 @@ import { AuthShell } from "@/components/auth-shell/AuthShell";
 import { SetupPage } from "@/features/setup/SetupPage";
 import { DEFAULT_VALUES, type SetupPageProps } from "@/features/setup/types";
 import { pageTitle } from "@/i18n/page-title";
-import { currentPath } from "@/i18n/server";
+import { currentPath, requestChoosableLocales } from "@/i18n/server";
 import { loadConfig } from "@/server/config";
 import { redactDatabaseUrl } from "@/server/db/url";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
@@ -46,7 +46,7 @@ const Setup = async () => {
     },
   };
   return (
-    <AuthShell here={await currentPath()} wide>
+    <AuthShell here={await currentPath()} languages={await requestChoosableLocales()} wide>
       <SetupPage page={page} />
     </AuthShell>
   );

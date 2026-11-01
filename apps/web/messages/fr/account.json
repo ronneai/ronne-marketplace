@@ -52,7 +52,8 @@
     "savedTitle": "Langue enregistrée",
     "saved": "Les écrans utilisent maintenant la langue que vous avez choisie.",
     "savedAutomatic": "Les écrans suivent maintenant la langue de votre navigateur.",
-    "invalid": "Choisissez l’une des langues de la liste."
+    "invalid": "Choisissez l’une des langues de la liste.",
+    "notOffered": "Votre choix précédent, {name}, n’est plus offert sur cette instance : Automatique s’applique. Il revient si root l’offre de nouveau."
   },
   "security": {
     "required": {

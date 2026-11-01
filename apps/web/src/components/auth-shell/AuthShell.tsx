@@ -5,6 +5,7 @@ import { DOCS_URL } from "@/components/help/topics";
 import { BrandLogo } from "@/components/ui/BrandLogo";
 import { NewTabLink } from "@/components/ui/NewTabLink";
 import { LanguageSwitch } from "@/i18n/LanguageSwitch";
+import type { Locale } from "@/server/domains/identity/models/locale";
 import background from "./signin-bg.jpg";
 
 /**
@@ -16,11 +17,14 @@ import background from "./signin-bg.jpg";
 export const AuthShell = ({
   children,
   here,
+  languages,
   wide = false,
 }: {
   children: ReactNode;
   /** This page's path and query, for the language switch to come back to (129). */
   here?: string;
+  /** The languages the switch offers (141); none hides the switch. Every language when absent. */
+  languages?: readonly Locale[];
   wide?: boolean;
 }) => {
   const t = useTranslations("common.authShell");
@@ -28,9 +32,11 @@ export const AuthShell = ({
     <div className="grid min-h-dvh lg:grid-cols-2">
       <BrandPanel />
       <div className="flex min-w-0 flex-col bg-canvas px-4 py-6 sm:px-10 lg:px-14">
-        <header className="flex justify-end border-b border-hairline pb-4">
-          <LanguageSwitch here={here} />
-        </header>
+        {languages === undefined || languages.length > 1 ? (
+          <header className="flex justify-end border-b border-hairline pb-4">
+            <LanguageSwitch here={here} languages={languages} />
+          </header>
+        ) : null}
         <main
           className={`mx-auto my-auto grid w-full gap-6 py-8 ${wide ? "max-w-xl" : "max-w-md"}`}
         >
