@@ -36,7 +36,10 @@ export const TOPICS = [
     title: "Updating Ronne",
     summary:
       "Updating a running instance: the command for each way of installing it, backing up first, and what happens at start.",
-    sections: [{ id: "upgrade", title: "Updating Ronne" }],
+    sections: [
+      { id: "upgrade", title: "Updating Ronne" },
+      { id: "checking", title: "How Ronne tells you" },
+    ],
   },
   {
     slug: "workspaces",
@@ -183,7 +186,7 @@ export const TOPICS = [
     slug: "settings",
     title: "Settings",
     summary:
-      "Root's settings for the instance, in six tabs: usage reporting, the plugin feeds, how people sign in, how long personal data is kept, the notice, and the security scan.",
+      "Root's settings for the instance, in seven tabs: usage reporting, the plugin feeds, how people sign in, how long personal data is kept, the notice, the security scan, and updates.",
     sections: [{ id: "settings", title: "Settings" }],
   },
   {

@@ -291,6 +291,10 @@
     "question": "Information or Warning?",
     "answer": "Information is for news and context, such as “this is a demo”. Warning is for something that needs care, such as “the demo’s data is reset on Friday” or a maintenance window."
   },
+  "update-checking": {
+    "question": "What does the check send?",
+    "answer": "Nothing about this instance: once a day the server asks GitHub for the latest release, with a fixed name and no version, address, account or id. If GitHub can’t be reached, nothing else happens. Turn it off here, or with RONNE_UPDATE_CHECK=off on the server."
+  },
   "language": {
     "question": "What changes?",
     "answer": "Ronne’s own screens: menus, buttons, messages and the Documentation links. Not what people publish: item names, descriptions and files stay as their authors wrote them, and rmk stays in English. Automatic follows your browser’s language, and English when it asks for another."

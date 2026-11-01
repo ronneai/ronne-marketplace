@@ -103,18 +103,18 @@ that follows it, as semver orders them.
 
 ## Acceptance criteria
 
-- [ ] The job checks GitHub once a day under a lease, first 10 minutes after start, with the timeout,
+- [x] The job checks GitHub once a day under a lease, first 10 minutes after start, with the timeout,
   size limit, no redirects to another host and a `User-Agent` without a version; tests use a fake
   fetch.
-- [ ] A newer stable release notifies every active root once per version; older, equal or bad
+- [x] A newer stable release notifies every active root once per version; older, equal or bad
   answers don't; a failure stores its reason and notifies nobody.
-- [ ] Settings › Updates shows the versions, last check, Check now (rate-limited) and the update
+- [x] Settings › Updates shows the versions, last check, Check now (rate-limited) and the update
   commands for Docker, npm (with and without the service), apt/dnf, Homebrew and a clone.
-- [ ] The switch and `RONNE_UPDATE_CHECK=off` stop every request (a test asserts fetch isn't
+- [x] The switch and `RONNE_UPDATE_CHECK=off` stop every request (a test asserts fetch isn't
   called); the environment wins and is shown read-only.
-- [ ] The sidebar's "Update available" shows for root only.
-- [ ] Every new text is a message in English, Portuguese and French; the tab passes the phone sweep.
-- [ ] The Documentation and inline helpers listed above say what the feature does.
+- [x] The sidebar's "Update available" shows for root only.
+- [x] Every new text is a message in English, Portuguese and French; the tab passes the phone sweep.
+- [x] The Documentation and inline helpers listed above say what the feature does.
 
 ## Decisions
 

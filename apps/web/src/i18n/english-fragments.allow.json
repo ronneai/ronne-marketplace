@@ -17,7 +17,8 @@
     "help:reset-two-factor.answer": "Names the server command reset-root-password, written in English.",
     "help:scan-container.answer": "Quotes the installer's own English prompt, Add the security scanner?",
     "help:scope.answer": "Uses an example scope name (code-reviewer) as written.",
-    "help:submit-many.answer": "Quotes the command rmk submit --all, which is written in English."
+    "help:submit-many.answer": "Quotes the command rmk submit --all, which is written in English.",
+    "help:update-checking.answer": "Quotes the RONNE_UPDATE_CHECK environment variable."
   },
   "fr": {
     "account:security.setup.step1": "Names the 1Password app.",
@@ -36,6 +37,7 @@
     "help:reset-two-factor.answer": "Names the server command reset-root-password, written in English.",
     "help:scan-container.answer": "Quotes the installer's own English prompt, Add the security scanner?",
     "help:scope.answer": "Uses an example scope name (code-reviewer) as written.",
-    "help:submit-many.answer": "Quotes the command rmk submit --all, which is written in English."
+    "help:submit-many.answer": "Quotes the command rmk submit --all, which is written in English.",
+    "help:update-checking.answer": "Quotes the RONNE_UPDATE_CHECK environment variable."
   }
 }

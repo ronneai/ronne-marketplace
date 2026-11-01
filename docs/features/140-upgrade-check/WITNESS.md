@@ -188,3 +188,40 @@ Witnessed: 2026-10-31, by a fresh agent (blind re-check of rows 6 and 7). Commit
 | 8 | The phone sweep still passes after the rewording | yes | confirmed | rerun by the implementer on phone, phone-webkit and tablet: 6 passed each (the witness did not rerun it) |
 
 **Overall:** met.
+
+
+## Task 6 — Documentation
+
+Witnessed: 2026-10-31, by a fresh agent (blind). Commit: ee3fa906 plus the uncommitted diff; ronne-web `docs/marketplace-140-update-check`, uncommitted. Machine: macOS (Darwin), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `pnpm docs:links` passes: the topics match the website's, and the helper's `update#checking` exists | no | confirmed | "Compared 37 topics with the website's."; `Help.tsx` `"update-checking"` |
+| 2 | The docs render tests pass in both repos | no | confirmed | apps/web `src/components/help src/i18n` 399 passed; ronne-web 193 passed, typecheck and lint clean |
+| 3 | `update#checking` exists in en, pt and fr and says what the spec lists | no | confirmed | `update.tsx` ×3 |
+| 4 | The claims about the request match the code: once a day, api.github.com, fixed User-Agent, nothing about the instance | no | confirmed | `check-for-update.ts` |
+| 5 | One notification per version to every active root | no | confirmed | `update-check.ts` |
+| 6 | "Update available" in the sidebar is for root only | no | confirmed | `settings.ts` `updateAvailable`, `layout.tsx` |
+| 7 | Check now is once a minute | no | confirmed | messages and the action |
+| 8 | If GitHub is unreachable the tab says so, keeps the last answer and notifies nobody | no | confirmed | `update-check.ts` failure branch |
+| 9 | The switch is audited, and `RONNE_UPDATE_CHECK=off` wins ("Set on the server") | no | confirmed | `update-check.ts`; `compose.yaml` passes the variable |
+| 10 | The app never updates itself | no | confirmed | only the check and displayed commands |
+| 11 | The UI names the docs use match the app messages in en, pt and fr | no | confirmed | tab, sidebar, Check now, the switch |
+| 12 | Settings says seven tabs with an Updates entry (website ×3, app summary) | no | confirmed | `settings.tsx` ×3, `topics.ts` |
+| 13 | The privacy line is in all three languages | no | confirmed | `privacy.tsx` ×3 |
+| 14 | `RONNE_UPDATE_CHECK` is in the install guide and the website's install topics | no | partly | the website's table said "empty" where the guide says `on` |
+| 15 | The helper is on the tab and lands on `update#checking` | no | confirmed | `UpdatesPanel.tsx`, `help.json` ×3 |
+| 16 | The pt and fr website copy follows the project's glossary and typography | no | partly | read against `docs/knowledge/i18n.md`; no native-speaker review |
+
+**Overall:** not met: rows 14 and 16.
+
+### Re-check
+
+Witnessed: 2026-10-31, by a fresh agent (blind, rows 14 and 16). Commit: ee3fa906 plus the uncommitted diff. Machine: macOS (Darwin), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 14 | `RONNE_UPDATE_CHECK` is in the install guide and the website's install topics with the same default and off values | no | confirmed | `install.md:122` and `install.tsx` ×3 all say `on` and "off (or 0, false)"; `docs:links` ok; ronne-web 193 passed |
+| 16 | The pt and fr website copy follows the glossary and typography rules the witness can check | no | confirmed | `docs/knowledge/i18n.md` rules; the ronne-web tests pass. Checked against the written rules only: the 133 language review of this copy is still pending (as in 139) |
+
+**Overall:** met. The pt and fr website copy has not been through the language review (133).

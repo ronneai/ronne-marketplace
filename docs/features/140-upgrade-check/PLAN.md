@@ -38,7 +38,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - Every new key in `en`, `pt` and `fr`.
   - *Done when:* the parity and raw-text tests pass; the phone sweep passes on the tab.
 
-- [ ] **6. Documentation.**
+- [x] **6. Documentation.**
   - The `update#checking` section, the settings and privacy lines, `RONNE_UPDATE_CHECK` in the install
     guide, the helper; `topics.ts` here and in ronne-web together.
   - *Done when:* the docs render tests and `pnpm docs:links` pass, and the helper lands on a real
@@ -48,3 +48,13 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+- The e2e test's "fake release answer" is a seed of what a check that found 9.9.9 would have stored
+  and announced (`e2e/seed.ts`): the real request needs GitHub, so `checkForUpdate` and
+  `runUpdateCheck` are tested with a fake `fetch` (unit and database tests). Nothing in the e2e
+  clicks Check now.
+- Compose passes `RONNE_UPDATE_CHECK` into the container, as it does `RONNE_JOBS`: without the line a
+  Docker operator's setting never reached the server.
+- The pt and fr website copy has not been through the language review (133), as in 139.
+- One deadline (10 seconds) covers the whole check, every redirect and the reading of the body: the
+  adversarial pass of task 2 found that a stalled body could otherwise hang past it.

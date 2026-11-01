@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { Help } from "@/components/help/Help";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { CopyableCommand } from "@/components/ui/CopyableCommand";
@@ -51,7 +52,9 @@ export const UpdatesPanel = ({
   return (
     <div className="grid gap-6">
       <div className="grid gap-1">
-        <h2 className="text-base font-semibold text-fg">{t("title")}</h2>
+        <h2 className="flex items-center gap-2 text-base font-semibold text-fg">
+          {t("title")} <Help id="update-checking" />
+        </h2>
         <p className="text-sm text-muted">{t("intro")}</p>
       </div>
 
