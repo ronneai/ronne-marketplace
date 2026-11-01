@@ -121,7 +121,7 @@ native_end() { # native_end CODE: native_install's output with fakes, and what i
   (
     export PATH="$nbin:$PATH" NLOG="$work/native.log" FAKE_CODE=$1 PKG=rmk-server_0.3.0-1_amd64.deb
     : >"$NLOG"
-    uname() { case "$1" in -s) echo Linux ;; -m) echo x86_64 ;; esac; }
+    uname() { case "$1" in -s) echo Linux ;; -m) echo x86_64 ;; esac }
     native_target() { echo "deb amd64"; }
     glibc_version() { echo 2.36; }
     sha256_of() { echo abc; }
