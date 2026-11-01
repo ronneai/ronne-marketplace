@@ -9,7 +9,8 @@ export type NotificationLink =
   | { to: "workspaces" }
   | { to: "requests" }
   | { to: "item"; workspace: string; scope: string; name: string }
-  | { to: "feedback" };
+  | { to: "feedback" }
+  | { to: "updates" };
 
 /** What a notification's subject turned out to be, read from the database (never stored). */
 export type ResolvedSubject = {
@@ -34,7 +35,7 @@ export type Shown = { shown: false } | { shown: true; link: NotificationLink | n
 /**
  * Whether the reader may still see what a notification is about (139), and where it leads. Hidden:
  * the subject lives in a workspace the reader no longer sees (someone removed from a private
- * workspace stops seeing the names of its items in old notifications), and feedback for anyone
+ * workspace stops seeing the names of its items in old notifications), and feedback and update notices for anyone
  * but root. Shown without a link: the subject is gone (a draft deleted for good, 057), or the
  * notification is about losing access.
  */
@@ -43,7 +44,8 @@ export const shownTo = (
   kind: NotificationKind,
   subject: ResolvedSubject | null,
 ): Shown => {
-  if (kind === "feedback.new")
+  // Root's own (127, 140): nobody else sees them, whatever they once were.
+  if (kind === "feedback.new" || kind === "instance.update_available")
     return viewer.root ? { shown: true, link: subject?.link ?? null } : { shown: false };
   if (!subject) return { shown: true, link: null };
   const sees =

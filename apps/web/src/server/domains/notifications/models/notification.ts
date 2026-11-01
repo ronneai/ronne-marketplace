@@ -31,8 +31,9 @@ export const NOTIFICATION_KINDS = [
   "request.join_waiting",
   "request.scope_move_waiting",
   "request.item_move_waiting",
-  // Root (127; 140 adds `update.available`).
+  // Root (127, 140).
   "feedback.new",
+  "instance.update_available",
 ] as const;
 
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
@@ -48,6 +49,8 @@ export const SUBJECT_TYPES = [
   "scope_move",
   "item_move",
   "feedback",
+  // The instance itself (140): its id is the version announced.
+  "instance",
 ] as const;
 
 export type SubjectType = (typeof SUBJECT_TYPES)[number];

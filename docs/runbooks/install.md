@@ -119,6 +119,7 @@ address without a port.
 | `LOG_LEVEL` | `info` | The least serious log lines written: `debug`, `info`, `warn` or `error` |
 | `LOG_FORMAT` | `json` | `json`, or `text` for a person reading a terminal |
 | `RONNE_JOBS` | `on` | `off` stops the server's own retention purge (every six hours); run `rmk-server purge` from cron then ([Privacy](https://www.ronne.ai/marketplace/docs/privacy#retention)) |
+| `RONNE_UPDATE_CHECK` | `on` | `off` (or `0`, `false`) stops the daily check for a newer version (a request to GitHub that sends nothing about your instance); for an instance with no internet access ([Updating Ronne](https://www.ronne.ai/marketplace/docs/update#checking)) |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | empty | Your OpenTelemetry collector's OTLP/HTTP address: metrics and traces, off while empty ([Monitoring](https://www.ronne.ai/marketplace/docs/monitoring#monitoring)) |
 
 **Your company's certificate** (a private network, or a certificate from your IT team): set

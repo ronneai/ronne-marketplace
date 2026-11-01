@@ -3,6 +3,8 @@ import { AppShell } from "@/components/app-shell/AppShell";
 import { signOutFromMenu } from "@/features/account/actions";
 import { DismissibleNotice } from "@/features/notice/DismissibleNotice";
 import { visibleNotice } from "@/features/notice/visible-notice";
+import { updateAvailable } from "@/server/domains/settings/actions/settings";
+import { requestHeaders } from "@/server/http/request-headers";
 import { version } from "../../../package.json";
 import { loadShell } from "./shell";
 
@@ -13,6 +15,7 @@ import { loadShell } from "./shell";
 const AppLayout = async ({ children }: { children: ReactNode }) => {
   const { user, theme, navCounts, unread, workspaces, folded, current } = await loadShell();
   const notice = await visibleNotice();
+  const newer = await updateAvailable(await requestHeaders());
   return (
     <AppShell
       user={user}
@@ -24,6 +27,7 @@ const AppLayout = async ({ children }: { children: ReactNode }) => {
       current={current}
       folded={folded}
       version={version}
+      updateAvailable={newer}
       notice={notice ? <DismissibleNotice notice={notice} /> : null}
     >
       {children}

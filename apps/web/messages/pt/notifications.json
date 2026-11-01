@@ -65,7 +65,8 @@
       "item_move": "Movimentação de item",
       "membership": "Sua participação",
       "request": "Solicitações à sua espera",
-      "feedback": "Feedback"
+      "feedback": "Feedback",
+      "instance": "Atualizações"
     },
     "kinds": {
       "submission": {
@@ -102,6 +103,9 @@
       },
       "feedback": {
         "new": "Novo feedback"
+      },
+      "instance": {
+        "update_available": "Atualização disponível"
       }
     },
     "columns": {
@@ -134,5 +138,8 @@
       "filtered": "Nenhuma notificação corresponde a esses filtros."
     },
     "noLink": "Nada para abrir: aquilo de que se trata não existe mais."
+  },
+  "instance": {
+    "update_available": "O Ronne AI Marketplace {version} foi lançado. Você usa a versão {current}."
   }
 }

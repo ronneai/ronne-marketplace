@@ -750,7 +750,8 @@
           "usage_minimum": "A changé le minimum d’utilisation, de {from} à {to}",
           "retention": "A changé la conservation : {changes}",
           "notice": "A changé l’avis de l’instance : {changes}",
-          "skill_scan": "A modifié l’analyse de sécurité : {changes}"
+          "skill_scan": "A modifié l’analyse de sécurité : {changes}",
+          "update_check": "A modifié la vérification des mises à jour : {state, select, on {activée} off {désactivée} other {modifiée}}"
         }
       }
     }
@@ -767,7 +768,8 @@
       "authentication": "Authentification",
       "privacy": "Confidentialité",
       "notice": "Avis",
-      "scan": "Analyse de sécurité"
+      "scan": "Analyse de sécurité",
+      "updates": "Mises à jour"
     },
     "methods": {
       "title": "Méthodes de connexion",
@@ -1329,6 +1331,71 @@
       "erasuresNone": "Il ne restait rien à terminer.",
       "erasures": "{count, plural, one {# effacement terminé.} other {# effacements terminés.}}",
       "scan": "Analyse de sécurité enregistrée."
+    }
+  },
+  "updates": {
+    "title": "Mises à jour",
+    "intro": "Ronne vérifie une fois par jour si une version plus récente est publiée et vous le dit ici et dans vos notifications. Il n’envoie rien sur cette instance.",
+    "versions": "Les versions",
+    "running": "Vous utilisez",
+    "latest": "Dernière version publiée",
+    "notes": "Notes de version",
+    "notChecked": "Pas encore vérifiée",
+    "lastChecked": "Dernière vérification",
+    "never": "Jamais",
+    "fromBefore": "d’avant la désactivation de la vérification",
+    "upToDate": "À jour.",
+    "newer": "La version {version} est disponible.",
+    "failure": {
+      "unreachable": "Impossible de joindre GitHub. Ronne réessaie demain.",
+      "rate_limited": "GitHub limite les requêtes en ce moment. Ronne réessaie demain.",
+      "bad_answer": "Ronne n’a pas compris la réponse de GitHub. Ronne réessaie demain."
+    },
+    "checkNow": "Vérifier maintenant",
+    "checkNowHint": "Une fois par minute au plus.",
+    "checkNowOff": "La vérification est désactivée.",
+    "how": "Comment mettre à jour",
+    "backupFirst": "Sauvegardez d’abord",
+    "then": "Puis mettez à jour",
+    "databaseNote": "Les changements de base de données sont appliqués au démarrage du serveur. Revenir à une version plus ancienne n’est pas pris en charge : sauvegardez d’abord.",
+    "switchTitle": "Vérifier les mises à jour",
+    "switch": "Vérifier les mises à jour",
+    "switchHint": "Activée par défaut. Désactivez-la pour une instance sans accès à Internet.",
+    "setOnServer": "Défini sur le serveur (RONNE_UPDATE_CHECK=off).",
+    "save": "Enregistrer",
+    "done": {
+      "saved": "Enregistré.",
+      "unchanged": "Rien n’a changé.",
+      "checked": "Vérifié : à jour.",
+      "newer": "Vérifié : une version plus récente est disponible.",
+      "failed": "Impossible de joindre GitHub.",
+      "too_soon": "Vérifié à l’instant. Réessayez dans une minute.",
+      "off_by_environment": "La vérification est désactivée sur le serveur.",
+      "off_by_switch": "La vérification est désactivée."
+    },
+    "howIntro": "Ronne peut s’installer de plusieurs façons. Utilisez celle avec laquelle vous l’avez installé ; la première est la façon dont ce serveur semble s’exécuter.",
+    "thisInstance": "Cette instance",
+    "plans": {
+      "docker": {
+        "title": "Docker",
+        "text": "Dans le dossier ronne-marketplace du serveur :"
+      },
+      "npm": {
+        "title": "Paquet npm",
+        "text": "Installez la nouvelle version, puis arrêtez rmk-server et relancez-le :"
+      },
+      "service": {
+        "title": "Paquet npm comme service",
+        "text": "Installez la nouvelle version, puis redémarrez le service :"
+      },
+      "package": {
+        "title": "Paquet .deb ou .rpm (apt, dnf)",
+        "text": "Téléchargez le nouveau paquet depuis la page de la version et installez-le comme le premier : apt sous Debian et Ubuntu, dnf sous Fedora et RHEL. Le service redémarre dessus."
+      },
+      "clone": {
+        "title": "Clone du dépôt",
+        "text": "Dans son dossier, puis redémarrez le serveur :"
+      }
     }
   }
 }

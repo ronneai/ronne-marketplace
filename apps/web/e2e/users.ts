@@ -122,6 +122,8 @@ export const E2E_USERS = {
   feedbackErasable: "feedback-erasable@e2e.test",
   // Reads and marks read the notifications the seed wrote for them (139).
   notificationsReader: "notifications-reader@e2e.test",
+  // A root who is told a newer version is out, and reads Settings › Updates (140).
+  updatesRoot: "updates-root@e2e.test",
   // Sends feedback from the Menu on a phone and a tablet (127): one per device project.
   phoneFeedback: "phone-feedback@e2e.test",
   phoneWebkitFeedback: "phone-webkit-feedback@e2e.test",
@@ -373,6 +375,7 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   feedbackLimit: "Feedback Limit",
   feedbackErasable: "Feedback Erasable",
   notificationsReader: "Nia Reader",
+  updatesRoot: "Una Updater",
   phoneFeedback: "Phone Feedback",
   phoneWebkitFeedback: "Phone Webkit Feedback",
   tabletFeedback: "Tablet Feedback",
@@ -569,6 +572,7 @@ export const E2E_ROOTS: readonly (keyof typeof E2E_USERS)[] = [
   "tabletRoot",
   "noticeRoot",
   "feedbackRoot",
+  "updatesRoot",
   "mustChangeRoot",
   "phoneNoticeRoot",
   "phoneWebkitNoticeRoot",

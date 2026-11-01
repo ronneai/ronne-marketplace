@@ -65,7 +65,8 @@
       "item_move": "Moving an item",
       "membership": "Your membership",
       "request": "Requests waiting for you",
-      "feedback": "Feedback"
+      "feedback": "Feedback",
+      "instance": "Updates"
     },
     "kinds": {
       "submission": {
@@ -102,6 +103,9 @@
       },
       "feedback": {
         "new": "New feedback"
+      },
+      "instance": {
+        "update_available": "Update available"
       }
     },
     "columns": {
@@ -134,5 +138,8 @@
       "filtered": "No notifications match these filters."
     },
     "noLink": "Nothing to open: what this is about is gone."
+  },
+  "instance": {
+    "update_available": "Ronne AI Marketplace {version} is out. You run version {current}."
   }
 }

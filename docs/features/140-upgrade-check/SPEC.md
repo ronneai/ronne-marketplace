@@ -31,11 +31,16 @@ It can be turned off, and an instance with no internet keeps working as if it we
   - the running version, the latest one seen with its release notes' link, when it was last checked
     and how it went ("Couldn't reach GitHub", "Up to date");
   - **Check now** (once a minute at most);
-  - **How to update this instance**, from how it runs (`server/runtime.ts`): Docker
+  - **How to update**, every way Ronne is installed (owner, 2026-10-31: people install it in several
+    ways, and the detection can be wrong), the one this instance appears to run by first, open and
+    marked "This instance", the others folded (`updatePlans` in `server/runtime.ts`): Docker
     (`docker compose pull` then `docker compose up -d`), the npm package
-    (`npm install --global @ronneai/marketplace@latest`, then `sudo rmk-server service restart` for a
-    service), apt or dnf, Homebrew, or a clone; always "back up first" with the backup command
-    (`hostCommand("backup")`), and a link to the `update` topic;
+    (`npm install --global @ronneai/marketplace@latest`), the same as a service
+    (`sudo rmk-server service restart` after it), the `.deb` and `.rpm` packages
+    (`sudo apt install ./rmk-server_*.deb` or `sudo dnf install ./rmk-server-*.rpm`), and a clone
+    (`git pull`, `pnpm install`, `pnpm build`). Each has its own "back up first" command
+    (`hostCommand("backup")`, with `sudo` for a service), and the tab links to the `update` topic.
+    Homebrew is not listed: the tap is on hold ([`install.md`](../../runbooks/install.md));
   - **the switch**, "Check for updates", on by default.
 - **The operator's override:** `RONNE_UPDATE_CHECK=off` turns it off and greys the switch out ("Set
   on the server"), for instances with no internet or a policy against calls out.
@@ -98,18 +103,18 @@ that follows it, as semver orders them.
 
 ## Acceptance criteria
 
-- [ ] The job checks GitHub once a day under a lease, first 10 minutes after start, with the timeout,
+- [x] The job checks GitHub once a day under a lease, first 10 minutes after start, with the timeout,
   size limit, no redirects to another host and a `User-Agent` without a version; tests use a fake
   fetch.
-- [ ] A newer stable release notifies every active root once per version; older, equal or bad
+- [x] A newer stable release notifies every active root once per version; older, equal or bad
   answers don't; a failure stores its reason and notifies nobody.
-- [ ] Settings › Updates shows the versions, last check, Check now (rate-limited) and the update
+- [x] Settings › Updates shows the versions, last check, Check now (rate-limited) and the update
   commands for Docker, npm (with and without the service), apt/dnf, Homebrew and a clone.
-- [ ] The switch and `RONNE_UPDATE_CHECK=off` stop every request (a test asserts fetch isn't
+- [x] The switch and `RONNE_UPDATE_CHECK=off` stop every request (a test asserts fetch isn't
   called); the environment wins and is shown read-only.
-- [ ] The sidebar's "Update available" shows for root only.
-- [ ] Every new text is a message in English, Portuguese and French; the tab passes the phone sweep.
-- [ ] The Documentation and inline helpers listed above say what the feature does.
+- [x] The sidebar's "Update available" shows for root only.
+- [x] Every new text is a message in English, Portuguese and French; the tab passes the phone sweep.
+- [x] The Documentation and inline helpers listed above say what the feature does.
 
 ## Decisions
 

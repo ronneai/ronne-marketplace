@@ -138,6 +138,10 @@ export const resolveSubjects = async (
       .execute())
       out.set(key("feedback", row.id), { workspaceIds: [], link: { to: "feedback" } });
 
+  // The instance has no row to look up: the version announced is its own subject (140).
+  for (const id of idsOf(refs, "instance"))
+    out.set(key("instance", id), { workspaceIds: [], link: { to: "updates" } });
+
   return out;
 };
 

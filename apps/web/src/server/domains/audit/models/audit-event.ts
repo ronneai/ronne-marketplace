@@ -97,6 +97,7 @@ export const AUDIT_ACTIONS = [
   "settings.two_factor_policy",
   "settings.retention",
   "settings.notice",
+  "settings.update_check",
   "settings.skill_scan",
   "scan.finding_dismissed",
   "scan.finding_restored",

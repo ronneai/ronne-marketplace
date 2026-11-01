@@ -170,6 +170,34 @@ describe("the security scan's schedule and kicks (135)", () => {
     }
   });
 
+  it("starts the upgrade check 10 minutes after start, then every 24 hours", async () => {
+    const clock = fakeTimers();
+    let checks = 0;
+    startJobsIfOn(
+      {},
+      {
+        timers: clock.timers,
+        runScans: async () => undefined,
+        runRetention: async () => undefined,
+        runUpdates: async () => {
+          checks++;
+        },
+      },
+    );
+    try {
+      await clock.advanceTo(10 * 60_000 - 1);
+      expect(checks).toBe(0);
+      await clock.advanceTo(10 * 60_000);
+      expect(checks).toBe(1);
+      await clock.advanceTo(10 * 60_000 + 24 * 3_600_000 - 1);
+      expect(checks).toBe(1);
+      await clock.advanceTo(10 * 60_000 + 24 * 3_600_000);
+      expect(checks).toBe(2);
+    } finally {
+      stopJobs();
+    }
+  });
+
   it("starts no scan ticks with RONNE_JOBS=off", async () => {
     const clock = fakeTimers();
     let scans = 0;

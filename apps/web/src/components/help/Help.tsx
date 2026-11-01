@@ -245,6 +245,9 @@ export const HELP = {
   "notice-tone": {
     href: docsHref("notice", "notice"),
   },
+  "update-checking": {
+    href: docsHref("update", "checking"),
+  },
   language: {
     href: docsHref("account", "language"),
   },

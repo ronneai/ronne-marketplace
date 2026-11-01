@@ -291,6 +291,10 @@
     "question": "Information ou Attention?",
     "answer": "Information sert aux nouvelles et au contexte, comme « ceci est une démonstration ». Attention sert à ce qui demande de la prudence, comme « les données de la démonstration sont réinitialisées vendredi » ou une période de maintenance."
   },
+  "update-checking": {
+    "question": "Que envoie la vérification ?",
+    "answer": "Rien sur cette instance : une fois par jour, le serveur demande à GitHub la dernière version publiée, avec un nom fixe et sans version, adresse, compte ni identifiant. Si GitHub est injoignable, rien d’autre ne se passe. Désactivez-la ici, ou avec RONNE_UPDATE_CHECK=off sur le serveur."
+  },
   "language": {
     "question": "Qu’est-ce qui change?",
     "answer": "Les écrans de Ronne eux-mêmes : menus, boutons, messages et liens vers la Documentation. Pas ce que les gens publient : les noms, descriptions et fichiers des éléments restent tels que leurs auteurs les ont écrits, et rmk reste en anglais. Automatique suit la langue de votre navigateur, et l’anglais quand il en demande une autre."

@@ -69,6 +69,7 @@ export const Sidebar = ({
   appearance,
   signOutAction,
   version,
+  updateAvailable = null,
 }: {
   user: ShellUser;
   items: NavItem[];
@@ -86,6 +87,8 @@ export const Sidebar = ({
   signOutAction?: () => Promise<void>;
   /** The app's version, shown at the foot. */
   version?: string;
+  /** The newer version root has not installed (140); null for everyone else. */
+  updateAvailable?: string | null;
 }) => {
   const t = useTranslations("shell");
   const tCommon = useTranslations("common");
@@ -330,6 +333,17 @@ export const Sidebar = ({
           >
             {t("sidebar.version", { version })}
           </p>
+        ) : null}
+        {version && updateAvailable ? (
+          <Link
+            href="/admin/settings?tab=updates"
+            tabIndex={folded ? -1 : undefined}
+            aria-hidden={folded}
+            title={t("sidebar.updateTitle", { version: updateAvailable })}
+            className={`block overflow-hidden rounded-control px-1.5 text-xs font-semibold whitespace-nowrap text-accent-strong underline-offset-2 transition-[max-height,margin,opacity] duration-200 hover:underline motion-reduce:transition-none ${focus} ${folded ? "mt-0 max-h-0 opacity-0" : "mt-1 max-h-5"}`}
+          >
+            {t("sidebar.updateAvailable")}
+          </Link>
         ) : null}
       </div>
       {feedbackOpen ? (

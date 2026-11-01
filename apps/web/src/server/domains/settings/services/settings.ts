@@ -59,6 +59,7 @@ import {
   TWO_FACTOR_POLICY_KEY,
   type TwoFactorPolicy,
 } from "../models/two-factor-policy";
+import { isUpdateFailure, UPDATE_KEYS, type UpdateCheckSettings } from "../models/update-check";
 import {
   DEFAULT_USAGE_MINIMUM,
   DEFAULT_USAGE_POLICY,
@@ -502,6 +503,63 @@ export const setSkillScanPolicy = async (
           to,
           ...(fromScore !== toScore ? { blockScore: { from: fromScore, to: toScore } } : {}),
         },
+        ipAddress: actor.ip,
+      },
+      at,
+    );
+    return { changed: true };
+  });
+};
+
+/** What the upgrade check last saw (140), with no permission check: callers decide who may know. */
+export const updateCheckState = async (deps: SettingsDeps): Promise<UpdateCheckSettings> => {
+  const value = async (key: string) => {
+    const stored = (await deps.repo.get(key))?.value;
+    return stored ? stored : null;
+  };
+  const at = await value(UPDATE_KEYS.at);
+  const error = await value(UPDATE_KEYS.error);
+  const checkedAt = at ? new Date(at) : null;
+  return {
+    enabled: (await deps.repo.get(UPDATE_KEYS.enabled))?.value !== "false",
+    latest: await value(UPDATE_KEYS.latest),
+    url: await value(UPDATE_KEYS.url),
+    checkedAt: checkedAt && !Number.isNaN(checkedAt.getTime()) ? checkedAt : null,
+    error: error && isUpdateFailure(error) ? error : null,
+  };
+};
+
+/** Admin › Settings › Updates (140): root only. */
+export const updateCheckSettings = async (
+  deps: SettingsDeps,
+  actor: SettingsActor,
+): Promise<UpdateCheckSettings> => {
+  requirePermission(actor.user, "settings.manage");
+  return updateCheckState(deps);
+};
+
+/**
+ * Root's switch for the upgrade check (140). Audited as `settings.update_check` with the old and
+ * new value when it changes; each check is not.
+ */
+export const setUpdateCheck = async (
+  deps: SettingsDeps,
+  actor: SettingsActor,
+  enabled: boolean,
+): Promise<{ changed: boolean }> => {
+  requirePermission(actor.user, "settings.manage");
+  const at = now(deps);
+  return deps.repo.transaction(async (repo) => {
+    const from = (await repo.get(UPDATE_KEYS.enabled))?.value !== "false";
+    if (from === enabled) return { changed: false };
+    const by = actor.user?.id ?? null;
+    await repo.set(UPDATE_KEYS.enabled, String(enabled), by, at);
+    await repo.recordAudit(
+      {
+        actorId: by,
+        action: "settings.update_check",
+        target: { type: "instance" },
+        metadata: { from, to: enabled },
         ipAddress: actor.ip,
       },
       at,

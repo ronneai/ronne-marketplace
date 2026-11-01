@@ -24,6 +24,7 @@ const flat = (value: string | Tree, prefix = ""): Record<string, string> =>
  * where it does, so a new one is a decision made here.
  */
 const SAME: Record<string, readonly string[]> = {
+  "updates.plans.docker.title": ["pt", "fr"],
   "setup.database.host": ["pt"],
   "setup.database.port": ["fr"],
   "setup.wizard.pages.instance": ["fr"],

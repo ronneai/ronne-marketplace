@@ -1,8 +1,10 @@
+import { version } from "../../../package.json";
 import { isConfigured, loadConfig } from "../config";
 import { getAppDb } from "../db/instance";
 import { logger } from "../log";
 import { runRetentionJob } from "./retention-job";
 import { runSkillScansOn, SKILL_SCAN_JOB } from "./skill-scan-job";
+import { runUpdateCheckJob, UPDATE_CHECK_JOB } from "./update-check-job";
 
 /**
  * The in-process scheduler (feature 102): runs the retention purge 5 minutes after the server
@@ -15,6 +17,10 @@ export const FIRST_RUN_MS = 5 * 60 * 1000;
 export const EVERY_MS = 6 * 60 * 60 * 1000;
 /** The security scan's queue (135) is looked at every minute, from a minute after start. */
 export const SCAN_EVERY_MS = 60 * 1000;
+
+/** The upgrade check (140): 10 minutes after start, then every 24 hours. */
+export const UPDATE_FIRST_MS = 10 * 60 * 1000;
+export const UPDATE_EVERY_MS = 24 * 60 * 60 * 1000;
 
 type Timers = {
   setTimeout: (fn: () => void, ms: number) => unknown;
@@ -73,6 +79,20 @@ export const runSkillScans = async (env: Record<string, string | undefined>) => 
   });
 };
 
+/** The upgrade check (140) with this instance's settings; quiet before setup. */
+export const runUpdateCheck = async (env: Record<string, string | undefined>) => {
+  const config = loadConfig({ env });
+  if (!isConfigured(config)) return;
+  const { db, dialect } = getAppDb(config.databaseUrl);
+  await runUpdateCheckJob({ db, dialect }, { fetch, current: version, env: config.updateCheck });
+};
+
+export const UPDATE_SCHEDULE = {
+  job: UPDATE_CHECK_JOB,
+  firstMs: UPDATE_FIRST_MS,
+  everyMs: UPDATE_EVERY_MS,
+} as const;
+
 /** When the scan queue is looked at: a minute after start, then every minute. */
 export const SCAN_SCHEDULE = {
   job: SKILL_SCAN_JOB,
@@ -126,6 +146,7 @@ export const startJobsIfOn = (
     timers?: Timers;
     runRetention?: () => Promise<unknown>;
     runScans?: () => Promise<unknown>;
+    runUpdates?: () => Promise<unknown>;
   } = {},
 ): void => {
   if (store.__ronneJobsStop) return;
@@ -141,9 +162,16 @@ export const startJobsIfOn = (
     ...SCAN_SCHEDULE,
     run: options.runScans ?? (() => runSkillScans(env)),
   });
+  const stopUpdates = startScheduler({
+    env,
+    timers,
+    ...UPDATE_SCHEDULE,
+    run: options.runUpdates ?? (() => runUpdateCheck(env)),
+  });
   store.__ronneJobsStop = () => {
     stopRetention();
     stopScans();
+    stopUpdates();
   };
 };
 
