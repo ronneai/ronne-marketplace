@@ -411,7 +411,7 @@ since (and the vendors' current docs) before its work starts, as for one on hold
 
 | ID | Feature | Depends on | Status |
 |---|---|---|---|
-| [147](./147-ai-providers/SPEC.md) | AI providers, set up once and shared: Admin › Settings › AI providers lists named providers (135's six kinds, keys sealed and write-only, 136's endpoint checks, Test connection), the environment's read-only and winning; the security scan and triage each pick one and a model; 136's settings move over at start-up; Ronne's own model client (no tools, no SDK); one Allow AI providers switch per private or personal workspace, for the semantic scan and triage alike (without it the scan runs static) | 136, 122, 106, 098, 099, 092, 093, 114 | specified |
+| [147](./147-ai-providers/SPEC.md) | AI providers, set up once and shared: Admin › Settings › AI providers lists named providers (135's six kinds, keys sealed and write-only, 136's endpoint checks, Test connection), the environment's read-only and winning; the security scan and triage each pick one and a model; 136's settings move over at start-up; Ronne's own model client (no tools, no SDK); one Allow AI providers switch per private or personal workspace, for the semantic scan and triage alike (without it the scan runs static) | 136, 122, 106, 098, 099, 092, 093, 114, 164 | specified |
 | [148](./148-ai-triage/SPEC.md) | AI triage of submissions: advice on improving each submitted revision, and a draft on request; advisory, never a gate; root turns it on and picks types; private workspaces need their admins' consent, personal ones the owner's; files sent as untrusted data, fixed-shape answers shown as text; a Triage tab and card on the review page, the submission page and the editor; daily limits | 147, 135, 137, 014, 093, 114 | specified |
 | [149](./149-triage-overlap/SPEC.md) | Triage overlap: candidates from the search index, the model judging duplicate, overlaps or related, and recommending depend on it, propose a change, keep both or merge; compared only with what the revision's workspace may see | 148, 142, 144 | specified |
 | [150](./150-triage-guidance/SPEC.md) | Triage guidance, scanned before it's used: root for the instance and a workspace's admins for theirs, by item type and topic; each entry scanned by SkillSpector when the scan is on and used only under 137's threshold (fails closed, root may override); the last passing text stays in use while an edit is scanned | 148, 137, 135, 092 | specified |
@@ -437,3 +437,74 @@ since (and the vendors' current docs) before its work starts, as for one on hold
 |---|---|---|---|
 | [157](./157-sign-in-redesign/SPEC.md) | Sign-in screens redesign: a reusable auth shell with the brand panel, sign-in and the `rmk` guide as tabs, vendor marks on the company sign-in buttons, the second step as six code boxes, and a language menu | 006, 022, 032, 105, 106, 129 | done |
 | [158](./158-typography-refinement/SPEC.md) | Typography refinement: Inter replaces Manrope, a type scale of utilities, IBM Plex Mono only for machine values, the catalogue card's date out of the badge row, a `99+` nav count, "/ marketplace" beside the sidebar logo, icon-only copy buttons | 032, 129 | done |
+
+## Planned on 2026-11-01
+
+What an organisation needs to run Ronne under its own rules, and to show that it does (owner,
+2026-11-01, from a governance review of the code): only its operator sets a new server up; tokens
+that don't outlive their purpose; reasons on the record; workspaces deciding what leaves the
+server; backups that are safe to keep; an audit log that can be traced, filtered, exported and
+trusted; least privilege for machines; trust signals on developers' machines; and policies that a
+workspace can make stricter. Built in this order: M28, M29, M30, M31. M28 is specified; M29 to M31
+are planned rows, specified when each milestone starts (the usual "current and next milestone"
+rule). Numbers missing from the sequence are reserved.
+
+### M28 — Governance foundations
+
+Small changes that close the cheapest governance gaps, with no new concepts.
+
+| ID | Feature | Depends on | Status |
+|---|---|---|---|
+| [161](./161-setup-code/SPEC.md) | Setup code: a one-time code made at the first start, kept in the data folder (0600) and printed in the server's log and by the install script (which opens `/setup#code=…`), asked for by every step of the web setup, rate-limited; `setup-code` prints it again; the terminal setup doesn't ask; deleted once root exists | 036, 003, 005, 080, 081, 082, 083, 100 | specified |
+| [162](./162-token-lifetime-policy/SPEC.md) | Token lifetime policy: root sets the longest lifetime on the Authentication tab (shorter for reviewers and root; defaults 365 and 90 days), every way of making a token honours it, Shorten applies it to older tokens; a person's tokens listed on their page with Revoke; changing your password (a box, checked) and root's two-factor reset revoke tokens | 009, 105, 107, 122, 123, 128 | specified |
+| [163](./163-override-reasons/SPEC.md) | Overrides need a reason: root's approval of their own submission requires one again (optional since 054), on the review page and in Approve many when the selection has overrides; shown on the review page and the Overview | 014, 054, 058, 137 | specified |
+| [164](./164-workspace-ai-consent/SPEC.md) | Workspaces consent before an AI provider sees their items: 147's Allow AI providers switch, built first for the security scan; private workspaces (admins or root) and personal ones (their owner) are scanned statically until they allow it; the switch names the provider's host; audited | 093, 114, 092, 135, 136, 137 | specified |
+| [165](./165-encrypted-backups/SPEC.md) | Backups encrypted by default: `backup` seals the archive with a passphrase (file, variable or asked; 12 characters at least for new ones), `--plain` by name with a warning, a schedule without a passphrase stops instead of writing plain; the runbook's schedules use a passphrase file | 099, 083 | specified |
+| [166](./166-audit-context/SPEC.md) | Audit context: `audit_log` gains the request ID, the channel (web, API, SCIM, terminal, job), the client, the workspace and the outcome, filled in `recordAudit` from the request context; the audit page filters by workspace and request ID; user agents cleared with addresses by retention and erasure; `audit.read` checked in the audit's own actions | 007, 060, 100, 102, 103, 104 | specified |
+
+### M29 — Evidence and least privilege
+
+Auditors get evidence they can take away, machines get only the access they need, and developers
+see what they're installing before it's written. With it, the two `rmk` lockfile gaps in the threat
+model's known gaps (§5: a yanked version a lockfile pins installs without the promised warning; a
+dependency on a tag doesn't stay on `rmk.lock`) are filed as issues against 022 and fixed in
+`docs/issues`.
+
+| ID | Feature | Depends on | Status |
+|---|---|---|---|
+| 167 | Audit events for what isn't recorded yet: authorization refusals (`authz.denied`, at most one per person, action and minute), root's Scan now, retention purges (with counts), viewing and exporting the audit log; a guard test that every service changing a governed table records an event | 166 | planned |
+| 168 | Audit export: the audit log's filtered view as CSV or JSON Lines, and `GET /api/v1/audit` (keyset pages, a token with the audit scope), for root and auditors; each export audited | 166, 167, 169, 170 | planned |
+| 169 | Auditor role: instance-wide read-only access to the audit log, users and roles, settings and governance reports, without changing anything or reading private items' content; Admin pages gated by permission instead of by root | 166, 123 | planned |
+| 170 | Token scopes: read, feeds, drafts and usage (and audit, for auditors) chosen per token, `rmk login` and the device flow asking only for what they need, existing tokens keeping every scope; built with 116's workspaces | 116, 162 | planned |
+| 171 | Review provenance for installers: each version's review in the API, `rmk info`, the MCP server and the feeds (reviewed or not, how it was approved, when, the scan's score); `rmk install --reviewed-only` and a project setting that refuses unreviewed versions | 019, 022, 027, 137 | planned |
+| 172 | `rmk install` shows risk before it writes: hooks, MCP servers, widening permission rules and network hosts, dependencies included, listed and confirmed; `--yes` for scripts; a project policy in `rmk.config.json` that refuses or asks by item type | 022, 041, 171 | planned |
+| 173 | MCP writes tied to what the person saw: `submit_drafts` takes the id of the `check_drafts` the person was shown, as `apply_plan` takes a plan; item text returned framed as content, never instructions; a prompt-injection section in the threat model | 027, 052 | planned |
+| 174 | Secrets found anywhere in an item: the secret check runs over every text file and hook command at submit, not only MCP fields; known formats refused, likely ones warned | 011, 013 | planned |
+
+### M30 — Trust and hardening
+
+What a developer installs can be traced to this instance's release, and the server ships with fewer
+privileges. Shared rate limits stay 109 (M17).
+
+| ID | Feature | Depends on | Status |
+|---|---|---|---|
+| 175 | Release signing with an instance key (MVP §14.2): an ed25519 key made at setup and sealed like the other secrets, each version's manifest and checksum signed at release (older versions on first read), `rmk login` pinning the key and every install and feed build verifying it | 015, 022, 078, 099 | planned |
+| 176 | Signed release files: `checksums.txt` and the bundles signed in the release workflow, GitHub build attestations for bundles and packages, and the install script verifying the signature when it can | 081, 084, 085 | planned |
+| 177 | Container hardening: `web` and `proxy` with no capabilities they don't need and no new privileges, read-only where they can be; the optional database images by digest; no default database password (the install script makes one) | 005, 080, 081 | planned |
+
+### M31 — Configurable governance
+
+A workspace can make the instance's rules stricter for itself, every decision says which rule made
+it, and exceptions end on a date.
+
+| ID | Feature | Depends on | Status |
+|---|---|---|---|
+| 178 | Governance policies: one policy module every decision goes through (approvals, the scan gate, moves, item types allowed), instance policies with workspace policies that can only make them stricter, and "why was this refused" on every refusal | 091, 137, 169 | planned |
+| 179 | Approvals by risk: the instance or a workspace asks for two approvals, or one from a security reviewer, for hooks, MCP servers, widening permission rules or network access | 178 | planned |
+| 180 | Exceptions with an owner and an end date: a scan override, a policy exception or an accepted risk recorded with its reason and expiry, listed, reminded before it ends, audited | 178, 139 | planned |
+| 181 | Settings history: every instance and workspace setting kept with who, when and why (secrets redacted), compared, and restored from Admin › Settings | 166 | planned |
+| 182 | Access report and inactive accounts: who holds which role where, with last sign-in and last token use, as a page and CSV; root's policy flags or disables accounts unused for a number of days | 166, 169 | planned |
+| 183 | Session policy: the longest session, an idle timeout, and "remember me" for reviewers and root, set on the Authentication tab | 006, 122 | planned |
+| 184 | Service accounts: workspace-owned accounts that sign in only with tokens, made by the workspace's admins, with an owner, scopes and an end date | 170 | planned |
+| 185 | Tamper-evident audit log: each event chained to the one before by a hash, `rmk-server audit verify`, and retention's and erasure's rewrites recorded in the chain | 166 | planned |
+| 186 | Alerts and scheduled backups: example alert rules for the metrics already sent (health, sign-in failures, rate limits, failing jobs, backup age), a failing-jobs metric, and `service install` adding an encrypted backup timer | 101, 165, 083 | planned |
