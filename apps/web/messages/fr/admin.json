@@ -620,6 +620,13 @@
           "analysis": "analyse {from, select, semantic {statique et sémantique} other {statique}} à {to, select, semantic {statique et sémantique} other {statique}}",
           "blockScore": "le score qui bloque l’approbation de {from, select, none {aucun} other {{from}}} à {to, select, none {aucun} other {{to}}}",
           "nothing": "rien"
+        },
+        "languages": {
+          "default": "défaut de {from} à {to}",
+          "choiceOn": "les gens peuvent choisir",
+          "choiceOff": "les gens ne peuvent pas choisir",
+          "offered": "offertes : {list}",
+          "nothing": "rien"
         }
       },
       "actions": {
@@ -751,7 +758,8 @@
           "retention": "A changé la conservation : {changes}",
           "notice": "A changé l’avis de l’instance : {changes}",
           "skill_scan": "A modifié l’analyse de sécurité : {changes}",
-          "update_check": "A modifié la vérification des mises à jour : {state, select, on {activée} off {désactivée} other {modifiée}}"
+          "update_check": "A modifié la vérification des mises à jour : {state, select, on {activée} off {désactivée} other {modifiée}}",
+          "languages": "A modifié les langues : {changes}"
         }
       }
     }
@@ -769,7 +777,8 @@
       "privacy": "Confidentialité",
       "notice": "Avis",
       "scan": "Analyse de sécurité",
-      "updates": "Mises à jour"
+      "updates": "Mises à jour",
+      "languages": "Langues"
     },
     "methods": {
       "title": "Méthodes de connexion",
@@ -1396,6 +1405,23 @@
         "title": "Clone du dépôt",
         "text": "Dans son dossier, puis redémarrez le serveur :"
       }
+    }
+  },
+  "languages": {
+    "title": "Langues",
+    "intro": "Dans quelle langue parlent les écrans : celle où tout le monde commence, si les gens peuvent choisir la leur et parmi quelles langues. Ce que les gens publient reste tel que les auteurs l’ont écrit.",
+    "default": "Langue par défaut",
+    "defaultHint": "Ce que tout le monde voit quand le choix est désactivé, et quand le choix d’une personne, son navigateur ou le témoin demande une langue qui n’est pas offerte.",
+    "choice": "Laisser les gens choisir leur langue",
+    "choiceHint": "Activé par défaut. Désactivé, tout le monde voit la langue par défaut : Compte n’a pas de section Langue et la page de connexion n’a pas de liens de langue. Les choix antérieurs des gens sont conservés pour quand vous le réactiverez.",
+    "offered": "Langues offertes",
+    "offeredHint": "La langue par défaut est toujours offerte. Cochez les autres que les gens peuvent choisir.",
+    "locked": "toujours offerte : c’est la langue par défaut",
+    "readsAsOff": "Seule {name} est offerte, il n’y a donc rien à choisir : les gens verront {name}, comme si le choix était désactivé.",
+    "save": "Enregistrer",
+    "done": {
+      "saved": "Enregistré.",
+      "unchanged": "Rien n’a changé."
     }
   }
 }

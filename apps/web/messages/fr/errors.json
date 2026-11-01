@@ -134,6 +134,7 @@
   "InvalidUsagePolicyError": "Choisissez désactivé, chacun choisit ou obligatoire.",
   "InvalidUsageMinimumError": "Le minimum est un nombre entier de 0 à 10 000; avec 0, l’utilisation s’affiche dès qu’il y en a.",
   "InvalidRetentionError": "{which, select, ipDays {Les adresses IP sont conservées} sessionsDays {Les sessions expirées sont conservées} other {Les commentaires traités sont conservés}} pendant un nombre entier de jours, de 1 à 3 650.",
+  "InvalidLanguageError": "Choisissez English, Português ou Français comme langue par défaut.",
   "InvalidTwoFactorPolicyError": "Choisissez facultative, réviseurs et root, ou tout le monde.",
   "InvalidPasswordSignInPolicyError": "Choisissez tout le monde, ou root seulement.",
   "NoUsableProviderError": "Activez d’abord un fournisseur d’identité qui a réussi son Test de connexion.",

@@ -620,6 +620,13 @@
           "analysis": "análise de {from, select, semantic {estática e semântica} other {estática}} para {to, select, semantic {estática e semântica} other {estática}}",
           "blockScore": "a pontuação que bloqueia a aprovação de {from, select, none {nenhuma} other {{from}}} para {to, select, none {nenhuma} other {{to}}}",
           "nothing": "nada"
+        },
+        "languages": {
+          "default": "padrão de {from} para {to}",
+          "choiceOn": "as pessoas podem escolher",
+          "choiceOff": "as pessoas não podem escolher",
+          "offered": "oferecidos: {list}",
+          "nothing": "nada"
         }
       },
       "actions": {
@@ -751,7 +758,8 @@
           "retention": "Alterou a retenção: {changes}",
           "notice": "Alterou o comunicado da instância: {changes}",
           "skill_scan": "Alterou a verificação de segurança: {changes}",
-          "update_check": "Alterou a verificação de atualizações: {state, select, on {ativada} off {desativada} other {alterada}}"
+          "update_check": "Alterou a verificação de atualizações: {state, select, on {ativada} off {desativada} other {alterada}}",
+          "languages": "Alterou os idiomas: {changes}"
         }
       }
     }
@@ -769,7 +777,8 @@
       "privacy": "Privacidade",
       "notice": "Comunicado",
       "scan": "Verificação de segurança",
-      "updates": "Atualizações"
+      "updates": "Atualizações",
+      "languages": "Idiomas"
     },
     "methods": {
       "title": "Formas de entrar",
@@ -1396,6 +1405,23 @@
         "title": "Clone do repositório",
         "text": "Na pasta dele, e depois reinicie o servidor:"
       }
+    }
+  },
+  "languages": {
+    "title": "Idiomas",
+    "intro": "Em que idioma as telas falam: aquele em que todos começam, se as pessoas podem escolher o seu e entre quais idiomas. O que as pessoas publicam continua como os autores escreveram.",
+    "default": "Idioma padrão",
+    "defaultHint": "O que todos veem quando a escolha está desativada, e quando a escolha de uma pessoa, o navegador ou o cookie pedem um idioma que não é oferecido.",
+    "choice": "Deixar as pessoas escolherem o idioma",
+    "choiceHint": "Ativada por padrão. Desativada, todos veem o idioma padrão: Conta não tem a seção Idioma e a página de entrada não tem links de idioma. As escolhas anteriores das pessoas são mantidas para quando você ativar de novo.",
+    "offered": "Idiomas oferecidos",
+    "offeredHint": "O idioma padrão é sempre oferecido. Marque os outros que as pessoas podem escolher.",
+    "locked": "sempre oferecido: é o padrão",
+    "readsAsOff": "Só {name} é oferecido, então não há o que escolher: as pessoas verão {name}, como se a escolha estivesse desativada.",
+    "save": "Salvar",
+    "done": {
+      "saved": "Salvo.",
+      "unchanged": "Nada mudou."
     }
   }
 }

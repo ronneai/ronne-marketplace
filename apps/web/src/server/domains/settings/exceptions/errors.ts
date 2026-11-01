@@ -37,6 +37,14 @@ export class InvalidRetentionError extends SettingsError {
   }
 }
 
+/** The default language isn't one the app speaks (141): only a hand-made request does this. */
+export class InvalidLanguageError extends SettingsError {
+  override readonly name: string = "InvalidLanguageError";
+  constructor() {
+    super("Choose English, Português or Français as the default language.");
+  }
+}
+
 export class InvalidTwoFactorPolicyError extends SettingsError {
   override readonly name: string = "InvalidTwoFactorPolicyError";
   constructor() {

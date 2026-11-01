@@ -22,7 +22,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* unit tests cover choosing off, each step with choosing on, a language not offered
     at each step and the absent settings; db tests cover the settings service on SQLite.
 
-- [ ] **3. Settings › Languages.**
+- [x] **3. Settings › Languages.**
   - The tab in 122's strip, the form, the audit event `settings.languages`.
   - *Done when:* component tests cover the default's locked box, the switch hiding the list and the
     "reads as off" note; a db test covers the audit metadata.

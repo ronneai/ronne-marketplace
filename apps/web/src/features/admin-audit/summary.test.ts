@@ -353,6 +353,20 @@ describe("audit summaries (060)", () => {
         revision: 3,
       }),
     ).toBe("Changed the instance notice: its words or link");
+    // The languages (141): only what changed.
+    expect(
+      line("settings.languages", {
+        from: { default: "en", choice: true, offered: ["en", "pt", "fr"] },
+        to: { default: "fr", choice: false, offered: ["en", "pt", "fr"] },
+      }),
+    ).toBe("Changed the languages: default en to fr, people can't choose");
+    expect(
+      line("settings.languages", {
+        from: { default: "en", choice: false, offered: ["en"] },
+        to: { default: "en", choice: true, offered: ["en", "fr"] },
+      }),
+    ).toBe("Changed the languages: people can choose, offered: en, fr");
+    expect(line("settings.languages", {})).toBe("Changed the languages: nothing");
     expect(
       line("submission.rebased", { name: "@team/x", from: "1.0.0", to: "1.1.0", conflicts: ["a"] }),
     ).toBe("Rebased @team/x from 1.0.0 to 1.1.0 (1 conflict)");

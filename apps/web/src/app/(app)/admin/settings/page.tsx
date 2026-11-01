@@ -6,6 +6,7 @@ import { TabLinks } from "@/components/ui/TabLinks";
 import { AuthenticationTab } from "@/features/admin-settings/authentication/AuthenticationTab";
 import { ProviderPage } from "@/features/admin-settings/authentication/providers/ProviderPage";
 import { PluginFeedsPanel } from "@/features/admin-settings/feeds/PluginFeedsPanel";
+import { LanguagesTab } from "@/features/admin-settings/languages/LanguagesTab";
 import { NoticeTab } from "@/features/admin-settings/notice/NoticeTab";
 import { PrivacyTab } from "@/features/admin-settings/privacy/PrivacyTab";
 import { ScanTab } from "@/features/admin-settings/scan/ScanTab";
@@ -28,7 +29,7 @@ export const generateMetadata = settingsTitle;
  * policy and 047's minimum, the default), Plugin feeds (079's last builds) and Authentication,
  * whose identity providers each have a page (`&provider=`, 106), Privacy (102's retention) and
 
- * Notice (124's message for every signed-in page), Security scan (135) and Updates (140).
+ * Notice (124's message for every signed-in page), Security scan (135), Updates (140) and Languages (141).
  * Only the tab shown reads its data.
  */
 const AdminSettings = async ({ searchParams }: { searchParams: Promise<SearchParams> }) => {
@@ -54,6 +55,7 @@ const AdminSettings = async ({ searchParams }: { searchParams: Promise<SearchPar
     if (tab === "notice") return await NoticeTab();
     if (tab === "scan") return await ScanTab();
     if (tab === "updates") return await UpdatesTab();
+    if (tab === "languages") return await LanguagesTab();
     const settings = await instanceSettings(request);
     return (
       <>

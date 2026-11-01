@@ -1,7 +1,9 @@
+import { isLocale } from "../../identity/models/locale";
 import { requirePermission } from "../../identity/models/permissions";
 import type { CurrentUser } from "../../identity/models/user";
 import {
   ConfirmationNeededError,
+  InvalidLanguageError,
   InvalidNoticeError,
   InvalidPasswordSignInPolicyError,
   InvalidRetentionError,
@@ -19,7 +21,9 @@ import {
   DEFAULT_LANGUAGE_POLICY,
   LANGUAGE_KEYS,
   type LanguagePolicy,
+  languagePolicyFrom,
   languagePolicyFromRows,
+  languagePolicyRows,
 } from "../models/language-policy";
 import {
   DEFAULT_NOTICE,
@@ -590,5 +594,63 @@ export const languagePolicy = async (deps: SettingsDeps): Promise<LanguagePolicy
     default: def?.value,
     choice: choice?.value,
     offered: offered?.value,
+  });
+};
+
+/** Admin › Settings › Languages (141): root only. */
+export const languageSettings = async (
+  deps: SettingsDeps,
+  actor: SettingsActor,
+): Promise<LanguagePolicy> => {
+  requirePermission(actor.user, "settings.manage");
+  return languagePolicy(deps);
+};
+
+/**
+ * Root sets the languages (141): the default, whether people may choose and which languages are
+ * offered. The default is always offered, and a list of nothing but the default is allowed (choosing
+ * then reads as off). Only a change is saved and audited, as `settings.languages` with the old and
+ * new values. A person's saved language is never touched: it counts again when it is offered.
+ */
+export const setLanguagePolicy = async (
+  deps: SettingsDeps,
+  actor: SettingsActor,
+  input: { default: unknown; choice: unknown; offered: unknown },
+): Promise<{ changed: boolean }> => {
+  requirePermission(actor.user, "settings.manage");
+  if (!isLocale(input.default)) throw new InvalidLanguageError();
+  const listed = Array.isArray(input.offered) ? input.offered : [];
+  const to = languagePolicyFrom({
+    default: input.default,
+    choice: input.choice === true || input.choice === "on",
+    // An empty list is the default alone here (the form can submit nothing but the locked box).
+    offered: listed.some(isLocale) ? listed : [input.default],
+  });
+  const at = now(deps);
+  return deps.repo.transaction(async (repo) => {
+    const from = await languagePolicy({ repo });
+    if (
+      from.default === to.default &&
+      from.choice === to.choice &&
+      from.offered.join() === to.offered.join()
+    )
+      return { changed: false };
+    const by = actor.user?.id ?? null;
+    for (const [key, value] of Object.entries(languagePolicyRows(to)))
+      await repo.set(key, value, by, at);
+    await repo.recordAudit(
+      {
+        actorId: by,
+        action: "settings.languages",
+        target: { type: "instance" },
+        metadata: {
+          from: { default: from.default, choice: from.choice, offered: from.offered },
+          to: { default: to.default, choice: to.choice, offered: to.offered },
+        },
+        ipAddress: actor.ip,
+      },
+      at,
+    );
+    return { changed: true };
   });
 };

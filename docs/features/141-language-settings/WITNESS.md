@@ -48,3 +48,24 @@ Witnessed: 2026-10-31, by a fresh agent (blind). Commit: 48d76e23 plus the uncom
 | 5 | The db tests cover the settings service on SQLite and the servers | no | confirmed | 4 passed on SQLite, PostgreSQL, MySQL and MariaDB |
 
 **Overall:** met. The witness ran its mutations in the working tree and restored them (checked byte for byte); the implementer reran the tests after.
+
+
+## Task 3 — Settings › Languages
+
+Witnessed: 2026-10-31, by a fresh agent (blind). Commit: 647b1428 plus the uncommitted working tree. Machine: macOS (Darwin), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The tab is in 122's strip and `?tab=languages` renders it, for root only | no | confirmed | `tabs.ts`, `page.tsx`; `languages.test.tsx` strip and 404 |
+| 2 | The default's box is ticked and locked, and the lock moves with the default | no | confirmed | removing the hidden field in a scratch copy fails "locks the default's box" |
+| 3 | The switch off hides the list, and the ticks are kept when it comes back | no | confirmed | `hidden={false}` fails 2 tests |
+| 4 | The "reads as off" note appears when only the default is offered and is gone otherwise | no | confirmed | forcing `readsAsOff` false fails 2 tests |
+| 5 | Without JavaScript the locked default is still sent, and the server also adds the default | no | confirmed | removing `wanted.add(fallback)` fails 2 db tests |
+| 6 | A default that isn't a language is refused; an empty list becomes the default alone; a non-root actor is refused | no | confirmed | `InvalidLanguageError`, `requirePermission`; db tests |
+| 7 | Saving the same values twice writes no row and no audit event | no | confirmed | removing the early return fails 3 tests |
+| 8 | The audit event records who, the IP, the target, and from/to (db test) | no | confirmed | cutting `to` down to `{default}` fails the test |
+| 9 | The audit sentence reads correctly from empty and rich metadata in en, pt and fr | no | confirmed | `summary.test.ts`, the fixture, the key-parity tests |
+| 10 | A saved `user.locale` survives a language turned off | no | confirmed | db test |
+| 11 | The tests pass on SQLite and the three servers | no | confirmed | 645 unit tests; 7 db tests; 11 on each server |
+
+**Overall:** met.
