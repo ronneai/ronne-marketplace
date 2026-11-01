@@ -14,7 +14,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     dependencies.
   - *Done when:* both say what this spec says, and `pnpm witness:check` passes.
 
-- [ ] **2. The check.** [risky]
+- [x] **2. The check.** [risky]
   - A pure `checkForUpdate({ fetch, current, now })`: the request (URL, timeout, `User-Agent`, size
     limit, same-host redirects only), parsing `tag_name`, semver comparison, the result or a short
     reason.
