@@ -170,6 +170,15 @@ describe("decisions and comments", () => {
     expect(await count("audit_log")).toBe(audits + 1);
   });
 
+  it("sending it back after a request for changes leaves the status, thread and notifications as they were", async () => {
+    const id = await submitted("rule-resubmit");
+    await decide(asModerator, id, { decision: "request_changes", message: "Fix it." }, app);
+    await rollsBack(
+      () => submitDraft(asAuthor, id, app, storage),
+      () => status(id),
+    );
+  });
+
   it("a comment leaves no entry in the thread", async () => {
     const id = await submitted("rule-comment");
     await rollsBack(

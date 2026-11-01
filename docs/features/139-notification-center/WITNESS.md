@@ -323,3 +323,49 @@ Witnessed: 2026-10-31, by a fresh agent (blind, re-check of the findings). Commi
 
 **Overall:** met. Not language-reviewed by the project's review agents (133) yet: the pt and fr copy was checked against the glossary and punctuation rules by the witness only.
 
+
+## Task 9 — Tell the reviewer who asked for changes
+
+Witnessed: 2026-10-31, by a fresh agent (blind). Commit: f6e92ca6 plus the uncommitted work; ronne-web `docs/marketplace-139-notifications` at 3fb3e9e plus the uncommitted copy. Machine: macOS (Darwin), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Only the reviewer who made the latest request for changes is told; the author, other reviewers and root are not | no | confirmed | `submissions.ts` `send`, `findLast`; the new test in `reviews.db.test.ts` passes |
+| 2 | A first submit tells nobody | no | confirmed | `asker` is read only for `resubmit`; the test asserts empty lists |
+| 3 | A failed send leaves no notification | no | confirmed | `repo.notify` is in the send's transaction; the rollback test passes (not mutated) |
+| 4 | The actor is never told; a disabled or erased reviewer is told nothing | no | confirmed | `notify.ts` filters; no test for a disabled or erased asker |
+| 5 | Bulk submit goes through the same `send` | no | confirmed | `bulk-submit.ts:146` → `sendGroup` → `send`; no bulk test |
+| 6 | `reviews.db.test.ts` and the rollback test pass | no | confirmed | 2 files, 32 tests on SQLite |
+| 7 | The kind has an icon and en, pt and fr messages | no | confirmed | the three `notifications.json`, `kind-style.ts`; 44 tests |
+| 8 | The website copy says it in en, pt and fr | no | confirmed | `notifications.tsx` ×3 |
+
+**Overall:** met. Gaps noted: no test for a disabled asker or bulk resubmit.
+
+### Adversarial
+
+Witnessed: 2026-10-31, by a fresh agent (adversarial). Commit: f6e92ca6 plus the uncommitted work.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Only the latest `request_changes` actor is told, in the send's transaction; a first submit tells nobody | no | confirmed | 32 tests pass |
+| 2 | The asker as resubmitter, a disabled or erased asker, and visibility are safe | no | partly | a disabled asker is skipped (probe); erased and a departed member not run |
+| 3 | A send-back that is not a reviewer's request notifies nobody | no | not met | probe: request, resubmit, rebase (a `rebase` event, status back to `changes_requested`), resubmit → the reviewer was told twice |
+| 4 | Bulk and the API use `send`; a failure rolls everything back | no | partly | no bulk test; databases not run |
+| 5 | Params hold no name or free text | no | confirmed | `{ name, revision }` |
+
+**Overall:** not met: row 3 (a stale asker after a rebase), plus the missing bulk and database runs.
+
+### Re-check
+
+Witnessed: 2026-10-31, by a fresh agent (adversarial, re-check of the findings). Commit: f6e92ca6 plus the uncommitted work.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `send` notifies only when the latest of request_changes, reject and rebase is a request for changes (shared `latestFeedback`) | yes | confirmed | `submissions.ts:292-297`, `models/review.ts:65` |
+| 2 | The four test files pass on SQLite, PostgreSQL, MySQL and MariaDB | yes | confirmed | 90/90 on SQLite; 63/63 on each server |
+| 3 | The rebase test fails against the old behaviour | yes | confirmed | mutated: exactly that test failed; file restored byte for byte |
+| 4 | The bulk, disabled-asker and rollback tests exist and cover their claims | yes | confirmed | `bulk-submit.db.test.ts:156`, `reviews.db.test.ts:582`, `notifications.rollback.db.test.ts:173` |
+| 5 | Only the asker is told, never the author, other reviewers or root; a first submit tells nobody | yes | confirmed | probes: comment between, two asks, reviewer who is also the author, withdraw then restore |
+| 6 | A failed send leaves no notification | yes | confirmed | rollback test on four databases; a refused send writes none |
+
+**Overall:** met.

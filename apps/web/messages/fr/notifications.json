@@ -7,7 +7,8 @@
     "rejected": "{actor} a rejeté {name}.",
     "comment": "{actor} a commenté {name}.",
     "released": "{actor} a publié {name} {version} (étiquette {tag}).",
-    "dependency_rejected": "{name} nécessite des modifications : {actor} a rejeté sa dépendance {dependency}."
+    "dependency_rejected": "{name} nécessite des modifications : {actor} a rejeté sa dépendance {dependency}.",
+    "resubmitted": "{actor} a soumis {name} de nouveau à la révision."
   },
   "join_request": {
     "approved": "{actor} a approuvé votre demande de se joindre à {workspace}.",
@@ -74,7 +75,8 @@
         "rejected": "Rejetée",
         "comment": "Commentaire",
         "released": "Publiée",
-        "dependency_rejected": "Dépendance rejetée"
+        "dependency_rejected": "Dépendance rejetée",
+        "resubmitted": "Soumis de nouveau"
       },
       "join_request": {
         "approved": "Demande approuvée",

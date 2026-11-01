@@ -17,6 +17,7 @@ const PARAMS: Record<string, Record<string, string | number>> = {
   "submission.rejected": { name: "@team/style", revision: 2 },
   "submission.comment": { name: "@team/style", revision: 2 },
   "submission.released": { name: "@team/style", version: "1.2.0", tag: "latest" },
+  "submission.resubmitted": { name: "@team/style", revision: 3 },
   "submission.dependency_rejected": { name: "@team/kit", revision: 1, dependency: "@team/style" },
   "join_request.approved": { workspace: "acme", role: "user" },
   "join_request.declined": { workspace: "acme" },

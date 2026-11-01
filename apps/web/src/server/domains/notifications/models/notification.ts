@@ -13,6 +13,8 @@ export const NOTIFICATION_KINDS = [
   "submission.comment",
   "submission.released",
   "submission.dependency_rejected",
+  // The reviewer who asked for changes, when the author sends it back (014).
+  "submission.resubmitted",
   // A person who asked to join a workspace (094).
   "join_request.approved",
   "join_request.declined",

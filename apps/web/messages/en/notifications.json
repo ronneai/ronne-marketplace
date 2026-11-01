@@ -7,7 +7,8 @@
     "rejected": "{actor} rejected {name}.",
     "comment": "{actor} commented on {name}.",
     "released": "{actor} released {name} {version} (tag {tag}).",
-    "dependency_rejected": "{name} needs changes: {actor} rejected its dependency {dependency}."
+    "dependency_rejected": "{name} needs changes: {actor} rejected its dependency {dependency}.",
+    "resubmitted": "{actor} resubmitted {name} for review."
   },
   "join_request": {
     "approved": "{actor} approved your request to join {workspace}.",
@@ -74,7 +75,8 @@
         "rejected": "Rejected",
         "comment": "Comment",
         "released": "Released",
-        "dependency_rejected": "Dependency rejected"
+        "dependency_rejected": "Dependency rejected",
+        "resubmitted": "Resubmitted"
       },
       "join_request": {
         "approved": "Join request approved",

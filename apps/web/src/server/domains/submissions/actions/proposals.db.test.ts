@@ -438,6 +438,24 @@ describe("rebase", () => {
     );
   });
 
+  it("a rebase that sends a proposal back tells no reviewer when it is sent again (139)", async () => {
+    await releasedSkill();
+    const mine = await proposeChange(asOther, item, app, storage);
+    await write(asOther, mine.id, { "README.md": "# Mine\n" });
+    await submitDraft(asOther, mine.id, app, storage);
+    await decide(asModerator, mine.id, { decision: "request_changes", message: "Fix." }, app);
+    await submitDraft(asOther, mine.id, app, storage);
+    const resubmitted = () =>
+      t.db.selectFrom("notifications").select("kind").where("kind", "=", "submission.resubmitted");
+    expect(await resubmitted().execute()).toHaveLength(1);
+    // Sent back by the rebase, not by anyone: nobody is waiting for the answer.
+    await releaseNewer({ "README.md": "# Theirs\n" });
+    await rebaseProposal(asOther, mine.id, app, storage);
+    await resolveConflict(asOther, mine.id, "README.md", app, storage);
+    await submitDraft(asOther, mine.id, app, storage);
+    expect(await resubmitted().execute()).toHaveLength(1);
+  });
+
   it("a removed member opens their stale proposal, but can't rebase it or resolve its conflicts (091)", async () => {
     await releasedSkill();
     const mine = await proposeChange(asOther, item, app, storage);

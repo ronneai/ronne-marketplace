@@ -42,6 +42,9 @@ it, and a page with all of them. In the app only; email and webhooks stay out of
   - **the author of a submission:** approved, approved by override, changes requested, rejected, a
     comment by someone else (014, 058); released by someone else (015, 055); a dependency they
     submitted with was rejected (056);
+  - **the reviewer who asked for changes:** the author sent the submission back for review (014).
+    Only the one who made the latest request for changes is told, not the other reviewers or
+    root; a reviewer who is disabled or erased is told nothing;
   - **a person who asked to join a workspace:** approved or declined (094);
   - **a person who asked to move a scope or an item:** moved or declined (115, 134);
   - **a member:** added to a workspace, removed from one, their role there changed (092);
@@ -62,7 +65,8 @@ it, and a page with all of them. In the app only; email and webhooks stay out of
   are noise. The first set is only what's addressed to the person.
 - **Notifications in `rmk`, the MCP server or `/api/v1`:** not now.
 - **A notification for each new submission waiting for review:** no; the Reviews count (014) already
-  says it, and a busy queue would bury everything else.
+  says it, and a busy queue would bury everything else. A submission sent back is the exception
+  (owner, 2026-10-31): one reviewer is waiting for that exact answer.
 - **Live push** (websockets, server-sent events): no; the count refreshes on navigation and every
   minute while the page is visible.
 

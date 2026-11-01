@@ -57,6 +57,14 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* the docs render tests and `pnpm docs:links` pass, and the helper lands on a real
     section.
 
+- [x] **9. Tell the reviewer who asked for changes (owner, 2026-10-31).** [risky]
+  - Kind `submission.resubmitted`, written in `send` (the transaction of the submit) when a
+    submission sent back is sent again, to the actor of its latest `request_changes` event;
+    messages in en, pt and fr, an icon, a rollback test, and the Documentation line.
+  - *Done when:* only that reviewer is told, never the author, other reviewers or root; a first
+    submit tells nobody; a failed send leaves no notification; `reviews.db.test.ts` and the
+    rollback test pass.
+
 ## Notes
 
 Things learned while building that the next person should know. Anything that changes behaviour
@@ -109,3 +117,8 @@ goes into `SPEC.md` instead.
   sender of new feedback was one, and erasing them left the name behind (found by the adversarial
   pass), so the sentence now uses the actor, read when shown. The download's section drops
   `sender` defensively and scrubs other emails. No purge rule guards against a wrong clock.
+- **Task 9 (owner, 2026-10-31):** the author sending a submission back tells the reviewer who made
+  the latest request for changes (`submission.resubmitted`), written in `send` beside the status
+  change. Only when the latest of request changes, reject and rebase is a request for changes: a
+  rebase sends a proposal back with no reviewer waiting (found by the adversarial pass). A reviewer
+  who is disabled or erased is told nothing, and the send still goes through. 21 kinds now.

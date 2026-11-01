@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { toDbDate } from "../../../db/dates";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
 import { listAuditEvents } from "../../audit/actions/audit";
 import { createRoot } from "../../identity/actions/root-account";
@@ -547,6 +548,54 @@ describe("notifications written with decisions and comments (139)", () => {
       params: { name: "@team/style", revision: 1 },
     });
     expect(JSON.stringify(note)).not.toContain("Why tabs?");
+  });
+
+  it("tells only the reviewer who asked for changes when the author sends it back (139)", async () => {
+    const id = await submitted();
+    // A first submit waits in the queue and tells nobody.
+    for (const email of ["mod@example.com", "mod2@example.com", "root@example.com"])
+      expect(await told(email)).toEqual([]);
+    await comment(asModerator2, id, { body: "Looking." }, app);
+    await decide(asModerator, id, { decision: "request_changes", message: "Fix it." }, app);
+    await submitDraft(asAuthor, id, app);
+    expect(await told("mod@example.com")).toMatchObject([
+      {
+        kind: "submission.resubmitted",
+        subjectType: "submission",
+        subjectId: id,
+        params: { name: "@team/style", revision: 2 },
+      },
+    ]);
+    for (const email of ["mod2@example.com", "root@example.com", "author@example.com"])
+      expect((await told(email)).filter((n) => n.kind === "submission.resubmitted")).toEqual([]);
+    // The latest request counts: root asks next, and root alone is told of the next send.
+    await decide(asRoot, id, { decision: "request_changes", message: "Again." }, app);
+    await submitDraft(asAuthor, id, app);
+    expect((await told("root@example.com")).map((n) => [n.kind, n.params.revision])).toEqual([
+      ["submission.resubmitted", 3],
+    ]);
+    expect(
+      (await told("mod@example.com")).filter((n) => n.kind === "submission.resubmitted"),
+    ).toHaveLength(1);
+  });
+
+  it("tells nobody when the reviewer who asked for changes has been disabled, and still sends it (139)", async () => {
+    const id = await submitted();
+    await decide(asModerator, id, { decision: "request_changes", message: "Fix it." }, app);
+    await t.db
+      .updateTable("user")
+      .set({ disabled_at: toDbDate(new Date(), t.dialect) })
+      .where("email", "=", "mod@example.com")
+      .execute();
+    await submitDraft(asAuthor, id, app);
+    expect(await status(id)).toBe("submitted");
+    expect(
+      await t.db
+        .selectFrom("notifications")
+        .select("id")
+        .where("kind", "=", "submission.resubmitted")
+        .execute(),
+    ).toEqual([]);
   });
 
   it("writes none when the decision is refused", async () => {

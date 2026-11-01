@@ -19,6 +19,7 @@ import {
   SubmissionNotFoundError,
 } from "../exceptions/errors";
 import { isUnreleased } from "../models/diff";
+import { latestFeedback as latestFeedbackOf } from "../models/review";
 import type { ScanGatePolicy } from "../models/scan-gate";
 import { type SubmissionStatus, transition } from "../models/status";
 import {
@@ -288,6 +289,12 @@ const send = async (
   const files = await repo.files(submission.id);
   const submittedAt = submission.submittedAt ?? at;
   await repo.setStatus(submission.id, status, { updatedAt: at, submittedAt });
+  // Who asked for changes (139): read before this send adds its own event. Only when the latest
+  // thing that sent it back was a request for changes: a rebase (proposals) sent it back without
+  // any reviewer waiting.
+  const sentBack =
+    action === "resubmit" ? latestFeedbackOf(await repo.events(submission.id)) : null;
+  const asker = sentBack?.kind === "request_changes" ? sentBack : undefined;
   const revision = await repo.createRevision(submission.id, actor.user?.id ?? "", files, at);
   if (deps.scanTypes?.includes(submission.type)) await repo.queueScan(revision.id, at);
   await repo.addEvent({
@@ -298,6 +305,19 @@ const send = async (
     revision: revision.number,
     createdAt: at,
   });
+  // The reviewer who asked for changes is waiting for this (139); nobody else is told, and the
+  // actor never is, so a reviewer who resubmits for the author tells nobody.
+  if (asker)
+    await repo.notify(
+      {
+        recipients: [asker.actor.id],
+        kind: "submission.resubmitted",
+        actorId: actor.user?.id ?? null,
+        subject: { type: "submission", id: submission.id },
+        params: { name: itemNameOf(submission), revision: revision.number },
+      },
+      at,
+    );
   const manifestFile = files.find((f) => f.path === MANIFEST_PATH);
   const manifest = manifestFile
     ? parseManifest(new TextDecoder().decode(fileBytes(manifestFile))).manifest
