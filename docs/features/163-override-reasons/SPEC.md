@@ -82,15 +82,15 @@ all twelve approvals. Alternatively root unticks the two, and the other ten go w
 
 ## Acceptance criteria
 
-- [ ] `decide` refuses an override with an empty reason (`ReviewMessageError`, `required`) and records the reason
+- [x] `decide` refuses an override with an empty reason (`ReviewMessageError`, `required`) and records the reason
   when given; db tests.
-- [ ] Approve many requires the message when the selection has an override, and not otherwise;
+- [x] Approve many requires the message when the selection has an override, and not otherwise;
   db tests and a component test.
-- [ ] The review page and the Overview show an override's reason, and "No reason given" for older
+- [x] The review page and the Overview show an override's reason, and "No reason given" for older
   ones.
-- [ ] Every new text is a message in English, Portuguese and French; both dialogs pass the phone
+- [x] Every new text is a message in English, Portuguese and French; both dialogs pass the phone
   sweep.
-- [ ] The Documentation and the permission matrix (MVP §2, `permissions.ts`) say what the feature
+- [x] The Documentation and the permission matrix (MVP §2, `permissions.ts`) say what the feature
   does.
 
 ## Decisions

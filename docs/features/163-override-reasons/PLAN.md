@@ -32,7 +32,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - Every new key in `en`, `pt` and `fr`.
   - *Done when:* the parity and raw-text tests pass; the phone sweep passes on both dialogs.
 
-- [ ] **5. Documentation.**
+- [x] **5. Documentation.**
   - `review#decisions`, `review#approve-many`, `roles#permissions`; MVP §2's matrix.
   - *Done when:* the docs render tests and `pnpm docs:links` pass.
 
