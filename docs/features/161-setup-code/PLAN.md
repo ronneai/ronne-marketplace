@@ -42,7 +42,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     code, the rate limit, and the deletion; `run-setup.db.test.ts` and `reset-setup.test.ts` cover
     theirs.
 
-- [ ] **5. `setup-code`.**
+- [x] **5. `setup-code`.**
   - The script for a clone and Docker (`pnpm run setup-code`) and `rmk-server setup-code`: print,
     make if missing, refuse when set up.
   - *Done when:* CLI tests cover the three answers; `pnpm packages:check` lists the new entry.

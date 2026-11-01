@@ -164,9 +164,9 @@ Options for install:
   --email E     Expiry notices from the certificate authority
   --user        macOS: run as you instead of a system user
 
-With the service installed, sudo rmk-server setup, migrate, reset-root-password, revoke-access,
-reset-two-factor, rotate-secret, disable-sso, backup, restore and purge work on its data and settings, as
-its account. Backups go in the data folder's backups/ unless --out says where.
+With the service installed, sudo rmk-server setup, setup-code, migrate, reset-root-password,
+revoke-access, reset-two-factor, rotate-secret, disable-sso, backup, restore and purge work on its data
+and settings, as its account. Backups go in the data folder's backups/ unless --out says where.
 
 Where things are:
   Linux   data /var/lib/rmk-server, settings /etc/rmk-server/env, logs: journalctl -u rmk-server

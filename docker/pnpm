@@ -1,6 +1,7 @@
 #!/bin/sh
 # The image has no pnpm. This stand-in keeps the documented commands working:
 #   docker compose exec web pnpm run setup
+#   docker compose exec web pnpm run setup-code
 #   docker compose exec web pnpm run reset-root-password
 #   docker compose exec web pnpm run revoke-access
 #   docker compose exec web pnpm run reset-two-factor --email <email>
@@ -16,6 +17,7 @@ cd /app/apps/web
 [ "$1" = "run" ] && shift
 case "$1" in
   setup) shift; exec node dist-scripts/setup.mjs "$@" ;;
+  setup-code) shift; exec node dist-scripts/setup-code.mjs "$@" ;;
   reset-root-password) shift; exec node dist-scripts/reset-root-password.mjs "$@" ;;
   revoke-access) shift; exec node dist-scripts/revoke-access.mjs "$@" ;;
   reset-two-factor) shift; exec node dist-scripts/reset-two-factor.mjs "$@" ;;
@@ -27,6 +29,6 @@ case "$1" in
   db:migrate) shift; exec node dist-scripts/migrate.mjs "$@" ;;
   *)
     # reset-setup is development-only on purpose: to start over here, remove the ronne-data volume.
-    echo "This image only supports: pnpm run setup, pnpm run reset-root-password, pnpm run revoke-access, pnpm run reset-two-factor, pnpm run rotate-secret, pnpm run disable-sso, pnpm run backup, pnpm run restore, pnpm run purge, pnpm db:migrate" >&2
+    echo "This image only supports: pnpm run setup, pnpm run setup-code, pnpm run reset-root-password, pnpm run revoke-access, pnpm run reset-two-factor, pnpm run rotate-secret, pnpm run disable-sso, pnpm run backup, pnpm run restore, pnpm run purge, pnpm db:migrate" >&2
     exit 2 ;;
 esac

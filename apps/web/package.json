@@ -22,6 +22,7 @@
     "restore": "pnpm --filter @ronneai/core --silent build && tsx scripts/restore.ts",
     "purge": "pnpm --filter @ronneai/core --silent build && tsx scripts/purge.ts",
     "reset-setup": "tsx scripts/reset-setup.ts",
+    "setup-code": "pnpm --filter @ronneai/core --silent build && tsx scripts/setup-code.ts",
     "test:db": "pnpm --filter @ronneai/core --silent build && vitest run --project db",
     "bench:feeds": "pnpm --filter @ronneai/core --silent build && tsx scripts/feed-benchmark.ts",
     "bench:backup": "pnpm --filter @ronneai/core --silent build && tsx --expose-gc scripts/backup-benchmark.ts",

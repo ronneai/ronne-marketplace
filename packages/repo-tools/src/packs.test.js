@@ -46,6 +46,7 @@ describe("checkPack", () => {
     const app = [
       "app/apps/web/server.js",
       "app/apps/web/dist-scripts/start.mjs",
+      "app/apps/web/dist-scripts/setup-code.mjs",
       "THIRD_PARTY_NOTICES",
     ];
     const pack = (...paths) =>
@@ -78,6 +79,7 @@ describe("checkPack", () => {
     expect(checkPack("server", { name: "@ronneai/marketplace", files: files(...base) })).toEqual([
       "is missing app/apps/web/server.js",
       "is missing app/apps/web/dist-scripts/start.mjs",
+      "is missing app/apps/web/dist-scripts/setup-code.mjs",
       "is missing THIRD_PARTY_NOTICES",
     ]);
   });
