@@ -514,6 +514,25 @@ export const SUMMARIES: Record<AuditAction, Build> = {
   "settings.update_check": (m) => ({
     state: m.to === true ? "on" : m.to === false ? "off" : "changed",
   }),
+  "settings.languages": (m, _e, h) => {
+    // `{ from: { default, choice, offered }, to: { … } }` (141): only what changed.
+    const from = record(m.from);
+    const to = record(m.to);
+    const list = (value: AuditMetadataValue | undefined) =>
+      Array.isArray(value) ? value.map(text).join(", ") : text(value);
+    const changes = [
+      text(from.default) !== text(to.default)
+        ? h.part("languages.default", { from: text(from.default), to: text(to.default) })
+        : null,
+      text(from.choice) !== text(to.choice)
+        ? h.part(to.choice === true ? "languages.choiceOn" : "languages.choiceOff")
+        : null,
+      list(from.offered) !== list(to.offered)
+        ? h.part("languages.offered", { list: list(to.offered) })
+        : null,
+    ].filter((c) => c !== null);
+    return { changes: changes.join(", ") || h.part("languages.nothing") };
+  },
   "settings.notice": (m, _e, h) => {
     // `{ from: { tone, shown }, to: { tone, shown }, revision }`: never the text (124).
     const from = record(m.from);

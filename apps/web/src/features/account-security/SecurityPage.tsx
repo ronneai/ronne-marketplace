@@ -14,18 +14,21 @@ export const SecurityPage = ({
   status,
   required = null,
   continueTo = null,
+  language = true,
 }: {
   status: SecurityStatus;
   /** Root's requirement holding this person here until they set it up (105), or null. */
   required?: "reviewers" | "everyone" | null;
   /** The page a held person came from, offered once two-factor is on (107), or null. */
   continueTo?: string | null;
+  /** Whether the Language tab shows (141). */
+  language?: boolean;
 }) => {
   const t = useTranslations("account.header");
   return (
     <>
       <PageHeader title={t("title")} description={t("description")} />
-      <AccountTabs current="security" />
+      <AccountTabs current="security" language={language} />
       <TwoFactorPanel status={status} required={required} continueTo={continueTo} />
     </>
   );

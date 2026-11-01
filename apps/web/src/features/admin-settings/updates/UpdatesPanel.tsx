@@ -144,10 +144,7 @@ export const UpdatesPanel = ({
         aria-label={t("switchTitle")}
         className="grid gap-2"
       >
-        <label
-          htmlFor="update-check-enabled"
-          className="flex items-center gap-2 text-sm font-semibold text-fg"
-        >
+        <label htmlFor="update-check-enabled" className="flex items-start gap-2 text-sm text-fg">
           <input
             id="update-check-enabled"
             name="enabled"
@@ -155,13 +152,15 @@ export const UpdatesPanel = ({
             defaultChecked={settings.enabled && !settings.offByEnvironment}
             disabled={settings.offByEnvironment}
             aria-describedby="update-check-hint"
-            className="size-4 pointer-coarse:size-6"
+            className="mt-0.5 size-4 accent-(--accent)"
           />
-          {t("switch")}
+          <span className="grid gap-0.5">
+            <span className="font-semibold">{t("switch")}</span>
+            <span id="update-check-hint" className="text-muted">
+              {settings.offByEnvironment ? t("setOnServer") : t("switchHint")}
+            </span>
+          </span>
         </label>
-        <p id="update-check-hint" className="text-xs text-muted">
-          {settings.offByEnvironment ? t("setOnServer") : t("switchHint")}
-        </p>
         <div>
           <Button type="submit" loading={save.pending} disabled={settings.offByEnvironment}>
             {t("save")}

@@ -98,6 +98,7 @@ export const AUDIT_ACTIONS = [
   "settings.retention",
   "settings.notice",
   "settings.update_check",
+  "settings.languages",
   "settings.skill_scan",
   "scan.finding_dismissed",
   "scan.finding_restored",

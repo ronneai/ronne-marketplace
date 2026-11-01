@@ -9,35 +9,35 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 ## Tasks
 
-- [ ] **1. Decision.**
+- [x] **1. Decision.**
   - MVP.md §15's "Languages" row says root sets the default, the switch and the offered languages,
     132's spec points here for the instance default, and `docs/features/README.md` lists 141 under
     M19 with its dependencies.
   - *Done when:* the docs say what this spec says, and `pnpm witness:check` passes.
 
-- [ ] **2. Choosing with the instance's settings.**
+- [x] **2. Choosing with the instance's settings.**
   - `chooseLocale` with `offered` and `fallback`; the settings model and service
     (`language_default`, `language_choice`, `language_offered`, the default always offered);
     `requestLocale` reads them once per request, falling back as today when it can't.
   - *Done when:* unit tests cover choosing off, each step with choosing on, a language not offered
     at each step and the absent settings; db tests cover the settings service on SQLite.
 
-- [ ] **3. Settings › Languages.**
+- [x] **3. Settings › Languages.**
   - The tab in 122's strip, the form, the audit event `settings.languages`.
   - *Done when:* component tests cover the default's locked box, the switch hiding the list and the
     "reads as off" note; a db test covers the audit metadata.
 
-- [ ] **4. What hides when choosing is off.**
+- [x] **4. What hides when choosing is off.**
   - Account › Language, `LanguageSwitch` on sign-in, two-factor and setup; the note for a saved
     language no longer offered.
   - *Done when:* component tests cover both states; an e2e test turns choosing off with French as
     the default and sees the sign-in page and Account in French with no language links.
 
-- [ ] **5. Messages.**
+- [x] **5. Messages.**
   - Every new key in `en`, `pt` and `fr`.
   - *Done when:* the parity and raw-text tests pass; the phone sweep passes on the tab.
 
-- [ ] **6. Documentation.**
+- [x] **6. Documentation.**
   - `account#language`, the new `settings#languages` section, the helper, `docs/knowledge/i18n.md`;
     `topics.ts` here and in ronne-web together.
   - *Done when:* the docs render tests and `pnpm docs:links` pass, and the helper lands on a real
@@ -47,3 +47,12 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+- `chooseLocale` takes the settings as one `instance` object (`default`, `choosing`, `offered`)
+  instead of separate `offered` and `fallback` inputs; without it, it chooses as it always did.
+- Pages read the languages people may choose among with `requestChoosableLocales` (none while
+  choosing is off): the auth pages pass them to `AuthShell`, which drops the language menu and its
+  header when there are fewer than two.
+- The e2e for the tab sets the instance's languages and puts them back in a `finally`; the run is one
+  worker, so nothing else reads them meanwhile.
+- The pt and fr website copy has not been through the language review (133), as in 139 and 140.

@@ -41,3 +41,26 @@ describe("the language switch (129)", () => {
     expect(view("en", "/language?set=fr")).toContain(`next=${encodeURIComponent("/")}"`);
   });
 });
+
+describe("the language switch with the instance's settings (141)", () => {
+  const offering = (
+    languages: readonly ("en" | "pt" | "fr")[],
+    locale: "en" | "pt" | "fr" = "en",
+  ) => inLocale(locale, () => renderToStaticMarkup(<LanguageSwitch languages={languages} />));
+
+  it("lists only the languages offered", () => {
+    const html = offering(["en", "fr"]);
+    expect(html).toContain("set=en");
+    expect(html).toContain("set=fr");
+    expect(html).not.toContain("set=pt");
+  });
+
+  it("shows nothing when choosing is off or only one language is offered", () => {
+    expect(offering([])).toBe("");
+    expect(offering(["fr"], "fr")).toBe("");
+  });
+
+  it("lists every language when the settings say nothing", () => {
+    expect(view("en")).toContain("set=pt");
+  });
+});

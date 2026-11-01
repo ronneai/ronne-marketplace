@@ -16,10 +16,16 @@ import type { LanguageFormState } from "./types";
  */
 export const LanguageForm = ({
   saved = null,
+  offered = LOCALES,
+  notOffered = null,
   initial = {},
 }: {
   /** The language on their profile, or null for automatic. */
   saved?: Locale | null;
+  /** The languages root offers (141). */
+  offered?: readonly Locale[];
+  /** A language on their profile that is not offered now (141): kept, but not in force. */
+  notOffered?: Locale | null;
   initial?: LanguageFormState;
 }) => {
   const t = useTranslations("account.language");
@@ -48,7 +54,7 @@ export const LanguageForm = ({
           className={selectClasses}
         >
           <option value="">{t("automatic")}</option>
-          {LOCALES.map((locale) => (
+          {offered.map((locale) => (
             <option key={locale} value={locale} lang={locale}>
               {LOCALE_NAMES[locale]}
             </option>
@@ -57,6 +63,9 @@ export const LanguageForm = ({
         <p id="language-hint" className="text-xs text-muted">
           {t("hint")}
         </p>
+        {notOffered ? (
+          <Notice kind="info" title={t("notOffered", { name: LOCALE_NAMES[notOffered] })} />
+        ) : null}
         <FieldError id="language-error">{state.error ? t("invalid") : undefined}</FieldError>
         <div>
           <Help id="language" />

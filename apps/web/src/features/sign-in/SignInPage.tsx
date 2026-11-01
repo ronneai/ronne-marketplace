@@ -3,6 +3,7 @@ import { AuthShell } from "@/components/auth-shell/AuthShell";
 import { CliAuthPanel } from "@/components/cli-auth/CliAuthPanel";
 import { Notice } from "@/components/ui/Notice";
 import { Tabs } from "@/components/ui/Tabs";
+import type { Locale } from "@/server/domains/identity/models/locale";
 import { ProviderButtons } from "./ProviderButtons";
 import { SignInForm } from "./SignInForm";
 import { SIGN_IN_AGAIN, SSO_ERROR_CODES } from "./types";
@@ -22,6 +23,7 @@ export const SignInPage = ({
   rootOnly = false,
   ssoError,
   here,
+  languages,
 }: {
   next: string;
   /** reset-root-password as typed for this install (`hostCommand`, #147). */
@@ -41,6 +43,8 @@ export const SignInPage = ({
   ssoError?: string;
   /** This page's path and query, for the language switch to come back to (129). */
   here?: string;
+  /** The languages the switch offers (141); none hides it. Every language when absent. */
+  languages?: readonly Locale[];
 }) => {
   const t = useTranslations("auth.signIn");
   const againCode = SIGN_IN_AGAIN.find((code) => code === again);
@@ -96,7 +100,7 @@ export const SignInPage = ({
     </div>
   );
   return (
-    <AuthShell here={here}>
+    <AuthShell here={here} languages={languages}>
       <Tabs
         tabs={[
           { label: t("tabAccount"), content: account },

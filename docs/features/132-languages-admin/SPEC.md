@@ -72,7 +72,8 @@ changes.
   and the root account's email, name and password messages (the identity domain's). The frame around them is translated; 133 can
   revisit it with the native reviewers.
 - **The email or other notifications** (out of the MVP).
-- **An instance default language**, unless the owner wants it (Open questions).
+- **An instance default language**, unless the owner wants it (Open questions). The owner wanted it
+  (2026-10-29): it is [141](../141-language-settings/SPEC.md).
 - **The sign-off**: the whole-app raw-text scan, the native-speaker review, the phone sweep in
   each language and the Documentation links check: 133.
 
@@ -159,4 +160,6 @@ changes.
   with no choice, and the sign-in and setup pages, start in (today: the browser's, then English).
   **Not built in this feature** (recommendation: leave it out; it adds a setting, tests and a
   Documentation topic, and nobody has asked). It can be its own feature if the owner wants it.
+  **Decided (owner, 2026-10-29): built in [141](../141-language-settings/SPEC.md)**, with whether people
+  may choose and which languages are offered.
 - **The styleguide stays English** (see Out). The owner confirms or asks for it to move.

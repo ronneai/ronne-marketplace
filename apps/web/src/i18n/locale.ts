@@ -12,7 +12,12 @@ import {
  * 1. the signed-in person's saved language (`user.locale`);
  * 2. the `ronne-locale` cookie, set when someone chooses a language (also before signing in);
  * 3. the browser's `Accept-Language`, the best match among the supported languages;
- * 4. English.
+ * 4. English, or the instance's default (141).
+ *
+ * Root can turn choosing off (141): everyone then sees the default, whatever they saved, set in a
+ * cookie or ask their browser for. With choosing on, only the languages offered count at each step.
+ * A language that is not offered is skipped, never cleared: a saved choice comes back when it is
+ * offered again.
  */
 export const LOCALE_COOKIE = "ronne-locale";
 
@@ -48,7 +53,11 @@ const weightOf = (parameters: string[]): number | null => {
  * first, equal ones in the order written; `q=0` means "not acceptable"; `*` and unsupported
  * languages are skipped, so `es, fr;q=0.5` is French.
  */
-export const matchAcceptLanguage = (header: string | null | undefined): Locale | null => {
+export const matchAcceptLanguage = (
+  header: string | null | undefined,
+  /** Only these count (141); every supported language when absent. */
+  offered?: readonly Locale[],
+): Locale | null => {
   if (!header || header.length > MAX_HEADER_LENGTH) return null;
   const ranges = header
     .split(",")
@@ -58,6 +67,7 @@ export const matchAcceptLanguage = (header: string | null | undefined): Locale |
       const weight = weightOf(parameters);
       const primary = tag.trim().toLowerCase().split("-")[0] ?? "";
       if (weight === null || weight === 0 || !isLocale(primary)) return [];
+      if (offered && !offered.includes(primary)) return [];
       return [{ locale: primary, weight, order }];
     })
     .sort((a, b) => b.weight - a.weight || a.order - b.order);
@@ -69,15 +79,38 @@ export type LocaleInputs = {
   saved?: string | null;
   cookie?: string | null;
   acceptLanguage?: string | null;
+  /** The instance's settings (141); absent before setup and when the database doesn't answer. */
+  instance?: {
+    /** Where the choice ends, and what everyone sees with choosing off. */
+    default: Locale;
+    /** Whether people may choose; off means everyone sees the default. */
+    choosing: boolean;
+    /** The languages that count while choosing is on. */
+    offered: readonly Locale[];
+  };
 };
 
-/** The language for a request: saved, cookie, browser, English. */
+/** The language for a request: saved, cookie, browser, then the default (English without settings). */
 export const chooseLocale = (inputs: LocaleInputs): Locale => {
+  const { instance } = inputs;
+  if (!instance) {
+    return (
+      parseLocale(inputs.saved) ??
+      parseLocale(inputs.cookie) ??
+      matchAcceptLanguage(inputs.acceptLanguage) ??
+      DEFAULT_LOCALE
+    );
+  }
+  if (!instance.choosing) return instance.default;
+  const offered = (value: string | null | undefined) => {
+    const locale = parseLocale(value);
+    return locale && instance.offered.includes(locale) ? locale : null;
+  };
   return (
-    parseLocale(inputs.saved) ??
-    parseLocale(inputs.cookie) ??
-    matchAcceptLanguage(inputs.acceptLanguage) ??
-    DEFAULT_LOCALE
+    offered(inputs.saved) ??
+    offered(inputs.cookie) ??
+    matchAcceptLanguage(inputs.acceptLanguage, instance.offered) ??
+    instance.default
   );
 };
 

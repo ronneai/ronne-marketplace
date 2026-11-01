@@ -52,7 +52,8 @@
     "savedTitle": "Idioma salvo",
     "saved": "As telas agora usam o idioma que você escolheu.",
     "savedAutomatic": "As telas agora seguem o idioma do seu navegador.",
-    "invalid": "Escolha um dos idiomas da lista."
+    "invalid": "Escolha um dos idiomas da lista.",
+    "notOffered": "Sua escolha anterior, {name}, não é oferecida nesta instância agora, então vale o Automático. Ela volta se o root a oferecer de novo."
   },
   "security": {
     "required": {

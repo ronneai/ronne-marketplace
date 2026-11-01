@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { SignInPage } from "@/features/sign-in/SignInPage";
-import { currentPath } from "@/i18n/server";
+import { currentPath, requestChoosableLocales } from "@/i18n/server";
 import { loadConfig } from "@/server/config";
 import {
   effectivePasswordPolicy,
@@ -53,6 +53,7 @@ const SignIn = async ({
       rootOnly={policy === "root_only"}
       ssoError={one(params.error)}
       here={await currentPath()}
+      languages={await requestChoosableLocales()}
     />
   );
 };

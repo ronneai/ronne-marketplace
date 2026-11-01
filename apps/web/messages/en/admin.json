@@ -620,6 +620,13 @@
           "analysis": "analysis {from, select, semantic {static and semantic} other {static}} to {to, select, semantic {static and semantic} other {static}}",
           "blockScore": "the score that blocks approval {from, select, none {none} other {{from}}} to {to, select, none {none} other {{to}}}",
           "nothing": "nothing"
+        },
+        "languages": {
+          "default": "default {from} to {to}",
+          "choiceOn": "people can choose",
+          "choiceOff": "people can't choose",
+          "offered": "offered: {list}",
+          "nothing": "nothing"
         }
       },
       "actions": {
@@ -751,7 +758,8 @@
           "retention": "Changed the retention: {changes}",
           "notice": "Changed the instance notice: {changes}",
           "skill_scan": "Changed the security scan: {changes}",
-          "update_check": "Changed the check for updates: {state, select, on {turned on} off {turned off} other {changed}}"
+          "update_check": "Changed the check for updates: {state, select, on {turned on} off {turned off} other {changed}}",
+          "languages": "Changed the languages: {changes}"
         }
       }
     }
@@ -769,7 +777,8 @@
       "privacy": "Privacy",
       "notice": "Notice",
       "scan": "Security scan",
-      "updates": "Updates"
+      "updates": "Updates",
+      "languages": "Languages"
     },
     "methods": {
       "title": "Sign-in methods",
@@ -1396,6 +1405,23 @@
         "title": "Clone of the repository",
         "text": "In its folder, then restart the server:"
       }
+    }
+  },
+  "languages": {
+    "title": "Languages",
+    "intro": "Which language the screens speak: the one everyone starts in, whether people may choose their own, and which languages they may choose from. What people publish stays as its authors wrote it.",
+    "default": "Default language",
+    "defaultHint": "What everyone sees when choosing is off, and when a person's own choice, their browser or the cookie asks for a language that isn't offered.",
+    "choice": "Let people choose their language",
+    "choiceHint": "On by default. Turned off, everyone sees the default language: Account has no Language section and the sign-in page has no language links. People's earlier choices are kept for when you turn it back on.",
+    "offered": "Offered languages",
+    "offeredHint": "The default is always offered. Tick the others people may choose.",
+    "locked": "always offered: it is the default",
+    "readsAsOff": "Only {name} is offered, so there is nothing to choose: people will see {name}, as if choosing were off.",
+    "save": "Save",
+    "done": {
+      "saved": "Saved.",
+      "unchanged": "Nothing changed."
     }
   }
 }

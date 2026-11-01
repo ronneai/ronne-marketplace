@@ -134,6 +134,7 @@
   "InvalidUsagePolicyError": "Choose off, people choose, or required.",
   "InvalidUsageMinimumError": "The minimum is a whole number from 0 to 10,000; 0 shows usage as soon as there's any.",
   "InvalidRetentionError": "{which, select, ipDays {IP addresses} sessionsDays {Expired sessions} other {Handled feedback}} are kept for a whole number of days from 1 to 3,650.",
+  "InvalidLanguageError": "Choose English, Português or Français as the default language.",
   "InvalidTwoFactorPolicyError": "Choose optional, reviewers and root, or everyone.",
   "InvalidPasswordSignInPolicyError": "Choose everyone, or root only.",
   "NoUsableProviderError": "Turn on an identity provider that has passed its Test sign-in first.",

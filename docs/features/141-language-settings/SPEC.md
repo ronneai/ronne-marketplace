@@ -81,16 +81,16 @@ gets English, one who asks for Portuguese gets French (not offered, so the defau
 
 ## Acceptance criteria
 
-- [ ] Root sets the default, the switch and the offered languages in Settings › Languages; the
+- [x] Root sets the default, the switch and the offered languages in Settings › Languages; the
   default is always offered; each save is audited.
-- [ ] With choosing off, every page (signed in or not, after setup) is in the default language, and
+- [x] With choosing off, every page (signed in or not, after setup) is in the default language, and
   the Language section and the language links are gone.
-- [ ] With choosing on, the saved, cookie and browser languages count only when offered, and the
+- [x] With choosing on, the saved, cookie and browser languages count only when offered, and the
   default replaces English as the last step; unit tests cover each step of `chooseLocale`.
-- [ ] A turned-off language leaves `user.locale` as it was; turning it on again restores it.
-- [ ] Before setup, and with the database down, the language is chosen as today.
-- [ ] Every new text is a message in English, Portuguese and French; the tab passes the phone sweep.
-- [ ] The Documentation and inline helpers listed above say what the feature does.
+- [x] A turned-off language leaves `user.locale` as it was; turning it on again restores it.
+- [x] Before setup, and with the database down, the language is chosen as today.
+- [x] Every new text is a message in English, Portuguese and French; the tab passes the phone sweep.
+- [x] The Documentation and inline helpers listed above say what the feature does.
 
 ## Decisions
 

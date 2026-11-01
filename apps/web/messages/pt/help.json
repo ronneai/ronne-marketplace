@@ -295,6 +295,10 @@
     "question": "O que a verificação envia?",
     "answer": "Nada sobre esta instância: uma vez por dia o servidor pergunta ao GitHub qual é a última versão, com um nome fixo e sem versão, endereço, conta ou id. Se não for possível acessar o GitHub, nada mais acontece. Desative aqui, ou com RONNE_UPDATE_CHECK=off no servidor."
   },
+  "language-choice": {
+    "question": "O que as pessoas veem quando a escolha está desativada?",
+    "answer": "Todos veem o idioma padrão, seja qual for o que salvaram, definiram em um cookie ou pedem ao navegador. Conta não tem a aba Idioma, e a página de entrada não tem menu de idioma. As escolhas anteriores são mantidas e voltam a valer quando você ativar a escolha de novo."
+  },
   "language": {
     "question": "O que muda?",
     "answer": "As telas do próprio Ronne: menus, botões, mensagens e os links da Documentação. Não o que as pessoas publicam: nomes, descrições e arquivos dos itens ficam como os autores escreveram, e o rmk continua em inglês. Automático segue o idioma do seu navegador, e inglês quando ele pede outro."

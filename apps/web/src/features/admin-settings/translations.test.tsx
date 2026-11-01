@@ -260,6 +260,7 @@ describe("Settings › Authentication in three languages (132)", () => {
       "Comunicado",
       "Verificação de segurança",
       "Atualizações",
+      "Idiomas",
     ]);
     expect(SETTINGS_TABS.map((tab) => t("fr", tab.id))).toEqual([
       "Utilisation",
@@ -269,6 +270,7 @@ describe("Settings › Authentication in three languages (132)", () => {
       "Avis",
       "Analyse de sécurité",
       "Mises à jour",
+      "Langues",
     ]);
   });
 

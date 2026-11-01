@@ -215,3 +215,14 @@ export const updateAvailable = async (
   const { latest } = await service.updateCheckState(deps(app));
   return isNewerRelease(latest, version) ? latest : null;
 };
+
+/** Admin › Settings › Languages (141): what root has set. */
+export const languageSettings = async (headers: Headers, app: AppAuth = getAppAuth()) =>
+  service.languageSettings(deps(app), await actor(headers, app));
+
+/** Root sets the default language, whether people may choose, and which languages are offered (141). */
+export const setLanguagePolicy = async (
+  headers: Headers,
+  input: Parameters<typeof service.setLanguagePolicy>[2],
+  app: AppAuth = getAppAuth(),
+) => service.setLanguagePolicy(deps(app), await actor(headers, app), input);

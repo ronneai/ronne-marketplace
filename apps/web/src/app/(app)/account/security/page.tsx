@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { accountMetadata } from "@/features/account/metadata";
 import { SecurityPage } from "@/features/account-security/SecurityPage";
+import { requestChoosableLocales } from "@/i18n/server";
 import { twoFactorStatus } from "@/server/domains/identity/actions/two-factor";
 import { SIGN_IN_PATH, safeNextPath } from "@/server/domains/identity/models/route-guard";
 import { PASSWORD_PATH, passwordChangeHold } from "@/server/http/password-change-hold";
@@ -29,6 +30,7 @@ const AccountSecurityPage = async ({
       status={status}
       required={await twoFactorHold(request)}
       continueTo={continueTo === "/" ? null : continueTo}
+      language={(await requestChoosableLocales()).length > 1}
     />
   );
 };
