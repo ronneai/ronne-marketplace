@@ -21,16 +21,22 @@ test("root is told, sees the mark and the tab, and turns the check off and on", 
 }) => {
   await signIn(page, E2E_USERS.updatesRoot);
 
-  // The bell: one notice, which leads to the tab and is read on the way.
+  // The notice: in the notifications, which every other root's feedback fills too, so it is found
+  // by its kind. Opening it leads to the tab and reads it, and the bell's count drops by one.
   const bell = page.getByRole("banner").getByRole("button", { name: /^Notifications/ });
-  await expect(bell).toHaveAccessibleName("Notifications, 1 unread");
-  await bell.click();
+  const unread = async () => {
+    const name = (await bell.getAttribute("aria-label")) ?? "";
+    return Number(/(\d+) unread/.exec(name)?.[1] ?? 0);
+  };
+  const before = await unread();
+  expect(before).toBeGreaterThanOrEqual(1);
+  await page.goto("/notifications?kind=instance.update_available");
+  await expect(page.getByText("1 notification", { exact: true })).toBeVisible();
   await page
-    .getByRole("dialog", { name: /^Notifications/ })
     .getByRole("link", { name: /Ronne AI Marketplace 9\.9\.9 is out\. You run version/ })
     .click();
   await expect(page).toHaveURL(/\/admin\/settings\?tab=updates$/);
-  await expect(bell).toHaveAccessibleName("Notifications, none unread");
+  await expect.poll(unread).toBe(before - 1);
 
   // The sidebar's mark leads here as well.
   const mark = page.getByRole("complementary", { name: "Sidebar" }).getByRole("link", {
