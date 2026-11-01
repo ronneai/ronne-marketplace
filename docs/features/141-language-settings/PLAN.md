@@ -9,7 +9,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 ## Tasks
 
-- [ ] **1. Decision.**
+- [x] **1. Decision.**
   - MVP.md §15's "Languages" row says root sets the default, the switch and the offered languages,
     132's spec points here for the instance default, and `docs/features/README.md` lists 141 under
     M19 with its dependencies.
