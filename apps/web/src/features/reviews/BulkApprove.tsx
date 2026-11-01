@@ -18,8 +18,8 @@ import type { ApproveResult } from "./types";
  * Approving several submissions at once from the review queue (feature 054). Only rows this
  * reviewer can approve now can be selected. Approve selected opens the owner's batch review mock: a
  * filter and the selection on top, the list (the risky ones first with their flags, root's own
- * marked as overrides) scrolling on its own, and the summary, one optional message for all and the
- * buttons always in view below it. Each is then approved on its own, and the dialog shows what
+ * marked as overrides) scrolling on its own, and the summary, one message for all (required when
+ * root's own are included, 163) and the buttons always in view below it. Each is then approved on its own, and the dialog shows what
  * happened to each.
  */
 
@@ -217,7 +217,9 @@ const matches = (row: Listed, filter: string) => {
 
 /**
  * The batch review's form (054): the filter and selection on top, the list scrolling on its own,
- * then the summary, one optional message for all, and the buttons. The toolbar holds its state.
+ * then the summary, one message for all, and the buttons. The message is optional, and required
+ * while root's own submissions are included (163): Approve stays disabled until it's written.
+ * The toolbar holds its state.
  */
 export const ApproveForm = ({
   listed,
@@ -325,20 +327,24 @@ export const ApproveForm = ({
         </p>
         <div className="grid gap-1.5">
           <Label htmlFor="bulk-approve-message">
-            {t("message")} <span className="font-normal text-muted">{t("optional")}</span>
+            {overrides > 0 ? t("reason") : t("message")}{" "}
+            <span className="font-normal text-muted">
+              {overrides > 0 ? t("required", { count: overrides }) : t("optional")}
+            </span>
           </Label>
           <textarea
             id="bulk-approve-message"
             rows={2}
             maxLength={5000}
-            placeholder={t("messagePlaceholder")}
+            required={overrides > 0}
+            placeholder={overrides > 0 ? t("reasonPlaceholder") : t("messagePlaceholder")}
             value={text}
             onChange={(event) => onText(event.target.value)}
             aria-describedby="bulk-approve-hint bulk-approve-error"
             className={`${inputClasses} h-auto resize-none py-2`}
           />
           <p id="bulk-approve-hint" className="text-xs text-muted">
-            {t("messageHint")}
+            {overrides > 0 ? t("reasonHint") : t("messageHint")}
           </p>
           <FieldError id="bulk-approve-error">{error}</FieldError>
         </div>
@@ -346,7 +352,11 @@ export const ApproveForm = ({
           <Button variant="secondary" onClick={onCancel}>
             {t("cancel")}
           </Button>
-          <Button type="submit" loading={approving} disabled={going.length === 0}>
+          <Button
+            type="submit"
+            loading={approving}
+            disabled={going.length === 0 || (overrides > 0 && !text.trim())}
+          >
             <Check size={16} aria-hidden />
             {t("submit", { count: going.length })}
           </Button>

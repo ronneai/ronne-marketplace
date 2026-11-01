@@ -209,6 +209,8 @@
       "title": "Responsables et révision",
       "owner": "Propriétaire",
       "approvedBy": "Approuvé par {name}{override, select, true { (dérogation de root)} other {}}",
+      "reason": "Raison : {reason}",
+      "noReason": "Aucune raison donnée",
       "unreviewed": "Publié sans révision."
     },
     "included": {

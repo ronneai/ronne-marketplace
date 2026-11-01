@@ -209,6 +209,8 @@
       "title": "Maintainers and review",
       "owner": "Owner",
       "approvedBy": "Approved by {name}{override, select, true { (root override)} other {}}",
+      "reason": "Reason: {reason}",
+      "noReason": "No reason given",
       "unreviewed": "Released without review."
     },
     "included": {

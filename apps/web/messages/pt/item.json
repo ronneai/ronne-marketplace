@@ -209,6 +209,8 @@
       "title": "Mantenedores e revisão",
       "owner": "Dono",
       "approvedBy": "Aprovado por {name}{override, select, true { (exceção do root)} other {}}",
+      "reason": "Motivo: {reason}",
+      "noReason": "Nenhum motivo informado",
       "unreviewed": "Lançado sem revisão."
     },
     "included": {

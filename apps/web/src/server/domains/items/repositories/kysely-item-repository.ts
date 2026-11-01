@@ -492,15 +492,21 @@ export const kyselyItemRepository = (
     const row = await db
       .selectFrom("review_events")
       .leftJoin("user", "user.id", "review_events.actor_id")
-      .select(["review_events.kind", "review_events.created_at", "user.name"])
+      .select(["review_events.kind", "review_events.created_at", "review_events.body", "user.name"])
       .where("review_events.submission_id", "=", submissionId)
       .where(isVisibleSubmission(viewer, "review_events.submission_id"))
       .where("review_events.kind", "in", ["approve", "override", "scan_override"])
       .orderBy("review_events.created_at", "desc")
       .executeTakeFirst();
-    return row
-      ? { by: row.name ?? null, at: fromDbDate(row.created_at), override: row.kind !== "approve" }
-      : null;
+    if (!row) return null;
+    const override = row.kind !== "approve";
+    // Only an override's reason is shown (163); an ordinary approval's message stays in review.
+    return {
+      by: row.name ?? null,
+      at: fromDbDate(row.created_at),
+      override,
+      reason: override ? (row.body ?? null) : null,
+    };
   },
 
   countDownload: async (itemId) => {

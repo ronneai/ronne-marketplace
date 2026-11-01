@@ -531,8 +531,12 @@
       "summary": "<strong>{count, plural, one {# submissão selecionada} other {# submissões selecionadas}}</strong>{overrides, plural, =0 {.} one {: uma é sua, aprovada como exceção, marcada na conversa e no registro de auditoria.} other {: # são suas, aprovadas como exceções, marcadas na conversa e no registro de auditoria.}}",
       "message": "Mensagem",
       "optional": "(opcional)",
+      "reason": "Motivo",
+      "required": "{count, plural, one {(obrigatório: # destas é sua)} other {(obrigatório: # destas são suas)}}",
       "messagePlaceholder": "Uma nota para cada aprovação",
+      "reasonPlaceholder": "Por que aprovar as suas próprias submissões?",
       "messageHint": "Adicionada a cada aprovação. Depois de aprovada, o autor ou um moderador pode lançar cada uma.",
+      "reasonHint": "Adicionado a cada aprovação. Ninguém mais revisa as suas próprias submissões, então diga por quê, ou desmarque-as para aprovar as outras sem mensagem.",
       "cancel": "Cancelar",
       "submit": "{count, plural, one {Aprovar # submissão} other {Aprovar # submissões}}"
     }
@@ -546,7 +550,7 @@
     "submitted": "submetida <date></date>",
     "viewVersions": "Ver versões",
     "ownSubmission": "Esta é a sua própria submissão: outro moderador ou o root a revisa.",
-    "ownOverride": "Esta é a sua própria submissão: outro moderador ou o root a revisa. Como root, você pode aprová-la por conta própria como exceção, registrada como tal.",
+    "ownOverride": "Esta é a sua própria submissão: outro moderador ou o root a revisa. Como root, você pode aprová-la por conta própria como exceção, com um motivo, registrada como tal.",
     "staleTitle": "A {stale} foi lançada depois que esta proposta começou.",
     "stale": "Ela altera a {version}, então aprová-la agora desfaria o que a {stale} mudou. O autor faz o rebase sobre a {stale} primeiro.",
     "files": "Arquivos",
@@ -588,6 +592,7 @@
       "rebase": "fez o rebase sobre a {version}",
       "rebaseNone": "fez o rebase sobre uma versão mais nova"
     },
+    "noReason": "Nenhum motivo informado",
     "decision": {
       "approve": {
         "button": "Aprovar",
@@ -607,7 +612,8 @@
       "override": {
         "button": "Aprovar (exceção)",
         "title": "Aprovar a sua própria submissão?",
-        "hint": "Opcional. Como root, você pode aprovar a sua própria submissão; ela fica marcada como exceção na conversa e no registro de auditoria."
+        "label": "Por que aprovar a sua própria submissão?",
+        "hint": "Obrigatório. Como root, você aprova a sua própria submissão e ninguém mais a revisa, então diga por quê. Ela fica marcada como exceção na conversa e no registro de auditoria."
       },
       "scan_override": {
         "button": "Aprovar (exceção à verificação)",

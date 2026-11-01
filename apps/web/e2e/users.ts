@@ -182,6 +182,8 @@ export const E2E_USERS = {
   bulkSubmitter: "bulk-submitter@e2e.test",
   approveAuthor: "approve-author@e2e.test",
   bulkApprover: "bulk-approver@e2e.test",
+  // Approves its own submission with a reason and releases it (163): a root.
+  overrideRoot: "override-root@e2e.test",
   // The security scan (135): a root who turns it on and reviews, and an author who submits a skill.
   scanRoot: "scan-root@e2e.test",
   // Root on a phone or tablet, for the security scan's card and tab (137).
@@ -427,6 +429,7 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   bulkSubmitter: "Bo Bulk",
   approveAuthor: "Ava Author",
   bulkApprover: "Bea Approver",
+  overrideRoot: "Ola Override",
   scanRoot: "Sam Root",
   phoneScanRoot: "Phone Scan Root",
   phoneWebkitScanRoot: "Phone WebKit Scan Root",
@@ -559,6 +562,7 @@ export const E2E_MODERATORS: readonly (keyof typeof E2E_USERS)[] = [
 /** Seeded as root, besides the root setup creates (more than one root since 059). */
 export const E2E_ROOTS: readonly (keyof typeof E2E_USERS)[] = [
   "adminLanguages",
+  "overrideRoot",
   "shelvesRoot",
   "ssoRoot",
   "phoneSsoRoot",

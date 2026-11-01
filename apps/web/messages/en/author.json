@@ -531,8 +531,12 @@
       "summary": "<strong>{count, plural, one {# submission selected} other {# submissions selected}}</strong>{overrides, plural, =0 {.} one {: one is your own, approved as an override, marked in the conversation and the audit log.} other {: # are your own, approved as overrides, marked in the conversation and the audit log.}}",
       "message": "Message",
       "optional": "(optional)",
+      "reason": "Reason",
+      "required": "{count, plural, one {(required: # of these is yours)} other {(required: # of these are yours)}}",
       "messagePlaceholder": "A note for every approval",
+      "reasonPlaceholder": "Why approve your own submissions?",
       "messageHint": "Added to every approval. Once approved, the author or a moderator can release each one.",
+      "reasonHint": "Added to every approval. Nobody else reviews your own submissions, so say why, or untick them to approve the rest with no message.",
       "cancel": "Cancel",
       "submit": "{count, plural, one {Approve # submission} other {Approve # submissions}}"
     }
@@ -546,7 +550,7 @@
     "submitted": "submitted <date></date>",
     "viewVersions": "View versions",
     "ownSubmission": "This is your own submission: another moderator or root reviews it.",
-    "ownOverride": "This is your own submission: another moderator or root reviews it. As root, you can approve it yourself as an override, recorded as one.",
+    "ownOverride": "This is your own submission: another moderator or root reviews it. As root, you can approve it yourself as an override, with a reason, recorded as one.",
     "staleTitle": "{stale} has been released since this proposal started.",
     "stale": "It changes {version}, so approving it now would undo what {stale} changed. The author rebases it onto {stale} first.",
     "files": "Files",
@@ -588,6 +592,7 @@
       "rebase": "rebased it onto {version}",
       "rebaseNone": "rebased it onto a newer version"
     },
+    "noReason": "No reason given",
     "decision": {
       "approve": {
         "button": "Approve",
@@ -607,7 +612,8 @@
       "override": {
         "button": "Approve (override)",
         "title": "Approve your own submission?",
-        "hint": "Optional. As root, you can approve your own submission; it's marked as an override in the conversation and the audit log."
+        "label": "Why approve your own submission?",
+        "hint": "Required. As root, you approve your own submission and nobody else reviews it, so say why. It's marked as an override in the conversation and the audit log."
       },
       "scan_override": {
         "button": "Approve (override the scan)",

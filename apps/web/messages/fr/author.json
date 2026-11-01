@@ -531,8 +531,12 @@
       "summary": "<strong>{count, plural, one {# soumission sélectionnée} other {# soumissions sélectionnées}}</strong>{overrides, plural, =0 {.} one { : une est la vôtre, approuvée par dérogation, marquée dans la conversation et le journal d’audit.} other { : # sont les vôtres, approuvées par dérogation, marquées dans la conversation et le journal d’audit.}}",
       "message": "Message",
       "optional": "(facultatif)",
+      "reason": "Raison",
+      "required": "{count, plural, one {(obligatoire : # de celles-ci est la vôtre)} other {(obligatoire : # de celles-ci sont les vôtres)}}",
       "messagePlaceholder": "Une note pour chaque approbation",
+      "reasonPlaceholder": "Pourquoi approuver vos propres soumissions?",
       "messageHint": "Ajoutée à chaque approbation. Une fois approuvée, chacune peut être publiée par son auteur ou un modérateur.",
+      "reasonHint": "Ajoutée à chaque approbation. Personne d’autre ne révise vos propres soumissions, alors dites pourquoi, ou décochez-les pour approuver les autres sans message.",
       "cancel": "Annuler",
       "submit": "{count, plural, one {Approuver # soumission} other {Approuver # soumissions}}"
     }
@@ -546,7 +550,7 @@
     "submitted": "soumise <date></date>",
     "viewVersions": "Voir les versions",
     "ownSubmission": "C’est votre propre soumission : un autre modérateur ou root la révise.",
-    "ownOverride": "C’est votre propre soumission : un autre modérateur ou root la révise. En tant que root, vous pouvez l’approuver vous-même par dérogation, enregistrée comme telle.",
+    "ownOverride": "C’est votre propre soumission : un autre modérateur ou root la révise. En tant que root, vous pouvez l’approuver vous-même par dérogation, avec une raison, enregistrée comme telle.",
     "staleTitle": "La {stale} a été publiée depuis le début de cette proposition.",
     "stale": "Elle modifie la {version}, donc l’approuver maintenant annulerait ce que la {stale} a changé. L’auteur fait d’abord un rebase sur la {stale}.",
     "files": "Fichiers",
@@ -588,6 +592,7 @@
       "rebase": "a fait un rebase sur la {version}",
       "rebaseNone": "a fait un rebase sur une version plus récente"
     },
+    "noReason": "Aucune raison donnée",
     "decision": {
       "approve": {
         "button": "Approuver",
@@ -607,7 +612,8 @@
       "override": {
         "button": "Approuver (dérogation)",
         "title": "Approuver votre propre soumission?",
-        "hint": "Facultatif. En tant que root, vous pouvez approuver votre propre soumission; elle est marquée comme dérogation dans la conversation et le journal d’audit."
+        "label": "Pourquoi approuver votre propre soumission?",
+        "hint": "Obligatoire. En tant que root, vous approuvez votre propre soumission et personne d’autre ne la révise, alors dites pourquoi. Elle est marquée comme dérogation dans la conversation et le journal d’audit."
       },
       "scan_override": {
         "button": "Approuver (déroger à l’analyse)",

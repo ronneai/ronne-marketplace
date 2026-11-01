@@ -78,6 +78,9 @@ export const Conversation = ({
             </p>
             {event.body && !INLINE_BODY.has(event.kind) ? (
               <p className="mt-1 whitespace-pre-wrap break-words text-fg">{event.body}</p>
+            ) : event.kind === "override" ? (
+              // An override from before 163, when its reason was optional.
+              <p className="mt-1 text-muted">{t("noReason")}</p>
             ) : null}
           </li>
         ))}

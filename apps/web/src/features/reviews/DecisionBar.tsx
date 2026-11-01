@@ -22,7 +22,8 @@ const COPY: Record<
   approve: { required: false, variant: "primary" },
   request_changes: { required: true, variant: "secondary" },
   reject: { required: true, variant: "destructive" },
-  override: { required: false, variant: "secondary" },
+  // Nobody else reviews it, so it says why (163).
+  override: { required: true, variant: "secondary" },
   scan_override: { required: true, variant: "secondary" },
 };
 
@@ -185,7 +186,9 @@ export const DecisionDialog = ({
           });
         }}
       >
-        <Label htmlFor="decision-message">{t("decision.message")}</Label>
+        <Label htmlFor="decision-message">
+          {decision === "override" ? t("decision.override.label") : t("decision.message")}
+        </Label>
         <textarea
           id="decision-message"
           rows={4}

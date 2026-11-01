@@ -101,6 +101,7 @@ export type Dependent = {
 
 /**
  * Who approved a version's submission (014, 045): the latest `approve` or root's `override`. `by`
- * is null when that user is gone.
+ * is null when that user is gone. An override's reason (163), null for an ordinary approval and
+ * for an override made before reasons were required.
  */
-export type Approval = { by: string | null; at: Date; override: boolean };
+export type Approval = { by: string | null; at: Date; override: boolean; reason: string | null };

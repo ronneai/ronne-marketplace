@@ -176,3 +176,58 @@ test("a moderator reviews a hook, the author publishes it, and another item depe
   await second.getByRole("button", { name: "Submit for review" }).click();
   await expect(author.getByText(/Submitted for review on/)).toBeVisible();
 });
+
+test("root approves its own submission only with a reason, shown in review and on the Overview (163)", async ({
+  page,
+}) => {
+  const reason = "Hotfix for the outage; reviewed with Mo in a call.";
+  await signIn(page, E2E_USERS.overrideRoot);
+  await page.goto("/submissions/new");
+  await page
+    .locator("label")
+    .filter({ has: page.locator(`input[value="${E2E_SCOPE}"]`) })
+    .click();
+  // Root sees every scope, some with "name" in theirs: the field by its role.
+  await page.getByRole("textbox", { name: "Name" }).fill("own-rule");
+  await page
+    .locator("label")
+    .filter({ has: page.locator('input[name="type"][value="rule"]') })
+    .click();
+  await page.getByRole("button", { name: "Create draft" }).click();
+  await expect(page).toHaveURL(/\/submissions\/[0-9A-Z]{26}$/);
+  const submissionUrl = page.url();
+  const id = submissionUrl.split("/").at(-1) ?? "";
+  await page.getByLabel("description").fill("Keeps the house style.");
+  await page.keyboard.press("ControlOrMeta+s");
+  await expect(page.getByText(/Saved at/)).toBeVisible();
+  await page.getByRole("button", { name: "Submit for review" }).click();
+  const submit = page.getByRole("dialog", { name: "Submit for review" });
+  await expect(submit.getByText("All checks passed.")).toBeVisible();
+  await submit.getByRole("button", { name: "Submit for review" }).click();
+  await expect(page.getByText(/Submitted for review on/)).toBeVisible();
+
+  // Its own: only the override, which asks why.
+  await page.goto(`/reviews/${id}`);
+  await page.getByRole("button", { name: "Approve (override)" }).click();
+  const dialog = page.getByRole("dialog", { name: "Approve your own submission?" });
+  const why = dialog.getByLabel("Why approve your own submission?");
+  await expect(why).toHaveAttribute("required", "");
+  await dialog.getByRole("button", { name: "Approve (override)" }).click();
+  // Without a reason the form isn't sent: the dialog stays, nothing is approved.
+  await expect(dialog).toBeVisible();
+  await expect(page.getByText("approved their own submission, as root (override)")).toHaveCount(0);
+  await why.fill(reason);
+  await dialog.getByRole("button", { name: "Approve (override)" }).click();
+  await expect(page.getByText("approved their own submission, as root (override)")).toBeVisible();
+  await expect(page.getByText(reason)).toBeVisible();
+
+  // Released, the item's Overview shows who approved it, as an override, and why.
+  await page.goto(submissionUrl);
+  await page.getByRole("button", { name: "Publish", exact: true }).click();
+  const publish = page.getByRole("dialog", { name: new RegExp(`Publish @${E2E_SCOPE}/own-rule`) });
+  await publish.getByRole("button", { name: "Publish 1.0.0" }).click();
+  await expect(toastWith(publish, "Released")).toBeVisible();
+  await page.goto(`/items/${E2E_SCOPE}/own-rule`);
+  await expect(page.getByText("Approved by Ola Override (root override)")).toBeVisible();
+  await expect(page.getByText(`Reason: ${reason}`)).toBeVisible();
+});

@@ -21,7 +21,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* db tests cover a single override without and with a reason, a bulk selection with
     and without overrides, and the scan override unchanged.
 
-- [ ] **3. Screens.**
+- [x] **3. Screens.**
   - The decision dialog's required field and wording on root's own submission.
   - Approve many's required message with the count of overrides.
   - "No reason given" for older overrides on the review page and the Overview.
