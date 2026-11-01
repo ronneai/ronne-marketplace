@@ -220,6 +220,26 @@ describe("the Overview in three languages", () => {
     expect(pt).toContain("Aprovado por Mo Moderator");
   });
 
+  it("an override shows its reason, or that none was given before 163, as plain text", async () => {
+    const at = new Date("2026-10-01T08:00:00Z");
+    const approval = (reason: string | null, override = true) =>
+      skill({ approval: { by: "Root", at, override, reason } });
+    versions.itemPage.mockResolvedValue(approval("Hotfix <b>now</b>; checked in a call."));
+    const en = await render("en");
+    expect(en).toContain("Approved by Root (root override)");
+    expect(en).toContain("Reason: Hotfix &lt;b&gt;now&lt;/b&gt;; checked in a call.");
+    expect(await render("fr")).toContain("Raison : Hotfix &lt;b&gt;now&lt;/b&gt;");
+    versions.itemPage.mockResolvedValue(approval(null));
+    expect(await render("en")).toContain("No reason given");
+    expect(await render("pt")).toContain("Nenhum motivo informado");
+    // An ordinary approval says nothing about a reason.
+    versions.itemPage.mockResolvedValue(approval(null, false));
+    const plain = await render("en");
+    expect(plain).toContain("Approved by Root");
+    expect(plain).not.toContain("No reason given");
+    expect(plain).not.toContain("Reason:");
+  });
+
   it("the model's rows, guardrails and risk labels follow the language", () => {
     const say = (locale: Locale) => inLocale(locale, () => useTranslations("item.overview.model"));
     const hook = {

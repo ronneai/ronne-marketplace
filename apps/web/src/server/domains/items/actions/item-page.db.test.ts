@@ -62,8 +62,11 @@ beforeEach(async () => {
 });
 afterEach(() => t.cleanup());
 
-/** A submission with review events, as 013 and 014 leave one: `[kind, actor]` in order. */
-const submission = async (name: string, events: ["approve" | "override" | "comment", string][]) => {
+/** A submission with review events, as 013 and 014 leave one: `[kind, actor, body?]` in order. */
+const submission = async (
+  name: string,
+  events: ["approve" | "override" | "comment", string, string?][],
+) => {
   const id = newId();
   const at = tick();
   await t.db
@@ -82,7 +85,7 @@ const submission = async (name: string, events: ["approve" | "override" | "comme
       submitted_at: toDbDate(at, t.dialect),
     })
     .execute();
-  for (const [kind, actor] of events)
+  for (const [kind, actor, body] of events)
     await t.db
       .insertInto("review_events")
       .values({
@@ -90,7 +93,7 @@ const submission = async (name: string, events: ["approve" | "override" | "comme
         submission_id: id,
         actor_id: actor,
         kind,
-        body: null,
+        body: body ?? null,
         revision: 1,
         created_at: toDbDate(tick(), t.dialect),
       })
@@ -179,23 +182,35 @@ describe("approval (045)", () => {
   it("is the latest approval or override of the version's submission, or none without review", async () => {
     const reviewed = await submission("lint", [
       ["comment", moderatorId],
-      ["approve", moderatorId],
+      ["approve", moderatorId, "Looks good."],
     ]);
-    const overridden = await submission("lint", [["override", rootId]]);
+    const overridden = await submission("lint", [
+      ["override", rootId, "Hotfix; checked in a call."],
+    ]);
+    const older = await submission("lint", [["override", rootId]]);
     await release("lint", [
       { version: "1.0.0" },
       { version: "1.1.0", submissionId: reviewed },
       { version: "1.2.0", submissionId: overridden },
+      { version: "1.3.0", submissionId: older },
     ]);
     expect((await page("lint", "1.0.0")).shown.approval).toBeNull();
+    // An ordinary approval's message stays in review; only an override's reason is shown (163).
     expect((await page("lint", "1.1.0")).shown.approval).toEqual({
       by: "Mo Moderator",
       at: expect.any(Date),
       override: false,
+      reason: null,
     });
     expect((await page("lint", "1.2.0")).shown.approval).toMatchObject({
       by: "Root",
       override: true,
+      reason: "Hotfix; checked in a call.",
+    });
+    // One from before 163, without a reason.
+    expect((await page("lint", "1.3.0")).shown.approval).toMatchObject({
+      override: true,
+      reason: null,
     });
   });
 });

@@ -15,13 +15,14 @@ import type { SubmissionStatus } from "../models/status";
 import type { Submission } from "../models/submission";
 import { type Why, whyEnglish } from "../models/why";
 import { MAX_BULK } from "./bulk-submit";
-import { decide, messageFrom } from "./reviews";
+import { decide, messageFrom, OVERRIDE_REASON } from "./reviews";
 import type { SubmissionActor, SubmissionDeps } from "./submissions";
 
 /**
  * Approving many submissions at once (feature 054): 014's `decide` for each, in its own
  * transaction with its row locked, so one that can't be approved any more doesn't stop the others.
- * Root's own submissions are approved as overrides. One optional message goes on every approval.
+ * Root's own submissions are approved as overrides. One message goes on every approval: optional,
+ * and required when the selection holds an override (163).
  */
 
 /** The most submissions one request approves, as for submitting (052). */
@@ -93,10 +94,21 @@ export const approveMany = async (
   const reviewed = new Map(input.items.map((item) => [item.id, item.revision]));
   const ids = [...reviewed.keys()];
   if (ids.length > MAX_BULK_APPROVE) throw new BulkLimitError(ids.length, MAX_BULK_APPROVE);
-  const message = messageFrom(input.message, null) ?? undefined;
+  const found = new Map<string, Submission | null>();
+  for (const id of ids) found.set(id, isId(id) ? await deps.repo.find(id) : null);
+  // Root's own submitted ones go as overrides, which need a reason (163). It's asked for before
+  // any is approved, so a selection is never left half done.
+  const overrides = [...found.values()].some(
+    (s) =>
+      s != null &&
+      s.status === "submitted" &&
+      s.authorId === actor.user?.id &&
+      can(actor.user, "submissions.override"),
+  );
+  const message = messageFrom(input.message, overrides ? OVERRIDE_REASON : null) ?? undefined;
   const results: ApprovedSubmission[] = [];
   for (const id of ids) {
-    const before = isId(id) ? await deps.repo.find(id) : null;
+    const before = found.get(id) ?? null;
     if (!before) {
       results.push({ id, result: "not_found" });
       continue;
@@ -121,6 +133,19 @@ export const approveMany = async (
       continue;
     }
     const override = before.authorId === actor.user?.id && can(actor.user, "submissions.override");
+    // Root's own that isn't submitted any more is refused for its status, not for the reason the
+    // override would need (163), so the rest of the selection still goes.
+    if (override && before.status !== "submitted") {
+      const why: Why = { code: "status", status: before.status };
+      results.push({
+        id,
+        result: "not_approvable",
+        submission: before,
+        reason: whyEnglish(why),
+        why,
+      });
+      continue;
+    }
     try {
       const submission = await decide(deps, actor, id, {
         decision: override ? "override" : "approve",

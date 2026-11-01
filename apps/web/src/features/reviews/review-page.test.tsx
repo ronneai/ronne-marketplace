@@ -228,6 +228,38 @@ describe("Conversation", () => {
       ),
     ).not.toContain('name="body"');
   });
+
+  it("shows an override's reason, and that none was given for one from before 163", () => {
+    const root = { id: "r", name: "Root" };
+    const overrides = (l: "en" | "pt" | "fr", body: string | null) =>
+      inLocale(l, () =>
+        renderToStaticMarkup(
+          <Conversation
+            id="s"
+            canComment={false}
+            versionsHref="/v"
+            events={[event({ id: "o", kind: "override", actor: root, body })]}
+          />,
+        ),
+      );
+    const given = overrides("en", "Hotfix; checked in a call.");
+    expect(given).toContain("approved their own submission, as root (override)");
+    expect(given).toContain("Hotfix; checked in a call.");
+    expect(given).not.toContain("No reason given");
+    expect(overrides("en", null)).toContain("No reason given");
+    expect(overrides("pt", null)).toContain("Nenhum motivo informado");
+    expect(overrides("fr", null)).toContain("Aucune raison donnée");
+    // Other decisions with no message say nothing more.
+    const approved = renderToStaticMarkup(
+      <Conversation
+        id="s"
+        canComment={false}
+        versionsHref="/v"
+        events={[event({ id: "a", kind: "approve", actor: root, body: null })]}
+      />,
+    );
+    expect(approved).not.toContain("No reason given");
+  });
 });
 
 describe("DecisionBar", () => {
@@ -940,7 +972,7 @@ describe("a review's page in three languages (131)", () => {
         reject: ["Rejeitar esta submissão?", "Obrigatório. Rejeitar é definitivo", ">Rejeitar<"],
         override: [
           "Aprovar a sua própria submissão?",
-          "Opcional. Como root, você pode aprovar",
+          "Obrigatório. Como root, você aprova a sua própria submissão",
           ">Aprovar (exceção)<",
         ],
       },
@@ -954,7 +986,7 @@ describe("a review's page in three languages (131)", () => {
         reject: ["Rejeter cette soumission?", "Obligatoire. Un rejet est définitif", ">Rejeter<"],
         override: [
           "Approuver votre propre soumission?",
-          "Facultatif. En tant que root, vous pouvez",
+          "Obligatoire. En tant que root, vous approuvez votre propre soumission",
           ">Approuver (dérogation)<",
         ],
       },
@@ -969,6 +1001,16 @@ describe("a review's page in three languages (131)", () => {
         expect(text, `${l} ${decision} button`).toContain(button);
       }
     expect(dialog("en", "override")).toContain(">Approve (override)<");
+    // The override's reason is required, under its own question (163); approving's stays optional.
+    const field = (text: string) => text.match(/<textarea [^>]*>/)?.[0] ?? "";
+    expect(dialog("en", "override")).toContain(
+      'for="decision-message">Why approve your own submission?<',
+    );
+    expect(dialog("pt", "override")).toContain(">Por que aprovar a sua própria submissão?<");
+    expect(dialog("fr", "override")).toContain(">Pourquoi approuver votre propre soumission?<");
+    expect(field(dialog("en", "override"))).toContain('required=""');
+    expect(field(dialog("en", "approve"))).not.toContain("required");
+    expect(dialog("en", "approve")).toContain('for="decision-message">Message<');
     const dep = (status: "submitted" | "changes_requested", ok: boolean) => ({
       id: status,
       name: `@t/${status}`,

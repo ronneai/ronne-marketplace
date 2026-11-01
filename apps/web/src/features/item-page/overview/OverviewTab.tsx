@@ -586,6 +586,14 @@ const Maintainers = ({ page }: { page: ItemPage }) => {
                 override: String(approval.override),
               })}
               <LocalTime value={approval.at} className="block text-muted" />
+              {approval.override ? (
+                // The override's reason (163), as plain text; older overrides have none.
+                <span
+                  className={`mt-1 block max-h-24 overflow-y-auto whitespace-pre-wrap break-words ${approval.reason ? "text-fg" : "text-muted"}`}
+                >
+                  {approval.reason ? t("reason", { reason: approval.reason }) : t("noReason")}
+                </span>
+              ) : null}
             </p>
           </>
         ) : (

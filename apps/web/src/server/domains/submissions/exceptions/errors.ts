@@ -425,6 +425,7 @@ const WHAT_CODES: Record<string, string> = {
   "A comment": "comment",
   "Sending its dependents back": "send_back",
   "Overriding the security scan": "scan_override",
+  "Approving your own submission": "override",
 };
 
 /** A decision that needs a message without one, or any message that's too long. */
@@ -436,12 +437,15 @@ export class ReviewMessageError extends SubmissionsError {
     readonly reason: "required" | "too_long",
     what: string,
   ) {
+    const code = WHAT_CODES[what] ?? "other";
     super(
-      reason === "required"
-        ? `${what} needs a message, so the author knows what to do.`
-        : `A message can have at most ${REVIEW_MESSAGE_MAX_LENGTH.toLocaleString("en")} characters.`,
+      reason !== "required"
+        ? `A message can have at most ${REVIEW_MESSAGE_MAX_LENGTH.toLocaleString("en")} characters.`
+        : code === "override"
+          ? "Approving your own submission needs a reason: nobody else reviews it."
+          : `${what} needs a message, so the author knows what to do.`,
     );
-    this.what = WHAT_CODES[what] ?? "other";
+    this.what = code;
   }
 }
 

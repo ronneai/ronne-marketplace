@@ -63,7 +63,12 @@ export const itemPageData = (overrides: Partial<ItemPage> = {}): ItemPage => {
       notes: null,
       riskFlags: [],
       submissionId: "sub1",
-      approval: { by: "Mo Moderator", at: new Date("2026-09-28T08:30:00Z"), override: false },
+      approval: {
+        by: "Mo Moderator",
+        at: new Date("2026-09-28T08:30:00Z"),
+        override: false,
+        reason: null,
+      },
     },
     usedBy: [],
     listed: "1.1.0",

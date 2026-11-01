@@ -10,7 +10,7 @@ export const AUDIT_PAGE_SIZE = 50;
 /**
  * Records an event. Call it with the transaction of the change it describes, so a failed change
  * leaves no event and an event never exists without its change. Throws on an unknown action,
- * secret-looking metadata or metadata over 4 KB: those are bugs, not something to store.
+ * secret-looking metadata or metadata over 32 KB: those are bugs, not something to store.
  */
 export const recordAudit = async (
   db: Kysely<Database>,

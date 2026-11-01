@@ -627,6 +627,50 @@ describe("the review queue in three languages (131)", () => {
     expect(form("fr", ["a"])).toContain("Une note pour chaque approbation");
   });
 
+  it("asks for a reason while root's own are included, and keeps Approve off until it's written (163)", () => {
+    const at = (l: L, included: string[], text: string, own = ["b"]) =>
+      html(
+        l,
+        <ApproveForm
+          listed={listed.map((r) => ({ ...r, override: own.includes(r.id) }))}
+          included={new Set(included)}
+          filter=""
+          text={text}
+          error={null}
+          approving={false}
+          onFilter={() => {}}
+          onShown={() => {}}
+          onToggle={() => {}}
+          onText={() => {}}
+          onCancel={() => {}}
+          onSubmit={() => {}}
+        />,
+      );
+    const field = (h: string) => h.match(/<textarea [^>]*>/)?.[0] ?? "";
+    const submit = (h: string) => h.match(/<button type="submit"[^>]*>/)?.[0] ?? "";
+    const empty = at("en", ["a", "b"], "");
+    expect(empty).toContain(">Reason <span");
+    expect(empty).toContain("(required: 1 of these is yours)");
+    expect(empty).toContain('placeholder="Why approve your own submissions?"');
+    expect(empty).toContain("Nobody else reviews your own submissions");
+    expect(field(empty)).toContain('required=""');
+    expect(submit(empty)).toMatch(/ disabled=""/);
+    // Spaces aren't a reason; written, Approve turns on.
+    expect(submit(at("en", ["a", "b"], "   "))).toMatch(/ disabled=""/);
+    expect(submit(at("en", ["a", "b"], "Hotfix."))).not.toMatch(/ disabled=""/);
+    // Unticked, root's own don't count: the message is optional again.
+    const rest = at("en", ["a"], "");
+    expect(rest).toContain("(optional)");
+    expect(field(rest)).not.toContain("required");
+    expect(submit(rest)).not.toMatch(/ disabled=""/);
+    expect(at("pt", ["a", "b"], "", ["a", "b"])).toContain("(obrigatório: 2 destas são suas)");
+    expect(at("pt", ["a", "b"], "")).toContain(">Motivo <span");
+    expect(at("fr", ["b"], "")).toContain("(obligatoire : 1 de celles-ci est la vôtre)");
+    expect(at("fr", ["a", "b"], "", ["a", "b"])).toContain(
+      "(obligatoire : 2 de celles-ci sont les vôtres)",
+    );
+  });
+
   it("counts the selection and words the summary as one sentence, with 0, 1 and 2", () => {
     const rows = (n: number, overrides: number) =>
       Array.from({ length: n }, (_, i) => ({

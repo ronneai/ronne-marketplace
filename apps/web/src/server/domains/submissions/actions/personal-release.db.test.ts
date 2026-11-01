@@ -227,7 +227,11 @@ describe("released without review in your own personal workspace (114)", () => {
     // Not queued: personal workspaces aren't reviewed.
     expect(await countNeedsReview(asRoot, app)).toBe(0);
     expect(await countNeedsReview(asAna, app)).toBe(0);
-    await decide(asRoot, id, { decision: "override" }, app);
+    // A reason here too (163): it's still root's override.
+    await expect(decide(asRoot, id, { decision: "override" }, app)).rejects.toThrow(
+      expect.objectContaining({ name: "ReviewMessageError", reason: "required" }),
+    );
+    await decide(asRoot, id, { decision: "override", message: "Root's call." }, app);
     await publishSubmission(
       asRoot,
       id,

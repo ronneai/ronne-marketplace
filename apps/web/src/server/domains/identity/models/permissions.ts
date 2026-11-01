@@ -15,7 +15,7 @@ export const INSTANCE_PERMISSIONS = {
   "workspaces.manage": ["root"],
   /** Create scopes and edit their descriptions (feature 010). */
   "scopes.manage": ["root"],
-  /** Approve your own submission, with a reason; audited as an override (MVP §2, feature 014). */
+  /** Approve your own submission, with a required reason; audited as an override (MVP §2, 014, 163). */
   "submissions.override": ["root"],
   /** Instance settings, such as the usage policy (feature 046). */
   "settings.manage": ["root"],
