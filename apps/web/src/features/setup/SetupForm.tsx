@@ -13,7 +13,7 @@ import {
   installSettings,
   testDatabase,
 } from "./actions";
-import { DatabaseFields, InstanceFields, RootFields } from "./fields";
+import { CodeField, DatabaseFields, InstanceFields, RootFields } from "./fields";
 import { StepList } from "./StepList";
 import { useSay } from "./say";
 import {
@@ -88,6 +88,7 @@ const SingleForm = ({
       {ran ? <StepList steps={state.steps} /> : null}
       <AlreadySetUp error={state.error} />
       <Notices notices={state.notices} />
+      <CodeField page={page} error={state.error} />
       <DatabaseFields page={page} values={state.values} error={state.error} />
       <InstanceFields page={page} values={state.values} error={state.error} />
       <RootFields page={page} values={state.values} error={state.error} />
@@ -220,6 +221,7 @@ const Wizard = ({
       </ol>
 
       <div hidden={current !== 0} className="grid gap-4">
+        <CodeField page={page} error={error} />
         <DatabaseFields page={page} values={values} error={error} onKindChange={setKind} />
         {test?.ok ? (
           <Notice kind="info" title={t("connected", { server: describeServer(test) })}>

@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "@playwright/test";
 import { headerName } from "./helpers";
@@ -14,6 +15,9 @@ test("sets the instance up with one form, and lands on sign-in with the email fi
   await expect(page).toHaveURL(/\/setup$/);
   await expect(page.locator('form[data-setup="wizard"]')).toHaveCount(0);
 
+  // The setup code (161), as the server's log or `setup-code` shows it: typed, with its dashes.
+  const code = readFileSync(join(instance.dir, "setup-code"), "utf8").trim();
+  await page.getByLabel("Setup code", { exact: true }).fill(code.replace(/(.{5})(?!$)/g, "$1-"));
   await page.locator('select[name="database.kind"]').selectOption("sqlite");
   await page.locator('input[name="database.path"]').fill(join(instance.dir, "ronne.db"));
   await page.locator('input[name="root.email"]').fill(root.email);
@@ -27,6 +31,9 @@ test("sets the instance up with one form, and lands on sign-in with the email fi
   await expect(page.locator('input[name="root.password"]')).toHaveValue("");
   await expect(page.locator('input[name="root.email"]')).toHaveValue(root.email);
 
+  // The code isn't sent back with the form (a credential): it's typed again.
+  await expect(page.getByLabel("Setup code", { exact: true })).toHaveValue("");
+  await page.getByLabel("Setup code", { exact: true }).fill(code);
   await page.locator('input[name="root.password"]').fill(root.password);
   await page.locator('input[name="root.password_again"]').fill(root.password);
   await page.getByRole("button", { name: "Install" }).click();

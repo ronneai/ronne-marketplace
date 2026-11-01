@@ -90,6 +90,8 @@ export const prepareBlankInstance = (): Instance & { dir: string } => {
     logFile: join(dir, "server.log"),
     env: {
       RONNE_ENV_FILE: join(dir, ".env"),
+      // Its own data folder, so its setup code (161) is its own, not apps/web/data's.
+      RONNE_DATA_DIR: dir,
       DATABASE_URL: "",
       AUTH_SECRET: "",
       PUBLIC_URL: "",

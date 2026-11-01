@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "@playwright/test";
 import { headerName } from "./helpers";
@@ -15,16 +16,32 @@ test("sets the instance up from the browser, then signs in", async ({ page, requ
   expect((await request.get("/api/health")).status()).toBe(503);
   expect((await request.get("/api/v1/me")).status()).toBe(503);
 
-  // Before the install, the page says the instance isn't set up, and warns who can finish it.
+  // Before the install, the page says the instance isn't set up, and who can finish it.
   const notSetUp = page.getByText("This instance isn’t set up yet", { exact: false });
-  const warning = page.getByText("Anyone who can open this page can set the instance up");
+  const warning = page.getByText("Setting this instance up takes its setup code");
   await expect(notSetUp).toBeVisible();
   await expect(warning).toBeVisible();
 
-  // 1. Database. An absolute path: a relative one would be resolved under apps/web.
+  // 1. The setup code (161), which the server made at its start, in its data folder; then the
+  // database. An absolute path: a relative one would be resolved under apps/web.
   const wizard = page.locator('form[data-setup="wizard"]');
   await expect(wizard).toBeVisible();
   await expect(page.getByText("terminal", { exact: false })).toHaveCount(0);
+  const code = readFileSync(join(instance.dir, "setup-code"), "utf8").trim();
+  const codeField = page.getByLabel("Setup code", { exact: true });
+  await expect(codeField).toHaveValue("");
+  await page.locator('select[name="database.kind"]').selectOption("sqlite");
+  await page.locator('input[name="database.path"]').fill(join(instance.dir, "ronne.db"));
+  // Without the code, nothing runs: the error is at the field.
+  await page.getByRole("button", { name: "Test connection" }).click();
+  await expect(
+    page.getByText("That isn’t this server’s setup code.", { exact: false }),
+  ).toBeVisible();
+  await expect(codeField).toHaveAttribute("aria-invalid", "true");
+  // The install script's link fills it, and the code leaves the address bar.
+  await page.goto(`/setup#code=${code.toLowerCase().replace(/(.{5})(?!$)/g, "$1-")}`);
+  await expect(codeField).toHaveValue(code.toLowerCase().replace(/(.{5})(?!$)/g, "$1-"));
+  await expect.poll(() => new URL(page.url()).hash).toBe("");
   await page.locator('select[name="database.kind"]').selectOption("sqlite");
   await page.locator('input[name="database.path"]').fill(join(instance.dir, "ronne.db"));
   await page.getByRole("button", { name: "Test connection" }).click();
@@ -69,6 +86,9 @@ test("sets the instance up from the browser, then signs in", async ({ page, requ
   await page.getByRole("link", { name: "Create a scope" }).click();
   await expect(page).toHaveURL(/\/workspaces\/global$/);
   await page.goto("/");
+
+  // The code is gone with the setup (161).
+  expect(() => readFileSync(join(instance.dir, "setup-code"))).toThrow(/ENOENT/);
 
   // Ready: the setup only redirects, the API answers, and the audit log has the one root event.
   await page.goto("/setup");

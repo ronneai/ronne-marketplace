@@ -1194,8 +1194,8 @@
       "title": "Configurer Ronne AI Marketplace",
       "notConfigured": "Cette instance n’est pas encore configurée. Il lui faut une base de données, son adresse publique et un compte root avant de pouvoir servir.",
       "incomplete": "La configuration de cette instance n’a pas abouti. Reprenez là où elle s’est arrêtée : les réglages y sont; la base de données et le compte root peuvent ne pas y être.",
-      "warnTitle": "Quiconque peut ouvrir cette page peut configurer l’instance",
-      "warnBody": "Terminez maintenant, avant que l’adresse soit partagée.",
+      "warnTitle": "Configurer cette instance demande son code de configuration",
+      "warnBody": "Seule la personne qui a démarré le serveur l’a. Terminez maintenant, avant de partager l’adresse.",
       "metaTitle": "Configuration"
     },
     "unavailable": {
@@ -1235,6 +1235,10 @@
       "doneBody": "Connectez-vous avec <code>{email}</code> pour créer des portées et inviter des gens.",
       "signIn": "Se connecter",
       "goToSignIn": "Aller à la connexion"
+    },
+    "code": {
+      "label": "Code de configuration",
+      "hint": "Il est dans le journal du serveur, sur la ligne <code>server.setup_code</code>, ou exécutez <code>{command}</code> sur le serveur."
     },
     "database": {
       "legend": "Base de données",

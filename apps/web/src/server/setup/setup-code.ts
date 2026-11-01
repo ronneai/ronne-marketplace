@@ -9,8 +9,7 @@ import {
   statSync,
   writeFileSync,
 } from "node:fs";
-import { dirname } from "node:path";
-import { defaultDataPath } from "../runtime";
+import { dirname, join } from "node:path";
 
 /**
  * The one-time setup code (161): only whoever started the server can set it up. It's kept in the
@@ -29,9 +28,13 @@ const BITS = 128;
 /** The file's name in the data folder. */
 export const SETUP_CODE_FILE = "setup-code";
 
-/** Where the code is kept: `./data/setup-code`, the Docker volume, or RONNE_DATA_DIR. */
+/**
+ * Where the code is kept: the data folder, RONNE_DATA_DIR when it's set (the Docker volume, the npm
+ * package's folder, or any start that names one, as `start.ts` and backups read it), else `./data`
+ * next to the app.
+ */
 export const setupCodePath = (env: Record<string, string | undefined> = process.env): string =>
-  defaultDataPath(SETUP_CODE_FILE, env);
+  env.RONNE_DATA_DIR ? join(env.RONNE_DATA_DIR, SETUP_CODE_FILE) : `./data/${SETUP_CODE_FILE}`;
 
 /**
  * A new code: 128 random bits, as 26 characters of Crockford base32. 26 characters hold 130 bits,

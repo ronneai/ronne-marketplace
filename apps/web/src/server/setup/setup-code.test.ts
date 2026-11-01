@@ -135,6 +135,12 @@ describe("the file", () => {
     expect(setupCodePath({ RONNE_RUNTIME: "npm", RONNE_DATA_DIR: "/var/lib/rmk-server" })).toBe(
       "/var/lib/rmk-server/setup-code",
     );
+    // RONNE_DATA_DIR in any runtime, as the start script reads it: the image sets /app/data (the
+    // volume, which ./data points at), and a clone may name one (the end-to-end instances do).
+    expect(setupCodePath({ RONNE_RUNTIME: "docker", RONNE_DATA_DIR: "/app/data" })).toBe(
+      "/app/data/setup-code",
+    );
+    expect(setupCodePath({ RONNE_DATA_DIR: "/tmp/instance" })).toBe("/tmp/instance/setup-code");
   });
 
   it("is made once, readable only by its owner, and read back the same", () => {

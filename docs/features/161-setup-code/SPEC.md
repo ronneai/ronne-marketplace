@@ -22,8 +22,9 @@ page is no longer enough (owner, 2026-11-01).
     the server makes a code if there isn't one.
   - It is 128 random bits written as 26 Crockford base32 characters, shown in groups of five
     (`7KQ2M-…`). Case, spaces and dashes are ignored when typed.
-  - It is written to `setup-code` in the data folder (`defaultDataPath("setup-code")`: `./data`,
-    the Docker volume, or `RONNE_DATA_DIR`), mode 0600, by an exclusive create that never shows half
+  - It is written to `setup-code` in the data folder (`RONNE_DATA_DIR` when it's set, as the start
+    script and backups read it: the Docker volume, the npm package's folder, or a clone started
+    with one; else `./data` next to the app), mode 0600, by an exclusive create that never shows half
     a file: a temporary file, then a hard link into place, which fails when the file is already
     there. Where hard links aren't supported, a plain exclusive create, and a reader waits a moment
     for its content. A file holding the code that others can read is tightened to 0600.

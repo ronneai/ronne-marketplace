@@ -67,6 +67,10 @@
     "question": "Who sees these pins?",
     "answer": "Everyone who can see the item, on this shelf. A workspace’s shelf is on its page and on Home while it is your current workspace; Start here is on everyone’s Home. Only the shelf’s admins (root, for Start here) change it. An item nobody can install for now drops off the shelf and stays here as Not available."
   },
+  "setup-code": {
+    "question": "Where’s the setup code?",
+    "answer": "The server made it when it started, before setup, and wrote it in its log. The install script shows it too, and the setup-code command prints it again on the server. Only someone who can see the server’s log or run commands on it has it, so being first to this page isn’t enough. It’s gone once root exists."
+  },
   "install-tick": {
     "question": "Why isn’t this ticked by itself?",
     "answer": "The registry can’t tell who installed what: it keeps no record of which person ran an install, on purpose. So you tell it once, with the button. The other steps tick by themselves."

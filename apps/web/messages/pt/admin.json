@@ -1194,8 +1194,8 @@
       "title": "Configurar o Ronne AI Marketplace",
       "notConfigured": "Esta instância ainda não foi configurada. Ela precisa de um banco de dados, do endereço público e de uma conta root antes de poder ser usada.",
       "incomplete": "A configuração desta instância não terminou. Continue de onde parou: as configurações estão lá; o banco de dados e a conta root podem não estar.",
-      "warnTitle": "Quem conseguir abrir esta página pode configurar a instância",
-      "warnBody": "Termine agora, antes de o endereço ser compartilhado.",
+      "warnTitle": "Configurar esta instância exige o código de configuração",
+      "warnBody": "Só quem iniciou o servidor tem o código. Termine agora, antes de compartilhar o endereço.",
       "metaTitle": "Configuração"
     },
     "unavailable": {
@@ -1235,6 +1235,10 @@
       "doneBody": "Entre como <code>{email}</code> para criar escopos e convidar pessoas.",
       "signIn": "Entrar",
       "goToSignIn": "Ir para o login"
+    },
+    "code": {
+      "label": "Código de configuração",
+      "hint": "Ele está no log do servidor, na linha <code>server.setup_code</code>, ou rode <code>{command}</code> no servidor."
     },
     "database": {
       "legend": "Banco de dados",

@@ -47,11 +47,12 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     make if missing, refuse when set up.
   - *Done when:* CLI tests cover the three answers; `pnpm packages:check` lists the new entry.
 
-- [ ] **6. The setup page.**
+- [x] **6. The setup page.**
   - The Setup code field first, filled from `#code=` (read on the client, never sent in a URL).
   - The errors, and "Where's the setup code?" with the command for this runtime (`runtimeOf`).
-  - *Done when:* `setup.test.tsx` covers the field, the fragment and each error; the e2e wizard
-    test reads the code from the throwaway instance's data folder and sets up with it.
+  - *Done when:* `setup.test.tsx` (the field and its place) and `code-field.test.tsx` (the
+    fragment and each error) cover the page; the e2e wizard test reads the code from the throwaway
+    instance's data folder and sets up with it.
 
 - [ ] **7. Install paths.**
   - `install.sh` prints the code after its start check and opens `/setup#code=…`.

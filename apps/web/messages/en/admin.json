@@ -1194,8 +1194,8 @@
       "title": "Set up Ronne AI Marketplace",
       "notConfigured": "This instance isn’t set up yet. It needs a database, its public address and a root account before it can be used.",
       "incomplete": "This instance’s setup didn’t finish. Pick up where it stopped: the settings are there, the database and the root account may not be.",
-      "warnTitle": "Anyone who can open this page can set the instance up",
-      "warnBody": "Finish it now, before the address is shared.",
+      "warnTitle": "Setting this instance up takes its setup code",
+      "warnBody": "Only whoever started the server has it. Finish now, before the address is shared.",
       "metaTitle": "Set up"
     },
     "unavailable": {
@@ -1235,6 +1235,10 @@
       "doneBody": "Sign in as <code>{email}</code> to create scopes and invite people.",
       "signIn": "Sign in",
       "goToSignIn": "Go to sign-in"
+    },
+    "code": {
+      "label": "Setup code",
+      "hint": "It’s in the server’s log, on the <code>server.setup_code</code> line, or run <code>{command}</code> on the server."
     },
     "database": {
       "legend": "Database",

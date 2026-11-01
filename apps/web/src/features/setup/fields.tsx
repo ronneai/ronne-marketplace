@@ -1,4 +1,6 @@
 import { useTranslations } from "next-intl";
+import { useEffect } from "react";
+import { Help } from "@/components/help/Help";
 import { Checkbox, FieldError, Label, Select, TextField } from "@/components/ui/Field";
 import { HelpTip } from "@/components/ui/HelpTip";
 import { Notice } from "@/components/ui/Notice";
@@ -41,6 +43,55 @@ export const SectionError = ({
         <code className="block font-mono text-xs break-words">{error.detail}</code>
       ) : null}
     </Notice>
+  );
+};
+
+/**
+ * The setup code (161), asked for before anything else. A link the install script opened
+ * (`/setup#code=…`) fills it, at load or pasted into a page already open: the fragment is read
+ * here, in the browser, and never reaches the server or a proxy's log; it's then taken out of the
+ * address bar and the history.
+ */
+export const CodeField = ({ page, error }: Pick<FieldsProps, "page" | "error">) => {
+  const t = useTranslations("admin.setup.code");
+  const fieldError = useFieldError();
+  useEffect(() => {
+    const fill = () => {
+      const code = new URLSearchParams(window.location.hash.slice(1)).get("code");
+      if (!code) return;
+      const input = document.getElementById("setup.code");
+      if (input instanceof HTMLInputElement) input.value = code;
+      window.history.replaceState(
+        window.history.state,
+        "",
+        `${window.location.pathname}${window.location.search}`,
+      );
+    };
+    fill();
+    window.addEventListener("hashchange", fill);
+    return () => window.removeEventListener("hashchange", fill);
+  }, []);
+  return (
+    <fieldset className="grid gap-2" data-section="code">
+      <legend className="sr-only">{t("label")}</legend>
+      <SectionError error={error} section="code" />
+      <TextField
+        id="setup.code"
+        name="setup.code"
+        label={t("label")}
+        hint={t.rich("hint", {
+          command: page.setupCodeCommand,
+          code: (chunks) => <code className="font-mono break-all">{chunks}</code>,
+        })}
+        error={fieldError(error, "setup.code")}
+        autoComplete="off"
+        autoCapitalize="characters"
+        autoCorrect="off"
+        spellCheck={false}
+        className="font-mono"
+      />
+      <Help id="setup-code" />
+    </fieldset>
   );
 };
 

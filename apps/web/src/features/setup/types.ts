@@ -125,5 +125,7 @@ export type SetupPageProps = {
   publicUrlFromEnvironment: boolean;
   /** The database already in the settings, without its password, when `incomplete`. */
   currentDatabase?: string;
+  /** `setup-code` as typed on this server for its runtime (161), for the code field's hint. */
+  setupCodeCommand: string;
   initial: SetupValues;
 };
