@@ -32,6 +32,7 @@ const PARAMS: Record<string, Record<string, string | number>> = {
   "request.scope_move_waiting": { scope: "tools", newName: "tools", from: "global", to: "acme" },
   "request.item_move_waiting": { item: "lint", newName: "lint", from: "tools", to: "more" },
   "feedback.new": { feedbackKind: "idea" },
+  "instance.update_available": { version: "0.9.0", current: "0.8.2" },
 };
 
 const view = (
@@ -68,7 +69,9 @@ describe("notification sentences (139)", () => {
           const text = t(kind, sentenceValues(v, t("system", {})));
           expect(text, `${locale} ${kind}`).not.toMatch(/[{}]/);
           expect(text.length).toBeGreaterThan(10);
-          expect(text).toContain(actor ?? t("system", {}));
+          // The update notice is the instance's own news: it names the versions, not a person.
+          if (kind !== "instance.update_available")
+            expect(text).toContain(actor ?? t("system", {}));
         }
       }
     },

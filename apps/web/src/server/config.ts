@@ -28,6 +28,8 @@ export type AppConfig = {
   otel?: Record<string, string>;
   /** RONNE_JOBS as given (102): `off` turns the in-process scheduler off; server/jobs reads it. */
   jobs?: string;
+  /** RONNE_UPDATE_CHECK as given (140): `off` stops the daily request to GitHub for good. */
+  updateCheck?: string;
   /**
    * The security scan (135): RONNE_SKILL_SCANNER and RONNE_SKILL_SCANNER_TIMEOUT as given, and every
    * RONNE_SKILL_SCANNER_ENV_* setting (the environment's over the file's). domains/scans reads them.
@@ -83,6 +85,7 @@ export const loadConfig = (options: { appDir?: string; env?: Env } = {}): AppCon
     logLevel: value("LOG_LEVEL"),
     logFormat: value("LOG_FORMAT"),
     jobs: value("RONNE_JOBS"),
+    updateCheck: value("RONNE_UPDATE_CHECK"),
     otel: withPrefix("OTEL_"),
     skillScanner: {
       command: value("RONNE_SKILL_SCANNER"),

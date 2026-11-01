@@ -86,3 +86,24 @@ Witnessed: 2026-10-31, by a fresh agent (blind re-check of rows 7 and 9). Commit
 | 9 | A streamed body over 1 MiB with no content-length is refused | no | confirmed | `size > MAX_BYTES` → `false` fails "refuses a body over 1 MiB"; a body just under the limit passes |
 
 **Overall:** met.
+
+
+## Task 3 — The job, the settings and the notification
+
+Witnessed: 2026-10-31, by a fresh agent (blind). Commit: f7e78b42 plus the uncommitted working tree. Machine: macOS (Darwin), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The job runs under a lease: a second run while one holds it is skipped and does not fetch | no | confirmed | `update-check-job.ts` wraps the check in `runJob`; the gated-run test returns `skipped/locked` with fetch uncalled |
+| 2 | The scheduler starts the check 10 minutes after start, then every 24 hours | no | confirmed | fake-timer test: 0 runs at 10m-1, 1 at 10m, 1 at 10m+24h-1, 2 at 10m+24h |
+| 3 | The result is stored in the `instance_settings` rows | no | confirmed | `update-check.ts` writes at, latest, url, error, notified in one transaction; the db test reads them back; 9/9 on PostgreSQL, MySQL and MariaDB |
+| 4 | The switch defaults to on until turned off | no | confirmed | `switchIsOn` is false only for `"false"`; test |
+| 5 | `RONNE_UPDATE_CHECK` is in `config.ts` and reaches the job | no | confirmed | `off`, `OFF`, `0`, `false` tested |
+| 6 | One notification per version per active root | no | confirmed | roots only; a second check and a later-added root hear nothing; a new version notifies again |
+| 7 | Nothing is sent on failure, and the last good answer is kept | no | confirmed | 503 and 429 tests; the job counts `failed: 1` |
+| 8 | An equal or older release is stored and notifies nobody | no | confirmed | test with `v0.8.2` and `v0.8.1` |
+| 9 | With the check off, fetch is not called | no | confirmed | `vi.fn` not called across the env values and the switch |
+| 10 | A failure after notifying leaves no result, marker or notification | no | confirmed | rollback test, SQLite and the three servers |
+| 11 | The plumbing handles the new kind: root only, link to updates, subject `instance` | no | confirmed | `read.db.test.ts`; 54 unit tests |
+
+**Overall:** met. Gaps the witness named: no mutation was run, and the en/pt/fr sentences were not read.

@@ -20,5 +20,7 @@ export const notificationHref = (link: NotificationLink): string => {
       return itemPath({ workspace: link.workspace, scope: link.scope, name: link.name });
     case "feedback":
       return "/admin/feedback";
+    case "updates":
+      return "/admin/settings?tab=updates";
   }
 };

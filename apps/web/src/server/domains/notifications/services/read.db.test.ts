@@ -197,6 +197,25 @@ describe("who may still see a notification", () => {
     expect(note?.params).toMatchObject({ workspace: "acme" });
   });
 
+  it("shows an update notice to root only, leading to Settings › Updates (140)", async () => {
+    const root = await seedUser(t, "Root");
+    await tell(
+      root,
+      "instance.update_available",
+      { type: "instance", id: "0.9.0" },
+      { params: { version: "0.9.0", current: "0.8.2" } },
+    );
+    const asRoot = await viewerOf(root, "root");
+    expect((await latestVisible(t.db, t.dialect, asRoot, root, 10)).map((n) => n.link)).toEqual([
+      { to: "updates" },
+    ]);
+    expect(await countVisibleUnread(t.db, t.dialect, asRoot, root)).toBe(1);
+    // A root demoted since sees nothing of it, and it isn't counted.
+    const demoted = await viewerOf(root);
+    expect(await latestVisible(t.db, t.dialect, demoted, root, 10)).toEqual([]);
+    expect(await countVisibleUnread(t.db, t.dialect, demoted, root)).toBe(0);
+  });
+
   it("shows new feedback to root only", async () => {
     const [root, user] = [await seedUser(t, "Root"), await seedUser(t, "Uma")];
     const id = newId();

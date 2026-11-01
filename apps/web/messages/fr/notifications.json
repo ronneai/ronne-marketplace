@@ -65,7 +65,8 @@
       "item_move": "Déplacement d’un élément",
       "membership": "Votre appartenance",
       "request": "Demandes en attente",
-      "feedback": "Commentaires"
+      "feedback": "Commentaires",
+      "instance": "Mises à jour"
     },
     "kinds": {
       "submission": {
@@ -102,6 +103,9 @@
       },
       "feedback": {
         "new": "Nouveaux commentaires"
+      },
+      "instance": {
+        "update_available": "Mise à jour disponible"
       }
     },
     "columns": {
@@ -134,5 +138,8 @@
       "filtered": "Aucune notification ne correspond à ces filtres."
     },
     "noLink": "Rien à ouvrir : ce dont il s’agissait n’existe plus."
+  },
+  "instance": {
+    "update_available": "Ronne AI Marketplace {version} est disponible. Vous utilisez la {current}."
   }
 }

@@ -21,7 +21,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* unit tests with a fake fetch cover newer, equal, older, a pre-release running, a bad
     tag, a 403, a 429, a timeout, a redirect to another host and an oversized body.
 
-- [ ] **3. The job, the settings and the notification.**
+- [x] **3. The job, the settings and the notification.**
   - The scheduled job under a lease (10 minutes, then 24 hours), the `instance_settings` rows,
     `RONNE_UPDATE_CHECK` in `config.ts`, the notification to active roots once per version (139).
   - *Done when:* db tests cover the stored result, one notification per version per root, none on

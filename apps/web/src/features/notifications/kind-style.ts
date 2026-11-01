@@ -1,5 +1,6 @@
 import {
   ArrowRightLeft,
+  CircleArrowUp,
   CircleCheck,
   CircleX,
   Inbox,
@@ -42,6 +43,7 @@ const ICONS: Record<NotificationKind, LucideIcon> = {
   "request.scope_move_waiting": Inbox,
   "request.item_move_waiting": Inbox,
   "feedback.new": Megaphone,
+  "instance.update_available": CircleArrowUp,
 };
 
 /** Kinds that say something went against the person's work: the only ones drawn in red. */
