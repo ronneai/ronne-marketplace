@@ -34,6 +34,28 @@ export const withVersion = (texts, version) => {
   return out;
 };
 
+/**
+ * The version main moves to once `released` is out: the next minor, X.(Y+1).0, so a build from
+ * main never carries a released version (0.6.0 → 0.7.0, 0.6.2 → 0.7.0). Null, with nothing to
+ * change, after a pre-release (main stays where it is until the stable version), or when main is
+ * already at that version or later: a patch set by hand on main and released, or a re-run.
+ * @param {string} released the released version, without `v`
+ * @param {string} current the version main carries now
+ * @returns {string | null}
+ */
+export const nextMinor = (released, current) => {
+  if (!isVersion(released)) throw new Error(`${released} isn't a version such as 0.1.0.`);
+  if (!isVersion(current)) throw new Error(`${current} isn't a version such as 0.1.0.`);
+  if (released.includes("-")) return null;
+  const core = (v) => v.split("-")[0].split(".").map(Number);
+  const [major, minor] = core(released);
+  const next = [major, minor + 1, 0];
+  const now = core(current);
+  const i = now.findIndex((n, k) => n !== next[k]);
+  if (i === -1 || now[i] > next[i]) return null;
+  return next.join(".");
+};
+
 /** The one version everything in VERSIONED shares, or an error naming what differs. */
 export const sharedVersion = (texts) => {
   const versions = Object.fromEntries(

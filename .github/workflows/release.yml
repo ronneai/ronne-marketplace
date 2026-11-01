@@ -25,6 +25,9 @@ name: Release
 #    the four bundles (Linux and macOS; no Windows bundle since 121) attached, and checksums.txt
 #    covering the script and the bundles. A bundle that failed on any platform stops it, so the
 #    packages (085) never point at a partial release.
+# 6. `bump-version`: once the GitHub release exists, main moves to the next minor (0.6.0 → 0.7.0,
+#    0.6.2 → 0.7.0) in one commit pushed straight to main, with [skip ci]. Not after a pre-release,
+#    and not when main is already there or past it (a re-run, or a patch set by hand on main).
 #
 # Run by hand with "dry run" (from main, so the current workflow runs) to check everything, build,
 # run and scan both images, build and smoke-test the four bundles, and publish nothing.
@@ -447,3 +450,52 @@ jobs:
             --notes-file "$RUNNER_TEMP/notes.md" \
             release/*.tgz release/install.sh release/rmk-server-*.tar.gz \
             release/rmk-server*.deb release/rmk-server*.rpm release/checksums.txt
+
+  # After the release is complete, main moves to the next minor, so a build from main never carries
+  # a released version (docs/runbooks/release.md). main needs a pull request and its checks, and
+  # GITHUB_TOKEN can't get past either, so the push uses the owner's fine-grained token (this
+  # repository only, Contents: read and write), RELEASE_BUMP_TOKEN in the "version-bump"
+  # environment, which only main and v* tags may use (as "npm"). The owner is the ruleset's one bypass actor, and the
+  # classic protection isn't enforced on admins. [skip ci] keeps the push from starting CI: the
+  # commit changes only the version lines, which the release just tested, and the nightly run
+  # tests main anyway. The job installs nothing: only git and release-bump.js (Node.js built-ins)
+  # run with the token.
+  bump-version:
+    name: Move main to the next minor
+    needs: github-release
+    if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.dry_run) }}
+    environment: version-bump
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          token: ${{ secrets.RELEASE_BUMP_TOKEN }}
+          # Kept for the push below; nothing else runs in this job.
+          persist-credentials: true
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      # From the newest main each time, so a merge landing meanwhile only means one more try.
+      - name: Commit the next minor and push it to main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for attempt in 1 2 3; do
+            git fetch --quiet origin main
+            git reset --quiet --hard origin/main
+            next=$(node packages/repo-tools/src/release-bump.js "$TAG")
+            [ -n "$next" ] || exit 0
+            printf '%s\n\n%s\n\n%s\n' \
+              "[chore]: Bump the version to $next" \
+              "$TAG is released; main now builds $next. Pushed by the Release workflow." \
+              "[skip ci]" | git commit --quiet --all --file -
+            git show --stat HEAD
+            if git push origin HEAD:main; then exit 0; fi
+            echo "main moved during attempt $attempt; trying again."
+          done
+          echo "Couldn't push the version bump to main: run pnpm release:version $next and merge it."
+          exit 1

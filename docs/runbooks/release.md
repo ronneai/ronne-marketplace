@@ -36,8 +36,13 @@ until you approve its "npm" environment.
 - [ ] A new version: a tag whose GitHub release already exists only re-runs the npm and image steps
       (the release itself is left as it is). The first with bundles comes after 0.2.0.
 
-- [ ] `pnpm release:version X.Y.Z` sets the version of `@ronneai/core`, `@ronneai/rmk`,
-      `@ronneai/mcp`, `@ronneai/marketplace` and the web app. Merge it through a pull request.
+- [ ] `main` already carries the version: after every stable release, the Release workflow's last
+      job (*Move main to the next minor*) pushes `[chore]: Bump the version to X.Y.0` straight to
+      `main` with `[skip ci]`, so a minor release needs no version step (0.6.0 → 0.7.0,
+      0.6.2 → 0.7.0). For a patch, a major or a pre-release, `pnpm release:version X.Y.Z` sets the
+      version of `@ronneai/core`, `@ronneai/rmk`, `@ronneai/mcp`, `@ronneai/marketplace` and the
+      web app; merge it through a pull request. After a patch, `main` moves back to the next minor;
+      after a pre-release it stays where it is.
 
 **A dry run, from `main`:**
 
@@ -69,6 +74,11 @@ until you approve its "npm" environment.
 - [ ] Once the website carries this version's Documentation, `pnpm docs:links --live` opens every
       topic page in English, Portuguese and French and looks for every section the app links to; it
       lists whatever is missing. Fix the website, not the app, if a page is not there yet.
+- [ ] *Move main to the next minor* pushed `[chore]: Bump the version to X.(Y+1).0` to `main`
+      (not after a pre-release). If it failed, run `pnpm release:version X.(Y+1).0` and merge it.
+      It needs the "version-bump" environment (deployment branch `main` and tags `v*`, as "npm") with `RELEASE_BUMP_TOKEN`:
+      your fine-grained token for this repository with Contents: read and write, and an expiry.
+      Renew it before it expires; you're the one actor the `main` ruleset lets bypass it.
 - [ ] A package's first release needs a short-lived `NPM_TOKEN` in the "npm" environment, since a
       trusted publisher can only be set on a package that exists. Link it on npmjs.com to this
       repository, `release.yml` and the "npm" environment, then delete the token.
