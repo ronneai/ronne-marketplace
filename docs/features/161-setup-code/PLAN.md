@@ -61,7 +61,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* `pnpm test:install` asserts the printed code under dash and bash; the server
     package's tests cover `start`'s output.
 
-- [ ] **8. Messages.**
+- [x] **8. Messages.**
   - Every new key in `en`, `pt` and `fr`.
   - *Done when:* the parity and raw-text tests pass; the phone sweep passes on the setup page.
 

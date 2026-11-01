@@ -1300,7 +1300,7 @@
       "restart_needed": "As configurações foram gravadas, mas este processo ainda usa valores do ambiente dele. Reinicie-o e recarregue esta página.",
       "setup_code_missing": "Não há código de configuração neste servidor: reinicie-o ou rode `{command}`. Ou configure pelo terminal: `{setup}`.",
       "setup_code_wrong": "Esse não é o código de configuração deste servidor. Ele está no log do servidor, ou rode `{command}`.",
-      "setup_code_rate_limited": "Códigos de configuração errados demais. Tente de novo em {minutes, plural, one {# minuto} other {# minutos}}, ou configure esta instância pelo terminal: `{setup}`."
+      "setup_code_rate_limited": "Muitos códigos de configuração errados. Tente de novo em {minutes, plural, one {# minuto} other {# minutos}}, ou configure esta instância pelo terminal: `{setup}`."
     },
     "detail": {
       "settings": "Configurações gravadas em {path}",
