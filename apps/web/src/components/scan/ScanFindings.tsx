@@ -10,12 +10,12 @@ import { Button } from "@/components/ui/Button";
 import { copyText } from "@/components/ui/copy";
 import { Dialog, DialogActions } from "@/components/ui/Dialog";
 import { FieldError, inputClasses, Label } from "@/components/ui/Field";
+import { FilterPopover } from "@/components/ui/FilterPopover";
 import { IconButton } from "@/components/ui/IconButton";
 import type {
   Dismissal,
   DismissalKind,
 } from "@/server/domains/scans/repositories/scan-dismissal-repository";
-import { FilterPopover } from "./FilterPopover";
 import { markFalsePositive, restoreFalsePositive } from "./scan-actions";
 import {
   exportName,

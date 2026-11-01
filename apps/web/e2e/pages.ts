@@ -90,6 +90,7 @@ export const SWEEP_PAGES: readonly SweepPage[] = [
   },
   { route: "/menu", roles: EVERYONE, urls: () => ["/menu"] },
   { route: "/feedback", roles: EVERYONE, urls: () => ["/feedback", "/feedback?from=%2Fcatalogue"] },
+  { route: "/notifications", roles: EVERYONE, urls: () => ["/notifications"] },
   { route: "/submissions", roles: EVERYONE, urls: () => ["/submissions"] },
   { route: "/submissions/new", roles: EVERYONE, urls: () => ["/submissions/new"] },
   {

@@ -52,6 +52,7 @@ for the account `<id>`:
 | Drafts (`submissions` in `draft`) and their files | deleted: only their author could ever see them |
 | Getting started state (126), `user_onboarding` | deleted: only their owner ever saw it |
 | Feedback they sent (127), `feedback` | deleted: the message is not kept under a pseudonym |
+| Notifications addressed to them (139), `notifications` | deleted: only they ever saw them. Those they caused for others stay; the name is read when shown, so it is the pseudonym by then |
 | Favorites (125) | deleted: only their owner ever saw them. Pins they made stay, their `created_by` the pseudonym's row |
 | Submitted, approved and rejected submissions, revisions, review events (comments) | kept; the author or actor is the pseudonym |
 | Items owned, versions published, scopes and workspaces created | kept; `owner_id`, `published_by`, `created_by` keep the id, which now resolves to the pseudonym |
@@ -62,7 +63,7 @@ for the account `<id>`:
 The old email is free for a new account at once. The audit event `user.erased` (target the
 user) records `{ sessionsEnded, tokensDeleted, scimLinksDeleted, draftsDeleted, eventsRewritten,
 personalWorkspace: "renamed" | "deleted" | "none" }`, plus `requestsCancelled`,
-`movesCancelled` and `favoritesDeleted` (125) when there were any, and `via: "retry" | "job"` when a retry or the job finished
+`movesCancelled`, `favoritesDeleted` (125) and `notificationsDeleted` (139) when there were any, and `via: "retry" | "job"` when a retry or the job finished
 it (Edge cases), never the email or the name; its sentence (060) is *Erased deleted-user-<id>*.
 
 ### Where it's shown afterwards

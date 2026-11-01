@@ -161,6 +161,18 @@ export const TOPICS = [
     ],
   },
   {
+    slug: "notifications",
+    title: "Notifications",
+    summary:
+      "What the bell tells you: what notifies you, the list behind the bell and the Notifications page, how long they are kept, and what is not sent.",
+    sections: [
+      { id: "what", title: "What notifies you" },
+      { id: "reading", title: "The bell and the page" },
+      { id: "kept", title: "How long they are kept" },
+      { id: "not-email", title: "In the app only" },
+    ],
+  },
+  {
     slug: "admin",
     title: "Users",
     summary:
@@ -424,7 +436,10 @@ export type SectionOf<T extends TopicSlug> = Extract<Topic, { slug: T }>["sectio
 
 /** How the Documentation's menu groups the topics, in order (owner's request, 2026-09-28). */
 export const TOPIC_GROUPS: { label: string; topics: readonly TopicSlug[] }[] = [
-  { label: "Getting started", topics: ["overview", "install", "update", "roles", "account"] },
+  {
+    label: "Getting started",
+    topics: ["overview", "install", "update", "roles", "account", "notifications"],
+  },
   {
     label: "Authentication",
     topics: ["authentication", "provider-guides", "scim", "password-sign-in"],

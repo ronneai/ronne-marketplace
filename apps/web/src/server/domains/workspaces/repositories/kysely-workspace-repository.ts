@@ -11,6 +11,8 @@ import { upsert } from "../../../db/upsert";
 import type { DatabaseDialect } from "../../../db/url";
 import { recordAudit } from "../../audit/actions/audit";
 import { isWorkspaceRole } from "../../identity/models/user";
+import { notify } from "../../notifications/services/notify";
+import { activeRoots } from "../../notifications/services/recipients";
 import type { Workspace, WorkspaceVisibility } from "../models/workspace";
 import { accessRequestMethods } from "./kysely-access-requests";
 import { itemMoveMethods } from "./kysely-item-moves";
@@ -803,6 +805,22 @@ export const kyselyWorkspaceRepository = (
 
     recordAudit: async (event, now) => {
       await recordAudit(db, dialect, event, now);
+    },
+
+    notify: async (notification, now) => {
+      await notify(db, dialect, notification, now);
+    },
+
+    answerersOf: async (workspaceId, roles = ["admin", "moderator"]) => {
+      const roots = await activeRoots(db);
+      if (roles.length === 0) return roots;
+      const members = await db
+        .selectFrom("workspace_members")
+        .select("user_id")
+        .where("workspace_id", "=", workspaceId)
+        .where("role", "in", [...roles])
+        .execute();
+      return [...new Set([...roots, ...members.map((row) => row.user_id)])];
     },
 
     ...accessRequestMethods(db, dialect),

@@ -1,6 +1,7 @@
 import type { KeysetPage, SortDir } from "../../../db/keyset";
 import type { NewAuditEvent } from "../../audit/models/audit-event";
 import type { WorkspaceRole } from "../../identity/models/user";
+import type { NewNotification } from "../../notifications/models/notification";
 import type { AccessRequest, PendingRequest, RequestWithWorkspace } from "../models/access-request";
 import type { ItemMove } from "../models/item-move";
 import type { Member, Membership, MemberUser } from "../models/member";
@@ -193,6 +194,13 @@ export interface WorkspaceRepository {
   removeMember(workspaceId: string, userId: string): Promise<void>;
   countMembers(workspaceId: string): Promise<number>;
   recordAudit(event: NewAuditEvent, now: Date): Promise<void>;
+  /** Writes a notification (139), in the same transaction as the change it tells about. */
+  notify(notification: NewNotification, now: Date): Promise<void>;
+  /**
+   * Who answers requests in a workspace (139): root and the members with these roles, admins and
+   * moderators unless told otherwise; `[]` is root alone.
+   */
+  answerersOf(workspaceId: string, roles?: readonly ("admin" | "moderator")[]): Promise<string[]>;
   // Requests to join (094), implemented in kysely-access-requests.ts.
   /** Locks the request's row until the transaction ends: the first answer wins. */
   lockAccessRequest(id: string): Promise<void>;

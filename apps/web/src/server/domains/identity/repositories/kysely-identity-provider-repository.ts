@@ -5,6 +5,7 @@ import { decodeJson, encodeJson } from "../../../db/json";
 import type { Database, IdentityProviderTable } from "../../../db/schema";
 import type { DatabaseDialect } from "../../../db/url";
 import { recordAudit } from "../../audit/actions/audit";
+import { notify } from "../../notifications/services/notify";
 import { GLOBAL_WORKSPACE_ID } from "../../workspaces/models/workspace";
 import type { IdentityProvider } from "../models/identity-provider";
 import type { IdentityProviderRepository, ProviderRow } from "./identity-provider-repository";
@@ -279,6 +280,10 @@ export const kyselyIdentityProviderRepository = (
 
     async recordAudit(event, now) {
       await recordAudit(db, dialect, event, now);
+    },
+
+    async notify(notification, now) {
+      await notify(db, dialect, notification, now);
     },
   };
 };

@@ -2,9 +2,10 @@
 
 import { ChevronDown } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { Badge, type BadgeTone } from "@/components/ui/Badge";
-import { Popover } from "@/components/ui/Popover";
-import { toggleChoice } from "./summary";
+import { Fragment } from "react";
+import { Badge, type BadgeTone } from "./Badge";
+import { toggleChoice } from "./filter-choice";
+import { Popover } from "./Popover";
 
 /** How many chosen values the button names before it says "+N". */
 const NAMED = 2;
@@ -16,10 +17,12 @@ export type FilterOption<T extends string> = {
   /** On the button, once chosen: the name alone. */
   name: string;
   tone?: BadgeTone;
+  /** A heading the option is listed under: options that follow each other with one share it. */
+  group?: string;
 };
 
 /**
- * One of the Security scan tab's filters (137): a button that names what it is narrowed to, as
+ * A multi-select filter (137, shared since 139): a button that names what it is narrowed to, as
  * badges, or "All", and opens a popover of checkboxes. `value` is `null` for all, else the chosen
  * values (see `toggleChoice`).
  */
@@ -37,7 +40,7 @@ export const FilterPopover = <T extends string>({
   value: ReadonlySet<T> | null;
   onChange: (value: ReadonlySet<T> | null) => void;
 }) => {
-  const t = useTranslations("author.scan.dialog");
+  const t = useTranslations("common.filter");
   const chosen = value === null ? [] : options.filter((o) => value.has(o.value));
   const all = options.map((o) => o.value);
   return (
@@ -51,7 +54,7 @@ export const FilterPopover = <T extends string>({
         button={
           <>
             {chosen.length === 0 ? (
-              <Badge>{t("filterAll")}</Badge>
+              <Badge>{t("all")}</Badge>
             ) : (
               <>
                 {chosen.slice(0, NAMED).map((o) => (
@@ -60,7 +63,7 @@ export const FilterPopover = <T extends string>({
                   </Badge>
                 ))}
                 {chosen.length > NAMED ? (
-                  <Badge>{t("filterMore", { count: chosen.length - NAMED })}</Badge>
+                  <Badge>{t("more", { count: chosen.length - NAMED })}</Badge>
                 ) : null}
               </>
             )}
@@ -80,19 +83,21 @@ export const FilterPopover = <T extends string>({
             />
             {allLabel}
           </label>
-          {options.map((o) => (
-            <label
-              key={o.value}
-              className="flex min-h-6 cursor-pointer items-center gap-2 pointer-coarse:min-h-11"
-            >
-              <input
-                type="checkbox"
-                checked={value?.has(o.value) ?? false}
-                onChange={() => onChange(toggleChoice(value, all, o.value))}
-                className="size-4 accent-(--accent)"
-              />
-              {o.label}
-            </label>
+          {options.map((o, index) => (
+            <Fragment key={o.value}>
+              {o.group && o.group !== options[index - 1]?.group ? (
+                <span className="mt-1 text-xs font-semibold text-muted">{o.group}</span>
+              ) : null}
+              <label className="flex min-h-6 cursor-pointer items-center gap-2 pointer-coarse:min-h-11">
+                <input
+                  type="checkbox"
+                  checked={value?.has(o.value) ?? false}
+                  onChange={() => onChange(toggleChoice(value, all, o.value))}
+                  className="size-4 accent-(--accent)"
+                />
+                {o.label}
+              </label>
+            </Fragment>
           ))}
         </fieldset>
       </Popover>

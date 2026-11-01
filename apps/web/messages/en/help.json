@@ -11,6 +11,10 @@
     "question": "Who can answer?",
     "answer": "Root, in every workspace, and each workspace’s moderators and admins, in theirs. Approve adds the person as a user; root and the workspace’s admins can pick moderator instead. Decline can give a reason, which the person sees; they can ask again 7 days later. The first answer counts."
   },
+  "notifications": {
+    "question": "Why am I seeing this?",
+    "answer": "Each notification is addressed to you because of something that happened to your work, a request you made or one that waits for you to answer. You never get one for what you did yourself. They are kept for 90 days, and what you can no longer see, such as the items of a private workspace you were removed from, is left out. They are in the app only: no email."
+  },
   "member-roles": {
     "question": "What can each role do?",
     "answer": "A user proposes and submits items in the workspace. A moderator also reviews and releases them. An admin also adds and removes members, changes their roles, creates the workspace’s scopes and edits its description. Root can do all of it in every workspace."
@@ -277,7 +281,7 @@
   },
   "erase-user": {
     "question": "What does erasing do?",
-    "answer": "The person’s email, name, picture, passwords, sign-in links, two-factor, sessions, tokens, memberships, favorites, Getting started choices, the feedback they sent and drafts go, for good. What they did stays under the pseudonym deleted-user-'<'id'>': the items and versions they published, their submitted submissions and review comments, and the audit events, which keep making sense. The old email is free at once. To stop someone without erasing, disable them."
+    "answer": "The person’s email, name, picture, passwords, sign-in links, two-factor, sessions, tokens, memberships, favorites, Getting started choices, the feedback they sent, their notifications and drafts go, for good. What they did stays under the pseudonym deleted-user-'<'id'>': the items and versions they published, their submitted submissions and review comments, and the audit events, which keep making sense. The old email is free at once. To stop someone without erasing, disable them."
   },
   "notice": {
     "question": "Who sees this?",
@@ -293,7 +297,7 @@
   },
   "your-data": {
     "question": "What is in the file?",
-    "answer": "Your account (never your password hash or two-factor secret), your sessions, token names, workspaces, requests, scopes, your favorites, the feedback you sent, your Getting started choices, items you published, your submissions and comments, and the audit events you took part in. Other people’s emails are replaced. It isn’t a backup: files and other people’s data aren’t in it. You can download it once every 10 minutes."
+    "answer": "Your account (never your password hash or two-factor secret), your sessions, token names, workspaces, requests, scopes, your favorites, the feedback you sent, your notifications, your Getting started choices, items you published, your submissions and comments, and the audit events you took part in. Other people’s emails are replaced. It isn’t a backup: files and other people’s data aren’t in it. You can download it once every 10 minutes."
   },
   "download-user-data": {
     "question": "When do I download someone’s data?",

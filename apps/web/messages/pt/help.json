@@ -11,6 +11,10 @@
     "question": "Quem pode responder?",
     "answer": "O root, em todos os espaços de trabalho, e os moderadores e admins de cada espaço de trabalho, no deles. Aprovar adiciona a pessoa como usuário; o root e os admins do espaço de trabalho podem escolher moderador. Recusar pode dar um motivo, que a pessoa vê; ela pode pedir de novo 7 dias depois. Vale a primeira resposta."
   },
+  "notifications": {
+    "question": "Por que estou vendo isto?",
+    "answer": "Cada notificação é endereçada a você por algo que aconteceu com o seu trabalho, por um pedido que você fez ou por um que espera a sua resposta. Você nunca recebe uma por algo que você fez. Elas são guardadas por 90 dias, e o que você não pode mais ver, como os itens de um espaço de trabalho privado ao qual a sua conta não tem mais acesso, fica de fora. Aparecem só no app: sem e-mail."
+  },
   "member-roles": {
     "question": "O que cada papel pode fazer?",
     "answer": "Um usuário propõe e submete itens no espaço de trabalho. Um moderador também os revisa e lança. Um admin também adiciona e remove membros, muda os papéis deles, cria os escopos do espaço de trabalho e edita a descrição dele. O root pode fazer tudo isso em todos os espaços de trabalho."
@@ -277,7 +281,7 @@
   },
   "erase-user": {
     "question": "O que apagar faz?",
-    "answer": "O e-mail, o nome, a foto, as senhas, os vínculos de login, a autenticação de dois fatores, as sessões, os tokens, as participações, os favoritos, as escolhas dos Primeiros passos, o feedback enviado e os rascunhos da pessoa somem para sempre. O que ela fez continua sob o pseudônimo deleted-user-'<'id'>': os itens e versões que publicou, as submissões enviadas e os comentários de revisão, e os eventos de auditoria, que continuam fazendo sentido. O e-mail antigo fica livre na hora. Para impedir o acesso sem apagar, desative a conta."
+    "answer": "O e-mail, o nome, a foto, as senhas, os vínculos de login, a autenticação de dois fatores, as sessões, os tokens, as participações, os favoritos, as escolhas dos Primeiros passos, o feedback enviado, as notificações e os rascunhos da pessoa somem para sempre. O que ela fez continua sob o pseudônimo deleted-user-'<'id'>': os itens e versões que publicou, as submissões enviadas e os comentários de revisão, e os eventos de auditoria, que continuam fazendo sentido. O e-mail antigo fica livre na hora. Para impedir o acesso sem apagar, desative a conta."
   },
   "notice": {
     "question": "Quem vê isto?",
@@ -293,7 +297,7 @@
   },
   "your-data": {
     "question": "O que há no arquivo?",
-    "answer": "A sua conta (nunca o hash da senha nem o segredo da autenticação de dois fatores), as sessões, os nomes dos tokens, espaços de trabalho, solicitações, escopos, os favoritos, o feedback que você enviou, as escolhas dos Primeiros passos, os itens que você publicou, as submissões e comentários, e os eventos de auditoria de que você participou. Os e-mails de outras pessoas são substituídos. Não é um backup: arquivos e dados de outras pessoas não estão nele. Você pode baixá-lo uma vez a cada 10 minutos."
+    "answer": "A sua conta (nunca o hash da senha nem o segredo da autenticação de dois fatores), as sessões, os nomes dos tokens, espaços de trabalho, solicitações, escopos, os favoritos, o feedback que você enviou, as suas notificações, as escolhas dos Primeiros passos, os itens que você publicou, as submissões e comentários, e os eventos de auditoria de que você participou. Os e-mails de outras pessoas são substituídos. Não é um backup: arquivos e dados de outras pessoas não estão nele. Você pode baixá-lo uma vez a cada 10 minutos."
   },
   "download-user-data": {
     "question": "Quando baixo os dados de alguém?",

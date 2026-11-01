@@ -51,6 +51,12 @@ export interface EraseRepository {
    * deleted, not kept under the pseudonym. Returns how many.
    */
   deleteFeedback(userId: string): Promise<number>;
+  /**
+   * Their notifications (139): what happened to their work and what waited for them is theirs
+   * alone, so it goes with them. The ones they caused for others stay: the name is read when shown,
+   * and by then it is the pseudonym. Returns how many.
+   */
+  deleteNotifications(userId: string): Promise<number>;
   /** Live links and tombstones (108), and the provider groups' memberships. Returns the links. */
   deleteScimRows(userId: string): Promise<number>;
   /** Every workspace membership, the personal one's included. Returns how many. */

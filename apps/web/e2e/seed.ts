@@ -9,6 +9,7 @@ import { argon2PasswordHasher } from "../src/server/domains/identity/repositorie
 import { kyselyIdentityRepository } from "../src/server/domains/identity/repositories/kysely-identity-repository";
 import { kyselyItemRepository } from "../src/server/domains/items/repositories/kysely-item-repository";
 import { kyselyScopeRepository } from "../src/server/domains/items/repositories/kysely-scope-repository";
+import { notify } from "../src/server/domains/notifications/services/notify";
 import { dayOf, daysBefore } from "../src/server/domains/usage/models/usage-event";
 import { kyselyUsageRepository } from "../src/server/domains/usage/repositories/kysely-usage-repository";
 import { UNFILTERED } from "../src/server/domains/workspaces/models/viewer";
@@ -961,6 +962,59 @@ await db
   await db
     .insertInto("item_favorites")
     .values(sweepers.map((key) => ({ user_id: ids[key] ?? "", item_id: skillId, created_at: at })))
+    .execute();
+}
+
+// Notifications for the page and the bell (139): 30 for one reader, in three kinds, five of them
+// read, and one about something that no longer exists (no link). Written by `notify`, as the app does.
+{
+  const reader = ids.notificationsReader ?? "";
+  const written = new Date("2026-10-01T12:00:00Z");
+  for (let i = 0; i < 30; i++) {
+    const at = new Date(written.getTime() + i * 60_000);
+    const kind =
+      (["membership.added", "membership.role_changed", "submission.rejected"] as const)[i % 3] ??
+      "membership.added";
+    await notify(
+      db,
+      dialect,
+      kind === "submission.rejected"
+        ? {
+            recipients: [reader],
+            kind,
+            actorId: null,
+            subject: { type: "submission", id: newId() },
+            params: { name: `@${E2E_SCOPE}/gone-${i}`, revision: 1 },
+          }
+        : {
+            recipients: [reader],
+            kind,
+            actorId: null,
+            subject: { type: "workspace", id: GLOBAL_WORKSPACE_ID },
+            params:
+              kind === "membership.added"
+                ? { workspace: "global", role: "user" }
+                : { workspace: "global", from: "user", to: "moderator" },
+          },
+      at,
+    );
+  }
+  // The five oldest are read already.
+  const oldest = await db
+    .selectFrom("notifications")
+    .select("id")
+    .where("user_id", "=", reader)
+    .orderBy("id", "asc")
+    .limit(5)
+    .execute();
+  await db
+    .updateTable("notifications")
+    .set({ read_at: toDbDate(new Date(), dialect) })
+    .where(
+      "id",
+      "in",
+      oldest.map((row) => row.id),
+    )
     .execute();
 }
 

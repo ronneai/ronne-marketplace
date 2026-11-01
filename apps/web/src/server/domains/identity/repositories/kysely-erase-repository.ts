@@ -105,6 +105,12 @@ export const kyselyEraseRepository = (
       );
     },
 
+    async deleteNotifications(userId) {
+      return count(
+        await db.deleteFrom("notifications").where("user_id", "=", userId).executeTakeFirst(),
+      );
+    },
+
     async deleteOnboarding(userId) {
       await db.deleteFrom("user_onboarding").where("user_id", "=", userId).execute();
     },

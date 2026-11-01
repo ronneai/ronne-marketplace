@@ -32,6 +32,8 @@ export const LastRun = ({ status }: { status: RetentionJobView }) => {
       sessions: n(c.sessionsDeleted),
       grants: n(c.grantsDeleted),
       feedback: n(c.feedbackDeleted),
+      // A result stored before 139 has no such count.
+      notifications: n(c.notificationsDeleted ?? 0),
     });
   }
   return (

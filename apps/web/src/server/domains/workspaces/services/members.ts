@@ -145,7 +145,8 @@ const approveOpenRequest = async (
   role: WorkspaceRole,
   at: Date,
 ) => {
-  if (await repo.approveOpenRequest(workspace.id, user.id, actor.user?.id ?? null, at))
+  const approved = await repo.approveOpenRequest(workspace.id, user.id, actor.user?.id ?? null, at);
+  if (approved)
     await auditRequest(
       repo,
       actor,
@@ -154,6 +155,63 @@ const approveOpenRequest = async (
       at,
       { role, direct: true },
     );
+  return approved;
+};
+
+/**
+ * Tells a member about a change to their membership (139), in the transaction that made it. Someone
+ * added while their request to join was open is told it was approved instead of "added", so they
+ * get one notice, not two.
+ */
+const notifyMember = (
+  repo: WorkspaceRepository,
+  actor: WorkspaceActor,
+  workspace: Workspace,
+  user: MemberUser,
+  change:
+    | { kind: "added"; role: WorkspaceRole; request: { id: string } | null }
+    | { kind: "role_changed"; from: WorkspaceRole; to: WorkspaceRole }
+    | { kind: "removed" },
+  at: Date,
+) => {
+  const base = { recipients: [user.id], actorId: actor.user?.id ?? null } as const;
+  const workspaceParams = { workspace: workspace.name };
+  if (change.kind === "added")
+    return repo.notify(
+      change.request
+        ? {
+            ...base,
+            kind: "join_request.approved",
+            subject: { type: "join_request", id: change.request.id },
+            params: { ...workspaceParams, role: change.role },
+          }
+        : {
+            ...base,
+            kind: "membership.added",
+            subject: { type: "workspace", id: workspace.id },
+            params: { ...workspaceParams, role: change.role },
+          },
+      at,
+    );
+  if (change.kind === "role_changed")
+    return repo.notify(
+      {
+        ...base,
+        kind: "membership.role_changed",
+        subject: { type: "workspace", id: workspace.id },
+        params: { ...workspaceParams, from: change.from, to: change.to },
+      },
+      at,
+    );
+  return repo.notify(
+    {
+      ...base,
+      kind: "membership.removed",
+      subject: { type: "workspace", id: workspace.id },
+      params: workspaceParams,
+    },
+    at,
+  );
 };
 
 /** A workspace's members, by name: its page's Members table. */
@@ -268,7 +326,8 @@ export const addMembers = async (
           at,
         });
         await audit(repo, actor, workspace, user, { action: "workspace.member_added", role }, at);
-        await approveOpenRequest(repo, actor, workspace, user, role, at);
+        const request = await approveOpenRequest(repo, actor, workspace, user, role, at);
+        await notifyMember(repo, actor, workspace, user, { kind: "added", role, request }, at);
         results.push({ userId, result: "added" });
       }
       return results;
@@ -311,6 +370,7 @@ export const changeMemberRole = async (
       { action: "workspace.member_role_changed", from, to: role },
       at,
     );
+    await notifyMember(repo, actor, workspace, user, { kind: "role_changed", from, to: role }, at);
   });
 };
 
@@ -337,6 +397,7 @@ export const removeMember = async (
     if (!role) return;
     await repo.removeMember(workspace.id, user.id);
     await audit(repo, actor, workspace, user, { action: "workspace.member_removed", role }, at);
+    await notifyMember(repo, actor, workspace, user, { kind: "removed" }, at);
   });
 };
 
@@ -394,6 +455,14 @@ export const setUserWorkspaces = async (
               { action: "workspace.member_role_changed", from, to: role },
               at,
             );
+            await notifyMember(
+              repo,
+              actor,
+              workspace,
+              user,
+              { kind: "role_changed", from, to: role },
+              at,
+            );
             counts.changed += 1;
           } else {
             await audit(
@@ -404,7 +473,8 @@ export const setUserWorkspaces = async (
               { action: "workspace.member_added", role },
               at,
             );
-            await approveOpenRequest(repo, actor, workspace, user, role, at);
+            const request = await approveOpenRequest(repo, actor, workspace, user, role, at);
+            await notifyMember(repo, actor, workspace, user, { kind: "added", role, request }, at);
             counts.added += 1;
           }
         }
@@ -421,6 +491,7 @@ export const setUserWorkspaces = async (
             { action: "workspace.member_removed", role },
             at,
           );
+          await notifyMember(repo, actor, workspace, user, { kind: "removed" }, at);
           counts.removed += 1;
         }
         return counts;

@@ -62,6 +62,9 @@ export const HELP = {
   "requests-who": {
     href: docsHref("workspaces", "joining"),
   },
+  notifications: {
+    href: docsHref("notifications", "what"),
+  },
   visibility: {
     href: docsHref("workspaces", "visibility"),
   },

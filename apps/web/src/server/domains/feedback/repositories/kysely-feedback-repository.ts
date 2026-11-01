@@ -7,6 +7,8 @@ import type { Database } from "../../../db/schema";
 import { containsInsensitive } from "../../../db/search";
 import type { DatabaseDialect } from "../../../db/url";
 import { recordAudit } from "../../audit/actions/audit";
+import { notify } from "../../notifications/services/notify";
+import { activeRoots } from "../../notifications/services/recipients";
 import {
   type FeedbackEntry,
   type FeedbackKind,
@@ -83,21 +85,38 @@ export const kyselyFeedbackRepository = (db: Db, dialect: DatabaseDialect): Feed
   };
 
   return {
-    async insert(userId, feedback, { version, at, id = newId() }) {
-      await db
-        .insertInto("feedback")
-        .values({
-          id,
-          user_id: userId,
-          kind: feedback.kind,
-          message: feedback.message,
-          page: feedback.page,
-          version,
-          created_at: toDbDate(at, dialect),
-        })
-        .execute();
-      return id;
-    },
+    // The row and the notification to every active root (139) are one transaction: a message that
+    // isn't stored tells nobody. The notification carries the kind, never the message and never the
+    // sender's name: who sent it is the notification's actor, read when it is shown, so erasing
+    // the sender (103) leaves their pseudonym there and no name behind.
+    insert: (userId, feedback, { version, at, id = newId() }) =>
+      readCommittedTransaction(db, dialect).execute(async (trx) => {
+        await trx
+          .insertInto("feedback")
+          .values({
+            id,
+            user_id: userId,
+            kind: feedback.kind,
+            message: feedback.message,
+            page: feedback.page,
+            version,
+            created_at: toDbDate(at, dialect),
+          })
+          .execute();
+        await notify(
+          trx,
+          dialect,
+          {
+            recipients: await activeRoots(trx),
+            kind: "feedback.new",
+            actorId: userId,
+            subject: { type: "feedback", id },
+            params: { feedbackKind: feedback.kind },
+          },
+          at,
+        );
+        return id;
+      }),
 
     async page({ sort, dir, size, cursor, ...filters }) {
       const page = await paginate(filtered(filters).select(COLUMNS), {

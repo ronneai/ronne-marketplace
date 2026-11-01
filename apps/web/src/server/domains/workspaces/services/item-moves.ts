@@ -296,6 +296,17 @@ export const askItemMove = async (
         at,
       });
       await auditItemMove(repo, actor, "item.move_requested", places.item.id, names, at);
+      // Root and the workspace's moderators and admins answer it: told once (139).
+      await repo.notify(
+        {
+          recipients: await repo.answerersOf(places.workspace.id),
+          kind: "request.item_move_waiting",
+          actorId: user.id,
+          subject: { type: "item_move", id: moveId },
+          params: { item: names.name, newName: names.newName, from: names.from, to: names.to },
+        },
+        at,
+      );
       return { outcome: "requested", moveId, impact };
     }
     await performItemMove(repo, impact, places, at);
@@ -448,6 +459,17 @@ export const approveItemMove = async (
       },
       at,
     );
+    const moved = moveNames(impact, places);
+    await repo.notify(
+      {
+        recipients: [move.requestedBy],
+        kind: "item_move.moved",
+        actorId: user.id,
+        subject: { type: "item_move", id: move.id },
+        params: { item: moved.name, newName: moved.newName, from: moved.from, to: moved.to },
+      },
+      at,
+    );
     return { outcome: "moved" as const, impact };
   });
   // Committed: the request is closed, and nothing moved.
@@ -493,6 +515,23 @@ export const declineItemMove = async (
           name: where.item.name,
         }),
         to: target ? scopeFullName(where.workspace, target.name) : "",
+      },
+      at,
+    );
+    await repo.notify(
+      {
+        recipients: [move.requestedBy],
+        kind: "item_move.declined",
+        actorId: user.id,
+        subject: { type: "item_move", id: move.id },
+        params: {
+          item: formatItemName({
+            workspace: where.workspace.name,
+            scope: where.item.scopeName,
+            name: where.item.name,
+          }),
+          to: target ? scopeFullName(where.workspace, target.name) : "",
+        },
       },
       at,
     );

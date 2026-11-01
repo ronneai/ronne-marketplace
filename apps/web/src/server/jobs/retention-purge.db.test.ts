@@ -13,6 +13,8 @@ const POLICY = { ipDays: 90, sessionsDays: 30, feedbackDays: 365 };
 const IP_CUTOFF = new Date("2026-07-20T12:00:00.000Z");
 const SESSIONS_CUTOFF = new Date("2026-09-18T12:00:00.000Z");
 const FEEDBACK_CUTOFF = new Date("2025-10-18T12:00:00.000Z");
+// Notifications are kept a fixed 90 days (139), whatever root's policy says.
+const NOTIFICATION_CUTOFF = new Date("2026-07-20T12:00:00.000Z");
 const second = (date: Date, n: number) => new Date(date.getTime() + n * 1000);
 /** One second inside the retention (kept) and one second past it (purged). */
 const INSIDE_IP = second(IP_CUTOFF, 1);
@@ -140,6 +142,7 @@ describe("the retention purge (102)", () => {
       ip: IP_CUTOFF,
       sessions: SESSIONS_CUTOFF,
       feedback: FEEDBACK_CUTOFF,
+      notifications: NOTIFICATION_CUTOFF,
     });
   });
 
@@ -197,6 +200,7 @@ describe("the retention purge (102)", () => {
       sessionsDeleted: 1,
       grantsDeleted: 2,
       feedbackDeleted: 0,
+      notificationsDeleted: 0,
     });
     expect((await auditRow(oldEvent)).ip_address).toBeNull();
     expect((await auditRow(newEvent)).ip_address).toBe("203.0.113.7");
@@ -254,6 +258,7 @@ describe("the retention purge (102)", () => {
       sessionsDeleted: 0,
       grantsDeleted: 0,
       feedbackDeleted: 0,
+      notificationsDeleted: 0,
     });
   });
 
@@ -278,6 +283,7 @@ describe("the retention purge (102)", () => {
       sessionsDeleted: 1,
       grantsDeleted: 1,
       feedbackDeleted: 0,
+      notificationsDeleted: 0,
     });
     expect((await auditRow(event)).ip_address).toBe("203.0.113.7");
     expect(decodeJson((await auditRow(failed)).metadata)).toHaveProperty("email");
@@ -511,6 +517,99 @@ describe("handled feedback (127)", () => {
 
   it("leaves the audit log alone", async () => {
     await feedback("handled", second(FEEDBACK_CUTOFF, -1));
+    const before = await t.db.selectFrom("audit_log").select("id").execute();
+    await runRetentionPurge(t.db, t.dialect, POLICY, NOW);
+    expect(await t.db.selectFrom("audit_log").select("id").execute()).toEqual(before);
+  });
+});
+
+describe("notifications (139)", () => {
+  const notification = async (createdAt: Date, user = userId, read = false) => {
+    const id = newId();
+    await t.db
+      .insertInto("notifications")
+      .values({
+        id,
+        user_id: user,
+        kind: "submission.approved",
+        subject_type: "submission",
+        subject_id: newId(),
+        params: "{}",
+        created_at: at(createdAt),
+        read_at: read ? at(createdAt) : null,
+      })
+      .execute();
+    return id;
+  };
+  const left = async () =>
+    (await t.db.selectFrom("notifications").select("id").orderBy("id").execute()).map((r) => r.id);
+  const other = async () => {
+    const id = newId();
+    await t.db
+      .insertInto("user")
+      .values({
+        id,
+        name: "Bruno",
+        email: "bruno@example.com",
+        email_verified: t.dialect === "sqlite" ? 1 : true,
+        image: null,
+        created_at: toDbDate(NOW, t.dialect),
+        updated_at: toDbDate(NOW, t.dialect),
+      })
+      .execute();
+    return id;
+  };
+
+  it("deletes those older than 90 days, read or not, of anyone, and keeps the rest", async () => {
+    const bruno = await other();
+    await notification(second(NOTIFICATION_CUTOFF, -1));
+    await notification(second(NOTIFICATION_CUTOFF, -1), userId, true);
+    await notification(second(NOTIFICATION_CUTOFF, -1), bruno);
+    // A row exactly at the cutoff is inside it: strictly older goes, as in the other rules.
+    const edge = await notification(NOTIFICATION_CUTOFF);
+    const inside = await notification(second(NOTIFICATION_CUTOFF, 1), bruno, true);
+    const recent = await notification(NOW);
+    const counts = await runRetentionPurge(t.db, t.dialect, POLICY, NOW);
+    expect(counts.notificationsDeleted).toBe(3);
+    expect(await left()).toEqual([edge, inside, recent].sort());
+    // Idempotent: a second run at the same moment changes nothing.
+    expect((await runRetentionPurge(t.db, t.dialect, POLICY, NOW)).notificationsDeleted).toBe(0);
+    expect(await left()).toHaveLength(3);
+  });
+
+  it("keeps to 90 days whatever root's retention numbers are", async () => {
+    const old = await notification(new Date("2026-09-01T12:00:00Z"));
+    await runRetentionPurge(t.db, t.dialect, { ipDays: 1, sessionsDays: 1, feedbackDays: 1 }, NOW);
+    expect(await left()).toEqual([old]);
+  });
+
+  it("counts the same in a dry run and changes nothing", async () => {
+    await notification(second(NOTIFICATION_CUTOFF, -5));
+    await notification(second(NOTIFICATION_CUTOFF, -5), userId, true);
+    await notification(NOW);
+    const dry = await runRetentionPurge(t.db, t.dialect, POLICY, NOW, { dryRun: true });
+    expect(dry.notificationsDeleted).toBe(2);
+    expect(await left()).toHaveLength(3);
+    expect((await runRetentionPurge(t.db, t.dialect, POLICY, NOW)).notificationsDeleted).toBe(2);
+    expect(await left()).toHaveLength(1);
+  });
+
+  it("deletes more than a batch, in batches, the oldest first", async () => {
+    for (let i = 0; i < PURGE_BATCH + 3; i++)
+      await notification(second(NOTIFICATION_CUTOFF, -10 - i));
+    const seen: number[] = [];
+    const counts = await runRetentionPurge(t.db, t.dialect, POLICY, NOW, {
+      onBatch: (done) => {
+        seen.push(done);
+      },
+    });
+    expect(counts.notificationsDeleted).toBe(PURGE_BATCH + 3);
+    expect(seen).toEqual([PURGE_BATCH, PURGE_BATCH + 3]);
+    expect(await left()).toEqual([]);
+  });
+
+  it("leaves the audit log alone", async () => {
+    await notification(second(NOTIFICATION_CUTOFF, -1));
     const before = await t.db.selectFrom("audit_log").select("id").execute();
     await runRetentionPurge(t.db, t.dialect, POLICY, NOW);
     expect(await t.db.selectFrom("audit_log").select("id").execute()).toEqual(before);

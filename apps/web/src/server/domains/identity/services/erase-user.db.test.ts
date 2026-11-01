@@ -5,8 +5,11 @@ import { newId } from "../../../db/ids";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
 import { runRetentionJob } from "../../../jobs/retention-job";
 import { listAuditEvents } from "../../audit/actions/audit";
+import { kyselyFeedbackRepository } from "../../feedback/repositories/kysely-feedback-repository";
 import { kyselyItemRepository } from "../../items/repositories/kysely-item-repository";
 import { kyselyScopeRepository } from "../../items/repositories/kysely-scope-repository";
+import { notify } from "../../notifications/services/notify";
+import { latestVisible } from "../../notifications/services/read";
 import { createDraft, saveDraftFiles } from "../../submissions/actions/drafts";
 import { comment } from "../../submissions/actions/reviews";
 import { submitDraft } from "../../submissions/actions/submissions";
@@ -18,6 +21,7 @@ import {
 } from "../../workspaces/actions/workspaces";
 import { UNFILTERED } from "../../workspaces/models/viewer";
 import { GLOBAL_WORKSPACE_ID } from "../../workspaces/models/workspace";
+import { loadViewer } from "../../workspaces/repositories/viewer";
 import { createMyToken } from "../actions/access-tokens";
 import { adminEraseUser, adminPendingErasures, adminRetryErasures } from "../actions/erase-user";
 import { createRoot } from "../actions/root-account";
@@ -212,6 +216,33 @@ const seedAna = async (): Promise<Seeded> => {
       created_at: at(),
     })
     .execute();
+  // Notifications (139): two for her, one read, and one she caused for root, which stays.
+  for (const [kind, readAt] of [
+    ["membership.added", null],
+    ["membership.removed", at()],
+  ] as const) {
+    await notify(t.db, t.dialect, {
+      recipients: [id],
+      kind,
+      actorId: rootId,
+      subject: { type: "workspace", id: GLOBAL_WORKSPACE_ID },
+      params: { workspace: "global", role: "user" },
+    });
+    if (readAt)
+      await t.db
+        .updateTable("notifications")
+        .set({ read_at: readAt })
+        .where("user_id", "=", id)
+        .where("kind", "=", kind)
+        .execute();
+  }
+  await notify(t.db, t.dialect, {
+    recipients: [rootId],
+    kind: "request.join_waiting",
+    actorId: id,
+    subject: { type: "workspace", id: GLOBAL_WORKSPACE_ID },
+    params: { workspace: "global" },
+  });
   for (const name of ["phone", "tablet"])
     await t.db
       .insertInto("device_grants")
@@ -387,6 +418,9 @@ describe("eraseUser (103)", () => {
     expect(before.some((e) => e.ipAddress === IP && e.actorId === ana.id)).toBe(true);
     expect(before.some((e) => JSON.stringify(e.metadata).includes("ana@example.com"))).toBe(true);
 
+    // Her notifications: the two seeded here, and the ones the services wrote for her on the way.
+    const mine = (await rows("notifications", "user_id", ana.id)).length;
+    expect(mine).toBeGreaterThanOrEqual(2);
     const result = await adminEraseUser(asRoot, ana.id, "ana@example.com", app);
     expect(result).toEqual({
       sessionsEnded: 2,
@@ -398,6 +432,7 @@ describe("eraseUser (103)", () => {
       requestsCancelled: 2,
       movesCancelled: 1,
       feedbackDeleted: 1,
+      notificationsDeleted: mine,
     });
     expect(result.eventsRewritten).toBeGreaterThanOrEqual(2);
 
@@ -423,6 +458,7 @@ describe("eraseUser (103)", () => {
       ["device_grants", "user_id"],
       ["user_onboarding", "user_id"],
       ["feedback", "user_id"],
+      ["notifications", "user_id"],
       ["scim_users", "user_id"],
       ["scim_group_members", "user_id"],
       ["workspace_members", "user_id"],
@@ -430,6 +466,11 @@ describe("eraseUser (103)", () => {
     ] as const)
       expect(await rows(table, column, ana.id), table).toEqual([]);
     expect(await rows("verification", "identifier", `two-factor-setup:${ana.id}`)).toEqual([]);
+    // What she caused for someone else stays: root's notification, its actor now the pseudonym.
+    const forRoot = (await rows("notifications", "user_id", rootId)).filter(
+      (n) => n.actor_id === ana.id,
+    );
+    expect(forRoot.map((n) => n.kind)).toContain("request.join_waiting");
     for (const id of ana.drafts) expect(await rows("submissions", "id", id)).toEqual([]);
     expect(await rows("submission_files", "submission_id", ana.drafts[0] as string)).toEqual([]);
     // Cancelled, with no reason text.
@@ -503,6 +544,7 @@ describe("eraseUser (103)", () => {
         requestsCancelled: 2,
         movesCancelled: 1,
         feedbackDeleted: 1,
+        notificationsDeleted: mine,
       },
     });
     expect(JSON.stringify(erased[0]?.metadata)).not.toMatch(/ana@example|Ana Silva/);
@@ -559,6 +601,8 @@ describe("eraseUser (103)", () => {
     expect(await rows("submissions", "scope_id", own)).toHaveLength(1);
     const result = await adminEraseUser(asRoot, bob.id, "bob@example.com", app);
     expect(result).toMatchObject({ personalWorkspace: "deleted", draftsDeleted: 1 });
+    // He had no notifications: nothing is reported for them.
+    expect(result).not.toHaveProperty("notificationsDeleted");
     expect(await rows("workspaces", "id", personal.id)).toEqual([]);
     expect(await rows("scopes", "workspace_id", personal.id)).toEqual([]);
     expect(await rows("submissions", "scope_id", own)).toEqual([]);
@@ -640,6 +684,34 @@ describe("eraseUser (103)", () => {
       UserErasedError,
     );
     expect(await snapshot()).toEqual(once);
+  });
+
+  it("leaves no name of the sender in root's new-feedback notification, only the pseudonym", async () => {
+    const ana = await adminCreateUser(
+      asRoot,
+      { email: "ana-feedback@example.com", name: "Ana Silva", role: "user", password },
+      app,
+    );
+    await kyselyFeedbackRepository(t.db, t.dialect).insert(
+      ana.id,
+      { kind: "idea", message: "Dark mode, please", page: null },
+      { version: "1.0.0", at: new Date() },
+    );
+    const before = await rows("notifications", "user_id", rootId);
+    expect(before.map((n) => n.kind)).toContain("feedback.new");
+    await adminEraseUser(asRoot, ana.id, "ana-feedback@example.com", app);
+    // The feedback is deleted; root's notification stays, its actor now the pseudonym, and no
+    // stored text names the person.
+    const after = (await rows("notifications", "user_id", rootId)).filter(
+      (n) => n.kind === "feedback.new",
+    );
+    expect(after).toHaveLength(1);
+    expect(JSON.stringify(after)).not.toContain("Ana Silva");
+    expect(JSON.stringify(after)).not.toContain("Dark mode");
+    expect(after[0]?.actor_id).toBe(ana.id);
+    const viewer = await loadViewer(t.db, { id: rootId, role: "root", workspaces: {} });
+    const [shown] = await latestVisible(t.db, t.dialect, viewer, rootId, 10);
+    expect(shown?.actor?.name).toBe(erasedName(ana.id));
   });
 
   it("erases another root, whose role goes with the row, and never the actor's own", async () => {

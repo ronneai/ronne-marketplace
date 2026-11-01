@@ -12,6 +12,7 @@ export type GroupSyncRepository = Pick<
   | "setMembership"
   | "removeMembership"
   | "recordAudit"
+  | "notify"
 >;
 
 /**
@@ -147,20 +148,46 @@ export const applyGroups = async (
       },
       input.now,
     );
+  // The member is told what the mapping did (139), by the workspace's name at that time. Nothing
+  // is said of `global` being added: everyone has it from the start.
+  const tell = async (
+    workspaceId: string,
+    kind: "membership.added" | "membership.removed" | "membership.role_changed",
+    params: Record<string, string>,
+  ) =>
+    repo.notify(
+      {
+        recipients: [input.user.id],
+        kind,
+        actorId: null,
+        subject: { type: "workspace", id: workspaceId },
+        params: {
+          workspace: names.get(workspaceId) ?? (await repo.workspaceName(workspaceId)) ?? "",
+          ...params,
+        },
+      },
+      input.now,
+    );
   for (const c of changes) {
     if (c.kind === "add") {
       await repo.addMembership(input.user.id, c.workspaceId, c.role, input.providerId, input.now);
       await audit(c.workspaceId, "workspace.member_added", { role: c.role });
+      if (c.workspaceId !== GLOBAL_WORKSPACE_ID)
+        await tell(c.workspaceId, "membership.added", { role: c.role });
     } else if (c.kind === "change") {
       await repo.setMembership(input.user.id, c.workspaceId, c.to, input.providerId, input.now);
       await audit(c.workspaceId, "workspace.member_role_changed", { from: c.from, to: c.to });
+      await tell(c.workspaceId, "membership.role_changed", { from: c.from, to: c.to });
     } else if (c.kind === "remove") {
       await repo.removeMembership(input.user.id, c.workspaceId);
       await audit(c.workspaceId, "workspace.member_removed", { role: c.role });
+      await tell(c.workspaceId, "membership.removed", {});
     } else {
       await repo.setMembership(input.user.id, c.workspaceId, "user", null, input.now);
-      if (c.from !== "user")
+      if (c.from !== "user") {
         await audit(c.workspaceId, "workspace.member_role_changed", { from: c.from, to: "user" });
+        await tell(c.workspaceId, "membership.role_changed", { from: c.from, to: "user" });
+      }
     }
   }
   return changes;

@@ -10,6 +10,7 @@ import type {
   UserDataFavorite,
   UserDataFeedback,
   UserDataItem,
+  UserDataNotification,
   UserDataOnboarding,
   UserDataScope,
   UserDataSession,
@@ -42,6 +43,8 @@ export interface UserDataRepository {
   favorites(userId: string, limit: number): Promise<UserDataFavorite[]>;
   /** What they sent with Send feedback, oldest first (127). */
   feedback(userId: string, limit: number): Promise<UserDataFeedback[]>;
+  /** The notifications addressed to them, oldest first (139): never anyone else's. */
+  notifications(userId: string, limit: number): Promise<UserDataNotification[]>;
   /** What they did with the Getting started panel (126); null when they never did anything. */
   onboarding(userId: string): Promise<UserDataOnboarding>;
   /** Items the person owns or published a version of; `limit` counts versions. */

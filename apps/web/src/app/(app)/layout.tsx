@@ -11,7 +11,7 @@ import { loadShell } from "./shell";
  * which `loadShell` checks.
  */
 const AppLayout = async ({ children }: { children: ReactNode }) => {
-  const { user, theme, navCounts, workspaces, folded, current } = await loadShell();
+  const { user, theme, navCounts, unread, workspaces, folded, current } = await loadShell();
   const notice = await visibleNotice();
   return (
     <AppShell
@@ -19,6 +19,7 @@ const AppLayout = async ({ children }: { children: ReactNode }) => {
       theme={theme}
       signOutAction={signOutFromMenu}
       navCounts={navCounts}
+      unread={unread}
       workspaces={workspaces}
       current={current}
       folded={folded}

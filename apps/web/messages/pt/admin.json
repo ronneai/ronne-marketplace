@@ -1049,7 +1049,7 @@
         "schedulerOff": "As tarefas agendadas estão desligadas (RONNE_JOBS): rode rmk-server purge pelo cron.",
         "firstRun": "A primeira execução é 5 minutos depois que o servidor inicia, e depois a cada 6 horas.",
         "failed": "A última execução, em <date></date>, falhou ({error}). Os logs do servidor dizem o motivo; a próxima execução acontece no horário previsto.",
-        "done": "Última execução em <date></date>: apagou {ips, plural, one {# endereço IP} other {# endereços IP}} e {emails, plural, one {# e-mail de acesso que falhou} other {# e-mails de acessos que falharam}}; excluiu {sessions, plural, one {# sessão expirada} other {# sessões expiradas}}, {grants, plural, one {# aprovação de login do rmk concluída} other {# aprovações de login do rmk concluídas}} e {feedback, plural, one {# mensagem de feedback tratada} other {# mensagens de feedback tratadas}}.",
+        "done": "Última execução em <date></date>: apagou {ips, plural, one {# endereço IP} other {# endereços IP}} e {emails, plural, one {# e-mail de acesso que falhou} other {# e-mails de acessos que falharam}}; excluiu {sessions, plural, one {# sessão expirada} other {# sessões expiradas}}, {grants, plural, one {# aprovação de login do rmk concluída} other {# aprovações de login do rmk concluídas}}, {feedback, plural, one {# mensagem de feedback tratada} other {# mensagens de feedback tratadas}} e {notifications, plural, one {# notificação} other {# notificações}}.",
         "running": "Uma execução está em andamento."
       },
       "erasures": {

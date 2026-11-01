@@ -5,29 +5,53 @@
 ## Goal
 
 People find out in the app what happened to their work and what waits for them, without watching
-each page (owner, 2026-10-29): a bell in the sidebar with how many are unread, a short list behind
+each page (owner, 2026-10-29): a bell in a top bar with how many are unread, a short list behind
 it, and a page with all of them. In the app only; email and webhooks stay out of scope.
 
 ## Scope
 
 **In:**
-- **A bell** at the top of the sidebar (119), beside the workspace switcher, and in the phone Menu
-  (066): the unread count as `NavCount` does it ("9+" past nine), a dot when folded.
-- **The short list**, a popover (`Popover`, full screen below `sm` as dialogs are, 067): the ten
-  latest, unread first marked, each with its sentence, when (`LocalTime`, 049) and a link; "Mark all
-  as read"; "See all".
+- **A top bar** (owner, 2026-10-31, from the mock `stitch_fixed_notification_center_bar`): a slim bar
+  fixed at the top of the content area, to the right of the sidebar (119), never over it; the
+  sidebar keeps its full height and sits above the bar (`z-40` over `z-30`), so its fold button,
+  which sticks out half over the page, is never hidden under it (owner, 2026-10-31). It is one
+  header for every width: from `lg` it sticks to the top while the page scrolls and holds the bell
+  at its right (143 later puts global search at its left), and the logo and the Menu, which the
+  sidebar replaces, are hidden; below `lg` it is the phone header (066) with the bell beside the
+  Menu button. Pages without the sidebar (signed out, setup) have no bell.
+- **A bell** in that bar, with the unread count as a badge ("99+" past ninety-nine, as `NavCount`
+  does it; the count read out in the button's name). The sidebar and the Menu sheet get no bell.
+- **The short list**, a popover under the bell (`Popover`, full screen below `sm` as dialogs are,
+  067), flat with a border, no shadow: a header with the title, an unread pill and "Mark all as
+  read"; the ten latest, unread ones with a dot and a stronger title, read ones dimmed; each row is
+  one link with an icon tile by kind (neutral or teal, red only for a rejection or a request for
+  changes, never raw colours), its sentence, and when (`LocalTime`, 049); "See all" at the foot.
+  No filter chips, row buttons, Dismiss or settings in it: the filters are on the page.
 - **The page**, `/notifications`: every notification of the person, newest first, on the server data
-  table (060) with keyset pagination, a filter by read/unread and by kind; mark one, the selected or
-  all as read.
+  table (060) with keyset pagination, 25 to a page, and two filters, Status (unread, read) and About
+  (the kinds, listed under what they are about), each the multi-select popover the Security scan
+  tab uses (137, shared): the button shows what is chosen as badges beside it, "All" when nothing
+  is, and the choice is any of the ticked values; ticking every value or none is "All". They live
+  in the address (`?state=read&kind=a,b`, a comma list, which the shared list-query layer reads and
+  cleans), and only on this page, not in the popover; a row is a link when its subject is still
+  there, and opening it marks it read; mark the selected or
+    all of them read (a toast says how many; the bell follows). The total counts what the reader sees
+  and reads "1,000+" past that. Selecting, marking and choosing filters need JavaScript; paging
+  and the address work without it.
 - **What notifies whom** (the first set; each is one `kind`):
   - **the author of a submission:** approved, approved by override, changes requested, rejected, a
     comment by someone else (014, 058); released by someone else (015, 055); a dependency they
     submitted with was rejected (056);
+  - **the reviewer who asked for changes:** the author sent the submission back for review (014).
+    Only the one who made the latest request for changes is told, not the other reviewers or
+    root; a reviewer who is disabled or erased is told nothing;
   - **a person who asked to join a workspace:** approved or declined (094);
   - **a person who asked to move a scope or an item:** moved or declined (115, 134);
   - **a member:** added to a workspace, removed from one, their role there changed (092);
-  - **the people who answer requests** (root and the workspace's moderators and admins): a new
-    request to join or to move a scope or an item waits (094, 115, 134), once per request;
+  - **the people who answer requests:** a new request waits, once per request: to join a workspace
+    or to move an item (094, 134), for root and the workspace's moderators and admins; to move a
+    scope (115), for root and the target workspace's admins (root alone for `global` or a personal
+    workspace), as 115 says who answers;
   - **root:** new feedback (127); an update is available (140 adds the kind).
 - **Not to yourself:** an action never notifies the person who did it.
 - **Reading marks it read:** opening a notification's link marks it read; so does "Mark all as read".
@@ -41,7 +65,8 @@ it, and a page with all of them. In the app only; email and webhooks stay out of
   are noise. The first set is only what's addressed to the person.
 - **Notifications in `rmk`, the MCP server or `/api/v1`:** not now.
 - **A notification for each new submission waiting for review:** no; the Reviews count (014) already
-  says it, and a busy queue would bury everything else.
+  says it, and a busy queue would bury everything else. A submission sent back is the exception
+  (owner, 2026-10-31): one reviewer is waiting for that exact answer.
 - **Live push** (websockets, server-sent events): no; the count refreshes on navigation and every
   minute while the page is visible.
 
@@ -59,17 +84,36 @@ goes back to 0.
 - recipients are user ids; the actor is removed from them; disabled users are skipped;
 - one row per recipient.
 
-**Reading them.** Each row stores its `kind` and parameters (ids and the names at that time), never a
-sentence: the sentence is a message (`notifications.<kind>`) drawn in the reader's language when
+**Reading them.** Each row stores its `kind` and parameters (ids and the names of things at that
+time, never a person's name: who did it is the row's `actor_id`, read when shown, so erasing them
+103 leaves a pseudonym and no name behind), never a sentence: the sentence is a message (`notifications.<kind>`) drawn in the reader's language when
 read. The link is built from the kind and the subject.
 
 **Who may still see it.** When a notification is read, it's shown only if the person can still see
-its subject (`can` in the subject's workspace, 091, 093): someone removed from a private workspace no
-longer sees its item names in old notifications. Hidden ones aren't counted.
+its subject (091, 093): someone removed from a private workspace no longer sees its item names in
+old notifications. Hidden ones aren't counted. The rule, per subject:
+- a submission, a request or a workspace is judged by the workspace it lives in now; a move by
+  either of its two workspaces (the asker and the answerers knew both names);
+- a subject that was deleted is still judged by the workspaces it lived in when the notification was
+  written (`workspace_ids`, below), so deleting an item or a request can't bring a hidden
+  notification back; with none of those workspaces left there is nothing to check, and it shows
+  without a link;
+- being removed from a workspace (`membership.removed`) and a declined request to join are always
+  shown, since their point is the workspace's name the person knew; they link to the workspace only
+  if the reader sees it;
+- feedback is for root alone.
+**Accepted limits:** the count looks at the newest 100 unread rows before hiding, and the popover
+at five batches of rows, so a reader with more than that many hidden rows newer than a visible one
+can see a count or a list short of the truth until they read or purge the hidden ones. A page of
+`/notifications` can hold fewer rows than its size when some are hidden.
 
-**The count.** `loadShell` (`app/(app)/shell.ts`) adds the unread count to the nav counts with one
-indexed query. A client component asks `GET /notifications/count` (a route handler of the web app,
-not `/api/v1`, session only) every 60 seconds while `document.visibilityState` is `visible`.
+**The count.** `loadShell` (`app/(app)/shell.ts`) adds the unread count to its result: one indexed
+query when nothing is unread, and otherwise the newest 100 unread rows with one batched query per
+kind of subject, to drop what the reader can't see. A client component asks `GET /notifications/count` (a route handler of the web app,
+not `/api/v1`, session only, never cached) on every change of page and every 60 seconds while
+`document.visibilityState` is `visible`, and at once when the page becomes visible again. The
+popover loads its ten from `GET /notifications/latest` (the same kind of route) each time it opens;
+marking read is a server action. A signed-out request gets 401 and nothing else.
 
 ## Edge cases
 
@@ -81,6 +125,8 @@ not `/api/v1`, session only) every 60 seconds while `document.visibilityState` i
   keeps the name it had, as the audit log does.
 - **The subject is deleted** (a draft deleted for good, 057): the notification stays, without a link.
 - **A person with many unread** (thousands): the count is capped at "99+" in the query (`LIMIT 100`).
+- **A parameter a sentence needs is missing** (an older or newer version wrote the row): the
+  sentence shows a plain fallback line ("There is an update for you."), never a message key.
 - **Several replicas** (111): nothing in memory; every replica reads the table.
 
 ## Data
@@ -89,7 +135,11 @@ not `/api/v1`, session only) every 60 seconds while `document.visibilityState` i
   - `id`, `user_id` (→ `user`, cascade on delete), `kind` (text), `actor_id` (nullable, → `user`,
     set null), `subject_type` and `subject_id` (text), `params` (JSON text, at most 2 KiB),
     `created_at`, `read_at` (nullable);
-  - index `(user_id, read_at, created_at)`, and `(created_at)` for the purge.
+  - index `(user_id, read_at, created_at)`, `(user_id, id)` for the list, and `(created_at)` for
+    the purge.
+- Migration (the next): `notifications.workspace_ids` (nullable JSON text, at most two workspace
+  ids): where the subject lived when written, filled by `notify`, so a deleted subject is still
+  judged by it.
 - The retention job (102) deletes rows older than 90 days.
 - No audit event for reading or marking read.
 
@@ -104,31 +154,40 @@ not `/api/v1`, session only) every 60 seconds while `document.visibilityState` i
 
 ## Acceptance criteria
 
-- [ ] The bell shows the unread count in the sidebar (open and folded) and in the phone Menu, and
-  refreshes on navigation and every minute while visible.
-- [ ] Each kind listed in Scope is written to its recipients, in the same transaction as its audit
+- [x] The bell, in the fixed top bar of the content area (and in the phone header), shows the unread
+  count as a badge, and refreshes on navigation and every minute while visible; the sidebar is
+  unchanged and the bar never covers it.
+- [x] Each kind listed in Scope is written to its recipients, in the same transaction as its audit
   event, never to the actor or a disabled user; db tests cover each on the four databases.
-- [ ] Sentences are drawn in the reader's language from the kind and parameters; every
+- [x] Sentences are drawn in the reader's language from the kind and parameters; every
   `notifications.<kind>` message exists in English, Portuguese and French.
-- [ ] A notification whose subject the reader can no longer see is neither shown nor counted.
-- [ ] The popover lists the ten latest; `/notifications` pages, filters and marks read on the server
+- [x] A notification whose subject the reader can no longer see is neither shown nor counted.
+- [x] The popover lists the ten latest; `/notifications` pages, filters and marks read on the server
   data table; opening one marks it read.
-- [ ] Rows older than 90 days are purged; erasing a user deletes theirs; their data download
+- [x] Rows older than 90 days are purged; erasing a user deletes theirs; their data download
   includes them.
-- [ ] The popover, the page and the bell pass the phone sweep and the tap-target check.
-- [ ] The Documentation and inline helpers listed above say what the feature does.
+- [x] The popover, the page and the bell pass the phone sweep and the tap-target check.
+- [x] The Documentation and inline helpers listed above say what the feature does.
 
 ## Decisions
 
 1. **Notifications in the app only** (owner, 2026-10-29); email and webhooks stay out (MVP §14.5).
-2. **Polling, not push** (Claude): one indexed query a minute per open page is cheap, needs no new
+2. **A top bar over the content, bell with a badge; a page as well as the popover** (owner,
+   2026-10-31): the popover is for a glance, the page for catching up, filtering and bulk marking.
+3. **Polling, not push** (Claude): one indexed query a minute per open page is cheap, needs no new
    connection type through Caddy (080), and works with several replicas.
-3. **Kinds and parameters, not sentences** (Claude): the sentence is in the reader's language, and a
+4. **Kinds and parameters, not sentences** (Claude): the sentence is in the reader's language, and a
    later translation fixes old notifications too.
-4. **Only what's addressed to the person** (Claude): a decision on your work, an answer to your
+5. **Only what's addressed to the person** (Claude): a decision on your work, an answer to your
    request, a request you must answer. Queue counts stay counts.
-5. **90 days, fixed** (Claude): long enough to catch up after a holiday; root's retention tab (102)
+6. **90 days, fixed** (Claude): long enough to catch up after a holiday; root's retention tab (102)
    can take it later if asked.
+
+## Design
+
+The mock's top bar, bell, badge and popover are the reference (a Stitch export, in the owner's
+git-ignored `docs/UI-Mocks-Materials`); its palette, shadow, filter chips, row buttons and settings
+gear are not used. Colours are our tokens and the type is our scale (158).
 
 ## Open questions
 

@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { defineList, isDay, isFiltered, listUrl, parseListQuery, sortUrl } from "./list-query";
+import {
+  defineList,
+  isDay,
+  isFiltered,
+  listUrl,
+  listValues,
+  parseListQuery,
+  sortUrl,
+} from "./list-query";
 
 const LIST = defineList({
   path: "/admin/things",
@@ -109,5 +117,39 @@ describe("fixed parameters (062)", () => {
   it("never treats them as filters", () => {
     expect(view.filters).toEqual({ q: "alex", from: "" });
     expect(isFiltered(parseListQuery(TAB, { tab: "release" }))).toBe(false);
+  });
+});
+
+describe("a list filter (139)", () => {
+  const MULTI = defineList({
+    path: "/things",
+    sorts: { time: "desc" },
+    defaultSort: "time",
+    sizes: [25],
+    defaultSize: 25,
+    filters: { kind: "list" },
+  });
+
+  it("keeps several values, each once, in the order given", () => {
+    expect(parseListQuery(MULTI, { kind: "a.b, c_d,a.b,e-f" }).filters.kind).toBe("a.b,c_d,e-f");
+    expect(listValues("x,,y, ,x")).toEqual(["x", "y"]);
+  });
+
+  it("drops what isn't a plain value, and cuts the whole at 1000 characters", () => {
+    expect(parseListQuery(MULTI, { kind: "ok,<script>,a b,../x,fine" }).filters.kind).toBe(
+      "ok,fine",
+    );
+    const long = Array.from({ length: 200 }, (_, i) => `value-${i}`).join(",");
+    const kept = parseListQuery(MULTI, { kind: long }).filters.kind;
+    expect(kept.length).toBeLessThanOrEqual(1000);
+    expect(kept.startsWith("value-0,value-1,")).toBe(true);
+    expect(kept.endsWith(",")).toBe(false);
+  });
+
+  it("writes the values back into the address, and nothing when there are none", () => {
+    const state = parseListQuery(MULTI, { kind: "a,b" });
+    expect(listUrl(MULTI, state)).toBe("/things?kind=a%2Cb");
+    expect(listUrl(MULTI, state, { filters: { kind: "" } })).toBe("/things");
+    expect(isFiltered(state)).toBe(true);
   });
 });

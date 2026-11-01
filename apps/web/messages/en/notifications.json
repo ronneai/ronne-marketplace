@@ -1,0 +1,138 @@
+{
+  "system": "The system",
+  "submission": {
+    "approved": "{actor} approved {name}.",
+    "approved_override": "{actor} approved {name} by override, despite its security scan.",
+    "changes_requested": "{actor} requested changes to {name}.",
+    "rejected": "{actor} rejected {name}.",
+    "comment": "{actor} commented on {name}.",
+    "released": "{actor} released {name} {version} (tag {tag}).",
+    "dependency_rejected": "{name} needs changes: {actor} rejected its dependency {dependency}.",
+    "resubmitted": "{actor} resubmitted {name} for review."
+  },
+  "join_request": {
+    "approved": "{actor} approved your request to join {workspace}.",
+    "declined": "{actor} declined your request to join {workspace}."
+  },
+  "scope_move": {
+    "moved": "{actor} moved the scope {scope} from {from} to {to}.",
+    "declined": "{actor} declined moving the scope {scope} to {to}."
+  },
+  "item_move": {
+    "moved": "{actor} moved {item} from {from} to {to}.",
+    "declined": "{actor} declined moving {item} to {to}."
+  },
+  "membership": {
+    "added": "{actor} added you to {workspace} as {role, select, admin {an admin} moderator {a moderator} other {a user}}.",
+    "removed": "{actor} removed you from {workspace}.",
+    "role_changed": "{actor} changed your role in {workspace} from {from, select, admin {admin} moderator {moderator} other {user}} to {to, select, admin {admin} moderator {moderator} other {user}}."
+  },
+  "request": {
+    "join_waiting": "{actor} asked to join {workspace}.",
+    "scope_move_waiting": "{actor} asked to move the scope {scope} from {from} to {to}.",
+    "item_move_waiting": "{actor} asked to move {item} from {from} to {to}."
+  },
+  "feedback": {
+    "new": "{actor} sent feedback: {feedbackKind, select, problem {a problem} idea {an idea} question {a question} praise {praise} other {a comment}}."
+  },
+  "fallback": "There is an update for you.",
+  "ui": {
+    "title": "Notifications",
+    "bell": "Notifications, {count, plural, =0 {none unread} one {# unread} other {# unread}}",
+    "unread": "{count, plural, one {# unread} other {# unread}}",
+    "markAll": "Mark all as read",
+    "seeAll": "See all notifications",
+    "empty": "You’re all caught up.",
+    "loading": "Loading…",
+    "error": "Couldn’t load notifications.",
+    "retry": "Try again",
+    "unreadMark": "Unread"
+  },
+  "page": {
+    "title": "Notifications",
+    "description": "What happened to your work and what waits for you, newest first. They are kept for 90 days.",
+    "filters": {
+      "state": "Status",
+      "kind": "About",
+      "all": "All",
+      "unread": "Unread",
+      "read": "Read"
+    },
+    "groups": {
+      "submission": "Your submissions",
+      "join_request": "Requests to join",
+      "scope_move": "Moving a scope",
+      "item_move": "Moving an item",
+      "membership": "Your membership",
+      "request": "Requests waiting for you",
+      "feedback": "Feedback"
+    },
+    "kinds": {
+      "submission": {
+        "approved": "Approved",
+        "approved_override": "Approved by override",
+        "changes_requested": "Changes requested",
+        "rejected": "Rejected",
+        "comment": "Comment",
+        "released": "Released",
+        "dependency_rejected": "Dependency rejected",
+        "resubmitted": "Resubmitted"
+      },
+      "join_request": {
+        "approved": "Join request approved",
+        "declined": "Join request declined"
+      },
+      "scope_move": {
+        "moved": "Scope moved",
+        "declined": "Scope move declined"
+      },
+      "item_move": {
+        "moved": "Item moved",
+        "declined": "Item move declined"
+      },
+      "membership": {
+        "added": "Added to a workspace",
+        "removed": "Removed from a workspace",
+        "role_changed": "Role changed"
+      },
+      "request": {
+        "join_waiting": "Request to join",
+        "scope_move_waiting": "Request to move a scope",
+        "item_move_waiting": "Request to move an item"
+      },
+      "feedback": {
+        "new": "New feedback"
+      }
+    },
+    "columns": {
+      "select": "Select",
+      "state": "Status",
+      "what": "Notification",
+      "when": "When"
+    },
+    "state": {
+      "unread": "Unread",
+      "read": "Read"
+    },
+    "select": "Select: {sentence}",
+    "bulk": {
+      "label": "Actions for the selected notifications",
+      "selected": "{count, plural, =0 {None selected} one {# selected} other {# selected}}",
+      "markSelected": "Mark selected as read",
+      "markAll": "Mark all as read",
+      "selectAll": "Select all on this page",
+      "clear": "Clear selection"
+    },
+    "done": {
+      "read": "{count, plural, =0 {Nothing to mark: they were all read already.} one {Marked # notification as read.} other {Marked # notifications as read.}}"
+    },
+    "errors": {
+      "failed": "Couldn’t mark them as read. Try again."
+    },
+    "empty": {
+      "none": "No notifications yet. They appear here when something happens to your work or waits for you.",
+      "filtered": "No notifications match these filters."
+    },
+    "noLink": "Nothing to open: what this is about is gone."
+  }
+}

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { toDbDate } from "../../../db/dates";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
 import { listAuditEvents } from "../../audit/actions/audit";
 import { createRoot } from "../../identity/actions/root-account";
@@ -87,6 +88,24 @@ const status = async (id: string) =>
 const events = (id: string) => kyselySubmissionRepository(t.db, t.dialect, UNFILTERED).events(id);
 const audited = async (action: string) =>
   (await listAuditEvents(t.db, t.dialect, {})).events.filter((e) => e.action === action);
+
+/** What a person was told (139), oldest first, by their email. */
+const told = async (email: string) =>
+  (
+    await t.db
+      .selectFrom("notifications")
+      .innerJoin("user", "user.id", "notifications.user_id")
+      .select([
+        "notifications.kind as kind",
+        "notifications.subject_type as subjectType",
+        "notifications.subject_id as subjectId",
+        "notifications.params as params",
+        "notifications.actor_id as actorId",
+      ])
+      .where("user.email", "=", email)
+      .orderBy("notifications.id")
+      .execute()
+  ).map((row) => ({ ...row, params: JSON.parse(row.params) as Record<string, unknown> }));
 
 describe("decisions", () => {
   it("lets a moderator approve, with an optional message, recorded in the thread and the audit log", async () => {
@@ -453,6 +472,25 @@ describe("rejecting a dependency (056)", () => {
     );
   });
 
+  it("tells each dependent's author their submission was sent back because of it (139)", async () => {
+    const style = await submitted();
+    await dependent("kit");
+    await rejectWithDependents(
+      asModerator,
+      style,
+      { message: "No.", dependents: { message: "Drop @team/style." } },
+      app,
+    );
+    const [rejected, sentBack] = await told("author@example.com");
+    expect(rejected).toMatchObject({ kind: "submission.rejected", subjectId: style });
+    expect(sentBack).toMatchObject({
+      kind: "submission.dependency_rejected",
+      subjectType: "submission",
+      params: { name: "@team/kit", dependency: "@team/style", revision: 1 },
+    });
+    expect(await told("mod@example.com")).toEqual([]);
+  });
+
   it("leaves the dependents as they are when not asked", async () => {
     const style = await submitted();
     const kit = await dependent("kit");
@@ -466,5 +504,110 @@ describe("rejecting a dependency (056)", () => {
     await decide(asModerator, id, { decision: "approve" }, app);
     await decide(asModerator, id, { decision: "request_changes", message: "One more thing." }, app);
     expect(await status(id)).toBe("changes_requested");
+  });
+});
+
+describe("notifications written with decisions and comments (139)", () => {
+  it("tells the author of an approval, changes requested or a rejection, never the actor", async () => {
+    const [a, b, c] = [
+      await submitted(asAuthor, "one"),
+      await submitted(asAuthor, "two"),
+      await submitted(asAuthor, "three"),
+    ];
+    await decide(asModerator, a, { decision: "approve" }, app);
+    await decide(asModerator, b, { decision: "request_changes", message: "Fix it." }, app);
+    await decide(asModerator, c, { decision: "reject", message: "No." }, app);
+    const rows = await told("author@example.com");
+    expect(rows.map((n) => [n.kind, n.subjectType, n.subjectId])).toEqual([
+      ["submission.approved", "submission", a],
+      ["submission.changes_requested", "submission", b],
+      ["submission.rejected", "submission", c],
+    ]);
+    expect(rows[0]?.params).toEqual({ name: "@team/one", revision: 1 });
+    // The message is never copied into a notification.
+    expect(JSON.stringify(rows)).not.toContain("Fix it.");
+    expect(await told("mod@example.com")).toEqual([]);
+  });
+
+  it("tells nobody of root's override of its own submission", async () => {
+    const own = await submitted(asRoot, "roots");
+    await decide(asRoot, own, { decision: "override", message: "Urgent." }, app);
+    expect(await t.db.selectFrom("notifications").selectAll().execute()).toEqual([]);
+  });
+
+  it("tells the author of a reviewer's comment, and nobody of the author's own", async () => {
+    const id = await submitted();
+    await comment(asAuthor, id, { body: "Hello?" }, app);
+    expect(await told("mod@example.com")).toEqual([]);
+    expect(await told("author@example.com")).toEqual([]);
+    await comment(asModerator, id, { body: "Why tabs?" }, app);
+    const [note] = await told("author@example.com");
+    expect(note).toMatchObject({
+      kind: "submission.comment",
+      subjectId: id,
+      params: { name: "@team/style", revision: 1 },
+    });
+    expect(JSON.stringify(note)).not.toContain("Why tabs?");
+  });
+
+  it("tells only the reviewer who asked for changes when the author sends it back (139)", async () => {
+    const id = await submitted();
+    // A first submit waits in the queue and tells nobody.
+    for (const email of ["mod@example.com", "mod2@example.com", "root@example.com"])
+      expect(await told(email)).toEqual([]);
+    await comment(asModerator2, id, { body: "Looking." }, app);
+    await decide(asModerator, id, { decision: "request_changes", message: "Fix it." }, app);
+    await submitDraft(asAuthor, id, app);
+    expect(await told("mod@example.com")).toMatchObject([
+      {
+        kind: "submission.resubmitted",
+        subjectType: "submission",
+        subjectId: id,
+        params: { name: "@team/style", revision: 2 },
+      },
+    ]);
+    for (const email of ["mod2@example.com", "root@example.com", "author@example.com"])
+      expect((await told(email)).filter((n) => n.kind === "submission.resubmitted")).toEqual([]);
+    // The latest request counts: root asks next, and root alone is told of the next send.
+    await decide(asRoot, id, { decision: "request_changes", message: "Again." }, app);
+    await submitDraft(asAuthor, id, app);
+    expect((await told("root@example.com")).map((n) => [n.kind, n.params.revision])).toEqual([
+      ["submission.resubmitted", 3],
+    ]);
+    expect(
+      (await told("mod@example.com")).filter((n) => n.kind === "submission.resubmitted"),
+    ).toHaveLength(1);
+  });
+
+  it("tells nobody when the reviewer who asked for changes has been disabled, and still sends it (139)", async () => {
+    const id = await submitted();
+    await decide(asModerator, id, { decision: "request_changes", message: "Fix it." }, app);
+    await t.db
+      .updateTable("user")
+      .set({ disabled_at: toDbDate(new Date(), t.dialect) })
+      .where("email", "=", "mod@example.com")
+      .execute();
+    await submitDraft(asAuthor, id, app);
+    expect(await status(id)).toBe("submitted");
+    expect(
+      await t.db
+        .selectFrom("notifications")
+        .select("id")
+        .where("kind", "=", "submission.resubmitted")
+        .execute(),
+    ).toEqual([]);
+  });
+
+  it("writes none when the decision is refused", async () => {
+    const own = await submitted(asModerator, "mods");
+    await expect(decide(asModerator, own, { decision: "approve" }, app)).rejects.toThrow(
+      OwnSubmissionError,
+    );
+    const id = await submitted();
+    await expect(
+      decide(asModerator, id, { decision: "approve", revision: 7 }, app),
+    ).rejects.toThrow(RevisionChangedError);
+    expect(await status(id)).toBe("submitted");
+    expect(await t.db.selectFrom("notifications").selectAll().execute()).toEqual([]);
   });
 });

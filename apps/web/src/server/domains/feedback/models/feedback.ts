@@ -52,6 +52,7 @@ export const PAGE_ROOTS = [
   "feedback",
   "items",
   "menu",
+  "notifications",
   "reviews",
   "styleguide",
   "submissions",

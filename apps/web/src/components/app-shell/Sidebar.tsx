@@ -184,10 +184,12 @@ export const Sidebar = ({
     <aside
       id="sidebar"
       aria-label={t("sidebar.label")}
-      className={`sticky top-0 hidden h-dvh shrink-0 flex-col border-r border-hairline bg-surface pt-safe pb-safe pl-safe lg:flex transition-[width] duration-200 ease-out motion-reduce:transition-none ${folded ? "w-16" : "w-64"}`}
+      className={`sticky top-0 z-40 hidden h-dvh shrink-0 flex-col border-r border-hairline bg-surface pt-safe pb-safe pl-safe lg:flex transition-[width] duration-200 ease-out motion-reduce:transition-none ${folded ? "w-16" : "w-64"}`}
     >
       {/* The fold button is a circle on the sidebar's edge, half over the page, at the logo's height
-          (owner, 2026-10-20): the row is its positioning box, so it follows the logo's height. */}
+          (owner, 2026-10-20): the row is its positioning box, so it follows the logo's height. The
+          sidebar sits above the top bar (z-40 over its z-30, 139), so the half over the page isn't
+          hidden under it. */}
       <div className="w-full shrink-0 px-3 pt-4">
         <div className="relative flex h-[30px] items-center">
           <Link

@@ -56,6 +56,8 @@ session (`proxy.ts`), never a token. The shape, `version: 1`:
   "scopes": [{ "name": "@team", "workspace": "…", "createdAt": "…" }],
   "favorites": [{ "item": "@team/x", "addedAt": "…" }],
   "feedback": [{ "kind": "idea", "message": "…", "page": "/catalogue", "version": "1.2.3", "status": "new", "sentAt": "…", "handledAt": null }],
+  "notifications": [{ "id": "…", "kind": "submission.approved", "subjectType": "submission", "subjectId": "…",
+                      "params": { "name": "@team/x", "revision": 1 }, "createdAt": "…", "readAt": null }],
   "onboarding": { "hiddenAt": null, "installConfirmedAt": "…", "completedSeenAt": null },
   "items": [{ "name": "@team/x", "workspace": "…", "type": "skill", "owner": true,
               "versions": [{ "version": "1.0.0", "publishedAt": "…", "publishedByMe": true }] }],
@@ -67,6 +69,12 @@ session (`proxy.ts`), never a token. The shape, `version: 1`:
                     "metadata": { … } }]
 }
 ```
+
+`notifications` (139) are the person's own, as stored: the kind and the parameters, not the sentence
+(that is drawn in the reader's language when shown). Who caused each is left out, being another
+person's data, and so is the `sender` parameter of new feedback (root's notification), their name;
+any other email in a parameter is replaced like those in the audit events. It is cut at the same row
+limit as the other lists, and `truncated` says so.
 
 `instance.name` is always "Ronne AI Marketplace" (the app has no instance name setting) and `url` is
 `PUBLIC_URL`. `workspace` names the workspace the scope is in, since names are unique per workspace

@@ -1,4 +1,5 @@
 import type { NewAuditEvent } from "../../audit/models/audit-event";
+import type { NewNotification } from "../../notifications/models/notification";
 import type { MappedRole } from "../models/identity-provider";
 import type { UserSummary } from "../models/user";
 
@@ -65,4 +66,6 @@ export interface SsoRepository {
   removeMembership(userId: string, workspaceId: string): Promise<void>;
   transaction<T>(work: (repo: SsoRepository) => Promise<T>): Promise<T>;
   recordAudit(event: NewAuditEvent, at: Date): Promise<void>;
+  /** Writes a notification (139), in the same transaction as the change it tells about. */
+  notify(notification: NewNotification, now: Date): Promise<void>;
 }

@@ -9,6 +9,7 @@ import type feedback from "../../messages/en/feedback.json";
 import type help from "../../messages/en/help.json";
 import type home from "../../messages/en/home.json";
 import type item from "../../messages/en/item.json";
+import type notifications from "../../messages/en/notifications.json";
 import type shell from "../../messages/en/shell.json";
 import type shelves from "../../messages/en/shelves.json";
 import type types from "../../messages/en/types.json";
@@ -35,6 +36,7 @@ export const NAMESPACES = [
   "shelves",
   "feedback",
   "author",
+  "notifications",
 ] as const;
 export type Namespace = (typeof NAMESPACES)[number];
 
@@ -55,4 +57,5 @@ export type Messages = {
   shelves: typeof shelves;
   feedback: typeof feedback;
   author: typeof author;
+  notifications: typeof notifications;
 };

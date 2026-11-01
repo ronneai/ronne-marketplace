@@ -8,6 +8,7 @@ import { cookieHeaders, createTestUser, testAppAuth } from "../../identity/testi
 import { createScope } from "../../items/actions/scopes";
 import type { SubmissionStatus } from "../models/status";
 import { createDraft, saveDraftFiles } from "./drafts";
+import { decide } from "./reviews";
 import { checkManyDrafts, submitDraft, submitManyDrafts, submitManyDraftsAs } from "./submissions";
 
 let t: TestDb;
@@ -150,6 +151,27 @@ describe("checkManyDrafts and submitManyDrafts (052)", () => {
     const [result] = (await submitManyDrafts(asAuthor, { ids: [back.id] }, app)).results;
     expect(result).toMatchObject({ result: "resubmitted", revision: 2 });
     expect(await statusOf(back.id)).toBe("submitted");
+  });
+
+  it("tells the reviewer who asked for changes when it resubmits them in bulk (139)", async () => {
+    const [one, two] = [await draft("style"), await draft("tabs")];
+    await submitManyDrafts(asAuthor, { ids: [one.id, two.id] }, app);
+    const root = await headersFor("root@example.com");
+    await decide(root, one.id, { decision: "request_changes", message: "Fix." }, app);
+    await decide(root, two.id, { decision: "request_changes", message: "Fix." }, app);
+    await submitManyDrafts(asAuthor, { ids: [one.id, two.id] }, app);
+    const told = await t.db
+      .selectFrom("notifications")
+      .innerJoin("user", "user.id", "notifications.user_id")
+      .select([
+        "user.email as email",
+        "notifications.kind as kind",
+        "notifications.subject_id as id",
+      ])
+      .where("notifications.kind", "=", "submission.resubmitted")
+      .execute();
+    expect(told.map((n) => n.email)).toEqual(["root@example.com", "root@example.com"]);
+    expect(told.map((n) => n.id).sort()).toEqual([one.id, two.id].sort());
   });
 
   it("takes all of your drafts and ones sent back for changes, and nobody else's", async () => {

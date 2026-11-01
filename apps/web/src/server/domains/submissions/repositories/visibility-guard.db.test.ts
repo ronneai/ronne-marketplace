@@ -220,6 +220,7 @@ const SUBMISSION_WRITES: Partial<Record<keyof SubmissionRepository, string>> = {
   lockScope: "takes a lock, reads nothing back",
   lockSubmission: "takes a lock, reads nothing back",
   recordAudit: "a write to the audit log",
+  notify: "a write to the notifications (139)",
   setProposalBase: "a write",
   setConflicts: "a write",
   createRevision: "a write",

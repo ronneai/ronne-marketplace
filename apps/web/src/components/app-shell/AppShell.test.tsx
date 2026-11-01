@@ -8,6 +8,8 @@ vi.mock("next/navigation", () => ({
 }));
 // The theme switch posts to a server action; the render only needs a reference to it.
 vi.mock("@/features/theme/actions", () => ({ setThemeFromForm: vi.fn() }));
+// The bell's panel marks notifications read through server actions (139).
+vi.mock("@/features/notifications/actions", () => ({ markRead: vi.fn(), markAllRead: vi.fn() }));
 
 const { AppShell } = await import("./AppShell");
 const { inLocale } = await import("@/test/intl");
@@ -498,7 +500,23 @@ describe("AppShell", () => {
     expect(html).toMatch(
       /<aside id="sidebar" aria-label="Sidebar" class="[^"]*\bhidden\b[^"]*\blg:flex\b/,
     );
-    expect(html).toMatch(/<header class="[^"]*\blg:hidden\b/);
+    // The header stays from lg as the top bar over the content (139): the logo and the Menu go,
+    // the bell stays. It comes after the sidebar, so it never covers it.
+    expect(html).toMatch(/<header class="[^"]*\bsticky\b[^"]*\btop-0\b/);
+    // The fold button sits half over the page, on the sidebar's edge: the sidebar must be above the
+    // top bar (z-40 over z-30), or the bar hides it (owner, 2026-10-31).
+    const zOf = (tag: string) =>
+      Number(new RegExp(`<${tag}[^>]*class="[^"]*\\bz-(\\d+)\\b`).exec(html)?.[1]);
+    expect(zOf("aside")).toBeGreaterThan(zOf("header"));
+    const header = html.slice(html.indexOf("<header"), html.indexOf("</header>"));
+    expect(html.indexOf("<header")).toBeGreaterThan(html.indexOf("</aside>"));
+    expect(header).toContain("Notifications, none unread");
+    expect(header).toMatch(/<a class="[^"]*\blg:hidden\b[^"]*" href="\/">/);
+    // The Menu is in a wrapper that hides it from lg; the bell is outside it.
+    expect(header).toMatch(/<div class="lg:hidden"><a [^>]*href="\/menu"/);
+    expect(header.indexOf("Notifications, none unread")).toBeLessThan(
+      header.indexOf('<div class="lg:hidden">'),
+    );
     expect(html).toMatch(/<main class="w-full flex-1 [^"]*\bsm:px-6\b/);
     expect(/<main class="([^"]*)"/.exec(html)?.[1]).not.toMatch(/max-w|mx-auto/);
     const aside = html.slice(html.indexOf("<aside"), html.indexOf("</aside>"));

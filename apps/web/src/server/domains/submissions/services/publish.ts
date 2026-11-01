@@ -608,6 +608,17 @@ export const releaseTogether = async (
         },
         at,
       );
+      // The author hears of a release by someone else (139); the actor is never told.
+      await submissions.notify(
+        {
+          recipients: [submission.authorId],
+          kind: "submission.released",
+          actorId: actor.user?.id ?? null,
+          subject: { type: "submission", id: submission.id },
+          params: { name: itemName, version, tag },
+        },
+        at,
+      );
       released.push({
         id: submission.id,
         name: itemName,

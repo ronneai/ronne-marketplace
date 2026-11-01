@@ -1,4 +1,5 @@
 import type { NewAuditEvent } from "../../audit/models/audit-event";
+import type { NewNotification } from "../../notifications/models/notification";
 import type { IdentityProvider, MappedRole } from "../models/identity-provider";
 
 /** A provider as stored, with its encrypted secret (never leaves the identity domain). */
@@ -80,4 +81,6 @@ export interface IdentityProviderRepository {
   findWorkspace(workspaceId: string): Promise<{ name: string; personal: boolean } | null>;
   transaction<T>(work: (repo: IdentityProviderRepository) => Promise<T>): Promise<T>;
   recordAudit(event: NewAuditEvent, at: Date): Promise<void>;
+  /** Writes a notification (139), in the same transaction as the change it tells about. */
+  notify(notification: NewNotification, now: Date): Promise<void>;
 }
