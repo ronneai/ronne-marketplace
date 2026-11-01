@@ -2,15 +2,20 @@ import { existsSync, rmSync } from "node:fs";
 import { join, resolve, sep } from "node:path";
 import { loadConfig } from "../config";
 import { parseDatabaseUrl, redactDatabaseUrl, UnsupportedDatabaseUrlError } from "../db/url";
+import { setupCodePath } from "./setup-code";
 
 /**
  * `pnpm run reset-setup` (feature 036): puts a clone back to "not set up", so the web setup can
  * be tried again. Development only: it refuses in production and in Docker, and it isn't in the
  * image. It removes the settings file, the SQLite database it names when that file is under the
- * app folder (with its -wal and -shm files), and the storage folder when it's under `data/`.
+ * app folder (with its -wal and -shm files), the storage folder when it's under `data/`, and the
+ * web setup's code (161): the next start makes a new one.
  */
 
-export type ResetItem = { kind: "settings" | "database" | "storage"; path: string };
+export type ResetItem = {
+  kind: "settings" | "database" | "storage" | "setupCode";
+  path: string;
+};
 
 export type ResetPlan = {
   items: ResetItem[];
@@ -81,6 +86,9 @@ export const planReset = (options: {
         `The storage folder ${storage} is outside the app's data folder and is left alone.`,
       );
   }
+
+  const code = resolve(appDir, setupCodePath(env));
+  if (existsSync(code)) items.push({ kind: "setupCode", path: code });
 
   return { items, notes };
 };

@@ -1293,7 +1293,10 @@
       "settings_unwritable": "Não é possível gravar o arquivo de configurações {path}: {reason}.{docker, select, true { No Docker, o volume de dados pertence ao root: rode `docker compose run --rm --user root web chown -R 1000:1000 /app/data` uma vez.} other {}}",
       "migration_failed": "Uma migração falhou em {database}: {reason}",
       "weak_secret": "O AUTH_SECRET que já está nas configurações tem menos de 32 caracteres. Ele foi mantido, mas considere trocá-lo.",
-      "restart_needed": "As configurações foram gravadas, mas este processo ainda usa valores do ambiente dele. Reinicie-o e recarregue esta página."
+      "restart_needed": "As configurações foram gravadas, mas este processo ainda usa valores do ambiente dele. Reinicie-o e recarregue esta página.",
+      "setup_code_missing": "Não há código de configuração neste servidor: reinicie-o ou rode `{command}`. Ou configure pelo terminal: `{setup}`.",
+      "setup_code_wrong": "Esse não é o código de configuração deste servidor. Ele está no log do servidor, ou rode `{command}`.",
+      "setup_code_rate_limited": "Códigos de configuração errados demais. Tente de novo em {minutes, plural, one {# minuto} other {# minutos}}, ou configure esta instância pelo terminal: `{setup}`."
     },
     "detail": {
       "settings": "Configurações gravadas em {path}",

@@ -51,8 +51,14 @@ page is no longer enough (owner, 2026-11-01).
     `features/setup/install.ts`). The check is constant-time, on the code's SHA-256.
   - A wrong or missing code gets `setup_code_wrong`: "That isn't this server's setup code. It's in
     the server's log, or run `<the setup-code command for this runtime>`."
-  - At most 10 wrong codes per 10 minutes per address (with `TRUST_PROXY`), and 30 per 10 minutes
-    in all, in memory like the sign-in limit (109 moves them), then `setup_code_rate_limited`.
+  - At most 10 wrong codes per address (with `TRUST_PROXY`), and 30 in all, in a fixed 10-minute
+    window that starts at the first wrong code, counted in memory as the sign-in limit counts
+    (109 moves them), then `setup_code_rate_limited`
+    ("Too many wrong setup codes. Try again in N minutes, or set this instance up from the
+    terminal"), even for the right code. Only wrong codes count.
+  - No code on the server (no file, one that holds none, or one that can't be read) gets
+    `setup_code_missing`: "No setup code on this server: restart it, or run `<setup-code>`. Or set
+    it up from the terminal: `<setup>`", with each command as this runtime types it.
 - **After setup** (root created, state `ready`), the file is deleted.
 - **The terminal setup** (`pnpm run setup`, `rmk-server setup`, `--yes` with variables) doesn't
   ask: whoever runs it is on the server. It deletes the file when it finishes.
@@ -60,7 +66,9 @@ page is no longer enough (owner, 2026-11-01).
 - **Logs:**
   - `setup.code_created` (no code: the code is only in `server.setup_code`);
   - `setup.code_unwritable` and `setup.code_invalid` (`error`: no code could be made or read);
-  - `setup.code_refused` (`warn`, with the address when trusted);
+  - `setup.code_not_deleted` (`warn`: setup finished, but the file couldn't be deleted);
+  - `setup.code_refused` (`warn`, with the reason, `wrong` or `missing`; never the code typed, and
+    no address: the logger keeps addresses out of every line, 100);
   - `setup.code_rate_limited`.
 
   Nothing goes to the audit log: there is no database yet.
@@ -85,8 +93,8 @@ page is no longer enough (owner, 2026-11-01).
 already filled and nothing changes for the person installing.
 
 **The check, in order.** The guard reads the setup state first. A `ready` or `unavailable` instance
-is refused as today, so a set-up instance never reads the file. Then it reads the file. With no
-file it says "No setup code: restart the server or run `setup-code`". Then it compares the codes.
+is refused as today, so a set-up instance never reads the file. Then it reads the file: with none,
+`setup_code_missing`. Then the limit on wrong codes. Then it compares the codes.
 
 ## Edge cases
 
@@ -110,6 +118,9 @@ file it says "No setup code: restart the server or run `setup-code`". Then it co
   them.
 - **A failed install step after a right code:** the code stays until root exists, so the person can
   retry.
+- **The file can't be deleted once root exists** (its folder made read-only): the setup still
+  finishes; the web setup logs `setup.code_not_deleted` and the terminal setup warns. A set-up
+  instance never reads the file again.
 
 ## Data
 

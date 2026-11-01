@@ -41,6 +41,11 @@ export const EVENTS = {
     msg: "The setup-code file in the data folder holds no code: run setup-code to replace it, or set this instance up from the terminal",
     fields: ["err"],
   },
+  "setup.code_not_deleted": {
+    level: "warn",
+    msg: "Setup is finished, but the setup code couldn't be deleted from the data folder: it's no use any more, delete it by hand",
+    fields: ["err"],
+  },
   "setup.code_refused": {
     level: "warn",
     msg: "Setup code refused",

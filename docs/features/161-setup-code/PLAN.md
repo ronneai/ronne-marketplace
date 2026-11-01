@@ -32,7 +32,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     instance (no file, no line) and an unwritable folder; `log/no-secrets.db.test.ts` passes with
     the allowance.
 
-- [ ] **4. The guard.** [risky]
+- [x] **4. The guard.** [risky]
   - `refusal` in `features/setup/install.ts` checks the code after the state, for every action.
   - The limiter (10 per address, 30 in all, per 10 minutes); `setup_code_wrong`,
     `setup_code_missing`, `setup_code_rate_limited`.

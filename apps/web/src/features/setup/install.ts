@@ -10,9 +10,18 @@ import {
   RootAlreadyExistsError,
 } from "@/server/domains/identity/exceptions/errors";
 import type { RootOrigin } from "@/server/domains/identity/services/root-account";
+import { type Logger, logger } from "@/server/log";
+import { hostCommand, setupCommand } from "@/server/runtime";
 import { buildDatabaseUrl } from "@/server/setup/database-url";
 import { EnvMergeError } from "@/server/setup/env-file";
 import { normalizePublicUrl, PUBLIC_URL_RULE } from "@/server/setup/public-url";
+import {
+  checkSetupCode,
+  deleteSetupCode,
+  readSetupCode,
+  setupCodePath,
+} from "@/server/setup/setup-code";
+import { type SetupCodeLimiter, setupCodeLimiter } from "@/server/setup/setup-code-limit";
 import { getSetupState, markSetupReady, type SetupState } from "@/server/setup/state";
 import {
   applyMigrations,
@@ -41,7 +50,14 @@ export type SetupContext = {
   env: Record<string, string | undefined>;
   getDb: (url: string) => CreatedDb;
   origin: RootOrigin;
+  /** The setup code every step asks for (161): its file, and the limit on wrong ones. */
+  setupCode: { path: string; limiter: SetupCodeLimiter };
+  /** Where refused codes are logged: the server's logger by default. */
+  log?: Logger;
 };
+
+/** The form field that carries the setup code. */
+export const SETUP_CODE_FIELD = "setup.code";
 
 export const ALREADY_SET_UP = "Someone already set this instance up. Sign in.";
 export const DATABASE_UNAVAILABLE =
@@ -67,16 +83,71 @@ const config = (context: SetupContext): AppConfig =>
   loadConfig({ appDir: context.appDir, env: context.env });
 
 /**
+ * The setup code's check (161), after the state's: the file is read only on an instance that isn't
+ * set up. No file (or one that holds no code) refuses; past the limit on wrong codes even the right
+ * one waits; then the typed code is compared in constant time. A wrong code counts against the
+ * limit and is logged, without the code typed.
+ */
+const codeRefusal = (context: SetupContext, form: FormData): SetupError | undefined => {
+  const log = context.log ?? logger.child({ domain: "setup" });
+  const command = hostCommand("setup-code", context.env);
+  const setup = setupCommand(context.env);
+  let stored: string | null;
+  try {
+    stored = readSetupCode(context.setupCode.path);
+  } catch {
+    // Unreadable (not ours, a folder of that name): the same as none, for the person at the page.
+    stored = null;
+  }
+  if (!stored) {
+    log.event("setup.code_refused", { reason: "missing" });
+    return {
+      code: "setup_code_missing",
+      section: "code",
+      field: SETUP_CODE_FIELD,
+      message: `No setup code on this server: restart it, or run \`${command}\`. Or set it up from the terminal: \`${setup}\`.`,
+      say: say("setup_code_missing", { command, setup }),
+    };
+  }
+  const ip = context.origin.ipAddress ?? null;
+  const limit = context.setupCode.limiter.check(ip);
+  if (!limit.allowed) {
+    log.event("setup.code_rate_limited");
+    const minutes = Math.max(1, Math.ceil(limit.retryAfterSeconds / 60));
+    return {
+      code: "setup_code_rate_limited",
+      section: "code",
+      field: SETUP_CODE_FIELD,
+      message: `Too many wrong setup codes. Try again in ${minutes} ${minutes === 1 ? "minute" : "minutes"}, or set this instance up from the terminal: \`${setup}\`.`,
+      say: say("setup_code_rate_limited", { minutes, setup }),
+    };
+  }
+  const typed = form.get(SETUP_CODE_FIELD);
+  if (checkSetupCode(typeof typed === "string" ? typed : "", stored)) return undefined;
+  context.setupCode.limiter.recordWrong(ip);
+  log.event("setup.code_refused", { reason: "wrong" });
+  return {
+    code: "setup_code_wrong",
+    section: "code",
+    field: SETUP_CODE_FIELD,
+    message: `That isn't this server's setup code. It's in the server's log, or run \`${command}\`.`,
+    say: say("setup_code_wrong", { command }),
+  };
+};
+
+/**
  * The guard every step runs first. The setup runs only on an instance that isn't set up yet:
  * `not_configured`, or `incomplete` (its database answered, with no root). Never `ready`, and never
  * `unavailable`: there are settings, but the database doesn't answer, which anyone can wait for
  * (and, on a server database, cause), so the browser must never get to point a configured instance
  * at another database (036; security audit AUTHZ-1, 2026-10-05). Production remembers `ready`, so
- * refusing a set-up instance costs no database query.
+ * refusing a set-up instance costs no database query. Then the setup code (161): only whoever
+ * started the server, who can read its log or its data folder, gets past.
  */
 const refusal = async (
   context: SetupContext,
   section: SetupError["section"],
+  form: FormData,
 ): Promise<{ state: SetupState; refused?: SetupError }> => {
   const current = await getSetupState(config(context), { getDb: context.getDb });
   if (current === "ready")
@@ -99,7 +170,8 @@ const refusal = async (
         say: say("database_unavailable"),
       },
     };
-  return { state: current };
+  const refused = codeRefusal(context, form);
+  return refused ? { state: current, refused } : { state: current };
 };
 
 /** The database URL the form asks for, or the one already in the settings when asked to keep it. */
@@ -133,7 +205,7 @@ export const testDatabaseWith = async (
   context: SetupContext,
   form: FormData,
 ): Promise<TestResult> => {
-  const { refused } = await refusal(context, "database");
+  const { refused } = await refusal(context, "database", form);
   if (refused) return { ok: false, error: refused };
   const url = await databaseUrlFrom(context, form);
   if (!url.ok) return url;
@@ -145,7 +217,7 @@ export const installSettingsWith = async (
   context: SetupContext,
   form: FormData,
 ): Promise<StepOutcome> => {
-  const { refused } = await refusal(context, "database");
+  const { refused } = await refusal(context, "database", form);
   if (refused) return { ok: false, error: refused };
   const url = await databaseUrlFrom(context, form);
   if (!url.ok) return { ok: false, error: url.error };
@@ -214,8 +286,11 @@ export const installSettingsWith = async (
 };
 
 /** Step 2: apply the pending migrations to the database in the settings. */
-export const installMigrationsWith = async (context: SetupContext): Promise<StepOutcome> => {
-  const { state: current, refused } = await refusal(context, "database");
+export const installMigrationsWith = async (
+  context: SetupContext,
+  form: FormData,
+): Promise<StepOutcome> => {
+  const { state: current, refused } = await refusal(context, "database", form);
   if (refused) return { ok: false, error: refused };
   if (current === "not_configured")
     return error("not_configured", "database", NOT_CONFIGURED, { say: say("not_configured") });
@@ -251,7 +326,7 @@ export const installRootWith = async (
   context: SetupContext,
   form: FormData,
 ): Promise<StepOutcome> => {
-  const { state: current, refused } = await refusal(context, "root");
+  const { state: current, refused } = await refusal(context, "root", form);
   if (refused) return { ok: false, error: refused };
   if (current === "not_configured")
     return error("not_configured", "root", NOT_CONFIGURED, { say: say("not_configured") });
@@ -270,6 +345,13 @@ export const installRootWith = async (
       context.origin,
     );
     markSetupReady(url);
+    // Root exists: the code has done its job (161). A file that can't be removed is only logged:
+    // the setup is finished, and a set-up instance never reads it again.
+    try {
+      deleteSetupCode(context.setupCode.path);
+    } catch (err) {
+      (context.log ?? logger.child({ domain: "setup" })).event("setup.code_not_deleted", { err });
+    }
     return {
       ok: true,
       detail: `Root account created (${root.email})`,
@@ -321,7 +403,7 @@ export const installAllWith = async (
   };
   const settings = await run("settings", () => installSettingsWith(context, form));
   if (!settings.ok) return next;
-  const migrations = await run("migrations", () => installMigrationsWith(context));
+  const migrations = await run("migrations", () => installMigrationsWith(context, form));
   if (!migrations.ok) return next;
   const root = await run("root", () => installRootWith(context, form));
   if (root.ok && root.email) next.done = { email: root.email };
@@ -340,5 +422,6 @@ export const appContext = (origin: RootOrigin): SetupContext => {
     // requests would hold one connection each.
     getDb: (url) => getAppDb(url, appDir),
     origin,
+    setupCode: { path: setupCodePath(env), limiter: setupCodeLimiter() },
   };
 };

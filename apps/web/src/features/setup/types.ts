@@ -13,9 +13,10 @@ export type SetupField =
   | "root.email"
   | "root.name"
   | "root.password"
-  | "root.password_again";
+  | "root.password_again"
+  | "setup.code";
 
-export type SetupSection = "database" | "instance" | "root";
+export type SetupSection = "code" | "database" | "instance" | "root";
 
 /**
  * The words of a message of the setup in the person's language (feature 132): a key of
@@ -34,7 +35,10 @@ export type SetupErrorCode =
   | "mismatch"
   | "settings_unwritable"
   | "database_ahead"
-  | "migration_failed";
+  | "migration_failed"
+  | "setup_code_missing"
+  | "setup_code_wrong"
+  | "setup_code_rate_limited";
 
 /** What went wrong, where it belongs, and the words to show (never a secret). */
 export type SetupError = {

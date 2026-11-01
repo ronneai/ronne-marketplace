@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync, statSync } from "node:fs";
+import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { parseEnv } from "node:util";
@@ -10,6 +10,7 @@ import { createAuth } from "../domains/identity/repositories/better-auth";
 import { kyselyIdentityRepository } from "../domains/identity/repositories/kysely-identity-repository";
 import type { DatabaseAnswers } from "./database-url";
 import { runSetup, SetupFailedError } from "./run-setup";
+import { ensureSetupCode } from "./setup-code";
 import { CANCEL, scriptedPrompts } from "./testing/scripted-prompts";
 
 let appDir: string;
@@ -74,6 +75,52 @@ describe("runSetup on SQLite", () => {
     expect(signedIn.user.email).toBe("root@example.com");
     await db.destroy();
   });
+
+  it("deletes the web setup's code once root exists, created now or before (161)", async () => {
+    const code = join(appDir, "data/setup-code");
+    ensureSetupCode(code);
+    await runSetup({
+      appDir,
+      envPath,
+      prompts: scriptedPrompts({ ...sqliteAnswers, ...rootAnswers }).prompts,
+    });
+    expect(existsSync(code)).toBe(false);
+
+    // Run again with root already there (the code was made again by a start in between).
+    ensureSetupCode(code);
+    const again = await runSetup({
+      appDir,
+      envPath,
+      prompts: scriptedPrompts({ "database.reuse": true, public_url: "http://localhost:3000" })
+        .prompts,
+    });
+    expect(again.rootCreated).toBe(false);
+    expect(existsSync(code)).toBe(false);
+  });
+
+  it.skipIf(process.getuid?.() === 0)(
+    "warns, and still finishes, when the code can't be deleted",
+    async () => {
+      const folder = join(appDir, "codes");
+      const code = join(folder, "setup-code");
+      ensureSetupCode(code);
+      chmodSync(folder, 0o500);
+      const scripted = scriptedPrompts({ ...sqliteAnswers, ...rootAnswers });
+      try {
+        const result = await runSetup({
+          appDir,
+          envPath,
+          prompts: scripted.prompts,
+          setupCodePath: code,
+        });
+        expect(result.rootCreated).toBe(true);
+      } finally {
+        chmodSync(folder, 0o700);
+      }
+      expect(scripted.logs.some((line) => line.message.includes("couldn't be deleted"))).toBe(true);
+      expect(existsSync(code)).toBe(true);
+    },
+  );
 
   it("is safe to run again: reuses .env, keeps AUTH_SECRET, and doesn't create a second root", async () => {
     await runSetup({

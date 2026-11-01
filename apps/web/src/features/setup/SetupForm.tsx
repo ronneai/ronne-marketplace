@@ -43,7 +43,7 @@ const signInHref = (email: string) => `/sign-in?email=${encodeURIComponent(email
 
 /** The wizard's pages, in order; the last one is the install itself (their words: `admin.setup.wizard.pages`). */
 const PAGES = ["database", "instance", "root", "install"] as const;
-const SECTION_PAGE: Record<SetupSection, number> = { database: 0, instance: 1, root: 2 };
+const SECTION_PAGE: Record<SetupSection, number> = { code: 0, database: 0, instance: 1, root: 2 };
 
 /**
  * The setup form. Rendered on the server as one form with every question and one Install button,
@@ -160,7 +160,7 @@ const Wizard = ({
       };
       const order: [StepName, () => Promise<StepOutcome>][] = [
         ["settings", () => installSettings(submitted)],
-        ["migrations", () => installMigrations()],
+        ["migrations", () => installMigrations(submitted)],
         ["root", () => installRoot(submitted)],
       ];
       for (const [name, step] of order) {
