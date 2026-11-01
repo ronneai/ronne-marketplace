@@ -397,7 +397,7 @@ describe("the setup code (161)", () => {
       });
   });
 
-  it("allows 10 wrong codes per address in 10 minutes, then refuses even the right one", async () => {
+  it("allows 10 wrong codes per address in 10 minutes, then answers wrong ones differently", async () => {
     let now = Date.parse("2026-11-01T12:00:00Z");
     context.setupCode.limiter = createSetupCodeLimiter(() => now);
     const wrong = form({ ...sqlite, "setup.code": "1".repeat(26) });
@@ -405,22 +405,31 @@ describe("the setup code (161)", () => {
       expect(await testDatabaseWith(context, wrong)).toMatchObject({
         error: { code: "setup_code_wrong" },
       });
-    expect(await testDatabaseWith(context, form(sqlite))).toMatchObject({
+    expect(await testDatabaseWith(context, wrong)).toMatchObject({
       ok: false,
       error: {
         code: "setup_code_rate_limited",
-        say: { key: "errors.setup_code_rate_limited", values: { minutes: 10 } },
+        say: {
+          key: "errors.setup_code_rate_limited",
+          values: { command: "pnpm run setup-code" },
+        },
       },
     });
-    // Another address still gets in.
-    const elsewhere = { ...context, origin: { via: "web" as const, ipAddress: "198.51.100.4" } };
-    expect(await testDatabaseWith(elsewhere, form(sqlite))).toMatchObject({ ok: true });
-    // After the window, the first address does too.
-    now += 10 * 60_000;
+    // The right code still gets in, from that address too.
     expect(await testDatabaseWith(context, form(sqlite))).toMatchObject({ ok: true });
+    // Another address's wrong code is only wrong.
+    const elsewhere = { ...context, origin: { via: "web" as const, ipAddress: "198.51.100.4" } };
+    expect(await testDatabaseWith(elsewhere, wrong)).toMatchObject({
+      error: { code: "setup_code_wrong" },
+    });
+    // After the window, the first address's wrong codes are only wrong again.
+    now += 10 * 60_000;
+    expect(await testDatabaseWith(context, wrong)).toMatchObject({
+      error: { code: "setup_code_wrong" },
+    });
   });
 
-  it("allows 30 wrong codes in all, from any addresses or none, then refuses everyone", async () => {
+  it("allows 30 wrong codes in all, from any addresses or none, and never locks the right code out", async () => {
     context.setupCode.limiter = createSetupCodeLimiter(() => 0);
     const wrong = form({ ...sqlite, "setup.code": "1".repeat(26) });
     for (let attempt = 0; attempt < 30; attempt++) {
@@ -433,15 +442,41 @@ describe("the setup code (161)", () => {
       });
     }
     const fresh = { ...context, origin: { via: "web" as const, ipAddress: "192.0.2.200" } };
-    expect(await testDatabaseWith(fresh, form(sqlite))).toMatchObject({
+    expect(await testDatabaseWith(fresh, wrong)).toMatchObject({
       error: { code: "setup_code_rate_limited" },
     });
+    expect(await testDatabaseWith(fresh, form(sqlite))).toMatchObject({ ok: true });
+    // No address known (no TRUST_PROXY): a stranger's guesses never hold the owner off.
+    const unknown = { ...context, origin: { via: "web" as const, ipAddress: null } };
+    expect(await testDatabaseWith(unknown, wrong)).toMatchObject({
+      error: { code: "setup_code_rate_limited" },
+    });
+    expect(await testDatabaseWith(unknown, form(sqlite))).toMatchObject({ ok: true });
+    expect(
+      (await installAllWith(unknown, initial, form({ ...sqlite, ...root }))).done,
+    ).toBeDefined();
+  });
+
+  it("logs the limit once, when it's reached, and no line for each wrong code past it", async () => {
+    const lines: string[] = [];
+    context.log = createLogger({ level: "debug", format: "json", write: (l) => lines.push(l) });
+    context.setupCode.limiter = createSetupCodeLimiter(() => 0);
+    const wrong = form({ ...sqlite, "setup.code": "1".repeat(26) });
+    for (let attempt = 0; attempt < 15; attempt++) await testDatabaseWith(context, wrong);
+    const events = lines.map((line) => JSON.parse(line).event);
+    expect(events.filter((e) => e === "setup.code_refused")).toHaveLength(10);
+    expect(events.filter((e) => e === "setup.code_rate_limited")).toHaveLength(1);
+    expect(events.indexOf("setup.code_rate_limited")).toBe(10);
   });
 
   it("doesn't count the right code against the limit", async () => {
     context.setupCode.limiter = createSetupCodeLimiter(() => 0);
     for (let attempt = 0; attempt < 40; attempt++)
       expect(await testDatabaseWith(context, form(sqlite))).toMatchObject({ ok: true });
+    // Nothing was counted: a wrong code now is only wrong, not past the limit.
+    expect(
+      await testDatabaseWith(context, form({ ...sqlite, "setup.code": "1".repeat(26) })),
+    ).toMatchObject({ error: { code: "setup_code_wrong" } });
   });
 
   it("logs refused codes without the code typed", async () => {

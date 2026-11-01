@@ -1300,7 +1300,7 @@
       "restart_needed": "Les réglages ont été écrits, mais ce processus utilise encore des valeurs de son environnement. Redémarrez-le et rechargez cette page.",
       "setup_code_missing": "Aucun code de configuration sur ce serveur : redémarrez-le, ou exécutez `{command}`. Ou configurez-le depuis le terminal : `{setup}`.",
       "setup_code_wrong": "Ce n’est pas le code de configuration de ce serveur. Il est dans le journal du serveur, ou exécutez `{command}`.",
-      "setup_code_rate_limited": "Trop de codes de configuration erronés. Réessayez dans {minutes, plural, one {# minute} other {# minutes}}, ou configurez cette instance depuis le terminal : `{setup}`."
+      "setup_code_rate_limited": "Trop de codes de configuration erronés, et celui-ci l’est aussi. Le code de ce serveur est dans son journal, ou exécutez `{command}`."
     },
     "detail": {
       "settings": "Réglages écrits dans {path}",

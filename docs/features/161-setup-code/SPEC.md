@@ -57,9 +57,12 @@ page is no longer enough (owner, 2026-11-01).
     the server's log, or run `<the setup-code command for this runtime>`."
   - At most 10 wrong codes per address (with `TRUST_PROXY`), and 30 in all, in a fixed 10-minute
     window that starts at the first wrong code, counted in memory as the sign-in limit counts
-    (109 moves them), then `setup_code_rate_limited`
-    ("Too many wrong setup codes. Try again in N minutes, or set this instance up from the
-    terminal"), even for the right code. Only wrong codes count.
+    (109 moves them). Past either limit, a wrong code gets `setup_code_rate_limited` ("Too many
+    wrong setup codes, and that one is wrong too. This server's code is in its log, or run
+    `<setup-code>`") and no log line, so the log can't be flooded. Only wrong codes count, and
+    **the right code always passes** (owner, 2026-11-01): at 128 bits the limit isn't what stops
+    guessing, and without `TRUST_PROXY` the server knows no addresses, so a limit on the right
+    code would let a stranger hold the owner off.
   - No code on the server (no file, one that holds none, or one that can't be read) gets
     `setup_code_missing`: "No setup code on this server: restart it, or run `<setup-code>`. Or set
     it up from the terminal: `<setup>`", with each command as this runtime types it.
@@ -73,7 +76,7 @@ page is no longer enough (owner, 2026-11-01).
   - `setup.code_not_deleted` (`warn`: setup finished, but the file couldn't be deleted);
   - `setup.code_refused` (`warn`, with the reason, `wrong` or `missing`; never the code typed, and
     no address: the logger keeps addresses out of every line, 100);
-  - `setup.code_rate_limited`.
+  - `setup.code_rate_limited` (`warn`, once, as a limit is reached).
 
   Nothing goes to the audit log: there is no database yet.
 
@@ -98,7 +101,9 @@ already filled and nothing changes for the person installing.
 
 **The check, in order.** The guard reads the setup state first. A `ready` or `unavailable` instance
 is refused as today, so a set-up instance never reads the file. Then it reads the file: with none,
-`setup_code_missing`. Then the limit on wrong codes. Then it compares the codes.
+`setup_code_missing`. Then it compares the codes: the right one passes. A wrong one past the limit
+gets `setup_code_rate_limited`; otherwise it counts, is logged (`setup.code_refused`) and gets
+`setup_code_wrong`, and the one that reaches the limit logs `setup.code_rate_limited` too.
 
 ## Edge cases
 

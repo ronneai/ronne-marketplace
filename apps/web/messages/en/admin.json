@@ -1300,7 +1300,7 @@
       "restart_needed": "The settings were written, but this process still uses values from its environment. Restart it and reload this page.",
       "setup_code_missing": "No setup code on this server: restart it, or run `{command}`. Or set it up from the terminal: `{setup}`.",
       "setup_code_wrong": "That isn’t this server’s setup code. It’s in the server’s log, or run `{command}`.",
-      "setup_code_rate_limited": "Too many wrong setup codes. Try again in {minutes, plural, one {# minute} other {# minutes}}, or set this instance up from the terminal: `{setup}`."
+      "setup_code_rate_limited": "Too many wrong setup codes, and that one is wrong too. This server’s code is in its log, or run `{command}`."
     },
     "detail": {
       "settings": "Settings written to {path}",

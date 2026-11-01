@@ -73,7 +73,7 @@ describe("CodeField (161)", () => {
     ],
     [
       "setup_code_rate_limited",
-      "Too many wrong setup codes. Try again in 10 minutes, or set this instance up from the terminal: `pnpm run setup`.",
+      "Too many wrong setup codes, and that one is wrong too. This server’s code is in its log, or run `pnpm run setup-code`.",
     ],
     [
       "setup_code_missing",
@@ -87,7 +87,7 @@ describe("CodeField (161)", () => {
       message: "ENGLISH FROM THE SERVER",
       say: {
         key: `errors.${code}`,
-        values: { command: "pnpm run setup-code", setup: "pnpm run setup", minutes: 10 },
+        values: { command: "pnpm run setup-code", setup: "pnpm run setup" },
       },
     });
     const input = host.querySelector<HTMLInputElement>('input[name="setup.code"]');

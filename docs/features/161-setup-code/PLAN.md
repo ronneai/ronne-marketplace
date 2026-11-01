@@ -71,6 +71,25 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* the docs render tests and `pnpm docs:links` pass, and the helper lands on a real
     section; the threat model's date and commit are updated.
 
+- [x] **10. The right code always passes.** [risky]
+  - Owner, 2026-11-01, after the feature was done: without `TRUST_PROXY` a stranger could fill the
+    30 wrong codes and hold the web setup off. The guard compares first; the right code passes
+    whatever the limit says. Past a limit, a wrong code gets `setup_code_rate_limited` (new words,
+    with the `setup-code` command) and no log line; `setup.code_rate_limited` is logged once, as a
+    limit is reached.
+  - The spec, the threat model, and the Documentation's setup section (en, pt, fr) and product facts.
+  - *Done when:* `install.db.test.ts` shows the right code passing past both limits, from a known
+    address and with none, wrong codes past them getting the limited answer, and one
+    `setup.code_rate_limited` line; the parity and words tests pass.
+
+- [ ] **11. The setup code's line at every `LOG_LEVEL`.**
+  - Owner, 2026-11-01: `server.setup_code` is written whatever `LOG_LEVEL` says (an `always` event,
+    the only one); the lines around it follow the level.
+  - The spec, the install guide's `LOG_LEVEL` row, the threat model, and the Documentation's Logs
+    topic (en, pt, fr).
+  - *Done when:* `logger.test.ts` shows the line written at each level, at its own level, and that
+    no other event is `always`.
+
 ## Notes
 
 Things learned while building that the next person should know. Anything that changes behaviour

@@ -84,9 +84,9 @@ const config = (context: SetupContext): AppConfig =>
 
 /**
  * The setup code's check (161), after the state's: the file is read only on an instance that isn't
- * set up. No file (or one that holds no code) refuses; past the limit on wrong codes even the right
- * one waits; then the typed code is compared in constant time. A wrong code counts against the
- * limit and is logged, without the code typed.
+ * set up. No file (or one that holds no code) refuses; then the typed code is compared in constant
+ * time, and the right one always passes. A wrong code counts against the limit and is logged,
+ * without the code typed; past the limit, wrong codes get their own answer and no line.
  */
 const codeRefusal = (context: SetupContext, form: FormData): SetupError | undefined => {
   const log = context.log ?? logger.child({ domain: "setup" });
@@ -109,23 +109,24 @@ const codeRefusal = (context: SetupContext, form: FormData): SetupError | undefi
       say: say("setup_code_missing", { command, setup }),
     };
   }
+  const typed = form.get(SETUP_CODE_FIELD);
+  // The right code always passes: at 128 bits, the limit isn't what stops guessing, and a stranger
+  // filling it must never lock the owner out (without TRUST_PROXY, only the total applies).
+  if (checkSetupCode(typeof typed === "string" ? typed : "", stored)) return undefined;
   const ip = context.origin.ipAddress ?? null;
-  const limit = context.setupCode.limiter.check(ip);
-  if (!limit.allowed) {
-    log.event("setup.code_rate_limited");
-    const minutes = Math.max(1, Math.ceil(limit.retryAfterSeconds / 60));
+  // Past the limit, a wrong code gets its own answer and no line: the log can't be flooded.
+  if (!context.setupCode.limiter.check(ip).allowed)
     return {
       code: "setup_code_rate_limited",
       section: "code",
       field: SETUP_CODE_FIELD,
-      message: `Too many wrong setup codes. Try again in ${minutes} ${minutes === 1 ? "minute" : "minutes"}, or set this instance up from the terminal: \`${setup}\`.`,
-      say: say("setup_code_rate_limited", { minutes, setup }),
+      message: `Too many wrong setup codes, and that one is wrong too. This server's code is in its log, or run \`${command}\`.`,
+      say: say("setup_code_rate_limited", { command }),
     };
-  }
-  const typed = form.get(SETUP_CODE_FIELD);
-  if (checkSetupCode(typeof typed === "string" ? typed : "", stored)) return undefined;
   context.setupCode.limiter.recordWrong(ip);
   log.event("setup.code_refused", { reason: "wrong" });
+  // Once, as the limit is reached.
+  if (!context.setupCode.limiter.check(ip).allowed) log.event("setup.code_rate_limited");
   return {
     code: "setup_code_wrong",
     section: "code",

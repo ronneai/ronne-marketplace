@@ -10,9 +10,9 @@ export const SETUP_CODE_WINDOW_MS = 10 * 60_000;
 
 /**
  * Counts wrong setup codes in memory, with the fixed windows sign-in uses (006; 109 moves them to
- * the database). Only wrong codes count, so typing the right one never fills the window; once
- * either limit is reached, even the right code waits. The total holds when the address isn't known
- * (no TRUST_PROXY behind a proxy) or changes with every guess.
+ * the database). Only wrong codes count, and the right code is never limited (`codeRefusal`): past
+ * either limit, a wrong code gets its own answer and no log line. The total holds when the address
+ * isn't known (no TRUST_PROXY behind a proxy) or changes with every guess.
  */
 export const createSetupCodeLimiter = (now?: () => number) => {
   const perAddress = new LoginRateLimiter({
