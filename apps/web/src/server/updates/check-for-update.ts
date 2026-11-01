@@ -1,4 +1,5 @@
 import { compareNewestFirst } from "@ronneai/core";
+import type { UpdateFailure } from "../domains/settings/models/update-check";
 
 /**
  * The upgrade check's request and its reading (feature 140): ask GitHub for the latest release of
@@ -18,7 +19,7 @@ const MAX_REDIRECTS = 3;
 const RELEASE_HOST = new URL(RELEASE_URL).host;
 
 /** Why a check failed: short and fixed, shown in Settings, never a response body. */
-export type UpdateFailure = "unreachable" | "rate_limited" | "bad_answer";
+export type { UpdateFailure } from "../domains/settings/models/update-check";
 
 export type UpdateCheck =
   | {

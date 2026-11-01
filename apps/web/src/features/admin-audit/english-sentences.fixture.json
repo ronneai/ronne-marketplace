@@ -371,6 +371,10 @@
     "empty": "Changed the instance notice: its words or link",
     "rich": "Changed the instance notice: its words or link"
   },
+  "settings.update_check": {
+    "empty": "Changed the check for updates: changed",
+    "rich": "Changed the check for updates: changed"
+  },
   "pin.added": {
     "empty": "Pinned an item to Start here",
     "rich": "Pinned @team/tools to workspace acme"

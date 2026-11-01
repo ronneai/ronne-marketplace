@@ -750,7 +750,8 @@
           "usage_minimum": "Changed the usage minimum from {from} to {to}",
           "retention": "Changed the retention: {changes}",
           "notice": "Changed the instance notice: {changes}",
-          "skill_scan": "Changed the security scan: {changes}"
+          "skill_scan": "Changed the security scan: {changes}",
+          "update_check": "Changed the check for updates: {state, select, on {turned on} off {turned off} other {changed}}"
         }
       }
     }
@@ -767,7 +768,8 @@
       "authentication": "Authentication",
       "privacy": "Privacy",
       "notice": "Notice",
-      "scan": "Security scan"
+      "scan": "Security scan",
+      "updates": "Updates"
     },
     "methods": {
       "title": "Sign-in methods",
@@ -1329,6 +1331,71 @@
       "erasuresNone": "Nothing was left to finish.",
       "erasures": "{count, plural, one {Finished # erasure.} other {Finished # erasures.}}",
       "scan": "Security scan saved."
+    }
+  },
+  "updates": {
+    "title": "Updates",
+    "intro": "Ronne checks once a day whether a newer version is released and tells you here and in your notifications. It sends nothing about this instance.",
+    "versions": "Versions",
+    "running": "You run",
+    "latest": "Latest release",
+    "notes": "Release notes",
+    "notChecked": "Not checked yet",
+    "lastChecked": "Last checked",
+    "never": "Never",
+    "fromBefore": "from before the check was turned off",
+    "upToDate": "Up to date.",
+    "newer": "Version {version} is out.",
+    "failure": {
+      "unreachable": "Couldn't reach GitHub. Ronne tries again tomorrow.",
+      "rate_limited": "GitHub is limiting requests right now. Ronne tries again tomorrow.",
+      "bad_answer": "GitHub's answer wasn't one Ronne understands. Ronne tries again tomorrow."
+    },
+    "checkNow": "Check now",
+    "checkNowHint": "Once a minute at most.",
+    "checkNowOff": "The check is turned off.",
+    "how": "How to update",
+    "backupFirst": "Back up first",
+    "then": "Then update",
+    "databaseNote": "Database changes are applied when the server starts. Going back to an older version isn't supported, so back up first.",
+    "switchTitle": "Check for updates",
+    "switch": "Check for updates",
+    "switchHint": "On by default. Turn it off for an instance with no internet access.",
+    "setOnServer": "Set on the server (RONNE_UPDATE_CHECK=off).",
+    "save": "Save",
+    "done": {
+      "saved": "Saved.",
+      "unchanged": "Nothing changed.",
+      "checked": "Checked: up to date.",
+      "newer": "Checked: a newer version is out.",
+      "failed": "Couldn't reach GitHub.",
+      "too_soon": "Checked a moment ago. Try again in a minute.",
+      "off_by_environment": "The check is turned off on the server.",
+      "off_by_switch": "The check is turned off."
+    },
+    "howIntro": "Ronne can be installed in several ways. Use the one you installed it with; the first is the way this server appears to run.",
+    "thisInstance": "This instance",
+    "plans": {
+      "docker": {
+        "title": "Docker",
+        "text": "In the ronne-marketplace folder on the server:"
+      },
+      "npm": {
+        "title": "npm package",
+        "text": "Install the new version, then stop rmk-server and start it again:"
+      },
+      "service": {
+        "title": "npm package as a service",
+        "text": "Install the new version, then restart the service:"
+      },
+      "package": {
+        "title": ".deb or .rpm package (apt, dnf)",
+        "text": "Download the new package from the release's page and install it the same way as the first one: apt on Debian and Ubuntu, dnf on Fedora and RHEL. The service restarts on it."
+      },
+      "clone": {
+        "title": "Clone of the repository",
+        "text": "In its folder, then restart the server:"
+      }
     }
   }
 }

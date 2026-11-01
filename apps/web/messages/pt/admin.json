@@ -750,7 +750,8 @@
           "usage_minimum": "Alterou o mínimo de uso de {from} para {to}",
           "retention": "Alterou a retenção: {changes}",
           "notice": "Alterou o comunicado da instância: {changes}",
-          "skill_scan": "Alterou a verificação de segurança: {changes}"
+          "skill_scan": "Alterou a verificação de segurança: {changes}",
+          "update_check": "Alterou a verificação de atualizações: {state, select, on {ativada} off {desativada} other {alterada}}"
         }
       }
     }
@@ -767,7 +768,8 @@
       "authentication": "Autenticação",
       "privacy": "Privacidade",
       "notice": "Comunicado",
-      "scan": "Verificação de segurança"
+      "scan": "Verificação de segurança",
+      "updates": "Atualizações"
     },
     "methods": {
       "title": "Formas de entrar",
@@ -1329,6 +1331,71 @@
       "erasuresNone": "Não havia nada a concluir.",
       "erasures": "{count, plural, one {# apagamento concluído.} other {# apagamentos concluídos.}}",
       "scan": "Verificação de segurança salva."
+    }
+  },
+  "updates": {
+    "title": "Atualizações",
+    "intro": "O Ronne verifica uma vez por dia se há uma versão mais nova e avisa aqui e nas suas notificações. Não envia nada sobre esta instância.",
+    "versions": "Versões",
+    "running": "Você usa",
+    "latest": "Última versão lançada",
+    "notes": "Notas da versão",
+    "notChecked": "Ainda não verificada",
+    "lastChecked": "Última verificação",
+    "never": "Nunca",
+    "fromBefore": "de antes de a verificação ser desativada",
+    "upToDate": "Atualizado.",
+    "newer": "A versão {version} foi lançada.",
+    "failure": {
+      "unreachable": "Não foi possível acessar o GitHub. O Ronne tenta de novo amanhã.",
+      "rate_limited": "O GitHub está limitando as requisições agora. O Ronne tenta de novo amanhã.",
+      "bad_answer": "A resposta do GitHub não foi entendida pelo Ronne. O Ronne tenta de novo amanhã."
+    },
+    "checkNow": "Verificar agora",
+    "checkNowHint": "No máximo uma vez por minuto.",
+    "checkNowOff": "A verificação está desativada.",
+    "how": "Como atualizar",
+    "backupFirst": "Faça backup antes",
+    "then": "Depois atualize",
+    "databaseNote": "As mudanças no banco de dados são aplicadas quando o servidor inicia. Voltar para uma versão mais antiga não é suportado, então faça backup antes.",
+    "switchTitle": "Verificar atualizações",
+    "switch": "Verificar atualizações",
+    "switchHint": "Ativada por padrão. Desative em uma instância sem acesso à internet.",
+    "setOnServer": "Definido no servidor (RONNE_UPDATE_CHECK=off).",
+    "save": "Salvar",
+    "done": {
+      "saved": "Salvo.",
+      "unchanged": "Nada mudou.",
+      "checked": "Verificado: atualizado.",
+      "newer": "Verificado: há uma versão mais nova.",
+      "failed": "Não foi possível acessar o GitHub.",
+      "too_soon": "Verificado agora há pouco. Tente de novo em um minuto.",
+      "off_by_environment": "A verificação está desativada no servidor.",
+      "off_by_switch": "A verificação está desativada."
+    },
+    "howIntro": "O Ronne pode ser instalado de várias formas. Use a que você usou para instalar; a primeira é a forma como este servidor parece rodar.",
+    "thisInstance": "Esta instância",
+    "plans": {
+      "docker": {
+        "title": "Docker",
+        "text": "Na pasta ronne-marketplace do servidor:"
+      },
+      "npm": {
+        "title": "Pacote npm",
+        "text": "Instale a nova versão e depois pare o rmk-server e inicie de novo:"
+      },
+      "service": {
+        "title": "Pacote npm como serviço",
+        "text": "Instale a nova versão e depois reinicie o serviço:"
+      },
+      "package": {
+        "title": "Pacote .deb ou .rpm (apt, dnf)",
+        "text": "Baixe o novo pacote na página da versão e instale do mesmo jeito que o primeiro: apt no Debian e no Ubuntu, dnf no Fedora e no RHEL. O serviço reinicia com ele."
+      },
+      "clone": {
+        "title": "Clone do repositório",
+        "text": "Na pasta dele, e depois reinicie o servidor:"
+      }
     }
   }
 }

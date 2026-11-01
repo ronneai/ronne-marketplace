@@ -29,6 +29,7 @@ export const AppShell = ({
   current = null,
   folded = false,
   version,
+  updateAvailable = null,
   notice = null,
   children,
 }: {
@@ -48,6 +49,8 @@ export const AppShell = ({
   folded?: boolean;
   /** The app's version, at the sidebar's foot. */
   version?: string;
+  /** The newer version root has not installed (140), for the sidebar's mark. */
+  updateAvailable?: string | null;
   /** The instance notice (124), drawn under the header and above the page; null when there is none. */
   notice?: ReactNode;
   children: ReactNode;
@@ -69,6 +72,7 @@ export const AppShell = ({
           appearance={<ThemeToggle theme={theme} />}
           signOutAction={signOutAction}
           version={version}
+          updateAvailable={updateAvailable}
         />
       ) : null}
       <div className="flex min-w-0 flex-1 flex-col">

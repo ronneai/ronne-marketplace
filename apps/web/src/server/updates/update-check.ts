@@ -3,6 +3,7 @@ import type { Database } from "../db/schema";
 import type { DatabaseDialect } from "../db/url";
 import { notify } from "../domains/notifications/services/notify";
 import { activeRoots } from "../domains/notifications/services/recipients";
+import { UPDATE_KEYS } from "../domains/settings/models/update-check";
 import { kyselySettingsRepository } from "../domains/settings/repositories/kysely-settings-repository";
 import { checkForUpdate, type UpdateFailure } from "./check-for-update";
 
@@ -11,15 +12,7 @@ import { checkForUpdate, type UpdateFailure } from "./check-for-update";
  * `instance_settings`, and tells every active root once per version. The schedule and the lease
  * are the job's (jobs/update-check-job.ts); this knows neither.
  */
-export const UPDATE_KEYS = {
-  enabled: "update_check_enabled",
-  at: "update_check_at",
-  latest: "update_check_latest",
-  url: "update_check_url",
-  error: "update_check_error",
-  /** The last version announced, so a version is announced once. */
-  notified: "update_check_notified",
-} as const;
+export { UPDATE_KEYS };
 
 /** `RONNE_UPDATE_CHECK`: `off` (any case), `0` or `false` turn the check off. */
 export const updateCheckOffByEnv = (value: string | undefined): boolean =>

@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Notice } from "@/server/domains/settings/models/notice-policy";
 
-const settings = vi.hoisted(() => ({ notice: vi.fn() }));
+const settings = vi.hoisted(() => ({ notice: vi.fn(), updateAvailable: vi.fn(async () => null) }));
 const jar = vi.hoisted(() => ({ values: {} as Record<string, string>, set: vi.fn() }));
 const shell = vi.hoisted(() => ({ loadShell: vi.fn() }));
 vi.mock("@/server/domains/settings/actions/settings", () => settings);

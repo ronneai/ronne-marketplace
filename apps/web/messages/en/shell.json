@@ -30,7 +30,9 @@
     "accountOf": "{name}, your account",
     "signOut": "Sign out",
     "version": "ronne marketplace v{version}",
-    "itemNewTab": "{label} (opens in a new tab)"
+    "itemNewTab": "{label} (opens in a new tab)",
+    "updateAvailable": "Update available",
+    "updateTitle": "Version {version} is out"
   },
   "menu": {
     "title": "Menu",

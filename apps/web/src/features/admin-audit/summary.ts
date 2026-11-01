@@ -510,6 +510,10 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     kind: text(m.kind) === "accepted" ? "accepted" : "false_positive",
   }),
   "scan.finding_restored": (m, _e, h) => ({ item: h.item(m), rule: text(m.rule) }),
+  // `{ from, to }` as booleans: the switch of the upgrade check (140).
+  "settings.update_check": (m) => ({
+    state: m.to === true ? "on" : m.to === false ? "off" : "changed",
+  }),
   "settings.notice": (m, _e, h) => {
     // `{ from: { tone, shown }, to: { tone, shown }, revision }`: never the text (124).
     const from = record(m.from);

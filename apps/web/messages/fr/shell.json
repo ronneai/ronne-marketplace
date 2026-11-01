@@ -30,7 +30,9 @@
     "accountOf": "{name}, votre compte",
     "signOut": "Se déconnecter",
     "version": "ronne marketplace v{version}",
-    "itemNewTab": "{label} (s’ouvre dans un nouvel onglet)"
+    "itemNewTab": "{label} (s’ouvre dans un nouvel onglet)",
+    "updateAvailable": "Mise à jour disponible",
+    "updateTitle": "La version {version} est disponible"
   },
   "menu": {
     "title": "Menu",

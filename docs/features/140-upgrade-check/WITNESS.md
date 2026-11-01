@@ -107,3 +107,52 @@ Witnessed: 2026-10-31, by a fresh agent (blind). Commit: f7e78b42 plus the uncom
 | 11 | The plumbing handles the new kind: root only, link to updates, subject `instance` | no | confirmed | `read.db.test.ts`; 54 unit tests |
 
 **Overall:** met. Gaps the witness named: no mutation was run, and the en/pt/fr sentences were not read.
+
+
+## Task 4 — Settings › Updates and the sidebar mark
+
+Witnessed: 2026-10-31, by a fresh agent (blind). Commit: 71dd5f6d plus the uncommitted working tree. Machine: macOS (Darwin), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The task's tests pass on SQLite | no | confirmed | 39 files, 681 tests |
+| 2 | The settings db tests pass on all three dialects | no | confirmed | `node scripts/test-db.mjs postgres\|mysql\|mariadb update-check` → 16 passed each |
+| 3 | Updates is a tab of Settings, root only | no | confirmed | `updates.test.tsx` (selected by `?tab=updates`; 404 before anything is read); e2e: a non-root user gets a 404 |
+| 4 | Check now is rate-limited to once a minute | no | partly | only the pure `checkedTooRecently` was tested; `checkUpdateNow` itself was not |
+| 5 | The commands per runtime come from `updatePlan`, each after a backup | no | confirmed | `updates.test.tsx` "shows each runtime's own commands, after a backup"; e2e sees the clone's commands |
+| 6 | The switch is read-only when the environment turns the check off | no | confirmed | `updates.test.tsx`; `setUpdateCheck` ignores the environment, but the check stays off because `runUpdateCheck` takes it |
+| 7 | Saving the switch is audited as `settings.update_check` with from and to | no | confirmed | db tests on three dialects; the e2e finds the audit row |
+| 8 | "Update available" at the sidebar's foot, for root only | no | confirmed | `AppShell.test.tsx` (shown, absent, folded); e2e: a non-root user has no such link |
+| 9 | The mark is root-only in the server function too | no | partly | `updateAvailable` had no direct test |
+| 10 | An e2e with a fake release answer sees the notification and the tab | no | confirmed | `playwright test e2e/updates.e2e.ts` → 2 passed; the answer is a seed (the check itself needs GitHub; its tests use a fake fetch); it does not click Check now |
+| 11 | Messages exist in en, pt and fr | no | confirmed | the i18n tests |
+
+**Overall:** not met: rows 4 and 9.
+
+### Re-check
+
+Witnessed: 2026-10-31, by a fresh agent (blind, rows 4 and 9). Commit: 71dd5f6d plus the uncommitted working tree. Machine: macOS (Darwin), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4 | Check now is rate-limited to once a minute, in the action | yes | confirmed | `update-check-actions.db.test.ts` → 6 passed (22 on PostgreSQL); dropping `checkedTooRecently` from `checkUpdateNow` in a scratch copy fails its test |
+| 4b | Check now is root only | yes | confirmed | skipping the permission check fails "is root's alone" |
+| 9 | The sidebar mark is root only in `updateAvailable` | yes | confirmed | removing the `can` guard fails "is the newer version for root, and nothing for anyone else" |
+
+**Overall:** met.
+
+### Re-check (install options)
+
+Witnessed: 2026-10-31, by a fresh agent (blind). Commit: 71dd5f6d plus the uncommitted working tree. Machine: macOS (Darwin), Node v24. After the owner asked that the tab show every way Ronne is installed.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `updatePlans` lists docker, npm, service, package and clone, this instance's first and the only one `current` | no | confirmed | `runtime.ts`; making `now` always "npm" in a scratch copy fails 2 tests |
+| 2 | Each way has its own backup command and commands | no | confirmed | `runtime.ts` and `runtime.test.ts` |
+| 3 | The panel renders each as `<details>`, only the current one open and marked "This instance" | no | confirmed | making every one open fails "lists every way to install, this instance's first, open and marked" |
+| 4 | The texts exist in en, pt and fr | no | confirmed | `src/i18n` tests pass |
+| 5a | The e2e asserts this instance's way is the only open block and is marked | no | confirmed | `updates.e2e.ts:49-53`; 2 passed |
+| 5b | The e2e asserts another way (Docker, the packages) is hidden until opened | no | confirmed | `updates.e2e.ts:55-59` |
+| 6 | The earlier claims still hold (mark, switch, audit, rate limit) | yes | confirmed | 40 files, 704 tests; db project 5 files, 76 tests |
+
+**Overall:** met. An e2e mutation was not run (a rebuild is slow); the same mutation fails the unit test.

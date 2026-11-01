@@ -8,6 +8,7 @@ import {
   runtimeOf,
   scriptCommand,
   setupCommand,
+  updatePlans,
 } from "./runtime";
 
 describe("runtime (082)", () => {
@@ -69,5 +70,72 @@ describe("runtime (082)", () => {
     );
     expect(setupCommand({ RONNE_RUNTIME: "npm" })).toBe("rmk-server setup");
     expect(setupCommand({})).toBe("pnpm run setup");
+  });
+});
+
+describe("updatePlans (140)", () => {
+  const order = (env: Record<string, string>) => updatePlans(env).map((plan) => plan.kind);
+  const plan = (env: Record<string, string>, kind: string) =>
+    updatePlans(env).find((one) => one.kind === kind);
+
+  it("lists every way to update, the one this instance runs by first and the only one marked", () => {
+    expect(order({ RONNE_RUNTIME: "docker" })).toEqual([
+      "docker",
+      "npm",
+      "service",
+      "package",
+      "clone",
+    ]);
+    expect(order({ RONNE_RUNTIME: "npm" })[0]).toBe("npm");
+    expect(order({ RONNE_RUNTIME: "npm", RONNE_SERVICE: "1" })[0]).toBe("service");
+    expect(order({})[0]).toBe("clone");
+    for (const env of [{ RONNE_RUNTIME: "docker" }, { RONNE_RUNTIME: "npm" }, {}] as Record<
+      string,
+      string
+    >[]) {
+      expect(updatePlans(env).filter((one) => one.current)).toHaveLength(1);
+      expect(updatePlans(env)[0]?.current).toBe(true);
+      expect(order(env).slice().sort()).toEqual(["clone", "docker", "npm", "package", "service"]);
+    }
+  });
+
+  it("pulls the image for Docker, after a backup inside the container", () => {
+    expect(plan({}, "docker")).toMatchObject({
+      backup: "docker compose exec web pnpm run backup",
+      commands: ["docker compose pull", "docker compose up -d"],
+    });
+  });
+
+  it("installs the npm package, and restarts the service when there is one", () => {
+    expect(plan({}, "npm")).toMatchObject({
+      backup: "rmk-server backup",
+      commands: ["npm install --global @ronneai/marketplace@latest"],
+    });
+    expect(plan({}, "service")).toMatchObject({
+      backup: "sudo rmk-server backup",
+      commands: [
+        "npm install --global @ronneai/marketplace@latest",
+        "sudo rmk-server service restart",
+      ],
+    });
+  });
+
+  it("installs the new .deb or .rpm, and pulls and rebuilds a clone", () => {
+    expect(plan({}, "package")).toMatchObject({
+      backup: "sudo rmk-server backup",
+      commands: ["sudo apt install ./rmk-server_*.deb", "sudo dnf install ./rmk-server-*.rpm"],
+    });
+    expect(plan({}, "clone")).toMatchObject({
+      backup: "pnpm run backup",
+      commands: ["git pull", "pnpm install", "pnpm build"],
+    });
+  });
+
+  it("lists the same commands wherever it runs: a service flag outside npm changes nothing", () => {
+    expect(updatePlans({ RONNE_RUNTIME: "docker", RONNE_SERVICE: "1" })[0]?.kind).toBe("docker");
+    expect(plan({ RONNE_RUNTIME: "docker" }, "clone")).toMatchObject({
+      commands: plan({}, "clone")?.commands,
+      backup: plan({}, "clone")?.backup,
+    });
   });
 });

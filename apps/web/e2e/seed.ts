@@ -10,6 +10,8 @@ import { kyselyIdentityRepository } from "../src/server/domains/identity/reposit
 import { kyselyItemRepository } from "../src/server/domains/items/repositories/kysely-item-repository";
 import { kyselyScopeRepository } from "../src/server/domains/items/repositories/kysely-scope-repository";
 import { notify } from "../src/server/domains/notifications/services/notify";
+import { UPDATE_KEYS } from "../src/server/domains/settings/models/update-check";
+import { kyselySettingsRepository } from "../src/server/domains/settings/repositories/kysely-settings-repository";
 import { dayOf, daysBefore } from "../src/server/domains/usage/models/usage-event";
 import { kyselyUsageRepository } from "../src/server/domains/usage/repositories/kysely-usage-repository";
 import { UNFILTERED } from "../src/server/domains/workspaces/models/viewer";
@@ -1016,6 +1018,35 @@ await db
       oldest.map((row) => row.id),
     )
     .execute();
+}
+
+// A newer release was seen (140): the stored answer of a check that found 9.9.9, and the notice it
+// sent to one root. The check itself needs GitHub; its tests use a fake answer.
+{
+  const at = new Date("2026-10-31T12:00:00Z");
+  const settings = kyselySettingsRepository(db, dialect);
+  await settings.set(UPDATE_KEYS.latest, "9.9.9", null, at);
+  await settings.set(
+    UPDATE_KEYS.url,
+    "https://github.com/ronneai/ronne-marketplace/releases/tag/v9.9.9",
+    null,
+    at,
+  );
+  await settings.set(UPDATE_KEYS.at, at.toISOString(), null, at);
+  await settings.set(UPDATE_KEYS.error, "", null, at);
+  await settings.set(UPDATE_KEYS.notified, "9.9.9", null, at);
+  await notify(
+    db,
+    dialect,
+    {
+      recipients: [ids.updatesRoot ?? ""],
+      kind: "instance.update_available",
+      actorId: null,
+      subject: { type: "instance", id: "9.9.9" },
+      params: { version: "9.9.9", current: "0.6.0" },
+    },
+    at,
+  );
 }
 
 await db.destroy();

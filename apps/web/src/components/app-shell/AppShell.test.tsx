@@ -323,6 +323,26 @@ describe("Sidebar", () => {
     expect(html).toContain('<nav aria-label="Main"');
   });
 
+  it("marks an available update beside the version, leading to Settings › Updates (140)", () => {
+    const html = sidebar({ updateAvailable: "1.3.0" });
+    expect(html).toMatch(/href="\/admin\/settings\?tab=updates"[^>]*>Update available<\/a>/);
+    expect(html).toContain('title="Version 1.3.0 is out"');
+    expect(html.indexOf("v1.2.3")).toBeLessThan(html.indexOf("Update available"));
+  });
+
+  it("shows no update mark without a newer version, or without a version", () => {
+    expect(sidebar()).not.toContain("Update available");
+    expect(sidebar({ updateAvailable: null })).not.toContain("Update available");
+    expect(sidebar({ updateAvailable: "1.3.0", version: undefined })).not.toContain(
+      "Update available",
+    );
+  });
+
+  it("hides the update mark from view and from screen readers when folded", () => {
+    const html = sidebar({ updateAvailable: "1.3.0", folded: true });
+    expect(html).toMatch(/<a[^>]*tabindex="-1"[^>]*aria-hidden="true"[^>]*>Update available<\/a>/);
+  });
+
   it("leaves out Propose item for those who can't submit", () => {
     expect(sidebar({ propose: false })).not.toContain("Propose item");
   });

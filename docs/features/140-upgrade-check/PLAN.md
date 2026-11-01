@@ -27,7 +27,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* db tests cover the stored result, one notification per version per root, none on
     failure, none when off (fetch not called) and the lease; the scheduler test covers the timing.
 
-- [ ] **4. Settings › Updates and the sidebar mark.**
+- [x] **4. Settings › Updates and the sidebar mark.**
   - The tab (122's strip), Check now (once a minute), the commands per runtime from `runtime.ts`, the
     switch with the environment winning, the audit event; "Update available" at the sidebar's foot
     for root.
