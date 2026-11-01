@@ -9,20 +9,21 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 ## Tasks
 
-- [ ] **1. Decision.**
+- [x] **1. Decision.**
   - MVP.md §15's "Web setup" row says the setup asks for a setup code, and `docs/features/README.md`
     lists 161 in M28 with its dependencies.
   - *Done when:* both say what this spec says, and `pnpm witness:check` passes.
 
-- [ ] **2. The code.** [risky]
+- [x] **2. The code.** [risky]
   - `server/setup/setup-code.ts`:
     - make (128 random bits, Crockford base32, groups of five);
-    - write (0600, exclusive create, temporary file then rename);
+    - write (0600, exclusive create: a temporary file linked into place; a file holding no code is
+      replaced, by a rename, only when `setup-code` asks);
     - read; normalise a typed code; constant-time check on SHA-256; delete.
   - *Done when:* unit tests cover the format, look-alike decoding, case, spaces and dashes, a wrong
     code, the file's mode, two writers racing (one wins, the other reads), and an unwritable folder.
 
-- [ ] **3. Start and log.** [risky]
+- [x] **3. Start and log.** [risky]
   - `prepareStart` makes or reads the code in setup mode and logs `server.setup_code` with the
     address.
   - `setup.code_created` and `setup.code_unwritable`.
@@ -31,7 +32,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     instance (no file, no line) and an unwritable folder; `log/no-secrets.db.test.ts` passes with
     the allowance.
 
-- [ ] **4. The guard.** [risky]
+- [x] **4. The guard.** [risky]
   - `refusal` in `features/setup/install.ts` checks the code after the state, for every action.
   - The limiter (10 per address, 30 in all, per 10 minutes); `setup_code_wrong`,
     `setup_code_missing`, `setup_code_rate_limited`.
@@ -41,33 +42,53 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     code, the rate limit, and the deletion; `run-setup.db.test.ts` and `reset-setup.test.ts` cover
     theirs.
 
-- [ ] **5. `setup-code`.**
+- [x] **5. `setup-code`.**
   - The script for a clone and Docker (`pnpm run setup-code`) and `rmk-server setup-code`: print,
     make if missing, refuse when set up.
   - *Done when:* CLI tests cover the three answers; `pnpm packages:check` lists the new entry.
 
-- [ ] **6. The setup page.**
+- [x] **6. The setup page.**
   - The Setup code field first, filled from `#code=` (read on the client, never sent in a URL).
   - The errors, and "Where's the setup code?" with the command for this runtime (`runtimeOf`).
-  - *Done when:* `setup.test.tsx` covers the field, the fragment and each error; the e2e wizard
-    test reads the code from the throwaway instance's data folder and sets up with it.
+  - *Done when:* `setup.test.tsx` (the field and its place) and `code-field.test.tsx` (the
+    fragment and each error) cover the page; the e2e wizard test reads the code from the throwaway
+    instance's data folder and sets up with it.
 
-- [ ] **7. Install paths.**
+- [x] **7. Install paths.**
   - `install.sh` prints the code after its start check and opens `/setup#code=…`.
   - `rmk-server start` and `service install` print it on a terminal.
   - `compose.yaml`'s comments.
   - *Done when:* `pnpm test:install` asserts the printed code under dash and bash; the server
     package's tests cover `start`'s output.
 
-- [ ] **8. Messages.**
+- [x] **8. Messages.**
   - Every new key in `en`, `pt` and `fr`.
   - *Done when:* the parity and raw-text tests pass; the phone sweep passes on the setup page.
 
-- [ ] **9. Documentation and the threat model.**
+- [x] **9. Documentation and the threat model.**
   - `install#setup`, `install#https`, `security#security`, the helper; the install guide.
   - The threat model's §4.2 row and §5.
   - *Done when:* the docs render tests and `pnpm docs:links` pass, and the helper lands on a real
     section; the threat model's date and commit are updated.
+
+- [x] **10. The right code always passes.** [risky]
+  - Owner, 2026-11-01, after the feature was done: without `TRUST_PROXY` a stranger could fill the
+    30 wrong codes and hold the web setup off. The guard compares first; the right code passes
+    whatever the limit says. Past a limit, a wrong code gets `setup_code_rate_limited` (new words,
+    with the `setup-code` command) and no log line; `setup.code_rate_limited` is logged once, as a
+    limit is reached.
+  - The spec, the threat model, and the Documentation's setup section (en, pt, fr) and product facts.
+  - *Done when:* `install.db.test.ts` shows the right code passing past both limits, from a known
+    address and with none, wrong codes past them getting the limited answer, and one
+    `setup.code_rate_limited` line; the parity and words tests pass.
+
+- [x] **11. The setup code's line at every `LOG_LEVEL`.**
+  - Owner, 2026-11-01: `server.setup_code` is written whatever `LOG_LEVEL` says (an `always` event,
+    the only one); the lines around it follow the level.
+  - The spec, the install guide's `LOG_LEVEL` row, the threat model, and the Documentation's Logs
+    topic (en, pt, fr).
+  - *Done when:* `logger.test.ts` shows the line written at each level, at its own level, and that
+    no other event is `always`.
 
 ## Notes
 

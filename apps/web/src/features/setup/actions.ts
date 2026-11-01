@@ -17,7 +17,7 @@ import type { InstallState, StepOutcome, TestResult } from "./types";
 
 /**
  * The web setup's server actions (feature 036): thin over `install.ts`. Anyone can call them
- * until the instance is ready, and each refuses once it is.
+ * until the instance is ready, and each refuses once it is, or without the setup code (161).
  */
 const context = async () =>
   appContext({
@@ -34,7 +34,7 @@ export const installSettings = serverAction(
 );
 
 export const installMigrations = serverAction(
-  async (): Promise<StepOutcome> => installMigrationsWith(await context()),
+  async (form: FormData): Promise<StepOutcome> => installMigrationsWith(await context(), form),
 );
 
 export const installRoot = serverAction(

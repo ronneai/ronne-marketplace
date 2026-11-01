@@ -12,11 +12,13 @@ const page = (overrides: Partial<SetupPageProps> = {}): SetupPageProps => ({
   runtime: "node",
   envFile: "/srv/ronne/apps/web/.env",
   publicUrlFromEnvironment: false,
+  setupCodeCommand: "pnpm run setup-code",
   initial: DEFAULT_VALUES,
   ...overrides,
 });
 
 const FIELDS = [
+  "setup.code",
   "database.kind",
   "database.path",
   "database.host",
@@ -32,15 +34,20 @@ const FIELDS = [
 ];
 
 describe("SetupPage", () => {
-  it("shows every question, the Install button and the warning, and nothing about the terminal", () => {
+  it("shows every question, the setup code first, the Install button and the notice, and nothing about the terminal", () => {
     const html = renderToStaticMarkup(<SetupPage page={page()} />);
     expect(html).toContain("Set up Ronne AI Marketplace");
     expect(html).toContain("isn’t set up yet");
     for (const name of FIELDS) expect(html, name).toContain(`name="${name}"`);
+    // The code comes before every other question (161).
+    const positions = FIELDS.map((name) => html.indexOf(`name="${name}"`));
+    expect(Math.min(...positions)).toBe(positions[0]);
     expect(html).toContain(">Install<");
-    expect(html).not.toContain("pnpm run setup");
+    // The only command on the page is the one that prints the code, never the terminal setup.
+    expect(html).not.toMatch(/pnpm run setup(?!-code)/);
     expect(html).not.toContain("terminal");
-    expect(html).toContain("Anyone who can open this page can set the instance up");
+    expect(html).toContain("Setting this instance up takes its setup code");
+    expect(html).not.toContain("Anyone who can open this page");
     expect(html).not.toContain("database.keep");
     expect(html).not.toContain("docker compose --profile");
     expect(html).not.toContain("readonly");
@@ -93,6 +100,31 @@ describe("SetupPage", () => {
     expect(html).toContain("didn’t finish");
     expect(html).toMatch(/name="database.keep"[^>]*checked/);
     expect(html).toContain("postgres://ronne:***@db:5432/ronne");
+  });
+});
+
+describe("the setup code field (161)", () => {
+  it("says where the code is, with this runtime's command, and links to the Documentation", () => {
+    const html = renderToStaticMarkup(<SetupPage page={page()} />);
+    expect(html).toContain("Setup code");
+    expect(html).toContain("server.setup_code");
+    expect(html).toContain('<code class="font-mono break-all">pnpm run setup-code</code>');
+    expect(html).toContain("Where’s the setup code?");
+    expect(html).toContain("/marketplace/docs/install#setup");
+    const docker = renderToStaticMarkup(
+      <SetupPage
+        page={page({
+          runtime: "docker",
+          setupCodeCommand: "docker compose exec web pnpm run setup-code",
+        })}
+      />,
+    );
+    expect(docker).toContain("docker compose exec web pnpm run setup-code");
+  });
+
+  it("isn't filled on the server, so the code never travels in the page", () => {
+    const html = renderToStaticMarkup(<SetupPage page={page()} />);
+    expect(html.match(/<input[^>]*name="setup.code"[^>]*>/)?.[0]).not.toMatch(/value=/);
   });
 });
 

@@ -22,19 +22,28 @@ page is no longer enough (owner, 2026-11-01).
     the server makes a code if there isn't one.
   - It is 128 random bits written as 26 Crockford base32 characters, shown in groups of five
     (`7KQ2M-…`). Case, spaces and dashes are ignored when typed.
-  - It is written to `setup-code` in the data folder (`defaultDataPath("setup-code")`: `./data`,
-    the Docker volume, or `RONNE_DATA_DIR`): mode 0600, exclusive create, then a rename, as
-    `writeEnvFile` does.
+  - It is written to `setup-code` in the data folder (`RONNE_DATA_DIR` when it's set, as the start
+    script and backups read it: the Docker volume, the npm package's folder, or a clone started
+    with one; else `./data` next to the app), mode 0600, by an exclusive create that never shows half
+    a file: a temporary file, then a hard link into place, which fails when the file is already
+    there. Where hard links aren't supported, a plain exclusive create, and a reader waits a moment
+    for its content. A file holding the code that others can read is tightened to 0600.
 - **Where it's shown:**
   - **The server's log**, at every start until setup is done: a `server.setup_code` line, an
     `info` event with the code and the address to open (`PUBLIC_URL`, else the local one), next to
     today's "Not set up yet" line. It is the one log line allowed to carry a credential (the
-    logger's redaction test lists it); it's single-use and worthless once setup is done.
-  - **The install script** (081): after the start check, it reads the code from the server's log,
-    prints it with the address, and opens `/setup#code=<code>` on "This computer". The fragment
-    never reaches the server or a proxy's log.
-  - **`rmk-server start` and `service install`** (082, 083) print it on a terminal, and
-    `rmk-server service logs` shows the log line.
+    logger's redaction test lists it); it's single-use and worthless once setup is done. It is
+    written at every `LOG_LEVEL` (the only event marked `always`; owner, 2026-11-01), so a `warn`
+    or `error` level never hides it; the lines around it follow the level.
+    `server.started` says `setup: "incomplete"` when settings exist but root doesn't yet.
+  - **The install script** (081): after the start check, it runs `setup-code` (in the container,
+    or `rmk-server setup-code` for the package) rather than parsing the log, which
+    holds older lines too; it prints the code with the address, and opens `/setup#code=<code>` on "This
+    computer". The fragment never reaches the server or a proxy's log. A rerun on a set-up instance
+    says nothing of a code.
+  - **`rmk-server start` and `service install`** (082, 083) print it on a terminal (`start` on a
+    first start once the server answers, opening the setup page with it filled in unless
+    `--no-open`), and `rmk-server service logs` shows the log line.
   - **A clone**: `pnpm dev` and `pnpm start` print the log line like any other.
   - **`setup-code`**: `rmk-server setup-code`, `pnpm run setup-code`, or
     `docker compose exec web pnpm run setup-code`. It prints the current code, or makes one when
@@ -47,16 +56,28 @@ page is no longer enough (owner, 2026-11-01).
     `features/setup/install.ts`). The check is constant-time, on the code's SHA-256.
   - A wrong or missing code gets `setup_code_wrong`: "That isn't this server's setup code. It's in
     the server's log, or run `<the setup-code command for this runtime>`."
-  - At most 10 wrong codes per 10 minutes per address (with `TRUST_PROXY`), and 30 per 10 minutes
-    in all, in memory like the sign-in limit (109 moves them), then `setup_code_rate_limited`.
+  - At most 10 wrong codes per address (with `TRUST_PROXY`), and 30 in all, in a fixed 10-minute
+    window that starts at the first wrong code, counted in memory as the sign-in limit counts
+    (109 moves them). Past either limit, a wrong code gets `setup_code_rate_limited` ("Too many
+    wrong setup codes, and that one is wrong too. This server's code is in its log, or run
+    `<setup-code>`") and no log line, so the log can't be flooded. Only wrong codes count, and
+    **the right code always passes** (owner, 2026-11-01): at 128 bits the limit isn't what stops
+    guessing, and without `TRUST_PROXY` the server knows no addresses, so a limit on the right
+    code would let a stranger hold the owner off.
+  - No code on the server (no file, one that holds none, or one that can't be read) gets
+    `setup_code_missing`: "No setup code on this server: restart it, or run `<setup-code>`. Or set
+    it up from the terminal: `<setup>`", with each command as this runtime types it.
 - **After setup** (root created, state `ready`), the file is deleted.
 - **The terminal setup** (`pnpm run setup`, `rmk-server setup`, `--yes` with variables) doesn't
   ask: whoever runs it is on the server. It deletes the file when it finishes.
 - **`reset-setup`** (development only) deletes the file. The next start makes a new code.
 - **Logs:**
   - `setup.code_created` (no code: the code is only in `server.setup_code`);
-  - `setup.code_refused` (`warn`, with the address when trusted);
-  - `setup.code_rate_limited`.
+  - `setup.code_unwritable` and `setup.code_invalid` (`error`: no code could be made or read);
+  - `setup.code_not_deleted` (`warn`: setup finished, but the file couldn't be deleted);
+  - `setup.code_refused` (`warn`, with the reason, `wrong` or `missing`; never the code typed, and
+    no address: the logger keeps addresses out of every line, 100);
+  - `setup.code_rate_limited` (`warn`, once, as a limit is reached).
 
   Nothing goes to the audit log: there is no database yet.
 
@@ -80,15 +101,22 @@ page is no longer enough (owner, 2026-11-01).
 already filled and nothing changes for the person installing.
 
 **The check, in order.** The guard reads the setup state first. A `ready` or `unavailable` instance
-is refused as today, so a set-up instance never reads the file. Then it reads the file. With no
-file it says "No setup code: restart the server or run `setup-code`". Then it compares the codes.
+is refused as today, so a set-up instance never reads the file. Then it reads the file: with none,
+`setup_code_missing`. Then it compares the codes: the right one passes. A wrong one past the limit
+gets `setup_code_rate_limited`; otherwise it counts, is logged (`setup.code_refused`) and gets
+`setup_code_wrong`, and the one that reaches the limit logs `setup.code_rate_limited` too.
 
 ## Edge cases
 
 - **Several replicas before setup** (111): the exclusive create means one writes the file; the
   others read it and log the same code.
-- **The data folder can't be written:** the server logs `setup.code_unwritable` and every setup
-  action refuses with "Set this instance up from the terminal: `<setup command>`".
+- **The data folder can't be written:** in Docker and the npm package the server doesn't start
+  at all (005's check of the data folder, before any code). In a clone (`pnpm dev`), and when only
+  the file can't be written or read, the server logs `setup.code_unwritable` and starts; every
+  setup action then refuses ("No setup code", with the terminal setup's command).
+- **A `setup-code` file that holds no code** (empty after a crash, edited by hand): a start never
+  replaces it, since several servers starting at once would each write a code of their own. It
+  logs `setup.code_invalid`, and the web setup refuses as with no file. `setup-code` replaces it.
 - **The log was lost:** `setup-code` prints the code again. Restarting prints it too.
 - **The file is deleted while the setup page is open:** the next action refuses ("No setup code").
   A restart or `setup-code` makes a new one.
@@ -100,6 +128,9 @@ file it says "No setup code: restart the server or run `setup-code`". Then it co
   them.
 - **A failed install step after a right code:** the code stays until root exists, so the person can
   retry.
+- **The file can't be deleted once root exists** (its folder made read-only): the setup still
+  finishes; the web setup logs `setup.code_not_deleted` and the terminal setup warns. A set-up
+  instance never reads the file again.
 
 ## Data
 
@@ -120,21 +151,21 @@ file it says "No setup code: restart the server or run `setup-code`". Then it co
 
 ## Acceptance criteria
 
-- [ ] A start in setup mode makes the code once (0600, exclusive) and logs `server.setup_code` at
+- [x] A start in setup mode makes the code once (0600, exclusive) and logs `server.setup_code` at
   every start until set up; a set-up instance makes none.
-- [ ] Every setup action refuses without the right code, rate-limited as above, and accepts it
+- [x] Every setup action refuses without the right code, rate-limited as above, and accepts it
   typed with any case, spaces or dashes; db tests for each action.
-- [ ] The file is deleted when root is created, by the web or the terminal setup, and by
+- [x] The file is deleted when root is created, by the web or the terminal setup, and by
   `reset-setup`.
-- [ ] `setup-code` prints the code (making one if needed) and refuses on a set-up instance.
-- [ ] The install script prints the code and opens `/setup#code=…`; `pnpm test:install` asserts
+- [x] `setup-code` prints the code (making one if needed) and refuses on a set-up instance.
+- [x] The install script prints the code and opens `/setup#code=…`; `pnpm test:install` asserts
   it under dash and bash.
-- [ ] The setup page's field comes first, is filled from the fragment, and says where the code is
+- [x] The setup page's field comes first, is filled from the fragment, and says where the code is
   for the runtime; the e2e wizard test enters it.
-- [ ] The logger's redaction test allows the code only in `server.setup_code`.
-- [ ] Every new text is a message in English, Portuguese and French; the setup page passes the
+- [x] The logger's redaction test allows the code only in `server.setup_code`.
+- [x] Every new text is a message in English, Portuguese and French; the setup page passes the
   phone sweep.
-- [ ] The Documentation, the install guide, `compose.yaml`'s comments and the threat model say
+- [x] The Documentation, the install guide, `compose.yaml`'s comments and the threat model say
   what the feature does.
 
 ## Decisions

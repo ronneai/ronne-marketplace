@@ -2,8 +2,9 @@
 # the published image, ronneai/marketplace on Docker Hub, so no clone is needed.
 #
 #   docker compose up -d                            start Ronne (SQLite, data in the ronne-data volume)
-#   then open http://localhost:7650 (or PUBLIC_URL) and follow the setup in the browser.
-#   Anyone who can open that address before you can set it up, so open it right after `up`.
+#   then open http://localhost:7650 (or PUBLIC_URL) and follow the setup in the browser. It asks
+#   for the setup code the server prints in its log (161): docker compose logs web | grep setup_code,
+#   or docker compose exec web pnpm run setup-code. Only someone with access to this machine has it.
 #
 #   docker compose pull && docker compose up -d           upgrade (migrations run on start)
 #   RONNE_IMAGE=ronneai/marketplace:0.1.0                 pin a version (environment or .env)
@@ -14,7 +15,7 @@
 # itself (web, port 3000) isn't published. Settings go in a .env file next to this one (feature 080):
 #
 #   1. Trying it on this computer: http://localhost:7650. With nothing set, 7650 and 7651 are open to
-#      your network too, and so is the setup until you finish it. To keep it to this computer
+#      your network too (the setup still asks for its code). To keep it to this computer
 #      (what install.sh's "This computer" writes):
 #        RONNE_PORT=127.0.0.1:7650
 #        RONNE_HTTPS_PORT=127.0.0.1:7651

@@ -179,6 +179,7 @@ export const serviceLogs = async (
 
 const SCRIPT_VERBS: Record<string, string> = {
   setup: "set it up",
+  "setup-code": "see its setup code",
   migrate: "migrate its database",
   "reset-root-password": "reset its root password",
   "revoke-access": "revoke access on it",

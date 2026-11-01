@@ -8,6 +8,7 @@ type Env = Record<string, string | undefined>;
 /** The scripts the web app compiles to dist-scripts/, which rmk-server runs as they are. */
 export const SCRIPTS = [
   "setup",
+  "setup-code",
   "migrate",
   "reset-root-password",
   "revoke-access",
@@ -139,6 +140,7 @@ Usage:
       Start the server (http://localhost:7650 by default). Until the instance is set up, the
       browser shows the setup. On a terminal, the first start opens the browser.
   rmk-server setup [--yes …]      Set the instance up in the terminal instead
+  rmk-server setup-code           Print the setup code the web setup asks for (until it's set up)
   rmk-server migrate              Apply pending database migrations and exit
   rmk-server reset-root-password  Set a new password for root
   rmk-server revoke-access --everyone | --user EMAIL [--sessions-only | --tokens-only] [--yes]

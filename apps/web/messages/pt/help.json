@@ -67,6 +67,10 @@
     "question": "Quem vê estes itens fixados?",
     "answer": "Todo mundo que pode ver o item, nesta prateleira. A prateleira de um espaço de trabalho fica na página dele e no Início enquanto ele é o seu espaço de trabalho atual; Comece por aqui fica no Início de todo mundo. Só os admins da prateleira (o root, no caso de Comece por aqui) a alteram. Um item que ninguém pode instalar por enquanto sai da prateleira e fica aqui como Indisponível."
   },
+  "setup-code": {
+    "question": "Onde está o código de configuração?",
+    "answer": "O servidor o criou ao iniciar, antes da configuração, e o escreveu no log. O script de instalação também o mostra, e o comando setup-code o imprime de novo no servidor. Só quem vê o log do servidor ou roda comandos nele tem o código, então chegar primeiro a esta página não basta. Ele some quando o root passa a existir."
+  },
   "install-tick": {
     "question": "Por que isto não é marcado sozinho?",
     "answer": "O registro não sabe quem instalou o quê: ele não guarda qual pessoa fez uma instalação, de propósito. Por isso você avisa uma vez, com o botão. Os outros passos são marcados sozinhos."

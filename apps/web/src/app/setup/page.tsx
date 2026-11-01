@@ -11,7 +11,7 @@ import { redactDatabaseUrl } from "@/server/db/url";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
 import { SIGN_IN_PATH } from "@/server/domains/identity/models/route-guard";
 import { requestHeaders } from "@/server/http/request-headers";
-import { defaultDataPath, defaultPublicUrl, runtimeOf } from "@/server/runtime";
+import { defaultDataPath, defaultPublicUrl, hostCommand, runtimeOf } from "@/server/runtime";
 import { getSetupState } from "@/server/setup/state";
 
 export const generateMetadata = async () => {
@@ -34,6 +34,7 @@ const Setup = async () => {
     localUrl: defaultPublicUrl(),
     envFile: config.envFile,
     publicUrlFromEnvironment: Boolean(process.env.PUBLIC_URL),
+    setupCodeCommand: hostCommand("setup-code"),
     currentDatabase:
       state === "incomplete" && config.databaseUrl
         ? redactDatabaseUrl(config.databaseUrl)

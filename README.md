@@ -54,8 +54,9 @@ curl -fsSLO https://raw.githubusercontent.com/ronneai/ronne-marketplace/main/com
 docker compose up -d                          # pulls the image and starts Ronne
 ```
 
-Then open http://localhost:7650 and follow the setup. Anyone who can open that address before you
-can set the instance up, so open it right after `up`.
+Then open http://localhost:7650 and follow the setup. It asks for the setup code the server made at
+its start, which only you can see: `docker compose logs web | grep setup_code`, or
+`docker compose exec web pnpm run setup-code`.
 
 A small proxy, [Caddy](https://caddyserver.com), runs next to Ronne and is the only way in: HTTP
 on port **7650** and HTTPS on **7651**, ports nothing common uses (3000 often clashes with other
@@ -251,9 +252,9 @@ pnpm build && pnpm start          # or `pnpm dev` while developing
 ```
 
 Then open http://localhost:3000 and follow the setup. It writes `apps/web/.env` (readable only by
-you) and, with SQLite, the database under `apps/web/data/`. Anyone who can open that address before
-you can set the instance up, so open it right after starting. A forgotten root password is reset
-with `pnpm run reset-root-password`.
+you) and, with SQLite, the database under `apps/web/data/`. It asks for the setup code the server
+printed when it started (the `server.setup_code` line); `pnpm run setup-code` prints it again. A
+forgotten root password is reset with `pnpm run reset-root-password`.
 
 **Behind a reverse proxy, from source** (nginx, Caddy, Traefik): proxy HTTPS to port 3000, and set
 `PUBLIC_URL` to the public address in `apps/web/.env`. Set `TRUST_PROXY=true` too, so Ronne takes

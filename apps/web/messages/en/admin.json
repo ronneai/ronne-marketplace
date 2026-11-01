@@ -1194,8 +1194,8 @@
       "title": "Set up Ronne AI Marketplace",
       "notConfigured": "This instance isn’t set up yet. It needs a database, its public address and a root account before it can be used.",
       "incomplete": "This instance’s setup didn’t finish. Pick up where it stopped: the settings are there, the database and the root account may not be.",
-      "warnTitle": "Anyone who can open this page can set the instance up",
-      "warnBody": "Finish it now, before the address is shared.",
+      "warnTitle": "Setting this instance up takes its setup code",
+      "warnBody": "Only whoever started the server has it. Finish now, before the address is shared.",
       "metaTitle": "Set up"
     },
     "unavailable": {
@@ -1235,6 +1235,10 @@
       "doneBody": "Sign in as <code>{email}</code> to create scopes and invite people.",
       "signIn": "Sign in",
       "goToSignIn": "Go to sign-in"
+    },
+    "code": {
+      "label": "Setup code",
+      "hint": "It’s in the server’s log, on the <code>server.setup_code</code> line, or run <code>{command}</code> on the server."
     },
     "database": {
       "legend": "Database",
@@ -1293,7 +1297,10 @@
       "settings_unwritable": "The settings file {path} can’t be written: {reason}.{docker, select, true { In Docker, the data volume is owned by root: run `docker compose run --rm --user root web chown -R 1000:1000 /app/data` once.} other {}}",
       "migration_failed": "A migration failed on {database}: {reason}",
       "weak_secret": "The AUTH_SECRET already in the settings is shorter than 32 characters. It’s kept, but consider replacing it.",
-      "restart_needed": "The settings were written, but this process still uses values from its environment. Restart it and reload this page."
+      "restart_needed": "The settings were written, but this process still uses values from its environment. Restart it and reload this page.",
+      "setup_code_missing": "No setup code on this server: restart it, or run `{command}`. Or set it up from the terminal: `{setup}`.",
+      "setup_code_wrong": "That isn’t this server’s setup code. It’s in the server’s log, or run `{command}`.",
+      "setup_code_rate_limited": "Too many wrong setup codes, and that one is wrong too. This server’s code is in its log, or run `{command}`."
     },
     "detail": {
       "settings": "Settings written to {path}",

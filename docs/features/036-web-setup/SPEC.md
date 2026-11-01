@@ -28,7 +28,8 @@ who prefer it, and both run the same code.
 
 **Out** (and where it goes instead):
 - A setup code or token to protect the page (owner's decision, 2026-09-29: the first visitor
-  sets the instance up; see Edge cases). If a hosted instance needs it, a feature of its own.
+  sets the instance up; see Edge cases). If a hosted instance needs it, a feature of its own:
+  [161](../161-setup-code/SPEC.md) added it (owner, 2026-11-01).
 - Changing settings after setup (public URL, storage path, database) from the web: an instance
   settings page, post-MVP. Until then, `pnpm run setup` again, or the environment.
 - Creating other users: [008](../008-user-admin/SPEC.md), once root is signed in.
@@ -138,7 +139,8 @@ steps, as sign-in is over the identity domain.
   whoever calls it and however: not only the page decides. A configured instance's settings are
   never changed from the browser; while its database doesn't answer, the fix is on the server
   (`pnpm run setup`, `rmk-server setup`).
-- **The first visitor owns the instance** (owner's decision, 2026-09-29). Between `up` and the
+- **The first visitor owns the instance** (owner's decision, 2026-09-29; reversed by
+  [161](../161-setup-code/SPEC.md), which asks for a setup code, 2026-11-01). Between `up` and the
   first visit, anyone who can reach the port can set the instance up and become root. On a
   laptop or a private network that's fine; on a public host, set it up before exposing the port
   (`pnpm run setup --yes` with the `RONNE_ROOT_*` variables, or `docker compose run --rm -e … web

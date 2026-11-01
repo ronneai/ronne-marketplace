@@ -36,6 +36,7 @@ const page = (extra = {}) => ({
   runtime: "node" as const,
   envFile: "/srv/ronne/apps/web/.env",
   publicUrlFromEnvironment: false,
+  setupCodeCommand: "pnpm run setup-code",
   initial: DEFAULT_VALUES,
   ...extra,
 });
@@ -64,6 +65,12 @@ const SAYS: Say[] = [
     values: { path: "/x/.env", reason: "EACCES", docker: false },
   },
   { key: "errors.migration_failed", values: { database: "postgres://u:***@h/db", reason: "boom" } },
+  {
+    key: "errors.setup_code_missing",
+    values: { command: "pnpm run setup-code", setup: "pnpm run setup" },
+  },
+  { key: "errors.setup_code_wrong", values: { command: "pnpm run setup-code" } },
+  { key: "errors.setup_code_rate_limited", values: { command: "pnpm run setup-code" } },
   { key: "detail.settings", values: { path: "/x/.env" } },
   { key: "detail.upToDate" },
   { key: "detail.migrations", values: { count: 1 } },

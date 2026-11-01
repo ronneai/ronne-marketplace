@@ -76,6 +76,77 @@ check "package_file pre-release" "rmk-server_1.0.0~rc.1-1_arm64.deb" "$(package_
 check "glibc 2.35 is new enough" 1 "$(version_cmp 2.35 2.34)"
 check "glibc 2.31 is too old" -1 "$(version_cmp 2.31 2.34)"
 
+# --- The setup code (161) ----------------------------------------------------------------------
+check "setup_link puts the code in the fragment" "http://localhost:7650/setup#code=0KQ2M-ABCDE" \
+  "$(setup_link http://localhost:7650 0KQ2M-ABCDE)"
+check "setup_link with a trailing slash" "https://r.example.com/setup#code=X" "$(setup_link https://r.example.com/ X)"
+printf '#!/bin/sh\necho "Setup code: 0KQ2M-ABCDE-FGHJK-MNPQR-STVWX-Y"\necho "Open http://localhost:7650/setup and enter it."\n' >"$work/code-ok"
+printf '#!/bin/sh\necho "✗ This instance is already set up, so there'"'"'s no setup code." >&2\nexit 1\n' >"$work/code-done"
+chmod +x "$work/code-ok" "$work/code-done"
+check "setup_code reads the code setup-code prints" "0KQ2M-ABCDE-FGHJK-MNPQR-STVWX-Y" "$(setup_code "$work/code-ok")"
+check "setup_code is empty once set up" "" "$(setup_code "$work/code-done")"
+check "setup_code is empty when the command is missing" "" "$(setup_code "$work/missing-command")"
+MODE=server YES=1
+check "show_setup prints the code and where to enter it" \
+  "Open https://r.example.com/setup and enter the setup code: 7KQ2M|Only you have it: it's in the server's log too, and rmk-server setup-code prints it again." \
+  "$(show_setup https://r.example.com 7KQ2M "rmk-server setup-code" | tr '\n' '|' | sed 's/|$//')"
+check "show_setup says nothing without a code" "" "$(show_setup https://r.example.com "" x)"
+# What it opens: on this computer the page with the code filled in, with a domain the address, and
+# the address when there's no code.
+opened_by() { # opened_by MODE URL CODE: the address show_setup opens
+  (
+    MODE=$1
+    YES=0
+    open_browser() { printf '%s' "$1"; }
+    show_setup "$2" "$3" x | sed -n '$p' | sed 's/^.*\(http[^ ]*\)$/\1/'
+  )
+}
+check "show_setup on this computer opens the page with the code" \
+  "http://localhost:7650/setup#code=7KQ2M" "$(opened_by local http://localhost:7650 7KQ2M)"
+check "show_setup with a domain opens the address" "https://r.example.com" \
+  "$(opened_by server https://r.example.com 7KQ2M)"
+check "show_setup without a code opens the address" "http://localhost:7650" \
+  "$(opened_by local http://localhost:7650 "")"
+MODE="" YES=0
+
+# The package path's end (085): `rmk-server setup-code`, through sudo when not root, then the code.
+nbin="$work/nbin"
+mkdir -p "$nbin"
+printf '#!/bin/sh\nprintf "SUDO %%s\\n" "$*" >>"$NLOG"; exec "$@"\n' >"$nbin/sudo"
+printf '#!/bin/sh\nprintf "APT %%s\\n" "$*" >>"$NLOG"\n' >"$nbin/apt-get"
+printf '#!/bin/sh\nwhile [ $# -gt 0 ]; do case "$1" in -o) out=$2; shift 2;; *) url=$1; shift;; esac; done\ncase "$url" in */checksums.txt) printf "abc  %%s\\n" "$PKG" >"$out";; *) : >"$out";; esac\n' >"$nbin/curl"
+printf '#!/bin/sh\nprintf "RMK %%s\\n" "$*" >>"$NLOG"\n[ -n "$FAKE_CODE" ] || exit 1\nprintf "Setup code: %%s\\n" "$FAKE_CODE"\n' >"$nbin/rmk-server"
+chmod +x "$nbin"/*
+native_end() { # native_end CODE: native_install's output with fakes, and what it ran
+  (
+    export PATH="$nbin:$PATH" NLOG="$work/native.log" FAKE_CODE=$1 PKG=rmk-server_0.3.0-1_amd64.deb
+    : >"$NLOG"
+    uname() { case "$1" in -s) echo Linux ;; -m) echo x86_64 ;; esac }
+    native_target() { echo "deb amd64"; }
+    glibc_version() { echo 2.36; }
+    sha256_of() { echo abc; }
+    confirm() { return 0; }
+    wait_healthy() { return 0; }
+    id() { echo 1000; }
+    opened=""
+    open_browser() { printf 'OPENED %s\n' "$1"; }
+    YES=0 DOMAIN="" RONNE_INSTALL_VERSION=0.3.0 RONNE_INSTALL_RELEASE_URL=https://example.invalid
+    native_install 2>&1
+    cat "$NLOG"
+  )
+}
+holds() { case "$out" in *"$1"*) echo yes ;; *) echo "no: $out" ;; esac }
+out=$(native_end 1KQ2M-ABCDE-FGHJK-MNPQR-STVWX-0)
+check "the package path asks rmk-server for the code, through sudo" yes "$(holds "SUDO rmk-server setup-code")"
+check "the package path prints the code" yes \
+  "$(holds "Open http://localhost:7650/setup and enter the setup code: 1KQ2M-ABCDE-FGHJK-MNPQR-STVWX-0")"
+check "the package path opens the page with the code" yes \
+  "$(holds "OPENED http://localhost:7650/setup#code=1KQ2M-ABCDE-FGHJK-MNPQR-STVWX-0")"
+out=$(native_end "")
+case "$out" in *"setup code"*) msg=yes ;; *) msg=no ;; esac
+check "the package path on a set-up instance says nothing of a code" no "$msg"
+check "the package path on a set-up instance opens the address" yes "$(holds "OPENED http://localhost:7650")"
+
 check "valid_email" yes "$(valid_email ops@example.com && echo yes || echo no)"
 check "invalid email" no "$(valid_email 'not an email' && echo yes || echo no)"
 
@@ -125,6 +196,11 @@ case "$1 ${2:-}" in
     ;;
   "compose ls") printf '[]\n' ;;
   "compose ps") printf '%s\n' "${FAKE_PS:-}" ;;
+  "compose exec")
+    # `setup-code` in the container (161): the code, or a refusal once set up.
+    [ -n "${FAKE_SETUP_CODE:-}" ] || exit 1
+    printf 'Setup code: %s\nOpen http://localhost:7650/setup and enter it.\n' "$FAKE_SETUP_CODE"
+    ;;
   "compose up")
     [ -z "${FAKE_LOG:-}" ] || printf '%s\n' "$*" >>"$FAKE_LOG"
     exit 0
@@ -160,7 +236,7 @@ run_fake() {
 }
 says() { case "$out" in *"$1"*) echo yes ;; *) echo "no: $out" ;; esac }
 
-export FAKE_INFO FAKE_COMPOSE FAKE_PS FAKE_BUSY
+export FAKE_INFO FAKE_COMPOSE FAKE_PS FAKE_BUSY FAKE_SETUP_CODE
 FAKE_INFO="Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?"
 FAKE_COMPOSE=5.5.0
 run_fake "$work/d1"
@@ -202,6 +278,21 @@ check "a legacy rerun gets the proxy's compose.yaml" yes \
   "$(grep -q '^  proxy:' "$work/legacy/compose.yaml" && echo yes || echo no)"
 FAKE_PS=""
 FAKE_BUSY=""
+
+# A new install prints the setup code the container's setup-code gives (161); a set-up one doesn't.
+FAKE_SETUP_CODE=1KQ2M-ABCDE-FGHJK-MNPQR-STVWX-0
+run_fake "$work/code1"
+check "a new install succeeds" 0 "$code"
+check "a new install prints the setup code and where to enter it" yes \
+  "$(says "Open http://localhost:7650/setup and enter the setup code: 1KQ2M-ABCDE-FGHJK-MNPQR-STVWX-0")"
+check "a new install says how to see the code again" yes "$(says "docker compose exec web pnpm run setup-code")"
+FAKE_SETUP_CODE=""
+run_fake "$work/code1"
+check "a set-up instance's rerun succeeds" 0 "$code"
+case "$out" in *"setup code"*) msg=yes ;; *) msg=no ;; esac
+check "a set-up instance's rerun says nothing of a setup code" no "$msg"
+case "$out" in *"anyone who can reach it"*) msg=yes ;; *) msg=no ;; esac
+check "no install says anyone can set it up" no "$msg"
 
 # --- The security scanner (156) ------------------------------------------------------------------
 envline() { grep "^$2=" "$1/.env" | tail -n 1; }

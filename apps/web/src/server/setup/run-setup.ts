@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import { DatabaseAheadOfAppError } from "../db/migrate";
 import { redactDatabaseUrl } from "../db/url";
 import { IdentityError } from "../domains/identity/exceptions/errors";
@@ -8,6 +9,7 @@ import { buildDatabaseUrl, type DatabaseAnswers, DEFAULT_PORTS } from "./databas
 import { EnvMergeError, readEnvFile } from "./env-file";
 import type { SetupPrompts } from "./prompts";
 import { normalizePublicUrl, PUBLIC_URL_RULE } from "./public-url";
+import { deleteSetupCode, setupCodePath } from "./setup-code";
 import {
   applyMigrations,
   checkDatabase,
@@ -28,9 +30,30 @@ export type SetupOptions = {
   databaseUrl?: string;
   /** Use this STORAGE_PATH instead of the one in .env or the default. */
   storagePath?: string;
+  /** The web setup's code, deleted once root exists (161): the data folder's by default. */
+  setupCodePath?: string;
 };
 
 export type SetupResult = { publicUrl: string; rootEmail: string; rootCreated: boolean };
+
+/** The web setup's code: the data folder's, `./data` resolved from the app folder (161). */
+const codePath = (options: SetupOptions) =>
+  options.setupCodePath ?? resolve(options.appDir, setupCodePath());
+
+/**
+ * Root exists: the web setup's code has no use any more (161). A file that can't be removed is a
+ * warning, not a failed setup: a set-up instance never reads it again.
+ */
+const removeCode = (options: SetupOptions) => {
+  const path = codePath(options);
+  try {
+    deleteSetupCode(path);
+  } catch (error) {
+    options.prompts.log.warn(
+      `The web setup's code at ${path} couldn't be deleted (${(error as Error).message}). It's no use any more: delete it by hand.`,
+    );
+  }
+};
 
 /** Setup stopped at a check that can't be retried (non-interactive mode, or a newer database). */
 export class SetupFailedError extends Error {
@@ -150,6 +173,7 @@ export const runSetup = async (options: SetupOptions): Promise<SetupResult> => {
           : `Every root account is disabled. Run \`${scriptCommand("reset-root-password")} --email <one of them>\` to enable one again.`,
       );
     }
+    removeCode(options);
     return { publicUrl, rootEmail: first.email, rootCreated: false };
   }
 
@@ -192,6 +216,7 @@ export const runSetup = async (options: SetupOptions): Promise<SetupResult> => {
       },
     );
     prompts.log.success(`Created the root account ${root.email}.`);
+    removeCode(options);
     return { publicUrl, rootEmail: root.email, rootCreated: true };
   } catch (error) {
     if (error instanceof IdentityError) throw new SetupFailedError(error.message);

@@ -13,7 +13,7 @@ import {
   installSettings,
   testDatabase,
 } from "./actions";
-import { DatabaseFields, InstanceFields, RootFields } from "./fields";
+import { CodeField, DatabaseFields, InstanceFields, RootFields } from "./fields";
 import { StepList } from "./StepList";
 import { useSay } from "./say";
 import {
@@ -43,7 +43,7 @@ const signInHref = (email: string) => `/sign-in?email=${encodeURIComponent(email
 
 /** The wizard's pages, in order; the last one is the install itself (their words: `admin.setup.wizard.pages`). */
 const PAGES = ["database", "instance", "root", "install"] as const;
-const SECTION_PAGE: Record<SetupSection, number> = { database: 0, instance: 1, root: 2 };
+const SECTION_PAGE: Record<SetupSection, number> = { code: 0, database: 0, instance: 1, root: 2 };
 
 /**
  * The setup form. Rendered on the server as one form with every question and one Install button,
@@ -88,6 +88,7 @@ const SingleForm = ({
       {ran ? <StepList steps={state.steps} /> : null}
       <AlreadySetUp error={state.error} />
       <Notices notices={state.notices} />
+      <CodeField page={page} error={state.error} />
       <DatabaseFields page={page} values={state.values} error={state.error} />
       <InstanceFields page={page} values={state.values} error={state.error} />
       <RootFields page={page} values={state.values} error={state.error} />
@@ -160,7 +161,7 @@ const Wizard = ({
       };
       const order: [StepName, () => Promise<StepOutcome>][] = [
         ["settings", () => installSettings(submitted)],
-        ["migrations", () => installMigrations()],
+        ["migrations", () => installMigrations(submitted)],
         ["root", () => installRoot(submitted)],
       ];
       for (const [name, step] of order) {
@@ -220,6 +221,7 @@ const Wizard = ({
       </ol>
 
       <div hidden={current !== 0} className="grid gap-4">
+        <CodeField page={page} error={error} />
         <DatabaseFields page={page} values={values} error={error} onKindChange={setKind} />
         {test?.ok ? (
           <Notice kind="info" title={t("connected", { server: describeServer(test) })}>

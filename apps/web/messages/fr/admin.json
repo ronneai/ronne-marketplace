@@ -1194,8 +1194,8 @@
       "title": "Configurer Ronne AI Marketplace",
       "notConfigured": "Cette instance n’est pas encore configurée. Il lui faut une base de données, son adresse publique et un compte root avant de pouvoir servir.",
       "incomplete": "La configuration de cette instance n’a pas abouti. Reprenez là où elle s’est arrêtée : les réglages y sont; la base de données et le compte root peuvent ne pas y être.",
-      "warnTitle": "Quiconque peut ouvrir cette page peut configurer l’instance",
-      "warnBody": "Terminez maintenant, avant que l’adresse soit partagée.",
+      "warnTitle": "Configurer cette instance demande son code de configuration",
+      "warnBody": "Seule la personne qui a démarré le serveur l’a. Terminez maintenant, avant de partager l’adresse.",
       "metaTitle": "Configuration"
     },
     "unavailable": {
@@ -1235,6 +1235,10 @@
       "doneBody": "Connectez-vous avec <code>{email}</code> pour créer des portées et inviter des gens.",
       "signIn": "Se connecter",
       "goToSignIn": "Aller à la connexion"
+    },
+    "code": {
+      "label": "Code de configuration",
+      "hint": "Il est dans le journal du serveur, sur la ligne <code>server.setup_code</code>, ou exécutez <code>{command}</code> sur le serveur."
     },
     "database": {
       "legend": "Base de données",
@@ -1293,7 +1297,10 @@
       "settings_unwritable": "Le fichier de réglages {path} ne peut pas être écrit : {reason}.{docker, select, true { Dans Docker, le volume de données appartient à root : exécutez `docker compose run --rm --user root web chown -R 1000:1000 /app/data` une fois.} other {}}",
       "migration_failed": "Une migration a échoué sur {database} : {reason}",
       "weak_secret": "L’AUTH_SECRET déjà dans les réglages compte moins de 32 caractères. Il est conservé, mais envisagez de le remplacer.",
-      "restart_needed": "Les réglages ont été écrits, mais ce processus utilise encore des valeurs de son environnement. Redémarrez-le et rechargez cette page."
+      "restart_needed": "Les réglages ont été écrits, mais ce processus utilise encore des valeurs de son environnement. Redémarrez-le et rechargez cette page.",
+      "setup_code_missing": "Aucun code de configuration sur ce serveur : redémarrez-le, ou exécutez `{command}`. Ou configurez-le depuis le terminal : `{setup}`.",
+      "setup_code_wrong": "Ce n’est pas le code de configuration de ce serveur. Il est dans le journal du serveur, ou exécutez `{command}`.",
+      "setup_code_rate_limited": "Trop de codes de configuration erronés, et celui-ci l’est aussi. Le code de ce serveur est dans son journal, ou exécutez `{command}`."
     },
     "detail": {
       "settings": "Réglages écrits dans {path}",

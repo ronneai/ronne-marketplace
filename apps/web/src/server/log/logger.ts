@@ -185,8 +185,14 @@ export const createLogger = (options: LoggerOptions, bindings: Fields = {}): Log
   const format = (line: Fields) =>
     `${options.format === "text" ? textLine(line, options.colour ?? false) : escapeText(JSON.stringify(line))}\n`;
 
-  const emit = (level: LogLevel, msg: unknown, fields: unknown, event?: EventName) => {
-    if (rank(level) < rank(options.level)) return;
+  const emit = (
+    level: LogLevel,
+    msg: unknown,
+    fields: unknown,
+    event?: EventName,
+    always = false,
+  ) => {
+    if (!always && rank(level) < rank(options.level)) return;
     try {
       const context = currentRequest();
       const withStack = level === "error";
@@ -252,7 +258,7 @@ export const createLogger = (options: LoggerOptions, bindings: Fields = {}): Log
       try {
         hooks().onEvent(name, fields);
       } catch {}
-      emit(level ?? spec.level, spec.msg, fields, name);
+      emit(level ?? spec.level, spec.msg, fields, name, "always" in spec && spec.always === true);
     },
     child: (more) => {
       try {

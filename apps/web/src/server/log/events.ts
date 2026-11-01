@@ -12,6 +12,11 @@ export type EventSpec = {
   msg: string;
   /** The event's own fields, besides the ones every line can carry. */
   fields: readonly string[];
+  /**
+   * Written whatever `LOG_LEVEL` says: a line the person starting the server can't do without
+   * (`server.setup_code`, 161).
+   */
+  always?: true;
 };
 
 export const EVENTS = {
@@ -20,10 +25,42 @@ export const EVENTS = {
     msg: "Server started",
     fields: ["version", "dialect", "setup", "runtime", "port"],
   },
+  "server.setup_code": {
+    level: "info",
+    msg: "Setup code: open the address and enter it to set this instance up",
+    fields: ["code", "url"],
+    always: true,
+  },
   "server.migrations_applied": {
     level: "info",
     msg: "Database migrations applied",
     fields: ["count", "latest"],
+  },
+  "setup.code_created": { level: "info", msg: "Setup code made", fields: [] },
+  "setup.code_unwritable": {
+    level: "error",
+    msg: "The setup code couldn't be written or read in the data folder: set this instance up from the terminal",
+    fields: ["err"],
+  },
+  "setup.code_invalid": {
+    level: "error",
+    msg: "The setup-code file in the data folder holds no code: run setup-code to replace it, or set this instance up from the terminal",
+    fields: ["err"],
+  },
+  "setup.code_not_deleted": {
+    level: "warn",
+    msg: "Setup is finished, but the setup code couldn't be deleted from the data folder: it's no use any more, delete it by hand",
+    fields: ["err"],
+  },
+  "setup.code_refused": {
+    level: "warn",
+    msg: "Setup code refused",
+    fields: ["reason"],
+  },
+  "setup.code_rate_limited": {
+    level: "warn",
+    msg: "Setup code limit reached",
+    fields: [],
   },
   "http.request": {
     level: "info",

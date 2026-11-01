@@ -28,6 +28,7 @@ const bundle = (extra = {}) => {
     "lib/node_modules/@ronneai/marketplace/dist/bin.js": "",
     "lib/node_modules/@ronneai/marketplace/app/apps/web/server.js": "",
     "lib/node_modules/@ronneai/marketplace/app/apps/web/dist-scripts/start.mjs": "",
+    "lib/node_modules/@ronneai/marketplace/app/apps/web/dist-scripts/setup-code.mjs": "",
     "lib/node_modules/better-sqlite3/package.json": JSON.stringify({
       name: "better-sqlite3",
       dependencies: { bindings: "1" },

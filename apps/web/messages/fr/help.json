@@ -67,6 +67,10 @@
     "question": "Qui voit ces éléments épinglés?",
     "answer": "Tous ceux qui peuvent voir l’élément, sur cette étagère. L’étagère d’un espace de travail est sur sa page et sur l’accueil tant qu’il est votre espace de travail actuel; Commencez ici est sur l’accueil de tout le monde. Seuls les admins de l’étagère (root, pour Commencez ici) la modifient. Un élément que personne ne peut installer pour le moment quitte l’étagère et reste ici comme Non disponible."
   },
+  "setup-code": {
+    "question": "Où est le code de configuration?",
+    "answer": "Le serveur l’a créé à son démarrage, avant la configuration, et l’a écrit dans son journal. Le script d’installation l’affiche aussi, et la commande setup-code l’affiche de nouveau sur le serveur. Seule une personne qui voit le journal du serveur ou y exécute des commandes l’a : arriver la première sur cette page ne suffit pas. Il disparaît dès que root existe."
+  },
   "install-tick": {
     "question": "Pourquoi ceci ne se coche-t-il pas tout seul?",
     "answer": "Le registre ne sait pas qui a installé quoi : il ne garde pas la trace de la personne qui a fait une installation, volontairement. Vous le lui dites donc une fois, avec le bouton. Les autres étapes se cochent d’elles-mêmes."

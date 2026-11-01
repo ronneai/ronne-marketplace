@@ -15,6 +15,7 @@ import { scriptForService } from "./service/control.js";
 import { runService, serviceTarget } from "./service/index.js";
 import { stableNodePath } from "./service/macos.js";
 import { realSystem } from "./service/system.js";
+import { announceSetup } from "./setup-code.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 /** The web app, copied into the package at pack time (scripts/assemble.mjs). */
@@ -49,16 +50,33 @@ const openBrowser = (url: string): void => {
 };
 
 /** Opens the address once the server answers, without holding the process open. */
-const openWhenReady = (url: string): void => {
+/**
+ * Once the server answers: the setup code it made (161), printed and, when asked, the browser opened
+ * on the setup page with it filled in; without a code (set up already), the address.
+ */
+const announceWhenReady = (url: string, dataDir: string, open: boolean): void => {
   const deadline = Date.now() + 60_000;
   const tick = (): void => {
     fetch(`${url}/api/health`)
-      .then(() => openBrowser(url))
+      .then(() =>
+        announceSetup(
+          { url, dataDir, open },
+          { read: readIfThere, write: (text) => process.stdout.write(text), openBrowser },
+        ),
+      )
       .catch(() => {
         if (Date.now() < deadline) setTimeout(tick, 500).unref();
       });
   };
   setTimeout(tick, 500).unref();
+};
+
+const readIfThere = (path: string): string | undefined => {
+  try {
+    return readFileSync(path, "utf8");
+  } catch {
+    return undefined;
+  }
 };
 
 const importScript = async (name: string): Promise<void> => {
@@ -156,8 +174,8 @@ export const main = async (argv: string[]): Promise<number | undefined> => {
   const envFile = process.env.RONNE_ENV_FILE as string;
   const firstStart = !isSetUp(existsSync(envFile) ? readFileSync(envFile, "utf8") : undefined);
   process.stdout.write(startLines(process.platform, dir));
-  if (command.open && firstStart && process.stdout.isTTY)
-    openWhenReady(`http://localhost:${command.port}`);
+  if (firstStart && process.stdout.isTTY)
+    announceWhenReady(`http://localhost:${command.port}`, dir, command.open);
   // start.mjs checks the folder, applies pending migrations and starts Next.js's server here.
   await importScript("start");
   return undefined;

@@ -19,6 +19,7 @@ export const PUBLISHED = {
     require: [
       "app/apps/web/server.js",
       "app/apps/web/dist-scripts/start.mjs",
+      "app/apps/web/dist-scripts/setup-code.mjs",
       "THIRD_PARTY_NOTICES",
     ],
   },

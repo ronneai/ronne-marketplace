@@ -18,7 +18,9 @@ import { postDraft } from "../http/drafts-api";
 import { health } from "../http/health";
 import { requireToken } from "../http/require-token";
 import { createUploadLimiter } from "../http/upload-rate-limit";
+import { resetSetupCodeShown } from "../setup/announce-setup-code";
 import { prepareStart } from "../setup/prepare-start";
+import { formatSetupCode, readSetupCode } from "../setup/setup-code";
 import { localStorage } from "../storage/local-storage";
 import { logger, setLoggerForTests, withRequestContext } from "./index";
 
@@ -177,6 +179,16 @@ it("writes nothing secret or personal from sign-in, tokens, the API, uploads and
       env: { DATABASE_URL: url, AUTH_SECRET, RONNE_ENV_FILE: join(storageRoot, "none.env") },
     }),
   ).rejects.toThrow();
+  // A start before setup (161): the setup code is made and logged, in its one event.
+  const setupData = join(storageRoot, "setup");
+  await prepareStart({
+    appDir: setupData,
+    dataDir: setupData,
+    env: { RONNE_ENV_FILE: join(storageRoot, "none.env") },
+  });
+  resetSetupCodeShown();
+  const setupCode = readSetupCode(join(setupData, "setup-code")) ?? "";
+  expect(setupCode).toHaveLength(26);
   // A database's duplicate-key error quotes the value it refused: an email, here, in two scripts.
   logger.error("Unexpected error", {
     err: new Error(`Duplicate entry '${EMAIL}' for key 'user.user_email_unique'`),
@@ -269,4 +281,17 @@ it("writes nothing secret or personal from sign-in, tokens, the API, uploads and
   expect(written).not.toMatch(/rmk_[A-Za-z0-9_-]{20,}/);
   // The item's name stays out too (093).
   expect(written).not.toContain("secret-skill");
+  // The setup code is the one credential a line may carry, and only in server.setup_code (161):
+  // written as it's shown, in groups of five, and in no other line in any form the setup accepts
+  // (any case, spaces or dashes between its characters), whole or any half of it.
+  const halves = Array.from({ length: 14 }, (_, start) => setupCode.slice(start, start + 13));
+  const withCode = lines.filter((line) => {
+    const flat = line.toUpperCase().replace(/[\s-]/g, "");
+    return halves.some((half) => flat.includes(half));
+  });
+  expect(withCode).toHaveLength(1);
+  expect(JSON.parse(withCode[0] as string)).toMatchObject({
+    event: "server.setup_code",
+    code: formatSetupCode(setupCode),
+  });
 });

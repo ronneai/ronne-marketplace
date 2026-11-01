@@ -77,6 +77,9 @@ export const HELP = {
   pins: {
     href: docsHref("workspaces", "pins"),
   },
+  "setup-code": {
+    href: docsHref("install", "setup"),
+  },
   "feedback-who": {
     href: docsHref("feedback", "feedback"),
   },

@@ -1,10 +1,13 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { parseEnv } from "node:util";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { type CreatedDb, createDb } from "@/server/db/create-db";
 import { listAuditEvents } from "@/server/domains/audit/actions/audit";
+import { createLogger } from "@/server/log/logger";
+import { ensureSetupCode } from "@/server/setup/setup-code";
+import { createSetupCodeLimiter } from "@/server/setup/setup-code-limit";
 import { getSetupState, resetSetupState } from "@/server/setup/state";
 import {
   installAllWith,
@@ -18,6 +21,7 @@ import { DEFAULT_VALUES, type InstallState, PENDING_STEPS } from "./types";
 
 let appDir: string;
 let context: SetupContext;
+let code: string;
 const opened = new Map<string, CreatedDb>();
 
 beforeEach(() => {
@@ -37,7 +41,11 @@ beforeEach(() => {
       return db;
     },
     origin: { via: "web", ipAddress: "203.0.113.9" },
+    setupCode: { path: join(appDir, "data", "setup-code"), limiter: createSetupCodeLimiter() },
+    log: silent,
   };
+  // The server made the code at its start (161); every step's form carries it unless a test says.
+  code = ensureSetupCode(context.setupCode.path).code;
 });
 afterEach(async () => {
   for (const { db } of opened.values()) await db.destroy();
@@ -45,11 +53,14 @@ afterEach(async () => {
   rmSync(appDir, { recursive: true, force: true });
 });
 
-const form = (entries: Record<string, string>) => {
+/** A form as the page sends it: with the setup code, unless `entries` sets its own (or none). */
+const form = (entries: Record<string, string | undefined>) => {
   const data = new FormData();
-  for (const [key, value] of Object.entries(entries)) data.set(key, value);
+  for (const [key, value] of Object.entries({ "setup.code": code, ...entries }))
+    if (value !== undefined) data.set(key, value);
   return data;
 };
+const silent = createLogger({ level: "error", format: "json", write: () => {} });
 const sqlite = {
   "database.kind": "sqlite",
   "database.path": "./data/ronne.db",
@@ -108,11 +119,11 @@ describe("the web setup's steps", () => {
     expect(existsSync(join(appDir, "data/storage"))).toBe(true);
     expect(await getSetupStateOf(context)).toBe("incomplete");
 
-    expect(await installMigrationsWith(context)).toMatchObject({
+    expect(await installMigrationsWith(context, form({}))).toMatchObject({
       ok: true,
       detail: expect.stringMatching(/^Migrations applied \(\d+\)$/),
     });
-    expect(await installMigrationsWith(context)).toMatchObject({
+    expect(await installMigrationsWith(context, form({}))).toMatchObject({
       ok: true,
       detail: "Database up to date",
     });
@@ -133,7 +144,7 @@ describe("the web setup's steps", () => {
     for (const again of [
       testDatabaseWith(context, form(sqlite)),
       installSettingsWith(context, form(sqlite)),
-      installMigrationsWith(context),
+      installMigrationsWith(context, form({})),
       installRootWith(context, form({ ...root, "root.email": "other@example.com" })),
     ])
       expect(await again).toMatchObject({ ok: false, error: { code: "already_set_up" } });
@@ -158,7 +169,7 @@ describe("the web setup's steps", () => {
     const steps = (ctx: SetupContext) => [
       testDatabaseWith(ctx, form(attacker)),
       installSettingsWith(ctx, form(attacker)),
-      installMigrationsWith(ctx),
+      installMigrationsWith(ctx, form({})),
       installRootWith(ctx, form({ ...root, "root.email": "attacker@example.com" })),
     ];
     for (const step of steps(context))
@@ -178,7 +189,7 @@ describe("the web setup's steps", () => {
   });
 
   it("refuses the later steps before the settings exist, and a password that doesn't match", async () => {
-    expect(await installMigrationsWith(context)).toMatchObject({
+    expect(await installMigrationsWith(context, form({}))).toMatchObject({
       ok: false,
       error: { code: "not_configured" },
     });
@@ -187,7 +198,7 @@ describe("the web setup's steps", () => {
       error: { code: "not_configured" },
     });
     await installSettingsWith(context, form(sqlite));
-    await installMigrationsWith(context);
+    await installMigrationsWith(context, form({}));
     expect(
       await installRootWith(context, form({ ...root, "root.password_again": "something else" })),
     ).toMatchObject({
@@ -280,3 +291,246 @@ const getSetupStateOf = async (c: SetupContext) => {
     remember: false,
   });
 };
+
+describe("the setup code (161)", () => {
+  /** Every action, with the form given: the four steps and the whole install in one go. */
+  const actions = (entries: Record<string, string | undefined>) =>
+    [
+      ["testDatabase", () => testDatabaseWith(context, form({ ...sqlite, ...entries }))],
+      ["installSettings", () => installSettingsWith(context, form({ ...sqlite, ...entries }))],
+      ["installMigrations", () => installMigrationsWith(context, form(entries))],
+      ["installRoot", () => installRootWith(context, form({ ...root, ...entries }))],
+      [
+        "installAll",
+        async () => {
+          const state = await installAllWith(
+            context,
+            initial,
+            form({ ...sqlite, ...root, ...entries }),
+          );
+          return state.error ? { ok: false, error: state.error } : { ok: true };
+        },
+      ],
+    ] as const;
+
+  it.each([
+    ["no code", undefined],
+    ["an empty code", ""],
+    ["a wrong code", "0000000000000000000000000"],
+    ["a code that isn't one", "hello"],
+  ])("refuses every action with %s, and changes nothing", async (_, typed) => {
+    for (const [name, action] of actions({ "setup.code": typed }))
+      expect(await action(), name).toMatchObject({
+        ok: false,
+        error: {
+          code: "setup_code_wrong",
+          section: "code",
+          field: "setup.code",
+          message: expect.stringContaining("pnpm run setup-code"),
+        },
+      });
+    expect(existsSync(context.envPath)).toBe(false);
+    expect(existsSync(join(appDir, "data", "ronne.db"))).toBe(false);
+  });
+
+  it("refuses another server's code", async () => {
+    const other = join(appDir, "other", "setup-code");
+    const theirs = ensureSetupCode(other).code;
+    expect(
+      await installSettingsWith(context, form({ ...sqlite, "setup.code": theirs })),
+    ).toMatchObject({ ok: false, error: { code: "setup_code_wrong" } });
+  });
+
+  it("accepts the right code in any case, with spaces or dashes, at every step", async () => {
+    const typed = ` ${code.toLowerCase().replace(/(.{5})/g, "$1 - ")} `;
+    expect(await testDatabaseWith(context, form({ ...sqlite, "setup.code": typed }))).toMatchObject(
+      {
+        ok: true,
+      },
+    );
+    expect(
+      await installSettingsWith(context, form({ ...sqlite, "setup.code": typed })),
+    ).toMatchObject({ ok: true });
+    expect(await installMigrationsWith(context, form({ "setup.code": typed }))).toMatchObject({
+      ok: true,
+    });
+    expect(await installRootWith(context, form({ ...root, "setup.code": typed }))).toMatchObject({
+      ok: true,
+    });
+  });
+
+  it("refuses every action when there's no code on the server, naming the commands", async () => {
+    rmSync(context.setupCode.path);
+    for (const [name, action] of actions({}))
+      expect(await action(), name).toMatchObject({
+        ok: false,
+        error: {
+          code: "setup_code_missing",
+          message: expect.stringMatching(/pnpm run setup-code.*pnpm run setup/),
+          say: { key: "errors.setup_code_missing" },
+        },
+      });
+    // The command for the runtime: Docker's, from outside the container.
+    const docker = { ...context, env: { ...context.env, RONNE_RUNTIME: "docker" } };
+    expect(await installSettingsWith(docker, form(sqlite))).toMatchObject({
+      error: { message: expect.stringContaining("docker compose exec web pnpm run setup-code") },
+    });
+  });
+
+  it("refuses when the file holds no code", async () => {
+    writeFileSync(context.setupCode.path, "");
+    expect(await installSettingsWith(context, form({ ...sqlite, "setup.code": "" }))).toMatchObject(
+      {
+        ok: false,
+        error: { code: "setup_code_missing" },
+      },
+    );
+  });
+
+  it("checks the state first: a set-up instance is refused as before, without its code file", async () => {
+    await installAllWith(context, initial, form({ ...sqlite, ...root }));
+    expect(existsSync(context.setupCode.path)).toBe(false);
+    for (const [name, action] of actions({ "setup.code": undefined }))
+      expect(await action(), name).toMatchObject({
+        ok: false,
+        error: { code: "already_set_up" },
+      });
+  });
+
+  it("allows 10 wrong codes per address in 10 minutes, then answers wrong ones differently", async () => {
+    let now = Date.parse("2026-11-01T12:00:00Z");
+    context.setupCode.limiter = createSetupCodeLimiter(() => now);
+    const wrong = form({ ...sqlite, "setup.code": "1".repeat(26) });
+    for (let attempt = 0; attempt < 10; attempt++)
+      expect(await testDatabaseWith(context, wrong)).toMatchObject({
+        error: { code: "setup_code_wrong" },
+      });
+    expect(await testDatabaseWith(context, wrong)).toMatchObject({
+      ok: false,
+      error: {
+        code: "setup_code_rate_limited",
+        say: {
+          key: "errors.setup_code_rate_limited",
+          values: { command: "pnpm run setup-code" },
+        },
+      },
+    });
+    // The right code still gets in, from that address too.
+    expect(await testDatabaseWith(context, form(sqlite))).toMatchObject({ ok: true });
+    // Another address's wrong code is only wrong.
+    const elsewhere = { ...context, origin: { via: "web" as const, ipAddress: "198.51.100.4" } };
+    expect(await testDatabaseWith(elsewhere, wrong)).toMatchObject({
+      error: { code: "setup_code_wrong" },
+    });
+    // After the window, the first address's wrong codes are only wrong again.
+    now += 10 * 60_000;
+    expect(await testDatabaseWith(context, wrong)).toMatchObject({
+      error: { code: "setup_code_wrong" },
+    });
+  });
+
+  it("allows 30 wrong codes in all, from any addresses or none, and never locks the right code out", async () => {
+    context.setupCode.limiter = createSetupCodeLimiter(() => 0);
+    const wrong = form({ ...sqlite, "setup.code": "1".repeat(26) });
+    for (let attempt = 0; attempt < 30; attempt++) {
+      const from = {
+        ...context,
+        origin: { via: "web" as const, ipAddress: attempt % 2 ? null : `198.51.100.${attempt}` },
+      };
+      expect(await testDatabaseWith(from, wrong)).toMatchObject({
+        error: { code: "setup_code_wrong" },
+      });
+    }
+    const fresh = { ...context, origin: { via: "web" as const, ipAddress: "192.0.2.200" } };
+    expect(await testDatabaseWith(fresh, wrong)).toMatchObject({
+      error: { code: "setup_code_rate_limited" },
+    });
+    expect(await testDatabaseWith(fresh, form(sqlite))).toMatchObject({ ok: true });
+    // No address known (no TRUST_PROXY): a stranger's guesses never hold the owner off.
+    const unknown = { ...context, origin: { via: "web" as const, ipAddress: null } };
+    expect(await testDatabaseWith(unknown, wrong)).toMatchObject({
+      error: { code: "setup_code_rate_limited" },
+    });
+    expect(await testDatabaseWith(unknown, form(sqlite))).toMatchObject({ ok: true });
+    expect(
+      (await installAllWith(unknown, initial, form({ ...sqlite, ...root }))).done,
+    ).toBeDefined();
+  });
+
+  it("logs the limit once, when it's reached, and no line for each wrong code past it", async () => {
+    const lines: string[] = [];
+    context.log = createLogger({ level: "debug", format: "json", write: (l) => lines.push(l) });
+    context.setupCode.limiter = createSetupCodeLimiter(() => 0);
+    const wrong = form({ ...sqlite, "setup.code": "1".repeat(26) });
+    for (let attempt = 0; attempt < 15; attempt++) await testDatabaseWith(context, wrong);
+    const events = lines.map((line) => JSON.parse(line).event);
+    expect(events.filter((e) => e === "setup.code_refused")).toHaveLength(10);
+    expect(events.filter((e) => e === "setup.code_rate_limited")).toHaveLength(1);
+    expect(events.indexOf("setup.code_rate_limited")).toBe(10);
+  });
+
+  it("doesn't count the right code against the limit", async () => {
+    context.setupCode.limiter = createSetupCodeLimiter(() => 0);
+    for (let attempt = 0; attempt < 40; attempt++)
+      expect(await testDatabaseWith(context, form(sqlite))).toMatchObject({ ok: true });
+    // Nothing was counted: a wrong code now is only wrong, not past the limit.
+    expect(
+      await testDatabaseWith(context, form({ ...sqlite, "setup.code": "1".repeat(26) })),
+    ).toMatchObject({ error: { code: "setup_code_wrong" } });
+  });
+
+  it("logs refused codes without the code typed", async () => {
+    const lines: string[] = [];
+    context.log = createLogger({
+      level: "debug",
+      format: "json",
+      write: (line) => lines.push(line),
+    });
+    const typed = "7ZZZZZZZZZZZZZZZZZZZZZZZZZ";
+    await testDatabaseWith(context, form({ ...sqlite, "setup.code": typed }));
+    expect(lines.map((line) => JSON.parse(line))).toEqual([
+      expect.objectContaining({ level: "warn", event: "setup.code_refused", reason: "wrong" }),
+    ]);
+    expect(lines.join("")).not.toContain(typed);
+    expect(lines.join("")).not.toContain(code);
+  });
+
+  it.skipIf(process.getuid?.() === 0)(
+    "finishes the setup when the code can't be deleted, and logs it",
+    async () => {
+      // The code in a folder of its own that can be read but not changed (the database is elsewhere).
+      const folder = join(appDir, "codes");
+      context.setupCode.path = join(folder, "setup-code");
+      code = ensureSetupCode(context.setupCode.path).code;
+      const lines: string[] = [];
+      context.log = createLogger({
+        level: "debug",
+        format: "json",
+        write: (line) => lines.push(line),
+      });
+      await installSettingsWith(context, form(sqlite));
+      await installMigrationsWith(context, form({}));
+      chmodSync(folder, 0o500);
+      try {
+        expect(await installRootWith(context, form(root))).toMatchObject({ ok: true });
+      } finally {
+        chmodSync(folder, 0o700);
+      }
+      expect(lines.map((line) => JSON.parse(line))).toContainEqual(
+        expect.objectContaining({ level: "warn", event: "setup.code_not_deleted" }),
+      );
+      expect(lines.join("")).not.toContain(code);
+    },
+  );
+
+  it("deletes the code once root exists, and keeps it while root can't be created", async () => {
+    await installSettingsWith(context, form(sqlite));
+    await installMigrationsWith(context, form({}));
+    expect(
+      await installRootWith(context, form({ ...root, "root.password_again": "something else" })),
+    ).toMatchObject({ ok: false });
+    expect(existsSync(context.setupCode.path)).toBe(true);
+    expect(await installRootWith(context, form(root))).toMatchObject({ ok: true });
+    expect(existsSync(context.setupCode.path)).toBe(false);
+  });
+});

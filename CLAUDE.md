@@ -58,6 +58,7 @@ Use Node.js 24 (`.nvmrc`) and pnpm installed directly (`npm install --global pnp
 | `pnpm licenses:check` | Checks every installed package's license against `license-policy.json` |
 | `pnpm audit --audit-level high` | Fails on known high or critical vulnerabilities |
 | `pnpm run setup` | Configures an instance (interactive, or `--yes` with env vars). Never `pnpm setup`: that's a pnpm built-in |
+| `pnpm run setup-code` | Prints the one-time code the web setup asks for (161), making one if there's none; refuses once root exists |
 | `pnpm run reset-root-password` | New root password; ends root's sessions and revokes its tokens |
 | `pnpm run reset-setup` | Development only: removes this clone's settings file, SQLite database and storage (asks first, or `--yes`), so the web setup can be run again. Refuses in production and in Docker |
 | `pnpm db:migrate` | Applies pending migrations to `DATABASE_URL` |

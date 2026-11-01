@@ -46,6 +46,21 @@ describe("planReset", () => {
     expect(existsSync(join(appDir, "data"))).toBe(true);
   });
 
+  it("deletes the web setup's code (161), so the next start makes a new one", () => {
+    settings(["DATABASE_URL=file:./data/ronne.db", "AUTH_SECRET=x"]);
+    touch(join(appDir, "data/setup-code"));
+    const plan = planReset({ appDir, env: {} });
+    expect(plan.items).toContainEqual({ kind: "setupCode", path: join(appDir, "data/setup-code") });
+    applyReset(plan);
+    expect(existsSync(join(appDir, "data/setup-code"))).toBe(false);
+
+    // Even with nothing else to reset: a clone started once, never set up.
+    touch(join(appDir, "data/setup-code"));
+    expect(planReset({ appDir, env: {} }).items).toEqual([
+      { kind: "setupCode", path: join(appDir, "data/setup-code") },
+    ]);
+  });
+
   it("leaves a SQLite file outside the app folder, and a storage folder outside data/, alone", () => {
     const elsewhere = mkdtempSync(join(tmpdir(), "ronne-elsewhere-"));
     try {

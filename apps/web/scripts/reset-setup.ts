@@ -31,6 +31,7 @@ const labels = {
   settings: "settings file",
   database: "SQLite database",
   storage: "storage folder",
+  setupCode: "setup code",
 };
 if (plan.items.length === 0) {
   console.log("Nothing to reset: this clone isn't set up.");

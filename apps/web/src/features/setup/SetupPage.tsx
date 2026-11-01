@@ -7,10 +7,10 @@ import { SetupForm } from "./SetupForm";
 import type { SetupPageProps } from "./types";
 
 /**
- * The web setup (feature 036): the form and the warning, inside the auth shell (157), which brings
- * the logo, the language menu and the page's `main`. Nothing about the terminal here. Once the
- * wizard's install finishes, the sentence that says the instance isn't set up and the warning go
- * (#148): the instance is no longer open to whoever reaches the page.
+ * The web setup (feature 036): the form and the notice, inside the auth shell (157), which brings
+ * the logo, the language menu and the page's `main`. The notice says who can set it up: whoever has
+ * the setup code (161). Once the wizard's install finishes, the sentence that says the instance
+ * isn't set up and the notice go (#148).
  */
 export const SetupPage = ({ page }: { page: SetupPageProps }) => {
   const t = useTranslations("admin.setup.page");
@@ -31,7 +31,7 @@ export const SetupPage = ({ page }: { page: SetupPageProps }) => {
         <SetupForm page={page} onDone={() => setDone(true)} />
       </div>
       {done ? null : (
-        <Notice kind="warn" title={t("warnTitle")}>
+        <Notice kind="info" title={t("warnTitle")}>
           {t("warnBody")}
         </Notice>
       )}

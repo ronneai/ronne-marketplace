@@ -45,6 +45,12 @@ it("says when setup is still to do, and defaults the port to 3000", () => {
   expect(lines[0]).not.toHaveProperty("dialect");
 });
 
+it("says when root is still to create (161), with the dialect", () => {
+  const { lines, log } = collect();
+  logStarted({ mode: "ready", applied: [], dialect: "sqlite", incomplete: true }, {}, log);
+  expect(lines[0]).toMatchObject({ dialect: "sqlite", setup: "incomplete" });
+});
+
 it("knows the bundle from the npm package", () => {
   expect(startRuntime({ RONNE_RUNTIME: "npm", RONNE_BUNDLE: "1" })).toBe("bundle");
   expect(startRuntime({ RONNE_RUNTIME: "npm" })).toBe("npm");
