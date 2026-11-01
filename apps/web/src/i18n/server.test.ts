@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const session = vi.hoisted(() => ({ getCurrentUser: vi.fn() }));
+const language = vi.hoisted(() => ({ languagePolicy: vi.fn() }));
 const request = vi.hoisted(() => ({
   cookie: undefined as string | undefined,
   acceptLanguage: undefined as string | undefined,
 }));
 vi.mock("@/server/domains/identity/actions/session", () => session);
+vi.mock("@/server/domains/settings/actions/language", () => language);
 vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));
 vi.mock("next/headers", () => ({
   cookies: async () => ({
@@ -26,6 +28,8 @@ import { requestLocale } from "./server";
 beforeEach(() => {
   session.getCurrentUser.mockReset();
   session.getCurrentUser.mockResolvedValue(null);
+  language.languagePolicy.mockReset();
+  language.languagePolicy.mockRejectedValue(new Error("not set up"));
   request.cookie = undefined;
   request.acceptLanguage = undefined;
 });
@@ -60,5 +64,51 @@ describe("requestLocale (129)", () => {
     session.getCurrentUser.mockRejectedValue(new Error("database is down"));
     request.acceptLanguage = "pt";
     expect(await requestLocale()).toBe("pt");
+  });
+});
+
+describe("requestLocale with the instance's settings (141)", () => {
+  it("shows the default to everyone with choosing off, signed in or not", async () => {
+    language.languagePolicy.mockResolvedValue({
+      default: "fr",
+      choice: false,
+      offered: ["en", "pt", "fr"],
+    });
+    session.getCurrentUser.mockResolvedValue({ id: "u", locale: "pt" });
+    request.cookie = "en";
+    request.acceptLanguage = "pt";
+    expect(await requestLocale()).toBe("fr");
+    session.getCurrentUser.mockResolvedValue(null);
+    expect(await requestLocale()).toBe("fr");
+  });
+
+  it("counts only the offered languages with choosing on, and ends at the default", async () => {
+    language.languagePolicy.mockResolvedValue({
+      default: "fr",
+      choice: true,
+      offered: ["en", "fr"],
+    });
+    session.getCurrentUser.mockResolvedValue({ id: "u", locale: "pt" });
+    request.cookie = "en";
+    expect(await requestLocale()).toBe("en");
+    request.cookie = undefined;
+    request.acceptLanguage = "pt";
+    expect(await requestLocale()).toBe("fr");
+  });
+
+  it("reads choosing as off when no language besides the default is offered", async () => {
+    language.languagePolicy.mockResolvedValue({ default: "pt", choice: true, offered: ["pt"] });
+    session.getCurrentUser.mockResolvedValue({ id: "u", locale: "en" });
+    request.acceptLanguage = "en";
+    expect(await requestLocale()).toBe("pt");
+  });
+
+  it("chooses as before when the settings can't be read, even with a session", async () => {
+    language.languagePolicy.mockRejectedValue(new Error("database is down"));
+    session.getCurrentUser.mockResolvedValue({ id: "u", locale: "pt" });
+    expect(await requestLocale()).toBe("pt");
+    session.getCurrentUser.mockResolvedValue(null);
+    request.acceptLanguage = "ja";
+    expect(await requestLocale()).toBe("en");
   });
 });

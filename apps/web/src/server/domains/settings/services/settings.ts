@@ -16,6 +16,12 @@ import {
   SkillScanNotConfiguredError,
 } from "../exceptions/errors";
 import {
+  DEFAULT_LANGUAGE_POLICY,
+  LANGUAGE_KEYS,
+  type LanguagePolicy,
+  languagePolicyFromRows,
+} from "../models/language-policy";
+import {
   DEFAULT_NOTICE,
   NOTICE_KEY,
   type Notice,
@@ -565,5 +571,24 @@ export const setUpdateCheck = async (
       at,
     );
     return { changed: true };
+  });
+};
+
+/**
+ * The languages the screens speak (141): the default, whether people may choose, and which are
+ * offered. No permission check: every request reads it to choose its language. A value that
+ * doesn't parse reads as its default, and the default is always offered.
+ */
+export const languagePolicy = async (deps: SettingsDeps): Promise<LanguagePolicy> => {
+  const [def, choice, offered] = await Promise.all([
+    deps.repo.get(LANGUAGE_KEYS.default),
+    deps.repo.get(LANGUAGE_KEYS.choice),
+    deps.repo.get(LANGUAGE_KEYS.offered),
+  ]);
+  if (!def && !choice && !offered) return DEFAULT_LANGUAGE_POLICY;
+  return languagePolicyFromRows({
+    default: def?.value,
+    choice: choice?.value,
+    offered: offered?.value,
   });
 };

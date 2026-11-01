@@ -15,7 +15,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     M19 with its dependencies.
   - *Done when:* the docs say what this spec says, and `pnpm witness:check` passes.
 
-- [ ] **2. Choosing with the instance's settings.**
+- [x] **2. Choosing with the instance's settings.**
   - `chooseLocale` with `offered` and `fallback`; the settings model and service
     (`language_default`, `language_choice`, `language_offered`, the default always offered);
     `requestLocale` reads them once per request, falling back as today when it can't.

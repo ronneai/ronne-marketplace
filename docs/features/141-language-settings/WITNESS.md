@@ -33,3 +33,18 @@ Witnessed: 2026-10-31, by a fresh agent (blind, row 2). Commit: 1ad89a71 plus th
 | 6 | `pnpm witness:check` passes | no | confirmed | exit 0 |
 
 **Overall:** met.
+
+
+## Task 2 — Choosing with the instance's settings
+
+Witnessed: 2026-10-31, by a fresh agent (blind). Commit: 48d76e23 plus the uncommitted diff. Machine: macOS (Darwin), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `chooseLocale` takes the instance's offered languages and default: off returns the default; on goes saved, cookie, browser, default, skipping a language not offered at each step | no | confirmed | `instance: { default, choosing, offered }` carries the same as separate `offered` and `fallback`; removing the choosing-off return fails 1 test, the offered filter on the cookie fails 2, on the browser 2 |
+| 2 | The model and service: three keys, the default always offered, garbage reads as its default, nothing stored gives the defaults | no | confirmed | dropping `wanted.add(fallback)` fails 2 model tests |
+| 3 | `requestLocale` reads the settings once per request and falls back as today when it can't | no | confirmed | `requestLanguagePolicy` is wrapped in `cache` and returns null on failure; `server.test.ts`; the cache was read, not run |
+| 4 | The unit tests pass | no | confirmed | 24 files, 466 tests |
+| 5 | The db tests cover the settings service on SQLite and the servers | no | confirmed | 4 passed on SQLite, PostgreSQL, MySQL and MariaDB |
+
+**Overall:** met. The witness ran its mutations in the working tree and restored them (checked byte for byte); the implementer reran the tests after.

@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   chooseLocale,
   LOCALE_COOKIE,
+  LOCALES,
+  type Locale,
   localeCookieOptions,
   matchAcceptLanguage,
   parseLocale,
@@ -106,5 +108,68 @@ describe("the cookie (129)", () => {
       sameSite: "lax",
       httpOnly: true,
     });
+  });
+});
+
+describe("chooseLocale with the instance's settings (141)", () => {
+  const on = (offered: Locale[], fallback: Locale = "en") => ({
+    default: fallback,
+    choosing: true,
+    offered,
+  });
+  const off = (fallback: Locale) => ({ default: fallback, choosing: false, offered: LOCALES });
+
+  it("shows the default to everyone with choosing off, whatever they saved, set or ask for", () => {
+    expect(
+      chooseLocale({ saved: "pt", cookie: "en", acceptLanguage: "pt", instance: off("fr") }),
+    ).toBe("fr");
+    expect(chooseLocale({ instance: off("pt") })).toBe("pt");
+    expect(chooseLocale({ saved: "fr", instance: off("en") })).toBe("en");
+  });
+
+  it("uses the saved language when it is offered, before the cookie and the browser", () => {
+    const instance = on(["en", "pt", "fr"], "fr");
+    expect(chooseLocale({ saved: "pt", cookie: "en", acceptLanguage: "en", instance })).toBe("pt");
+  });
+
+  it("skips a saved language that is not offered, for the cookie", () => {
+    const instance = on(["en", "fr"], "fr");
+    expect(chooseLocale({ saved: "pt", cookie: "en", acceptLanguage: "fr", instance })).toBe("en");
+  });
+
+  it("skips a cookie that is not offered, for the browser", () => {
+    const instance = on(["en", "fr"], "en");
+    expect(chooseLocale({ saved: null, cookie: "pt", acceptLanguage: "fr", instance })).toBe("fr");
+  });
+
+  it("takes the best offered match of the browser, not just the first language it names", () => {
+    const instance = on(["en", "fr"], "fr");
+    expect(chooseLocale({ acceptLanguage: "pt, en;q=0.5", instance })).toBe("en");
+    expect(chooseLocale({ acceptLanguage: "pt-BR,pt;q=0.9,fr;q=0.8", instance })).toBe("fr");
+  });
+
+  it("ends at the default, not English, when nothing is offered that matches", () => {
+    const instance = on(["fr", "pt"], "fr");
+    expect(chooseLocale({ acceptLanguage: "en", instance })).toBe("fr");
+    expect(chooseLocale({ acceptLanguage: "ja", instance })).toBe("fr");
+    expect(chooseLocale({ saved: "en", cookie: "en", instance })).toBe("fr");
+    expect(chooseLocale({ instance })).toBe("fr");
+  });
+
+  it("ignores values that are not languages, as before", () => {
+    const instance = on(["en", "pt", "fr"], "pt");
+    expect(chooseLocale({ saved: "xx", cookie: "yy", acceptLanguage: "zz", instance })).toBe("pt");
+  });
+
+  it("chooses as it always did without settings (before setup, database down)", () => {
+    expect(chooseLocale({})).toBe("en");
+    expect(chooseLocale({ saved: "pt", cookie: "fr" })).toBe("pt");
+    expect(chooseLocale({ acceptLanguage: "fr" })).toBe("fr");
+  });
+
+  it("matches the browser among only the offered languages", () => {
+    expect(matchAcceptLanguage("pt, fr;q=0.5", ["fr"])).toBe("fr");
+    expect(matchAcceptLanguage("pt", ["fr"])).toBeNull();
+    expect(matchAcceptLanguage("pt, fr;q=0.5")).toBe("pt");
   });
 });
