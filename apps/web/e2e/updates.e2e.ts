@@ -27,7 +27,7 @@ test("root is told, sees the mark and the tab, and turns the check off and on", 
   await bell.click();
   await page
     .getByRole("dialog", { name: /^Notifications/ })
-    .getByRole("link", { name: /Ronne AI Marketplace 9\.9\.9 is out\. You run/ })
+    .getByRole("link", { name: /Ronne AI Marketplace 9\.9\.9 is out\. You run version/ })
     .click();
   await expect(page).toHaveURL(/\/admin\/settings\?tab=updates$/);
   await expect(bell).toHaveAccessibleName("Notifications, none unread");

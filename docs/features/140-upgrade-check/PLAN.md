@@ -34,7 +34,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* component tests cover each runtime's commands, the read-only switch and the mark
     (root only); an e2e test with a fake release answer sees the notification and the tab.
 
-- [ ] **5. Messages.**
+- [x] **5. Messages.**
   - Every new key in `en`, `pt` and `fr`.
   - *Done when:* the parity and raw-text tests pass; the phone sweep passes on the tab.
 

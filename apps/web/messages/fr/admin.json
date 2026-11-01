@@ -1335,7 +1335,7 @@
   },
   "updates": {
     "title": "Mises à jour",
-    "intro": "Ronne vérifie une fois par jour si une version plus récente est publiée et vous le dit ici et dans vos notifications. Il n'envoie rien sur cette instance.",
+    "intro": "Ronne vérifie une fois par jour si une version plus récente est publiée et vous le dit ici et dans vos notifications. Il n’envoie rien sur cette instance.",
     "versions": "Les versions",
     "running": "Vous utilisez",
     "latest": "Dernière version publiée",
@@ -1343,21 +1343,21 @@
     "notChecked": "Pas encore vérifiée",
     "lastChecked": "Dernière vérification",
     "never": "Jamais",
-    "fromBefore": "d'avant la désactivation de la vérification",
+    "fromBefore": "d’avant la désactivation de la vérification",
     "upToDate": "À jour.",
     "newer": "La version {version} est disponible.",
     "failure": {
       "unreachable": "Impossible de joindre GitHub. Ronne réessaie demain.",
       "rate_limited": "GitHub limite les requêtes en ce moment. Ronne réessaie demain.",
-      "bad_answer": "Ronne n'a pas compris la réponse de GitHub. Ronne réessaie demain."
+      "bad_answer": "Ronne n’a pas compris la réponse de GitHub. Ronne réessaie demain."
     },
     "checkNow": "Vérifier maintenant",
     "checkNowHint": "Une fois par minute au plus.",
     "checkNowOff": "La vérification est désactivée.",
     "how": "Comment mettre à jour",
-    "backupFirst": "Sauvegardez d'abord",
+    "backupFirst": "Sauvegardez d’abord",
     "then": "Puis mettez à jour",
-    "databaseNote": "Les changements de base de données sont appliqués au démarrage du serveur. Revenir à une version plus ancienne n'est pas pris en charge : sauvegardez d'abord.",
+    "databaseNote": "Les changements de base de données sont appliqués au démarrage du serveur. Revenir à une version plus ancienne n’est pas pris en charge : sauvegardez d’abord.",
     "switchTitle": "Vérifier les mises à jour",
     "switch": "Vérifier les mises à jour",
     "switchHint": "Activée par défaut. Désactivez-la pour une instance sans accès à Internet.",
@@ -1365,15 +1365,15 @@
     "save": "Enregistrer",
     "done": {
       "saved": "Enregistré.",
-      "unchanged": "Rien n'a changé.",
+      "unchanged": "Rien n’a changé.",
       "checked": "Vérifié : à jour.",
       "newer": "Vérifié : une version plus récente est disponible.",
       "failed": "Impossible de joindre GitHub.",
-      "too_soon": "Vérifié à l'instant. Réessayez dans une minute.",
+      "too_soon": "Vérifié à l’instant. Réessayez dans une minute.",
       "off_by_environment": "La vérification est désactivée sur le serveur.",
       "off_by_switch": "La vérification est désactivée."
     },
-    "howIntro": "Ronne peut s'installer de plusieurs façons. Utilisez celle avec laquelle vous l'avez installé ; la première est la façon dont ce serveur semble s'exécuter.",
+    "howIntro": "Ronne peut s’installer de plusieurs façons. Utilisez celle avec laquelle vous l’avez installé ; la première est la façon dont ce serveur semble s’exécuter.",
     "thisInstance": "Cette instance",
     "plans": {
       "docker": {

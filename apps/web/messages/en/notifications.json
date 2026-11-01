@@ -140,6 +140,6 @@
     "noLink": "Nothing to open: what this is about is gone."
   },
   "instance": {
-    "update_available": "Ronne AI Marketplace {version} is out. You run {current}."
+    "update_available": "Ronne AI Marketplace {version} is out. You run version {current}."
   }
 }

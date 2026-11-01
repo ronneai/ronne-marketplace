@@ -156,3 +156,35 @@ Witnessed: 2026-10-31, by a fresh agent (blind). Commit: 71dd5f6d plus the uncom
 | 6 | The earlier claims still hold (mark, switch, audit, rate limit) | yes | confirmed | 40 files, 704 tests; db project 5 files, 76 tests |
 
 **Overall:** met. An e2e mutation was not run (a rebuild is slow); the same mutation fails the unit test.
+
+
+## Task 5 — Messages
+
+Witnessed: 2026-10-31, by a fresh agent (blind). Commit: f7584702 plus the uncommitted line in `apps/web/e2e/pages.ts`. Machine: macOS (Darwin), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The parity, raw-text and related suites pass | no | confirmed | `npx vitest run src/i18n src/features/admin-settings src/features/notifications src/features/admin-audit` → 41 files, 663 tests |
+| 2 | `pnpm lint` passes, including the raw-JSX rules | no | confirmed | exit 0 (42 warnings, 4 infos, no errors) |
+| 3 | No raw user-facing string is left in the new components | no | confirmed | grepped `UpdatesPanel`, `UpdatesTab`, `Sidebar`, `AppShell` for JSX text and literal `label`, `title`, `aria-label` |
+| 4 | Every new key exists in en, pt and fr with the same ICU placeholders | no | confirmed | the diffs of `admin.json`, `notifications.json`, `shell.json`; the parity test passes |
+| 5 | The parity test catches a renamed placeholder | no | confirmed | `{current}` → `{cur}` in pt made `messages.parity.test.ts` fail; restored |
+| 6 | The pt copy is real Brazilian Portuguese | no | confirmed | read; "Você usa a {current}" read oddly with a bare version number |
+| 7 | The fr copy is real Canadian French and follows `i18n.md` | no | partly | about 8 strings in the new `updates.*` block used the straight apostrophe where the app requires `’` |
+| 8 | The phone sweep passes on the Updates tab | no | confirmed | `playwright test e2e/mobile-sweep.mobile.e2e.ts --project phone --grep "as root\|no page scrolls sideways"` → 6 passed in en, pt and fr |
+
+**Overall:** not met: row 7.
+
+### Re-check
+
+Witnessed: 2026-10-31, by a fresh agent (blind re-check of rows 6 and 7). Commit: f7584702 plus the uncommitted working tree. Machine: macOS (Darwin), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 7 | Every fr string feature 140 added uses the curly apostrophe | yes | confirmed | every added line of `git diff main -U0 -- apps/web/messages/fr` grepped for a letter, a straight `'` and a letter: no match |
+| 6 | The update notice reads "You run version {current}" in all three languages | yes | confirmed | `notifications.json`: en, pt "Você usa a versão {current}", fr "Vous utilisez la version {current}"; placeholders match |
+| 9 | The `compose.yaml` diff is only the `RONNE_UPDATE_CHECK` pass-through | yes | confirmed | `git diff compose.yaml`: a comment and `RONNE_UPDATE_CHECK: ${RONNE_UPDATE_CHECK:-}` |
+| 10 | The i18n, notifications and admin-settings tests pass | yes | confirmed | 37 files, 622 tests |
+| 8 | The phone sweep still passes after the rewording | yes | confirmed | rerun by the implementer on phone, phone-webkit and tablet: 6 passed each (the witness did not rerun it) |
+
+**Overall:** met.

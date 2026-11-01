@@ -140,6 +140,6 @@
     "noLink": "Nada para abrir: aquilo de que se trata não existe mais."
   },
   "instance": {
-    "update_available": "O Ronne AI Marketplace {version} foi lançado. Você usa a {current}."
+    "update_available": "O Ronne AI Marketplace {version} foi lançado. Você usa a versão {current}."
   }
 }

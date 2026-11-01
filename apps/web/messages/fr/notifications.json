@@ -140,6 +140,6 @@
     "noLink": "Rien à ouvrir : ce dont il s’agissait n’existe plus."
   },
   "instance": {
-    "update_available": "Ronne AI Marketplace {version} est disponible. Vous utilisez la {current}."
+    "update_available": "Ronne AI Marketplace {version} est disponible. Vous utilisez la version {current}."
   }
 }
