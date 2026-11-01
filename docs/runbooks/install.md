@@ -118,7 +118,7 @@ address without a port.
 | `RONNE_SKILL_SCANNER_URL`, `RONNE_SKILL_SCANNER_SEMANTIC_URL` | empty | The scanner containers' addresses, `http://proxy:8081` and `http://proxy:8082` (install.sh sets them) |
 | `RONNE_SCAN_KEY` | empty | 64 hex characters the proxy requires on those two ports (install.sh makes one; `openssl rand -hex 32`) |
 | `RONNE_SCANNER_REF` | `main` | The tag the scanner is built from, and its image tag (install.sh sets the version); `RONNE_SCANNER_REPO` is where it's fetched from |
-| `LOG_LEVEL` | `info` | The least serious log lines written: `debug`, `info`, `warn` or `error` |
+| `LOG_LEVEL` | `info` | The least serious log lines written: `debug`, `info`, `warn` or `error`. The setup code's line (`server.setup_code`) is written at every level |
 | `LOG_FORMAT` | `json` | `json`, or `text` for a person reading a terminal |
 | `RONNE_JOBS` | `on` | `off` stops the server's own retention purge (every six hours); run `rmk-server purge` from cron then ([Privacy](https://www.ronne.ai/marketplace/docs/privacy#retention)) |
 | `RONNE_UPDATE_CHECK` | `on` | `off` (or `0`, `false`) stops the daily check for a newer version (a request to GitHub that sends nothing about your instance); for an instance with no internet access ([Updating Ronne](https://www.ronne.ai/marketplace/docs/update#checking)) |

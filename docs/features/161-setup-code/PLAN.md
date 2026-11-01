@@ -82,7 +82,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     address and with none, wrong codes past them getting the limited answer, and one
     `setup.code_rate_limited` line; the parity and words tests pass.
 
-- [ ] **11. The setup code's line at every `LOG_LEVEL`.**
+- [x] **11. The setup code's line at every `LOG_LEVEL`.**
   - Owner, 2026-11-01: `server.setup_code` is written whatever `LOG_LEVEL` says (an `always` event,
     the only one); the lines around it follow the level.
   - The spec, the install guide's `LOG_LEVEL` row, the threat model, and the Documentation's Logs

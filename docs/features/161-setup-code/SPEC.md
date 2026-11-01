@@ -32,12 +32,13 @@ page is no longer enough (owner, 2026-11-01).
   - **The server's log**, at every start until setup is done: a `server.setup_code` line, an
     `info` event with the code and the address to open (`PUBLIC_URL`, else the local one), next to
     today's "Not set up yet" line. It is the one log line allowed to carry a credential (the
-    logger's redaction test lists it); it's single-use and worthless once setup is done. Like
-    every `info` line, a `LOG_LEVEL` of `warn` or `error` leaves it out: `setup-code` prints it.
+    logger's redaction test lists it); it's single-use and worthless once setup is done. It is
+    written at every `LOG_LEVEL` (the only event marked `always`; owner, 2026-11-01), so a `warn`
+    or `error` level never hides it; the lines around it follow the level.
     `server.started` says `setup: "incomplete"` when settings exist but root doesn't yet.
   - **The install script** (081): after the start check, it runs `setup-code` (in the container,
-    or `rmk-server setup-code` for the package) rather than parsing the log, which a `LOG_LEVEL`
-    could leave out; it prints the code with the address, and opens `/setup#code=<code>` on "This
+    or `rmk-server setup-code` for the package) rather than parsing the log, which
+    holds older lines too; it prints the code with the address, and opens `/setup#code=<code>` on "This
     computer". The fragment never reaches the server or a proxy's log. A rerun on a set-up instance
     says nothing of a code.
   - **`rmk-server start` and `service install`** (082, 083) print it on a terminal (`start` on a

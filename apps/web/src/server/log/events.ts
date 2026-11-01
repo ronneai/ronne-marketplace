@@ -12,6 +12,11 @@ export type EventSpec = {
   msg: string;
   /** The event's own fields, besides the ones every line can carry. */
   fields: readonly string[];
+  /**
+   * Written whatever `LOG_LEVEL` says: a line the person starting the server can't do without
+   * (`server.setup_code`, 161).
+   */
+  always?: true;
 };
 
 export const EVENTS = {
@@ -24,6 +29,7 @@ export const EVENTS = {
     level: "info",
     msg: "Setup code: open the address and enter it to set this instance up",
     fields: ["code", "url"],
+    always: true,
   },
   "server.migrations_applied": {
     level: "info",

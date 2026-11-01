@@ -81,6 +81,26 @@ describe("events", () => {
     expect(parsed()[0]).toMatchObject({ level: "error", event: "http.request", status: 500 });
   });
 
+  it.each(LOG_LEVELS)("writes the setup code's line at %s too, at its own level (161)", (min) => {
+    const { log, parsed } = collect({ level: min });
+    log.event("server.setup_code", { code: "7KQ2M", url: "http://localhost:3000" });
+    log.event("setup.code_created");
+    expect(parsed()).toEqual([
+      expect.objectContaining({ level: "info", event: "server.setup_code", code: "7KQ2M" }),
+      ...(min === "debug" || min === "info"
+        ? [expect.objectContaining({ event: "setup.code_created" })]
+        : []),
+    ]);
+  });
+
+  it("writes no other event whatever LOG_LEVEL says", () => {
+    expect(
+      Object.entries(EVENTS)
+        .filter(([, spec]) => "always" in spec && spec.always)
+        .map(([name]) => name),
+    ).toEqual(["server.setup_code"]);
+  });
+
   it("names every event <area>.<what>, with a level and a message without values", () => {
     for (const [name, spec] of Object.entries(EVENTS)) {
       expect(name).toMatch(/^[a-z]+\.[a-z_]+$/);
