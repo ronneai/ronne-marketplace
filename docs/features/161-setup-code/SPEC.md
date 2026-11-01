@@ -35,11 +35,14 @@ page is no longer enough (owner, 2026-11-01).
     logger's redaction test lists it); it's single-use and worthless once setup is done. Like
     every `info` line, a `LOG_LEVEL` of `warn` or `error` leaves it out: `setup-code` prints it.
     `server.started` says `setup: "incomplete"` when settings exist but root doesn't yet.
-  - **The install script** (081): after the start check, it reads the code from the server's log,
-    prints it with the address, and opens `/setup#code=<code>` on "This computer". The fragment
-    never reaches the server or a proxy's log.
-  - **`rmk-server start` and `service install`** (082, 083) print it on a terminal, and
-    `rmk-server service logs` shows the log line.
+  - **The install script** (081): after the start check, it runs `setup-code` (in the container,
+    or `rmk-server setup-code` for the package) rather than parsing the log, which a `LOG_LEVEL`
+    could leave out; it prints the code with the address, and opens `/setup#code=<code>` on "This
+    computer". The fragment never reaches the server or a proxy's log. A rerun on a set-up instance
+    says nothing of a code.
+  - **`rmk-server start` and `service install`** (082, 083) print it on a terminal (`start` on a
+    first start once the server answers, opening the setup page with it filled in unless
+    `--no-open`), and `rmk-server service logs` shows the log line.
   - **A clone**: `pnpm dev` and `pnpm start` print the log line like any other.
   - **`setup-code`**: `rmk-server setup-code`, `pnpm run setup-code`, or
     `docker compose exec web pnpm run setup-code`. It prints the current code, or makes one when

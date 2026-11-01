@@ -292,11 +292,15 @@ native_install() {
   if wait_healthy; then
     say ""
     say "Ronne AI Marketplace is running: $url"
-    say "Open it now and finish the setup: until then, anyone who can reach it can set it up."
     if [ -n "$DOMAIN" ]; then
       say "For HTTPS on $DOMAIN: install Caddy 2.7 or later, then: sudo rmk-server service install --domain $DOMAIN"
     fi
-    open_browser "$url"
+    if [ -n "$sudo" ]; then
+      code=$(setup_code sudo rmk-server setup-code)
+    else
+      code=$(setup_code rmk-server setup-code)
+    fi
+    show_setup "$url" "$code" "${sudo:+sudo }rmk-server setup-code"
   else
     say "Ronne didn't answer within 120 seconds. See: rmk-server service status, and journalctl -u rmk-server" >&2
     return 1
@@ -322,7 +326,7 @@ port_ours() {
 port_available() { port_ours "$1" || port_free "$1"; }
 
 # local_bind PORT: what "This computer" writes for a port, 127.0.0.1:PORT, so only this computer can
-# reach Ronne, and its setup, open to the first visitor (security audit DEP-1, 2026-10-05). A value
+# reach Ronne (security audit DEP-1, 2026-10-05; its setup also asks for a setup code since 161). A value
 # with an address already (RONNE_PORT=0.0.0.0:7650, set on purpose) is kept as it is.
 local_bind() {
   case "$1" in *:*) printf '%s\n' "$1" ;; *) printf '127.0.0.1:%s\n' "$1" ;; esac
@@ -534,6 +538,38 @@ wait_healthy() {
     i=$((i + 1))
   done
   return 1
+}
+
+# --- The setup code (161) ----------------------------------------------------------------------
+# The server made it at its first start, in its data folder, and the web setup asks for it, so only
+# whoever runs this script can set the instance up. `setup-code` prints it again; it refuses once
+# root exists, which leaves nothing to show.
+
+# setup_code COMMAND...: the code COMMAND prints (`Setup code: …`), or nothing.
+setup_code() {
+  "$@" 2>/dev/null | sed -n 's/^Setup code: //p' | head -n 1
+}
+
+# setup_link URL CODE: the setup page with the code in the fragment, which the browser keeps to
+# itself: it never reaches the server or a proxy's log.
+setup_link() {
+  printf '%s/setup#code=%s\n' "${1%/}" "$2"
+}
+
+# show_setup URL CODE COMMAND: where to finish the setup and its code; on this computer, opens the
+# page with the code filled in. Without a code (set up already, or none to read), it opens URL.
+show_setup() {
+  if [ -z "$2" ]; then
+    open_browser "$1"
+    return 0
+  fi
+  say "Open ${1%/}/setup and enter the setup code: $2"
+  say "Only you have it: it's in the server's log too, and $3 prints it again."
+  if [ "$MODE" = local ]; then
+    open_browser "$(setup_link "$1" "$2")"
+  else
+    open_browser "$1"
+  fi
 }
 
 open_browser() {
@@ -783,13 +819,11 @@ main() {
   if wait_healthy; then
     say ""
     say "Ronne AI Marketplace is running: $url"
-    if [ "$INSTALLED" = 0 ]; then
-      say "Open it now and finish the setup: until then, anyone who can reach it can set it up."
-    fi
     if [ "$SCANNER" != no ]; then
       say "The security scanner is running. As root, turn scanning on in Admin > Settings > Security scan."
     fi
-    open_browser "$url"
+    show_setup "$url" "$(setup_code compose exec -T web pnpm run setup-code)" \
+      "docker compose exec web pnpm run setup-code (in $DIR)"
   else
     say "Ronne didn't answer within 120 seconds. See: cd $DIR && docker compose logs" >&2
     [ "$MODE" = local ] || say "With a domain, check that its DNS points here and that ports 80 and 443 are open." >&2

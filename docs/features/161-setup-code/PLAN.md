@@ -54,7 +54,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     fragment and each error) cover the page; the e2e wizard test reads the code from the throwaway
     instance's data folder and sets up with it.
 
-- [ ] **7. Install paths.**
+- [x] **7. Install paths.**
   - `install.sh` prints the code after its start check and opens `/setup#code=…`.
   - `rmk-server start` and `service install` print it on a terminal.
   - `compose.yaml`'s comments.

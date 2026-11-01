@@ -1,6 +1,7 @@
 // `rmk-server service install` and `uninstall` (feature 083), the same on Linux and macOS: a
 // backend (systemd, launchd) does what differs.
 import { basename, dirname, posix } from "node:path";
+import { setupCodeIn, setupCodeLines } from "../setup-code.js";
 import type { InstallOptions } from "./args.js";
 import { nativeCaddyfile } from "./caddyfile.js";
 import type { ServiceLayout } from "./layout.js";
@@ -385,6 +386,8 @@ export const installService = async (
   }
 
   const address = publicAddress(plan, options.port);
+  // Before setup, the code the server made in its data folder (161), which the web setup asks for.
+  const code = status === 503 ? setupCodeIn(layout.dataDir, (path) => sys.readFile(path)) : null;
   sys.out(
     [
       `Ronne AI Marketplace is running as a service (${plan.app.name}), started at boot and restarted if it stops.`,
@@ -395,7 +398,9 @@ export const installService = async (
       `  Logs:      ${backend.logsHint(plan.app)}`,
       "",
       status === 503
-        ? `Next: open ${address} and finish the setup.`
+        ? code
+          ? setupCodeLines(address, code).trimEnd()
+          : `Next: open ${address} and finish the setup. Its setup code is in the log, or run: ${asAdmin(sys, "rmk-server setup-code")}`
         : `It's set up: open ${address}.`,
       "",
     ].join("\n"),

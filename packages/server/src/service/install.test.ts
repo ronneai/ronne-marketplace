@@ -196,8 +196,23 @@ describe("service install on Linux (083)", () => {
     const out = sys.output.join("");
     expect(out).toContain("Address:   http://localhost:7650");
     expect(out).toContain("Logs:      journalctl -u rmk-server");
-    expect(out).toContain("Next: open http://localhost:7650 and finish the setup.");
+    expect(out).toContain(
+      "Next: open http://localhost:7650 and finish the setup. Its setup code is in the log, or run: sudo rmk-server setup-code",
+    );
     expect(sys.errors).toEqual([]);
+  });
+
+  it("prints the setup code the server made before setup (161)", async () => {
+    const sys = machine();
+    sys.files.set("/var/lib/rmk-server/setup-code", {
+      content: "1KQ2MABCDEFGHJKMNPQRSTVWX0\n",
+      mode: 0o600,
+    });
+    expect(await install(sys)).toBe(0);
+    const out = sys.output.join("");
+    expect(out).toContain("Setup code: 1KQ2M-ABCDE-FGHJK-MNPQR-STVWX-0");
+    expect(out).toContain("Open http://localhost:7650/setup and enter it.");
+    expect(out).not.toContain("finish the setup");
   });
 
   it("keeps an existing account, and refuses one that can't run the program", async () => {
