@@ -1,7 +1,7 @@
 # Threat model
 
-> Feature [098](../features/098-threat-model/SPEC.md) · Checked against the code on 2026-10-30 (commit
-> `a6355bc3`, before 0.6.0) · What to do when something goes wrong: the
+> Feature [098](../features/098-threat-model/SPEC.md) · Checked against the code on 2026-11-01 (commit
+> `d2abae81`, before 0.7.0) · What to do when something goes wrong: the
 > [incident runbook](../runbooks/incident-response.md) · Reporting a vulnerability:
 > [`SECURITY.md`](../../SECURITY.md)
 
@@ -54,6 +54,7 @@ What an instance holds:
 | **A stolen access token or session** | everything its user can | the same, from elsewhere |
 | **Someone who reads the server's disk, database or backups** | read everything at rest | secrets, sessions, private items |
 | **A hostile item, aimed at the scanner (135, 156)** | put files in front of SkillSpector (Python, YARA, an optional LLM) that are written to defeat it, to run code in it, or to read what it can reach | a low score, a foothold next to Ronne, or the provider's key |
+| **Whoever answers for api.github.com (140)** | answer the daily update check | to make root install something, or to learn about the instance |
 | **A compromised dependency or image** | run inside our build or our server | the server, or every instance at once |
 | **A compromised developer machine with an `rmk` token** | the token's user's access | the registry, through that token |
 
@@ -78,6 +79,7 @@ flowchart LR
   Scanners["Scanner containers<br/>(static: no internet; semantic: provider only, 156)"]
   LLM["LLM provider<br/>(semantic scans only, 135, 136)"]
   IdP["Identity provider<br/>(OpenID Connect and SCIM, 106, 108)"]
+  GitHub["GitHub releases API<br/>(update check, 140)"]
 
   Browser -- "HTTPS (Caddy, 080) or local HTTP" --> Web
   RMK -- "Bearer token" --> Web
@@ -90,6 +92,7 @@ flowchart LR
   Files -- "run by" --> AI
   Web -- "files + scan key, through the proxy" --> Scanners
   Scanners -. "semantic scans only" .-> LLM
+  Web -. "daily: which version is latest, nothing about the instance" .-> GitHub
   Web --> Review
   Review -- "released versions" --> Store
   Web --> DB
@@ -108,6 +111,7 @@ The boundaries, in order of what's at stake:
 8. **A company's identity provider → accounts and roles** (106, 108). What the provider says is believed in the domains root chose.
 9. **Submitted files → the scanner** (135, 156). Item content is untrusted input to a program that parses it, so the scanner runs where it can reach nothing of Ronne's.
 10. **The server → an LLM provider** (135, 136). A semantic scan sends item content, and the provider's key, off the server. Root chooses it and sees where.
+11. **GitHub's answer → root's update notice** (140). Once a day the server asks which version is latest, and believes only a version number.
 
 ## 4. Threats
 
@@ -115,8 +119,8 @@ The boundaries, in order of what's at stake:
 
 | Threat | What stops it today | What's left |
 |---|---|---|
-| An author releases harmful code or instructions | Outside personal workspaces (next row), nothing is released without review: draft → submitted → approved by a moderator or root who isn't the author (014; `OWN_SUBMISSION_REASON`, `apps/web/src/server/domains/submissions/services/decisions.ts:18`); root may approve their own submission as an override, with or without a reason (optional since 054, `apps/web/src/server/domains/submissions/services/reviews.ts:106`), always audited as `submission.override_approved` (`apps/web/src/server/domains/audit/models/audit-event.ts`) | A reviewer who approves something harmful. One approval is the rule (MVP §15). Root can approve alone, on the record |
-| An owner releases unreviewed work from their personal workspace | A personal workspace (114) is private to its owner and root; its submissions are approved by the owner at once (`self_approve`, `apps/web/src/server/domains/submissions/services/submissions.ts:321`) and marked not reviewed; nobody else can install them; moving its scope to a shared workspace or `global` needs root or another admin of the target, who sees the not-reviewed versions and marks them reviewed (115) | The owner (and root) run what was never reviewed. Accepted: MVP §15, Approval |
+| An author releases harmful code or instructions | Outside personal workspaces (next row), nothing is released without review: draft → submitted → approved by a moderator or root who isn't the author (014; `OWN_SUBMISSION_REASON`, `apps/web/src/server/domains/submissions/services/decisions.ts:18`); root may approve their own submission as an override, only with a reason, from the review page or Approve many, refused without one whatever the screen sends (163; `OVERRIDE_REASON`, `apps/web/src/server/domains/submissions/services/reviews.ts:105`, and `bulk-approve.ts:108`, checked before any row is approved), always audited as `submission.override_approved` with the reason (`apps/web/src/server/domains/audit/models/audit-event.ts`), and shown on the review page and the item's Overview | A reviewer who approves something harmful. One approval is the rule (MVP §15). Root can approve alone, on the record |
+| An owner releases unreviewed work from their personal workspace | A personal workspace (114) is private to its owner and root; its submissions are approved by the owner at once (`self_approve`, `apps/web/src/server/domains/submissions/services/submissions.ts:357`) and marked not reviewed; nobody else can install them; moving its scope to a shared workspace or `global` needs root or another admin of the target, who sees the not-reviewed versions and marks them reviewed (115) | The owner (and root) run what was never reviewed. Accepted: MVP §15, Approval |
 | Risky content slips past a busy reviewer | Risk flags `hook`, `mcp_server`, `permission_policy`, `status_or_lsp`, `executable`, `shell_script`, `network` (`packages/core/src/risk-flags.ts:68`), shown on the review page, the queue, the item page and `rmk info`; they describe, never block, and authors can't hide them; bulk approve lists flagged items first (054) | Skills, commands and agents are text that can tell the AI to run commands; no flag catches every such instruction. Accepted: the reviewer reads them |
 | A released version is changed afterwards | Versions are immutable; `rmk` checks sha256 on every download and against `rmk.lock`, and writes nothing on a mismatch (`checksum_mismatch`, `packages/cli/src/install.ts:141`) | Someone with write access to storage *and* the database can change both. No signatures: designed in MVP §14.2, post-MVP |
 | Installing runs the item | `rmk install` only writes files inside managed target paths, never runs them (`packages/cli/src/apply.ts`); unmanaged and user-edited files are never overwritten | The AI tool runs hooks, MCP servers and status lines once written; that's what they're for. The review above is the guard |
@@ -142,6 +146,9 @@ The boundaries, in order of what's at stake:
 | A password root chose stays in use | Root can require a new password at first sign-in (on by default when creating a user or resetting a password): while the flag is set every page redirects to `/account/password`, the guard test lists every page, a token of that account is answered `403 password_change_required` everywhere but `GET /api/v1/me`, and setting the new one ends the account's other sessions; audited as `user.password_changed` with `required: true` (128; `apps/web/src/server/http/password-change-hold.ts`) | Root may untick it, on the record. `rmk-server reset-root-password` and the setup wizard's root account aren't flagged (root chose the password at the terminal). Better Auth's own endpoints aren't held, as with the two-factor hold |
 | The instance notice carries a hostile link or markup | Root's message is plain text up to 500 characters, never HTML; a link is written `[words](address)` (at most 3) and an address that isn't a relative path or `https:`, such as `javascript:`, is refused, and checked again when drawn; saving is audited as `settings.notice` (124; `apps/web/src/server/domains/settings/models/notice-policy.ts:70`) | A link to another site is root's responsibility |
 | Feedback floods root, or carries markup | Signed in only; 10 messages an hour per person; plain text shown as text; only the page's path is kept, never its query string; handled and deleted are audited without the text; it is in the person's data download and erased with the account (127; `apps/web/src/server/domains/feedback/services/feedback-limiter.ts`) | The limit is in memory too (109). Root reads what people write |
+| The update check gives the instance away, or leads root astray | Once a day, under the scheduler's lease, a GET to a fixed address with a fixed `User-Agent`: no version, no address, no credentials. Redirects are followed only to `https://api.github.com`, within 10 seconds and 1 MiB; only `tag_name` is read, and it must be strict semver of at most 64 characters, or the check says "bad answer". The release notes' link is built from that version, never taken from the answer, and the update commands on Settings › Updates are fixed for each kind of install (`apps/web/src/server/runtime.ts`), not read from it. Root turns it off with the switch, the operator with `RONNE_UPDATE_CHECK=off` (140; `apps/web/src/server/updates/check-for-update.ts`) | Whoever controls the answer can announce a version that doesn't exist, or hide one; root then runs the usual commands, which fetch from npm, Docker Hub or GitHub as any update does. GitHub sees the server's address once a day |
+| A notification tells someone about what they may no longer see | Written in the transaction of the change it describes, beside its audit event, never to its actor nor to a disabled or erased account (`apps/web/src/server/domains/notifications/services/notify.ts`). Read through the reader's visibility: one about a subject in a workspace the reader no longer sees is hidden, feedback and update notices are root's only, and one about losing access shows the workspace's name with no link (`notifications/models/visibility.ts`); names are read when shown, and rows are kept 90 days (`RETENTION_DAYS`, `notifications/models/notification.ts:93`; 139) | Nothing leaves the server: no email or webhooks. Whoever holds a person's session reads their notifications |
+| A toast's cookie carries markup, or words that aren't the app's | `flashToast` (138) writes one of the app's message keys and short parameters, never a sentence; `parseFlash` refuses anything else, whole, and the message is drawn as text in the reader's language. The cookie lasts 30 seconds, `SameSite=Lax` (`apps/web/src/i18n/flash.ts:46`, `apps/web/src/server/http/flash-toast.ts`) | It isn't `HttpOnly`, since the page removes it once shown: a script on the page could set it, and show one of the app's own messages |
 | Someone who isn't root manages users | The user page `/admin/users/<id>` and its actions (change role, disable, reset password or two-factor, download data, erase) need root's permissions; anyone else gets a 404 with no hint the user exists; each action is audited and the destructive ones ask for a typed confirmation (123, 103) | Root can do all of it, as root must |
 
 ### 4.3 One workspace → another (private workspaces)
@@ -208,7 +215,7 @@ The scan is opt-in: nothing here applies until the operator sets up a scanner an
 
 ## 5. Known gaps
 
-Checked on 2026-10-30.
+Checked on 2026-11-01.
 
 | Gap | Closed by, or accepted by |
 |---|---|
@@ -231,6 +238,7 @@ Checked on 2026-10-30.
 | Personal workspaces release without review, and aren't gated by the security scan | Accepted: MVP §15, Approval (114, 115); 137 decision 5 |
 | The security scan is alpha and heuristic, advisory until root sets a threshold, and an item can score low | Accepted: 135 and 137 decision 1 (a person decides; root's override is audited) |
 | A semantic scan sends item content and a key to a provider, and DNS rebinding isn't covered; root's scanner address is only checked, not trusted | Accepted: 136 and 156 decision 7 (the operator's egress proxy or firewall closes the first; the operator's environment overrides the second) |
+| The update check believes GitHub's answer about which version is latest | Accepted: 140 (only a version number is believed; the commands are Ronne's own; off with `RONNE_UPDATE_CHECK=off`) |
 | The scanner runs in a container that shares the host's kernel, and its image is built on the server from GitHub and PyPI | Accepted: 156 (not published by Ronne; pinned by commit, digest and `uv.lock`) |
 
 ## 6. Keeping it true
