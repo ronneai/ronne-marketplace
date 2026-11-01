@@ -33,7 +33,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* component tests cover both states; an e2e test turns choosing off with French as
     the default and sees the sign-in page and Account in French with no language links.
 
-- [ ] **5. Messages.**
+- [x] **5. Messages.**
   - Every new key in `en`, `pt` and `fr`.
   - *Done when:* the parity and raw-text tests pass; the phone sweep passes on the tab.
 

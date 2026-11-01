@@ -100,3 +100,31 @@ Witnessed: 2026-11-01, by a fresh agent (blind, row 10). Commit: 2b08216d plus t
 | 11 | The settings forms' tests still pass after the checkbox markup change | yes | confirmed | `src/features/admin-settings` → 14 files, 210 tests |
 
 **Overall:** met.
+
+
+## Task 5 — Messages
+
+Witnessed: 2026-11-01, by a fresh agent (blind). Commit: 1c515cfe plus the uncommitted line in `apps/web/e2e/pages.ts`. Machine: macOS (Darwin), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The parity and raw-text tests pass | no | confirmed | `npx vitest run src/i18n src/features/admin-settings src/features/admin-audit src/features/account` → 44 files, 719 tests |
+| 2 | `pnpm lint` passes, including the raw-JSX plugins | no | confirmed | 42 warnings, 4 infos, no errors |
+| 3 | No raw user-facing string in the new components | no | confirmed | grepped the new components for literal JSX text and attributes |
+| 4 | Every new key is in en, pt and fr with the same ICU placeholders | no | confirmed | the parity test; the diffs of `admin.json`, `account.json`, `errors.json` |
+| 5 | The parity test catches a renamed placeholder | no | confirmed | `{name}` → `{nome}` in pt `account.json` failed it; restored |
+| 6 | The phone sweep passes on the new tab | no | confirmed | `playwright test e2e/mobile-sweep.mobile.e2e.ts --project phone --grep "as root\|no page scrolls sideways"` → 6 passed (en, pt, fr) |
+| 7 | fr typography: no straight apostrophes; a space before ':' only | no | confirmed | `git diff main -U0 -- messages/fr` grepped |
+| 8 | The pt and fr copy is real translation | no | partly | natural translation; native judgement belongs to the 133 review |
+
+**Overall:** not met: row 8.
+
+### Re-check
+
+Witnessed: 2026-11-01, by a fresh agent (blind, row 8). Commit: 1c515cfe plus the uncommitted line in `apps/web/e2e/pages.ts`. Machine: macOS (Darwin), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 8 | The pt and fr copy feature 141 added is a real translation that follows the written glossary and typography rules | no | confirmed | read every added string; the glossary terms match `docs/knowledge/i18n.md` (it has no entry for "language", "offered" or "default"); ’ everywhere in fr, spacing right; você and vous. The 133 native-speaker review of the new pt and fr strings is still pending: this confirms the written rules only |
+
+**Overall:** met. The 133 native review of the new pt and fr strings is outstanding.
