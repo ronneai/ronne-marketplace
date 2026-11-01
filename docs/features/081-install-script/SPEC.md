@@ -66,12 +66,14 @@ Both redirect to the latest release's assets, which also work directly:
    from the same release as the script (not `main`), and `.env` with only the answers given. An
    existing `.env` is kept and its values are the defaults of the questions. For 1, the ports are
    written as `127.0.0.1:7650` and `127.0.0.1:7651`, with `PUBLIC_URL=http://localhost:7650`:
-   only this computer can reach Ronne, and its setup, which is open to the first visitor
-   (2026-10-05). A port written with another address on purpose (`0.0.0.0:7650`) is kept; a
+   only this computer can reach Ronne, and its setup, which was open to the first visitor
+   (2026-10-05; since [161](../161-setup-code/SPEC.md) the setup asks for a setup code). A port written with another address on purpose (`0.0.0.0:7650`) is kept; a
    `localhost` `PUBLIC_URL` follows the port, and goes when the install moves to a server.
 5. **Start** `docker compose up -d`, wait up to 120 s for `/api/health` through the proxy (any
    answer, as `503 setup_required` is expected), print the address, and open it in the browser
    (`open`, `xdg-open` if present, `Start-Process`). It reminds the person to finish the setup now.
+   Since [161](../161-setup-code/SPEC.md) it prints the setup code instead, and on this computer
+   opens `/setup#code=…`.
 
 **Pinning the version.** The script installs the release it came from: `compose.yaml` and
 `RONNE_IMAGE=ronneai/marketplace:X.Y.Z` in `.env`. Rerunning a newer script moves both to its

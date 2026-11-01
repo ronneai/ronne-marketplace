@@ -1,7 +1,7 @@
 # Threat model
 
 > Feature [098](../features/098-threat-model/SPEC.md) · Checked against the code on 2026-11-01 (commit
-> `d2abae81`, before 0.7.0) · What to do when something goes wrong: the
+> `ff434748`, before 0.7.0) · What to do when something goes wrong: the
 > [incident runbook](../runbooks/incident-response.md) · Reporting a vulnerability:
 > [`SECURITY.md`](../../SECURITY.md)
 
@@ -134,6 +134,7 @@ The boundaries, in order of what's at stake:
 
 | Threat | What stops it today | What's left |
 |---|---|---|
+| Someone reaches a new server's setup before its owner and becomes root | Every step of the web setup asks for a one-time setup code (161): 128 random bits made when the server starts before setup, kept in the data folder (`setup-code`, 0600, an exclusive create) and shown only where the operator looks: the server's log (`server.setup_code`, the one line allowed to carry it), the install script and `rmk-server`, and `setup-code` on the server. The guard checks the setup state first (a set-up instance never reads the file), then the code in constant time on its SHA-256, at most 30 wrong codes in all and, with `TRUST_PROXY`, 10 per address per 10-minute window, and the file is deleted once root exists (`apps/web/src/features/setup/install.ts`, `apps/web/src/server/setup/setup-code.ts`). The install script passes it in the URL's fragment, which the browser never sends; the terminal setup doesn't ask (shell access is the proof) | Whoever can read the server's log or its data folder has the code, as they could read the settings file. The limits are in memory (109), and without `TRUST_PROXY` (set by `compose.yaml` and a service with a domain; not by `rmk-server start`, a service without one, the packages or a clone) the server knows no addresses, so only the 30 in all applies and a stranger can hold the web setup off for ten minutes at a time (the terminal setup still works). A `LOG_LEVEL` of warn or error leaves the line out; `setup-code` prints it |
 | Guessing passwords | 5 attempts a minute per email and per IP (`apps/web/src/server/domains/identity/models/login-rate-limiter.ts:19`); the same limiter on `POST /api/v1/auth/token`; wrong password, unknown email and disabled user get the same answer (`identity/services/session.ts:45`) | The limits live in one process's memory and reset on restart (109). A person adds a second step themselves; root may require it (next row) |
 | A stolen session cookie | Sessions are rows in the database, read on every request (`currentUser`, `identity/services/session.ts:26`), so Disable, Reset password, `rmk-server revoke-access` and `rmk-server rotate-secret` (098, `apps/web/src/server/domains/identity/services/instance-access.ts`) end them at the next request; no cookie cache is configured (`identity/repositories/better-auth.ts`) | A session lasts up to 30 days with "remember me". If a cookie cache is ever turned on, ending sessions must clear it |
 | A stolen access token | Only sha256 is stored (`identity/models/access-token.ts:40`); `rmk_` prefix so secret scanners can match it (`:8`); 30, 90 or 365 days, or none (`:18`); at most 50 active per user; revoked by its owner, by Disable and Reset password (`identity/services/user-admin.ts:195`, `:259`), and in bulk by `rmk-server revoke-access` (098, `revokeAccess` in `identity/services/instance-access.ts`); a disabled user's tokens stop at once (`identity/services/access-tokens.ts:134`) | A token acts as its whole user, in every workspace (116). "No expiry" is allowed (009's choice; the owner sees it when choosing) |
@@ -224,7 +225,7 @@ Checked on 2026-11-01.
 | Two-factor is TOTP only: no passkeys or security keys; bearer tokens aren't held by it | Accepted: 105 (WebAuthn later, if asked for) |
 | SAML and LDAP sign-in aren't built | Accepted: OpenID Connect is the one type (106) |
 | A backup made before a purge or an erasure keeps what they cleared | Accepted: the operator's copies ([backup runbook](../runbooks/backup.md)) |
-| Rate limits in one process's memory, reset on restart | 109, shared rate limits (planned, M17) |
+| Rate limits in one process's memory, reset on restart (sign-in, uploads, setup codes) | 109, shared rate limits (planned, M17) |
 | No release signatures | MVP §14.2 (designed, post-MVP) |
 | Telemetry's sanitizer is best-effort on free text (the limits in 101's spec) | Accepted: telemetry is off by default and goes only to the operator's own collector |
 | Data at rest not encrypted by Ronne | Accepted: MVP §15, Operations (the disk's, the database's, the bucket's) |

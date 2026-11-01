@@ -60,13 +60,15 @@ The script:
    On **this computer**, Ronne answers only on this computer (`127.0.0.1`), not to your network. To
    reach it from another device, put `RONNE_PORT=0.0.0.0:7650` and
    `PUBLIC_URL=http://<this computer's address>:7650` in `.env` (the script keeps both) and run
-   `docker compose up -d` in that folder; do it after the setup, which is open to anyone who can
-   reach it until then. HTTPS on 7651 stays on this computer.
-5. Starts Ronne, waits until it answers, and opens it in your browser.
+   `docker compose up -d` in that folder. HTTPS on 7651 stays on this computer.
+5. Starts Ronne, waits until it answers, prints its **setup code**, and opens the setup in your
+   browser with the code filled in. With a domain, it prints the address and the code.
 
 Then follow the setup in the browser: choose the database (SQLite needs nothing else), and create
-the root account. Open the address right away: until setup is done, anyone who can reach it can
-set it up.
+the root account. The setup asks for the setup code at every step, so nobody who finds the address
+before you can set it up: only someone with access to the server has the code. It's in the
+server's log too, and `docker compose exec web pnpm run setup-code` (in the `ronne-marketplace`
+folder) prints it again. It's gone once root exists.
 
 Prefer to read a script before running it? Download it and `checksums.txt` from the
 [latest release](https://github.com/ronneai/ronne-marketplace/releases/latest), check it
@@ -199,7 +201,7 @@ package (`apt remove`, `dnf remove`) keeps the data; the packages need glibc 2.3
 **Installed with npm instead?** Register the service yourself (feature 083):
 
 ```sh
-sudo rmk-server service install      # then open http://localhost:7650 and finish the setup
+sudo rmk-server service install      # prints the setup code: open http://localhost:7650/setup and enter it
 ```
 
 The service runs under its own account (`rmk-server` on Linux, `_rmkserver` on macOS), which
@@ -231,6 +233,7 @@ and `key.pem` in `/etc/rmk-server-proxy/certs` on Linux, or the prefix's
 | Stop, start or restart | `sudo rmk-server service stop` / `start` / `restart` |
 | Read its logs | `sudo rmk-server service logs` |
 | Set it up, migrate or reset root's password in the terminal | `sudo rmk-server setup` / `migrate` / `reset-root-password` |
+| See the setup code again, before setup | `sudo rmk-server setup-code` |
 | Remove the service (your data stays) | `sudo rmk-server service uninstall` |
 | Remove it and delete the data | `sudo rmk-server service uninstall --delete-data` |
 
@@ -281,9 +284,11 @@ in WSL at `http://localhost:7650`.
 
 ## After installing
 
-**Set it up in the browser.** The first visit opens the setup: choose the database (SQLite,
-MySQL/MariaDB or PostgreSQL), confirm the public address, and create the root account. No restart
-is needed afterwards.
+**Set it up in the browser.** The first visit opens the setup: enter the setup code, choose the
+database (SQLite, MySQL/MariaDB or PostgreSQL), confirm the public address, and create the root
+account. No restart is needed afterwards. The code is in the server's log (`server.setup_code`);
+`setup-code` prints it again (`docker compose exec web pnpm run setup-code`, `rmk-server setup-code`,
+or `pnpm run setup-code` in a clone). The terminal setup (`setup`) doesn't ask for it.
 
 **Connect your projects.** On each computer that uses the marketplace, install the `rmk` command and
 sign in with an access token made in Ronne (the sidebar's CLI & tokens page):

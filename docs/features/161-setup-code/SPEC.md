@@ -145,21 +145,21 @@ is refused as today, so a set-up instance never reads the file. Then it reads th
 
 ## Acceptance criteria
 
-- [ ] A start in setup mode makes the code once (0600, exclusive) and logs `server.setup_code` at
+- [x] A start in setup mode makes the code once (0600, exclusive) and logs `server.setup_code` at
   every start until set up; a set-up instance makes none.
-- [ ] Every setup action refuses without the right code, rate-limited as above, and accepts it
+- [x] Every setup action refuses without the right code, rate-limited as above, and accepts it
   typed with any case, spaces or dashes; db tests for each action.
-- [ ] The file is deleted when root is created, by the web or the terminal setup, and by
+- [x] The file is deleted when root is created, by the web or the terminal setup, and by
   `reset-setup`.
-- [ ] `setup-code` prints the code (making one if needed) and refuses on a set-up instance.
-- [ ] The install script prints the code and opens `/setup#code=…`; `pnpm test:install` asserts
+- [x] `setup-code` prints the code (making one if needed) and refuses on a set-up instance.
+- [x] The install script prints the code and opens `/setup#code=…`; `pnpm test:install` asserts
   it under dash and bash.
-- [ ] The setup page's field comes first, is filled from the fragment, and says where the code is
+- [x] The setup page's field comes first, is filled from the fragment, and says where the code is
   for the runtime; the e2e wizard test enters it.
-- [ ] The logger's redaction test allows the code only in `server.setup_code`.
-- [ ] Every new text is a message in English, Portuguese and French; the setup page passes the
+- [x] The logger's redaction test allows the code only in `server.setup_code`.
+- [x] Every new text is a message in English, Portuguese and French; the setup page passes the
   phone sweep.
-- [ ] The Documentation, the install guide, `compose.yaml`'s comments and the threat model say
+- [x] The Documentation, the install guide, `compose.yaml`'s comments and the threat model say
   what the feature does.
 
 ## Decisions

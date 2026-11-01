@@ -65,7 +65,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - Every new key in `en`, `pt` and `fr`.
   - *Done when:* the parity and raw-text tests pass; the phone sweep passes on the setup page.
 
-- [ ] **9. Documentation and the threat model.**
+- [x] **9. Documentation and the threat model.**
   - `install#setup`, `install#https`, `security#security`, the helper; the install guide.
   - The threat model's §4.2 row and §5.
   - *Done when:* the docs render tests and `pnpm docs:links` pass, and the helper lands on a real
