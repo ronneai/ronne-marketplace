@@ -80,7 +80,7 @@ const releasedInVault = async () => {
     app,
   );
   await submitDraft(as.root, draft.id, app, storage);
-  await decide(as.root, draft.id, { decision: "override" }, app);
+  await decide(as.root, draft.id, { decision: "override", message: "Root's call." }, app);
   await publishSubmission(
     as.root,
     draft.id,

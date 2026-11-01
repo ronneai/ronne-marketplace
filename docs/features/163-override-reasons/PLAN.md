@@ -14,7 +14,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     `docs/features/README.md` lists 163 in M28.
   - *Done when:* both say what this spec says, and `pnpm witness:check` passes.
 
-- [ ] **2. The rule.** [risky]
+- [x] **2. The rule.** [risky]
   - `DECISIONS.override.requires` in `submissions/services/reviews.ts`.
   - The bulk approve service requires the message when any row is an override.
   - The matrix's comment in `permissions.ts`.

@@ -92,14 +92,14 @@ attacks, and it doesn't say whether the account exists.
 - **Timestamps** are shown in UTC with the offset, never in local time without saying so. Since
   [049](../049-local-time/SPEC.md), they're in the reader's time zone with its name (`GMT-3`), and
   UTC on hover; the From and To filters stay UTC days.
-- **Big metadata:** capped at 4 KB when serialized. Larger payloads are a programming error, and it throws.
+- **Big metadata:** capped at 32 KB when serialized (4 KB until [163](../163-override-reasons/SPEC.md), which needed room for a review message's 5,000 characters, however they're escaped). Larger payloads are a programming error, and it throws.
 
 ## Acceptance criteria
 
 - [x] `0002_audit_log` creates the table, indexes and table-level foreign key on SQLite, MySQL 8.4,
       MariaDB 10.11 and PostgreSQL 15 (the 004 matrix). The foreign key is checked like 0001's.
 - [x] `recordAudit` writes inside the caller's transaction: a rolled-back change leaves no event (a test for each database).
-- [x] Unknown actions, secret-looking metadata keys and metadata over 4 KB are rejected.
+- [x] Unknown actions, secret-looking metadata keys and metadata over 4 KB (32 KB since 163) are rejected.
 - [x] Setup and reset-root-password (003) record their events.
 - [x] 006, 008 and 009 record the catalogue's events, with a test per event. (006's are done here; 008 and 009 add theirs in their own features.)
 - [x] `/admin/audit` is root-only (others get 404), lists newest first, filters by action, actor and

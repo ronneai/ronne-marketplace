@@ -163,14 +163,69 @@ describe("approveMany", () => {
     expect(event?.metadata).toEqual({ name: "@team/one", revision: 1, via: "bulk" });
   });
 
-  it("approves root's own as overrides", async () => {
+  it("approves root's own as overrides, with the reason on every approval", async () => {
     const own = await submitted(asRoot, "roots");
     const theirs = await submitted(asAuthor, "theirs");
-    const results = await approveMany(asRoot, { items: await rows(own, theirs) }, app);
+    const results = await approveMany(
+      asRoot,
+      { items: await rows(own, theirs), message: " Release day. " },
+      app,
+    );
     expect(results.map((r) => r.result === "approved" && r.override)).toEqual([true, false]);
-    expect((await events(own)).at(-1)).toMatchObject({ kind: "override", body: null });
-    expect(await audited("submission.override_approved")).toHaveLength(1);
+    expect((await events(own)).at(-1)).toMatchObject({ kind: "override", body: "Release day." });
+    expect((await events(theirs)).at(-1)).toMatchObject({ kind: "approve", body: "Release day." });
+    const [override] = await audited("submission.override_approved");
+    expect(override?.metadata).toMatchObject({ message: "Release day.", via: "bulk" });
     expect(await audited("submission.approved")).toHaveLength(1);
+  });
+
+  it("refuses a selection with root's own and no reason, approving none of it (163)", async () => {
+    const theirs = await submitted(asAuthor, "theirs");
+    const own = await submitted(asRoot, "roots");
+    for (const message of [undefined, "", "   "])
+      await expect(
+        approveMany(
+          asRoot,
+          { items: await rows(theirs, own), ...(message !== undefined ? { message } : {}) },
+          app,
+        ),
+      ).rejects.toThrow(
+        expect.objectContaining({
+          name: "ReviewMessageError",
+          reason: "required",
+          what: "override",
+        }),
+      );
+    expect([await status(theirs), await status(own)]).toEqual(["submitted", "submitted"]);
+    expect(await audited("submission.approved")).toEqual([]);
+    expect(await audited("submission.override_approved")).toEqual([]);
+  });
+
+  it("needs no message from a moderator whose own submission is in the selection", async () => {
+    const theirs = await submitted(asAuthor, "theirs");
+    const own = await submitted(asModerator, "own");
+    const results = await approveMany(asModerator, { items: await rows(theirs, own) }, app);
+    expect(results.map((r) => r.result)).toEqual(["approved", "not_approvable"]);
+  });
+
+  it("needs no reason for root's own that can't be approved, such as one archived", async () => {
+    const theirs = await submitted(asAuthor, "theirs");
+    const own = await submitted(asRoot, "roots");
+    const items = await rows(theirs, own);
+    await withdrawSubmission(asRoot, own, app);
+    const results = await approveMany(asRoot, { items }, app);
+    expect(results.map((r) => r.result)).toEqual(["approved", "not_approvable"]);
+    expect(results[1]).toMatchObject({ why: { code: "status", status: "withdrawn" } });
+    expect(await status(theirs)).toBe("approved");
+  });
+
+  it("needs no message from root when none of the selection is root's own", async () => {
+    const one = await submitted(asAuthor, "one");
+    const two = await submitted(asModerator, "two");
+    const results = await approveMany(asRoot, { items: await rows(one, two) }, app);
+    expect(results.map((r) => r.result)).toEqual(["approved", "approved"]);
+    expect((await events(one)).at(-1)).toMatchObject({ kind: "approve", body: null });
+    expect(await audited("submission.override_approved")).toEqual([]);
   });
 
   it("refuses a stale proposal and approves the rest", async () => {

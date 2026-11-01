@@ -227,15 +227,63 @@ describe("decisions", () => {
     const [withReason] = await audited("submission.override_approved");
     expect(withReason?.metadata).toMatchObject({ message: "Urgent fix; I'm the only reviewer." });
 
-    // The reason is optional (054): it's still an override, with no body and no message.
+    // The reason is required (163; optional from 054): without one, nothing changes.
     const second = await submitted(asRoot, "roots-too");
-    await decide(asRoot, second, { decision: "override", message: "  " }, app);
-    expect(await status(second)).toBe("approved");
-    expect((await events(second)).at(-1)).toMatchObject({ kind: "override", body: null });
-    const withoutReason = (await audited("submission.override_approved")).find(
+    // Text with nothing visible isn't a reason either (a zero-width space, a word joiner, NUL, the
+    // Hangul fillers, the braille blank, a combining mark alone, unassigned code points, U+FFFC),
+    // nor is a non-string.
+    for (const message of [
+      undefined,
+      "",
+      "  \n ",
+      "\u200b",
+      " \u2060\u00a0",
+      "\u0000",
+      "\u3164",
+      "\u115f\u1160\uffa0",
+      "\u2800",
+      "\u2065\u{e0000}\ufffc",
+      "\u0301\ufe0f",
+      "\u0001",
+      0 as unknown as string,
+    ])
+      await expect(decide(asRoot, second, { decision: "override", message }, app)).rejects.toThrow(
+        expect.objectContaining({
+          name: "ReviewMessageError",
+          reason: "required",
+          what: "override",
+        }),
+      );
+    expect(await status(second)).toBe("submitted");
+    expect((await events(second)).at(-1)).toMatchObject({ kind: "submit" });
+    expect(
+      (await audited("submission.override_approved")).filter((e) => e.targetId === second),
+    ).toEqual([]);
+    // Trimmed, and at most 5,000 characters, as every review message.
+    await expect(
+      decide(asRoot, second, { decision: "override", message: "x".repeat(5001) }, app),
+    ).rejects.toThrow(expect.objectContaining({ reason: "too_long" }));
+    // The longest reason, every character escaped in the audit's JSON, is stored whole (163).
+    const longest = `${"\u0001".repeat(4999)}x`;
+    const third = await submitted(asRoot, "roots-long");
+    await decide(asRoot, third, { decision: "override", message: longest }, app);
+    expect((await events(third)).at(-1)).toMatchObject({ kind: "override", body: longest });
+    const long = (await audited("submission.override_approved")).find((e) => e.targetId === third);
+    expect(long?.metadata).toMatchObject({ message: longest });
+    // A sign drawn by a format character is visible (U+06DD); NUL is removed, as PostgreSQL can't
+    // store it.
+    const sign = await submitted(asRoot, "roots-sign");
+    await decide(asRoot, sign, { decision: "override", message: "\u06dd" }, app);
+    expect((await events(sign)).at(-1)).toMatchObject({ kind: "override", body: "\u06dd" });
+    const nul = await submitted(asRoot, "roots-nul");
+    await decide(asRoot, nul, { decision: "override", message: "Hot\u0000fix" }, app);
+    expect((await events(nul)).at(-1)).toMatchObject({ kind: "override", body: "Hotfix" });
+    await decide(asRoot, second, { decision: "override", message: "  Hotfix.  " }, app);
+    expect((await events(second)).at(-1)).toMatchObject({ kind: "override", body: "Hotfix." });
+    const trimmed = (await audited("submission.override_approved")).find(
       (e) => e.targetId === second,
     );
-    expect(withoutReason?.metadata).not.toHaveProperty("message");
+    expect(trimmed?.metadata).toMatchObject({ message: "Hotfix." });
 
     const someoneElses = await submitted();
     await expect(

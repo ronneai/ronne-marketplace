@@ -84,15 +84,24 @@ describe("validateAuditEvent", () => {
     ).toThrow(SecretInAuditMetadataError);
   });
 
-  it("rejects metadata over 4 KB, counting bytes, not characters", () => {
-    expect(() => validateAuditEvent(event({ metadata: { note: "x".repeat(4100) } }))).toThrow(
+  it("rejects metadata over 32 KB, counting bytes, not characters", () => {
+    expect(() => validateAuditEvent(event({ metadata: { note: "x".repeat(32_800) } }))).toThrow(
       AuditMetadataTooLargeError,
     );
-    // 2,000 two-byte characters: under 4,096 characters, over 4,096 bytes.
-    expect(() => validateAuditEvent(event({ metadata: { note: "é".repeat(2050) } }))).toThrow(
+    // Two-byte characters: under 32,768 characters, over 32,768 bytes.
+    expect(() => validateAuditEvent(event({ metadata: { note: "é".repeat(16_400) } }))).toThrow(
       AuditMetadataTooLargeError,
     );
-    expect(() => validateAuditEvent(event({ metadata: { note: "x".repeat(4000) } }))).not.toThrow();
+    expect(() =>
+      validateAuditEvent(event({ metadata: { note: "x".repeat(32_000) } })),
+    ).not.toThrow();
+  });
+
+  it("holds a review message's 5,000 characters however they're escaped (163)", () => {
+    for (const char of ["\u0001", "\u{1F600}", '"', "é"]) {
+      const note = char.repeat(5000);
+      expect(() => validateAuditEvent(event({ metadata: { name: "@a/x", note } }))).not.toThrow();
+    }
   });
 });
 

@@ -182,7 +182,12 @@ export type AuditEvent = {
   createdAt: Date;
 };
 
-export const AUDIT_METADATA_MAX_BYTES = 4096;
+/**
+ * 32 KB of JSON (4 KB until 163): room for a review message's 5,000 characters, the longest one a
+ * person writes into an event, even when every character is escaped (`\u0001`, six bytes). MySQL's
+ * `text`, which holds the column, stops at 64 KB.
+ */
+export const AUDIT_METADATA_MAX_BYTES = 32 * 1024;
 
 /** Words that mark a key as a secret, wherever they appear in it. */
 const SECRET_WORDS = new Set(["password", "passwd", "secret", "hash", "salt", "cookie"]);
@@ -216,7 +221,7 @@ const checkKeys = (value: AuditMetadataValue): void => {
 
 /**
  * Checks an event before it's stored: a known action, no secret-looking keys at any depth, and at
- * most 4 KB of metadata. Returns the metadata as JSON text.
+ * most 32 KB of metadata. Returns the metadata as JSON text.
  */
 export const validateAuditEvent = (event: NewAuditEvent): string => {
   if (!(AUDIT_ACTIONS as readonly string[]).includes(event.action))
@@ -225,6 +230,7 @@ export const validateAuditEvent = (event: NewAuditEvent): string => {
   checkKeys(metadata);
   const json = JSON.stringify(metadata);
   const bytes = Buffer.byteLength(json, "utf8");
-  if (bytes > AUDIT_METADATA_MAX_BYTES) throw new AuditMetadataTooLargeError(bytes);
+  if (bytes > AUDIT_METADATA_MAX_BYTES)
+    throw new AuditMetadataTooLargeError(bytes, AUDIT_METADATA_MAX_BYTES);
   return json;
 };

@@ -109,7 +109,7 @@ const drafted = async (scope: string, name: string, needs: string[] = []) => {
 const released = async (scope: string, name: string) => {
   const id = await drafted(scope, name);
   await submitDraft(as.root, id, app, storage);
-  await decide(as.root, id, { decision: "override" }, app);
+  await decide(as.root, id, { decision: "override", message: "Root's call." }, app);
   await publishSubmission(as.root, id, { choice: { kind: "stable", bump: "minor" } }, app, storage);
   return (
     await t.db
@@ -143,7 +143,7 @@ const approvedProposal = async (item: string) => {
     app,
   );
   await submitDraft(as.root, proposal.id, app, storage);
-  await decide(as.root, proposal.id, { decision: "override" }, app);
+  await decide(as.root, proposal.id, { decision: "override", message: "Root's call." }, app);
   return proposal.id;
 };
 
@@ -559,7 +559,7 @@ describe("asking to move an item, and moving it (134)", () => {
       .executeTakeFirstOrThrow();
     expect(scope.scope_id).toBe(devops);
     await submitDraft(as.root, proposal.id, app, storage);
-    await decide(as.root, proposal.id, { decision: "override" }, app);
+    await decide(as.root, proposal.id, { decision: "override", message: "Root's call." }, app);
     await publishSubmission(
       as.root,
       proposal.id,

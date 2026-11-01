@@ -34,17 +34,31 @@ import type { SubmissionActor, SubmissionDeps } from "./submissions";
 
 /**
  * Review decisions and the conversation (feature 014). Moderators and root approve, request
- * changes or reject others' submissions; root approves its own only through an override, with an
- * optional reason (054). Every decision locks the submission's row, goes through `transition`, adds an event and
- * is audited, in one transaction.
+ * changes or reject others' submissions; root approves its own only through an override, which
+ * always gives a reason (163; optional from 054 until then). Every decision locks the submission's
+ * row, goes through `transition`, adds an event and is audited, in one transaction.
  */
 
 const now = (deps: SubmissionDeps) => (deps.now ?? (() => new Date()))();
 
-/** A trimmed message, null when empty; ReviewMessageError when it's required or too long. */
+/**
+ * A character that shows something: not a space, a control or format character, a combining mark
+ * on its own, an unassigned code point, the object replacement character (U+FFFC) or a blank
+ * letter (the Hangul fillers, the braille blank). One character class with no quantifier, so it's
+ * linear on any input (docs/knowledge/codeql-regex.md).
+ */
+const VISIBLE = /[^\s\p{Cc}\p{Cf}\p{Cn}\p{M}\u115F\u1160\u3164\uFFA0\u2800\uFFFC]/u;
+/** The format characters that draw a sign: the Arabic and Syriac number signs, the Kaithi ones. */
+const VISIBLE_FORMAT = /[\u0600-\u0605\u06DD\u070F\u0890\u0891\u08E2\u{110BD}\u{110CD}]/u;
+
+/**
+ * A trimmed message, null when empty; ReviewMessageError when it's required or too long. A message
+ * with nothing visible in it counts as empty (163), and so does anything that isn't text, from a
+ * crafted call. NUL characters are removed: they show nothing, and PostgreSQL can't store them.
+ */
 export const messageFrom = (value: string | undefined, required: string | null): string | null => {
-  const message = (value ?? "").trim();
-  if (!message) {
+  const message = (typeof value === "string" ? value : "").replaceAll("\u0000", "").trim();
+  if (!VISIBLE.test(message) && !VISIBLE_FORMAT.test(message)) {
     if (required) throw new ReviewMessageError("required", required);
     return null;
   }
@@ -87,6 +101,9 @@ type Decision = {
   requires: string | null;
 };
 
+/** What an override's reason is for, in ReviewMessageError (163); approving many asks for it too. */
+export const OVERRIDE_REASON = "Approving your own submission";
+
 const DECISIONS = {
   approve: {
     action: "approve",
@@ -114,8 +131,8 @@ const DECISIONS = {
     kind: "override",
     audit: "submission.override_approved",
     notifies: "submission.approved_override",
-    // Optional since 054: it's still recorded as an override, with or without a reason.
-    requires: null,
+    // Nobody else checks it, so it says why (163). An ordinary approval's message stays optional.
+    requires: OVERRIDE_REASON,
   },
   // Root, past the security scan's gate (137): on anyone's submission, its own included.
   scan_override: {

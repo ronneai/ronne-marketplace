@@ -579,7 +579,7 @@ describe("asking to move a scope, and moving it (115)", () => {
   it("lets a release and a move at the same time end consistently", async () => {
     const id = await createDraftIn("beta");
     await submitDraft(as.root, id, app, storage);
-    await decide(as.root, id, { decision: "override" }, app);
+    await decide(as.root, id, { decision: "override", message: "Root's call." }, app);
     const infra = (
       await t.db
         .selectFrom("scopes")
@@ -637,7 +637,7 @@ describe("asking to move a scope, and moving it (115)", () => {
       app,
     );
     await submitDraft(as.root, draft.id, app, storage);
-    await decide(as.root, draft.id, { decision: "override" }, app);
+    await decide(as.root, draft.id, { decision: "override", message: "Root's call." }, app);
     // Hold the dependency's row while the release looks it up, then move its scope into private
     // vault, keep its old name, and let the release take its locks.
     let held = () => {};
@@ -682,7 +682,7 @@ describe("asking to move a scope, and moving it (115)", () => {
   it("refuses a release packed under the scope's old workspace", async () => {
     const id = await createDraftIn("beta");
     await submitDraft(as.root, id, app, storage);
-    await decide(as.root, id, { decision: "override" }, app);
+    await decide(as.root, id, { decision: "override", message: "Root's call." }, app);
     const infra = (
       await t.db
         .selectFrom("scopes")

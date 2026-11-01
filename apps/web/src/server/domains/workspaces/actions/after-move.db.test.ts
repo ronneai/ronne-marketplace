@@ -92,7 +92,8 @@ const released = async (
     app,
   );
   const sent = await submitDraft(as[who], draft.id, app, storage);
-  if (sent.status !== "approved") await decide(as.root, draft.id, { decision: "override" }, app);
+  if (sent.status !== "approved")
+    await decide(as.root, draft.id, { decision: "override", message: "Root's call." }, app);
   await publishSubmission(
     as[who],
     draft.id,

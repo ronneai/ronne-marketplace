@@ -49,7 +49,7 @@ export const decide = async (
   app: AppAuth = getAppAuth(),
 ) => service.decide(...(await bound(headers, app)), id, input);
 
-/** Approves several at once (054), with one optional message for all. */
+/** Approves several at once (054), with one message for all: required when root's own are in it (163). */
 export const approveMany = async (
   headers: Headers,
   input: { items: readonly { id: string; revision: number | null }[]; message?: string },

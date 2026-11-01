@@ -149,6 +149,7 @@ const CASES: [Error, string[]][] = [
   [new s.ReviewMessageError("required", "Rejecting"), []],
   [new s.ReviewMessageError("required", "A comment"), []],
   [new s.ReviewMessageError("required", "Sending its dependents back"), []],
+  [new s.ReviewMessageError("required", "Approving your own submission"), []],
   [new s.ReviewMessageError("too_long", ""), []],
   [new s.BulkLimitError(60, 50), ["60", "50"]],
   [new s.ConversationClosedError(), []],
@@ -309,6 +310,10 @@ describe("authoring and review errors in three languages (131)", () => {
       [
         new s.ReviewMessageError("required", "Sending its dependents back"),
         "Sending its dependents back needs a message, so the author knows what to do.",
+      ],
+      [
+        new s.ReviewMessageError("required", "Approving your own submission"),
+        "Approving your own submission needs a reason: nobody else reviews it.",
       ],
       [
         new s.DraftMismatchError({ name: "@a/x", type: "skill", baseVersion: "1.0.0" }),

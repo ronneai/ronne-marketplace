@@ -296,9 +296,9 @@ describe("root's scan override (137)", () => {
   it("takes the place of 054's override on root's own blocked submission", async () => {
     await gateOn();
     const id = await submitted(asRoot);
-    await expect(decide(asRoot, id, { decision: "override" }, app)).rejects.toThrow(
-      ScanBlockedError,
-    );
+    await expect(
+      decide(asRoot, id, { decision: "override", message: "Mine." }, app),
+    ).rejects.toThrow(ScanBlockedError);
     await decide(asRoot, id, { decision: "scan_override", message: "Mine, checked by hand." }, app);
     expect(await status(id)).toBe("approved");
   });

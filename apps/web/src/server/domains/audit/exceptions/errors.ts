@@ -28,7 +28,10 @@ export class SecretInAuditMetadataError extends AuditError {
 
 export class AuditMetadataTooLargeError extends AuditError {
   override readonly name: string = "AuditMetadataTooLargeError";
-  constructor(readonly bytes: number) {
-    super(`Audit metadata is ${bytes} bytes; the limit is ${4096}.`);
+  constructor(
+    readonly bytes: number,
+    readonly limit: number,
+  ) {
+    super(`Audit metadata is ${bytes} bytes; the limit is ${limit}.`);
   }
 }
