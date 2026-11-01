@@ -28,7 +28,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* component tests cover both dialogs and the old-override line; the review e2e test
     approves its own submission as root with a reason.
 
-- [ ] **4. Messages.**
+- [x] **4. Messages.**
   - Every new key in `en`, `pt` and `fr`.
   - *Done when:* the parity and raw-text tests pass; the phone sweep passes on both dialogs.
 
@@ -40,3 +40,10 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+- **The words land with the screens.** The parity test fails when a key is in English only, so
+  task 3 added its messages in all three languages at once, and task 4 became their check and the
+  phone sweep of both dialogs (`e2e/override-reason.mobile.e2e.ts`, one root per device project).
+- **Task 2 grew** after its witnesses: the audit metadata limit rose to 32 KB (owner), a message
+  with nothing visible counts as empty, and NUL is removed (PostgreSQL refused it). Those rules are
+  `messageFrom`'s, so they hold for every review message, not only the override's reason.

@@ -26,6 +26,7 @@ const PROJECT_USERS = {
     starterFlow: "phoneStarterFlow",
     feedback: "phoneFeedback",
     mustChange: "phoneMustChange",
+    overrideRoot: "phoneOverrideRoot",
   },
   "phone-webkit": {
     languages: "phoneWebkitLanguages",
@@ -50,6 +51,7 @@ const PROJECT_USERS = {
     starterFlow: "phoneWebkitStarterFlow",
     feedback: "phoneWebkitFeedback",
     mustChange: "phoneWebkitMustChange",
+    overrideRoot: "phoneWebkitOverrideRoot",
   },
   tablet: {
     languages: "tabletLanguages",
@@ -74,6 +76,7 @@ const PROJECT_USERS = {
     starterFlow: "tabletStarterFlow",
     feedback: "tabletFeedback",
     mustChange: "tabletMustChange",
+    overrideRoot: "tabletOverrideRoot",
   },
 } as const satisfies Record<string, Record<string, keyof typeof E2E_USERS>>;
 
