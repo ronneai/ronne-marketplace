@@ -23,8 +23,10 @@ page is no longer enough (owner, 2026-11-01).
   - It is 128 random bits written as 26 Crockford base32 characters, shown in groups of five
     (`7KQ2M-…`). Case, spaces and dashes are ignored when typed.
   - It is written to `setup-code` in the data folder (`defaultDataPath("setup-code")`: `./data`,
-    the Docker volume, or `RONNE_DATA_DIR`): mode 0600, exclusive create, then a rename, as
-    `writeEnvFile` does.
+    the Docker volume, or `RONNE_DATA_DIR`), mode 0600, by an exclusive create that never shows half
+    a file: a temporary file, then a hard link into place, which fails when the file is already
+    there. Where hard links aren't supported, a plain exclusive create, and a reader waits a moment
+    for its content. A file holding the code that others can read is tightened to 0600.
 - **Where it's shown:**
   - **The server's log**, at every start until setup is done: a `server.setup_code` line, an
     `info` event with the code and the address to open (`PUBLIC_URL`, else the local one), next to
@@ -55,6 +57,7 @@ page is no longer enough (owner, 2026-11-01).
 - **`reset-setup`** (development only) deletes the file. The next start makes a new code.
 - **Logs:**
   - `setup.code_created` (no code: the code is only in `server.setup_code`);
+  - `setup.code_unwritable` and `setup.code_invalid` (`error`: no code could be made or read);
   - `setup.code_refused` (`warn`, with the address when trusted);
   - `setup.code_rate_limited`.
 
@@ -89,6 +92,9 @@ file it says "No setup code: restart the server or run `setup-code`". Then it co
   others read it and log the same code.
 - **The data folder can't be written:** the server logs `setup.code_unwritable` and every setup
   action refuses with "Set this instance up from the terminal: `<setup command>`".
+- **A `setup-code` file that holds no code** (empty after a crash, edited by hand): a start never
+  replaces it, since several servers starting at once would each write a code of their own. It
+  logs `setup.code_invalid`, and the web setup refuses as with no file. `setup-code` replaces it.
 - **The log was lost:** `setup-code` prints the code again. Restarting prints it too.
 - **The file is deleted while the setup page is open:** the next action refuses ("No setup code").
   A restart or `setup-code` makes a new one.

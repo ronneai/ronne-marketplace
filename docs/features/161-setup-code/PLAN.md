@@ -14,10 +14,11 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     lists 161 in M28 with its dependencies.
   - *Done when:* both say what this spec says, and `pnpm witness:check` passes.
 
-- [ ] **2. The code.** [risky]
+- [x] **2. The code.** [risky]
   - `server/setup/setup-code.ts`:
     - make (128 random bits, Crockford base32, groups of five);
-    - write (0600, exclusive create, temporary file then rename);
+    - write (0600, exclusive create: a temporary file linked into place; a file holding no code is
+      replaced, by a rename, only when `setup-code` asks);
     - read; normalise a typed code; constant-time check on SHA-256; delete.
   - *Done when:* unit tests cover the format, look-alike decoding, case, spaces and dashes, a wrong
     code, the file's mode, two writers racing (one wins, the other reads), and an unwritable folder.
