@@ -9,7 +9,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 ## Tasks
 
-- [ ] **1. Decision.**
+- [x] **1. Decision.**
   - MVP.md §15's "Web setup" row says the setup asks for a setup code, and `docs/features/README.md`
     lists 161 in M28 with its dependencies.
   - *Done when:* both say what this spec says, and `pnpm witness:check` passes.
