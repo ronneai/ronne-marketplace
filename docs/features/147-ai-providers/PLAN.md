@@ -47,15 +47,14 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* the scan's existing tests pass, with new ones for a picked provider, a deleted one
     (static) and an endpoint refused at scan time.
 
-- [ ] **7. Workspace consent.** [risky]
-  - `workspaces.ai_consent_at` and `ai_consent_by` (migration), the switch on a private workspace's
-    settings page (its admins and root) and on Account (the personal workspace's owner), naming the
-    providers' hosts; `workspace.ai_consent` audited.
-  - The scan job reads it when a scan starts: no consent in a private or personal workspace means
-    static, with the card's reason.
-  - *Done when:* db tests cover public, private with and without consent, personal, a switch turned
-    off while a scan is queued, and a scope moved into a private workspace, with no request reaching
-    the fake provider without consent; an e2e test turns it on for a private workspace.
+- [ ] **7. Workspace consent, from 164 to every provider.** [risky]
+  - The consent itself (the columns, the switch on a private workspace's page and on Account,
+    `workspace.ai_consent`, the scan going static without it) is built by
+    [164](../164-workspace-ai-consent/PLAN.md) (owner, 2026-11-01).
+  - Here: the switch names every chosen provider's host (not only the scan's), and the scan reads
+    its provider from this list while still honouring the consent.
+  - *Done when:* 164's db tests still pass with providers from the list, and a test asserts no
+    request reaches the fake provider without consent when the scan's provider is chosen here.
 
 - [ ] **8. Ronne's client.** [risky]
   - OpenAI-compatible (with Azure's variant) and Anthropic Messages over `node:https`, pinned

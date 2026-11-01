@@ -1,6 +1,6 @@
 # 147 — AI providers, set up once and shared
 
-> Milestone: M24 · Depends on: 136, 122, 106, 098, 099, 092, 093, 114 · Design: [MVP §15](../../MVP/MVP.md#15-decision-log) ("AI providers", "Security scan"), [136 SPEC](../136-scanner-settings-in-web/SPEC.md) · Contracts: none changed
+> Milestone: M24 · Depends on: 136, 122, 106, 098, 099, 092, 093, 114, 164 · Design: [MVP §15](../../MVP/MVP.md#15-decision-log) ("AI providers", "Security scan"), [136 SPEC](../136-scanner-settings-in-web/SPEC.md) · Contracts: none changed
 
 ## Goal
 
@@ -62,6 +62,9 @@ scanner never did: Ronne itself calling the model.
 - **Workspaces consent before their content goes to a provider** (owner, 2026-10-29): one switch
   per workspace, **Allow AI providers**, for every feature that sends item content to one (the
   semantic security scan now, triage (148) and its reports (151) later):
+  - **built first in [164](../164-workspace-ai-consent/SPEC.md)** (owner, 2026-11-01), for the
+    security scan: the switch, its columns and its audit event exist when 147 starts; 147 widens
+    the switch's wording to every feature that uses a provider and adds nothing to the data;
   - `global` and other public workspaces count as allowing;
   - a **private workspace** (093) only when its admins (or root) turn it on, on the workspace's
     settings page;
@@ -130,6 +133,7 @@ when the scan starts, so a queued scan follows a switch turned off meanwhile.
   `created_at`, `updated_at`, `updated_by`.
 - `workspaces.ai_consent_at` and `ai_consent_by` (nullable, as §9.4 prefers timestamps to
   booleans): set when a private or personal workspace allows AI providers, cleared when it stops.
+  Added by 164; 147 only reads them.
 - `instance_settings`: `skill_scan_ai_provider` (an id, or `environment`) and
   `skill_scan_ai_model`; 136's `skill_scan_provider`, `_model`, `_endpoint` and `_key_enc` removed
   once moved.
