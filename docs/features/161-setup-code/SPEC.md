@@ -31,7 +31,9 @@ page is no longer enough (owner, 2026-11-01).
   - **The server's log**, at every start until setup is done: a `server.setup_code` line, an
     `info` event with the code and the address to open (`PUBLIC_URL`, else the local one), next to
     today's "Not set up yet" line. It is the one log line allowed to carry a credential (the
-    logger's redaction test lists it); it's single-use and worthless once setup is done.
+    logger's redaction test lists it); it's single-use and worthless once setup is done. Like
+    every `info` line, a `LOG_LEVEL` of `warn` or `error` leaves it out: `setup-code` prints it.
+    `server.started` says `setup: "incomplete"` when settings exist but root doesn't yet.
   - **The install script** (081): after the start check, it reads the code from the server's log,
     prints it with the address, and opens `/setup#code=<code>` on "This computer". The fragment
     never reaches the server or a proxy's log.
@@ -90,8 +92,10 @@ file it says "No setup code: restart the server or run `setup-code`". Then it co
 
 - **Several replicas before setup** (111): the exclusive create means one writes the file; the
   others read it and log the same code.
-- **The data folder can't be written:** the server logs `setup.code_unwritable` and every setup
-  action refuses with "Set this instance up from the terminal: `<setup command>`".
+- **The data folder can't be written:** in Docker and the npm package the server doesn't start
+  at all (005's check of the data folder, before any code). In a clone (`pnpm dev`), and when only
+  the file can't be written or read, the server logs `setup.code_unwritable` and starts; every
+  setup action then refuses ("No setup code", with the terminal setup's command).
 - **A `setup-code` file that holds no code** (empty after a crash, edited by hand): a start never
   replaces it, since several servers starting at once would each write a code of their own. It
   logs `setup.code_invalid`, and the web setup refuses as with no file. `setup-code` replaces it.

@@ -23,7 +23,9 @@ export const logStarted = (
 ): void => {
   log.event("server.started", {
     version,
-    ...(plan.mode === "ready" ? { dialect: plan.dialect } : { setup: "required" }),
+    ...(plan.mode === "ready"
+      ? { dialect: plan.dialect, ...(plan.incomplete ? { setup: "incomplete" } : {}) }
+      : { setup: "required" }),
     runtime: startRuntime(env),
     port: Number(env.PORT) || 3000,
   });

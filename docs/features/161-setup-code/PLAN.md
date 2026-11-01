@@ -23,7 +23,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* unit tests cover the format, look-alike decoding, case, spaces and dashes, a wrong
     code, the file's mode, two writers racing (one wins, the other reads), and an unwritable folder.
 
-- [ ] **3. Start and log.** [risky]
+- [x] **3. Start and log.** [risky]
   - `prepareStart` makes or reads the code in setup mode and logs `server.setup_code` with the
     address.
   - `setup.code_created` and `setup.code_unwritable`.
