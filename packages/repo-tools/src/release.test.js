@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isVersion, sharedVersion, withVersion } from "./release.js";
+import { isVersion, nextMinor, sharedVersion, withVersion } from "./release.js";
 
 const pkg = (name, version) =>
   `{\n  "name": "${name}",\n  "version": "${version}",\n  "description": "x"\n}\n`;
@@ -31,6 +31,26 @@ describe("release versions", () => {
       "The published packages and the web app have different versions: core 0.1.0, cli 0.1.0, mcp 0.2.0, server 0.1.0, web 0.1.0. Run pnpm release:version.",
     );
     expect(() => sharedVersion(texts("0.1.0", "0.1.0", "0.1.0", "0.0.0"))).toThrow(/web 0\.0\.0/);
+  });
+
+  it("moves main to the next minor after a stable release", () => {
+    expect(nextMinor("0.6.0", "0.6.0")).toBe("0.7.0");
+    expect(nextMinor("0.6.2", "0.6.2")).toBe("0.7.0");
+    expect(nextMinor("1.9.0", "1.9.0")).toBe("1.10.0");
+    // Below the next minor for any reason, such as a forgotten bump.
+    expect(nextMinor("0.6.1", "0.6.0")).toBe("0.7.0");
+  });
+
+  it("leaves main alone after a pre-release, or when it is already there or past it", () => {
+    expect(nextMinor("1.0.0-rc.1", "1.0.0-rc.1")).toBeNull();
+    // A patch set by hand on main and released, after main had already moved: main is put back.
+    expect(nextMinor("0.6.1", "0.6.1")).toBe("0.7.0");
+    // A re-run of the release, or a patch released after main moved past it.
+    expect(nextMinor("0.6.0", "0.7.0")).toBeNull();
+    expect(nextMinor("0.6.1", "0.8.0")).toBeNull();
+    expect(nextMinor("0.6.0", "1.0.0")).toBeNull();
+    expect(nextMinor("0.6.0", "0.7.0-rc.1")).toBeNull();
+    expect(() => nextMinor("v0.6.0", "0.6.0")).toThrow(/isn't a version/);
   });
 
   it("needs the web app's package.json, since the image carries the version", () => {

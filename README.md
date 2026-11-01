@@ -358,7 +358,7 @@ a second root. To start over on a development clone, `pnpm run reset-setup`.
 | `pnpm packages:check` | Checks what `@ronneai/core`, `@ronneai/rmk`, `@ronneai/mcp` and `@ronneai/marketplace` would publish against an allowlist (after `pnpm build` and `pnpm build:server`) |
 | `pnpm release:smoke` | Installs the packed packages with npm in an empty folder and runs `rmk`, `rmk-mcp` and `rmk-server` (after `pnpm build` and `pnpm build:server`) |
 | `pnpm bundle <tarball>` | Builds this machine's self-contained `rmk-server` archive, Node.js inside, from a packed `@ronneai/marketplace` (`--out DIR`, `--keep`); `node packages/repo-tools/src/bundle-smoke.js <archive>` checks and runs it with no Node.js on `PATH` |
-| `pnpm release:version <x.y.z>` | Sets the version the four published packages share. Commit it, then push the tag `vX.Y.Z`: the Release workflow publishes them to npm with provenance, the Docker image and the GitHub release with the bundles. The checklist is [`docs/runbooks/release.md`](docs/runbooks/release.md) |
+| `pnpm release:version <x.y.z>` | Sets the version the four published packages share, for a patch, a major or a pre-release (after each stable release, the Release workflow moves `main` to the next minor itself). Commit it, then push the tag `vX.Y.Z`: the Release workflow publishes them to npm with provenance, the Docker image and the GitHub release with the bundles. The checklist is [`docs/runbooks/release.md`](docs/runbooks/release.md) |
 
 **Layout**
 
