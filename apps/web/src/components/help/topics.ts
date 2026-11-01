@@ -186,8 +186,11 @@ export const TOPICS = [
     slug: "settings",
     title: "Settings",
     summary:
-      "Root's settings for the instance, in seven tabs: usage reporting, the plugin feeds, how people sign in, how long personal data is kept, the notice, the security scan, and updates.",
-    sections: [{ id: "settings", title: "Settings" }],
+      "Root's settings for the instance, in eight tabs: usage reporting, the plugin feeds, how people sign in, how long personal data is kept, the notice, the security scan, updates, and languages.",
+    sections: [
+      { id: "settings", title: "Settings" },
+      { id: "languages", title: "Languages" },
+    ],
   },
   {
     slug: "security-scan",

@@ -295,6 +295,10 @@
     "question": "What does the check send?",
     "answer": "Nothing about this instance: once a day the server asks GitHub for the latest release, with a fixed name and no version, address, account or id. If GitHub can’t be reached, nothing else happens. Turn it off here, or with RONNE_UPDATE_CHECK=off on the server."
   },
+  "language-choice": {
+    "question": "What do people see when choosing is off?",
+    "answer": "Everyone sees the default language, whatever they saved, set in a cookie or ask their browser for. Account has no Language tab, and the sign-in page has no language menu. Their earlier choices are kept, and count again when you turn choosing back on."
+  },
   "language": {
     "question": "What changes?",
     "answer": "Ronne’s own screens: menus, buttons, messages and the Documentation links. Not what people publish: item names, descriptions and files stay as their authors wrote them, and rmk stays in English. Automatic follows your browser’s language, and English when it asks for another."

@@ -37,7 +37,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - Every new key in `en`, `pt` and `fr`.
   - *Done when:* the parity and raw-text tests pass; the phone sweep passes on the tab.
 
-- [ ] **6. Documentation.**
+- [x] **6. Documentation.**
   - `account#language`, the new `settings#languages` section, the helper, `docs/knowledge/i18n.md`;
     `topics.ts` here and in ronne-web together.
   - *Done when:* the docs render tests and `pnpm docs:links` pass, and the helper lands on a real
@@ -47,3 +47,12 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+- `chooseLocale` takes the settings as one `instance` object (`default`, `choosing`, `offered`)
+  instead of separate `offered` and `fallback` inputs; without it, it chooses as it always did.
+- Pages read the languages people may choose among with `requestChoosableLocales` (none while
+  choosing is off): the auth pages pass them to `AuthShell`, which drops the language menu and its
+  header when there are fewer than two.
+- The e2e for the tab sets the instance's languages and puts them back in a `finally`; the run is one
+  worker, so nothing else reads them meanwhile.
+- The pt and fr website copy has not been through the language review (133), as in 139 and 140.

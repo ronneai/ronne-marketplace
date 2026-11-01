@@ -128,3 +128,41 @@ Witnessed: 2026-11-01, by a fresh agent (blind, row 8). Commit: 1c515cfe plus th
 | 8 | The pt and fr copy feature 141 added is a real translation that follows the written glossary and typography rules | no | confirmed | read every added string; the glossary terms match `docs/knowledge/i18n.md` (it has no entry for "language", "offered" or "default"); ’ everywhere in fr, spacing right; você and vous. The 133 native-speaker review of the new pt and fr strings is still pending: this confirms the written rules only |
 
 **Overall:** met. The 133 native review of the new pt and fr strings is outstanding.
+
+
+## Task 6 — Documentation
+
+Witnessed: 2026-11-01, by a fresh agent (blind). Commit: bdd13d80 plus the uncommitted diff; ronne-web `docs/marketplace-141-language-settings`, uncommitted. Machine: macOS (Darwin), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `pnpm docs:links` passes | no | confirmed | "Compared 37 topics with the website's." |
+| 2 | The app's help and i18n tests pass | no | confirmed | 22 files, 419 tests |
+| 3 | The website's tests, typecheck and lint pass | no | confirmed | 193 passed; typecheck and lint clean |
+| 4 | The helper lands on a real section | no | confirmed | `Help.tsx` `"language-choice"` → `settings#languages`; both `topics.ts` list it; en/pt/fr define it |
+| 5 | The helper is on the tab, in three languages | no | confirmed | `LanguagesForm.tsx`; `help.json` ×3 |
+| 6 | Choosing off: everyone sees the default; Account has no Language tab (404); no language menu on sign-in, two-factor and setup | no | confirmed | `chooseLocale`, `account/language/page.tsx`, `AuthShell` |
+| 7 | The default replaces English as the last step | no | confirmed | `chooseLocale` ends in `?? instance.default` |
+| 8 | The offered list always holds the default; with nothing else offered it reads as off | no | confirmed | `language-policy.ts` |
+| 9 | A language not offered is skipped, never erased; Account shows Automatic with a note | no | confirmed | `chooseLocale`; `notOffered` |
+| 10 | Before setup or with the database down the language is chosen as before | no | confirmed | `chooseLocale` without `instance` |
+| 11 | Each save is audited | no | partly | the website said "each save"; a save that changes nothing writes no event |
+| 12 | The UI names the docs use match the app in en, pt and fr | no | confirmed | tab, switch, default, offered, Automatic |
+| 13 | The website's Account topic step 4 reads "English, or the default language root has set", linked to `settings#languages` | no | confirmed | `account.tsx` ×3 |
+| 14 | `docs/knowledge/i18n.md` has the order including the instance's settings | no | confirmed | the new section "Which language a request gets" matches `chooseLocale` |
+| 15 | The pt and fr website copy follows the language rules | no | partly | no false claim; the 133 review is pending |
+
+**Overall:** not met: rows 11 and 15.
+
+### Re-check
+
+Witnessed: 2026-11-01, by a fresh agent (blind, rows 11 and 15). Commit: bdd13d80 plus the uncommitted diff; ronne-web uncommitted. Machine: macOS (Darwin), Node v24.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 11 | Each change to the languages is audited; a save that changes nothing is not | no | confirmed | `setLanguagePolicy` returns `{changed:false}` before any write or audit; the website says so in en, pt and fr |
+| 15a | The pt and fr website copy follows the written glossary and typography rules in `docs/knowledge/i18n.md` (spacing, apostrophes, você and vous, the app's UI names and terms) | no | confirmed | punctuation scan of the added fr and pt lines; straight apostrophes allowed on the website; the UI names match the app messages. Limit: a mechanical and glossary check, not a native read |
+| 1 | `pnpm docs:links` | no | confirmed | "Compared 37 topics with the website's." |
+| 3 | The website's tests and lint | no | confirmed | 193 passed; lint clean |
+
+**Overall:** met. Outstanding, and no pass can do it: the 133 native-quality review of the pt and fr website copy. It is listed as an open item, not as a claim.

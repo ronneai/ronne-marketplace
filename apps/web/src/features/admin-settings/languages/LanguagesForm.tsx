@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
 import { Label, selectClasses } from "@/components/ui/Field";
 import { useKeptActionState } from "@/components/ui/kept-form";
@@ -93,6 +94,9 @@ export const LanguagesForm = ({
             </span>
           </span>
         </label>
+        <div>
+          <Help id="language-choice" />
+        </div>
       </div>
       <fieldset hidden={!choice} className="grid gap-2" aria-describedby="language-offered-hint">
         <legend className="mb-1 text-sm font-semibold text-fg">{t("offered")}</legend>

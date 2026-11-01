@@ -248,6 +248,9 @@ export const HELP = {
   "update-checking": {
     href: docsHref("update", "checking"),
   },
+  "language-choice": {
+    href: docsHref("settings", "languages"),
+  },
   language: {
     href: docsHref("account", "language"),
   },

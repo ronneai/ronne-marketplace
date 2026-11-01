@@ -295,6 +295,10 @@
     "question": "Que envoie la vérification ?",
     "answer": "Rien sur cette instance : une fois par jour, le serveur demande à GitHub la dernière version publiée, avec un nom fixe et sans version, adresse, compte ni identifiant. Si GitHub est injoignable, rien d’autre ne se passe. Désactivez-la ici, ou avec RONNE_UPDATE_CHECK=off sur le serveur."
   },
+  "language-choice": {
+    "question": "Que voient les gens quand le choix est désactivé ?",
+    "answer": "Tout le monde voit la langue par défaut, quoi qu’il ait enregistré, défini dans un témoin ou demandé à son navigateur. Compte n’a pas d’onglet Langue, et la page de connexion n’a pas de menu de langue. Leurs choix antérieurs sont conservés et comptent de nouveau quand vous réactivez le choix."
+  },
   "language": {
     "question": "Qu’est-ce qui change?",
     "answer": "Les écrans de Ronne eux-mêmes : menus, boutons, messages et liens vers la Documentation. Pas ce que les gens publient : les noms, descriptions et fichiers des éléments restent tels que leurs auteurs les ont écrits, et rmk reste en anglais. Automatique suit la langue de votre navigateur, et l’anglais quand il en demande une autre."
