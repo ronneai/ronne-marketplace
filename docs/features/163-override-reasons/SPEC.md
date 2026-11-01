@@ -1,6 +1,6 @@
 # 163 — Overrides need a reason
 
-> Milestone: M28 · Depends on: 014, 054, 058, 137 · Design: [MVP §2](../../MVP/MVP.md#2-personas--roles) (the permission matrix's "Approve own submission (override, audited)"), [§15](../../MVP/MVP.md#15-decision-log) ("Approval", "Review decisions") · Contracts: none changed
+> Milestone: M28 · Depends on: 014, 054, 058, 137 · Design: [MVP §2](../../MVP/MVP.md#2-personas--roles) (the permission matrix's "Approve own submission (override, with a reason, audited)"), [§15](../../MVP/MVP.md#15-decision-log) ("Approval", "Review decisions") · Contracts: none changed
 
 ## Goal
 

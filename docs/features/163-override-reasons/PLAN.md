@@ -9,7 +9,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 ## Tasks
 
-- [ ] **1. Decision.**
+- [x] **1. Decision.**
   - MVP.md §15's "Approval" row and §2's matrix say an override needs a reason, and
     `docs/features/README.md` lists 163 in M28.
   - *Done when:* both say what this spec says, and `pnpm witness:check` passes.
