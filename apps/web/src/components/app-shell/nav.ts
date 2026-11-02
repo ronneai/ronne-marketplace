@@ -24,8 +24,13 @@ export type ShellWorkspace = {
   personal: boolean;
 };
 
-/** The sidebar's groups (119), in order. */
-export const NAV_GROUPS = [{ id: "discover" }, { id: "governance" }, { id: "tools" }] as const;
+/** The sidebar's groups (119), in order; Admin, root's pages, after Tools (166). */
+export const NAV_GROUPS = [
+  { id: "discover" },
+  { id: "governance" },
+  { id: "tools" },
+  { id: "admin" },
+] as const;
 
 export type NavGroup = (typeof NAV_GROUPS)[number]["id"];
 
@@ -72,8 +77,10 @@ export type NavItem = {
 
 /**
  * The navigation, in the sidebar from `lg` and in the Menu below (119). Only pages that exist are
- * listed (feature 032). Catalogue (018) is current on item pages too. Root's Admin pages are three
- * links rather than one (owner, 2026-10-11), and Admin keeps its own tabs. Documentation opens the
+ * listed (feature 032). Catalogue (018) is current on item pages too. Root's Admin pages are
+ * links of their own (owner, 2026-10-11), in a group of their own after Tools since 166
+ * (owner, 2026-11-01): Governance & reviews keeps Reviews and Submissions; Requests stays in
+ * Discover. Documentation opens the
  * website in a new tab (088). Access tokens are a tab of Account (162), not a link of their own.
  */
 export const NAV: NavItem[] = [
@@ -122,11 +129,14 @@ export const NAV: NavItem[] = [
     permission: "submissions.create",
     section: "/submissions",
   },
+  { href: DOCS_URL, key: "docs", group: "tools", icon: "docs", external: true },
+  // Anyone signed in (127): a dialog in the sidebar, the /feedback page on a phone and without JS.
+  { href: "/feedback", key: "feedback", group: "tools", icon: "feedback", section: "/feedback" },
   // Root's alone (115): a workspace's admins manage it from its page under Workspaces.
   {
     href: "/admin/users",
     key: "users",
-    group: "governance",
+    group: "admin",
     icon: "users",
     permission: "users.view",
     section: "/admin/users",
@@ -134,15 +144,15 @@ export const NAV: NavItem[] = [
   {
     href: "/admin/audit",
     key: "audit",
-    group: "governance",
+    group: "admin",
     icon: "audit",
-    permission: "users.view",
+    permission: "audit.read",
     section: "/admin/audit",
   },
   {
     href: "/admin/settings",
     key: "settings",
-    group: "governance",
+    group: "admin",
     icon: "settings",
     permission: "users.view",
     section: "/admin/settings",
@@ -151,14 +161,11 @@ export const NAV: NavItem[] = [
   {
     href: "/admin/feedback",
     key: "inbox",
-    group: "governance",
+    group: "admin",
     icon: "inbox",
     permission: "feedback.manage",
     section: "/admin/feedback",
   },
-  { href: DOCS_URL, key: "docs", group: "tools", icon: "docs", external: true },
-  // Anyone signed in (127): a dialog in the sidebar, the /feedback page on a phone and without JS.
-  { href: "/feedback", key: "feedback", group: "tools", icon: "feedback", section: "/feedback" },
 ];
 
 /** + Propose item, above the groups (119): a new item, for those who can submit. */

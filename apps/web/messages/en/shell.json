@@ -2,7 +2,8 @@
   "groups": {
     "discover": "Discover",
     "governance": "Governance & reviews",
-    "tools": "Tools"
+    "tools": "Tools",
+    "admin": "Admin"
   },
   "nav": {
     "home": "Home",

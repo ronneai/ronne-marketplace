@@ -311,3 +311,34 @@ Witnessed: 2026-11-02 01:52 EST, by a fresh agent (blind). Commit: b7fa716f (+ w
 | 6 | The area's tests cover the new text in three languages | no | confirmed | `translations.test.tsx:287-295` checks Success/Sucesso/Réussite; the "Success" probe now fails; 455 passed |
 
 **Overall:** met: the French wording matches the app and the glossary, and the success word is tested in all three languages.
+
+## Task 9 — An Admin group in the sidebar
+
+Witnessed: 2026-11-02 01:42 EST, by a fresh agent (blind). Commit: daa7fb88 + working tree (nav.ts, AppShell.test.tsx, en/pt/fr shell.json, i18n.md). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | There is an Admin group after Tools | no | confirmed | `nav.ts:28-33`; admin before tools → 2 tests fail |
+| 2 | Users, Audit log, Settings and Feedback are in Admin, out of Governance & reviews | no | confirmed | `nav.ts:134-167`; Users back in governance → 2 tests fail |
+| 3 | Governance & reviews keeps Reviews and Submissions | no | confirmed | `nav.ts:113-130`; `grouped(ROOT)` |
+| 4 | Governance & reviews keeps Requests (PLAN's wording) | no | not met | The wording is wrong, the code right: Requests is in Discover (`nav.ts:101-109`, as on `main` and in 119's SPEC); the new `nav.ts` comment repeats PLAN's mistake |
+| 5 | Admin is root's only | no | confirmed | `permissions.ts:10,14,26`; tests for root, user, member, moderator; dropping Audit log's permission → 4 tests fail |
+| 6 | Audit log's nav permission is `audit.read` | no | confirmed | `nav.ts:148`; the built chunk has it |
+| 7 | The navigation tests list the groups and links for a member, a moderator and root | no | confirmed | `AppShell.test.tsx` groupNav; 457 passed |
+| 8 | The group's name is in en, pt and fr | no | confirmed | `shell.json` `groups.admin`; glossary row; removing pt's → parity fails |
+| 9 | The phone's Menu has the same groups | no | confirmed | `MenuList.tsx:77-80` and `Sidebar.tsx:259-269` both use `groupNav`; a probe of the sheet shows Admin after Tools for root only. No test checks the Menu's Admin heading |
+| 10 | The sidebar e2e tests pass | no | confirmed | Build current; sidebar, languages, audit, user-admin, feedback → 20 passed |
+| 11 | The Menu phone tests pass | no | confirmed | navigation, languages, feedback mobile → phone 5, phone-webkit 5 passed |
+
+**Overall:** not met: the Admin group holds, but PLAN's "Governance & reviews keeps … Requests" (and the `nav.ts` comment copying it) is wrong. Also: no test of the Menu's Admin heading; 119's SPEC still lists the Admin pages under Governance & reviews.
+
+### Re-check (row 4 and the Menu)
+
+Witnessed: 2026-11-02 01:44 EST, by a fresh agent (blind). Commit: daa7fb88 + working tree (adds the PLAN.md and 119 SPEC.md changes, nav.ts comment, AppShell.test.tsx Menu checks). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4 | Governance & reviews keeps Reviews and Submissions; Requests is in Discover (PLAN and the comment now say so) | no | confirmed | `PLAN.md:73-74`; `nav.ts:82`; `nav.ts:104` unchanged; `119/SPEC.md:34-36` points to 166 |
+| 9 | The phone's Menu has the same groups, and a test covers it | no | confirmed | `AppShell.test.tsx:644-658`; 54 passed; admin before tools, Users in governance, Feedback in tools, and hiding the Menu's Admin heading each fail the Menu test |
+
+**Overall:** met: the wording matches the code, and the Menu's Admin group is covered by a test that fails under every mutation tried. Remark: the reworded comment line was over 100 characters (rewrapped after).

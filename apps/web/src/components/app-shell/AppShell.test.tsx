@@ -78,12 +78,13 @@ describe("navFor", () => {
       "Workspaces",
       "Reviews",
       "Submissions",
+      "Documentation",
+      "Send feedback",
+      // In the Admin group, after Tools (166).
       "Users",
       "Audit log",
       "Settings",
       "Feedback",
-      "Documentation",
-      "Send feedback",
     ]);
     expect(navFor(ROOT).map((item) => item.href)).toEqual(
       expect.arrayContaining(["/admin/users", "/admin/audit", "/admin/settings"]),
@@ -133,18 +134,34 @@ describe("groupNav", () => {
   it("keeps the groups in order and leaves out an empty one", () => {
     const grouped = (user: ShellUser) =>
       groupNav(navFor(user)).map((group) => [en.groups[group.id], group.items.map(nameOf)]);
+    // Root's pages in a group of their own, after Tools (166).
     expect(grouped(ROOT)).toEqual([
       ["Discover", ["Home", "Catalogue", "Workspaces"]],
-      [
-        "Governance & reviews",
-        ["Reviews", "Submissions", "Users", "Audit log", "Settings", "Feedback"],
-      ],
+      ["Governance & reviews", ["Reviews", "Submissions"]],
       ["Tools", ["Documentation", "Send feedback"]],
+      ["Admin", ["Users", "Audit log", "Settings", "Feedback"]],
     ]);
     expect(grouped({ name: "N", email: "n@example.com", role: "user" })).toEqual([
       ["Discover", ["Home", "Catalogue", "Workspaces"]],
       ["Tools", ["Documentation", "Send feedback"]],
     ]);
+    // A member and a moderator (of global, a shared workspace): no Admin group.
+    expect(grouped(member({ [GLOBAL]: "user" }))).toEqual([
+      ["Discover", ["Home", "Catalogue", "Workspaces"]],
+      ["Governance & reviews", ["Submissions"]],
+      ["Tools", ["Documentation", "Send feedback"]],
+    ]);
+    expect(grouped(member({ [GLOBAL]: "moderator" }))).toEqual([
+      ["Discover", ["Home", "Catalogue", "Workspaces"]],
+      ["Governance & reviews", ["Reviews", "Submissions"]],
+      ["Tools", ["Documentation", "Send feedback"]],
+    ]);
+    // A moderator with requests waiting sees Requests, in Discover as before.
+    expect(
+      groupNav(navFor(member({ [GLOBAL]: "moderator" }), { "/workspaces/requests": 2 })).map(
+        (group) => group.id,
+      ),
+    ).toEqual(["discover", "governance", "tools"]);
   });
 });
 
@@ -313,8 +330,11 @@ describe("Sidebar", () => {
     const at = (text: string) => html.indexOf(text);
     expect(at(">Discover<")).toBeLessThan(at(">Home<"));
     expect(at(">Home<")).toBeLessThan(at(">Governance &amp; reviews<"));
-    expect(at(">Governance &amp; reviews<")).toBeLessThan(at(">Users<"));
-    expect(at(">Users<")).toBeLessThan(at(">Tools<"));
+    expect(at(">Governance &amp; reviews<")).toBeLessThan(at(">Reviews<"));
+    expect(at(">Reviews<")).toBeLessThan(at(">Tools<"));
+    // Root's pages under Admin, after Tools (166).
+    expect(at(">Tools<")).toBeLessThan(at(">Admin<"));
+    expect(at(">Admin<")).toBeLessThan(at(">Users<"));
     expect(html).toMatch(/href="\/submissions\/new"[^>]*>.*Propose item<\/span><\/a>/);
     expect(html).toMatch(/Reviews<\/span><span[^>]*><span[^>]*>3<span class="sr-only"> waiting/);
     expect(html).toContain('<nav aria-label="Main"');
@@ -625,6 +645,14 @@ describe("AppShell", () => {
       navigation.path = "/admin/audit";
       const html = shell("root");
       navigation.path = "/";
+      // The Menu has the sidebar's groups (166): root's pages under Admin, after Tools.
+      const at = (text: string) => sheet(html).indexOf(text);
+      expect(at(">Tools<")).toBeGreaterThan(-1);
+      expect(at(">Tools<")).toBeLessThan(at(">Admin<"));
+      expect(at(">Admin<")).toBeLessThan(at("Users<"));
+      expect(at("Users<")).toBeLessThan(at("Feedback<"));
+      expect(sheet(shell("moderator"))).not.toContain(">Admin<");
+      expect(sheet(shell("user"))).not.toContain(">Admin<");
       expect(links(html)).toEqual(expect.arrayContaining(["Users", "Audit log", "Settings"]));
       expect(sheet(html)).toMatch(/aria-current="page"[^>]*>(?:<svg[\s\S]*?<\/svg>)?Audit log</);
     });

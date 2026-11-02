@@ -2,7 +2,8 @@
   "groups": {
     "discover": "Explorer",
     "governance": "Gouvernance et révisions",
-    "tools": "Outils"
+    "tools": "Outils",
+    "admin": "Admin"
   },
   "nav": {
     "home": "Accueil",

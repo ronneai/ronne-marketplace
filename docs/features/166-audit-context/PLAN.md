@@ -67,10 +67,11 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* the docs render tests and `pnpm docs:links` pass, and the helper lands on a real
     section.
 
-- [ ] **9. An Admin group in the sidebar.**
+- [x] **9. An Admin group in the sidebar.**
   - Owner, 2026-11-01, during 166: Users, Audit log, Settings and Feedback move out of Governance &
     reviews into a group of their own, **Admin**, after Tools, for root only (the one role those
-    pages are open to). Governance & reviews keeps Reviews, Submissions and Requests. The phone's
+    pages are open to). Governance & reviews keeps Reviews and Submissions (Requests is in Discover,
+    as since 094). The phone's
     Menu has the same groups.
   - *Done when:* the navigation tests list the groups and their links for a member, a moderator and
     root (no Admin group but for root), the group's name is in en, pt and fr, and the e2e and phone
