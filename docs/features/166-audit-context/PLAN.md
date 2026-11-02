@@ -9,7 +9,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 ## Tasks
 
-- [ ] **1. Decision.**
+- [x] **1. Decision.**
   - MVP.md §10's `audit_log` row lists the new columns, and `docs/features/README.md` lists 166 in
     M28.
   - *Done when:* both say what this spec says, and `pnpm witness:check` passes.
