@@ -10,11 +10,14 @@ import type { UserDetail } from "@/server/domains/identity/actions/user-admin";
 import { LOCALE_NAMES } from "@/server/domains/identity/models/locale";
 import { ScimManagedNotice } from "./UserActionDialogs";
 import { ScimBadges } from "./UsersPage";
+import { type UserToken, UserTokens } from "./UserTokens";
 
 /** Where each section's actions go (123, task 3): the page lays them out, the route fills them. */
 export type UserPageSlots = {
   role?: ReactNode;
   access?: ReactNode;
+  /** Revoke on one of the person's active tokens (162). */
+  revokeToken?: (token: UserToken) => ReactNode;
   workspaces?: ReactNode;
   data?: ReactNode;
   erase?: ReactNode;
@@ -58,11 +61,16 @@ export const UserPage = ({
   detail: { user, sessions, tokens },
   self,
   slots = {},
+  tokenList = [],
+  now = new Date(),
 }: {
   detail: UserDetail;
   /** The signed-in root's own page (059). */
   self: boolean;
   slots?: UserPageSlots;
+  /** The person's tokens (162), newest first; none for an erased account. */
+  tokenList?: UserToken[];
+  now?: Date;
 }) => {
   const t = useTranslations("admin.passwordChange");
   const u = useTranslations("admin.userPage");
@@ -162,6 +170,16 @@ export const UserPage = ({
           </Facts>
           {changeable ? <Actions>{slots.access}</Actions> : null}
         </Section>
+
+        {erased ? null : (
+          <Section id="user-tokens" title={u("tokens.title")}>
+            <UserTokens
+              tokens={tokenList}
+              now={now}
+              revoke={changeable ? slots.revokeToken : undefined}
+            />
+          </Section>
+        )}
 
         <Section id="user-workspaces" title={u("sections.workspaces")}>
           {user.role === "root" ? (

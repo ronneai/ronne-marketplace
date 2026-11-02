@@ -29,7 +29,7 @@ sidebar**, grouped by what you're doing, that folds into a rail of icons.
   | | Audit log | `/admin/audit` | root |
   | | Settings | `/admin/settings` | root |
   | Tools | Documentation | the website (088), in a new tab | everyone |
-  | | CLI & tokens | `/account/tokens` | everyone |
+  | | CLI & tokens (removed by [162](../162-token-lifetime-policy/SPEC.md), owner, 2026-11-01: Access tokens is a tab of Account) | `/account/tokens` | everyone |
 
   A group's heading shows only when one of its links does. The current link is marked as the
   header's was: Catalogue on item pages (also a workspace's, 118), Workspaces on a workspace's
@@ -44,7 +44,7 @@ sidebar**, grouped by what you're doing, that folds into a rail of icons.
   with their names as tooltips and accessible names, a dot where a count waits. The choice is kept
   in a cookie, so the next page renders folded at once.
 - **The person at the foot:** their name and, for root, the role badge; it opens a menu with
-  Account and Sign out. Access tokens is CLI & tokens under Tools.
+  Account and Sign out. Access tokens was CLI & tokens under Tools; since 162 it's a tab of Account.
 - **The content** fills the width beside the sidebar, 24px from each edge, with no maximum
   (owner, 2026-10-11: the mocks' 1024px column, centred, left wide screens half empty), and the
   footer under it.

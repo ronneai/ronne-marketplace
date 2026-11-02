@@ -8,6 +8,7 @@
     "label": "Compte",
     "password": "Mot de passe",
     "security": "Double authentification",
+    "tokens": "Jetons d’accès",
     "language": "Langue"
   },
   "password": {
@@ -18,6 +19,8 @@
     "next": "Nouveau mot de passe",
     "nextHint": "De 12 à 128 caractères.",
     "confirm": "Confirmer le nouveau mot de passe",
+    "revokeTokens": "Révoquer aussi mes jetons d’accès",
+    "revokeTokensHint": "rmk et le serveur MCP s’arrêtent jusqu’à ce que vous créiez un nouveau jeton. Décochez seulement si vous savez qu’aucun jeton n’a été pris.",
     "submit": "Changer le mot de passe",
     "changedTitle": "Mot de passe changé",
     "changed": "Votre session reste ouverte ici; les autres sessions ont été fermées.",
@@ -132,7 +135,6 @@
     }
   },
   "tokens": {
-    "metaTitle": "Jetons d’accès",
     "title": "Jetons d’accès",
     "description": "Des jetons personnels pour rmk et le serveur MCP. Ils agissent en votre nom; ils ne peuvent pas ouvrir de session sur ce site.",
     "empty": "Aucun jeton pour l’instant. Créez-en un, ou exécutez <code>rmk login</code>.",
@@ -157,6 +159,7 @@
       "name": "Nom",
       "nameHint": "Où vous l’utiliserez, par exemple la machine ou la tâche d’IC.",
       "expiresAfter": "Expire après",
+      "capHint": "Root permet des jetons d’au plus {days} jours.",
       "days30": "30 jours",
       "days90": "90 jours",
       "days365": "365 jours",

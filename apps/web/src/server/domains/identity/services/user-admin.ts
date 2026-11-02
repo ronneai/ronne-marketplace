@@ -103,7 +103,7 @@ export const getUser = async (
   return {
     user: user ?? found,
     sessions: erased ? 0 : await deps.repo.countSessions(userId),
-    tokens: erased ? 0 : await deps.repo.countActiveAccessTokens(userId),
+    tokens: erased ? 0 : await deps.repo.countActiveAccessTokens(userId, now(deps)),
   };
 };
 
@@ -372,8 +372,8 @@ export const setPasswordChangeRequired = async (
 };
 
 /**
- * Turns the user's two-factor off, for a lost phone and lost backup codes (105), and ends their
- * sessions. Never the actor's own (059). False when it isn't on (as the users list shows it; a
+ * Turns the user's two-factor off, for a lost phone and lost backup codes (105), ends their
+ * sessions and revokes their access tokens (162). Never the actor's own (059). False when it isn't on (as the users list shows it; a
  * setup they've only started is theirs to finish): nothing changes, nothing is recorded.
  */
 export const resetTwoFactor = async (
@@ -389,12 +389,14 @@ export const resetTwoFactor = async (
     if (!(await repo.twoFactorOn(userId))) return { email: target.email, reset: false };
     await repo.resetTwoFactor(userId, at);
     const sessionsEnded = await repo.deleteSessions(userId);
+    // A lost phone may be a stolen one: its tokens stop too, as Reset password does (162).
+    const tokensRevoked = await repo.revokeAccessTokens(userId, at);
     await repo.recordAudit(
       {
         actorId: actor.user?.id ?? null,
         action: "user.two_factor_reset",
         target: { type: "user", id: userId },
-        metadata: { via: "web", sessionsEnded },
+        metadata: { via: "web", sessionsEnded, tokensRevoked },
         ipAddress: actor.ip,
       },
       at,
@@ -413,6 +415,6 @@ export const disableImpact = async (
   await loadTarget(deps.repo, actor, userId);
   return {
     sessions: await deps.repo.countSessions(userId),
-    tokens: await deps.repo.countActiveAccessTokens(userId),
+    tokens: await deps.repo.countActiveAccessTokens(userId, now(deps)),
   };
 };

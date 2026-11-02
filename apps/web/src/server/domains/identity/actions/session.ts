@@ -66,7 +66,7 @@ export const signIn = (
 
 export const changePassword = (
   headers: Headers,
-  input: { current: string; next: string },
+  input: { current: string; next: string; revokeTokens?: boolean },
   app: AppAuth = getAppAuth(),
 ) => service.changePassword(deps(app), context(headers, app), input);
 

@@ -45,9 +45,11 @@ describe("changePasswordFromForm", () => {
     expect(await changePasswordFromForm({}, form("old one", "a new passphrase"))).toEqual({
       changed: true,
     });
+    // The box unticked (not sent): the tokens are kept (162).
     expect(session.changePassword).toHaveBeenCalledWith(expect.any(Headers), {
       current: "old one",
       next: "a new passphrase",
+      revokeTokens: false,
     });
 
     session.changePassword.mockResolvedValueOnce({ ok: false, error: "wrong_password" });
@@ -87,6 +89,41 @@ describe("signOutFromMenu", () => {
   it("ends the session and goes to sign-in", async () => {
     await expect(signOutFromMenu()).rejects.toThrow("redirect:/sign-in");
     expect(session.signOut).toHaveBeenCalledOnce();
+  });
+});
+
+describe("the box that revokes my tokens (162)", () => {
+  it("is passed on when ticked", async () => {
+    session.changePassword.mockResolvedValueOnce({ ok: true, required: false });
+    const data = form("old one", "a new passphrase");
+    data.set("revokeTokens", "on");
+    await changePasswordFromForm({}, data);
+    expect(session.changePassword).toHaveBeenCalledWith(
+      expect.any(Headers),
+      expect.objectContaining({ revokeTokens: true }),
+    );
+  });
+
+  it("is on the form, ticked, with what it does", () => {
+    const html = renderToStaticMarkup(<ChangePasswordForm />);
+    expect(html).toMatch(/<input[^>]*name="revokeTokens"[^>]*checked=""/);
+    expect(html).toContain("Also revoke my access tokens");
+    expect(html).toContain("rmk and the MCP server stop until you make a new token");
+  });
+
+  it("isn't on the page root's request sends people to (128), so their tokens are kept", async () => {
+    const held = renderToStaticMarkup(<ChangePasswordForm returnTo="/items" />);
+    expect(held).not.toContain('name="revokeTokens"');
+    expect(held).not.toContain("Also revoke my access tokens");
+    // What that form sends: no box, so revokeTokens is false.
+    session.changePassword.mockResolvedValueOnce({ ok: true, required: true });
+    const data = form("temporary one", "a new passphrase");
+    data.set("returnTo", "/items");
+    await expect(changePasswordFromForm({}, data)).rejects.toThrow("redirect:/items");
+    expect(session.changePassword).toHaveBeenCalledWith(
+      expect.any(Headers),
+      expect.objectContaining({ revokeTokens: false }),
+    );
   });
 });
 

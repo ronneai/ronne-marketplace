@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getTranslations } from "next-intl/server";
 import { errorText } from "@/i18n/errors";
+import { adminRevokeToken } from "@/server/domains/identity/actions/access-tokens";
 import { adminEraseUser } from "@/server/domains/identity/actions/erase-user";
 import {
   adminChangeRole,
@@ -17,6 +18,7 @@ import {
 import { IdentityError } from "@/server/domains/identity/exceptions/errors";
 import { setUserWorkspaces, userMemberships } from "@/server/domains/workspaces/actions/workspaces";
 import { WorkspacesError } from "@/server/domains/workspaces/exceptions/errors";
+import { flashToast } from "@/server/http/flash-toast";
 import { requestHeaders } from "@/server/http/request-headers";
 import { serverAction } from "@/server/http/server-action";
 import type { AdminActionState } from "./types";
@@ -177,6 +179,18 @@ export const resetTwoFactorFromForm = serverAction(
       const { reset } = await adminResetTwoFactor(await requestHeaders(), text(form, "userId"));
       const t = await getTranslations("admin.done.users");
       return { done: reset ? t("twoFactorOff") : t("twoFactorNone") };
+    }),
+);
+
+/** Revokes one of a person's access tokens, from their page (162). */
+export const revokeUserTokenFromForm = serverAction(
+  async (_previous: AdminActionState, form: FormData): Promise<AdminActionState> =>
+    attempt(async () => {
+      await adminRevokeToken(await requestHeaders(), text(form, "userId"), text(form, "tokenId"));
+      // The page refreshes without the row's button, which takes the form (and any toast it would
+      // say) with it: the layout says it instead, as on the person's own Tokens page (138).
+      await flashToast("tokenRevoked");
+      return { done: "revoked" };
     }),
 );
 

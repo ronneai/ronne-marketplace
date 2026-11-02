@@ -1,7 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { toDbDate } from "../../../db/dates";
+import { createPersonalWorkspace } from "../../../db/personal-workspaces";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
 import { listAuditEvents } from "../../audit/actions/audit";
+import { kyselySettingsRepository } from "../../settings/repositories/kysely-settings-repository";
+import { tokenDeps } from "../actions/token-deps";
 import { hashToken, MAX_ACTIVE_TOKENS } from "../models/access-token";
 import {
   DEVICE_GRANT_KEEP_MS,
@@ -49,7 +52,7 @@ beforeEach(async () => {
   t = await createTestDb();
   app = testAppAuth(t);
   clock = new Date("2026-10-17T12:00:00.000Z");
-  const tokens = { repo: kyselyTokenRepository(t.db, t.dialect), now: () => clock };
+  const tokens = { ...tokenDeps(t), now: () => clock };
   deps = {
     grants: kyselyDeviceGrantRepository(t.db, t.dialect),
     identity: kyselyIdentityRepository(t.db, t.dialect),
@@ -93,6 +96,49 @@ const disable = (user: CurrentUser) =>
     .set({ disabled_at: toDbDate(clock, t.dialect) })
     .where("id", "=", user.id)
     .execute();
+
+describe("the device flow under root's longest lifetime (162)", () => {
+  const setPolicy = async (everyone: string, reviewers: string) => {
+    const settings = kyselySettingsRepository(t.db, t.dialect);
+    await settings.set("token_max_days", everyone, null, clock);
+    await settings.set("token_max_days_reviewers", reviewers, null, clock);
+  };
+  const tokenDays = async (user: CurrentUser) => {
+    const grant = await start();
+    expect(await approve(user, grant.userCode)).toMatchObject({ ok: true });
+    const result = await poll(grant);
+    if (!result.ok) throw new Error(result.error);
+    return Math.round(((result.token.expiresAt?.getTime() ?? 0) - clock.getTime()) / 86_400_000);
+  };
+
+  it("gives 90 days, or the person's cap when it's shorter", async () => {
+    // A real plain user, admin of their own personal workspace (114): not a reviewer.
+    await createPersonalWorkspace(t.db, t.dialect, { id: ana.id, email: ana.email }, clock);
+    const identity = kyselyIdentityRepository(t.db, t.dialect);
+    const plain = await identity.findActiveUser(ana.id);
+    if (!plain?.personal) throw new Error("no personal workspace");
+    const modId = await createTestUser(app, {
+      email: "mod@example.com",
+      password: "correct horse battery",
+      role: "moderator",
+    });
+    const mod = await identity.findActiveUser(modId);
+    if (!mod) throw new Error("no moderator");
+
+    // Root's defaults: 365 and 90.
+    expect(await tokenDays(plain)).toBe(90);
+    expect(await tokenDays(mod)).toBe(90);
+    await setPolicy("30", "30");
+    expect(await tokenDays(plain)).toBe(30);
+    await setPolicy("365", "30");
+    expect(await tokenDays(plain)).toBe(90);
+    expect(await tokenDays(mod)).toBe(30);
+    // No limit doesn't mean no expiry: the device flow still gives 90 days.
+    await setPolicy("none", "none");
+    expect(await tokenDays(plain)).toBe(90);
+    expect(await tokenDays(mod)).toBe(90);
+  });
+});
 
 describe("startDeviceGrant", () => {
   it("stores only the device code's hash, with the name and the requester's address", async () => {

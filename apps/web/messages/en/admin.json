@@ -163,7 +163,40 @@
     "noWorkspaces": "None.",
     "dataBody": "Everything the instance holds about them in one file: the account, token names, submissions, comments and audit events.",
     "auditLink": "Their events in the audit log",
-    "eraseBody": "Erasing ends the account for good. Their email, name, sign-ins and tokens go; the items they published and the audit events stay, under a pseudonym. It can’t be undone."
+    "eraseBody": "Erasing ends the account for good. Their email, name, sign-ins and tokens go; the items they published and the audit events stay, under a pseudonym. It can’t be undone.",
+    "tokens": {
+      "title": "Access tokens",
+      "hint": "For rmk and the MCP server. Never the token itself, nor its first characters.",
+      "empty": "No access tokens.",
+      "name": "Name",
+      "how": "Made with",
+      "created": "Created",
+      "lastUsed": "Last used",
+      "expires": "Expires",
+      "status": "Status",
+      "actions": "Actions",
+      "never": "never",
+      "noExpiry": "no expiry",
+      "via": {
+        "web": "the web app",
+        "cli": "rmk login",
+        "device": "browser approval",
+        "unknown": "unknown"
+      },
+      "statuses": {
+        "active": "active",
+        "expired": "expired",
+        "revoked": "revoked"
+      }
+    },
+    "revokeToken": {
+      "button": "Revoke",
+      "aria": "Revoke {name}",
+      "title": "Revoke access token",
+      "body": "Revoke <strong>{name}</strong>? Anything using it, such as rmk on their machine, stops working until they make a new token.",
+      "cancel": "Cancel",
+      "submit": "Revoke token"
+    }
   },
   "actions": {
     "labels": {
@@ -190,7 +223,7 @@
     "isRoot": "{email} is a root.",
     "enableBody": "They can sign in again. Their revoked access tokens stay revoked.",
     "resetBody": "This signs them out everywhere and revokes their access tokens.",
-    "twoFactorBody": "For a lost phone and lost backup codes. This turns off their two-factor sign-in and signs them out everywhere; they sign in with their password alone, and set it up again if it’s required of them.",
+    "twoFactorBody": "For a lost phone and lost backup codes. This turns off their two-factor sign-in and signs them out everywhere and revokes their access tokens; they sign in with their password alone, and set it up again if it’s required of them.",
     "scimTitle": "{provider} manages this account through SCIM.",
     "scimBody": "Its next sync sets the account back to what the provider says: change it there too.",
     "newRole": "New role",
@@ -510,6 +543,7 @@
         "and": " and ",
         "ended": {
           "sessions": "{count, plural, one {# session ended} other {# sessions ended}}",
+          "otherSessions": "{count, plural, one {# other session ended} other {# other sessions ended}}",
           "tokens": "{count, plural, one {# token revoked} other {# tokens revoked}}",
           "scimTokens": "{count, plural, one {# SCIM token revoked} other {# SCIM tokens revoked}}",
           "requests": "{count, plural, one {# request to join cancelled} other {# requests to join cancelled}}",
@@ -538,6 +572,13 @@
           "ip": "IP addresses from {from} to {to} days",
           "sessions": "expired sessions from {from} to {to} days",
           "feedback": "handled feedback from {from} to {to} days",
+          "nothing": "nothing"
+        },
+        "tokenPolicy": {
+          "everyone": "everyone’s from {from} to {to}",
+          "reviewers": "reviewers’ and root’s from {from} to {to}",
+          "days": "{count, plural, one {# day} other {# days}}",
+          "noLimit": "no limit",
           "nothing": "nothing"
         },
         "notice": {
@@ -657,7 +698,7 @@
           "password_reset": "Reset the password of <name>{who}</name>{twoFactor, select, true { and turned off its two-factor sign-in} other {}}{change, select, true {, asking for a new one at their next sign-in} other {}}{ended}{via}",
           "password_change_requested": "{required, select, false {Stopped asking for a new password at the next sign-in of <name>{who}</name>{via}} other {Asked for a new password at the next sign-in of <name>{who}</name>{via}}}",
           "two_factor_reset": "Turned off the two-factor sign-in of <name>{who}</name>{ended}{via}",
-          "password_changed": "{required, select, true {Chose their own password, as root asked} other {Changed their password}}{others, plural, =0 {} one { (# other session ended)} other { (# other sessions ended)}}",
+          "password_changed": "{required, select, true {Chose their own password, as root asked} other {Changed their password}}{ended}",
           "created": "Created <name>{email}</name> as {role}{change, select, true {, asking for a new password at their first sign-in} other {}}{sso, select, true { at their first sign-in with <code>{provider}</code>} other {}}",
           "sso_linked": "Linked <name>{email}</name> to the identity provider <code>{provider}</code> (matched by verified email)",
           "role_changed": "Changed <name>{who}</name> from {from} to {to}",
@@ -683,7 +724,8 @@
         },
         "access_token": {
           "created": "Created token <name>{label}</name> ({expiry}{how, select, cli {, from rmk login} device {, by browser approval} other {}})",
-          "revoked": "Revoked token <name>{label}</name>{by, select, disable { (account disabled)} root { (by root)} other {}}"
+          "revoked": "Revoked token <name>{label}</name>{by, select, disable { (account disabled)} root { (by root)} other {}}",
+          "shortened": "Shortened {count, plural, one {# access token} other {# access tokens}} to the longest lifetime ({days}; reviewers and root {reviewersDays})"
         },
         "workspace": {
           "created": "Created workspace <name>{label}</name>",
@@ -753,6 +795,7 @@
         },
         "settings": {
           "two_factor_policy": "Changed who must use two-factor sign-in from {from} to {to}",
+          "token_policy": "Changed the longest token lifetime: {changes}",
           "usage_policy": "Changed the usage policy from {from} to {to}",
           "usage_minimum": "Changed the usage minimum from {from} to {to}",
           "retention": "Changed the retention: {changes}",
@@ -826,6 +869,27 @@
         }
       },
       "coverage": "{unenrolled, plural, =0 {{covered, plural, one {# person} other {# people}}, all with two-factor on.} other {{covered, plural, one {# person} other {# people}}; {unenrolled, plural, one {# person} other {# people}} must set it up at their next visit.}}"
+    },
+    "tokens": {
+      "title": "Access tokens",
+      "hint": "The longest an access token for rmk or the MCP server may last. People choose a lifetime up to this when they make one; rmk login gives 90 days, or this when it's shorter.",
+      "everyone": "Longest lifetime",
+      "reviewers": "For reviewers and root",
+      "reviewersHint": "Root, and the moderators and admins of shared workspaces: their tokens reach the most. The same or shorter.",
+      "choices": {
+        "30": "30 days",
+        "90": "90 days",
+        "365": "365 days",
+        "none": "No limit"
+      },
+      "save": "Save",
+      "shortenTitle": "Tokens made before",
+      "past": "{count, plural, =0 {No active token lasts longer than this.} one {# active token lasts longer than this.} other {# active tokens last longer than this.}}",
+      "shorten": "Shorten them",
+      "confirmTitle": "Shorten access tokens",
+      "confirmBody": "{count, plural, one {# token} other {# tokens}} will expire at the earlier of their own date and the longest lifetime from today. None is revoked: people have until then to make new ones.",
+      "cancel": "Cancel",
+      "confirm": "Shorten tokens"
     },
     "password": {
       "title": "Password sign-in",
@@ -1319,7 +1383,7 @@
       "roleChanged": "Role changed to {role}.",
       "disabled": "Disabled. They’re signed out everywhere.",
       "enabled": "Enabled. They can sign in again.",
-      "twoFactorOff": "Two-factor sign-in turned off. They’re signed out everywhere.",
+      "twoFactorOff": "Two-factor sign-in turned off. They’re signed out everywhere, and their access tokens are revoked.",
       "twoFactorNone": "They had no two-factor sign-in: nothing changed.",
       "erased": "Erased. The account is now deleted-user and nothing of theirs can be read back."
     },
@@ -1346,7 +1410,9 @@
       "nothing": "Nothing changed.",
       "erasuresNone": "Nothing was left to finish.",
       "erasures": "{count, plural, one {Finished # erasure.} other {Finished # erasures.}}",
-      "scan": "Security scan saved."
+      "scan": "Security scan saved.",
+      "tokens": "Access tokens saved.",
+      "shortened": "{count, plural, =0 {No token needed shortening.} one {Shortened # token.} other {Shortened # tokens.}}"
     }
   },
   "updates": {

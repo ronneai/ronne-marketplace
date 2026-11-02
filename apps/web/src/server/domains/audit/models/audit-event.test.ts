@@ -112,6 +112,7 @@ describe("groups", () => {
     expect(actionsInGroup("access_token")).toEqual([
       "access_token.created",
       "access_token.revoked",
+      "access_token.shortened",
     ]);
   });
 });

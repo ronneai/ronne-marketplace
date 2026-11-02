@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/Button";
-import { FieldError, Label } from "@/components/ui/Field";
+import { Checkbox, FieldError, Label } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { useToastWhen } from "@/components/ui/toast";
@@ -73,6 +73,23 @@ export const ChangePasswordForm = ({
           </div>
         );
       })}
+      {/* Ticked by default (162): changing a password is most often a recovery. Not on the page
+          root's request sends people to (128): root's reset already revoked their older tokens,
+          and that page keeps its button in view on a phone. Absent, the tokens are kept. */}
+      {returnTo === undefined ? (
+        <div className="grid gap-1">
+          <Checkbox
+            id="revoke-tokens"
+            name="revokeTokens"
+            label={t("revokeTokens")}
+            defaultChecked
+            aria-describedby="revoke-tokens-hint"
+          />
+          <p id="revoke-tokens-hint" className="text-xs text-muted">
+            {t("revokeTokensHint")}
+          </p>
+        </div>
+      ) : null}
       <div>
         <Button type="submit" loading={pending}>
           {t("submit")}

@@ -265,10 +265,19 @@ export const SUMMARIES: Record<AuditAction, Build> = {
   "auth.two_factor_disabled": () => ({}),
   "auth.backup_codes_regenerated": () => ({}),
   "auth.two_factor_failed": (m, _e, h) => ({ reason: h.word("twoFactorReasons", text(m.reason)) }),
-  "user.password_changed": (m) => ({
-    required: flag(m.required === true),
-    others: num(m.otherSessionsEnded),
-  }),
+  "user.password_changed": (m, _e, h) => {
+    // " (1 other session ended, 2 tokens revoked)", or nothing (162 added the tokens).
+    const list = [
+      num(m.otherSessionsEnded)
+        ? h.part("ended.otherSessions", { count: num(m.otherSessionsEnded) })
+        : "",
+      num(m.tokensRevoked) ? h.part("ended.tokens", { count: num(m.tokensRevoked) }) : "",
+    ].filter(Boolean);
+    return {
+      required: flag(m.required === true),
+      ended: list.length ? ` (${list.join(", ")})` : "",
+    };
+  },
   "user.created": (m, _e, h) => ({
     email: text(m.email),
     role: h.word("roles", text(m.role)),
@@ -295,6 +304,14 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     how: m.via === "cli" ? "cli" : m.via === "device" ? "device" : "other",
   }),
   "access_token.revoked": (m) => ({ label: text(m.name), by: text(m.by) }),
+  // `{ count, days, reviewersDays }`, the caps applied, null for no limit (162).
+  "access_token.shortened": (m, _e, h) => {
+    const cap = (value: AuditMetadataValue | undefined) =>
+      typeof value === "number"
+        ? h.part("tokenPolicy.days", { count: value })
+        : h.part("tokenPolicy.noLimit");
+    return { count: num(m.count), days: cap(m.days), reviewersDays: cap(m.reviewersDays) };
+  },
   "workspace.created": (m, _e, h) => ({ label: h.workspace(m) }),
   "workspace.updated": (m, _e, h) => ({
     change: m.visibility === "private" ? "private" : m.visibility === "public" ? "public" : "other",
@@ -455,6 +472,26 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     from: h.word("twoFactorPolicies", text(m.from)),
     to: h.word("twoFactorPolicies", text(m.to)),
   }),
+  "settings.token_policy": (m, _e, h) => {
+    // `{ from: { maxDays, reviewersMaxDays }, to: { … } }`, days or null for no limit (162).
+    const from = record(m.from);
+    const to = record(m.to);
+    const cap = (value: AuditMetadataValue | undefined) =>
+      typeof value === "number"
+        ? h.part("tokenPolicy.days", { count: value })
+        : h.part("tokenPolicy.noLimit");
+    const changes = (
+      [
+        ["maxDays", "everyone"],
+        ["reviewersMaxDays", "reviewers"],
+      ] as const
+    )
+      .filter(([key]) => key in from && key in to && text(from[key]) !== text(to[key]))
+      .map(([key, who]) =>
+        h.part(`tokenPolicy.${who}`, { from: cap(from[key]), to: cap(to[key]) }),
+      );
+    return { changes: changes.join(", ") || h.part("tokenPolicy.nothing") };
+  },
   "settings.usage_policy": (m, _e, h) => ({
     from: h.word("policies", text(m.from)),
     to: h.word("policies", text(m.to)),

@@ -6,14 +6,16 @@ import { Badge } from "@/components/ui/Badge";
 import { LocalTime } from "@/components/ui/LocalTime";
 import { PageHeader } from "@/components/ui/Panel";
 import { Table, Td, Th } from "@/components/ui/Table";
+import { AccountTabs } from "@/features/account-security/AccountTabs";
 import {
   type AccessTokenSummary,
   tokenStatus,
 } from "@/server/domains/identity/models/access-token";
 
 /**
- * /account/tokens (spec 009): your personal access tokens for rmk and the MCP server. Only a preview
- * of each is kept; the whole token is shown once, when it's made. Times are UTC.
+ * /account/tokens (spec 009): your personal access tokens for rmk and the MCP server, a tab of
+ * Account (162). Only a preview of each is kept; the whole token is shown once, when it's made.
+ * Times are UTC.
  */
 export const TokensPage = ({
   tokens,
@@ -21,6 +23,7 @@ export const TokensPage = ({
   toolbar,
   revoke,
   registry,
+  language = true,
 }: {
   tokens: AccessTokenSummary[];
   now: Date;
@@ -28,12 +31,20 @@ export const TokensPage = ({
   revoke?: (token: AccessTokenSummary) => ReactNode;
   /** This instance's public URL, for the CLI panel's `--registry`. */
   registry?: string;
+  /** Whether the Account tabs show Language: not while root has turned choosing off (141). */
+  language?: boolean;
 }) => {
   const t = useTranslations("account.tokens");
+  const account = useTranslations("account.header");
   return (
     <>
-      <PageHeader title={t("title")} description={t("description")} actions={toolbar} />
+      <PageHeader title={account("title")} description={t("description")} />
+      <AccountTabs current="tokens" language={language} />
       <div className="grid gap-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-base font-semibold text-fg">{t("title")}</h2>
+          {toolbar}
+        </div>
         <Help id="token" />
         {tokens.length === 0 ? (
           <p className="rounded-panel border border-hairline bg-surface p-4 text-sm text-muted">

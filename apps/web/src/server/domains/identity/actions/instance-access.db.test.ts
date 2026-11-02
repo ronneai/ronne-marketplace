@@ -19,6 +19,7 @@ import {
 } from "../services/scim-tokens";
 import { cookieHeaders, createTestUser, testAppAuth } from "../testing/test-auth";
 import { authenticateToken, createMyToken } from "./access-tokens";
+import { decideMyDeviceCode, exchangeDeviceLogin, startDeviceLogin } from "./device-grants";
 import { accessToRevoke, endSessionsForNewSecret, revokeAccess } from "./instance-access";
 import { createRoot } from "./root-account";
 import { getCurrentUser, requireUser, signIn } from "./session";
@@ -155,6 +156,52 @@ describe("revoke-access --everyone", () => {
     expect((a?.sessions ?? 0) + (b?.sessions ?? 0)).toBe(3);
     expect((a?.tokens ?? 0) + (b?.tokens ?? 0)).toBe(1);
     expect(await events()).toHaveLength(2);
+  });
+});
+
+describe("revoke-access counts what it revokes (162)", () => {
+  const expire = (token: string) =>
+    t.db
+      .updateTable("access_tokens")
+      .set({ expires_at: toDbDate(new Date(Date.now() - 86_400_000), t.dialect) })
+      .where("token_prefix", "=", token.slice(0, 12))
+      .execute();
+
+  it("--email asks about the live tokens only, and revokes as many", async () => {
+    const ada = await sessionFor("ada@example.com");
+    await tokenFor(ada);
+    await expire(await tokenFor(ada));
+    const target = { kind: "user", email: "ada@example.com" } as const;
+    expect(await accessToRevoke(t.db, t.dialect, target)).toMatchObject({ tokens: 1 });
+    expect(await revokeAccess(t.db, t.dialect, target, both)).toMatchObject({ tokens: 1 });
+  });
+
+  it("--everyone too, and withdraws sign-ins approved in the browser", async () => {
+    const ada = await sessionFor("ada@example.com");
+    await tokenFor(ada);
+    await expire(await tokenFor(await sessionFor("bob@example.com")));
+    const started = await startDeviceLogin({ clientId: "rmk" }, new Headers(), app);
+    if (!started.ok) throw new Error(started.error);
+    expect(await decideMyDeviceCode(ada, started.grant.userCode, "approve", app)).toMatchObject({
+      ok: true,
+    });
+    expect(await accessToRevoke(t.db, t.dialect, { kind: "everyone" })).toMatchObject({
+      tokens: 1,
+    });
+    expect(await revokeAccess(t.db, t.dialect, { kind: "everyone" }, both)).toMatchObject({
+      tokens: 1,
+    });
+    expect(
+      await exchangeDeviceLogin(
+        {
+          grantType: "urn:ietf:params:oauth:grant-type:device_code",
+          deviceCode: started.grant.deviceCode,
+          clientId: "rmk",
+        },
+        new Headers(),
+        app,
+      ),
+    ).toEqual({ ok: false, error: "access_denied" });
   });
 });
 

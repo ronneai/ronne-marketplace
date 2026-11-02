@@ -43,7 +43,7 @@
       "token": {
         "title": "Créez un jeton d’accès",
         "text": "Un jeton permet à rmk d’agir en votre nom. Vous le créez une fois et pouvez le révoquer en tout temps.",
-        "action": "Ouvrir CLI et jetons"
+        "action": "Ouvrir Jetons d’accès"
       },
       "connect": {
         "title": "Connectez rmk",

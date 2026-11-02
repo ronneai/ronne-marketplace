@@ -9,16 +9,19 @@ import {
   hasUsableProvider,
   passwordUsersAffected,
 } from "@/server/domains/identity/actions/password-policy";
+import { countTokensPastPolicy } from "@/server/domains/identity/actions/token-policy";
 import { twoFactorCoverage } from "@/server/domains/identity/actions/two-factor";
 import type { TwoFactorCoverage } from "@/server/domains/identity/models/two-factor-coverage";
 import { getAppAuth } from "@/server/domains/identity/repositories/auth-instance";
 import { instanceSettings } from "@/server/domains/settings/actions/settings";
 import type { PasswordSignInPolicy } from "@/server/domains/settings/models/password-sign-in-policy";
+import type { TokenPolicy } from "@/server/domains/settings/models/token-policy";
 import type { TwoFactorPolicy } from "@/server/domains/settings/models/two-factor-policy";
 import { requestHeaders } from "@/server/http/request-headers";
 import { PasswordPolicyForm } from "./PasswordPolicyForm";
 import { IdentityProvidersPanel } from "./providers/IdentityProvidersPanel";
 import { type SignInMethod, SignInMethodsPanel } from "./SignInMethodsPanel";
+import { TokenPolicyForm } from "./TokenPolicyForm";
 import { TwoFactorPolicyForm } from "./TwoFactorPolicyForm";
 
 type MethodsT = Awaited<ReturnType<typeof getTranslations<"admin.settings.methods">>>;
@@ -31,6 +34,9 @@ type AuthenticationData = {
   passwordPolicy: PasswordSignInPolicy;
   usableProvider: boolean;
   affected: number;
+  tokenPolicy: TokenPolicy;
+  /** Active tokens that last longer than their owner's cap allows (162). */
+  tokensPast: number;
 };
 
 /**
@@ -106,6 +112,12 @@ const PANELS: readonly {
       <TwoFactorPolicyForm policy={twoFactorPolicy} coverage={coverage} />
     ),
   },
+  {
+    id: "access-tokens",
+    render: ({ tokenPolicy, tokensPast }) => (
+      <TokenPolicyForm policy={tokenPolicy} past={tokensPast} />
+    ),
+  },
 ];
 
 /**
@@ -116,12 +128,13 @@ export const AuthenticationTab = async () => {
   const request = await requestHeaders();
   const t = await getTranslations("admin.settings.methods");
   const app = getAppAuth();
-  const [settings, coverage, providers, usableProvider, affected] = await Promise.all([
+  const [settings, coverage, providers, usableProvider, affected, tokensPast] = await Promise.all([
     instanceSettings(request),
     twoFactorCoverage(request),
     providerRows(request),
     hasUsableProvider(app),
     passwordUsersAffected(app),
+    countTokensPastPolicy(request),
   ]);
   const data = {
     twoFactorPolicy: settings.twoFactorPolicy,
@@ -130,6 +143,8 @@ export const AuthenticationTab = async () => {
     passwordPolicy: settings.passwordSignInPolicy,
     usableProvider,
     affected,
+    tokenPolicy: settings.tokenPolicy,
+    tokensPast,
   };
   return PANELS.map((panel) => (
     <Panel key={panel.id} padding="lg">

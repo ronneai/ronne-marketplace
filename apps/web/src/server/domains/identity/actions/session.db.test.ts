@@ -1,9 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { toDbDate } from "../../../db/dates";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
+import { listAuditEvents } from "../../audit/actions/audit";
 import { LoginRateLimiter } from "../models/login-rate-limiter";
 import type { AppAuth } from "../repositories/auth-instance";
+import { betterAuthSessionStore } from "../repositories/better-auth-session-store";
+import { kyselyIdentityRepository } from "../repositories/kysely-identity-repository";
+import * as service from "../services/session";
 import { cookieHeaders, createTestUser, testAppAuth } from "../testing/test-auth";
+import { authenticateToken, createMyToken } from "./access-tokens";
+import { decideMyDeviceCode, exchangeDeviceLogin, startDeviceLogin } from "./device-grants";
 import {
   changePassword,
   getCurrentUser,
@@ -103,6 +109,194 @@ describe("requireUser", () => {
     await expect(requireUser(signedOut, app)).rejects.toMatchObject({
       digest: expect.stringContaining("/sign-in?next=%2Fitems%3Ftab%3Dmine"),
     });
+  });
+});
+
+describe("changePassword and access tokens (162)", () => {
+  const tokenEvents = async () =>
+    (await listAuditEvents(t.db, t.dialect, {})).events.filter(
+      (e) => e.action === "user.password_changed",
+    );
+
+  it("revokes my tokens with the box ticked, as it is by default, and records how many", async () => {
+    const here = await signedIn();
+    const laptop = await createMyToken(here, { name: "laptop" }, app);
+    const ci = await createMyToken(here, { name: "ci" }, app);
+    expect(
+      await changePassword(here, { current: password, next: "a brand new passphrase" }, app),
+    ).toEqual({ ok: true, required: false });
+    for (const token of [laptop, ci])
+      expect(await authenticateToken(token.token, app)).toEqual({
+        ok: false,
+        failure: "token_revoked",
+      });
+    expect((await tokenEvents())[0]?.metadata).toMatchObject({ tokensRevoked: 2 });
+  });
+
+  it("counts only live tokens: an expired one does nothing already", async () => {
+    const here = await signedIn();
+    await createMyToken(here, { name: "live" }, app);
+    const old = await createMyToken(here, { name: "old" }, app);
+    await t.db
+      .updateTable("access_tokens")
+      .set({ expires_at: toDbDate(new Date(Date.now() - 86_400_000), t.dialect) })
+      .where("id", "=", old.id)
+      .execute();
+    await changePassword(here, { current: password, next: "a brand new passphrase" }, app);
+    expect((await tokenEvents())[0]?.metadata).toMatchObject({ tokensRevoked: 1 });
+  });
+
+  it("withdraws a sign-in approved in the browser that rmk hasn't picked up yet", async () => {
+    const here = await signedIn();
+    const started = await startDeviceLogin({ clientId: "rmk" }, new Headers(), app);
+    if (!started.ok) throw new Error(started.error);
+    expect(await decideMyDeviceCode(here, started.grant.userCode, "approve", app)).toMatchObject({
+      ok: true,
+    });
+    await changePassword(here, { current: password, next: "a brand new passphrase" }, app);
+    const exchange = () =>
+      exchangeDeviceLogin(
+        {
+          grantType: "urn:ietf:params:oauth:grant-type:device_code",
+          deviceCode: started.grant.deviceCode,
+          clientId: "rmk",
+        },
+        new Headers(),
+        app,
+      );
+    expect(await exchange()).toEqual({ ok: false, error: "access_denied" });
+    expect(await t.db.selectFrom("access_tokens").select("id").execute()).toEqual([]);
+  });
+
+  it("still revokes them when the audit row can't be written: the password changed already", async () => {
+    const here = await signedIn();
+    const laptop = await createMyToken(here, { name: "laptop" }, app);
+    const repo = kyselyIdentityRepository(t.db, t.dialect);
+    const failing = {
+      sessions: betterAuthSessionStore(app.auth),
+      repo: {
+        ...repo,
+        transaction: <T>(work: (r: typeof repo) => Promise<T>) =>
+          repo.transaction((inner) =>
+            work({
+              ...inner,
+              recordAudit: async () => {
+                throw new Error("the disk is full");
+              },
+            }),
+          ),
+      },
+      limiter: app.limiter,
+    };
+    await expect(
+      service.changePassword(
+        failing,
+        { headers: here, ip: null },
+        { current: password, next: "a brand new passphrase" },
+      ),
+    ).rejects.toThrow("the disk is full");
+    expect(await authenticateToken(laptop.token, app)).toEqual({
+      ok: false,
+      failure: "token_revoked",
+    });
+  });
+
+  it("keeps them, the box unticked, even when the audit row can't be written", async () => {
+    const here = await signedIn();
+    const laptop = await createMyToken(here, { name: "laptop" }, app);
+    const repo = kyselyIdentityRepository(t.db, t.dialect);
+    const failing = {
+      sessions: betterAuthSessionStore(app.auth),
+      repo: {
+        ...repo,
+        transaction: <T>(work: (r: typeof repo) => Promise<T>) =>
+          repo.transaction((inner) =>
+            work({
+              ...inner,
+              recordAudit: async () => {
+                throw new Error("the disk is full");
+              },
+            }),
+          ),
+      },
+      limiter: app.limiter,
+    };
+    await expect(
+      service.changePassword(
+        failing,
+        { headers: here, ip: null },
+        { current: password, next: "a brand new passphrase", revokeTokens: false },
+      ),
+    ).rejects.toThrow("the disk is full");
+    expect((await authenticateToken(laptop.token, app)).ok).toBe(true);
+  });
+
+  it("withdraws only my approved sign-ins, never someone else's", async () => {
+    await createTestUser(app, { email: "other@example.com", password });
+    const other = await signedIn({ email: "other@example.com" });
+    const started = await startDeviceLogin({ clientId: "rmk" }, new Headers(), app);
+    if (!started.ok) throw new Error(started.error);
+    expect(await decideMyDeviceCode(other, started.grant.userCode, "approve", app)).toMatchObject({
+      ok: true,
+    });
+    await changePassword(
+      await signedIn(),
+      { current: password, next: "a brand new passphrase" },
+      app,
+    );
+    const polled = await exchangeDeviceLogin(
+      {
+        grantType: "urn:ietf:params:oauth:grant-type:device_code",
+        deviceCode: started.grant.deviceCode,
+        clientId: "rmk",
+      },
+      new Headers(),
+      app,
+    );
+    expect(polled).toMatchObject({ ok: true });
+  });
+
+  it("keeps them when I untick it", async () => {
+    const here = await signedIn();
+    const laptop = await createMyToken(here, { name: "laptop" }, app);
+    expect(
+      await changePassword(
+        here,
+        { current: password, next: "a brand new passphrase", revokeTokens: false },
+        app,
+      ),
+    ).toEqual({ ok: true, required: false });
+    expect((await authenticateToken(laptop.token, app)).ok).toBe(true);
+    expect((await tokenEvents())[0]?.metadata).toMatchObject({ tokensRevoked: 0 });
+  });
+
+  it("revokes nothing when the password isn't changed", async () => {
+    const here = await signedIn();
+    const laptop = await createMyToken(here, { name: "laptop" }, app);
+    expect(
+      await changePassword(
+        here,
+        { current: "wrong horse battery", next: "a brand new passphrase" },
+        app,
+      ),
+    ).toEqual({ ok: false, error: "wrong_password" });
+    expect((await authenticateToken(laptop.token, app)).ok).toBe(true);
+    expect(await tokenEvents()).toEqual([]);
+  });
+
+  it("leaves other people's tokens alone", async () => {
+    await createTestUser(app, { email: "other@example.com", password });
+    const theirs = await createMyToken(
+      await signedIn({ email: "other@example.com" }),
+      { name: "theirs" },
+      app,
+    );
+    await changePassword(
+      await signedIn(),
+      { current: password, next: "a brand new passphrase" },
+      app,
+    );
+    expect((await authenticateToken(theirs.token, app)).ok).toBe(true);
   });
 });
 

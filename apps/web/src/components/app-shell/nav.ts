@@ -41,7 +41,6 @@ export type NavIcon =
   | "audit"
   | "settings"
   | "docs"
-  | "tokens"
   | "feedback"
   | "inbox"
   | "propose";
@@ -75,7 +74,7 @@ export type NavItem = {
  * The navigation, in the sidebar from `lg` and in the Menu below (119). Only pages that exist are
  * listed (feature 032). Catalogue (018) is current on item pages too. Root's Admin pages are three
  * links rather than one (owner, 2026-10-11), and Admin keeps its own tabs. Documentation opens the
- * website in a new tab (088). Access tokens are under Tools, as CLI & tokens.
+ * website in a new tab (088). Access tokens are a tab of Account (162), not a link of their own.
  */
 export const NAV: NavItem[] = [
   { href: "/", key: "home", group: "discover", icon: "home" },
@@ -158,7 +157,6 @@ export const NAV: NavItem[] = [
     section: "/admin/feedback",
   },
   { href: DOCS_URL, key: "docs", group: "tools", icon: "docs", external: true },
-  { href: "/account/tokens", key: "tokens", group: "tools", icon: "tokens" },
   // Anyone signed in (127): a dialog in the sidebar, the /feedback page on a phone and without JS.
   { href: "/feedback", key: "feedback", group: "tools", icon: "feedback", section: "/feedback" },
 ];

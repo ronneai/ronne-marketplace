@@ -163,6 +163,18 @@ export class InvalidTokenLifetimeError extends IdentityError {
   }
 }
 
+/**
+ * A lifetime longer than root's longest (162): a dialog left open while the policy changed, or a
+ * hand-made request. `days` is the longest this person may choose now.
+ */
+export class TokenLifetimeTooLongError extends IdentityError {
+  override readonly name: string = "TokenLifetimeTooLongError";
+  readonly code = "token_lifetime_too_long";
+  constructor(readonly days: number) {
+    super(`The longest lifetime is now ${days} days.`);
+  }
+}
+
 export class TokenLimitError extends IdentityError {
   override readonly name: string = "TokenLimitError";
   constructor(readonly limit: number) {

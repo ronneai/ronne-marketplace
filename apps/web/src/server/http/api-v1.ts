@@ -1,6 +1,10 @@
 import { loadConfig } from "../config";
 import { exchangePassword, revokeCallingToken } from "../domains/identity/actions/access-tokens";
-import { IdentityError, TokenLimitError } from "../domains/identity/exceptions/errors";
+import {
+  IdentityError,
+  TokenLifetimeTooLongError,
+  TokenLimitError,
+} from "../domains/identity/exceptions/errors";
 import { type AppAuth, getAppAuth } from "../domains/identity/repositories/auth-instance";
 import { myWorkspacesAs } from "../domains/workspaces/actions/workspaces";
 import { errorResponse, rateLimitedResponse } from "./errors";
@@ -47,10 +51,23 @@ export const postToken = async (request: Request, app: AppAuth = getAppAuth()) =
       );
     return errorResponse(401, "invalid_credentials", "Email or password is wrong.");
   } catch (error) {
-    if (error instanceof TokenLimitError) return errorResponse(409, "token_limit", error.message);
-    if (error instanceof IdentityError) return errorResponse(400, "invalid_request", error.message);
+    const response = tokenErrorResponse(error);
+    if (response) return response;
     throw error;
   }
+};
+
+/**
+ * The API's answer when making a token fails (009, 162), or null for an error that isn't the
+ * identity domain's. `rmk login` asks for no lifetime today, so `token_lifetime_too_long` is for a
+ * request that does, should one ever.
+ */
+export const tokenErrorResponse = (error: unknown): Response | null => {
+  if (error instanceof TokenLimitError) return errorResponse(409, "token_limit", error.message);
+  if (error instanceof TokenLifetimeTooLongError)
+    return errorResponse(400, "token_lifetime_too_long", error.message);
+  if (error instanceof IdentityError) return errorResponse(400, "invalid_request", error.message);
+  return null;
 };
 
 /** DELETE /api/v1/auth/token: revokes the calling token, for `rmk logout`. */

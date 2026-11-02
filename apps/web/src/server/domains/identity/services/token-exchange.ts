@@ -10,7 +10,8 @@ import type { TokenVia } from "../repositories/token-repository";
 import { createToken, type NewToken, type TokenDeps } from "./access-tokens";
 
 /**
- * `rmk login` (feature 009): an email and password in exchange for a 90-day token. It checks the
+ * `rmk login` (feature 009): an email and password in exchange for a 90-day token (or root's
+ * longest lifetime when that's shorter, 162). It checks the
  * password directly, with the same hasher Better Auth uses, so no web session is created. It shares
  * the sign-in limit (006), and every failure gives the same answer, but for an account with
  * two-factor, which gets `two_factor_required` once the password is right (105).
@@ -49,7 +50,8 @@ export const tokenNameFromUserAgent = (userAgent: string | null): string => {
 
 /**
  * `rmk on laptop`, then `rmk on laptop (2)` and so on, so logging in again never fails on the name.
- * A 90-day token, as `rmk login` and the device flow (107) make.
+ * A 90-day token, as `rmk login` and the device flow (107) make, or root's longest lifetime for this
+ * person when that's shorter (162).
  */
 export const createWithFreeName = async (
   deps: TokenDeps,
@@ -63,7 +65,7 @@ export const createWithFreeName = async (
     // Cut by code points, so a suffix never splits an emoji's surrogate pair.
     const name = `${[...base].slice(0, TOKEN_NAME_MAX_LENGTH - suffix.length).join("")}${suffix}`;
     try {
-      return await createToken(deps, { user, ip }, { name, lifetime: 90, via });
+      return await createToken(deps, { user, ip }, { name, via });
     } catch (error) {
       if (!(error instanceof TokenNameTakenError)) throw error;
     }

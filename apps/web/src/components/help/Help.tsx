@@ -218,6 +218,9 @@ export const HELP = {
   "two-factor-policy": {
     href: docsHref("settings", "settings"),
   },
+  "token-lifetime-reviewers": {
+    href: docsHref("authentication", "tokens"),
+  },
   "reset-two-factor": {
     href: docsHref("admin", "users"),
   },

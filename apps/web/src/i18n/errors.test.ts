@@ -17,6 +17,7 @@ const {
   ForbiddenError,
   InvalidTokenNameError,
   InvalidTokenLifetimeError,
+  TokenLifetimeTooLongError,
   TokenLimitError,
   TokenNameTakenError,
   TokenNotFoundError,
@@ -50,6 +51,14 @@ describe("domain errors in three languages (129)", () => {
         en: '"7" isn\'t a token lifetime. Use 30, 90 or 365 days, or no expiry.',
         pt: '"7" não é uma duração de token. Use 30, 90 ou 365 dias, ou sem expiração.',
         fr: "« 7 » n’est pas une durée de jeton. Utilisez 30, 90 ou 365 jours, ou sans expiration.",
+      },
+    ],
+    [
+      new TokenLifetimeTooLongError(90),
+      {
+        en: "The longest lifetime is now 90 days.",
+        pt: "A validade máxima agora é de 90 dias.",
+        fr: "La durée maximale est maintenant de 90 jours.",
       },
     ],
     [

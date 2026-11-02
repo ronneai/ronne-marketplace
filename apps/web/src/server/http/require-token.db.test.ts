@@ -6,7 +6,7 @@ import {
   createMyToken,
   revokeMyToken,
 } from "../domains/identity/actions/access-tokens";
-import { signIn } from "../domains/identity/actions/session";
+import { changePassword, signIn } from "../domains/identity/actions/session";
 import type { AppAuth } from "../domains/identity/repositories/auth-instance";
 import { cookieHeaders, createTestUser, testAppAuth } from "../domains/identity/testing/test-auth";
 import { bearerToken, requireToken, type TokenGuardDeps } from "./require-token";
@@ -46,6 +46,18 @@ const failure = async (headers: Record<string, string>) => {
     cache: result.response.headers.get("cache-control"),
   };
 };
+
+describe("tokens revoked by recovering an account (162)", () => {
+  it("get 401 at the next request after a password change", async () => {
+    const created = await createMyToken(session, { name: "laptop" }, app);
+    const bearer = { authorization: `Bearer ${created.token}` };
+    expect((await call(bearer)).ok).toBe(true);
+    expect(
+      await changePassword(session, { current: password, next: "a brand new passphrase" }, app),
+    ).toMatchObject({ ok: true });
+    expect(await failure(bearer)).toMatchObject({ status: 401, code: "token_revoked" });
+  });
+});
 
 describe("bearerToken", () => {
   it("reads only a Bearer Authorization header", () => {

@@ -148,6 +148,9 @@ export const E2E_USERS = {
   tabletNoticeRoot: "tablet-notice-root@e2e.test",
   notRoot: "not-root@e2e.test",
   tokens: "tokens@e2e.test",
+  // Sets the longest token lifetime and shortens (162), and the person whose token it shortens.
+  tokenPolicyRoot: "token-policy-root@e2e.test",
+  tokenLifetimes: "token-lifetimes@e2e.test",
   submitter: "submitter@e2e.test",
   hookAuthor: "hook-author@e2e.test",
   moderator: "moderator@e2e.test",
@@ -402,6 +405,8 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   tabletNoticeRoot: "Tablet Notice Root",
   notRoot: "Not Root",
   tokens: "Token Tester",
+  tokenPolicyRoot: "Token Policy Root",
+  tokenLifetimes: "Token Lifetimes",
   submitter: "Submitter",
   hookAuthor: "Hook Author",
   moderator: "Mo Moderator",
@@ -599,6 +604,7 @@ export const E2E_ROOTS: readonly (keyof typeof E2E_USERS)[] = [
   "phoneScanRoot",
   "phoneWebkitScanRoot",
   "tabletScanRoot",
+  "tokenPolicyRoot",
 ];
 
 /**

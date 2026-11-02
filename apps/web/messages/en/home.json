@@ -43,7 +43,7 @@
       "token": {
         "title": "Create an access token",
         "text": "A token lets rmk act as you. You make it once and can revoke it any time.",
-        "action": "Open CLI & tokens"
+        "action": "Open Access tokens"
       },
       "connect": {
         "title": "Connect rmk",

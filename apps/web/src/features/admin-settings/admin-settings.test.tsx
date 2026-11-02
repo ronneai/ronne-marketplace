@@ -35,6 +35,11 @@ const twoFactor = vi.hoisted(() => ({
   })),
 }));
 vi.mock("@/server/domains/identity/actions/two-factor", () => twoFactor);
+const tokenPolicy = vi.hoisted(() => ({
+  countTokensPastPolicy: vi.fn(async () => 0),
+  shortenTokens: vi.fn(),
+}));
+vi.mock("@/server/domains/identity/actions/token-policy", () => tokenPolicy);
 vi.mock("@/server/domains/identity/actions/identity-providers", () => ({
   providerRows: async () => [],
 }));
@@ -101,8 +106,10 @@ beforeEach(() => {
     usageMinimum: 0,
     twoFactorPolicy: "optional",
     passwordSignInPolicy: "everyone",
+    tokenPolicy: { maxDays: 365, reviewersMaxDays: 90 },
     retention: { ipDays: 90, sessionsDays: 90, feedbackDays: 365 },
   });
+  tokenPolicy.countTokensPastPolicy.mockResolvedValue(0);
   jobs.retentionJobStatus.mockResolvedValue({
     lastRunAt: null,
     lastResult: null,
@@ -373,6 +380,7 @@ describe("Admin › Settings › Authentication › Two-factor sign-in (105)", (
       usagePolicyChangedAt: null,
       usageMinimum: 0,
       twoFactorPolicy: "reviewers",
+      tokenPolicy: { maxDays: 365, reviewersMaxDays: 90 },
     });
     const html = renderToStaticMarkup(await AdminSettings("authentication"));
     expect(html).toContain('aria-label="Two-factor sign-in"');
@@ -459,6 +467,7 @@ describe("Admin › Settings › Privacy › Retention (102)", () => {
       usageMinimum: 0,
       twoFactorPolicy: "optional",
       passwordSignInPolicy: "everyone",
+      tokenPolicy: { maxDays: 365, reviewersMaxDays: 90 },
       retention: { ipDays: 30, sessionsDays: 7, feedbackDays: 400 },
     });
     const html = renderToStaticMarkup(await AdminSettings("privacy"));

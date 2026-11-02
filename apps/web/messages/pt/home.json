@@ -43,7 +43,7 @@
       "token": {
         "title": "Crie um token de acesso",
         "text": "Um token permite que o rmk aja como você. Você o cria uma vez e pode revogá-lo quando quiser.",
-        "action": "Abrir CLI e tokens"
+        "action": "Abrir Tokens de acesso"
       },
       "connect": {
         "title": "Conecte o rmk",

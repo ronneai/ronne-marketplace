@@ -7,6 +7,11 @@ const session = vi.hoisted(() => ({ getCurrentUser: vi.fn(), PATH_HEADER: "x-ron
 const admin = vi.hoisted(() => ({ adminGetUser: vi.fn() }));
 vi.mock("@/server/domains/identity/actions/session", () => session);
 vi.mock("@/server/domains/identity/actions/user-admin", () => admin);
+const tokens = vi.hoisted(() => ({
+  adminListTokens: vi.fn(async () => []),
+  adminRevokeToken: vi.fn(),
+}));
+vi.mock("@/server/domains/identity/actions/access-tokens", () => tokens);
 vi.mock("@/server/domains/workspaces/actions/workspaces", () => ({
   listWorkspaces: vi.fn(async () => [{ id: "w1", name: "global", isGlobal: true }]),
 }));
@@ -312,5 +317,59 @@ describe("the route", () => {
       await UserRoute({ params: Promise.resolve({ id: "root-id" }) }),
     );
     expect(own).toContain("This is your own account.");
+  });
+});
+
+describe("a person's access tokens on their page (162)", () => {
+  const now = new Date("2026-11-01T12:00:00Z");
+  const token = (overrides: Record<string, unknown> = {}) => ({
+    id: "t1",
+    name: "laptop",
+    createdAt: new Date("2026-10-01T12:00:00Z"),
+    lastUsedAt: null,
+    expiresAt: new Date("2026-12-30T12:00:00Z"),
+    revokedAt: null,
+    via: "cli" as const,
+    ...overrides,
+  });
+  const list = [
+    token(),
+    token({ id: "t2", name: "old ci", via: "web", expiresAt: new Date("2026-10-02T12:00:00Z") }),
+    token({ id: "t3", name: "gone", via: null, revokedAt: new Date("2026-10-20T12:00:00Z") }),
+  ];
+  const revokeToken = (t: { name: string }) => <button type="button">REVOKE-{t.name}</button>;
+  const render = (props: { self?: boolean; erased?: boolean; tokenList?: typeof list }) =>
+    renderToStaticMarkup(
+      <UserPage
+        detail={detail(props.erased ? { erasedAt: now } : {})}
+        self={props.self ?? false}
+        slots={{ ...slots, revokeToken }}
+        tokenList={props.tokenList ?? list}
+        now={now}
+      />,
+    );
+
+  it("lists them with how each was made and its status, never the token", () => {
+    const html = render({});
+    for (const text of [">Access tokens<", ">laptop<", ">rmk login<", ">the web app<", ">unknown<"])
+      expect(html).toContain(text);
+    expect(html).toContain(">active<");
+    expect(html).toContain(">expired<");
+    expect(html).toContain(">revoked<");
+    expect(html).not.toContain("rmk_");
+  });
+
+  it("offers Revoke on the active ones only, and not on your own page", () => {
+    const html = render({});
+    expect(html).toContain("REVOKE-laptop");
+    expect(html).not.toContain("REVOKE-old ci");
+    expect(html).not.toContain("REVOKE-gone");
+    expect(render({ self: true })).not.toContain("REVOKE-");
+  });
+
+  it("says when there are none, and has no section for an erased account", () => {
+    expect(render({ tokenList: [] })).toContain("No access tokens.");
+    expect(render({ erased: true })).not.toContain(`id="user-tokens"`);
+    expect(render({})).toContain(`id="user-tokens"`);
   });
 });

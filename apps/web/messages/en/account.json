@@ -8,6 +8,7 @@
     "label": "Account",
     "password": "Password",
     "security": "Two-factor sign-in",
+    "tokens": "Access tokens",
     "language": "Language"
   },
   "password": {
@@ -18,6 +19,8 @@
     "next": "New password",
     "nextHint": "12 to 128 characters.",
     "confirm": "Confirm new password",
+    "revokeTokens": "Also revoke my access tokens",
+    "revokeTokensHint": "rmk and the MCP server stop until you make a new token. Untick it only if you know no token was taken.",
     "submit": "Change password",
     "changedTitle": "Password changed",
     "changed": "You're still signed in here; other sessions were signed out.",
@@ -132,7 +135,6 @@
     }
   },
   "tokens": {
-    "metaTitle": "Access tokens",
     "title": "Access tokens",
     "description": "Personal tokens for rmk and the MCP server. They act as you; they can't sign in to this website.",
     "empty": "No tokens yet. Create one, or run <code>rmk login</code>.",
@@ -157,6 +159,7 @@
       "name": "Name",
       "nameHint": "Where you'll use it, for example the machine or the CI job.",
       "expiresAfter": "Expires after",
+      "capHint": "Root allows tokens of {days} days at most.",
       "days30": "30 days",
       "days90": "90 days",
       "days365": "365 days",

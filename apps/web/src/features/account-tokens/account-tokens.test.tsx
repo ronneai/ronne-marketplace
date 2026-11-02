@@ -128,7 +128,11 @@ describe("TokensPage", () => {
     }
     expect(html).not.toContain("revoke old");
     expect(html).not.toContain("revoke gone");
-    expect(html).not.toContain('href="/account/tokens"');
+    // The one link here is the Account tab it's on (162): the CLI panel doesn't link back to it.
+    expect(html.split('href="/account/tokens"')).toHaveLength(2);
+    expect(html).toMatch(/aria-current="page"[^>]*href="\/account\/tokens"/);
+    expect(html).toMatch(/<h1[^>]*>Account<\/h1>/);
+    expect(html).toMatch(/<h2[^>]*>Access tokens<\/h2>/);
   });
 
   it("says which tokens were made by browser approval (107)", () => {
@@ -147,6 +151,14 @@ describe("TokensPage", () => {
       <TokensPage tokens={[]} now={new Date()} registry="https://ronne.example" />,
     );
     expect(html).toContain("rmk login --registry https://ronne.example --web<");
+  });
+
+  it("leaves Language out of its Account tabs while root has turned choosing off (162)", () => {
+    const on = renderToStaticMarkup(<TokensPage tokens={[]} now={new Date()} />);
+    expect(on).toContain('href="/account/language"');
+    const off = renderToStaticMarkup(<TokensPage tokens={[]} now={new Date()} language={false} />);
+    expect(off).not.toContain('href="/account/language"');
+    expect(off).toContain('href="/account/tokens"');
   });
 
   it("explains an empty list, and what a token is for", () => {

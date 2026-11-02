@@ -139,6 +139,15 @@ export const setRetention = async (
   app: AppAuth = getAppAuth(),
 ) => service.setRetention(deps(app), await actor(headers, app), value);
 
+export const setTokenPolicy = async (
+  headers: Headers,
+  value: { maxDays: unknown; reviewersMaxDays: unknown },
+  app: AppAuth = getAppAuth(),
+) => service.setTokenPolicy(deps(app), await actor(headers, app), value);
+
+/** The longest token lifetimes (162), for every way of making a token. */
+export const tokenPolicy = (app: AppAuth = getAppAuth()) => service.tokenPolicy(deps(app));
+
 /** How long personal data is kept (102), for the purge. */
 export const retentionPolicy = (app: AppAuth = getAppAuth()) => service.retentionPolicy(deps(app));
 

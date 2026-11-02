@@ -44,7 +44,6 @@ describe("navFor", () => {
       "Workspaces",
       "Submissions",
       "Documentation",
-      "CLI & tokens",
       "Send feedback",
     ]);
     // In no workspace at all (not reachable while everyone is in global): nothing to submit to.
@@ -53,7 +52,6 @@ describe("navFor", () => {
       "Catalogue",
       "Workspaces",
       "Documentation",
-      "CLI & tokens",
       "Send feedback",
     ]);
   });
@@ -66,7 +64,6 @@ describe("navFor", () => {
       "Reviews",
       "Submissions",
       "Documentation",
-      "CLI & tokens",
       "Send feedback",
     ];
     expect(labels(member({ [GLOBAL]: "moderator" }))).toEqual(reviewer);
@@ -86,7 +83,6 @@ describe("navFor", () => {
       "Settings",
       "Feedback",
       "Documentation",
-      "CLI & tokens",
       "Send feedback",
     ]);
     expect(navFor(ROOT).map((item) => item.href)).toEqual(
@@ -143,11 +139,11 @@ describe("groupNav", () => {
         "Governance & reviews",
         ["Reviews", "Submissions", "Users", "Audit log", "Settings", "Feedback"],
       ],
-      ["Tools", ["Documentation", "CLI & tokens", "Send feedback"]],
+      ["Tools", ["Documentation", "Send feedback"]],
     ]);
     expect(grouped({ name: "N", email: "n@example.com", role: "user" })).toEqual([
       ["Discover", ["Home", "Catalogue", "Workspaces"]],
-      ["Tools", ["Documentation", "CLI & tokens", "Send feedback"]],
+      ["Tools", ["Documentation", "Send feedback"]],
     ]);
   });
 });
@@ -212,7 +208,8 @@ describe("isCurrent", () => {
     expect(isCurrent(find("Users"), "/admin/audit")).toBe(false);
     expect(isCurrent(find("Audit log"), "/admin/audit")).toBe(true);
     expect(isCurrent(find("Settings"), "/admin/settings")).toBe(true);
-    expect(isCurrent(find("CLI & tokens"), "/account/tokens")).toBe(true);
+    // Access tokens are a tab of Account (162): no link of their own to mark.
+    expect(navFor(ROOT).some((item) => item.href === "/account/tokens")).toBe(false);
   });
 
   it("marks Requests on its page, and nothing else there", () => {
@@ -458,7 +455,6 @@ describe("Sidebar", () => {
       "Reviews (3 waiting)",
       "Users",
       "Documentation (opens in a new tab)",
-      "CLI &amp; tokens",
       "Propose item",
       "R, your account",
     ])
@@ -606,7 +602,6 @@ describe("AppShell", () => {
         "Workspaces",
         "Submissions",
         "Documentation",
-        "CLI & tokens",
         "Send feedback",
         "Account",
       ]);
@@ -714,7 +709,6 @@ describe("the shell in three languages (129)", () => {
           "Registro de auditoria",
           "Configurações",
           "Documentação",
-          "CLI e tokens",
           "Propor item",
           "Recolher a barra lateral",
           "Conta",
@@ -732,7 +726,6 @@ describe("the shell in three languages (129)", () => {
           "Révisions",
           "Journal d’audit",
           "Réglages",
-          "CLI et jetons",
           "Proposer un élément",
           "Réduire la barre latérale",
           "Compte",

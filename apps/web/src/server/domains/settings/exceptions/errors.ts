@@ -52,6 +52,21 @@ export class InvalidTwoFactorPolicyError extends SettingsError {
   }
 }
 
+/**
+ * A token lifetime policy root can't set (162): a cap that isn't 30, 90 or 365 days or no limit,
+ * or a reviewers' cap longer than everyone's.
+ */
+export class InvalidTokenPolicyError extends SettingsError {
+  override readonly name: string = "InvalidTokenPolicyError";
+  constructor(readonly reason: "lifetime" | "reviewers_longer") {
+    super(
+      reason === "lifetime"
+        ? "Choose 30, 90 or 365 days, or no limit."
+        : "The longest lifetime for reviewers and root is the same as everyone's, or shorter.",
+    );
+  }
+}
+
 export class InvalidPasswordSignInPolicyError extends SettingsError {
   override readonly name: string = "InvalidPasswordSignInPolicyError";
   constructor() {

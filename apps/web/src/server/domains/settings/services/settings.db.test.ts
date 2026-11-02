@@ -8,6 +8,7 @@ import type { CurrentUser } from "../../identity/models/user";
 import {
   InvalidNoticeError,
   InvalidRetentionError,
+  InvalidTokenPolicyError,
   InvalidTwoFactorPolicyError,
   InvalidUsageMinimumError,
   InvalidUsagePolicyError,
@@ -20,9 +21,11 @@ import {
   type SettingsDeps,
   setNotice,
   setRetention,
+  setTokenPolicy,
   setTwoFactorPolicy,
   setUsageMinimum,
   setUsagePolicy,
+  tokenPolicy,
   twoFactorPolicy,
   usageMinimum,
   usagePolicy,
@@ -57,6 +60,7 @@ describe("the usage policy", () => {
       usageMinimum: 0,
       twoFactorPolicy: "optional",
       passwordSignInPolicy: "everyone",
+      tokenPolicy: { maxDays: 365, reviewersMaxDays: 90 },
       retention: { ipDays: 90, sessionsDays: 90, feedbackDays: 365 },
       notice: {
         message: "",
@@ -87,6 +91,7 @@ describe("the usage policy", () => {
       usageMinimum: 0,
       twoFactorPolicy: "optional",
       passwordSignInPolicy: "everyone",
+      tokenPolicy: { maxDays: 365, reviewersMaxDays: 90 },
       retention: { ipDays: 90, sessionsDays: 90, feedbackDays: 365 },
       notice: expect.objectContaining({ shown: false, changedByName: null }),
     });
@@ -205,6 +210,111 @@ describe("the two-factor requirement (105)", () => {
   it("reads a value it doesn't know as optional", async () => {
     await deps.repo.set("two_factor_policy", "nonsense", null, at);
     expect(await twoFactorPolicy(deps)).toBe("optional");
+  });
+});
+
+describe("the token lifetime policy (162)", () => {
+  const someone: CurrentUser = {
+    id: "x",
+    email: "x@example.com",
+    name: "X",
+    role: "user",
+    workspaces: {},
+  };
+
+  it("is 365 days, and 90 for reviewers and root, until root sets it; a change is audited with the old and new values", async () => {
+    expect(await tokenPolicy(deps)).toEqual({ maxDays: 365, reviewersMaxDays: 90 });
+    expect(
+      await setTokenPolicy(deps, { user: root, ip: IP }, { maxDays: 90, reviewersMaxDays: 30 }),
+    ).toEqual({ changed: true });
+    expect(await tokenPolicy(deps)).toEqual({ maxDays: 90, reviewersMaxDays: 30 });
+    // The same again changes nothing and records nothing; a form's strings read the same.
+    expect(
+      await setTokenPolicy(deps, { user: root, ip: IP }, { maxDays: "90", reviewersMaxDays: "30" }),
+    ).toEqual({ changed: false });
+    // No limit, for both.
+    expect(
+      await setTokenPolicy(
+        deps,
+        { user: root, ip: IP },
+        { maxDays: "none", reviewersMaxDays: "none" },
+      ),
+    ).toEqual({ changed: true });
+    expect(await tokenPolicy(deps)).toEqual({ maxDays: null, reviewersMaxDays: null });
+    expect(await deps.repo.get("token_max_days")).toMatchObject({
+      value: "none",
+      updatedBy: root.id,
+    });
+    const events = (await listAuditEvents(t.db, t.dialect, {})).events.filter(
+      (e) => e.action === "settings.token_policy",
+    );
+    expect(events.map((e) => [e.actorId, e.ipAddress, e.targetType, e.metadata])).toEqual([
+      [
+        root.id,
+        IP,
+        "instance",
+        {
+          from: { maxDays: 90, reviewersMaxDays: 30 },
+          to: { maxDays: null, reviewersMaxDays: null },
+        },
+      ],
+      [
+        root.id,
+        IP,
+        "instance",
+        { from: { maxDays: 365, reviewersMaxDays: 90 }, to: { maxDays: 90, reviewersMaxDays: 30 } },
+      ],
+    ]);
+  });
+
+  it("is changed only by root", async () => {
+    for (const user of [someone, null])
+      await expect(
+        setTokenPolicy(deps, { user, ip: null }, { maxDays: 30, reviewersMaxDays: 30 }),
+      ).rejects.toThrow(ForbiddenError);
+    const moderator: CurrentUser = { ...someone, workspaces: { w: "moderator" } };
+    await expect(
+      setTokenPolicy(deps, { user: moderator, ip: null }, { maxDays: 30, reviewersMaxDays: 30 }),
+    ).rejects.toThrow(ForbiddenError);
+    expect(await tokenPolicy(deps)).toEqual({ maxDays: 365, reviewersMaxDays: 90 });
+    expect(
+      (await listAuditEvents(t.db, t.dialect, {})).events.filter(
+        (e) => e.action === "settings.token_policy",
+      ),
+    ).toEqual([]);
+  });
+
+  it("takes only 30, 90 or 365 days or no limit, the reviewers' the same or shorter", async () => {
+    for (const value of [7, 60, "forever", undefined, null, "1e2", true, "", "030"])
+      for (const which of ["maxDays", "reviewersMaxDays"] as const)
+        await expect(
+          setTokenPolicy(
+            deps,
+            { user: root, ip: null },
+            { maxDays: 365, reviewersMaxDays: 90, [which]: value },
+          ),
+        ).rejects.toThrow(new InvalidTokenPolicyError("lifetime"));
+    for (const [maxDays, reviewersMaxDays] of [
+      [90, 365],
+      [30, 90],
+      [90, "none"],
+      [365, "none"],
+    ])
+      await expect(
+        setTokenPolicy(deps, { user: root, ip: null }, { maxDays, reviewersMaxDays }),
+      ).rejects.toThrow(new InvalidTokenPolicyError("reviewers_longer"));
+    expect(await tokenPolicy(deps)).toEqual({ maxDays: 365, reviewersMaxDays: 90 });
+  });
+
+  it("reads a hand edit as the default, and never the reviewers' cap longer than everyone's", async () => {
+    await deps.repo.set("token_max_days", "45", null, at);
+    expect(await tokenPolicy(deps)).toEqual({ maxDays: 365, reviewersMaxDays: 90 });
+    // Empty is a hand edit too, never "no limit".
+    await deps.repo.set("token_max_days", "", null, at);
+    await deps.repo.set("token_max_days_reviewers", "", null, at);
+    expect(await tokenPolicy(deps)).toEqual({ maxDays: 365, reviewersMaxDays: 90 });
+    await deps.repo.set("token_max_days", "30", null, at);
+    expect(await tokenPolicy(deps)).toEqual({ maxDays: 30, reviewersMaxDays: 30 });
   });
 });
 

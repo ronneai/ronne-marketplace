@@ -89,10 +89,14 @@ below).
 `rmk_`), or drafts in the audit log that the person didn't make.
 
 **Now:**
-1. Its owner revokes it: the sidebar's **CLI & tokens** (the Access tokens page) › **Revoke**.
-2. If the owner can't, or several of their tokens may have leaked:
+1. Its owner revokes it: Account › **Access tokens** › **Revoke**. Changing their password revokes all of their tokens at once, unless they untick
+   **Also revoke my access tokens**.
+2. If the owner can't, root revokes it from the person's page in Admin › **Users** (their Access
+   tokens, **Revoke**), or, when several of their tokens may have leaked,
    `revoke-access --user <email> --tokens-only` (the forms above).
 3. If you don't know whose: `revoke-access --everyone --tokens-only`; everyone runs `rmk login` again.
+   To limit how long any token can work from now on, without revoking: Admin › Settings ›
+   Authentication › **Access tokens**, a shorter longest lifetime, then **Shorten them**.
 4. See what the token did: Admin › **Audit log**, filter by the owner's email; drafts made with a token
    name it in their details.
 

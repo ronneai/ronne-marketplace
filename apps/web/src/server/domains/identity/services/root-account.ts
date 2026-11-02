@@ -126,7 +126,7 @@ export const listRoots = async (deps: Pick<IdentityDeps, "repo">) => {
 export const resetTwoFactorFromCli = async (
   deps: Pick<IdentityDeps, "repo" | "now">,
   email: string,
-): Promise<{ email: string; reset: boolean; sessionsEnded: number }> => {
+): Promise<{ email: string; reset: boolean; sessionsEnded: number; tokensRevoked: number }> => {
   const wanted = typedEmail(email);
   const now = (deps.now ?? (() => new Date()))();
   return deps.repo.transaction(async (repo) => {
@@ -134,18 +134,20 @@ export const resetTwoFactorFromCli = async (
     if (!user) throw new UserNotFoundError();
     if (user.erasedAt) throw new UserErasedError();
     if (!(await repo.resetTwoFactor(user.id, now)))
-      return { email: user.email, reset: false, sessionsEnded: 0 };
+      return { email: user.email, reset: false, sessionsEnded: 0, tokensRevoked: 0 };
     const sessionsEnded = await repo.deleteSessions(user.id);
+    // As the web reset does (162): the tokens stop with the sessions.
+    const tokensRevoked = await repo.revokeAccessTokens(user.id, now);
     await repo.recordAudit(
       {
         actorId: null,
         action: "user.two_factor_reset",
         target: { type: "user", id: user.id },
-        metadata: { via: "cli", email: user.email, sessionsEnded },
+        metadata: { via: "cli", email: user.email, sessionsEnded, tokensRevoked },
       },
       now,
     );
-    return { email: user.email, reset: true, sessionsEnded };
+    return { email: user.email, reset: true, sessionsEnded, tokensRevoked };
   });
 };
 

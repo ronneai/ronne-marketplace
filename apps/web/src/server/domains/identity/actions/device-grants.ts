@@ -3,9 +3,9 @@ import { LoginRateLimiter } from "../models/login-rate-limiter";
 import { type AppAuth, getAppAuth } from "../repositories/auth-instance";
 import { kyselyDeviceGrantRepository } from "../repositories/kysely-device-grant-repository";
 import { kyselyIdentityRepository } from "../repositories/kysely-identity-repository";
-import { kyselyTokenRepository } from "../repositories/kysely-token-repository";
 import * as service from "../services/device-grants";
 import { getCurrentUser } from "./session";
+import { tokenDeps } from "./token-deps";
 
 export type { DeviceExchangeResult, StartResult } from "../services/device-grants";
 
@@ -16,7 +16,7 @@ export type { DeviceExchangeResult, StartResult } from "../services/device-grant
 export const deviceDeps = ({ db, dialect }: AppAuth): service.DeviceGrantDeps => ({
   grants: kyselyDeviceGrantRepository(db, dialect),
   identity: kyselyIdentityRepository(db, dialect),
-  tokens: { repo: kyselyTokenRepository(db, dialect) },
+  tokens: tokenDeps({ db, dialect }),
 });
 
 // Asking for a code writes a row and needs no account, so it's limited: 10 a minute per client IP,

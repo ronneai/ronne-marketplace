@@ -25,8 +25,10 @@ test("the Menu opens the navigation and closes on Esc, a link, back and outside"
   await expect(sheet).toBeVisible();
   await expect(menu).toHaveAttribute("aria-expanded", "true");
   // And the sidebar's switcher and Propose item (119).
-  for (const name of ["Home", "Catalogue", "Submissions", "CLI & tokens", "Account"])
+  for (const name of ["Home", "Catalogue", "Submissions", "Account"])
     await expect(sheet.getByRole("link", { name, exact: true })).toBeVisible();
+  // Access tokens are a tab of Account (162), not a link of the Menu.
+  await expect(sheet.getByRole("link", { name: "CLI & tokens" })).toHaveCount(0);
   // Reviews' name carries its count, when some wait.
   await expect(sheet.getByRole("link", { name: /^Reviews/ })).toBeVisible();
   await expect(sheet.getByRole("link", { name: /^Documentation/ })).toBeVisible();

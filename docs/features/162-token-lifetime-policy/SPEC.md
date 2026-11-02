@@ -19,11 +19,14 @@ page, and recovering an account ends its tokens with its sessions (owner, 2026-1
   - **Longest lifetime**: 30, 90 or 365 days, or no limit.
   - **For reviewers and root**: the same or shorter. "Reviewers" means moderators and admins of a
     shared workspace, as the two-factor policy counts them (`coveredBy` in
-    `identity/models/two-factor-coverage.ts`).
+    `identity/models/two-factor-coverage.ts`; their own personal workspace doesn't count), but
+    whatever way they sign in: an account with company sign-in only, which the two-factor policy
+    leaves to its provider, still gets the reviewers' cap (Decision 5).
   - **Shorten longer tokens**: "14 active tokens last longer than this. Shorten them to it". It
     asks first, then sets each one's expiry to the earlier of its own and now plus the maximum.
   - Audited: `settings.token_policy` (`{ from, to }`) and `access_token.shortened` (`{ count,
-    days }`).
+    days, reviewersDays }`, the two caps applied, null for no limit; one row per Shorten, none when
+    nothing changed).
 - **Enforced wherever a token is made**:
   - `createToken` (Account › Tokens);
   - the password exchange (`POST /api/v1/auth/token`, `rmk login`);
@@ -31,15 +34,26 @@ page, and recovering an account ends its tokens with its sessions (owner, 2026-1
 
   The dialog offers only the lifetimes allowed. The exchange and the device flow give 90 days, or
   the maximum when it's shorter. A request for more is refused with `token_lifetime_too_long`.
+- **Account › Access tokens** (owner, 2026-11-01): the tokens page is a tab of Account, after
+  Two-factor sign-in, at the same address (`/account/tokens`). The sidebar no longer lists
+  CLI & tokens (owner, 2026-11-01): Account's tab is the way there.
 - **Root sees a person's tokens** on `/admin/users/<id>` (123): name, how it was made (web, `rmk`,
   device), created, last used, expires, never the secret or its preview. Root can **Revoke** one,
   audited `access_token.revoked` with root as the actor.
 - **Recovering an account ends its tokens**:
   - **Change your password** (Account): a box, **Also revoke my access tokens**, checked by
     default. They're revoked in the same transaction, and `user.password_changed` records
-    `tokensRevoked`.
+    `tokensRevoked`. The page root's request sends people to (128) has no box and keeps their
+    tokens (owner, 2026-11-01): if root reset the password, the older tokens were revoked then,
+    and on a phone that page keeps its button in view.
   - **Root's two-factor reset** (the user page, and `reset-two-factor` in a terminal) revokes the
     tokens as well as ending the sessions, as Reset password does already.
+  - **What "revokes the tokens" means, wherever it happens** (these two, Reset password,
+    `reset-root-password`, disabling, `revoke-access` for one person or everyone): every active
+    token stops, and a sign-in approved in the browser that `rmk login --web` hasn't picked up yet
+    (107) is withdrawn, so it can't make a new token afterwards. The count recorded, and the one
+    `revoke-access` asks about first, is the active tokens (an expired one does nothing already). If the password changed but its audit row can't be written, the tokens are revoked
+    anyway before the error goes up.
 - The defaults (Decision 2): **365 days** for everyone, **90 days** for reviewers and root.
 
 **Out** (and where it goes instead):
@@ -80,8 +94,10 @@ each token's owner has today.
 
 ## Data
 
-- `instance_settings`: `token_max_days` and `token_max_days_reviewers` (30, 90, 365, or absent for
-  no limit). No migration.
+- `instance_settings`: `token_max_days` and `token_max_days_reviewers` (`30`, `90`, `365`, or
+  `none` for no limit; a key never set reads as the default, so "no limit" needs a value of its
+  own). A value that isn't one of these (a hand edit) reads as the default, and the reviewers' cap
+  never reads longer than everyone's. No migration.
 - `access_tokens.expires_at` is updated by Shorten. Nothing new.
 
 ## Documentation
@@ -123,6 +139,9 @@ each token's owner has today.
    `rmk` in the middle of work. A shorter date gives people time to make new ones.
 4. **The password box is checked by default** (Claude). Changing a password is most often a
    recovery, and an unticked box is one click for the person who knows better.
+5. **Company sign-in reviewers get the reviewers' cap too** (Claude, to confirm). The two-factor
+   policy skips accounts with no password because their provider asks for a second step; a
+   token, once made, reaches as far whoever signs in, so the shorter cap follows the role.
 
 ## Open questions
 

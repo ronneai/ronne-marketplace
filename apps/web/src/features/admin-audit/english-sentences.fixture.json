@@ -89,7 +89,7 @@
   },
   "user.password_changed": {
     "empty": "Changed their password",
-    "rich": "Chose their own password, as root asked (1 other session ended)"
+    "rich": "Chose their own password, as root asked (1 other session ended, 1 token revoked)"
   },
   "auth.two_factor_enabled": {
     "empty": "Turned on two-factor sign-in",
@@ -178,6 +178,10 @@
   "access_token.revoked": {
     "empty": "Revoked token ",
     "rich": "Revoked token @team/tools (by root)"
+  },
+  "access_token.shortened": {
+    "empty": "Shortened 0 access tokens to the longest lifetime (no limit; reviewers and root no limit)",
+    "rich": "Shortened 0 access tokens to the longest lifetime (no limit; reviewers and root no limit)"
   },
   "workspace.created": {
     "empty": "Created workspace a workspace",
@@ -362,6 +366,10 @@
   "settings.two_factor_policy": {
     "empty": "Changed who must use two-factor sign-in from  to ",
     "rich": "Changed who must use two-factor sign-in from user to root"
+  },
+  "settings.token_policy": {
+    "empty": "Changed the longest token lifetime: nothing",
+    "rich": "Changed the longest token lifetime: nothing"
   },
   "settings.retention": {
     "empty": "Changed the retention: nothing",

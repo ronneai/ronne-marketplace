@@ -87,7 +87,8 @@ export interface IdentityRepository {
   setLocale(userId: string, locale: Locale | null, now: Date): Promise<void>;
   setRole(userId: string, role: Role, now: Date): Promise<void>;
   disableUser(userId: string, now: Date): Promise<void>;
-  countActiveAccessTokens(userId: string): Promise<number>;
+  /** Tokens neither revoked nor expired at `now`. */
+  countActiveAccessTokens(userId: string, now: Date): Promise<number>;
   /** Creates the user and its credential account together. Returns the new user's id. */
   createUserWithPassword(user: NewUserWithPassword, now: Date): Promise<string>;
   /** The same, for someone who signs in with an identity provider only (106): no credential account. */
@@ -110,11 +111,14 @@ export interface IdentityRepository {
   countSessions(userId: string): Promise<number>;
   /** Returns how many sessions ended. */
   deleteSessions(userId: string): Promise<number>;
-  /** Returns how many active tokens were revoked. */
+  /**
+   * Revokes the user's active tokens and withdraws their approved, unused device sign-ins (107,
+   * 162), so none can make a token afterwards. Returns how many active tokens were revoked.
+   */
   revokeAccessTokens(userId: string, now: Date): Promise<number>;
   /** Every user's sessions and not-revoked tokens, for `revoke-access --everyone` (098). */
   countAllSessions(): Promise<number>;
-  countAllActiveAccessTokens(): Promise<number>;
+  countAllActiveAccessTokens(now: Date): Promise<number>;
   /** Every identity provider's id and encrypted client secret (106), for rotate-secret. */
   providerSecrets(): Promise<{ id: string; secretEnc: string }[]>;
   setProviderSecret(id: string, secretEnc: string): Promise<void>;

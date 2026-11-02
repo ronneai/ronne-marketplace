@@ -50,4 +50,12 @@ export interface TokenRepository {
   /** Sets last_used_at to `now` unless it was set in the last minute. Returns whether it wrote. */
   touchLastUsed(tokenId: string, now: Date): Promise<boolean>;
   recordAudit(event: NewAuditEvent, now: Date): Promise<void>;
+  /**
+   * Active tokens (at `now`) that last past `cutoff`, with no expiry or a later one, among the
+   * tokens of reviewers (root, or a moderator or admin of a shared workspace, as the two-factor
+   * coverage counts them) or of everyone else (162).
+   */
+  tokensPast(cutoff: Date, owners: "reviewers" | "others", now: Date): Promise<string[]>;
+  /** Sets these tokens' expiry to `expiresAt` where theirs is later or absent; how many changed. */
+  shortenTo(ids: readonly string[], expiresAt: Date): Promise<number>;
 }

@@ -7,6 +7,7 @@ import {
   IdentityError,
   LastRootError,
   NoPasswordError,
+  TokenNotFoundError,
 } from "@/server/domains/identity/exceptions/errors";
 import { inLocaleAsync } from "@/test/intl";
 
@@ -32,6 +33,10 @@ vi.mock("@/server/domains/identity/actions/user-admin", () => admin);
 vi.mock("next/cache", () => cache);
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: () => {} }) }));
 vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));
+const tokens = vi.hoisted(() => ({ adminRevokeToken: vi.fn(), adminListTokens: vi.fn() }));
+vi.mock("@/server/domains/identity/actions/access-tokens", () => tokens);
+const flash = vi.hoisted(() => ({ flashToast: vi.fn() }));
+vi.mock("@/server/http/flash-toast", () => flash);
 
 const actions = await import("./actions");
 const { OneTimePassword } = await import("./OneTimePassword");
@@ -311,7 +316,7 @@ describe("rendering", () => {
   it("resets two-factor, and says when there was none (105)", async () => {
     admin.adminResetTwoFactor.mockResolvedValueOnce({ email: "u@example.com", reset: true });
     expect(await actions.resetTwoFactorFromForm({}, form({ userId: "u" }))).toEqual({
-      done: "Two-factor sign-in turned off. They’re signed out everywhere.",
+      done: "Two-factor sign-in turned off. They’re signed out everywhere, and their access tokens are revoked.",
     });
     expect(admin.adminResetTwoFactor).toHaveBeenCalledWith(expect.any(Headers), "u");
     expect(cache.revalidatePath).toHaveBeenCalledWith("/admin/users");
@@ -464,5 +469,30 @@ describe("an error nobody translated, in each language (132)", () => {
         await inLocaleAsync(locale, () => actions.enableUserFromForm({}, form({ userId: "u" }))),
         locale,
       ).toEqual({ error: "It broke in a new way." });
+  });
+});
+
+describe("revokeUserTokenFromForm (162)", () => {
+  const data = (fields: Record<string, string>) => {
+    const form = new FormData();
+    for (const [key, value] of Object.entries(fields)) form.set(key, value);
+    return form;
+  };
+
+  it("revokes that person's token and says so after the page refreshes", async () => {
+    tokens.adminRevokeToken.mockResolvedValueOnce(undefined);
+    expect(
+      await actions.revokeUserTokenFromForm({}, data({ userId: "U1", tokenId: "T1" })),
+    ).toEqual({ done: "revoked" });
+    expect(tokens.adminRevokeToken).toHaveBeenCalledWith(expect.any(Headers), "U1", "T1");
+    // The row's form goes with the refresh: the layout says it (138).
+    expect(flash.flashToast).toHaveBeenCalledWith("tokenRevoked");
+  });
+
+  it("turns a refusal into the dialog's error, and says nothing else", async () => {
+    tokens.adminRevokeToken.mockRejectedValueOnce(new TokenNotFoundError());
+    const state = await actions.revokeUserTokenFromForm({}, data({ userId: "U1", tokenId: "T9" }));
+    expect(state.error).toBeTruthy();
+    expect(flash.flashToast).not.toHaveBeenCalled();
   });
 });

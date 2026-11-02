@@ -1,10 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { fromDbDate, toDbDate } from "../../../db/dates";
 import { GLOBAL_WORKSPACE_ID } from "../../../db/migrations/0019_workspaces";
+import { createPersonalWorkspace } from "../../../db/personal-workspaces";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
 import { listAuditEvents } from "../../audit/actions/audit";
+import { kyselySettingsRepository } from "../../settings/repositories/kysely-settings-repository";
 import {
   ForbiddenError,
+  TokenLifetimeTooLongError,
   TokenLimitError,
   TokenNameTakenError,
   TokenNotFoundError,
@@ -13,9 +16,17 @@ import { hashToken, MAX_ACTIVE_TOKENS } from "../models/access-token";
 import type { AppAuth } from "../repositories/auth-instance";
 import { kyselyTokenRepository } from "../repositories/kysely-token-repository";
 import * as service from "../services/access-tokens";
-import { cookieHeaders, createTestUser, testAppAuth } from "../testing/test-auth";
-import { authenticateToken, createMyToken, listMyTokens, revokeMyToken } from "./access-tokens";
+import { cookieHeaders, createTestUser, setWorkspaceRole, testAppAuth } from "../testing/test-auth";
+import {
+  adminListTokens,
+  adminRevokeToken,
+  authenticateToken,
+  createMyToken,
+  listMyTokens,
+  revokeMyToken,
+} from "./access-tokens";
 import { getCurrentUser, signIn } from "./session";
+import { tokenDeps } from "./token-deps";
 
 let t: TestDb;
 let app: AppAuth;
@@ -39,6 +50,151 @@ afterEach(() => t.cleanup());
 
 const events = async (action: string) =>
   (await listAuditEvents(t.db, t.dialect, {})).events.filter((e) => e.action === action);
+
+/** Root's longest lifetimes (162), as `setTokenPolicy` stores them. */
+const setPolicy = async (everyone: string, reviewers: string) => {
+  const settings = kyselySettingsRepository(t.db, t.dialect);
+  await settings.set("token_max_days", everyone, null, new Date());
+  await settings.set("token_max_days_reviewers", reviewers, null, new Date());
+};
+
+const days = (token: { expiresAt: Date | null }) =>
+  token.expiresAt === null
+    ? null
+    : Math.round((token.expiresAt.getTime() - Date.now()) / 86_400_000);
+
+describe("the longest lifetime root sets (162)", () => {
+  let asModerator: Headers;
+  let asRoot: Headers;
+  beforeEach(async () => {
+    // A real plain user: admin of their own personal workspace (114), which doesn't make them a
+    // reviewer.
+    await createPersonalWorkspace(
+      t.db,
+      t.dialect,
+      { id: userId, email: "u@example.com" },
+      new Date(),
+    );
+    await createTestUser(app, { email: "mod@example.com", password, role: "moderator" });
+    asModerator = await headersFor("mod@example.com");
+    await createTestUser(app, { email: "root@example.com", password, role: "root" });
+    asRoot = await headersFor("root@example.com");
+  });
+
+  it("gives everyone 365 days at most, and reviewers and root 90, until root sets it", async () => {
+    expect(days(await createMyToken(asUser, { name: "a", lifetime: "365" }, app))).toBe(365);
+    await expect(createMyToken(asUser, { name: "b", lifetime: "none" }, app)).rejects.toMatchObject(
+      { name: "TokenLifetimeTooLongError", days: 365 },
+    );
+    for (const who of [asModerator, asRoot]) {
+      expect(days(await createMyToken(who, { name: "a", lifetime: "90" }, app))).toBe(90);
+      await expect(createMyToken(who, { name: "b", lifetime: "365" }, app)).rejects.toThrow(
+        new TokenLifetimeTooLongError(90),
+      );
+      await expect(createMyToken(who, { name: "c", lifetime: "none" }, app)).rejects.toThrow(
+        TokenLifetimeTooLongError,
+      );
+    }
+    // Refused tokens are neither made nor audited.
+    expect((await events("access_token.created")).length).toBe(3);
+  });
+
+  it("gives reviewers and root a long or unlimited cap when root allows it", async () => {
+    await setPolicy("365", "365");
+    expect(days(await createMyToken(asModerator, { name: "a", lifetime: "365" }, app))).toBe(365);
+    await setPolicy("none", "none");
+    expect(days(await createMyToken(asModerator, { name: "b", lifetime: "none" }, app))).toBeNull();
+    expect(days(await createMyToken(asRoot, { name: "a", lifetime: "none" }, app))).toBeNull();
+    expect(days(await createMyToken(asModerator, { name: "c" }, app))).toBe(90);
+  });
+
+  it("holds a plain user to everyone's cap of 90", async () => {
+    await setPolicy("90", "90");
+    await expect(createMyToken(asUser, { name: "a", lifetime: "365" }, app)).rejects.toThrow(
+      new TokenLifetimeTooLongError(90),
+    );
+    expect(days(await createMyToken(asUser, { name: "b" }, app))).toBe(90);
+  });
+
+  it("gives the default 90 days, or the cap when it's shorter", async () => {
+    await setPolicy("30", "30");
+    expect(days(await createMyToken(asUser, { name: "a" }, app))).toBe(30);
+    expect(days(await createMyToken(asModerator, { name: "a" }, app))).toBe(30);
+    await expect(createMyToken(asUser, { name: "b", lifetime: "90" }, app)).rejects.toThrow(
+      "The longest lifetime is now 30 days.",
+    );
+    await setPolicy("none", "none");
+    expect(days(await createMyToken(asUser, { name: "c" }, app))).toBe(90);
+  });
+
+  it("reads the cap when the token is made, by the person's roles", async () => {
+    await setPolicy("365", "30");
+    expect(days(await createMyToken(asUser, { name: "a", lifetime: "365" }, app))).toBe(365);
+    await expect(createMyToken(asModerator, { name: "a", lifetime: "90" }, app)).rejects.toThrow(
+      new TokenLifetimeTooLongError(30),
+    );
+    // A moderator of a workspace counts too; a member doesn't.
+    await setWorkspaceRole(app, userId, "admin");
+    await expect(createMyToken(asUser, { name: "b", lifetime: "90" }, app)).rejects.toThrow(
+      new TokenLifetimeTooLongError(30),
+    );
+    // The token made before the role keeps its date.
+    const rows = await t.db
+      .selectFrom("access_tokens")
+      .select("name")
+      .where("user_id", "=", userId)
+      .execute();
+    expect(rows.map((row) => row.name)).toEqual(["a"]);
+  });
+});
+
+describe("a person's tokens, for root (162)", () => {
+  let asRoot: Headers;
+  beforeEach(async () => {
+    await createTestUser(app, { email: "boss@example.com", password, role: "root" });
+    asRoot = await headersFor("boss@example.com");
+  });
+
+  it("lists them for root without the token or its preview, and to nobody else", async () => {
+    const made = await createMyToken(asUser, { name: "laptop" }, app);
+    const listed = await adminListTokens(asRoot, userId, app);
+    expect(listed).toEqual([
+      expect.objectContaining({ id: made.id, name: "laptop", via: "web", revokedAt: null }),
+    ]);
+    expect(listed[0]).not.toHaveProperty("preview");
+    expect(JSON.stringify(listed)).not.toContain(made.token.slice(0, 12));
+    await expect(adminListTokens(asUser, userId, app)).rejects.toThrow(ForbiddenError);
+  });
+
+  it("lets root revoke one, audited as by root; it stops at once", async () => {
+    const made = await createMyToken(asUser, { name: "laptop" }, app);
+    await expect(adminRevokeToken(asUser, userId, made.id, app)).rejects.toThrow(ForbiddenError);
+    await adminRevokeToken(asRoot, userId, made.id, app);
+    expect(await authenticateToken(made.token, app)).toEqual({
+      ok: false,
+      failure: "token_revoked",
+    });
+    const root = await getCurrentUser(asRoot, app);
+    expect(await events("access_token.revoked")).toEqual([
+      expect.objectContaining({
+        actorId: root?.id,
+        targetId: made.id,
+        metadata: { name: "laptop", by: "root" },
+      }),
+    ]);
+    // Again: nothing more is recorded.
+    await adminRevokeToken(asRoot, userId, made.id, app);
+    expect(await events("access_token.revoked")).toHaveLength(1);
+  });
+
+  it("finds no token that isn't this person's", async () => {
+    const theirs = await createMyToken(asRoot, { name: "root's" }, app);
+    await expect(adminRevokeToken(asRoot, userId, theirs.id, app)).rejects.toThrow(
+      TokenNotFoundError,
+    );
+    expect((await authenticateToken(theirs.token, app)).ok).toBe(true);
+  });
+});
 
 describe("createMyToken", () => {
   it("returns the plain token once, and stores only its hash and prefix", async () => {
@@ -66,9 +222,10 @@ describe("createMyToken", () => {
     expect(JSON.stringify(event)).not.toContain(created.token);
   });
 
-  it("defaults to 90 days, and allows no expiry", async () => {
+  it("defaults to 90 days, and allows no expiry when root allows it (162)", async () => {
     const standard = await createMyToken(asUser, { name: "a" }, app);
     expect(Math.round(((standard.expiresAt?.getTime() ?? 0) - Date.now()) / 86_400_000)).toBe(90);
+    await setPolicy("none", "none");
     expect(
       (await createMyToken(asUser, { name: "b", lifetime: "none" }, app)).expiresAt,
     ).toBeNull();
@@ -206,10 +363,9 @@ describe("authenticateToken", () => {
           .where("id", "=", created.id)
           .executeTakeFirstOrThrow()
       ).last_used_at;
-    const repo = kyselyTokenRepository(t.db, t.dialect);
     // A clock that starts now: a fixed date could fall after the token's 90-day expiry.
     const base = Date.now();
-    const at = (ms: number) => ({ repo, now: () => new Date(base + ms) });
+    const at = (ms: number) => ({ ...tokenDeps(t), now: () => new Date(base + ms) });
 
     expect(await lastUsed()).toBeNull();
     await service.authenticateToken(at(0), created.token);

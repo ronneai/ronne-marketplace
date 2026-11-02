@@ -30,6 +30,8 @@ const changePassword = async (page: Page, current: string, next: string) => {
   await page.getByLabel("Current password", { exact: true }).fill(current);
   await page.getByLabel("New password", { exact: true }).fill(next);
   await page.getByLabel("Confirm new password", { exact: true }).fill(next);
+  // The page root's request sends people to has no box (162): their tokens are kept.
+  await expect(page.getByLabel("Also revoke my access tokens")).toHaveCount(0);
   await page.getByRole("button", { name: "Change password" }).click();
 };
 
