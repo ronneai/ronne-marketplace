@@ -10,6 +10,7 @@ import {
   InvalidSkillScanAnalysisError,
   InvalidSkillScanBlockScoreError,
   InvalidSkillScanTypesError,
+  InvalidTokenPolicyError,
   InvalidTwoFactorPolicyError,
   InvalidUsageMinimumError,
   InvalidUsagePolicyError,
@@ -63,6 +64,15 @@ import {
   skillScanPolicyFrom,
   skillScanTypesFrom,
 } from "../models/skill-scan-policy";
+import {
+  capWithin,
+  storedTokenCap,
+  TOKEN_MAX_DAYS_KEY,
+  TOKEN_MAX_DAYS_REVIEWERS_KEY,
+  type TokenPolicy,
+  tokenCapFrom,
+  tokenPolicyFrom,
+} from "../models/token-policy";
 import {
   DEFAULT_TWO_FACTOR_POLICY,
   isTwoFactorPolicy,
@@ -127,6 +137,59 @@ export const twoFactorPolicy = async (deps: SettingsDeps): Promise<TwoFactorPoli
 };
 
 /**
+ * The longest a personal access token may live (162): 365 days, and 90 for reviewers and root,
+ * until root sets it. Read every time a token is made, so a change applies to the next one.
+ */
+export const tokenPolicy = async (deps: SettingsDeps): Promise<TokenPolicy> => {
+  const [maxDays, reviewersMaxDays] = await Promise.all([
+    deps.repo.get(TOKEN_MAX_DAYS_KEY),
+    deps.repo.get(TOKEN_MAX_DAYS_REVIEWERS_KEY),
+  ]);
+  return tokenPolicyFrom({
+    maxDays: maxDays?.value ?? null,
+    reviewersMaxDays: reviewersMaxDays?.value ?? null,
+  });
+};
+
+/**
+ * Root sets the longest token lifetimes (162): both caps at once, each 30, 90 or 365 days or no
+ * limit (null), the reviewers' the same or shorter. Audited as `settings.token_policy` with the old
+ * and new values. Tokens already made keep their dates: Shorten is a step of its own.
+ */
+export const setTokenPolicy = async (
+  deps: SettingsDeps,
+  actor: SettingsActor,
+  value: { maxDays: unknown; reviewersMaxDays: unknown },
+): Promise<{ changed: boolean }> => {
+  requirePermission(actor.user, "settings.manage");
+  const maxDays = tokenCapFrom(value.maxDays);
+  const reviewersMaxDays = tokenCapFrom(value.reviewersMaxDays);
+  if (maxDays === undefined || reviewersMaxDays === undefined)
+    throw new InvalidTokenPolicyError("lifetime");
+  if (!capWithin(reviewersMaxDays, maxDays)) throw new InvalidTokenPolicyError("reviewers_longer");
+  const at = now(deps);
+  return deps.repo.transaction(async (repo) => {
+    const from = await tokenPolicy({ repo });
+    if (from.maxDays === maxDays && from.reviewersMaxDays === reviewersMaxDays)
+      return { changed: false };
+    const by = actor.user?.id ?? null;
+    await repo.set(TOKEN_MAX_DAYS_KEY, storedTokenCap(maxDays), by, at);
+    await repo.set(TOKEN_MAX_DAYS_REVIEWERS_KEY, storedTokenCap(reviewersMaxDays), by, at);
+    await repo.recordAudit(
+      {
+        actorId: by,
+        action: "settings.token_policy",
+        target: { type: "instance" },
+        metadata: { from: { ...from }, to: { maxDays, reviewersMaxDays } },
+        ipAddress: actor.ip,
+      },
+      at,
+    );
+    return { changed: true };
+  });
+};
+
+/**
  * How long personal data is kept (102), for the purge; 90 days each until root sets them. A stored
  * value that isn't in the range (a hand edit) reads as the default, as the other settings do.
  */
@@ -168,6 +231,7 @@ export type InstanceSettings = {
   usageMinimum: number;
   twoFactorPolicy: TwoFactorPolicy;
   passwordSignInPolicy: PasswordSignInPolicy;
+  tokenPolicy: TokenPolicy;
   retention: RetentionPolicy;
   /** With the name of whoever saved it last, for the Notice tab. */
   notice: Awaited<ReturnType<typeof notice>> & { changedByName: string | null };
@@ -186,6 +250,7 @@ export const instanceSettings = async (
     usageMinimum: await usageMinimum(deps),
     twoFactorPolicy: await twoFactorPolicy(deps),
     passwordSignInPolicy: await passwordSignInPolicy(deps),
+    tokenPolicy: await tokenPolicy(deps),
     retention: await retentionPolicy(deps),
     notice: await withChangedByName(deps, await notice(deps)),
   };

@@ -540,6 +540,13 @@
           "feedback": "feedback tratado de {from} para {to} dias",
           "nothing": "nada"
         },
+        "tokenPolicy": {
+          "everyone": "a de todos, agora {to} (antes: {from})",
+          "reviewers": "a de revisores e root, agora {to} (antes: {from})",
+          "days": "{count, plural, one {# dia} other {# dias}}",
+          "noLimit": "sem limite",
+          "nothing": "nada"
+        },
         "notice": {
           "shown": "exibido",
           "hidden": "oculto",
@@ -753,6 +760,7 @@
         },
         "settings": {
           "two_factor_policy": "Alterou quem precisa usar a autenticação de dois fatores de {from} para {to}",
+          "token_policy": "Alterou a validade máxima dos tokens: {changes}",
           "usage_policy": "Alterou a política de uso de {from} para {to}",
           "usage_minimum": "Alterou o mínimo de uso de {from} para {to}",
           "retention": "Alterou a retenção: {changes}",

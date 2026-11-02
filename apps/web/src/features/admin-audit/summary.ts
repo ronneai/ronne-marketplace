@@ -455,6 +455,26 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     from: h.word("twoFactorPolicies", text(m.from)),
     to: h.word("twoFactorPolicies", text(m.to)),
   }),
+  "settings.token_policy": (m, _e, h) => {
+    // `{ from: { maxDays, reviewersMaxDays }, to: { … } }`, days or null for no limit (162).
+    const from = record(m.from);
+    const to = record(m.to);
+    const cap = (value: AuditMetadataValue | undefined) =>
+      typeof value === "number"
+        ? h.part("tokenPolicy.days", { count: value })
+        : h.part("tokenPolicy.noLimit");
+    const changes = (
+      [
+        ["maxDays", "everyone"],
+        ["reviewersMaxDays", "reviewers"],
+      ] as const
+    )
+      .filter(([key]) => key in from && key in to && text(from[key]) !== text(to[key]))
+      .map(([key, who]) =>
+        h.part(`tokenPolicy.${who}`, { from: cap(from[key]), to: cap(to[key]) }),
+      );
+    return { changes: changes.join(", ") || h.part("tokenPolicy.nothing") };
+  },
   "settings.usage_policy": (m, _e, h) => ({
     from: h.word("policies", text(m.from)),
     to: h.word("policies", text(m.to)),

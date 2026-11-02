@@ -338,6 +338,22 @@ describe("audit summaries (060)", () => {
       "Changed the retention: IP addresses from 90 to 30 days, expired sessions from 90 to 7 days",
     );
     expect(line("settings.retention", {})).toBe("Changed the retention: nothing");
+    // The token lifetime policy (162): only what changed, days or no limit.
+    expect(
+      line("settings.token_policy", {
+        from: { maxDays: 365, reviewersMaxDays: 90 },
+        to: { maxDays: 90, reviewersMaxDays: 30 },
+      }),
+    ).toBe(
+      "Changed the longest token lifetime: everyone’s from 365 days to 90 days, reviewers’ and root’s from 90 days to 30 days",
+    );
+    expect(
+      line("settings.token_policy", {
+        from: { maxDays: 90, reviewersMaxDays: 30 },
+        to: { maxDays: null, reviewersMaxDays: 30 },
+      }),
+    ).toBe("Changed the longest token lifetime: everyone’s from 90 days to no limit");
+    expect(line("settings.token_policy", {})).toBe("Changed the longest token lifetime: nothing");
     // The notice (124): the tone and whether it is shown; the words are never in the log.
     expect(
       line("settings.notice", {

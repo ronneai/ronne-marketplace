@@ -540,6 +540,13 @@
           "feedback": "handled feedback from {from} to {to} days",
           "nothing": "nothing"
         },
+        "tokenPolicy": {
+          "everyone": "everyone’s from {from} to {to}",
+          "reviewers": "reviewers’ and root’s from {from} to {to}",
+          "days": "{count, plural, one {# day} other {# days}}",
+          "noLimit": "no limit",
+          "nothing": "nothing"
+        },
         "notice": {
           "shown": "shown",
           "hidden": "hidden",
@@ -753,6 +760,7 @@
         },
         "settings": {
           "two_factor_policy": "Changed who must use two-factor sign-in from {from} to {to}",
+          "token_policy": "Changed the longest token lifetime: {changes}",
           "usage_policy": "Changed the usage policy from {from} to {to}",
           "usage_minimum": "Changed the usage minimum from {from} to {to}",
           "retention": "Changed the retention: {changes}",

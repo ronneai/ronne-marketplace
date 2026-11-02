@@ -80,8 +80,10 @@ each token's owner has today.
 
 ## Data
 
-- `instance_settings`: `token_max_days` and `token_max_days_reviewers` (30, 90, 365, or absent for
-  no limit). No migration.
+- `instance_settings`: `token_max_days` and `token_max_days_reviewers` (`30`, `90`, `365`, or
+  `none` for no limit; a key never set reads as the default, so "no limit" needs a value of its
+  own). A value that isn't one of these (a hand edit) reads as the default, and the reviewers' cap
+  never reads longer than everyone's. No migration.
 - `access_tokens.expires_at` is updated by Shorten. Nothing new.
 
 ## Documentation

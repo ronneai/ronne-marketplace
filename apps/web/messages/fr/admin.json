@@ -540,6 +540,13 @@
           "feedback": "commentaires traités de {from} à {to} jours",
           "nothing": "rien"
         },
+        "tokenPolicy": {
+          "everyone": "celle de tout le monde, désormais {to} (avant : {from})",
+          "reviewers": "celle des réviseurs et de root, désormais {to} (avant : {from})",
+          "days": "{count, plural, one {# jour} other {# jours}}",
+          "noLimit": "aucune limite",
+          "nothing": "rien"
+        },
         "notice": {
           "shown": "affiché",
           "hidden": "masqué",
@@ -753,6 +760,7 @@
         },
         "settings": {
           "two_factor_policy": "A changé qui doit utiliser la double authentification, de {from} à {to}",
+          "token_policy": "A modifié la durée maximale des jetons : {changes}",
           "usage_policy": "A changé le rapport d’utilisation, de {from} à {to}",
           "usage_minimum": "A changé le minimum d’utilisation, de {from} à {to}",
           "retention": "A changé la conservation : {changes}",

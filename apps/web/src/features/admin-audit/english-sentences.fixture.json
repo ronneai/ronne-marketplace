@@ -363,6 +363,10 @@
     "empty": "Changed who must use two-factor sign-in from  to ",
     "rich": "Changed who must use two-factor sign-in from user to root"
   },
+  "settings.token_policy": {
+    "empty": "Changed the longest token lifetime: nothing",
+    "rich": "Changed the longest token lifetime: nothing"
+  },
   "settings.retention": {
     "empty": "Changed the retention: nothing",
     "rich": "Changed the retention: nothing"

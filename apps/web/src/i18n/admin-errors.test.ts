@@ -57,6 +57,8 @@ const CASES: [Error, string[]][] = [
   [new s.InvalidRetentionError("sessionsDays"), []],
   [new s.InvalidRetentionError("feedbackDays"), []],
   [new s.InvalidTwoFactorPolicyError(), []],
+  [new s.InvalidTokenPolicyError("lifetime"), []],
+  [new s.InvalidTokenPolicyError("reviewers_longer"), []],
   [new s.InvalidPasswordSignInPolicyError(), []],
   [new s.NoUsableProviderError(), []],
   [new s.ConfirmationNeededError(), []],

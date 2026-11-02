@@ -95,6 +95,7 @@ export const AUDIT_ACTIONS = [
   "settings.usage_policy",
   "settings.usage_minimum",
   "settings.two_factor_policy",
+  "settings.token_policy",
   "settings.retention",
   "settings.notice",
   "settings.update_check",

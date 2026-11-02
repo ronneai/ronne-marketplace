@@ -14,7 +14,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     tokens, and `docs/features/README.md` lists 162 in M28.
   - *Done when:* both say what this spec says, and `pnpm witness:check` passes.
 
-- [ ] **2. The policy.** [risky]
+- [x] **2. The policy.** [risky]
   - `settings/models/token-policy.ts`: the two caps, validated (the reviewers' cap the same or
     shorter), read with defaults.
   - `setTokenPolicy` under `settings.manage`, audited `settings.token_policy`.
@@ -66,3 +66,14 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+- **Only `none` means no limit** (task 2). `tokenCapFrom` refuses `""` and null: a form field
+  left out (`FormData.get` gives null) must never become the loosest policy, so the panel (task 6)
+  sends `none` explicitly. The same reader takes stored values, so an empty or hand-edited one
+  reads as the default.
+- **Two saves at the same moment can record a stale `from`** on PostgreSQL and MySQL (the
+  adversarial pass of task 2 saw it with three concurrent `setTokenPolicy` calls): the setter reads
+  the old values in its transaction without a lock. The final setting is one of the saves; only the
+  audit row's `from` can be wrong. Every settings setter (`setUsageMinimum`, `setRetention`,
+  `setTwoFactorPolicy`, …) reads the same way, so it is a follow-up for all of them, not this
+  feature.
