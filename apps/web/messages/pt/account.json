@@ -8,6 +8,7 @@
     "label": "Conta",
     "password": "Senha",
     "security": "Autenticação de dois fatores",
+    "tokens": "Tokens de acesso",
     "language": "Idioma"
   },
   "password": {
@@ -134,7 +135,6 @@
     }
   },
   "tokens": {
-    "metaTitle": "Tokens de acesso",
     "title": "Tokens de acesso",
     "description": "Tokens pessoais para o rmk e o servidor MCP. Eles agem como você; não conseguem entrar neste site.",
     "empty": "Nenhum token ainda. Crie um ou execute <code>rmk login</code>.",

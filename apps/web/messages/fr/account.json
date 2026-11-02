@@ -8,6 +8,7 @@
     "label": "Compte",
     "password": "Mot de passe",
     "security": "Double authentification",
+    "tokens": "Jetons d’accès",
     "language": "Langue"
   },
   "password": {
@@ -134,7 +135,6 @@
     }
   },
   "tokens": {
-    "metaTitle": "Jetons d’accès",
     "title": "Jetons d’accès",
     "description": "Des jetons personnels pour rmk et le serveur MCP. Ils agissent en votre nom; ils ne peuvent pas ouvrir de session sur ce site.",
     "empty": "Aucun jeton pour l’instant. Créez-en un, ou exécutez <code>rmk login</code>.",

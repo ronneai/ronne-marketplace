@@ -343,3 +343,24 @@ Witnessed: 2026-11-01 21:09 EST, by a fresh agent (blind). Commit: 4cc15715. Mac
 **Overall:** met: every new key is in en, pt and fr with matching ICU and proper Portuguese and Canadian French, the screens use them with no raw text, and the parity, lint, phone and language sweeps pass.
 
 Remarks: no English-leak unit test renders the user page's token table or the panel in pt or fr (the probe found them translated; the e2e language sweep covers the panel); optional wording in fr `past` ("…plus longtemps que cela") and `confirmBody`.
+
+## Task 9 — Access tokens in the Account tabs
+
+Witnessed: 2026-11-01 21:28 EST, by a fresh agent (blind). Commit: a2e76127 + working tree (11 modified files, uncommitted). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The Account tabs list Access tokens at `/account/tokens`, after Two-factor sign-in and before Language, and the tabs test checks it | no | confirmed | `AccountTabs.tsx:8-13`. `npx vitest run account-tabs.test.tsx account-tokens.test.tsx translations.test.tsx src/features/account-security` → 48 passed. Mutations: removing the entry → 3 tests fail; moving it after language → the order test fails |
+| 2 | `/account/tokens` shows the Account header and the tabs, Access tokens current | no | confirmed | Probe on a real `next start`: one h1 "Account"; tabs password, security, tokens (aria-current), language. Mutation (no `<AccountTabs current="tokens">`) → the account-tokens test fails |
+| 3 | The page keeps its Access tokens heading and Create token, which works | no | confirmed | `TokensPage.tsx:44-47`. Probe: h2 "Access tokens"; Create token made "probe" and its row appeared. Mutation (h2 shows the description) → fails |
+| 4 | The title reads "Access tokens · Account · Ronne AI Marketplace", in each language; `tokens.metaTitle` removed, unused | no | confirmed | Probe `page.title()` → `Access tokens · Account · Ronne AI Marketplace`; fr `Jetons d’accès · Compte · …`; pt `Tokens de acesso · Conta · …`. `page.tsx:11` `accountMetadata("tokens")`. Parity, messages and raw-text tests → 62 passed; `tsc --noEmit` 0; `biome check` clean |
+| 5 | The Password, Two-factor sign-in and Language pages show the new tab too | no | confirmed | Probe: each lists password, security, tokens, language with itself current; their titles unchanged |
+| 6 | Language drops out of the tabs, on the tokens page too, when root turns choosing off | no | confirmed | Probe (choosing off, default fr) → `/account/tokens` tabs `[password, security, tokens*]`. `page.tsx:26` passes `choosable.length > 1`. Gap: dropping `language={language}` in `TokensPage.tsx` passed the unit tests |
+| 7 | The sidebar's CLI & tokens still leads to `/account/tokens` | no | confirmed | `nav.ts:161` unchanged; probe: the link lands on `/account/tokens` |
+| 8 | The e2e tests that use the page pass | no | confirmed | `next build` 0; `playwright test access-tokens token-policy device getting-started languages-rest registry-api scim --project chromium` → 27 passed |
+| 9 | The phone sweep passes on it | no | confirmed | `dialogs.mobile navigation.mobile mobile-sweep.mobile --project phone --project phone-webkit --project tablet` → 57 passed; `pages.ts:164` sweeps `/account/tokens` in en, pt and fr |
+| 10 | SPEC.md Scope describes Account › Access tokens | no | confirmed | `git diff SPEC.md` → the new bullet |
+
+**Overall:** met: Access tokens is a tab of Account at the same address, with the Account header, its own heading and Create token, and the title in all three languages; Language still drops out when choosing is off; e2e and the phone sweep pass.
+
+After this pass the implementer added a test that renders `TokensPage` with `language={false}` and expects no Language tab (the row 6 gap).

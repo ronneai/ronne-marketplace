@@ -8,6 +8,7 @@
     "label": "Account",
     "password": "Password",
     "security": "Two-factor sign-in",
+    "tokens": "Access tokens",
     "language": "Language"
   },
   "password": {
@@ -134,7 +135,6 @@
     }
   },
   "tokens": {
-    "metaTitle": "Access tokens",
     "title": "Access tokens",
     "description": "Personal tokens for rmk and the MCP server. They act as you; they can't sign in to this website.",
     "empty": "No tokens yet. Create one, or run <code>rmk login</code>.",

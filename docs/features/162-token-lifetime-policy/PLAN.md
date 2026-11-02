@@ -62,6 +62,14 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* the docs render tests and `pnpm docs:links` pass, and the helper lands on a real
     section.
 
+- [x] **9. Access tokens in the Account tabs.**
+  - Owner, 2026-11-01, while 162 was being built: the tokens page becomes a tab of Account
+    (Password, Two-factor sign-in, Access tokens, Language), at the same address
+    (`/account/tokens`), under the Account header; the sidebar's CLI & tokens still leads there.
+  - *Done when:* the tabs test lists it, the page renders the Account header and tabs with its own
+    Access tokens heading and Create token, its title reads "Access tokens · Account", the e2e
+    tests that use the page pass, and the phone sweep passes on it.
+
 ## Notes
 
 Things learned while building that the next person should know. Anything that changes behaviour
