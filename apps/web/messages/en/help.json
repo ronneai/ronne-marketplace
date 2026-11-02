@@ -277,7 +277,7 @@
   },
   "token-lifetime-reviewers": {
     "question": "Why shorter for reviewers?",
-    "answer": "Root’s and reviewers’ tokens can approve and release what everyone installs, so a stolen one reaches the most. A shorter lifetime limits how long it works."
+    "answer": "A token acts as its whole account. Root’s read every workspace, private ones included, and reviewers’ belong to the people who decide what everyone installs, so a stolen one is worth the most. A shorter lifetime limits how long it works."
   },
   "reset-two-factor": {
     "question": "When do I reset someone’s two-factor?",

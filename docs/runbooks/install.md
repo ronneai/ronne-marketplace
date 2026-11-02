@@ -291,7 +291,7 @@ account. No restart is needed afterwards. The code is in the server's log (`serv
 or `pnpm run setup-code` in a clone). The terminal setup (`setup`) doesn't ask for it.
 
 **Connect your projects.** On each computer that uses the marketplace, install the `rmk` command and
-sign in with an access token made in Ronne (the sidebar's CLI & tokens page):
+sign in with an access token made in Ronne (Account › Access tokens):
 
 ```sh
 npm install --global @ronneai/rmk

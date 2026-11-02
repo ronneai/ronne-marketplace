@@ -385,3 +385,40 @@ Witnessed: 2026-11-01 21:51 EST, by a fresh agent (blind). Commit: b6cb9759 + wo
 **Overall:** met: the link is gone from the sidebar and the Menu, the messages are consistent in three languages, the button is renamed and still leads to `/account/tokens`, nothing in the app, the website or the runbooks names the page, and the tests pass (both mutations fail).
 
 After this pass the implementer removed the stale glossary row from `docs/knowledge/i18n.md`.
+
+## Task 8 — Documentation and the threat model
+
+Witnessed: 2026-11-01 21:46 EST, by a fresh agent (blind). Commit: b6cb9759 + working tree (ronne-web 0b04e5e + working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `pnpm docs:links` passes, and would catch a missing `authentication#tokens` | no | confirmed | `pnpm docs:links` → "Compared 37 topics with the website's.", exit 0. Probe: with `"tokens"` removed from the site's topics.ts → `the website's "authentication" has no section "tokens"` |
+| 2 | The docs render tests and lint pass in ronne-web | no | confirmed | `pnpm test src/content/docs` → 11 passed (`docs.test.ts:38-49` checks every section in en, pt, fr); `pnpm lint` → no fixes |
+| 3 | `authentication#tokens` is a new section in `topics.ts` in both repositories | no | confirmed | `apps/web/src/components/help/topics.ts:249`; ronne-web `www/src/content/docs/topics.ts:89` |
+| 4 | The helper lands on a real section | no | confirmed | `Help.tsx:221-222` → `docsHref("authentication", "tokens")`; the section exists in en, pt, fr; used by `TokenPolicyForm.tsx:109` |
+| 5 | `authentication#tokens` states the caps, defaults, reviewers, ways of making a token, the refusal and Shorten as the app does them | no | confirmed | `token-policy.ts:7,15`; `access-tokens.ts:57,64-69`; `CreateTokenDialog.tsx:13,60`; `device-grants.db.test.ts:136-139`; `errors.ts:170-174`; `api-v1.ts:67-68`; `TokenPolicyForm.tsx:47-62`; `token-policy.ts:46-82`; `settings.ts:181`; labels match pt/fr messages |
+| 6 | "Why shorter for reviewers?" (docs and the helper's answer) says what the app does | no | not met | It said root's and reviewers' tokens "can approve and release what everyone installs"; no token path approves or releases (the token API: resolve, auth, device, drafts, usage; the MCP tools have neither) |
+| 7 | `rmk#tokens`: where tokens are made, the lifetime within root's cap, what Shorten does to yours | no | confirmed | `AccountTabs.tsx:8-13`; rows 5 and 7; `shortenTo` rewrites `expires_at`, which the list reads |
+| 8 | `account#signing-in`: four tabs; the box ticked; the same box on the forced-change page; 12–128 characters; other sessions end | no | confirmed | `AccountTabs.tsx:8-31`; `ChangePasswordForm.tsx:79-82`; `password/page.tsx:32-44,50`; `password.ts:4-5`; `session.ts:216,237` |
+| 9 | `admin#users`: a person's tokens, newest first, how made, dates, status, never the secret; Revoke asks first, audited as root; two-factor reset revokes | no | confirmed | `UserTokens.tsx:37-42,56,81`; `access-tokens.ts:152-159,165-185`; ULID order; `admin.json:180-184`; `user-admin.ts:393`; `setup/reset-two-factor.ts:55` |
+| 10 | Incident runbook and website `incidents`: Account › Access tokens, the password box, root's Revoke, `revoke-access`, the policy and Shorten | no | confirmed | `git diff docs/runbooks/incident-response.md`; en/pt/fr `incidents.tsx` with a link to `authentication#tokens` |
+| 11 | `install.md`, website `overview` and the other mentions use Account › Access tokens | no | confirmed | `install.md:294`; `overview.tsx` "Open Access tokens" matches `home.json:46`; no "CLI & tokens" in ronne-web `www/src` or here. Remark: ronne-web `docs/translation-guide.md:186` still listed it |
+| 12 | ronne-web `docs/product-facts.md` states the 162 facts | no | confirmed | The Auth row's "Since 0.7.0 …" matches rows 5–9 |
+| 13 | Threat model §4.2 "A stolen access token": every file:line reference lands on what it names | no | confirmed | `access-token.ts:41,8,14`; `token-policy.ts:15`; `access-tokens.ts:56,71,165,240`; `services/token-policy.ts:46`; `user-admin.ts:156,323,393`; `session.ts:237,221`; `kysely-identity-repository.ts:676` |
+| 14 | §4.2's residual and §5's "Tokens may have no expiry" say what the app does | no | partly | Both said no expiry only "while root allows/chooses no limit"; a token with no expiry made before 0.7.0 or under no limit keeps working under a cap until root clicks Shorten (`access-tokens.ts:236-237`, the cap read only at `:83`) |
+| 15 | The threat model header names the date and commit | no | confirmed | `threat-model.md:3-4` → 2026-11-01, `b6cb9759`. Remark: "Guessing passwords" cited `session.ts:45`, which is `currentSession`, not the "same answer" code |
+
+**Overall:** not met: the checks pass and the helper lands, but the helper and the docs said reviewers' tokens can approve and release (row 6), and the threat model said no expiry is possible only under no limit (row 14).
+
+### Re-check (rows 6 and 14)
+
+Witnessed: 2026-11-01 22:05 EST, by a fresh agent (blind). Commit: 9ce1f2a4 + working tree (ronne-web 0b04e5e + working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6 | "Why shorter for reviewers?" (docs en/pt/fr and the helper's answer) says what the app does | no | confirmed | Now: a token acts as its account; root's read every workspace, private ones included; reviewers' belong to the people who decide what is installed. API calls build the viewer from the token's user (`viewerOf`); `visibleWorkspaces`/`seesWorkspace` give root every workspace (`workspaces/models/viewer.ts:12,38-40,51-52`); moderators and admins hold `submissions.review`, `submissions.publish`, `versions.manage` (`permissions.ts:38-42`), the reviewers the cap counts (`access-tokens.ts:57`). `vitest run src/i18n/messages.parity.test.ts src/components/help` → 70 passed; ronne-web docs tests → 11 passed; lint clean |
+| 14 | §4.2's residual and §5's "Tokens may have no expiry" say what the app does | no | confirmed | Now: chosen only under no limit, older tokens keep their dates, no expiry included, until Shorten. `CreateTokenDialog.tsx:13-16`; `capWithin` (`token-policy.ts:43-44`) in `lifetimeWithin` (`access-tokens.ts:64-69`); use checks only `expires_at` (`:236-237`); Shorten only for capped groups (`cutoffs`) |
+| — | The minor remarks: the "Guessing passwords" reference and the translation guide | no | confirmed | `session.ts:80` is the `failed` helper in `signIn`; ronne-web's guide drops CLI & tokens and adds Access tokens to the Account tabs row |
+| — | The checks still pass | no | confirmed | `pnpm docs:links` → "Compared 37 topics with the website's."; the probe → `[]` |
+
+**Overall:** met: with the first pass's other rows, every claim of task 8 is confirmed.

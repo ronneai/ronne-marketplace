@@ -277,7 +277,7 @@
   },
   "token-lifetime-reviewers": {
     "question": "Por que menor para revisores?",
-    "answer": "Os tokens do root e dos revisores podem aprovar e publicar o que todos instalam, então um token roubado alcança mais. Uma validade menor limita por quanto tempo ele funciona."
+    "answer": "Um token age como a conta inteira. Os do root leem todos os espaços de trabalho, inclusive os privados, e os dos revisores são de quem decide o que todos instalam, então um token roubado vale mais. Uma validade menor limita por quanto tempo ele funciona."
   },
   "reset-two-factor": {
     "question": "Quando redefino a autenticação de dois fatores de alguém?",

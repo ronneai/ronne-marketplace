@@ -277,7 +277,7 @@
   },
   "token-lifetime-reviewers": {
     "question": "Pourquoi plus courte pour les réviseurs?",
-    "answer": "Les jetons de root et des réviseurs peuvent approuver et publier ce que tout le monde installe : un jeton volé va donc le plus loin. Une durée plus courte limite combien de temps il fonctionne."
+    "answer": "Un jeton agit comme le compte entier. Ceux de root lisent tous les espaces de travail, privés compris, et ceux des réviseurs appartiennent aux personnes qui décident de ce que tout le monde installe : un jeton volé vaut donc le plus. Une durée plus courte limite combien de temps il fonctionne."
   },
   "reset-two-factor": {
     "question": "Quand réinitialiser la double authentification de quelqu’un?",

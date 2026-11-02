@@ -55,7 +55,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* the parity and raw-text tests pass; the phone sweep passes on the panel and the
     user page.
 
-- [ ] **8. Documentation and the threat model.**
+- [x] **8. Documentation and the threat model.**
   - `rmk#tokens`, `authentication#tokens` (new, `topics.ts` in both repositories),
     `account#signing-in`, `admin#users`, the incident runbook, the helper.
   - The threat model's §4.2 and §5.
