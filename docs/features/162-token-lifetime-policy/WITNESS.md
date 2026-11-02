@@ -96,3 +96,77 @@ Witnessed: 2026-11-01 19:17 EST, by a fresh agent (adversarial). Commit: 70bf1be
 | 12 | Unit tests cover validation and defaults; db tests the setter, the audit row and a non-root refused | no | confirmed | `npx vitest run token-policy.test.ts settings.db.test.ts src/features/admin-audit src/i18n` → 26 files, 509 passed; mutations R1–R6 each fail a test |
 
 **Overall:** met: `tokenCapFrom` is strict for input and storage, empty or hand-edited stored values read as the default, invalid input is refused with nothing written, the pt/fr sentences read correctly, and the tests catch each mutation. The stale `from` under concurrent saves is outside this task and recorded as a follow-up.
+
+## Task 3 — Enforcement
+
+Witnessed: 2026-11-01 19:25 EST, by a fresh agent (blind). Commit: cc44bde3 + working tree (13 modified files, untracked `actions/token-deps.ts`). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `createToken` reads the person's cap, the reviewers' one when `coveredBy("reviewers", …)` | no | confirmed | `services/access-tokens.ts:56-57` `tokenCapOf` = `capFor(policy, coveredBy("reviewers", user, true))`. Mutation M1 (reviewer → `false`) → 4 of the 162 tests fail (web ×2, exchange, device) |
+| 2 | "Reviewers" are root and moderators/admins of a shared workspace, counted as the two-factor policy counts them | no | partly | Probe P4: root → 30, moderator elsewhere → 30, plain member → 365, admin of own personal workspace → 365. But `hasPassword: true` (`access-tokens.ts:57`) makes a company sign-in moderator a reviewer, which the two-factor `coveredBy` never counts (`two-factor-coverage.ts:16`); the comment says it's deliberate (stricter), the SPEC doesn't say so |
+| 3 | The password exchange gives 90 days, or the cap when shorter | no | confirmed | `token-exchange.ts:68` no longer passes `lifetime: 90`. api-v1 test: user 90 under 365/30, moderator 30, user 30 under 30/30, 90 under none. P5: moderator 90 under default and none/none. M3 (`lifetime: 90` back) → api-v1 and device tests fail |
+| 4 | The device flow gives 90 days, or the cap when shorter, 30 under a 30-day cap | no | confirmed | `actions/device-grants.ts:19` uses `tokenDeps`. Device test: 30 under 30/30, user 90 and moderator 30 under 365/30. P6: moderator 90 under none; user 90 / moderator 30 under 90/30. M4 (default = cap) → device tests fail |
+| 5 | Asking for more than the cap is refused with `token_lifetime_too_long`; no token made or audited | no | confirmed | `access-tokens.ts:66`; `errors.ts:170-176`. Web test: refusals, only 3 `access_token.created`. P2: under 90, `365` and `null` refused with `days: 90`. M2 (no throw) → 3 tests fail |
+| 6 | The policy changes while the dialog is open: "The longest lifetime is now 90 days" | no | confirmed | P7: 365 allowed, policy 90/90 → `createMyToken(…365)` rejects with that text; `features/account-tokens/actions.ts:23` turns any `IdentityError` into `errorText` |
+| 7 | `token_lifetime_too_long` is in the API's errors | no | confirmed | `http/api-v1.ts:56-57` answers 400. Remark: unreachable today (the exchange reads no lifetime; P5), so untested and deleting it fails nothing |
+| 8 | The error's words in en, pt and fr with `{days}` | no | confirmed | `messages/{en,pt,fr}/errors.json`; `src/i18n/errors.test.ts` with the 4 db files → 72 passed |
+| 9 | Done when: db tests cover web, exchange and device flow for a plain user and a moderator under each cap, and the refusal | no | partly | Three paths and the refusal covered. Gaps: no moderator under a reviewers' cap of 365 or none, no plain user under an everyone-cap of 90, no moderator under default or none for the exchange, device only 30/30 and 365/30. Mutation M5 (reviewers never above 90) → all 49 tests pass; only probe P1 fails |
+| 10 | A role gained later doesn't touch tokens already made; the cap is read when the token is made | no | confirmed | Web test; P8: a 365-day token still authenticates after the user becomes a moderator; their next default token gets 30 |
+| 11 | Defaults apply with no policy; a hand edit reads as the default; reviewers' never above everyone's | no | confirmed | Web test 1. P3: stored `bogus`/`bogus` → user 365 ok, moderator 365 refused with 90; `30`/`none` → moderator refused with 30 |
+| 12 | The changed files lint and typecheck | no | confirmed | `biome check` on 14 files → clean; `tsc --noEmit` in a scratch copy → no errors |
+
+**Overall:** not met: enforcement works on all three paths and the refusal holds, but the tests don't cover a moderator under a long or unlimited reviewers' cap and other combinations (row 9), and the reviewers' count differs from the spec's wording for company sign-in accounts (row 2).
+
+### Adversarial pass
+
+Witnessed: 2026-11-01 19:31 EST, by a fresh agent (adversarial). Commit: cc44bde3 + working tree (13 modified files, untracked `token-deps.ts`). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Account › Tokens applies root's cap | no | confirmed | `actions/access-tokens.ts:17` `tokenDeps(app)`; `services/access-tokens.ts:83` `lifetimeWithin(asked, await tokenCapOf(…))` before the insert; `access-tokens.db.test.ts` → 13 passed |
+| 2 | The password exchange applies the cap | no | confirmed | `exchangePassword` passes `deps(app)`; no `lifetime: 90` (`token-exchange.ts:68`). M8 (put it back) → api-v1 and device tests fail. Probe: a moderator who gains the role later gets 30, then 90 under (90,90), 90 under none/none |
+| 3 | The device flow applies the cap | no | confirmed | `actions/device-grants.ts:19`; the poll reloads the user with `findActiveUser` (`device-grants.ts:288`); `device-grants.db.test.ts` → 20 passed |
+| 4 | No other path inserts into `access_tokens` for a person | no | confirmed | `grep -rln 'insertInto("access_tokens")'` → only `kysely-token-repository.ts:82`; `repo.insert` only from `createToken` (callers `createMyToken`, `createWithFreeName`). `TokenDeps.policy` required, no casts; `tsc --noEmit` → 0 |
+| 5 | Reviewers' cap for root and moderators/admins of a shared workspace; a personal workspace doesn't count; memberships loaded on every path | no | confirmed | Probe with a real personal workspace: `getCurrentUser`, `findActiveUser`, `findCredentialByEmail` all load `personal` and memberships; `tokenCapOf` → 365 under (365,30) on each. Root with `{}` → 30; `{p:admin}` with personal=p → 365; `{p:admin, s:moderator}` → 30. M1, M2 → all three files fail |
+| 6 | The same however the person signs in | no | confirmed | `coveredBy("reviewers", user, true)`. M12 (`false`) → all three files fail |
+| 7 | The cap is read when the token is made | no | confirmed | `tokenDeps.policy` calls `tokenPolicy(...)` each time; the device test changes the policy between grants; probe: a role gained later applies to the next exchange (90 → 30) |
+| 8 | A lifetime longer than the cap is refused with `TokenLifetimeTooLongError`, nothing inserted or audited | no | confirmed | Probe: moderator under (365,30), 21 inputs; all above 30 refused; successes only 30, `"30"`, `" 30"`, `""`, undefined (30 days). `"null"`, `"NONE"`, `"  "` → InvalidTokenLifetimeError. Counts unchanged after refusals. M6 (clamp) → tests fail |
+| 9 | "No expiry" is refused under any cap | no | confirmed | `"none"` and `null` refused under 30; tests refuse `"none"` under 365 and 90 |
+| 10 | No lifetime asked → 90 days or the shorter cap; 90 under no limit | no | confirmed | (30,30) → 30 on all three paths; none/none → 90 on web and exchange. M4 → all fail; M5 (no limit → no expiry) → web and api fail, device passes (row 14) |
+| 11 | A hand-edited policy or a failed read never loosens the cap | no | confirmed | Hand edits (`0`, `-1`, `36500`, `""`, `" 30"`, `NONE`, `30.0`, `9e1`) → defaults; `30/none` → reviewers 30; a throwing `policy` → `createToken` rejects, nothing inserted |
+| 12 | The API maps the error to 400 `token_lifetime_too_long` | no | confirmed | `api-v1.ts:56`. Probe with a mocked `exchangePassword` → `400 {"error":{"code":"token_lifetime_too_long",…}}`. No repository test reaches it (M9 survives) |
+| 13 | The error has words in en, pt and fr | no | confirmed | `messages/{en,pt,fr}/errors.json`; `src/i18n/errors.test.ts` passes |
+| 14 | Done when: db tests cover web, exchange and device flow for a plain user and a moderator under each cap, and the refusal | no | partly | (a) `createTestUser` makes no personal workspace, so M3 (`{...user, personal: null}`, counting the personal workspace) passes all 49 tests; (b) the device flow has no "no limit" or default-policy case (M5 passes it); no path tests a moderator under no limit |
+| 15 | The same tests hold on PostgreSQL and MySQL | no | confirmed | Own containers (postgres:15, mysql:8.4), removed by id afterwards: the three task db files plus the probe → 56 passed on each |
+
+**Overall:** not met: enforcement holds on all three paths, all three dialects and every hostile input tried, but no test user has a personal workspace (M3 survives) and the device flow has no "no limit" case (M5 survives it).
+
+Notes: the API mapping is unreachable and untested; in the device flow the grant is spent before the token is made, so a failed policy read loses the grant (as other database errors there do); the Create token dialog still sends `"90"` (task 6).
+
+### Re-check (rows 2, 7, 9 of the blind pass and 12, 14 of the adversarial pass)
+
+Witnessed: 2026-11-01 19:37 EST, by a fresh agent (adversarial). Commit: cc44bde3 + working tree (now also `SPEC.md` and the untracked `apps/web/src/server/http/api-v1.test.ts`). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| B2 | Who counts as a reviewer matches the spec: root, and moderators and admins of a shared workspace (personal workspace excluded), however they sign in | no | confirmed | `SPEC.md` Scope "For reviewers and root" and Decision 5 (Claude, to confirm); `services/access-tokens.ts:57` `coveredBy("reviewers", user, true)`. M3 (personal workspace counts) → access-tokens, device-grants and api-v1 db tests fail; M12 (`hasPassword` false) → all three fail |
+| B7 / A12 | The API maps `TokenLifetimeTooLongError` to 400 `token_lifetime_too_long`, and a test covers it | no | confirmed | `tokenErrorResponse` (`api-v1.ts`), unit-tested in `api-v1.test.ts` (3 passed); M9 (→ `invalid_request`) fails it; a mocked-exchange probe through `postToken` → 400 `token_lifetime_too_long`. Gap: M9b (`postToken` not calling the helper) survived; see the note below |
+| B9 | Tests cover each cap (30, 90, 365, none) | no | confirmed | Web: plain under default, (90,90), (30,30), (365,30), none; moderator and root under default, (365,365), none. Exchange: plain under default, (90,90), (365,30), (30,30), none; moderator under default, (365,365), (365,30), none. Device: plain and moderator under default, (365,30), none; plain under (30,30). M1, M4, M5 → all three db files fail; M6 → access-tokens fails; M8 → device and api fail |
+| A14 | Done when: db tests cover web, exchange and device flow for a plain user and a moderator under each cap, and the refusal | no | confirmed | Every plain user has a real personal workspace; M3 and M5 now fail on all three paths. 3 db files + `api-v1.test.ts` + `errors.test.ts` (SQLite) → 66 passed; on own postgres:15 and mysql:8.4 containers (stopped by id) the 3 db files + probe → 58 passed each |
+
+**Overall:** met: the personal-workspace and no-limit gaps are closed, the API mapping is unit-tested, and spec and code agree on who counts as a reviewer. Decision 5 waits for the owner's confirmation.
+
+Notes: M9b (the wiring from `postToken` to the helper) was untested; the implementer added a db test after this pass that drives the 50-token limit through `login` and expects 409 `token_limit`. M10 (`""` read as a lifetime asked for) is untested; the dialog always sends a value until task 6.
+
+### Re-check (rows 2, 7 and 9)
+
+Witnessed: 2026-11-01 19:38 EST, by a fresh agent (blind). Commit: cc44bde3 + working tree (now with `apps/web/src/server/http/api-v1.test.ts` and the SPEC.md change). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 2 | "Reviewers" are root and moderators/admins of a shared workspace (personal workspace excluded), however they sign in, and the spec says so | no | confirmed | SPEC.md Scope "For reviewers and root" and Decision 5 (Claude, to confirm) match `services/access-tokens.ts:56-57` (`coveredBy("reviewers", user, true)`, unchanged, `cmp`). Probe P4: root 30, another workspace's moderator 30, member 365, personal-workspace admin 365. Mutation M8 (any non-`user` membership counts, personal included) → 4 tests fail across web, exchange and device |
+| 7 | `token_lifetime_too_long` is in the API's errors, tested | no | confirmed | `http/api-v1.ts` `tokenErrorResponse` (400 `token_lifetime_too_long`, 409 `token_limit`, 400 `invalid_request`, or null), used by `postToken`'s catch. M6 (drop the lifetime branch) → `api-v1.test.ts` fails; M7 (`postToken` stops calling it) → api-v1.db "answers the token limit through the same errors" fails |
+| 9 | Done when: db tests cover web, exchange and device flow for a plain user and a moderator under each cap, and the refusal | no | confirmed | 4 task files + probe → 63 passed. M5 (reviewers never above 90) now fails "gives reviewers and root a long or unlimited cap when root allows it". Web: plain under 365, 90, 30, none; moderator and root under 90, 30, 365, none. Exchange: user default/90/365-30/30/none, moderator default/365/30/none. Device: user and moderator under default/30-30/365-30/none. Refusals under 365, 90 and 30 |
+
+**Overall:** met: rows 2, 7 and 9 now hold; with the first pass's other rows every claim is confirmed.

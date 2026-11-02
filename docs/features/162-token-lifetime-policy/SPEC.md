@@ -19,7 +19,9 @@ page, and recovering an account ends its tokens with its sessions (owner, 2026-1
   - **Longest lifetime**: 30, 90 or 365 days, or no limit.
   - **For reviewers and root**: the same or shorter. "Reviewers" means moderators and admins of a
     shared workspace, as the two-factor policy counts them (`coveredBy` in
-    `identity/models/two-factor-coverage.ts`).
+    `identity/models/two-factor-coverage.ts`; their own personal workspace doesn't count), but
+    whatever way they sign in: an account with company sign-in only, which the two-factor policy
+    leaves to its provider, still gets the reviewers' cap (Decision 5).
   - **Shorten longer tokens**: "14 active tokens last longer than this. Shorten them to it". It
     asks first, then sets each one's expiry to the earlier of its own and now plus the maximum.
   - Audited: `settings.token_policy` (`{ from, to }`) and `access_token.shortened` (`{ count,
@@ -125,6 +127,9 @@ each token's owner has today.
    `rmk` in the middle of work. A shorter date gives people time to make new ones.
 4. **The password box is checked by default** (Claude). Changing a password is most often a
    recovery, and an unticked box is one click for the person who knows better.
+5. **Company sign-in reviewers get the reviewers' cap too** (Claude, to confirm). The two-factor
+   policy skips accounts with no password because their provider asks for a second step; a
+   token, once made, reaches as far whoever signs in, so the shorter cap follows the role.
 
 ## Open questions
 

@@ -1,12 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { toDbBoolean, toDbDate } from "../db/dates";
+import { createPersonalWorkspace } from "../db/personal-workspaces";
 import { createTestDb, type TestDb } from "../db/testing/test-db";
 import { listAuditEvents } from "../domains/audit/actions/audit";
 import { authenticateToken } from "../domains/identity/actions/access-tokens";
+import { hashToken, MAX_ACTIVE_TOKENS } from "../domains/identity/models/access-token";
 import { LoginRateLimiter } from "../domains/identity/models/login-rate-limiter";
 import type { AppAuth } from "../domains/identity/repositories/auth-instance";
+import { kyselyTokenRepository } from "../domains/identity/repositories/kysely-token-repository";
 import { tokenNameFromUserAgent } from "../domains/identity/services/token-exchange";
 import { createTestUser, testAppAuth } from "../domains/identity/testing/test-auth";
+import { kyselySettingsRepository } from "../domains/settings/repositories/kysely-settings-repository";
 import { deleteToken, getMe, getWorkspaces, postToken } from "./api-v1";
 import { getScopes } from "./drafts-api";
 import { getMarketplace } from "./feeds-api";
@@ -43,6 +47,59 @@ const withToken = (token: string, method = "GET", path = "/me") =>
   new Request(`${BASE}${path}`, { method, headers: { authorization: `Bearer ${token}` } });
 const code = async (response: Response) =>
   ((await response.json()) as { error: { code: string } }).error.code;
+
+describe("POST /api/v1/auth/token under root's longest lifetime (162)", () => {
+  const setPolicy = async (everyone: string, reviewers: string) => {
+    const settings = kyselySettingsRepository(t.db, t.dialect);
+    await settings.set("token_max_days", everyone, null, new Date());
+    await settings.set("token_max_days_reviewers", reviewers, null, new Date());
+  };
+  const daysOf = async (response: Response) => {
+    expect(response.status).toBe(201);
+    const body = (await response.json()) as { expiresAt: string | null };
+    return body.expiresAt === null
+      ? null
+      : Math.round((new Date(body.expiresAt).getTime() - Date.now()) / 86_400_000);
+  };
+
+  it("gives 90 days, or the person's cap when it's shorter", async () => {
+    // A real plain user, admin of their own personal workspace (114): not a reviewer.
+    await createPersonalWorkspace(t.db, t.dialect, { id: userId, email }, new Date());
+    await createTestUser(app, { email: "mod@example.com", password, role: "moderator" });
+    const mod = { email: "mod@example.com", password };
+    expect(await daysOf(await login({ email, password }))).toBe(90);
+    expect(await daysOf(await login(mod))).toBe(90);
+    await setPolicy("365", "365");
+    expect(await daysOf(await login(mod))).toBe(90);
+    await setPolicy("90", "90");
+    expect(await daysOf(await login({ email, password }))).toBe(90);
+    await setPolicy("365", "30");
+    expect(await daysOf(await login({ email, password }))).toBe(90);
+    expect(await daysOf(await login({ email: "mod@example.com", password }))).toBe(30);
+    await setPolicy("30", "30");
+    expect(await daysOf(await login({ email, password }))).toBe(30);
+    // No limit doesn't mean no expiry: rmk login still gives 90 days.
+    await setPolicy("none", "none");
+    expect(await daysOf(await login({ email, password }))).toBe(90);
+    expect(await daysOf(await login(mod))).toBe(90);
+  });
+
+  it("answers the token limit through the same errors (tokenErrorResponse)", async () => {
+    for (let i = 0; i < MAX_ACTIVE_TOKENS; i++)
+      await kyselyTokenRepository(t.db, t.dialect).insert({
+        userId,
+        name: `t${i}`,
+        tokenHash: hashToken(`seed-${i}`),
+        tokenPrefix: "rmk_seed0000",
+        expiresAt: null,
+        createdAt: new Date(),
+        via: "web",
+      });
+    const response = await login({ email, password });
+    expect(response.status).toBe(409);
+    expect(await code(response)).toBe("token_limit");
+  });
+});
 
 describe("POST /api/v1/auth/token", () => {
   it("exchanges the right email and password for a 90-day token, without a web session", async () => {

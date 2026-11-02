@@ -21,7 +21,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* unit tests cover validation and defaults; db tests cover the setter, the audit row
     and a non-root refused.
 
-- [ ] **3. Enforcement.** [risky]
+- [x] **3. Enforcement.** [risky]
   - `createToken` reads the person's cap: the reviewers' one when `coveredBy("reviewers", …)`.
   - The exchange and the device flow (`createWithFreeName`) give 90 days or the cap.
   - `token_lifetime_too_long` in the API's errors.

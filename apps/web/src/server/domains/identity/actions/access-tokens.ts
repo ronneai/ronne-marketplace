@@ -2,11 +2,11 @@ import { clientIp } from "../models/client-ip";
 import { argon2PasswordHasher } from "../repositories/argon2-password-hasher";
 import { type AppAuth, getAppAuth } from "../repositories/auth-instance";
 import { kyselyIdentityRepository } from "../repositories/kysely-identity-repository";
-import { kyselyTokenRepository } from "../repositories/kysely-token-repository";
 import * as service from "../services/access-tokens";
 import { exchangePasswordForToken } from "../services/token-exchange";
 import { effectivePasswordPolicy } from "./password-policy";
 import { getCurrentUser } from "./session";
+import { tokenDeps } from "./token-deps";
 
 export type { Authenticated, NewToken, TokenFailure } from "../services/access-tokens";
 
@@ -14,9 +14,7 @@ export type { Authenticated, NewToken, TokenFailure } from "../services/access-t
  * Entry points for /account/tokens and the API (feature 009). Thin: they find who's asking and
  * wire the dependencies; the services check the permission. `app` defaults to the running server.
  */
-const deps = ({ db, dialect }: AppAuth): service.TokenDeps => ({
-  repo: kyselyTokenRepository(db, dialect),
-});
+const deps = (app: AppAuth): service.TokenDeps => tokenDeps(app);
 
 const actor = async (headers: Headers, app: AppAuth): Promise<service.TokenActor> => ({
   user: await getCurrentUser(headers, app),
