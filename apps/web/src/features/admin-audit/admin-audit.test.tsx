@@ -6,7 +6,11 @@ import { actorLabel, detailPairs } from "./format";
 import { AUDIT_LIST, auditQueryOf, checkedState } from "./list";
 
 const session = vi.hoisted(() => ({ getCurrentUser: vi.fn() }));
-const audit = vi.hoisted(() => ({ appAuditPage: vi.fn(), appAuditEvent: vi.fn() }));
+const audit = vi.hoisted(() => ({
+  appAuditPage: vi.fn(),
+  appAuditEvent: vi.fn(),
+  appAuditWorkspaces: vi.fn(),
+}));
 vi.mock("@/server/domains/identity/actions/session", () => session);
 vi.mock("@/server/domains/audit/actions/audit-page", () => audit);
 vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));
@@ -82,9 +86,16 @@ describe("format", () => {
 });
 
 const event = (overrides: Partial<AuditEvent> = {}): AuditEvent => ({
+  requestId: null,
+  via: null,
+  userAgent: null,
+  workspaceId: null,
+  outcome: "success",
   id: ULID,
   actorId: ULID,
   actorEmail: "root@example.com",
+  actorName: "Root",
+  targetName: null,
   action: "auth.signed_in",
   targetType: "session",
   targetId: "01K6BZ3W1D8J9Q2R4T6V8X0Y30",
@@ -236,6 +247,172 @@ describe("AuditLogPage (060)", () => {
   });
 });
 
+describe("the audit page's context, filters and names (166)", () => {
+  const ACME = "01K6BZ3W1D8J9Q2R4T6V8X0YAC";
+  const PAYMENTS = "01K6BZ3W1D8J9Q2R4T6V8X0YPA";
+  const workspaces = [
+    { id: ACME, name: "acme", deleted: false },
+    { id: PAYMENTS, name: "payments", deleted: true },
+  ];
+
+  it("turns the Workspace and Request ID filters into the query, trimmed", () => {
+    expect(
+      auditQueryOf(state({ workspace: ACME, request: "  01K9REQ  ", actor: "  Ana  " })),
+    ).toMatchObject({ workspace: ACME, requestId: "01K9REQ", actor: "Ana" });
+    expect(auditQueryOf(state({ request: "   " }))).toMatchObject({ requestId: undefined });
+  });
+
+  it("offers every workspace, a deleted one by its name, and shows the filters as chips", () => {
+    const html = page({
+      state: state({ workspace: PAYMENTS, request: "01K9REQ" }),
+      workspaces,
+      events: [],
+    });
+    expect(html).toContain(">All workspaces<");
+    expect(html).toContain(`value="${ACME}">acme<`);
+    expect(html).toMatch(new RegExp(`value="${PAYMENTS}"[^>]*>payments \\(deleted\\)<`));
+    expect(html).toMatch(/id="request"[^>]*value="01K9REQ"/);
+    // The chips name the workspace, not its id.
+    expect(html).toMatch(/aria-label="Remove the workspace filter"[\s\S]*?payments \(deleted\)/);
+    expect(html).toContain('aria-label="Remove the request id filter"');
+    // An id in the URL that isn't a workspace any more stays chosen, shown by its id.
+    const unknown = "01K6BZ3W1D8J9Q2R4T6V8X0YZZ";
+    expect(page({ state: state({ workspace: unknown }), workspaces })).toContain(
+      `value="${unknown}" selected="">${unknown}<`,
+    );
+  });
+
+  it("shows people by name, the email on hover: an erased one by the pseudonym, a gone one by id", () => {
+    const erased = "deleted-user-01K6BZ3W1D8J9Q2R4T6V8X0Y44";
+    const goneId = "01K6BZ3W1D8J9Q2R4T6V8X0Y55";
+    const html = page({
+      events: [
+        event({
+          id: "01K6BZ3W1D8J9Q2R4T6V8X0Y41",
+          actorName: "Ana Souza",
+          actorEmail: "ana@example.com",
+        }),
+        event({
+          id: "01K6BZ3W1D8J9Q2R4T6V8X0Y42",
+          actorName: erased,
+          actorEmail: `${erased}@ronne.invalid`,
+        }),
+        event({
+          id: "01K6BZ3W1D8J9Q2R4T6V8X0Y43",
+          actorId: goneId,
+          actorName: null,
+          actorEmail: null,
+        }),
+        event({
+          id: "01K6BZ3W1D8J9Q2R4T6V8X0Y45",
+          actorName: "",
+          actorEmail: "noname@example.com",
+        }),
+        event({
+          id: "01K6BZ3W1D8J9Q2R4T6V8X0Y46",
+          actorId: null,
+          actorEmail: null,
+          actorName: null,
+          via: "cli",
+        }),
+      ],
+    });
+    expect(html).toMatch(/title="ana@example\.com"[^>]*>Ana Souza</);
+    expect(html).toContain(`>${erased}<`);
+    expect(html).toContain(`title="${goneId}"`);
+    expect(html).toMatch(/title="noname@example\.com"[^>]*>noname@example\.com</);
+    expect(html).toMatch(/title="cli"[^>]*>cli</);
+    // The sentences name a user target by name too.
+    const target = page({
+      events: [
+        event({
+          action: "user.role_changed",
+          targetType: "user",
+          targetName: "Bob Lee",
+          targetEmail: "bob@example.com",
+          metadata: { from: "user", to: "moderator" },
+        }),
+      ],
+    });
+    expect(target).toContain(">Bob Lee<");
+    expect(target).not.toMatch(/<strong[^>]*>bob@example\.com</);
+  });
+
+  it("marks a failed and a denied event's line, and nothing on a success", () => {
+    const html = page({
+      events: [
+        event({
+          id: "01K6BZ3W1D8J9Q2R4T6V8X0Y61",
+          action: "auth.sign_in_failed",
+          outcome: "failed",
+        }),
+        event({
+          id: "01K6BZ3W1D8J9Q2R4T6V8X0Y62",
+          action: "scim.request_refused",
+          outcome: "denied",
+        }),
+        event({ id: "01K6BZ3W1D8J9Q2R4T6V8X0Y63" }),
+      ],
+    });
+    expect(html.match(/>failed</g)).toHaveLength(1);
+    expect(html.match(/>denied</g)).toHaveLength(1);
+    expect(html).toMatch(/bg-error-subtle[^>]*>failed</);
+    expect(html).toMatch(/bg-warning-subtle[^>]*>denied</);
+  });
+
+  it("shows where an event came from in its details, and the names with their emails", () => {
+    const html = page({
+      selected: event({
+        requestId: "01K9REQUESTAAAAAAAAAAAAAAA",
+        via: "api",
+        userAgent: "rmk/0.9.0 (laptop; darwin)",
+        outcome: "failed",
+        action: "auth.two_factor_failed",
+        actorName: "Ana Souza",
+        actorEmail: "ana@example.com",
+        targetType: "user",
+        targetId: ULID,
+        targetName: "Bob Lee",
+        targetEmail: "bob@example.com",
+      }),
+    });
+    for (const text of [
+      ">Request ID<",
+      ">01K9REQUESTAAAAAAAAAAAAAAA<",
+      'aria-label="Copy the request ID"',
+      'href="/admin/audit?request=01K9REQUESTAAAAAAAAAAAAAAA"',
+      "Show this request’s events",
+      ">Channel<",
+      ">API<",
+      ">Client<",
+      "rmk/0.9.0 (laptop; darwin)",
+      ">Outcome<",
+      ">Failed<",
+      "Ana Souza",
+      ">ana@example.com<",
+      "user · Bob Lee",
+      ">bob@example.com<",
+    ])
+      expect(html, text).toContain(text);
+    for (const [via, label] of [
+      ["web", "Web app"],
+      ["scim", "SCIM"],
+      ["cli", "Command line"],
+      ["system", "Ronne (a scheduled job)"],
+    ] as const)
+      expect(page({ selected: event({ via }) }), via).toContain(`>${label}<`);
+    expect(page({ selected: event({ outcome: "denied" }) })).toContain(">Denied<");
+  });
+
+  it("shows — for what an old event didn't record", () => {
+    const html = page({ selected: event() });
+    for (const term of ["Request ID", "Channel", "Client"])
+      expect(html, term).toMatch(new RegExp(`>${term}</dt><dd[^>]*>(<span[^>]*>)?—<`));
+    expect(html).toContain(">Success<");
+    expect(html).not.toContain("Copy the request ID");
+  });
+});
+
 describe("/admin/audit page", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -246,6 +423,7 @@ describe("/admin/audit page", () => {
       total: { count: 1, capped: false },
     });
     audit.appAuditEvent.mockResolvedValue(event());
+    audit.appAuditWorkspaces.mockResolvedValue([]);
   });
 
   it("is a 404 for anyone but root, without reading the log", async () => {
@@ -258,6 +436,7 @@ describe("/admin/audit page", () => {
       await expect(Page({ searchParams: Promise.resolve({}) })).rejects.toThrow("NEXT_NOT_FOUND");
     }
     expect(audit.appAuditPage).not.toHaveBeenCalled();
+    expect(audit.appAuditWorkspaces).not.toHaveBeenCalled();
   });
 
   it("shows root the log for the view in the URL, and the event it names", async () => {
@@ -269,10 +448,13 @@ describe("/admin/audit page", () => {
     );
     expect(html).toContain("auth.signed_in");
     expect(html).toContain("Event details");
+    // The viewer goes to each action, which checks `audit.read` itself (166).
     expect(audit.appAuditPage).toHaveBeenCalledWith(
+      { role: "root" },
       expect.objectContaining({ group: "auth", sort: "action", dir: "asc", size: 50 }),
     );
-    expect(audit.appAuditEvent).toHaveBeenCalledWith(ULID);
+    expect(audit.appAuditEvent).toHaveBeenCalledWith({ role: "root" }, ULID);
+    expect(audit.appAuditWorkspaces).toHaveBeenCalledWith({ role: "root" });
   });
 
   it("doesn't look up an event id that isn't one", async () => {

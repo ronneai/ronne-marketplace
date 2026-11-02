@@ -15,7 +15,7 @@ export { generateMetadata } from "./metadata";
  */
 const MenuPage = async () => {
   await holdPage();
-  const { user, theme, navCounts, workspaces, current } = await loadShell();
+  const { user, theme, navCounts, workspaces, current, closedGroups } = await loadShell();
   const t = await getTranslations("shell.menu");
   return (
     <>
@@ -28,6 +28,7 @@ const MenuPage = async () => {
           workspaces={workspaces}
           current={current}
           propose={canPropose(user)}
+          closedGroups={closedGroups}
           appearance={<ThemeToggle theme={theme} />}
           signOutAction={signOutFromMenu}
         />

@@ -128,6 +128,29 @@ test("the sidebar folds and stays folded; the switcher opens a workspace", async
   await unfold.click();
   await expect(aside.getByRole("button", { name: "Fold the sidebar" })).toBeVisible();
 
+  // A group closes from its heading and stays closed on the next page (166); folded, every link
+  // shows whatever the groups say; opened again, it stays open.
+  const tools = nav.locator("summary").filter({ hasText: "Tools" });
+  const docs = nav.getByRole("link", { name: /^Documentation/ });
+  await expect(docs).toBeVisible();
+  await tools.click();
+  await expect(docs).toBeHidden();
+  await nav.getByRole("link", { name: "Home", exact: true }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await page.reload();
+  await expect(docs).toBeHidden();
+  await expect(tools).toBeVisible();
+  await aside.getByRole("button", { name: "Fold the sidebar" }).click();
+  await expect(docs).toBeVisible();
+  await unfold.click();
+  await expect(docs).toBeHidden();
+  await tools.click();
+  await expect(docs).toBeVisible();
+  await page.reload();
+  await expect(docs).toBeVisible();
+  await nav.getByRole("link", { name: "Catalogue", exact: true }).click();
+  await expect(page).toHaveURL(/\/catalogue$/);
+
   // The switcher (120): All workspaces at first; choosing their personal workspace makes it the
   // current one and stays on the page; each row also opens its workspace's page.
   const switcher = aside.locator("details").first();

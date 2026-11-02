@@ -1,13 +1,19 @@
 import type { AuditMetadataValue } from "@/server/domains/audit/models/audit-event";
 
-/** Who did it: the email, or `cli` / `system` without an actor, or the id of a removed user. */
+/**
+ * Who did it (166): their name (an erased person's pseudonym), or their email when they have no
+ * name; `cli` / `system` without an actor; the id of a user whose row is gone.
+ */
 export const actorLabel = (event: {
   actorId: string | null;
   actorEmail: string | null;
+  actorName?: string | null;
+  via?: string | null;
   metadata: Record<string, AuditMetadataValue>;
 }): string => {
-  if (event.actorId === null) return event.metadata.via === "cli" ? "cli" : "system";
-  return event.actorEmail ?? event.actorId;
+  if (event.actorId === null)
+    return event.via === "cli" || event.metadata.via === "cli" ? "cli" : "system";
+  return event.actorName?.trim() || event.actorEmail || event.actorId;
 };
 
 /** The metadata as `key: value` pairs, in the order they were recorded. */

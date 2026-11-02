@@ -341,7 +341,11 @@
   },
   "audit-actor": {
     "question": "Qui puis-je rechercher?",
-    "answer": "Une partie d’un courriel, quelle que soit la casse. system trouve les événements sans personne de connecté, comme la configuration et la ligne de commande."
+    "answer": "Une partie d’un nom ou d’un courriel, quelle que soit la casse. system trouve les événements sans personne de connecté, comme la configuration et la ligne de commande."
+  },
+  "audit-request": {
+    "question": "Qu’est-ce que l’ID de la requête?",
+    "answer": "L’ID de la requête qui a enregistré l’événement : il figure dans les détails de l’événement, dans les lignes de journal du serveur pour cette requête et dans l’en-tête X-Request-Id que le navigateur ou rmk a reçu. Collez-en un ici pour voir tout ce que cette requête a fait."
   },
   "security-scan": {
     "question": "Qu’est-ce que cette analyse?",

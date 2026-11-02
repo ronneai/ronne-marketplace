@@ -257,6 +257,7 @@ export const rebaseProposal = async (
         target: { type: "submission", id: submission.id },
         metadata: { name: itemName, from: base.version, to: newer.version, conflicts },
         ipAddress: actor.ip,
+        workspaceId: submission.workspace.id,
       },
       at,
     );

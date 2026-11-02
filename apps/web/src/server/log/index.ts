@@ -10,7 +10,15 @@ import {
   parseLogLevel,
 } from "./logger";
 
-export { currentRequest, setRequestUser, withRequestContext } from "./context";
+export {
+  type Channel,
+  currentChannel,
+  currentRequest,
+  setProcessChannel,
+  setRequestUser,
+  withChannel,
+  withRequestContext,
+} from "./context";
 export type { EventName, LogLevel } from "./events";
 export type { Logger } from "./logger";
 
@@ -63,3 +71,4 @@ export const logger: Logger = lazy({});
 export const setLoggerForTests = (options?: LoggerOptions): void => {
   root = options ? createLogger(options) : undefined;
 };
+export { isRequestId } from "./request-id";

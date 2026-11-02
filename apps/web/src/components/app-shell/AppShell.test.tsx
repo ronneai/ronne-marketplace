@@ -78,12 +78,13 @@ describe("navFor", () => {
       "Workspaces",
       "Reviews",
       "Submissions",
+      "Documentation",
+      "Send feedback",
+      // In the Admin group, after Tools (166).
       "Users",
       "Audit log",
       "Settings",
       "Feedback",
-      "Documentation",
-      "Send feedback",
     ]);
     expect(navFor(ROOT).map((item) => item.href)).toEqual(
       expect.arrayContaining(["/admin/users", "/admin/audit", "/admin/settings"]),
@@ -133,18 +134,34 @@ describe("groupNav", () => {
   it("keeps the groups in order and leaves out an empty one", () => {
     const grouped = (user: ShellUser) =>
       groupNav(navFor(user)).map((group) => [en.groups[group.id], group.items.map(nameOf)]);
+    // Root's pages in a group of their own, after Tools (166).
     expect(grouped(ROOT)).toEqual([
       ["Discover", ["Home", "Catalogue", "Workspaces"]],
-      [
-        "Governance & reviews",
-        ["Reviews", "Submissions", "Users", "Audit log", "Settings", "Feedback"],
-      ],
+      ["Governance & reviews", ["Reviews", "Submissions"]],
       ["Tools", ["Documentation", "Send feedback"]],
+      ["Admin", ["Users", "Audit log", "Settings", "Feedback"]],
     ]);
     expect(grouped({ name: "N", email: "n@example.com", role: "user" })).toEqual([
       ["Discover", ["Home", "Catalogue", "Workspaces"]],
       ["Tools", ["Documentation", "Send feedback"]],
     ]);
+    // A member and a moderator (of global, a shared workspace): no Admin group.
+    expect(grouped(member({ [GLOBAL]: "user" }))).toEqual([
+      ["Discover", ["Home", "Catalogue", "Workspaces"]],
+      ["Governance & reviews", ["Submissions"]],
+      ["Tools", ["Documentation", "Send feedback"]],
+    ]);
+    expect(grouped(member({ [GLOBAL]: "moderator" }))).toEqual([
+      ["Discover", ["Home", "Catalogue", "Workspaces"]],
+      ["Governance & reviews", ["Reviews", "Submissions"]],
+      ["Tools", ["Documentation", "Send feedback"]],
+    ]);
+    // A moderator with requests waiting sees Requests, in Discover as before.
+    expect(
+      groupNav(navFor(member({ [GLOBAL]: "moderator" }), { "/workspaces/requests": 2 })).map(
+        (group) => group.id,
+      ),
+    ).toEqual(["discover", "governance", "tools"]);
   });
 });
 
@@ -308,13 +325,60 @@ describe("Sidebar", () => {
       />,
     );
 
+  it("opens every group at first, and closes the ones its cookie names (166)", () => {
+    const groups = (html: string) =>
+      [...html.matchAll(/<details([^>]*)>\s*<summary[^>]*>(?:<span[^>]*>)([^<]+)</g)].map((m) => [
+        m[2],
+        / open=""/.test(m[1] ?? ""),
+      ]);
+    expect(groups(sidebar())).toEqual([
+      ["Discover", true],
+      ["Governance &amp; reviews", true],
+      ["Tools", true],
+      ["Admin", true],
+    ]);
+    expect(groups(sidebar({ closedGroups: ["tools", "admin"] }))).toEqual([
+      ["Discover", true],
+      ["Governance &amp; reviews", true],
+      ["Tools", false],
+      ["Admin", false],
+    ]);
+    // A closed group's links are still in the page, inside it (the browser hides them).
+    expect(sidebar({ closedGroups: ["admin"] })).toContain('href="/admin/audit"');
+    // Folded, every group is open, whatever the cookie says.
+    expect(
+      groups(sidebar({ closedGroups: ["tools", "admin"], folded: true })).every(([, open]) => open),
+    ).toBe(true);
+  });
+
+  it("puts a dot on a closed group's heading while a count waits in it, and says so (166)", () => {
+    const closed = sidebar({ closedGroups: ["governance"] });
+    expect(closed).toMatch(
+      /<summary[^>]* aria-label="Governance &amp; reviews \(something waiting\)"[^>]*><span[^>]*>Governance &amp; reviews<\/span><span aria-hidden="true" class="size-2[^"]*bg-accent"/,
+    );
+    // Open, or with nothing waiting, or folded (where the link has its own dot): no group dot.
+    const dots = (html: string) =>
+      (
+        html.match(/<summary[^>]*>(?:(?!<\/summary>).)*size-2 shrink-0 rounded-full bg-accent/g) ??
+        []
+      ).length;
+    expect(dots(closed)).toBe(1);
+    expect(dots(sidebar())).toBe(0);
+    expect(dots(sidebar({ closedGroups: ["tools"] }))).toBe(0);
+    expect(dots(sidebar({ closedGroups: ["governance"], folded: true }))).toBe(0);
+    expect(sidebar()).not.toContain("(something waiting)");
+  });
+
   it("shows the groups' headings, the links, Propose item and the count", () => {
     const html = sidebar();
     const at = (text: string) => html.indexOf(text);
     expect(at(">Discover<")).toBeLessThan(at(">Home<"));
     expect(at(">Home<")).toBeLessThan(at(">Governance &amp; reviews<"));
-    expect(at(">Governance &amp; reviews<")).toBeLessThan(at(">Users<"));
-    expect(at(">Users<")).toBeLessThan(at(">Tools<"));
+    expect(at(">Governance &amp; reviews<")).toBeLessThan(at(">Reviews<"));
+    expect(at(">Reviews<")).toBeLessThan(at(">Tools<"));
+    // Root's pages under Admin, after Tools (166).
+    expect(at(">Tools<")).toBeLessThan(at(">Admin<"));
+    expect(at(">Admin<")).toBeLessThan(at(">Users<"));
     expect(html).toMatch(/href="\/submissions\/new"[^>]*>.*Propose item<\/span><\/a>/);
     expect(html).toMatch(/Reviews<\/span><span[^>]*><span[^>]*>3<span class="sr-only"> waiting/);
     expect(html).toContain('<nav aria-label="Main"');
@@ -444,11 +508,15 @@ describe("Sidebar", () => {
     expect(html).toContain("w-16");
     // Folding is a morph, not a swap: the group headings, labels and counts are still there, faded
     // out and hidden from screen readers, and the names are on the links.
-    expect(html).toMatch(/<p aria-hidden="true"[^>]*max-h-0[^>]*opacity-0[^>]*>Discover<\/p>/);
+    // The heading is the group's `<summary>` (166): faded out, out of the tab order, and the group
+    // open whatever its cookie says, so every link shows.
+    expect(html).toMatch(
+      /<summary aria-hidden="true" tabindex="-1"[^>]*max-h-0[^>]*opacity-0[^>]*><span[^>]*>Discover<\/span>/,
+    );
     expect(html).toMatch(
       /<span aria-hidden="true" class="min-w-0 flex-1 truncate[^"]*opacity-0[^"]*">Catalogue<\/span>/,
     );
-    expect(sidebar()).not.toMatch(/<p aria-hidden="true"[^>]*>Discover<\/p>/);
+    expect(sidebar()).not.toMatch(/<summary aria-hidden="true"[^>]*><span[^>]*>Discover</);
     for (const name of [
       "Home",
       "Catalogue",
@@ -625,6 +693,14 @@ describe("AppShell", () => {
       navigation.path = "/admin/audit";
       const html = shell("root");
       navigation.path = "/";
+      // The Menu has the sidebar's groups (166): root's pages under Admin, after Tools.
+      const at = (text: string) => sheet(html).indexOf(text);
+      expect(at(">Tools<")).toBeGreaterThan(-1);
+      expect(at(">Tools<")).toBeLessThan(at(">Admin<"));
+      expect(at(">Admin<")).toBeLessThan(at("Users<"));
+      expect(at("Users<")).toBeLessThan(at("Feedback<"));
+      expect(sheet(shell("moderator"))).not.toContain(">Admin<");
+      expect(sheet(shell("user"))).not.toContain(">Admin<");
       expect(links(html)).toEqual(expect.arrayContaining(["Users", "Audit log", "Settings"]));
       expect(sheet(html)).toMatch(/aria-current="page"[^>]*>(?:<svg[\s\S]*?<\/svg>)?Audit log</);
     });

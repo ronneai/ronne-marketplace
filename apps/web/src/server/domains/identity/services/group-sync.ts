@@ -145,6 +145,7 @@ export const applyGroups = async (
           provider: input.providerId,
         },
         ipAddress: input.ip,
+        workspaceId,
       },
       input.now,
     );

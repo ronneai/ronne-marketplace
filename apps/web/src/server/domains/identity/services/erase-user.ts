@@ -1,5 +1,6 @@
 import { personalWorkspaceName } from "@ronneai/core";
 import { retryOnDeadlock } from "../../../db/locks";
+import { currentRequest, withRequestContext } from "../../../log";
 import type { AuditMetadata } from "../../audit/models/audit-event";
 import { renameLockedWorkspace } from "../../workspaces/services/workspaces";
 import {
@@ -62,12 +63,16 @@ const freePersonalName = async (repo: EraseRepository, userId: string): Promise<
  * Records `user.erased` once the rewrite is done and the erasure's row is gone. Returns the count
  * the event recorded, or null when another finish got there first (a retry and the job can't both
  * record it).
+ *
+ * The event's actor is the root who started the erasure; the address and client (166) are
+ * recorded only when that root finishes it too. Another root's Retry would otherwise put their
+ * address and browser on the first root's event, and so in the first root's data download (104).
  */
 const finish = async (
   repo: EraseRepository,
   erasure: Pick<PendingErasure, "userId" | "counts" | "actorId">,
   via: "web" | "retry" | "job",
-  ip: string | null,
+  by: { id: string | null; ip: string | null },
   at: Date,
 ): Promise<number | null> => {
   const done = await repo.deleteErasure(erasure.userId);
@@ -77,16 +82,23 @@ const finish = async (
     eventsRewritten: done.eventsRewritten,
     ...(via === "web" ? {} : { via }),
   };
-  await repo.recordAudit(
-    {
-      actorId: erasure.actorId,
-      action: "user.erased",
-      target: { type: "user", id: erasure.userId },
-      metadata,
-      ipAddress: ip,
-    },
-    at,
-  );
+  const theirs = by.id !== null && by.id === erasure.actorId;
+  const record = () =>
+    repo.recordAudit(
+      {
+        actorId: erasure.actorId,
+        action: "user.erased",
+        target: { type: "user", id: erasure.userId },
+        metadata,
+        ipAddress: theirs ? by.ip : null,
+      },
+      at,
+    );
+  // The request's ID and channel stay: they say what recorded it, and aren't anyone's.
+  const request = currentRequest();
+  await (theirs || !request?.userAgent
+    ? record()
+    : withRequestContext({ ...request, userAgent: null }, record));
   return done.eventsRewritten;
 };
 
@@ -203,7 +215,10 @@ export const eraseUser = async (
       await repo.insertErasure(row);
       if (afterCommit) return { ...row, rewritten: null };
       await rewrite(deps, repo, row);
-      return { ...row, rewritten: await finish(repo, row, "web", actor.ip, at) };
+      return {
+        ...row,
+        rewritten: await finish(repo, row, "web", { id: actor.user?.id ?? null, ip: actor.ip }, at),
+      };
     }),
   );
 
@@ -213,7 +228,7 @@ export const eraseUser = async (
   // here leaves the row for the Privacy tab's Retry and the retention job.
   await rewrite(deps, deps.repo, erasure);
   const rewritten = await deps.repo.transaction((repo) =>
-    finish(repo, erasure, "web", actor.ip, now(deps)),
+    finish(repo, erasure, "web", { id: actor.user?.id ?? null, ip: actor.ip }, now(deps)),
   );
   return { ...counts, eventsRewritten: rewritten ?? 0 };
 };
@@ -247,7 +262,9 @@ export const finishErasures = async (
         repo,
         erasure,
         "actor" in via ? "retry" : "job",
-        "actor" in via ? via.actor.ip : null,
+        "actor" in via
+          ? { id: via.actor.user?.id ?? null, ip: via.actor.ip }
+          : { id: null, ip: null },
         now(deps),
       ),
     );

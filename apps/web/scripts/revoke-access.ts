@@ -5,6 +5,7 @@
 import { resolve } from "node:path";
 import * as p from "@clack/prompts";
 import { envFilePath } from "../src/server/config";
+import { setProcessChannel } from "../src/server/log";
 import { clackPrompts } from "../src/server/setup/clack-prompts";
 import { parseRevokeAccessCommand, REVOKE_ACCESS_USAGE } from "../src/server/setup/cli";
 import {
@@ -15,6 +16,9 @@ import {
 import { SetupCancelledError } from "../src/server/setup/prompts";
 import { runRevokeAccess } from "../src/server/setup/revoke-access";
 import { SetupFailedError } from "../src/server/setup/run-setup";
+
+// What this command records in the audit log came from the terminal (166).
+setProcessChannel("cli");
 
 const appDir = resolve(import.meta.dirname, "..");
 const envPath = envFilePath(appDir);

@@ -338,6 +338,7 @@ export const deleteProvider = async (
               provider: id,
             },
             ipAddress: actor.ip,
+            workspaceId: m.workspaceId,
           },
           at,
         );
@@ -379,6 +380,7 @@ export const deleteProvider = async (
             provider: id,
           },
           ipAddress: actor.ip,
+          workspaceId: m.workspaceId,
         },
         at,
       );

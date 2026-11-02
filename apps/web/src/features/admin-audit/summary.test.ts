@@ -16,6 +16,8 @@ const event = (action: string, metadata: AuditEvent["metadata"] = {}, extra = {}
   id: "01K6BZ3W1D8J9Q2R4T6V8X0Y31",
   actorId: null,
   actorEmail: null,
+  actorName: null,
+  targetName: null,
   action,
   targetType: "user",
   targetId: null,
@@ -23,6 +25,11 @@ const event = (action: string, metadata: AuditEvent["metadata"] = {}, extra = {}
   metadata,
   ipAddress: null,
   createdAt: new Date("2026-10-02T12:00:00Z"),
+  requestId: null,
+  via: null,
+  userAgent: null,
+  workspaceId: null,
+  outcome: "success",
   ...extra,
 });
 

@@ -1,11 +1,9 @@
 import { loadConfig } from "../config";
 import { newId } from "../db/ids";
+import { isRequestId } from "../log/request-id";
 
 /** The header that carries a request's ID, in and out (feature 100). */
 export const REQUEST_ID_HEADER = "x-request-id";
-
-/** An incoming ID kept as it is: at most 128 characters of `[A-Za-z0-9._-]`. */
-const INCOMING_ID = /^[A-Za-z0-9._-]{1,128}$/;
 
 /**
  * This request's ID: the incoming `X-Request-Id` when the reverse proxy in front of Ronne is trusted
@@ -17,7 +15,7 @@ export const requestIdFor = (
   trustProxy: boolean,
 ): string => {
   const incoming = headers.get(REQUEST_ID_HEADER);
-  return trustProxy && incoming !== null && INCOMING_ID.test(incoming) ? incoming : newId();
+  return trustProxy && incoming !== null && isRequestId(incoming) ? incoming : newId();
 };
 
 /** An ID the proxy already set (pages, server actions), or a new one when it's missing or odd. */

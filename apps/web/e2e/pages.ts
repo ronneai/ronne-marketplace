@@ -167,7 +167,15 @@ export const SWEEP_PAGES: readonly SweepPage[] = [
   { route: "/admin/users", roles: ROOT, urls: () => ["/admin/users"] },
   // One user's page (123): the sweep's member.
   { route: "/admin/users/[id]", roles: ROOT, urls: (data) => [`/admin/users/${data.userId}`] },
-  { route: "/admin/audit", roles: ROOT, urls: () => ["/admin/audit"] },
+  {
+    route: "/admin/audit",
+    roles: ROOT,
+    // Filtered too (166): a long request ID's chip and the Workspace filter at phone width.
+    urls: () => [
+      "/admin/audit",
+      "/admin/audit?request=lb-0123456789.abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ&workspace=01K6BZ3W1D8J9Q2R4T6V8X0YZZ",
+    ],
+  },
   { route: "/admin/feedback", roles: ROOT, urls: () => ["/admin/feedback"] },
   // Its tabs (122): Usage at the bare address, then Plugin feeds and Authentication.
   {

@@ -2,7 +2,8 @@
   "groups": {
     "discover": "Explorer",
     "governance": "Gouvernance et révisions",
-    "tools": "Outils"
+    "tools": "Outils",
+    "admin": "Admin"
   },
   "nav": {
     "home": "Accueil",
@@ -24,6 +25,7 @@
     "main": "Principal",
     "home": "Accueil",
     "fold": "Réduire la barre latérale",
+    "groupWaiting": "{group} (quelque chose en attente)",
     "unfold": "Développer la barre latérale",
     "account": "Compte",
     "accountOf": "{name}, votre compte",

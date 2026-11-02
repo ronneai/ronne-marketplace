@@ -136,8 +136,8 @@
     "rich": "Turned off the two-factor sign-in of sam@example.com (2 sessions ended, 1 token revoked, 1 SCIM token revoked, 1 request to join cancelled) from the command line"
   },
   "user.created": {
-    "empty": "Created  as ",
-    "rich": "Created ana@example.com as moderator, asking for a new password at their first sign-in"
+    "empty": "Created sam@example.com as ",
+    "rich": "Created sam@example.com as moderator, asking for a new password at their first sign-in"
   },
   "user.updated": {
     "empty": "Changed the details of sam@example.com through SCIM provisioning by ",
@@ -148,8 +148,8 @@
     "rich": "Linked sam@example.com to SCIM provisioning by acme, which manages it from now on"
   },
   "user.sso_linked": {
-    "empty": "Linked  to the identity provider  (matched by verified email)",
-    "rich": "Linked ana@example.com to the identity provider acme (matched by verified email)"
+    "empty": "Linked sam@example.com to the identity provider  (matched by verified email)",
+    "rich": "Linked sam@example.com to the identity provider acme (matched by verified email)"
   },
   "user.role_changed": {
     "empty": "Changed sam@example.com from  to ",
@@ -200,16 +200,16 @@
     "rich": "Deleted workspace @team/tools (4 members, 1 move request)"
   },
   "workspace.member_added": {
-    "empty": "Added  to  as ",
-    "rich": "Added ana@example.com to acme as moderator"
+    "empty": "Added sam@example.com to  as ",
+    "rich": "Added sam@example.com to acme as moderator"
   },
   "workspace.member_role_changed": {
-    "empty": "Changed  in  from  to ",
-    "rich": "Changed ana@example.com in acme from user to root"
+    "empty": "Changed sam@example.com in  from  to ",
+    "rich": "Changed sam@example.com in acme from user to root"
   },
   "workspace.member_removed": {
-    "empty": "Removed  from ",
-    "rich": "Removed ana@example.com from acme"
+    "empty": "Removed sam@example.com from ",
+    "rich": "Removed sam@example.com from acme"
   },
   "workspace.access_requested": {
     "empty": "sam@example.com asked to join ",

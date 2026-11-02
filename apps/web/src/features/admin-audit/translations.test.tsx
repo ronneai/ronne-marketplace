@@ -21,9 +21,16 @@ const render = (node: ReactElement, locale: L) =>
 
 const ULID = "01K6BZ3W1D8J9Q2R4T6V8X0Y2Z";
 const event = (extra: Partial<AuditEvent> = {}): AuditEvent => ({
+  requestId: null,
+  via: null,
+  userAgent: null,
+  workspaceId: null,
+  outcome: "success",
   id: ULID,
   actorId: ULID,
   actorEmail: "root@example.com",
+  actorName: "Root",
+  targetName: null,
   action: "auth.signed_in",
   targetType: "user",
   targetId: "01K6BZ3W1D8J9Q2R4T6V8X0Y30",
@@ -46,10 +53,27 @@ const page = (
       events={events}
       page={{ next: null, previous: null }}
       total={{ count: events.length, capped: false }}
+      workspaces={WORKSPACES}
       selected={selected}
     />,
     locale,
   );
+
+const PAYMENTS = "01K6BZ3W1D8J9Q2R4T6V8X0YPA";
+const WORKSPACES = [
+  { id: "01K6BZ3W1D8J9Q2R4T6V8X0YAC", name: "acme", deleted: false },
+  { id: PAYMENTS, name: "payments", deleted: true },
+];
+/** An event with everything 166 records, failed. */
+const withContext = (extra: Partial<AuditEvent> = {}) =>
+  event({
+    requestId: "01K9REQUESTAAAAAAAAAAAAAAA",
+    via: "cli",
+    userAgent: "rmk/0.9.0",
+    outcome: "failed",
+    action: "auth.two_factor_failed",
+    ...extra,
+  });
 
 const everything = (locale: L) =>
   [
@@ -70,6 +94,15 @@ const everything = (locale: L) =>
       <EventDetails event={event({ targetType: "none", metadata: {}, ipAddress: null })} />,
       locale,
     ),
+    // 166: the new filters and their chips, the marks, and where an event came from.
+    page(locale, [withContext(), withContext({ id: "3", outcome: "denied" })], {
+      workspace: PAYMENTS,
+      request: "01K9REQ",
+    }),
+    ...(["web", "api", "scim", "cli", "system"] as const).map((via) =>
+      render(<EventDetails event={withContext({ via })} />, locale),
+    ),
+    render(<EventDetails event={withContext({ outcome: "denied" })} />, locale),
   ].join("\n");
 
 describe("the Audit log in three languages (132)", () => {
@@ -178,12 +211,88 @@ describe("the Audit log in three languages (132)", () => {
     expect(item("fr")).toContain("Ouvrir l’utilisateur");
     expect(item("pt")).toContain('aria-label="Copiar JSON"');
     expect(item("fr")).toContain('aria-label="Copier le JSON"');
-    expect(page("pt", [], {})).toContain('placeholder="E-mail ou system"');
-    expect(page("fr", [], {})).toContain('placeholder="Courriel, ou system"');
+    expect(page("pt", [], {})).toContain('placeholder="Nome, e-mail ou system"');
+    expect(page("fr", [], {})).toContain('placeholder="Nom, courriel ou system"');
     // The dialog is closed by a link inside <noscript> when there is no JavaScript.
     expect(page("pt", [event()], {}, event())).toContain(">Fechar</a>");
     expect(page("fr", [event()], {}, event())).toContain(">Fermer</a>");
     expect(page("en", [event()], {}, event())).toContain(">Close</a>");
+  });
+
+  it("the Workspace and Request ID filters, their chips and the marks read in each language (166)", () => {
+    const params = { workspace: PAYMENTS, request: "01K9REQ" };
+    const cases: Record<L, string[]> = {
+      en: [">Workspace<", ">All workspaces<", "payments (deleted)", ">Request ID<", ">failed<"],
+      pt: [
+        ">Espaço de trabalho<",
+        ">Todos os espaços de trabalho<",
+        "payments (excluído)",
+        ">ID da requisição<",
+        "ID da requisição:",
+        ">falhou<",
+        ">negado<",
+      ],
+      fr: [
+        ">Espace de travail<",
+        ">Tous les espaces de travail<",
+        "payments (supprimé)",
+        ">ID de la requête<",
+        "ID de la requête :",
+        ">échec<",
+        ">refusé<",
+      ],
+    };
+    for (const [locale, texts] of Object.entries(cases) as [L, string[]][]) {
+      const html = page(
+        locale,
+        [withContext(), withContext({ id: "3", outcome: "denied" })],
+        params,
+      );
+      for (const text of texts) expect(html, `${locale}: ${text}`).toContain(text);
+    }
+  });
+
+  it("where an event came from reads in each language (166)", () => {
+    const cases: Record<L, string[]> = {
+      en: ["Channel", "Command line", "Client", "Outcome", ">Failed<", "Copy the request ID"],
+      pt: [
+        "Canal",
+        "Linha de comando",
+        "Cliente",
+        "Resultado",
+        ">Falhou<",
+        'aria-label="Copiar o ID da requisição"',
+        "Mostrar os eventos desta requisição",
+      ],
+      fr: [
+        "Canal",
+        "Ligne de commande",
+        "Client",
+        "Résultat",
+        ">Échec<",
+        'aria-label="Copier l’ID de la requête"',
+        "Afficher les événements de cette requête",
+      ],
+    };
+    for (const [locale, texts] of Object.entries(cases) as [L, string[]][]) {
+      const html = render(<EventDetails event={withContext()} />, locale);
+      for (const text of texts) expect(html, `${locale}: ${text}`).toContain(text);
+    }
+    expect(render(<EventDetails event={withContext({ via: "system" })} />, "pt")).toContain(
+      "Ronne (uma tarefa agendada)",
+    );
+    expect(render(<EventDetails event={withContext({ via: "web" })} />, "fr")).toContain(
+      "Application web",
+    );
+    // A success is said too, not only marked when it isn't one.
+    for (const [locale, word] of [
+      ["en", ">Success<"],
+      ["pt", ">Sucesso<"],
+      ["fr", ">Réussite<"],
+    ] as const)
+      expect(
+        render(<EventDetails event={withContext({ outcome: "success" })} />, locale),
+      ).toContain(word);
   });
 
   it("the dialog's title reads in the language", () => {

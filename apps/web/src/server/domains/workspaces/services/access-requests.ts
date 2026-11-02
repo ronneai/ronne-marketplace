@@ -83,7 +83,8 @@ export const auditRequest = (
   repo: WorkspaceRepository,
   actor: WorkspaceActor,
   action: RequestEvent,
-  request: { workspace: string; userId: string; email: string },
+  /** workspaceId: null for a name no workspace has (or someone's personal one, 114). */
+  request: { workspace: string; workspaceId: string | null; userId: string; email: string },
   at: Date,
   extra: Record<string, string | boolean> = {},
 ) =>
@@ -94,6 +95,7 @@ export const auditRequest = (
       target: { type: "user", id: request.userId },
       metadata: { workspace: request.workspace, email: request.email, ...extra },
       ipAddress: actor.ip,
+      workspaceId: request.workspaceId,
     },
     at,
   );
@@ -150,7 +152,8 @@ export const requestAccess = async (
       repo,
       actor,
       "workspace.access_requested",
-      { workspace: name, userId: user.id, email: user.email },
+      // A name that isn't a workspace (or one they can't see) has no id to record.
+      { workspace: name, workspaceId: workspace?.id ?? null, userId: user.id, email: user.email },
       at,
     );
     // Those who answer are told once (139); a name with no workspace has nobody to tell.
@@ -196,7 +199,12 @@ export const cancelAccessRequest = async (
       repo,
       actor,
       "workspace.access_cancelled",
-      { workspace: request.workspace, userId: user.id, email: user.email },
+      {
+        workspace: request.workspace,
+        workspaceId: request.workspaceId,
+        userId: user.id,
+        email: user.email,
+      },
       at,
     );
   });
@@ -296,7 +304,12 @@ export const approveAccessRequest = async (
         addedBy: actor.user?.id ?? null,
         at,
       });
-    const event = { workspace: workspace.name, userId: requester.id, email: requester.email };
+    const event = {
+      workspace: workspace.name,
+      workspaceId: workspace.id,
+      userId: requester.id,
+      email: requester.email,
+    };
     await auditRequest(repo, actor, "workspace.access_approved", event, at, { role });
     if (joins)
       await repo.recordAudit(
@@ -306,6 +319,7 @@ export const approveAccessRequest = async (
           target: { type: "user", id: requester.id },
           metadata: { workspace: workspace.name, email: requester.email, role },
           ipAddress: actor.ip,
+          workspaceId: workspace.id,
         },
         at,
       );
@@ -346,7 +360,12 @@ export const declineAccessRequest = async (
       repo,
       actor,
       "workspace.access_declined",
-      { workspace: workspace.name, userId: requester.id, email: requester.email },
+      {
+        workspace: workspace.name,
+        workspaceId: workspace.id,
+        userId: requester.id,
+        email: requester.email,
+      },
       at,
     );
     await repo.notify(

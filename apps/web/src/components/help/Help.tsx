@@ -287,6 +287,10 @@ export const HELP = {
   "audit-actor": {
     href: docsHref("audit", "audit"),
   },
+  // The Request ID filter (166).
+  "audit-request": {
+    href: docsHref("audit", "audit"),
+  },
 } as const satisfies Record<string, { href: string }>;
 
 export type HelpId = keyof typeof HELP;

@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, UserRound } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, UserRound } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -17,12 +17,14 @@ import { NavIcon } from "./NavIcon";
 import {
   groupNav,
   isCurrent,
+  type NavGroup,
   type NavItem,
   PROPOSE,
   type ShellUser,
   type ShellWorkspace,
 } from "./nav";
 import { sidebarCookie } from "./sidebar-cookie";
+import { useNavGroups } from "./useNavGroups";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 
 /** The product's second word beside the brand: its name, the same in every language. */
@@ -65,6 +67,7 @@ export const Sidebar = ({
   workspaces,
   current = null,
   folded: initiallyFolded = false,
+  closedGroups = [],
   propose,
   appearance,
   signOutAction,
@@ -80,6 +83,8 @@ export const Sidebar = ({
   current?: string | null;
   /** The fold cookie's value, read by the shell. */
   folded?: boolean;
+  /** The groups closed in their cookie (166), read by the shell. */
+  closedGroups?: readonly NavGroup[];
   /** Whether the user gets + Propose item. */
   propose: boolean;
   /** The theme switch: a server component, so the shell renders it and passes it in. */
@@ -96,6 +101,7 @@ export const Sidebar = ({
   // Everything follows `folded`, so folding is a morph (owner, 2026-10-20): the width animates, and
   // the logo, the switcher, the items and the foot change shape in place, with no content swapped.
   const [folded, setFolded] = useState(initiallyFolded);
+  const groups = useNavGroups(closedGroups);
   // Send feedback (127) opens a dialog here; without JavaScript, and on a phone, it is a page.
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const closeFeedback = () => {
@@ -256,21 +262,58 @@ export const Sidebar = ({
         aria-label={t("sidebar.main")}
         className="mt-4 grid w-full min-h-0 flex-1 content-start gap-4 overflow-x-hidden overflow-y-auto px-3 pb-4"
       >
-        {groupNav(items).map((group) => (
-          // The group's heading folds away and a rule takes its place, both fading and sliding.
-          <div
-            key={group.id}
-            className={`grid border-t first:border-0 transition-[gap,padding,border-color] duration-200 motion-reduce:transition-none ${folded ? "gap-1 border-hairline pt-4 first:pt-0" : "gap-0.5 border-transparent pt-0"}`}
-          >
-            <p
-              aria-hidden={folded}
-              className={`overflow-hidden whitespace-nowrap px-3 type-group-label uppercase text-muted transition-[max-height,opacity,padding] duration-200 motion-reduce:transition-none ${folded ? "max-h-0 pb-0 opacity-0" : "max-h-8 pb-1"}`}
+        {groupNav(items).map((group) => {
+          // Each group opens and closes from its heading (166), a `<details>`, so it works without
+          // JavaScript too. Folded, there are no headings and every link shows: it is open.
+          const closed = !folded && groups.isClosed(group.id);
+          const waiting = group.items.some((item) => (counts[item.href] ?? 0) > 0);
+          const name = t(`groups.${group.id}`);
+          return (
+            // The group's heading folds away and a rule takes its place, both fading and sliding.
+            <details
+              key={group.id}
+              open={!closed}
+              // min-w-0: a grid item's least width is its content's, which made the folded rail scroll.
+              className={`group/nav min-w-0 border-t first:border-0 transition-[padding,border-color] duration-200 motion-reduce:transition-none ${folded ? "border-hairline pt-4 first:pt-0" : "border-transparent pt-0"}`}
             >
-              {t(`groups.${group.id}`)}
-            </p>
-            {group.items.map(entry)}
-          </div>
-        ))}
+              <summary
+                aria-hidden={folded}
+                tabIndex={folded ? -1 : undefined}
+                // The click (a key on the heading is one too) writes the cookie at once, and the
+                // state alone opens or closes it: React applies it during the click, so the
+                // browser's own toggle after it would undo it. Without JavaScript, the browser's.
+                onClick={(event) => {
+                  event.preventDefault();
+                  if (!folded) groups.toggle(group.id);
+                }}
+                // Closed with a count waiting in it: the dot, and its name says so (Decision 4).
+                aria-label={
+                  closed && waiting ? t("sidebar.groupWaiting", { group: name }) : undefined
+                }
+                className={`flex cursor-pointer list-none items-center gap-2 overflow-hidden whitespace-nowrap rounded-control type-group-label uppercase text-muted hover:text-fg transition-[max-height,opacity,padding] duration-200 motion-reduce:transition-none [&::-webkit-details-marker]:hidden ${focus} ${folded ? "pointer-events-none max-h-0 px-0 pb-0 opacity-0" : "max-h-8 px-3 pb-1"}`}
+              >
+                {/* Folded, no height either, as the heading's: nothing of it is left to see. */}
+                <span className={`min-w-0 truncate ${folded ? "max-h-0" : ""}`}>{name}</span>
+                {closed && waiting ? (
+                  <span aria-hidden className="size-2 shrink-0 rounded-full bg-accent" />
+                ) : null}
+                {/* Folded, the rail has no room for it: the heading would make it scroll sideways. */}
+                {folded ? null : (
+                  <ChevronDown
+                    size={12}
+                    aria-hidden
+                    className="ml-auto shrink-0 transition-transform duration-200 group-open/nav:rotate-180 motion-reduce:transition-none"
+                  />
+                )}
+              </summary>
+              <div
+                className={`grid transition-[gap] duration-200 motion-reduce:transition-none ${folded ? "gap-1" : "gap-0.5"}`}
+              >
+                {group.items.map(entry)}
+              </div>
+            </details>
+          );
+        })}
       </nav>
 
       {/* The foot: the theme switch is a fixed box at the right of the account row, and moves up above

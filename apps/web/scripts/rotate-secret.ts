@@ -5,12 +5,16 @@
 import { resolve } from "node:path";
 import * as p from "@clack/prompts";
 import { envFilePath } from "../src/server/config";
+import { setProcessChannel } from "../src/server/log";
 import { clackPrompts } from "../src/server/setup/clack-prompts";
 import { parseRotateSecretCommand, ROTATE_SECRET_USAGE } from "../src/server/setup/cli";
 import { nonInteractivePrompts } from "../src/server/setup/non-interactive-prompts";
 import { SetupCancelledError } from "../src/server/setup/prompts";
 import { runRotateSecret } from "../src/server/setup/rotate-secret";
 import { SetupFailedError } from "../src/server/setup/run-setup";
+
+// What this command records in the audit log came from the terminal (166).
+setProcessChannel("cli");
 
 const appDir = resolve(import.meta.dirname, "..");
 const envPath = envFilePath(appDir);

@@ -73,15 +73,16 @@ const count = async (query: { execute: () => Promise<{ n: unknown }[]> }) =>
   Number((await query.execute())[0]?.n ?? 0);
 
 /**
- * Clears `audit_log.ip_address` on events older than the IP retention. Only the id is read, and
- * the row is updated by id, so the batch's transaction touches those rows alone.
+ * Clears `audit_log.ip_address` and `user_agent` (the client, 166: personal data the same way) on
+ * events older than the IP retention, as a session's are. Only the id is read, and the row is
+ * updated by id, so the batch's transaction touches those rows alone.
  */
 const clearAuditIps = async (db: Db, dialect: DatabaseDialect, cutoff: Date, o: PurgeOptions) => {
   const matching = (q: Db) =>
     q
       .selectFrom("audit_log")
       .where("created_at", "<", toDbDate(cutoff, dialect))
-      .where("ip_address", "is not", null);
+      .where((eb) => eb.or([eb("ip_address", "is not", null), eb("user_agent", "is not", null)]));
   if (o.dryRun) return count(matching(db).select((eb) => eb.fn.countAll().as("n")));
   return inBatches(o, () =>
     db.transaction().execute(async (trx) => {
@@ -96,7 +97,7 @@ const clearAuditIps = async (db: Db, dialect: DatabaseDialect, cutoff: Date, o: 
       if (ids.length === 0) return 0;
       const result = await trx
         .updateTable("audit_log")
-        .set({ ip_address: null })
+        .set({ ip_address: null, user_agent: null })
         .where("id", "in", ids)
         .executeTakeFirst();
       return Number(result.numUpdatedRows);

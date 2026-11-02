@@ -2,7 +2,8 @@
   "groups": {
     "discover": "Discover",
     "governance": "Governance & reviews",
-    "tools": "Tools"
+    "tools": "Tools",
+    "admin": "Admin"
   },
   "nav": {
     "home": "Home",
@@ -24,6 +25,7 @@
     "main": "Main",
     "home": "Home",
     "fold": "Fold the sidebar",
+    "groupWaiting": "{group} (something waiting)",
     "unfold": "Unfold the sidebar",
     "account": "Account",
     "accountOf": "{name}, your account",

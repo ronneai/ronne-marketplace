@@ -166,6 +166,67 @@ export type NewAuditEvent = {
   target: { type: AuditTargetType; id?: string | null };
   metadata?: AuditMetadata;
   ipAddress?: string | null;
+  /**
+   * The workspace the event is about (166): set by the service, the only one that knows it, for
+   * every action `inWorkspace` marks; null when there's none to name. No foreign key: the event
+   * outlives the workspace.
+   */
+  workspaceId?: string | null;
+};
+
+/**
+ * The actions about something in a workspace (166): a workspace itself, its members and requests,
+ * its scopes and items (moves too: the target workspace), submissions, versions, dist-tags and scan
+ * findings. A pin is one when it's on a workspace's shelf (not root's Start here).
+ */
+const IN_WORKSPACE_PREFIXES = [
+  "workspace.",
+  "scope.",
+  "item.",
+  "submission.",
+  "version.",
+  "dist_tag.",
+  "scan.",
+] as const;
+
+export const inWorkspace = (event: Pick<NewAuditEvent, "action" | "target">): boolean =>
+  IN_WORKSPACE_PREFIXES.some((prefix) => event.action.startsWith(prefix)) ||
+  (event.action.startsWith("pin.") && event.target.type === "workspace");
+
+/** What an event says happened (166): most are things done; some are attempts refused. */
+export type AuditOutcome = "success" | "failed" | "denied";
+
+/**
+ * The actions that record an attempt that didn't go through (166): a sign-in, a second step, a
+ * company sign-in or a device sign-in that failed, and a SCIM request refused. Every other action
+ * is a `success`.
+ */
+const OUTCOMES: Partial<Record<AuditAction, Exclude<AuditOutcome, "success">>> = {
+  "auth.sign_in_failed": "failed",
+  "auth.two_factor_failed": "failed",
+  "auth.sso_failed": "failed",
+  "auth.device_denied": "failed",
+  "auth.device_expired": "failed",
+  "scim.request_refused": "denied",
+};
+
+export const outcomeOf = (action: AuditAction): AuditOutcome => OUTCOMES[action] ?? "success";
+
+/** The most of a user agent an event keeps (166), in characters. */
+export const USER_AGENT_MAX = 256;
+
+/**
+ * A client's `User-Agent` as the audit log keeps it (166): control, format and separator
+ * characters out (a line break, a bidirectional mark, U+2028), surrounding space trimmed, cut to 256 characters without
+ * splitting one; null when nothing is left.
+ */
+export const cleanUserAgent = (value: string | null | undefined): string | null => {
+  if (typeof value !== "string") return null;
+  const cleaned = [...value.replace(/[\p{Cc}\p{Cf}\p{Cs}\p{Zl}\p{Zp}]/gu, "").trim()]
+    .slice(0, USER_AGENT_MAX)
+    .join("")
+    .trim();
+  return cleaned === "" ? null : cleaned;
 };
 
 /** A stored event, as the audit page reads it. */
@@ -174,15 +235,35 @@ export type AuditEvent = {
   actorId: string | null;
   /** The actor's email, when the user still exists. */
   actorEmail: string | null;
+  /** The actor's name now (166): an erased person's pseudonym; null without an actor or a row. */
+  actorName: string | null;
   action: string;
   targetType: string;
   targetId: string | null;
   /** A user target's email, when the user still exists, so the log can say who (060). */
   targetEmail: string | null;
+  /** A user target's name now (166), as `actorName`. */
+  targetName: string | null;
   metadata: AuditMetadata;
   ipAddress: string | null;
   createdAt: Date;
+  /** The request it came from, as its log lines have it (166); null outside a request. */
+  requestId: string | null;
+  /** Where it came from (166); null on events from before 166. */
+  via: AuditChannel | null;
+  /** The client, cut and cleaned (166). */
+  userAgent: string | null;
+  /** The workspace it's about (166). */
+  workspaceId: string | null;
+  outcome: AuditOutcome;
 };
+
+export const AUDIT_CHANNELS = ["web", "api", "scim", "cli", "system"] as const;
+export type AuditChannel = (typeof AUDIT_CHANNELS)[number];
+export const isChannel = (value: unknown): value is AuditChannel =>
+  (AUDIT_CHANNELS as readonly unknown[]).includes(value);
+export const isOutcome = (value: unknown): value is AuditOutcome =>
+  value === "success" || value === "failed" || value === "denied";
 
 /**
  * 32 KB of JSON (4 KB until 163): room for a review message's 5,000 characters, the longest one a

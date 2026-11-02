@@ -14,6 +14,7 @@ import { LocalTime } from "@/components/ui/LocalTime";
 import { Notice } from "@/components/ui/Notice";
 import { PageHeader, Panel } from "@/components/ui/Panel";
 import type { AuditEvent } from "@/server/domains/audit/models/audit-event";
+import type { AuditWorkspace } from "@/server/domains/audit/repositories/audit-repository";
 import { EventDetails, Summary } from "./EventDetails";
 import { EventDialog } from "./EventDialog";
 import { actorLabel } from "./format";
@@ -21,20 +22,31 @@ import { ACTION_OPTIONS, AUDIT_LIST, type AuditListState } from "./list";
 import { type SummaryPart, summaryText, useSummarize } from "./summary";
 
 /** The filters: one GET form that submits on change, and a chip per active filter. */
-const Filters = ({ state }: { state: AuditListState }) => {
+const Filters = ({
+  state,
+  workspaces,
+}: {
+  state: AuditListState;
+  workspaces: AuditWorkspace[];
+}) => {
   const t = useTranslations("admin.audit");
   const { filters } = state;
+  const workspaceName = (id: string) => {
+    const found = workspaces.find((w) => w.id === id);
+    if (!found) return id;
+    return found.deleted ? t("filters.deletedWorkspace", { name: found.name }) : found.name;
+  };
   return (
     <div className="grid gap-2">
       <Form
         action={AUDIT_LIST.path}
         scroll={false}
-        className="grid gap-3 sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end"
+        className="grid gap-3 sm:grid-cols-2 sm:items-end lg:grid-cols-3 2xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1.1fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_auto]"
       >
         <HiddenListFields
           list={AUDIT_LIST}
           state={state}
-          omit={["action", "actor", "from", "to"]}
+          omit={["action", "actor", "workspace", "request", "from", "to"]}
         />
         <div className="grid gap-1.5">
           <Label htmlFor="action">{t("filters.action")}</Label>
@@ -66,6 +78,43 @@ const Filters = ({ state }: { state: AuditListState }) => {
           />
         </div>
         <div className="grid gap-1.5">
+          <Label htmlFor="workspace">{t("filters.workspace")}</Label>
+          <select
+            id="workspace"
+            name="workspace"
+            defaultValue={filters.workspace}
+            className={selectClasses}
+          >
+            <option value="">{t("filters.allWorkspaces")}</option>
+            {/* One kept in the URL that isn't a workspace any more, shown by its id. */}
+            {filters.workspace && !workspaces.some((w) => w.id === filters.workspace) ? (
+              <option value={filters.workspace}>{filters.workspace}</option>
+            ) : null}
+            {workspaces.map((workspace) => (
+              <option key={workspace.id} value={workspace.id}>
+                {workspaceName(workspace.id)}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="grid gap-1.5">
+          <div className="flex items-center gap-2">
+            <Label htmlFor="request">{t("filters.request")}</Label>
+            <Help id="audit-request" />
+          </div>
+          <Input
+            id="request"
+            name="request"
+            type="search"
+            spellCheck={false}
+            autoCapitalize="none"
+            autoCorrect="off"
+            placeholder={t("filters.requestPlaceholder")}
+            defaultValue={filters.request}
+            className="font-mono"
+          />
+        </div>
+        <div className="grid gap-1.5">
           <Label htmlFor="from">{t("filters.from")}</Label>
           <Input id="from" name="from" type="date" defaultValue={filters.from} />
         </div>
@@ -86,9 +135,12 @@ const Filters = ({ state }: { state: AuditListState }) => {
         labels={{
           action: t("chips.action"),
           actor: t("chips.actor"),
+          workspace: t("chips.workspace"),
+          request: t("chips.request"),
           from: t("chips.from"),
           to: t("chips.to"),
         }}
+        display={{ workspace: workspaceName }}
       />
     </div>
   );
@@ -115,8 +167,9 @@ const columns = (
     className: "w-56",
     truncate: true,
     hideOnMobile: true,
+    // The name, and the email on hover: names aren't unique (166).
     render: (event) => (
-      <span title={actorLabel(event)} className="text-[13px]">
+      <span title={event.actorEmail ?? actorLabel(event)} className="text-[13px]">
         {actorLabel(event)}
       </span>
     ),
@@ -130,6 +183,11 @@ const columns = (
       return (
         <span className="flex min-w-0 items-center gap-2" title={summaryText(parts)}>
           <Badge>{event.action}</Badge>
+          {event.outcome === "success" ? null : (
+            <Badge tone={event.outcome === "failed" ? "error" : "warning"}>
+              {t(`outcome.${event.outcome}`)}
+            </Badge>
+          )}
           <span className="min-w-0 truncate text-muted">
             <Summary parts={parts} />
           </span>
@@ -166,12 +224,15 @@ export const AuditLogPage = ({
   events,
   page,
   total,
+  workspaces = [],
   selected,
 }: {
   state: AuditListState;
   events: AuditEvent[];
   page: { next: string | null; previous: string | null };
   total: { count: number; capped: boolean };
+  /** The Workspace filter's choices (166). */
+  workspaces?: AuditWorkspace[];
   /** The event in `?event=`: the event, "missing" when there's none with that id, or nothing. */
   selected?: AuditEvent | "missing";
 }) => {
@@ -200,7 +261,7 @@ export const AuditLogPage = ({
         page={page}
         total={total}
         noun="event"
-        toolbar={<Filters state={state} />}
+        toolbar={<Filters state={state} workspaces={workspaces} />}
         empty={{ none: t("empty.none"), filtered: t("empty.filtered") }}
       />
       {selected && selected !== "missing" ? (

@@ -13,7 +13,8 @@ import { loadShell } from "./shell";
  * which `loadShell` checks.
  */
 const AppLayout = async ({ children }: { children: ReactNode }) => {
-  const { user, theme, navCounts, unread, workspaces, folded, current } = await loadShell();
+  const { user, theme, navCounts, unread, workspaces, folded, closedGroups, current } =
+    await loadShell();
   const notice = await visibleNotice();
   const newer = await updateAvailable(await requestHeaders());
   return (
@@ -26,6 +27,7 @@ const AppLayout = async ({ children }: { children: ReactNode }) => {
       workspaces={workspaces}
       current={current}
       folded={folded}
+      closedGroups={closedGroups}
       version={version}
       updateAvailable={newer}
       notice={notice ? <DismissibleNotice notice={notice} /> : null}

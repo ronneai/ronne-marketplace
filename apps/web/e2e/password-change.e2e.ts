@@ -172,7 +172,8 @@ test("root asks, stops asking, and a new account can be left alone", async ({ br
   await expect(fresh).toHaveURL(/\/$/);
   // The audit log says the box was unchecked.
   await root.goto("/admin/audit?action=user.created");
-  const created = root.getByText(/Created left-alone@e2e\.test as user/).first();
+  // By name since 166; the email is on hover and in the details.
+  const created = root.getByText(/Created Left Alone as user/).first();
   await expect(created).toBeVisible();
   await expect(created).not.toContainText("asking for a new password");
 });

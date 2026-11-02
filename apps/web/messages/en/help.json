@@ -341,7 +341,11 @@
   },
   "audit-actor": {
     "question": "Who can I search for?",
-    "answer": "Part of an email, in any case. system finds events with no one signed in, such as the setup and the command line."
+    "answer": "Part of a name or an email, in any case. system finds events with no one signed in, such as the setup and the command line."
+  },
+  "audit-request": {
+    "question": "What’s the request ID?",
+    "answer": "The ID of the request that recorded the event: it’s in the event’s details, in the server’s log lines for that request, and in the X-Request-Id header the browser or rmk received. Paste one here to see everything that request did."
   },
   "security-scan": {
     "question": "What is this scan?",

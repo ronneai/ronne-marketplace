@@ -8,8 +8,8 @@ import { describe, expect, it } from "vitest";
  * audit_log. Test files are skipped, and so is this one.
  *
  * The one kind of exception is personal data (MVP §15, Personal data; feature 102): the events
- * stay for ever, but an IP address or a typed email in them is kept only as long as root's
- * retention says. The files allowed to update `audit_log` are listed here by name, each with what
+ * stay for ever, but an IP address, a client (the user agent, 166) or a typed email in them is
+ * kept only as long as root's retention says. The files allowed to update `audit_log` are listed here by name, each with what
  * it may change; nothing deletes a row, and no other file is allowed.
  */
 const appDir = new URL("../../../../", import.meta.url).pathname;
@@ -27,9 +27,9 @@ const sourceFiles = (dir: string): string[] => {
 /** Files allowed to update (never delete) audit_log rows, and what they change. */
 const ALLOWED_UPDATES: Record<string, string> = {
   "src/server/jobs/retention-purge.ts":
-    "clears ip_address past the IP retention, and the typed email of a failed sign-in (102)",
+    "clears ip_address and user_agent past the IP retention (102, 166), and the typed email of a failed sign-in (102)",
   "src/server/domains/audit/repositories/kysely-audit-rewrite.ts":
-    "clears an erased person's ip_address and replaces their email in metadata with the pseudonym (103)",
+    "clears an erased person's ip_address and user_agent (103, 166) and replaces their email in metadata with the pseudonym (103)",
 };
 
 const FORBIDDEN = [

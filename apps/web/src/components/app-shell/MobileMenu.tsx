@@ -8,7 +8,7 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Dialog } from "../ui/Dialog";
 import { MenuList } from "./MenuList";
 import { NavCount } from "./NavCount";
-import type { NavItem, ShellUser, ShellWorkspace } from "./nav";
+import type { NavGroup, NavItem, ShellUser, ShellWorkspace } from "./nav";
 
 /** Tailwind's `lg`: from here the sidebar shows, so the menu isn't used. */
 export const DESKTOP_QUERY = "(min-width: 64rem)";
@@ -34,6 +34,7 @@ export const MobileMenu = ({
   workspaces = [],
   current = null,
   propose = false,
+  closedGroups = [],
   appearance,
   signOutAction,
 }: {
@@ -44,6 +45,8 @@ export const MobileMenu = ({
   workspaces?: ShellWorkspace[];
   current?: string | null;
   propose?: boolean;
+  /** The navigation's closed groups (166). */
+  closedGroups?: readonly NavGroup[];
   /** The theme switch: a server component, so the shell renders it and passes it in. */
   appearance: ReactNode;
   signOutAction?: () => Promise<void>;
@@ -109,6 +112,7 @@ export const MobileMenu = ({
           workspaces={workspaces}
           current={current}
           propose={propose}
+          closedGroups={closedGroups}
           appearance={appearance}
           signOutAction={signOutAction}
           onNavigate={close}

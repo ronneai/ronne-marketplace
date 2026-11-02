@@ -2,7 +2,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { toDbBoolean, toDbDate } from "../../../db/dates";
 import { newId } from "../../../db/ids";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
-import { listAuditEvents } from "../../audit/actions/audit";
+import { withRequestContext } from "../../../log";
+import { listAuditEvents, recordAudit } from "../../audit/actions/audit";
 import { kyselyItemRepository } from "../../items/repositories/kysely-item-repository";
 import { kyselyScopeRepository } from "../../items/repositories/kysely-scope-repository";
 import type { NewNotification } from "../../notifications/models/notification";
@@ -477,6 +478,64 @@ describe("exportUserData (104)", () => {
       metadata: { by: "self", rows },
     });
     expect(JSON.stringify(event?.metadata)).not.toContain("Looks fine");
+  });
+
+  it("gives each event where it came from (166), and the client only of what the person did", async () => {
+    const ana = await seedAna();
+    // Ana acts through the API; root acts on her from the web app.
+    await withRequestContext(
+      { requestId: "01K9ANAREQUEST", via: "api", userAgent: "rmk/1.0" },
+      () =>
+        recordAudit(t.db, t.dialect, {
+          actorId: ana.id,
+          action: "submission.submitted",
+          target: { type: "submission", id: "s1" },
+          workspaceId: GLOBAL_WORKSPACE_ID,
+        }),
+    );
+    await withRequestContext(
+      { requestId: "01K9ROOTREQUEST", via: "web", userAgent: "Root's browser" },
+      () =>
+        recordAudit(t.db, t.dialect, {
+          actorId: rootId,
+          action: "user.updated",
+          target: { type: "user", id: ana.id },
+        }),
+    );
+    const { data } = await exportAs(ana.headers, ana.id);
+    expect(data.auditEvents.find((e) => e.target.id === "s1")).toMatchObject({
+      as: "actor",
+      requestId: "01K9ANAREQUEST",
+      via: "api",
+      userAgent: "rmk/1.0",
+      workspaceId: GLOBAL_WORKSPACE_ID,
+      outcome: "success",
+    });
+    // Root's client is root's, as root's address is: not in Ana's file. The rest is about the event.
+    expect(data.auditEvents.find((e) => e.requestId === "01K9ROOTREQUEST")).toMatchObject({
+      action: "user.updated",
+      as: "target",
+      requestId: "01K9ROOTREQUEST",
+      via: "web",
+      userAgent: null,
+      ipAddress: null,
+      workspaceId: null,
+      outcome: "success",
+    });
+    expect(JSON.stringify(data)).not.toContain("Root's browser");
+  });
+
+  it("gives a failed event's outcome as recorded (166)", async () => {
+    const ana = await seedAna();
+    await recordAudit(t.db, t.dialect, {
+      actorId: ana.id,
+      action: "auth.two_factor_failed",
+      target: { type: "user", id: ana.id },
+    });
+    const { data } = await exportAs(ana.headers, ana.id);
+    expect(data.auditEvents.find((e) => e.action === "auth.two_factor_failed")?.outcome).toBe(
+      "failed",
+    );
   });
 
   it("replaces other people's emails in the events, and keeps the person's own", async () => {

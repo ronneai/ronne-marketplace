@@ -72,6 +72,7 @@ export const createScope = async (
         target: { type: "scope", id },
         metadata: { name, description, workspace: workspace.name },
         ipAddress: actor.ip,
+        workspaceId: workspace.id,
       },
       at,
     );
@@ -108,6 +109,7 @@ export const updateScopeDescription = async (
         target: { type: "scope", id: scope.id },
         metadata: { name: scope.name, from: scope.description, to: description },
         ipAddress: actor.ip,
+        workspaceId: scope.workspace.id,
       },
       at,
     );

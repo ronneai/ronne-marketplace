@@ -341,7 +341,11 @@
   },
   "audit-actor": {
     "question": "Quem posso pesquisar?",
-    "answer": "Parte de um e-mail, com maiúsculas ou minúsculas. system encontra eventos sem ninguém conectado, como a configuração e a linha de comando."
+    "answer": "Parte de um nome ou de um e-mail, com maiúsculas ou minúsculas. system encontra eventos sem ninguém conectado, como a configuração e a linha de comando."
+  },
+  "audit-request": {
+    "question": "O que é o ID da requisição?",
+    "answer": "O ID da requisição que registrou o evento: está nos detalhes do evento, nas linhas de log do servidor para essa requisição e no cabeçalho X-Request-Id que o navegador ou o rmk recebeu. Cole um aqui para ver tudo o que essa requisição fez."
   },
   "security-scan": {
     "question": "O que é esta verificação?",

@@ -30,14 +30,19 @@ export const serverAction = <A extends unknown[], R>(
   } = {},
 ): ((...args: A) => Promise<R>) => {
   const wrapped = async (...args: A): Promise<R> => {
-    const requestId = forwardedRequestId(await requestHeaders());
-    return withRequestContext({ requestId }, async () => {
-      const held = await heldNow();
-      if (held === "password") {
-        if (!options.whilePasswordHeld) redirect(PASSWORD_PATH);
-      } else if (held === "two_factor" && !options.whileHeld) redirect(SECURITY_PATH);
-      return action(...args);
-    });
+    const headers = await requestHeaders();
+    const requestId = forwardedRequestId(headers);
+    // A server action is the web app's (166).
+    return withRequestContext(
+      { requestId, via: "web", userAgent: headers.get("user-agent") },
+      async () => {
+        const held = await heldNow();
+        if (held === "password") {
+          if (!options.whilePasswordHeld) redirect(PASSWORD_PATH);
+        } else if (held === "two_factor" && !options.whileHeld) redirect(SECURITY_PATH);
+        return action(...args);
+      },
+    );
   };
   made.add(wrapped);
   return wrapped;

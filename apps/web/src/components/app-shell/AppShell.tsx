@@ -6,7 +6,7 @@ import { ThemeToggle } from "@/features/theme/ThemeToggle";
 import type { Theme } from "@/features/theme/theme";
 import { BrandLogo } from "../ui/BrandLogo";
 import { MobileMenu } from "./MobileMenu";
-import { canPropose, navFor, type ShellUser, type ShellWorkspace } from "./nav";
+import { canPropose, type NavGroup, navFor, type ShellUser, type ShellWorkspace } from "./nav";
 import { Sidebar } from "./Sidebar";
 
 /**
@@ -28,6 +28,7 @@ export const AppShell = ({
   workspaces = [],
   current = null,
   folded = false,
+  closedGroups = [],
   version,
   updateAvailable = null,
   notice = null,
@@ -47,6 +48,8 @@ export const AppShell = ({
   current?: string | null;
   /** Whether the sidebar is folded, from its cookie (119). */
   folded?: boolean;
+  /** The navigation's closed groups, from their cookie (166). */
+  closedGroups?: readonly NavGroup[];
   /** The app's version, at the sidebar's foot. */
   version?: string;
   /** The newer version root has not installed (140), for the sidebar's mark. */
@@ -68,6 +71,7 @@ export const AppShell = ({
           workspaces={workspaces}
           current={current}
           folded={folded}
+          closedGroups={closedGroups}
           propose={propose}
           appearance={<ThemeToggle theme={theme} />}
           signOutAction={signOutAction}
@@ -98,6 +102,7 @@ export const AppShell = ({
                       workspaces={workspaces}
                       current={current}
                       propose={propose}
+                      closedGroups={closedGroups}
                       appearance={<ThemeToggle theme={theme} />}
                       signOutAction={signOutAction}
                     />

@@ -62,7 +62,7 @@ const audits = async () =>
   (
     await t.db
       .selectFrom("audit_log")
-      .select(["action", "target_type", "target_id", "metadata", "actor_id"])
+      .select(["action", "target_type", "target_id", "metadata", "actor_id", "workspace_id"])
       .where("action", "like", "pin.%")
       .orderBy("id", "asc")
       .execute()
@@ -359,6 +359,23 @@ describe("the audit (125)", () => {
       metadata: { workspace: "acme", name: "@acme/acme-infra/deploy" },
     });
     expect(rows[4]?.actor_id).not.toBe(rows[0]?.actor_id);
+    // The workspace each is about (166): none for Start here, the shelf's for a workspace's.
+    expect(rows.map((r) => r.workspace_id)).toEqual([null, null, null, null, acme]);
+  });
+
+  it("records a workspace shelf's reorder and removal on that workspace (166)", async () => {
+    const second = (await seedReleasedItem(t, "acme-infra", "lint", rootId)).itemId;
+    await pinItem(asAdmin, acmeShelf, acmeItem, app);
+    await pinItem(asAdmin, acmeShelf, second, app);
+    await movePin(asAdmin, acmeShelf, second, "up", app);
+    await unpinItem(asAdmin, acmeShelf, acmeItem, app);
+    const rows = await audits();
+    expect(rows.map((r) => [r.action, r.workspace_id])).toEqual([
+      ["pin.added", acme],
+      ["pin.added", acme],
+      ["pin.reordered", acme],
+      ["pin.removed", acme],
+    ]);
   });
 
   it("a refused change records nothing", async () => {

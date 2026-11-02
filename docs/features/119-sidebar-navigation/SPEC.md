@@ -31,6 +31,9 @@ sidebar**, grouped by what you're doing, that folds into a rail of icons.
   | Tools | Documentation | the website (088), in a new tab | everyone |
   | | CLI & tokens (removed by [162](../162-token-lifetime-policy/SPEC.md), owner, 2026-11-01: Access tokens is a tab of Account) | `/account/tokens` | everyone |
 
+  Since [166](../166-audit-context/SPEC.md) (owner, 2026-11-01), Users, Audit log, Settings and
+  Feedback (127) are in a group of their own, **Admin**, after Tools, root's alone.
+
   A group's heading shows only when one of its links does. The current link is marked as the
   header's was: Catalogue on item pages (also a workspace's, 118), Workspaces on a workspace's
   pages but not on Requests or its items (115).

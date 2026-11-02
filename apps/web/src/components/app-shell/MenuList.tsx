@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -12,11 +13,13 @@ import { NavIcon } from "./NavIcon";
 import {
   groupNav,
   isCurrent,
+  type NavGroup,
   type NavItem,
   PROPOSE,
   type ShellUser,
   type ShellWorkspace,
 } from "./nav";
+import { useNavGroups } from "./useNavGroups";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 
 const focus = "outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus";
@@ -36,6 +39,7 @@ export const MenuList = ({
   workspaces = [],
   current = null,
   propose = false,
+  closedGroups = [],
   appearance,
   signOutAction,
   onNavigate,
@@ -49,6 +53,8 @@ export const MenuList = ({
   current?: string | null;
   /** Whether the user gets + Propose item. */
   propose?: boolean;
+  /** The groups closed in their cookie (166), the sidebar's too. */
+  closedGroups?: readonly NavGroup[];
   /** The theme switch: a server component, so the shell renders it and passes it in. */
   appearance: ReactNode;
   signOutAction?: () => Promise<void>;
@@ -58,6 +64,7 @@ export const MenuList = ({
   const t = useTranslations("shell");
   const tCommon = useTranslations("common");
   const path = usePathname() ?? "/";
+  const groups = useNavGroups(closedGroups);
   return (
     <>
       <div className="grid gap-3 pb-3">
@@ -74,33 +81,65 @@ export const MenuList = ({
         ) : null}
       </div>
       <nav aria-label={t("sidebar.main")} className="grid gap-3">
-        {groupNav(items).map((group) => (
-          <div key={group.id} className="grid gap-0.5">
-            <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wide text-muted">
-              {t(`groups.${group.id}`)}
-            </p>
-            {group.items.map((item) =>
-              item.external ? (
-                <NewTabLink key={item.href} href={item.href} onClick={onNavigate} className={row}>
-                  <NavIcon name={item.icon} />
-                  {t(`nav.${item.key}`)}
-                </NewTabLink>
-              ) : (
-                <Link
-                  key={item.href}
-                  href={item.key === "feedback" ? feedbackHref(path) : item.href}
-                  onClick={onNavigate}
-                  aria-current={isCurrent(item, path) ? "page" : undefined}
-                  className={row}
-                >
-                  <NavIcon name={item.icon} />
-                  {t(`nav.${item.key}`)}
-                  {counts[item.href] ? <NavCount count={counts[item.href] ?? 0} /> : null}
-                </Link>
-              ),
-            )}
-          </div>
-        ))}
+        {groupNav(items).map((group) => {
+          // Open and closed as in the sidebar (166): the same cookie.
+          const closed = groups.isClosed(group.id);
+          const waiting = group.items.some((item) => (counts[item.href] ?? 0) > 0);
+          const name = t(`groups.${group.id}`);
+          return (
+            <details key={group.id} open={!closed} className="group/nav">
+              {/* biome-ignore lint/a11y/noStaticElementInteractions: a summary is the details' own button */}
+              <summary
+                // As in the sidebar: the click writes the cookie, and the state opens or closes it.
+                onClick={(event) => {
+                  event.preventDefault();
+                  groups.toggle(group.id);
+                }}
+                aria-label={
+                  closed && waiting ? t("sidebar.groupWaiting", { group: name }) : undefined
+                }
+                className={`flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-control px-3 text-[11px] font-semibold uppercase tracking-wide text-muted hover:text-fg [&::-webkit-details-marker]:hidden ${focus}`}
+              >
+                <span className="min-w-0 truncate">{name}</span>
+                {closed && waiting ? (
+                  <span aria-hidden className="size-2 shrink-0 rounded-full bg-accent" />
+                ) : null}
+                <ChevronDown
+                  size={12}
+                  aria-hidden
+                  className="ml-auto shrink-0 transition-transform duration-200 group-open/nav:rotate-180 motion-reduce:transition-none"
+                />
+              </summary>
+              <div className="grid gap-0.5">
+                {group.items.map((item) =>
+                  item.external ? (
+                    <NewTabLink
+                      key={item.href}
+                      href={item.href}
+                      onClick={onNavigate}
+                      className={row}
+                    >
+                      <NavIcon name={item.icon} />
+                      {t(`nav.${item.key}`)}
+                    </NewTabLink>
+                  ) : (
+                    <Link
+                      key={item.href}
+                      href={item.key === "feedback" ? feedbackHref(path) : item.href}
+                      onClick={onNavigate}
+                      aria-current={isCurrent(item, path) ? "page" : undefined}
+                      className={row}
+                    >
+                      <NavIcon name={item.icon} />
+                      {t(`nav.${item.key}`)}
+                      {counts[item.href] ? <NavCount count={counts[item.href] ?? 0} /> : null}
+                    </Link>
+                  ),
+                )}
+              </div>
+            </details>
+          );
+        })}
       </nav>
       <div className="mt-3 grid gap-0.5 border-t border-hairline pt-3">
         <div className="grid gap-0.5 px-3 pb-2">

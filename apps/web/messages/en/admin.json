@@ -497,16 +497,23 @@
       "allActions": "All actions",
       "all": "All {group}",
       "actor": "Actor",
-      "actorPlaceholder": "Email, or system",
+      "actorPlaceholder": "Name, email, or system",
       "from": "From (UTC)",
       "to": "To (UTC)",
-      "apply": "Filter"
+      "apply": "Filter",
+      "workspace": "Workspace",
+      "allWorkspaces": "All workspaces",
+      "deletedWorkspace": "{name} (deleted)",
+      "request": "Request ID",
+      "requestPlaceholder": "01K…"
     },
     "chips": {
       "action": "Action",
       "actor": "Actor",
       "from": "From",
-      "to": "To"
+      "to": "To",
+      "workspace": "Workspace",
+      "request": "Request ID"
     },
     "columns": {
       "time": "Time",
@@ -536,7 +543,25 @@
       "copyJson": "Copy JSON",
       "openUser": "Open the user",
       "openSubmission": "Open the submission",
-      "openItem": "Open the item"
+      "openItem": "Open the item",
+      "requestId": "Request ID",
+      "copyRequestId": "Copy the request ID",
+      "requestEvents": "Show this request’s events",
+      "channel": "Channel",
+      "client": "Client",
+      "outcome": "Outcome",
+      "channels": {
+        "web": "Web app",
+        "api": "API",
+        "scim": "SCIM",
+        "cli": "Command line",
+        "system": "Ronne (a scheduled job)"
+      },
+      "outcomes": {
+        "success": "Success",
+        "failed": "Failed",
+        "denied": "Denied"
+      }
     },
     "sentences": {
       "parts": {
@@ -805,6 +830,10 @@
           "languages": "Changed the languages: {changes}"
         }
       }
+    },
+    "outcome": {
+      "failed": "failed",
+      "denied": "denied"
     }
   },
   "settings": {

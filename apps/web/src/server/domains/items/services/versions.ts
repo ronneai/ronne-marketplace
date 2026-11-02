@@ -65,6 +65,7 @@ const withItem = <T>(
             target,
             metadata: { name: nameOf(ref), ...metadata },
             ipAddress: actor.ip,
+            workspaceId: item.workspaceId,
           },
           at,
         ),

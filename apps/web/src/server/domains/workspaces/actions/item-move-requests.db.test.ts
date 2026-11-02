@@ -256,6 +256,8 @@ describe("asking to move an item, and moving it (134)", () => {
       approvedBy: who.mod.id,
       direct: true,
     });
+    // In the item's workspace, the one it stays in (166).
+    expect((await events("item.moved"))[0]?.workspaceId).toBe(acme);
     // Its versions are untouched: the same row, checksum and tarball.
     const versions = await t.db
       .selectFrom("item_versions")

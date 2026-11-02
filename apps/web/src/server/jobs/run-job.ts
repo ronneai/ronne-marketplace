@@ -4,7 +4,7 @@ import { newId } from "../db/ids";
 import { decodeJson, encodeJson } from "../db/json";
 import type { Database } from "../db/schema";
 import type { DatabaseDialect } from "../db/url";
-import { logger } from "../log";
+import { currentChannel, logger, withChannel } from "../log";
 import { claimLease, releaseLease, renewLease } from "./lease";
 
 /**
@@ -67,7 +67,10 @@ export const runJob = async (
   };
   const started = Date.now();
   try {
-    const counts = await work(renew);
+    // What a job records is the system's (166), unless a terminal command runs it (`purge`: cli).
+    const counts = currentChannel()
+      ? await work(renew)
+      : await withChannel("system", () => work(renew));
     const ms = Date.now() - started;
     const result: JobLastResult = { at: startedAt.toISOString(), ms, status: "ok", counts };
     await releaseLease(db, dialect, name, holder, startedAt, encodeJson(result));

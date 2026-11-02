@@ -1,6 +1,6 @@
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { setRequestUser, withRequestContext } from "./context";
+import { setRequestUser, withChannel, withRequestContext } from "./context";
 import { EVENTS, LOG_LEVELS, type LogLevel } from "./events";
 import { logger, setLoggerForTests } from "./index";
 import {
@@ -162,6 +162,16 @@ describe("the request context", () => {
       ["B", "B"],
       ["A", "A"],
     ]);
+  });
+
+  it("writes no request ID in a context that has only a channel: a job's, a command's (166)", () => {
+    const { log, parsed } = collect();
+    withChannel("system", () => log.info("job"));
+    withRequestContext({ via: "cli" }, () => log.info("command"));
+    withRequestContext({ requestId: "r1", via: "api" }, () =>
+      withChannel("system", () => log.info("x")),
+    );
+    expect(parsed().map((line) => line.requestId)).toEqual([undefined, undefined, "r1"]);
   });
 
   it("can't be overwritten by a field: the request's ID wins", () => {

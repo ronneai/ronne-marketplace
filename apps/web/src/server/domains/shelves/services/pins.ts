@@ -64,6 +64,8 @@ const eventOf = (
     ...(target.workspace === null ? {} : { workspace: target.workspace }),
   },
   ipAddress: actor.ip,
+  // A workspace's shelf (166); root's Start here is the instance's.
+  workspaceId: target.workspace === null ? null : target.id,
 });
 
 /** Pins an item last on the shelf: "exists" when it already is there. */

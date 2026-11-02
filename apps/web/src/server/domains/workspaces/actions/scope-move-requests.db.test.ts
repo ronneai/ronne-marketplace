@@ -190,6 +190,8 @@ describe("asking to move a scope, and moving it (115)", () => {
       items: 1,
       reviewed: 0,
     });
+    // On the audit page it's in the workspace it went to (166); the one it left is in "from".
+    expect((await events("scope.moved"))[0]?.workspaceId).toBe(acme);
   });
 
   it("moves at once into global for its admins, typed; anyone else asks root alone", async () => {
@@ -232,6 +234,8 @@ describe("asking to move a scope, and moving it (115)", () => {
       scope: "@beta/two",
       to: "acme",
     });
+    // Asked while the scope is still in beta: on beta's history (166); "to" names the target.
+    expect((await events("scope.move_requested"))[0]?.workspaceId).toBe(beta);
     // Nobody but acme's admins and root answers it.
     for (const headers of [as.dave, as.bob])
       await expect(approveScopeMove(headers, { moveId: asked.moveId }, app)).rejects.toThrow(
@@ -498,6 +502,12 @@ describe("asking to move a scope, and moving it (115)", () => {
     await cancelScopeMove(as.carol, { moveId: third.moveId }, app);
     expect((await events("scope.move_declined")).length).toBe(1);
     expect((await events("scope.move_cancelled")).length).toBe(2);
+    // Declined and cancelled while it's in beta: on beta's history (166).
+    const unanswered = [
+      ...(await events("scope.move_declined")),
+      ...(await events("scope.move_cancelled")),
+    ];
+    expect(unanswered.map((e) => e.workspaceId)).toEqual([beta, beta, beta]);
     // The message and the reason stay out of the audit log (094's rule).
     expect(JSON.stringify(await events("scope.move_declined"))).not.toContain("Not ours.");
   });
@@ -530,6 +540,7 @@ describe("asking to move a scope, and moving it (115)", () => {
     expect((await events("scope.move_cancelled"))[0]?.metadata).toMatchObject({
       reason: "asker_lost_role",
     });
+    expect((await events("scope.move_cancelled"))[0]?.workspaceId).toBe(beta);
   });
 
   it("renames the scope for a clash, and moves it back where it came from", async () => {

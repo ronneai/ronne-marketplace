@@ -52,15 +52,28 @@ role and the tamper-evident log planned after it (owner, 2026-11-01).
 - **The audit log page** (060):
   - two filters, **Workspace** (every workspace, root sees them all) and **Request ID** (exact);
   - the event's detail shows the request ID (copy button), the channel, the client and the outcome;
-  - a failed or denied event's line is marked as such.
+  - a failed or denied event's line is marked as such;
+  - **people by name** (owner, 2026-11-01, asked during this feature): the actor column, the
+    event sentences and the detail show a person's name (an erased person's pseudonym), with the
+    email on hover and in the detail, since names aren't unique; the actor filter takes a name or
+    an email, so the links that filter by email (a user's page) still work.
 - **The data's lifecycle:**
   - **retention** (102) clears `user_agent` together with `ip_address` after root's period: it's
     personal data in the same way;
   - **erasing a person** (103) clears their events' user agents with their addresses;
   - **a person's data download** (104) includes the five fields of their own events.
-- **A permission inside the audit's own actions.** `appAuditPage` and `appAuditEvent` check
-  `audit.read` themselves, held by root (and by the auditor role planned in M29, 169), instead of
-  relying on the page.
+- **A permission inside the audit's own actions.** `appAuditPage` and `appAuditEvent` (and the
+  Workspace filter's list, `appAuditWorkspaces`) check `audit.read` themselves, held by root (and by
+  the auditor role planned in M29, 169), instead of relying on the page. `audit.read` is the
+  permission 007 named `audit.view`, renamed rather than doubled.
+
+- **The sidebar** (owner, 2026-11-01, asked during this feature; 119's navigation changes):
+  - an **Admin** group, after Tools, for root only, holding Users, Audit log, Settings and
+    Feedback, which leave Governance & reviews;
+  - every group (Discover, Governance & reviews, Tools, Admin) opens and closes from its heading,
+    open at first, each kept per browser in a cookie (as the fold is), in the sidebar and the
+    phone's Menu; a closed group's heading shows a dot when a count waits in it (Decision 4); the
+    folded sidebar shows every link.
 
 **Out** (and where it goes instead):
 - **Exporting the log, and `GET /api/v1/audit`:** 168 (M29).
@@ -91,9 +104,15 @@ authentication group and reading the outcome column shows them at a glance.
   use.
 - **A workspace deleted later:** its events keep `workspace_id` and the name in their metadata. The
   filter offers deleted workspaces by that name ("payments (deleted)").
-- **An event about a scope moved between workspaces** (`scope.moved`): `workspace_id` is the target.
-  The source is in the metadata, as today.
+- **An event about a scope moved between workspaces**: `workspace_id` is where the scope is when it
+  happens: the target for `scope.moved`, the source while the move is asked, declined or cancelled
+  (`scope.move_requested`, `_declined`, `_cancelled`); the metadata names both. An item move stays in
+  its workspace (134).
 - **Very long or binary user agents:** cut and cleaned. An empty one is null.
+- **An erasure finished by another root's Retry** (103): `user.erased` names the root who started it
+  as its actor, so it carries no address or client (they'd be the other root's, and would reach the
+  first root's data download); its request ID and channel are the Retry's. The same root's Retry
+  keeps both, and the retention job's has neither.
 - **Old rows:** "—" for the new fields. The filters simply don't match them.
 
 ## Data
@@ -110,22 +129,28 @@ authentication group and reading the outcome column shows them at a glance.
 - **Privacy** (`privacy#retention`, `privacy#erase`): the client (user agent) is cleared with
   addresses.
 - **Helpers:** the audit page's "What's the request ID?" → `audit#audit`.
+- **Overview** (`overview`): the sidebar's groups, Admin among them, and that they open and close.
 
 ## Acceptance criteria
 
-- [ ] The migration adds the columns and indexes on SQLite, PostgreSQL, MySQL and MariaDB; the guard
+- [x] The migration adds the columns and indexes on SQLite, PostgreSQL, MySQL and MariaDB; the guard
   and migration tests pass.
-- [ ] Every event recorded during a web, API, SCIM, terminal or job run carries the right `via`,
+- [x] Every event recorded during a web, API, SCIM, terminal or job run carries the right `via`,
   and the request's ID and client where there's a request; db tests per channel.
-- [ ] Failure actions record `failed` or `denied`; others `success`.
-- [ ] Every `inWorkspace` action is recorded with its workspace; a guard test fails when one isn't.
-- [ ] The audit page filters by workspace and by request ID, and shows the fields in the detail.
-- [ ] Retention and erasure clear user agents with addresses; the data download includes the
+- [x] Failure actions record `failed` or `denied`; others `success`.
+- [x] Every `inWorkspace` action is recorded with its workspace; a guard test fails when one isn't.
+- [x] The audit page filters by workspace and by request ID, and shows the fields in the detail.
+- [x] Retention and erasure clear user agents with addresses; the data download includes the
   fields.
-- [ ] `appAuditPage` and `appAuditEvent` refuse anyone without `audit.read`.
-- [ ] Every new text is a message in English, Portuguese and French; the audit page passes the
+- [x] `appAuditPage` and `appAuditEvent` refuse anyone without `audit.read`.
+- [x] Every new text is a message in English, Portuguese and French; the audit page passes the
   phone sweep.
-- [ ] The Documentation and MVP §10's `audit_log` row say what the feature does.
+- [x] The sidebar and the phone's Menu have an Admin group, after Tools, for root only, with
+  Users, Audit log, Settings and Feedback.
+- [x] Each group opens and closes from its heading, open at first, kept per browser in a cookie
+  that the sidebar and the Menu share; a closed group shows a dot while a count waits in it; the
+  folded sidebar shows every link.
+- [x] The Documentation and MVP §10's `audit_log` row say what the feature does.
 
 ## Decisions
 
@@ -137,6 +162,11 @@ authentication group and reading the outcome column shows them at a glance.
    filter.
 3. **The user agent is personal data** (Claude). It's cleared with addresses by retention and
    erasure, and it's in the person's download.
+
+4. **The groups remember their state, start open, and a closed one shows a waiting count's dot**
+   (Claude, to confirm). A cookie lets the server render each page as the person left it, with no
+   flash; open at first, so nothing is hidden from someone new; the dot keeps reviews waiting from
+   going unseen behind a closed group.
 
 ## Open questions
 
