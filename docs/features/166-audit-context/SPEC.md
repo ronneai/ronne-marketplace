@@ -133,19 +133,24 @@ authentication group and reading the outcome column shows them at a glance.
 
 ## Acceptance criteria
 
-- [ ] The migration adds the columns and indexes on SQLite, PostgreSQL, MySQL and MariaDB; the guard
+- [x] The migration adds the columns and indexes on SQLite, PostgreSQL, MySQL and MariaDB; the guard
   and migration tests pass.
-- [ ] Every event recorded during a web, API, SCIM, terminal or job run carries the right `via`,
+- [x] Every event recorded during a web, API, SCIM, terminal or job run carries the right `via`,
   and the request's ID and client where there's a request; db tests per channel.
-- [ ] Failure actions record `failed` or `denied`; others `success`.
-- [ ] Every `inWorkspace` action is recorded with its workspace; a guard test fails when one isn't.
-- [ ] The audit page filters by workspace and by request ID, and shows the fields in the detail.
-- [ ] Retention and erasure clear user agents with addresses; the data download includes the
+- [x] Failure actions record `failed` or `denied`; others `success`.
+- [x] Every `inWorkspace` action is recorded with its workspace; a guard test fails when one isn't.
+- [x] The audit page filters by workspace and by request ID, and shows the fields in the detail.
+- [x] Retention and erasure clear user agents with addresses; the data download includes the
   fields.
-- [ ] `appAuditPage` and `appAuditEvent` refuse anyone without `audit.read`.
-- [ ] Every new text is a message in English, Portuguese and French; the audit page passes the
+- [x] `appAuditPage` and `appAuditEvent` refuse anyone without `audit.read`.
+- [x] Every new text is a message in English, Portuguese and French; the audit page passes the
   phone sweep.
-- [ ] The Documentation and MVP §10's `audit_log` row say what the feature does.
+- [x] The sidebar and the phone's Menu have an Admin group, after Tools, for root only, with
+  Users, Audit log, Settings and Feedback.
+- [x] Each group opens and closes from its heading, open at first, kept per browser in a cookie
+  that the sidebar and the Menu share; a closed group shows a dot while a count waits in it; the
+  folded sidebar shows every link.
+- [x] The Documentation and MVP §10's `audit_log` row say what the feature does.
 
 ## Decisions
 

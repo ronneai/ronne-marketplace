@@ -98,7 +98,10 @@ const Filters = ({
           </select>
         </div>
         <div className="grid gap-1.5">
-          <Label htmlFor="request">{t("filters.request")}</Label>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="request">{t("filters.request")}</Label>
+            <Help id="audit-request" />
+          </div>
           <Input
             id="request"
             name="request"

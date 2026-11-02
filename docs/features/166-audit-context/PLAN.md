@@ -62,7 +62,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - Every new key in `en`, `pt` and `fr`.
   - *Done when:* the parity and raw-text tests pass; the phone sweep passes on the audit page.
 
-- [ ] **8. Documentation.**
+- [x] **8. Documentation.**
   - `audit#audit`, `logs`, `privacy#retention`, `privacy#erase`, the helper; MVP §10.
   - *Done when:* the docs render tests and `pnpm docs:links` pass, and the helper lands on a real
     section.

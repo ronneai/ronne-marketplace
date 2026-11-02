@@ -343,6 +343,10 @@
     "question": "Quem posso pesquisar?",
     "answer": "Parte de um nome ou de um e-mail, com maiúsculas ou minúsculas. system encontra eventos sem ninguém conectado, como a configuração e a linha de comando."
   },
+  "audit-request": {
+    "question": "O que é o ID da requisição?",
+    "answer": "O ID da requisição que registrou o evento: está nos detalhes do evento, nas linhas de log do servidor para essa requisição e no cabeçalho X-Request-Id que o navegador ou o rmk recebeu. Cole um aqui para ver tudo o que essa requisição fez."
+  },
   "security-scan": {
     "question": "O que é esta verificação?",
     "answer": "O SkillSpector, da NVIDIA, verificou esta revisão quando ela foi enviada: instruções escondidas, leitura de chaves ou credenciais, envio de dados para fora, código ofuscado, scripts baixados e executados. É uma segunda opinião: pode deixar passar problemas e apontar código seguro. Só bloqueia uma aprovação quando o root define uma pontuação que bloqueia, e aí o root ainda pode abrir uma exceção."

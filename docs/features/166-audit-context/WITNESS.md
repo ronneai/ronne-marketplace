@@ -396,3 +396,46 @@ Witnessed: 2026-11-02 02:20 EST, by a fresh agent (blind). Commit: 4e76cc9e plus
 | 6 | (regression) The sidebar and the Menu show one state across `lg` | no | confirmed | The probe rerun: each follows the other both ways; `/menu` and the sheet agree |
 
 **Overall:** met: the dead click is gone and a test catches it coming back; the server render is covered without JavaScript; row 6 still holds.
+
+## Task 8 — Documentation
+
+Witnessed: 2026-11-02 02:30 EST, by a fresh agent (blind). Commit: 09e775c8 (ronne-marketplace, plus the uncommitted working tree: 7 files) and 6b8d763 (ronne-web origin/main, branch docs/marketplace-166-audit-context, plus the uncommitted working tree: 12 files). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The website's docs render tests, lint and typecheck pass | no | confirmed | ronne-web/www: lint clean, typecheck clean, 193 passed; removing a fr bullet → `docs.test.ts` fails |
+| 2 | `pnpm docs:links` passes | no | confirmed | "Compared 37 topics with the website's." |
+| 3 | The helper "What's the request ID?" sits by the Request ID filter, lands on `audit#audit`, in en, pt and fr | no | confirmed | `AuditLogPage.tsx:101-104`; `Help.tsx:291`; 470 passed; a wrong section or a missing fr key → tests fail |
+| 4 | `audit#audit`: names, email on hover, the erased pseudonym, system/cli | no | confirmed | `AuditLogPage.tsx`, `format.ts`, `user.ts:91`, `summary.ts:82` |
+| 5 | `audit#audit`: failed/denied marked on the line | no | confirmed | Badge when not a success. Remark: `denied` is only `scim.request_refused` |
+| 6 | `audit#audit`: the detail fields | no | confirmed | `EventDetails.tsx:143-172` |
+| 7 | `audit#audit`: what each Channel means | no | partly | Right but the example "the nightly purge": the purge runs 5 minutes after start, then every 6 hours (`scheduler.ts:10-17`) |
+| 8 | "Events recorded before Ronne kept these show '—'" | no | not met | `outcome` defaults to `success` (`0043_audit_context.ts:47`), and the detail shows "Success": only Request ID, Channel and Client show "—" |
+| 9 | `audit#audit`: the Workspace, Request ID and actor filters | no | confirmed | `kysely-audit-repository.ts:102-116,160-178`; `deletedWorkspace` |
+| 10 | `audit#audit`: finding an event's log lines | no | confirmed | `logger.ts:220`, `recordAudit`, `proxy.ts`, `api-route.ts`, `server-action.ts` |
+| 11 | `audit#audit`: workspace events; a scope move's workspace | no | confirmed | `audit-event.ts:182-194`; `scope-moves.ts`. Remark: the list leaves some out (incomplete, not wrong) |
+| 12 | `logs`: an event's request ID ties it to its lines | no | confirmed | The new paragraph, against rows 9-10 |
+| 13 | `privacy#retention`: the client cleared with the address | no | confirmed | `retention-purge.ts:76-104` |
+| 14 | `privacy#erase`: the person's client cleared | no | confirmed | `kysely-audit-rewrite.ts:44-56`; `erase-user.ts:98-101` |
+| 15 | Privacy, the download: the five fields; another's IP and client left out | no | confirmed | `kysely-user-data-repository.ts:495-533` |
+| 16 | `overview`: the groups, open/close, the cookie shared with the Menu, the dot, the folded rail | no | confirmed | `nav.ts`, `Sidebar.tsx`, `nav-groups-cookie.ts`, `useNavGroups.ts`, `MenuList.tsx` |
+| 17 | pt and fr say the same as the English, with the app's labels and typography | no | confirmed | Labels match `admin.json`/`shell.json`; fr spacing; bullet counts match. They carry rows 7 and 8's errors |
+| 18 | MVP §10's `audit_log` row says what 166 does | no | confirmed | `MVP.md:686` "since 166…"; each fact checked |
+| 19 | MVP §15's Personal data row no longer "planned" | no | confirmed | `MVP.md:1010` |
+| 20 | SPEC.md's acceptance criteria gained the sidebar's two | no | confirmed | Matching row 16's code |
+
+**Overall:** not met: the tests, links and helper hold, but the audit page says two things the app doesn't do (rows 7 and 8), in all three languages.
+
+### Re-check (rows 7 and 8)
+
+Witnessed: 2026-11-02 02:36 EST, by a fresh agent (blind). Commit: 09e775c8 (ronne-marketplace, plus its working tree) and 6b8d763 (ronne-web origin/main, branch docs/marketplace-166-audit-context, plus its working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 7 | What each Channel means, with a right scheduled-job example | no | confirmed | en/pt/fr "the retention purge every 6 hours"; `scheduler.ts:11`, `EVERY_MS`; `run-job.ts:71-73` |
+| 8 | Older events show "—" for the request ID, channel and client, and count as a success | no | confirmed | en/pt/fr name the three; `EventDetails.tsx:139,156,158`; `0043_audit_context.ts:47` |
+| 8a | `denied` is for a request refused through SCIM | no | confirmed | en/pt/fr; `audit-event.ts:210` |
+| 17 | pt and fr say the same for these sentences | no | confirmed | Side by side: the same facts and the app's labels; fr typography |
+| 1 | The website's checks still pass | no | confirmed | `pnpm lint` clean; `vitest run src/content/docs src/i18n` → 19 passed |
+
+**Overall:** met: both errors and the wording remark are fixed, and the three languages say what the code does.
