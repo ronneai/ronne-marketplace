@@ -28,7 +28,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* db tests cover web, exchange and device flow for a plain user and a moderator under
     each cap, and the refusal.
 
-- [ ] **4. Shorten.** [risky]
+- [x] **4. Shorten.** [risky]
   - Count the active tokens past each owner's cap; `shortenTokens` sets the earlier expiry in
     batches of 500, in a transaction; audited `access_token.shortened`.
   - *Done when:* db tests cover the count, a mix of owners and caps, already-shorter tokens left

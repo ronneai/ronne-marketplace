@@ -690,7 +690,8 @@
         },
         "access_token": {
           "created": "Created token <name>{label}</name> ({expiry}{how, select, cli {, from rmk login} device {, by browser approval} other {}})",
-          "revoked": "Revoked token <name>{label}</name>{by, select, disable { (account disabled)} root { (by root)} other {}}"
+          "revoked": "Revoked token <name>{label}</name>{by, select, disable { (account disabled)} root { (by root)} other {}}",
+          "shortened": "Shortened {count, plural, one {# access token} other {# access tokens}} to the longest lifetime ({days}; reviewers and root {reviewersDays})"
         },
         "workspace": {
           "created": "Created workspace <name>{label}</name>",

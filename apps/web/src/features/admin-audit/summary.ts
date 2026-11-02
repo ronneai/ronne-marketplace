@@ -295,6 +295,14 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     how: m.via === "cli" ? "cli" : m.via === "device" ? "device" : "other",
   }),
   "access_token.revoked": (m) => ({ label: text(m.name), by: text(m.by) }),
+  // `{ count, days, reviewersDays }`, the caps applied, null for no limit (162).
+  "access_token.shortened": (m, _e, h) => {
+    const cap = (value: AuditMetadataValue | undefined) =>
+      typeof value === "number"
+        ? h.part("tokenPolicy.days", { count: value })
+        : h.part("tokenPolicy.noLimit");
+    return { count: num(m.count), days: cap(m.days), reviewersDays: cap(m.reviewersDays) };
+  },
   "workspace.created": (m, _e, h) => ({ label: h.workspace(m) }),
   "workspace.updated": (m, _e, h) => ({
     change: m.visibility === "private" ? "private" : m.visibility === "public" ? "public" : "other",

@@ -338,6 +338,13 @@ describe("audit summaries (060)", () => {
       "Changed the retention: IP addresses from 90 to 30 days, expired sessions from 90 to 7 days",
     );
     expect(line("settings.retention", {})).toBe("Changed the retention: nothing");
+    // Shorten (162): how many, and the caps applied.
+    expect(line("access_token.shortened", { count: 14, days: 365, reviewersDays: 90 })).toBe(
+      "Shortened 14 access tokens to the longest lifetime (365 days; reviewers and root 90 days)",
+    );
+    expect(line("access_token.shortened", { count: 1, days: null, reviewersDays: 30 })).toBe(
+      "Shortened 1 access token to the longest lifetime (no limit; reviewers and root 30 days)",
+    );
     // The token lifetime policy (162): only what changed, days or no limit.
     expect(
       line("settings.token_policy", {

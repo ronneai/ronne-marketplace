@@ -690,7 +690,8 @@
         },
         "access_token": {
           "created": "Criou o token <name>{label}</name> ({expiry}{how, select, cli {, pelo rmk login} device {, por aprovação no navegador} other {}})",
-          "revoked": "Revogou o token <name>{label}</name>{by, select, disable { (conta desativada)} root { (pelo root)} other {}}"
+          "revoked": "Revogou o token <name>{label}</name>{by, select, disable { (conta desativada)} root { (pelo root)} other {}}",
+          "shortened": "Encurtou {count, plural, one {# token de acesso} other {# tokens de acesso}} para a validade máxima ({days}; revisores e root: {reviewersDays})"
         },
         "workspace": {
           "created": "Criou o espaço de trabalho <name>{label}</name>",

@@ -179,6 +179,10 @@
     "empty": "Revoked token ",
     "rich": "Revoked token @team/tools (by root)"
   },
+  "access_token.shortened": {
+    "empty": "Shortened 0 access tokens to the longest lifetime (no limit; reviewers and root no limit)",
+    "rich": "Shortened 0 access tokens to the longest lifetime (no limit; reviewers and root no limit)"
+  },
   "workspace.created": {
     "empty": "Created workspace a workspace",
     "rich": "Created workspace @team/tools"

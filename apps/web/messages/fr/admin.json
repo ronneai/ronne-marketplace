@@ -690,7 +690,8 @@
         },
         "access_token": {
           "created": "A créé le jeton <name>{label}</name> ({expiry}{how, select, cli {, depuis rmk login} device {, par approbation dans le navigateur} other {}})",
-          "revoked": "A révoqué le jeton <name>{label}</name>{by, select, disable { (compte désactivé)} root { (par root)} other {}}"
+          "revoked": "A révoqué le jeton <name>{label}</name>{by, select, disable { (compte désactivé)} root { (par root)} other {}}",
+          "shortened": "A raccourci {count, plural, one {# jeton d’accès} other {# jetons d’accès}} à la durée maximale ({days}; réviseurs et root : {reviewersDays})"
         },
         "workspace": {
           "created": "A créé l’espace de travail <name>{label}</name>",

@@ -25,7 +25,8 @@ page, and recovering an account ends its tokens with its sessions (owner, 2026-1
   - **Shorten longer tokens**: "14 active tokens last longer than this. Shorten them to it". It
     asks first, then sets each one's expiry to the earlier of its own and now plus the maximum.
   - Audited: `settings.token_policy` (`{ from, to }`) and `access_token.shortened` (`{ count,
-    days }`).
+    days, reviewersDays }`, the two caps applied, null for no limit; one row per Shorten, none when
+    nothing changed).
 - **Enforced wherever a token is made**:
   - `createToken` (Account › Tokens);
   - the password exchange (`POST /api/v1/auth/token`, `rmk login`);

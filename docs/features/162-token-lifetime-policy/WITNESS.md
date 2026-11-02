@@ -170,3 +170,46 @@ Witnessed: 2026-11-01 19:38 EST, by a fresh agent (blind). Commit: cc44bde3 + wo
 | 9 | Done when: db tests cover web, exchange and device flow for a plain user and a moderator under each cap, and the refusal | no | confirmed | 4 task files + probe → 63 passed. M5 (reviewers never above 90) now fails "gives reviewers and root a long or unlimited cap when root allows it". Web: plain under 365, 90, 30, none; moderator and root under 90, 30, 365, none. Exchange: user default/90/365-30/30/none, moderator default/365/30/none. Device: user and moderator under default/30-30/365-30/none. Refusals under 365, 90 and 30 |
 
 **Overall:** met: rows 2, 7 and 9 now hold; with the first pass's other rows every claim is confirmed.
+
+## Task 4 — Shorten
+
+Witnessed: 2026-11-01 19:47 EST, by a fresh agent (blind). Commit: 8adb9501 + working tree (uncommitted diff and the 3 untracked token-policy files). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `countTokensPastPolicy` counts the active tokens that last longer than their owner's cap | no | confirmed | `npx vitest run src/server/domains/identity/services/token-policy.db.test.ts` → 5 passed; 10 seeded tokens, count 5, then 0 after Shorten. M1 (drop `revoked_at is null`) → fails |
+| 2 | A mix of owners and caps: root and reviewers (shared workspace, not personal) get the reviewers' cap, everyone else the general one; "no limit" handled | no | confirmed | Defaults 365/90, `none/none` → 0, `none/30` → only the moderator's, `90/30`. The predicate at `kysely-token-repository.ts:80-100` matches the two-factor coverage at `kysely-identity-repository.ts:332-343`. M3 (all "others") → 4 fail; M9 (personal counts) → 2 fail. Probe: a shared-workspace admin's 100-day token → 90 days |
+| 3 | Shorten uses the cap each owner has today | no | confirmed | Test "reads each owner's cap as it is today" (promoted → 200-day token becomes 90); killed by M3 |
+| 4 | Sets the earlier of the token's own expiry and now + cap; shorter tokens left alone | no | confirmed | `plainWithin` stays 300, `modWithin` 50; null or longer go to 365/90. M2 (compare to `now`) → fails. Probe: exactly at 365 days stays, 1 s past moves. `shortenTo` re-applies the guard (a second safeguard; M8 alone stays green) |
+| 5 | Revoked and expired tokens are ignored; none is revoked | no | confirmed | Expired, revoked-null and revoked-500 keep their dates; revoked ids unchanged. Killed by M1 |
+| 6 | A disabled account's tokens don't count | no | confirmed | Probe: count 3, `disableUser` on one owner → 2; Shorten → `{count: 2}`, the disabled user's token untouched. SQLite, PostgreSQL, MySQL. The task's test has no disabled case |
+| 7 | Writes in batches of 500 | no | confirmed | `token-policy.ts:7` `SHORTEN_BATCH = 500`, sliced at 60-61; the test checks `[500,500,3]` for 1003 tokens but from the imported constant, so M5 (`1000`) stays green |
+| 8 | All batches run in one transaction | no | confirmed | A failure in batch 3 leaves the first token null and no audit row. M4 (no transaction) → fails. Passes on PG, MySQL, MariaDB |
+| 9 | Audited as `access_token.shortened`: one row with actor, IP, instance target and `{count, days, reviewersDays}`, none when nothing changed | no | confirmed | `[root.id, "203.0.113.7", "instance", {count:5, days:365, reviewersDays:90}]`, `{count:1, days:null, reviewersDays:30}`, no row on a second run. M6, M7 → fail |
+| 10 | The action is registered; its sentence exists in en, pt and fr | no | confirmed | `audit-event.ts:54`; `npx vitest run src/i18n src/features/admin-audit` → 24 files, 444 passed |
+| 11 | Count and Shorten are root's only | no | confirmed | Plain user, moderator, no user → `ForbiddenError`, no change, no audit. `requirePermission(…, "settings.manage")` at `token-policy.ts:29,52` |
+| 12 | The db tests pass on PostgreSQL and MySQL (also MariaDB) | no | confirmed | `pnpm test:db:postgres -- src/server/domains/identity/services/token-policy.db.test.ts` → 5 passed; `:mysql` → 5; `:mariadb` → 5 |
+| 13 | SPEC records the audit metadata shape | no | confirmed | `SPEC.md:27-29` |
+
+**Overall:** met: count, owner and cap mix, today's cap, already-shorter, revoked, expired and disabled tokens, one transaction, batching and the audit row hold on SQLite, PostgreSQL, MySQL and MariaDB.
+
+Remarks: the batch test doesn't pin 500 (M5); a Biome warning (`useMathMinMax`) at `kysely-token-repository.ts:78`.
+
+### Adversarial pass
+
+Witnessed: 2026-11-01 19:53 EST, by a fresh agent (adversarial). Commit: 8adb9501 + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `countTokensPastPolicy` and `shortenTokens` are root only | no | confirmed | `token-policy.ts:31,52` `requirePermission(…, "settings.manage")` before any read; `permissions.ts:21` `["root"]`. Test "is root's alone" covers a plain user, a moderator and null, no change and no audit |
+| 2 | Only active tokens count; past the cap means no expiry or one later than now plus the cap | no | confirmed | `kysely-token-repository.ts:69-79`. Probe "ms precision" (NOW with .567 ms, `TZ=America/Sao_Paulo`) on SQLite, PostgreSQL, MySQL, MariaDB: exactly at the cutoff neither counted nor changed, cutoff+1 ms counted. MySQL `datetime(3)`. Mutations (no `revoked_at`, `>`→`>=`, `at(now)`) fail the task test. A disabled owner's unrevoked token would be counted, but disabling revokes tokens (`user-admin.ts:156`) |
+| 3 | The owner's cap by today's roles; a no-limit group left alone | no | confirmed | Probe on 4 dialects: SQL and `coveredBy` agree for root with no memberships (90), admin of `global` (90), moderator only in own personal workspace (365), no personal workspace (365), an unknown role (365). They differ only for a role in another user's personal workspace, which the app refuses (`members.ts:431`, `identity-providers.ts:76`); same rule as the 2FA count's SQL. Mutations (no `owner_id is null`, no root branch) fail |
+| 4 | Earlier of own expiry and now plus the cap; shorter, expired, revoked untouched; nothing revoked | no | confirmed | `shortenTo` guards (`kysely-token-repository.ts:109-118`); the main test asserts all 10 tokens and the revoked set. Probe: reviewers stored 365 under everyone 30 → both 30, root's 200-day token → 30 |
+| 5 | One update per batch of 500, all in one transaction | no | confirmed | `[500,500,3]` for 1003 tokens; a failure in batch 3 changes nothing. Passes on all 4 dialects (500-id IN lists). Mutation (no transaction) → batch test fails |
+| 6 | One audit row `{ count, days, reviewersDays }` when anything changed, none otherwise; the count matches what changed | no | confirmed | `token-policy.ts:61-72`; mutation `if (true)` fails. Concurrency probe (two Shortens at once, 40 tokens) on 4 dialects → `{40}` and `{0}`, audits sum to 40. Gap: returning `ids.length` instead of `numUpdatedRows` passed the task's tests |
+| 7 | The audit page has a sentence in en, pt and fr | no | confirmed | `messages/{en,pt,fr}/admin.json`; `summary.ts:298-305`; 5 test files → 83 passed |
+| 8 | Done when: db tests cover count, mix, shorter, revoked, expired, audit; PostgreSQL and MySQL too | no | confirmed | `token-policy.db.test.ts` → 5 passed on SQLite, PostgreSQL, MySQL and MariaDB |
+
+**Overall:** met: no claim broke on SQLite, PostgreSQL, MySQL or MariaDB, including edge timestamps, concurrent Shortens and time zones; one test gap (a wrong returned count).
+
+After both passes, the implementer pinned the literal 500 in the batch test (the blind pass's remark), added a test that revokes a token between the look-up and the update and expects it not counted (this pass's row 6 gap), and reworded the SQL's comment ("never a personal one"); no code changed. `token-policy.db.test.ts` → 6 passed on SQLite, PostgreSQL and MySQL.

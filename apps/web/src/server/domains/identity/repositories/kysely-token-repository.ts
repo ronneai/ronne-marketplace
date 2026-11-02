@@ -66,6 +66,58 @@ export const kyselyTokenRepository = (
     transaction: (work) =>
       db.transaction().execute((trx) => work(kyselyTokenRepository(trx, dialect))),
 
+    tokensPast: async (cutoff, owners, now) => {
+      const rows = await db
+        .selectFrom("access_tokens")
+        .select("access_tokens.id")
+        .where("access_tokens.revoked_at", "is", null)
+        .where((eb) =>
+          eb.or([
+            eb("access_tokens.expires_at", "is", null),
+            // The later of the two: a token past the cutoff is active too (the cutoff is ahead).
+            eb("access_tokens.expires_at", ">", at(cutoff > now ? cutoff : now)),
+          ]),
+        )
+        .where((eb) => {
+          // Root, or a moderator or admin of a shared workspace: never a personal one (114), as the
+          // two-factor coverage counts them (a role in someone else's can't be given anyway).
+          const reviewer = eb.or([
+            eb.exists(
+              eb
+                .selectFrom("user")
+                .select("user.id")
+                .whereRef("user.id", "=", "access_tokens.user_id")
+                .where("user.role", "=", "root"),
+            ),
+            eb.exists(
+              eb
+                .selectFrom("workspace_members")
+                .innerJoin("workspaces", "workspaces.id", "workspace_members.workspace_id")
+                .select("workspace_members.user_id")
+                .whereRef("workspace_members.user_id", "=", "access_tokens.user_id")
+                .where("workspace_members.role", "in", ["moderator", "admin"])
+                .where("workspaces.owner_id", "is", null),
+            ),
+          ]);
+          return owners === "reviewers" ? reviewer : eb.not(reviewer);
+        })
+        .orderBy("access_tokens.id")
+        .execute();
+      return rows.map((row) => row.id);
+    },
+
+    shortenTo: async (ids, expiresAt) => {
+      if (ids.length === 0) return 0;
+      const result = await db
+        .updateTable("access_tokens")
+        .set({ expires_at: at(expiresAt) })
+        .where("id", "in", [...ids])
+        .where("revoked_at", "is", null)
+        .where((eb) => eb.or([eb("expires_at", "is", null), eb("expires_at", ">", at(expiresAt))]))
+        .executeTakeFirst();
+      return Number(result.numUpdatedRows);
+    },
+
     countActive: async (userId, now) => {
       const row = await active(userId, now)
         .select((eb) => eb.fn.countAll<number | string | bigint>().as("n"))
