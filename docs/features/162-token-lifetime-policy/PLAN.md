@@ -9,7 +9,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 ## Tasks
 
-- [ ] **1. Decision.**
+- [x] **1. Decision.**
   - MVP.md §15's "Access tokens" row says root sets the longest lifetime and recovery revokes
     tokens, and `docs/features/README.md` lists 162 in M28.
   - *Done when:* both say what this spec says, and `pnpm witness:check` passes.
