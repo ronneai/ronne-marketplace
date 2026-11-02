@@ -14,7 +14,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     M28.
   - *Done when:* both say what this spec says, and `pnpm witness:check` passes.
 
-- [ ] **2. Migration.** [risky]
+- [x] **2. Migration.** [risky]
   - The five columns and two indexes, in the shared migration set.
   - `schema.ts`.
   - *Done when:* the migration's db test passes on the three servers (`pnpm test:db:postgres --
@@ -50,9 +50,12 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - The detail's fields with copy.
   - The failed and denied mark.
   - `audit.read` in the matrix and in `appAuditPage` and `appAuditEvent`.
-  - *Done when:* component tests cover the filters, the detail and old rows; db tests cover the
-    filters' queries (keyset with each filter) and a non-root refused by the actions; the audit
-    e2e test filters by workspace.
+  - People by name (owner, during 166): the actor column, the sentences and the detail show the
+    name, the email on hover and in the detail; the actor filter takes a name or an email.
+  - *Done when:* component tests cover the filters, the detail, old rows and names (an erased
+    person, a removed one, none); db tests cover the filters' queries (keyset with each filter, the
+    actor by name and by email) and a non-root refused by the actions; the audit e2e test filters
+    by workspace and reads a name.
 
 - [ ] **7. Messages.**
   - Every new key in `en`, `pt` and `fr`.
@@ -63,7 +66,33 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* the docs render tests and `pnpm docs:links` pass, and the helper lands on a real
     section.
 
+- [ ] **9. An Admin group in the sidebar.**
+  - Owner, 2026-11-01, during 166: Users, Audit log, Settings and Feedback move out of Governance &
+    reviews into a group of their own, **Admin**, after Tools, for root only (the one role those
+    pages are open to). Governance & reviews keeps Reviews, Submissions and Requests. The phone's
+    Menu has the same groups.
+  - *Done when:* the navigation tests list the groups and their links for a member, a moderator and
+    root (no Admin group but for root), the group's name is in en, pt and fr, and the e2e and phone
+    tests that use the sidebar and the Menu pass.
+
+- [ ] **10. Groups that open and close.**
+  - Owner, 2026-11-01, during 166: Discover, Governance & reviews, Tools and Admin each open and
+    close from their heading (`<details>`, so it works without JavaScript), open at first. Each
+    group's state is kept in a cookie per browser, as the fold is (119), so the next page renders
+    the same; the phone's Menu shares it. A closed group's heading shows a dot when one of its
+    links has a count waiting. The folded sidebar has no headings and shows every link.
+  - *Done when:* component tests cover a group closed from the cookie, the toggle writing it, the
+    dot, and the folded sidebar; the e2e tests close a group and see it still closed on the next
+    page, on a desktop and a phone; the phone sweep passes.
+
+Tasks 9 and 10 are built after task 7 and before task 8, so the Documentation covers them.
+
 ## Notes
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+- **`request_id` compares byte for byte** (task 2): `exactString(128)`, so MySQL's default
+  collation doesn't make the exact filter match an ID that differs only in case. `utf8mb4_bin`
+  still pads with spaces, so the Request ID filter (task 6) trims its input and checks it against
+  100's pattern before querying.

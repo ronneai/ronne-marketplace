@@ -137,6 +137,16 @@ export interface AuditLogTable {
   metadata: string;
   ip_address: string | null;
   created_at: Timestamp;
+  /** The request's ID, as its log lines have it (166); null outside a request and on older rows. */
+  request_id: string | null;
+  /** `web`, `api`, `scim`, `cli` or `system` (166); null on older rows. */
+  via: string | null;
+  /** The client's user agent, cut to 256 (166); personal data, cleared with `ip_address`. */
+  user_agent: string | null;
+  /** The workspace the event is about (166); no foreign key: an event outlives its workspace. */
+  workspace_id: string | null;
+  /** `success`, `failed` or `denied` (166), `success` by default and on older rows. */
+  outcome: Generated<string>;
 }
 
 /**

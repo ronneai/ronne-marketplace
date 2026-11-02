@@ -52,7 +52,11 @@ role and the tamper-evident log planned after it (owner, 2026-11-01).
 - **The audit log page** (060):
   - two filters, **Workspace** (every workspace, root sees them all) and **Request ID** (exact);
   - the event's detail shows the request ID (copy button), the channel, the client and the outcome;
-  - a failed or denied event's line is marked as such.
+  - a failed or denied event's line is marked as such;
+  - **people by name** (owner, 2026-11-01, asked during this feature): the actor column, the
+    event sentences and the detail show a person's name (an erased person's pseudonym), with the
+    email on hover and in the detail, since names aren't unique; the actor filter takes a name or
+    an email, so the links that filter by email (a user's page) still work.
 - **The data's lifecycle:**
   - **retention** (102) clears `user_agent` together with `ip_address` after root's period: it's
     personal data in the same way;
@@ -61,6 +65,14 @@ role and the tamper-evident log planned after it (owner, 2026-11-01).
 - **A permission inside the audit's own actions.** `appAuditPage` and `appAuditEvent` check
   `audit.read` themselves, held by root (and by the auditor role planned in M29, 169), instead of
   relying on the page.
+
+- **The sidebar** (owner, 2026-11-01, asked during this feature; 119's navigation changes):
+  - an **Admin** group, after Tools, for root only, holding Users, Audit log, Settings and
+    Feedback, which leave Governance & reviews;
+  - every group (Discover, Governance & reviews, Tools, Admin) opens and closes from its heading,
+    open at first, each kept per browser in a cookie (as the fold is), in the sidebar and the
+    phone's Menu; a closed group's heading shows a dot when a count waits in it (Decision 4); the
+    folded sidebar shows every link.
 
 **Out** (and where it goes instead):
 - **Exporting the log, and `GET /api/v1/audit`:** 168 (M29).
@@ -110,6 +122,7 @@ authentication group and reading the outcome column shows them at a glance.
 - **Privacy** (`privacy#retention`, `privacy#erase`): the client (user agent) is cleared with
   addresses.
 - **Helpers:** the audit page's "What's the request ID?" → `audit#audit`.
+- **Overview** (`overview`): the sidebar's groups, Admin among them, and that they open and close.
 
 ## Acceptance criteria
 
@@ -137,6 +150,11 @@ authentication group and reading the outcome column shows them at a glance.
    filter.
 3. **The user agent is personal data** (Claude). It's cleared with addresses by retention and
    erasure, and it's in the person's download.
+
+4. **The groups remember their state, start open, and a closed one shows a waiting count's dot**
+   (Claude, to confirm). A cookie lets the server render each page as the person left it, with no
+   flash; open at first, so nothing is hidden from someone new; the dot keeps reviews waiting from
+   going unseen behind a closed group.
 
 ## Open questions
 
