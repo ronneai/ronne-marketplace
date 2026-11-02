@@ -238,6 +238,8 @@ test("scans a skill, blocks approval at the threshold, marks a false positive, a
     await second.getByRole("button", { name: "Accept the risk" }).click();
     await accept.getByLabel("Why is the risk acceptable?").fill("It names the file in its docs.");
     await accept.getByRole("button", { name: "Accept the risk" }).click();
+    // As above: saved before the Status filter is opened to count it.
+    await expect(second.getByText("Risk accepted by Sam Root")).toBeVisible();
     await findings.getByRole("button", { name: "Status" }).click();
     await expect(
       page.getByRole("dialog", { name: "Status" }).getByLabel("Marked (2)"),
