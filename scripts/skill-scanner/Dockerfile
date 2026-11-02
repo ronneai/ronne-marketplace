@@ -7,13 +7,13 @@
 # in the image, which the wrapper runs with --entrypoint skillspector.
 FROM ghcr.io/astral-sh/uv:0.13.6@sha256:af22a52f5eafef3d78e551599d405c02df61919d18028f0cea8eda93bc9986d0 AS uv
 
-FROM python:3.12-slim-bookworm@sha256:8a7e7cc04fd3e2bd787f7f24e22d5d119aa590d429b50c95dfe12b3abe52f48b AS builder
+FROM python:3.12-slim-bookworm@sha256:e697c81897302a4c4333bade000d98038fbb21eb064f8ee1fd42d02ebcd9d337 AS builder
 COPY --from=uv /uv /usr/local/bin/uv
 ADD https://github.com/NVIDIA/SkillSpector.git#abd82935b67f765a9541013c0866c6349251dcdf /app
 WORKDIR /app
 RUN uv sync --frozen --no-dev --no-editable --python /usr/local/bin/python3
 
-FROM python:3.12-slim-bookworm@sha256:8a7e7cc04fd3e2bd787f7f24e22d5d119aa590d429b50c95dfe12b3abe52f48b
+FROM python:3.12-slim-bookworm@sha256:e697c81897302a4c4333bade000d98038fbb21eb064f8ee1fd42d02ebcd9d337
 RUN useradd --uid 10001 --no-create-home --home-dir /tmp --shell /usr/sbin/nologin scanner
 COPY --from=builder /app/.venv /app/.venv
 COPY scan-service.py /app/scan-service.py
