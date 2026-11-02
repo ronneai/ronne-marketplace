@@ -58,7 +58,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     actor by name and by email) and a non-root refused by the actions; the audit e2e test filters
     by workspace and reads a name.
 
-- [ ] **7. Messages.**
+- [x] **7. Messages.**
   - Every new key in `en`, `pt` and `fr`.
   - *Done when:* the parity and raw-text tests pass; the phone sweep passes on the audit page.
 

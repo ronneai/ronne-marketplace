@@ -497,7 +497,7 @@
       "allActions": "Toutes les actions",
       "all": "Toutes : {group}",
       "actor": "Auteur",
-      "actorPlaceholder": "Nom, courriel, ou system",
+      "actorPlaceholder": "Nom, courriel ou system",
       "from": "Du (UTC)",
       "to": "Au (UTC)",
       "apply": "Filtrer",
@@ -551,7 +551,7 @@
       "client": "Client",
       "outcome": "Résultat",
       "channels": {
-        "web": "Application Web",
+        "web": "Application web",
         "api": "API",
         "scim": "SCIM",
         "cli": "Ligne de commande",

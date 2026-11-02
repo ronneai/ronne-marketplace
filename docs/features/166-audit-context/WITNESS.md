@@ -282,3 +282,32 @@ Witnessed: 2026-11-02 01:17 EST, by a fresh agent (blind). Commit: df1a8a6b plus
 | 15 | Component tests cover the filters, the detail, old rows and names | no | confirmed | `src/features/admin-audit` → 68 passed; mutations C1–C6, C8 each fail a test |
 
 **Overall:** met: all 15 claims hold on SQLite, PostgreSQL, MySQL and MariaDB and in the e2e run, and the tests catch the mutations tried. Remarks: on MySQL a hand-typed lowercase workspace id matches (the filter is a select); the shared chip lowercases "Request ID".
+
+## Task 7 — Messages
+
+Witnessed: 2026-11-02 01:40 EST, by a fresh agent (blind). Commit: b7fa716f (+ working tree: e2e/pages.ts, translations.test.tsx, i18n.md). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Every new key is in en, pt and fr with the same ICU placeholders | no | confirmed | `git diff 4e11d0b6 -- apps/web/messages` → the same change in each language; removing a pt key or renaming a fr placeholder → the parity test fails |
+| 2 | The parity and raw-text tests pass | no | confirmed | `vitest run src/i18n src/features/admin-audit src/app/pages-coverage.test.ts` → 455 passed; `biome lint` → no errors |
+| 3 | No raw text in the components | no | confirmed | Every new word goes through `t(...)`; raw JSX text → lint fails. Note: a raw `term=` attribute isn't in the lint rule's list, but the translations test catches it |
+| 4 | The same-as-English entries are justified | no | confirmed | "01K…", API, SCIM, fr "Client"; removing one → the untranslated test fails. Remark: a stale entry isn't caught (the test's design) |
+| 5 | The new text follows the glossary and the typography | no | partly | Apostrophes and colons right; "requisição"/"requête" match. But fr `channels.web` "Application Web" against "l’application web" elsewhere, and the glossary row says "Web" |
+| 6 | The area's tests cover the new text in three languages | no | partly | The 166 blocks check filters, chips, marks, the detail; mutations fail them. Gap: `t("outcomes.success")` → "Success" passes every test |
+| 7 | The phone sweep passes on the audit page in en, pt and fr | no | confirmed | `--project phone -g "as root\|scrolls sideways"` → 6 passed; no audit line in the overflow reports |
+| 8 | The same on phone-webkit | no | confirmed | 6 passed; no audit line |
+| 9 | The sweep visits the filtered audit page | no | confirmed | `e2e/pages.ts:170-178`; the touch-target reports list that URL in all three languages |
+
+**Overall:** not met: the French "Application Web" differs from "l’application web" elsewhere, and "Success" has no test in pt/fr (rows 5 and 6). Optional: the fr placeholder's serial comma.
+
+### Re-check (rows 5 and 6)
+
+Witnessed: 2026-11-02 01:52 EST, by a fresh agent (blind). Commit: b7fa716f (+ working tree: fr/admin.json, translations.test.tsx, i18n.md, e2e/pages.ts). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 5 | The new text follows the glossary and the typography | no | confirmed | fr `channels.web` "Application web", matching fr/admin.json:159, :181 and i18n.md:203; fr placeholder "Nom, courriel ou system"; putting either back fails a test |
+| 6 | The area's tests cover the new text in three languages | no | confirmed | `translations.test.tsx:287-295` checks Success/Sucesso/Réussite; the "Success" probe now fails; 455 passed |
+
+**Overall:** met: the French wording matches the app and the glossary, and the success word is tested in all three languages.
