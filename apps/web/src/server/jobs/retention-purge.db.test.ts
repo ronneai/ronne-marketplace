@@ -49,6 +49,8 @@ const auditEvent = async (
   fields: {
     action?: string;
     ip?: string | null;
+    /** The client (166); none by default. */
+    userAgent?: string | null;
     metadata?: Record<string, unknown>;
     /** A chosen id, for a test about the order of ids. */
     id?: string;
@@ -65,6 +67,7 @@ const auditEvent = async (
       target_id: null,
       metadata: JSON.stringify(fields.metadata ?? {}),
       ip_address: fields.ip === undefined ? "203.0.113.7" : fields.ip,
+      user_agent: fields.userAgent ?? null,
       created_at: at(createdAt),
     })
     .execute();
@@ -120,7 +123,7 @@ const grant = async (
 const auditRow = (id: string) =>
   t.db
     .selectFrom("audit_log")
-    .select(["ip_address", "metadata"])
+    .select(["ip_address", "user_agent", "metadata", "request_id", "via", "outcome"])
     .where("id", "=", id)
     .executeTakeFirstOrThrow();
 const sessionRow = (id: string) =>
@@ -439,6 +442,44 @@ describe("the retention purge (102)", () => {
         reason: "invalid",
       });
     expect((await runRetentionPurge(t.db, t.dialect, POLICY, NOW)).emailsCleared).toBe(0);
+  });
+});
+
+describe("the client, with the address (166)", () => {
+  it("clears an old event's user agent with its IP address, even when it has no address", async () => {
+    const both = await auditEvent(OUTSIDE_IP, { userAgent: "rmk/1.0" });
+    const clientOnly = await auditEvent(OUTSIDE_IP, { ip: null, userAgent: "Mozilla/5.0" });
+    const recent = await auditEvent(INSIDE_IP, { userAgent: "rmk/1.0" });
+    const atCutoff = await auditEvent(IP_CUTOFF, { userAgent: "rmk/1.0" });
+    // A dry run counts the rows either is on, and changes nothing.
+    expect(
+      (await runRetentionPurge(t.db, t.dialect, POLICY, NOW, { dryRun: true })).ipsCleared.auditLog,
+    ).toBe(2);
+    expect((await auditRow(clientOnly)).user_agent).toBe("Mozilla/5.0");
+    expect((await runRetentionPurge(t.db, t.dialect, POLICY, NOW)).ipsCleared.auditLog).toBe(2);
+    expect(await auditRow(both)).toMatchObject({ ip_address: null, user_agent: null });
+    expect(await auditRow(clientOnly)).toMatchObject({ ip_address: null, user_agent: null });
+    for (const kept of [recent, atCutoff])
+      expect(await auditRow(kept)).toMatchObject({
+        ip_address: "203.0.113.7",
+        user_agent: "rmk/1.0",
+      });
+    // Nothing else about where it came from goes: the request, the channel, the outcome.
+    await t.db
+      .updateTable("audit_log")
+      .set({ request_id: "01K9REQ", via: "api", user_agent: "rmk/1.0", ip_address: "203.0.113.7" })
+      .where("id", "=", both)
+      .execute();
+    await runRetentionPurge(t.db, t.dialect, POLICY, NOW);
+    expect(await auditRow(both)).toMatchObject({
+      ip_address: null,
+      user_agent: null,
+      request_id: "01K9REQ",
+      via: "api",
+      outcome: "success",
+    });
+    // Run again: nothing left to clear.
+    expect((await runRetentionPurge(t.db, t.dialect, POLICY, NOW)).ipsCleared.auditLog).toBe(0);
   });
 });
 

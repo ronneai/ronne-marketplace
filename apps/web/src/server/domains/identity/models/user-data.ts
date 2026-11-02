@@ -158,6 +158,13 @@ export type UserDataAuditEvent = {
   as: "actor" | "target";
   target: { type: string; id: string | null };
   ipAddress: string | null;
+  /** What it came from (166): the request, the channel, and the client (null as `ipAddress` is). */
+  requestId: string | null;
+  via: string | null;
+  userAgent: string | null;
+  /** The workspace it is about (166), when it's about one. */
+  workspaceId: string | null;
+  outcome: string;
   metadata: AuditMetadata;
 };
 

@@ -502,6 +502,11 @@ export const kyselyUserDataRepository = (
           "target_type",
           "target_id",
           "ip_address",
+          "request_id",
+          "via",
+          "user_agent",
+          "workspace_id",
+          "outcome",
           "metadata",
         ])
         .where((eb) =>
@@ -519,8 +524,13 @@ export const kyselyUserDataRepository = (
         action: row.action,
         as: row.actor_id === userId ? ("actor" as const) : ("target" as const),
         target: { type: row.target_type, id: row.target_id },
-        // The address of whoever else acted on the person is theirs, not the person's.
+        // The address and client of whoever else acted on the person are theirs, not the person's.
         ipAddress: row.actor_id === userId ? row.ip_address : null,
+        requestId: row.request_id,
+        via: row.via,
+        userAgent: row.actor_id === userId ? row.user_agent : null,
+        workspaceId: row.workspace_id,
+        outcome: row.outcome,
         metadata: decodeJson<AuditMetadata>(row.metadata),
       }));
     },

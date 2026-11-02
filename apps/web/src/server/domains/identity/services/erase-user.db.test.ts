@@ -4,7 +4,8 @@ import { toDbBoolean, toDbDate } from "../../../db/dates";
 import { newId } from "../../../db/ids";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
 import { runRetentionJob } from "../../../jobs/retention-job";
-import { listAuditEvents } from "../../audit/actions/audit";
+import { withRequestContext } from "../../../log";
+import { listAuditEvents, recordAudit } from "../../audit/actions/audit";
 import { kyselyFeedbackRepository } from "../../feedback/repositories/kysely-feedback-repository";
 import { kyselyItemRepository } from "../../items/repositories/kysely-item-repository";
 import { kyselyScopeRepository } from "../../items/repositories/kysely-scope-repository";
@@ -40,6 +41,7 @@ import type { EraseRepository } from "../repositories/erase-repository";
 import { kyselyEraseRepository } from "../repositories/kysely-erase-repository";
 import { kyselyScimUserRepository } from "../repositories/kysely-scim-user-repository";
 import { kyselySsoRepository } from "../repositories/kysely-sso-repository";
+import { kyselyUserDataRepository } from "../repositories/kysely-user-data-repository";
 import { cookieHeaders, createTestUser, setWorkspaceRole, testAppAuth } from "../testing/test-auth";
 import { eraseUser, finishErasures } from "./erase-user";
 
@@ -87,6 +89,16 @@ const rows = async (table: string, column: string, value: string) =>
 const userRow = (id: string) =>
   t.db.selectFrom("user").selectAll().where("id", "=", id).executeTakeFirstOrThrow();
 const events = async () => (await listAuditEvents(t.db, t.dialect, { size: 500 })).events;
+
+/** Every event so far gets a client (166): the services record none outside a request. */
+const withClients = () =>
+  t.db.updateTable("audit_log").set({ user_agent: "Mozilla/5.0" }).execute();
+const hers = (
+  id: string,
+  e: { action: string; actorId: string | null; targetType: string; targetId: string | null },
+) =>
+  e.action !== "user.erased" &&
+  (e.actorId === id || (e.targetType === "user" && e.targetId === id));
 
 const insertProvider = async (id: string) => {
   await t.db
@@ -414,8 +426,20 @@ describe("eraseUser (103)", () => {
       { email: "sub-ana@example.com", name: "Sub", role: "user", password },
       app,
     );
+    // One of hers with a client and no address (166): most events are recorded without one.
+    await recordAudit(t.db, t.dialect, {
+      actorId: ana.id,
+      action: "submission.submitted",
+      target: { type: "submission", id: "client-only" },
+      workspaceId: GLOBAL_WORKSPACE_ID,
+    });
+    await withClients();
     const before = await events();
     expect(before.some((e) => e.ipAddress === IP && e.actorId === ana.id)).toBe(true);
+    expect(before.find((e) => e.targetId === "client-only")).toMatchObject({
+      ipAddress: null,
+      userAgent: "Mozilla/5.0",
+    });
     expect(before.some((e) => JSON.stringify(e.metadata).includes("ana@example.com"))).toBe(true);
 
     // Her notifications: the two seeded here, and the ones the services wrote for her on the way.
@@ -520,6 +544,18 @@ describe("eraseUser (103)", () => {
     expect(after.filter((e) => e.actorId !== ana.id && e.ipAddress === IP).length).toBeGreaterThan(
       0,
     );
+    // Her events' clients go with their addresses (166), on an event without one too; everyone
+    // else's stay.
+    expect(after.find((e) => e.targetId === "client-only")?.userAgent).toBeNull();
+    expect(after.filter((e) => hers(ana.id, e)).map((e) => e.userAgent)).not.toContain(
+      "Mozilla/5.0",
+    );
+    expect(after.filter((e) => hers(ana.id, e)).length).toBeGreaterThan(0);
+    // Every event that was there before and isn't hers keeps its client (the erasure's own are new).
+    const others = new Set(before.filter((e) => !hers(ana.id, e)).map((e) => e.id));
+    const kept = after.filter((e) => others.has(e.id));
+    expect(kept.length).toBeGreaterThan(0);
+    expect(kept.every((e) => e.userAgent === "Mozilla/5.0")).toBe(true);
     expect(after.some((e) => JSON.stringify(e.metadata).includes('"ana@example.com"'))).toBe(false);
     const created = after.filter((e) => e.action === "user.created");
     expect(created.map((e) => e.metadata.email).sort()).toEqual(
@@ -813,6 +849,7 @@ describe("an erasure whose rewrite is interrupted after the commit (103, MySQL)"
         { email: "ana@example.com", password: "wrong password here", rememberMe: false },
         app,
       );
+    await withClients();
     await expect(
       eraseUser(
         { repo: failingOnce(), rewriteBatch: 2, rewriteAfterCommit: true },
@@ -823,6 +860,10 @@ describe("an erasure whose rewrite is interrupted after the commit (103, MySQL)"
     // The row is the pseudonym already, the rewrite is partly done, and the event isn't recorded.
     expect(await userRow(ana.id)).toMatchObject({ email: erasedEmail(ana.id) });
     expect((await events()).filter((e) => e.action === "user.erased")).toEqual([]);
+    // Her clients went in the main step, with her addresses (166), before the rewrite after it.
+    const mine = (await events()).filter((e) => hers(ana.id, e));
+    expect(mine.length).toBeGreaterThan(0);
+    expect(mine.every((e) => e.userAgent === null && e.ipAddress === null)).toBe(true);
     expect(await adminPendingErasures(asRoot, app)).toMatchObject([{ userId: ana.id }]);
     return ana.id;
   };
@@ -836,6 +877,53 @@ describe("an erasure whose rewrite is interrupted after the commit (103, MySQL)"
     expect(erased[0]).toMatchObject({ targetId: id, metadata: { via, eventsRewritten: 4 } });
     expect(await adminPendingErasures(asRoot, app)).toEqual([]);
   };
+
+  it("keeps the address and client of the root who started it, when they retry (166)", async () => {
+    await interrupted();
+    const asSame = new Headers(asRoot);
+    asSame.set("x-forwarded-for", "198.51.100.1");
+    await withRequestContext(
+      { requestId: "01K9REQA", via: "web", userAgent: "RootA-browser" },
+      () => adminRetryErasures(asSame, app),
+    );
+    expect((await events()).find((e) => e.action === "user.erased")).toMatchObject({
+      actorId: rootId,
+      ipAddress: "198.51.100.1",
+      userAgent: "RootA-browser",
+      requestId: "01K9REQA",
+    });
+  });
+
+  it("keeps another root's address and client off the event their Retry records (166)", async () => {
+    await interrupted();
+    await adminCreateUser(
+      asRoot,
+      { email: "second@example.com", name: "Second", role: "root", password },
+      app,
+    );
+    const asSecond = await signedIn("second@example.com");
+    asSecond.set("x-forwarded-for", "198.51.100.2");
+    await withRequestContext(
+      { requestId: "01K9REQB", via: "web", userAgent: "RootB-browser" },
+      () => adminRetryErasures(asSecond, app),
+    );
+    // The first root's act, as 103 records it; the request that finished it is named, not its
+    // address or browser, which are the second root's.
+    expect((await events()).find((e) => e.action === "user.erased")).toMatchObject({
+      actorId: rootId,
+      ipAddress: null,
+      userAgent: null,
+      requestId: "01K9REQB",
+      via: "web",
+      metadata: { via: "retry" },
+    });
+    // So the first root's own data download holds nothing of the second's.
+    const mine = JSON.stringify(
+      await kyselyUserDataRepository(t.db, t.dialect).auditEvents(rootId, 1000),
+    );
+    expect(mine).not.toContain("RootB-browser");
+    expect(mine).not.toContain("198.51.100.2");
+  });
 
   it("is finished by the Privacy tab's Retry, once", async () => {
     const id = await interrupted();

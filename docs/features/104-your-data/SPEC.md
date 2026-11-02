@@ -66,7 +66,8 @@ session (`proxy.ts`), never a token. The shape, `version: 1`:
   "comments": [{ "submission": "@team/x", "workspace": "…", "kind": "comment", "body": "…", "createdAt": "…" }],
   "auditEvents": [{ "at": "…", "action": "version.published", "as": "actor",
                     "target": { "type": "item_version", "id": "…" }, "ipAddress": null,
-                    "metadata": { … } }]
+                    "requestId": "…", "via": "api", "userAgent": "rmk/…", "workspaceId": "…",
+                    "outcome": "success", "metadata": { … } }]
 }
 ```
 
@@ -85,7 +86,9 @@ memberships. `auditEvents` holds the events where the person is the actor or the
 their metadata as stored (after 102's and 103's clearing; an event about another person names
 that person only by id, since metadata emails of others aren't the exporter's data: every address
 that isn't the person's, in values and keys at any depth, is replaced by `[other]`; and the
-`ipAddress` of an event someone else did to the person is null, since it is that other person's).
+`ipAddress` of an event someone else did to the person is null, since it is that other person's,
+as is its `userAgent`). Since 166 each event also has `requestId`, `via`, `userAgent`,
+`workspaceId` and `outcome`, the version unchanged (fields added, none changed).
 
 ### Limits
 

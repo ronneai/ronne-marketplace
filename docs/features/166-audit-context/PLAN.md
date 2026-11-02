@@ -38,7 +38,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - A guard test: every `inWorkspace` action recorded in the test suite carries a workspace.
   - *Done when:* the guard test passes and the domains' db tests pass.
 
-- [ ] **5. Lifecycle.** [risky]
+- [x] **5. Lifecycle.** [risky]
   - The retention purge clears `user_agent` with `ip_address`.
   - The erasure rewrite clears the person's user agents.
   - The data download includes the fields.

@@ -108,6 +108,10 @@ authentication group and reading the outcome column shows them at a glance.
   (`scope.move_requested`, `_declined`, `_cancelled`); the metadata names both. An item move stays in
   its workspace (134).
 - **Very long or binary user agents:** cut and cleaned. An empty one is null.
+- **An erasure finished by another root's Retry** (103): `user.erased` names the root who started it
+  as its actor, so it carries no address or client (they'd be the other root's, and would reach the
+  first root's data download); its request ID and channel are the Retry's. The same root's Retry
+  keeps both, and the retention job's has neither.
 - **Old rows:** "—" for the new fields. The filters simply don't match them.
 
 ## Data

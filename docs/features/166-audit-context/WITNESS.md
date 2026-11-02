@@ -192,3 +192,69 @@ Witnessed: 2026-11-02 00:36 EST, by a fresh agent (blind). Commit: fb4d314b + wo
 | 7 | The changed test files pass on all four databases | no | confirmed | SQLite → 86 passed, 1 skipped; `pnpm test:db:{postgres,mysql,mariadb}` → 87 passed each |
 
 **Overall:** met: every `scope.move_*` event records where the scope is at the time, and every scope-move and pin action has a test that checks the workspace value and fails when it's wrong; the changed tests pass on all four databases.
+
+## Task 5 — Lifecycle
+
+Witnessed: 2026-11-02 00:47 EST, by a fresh agent (blind). Commit: 04c325d5 + working tree (9 files modified, uncommitted). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Retention clears `user_agent` with `ip_address` on events older than the IP cutoff; newer and at-cutoff events keep both | no | confirmed | `retention-purge.ts:100`; "the client, with the address (166)" passes; M1 (only `ip_address`) → fails |
+| 2 | An old event with a client and no address is cleared too; the dry run counts it; a rerun clears nothing | no | confirmed | `retention-purge.ts:85` (`OR`); the test's `clientOnly`, dry-run 2, rerun 0; M2 (match on `ip_address` only) → fails |
+| 3 | The purge leaves `request_id`, `via`, `outcome` alone | no | confirmed | Same test checks them after a purge |
+| 4 | Erasure clears the person's clients with their addresses; others' kept | no | confirmed | `kysely-audit-rewrite.ts:44-56`, called in the main transaction (`erase-user.ts:181`); M3 (only `ip_address`) → 4 erase tests fail |
+| 5 | The same on MySQL's after-commit path | no | confirmed | The interrupted-rewrite test asserts `userAgent` and `ipAddress` null on her events; fails under M3 |
+| 6 | Erasure clears a client on an event with no address | no | confirmed | Probe `probe-erase-ua.db.test.ts` on SQLite, PG, MySQL, MariaDB: 2 cleared, the other user's kept, 0 on rerun |
+| 7 | The erasure db tests cover claim 6 | no | partly | M4 (`clearAuditIpsOf` matching `ip_address` only) → `erase-user.db.test.ts` still 11/11: no event of hers has a client without an address |
+| 8 | The download has the five fields on the person's events | no | confirmed | `kysely-user-data-repository.ts:505-533`, `models/user-data.ts:161-167`; M6 → the test fails |
+| 9 | On an event someone else did to the person, the download's `userAgent` is null | no | confirmed | `kysely-user-data-repository.ts:531`; M5 → the test fails |
+| 10 | The guard's allowlist covers the new updates; nothing deletes rows | no | confirmed | `audit-log.guard.test.ts` names `user_agent` for both files; passes |
+| 11 | Purge, erasure and download tests pass on PG, MySQL, MariaDB | no | confirmed | `pnpm test:db:{postgres,mysql,mariadb}` → 46 passed each |
+| 12 | 104's spec documents the fields and the null `userAgent` | no | confirmed | The SPEC diff: the example has the five fields, the text says so, version unchanged |
+
+**Overall:** not met: the behaviour holds on all four databases, but no erasure test has an event with a client and no address (row 7). Remark: `setup/purge.ts:18` says "IP addresses cleared", which now counts rows where only a client went (as sessions already did).
+
+### Re-check (row 7)
+
+Witnessed: 2026-11-02 00:57 EST, by a fresh agent (blind). Commit: 04c325d5 + working tree (11 files modified, uncommitted). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 7 | The erasure tests cover an event with a client and no address | no | confirmed | `erase-user.db.test.ts`'s `client-only` event (address null, client set before, null after); M4 → the main erase test fails (it passed 11/11 before) |
+| 13 | Another root's Retry records no address or client on `user.erased`; the same root's keeps both; the job's has neither | no | confirmed | `erase-user.ts` `finish()` (`theirs`); M7 (`theirs = true`) and M8 (client kept) each fail the new test |
+| 14 | The download gives a failed event's outcome | no | confirmed | New test; `outcome` hard-coded `success` → fails |
+| 15 | The erase and export tests pass on all four databases | no | confirmed | SQLite, then `pnpm test:db:{postgres,mysql,mariadb}` → 30 passed each |
+| 16 | SPEC.md has the Retry edge case | no | confirmed | Edge cases: "An erasure finished by another root's Retry (103)", matching the code |
+
+**Overall:** met: the erasure test fails without the client-only condition; the `finish()` change, the failed-outcome test and the edge case hold on all four databases.
+
+### Adversarial pass
+
+Witnessed: 2026-11-02 00:47 EST, by a fresh agent (adversarial). Commit: 04c325d5 + working tree (9 files modified, uncommitted). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Retention clears `user_agent` with `ip_address` (client-only rows too); recent and at-cutoff rows keep both; `request_id`, `via`, `outcome` stay | no | confirmed | `retention-purge.ts:85,100`; M1 and M2 each fail the 166 test |
+| 2 | The purge and erasure tests pass on the three servers | no | confirmed | `pnpm test:db:{postgres,mysql,mariadb}` → 46 passed each |
+| 3 | Erasure clears the person's clients (also without an address), others' kept | no | confirmed | `kysely-audit-rewrite.ts:44-56`; a UA-only probe passes on all four databases; M3 → 4 erase tests fail |
+| 4 | The erasure tests would catch a regression in that clearing | no | partly | M4 (match `ip_address` only) → 11/11 still pass; only the probe fails |
+| 5 | MySQL's after-commit path: clients cleared in the main transaction | no | confirmed | `erase-user.ts:181`; M7 (skip when `afterCommit`) → 3 tests fail; real MySQL and MariaDB take that path and pass |
+| 6 | The download includes the five fields | no | confirmed | `kysely-user-data-repository.ts:505-533`; the 166 export test passes everywhere; 104 SPEC updated |
+| 7 | The download tests pin each field to the row | no | partly | M6, M6b, M6d fail the test; M6c (`outcome` hard-coded `success`) passes all 16 |
+| 8 | Another person's client on a target event is null | no | confirmed | `kysely-user-data-repository.ts:531`; M5 → fails |
+| 9 | No other person's client reaches a person's download | no | not met | A second root's Retry of an interrupted erasure records `user.erased` with the first root as actor and the second root's address, client and request: in the first root's download, on all four databases |
+| 10 | Only the two allowlisted files update `audit_log`; nothing deletes | no | confirmed | `audit-log.guard.test.ts` → 4 passed |
+
+**Overall:** not met: another root's client (and address) reaches a root's download through a Retry (row 9), and two mutations survive the tests (rows 4 and 7).
+
+### Re-check (rows 4, 7 and 9)
+
+Witnessed: 2026-11-02 01:05 EST, by a fresh agent (adversarial). Commit: 04c325d5 + working tree (11 files modified, uncommitted; now includes `erase-user.ts` and the 166 `SPEC.md`). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4 | The erasure tests catch a regression in clearing her clients, events without an address included | yes | confirmed | The `client-only` event; M4 → the main erase test fails (it survived the first pass); the UA-only probe passes on all four databases |
+| 7 | The download tests pin each of the five fields | yes | confirmed | "gives a failed event's outcome as recorded (166)"; M6c → fails (it survived the first pass) |
+| 9 | No other person's client or address reaches a person's download | yes | confirmed | `finish()`'s `theirs`; the "retry by root B" probe now passes; the erase and export files and the probe pass on PG, MySQL, MariaDB (32 each) and SQLite. Mutations `theirs = true`, `by.id !== null`, `false`, the client kept, `ipAddress: by.ip` each fail a test. Remark: root A's download shows root B's `requestId` and `via` on that event, as the SPEC's edge case says |
+
+**Overall:** met: another root's Retry no longer puts their address or client on the first root's `user.erased`, and the mutations that survived the first pass now fail their tests.

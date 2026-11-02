@@ -8,8 +8,8 @@ import type { AuditMetadataValue } from "../models/audit-event";
 /**
  * The one kind of change an erasure (feature 103) makes to the audit log, which is otherwise
  * insert-only (007; this file is on the guard test's allowlist): the events stay, but the person
- * leaves them. Their IP address goes from every event they acted in or were the target of, now
- * rather than at the retention's age (102), and their email, wherever an event's metadata holds
+ * leaves them. Their IP address and client (the user agent, 166) go from every event they acted in
+ * or were the target of, now rather than at the retention's age (102), and their email, wherever an event's metadata holds
  * it as a value (`user.created`, `user.updated`'s relink, `auth.sign_in_failed`, SCIM's), becomes
  * the pseudonym's. Nothing else in a row changes, and no row is ever deleted.
  */
@@ -37,12 +37,15 @@ export type RewriteOptions = {
 
 type Db = Kysely<Database>;
 
-/** Clears `ip_address` on every event the user acted in or was the target of. Returns how many. */
+/**
+ * Clears `ip_address` and `user_agent` (166) on every event the user acted in or was the target
+ * of. Returns how many rows changed.
+ */
 export const clearAuditIpsOf = async (db: Db, userId: string): Promise<number> => {
   const result = await db
     .updateTable("audit_log")
-    .set({ ip_address: null })
-    .where("ip_address", "is not", null)
+    .set({ ip_address: null, user_agent: null })
+    .where((eb) => eb.or([eb("ip_address", "is not", null), eb("user_agent", "is not", null)]))
     .where((eb) =>
       eb.or([
         eb("actor_id", "=", userId),
