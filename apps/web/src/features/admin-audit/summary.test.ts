@@ -16,6 +16,8 @@ const event = (action: string, metadata: AuditEvent["metadata"] = {}, extra = {}
   id: "01K6BZ3W1D8J9Q2R4T6V8X0Y31",
   actorId: null,
   actorEmail: null,
+  actorName: null,
+  targetName: null,
   action,
   targetType: "user",
   targetId: null,

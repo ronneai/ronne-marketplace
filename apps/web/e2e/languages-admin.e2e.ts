@@ -3,6 +3,12 @@ import { loadAll, noEnglish } from "./no-english";
 import { E2E_PASSWORD, E2E_USERS } from "./users";
 
 /**
+ * The Audit log shows people by name (166), and a seeded account is called "Moderator": a name,
+ * which reads as the English role word. Only on the audit page.
+ */
+const PEOPLES_NAMES = ["admin.audit.sentences.parts.roles.moderator", "common.roles.moderator"];
+
+/**
  * Feature 132: Admin speaks the person's language: Users and a user's page, the Audit log and
  * every Settings tab, in Portuguese and French, with none of the English left over (core's and the
  * identity domain's messages, and data, aside). One root of its own signs in once (the sign-in
@@ -80,8 +86,11 @@ for (const [locale, lang] of [
         page.getByRole("heading", { name: word("admin.audit.title"), level: 1 }),
       ).toBeVisible();
       await expect(page.locator("#action")).toBeVisible();
-      await noEnglish(page, lang);
-      // An event's details, in the dialog.
+      await noEnglish(page, lang, PEOPLES_NAMES);
+      // An event's details, in the dialog: the setup's own, the same in every run (the newest
+      // event is another test's, whose machine values, a target type or a metadata key, read as
+      // English words).
+      await page.goto("/admin/audit?action=instance.root_created");
       await page
         .getByRole("link", { name: new RegExp(`^${word("admin.audit.detailsTitle")}`) })
         .first()
@@ -89,7 +98,7 @@ for (const [locale, lang] of [
       await expect(
         page.getByRole("dialog", { name: word("admin.audit.dialog.title") }),
       ).toBeVisible();
-      await noEnglish(page, lang);
+      await noEnglish(page, lang, PEOPLES_NAMES);
       await context.close();
     });
 

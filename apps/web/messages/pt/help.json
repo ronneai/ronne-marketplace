@@ -341,7 +341,7 @@
   },
   "audit-actor": {
     "question": "Quem posso pesquisar?",
-    "answer": "Parte de um e-mail, com maiúsculas ou minúsculas. system encontra eventos sem ninguém conectado, como a configuração e a linha de comando."
+    "answer": "Parte de um nome ou de um e-mail, com maiúsculas ou minúsculas. system encontra eventos sem ninguém conectado, como a configuração e a linha de comando."
   },
   "security-scan": {
     "question": "O que é esta verificação?",

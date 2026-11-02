@@ -1,4 +1,4 @@
-import type { Kysely } from "kysely";
+import { type Kysely, sql } from "kysely";
 import { fromDbDate, toDbDate } from "../../../db/dates";
 import { newId } from "../../../db/ids";
 import { decodeJson } from "../../../db/json";
@@ -6,6 +6,7 @@ import { countCapped, type KeysetSort, paginate, type SortDir } from "../../../d
 import type { Database } from "../../../db/schema";
 import { containsInsensitive } from "../../../db/search";
 import type { DatabaseDialect } from "../../../db/url";
+import { isRequestId } from "../../../log/request-id";
 import {
   type AuditEvent,
   type AuditMetadata,
@@ -19,10 +20,12 @@ const COLUMNS = [
   "audit_log.id",
   "audit_log.actor_id",
   "actor.email as actor_email",
+  "actor.name as actor_name",
   "audit_log.action",
   "audit_log.target_type",
   "audit_log.target_id",
   "target_user.email as target_email",
+  "target_user.name as target_name",
   "audit_log.metadata",
   "audit_log.ip_address",
   "audit_log.created_at",
@@ -43,10 +46,12 @@ type Row = {
   id: string;
   actor_id: string | null;
   actor_email: string | null;
+  actor_name: string | null;
   action: string;
   target_type: string;
   target_id: string | null;
   target_email: string | null;
+  target_name: string | null;
   metadata: string;
   ip_address: string | null;
   created_at: Date | string;
@@ -61,10 +66,12 @@ const toEvent = (row: Row): AuditEvent => ({
   id: row.id,
   actorId: row.actor_id,
   actorEmail: row.actor_email,
+  actorName: row.actor_name,
   action: row.action,
   targetType: row.target_type,
   targetId: row.target_id,
   targetEmail: row.target_email,
+  targetName: row.target_name,
   metadata: decodeJson<AuditMetadata>(row.metadata),
   ipAddress: row.ip_address,
   createdAt: fromDbDate(row.created_at),
@@ -80,7 +87,7 @@ export const kyselyAuditRepository = (
   dialect: DatabaseDialect,
 ): AuditRepository => {
   /** The events matching the filters, with who acted and, for a user target, their email. */
-  const filtered = ({ action, group, actor, from, to }: AuditFilters) => {
+  const filtered = ({ action, group, actor, from, to, workspace, requestId }: AuditFilters) => {
     let query = db
       .selectFrom("audit_log")
       .leftJoin("user as actor", "actor.id", "audit_log.actor_id")
@@ -93,7 +100,20 @@ export const kyselyAuditRepository = (
     // The catalogue's actions for the group: an IN list rather than LIKE, whose `_` is a wildcard.
     if (group) query = query.where("audit_log.action", "in", actionsInGroup(group));
     if (actor === "system") query = query.where("audit_log.actor_id", "is", null);
-    else if (actor) query = query.where(containsInsensitive("actor.email", actor));
+    // By name or email (166): names aren't unique, so a user's page links by email.
+    else if (actor)
+      query = query.where((eb) =>
+        eb.or([
+          containsInsensitive("actor.email", actor),
+          containsInsensitive("actor.name", actor),
+        ]),
+      );
+    if (workspace) query = query.where("audit_log.workspace_id", "=", workspace);
+    // Exact, and only something that could be an ID: MySQL's binary collation still pads spaces.
+    if (requestId !== undefined)
+      query = isRequestId(requestId)
+        ? query.where("audit_log.request_id", "=", requestId)
+        : query.where(sql<boolean>`1 = 0`);
     if (from) query = query.where("audit_log.created_at", ">=", toDbDate(from, dialect));
     if (to) query = query.where("audit_log.created_at", "<", toDbDate(to, dialect));
     return query;
@@ -136,6 +156,27 @@ export const kyselyAuditRepository = (
     },
 
     count: (filters) => countCapped(db, filtered(filters).select("audit_log.id")),
+
+    async workspaces() {
+      const live = await db.selectFrom("workspaces").select(["id", "name"]).execute();
+      const ids = new Set(live.map((w) => w.id));
+      const gone = await db
+        .selectFrom("audit_log")
+        .select(["target_id", "metadata"])
+        .where("action", "=", "workspace.deleted")
+        .where("target_type", "=", "workspace")
+        .execute();
+      const deleted = new Map<string, string>();
+      for (const row of gone) {
+        const name = decodeJson<AuditMetadata>(row.metadata).name;
+        if (row.target_id && !ids.has(row.target_id) && typeof name === "string")
+          deleted.set(row.target_id, name);
+      }
+      return [
+        ...live.map((w) => ({ id: w.id, name: w.name, deleted: false })),
+        ...[...deleted].map(([id, name]) => ({ id, name, deleted: true })),
+      ].sort((a, b) => a.name.localeCompare(b.name) || Number(a.deleted) - Number(b.deleted));
+    },
 
     async findById(id) {
       const row = await filtered({})

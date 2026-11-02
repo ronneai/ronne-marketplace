@@ -24,6 +24,11 @@ const flat = (value: string | Tree, prefix = ""): Record<string, string> =>
  * where it does, so a new one is a decision made here.
  */
 const SAME: Record<string, readonly string[]> = {
+  // 166: a request ID's start, the channels' own names, and a word both share.
+  "audit.filters.requestPlaceholder": ["pt", "fr"],
+  "audit.details.channels.api": ["pt", "fr"],
+  "audit.details.channels.scim": ["pt", "fr"],
+  "audit.details.client": ["fr"],
   // 162: a word both share, and the command's own name.
   "userPage.tokens.status": ["pt"],
   "userPage.tokens.actions": ["fr"],

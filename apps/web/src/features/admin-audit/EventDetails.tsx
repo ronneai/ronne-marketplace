@@ -5,10 +5,12 @@ import type { ReactNode } from "react";
 import { itemPath } from "@/components/catalogue/ItemCard";
 import { Badge } from "@/components/ui/Badge";
 import { CopyableCommand } from "@/components/ui/CopyableCommand";
+import { CopyIconButton } from "@/components/ui/CopyIconButton";
 import { LocalTime } from "@/components/ui/LocalTime";
 import { utcText } from "@/components/ui/time-text";
 import type { AuditEvent } from "@/server/domains/audit/models/audit-event";
 import { actorLabel, detailPairs } from "./format";
+import { AUDIT_LIST } from "./list";
 import { type SummaryPart, useSummarize } from "./summary";
 
 /** A summary's parts: names in bold, codes (tags) in mono. */
@@ -83,7 +85,13 @@ export const EventDetails = ({ event }: { event: AuditEvent }) => {
     ) : (
       <>
         {event.targetType}
-        {event.targetEmail ? ` · ${event.targetEmail}` : ""}
+        {event.targetName?.trim() || event.targetEmail
+          ? ` · ${event.targetName?.trim() || event.targetEmail}`
+          : ""}
+        {/* Names aren't unique (166): the email under the name. */}
+        {event.targetName?.trim() && event.targetEmail ? (
+          <span className="block text-[13px] text-muted">{event.targetEmail}</span>
+        ) : null}
         {event.targetId ? (
           <span className="block font-mono text-xs text-muted">{event.targetId}</span>
         ) : null}
@@ -104,6 +112,9 @@ export const EventDetails = ({ event }: { event: AuditEvent }) => {
         </Row>
         <Row term={t("actor")}>
           {actorLabel(event)}
+          {event.actorId && event.actorName?.trim() && event.actorEmail ? (
+            <span className="block text-[13px] text-muted">{event.actorEmail}</span>
+          ) : null}
           {event.actorId ? (
             <>
               <span className="block font-mono text-xs text-muted">{event.actorId}</span>
@@ -122,6 +133,38 @@ export const EventDetails = ({ event }: { event: AuditEvent }) => {
         <Row term={t("target")}>{target}</Row>
         <Row term={t("ip")}>
           <span className="font-mono text-[13px]">{event.ipAddress ?? "—"}</span>
+        </Row>
+        {/* Where it came from (166); "—" on events from before it was recorded. */}
+        <Row term={t("requestId")}>
+          {event.requestId ? (
+            <>
+              <span className="flex min-w-0 items-center gap-2">
+                <span className="min-w-0 break-all font-mono text-[13px]">{event.requestId}</span>
+                <CopyIconButton command={event.requestId} label={t("copyRequestId")} />
+              </span>
+              <Link
+                href={`${AUDIT_LIST.path}?request=${encodeURIComponent(event.requestId)}`}
+                className={`${linkClass} block text-sm`}
+              >
+                {t("requestEvents")}
+              </Link>
+            </>
+          ) : (
+            "—"
+          )}
+        </Row>
+        <Row term={t("channel")}>{event.via ? t(`channels.${event.via}`) : "—"}</Row>
+        <Row term={t("client")}>
+          <span className="break-all font-mono text-[13px]">{event.userAgent ?? "—"}</span>
+        </Row>
+        <Row term={t("outcome")}>
+          {event.outcome === "success" ? (
+            t("outcomes.success")
+          ) : (
+            <Badge tone={event.outcome === "failed" ? "error" : "warning"}>
+              {t(`outcomes.${event.outcome}`)}
+            </Badge>
+          )}
         </Row>
         <Row term={t("details")}>
           {pairs.length === 0 ? (

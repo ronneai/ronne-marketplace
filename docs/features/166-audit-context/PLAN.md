@@ -46,7 +46,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     included) and the data download tests cover them, on the three servers for the purge and
     erasure.
 
-- [ ] **6. The audit page and its permission.**
+- [x] **6. The audit page and its permission.**
   - The Workspace and Request ID filters (060's URL state).
   - The detail's fields with copy.
   - The failed and denied mark.

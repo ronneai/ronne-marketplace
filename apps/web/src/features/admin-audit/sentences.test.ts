@@ -21,6 +21,8 @@ const event = (action: string, metadata: AuditEvent["metadata"] = {}, extra = {}
   id: "01K6BZ3W1D8J9Q2R4T6V8X0Y31",
   actorId: null,
   actorEmail: null,
+  actorName: null,
+  targetName: null,
   action,
   targetType: "user",
   targetId: "01K6BZ3W1D8J9Q2R4T6V8X0Y30",
@@ -152,7 +154,10 @@ describe("audit sentences in Portuguese and French (132)", () => {
 describe("the English sentences are what they always were (132)", () => {
   // `english-sentences.fixture.json` is the output of the code before the sentences became
   // messages (feature 060's summary.ts), for every action, from an empty event and from `RICH`.
-  // Two differences are deliberate: typographic apostrophes, and numbers grouped by the language.
+  // Three differences are deliberate: typographic apostrophes, numbers grouped by the language, and
+  // (166) the person a user or member event is about named by their account (name, then email)
+  // rather than by the email the event recorded: `user.created`, `user.sso_linked` and the three
+  // `workspace.member_*` read this test event's account, sam@example.com.
   it("reads every action as it did, from nothing recorded and from everything", async () => {
     const fixture = (await import("./english-sentences.fixture.json")).default as Record<
       string,

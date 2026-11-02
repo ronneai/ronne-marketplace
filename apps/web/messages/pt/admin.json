@@ -497,16 +497,23 @@
       "allActions": "Todas as ações",
       "all": "Todas: {group}",
       "actor": "Autor",
-      "actorPlaceholder": "E-mail ou system",
+      "actorPlaceholder": "Nome, e-mail ou system",
       "from": "De (UTC)",
       "to": "Até (UTC)",
-      "apply": "Filtrar"
+      "apply": "Filtrar",
+      "workspace": "Espaço de trabalho",
+      "allWorkspaces": "Todos os espaços de trabalho",
+      "deletedWorkspace": "{name} (excluído)",
+      "request": "ID da requisição",
+      "requestPlaceholder": "01K…"
     },
     "chips": {
       "action": "Ação",
       "actor": "Autor",
       "from": "De",
-      "to": "Até"
+      "to": "Até",
+      "workspace": "Espaço de trabalho",
+      "request": "ID da requisição"
     },
     "columns": {
       "time": "Hora",
@@ -536,7 +543,25 @@
       "copyJson": "Copiar JSON",
       "openUser": "Abrir o usuário",
       "openSubmission": "Abrir a submissão",
-      "openItem": "Abrir o item"
+      "openItem": "Abrir o item",
+      "requestId": "ID da requisição",
+      "copyRequestId": "Copiar o ID da requisição",
+      "requestEvents": "Mostrar os eventos desta requisição",
+      "channel": "Canal",
+      "client": "Cliente",
+      "outcome": "Resultado",
+      "channels": {
+        "web": "Aplicativo web",
+        "api": "API",
+        "scim": "SCIM",
+        "cli": "Linha de comando",
+        "system": "Ronne (uma tarefa agendada)"
+      },
+      "outcomes": {
+        "success": "Sucesso",
+        "failed": "Falhou",
+        "denied": "Negado"
+      }
     },
     "sentences": {
       "parts": {
@@ -805,6 +830,10 @@
           "languages": "Alterou os idiomas: {changes}"
         }
       }
+    },
+    "outcome": {
+      "failed": "falhou",
+      "denied": "negado"
     }
   },
   "settings": {

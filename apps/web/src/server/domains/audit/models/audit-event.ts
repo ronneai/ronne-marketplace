@@ -235,11 +235,15 @@ export type AuditEvent = {
   actorId: string | null;
   /** The actor's email, when the user still exists. */
   actorEmail: string | null;
+  /** The actor's name now (166): an erased person's pseudonym; null without an actor or a row. */
+  actorName: string | null;
   action: string;
   targetType: string;
   targetId: string | null;
   /** A user target's email, when the user still exists, so the log can say who (060). */
   targetEmail: string | null;
+  /** A user target's name now (166), as `actorName`. */
+  targetName: string | null;
   metadata: AuditMetadata;
   ipAddress: string | null;
   createdAt: Date;

@@ -62,9 +62,10 @@ role and the tamper-evident log planned after it (owner, 2026-11-01).
     personal data in the same way;
   - **erasing a person** (103) clears their events' user agents with their addresses;
   - **a person's data download** (104) includes the five fields of their own events.
-- **A permission inside the audit's own actions.** `appAuditPage` and `appAuditEvent` check
-  `audit.read` themselves, held by root (and by the auditor role planned in M29, 169), instead of
-  relying on the page.
+- **A permission inside the audit's own actions.** `appAuditPage` and `appAuditEvent` (and the
+  Workspace filter's list, `appAuditWorkspaces`) check `audit.read` themselves, held by root (and by
+  the auditor role planned in M29, 169), instead of relying on the page. `audit.read` is the
+  permission 007 named `audit.view`, renamed rather than doubled.
 
 - **The sidebar** (owner, 2026-11-01, asked during this feature; 119's navigation changes):
   - an **Admin** group, after Tools, for root only, holding Users, Audit log, Settings and

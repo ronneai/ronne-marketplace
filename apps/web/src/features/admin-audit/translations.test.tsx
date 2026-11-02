@@ -29,6 +29,8 @@ const event = (extra: Partial<AuditEvent> = {}): AuditEvent => ({
   id: ULID,
   actorId: ULID,
   actorEmail: "root@example.com",
+  actorName: "Root",
+  targetName: null,
   action: "auth.signed_in",
   targetType: "user",
   targetId: "01K6BZ3W1D8J9Q2R4T6V8X0Y30",
@@ -183,8 +185,8 @@ describe("the Audit log in three languages (132)", () => {
     expect(item("fr")).toContain("Ouvrir l’utilisateur");
     expect(item("pt")).toContain('aria-label="Copiar JSON"');
     expect(item("fr")).toContain('aria-label="Copier le JSON"');
-    expect(page("pt", [], {})).toContain('placeholder="E-mail ou system"');
-    expect(page("fr", [], {})).toContain('placeholder="Courriel, ou system"');
+    expect(page("pt", [], {})).toContain('placeholder="Nome, e-mail ou system"');
+    expect(page("fr", [], {})).toContain('placeholder="Nom, courriel, ou system"');
     // The dialog is closed by a link inside <noscript> when there is no JavaScript.
     expect(page("pt", [event()], {}, event())).toContain(">Fechar</a>");
     expect(page("fr", [event()], {}, event())).toContain(">Fermer</a>");

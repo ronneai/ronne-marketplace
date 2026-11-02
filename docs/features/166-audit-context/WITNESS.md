@@ -258,3 +258,27 @@ Witnessed: 2026-11-02 01:05 EST, by a fresh agent (adversarial). Commit: 04c325d
 | 9 | No other person's client or address reaches a person's download | yes | confirmed | `finish()`'s `theirs`; the "retry by root B" probe now passes; the erase and export files and the probe pass on PG, MySQL, MariaDB (32 each) and SQLite. Mutations `theirs = true`, `by.id !== null`, `false`, the client kept, `ipAddress: by.ip` each fail a test. Remark: root A's download shows root B's `requestId` and `via` on that event, as the SPEC's edge case says |
 
 **Overall:** met: another root's Retry no longer puts their address or client on the first root's `user.erased`, and the mutations that survived the first pass now fail their tests.
+
+## Task 6 — The audit page and its permission
+
+Witnessed: 2026-11-02 01:17 EST, by a fresh agent (blind). Commit: df1a8a6b plus the working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The Workspace filter is in the URL state and filters the list and the count | no | confirmed | `list.ts`; `kysely-audit-repository.ts:111`; `audit-filters.db.test.ts` 7/7; removing the line → 2 tests fail |
+| 2 | It offers every workspace, and deleted ones as "payments (deleted)" | no | confirmed | `workspaces()` at `kysely-audit-repository.ts:160`; `AuditLogPage.tsx:37`; dropping the deleted ones or the label → a test fails |
+| 3 | The Request ID filter is exact, trimmed, checked against 100's pattern | no | confirmed | `kysely-audit-repository.ts:114`; `log/request-id.ts` shared with `http/request-id.ts`; removing the guard on MySQL → padding test fails; 128/129-char probe on SQLite, PG, MySQL. Remark: the `list.ts` trim is also done by the URL parser, so no test needs it |
+| 4 | Keyset paging works with each filter; the count agrees | no | confirmed | `allPages()` for workspace, request, actor; action-sorted keyset too; `pnpm test:db:{postgres,mysql,mariadb}` → 28/28 each |
+| 5 | The actor filter takes part of a name or an email, any case | no | confirmed | `kysely-audit-repository.ts:104-110`; db test; removing the name branch → fails; help text in en/pt/fr. Remark: accented letters don't fold on SQLite (`db/search.ts`, 092) |
+| 6 | The detail shows the request ID with copy and a link, the channel, the client, the outcome | no | confirmed | `EventDetails.tsx:137-169`; component test; removing the copy button → fails |
+| 7 | Old rows show "—" and no copy button | no | confirmed | "shows — for what an old event didn't record"; mutation → 2 tests fail |
+| 8 | A failed or denied line is marked (red, amber); a success isn't | no | confirmed | `AuditLogPage.tsx:183`; the test counts each; never marking → fails |
+| 9 | `audit.read` is in the matrix (renamed, not doubled) and the page uses it | no | confirmed | `permissions.ts:14`; `audit.view` left only in its comment; `page.tsx:29` |
+| 10 | The three actions refuse anyone without `audit.read` | no | confirmed | `audit-page.ts:20,38,47`; db test (null, user, workspace admin; root passes); removing one → fails |
+| 11 | The actor column: name, email on hover; erased pseudonym; removed id; no name → email; no actor → cli/system | no | confirmed | `AuditLogPage.tsx:169`, `format.ts`; component test covers all five; mutations fail |
+| 12 | The sentences and detail name a user target, the email under it in the detail | no | confirmed | `summary.ts` `who()`; `user.created`, `sso_linked`, `workspace.member_*`; fixture updated; email first → fails; db test returns `actorName`/`targetName` |
+| 13 | New text is in messages in en/pt/fr | no | confirmed | Same keys in all three; `vitest run src/i18n` → 403 passed (4 deliberate `SAME`); biome clean |
+| 14 | The audit e2e filters by workspace and reads a name | no | confirmed | `playwright test e2e/audit.e2e.ts --project chromium` → 2 passed on a current build |
+| 15 | Component tests cover the filters, the detail, old rows and names | no | confirmed | `src/features/admin-audit` → 68 passed; mutations C1–C6, C8 each fail a test |
+
+**Overall:** met: all 15 claims hold on SQLite, PostgreSQL, MySQL and MariaDB and in the e2e run, and the tests catch the mutations tried. Remarks: on MySQL a hand-typed lowercase workspace id matches (the filter is a select); the shared chip lowercases "Request ID".

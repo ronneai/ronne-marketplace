@@ -341,7 +341,7 @@
   },
   "audit-actor": {
     "question": "Qui puis-je rechercher?",
-    "answer": "Une partie d’un courriel, quelle que soit la casse. system trouve les événements sans personne de connecté, comme la configuration et la ligne de commande."
+    "answer": "Une partie d’un nom ou d’un courriel, quelle que soit la casse. system trouve les événements sans personne de connecté, comme la configuration et la ligne de commande."
   },
   "security-scan": {
     "question": "Qu’est-ce que cette analyse?",

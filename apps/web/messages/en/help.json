@@ -341,7 +341,7 @@
   },
   "audit-actor": {
     "question": "Who can I search for?",
-    "answer": "Part of an email, in any case. system finds events with no one signed in, such as the setup and the command line."
+    "answer": "Part of a name or an email, in any case. system finds events with no one signed in, such as the setup and the command line."
   },
   "security-scan": {
     "question": "What is this scan?",

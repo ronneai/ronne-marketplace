@@ -75,9 +75,12 @@ const helpersOf = (say: Say) => {
     return how ? ` ${how}` : "";
   };
 
-  /** Who a user event is about: the target's email, or the one the event recorded. */
+  /**
+   * Who a user event is about (166): the target's name (an erased person's pseudonym), else their
+   * email, else the one the event recorded.
+   */
   const who = (m: Meta, event: AuditEvent): string =>
-    event.targetEmail ?? (text(m.email) || part("fallback.user"));
+    event.targetName?.trim() || event.targetEmail || text(m.email) || part("fallback.user");
   const item = (m: Meta): string => text(m.name) || part("fallback.item");
   const itemVersion = (m: Meta): string =>
     m.version ? `${text(m.name)}@${text(m.version)}` : text(m.name) || part("fallback.version");
@@ -278,14 +281,15 @@ export const SUMMARIES: Record<AuditAction, Build> = {
       ended: list.length ? ` (${list.join(", ")})` : "",
     };
   },
-  "user.created": (m, _e, h) => ({
-    email: text(m.email),
+  // The person by name (166), the `email` placeholder kept: `who` falls back to the address.
+  "user.created": (m, e, h) => ({
+    email: h.who(m, e),
     role: h.word("roles", text(m.role)),
     change: flag(m.changeRequired === true),
     sso: flag(m.via === "sso"),
     provider: text(m.provider),
   }),
-  "user.sso_linked": (m) => ({ email: text(m.email), provider: text(m.provider) }),
+  "user.sso_linked": (m, e, h) => ({ email: h.who(m, e), provider: text(m.provider) }),
   "user.role_changed": (m, e, h) => ({
     who: h.who(m, e),
     from: h.word("roles", text(m.from)),
@@ -335,21 +339,21 @@ export const SUMMARIES: Record<AuditAction, Build> = {
             .filter(Boolean)
             .join(", ")})`,
   }),
-  "workspace.member_added": (m, _e, h) => ({
-    email: text(m.email),
+  "workspace.member_added": (m, e, h) => ({
+    email: h.who(m, e),
     workspace: text(m.workspace),
     role: h.word("roles", text(m.role)),
     ...h.bySso(m),
   }),
-  "workspace.member_role_changed": (m, _e, h) => ({
-    email: text(m.email),
+  "workspace.member_role_changed": (m, e, h) => ({
+    email: h.who(m, e),
     workspace: text(m.workspace),
     from: h.word("roles", text(m.from)),
     to: h.word("roles", text(m.to)),
     ...h.bySso(m),
   }),
-  "workspace.member_removed": (m, _e, h) => ({
-    email: text(m.email),
+  "workspace.member_removed": (m, e, h) => ({
+    email: h.who(m, e),
     workspace: text(m.workspace),
     ...h.bySso(m),
   }),

@@ -10,7 +10,8 @@ export const INSTANCE_PERMISSIONS = {
   "users.view": ["root"],
   /** Create users, change roles, disable, enable and reset passwords. */
   "users.manage": ["root"],
-  "audit.view": ["root"],
+  /** Read the audit log (named `audit.view` until 166); the auditor role joins in M29 (169). */
+  "audit.read": ["root"],
   /** Create workspaces, edit their descriptions and delete empty ones (feature 090). */
   "workspaces.manage": ["root"],
   /** Create scopes and edit their descriptions (feature 010). */

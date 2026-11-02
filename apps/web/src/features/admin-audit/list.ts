@@ -15,10 +15,19 @@ export const AUDIT_LIST = defineList({
   defaultSort: "time",
   sizes: [25, 50, 100],
   defaultSize: 50,
-  filters: { action: "string", actor: "string", from: "day", to: "day" },
+  // `workspace` an id; `request` a request ID (166).
+  filters: {
+    action: "string",
+    actor: "string",
+    workspace: "string",
+    request: "string",
+    from: "day",
+    to: "day",
+  },
 });
 
-export type AuditListState = ListState<"time" | "action", "action" | "actor" | "from" | "to">;
+export type AuditFilterKey = "action" | "actor" | "workspace" | "request" | "from" | "to";
+export type AuditListState = ListState<"time" | "action", AuditFilterKey>;
 
 const isAction = (value: string): value is AuditAction =>
   (AUDIT_ACTIONS as readonly string[]).includes(value);
@@ -48,7 +57,9 @@ const utcDay = (day: string, plusDays = 0): Date | undefined => {
 
 /** The server query for a view: `to` includes its whole day. */
 export const auditQueryOf = (state: AuditListState): AuditQuery => {
-  const { action, actor, from, to } = state.filters;
+  const { action, actor, workspace, request, from, to } = state.filters;
+  // A request ID is trimmed here; the query matches it exactly, and nothing when it can't be one.
+  const requestId = request.trim();
   return {
     sort: state.sort,
     dir: state.dir,
@@ -56,7 +67,9 @@ export const auditQueryOf = (state: AuditListState): AuditQuery => {
     cursor: state.cursor,
     action: isAction(action) ? action : undefined,
     group: groupOf(action),
-    actor: actor || undefined,
+    actor: actor.trim() || undefined,
+    workspace: workspace || undefined,
+    requestId: requestId || undefined,
     from: utcDay(from),
     to: utcDay(to, 1),
   };

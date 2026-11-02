@@ -81,7 +81,7 @@ describe("permissions (091)", () => {
       [
         "access_requests.answer",
         "account.manage_own",
-        "audit.view",
+        "audit.read",
         "feedback.manage",
         "items.move",
         "items.move_ask",

@@ -71,3 +71,4 @@ export const logger: Logger = lazy({});
 export const setLoggerForTests = (options?: LoggerOptions): void => {
   root = options ? createLogger(options) : undefined;
 };
+export { isRequestId } from "./request-id";

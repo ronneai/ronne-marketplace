@@ -1,12 +1,33 @@
 import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
+import { createDb } from "../src/server/db/create-db";
+import { recordAudit } from "../src/server/domains/audit/actions/audit";
+import { GLOBAL_WORKSPACE_ID } from "../src/server/domains/workspaces/models/workspace";
 import type { Instance } from "./harness";
 import { toastWith } from "./toast";
 import { E2E_PASSWORD, E2E_SCOPE, E2E_SKILL, E2E_USERS } from "./users";
 
 // A reader in São Paulo (049): pages show times there, with UTC on hover.
 test.use({ timezoneId: "America/Sao_Paulo" });
+
+const instance: Instance = JSON.parse(process.env.RONNE_E2E_INSTANCE ?? "{}").main;
+
+/** An event in `global` (166), recorded as a service would: the seed records none in a workspace. */
+const recordInGlobal = async (name: string) => {
+  const { db, dialect } = createDb(instance.env.DATABASE_URL ?? "");
+  try {
+    await recordAudit(db, dialect, {
+      actorId: null,
+      action: "scope.updated",
+      target: { type: "scope", id: GLOBAL_WORKSPACE_ID },
+      metadata: { name, from: "Before.", to: "After." },
+      workspaceId: GLOBAL_WORKSPACE_ID,
+    });
+  } finally {
+    await db.destroy();
+  }
+};
 
 const signIn = async (page: Page, email: string) => {
   await page.goto("/sign-in");
@@ -50,9 +71,10 @@ test("root reads the audit log: setup, its own sign-in, and a settings change", 
 
   const rows = page.getByRole("row");
   await expect(rows.filter({ hasText: "instance.root_created" })).toHaveCount(1);
+  // People by name, their email on hover (166): the setup named root "Root".
   await expect(
-    rows.filter({ hasText: "auth.signed_in" }).filter({ hasText: E2E_USERS.root }).first(),
-  ).toBeVisible();
+    rows.filter({ hasText: "auth.signed_in" }).getByTitle(E2E_USERS.root).first(),
+  ).toHaveText("Root");
 
   // One line per event, with a summary (060); the filters apply as they change.
   await expect(rows.filter({ hasText: "Created the first root account" })).toHaveCount(1);
@@ -83,6 +105,19 @@ test("root reads the audit log: setup, its own sign-in, and a settings change", 
   await expect(page).toHaveURL(/actor=system/);
   await expect(rows.filter({ hasText: "auth.signed_in" })).toHaveCount(0);
   await expect(rows.filter({ hasText: "instance.root_created" })).toHaveCount(1);
+  await page.getByRole("link", { name: "Clear", exact: true }).click();
+  await expect(page).toHaveURL(/\/admin\/audit$/);
+
+  // The Workspace filter (166): global's event, and nothing from outside a workspace.
+  await recordInGlobal("e2e-audit-in-global");
+  await page.reload();
+  await page.getByLabel("Workspace", { exact: true }).selectOption({ label: "global" });
+  await expect(page).toHaveURL(/workspace=/);
+  await expect(rows.filter({ hasText: "e2e-audit-in-global" })).toHaveCount(1);
+  await expect(rows.filter({ hasText: "instance.root_created" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Remove the workspace filter" })).toContainText(
+    "global",
+  );
   await page.getByRole("link", { name: "Clear", exact: true }).click();
   await expect(page).toHaveURL(/\/admin\/audit$/);
 
