@@ -25,20 +25,13 @@ const signIn = async (page: Page, email: string, password = E2E_PASSWORD) => {
   await expect(page).not.toHaveURL(/\/sign-in/);
 };
 
-const changePassword = async (
-  page: Page,
-  current: string,
-  next: string,
-  { keepTokens = false } = {},
-) => {
+const changePassword = async (page: Page, current: string, next: string) => {
   secret(next);
   await page.getByLabel("Current password", { exact: true }).fill(current);
   await page.getByLabel("New password", { exact: true }).fill(next);
   await page.getByLabel("Confirm new password", { exact: true }).fill(next);
-  // Ticked by default (162): unticked, the person's tokens keep working.
-  const revoke = page.getByLabel("Also revoke my access tokens");
-  await expect(revoke).toBeChecked();
-  if (keepTokens) await revoke.uncheck();
+  // The page root's request sends people to has no box (162): their tokens are kept.
+  await expect(page.getByLabel("Also revoke my access tokens")).toHaveCount(0);
   await page.getByRole("button", { name: "Change password" }).click();
 };
 
@@ -94,8 +87,7 @@ test("held on the change page, then back to the rmk login code it was held from"
   await page.goto(`/device?user_code=${rmk.code}`);
   await expect(page).toHaveURL(/\/account\/password\?next=%2Fdevice%3Fuser_code/);
   const chosen = `${E2E_PASSWORD} chosen`;
-  // Unticked: this is about the hold, which the change clears; the box is checked elsewhere.
-  await changePassword(page, E2E_PASSWORD, chosen, { keepTokens: true });
+  await changePassword(page, E2E_PASSWORD, chosen);
   await expect(page).toHaveURL(/\/device\?user_code=/);
   await expect(page.getByLabel("Code")).toHaveValue(rmk.code);
   await page.getByRole("button", { name: "Continue" }).click();

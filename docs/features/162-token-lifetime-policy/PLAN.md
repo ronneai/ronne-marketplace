@@ -79,6 +79,16 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     app or its Documentation still names the CLI & tokens page, and the e2e tests that used it
     pass.
 
+- [x] **11. No box on the forced-change page.**
+  - Owner, 2026-11-01, after CI on the pull request: on a phone (WebKit) the box pushed the forced
+    change page's button off screen while a field was focused (`must-change.mobile.e2e.ts`). The
+    page root's request sends people to (128) has no box and keeps their tokens; Account's
+    Password tab keeps the box, ticked.
+  - *Done when:* the form shows the box only without `returnTo`, the forced page's form sends no
+    `revokeTokens` (so the tokens are kept), `must-change.mobile.e2e.ts` passes on phone,
+    phone-webkit and tablet, `password-change.e2e.ts` passes, and the spec, the threat model and
+    `account#signing-in` (en, pt, fr) say so.
+
 ## Notes
 
 Things learned while building that the next person should know. Anything that changes behaviour

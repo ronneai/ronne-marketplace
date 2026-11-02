@@ -422,3 +422,21 @@ Witnessed: 2026-11-01 22:05 EST, by a fresh agent (blind). Commit: 9ce1f2a4 + wo
 | — | The checks still pass | no | confirmed | `pnpm docs:links` → "Compared 37 topics with the website's."; the probe → `[]` |
 
 **Overall:** met: with the first pass's other rows, every claim of task 8 is confirmed.
+
+## Task 11 — No box on the forced-change page
+
+Witnessed: 2026-11-01 22:42 EST, by a fresh agent (blind). Commit: 0fcd5cf0 + working tree; ronne-web 1607e7d + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The form shows the box only when there is no `returnTo` | no | confirmed | `ChangePasswordForm.tsx:79`; `vitest run src/features/account/account.test.tsx` → 17 passed. Mutations: box always shown → the new test fails; flipped to `returnTo !== undefined` → two tests fail |
+| 2 | Only the forced page passes `returnTo`; Account's Password tab keeps the box, ticked | no | confirmed | `password/page.tsx:41` passes `returnTo` only when `passwordChangeRequired` (never undefined there); `:59` without it; the only two uses. `account.test.tsx:107-111` checks `checked=""` |
+| 3 | The forced page's form sends no `revokeTokens`, so the tokens are kept | no | confirmed | `actions.ts:22` → false when missing; `session.ts:215,237` revoke only if not false; `account.test.tsx:114-127` posts with `returnTo` and no box → `revokeTokens: false`. `session.db.test.ts -t token` → 9 passed ("keeps them when I untick it": still authenticates, `tokensRevoked: 0`) |
+| 4 | `must-change.mobile.e2e.ts` passes on phone, phone-webkit and tablet | no | confirmed | `next build` 0; `playwright test e2e/must-change.mobile.e2e.ts` → 1 passed on each, including `onScreen(page, "Change password")` with "New password" focused |
+| 5 | `password-change.e2e.ts` passes | no | confirmed | `--project chromium` → 3 passed; `:34` asserts the forced page has no box |
+| 6 | The spec says so | no | confirmed | `SPEC.md:46-48`; no stale "same box" wording |
+| 7 | The threat model says so | no | confirmed | `threat-model.md:140`: "(on Account; the page root's request sends them to keeps their tokens)" |
+| 8 | `account#signing-in` (en, pt, fr) says so | no | confirmed | ronne-web en:128-129, pt:132-133, fr:147-149, inside `signing-in`; `pnpm test src/content/docs` → 11 passed; lint clean |
+| 9 | "If root reset your password, your older tokens were revoked with it" is true, also when root asks without a reset | no | confirmed | `user-admin.ts:305-323` `resetPassword` revokes in the same transaction; `:341-359` asking without a reset revokes nothing; a new user (`:206`) has no tokens |
+
+**Overall:** met: the box is only on Account's Password tab, ticked; the forced page sends no `revokeTokens` and keeps the tokens; both e2e files pass; the spec, the threat model and `account#signing-in` (en, pt, fr) say so accurately.
