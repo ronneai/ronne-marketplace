@@ -80,8 +80,7 @@ export type NavItem = {
  * listed (feature 032). Catalogue (018) is current on item pages too. Root's Admin pages are
  * links of their own (owner, 2026-10-11), in a group of their own after Tools since 166
  * (owner, 2026-11-01): Governance & reviews keeps Reviews and Submissions; Requests stays in
- * Discover. Documentation opens the
- * website in a new tab (088). Access tokens are a tab of Account (162), not a link of their own.
+ * Discover. Documentation opens the website in a new tab (088). Access tokens are a tab of Account (162), not a link of their own.
  */
 export const NAV: NavItem[] = [
   { href: "/", key: "home", group: "discover", icon: "home" },

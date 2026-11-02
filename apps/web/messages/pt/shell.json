@@ -25,6 +25,7 @@
     "main": "Principal",
     "home": "Início",
     "fold": "Recolher a barra lateral",
+    "groupWaiting": "{group} (há algo aguardando)",
     "unfold": "Expandir a barra lateral",
     "account": "Conta",
     "accountOf": "{name}, sua conta",

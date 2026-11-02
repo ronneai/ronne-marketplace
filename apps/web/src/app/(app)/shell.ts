@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import type { ShellWorkspace } from "@/components/app-shell/nav";
+import { NAV_GROUPS_COOKIE, parseClosedGroups } from "@/components/app-shell/nav-groups-cookie";
 import { parseFolded, SIDEBAR_COOKIE } from "@/components/app-shell/sidebar-cookie";
 import {
   currentFrom,
@@ -39,6 +40,8 @@ export const loadShell = cache(async () => {
   const jar = await cookies();
   const theme = parseTheme(jar.get(THEME_COOKIE)?.value);
   const folded = parseFolded(jar.get(SIDEBAR_COOKIE)?.value);
+  // The navigation's closed groups (166), the sidebar's and the Menu's.
+  const closedGroups = parseClosedGroups(jar.get(NAV_GROUPS_COOKIE)?.value);
   // Reviewers see how many submissions wait for them next to Reviews (feature 014); their own
   // personal workspace (114) makes nobody a reviewer.
   const needsReview = canInSomeShared(user, "submissions.review")
@@ -67,6 +70,7 @@ export const loadShell = cache(async () => {
     user,
     theme,
     folded,
+    closedGroups,
     workspaces,
     current: currentFrom(jar.get(WORKSPACE_COOKIE)?.value, workspaces),
     unread,

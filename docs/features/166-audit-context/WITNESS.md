@@ -342,3 +342,57 @@ Witnessed: 2026-11-02 01:44 EST, by a fresh agent (blind). Commit: daa7fb88 + wo
 | 9 | The phone's Menu has the same groups, and a test covers it | no | confirmed | `AppShell.test.tsx:644-658`; 54 passed; admin before tools, Users in governance, Feedback in tools, and hiding the Menu's Admin heading each fail the Menu test |
 
 **Overall:** met: the wording matches the code, and the Menu's Admin group is covered by a test that fails under every mutation tried. Remark: the reworded comment line was over 100 characters (rewrapped after).
+
+## Task 10 — Groups that open and close
+
+Witnessed: 2026-11-02 02:06 EST, by a fresh agent (blind). Commit: 4e76cc9e plus the uncommitted working tree (14 modified, 3 untracked files). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The four groups are each a `<details>` opening from its heading, open at first | no | confirmed | `Sidebar.tsx`, `MenuList.tsx`; probe with no cookie → all open |
+| 2 | A toggle writes `ronne-nav-groups`, and the next page's server render follows it | no | confirmed | Probe: Enter and Space on headings, the cookie follows; a reload keeps it; `shell.ts:44` |
+| 3 | It works without JavaScript (sidebar and /menu) | no | confirmed | Probe with JS off and the cookie `tools.admin`: both render them closed; a click opens natively (not saved without JS) |
+| 4 | The phone's Menu reads the same cookie | no | confirmed | `menu/page.tsx`, `AppShell.tsx`, `MobileMenu.tsx` pass it; phone, phone-webkit, tablet green |
+| 5 | The sidebar and the Menu don't overwrite each other's choices in the cookie | no | confirmed | `useNavGroups.ts` merges into the live cookie; probe keeps both |
+| 6 | The sidebar and the Menu show the same state on one page | no | partly | The Menu's list is mounted at hydration (`Dialog.tsx:142-145`), each with its own state: across `lg`, one shows a group open the other closed |
+| 7 | A closed group's heading shows a dot when a count waits, and its name says so | no | confirmed | Probe and AX tree: "Governance & reviews (something waiting)" |
+| 8 | The folded sidebar shows every link; hidden headings out of the tab order and unclickable | no | confirmed | Probe: all open, `tabindex=-1 aria-hidden`, 40 Tabs reach none, cookie unchanged |
+| 9 | Component test: a group closed from the cookie | no | confirmed | 463 passed; `open={!closed}`→`open` → fails |
+| 10 | Component test: the toggle writes the cookie | no | confirmed | Removing the write → 2 tests fail |
+| 11 | Component test: the dot | no | confirmed | Removing the dot → fails |
+| 12 | Component test: the folded sidebar | no | confirmed | `!folded &&` removed → 2 fail; `tabIndex` removed → 1 fails |
+| 13 | Component test for the lists not overwriting each other | no | partly | Writing from own state instead of the cookie → 60/60 pass: the test mounts the Menu after the toggle |
+| 14 | e2e desktop: closed, still closed on the next page | no | confirmed | `sidebar.e2e.ts` → 1 passed |
+| 15 | e2e phone: closed in the Menu, still closed on the next page | no | confirmed | phone, phone-webkit, tablet → 3 passed each; a reload of the same URL; the /menu comment has no check |
+| 16 | The phone sweep passes | no | confirmed | 15 passed, "no page scrolls sideways" in en, pt, fr |
+| 17 | Screen text through messages in en, pt, fr | no | confirmed | `sidebar.groupWaiting` with `{group}` in all three; parity catches a renamed placeholder |
+| 18 | UI rules: tokens, teal accent | no | confirmed | `bg-accent`, `text-muted`, focus outline tokens |
+| 19 | Hostile cookie values are ignored | no | confirmed | `__proto__…`, 3,900 characters → 200, known ids only |
+| 20 | Lint and types are clean | no | confirmed | biome, `tsc --noEmit` |
+
+**Overall:** not met: the sidebar and the Menu can show different states on one page (row 6), and no test would catch them overwriting each other (row 13).
+
+### Re-check (rows 6, 13 and 15)
+
+Witnessed: 2026-11-02 02:15 EST, by a fresh agent (blind). Commit: 4e76cc9e plus the uncommitted working tree (`useNavGroups.ts` rewritten, plus `nav-groups.test.tsx` and `navigation.mobile.e2e.ts`). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6 | The sidebar and the Menu show the same state on one page | no | confirmed | Probe across `lg` both ways: the other list follows at once; `/menu`'s list and the sheet agree; no hydration errors |
+| 13 | A component test shows the lists don't overwrite each other | no | confirmed | 61 passed; R1 (write from own state) → "keeps a choice another tab made" fails; R2 (no notify) → 3 fail; R3 (the old per-list hook) → 2 fail |
+| 15 | e2e phone: closed in the Menu, still closed on the next page | no | confirmed | phone, phone-webkit, tablet → 3 passed each; the test goes to `/menu` and back. Remark: with JS on, the client reads the cookie, so the server render rests on the first pass's no-JS probe |
+| 21 | A click on a heading always opens or closes it, even after another tab changed that group | no | not met | Probe: another tab closes Tools; here, clicks on its heading do nothing: `setOpen` returns early without notifying |
+
+**Overall:** not met: rows 6, 13 and 15 hold, but a heading's click is dead after another tab changed its group (row 21). Also: no JS-on test proves the server draws closed groups from the cookie.
+
+### Re-check (row 21)
+
+Witnessed: 2026-11-02 02:20 EST, by a fresh agent (blind). Commit: 4e76cc9e plus the uncommitted working tree (`useNavGroups.ts`, `nav-groups.test.tsx` and `navigation.mobile.e2e.ts` changed since the last re-check). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 21 | A heading's click always opens or closes it, even after another tab changed that group | no | confirmed | Two-tab probe on the current build: click 1 closes, click 2 opens, the cookie follows; R4 (no notify when the cookie agrees) → the new unit test fails; 62/62 unmutated |
+| 22 | A no-JS test shows the server draws a closed group from the cookie | no | confirmed | `navigation.mobile.e2e.ts:165-176` (JS off): the cookie `tools`, `/menu` reloaded, Documentation hidden; phone and phone-webkit 3 passed each |
+| 6 | (regression) The sidebar and the Menu show one state across `lg` | no | confirmed | The probe rerun: each follows the other both ways; `/menu` and the sheet agree |
+
+**Overall:** met: the dead click is gone and a test catches it coming back; the server render is covered without JavaScript; row 6 still holds.

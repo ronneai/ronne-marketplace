@@ -25,6 +25,7 @@
     "main": "Main",
     "home": "Home",
     "fold": "Fold the sidebar",
+    "groupWaiting": "{group} (something waiting)",
     "unfold": "Unfold the sidebar",
     "account": "Account",
     "accountOf": "{name}, your account",

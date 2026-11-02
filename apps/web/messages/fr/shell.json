@@ -25,6 +25,7 @@
     "main": "Principal",
     "home": "Accueil",
     "fold": "Réduire la barre latérale",
+    "groupWaiting": "{group} (quelque chose en attente)",
     "unfold": "Développer la barre latérale",
     "account": "Compte",
     "accountOf": "{name}, votre compte",

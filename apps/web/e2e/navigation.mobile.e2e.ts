@@ -18,7 +18,8 @@ test("the Menu opens the navigation and closes on Esc, a link, back and outside"
   // The strip and the account menu are hidden; Menu is there.
   await expect(menu).toBeVisible();
   await expect(menu).toHaveAttribute("aria-expanded", "false");
-  await expect(banner.locator("summary")).toBeHidden();
+  // Every one (the closed Menu's groups have theirs too, 166).
+  for (const summary of await banner.locator("summary").all()) await expect(summary).toBeHidden();
 
   // Every link for the role, and the account part.
   await menu.click();
@@ -37,6 +38,27 @@ test("the Menu opens the navigation and closes on Esc, a link, back and outside"
   await expect(sheet.getByRole("link", { name: "Users", exact: true })).toHaveCount(0);
   await expect(sheet.getByRole("button", { name: "Sign out" })).toBeVisible();
   await expect(sheet.getByRole("button", { name: /^Switch to the/ })).toBeVisible();
+
+  // A group closes from its heading, and stays closed on the next page (166): /menu, the Menu as
+  // a page (where the button goes without JavaScript), drawn by the server from the same cookie.
+  const tools = sheet.locator("summary").filter({ hasText: "Tools" });
+  const docs = sheet.getByRole("link", { name: /^Documentation/ });
+  await tools.click();
+  await expect(docs).toBeHidden();
+  await page.keyboard.press("Escape");
+  await expect(sheet).toBeHidden();
+  const start = page.url();
+  await page.goto("/menu");
+  const list = page.getByRole("main");
+  await expect(list.getByRole("link", { name: "Home", exact: true })).toBeVisible();
+  await expect(list.getByRole("link", { name: /^Documentation/ })).toBeHidden();
+  // Opened there, it is open in the sheet back on the first page.
+  await list.locator("summary").filter({ hasText: "Tools" }).click();
+  await expect(list.getByRole("link", { name: /^Documentation/ })).toBeVisible();
+  await page.goto(start);
+  await menu.click();
+  await expect(sheet).toBeVisible();
+  await expect(docs).toBeVisible();
 
   // Esc, and focus goes back to Menu.
   await page.keyboard.press("Escape");
@@ -143,6 +165,15 @@ test.describe("without JavaScript", () => {
     const docs = main.getByRole("link", { name: /^Documentation/ });
     await expect(docs).toHaveAttribute("href", "https://www.ronne.ai/en/marketplace/docs");
     await expect(docs).toHaveAttribute("target", "_blank");
+    // The server draws a group as its cookie says (166), and the heading opens it natively.
+    await page
+      .context()
+      .addCookies([{ name: "ronne-nav-groups", value: "tools", url: page.url() }]);
+    await page.reload();
+    await expect(docs).toBeHidden();
+    await main.locator("summary").filter({ hasText: "Tools" }).click();
+    await expect(docs).toBeVisible();
+    await page.context().clearCookies({ name: "ronne-nav-groups" });
     // The sidebar's switcher and Propose item work without JavaScript too (119).
     await expect(main.getByRole("link", { name: "Propose item" })).toHaveAttribute(
       "href",

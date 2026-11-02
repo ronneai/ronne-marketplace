@@ -77,7 +77,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     root (no Admin group but for root), the group's name is in en, pt and fr, and the e2e and phone
     tests that use the sidebar and the Menu pass.
 
-- [ ] **10. Groups that open and close.**
+- [x] **10. Groups that open and close.**
   - Owner, 2026-11-01, during 166: Discover, Governance & reviews, Tools and Admin each open and
     close from their heading (`<details>`, so it works without JavaScript), open at first. Each
     group's state is kept in a cookie per browser, as the fold is (119), so the next page renders

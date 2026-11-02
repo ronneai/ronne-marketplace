@@ -325,6 +325,50 @@ describe("Sidebar", () => {
       />,
     );
 
+  it("opens every group at first, and closes the ones its cookie names (166)", () => {
+    const groups = (html: string) =>
+      [...html.matchAll(/<details([^>]*)>\s*<summary[^>]*>(?:<span[^>]*>)([^<]+)</g)].map((m) => [
+        m[2],
+        / open=""/.test(m[1] ?? ""),
+      ]);
+    expect(groups(sidebar())).toEqual([
+      ["Discover", true],
+      ["Governance &amp; reviews", true],
+      ["Tools", true],
+      ["Admin", true],
+    ]);
+    expect(groups(sidebar({ closedGroups: ["tools", "admin"] }))).toEqual([
+      ["Discover", true],
+      ["Governance &amp; reviews", true],
+      ["Tools", false],
+      ["Admin", false],
+    ]);
+    // A closed group's links are still in the page, inside it (the browser hides them).
+    expect(sidebar({ closedGroups: ["admin"] })).toContain('href="/admin/audit"');
+    // Folded, every group is open, whatever the cookie says.
+    expect(
+      groups(sidebar({ closedGroups: ["tools", "admin"], folded: true })).every(([, open]) => open),
+    ).toBe(true);
+  });
+
+  it("puts a dot on a closed group's heading while a count waits in it, and says so (166)", () => {
+    const closed = sidebar({ closedGroups: ["governance"] });
+    expect(closed).toMatch(
+      /<summary[^>]* aria-label="Governance &amp; reviews \(something waiting\)"[^>]*><span[^>]*>Governance &amp; reviews<\/span><span aria-hidden="true" class="size-2[^"]*bg-accent"/,
+    );
+    // Open, or with nothing waiting, or folded (where the link has its own dot): no group dot.
+    const dots = (html: string) =>
+      (
+        html.match(/<summary[^>]*>(?:(?!<\/summary>).)*size-2 shrink-0 rounded-full bg-accent/g) ??
+        []
+      ).length;
+    expect(dots(closed)).toBe(1);
+    expect(dots(sidebar())).toBe(0);
+    expect(dots(sidebar({ closedGroups: ["tools"] }))).toBe(0);
+    expect(dots(sidebar({ closedGroups: ["governance"], folded: true }))).toBe(0);
+    expect(sidebar()).not.toContain("(something waiting)");
+  });
+
   it("shows the groups' headings, the links, Propose item and the count", () => {
     const html = sidebar();
     const at = (text: string) => html.indexOf(text);
@@ -464,11 +508,15 @@ describe("Sidebar", () => {
     expect(html).toContain("w-16");
     // Folding is a morph, not a swap: the group headings, labels and counts are still there, faded
     // out and hidden from screen readers, and the names are on the links.
-    expect(html).toMatch(/<p aria-hidden="true"[^>]*max-h-0[^>]*opacity-0[^>]*>Discover<\/p>/);
+    // The heading is the group's `<summary>` (166): faded out, out of the tab order, and the group
+    // open whatever its cookie says, so every link shows.
+    expect(html).toMatch(
+      /<summary aria-hidden="true" tabindex="-1"[^>]*max-h-0[^>]*opacity-0[^>]*><span[^>]*>Discover<\/span>/,
+    );
     expect(html).toMatch(
       /<span aria-hidden="true" class="min-w-0 flex-1 truncate[^"]*opacity-0[^"]*">Catalogue<\/span>/,
     );
-    expect(sidebar()).not.toMatch(/<p aria-hidden="true"[^>]*>Discover<\/p>/);
+    expect(sidebar()).not.toMatch(/<summary aria-hidden="true"[^>]*><span[^>]*>Discover</);
     for (const name of [
       "Home",
       "Catalogue",
