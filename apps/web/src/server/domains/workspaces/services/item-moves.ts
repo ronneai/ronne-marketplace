@@ -159,6 +159,8 @@ const auditItemMove = (
   actor: WorkspaceActor,
   action: Extract<AuditAction, `item.${string}`>,
   itemId: string,
+  /** The item's workspace (166): a move stays in it (134). */
+  workspaceId: string,
   metadata: Record<string, string | number | boolean>,
   at: Date,
 ) =>
@@ -169,6 +171,7 @@ const auditItemMove = (
       target: { type: "item", id: itemId },
       metadata,
       ipAddress: actor.ip,
+      workspaceId,
     },
     at,
   );
@@ -295,7 +298,15 @@ export const askItemMove = async (
         decidedBy: null,
         at,
       });
-      await auditItemMove(repo, actor, "item.move_requested", places.item.id, names, at);
+      await auditItemMove(
+        repo,
+        actor,
+        "item.move_requested",
+        places.item.id,
+        places.workspace.id,
+        names,
+        at,
+      );
       // Root and the workspace's moderators and admins answer it: told once (139).
       await repo.notify(
         {
@@ -331,6 +342,7 @@ export const askItemMove = async (
       actor,
       "item.moved",
       places.item.id,
+      places.workspace.id,
       { ...names, askedBy: user.id, approvedBy: user.id, direct: true },
       at,
     );
@@ -394,6 +406,7 @@ export const approveItemMove = async (
         actor,
         "item.move_cancelled",
         move.itemId,
+        workspace.id,
         {
           name: formatItemName({
             workspace: workspace.name,
@@ -451,6 +464,7 @@ export const approveItemMove = async (
       actor,
       "item.moved",
       move.itemId,
+      places.workspace.id,
       {
         ...moveNames(impact, places),
         askedBy: move.requestedBy,
@@ -508,6 +522,7 @@ export const declineItemMove = async (
       actor,
       "item.move_declined",
       move.itemId,
+      where.workspace.id,
       {
         name: formatItemName({
           workspace: where.workspace.name,
@@ -570,6 +585,7 @@ export const cancelItemMove = async (
       actor,
       "item.move_cancelled",
       move.itemId,
+      where.workspace.id,
       {
         name: formatItemName({
           workspace: where.workspace.name,

@@ -589,6 +589,7 @@ export const releaseTogether = async (
             ...(input.via ? { via: input.via } : {}),
           },
           ipAddress: actor.ip,
+          workspaceId: submission.workspace.id,
         },
         at,
       );
@@ -605,6 +606,7 @@ export const releaseTogether = async (
             ...(input.via ? { via: input.via } : {}),
           },
           ipAddress: actor.ip,
+          workspaceId: submission.workspace.id,
         },
         at,
       );

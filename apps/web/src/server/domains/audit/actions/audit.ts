@@ -5,6 +5,7 @@ import { currentChannel, currentRequest } from "../../../log";
 import {
   type AuditEvent,
   cleanUserAgent,
+  inWorkspace,
   type NewAuditEvent,
   outcomeOf,
   validateAuditEvent,
@@ -26,6 +27,14 @@ export const recordAudit = async (
   now: Date = new Date(),
 ): Promise<string> => {
   const metadata = validateAuditEvent(event);
+  // The guard (166): under test, an event about something in a workspace must say which, so every
+  // db test that records one checks its service passes it. An explicit null says there's none to
+  // name (a request to join a name that isn't a workspace).
+  if (process.env.NODE_ENV === "test" && inWorkspace(event) && event.workspaceId === undefined)
+    // A programming slip, never shown to anyone: a plain error.
+    throw new Error(
+      `"${event.action}" is about something in a workspace: record it with its workspaceId (166).`,
+    );
   // What it came from (166), from the request this runs in: callers don't pass it.
   const context = currentRequest();
   return kyselyAuditRepository(db, dialect).insert({
@@ -39,7 +48,7 @@ export const recordAudit = async (
     requestId: context?.requestId?.slice(0, 128) ?? null,
     via: currentChannel() ?? null,
     userAgent: cleanUserAgent(context?.userAgent),
-    workspaceId: null,
+    workspaceId: event.workspaceId ?? null,
     outcome: outcomeOf(event.action),
   });
 };

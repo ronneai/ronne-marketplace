@@ -655,6 +655,7 @@ export const createDraftFromFiles = async (
           ...(proposal ? { proposal: true, baseVersion: proposal.baseVersion } : {}),
         },
         ipAddress: actor.ip,
+        workspaceId: scope.workspace.id,
       },
       at,
     );
@@ -819,6 +820,7 @@ export const replaceDraftFromFiles = async (
           ...(baseVersion ? { proposal: true, baseVersion } : {}),
         },
         ipAddress: actor.ip,
+        workspaceId: submission.workspace.id,
       },
       at,
     );

@@ -337,6 +337,7 @@ const send = async (
           : {}),
       },
       ipAddress: actor.ip,
+      workspaceId: submission.workspace.id,
     },
     at,
   );
@@ -366,6 +367,7 @@ const send = async (
         target: { type: "submission", id: submission.id },
         metadata: { name: itemNameOf(submission), revision: revision.number, self: true },
         ipAddress: actor.ip,
+        workspaceId: submission.workspace.id,
       },
       at,
     );
@@ -516,6 +518,7 @@ export const removeSubmission = async (
       target: { type: "submission", id: submission.id },
       metadata: { name: itemNameOf(submission), from: submission.status },
       ipAddress: actor.ip ?? null,
+      workspaceId: submission.workspace.id,
     },
     at,
   );
@@ -559,6 +562,7 @@ export const withdrawSubmission = async (
         target: { type: "submission", id: submission.id },
         metadata: { name: itemNameOf(submission), from: submission.status, mode: "archive" },
         ipAddress: actor.ip,
+        workspaceId: submission.workspace.id,
       },
       at,
     );
@@ -613,6 +617,7 @@ export const restoreSubmission = async (
         target: { type: "submission", id: submission.id },
         metadata: { name: itemNameOf(submission) },
         ipAddress: actor.ip,
+        workspaceId: submission.workspace.id,
       },
       at,
     );

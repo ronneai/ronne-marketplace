@@ -134,6 +134,7 @@ export const dismissFinding = async (
             reason,
           },
           ipAddress: actor.ip,
+          workspaceId: target.submission.workspace.id,
         },
         at,
       );
@@ -166,6 +167,7 @@ export const restoreFinding = async (
             ...(kept.file ? { file: kept.file } : {}),
           },
           ipAddress: actor.ip,
+          workspaceId: target.submission.workspace.id,
         },
         at,
       );

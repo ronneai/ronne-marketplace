@@ -239,6 +239,7 @@ export const decide = async (
             : {}),
         },
         ipAddress: actor.ip,
+        workspaceId: submission.workspace.id,
       },
       at,
     );

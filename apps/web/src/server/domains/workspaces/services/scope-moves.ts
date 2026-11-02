@@ -373,6 +373,11 @@ const auditMove = (
   actor: WorkspaceActor,
   action: Extract<AuditAction, `scope.${string}`>,
   scopeId: string,
+  /**
+   * The workspace the scope is in when it happens (166): the source while it's asked, declined or
+   * cancelled, the target once moved. Both names are in the metadata.
+   */
+  workspaceId: string,
   metadata: Record<string, string | number | boolean>,
   at: Date,
 ) =>
@@ -383,6 +388,7 @@ const auditMove = (
       target: { type: "scope", id: scopeId },
       metadata,
       ipAddress: actor.ip,
+      workspaceId,
     },
     at,
   );
@@ -527,6 +533,7 @@ export const askScopeMove = async (
         actor,
         "scope.move_requested",
         scope.id,
+        source.id,
         { ...names, items: impact.items.length },
         at,
       );
@@ -575,6 +582,7 @@ export const askScopeMove = async (
       actor,
       "scope.moved",
       scope.id,
+      target.id,
       { ...names, askedBy: user.id, approvedBy: user.id, direct: true, ...done },
       at,
     );
@@ -637,6 +645,7 @@ export const approveScopeMove = async (
         actor,
         "scope.move_cancelled",
         found.scope.id,
+        found.source.id,
         {
           ...moveNames(found.scope, found.source, found.target, move.newName),
           reason: "asker_lost_role",
@@ -684,6 +693,7 @@ export const approveScopeMove = async (
       actor,
       "scope.moved",
       scope.id,
+      target.id,
       {
         ...moveNames(scope, source, target, move.newName),
         askedBy: move.requestedBy,
@@ -737,6 +747,7 @@ export const declineScopeMove = async (
       actor,
       "scope.move_declined",
       places.scope.id,
+      places.source.id,
       moveNames(places.scope, places.source, places.target, move.newName),
       at,
     );
@@ -785,6 +796,7 @@ export const cancelScopeMove = async (
       actor,
       "scope.move_cancelled",
       places.scope.id,
+      places.source.id,
       moveNames(places.scope, places.source, places.target, move.newName),
       at,
     );

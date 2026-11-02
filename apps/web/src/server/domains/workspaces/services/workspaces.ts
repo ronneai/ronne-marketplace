@@ -58,6 +58,7 @@ const audit = (
       target: { type: "workspace", id },
       metadata,
       ipAddress: actor.ip,
+      workspaceId: id,
     },
     at,
   );

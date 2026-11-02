@@ -128,6 +128,7 @@ const audit = (
       target: { type: "user", id: user.id },
       metadata: { workspace: workspace.name, email: user.email, ...change },
       ipAddress: actor.ip,
+      workspaceId: workspace.id,
     },
     at,
   );
@@ -151,7 +152,7 @@ const approveOpenRequest = async (
       repo,
       actor,
       "workspace.access_approved",
-      { workspace: workspace.name, userId: user.id, email: user.email },
+      { workspace: workspace.name, workspaceId: workspace.id, userId: user.id, email: user.email },
       at,
       { role, direct: true },
     );

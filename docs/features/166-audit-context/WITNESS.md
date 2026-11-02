@@ -161,3 +161,34 @@ Witnessed: 2026-11-02 00:20 EST, by a fresh agent (adversarial). Commit: bd6ac65
 | 11 | The user agent also loses U+2028/U+2029 | yes | confirmed | `audit-event.ts:200`; M11 → "cuts and cleans the client…" fails |
 
 **Overall:** met: browser routes outside `/api` record, log and return the proxy's ID; a sent ID isn't taken there or under `/api` without TRUST_PROXY; the logger and terminal-command behaviours each have a test that fails without them.
+
+## Task 4 — The workspace on events
+
+Witnessed: 2026-11-02 00:24 EST, by a fresh agent (blind). Commit: fb4d314b + working tree (21 files modified, uncommitted). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `NewAuditEvent` has an optional `workspaceId`, stored in `audit_log.workspace_id` | no | confirmed | `audit-event.ts:174`; `audit.ts:51`; "stores it and reads it back" passes on SQLite, PG, MySQL, MariaDB |
+| 2 | The catalogue marks `workspace.*`, `scope.*`, `item.*`, `submission.*`, `version.*`, `dist_tag.*`, `scan.*`, and `pin.*` only on a workspace | no | confirmed | `audit-event.ts:182-194`; the guard test compares the marked list with `AUDIT_ACTIONS`; `pin.added` on an instance → false |
+| 3 | Under test, an `inWorkspace` event without a workspace throws | no | confirmed | `audit.ts:33`. M1 (no `workspaceId` in `reviews.ts`) → 141 submission db tests fail with the guard's message; M2 (guard off) → the guard test fails. An explicit `null` passes on purpose |
+| 4 | The guard test passes; no `inWorkspace` action in the db suite lacks its workspace | no | confirmed | `vitest run --project db` → 198 files, 2035 passed, 0 failed; the guard's message 0 times in the log |
+| 5 | Each call site records the right workspace | no | confirmed | Probe P1 over the whole db suite: 3437 events, 45 actions, each compared with the target's workspace in the database; all match but the expected cases (a deleted submission's row gone, the guard test's fake id, a personal workspace's request recorded null as its row is) and `scope.move_*` (finding). `pin.reordered` on a workspace shelf never runs; read `pins.ts:68,129` |
+| 6 | `scope.moved` records the target workspace | no | confirmed | P1: all 33 equal the scope's workspace after the move; M3 (`source.id`) → `scope-move-requests.db.test.ts:194` fails |
+| 7 | The domains' db tests pass on the three servers | no | confirmed | `pnpm test:db:{postgres,mysql,mariadb} -- …/{audit,submissions,items,scans,shelves,workspaces} …` → 65 files, 757 passed each |
+| 8 | No foreign key on `workspace_id` | no | confirmed | `0043_audit_context.ts:39`, index only; a non-existent workspace id stored and read back on PG, MySQL, MariaDB |
+
+**Overall:** met: every `inWorkspace` event in the suite carries its workspace and the probe shows it's the right one; the guard fails when one is left out; the domains' db tests pass on all four databases. Findings: `scope.move_requested`/`_declined`/`_cancelled` record the target while the scope is still in the source (a design question); no test records `pin.reordered` on a workspace shelf; only `item.moved` and `scope.moved` test the workspace's value.
+
+### Re-check (rows 5 and 6, and the findings)
+
+Witnessed: 2026-11-02 00:36 EST, by a fresh agent (blind). Commit: fb4d314b + working tree (22 files modified, plus SPEC.md). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 5 | Each call site records the right workspace; a scope move records where the scope is at the time | no | confirmed | P1 rerun over the db suite: 3440 events, 46 actions; only the expected mismatches of the first pass are left; no `scope.move_*` mismatch (46 before) |
+| 6 | `scope.moved` records the target; `scope.move_requested`, `_declined`, `_cancelled` the source (SPEC edge case) | no | confirmed | `scope-moves.ts:536,648,750,799`; SPEC.md:106-109. M4 (`move_requested` → target) and M6 (`move_declined` → target) each fail `scope-move-requests.db.test.ts` |
+| F1 | A workspace shelf's `pin.reordered` is now recorded in the suite | no | confirmed | New test in `pins.db.test.ts`; M5 (reorder with null) → fails |
+| F2 | Tests check the workspace value for scope moves, item moves and pins | no | confirmed | Assertions for requested, declined, cancelled (×3 and asker_lost_role), moved, item.moved, each pin row; M4–M6 each fail one |
+| 7 | The changed test files pass on all four databases | no | confirmed | SQLite → 86 passed, 1 skipped; `pnpm test:db:{postgres,mysql,mariadb}` → 87 passed each |
+
+**Overall:** met: every `scope.move_*` event records where the scope is at the time, and every scope-move and pin action has a test that checks the workspace value and fails when it's wrong; the changed tests pass on all four databases.

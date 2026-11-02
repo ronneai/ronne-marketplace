@@ -4,7 +4,7 @@ import { apiRoute } from "../../../http/api-route";
 import { serverAction } from "../../../http/server-action";
 import { runJob } from "../../../jobs/run-job";
 import { setProcessChannel, withChannel, withRequestContext } from "../../../log";
-import type { AuditAction } from "../models/audit-event";
+import { AUDIT_ACTIONS, type AuditAction, inWorkspace } from "../models/audit-event";
 import { listAuditEvents, recordAudit } from "./audit";
 
 // Server actions read their headers and holds through Next; outside a request there are none.
@@ -28,7 +28,12 @@ afterEach(async () => {
 });
 
 const record = (action: AuditAction = "user.created") =>
-  recordAudit(t.db, t.dialect, { actorId: null, action, target: { type: "instance" } });
+  recordAudit(t.db, t.dialect, {
+    actorId: null,
+    action,
+    target: { type: "instance" },
+    workspaceId: null,
+  });
 
 const last = async () => {
   const { events } = await listAuditEvents(t.db, t.dialect, {});
@@ -148,5 +153,67 @@ describe("what an event came from (166)", () => {
       await record(action);
       expect((await last()).outcome, action).toBe(outcome);
     }
+  });
+});
+
+describe("the workspace an event is about (166)", () => {
+  const event = (action: AuditAction, workspaceId?: string | null) =>
+    recordAudit(t.db, t.dialect, {
+      actorId: null,
+      action,
+      target: { type: "submission", id: "s1" },
+      ...(workspaceId === undefined ? {} : { workspaceId }),
+    });
+
+  it("marks the actions about something in a workspace, and workspace pins only", () => {
+    const marked = AUDIT_ACTIONS.filter((action) =>
+      inWorkspace({ action, target: { type: "instance" } }),
+    );
+    const prefixes = [
+      "workspace.",
+      "scope.",
+      "item.",
+      "submission.",
+      "version.",
+      "dist_tag.",
+      "scan.",
+    ];
+    expect(marked).toEqual(AUDIT_ACTIONS.filter((a) => prefixes.some((p) => a.startsWith(p))));
+    // A few that stay out: a user's, a sign-in, the instance's.
+    for (const action of ["user.created", "auth.signed_in", "instance.secret_rotated"] as const)
+      expect(marked).not.toContain(action);
+    // A pin is in a workspace on its shelf, not on root's Start here.
+    expect(inWorkspace({ action: "pin.added", target: { type: "workspace", id: "w" } })).toBe(true);
+    expect(inWorkspace({ action: "pin.added", target: { type: "instance" } })).toBe(false);
+  });
+
+  it("stores it and reads it back, byte for byte, outliving the workspace", async () => {
+    await event("submission.approved", "01K9WORKSPACE0000000000000");
+    expect((await last()).workspaceId).toBe("01K9WORKSPACE0000000000000");
+    await event("user.created");
+    expect((await last()).workspaceId).toBeNull();
+  });
+
+  it("refuses, under test, an event about something in a workspace recorded without it", async () => {
+    await expect(event("submission.approved")).rejects.toThrow(
+      '"submission.approved" is about something in a workspace',
+    );
+    await expect(
+      recordAudit(t.db, t.dialect, {
+        actorId: null,
+        action: "pin.removed",
+        target: { type: "workspace", id: "w" },
+      }),
+    ).rejects.toThrow("pin.removed");
+    // Null says there's none to name (asking to join a name that isn't a workspace).
+    await event("workspace.access_requested", null);
+    expect((await last()).workspaceId).toBeNull();
+    // Root's Start here and actions outside workspaces need none.
+    await recordAudit(t.db, t.dialect, {
+      actorId: null,
+      action: "pin.added",
+      target: { type: "instance" },
+    });
+    await event("user.created");
   });
 });

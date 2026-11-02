@@ -103,8 +103,10 @@ authentication group and reading the outcome column shows them at a glance.
   use.
 - **A workspace deleted later:** its events keep `workspace_id` and the name in their metadata. The
   filter offers deleted workspaces by that name ("payments (deleted)").
-- **An event about a scope moved between workspaces** (`scope.moved`): `workspace_id` is the target.
-  The source is in the metadata, as today.
+- **An event about a scope moved between workspaces**: `workspace_id` is where the scope is when it
+  happens: the target for `scope.moved`, the source while the move is asked, declined or cancelled
+  (`scope.move_requested`, `_declined`, `_cancelled`); the metadata names both. An item move stays in
+  its workspace (134).
 - **Very long or binary user agents:** cut and cleaned. An empty one is null.
 - **Old rows:** "—" for the new fields. The filters simply don't match them.
 

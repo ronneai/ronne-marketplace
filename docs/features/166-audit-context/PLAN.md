@@ -31,7 +31,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* db tests record an event through each channel and read the fields back; a test
     covers a long and a control-character user agent; `audit.db.test.ts` passes.
 
-- [ ] **4. The workspace on events.**
+- [x] **4. The workspace on events.**
   - `NewAuditEvent.workspaceId`.
   - The catalogue's `inWorkspace` marks.
   - The call sites in submissions, items, versions, dist-tags, scopes, workspaces, scans and pins.

@@ -166,7 +166,32 @@ export type NewAuditEvent = {
   target: { type: AuditTargetType; id?: string | null };
   metadata?: AuditMetadata;
   ipAddress?: string | null;
+  /**
+   * The workspace the event is about (166): set by the service, the only one that knows it, for
+   * every action `inWorkspace` marks; null when there's none to name. No foreign key: the event
+   * outlives the workspace.
+   */
+  workspaceId?: string | null;
 };
+
+/**
+ * The actions about something in a workspace (166): a workspace itself, its members and requests,
+ * its scopes and items (moves too: the target workspace), submissions, versions, dist-tags and scan
+ * findings. A pin is one when it's on a workspace's shelf (not root's Start here).
+ */
+const IN_WORKSPACE_PREFIXES = [
+  "workspace.",
+  "scope.",
+  "item.",
+  "submission.",
+  "version.",
+  "dist_tag.",
+  "scan.",
+] as const;
+
+export const inWorkspace = (event: Pick<NewAuditEvent, "action" | "target">): boolean =>
+  IN_WORKSPACE_PREFIXES.some((prefix) => event.action.startsWith(prefix)) ||
+  (event.action.startsWith("pin.") && event.target.type === "workspace");
 
 /** What an event says happened (166): most are things done; some are attempts refused. */
 export type AuditOutcome = "success" | "failed" | "denied";
