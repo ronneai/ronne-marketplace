@@ -35,7 +35,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     alone, revoked and expired ones ignored, and the audit row; run on PostgreSQL and MySQL too
     (`pnpm test:db:postgres -- <file>`, `:mysql`).
 
-- [ ] **5. Recovery revokes tokens.** [risky]
+- [x] **5. Recovery revokes tokens.** [risky]
   - `changePassword` with `revokeTokens` (the default true) revokes in the same transaction and
     records `tokensRevoked`.
   - `resetTwoFactor` (service and `reset-two-factor`) revokes tokens.
@@ -77,3 +77,6 @@ goes into `SPEC.md` instead.
   audit row's `from` can be wrong. Every settings setter (`setUsageMinimum`, `setRetention`,
   `setTwoFactorPolicy`, …) reads the same way, so it is a follow-up for all of them, not this
   feature.
+- **Root's Reset two-factor dialog** (task 6): its body (`admin.json` `twoFactorBody`) says it
+  signs the person out everywhere; since task 5 it revokes their access tokens too, so the words
+  should say so.

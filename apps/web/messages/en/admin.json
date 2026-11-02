@@ -510,6 +510,7 @@
         "and": " and ",
         "ended": {
           "sessions": "{count, plural, one {# session ended} other {# sessions ended}}",
+          "otherSessions": "{count, plural, one {# other session ended} other {# other sessions ended}}",
           "tokens": "{count, plural, one {# token revoked} other {# tokens revoked}}",
           "scimTokens": "{count, plural, one {# SCIM token revoked} other {# SCIM tokens revoked}}",
           "requests": "{count, plural, one {# request to join cancelled} other {# requests to join cancelled}}",
@@ -664,7 +665,7 @@
           "password_reset": "Reset the password of <name>{who}</name>{twoFactor, select, true { and turned off its two-factor sign-in} other {}}{change, select, true {, asking for a new one at their next sign-in} other {}}{ended}{via}",
           "password_change_requested": "{required, select, false {Stopped asking for a new password at the next sign-in of <name>{who}</name>{via}} other {Asked for a new password at the next sign-in of <name>{who}</name>{via}}}",
           "two_factor_reset": "Turned off the two-factor sign-in of <name>{who}</name>{ended}{via}",
-          "password_changed": "{required, select, true {Chose their own password, as root asked} other {Changed their password}}{others, plural, =0 {} one { (# other session ended)} other { (# other sessions ended)}}",
+          "password_changed": "{required, select, true {Chose their own password, as root asked} other {Changed their password}}{ended}",
           "created": "Created <name>{email}</name> as {role}{change, select, true {, asking for a new password at their first sign-in} other {}}{sso, select, true { at their first sign-in with <code>{provider}</code>} other {}}",
           "sso_linked": "Linked <name>{email}</name> to the identity provider <code>{provider}</code> (matched by verified email)",
           "role_changed": "Changed <name>{who}</name> from {from} to {to}",

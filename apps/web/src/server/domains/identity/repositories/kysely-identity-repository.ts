@@ -466,12 +466,14 @@ export const kyselyIdentityRepository = (
         .execute();
     },
 
-    async countActiveAccessTokens(userId) {
+    async countActiveAccessTokens(userId, now) {
       const row = await db
         .selectFrom("access_tokens")
         .select((eb) => eb.fn.countAll<number | string | bigint>().as("n"))
         .where("user_id", "=", userId)
         .where("revoked_at", "is", null)
+        // As `revokeAccessTokens` counts them (162): an expired token isn't active.
+        .where((eb) => eb.or([eb("expires_at", "is", null), eb("expires_at", ">", at(now))]))
         .executeTakeFirstOrThrow();
       return Number(row.n);
     },
@@ -672,11 +674,21 @@ export const kyselyIdentityRepository = (
     },
 
     async revokeAccessTokens(userId, now) {
+      // A sign-in approved in the browser and not yet picked up by rmk would make a new token
+      // afterwards (107): it's withdrawn too, as denied (162).
+      await db
+        .updateTable("device_grants")
+        .set({ status: "denied", decided_at: at(now) })
+        .where("user_id", "=", userId)
+        .where("status", "=", "approved")
+        .execute();
+      // Active tokens only: an expired one already does nothing, so it isn't counted (162).
       const result = await db
         .updateTable("access_tokens")
         .set({ revoked_at: at(now) })
         .where("user_id", "=", userId)
         .where("revoked_at", "is", null)
+        .where((eb) => eb.or([eb("expires_at", "is", null), eb("expires_at", ">", at(now))]))
         .executeTakeFirst();
       return Number(result.numUpdatedRows);
     },
@@ -689,11 +701,12 @@ export const kyselyIdentityRepository = (
       return Number(row.n);
     },
 
-    async countAllActiveAccessTokens() {
+    async countAllActiveAccessTokens(now) {
       const row = await db
         .selectFrom("access_tokens")
         .select((eb) => eb.fn.countAll<number | string | bigint>().as("n"))
         .where("revoked_at", "is", null)
+        .where((eb) => eb.or([eb("expires_at", "is", null), eb("expires_at", ">", at(now))]))
         .executeTakeFirstOrThrow();
       return Number(row.n);
     },
@@ -724,10 +737,18 @@ export const kyselyIdentityRepository = (
     },
 
     async revokeAllAccessTokens(now) {
+      // As `revokeAccessTokens` does, for everyone (162): approved sign-ins rmk hasn't picked up
+      // are withdrawn, and only active tokens are revoked and counted.
+      await db
+        .updateTable("device_grants")
+        .set({ status: "denied", decided_at: at(now) })
+        .where("status", "=", "approved")
+        .execute();
       const result = await db
         .updateTable("access_tokens")
         .set({ revoked_at: at(now) })
         .where("revoked_at", "is", null)
+        .where((eb) => eb.or([eb("expires_at", "is", null), eb("expires_at", ">", at(now))]))
         .executeTakeFirst();
       return Number(result.numUpdatedRows);
     },

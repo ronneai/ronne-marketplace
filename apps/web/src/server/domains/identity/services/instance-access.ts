@@ -25,23 +25,24 @@ const findTarget = async (repo: IdentityRepository, email: string) => {
   return user;
 };
 
-/** How many sessions and not-revoked tokens there are now, for the question before revoking. */
+/** How many sessions and active tokens there are now, for the question before revoking. */
 export const accessToRevoke = async (
   deps: InstanceAccessDeps,
   target: AccessTarget,
 ): Promise<AccessCounts> => {
   const { repo } = deps;
+  const now = (deps.now ?? (() => new Date()))();
   if (target.kind === "everyone")
     return {
       sessions: await repo.countAllSessions(),
-      tokens: await repo.countAllActiveAccessTokens(),
-      scimTokens: await repo.countAllScimTokens((deps.now ?? (() => new Date()))()),
+      tokens: await repo.countAllActiveAccessTokens(now),
+      scimTokens: await repo.countAllScimTokens(now),
     };
   const user = await findTarget(repo, target.email);
   return {
     email: user.email,
     sessions: await repo.countSessions(user.id),
-    tokens: await repo.countActiveAccessTokens(user.id),
+    tokens: await repo.countActiveAccessTokens(user.id, now),
     scimTokens: 0,
   };
 };

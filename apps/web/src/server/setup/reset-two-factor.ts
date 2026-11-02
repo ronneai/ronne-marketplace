@@ -12,9 +12,9 @@ import type { SetupPrompts } from "./prompts";
 import { SetupFailedError } from "./run-setup";
 
 /**
- * pnpm run reset-two-factor (105): turns off one account's two-factor sign-in and ends its
- * sessions, after asking (unless `yes`); says so when it had none. Reads DATABASE_URL from the
- * environment or .env.
+ * pnpm run reset-two-factor (105): turns off one account's two-factor sign-in, ends its sessions
+ * and revokes its access tokens (162), after asking (unless `yes`); says so when it had none.
+ * Reads DATABASE_URL from the environment or .env.
  */
 export const runResetTwoFactor = async (options: {
   appDir: string;
@@ -41,7 +41,7 @@ export const runResetTwoFactor = async (options: {
     if (!options.yes) {
       const sure = await prompts.confirm({
         id: "reset_two_factor.confirm",
-        message: `Turn off two-factor sign-in for ${now.email} and end its sessions?`,
+        message: `Turn off two-factor sign-in for ${now.email}, end its sessions and revoke its access tokens?`,
         initial: false,
       });
       if (!sure) throw new SetupFailedError("Cancelled. Nothing was reset.");
@@ -52,7 +52,7 @@ export const runResetTwoFactor = async (options: {
       return { reset: false };
     }
     prompts.log.success(
-      `Turned off two-factor sign-in for ${result.email} and ended ${result.sessionsEnded} ${result.sessionsEnded === 1 ? "session" : "sessions"}.`,
+      `Turned off two-factor sign-in for ${result.email}, ended ${result.sessionsEnded} ${result.sessionsEnded === 1 ? "session" : "sessions"} and revoked ${result.tokensRevoked} access ${result.tokensRevoked === 1 ? "token" : "tokens"}.`,
     );
     prompts.log.info(
       "They sign in with their password, and set two-factor up again if it's required of them.",

@@ -74,6 +74,24 @@ const enrolRoot = async () => {
         user_agent: null,
       })
       .execute();
+    // A live token and an expired one: only the live one is revoked and counted (162).
+    for (const [id, days] of [
+      ["tok-live", 30],
+      ["tok-expired", -1],
+    ] as const)
+      await db
+        .insertInto("access_tokens")
+        .values({
+          id,
+          user_id: root.id,
+          name: id,
+          token_hash: `hash-${id}`,
+          token_prefix: "rmk_seed0000",
+          expires_at: new Date(Date.now() + days * 86_400_000).toISOString(),
+          created_at: now,
+          created_via: "web",
+        })
+        .execute();
   } finally {
     await db.destroy();
   }
@@ -85,9 +103,15 @@ const state = async () => {
     const records = await db.selectFrom("two_factor").select("id").execute();
     const sessions = await db.selectFrom("session").select("id").execute();
     const events = await db.selectFrom("audit_log").select(["action", "actor_id"]).execute();
+    const revoked = await db
+      .selectFrom("access_tokens")
+      .select("id")
+      .where("revoked_at", "is not", null)
+      .execute();
     return {
       records: records.length,
       sessions: sessions.length,
+      revoked: revoked.map((row) => row.id),
       resets: events.filter((e) => e.action === "user.two_factor_reset"),
     };
   } finally {
@@ -102,11 +126,12 @@ describe("pnpm run reset-two-factor (105)", () => {
     const result = run("reset-two-factor", ["--email", "ROOT@example.com", "--yes"]);
     expect(result.code, result.stderr).toBe(0);
     expect(result.stdout).toContain(
-      "Turned off two-factor sign-in for root@example.com and ended 1 session.",
+      "Turned off two-factor sign-in for root@example.com, ended 1 session and revoked 1 access token.",
     );
     expect(await state()).toEqual({
       records: 0,
       sessions: 0,
+      revoked: ["tok-live"],
       resets: [{ action: "user.two_factor_reset", actor_id: null }],
     });
 

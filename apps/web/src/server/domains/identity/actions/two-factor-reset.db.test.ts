@@ -6,7 +6,7 @@ import { LoginRateLimiter } from "../models/login-rate-limiter";
 import type { AppAuth } from "../repositories/auth-instance";
 import { cookieHeaders, createTestUser, testAppAuth } from "../testing/test-auth";
 import { totpCode } from "../testing/totp";
-import { exchangePassword } from "./access-tokens";
+import { authenticateToken, createMyToken, exchangePassword } from "./access-tokens";
 import { clearTwoFactorAfterRestore, endSessionsForNewSecret } from "./instance-access";
 import { resetRootPassword, resetTwoFactorFromCli, twoFactorOfEmail } from "./root-account";
 import { signIn } from "./session";
@@ -60,6 +60,9 @@ describe("root resets someone's two-factor (Admin › Users)", () => {
     const root = await session("root@example.com");
     const someone = await enrolled("someone@example.com");
     expect(await sessionsOf(someone.id)).toBe(1);
+    // Their token stops with their sessions (162).
+    const token = await createMyToken(someone.headers, { name: "laptop" }, app);
+    expect((await authenticateToken(token.token, app)).ok).toBe(true);
     const listed = await adminListUsers(root, {}, app);
     expect(listed.users.find((u) => u.id === someone.id)?.twoFactor).toBe(true);
 
@@ -78,17 +81,30 @@ describe("root resets someone's two-factor (Admin › Users)", () => {
       twoFactor: false,
     });
     expect(await events("user.two_factor_reset")).toMatchObject([
-      { targetId: someone.id, metadata: { via: "web", sessionsEnded: 1 } },
+      { targetId: someone.id, metadata: { via: "web", sessionsEnded: 1, tokensRevoked: 1 } },
     ]);
+    expect(await authenticateToken(token.token, app)).toEqual({
+      ok: false,
+      failure: "token_revoked",
+    });
   });
 
   it("changes and records nothing for someone without it", async () => {
     await createTestUser(app, { email: "root@example.com", password, role: "root" });
     const root = await session("root@example.com");
     const id = await createTestUser(app, { email: "plain@example.com", password });
-    await session("plain@example.com");
+    const plainToken = await createMyToken(await session("plain@example.com"), { name: "ci" }, app);
     expect(await adminResetTwoFactor(root, id, app)).toMatchObject({ reset: false });
     expect(await sessionsOf(id)).toBe(1);
+    // Nothing to reset: their token keeps working, on the web and in the terminal (162).
+    expect((await authenticateToken(plainToken.token, app)).ok).toBe(true);
+    expect(await resetTwoFactorFromCli(t.db, t.dialect, "plain@example.com")).toEqual({
+      email: "plain@example.com",
+      reset: false,
+      sessionsEnded: 0,
+      tokensRevoked: 0,
+    });
+    expect((await authenticateToken(plainToken.token, app)).ok).toBe(true);
     // Nor for a setup they've started and not confirmed: it isn't on, and it's theirs to finish.
     const half = await createTestUser(app, { email: "half@example.com", password });
     const halfSession = await session("half@example.com");
@@ -121,6 +137,7 @@ describe("root resets someone's two-factor (Admin › Users)", () => {
 describe("reset-two-factor and reset-root-password (the terminal)", () => {
   it("reset-two-factor turns any account's off, with the actor cli, and says when it had none", async () => {
     const root = await enrolled("root@example.com", "root");
+    const token = await createMyToken(root.headers, { name: "laptop" }, app);
     expect(await twoFactorOfEmail(t.db, t.dialect, " ROOT@example.com ")).toEqual({
       email: "root@example.com",
       enabled: true,
@@ -129,13 +146,19 @@ describe("reset-two-factor and reset-root-password (the terminal)", () => {
       email: "root@example.com",
       reset: true,
       sessionsEnded: 1,
+      tokensRevoked: 1,
+    });
+    // The token stops with the sessions (162).
+    expect(await authenticateToken(token.token, app)).toEqual({
+      ok: false,
+      failure: "token_revoked",
     });
     expect(await records()).toBe(0);
     expect(await events("user.two_factor_reset")).toMatchObject([
       {
         actorId: null,
         targetId: root.id,
-        metadata: { via: "cli", email: "root@example.com", sessionsEnded: 1 },
+        metadata: { via: "cli", email: "root@example.com", sessionsEnded: 1, tokensRevoked: 1 },
       },
     ]);
     expect(await resetTwoFactorFromCli(t.db, t.dialect, "root@example.com")).toMatchObject({

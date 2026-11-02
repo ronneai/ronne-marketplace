@@ -213,3 +213,81 @@ Witnessed: 2026-11-01 19:53 EST, by a fresh agent (adversarial). Commit: 8adb950
 **Overall:** met: no claim broke on SQLite, PostgreSQL, MySQL or MariaDB, including edge timestamps, concurrent Shortens and time zones; one test gap (a wrong returned count).
 
 After both passes, the implementer pinned the literal 500 in the batch test (the blind pass's remark), added a test that revokes a token between the look-up and the update and expects it not counted (this pass's row 6 gap), and reworded the SQL's comment ("never a personal one"); no code changed. `token-policy.db.test.ts` → 6 passed on SQLite, PostgreSQL and MySQL.
+
+## Task 5 — Recovery revokes tokens
+
+Witnessed: 2026-11-01 20:06 EST, by a fresh agent (blind). Commit: b758ba7d + working tree (13 modified files, none untracked). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `changePassword` revokes the person's tokens when `revokeTokens` is left out (ticked by default) | no | confirmed | `services/session.ts:217-218` revokes unless `revokeTokens === false`. `session.db.test.ts` "revokes my tokens with the box ticked…" → both `token_revoked`. M1 (never revoke), M2 (`!== true`) → that test and the require-token test fail |
+| 2 | With `revokeTokens: false` the tokens keep working and `tokensRevoked: 0` is recorded | no | confirmed | "keeps them when I untick it" passes; M3 (ignore the box) → fails at `session.db.test.ts:142` |
+| 3 | The revocation runs in the same transaction as the `user.password_changed` audit row | no | confirmed | `session.ts:215-235`, both on the transaction's `repo`. Probe: a throw after `recordAudit` → token still valid on SQLite, PostgreSQL 15, MySQL 8.4. Remark: Better Auth changes the password before the transaction (`session.ts:212`), as before 162 |
+| 4 | `user.password_changed` records `tokensRevoked`, shown in en, pt and fr | no | confirmed | Test asserts `tokensRevoked: 2` and `0`. Probe → "Changed their password (2 tokens revoked)", "…(3 other sessions ended, 1 token revoked)", pt "(2 tokens revogados)", fr "(2 jetons révoqués)"; nothing added when both are 0. Mutation (drop the tokens part) → `sentences.test.ts` fails |
+| 5 | A wrong current password revokes and records nothing; other people's tokens untouched | no | confirmed | Both tests pass; the repository filters `user_id` and `revoked_at is null` (`kysely-identity-repository.ts:674-681`) |
+| 6 | Root's web two-factor reset revokes the tokens in its transaction and records `tokensRevoked` | no | confirmed | `user-admin.ts:393-399`; test: `token_revoked`, `{via:"web", sessionsEnded:1, tokensRevoked:1}`. M4 (no revoke) → fails |
+| 7 | The terminal reset revokes the tokens, records it, and the script says so | no | confirmed | `root-account.ts:138-150`; test asserts `tokensRevoked: 1` and `token_revoked`; M5 → fails. Probe running `runResetTwoFactor` end to end → "Turned off two-factor sign-in for a@x.com, ended 1 session and revoked 2 access tokens." on PostgreSQL and MariaDB |
+| 8 | A token revoked by a password change gets 401 on the next request (`require-token.db.test.ts`) | no | confirmed | New test → `{status:401, code:"token_revoked"}`; M1 and M2 → fails |
+| 9 | The last root changing their password with the box ticked loses their tokens too | no | confirmed | Probe with the only root (two-factor enrolled) → `token_revoked`, root count 1, on SQLite and PostgreSQL; no role branch |
+| 10 | The task's db tests pass on all four dialects | no | confirmed | 9 files → 134 passed, 1 skipped (SQLite); the three task files on PostgreSQL 15, MySQL 8.4, MariaDB 10.11 → 35/35 each |
+
+**Overall:** met: a password change (box ticked by default) and both two-factor resets revoke the tokens atomically with the audit row and record `tokensRevoked`; the revoked token gets 401 at the next request.
+
+Remarks: `reset-two-factor.ts:15-18`'s comment doesn't mention tokens; the web reset dialog's `twoFactorBody` says "signs them out everywhere" without the tokens (a screen, for task 6); no test runs `runResetTwoFactor`'s success message (the probe does).
+
+### Adversarial pass
+
+Witnessed: 2026-11-01 20:00 EST, by a fresh agent (adversarial). Commit: b758ba7d + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `changePassword` revokes the person's tokens by default | no | confirmed | `session.db.test.ts` "revokes my tokens…" passes; M1 (missing counts as false) → it and the `require-token` 401 test fail |
+| 2 | `revokeTokens: false` keeps the tokens; other values fail safe | no | confirmed | "keeps them when I untick it" passes; M7 (always revoke) → fails. Probe: `"false"`, `0`, `null`, `""`, `"off"` all revoke; only `false` keeps them |
+| 3 | The revocation and the audit row are in one transaction | no | confirmed | `session.ts:215-235`. Probe: `recordAudit` throws → the revocation rolled back with it, on SQLite, PostgreSQL and MySQL |
+| 4 | A password changed always means the tokens are revoked (no half state) | no | partly | The same probe: Better Auth changes the password before the transaction (`session.ts:212`); afterwards the new password signs in, the token still works, 0 audit rows, the caller gets an error |
+| 5 | `tokensRevoked` is the number of active tokens revoked | no | partly | 1 live, 1 expired, 1 already-revoked → `tokensRevoked: 2`: `revokeAccessTokens` (`kysely-identity-repository.ts:674-681`) never filters `expires_at`. Same on all three dialects |
+| 6 | A failed change revokes nothing | no | confirmed | Too short, 200 characters, empty, wrong current, no cookie, junk cookie, Bearer instead of a session, rate limited → `ok:false`, token works, 0 audit rows. M4 → fails |
+| 7 | Other people's tokens are untouched | no | confirmed | M5 (no `where user_id`) → "leaves other people's tokens alone" fails |
+| 8 | Root's forced change (128) takes the same path | no | confirmed | Probe with `password_change_required` → `{ok:true, required:true}`, `{"otherSessionsEnded":0,"tokensRevoked":1,"required":true}`, token revoked |
+| 9 | Web two-factor reset revokes tokens, ends sessions, records `tokensRevoked` | no | confirmed | `two-factor-reset.db.test.ts`; M2 → fails |
+| 10 | Terminal two-factor reset does the same | no | confirmed | M3 (`root-account.ts:140`) → fails |
+| 11 | No two-factor to reset → nothing revoked (web and terminal) | no | partly | Behaviour holds (probe), but M8a2/M8b2 (revoke on the early return) leave 13/13 passing |
+| 12 | The terminal says it revoked tokens | no | not met | The line is right (`reset-two-factor.ts:54-56`) but `scripts/reset-two-factor.db.test.ts` fails 1 of 3: it expects the old sentence. The doc comment (line 16) says only "ends its sessions" |
+| 13 | A revoked token gets 401 `token_revoked` at its next request | no | confirmed | The `require-token.db.test.ts` 162 test passes, fails under M1 |
+| 14 | No way to get a token survives the recovery | no | partly | Probe: start a device login, approve on `/device`, `changePassword`, then exchange → `ok`, a working token; on PostgreSQL and MySQL too. Approved, unspent grants aren't withdrawn; same for the two-factor reset and Reset password |
+| 15 | The audit page shows the tokens revoked in en, pt and fr | no | confirmed | en "…(2 other sessions ended, 3 tokens revoked)", pt, fr; none when both 0. M9, M10 → fail |
+| 16 | Done when: db tests cover both boxes, both resets and the 401, on every dialect | no | partly | The 3 task files: 35/35 on SQLite, PostgreSQL, MySQL, MariaDB; but the related suite has 1 failure (row 12) and no no-two-factor test (row 11) |
+
+**Overall:** not met: the script test fails, an approved device code still gives a working token after the recovery, the count includes expired tokens, a failed audit write leaves the tokens alive with the new password, and the no-two-factor case has no test.
+
+### Re-check (rows 4, 5, 11, 12, 14 and 16)
+
+Witnessed: 2026-11-01 20:20 EST, by a fresh agent (adversarial). Commit: b758ba7d + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4 | A password changed always means the tokens are revoked (no half state) | no | confirmed | Probe on SQLite, PostgreSQL, MySQL, MariaDB: `recordAudit` throws → the error goes up, the new password works, the token `token_revoked`; `setPasswordChangeRequired` throws in a forced change → revoked; transaction and revoke both down → the original error, token still works (nothing can be written). M13 (no fallback) → fails |
+| 5 | `tokensRevoked` counts only active tokens | no | confirmed | 1 live, 1 expired, 1 revoked → 1 on all four dialects; boundary: expiring in 5 s counted, expired 1 s ago not. M12 (no `expires_at`) → fails |
+| 11 | No two-factor to reset → nothing revoked, web and terminal, and a test catches the opposite | no | confirmed | M8a2 (`user-admin.ts`), M8b2 (`root-account.ts`) → each fails "changes and records nothing for someone without it" |
+| 12 | The terminal says it revoked tokens, and its test passes | no | confirmed | `vitest run --project db scripts/reset-two-factor.db.test.ts` → 3/3; expects "…, ended 1 session and revoked 1 access token." and `revoked: ["tok-live"]`; the doc comment names the tokens |
+| 14 | No way to get a token survives the recovery | no | confirmed | On four dialects: approve, change the password, exchange → no token; the same after root's two-factor reset and Reset password (`access_denied`). Race probe (exchange and change at once, 15× SQLite, 15× PostgreSQL) → 30 minted, 0 working. M11 (no withdrawal) → fails |
+| 16 | The db tests pass on every dialect, the shared helper's callers included | no | confirmed | 40 db files on the shared paths → PostgreSQL, MySQL, MariaDB 554 passed, 1 skipped each; SQLite (`--maxWorkers=4`) 549 passed, 6 skipped. Disable records `{"sessionsEnded":1,"tokensRevoked":1}` with 1 live and 1 expired |
+| 17 | The fallback revoke respects an unticked box, and a test catches it | no | partly | Behaviour holds (probe), but M14 (`if (true)` in the catch) passes `session.db.test.ts` |
+| 18 | Withdrawing grants touches only this person's, and a test catches it | no | partly | The code filters `user_id` (`kysely-identity-repository.ts:677-682`), but M15 (no filter) passes every test |
+| 19 | `revoke-access --email` counts what it revokes | no | partly | 1 live, 1 expired: `accessToRevoke` → 2, `revokeAccess` → 1: `countActiveAccessTokens` still counts expired tokens |
+
+**Overall:** not met: rows 4, 5, 11, 12, 14 and 16 hold on all four dialects; two tests are missing (rows 17, 18) and `revoke-access --email`'s preview no longer matches its result (row 19). `revoke-access --everyone` (`revokeAllAccessTokens`) neither filters expired tokens nor withdraws approved grants.
+
+### Re-check (rows 17, 18 and 19)
+
+Witnessed: 2026-11-01 20:40 EST, by a fresh agent (adversarial). Commit: b758ba7d + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 17 | The fallback revoke respects an unticked box, and a test catches it | no | confirmed | M14 (`if (true)` in the catch) → "keeps them, the box unticked, even when the audit row can't be written" fails. Probe on four dialects: `revokeTokens:false` with a throwing `recordAudit` → error, token still works |
+| 18 | Withdrawing grants touches only this person's, and a test catches it | no | confirmed | M15 (no `user_id` filter on `device_grants`) → "withdraws only my approved sign-ins, never someone else's" fails |
+| 19 | `revoke-access --email` asks about what it revokes | no | confirmed | 1 live, 1 expired on four dialects → preview 1, result 1. M16 (no `expires_at` in `countActiveAccessTokens`) → "--email asks about the live tokens only, and revokes as many" fails. Callers pass their clock (`instance-access.ts:34-45`, `user-admin.ts:106,418`); `tsc --noEmit` clean |
+| 19b | `revoke-access --everyone` withdraws approved grants and counts only active tokens, preview and result alike | no | confirmed | 2 people, 2 live, 1 expired, an approved code each, 1 pending → preview 2, result 2; both approved codes `access_denied`; statuses `["denied","denied","pending"]`; the expired token's `revoked_at` stays null; four dialects. M17, M18, M19 each fail "--everyone too, and withdraws sign-ins approved in the browser" |
+| 16 | The affected db files pass on every dialect | no | confirmed | 12 files (session, instance-access, scripts/revoke-access, scripts/reset-two-factor, scripts/reset-root-password, user-admin, two-factor-reset, require-token, device-grants, device-page, disabled-users, root-account) → SQLite 167 passed, 1 skipped; PostgreSQL, MySQL, MariaDB 168/168 each |
+
+**Overall:** met: with the earlier rounds, every claim of task 5 is confirmed on all four dialects, and each new test fails without its fix.

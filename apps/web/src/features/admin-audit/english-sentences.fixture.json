@@ -89,7 +89,7 @@
   },
   "user.password_changed": {
     "empty": "Changed their password",
-    "rich": "Chose their own password, as root asked (1 other session ended)"
+    "rich": "Chose their own password, as root asked (1 other session ended, 1 token revoked)"
   },
   "auth.two_factor_enabled": {
     "empty": "Turned on two-factor sign-in",

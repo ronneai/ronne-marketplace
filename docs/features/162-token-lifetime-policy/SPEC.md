@@ -43,6 +43,12 @@ page, and recovering an account ends its tokens with its sessions (owner, 2026-1
     `tokensRevoked`.
   - **Root's two-factor reset** (the user page, and `reset-two-factor` in a terminal) revokes the
     tokens as well as ending the sessions, as Reset password does already.
+  - **What "revokes the tokens" means, wherever it happens** (these two, Reset password,
+    `reset-root-password`, disabling, `revoke-access` for one person or everyone): every active
+    token stops, and a sign-in approved in the browser that `rmk login --web` hasn't picked up yet
+    (107) is withdrawn, so it can't make a new token afterwards. The count recorded, and the one
+    `revoke-access` asks about first, is the active tokens (an expired one does nothing already). If the password changed but its audit row can't be written, the tokens are revoked
+    anyway before the error goes up.
 - The defaults (Decision 2): **365 days** for everyone, **90 days** for reviewers and root.
 
 **Out** (and where it goes instead):

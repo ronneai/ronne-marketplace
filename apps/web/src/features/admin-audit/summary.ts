@@ -265,10 +265,19 @@ export const SUMMARIES: Record<AuditAction, Build> = {
   "auth.two_factor_disabled": () => ({}),
   "auth.backup_codes_regenerated": () => ({}),
   "auth.two_factor_failed": (m, _e, h) => ({ reason: h.word("twoFactorReasons", text(m.reason)) }),
-  "user.password_changed": (m) => ({
-    required: flag(m.required === true),
-    others: num(m.otherSessionsEnded),
-  }),
+  "user.password_changed": (m, _e, h) => {
+    // " (1 other session ended, 2 tokens revoked)", or nothing (162 added the tokens).
+    const list = [
+      num(m.otherSessionsEnded)
+        ? h.part("ended.otherSessions", { count: num(m.otherSessionsEnded) })
+        : "",
+      num(m.tokensRevoked) ? h.part("ended.tokens", { count: num(m.tokensRevoked) }) : "",
+    ].filter(Boolean);
+    return {
+      required: flag(m.required === true),
+      ended: list.length ? ` (${list.join(", ")})` : "",
+    };
+  },
   "user.created": (m, _e, h) => ({
     email: text(m.email),
     role: h.word("roles", text(m.role)),

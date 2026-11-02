@@ -510,6 +510,7 @@
         "and": " et ",
         "ended": {
           "sessions": "{count, plural, one {# session terminée} other {# sessions terminées}}",
+          "otherSessions": "{count, plural, one {# autre session terminée} other {# autres sessions terminées}}",
           "tokens": "{count, plural, one {# jeton révoqué} other {# jetons révoqués}}",
           "scimTokens": "{count, plural, one {# jeton SCIM révoqué} other {# jetons SCIM révoqués}}",
           "requests": "{count, plural, one {# demande d’adhésion annulée} other {# demandes d’adhésion annulées}}",
@@ -664,7 +665,7 @@
           "password_reset": "A réinitialisé le mot de passe de <name>{who}</name>{twoFactor, select, true { et désactivé sa double authentification} other {}}{change, select, true {, en demandant un nouveau mot de passe à sa prochaine connexion} other {}}{ended}{via}",
           "password_change_requested": "{required, select, false {A cessé de demander un nouveau mot de passe à la prochaine connexion de <name>{who}</name>{via}} other {A demandé un nouveau mot de passe à la prochaine connexion de <name>{who}</name>{via}}}",
           "two_factor_reset": "A désactivé la double authentification de <name>{who}</name>{ended}{via}",
-          "password_changed": "{required, select, true {A choisi son propre mot de passe, comme root l’a demandé} other {A changé son mot de passe}}{others, plural, =0 {} one { (# autre session terminée)} other { (# autres sessions terminées)}}",
+          "password_changed": "{required, select, true {A choisi son propre mot de passe, comme root l’a demandé} other {A changé son mot de passe}}{ended}",
           "created": "A créé <name>{email}</name> comme {role}{change, select, true {, en demandant un nouveau mot de passe à sa première connexion} other {}}{sso, select, true { à sa première connexion avec <code>{provider}</code>} other {}}",
           "sso_linked": "A lié <name>{email}</name> au fournisseur d’identité <code>{provider}</code> (par courriel vérifié)",
           "role_changed": "A fait passer <name>{who}</name> du rôle {from} au rôle {to}",

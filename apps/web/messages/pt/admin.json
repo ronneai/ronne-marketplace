@@ -510,6 +510,7 @@
         "and": " e ",
         "ended": {
           "sessions": "{count, plural, one {# sessão encerrada} other {# sessões encerradas}}",
+          "otherSessions": "{count, plural, one {# outra sessão encerrada} other {# outras sessões encerradas}}",
           "tokens": "{count, plural, one {# token revogado} other {# tokens revogados}}",
           "scimTokens": "{count, plural, one {# token SCIM revogado} other {# tokens SCIM revogados}}",
           "requests": "{count, plural, one {# solicitação para entrar cancelada} other {# solicitações para entrar canceladas}}",
@@ -664,7 +665,7 @@
           "password_reset": "Redefiniu a senha de <name>{who}</name>{twoFactor, select, true { e desligou a autenticação de dois fatores} other {}}{change, select, true {, pedindo uma nova no próximo acesso} other {}}{ended}{via}",
           "password_change_requested": "{required, select, false {Deixou de pedir uma nova senha no próximo acesso de <name>{who}</name>{via}} other {Pediu uma nova senha no próximo acesso de <name>{who}</name>{via}}}",
           "two_factor_reset": "Desligou a autenticação de dois fatores de <name>{who}</name>{ended}{via}",
-          "password_changed": "{required, select, true {Escolheu a própria senha, como o root pediu} other {Alterou a própria senha}}{others, plural, =0 {} one { (# outra sessão encerrada)} other { (# outras sessões encerradas)}}",
+          "password_changed": "{required, select, true {Escolheu a própria senha, como o root pediu} other {Alterou a própria senha}}{ended}",
           "created": "Criou <name>{email}</name> como {role}{change, select, true {, pedindo uma nova senha no primeiro acesso} other {}}{sso, select, true { no primeiro acesso com <code>{provider}</code>} other {}}",
           "sso_linked": "Vinculou <name>{email}</name> ao provedor de identidade <code>{provider}</code> (por e-mail verificado)",
           "role_changed": "Alterou <name>{who}</name> de {from} para {to}",

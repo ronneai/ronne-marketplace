@@ -181,11 +181,13 @@ export type ChangePasswordResult =
  * keeps this session and ends the others. Wrong current passwords count against the same limit as
  * sign-in, so a stolen session can't be used to guess the password. When root asked for the change
  * (128), the new password must differ from the temporary one, and the request to change it ends.
+ * Unless `revokeTokens` is false (the box, ticked by default, 162), it revokes the person's access
+ * tokens too, in the same transaction as the audit row, which records how many.
  */
 export const changePassword = async (
   deps: SessionDeps,
   context: RequestContext,
-  input: { current: string; next: string },
+  input: { current: string; next: string; revokeTokens?: boolean },
 ): Promise<ChangePasswordResult> => {
   const user = await currentUser(deps, context.headers);
   if (!user) return { ok: false, error: "not_signed_in" };
@@ -210,16 +212,39 @@ export const changePassword = async (
   const changed = await deps.sessions.changePassword(context.headers, input.current, input.next);
   if (!changed) return { ok: false, error: "wrong_password" };
   const at = now(deps);
-  await deps.repo.transaction(async (repo) => {
-    if (required) await repo.setPasswordChangeRequired(user.id, false, at);
+  const revoke = input.revokeTokens !== false;
+  try {
+    await record(deps, context, user.id, { at, required, revoke, otherSessions: before - 1 });
+  } catch (error) {
+    // The password has changed already (Better Auth, above): its tokens must not outlive it, even
+    // when the audit row couldn't be written. A second try on its own; the error still goes up.
+    if (revoke) await deps.repo.revokeAccessTokens(user.id, at).catch(() => undefined);
+    throw error;
+  }
+  return { ok: true, required };
+};
+
+/** The password change's own writes, in one transaction: the hold, the tokens, the audit row. */
+const record = (
+  deps: SessionDeps,
+  context: RequestContext,
+  userId: string,
+  change: { at: Date; required: boolean; revoke: boolean; otherSessions: number },
+) => {
+  const { at, required } = change;
+  return deps.repo.transaction(async (repo) => {
+    if (required) await repo.setPasswordChangeRequired(userId, false, at);
+    const tokensRevoked = change.revoke ? await repo.revokeAccessTokens(userId, at) : 0;
     await repo.recordAudit(
       {
-        actorId: user.id,
+        actorId: userId,
         action: "user.password_changed",
-        target: { type: "user", id: user.id },
-        // Every session but this one; `required` when root had asked for the change (128).
+        target: { type: "user", id: userId },
+        // Every session but this one; `required` when root had asked for the change (128); the
+        // tokens revoked with it (162).
         metadata: {
-          otherSessionsEnded: Math.max(0, before - 1),
+          otherSessionsEnded: Math.max(0, change.otherSessions),
+          tokensRevoked,
           ...(required ? { required } : {}),
         },
         ipAddress: context.ip,
@@ -227,7 +252,6 @@ export const changePassword = async (
       at,
     );
   });
-  return { ok: true, required };
 };
 
 /** Ends the request's session, and records it. Without a session, there's nothing to do. */
