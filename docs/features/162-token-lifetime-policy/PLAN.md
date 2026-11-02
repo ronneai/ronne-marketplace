@@ -50,7 +50,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* component tests cover each, including the dialog under a 30-day cap; an e2e test
     sets a cap, shortens, and sees a person's token list.
 
-- [ ] **7. Messages.**
+- [x] **7. Messages.**
   - Every new key in `en`, `pt` and `fr`.
   - *Done when:* the parity and raw-text tests pass; the phone sweep passes on the panel and the
     user page.

@@ -322,3 +322,24 @@ Witnessed: 2026-11-01 20:59 EST, by a fresh agent (blind). Commit: fa3f4f4b + wo
 | 10b | The toast after root's Reset two-factor says the tokens are revoked | no | confirmed | `done.users.twoFactorOff` in en, pt, fr; `e2e/two-factor-hold.e2e.ts:180`; `playwright test e2e/token-policy.e2e.ts e2e/two-factor-hold.e2e.ts --project chromium` → 3 passed |
 
 **Overall:** met: with the first pass's rows 1, 2, 4, 5, 6, 8, 9 and 10, every claim of task 6 is confirmed.
+
+## Task 7 — Messages
+
+Witnessed: 2026-11-01 21:09 EST, by a fresh agent (blind). Commit: 4cc15715. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Every key 162 added or changed in `en` (account, admin, errors, help) is also in `pt` and `fr` | no | confirmed | Probe `probe-keys.mjs <repo> 70bf1be8 4cc15715` → "checked 62 new/changed en keys, 0 problems" |
+| 2 | Each has the same ICU arguments and tags in all three languages, and valid ICU | no | confirmed | The probe parses each with `@formatjs/icu-messageformat-parser` and compares arguments, plurals, selects, tags → 0 problems; `password_changed` uses `{ended}` in all three |
+| 3 | The parity, placeholder and untranslated tests pass | no | confirmed | `npx vitest run src/i18n` → 20 files, 403 passed; `admin-untranslated.test.ts` lists only the keys that are really the same (pt `Status`, fr `Actions`, `rmk login`) |
+| 4 | The pt and fr texts are Portuguese and French and follow the glossary | no | confirmed | Read the full `git diff 70bf1be8 4cc15715 -- apps/web/messages`: token/jeton, revisor/réviseur, espaços de trabalho/espaces de travail, autenticação de dois fatores/double authentification, root stays root |
+| 5 | Typography: no space before punctuation in pt; Canadian French space before a colon only, curly apostrophes | no | confirmed | Grep of the added fr lines for ` [?;!]`, a colon without space and `'` → only correct ` : `; pt: no ` [?;:!]` |
+| 6 | The screens use the new keys and none is unused | no | confirmed | `capHint` CreateTokenDialog.tsx:68, `revokeTokens*` ChangePasswordForm.tsx:86, `tokens.title` UserPage.tsx:175, `twoFactorOff` admin-users/actions.ts:181, `done.settings.*` admin-settings/actions.ts:86,101, audit parts in summary.ts, help id TokenPolicyForm.tsx:109; the error classes carry the fields their messages use |
+| 7 | No raw text in the new screens | no | confirmed | `biome check` on the 62 changed files → 0 errors. Mutation (raw text for `shortenTitle`) → "Text on the screen comes from the message files (feature 129)" |
+| 8 | The feature's UI tests pass | no | confirmed | admin-audit, admin-settings, admin-users, account-tokens, account, components/help → 37 files, 439 passed |
+| 9 | The phone sweep passes on the settings page and the user page, in en, pt and fr | no | confirmed | After `pnpm exec next build`: `mobile-sweep.mobile.e2e.ts` → 15 passed each on `phone`, `phone-webkit`, `tablet`; pages.ts:169 and :179 include both pages; the swept member has a token, so the table and Revoke are swept |
+| 10 | The language sweeps find no English left in pt or fr | no | confirmed | `languages-admin.e2e.ts languages-rest.e2e.ts --project chromium` → 24 passed, including `noEnglish` on `?tab=authentication` |
+
+**Overall:** met: every new key is in en, pt and fr with matching ICU and proper Portuguese and Canadian French, the screens use them with no raw text, and the parity, lint, phone and language sweeps pass.
+
+Remarks: no English-leak unit test renders the user page's token table or the panel in pt or fr (the probe found them translated; the e2e language sweep covers the panel); optional wording in fr `past` ("…plus longtemps que cela") and `confirmBody`.
