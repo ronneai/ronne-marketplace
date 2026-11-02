@@ -1,7 +1,7 @@
 # Threat model
 
-> Feature [098](../features/098-threat-model/SPEC.md) · Checked against the code on 2026-11-01 (commit
-> `b6cb9759`, before 0.7.0) · What to do when something goes wrong: the
+> Feature [098](../features/098-threat-model/SPEC.md) · Checked against the code on 2026-11-02 (commit
+> `3f3f33d1`, before 0.7.0) · What to do when something goes wrong: the
 > [incident runbook](../runbooks/incident-response.md) · Reporting a vulnerability:
 > [`SECURITY.md`](../../SECURITY.md)
 
@@ -34,7 +34,7 @@ What an instance holds:
 | The scan key, `RONNE_SCAN_KEY` (156) | the settings file (`.env`), given to the web app and the proxy | the scanner containers' only door; without it the proxy refuses every scan request |
 | Items: released versions | storage (`.tgz`, immutable) and database (sha256) | run on every machine that installs them |
 | Drafts and submissions | database (`submission_files`) | not reviewed yet; may be private work |
-| The audit log, with IP addresses | database (`audit_log`) | the record of who did what; the addresses are cleared after the retention (102) |
+| The audit log, with IP addresses and clients | database (`audit_log`) | the record of who did what, with each event's request ID, channel, client (its user agent), workspace and outcome (166); root's alone (`audit.read`, checked by the page and by its actions); the addresses and clients are cleared after the retention (102) |
 | Security scan results and reviewers' marks on findings (135, 137) | database (`content_scans`, `scan_dismissals`) | findings about files, and the reasons reviewers gave; no personal data beyond the marker's id |
 | Feedback and the instance notice (124, 127) | database (`feedback`, `instance_settings`) | what people wrote to the administrators; root's message shown to everyone |
 | Usage totals | database | aggregated, nothing about who sent them |
@@ -168,8 +168,8 @@ The boundaries, in order of what's at stake:
 | Someone reads the database or storage | Token hashes and password hashes only | Everything else is in the clear unless the disk or the database encrypts it. Accepted (MVP §15, Operations: encryption at rest is the platform's); 099 documents how |
 | Someone reads a backup | `rmk-server backup --encrypt` seals the archive with a passphrase (scrypt, AES-256-GCM in chunks), and `backup --verify` checks an archive (099) | Backups are not encrypted by default and then hold the settings file; a lost passphrase loses the backup; keeping copies off the machine is the operator's ([backup runbook](../runbooks/backup.md)) |
 | The audit log is altered | Append-only: a guard test fails on any update or delete outside migrations (`domains/audit/audit-log.guard.test.ts`) | Anyone with database write access can change it. No export to an outside store (post-MVP, 007) |
-| Personal data kept forever | Retention (102): root sets how long IP addresses are kept (audit log, sessions, device grants) and the email typed in a failed sign-in, 90 days by default, 1 to 3,650; expired sessions and finished device approvals are deleted; the instance runs the purge every six hours under a lease, and `rmk-server purge` runs it from cron. Erasing (103): root anonymises an account (email and name become `deleted-user-<id>`; sessions, linked accounts, tokens and device approvals deleted; IP addresses cleared; the email rewritten in the audit log's metadata); the last root can't be erased | The events and what the person published stay under the pseudonym. A backup made earlier still holds what a purge or an erasure cleared: the operator's copies. Erasing can't be undone |
-| Someone gets another person's data | "Your data" (104): `GET /account/data` is the person's own and `GET /admin/users/<id>/data` is root's, both behind the web session, a cross-site request is refused (403), a session held on the two-factor step or a disabled account can't download, one download per account per 10 minutes, a list is cut at 10,000 rows, and each is audited as `user.data_exported` | The file holds the person's own audit events with their metadata as stored; root can make it for anyone |
+| Personal data kept forever | Retention (102): root sets how long IP addresses are kept (audit log, with its clients since 166, sessions, device grants) and the email typed in a failed sign-in, 90 days by default, 1 to 3,650; expired sessions and finished device approvals are deleted; the instance runs the purge every six hours under a lease, and `rmk-server purge` runs it from cron. Erasing (103): root anonymises an account (email and name become `deleted-user-<id>`; sessions, linked accounts, tokens and device approvals deleted; IP addresses and audit clients cleared; the email rewritten in the audit log's metadata); the last root can't be erased | The events and what the person published stay under the pseudonym. A backup made earlier still holds what a purge or an erasure cleared: the operator's copies. Erasing can't be undone |
+| Someone gets another person's data | "Your data" (104): `GET /account/data` is the person's own and `GET /admin/users/<id>/data` is root's, both behind the web session, a cross-site request is refused (403), a session held on the two-factor step or a disabled account can't download, one download per account per 10 minutes, a list is cut at 10,000 rows, and each is audited as `user.data_exported` | The file holds the person's own audit events with their metadata as stored, and an event's IP address and client only when the person did it (166); root can make it for anyone |
 | Data lost with no way back | `rmk-server backup` and `restore`, with a restore test in CI, on all three database kinds (099) | Migrations run on start and can't go back, so a backup before an upgrade is the only undo; nothing runs backups on a schedule but the operator's |
 
 ### 4.5 The registry → developers' machines and git mirrors
