@@ -11,7 +11,6 @@ import {
   ScrollText,
   Send,
   Settings,
-  SquareTerminal,
   UserPlus,
   Users,
 } from "lucide-react";
@@ -28,7 +27,6 @@ const ICONS: Record<Name, LucideIcon> = {
   audit: ScrollText,
   settings: Settings,
   docs: BookOpen,
-  tokens: SquareTerminal,
   feedback: MessageSquarePlus,
   inbox: Inbox,
   propose: Plus,

@@ -45,16 +45,16 @@ test("someone held for two-factor sees only /account/security, on every page and
 
     // Clicks in the frame (client-side navigation, which doesn't render the layout again).
     const main = page.getByRole("navigation", { name: "Main" });
-    for (const name of ["Home", "Catalogue", "Workspaces", "CLI & tokens"]) {
+    for (const name of ["Home", "Catalogue", "Workspaces"]) {
       await main.getByRole("link", { name, exact: true }).first().click();
       await expect(page).toHaveURL(/\/account\/security$/);
       await expect(page.getByText("Set up two-factor sign-in to continue")).toBeVisible();
     }
-    await page
-      .getByRole("navigation", { name: "Account" })
-      .getByRole("link", { name: "Password" })
-      .click();
-    await expect(page).toHaveURL(/\/account\/security$/);
+    // The Account tabs too, Access tokens (162) as much as Password.
+    for (const name of ["Access tokens", "Password"]) {
+      await page.getByRole("navigation", { name: "Account" }).getByRole("link", { name }).click();
+      await expect(page).toHaveURL(/\/account\/security$/);
+    }
   } finally {
     await setRequirement("optional");
   }

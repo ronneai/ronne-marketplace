@@ -35,8 +35,8 @@ page, and recovering an account ends its tokens with its sessions (owner, 2026-1
   The dialog offers only the lifetimes allowed. The exchange and the device flow give 90 days, or
   the maximum when it's shorter. A request for more is refused with `token_lifetime_too_long`.
 - **Account › Access tokens** (owner, 2026-11-01): the tokens page is a tab of Account, after
-  Two-factor sign-in, at the same address (`/account/tokens`); the sidebar's CLI & tokens still
-  leads there.
+  Two-factor sign-in, at the same address (`/account/tokens`). The sidebar no longer lists
+  CLI & tokens (owner, 2026-11-01): Account's tab is the way there.
 - **Root sees a person's tokens** on `/admin/users/<id>` (123): name, how it was made (web, `rmk`,
   device), created, last used, expires, never the secret or its preview. Root can **Revoke** one,
   audited `access_token.revoked` with root as the actor.

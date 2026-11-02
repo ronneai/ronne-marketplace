@@ -25,7 +25,8 @@ ticking itself as they go, and goes away when they are done or don't want it.
   | 3 | **Install your first item** | they say so | a button "I've installed one" (`install_confirmed_at`) |
   | 4 | **Start a draft** (optional) | they have a draft or any submission | `submissions` (012) |
 
-  In the dialog each step has one sentence and one action: step 1 → CLI & tokens; step 2 → the install and login
+  In the dialog each step has one sentence and one action: step 1 → CLI & tokens (since 162, "Open
+  Access tokens", the Account tab); step 2 → the install and login
   commands for this instance (the same ready-made lines the tokens page shows, with the instance's
   address, including `rmk login --registry <address> --web`) and a copy button; step 3 → the
   catalogue, and for the install, the command on any item page; step 4 → New item and the

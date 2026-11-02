@@ -42,7 +42,7 @@ test("the banner fits, and its steps open in a dialog that fits too", async ({
     const box = await banner.boundingBox();
     expect(box?.height ?? 0).toBeLessThan(260);
   }
-  await notTouchSized(page, ["Hide Getting started", "Open CLI & tokens", "See all steps"]);
+  await notTouchSized(page, ["Hide Getting started", "Open Access tokens", "See all steps"]);
 
   // The steps: a dialog, stacked, with the commands inside the screen.
   const dialog = await openSteps(page, "See all steps");

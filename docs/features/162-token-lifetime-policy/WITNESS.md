@@ -364,3 +364,24 @@ Witnessed: 2026-11-01 21:28 EST, by a fresh agent (blind). Commit: a2e76127 + wo
 **Overall:** met: Access tokens is a tab of Account at the same address, with the Account header, its own heading and Create token, and the title in all three languages; Language still drops out when choosing is off; e2e and the phone sweep pass.
 
 After this pass the implementer added a test that renders `TokensPage` with `language={false}` and expects no Language tab (the row 6 gap).
+
+## Task 10 — No CLI & tokens in the sidebar
+
+Witnessed: 2026-11-01 21:51 EST, by a fresh agent (blind). Commit: b6cb9759 + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The sidebar's Tools group no longer lists CLI & tokens | no | confirmed | `git diff nav.ts` → the `/account/tokens` entry is gone from `NAV`, `"tokens"` from the `NavIcon` type; `NavIcon.tsx` no longer imports `SquareTerminal` |
+| 2 | The navigation unit tests no longer find it, and would catch it coming back | no | confirmed | `vitest run AppShell.test.tsx getting-started.test.tsx` → 71 passed. Mutation (entry and `shell.json` keys back) → 6 failed; AppShell.test.tsx:212 checks `navFor(ROOT)` has no `/account/tokens` |
+| 3 | The phone Menu doesn't list it | no | confirmed | navigation.mobile.e2e.ts:28-31 checks the link has count 0; `navigation.mobile getting-started.mobile mobile-sweep.mobile` → 21 passed on each of phone, phone-webkit, tablet |
+| 4 | The `shell` messages drop the label in all three languages, consistently | no | confirmed | `nav.tokens` removed in en, pt, fr; `vitest run src/i18n` → 403 passed; `tsc --noEmit` 0 |
+| 5 | The Getting started button reads "Open Access tokens" and leads to `/account/tokens` | no | confirmed | home.json en/pt/fr; GettingStartedPanel.tsx:163, :236 link to `/account/tokens`; getting-started.test.tsx:180. Mutation (old label) → that test fails |
+| 6 | Account's Access tokens tab is the way there | no | confirmed | AccountTabs.tsx:11; two-factor-hold.e2e.ts clicks the tabs "Access tokens" and "Password" → passed |
+| 7 | Nothing in the app still names the CLI & tokens page | no | confirmed | `grep -rnEi "CLI (&|&amp;|e|et) (tokens|jetons)"` over apps/, packages/, README.md → only the absence check in navigation.mobile.e2e.ts:31 |
+| 8 | Nothing in the Documentation still names it | no | confirmed | ronne-web `www/src` → no match; product-facts names it only as removed; the overview's Tools line lists Documentation and Send feedback; runbooks say Account › Access tokens. Remark: `docs/knowledge/i18n.md:169` still had a glossary row for it |
+| 9 | The e2e tests that used it pass | no | confirmed | `next build` 0; `two-factor-hold getting-started --project chromium` → 5 passed; mobile set → 21 passed each |
+| 10 | The spec notes match: 162 Scope, 119 and 126 | no | confirmed | 162 SPEC.md:37-39; 119 SPEC.md:32, :47; 126 SPEC.md:28-29 |
+
+**Overall:** met: the link is gone from the sidebar and the Menu, the messages are consistent in three languages, the button is renamed and still leads to `/account/tokens`, nothing in the app, the website or the runbooks names the page, and the tests pass (both mutations fail).
+
+After this pass the implementer removed the stale glossary row from `docs/knowledge/i18n.md`.

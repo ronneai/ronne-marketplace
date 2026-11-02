@@ -177,7 +177,7 @@ describe("Getting started: the banner (126)", () => {
   it("offers the next step's button: a token, the commands, the catalogue and the install", () => {
     const token = banner(panel(state()));
     expect(token).toContain("Next: Create an access token");
-    expect(token).toMatch(/href="\/account\/tokens"[^>]*>Open CLI &amp; tokens</);
+    expect(token).toMatch(/href="\/account\/tokens"[^>]*>Open Access tokens</);
     expect(token).toContain(">See all steps<");
 
     const connect = banner(panel(state({ hasToken: true })));

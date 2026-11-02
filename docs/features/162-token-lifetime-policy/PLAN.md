@@ -70,6 +70,15 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     Access tokens heading and Create token, its title reads "Access tokens · Account", the e2e
     tests that use the page pass, and the phone sweep passes on it.
 
+- [x] **10. No CLI & tokens in the sidebar.**
+  - Owner, 2026-11-01, after task 9: the sidebar's Tools group (and the Menu on a phone) no longer
+    lists CLI & tokens; Account's Access tokens tab is the way there. Getting started's button that
+    opened it is named for the tab.
+  - *Done when:* the navigation tests and the phone navigation test no longer find it, the Getting
+    started button reads "Open Access tokens" and still leads to `/account/tokens`, nothing in the
+    app or its Documentation still names the CLI & tokens page, and the e2e tests that used it
+    pass.
+
 ## Notes
 
 Things learned while building that the next person should know. Anything that changes behaviour
