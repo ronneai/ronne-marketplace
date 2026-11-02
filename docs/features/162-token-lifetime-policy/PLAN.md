@@ -42,7 +42,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* db tests cover both boxes, the two-factor reset from the web and the terminal, and
     that a revoked token gets 401 at once (`require-token.db.test.ts`).
 
-- [ ] **6. Screens.**
+- [x] **6. Screens.**
   - The Access tokens panel on the Authentication tab.
   - The Create token dialog offering only allowed lifetimes.
   - The token list on `/admin/users/<id>` with Revoke (ask first).

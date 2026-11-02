@@ -163,7 +163,40 @@
     "noWorkspaces": "Nenhum.",
     "dataBody": "Tudo o que a instância guarda sobre a pessoa em um só arquivo: a conta, os nomes dos tokens, submissões, comentários e eventos de auditoria.",
     "auditLink": "Eventos da pessoa no registro de auditoria",
-    "eraseBody": "Apagar encerra a conta de vez. O e-mail, o nome, os acessos e os tokens somem; os itens publicados e os eventos de auditoria ficam, sob um pseudônimo. Não dá para desfazer."
+    "eraseBody": "Apagar encerra a conta de vez. O e-mail, o nome, os acessos e os tokens somem; os itens publicados e os eventos de auditoria ficam, sob um pseudônimo. Não dá para desfazer.",
+    "tokens": {
+      "title": "Tokens de acesso",
+      "hint": "Para o rmk e o servidor MCP. Nunca o token em si, nem seus primeiros caracteres.",
+      "empty": "Nenhum token de acesso.",
+      "name": "Nome",
+      "how": "Criado com",
+      "created": "Criado",
+      "lastUsed": "Último uso",
+      "expires": "Expira",
+      "status": "Status",
+      "actions": "Ações",
+      "never": "nunca",
+      "noExpiry": "sem expiração",
+      "via": {
+        "web": "o aplicativo web",
+        "cli": "rmk login",
+        "device": "aprovação no navegador",
+        "unknown": "desconhecido"
+      },
+      "statuses": {
+        "active": "ativo",
+        "expired": "expirado",
+        "revoked": "revogado"
+      }
+    },
+    "revokeToken": {
+      "button": "Revogar",
+      "aria": "Revogar {name}",
+      "title": "Revogar token de acesso",
+      "body": "Revogar <strong>{name}</strong>? Tudo o que o usa, como o rmk na máquina da pessoa, para de funcionar até ela criar um novo token.",
+      "cancel": "Cancelar",
+      "submit": "Revogar token"
+    }
   },
   "actions": {
     "labels": {
@@ -190,7 +223,7 @@
     "isRoot": "{email} é root.",
     "enableBody": "A pessoa volta a poder entrar. Os tokens de acesso revogados continuam revogados.",
     "resetBody": "Isto encerra todas as sessões da pessoa e revoga os tokens de acesso.",
-    "twoFactorBody": "Para quando o celular e os códigos de backup foram perdidos. Isto desliga a autenticação de dois fatores e encerra todas as sessões; a pessoa entra só com a senha e configura de novo se for exigido.",
+    "twoFactorBody": "Para quando o celular e os códigos de backup foram perdidos. Isto desliga a autenticação de dois fatores e encerra todas as sessões e revoga os tokens de acesso; a pessoa entra só com a senha e configura de novo se for exigido.",
     "scimTitle": "{provider} gerencia esta conta por SCIM.",
     "scimBody": "A próxima sincronização devolve a conta ao que o provedor diz: altere lá também.",
     "newRole": "Novo papel",
@@ -837,6 +870,27 @@
       },
       "coverage": "{unenrolled, plural, =0 {{covered, plural, one {# pessoa} other {# pessoas}}, todas com a autenticação de dois fatores ligada.} other {{covered, plural, one {# pessoa} other {# pessoas}}; {unenrolled, plural, one {# pessoa} other {# pessoas}} precisam configurar na próxima visita.}}"
     },
+    "tokens": {
+      "title": "Tokens de acesso",
+      "hint": "O máximo que um token de acesso para o rmk ou o servidor MCP pode durar. As pessoas escolhem uma validade até esse limite ao criar um; o rmk login dá 90 dias, ou esse limite quando ele é menor.",
+      "everyone": "Validade máxima",
+      "reviewers": "Para revisores e root",
+      "reviewersHint": "O root e os moderadores e admins de espaços de trabalho compartilhados: os tokens deles alcançam mais. A mesma ou menor.",
+      "choices": {
+        "30": "30 dias",
+        "90": "90 dias",
+        "365": "365 dias",
+        "none": "Sem limite"
+      },
+      "save": "Salvar",
+      "shortenTitle": "Tokens criados antes",
+      "past": "{count, plural, =0 {Nenhum token ativo dura mais do que isso.} one {# token ativo dura mais do que isso.} other {# tokens ativos duram mais do que isso.}}",
+      "shorten": "Encurtar",
+      "confirmTitle": "Encurtar tokens de acesso",
+      "confirmBody": "{count, plural, one {# token vai expirar} other {# tokens vão expirar}} na data mais próxima entre a deles e a validade máxima a partir de hoje. Nenhum é revogado: as pessoas têm até lá para criar novos.",
+      "cancel": "Cancelar",
+      "confirm": "Encurtar tokens"
+    },
     "password": {
       "title": "Login com senha",
       "hint": "Quem ainda pode entrar com senha depois que o provedor de identidade for ligado. O root sempre pode, então um provedor com defeito não deixa todo mundo de fora.",
@@ -1329,7 +1383,7 @@
       "roleChanged": "Papel alterado para {role}.",
       "disabled": "Desativado. A pessoa foi desconectada de todos os lugares.",
       "enabled": "Ativado. A pessoa pode entrar de novo.",
-      "twoFactorOff": "Autenticação de dois fatores desligada. A pessoa foi desconectada de todos os lugares.",
+      "twoFactorOff": "Autenticação de dois fatores desligada. A pessoa foi desconectada de todos os lugares, e os tokens de acesso dela foram revogados.",
       "twoFactorNone": "A pessoa não tinha autenticação de dois fatores: nada mudou.",
       "erased": "Apagado. A conta agora é deleted-user e nada da pessoa pode ser recuperado."
     },
@@ -1356,7 +1410,9 @@
       "nothing": "Nada mudou.",
       "erasuresNone": "Não havia nada a concluir.",
       "erasures": "{count, plural, one {# apagamento concluído.} other {# apagamentos concluídos.}}",
-      "scan": "Verificação de segurança salva."
+      "scan": "Verificação de segurança salva.",
+      "tokens": "Tokens de acesso salvos.",
+      "shortened": "{count, plural, =0 {Nenhum token precisava ser encurtado.} one {# token encurtado.} other {# tokens encurtados.}}"
     }
   },
   "updates": {

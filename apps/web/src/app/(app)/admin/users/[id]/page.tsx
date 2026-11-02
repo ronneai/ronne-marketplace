@@ -2,9 +2,11 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { DownloadDataButton } from "@/features/admin-users/DownloadDataDialog";
 import { EraseUserButton } from "@/features/admin-users/EraseUserDialog";
+import { RevokeUserTokenButton } from "@/features/admin-users/RevokeUserTokenButton";
 import { UserPage, type UserPageSlots } from "@/features/admin-users/UserPage";
 import { ErasedDownloadButton, UserActionButton } from "@/features/admin-users/UserPageActions";
 import { UserWorkspacesButton } from "@/features/admin-users/UserWorkspacesDialog";
+import { adminListTokens } from "@/server/domains/identity/actions/access-tokens";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
 import { adminGetUser } from "@/server/domains/identity/actions/user-admin";
 import { UserNotFoundError } from "@/server/domains/identity/exceptions/errors";
@@ -35,6 +37,8 @@ const User = async ({ params }: { params: Promise<{ id: string }> }) => {
   });
   const { user } = detail;
   const self = user.id === me.id;
+  // Their tokens, without the secret or its preview (162); an erased account has none.
+  const tokenList = user.erasedAt ? [] : await adminListTokens(request, user.id);
 
   let slots: UserPageSlots = {};
   if (user.erasedAt) {
@@ -71,11 +75,16 @@ const User = async ({ params }: { params: Promise<{ id: string }> }) => {
             {t("manage")}
           </UserWorkspacesButton>
         ),
+      revokeToken: (token) => (
+        <RevokeUserTokenButton userId={user.id} id={token.id} name={token.name} />
+      ),
       data: <DownloadDataButton user={{ id: user.id, email: user.email }} />,
       erase: <EraseUserButton user={row} />,
     };
   }
-  return <UserPage detail={detail} self={self} slots={slots} />;
+  return (
+    <UserPage detail={detail} self={self} slots={slots} tokenList={tokenList} now={new Date()} />
+  );
 };
 
 export default User;

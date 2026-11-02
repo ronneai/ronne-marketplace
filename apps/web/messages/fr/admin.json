@@ -163,7 +163,40 @@
     "noWorkspaces": "Aucun.",
     "dataBody": "Tout ce que l’instance conserve sur la personne dans un seul fichier : le compte, les noms des jetons, les soumissions, les commentaires et les événements d’audit.",
     "auditLink": "Ses événements dans le journal d’audit",
-    "eraseBody": "Effacer met fin au compte pour de bon. Le courriel, le nom, les connexions et les jetons disparaissent; les éléments publiés et les événements d’audit restent, sous un pseudonyme. C’est irréversible."
+    "eraseBody": "Effacer met fin au compte pour de bon. Le courriel, le nom, les connexions et les jetons disparaissent; les éléments publiés et les événements d’audit restent, sous un pseudonyme. C’est irréversible.",
+    "tokens": {
+      "title": "Jetons d’accès",
+      "hint": "Pour rmk et le serveur MCP. Jamais le jeton lui-même, ni ses premiers caractères.",
+      "empty": "Aucun jeton d’accès.",
+      "name": "Nom",
+      "how": "Créé avec",
+      "created": "Créé",
+      "lastUsed": "Dernière utilisation",
+      "expires": "Expire",
+      "status": "Statut",
+      "actions": "Actions",
+      "never": "jamais",
+      "noExpiry": "sans expiration",
+      "via": {
+        "web": "l’application web",
+        "cli": "rmk login",
+        "device": "approbation dans le navigateur",
+        "unknown": "inconnu"
+      },
+      "statuses": {
+        "active": "actif",
+        "expired": "expiré",
+        "revoked": "révoqué"
+      }
+    },
+    "revokeToken": {
+      "button": "Révoquer",
+      "aria": "Révoquer {name}",
+      "title": "Révoquer le jeton d’accès",
+      "body": "Révoquer <strong>{name}</strong>? Tout ce qui l’utilise, comme rmk sur sa machine, cesse de fonctionner jusqu’à ce que la personne crée un nouveau jeton.",
+      "cancel": "Annuler",
+      "submit": "Révoquer le jeton"
+    }
   },
   "actions": {
     "labels": {
@@ -190,7 +223,7 @@
     "isRoot": "{email} est un root.",
     "enableBody": "La personne peut se reconnecter. Ses jetons d’accès révoqués le restent.",
     "resetBody": "Cela déconnecte la personne partout et révoque ses jetons d’accès.",
-    "twoFactorBody": "En cas de téléphone perdu et de codes de secours perdus. Cela désactive la double authentification et déconnecte la personne partout; elle se connecte avec son seul mot de passe et la configure de nouveau si on l’exige d’elle.",
+    "twoFactorBody": "En cas de téléphone perdu et de codes de secours perdus. Cela désactive la double authentification et déconnecte la personne partout et révoque ses jetons d’accès; elle se connecte avec son seul mot de passe et la configure de nouveau si on l’exige d’elle.",
     "scimTitle": "{provider} gère ce compte par SCIM.",
     "scimBody": "Sa prochaine synchronisation remet le compte comme le dit le fournisseur : modifiez-le là aussi.",
     "newRole": "Nouveau rôle",
@@ -837,6 +870,27 @@
       },
       "coverage": "{unenrolled, plural, =0 {{covered, plural, one {# personne} other {# personnes}}, toutes avec la double authentification activée.} other {{covered, plural, one {# personne} other {# personnes}}; {unenrolled, plural, one {# personne} other {# personnes}} doivent la configurer à leur prochaine visite.}}"
     },
+    "tokens": {
+      "title": "Jetons d’accès",
+      "hint": "La durée maximale d’un jeton d’accès pour rmk ou le serveur MCP. Les gens choisissent une durée jusqu’à cette limite en le créant; rmk login donne 90 jours, ou cette limite si elle est plus courte.",
+      "everyone": "Durée maximale",
+      "reviewers": "Pour les réviseurs et root",
+      "reviewersHint": "Root, et les modérateurs et admins des espaces de travail partagés : leurs jetons vont le plus loin. La même ou plus courte.",
+      "choices": {
+        "30": "30 jours",
+        "90": "90 jours",
+        "365": "365 jours",
+        "none": "Aucune limite"
+      },
+      "save": "Enregistrer",
+      "shortenTitle": "Jetons créés avant",
+      "past": "{count, plural, =0 {Aucun jeton actif ne dure plus longtemps.} one {# jeton actif dure plus longtemps.} other {# jetons actifs durent plus longtemps.}}",
+      "shorten": "Les raccourcir",
+      "confirmTitle": "Raccourcir les jetons d’accès",
+      "confirmBody": "{count, plural, one {# jeton expirera} other {# jetons expireront}} à la plus proche de leur propre date et de la durée maximale à partir d’aujourd’hui. Aucun n’est révoqué : les gens ont jusque-là pour en créer de nouveaux.",
+      "cancel": "Annuler",
+      "confirm": "Raccourcir les jetons"
+    },
     "password": {
       "title": "Connexion par mot de passe",
       "hint": "Qui peut encore se connecter avec un mot de passe une fois votre fournisseur d’identité activé. Root le peut toujours, donc un fournisseur défaillant ne peut pas exclure tout le monde.",
@@ -1329,7 +1383,7 @@
       "roleChanged": "Rôle changé en {role}.",
       "disabled": "Désactivé. La personne est déconnectée partout.",
       "enabled": "Activé. La personne peut se reconnecter.",
-      "twoFactorOff": "Double authentification désactivée. La personne est déconnectée partout.",
+      "twoFactorOff": "Double authentification désactivée. La personne est déconnectée partout, et ses jetons d’accès sont révoqués.",
       "twoFactorNone": "La personne n’avait pas de double authentification : rien n’a changé.",
       "erased": "Effacé. Le compte est maintenant deleted-user et rien de ce qui le concernait ne peut être relu."
     },
@@ -1356,7 +1410,9 @@
       "nothing": "Rien n’a changé.",
       "erasuresNone": "Il ne restait rien à terminer.",
       "erasures": "{count, plural, one {# effacement terminé.} other {# effacements terminés.}}",
-      "scan": "Analyse de sécurité enregistrée."
+      "scan": "Analyse de sécurité enregistrée.",
+      "tokens": "Jetons d’accès enregistrés.",
+      "shortened": "{count, plural, =0 {Aucun jeton n’avait besoin d’être raccourci.} one {# jeton raccourci.} other {# jetons raccourcis.}}"
     }
   },
   "updates": {

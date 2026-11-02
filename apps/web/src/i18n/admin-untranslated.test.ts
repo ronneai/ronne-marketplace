@@ -24,6 +24,10 @@ const flat = (value: string | Tree, prefix = ""): Record<string, string> =>
  * where it does, so a new one is a decision made here.
  */
 const SAME: Record<string, readonly string[]> = {
+  // 162: a word both share, and the command's own name.
+  "userPage.tokens.status": ["pt"],
+  "userPage.tokens.actions": ["fr"],
+  "userPage.tokens.via.cli": ["pt", "fr"],
   "updates.plans.docker.title": ["pt", "fr"],
   "setup.database.host": ["pt"],
   "setup.database.port": ["fr"],

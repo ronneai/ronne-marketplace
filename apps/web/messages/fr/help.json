@@ -275,6 +275,10 @@
     "question": "Qui doit l’activer?",
     "answer": "Sous Réviseurs et root : root, ainsi que les modérateurs et admins des espaces de travail partagés. Sous Tout le monde : tout compte avec un mot de passe. Une personne visée qui n’a pas configuré la double authentification est envoyée sur sa page Compte à sa prochaine visite et ne peut rien utiliser d’autre tant qu’elle ne l’a pas fait. Personne n’est déconnecté. Les comptes qui se connectent par un fournisseur d’identité d’entreprise ne sont pas visés."
   },
+  "token-lifetime-reviewers": {
+    "question": "Pourquoi plus courte pour les réviseurs?",
+    "answer": "Les jetons de root et des réviseurs peuvent approuver et publier ce que tout le monde installe : un jeton volé va donc le plus loin. Une durée plus courte limite combien de temps il fonctionne."
+  },
   "reset-two-factor": {
     "question": "Quand réinitialiser la double authentification de quelqu’un?",
     "answer": "Quand la personne a perdu son téléphone et ses codes de secours. Elle se connecte avec son seul mot de passe, puis configure de nouveau la double authentification sur sa page Compte, aussitôt si on l’exige d’elle. Un root qui a perdu la sienne et n’a aucun autre root à qui demander exécute reset-root-password sur le serveur, qui la réinitialise aussi."

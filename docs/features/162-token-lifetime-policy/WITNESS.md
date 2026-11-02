@@ -291,3 +291,34 @@ Witnessed: 2026-11-01 20:40 EST, by a fresh agent (adversarial). Commit: b758ba7
 | 16 | The affected db files pass on every dialect | no | confirmed | 12 files (session, instance-access, scripts/revoke-access, scripts/reset-two-factor, scripts/reset-root-password, user-admin, two-factor-reset, require-token, device-grants, device-page, disabled-users, root-account) → SQLite 167 passed, 1 skipped; PostgreSQL, MySQL, MariaDB 168/168 each |
 
 **Overall:** met: with the earlier rounds, every claim of task 5 is confirmed on all four dialects, and each new test fails without its fix.
+
+## Task 6 — Screens
+
+Witnessed: 2026-11-01 20:49 EST, by a fresh agent (blind). Commit: fa3f4f4b + working tree (30 modified, 6 untracked files). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The task's component, i18n and db tests pass | no | confirmed | `npx vitest run` on token-policy-form, create-token-dialog, user-page, account, admin-settings, `src/i18n` and access-tokens.db.test → 26 files, 498 passed |
+| 2 | The Authentication tab has an Access tokens panel with both caps; the reviewers' cap only the same or shorter | no | confirmed | `AuthenticationTab.tsx` adds the `access-tokens` panel; the test checks the options. Browser probe: choosing 30 left the reviewers' select with `[ '30 days' ]` |
+| 3 | Shorten shows the count and asks before it runs, with a component test | no | partly | Works (e2e and probe: Shorten them → dialog → Shorten tokens → toast → "No active token lasts longer than this."). The count text is tested (`count > 0` → `>= 0` fails 1). But the "asks first" check proves nothing: `Dialog` keeps its content in the DOM while closed; a button that opens nothing still passed 3/3 |
+| 4 | The helper "Why shorter for reviewers?" links to `authentication#tokens` | no | confirmed | `Help.tsx` `"token-lifetime-reviewers"` → `docsHref("authentication","tokens")`; `topics.ts` adds `tokens`; `help.json` in en, pt, fr; the panel has one such button |
+| 5 | The Create token dialog offers only the allowed lifetimes, including under a 30-day cap | no | confirmed | `create-token-dialog.test.tsx` checks 30 → `["30"]` (with the hint), 90, 365, null; dropping the filter fails 2/2. Live probe (cap 30): `[ '30 days' ]`, "Root allows tokens of 30 days at most." |
+| 6 | `/admin/users/<id>` lists the person's tokens, never the secret or its preview | no | confirmed | `user-page.test.tsx` covers 3 cases; removing the preview strip in `listTokensOf` fails the db test. Probe: "probe token · the web app · 2026-11-01 · never · 2026-12-01 · active", no `rmk_` in `#user-tokens` |
+| 7 | Revoke on a person's page asks first, works, is audited, and has a component test | no | partly | Works (probe: asks, row stays active until confirmed, then "revoked" on both pages; the db test checks `access_token.revoked` by root). But nothing tests `RevokeUserTokenButton` or `revokeUserTokenFromForm`, the e2e never revokes, and the success toast never appears (the form goes with the refresh) |
+| 8 | The password form has "Also revoke my access tokens", ticked by default, passed to the action; the same form on root's forced-change page | no | confirmed | Removing `defaultChecked` fails 1 test; always sending `true` fails 1. `/account/password` is the only page with the form. `playwright test e2e/password-change.e2e.ts --project chromium` → 3 passed, `toBeChecked()` on the held page too |
+| 9 | An e2e test sets a cap, shortens, and sees a person's token list | no | confirmed | `pnpm exec next build` then `playwright test e2e/token-policy.e2e.ts --project chromium` → 1 passed |
+| 10 | Root's Reset two-factor dialog says it also revokes the tokens | no | confirmed | `twoFactorBody` in en, pt, fr; the user page HTML contains "revokes their access tokens" |
+
+**Overall:** not met: the panel, the dialog, the token list, the password box and the e2e work, but Revoke on a person's page has no component test and its toast never shows, and the "asks before Shorten" test checks nothing. Also: `admin.done.users.twoFactorOff` didn't mention the tokens.
+
+### Re-check (rows 3 and 7)
+
+Witnessed: 2026-11-01 20:59 EST, by a fresh agent (blind). Commit: fa3f4f4b + working tree (39 changed or untracked entries). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 3 | Shorten shows the count and asks before it runs, with a component test covering that | no | confirmed | `npx vitest run` on token-policy-form, revoke-user-token, admin-users actions, user-page, `src/i18n` → 24 files, 451 passed. The test checks `dialog.open` false → true and that `shortenTokensFromForm` isn't called. Mutations (a button that opens nothing; Shorten called on click) → each fails 1 of 3. The e2e passes |
+| 7 | Revoke on a person's page asks first, works, is audited, says so, and has a component test | no | confirmed | `revoke-user-token.test.tsx`: mutations (opens nothing; no hidden ids; Cancel doesn't close) → each fails. `actions.test.tsx`: dropping `flashToast("tokenRevoked")` or swapping the ids → fails. The e2e revokes and expects the toast, "revoked" and no button. Probe after rebuild: the toast `'OK:Revoked. It stops working on its next request.'` (count 1); the row reads "revoked" on both pages |
+| 10b | The toast after root's Reset two-factor says the tokens are revoked | no | confirmed | `done.users.twoFactorOff` in en, pt, fr; `e2e/two-factor-hold.e2e.ts:180`; `playwright test e2e/token-policy.e2e.ts e2e/two-factor-hold.e2e.ts --project chromium` → 3 passed |
+
+**Overall:** met: with the first pass's rows 1, 2, 4, 5, 6, 8, 9 and 10, every claim of task 6 is confirmed.

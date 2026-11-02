@@ -275,6 +275,10 @@
     "question": "Quem precisa ativar a autenticação de dois fatores?",
     "answer": "Em Revisores e root: o root e os moderadores e admins de espaços de trabalho compartilhados. Em Todos: toda conta com senha. Quem for coberto e ainda não configurou a autenticação de dois fatores é levado à página Conta na próxima visita e não pode usar mais nada até configurar. Ninguém é desconectado. Contas que entram por um provedor de identidade da empresa não são cobertas."
   },
+  "token-lifetime-reviewers": {
+    "question": "Por que menor para revisores?",
+    "answer": "Os tokens do root e dos revisores podem aprovar e publicar o que todos instalam, então um token roubado alcança mais. Uma validade menor limita por quanto tempo ele funciona."
+  },
   "reset-two-factor": {
     "question": "Quando redefino a autenticação de dois fatores de alguém?",
     "answer": "Quando a pessoa perdeu o celular e os códigos de backup. Ela entra só com a senha e configura a autenticação de dois fatores de novo na página Conta, na hora, se for exigido dela. Um root que perdeu os seus e não tem outro root para pedir roda reset-root-password no servidor, que também os redefine."

@@ -1,4 +1,6 @@
 import { clientIp } from "../models/client-ip";
+import { requirePermission } from "../models/permissions";
+import type { CurrentUser } from "../models/user";
 import { argon2PasswordHasher } from "../repositories/argon2-password-hasher";
 import { type AppAuth, getAppAuth } from "../repositories/auth-instance";
 import { kyselyIdentityRepository } from "../repositories/kysely-identity-repository";
@@ -35,6 +37,28 @@ export const revokeMyToken = async (
   tokenId: string,
   app: AppAuth = getAppAuth(),
 ) => service.revokeToken(deps(app), await actor(headers, app), tokenId);
+
+/** A person's tokens, for root on their page (162). */
+export const adminListTokens = async (
+  headers: Headers,
+  userId: string,
+  app: AppAuth = getAppAuth(),
+) => service.listTokensOf(deps(app), await actor(headers, app), userId);
+
+/** Root revokes one of a person's tokens (162). */
+export const adminRevokeToken = async (
+  headers: Headers,
+  userId: string,
+  tokenId: string,
+  app: AppAuth = getAppAuth(),
+) => service.revokeTokenOf(deps(app), await actor(headers, app), userId, tokenId);
+
+/** The longest lifetime the signed-in person may give a token now (162), for the dialog. */
+export const myTokenCap = async (headers: Headers, app: AppAuth = getAppAuth()) => {
+  const { user } = await actor(headers, app);
+  requirePermission(user, "account.manage_own");
+  return service.tokenCapOf(deps(app), user as CurrentUser);
+};
 
 /** Checks a bearer token for the API (the guard in server/http/require-token.ts). */
 export const authenticateToken = (token: string | null, app: AppAuth = getAppAuth()) =>

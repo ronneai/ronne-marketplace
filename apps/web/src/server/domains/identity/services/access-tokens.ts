@@ -148,6 +148,46 @@ export const revokeToken = async (
   });
 };
 
+/** A person's tokens for root, on their page (162): as their own list has them, without the preview. */
+export const listTokensOf = async (
+  deps: TokenDeps,
+  actor: TokenActor,
+  userId: string,
+): Promise<Omit<AccessTokenSummary, "preview">[]> => {
+  requirePermission(actor.user, "users.view");
+  return (await deps.repo.listForUser(userId)).map(({ preview: _, ...token }) => token);
+};
+
+/**
+ * Root revokes one of a person's tokens from their page (162), audited as `access_token.revoked`
+ * by root. A token that isn't this person's is "not found"; one already revoked changes nothing.
+ */
+export const revokeTokenOf = async (
+  deps: TokenDeps,
+  actor: TokenActor,
+  userId: string,
+  tokenId: string,
+): Promise<void> => {
+  requirePermission(actor.user, "users.manage");
+  const at = now(deps);
+  await deps.repo.transaction(async (repo) => {
+    const token = await repo.findOwned(tokenId, userId);
+    if (!token) throw new TokenNotFoundError();
+    if (token.revokedAt) return;
+    await repo.revoke(tokenId, at);
+    await repo.recordAudit(
+      {
+        actorId: actor.user?.id ?? null,
+        action: "access_token.revoked",
+        target: { type: "access_token", id: tokenId },
+        metadata: { name: token.name, by: "root" },
+        ipAddress: actor.ip,
+      },
+      at,
+    );
+  });
+};
+
 export type TokenFailure =
   | "token_missing"
   | "token_invalid"

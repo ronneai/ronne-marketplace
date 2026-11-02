@@ -19,6 +19,8 @@ export const changePasswordFromForm = serverAction(
     const result = await changePassword(await requestHeaders(), {
       current: String(form.get("current") ?? ""),
       next,
+      // A box left unticked isn't sent (162): only then are the tokens kept.
+      revokeTokens: form.get("revokeTokens") === "on",
     });
     if (result.ok) {
       // Root asked for this change (128): back to the page they were held from.

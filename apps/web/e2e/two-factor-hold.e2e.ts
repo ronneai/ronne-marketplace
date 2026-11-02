@@ -175,7 +175,10 @@ test("root requires it of reviewers, a moderator is held until enrolled, root re
     const dialog = page.getByRole("dialog", { name: "Reset two-factor" });
     await dialog.getByRole("button", { name: "Reset two-factor" }).click();
     await expect(
-      toastWith(dialog, "Two-factor sign-in turned off. They’re signed out everywhere."),
+      toastWith(
+        dialog,
+        "Two-factor sign-in turned off. They’re signed out everywhere, and their access tokens are revoked.",
+      ),
     ).toBeVisible();
     await expect(dialog).toBeHidden();
     // The page was refreshed: two-factor is off, so there is nothing to reset.

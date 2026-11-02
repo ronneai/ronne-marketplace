@@ -4,12 +4,14 @@ import { revalidatePath } from "next/cache";
 import { getTranslations } from "next-intl/server";
 import { errorText } from "@/i18n/errors";
 import { adminRetryErasures } from "@/server/domains/identity/actions/erase-user";
+import { shortenTokens } from "@/server/domains/identity/actions/token-policy";
 import { IdentityError } from "@/server/domains/identity/exceptions/errors";
 import {
   setPasswordSignInPolicy,
   setRetention,
   setSkillScanPolicy,
   setSkillScanSetup,
+  setTokenPolicy,
   setTwoFactorPolicy,
   setUsageMinimum,
   setUsagePolicy,
@@ -63,6 +65,40 @@ export const saveTwoFactorPolicy = serverAction(
       revalidatePath("/admin/settings");
       const t = await getTranslations("admin.done.settings");
       return { done: changed ? t("twoFactor") : t("nothing") };
+    } catch (error) {
+      if (error instanceof SettingsError || error instanceof IdentityError)
+        return { error: await errorText(error) };
+      throw error;
+    }
+  },
+);
+
+/** Saves the longest token lifetimes (162), turning domain errors into the form's `ERR:` line. */
+export const saveTokenPolicy = serverAction(
+  async (_previous: SettingsActionState, form: FormData): Promise<SettingsActionState> => {
+    try {
+      const { changed } = await setTokenPolicy(await requestHeaders(), {
+        maxDays: form.get("maxDays"),
+        reviewersMaxDays: form.get("reviewersMaxDays"),
+      });
+      revalidatePath("/admin/settings");
+      const t = await getTranslations("admin.done.settings");
+      return { done: changed ? t("tokens") : t("nothing") };
+    } catch (error) {
+      if (error instanceof SettingsError || error instanceof IdentityError)
+        return { error: await errorText(error) };
+      throw error;
+    }
+  },
+);
+
+/** Shorten (162): the active tokens past their owner's cap get the earlier date. */
+export const shortenTokensFromForm = serverAction(
+  async (_previous: SettingsActionState, _form: FormData): Promise<SettingsActionState> => {
+    try {
+      const { count } = await shortenTokens(await requestHeaders());
+      revalidatePath("/admin/settings");
+      return { done: (await getTranslations("admin.done.settings"))("shortened", { count }) };
     } catch (error) {
       if (error instanceof SettingsError || error instanceof IdentityError)
         return { error: await errorText(error) };

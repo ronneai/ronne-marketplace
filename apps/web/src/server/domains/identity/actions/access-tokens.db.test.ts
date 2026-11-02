@@ -17,7 +17,14 @@ import type { AppAuth } from "../repositories/auth-instance";
 import { kyselyTokenRepository } from "../repositories/kysely-token-repository";
 import * as service from "../services/access-tokens";
 import { cookieHeaders, createTestUser, setWorkspaceRole, testAppAuth } from "../testing/test-auth";
-import { authenticateToken, createMyToken, listMyTokens, revokeMyToken } from "./access-tokens";
+import {
+  adminListTokens,
+  adminRevokeToken,
+  authenticateToken,
+  createMyToken,
+  listMyTokens,
+  revokeMyToken,
+} from "./access-tokens";
 import { getCurrentUser, signIn } from "./session";
 import { tokenDeps } from "./token-deps";
 
@@ -138,6 +145,54 @@ describe("the longest lifetime root sets (162)", () => {
       .where("user_id", "=", userId)
       .execute();
     expect(rows.map((row) => row.name)).toEqual(["a"]);
+  });
+});
+
+describe("a person's tokens, for root (162)", () => {
+  let asRoot: Headers;
+  beforeEach(async () => {
+    await createTestUser(app, { email: "boss@example.com", password, role: "root" });
+    asRoot = await headersFor("boss@example.com");
+  });
+
+  it("lists them for root without the token or its preview, and to nobody else", async () => {
+    const made = await createMyToken(asUser, { name: "laptop" }, app);
+    const listed = await adminListTokens(asRoot, userId, app);
+    expect(listed).toEqual([
+      expect.objectContaining({ id: made.id, name: "laptop", via: "web", revokedAt: null }),
+    ]);
+    expect(listed[0]).not.toHaveProperty("preview");
+    expect(JSON.stringify(listed)).not.toContain(made.token.slice(0, 12));
+    await expect(adminListTokens(asUser, userId, app)).rejects.toThrow(ForbiddenError);
+  });
+
+  it("lets root revoke one, audited as by root; it stops at once", async () => {
+    const made = await createMyToken(asUser, { name: "laptop" }, app);
+    await expect(adminRevokeToken(asUser, userId, made.id, app)).rejects.toThrow(ForbiddenError);
+    await adminRevokeToken(asRoot, userId, made.id, app);
+    expect(await authenticateToken(made.token, app)).toEqual({
+      ok: false,
+      failure: "token_revoked",
+    });
+    const root = await getCurrentUser(asRoot, app);
+    expect(await events("access_token.revoked")).toEqual([
+      expect.objectContaining({
+        actorId: root?.id,
+        targetId: made.id,
+        metadata: { name: "laptop", by: "root" },
+      }),
+    ]);
+    // Again: nothing more is recorded.
+    await adminRevokeToken(asRoot, userId, made.id, app);
+    expect(await events("access_token.revoked")).toHaveLength(1);
+  });
+
+  it("finds no token that isn't this person's", async () => {
+    const theirs = await createMyToken(asRoot, { name: "root's" }, app);
+    await expect(adminRevokeToken(asRoot, userId, theirs.id, app)).rejects.toThrow(
+      TokenNotFoundError,
+    );
+    expect((await authenticateToken(theirs.token, app)).ok).toBe(true);
   });
 });
 

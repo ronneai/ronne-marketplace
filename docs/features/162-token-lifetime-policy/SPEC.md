@@ -40,7 +40,8 @@ page, and recovering an account ends its tokens with its sessions (owner, 2026-1
 - **Recovering an account ends its tokens**:
   - **Change your password** (Account): a box, **Also revoke my access tokens**, checked by
     default. They're revoked in the same transaction, and `user.password_changed` records
-    `tokensRevoked`.
+    `tokensRevoked`. The same form, and so the same box, is on the page root's request sends
+    people to (128).
   - **Root's two-factor reset** (the user page, and `reset-two-factor` in a terminal) revokes the
     tokens as well as ending the sessions, as Reset password does already.
   - **What "revokes the tokens" means, wherever it happens** (these two, Reset password,

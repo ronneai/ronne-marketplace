@@ -163,7 +163,40 @@
     "noWorkspaces": "None.",
     "dataBody": "Everything the instance holds about them in one file: the account, token names, submissions, comments and audit events.",
     "auditLink": "Their events in the audit log",
-    "eraseBody": "Erasing ends the account for good. Their email, name, sign-ins and tokens go; the items they published and the audit events stay, under a pseudonym. It can’t be undone."
+    "eraseBody": "Erasing ends the account for good. Their email, name, sign-ins and tokens go; the items they published and the audit events stay, under a pseudonym. It can’t be undone.",
+    "tokens": {
+      "title": "Access tokens",
+      "hint": "For rmk and the MCP server. Never the token itself, nor its first characters.",
+      "empty": "No access tokens.",
+      "name": "Name",
+      "how": "Made with",
+      "created": "Created",
+      "lastUsed": "Last used",
+      "expires": "Expires",
+      "status": "Status",
+      "actions": "Actions",
+      "never": "never",
+      "noExpiry": "no expiry",
+      "via": {
+        "web": "the web app",
+        "cli": "rmk login",
+        "device": "browser approval",
+        "unknown": "unknown"
+      },
+      "statuses": {
+        "active": "active",
+        "expired": "expired",
+        "revoked": "revoked"
+      }
+    },
+    "revokeToken": {
+      "button": "Revoke",
+      "aria": "Revoke {name}",
+      "title": "Revoke access token",
+      "body": "Revoke <strong>{name}</strong>? Anything using it, such as rmk on their machine, stops working until they make a new token.",
+      "cancel": "Cancel",
+      "submit": "Revoke token"
+    }
   },
   "actions": {
     "labels": {
@@ -190,7 +223,7 @@
     "isRoot": "{email} is a root.",
     "enableBody": "They can sign in again. Their revoked access tokens stay revoked.",
     "resetBody": "This signs them out everywhere and revokes their access tokens.",
-    "twoFactorBody": "For a lost phone and lost backup codes. This turns off their two-factor sign-in and signs them out everywhere; they sign in with their password alone, and set it up again if it’s required of them.",
+    "twoFactorBody": "For a lost phone and lost backup codes. This turns off their two-factor sign-in and signs them out everywhere and revokes their access tokens; they sign in with their password alone, and set it up again if it’s required of them.",
     "scimTitle": "{provider} manages this account through SCIM.",
     "scimBody": "Its next sync sets the account back to what the provider says: change it there too.",
     "newRole": "New role",
@@ -837,6 +870,27 @@
       },
       "coverage": "{unenrolled, plural, =0 {{covered, plural, one {# person} other {# people}}, all with two-factor on.} other {{covered, plural, one {# person} other {# people}}; {unenrolled, plural, one {# person} other {# people}} must set it up at their next visit.}}"
     },
+    "tokens": {
+      "title": "Access tokens",
+      "hint": "The longest an access token for rmk or the MCP server may last. People choose a lifetime up to this when they make one; rmk login gives 90 days, or this when it's shorter.",
+      "everyone": "Longest lifetime",
+      "reviewers": "For reviewers and root",
+      "reviewersHint": "Root, and the moderators and admins of shared workspaces: their tokens reach the most. The same or shorter.",
+      "choices": {
+        "30": "30 days",
+        "90": "90 days",
+        "365": "365 days",
+        "none": "No limit"
+      },
+      "save": "Save",
+      "shortenTitle": "Tokens made before",
+      "past": "{count, plural, =0 {No active token lasts longer than this.} one {# active token lasts longer than this.} other {# active tokens last longer than this.}}",
+      "shorten": "Shorten them",
+      "confirmTitle": "Shorten access tokens",
+      "confirmBody": "{count, plural, one {# token} other {# tokens}} will expire at the earlier of their own date and the longest lifetime from today. None is revoked: people have until then to make new ones.",
+      "cancel": "Cancel",
+      "confirm": "Shorten tokens"
+    },
     "password": {
       "title": "Password sign-in",
       "hint": "Who may still sign in with a password once your identity provider is on. Root always can, so a broken provider can’t lock everyone out.",
@@ -1329,7 +1383,7 @@
       "roleChanged": "Role changed to {role}.",
       "disabled": "Disabled. They’re signed out everywhere.",
       "enabled": "Enabled. They can sign in again.",
-      "twoFactorOff": "Two-factor sign-in turned off. They’re signed out everywhere.",
+      "twoFactorOff": "Two-factor sign-in turned off. They’re signed out everywhere, and their access tokens are revoked.",
       "twoFactorNone": "They had no two-factor sign-in: nothing changed.",
       "erased": "Erased. The account is now deleted-user and nothing of theirs can be read back."
     },
@@ -1356,7 +1410,9 @@
       "nothing": "Nothing changed.",
       "erasuresNone": "Nothing was left to finish.",
       "erasures": "{count, plural, one {Finished # erasure.} other {Finished # erasures.}}",
-      "scan": "Security scan saved."
+      "scan": "Security scan saved.",
+      "tokens": "Access tokens saved.",
+      "shortened": "{count, plural, =0 {No token needed shortening.} one {Shortened # token.} other {Shortened # tokens.}}"
     }
   },
   "updates": {

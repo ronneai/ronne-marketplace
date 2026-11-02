@@ -246,6 +246,7 @@ export const TOPICS = [
       { id: "overview", title: "How it fits together" },
       { id: "providers", title: "Adding a provider" },
       { id: "groups", title: "Groups and workspace roles" },
+      { id: "tokens", title: "Access tokens policy" },
     ],
   },
   {
