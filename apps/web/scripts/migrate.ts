@@ -5,7 +5,11 @@ import { loadConfig } from "../src/server/config";
 import { createDb } from "../src/server/db/create-db";
 import { migrateToLatest } from "../src/server/db/migrate";
 import { redactDatabaseUrl } from "../src/server/db/url";
+import { setProcessChannel } from "../src/server/log";
 import { scriptCommand } from "../src/server/runtime";
+
+// What this command records in the audit log came from the terminal (166).
+setProcessChannel("cli");
 
 const appDir = resolve(import.meta.dirname, "..");
 const url = loadConfig({ appDir }).databaseUrl;

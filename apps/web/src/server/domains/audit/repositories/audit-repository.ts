@@ -10,6 +10,12 @@ export type NewAuditRow = {
   metadata: string;
   ipAddress: string | null;
   createdAt: Date;
+  /** What it came from (166): the request, the channel, the client, the workspace, the outcome. */
+  requestId: string | null;
+  via: string | null;
+  userAgent: string | null;
+  workspaceId: string | null;
+  outcome: string;
 };
 
 /** What the audit log can be filtered by (060). Every filter is checked before it gets here. */

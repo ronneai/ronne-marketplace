@@ -10,7 +10,15 @@ import {
   parseLogLevel,
 } from "./logger";
 
-export { currentRequest, setRequestUser, withRequestContext } from "./context";
+export {
+  type Channel,
+  currentChannel,
+  currentRequest,
+  setProcessChannel,
+  setRequestUser,
+  withChannel,
+  withRequestContext,
+} from "./context";
 export type { EventName, LogLevel } from "./events";
 export type { Logger } from "./logger";
 

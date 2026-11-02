@@ -21,6 +21,11 @@ const render = (node: ReactElement, locale: L) =>
 
 const ULID = "01K6BZ3W1D8J9Q2R4T6V8X0Y2Z";
 const event = (extra: Partial<AuditEvent> = {}): AuditEvent => ({
+  requestId: null,
+  via: null,
+  userAgent: null,
+  workspaceId: null,
+  outcome: "success",
   id: ULID,
   actorId: ULID,
   actorEmail: "root@example.com",

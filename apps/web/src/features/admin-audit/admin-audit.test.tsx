@@ -82,6 +82,11 @@ describe("format", () => {
 });
 
 const event = (overrides: Partial<AuditEvent> = {}): AuditEvent => ({
+  requestId: null,
+  via: null,
+  userAgent: null,
+  workspaceId: null,
+  outcome: "success",
   id: ULID,
   actorId: ULID,
   actorEmail: "root@example.com",

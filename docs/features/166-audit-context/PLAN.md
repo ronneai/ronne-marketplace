@@ -21,10 +21,11 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     <file>`, `:mysql`, `:mariadb`), and `migrations.guard.test.ts` and
     `audit-log.guard.test.ts` pass.
 
-- [ ] **3. Context and `recordAudit`.** [risky]
+- [x] **3. Context and `recordAudit`.** [risky]
   - `RequestContext` gains `via` and `userAgent`, set by `apiRoute` (`api`, or `scim` under
     `/api/v1/scim`), `serverAction` and the session routes (`web`).
-  - A `withChannel("cli" | "system", fn)` for terminal commands and jobs.
+  - `withChannel("system", fn)` for jobs; terminal commands set the whole process's channel once
+    (`setProcessChannel("cli")`, at the top of each command that records events).
   - `recordAudit` writes the request ID, channel, client (cut, cleaned) and outcome (from the
     catalogue's failure marks).
   - *Done when:* db tests record an event through each channel and read the fields back; a test

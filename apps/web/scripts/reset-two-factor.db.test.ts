@@ -102,7 +102,10 @@ const state = async () => {
   try {
     const records = await db.selectFrom("two_factor").select("id").execute();
     const sessions = await db.selectFrom("session").select("id").execute();
-    const events = await db.selectFrom("audit_log").select(["action", "actor_id"]).execute();
+    const events = await db
+      .selectFrom("audit_log")
+      .select(["action", "actor_id", "via", "request_id"])
+      .execute();
     const revoked = await db
       .selectFrom("access_tokens")
       .select("id")
@@ -132,7 +135,8 @@ describe("pnpm run reset-two-factor (105)", () => {
       records: 0,
       sessions: 0,
       revoked: ["tok-live"],
-      resets: [{ action: "user.two_factor_reset", actor_id: null }],
+      // From the terminal (166): cli, and no request.
+      resets: [{ action: "user.two_factor_reset", actor_id: null, via: "cli", request_id: null }],
     });
 
     // Again: nothing to reset, said, and nothing recorded.

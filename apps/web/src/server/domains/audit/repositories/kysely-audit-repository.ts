@@ -6,7 +6,13 @@ import { countCapped, type KeysetSort, paginate, type SortDir } from "../../../d
 import type { Database } from "../../../db/schema";
 import { containsInsensitive } from "../../../db/search";
 import type { DatabaseDialect } from "../../../db/url";
-import { type AuditEvent, type AuditMetadata, actionsInGroup } from "../models/audit-event";
+import {
+  type AuditEvent,
+  type AuditMetadata,
+  actionsInGroup,
+  isChannel,
+  isOutcome,
+} from "../models/audit-event";
 import type { AuditFilters, AuditRepository, AuditSort } from "./audit-repository";
 
 const COLUMNS = [
@@ -20,6 +26,11 @@ const COLUMNS = [
   "audit_log.metadata",
   "audit_log.ip_address",
   "audit_log.created_at",
+  "audit_log.request_id",
+  "audit_log.via",
+  "audit_log.user_agent",
+  "audit_log.workspace_id",
+  "audit_log.outcome",
 ] as const;
 
 const SORTS: Record<AuditSort, (dir: SortDir) => KeysetSort> = {
@@ -39,6 +50,11 @@ type Row = {
   metadata: string;
   ip_address: string | null;
   created_at: Date | string;
+  request_id: string | null;
+  via: string | null;
+  user_agent: string | null;
+  workspace_id: string | null;
+  outcome: string;
 };
 
 const toEvent = (row: Row): AuditEvent => ({
@@ -52,6 +68,11 @@ const toEvent = (row: Row): AuditEvent => ({
   metadata: decodeJson<AuditMetadata>(row.metadata),
   ipAddress: row.ip_address,
   createdAt: fromDbDate(row.created_at),
+  requestId: row.request_id,
+  via: isChannel(row.via) ? row.via : null,
+  userAgent: row.user_agent,
+  workspaceId: row.workspace_id,
+  outcome: isOutcome(row.outcome) ? row.outcome : "success",
 });
 
 export const kyselyAuditRepository = (
@@ -92,6 +113,11 @@ export const kyselyAuditRepository = (
           metadata: row.metadata,
           ip_address: row.ipAddress,
           created_at: toDbDate(row.createdAt, dialect),
+          request_id: row.requestId,
+          via: row.via,
+          user_agent: row.userAgent,
+          workspace_id: row.workspaceId,
+          outcome: row.outcome,
         })
         .execute();
       return id;

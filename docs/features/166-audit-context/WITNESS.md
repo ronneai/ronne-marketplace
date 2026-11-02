@@ -99,3 +99,65 @@ Witnessed: 2026-11-01 23:46 EST, by a fresh agent (adversarial). Commit: 8362aa2
 **Overall:** met: request_id compares case-sensitively everywhere, fits the index under utf8mb4_bin, and its test fails without the fix.
 
 After this re-check the implementer ended the MySQL rerun case with a full rerun (every column and index skipped, outcome included), and noted in PLAN.md that task 6's filter trims its input and checks it against 100's pattern.
+
+## Task 3 — Context and recordAudit
+
+Witnessed: 2026-11-01 23:53 EST, by a fresh agent (blind). Commit: bd6ac657 + working tree (24 modified files, untracked `audit-context.db.test.ts`). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `RequestContext` gains `via` and `userAgent` | no | confirmed | `src/server/log/context.ts:12-21` |
+| 2 | `apiRoute` sets `api`, and `scim` under `/api/v1/scim` | no | confirmed | `api-route.ts:22,54-55` `channelOf(route)`; the only SCIM route is `"/api/v1/scim/v2/[...path]"`. Mutation (no `via`) → 2 tests fail |
+| 3 | `serverAction` and the web-session route handlers set `web` | no | confirmed | `server-action.ts:33-37`; every non-`/api/v1` apiRoute maps to `web`; the 2 unwrapped routes record nothing. Mutation → the server-action test fails |
+| 4 | `withChannel` exists and keeps the surrounding request | no | confirmed | `context.ts:37-38`; test "withChannel keeps the request…" |
+| 5 | Every event a terminal command records says `cli`, `rmk-server` included | no | confirmed | All 11 `SCRIPTS` in `packages/server/src/cli.ts:8-20` set it but `setup-code` (records nothing). Real runs in a scratch copy (`tsx scripts/setup.ts --yes`, `reset-root-password --yes`) and the tsdown bundle → `via:"cli"`, no request ID or client. Remark: PLAN says `withChannel`; the code uses `setProcessChannel`, same effect |
+| 6 | Every scheduled job's events say `system`; `purge` from a terminal says `cli` | no | confirmed | `run-job.ts:70-73`; the scheduler starts from `instrumentation.ts` outside a request; test passes; mutation (no `withChannel("system")`) fails it |
+| 7 | `recordAudit` writes the request ID the logs and `X-Request-Id` carry | no | confirmed | `audit.ts:39`; test compares with the response header. Probe: an untrusted `X-Request-Id` isn't stored; two interleaved concurrent requests each keep their own |
+| 8 | Outside any request and channel, the fields are null | no | confirmed | Test "nothing known: no channel" |
+| 9 | User agent cut to 256 at a code point, control characters removed, empty → null; tested | no | confirmed | `audit-event.ts:199-206`; tests for 412 characters, emoji, BEL/RLO/NUL, ZWSP-only. Mutations (no stripping; UTF-16 slicing) fail. Remark: U+2028 (Zl) kept |
+| 10 | Outcome from the catalogue | no | confirmed | `audit-event.ts:179-188` matches the spec; mutation (always success) fails |
+| 11 | db tests pass on every dialect | no | confirmed | `audit-context.db.test.ts` and `audit.db.test.ts` → 17 passed on SQLite, PostgreSQL, MySQL, MariaDB |
+| 12 | An event recorded in `after()` keeps the request ID | no | confirmed | Next 16.4.3 `after-context.js:103` uses `bindSnapshot`; an ALS probe keeps `req-after`/`api` (inferred, not run in a live server) |
+| 13 | Shared code not broken | no | confirmed | log, http, jobs, admin-audit → 560 passed, 4 skipped; `logger.ts:219-220` omits `requestId` when none |
+
+**Overall:** met: every channel records the right `via`, request ID and client, the user agent is cut and cleaned, and outcomes follow the catalogue, on all four databases; every new test fails under its mutation.
+
+### Adversarial pass
+
+Witnessed: 2026-11-02 00:01 EST, by a fresh agent (adversarial). Commit: bd6ac657 + working tree (24 modified files, plus the untracked `audit-context.db.test.ts`). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `via` = `api` for `/api/v1` routes | no | confirmed | Route names come from the code; every `/api/v1` route passes its name to `apiRoute`; only `language` and `current-workspace` don't use it, and they record nothing |
+| 2 | `via` = `scim` for `/api/v1/scim` | no | confirmed | M1 (no scim branch) → fails; 40 concurrent requests, half SCIM, half `/api/auth` → right channel on all 80 rows |
+| 3 | `via` = `web` for server actions and the browser's own routes | no | confirmed | Every export of each `"use server"` file goes through `serverAction`; `/api/auth/**`, `/account/data`, `/notifications/*`, `/admin/users/[id]/data` → `web` |
+| 4 | `via` = `cli` for the listed terminal commands | no | confirmed | Real `setup --yes` and `reset-root-password --yes` through tsx → `via:"cli"`, no request. Caveat: no repository test runs a script and reads `via` |
+| 5 | `system` for jobs; `purge` from a terminal stays `cli` | no | confirmed | `run-job.ts:70-73`; M4, M5 each fail the job test |
+| 6 | Null when nothing is known | no | confirmed | The web server never calls `setProcessChannel` (nothing in `src/` imports `scripts/`) |
+| 7 | The recorded request ID equals the one in the log lines and `X-Request-Id` | no | not met | `next start` (TRUST_PROXY=false): `/notifications/count` and `/account/data` → the response header's ID differs from the route's log line; `/api/v1/me` matches. `proxy.ts` puts its ID on the response, and `apiRoute` makes a new one |
+| 8 | A spoofed `X-Request-Id` without TRUST_PROXY isn't recorded; with it, only a well-formed one | no | confirmed | Probe: `attacker-chosen` → a ULID; with TRUST_PROXY `lb-123.abc_Z` kept, odd ones → ULID |
+| 9 | No request ID for terminal commands and jobs | no | confirmed | `requestId: null` for `cli` and `system` |
+| 10 | Events in `after()` keep the request ID | no | confirmed | `after-context.js:103` `bindSnapshot`; an ALS snapshot probe keeps it |
+| 11 | User agent cut and cleaned | no | confirmed | Lone surrogates, NEL, BOM, ZWSP removed; 1M characters → 256 in 12 ms; U+2028 kept. M2, M3b, M7 each fail |
+| 12 | Outcome as the catalogue says | no | confirmed | All of `AUDIT_ACTIONS`: exactly the six are not `success`; M6 fails |
+| 13 | Callers of `recordAudit` don't change | no | confirmed | Signature unchanged; one insert, only from `recordAudit` |
+| 14 | A channel-only context writes no `requestId` | no | partly | Behaviour holds (probe), but reverting `logger.ts` (M8, `"requestId":"undefined"`) passes every test |
+| 15 | No context leaks between concurrent requests | no | confirmed | 40 concurrent calls, 80 rows, each with its own request's agent and channel |
+| 16 | Done when: db tests through each channel | no | confirmed | 17 passed on SQLite, PostgreSQL, MySQL, MariaDB |
+| 17 | Done when: a long and a control-character user agent | no | confirmed | "cuts and cleans the client"; fails under M2, M3b, M7 |
+| 18 | Done when: `audit.db.test.ts` passes | no | confirmed | All four databases |
+
+**Overall:** not met: on `/account/data`, `/admin/users/[id]/data` and `/notifications/*` the recorded request ID differs from `X-Request-Id` without TRUST_PROXY (row 7), and the logger change has no test (row 14).
+
+### Re-check (rows 4, 7 and 14)
+
+Witnessed: 2026-11-02 00:20 EST, by a fresh agent (adversarial). Commit: bd6ac657 + working tree (27 modified files, plus the untracked `audit-context.db.test.ts`). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4 | `via` = `cli` for terminal commands, and a test runs a real command and reads it | yes | confirmed | `scripts/reset-two-factor.db.test.ts` → 3 passed; M10 (no `setProcessChannel("cli")` in `scripts/reset-two-factor.ts`) → fails 1 of 3 |
+| 7 | The recorded request ID equals the log lines' and `X-Request-Id` | yes | confirmed | Rebuilt and `next start` (TRUST_PROXY=false): `/notifications/count` and `/account/data` → the header and the log line match; a client's `X-Request-Id` is replaced there and on `/api/v1/me`; attempts through `x-middleware-subrequest` and `x-middleware-override-headers` are replaced too. M9 → the new test fails. `audit-context.db.test.ts` → 10 passed on all four databases |
+| 14 | A channel-only context writes no `requestId` | yes | confirmed | `logger.test.ts` → 65 passed; M8 → the new test fails |
+| 11 | The user agent also loses U+2028/U+2029 | yes | confirmed | `audit-event.ts:200`; M11 → "cuts and cleans the client…" fails |
+
+**Overall:** met: browser routes outside `/api` record, log and return the proxy's ID; a sent ID isn't taken there or under `/api` without TRUST_PROXY; the logger and terminal-command behaviours each have a test that fails without them.

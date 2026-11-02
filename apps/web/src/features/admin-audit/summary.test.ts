@@ -23,6 +23,11 @@ const event = (action: string, metadata: AuditEvent["metadata"] = {}, extra = {}
   metadata,
   ipAddress: null,
   createdAt: new Date("2026-10-02T12:00:00Z"),
+  requestId: null,
+  via: null,
+  userAgent: null,
+  workspaceId: null,
+  outcome: "success",
   ...extra,
 });
 

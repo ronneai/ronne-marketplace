@@ -1,7 +1,14 @@
 import type { Kysely } from "kysely";
 import type { Database } from "../../../db/schema";
 import type { DatabaseDialect } from "../../../db/url";
-import { type AuditEvent, type NewAuditEvent, validateAuditEvent } from "../models/audit-event";
+import { currentChannel, currentRequest } from "../../../log";
+import {
+  type AuditEvent,
+  cleanUserAgent,
+  type NewAuditEvent,
+  outcomeOf,
+  validateAuditEvent,
+} from "../models/audit-event";
 import type { AuditFilters, AuditQuery } from "../repositories/audit-repository";
 import { kyselyAuditRepository } from "../repositories/kysely-audit-repository";
 
@@ -19,6 +26,8 @@ export const recordAudit = async (
   now: Date = new Date(),
 ): Promise<string> => {
   const metadata = validateAuditEvent(event);
+  // What it came from (166), from the request this runs in: callers don't pass it.
+  const context = currentRequest();
   return kyselyAuditRepository(db, dialect).insert({
     actorId: event.actorId,
     action: event.action,
@@ -27,6 +36,11 @@ export const recordAudit = async (
     metadata,
     ipAddress: event.ipAddress ?? null,
     createdAt: now,
+    requestId: context?.requestId?.slice(0, 128) ?? null,
+    via: currentChannel() ?? null,
+    userAgent: cleanUserAgent(context?.userAgent),
+    workspaceId: null,
+    outcome: outcomeOf(event.action),
   });
 };
 

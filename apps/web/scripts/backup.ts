@@ -8,6 +8,10 @@ import { BACKUP_USAGE, ignoreOutputErrors, parseBackupCommand } from "../src/ser
 import { PassphraseError, readPassphrase } from "../src/server/backup/passphrase";
 import { BackupFailedError, callerCwd, runBackup } from "../src/server/backup/run-backup";
 import { runVerify, VerifyFailedError } from "../src/server/backup/run-verify";
+import { setProcessChannel } from "../src/server/log";
+
+// What this command records in the audit log came from the terminal (166).
+setProcessChannel("cli");
 
 const appDir = resolve(import.meta.dirname, "..");
 ignoreOutputErrors();

@@ -1,8 +1,8 @@
 import { unstable_rethrow } from "next/navigation";
-import { logger, withRequestContext } from "../log";
+import { type Channel, logger, withRequestContext } from "../log";
 import { hooks } from "../telemetry/hooks";
 import { errorResponse } from "./errors";
-import { REQUEST_ID_HEADER, requestIdFor, trustsProxy } from "./request-id";
+import { forwardedRequestId, REQUEST_ID_HEADER, requestIdFor, trustsProxy } from "./request-id";
 
 const log = logger.child({ domain: "http" });
 
@@ -17,9 +17,14 @@ const log = logger.child({ domain: "http" });
 export const apiRoute =
   <C>(route: string, handler: (request: Request, context: C) => Promise<Response>) =>
   (request: Request, context: C): Promise<Response> => {
-    const requestId = requestIdFor(request.headers, trustsProxy());
+    // Outside /api, proxy.ts has given the request its ID already (and put it on the response):
+    // the same one, so a log line, an audit event and the header agree (166).
+    const requestId = route.startsWith("/api/")
+      ? requestIdFor(request.headers, trustsProxy())
+      : forwardedRequestId(request.headers);
     const started = performance.now();
-    return withRequestContext({ requestId }, async () => {
+    const userAgent = request.headers.get("user-agent");
+    return withRequestContext({ requestId, via: channelOf(route), userAgent }, async () => {
       // The trace leads to the log lines (101): the request's ID on its span.
       hooks().annotate("ronne.request_id", requestId);
       let response: Response;
@@ -45,6 +50,13 @@ export const apiRoute =
       return response;
     });
   };
+
+/**
+ * Where a route's requests come from (166): SCIM under `/api/v1/scim`, the API under the rest of
+ * `/api/v1`, and the web app for the browser's own routes (sign-in, downloads, counts).
+ */
+export const channelOf = (route: string): Channel =>
+  route.startsWith("/api/v1/scim/") ? "scim" : route.startsWith("/api/v1/") ? "api" : "web";
 
 /** The response with `X-Request-Id`; a copy when its headers can't be changed (a fetched body). */
 const withHeader = (response: Response, requestId: string): Response => {

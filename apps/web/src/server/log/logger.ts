@@ -216,7 +216,8 @@ export const createLogger = (options: LoggerOptions, bindings: Fields = {}): Log
         // The head holds only names and ids: a domain or a user that isn't one is left out.
         ...(isName(domain) ? { domain } : {}),
         ...(event ? { event } : {}),
-        ...(context ? { requestId: cleanText(String(context.requestId)) } : {}),
+        // A terminal command's or a job's context has a channel but no request (166).
+        ...(context?.requestId ? { requestId: cleanText(String(context.requestId)) } : {}),
         ...(isName(userId) ? { userId } : {}),
         // With tracing on (101), the span the line was written in: a log line leads to its trace.
         ...hooks().traceIds(),
