@@ -22,6 +22,8 @@ from this list.
   under it.
 - [bundle-downloads.md](bundle-downloads.md): the bundle jobs' downloads from nodejs.org, and what to do
   when they fail.
+- [image-security-updates.md](image-security-updates.md): Debian's security fixes and the image
+  build cache, which keeps them out until the base digest moves.
 - [caddy-proxy-image.md](caddy-proxy-image.md): why the proxy image's vulnerability scan keeps
   failing, and what to check before taking an exception.
 - [dependabot-groups.md](dependabot-groups.md): one failing member blocks a Dependabot group, and
