@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security problem
+    url: https://github.com/ronneai/ronne-marketplace/security/advisories/new
+    about: Privately, never in a public issue (see SECURITY.md).
+  - name: Documentation
+    url: https://www.ronne.ai/marketplace/docs
+    about: How to install, use and run Ronne.
+  - name: Contributing
+    url: https://github.com/ronneai/ronne-marketplace/blob/main/CONTRIBUTING.md
+    about: How to set up, the rules, and how a pull request gets in.

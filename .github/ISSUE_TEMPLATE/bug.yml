@@ -1,0 +1,68 @@
+name: Bug report
+description: Something in Ronne, rmk or the MCP server doesn't work as it should
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting it. **A security problem goes to a private report instead**: see SECURITY.md (the repository's Security tab › Report a vulnerability).
+
+        Never paste a token, a password, an `AUTH_SECRET` or a settings file here.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you did, and what you saw. Paste error messages and logs as text.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The smallest set of steps that shows it, if you have them.
+      placeholder: |
+        1. Sign in as a reviewer
+        2. Open …
+        3. …
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Ronne's version (root sees it in Admin › Settings › Updates), and `rmk --version` for the CLI.
+      placeholder: 0.8.0
+    validations:
+      required: true
+  - type: dropdown
+    id: part
+    attributes:
+      label: Where
+      options:
+        - The web app
+        - The rmk CLI
+        - The registry MCP server (rmk-mcp)
+        - Installing or upgrading the server
+        - Something else
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How the server is installed
+      options:
+        - Docker (the install script or compose.yaml)
+        - Linux package (apt or dnf)
+        - npm (npx or a service)
+        - A clone of this repository
+        - I don't know
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: The operating system, the database (SQLite, PostgreSQL, MySQL or MariaDB) and, for rmk or the MCP server, the AI tool.
+      placeholder: Ubuntu 24.04, PostgreSQL 16, Claude Code

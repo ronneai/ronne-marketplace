@@ -61,8 +61,8 @@ contributor documentation).
   run on `main`.
 
 **Out** (and where it goes instead):
-- GitHub labels such as `good first issue`, and turning on private vulnerability reporting: settings
-  on GitHub, made by the owner.
+- Labelling issues `good first issue` or `help wanted`: the owner's, on GitHub. The labels exist,
+  and private vulnerability reporting is on (checked 2026-11-18).
 - An architecture overview between the README and MVP.md: a later feature, if the owner wants it.
 - `docs/bugfixes/`, an older one-off record from before `docs/issues/`: left as it is.
 - The Documentation website: nothing in it changes.

@@ -20,7 +20,7 @@ of conduct first, then `CONTRIBUTING.md`, then what points to it.
   unlisted note or listing a missing one makes the check fail; a documentation-only commit still
   runs it; each line's summary matches its note.
 
-- [ ] **2. GitHub templates and the code of conduct.** `.github/pull_request_template.md`,
+- [x] **2. GitHub templates and the code of conduct.** `.github/pull_request_template.md`,
   `.github/ISSUE_TEMPLATE/bug.yml`, `feature.yml` and `config.yml`, and `CODE_OF_CONDUCT.md`.
   *Done when:* the forms parse as YAML with the keys GitHub's issue forms require (`name`,
   `description`, `body` with typed elements, unique `id`s); `config.yml` turns off blank issues and
