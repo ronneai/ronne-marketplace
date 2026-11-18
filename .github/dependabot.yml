@@ -17,10 +17,11 @@ updates:
       # Node 22 lacks. Move to a new major by hand when the minimum changes (dependency policy §2).
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
-      # Held at 1.7.22: from 1.7.25 a losing simultaneous backup-code attempt reads as "expired"
-      # (#307). Exception E-14 in docs/policies/dependencies.md; remove this when #307 is fixed.
+      # Held at 1.7.21: from 1.7.22, simultaneous two-factor attempts can deadlock on MySQL, and the
+      # loser reads as "expired" (#307). Exception E-14 in docs/policies/dependencies.md; remove
+      # this when #307 is fixed.
       - dependency-name: "better-auth"
-        versions: [">1.7.22"]
+        versions: [">1.7.21"]
     groups:
       # A group listed first takes its packages out of the catch-all below, so a tool whose minor
       # changes its output (Biome 2.6) or a package family that must move together (CodeMirror)
