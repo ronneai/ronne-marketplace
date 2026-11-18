@@ -209,8 +209,8 @@ here.
 | `pnpm test:db:core` | Only the database code's own tests (`db/`, migrations, repositories, setup, backup, scripts) |
 | `pnpm test:db:up` / `pnpm test:db:down` | Starts or stops local PostgreSQL, MySQL and MariaDB test servers at the minimum versions (Docker) |
 | `pnpm test:db:postgres`, `pnpm test:db:mysql`, `pnpm test:db:mariadb` | The database tests against one of those servers (`-- <paths>` for some files) |
-| `pnpm test:e2e` | Builds the web app and runs the Playwright tests against a throwaway SQLite instance (`--shard=1/2` runs half, as CI does) |
-| `pnpm test:install` | The install script's tests under dash and bash |
+| `pnpm test:e2e` | Builds the web app and runs the Playwright tests (`apps/web/e2e`) against a throwaway SQLite instance (`--shard=1/2` runs half, as CI does) |
+| `pnpm test:install` | The install script's tests (`scripts/install/test-install.sh`) under dash and bash |
 
 **Checks**
 
@@ -230,7 +230,7 @@ here.
 |---|---|
 | `pnpm run setup` | Configures an instance in the terminal (interactive, or `--yes` with environment variables). Never `pnpm setup`: that's a pnpm built-in |
 | `pnpm run setup-code` | Prints the one-time code the web setup asks for, making one if there's none |
-| `pnpm run reset-setup` | Development only: removes this clone's settings file, SQLite database and storage, so the setup can run again |
+| `pnpm run reset-setup` | Development only: removes this clone's settings file, SQLite database and storage, so the setup can run again. Asks first, or `--yes`; refuses in production and in Docker |
 | `pnpm db:migrate` | Applies pending migrations to `DATABASE_URL` |
 | `pnpm run reset-root-password` | Sets a new root password; ends root's sessions and revokes its tokens ([incident runbook](docs/runbooks/incident-response.md)) |
 | `pnpm run reset-two-factor` | Turns off one account's two-factor sign-in (`--email`), ends its sessions and revokes its access tokens ([incident runbook](docs/runbooks/incident-response.md)) |
@@ -246,7 +246,7 @@ here.
 | `pnpm build:server` | The web app's standalone build and `rmk-server`, which packing `@ronneai/marketplace` copies in |
 | `pnpm packages:check` | After `pnpm build` and `pnpm build:server`: checks what the four published packages would contain against an allowlist |
 | `pnpm release:smoke` | After `pnpm build` and `pnpm build:server`: installs the packed packages with npm in an empty folder and runs `rmk`, `rmk-mcp` and `rmk-server` |
-| `pnpm bundle <tarball>` | Builds this machine's self-contained `rmk-server` archive, Node.js inside, from a packed `@ronneai/marketplace` |
+| `pnpm bundle <tarball>` | Builds this machine's self-contained `rmk-server` archive, Node.js inside, from a packed `@ronneai/marketplace` (`--out DIR`, `--keep`); `node packages/repo-tools/src/bundle-smoke.js <archive>` checks and runs it with no Node.js on `PATH` |
 | `pnpm release:version <x.y.z>` | Sets the version the four published packages share, for a patch, a major or a pre-release |
 
 ## License

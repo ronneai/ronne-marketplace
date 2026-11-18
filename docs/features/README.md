@@ -19,14 +19,17 @@ the design in [`MVP.md`](../MVP/MVP.md). They link to them.
 3. **Witness each task.** Before a task is ticked, the
    [state witness](../knowledge/state-witness.md) checks it and its pass goes in `WITNESS.md`, in
    the same commit; `[risky]` tasks get an adversarial pass too. `pnpm witness:check` (run by the
-   pre-commit hook and CI) fails a ticked task whose latest pass isn't met.
+   pre-commit hook and CI) fails a ticked task whose latest pass isn't met. A pull request from an
+   outside contributor leaves its tasks unticked ([CONTRIBUTING.md](../../CONTRIBUTING.md)): the
+   owner runs the witness on its branch and ticks them before merging.
 4. **Keep the docs honest.** If the work changes the behaviour, update `SPEC.md` in the same
    change. If it changes a decision, also update MVP.md and its decision log (§15).
 5. **Keep the Documentation current.** Every feature that changes what people see or do
    updates the inline helpers ([033](./033-in-app-help/SPEC.md)) in the same pull request, and the
    Documentation on the website ([088](./088-docs-on-website/SPEC.md): `../ronne-web`, in a branch
    that goes live with the release), as its spec's Documentation section lists. A spec with nothing
-   to add says "None" and why.
+   to add says "None" and why. The website's source is private, so for an outside contributor's
+   pull request the owner writes it, from what the pull request says it should say.
 6. **Finish** by setting the status here to `done`.
 
 **Numbering.** IDs are three digits, given in order of creation, and never reused or renamed. The
@@ -515,4 +518,4 @@ Work on the repository itself rather than the product.
 
 | ID | Feature | Depends on | Status |
 |---|---|---|---|
-| [187](./187-contributor-docs/SPEC.md) | Documentation for new contributors: `CONTRIBUTING.md` for people, with the one commands table (a test keeps it complete); outside pull requests leave tasks unticked and the owner witnesses them; the owner updates the private website; the README for people using Ronne; issue forms, a pull request template and a code of conduct; an index of `docs/knowledge/` | — | in progress |
+| [187](./187-contributor-docs/SPEC.md) | Documentation for new contributors: `CONTRIBUTING.md` for people, with the one commands table (a test keeps it complete); outside pull requests leave tasks unticked and the owner witnesses them; the owner updates the private website; the README for people using Ronne; issue forms, a pull request template and a code of conduct; an index of `docs/knowledge/` | — | done |

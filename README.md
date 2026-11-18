@@ -5,11 +5,8 @@ hooks, MCP servers and more. A team installs it on its own infrastructure, propo
 and releases them, and installs them into AI coding tools such as Claude Code, Codex and Cursor with
 the `rmk` CLI or from inside those tools through an MCP server.
 
-> **Status:** early development. Milestones M0 to M5 are done: Ronne AI Marketplace installs;
-> people sign in and get tokens; items go from a draft through review to a catalogue of released
-> versions, with change proposals and version management; `rmk` installs them into Claude Code,
-> Codex and Cursor; and the registry MCP server does the same from inside those tools. The design is in [`docs/MVP/MVP.md`](docs/MVP/MVP.md), and
-> the work is tracked in [`docs/features/README.md`](docs/features/README.md).
+> **Status:** in active development, released as 0.x versions. What's done and what's next is in
+> the [features index](docs/features/README.md), and the design in [`docs/MVP/MVP.md`](docs/MVP/MVP.md).
 
 ## Getting started
 
@@ -242,7 +239,7 @@ sudo rmk-server service uninstall        # the data stays; --delete-data deletes
 ### From source
 
 For developers working on Ronne itself. You need Node.js and pnpm (see
-[Requirements](#development)).
+[CONTRIBUTING.md](CONTRIBUTING.md#set-up)).
 
 ```sh
 git clone https://github.com/ronneai/ronne-marketplace.git
@@ -255,6 +252,23 @@ Then open http://localhost:3000 and follow the setup. It writes `apps/web/.env` 
 you) and, with SQLite, the database under `apps/web/data/`. It asks for the setup code the server
 printed when it started (the `server.setup_code` line); `pnpm run setup-code` prints it again. A
 forgotten root password is reset with `pnpm run reset-root-password`.
+
+**Setting up without the browser** (CI, scripts, or a host that must be set up before its port is
+exposed). The same setup runs in the terminal as `pnpm run setup` (not `pnpm setup`, a pnpm
+built-in), and without prompts with `--yes` and the values as environment variables; the password
+is never a flag:
+
+```sh
+DATABASE_URL=file:./data/ronne.db PUBLIC_URL=https://ronne.example.com \
+RONNE_ROOT_EMAIL=you@example.com RONNE_ROOT_NAME="Your Name" RONNE_ROOT_PASSWORD='…' \
+pnpm run setup --yes
+```
+
+In Docker: `docker compose exec -T web pnpm run setup --yes`, with the variables passed as
+`-e NAME=value`. It exits with `0` when done, `1` when a check fails, and `2` when a value is
+missing or invalid; `--database-url`, `--public-url`, `--storage-path`, `--root-email` and
+`--root-name` work as flags too. Running it again is safe: it keeps the settings and never creates
+a second root. To start over on a development clone, `pnpm run reset-setup`.
 
 **Behind a reverse proxy, from source** (nginx, Caddy, Traefik): proxy HTTPS to port 3000, and set
 `PUBLIC_URL` to the public address in `apps/web/.env`. Set `TRUST_PROXY=true` too, so Ronne takes
@@ -306,88 +320,14 @@ If you built them from a clone before and linked them, run `npm unlink --global 
 @ronneai/mcp` first, so the npm install is what `rmk` runs. Contributors can still run the local
 build: after `pnpm build`, `pnpm exec rmk` (or `node packages/cli/dist/bin.js`), and
 `rmk mcp-setup --command "node /path/to/packages/mcp/dist/bin.js"` for the server. Releasing a new
-version is described under Development.
-
-## Development
-
-**Requirements**
-
-- Node.js 24 LTS (see [`.nvmrc`](.nvmrc)). Node.js 22.12 or later also works.
-- pnpm. Install it directly with `npm install --global pnpm`; it then switches to the version pinned
-  in `package.json` (`packageManager`) on its own. Don't use Corepack: current Corepack releases
-  can't start pnpm 12. If `pnpm` is a Corepack shim on your machine, run `corepack disable pnpm` first.
-
-**Setting up without the browser** (CI, scripts, or a host that must be set up before its port is
-exposed). The same setup runs in the terminal as `pnpm run setup` (not `pnpm setup`, a pnpm
-built-in), and without prompts with `--yes` and the values as environment variables; the password
-is never a flag:
-
-```sh
-DATABASE_URL=file:./data/ronne.db PUBLIC_URL=https://ronne.example.com \
-RONNE_ROOT_EMAIL=you@example.com RONNE_ROOT_NAME="Your Name" RONNE_ROOT_PASSWORD='…' \
-pnpm run setup --yes
-```
-
-In Docker: `docker compose exec -T web pnpm run setup --yes`, with the variables passed as
-`-e NAME=value`. It exits with `0` when done, `1` when a check fails, and `2` when a value is
-missing or invalid; `--database-url`, `--public-url`, `--storage-path`, `--root-email` and
-`--root-name` work as flags too. Running it again is safe: it keeps the settings and never creates
-a second root. To start over on a development clone, `pnpm run reset-setup`.
-
-**Commands**
-
-| Command | What it does |
-|---|---|
-| `pnpm install` | Installs dependencies, with the supply-chain checks in `pnpm-workspace.yaml` |
-| `pnpm dev` | Runs the web app at http://localhost:3000 |
-| `pnpm build` | Builds every package and the web app |
-| `pnpm lint` | Checks lint and formatting with Biome |
-| `pnpm format` | Fixes formatting and safe lint issues |
-| `pnpm typecheck` | Type-checks every package |
-| `pnpm test` | Runs every test with Vitest |
-| `pnpm hooks:install` | Turns on the local git hooks (once per clone): checks before each commit, and the commit-message format |
-| `pnpm run setup` | Configures an instance: database, `.env`, tables and the root account |
-| `pnpm run reset-root-password` | Sets a new root password and signs root out everywhere |
-| `pnpm run reset-setup` | Development only: removes this clone's settings file, SQLite database and storage, so the setup can be run again |
-| `pnpm db:migrate` | Applies pending database migrations |
-| `pnpm test:e2e` | Builds the web app and runs the end-to-end tests (Playwright, Chromium) against a throwaway instance. Install the browser once with `pnpm --filter @ronneai/web exec playwright install chromium` |
-| `pnpm test:db` | Runs only the database tests (in-memory SQLite, or `TEST_DATABASE_URL`) |
-| `pnpm test:db:up` / `pnpm test:db:down` | Starts or stops local PostgreSQL, MySQL and MariaDB test servers (Docker) |
-| `pnpm test:db:postgres` (or `:mysql`, `:mariadb`) | Runs the database tests against one of those servers |
-| `pnpm exec rmk --version` | Runs the local `rmk` CLI (after `pnpm build`) |
-| `pnpm build:server` | The web app's standalone build and `rmk-server`, which packing `@ronneai/marketplace` copies in (after `pnpm build`) |
-| `pnpm packages:check` | Checks what `@ronneai/core`, `@ronneai/rmk`, `@ronneai/mcp` and `@ronneai/marketplace` would publish against an allowlist (after `pnpm build` and `pnpm build:server`) |
-| `pnpm release:smoke` | Installs the packed packages with npm in an empty folder and runs `rmk`, `rmk-mcp` and `rmk-server` (after `pnpm build` and `pnpm build:server`) |
-| `pnpm bundle <tarball>` | Builds this machine's self-contained `rmk-server` archive, Node.js inside, from a packed `@ronneai/marketplace` (`--out DIR`, `--keep`); `node packages/repo-tools/src/bundle-smoke.js <archive>` checks and runs it with no Node.js on `PATH` |
-| `pnpm release:version <x.y.z>` | Sets the version the four published packages share, for a patch, a major or a pre-release (after each stable release, the Release workflow moves `main` to the next minor itself). Commit it, then push the tag `vX.Y.Z`: the Release workflow publishes them to npm with provenance, the Docker image and the GitHub release with the bundles. The checklist is [`docs/runbooks/release.md`](docs/runbooks/release.md) |
-
-**Layout**
-
-| Path | What it holds |
-|---|---|
-| `apps/web` | The Next.js app: UI, server actions and the `/api/v1` registry API |
-| `packages/core` | Manifest schema, resolver, packer and platform renderers |
-| `packages/cli` | The `rmk` CLI |
-| `packages/mcp` | The registry MCP server |
-| `packages/config` | Shared TypeScript, Biome and Vitest presets |
-| `packages/repo-tools` | Checks for this repository, such as the commit message format |
-| `docs/` | The MVP design, specs, feature and issue plans, and policies |
-| `examples/items/` | One sample item of each type |
+version follows the [release runbook](docs/runbooks/release.md).
 
 ## Contributing
 
-Commits and pull request titles use `[type] NNN: Description`, where `type` is `docs`, `feat`,
-`chore` or `bugfix` and `NNN` is the feature ID; `[type] #NNN: Description` for a fix of a GitHub
-issue worked in [`docs/issues/`](docs/issues/README.md), where `#NNN` is the issue number; or
-`[type]: Description` when the change is neither. Run `pnpm hooks:install` once: before each commit it runs lint, typecheck, test and build (skipped when
-the commit only changes Markdown or text files), and it checks the commit message. CI checks
-pull request titles.
-
-
-Work is organised as features in [`docs/features/`](docs/features/README.md): read a feature's
-`SPEC.md`, then follow its `PLAN.md`. Every new dependency must follow the
-[dependency policy](docs/policies/dependencies.md): free and redistributable licenses only, the
-latest stable or LTS versions, and no known vulnerabilities.
+Contributions are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) has everything you need: setting up,
+the project's rules, the tests, every command, and how a pull request gets in. Taking part means
+following the [code of conduct](CODE_OF_CONDUCT.md), and a security problem is reported privately
+([SECURITY.md](SECURITY.md)).
 
 ## License
 

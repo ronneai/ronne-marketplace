@@ -33,12 +33,12 @@ of conduct first, then `CONTRIBUTING.md`, then what points to it.
   *Done when:* `pnpm docs:check` and the repo-tools tests pass; removing a script's row makes the
   check fail; every command, path, link and rule in the file matches the repository.
 
-- [ ] **4. The README, `CLAUDE.md`, `AGENTS.md` and the witness rule.** The README's status line,
+- [x] **4. The README, `CLAUDE.md`, `AGENTS.md` and the witness rule.** The README's status line,
   Layout, Development and Contributing as the spec says; `CLAUDE.md`'s Commands section links to
   `CONTRIBUTING.md`, MVP.md's description is fixed, and the witness rule for outside contributors
   is stated there and in `docs/features/README.md`, `docs/issues/README.md` and
   `docs/knowledge/state-witness.md`; `AGENTS.md` points to both files outside the managed block.
-  *Done when:* the README has no command table and links to `CONTRIBUTING.md`; the five files
+  *Done when:* the README has no command or layout table and links to `CONTRIBUTING.md`; the five files
   state the rule; `pnpm witness:check` passes; every relative link in the changed files resolves.
 
 ## Notes

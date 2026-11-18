@@ -40,12 +40,15 @@ contributor documentation).
   (below) fails when a root script has no row in the table: a mention elsewhere on the page doesn't
   count.
 - **The README for people using Ronne:** a status line that doesn't go stale (it points to the
-  features index instead of naming milestones), the Layout table with `packages/server`, and a
-  short Development and Contributing section that links to `CONTRIBUTING.md`. "Setting up without
-  the browser" stays in the README, under From source, because operators need it.
+  features index instead of naming milestones), and a short Contributing section that links to
+  `CONTRIBUTING.md`, the code of conduct and SECURITY.md. Its Development section (requirements,
+  commands, layout) goes: `CONTRIBUTING.md` has all of it, the layout with `packages/server`,
+  which the README's table had left out. "Setting up without the browser" stays in the README,
+  under From source, because operators need it.
 - **`CLAUDE.md`:** its Commands section links to `CONTRIBUTING.md` and keeps only what an agent
-  needs beyond it; MVP.md is described as the MVP design (M0–M6), with the roadmap since in the
-  features index; the witness rule for outside contributors.
+  needs beyond it; MVP.md is described as the design, whose §13 lists the first milestones
+  (M0–M7), with the whole roadmap in the features index; the witness rule for outside
+  contributors.
 - **`AGENTS.md`:** besides Turborepo's managed block, a line telling Codex, Cursor and other agents
   to read `CLAUDE.md` and `CONTRIBUTING.md` for the project's rules.
 - **GitHub templates:** a pull request template (title format, what it does, the feature or issue,
@@ -105,22 +108,22 @@ under Scope.
 
 ## Acceptance criteria
 
-- [ ] `CONTRIBUTING.md` covers every point under Scope, and every command, path and rule in it
+- [x] `CONTRIBUTING.md` covers every point under Scope, and every command, path and rule in it
   matches the repository (the scripts in `package.json`, the hooks, the CI workflows).
-- [ ] `pnpm docs:check` fails when a root script has no row in `CONTRIBUTING.md`'s Commands, and
+- [x] `pnpm docs:check` fails when a root script has no row in `CONTRIBUTING.md`'s Commands, and
   passes now.
-- [ ] The pre-commit hook and CI's witness job run `pnpm docs:check`'s script, documentation-only
+- [x] The pre-commit hook and CI's witness job run `pnpm docs:check`'s script, documentation-only
   changes included.
-- [ ] The README links to `CONTRIBUTING.md`, has no command table of its own, lists
-  `packages/server`, and its status line names no milestone.
-- [ ] `CLAUDE.md`, `docs/features/README.md`, `docs/issues/README.md` and `state-witness.md` state
+- [x] The README links to `CONTRIBUTING.md`, has no command or layout table of its own, and its
+  status line names no milestone.
+- [x] `CLAUDE.md`, `docs/features/README.md`, `docs/issues/README.md` and `state-witness.md` state
   the witness rule for outside contributors; `CLAUDE.md` links to `CONTRIBUTING.md` for commands.
-- [ ] `AGENTS.md` points to `CLAUDE.md` and `CONTRIBUTING.md` outside the managed block.
-- [ ] The pull request template and the two issue forms exist, the forms are valid issue-form YAML,
+- [x] `AGENTS.md` points to `CLAUDE.md` and `CONTRIBUTING.md` outside the managed block.
+- [x] The pull request template and the two issue forms exist, the forms are valid issue-form YAML,
   and `config.yml` links to private vulnerability reporting.
-- [ ] `CODE_OF_CONDUCT.md` is the Contributor Covenant 2.1 with `conduct@ronne.ai`.
-- [ ] `docs/knowledge/README.md` lists every note, and `pnpm docs:check` keeps it complete.
-- [ ] Every relative link in the new and changed Markdown files lands on a file that exists.
+- [x] `CODE_OF_CONDUCT.md` is the Contributor Covenant 2.1 with `conduct@ronne.ai`.
+- [x] `docs/knowledge/README.md` lists every note, and `pnpm docs:check` keeps it complete.
+- [x] Every relative link in the new and changed Markdown files lands on a file that exists.
 
 ## Open questions
 

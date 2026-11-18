@@ -11,7 +11,9 @@ that need more than a one-line fix get a folder here, worked like a feature in
   adversarial pass. Tick a task in the same change that completes it.
 - **`WITNESS.md`:** the state-witness passes, as for features
   ([`docs/knowledge/state-witness.md`](../knowledge/state-witness.md)). `pnpm witness:check`
-  checks every issue folder.
+  checks every issue folder. A pull request from an outside contributor leaves its tasks unticked;
+  the owner runs the witness and ticks them before merging
+  ([CONTRIBUTING.md](../../CONTRIBUTING.md)).
 - **Commits and pull requests:** `[type] #NNN: Description`, such as
   `[bugfix] #141: Try older versions when the newest conflicts`.
 - When the fix ships, set its status below to the release, such as `fixed in 0.3.3`, and close the

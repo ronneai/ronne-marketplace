@@ -11,8 +11,9 @@ Claude Code, Codex and Cursor.
 The monorepo is scaffolded (feature 001); the product features start with 002. Where things are:
 
 - `docs/MVP/ideas.txt`: the original requirements, written by the owner.
-- `docs/MVP/MVP.md`: the MVP design. It is the source of truth for scope, architecture, the data model, the API, milestones (M0–M6) and the decision log (§15).
+- `docs/MVP/MVP.md`: the MVP design. It is the source of truth for scope, architecture, the data model, the API and the decision log (§15); its §13 lists the first milestones (M0–M7), and the whole roadmap is in `docs/features/README.md`.
 - `docs/spec/`: detailed contracts. `manifest.md` (with the schema, `packages/core/src/schema/ronne.schema.json`) defines `ronne.yaml`; `cli-files.md` defines `rmk.config.json`, `rmk.lock` and `.rmk/state.json`.
+- `CONTRIBUTING.md`: the guide for people who contribute, with the one table of every command (below), and `CODE_OF_CONDUCT.md`. Change it when the rules or the commands change.
 - `docs/features/`: the work, one folder per feature (`NNN-slug/SPEC.md` + `PLAN.md`). `docs/features/README.md` is the index and the milestone plan.
 - `docs/issues/`: bugs reported on GitHub, worked like features, one folder per issue
   (`NNN-slug/SPEC.md` + `PLAN.md` + `WITNESS.md`, `NNN` the GitHub issue number).
@@ -23,13 +24,14 @@ The monorepo is scaffolded (feature 001); the product features start with 002. W
 - `docs/knowledge/`: lessons learned while building, one topic per file, such as
   `codeql-regex.md` (how to write regular expressions CodeQL won't fail). Before writing code in
   an area a note covers, read it and follow it; when a check fails for a reason the next person
-  could avoid, add or update a note in the same change.
+  could avoid, add or update a note in the same change, and list a new one in
+  `docs/knowledge/README.md` (`pnpm docs:check` fails otherwise).
 - `docs/UI-Mocks-Materials/` (**git-ignored, kept only on the owner's machine; never commit or publish it**): the brand files, the Manrope font, the Stitch mocks and the two `DESIGN.md` notes. Feature 032 turns them into the design system and copies only what the app serves into `apps/web`; UI work follows it (flat, no shadows, teal as the single accent, red and amber only for errors and warnings, a light blue only for information notices (tokens, never raw colours), Inter and IBM Plex Mono (Inter replaced Manrope in 158; IBM Plex Mono only for machine values)). Three exceptions, all tokens: the syntax colours (044), the usage charts' per-tool colours (047), and the item type colours (054: the type badges and the catalogue's type filter; never red or amber).
 - `examples/items/`: one sample item per type. Each must pass the manifest schema (checked by a test in `packages/core`); they are the golden-file inputs for renderers.
 
 To work on a feature, read its `SPEC.md`, follow `PLAN.md` in order, and tick tasks as they land.
 Before ticking a task, the `state-witness` agent checks it and its pass goes in the feature's
-`WITNESS.md` ([`docs/knowledge/state-witness.md`](docs/knowledge/state-witness.md)). If the behaviour changes, update `SPEC.md` in the same change; when the feature is finished, set its status in the index.
+`WITNESS.md` ([`docs/knowledge/state-witness.md`](docs/knowledge/state-witness.md)). A pull request from an outside contributor leaves its tasks unticked (CONTRIBUTING.md); the owner runs the witness on its branch, adds the record and ticks the tasks before merging, and updates the Documentation on the website (`../ronne-web` is private) from what the pull request says it should say. If the behaviour changes, update `SPEC.md` in the same change; when the feature is finished, set its status in the index.
 
 **Every feature keeps the Documentation current (owner's rule, 2026-09-28).** The Documentation is on the website, `https://www.ronne.ai/marketplace/docs` (088, 2026-10-05), built from the sibling repository `../ronne-web` (`www/src/content/docs/`: the words in English, Portuguese and French, and `topics.ts`). When a feature changes what people see or do, it updates the Documentation there, in a ronne-web branch that goes live with the release, and adds or changes inline helpers here (`apps/web/src/components/help/Help.tsx`, which link into the website). A new or renamed topic or section changes `apps/web/src/components/help/topics.ts` and ronne-web's `topics.ts` together. Every `SPEC.md` has a Documentation section saying which topics and helpers change, or "None" and why; its acceptance criteria include them. Facts come from how the app behaves, never from plans.
 
@@ -39,37 +41,14 @@ When a task touches a decision, check `MVP.md` first. If the work changes a deci
 
 Use Node.js 24 (`.nvmrc`) and pnpm installed directly (`npm install --global pnpm`), not through Corepack, which can't start pnpm 12.
 
-| Command | Does |
-|---|---|
-| `pnpm install` | Installs dependencies through the supply-chain checks in `pnpm-workspace.yaml` |
-| `pnpm dev` | Runs the web app at http://localhost:3000 |
-| `pnpm build` | Builds every package and the web app (Turborepo). First trims the build caches over their limits (`docs/knowledge/build-caches.md`), as `pnpm dev` does |
-| `pnpm clean:cache` / `pnpm clean` | Empties Turborepo's and Turbopack's caches / and removes every build output too. Always safe: the next run rebuilds |
-| `pnpm lint` / `pnpm format` | Biome check / Biome fix |
-| `pnpm typecheck` | Type-checks every package |
-| `pnpm test` | Runs every Vitest suite; `pnpm --filter @ronneai/core test` for one package |
-| `pnpm test:db` | Only the database tests (`*.db.test.ts`, the `db` Vitest project) |
-| `pnpm test:db:core` | Only the database code's own tests (`db/`, migrations, repositories, setup, backup, scripts): what the servers run on a pull request that changes no database code |
-| `pnpm test:db:up` then `pnpm test:db:postgres` / `:mysql` / `:mariadb` | Database tests against local Docker servers at the minimum versions (`-- <paths>` for some files); `pnpm test:db:down` stops them |
-| `pnpm test:install` | The install script's tests (`scripts/install/test-install.sh`) under dash and bash |
-| `pnpm test:e2e` | Builds the web app and runs the Playwright tests (`apps/web/e2e`) against a throwaway SQLite instance. Desktop, phone (also in WebKit, for iOS Safari) and tablet projects. First run `pnpm --filter @ronneai/web exec playwright install chromium webkit`. `--shard=1/2` runs half, as CI does |
-| `pnpm witness:check` | Checks every `WITNESS.md` record and that each ticked task has a pass that met it. The pre-commit hook and CI run it on every change |
-| `pnpm docker:limits` | How many Docker Hub pulls are left: anonymously (this machine's address) and, with a token (`DOCKERHUB_TOKEN`, or typed at a hidden prompt), signed in. Tells a reached limit (429) from Docker Hub failing (5xx, no answer) |
-| `pnpm licenses:check` | Checks every installed package's license against `license-policy.json` |
-| `pnpm audit --audit-level high` | Fails on known high or critical vulnerabilities |
-| `pnpm run setup` | Configures an instance (interactive, or `--yes` with env vars). Never `pnpm setup`: that's a pnpm built-in |
-| `pnpm run setup-code` | Prints the one-time code the web setup asks for (161), making one if there's none; refuses once root exists |
-| `pnpm run reset-root-password` | New root password; ends root's sessions and revokes its tokens |
-| `pnpm run reset-setup` | Development only: removes this clone's settings file, SQLite database and storage (asks first, or `--yes`), so the web setup can be run again. Refuses in production and in Docker |
-| `pnpm db:migrate` | Applies pending migrations to `DATABASE_URL` |
-| `pnpm hooks:install` | Turns on the local `pre-commit` checks and the commit-message check (once per clone) |
-| `pnpm build:server` | The web app's standalone build and `rmk-server`, which packing `@ronneai/marketplace` copies in (082). Needed before `packages:check` and `release:smoke` |
-| `pnpm packages:check` | After `pnpm build` and `pnpm build:server`: checks what `@ronneai/core`, `rmk`, `mcp` and `marketplace` would publish against an allowlist |
-| `pnpm release:smoke` | After `pnpm build` and `pnpm build:server`: installs the packed packages with npm in an empty folder and runs `rmk`, `rmk-mcp` and `rmk-server` |
-| `pnpm bundle <tarball>` | Builds this machine's self-contained `rmk-server` archive (Node.js inside) from a packed `@ronneai/marketplace` (084); `node packages/repo-tools/src/bundle-smoke.js <archive>` checks and runs it with no Node on `PATH` |
-| `pnpm release:version <x.y.z>` | Sets the version the four published packages share, for a patch, a major or a pre-release: after each stable release the Release workflow pushes the next minor to `main` itself (`release-bump.js`). Then commit and push the tag `vX.Y.Z` to publish (`.github/workflows/release.yml`), following [`docs/runbooks/release.md`](docs/runbooks/release.md) |
+Every root script is in the commands table in [`CONTRIBUTING.md`](CONTRIBUTING.md#commands), and `pnpm docs:check` fails when one has no row: add the row with the script. The ones easy to get wrong:
 
-CI (`.github/workflows/`) runs lint, typecheck, test and build (tests and build on Node 22 and 24), the database tests on PostgreSQL 15, MySQL 8.4 and MariaDB 10.11 (`database.yml`, plus a weekly run on the latest versions; on a pull request that changes no database code, only `test:db:core`), the end-to-end tests in two parallel halves, the license and audit checks, CodeQL, and the PR title check. The Docker image, the server package and the install scripts run on a pull request only when it changes their files (`ci-scope.js`); a draft pull request runs only the light checks until it's ready for review. Everything runs every night on `main` (`nightly.yml`) and in every release run. [`docs/knowledge/test-runs.md`](docs/knowledge/test-runs.md) has the table; every Docker Hub pull counts against one account's 200 per 6 hours ([`docker-hub-pulls.md`](docs/knowledge/docker-hub-pulls.md)).
+- `pnpm run setup`, never `pnpm setup` (a pnpm built-in); the same for `setup-code`, `reset-setup`, `reset-root-password` and the other instance commands.
+- `pnpm test:e2e` first needs `pnpm --filter @ronneai/web exec playwright install chromium webkit`; `--shard=1/2` runs half, as CI does.
+- `pnpm packages:check` and `pnpm release:smoke` need `pnpm build` and `pnpm build:server` first.
+- `pnpm release:version <x.y.z>` is for a patch, a major or a pre-release: after each stable release the Release workflow pushes the next minor to `main` itself (`release-bump.js`). Then commit and push the tag `vX.Y.Z`, following [`docs/runbooks/release.md`](docs/runbooks/release.md).
+
+CI (`.github/workflows/`) runs lint, typecheck, test and build (tests and build on Node 22 and 24), the database tests on PostgreSQL 15, MySQL 8.4 and MariaDB 10.11 (`database.yml`, plus a weekly run on the latest versions; on a pull request that changes no database code, only `test:db:core`), the end-to-end tests in two parallel halves, the witness and docs checks (on every pull request, documentation only included), the license and audit checks, CodeQL, and the PR title check. The Docker image, the server package and the install scripts run on a pull request only when it changes their files (`ci-scope.js`); a draft pull request runs only the light checks until it's ready for review. Everything runs every night on `main` (`nightly.yml`) and in every release run. [`docs/knowledge/test-runs.md`](docs/knowledge/test-runs.md) has the table; every Docker Hub pull counts against one account's 200 per 6 hours ([`docker-hub-pulls.md`](docs/knowledge/docker-hub-pulls.md)).
 
 Pull requests that only change documentation (`.md`, `.mdx`, `.txt`, the pre-commit hook's rule) skip the heavy CI steps: the reusable `changes.yml` workflow detects them, and the required checks still report success. Pushes to `main` never skip for documentation, and the nightly and release runs run everything.
 
@@ -84,7 +63,7 @@ After adding a workspace package, run `pnpm install --frozen-lockfile` to confir
 1. **Before any commit**, run `pnpm lint`, `pnpm typecheck`, `pnpm test` and `pnpm build`. Also run
    `pnpm install --frozen-lockfile` and `pnpm licenses:check` when dependencies or workspace packages
    changed. Commit only when all pass. The `pre-commit` hook runs exactly these, and skips them when
-   every staged file is documentation (`.md`, `.mdx` or `.txt`); it always runs `pnpm witness:check`. Never bypass it with `--no-verify`.
+   every staged file is documentation (`.md`, `.mdx` or `.txt`); it always runs `pnpm witness:check` and `pnpm docs:check`. Never bypass it with `--no-verify`.
 2. **If a check fails**, don't fix it on your own and don't commit. Explain what failed and why, propose
    actions, and let the owner decide the next step.
 3. **Never push or open a pull request** unless the owner asks for that specific change.

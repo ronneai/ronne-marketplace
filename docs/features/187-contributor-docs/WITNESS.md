@@ -150,3 +150,44 @@ Witnessed: 2026-11-18 10:08 EST, by a fresh agent (blind). Commit: e9093b75 + wo
 | 24 | `RESET_TWO_FACTOR_USAGE` is reflowed with the same words, no line is over 100 characters, the setup tests and lint pass, and the witness check passes | no | confirmed | Node probe, whitespace collapsed: the paragraph equals the second re-check's wording. Line lengths 84, 98, 95, 88, 28, 60, 28. `biome check apps/web/src/server/setup/cli.ts` → "No fixes applied". In apps/web, `pnpm exec vitest run src/server/setup` → 19 files, 199 passed, 2 skipped. `pnpm witness:check` → exit 0 |
 
 **Overall:** met: the reflow changed only line breaks, and every check passes.
+
+## Task 4 — The README, `CLAUDE.md`, `AGENTS.md` and the witness rule
+
+Witnessed: 2026-11-18 10:24 EST, by a fresh agent (blind). Commit: 3a3e63b1 plus the working-tree diff (8 files). Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The README has no command table and no layout table | no | confirmed | `grep -n -E "^#\|^\|" README.md` → the only table is the Docker settings table (README.md:109–117); `## Development` with Requirements, Commands and Layout is gone |
+| 2 | The README's status line names no milestone and points to the features index | no | confirmed | README.md:8–9 "in active development, released as 0.x versions", links `docs/features/README.md` and MVP.md; no `M[0-9]` or "milestone"; package.json version 0.8.0 |
+| 3 | The README's Contributing section links to CONTRIBUTING.md, the code of conduct and SECURITY.md | no | confirmed | README.md:325–330; all three resolve |
+| 4 | "Setting up without the browser" stays in the README, under From source | no | confirmed | README.md:239 `### From source`, :256 the section, :284 the next heading; the text matches the removed block word for word |
+| 5 | CLAUDE.md's Commands section links to CONTRIBUTING.md and keeps only what an agent needs beyond it | no | confirmed | The table is removed; CLAUDE.md:44 links `CONTRIBUTING.md#commands` (the anchor exists); four pitfalls and the CI paragraph kept |
+| 6 | MVP.md's description in CLAUDE.md matches MVP.md | no | partly | CLAUDE.md:14 "its milestones are the MVP's (M0–M6)", but MVP.md §13 (:778–786) also lists M5b and M7 |
+| 7 | The witness rule for outside contributors is stated in all five files | no | confirmed | CLAUDE.md:34; features/README.md:22–24; issues/README.md:14–16; state-witness.md:94–99; CONTRIBUTING.md:74–83 |
+| 8 | The Documentation rule (ronne-web is private; the PR says what the website should say; the owner updates it) | no | confirmed | CLAUDE.md:34, features/README.md:31–32, CONTRIBUTING.md:85–96 |
+| 9 | Every relative link in the changed files resolves | no | confirmed | `node 187-t4-blind/links.mjs` over the 9 files → "246 relative links, 0 broken", anchors included; a mutated copy's broken links are reported |
+| 10 | AGENTS.md points to CLAUDE.md and CONTRIBUTING.md outside Turborepo's managed block | no | confirmed | AGENTS.md:10 END marker, the project section at :12–16 after it. turbo 2.11.10 didn't rewrite the block in a scratch repository, so survival rests on its place, not a run |
+| 11 | `pnpm witness:check` passes | no | confirmed | → exit 0; `pnpm docs:check` → 0 |
+| 12 | The new facts in CLAUDE.md match the repository | no | confirmed | run-pre-commit.js:16–27; ci.yml:88–101; release-bump.js and release.yml:454–463; playwright.config.ts:56 `phone-webkit`; `docs:check` fails on a deleted `disable-sso` row and an unlisted note in a scratch copy |
+| 13 | Nothing a reader needs was lost from the README and CLAUDE.md | no | partly | Lost: `node packages/repo-tools/src/bundle-smoke.js <archive>`; `pnpm bundle`'s `--out DIR` and `--keep`; `reset-setup` asking first or `--yes` and refusing in production and in Docker; minor: `scripts/install/test-install.sh` and `apps/web/e2e` |
+| 14 | Nothing else in the repository links to the README's removed `#development` section | no | confirmed | `git grep` for `#development`, `#requirements`, `#layout`, `#commands` → only CLAUDE.md's `CONTRIBUTING.md#commands`; prose mentions remain in finished features' history (034, 036), not links |
+
+**Overall:** not met: rows 6 and 13 are partly.
+
+Fixed after this pass: CLAUDE.md (and the spec) say MVP.md's §13 lists the first milestones (M0–M7) and the whole roadmap is in the features index; CONTRIBUTING.md's rows gain `bundle-smoke.js`, `--out DIR` and `--keep`, `reset-setup`'s `--yes` and refusals, and the paths `scripts/install/test-install.sh` and `apps/web/e2e`. The witness's aside about pnpm 12's built-in `clean` and `start`: `pnpm help clean` says "A `clean` script in `package.json` overrides the built-in command", and `pnpm start` runs the `start` script, so both rows are right.
+
+### Re-check of rows 6, 9, 11 and 13
+
+Witnessed: 2026-11-18 10:31 EST, by a fresh agent (blind). Commit: 3a3e63b1 plus the working-tree diff (10 files, including CONTRIBUTING.md and WITNESS.md). Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6 | MVP.md's description in CLAUDE.md matches MVP.md | no | confirmed | CLAUDE.md:14 "its §13 lists the first milestones (M0–M7), and the whole roadmap is in `docs/features/README.md`"; MVP.md:776–790 → M0 M1 M2 M3 M4 M5 M5b M6 M7, M7 the last; SPEC.md:49–51 the same wording |
+| 9 | Every relative link in the changed files resolves | no | confirmed | `links.mjs` on the 9 files → "246 relative links, 0 broken"; WITNESS.md's only hits are probe inputs quoted in inline code; its 3 real links resolve |
+| 11 | `pnpm witness:check` passes | no | confirmed | `node packages/repo-tools/src/check-witness.js; echo $?` → 0 |
+| 13 | Nothing a reader needs was lost from the README and CLAUDE.md | no | confirmed | `--out DIR`, `--keep`: bundle.js:2, :163–164; `bundle-smoke.js <archive>` with no Node.js on PATH: bundle-smoke.js:2, :4; `reset-setup` asks first or `--yes`, refuses in production and in Docker: scripts/reset-setup.ts:2–3, :48, server/setup/reset-setup.ts:41, reset-setup.test.ts:20–25; `apps/web/e2e`: playwright.config.ts:33; `scripts/install/test-install.sh`: package.json:52 |
+| 14 | CONTRIBUTING.md's table still passes `pnpm docs:check` | no | confirmed | → 0; in the scratch copy, deleting the `pnpm bundle <tarball>` row → "has no row for the root script "bundle"" |
+
+**Overall:** met: CLAUDE.md and SPEC.md match MVP.md's M0–M7, every restored detail matches its source, and the links, `witness:check` and `docs:check` pass.
+
+The first pass's `Witnessed:` time was corrected from 10:38 to 10:24 EST, as the witness reported (`date` at its start).
