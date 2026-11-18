@@ -2,7 +2,7 @@
   "skill": {
     "name": "unknown",
     "source": "/scan/skill",
-    "scanned_at": "2026-10-28T15:51:00.575345+00:00"
+    "scanned_at": "2026-11-18T15:50:28.344532+00:00"
   },
   "risk_assessment": {
     "score": 22,
@@ -26,7 +26,7 @@
   "issues": [
     {
       "id": "PE3",
-      "finding_id": "finding-0e09c10c506941f188f3cb9252e62dc4",
+      "finding_id": "finding-b9a62c28124840999d20cebeb942e31d",
       "category": "Privilege Escalation",
       "pattern": "Credential Access",
       "severity": "HIGH",
@@ -56,7 +56,7 @@
     },
     {
       "id": "E1",
-      "finding_id": "finding-ee4ed2b3b6f94a35b4c37d17dfc6227b",
+      "finding_id": "finding-1d2b9a296bc948acbdb2f38deecf41c4",
       "category": "Data Exfiltration",
       "pattern": "External Transmission",
       "severity": "MEDIUM",
@@ -89,7 +89,7 @@
   "suppressed": [],
   "metadata": {
     "has_executable_scripts": false,
-    "skillspector_version": "2.13.2",
+    "skillspector_version": "2.13.4",
     "llm_requested": false,
     "llm_available": false,
     "meta_analysis_applied": false,
@@ -115,7 +115,7 @@
           "model": "z-ai/glm-5.3",
           "model_source": "resolved_configuration",
           "analyzer_revision": {
-            "value": "2.13.2",
+            "value": "2.13.4",
             "source": "skillspector_package",
             "source_revision": {
               "value": "unknown",
@@ -128,7 +128,7 @@
           "model": "z-ai/glm-5.3",
           "model_source": "resolved_configuration",
           "analyzer_revision": {
-            "value": "2.13.2",
+            "value": "2.13.4",
             "source": "skillspector_package",
             "source_revision": {
               "value": "unknown",
@@ -141,7 +141,7 @@
           "model": "z-ai/glm-5.3",
           "model_source": "resolved_configuration",
           "analyzer_revision": {
-            "value": "2.13.2",
+            "value": "2.13.4",
             "source": "skillspector_package",
             "source_revision": {
               "value": "unknown",
@@ -154,7 +154,7 @@
           "model": "z-ai/glm-5.3",
           "model_source": "resolved_configuration",
           "analyzer_revision": {
-            "value": "2.13.2",
+            "value": "2.13.4",
             "source": "skillspector_package",
             "source_revision": {
               "value": "unknown",
@@ -167,7 +167,7 @@
           "model": "z-ai/glm-5.3",
           "model_source": "resolved_configuration",
           "analyzer_revision": {
-            "value": "2.13.2",
+            "value": "2.13.4",
             "source": "skillspector_package",
             "source_revision": {
               "value": "unknown",

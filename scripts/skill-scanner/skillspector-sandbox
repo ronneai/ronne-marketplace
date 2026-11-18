@@ -12,7 +12,7 @@ RUNTIME=docker
 RUNTIME_HOME=/home/ronne
 # Rootless Docker's socket, such as unix:///run/user/1001/docker.sock. Empty for podman.
 RUNTIME_SOCKET=
-IMAGE=skillspector:2.13.2
+IMAGE=skillspector:2.13.4
 # For semantic scans only: the container network that reaches the LLM provider, and nothing else you
 # can avoid (a network of its own, or bridge if the provider is on the internet). Empty refuses them.
 SEMANTIC_NETWORK=

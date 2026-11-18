@@ -6,6 +6,11 @@ exception (E-7 to E-10 in [`dependencies.md`](../policies/dependencies.md) §5).
 a Caddy bug, and none was fixed by waiting a week. This note says why, and what to do if it keeps
 happening.
 
+**2026-11-18:** Caddy 2.11.9 (Go 1.27.3, `x/net` 0.60.0, `go-jose` 4.1.6) ended E-7 to E-10, and
+HTTP/2 is back on. It brought one new finding, CVE-2026-78661 in `x/net/html`, which only
+smallstep's command-line help imports (`go mod why golang.org/x/net/html`), so it became E-12 until
+a Caddy release with `x/net` 0.62.0.
+
 ## Why it keeps failing
 
 The seven CVEs come from two places, and neither is Caddy's own code:

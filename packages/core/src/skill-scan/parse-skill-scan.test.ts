@@ -41,7 +41,7 @@ describe("parseSkillScan on SkillSpector's real reports", () => {
   it("reads a clean skill as safe, with no findings", () => {
     expect(parsed(fixture("secure-coding"))).toEqual({
       scanner: "skillspector",
-      scannerVersion: "2.13.2",
+      scannerVersion: "2.13.4",
       analysis: "static",
       llmUnavailable: false,
       score: 0,

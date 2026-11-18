@@ -7,11 +7,12 @@ revision and shows what it finds on the review page. Ronne doesn't ship it. The 
 it and names its command in `RONNE_SKILL_SCANNER`. This note covers what we checked, the rules that
 make running it safe, how to install it, and how to move the pin.
 
-## What we checked (2026-10-28, v2.13.2)
+## What we checked (2026-10-28, v2.13.2; again on 2026-11-18, v2.13.4)
 
 - **Licence:** SkillSpector itself is Apache-2.0. Its `THIRD_PARTY_NOTICES.md` lists only
   Apache-2.0, MIT and BSD-3-Clause, but that file covers what it vendors, not the Python packages
-  it installs: its `uv.lock` describes 158, and 63 of them end up installed on Linux. Listed in the built image (`scripts/skill-scanner/licences.py`),
+  it installs: its `uv.lock` describes 160, and 65 of them end up installed on Linux (v2.13.4
+  added `tree-sitter` and `tree-sitter-javascript`, both MIT). Listed in the built image (`scripts/skill-scanner/licences.py`),
   most are MIT, BSD, ISC or Apache-2.0, and five aren't on §1's allowed list:
   - `certifi` (MPL-2.0), and `orjson` and `tqdm` (MPL-2.0 together with MIT or Apache-2.0);
   - `regex` (Apache-2.0 and CNRI-Python);
@@ -27,7 +28,15 @@ make running it safe, how to install it, and how to move the pin.
   declares (not its files). If OSV.dev can't be reached, it uses a list built into the tool.
   LangSmith tracing exists but is off unless `LANGCHAIN_TRACING_V2` is set, and Ronne sets it to `false`.
 - **Limits of its own:** 100 MiB per input, 10,000 zip members, 1 MB read per file, and a deadline per
-  scan (`SKILLSPECTOR_MAX_WORKFLOW_SECONDS`, 600 by default; Ronne passes its own timeout).
+  scan (`SKILLSPECTOR_MAX_WORKFLOW_SECONDS`, 1080 by default since v2.13.3, 600 before; Ronne passes
+  its own timeout, so the default never applies).
+- **v2.13.4 (2026-11-18):** moved from v2.13.2 because the scanner image's scan found fixed
+  advisories in the packages v2.13.2 locks (`anyio`, `certifi`, `langgraph-sdk`, `urllib3`); v2.13.4
+  locks fixed versions. Not v2.13.5 or v2.13.6: both were inside the 3-day cooldown. Between the two
+  commits, no new process starts, network clients, `eval` or `exec` (a diff of the added lines),
+  and no new hosts; the OSV client keeps up to 64 advisories per package instead of 16. Trivy finds
+  nothing high or critical with a fix in the built image, and the three fixtures give the same
+  verdicts and findings.
 - **Contract:** `scan <dir> --format json` prints a report whose shape and exit codes (0: score ≤ 50,
   1: score > 50, 2: error) its README calls stable. Exit 1 is a finished scan, not a failure.
 - **Not used:** its MCP server's HTTP transport, which has no authentication, and `baseline`.
@@ -68,7 +77,7 @@ make running it safe, how to install it, and how to move the pin.
 
 ## Installing it
 
-Both ways install the reviewed commit, `abd82935b67f765a9541013c0866c6349251dcdf` (v2.13.2), with
+Both ways install the reviewed commit, `54824463814a0be01360792523ec7245a69190fc` (v2.13.4), with
 exactly the packages in its `uv.lock` (`uv sync --frozen`). Don't use `uv tool install` or
 SkillSpector's own Dockerfile. They resolve the packages again (`pip install .`), so what gets
 installed isn't what was reviewed. Check out the commit, not the tag: a tag can be moved.
@@ -76,7 +85,7 @@ installed isn't what was reviewed. Check out the commit, not the tag: a tag can 
 ```sh
 git clone https://github.com/NVIDIA/SkillSpector.git /opt/skillspector/src
 cd /opt/skillspector/src
-git checkout --detach abd82935b67f765a9541013c0866c6349251dcdf
+git checkout --detach 54824463814a0be01360792523ec7245a69190fc
 git rev-parse HEAD   # must print the commit above
 ```
 
@@ -101,7 +110,7 @@ Ronne's scan service (156); the wrapper runs `skillspector` itself with `--entry
 (owned by root, mode 0755), which mounts the folder Ronne gives it read-only:
 
 ```sh
-docker build -t skillspector:2.13.2 /path/to/ronne-marketplace/scripts/skill-scanner
+docker build -t skillspector:2.13.4 /path/to/ronne-marketplace/scripts/skill-scanner
 install -m 0755 /path/to/ronne-marketplace/scripts/skill-scanner/skillspector-sandbox /usr/local/bin/
 export RONNE_SKILL_SCANNER='["/usr/local/bin/skillspector-sandbox"]'
 ```
