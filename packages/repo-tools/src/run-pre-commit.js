@@ -11,17 +11,19 @@ const staged = execFileSync("git", ["diff", "--cached", "--name-only", "--diff-f
   .split("\n")
   .filter(Boolean);
 
-// The witness records are documentation, so this check runs even when the others are skipped.
-const witness = spawnSync(
-  process.execPath,
-  [fileURLToPath(new URL("./check-witness.js", import.meta.url))],
-  {
+// The witness records and the contributor documentation's lists are documentation, so these
+// checks run even when the others are skipped.
+for (const [script, name] of [
+  ["./check-witness.js", "witness"],
+  ["./check-docs-index.js", "docs"],
+]) {
+  const result = spawnSync(process.execPath, [fileURLToPath(new URL(script, import.meta.url))], {
     stdio: "inherit",
-  },
-);
-if (witness.status !== 0) {
-  console.error("\n✗ pre-commit: the witness check failed, so the commit was stopped.");
-  process.exit(1);
+  });
+  if (result.status !== 0) {
+    console.error(`\n✗ pre-commit: the ${name} check failed, so the commit was stopped.`);
+    process.exit(1);
+  }
 }
 
 const commands = planChecks(staged);

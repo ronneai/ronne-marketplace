@@ -83,8 +83,9 @@ jobs:
       - run: pnpm release:smoke
         if: needs.changes.outputs.code != 'false' && matrix.node == 24
 
-  # The state witness records (docs/knowledge/state-witness.md). They are documentation, so this
-  # runs on every pull request; it needs only Node.
+  # The state witness records (docs/knowledge/state-witness.md), and the contributor
+  # documentation's lists (187: CONTRIBUTING.md's commands, the knowledge index). They are
+  # documentation, so this runs on every pull request; it needs only Node.
   witness:
     name: Witness records
     runs-on: ubuntu-latest
@@ -97,6 +98,7 @@ jobs:
         with:
           node-version-file: .nvmrc
       - run: node packages/repo-tools/src/check-witness.js
+      - run: node packages/repo-tools/src/check-docs-index.js
 
   dependencies:
     name: Licenses and known vulnerabilities

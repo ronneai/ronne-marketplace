@@ -508,3 +508,11 @@ it, and exceptions end on a date.
 | 184 | Service accounts: workspace-owned accounts that sign in only with tokens, made by the workspace's admins, with an owner, scopes and an end date | 170 | planned |
 | 185 | Tamper-evident audit log: each event chained to the one before by a hash, `rmk-server audit verify`, and retention's and erasure's rewrites recorded in the chain | 166 | planned |
 | 186 | Alerts and scheduled backups: example alert rules for the metrics already sent (health, sign-in failures, rate limits, failing jobs, backup age), a failing-jobs metric, and `service install` adding an encrypted backup timer | 101, 165, 083 | planned |
+
+## Outside the milestones
+
+Work on the repository itself rather than the product.
+
+| ID | Feature | Depends on | Status |
+|---|---|---|---|
+| [187](./187-contributor-docs/SPEC.md) | Documentation for new contributors: `CONTRIBUTING.md` for people, with the one commands table (a test keeps it complete); outside pull requests leave tasks unticked and the owner witnesses them; the owner updates the private website; the README for people using Ronne; issue forms, a pull request template and a code of conduct; an index of `docs/knowledge/` | — | in progress |
