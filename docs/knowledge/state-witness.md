@@ -91,6 +91,13 @@ itself, so a pass running alongside always reads the real code. In the copy, `pn
 data; anything that runs on a user's machine or with root; security checks. The spec's author marks
 them with `[risky]` on the task's first line in PLAN.md.
 
+**Pull requests from outside contributors** (owner, 2026-11-18, feature 187): a contributor leaves
+the tasks unticked and says in the pull request which tasks it does
+([CONTRIBUTING.md](../../CONTRIBUTING.md)), so they need neither Claude Code nor this process, and
+an unticked task passes `pnpm witness:check`. The owner runs the passes on the pull request's
+branch, adds the record and ticks the tasks before merging. A record the contributor made is kept
+only if the owner's own pass agrees with it.
+
 ## The record
 
 ````markdown

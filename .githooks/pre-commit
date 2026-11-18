@@ -1,5 +1,5 @@
 #!/bin/sh
-# Checks the witness records, then runs lint, typecheck, test and build unless the commit only
-# touches documentation.
+# Checks the witness records and the contributor documentation's lists, then runs lint, typecheck,
+# test and build unless the commit only touches documentation.
 # Install with: pnpm hooks:install
 exec node "$(git rev-parse --show-toplevel)/packages/repo-tools/src/run-pre-commit.js"
