@@ -2,7 +2,7 @@
   "skill": {
     "name": "tidy-imports",
     "source": "/scan/skill",
-    "scanned_at": "2026-10-28T15:51:04.147716+00:00"
+    "scanned_at": "2026-11-18T15:50:32.665164+00:00"
   },
   "risk_assessment": {
     "score": 100,
@@ -56,7 +56,7 @@
   "issues": [
     {
       "id": "AST8",
-      "finding_id": "finding-ac6facb603d54fba8fe19bd26280f1a8",
+      "finding_id": "finding-91bda4e5eb1246f6979a4a46aed9a202",
       "category": "Dangerous Code Execution",
       "pattern": "Dangerous chain: exec() wrapping base64.b64decode",
       "severity": "CRITICAL",
@@ -88,7 +88,7 @@
     },
     {
       "id": "TT5",
-      "finding_id": "finding-a833d027a5d345eca2d7030c02b35a80",
+      "finding_id": "finding-a6ad496272934009bda216f6308ebfce",
       "category": "Data Flow",
       "pattern": "Direct flow: urllib.request.urlopen (network input) \u2192 exec (code execution)",
       "severity": "CRITICAL",
@@ -120,7 +120,7 @@
     },
     {
       "id": "YR4",
-      "finding_id": "finding-4f40a8922be84abd87795d002e9b9994",
+      "finding_id": "finding-d7c7f8a4230c474bb9e75cc9935e4ac1",
       "category": "YARA Match",
       "pattern": "YARA rule 'agent_skill_mcp_tool_poisoning_metadata': MCP/tool metadata poisoning indicators in tool schemas or skill manifests [agent_skills]",
       "severity": "HIGH",
@@ -148,7 +148,7 @@
     },
     {
       "id": "P1",
-      "finding_id": "finding-773c5de44c35470192c7bd5e6c9afcba",
+      "finding_id": "finding-cd2a97856fa942d984f8f7fbdd2fa8ab",
       "category": "Prompt Injection",
       "pattern": "Instruction Override",
       "severity": "HIGH",
@@ -180,7 +180,7 @@
     },
     {
       "id": "P2",
-      "finding_id": "finding-01d0d645fe634136a4d5c70014d71a04",
+      "finding_id": "finding-0c5f238567d04efab89920a50b9b7674",
       "category": "Prompt Injection",
       "pattern": "Hidden Instructions",
       "severity": "HIGH",
@@ -212,7 +212,7 @@
     },
     {
       "id": "PE3",
-      "finding_id": "finding-271c7f6beae64dae8693f3fe17116a55",
+      "finding_id": "finding-16640affc3f24595857ac8afc5ec5376",
       "category": "Privilege Escalation",
       "pattern": "Credential Access",
       "severity": "HIGH",
@@ -242,7 +242,7 @@
     },
     {
       "id": "PE3",
-      "finding_id": "finding-c81164ae36da4057ace600802d60ca83",
+      "finding_id": "finding-eb585b003a654280ad2a96de1a36756d",
       "category": "Privilege Escalation",
       "pattern": "Credential Access",
       "severity": "HIGH",
@@ -272,7 +272,7 @@
     },
     {
       "id": "AST1",
-      "finding_id": "finding-bcb90fa31f8943988874ff103f4cea70",
+      "finding_id": "finding-7fe222803e064879bda119b9ca309c87",
       "category": "Dangerous Code Execution",
       "pattern": "exec() call detected",
       "severity": "HIGH",
@@ -304,7 +304,7 @@
     },
     {
       "id": "SC3",
-      "finding_id": "finding-4472ac43382f4f73b1ef481d55c0e54e",
+      "finding_id": "finding-b1b086f21ad3472897f4b1735680f1c9",
       "category": "Supply Chain",
       "pattern": "Obfuscated Code",
       "severity": "HIGH",
@@ -334,7 +334,7 @@
     },
     {
       "id": "SC2",
-      "finding_id": "finding-f0dea95f2eb04cc0bd08f9665ae301b3",
+      "finding_id": "finding-c0d741075bd346afa50058379ad89a82",
       "category": "Supply Chain",
       "pattern": "External Script Fetching",
       "severity": "HIGH",
@@ -364,7 +364,7 @@
     },
     {
       "id": "TM2",
-      "finding_id": "finding-fa8820ce3380403eb10e5b48693cf436",
+      "finding_id": "finding-81d00822fd9043b8af233a6801f3f0ed",
       "category": "Tool Misuse",
       "pattern": "Chaining Abuse",
       "severity": "HIGH",
@@ -394,7 +394,7 @@
     },
     {
       "id": "SC3",
-      "finding_id": "finding-bc7a5b6351eb4177a39aa01a6412f774",
+      "finding_id": "finding-dc6cbb86059949cb991fae57da56d25b",
       "category": "Supply Chain",
       "pattern": "Obfuscated Code",
       "severity": "HIGH",
@@ -424,7 +424,7 @@
     },
     {
       "id": "TM2",
-      "finding_id": "finding-b98a31f312974dd2aaed70ba335ef372",
+      "finding_id": "finding-44d1ae841bd843f79b4402e07dbed301",
       "category": "Tool Misuse",
       "pattern": "Chaining Abuse",
       "severity": "HIGH",
@@ -454,7 +454,7 @@
     },
     {
       "id": "LP3",
-      "finding_id": "finding-263efdb1d0c44982bebfa88e9b6079b1",
+      "finding_id": "finding-2773f5669c0e4e1f8310a1f7fcdbbbf0",
       "category": "MCP Least Privilege",
       "pattern": null,
       "severity": "MEDIUM",
@@ -485,7 +485,7 @@
   "suppressed": [],
   "metadata": {
     "has_executable_scripts": true,
-    "skillspector_version": "2.13.2",
+    "skillspector_version": "2.13.4",
     "llm_requested": false,
     "llm_available": false,
     "meta_analysis_applied": false,
@@ -511,7 +511,7 @@
           "model": "z-ai/glm-5.3",
           "model_source": "resolved_configuration",
           "analyzer_revision": {
-            "value": "2.13.2",
+            "value": "2.13.4",
             "source": "skillspector_package",
             "source_revision": {
               "value": "unknown",
@@ -524,7 +524,7 @@
           "model": "z-ai/glm-5.3",
           "model_source": "resolved_configuration",
           "analyzer_revision": {
-            "value": "2.13.2",
+            "value": "2.13.4",
             "source": "skillspector_package",
             "source_revision": {
               "value": "unknown",
@@ -537,7 +537,7 @@
           "model": "z-ai/glm-5.3",
           "model_source": "resolved_configuration",
           "analyzer_revision": {
-            "value": "2.13.2",
+            "value": "2.13.4",
             "source": "skillspector_package",
             "source_revision": {
               "value": "unknown",
@@ -550,7 +550,7 @@
           "model": "z-ai/glm-5.3",
           "model_source": "resolved_configuration",
           "analyzer_revision": {
-            "value": "2.13.2",
+            "value": "2.13.4",
             "source": "skillspector_package",
             "source_revision": {
               "value": "unknown",
@@ -563,7 +563,7 @@
           "model": "z-ai/glm-5.3",
           "model_source": "resolved_configuration",
           "analyzer_revision": {
-            "value": "2.13.2",
+            "value": "2.13.4",
             "source": "skillspector_package",
             "source_revision": {
               "value": "unknown",

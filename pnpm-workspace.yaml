@@ -36,3 +36,8 @@ ignoredOptionalDependencies:
 # Save exact versions (policy §2). Runtime dependencies of packages published to npm use ^ ranges,
 # added with --save-prefix=^.
 savePrefix: ""
+
+# Advisories `pnpm audit` skips. One policy exception (§5) per entry, each with a review date.
+auditConfig:
+  ignoreGhsas:
+    - GHSA-fc5q-39xc-vjpf # E-13: withdrawn by GitHub on 2026-11-18, still served by npm

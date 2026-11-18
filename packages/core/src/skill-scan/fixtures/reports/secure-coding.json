@@ -2,7 +2,7 @@
   "skill": {
     "name": "secure-coding",
     "source": "/scan/skill",
-    "scanned_at": "2026-10-28T15:50:57.023172+00:00"
+    "scanned_at": "2026-11-18T15:50:24.531685+00:00"
   },
   "risk_assessment": {
     "score": 0,
@@ -48,7 +48,7 @@
   "suppressed": [],
   "metadata": {
     "has_executable_scripts": false,
-    "skillspector_version": "2.13.2",
+    "skillspector_version": "2.13.4",
     "llm_requested": false,
     "llm_available": false,
     "meta_analysis_applied": false,
@@ -74,7 +74,7 @@
           "model": "z-ai/glm-5.3",
           "model_source": "resolved_configuration",
           "analyzer_revision": {
-            "value": "2.13.2",
+            "value": "2.13.4",
             "source": "skillspector_package",
             "source_revision": {
               "value": "unknown",
@@ -87,7 +87,7 @@
           "model": "z-ai/glm-5.3",
           "model_source": "resolved_configuration",
           "analyzer_revision": {
-            "value": "2.13.2",
+            "value": "2.13.4",
             "source": "skillspector_package",
             "source_revision": {
               "value": "unknown",
@@ -100,7 +100,7 @@
           "model": "z-ai/glm-5.3",
           "model_source": "resolved_configuration",
           "analyzer_revision": {
-            "value": "2.13.2",
+            "value": "2.13.4",
             "source": "skillspector_package",
             "source_revision": {
               "value": "unknown",
@@ -113,7 +113,7 @@
           "model": "z-ai/glm-5.3",
           "model_source": "resolved_configuration",
           "analyzer_revision": {
-            "value": "2.13.2",
+            "value": "2.13.4",
             "source": "skillspector_package",
             "source_revision": {
               "value": "unknown",
@@ -126,7 +126,7 @@
           "model": "z-ai/glm-5.3",
           "model_source": "resolved_configuration",
           "analyzer_revision": {
-            "value": "2.13.2",
+            "value": "2.13.4",
             "source": "skillspector_package",
             "source_revision": {
               "value": "unknown",

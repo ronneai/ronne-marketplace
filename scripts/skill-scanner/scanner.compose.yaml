@@ -15,7 +15,7 @@ services:
   scanner:
     build:
       context: .
-    image: ronne-skillspector:2.13.2
+    image: ronne-skillspector:2.13.4
     restart: unless-stopped
     init: true
     read_only: true

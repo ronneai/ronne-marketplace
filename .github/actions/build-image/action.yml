@@ -98,7 +98,8 @@ runs:
         image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 "$TAG"
 
     # The Caddy image compose.yaml pins (feature 080), with the same rules as ours, except the
-    # vulnerabilities caddy.trivyignore lists until their dates (exception E-7).
+    # vulnerabilities caddy.trivyignore lists until their dates (exceptions in
+    # docs/policies/dependencies.md §5: E-12 since 2026-11-18).
     - name: Scan the proxy image (Trivy)
       shell: bash
       run: |

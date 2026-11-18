@@ -1,7 +1,7 @@
 # Lists every installed Python distribution and its licence, one per line, for the licence
 # review when SkillSpector's pin moves (docs/knowledge/skill-scanner.md). Run it inside the image:
 #   docker run --rm --network none --entrypoint python \
-#     -v "$PWD/scripts/skill-scanner/licences.py:/l.py:ro" skillspector:2.13.2 -I /l.py
+#     -v "$PWD/scripts/skill-scanner/licences.py:/l.py:ro" skillspector:2.13.4 -I /l.py
 import importlib.metadata as metadata
 
 

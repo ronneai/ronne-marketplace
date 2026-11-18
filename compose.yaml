@@ -139,7 +139,7 @@ services:
       - ronne-data:/app/data
 
   proxy:
-    image: caddy:2.11.7@sha256:36c24ad91a7ff7bc4c87fe22bfa8df3c4b18da0773d73fc12ee2c52b98c0bb7e
+    image: caddy:2.11.9@sha256:0c2243efcf437ab7f7a978f1027fcf0d4f9be8a75df27b1b3fbc5dbe0ffa8cf0
     restart: unless-stopped
     depends_on: [web]
     # Caddy doesn't read these: the Caddyfile below already has them. They're here because Compose
@@ -234,10 +234,6 @@ configs:
           # X-Forwarded-For. Strict: the rightmost untrusted entry, never one the client wrote.
           ${RONNE_TRUSTED_PROXIES:+trusted_proxies static ${RONNE_TRUSTED_PROXIES}}
           trusted_proxies_strict
-          # HTTP/1.1 only, until Caddy is built with Go 1.26.9 and golang.org/x/net 0.60.0:
-          # CVE-2026-78669 is a denial of service through HTTP/2 (exception E-7 in
-          # docs/policies/dependencies.md). Turn h2 and h3 back on then.
-          protocols h1
         }
       }
 

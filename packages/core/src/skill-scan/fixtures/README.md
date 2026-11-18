@@ -1,6 +1,6 @@
 # SkillSpector fixtures
 
-Real reports from SkillSpector v2.13.2 (commit `abd8293`), recorded on 2026-10-28 with the image
+Real reports from SkillSpector v2.13.4 (commit `5482446`), recorded on 2026-11-18 with the image
 built from `scripts/skill-scanner/Dockerfile` and run through `scripts/skill-scanner/skillspector-sandbox`
 (no network, `--no-llm`), as Ronne runs it (feature 135).
 

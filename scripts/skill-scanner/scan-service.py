@@ -6,7 +6,7 @@ command scanner (`command-scanner.ts`) does for a command: the same short enviro
 timeout and its kill, the same cap on the output, the same path rules, and the folder removed
 whatever happens. One scan at a time. Nothing from a request is logged.
 
-  GET  /health  -> 200 {"scanner": "skillspector", "version": "2.13.2"}
+  GET  /health  -> 200 {"scanner": "skillspector", "version": "2.13.4"}
   POST /scan    {"files": [{"path", "content" (base64), "executable"}], "semantic": bool,
                  "timeoutSeconds": int, "provider": {NAME: value}}  (provider: semantic only)
              -> 200 {"exit": int, "report": str}
