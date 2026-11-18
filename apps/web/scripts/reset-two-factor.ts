@@ -1,6 +1,6 @@
-// pnpm run reset-two-factor --email <email> (105): turns off one account's two-factor sign-in and
-// ends its sessions, for a lost phone and lost backup codes. Asks first in a terminal; --yes
-// doesn't ask.
+// pnpm run reset-two-factor --email <email> (105): turns off one account's two-factor sign-in, ends
+// its sessions and revokes its access tokens (162), for a lost phone and lost backup codes. Asks
+// first in a terminal; --yes doesn't ask.
 // Exit codes: 0 done (or nothing to reset), 1 failed or cancelled (for example, an unknown email),
 // 2 invalid input.
 import { resolve } from "node:path";

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkAll, checkKnowledgeIndex, listedNotes } from "./docs-index.js";
+import { checkAll, checkContributing, checkKnowledgeIndex, listedNotes } from "./docs-index.js";
 
 const root = new URL("../../../", import.meta.url).pathname;
 
@@ -45,6 +45,47 @@ describe("checkKnowledgeIndex", () => {
     expect(checkKnowledgeIndex(["a.md"], index)).toEqual([
       "docs/knowledge/README.md lists b.md, which isn't a note there",
     ]);
+  });
+});
+
+describe("checkContributing", () => {
+  const page = [
+    "Run `pnpm lint` before you commit.",
+    "",
+    "## Commands",
+    "",
+    "| Command | What it does |",
+    "|---|---|",
+    "| `pnpm test` | … |",
+    "| `pnpm run setup` | … |",
+    "| `pnpm bundle <tarball>` | … |",
+    "| `pnpm release:smoke` | After `pnpm build`: … |",
+    "",
+    "## License",
+    "",
+    "| `pnpm format` | a row in another section |",
+  ].join("\n");
+  const missing = (name) => `CONTRIBUTING.md's Commands has no row for the root script "${name}"`;
+
+  it("passes when every script has a row, as `pnpm x` or `pnpm run x`", () => {
+    expect(checkContributing(["test", "setup", "bundle", "release:smoke"], page)).toEqual([]);
+  });
+
+  it("fails on a script with no row", () => {
+    expect(checkContributing(["test", "docs:check"], page)).toEqual([missing("docs:check")]);
+  });
+
+  it("doesn't count the prose, another row's description or another section", () => {
+    expect(checkContributing(["lint", "build", "format"], page)).toEqual([
+      missing("lint"),
+      missing("build"),
+      missing("format"),
+    ]);
+  });
+
+  it("doesn't count a longer script's name", () => {
+    const rows = "## Commands\n\n| `pnpm test:db` | … |\n| `pnpm test:e2e` | … |\n";
+    expect(checkContributing(["test"], rows)).toEqual([missing("test")]);
   });
 });
 

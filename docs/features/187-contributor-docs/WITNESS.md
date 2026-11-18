@@ -70,3 +70,83 @@ Witnessed: 2026-11-18 09:58 EST, by a fresh agent (blind). Commit: e9fb219c plus
 | 13 | Links to CONTRIBUTING.md | no | confirmed | `config.yml:10` uses the absolute main-branch URL; `feature.yml:8` and `pull_request_template.md:6` name the file. It comes in task 3; the URL resolves once it merges |
 
 **Overall:** met: both forms meet the issue-forms schema with unique ids, `config.yml` turns off blank issues and points to private reporting (which is on), the code of conduct is the 2.1 text with only the contact changed, and every fact the templates state matches the repository.
+
+## Task 3 — `CONTRIBUTING.md` and its commands rule
+
+Witnessed: 2026-11-18 10:15 EST, by a fresh agent (blind). Commit: e9093b75 + working tree (new CONTRIBUTING.md; changed packages/repo-tools/src/docs-index.js, docs-index.test.js). Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `pnpm docs:check` passes on the working tree | no | confirmed | `pnpm docs:check` → exit 0, no output |
+| 2 | The repo-tools tests pass, including the repository-wide `checkAll` test | no | confirmed | `pnpm --filter @ronneai/repo-tools test` → 21 files, 193 tests passed; `pnpm exec biome check` on the 3 changed files → clean |
+| 3 | A script added to the root `package.json` without a row in `CONTRIBUTING.md` fails the check | no | confirmed | `probe-rows.mjs`: added `new:thing` to a copy of package.json → `checkAll` returns `CONTRIBUTING.md doesn't name the root script "new:thing"` |
+| 4 | Removing a script's row makes the check fail | no | partly | `probe-rows.mjs` deleted, one script at a time, every table row that names it: fails for 27 of 41 scripts; still passes for 14 (build, lint, typecheck, test, hooks:install, witness:check, docs:check, licenses:check, setup-code, reset-setup, test:db:up, test:db:down, test:db:postgres, test:e2e), because `checkContributing` accepts any `` `pnpm x` `` anywhere in the file, the prose included |
+| 5 | The unit tests catch a broken `checkContributing` | no | confirmed | Scratch copy mutated to always return `[]` → 2 failed / 8 passed |
+| 6 | One full commands table: every root script has a row, with development first | no | confirmed | Node probe → 41 scripts, 38 rows, none without a row; `pnpm dev` in "Working on the code", the first group |
+| 7 | The operator commands (backup, restore, secrets, sign-in recovery) point to the runbooks | no | partly | backup/restore → backup.md; revoke-access, rotate-secret → incident-response.md. `reset-root-password`, `reset-two-factor`, `disable-sso` have no runbook link; no runbook mentions `reset-two-factor` |
+| 8 | Every link in the file resolves | no | confirmed | `probe-links.mjs` → all 29 relative links exist; MVP anchors #92, #93, #94 match headings |
+| 9 | Requirements and setup facts | no | confirmed | `.nvmrc` = 24; engines `>=22.12`; packageManager `pnpm@12.6.0`; the setup code is logged at start; `setup-code` and `reset-setup` exist |
+| 10 | The "Where things are" table | no | confirmed | `ls packages` → cli, config, core, mcp, repo-tools, server; `ls docs/runbooks` → backup, incident-response, install, release |
+| 11 | Code rules: one line each with a link to the note that explains it | no | partly | The facts are right, but arrow functions and "The CLI is `rmk`" have no link (MVP.md:941 explains the rmk name), and most rules run 2–4 lines |
+| 12 | Tests section facts | no | confirmed | apps/web vitest: unit and db projects, db on in-memory SQLite unless `TEST_DATABASE_URL`; `-- <paths>` passed on; playwright projects chromium, phone, phone-webkit, tablet |
+| 13 | Pre-commit facts | no | confirmed | run-pre-commit.js always runs check-witness and check-docs-index; pre-commit.js skips the rest for .md/.mdx/.txt only, adds `install --frozen-lockfile` and `licenses:check` on dependency files |
+| 14 | Commit and PR title format, and the examples | no | confirmed | commit-message.js: types docs/feat/chore/bugfix, 72 characters, capital, no full stop; `checkSubject` → all 3 examples valid |
+| 15 | Pull request facts (template, squash merge, no closing keywords) | no | confirmed | pull_request_template.md sections and the "closes #N" warning; pr-title.yml exists |
+| 16 | CI: "lint, typecheck, the tests and the build on Node 22 and 24" | no | partly | ci.yml:60–63: `pnpm lint` and `pnpm typecheck` run only when `matrix.node == 24`; only test and build run on 22 and 24 |
+| 17 | Each command's description matches its script | no | confirmed | All 41 compared with package.json and apps/web/package.json |
+| 18 | Witness rule for outside contributors | no | confirmed | CONTRIBUTING.md:80–83 matches option A; witness.js:164 checks only ticked tasks |
+| 19 | Documentation rule for outside contributors | no | confirmed | CONTRIBUTING.md:85–96 matches the spec |
+| 20 | Where security reports go | no | confirmed | CONTRIBUTING.md:7–8 → SECURITY.md:7–8; config.yml has the advisories link |
+| 21 | Every section the spec's Scope lists is present | no | confirmed | All present (CONTRIBUTING.md:7–247) |
+
+**Overall:** not met: rows 4, 7, 11 and 16 are partly.
+
+Fixed after this pass: the rule reads only the first cell of the table rows in `## Commands` (prose, other rows' descriptions and other sections don't count), with tests for each; the three sign-in recovery rows link the incident runbook, which gains `reset-two-factor`; arrow functions link the Biome plugin and `rmk` links MVP §15; the CI line says lint and typecheck, then the tests and build on Node 22 and 24. The spec now says "each short and with a link", not "one line each".
+
+### Re-check of rows 1, 2, 4, 7, 8, 11, 16, 17 and two new claims
+
+Witnessed: 2026-11-18 10:06 EST, by a fresh agent (blind). Commit: e9093b75 + working tree (CONTRIBUTING.md, docs-index.js, docs-index.test.js, incident-response.md, SPEC.md, WITNESS.md). Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `pnpm docs:check` passes on the working tree | no | confirmed | `pnpm docs:check` → exit 0 |
+| 2 | The repo-tools tests pass | no | confirmed | → 21 files, 194 tests passed; `biome check` on docs-index.js and its test → clean |
+| 4 | Removing a script's row makes the check fail, and a mention elsewhere doesn't count | no | confirmed | `probe-rows.mjs` → removing a script's rows fails the check for all 41 scripts. `probe-cells.mjs` → a script named only in the prose fails, and one named only in another row's description; a CRLF page → `[]`. Mutations: whole row instead of first cell → 1 of 11 fails; start at line 0 instead of `## Commands` → 3 of 11 fail. Restored, `cmp` matches |
+| 7 | The operator commands (backup, restore, secrets, sign-in recovery) point to the runbooks | no | confirmed | CONTRIBUTING.md:235–237: reset-root-password, reset-two-factor and disable-sso link incident-response.md; backup/restore → backup.md; revoke-access/rotate-secret → incident runbook |
+| 8 | Every link in the file resolves | no | confirmed | `probe-links.mjs` → 32 relative links OK, including the .grit plugin and `docs/MVP/MVP.md#15-decision-log` |
+| 11 | Code rules: each short, with a link to what explains or enforces it | no | confirmed | All 9 rules (CONTRIBUTING.md:102–131) have a link; SPEC.md's Scope line matches |
+| 16 | The CI line matches the workflows | no | confirmed | ci.yml runs lint and typecheck on Node 24 only (:60–63), tests and build on 22 and 24, check-docs-index in the witness job (:101). "lint and typecheck on Node 24" would be exact |
+| 17 | Each command's description matches its script (rows changed since the last pass) | no | partly | The docs:check row matches. The reset-two-factor row says "ends its sessions"; the command also revokes the account's access tokens (services/root-account.ts:140, setup/reset-two-factor.ts:44, :55) |
+| 22 | `pnpm witness:check` passes with task 3 unticked | no | confirmed | → exit 0; PLAN.md:30 `- [ ] **3. …` |
+| 23 | The reset-two-factor runbook paragraph matches the script and `rmk-server` | no | partly | `--email`, the `sudo rmk-server` form (cli.ts:148), "asks first; `--yes` doesn't ask" and the lost-phone case match. It leaves out the token revocation, as do the script header (apps/web/scripts/reset-two-factor.ts:1–3) and `RESET_TWO_FACTOR_USAGE` (apps/web/src/server/setup/cli.ts:282), which it copied |
+
+**Overall:** not met: the reset-two-factor wording, in the runbook and the CONTRIBUTING.md row, leaves out that the command also revokes the account's access tokens.
+
+Fixed after this pass: the runbook paragraph and the CONTRIBUTING.md row say it ends the sessions and revokes the access tokens (and the runbook names the audit event `user.two_factor_reset`); the script header and `RESET_TWO_FACTOR_USAGE` say so too; the CI line says "lint and typecheck on Node 24".
+
+### Second re-check of rows 1, 16, 17, 22 and 23 (wording)
+
+Witnessed: 2026-11-18 10:08 EST, by a fresh agent (blind). Commit: e9093b75 + working tree (CONTRIBUTING.md, incident-response.md, apps/web/scripts/reset-two-factor.ts, apps/web/src/server/setup/cli.ts, SPEC.md, WITNESS.md, plus the earlier docs-index changes). Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `pnpm docs:check` passes on the working tree | no | confirmed | `pnpm docs:check` → exit 0 |
+| 16 | The CI line matches the workflows | no | confirmed | CONTRIBUTING.md:178 "lint and typecheck on Node 24, the tests and the build on Node 22 and 24, the witness, docs and license checks …"; ci.yml:60–63 and :101 |
+| 17 | The reset-two-factor row matches the command | no | confirmed | CONTRIBUTING.md:236 "… ends its sessions and revokes its access tokens"; services/root-account.ts:140, setup/reset-two-factor.ts:44 |
+| 22 | `pnpm witness:check` passes with task 3 unticked | no | confirmed | → exit 0; PLAN.md:30 `- [ ] **3. …` |
+| 23 | The runbook paragraph, the script header and the usage text match the code, including the audit event | no | confirmed | All say "ends its sessions and revokes its access tokens"; `user.two_factor_reset` matches services/root-account.ts:144 and audit-event.ts:42; `sudo rmk-server reset-two-factor --email` matches packages/server/src/cli.ts:148 |
+| 24 | The usage text change breaks no test, and the two .ts files lint clean | no | confirmed | In apps/web, `pnpm exec vitest run src/server/setup` → 19 files, 199 passed, 2 skipped; `biome check` on the two .ts files → "No fixes applied"; no test asserts the old text |
+
+**Overall:** met: the reset-two-factor wording in all four places, the CI line and the audit event name match the code, and the checks and the setup tests pass with task 3 unticked.
+
+Remark: one line of `RESET_TWO_FACTOR_USAGE` ran over 100 characters after the edit. Reflowed after this pass (text unchanged, lines now 98, 95 and 88 characters).
+
+### Third re-check of row 24 (the usage text reflow)
+
+Witnessed: 2026-11-18 10:08 EST, by a fresh agent (blind). Commit: e9093b75 + working tree (apps/web/src/server/setup/cli.ts changed since the second re-check). Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 24 | `RESET_TWO_FACTOR_USAGE` is reflowed with the same words, no line is over 100 characters, the setup tests and lint pass, and the witness check passes | no | confirmed | Node probe, whitespace collapsed: the paragraph equals the second re-check's wording. Line lengths 84, 98, 95, 88, 28, 60, 28. `biome check apps/web/src/server/setup/cli.ts` → "No fixes applied". In apps/web, `pnpm exec vitest run src/server/setup` → 19 files, 199 passed, 2 skipped. `pnpm witness:check` → exit 0 |
+
+**Overall:** met: the reflow changed only line breaks, and every check passes.

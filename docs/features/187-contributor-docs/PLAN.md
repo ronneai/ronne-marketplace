@@ -27,7 +27,7 @@ of conduct first, then `CONTRIBUTING.md`, then what points to it.
   links to private vulnerability reporting; the code of conduct is the Contributor Covenant 2.1
   with `conduct@ronne.ai`.
 
-- [ ] **3. `CONTRIBUTING.md` and its commands rule.** Write `CONTRIBUTING.md` as the spec's Scope
+- [x] **3. `CONTRIBUTING.md` and its commands rule.** Write `CONTRIBUTING.md` as the spec's Scope
   says, with the one full commands table, and add the rule to the docs check: every root
   `package.json` script is named in it.
   *Done when:* `pnpm docs:check` and the repo-tools tests pass; removing a script's row makes the

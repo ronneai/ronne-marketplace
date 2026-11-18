@@ -16,7 +16,7 @@ contributor documentation).
 
 **In:**
 - **`CONTRIBUTING.md`** at the root, for people: requirements and setup, how to pick work, the
-  code rules in one line each with a link to the note that explains them, tests and CI, the one
+  code rules, each short and with a link to what explains or enforces it, tests and CI, the one
   full table of commands, commits and pull requests, features and issues, the witness rule for
   outside contributors, the Documentation rule for outside contributors, and where security
   reports go.
@@ -34,8 +34,11 @@ contributor documentation).
   request as before.
 - **One commands table.** `CONTRIBUTING.md` holds the full table of the root `package.json`
   scripts, development first, with the operator commands (backup, restore, secrets, sign-in
-  recovery) pointing to the runbooks. The README and `CLAUDE.md` link to it instead of keeping
-  their own. The docs check (below) fails when a root script isn't named in `CONTRIBUTING.md`.
+  recovery) pointing to the runbooks, and `reset-two-factor` added to the incident runbook, which
+  didn't have it (its script's header and usage text, which left out that it revokes the account's
+  access tokens, are corrected too). The README and `CLAUDE.md` link to it instead of keeping their own. The docs check
+  (below) fails when a root script has no row in the table: a mention elsewhere on the page doesn't
+  count.
 - **The README for people using Ronne:** a status line that doesn't go stale (it points to the
   features index instead of naming milestones), the Layout table with `packages/server`, and a
   short Development and Contributing section that links to `CONTRIBUTING.md`. "Setting up without
@@ -104,7 +107,8 @@ under Scope.
 
 - [ ] `CONTRIBUTING.md` covers every point under Scope, and every command, path and rule in it
   matches the repository (the scripts in `package.json`, the hooks, the CI workflows).
-- [ ] `pnpm docs:check` fails when a root script isn't named in `CONTRIBUTING.md`, and passes now.
+- [ ] `pnpm docs:check` fails when a root script has no row in `CONTRIBUTING.md`'s Commands, and
+  passes now.
 - [ ] The pre-commit hook and CI's witness job run `pnpm docs:check`'s script, documentation-only
   changes included.
 - [ ] The README links to `CONTRIBUTING.md`, has no command table of its own, lists

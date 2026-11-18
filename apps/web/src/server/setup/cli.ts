@@ -279,9 +279,9 @@ export type ResetTwoFactorCommand =
 
 export const RESET_TWO_FACTOR_USAGE = `Usage: reset-two-factor --email EMAIL [--yes]
 
-Turns off one account's two-factor sign-in and ends its sessions, for a lost phone and lost backup
-codes. They sign in with their password alone, and set two-factor up again if it's required of
-them. Any account, root's included; recorded in the audit log.
+Turns off one account's two-factor sign-in, ends its sessions and revokes its access tokens, for a
+lost phone and lost backup codes. They sign in with their password alone, and set two-factor up
+again if it's required of them. Any account, root's included; recorded in the audit log.
 
   --email EMAIL  The account
   --yes, -y      Don't ask first (needed without a terminal)

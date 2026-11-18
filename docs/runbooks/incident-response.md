@@ -51,6 +51,12 @@ the providers' client secrets with the new `AUTH_SECRET`, so they keep working.
 `sudo rmk-server reset-root-password`, …) sets a new password for a root account, ends its sessions,
 revokes its tokens and enables it again.
 
+`reset-two-factor --email <email>` (105; same forms: `docker compose exec web pnpm run
+reset-two-factor --email <email>`, `sudo rmk-server reset-two-factor --email <email>`, …) turns off
+one account's two-factor sign-in, ends its sessions and revokes its access tokens, for a lost phone
+and lost backup codes. It asks first in a terminal; `--yes` doesn't ask. It's recorded as
+`user.two_factor_reset`.
+
 ## Incidents
 
 ### A harmful item version was released
