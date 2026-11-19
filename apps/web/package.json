@@ -55,7 +55,7 @@
     "@ronneai/core": "workspace:*",
     "@vercel/otel": "2.3.0",
     "@xyflow/react": "12.12.1",
-    "better-auth": "1.7.21",
+    "better-auth": "1.7.25",
     "better-sqlite3": "13.2.0",
     "diff": "9.0.0",
     "fflate": "0.8.3",

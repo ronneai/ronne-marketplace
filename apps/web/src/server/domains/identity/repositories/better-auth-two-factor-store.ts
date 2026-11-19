@@ -124,6 +124,13 @@ export const betterAuthTwoFactorStore = (
   db: Db,
   dialect: DatabaseDialect,
 ): TwoFactorStore => {
+  /** The challenge the request's signed cookie names (its `verification` row), even one that ran out. */
+  const challengeRow = async (headers: Headers) => {
+    const ctx = await auth.$context;
+    const id = challengeId(headers, ctx.createAuthCookie("two_factor").name, ctx.secret);
+    return id ? ctx.internalAdapter.findVerificationValue(id) : null;
+  };
+
   return {
     async status(userId) {
       const row = await db
@@ -290,21 +297,29 @@ export const betterAuthTwoFactorStore = (
     },
 
     async challengeUser(headers) {
-      const ctx = await auth.$context;
-      const id = challengeId(headers, ctx.createAuthCookie("two_factor").name, ctx.secret);
-      if (!id) return null;
       // A signed cookie names a real challenge, even one that ran out: Better Auth refuses that
       // one itself (expired), and the refusal is audited under its person.
-      const row = await ctx.internalAdapter.findVerificationValue(id);
-      return row?.value ?? null;
+      return (await challengeRow(headers))?.value ?? null;
     },
 
     async verifyChallenge(headers, code, method) {
+      const verify = () =>
+        method === "totp"
+          ? auth.api.verifyTOTP({ body: { code }, headers, returnHeaders: true })
+          : auth.api.verifyBackupCode({ body: { code }, headers, returnHeaders: true });
       try {
-        const { headers: responseHeaders, response } =
-          method === "totp"
-            ? await auth.api.verifyTOTP({ body: { code }, headers, returnHeaders: true })
-            : await auth.api.verifyBackupCode({ body: { code }, headers, returnHeaders: true });
+        const { headers: responseHeaders, response } = await verify().catch(async (error) => {
+          // Better Auth reads the challenge's attempt counter with every error caught, before it
+          // checks or spends the code. On MySQL, from better-auth 1.7.22, two attempts at once can
+          // deadlock there (#307), and the loser comes back as INVALID_TWO_FACTOR_COOKIE ("expired")
+          // though its challenge is still there. The deadlocked transaction rolled back, so the
+          // same attempt once more gives the true answer, and is counted like any other. Only
+          // once, and only for a challenge that's still there and hasn't run out.
+          if (refusal(error) !== "INVALID_TWO_FACTOR_COOKIE") throw error;
+          const row = await challengeRow(headers);
+          if (!row || new Date(row.expiresAt).getTime() <= Date.now()) throw error;
+          return verify();
+        });
         const ctx = await auth.$context;
         const found = response.token ? await ctx.internalAdapter.findSession(response.token) : null;
         if (!found)

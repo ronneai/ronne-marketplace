@@ -90,6 +90,12 @@ const sessions = async () =>
 const events = async (action: string) =>
   (await listAuditEvents(t.db, t.dialect, {})).events.filter((e) => e.action === action);
 
+/**
+ * A race (requests at once) runs several times in one run: on MySQL and MariaDB, which attempt
+ * loses changes from run to run, and a race that fails one run in three passed CI once (#307).
+ */
+const RACE = { repeats: 4 };
+
 const complete = (
   pending: Headers,
   code: string,
@@ -167,7 +173,7 @@ describe("the second step", () => {
     expect((await complete(second, fresh(uri, [enrolCode, code]))).ok).toBe(true);
   });
 
-  it("two sign-ins with one code at once: one session, the other refused", async () => {
+  it("two sign-ins with one code at once: one session, the other refused", RACE, async () => {
     const { uri } = await enrolled();
     const code = totpCode(uri, { step: 1 });
     const [a, b] = [await challenge(), await challenge()];
@@ -282,6 +288,130 @@ describe("the second step", () => {
         .filter((e) => e.metadata?.twoFactor)
         .map((e) => e.metadata?.remember),
     ).toEqual([false, true]);
+  });
+});
+
+// #307: from better-auth 1.7.22, two attempts at once can deadlock on MySQL where Better Auth reads a
+// challenge's attempt counter, and it catches that error as "no counter": INVALID_TWO_FACTOR_COOKIE,
+// though the challenge is still there. These make that failure happen on every database, every run.
+describe("a challenge whose attempt counter fails to read", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  /**
+   * Makes Better Auth's reads of an attempt counter throw, as the deadlock does, `left` more times;
+   * every other read goes through. Also counts how often each verification endpoint is called.
+   */
+  const failingCounter = async () => {
+    const ctx = await app.auth.$context;
+    const consume = ctx.internalAdapter.consumeVerificationValue.bind(ctx.internalAdapter);
+    const state = { left: 0, failed: 0 };
+    vi.spyOn(ctx.internalAdapter, "consumeVerificationValue").mockImplementation(
+      async (identifier) => {
+        if (state.left > 0 && identifier.startsWith("2fa-attempts-")) {
+          state.left--;
+          state.failed++;
+          throw new Error("Deadlock found when trying to get lock; try restarting transaction");
+        }
+        return consume(identifier);
+      },
+    );
+    const totp = vi.spyOn(app.auth.api, "verifyTOTP");
+    const backup = vi.spyOn(app.auth.api, "verifyBackupCode");
+    return { state, tries: () => totp.mock.calls.length + backup.mock.calls.length };
+  };
+
+  it("a right code signs in once, not expired", async () => {
+    const { uri } = await enrolled();
+    const pending = await challenge();
+    const { state, tries } = await failingCounter();
+    const before = await sessions();
+    state.left = 1;
+    expect((await complete(pending, totpCode(uri, { step: 1 }))).ok).toBe(true);
+    expect(state.failed).toBe(1);
+    expect(tries()).toBe(2);
+    expect(await sessions()).toBe(before + 1);
+  });
+
+  it("a backup code signs in, and a wrong code is a wrong code", async () => {
+    const { backupCodes } = await enrolled();
+    const pending = await challenge();
+    const { state } = await failingCounter();
+    state.left = 1;
+    expect(await complete(pending, "000000")).toEqual({ ok: false, error: "wrong_code" });
+    state.left = 1;
+    expect((await complete(pending, backupCodes[0] ?? "", "backup_code")).ok).toBe(true);
+    expect(state.failed).toBe(2);
+  });
+
+  it("is tried again once only: a counter that keeps failing is expired, with no session", async () => {
+    const { uri } = await enrolled();
+    const pending = await challenge();
+    const { state, tries } = await failingCounter();
+    const before = await sessions();
+    state.left = 10;
+    expect(await complete(pending, totpCode(uri, { step: 1 }))).toEqual({
+      ok: false,
+      error: "expired",
+    });
+    expect(tries()).toBe(2);
+    expect(await sessions()).toBe(before);
+  });
+
+  it("a retried attempt counts once: five wrong codes still void the challenge", async () => {
+    const { uri } = await enrolled();
+    const pending = await challenge();
+    const { state } = await failingCounter();
+    for (let i = 0; i < 5; i++) {
+      state.left = 1;
+      expect(await complete(pending, "000000")).toEqual({ ok: false, error: "wrong_code" });
+    }
+    expect(state.failed).toBe(5);
+    expect(await complete(pending, totpCode(uri, { step: 1 }))).toEqual({
+      ok: false,
+      error: "too_many",
+    });
+  });
+
+  it("a challenge that ran out, or none at all, is expired at once, never tried again", async () => {
+    const { uri } = await enrolled();
+    const pending = await challenge();
+    await t.db
+      .updateTable("verification")
+      .set({ expires_at: toDbDate(new Date(Date.now() - 1000), t.dialect) })
+      .where("identifier", "like", "2fa-%")
+      .execute();
+    const { tries } = await failingCounter();
+    expect(await complete(pending, totpCode(uri, { step: 1 }))).toEqual({
+      ok: false,
+      error: "expired",
+    });
+    expect(await complete(ip(new Headers()), totpCode(uri, { step: 1 }))).toEqual({
+      ok: false,
+      error: "expired",
+    });
+    // Once for the challenge that ran out; with no cookie, the service never asks Better Auth.
+    expect(tries()).toBe(1);
+  });
+
+  it("a challenge that's gone, though it wouldn't have run out yet, is expired, never tried again", async () => {
+    const { uri } = await enrolled();
+    const pending = await challenge();
+    // The challenge's own row (as when another attempt on it signed in), not its attempt counter.
+    await t.db
+      .deleteFrom("verification")
+      .where("identifier", "like", "2fa-%")
+      .where("identifier", "not like", "2fa-attempts-%")
+      .execute();
+    const { tries } = await failingCounter();
+    // The store itself: the service already refuses a challenge it can't find, before Better Auth.
+    const store = betterAuthTwoFactorStore(app.auth, app.db, app.dialect);
+    expect(await store.verifyChallenge(pending, totpCode(uri, { step: 1 }), "totp")).toEqual({
+      ok: false,
+      error: "expired",
+    });
+    expect(tries()).toBe(1);
   });
 });
 
@@ -404,33 +534,41 @@ describe("the challenge's cookie", () => {
     ).toBe(true);
   });
 
-  it("the same backup code in two challenges at once, without any queue: one signs in, the others are a wrong code, never a 500", async () => {
-    const { backupCodes } = await enrolled();
-    const store = betterAuthTwoFactorStore(app.auth, app.db, app.dialect);
-    const code = backupCodes[2] ?? "";
-    const challenges = [await challenge(), await challenge(), await challenge()];
-    const results = await Promise.all(
-      challenges.map((pending) => store.verifyChallenge(pending, code, "backup_code")),
-    );
-    expect(results.filter((r) => r.ok)).toHaveLength(1);
-    for (const r of results) if (!r.ok) expect(r.error).toBe("wrong_code");
-  });
+  it(
+    "the same backup code in two challenges at once, without any queue: one signs in, the others are a wrong code, never a 500",
+    RACE,
+    async () => {
+      const { backupCodes } = await enrolled();
+      const store = betterAuthTwoFactorStore(app.auth, app.db, app.dialect);
+      const code = backupCodes[2] ?? "";
+      const challenges = [await challenge(), await challenge(), await challenge()];
+      const results = await Promise.all(
+        challenges.map((pending) => store.verifyChallenge(pending, code, "backup_code")),
+      );
+      expect(results.filter((r) => r.ok)).toHaveLength(1);
+      for (const r of results) if (!r.ok) expect(r.error).toBe("wrong_code");
+    },
+  );
 
-  it("the same backup code in two challenges at once: one signs in, the other is a wrong code, never a 500", async () => {
-    const { backupCodes } = await enrolled();
-    const code = backupCodes[1] ?? "";
-    const [a, b] = [await challenge(), await challenge()];
-    const results = await Promise.all([
-      complete(a, code, "backup_code"),
-      complete(b, code, "backup_code"),
-    ]);
-    expect(results.filter((r) => r.ok)).toHaveLength(1);
-    expect(results.find((r) => !r.ok)).toEqual({ ok: false, error: "wrong_code" });
-  });
+  it(
+    "the same backup code in two challenges at once: one signs in, the other is a wrong code, never a 500",
+    RACE,
+    async () => {
+      const { backupCodes } = await enrolled();
+      const code = backupCodes[1] ?? "";
+      const [a, b] = [await challenge(), await challenge()];
+      const results = await Promise.all([
+        complete(a, code, "backup_code"),
+        complete(b, code, "backup_code"),
+      ]);
+      expect(results.filter((r) => r.ok)).toHaveLength(1);
+      expect(results.find((r) => !r.ok)).toEqual({ ok: false, error: "wrong_code" });
+    },
+  );
 });
 
 describe("used codes across servers (no shared queue)", () => {
-  it("recording one code twice at once: exactly one wins, on every database", async () => {
+  it("recording one code twice at once: exactly one wins, on every database", RACE, async () => {
     const store = betterAuthTwoFactorStore(app.auth, app.db, app.dialect);
     const results = await Promise.all(
       Array.from({ length: 6 }, () => store.spendCode(userId, "123456")),
