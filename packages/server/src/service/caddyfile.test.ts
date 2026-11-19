@@ -28,7 +28,7 @@ describe("the one Caddyfile (080, 083)", () => {
   });
 
   it("finds a difference in compose.yaml", () => {
-    const yaml = readFileSync(composePath, "utf8").replace("max_size 28MiB", "max_size 10MiB");
+    const yaml = readFileSync(composePath, "utf8").replace("> 29360128", "> 10485760");
     expect(composeContent(yaml)).not.toBe(composeCaddyfile());
   });
 
@@ -44,7 +44,10 @@ describe("the one Caddyfile (080, 083)", () => {
     expect(caddyfile).toContain("\nronne.example.com {\n  import tls-auto\n");
     expect(caddyfile).toContain("reverse_proxy 127.0.0.1:7650 {");
     expect(caddyfile).toContain("tls /etc/rmk-server/certs/cert.pem /etc/rmk-server/certs/key.pem");
-    expect(caddyfile).toContain("max_size 28MiB");
+    expect(caddyfile).toContain("respond @nolength");
+    expect(caddyfile).toContain("> 29360128`\n  respond @toolarge");
+    // CVE-2026-97054 (E-15): request_body's MaxBytesReader can crash Caddy's HTTP/1 server.
+    expect(caddyfile).not.toMatch(/^\s*request_body\b/m);
     expect(caddyfile).toContain("trusted_proxies_strict");
     expect(caddyfile).not.toContain("${");
     expect(caddyfile).not.toContain("{{");

@@ -274,10 +274,16 @@ configs:
 
       ${RONNE_DOMAIN:-:80} {
         import tls${RONNE_DOMAIN:+-${RONNE_TLS:-auto}}
-        # The app's limit for a draft upload, 28 MiB (Caddy's "MB" would be 1000 × 1000 bytes).
-        request_body {
-          max_size 28MiB
+        # The app's limit for a draft upload, 28 MiB (29360128 bytes), without request_body: its
+        # MaxBytesReader can crash Go's HTTP/1 server (CVE-2026-97054, exception E-15). A body must
+        # declare its length, and Go never lets one send more than it declared.
+        @nolength {
+          method POST PUT PATCH
+          expression `{http.request.header.Content-Length} == ""`
         }
+        respond @nolength "A request body needs a Content-Length." 411
+        @toolarge expression `{http.request.header.Content-Length}.matches("^[0-9]+$") && int({http.request.header.Content-Length}) > 29360128`
+        respond @toolarge "The request body is over 28 MiB." 413
         reverse_proxy web:3000 {
           # One address, the client's, which Ronne reads as the rightmost entry.
           header_up X-Forwarded-For {client_ip}

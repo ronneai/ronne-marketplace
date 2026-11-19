@@ -188,7 +188,13 @@ All are read by `compose.yaml` from the environment or `.env`; none are needed f
 
   ${RONNE_DOMAIN:-:80} {
       import tls${RONNE_DOMAIN:+-${RONNE_TLS:-auto}}
-      request_body { max_size 28MiB }
+      @nolength {
+          method POST PUT PATCH
+          expression `{http.request.header.Content-Length} == ""`
+      }
+      respond @nolength "A request body needs a Content-Length." 411
+      @toolarge expression `… int({http.request.header.Content-Length}) > 29360128`
+      respond @toolarge "The request body is over 28 MiB." 413
       reverse_proxy web:3000 {
           header_up X-Forwarded-For {client_ip}
       }
@@ -213,7 +219,12 @@ All are read by `compose.yaml` from the environment or `.env`; none are needed f
 - On Docker Desktop, every request reaching the published port comes from the gateway, so the audit
   log and the rate limits see one address for every client. On a Linux server, clients from the
   network keep their own address.
-- `28MiB` and not `28MB`: Caddy's `MB` is 1000 × 1000 bytes, and the app's limit is 28 × 1024 × 1024.
+- The body limit is the app's, 28 MiB (28 × 1024 × 1024 = 29360128 bytes): a POST, PUT or PATCH
+  without `Content-Length` gets 411, and one declaring more gets 413; Go's server never lets a body
+  send more than it declared. Until 2026-11-18 it was `request_body { max_size 28MiB }`, whose
+  `MaxBytesReader` can crash Go's HTTP/1 server in the Caddy release we pin (CVE-2026-97054,
+  exception E-15 in the dependency policy); `request_body` can come back with a Caddy built on Go
+  1.27.4 or later. Its `MB` is 1000 × 1000 bytes, so it needs `28MiB`.
 - Volumes `caddy-data` (certificates and the ACME account: losing it means asking for new ones,
   which Let's Encrypt rate-limits) and `caddy-config`. `./certs` is always mounted read-only at `/certs`
   (see Open questions).

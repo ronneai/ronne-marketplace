@@ -1,4 +1,4 @@
-# Vulnerabilities the proxy-image scan accepts for now: exception E-12 in
+# Vulnerabilities the proxy-image scan accepts for now: exceptions E-12 and E-15 in
 # docs/policies/dependencies.md. Only the Caddy image's scan reads this file; ours stays strict.
 # Each line expires on its date, after which the scan fails on it again.
 
@@ -7,3 +7,10 @@
 # yet. Only smallstep's command-line help formatting imports the parser (caddypki → smallstep
 # certificates → cli-utils/usage); nothing on Caddy's HTTP request path does. Exception E-12.
 CVE-2026-78661 exp:2026-12-18
+
+# Go's net/http (stdlib 1.27.3) in caddy:2.11.9, first seen on 2026-11-18: an HTTP/1 server can
+# crash when a MaxBytesReader limit is hit while the handler writes the response headers. Fixed in
+# Go 1.27.4, in no Caddy release yet. Caddy uses MaxBytesReader only for `request_body` and its admin
+# API; our Caddyfile has no `request_body` any more (matchers refuse a body with no length or one
+# over 28 MiB), and the admin API is local to the container (Docker) or off (native). Exception E-15.
+CVE-2026-97054 exp:2026-12-18
