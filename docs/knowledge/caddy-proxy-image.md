@@ -52,6 +52,26 @@ go list -deps -f '{{.ImportPath}} {{join .Imports " "}}' ./modules/caddytls \
 Put the reasoning in the exception's row, move every Caddy line to one review date so one review
 covers them all, and say on the row what image ends it.
 
+## When Caddy as we run it does reach the code (2026-11-18, E-15)
+
+CVE-2026-97054 (Go's `net/http`, fixed in Go 1.27.4, no Caddy release with it) crashes an HTTP/1
+server that uses `MaxBytesReader`, and our `request_body { max_size 28MiB }` was exactly that, in
+front of `reverse_proxy`. Before reaching for the plan below, take the vulnerable feature off the
+request path with one that does the same job another way, and keep the exception dated:
+
+- **Find what Caddy calls the vulnerable code from.** `grep -rn` the symbol in the pinned tag's
+  source (here `MaxBytesReader`: `request_body` and the admin API only).
+- **Check what removing it exposes before removing it.** The app's own body limits looked enough
+  (`proxy.ts`, server actions, `read-json.ts`), but `proxy.ts` only checks a declared
+  `Content-Length`, and Better Auth's routes and SCIM read a chunked body to the end. The proxy was
+  their only cap, so dropping it would have let anyone send an endless body to sign-in.
+- **The replacement here:** matchers. A POST, PUT or PATCH with no `Content-Length` gets 411, and
+  one declaring more than 28 MiB gets 413 (`caddyfile.ts`). Go's server enforces the declared
+  length over HTTP/1.1 and HTTP/2, so a body can't send more than it declared. Tried against the
+  pinned image over HTTP/1.1 and HTTP/2 before changing anything, and `compose-probe.sh` checks it
+  through the real stack. A CEL `int()` of an empty header is an error, so guard it with
+  `.matches("^[0-9]+$") &&`.
+
 ## The plan if it keeps happening: build the proxy image ourselves
 
 Not started; the owner kept the official image (2026-10-28). It would be its own feature, since it

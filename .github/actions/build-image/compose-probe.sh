@@ -12,7 +12,7 @@ cleanup() {
   status=$?
   if [ "$status" -ne 0 ]; then "${compose[@]}" logs --no-color proxy web | tail -n 80 || true; fi
   "${compose[@]}" down -v --remove-orphans >/dev/null 2>&1 || true
-  rm -rf certs
+  rm -rf certs body-exact body-over
   exit "$status"
 }
 trap cleanup EXIT
@@ -50,6 +50,29 @@ if [ -n "${published//[0 ]/}" ]; then
   exit 1
 fi
 echo "OK: web has no published port"
+
+# The proxy's body limit, with matchers instead of request_body (CVE-2026-97054, exception E-15).
+# Caddy's own answers are told apart from the app's by their text.
+post() { curl -s -w ' %{http_code}' -X POST "$@" http://localhost:7650/; }
+expect_post() {
+  local what=$1 want=$2
+  shift 2
+  got=$(post "$@")
+  if [[ "$got" != *"$want" ]]; then echo "FAILED: $what: got '$got', wanted '…$want'"; return 1; fi
+  echo "OK: $what"
+}
+head -c 29360128 /dev/zero >body-exact
+head -c 29360129 /dev/zero >body-over
+expect_post "a body without a length is refused by the proxy (411)" \
+  "A request body needs a Content-Length. 411" -H 'Transfer-Encoding: chunked' --data-binary x
+expect_post "a body over 28 MiB is refused by the proxy (413)" \
+  "The request body is over 28 MiB. 413" --data-binary @body-over
+got=$(post --data-binary @body-exact)
+if [[ "$got" == *"over 28 MiB"* || "$got" == *" 411" ]]; then
+  echo "FAILED: a 28 MiB body didn't reach the app: '$got'"
+  exit 1
+fi
+echo "OK: a 28 MiB body reaches the app (it answered: ${got: -3})"
 
 # 2. A domain with Caddy's internal CA. -k: the CA isn't trusted here.
 export RONNE_DOMAIN=localhost RONNE_TLS=internal
