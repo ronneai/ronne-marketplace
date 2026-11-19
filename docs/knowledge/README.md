@@ -51,6 +51,8 @@ from this list.
   from MySQL 9.6.
 - [timestamp-names.md](timestamp-names.md): timestamp columns end in `_at`, and nothing else does.
 - [sort-needs-a-tiebreaker.md](sort-needs-a-tiebreaker.md): a sort by timestamp needs a second key.
+- [race-tests-on-mysql.md](race-tests-on-mysql.md): race tests pass or fail by chance on MySQL;
+  run them many times, and look for a deadlock before theorising.
 
 ## Tests
 
