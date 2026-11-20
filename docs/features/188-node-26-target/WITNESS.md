@@ -169,3 +169,107 @@ Witnessed: 2026-11-20 11:58 EST, by a fresh agent (blind). Commit: ee736a7f + wo
 | 18 | PLAN.md task 4 note: with real Homebrew today, `.nvmrc` 26 installs `node@26` (the alias) and 24 installs `node@24` (24.22.3, its own formula), both passing the check; with `brew info` failing, plain `node` is installed, and at 24 the step stops with "Homebrew's node is Node.js 26, but .nvmrc says 24."; the fake-brew probe covers every branch | yes | confirmed | `brew info --formula node@26` → "Aliases: node.js, node@26, nodejs, npm"; `brew info --formula node@24` → "node@24: stable 24.22.3 (bottled) [keg-only]". `probe.sh` on the re-extracted step: 26 with the alias → exit 0, `node@26`; 24 with node@24=24 → exit 0, `node@24`; 26 with `brew info` failing → exit 0, `node`; 24 with `brew info` failing and node=26 → exit 1, "::error::Homebrew's node is Node.js 26, but .nvmrc says 24."; node=28 with the name unknown, and node@26 at 25, also stop |
 
 **Overall:** met: the note's wording matches what `brew info` shows and what the probe does in every branch.
+
+## Task 5 — The drift guard and the N-API guard
+
+Witnessed: 2026-11-20 12:01 EST, by a fresh agent (blind). Commit: e0bdc406 + working tree (server-checks.yml, PLAN.md, SPEC.md diff; untracked node-versions.js and node-versions.test.js). Machine: macOS 27.2.1 (arm64), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The repo-tools tests pass | yes | confirmed | `vitest run` in packages/repo-tools → 22 files, 208 passed; `node-versions.test.js` alone → 14 passed |
+| 2 | Setting any one guarded place to another major in the real files makes the guard fail, naming that file | yes | confirmed | `drift-probe.mjs`, each real file edited in a scratch copy then put back (`cmp`): Dockerfile FROM→24, NODE_MAJOR→24, feed `node-version` and `image` →24, ci.yml target→24 and minimum→20, server-checks target→24 and minimum→24, axis→[22, 24], literal `node-version: 24` in release.yml:83 and .github/actions/build-image/action.yml:28, .nvmrc→28 (5 problems): each failed naming its file. Baseline `[]` |
+| 3 | Each check has a test that fails without it | yes | confirmed | Mutations in the scratch copy: the Dockerfile, minimum, axis, `node-version:` and N-API checks turned off → 1–2 named tests fail each; not walking optional deps fails "finds the server's native modules". Gap: turning off the "isn't installed" report still passes 14/14 |
+| 4 | "Every other `setup-node` reads `.nvmrc` rather than naming a version" | yes | partly | A literal `node-version: N` is caught. Pass with no problems: another workflow with its own `matrix.node: [24]` and `node-version: ${{ matrix.node }}`; flow style `with: { node-version: 24 }`; quoted key `"node-version": 24` |
+| 5 | The guard reads the other forms GitHub, YAML or Docker accept for the axis and the base image | yes | partly | A block-list or quoted server-checks axis skips the axis check and passes; a later stage `FROM node:24-trixie-slim AS runtime` passes (only the first `FROM node:` read) |
+| 6 | CRLF workflows are read correctly | no | confirmed | server-checks.yml in CRLF → no problems; ci.yml in CRLF with target 24 → reported |
+| 7 | The N-API guard finds better-sqlite3's and @node-rs/argon2's binaries in the real tree, with no problems | yes | confirmed | `napi-real.mjs` → `@node-rs/argon2-darwin-arm64/argon2.darwin-arm64.node` and the 8 `better-sqlite3/prebuilds/*.node`; `problems: []` |
+| 8 | Real N-API binaries for Linux and Windows pass, and they really export the symbol | yes | confirmed | `nm -g --defined-only` → `napi_register_module_v1` in the darwin, linux and linuxmusl prebuilds; `pe-exports.mjs` on win32-x64/arm64.node → `['napi_register_module_v1']` |
+| 9 | It fails on a `.node` file without the export, naming the package and the file | yes | confirmed | The test passes and fails when the check is mutated away; `napi-fixtures.mjs` with a hoisted, scoped, optional transitive dep → named |
+| 10 | It doesn't fail a real N-API module ("the entry point every N-API module has") | yes | partly | `@parcel/watcher-darwin-arm64@2.6.0`'s watcher.node imports only `napi_*` and registers through `_napi_module_register`: N-API, but reported as "isn't N-API". The check is a byte search, not an export check |
+| 11 | The walk covers dependencies and installed optional ones, not devDependencies | no | confirmed | Non-N-API binaries reachable only through devDependencies → not found; a transitive, hoisted, scoped optional dep is found; a cycle ends. peerDependencies weren't walked |
+| 12 | The test isn't vacuous when node_modules is missing or partial | yes | confirmed | packages/server alone with no node_modules → "needs @node-rs/argon2, which isn't installed" and the same for better-sqlite3; the real-tree test asserts both names |
+| 13 | server-checks.yml's comment "repo-tools' node-versions test keeps it so" is true | no | confirmed | server-checks.yml:30; the test walks packages/server; `turbo run test` runs it on the target role |
+| 14 | Lint passes on the new files | yes | confirmed | `biome check` → no fixes, exit 0 |
+
+**Overall:** not met: every place in today's files is guarded and both native modules are checked, but YAML forms GitHub accepts bypass the setup-node rule and the axis check (rows 4, 5), and the N-API check fails a real N-API module registering with `napi_module_register` (row 10).
+
+Fixed after this pass: the readers became line-based (trimmed lines, `indexOf`, short anchored patterns); only ci.yml and server-checks.yml may use `${{ matrix.node }}` and any other node axis or `node-version` is reported; flow and quoted forms are read; an unreadable axis is reported; every `FROM node:` is checked; N-API means `napi_register_module_v1` or `napi_module_register` without `node_register_module_v`; peers are walked; a test covers the "isn't installed" report.
+
+### Re-check 1 — rows 3, 4, 5, 10 and the fixes since
+
+Witnessed: 2026-11-20 12:08 EST, by a fresh agent (blind). Commit: e0bdc406 + working tree (node-versions.js rewritten, node-versions.test.js, SPEC.md and PLAN.md diff). Machine: macOS 27.2.1 (arm64), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The repo-tools tests pass and lint is clean | yes | confirmed | 22 files, 214 passed; `biome check` → no fixes |
+| 3 | Each check has a test that fails without it | yes | partly | Mutations each fail a named test (only the first FROM, `--flags`, axes elsewhere, `matrix.node` everywhere, flow `}`, quoted key, `}}`, unreadable axis, per-ABI, `napi_module_register`, missing dep). Survive 20/20: peers not walked; installed devDependencies walked |
+| 4 | Only ci.yml and server-checks.yml test by version | yes | partly | First-pass bypasses fail. Pass with `[]`, in ci.yml: a second job `matrix: { node: [24] }`; an include `- node: 24` without role or with `name:` between; `- { node: 24, role: target, name: x }`; a second job `matrix: include: - node: 24`. Also `Node-Version: 24`, `? node-version` / `: 24`, an escaped key |
+| 5 | Every Dockerfile `FROM node:` is checked, and the axis is read or reported | yes | partly | Second stage, `--platform`, block and quoted axes reported. Pass: `FROM<TAB>node:24…`, `FROM docker.io/library/node:24…`, `ARG IMG` + `FROM ${IMG}`, a `FROM \` continuation, `COPY --from=node:24…` |
+| 10 | It doesn't fail a real N-API module, and it rejects one built per Node.js version | yes | confirmed | @parcel/watcher → no problems; all 17 `.node` files in node_modules → N-API; addons compiled against Node 26's headers: `NODE_MODULE` → "has neither…", `NODE_MODULE_INIT` → "registers per Node.js version", `NAPI_MODULE` → N-API; on 22 and 24 only the N-API one loads |
+| 15 | No other workflow may use `${{ matrix.node }}` or have a `node` axis | yes | confirmed | `matrix-elsewhere.mjs` → 2 problems naming bundles.yml lines 33 and 49 |
+| 16 | `node-version` is read in block and flow style, quoted or not; an expression runs to its `}}` | yes | confirmed | Block, flow, quoted, next-line and `${{ matrix['node'] }}` forms reported; the `}}` mutation fails 9 tests |
+| 17 | In the role workflows an axis other than `[N, M]` is reported | yes | partly | Block list, quoted numbers and `fromJSON` axis reported; `matrix: { node: [24] }` not seen |
+| 18 | N-API means `napi_register_module_v1` or `napi_module_register`, without `node_register_module_v`; messages and SPEC say so | yes | confirmed | `notNapi`; SPEC matches; real tree `problems: []`; message names package and file |
+| 19 | A test covers "isn't installed"; peers are walked when installed | yes | confirmed | The mutation fails the new test; a peer native is now found. The peer walk had no test (row 3) |
+| 20 | The minimum is compared by major, and SPEC says so until task 7 | yes | confirmed | SPEC diff; ci.yml minimum→20 → "minimum entry is Node.js 20, but MIN_NODE is 22.12.0" |
+
+**Overall:** not met: the first pass's bypasses are closed and the N-API guard is right on real binaries; role-workflow job and include forms and some Dockerfile forms pass unreported (rows 4, 5, 17), and two walk rules have no test (row 3).
+
+Fixed after this re-check: the Dockerfile reader joins continuations, splits on any space, and checks every `FROM`, `--from=` and mount `from=` (registry-prefixed `node` images allowed; anything that isn't a `node` image, a stage, `scratch` or a number reported); in the role workflows any other `node:` key is reported; any `node:` key elsewhere is reported; `node-version` in any case; explicit `?` keys reported; peer and dev walk tests.
+
+### Re-check 2 — rows 3, 4, 5 and 17, against the new notes
+
+Witnessed: 2026-11-20 12:13 EST, by a fresh agent (blind). Commit: e0bdc406 + working tree (node-versions.js and node-versions.test.js changed again, PLAN.md notes rewritten). Machine: macOS 27.2.1 (arm64), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The repo-tools tests pass and lint is clean | yes | confirmed | 22 files, 218 passed (24 in node-versions.test.js); `biome check` → no fixes |
+| 3 | Each check has a test that fails without it, including the peer and dev-dependency walk rules | yes | partly | `mutate3.mjs`, 14 mutations: 12 fail a named test (peer and dev walks included). Survive 24/24: the mount `from=` reader removed; the "space after the colon" rule removed (minor, it only prevents false positives) |
+| 4 | In every other workflow any `node:` key or `node-version` value is reported, and explicit `? key` lines anywhere | yes | partly | Earlier cases fail. A `?` alone on its line, then `node-version`, then `: 24` passes and isn't in "Not read" |
+| 5 | The Dockerfile: every `FROM`, `--from=` and mount `from=` is a `node` image of the target, a stage, `scratch` or a number, else reported | yes | confirmed | Tab, registry prefix, `${IMG}`, continuation, lowercase `from`, `COPY --from=node:24`, `FROM node`, `node:lts`, `registry:5000/node:24`, `cimg/node:24.1`, backtick escape and comment-in-continuation are all reported. Only a quoted mount part passes (contrived) |
+| 17 | In ci.yml and server-checks.yml any `node:` key that isn't an entry with its role or the axis is reported | yes | partly | Cases a–d fail. Pass with `[]`: `matrix: {"node":[24]}`; `node : [24]`; `Node: [24]`; `matrix: ${{ fromJSON('{"node":[24]}') }}`; a dynamic matrix from another job's output |
+
+**Overall:** not met: the Dockerfile reader is sound and the walk rules have tests, but some `node:` key and `?` key forms pass unreported and unlisted (rows 4, 17), and the mount reader has no test (row 3).
+
+Fixed after this re-check: node keys matched in any case, with spaces before the colon, and quoted keys without a space after it; in the role workflows `matrix: ${{ … }}` and any `fromJSON(` reported; a bare `?` reported; a mount test; "Not read" names escaped keys, anchors and aliases, a quoted mount part, and `container:` / `docker://` images.
+
+### Re-check 3 — rows 3, 4 and 17, against the updated notes
+
+Witnessed: 2026-11-20 12:16 EST, by a fresh agent (blind). Commit: e0bdc406 + working tree (node-versions.js and node-versions.test.js changed again, PLAN.md notes updated). Machine: macOS 27.2.1 (arm64), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The repo-tools tests pass and lint is clean | yes | confirmed | 22 files, 219 passed (25 in node-versions.test.js); `biome check` → no fixes |
+| 3 | Each check has a test that fails without it | yes | partly | The mount `from=` mutation now fails; every other mutation fails a named test. Survives 25/25: dropping the `fromjson(` clause (it alone catches `strategy: ${{ fromJSON(needs.x.outputs.s) }}`) |
+| 4 | In every workflow `node-version` in any form and explicit `?` keys are reported; everything else is in "Not read" | yes | partly | Only "Not read" forms pass, plus `?<TAB>node-version` / `: 24` (the `yaml` package parses it as `{"node-version":24}`), neither reported nor listed |
+| 17 | In the role workflows every unread `node` key, `matrix: ${{ … }}` and any `fromJSON(` are reported | yes | partly | All earlier forms reported. Passes: `matrix:` with `${{ … }}` on the next line (without `fromJSON`) |
+
+**Overall:** not met: all earlier bypasses are closed or disclosed; left are `?<TAB>`, a matrix expression on the next line, and no test for the `fromJSON(` clause.
+
+Fixed after this re-check: explicit keys match `/^\?(?:\s|$)/`; a role-workflow line that is only an expression is reported; a test for `fromJSON` anywhere.
+
+### Re-check 4 — rows 3, 4 and 17, the three findings of re-check 3
+
+Witnessed: 2026-11-20 12:18 EST, by a fresh agent (blind). Commit: e0bdc406 + working tree (node-versions.js and node-versions.test.js changed again, PLAN.md notes). Machine: macOS 27.2.1 (arm64), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The repo-tools tests pass and lint is clean | yes | confirmed | 22 files, 220 passed (26 in node-versions.test.js); `biome check` → no fixes |
+| 3 | Each of the changed clauses has a test that fails without it | yes | partly | `mutate5.mjs`: explicit keys, the `${{` line and the `fromjson(` clause each fail a named test. Survive 26/26: explicit keys matched on a space only (the bare `?` and `?<TAB>` cases shared one assertion); dropping the inline `/matrix *: *\$\{\{/` (no inline case without `fromJSON` tested) |
+| 4 | Explicit keys, including `?<TAB>key`, are reported in every workflow; everything else that passes is in "Not read" | yes | confirmed | `?<tab>node-version` → "bundles.yml:46 has an explicit YAML key (?)". What passes across drift-probe 1–4: `"node-version"`, `container: node:24`, `docker://node:24`, a quoted mount `"from=…"` (all in "Not read"), and `- ? node-version`, which GitHub refuses. Real repository `[]` |
+| 17 | In the role workflows a matrix built from an expression is reported: inline, on the next line, or through `fromJSON` anywhere | yes | confirmed | Next-line `${{ needs.plan.outputs.m }}`, `strategy: ${{ fromJson(…) }}`, `'NODE' : [24]` and inline `matrix: ${{ github.event.client_payload }}` are all reported |
+
+**Overall:** not met: every form is reported or disclosed; two test gaps remain (no isolated `?<TAB>` test, no inline matrix expression without `fromJSON`).
+
+Fixed after this re-check: the explicit-key test checks each form in its own `withChange`; the expression test adds an inline `${{ github.event.client_payload }}`.
+
+### Re-check 5 — row 3, the two test gaps
+
+Witnessed: 2026-11-20 12:20 EST, by a fresh agent (blind). Commit: e0bdc406 + working tree (only node-versions.test.js changed since re-check 4; node-versions.js byte-identical, `cmp`). Machine: macOS 27.2.1 (arm64), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The repo-tools tests pass and lint is clean | yes | confirmed | 22 files, 220 passed (26 in node-versions.test.js); `biome check` → no fixes |
+| 3 | Each check has a test that fails without it, including the `?<TAB>` and the inline `matrix: ${{ … }}` clauses | yes | confirmed | `mutate5.mjs`, each mutation failing exactly 1 test (25/26): explicit keys on a space only; explicit keys not reported; the `${{`-line clause removed; the `fromjson(` clause removed; the inline `/matrix *: *\$\{\{/` removed; a bare `?` not reported. `mutate4.mjs` 0, 5, 6, 7 (role-workflow node keys, case, space before the colon, quoted key) each fail 1 test. `drift-probe4.mjs` and `inline-matrix.mjs` still report every form |
+
+**Overall:** met: every claim in rows 3, 4 and 17 is confirmed; every clause of the drift and N-API guards has a test that fails without it.

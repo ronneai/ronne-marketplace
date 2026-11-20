@@ -72,7 +72,7 @@ comes before the version move, so the move's pull request already runs the new j
     matches `SHASUMS256.txt`;
   - the feed workflow golden tests pass.
 
-- [ ] **5. The drift guard and the N-API guard.** A `repo-tools` test reads `.nvmrc` and checks
+- [x] **5. The drift guard and the N-API guard.** A `repo-tools` test reads `.nvmrc` and checks
   that these name the same major:
   - the `Dockerfile`'s `FROM node:N-…`;
   - `NODE_MAJOR` in `bundle.js`;
@@ -85,16 +85,14 @@ comes before the version move, so the move's pull request already runs the new j
   `MIN_NODE`: the same major until task 7, then exactly the same version. Each mismatch names the
   file and both versions.
 
-  A second test lists the native packages in `@ronneai/marketplace`'s runtime dependency tree
-  (`binding.gyp`, `"gypfile": true`, a `.node` file, or napi-rs's `"napi"` field) and fails on one
-  that isn't in its list of N-API modules. Each entry says how it was checked: `better-sqlite3`
-  has `NAPI_VERSION` in `binding.gyp` and `prebuilds/<platform>.node`, and `@node-rs/argon2` is
-  napi-rs.
+  A second test walks `@ronneai/marketplace`'s runtime dependency tree (dependencies, and optional
+  and peer ones when installed) and fails on any `.node` file that isn't N-API.
   *Done when:*
   - the repo-tools tests pass;
   - changing any one of the drift guard's places to another major (tried for each, then put back)
     makes it fail with that file's name;
-  - removing `better-sqlite3` from the N-API list makes the second test fail, naming it.
+  - the second test finds `better-sqlite3`'s and `@node-rs/argon2`'s binaries in the real tree, and
+    fails on a binary without the export, naming the package and the file.
 
 - [ ] **6. The documents.**
   - `CLAUDE.md`'s Commands (the Node.js line and the CI paragraph) and the dependencies bullet.
@@ -228,3 +226,57 @@ LTS; pnpm 12.21.0 installed with npm, which runs the pinned 12.6.0).**
 - `bundle.test.js`'s fixtures pass 24 to `latestOf` themselves and don't depend on the target, so
   they stay.
 
+**Task 5, the guards (2026-11-20).**
+- `packages/repo-tools/src/node-versions.js` and its test. `repo-tools` is dependency-free, so the
+  files are read line by line: trimmed lines, `indexOf` for `node-version`, a whitespace split,
+  and only short anchored patterns (`docs/knowledge/codeql-regex.md`). The aim is to catch honest
+  drift, and to report the forms it would otherwise miss rather than pass them.
+- The drift guard checks the `Dockerfile`:
+  - continued lines are joined, and words split on any space;
+  - every image it builds or copies from (`FROM`, `--from=`, a mount's `from=`) must be a `node`
+    image of `.nvmrc`'s major (a registry prefix and a digest are allowed), an earlier stage,
+    `scratch`, or a stage number;
+  - anything else, such as `FROM ${IMG}` from an `ARG`, is reported.
+- It checks `NODE_MAJOR` and both versions in `feed-workflow.ts` against `.nvmrc`.
+- In `ci.yml` and `server-checks.yml`:
+  - the role entries are read as `- node: N` with `role:` on the next line: the target against
+    `.nvmrc`, the minimum against `MIN_NODE`'s major until task 7;
+  - a `node` axis must be `[N, M]` and list exactly the include's versions, or an include entry
+    matches no combination and becomes a job of its own (the task 3 witness's remark);
+  - any other `node` key is reported, in any case, with spaces before the colon or not: a
+    flow-style or JSON-style matrix, an entry without a role or with a line between, a flow-style
+    entry. YAML needs a space after an unquoted key's colon, so an image such as `node:26` isn't
+    taken for a key (that rule only avoids false alarms);
+  - a matrix built from an expression is reported, since its values can't be read: `matrix:
+    ${{ … }}`, a line that is only an expression (the value on the next line), and any
+    `fromJSON(`.
+- In every other workflow under `.github`, any `node:` key or `node-version` value is reported
+  (block or flow style, quoted or not, any case). In the two role workflows the only value allowed
+  is `${{ matrix.node }}`. That replaces the plan's "Homebrew `node@N`" check: since task 4 the
+  macOS step reads `.nvmrc` itself.
+- Explicit YAML keys (`?` followed by a space, a tab or the line's end) are reported anywhere in
+  the workflows.
+- Not read, as nobody writes them by accident and none appears in the repository:
+  - escaped characters inside a key (`"node\u002dversion"`), and anchors and aliases;
+  - a quoted part of a Dockerfile mount (`"from=…"`);
+  - a job's `container: node:N` or a `uses: docker://node:N` step. Neither is how the workflows
+    choose Node.js, and the spec doesn't cover them.
+- The N-API guard checks the binaries themselves instead of the planned list of known packages.
+  Every `.node` file in `@ronneai/marketplace`'s runtime tree must name `napi_register_module_v1`
+  (exported) or `napi_module_register` (called from a static constructor, as older N-API modules
+  do), and must not name `node_register_module_v`, which a module built for one Node.js ABI
+  exports. The names are searched as bytes, which works the same in Mach-O, ELF and PE. The first
+  version accepted only `napi_register_module_v1`. The witness showed `@parcel/watcher`'s binary
+  (N-API, registering through `napi_module_register`) would have failed, and it isn't in the
+  server's tree. It also compiled three addons against Node.js 26's headers (`NODE_MODULE`,
+  `NODE_MODULE_INIT`, `NAPI_MODULE`): the guard rejects the first two and accepts the third, which
+  is the only one that loads on 22 and 24 too. On this Mac the guard found
+  `@node-rs/argon2-darwin-arm64`'s binary and the eight `better-sqlite3` prebuilds, all N-API.
+- Packages are found by walking up `node_modules` folders from each package's real path, which
+  works for pnpm's layout:
+  - dependencies, and optional and peer dependencies when installed, are walked;
+    devDependencies never are;
+  - a missing required dependency is reported.
+- 26 tests: the real repository passes both guards, and each kind of mismatch, including the forms
+  the earlier versions missed, is planted in a copy of the real files' text and named in its
+  message. The peer and dev-dependency walk rules have a test of their own.

@@ -54,14 +54,19 @@ to install pnpm with npm for the Node version in use. Nothing changes there beyo
 - **A guard against drift:** a `repo-tools` test reads `.nvmrc` and fails when another place that
   names the target gives a different major. Those places are the `Dockerfile`'s base image,
   `NODE_MAJOR`, the feed workflow, and the `role: target` entries in `ci.yml` and
-  `server-checks.yml`. Every other `setup-node` in the workflows reads `.nvmrc` rather than naming
-  a version. It also fails when a `role: minimum` entry isn't exactly
-  `MIN_NODE`.
+  `server-checks.yml`. Only those two workflows may test by version: any other `node-version`
+  value or `node` matrix axis in `.github` fails it, so the rest read `.nvmrc`. It also fails when
+  a `role: minimum` entry isn't `MIN_NODE`'s major, and once the minimum is pinned (task 7) its
+  exact version. A form it can't read, such as a block-style axis, fails rather than passing.
 - **A guard on native modules:** skipping 24 is safe only while every native module the server
-  loads is N-API, one binary for every Node.js version. A `repo-tools` test lists the native
-  packages in `@ronneai/marketplace`'s runtime dependencies and fails on one that isn't in its list
-  of modules checked to be N-API. Today the list is `better-sqlite3` (13.x: `NAPI_VERSION` in
-  `binding.gyp`, `prebuilds/<platform>.node`) and `@node-rs/argon2` (napi-rs).
+  loads is N-API, one binary for every Node.js version. A `repo-tools` test walks
+  `@ronneai/marketplace`'s runtime dependencies (dependencies, and optional and peer ones when
+  installed) and fails on any `.node` file that doesn't register as an N-API module, by
+  `napi_register_module_v1` or `napi_module_register`, or that registers per Node.js version
+  (`node_register_module_v<ABI>`). It reads the symbol names in the binaries themselves, so it
+  needs no list to keep up to date. Today they are `better-sqlite3`'s
+  `prebuilds/<platform>.node` (13.x, `NAPI_VERSION=10`) and `@node-rs/argon2`'s platform package
+  (napi-rs).
 - **The documents that state the target or the CI split:**
   - `CLAUDE.md`, `CONTRIBUTING.md`, the dependency policy, MVP.md (Docker and Packages rows, and
     a §15 entry);
@@ -158,9 +163,9 @@ Later LTS moves keep these names.
   `MIN_NODE`, `engines`, `@types/node`, the minimum's texts). The policy and `test-runs.md` say so.
 - **A dependency raises its own floor** (a newer N-API, a newer `engines`): the minimum's jobs, on
   `MIN_NODE` itself, fail on the Dependabot pull request instead of on a person's machine.
-- **A new native dependency** that isn't N-API: the N-API guard fails. Either it is N-API after
-  all and joins the list, with how that was checked, or the owner decides how the middle versions
-  get tested again.
+- **A new native dependency** that isn't N-API: the N-API guard fails, naming the package and the
+  file. The owner then decides how the versions between the minimum and the target get tested
+  again.
 
 ## Documentation
 
@@ -189,8 +194,8 @@ when they run. The repository's own documents change as listed under Scope.
 - [ ] `bundles.yml` and `packages.yml` read `.nvmrc`.
 - [ ] The drift guard passes, and fails when any one of the places it checks names a different
   major than `.nvmrc`, or a minimum entry isn't `MIN_NODE`.
-- [ ] The N-API guard passes, and fails when the server's runtime dependencies gain a native
-  module that isn't in its list.
+- [ ] The N-API guard passes, finds both of the server's native modules, and fails on a `.node`
+  file that doesn't register as N-API or that registers per Node.js version.
 - [ ] `engines`, `MIN_NODE`, `tsdown`'s target, `@types/node` and the "22.12 or later" texts are
   unchanged.
 - [ ] `CLAUDE.md`, `CONTRIBUTING.md`, the dependency policy, MVP.md (with a §15 entry),
