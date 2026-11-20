@@ -381,3 +381,22 @@ Witnessed: 2026-11-20 16:18 EST, by a fresh agent (blind). Commit: 86591284 + wo
 | 6 | The first pass's full run on 22.14.0 passed the file | yes | confirmed | `188-t7-blind/runtime.clean.log`: `✓ db src/server/http/health.db.test.ts (18 tests)`, web 383 files passed |
 
 **Overall:** met: the note matches its log, the file passes alone and in a full run on 22.14.0, and nothing but the note changed since re-check 1, where every other claim was confirmed.
+
+## Task 8 — The website
+
+Witnessed: 2026-11-20 18:05 EST, by a fresh agent (blind). Commit: bbf572c (ronne-web, branch feat/marketplace-188-node-26, plus the uncommitted `git diff`; facts from marketplace 46056158). Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The home page's stack line says Node.js 26, in en, pt and fr | no | confirmed | `git diff www/messages/*.json` → `home.marketplace.stack` "… · Node.js 24" → "… · Node.js 26" in all three; built `/en.html`, `/pt.html`, `/fr.html` (probe `visible-node.mjs`) → "… · Node.js 26" |
+| 2 | The marketplace facts' `nodeRuntime.target` is 26 and the runtime fact shows it in all three languages | no | confirmed | `www/src/content/marketplace.ts:53` → `{ target: "26", minimum: "22.14" }`, used by `Hero.tsx:28` (`nodeValue`); probe → `/en/marketplace.html` "Node.js 26 (22.14+ works)", pt "Node.js 26 (22.14+ também funciona)", fr "Node.js 26 (22.14+ fonctionne aussi)" |
+| 3 | The contributor setup step (From a clone) says 26 in en, pt and fr | no | confirmed | `git diff` → `clone.description` in all three ("You need Node.js 26 (22.14 or later works)…", "Você precisa do Node.js 26…", "Il vous faut Node.js 26…"); only the number changed; the same text in the 3 built marketplace pages |
+| 4 | `docs/product-facts.md`'s runtime row says 26 | no | confirmed | `docs/product-facts.md:47` → "Runtime: Node.js 26 LTS target (marketplace 188; 24 before it); 22.14 or later works…", source "README; marketplace #315 …, 188" |
+| 5 | The facts match the marketplace branch | no | confirmed | marketplace 46056158: `.nvmrc` → `26`; `node-version.ts` → `MIN_NODE = "22.14.0"`; every `engines.node` → `^22.14.0 \|\| >=23.6.0`; `CONTRIBUTING.md:23` → "Node.js 26 LTS … run on 22.14 or later" |
+| 6 | A search for "Node.js 24" and `target: "24"` in `www/src` and `www/messages` finds nothing | no | confirmed | both `grep -rn` → rc=1, no output; a wider regex (node/nvm near 24, "24 LTS", "v24.") finds nothing; after the build `grep -rl 'Node.js 24' .next/server/app` → 0 files. "Node 24" left in ronne-web is the site's own runtime (`CLAUDE.md` Deployment, `docs/deploy.md`, `docs/stack.md`), finished specs and a quoted example in `docs/translation-guide.md:281`, none a product claim |
+| 7 | ronne-web's checks pass | no | confirmed | from `www/` on Node v26.13.1, pnpm 12.6.0: `pnpm lint` → rc=0, 290 files; `pnpm typecheck` → rc=0; `pnpm test` → 33 files, 198 tests passed; `pnpm build` → rc=0, /en /pt /fr and the marketplace pages prerendered |
+| 8 | No topic changes, so `topics.ts` doesn't | no | confirmed | `git status --porcelain` → only `docs/product-facts.md`, the 3 message files and `www/src/content/marketplace.ts` |
+
+**Overall:** met: the home stack line, the runtime fact, the From a clone step and the product-facts row say Node.js 26 in en, pt and fr, the two searches find nothing, and lint, typecheck, test and build pass.
+
+No ronne-web test reads the version text, so no test could be broken to prove it; the rendered-page probe stands in. Committed after the pass as ronne-web `486a25a`: the same 5 files, and the pre-commit checks passed.

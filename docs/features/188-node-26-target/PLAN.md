@@ -124,8 +124,8 @@ comes before the version move, so the move's pull request already runs the new j
     `pnpm test:runtime` pass, and `better-sqlite3` opens a database;
   - on 22.13.1 opening a database crashes, which shows the pin is what catches it.
 
-- [ ] **8. The website.** The Documentation section was wrong: the website names the target. In
-  ronne-web, branch `feat/marketplace-188-node-26` on top of #315's: the stack line on the home
+- [x] **8. The website.** The Documentation section was wrong: the website names the target. In
+  ronne-web, branch `feat/marketplace-188-node-26` on top of #315's (`486a25a`): the stack line on the home
   page, the marketplace facts' `nodeRuntime.target`, the contributor setup step, and
   `docs/product-facts.md`'s runtime row say 26, in en, pt and fr. *Done when:* a search for
   "Node.js 24" and `target: "24"` in `www/src` and `www/messages` finds nothing, and ronne-web's
