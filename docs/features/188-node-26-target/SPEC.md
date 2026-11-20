@@ -183,35 +183,36 @@ adds them later, the role-based names stay the same across LTS moves.
 
 ## Acceptance criteria
 
-- [ ] On Node.js 26, `pnpm install --frozen-lockfile`, `pnpm lint`, `pnpm typecheck`, `pnpm test`,
+- [x] On Node.js 26, `pnpm install --frozen-lockfile`, `pnpm lint`, `pnpm typecheck`, `pnpm test`,
   `pnpm build`, `pnpm build:server`, `pnpm packages:check` and `pnpm release:smoke` pass, and
   `pnpm dev` starts.
-- [ ] `pnpm test:runtime` runs no `*.test.tsx` file and no `repo-tools` test, runs every other
+- [x] `pnpm test:runtime` runs no `*.test.tsx` file and no `repo-tools` test, runs every other
   test file (the SQLite database tests included), and passes on `MIN_NODE` (22.14.0). It has a row in
   `CONTRIBUTING.md`'s commands.
-- [ ] `ci.yml` has two check jobs, named by role: the target runs everything the Node 24 job ran,
+- [x] `ci.yml` has two check jobs, named by role: the target runs everything the Node 24 job ran,
   and the minimum runs only `pnpm install` and `pnpm test:runtime`. No step condition names a
   version number.
-- [ ] `server-checks.yml` installs and runs the packed server on the minimum and 26 on all three
+- [x] `server-checks.yml` installs and runs the packed server on the minimum and 26 on all three
   OSes (6 jobs), with no Node.js 24 job. The service checks take the target from `.nvmrc`: Linux through `setup-node`, macOS through Homebrew, failing when Homebrew's major differs.
-- [ ] After the issue that raises the minimum to 22.14 (#315) lands, the minimum's entries in `ci.yml` and
+- [x] After the issue that raises the minimum to 22.14 (#315) lands, the minimum's entries in `ci.yml` and
   `server-checks.yml` are exactly `MIN_NODE`.
-- [ ] `.nvmrc` is `26`. The `Dockerfile` uses `node:26-trixie-slim` pinned by digest, and the
+- [x] `.nvmrc` is `26`. The `Dockerfile` uses `node:26-trixie-slim` pinned by digest, and the
   image's `node --version` prints v26. `NODE_MAJOR` is 26, and `bundle.js` fetches and verifies a
   Node.js 26 build. The feed workflow `rmk` writes uses Node.js 26, and its golden files match.
-- [ ] `bundles.yml` and `packages.yml` read `.nvmrc`.
-- [ ] The drift guard passes, and fails when any one of the places it checks names a different
+- [x] `bundles.yml` and `packages.yml` read `.nvmrc`.
+- [x] The drift guard passes, and fails when any one of the places it checks names a different
   major than `.nvmrc`, a minimum entry isn't exactly `MIN_NODE`, or a package's `engines` isn't
   `MIN_NODE` and `MIN_NODE_23`.
-- [ ] The N-API guard passes, finds both of the server's native modules, and fails on a `.node`
+- [x] The N-API guard passes, finds both of the server's native modules, and fails on a `.node`
   file that doesn't register as N-API or that registers per Node.js version.
-- [ ] `tsdown`'s target and `@types/node` are unchanged; `engines`, `MIN_NODE` and the "22.14 or
+- [x] `tsdown`'s target and `@types/node` are unchanged; `engines`, `MIN_NODE` and the "22.14 or
   later" texts are #315's.
-- [ ] `CLAUDE.md`, `CONTRIBUTING.md`, the dependency policy, MVP.md (with a §15 entry),
-  `test-runs.md`, `turbo-test-inputs.md`, `release.md` and `threat-model.md` state the 26 target
-  and the CI split as built, and nothing outside history still calls 24 the target.
-- [ ] The website says Node.js 26 wherever it named 24 as the target, in en, pt and fr.
-- [ ] No required check on `main` changes name: the renamed jobs aren't on branch protection's
+- [x] `CLAUDE.md`, `CONTRIBUTING.md`, the dependency policy, MVP.md (with a §15 entry),
+  `release.md` and `threat-model.md` state the 26 target and the CI split as built, `test-runs.md`
+  states the split and takes the target from `.nvmrc`, `turbo-test-inputs.md` keeps its dated
+  history, and nothing outside history still calls 24 the target.
+- [x] The website says Node.js 26 wherever it named 24 as the target, in en, pt and fr.
+- [x] No required check on `main` changes name: the renamed jobs aren't on branch protection's
   list.
 
 ## Open questions

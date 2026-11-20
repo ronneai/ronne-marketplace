@@ -131,7 +131,7 @@ comes before the version move, so the move's pull request already runs the new j
   "Node.js 24" and `target: "24"` in `www/src` and `www/messages` finds nothing, and ronne-web's
   checks pass.
 
-- [ ] **9. Finish.** Set 188's status in `docs/features/README.md`. Check SPEC.md's acceptance
+- [x] **9. Finish.** Set 188's status in `docs/features/README.md`. Check SPEC.md's acceptance
   criteria against what was built, and tick them. Read branch protection's required checks on
   `main` again and confirm none of the renamed jobs is on it (it wasn't on 2026-11-20).
 
@@ -344,3 +344,19 @@ LTS; pnpm 12.21.0 installed with npm, which runs the pinned 12.6.0).**
   binary loads on the first `new Database()`, and that exits 139 (re-measured: `require` exit 0,
   opening a database exit 139 on 22.11.0, 22.12.0 and 22.13.1; both 0 on 22.14.0). #315's spec and
   the GitHub issue's repro say so too.
+
+**Task 8, the website (2026-11-20).**
+
+- ronne-web's `main` pinned Next.js 16.4.2, which has seven moderate advisories fixed in 16.4.5;
+  its build stopped on the notice. The owner chose to upgrade first: ronne-web `59b0b10` (16.4.6,
+  its own change), then #315's `bbf572c`, then this task's `486a25a`, one branch on the other.
+- `docs/product-facts.md` keeps "24 before it" in the runtime row. It doesn't say 24 is tested:
+  no CI job runs it (the owner's decision above).
+
+**Task 9, finishing (2026-11-20).**
+
+- Branch protection on `main`, read with `gh api …/branches/main/protection/required_status_checks`:
+  "Licenses and known vulnerabilities", "Analyze (actions)", "Analyze (javascript-typescript)",
+  "check" (`pr-title.yml`), "Database tests (mysql)", "Database tests (mariadb)",
+  "Database tests (postgres)", "Docker image (build, run, scan)", "End-to-end (Chromium)". The
+  rulesets (`…/rules/branches/main`) require none. No job this feature renames is on the list.
