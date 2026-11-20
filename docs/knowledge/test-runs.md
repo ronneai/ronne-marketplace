@@ -103,8 +103,8 @@ between.** JavaScript that runs on both ends runs between them, and the server's
   the code that runs on a person's Node.js, the SQLite database tests included. It saves only
   about 10% of `pnpm test`'s time; the minimum's job saves more by running nothing else.
 - **The jobs are named by role** ("Lint, typecheck, test, build (target Node.js)", "Runtime tests
-  (minimum Node.js)"; `role: target` / `role: minimum` in the matrices), so a new LTS doesn't
-  change the required checks.
+  (minimum Node.js)"; `role: target` / `role: minimum` in the matrices), so a new LTS changes
+  only the versions, never the job names.
 - **The minimum is a version, not a line.** better-sqlite3 13.2.0 crashed on Node.js 22.12.0 and
   22.13 (they lack N-API 10), and CI, running the newest 22.x, never saw it. The minimum's jobs
   should run `MIN_NODE` itself (188, task 7).

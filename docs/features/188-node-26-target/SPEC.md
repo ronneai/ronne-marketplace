@@ -47,7 +47,7 @@ to install pnpm with npm for the Node version in use. Nothing changes there beyo
     hid that 22.12 and 22.13 can't load `better-sqlite3` 13.2.0 (below);
   - `server-checks.yml` installs and runs the packed server on the minimum and the target on Linux,
     macOS and Windows. Node.js 24 gets no job of its own (owner, 2026-11-20).
-- **Role-based job names**, so the next LTS move doesn't change the required checks again:
+- **Role-based job names**, so the next LTS move changes only the versions, never the job names:
   "Lint, typecheck, test, build (target Node.js)" and "Runtime tests (minimum Node.js)". The matrix
   carries the version and its role (`role: target` / `role: minimum`), and the steps check the
   role, never a number.
@@ -80,15 +80,15 @@ to install pnpm with npm for the Node version in use. Nothing changes there beyo
 - Raising the minimum to 24: that happens when 22 reaches its end of life (April 2027), in its own
   change, as the policy says.
 - Raising the minimum from 22.12 to 22.14, the fix for the crash below: a GitHub issue of its own
-  (`docs/issues/`), since it changes what released versions claim (owner, 2026-11-20). The
+  (#315, `docs/issues/`), since it changes what released versions claim (owner, 2026-11-20). The
   minimum's job is pinned to `MIN_NODE` only after that fix, or it would fail on 22.12.
 - Moving `@types/node` or `lib` (ES2023): they follow the minimum.
 - The database, end-to-end, Windows client and image suites: they already run once, on `.nvmrc`'s
   version, and simply move to 26 with it.
 - Old specs, witness records and knowledge notes that record what happened on Node 24: history,
   left as written.
-- Branch protection's list of required checks: the owner changes it in GitHub's settings (the
-  names are below). This feature only says what to change.
+- Branch protection's list of required checks: none of the jobs this feature renames is on it
+  (below), so it doesn't change.
 
 ## Behaviour
 
@@ -139,11 +139,11 @@ Nightly and release runs call the same workflows, so they get the same split.
 
 ### Required checks
 
-Branch protection on `main` today requires "Lint, typecheck, test, build (Node 22)" and
-"Lint, typecheck, test, build (Node 24)". After this feature they are "Lint, typecheck, test, build
-(target Node.js)" and "Runtime tests (minimum Node.js)". The owner swaps them in GitHub's settings
-when the pull request opens. Until then the old names never report, and the pull request waits.
-Later LTS moves keep these names.
+Branch protection on `main` (read 2026-11-20) requires "Licenses and known vulnerabilities", the
+two CodeQL "Analyze" jobs, the PR title's "check", the three "Database tests", "Docker image (build,
+run, scan)" and "End-to-end (Chromium)". The `ci.yml` and `server-checks.yml` jobs this feature
+renames aren't on the list, before or after, so nothing changes in GitHub's settings. If the owner
+adds them later, the role-based names stay the same across LTS moves.
 
 ## Edge cases
 
@@ -186,7 +186,7 @@ when they run. The repository's own documents change as listed under Scope.
   version number.
 - [ ] `server-checks.yml` installs and runs the packed server on the minimum and 26 on all three
   OSes (6 jobs), with no Node.js 24 job. The service checks take the target from `.nvmrc`: Linux through `setup-node`, macOS through Homebrew, failing when Homebrew's major differs.
-- [ ] After the issue that raises the minimum to 22.14 lands, the minimum's entries in `ci.yml` and
+- [ ] After the issue that raises the minimum to 22.14 (#315) lands, the minimum's entries in `ci.yml` and
   `server-checks.yml` are exactly `MIN_NODE`.
 - [ ] `.nvmrc` is `26`. The `Dockerfile` uses `node:26-trixie-slim` pinned by digest, and the
   image's `node --version` prints v26. `NODE_MAJOR` is 26, and `bundle.js` fetches and verifies a
@@ -201,8 +201,8 @@ when they run. The repository's own documents change as listed under Scope.
 - [ ] `CLAUDE.md`, `CONTRIBUTING.md`, the dependency policy, MVP.md (with a §15 entry),
   `test-runs.md`, `turbo-test-inputs.md`, `release.md` and `threat-model.md` state the 26 target
   and the CI split as built, and nothing outside history still calls 24 the target.
-- [ ] The pull request's description lists the old and new required check names for the owner to
-  swap.
+- [ ] No required check on `main` changes name: the renamed jobs aren't on branch protection's
+  list.
 
 ## Open questions
 

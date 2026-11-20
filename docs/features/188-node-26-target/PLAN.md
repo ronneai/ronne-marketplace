@@ -114,7 +114,7 @@ comes before the version move, so the move's pull request already runs the new j
   statement matches the workflows and files from tasks 3–5.
 
 - [ ] **7. Pin the minimum's jobs to `MIN_NODE`.** Waits for the issue that raises the minimum to
-  22.14 (owner, 2026-11-20). Once it has landed, the `role: minimum` entries in `ci.yml` and
+  22.14 (#315, owner, 2026-11-20). Once it has landed, the `role: minimum` entries in `ci.yml` and
   `server-checks.yml` name `MIN_NODE`'s exact version, and the drift guard checks the exact version.
   *Done when:*
   - the drift guard fails if a minimum entry is `22` or any version other than `MIN_NODE`;
@@ -123,13 +123,11 @@ comes before the version move, so the move's pull request already runs the new j
   - on 22.13.1 the same `require` crashes, which shows the pin is what catches it.
 
 - [ ] **8. Finish.** Set 188's status in `docs/features/README.md`. Check SPEC.md's acceptance
-  criteria against what was built, and tick them. Write in the pull request's description the
-  required checks to swap:
-  - remove "Lint, typecheck, test, build (Node 22)" and "(Node 24)";
-  - add "Lint, typecheck, test, build (target Node.js)" and "Runtime tests (minimum Node.js)".
+  criteria against what was built, and tick them. Read branch protection's required checks on
+  `main` again and confirm none of the renamed jobs is on it (it wasn't on 2026-11-20).
 
-  *Done when:* `pnpm witness:check` and `pnpm docs:check` pass, every acceptance criterion is
-  ticked with a witness pass behind it, and the description text is in Notes for the owner.
+  *Done when:* `pnpm witness:check` and `pnpm docs:check` pass, and every acceptance criterion is
+  ticked with a witness pass behind it.
 
 ## Notes
 
