@@ -55,8 +55,12 @@ sign-in must be replaced, with 128's hold.
     `Passwords/Common-Credentials/10-million-password-list-top-1000000.txt`, or the largest file in
     that folder the plan's licence check clears. SecLists is MIT as a repository, but its lists
     come from public breach compilations, so the plan checks that nothing in the file's folder says
-    otherwise. If something does, a CC0 or CC-BY-4.0 list takes its place (data only, §1 of the
-    dependency policy).
+    otherwise. If something does, another list with a clear permissive licence takes its place
+    (owner, 2026-11-20): first the UK National Cyber Security Centre's list of the 100,000 most
+    used passwords, published under the Open Government Licence v3 (as permissive as CC-BY-4.0;
+    to confirm in the plan's task 2), otherwise a CC0 or CC-BY-4.0 list (data only, §1 of the
+    dependency policy). Have I Been Pwned alone, or a list of our own, isn't the fallback: the
+    first depends on an outside service, the second protects too little.
   - The bundle checks keep the file under 2 MB.
 - **Have I Been Pwned**: a setting on the Authentication tab, *Also check new passwords against Have
   I Been Pwned*, **off by default**.

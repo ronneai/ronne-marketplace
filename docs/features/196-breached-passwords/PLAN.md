@@ -20,7 +20,10 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - Pin a SecLists commit; confirm the MIT licence covers the chosen file and that nothing in its
     folder says otherwise; record it in `docs/policies/dependencies.md` (data, §1), and teach
     `packages/repo-tools/src/notices.js` to add vendored data files with their licence to the
-    `THIRD_PARTY_NOTICES` it writes. If it doesn't clear, use the spec's fallback and record why.
+    `THIRD_PARTY_NOTICES` it writes. If it doesn't clear, use the spec's fallback in its order (the NCSC list under the Open
+    Government Licence v3, its licence and the policy's data rule checked the same way, then a CC0
+    or CC-BY-4.0 list) and record why; adding the Open Government Licence to the policy is part of
+    the change.
   - *Done when:* the policy's checklist is filled in the change; `notices.test.js` covers a vendored
     data file; `pnpm licenses:check` and `pnpm docs:check` pass.
 

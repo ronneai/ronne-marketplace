@@ -241,7 +241,7 @@ and Ronne stops emailing them. The user's page says why.
    only at sign-in.
 5. **Deleted Apple accounts unlink, they don't erase** (owner, 2026-11-20): erasure (103) is root's
    decision, with its consequences.
-6. **Apple's notifications are used, and optional for root** (Claude, to confirm). Apple documents
+6. **Apple's notifications are used, and optional for root** (owner, 2026-11-20). Apple documents
    four (checked 2026-11-20): `email-disabled` and `email-enabled` (forwarding from the private
    relay turned off or on), `consent-revoked` (the person stopped using their Apple account with
    Ronne; Apple invalidates their credentials) and `account-deleted` (Apple deletes the account,
