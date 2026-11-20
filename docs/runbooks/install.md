@@ -24,7 +24,7 @@ Ronne.
 | Ronne on your own computer | No Docker | apt/dnf, as a service (Homebrew on hold) | `http://localhost:7650` |
 | Ronne for a team, on a server with a domain | Docker | The install script, answering "server" | `https://your-domain` |
 | Ronne for a team, no Docker | Linux server | The `.deb`/`.rpm` package, as a service | `https://your-domain` |
-| To try it once, without installing a service | Node.js 22.12+ | `npx @ronneai/marketplace` | `http://localhost:7650` |
+| To try it once, without installing a service | Node.js 22.14+ | `npx @ronneai/marketplace` | `http://localhost:7650` |
 
 Every way keeps your data (the database, stored items and settings) in one folder or volume, and
 runs database upgrades by itself when you upgrade Ronne. Ronne's commands are `rmk` (installing
@@ -144,7 +144,7 @@ domain can ask for new ones.
 
 ## Without Docker: try it with Node.js
 
-With Node.js 22.12 or later installed, one command downloads and starts Ronne, with nothing to
+With Node.js 22.14 or later installed, one command downloads and starts Ronne, with nothing to
 clone (feature 082):
 
 ```sh
@@ -253,7 +253,7 @@ Where things are, for a service installed with npm:
 On Windows, Ronne runs two ways.
 
 **In a terminal, on Windows itself** (best-effort; [#222](../issues/222-windows-foreground/SPEC.md)).
-With Node.js 22.12 or later, in PowerShell:
+With Node.js 22.14 or later, in PowerShell:
 
 ```powershell
 npx @ronneai/marketplace

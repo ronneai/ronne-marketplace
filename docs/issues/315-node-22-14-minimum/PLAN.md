@@ -17,11 +17,12 @@ the same change that completes it.
     is needed; this is 22.13.1." and exits 1, with no crash;
   - the same on 23.5.0, with the 23 message;
   - on the official 22.14.0 and 23.6.0 builds, the packed `rmk-server start` answers on its port.
-- [ ] **2. Repository docs.** `README.md`, the four package READMEs, `CONTRIBUTING.md`,
+- [x] **2. Repository docs.** `README.md`, the four package READMEs, `CONTRIBUTING.md`,
   `docs/runbooks/install.md`, `docs/policies/dependencies.md` §2, MVP.md §5 and a §15 row,
   `CLAUDE.md`, and this issue's row in `docs/issues/README.md`. *Done when:* a search for `22.12`
-  outside history (`docs/features`, `docs/issues`, witness records) and lockfiles finds nothing,
-  and each says what the spec lists.
+  outside history (`docs/features`, `docs/issues`, witness records) and lockfiles finds it only in
+  `node-version.ts`'s comment and test, which name it as a version that's refused, and each doc
+  says what the spec lists.
 - [ ] **3. The website.** ronne-web, branch `bugfix/marketplace-315-node-22-14`: the pages and
   messages the spec's Documentation lists, in en, pt and fr. *Done when:* ronne-web's own checks
   pass on the branch, and a search for `22.12` in `www/src` and `www/messages` finds nothing.
@@ -44,3 +45,11 @@ the same change that completes it.
   setup mode and crashes when the setup loads the driver (the blind witness). The Report says so.
 - `pnpm pack` in `packages/server` runs `prepack`, which refreshes the git-ignored `app/` and
   `THIRD_PARTY_NOTICES`; neither is tracked.
+
+**Task 2 (2026-11-20).**
+- MVP §15: the "Packages" row, which already named the minimum, now says 22.14.0 (23.6.0 on 23)
+  and why, instead of a new row.
+- Only the policy texts (`dependencies.md`, MVP §15) mention 23.6.0; the READMEs, the runbook and
+  CONTRIBUTING say "22.14 or later" (SPEC Decisions 3).
+- Feature 188's branch still says 22.12 in its own changed lines; they become 22.14 when it is
+  rebased onto this fix (188 task 7).

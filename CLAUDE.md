@@ -139,7 +139,7 @@ Pull requests are squash-merged, so the PR title becomes the commit on `main`. C
   - Published versions are immutable `.tgz` files with a sha256 checksum, stored through a `StorageAdapter` (local disk for now; S3-compatible storage is planned in M17).
 - **Dependencies** follow `docs/policies/dependencies.md`. Check it before adding any package, tool, action or image.
   - Only licenses that allow free use and redistribution (MIT, ISC, BSD, Apache-2.0, …). Never GPL, AGPL, SSPL, BUSL, non-commercial or unlicensed, even as a dev dependency. No tools that need a paid plan.
-  - Use the latest stable version, and LTS where there is one (Node.js 24 LTS target, 22 minimum).
+  - Use the latest stable version, and LTS where there is one (Node.js 24 LTS target, 22.14 minimum: `MIN_NODE` and `engines`, #315).
   - Don't add anything with known high or critical vulnerabilities. Keep the pnpm protections (`minimumReleaseAge`, `allowBuilds`, `trustPolicy`, `blockExoticSubdeps`) intact.
 - **Out of scope for the MVP:**
   - importing from external marketplaces;

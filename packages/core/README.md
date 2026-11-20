@@ -9,4 +9,4 @@ built on. Entry points: `@ronneai/core`, `@ronneai/core/pack`, `@ronneai/core/pl
 `@ronneai/core/schema.json`. Its API follows the marketplace's releases and may change while the
 version is 0.x.
 
-Needs Node.js 22.12 or later. MIT licensed.
+Needs Node.js 22.14 or later. MIT licensed.

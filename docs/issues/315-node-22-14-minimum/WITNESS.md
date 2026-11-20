@@ -79,3 +79,52 @@ Witnessed: 2026-11-20 15:50 EST, by a fresh agent (adversarial). Commit: cd426c5
 | 16 | (notes) `pnpm pack` refreshes `app/` and `THIRD_PARTY_NOTICES`, neither tracked | yes | confirmed | `git check-ignore -v` → `packages/server/.gitignore:2,4`; `git ls-files` lists neither; `git status` unchanged after packing |
 
 **Overall:** met: 23.0–23.5 are refused before the driver loads, on every command, with a message naming 23.6.0; 22.13.1 gets the exact message; npm's `engines` warning matches the check on every release version; 22.14.0 and 23.6.0 pass CI's full server probe.
+
+## Task 2 — Repository docs
+
+Witnessed: 2026-11-20 15:55 EST, by a fresh agent (blind). Commit: 8bcfac9f + working tree (10 files). Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A search for `22.12` outside history and lockfiles finds nothing | no | partly | `git grep -n '22\.12' -- . ':!docs/features' ':!docs/issues' ':!**/WITNESS.md' ':!pnpm-lock.yaml'` → 2 hits, both task 1's code: `node-version.ts:2` (comment) and `node-version.test.ts:15` (a too-old input). Both correct, but the literal *Done when* isn't true |
+| 2 | The minimum the docs state matches the code | no | confirmed | `node-version.ts:4,6`; all 5 `engines` say `^22.14.0 \|\| >=23.6.0`; `node-version.test.ts` → 3 passed |
+| 3 | `README.md` says 22.14 for the server and for `rmk`/`rmk-mcp` | no | confirmed | `README.md:176`, `:299` |
+| 4 | The four package READMEs say 22.14 | no | confirmed | core `:12`, cli `:28`, mcp `:20`, server `:4` |
+| 5 | `CONTRIBUTING.md` says 22.14 | no | confirmed | `CONTRIBUTING.md:23`; `.nvmrc` = 24, the link resolves |
+| 6 | `install.md` says 22.14 in the table, the npx and the Windows sections | no | confirmed | `install.md:27`, `:147`, `:256` |
+| 7 | `dependencies.md` §2 names the minimum's version and agrees with the code | no | confirmed | `dependencies.md:40` |
+| 8 | MVP.md §5 names 22.14.0 | no | confirmed | `MVP.md:438-440`; 23.x not mentioned, as Decisions 3 allows |
+| 9 | MVP.md §15 has a row for the decision | no | confirmed | `MVP.md:1000`: the "Packages" row amended rather than a new row |
+| 10 | `CLAUDE.md` names 22.14 | no | confirmed | `CLAUDE.md:142` |
+| 11 | User-facing texts say only "22.14 or later"; 23.6.0 only in the policy texts | no | confirmed | `git grep -n '23\.6'` among the changed docs → only `dependencies.md:40` and `MVP.md:1000` |
+| 12 | This issue's row in `docs/issues/README.md` | no | partly | `README.md:32`: the row exists and resolves, but says "in progress (task 1 done)" |
+| 13 | The new links resolve; the doc checks pass | no | confirmed | `links.mjs` → 6 links, 0 bad; `pnpm docs:check` and `pnpm witness:check` → exit 0 |
+
+**Overall:** not met: every listed doc says 22.14 and matches the code, but the literal `22.12` search still finds task 1's comment and test, and the index row is stale.
+
+Fixed after this pass: the *Done when* and the spec's second acceptance criterion say the search finds `22.12` only where `node-version.ts` and its test name it as refused; the index row says "tasks 1–2 done"; the Notes say why §15's existing row was amended and that 188's branch still says 22.12 until it's rebased.
+
+### Re-check — the wording of the *Done when* and the acceptance criterion, and the index row
+
+Witnessed: 2026-11-20 15:58 EST, by a fresh agent (blind). Commit: 8bcfac9f + working tree (`git diff`, 13 files). Machine: macOS 27.2.1 (Darwin 27.2.0, arm64), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The `22.12` search finds it only in `node-version.ts`'s comment and its test | no | confirmed | `git grep -n -I '22\.12' -- . ':!docs/features' ':!docs/issues' ':!pnpm-lock.yaml' ':!**/WITNESS.md'` → exactly `node-version.ts:2` and `node-version.test.ts:15`; no untracked files |
+| 2 | Both name 22.12 as refused | no | confirmed | `node-version.ts:2-3` "On 22.12, 22.13 and 23.0–23.5 the driver segfaults"; `node-version.test.ts:15-16` expects `nodeTooOld("22.12.0")` true |
+| 3 | The *Done when* and acceptance criterion 2 say exactly that, and agree | no | confirmed | PLAN.md:22-25; SPEC.md:98 |
+| 4 | The index row gives the right state | no | confirmed | `docs/issues/README.md:32` → "in progress (tasks 1–2 done)", true once task 2 is ticked in this commit |
+| 5 | `README.md` says 22.14 for the server and for `rmk`/`rmk-mcp` | yes | confirmed | `README.md:176`, `:299` |
+| 6 | The four package READMEs say 22.14 | yes | confirmed | cli `:28`, core `:12`, mcp `:20`, server `:4` |
+| 7 | `CONTRIBUTING.md` says 22.14 | yes | confirmed | `CONTRIBUTING.md:23` |
+| 8 | `install.md` says 22.14 in its three places | yes | confirmed | `install.md:27`, `:147`, `:256` |
+| 9 | `dependencies.md` §2 gives the version, why, and 23.6.0 on 23 | yes | confirmed | `dependencies.md:32` "## 2. Versions", `:40` |
+| 10 | MVP.md §5 gives 22.14.0 | no | confirmed | `MVP.md:438-440` |
+| 11 | MVP.md §15's "Packages" row updated, not a new row | yes | confirmed | `MVP.md:1000` |
+| 12 | `CLAUDE.md` names 22.14 | no | confirmed | `CLAUDE.md:142` |
+| 13 | The docs match the code; only the policy texts mention 23.6.0 | yes | confirmed | `node-version.ts:4,6`; `engines` in five `package.json` files read with node; `git grep '23\.6'` outside history → `MVP.md:1000`, `dependencies.md:40`, the code and its test |
+| 14 | The links the diff adds resolve | no | confirmed | `links.mjs` → 7 links, 0 bad |
+| 15 | The doc checks pass | no | confirmed | `pnpm docs:check`, `pnpm witness:check` → exit 0 |
+| 16 | (notes) 188's branch still says 22.12 in its own changed lines | yes | confirmed | `git grep -F 22.12 feat/188-node-26-target -- CLAUDE.md CONTRIBUTING.md docs/policies docs/knowledge .github` → `CLAUDE.md:142`, `CONTRIBUTING.md:24`, `dependencies.md:40`, `release.yml:445`, `test-runs.md:108`; the rebase half is future work |
+
+**Overall:** met: the search finds `22.12` only where task 1's code names it as refused, the index row reads "tasks 1–2 done", and every listed doc says 22.14 and matches `MIN_NODE` and `engines`.

@@ -1,7 +1,7 @@
 # @ronneai/marketplace
 
 [Ronne AI Marketplace](https://github.com/ronneai/ronne-marketplace), the open-source, self-hosted
-registry of AI capabilities, as one command. You need Node.js 22.12 or later; no clone, no Docker,
+registry of AI capabilities, as one command. You need Node.js 22.14 or later; no clone, no Docker,
 no build.
 
 ```sh

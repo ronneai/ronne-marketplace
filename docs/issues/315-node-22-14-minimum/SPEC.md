@@ -95,7 +95,7 @@ warning from npm, instead of a crash.
 - [ ] `MIN_NODE` is `22.14.0` and `MIN_NODE_23` is `23.6.0`; `nodeTooOld` is true for 22.13.1 and
   23.5.0 and false for 22.14.0 and 23.6.0; the server's `engines` matches (unit test).
 - [ ] Every package's `engines` and every text above says 22.14; a search for `22.12` outside
-  history and lockfiles finds nothing.
+  history and lockfiles finds it only where `node-version.ts` and its test name it as refused.
 - [ ] On the official 22.13.1 and 23.5.0 builds, the packed `rmk-server start` prints the message
   and exits 1; on 22.14.0 and 23.6.0 it starts and answers on its port.
 - [ ] The website says 22.14 in en, pt and fr, and ronne-web's checks pass.
