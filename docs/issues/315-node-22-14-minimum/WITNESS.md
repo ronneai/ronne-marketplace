@@ -128,3 +128,24 @@ Witnessed: 2026-11-20 15:58 EST, by a fresh agent (blind). Commit: 8bcfac9f + wo
 | 16 | (notes) 188's branch still says 22.12 in its own changed lines | yes | confirmed | `git grep -F 22.12 feat/188-node-26-target -- CLAUDE.md CONTRIBUTING.md docs/policies docs/knowledge .github` → `CLAUDE.md:142`, `CONTRIBUTING.md:24`, `dependencies.md:40`, `release.yml:445`, `test-runs.md:108`; the rebase half is future work |
 
 **Overall:** met: the search finds `22.12` only where task 1's code names it as refused, the index row reads "tasks 1–2 done", and every listed doc says 22.14 and matches `MIN_NODE` and `engines`.
+
+
+## Task 3 — The website
+
+Witnessed: 2026-11-20 15:58 EST, by a fresh agent (blind). Commit: 1a23d01 (ronne-web, branch `bugfix/marketplace-315-node-22-14`) + its uncommitted `git diff` (14 files, 24+/24-), facts from marketplace ff23d257. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A search for `22.12` in `www/src` and `www/messages` finds nothing | no | confirmed | `grep -rn "22\.12" www/src www/messages` → no matches; the built `.next/server/app` has none either |
+| 2 | The words match the facts: minimum 22.14, no Node.js 23 named on the site (Decisions 1 and 3) | no | confirmed | marketplace `node-version.ts:4`; `engines` `^22.14.0 \|\| >=23.6.0` in five `package.json`; `grep -E "23\.[0-6]"` in www → only "Compose 2.23.1" |
+| 3 | `install` (the `npx` and Windows terminal sections) says 22.14 in en, pt and fr | no | confirmed | `docs/{en,pt,fr}/install.tsx`, two lines each; built `install.html` per locale → 7× `22.14` |
+| 4 | `rmk` and `mcp` say 22.14 in en, pt and fr | no | confirmed | `{en,pt,fr}/rmk.tsx`, `{en,pt,fr}/mcp.tsx`; built pages → 5× `22.14` per locale |
+| 5 | The messages that said 22.12 say 22.14 in three languages, with identical keys | no | confirmed | `marketplace.run.node.description`, `marketplace.run.clone.description`, `releaseNotes.releases.v0-3-1.highlights.server`; `marketplace.facts.nodeValue` gets `{minimum}` from `nodeRuntime` (`Hero.tsx:28`); built `marketplace.html` → "Node.js 24 (22.14+ works)" and its pt and fr |
+| 6 | `nodeRuntime.minimum` is 22.14 | no | confirmed | `www/src/content/marketplace.ts:53` |
+| 7 | pt and fr wording follows the translation guide | no | confirmed | Only the numbers changed; fr keeps "ou plus récent" (`translation-guide.md:259`) |
+| 8 | ronne-web's own checks pass on the branch | no | confirmed | `pnpm lint`, `pnpm typecheck` → rc 0; `pnpm test` → 198 passed; `pnpm build` stopped once on Next.js's upgrade notice, the rerun → rc 0 |
+| 9 | No topic or section added or renamed | no | confirmed | `git status --porcelain` → the 14 modified files only; no `topics.ts` |
+
+**Overall:** met: every listed page, message and `nodeRuntime.minimum` says 22.14 in en, pt and fr, there's no `22.12` in `www/src`, `www/messages` or the build, and the checks pass (the build after its one-time notice).
+
+Committed after the pass as ronne-web `bbf572c`, on `59b0b10` (Next.js 16.4.6, its own change, for the notice in row 8): the same 14 files, 24+/24-, and the pre-commit checks passed with no notice.
