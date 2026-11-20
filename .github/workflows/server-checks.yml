@@ -20,13 +20,20 @@ permissions:
 
 jobs:
   install:
-    name: Install and run (${{ matrix.os }}, Node ${{ matrix.node }})
+    name: Install and run (${{ matrix.os }}, Node ${{ matrix.node }}, ${{ matrix.role }})
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        # The minimum supported LTS and the target LTS (docs/policies/dependencies.md §2).
+        # The minimum supported LTS and the target LTS (docs/policies/dependencies.md §2), never the
+        # versions between: rmk-server's native modules (better-sqlite3, @node-rs/argon2) are N-API,
+        # one binary for every version (188).
         node: [22, 24]
+        include:
+          - node: 22
+            role: minimum
+          - node: 24
+            role: target
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     steps:

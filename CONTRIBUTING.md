@@ -205,7 +205,7 @@ here.
 | Command | What it does |
 |---|---|
 | `pnpm test` | Runs every Vitest suite; `pnpm --filter @ronneai/core test` for one package |
-| `pnpm test:runtime` | The tests of the code that runs on a person's Node.js: every suite but the component tests (`*.test.tsx`) and `repo-tools` |
+| `pnpm test:runtime` | The tests of the code that runs on a person's Node.js: every suite but the component tests (`*.test.tsx`) and `repo-tools`. CI runs it on Node.js 22, the oldest supported line |
 | `pnpm test:db` | Only the database tests (`*.db.test.ts`), on in-memory SQLite or `TEST_DATABASE_URL` |
 | `pnpm test:db:core` | Only the database code's own tests (`db/`, migrations, repositories, setup, backup, scripts) |
 | `pnpm test:db:up` / `pnpm test:db:down` | Starts or stops local PostgreSQL, MySQL and MariaDB test servers at the minimum versions (Docker) |

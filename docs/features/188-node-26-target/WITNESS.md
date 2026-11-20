@@ -84,3 +84,38 @@ Witnessed: 2026-11-20 11:41 EST, by a fresh agent (blind). Commit: 838fcb43 + wo
 | 11 | Lint passes on the changed config, and `pnpm docs:check` passes | no | confirmed | `biome check apps/web/vitest.config.ts` → exit 0; `pnpm docs:check` → exit 0 |
 
 **Overall:** met: `test:runtime` leaves out every `.test.tsx` from both web projects (a planted `.db.test.tsx` included) and keeps all 468 other files; the full run still lists all 629; the two runs keep separate cache entries; the CONTRIBUTING row matches what the command does now.
+
+## Task 3 — The CI split by role
+
+Witnessed: 2026-11-20 11:47 EST, by a fresh agent (blind). Commit: 31020b45 + working tree (`git diff`: ci.yml, server-checks.yml, CONTRIBUTING.md, PLAN.md). Machine: macOS 27.2.1, Node v24.0.0 (probe run on v26.13.1).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Both workflows parse | yes | confirmed | actionlint isn't installed (not installed by the witness). `probe.mjs` (yaml 2.9.1, `parseDocument` with `uniqueKeys: true`) → no errors for ci.yml or server-checks.yml; jobs `changes, checks, witness, dependencies, e2e, clients-windows, e2e-result` / `install, service-linux, service-macos` |
+| 2 | ci.yml's matrix is `include: [{node: 22, role: minimum}, {node: 24 (26 in task 4), role: target}]` and expands to 2 jobs | yes | confirmed | ci.yml:43-49: an include-only matrix that also carries `name`. The probe applies GitHub's include rules → 2 jobs, `{22, minimum}` and `{24, target}`; no third version |
+| 3 | The job names are "Lint, typecheck, test, build (target Node.js)" and "Runtime tests (minimum Node.js)" | yes | confirmed | ci.yml:33 `name: ${{ matrix.name }}`; the probe expands it to exactly these two strings. The job's `if: !cancelled()` is unchanged, so it isn't skipped whole (which would show the name unexpanded) |
+| 4 | No `if:` names a Node.js version; steps check `matrix.role` | yes | confirmed | `grep -n "if:" ci.yml server-checks.yml \| grep -E "22\|24\|26\|matrix\.node"` → nothing (exit 1); the probe flags none. Mutation in a scratch copy (one `matrix.role == 'target'` back to `matrix.node == 24`) → the probe prints "IF NAMES VERSION" for every step |
+| 5 | The target job has every step the old Node 24 job had | yes | confirmed | The probe evaluates each step's `if:`. Old `{node:24}`: checkout, pnpm setup, setup-node, cache, install, lint, typecheck, test, build, build:server, packages:check, release:smoke. New `{role:target}`: the same 12, in the same order |
+| 6 | The minimum runs `pnpm install --frozen-lockfile` and `pnpm test:runtime` (and nothing of the target's) | no | confirmed | Probe, `{role:minimum}`: checkout, pnpm setup, setup-node, cache, install, test:runtime (ci.yml:83). Lint, test, build and packing are gated on `role == 'target'`. `turbo run test --filter=!@ronneai/repo-tools --dry=json` → config, core, marketplace, mcp, rmk, web; `test` dependsOn `^build`, so no separate build step is needed |
+| 7 | A documentation-only pull request still skips every step in both jobs, and both still report | no | confirmed | `checks`: 14 steps, 13 with `if: needs.changes.outputs.code != 'false'`, the echo step with `== 'false'`; the job-level `if: ${{ !cancelled() }}` is unchanged |
+| 8 | server-checks.yml's install matrix is minimum and target on every OS, each with its role, no middle version, 6 jobs | yes | confirmed | server-checks.yml:27-36: `os` × `node: [22, 24]` + `include` adding `role` per node → 6 jobs, each with a role (e.g. "Install and run (windows-latest, Node 22, minimum)"). Mutation adding `{node: 23, role: target}` → 7 jobs |
+| 9 | Turbo cache key stays per Node.js version | no | confirmed | ci.yml:70-71 `key: turbo-${{ runner.os }}-node${{ matrix.node }}-${{ github.sha }}`, restore-keys the same, unchanged from 31020b45 |
+| 10 | The comments are updated | no | partly | Old comments naming 22 and 24 replaced (ci.yml:27-31, 74-75; server-checks.yml:29-31). But server-checks.yml:31 says "a repo-tools test keeps it so (188)", and ci.yml:30-31 points to test-runs.md for the N-API reasoning: `git grep -i "n-api\|napi" -- packages/repo-tools docs/knowledge/test-runs.md` → no match. Tasks 5 and 6 would make these true |
+| 11 | Nothing else in the repository refers to the old job names | no | confirmed | `git grep -e "Lint, typecheck, test, build" -e "(Node 24)" -e "(Node 22)"` → only ci.yml, 188's SPEC/PLAN (the branch-protection swap) and a historical WITNESS row in feature 100; no workflow `needs:` the job by name. Branch protection itself: on GitHub. Stale CI prose in CLAUDE.md:51, CONTRIBUTING.md:178, test-runs.md:60,70, turbo-test-inputs.md:14, release.md:60 is task 6's |
+| 12 | CONTRIBUTING.md's `pnpm test:runtime` row ("CI runs it on the oldest supported Node.js") is true | no | partly | CI runs `node-version: 22` (ci.yml:44, 64), which setup-node resolves to the newest 22.x; the oldest supported version is `MIN_NODE = "22.12.0"`. True for the major only until task 7 pins it |
+
+**Overall:** not met: the CI split holds (parses, 2 role-named jobs, a 6-job install matrix, no version in any `if:`, the target keeps all 12 old steps), but two pieces of wording overstate the present state.
+
+Fixed after this pass: the row says "CI runs it on Node.js 22, the oldest supported line"; server-checks.yml's comment no longer names a test that doesn't exist yet (task 5 adds it back); ci.yml's comment points to 188's SPEC.md instead of test-runs.md (task 6 can repoint it).
+
+### Re-check — rows 10 and 12, and the parse and expansions
+
+Witnessed: 2026-11-20 11:48 EST, by a fresh agent (blind). Commit: 31020b45 + working tree (`git diff`: ci.yml, server-checks.yml, CONTRIBUTING.md, PLAN.md). Machine: macOS 27.2.1, Node v24.0.0 (probe run on v26.13.1).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Both workflows still parse, with the same expansions | yes | confirmed | `probe.mjs <repo>` → no parse errors. ci.yml `checks`: "Runtime tests (minimum Node.js)" {22, minimum}: install, test:runtime; "Lint, typecheck, test, build (target Node.js)" {24, target}: the old Node 24 job's 12 steps in order. No `if:` names a version. server-checks.yml `install`: 6 jobs, {ubuntu, macos, windows} × {22 minimum, 24 target} |
+| 10 | The comments are updated and true as of this tree | no | confirmed | server-checks.yml:29-31 "native modules (better-sqlite3, @node-rs/argon2) are N-API, one binary for every version (188)": packages/server/package.json:45-46; better-sqlite3 binding.gyp:21 `NAPI_VERSION=10`, `prebuilds/<platform>.node` with no ABI in the name; argon2 package.json:52 `napi` block. ci.yml:27-32 points to `docs/features/188-node-26-target/SPEC.md`, which states it (SPEC.md:57, 90). ci.yml:74-75 "server-package.yml installs and runs the packed server on both roles": through `uses: ./.github/workflows/server-checks.yml` (server-package.yml:90) |
+| 12 | CONTRIBUTING.md's `pnpm test:runtime` row is true | no | confirmed | CONTRIBUTING.md:208 "CI runs it on Node.js 22, the oldest supported line"; ci.yml:44 `node: 22, role: minimum`, ci.yml:83 runs `pnpm test:runtime` only when `matrix.role == 'minimum'`; `engines` ">=22.12" |
+
+**Overall:** met: the comments and the `test:runtime` row match the tree, and both workflows parse with the same expansions as the first pass.

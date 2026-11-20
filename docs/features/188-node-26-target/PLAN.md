@@ -36,7 +36,7 @@ comes before the version move, so the move's pull request already runs the new j
   - `pnpm docs:check` passes;
   - Notes record its time against `pnpm test` on the same machine.
 
-- [ ] **3. The CI split by role.**
+- [x] **3. The CI split by role.**
   - `ci.yml`'s matrix becomes `include: [{node: 22, role: minimum}, {node: 26, role: target}]`.
     Steps check `matrix.role`, never a number. The target runs what the Node 24 job ran, and the
     minimum runs `pnpm install --frozen-lockfile` and `pnpm test:runtime`. The job names are
@@ -179,3 +179,20 @@ LTS; pnpm 12.21.0 installed with npm, which runs the pinned 12.6.0).**
   10%: the component tests are cheap, and the time is in the database and server tests, which the
   minimum has to run. The minimum job's real saving is everything else it no longer runs (lint,
   typecheck, `pnpm build`), and there's no third version's job at all.
+
+**Task 3, the CI split (2026-11-20).**
+- `ci.yml`'s matrix is two `include` entries, each with `node`, `role` and `name`. The job's
+  name is `${{ matrix.name }}`, which is why the name lives in the matrix: an expression choosing
+  it from the role would work too, but would put the check names in an expression.
+- `server-checks.yml` keeps `node: [22, 24]` crossed with the OSes, and `include` adds `role` to
+  the combinations that match. That's 6 jobs. Two lists name the versions, the matrix and the
+  include, and task 5's guard checks they agree.
+- `actionlint` isn't installed here. The workflows were parsed with the repository's `yaml` package,
+  and the matrices expanded as GitHub does (an `include` entry matches only the original
+  combinations, else it becomes a job of its own):
+  - `ci.yml` → minimum 22 and target 24;
+  - `server-checks.yml` → {ubuntu, macos, windows} × {22 minimum, 24 target}.
+  - No step `if:` names a version. The old Node 24 job ran lint, typecheck, test, build,
+    `build:server`, `packages:check` and `release:smoke`, and the target job runs the same.
+- The target stays 24 until task 4 moves it.
+
