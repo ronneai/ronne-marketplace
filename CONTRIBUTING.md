@@ -20,7 +20,8 @@ following the [code of conduct](CODE_OF_CONDUCT.md).
 
 You need:
 
-- **Node.js 24 LTS** (see [`.nvmrc`](.nvmrc)); 22.14 or later also works.
+- **Node.js 26 LTS** (see [`.nvmrc`](.nvmrc)). Develop on it: CI runs everything there. The packages
+  run on 22.14 or later, and CI runs `pnpm test:runtime` on 22.
 - **pnpm**, installed directly: `npm install --global pnpm`. It then switches to the version pinned
   in `package.json` on its own. Don't use Corepack: current Corepack releases can't start pnpm 12.
   If `pnpm` is a Corepack shim on your machine, run `corepack disable pnpm` first.
@@ -175,7 +176,8 @@ Commit messages and pull request titles use one format:
 - Fill in the template: what the change does, the feature or issue, the tasks it does (unticked),
   the checks you ran, and what the Documentation should say.
 - Don't write "closes #N" or "fixes #N": issues are closed by hand when the fix is released.
-- CI runs lint and typecheck on Node 24, the tests and the build on Node 22 and 24, the witness,
+- CI runs lint, typecheck, the tests and the build on the target Node.js (26), `pnpm test:runtime`
+  on the oldest supported line (22), the witness,
   docs and license checks, CodeQL, the end-to-end tests, and the database tests on PostgreSQL,
   MySQL and MariaDB (all of them when database code changes, the database code's own otherwise). A
   pull request that only changes documentation skips the heavy steps. A draft pull request runs

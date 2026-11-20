@@ -5,8 +5,8 @@ import type { ServiceDefinition } from "./model.js";
 import type { System } from "./system.js";
 
 /**
- * Homebrew's Node reports its versioned path (…/Cellar/node@24/24.21.0/bin/node), which `brew
- * upgrade` removes. Its opt link (…/opt/node@24/bin/node) follows upgrades, so the service uses it.
+ * Homebrew's Node reports its versioned path (…/Cellar/node@26/26.13.1/bin/node), which `brew
+ * upgrade` removes. Its opt link (…/opt/node@26/bin/node) follows upgrades, so the service uses it.
  */
 export const stableNodePath = (execPath: string): string => {
   const at = execPath.indexOf("/Cellar/");

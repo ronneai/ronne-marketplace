@@ -14,10 +14,10 @@ until you approve its "npm" environment.
 - [ ] Last night's **Nightly** on `main` passed (Actions › Nightly; run it by hand if `main` moved
       since). Pull requests skip the server package, the install scripts and, unless they change
       them, the image ([test-runs.md](../knowledge/test-runs.md)): this is where they last ran.
-- [ ] The bundles' Node.js is current. The bundles take the newest Node.js 24 at build time from
-      nodejs.org (Dependabot can't see it). Compare the newest `v24.x.y` in
-      [nodejs.org/dist/index.json](https://nodejs.org/dist/index.json) with the one the last pull
-      request's *Bundle* jobs printed ("Node.js 24.x.y: … (matches SHASUMS256.txt)"). If a Node.js
+- [ ] The bundles' Node.js is current. The bundles take the newest Node.js of the target LTS
+      (`.nvmrc`, 26) at build time from nodejs.org (Dependabot can't see it). Compare the newest
+      `v26.x.y` in [nodejs.org/dist/index.json](https://nodejs.org/dist/index.json) with the one the
+      last pull request's *Bundle* jobs printed ("Node.js 26.x.y: … (matches SHASUMS256.txt)"). If a Node.js
       security release is announced for the coming days, wait for it.
 - [ ] The Caddy pin in `compose.yaml` (and the CI's Caddy download) has no open policy exception
       past its date (`docs/policies/dependencies.md` §5).
@@ -57,7 +57,7 @@ until you approve its "npm" environment.
         dependencies…", and "runs with its own Node.js, none on PATH". Their archives are the
         run's `bundle-*` artifacts.
   - [ ] *server-checks*, *install-scripts*, *database* and *e2e*: the server installed on Linux
-        and macOS on Node 22 and 24 and run as a service on each, run in a terminal on Windows
+        and macOS on the minimum and target Node.js (22 and 26) and run as a service on each, run in a terminal on Windows
         (and its `service` refused), the install
         script,
         every database test on PostgreSQL, MySQL and MariaDB, and the end-to-end tests. The

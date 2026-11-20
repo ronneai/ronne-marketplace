@@ -28,8 +28,8 @@ jobs:
   # what can differ on a person's oldest supported Node.js, the tests of the code that runs there
   # (`pnpm test:runtime`). Versions between them get no job: what passes on both ends runs on them,
   # and the server's native modules are N-API, one binary for every version
-  # (docs/features/188-node-26-target/SPEC.md). The names hold the role, so the required checks
-  # survive an LTS move.
+  # (docs/knowledge/test-runs.md). The names hold the role, so the required checks survive an LTS
+  # move.
   checks:
     name: ${{ matrix.name }}
     needs: changes

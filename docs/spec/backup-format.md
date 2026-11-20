@@ -257,7 +257,7 @@ key = scrypt(passphrase, salt, N, r, p, keylen = 32)
 - scrypt needs 128 × N × r bytes (128 MiB with the defaults), and Node.js counts more than that
   against `maxmem`, whose default (32 MiB) is too low: readers and writers pass
   `maxmem = 256 × N × r` (256 MiB with the defaults, 512 MiB at the readers' limit), measured to be
-  enough for every accepted header on Node.js 22 and 24.
+  enough for every accepted header on Node.js 22, 24 and 26.
 - The salt is new for every archive, so every archive has its own key: nonces never repeat under a
   key, and there is no nonce prefix to store.
 

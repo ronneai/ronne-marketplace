@@ -94,7 +94,7 @@ comes before the version move, so the move's pull request already runs the new j
   - the second test finds `better-sqlite3`'s and `@node-rs/argon2`'s binaries in the real tree, and
     fails on a binary without the export, naming the package and the file.
 
-- [ ] **6. The documents.**
+- [x] **6. The documents.**
   - `CLAUDE.md`'s Commands (the Node.js line and the CI paragraph) and the dependencies bullet.
   - `CONTRIBUTING.md`'s requirements (develop on `.nvmrc`'s version; the packages run on 22.12 or
     later) and its CI paragraph.
@@ -280,3 +280,34 @@ LTS; pnpm 12.21.0 installed with npm, which runs the pinned 12.6.0).**
 - 26 tests: the real repository passes both guards, and each kind of mismatch, including the forms
   the earlier versions missed, is planted in a copy of the real files' text and named in its
   message. The peer and dev-dependency walk rules have a test of their own.
+
+**Task 6, the documents (2026-11-20).**
+- Changed:
+  - `CLAUDE.md`: the Node.js line, the CI paragraph, and the dependencies bullet, which now names
+    the guard;
+  - `CONTRIBUTING.md`: develop on 26, the packages run on 22.12 or later, and the CI paragraph;
+  - the dependency policy: the §2 table at 26, a line on what CI tests and on the guard, and the
+    bundled Node.js row;
+  - MVP.md: the Docker and Packages rows, and a "Node.js versions" row at the end of §15;
+  - `test-runs.md`: a new section, "Which Node.js version runs what", with the risk table, and
+    pointers to it from the CI bullets;
+  - `release.md`: the bundles' Node.js check and the server-checks line;
+  - `threat-model.md`'s image row;
+  - `backup-format.md`'s `maxmem` line, which adds 26: task 1's tests and the task 1 witness's
+    scrypt probe measured it.
+- `ci.yml`'s comment now points to `test-runs.md`, as task 3 planned.
+- Kept as history: `turbo-test-inputs.md`, whose "failed on Node 22 and 24" tells what happened
+  on 2026-10-30, and `image-security-updates.md`.
+- The search for "Node 24", "Node.js 24", "node:24", "node@24" and "node-version: 24" outside
+  old specs, issues and witness records finds:
+  - that note;
+  - test fixtures (`bundle.test.js`, `node-versions.test.js`);
+  - the example Homebrew path in `packages/server/src/service/macos.test.ts`, a fixture. Its
+    comment in `macos.ts` now shows `node@26`.
+- MVP.md §5's "Supported runtimes" also named 24 as the target, in words the search misses
+  ("Active LTS (24 in September 2026)"). The witness found it, and it now says 26, the 22.12
+  minimum and the CI split. A wider search (`Active LTS (2N`, `LTS (24`, `24 LTS`, `LTS 24`) finds
+  nothing else.
+- The 22.13 crash was first claimed from its headers only. Then an official
+  `node-v22.13.1-darwin-arm64` build (checked against `SHASUMS256.txt`) reported N-API 9, and
+  `require("better-sqlite3")` exited 139, so it's measured now, as 22.12.0 was.

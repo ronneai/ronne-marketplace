@@ -273,3 +273,46 @@ Witnessed: 2026-11-20 12:20 EST, by a fresh agent (blind). Commit: e0bdc406 + wo
 | 3 | Each check has a test that fails without it, including the `?<TAB>` and the inline `matrix: ${{ … }}` clauses | yes | confirmed | `mutate5.mjs`, each mutation failing exactly 1 test (25/26): explicit keys on a space only; explicit keys not reported; the `${{`-line clause removed; the `fromjson(` clause removed; the inline `/matrix *: *\$\{\{/` removed; a bare `?` not reported. `mutate4.mjs` 0, 5, 6, 7 (role-workflow node keys, case, space before the colon, quoted key) each fail 1 test. `drift-probe4.mjs` and `inline-matrix.mjs` still report every form |
 
 **Overall:** met: every claim in rows 3, 4 and 17 is confirmed; every clause of the drift and N-API guards has a test that fails without it.
+
+## Task 6 — The documents
+
+Witnessed: 2026-11-20 12:26 EST, by a fresh agent (blind). Commit: c98d3fa0 + working tree. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `pnpm docs:check` passes | no | confirmed | `pnpm docs:check` on Node 26 → exit 0 |
+| 2 | The Done-when `git grep` ("Node 24", "Node.js 24", "node:24", "node@24", "node-version: 24") finds only history, test fixtures and the "then the minimum moves to 24" line | yes | partly | Outside old specs, issues and witness records: `image-security-updates.md:16` (dated note); `bundle.test.js`, `node-versions.test.js`, `macos.test.ts` (fixtures); and `packages/server/src/service/macos.ts:8-9`, a comment using `…/Cellar/node@24/24.21.0/bin/node` as an example path: not the target, but not in the Done-when's list |
+| 3 | Nothing outside history still calls 24 the target | yes | not met | A wider grep (`node[ @:-]?v?24`, `Active LTS`, `target LTS`) → `docs/MVP/MVP.md:437` (§5): "the target is the newest Node.js Active LTS (24 in September 2026), used for development, CI and the Docker image. The minimum … (22, until April 2027)": not updated, and missed by the Done-when grep's wording |
+| 4 | CLAUDE.md: Node.js 26 from `.nvmrc`; CI runs lint, typecheck, test and build on the target and `test:runtime` on the minimum (22), no job between; deps bullet "26 LTS target, 22.12 minimum" | yes | confirmed | `.nvmrc` = `26`; `ci.yml:44-49` `node: 22 role: minimum`, `node: 26 role: target`; `ci.yml:75-98` target-only steps and `test:runtime` on the minimum; `engines` `>=22.12`, `MIN_NODE = "22.12.0"` |
+| 5 | CLAUDE.md and the dependency policy say the repo-tools `pnpm test` fails when a place naming the target drifts from `.nvmrc` | yes | confirmed | `node-versions.test.js` → 26 passed; `:85` asserts the real files give `[]`; `drift-probe.mjs` with `.nvmrc` 28 → 5 problems |
+| 6 | CONTRIBUTING.md: develop on 26; packages run on 22.12+, `test:runtime` on 22; CI paragraph | yes | confirmed | Matches `ci.yml` and `engines`. Remark: rmk-server crashes on 22.12.0 (the known issue, task 7) |
+| 7 | Dependency policy §2: target 26 (dev, CI, Docker, bundles), minimum 22 from 22.12, then 24; versions between untested while native modules are N-API; bundled Node.js row "newest 26 (`NODE_MAJOR`)" | yes | confirmed | `Dockerfile:9` `node:26-trixie-slim@sha256:e6bed…`; `bundle.js:31` `NODE_MAJOR = 26`, `:190` `latestOf(index.json, NODE_MAJOR)`; `bundles.yml:46`, `packages.yml:58` `node-version-file: .nvmrc` |
+| 8 | MVP.md Docker and Packages rows, and a §15 entry dated 2026-11-20 | yes | confirmed | `MVP.md:976` `node:26-trixie-slim`; `:999` "Node 26 LTS target…, 22.12 minimum"; the "Node.js versions" row at `:1023` under `## 15. Decision log`, matching ci.yml, server-checks.yml and the guard |
+| 9 | test-runs.md has a "Which Node.js version runs what" section with SPEC's table and rule, replacing the Node 22/24 bullets | yes | confirmed | `test-runs.md:87`: the rule; a 5-row table condensing SPEC's 7 rows; the old bullets point to it. `base.json:15` `lib: ["ES2023"]`; `@types/node` 22.20.5; `server-checks.yml:27-36` {ubuntu, macos, windows} × {22 minimum, 26 target}; `test:runtime` script; "about 10%" agrees with task 2's timings |
+| 10 | test-runs.md: `.nvmrc` is the one source; the Docker base, `NODE_MAJOR`, the feed workflow and the role matrices must agree; no other workflow names a version | yes | confirmed | Only `ci.yml:65` and `server-checks.yml:47` use `${{ matrix.node }}`; every other `setup-node` uses `node-version-file: .nvmrc`; the guard reads all four places |
+| 11 | turbo-test-inputs.md's "Node 22 and 24" is history and rightly unchanged | yes | confirmed | `turbo-test-inputs.md:7-14` under "What happened (2026-10-30)" |
+| 12 | release.md: newest `v26.x.y` and "Node.js 26.x.y: … (matches SHASUMS256.txt)"; server-checks on the minimum and target (22 and 26) | yes | confirmed | `bundle.js:199` prints that line; `server-checks.yml:31` `[22, 26]`; services from `.nvmrc` and Homebrew's target; `release.yml:356-358` calls server-checks |
+| 13 | threat-model.md's image row says `node:26-trixie-slim@sha256:…` | yes | confirmed | Matches `Dockerfile:9` |
+| 14 | backup-format.md: `maxmem = 256·N·r` measured enough for every accepted header on 22, 24 and 26 | yes | confirmed | `crypto.test.ts` on v26.13.1 → 9 passed (12.4 s). `scrypt-maxmem-probe.mjs` at log2N {15, 18} × p {1, 4}: ok on v26.13.1, v24.21.0, v22.23.2, v22.11.0; control `128·N·r` → `ERR_CRYPTO_INVALID_SCRYPT_PARAMS` everywhere |
+| 15 | test-runs.md and the MVP §15 row: better-sqlite3 13.2.0 "crashed on Node.js 22.12.0 and 22.13" | yes | partly | v22.11.0 → exit 139; v22.23.2, v26.13.1 → work. No 22.13 build here (download denied); task 1's record ran 22.12.0 but rests 22.13 on its header only |
+| 16 | Links and anchors in the changed Markdown resolve | no | confirmed | `link-probe.mjs` (GitHub-style slugs) → 11 links, 0 bad, including `test-runs.md#which-nodejs-version-runs-what` |
+| 17 | No other document stating the target or the CI split was missed | yes | not met | `MVP.md:437` (row 3). README, `install.md`, package READMEs, `cli.ts` HELP, `install.sh`, `release.yml:445` state only the 22.12 minimum; `dependabot.yml` comments say "Active LTS" with no number |
+
+**Overall:** not met: the documents in the task's list match the files, but `MVP.md:437` (§5) still calls 24 the target, and two wording gaps remain (rows 2 and 15).
+
+Fixed after this pass: MVP.md §5 names 26, the 22.12 minimum and the CI split, with a link to test-runs.md; `macos.ts`'s example path is `node@26`; an official 22.13.1 build was run (N-API 9, exit 139); PLAN.md's trailing blank line removed.
+
+### Re-check — rows 2, 3, 15, 17 and the trailing blank line
+
+Witnessed: 2026-11-20 12:27 EST, by a fresh agent (blind). Commit: c98d3fa0 + working tree. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 2 | The Done-when `git grep` finds only history, test fixtures and the "then the minimum moves to 24" line | yes | confirmed | Outside old specs, issues, witness records and tests → only `image-security-updates.md:16` (dated 2026-11-18). `macos.ts:8-9` now `…/Cellar/node@26/26.13.1/bin/node`, `…/opt/node@26/bin/node`; `macos.test.ts`'s `node@24` fixture passes (12 passed) |
+| 3 | Nothing outside history still calls 24 the target | yes | confirmed | Wider grep (`node[ @:-]?v?24\b`, `24 LTS`, `22 and 24`, `Active LTS`, `target LTS`, `LTS target`) → none. `MVP.md:437-441`: "26 since 2026-11-20, [188]…; 24 before", "development, CI, the Docker image and the bundles", "22, from 22.12", CI split matching `ci.yml:44-98`. Leftovers: `MVP.md:978` "24 until 2026-11-20" (dated), `turbo-test-inputs.md:14` (history), sample commit titles at `CLAUDE.md:83`, `CONTRIBUTING.md:167` |
+| 15 | better-sqlite3 13.2.0 crashed on Node.js 22.12.0 and 22.13 | yes | confirmed | `scratchpad/node-22.13/node-v22.13.1-darwin-arm64/bin/node` from `apps/web`: `v22.13.1 napi 9`, `require("better-sqlite3")` → exit 139. Tarball SHA-256 `97483ff4…d9d19b89`; the binary is code-signed (TeamIdentifier `HX7739G8FX`). 22.12.0 rests on task 1's record (exit 139 on the official build) |
+| 17 | No other document stating the target or the CI split was missed | yes | confirmed | The wider grep found nothing else; `link-probe.mjs` → 13 links, 0 bad, including MVP.md's `../knowledge/test-runs.md#which-nodejs-version-runs-what`; `pnpm docs:check` → exit 0 |
+| 18 | The trailing blank line in PLAN.md is gone | no | confirmed | `git diff --check` → no output, exit 0 |
+| 19 | `ci.yml`'s comment now points to `test-runs.md` | yes | confirmed | `ci.yml:31-33` "(docs/knowledge/test-runs.md)"; `node-versions.test.js` → 26 passed |
+
+**Overall:** met: every row of the first pass is now confirmed: MVP §5 states 26, the 22.12 minimum and the CI split; the `macos.ts` example no longer names 24; the 22.13 crash was measured; links resolve; `docs:check` and `git diff --check` are clean.
