@@ -78,6 +78,9 @@ possible, and follow the standards (owner, 2026-11-20).
     From address is validated, or an absolute `https://` URL with no user name or password in it.
   - **Sender:** the From address and name. The domain's SPF, DKIM and DMARC are the provider's and
     the DNS's job; the tab links the Documentation's guide.
+  - **Reply-To:** required, an email address validated as the From address is. Replies go there,
+    so a From address such as `no-reply@…` never swallows a person's answer to a notice. It starts
+    filled with the instance contact when that is an email address. Every message carries it.
   - **Transport:** a choice, then the transport's fields, with the preset's steps beside them.
   - **Send test email:** it goes to the signed-in root's own address, never one typed in, so the tab
     can't be used to send mail to strangers. It's sent at once rather than queued. The result
@@ -151,7 +154,7 @@ possible, and follow the standards (owner, 2026-11-20).
 
 - **Bounces, complaints and suppression lists:** the provider's own. Ronne doesn't read webhooks.
 - **Email for in-app notifications (139), digests and anything else that isn't about an account's
-  safety or sign-in:** not planned. 139 stays in the app.
+  safety or sign-in:** not planned (owner, 2026-11-20). 139 stays in the app.
 - **DKIM signing by Ronne, and OAuth sign-in to SMTP** (Microsoft 365's and Google's XOAUTH2):
   later, if asked. DKIM is the provider's.
 - **SendGrid's web API:** SendGrid comes as an SMTP preset only.
@@ -229,7 +232,8 @@ attempt, or at once on a permanent error such as `535 authentication failed`.
   `mail_smtp_host`, `mail_smtp_port`, `mail_smtp_tls`, `mail_smtp_user`, `mail_smtp_password_enc`,
   `mail_api_key_enc`, `mail_region`, `mail_domain`, `mail_ses_access_key_id`,
   `mail_ses_secret_access_key_enc`, `mail_contact` (the instance contact; also
-  `RONNE_MAIL_CONTACT` when the environment sets the email setup), and `mail_last_status` (JSON: status, time, reason category).
+  `RONNE_MAIL_CONTACT` when the environment sets the email setup), `mail_reply_to` (also
+  `RONNE_MAIL_REPLY_TO`), and `mail_last_status` (JSON: status, time, reason category).
 - **`jobs` row:** `mail_outbox`.
 
 ## Documentation
@@ -266,6 +270,7 @@ attempt, or at once on a permanent error such as `535 authentication failed`.
 - [ ] The cap of 10 an hour per address holds across templates.
 - [ ] The instance contact is validated, appears in every security notice, and is required before
   190's or 194's switch can be turned on.
+- [ ] The Reply-To is required to save the email setup, validated, and on every message sent.
 - [ ] The six security notices go out in the person's language. Nothing is queued when email isn't
   set up.
 - [ ] Retention purges rows, erase deletes the person's, and *your data* lists them.
@@ -299,9 +304,11 @@ attempt, or at once on a permanent error such as `535 authentication failed`.
    asks that a notice give the recipient clear instructions and whom to contact if they didn't make
    the change. It's required before anyone can create an account (190) or reset a password by email
    (194), the two features that let people act without a root.
+10. **A Reply-To root must set** (owner, 2026-11-20): someone who answers a code or a notice reaches
+    a person, whatever the From address is.
+11. **No email for in-app notifications** (owner, 2026-11-20): email is for an account's safety
+    and sign-in only.
 
 ## Open questions
 
-- Should a Reply-To setting exist, for instances whose From address doesn't receive mail? Not
-  needed for codes or notices, so it's left out unless asked.
-- Should 139's in-app notifications get an email option later (owner)? Nothing here blocks it.
+None.

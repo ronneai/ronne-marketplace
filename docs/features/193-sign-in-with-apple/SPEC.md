@@ -96,7 +96,7 @@ against Apple's documentation and developer forums on 2026-11-20.
     - **`consent-revoked`:** the person stopped using their Apple account with Ronne. Their sessions
       from Apple end. The link is kept, so signing in with Apple again (which asks for consent
       again) finds the same subject.
-    - **`account-delete`, and `account-deleted` as observed:** the person deleted their Apple
+    - **`account-deleted`** (Apple's documented name; `account-delete` is accepted too): the person deleted their Apple
       account. The link is removed and their sessions from Apple end. The account itself stays,
       since erasing is root's decision (103). With no other way in left (no password, no other
       provider), the account is disabled as root's Disable does (its tokens stop working) and the
@@ -119,7 +119,11 @@ against Apple's documentation and developer forums on 2026-11-20.
   191's creation rules.
 - **The button:**
   - Apple's standard *Sign in with Apple* button: black in the light theme, white in the dark one.
-  - From Apple's official assets, with Apple's approved title per language.
+  - Apple's own buttons translate their title automatically, but only when drawn by Apple's
+    script or served from Apple's servers, which Ronne doesn't load. So it is a custom button built
+    to Apple's guidelines for one (the logo, black or white, at least 140 by 30 pixels), with
+    Apple's own title in each language, copied once from Apple's button in that language and
+    kept in Ronne's messages (checked 2026-11-20).
   - The same size as the other social buttons, as Apple's guidelines ask.
   - No Apple script.
 
@@ -237,9 +241,19 @@ and Ronne stops emailing them. The user's page says why.
    only at sign-in.
 5. **Deleted Apple accounts unlink, they don't erase** (owner, 2026-11-20): erasure (103) is root's
    decision, with its consequences.
+6. **Apple's notifications are used, and optional for root** (Claude, to confirm). Apple documents
+   four (checked 2026-11-20): `email-disabled` and `email-enabled` (forwarding from the private
+   relay turned off or on), `consent-revoked` (the person stopped using their Apple account with
+   Ronne; Apple invalidates their credentials) and `account-deleted` (Apple deletes the account,
+   invalidates its tokens and stops forwarding). Without them, Ronne would keep a revoked person's
+   sessions and tokens working, and send security notices to a relay that no longer forwards, so
+   the person never sees them. Apple doesn't require them for a website. They're set on the
+   primary App ID the Services ID belongs to, which Sign in with Apple for the web needs anyway.
+   Without the endpoint registered Apple sign-in still works; the provider page says what is
+   missed.
 
 ## Open questions
 
 None. The vendor facts still to check are plan tasks: whether Apple's discovery lists PKCE (`S256`)
-(task 2; the flow is safe either way) and whether Apple delivers notifications for a web-only
-Services ID (task 5, with a real Apple account).
+(task 2; the flow is safe either way), and a real Apple account trying each notification once
+(task 5).

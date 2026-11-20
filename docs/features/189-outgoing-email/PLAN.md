@@ -78,7 +78,9 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - `email` in `SETTINGS_TABS`; the status, sender, transport with presets and steps, the write-only
     secrets and *Set on the server*; the **Instance contact** field (`mail_contact`, or
     `RONNE_MAIL_CONTACT`), validated as an email address or an `https://` URL, and
-    `instanceContact()` for 190 and 194 to check before their switches turn on.
+    `instanceContact()` for 190 and 194 to check before their switches turn on; the required
+    **Reply-To** field (`mail_reply_to`, or `RONNE_MAIL_REPLY_TO`), filled from the contact when
+    that is an email address, and set on every message.
   - **Send test email** (to root only, 5 in 10 minutes) and **Stop sending**.
   - Screen text through messages in three languages.
   - *Done when:* component tests cover each status, each transport's fields, a secret saved and

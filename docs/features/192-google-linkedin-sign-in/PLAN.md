@@ -67,9 +67,9 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 - [ ] **6. Brand buttons.**
   - Pass the [dependency policy](../../policies/dependencies.md) checklist for the vendors' button
     assets (trademarks under guidelines, not a package), and add them to the third-party notices.
-  - The assets in light and dark. Check each brand's approved wording in Brazilian Portuguese and
-    Canadian French in its download, use it, or English where there is none, and record which in
-    Notes.
+  - The assets in light and dark. Google: built to its rules with the text translated in Ronne's
+    messages (its download is English only; translation is encouraged). LinkedIn: English, after
+    checking its brand resources by hand for translated buttons; record what was found in Notes.
   - The sign-in and sign-up pages: "Or continue with", equal sizes, 44px on a coarse pointer.
   - The CSP test is unchanged.
   - *Done when:*

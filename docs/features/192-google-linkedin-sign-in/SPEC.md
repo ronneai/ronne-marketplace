@@ -75,8 +75,16 @@ safety first, and the standards followed.
     theme and dark in the dark one; LinkedIn's *Sign in with LinkedIn*). They are static assets from
     the vendors' official downloads, kept in `apps/web`, the logos unchanged. No vendor script loads
     and the content security policy doesn't change.
-  - **The words:** the brand's approved wording in each language. Ronne's messages hold only the
-    accessible name.
+  - **The words** (checked 2026-11-20):
+    - **Google:** its download (`signin-assets.zip`) has the buttons in English only, and its
+      guidelines say translating the text "is permitted and encouraged". So the Google button is
+      built to Google's rules (the standard colour "G" unchanged, its colours, Google Sans Medium
+      14/20, its padding), with *Sign in with Google*, *Sign up with Google* or *Continue with
+      Google* translated in Ronne's messages for Brazilian Portuguese and Canadian French.
+    - **LinkedIn:** no translated official buttons were found, and LinkedIn's brand site refuses
+      automated reading. The button stays in English for now (owner, 2026-11-20); task 6 checks
+      the brand resources by hand and switches if LinkedIn offers translations.
+    - Ronne's messages hold the accessible name in all three languages.
   - **The layout:** social buttons sit together under "Or continue with". All are the same size, as
     each brand's guidelines ask, 44px tall on a coarse pointer. 157's marks stay on company provider
     buttons.
@@ -220,6 +228,5 @@ email, only from the Account page.
 ## Open questions
 
 None. The vendor facts still to check are plan tasks: LinkedIn's PKCE (task 2; if LinkedIn refuses
-it, the preset turns PKCE off for LinkedIn only and `state` and `nonce` carry the protection) and
-the brands' approved button wording in Brazilian Portuguese and Canadian French (task 6; English
-where a brand has none).
+it, the preset turns PKCE off for LinkedIn only, and the client secret, `state` and `nonce` carry
+the protection) and LinkedIn's brand resources, checked by hand (task 6).

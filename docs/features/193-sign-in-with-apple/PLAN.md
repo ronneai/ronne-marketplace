@@ -78,7 +78,9 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 - [ ] **7. The button.**
   - Pass the [dependency policy](../../policies/dependencies.md) checklist for Apple's button
     assets, and add them to the third-party notices.
-  - Black and white variants, the approved title per language, the same size as 192's buttons.
+  - A custom button to Apple's guidelines, black and white, at least 140 by 30, the same size as
+    192's buttons, with Apple's own title per language copied once from Apple's button in pt-BR
+    and fr-CA and recorded in Notes.
   - *Done when:* the sign-in and sign-up tests render it in both themes and three languages, and
     the end-to-end sign-in with the fake Apple passes in both shards' projects.
 
