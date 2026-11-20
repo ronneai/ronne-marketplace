@@ -1,11 +1,12 @@
 name: Bundles
 
 # The self-contained rmk-server bundles (feature 084): one archive per system (Linux and macOS: no
-# Windows bundle since 121; on Windows, rmk-server runs from npm in a terminal, #222) and processor, each
-# with the official Node.js 24 inside. Called by server-package.yml on every pull request and by
-# release.yml, after a job that uploaded the packed @ronneai/marketplace as the "server-tarball"
-# artifact. Each archive is built on a runner of its own platform (npm installs the native modules of
-# the machine it runs on; nothing cross-compiles), then smoke-tested there with no Node.js on PATH:
+# Windows bundle since 121; on Windows, rmk-server runs from npm in a terminal, #222) and processor,
+# each with the official Node.js of the target LTS inside (bundle.js NODE_MAJOR, .nvmrc's major).
+# Called by server-package.yml on every pull request and by release.yml, after a job that uploaded
+# the packed @ronneai/marketplace as the "server-tarball" artifact. Each archive is built on a
+# runner of its own platform (npm installs the native modules of the machine it runs on; nothing
+# cross-compiles), then smoke-tested there with no Node.js on PATH:
 # packages/repo-tools/src/bundle-smoke.js unpacks it and runs 082's server-probe.js against its
 # launcher. Each passing archive is uploaded as "bundle-<platform>-<arch>".
 
@@ -36,12 +37,13 @@ jobs:
           sparse-checkout: |
             packages/repo-tools/src
             LICENSE
+            /.nvmrc
           sparse-checkout-cone-mode: false
       # Only to run the build script; the bundle brings its own Node, and the smoke test takes
       # every Node off PATH.
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 24
+          node-version-file: .nvmrc
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: server-tarball

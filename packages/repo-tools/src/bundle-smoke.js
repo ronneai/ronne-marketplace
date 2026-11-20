@@ -10,6 +10,7 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { NODE_MAJOR } from "./bundle.js";
 import { checkBundle } from "./bundle-check.js";
 
 /** PATH without any folder that holds a Node.js. */
@@ -75,7 +76,7 @@ const main = () => {
   if (
     shown.status !== 0 ||
     lines[0] !== version ||
-    !/^Node\.js 24\.\d+\.\d+ \(bundled\)$/.test(lines[1] ?? "")
+    !new RegExp(`^Node\\.js ${NODE_MAJOR}\\.\\d+\\.\\d+ \\(bundled\\)$`).test(lines[1] ?? "")
   )
     fail(
       `--version printed ${JSON.stringify(shown.stdout)} (exit ${shown.status}), not ${version} and the bundled Node`,

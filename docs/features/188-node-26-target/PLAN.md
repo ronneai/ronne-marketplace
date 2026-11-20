@@ -50,7 +50,7 @@ comes before the version move, so the move's pull request already runs the new j
   names a Node.js version, the target job has every step the old Node 24 job had, and the install
   matrix expands to 6 jobs.
 
-- [ ] **4. Move the target to 26.**
+- [x] **4. Move the target to 26.**
   - `.nvmrc` becomes `26`.
   - The `Dockerfile` uses `node:26-trixie-slim@sha256:…`: the current multi-arch index digest from
     Docker Hub, with its comment.
@@ -59,7 +59,9 @@ comes before the version move, so the move's pull request already runs the new j
   - `feed-workflow.ts` uses `node-version: 26` and `image: node:26`, with its golden files and
     `feed-workflow.test.ts`.
   - The target entries in `ci.yml` and `server-checks.yml` become 26.
-  - The Homebrew service step uses `node@26`.
+  - The service checks read `.nvmrc`: `setup-node` on Linux, and on macOS Homebrew's `node@N` if
+    Homebrew knows that name, else `node`, stopping when the installed major isn't `.nvmrc`'s.
+    Today `node@26` is an alias of Homebrew's `node` (26.13.1).
   - `bundles.yml` and `packages.yml` use `node-version-file: .nvmrc`, with `.nvmrc` in their
     sparse checkouts.
 
@@ -75,7 +77,8 @@ comes before the version move, so the move's pull request already runs the new j
   - the `Dockerfile`'s `FROM node:N-…`;
   - `NODE_MAJOR` in `bundle.js`;
   - `feed-workflow.ts`'s `node-version` and `image`;
-  - the Homebrew `node@N` in `server-checks.yml`;
+  - every `setup-node` outside the two role matrices uses `node-version-file: .nvmrc`, not a
+    number;
   - the `role: target` entries in `ci.yml` and `server-checks.yml`.
 
   It also checks the `role: minimum` entries in `ci.yml` and `server-checks.yml` against
@@ -195,4 +198,33 @@ LTS; pnpm 12.21.0 installed with npm, which runs the pinned 12.6.0).**
   - No step `if:` names a version. The old Node 24 job ran lint, typecheck, test, build,
     `build:server`, `packages:check` and `release:smoke`, and the target job runs the same.
 - The target stays 24 until task 4 moves it.
+
+**Task 4, the move to 26 (2026-11-20).**
+- The Docker base is `node:26-trixie-slim` at the multi-arch index digest
+  `sha256:e6bedef2…20bc` (`docker buildx imagetools inspect`, built 2026-11-11).
+  `docker build .` passed, and in the image `node --version` → v26.13.1, with `better-sqlite3`
+  loading (SQLite 3.54.1).
+- `bundle.js` on a freshly packed `@ronneai/marketplace` 0.8.0 fetched
+  `node-v26.13.1-darwin-arm64.tar.gz`, and it matched `SHASUMS256.txt`.
+- `bundle-smoke.js` first failed: its `--version` check had `Node\.js 24` in a regular expression,
+  which the plan's search (`Node.js 24`, `node:24`, `node@24`, `node-version: 24`) didn't match. It
+  now builds the expression from `bundle.js`'s `NODE_MAJOR`. The smoke test then passed: no Node
+  on PATH, `--version`, setup, sign-in, revoke, rotate, backup, restore.
+- Homebrew's `node` is 26.13.1, and `node@26` is an alias of it (`brew info --formula node@26` →
+  "Aliases: node.js, node@26, nodejs, npm"). formulae.brew.sh's API has no page for an alias,
+  which first made it look missing: the witness found the alias. When Node.js 27 becomes `node`,
+  `node@26` will be a formula of its own. So the macOS service step reads `.nvmrc`, installs
+  `node@N` when Homebrew knows the name and `node` otherwise, and stops when the installed major
+  isn't `.nvmrc`'s. It strips whitespace and CR from `.nvmrc`, so a stray CR can't make the error
+  read "Node.js 26, but .nvmrc says 26". With real Homebrew today, `.nvmrc` at 26 installs
+  `node@26`, the alias, and at 24 installs `node@24` (24.22.3, its own formula); both pass the
+  check. The fallback and the stop were tried in a dry run with `brew info` made to fail: plain
+  `node` was installed, and with `.nvmrc` at 24 the step stopped with "Homebrew's node is Node.js
+  26, but .nvmrc says 24." The witness's fake-brew probe covers every branch.
+  The Linux service job reads `.nvmrc` through `setup-node`; a cone-mode sparse checkout always has
+  the root's files.
+- `bundles.yml` and `packages.yml` read `.nvmrc`, added to their non-cone sparse checkouts as
+  `/.nvmrc`.
+- `bundle.test.js`'s fixtures pass 24 to `latestOf` themselves and don't depend on the target, so
+  they stay.
 

@@ -41,7 +41,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 24
+          node-version: 26
       - name: Install rmk
         run: npm install --global @ronneai/rmk@${version}
       - name: Build the feed
@@ -75,7 +75,7 @@ const gitlab = (
 #   RMK_PUSH_TOKEN  a project access token with the write_repository scope, to push the changes
 # Then add a daily schedule in Build > Pipeline schedules. The job also runs when started by hand.
 ronne-plugin-feed:
-  image: node:24
+  image: node:26
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
     - if: $CI_PIPELINE_SOURCE == "web"

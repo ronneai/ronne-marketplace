@@ -119,3 +119,53 @@ Witnessed: 2026-11-20 11:48 EST, by a fresh agent (blind). Commit: 31020b45 + wo
 | 12 | CONTRIBUTING.md's `pnpm test:runtime` row is true | no | confirmed | CONTRIBUTING.md:208 "CI runs it on Node.js 22, the oldest supported line"; ci.yml:44 `node: 22, role: minimum`, ci.yml:83 runs `pnpm test:runtime` only when `matrix.role == 'minimum'`; `engines` ">=22.12" |
 
 **Overall:** met: the comments and the `test:runtime` row match the tree, and both workflows parse with the same expansions as the first pass.
+
+## Task 4 — Move the target to 26
+
+Witnessed: 2026-11-20 11:56 EST, by a fresh agent (blind). Commit: ee736a7f + working tree (`git diff`, 14 files). Machine: macOS 27.2.1 (arm64), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `.nvmrc` is `26` | no | confirmed | `od -c .nvmrc` → `2 6 \n` (LF, no CR) |
+| 2 | `pnpm lint` and `pnpm typecheck` pass on Node.js 26 | no | confirmed | PATH v26.13.1: `pnpm lint` → exit 0, "Checked 2518 files", warnings and infos only; `pnpm typecheck` → exit 0, "7 successful, 0 cached" |
+| 3 | `pnpm test` passes on Node.js 26 | no | confirmed | `pnpm test` → exit 0, every package a cache miss: web 523 files / 6316 passed, 20 skipped; core 449; rmk 286; repo-tools 194; marketplace 116; mcp 53 |
+| 4 | `pnpm build` passes on Node.js 26 | no | confirmed | `pnpm build` → exit 0, 5/5; core and rmk came from the cache, so rerun: `turbo run build --filter=@ronneai/core --filter=@ronneai/rmk --force` → 2/2, 0 cached |
+| 5 | The Dockerfile uses `node:26-trixie-slim` pinned by the real multi-arch index digest, with its comment | yes | confirmed | `docker buildx imagetools inspect node:26-trixie-slim` → MediaType `oci.image.index.v1+json`, Digest `sha256:e6bedef2…20bc` (linux/amd64 + linux/arm64/v8), matches `Dockerfile:9`; `Dockerfile:7` "Node.js 26 LTS on Debian 13 (trixie)" |
+| 6 | `docker build .` succeeds, and the image's `node --version` prints v26 | yes | confirmed | `docker build -t ronne-188-t4-blind:witness .` → exit 0, base `node:26-trixie-slim@sha256:e6bedef…`; `docker run --rm --entrypoint node … --version` → `v26.13.1` (arm64 only; amd64 not built) |
+| 7 | `NODE_MAJOR` is 26, and `bundle.js` on a packed tarball fetches a Node.js 26 build that matches `SHASUMS256.txt` | yes | confirmed | `bundle.js:31` `NODE_MAJOR = 26`. `pnpm build:server` → `pnpm --dir packages/server pack` → `bundle.js ronneai-marketplace-0.8.0.tgz --out …` → exit 0, "Node.js 26.13.1: node-v26.13.1-darwin-arm64.tar.gz, SHA-256 aec2514e…9735 (matches SHASUMS256.txt)"; `curl nodejs.org/dist/v26.13.1/SHASUMS256.txt` → same hash; `index.json` → newest 26 is v26.13.1 |
+| 8 | The bundle runs with its own Node.js 26 (the smoke test's version check follows `NODE_MAJOR`) | yes | confirmed | `bundle-smoke.js rmk-server-0.8.0-darwin-arm64.tar.gz` → exit 0, "✓ … runs with its own Node.js, none on PATH"; `bundle-smoke.js:79` builds its regex from the imported `NODE_MAJOR` |
+| 9 | The feed workflow `rmk` writes uses Node.js 26, and its golden tests pass | no | confirmed | `feed-workflow.ts:44` `node-version: 26`, `:78` `image: node:26`; golden files match; `vitest run src/feed-workflow.test.ts` → 5 passed. Mutation in a scratch copy (`node-version: 24`) → 2 failed |
+| 10 | The target entries in `ci.yml` and `server-checks.yml` are 26, and no 24 entry is left | no | confirmed | `ci.yml:48` `node: 26` role target; `server-checks.yml:30` `node: [22, 26]`, include 26 → target (3 OS × 2 = 6 jobs) |
+| 11 | `bundles.yml` and `packages.yml` read `.nvmrc`, and their sparse checkouts include it | yes | confirmed | `bundles.yml:46`, `packages.yml:58` `node-version-file: .nvmrc`; `/.nvmrc` at `bundles.yml:40`, `packages.yml:54` (non-cone). Probe: `git sparse-checkout set --no-cone packages/repo-tools/src LICENSE /.nvmrc` → `.nvmrc` checked out; without `/.nvmrc` → missing |
+| 12 | The Linux service check takes Node.js from `.nvmrc`, and its cone-mode sparse checkout has `.nvmrc` | yes | confirmed | `server-checks.yml:75` `node-version-file: .nvmrc`. Probe: `git sparse-checkout set --cone scripts/service` → root files present, `.nvmrc` among them (the macOS job gets it the same way) |
+| 13 | macOS service check: Homebrew's `node@N` if it exists, else `node`, and the job stops when the installed major isn't `.nvmrc`'s | yes | confirmed | Step extracted with the yaml parser, run under a fake `brew` (`brew-probe/probe.sh`): node@26 missing + node=26 → exit 0, installs `node`; node@26 versioned + node=28 → exit 0, installs `node@26`; node@26 missing + node=28 → exit 1 "::error::Homebrew's node is Node.js 28, but .nvmrc says 26"; node=25 → exit 1; a CRLF `.nvmrc` → exit 1 (fails closed). Real brew: `brew --prefix node@26` → `/opt/homebrew/opt/node`, `brew info --formula node@99` → exit 1 |
+| 14 | Spec/plan fact: "on 2026-11-20 Homebrew had no `node@26`, and `node` was 26.13.1" | yes | partly | `brew info --formula node@26` → exit 0, "==> node: … stable 26.13.1_2 … Aliases: node.js, node@26, nodejs, npm": no separate formula, but `node@26` is an alias of `node`, so CI takes the `node@N` branch, not the fallback. Same result; only the wording is wrong |
+| 15 | Nothing outside history still names 24 as the target in code or workflows | no | confirmed | `git grep` for node/version patterns with 24 outside docs → only `packages/server/src/service/macos.ts:8-9`, an example path in a comment (`…/Cellar/node@24/24.21.0`). Every other `setup-node` (15) uses `.nvmrc` or a matrix. `bundle.test.js`'s 24s are fixtures passed explicitly |
+
+**Overall:** not met: everything the code, workflows, image and bundle must do holds on Node 26, but the spec's and plan's statement that Homebrew has no `node@26` is wrong: it's an alias of `node` (row 14).
+
+Fixed after this pass: SPEC.md, PLAN.md and the workflow comment say `node@N` is used when Homebrew knows the name (today an alias of `node`), plain `node` otherwise; the step reads `.nvmrc` with `tr -d '[:space:]'`, so a CR or space can't produce a confusing mismatch.
+
+### Re-check — rows 13, 14 and the changed comment
+
+Witnessed: 2026-11-20 11:57 EST, by a fresh agent (blind). Commit: ee736a7f + working tree (`git diff`). Machine: macOS 27.2.1 (arm64), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 13 | macOS service check: Homebrew's `node@N` when Homebrew knows the name, else `node`; it stops when the installed major isn't `.nvmrc`'s; a CR or space in `.nvmrc` doesn't break it | yes | confirmed | Re-extracted step (`major="$(tr -d '[:space:]' < .nvmrc)"`), `brew-probe/probe.sh` with the fake brew: alias (node@26 known, 26) → exit 0, `node@26`; separate node@26=26 with node=28 → exit 0, `node@26`; name unknown, node=26 → exit 0, `node`; name unknown, node=28 → exit 1 "Homebrew's node is Node.js 28, but .nvmrc says 26"; node@26 gives 25 → exit 1; `.nvmrc` `26\r\n` → exit 0; ` 26 \r\n` (alias) → exit 0 |
+| 14 | SPEC.md:33-36 and PLAN.md:62-64: `node@N` when Homebrew knows the name, plain `node` otherwise; on 2026-11-20 `node@26` was an alias of Homebrew's `node`, 26.13.1 | yes | confirmed | `brew info --formula node@26` → exit 0, "==> node: … stable 26.13.1_2", "Aliases: node.js, node@26, nodejs, npm"; `brew --prefix node@26` → `/opt/homebrew/opt/node` |
+| 16 | The `server-checks.yml` comment above the macOS step matches what it does | no | confirmed | `server-checks.yml:116-118` matches the probes above and `brew info` |
+| 17 | Note: in the image, `better-sqlite3` loads (SQLite 3.54.1) | yes | confirmed | `docker run --rm --entrypoint node ronne-188-t4-blind:witness -e 'require("/app/apps/web/node_modules/better-sqlite3") …'` → `v26.13.1 3.54.1` |
+| 18 | Note: a dry run of the step "printed 'would install node' with `.nvmrc` at 26, and at 24 stopped with 'Homebrew's node is Node.js 26, but .nvmrc says 24.'" | yes | partly | Against real Homebrew: at 26, `brew info --formula node@26` exits 0, so the step installs `node@26` (the alias), not `node`; at 24, `brew info --formula node@24` → "node@24: stable 24.22.3 (bottled) [keg-only]", so it installs `node@24` and passes. The note was written before the alias was found |
+
+**Overall:** met: the step, the spec and plan wording, and the comment match what `brew info` shows (rows 13, 14, 16, 17); row 18 is a sentence in the notes, reworded below.
+
+### Re-check — row 18, wording
+
+Witnessed: 2026-11-20 11:58 EST, by a fresh agent (blind). Commit: ee736a7f + working tree (`git diff`). Machine: macOS 27.2.1 (arm64), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 18 | PLAN.md task 4 note: with real Homebrew today, `.nvmrc` 26 installs `node@26` (the alias) and 24 installs `node@24` (24.22.3, its own formula), both passing the check; with `brew info` failing, plain `node` is installed, and at 24 the step stops with "Homebrew's node is Node.js 26, but .nvmrc says 24."; the fake-brew probe covers every branch | yes | confirmed | `brew info --formula node@26` → "Aliases: node.js, node@26, nodejs, npm"; `brew info --formula node@24` → "node@24: stable 24.22.3 (bottled) [keg-only]". `probe.sh` on the re-extracted step: 26 with the alias → exit 0, `node@26`; 24 with node@24=24 → exit 0, `node@24`; 26 with `brew info` failing → exit 0, `node`; 24 with `brew info` failing and node=26 → exit 1, "::error::Homebrew's node is Node.js 26, but .nvmrc says 24."; node=28 with the name unknown, and node@26 at 25, also stop |
+
+**Overall:** met: the note's wording matches what `brew info` shows and what the probe does in every branch.

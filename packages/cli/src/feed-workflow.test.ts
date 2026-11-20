@@ -31,7 +31,7 @@ describe("rmk feed build --print-workflow (078)", () => {
     expect(Object.keys(workflow.on)).toEqual(["schedule", "workflow_dispatch"]);
     expect(workflow.permissions).toEqual({ contents: "write" });
     const steps = workflow.jobs.build.steps;
-    expect(steps[1].with["node-version"]).toBe(24);
+    expect(steps[1].with["node-version"]).toBe(26);
     expect(steps[2].run).toBe(`npm install --global @ronneai/rmk@${GOLDEN_VERSION}`);
     expect(steps[3]).toMatchObject({
       run: "rmk feed build --out .",
@@ -46,7 +46,7 @@ describe("rmk feed build --print-workflow (078)", () => {
 
   it("prints a GitLab CI job for schedules and manual runs", () => {
     const job = parse(feedWorkflow("gitlab", GOLDEN_VERSION))["ronne-plugin-feed"];
-    expect(job.image).toBe("node:24");
+    expect(job.image).toBe("node:26");
     expect(job.rules).toEqual([
       { if: '$CI_PIPELINE_SOURCE == "schedule"' },
       { if: '$CI_PIPELINE_SOURCE == "web"' },

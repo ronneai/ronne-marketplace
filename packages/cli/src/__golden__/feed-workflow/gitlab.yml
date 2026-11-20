@@ -8,7 +8,7 @@
 #   RMK_PUSH_TOKEN  a project access token with the write_repository scope, to push the changes
 # Then add a daily schedule in Build > Pipeline schedules. The job also runs when started by hand.
 ronne-plugin-feed:
-  image: node:24
+  image: node:26
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
     - if: $CI_PIPELINE_SOURCE == "web"

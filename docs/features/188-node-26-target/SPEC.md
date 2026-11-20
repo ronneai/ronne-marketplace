@@ -30,7 +30,10 @@ to install pnpm with npm for the Node version in use. Nothing changes there beyo
     the `.deb` and `.rpm` too);
   - the workflow that `rmk` writes for mirroring plugin feeds (`packages/cli/src/feed-workflow.ts`:
     `node-version: 26` on GitHub, `image: node:26` on GitLab);
-  - the Homebrew service check (`node@26`);
+  - the service checks on Linux (`setup-node` from `.nvmrc`) and macOS (Homebrew's Node.js of
+    `.nvmrc`'s major: `node@N` when Homebrew knows that name, plain `node` otherwise, and the job
+    stops when the installed major isn't `.nvmrc`'s; on 2026-11-20 `node@26` was an alias of
+    Homebrew's `node`, 26.13.1);
   - the bundle and package jobs (`bundles.yml` and `packages.yml`, which read `.nvmrc` instead
     of naming a number).
 - **The minimum stays 22.12.** `engines`, `MIN_NODE` (`packages/server/src/node-version.ts`),
@@ -50,8 +53,9 @@ to install pnpm with npm for the Node version in use. Nothing changes there beyo
   role, never a number.
 - **A guard against drift:** a `repo-tools` test reads `.nvmrc` and fails when another place that
   names the target gives a different major. Those places are the `Dockerfile`'s base image,
-  `NODE_MAJOR`, the feed workflow, the Homebrew formula, and the `role: target` entries in
-  `ci.yml` and `server-checks.yml`. It also fails when a `role: minimum` entry isn't exactly
+  `NODE_MAJOR`, the feed workflow, and the `role: target` entries in `ci.yml` and
+  `server-checks.yml`. Every other `setup-node` in the workflows reads `.nvmrc` rather than naming
+  a version. It also fails when a `role: minimum` entry isn't exactly
   `MIN_NODE`.
 - **A guard on native modules:** skipping 24 is safe only while every native module the server
   loads is N-API, one binary for every Node.js version. A `repo-tools` test lists the native
@@ -122,7 +126,7 @@ script goes in `CONTRIBUTING.md`'s commands table. Locally it answers "does this
 |---|---|---|
 | `ci.yml` | 22: test, build. 24: lint, typecheck, test, build, `build:server`, `packages:check`, `release:smoke` | **Target (26):** everything 24 ran. **Minimum (`MIN_NODE`):** `pnpm install`, `pnpm test:runtime` |
 | `server-checks.yml` install | {22, 24} × {Linux, macOS, Windows}: 6 jobs | {`MIN_NODE`, 26} × {Linux, macOS, Windows}: 6 jobs |
-| `server-checks.yml` services | Homebrew `node@24` | Homebrew `node@26` |
+| `server-checks.yml` services | Linux `node-version: 24`; macOS Homebrew `node@24` | Linux `.nvmrc`; macOS Homebrew's Node.js of `.nvmrc`'s major, checked |
 | `bundles.yml`, `packages.yml` | `node-version: 24` | `node-version-file: .nvmrc` |
 | `database.yml`, `e2e.yml`, `clients-windows.yml`, `image.yml`, `release.yml`, `nightly.yml` | `.nvmrc` (24) | `.nvmrc` (26), unchanged otherwise |
 
@@ -176,7 +180,7 @@ when they run. The repository's own documents change as listed under Scope.
   and the minimum runs only `pnpm install` and `pnpm test:runtime`. No step condition names a
   version number.
 - [ ] `server-checks.yml` installs and runs the packed server on the minimum and 26 on all three
-  OSes (6 jobs), with no Node.js 24 job. The service check uses Homebrew's `node@26`.
+  OSes (6 jobs), with no Node.js 24 job. The service checks take the target from `.nvmrc`: Linux through `setup-node`, macOS through Homebrew, failing when Homebrew's major differs.
 - [ ] After the issue that raises the minimum to 22.14 lands, the minimum's entries in `ci.yml` and
   `server-checks.yml` are exactly `MIN_NODE`.
 - [ ] `.nvmrc` is `26`. The `Dockerfile` uses `node:26-trixie-slim` pinned by digest, and the

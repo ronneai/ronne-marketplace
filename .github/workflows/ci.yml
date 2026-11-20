@@ -45,7 +45,7 @@ jobs:
           - node: 22
             role: minimum
             name: Runtime tests (minimum Node.js)
-          - node: 24
+          - node: 26
             role: target
             name: Lint, typecheck, test, build (target Node.js)
     steps:

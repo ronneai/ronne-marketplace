@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Usage: node packages/repo-tools/src/bundle.js <tarball> [--platform P] [--arch A] [--node V] [--out DIR] [--keep]
 //   (pnpm bundle <tarball>, after packing @ronneai/marketplace)
-// Builds one self-contained archive of rmk-server (feature 084): the official Node.js 24 build for
+// Builds one self-contained archive of rmk-server (feature 084): the official Node.js 26 build for
 // the platform, the packed @ronneai/marketplace installed with npm (so the native modules are this
 // platform's), a launcher and THIRD_PARTY_NOTICES. Run it on the platform it builds for: npm picks
 // the native modules for the machine it runs on, and nothing here cross-compiles.
@@ -28,7 +28,7 @@ import { collectPackages, RULE, section } from "./notices.js";
 // Linux and macOS: the server doesn't run on Windows (121).
 export const PLATFORMS = ["linux", "darwin"];
 export const ARCHS = ["x64", "arm64"];
-export const NODE_MAJOR = 24;
+export const NODE_MAJOR = 26;
 const DIST = "https://nodejs.org/dist";
 
 /** The Node.js download for a platform. */
@@ -183,7 +183,7 @@ const main = async () => {
     execFileSync(tarProgram(), ["-xOzf", tarball, "package/package.json"], { encoding: "utf8" }),
   ).version;
 
-  // Node.js: the newest 24 (or the one asked for), checked against nodejs.org's SHASUMS256.txt.
+  // Node.js: the newest 26 (or the one asked for), checked against nodejs.org's SHASUMS256.txt.
   const work = mkdtempSync(join(tmpdir(), "rmk-bundle-"));
   // Removed afterwards, whether the build worked or not, unless --keep.
   try {
