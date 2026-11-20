@@ -40,8 +40,10 @@ to install pnpm with npm for the Node version in use. Nothing changes there beyo
   - `ci.yml` has one job for the target and one for the minimum, and none for 24;
   - the minimum's job runs a new root script, `pnpm test:runtime`: the tests of the code that runs
     on a person's Node.js, without the component tests and the repository's own tooling;
-  - `server-checks.yml` installs and runs the packed server on 22 and 26 on Linux, macOS and
-    Windows, and on 24 on Linux.
+  - the minimum's job runs exactly the version `MIN_NODE` names, not the newest 22.x: the newest
+    hid that 22.12 and 22.13 can't load `better-sqlite3` 13.2.0 (below);
+  - `server-checks.yml` installs and runs the packed server on the minimum and the target on Linux,
+    macOS and Windows. Node.js 24 gets no job of its own (owner, 2026-11-20).
 - **Role-based job names**, so the next LTS move doesn't change the required checks again:
   "Lint, typecheck, test, build (target Node.js)" and "Runtime tests (minimum Node.js)". The matrix
   carries the version and its role (`role: target` / `role: minimum`), and the steps check the
@@ -49,7 +51,13 @@ to install pnpm with npm for the Node version in use. Nothing changes there beyo
 - **A guard against drift:** a `repo-tools` test reads `.nvmrc` and fails when another place that
   names the target gives a different major. Those places are the `Dockerfile`'s base image,
   `NODE_MAJOR`, the feed workflow, the Homebrew formula, and the `role: target` entries in
-  `ci.yml` and `server-checks.yml`.
+  `ci.yml` and `server-checks.yml`. It also fails when a `role: minimum` entry isn't exactly
+  `MIN_NODE`.
+- **A guard on native modules:** skipping 24 is safe only while every native module the server
+  loads is N-API, one binary for every Node.js version. A `repo-tools` test lists the native
+  packages in `@ronneai/marketplace`'s runtime dependencies and fails on one that isn't in its list
+  of modules checked to be N-API. Today the list is `better-sqlite3` (13.x: `NAPI_VERSION` in
+  `binding.gyp`, `prebuilds/<platform>.node`) and `@node-rs/argon2` (napi-rs).
 - **The documents that state the target or the CI split:**
   - `CLAUDE.md`, `CONTRIBUTING.md`, the dependency policy, MVP.md (Docker and Packages rows, and
     a §15 entry);
@@ -62,6 +70,9 @@ to install pnpm with npm for the Node version in use. Nothing changes there beyo
 
 - Raising the minimum to 24: that happens when 22 reaches its end of life (April 2027), in its own
   change, as the policy says.
+- Raising the minimum from 22.12 to 22.14, the fix for the crash below: a GitHub issue of its own
+  (`docs/issues/`), since it changes what released versions claim (owner, 2026-11-20). The
+  minimum's job is pinned to `MIN_NODE` only after that fix, or it would fail on 22.12.
 - Moving `@types/node` or `lib` (ES2023): they follow the minimum.
 - The database, end-to-end, Windows client and image suites: they already run once, on `.nvmrc`'s
   version, and simply move to 26 with it.
@@ -74,16 +85,24 @@ to install pnpm with npm for the Node version in use. Nothing changes there beyo
 
 ### Which version runs what
 
-The rule: **test the ends of the supported range, 22 and 26, and the middle only where native
-code makes each version different.** JavaScript that runs on 22 and on 26 runs on 24. A native
-module's prebuilt binary is the exception, because it is built per Node.js ABI, OS and
-architecture.
+The rule: **test the ends of the supported range, the minimum and 26, and nothing in between.**
+JavaScript that runs on the minimum and on 26 runs on 24. A native module built per Node.js ABI
+would be the exception, but the server's two native modules are N-API, one binary per platform for
+every version (the probe, 2026-11-20), and a guard keeps it that way.
+
+**The minimum is a version, not a line.** On 2026-11-20 the probe found that rmk-server crashes
+(segfault, exit 139) on Node.js 22.12.0, the advertised minimum, and on 22.13: `better-sqlite3`
+13.2.0 is built for N-API 10 (`NAPI_VERSION=10` in its `binding.gyp`), which Node.js has only from
+22.14.0 (`NODE_API_SUPPORTED_VERSION_MAX` in 22.12.0's and 22.13.1's headers is 9). CI ran the
+newest 22.x, so it never saw it. Testing "22" proves only the newest 22; the minimum's job runs
+`MIN_NODE` itself.
 
 | What can differ between Node.js versions | What catches it | Runs on |
 |---|---|---|
 | Code uses a JavaScript or Node.js API that 22 lacks | `pnpm typecheck` (`lib: ES2023`, `@types/node` 22), then `pnpm test:runtime` for what types can't see (a dependency that needs a newer Node.js, a changed default) | Typecheck on 26; `test:runtime` on **22** |
 | Newer Node.js removed or changed something | `pnpm test` | **26** |
-| `better-sqlite3` has no prebuilt binary for a version's ABI on an OS (`@node-rs/argon2` is N-API, one binary for all) | `server-checks.yml`: install the packed server with npm, start it, set it up, sign in (`server-probe.js`) | 22 and 26 on Linux, macOS and Windows; **24 on Linux** |
+| A native module needs a newer N-API than the minimum has, or has no binary for an OS | `server-checks.yml`: install the packed server with npm, start it, set it up, sign in (`server-probe.js`) | **`MIN_NODE`** and **26**, on Linux, macOS and Windows |
+| A native module built per ABI, so that 24 could differ | The N-API guard: none is allowed without a decision | The guard runs with the repo-tools tests, on 26 |
 | Component tests (`*.test.tsx`) | Their subject is markup, and its JavaScript is held to ES2023 by typecheck; the server probe renders real pages on 22 | **26** |
 | The repository's own guards (`packages/repo-tools`), lint, typecheck, packing (`packages:check`, `release:smoke`) | They run in CI and development, never on a person's Node.js | **26** |
 | Build output (`pnpm build`, `build:server`) | The same JavaScript whichever Node.js built it (`tsdown` targets node22); the packed server is then run on every version by `server-checks.yml` | **26** |
@@ -101,8 +120,8 @@ script goes in `CONTRIBUTING.md`'s commands table. Locally it answers "does this
 
 | Workflow | Before | After |
 |---|---|---|
-| `ci.yml` | 22: test, build. 24: lint, typecheck, test, build, `build:server`, `packages:check`, `release:smoke` | **Target (26):** everything 24 ran. **Minimum (22):** `pnpm install`, `pnpm test:runtime` |
-| `server-checks.yml` install | {22, 24} × {Linux, macOS, Windows}: 6 jobs | {22, 26} × {Linux, macOS, Windows} + 24 on Linux: 7 jobs |
+| `ci.yml` | 22: test, build. 24: lint, typecheck, test, build, `build:server`, `packages:check`, `release:smoke` | **Target (26):** everything 24 ran. **Minimum (`MIN_NODE`):** `pnpm install`, `pnpm test:runtime` |
+| `server-checks.yml` install | {22, 24} × {Linux, macOS, Windows}: 6 jobs | {`MIN_NODE`, 26} × {Linux, macOS, Windows}: 6 jobs |
 | `server-checks.yml` services | Homebrew `node@24` | Homebrew `node@26` |
 | `bundles.yml`, `packages.yml` | `node-version: 24` | `node-version-file: .nvmrc` |
 | `database.yml`, `e2e.yml`, `clients-windows.yml`, `image.yml`, `release.yml`, `nightly.yml` | `.nvmrc` (24) | `.nvmrc` (26), unchanged otherwise |
@@ -132,8 +151,12 @@ Later LTS moves keep these names.
 - **The guard and history:** it reads only the files listed under Scope, so specs and witness
   records that mention 24 don't fail it.
 - **Node.js 22's end of life (April 2027):** the minimum role moves to 24 (`role: minimum`,
-  `MIN_NODE`, `engines`, `@types/node`, the 22.12 texts), and the install matrix's middle entry goes
-  away until the next LTS. The policy and `test-runs.md` say so.
+  `MIN_NODE`, `engines`, `@types/node`, the minimum's texts). The policy and `test-runs.md` say so.
+- **A dependency raises its own floor** (a newer N-API, a newer `engines`): the minimum's jobs, on
+  `MIN_NODE` itself, fail on the Dependabot pull request instead of on a person's machine.
+- **A new native dependency** that isn't N-API: the N-API guard fails. Either it is N-API after
+  all and joins the list, with how that was checked, or the owner decides how the middle versions
+  get tested again.
 
 ## Documentation
 
@@ -152,14 +175,18 @@ when they run. The repository's own documents change as listed under Scope.
 - [ ] `ci.yml` has two check jobs, named by role: the target runs everything the Node 24 job ran,
   and the minimum runs only `pnpm install` and `pnpm test:runtime`. No step condition names a
   version number.
-- [ ] `server-checks.yml` installs and runs the packed server on 22 and 26 on all three OSes and on
-  24 on Linux. The service check uses Homebrew's `node@26`.
+- [ ] `server-checks.yml` installs and runs the packed server on the minimum and 26 on all three
+  OSes (6 jobs), with no Node.js 24 job. The service check uses Homebrew's `node@26`.
+- [ ] After the issue that raises the minimum to 22.14 lands, the minimum's entries in `ci.yml` and
+  `server-checks.yml` are exactly `MIN_NODE`.
 - [ ] `.nvmrc` is `26`. The `Dockerfile` uses `node:26-trixie-slim` pinned by digest, and the
   image's `node --version` prints v26. `NODE_MAJOR` is 26, and `bundle.js` fetches and verifies a
   Node.js 26 build. The feed workflow `rmk` writes uses Node.js 26, and its golden files match.
 - [ ] `bundles.yml` and `packages.yml` read `.nvmrc`.
-- [ ] The guard test passes, and fails when any one of the places it checks names a different
-  major than `.nvmrc`.
+- [ ] The drift guard passes, and fails when any one of the places it checks names a different
+  major than `.nvmrc`, or a minimum entry isn't `MIN_NODE`.
+- [ ] The N-API guard passes, and fails when the server's runtime dependencies gain a native
+  module that isn't in its list.
 - [ ] `engines`, `MIN_NODE`, `tsdown`'s target, `@types/node` and the "22.12 or later" texts are
   unchanged.
 - [ ] `CLAUDE.md`, `CONTRIBUTING.md`, the dependency policy, MVP.md (with a §15 entry),
