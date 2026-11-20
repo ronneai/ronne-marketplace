@@ -23,8 +23,9 @@ the same change that completes it.
   outside history (`docs/features`, `docs/issues`, witness records) and lockfiles finds it only in
   `node-version.ts`'s comment and test, which name it as a version that's refused, and each doc
   says what the spec lists.
-- [x] **3. The website.** ronne-web, branch `bugfix/marketplace-315-node-22-14` (`bbf572c`, on
-  the Next.js 16.4.6 upgrade `59b0b10`): the pages and
+- [x] **3. The website.** ronne-web, branch `docs/marketplace-315-188-node` (`bbf572c`, on
+  the Next.js 16.4.6 upgrade `59b0b10`, with 188's website change after it; written on
+  `bugfix/marketplace-315-node-22-14`): the pages and
   messages the spec's Documentation lists, in en, pt and fr. *Done when:* ronne-web's own checks
   pass on the branch, and a search for `22.12` in `www/src` and `www/messages` finds nothing.
 - [ ] **4. The release.** The owner's: the next release ships it, the status below becomes "fixed

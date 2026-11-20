@@ -82,7 +82,7 @@ warning from npm, instead of a crash.
 
 ## Documentation
 
-- **Website** (ronne-web, branch `bugfix/marketplace-315-node-22-14`), en, pt and fr:
+- **Website** (ronne-web, branch `docs/marketplace-315-188-node`, shared with 188), en, pt and fr:
   - `install` (the `npx` section and the Windows terminal section);
   - `rmk` and `mcp` (installing them);
   - the messages that say 22.12 (the home page's "Run it" step and the marketplace facts);
