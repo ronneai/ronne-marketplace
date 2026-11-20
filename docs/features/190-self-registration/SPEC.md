@@ -27,11 +27,19 @@ and standards".
   - **Code lifetime:** 5 to 60 minutes, 15 by default. One setting for every one-time email code
     (sign-up here; forgot password, 194; email change, 197).
   - **Ask browsers to solve a challenge** (an invisible proof of work; on by default).
+  - **Also block throwaway email domains** (on by default): the bundled list of disposable-address
+    domains, checked with the block step. It matters only with *Any domain*.
   - **Terms and privacy link** (optional): a URL and a version label root types (such as
     `2026-11`). When set, the sign-up form shows it with a required checkbox.
-  - The switch can be turned on only while email is set up (189) and the password policy is
-    *Everyone* (106's *Who may sign in with a password*): with *Root only*, a new account couldn't
-    sign in. Otherwise it's disabled with the reason and a link to the place that fixes it.
+    - When root changes the version, a box **Ask everyone to accept again** appears. Ticked, every
+      existing person accepts at their next web sign-in. Unticked, only new sign-ups accept it.
+  - The switch can be turned on only while three things hold. Otherwise it's disabled with the
+    reason and a link to the place that fixes it.
+    - Email is set up (189).
+    - 189's **Instance contact** is set: every notice says whom to tell when the person didn't do
+      it (NIST SP 800-63B-4 §4.6).
+    - The password policy is *Everyone* (106's *Who may sign in with a password*): with *Root
+      only*, a new account couldn't sign in.
   - Every change audited (`settings.sign_up_changed`, before and after).
 - **One-time email codes**, a model shared with 194 and 197, in the identity domain:
   - 6 digits from `crypto.randomInt`; stored only as `code_hmac`, HMAC-SHA256 under a key HKDF
@@ -74,6 +82,19 @@ and standards".
   - Approve clears the mark and emails the person.
   - Decline deletes the account (it holds nothing yet) and emails the person.
   - An account left waiting for 30 days is declined by the retention job, with the same email.
+- **Throwaway domains:** a list of disposable-address domains bundled with Ronne (the community
+  `disposable-email-domains` list, refreshed with each release).
+  - With the setting on and *Any domain*, an address in it is refused like a blocked domain:
+    "Sign-up isn't open to this email domain."
+  - An allow list makes it irrelevant. 191 applies the same list to every way in with *Any domain*.
+- **Accepting new terms:**
+  - After a web sign-in (password or provider), a person who hasn't accepted the version root asked
+    everyone to accept sees **Accept the updated terms**. It has the link, a required checkbox,
+    **Continue**, and **Sign out**. It's held like a required password change
+    (`server/http/password-change-hold.ts`).
+  - Access tokens, `rmk` and the MCP server keep working: the web asks, the API doesn't, so no build
+    or install breaks over terms.
+  - Every acceptance is recorded with its version and time, the sign-up's included.
 - **Bot protection**, always on:
   - A hidden honeypot field. When it's filled, the answer looks like success and nothing is sent.
   - A minimum fill time of 3 seconds, from a timestamp the form carries signed with an HMAC.
@@ -108,7 +129,8 @@ and standards".
   - pending sign-ups and email codes are purged a day after they expire, by the retention job (102);
   - the email typed in a sign-up attempt is kept in the audit log only as long as IP addresses
     (`ipDays`), as 102 already does for failed sign-ins;
-  - erase (103) and your data (104) cover the new columns and tables.
+  - erase (103) and your data (104) cover the new columns and tables, the terms acceptances
+    included.
 
 **Out** (and where it goes instead):
 - **Sign-up with Google, LinkedIn or Apple:** 191 decides who they may create, and 192 and 193 add
@@ -118,7 +140,6 @@ and standards".
 - **Forgot password by email:** 194, which reuses the codes, the challenge and the limits.
 - **Checking new passwords against breached ones:** 196.
 - **Inviting people by email:** still not planned (owner, 2026-10-09).
-- **Asking existing accounts to accept new terms:** an open question.
 - **Third-party CAPTCHAs** (Turnstile, hCaptcha): left out. They send visitors' data elsewhere.
 
 ## Behaviour
@@ -194,10 +215,15 @@ the check. Try again." Past the limits: "Too many tries. Wait a few minutes and 
   - attempts; created_at; expires_at; consumed_at.
 - **`challenges_used`:** challenge_hmac, expires_at. It refuses a replayed answer, and is purged on
   expiry.
-- **`user`:** `approval_pending_at`, `signed_up_at`, `terms_version`, `terms_accepted_at`, all
-  nullable.
-- **Settings keys:** `sign_up_enabled`, `sign_up_domains` (JSON: `"any"` or a list),
-  `sign_up_approval`, `email_code_minutes`, `sign_up_challenge`, `terms_url`, `terms_version`.
+- **`terms_acceptances`:** user_id, version, accepted_at. One row per acceptance, never updated.
+- **`user`:** `approval_pending_at`, `signed_up_at`, both nullable.
+- **Settings keys:**
+  - `sign_up_enabled`, `sign_up_domains` (JSON: `"any"` or a list), `sign_up_approval`;
+  - `sign_up_block_throwaway`, `email_code_minutes`, `sign_up_challenge`;
+  - `terms_url`, `terms_version`, `terms_required_version` (the version everyone must have
+    accepted; it moves only when the box is ticked).
+- **The throwaway list:** a data file in the identity domain, one domain a line, its source and
+  licence in `THIRD_PARTY_NOTICES`.
 - One migration for all three databases. Every new table is purged by the retention job and covered
   by erase and your data.
 
@@ -230,6 +256,10 @@ the check. Try again." Past the limits: "Too many tries. Wait a few minutes and 
 - [ ] With approval on, the account can't sign in, get a token or use the device flow; roots are
   notified; Approve and Decline work and email the person; 30 days unapproved declines it.
 - [ ] The terms checkbox is required when root sets a link, and its version and time are stored.
+  With **Ask everyone to accept again** ticked, existing people accept at their next web sign-in,
+  and their tokens keep working; unticked, only new sign-ups accept it. Every acceptance is a row.
+- [ ] With *Any domain* and the throwaway setting on, an address in the bundled list is refused.
+- [ ] Sign-up can't be turned on without email, the instance contact, and the policy *Everyone*.
 - [ ] Retention purges pending sign-ups, codes and used challenges; erase and your data cover the
   new data; every step is audited.
 - [ ] Every screen and email exists in English, Brazilian Portuguese and Canadian French.
@@ -245,13 +275,14 @@ the check. Try again." Past the limits: "Too many tries. Wait a few minutes and 
 5. **The same answer whether or not the account exists** (OWASP: "Return a consistent message for
    both existent and non-existent accounts", in a consistent time). The inbox's owner gets the
    explanation.
-6. **No automatic sign-in after the code** (Claude, to confirm). One sign-in path keeps the rate
+6. **No automatic sign-in after the code** (owner, 2026-11-20). One sign-in path keeps the rate
    limit, required two-factor and the audit. It costs one more step, once.
 7. **Bot protection without third parties** (owner, 2026-11-20): limits, a honeypot, a minimum time
    and an optional proof of work. NIST SP 800-63B-4 lists bot challenges as optional; OWASP calls
    CAPTCHAs defence in depth. A proof of work asks nothing of the person and sends nothing
    elsewhere.
-8. **The proof of work follows Altcha's design** (Claude, to confirm in plan task 3).
+8. **The proof of work follows Altcha's design** (owner, 2026-11-20; the widget itself only if it
+   passes the dependency policy in plan task 3, otherwise ours to the same design).
    - The server side is written with `node:crypto`: an HMAC-signed salt and SHA-256, about 60 lines,
      so the dependency policy's first question ("can Node.js do this?") says yes.
    - The browser side uses the `altcha` widget (MIT) if it and its tree pass the dependency policy
@@ -261,14 +292,22 @@ the check. Try again." Past the limits: "Too many tries. Wait a few minutes and 
 10. **The code page is bound to the browser that signed up** (Claude). Someone who sees the code
     over a shoulder can't finish the sign-up elsewhere. Someone who switches browsers signs up
     again.
-11. **Approval waits at most 30 days** (Claude, to confirm), so the waiting list doesn't keep
+11. **Approval waits at most 30 days** (owner, 2026-11-20), so the waiting list doesn't keep
     personal data forever.
 12. **190 and 191 ship in the same release** (Claude). With *Any domain*, root needs 191's block
     list from the first day.
 
+13. **New terms are accepted again only when root asks** (owner, 2026-11-20). The box *Ask
+    everyone to accept again* decides. The web asks, the API doesn't, so automation never stops
+    over terms. Every acceptance is kept as a row: version and time are the record a data
+    protection review asks for.
+14. **Throwaway domains blocked by default with *Any domain*** (owner, 2026-11-20). It uses the
+    community `disposable-email-domains` list, believed CC0. Plan task 3 confirms the licence
+    against the dependency policy's data rule before it's used.
+15. **No sign-up without an instance contact** (owner, 2026-11-20). NIST SP 800-63B-4 §4.6 asks
+    every notice to say whom to contact if the person didn't do it. A public instance sends
+    notices to strangers.
+
 ## Open questions
 
-- When root changes the terms version, should existing accounts be asked to accept the new terms
-  at their next sign-in? Not in this feature.
-- Should a root be able to create an account that skips approval through sign-up's flow? Create user
-  already does that.
+None.

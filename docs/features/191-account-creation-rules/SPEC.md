@@ -23,11 +23,16 @@ This feature gives root that place, with the rule the owner chose (option C, 202
   - Entries are lowercased and their final dot is removed. A domain that isn't plain ASCII (an
     internationalised domain must be typed as `xn--…`) or isn't a valid host name is refused.
 - **The rule, in this order, for every new account made by a way in:**
-  1. the email's domain is on the block list → refused (`domain_blocked`);
+  1. the email's domain is on the block list → refused (`domain_blocked`); and so is a domain on
+     190's throwaway list, when the way in allows *Any domain* and **Also block throwaway email
+     domains** is on (`domain_throwaway`);
   2. the way in doesn't create accounts → refused (`creating_off`);
   3. the way in allows only listed domains and this one isn't listed → refused (`domain_not_allowed`,
      106's reason);
   4. else the account is created, waiting for approval when the way in needs it.
+- **The throwaway setting** moves from 190's panel to this one, beside the block list, and applies
+  to every way in that creates accounts with *Any domain*. It's on by default; an allow list makes
+  it irrelevant.
 - **The ways in:** *Email sign-up* (190's settings) and each identity provider. A provider's
   "Who may sign in" step (106's step 3, `features/admin-settings/authentication/providers/`) gains:
   - **Creates accounts on first sign-in** (on or off).
@@ -50,7 +55,7 @@ This feature gives root that place, with the rule the owner chose (option C, 202
     (the provider has proved who they are, so saying so is safe). Roots are notified (139).
   - After approval, the next sign-in applies the groups, as every sign-in does (`group-sync.ts`).
 - **`planSsoSignIn`** (`identity/services/sso-sign-in.ts`) gains the rule's first two steps and the
-  `create_pending` outcome. `SsoNotAllowed` gains `domain_blocked` and `creating_off`, shown by
+  `create_pending` outcome. `SsoNotAllowed` gains `domain_blocked`, `domain_throwaway` and `creating_off`, shown by
   *Test sign-in* and in the audit row's `why`.
 - **190's sign-up** checks the block list first, with the same answer as a domain that isn't allowed.
 - **Which way in made each account:** `user.created_via`, written by every creation (`setup`,
@@ -69,8 +74,6 @@ This feature gives root that place, with the rule the owner chose (option C, 202
 - **Blocking existing accounts by domain:** the rules govern creating accounts only. Disabling
   accounts stays a root action on Users.
 - **Google and LinkedIn buttons and linking by authority:** 192. **Apple:** 193.
-- **Disposable-address lists:** a blocked domain is root's to add. No bundled list (an open
-  question).
 
 ## Behaviour
 
@@ -143,6 +146,8 @@ Also:
 - [ ] A blocked domain refuses a new account through email sign-up and every provider, even when
   the way in allows it, and doesn't affect existing accounts.
 - [ ] *Creates accounts* off refuses new accounts and still signs in linked ones.
+- [ ] A throwaway domain is refused through every way in with *Any domain* while the setting is on,
+  and not through one with an allow list.
 - [ ] *Any domain* creates accounts in any domain not blocked, and can't be combined with link by
   email.
 - [ ] Approval for a provider creates a waiting, linked account with no groups; after approval the
@@ -165,12 +170,15 @@ Also:
    disabling them, a root action with its own audit.
 4. **No link by email with *Any domain*** (Claude). Linking by email trusts the provider for those
    domains. With any domain, it would trust it for every account on the instance, root's included.
-5. **Root's own ways to make accounts aren't governed** (Claude, to confirm). Create user warns, and
+5. **Root's own ways to make accounts aren't governed** (owner, 2026-11-20). Create user warns, and
    SCIM is the identity provider's administrators' decision.
 6. **A provider's waiting account gets no groups until approved** (Claude). Groups can give
    workspace roles.
 
+7. **Throwaway domains blocked for every way in with *Any domain*** (owner, 2026-11-20). A
+   provider that accepts any domain is as open as sign-up. A provider with an allow list is
+   already narrower than the list.
+
 ## Open questions
 
-- Should Ronne bundle a list of disposable-address domains for root to add with one click? It would
-  be a data dependency (licence and updates).
+None.

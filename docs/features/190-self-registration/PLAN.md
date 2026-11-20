@@ -19,9 +19,9 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     pass.
 
 - [ ] **2. Migration and models.** [risky]
-  - One migration: `pending_sign_ups`, `email_codes`, `challenges_used`, the four `user` columns,
-    and the settings keys with their defaults (sign-up off, any domain, no approval, 15 minutes,
-    challenge on).
+  - One migration: `pending_sign_ups`, `email_codes`, `challenges_used`, `terms_acceptances`, the
+    two `user` columns, and the settings keys with their defaults (sign-up off, any domain, no
+    approval, throwaway domains blocked, 15 minutes, challenge on).
   - The email-code model in the identity domain: generate, HMAC with the HKDF key, verify in
     constant time, the 5 tries, ending the previous code, the 60-second resend and the hourly cap.
   - *Done when:* the migration's db test passes on SQLite, PostgreSQL, MySQL and MariaDB
@@ -32,19 +32,25 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     vulnerabilities, CSP). If it fails, write the Web Worker instead. Record the answer in Notes.
   - The server side with `node:crypto`: issue a challenge (signed salt, maximum, expiry), verify it,
     refuse a replay through `challenges_used`.
+  - The throwaway list: confirm the `disposable-email-domains` list's licence against the
+    dependency policy (CC0 or CC-BY-4.0 for data), add it as a data file with its notice, and a
+    release step that refreshes it. If the licence fails, stop and ask the owner.
   - The honeypot and the signed fill-time stamp. The per-IP and per-address limits, through 109's
     database-backed limiter.
-  - *Done when:* tests refuse a filled honeypot, a fast post, a wrong answer, an expired challenge,
+  - *Done when:* `pnpm licenses:check` and the notices test pass with the list; tests refuse a
+    throwaway address with *Any domain* (and ignore the list with an allow list), a filled honeypot, a fast post, a wrong answer, an expired challenge,
     a replay and too many tries, and accept a real solve; the solve takes under 1.5 s on the e2e
     browser.
 
 - [ ] **4. Settings panel.**
   - The Self-registration panel on the Authentication tab:
-    - the switch, disabled with its reason without email (189) or with the policy *Root only*;
+    - the switch, disabled with its reason without email (189), without the instance contact (189)
+      or with the policy *Root only*;
+    - the throwaway setting;
     - the domains and approval;
     - the code lifetime (5–60);
     - the challenge;
-    - the terms link and version.
+    - the terms link and version, with **Ask everyone to accept again** when the version changes.
   - Audited with before and after.
   - *Done when:* component tests cover each field and the disabled reasons; an action db test
     covers saving, validating (a bad domain, a lifetime out of range, a non-HTTPS link) and the
@@ -63,7 +69,16 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     - a test measures the existing and new paths within the tolerance;
     - an e2e test signs up and signs in, reading the code from the test transport (189).
 
-- [ ] **6. Approval.** [risky]
+- [ ] **6. Accepting new terms.** [risky]
+  - A row in `terms_acceptances` at sign-up and at each acceptance.
+  - The hold after a web sign-in when `terms_required_version` isn't accepted, built like the
+    password-change hold. Continue and Sign out.
+  - Tokens, the API and the device flow untouched.
+  - *Done when:* db tests cover ticked and unticked version changes, a password and a provider
+    sign-in held, a token still working, and an acceptance row per acceptance; an e2e test accepts
+    the new terms.
+
+- [ ] **7. Approval.** [risky]
   - `approval_pending_at` refused by password sign-in, the token exchange and the device flow, and
     only after the password is right.
   - Notifications to roots (139).
@@ -74,21 +89,21 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     approve, decline, a race between two roots, and the 30-day decline; component tests cover the
     filter and the buttons.
 
-- [ ] **7. Data protection.** [risky]
+- [ ] **8. Data protection.** [risky]
   - The retention job purges pending sign-ups, codes and used challenges a day after they expire,
     and the sign-up audit emails with `ipDays`.
-  - Erase (103) deletes pending rows and codes for the address and clears the terms columns.
-  - Your data (104) lists `signed_up_at` and the terms acceptance.
+  - Erase (103) deletes pending rows, codes and terms acceptances.
+  - Your data (104) lists `signed_up_at` and every terms acceptance.
   - *Done when:* `retention-purge.db.test.ts`, the erase and the user-data export db tests cover
     the new data.
 
-- [ ] **8. Languages.**
+- [ ] **9. Languages.**
   - Every new message in `auth`, `admin` and 189's `mail` namespaces, in all three languages.
   - The glossary in `docs/knowledge/i18n.md` if a new term appears ("sign up", "awaiting
     approval").
   - *Done when:* the translation tests and the raw-text lint pass.
 
-- [ ] **9. Documentation.**
+- [ ] **10. Documentation.**
   - ronne-web: `account#signing-up`, `authentication#self-registration`, `privacy`, `security`,
     in three languages, in a branch that goes live with the release.
   - Here: the helpers and `topics.ts`.

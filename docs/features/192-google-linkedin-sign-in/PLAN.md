@@ -49,9 +49,8 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 - [ ] **4. Two-factor after a social provider.** [risky]
   - The callback (`actions/sso.ts`) hands a social sign-in to 105's second step (the existing
-    two-factor hold) when the account has two-factor, or to the setup when 105's requirement covers
-    the person. Company providers skip it as before.
-  - *Done when:* db tests cover each case: with two-factor, required but not set up, neither, and a
+    two-factor hold) whenever the account has two-factor on. Company providers skip it as before.
+  - *Done when:* db tests cover each case: with two-factor on, without it, and a
     company provider. A session exists only after the second step.
 
 - [ ] **5. Account › Sign-in methods.** [risky]
@@ -68,7 +67,9 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 - [ ] **6. Brand buttons.**
   - Pass the [dependency policy](../../policies/dependencies.md) checklist for the vendors' button
     assets (trademarks under guidelines, not a package), and add them to the third-party notices.
-  - The assets in light and dark, each brand's wording per language (or English, Open question 2).
+  - The assets in light and dark. Check each brand's approved wording in Brazilian Portuguese and
+    Canadian French in its download, use it, or English where there is none, and record which in
+    Notes.
   - The sign-in and sign-up pages: "Or continue with", equal sizes, 44px on a coarse pointer.
   - The CSP test is unchanged.
   - *Done when:*

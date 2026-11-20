@@ -27,7 +27,8 @@ addresses are told.
   2. The new address is checked:
      - a plain ASCII address (106's rules);
      - not on the instance's block list (191);
-     - for an account that came from email sign-up, on that way in's allowed domains (191).
+     - on the allowed domains of the way in that made the account (`user.created_via`, 191);
+       accounts made by root or at setup have only the block list.
   3. A code is sent to the new address: one of 190's one-time email codes, purpose
      `email_change`. It follows 190's rules: 6 digits, the code lifetime, 5 tries, 60 seconds
      before a resend, 3 per hour.
@@ -117,6 +118,23 @@ audit row has the reason.
   - `user.email_change_failed` (reason);
   - `user.email_changed` (by self or root, old and new addresses, root's reason, which notices
     were sent).
+- **Erasure and earlier addresses.** Erasure (103) already turns the account's *current* address
+  into the pseudonym wherever an event's metadata holds it as a value
+  (`audit/repositories/kysely-audit-rewrite.ts`). The events that carry an email today are:
+  - `user.created` (root's Create user, the root account at setup, an SSO or SCIM first sign-in);
+  - `user.updated`'s relink (SCIM);
+  - `auth.sign_in_failed` (the web, and `rmk login`'s token exchange);
+  - SSO's refusals.
+
+  After this feature an account can have had several addresses, so erasure also rewrites every
+  earlier one, taken from the account's `user.email_changed` events: both addresses there, and the
+  same address in every other event.
+  - An earlier address may belong to someone else by now. Its rewrite then stops at the moment it
+    left this account (that `user.email_changed` event's time), so the next owner's events keep
+    their address.
+  - The open `email_changes` row's address is deleted with the row.
+  - The rewrite keeps 103's progress on the erasure's row and resumes after a crash, one address
+    after another.
 
 ## Documentation
 
@@ -124,7 +142,8 @@ audit row has the reason.
   address is told, and accounts managed by a provider. New section id, so `topics.ts` changes here
   and in ronne-web.
 - **Users** (`admin#users`): root's *Change email*, the reason and the notices.
-- **Privacy** (`privacy#your-data`): the open change in Your data.
+- **Privacy** (`privacy#your-data`, `privacy#erase`): the open change in Your data, and erasure
+  replacing every address the account has had.
 - **Helpers**: a helper on Account › Email linking to `account#email`.
 
 ## Acceptance criteria
@@ -142,6 +161,10 @@ audit row has the reason.
 - [ ] The block list and, for sign-up accounts, the allowed domains are applied when asking and
   again when the code is typed.
 - [ ] Retention, erasure and Your data cover `email_changes`.
+- [ ] Erasing an account that changed its email replaces every address it has had with the
+  pseudonym in its audit records' metadata (`user.created`, `user.email_changed`,
+  `auth.sign_in_failed` and the rest); an earlier address now owned by another account is rewritten
+  only up to the change, so the other account's events keep it; on SQLite, PostgreSQL and MySQL.
 - [ ] Screens and emails in all three languages; the Documentation and helpers say what it does.
 
 ## Decisions
@@ -154,13 +177,12 @@ audit row has the reason.
    who has an account.
 4. **Identity providers own their emails** (Claude): SCIM would undo a change, and a company provider
    created the account for its domain (106).
-5. **Root's change needs no code, but a reason** (Claude, to confirm): root fixes accounts whose
+5. **Root's change needs no code, but a reason** (owner, 2026-11-20): root fixes accounts whose
    owner lost the old inbox. The reason and both notices keep it accountable.
+6. **The audit keeps both addresses, and erasure removes them** (owner, 2026-11-20): the account's
+   history stays complete while the person is here; once they're erased, every address they had
+   becomes the pseudonym, as 103 already does for the current one.
 
 ## Open questions
 
-- Should the audit row hold both addresses? It's the account's history. 103's erasure keeps audit
-  rows under the pseudonym but doesn't rewrite their metadata, as with `user.created`'s email today.
-  Hashing the old address in the metadata would be safer if erasure must remove it.
-- 191 must record which way in created an account, for the allowed-domain check. If it doesn't, only
-  the block list applies.
+None. Which way in made an account comes from 191's `user.created_via`.

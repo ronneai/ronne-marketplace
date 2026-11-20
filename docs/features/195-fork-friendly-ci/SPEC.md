@@ -197,11 +197,11 @@ owner witnesses the tasks, if any, and squash-merges.
    own pushes; only what starts by itself is ours.
 3. **A DCO for outside contributors, not a CLA** (owner, 2026-11-20, the recommended option): it is
    the lightest way for a company's employee to state they may contribute, and MIT stays MIT.
-4. **The owner's commits are exempt** (Claude): the owner holds the copyright decisions already, and
-   a sign-off on every own commit adds nothing.
+4. **The owner, members, collaborators and bots are fully exempt** (owner, 2026-11-20): `dco`
+   doesn't run for them at all, not even as information.
 5. **The workflows check is a test, not a new command** (Claude): `pnpm test` runs it on every
    commit and pull request with no new row in the commands table.
 
 ## Open questions
 
-- Should `dco` also run on the owner's pull requests, as information only? Today it skips them.
+None.

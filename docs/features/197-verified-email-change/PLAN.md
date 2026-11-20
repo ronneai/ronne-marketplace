@@ -53,9 +53,20 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - Retention (102), erasure (103) and Your data (104) cover `email_changes`.
   - *Done when:* their db tests cover the new table.
 
-- [ ] **7. Documentation.**
+- [ ] **7. Erasure rewrites every earlier address.** [risky]
+  - `erase-user.ts` and `kysely-audit-rewrite.ts`: the addresses the account has had, read from its
+    `user.email_changed` events; each rewritten to the pseudonym, the current one everywhere (as
+    today), an earlier one only in events up to the change that moved it off the account; 103's
+    progress kept per address so a crash resumes.
+  - *Done when:* db tests on SQLite, PostgreSQL and MySQL (`pnpm test:db:postgres -- <files>`,
+    `:mysql`) erase an account that changed its email twice and find no earlier address left in its
+    `user.created`, `user.email_changed` and `auth.sign_in_failed` events. An earlier address now
+    owned by another account stays in that account's later events. A rewrite stopped halfway
+    resumes.
+
+- [ ] **8. Documentation.**
   - ronne-web: the new `account#email` (`topics.ts` here and there), `admin#users`,
-    `privacy#your-data`, in all three languages.
+    `privacy#your-data` and `privacy#erase` (earlier addresses erased too), in all three languages.
   - Helpers: the one on Account › Email.
   - *Done when:* the docs render tests and `pnpm docs:links` pass.
 

@@ -17,8 +17,8 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* both say what this spec says, and `pnpm witness:check` and `pnpm docs:check` pass.
 
 - [ ] **2. The dependency.**
-  - Only after the owner's yes to Decision 2: MIT-0 is added to the dependency policy §1 and to
-    `license-policy.json` (one change, both files).
+  - MIT-0 is added to the dependency policy §1 and to `license-policy.json`, in one change (owner,
+    2026-11-20).
   - nodemailer is added at its latest stable version, and the pull request answers the §3
     checklist: need, licence of the tree, health, advisories, install scripts, weight.
   - *Done when:* `pnpm install --frozen-lockfile`, `pnpm licenses:check` and
@@ -76,20 +76,23 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 - [ ] **7. The Email tab.**
   - `email` in `SETTINGS_TABS`; the status, sender, transport with presets and steps, the write-only
-    secrets and *Set on the server*.
+    secrets and *Set on the server*; the **Instance contact** field (`mail_contact`, or
+    `RONNE_MAIL_CONTACT`), validated as an email address or an `https://` URL, and
+    `instanceContact()` for 190 and 194 to check before their switches turn on.
   - **Send test email** (to root only, 5 in 10 minutes) and **Stop sending**.
   - Screen text through messages in three languages.
   - *Done when:* component tests cover each status, each transport's fields, a secret saved and
-    replaced, the environment's read-only view, the test's success, failure and limit, and Stop
-    sending; the phone sweep passes on the tab.
+    replaced, the environment's read-only view, the instance contact (valid, `http://`, with a user
+    name, empty), the test's success, failure and limit, and Stop sending; the phone sweep passes on the tab.
 
 - [ ] **8. Security notices.** [risky]
   - `sendSecurityNotice` and its kinds, queued in the transaction of `changePassword`, the two
     password resets (`user-admin.ts`, `root-account.ts`), `confirmTwoFactor`, `turnOffTwoFactor`,
     `regenerateBackupCodes`, the two-factor resets and `sso-sign-in.ts`'s link.
-  - Nothing is queued when email isn't set up.
+  - Nothing is queued when email isn't set up. Every notice ends with the instance contact when one
+    is set.
   - *Done when:* db tests show each event queues one notice for the account's own address in its
-    language, a failed change queues none, and no notice is queued with email off.
+    language, with the instance contact (and without one when it's empty), a failed change queues none, and no notice is queued with email off.
 
 - [ ] **9. The threat model.**
   - `docs/security/threat-model.md`:

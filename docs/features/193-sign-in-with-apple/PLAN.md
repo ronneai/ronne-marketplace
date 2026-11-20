@@ -65,6 +65,8 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     Notes.
   - *Done when:*
     - db tests cover each type, a duplicate, an unknown type, a bad signature and another `aud`;
+    - a delete for an account with no other way in disables it (tokens refused) and tells the
+      roots; one with a password or another provider only loses the link;
     - if a migration was added, `pnpm test:db:postgres` and `:mysql` pass on the touched files.
 
 - [ ] **6. The relay hints.**

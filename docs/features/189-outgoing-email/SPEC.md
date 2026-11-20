@@ -59,7 +59,7 @@ possible, and follow the standards (owner, 2026-11-20).
 - **The environment wins, all or nothing.** When the operator sets `RONNE_MAIL_TRANSPORT`, the whole
   setup comes from `RONNE_MAIL_*` variables: `RONNE_MAIL_FROM`, `RONNE_MAIL_FROM_NAME`,
   `RONNE_MAIL_SMTP_HOST`, `_PORT`, `_TLS`, `_USER` and `_PASSWORD`, `RONNE_MAIL_API_KEY`,
-  `RONNE_MAIL_REGION`, `RONNE_MAIL_DOMAIN` (Mailgun), `RONNE_MAIL_SES_ACCESS_KEY_ID` and
+  `RONNE_MAIL_REGION`, `RONNE_MAIL_DOMAIN` (Mailgun), `RONNE_MAIL_CONTACT`, `RONNE_MAIL_SES_ACCESS_KEY_ID` and
   `RONNE_MAIL_SES_SECRET_ACCESS_KEY`. The tab then shows every field as *Set on the server*,
   read-only, as 136 does. This is for operators who keep secrets out of the database. They're read
   by `server/config.ts` with the others, the environment's over the settings file's.
@@ -70,6 +70,12 @@ possible, and follow the standards (owner, 2026-11-20).
     - *Working*: the last test or delivery succeeded, and when;
     - *Failing*: the last delivery failed for good, with its reason category and time (never the
       address).
+  - **Instance contact:** an email address or an `https://` URL that tells people whom to contact
+    about their account, such as `it-help@acme.com` or the company's help page. It's printed in
+    every security notice, so someone who didn't make a change knows whom to tell (NIST SP
+    800-63B-4 §4.6). It's required before self-registration (190) or reset by email (194) can be
+    turned on, and those switches say so while it's empty. Validated on save: an address as the
+    From address is validated, or an absolute `https://` URL with no user name or password in it.
   - **Sender:** the From address and name. The domain's SPF, DKIM and DMARC are the provider's and
     the DNS's job; the tab links the Documentation's guide.
   - **Transport:** a choice, then the transport's fields, with the preset's steps beside them.
@@ -109,7 +115,8 @@ possible, and follow the standards (owner, 2026-11-20).
   tests checking keys and placeholders). Each message is:
   - plain text plus simple HTML: inline styles, no remote images, no tracking, no unsubscribe link;
   - the From name and the public address's host (`PUBLIC_URL`) say which instance sent it;
-  - free of any link that signs anyone in, ending with "If this wasn't you…" and what to do;
+  - free of any link that signs anyone in, ending with "If this wasn't you…", what to do, and the
+    instance contact;
   - sent with `Auto-Submitted: auto-generated`.
 
   The locale is the person's (`user.locale`), else the instance's default language, else English.
@@ -171,7 +178,7 @@ tab shows every field *Set on the server*, and **Send test email** still works.
 **A notice.** Ana turns off two-factor on her Account page. In the same transaction, the outbox
 gets a row. A second later it's sent: "Two-factor sign-in was turned off for your account on
 marketplace.acme.com at 14:02 UTC. If this wasn't you, sign in and turn it back on, change your
-password, and tell your administrator." The row's body is deleted, and its status is `sent`.
+password, and tell your administrator: it-help@acme.com." (the instance contact). The row's body is deleted, and its status is `sent`.
 
 **The provider is down.** The SMTP server refuses connections. The row goes back to `queued` with
 `next_attempt_at` a minute later, then 5, 15 and 60. The tab shows *Failing* only after the last
@@ -179,6 +186,9 @@ attempt, or at once on a permanent error such as `535 authentication failed`.
 
 ## Edge cases
 
+- **No instance contact:** the email setup still works and notices still go out, ending with "tell
+  your administrator" without a contact. Turning on 190 or 194 is refused until it's set.
+- **The instance contact is an `http://` URL or holds a user name:** refused on save.
 - **Email isn't set up:** no notices are queued, and nothing fails. 190, 194 and 197 show their
   switches as unavailable, with the reason and a link to the tab.
 - **Root changes the transport while messages are queued:** each message is sent through the
@@ -218,7 +228,8 @@ attempt, or at once on a permanent error such as `535 authentication failed`.
 - **`instance_settings` keys:** `mail_transport`, `mail_from_address`, `mail_from_name`,
   `mail_smtp_host`, `mail_smtp_port`, `mail_smtp_tls`, `mail_smtp_user`, `mail_smtp_password_enc`,
   `mail_api_key_enc`, `mail_region`, `mail_domain`, `mail_ses_access_key_id`,
-  `mail_ses_secret_access_key_enc`, and `mail_last_status` (JSON: status, time, reason category).
+  `mail_ses_secret_access_key_enc`, `mail_contact` (the instance contact; also
+  `RONNE_MAIL_CONTACT` when the environment sets the email setup), and `mail_last_status` (JSON: status, time, reason category).
 - **`jobs` row:** `mail_outbox`.
 
 ## Documentation
@@ -253,6 +264,8 @@ attempt, or at once on a permanent error such as `535 authentication failed`.
 - [ ] Retries follow the schedule. Permanent errors don't retry, and `429` waits for `Retry-After`.
 - [ ] Two processes against one database never send a row twice in the tests.
 - [ ] The cap of 10 an hour per address holds across templates.
+- [ ] The instance contact is validated, appears in every security notice, and is required before
+  190's or 194's switch can be turned on.
 - [ ] The six security notices go out in the person's language. Nothing is queued when email isn't
   set up.
 - [ ] Retention purges rows, erase deletes the person's, and *your data* lists them.
@@ -264,12 +277,11 @@ attempt, or at once on a permanent error such as `535 authentication failed`.
 1. **SMTP and the providers' web APIs** (owner, 2026-11-20: "both"). The APIs are four `fetch`
    calls with fixed hosts, so there are no vendor SDKs to follow; the AWS SDK alone would weigh
    more than the feature.
-2. **nodemailer for SMTP and for composing MIME** (Claude, to confirm). SMTP and MIME are where a
+2. **nodemailer for SMTP and for composing MIME** (owner, 2026-11-20). SMTP and MIME are where a
    hand-written client goes wrong (dot-stuffing, header encoding, STARTTLS, line lengths). nodemailer
    has no dependencies, is maintained, and is on 10.x (Node.js 20 or later). Its licence is
-   **MIT-0**, which `license-policy.json` and the dependency policy §1 don't list yet. MIT-0 is MIT
-   without the attribution clause, as permissive as 0BSD, which is allowed. Task 2 adds it to both
-   after the owner's yes; nothing is installed before.
+   **MIT-0**, MIT without the attribution clause, as permissive as 0BSD, which is already allowed.
+   Task 2 adds MIT-0 to the dependency policy §1 and to `license-policy.json`.
 3. **The environment wins, all or nothing** (Claude). This is 136's rule (the operator's settings
    win). Taking the whole setup from one place avoids a half-environment, half-database transport
    that nobody can reason about.
@@ -283,6 +295,10 @@ attempt, or at once on a permanent error such as `535 authentication failed`.
 7. **Security notices can't be turned off** (Claude, NIST SP 800-63B-4 §4).
 8. **At-least-once delivery** (Claude). Exactly once can't be had over SMTP, and a duplicate notice
    does no harm.
+9. **An instance contact in every security notice** (owner, 2026-11-20). NIST SP 800-63B-4 §4.6
+   asks that a notice give the recipient clear instructions and whom to contact if they didn't make
+   the change. It's required before anyone can create an account (190) or reset a password by email
+   (194), the two features that let people act without a root.
 
 ## Open questions
 

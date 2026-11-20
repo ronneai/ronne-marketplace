@@ -20,7 +20,10 @@ sessions and other codes ended, and a notice sent afterwards.
 
 **In:**
 - **A setting** on the Authentication tab (122): *People can reset a forgotten password by email*.
-  Off by default. It can be turned on only while email is set up and its last test passed (189).
+  Off by default. It can be turned on only while email is set up, its last test passed, and 189's
+  **Instance contact** is set. Every security notice prints that contact, so a person who didn't ask
+  for a reset knows whom to tell (NIST SP 800-63B-4 §4.6). Clearing the contact turns the setting
+  off, and the audit row says why.
   When it's off, or email stops working, "Forgot?" shows today's note unchanged.
 - **The request page**, `/sign-in/forgot`: one field, the email address. The reply is always the
   same page and words: "If an account can reset its password with this address, we've sent it a
@@ -115,7 +118,7 @@ name and "If you didn't ask for this, ignore this email: your password hasn't ch
 the code. Her account has two-factor, so she enters the code from her app. She chooses a new
 password, leaves *Also revoke my access tokens* checked, and saves. Her laptop's open session ends
 too. She gets "Your Ronne password was reset at 14:02 UTC. If this wasn't you, reset it again and
-tell a root (or the instance's contact address, 189)". The sign-in page asks her to sign in.
+contact {instance contact}". The sign-in page asks her to sign in.
 
 **Someone types `bob@acme.com`, which has no account.** They see the same pages, and the same code
 page, in the same time. Every code they try is wrong, and after five the flow ends: "Ask for a new
@@ -186,6 +189,8 @@ two-factor failures. Dan gets no "password was reset" notice, because nothing wa
 
 - [ ] With the setting off or email not working, *Forgot?* shows today's note; with it on, it opens
   `/sign-in/forgot`.
+- [ ] The setting can't be turned on without working email and 189's Instance contact, and clearing
+  the contact turns it off (audited).
 - [ ] Every row of the "What is sent" table sends what it says and shows the same screens, with
   response times that a test can't tell apart (same work on each path; the email is queued).
 - [ ] A right code, then the account's two-factor when it has one, opens the new-password page; no
@@ -215,14 +220,14 @@ two-factor failures. Dan gets no "password was reset" notice, because nothing wa
    shell where Ronne is installed. Root's mailbox is a weaker key than that.
 4. **Tokens revoked by default** (owner, 2026-11-20): 162's box, checked, because a forgotten password
    may be a stolen one. The person can uncheck it.
-5. **Off until root turns it on** (Claude, to confirm): it sends email to anyone who types an
-   address, so root decides when the instance's email is ready for it.
+5. **Off until root turns it on, and only with an Instance contact** (owner, 2026-11-20): it sends
+   email to anyone who types an address, so root decides when the instance's email is ready for it;
+   and every notice must say whom to tell when the reset wasn't theirs (NIST SP 800-63B-4 §4.6).
 6. **A flow row per request, even for unknown addresses** (Claude): it is what keeps the code page
    and the timing identical. It holds no address and expires with the code.
-7. **The same password is allowed** (Claude): refusing it would leak that the account exists to the
-   one person who already proved they read its email, and adds nothing.
+7. **The same password is allowed** (owner, 2026-11-20): refusing it would leak that the account
+   exists to the one person who already proved they read its email, and adds nothing.
 
 ## Open questions
 
-- Should the instance's contact address in the notice (189) be required before the setting can be
-  turned on? NIST §4.6 asks for contact details for someone who didn't ask for the change.
+None.

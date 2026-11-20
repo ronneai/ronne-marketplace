@@ -98,8 +98,9 @@ against Apple's documentation and developer forums on 2026-11-20.
       again) finds the same subject.
     - **`account-delete`, and `account-deleted` as observed:** the person deleted their Apple
       account. The link is removed and their sessions from Apple end. The account itself stays,
-      since erasing is root's decision (103). With no other way in left, root sees a notice on the
-      user's page.
+      since erasing is root's decision (103). With no other way in left (no password, no other
+      provider), the account is disabled as root's Disable does (its tokens stop working) and the
+      roots are told (139); a root can enable it again and give it a password.
   - **Audit:** each notification is recorded as `auth.apple_event`, with the type and the user.
   - **Limits:** unknown types are recorded and ignored. Duplicates change nothing. The endpoint is
     rate-limited and answers `200` only after the signature checks.
@@ -113,7 +114,9 @@ against Apple's documentation and developer forums on 2026-11-20.
 
   *Test sign-in* works through the hand-off, as for 106.
 - **The rules 192 sets for social providers:** linking by authority, root accounts never claimed,
-  two-factor after, Account › Sign-in methods, the 24-hour session and 191's creation rules.
+  two-factor after (the person's Ronne two-factor is asked whenever their account has it on, as
+  after Google and LinkedIn; owner, 2026-11-20), Account › Sign-in methods, the 24-hour session and
+  191's creation rules.
 - **The button:**
   - Apple's standard *Sign in with Apple* button: black in the light theme, white in the dark one.
   - From Apple's official assets, with Apple's approved title per language.
@@ -213,7 +216,8 @@ and Ronne stops emailing them. The user's page says why.
 - [ ] Apple is the authority for `icloud.com`, `me.com` and `mac.com` only when not private. Relay
   addresses never link by email and follow 191's rules.
 - [ ] The notifications endpoint verifies Apple's signature and handles the four types (both delete
-  spellings) idempotently, each audited.
+  spellings) idempotently, each audited; a deleted Apple account is unlinked, and disabled with the
+  roots told when no other way in is left.
 - [ ] *Test connection* tells `invalid_client` from `invalid_grant`, and refuses an instance that
   isn't on `https` with a domain.
 - [ ] The Email tab and the outbox show the relay hint while Apple is on.
@@ -231,12 +235,11 @@ and Ronne stops emailing them. The user's page says why.
    checks stay exactly as they are, and the cross-site request can't act on the session.
 4. **No Apple tokens kept** (Claude, from the owner's data-protection goal): Ronne uses the ID token
    only at sign-in.
-5. **Deleted Apple accounts unlink, they don't erase** (Claude, to confirm): erasure (103) is root's
+5. **Deleted Apple accounts unlink, they don't erase** (owner, 2026-11-20): erasure (103) is root's
    decision, with its consequences.
 
 ## Open questions
 
-- Does Apple's discovery document list PKCE (`S256`) for web clients? Task 2 records it. The flow is
-  safe either way (Scope).
-- Does Apple deliver the notifications for a web-only Services ID once its primary App ID has the
-  endpoint? Task 5 tests this with a real Apple account and records the result in Notes.
+None. The vendor facts still to check are plan tasks: whether Apple's discovery lists PKCE (`S256`)
+(task 2; the flow is safe either way) and whether Apple delivers notifications for a web-only
+Services ID (task 5, with a real Apple account).

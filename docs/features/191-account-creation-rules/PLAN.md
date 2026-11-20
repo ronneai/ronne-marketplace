@@ -30,7 +30,8 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     - db tests show each creation path writes `created_via` and the backfill's four cases.
 
 - [ ] **3. The rule in SSO sign-in.** [risky]
-  - `planSsoSignIn`: the block list, `creating_off`, *Any domain*, `create_pending`.
+  - `planSsoSignIn`: the block list, the throwaway list with *Any domain* (`domain_throwaway`),
+    `creating_off`, *Any domain*, `create_pending`.
   - `signInWithProvider`: the waiting account, with no groups; the approval message; the root
     notification.
   - *Test sign-in*'s new results.
@@ -46,8 +47,8 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     pending.
 
 - [ ] **5. The panel and the provider form.**
-  - The Who may create accounts panel: the block list with the stale check, and the overview with
-    its warnings.
+  - The Who may create accounts panel: the block list with the stale check, the throwaway setting
+    (moved from 190's panel), and the overview with its warnings.
   - The provider form's step 3: the new fields, link by email disabled with *Any domain*.
   - Create user's warning for a blocked domain.
   - Audit events.

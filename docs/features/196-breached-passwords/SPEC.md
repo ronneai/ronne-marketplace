@@ -53,7 +53,10 @@ sign-in must be replaced, with 128's hold.
     dependencies today, so it learns to add vendored data files).
   - The source is SecLists (`danielmiessler/SecLists`, MIT): its
     `Passwords/Common-Credentials/10-million-password-list-top-1000000.txt`, or the largest file in
-    that folder the plan's licence check clears.
+    that folder the plan's licence check clears. SecLists is MIT as a repository, but its lists
+    come from public breach compilations, so the plan checks that nothing in the file's folder says
+    otherwise. If something does, a CC0 or CC-BY-4.0 list takes its place (data only, §1 of the
+    dependency policy).
   - The bundle checks keep the file under 2 MB.
 - **Have I Been Pwned**: a setting on the Authentication tab, *Also check new passwords against Have
   I Been Pwned*, **off by default**.
@@ -157,8 +160,9 @@ breach and that he should change it anywhere else he used it.
 1. **An offline list by default, Have I Been Pwned only when root turns it on** (owner, 2026-11-20):
    it keeps the person's safety without sending anything out, and the privacy choice stays with
    root.
-2. **Fail open on Have I Been Pwned** (Claude, to confirm): an outage of an outside service must not
-   stop sign-ups and password changes. The offline list still decides.
+2. **Fail open on Have I Been Pwned** (owner, 2026-11-20): an outage of an outside service must not
+   stop sign-ups and password changes. The failure is logged and shown on the tab, and the offline
+   list always applies.
 3. **Keep only 12–128 character entries** (Claude): shorter ones can't pass the length rule, and the
    file stays small enough for the image and the server package.
 4. **Check at sign-in and hold** (Claude): NIST says a compromised password must be changed. The
@@ -166,6 +170,4 @@ breach and that he should change it anywhere else he used it.
 
 ## Open questions
 
-- SecLists files are MIT as a repository, but the lists come from public breach compilations. The
-  plan's licence check must confirm that nothing in the chosen file's folder says otherwise. If it
-  does, the fallback is NCSC's or another CC0/CC-BY-4.0 list (data-only, §1 of the policy).
+None. The list's licence is checked in the plan's task 2.

@@ -18,9 +18,11 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 - [ ] **2. The table and the setting.** [risky]
   - Migration: `password_reset_flows` (spec's Data), on all three dialects.
   - The setting *People can reset a forgotten password by email* in the settings domain, off by
-    default, refused while email isn't set up or its last test failed (189), audited.
+    default, refused while email isn't set up, its last test failed, or 189's Instance contact is
+    empty; clearing the contact turns it off; audited.
   - *Done when:* the migration's db test passes on SQLite, PostgreSQL and MySQL, and a settings db
-    test covers on, off and the refusal without working email.
+    test covers on, off, the refusals without working email or a contact, and the setting turned off
+    when the contact is cleared.
 
 - [ ] **3. The request.** [risky]
   - The identity service `requestPasswordReset`: normalise the address; decide the email from the

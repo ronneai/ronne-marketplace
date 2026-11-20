@@ -55,9 +55,9 @@ safety first, and the standards followed.
   account on its own. Root can link one on their own Account page, like anyone else. A company
   provider (106) keeps its decision 9.
 - **Two-factor after a social provider:** 106 doesn't ask for Ronne's two-factor after a company
-  provider, which has its own MFA. After a social provider it is asked:
-  - when the account has two-factor on;
-  - when 105's requirement covers the person, who then sets it up as a password user does.
+  provider, which has its own MFA, and company providers keep skipping it. After Google or LinkedIn,
+  Ronne asks for the person's own two-factor code whenever their account has two-factor on (105's
+  second step), before any session exists.
 - **Account › Sign-in methods** (a new section on `/account`, `features/account/`):
   - **The list:** the password (*Set* or *Not set*), and each linked provider with its name and when
     it was linked.
@@ -113,8 +113,8 @@ safety first, and the standards followed.
 **A visitor signs in with Google.** On the sign-in page they choose **Sign in with Google** and
 pick their account at Google. Their address is `bob@gmail.com`, verified, with no account in Ronne.
 191's rules allow it, so Ronne creates a `user` in `global` with a personal workspace and no
-password. If the instance requires two-factor for everyone, Bob sets it up next, then lands on the
-home page.
+password, and lands on the home page. Once Bob turns two-factor on, every later Google sign-in asks
+for his code too.
 
 **Alice already has a password account, `alice@acme.com`**, and her Google account uses that
 address, but `acme.com` isn't Google's (no `hd` claim). **Sign in with Google** is refused. She
@@ -190,8 +190,8 @@ email, only from the Account page.
   never links by email.
 - [ ] A social provider never links to, or signs in as, a root account it wasn't linked to from
   Account. Company providers are unchanged.
-- [ ] After a social provider, two-factor is asked when the account has it, or set up when 105's
-  requirement covers the person.
+- [ ] After a social provider, two-factor is asked whenever the account has it on, before any
+  session; company providers still skip it.
 - [ ] Account › Sign-in methods lists, links (after the password and two-factor) and unlinks. It
   refuses a subject linked elsewhere and refuses to unlink the last way in. Each change is audited
   and sends a notice.
@@ -206,10 +206,10 @@ email, only from the Account page.
    3): one decision list, *Test sign-in* and the sealed secret apply as they are.
 2. **A social provider links by email only for addresses it owns** (owner, 2026-11-20). Otherwise
    a provider that once verified someone's address could take over that account.
-3. **Social providers never claim a root account by themselves** (Claude, to confirm). A consumer
+3. **Social providers never claim a root account by themselves** (owner, 2026-11-20). A consumer
    account is outside the company's control. Root links one on purpose, after their password and
    two-factor.
-4. **Two-factor is asked after a social provider** (Claude, to confirm). A company provider applies
+4. **Two-factor is asked after a social provider** (owner, 2026-11-20). A company provider applies
    the company's MFA; a consumer account's protection is unknown, so Ronne's own applies.
 5. **Brand buttons as static assets** (owner, 2026-11-20, "their standard buttons with their
    brand"; no vendor scripts: Claude). The buttons follow each brand's guidelines while no visitor
@@ -219,9 +219,7 @@ email, only from the Account page.
 
 ## Open questions
 
-- Does LinkedIn accept PKCE from a web application, ignore it, or refuse it? Its documentation
-  describes PKCE for native clients. Checked in task 2. If it refuses, the preset turns PKCE off for
-  LinkedIn only, and `state` and `nonce` carry the protection.
-- Google's and LinkedIn's approved button wording in Brazilian Portuguese and Canadian French:
-  taken from their downloads in task 6. If one has no approved wording for a language, it shows the
-  English wording.
+None. The vendor facts still to check are plan tasks: LinkedIn's PKCE (task 2; if LinkedIn refuses
+it, the preset turns PKCE off for LinkedIn only and `state` and `nonce` carry the protection) and
+the brands' approved button wording in Brazilian Portuguese and Canadian French (task 6; English
+where a brand has none).
