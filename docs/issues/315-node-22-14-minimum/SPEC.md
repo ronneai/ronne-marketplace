@@ -18,7 +18,8 @@
   loads the driver.
 - **Measured** on the official `darwin-arm64` builds, each checked against nodejs.org's
   `SHASUMS256.txt` (2026-11-20):
-  - 13.2.0: `require("better-sqlite3")` exits 139 on 22.11.0, 22.12.0 and 22.13.1. On 22.14.0
+  - 13.2.0: opening a database (`new Database(":memory:")`; the binary loads then, not at
+    `require`) exits 139 on 22.11.0, 22.12.0 and 22.13.1. On 22.14.0
     (N-API 10) it opens a database and `@node-rs/argon2` hashes; 22.23.2, 23.6.0 and 26.13.1 work
     too, and 23.5.0 exits 139 (the task 1 witness).
   - 13.0.3, installed with 22.12.0's npm: exits 139 on 22.12.0 and 22.13.1, opens a database on
