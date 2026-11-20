@@ -123,7 +123,7 @@
     "title": "Use rmk from the terminal",
     "intro": "<mono>rmk</mono> installs items from this registry into your AI coding tools, and keeps them up to date.",
     "step1": "Get rmk",
-    "step1Hint": "From npm, with Node.js 22.12 or later (<readme>the README</readme> has more):",
+    "step1Hint": "From npm, with Node.js 22.14 or later (<readme>the README</readme> has more):",
     "step2": "Sign in",
     "step2Tokens": "With your email and password, or with a personal token from <tokens>Access tokens</tokens>.",
     "step2Here": "With your email and password, or with a personal token from this page.",

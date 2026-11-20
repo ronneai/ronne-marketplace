@@ -442,7 +442,7 @@ jobs:
             PACKAGE_VERSION=${VERSION/-/\~}
             echo "**As a Linux service, with apt or dnf:** \`sudo apt install ./rmk-server_$PACKAGE_VERSION-1_amd64.deb\` (or \`_arm64.deb\`; Debian 12, Ubuntu 22.04 and newer), or \`sudo dnf install ./rmk-server-$PACKAGE_VERSION-1.x86_64.rpm\` (or \`.aarch64.rpm\`; Fedora, RHEL 9 and newer). It installs Ronne in /opt/rmk-server and starts it as the rmk-server service; open http://localhost:7650 to set it up."
             echo
-            echo "**With Node.js 22.12 or later:** \`npm install --global @ronneai/marketplace@$VERSION\` (rmk-server), and \`npm install --global @ronneai/rmk@$VERSION @ronneai/mcp@$VERSION\` for the CLI and the MCP server."
+            echo "**With Node.js 22.14 or later:** \`npm install --global @ronneai/marketplace@$VERSION\` (rmk-server), and \`npm install --global @ronneai/rmk@$VERSION @ronneai/mcp@$VERSION\` for the CLI and the MCP server."
             echo
             echo "Every file below is in checksums.txt: \`sha256sum -c checksums.txt --ignore-missing\` after downloading."
           } > "$RUNNER_TEMP/notes.md"

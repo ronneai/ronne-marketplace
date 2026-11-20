@@ -123,7 +123,7 @@
     "title": "Utilisez rmk dans le terminal",
     "intro": "<mono>rmk</mono> installe des éléments de ce registre dans vos outils de programmation avec IA et les garde à jour.",
     "step1": "Obtenez rmk",
-    "step1Hint": "Depuis npm, avec Node.js 22.12 ou plus récent (<readme>le README</readme> en dit plus) :",
+    "step1Hint": "Depuis npm, avec Node.js 22.14 ou plus récent (<readme>le README</readme> en dit plus) :",
     "step2": "Connectez-vous",
     "step2Tokens": "Avec votre courriel et votre mot de passe, ou avec un jeton personnel créé dans <tokens>Jetons d’accès</tokens>.",
     "step2Here": "Avec votre courriel et votre mot de passe, ou avec un jeton personnel de cette page.",

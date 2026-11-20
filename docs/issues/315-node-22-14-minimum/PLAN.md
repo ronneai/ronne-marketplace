@@ -7,14 +7,16 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. The minimum is 22.14.** [risky] `MIN_NODE` is `22.14.0`; `node-version.test.ts` checks
-  22.13.x is too old, 22.14.0 isn't, and the package's own `engines` matches. `engines` is
-  `>=22.14` in the root and the four packages. `rmk-server --help`, the `step1Hint` message (en,
+- [x] **1. The minimum is 22.14.** [risky] `MIN_NODE` is `22.14.0` and `MIN_NODE_23` is `23.6.0`;
+  `node-version.test.ts` checks 22.13.x and 23.0–23.5 are too old, 22.14.0 and 23.6.0 aren't, the
+  message names the version to install, and the package's own `engines` matches. `engines` is
+  `^22.14.0 || >=23.6.0` in the root and the four packages. `rmk-server --help`, the `step1Hint` message (en,
   pt, fr), `install.sh` and the release notes' line say 22.14. *Done when:*
   - `pnpm --filter @ronneai/marketplace test` and the web app's message tests pass;
   - on the official 22.13.1 build, the packed `rmk-server start` prints "Node.js 22.14.0 or later
     is needed; this is 22.13.1." and exits 1, with no crash;
-  - on the official 22.14.0 build, the packed `rmk-server start` answers on its port.
+  - the same on 23.5.0, with the 23 message;
+  - on the official 22.14.0 and 23.6.0 builds, the packed `rmk-server start` answers on its port.
 - [ ] **2. Repository docs.** `README.md`, the four package READMEs, `CONTRIBUTING.md`,
   `docs/runbooks/install.md`, `docs/policies/dependencies.md` §2, MVP.md §5 and a §15 row,
   `CLAUDE.md`, and this issue's row in `docs/issues/README.md`. *Done when:* a search for `22.12`
@@ -27,3 +29,18 @@ the same change that completes it.
   in x.y.z", and the issue is closed by hand. *Done when:* released.
 
 ## Notes
+
+**Task 1 (2026-11-20).**
+- Measured on official `darwin-arm64` builds, each checked against nodejs.org's `SHASUMS256.txt`,
+  with the packed `@ronneai/core` and `@ronneai/marketplace` installed by that build's own npm:
+  - 22.13.1 and 23.5.0 (N-API 9): npm warns `EBADENGINE`; `rmk-server setup --yes` exits 1 with
+    the message, the 23 one naming 23.6.0.
+  - 22.14.0 and 23.6.0 (N-API 10): no warning; CI's `server-probe.js` passes all 18 checks
+    (SQLite setup, sign-in, revoke, rotate, backup, restore).
+- The first version accepted every 23.x: the adversarial witness found 23.0–23.5 lack N-API 10 and
+  crash like 22.13. `nodeTooOld` now refuses them, `engines` is `^22.14.0 || >=23.6.0`, and the
+  message names 23.6.0 on 23 (SPEC Decisions 3).
+- Without the check, 22.13 doesn't crash at `start` on an instance that isn't set up: it starts in
+  setup mode and crashes when the setup loads the driver (the blind witness). The Report says so.
+- `pnpm pack` in `packages/server` runs `prepack`, which refreshes the git-ignored `app/` and
+  `THIRD_PARTY_NOTICES`; neither is tracked.

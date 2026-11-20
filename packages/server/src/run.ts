@@ -7,7 +7,7 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { HELP, parseArgs, scriptArgs } from "./cli.js";
-import { MIN_NODE, nodeTooOld } from "./node-version.js";
+import { nodeTooOld, nodeTooOldMessage } from "./node-version.js";
 import { dataDir as defaultDataDir } from "./paths.js";
 import { browserCommand, platformRefusal, startLines } from "./platform.js";
 import { isSetUp, serverEnv } from "./server-env.js";
@@ -110,8 +110,7 @@ export const main = async (argv: string[]): Promise<number | undefined> => {
     return 0;
   }
   if (command.kind === "error") return fail(command.message);
-  if (nodeTooOld(process.versions.node))
-    return fail(`Node.js ${MIN_NODE} or later is needed; this is ${process.versions.node}.`);
+  if (nodeTooOld(process.versions.node)) return fail(nodeTooOldMessage(process.versions.node));
   if (command.kind === "service" || command.kind === "service-help")
     // The service runs this same Node and this file, wherever npm put them.
     return runService(realSystem(), command, programPaths());
