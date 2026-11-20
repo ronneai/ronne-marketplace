@@ -47,3 +47,40 @@ Witnessed: 2026-11-20 11:33 EST, by a fresh agent (blind). Commit: 788a01c5 (+ u
 | 19 | Notes: the rewrite isn't part of any task and was reverted | yes | confirmed | real repository: `apps/web/AGENTS.md` no longer shows in `git status` (row 1) |
 
 **Overall:** met: the tree has only the three docs files, the dev server loads the first screen on Node.js 26, and the new Notes lines match what was reproduced.
+
+## Task 2 — `pnpm test:runtime`
+
+Witnessed: 2026-11-20 11:37 EST, by a fresh agent (blind). Commit: 838fcb43 + working tree (`git diff`: CONTRIBUTING.md, apps/web/vitest.config.ts, PLAN.md, package.json, turbo.json). Machine: macOS 27.2.1 arm64, Node v22.23.2 (test runs) and v26.13.1 (lint, docs:check).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | On Node.js 22, `pnpm test:runtime` passes | yes | confirmed | `pnpm test:runtime --force` on Node v22.23.2 (pnpm 12.6.0) → exit 0, `Tasks: 7 successful, 7 total`, `Cached: 0`. Test files passed: web 383, core 42, marketplace 15, rmk 23, mcp 5. Web: 4702 tests passed, 20 skipped |
+| 2 | It runs no `repo-tools` test | yes | confirmed | `package.json:39` has `--filter=!@ronneai/repo-tools`. The run's tasks were core:build, core:test, marketplace:test, mcp:test, rmk:build, rmk:test, web:test; the only `repo-tools` line in the log is the script echo. `list-files.sh` → 0 repo-tools paths in the runtime list |
+| 3 | It runs no `*.test.tsx` file | yes | confirmed | `RONNE_TEST_SCOPE=runtime vitest list --filesOnly` in each package → 0 `.test.tsx`. Without the variable, web lists 523 files, 140 of them `.test.tsx`; with it, 383. No `.test.tsx` exists outside `apps/web` (`git ls-files`). Mechanism: `apps/web/vitest.config.ts:18,49` |
+| 4 | Every other test file runs, the `*.db.test.ts` SQLite tests included | yes | confirmed | Expected list from `git ls-files` (every `*.test.*` minus repo-tools and `.test.tsx`) → 468 files; the runtime Vitest lists of web, cli, core, mcp and server, merged → 468 files; `diff` → identical. The web runtime list has 199 `[db]` files (all 199 `*.db.test.ts` in git) and 184 `[unit]` files. No `*.db.test.tsx` exists |
+| 5 | Vitest's CLI `--exclude` doesn't reach the web projects, so a config setting is needed | yes | confirmed | In `apps/web`, `vitest list --filesOnly --exclude '**/*.test.tsx'` → still 523 files, 140 `.tsx` |
+| 6 | Turborepo can't hand a `test:runtime` result to `pnpm test`, or the other way round | yes | confirmed | `turbo.json:14` `env: ["RONNE_TEST_SCOPE"]`. `turbo run test --dry=json`: web#test hashes `b11c361a…` with the variable unset and `e7d3f126…` with `runtime`; after both runs each shows its own entry as HIT. Control: an undeclared `RONNE_UNDECLARED_PROBE=runtime` leaves the hash at `b11c361a…`. `packages/{core,server}/turbo.json` extend `//` and override only `inputs` |
+| 7 | `pnpm test` is unchanged without the variable | no | confirmed | `pnpm test --force` on Node 22 → exit 0, `8 successful`. Test files: web 523, repo-tools 21, core 42, marketplace 15, rmk 23, mcp 5 |
+| 8 | Notes record its time against `pnpm test` on the same machine | yes | confirmed | `PLAN.md:177-181`: 74 s against 83 s on Node 22.23.2 with `--force`. Witness's runs: 69.3 s and 82.0 s (`/usr/bin/time -p`) |
+| 9 | It has a row in CONTRIBUTING.md's commands, and `pnpm docs:check` passes | no | confirmed | `CONTRIBUTING.md:208`; `pnpm docs:check` → exit 0 |
+| 10 | The CONTRIBUTING row describes the command as it behaves now | no | partly | The row ends "CI runs it on the oldest supported Node.js", but `grep -rn test:runtime .github/` → no matches: no workflow runs it yet (task 3 adds that). The rest of the row is accurate |
+| 11 | Lint passes on the changed files | no | confirmed | `biome check apps/web/vitest.config.ts package.json turbo.json` → exit 0, "Checked 3 files … No fixes applied" (only Biome's schema-version notice) |
+
+**Overall:** not met: the script works on Node 22 and does what the spec says (exactly the 468 expected files, no `.tsx` or repo-tools files, separate cache keys), but the CONTRIBUTING row says CI runs it, and no workflow does yet.
+
+Fixed after this pass: the CONTRIBUTING row drops the CI clause (task 3 adds it back with the job), and the witness's remark that only the unit project excluded `.tsx` is taken: both projects now exclude it through `runtimeExclude`.
+
+### Re-check — rows 3, 4, 6 and 10, plus a planted `*.db.test.tsx`
+
+Witnessed: 2026-11-20 11:41 EST, by a fresh agent (blind). Commit: 838fcb43 + working tree (`git diff`: CONTRIBUTING.md, apps/web/vitest.config.ts, PLAN.md, package.json, turbo.json). Machine: macOS 27.2.1 arm64, Node v22.23.2 (Vitest and turbo probes) and v26.13.1 (lint, docs:check).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 3 | It runs no `*.test.tsx` file | yes | confirmed | `list-files.sh` (`vitest list --filesOnly` per package, Node 22): with `RONNE_TEST_SCOPE=runtime` web lists 383, 0 `.tsx`; without, 523. The exclusion sits in both projects: `exclude: [...dbInclude, ...runtimeExclude]` in unit and `exclude: runtimeExclude` in db |
+| 4 | Every other test file runs, the `*.db.test.ts` SQLite tests included | yes | confirmed | Runtime lists of web, cli, core, mcp and server, merged (468) → identical to `expected.txt`. Web has 199 `[db]` files in both scopes. The full lists, repo-tools included, are identical to all 629 test files in git, so the db project's new `exclude: []` drops nothing in the full run |
+| 6 | Turborepo can't hand a `test:runtime` result to `pnpm test`, or the other way round | yes | confirmed | `cache-hashes.sh` (`turbo run test --dry=json`): web#test `d51c715a…` with the variable empty, `677b04bf…` with `runtime` (both new, as the config is an input); `env` still `["RONNE_TEST_SCOPE"]`; core#test keeps separate hashes (`ddd5d1f8…`, `1834ae18…`) |
+| 10 | The CONTRIBUTING row describes the command as it behaves now | no | confirmed | `CONTRIBUTING.md:208` reads "every suite but the component tests (`*.test.tsx`) and `repo-tools`", with no CI sentence; `grep -rn test:runtime .github/` → 0 matches |
+| 12 | A `*.db.test.tsx` is left out by the runtime scope and included in the full run | yes | confirmed | Scratch copy of `apps/web` (config byte-identical by `cmp`) with a planted `src/zz-witness-probe.db.test.tsx`: full → 524 files, including `[db] src/zz-witness-probe.db.test.tsx`; runtime → 383, without it. Mutation: removing `exclude: runtimeExclude,` from the copy's db project → runtime lists 384, the planted file among them. Restored, `cmp` identical |
+| 11 | Lint passes on the changed config, and `pnpm docs:check` passes | no | confirmed | `biome check apps/web/vitest.config.ts` → exit 0; `pnpm docs:check` → exit 0 |
+
+**Overall:** met: `test:runtime` leaves out every `.test.tsx` from both web projects (a planted `.db.test.tsx` included) and keeps all 468 other files; the full run still lists all 629; the two runs keep separate cache entries; the CONTRIBUTING row matches what the command does now.

@@ -25,7 +25,7 @@ comes before the version move, so the move's pull request already runs the new j
   *Done when:* every command above passed on Node.js 26 with no repository change, and Notes record
   the Node.js version, the `better-sqlite3` result and the timings.
 
-- [ ] **2. `pnpm test:runtime`.** A root script that runs every package's tests except
+- [x] **2. `pnpm test:runtime`.** A root script that runs every package's tests except
   `@ronneai/repo-tools`, leaving out `*.test.tsx`. Measure how the exclusion reaches both `apps/web`
   Vitest projects: Vitest 5's `--exclude` through `turbo run test -- …` first, a setting read by
   `packages/config/vitest.js` if that doesn't work. Add its row to `CONTRIBUTING.md`'s commands.
@@ -164,3 +164,18 @@ LTS; pnpm 12.21.0 installed with npm, which runs the pinned 12.6.0).**
 - The pnpm under every installed Node.js was Corepack's shim, which can't start pnpm 12. That's
   the cause of the `pnpm dev` failure that started this feature. `corepack disable pnpm`, then
   `npm install --global pnpm`, fixed it under 26.
+
+**Task 2, `pnpm test:runtime` (2026-11-20).**
+- Vitest 5's CLI `--exclude` doesn't reach `apps/web`'s projects: `vitest list --filesOnly`
+  gave the same 523 files with and without `--exclude '**/*.test.tsx'`. Instead,
+  `apps/web/vitest.config.ts` reads `RONNE_TEST_SCOPE=runtime` and adds `**/*.test.tsx` to both
+  projects' `exclude`. The db project gets it too, so a future `*.db.test.tsx` can't slip in.
+  `turbo.json` lists the variable in the test task's `env`, so a runtime run and a full run never
+  share a cached result.
+- `vitest list --filesOnly` with the variable lists 383 files: exactly the full 523 less the 140
+  `.tsx` files. All 199 `*.db.test.ts` and 184 unit `.ts` files stay in.
+- On Node.js 22.23.2 (M-series Mac, `--force`), `pnpm test:runtime` passed in 74 s (7 tasks,
+  web 383 files) and `pnpm test` in 83 s (8 tasks, web 523 files). The trim saves only about
+  10%: the component tests are cheap, and the time is in the database and server tests, which the
+  minimum has to run. The minimum job's real saving is everything else it no longer runs (lint,
+  typecheck, `pnpm build`), and there's no third version's job at all.
