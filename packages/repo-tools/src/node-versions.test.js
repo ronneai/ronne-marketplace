@@ -6,6 +6,7 @@ import {
   dockerImageRefs,
   driftProblems,
   majorOf,
+  minNode23Of,
   minNodeOf,
   nativeModules,
   nodeAxes,
@@ -33,14 +34,15 @@ describe("the readers", () => {
     expect(majorOf("26\n")).toBe(26);
     expect(majorOf("v24.1.0")).toBe(24);
     expect(majorOf("lts/*")).toBeUndefined();
-    expect(minNodeOf('export const MIN_NODE = "22.12.0";')).toBe("22.12.0");
+    expect(minNodeOf('export const MIN_NODE = "22.14.0";')).toBe("22.14.0");
+    expect(minNode23Of('export const MIN_NODE_23 = "23.6.0";')).toBe("23.6.0");
     expect(
       roleEntries(
-        "  include:\r\n    - node: 22\r\n      role: minimum\n    - node: 26\n      role: target\n",
+        "  include:\r\n    - node: 22.14.0\r\n      role: minimum\n    - node: 26\n      role: target\n",
       ),
     ).toEqual([
-      { node: 22, role: "minimum" },
-      { node: 26, role: "target" },
+      { node: "22.14.0", role: "minimum" },
+      { node: "26", role: "target" },
     ]);
   });
 
@@ -153,16 +155,51 @@ describe("driftProblems", () => {
     }
   });
 
-  it("fails when a minimum entry isn't MIN_NODE's major", () => {
-    const problems = withChange((f) => {
-      f.workflows[CI] = f.workflows[CI].replace(
-        /- node: (\d+)(\s*\n\s*role: minimum)/,
-        "- node: 20$2",
-      );
+  it("fails when a minimum entry isn't exactly MIN_NODE, its major included (#315)", () => {
+    for (const path of [CI, SERVER])
+      for (const node of ["22", "22.13.1", "20"]) {
+        const problems = withChange((f) => {
+          f.workflows[path] = f.workflows[path].replace(
+            /- node: ([\d.]+)(\s*\n\s*role: minimum)/,
+            `- node: ${node}$2`,
+          );
+        });
+        expect(problems).toContainEqual(
+          `${path}'s minimum entry is Node.js ${node}, but MIN_NODE is 22.14.0`,
+        );
+      }
+  });
+
+  it("fails when a package's engines isn't MIN_NODE and MIN_NODE_23 (#315)", () => {
+    for (const path of ["package.json", "packages/cli/package.json"]) {
+      const problems = withChange((f) => {
+        f.packageJsons[path] = f.packageJsons[path].replace(/"node": "[^"]*"/, '"node": ">=22.14"');
+      });
+      expect(problems).toEqual([
+        `${path}'s engines.node is >=22.14, but MIN_NODE and MIN_NODE_23 say ^22.14.0 || >=23.6.0`,
+      ]);
+    }
+    for (const path of ["package.json", "packages/server/package.json"]) {
+      const problems = withChange((f) => {
+        const pkg = JSON.parse(f.packageJsons[path]);
+        delete pkg.engines;
+        f.packageJsons[path] = JSON.stringify(pkg);
+      });
+      expect(problems).toEqual([`${path} has no engines.node; it must say ^22.14.0 || >=23.6.0`]);
+    }
+    const privateWithout = withChange((f) => {
+      f.packageJsons["packages/config/package.json"] = '{ "private": true }';
     });
-    expect(problems).toEqual([
-      expect.stringMatching(new RegExp(`^${CI}'s minimum entry is Node.js 20`)),
-    ]);
+    expect(privateWithout).toEqual([]);
+    const moved = withChange((f) => {
+      f.minNode = f.minNode.replace('MIN_NODE = "22.14.0"', 'MIN_NODE = "22.15.0"');
+    });
+    expect(moved.filter((p) => p.includes("engines.node")).length).toBe(5);
+    expect(
+      withChange((f) => {
+        f.minNode = f.minNode.replace("MIN_NODE_23 =", "MIN_23 =");
+      }),
+    ).toEqual(["packages/server/src/node-version.ts has no MIN_NODE_23"]);
   });
 
   it("fails when a role entry is missing or in a form it can't read", () => {
@@ -185,12 +222,17 @@ describe("driftProblems", () => {
 
   it("fails when server-checks' node axis and include disagree, or the axis can't be read", () => {
     const extra = withChange((f) => {
-      f.workflows[SERVER] = f.workflows[SERVER].replace(/node: \[[\d,\s]+\]/, "node: [22, 24, 26]");
+      f.workflows[SERVER] = f.workflows[SERVER].replace(
+        /node: \[[\d.,\s]+\]/,
+        "node: [22, 24, 26]",
+      );
     });
-    expect(extra).toEqual([expect.stringMatching(/node axis \[22, 24, 26\] isn't its include's/)]);
+    expect(extra).toEqual([
+      expect.stringMatching(/node axis \[22, 24, 26\] isn't its include's \[22\.14\.0, 26\]/),
+    ]);
     for (const axis of ["node:\n          - 22\n          - 24", 'node: ["22", "24"]']) {
       const problems = withChange((f) => {
-        f.workflows[SERVER] = f.workflows[SERVER].replace(/node: \[[\d,\s]+\]/, axis);
+        f.workflows[SERVER] = f.workflows[SERVER].replace(/node: \[[\d.,\s]+\]/, axis);
       });
       expect(problems).toContainEqual(
         expect.stringMatching(/server-checks\.yml:\d+ has a node axis the guard can't read/),

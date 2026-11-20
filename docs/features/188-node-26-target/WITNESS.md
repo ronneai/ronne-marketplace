@@ -316,3 +316,68 @@ Witnessed: 2026-11-20 12:27 EST, by a fresh agent (blind). Commit: c98d3fa0 + wo
 | 19 | `ci.yml`'s comment now points to `test-runs.md` | yes | confirmed | `ci.yml:31-33` "(docs/knowledge/test-runs.md)"; `node-versions.test.js` → 26 passed |
 
 **Overall:** met: every row of the first pass is now confirmed: MVP §5 states 26, the 22.12 minimum and the CI split; the `macos.ts` example no longer names 24; the 22.13 crash was measured; links resolve; `docs:check` and `git diff --check` are clean.
+
+## Task 7 — Pin the minimum's jobs to `MIN_NODE`
+
+Witnessed: 2026-11-20 16:11 EST, by a fresh agent (blind). Commit: 86591284 + uncommitted diff (12 files). Machine: macOS 27.2.1 (Apple silicon), Node v26.13.1 (official v22.14.0 and v22.13.1 builds for the minimum runs).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `ci.yml`'s `role: minimum` entry is exactly `MIN_NODE`, and GitHub reads it so | yes | confirmed | `ci.yml:46` `- node: 22.14.0`; yaml@2.9.1 → `"node":"22.14.0"` (a string, not 22.14); `node-version.ts:4` |
+| 2 | `server-checks.yml`'s axis and minimum entry are exactly `MIN_NODE`, 6 jobs, no stray include job | yes | confirmed | yaml → `node:["22.14.0",26]`, include values match the axis, so each adds `role` and none is a 7th job |
+| 3 | The drift guard passes on the tree | no | confirmed | `vitest run src/node-versions.test.js` → 27 passed; `drift-probe.mjs` "unchanged" → no problems |
+| 4 | It fails when a minimum entry is `22` or any version other than `MIN_NODE` | yes | confirmed | `drift-probe.mjs`: `22`, `22.15.0`, `22.13.1`, axis only, CRLF, `22.14` (a float), quoted, `22.x` → each FAILs naming the file; `MIN_NODE` moved to 22.15.0 → both entries fail. Mutation comparing by major → the test fails |
+| 5 | It fails when a package's `engines` differs from `^MIN_NODE \|\| >=MIN_NODE_23` | yes | partly | Wrong values FAIL (cli `>=22.14.0`, web `>=22`, `MIN_NODE_23` moved → all five). **A package with `engines` removed passes** (`packages/server`): `node-versions.js` skips `node === undefined` |
+| 6 | All five `engines` are `^22.14.0 \|\| >=23.6.0`, and `MIN_NODE`/`MIN_NODE_23` are #315's | yes | confirmed | root, cli, core, mcp, server; web, config, repo-tools none; `git merge-base --is-ancestor bugfix/315-node-22-14-minimum HEAD` → true |
+| 7 | On official 22.14.0, `pnpm install --frozen-lockfile` passes | yes | confirmed | Scratch worktree, 22.14.0 first on PATH → pnpm v12.6.0, exit 0 |
+| 8 | On 22.14.0, `pnpm test:runtime --force` passes, without `*.test.tsx` or repo-tools | yes | confirmed | "Tasks: 7 successful"; core 449, marketplace 118, mcp 53, rmk 286, web 4700 + 21 skipped (383 files); 0 `.test.tsx` in the log; the `registerHooks` case skipped |
+| 9 | On 22.14.0, `better-sqlite3` opens a database | yes | confirmed | `open-db.cjs` → `v22.14.0 OK 3.54.1` |
+| 10 | On 22.13.1, opening a database crashes | yes | confirmed | `open-db.cjs` → exit 139 (N-API 9); `checks.db.test.ts` on 22.13.1 → "Worker forks emitted error" |
+| 11 | The `start.test.ts` skip is limited to Node.js without `registerHooks`, and no shipped code uses it | yes | confirmed | `start.test.ts:34-37`, one case; 22.14.0/22.13.1 false, 26.13.1 true; `git grep registerHooks` → only this test |
+| 12 | CLAUDE.md, CONTRIBUTING.md, MVP.md's row, test-runs.md and the index row match the workflows and code | yes | confirmed | CLAUDE.md:51; CONTRIBUTING.md:24, :180, :210; MVP.md:1025; test-runs.md:108-116; README 188 row; dependencies.md:40 |
+| 13 | The branch sits on #315's, and the rebase kept 26 as the target and 22.14 as the minimum | yes | confirmed | 8bcfac9f, ff23d257, 837c9f1d ancestors of HEAD; CLAUDE.md:142, CONTRIBUTING.md:23-24, dependencies.md:40, MVP.md:1025 |
+| 14 | The guard compares the target as a major and reads root, `apps/*` and `packages/*` package.json | yes | confirmed | `node-versions.js:219`; probe "target 26.13.1" → FAIL; `readDriftFiles` matches `pnpm-workspace.yaml` |
+| 15 | `require("better-sqlite3")` doesn't crash on 22.13; the first `new Database()` does | yes | confirmed | v22.13.1 require → exit 0; opening → 139 |
+| 16 | `health.db.test.ts`' deadline missed by 16 ms on one 22.14.0 run | yes | can't check here | Not reproduced: this pass's full 22.14.0 run passed it |
+
+**Overall:** not met: the minimum is pinned exactly, the guard catches every wrong minimum entry, 22.14.0 passes and 22.13.1 crashes, but a package that drops `engines` passes the guard.
+
+Fixed after this pass: the guard requires `engines.node` in the root and in every package that isn't `"private": true` (a private one may leave it out), with tests for a dropped `engines` in the root and the server and a private package without one; the spec's guard bullet and the notes say so.
+
+### Re-check 1 — the engines rule
+
+Witnessed: 2026-11-20 16:20 EST, by a fresh agent (blind). Commit: 86591284 + working tree (only `node-versions.js`, its test and the docs changed since the last pass). Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The guard fails when the root `package.json` loses `engines` or `engines.node` | yes | confirmed | `engines-probe.mjs` → FAIL "package.json has no engines.node; it must say ^22.14.0 \|\| >=23.6.0" for `engines` deleted, `{}`, `{npm}` only; also with `private: true` (`node-versions.js:177`) |
+| 2 | It fails when a published package loses `engines` or `engines.node` | yes | confirmed | server: deleted, `node` deleted, `"private": false`, `"private": "true"` (a string), `engines` a string, `null`, padded → FAIL; cli, core, mcp deleted → FAIL |
+| 3 | A private package may leave `engines` out, but a wrong value there fails | yes | confirmed | config `{}` and repo-tools right value → pass; web `>=22` → FAIL; web without `private` and engines → FAIL |
+| 4 | `readDriftFiles` picks up a new package | yes | confirmed | `disk-probe.mjs` on a minimal root: a new `packages/newpkg` → "has no engines.node"; with `"private":true` → `[]` |
+| 5 | The test covers the rule | no | confirmed | Scratch copy, `-t engines`: passes; fails under each of three mutants (missing branch never fires, root exemption dropped, private ones required) |
+| 6 | The rest of the guard holds | yes | confirmed | `drift-probe.mjs`: "unchanged" passes, all 15 changed cases FAIL naming the file |
+| 7 | The minimum entries are exactly `22.14.0` | yes | confirmed | `ci.yml:46`, `server-checks.yml:32,34` |
+| 8 | The repo-tools tests and lint pass | no | confirmed | 22 files, 221 passed; `biome check` on the three changed code files → exit 0 |
+| 9 | On 22.14.0, install and `test:runtime` pass and a database opens | yes | confirmed | From the last pass, not rerun: only repo-tools' guard and docs changed since |
+| 10 | On 22.13.1 opening a database crashes, `require` alone doesn't | yes | confirmed | From the last pass; the code is unchanged |
+| 11 | The branch is built on #315 | yes | confirmed | `git merge-base --is-ancestor` → true |
+| 12 | `health.db.test.ts` missed its deadline by 16 ms once, under full parallel load | yes | can't check here | A claim about one past run, not rerun |
+
+**Overall:** not met: the engines rule holds and the test catches its mutants; only the note about a past timing can't be checked.
+
+Fixed after this pass: the note names the run's log and the line it shows.
+
+### Re-check 2 — the `health.db.test.ts` deadline note
+
+Witnessed: 2026-11-20 16:18 EST, by a fresh agent (blind). Commit: 86591284 + working tree. Machine: macOS 27.2.1 (arm64), Node v26.13.1 (default), v22.14.0 for the runs below.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Since re-check 1, the working tree changed only that note in PLAN.md | no | confirmed | `git diff` compared with re-check 1's: only PLAN.md's note differs; the same 12 files; `node-versions.js` byte-identical |
+| 2 | `188-t7-runtime.log` is a `pnpm test:runtime` run on Node v22.14.0 | yes | confirmed | Line 1 `RONNE_TEST_SCOPE=runtime turbo run test --filter=!@ronneai/repo-tools`; lines 5116 and 5635 `Node.js v22.14.0` |
+| 3 | In it, "keeps one deadline…" failed with "expected 4516.288042 to be less than 4500" | yes | confirmed | log:5612-5613; 16.3 ms over `toBeLessThan(4_500)` |
+| 4 | The run's only other failure was the `registerHooks` telemetry test | yes | confirmed | log:5610 "Failed Tests 2"; log:5624-5628 the `registerHooks` SyntaxError; web 2 failed, 4699 passed, 20 skipped; the other packages passed |
+| 5 | The file passes on its own on 22.14.0 | yes | confirmed | `vitest run --project db src/server/http/health.db.test.ts` with 22.14.0 first on PATH → 18 passed |
+| 6 | The first pass's full run on 22.14.0 passed the file | yes | confirmed | `188-t7-blind/runtime.clean.log`: `✓ db src/server/http/health.db.test.ts (18 tests)`, web 383 files passed |
+
+**Overall:** met: the note matches its log, the file passes alone and in a full run on 22.14.0, and nothing but the note changed since re-check 1, where every other claim was confirmed.

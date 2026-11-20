@@ -1,7 +1,8 @@
 // The Node.js versions the repository names, kept in step (feature 188). `.nvmrc` is the target LTS
 // and `MIN_NODE` (packages/server/src/node-version.ts) the oldest supported version. Two guards:
 // - drift: every place that names the target agrees with `.nvmrc`, the CI jobs for the minimum
-//   agree with `MIN_NODE`, and no other workflow names a Node.js version for setup-node;
+//   run exactly `MIN_NODE` (#315), every package's `engines` says `MIN_NODE` and `MIN_NODE_23`,
+//   and no other workflow names a Node.js version for setup-node;
 // - N-API: CI tests only the minimum and the target, which is safe only while every native module
 //   rmk-server loads is N-API (one binary for every Node.js version).
 // Dependency-free like the rest of this package, so files are read line by line, not parsed, and
@@ -15,23 +16,35 @@ export const ROLE_WORKFLOWS = [".github/workflows/ci.yml", ".github/workflows/se
 
 const linesOf = (text) => text.split("\n").map((line) => line.trim());
 
-/** The major version a version string starts with (`26`, `22.12.0`, `v24.1.0`), or undefined. */
+/** A matrix's Node.js version: a major (`26`) or an exact version (`22.14.0`). */
+const VERSION = String.raw`\d+(?:\.\d+\.\d+)?`;
+const ENTRY = new RegExp(`^- node: (${VERSION})$`);
+const AXIS = new RegExp(`^\\[${VERSION}(?:, ?${VERSION})*\\]$`);
+
+/** The major version a version string starts with (`26`, `22.14.0`, `v24.1.0`), or undefined. */
 export const majorOf = (text) => {
   const match = /^v?(\d+)/.exec(String(text).trim());
   return match ? Number(match[1]) : undefined;
 };
 
-/** `MIN_NODE`'s value in node-version.ts, such as "22.12.0". */
+/** `MIN_NODE`'s value in node-version.ts, such as "22.14.0". */
 export const minNodeOf = (source) => /export const MIN_NODE = "(\d+\.\d+\.\d+)"/.exec(source)?.[1];
 
-/** The `{ node, role }` entries of a workflow's matrix: `- node: N` with `role: …` on the next line. */
+/** `MIN_NODE_23`'s value in node-version.ts, such as "23.6.0". */
+export const minNode23Of = (source) =>
+  /export const MIN_NODE_23 = "(\d+\.\d+\.\d+)"/.exec(source)?.[1];
+
+/**
+ * The `{ node, role }` entries of a workflow's matrix: `- node: N` (a major or an exact version, as
+ * written) with `role: …` on the next line.
+ */
 export const roleEntries = (workflow) => {
   const lines = linesOf(workflow);
   const entries = [];
   lines.forEach((line, index) => {
-    const node = /^- node: (\d+)$/.exec(line);
+    const node = ENTRY.exec(line);
     const role = /^role: (minimum|target)$/.exec(lines[index + 1] ?? "");
-    if (node && role) entries.push({ node: Number(node[1]), role: role[1] });
+    if (node && role) entries.push({ node: node[1], role: role[1] });
   });
   return entries;
 };
@@ -141,7 +154,8 @@ const isMatrixNode = (value) => /^\$\{\{ ?matrix\.node ?\}\}$/.test(value);
 /**
  * What doesn't agree with `.nvmrc` and `MIN_NODE`.
  * @param {{ nvmrc: string, minNode: string, dockerfile: string, bundle: string, feedWorkflow: string,
- *   workflows: Record<string, string> }} files the workflows by their path from the root
+ *   workflows: Record<string, string>, packageJsons: Record<string, string> }} files the workflows
+ *   and package.json files by their path from the root
  * @returns {string[]} one message per mismatch, naming the file
  */
 export const driftProblems = (files) => {
@@ -151,7 +165,22 @@ export const driftProblems = (files) => {
   if (target === undefined)
     return [`.nvmrc holds no Node.js version: ${JSON.stringify(files.nvmrc)}`];
   if (min === undefined) return ["packages/server/src/node-version.ts has no MIN_NODE"];
-  const minMajor = majorOf(min);
+  const min23 = minNode23Of(files.minNode);
+  if (min23 === undefined) return ["packages/server/src/node-version.ts has no MIN_NODE_23"];
+
+  // npm warns where rmk-server refuses: every package asks for the same versions (#315). The root
+  // and every published package (not private) must say it; a private one may leave it out.
+  const engines = `^${min} || >=${min23}`;
+  for (const [path, text] of Object.entries(files.packageJsons)) {
+    const pkg = JSON.parse(text);
+    const node = pkg.engines?.node;
+    if (node === undefined && (path === "package.json" || pkg.private !== true))
+      problems.push(`${path} has no engines.node; it must say ${engines}`);
+    else if (node !== undefined && node !== engines)
+      problems.push(
+        `${path}'s engines.node is ${node}, but MIN_NODE and MIN_NODE_23 say ${engines}`,
+      );
+  }
 
   const refs = dockerImageRefs(files.dockerfile);
   const tags = refs.map((r) => nodeImageTag(r.ref)).filter((tag) => tag !== undefined);
@@ -189,17 +218,18 @@ export const driftProblems = (files) => {
       if (!entries.some((e) => e.role === role))
         problems.push(`${path} has no "- node: N" entry with role: ${role} on the next line`);
     for (const { node, role } of entries) {
-      if (role === "target" && node !== target)
+      // The target is a major, so CI gets its newest release; the minimum is exactly MIN_NODE, as
+      // the newest release of its line would hide a version rmk-server can't run on (#315).
+      if (role === "target" && node !== String(target))
         problems.push(`${path}'s target entry is Node.js ${node}, but .nvmrc says ${target}`);
-      if (role === "minimum" && node !== minMajor)
+      if (role === "minimum" && node !== min)
         problems.push(`${path}'s minimum entry is Node.js ${node}, but MIN_NODE is ${min}`);
     }
     // Every `node:` key must be one the guard reads: a `- node: N` entry with its role on the next
     // line, or the `node: [N, M]` axis. Anything else could add a job the guard doesn't see.
     const lines = linesOf(workflow);
     for (const { line, text } of nodeKeyLines(workflow)) {
-      const entry =
-        /^- node: \d+$/.test(text) && /^role: (minimum|target)$/.test(lines[line] ?? "");
+      const entry = ENTRY.test(text) && /^role: (minimum|target)$/.test(lines[line] ?? "");
       if (!entry && !/^node: \[/.test(text))
         problems.push(
           `${path}:${line} has a node key the guard can't read (${text}); use "- node: N" with role: on the next line`,
@@ -220,9 +250,9 @@ export const driftProblems = (files) => {
     });
     // A version axis next to `include` must list exactly the include's versions, or an include
     // entry matches no combination and becomes a job of its own. Any other form is reported.
-    const included = entries.map((e) => e.node).sort((a, b) => a - b);
+    const included = entries.map((e) => e.node).sort();
     for (const { line, value } of nodeAxes(workflow)) {
-      if (!/^\[\d+(?:, ?\d+)*\]$/.test(value)) {
+      if (!AXIS.test(value)) {
         problems.push(
           `${path}:${line} has a node axis the guard can't read (${value || "a block list"}); write it as [N, M]`,
         );
@@ -231,8 +261,8 @@ export const driftProblems = (files) => {
       const listed = value
         .slice(1, -1)
         .split(",")
-        .map(Number)
-        .sort((a, b) => a - b);
+        .map((v) => v.trim())
+        .sort();
       if (listed.join() !== included.join())
         problems.push(
           `${path}:${line}'s node axis [${listed.join(", ")}] isn't its include's [${included.join(", ")}]`,
@@ -277,6 +307,12 @@ export const readDriftFiles = (root) => {
   };
   walk(".github/workflows");
   if (existsSync(join(root, ".github/actions"))) walk(".github/actions");
+  const packageJsons = { "package.json": read("package.json") };
+  for (const group of ["apps", "packages"])
+    for (const entry of readdirSync(join(root, group), { withFileTypes: true })) {
+      const path = `${group}/${entry.name}/package.json`;
+      if (entry.isDirectory() && existsSync(join(root, path))) packageJsons[path] = read(path);
+    }
   return {
     nvmrc: read(".nvmrc"),
     minNode: read("packages/server/src/node-version.ts"),
@@ -284,6 +320,7 @@ export const readDriftFiles = (root) => {
     bundle: read("packages/repo-tools/src/bundle.js"),
     feedWorkflow: read("packages/cli/src/feed-workflow.ts"),
     workflows,
+    packageJsons,
   };
 };
 

@@ -25,12 +25,13 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        # The minimum supported LTS and the target LTS (docs/policies/dependencies.md §2), never the
-        # versions between: rmk-server's native modules (better-sqlite3, @node-rs/argon2) are N-API,
-        # one binary for every version, and repo-tools' node-versions test keeps it so (188).
-        node: [22, 26]
+        # The minimum supported Node.js, exactly `MIN_NODE` (#315), and the target LTS
+        # (docs/policies/dependencies.md §2), never the versions between: rmk-server's native modules
+        # (better-sqlite3, @node-rs/argon2) are N-API, one binary for every version, and repo-tools'
+        # node-versions test keeps it so (188).
+        node: [22.14.0, 26]
         include:
-          - node: 22
+          - node: 22.14.0
             role: minimum
           - node: 26
             role: target

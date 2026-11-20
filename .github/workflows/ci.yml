@@ -40,9 +40,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # The minimum supported LTS and the target LTS (docs/policies/dependencies.md §2).
+        # The minimum supported Node.js, exactly `MIN_NODE` (the newest 22.x would hide a version it
+        # can't run on, #315), and the target LTS (docs/policies/dependencies.md §2).
         include:
-          - node: 22
+          - node: 22.14.0
             role: minimum
             name: Runtime tests (minimum Node.js)
           - node: 26

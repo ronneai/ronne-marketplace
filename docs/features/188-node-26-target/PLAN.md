@@ -113,16 +113,25 @@ comes before the version move, so the move's pull request already runs the new j
   knowledge notes), test fixtures, and the "then the minimum moves to 24" line. Every changed
   statement matches the workflows and files from tasks 3–5.
 
-- [ ] **7. Pin the minimum's jobs to `MIN_NODE`.** Waits for the issue that raises the minimum to
-  22.14 (#315, owner, 2026-11-20). Once it has landed, the `role: minimum` entries in `ci.yml` and
-  `server-checks.yml` name `MIN_NODE`'s exact version, and the drift guard checks the exact version.
+- [x] **7. Pin the minimum's jobs to `MIN_NODE`.** Built on #315 (owner, 2026-11-20): this branch
+  is rebased onto `bugfix/315-node-22-14-minimum`, which merges first. The `role: minimum` entries
+  in `ci.yml` and `server-checks.yml` name `MIN_NODE`'s exact version, and the drift guard checks
+  the exact version and that every package's `engines` is `^MIN_NODE || >=MIN_NODE_23`.
   *Done when:*
-  - the drift guard fails if a minimum entry is `22` or any version other than `MIN_NODE`;
-  - on the exact `MIN_NODE` build from nodejs.org, `pnpm test:runtime` passes and
-    `require("better-sqlite3")` opens a database;
-  - on 22.13.1 the same `require` crashes, which shows the pin is what catches it.
+  - the drift guard fails if a minimum entry is `22` or any version other than `MIN_NODE`, or a
+    package's `engines` differs;
+  - on the exact `MIN_NODE` build from nodejs.org, `pnpm install --frozen-lockfile` and
+    `pnpm test:runtime` pass, and `better-sqlite3` opens a database;
+  - on 22.13.1 opening a database crashes, which shows the pin is what catches it.
 
-- [ ] **8. Finish.** Set 188's status in `docs/features/README.md`. Check SPEC.md's acceptance
+- [ ] **8. The website.** The Documentation section was wrong: the website names the target. In
+  ronne-web, branch `feat/marketplace-188-node-26` on top of #315's: the stack line on the home
+  page, the marketplace facts' `nodeRuntime.target`, the contributor setup step, and
+  `docs/product-facts.md`'s runtime row say 26, in en, pt and fr. *Done when:* a search for
+  "Node.js 24" and `target: "24"` in `www/src` and `www/messages` finds nothing, and ronne-web's
+  checks pass.
+
+- [ ] **9. Finish.** Set 188's status in `docs/features/README.md`. Check SPEC.md's acceptance
   criteria against what was built, and tick them. Read branch protection's required checks on
   `main` again and confirm none of the renamed jobs is on it (it wasn't on 2026-11-20).
 
@@ -309,3 +318,29 @@ LTS; pnpm 12.21.0 installed with npm, which runs the pinned 12.6.0).**
 - The 22.13 crash was first claimed from its headers only. Then an official
   `node-v22.13.1-darwin-arm64` build (checked against `SHASUMS256.txt`) reported N-API 9, and
   `require("better-sqlite3")` exited 139, so it's measured now, as 22.12.0 was.
+
+**Task 7, the pinned minimum (2026-11-20).**
+- This branch is rebased onto #315's (`bugfix/315-node-22-14-minimum`), which raised `MIN_NODE`
+  to 22.14.0 and `engines` to `^22.14.0 || >=23.6.0`. When #315 is squash-merged, rebase with
+  `git rebase --onto main bugfix/315-node-22-14-minimum`. The rebase's conflicts (CLAUDE.md,
+  CONTRIBUTING.md, MVP.md, dependencies.md) kept 26 as the target and 22.14 as the minimum.
+- The entries are `- node: 22.14.0` (a YAML string) in `ci.yml` and `server-checks.yml`, whose
+  axis is `[22.14.0, 26]`. The guard reads a major or an exact version, compares the target as a
+  major and the minimum exactly, and checks `engines` in the root, `apps/*` and `packages/*`
+  `package.json` files: the root and every package that isn't private must have it (the witness
+  found a dropped `engines` passed), a private one may leave it out.
+- On the official 22.14.0 build, in a scratch worktree: `pnpm install --frozen-lockfile` passes
+  (pnpm 12.6.0), and `pnpm test:runtime --force` passes (core 449, marketplace 118, rmk 286, mcp 53,
+  web 4700 with 21 skipped).
+- The pin caught something on its first run: `telemetry/start.test.ts` › "imports nothing from
+  OpenTelemetry without an endpoint" spawns Node with `module.registerHooks`, which is Node.js
+  22.15 and 23.5 on. Only that test uses it; the shipped code doesn't. It now skips where
+  `registerHooks` is missing (the target's job runs it), and `test-runs.md` has the rule.
+- The first 22.14.0 run also failed `health.db.test.ts`' 4.5 s deadline by 16 ms under the full
+  parallel load (its log, kept in the session's scratchpad as `188-t7-runtime.log`: "expected
+  4516.288042 to be less than 4500"); the file alone passed 3 runs of 3, and the witness's own full
+  run on 22.14.0 passed it. A timing margin, not the version.
+- **Correction to task 1's notes:** `require("better-sqlite3")` doesn't crash on 22.11–22.13; the
+  binary loads on the first `new Database()`, and that exits 139 (re-measured: `require` exit 0,
+  opening a database exit 139 on 22.11.0, 22.12.0 and 22.13.1; both 0 on 22.14.0). #315's spec and
+  the GitHub issue's repro say so too.

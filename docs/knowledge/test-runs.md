@@ -105,9 +105,15 @@ between.** JavaScript that runs on both ends runs between them, and the server's
 - **The jobs are named by role** ("Lint, typecheck, test, build (target Node.js)", "Runtime tests
   (minimum Node.js)"; `role: target` / `role: minimum` in the matrices), so a new LTS changes
   only the versions, never the job names.
-- **The minimum is a version, not a line.** better-sqlite3 13.2.0 crashed on Node.js 22.12.0 and
-  22.13 (they lack N-API 10), and CI, running the newest 22.x, never saw it. The minimum's jobs
-  should run `MIN_NODE` itself (188, task 7).
+- **The minimum is a version, not a line.** better-sqlite3 crashed opening a database on Node.js
+  22.12 and 22.13 (they lack N-API 10), and CI, running the newest 22.x, never saw it (#315). The
+  minimum's jobs run `MIN_NODE` itself (`- node: 22.14.0`), and the node-versions test fails when
+  they don't.
+- **A test that needs a newer Node.js API than `MIN_NODE`** skips itself where the API is missing
+  (`it.skipIf`), when what it checks doesn't depend on the version: the target's job still runs
+  it. `telemetry/start.test.ts` needs `module.registerHooks` (22.15 on): on 22.14.0 that case is
+  skipped. Anything the shipped code uses must work on `MIN_NODE`; that's what `test:runtime`
+  there is for.
 - **One source:** `.nvmrc` names the target. The Docker base, the bundles' `NODE_MAJOR`, the feed
   workflow `rmk` writes and the role matrices must agree with it, and no other workflow names a
   version. `repo-tools`' node-versions test fails when one drifts.

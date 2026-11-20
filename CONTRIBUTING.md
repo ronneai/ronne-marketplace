@@ -21,7 +21,7 @@ following the [code of conduct](CODE_OF_CONDUCT.md).
 You need:
 
 - **Node.js 26 LTS** (see [`.nvmrc`](.nvmrc)). Develop on it: CI runs everything there. The packages
-  run on 22.14 or later, and CI runs `pnpm test:runtime` on 22.
+  run on 22.14 or later, and CI runs `pnpm test:runtime` on exactly 22.14.0.
 - **pnpm**, installed directly: `npm install --global pnpm`. It then switches to the version pinned
   in `package.json` on its own. Don't use Corepack: current Corepack releases can't start pnpm 12.
   If `pnpm` is a Corepack shim on your machine, run `corepack disable pnpm` first.
@@ -177,7 +177,7 @@ Commit messages and pull request titles use one format:
   the checks you ran, and what the Documentation should say.
 - Don't write "closes #N" or "fixes #N": issues are closed by hand when the fix is released.
 - CI runs lint, typecheck, the tests and the build on the target Node.js (26), `pnpm test:runtime`
-  on the oldest supported line (22), the witness,
+  on the oldest supported version (22.14.0), the witness,
   docs and license checks, CodeQL, the end-to-end tests, and the database tests on PostgreSQL,
   MySQL and MariaDB (all of them when database code changes, the database code's own otherwise). A
   pull request that only changes documentation skips the heavy steps. A draft pull request runs
@@ -207,7 +207,7 @@ here.
 | Command | What it does |
 |---|---|
 | `pnpm test` | Runs every Vitest suite; `pnpm --filter @ronneai/core test` for one package |
-| `pnpm test:runtime` | The tests of the code that runs on a person's Node.js: every suite but the component tests (`*.test.tsx`) and `repo-tools`. CI runs it on Node.js 22, the oldest supported line |
+| `pnpm test:runtime` | The tests of the code that runs on a person's Node.js: every suite but the component tests (`*.test.tsx`) and `repo-tools`. CI runs it on exactly the oldest supported Node.js, `MIN_NODE` (22.14.0) |
 | `pnpm test:db` | Only the database tests (`*.db.test.ts`), on in-memory SQLite or `TEST_DATABASE_URL` |
 | `pnpm test:db:core` | Only the database code's own tests (`db/`, migrations, repositories, setup, backup, scripts) |
 | `pnpm test:db:up` / `pnpm test:db:down` | Starts or stops local PostgreSQL, MySQL and MariaDB test servers at the minimum versions (Docker) |
