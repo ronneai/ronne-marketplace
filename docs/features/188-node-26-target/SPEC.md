@@ -172,7 +172,7 @@ adds them later, the role-based names stay the same across LTS moves.
 
 ## Documentation
 
-- **Website** (ronne-web, branch `feat/marketplace-188-node-26`), en, pt and fr: it names the
+- **Website** (ronne-web, branch `docs/marketplace-315-188-node`, shared with #315), en, pt and fr: it names the
   target in the home page's stack line ("Node.js 24"), the marketplace facts (`nodeRuntime.target`,
   shown as "Node.js 24 (22.14+ works)") and the contributor setup step ("You need Node.js 24 …");
   they say 26. `docs/product-facts.md`'s runtime row too. No topic changes, so `topics.ts` doesn't.

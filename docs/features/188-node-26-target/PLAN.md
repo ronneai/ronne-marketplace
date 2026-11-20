@@ -125,7 +125,7 @@ comes before the version move, so the move's pull request already runs the new j
   - on 22.13.1 opening a database crashes, which shows the pin is what catches it.
 
 - [x] **8. The website.** The Documentation section was wrong: the website names the target. In
-  ronne-web, branch `feat/marketplace-188-node-26` on top of #315's (`486a25a`): the stack line on the home
+  ronne-web, branch `docs/marketplace-315-188-node`, after #315's change (`486a25a`): the stack line on the home
   page, the marketplace facts' `nodeRuntime.target`, the contributor setup step, and
   `docs/product-facts.md`'s runtime row say 26, in en, pt and fr. *Done when:* a search for
   "Node.js 24" and `target: "24"` in `www/src` and `www/messages` finds nothing, and ronne-web's
@@ -349,7 +349,8 @@ LTS; pnpm 12.21.0 installed with npm, which runs the pinned 12.6.0).**
 
 - ronne-web's `main` pinned Next.js 16.4.2, which has seven moderate advisories fixed in 16.4.5;
   its build stopped on the notice. The owner chose to upgrade first: ronne-web `59b0b10` (16.4.6,
-  its own change), then #315's `bbf572c`, then this task's `486a25a`, one branch on the other.
+  its own change), then #315's `bbf572c`, then this task's `486a25a`. They were written on three branches and ship in one,
+  `docs/marketplace-315-188-node`, at the owner's request.
 - `docs/product-facts.md` keeps "24 before it" in the runtime row. It doesn't say 24 is tested:
   no CI job runs it (the owner's decision above).
 
